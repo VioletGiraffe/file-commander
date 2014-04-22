@@ -1,0 +1,3 @@
+[submodule "qtutils"]
+	path = qtutils
+	url = https://github.com/VioletGiraffe/qtutils.git
