@@ -1,0 +1,22 @@
+#pragma once
+
+#ifdef _WIN32
+#pragma warning(push, 0) // set W0
+#endif
+
+#include <QDir>
+#include <QString>
+#include <QObject>
+#include <QFileIconProvider>
+#include <QIcon>
+#include <QProcess>
+#include <QDebug>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QFile>
+#include <QDateTime>
+#include <QHash>
+
+#ifdef _WIN32
+#pragma warning(pop) // set W0
+#endif

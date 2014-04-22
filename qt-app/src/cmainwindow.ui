@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CMainWindow</class>
+ <widget class="QMainWindow" name="CMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>File Commander</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0">
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="contextMenuPolicy">
+       <enum>Qt::CustomContextMenu</enum>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="lineWidth">
+       <number>2</number>
+      </property>
+      <property name="midLineWidth">
+       <number>2</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="opaqueResize">
+       <bool>false</bool>
+      </property>
+      <property name="handleWidth">
+       <number>2</number>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
+      <widget class="CPanelWidget" name="leftPanel" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>281</width>
+         <height>241</height>
+        </size>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
+      </widget>
+      <widget class="CPanelWidget" name="rightPanel" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>281</width>
+         <height>241</height>
+        </size>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
+      </widget>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
+      <item>
+       <widget class="QLabel" name="fullPath">
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="commandLine">
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+        <property name="maxVisibleItems">
+         <number>15</number>
+        </property>
+        <property name="insertPolicy">
+         <enum>QComboBox::InsertAtTop</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="buttons">
+      <property name="spacing">
+       <number>1</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="btnView">
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string>F3 View</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnEdit">
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string>F4 Edit</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnCopy">
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string>F5 Copy</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnMove">
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string>F6 Move</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnNewFolder">
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string>F7 New Folder</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnDelete">
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="contextMenuPolicy">
+         <enum>Qt::CustomContextMenu</enum>
+        </property>
+        <property name="text">
+         <string>F8 Delete</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFiles">
+    <property name="title">
+     <string>&amp;Files</string>
+    </property>
+    <addaction name="actionRefresh"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuCommands">
+    <property name="title">
+     <string>&amp;Commands</string>
+    </property>
+    <addaction name="actionOpen_Console_Here"/>
+    <addaction name="actionShowAllFiles"/>
+   </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <addaction name="action_Settings"/>
+   </widget>
+   <addaction name="menuFiles"/>
+   <addaction name="menuCommands"/>
+   <addaction name="menuOptions"/>
+  </widget>
+  <action name="actionRefresh">
+   <property name="text">
+    <string>&amp;Refresh</string>
+   </property>
+   <property name="shortcut">
+    <string notr="true">Ctrl+F5</string>
+   </property>
+  </action>
+  <action name="actionOpen_Console_Here">
+   <property name="text">
+    <string>&amp;Open  Console Here</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+F2</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>&amp;Exit</string>
+   </property>
+  </action>
+  <action name="actionShowAllFiles">
+   <property name="text">
+    <string>&amp;Show All Files In This Folder And Below</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+B</string>
+   </property>
+  </action>
+  <action name="action_Settings">
+   <property name="text">
+    <string>&amp;Settings</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CPanelWidget</class>
+   <extends>QWidget</extends>
+   <header>panel/cpanelwidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
