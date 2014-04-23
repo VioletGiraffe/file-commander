@@ -2,7 +2,7 @@ TEMPLATE = lib
 TARGET   = core
 DESTDIR  = ../bin
 
-QT = core gui
+QT = core gui #gui is required for QFileIconProvider
 CONFIG += staticlib c++11
 
 #check Qt version
@@ -45,6 +45,8 @@ INCLUDEPATH += \
 	$$PWD/include \
 	../qtutils \
 	../qtsystems/src/systeminfo
+
+include(src/pluginengine/pluginengine.pri)
 
 win*{
 	QMAKE_CXXFLAGS += /MP

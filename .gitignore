@@ -172,3 +172,9 @@ UpgradeLog*.htm
 
 # Microsoft Fakes
 FakesAssemblies/
+
+*.vc*proj*
+*.sln
+Makefile
+Makefile.Debug
+Makefile.Release
