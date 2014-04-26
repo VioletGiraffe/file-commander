@@ -47,7 +47,7 @@ void CController::tabRemoved (Panel /*panel*/, int /*tabId*/)
 }
 
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any
-FileOperationResultCode CController::itemActivated(uint itemHash, Panel p)
+FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 {
 	auto& item = panel(p).itemByHash(itemHash);
 	if (item.isDir())
@@ -210,12 +210,12 @@ const CFileSystemObject& CController::itemByIndex( Panel p, size_t index ) const
 	return panel(p).itemByIndex(index);
 }
 
-const CFileSystemObject& CController::itemByHash( Panel p, uint hash ) const
+const CFileSystemObject& CController::itemByHash( Panel p, qulonglong hash ) const
 {
 	return panel(p).itemByHash(hash);
 }
 
-std::vector<CFileSystemObject> CController::items(Panel p, const std::vector<uint>& hashes) const
+std::vector<CFileSystemObject> CController::items(Panel p, const std::vector<qulonglong>& hashes) const
 {
 	std::vector<CFileSystemObject> objects;
 	std::for_each(hashes.begin(), hashes.end(), [&objects, p, this] (uint hash) {objects.push_back(itemByHash(p, hash));});
@@ -227,7 +227,7 @@ size_t CController::numItems(Panel p) const
 	return panel(p).list().size();
 }
 
-QString CController::itemPath(Panel p, uint hash) const
+QString CController::itemPath(Panel p, qulonglong hash) const
 {
 	return panel(p).itemByHash(hash).properties().fullPath;
 }
@@ -238,7 +238,7 @@ QString CController::diskPath(size_t index) const
 }
 
 // Returns hash of an item that was the last selected in the specified dir
-uint CController::currentItemInFolder(Panel p, const QString &dir) const
+qulonglong CController::currentItemInFolder(Panel p, const QString &dir) const
 {
 	return panel(p).currentItemInFolder(dir);
 }

@@ -126,7 +126,7 @@ QString CPanel::currentDirName() const
 	return toNativeSeparators(_currentDir.dirName());
 }
 
-uint CPanel::currentItemInFolder(const QString &dir) const
+qulonglong CPanel::currentItemInFolder(const QString &dir) const
 {
 	if (_cursorPosForFolder.count(dir) > 0)
 		return _cursorPosForFolder.at(dir);
@@ -190,13 +190,13 @@ CFileSystemObject &CPanel::itemByIndex(size_t index)
 	}
 }
 
-const CFileSystemObject& CPanel::itemByHash( uint hash ) const
+const CFileSystemObject& CPanel::itemByHash( qulonglong hash ) const
 {
 	assert(_indexByHash.count(hash) > 0);
 	return itemByIndex(_indexByHash.at(hash));
 }
 
-CFileSystemObject& CPanel::itemByHash( uint hash )
+CFileSystemObject& CPanel::itemByHash( qulonglong hash )
 {
 	assert(_indexByHash.count(hash) > 0);
 	return itemByIndex(_indexByHash[hash]);

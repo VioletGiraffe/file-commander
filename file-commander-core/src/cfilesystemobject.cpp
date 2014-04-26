@@ -41,7 +41,10 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 	_properties.modificationDate  = _fileInfo.lastModified().toTime_t();
 	_properties.size              = _fileInfo.size();
 	_properties.type              = _type;
-	_properties.hash              = qHash(_properties.fullPath);
+
+	const QByteArray hash = QCryptographicHash::hash(_properties.fullPath.toUtf8(), QCryptographicHash::Md5);
+	assert(hash.size() == 16);
+	_properties.hash              = *(qulonglong*)(hash.data()) ^ *(qulonglong*)(hash.data()+8);
 
 	_properties.permissions.read  = _fileInfo.isReadable();
 	_properties.permissions.write = _fileInfo.isWritable();
@@ -361,24 +364,9 @@ QString CFileSystemObject::fileName() const
 	return _fileInfo.fileName();
 }
 
-uint CFileSystemObject::hash() const
+qulonglong CFileSystemObject::hash() const
 {
 	return _properties.hash;
-}
-
-QString fileSizeToString(uint64_t size)
-{
-	const unsigned int KB = 1024;
-	const unsigned int MB = 1024 * KB;
-	const unsigned int GB = 1024 * MB;
-	if (size >= GB)
-		return QString("%1 GiB").arg(QString::number(size / float(GB), 'f', 1));
-	else if (size >= MB)
-		return QString("%1 MiB").arg(QString::number(size / float(MB), 'f', 1));
-	else if (size >= KB)
-		return QString("%1 KiB").arg(QString::number(size / float(KB), 'f', 1));
-	else
-		return QString("%1 B").arg(size);
 }
 
 std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPath, bool includeFolders)
@@ -406,4 +394,19 @@ std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPath, boo
 		objects.push_back(CFileSystemObject(QFileInfo(dirPath)));
 
 	return objects;
+}
+
+QString fileSizeToString(uint64_t size)
+{
+	const unsigned int KB = 1024;
+	const unsigned int MB = 1024 * KB;
+	const unsigned int GB = 1024 * MB;
+	if (size >= GB)
+		return QString("%1 GiB").arg(QString::number(size / float(GB), 'f', 1));
+	else if (size >= MB)
+		return QString("%1 MiB").arg(QString::number(size / float(MB), 'f', 1));
+	else if (size >= KB)
+		return QString("%1 KiB").arg(QString::number(size / float(KB), 'f', 1));
+	else
+		return QString("%1 B").arg(size);
 }

@@ -40,8 +40,8 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	if (!r)
 		return false;
 
-	const uint leftHash = l->data(Qt::UserRole).toUInt();
-	const uint rightHash = r->data(Qt::UserRole).toUInt();
+	const qulonglong leftHash = l->data(Qt::UserRole).toULongLong();
+	const qulonglong rightHash = r->data(Qt::UserRole).toULongLong();
 
 	const CFileSystemObject& leftItem = _controller->itemByHash(_panel, leftHash), rightItem = _controller->itemByHash(_panel, rightHash);
 

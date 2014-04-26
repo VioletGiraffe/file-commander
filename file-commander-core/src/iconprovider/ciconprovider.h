@@ -14,7 +14,7 @@ public:
 
 private:
 	static std::unordered_map<quint64, QIcon> _iconCache;
-	static std::unordered_map<uint, quint64>  _iconForObject;
+	static std::unordered_map<qulonglong, quint64>  _iconForObject;
 };
 
 #endif // CICONPROVIDER_H

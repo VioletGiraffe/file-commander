@@ -40,12 +40,12 @@ public:
 	void fillFromList(const std::vector<CFileSystemObject>& items);
 	void fillFromPanel(const CPanel& panel);
 
-	std::vector<uint> selectedItemsHashes() const;
+	std::vector<qulonglong> selectedItemsHashes() const;
 
 	virtual void panelContentsChanged(Panel p);
 
 signals:
-	void itemActivated(uint hash, CPanelWidget * panel);
+	void itemActivated(qulonglong hash, CPanelWidget * panel);
 	void backSpacePressed(CPanelWidget * panel);
 	void stepBackRequested(CPanelWidget * panel);
 	void stepForwardRequested(CPanelWidget * panel);
@@ -67,9 +67,9 @@ private slots:
 private:
 	virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex);
 
-	uint hashByItemIndex(const QModelIndex& index) const;
-	uint hashByItemRow(const int row) const;
-	QModelIndex indexByHash(const uint hash) const;
+	qulonglong hashByItemIndex(const QModelIndex& index) const;
+	qulonglong hashByItemRow(const int row) const;
+	QModelIndex indexByHash(const qulonglong hash) const;
 
 private:
 	QString                         _currentPath;

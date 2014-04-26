@@ -113,7 +113,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
 	const time_t start = clock();
 
 	// Remembering currently highlighted item to restore cursor afterwards
-	const uint currentItemHash = hashByItemIndex(_selectionModel->currentIndex());
+	const qulonglong currentItemHash = hashByItemIndex(_selectionModel->currentIndex());
 	const int currentItemRow = std::max(_selectionModel->currentIndex().row(), 0);
 
 	QList<QStandardItem*> itemsToAdd;
@@ -180,7 +180,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
 	}
 	if (!cursorSet)
 	{
-		const uint lastVisitedItemInDirectory = _panelPosition == UnknownPanel ? 0 : _controller->currentItemInFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPath());
+		const qulonglong lastVisitedItemInDirectory = _panelPosition == UnknownPanel ? 0 : _controller->currentItemInFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPath());
 		if (lastVisitedItemInDirectory != 0)
 		{
 			const QModelIndex lastVisitedIndex = indexByHash(lastVisitedItemInDirectory);
@@ -198,7 +198,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel)
 {
 	auto& itemList = panel.list();
 	const auto previousSelection = selectedItemsHashes();
-	std::set<uint> selectedItemsHashes; // For fast search
+	std::set<qulonglong> selectedItemsHashes; // For fast search
 	for (auto hash = previousSelection.begin(); hash != previousSelection.end(); ++hash)
 		selectedItemsHashes.insert(*hash);
 
@@ -207,7 +207,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel)
 	// Restoring previous selection
 	for (int row = 0; row < _sortModel->rowCount(); ++row)
 	{
-		const uint hash = hashByItemRow(row);
+		const qulonglong hash = hashByItemRow(row);
 		if (selectedItemsHashes.count(hash) != 0)
 			_selectionModel->select(_sortModel->index(row, 0), QItemSelectionModel::Rows | QItemSelectionModel::Select);
 	}
@@ -224,7 +224,7 @@ void CPanelWidget::itemActivatedSlot(QModelIndex item)
 {
 	assert(item.isValid());
 	QModelIndex source = _sortModel->mapToSource(item);
-	const uint hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toUInt();
+	const qulonglong hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toULongLong();
 	emit itemActivated(hash, this);
 }
 
@@ -305,16 +305,16 @@ void CPanelWidget::driveButtonClicked()
 	_controller->diskSelected(_panelPosition, id);
 }
 
-std::vector<uint> CPanelWidget::selectedItemsHashes() const
+std::vector<qulonglong> CPanelWidget::selectedItemsHashes() const
 {
 	auto selection = _selectionModel->selectedRows();
-	std::vector<uint> result;
+	std::vector<qulonglong> result;
 
 	if (!selection.empty())
 	{
 		for (auto it = selection.begin(); it != selection.end(); ++it)
 		{
-			const uint hash = hashByItemIndex(*it);
+			const qulonglong hash = hashByItemIndex(*it);
 			result.push_back(hash);
 		}
 	}
@@ -372,24 +372,24 @@ void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Pane
 	}
 }
 
-uint CPanelWidget::hashByItemIndex(const QModelIndex &index) const
+qulonglong CPanelWidget::hashByItemIndex(const QModelIndex &index) const
 {
 	if (!index.isValid())
 		return 0;
 	QStandardItem * item = _model->item(_sortModel->mapToSource(index).row(), 0);
 	assert(item);
 	bool ok = false;
-	const uint hash = item->data(Qt::UserRole).toUInt(&ok);
+	const qulonglong hash = item->data(Qt::UserRole).toULongLong(&ok);
 	assert(ok);
 	return hash;
 }
 
-uint CPanelWidget::hashByItemRow(const int row) const
+qulonglong CPanelWidget::hashByItemRow(const int row) const
 {
 	return hashByItemIndex(_sortModel->index(row, 0));
 }
 
-QModelIndex CPanelWidget::indexByHash(const uint hash) const
+QModelIndex CPanelWidget::indexByHash(const qulonglong hash) const
 {
 	for(int row = 0; row < _sortModel->rowCount(); ++row)
 		if (hashByItemRow(row) == hash)

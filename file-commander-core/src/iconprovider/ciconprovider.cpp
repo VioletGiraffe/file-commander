@@ -21,5 +21,5 @@ const QIcon& CIconProvider::iconForFilesystemObject( const CFileSystemObject& ob
 	return _iconCache[_iconForObject[object.properties().hash]];
 }
 
-std::unordered_map<uint, quint64> CIconProvider::_iconForObject;
+std::unordered_map<qulonglong, quint64> CIconProvider::_iconForObject;
 std::unordered_map<quint64, QIcon> CIconProvider::_iconCache;

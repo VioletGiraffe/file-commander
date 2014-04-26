@@ -19,7 +19,7 @@ struct CFileSystemObjectProperties {
 	uint64_t size;
 	time_t   creationDate;
 	time_t   modificationDate;
-	uint     hash;
+	qulonglong hash;
 	struct Permissions
 	{
 		Permissions() : read(false), write(false), exec(false) {}
@@ -54,7 +54,7 @@ public:
 	QString fileName() const;
 	const QIcon& icon() const;
 	uint64_t size() const;
-	uint hash() const;
+	qulonglong hash() const;
 
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);

@@ -9,9 +9,9 @@
 
 struct ItemId
 {
-	ItemId (size_t index_, uint hash_) : index(index_), hash(hash_) {}
+	ItemId (size_t index_, qulonglong hash_) : index(index_), hash(hash_) {}
 	size_t index;
-	uint   hash;
+	qulonglong hash;
 };
 
 class CController : private CDiskEnumerator::IDiskListObserver
@@ -38,7 +38,7 @@ public:
 	// Removes a tab for the specified panel and tab ID
 	void tabRemoved(Panel panel, int tabId);
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
-	FileOperationResultCode itemActivated(uint itemHash, Panel p);
+	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current disk has been switched
 	void diskSelected(Panel p, size_t index);
 	// Program settings have changed
@@ -68,14 +68,14 @@ public:
 	const CPanel& panel(Panel p) const;
 	CPanel& panel(Panel p);
 	const CFileSystemObject& itemByIndex(Panel p, size_t index) const;
-	const CFileSystemObject& itemByHash(Panel p, uint hash) const;
-	std::vector<CFileSystemObject> items (Panel p, const std::vector<uint>& hashes) const;
+	const CFileSystemObject& itemByHash(Panel p, qulonglong hash) const;
+	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
 	size_t numItems(Panel p) const;
-	QString itemPath(Panel p, uint hash) const;
+	QString itemPath(Panel p, qulonglong hash) const;
 	QString diskPath(size_t index) const;
 
 	// Returns hash of an item that was the last selected in the specified dir
-	uint currentItemInFolder(Panel p, const QString& dir) const;
+	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
 
 private:
 	CController();

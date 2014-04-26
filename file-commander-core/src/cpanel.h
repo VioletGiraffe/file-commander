@@ -41,7 +41,7 @@ public:
 	QString currentDirName () const;
 
 	// Returns hash of an item that was the last selected in the specified dir
-	uint currentItemInFolder(const QString& dir) const;
+	qulonglong currentItemInFolder(const QString& dir) const;
 
 	// Enumerates objects in the current directory
 	void refreshFileList ();
@@ -52,8 +52,8 @@ public:
 	const CFileSystemObject& itemByIndex (size_t index) const;
 	CFileSystemObject& itemByIndex (size_t index);
 
-	const CFileSystemObject& itemByHash (uint hash) const;
-	CFileSystemObject& itemByHash (uint hash);
+	const CFileSystemObject& itemByHash (qulonglong hash) const;
+	CFileSystemObject& itemByHash (qulonglong hash);
 
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void calculateDirSize(size_t dirIndex);
@@ -68,15 +68,15 @@ private slots:
 
 private:
 	QDir _currentDir;
-	std::vector<CFileSystemObject>      _list;
-	std::vector<QString>                _history;
-	std::map<QString, uint /*hash*/>    _cursorPosForFolder;
-	std::map<uint, size_t>              _indexByHash;
-	size_t                              _currentHistoryLocation;
-	std::shared_ptr<QFileSystemWatcher> _watcher;
-	static const size_t                 noHistory = SIZE_MAX;
+	std::vector<CFileSystemObject>         _list;
+	std::vector<QString>                   _history;
+	std::map<QString, qulonglong /*hash*/> _cursorPosForFolder;
+	std::map<qulonglong, size_t>           _indexByHash;
+	size_t                                 _currentHistoryLocation;
+	std::shared_ptr<QFileSystemWatcher>    _watcher;
+	static const size_t                    noHistory = SIZE_MAX;
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
-	const Panel                         _panelPosition;
+	const Panel                            _panelPosition;
 };
 
 #endif // CPANEL_H

@@ -41,7 +41,7 @@ protected:
 	virtual void closeEvent(QCloseEvent * e);
 
 private slots: // For UI
-	void itemActivated(uint hash, CPanelWidget * panel);
+	void itemActivated(qulonglong hash, CPanelWidget * panel);
 	void backSpacePressed(CPanelWidget * widget);
 	void stepBackRequested(CPanelWidget * panel);
 	void stepForwardRequested(CPanelWidget * panel);

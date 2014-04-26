@@ -35,8 +35,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_currentPanel = ui->leftPanel;
 	_otherPanel   = ui->rightPanel;
 
-	connect(ui->leftPanel, SIGNAL(itemActivated(uint,CPanelWidget*)), SLOT(itemActivated(uint,CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(itemActivated(uint,CPanelWidget*)), SLOT(itemActivated(uint,CPanelWidget*)));
+	connect(ui->leftPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
+	connect(ui->rightPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
 
 	connect(ui->leftPanel, SIGNAL(backSpacePressed(CPanelWidget*)), SLOT(backSpacePressed(CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(backSpacePressed(CPanelWidget*)), SLOT(backSpacePressed(CPanelWidget*)));
@@ -150,7 +150,7 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	}
 }
 
-void CMainWindow::itemActivated(uint hash, CPanelWidget *panel)
+void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
 	const FileOperationResultCode result = _controller->itemActivated(hash, panel->panelPosition());
 	switch (result)
