@@ -1,7 +1,9 @@
 #include "cpluginengine.h"
-#include "cfilecommanderplugin.h"
+#include "../ccontroller.h"
 
-CPluginEngine::CPluginEngine()
+#include <assert.h>
+
+CPluginEngine::CPluginEngine() : _controller(CController::get())
 {
 }
 
@@ -34,4 +36,38 @@ void CPluginEngine::loadPlugins()
 const std::vector<std::pair<CFileCommanderPlugin*, std::shared_ptr<QLibrary> > >& CPluginEngine::plugins() const
 {
 	return _plugins;
+}
+
+void CPluginEngine::panelContentsChanged(Panel p)
+{
+	std::map<qulonglong /*hash*/, CFileSystemObject> contents;
+	for(const CFileSystemObject& object: _controller.panel(p).list())
+		contents[object.hash()] = object;
+
+	for(auto& plugin: _plugins)
+	{
+		plugin.first->panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), _controller.panel(p).currentDirName(), contents);
+	}
+}
+
+void CPluginEngine::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)
+{
+	for(auto& plugin: _plugins)
+	{
+		plugin.first->selectionChanged(pluginPanelEnumFromCorePanelEnum(p), selectedItemsHashes);
+	}
+}
+
+void CPluginEngine::currentItemChanged(Panel p, qulonglong currentItemHash)
+{
+	for(auto& plugin: _plugins)
+	{
+		plugin.first->currentItemChanged(pluginPanelEnumFromCorePanelEnum(p), currentItemHash);
+	}
+}
+
+CFileCommanderPlugin::PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
+{
+	assert(p!=UnknownPanel);
+	return p == LeftPanel ? CFileCommanderPlugin::PluginLeftPanel : CFileCommanderPlugin::PluginRightPanel;
 }

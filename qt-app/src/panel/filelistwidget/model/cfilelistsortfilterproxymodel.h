@@ -19,7 +19,7 @@ protected:
 	virtual bool lessThan(const QModelIndex &left, const QModelIndex &right) const;
 
 private:
-	CController   * _controller;
+	CController   & _controller;
 	Panel           _panel;
 	CNaturalSorting _sorter;
 };

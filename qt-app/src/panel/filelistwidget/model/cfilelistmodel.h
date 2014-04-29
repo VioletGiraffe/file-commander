@@ -17,7 +17,7 @@ public:
 	QTreeView * treeView() const;
 
 private:
-	CController * _controller;
+	CController & _controller;
 	QTreeView   * _tree;
 	Panel         _panel;
 };

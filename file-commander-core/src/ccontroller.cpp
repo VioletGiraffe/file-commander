@@ -8,18 +8,27 @@
 CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _diskEnumerator(CDiskEnumerator::instance())
 {
 	_diskEnumerator.addObserver(this);
+	_pluginEngine.loadPlugins();
+
+	_leftPanel.addPanelContentsChangedListener(&_pluginEngine);
+	_rightPanel.addPanelContentsChangedListener(&_pluginEngine);
 }
 
-CController *CController::get()
+CController& CController::get()
 {
 	static CController cnt;
-	return &cnt;
+	return cnt;
+}
+
+CPluginEngine&CController::pluginEngine()
+{
+	return _pluginEngine;
 }
 
 void CController::setPanelContentsChangedListener(PanelContentsChangedListener *listener)
 {
-	_leftPanel.setPanelContentsChangedListener(listener);
-	_rightPanel.setPanelContentsChangedListener(listener);
+	_leftPanel.addPanelContentsChangedListener(listener);
+	_rightPanel.addPanelContentsChangedListener(listener);
 }
 
 void CController::setDisksChangedListener(CController::IDiskListObserver *listener)

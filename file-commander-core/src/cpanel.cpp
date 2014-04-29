@@ -235,7 +235,7 @@ void CPanel::contentsChanged(QString /*path*/)
 	refreshFileList();
 }
 
-void CPanel::setPanelContentsChangedListener(PanelContentsChangedListener *listener)
+void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *listener)
 {
 	assert(std::find(_panelContentsChangedListeners.begin(), _panelContentsChangedListeners.end(), listener) == _panelContentsChangedListeners.end()); // Why would we want to set the same listener twice? That'd probably be a mistake.
 	_panelContentsChangedListeners.push_back(listener);

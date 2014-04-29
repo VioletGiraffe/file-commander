@@ -14,30 +14,35 @@ typedef CFileCommanderPlugin* (*CreatePluginFunc)();
 class PLUGIN_EXPORT_ONLY CFileCommanderPlugin
 {
 public:
-	enum PanelPosition {LeftPanel, RightPanel, UnknownPanel};
+
+	enum PanelPosition {PluginLeftPanel, PluginRightPanel, PluginUnknownPanel};
+
+	enum PluginType {Viewer, Archive, Tool};
+
 	struct PanelState {
+		PanelState() : currentItemHash(0) {}
+
 		std::map<qulonglong/*hash*/, CFileSystemObject> panelContents;
 		std::vector<qulonglong/*hash*/>                 selectedItemsHashes;
+		qulonglong                                      currentItemHash;
 		QString                                         currentFolder;
 	};
 
 	CFileCommanderPlugin();
 	virtual ~CFileCommanderPlugin() = 0;
 
+	virtual PluginType type() = 0;
+	virtual QString name();
+
 // Events and data updates from the core
 	virtual void panelContentsChanged(PanelPosition panel, const QString& folder, std::map<qulonglong /*hash*/, CFileSystemObject>& contents);
 
 // Events and data updates from UI
 	virtual void selectionChanged(PanelPosition panel, std::vector<qulonglong/*hash*/> selectedItemsHashes);
-
-protected:
+	virtual void currentItemChanged(PanelPosition panel, qulonglong currentItemHash);
 
 protected:
 	std::map<PanelPosition, PanelState> _panelState;
-
-private:
-
-
 };
 
 #endif // CFILECOMMANDERPLUGIN_H

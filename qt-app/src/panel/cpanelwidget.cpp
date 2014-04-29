@@ -33,7 +33,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
 
-	_controller->setDisksChangedListener(this);
+	_controller.setDisksChangedListener(this);
 }
 
 CPanelWidget::~CPanelWidget()
@@ -103,8 +103,10 @@ void CPanelWidget::setPanelPosition(Panel p)
 	connect(_sortModel, SIGNAL(modelAboutToBeReset()), ui->_list, SLOT(modelAboutToBeReset()));
 	_selectionModel = ui->_list->selectionModel(); // can only be called after setModel
 	assert(_selectionModel);
+	connect(_selectionModel, SIGNAL(selectionChanged(QItemSelection,QItemSelection)), SLOT(selectionChanged(QItemSelection,QItemSelection)));
+	connect(_selectionModel, SIGNAL(currentChanged(QModelIndex,QModelIndex)), SLOT(currentItemChanged(QModelIndex,QModelIndex)));
 
-	_controller->setPanelContentsChangedListener(this);
+	_controller.setPanelContentsChangedListener(this);
 }
 
 // Returns the list of items added to the view
@@ -180,7 +182,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
 	}
 	if (!cursorSet)
 	{
-		const qulonglong lastVisitedItemInDirectory = _panelPosition == UnknownPanel ? 0 : _controller->currentItemInFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPath());
+		const qulonglong lastVisitedItemInDirectory = _panelPosition == UnknownPanel ? 0 : _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPath());
 		if (lastVisitedItemInDirectory != 0)
 		{
 			const QModelIndex lastVisitedIndex = indexByHash(lastVisitedItemInDirectory);
@@ -233,14 +235,14 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 	const auto selection = selectedItemsHashes();
 	std::vector<std::wstring> paths;
 	if (selection.empty())
-		paths.push_back(_controller->panel(_panelPosition).currentDirPath().toStdWString());
+		paths.push_back(_controller.panel(_panelPosition).currentDirPath().toStdWString());
 	else
 	{
 		for (size_t i = 0; i < selection.size(); ++i)
 		{
-			if (!_controller->itemByHash(_panelPosition, selection[i]).isCdUp() || selection.size() == 1)
+			if (!_controller.itemByHash(_panelPosition, selection[i]).isCdUp() || selection.size() == 1)
 			{
-				QString selectedItemPath = _controller->itemPath(_panelPosition, selection[i]);
+				QString selectedItemPath = _controller.itemPath(_panelPosition, selection[i]);
 				paths.push_back(selectedItemPath.toStdWString());
 			}
 			else if (!selection.empty())
@@ -263,7 +265,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 
 	pos = button->mapToGlobal(pos);
 	const size_t diskId = size_t(button->property("id").toUInt());
-	std::vector<std::wstring> diskPath(1, _controller->diskPath(diskId).toStdWString());
+	std::vector<std::wstring> diskPath(1, _controller.diskPath(diskId).toStdWString());
 	CShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), (HWND)winId());
 #else
 	Q_UNUSED(pos);
@@ -281,7 +283,7 @@ void CPanelWidget::calcDirectorySize()
 	if (itemIndex.isValid())
 	{
 		_selectionModel->select(itemIndex, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
-		_controller->calculateDirSize(_panelPosition, itemIndex.row());
+		_controller.calculateDirSize(_panelPosition, itemIndex.row());
 	}
 }
 
@@ -302,7 +304,17 @@ void CPanelWidget::driveButtonClicked()
 		return;
 
 	const size_t id = size_t(sender()->property("id").toUInt());
-	_controller->diskSelected(_panelPosition, id);
+	_controller.diskSelected(_panelPosition, id);
+}
+
+void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection /*deselected*/)
+{
+	_controller.pluginEngine().selectionChanged(_panelPosition, selectedItemsHashes());
+}
+
+void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex& /*previous*/)
+{
+	_controller.pluginEngine().currentItemChanged(_panelPosition, current.isValid() ? hashByItemIndex(current) : 0);
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes() const
@@ -462,5 +474,5 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 void CPanelWidget::panelContentsChanged( Panel p )
 {
 	if (p == _panelPosition)
-		fillFromPanel(_controller->panel(_panelPosition));
+		fillFromPanel(_controller.panel(_panelPosition));
 }

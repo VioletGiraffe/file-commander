@@ -4,6 +4,11 @@ CFileCommanderPlugin::CFileCommanderPlugin()
 {
 }
 
+QString CFileCommanderPlugin::name()
+{
+	return QString();
+}
+
 CFileCommanderPlugin::~CFileCommanderPlugin()
 {
 }
@@ -20,4 +25,10 @@ void CFileCommanderPlugin::selectionChanged(CFileCommanderPlugin::PanelPosition 
 {
 	PanelState& state = _panelState[panel];
 	state.selectedItemsHashes = selectedItemsHashes;
+}
+
+void CFileCommanderPlugin::currentItemChanged(CFileCommanderPlugin::PanelPosition panel, qulonglong currentItemHash)
+{
+	PanelState& state = _panelState[panel];
+	state.currentItemHash = currentItemHash;
 }

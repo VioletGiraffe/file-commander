@@ -72,7 +72,7 @@ private slots: // For UI
 
 private:
 	Ui::CMainWindow * ui;
-	CController     * _controller;
+	CController     & _controller;
 	CPanelWidget    * _currentPanel;
 	CPanelWidget    * _otherPanel;
 

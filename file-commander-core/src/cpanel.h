@@ -24,7 +24,7 @@ class CPanel : public QObject
 	Q_OBJECT
 
 public:
-	void setPanelContentsChangedListener(PanelContentsChangedListener * listener);
+	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 
 	CPanel(Panel position);
 	// Sets the current directory
@@ -67,7 +67,7 @@ private slots:
 	void contentsChanged (QString path);
 
 private:
-	QDir _currentDir;
+	QDir                                   _currentDir;
 	std::vector<CFileSystemObject>         _list;
 	std::vector<QString>                   _history;
 	std::map<QString, qulonglong /*hash*/> _cursorPosForFolder;

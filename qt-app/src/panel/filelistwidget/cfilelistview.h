@@ -45,7 +45,7 @@ private slots:
 private:
 	QByteArray    _headerGeometry;
 	QByteArray    _headerState;
-	CController * _controller;
+	CController & _controller;
 	enum Panel    _panelPosition;
 	bool          _bHeaderAdjustmentRequired;
 };

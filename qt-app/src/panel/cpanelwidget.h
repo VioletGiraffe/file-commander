@@ -63,6 +63,8 @@ private slots:
 	void calcDirectorySize();
 	void invertCurrentItemSelection();
 	void driveButtonClicked();
+	void selectionChanged(QItemSelection selected, QItemSelection deselected);
+	void currentItemChanged(QModelIndex current, QModelIndex& previous);
 
 private:
 	virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex);
@@ -75,7 +77,7 @@ private:
 	QString                         _currentPath;
 	std::vector<CFileSystemObject>  _disks;
 	Ui::CPanelWidget              * ui;
-	CController                   * _controller;
+	CController                   & _controller;
 	QItemSelectionModel           * _selectionModel;
 	CFileListModel                * _model;
 	CFileListSortFilterProxyModel * _sortModel;
