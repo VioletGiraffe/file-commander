@@ -27,7 +27,8 @@ HEADERS += \
 	src/utils/ctimeelapsed.h \
 	src/shell/cshell.h \
 	include/settings.h \
-	include/QtCoreIncludes
+	include/QtCoreIncludes \
+    src/pluginengine/plugin_export.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \

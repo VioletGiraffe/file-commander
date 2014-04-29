@@ -48,9 +48,9 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	const bool descendingOrder = sortOrder() == Qt::DescendingOrder;
 	// Folders always before files, no matter the sorting column and direction
 	if (leftItem.isDir() && !rightItem.isDir())
-		return true != descendingOrder;  // XOR with sort order to always keep directory on top
+		return !descendingOrder;  // always keep directory on top
 	else if (!leftItem.isDir() && rightItem.isDir())
-		return false != descendingOrder; // XOR with sort order to always keep directory on top
+		return descendingOrder;   // always keep directory on top
 
 	// [..] is always on top
 	if (leftItem.name() == "[..]")
