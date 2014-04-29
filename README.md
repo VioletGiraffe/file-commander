@@ -1,7 +1,7 @@
 File Commander
 ==============
 
-Qt-based cross-platform Total Commander-like file manager for Windows, Mac and Linux
+Qt-based cross-platform Total Commander-like file manager for Windows, Mac and Linux with support for plugins.
 
 **Building**
 
