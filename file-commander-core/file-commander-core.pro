@@ -27,8 +27,7 @@ HEADERS += \
 	src/utils/ctimeelapsed.h \
 	src/shell/cshell.h \
 	include/settings.h \
-	include/QtCoreIncludes \
-    src/pluginengine/plugin_export.h
+	include/QtCoreIncludes
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -44,8 +43,7 @@ DEFINES += _SCL_SECURE_NO_WARNINGS
 
 INCLUDEPATH += \
 	$$PWD/include \
-	../qtutils \
-	../qtsystems/src/systeminfo
+	../qtutils
 
 include(src/pluginengine/pluginengine.pri)
 
@@ -64,4 +62,4 @@ linux*|mac*{
 	QMAKE_CXXFLAGS += --std=c++11
 }
 
-LIBS += -L../bin -lqtutils
+LIBS += -L../bin -lqtutils -lplugininterface

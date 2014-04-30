@@ -16,6 +16,7 @@
 #include <QFile>
 #include <QDateTime>
 #include <QCryptographicHash>
+#include <QLibrary>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0

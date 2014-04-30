@@ -28,12 +28,12 @@ void CPluginEngine::loadPlugins()
 		{
 			CFileCommanderPlugin * plugin = createFunc();
 			if (plugin)
-				_plugins.emplace_back(std::make_pair(plugin, pluginModule));
+				_plugins.emplace_back(std::make_pair(std::shared_ptr<CFileCommanderPlugin>(plugin), pluginModule));
 		}
 	}
 }
 
-const std::vector<std::pair<CFileCommanderPlugin*, std::shared_ptr<QLibrary> > >& CPluginEngine::plugins() const
+const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary> > >& CPluginEngine::plugins() const
 {
 	return _plugins;
 }

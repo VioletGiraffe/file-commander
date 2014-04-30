@@ -312,7 +312,7 @@ void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection 
 	_controller.pluginEngine().selectionChanged(_panelPosition, selectedItemsHashes());
 }
 
-void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex& /*previous*/)
+void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previous*/)
 {
 	_controller.pluginEngine().currentItemChanged(_panelPosition, current.isValid() ? hashByItemIndex(current) : 0);
 }

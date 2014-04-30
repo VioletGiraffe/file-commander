@@ -1,17 +1,22 @@
 #ifndef CFILECOMMANDERPLUGIN_H
 #define CFILECOMMANDERPLUGIN_H
 
-#include "../cfilesystemobject.h"
+#include "../../file-commander-core/src/cfilesystemobject.h"
 #include "plugin_export.h"
 
-#include "QtIncludes"
+#include "QtCoreIncludes"
 #include <map>
+
+#ifdef _WIN32
+#pragma warning (push)
+#pragma warning (disable: 4251)
+#endif
 
 class CFileCommanderPlugin;
 
 typedef CFileCommanderPlugin* (*CreatePluginFunc)();
 
-class PLUGIN_EXPORT_ONLY CFileCommanderPlugin
+class PLUGIN_EXPORT CFileCommanderPlugin
 {
 public:
 
@@ -44,5 +49,9 @@ public:
 protected:
 	std::map<PanelPosition, PanelState> _panelState;
 };
+
+#ifdef _WIN32
+#pragma warning (pop)
+#endif
 
 #endif // CFILECOMMANDERPLUGIN_H
