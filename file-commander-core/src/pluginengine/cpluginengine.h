@@ -18,9 +18,10 @@ public:
 	void loadPlugins();
 	const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary> > >& plugins() const;
 
-	virtual void panelContentsChanged(Panel p);
-	virtual void selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes);
-	virtual void currentItemChanged(Panel p, qulonglong currentItemHash);
+	virtual void panelContentsChanged(Panel p) override;
+	void selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes);
+	void currentItemChanged(Panel p, qulonglong currentItemHash);
+	void currentPanelChanged(Panel p);
 
 private:
 	CPluginEngine& operator=(const CPluginEngine&) {}

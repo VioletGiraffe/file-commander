@@ -13,4 +13,4 @@ qt_app.subdir  = qt-app
 qt_app.depends = file_commander_core qtutils
 
 imageviewerplugin.subdir = plugins/viewer/imageviewer
-imageviewer.depends = plugininterface
+imageviewer.depends = core plugininterface

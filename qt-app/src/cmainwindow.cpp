@@ -190,6 +190,9 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 
 	_currentPanel = panel;
 	_otherPanel   = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
+
+	if (panel)
+		_controller.pluginEngine().currentPanelChanged(panel->panelPosition());
 }
 
 void CMainWindow::folderPathSet(QString path, const CPanelWidget *panel)

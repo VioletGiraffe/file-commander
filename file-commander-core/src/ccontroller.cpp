@@ -20,7 +20,7 @@ CController& CController::get()
 	return cnt;
 }
 
-CPluginEngine&CController::pluginEngine()
+CPluginEngine& CController::pluginEngine()
 {
 	return _pluginEngine;
 }

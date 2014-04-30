@@ -1,6 +1,7 @@
 #include "cfilecommanderplugin.h"
 
-CFileCommanderPlugin::CFileCommanderPlugin()
+CFileCommanderPlugin::CFileCommanderPlugin() :
+	_currentPanel(PluginUnknownPanel)
 {
 }
 
@@ -31,4 +32,9 @@ void CFileCommanderPlugin::currentItemChanged(CFileCommanderPlugin::PanelPositio
 {
 	PanelState& state = _panelState[panel];
 	state.currentItemHash = currentItemHash;
+}
+
+void CFileCommanderPlugin::currentPanelChanged(CFileCommanderPlugin::PanelPosition panel)
+{
+	_currentPanel = panel;
 }

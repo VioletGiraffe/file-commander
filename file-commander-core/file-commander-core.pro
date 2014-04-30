@@ -9,10 +9,10 @@ CONFIG += staticlib c++11
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 
-OBJECTS_DIR = ../build
-MOC_DIR     = ../build
-UI_DIR      = ../build
-RCC_DIR     = ../build
+OBJECTS_DIR = ../build/core
+MOC_DIR     = ../build/core
+UI_DIR      = ../build/core
+RCC_DIR     = ../build/core
 
 HEADERS += \
 	src/cfilesystemobject.h \
@@ -63,3 +63,7 @@ linux*|mac*{
 }
 
 LIBS += -L../bin -lqtutils -lplugininterface
+
+win32*:!*msvc-2012:*msvc* {
+	QMAKE_CXXFLAGS += /FS
+}

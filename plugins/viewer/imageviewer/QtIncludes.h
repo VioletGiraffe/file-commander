@@ -6,6 +6,8 @@
 
 #include <QImage>
 #include <QWidget>
+#include <QImageReader>
+#include <QString>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0

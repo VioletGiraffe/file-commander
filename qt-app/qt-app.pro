@@ -8,10 +8,10 @@ CONFIG += c++11
 #check Qt version
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-OBJECTS_DIR = ../build
-MOC_DIR     = ../build
-UI_DIR      = ../build
-RCC_DIR     = ../build
+OBJECTS_DIR = ../build/app
+MOC_DIR     = ../build/app
+UI_DIR      = ../build/app
+RCC_DIR     = ../build/app
 
 INCLUDEPATH += \
 	../file-commander-core/src \
@@ -82,4 +82,8 @@ linux*|mac*{
 	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
 
 	QMAKE_CXXFLAGS += --std=c++11
+}
+
+win32*:!*msvc-2012:*msvc* {
+	QMAKE_CXXFLAGS += /FS
 }

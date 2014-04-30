@@ -45,9 +45,11 @@ public:
 // Events and data updates from UI
 	virtual void selectionChanged(PanelPosition panel, std::vector<qulonglong/*hash*/> selectedItemsHashes);
 	virtual void currentItemChanged(PanelPosition panel, qulonglong currentItemHash);
+	virtual void currentPanelChanged(PanelPosition panel);
 
 protected:
 	std::map<PanelPosition, PanelState> _panelState;
+	PanelPosition                       _currentPanel;
 };
 
 #ifdef _WIN32

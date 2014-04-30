@@ -66,6 +66,14 @@ void CPluginEngine::currentItemChanged(Panel p, qulonglong currentItemHash)
 	}
 }
 
+void CPluginEngine::currentPanelChanged(Panel p)
+{
+	for(auto& plugin: _plugins)
+	{
+		plugin.first->currentPanelChanged(pluginPanelEnumFromCorePanelEnum(p));
+	}
+}
+
 CFileCommanderPlugin::PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 {
 	assert(p!=UnknownPanel);

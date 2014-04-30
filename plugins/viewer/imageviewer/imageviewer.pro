@@ -8,10 +8,10 @@ CONFIG += c++11
 #check Qt version
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-OBJECTS_DIR = ../../../build
-MOC_DIR     = ../../../build
-UI_DIR      = ../../../build
-RCC_DIR     = ../../../build
+OBJECTS_DIR = ../../../build/imageviewer
+MOC_DIR     = ../../../build/imageviewer
+UI_DIR      = ../../../build/imageviewer
+RCC_DIR     = ../../../build/imageviewer
 
 INCLUDEPATH += \
 	../../../file-commander-core/src \
@@ -42,7 +42,11 @@ linux*|mac*{
 
 HEADERS += \
 	cimageviewerplugin.h \
-    QtIncludes.h
+	QtIncludes.h
 
 SOURCES += \
 	cimageviewerplugin.cpp
+
+win32*:!*msvc-2012:*msvc* {
+	QMAKE_CXXFLAGS += /FS
+}

@@ -9,10 +9,10 @@ CONFIG += staticlib c++11
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 
-OBJECTS_DIR = ../build
-MOC_DIR     = ../build
-UI_DIR      = ../build
-RCC_DIR     = ../build
+OBJECTS_DIR = ../build/plugininterface
+MOC_DIR     = ../build/plugininterface
+UI_DIR      = ../build/plugininterface
+RCC_DIR     = ../build/plugininterface
 
 INCLUDEPATH += \
 	$$PWD/include \
@@ -43,3 +43,9 @@ HEADERS += \
 SOURCES += \
 	src/cfilecommanderplugin.cpp \
 	src/cfilecommanderviewerplugin.cpp
+
+LIBS += -L../bin -lcore
+
+win32*:!*msvc-2012:*msvc* {
+	QMAKE_CXXFLAGS += /FS
+}

@@ -1,4 +1,5 @@
 #include "cimageviewerplugin.h"
+#include "QtIncludes.h"
 
 CImageViewerPlugin::CImageViewerPlugin()
 {
@@ -6,10 +7,17 @@ CImageViewerPlugin::CImageViewerPlugin()
 
 bool CImageViewerPlugin::canViewCurrentFile() const
 {
-	return false;
+	if (_currentPanel == CFileCommanderPlugin::PluginUnknownPanel)
+		return false;
+	
+	const auto state = _panelState.find(_currentPanel);
+	if (state == _panelState.end())
+		return false;
+	else
+		return QImageReader(state->second.currentFolder).canRead();
 }
 
-QWidget*CImageViewerPlugin::viewCurrentFile() const
+QWidget* CImageViewerPlugin::viewCurrentFile() const
 {
 	return nullptr;
 }
