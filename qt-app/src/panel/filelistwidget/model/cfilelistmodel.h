@@ -16,6 +16,8 @@ public:
 
 	QTreeView * treeView() const;
 
+	virtual QVariant data (const QModelIndex & index, int role = Qt::DisplayRole) const;
+
 private:
 	CController & _controller;
 	QTreeView   * _tree;

@@ -25,4 +25,20 @@ QTreeView *CFileListModel::treeView() const
 	return _tree;
 }
 
+QVariant CFileListModel::data( const QModelIndex & index, int role /*= Qt::DisplayRole*/ ) const
+{
+	if (role == Qt::ToolTipRole)
+	{
+		if (!index.isValid())
+			return QString();
+		QStandardItem * itm = item(index.row(), 0);
+		assert(itm);
+		bool ok = false;
+		const qulonglong hash = itm->data(Qt::UserRole).toULongLong(&ok);
+		assert(ok);
+		return QString::fromStdWString(CShell::toolTip(_controller.itemByHash(_panel, hash).absoluteFilePath().toStdWString()));
+	}
+	else
+		return QStandardItemModel::data(index, role);
+}
 
