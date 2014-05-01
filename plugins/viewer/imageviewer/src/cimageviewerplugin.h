@@ -2,7 +2,6 @@
 #define CIMAGEVIEWERPLUGIN_H
 
 #include "cfilecommanderviewerplugin.h"
-#include "cimageviewerwidget.h"
 
 #ifdef _WIN32
 #pragma warning(push)
@@ -20,9 +19,6 @@ public:
 
 	virtual bool canViewCurrentFile() const override;
 	virtual QWidget* viewCurrentFile() override;
-
-private:
-	CImageViewerWidget _widget;
 };
 
 #ifdef _WIN32

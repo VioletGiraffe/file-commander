@@ -20,6 +20,12 @@ void CImageViewerWidget::displayImage(const QString& imagePath)
 	}
 }
 
+void CImageViewerWidget::closeEvent(QCloseEvent* event)
+{
+	if (event)
+		emit closed();
+}
+
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	if (!_image.isNull())

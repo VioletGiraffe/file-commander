@@ -12,6 +12,12 @@ public:
 public:
 	void displayImage(const QString& imagePath);
 
+signals:
+	void closed();
+
+protected:
+	virtual void closeEvent(QCloseEvent * event) override;
+
 protected:
 	void paintEvent(QPaintEvent* e);
 
