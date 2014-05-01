@@ -9,6 +9,9 @@
 #include <QImageReader>
 #include <QString>
 #include <QPainter>
+#include <QApplication>
+#include <QDesktopWidget>
+#include <QShortcut>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0

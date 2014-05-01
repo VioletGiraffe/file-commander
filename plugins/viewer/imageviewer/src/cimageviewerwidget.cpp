@@ -3,13 +3,21 @@
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
 	QWidget(parent)
 {
+	new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 }
 
 void CImageViewerWidget::displayImage(const QString& imagePath)
 {
 	_image = QImageReader(imagePath).read();
 	if (!_image.isNull())
+	{
+		QSize screenSize = QApplication::desktop()->availableGeometry().size() - QSize(50, 50);
+		QSize windowSize = _image.size();
+		if (windowSize.height() > screenSize.height() || windowSize.width() > screenSize.width())
+			windowSize.scale(screenSize, Qt::KeepAspectRatio);
+		resize(windowSize);
 		update();
+	}
 }
 
 void CImageViewerWidget::paintEvent(QPaintEvent*)
