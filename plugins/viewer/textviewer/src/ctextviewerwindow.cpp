@@ -1,0 +1,65 @@
+#ifdef _WIN32
+#pragma warning(push, 0) // set W0
+#endif
+
+#include "ctextviewerwindow.h"
+#include "ui_ctextviewerwindow.h"
+
+#ifdef _WIN32
+#pragma warning(pop) // set W0
+#endif
+
+CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
+	CViewerWindow(parent),
+	ui(new Ui::CTextViewerWindow)
+{
+	ui->setupUi(this);
+
+	connect(ui->actionASCI, SIGNAL(triggered()), SLOT(asAscii()));
+	connect(ui->actionUTF_8, SIGNAL(triggered()), SLOT(asUtf8()));
+	connect(ui->actionUTF_16, SIGNAL(triggered()), SLOT(asUtf16()));
+	connect(ui->actionHTML_RTF, SIGNAL(triggered()), SLOT(asRichText()));
+}
+
+CTextViewerWindow::~CTextViewerWindow()
+{
+	delete ui;
+}
+
+bool CTextViewerWindow::loadTextFile(const QString& file)
+{
+	ui->textBrowser->setSource(QUrl::fromLocalFile(file));
+	_sourceFilePath = file;
+	return true;
+}
+
+void CTextViewerWindow::asAscii()
+{
+	ui->textBrowser->setPlainText(QString::fromLatin1(readSource()));
+}
+
+void CTextViewerWindow::asUtf8()
+{
+	ui->textBrowser->setPlainText(QString::fromUtf8(readSource()));
+}
+
+void CTextViewerWindow::asUtf16()
+{
+	const QByteArray data(readSource());
+	ui->textBrowser->setPlainText(QString::fromUtf16((const ushort*)data.data(), data.size()));
+}
+
+void CTextViewerWindow::asRichText()
+{
+	ui->textBrowser->setSource(QUrl::fromLocalFile(_sourceFilePath));
+}
+
+QByteArray CTextViewerWindow::readSource() const
+{
+	QFile file(_sourceFilePath);
+	if (file.exists() && file.open(QIODevice::ReadOnly))
+		return file.readAll();
+
+	return QByteArray();
+}
+

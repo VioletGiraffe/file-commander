@@ -89,6 +89,7 @@ void CPluginEngine::viewCurrentFile()
 				viewerWidget->showNormal();
 				viewerWidget->raise();
 				viewerWidget->activateWindow();
+				return;
 			}
 		}
 	}

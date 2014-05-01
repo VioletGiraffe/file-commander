@@ -1,9 +1,8 @@
 #include "cimageviewerwidget.h"
 
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
-	QWidget(parent)
+	CViewerWindow(parent)
 {
-	new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 }
 
 void CImageViewerWidget::displayImage(const QString& imagePath)
@@ -18,12 +17,6 @@ void CImageViewerWidget::displayImage(const QString& imagePath)
 		resize(windowSize);
 		update();
 	}
-}
-
-void CImageViewerWidget::closeEvent(QCloseEvent* event)
-{
-	if (event)
-		emit closed();
 }
 
 void CImageViewerWidget::paintEvent(QPaintEvent*)

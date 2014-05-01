@@ -38,11 +38,14 @@ linux*|mac*{
 HEADERS += \
 	src/cfilecommanderplugin.h \
 	src/cfilecommanderviewerplugin.h \
-	src/plugin_export.h
+	src/plugin_export.h \
+    src/cviewerwindow.h \
+    src/QtIncludes.h
 
 SOURCES += \
 	src/cfilecommanderplugin.cpp \
-	src/cfilecommanderviewerplugin.cpp
+	src/cfilecommanderviewerplugin.cpp \
+    src/cviewerwindow.cpp
 
 LIBS += -L../bin -lcore
 
