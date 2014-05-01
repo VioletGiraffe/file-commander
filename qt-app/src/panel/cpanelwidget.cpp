@@ -309,7 +309,20 @@ void CPanelWidget::driveButtonClicked()
 
 void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection /*deselected*/)
 {
-	_controller.pluginEngine().selectionChanged(_panelPosition, selectedItemsHashes());
+	auto selection = selectedItemsHashes();
+	const QString cdUpPath = CFileSystemObject(QFileInfo(_currentPath)).parentDirPath();
+	for(auto it = selection.begin(); it != selection.end(); ++it)
+	{
+		if (_controller.itemByHash(_panelPosition, *it).absoluteFilePath() == cdUpPath)
+		{
+			auto cdUpIndex = indexByHash(*it);
+			assert(cdUpIndex.isValid());
+			_selectionModel->select(cdUpIndex, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
+			selection.erase(it);
+			break;
+		}
+	}
+	_controller.pluginEngine().selectionChanged(_panelPosition, selection);
 }
 
 void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previous*/)
