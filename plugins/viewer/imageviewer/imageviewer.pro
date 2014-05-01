@@ -25,7 +25,7 @@ LIBS += -L../../../bin -lplugininterface -lcore
 
 win*{
 	QMAKE_CXXFLAGS += /MP
-	QMAKE_CXXFLAGS_WARN_ON = -W3
+	QMAKE_CXXFLAGS_WARN_ON = -W4
 }
 
 mac*{
@@ -41,12 +41,17 @@ linux*|mac*{
 }
 
 HEADERS += \
-	cimageviewerplugin.h \
-	QtIncludes.h
+	src/cimageviewerplugin.h \
+	src/QtIncludes.h \
+	src/cimageviewerwidget.h
 
 SOURCES += \
-	cimageviewerplugin.cpp
+	src/cimageviewerplugin.cpp \
+	src/cimageviewerwidget.cpp
 
-win32*:!*msvc-2012:*msvc* {
+win32*:!*msvc2012:*msvc* {
 	QMAKE_CXXFLAGS += /FS
 }
+
+FORMS += \
+	src/cimageviewerwidget.ui

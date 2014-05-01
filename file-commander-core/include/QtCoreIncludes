@@ -4,6 +4,7 @@
 #pragma warning(push, 0) // set W0
 #endif
 
+#include <QApplication>
 #include <QDir>
 #include <QString>
 #include <QObject>
@@ -17,6 +18,9 @@
 #include <QDateTime>
 #include <QCryptographicHash>
 #include <QLibrary>
+#include <QWidget>
+#include <QFileSystemWatcher>
+#include <QTimer>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0

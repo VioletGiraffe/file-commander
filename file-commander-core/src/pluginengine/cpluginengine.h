@@ -23,6 +23,9 @@ public:
 	void currentItemChanged(Panel p, qulonglong currentItemHash);
 	void currentPanelChanged(Panel p);
 
+// Operations
+	void viewCurrentFile();
+
 private:
 	CPluginEngine& operator=(const CPluginEngine&) {}
 	static CFileCommanderPlugin::PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);

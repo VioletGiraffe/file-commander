@@ -3,6 +3,8 @@
 
 #include "cfilecommanderplugin.h"
 
+
+
 class PLUGIN_EXPORT CFileCommanderViewerPlugin : public CFileCommanderPlugin
 {
 public:
@@ -10,7 +12,7 @@ public:
 	virtual ~CFileCommanderViewerPlugin() = 0;
 
 	virtual bool canViewCurrentFile() const = 0;
-	virtual QWidget* viewCurrentFile() const = 0;
+	virtual QWidget* viewCurrentFile() = 0;
 
 	virtual PluginType type();
 };

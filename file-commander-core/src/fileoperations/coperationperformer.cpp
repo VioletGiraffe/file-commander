@@ -1,8 +1,5 @@
 #include "coperationperformer.h"
 
-#include <QFileInfo>
-#include <QDir>
-#include <QDebug>
 #include <assert.h>
 #include <functional>
 

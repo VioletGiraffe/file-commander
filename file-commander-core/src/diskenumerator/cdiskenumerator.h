@@ -2,9 +2,8 @@
 #define CDISKENUMERATOR_H
 
 #include "../cfilesystemobject.h"
+#include "QtCoreIncludes"
 
-#include <QString>
-#include <QTimer>
 #include <vector>
 
 // Lists all the disk drives available on a target machine

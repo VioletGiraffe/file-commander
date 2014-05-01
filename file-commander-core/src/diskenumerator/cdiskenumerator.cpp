@@ -1,6 +1,4 @@
 #include "cdiskenumerator.h"
-#include <QDir>
-#include <QIcon>
 #include <assert.h>
 
 #if defined __linux__

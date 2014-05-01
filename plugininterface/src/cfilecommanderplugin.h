@@ -48,6 +48,12 @@ public:
 	virtual void currentPanelChanged(PanelPosition panel);
 
 protected:
+	PanelState& currentPanelState();
+	const PanelState& currentPanelState() const;
+	QString currentFolderPath() const;
+	QString currentItemPath() const;
+
+protected:
 	std::map<PanelPosition, PanelState> _panelState;
 	PanelPosition                       _currentPanel;
 };

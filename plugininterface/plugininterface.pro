@@ -46,6 +46,6 @@ SOURCES += \
 
 LIBS += -L../bin -lcore
 
-win32*:!*msvc-2012:*msvc* {
+win32*:!*msvc2012:*msvc* {
 	QMAKE_CXXFLAGS += /FS
 }

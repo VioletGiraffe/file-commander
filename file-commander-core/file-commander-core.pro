@@ -64,6 +64,6 @@ linux*|mac*{
 
 LIBS += -L../bin -lqtutils -lplugininterface
 
-win32*:!*msvc-2012:*msvc* {
+win32*:!*msvc2012:*msvc* {
 	QMAKE_CXXFLAGS += /FS
 }

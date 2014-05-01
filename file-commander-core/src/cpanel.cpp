@@ -2,8 +2,7 @@
 #include "settings/csettings.h"
 #include "settings.h"
 
-#include <QDebug>
-#include <QFileSystemWatcher>
+#include "QtCoreIncludes"
 
 #include <assert.h>
 #include <time.h>

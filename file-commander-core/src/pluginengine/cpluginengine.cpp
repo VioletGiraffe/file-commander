@@ -1,5 +1,6 @@
 #include "cpluginengine.h"
 #include "../ccontroller.h"
+#include "../../../plugininterface/src/cfilecommanderviewerplugin.h"
 
 #include <assert.h>
 
@@ -19,7 +20,7 @@ void CPluginEngine::loadPlugins()
 #error
 #endif
 
-	const auto pluginPaths(QDir::current().entryList((QStringList() << QString("plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
+	const auto pluginPaths(QDir(qApp->applicationDirPath()).entryList((QStringList() << QString("plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
 	for (auto& path: pluginPaths)
 	{
 		auto pluginModule = std::make_shared<QLibrary>(path);
@@ -71,6 +72,25 @@ void CPluginEngine::currentPanelChanged(Panel p)
 	for(auto& plugin: _plugins)
 	{
 		plugin.first->currentPanelChanged(pluginPanelEnumFromCorePanelEnum(p));
+	}
+}
+
+void CPluginEngine::viewCurrentFile()
+{
+	for(auto& plugin: _plugins)
+	{
+		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
+		{
+			CFileCommanderViewerPlugin * viewer = dynamic_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
+			assert(viewer);
+			if (viewer && viewer->canViewCurrentFile())
+			{
+				QWidget * viewerWidget = viewer->viewCurrentFile();
+				viewerWidget->showNormal();
+				viewerWidget->raise();
+				viewerWidget->activateWindow();
+			}
+		}
 	}
 }
 

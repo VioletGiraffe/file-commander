@@ -298,6 +298,7 @@ void CMainWindow::createFile()
 // Other UI commands
 void CMainWindow::viewFile()
 {
+	_controller.pluginEngine().viewCurrentFile();
 }
 
 void CMainWindow::editFile()

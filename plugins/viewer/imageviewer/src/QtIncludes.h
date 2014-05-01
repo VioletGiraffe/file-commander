@@ -8,6 +8,7 @@
 #include <QWidget>
 #include <QImageReader>
 #include <QString>
+#include <QPainter>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0
