@@ -21,3 +21,8 @@ QWidget* CTextViewerPlugin::viewCurrentFile()
 	widget->loadTextFile(currentItemPath());
 	return widget;
 }
+
+QString CTextViewerPlugin::name()
+{
+	return "Plain text, HTML and RTF viewer plugin";
+}

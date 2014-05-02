@@ -23,6 +23,11 @@ QWidget* CImageViewerPlugin::viewCurrentFile()
 	return widget;
 }
 
+QString CImageViewerPlugin::name()
+{
+	return "Image viewer plugin";
+}
+
 
 CFileCommanderPlugin* createPlugin()
 {

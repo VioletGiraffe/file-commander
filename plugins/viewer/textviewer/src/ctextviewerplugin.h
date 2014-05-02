@@ -14,6 +14,7 @@ public:
 
 	virtual bool canViewCurrentFile() const override;
 	virtual QWidget* viewCurrentFile() override;
+	virtual QString name() override;
 };
 
 #endif // CTEXTVIEWERPLUGIN_H

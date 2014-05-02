@@ -19,6 +19,7 @@ public:
 
 	virtual bool canViewCurrentFile() const override;
 	virtual QWidget* viewCurrentFile() override;
+	virtual QString name() override;
 };
 
 #ifdef _WIN32

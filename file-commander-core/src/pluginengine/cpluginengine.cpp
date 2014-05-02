@@ -20,16 +20,19 @@ void CPluginEngine::loadPlugins()
 #error
 #endif
 
-	const auto pluginPaths(QDir(qApp->applicationDirPath()).entryList((QStringList() << QString("plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
+	const auto pluginPaths(QDir(qApp->applicationDirPath()).entryInfoList((QStringList() << QString("plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
 	for (auto& path: pluginPaths)
 	{
-		auto pluginModule = std::make_shared<QLibrary>(path);
+		auto pluginModule = std::make_shared<QLibrary>(path.absoluteFilePath());
 		CreatePluginFunc createFunc = (CreatePluginFunc)pluginModule->resolve("createPlugin");
 		if (createFunc)
 		{
 			CFileCommanderPlugin * plugin = createFunc();
 			if (plugin)
+			{
+				qDebug() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name()).arg(path.fileName());
 				_plugins.emplace_back(std::make_pair(std::shared_ptr<CFileCommanderPlugin>(plugin), pluginModule));
+			}
 		}
 	}
 }
