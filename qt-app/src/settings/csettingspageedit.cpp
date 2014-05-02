@@ -1,9 +1,17 @@
+#ifdef _WIN32
+#pragma warning(push, 0) // set W0
+#endif
+
 #include "csettingspageedit.h"
 #include "ui_csettingspageedit.h"
 #include "settings.h"
 #include "settings/csettings.h"
 
-#include <QFileDialog>
+#include "../QtAppIncludes"
+
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 CSettingsPageEdit::CSettingsPageEdit(QWidget *parent) :
 	CSettingsPage(parent),

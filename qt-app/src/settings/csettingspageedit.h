@@ -1,7 +1,7 @@
 #ifndef CSETTINGSPAGEEDIT_H
 #define CSETTINGSPAGEEDIT_H
 
-#include "csettingspage.h"
+#include "settingsui/csettingspage.h"
 
 namespace Ui {
 class CSettingsPageEdit;

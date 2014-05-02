@@ -1,7 +1,7 @@
 #ifndef CSETTINGSPAGEINTERFACE_H
 #define CSETTINGSPAGEINTERFACE_H
 
-#include "csettingspage.h"
+#include "settingsui/csettingspage.h"
 
 namespace Ui {
 class CSettingsPageInterface;

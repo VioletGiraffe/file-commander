@@ -5,7 +5,7 @@
 #include "settings.h"
 #include "settings/csettings.h"
 #include "shell/cshell.h"
-#include "settings/csettingsdialog.h"
+#include "settingsui/csettingsdialog.h"
 #include "settings/csettingspageinterface.h"
 #include "settings/csettingspageedit.h"
 

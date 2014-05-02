@@ -25,6 +25,7 @@
 #include <QSortFilterProxyModel>
 #include <QHeaderView>
 #include <QApplication>
+#include <QFileDialog>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0
