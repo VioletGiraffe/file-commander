@@ -353,6 +353,12 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes() const
 	return result;
 }
 
+qulonglong CPanelWidget::currentItemHash() const
+{
+	QModelIndex currentIndex = _selectionModel->currentIndex();
+	return hashByItemIndex(currentIndex);
+}
+
 void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex)
 {
 	if (p != _panelPosition)

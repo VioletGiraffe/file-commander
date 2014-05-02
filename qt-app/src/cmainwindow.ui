@@ -211,7 +211,7 @@
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
-     <string>Options</string>
+     <string>&amp;Options</string>
     </property>
     <addaction name="action_Settings"/>
    </widget>
@@ -251,6 +251,9 @@
   <action name="action_Settings">
    <property name="text">
     <string>&amp;Settings</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+P</string>
    </property>
   </action>
  </widget>

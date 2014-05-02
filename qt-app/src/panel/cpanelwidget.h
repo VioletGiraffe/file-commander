@@ -41,6 +41,7 @@ public:
 	void fillFromPanel(const CPanel& panel);
 
 	std::vector<qulonglong> selectedItemsHashes() const;
+	qulonglong currentItemHash() const;
 
 	virtual void panelContentsChanged(Panel p);
 

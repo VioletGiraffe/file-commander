@@ -35,7 +35,7 @@
    </property>
    <widget class="QMenu" name="menuView">
     <property name="title">
-     <string>View</string>
+     <string>&amp;View</string>
     </property>
     <addaction name="actionASCI"/>
     <addaction name="actionUTF_16"/>
@@ -45,32 +45,47 @@
    <addaction name="menuView"/>
   </widget>
   <action name="actionASCI">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>ASCI</string>
+    <string>&amp;ASCI</string>
    </property>
    <property name="shortcut">
     <string>1</string>
    </property>
   </action>
   <action name="actionUTF_8">
-   <property name="text">
-    <string>UTF-8</string>
+   <property name="checkable">
+    <bool>true</bool>
    </property>
-   <property name="shortcut">
-    <string>2</string>
-   </property>
-  </action>
-  <action name="actionUTF_16">
    <property name="text">
-    <string>UTF-16</string>
+    <string>UTF-&amp;8</string>
    </property>
    <property name="shortcut">
     <string>3</string>
    </property>
   </action>
-  <action name="actionHTML_RTF">
+  <action name="actionUTF_16">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>HTML/RTF</string>
+    <string>UTF-1&amp;6</string>
+   </property>
+   <property name="shortcut">
+    <string>2</string>
+   </property>
+  </action>
+  <action name="actionHTML_RTF">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;HTML/RTF</string>
    </property>
    <property name="shortcut">
     <string>4</string>

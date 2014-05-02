@@ -7,6 +7,7 @@
 #include "shell/cshell.h"
 #include "settings/csettingsdialog.h"
 #include "settings/csettingspageinterface.h"
+#include "settings/csettingspageedit.h"
 
 #include <assert.h>
 
@@ -303,6 +304,14 @@ void CMainWindow::viewFile()
 
 void CMainWindow::editFile()
 {
+	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
+	QString currentFile = _currentPanel ? _controller.itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).absoluteFilePath() : QString();
+	if (!editorPath.isEmpty() && !currentFile.isEmpty())
+	{
+		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
+		if (!editorPath.isEmpty() && !QProcess::startDetached(CSettings().value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile))
+			QMessageBox::information(this, "Error", QString("Cannot launch ")+editorPath);
+	}
 }
 
 void CMainWindow::openTerminal()
@@ -326,6 +335,7 @@ void CMainWindow::openSettingsDialog()
 {
 	CSettingsDialog settings;
 	settings.addSettingsPage(new CSettingsPageInterface);
+	settings.addSettingsPage(new CSettingsPageEdit);
 	connect(&settings, SIGNAL(settingsChanged()), SLOT(settingsChanged()));
 	settings.exec();
 }
