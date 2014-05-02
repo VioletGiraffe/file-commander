@@ -27,7 +27,7 @@ public:
 	void viewCurrentFile();
 
 private:
-	CPluginEngine& operator=(const CPluginEngine&) {}
+	CPluginEngine& operator=(const CPluginEngine&) {return *this;}
 	static CFileCommanderPlugin::PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
 
 private:

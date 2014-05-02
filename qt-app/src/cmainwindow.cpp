@@ -187,13 +187,14 @@ void CMainWindow::stepForwardRequested(CPanelWidget *panel)
 
 void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 {
-	ui->fullPath->setText(_controller.panel(panel->panelPosition()).currentDirPath());
-
 	_currentPanel = panel;
 	_otherPanel   = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
 
 	if (panel)
+	{
+		ui->fullPath->setText(_controller.panel(panel->panelPosition()).currentDirPath());
 		_controller.pluginEngine().currentPanelChanged(panel->panelPosition());
+	}
 }
 
 void CMainWindow::folderPathSet(QString path, const CPanelWidget *panel)
