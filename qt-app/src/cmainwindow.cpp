@@ -8,6 +8,7 @@
 #include "settingsui/csettingsdialog.h"
 #include "settings/csettingspageinterface.h"
 #include "settings/csettingspageedit.h"
+#include "settings/csettingspageother.h"
 
 #include <assert.h>
 
@@ -63,6 +64,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	ui->fullPath->clear();
 
 	connect(ui->splitter, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
+
+	connect(ui->commandLine->lineEdit(), SIGNAL(returnPressed()), SLOT(executeCommand()));
 }
 
 void CMainWindow::initButtons()
@@ -326,6 +329,18 @@ void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 	CShell::recycleBinContextMenu(pos.x(), pos.y(), (void*)winId());
 }
 
+void CMainWindow::executeCommand()
+{
+	if (!_currentPanel)
+		return;
+
+	const QString commandLine = ui->commandLine->lineEdit()->text();
+	if (commandLine.isEmpty())
+		return;
+
+	CShell::executeShellCommand(commandLine, _currentPanel->currentDir());
+}
+
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
 {
 	if (_currentPanel)
@@ -337,6 +352,7 @@ void CMainWindow::openSettingsDialog()
 	CSettingsDialog settings;
 	settings.addSettingsPage(new CSettingsPageInterface);
 	settings.addSettingsPage(new CSettingsPageEdit);
+	settings.addSettingsPage(new CSettingsPageOther);
 	connect(&settings, SIGNAL(settingsChanged()), SLOT(settingsChanged()));
 	settings.exec();
 }
@@ -344,4 +360,14 @@ void CMainWindow::openSettingsDialog()
 void CMainWindow::settingsChanged()
 {
 	_controller.settingsChanged();
+}
+
+void CMainWindow::processError( QProcess::ProcessError error )
+{
+	QProcess * process = qobject_cast<QProcess*>(sender());
+	if (process)
+		process->deleteLater();
+
+	qDebug() << "Process couldn't start:" << process->errorString();
+	QMessageBox::information(this, "Cannot execute command", process->errorString());
 }

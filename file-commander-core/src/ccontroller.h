@@ -79,6 +79,9 @@ public:
 	// Returns hash of an item that was the last selected in the specified dir
 	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
 
+// Global helper functions
+	static QString shellExecutable();
+
 private:
 	CController();
 

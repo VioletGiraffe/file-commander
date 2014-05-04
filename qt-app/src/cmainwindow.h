@@ -1,4 +1,4 @@
-#ifndef CMAINWINDOW_H
+ #ifndef CMAINWINDOW_H
 #define CMAINWINDOW_H
 
 #include "cfilesystemobject.h"
@@ -62,6 +62,7 @@ private slots: // For UI
 	void editFile();
 	void openTerminal();
 	void showRecycleBInContextMenu(QPoint pos);
+	void executeCommand();
 
 // Main menu
 	void showAllFilesFromCurrentFolderAndBelow();
@@ -69,6 +70,9 @@ private slots: // For UI
 
 // Settings
 	void settingsChanged();
+
+// Command line
+	void processError(QProcess::ProcessError error);
 
 private:
 	Ui::CMainWindow * ui;

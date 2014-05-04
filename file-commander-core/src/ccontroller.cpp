@@ -150,25 +150,17 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 void CController::openTerminal(const QString &folder)
 {
 #ifdef _WIN32
-	const QString consoleExecutable = "cmd.exe";
-	const bool started = QProcess::startDetached(consoleExecutable, QStringList(), folder);
+	const bool started = QProcess::startDetached(shellExecutable(), QStringList(), folder);
 	assert(started);
 	Q_UNUSED(started);
 #elif defined __APPLE__
-	const QString consoleExecutable = "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal";
-	const bool started = QProcess::startDetached(consoleExecutable, QStringList() << folder);
+	const bool started = QProcess::startDetached(shellExecutable(), QStringList() << folder);
 	assert(started);
 	Q_UNUSED(started);
 #elif defined __linux__
-	QString consoleExecutable = "/usr/bin/konsole"; // KDE
-	if (!QFileInfo(consoleExecutable).exists())
-		consoleExecutable = "/usr/bin/gnome-terminal"; // Gnome
-	if (QFileInfo(consoleExecutable).exists())
-	{
-		const bool started = QProcess::startDetached(consoleExecutable, QStringList(), folder);
-		assert(started);
-		Q_UNUSED(started);
-	}
+	const bool started = QProcess::startDetached(shellExecutable(), QStringList(), folder);
+	assert(started);
+	Q_UNUSED(started);
 #else
 	#error unknown platform
 #endif
@@ -250,6 +242,25 @@ QString CController::diskPath(size_t index) const
 qulonglong CController::currentItemInFolder(Panel p, const QString &dir) const
 {
 	return panel(p).currentItemInFolder(dir);
+}
+
+QString CController::shellExecutable()
+{
+#ifdef _WIN32
+	static const QString defaultShell = QProcessEnvironment::systemEnvironment().value("ComSpec", "cmd.exe");
+	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
+#elif defined __APPLE__
+	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
+#elif defined __linux__
+	QString consoleExecutable = "/usr/bin/konsole"; // KDE
+	if (!QFileInfo(consoleExecutable).exists())
+		consoleExecutable = "/usr/bin/gnome-terminal"; // Gnome
+	if (!QFileInfo(consoleExecutable).exists())
+		consoleExecutable = QString();
+	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, consoleExecutable).toString();
+#else
+	#error unknown platform
+#endif
 }
 
 void CController::disksChanged()

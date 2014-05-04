@@ -31,7 +31,8 @@ SOURCES += \
 	src/panel/filelistwidget/cfilelistview.cpp \
 	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.cpp \
 	src/settings/csettingspageinterface.cpp \
-	src/settings/csettingspageedit.cpp
+	src/settings/csettingspageedit.cpp \
+    src/settings/csettingspageother.cpp
 
 HEADERS += \
 	src/QtAppIncludes \
@@ -46,7 +47,8 @@ HEADERS += \
 	src/panel/filelistwidget/cfilelistview.h \
 	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.h \
 	src/settings/csettingspageinterface.h \
-	src/settings/csettingspageedit.h
+	src/settings/csettingspageedit.h \
+    src/settings/csettingspageother.h
 
 FORMS += \
 	src/cmainwindow.ui \
@@ -55,7 +57,8 @@ FORMS += \
 	src/progressdialogs/cpromptdialog.ui \
 	src/progressdialogs/cdeleteprogressdialog.ui \
 	src/settings/csettingspageinterface.ui \
-	src/settings/csettingspageedit.ui
+	src/settings/csettingspageedit.ui \
+    src/settings/csettingspageother.ui
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 

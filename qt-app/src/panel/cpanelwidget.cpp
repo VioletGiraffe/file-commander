@@ -77,7 +77,7 @@ bool CPanelWidget::restorePanelGeometry(QByteArray state)
 
 QString CPanelWidget::currentDir() const
 {
-	return ui->_pathNavigator->text();
+	return _currentPath;
 }
 
 Panel CPanelWidget::panelPosition() const

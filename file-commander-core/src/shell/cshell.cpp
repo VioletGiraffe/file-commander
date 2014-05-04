@@ -1,7 +1,9 @@
 #include "cshell.h"
 
+#include "QtCoreIncludes"
 #include <assert.h>
 #include <algorithm>
+#include <thread>
 
 #ifdef _WIN32
 
@@ -219,6 +221,17 @@ bool CShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 	}
 	DestroyMenu(hMenu);
 	return true;
+}
+
+void CShell::executeShellCommand(const QString& command, const QString& workingDir)
+{
+	std::thread([command, workingDir](){
+	#ifdef _WIN32
+		_wsystem((QString("pushd ") + workingDir + " && " + command).toStdWString().data());
+	#else
+		std::system((QString("pushd ") + workingDir + " && " + command).toUtf8().data());
+	#endif
+	}).detach();
 }
 
 #elif defined __linux__
