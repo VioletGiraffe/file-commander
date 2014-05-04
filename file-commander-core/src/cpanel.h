@@ -74,7 +74,7 @@ private:
 	std::map<qulonglong, size_t>           _indexByHash;
 	size_t                                 _currentHistoryLocation;
 	std::shared_ptr<QFileSystemWatcher>    _watcher;
-	static const size_t                    noHistory = SIZE_MAX;
+	static const size_t                    noHistory = std::numeric_limits<size_t>::max();
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                            _panelPosition;
 };

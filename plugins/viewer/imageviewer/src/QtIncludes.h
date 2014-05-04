@@ -12,6 +12,7 @@
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QShortcut>
+#include <QMainWindow>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0

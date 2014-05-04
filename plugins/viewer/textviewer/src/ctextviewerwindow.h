@@ -2,7 +2,7 @@
 #define CTEXTVIEWERWINDOW_H
 
 #include "QtIncludes.h"
-#include "cviewerwindow.h"
+#include "plugininterface/cviewerwindow.h"
 
 namespace Ui {
 class CTextViewerWindow;

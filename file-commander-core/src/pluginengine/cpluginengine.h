@@ -2,18 +2,16 @@
 #define CPLUGINENGINE_H
 
 #include "../cpanel.h"
-#include "../../../plugininterface/src/cfilecommanderplugin.h"
+#include "../plugininterface/cfilecommanderplugin.h"
 
 #include "QtCoreIncludes"
 #include <vector>
 #include <memory>
 
-class CController;
-
 class CPluginEngine : public PanelContentsChangedListener
 {
 public:
-	CPluginEngine();
+	static CPluginEngine& get();
 
 	void loadPlugins();
 	const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary> > >& plugins() const;
@@ -27,13 +25,12 @@ public:
 	void viewCurrentFile();
 
 private:
+	CPluginEngine();
 	CPluginEngine& operator=(const CPluginEngine&) {return *this;}
 	static CFileCommanderPlugin::PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
 
 private:
 	std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary>>> _plugins;
-
-	CController & _controller;
 };
 
 #endif // CPLUGINENGINE_H

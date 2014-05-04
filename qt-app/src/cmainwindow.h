@@ -71,14 +71,11 @@ private slots: // For UI
 // Settings
 	void settingsChanged();
 
-// Command line
-	void processError(QProcess::ProcessError error);
-
 private:
-	Ui::CMainWindow * ui;
-	CController     & _controller;
-	CPanelWidget    * _currentPanel;
-	CPanelWidget    * _otherPanel;
+	Ui::CMainWindow              * ui;
+	std::shared_ptr<CController>  _controller;
+	CPanelWidget                 * _currentPanel;
+	CPanelWidget                 * _otherPanel;
 
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
 };

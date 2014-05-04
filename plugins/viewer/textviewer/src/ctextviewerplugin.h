@@ -1,7 +1,7 @@
 #ifndef CTEXTVIEWERPLUGIN_H
 #define CTEXTVIEWERPLUGIN_H
 
-#include "cfilecommanderviewerplugin.h"
+#include "plugininterface/cfilecommanderviewerplugin.h"
 
 extern "C" {
 	PLUGIN_EXPORT CFileCommanderPlugin * createPlugin();

@@ -1,7 +1,7 @@
 #ifndef CIMAGEVIEWERPLUGIN_H
 #define CIMAGEVIEWERPLUGIN_H
 
-#include "cfilecommanderviewerplugin.h"
+#include "plugininterface/cfilecommanderviewerplugin.h"
 
 #ifdef _WIN32
 #pragma warning(push)

@@ -6,7 +6,6 @@
 #include "fileoperationresultcode.h"
 #include "cpanel.h"
 #include "diskenumerator/cdiskenumerator.h"
-#include "pluginengine/cpluginengine.h"
 
 struct ItemId
 {
@@ -26,8 +25,8 @@ public:
 		virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex) = 0;
 	};
 
-	static CController& get ();
-	CPluginEngine& pluginEngine();
+	CController();
+	static CController& get();
 
 	void setPanelContentsChangedListener(PanelContentsChangedListener * listener);
 	void setDisksChangedListener(IDiskListObserver * listener);
@@ -83,19 +82,17 @@ public:
 	static QString shellExecutable();
 
 private:
-	CController();
-
 	virtual void disksChanged();
 
 	void saveDirectoryForCurrentDisk(Panel p);
 	size_t currentDiskIndex(Panel p) const;
 
 private:
+	static CController * _instance;
 	// panels
-	CPanel              _leftPanel, _rightPanel;
-	CDiskEnumerator &   _diskEnumerator;
+	CPanel               _leftPanel, _rightPanel;
+	CDiskEnumerator &    _diskEnumerator;
 	std::vector<IDiskListObserver*> _disksChangedListeners;
-	CPluginEngine       _pluginEngine;
 };
 
 #endif // CCONTROLLER_H

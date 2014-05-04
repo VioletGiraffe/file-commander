@@ -77,8 +77,9 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 		return leftItem.properties().modificationDate < rightItem.properties().modificationDate;
 		break;
 	default:
-		assert (false);
-		return false;
 		break;
 	}
+
+	assert (false);
+	return false;
 }

@@ -1,17 +1,17 @@
 #ifndef CVIEWERWINDOW_H
 #define CVIEWERWINDOW_H
 
-#include "QtIncludes.h"
+#include "QtCoreIncludes"
 #include "plugin_export.h"
 
 class PLUGIN_EXPORT CViewerWindow : public QMainWindow
 {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	explicit CViewerWindow(QWidget *parent = 0);
+    explicit CViewerWindow(QWidget *parent = 0);
 
 protected:
-	virtual void closeEvent(QCloseEvent* event) override;
+    virtual void closeEvent(QCloseEvent* event) override;
 
 };
 

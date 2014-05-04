@@ -6,6 +6,7 @@
 #include "shell/cshell.h"
 #include "columns.h"
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
+#include "pluginengine/cpluginengine.h"
 
 #include <assert.h>
 #include <time.h>
@@ -322,12 +323,12 @@ void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection 
 			break;
 		}
 	}
-	_controller.pluginEngine().selectionChanged(_panelPosition, selection);
+	CPluginEngine::get().selectionChanged(_panelPosition, selection);
 }
 
 void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previous*/)
 {
-	_controller.pluginEngine().currentItemChanged(_panelPosition, current.isValid() ? hashByItemIndex(current) : 0);
+	CPluginEngine::get().currentItemChanged(_panelPosition, current.isValid() ? hashByItemIndex(current) : 0);
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes() const

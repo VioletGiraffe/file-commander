@@ -5,7 +5,7 @@
 #include "../cfilesystemobject.h"
 #include "../utils/ctimeelapsed.h"
 
-#include "../../Include/QtCoreIncludes"
+#include "../../include/QtCoreIncludes"
 
 #include <assert.h>
 #include <vector>

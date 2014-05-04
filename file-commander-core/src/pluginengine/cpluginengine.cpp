@@ -1,11 +1,17 @@
 #include "cpluginengine.h"
 #include "../ccontroller.h"
-#include "../../../plugininterface/src/cfilecommanderviewerplugin.h"
+#include "../plugininterface/cfilecommanderviewerplugin.h"
 
 #include <assert.h>
 
-CPluginEngine::CPluginEngine() : _controller(CController::get())
+CPluginEngine::CPluginEngine()
 {
+}
+
+CPluginEngine& CPluginEngine::get()
+{
+	static CPluginEngine engine;
+	return engine;
 }
 
 void CPluginEngine::loadPlugins()
@@ -44,13 +50,14 @@ const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_p
 
 void CPluginEngine::panelContentsChanged(Panel p)
 {
+	CController & controller = CController::get();
 	std::map<qulonglong /*hash*/, CFileSystemObject> contents;
-	for(const CFileSystemObject& object: _controller.panel(p).list())
+	for(const CFileSystemObject& object: controller.panel(p).list())
 		contents[object.hash()] = object;
 
 	for(auto& plugin: _plugins)
 	{
-		plugin.first->panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), _controller.panel(p).currentDirName(), contents);
+		plugin.first->panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirName(), contents);
 	}
 }
 

@@ -2,7 +2,7 @@ TEMPLATE = lib
 TARGET   = core
 DESTDIR  = ../bin
 
-QT = core gui #gui is required for QFileIconProvider
+QT = core gui #gui is required for QFileIconProvider and plugininterface
 CONFIG += staticlib c++11
 
 #check Qt version
@@ -46,6 +46,7 @@ INCLUDEPATH += \
 	../qtutils
 
 include(src/pluginengine/pluginengine.pri)
+include(src/plugininterface/plugininterface.pri)
 
 win*{
 	QMAKE_CXXFLAGS += /MP
@@ -62,7 +63,7 @@ linux*|mac*{
 	QMAKE_CXXFLAGS += --std=c++11
 }
 
-LIBS += -L../bin -lqtutils -lplugininterface
+LIBS += -L../bin -lqtutils
 
 win32*:!*msvc2012:*msvc* {
 	QMAKE_CXXFLAGS += /FS

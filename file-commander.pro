@@ -1,19 +1,17 @@
 TEMPLATE = subdirs
 
-SUBDIRS += qt_app file_commander_core qtutils plugininterface imageviewerplugin textviewerplugin
+SUBDIRS += qtutils file_commander_core imageviewerplugin textviewerplugin qt_app
 
 qtutils.subdir = qtutils
 
-plugininterface.subdir = plugininterface
-
 file_commander_core.subdir = file-commander-core
-file_commander_core.depends = qtutils plugininterface
+file_commander_core.depends = qtutils
+
+imageviewerplugin.subdir = plugins/viewer/imageviewer
+imageviewerplugin.depends = file_commander_core
+
+textviewerplugin.subdir = plugins/viewer/textviewer
+textviewerplugin.depends = file_commander_core
 
 qt_app.subdir  = qt-app
 qt_app.depends = file_commander_core qtutils
-
-imageviewerplugin.subdir = plugins/viewer/imageviewer
-imageviewer.depends = core plugininterface
-
-textviewerplugin.subdir = plugins/viewer/textviewer
-textviewerplugin.depends = core plugininterface

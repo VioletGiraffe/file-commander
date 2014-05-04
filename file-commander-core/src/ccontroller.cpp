@@ -1,28 +1,29 @@
 #include "ccontroller.h"
 #include "settings/csettings.h"
 #include "settings.h"
+#include "pluginengine/cpluginengine.h"
 
 #include <stdlib.h>
 #include <assert.h>
 
+CController* CController::_instance = nullptr;
+
 CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _diskEnumerator(CDiskEnumerator::instance())
 {
-	_diskEnumerator.addObserver(this);
-	_pluginEngine.loadPlugins();
+	assert(_instance == nullptr); // Only makes sense to create one controller
+	_instance = this;
 
-	_leftPanel.addPanelContentsChangedListener(&_pluginEngine);
-	_rightPanel.addPanelContentsChangedListener(&_pluginEngine);
+	_diskEnumerator.addObserver(this);
+	CPluginEngine::get().loadPlugins();
+
+	_leftPanel.addPanelContentsChangedListener(&CPluginEngine::get());
+	_rightPanel.addPanelContentsChangedListener(&CPluginEngine::get());
 }
 
 CController& CController::get()
 {
-	static CController cnt;
-	return cnt;
-}
-
-CPluginEngine& CController::pluginEngine()
-{
-	return _pluginEngine;
+	assert(_instance);
+	return *_instance;
 }
 
 void CController::setPanelContentsChangedListener(PanelContentsChangedListener *listener)

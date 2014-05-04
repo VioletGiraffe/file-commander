@@ -5,22 +5,24 @@
 #endif
 
 #include <QApplication>
-#include <QDir>
-#include <QString>
-#include <QObject>
-#include <QFileIconProvider>
-#include <QIcon>
-#include <QProcess>
+#include <QCryptographicHash>
+#include <QDateTime>
 #include <QDebug>
 #include <QDesktopServices>
-#include <QUrl>
+#include <QDir>
 #include <QFile>
-#include <QDateTime>
-#include <QCryptographicHash>
-#include <QLibrary>
-#include <QWidget>
+#include <QFileIconProvider>
 #include <QFileSystemWatcher>
+#include <QIcon>
+#include <QLibrary>
+#include <QMainWindow>
+#include <QObject>
+#include <QProcess>
+#include <QShortcut>
+#include <QString>
 #include <QTimer>
+#include <QUrl>
+#include <QWidget>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0

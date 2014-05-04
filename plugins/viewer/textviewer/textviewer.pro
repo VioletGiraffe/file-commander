@@ -16,12 +16,11 @@ RCC_DIR     = ../../../build/textviewer
 INCLUDEPATH += \
 	../../../file-commander-core/src \
 	../../../file-commander-core/include \
-	../../../plugininterface/src \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin -lplugininterface -lcore
+LIBS += -L../../../bin -lcore
 
 win*{
 	QMAKE_CXXFLAGS += /MP

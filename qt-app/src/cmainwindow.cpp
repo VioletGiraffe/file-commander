@@ -9,6 +9,7 @@
 #include "settings/csettingspageinterface.h"
 #include "settings/csettingspageedit.h"
 #include "settings/csettingspageother.h"
+#include "pluginengine/cpluginengine.h"
 
 #include <assert.h>
 
@@ -28,7 +29,7 @@
 CMainWindow::CMainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
-	_controller(CController::get()),
+	_controller(std::make_shared<CController>()),
 	_currentPanel(0),
 	_otherPanel(0)
 {
@@ -160,7 +161,7 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
-	const FileOperationResultCode result = _controller.itemActivated(hash, panel->panelPosition());
+	const FileOperationResultCode result = _controller->itemActivated(hash, panel->panelPosition());
 	switch (result)
 	{
 	case rcObjectDoesntExist:
@@ -179,17 +180,17 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 
 void CMainWindow::backSpacePressed(CPanelWidget * widget)
 {
-	_controller.navigateUp(widget->panelPosition());
+	_controller->navigateUp(widget->panelPosition());
 }
 
 void CMainWindow::stepBackRequested(CPanelWidget *panel)
 {
-	_controller.navigateBack(panel->panelPosition());
+	_controller->navigateBack(panel->panelPosition());
 }
 
 void CMainWindow::stepForwardRequested(CPanelWidget *panel)
 {
-	_controller.navigateForward(panel->panelPosition());
+	_controller->navigateForward(panel->panelPosition());
 }
 
 void CMainWindow::currentPanelChanged(CPanelWidget *panel)
@@ -199,14 +200,14 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 
 	if (panel)
 	{
-		ui->fullPath->setText(_controller.panel(panel->panelPosition()).currentDirPath());
-		_controller.pluginEngine().currentPanelChanged(panel->panelPosition());
+		ui->fullPath->setText(_controller->panel(panel->panelPosition()).currentDirPath());
+		CPluginEngine::get().currentPanelChanged(panel->panelPosition());
 	}
 }
 
 void CMainWindow::folderPathSet(QString path, const CPanelWidget *panel)
 {
-	_controller.setPath(panel->panelPosition(), path);
+	_controller->setPath(panel->panelPosition(), path);
 }
 
 void CMainWindow::splitterContextMenuRequested(QPoint pos)
@@ -231,7 +232,7 @@ void CMainWindow::copyFiles()
 	if (!_currentPanel || !_otherPanel)
 		return;
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, _controller.items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir(), this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, _controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir(), this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
 	dialog->show();
 }
@@ -241,7 +242,7 @@ void CMainWindow::moveFiles()
 	if (!_currentPanel || !_otherPanel)
 		return;
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, _controller.items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir(), this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, _controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir(), this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
 	dialog->show();
 }
@@ -252,7 +253,7 @@ void CMainWindow::deleteFiles()
 		return;
 
 #ifdef _WIN32
-	auto items = _controller.items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
+	auto items = _controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
 	std::vector<std::wstring> paths;
 	for (auto& item: items)
 		paths.emplace_back(item.absoluteFilePath().toStdWString());
@@ -267,7 +268,7 @@ void CMainWindow::deleteFilesIrrevocably()
 	if (!_currentPanel)
 		return;
 
-	auto items = _controller.items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
+	auto items = _controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
 #ifdef _WIN32
 	std::vector<std::wstring> paths;
 	for (auto& item: items)
@@ -288,7 +289,7 @@ void CMainWindow::createFolder()
 	const QString dirName = QInputDialog::getText(this, "New folder", "Enter the name for the new directory");
 	if (!dirName.isEmpty())
 	{
-		const bool ok = _controller.createFolder(_currentPanel->currentDir(), dirName);
+		const bool ok = _controller->createFolder(_currentPanel->currentDir(), dirName);
 		assert(ok);
 	}
 }
@@ -298,7 +299,7 @@ void CMainWindow::createFile()
 	const QString fileName = QInputDialog::getText(this, "New file", "Enter the name for the new file");
 	if (!fileName.isEmpty())
 	{
-		const bool ok = _controller.createFile(_currentPanel->currentDir(), fileName);
+		const bool ok = _controller->createFile(_currentPanel->currentDir(), fileName);
 		assert(ok);
 	}
 }
@@ -307,13 +308,13 @@ void CMainWindow::createFile()
 // Other UI commands
 void CMainWindow::viewFile()
 {
-	_controller.pluginEngine().viewCurrentFile();
+	CPluginEngine::get().viewCurrentFile();
 }
 
 void CMainWindow::editFile()
 {
 	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
-	QString currentFile = _currentPanel ? _controller.itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).absoluteFilePath() : QString();
+	QString currentFile = _currentPanel ? _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).absoluteFilePath() : QString();
 	if (!editorPath.isEmpty() && !currentFile.isEmpty())
 	{
 		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
@@ -324,7 +325,7 @@ void CMainWindow::editFile()
 
 void CMainWindow::openTerminal()
 {
-	_controller.openTerminal(_currentPanel->currentDir());
+	_controller->openTerminal(_currentPanel->currentDir());
 }
 
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)
@@ -369,15 +370,5 @@ void CMainWindow::openSettingsDialog()
 
 void CMainWindow::settingsChanged()
 {
-	_controller.settingsChanged();
-}
-
-void CMainWindow::processError( QProcess::ProcessError error )
-{
-	QProcess * process = qobject_cast<QProcess*>(sender());
-	if (process)
-		process->deleteLater();
-
-	qDebug() << "Process couldn't start:" << process->errorString();
-	QMessageBox::information(this, "Cannot execute command", process->errorString());
+	_controller->settingsChanged();
 }
