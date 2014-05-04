@@ -85,8 +85,11 @@
         <property name="editable">
          <bool>true</bool>
         </property>
+        <property name="currentText">
+         <string notr="true"/>
+        </property>
         <property name="maxVisibleItems">
-         <number>15</number>
+         <number>25</number>
         </property>
         <property name="insertPolicy">
          <enum>QComboBox::InsertAtTop</enum>

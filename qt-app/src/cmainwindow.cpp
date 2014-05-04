@@ -134,6 +134,10 @@ void CMainWindow::updateInterface()
 	ui->leftPanel->restorePanelState(s.value(KEY_LPANEL_STATE).toByteArray());
 	ui->rightPanel->restorePanelGeometry(s.value(KEY_RPANEL_GEOMETRY).toByteArray());
 	ui->rightPanel->restorePanelState(s.value(KEY_RPANEL_STATE).toByteArray());
+
+	ui->commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
+	ui->commandLine->lineEdit()->clear();
+
 	show();
 }
 
@@ -339,6 +343,12 @@ void CMainWindow::executeCommand()
 		return;
 
 	CShell::executeShellCommand(commandLine, _currentPanel->currentDir());
+
+	QStringList commands;
+	for (int i = 0; i < ui->commandLine->count(); ++i)
+		commands.push_back(ui->commandLine->itemText(i));
+	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, commands);
+	ui->commandLine->lineEdit()->clear();
 }
 
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
