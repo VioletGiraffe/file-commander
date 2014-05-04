@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <map>
-#include <limits>
 #include <memory>
 
 #include "QtCoreIncludes"
@@ -74,7 +73,7 @@ private:
 	std::map<qulonglong, size_t>           _indexByHash;
 	size_t                                 _currentHistoryLocation;
 	std::shared_ptr<QFileSystemWatcher>    _watcher;
-	static const size_t                    noHistory = std::numeric_limits<size_t>::max();
+	static const size_t                    noHistory;
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                            _panelPosition;
 };

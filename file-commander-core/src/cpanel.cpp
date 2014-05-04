@@ -6,6 +6,9 @@
 
 #include <assert.h>
 #include <time.h>
+#include <limits>
+
+const size_t CPanel::noHistory = std::numeric_limits<size_t>::max();
 
 CPanel::CPanel(Panel position) :
 	_currentHistoryLocation(noHistory),
