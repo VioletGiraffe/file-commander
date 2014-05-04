@@ -26,7 +26,7 @@ void CPluginEngine::loadPlugins()
 #error
 #endif
 
-	const auto pluginPaths(QDir(qApp->applicationDirPath()).entryInfoList((QStringList() << QString("plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
+	const auto pluginPaths(QDir(qApp->applicationDirPath()).entryInfoList((QStringList() << QString("*plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
 	for (auto& path: pluginPaths)
 	{
 		auto pluginModule = std::make_shared<QLibrary>(path.absoluteFilePath());
