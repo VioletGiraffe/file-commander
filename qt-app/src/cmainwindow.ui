@@ -85,7 +85,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="commandLine">
+       <widget class="CHistoryComboBox" name="commandLine">
         <property name="mouseTracking">
          <bool>false</bool>
         </property>
@@ -201,7 +201,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFiles">
@@ -273,6 +273,11 @@
    <extends>QWidget</extends>
    <header>panel/cpanelwidget.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CHistoryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>historycombobox/chistorycombobox.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

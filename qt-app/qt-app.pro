@@ -32,7 +32,8 @@ SOURCES += \
 	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.cpp \
 	src/settings/csettingspageinterface.cpp \
 	src/settings/csettingspageedit.cpp \
-    src/settings/csettingspageother.cpp
+    src/settings/csettingspageother.cpp \
+    src/historycombobox/chistorycombobox.cpp
 
 HEADERS += \
 	src/QtAppIncludes \
@@ -48,7 +49,8 @@ HEADERS += \
 	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.h \
 	src/settings/csettingspageinterface.h \
 	src/settings/csettingspageedit.h \
-    src/settings/csettingspageother.h
+    src/settings/csettingspageother.h \
+    src/historycombobox/chistorycombobox.h
 
 FORMS += \
 	src/cmainwindow.ui \

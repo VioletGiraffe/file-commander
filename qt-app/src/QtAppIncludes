@@ -4,28 +4,29 @@
 #pragma warning(push, 0) // set W0
 #endif
 
-#include "QtCoreIncludes"
-#include <QTimer>
-#include <QCloseEvent>
-#include <QMessageBox>
-#include <QMainWindow>
-#include <QShortcut>
-#include <QModelIndex>
-#include <QKeyEvent>
-#include <QInputDialog>
-#include <QWheelEvent>
-#include <QMouseEvent>
-#include <QList>
-#include <QPushButton>
-#include <QLayout>
-#include <QRect>
-#include <QStyle>
-#include <QTreeView>
-#include <QStandardItemModel>
-#include <QSortFilterProxyModel>
-#include <QHeaderView>
+#include <QAbstractListModel>
 #include <QApplication>
+#include <QCloseEvent>
+#include <QComboBox>
 #include <QFileDialog>
+#include <QHeaderView>
+#include <QInputDialog>
+#include <QKeyEvent>
+#include <QLayout>
+#include <QList>
+#include <QMainWindow>
+#include <QMessageBox>
+#include <QModelIndex>
+#include <QMouseEvent>
+#include <QPushButton>
+#include <QRect>
+#include <QShortcut>
+#include <QSortFilterProxyModel>
+#include <QStandardItemModel>
+#include <QStyle>
+#include <QTimer>
+#include <QTreeView>
+#include <QWheelEvent>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0

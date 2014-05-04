@@ -68,6 +68,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->splitter, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
 
 	connect(ui->commandLine->lineEdit(), SIGNAL(returnPressed()), SLOT(executeCommand()));
+	dynamic_cast<CHistoryComboBox*>(ui->commandLine)->setHistoryMode(true);
 }
 
 void CMainWindow::initButtons()
@@ -359,7 +360,6 @@ void CMainWindow::executeCommand()
 	for (int i = 0; i < ui->commandLine->count(); ++i)
 		commands.push_back(ui->commandLine->itemText(i));
 	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, commands);
-	ui->commandLine->lineEdit()->clear();
 }
 
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
