@@ -15,7 +15,7 @@ void CShell::executeShellCommand(const QString& command, const QString& workingD
 	#ifdef _WIN32
 		_wsystem((QString("pushd ") + workingDir + " && " + command).toStdWString().data());
 	#else
-		std::system((QString("pushd ") + workingDir + " && " + command).toUtf8().data());
+		std::system((QString("cd ") + workingDir + " && " + command).toUtf8().data());
 	#endif
 	}).detach();
 }

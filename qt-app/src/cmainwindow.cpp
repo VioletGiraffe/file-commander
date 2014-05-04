@@ -18,13 +18,14 @@
 #endif
 
 // Main window settings keys
-#define KEY_RPANEL_STATE    "Ui/RPanel/State"
-#define KEY_LPANEL_STATE    "Ui/LPanel/State"
-#define KEY_RPANEL_GEOMETRY "Ui/RPanel/Geometry"
-#define KEY_LPANEL_GEOMETRY "Ui/LPanel/Geometry"
-#define KEY_GEOMETRY        "Ui/Geometry"
-#define KEY_STATE           "Ui/State"
-#define KEY_SPLITTER_SIZES  "Ui/Splitter"
+#define KEY_RPANEL_STATE      "Ui/RPanel/State"
+#define KEY_LPANEL_STATE      "Ui/LPanel/State"
+#define KEY_RPANEL_GEOMETRY   "Ui/RPanel/Geometry"
+#define KEY_LPANEL_GEOMETRY   "Ui/LPanel/Geometry"
+#define KEY_GEOMETRY          "Ui/Geometry"
+#define KEY_STATE             "Ui/State"
+#define KEY_SPLITTER_SIZES    "Ui/Splitter"
+#define KEY_LAST_ACTIVE_PANEL "Ui/LastActivePanel"
 
 CMainWindow::CMainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -140,6 +141,12 @@ void CMainWindow::updateInterface()
 	ui->commandLine->lineEdit()->clear();
 
 	show();
+
+	Panel lastActivePanel = (Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
+	if (lastActivePanel == LeftPanel)
+		ui->leftPanel->setFocusToFileList();
+	else
+		ui->rightPanel->setFocusToFileList();
 }
 
 void CMainWindow::closeEvent(QCloseEvent *e)
@@ -157,6 +164,8 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 
 		emit closed(); // Is used to close all child windows
 	}
+
+	QMainWindow::closeEvent(e);
 }
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
@@ -200,6 +209,7 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 
 	if (panel)
 	{
+		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, panel->panelPosition());
 		ui->fullPath->setText(_controller->panel(panel->panelPosition()).currentDirPath());
 		CPluginEngine::get().currentPanelChanged(panel->panelPosition());
 	}
