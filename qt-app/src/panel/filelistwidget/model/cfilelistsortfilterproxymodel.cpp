@@ -67,6 +67,8 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	case ExtColumn:
 		if (leftItem.isDir() && rightItem.isDir()) // Sorting directories by name, files - by extension
 			return _sorter.lessThan(leftItem.name(), rightItem.name());
+		else if (!leftItem.isDir() && !rightItem.isDir() && leftItem.extension().isEmpty() && rightItem.extension().isEmpty())
+			return _sorter.lessThan(leftItem.name(), rightItem.name());
 		else
 			return _sorter.lessThan(leftItem.properties().extension, rightItem.properties().extension); // Don't use item.extension() because that returns "" for files with no name
 		break;
