@@ -105,6 +105,9 @@ void CMainWindow::initActions()
 {
 	connect(ui->actionOpen_Console_Here, SIGNAL(triggered()), SLOT(openTerminal()));
 	connect(ui->actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
+
+	ui->action_Show_hidden_files->setChecked(CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
+	connect(ui->action_Show_hidden_files, SIGNAL(triggered()), SLOT(showHiddenFiles()));
 	connect(ui->actionShowAllFiles, SIGNAL(triggered()), SLOT(showAllFilesFromCurrentFolderAndBelow()));
 	connect(ui->action_Settings, SIGNAL(triggered()), SLOT(openSettingsDialog()));
 }
@@ -376,6 +379,13 @@ void CMainWindow::clearCommandLineAndRestoreFocus()
 {
 	ui->commandLine->reset();
 	_currentPanel->setFocusToFileList();
+}
+
+void CMainWindow::showHiddenFiles()
+{
+	CSettings().setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, ui->action_Show_hidden_files->isChecked());
+	_controller->refreshPanelContents(LeftPanel);
+	_controller->refreshPanelContents(RightPanel);
 }
 
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()

@@ -225,7 +225,14 @@
     </property>
     <addaction name="action_Settings"/>
    </widget>
+   <widget class="QMenu" name="menu_View">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="action_Show_hidden_files"/>
+   </widget>
    <addaction name="menuFiles"/>
+   <addaction name="menu_View"/>
    <addaction name="menuCommands"/>
    <addaction name="menuOptions"/>
   </widget>
@@ -264,6 +271,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+P</string>
+   </property>
+  </action>
+  <action name="action_Show_hidden_files">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Show hidden files</string>
    </property>
   </action>
  </widget>

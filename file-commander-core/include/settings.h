@@ -19,6 +19,7 @@
 
 // Interface
 #define KEY_INTERFACE_NUMBERS_AFFTER_LETTERS "Interface/Sorting/NumbersAfterLetters"
+#define KEY_INTERFACE_SHOW_HIDDEN_FILES      "Interface/View/ShowHiddenFiles"
 
 // Editing
 #define KEY_EDITOR_PATH "Interface/Sorting/NumbersAfterLetters"

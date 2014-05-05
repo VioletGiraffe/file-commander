@@ -143,12 +143,13 @@ void CPanel::refreshFileList()
 	QFileInfoList list = _currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
 	_list.clear();
 	_indexByHash.clear();
+	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 	for (int i = 0; i < list.size(); ++i)
 	{
 		if (list[i].absoluteFilePath() != "/..")
 		{
 			_list.push_back(CFileSystemObject(list[i]));
-			if (!_list.back().exists())
+			if (!_list.back().exists() || (!showHiddenFiles && _list.back().isHidden()))
 				_list.pop_back();
 			else
 				_indexByHash[_list.back().hash()] = _list.size() - 1;

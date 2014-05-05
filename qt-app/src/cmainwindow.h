@@ -67,6 +67,7 @@ private slots: // For UI
 	void clearCommandLineAndRestoreFocus();
 
 // Main menu
+	void showHiddenFiles();
 	void showAllFilesFromCurrentFolderAndBelow();
 	void openSettingsDialog();
 

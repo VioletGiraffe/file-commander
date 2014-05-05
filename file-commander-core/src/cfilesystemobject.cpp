@@ -92,6 +92,11 @@ bool CFileSystemObject::isExecutable() const
 	return _fileInfo.permission(QFile::ExeUser) || _fileInfo.permission(QFile::ExeOwner) || _fileInfo.permission(QFile::ExeGroup) || _fileInfo.permission(QFile::ExeOther);
 }
 
+bool CFileSystemObject::isHidden() const
+{
+	return _fileInfo.isHidden();
+}
+
 // Returns true if this object is a child of parent, either direct or indirect
 bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 {

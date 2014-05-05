@@ -47,6 +47,7 @@ public:
 	bool isDir () const;
 	bool isCdUp() const; // returns true if it's ".." item
 	bool isExecutable() const;
+	bool isHidden() const;
 	// Returns true if this object is a child of parent, either direct or indirect
 	bool isChildOf(const CFileSystemObject& parent) const;
 	QString absoluteFilePath() const;
