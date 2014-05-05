@@ -1,5 +1,4 @@
 #include "chistorycombobox.h"
-#include "chistorycomboboxmodel.h"
 
 CHistoryComboBox::CHistoryComboBox(QWidget* parent) : QComboBox(parent)
 {

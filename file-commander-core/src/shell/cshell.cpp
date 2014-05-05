@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <algorithm>
 #include <thread>
+#include <cstdlib>
 
 #ifdef _WIN32
 #include <Windows.h>
