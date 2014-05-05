@@ -115,7 +115,6 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
 	const qulonglong currentItemHash = hashByItemIndex(_selectionModel->currentIndex());
 	const int currentItemRow = std::max(_selectionModel->currentIndex().row(), 0);
 
-	QList<QStandardItem*> itemsToAdd;
 	ui->_list->saveHeaderState();
 	_model->clear();
 	_sortModel->setSourceModel(0);
@@ -187,10 +186,10 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
 				ui->_list->moveCursorToItem(lastVisitedIndex);
 		}
 		else
-			ui->_list->moveCursorToItem(_sortModel->index(std::min(currentItemRow, _sortModel->rowCount()-1), 0));
+			ui->_list->moveCursorToItem(_sortModel->index(0, 0));
 	}
 
-	qDebug () << __FUNCTION__ << "time = " << (clock() - start) * 1000 / CLOCKS_PER_SEC << " ms";
+	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 }
 
 void CPanelWidget::fillFromPanel(const CPanel &panel)
@@ -204,12 +203,13 @@ void CPanelWidget::fillFromPanel(const CPanel &panel)
 	fillFromList(itemList);
 
 	// Restoring previous selection
-	for (int row = 0; row < _sortModel->rowCount(); ++row)
-	{
-		const qulonglong hash = hashByItemRow(row);
-		if (selectedItemsHashes.count(hash) != 0)
-			_selectionModel->select(_sortModel->index(row, 0), QItemSelectionModel::Rows | QItemSelectionModel::Select);
-	}
+	if (!selectedItemsHashes.empty())
+		for (int row = 0; row < _sortModel->rowCount(); ++row)
+		{
+			const qulonglong hash = hashByItemRow(row);
+			if (selectedItemsHashes.count(hash) != 0)
+				_selectionModel->select(_sortModel->index(row, 0), QItemSelectionModel::Rows | QItemSelectionModel::Select);
+		}
 
 	_currentPath = panel.currentDirPath();
 	const QString sep = toNativeSeparators("/");

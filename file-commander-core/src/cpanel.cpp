@@ -155,7 +155,7 @@ void CPanel::refreshFileList()
 		}
 	}
 
-	qDebug () << __FUNCTION__ << "time = " << (clock() - start) * 1000 / CLOCKS_PER_SEC << " ms";
+	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << "," << _list.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 	sendContentsChangedNotification();
 }
 
