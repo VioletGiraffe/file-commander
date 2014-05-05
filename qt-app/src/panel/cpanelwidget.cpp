@@ -25,11 +25,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
-#ifndef _WIN32
-	connect(ui->_list, SIGNAL(doubleClicked(QModelIndex)), SLOT(itemActivatedSlot(QModelIndex)));
-#else
-	connect(ui->_list, SIGNAL(activated(QModelIndex)), SLOT(itemActivatedSlot(QModelIndex)));
-#endif
+	connect(ui->_list, SIGNAL(returnPressOrDoubleClick(QModelIndex)), SLOT(itemActivatedSlot(QModelIndex)));
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));

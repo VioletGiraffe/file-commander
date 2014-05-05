@@ -27,6 +27,7 @@ public:
 
 signals:
 	void contextMenuRequested (QPoint pos);
+	void returnPressOrDoubleClick(QModelIndex index);
 
 protected:
 	// For controlling selection

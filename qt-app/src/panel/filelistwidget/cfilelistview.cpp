@@ -16,6 +16,7 @@ CFileListView::CFileListView(QWidget *parent) :
 	_panelPosition(UnknownPanel),
 	_bHeaderAdjustmentRequired(true)
 {
+	connect(this, SIGNAL(doubleClicked(QModelIndex)), SIGNAL(returnPressOrDoubleClick(QModelIndex)));
 #if defined __linux__ || defined __APPLE__
 	setStyle(new CFocusFrameStyle);
 #endif
@@ -106,6 +107,11 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 		if (!(event->modifiers() & Qt::ControlModifier))
 			event->setModifiers(event->modifiers() | Qt::ControlModifier);
 #endif
+	}
+	else if (event->key() == Qt::Key_Return)
+	{
+		if (currentIndex().isValid())
+			emit returnPressOrDoubleClick(currentIndex());
 	}
 
 	QTreeView::keyPressEvent(event);
