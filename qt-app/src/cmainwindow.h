@@ -63,6 +63,8 @@ private slots: // For UI
 	void openTerminal();
 	void showRecycleBInContextMenu(QPoint pos);
 	void executeCommand();
+	void cycleLastCommands();
+	void clearCommandLineAndRestoreFocus();
 
 // Main menu
 	void showAllFilesFromCurrentFolderAndBelow();

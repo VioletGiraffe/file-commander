@@ -95,6 +95,10 @@ void CMainWindow::initButtons()
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Delete"), this, SLOT(deleteFiles()), 0, Qt::ApplicationShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+F8"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::ApplicationShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::ApplicationShortcut)));
+
+	// Command line
+	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(cycleLastCommands()), 0, Qt::ApplicationShortcut)));
+	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Esc"), this, SLOT(clearCommandLineAndRestoreFocus()), 0, Qt::WidgetWithChildrenShortcut)));
 }
 
 void CMainWindow::initActions()
@@ -360,6 +364,18 @@ void CMainWindow::executeCommand()
 	for (int i = 0; i < ui->commandLine->count(); ++i)
 		commands.push_back(ui->commandLine->itemText(i));
 	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, commands);
+}
+
+void CMainWindow::cycleLastCommands()
+{
+	ui->commandLine->cycleLastCommands();
+	ui->commandLine->setFocus();
+}
+
+void CMainWindow::clearCommandLineAndRestoreFocus()
+{
+	ui->commandLine->reset();
+	_currentPanel->setFocusToFileList();
 }
 
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
