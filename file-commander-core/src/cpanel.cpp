@@ -78,7 +78,7 @@ FileOperationResultCode CPanel::setPath(const QString &path)
 		const QString itemPath = toPosixSeparators(item.absoluteFilePath());
 		if (posixPath == itemPath && toPosixSeparators(item.parentDirPath()) != itemPath)
 		{
-			_cursorPosForFolder[item.parentDirPath()] = item.properties().hash;
+			setCurrentItemInFolder(item.parentDirPath(), item.properties().hash);
 			break;
 		}
 	}
@@ -128,12 +128,18 @@ QString CPanel::currentDirName() const
 	return toNativeSeparators(_currentDir.dirName());
 }
 
+void CPanel::setCurrentItemInFolder(const QString& dir, qulonglong currentItemHash)
+{
+	_cursorPosForFolder[toPosixSeparators(dir)] = currentItemHash;
+}
+
 qulonglong CPanel::currentItemInFolder(const QString &dir) const
 {
-	if (_cursorPosForFolder.count(dir) > 0)
-		return _cursorPosForFolder.at(dir);
-	else
+	const auto it = _cursorPosForFolder.find(toPosixSeparators(dir));
+	if (it == _cursorPosForFolder.end())
 		return 0;
+	else
+		return it->second;
 }
 
 // Enumerates objects in the current directory

@@ -40,7 +40,7 @@ public:
 	void fillFromList(const std::vector<CFileSystemObject>& items);
 	void fillFromPanel(const CPanel& panel);
 
-	std::vector<qulonglong> selectedItemsHashes() const;
+	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
 	qulonglong currentItemHash() const;
 
 	virtual void panelContentsChanged(Panel p);
@@ -75,7 +75,6 @@ private:
 	QModelIndex indexByHash(const qulonglong hash) const;
 
 private:
-	QString                         _currentPath;
 	std::vector<CFileSystemObject>  _disks;
 	Ui::CPanelWidget              * ui;
 	CController                   & _controller;

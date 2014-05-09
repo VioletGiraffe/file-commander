@@ -95,6 +95,11 @@ void CController::settingsChanged()
 	_leftPanel.settingsChanged();
 }
 
+void CController::activePanelChanged(Panel p)
+{
+	_activePanel = p;
+}
+
 // Navigates specified panel up the directory tree
 void CController::navigateUp(Panel p)
 {
@@ -137,7 +142,16 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 	QDir parentDir(parentFolder);
 	if (!parentDir.exists())
 		return false;
-	return parentDir.mkpath(name);
+
+	const QString posixName = toPosixSeparators(name);
+	if (parentDir.mkpath(posixName))
+	{
+		const QString newFolderPath = parentDir.absolutePath() + "/" + posixName.left(posixName.indexOf('/'));
+		activePanel().setCurrentItemInFolder(activePanel().currentDirPath(), CFileSystemObject(newFolderPath).hash());
+		return true;
+	}
+	else
+		return false;
 }
 
 bool CController::createFile(const QString &parentFolder, const QString &name)
@@ -193,7 +207,22 @@ const CPanel &CController::panel(Panel p) const
 	}
 }
 
-CPanel &CController::panel(Panel p)
+Panel CController::activePanelPosition() const
+{
+	return _activePanel;
+}
+
+const CPanel& CController::activePanel() const
+{
+	return panel(activePanelPosition());
+}
+
+CPanel& CController::activePanel()
+{
+	return panel(activePanelPosition());
+}
+
+CPanel& CController::panel(Panel p)
 {
 	switch (p)
 	{

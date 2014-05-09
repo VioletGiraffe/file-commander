@@ -39,6 +39,7 @@ public:
 	QString currentDirPath () const;
 	QString currentDirName () const;
 
+	void setCurrentItemInFolder(const QString& dir, qulonglong currentItemHash);
 	// Returns hash of an item that was the last selected in the specified dir
 	qulonglong currentItemInFolder(const QString& dir) const;
 
@@ -66,16 +67,16 @@ private slots:
 	void contentsChanged (QString path);
 
 private:
-	QDir                                   _currentDir;
-	std::vector<CFileSystemObject>         _list;
-	std::vector<QString>                   _history;
-	std::map<QString, qulonglong /*hash*/> _cursorPosForFolder;
-	std::map<qulonglong, size_t>           _indexByHash;
-	size_t                                 _currentHistoryLocation;
-	std::shared_ptr<QFileSystemWatcher>    _watcher;
-	static const size_t                    noHistory;
+	QDir                                       _currentDir;
+	std::vector<CFileSystemObject>             _list;
+	std::vector<QString>                       _history;
+	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
+	std::map<qulonglong, size_t>               _indexByHash;
+	size_t                                     _currentHistoryLocation;
+	std::shared_ptr<QFileSystemWatcher>        _watcher;
+	static const size_t                        noHistory;
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
-	const Panel                            _panelPosition;
+	const Panel                                _panelPosition;
 };
 
 #endif // CPANEL_H

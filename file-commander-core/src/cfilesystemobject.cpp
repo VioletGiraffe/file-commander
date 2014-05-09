@@ -138,7 +138,7 @@ QString CFileSystemObject::name() const
 
 QString CFileSystemObject::extension() const
 {
-	if (_properties.name.isEmpty() && _properties.type == File) // File without a name, displaying extension in the name field and adding point to extension
+	if (_properties.type == File && _properties.name.isEmpty()) // File without a name, displaying extension in the name field and adding point to extension
 		return QString('.') + _properties.extension;
 	else
 		return _properties.extension;

@@ -44,6 +44,8 @@ public:
 	void diskSelected(Panel p, size_t index);
 	// Program settings have changed
 	void settingsChanged();
+	// Focus is set to a panel
+	void activePanelChanged(Panel p);
 
 // Operations
 	// Navigates specified panel up the directory tree
@@ -68,6 +70,9 @@ public:
 // Getters
 	const CPanel& panel(Panel p) const;
 	CPanel& panel(Panel p);
+	Panel activePanelPosition() const;
+	const CPanel& activePanel() const;
+	CPanel& activePanel();
 	const CFileSystemObject& itemByIndex(Panel p, size_t index) const;
 	const CFileSystemObject& itemByHash(Panel p, qulonglong hash) const;
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
@@ -93,6 +98,7 @@ private:
 	CPanel               _leftPanel, _rightPanel;
 	CDiskEnumerator &    _diskEnumerator;
 	std::vector<IDiskListObserver*> _disksChangedListeners;
+	Panel                _activePanel;
 };
 
 #endif // CCONTROLLER_H

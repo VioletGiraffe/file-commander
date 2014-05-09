@@ -217,6 +217,7 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 
 	if (panel)
 	{
+		_controller->activePanelChanged(panel->panelPosition());
 		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, panel->panelPosition());
 		ui->fullPath->setText(_controller->panel(panel->panelPosition()).currentDirPath());
 		CPluginEngine::get().currentPanelChanged(panel->panelPosition());

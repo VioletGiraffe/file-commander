@@ -74,7 +74,7 @@ bool CPanelWidget::restorePanelGeometry(QByteArray state)
 
 QString CPanelWidget::currentDir() const
 {
-	return _currentPath;
+	return _controller.panel(_panelPosition).currentDirPath();
 }
 
 Panel CPanelWidget::panelPosition() const
@@ -166,27 +166,14 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
 	_sortModel->setSourceModel(_model);
 	ui->_list->restoreHeaderState();
 
-	bool cursorSet = false;
-	if (currentItemHash != 0)
+	ui->_list->moveCursorToItem(_sortModel->index(0, 0));
+
+	const qulonglong lastVisitedItemInDirectory = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPath());
+	if (lastVisitedItemInDirectory != 0)
 	{
-		const QModelIndex currentIndex = indexByHash(currentItemHash);
-		if (currentIndex.isValid())
-		{
-			ui->_list->moveCursorToItem(currentIndex);
-			cursorSet = true;
-		}
-	}
-	if (!cursorSet)
-	{
-		const qulonglong lastVisitedItemInDirectory = _panelPosition == UnknownPanel ? 0 : _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPath());
-		if (lastVisitedItemInDirectory != 0)
-		{
-			const QModelIndex lastVisitedIndex = indexByHash(lastVisitedItemInDirectory);
-			if (lastVisitedIndex.isValid())
-				ui->_list->moveCursorToItem(lastVisitedIndex);
-		}
-		else
-			ui->_list->moveCursorToItem(_sortModel->index(0, 0));
+		const QModelIndex lastVisitedIndex = indexByHash(lastVisitedItemInDirectory);
+		if (lastVisitedIndex.isValid())
+			ui->_list->moveCursorToItem(lastVisitedIndex);
 	}
 
 	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
@@ -195,7 +182,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
 void CPanelWidget::fillFromPanel(const CPanel &panel)
 {
 	auto& itemList = panel.list();
-	const auto previousSelection = selectedItemsHashes();
+	const auto previousSelection = selectedItemsHashes(true);
 	std::set<qulonglong> selectedItemsHashes; // For fast search
 	for (auto hash = previousSelection.begin(); hash != previousSelection.end(); ++hash)
 		selectedItemsHashes.insert(*hash);
@@ -211,12 +198,12 @@ void CPanelWidget::fillFromPanel(const CPanel &panel)
 				_selectionModel->select(_sortModel->index(row, 0), QItemSelectionModel::Rows | QItemSelectionModel::Select);
 		}
 
-	_currentPath = panel.currentDirPath();
+	const QString currentPath(panel.currentDirPath());
 	const QString sep = toNativeSeparators("/");
-	if (!_currentPath.endsWith(sep))
-		ui->_pathNavigator->setText(_currentPath + sep);
+	if (!currentPath.endsWith(sep))
+		ui->_pathNavigator->setText(currentPath + sep);
 	else
-		ui->_pathNavigator->setText(_currentPath);
+		ui->_pathNavigator->setText(currentPath);
 }
 
 void CPanelWidget::itemActivatedSlot(QModelIndex item)
@@ -307,7 +294,7 @@ void CPanelWidget::driveButtonClicked()
 void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection /*deselected*/)
 {
 	auto selection = selectedItemsHashes();
-	const QString cdUpPath = CFileSystemObject(QFileInfo(_currentPath)).parentDirPath();
+	const QString cdUpPath = CFileSystemObject(QFileInfo(currentDir())).parentDirPath();
 	for(auto it = selection.begin(); it != selection.end(); ++it)
 	{
 		if (_controller.itemByHash(_panelPosition, *it).absoluteFilePath() == cdUpPath)
@@ -327,7 +314,7 @@ void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previou
 	CPluginEngine::get().currentItemChanged(_panelPosition, current.isValid() ? hashByItemIndex(current) : 0);
 }
 
-std::vector<qulonglong> CPanelWidget::selectedItemsHashes() const
+std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
 {
 	auto selection = _selectionModel->selectedRows();
 	std::vector<qulonglong> result;
@@ -340,7 +327,7 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes() const
 			result.push_back(hash);
 		}
 	}
-	else
+	else if (!onlyHighlightedItems)
 	{
 		auto currentIndex = _selectionModel->currentIndex();
 		if (currentIndex.isValid())

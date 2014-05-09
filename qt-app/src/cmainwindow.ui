@@ -280,6 +280,9 @@
    <property name="text">
     <string>&amp;Show hidden files</string>
    </property>
+   <property name="shortcut">
+    <string>Alt+H</string>
+   </property>
   </action>
  </widget>
  <customwidgets>
