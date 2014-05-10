@@ -65,7 +65,7 @@ public:
 	// Rename a file or folder
 	void rename(Panel p, size_t itemIdx, const QString& newName);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
-	void calculateDirSize(Panel p, size_t dirIndex);
+	void calculateDirSize(Panel p, qulonglong dirHash);
 
 // Getters
 	const CPanel& panel(Panel p) const;

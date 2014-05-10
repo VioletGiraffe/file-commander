@@ -107,13 +107,12 @@ void CPanelWidget::setPanelPosition(Panel p)
 }
 
 // Returns the list of items added to the view
-void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
+void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, bool sameDirAsPrevious)
 {
 	const time_t start = clock();
 
 	// Remembering currently highlighted item to restore cursor afterwards
-	const qulonglong currentItemHash = hashByItemIndex(_selectionModel->currentIndex());
-	const int currentItemRow = std::max(_selectionModel->currentIndex().row(), 0);
+	const qulonglong current = currentItemHash();
 
 	ui->_list->saveHeaderState();
 	_model->clear();
@@ -168,13 +167,23 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items)
 
 	ui->_list->moveCursorToItem(_sortModel->index(0, 0));
 
-	const qulonglong lastVisitedItemInDirectory = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPath());
-	if (lastVisitedItemInDirectory != 0)
+	if (sameDirAsPrevious && current != 0)
 	{
-		const QModelIndex lastVisitedIndex = indexByHash(lastVisitedItemInDirectory);
-		if (lastVisitedIndex.isValid())
-			ui->_list->moveCursorToItem(lastVisitedIndex);
+		const QModelIndex item = indexByHash(current);
+		if (item.isValid())
+			ui->_list->moveCursorToItem(item);
 	}
+	else
+	{
+		const qulonglong lastVisitedItemInDirectory = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPath());
+		if (lastVisitedItemInDirectory != 0)
+		{
+			const QModelIndex lastVisitedIndex = indexByHash(lastVisitedItemInDirectory);
+			if (lastVisitedIndex.isValid())
+				ui->_list->moveCursorToItem(lastVisitedIndex);
+		}
+	}
+	
 
 	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 }
@@ -187,7 +196,8 @@ void CPanelWidget::fillFromPanel(const CPanel &panel)
 	for (auto hash = previousSelection.begin(); hash != previousSelection.end(); ++hash)
 		selectedItemsHashes.insert(*hash);
 
-	fillFromList(itemList);
+	fillFromList(itemList, toPosixSeparators(panel.currentDirPath()) == _directoryCurrentlyBeingDisplayed);
+	_directoryCurrentlyBeingDisplayed = toPosixSeparators(panel.currentDirPath());
 
 	// Restoring previous selection
 	if (!selectedItemsHashes.empty())
@@ -267,7 +277,7 @@ void CPanelWidget::calcDirectorySize()
 	if (itemIndex.isValid())
 	{
 		_selectionModel->select(itemIndex, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
-		_controller.calculateDirSize(_panelPosition, itemIndex.row());
+		_controller.calculateDirSize(_panelPosition, hashByItemIndex(itemIndex));
 	}
 }
 
@@ -478,4 +488,9 @@ void CPanelWidget::panelContentsChanged( Panel p )
 {
 	if (p == _panelPosition)
 		fillFromPanel(_controller.panel(_panelPosition));
+}
+
+CFileListView *CPanelWidget::fileListView() const
+{
+	return ui->_list;
 }

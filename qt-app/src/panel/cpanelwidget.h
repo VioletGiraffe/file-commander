@@ -13,6 +13,7 @@ class QItemSelectionModel;
 class CFileListModel;
 class QStandardItem;
 class CFileListSortFilterProxyModel;
+class CFileListView;
 
 
 class CPanelWidget : public QWidget, private CController::IDiskListObserver, public PanelContentsChangedListener
@@ -37,13 +38,15 @@ public:
 	void setPanelPosition(Panel p);
 
 	// Returns the list of items added to the view
-	void fillFromList(const std::vector<CFileSystemObject>& items);
+	void fillFromList(const std::vector<CFileSystemObject>& items, bool sameDirAsPrevious);
 	void fillFromPanel(const CPanel& panel);
 
 	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
 	qulonglong currentItemHash() const;
 
 	virtual void panelContentsChanged(Panel p);
+
+	CFileListView * fileListView() const;
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
@@ -76,6 +79,7 @@ private:
 
 private:
 	std::vector<CFileSystemObject>  _disks;
+	QString                         _directoryCurrentlyBeingDisplayed;
 	Ui::CPanelWidget              * ui;
 	CController                   & _controller;
 	QItemSelectionModel           * _selectionModel;

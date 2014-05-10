@@ -10,6 +10,7 @@
 #include "settings/csettingspageedit.h"
 #include "settings/csettingspageother.h"
 #include "pluginengine/cpluginengine.h"
+#include "panel/filelistwidget/cfilelistview.h"
 
 #include <assert.h>
 
@@ -56,6 +57,9 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	connect(ui->leftPanel, SIGNAL(folderPathSet(QString,const CPanelWidget*)), SLOT(folderPathSet(QString,const CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(folderPathSet(QString,const CPanelWidget*)), SLOT(folderPathSet(QString,const CPanelWidget*)));
+
+	ui->leftPanel->fileListView()->installEventFilter(this);
+	ui->rightPanel->fileListView()->installEventFilter(this);
 
 	initButtons();
 	initActions();
@@ -174,6 +178,25 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	}
 
 	QMainWindow::closeEvent(e);
+}
+
+bool CMainWindow::eventFilter(QObject * watched, QEvent * event)
+{
+	if (watched == (QObject*)ui->leftPanel->fileListView() || watched == (QObject*)ui->rightPanel->fileListView())
+	{
+		if (event && event->type() == QEvent::KeyPress)
+		{
+			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(event);
+			if (keyEvent && keyEvent->key() != Qt::Key_Space && !keyEvent->text().isEmpty())
+			{
+				ui->commandLine->setFocus();
+				ui->commandLine->event(event);
+				return false;
+			}
+		}
+	}
+
+	return false;
 }
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
@@ -392,7 +415,7 @@ void CMainWindow::showHiddenFiles()
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
 {
 	if (_currentPanel)
-		_currentPanel->fillFromList(recurseDirectoryItems(_currentPanel->currentDir(), false));
+		_currentPanel->fillFromList(recurseDirectoryItems(_currentPanel->currentDir(), false), false);
 }
 
 void CMainWindow::openSettingsDialog()

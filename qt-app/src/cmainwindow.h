@@ -38,7 +38,8 @@ public slots:
 	void updateInterface();
 
 protected:
-	virtual void closeEvent(QCloseEvent * e);
+	virtual void closeEvent(QCloseEvent * e) override;
+	virtual bool eventFilter(QObject * watched, QEvent * event) override;
 
 private slots: // For UI
 	void itemActivated(qulonglong hash, CPanelWidget * panel);

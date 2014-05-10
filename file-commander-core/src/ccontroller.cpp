@@ -189,9 +189,9 @@ void CController::rename(Panel p, size_t itemIdx, const QString &newName)
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
-void CController::calculateDirSize(Panel p, size_t dirIndex)
+void CController::calculateDirSize(Panel p, qulonglong dirHash)
 {
-	panel(p).calculateDirSize(dirIndex);
+	panel(p).calculateDirSize(dirHash);
 }
 
 const CPanel &CController::panel(Panel p) const

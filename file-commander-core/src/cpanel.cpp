@@ -212,10 +212,10 @@ CFileSystemObject& CPanel::itemByHash( qulonglong hash )
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
-void CPanel::calculateDirSize(size_t dirIndex)
+void CPanel::calculateDirSize(qulonglong dirHash)
 {
-	assert(dirIndex < _list.size());
-	CFileSystemObject& item = _list[dirIndex];
+	assert(dirHash != 0);
+	CFileSystemObject& item = itemByHash(dirHash);
 	if (item.isDir())
 	{
 		uint64_t size = 0;

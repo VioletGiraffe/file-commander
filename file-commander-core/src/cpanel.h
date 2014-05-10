@@ -56,7 +56,7 @@ public:
 	CFileSystemObject& itemByHash (qulonglong hash);
 
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
-	void calculateDirSize(size_t dirIndex);
+	void calculateDirSize(qulonglong dirHash);
 
 	void sendContentsChangedNotification() const;
 
