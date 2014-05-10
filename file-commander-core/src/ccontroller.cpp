@@ -146,7 +146,8 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 	const QString posixName = toPosixSeparators(name);
 	if (parentDir.mkpath(posixName))
 	{
-		const QString newFolderPath = parentDir.absolutePath() + "/" + posixName.left(posixName.indexOf('/'));
+		const int slashPosition = posixName.indexOf('/');
+		const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? posixName.left(posixName.indexOf('/')) : posixName);
 		activePanel().setCurrentItemInFolder(activePanel().currentDirPath(), CFileSystemObject(newFolderPath).hash());
 		return true;
 	}
