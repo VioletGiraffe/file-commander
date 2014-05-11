@@ -2,9 +2,9 @@
 #define CIMAGEVIEWERWIDGET_H
 
 #include "QtIncludes.h"
-#include "plugininterface/cviewerwindow.h"
+#include "plugininterface/cpluginwindow.h"
 
-class CImageViewerWidget : public CViewerWindow
+class CImageViewerWidget : public CPluginWindow
 {
 	Q_OBJECT
 public:

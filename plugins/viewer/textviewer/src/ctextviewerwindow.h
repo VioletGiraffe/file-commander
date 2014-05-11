@@ -2,13 +2,13 @@
 #define CTEXTVIEWERWINDOW_H
 
 #include "QtIncludes.h"
-#include "plugininterface/cviewerwindow.h"
+#include "plugininterface/cpluginwindow.h"
 
 namespace Ui {
 class CTextViewerWindow;
 }
 
-class CTextViewerWindow : public CViewerWindow
+class CTextViewerWindow : public CPluginWindow
 {
 	Q_OBJECT
 

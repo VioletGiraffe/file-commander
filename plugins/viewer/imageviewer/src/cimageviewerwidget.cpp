@@ -1,7 +1,7 @@
 #include "cimageviewerwidget.h"
 
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
-	CViewerWindow(parent)
+	CPluginWindow(parent)
 {
 }
 

@@ -10,7 +10,7 @@
 #endif
 
 CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
-	CViewerWindow(parent),
+	CPluginWindow(parent),
 	ui(new Ui::CTextViewerWindow)
 {
 	ui->setupUi(this);
