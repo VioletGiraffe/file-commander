@@ -37,6 +37,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 {
 	ui->setupUi(this);
 
+	_controller->pluginProxy().setToolMenuEntryCreatorImplementation(CPluginProxy::CreateToolMenuEntryImplementationType(std::bind(&CMainWindow::createToolMenuEntries, this, std::placeholders::_1)));
+
 	_currentPanel = ui->leftPanel;
 	_otherPanel   = ui->rightPanel;
 
@@ -431,4 +433,44 @@ void CMainWindow::openSettingsDialog()
 void CMainWindow::settingsChanged()
 {
 	_controller->settingsChanged();
+}
+
+void CMainWindow::createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries)
+{
+	QMenuBar * menu = menuBar();
+	if (!menu)
+		return;
+
+	static QMenu * toolMenu = 0; // Shouldn't have to be static, but 2 subsequent calls to this method result in "Tools" being added twice. QMenuBar needs event loop to update its children?..
+	auto topLevelMenus = menu->findChildren<QMenu*>();
+	for(auto topLevelMenu: topLevelMenus)
+	{
+		if (topLevelMenu->title() == "Tools")
+		{
+			toolMenu = topLevelMenu;
+			break;
+		}
+	}
+
+	if (!toolMenu)
+	{
+		toolMenu = new QMenu("Tools");
+		menu->addMenu(toolMenu);
+	}
+
+	for(const auto& menuTree: menuEntries)
+	{
+		addToolMenuEntriesRecursively(menuTree, toolMenu);
+	}
+
+	toolMenu->addSeparator();
+}
+
+void CMainWindow::addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu)
+{
+	assert(toolMenu);
+	QAction* action = toolMenu->addAction(entry.name);
+	QObject::connect(action, &QAction::triggered, [entry](bool){entry.handler();});
+	for(const auto& childEntry: entry.children)
+		addToolMenuEntriesRecursively(childEntry, toolMenu);
 }

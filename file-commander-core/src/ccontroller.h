@@ -6,6 +6,7 @@
 #include "fileoperationresultcode.h"
 #include "cpanel.h"
 #include "diskenumerator/cdiskenumerator.h"
+#include "plugininterface/cpluginproxy.h"
 
 struct ItemId
 {
@@ -73,6 +74,7 @@ public:
 	Panel activePanelPosition() const;
 	const CPanel& activePanel() const;
 	CPanel& activePanel();
+	CPluginProxy& pluginProxy();
 	const CFileSystemObject& itemByIndex(Panel p, size_t index) const;
 	const CFileSystemObject& itemByHash(Panel p, qulonglong hash) const;
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
@@ -96,6 +98,7 @@ private:
 	static CController * _instance;
 	// panels
 	CPanel               _leftPanel, _rightPanel;
+	CPluginProxy         _pluginProxy;
 	CDiskEnumerator &    _diskEnumerator;
 	std::vector<IDiskListObserver*> _disksChangedListeners;
 	Panel                _activePanel;

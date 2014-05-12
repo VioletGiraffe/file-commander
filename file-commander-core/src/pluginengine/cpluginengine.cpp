@@ -1,6 +1,7 @@
 #include "cpluginengine.h"
 #include "../ccontroller.h"
 #include "../plugininterface/cfilecommanderviewerplugin.h"
+#include "../plugininterface/cfilecommandertoolplugin.h"
 
 #include <assert.h>
 
@@ -36,6 +37,12 @@ void CPluginEngine::loadPlugins()
 			CFileCommanderPlugin * plugin = createFunc();
 			if (plugin)
 			{
+				if (plugin->type() == CFileCommanderPlugin::Tool)
+				{
+					CFileCommanderToolPlugin * toolPlugin = dynamic_cast<CFileCommanderToolPlugin*>(plugin);
+					assert(toolPlugin);
+					toolPlugin->setProxy(&CController::get().pluginProxy());
+				}
 				qDebug() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name()).arg(path.fileName());
 				_plugins.emplace_back(std::make_pair(std::shared_ptr<CFileCommanderPlugin>(plugin), pluginModule));
 			}

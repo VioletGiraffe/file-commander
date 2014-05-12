@@ -76,6 +76,10 @@ private slots: // For UI
 	void settingsChanged();
 
 private:
+	void createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries);
+	void addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu);
+
+private:
 	Ui::CMainWindow              * ui;
 	std::shared_ptr<CController>  _controller;
 	CPanelWidget                 * _currentPanel;

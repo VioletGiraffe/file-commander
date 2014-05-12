@@ -217,7 +217,6 @@
      <string>&amp;Commands</string>
     </property>
     <addaction name="actionOpen_Console_Here"/>
-    <addaction name="actionShowAllFiles"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -230,6 +229,7 @@
      <string>&amp;View</string>
     </property>
     <addaction name="action_Show_hidden_files"/>
+    <addaction name="actionShowAllFiles"/>
    </widget>
    <addaction name="menuFiles"/>
    <addaction name="menu_View"/>

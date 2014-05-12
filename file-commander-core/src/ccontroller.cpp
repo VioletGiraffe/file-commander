@@ -223,6 +223,11 @@ CPanel& CController::activePanel()
 	return panel(activePanelPosition());
 }
 
+CPluginProxy &CController::pluginProxy()
+{
+	return _pluginProxy;
+}
+
 CPanel& CController::panel(Panel p)
 {
 	switch (p)
