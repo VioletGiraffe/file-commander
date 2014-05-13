@@ -1,0 +1,13 @@
+bin/
+build/
+qt-app/
+qt-utils/
+plugins/
+plugininterface/
+file-commander-core/
+
+Makefile
+*.user
+*.sdf
+*.sln
+*.suo
