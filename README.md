@@ -3,6 +3,9 @@ File Commander
 
 Qt-based cross-platform Total Commander-like dual panel file manager for Windows, Mac and Linux with support for plugins.
 
+![Windows screenshot](/../gh-pages/screenshots/Windows/Clip.jpg?raw=true)
+
+
 **Building**
 
 * Mac and Linux: open the project file in Qt Creator and build it. Compiler with C++ 11 support is required.
