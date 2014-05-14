@@ -105,6 +105,8 @@ void CMainWindow::initButtons()
 	// Command line
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(cycleLastCommands()), 0, Qt::ApplicationShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Esc"), this, SLOT(clearCommandLineAndRestoreFocus()), 0, Qt::WidgetWithChildrenShortcut)));
+	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+Enter"), this, SLOT(pasteCurrentFileName()), 0, Qt::ApplicationShortcut)));
+	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+Shift+Enter"), this, SLOT(pasteCurrentFilePath()), 0, Qt::ApplicationShortcut)));
 }
 
 void CMainWindow::initActions()
@@ -189,7 +191,7 @@ bool CMainWindow::eventFilter(QObject * watched, QEvent * event)
 		if (event && event->type() == QEvent::KeyPress)
 		{
 			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(event);
-			if (keyEvent && keyEvent->key() != Qt::Key_Space && !keyEvent->text().isEmpty())
+			if (keyEvent && keyEvent->key() != Qt::Key_Space && keyEvent->key() != Qt::Key_Enter && keyEvent->key() != Qt::Key_Return && !keyEvent->text().isEmpty())
 			{
 				ui->commandLine->setFocus();
 				ui->commandLine->event(event);
@@ -405,6 +407,24 @@ void CMainWindow::clearCommandLineAndRestoreFocus()
 {
 	ui->commandLine->reset();
 	_currentPanel->setFocusToFileList();
+}
+
+void CMainWindow::pasteCurrentFileName()
+{
+	if (_currentPanel && _currentPanel->currentItemHash() != 0)
+	{
+		ui->commandLine->addItem(_controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).fileName());
+		ui->commandLine->setFocus();
+	}
+}
+
+void CMainWindow::pasteCurrentFilePath()
+{
+	if (_currentPanel && _currentPanel->currentItemHash() != 0)
+	{
+		ui->commandLine->addItem(_controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).absoluteFilePath());
+		ui->commandLine->setFocus();
+	}
 }
 
 void CMainWindow::showHiddenFiles()

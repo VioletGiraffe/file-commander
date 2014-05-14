@@ -64,8 +64,11 @@ private slots: // For UI
 	void openTerminal();
 	void showRecycleBInContextMenu(QPoint pos);
 	void executeCommand();
+	// Command line
 	void cycleLastCommands();
 	void clearCommandLineAndRestoreFocus();
+	void pasteCurrentFileName();
+	void pasteCurrentFilePath();
 
 // Main menu
 	void showHiddenFiles();
