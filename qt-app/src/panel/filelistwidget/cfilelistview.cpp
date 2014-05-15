@@ -110,8 +110,17 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 	}
 	else if (event->key() == Qt::Key_Return)
 	{
-		if (currentIndex().isValid())
-			emit returnPressOrDoubleClick(currentIndex());
+		if (event->modifiers() == Qt::NoModifier)
+		{
+			if (currentIndex().isValid())
+				emit returnPressOrDoubleClick(currentIndex());
+		}
+		else if (event->modifiers() == Qt::ControlModifier)
+			emit ctrlEnterPressed();
+		else if (event->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier))
+			emit ctrlShiftEnterPressed();
+
+		return;
 	}
 
 	QTreeView::keyPressEvent(event);

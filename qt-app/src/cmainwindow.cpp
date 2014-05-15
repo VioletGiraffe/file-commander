@@ -60,6 +60,11 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->leftPanel, SIGNAL(folderPathSet(QString,const CPanelWidget*)), SLOT(folderPathSet(QString,const CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(folderPathSet(QString,const CPanelWidget*)), SLOT(folderPathSet(QString,const CPanelWidget*)));
 
+	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
+	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
+	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
+	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
+
 	ui->leftPanel->fileListView()->installEventFilter(this);
 	ui->rightPanel->fileListView()->installEventFilter(this);
 
@@ -105,8 +110,6 @@ void CMainWindow::initButtons()
 	// Command line
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(cycleLastCommands()), 0, Qt::ApplicationShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Esc"), this, SLOT(clearCommandLineAndRestoreFocus()), 0, Qt::WidgetWithChildrenShortcut)));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+Enter"), this, SLOT(pasteCurrentFileName()), 0, Qt::ApplicationShortcut)));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+Shift+Enter"), this, SLOT(pasteCurrentFilePath()), 0, Qt::ApplicationShortcut)));
 }
 
 void CMainWindow::initActions()
@@ -413,8 +416,9 @@ void CMainWindow::pasteCurrentFileName()
 {
 	if (_currentPanel && _currentPanel->currentItemHash() != 0)
 	{
-		ui->commandLine->addItem(_controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).fileName());
-		ui->commandLine->setFocus();
+		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).fileName();
+		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
+		ui->commandLine->lineEdit()->setText(newText);
 	}
 }
 
@@ -422,8 +426,9 @@ void CMainWindow::pasteCurrentFilePath()
 {
 	if (_currentPanel && _currentPanel->currentItemHash() != 0)
 	{
-		ui->commandLine->addItem(_controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).absoluteFilePath());
-		ui->commandLine->setFocus();
+		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).absoluteFilePath();
+		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
+		ui->commandLine->lineEdit()->setText(newText);
 	}
 }
 

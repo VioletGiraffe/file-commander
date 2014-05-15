@@ -28,6 +28,8 @@ public:
 signals:
 	void contextMenuRequested (QPoint pos);
 	void returnPressOrDoubleClick(QModelIndex index);
+	void ctrlEnterPressed();
+	void ctrlShiftEnterPressed();
 
 protected:
 	// For controlling selection
