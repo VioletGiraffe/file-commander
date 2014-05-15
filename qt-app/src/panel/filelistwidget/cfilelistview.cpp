@@ -112,6 +112,7 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 	{
 		if (event->modifiers() == Qt::NoModifier)
 		{
+			emit returnPressed();
 			if (currentIndex().isValid())
 				emit returnPressOrDoubleClick(currentIndex());
 		}

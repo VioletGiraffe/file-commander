@@ -28,6 +28,7 @@ public:
 signals:
 	void contextMenuRequested (QPoint pos);
 	void returnPressOrDoubleClick(QModelIndex index);
+	void returnPressed();
 	void ctrlEnterPressed();
 	void ctrlShiftEnterPressed();
 

@@ -78,6 +78,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	connect(ui->splitter, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
 
+	connect(ui->leftPanel->fileListView(), SIGNAL(returnPressed()), SLOT(executeCommand()));
+	connect(ui->rightPanel->fileListView(), SIGNAL(returnPressed()), SLOT(executeCommand()));
 	connect(ui->commandLine->lineEdit(), SIGNAL(returnPressed()), SLOT(executeCommand()));
 	dynamic_cast<CHistoryComboBox*>(ui->commandLine)->setHistoryMode(true);
 }
@@ -208,6 +210,9 @@ bool CMainWindow::eventFilter(QObject * watched, QEvent * event)
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
+	if (!ui->commandLine->currentText().isEmpty())
+		return;
+
 	const FileOperationResultCode result = _controller->itemActivated(hash, panel->panelPosition());
 	switch (result)
 	{
@@ -398,6 +403,7 @@ void CMainWindow::executeCommand()
 	for (int i = 0; i < ui->commandLine->count(); ++i)
 		commands.push_back(ui->commandLine->itemText(i));
 	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, commands);
+	ui->commandLine->clearEditText();
 }
 
 void CMainWindow::cycleLastCommands()
