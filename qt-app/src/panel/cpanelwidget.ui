@@ -98,7 +98,7 @@
    <item>
     <widget class="QLabel" name="_infoLabel">
      <property name="text">
-      <string>TextLabel</string>
+      <string>Info label</string>
      </property>
     </widget>
    </item>

@@ -31,6 +31,8 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
 
 	_controller.setDisksChangedListener(this);
+
+	ui->_infoLabel->clear();
 }
 
 CPanelWidget::~CPanelWidget()
@@ -183,7 +185,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 				ui->_list->moveCursorToItem(lastVisitedIndex);
 		}
 	}
-	
+
 
 	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 }
@@ -303,6 +305,9 @@ void CPanelWidget::driveButtonClicked()
 
 void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection /*deselected*/)
 {
+	ui->_infoLabel->clear();
+
+	// This doesn't let the user select the [..] item
 	auto selection = selectedItemsHashes();
 	const QString cdUpPath = CFileSystemObject(QFileInfo(currentDir())).parentDirPath();
 	for(auto it = selection.begin(); it != selection.end(); ++it)
@@ -316,6 +321,35 @@ void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection 
 			break;
 		}
 	}
+
+	// Updating the selection summary label
+	uint64_t numFilesSelected = 0, numFoldersSelected = 0, totalSize = 0, sizeSelected = 0, totalNumFolders = 0, totalNumFiles = 0;
+	const auto& currentTotalList = _controller.panel(_panelPosition).list();
+	for(auto it = currentTotalList.begin(); it != currentTotalList.end(); ++it)
+	{
+		if (it->isFile())
+			++totalNumFiles;
+		else if (it->isDir())
+			++totalNumFolders;
+		totalSize += it->size();
+	}
+
+	for(auto it = selection.begin(); it != selection.end(); ++it)
+	{
+		const CFileSystemObject& object = _controller.itemByHash(_panelPosition, *it);
+		if (object.isFile())
+			++numFilesSelected;
+		else if (object.isDir())
+			++numFoldersSelected;
+
+		sizeSelected += object.size();
+	}
+
+	ui->_infoLabel->setText(QString("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(totalNumFiles).
+							arg(numFoldersSelected).arg(totalNumFolders).
+							arg(fileSizeToString(sizeSelected)).arg(fileSizeToString(totalSize)));
+
+
 	CPluginEngine::get().selectionChanged(_panelPosition, selection);
 }
 
