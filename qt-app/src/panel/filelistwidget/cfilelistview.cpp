@@ -32,7 +32,8 @@ void CFileListView::setPanelPosition(enum Panel p)
 // Preserves item's selection state
 void CFileListView::moveCursorToItem(const QModelIndex& index)
 {
-	selectionModel()->setCurrentIndex(index, QItemSelectionModel::Current | QItemSelectionModel::Rows);
+	if (selectionModel()->model()->hasIndex(index.row(), index.column()))
+		selectionModel()->setCurrentIndex(index, QItemSelectionModel::Current | QItemSelectionModel::Rows);
 }
 
 // Header management

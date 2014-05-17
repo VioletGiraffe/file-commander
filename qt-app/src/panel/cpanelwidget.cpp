@@ -116,7 +116,8 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 	const time_t start = clock();
 
 	// Remembering currently highlighted item to restore cursor afterwards
-	const qulonglong current = currentItemHash();
+	const qulonglong currentHash = currentItemHash();
+	const QModelIndex currentIndex = _selectionModel->currentIndex();
 
 	ui->_list->saveHeaderState();
 	_model->clear();
@@ -171,11 +172,16 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 
 	ui->_list->moveCursorToItem(_sortModel->index(0, 0));
 
-	if (sameDirAsPrevious && current != 0)
+	if (sameDirAsPrevious)
 	{
-		const QModelIndex item = indexByHash(current);
-		if (item.isValid())
-			ui->_list->moveCursorToItem(item);
+		QModelIndex indexToMoveCursorTo;
+		if (currentHash != 0)
+			indexToMoveCursorTo = indexByHash(currentHash);
+		if (!indexToMoveCursorTo.isValid())
+			indexToMoveCursorTo = currentIndex;
+
+		if (indexToMoveCursorTo.isValid())
+			ui->_list->moveCursorToItem(indexToMoveCursorTo);
 	}
 	else
 	{
