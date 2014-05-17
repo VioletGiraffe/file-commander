@@ -486,20 +486,14 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 	return destinations;
 }
 
-QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &baseDestPath, bool sourceIsDir)
+QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &baseDestPath, bool /*sourceIsDir*/)
 {
-	const QString localPath = absoluteSourcePath.mid(originPath.length());
-	const QString fullDestPath = baseDestPath + localPath;
+	QString localPath = absoluteSourcePath.mid(originPath.length());
+	assert(!localPath.isEmpty());
+	if (localPath[0] == '\\' || localPath[0] == '/')
+		localPath.remove(0, 1);
+	QString path = QDir(baseDestPath).absoluteFilePath(localPath);
+	const QString fullDestDir = QFileInfo(QDir(baseDestPath).absoluteFilePath(localPath)).absolutePath();
 
-	if (!sourceIsDir)
-	{
-		int lastSeparatorIndex = fullDestPath.lastIndexOf('/');
-#ifdef _WIN32
-		if (lastSeparatorIndex == -1)
-			lastSeparatorIndex = fullDestPath.lastIndexOf('\\');
-#endif // _WIN32
-		return fullDestPath.left(lastSeparatorIndex);
-	}
-	else
-		return fullDestPath;
+	return fullDestDir;
 }
