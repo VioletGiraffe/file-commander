@@ -94,6 +94,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	_model = new(std::nothrow) CFileListModel(ui->_list, this);
 	_model->setPanelPosition(p);
+	connect(_model, SIGNAL(itemEdited(qulonglong,QString)), SLOT(itemNameEdited(qulonglong,QString)));
+
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
 	_sortModel->setPanelPosition(p);
 	_sortModel->setSourceModel(_model);
@@ -356,6 +358,11 @@ void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection 
 void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previous*/)
 {
 	CPluginEngine::get().currentItemChanged(_panelPosition, current.isValid() ? hashByItemIndex(current) : 0);
+}
+
+void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
+{
+	emit itemNameEdited(_panelPosition, hash, newName);
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const

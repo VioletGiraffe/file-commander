@@ -67,7 +67,7 @@ public:
 	QString modificationDateString() const;
 
 // Operations
-	FileOperationResultCode rename(const QString& newName);
+	FileOperationResultCode rename(const QString& newName, bool relativeName = false);
 	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = QString());
 	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = QString());
 

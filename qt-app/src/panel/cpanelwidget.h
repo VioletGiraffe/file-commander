@@ -55,6 +55,7 @@ signals:
 	void stepForwardRequested(CPanelWidget * panel);
 	void focusReceived(CPanelWidget * panel);
 	void folderPathSet(QString newPath, const CPanelWidget * panel);
+	void itemNameEdited(Panel panel, qulonglong hash, QString newName);
 
 protected:
 	virtual bool eventFilter (QObject * object , QEvent * e);
@@ -69,6 +70,7 @@ private slots:
 	void driveButtonClicked();
 	void selectionChanged(QItemSelection selected, QItemSelection deselected);
 	void currentItemChanged(QModelIndex current, QModelIndex previous);
+	void itemNameEdited(qulonglong hash, QString newName);
 
 private:
 	virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex);

@@ -55,7 +55,7 @@
       <bool>false</bool>
      </property>
      <property name="editTriggers">
-      <set>QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
+      <set>QAbstractItemView::EditKeyPressed</set>
      </property>
      <property name="showDropIndicator" stdset="0">
       <bool>false</bool>

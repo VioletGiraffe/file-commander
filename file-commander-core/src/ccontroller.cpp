@@ -182,12 +182,6 @@ void CController::openTerminal(const QString &folder)
 #endif
 }
 
-// Rename a file or folder
-void CController::rename(Panel p, size_t itemIdx, const QString &newName)
-{
-	panel(p).itemByIndex(itemIdx).rename(newName);
-}
-
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 void CController::calculateDirSize(Panel p, qulonglong dirHash)
 {
@@ -248,6 +242,11 @@ const CFileSystemObject& CController::itemByIndex( Panel p, size_t index ) const
 }
 
 const CFileSystemObject& CController::itemByHash( Panel p, qulonglong hash ) const
+{
+	return panel(p).itemByHash(hash);
+}
+
+CFileSystemObject &CController::itemByHash(Panel p, qulonglong hash)
 {
 	return panel(p).itemByHash(hash);
 }

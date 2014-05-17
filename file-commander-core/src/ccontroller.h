@@ -63,8 +63,6 @@ public:
 	bool createFile(const QString& parentFolder, const QString& name);
 	// Opens a terminal window in the specified folder
 	void openTerminal(const QString& folder);
-	// Rename a file or folder
-	void rename(Panel p, size_t itemIdx, const QString& newName);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void calculateDirSize(Panel p, qulonglong dirHash);
 
@@ -77,6 +75,7 @@ public:
 	CPluginProxy& pluginProxy();
 	const CFileSystemObject& itemByIndex(Panel p, size_t index) const;
 	const CFileSystemObject& itemByHash(Panel p, qulonglong hash) const;
+	CFileSystemObject& itemByHash(Panel p, qulonglong hash);
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
 	size_t numItems(Panel p) const;
 	QString itemPath(Panel p, qulonglong hash) const;

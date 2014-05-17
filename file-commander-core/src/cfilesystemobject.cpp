@@ -159,17 +159,18 @@ QString CFileSystemObject::modificationDateString() const
 
 
 // Operations
-FileOperationResultCode CFileSystemObject::rename(const QString &newName)
+FileOperationResultCode CFileSystemObject::rename(const QString &newName, bool relativeName)
 {
-	if (isFile())
+	if (!exists())
+	{
+		assert(exists());
+		return rcObjectDoesntExist;
+	}
+	else if (isFile())
 	{
 		QFile file(_fileInfo.absoluteFilePath());
-		if (!file.exists())
-		{
-			assert(file.exists());
-			return rcObjectDoesntExist;
-		}
-		else if (file.rename(newName))
+		const QString newPath = relativeName ? QDir(parentDirPath()).absoluteFilePath(newName) : newName;
+		if (file.rename(newPath))
 			return rcOk;
 		else
 		{
@@ -180,12 +181,7 @@ FileOperationResultCode CFileSystemObject::rename(const QString &newName)
 	else if (isDir())
 	{
 		QDir dir(_fileInfo.absoluteFilePath());
-		if (!dir.exists())
-		{
-			assert(dir.exists());
-			return rcObjectDoesntExist;
-		}
-		else if (dir.rename(".", newName))
+		if (dir.rename(".", newName))
 			return rcOk;
 		else
 			return rcFail;

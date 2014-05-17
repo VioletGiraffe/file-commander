@@ -16,7 +16,15 @@ public:
 
 	QTreeView * treeView() const;
 
-	virtual QVariant data (const QModelIndex & index, int role = Qt::DisplayRole) const;
+	QVariant data (const QModelIndex & index, int role = Qt::DisplayRole) const override;
+	bool setData(const QModelIndex &index, const QVariant &value, int role);
+	Qt::ItemFlags flags(const QModelIndex & index) const override;
+
+signals:
+	void itemEdited(qulonglong itemHash, QString newName);
+
+private:
+	qulonglong itemHash(const QModelIndex& index) const;
 
 private:
 	CController & _controller;

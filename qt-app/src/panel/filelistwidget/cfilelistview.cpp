@@ -99,6 +99,13 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 // For managing selection and cursor
 void CFileListView::keyPressEvent(QKeyEvent *event)
 {
+	if (_bEditInProgress)
+	{
+		qDebug() << __FUNCTION__;
+		QTreeView::keyPressEvent(event);
+		return;
+	}
+
 	if (event->key() == Qt::Key_Down || event->key() == Qt::Key_Up ||
 		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
 		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
@@ -125,6 +132,24 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 	}
 
 	QTreeView::keyPressEvent(event);
+}
+
+bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)
+{
+	_bEditInProgress = true;
+	return QTreeView::edit(index, trigger, event);
+}
+
+void CFileListView::closeEditor(QWidget * editor, QAbstractItemDelegate::EndEditHint hint)
+{
+	_bEditInProgress = false;
+	QTreeView::closeEditor(editor, hint);
+}
+
+void CFileListView::editorDestroyed(QObject * editor)
+{
+	_bEditInProgress = false;
+	QTreeView::editorDestroyed(editor);
 }
 
 void CFileListView::selectRegion(const QModelIndex &start, const QModelIndex &end)

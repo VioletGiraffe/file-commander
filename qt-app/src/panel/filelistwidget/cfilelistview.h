@@ -40,6 +40,12 @@ protected:
 	// For managing selection and cursor
 	virtual void keyPressEvent(QKeyEvent * event);
 
+	bool edit ( const QModelIndex & index, EditTrigger trigger, QEvent * event ) override;
+
+protected slots:
+	void closeEditor ( QWidget * editor, QAbstractItemDelegate::EndEditHint hint ) override;
+	void editorDestroyed ( QObject * editor ) override;
+
 private:
 	void selectRegion(const QModelIndex& start, const QModelIndex& end);
 
@@ -52,4 +58,5 @@ private:
 	CController & _controller;
 	enum Panel    _panelPosition;
 	bool          _bHeaderAdjustmentRequired;
+	bool          _bEditInProgress;
 };

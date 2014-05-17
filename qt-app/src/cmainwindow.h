@@ -57,6 +57,7 @@ private slots: // For UI
 	void deleteFilesIrrevocably();
 	void createFolder();
 	void createFile();
+	void itemNameEdited(Panel panel, qulonglong hash, QString newName);
 
 // Other UI commands
 	void viewFile();
