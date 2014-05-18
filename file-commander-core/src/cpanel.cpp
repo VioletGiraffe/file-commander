@@ -102,8 +102,6 @@ bool CPanel::navigateBack()
 {
 	if (_currentHistoryLocation > 0 && _currentHistoryLocation < _history.size())
 		return setPath(_history[--_currentHistoryLocation]) == rcOk;
-	else
-		sendContentsChangedNotification();
 	return false;
 }
 
@@ -112,8 +110,6 @@ bool CPanel::navigateForward()
 {
 	if (_currentHistoryLocation != noHistory && _currentHistoryLocation < _history.size() - 1)
 		return setPath(_history[++_currentHistoryLocation]) == rcOk;
-	else
-		sendContentsChangedNotification();
 	return false;
 }
 
