@@ -20,6 +20,11 @@ CFileListView::CFileListView(QWidget *parent) :
 #if defined __linux__ || defined __APPLE__
 	setStyle(new CFocusFrameStyle);
 #endif
+
+	QObject::connect(this, &CFileListView::clicked, [this](const QModelIndex& index){
+		if (currentIndex() == index)
+			edit(index, EditKeyPressed, nullptr);
+	});
 }
 
 // Sets the position (left or right) of a panel that this model represents
@@ -137,7 +142,7 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)
 {
 	_bEditInProgress = true;
-	return QTreeView::edit(index, trigger, event);
+	return QTreeView::edit(model()->index(index.row(), 0), trigger, event);
 }
 
 void CFileListView::closeEditor(QWidget * editor, QAbstractItemDelegate::EndEditHint hint)
