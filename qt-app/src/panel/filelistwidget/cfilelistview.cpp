@@ -102,7 +102,6 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 {
 	if (_bEditInProgress)
 	{
-		qDebug() << __FUNCTION__;
 		QTreeView::keyPressEvent(event);
 		return;
 	}
