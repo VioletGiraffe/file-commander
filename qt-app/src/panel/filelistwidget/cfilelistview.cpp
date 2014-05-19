@@ -1,6 +1,7 @@
 #include "cfilelistview.h"
 #include "../columns.h"
 #include "model/cfilelistsortfilterproxymodel.h"
+#include "delegate/cfilelistitemdelegate.h"
 
 #include <assert.h>
 #include <time.h>
@@ -14,17 +15,15 @@ CFileListView::CFileListView(QWidget *parent) :
 	QTreeView(parent),
 	_controller(CController::get()),
 	_panelPosition(UnknownPanel),
-	_bHeaderAdjustmentRequired(true)
+	_bHeaderAdjustmentRequired(true),
+	_singleMouseClickValid(false)
 {
+	setMouseTracking(true);
+	setItemDelegate(new CFileListItemDelegate);
 	connect(this, SIGNAL(doubleClicked(QModelIndex)), SIGNAL(returnPressOrDoubleClick(QModelIndex)));
 #if defined __linux__ || defined __APPLE__
 	setStyle(new CFocusFrameStyle);
 #endif
-
-	QObject::connect(this, &CFileListView::clicked, [this](const QModelIndex& index){
-		if (currentIndex() == index)
-			edit(index, EditKeyPressed, nullptr);
-	});
 }
 
 // Sets the position (left or right) of a panel that this model represents
@@ -68,6 +67,23 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 	const QModelIndex itemUnderCursor = currentIndex();
 	const QModelIndex itemClicked = indexAt(e->pos());
 
+	if (e->button() == Qt::LeftButton)
+	{
+		_singleMouseClickValid = !_singleMouseClickValid;
+		if (itemUnderCursor == itemClicked && _singleMouseClickValid)
+		{
+			_singleMouseClickPos = e->pos();
+			QTimer * timer = new QTimer;
+			timer->setSingleShot(true);
+			QObject::connect(timer, &QTimer::timeout, this, [this](){
+				if (_singleMouseClickValid)
+					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
+				_singleMouseClickValid = false;
+			});
+			timer->start(QApplication::doubleClickInterval()+1);
+		}
+	}
+
 	QTreeView::mousePressEvent(e);
 
 	if (e->button() == Qt::LeftButton && itemClicked.isValid())
@@ -82,6 +98,13 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 				selectionModel()->select(itemUnderCursor, QItemSelectionModel::Select | QItemSelectionModel::Rows);
 		}
 	}
+}
+
+void CFileListView::mouseMoveEvent(QMouseEvent * e)
+{
+	if (_singleMouseClickValid && (e->pos() - _singleMouseClickPos).manhattanLength() > 15)
+		_singleMouseClickValid = false;
+	QTreeView::mouseMoveEvent(e);
 }
 
 // For showing context menu

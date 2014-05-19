@@ -33,7 +33,8 @@ SOURCES += \
     src/settings/csettingspageinterface.cpp \
     src/settings/csettingspageedit.cpp \
     src/settings/csettingspageother.cpp \
-    src/historycombobox/chistorycombobox.cpp
+    src/historycombobox/chistorycombobox.cpp \
+    src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp
 
 HEADERS += \
     src/QtAppIncludes \
@@ -50,7 +51,8 @@ HEADERS += \
     src/settings/csettingspageinterface.h \
     src/settings/csettingspageedit.h \
     src/settings/csettingspageother.h \
-    src/historycombobox/chistorycombobox.h
+    src/historycombobox/chistorycombobox.h \
+    src/panel/filelistwidget/delegate/cfilelistitemdelegate.h
 
 FORMS += \
     src/cmainwindow.ui \

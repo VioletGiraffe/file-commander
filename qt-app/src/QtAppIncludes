@@ -27,6 +27,7 @@
 #include <QTimer>
 #include <QTreeView>
 #include <QWheelEvent>
+#include <QStyledItemDelegate>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0

@@ -2,18 +2,18 @@
 #include "settings/csettings.h"
 #include <assert.h>
 
- class CFileCommanderApplication : public QApplication
- {
- public:
+class CFileCommanderApplication : public QApplication
+{
+public:
 	CFileCommanderApplication(int &argc, char **argv) : QApplication(argc, argv), _mainWindow (0) {}
 	virtual bool notify(QObject * receiver, QEvent * e);
 	void setMainWindow (CMainWindow * mainWindow) { _mainWindow = mainWindow; }
- private:
+private:
 	CMainWindow * _mainWindow;
- };
+};
 
- int main(int argc, char *argv[])
- {
+int main(int argc, char *argv[])
+{
 	CFileCommanderApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
 	app.setApplicationName("File Commander");
@@ -27,11 +27,11 @@
 	app.setMainWindow(&w);
 
 	return app.exec();
- }
+}
 
 
- bool CFileCommanderApplication::notify(QObject *receiver, QEvent *e)
- {
+bool CFileCommanderApplication::notify(QObject *receiver, QEvent *e)
+{
 	if (e && e->type() == QEvent::KeyPress)
 	{
 		QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(e);
@@ -42,4 +42,4 @@
 		}
 	}
 	return QApplication::notify(receiver, e);
- }
+}

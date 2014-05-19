@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 
 #include "cpanel.h"
 #include "ccontroller.h"
@@ -34,11 +34,12 @@ signals:
 
 protected:
 	// For controlling selection
-	virtual void mousePressEvent(QMouseEvent *e);
+	void mousePressEvent(QMouseEvent *e) override;
+	void mouseMoveEvent(QMouseEvent *e) override;
 	// For showing context menu
-	virtual void mouseReleaseEvent(QMouseEvent *event);
+	void mouseReleaseEvent(QMouseEvent *event) override;
 	// For managing selection and cursor
-	virtual void keyPressEvent(QKeyEvent * event);
+	void keyPressEvent(QKeyEvent * event) override;
 
 	bool edit ( const QModelIndex & index, EditTrigger trigger, QEvent * event ) override;
 
@@ -53,10 +54,12 @@ private slots:
 	void modelAboutToBeReset();
 
 private:
-	QByteArray    _headerGeometry;
-	QByteArray    _headerState;
-	CController & _controller;
-	enum Panel    _panelPosition;
-	bool          _bHeaderAdjustmentRequired;
-	bool          _bEditInProgress;
+	QByteArray          _headerGeometry;
+	QByteArray          _headerState;
+	CController       & _controller;
+	enum Panel          _panelPosition;
+	bool                _bHeaderAdjustmentRequired;
+	bool                _bEditInProgress;
+	QPoint              _singleMouseClickPos;
+	bool                _singleMouseClickValid;
 };
