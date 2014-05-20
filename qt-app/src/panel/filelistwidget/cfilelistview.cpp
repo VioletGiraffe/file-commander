@@ -16,6 +16,7 @@ CFileListView::CFileListView(QWidget *parent) :
 	_controller(CController::get()),
 	_panelPosition(UnknownPanel),
 	_bHeaderAdjustmentRequired(true),
+	_bEditInProgress(false),
 	_singleMouseClickValid(false)
 {
 	setMouseTracking(true);
