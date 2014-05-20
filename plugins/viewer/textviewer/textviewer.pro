@@ -37,16 +37,19 @@ linux*{
 
 linux*|mac*{
 	QMAKE_CXXFLAGS += --std=c++11
+	QMAKE_CXXFLAGS += -pedantic-errors
+	QMAKE_CFLAGS += -pedantic-errors
+	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 }
 
 HEADERS += \
 	src/QtIncludes.h \
-    src/ctextviewerplugin.h \
-    src/ctextviewerwindow.h
+	src/ctextviewerplugin.h \
+	src/ctextviewerwindow.h
 
 SOURCES += \
-    src/ctextviewerplugin.cpp \
-    src/ctextviewerwindow.cpp
+	src/ctextviewerplugin.cpp \
+	src/ctextviewerwindow.cpp
 
 
 win32*:!*msvc2012:*msvc* {
@@ -54,4 +57,4 @@ win32*:!*msvc2012:*msvc* {
 }
 
 FORMS += \
-    src/ctextviewerwindow.ui
+	src/ctextviewerwindow.ui

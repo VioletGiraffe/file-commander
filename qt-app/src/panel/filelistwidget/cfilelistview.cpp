@@ -164,7 +164,8 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 
 bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)
 {
-	_bEditInProgress = true;
+	if (trigger & editTriggers())
+		_bEditInProgress = true;
 	return QTreeView::edit(model()->index(index.row(), 0), trigger, event);
 }
 

@@ -258,17 +258,17 @@ bool CShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void * /*parentWi
 
 #elif defined __APPLE__
 
-bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> objects, int xPos, int yPos, void *parentWindow)
+bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> /*objects*/, int /*xPos*/, int /*yPos*/, void */*parentWindow*/)
 {
 	return false;
 }
 
-std::wstring CShell::toolTip(std::wstring itemPath)
+std::wstring CShell::toolTip(std::wstring /*itemPath*/)
 {
 	return std::wstring();
 }
 
-bool CShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
+bool CShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void */*parentWindow*/)
 {
 	return true;
 }

@@ -26,10 +26,16 @@ void CPluginEngine::loadPlugins()
 #else
 #error
 #endif
-
-	const auto pluginPaths(QDir(qApp->applicationDirPath()).entryInfoList((QStringList() << QString("*plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
-	for (auto& path: pluginPaths)
+	QDir fileCommanderDir(qApp->applicationDirPath());
+	fileCommanderDir.cdUp();
+	fileCommanderDir.cdUp();
+	fileCommanderDir.cdUp(); // from .app/Contents/MacOS to .app level
+	const auto pluginPaths(fileCommanderDir.entryInfoList((QStringList() << QString("*plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
+	for (const QFileInfo& path: pluginPaths)
 	{
+		if (path.isSymLink())
+			continue;
+
 		auto pluginModule = std::make_shared<QLibrary>(path.absoluteFilePath());
 		CreatePluginFunc createFunc = (CreatePluginFunc)pluginModule->resolve("createPlugin");
 		if (createFunc)

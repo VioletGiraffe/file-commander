@@ -170,9 +170,7 @@ void CController::openTerminal(const QString &folder)
 	assert(started);
 	Q_UNUSED(started);
 #elif defined __APPLE__
-	const bool started = QProcess::startDetached(shellExecutable(), QStringList() << folder);
-	assert(started);
-	Q_UNUSED(started);
+	system((QString("open -a ") + shellExecutable() + " --args " + folder + "&").toUtf8().data());
 #elif defined __linux__
 	const bool started = QProcess::startDetached(shellExecutable(), QStringList(), folder);
 	assert(started);
