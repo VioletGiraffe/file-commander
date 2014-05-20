@@ -1,0 +1,25 @@
+IDI_ICON1               ICON    DISCARDABLE     "icon.ico"
+
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     1
+PRODUCTVERSION  1
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",        "GithubSoft"
+            VALUE "FileVersion",        "1.0"
+            VALUE "ProductName",        "File Commander"
+            VALUE "ProductVersion",     "1.0"
+            VALUE "FileDescription",    "Dual-panel file manager"
+            VALUE "InternalName",       "Helicon Remote"
+            VALUE "LegalCopyright",     "Copyright © 2013 VioletGIraffe"
+            VALUE "LegalTrademarks1",   "All Rights Reserved"
+            VALUE "LegalTrademarks2",   "All Rights Reserved"
+            VALUE "OriginalFilename",   "File Commander"
+        END
+    END
+END

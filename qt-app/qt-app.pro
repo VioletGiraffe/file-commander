@@ -72,10 +72,12 @@ win*{
 	LIBS += -lole32 -lShell32 -lUser32
 	QMAKE_CXXFLAGS += /MP
 	QMAKE_CXXFLAGS_WARN_ON = -W3
+
+	RC_FILE = resources/file_commander.rc
 }
 
 mac*{
-
+	ICON = resources/file_commander.icns
 }
 
 linux*{
