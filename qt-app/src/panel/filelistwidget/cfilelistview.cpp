@@ -214,6 +214,7 @@ void CFileListView::setHeaderAdjustmentRequired(bool required)
 
 void CFileListView::modelAboutToBeReset()
 {
+	_singleMouseClickValid = 0;
 	if (_bHeaderAdjustmentRequired)
 	{
 		_bHeaderAdjustmentRequired = false;
