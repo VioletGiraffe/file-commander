@@ -8,13 +8,13 @@
 #include <time.h>
 #include <limits>
 
-const size_t CPanel::noHistory = std::numeric_limits<size_t>::max();
-
 CPanel::CPanel(Panel position) :
-	_currentHistoryLocation(noHistory),
 	_panelPosition(position)
 {
-	setPath(CSettings().value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString());
+	CSettings s;
+	const QStringList historyList(s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList());
+	_history.addLatest(historyList.toVector().toStdVector());
+	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString());
 }
 
 FileOperationResultCode CPanel::setPath(const QString &path)
@@ -38,20 +38,10 @@ FileOperationResultCode CPanel::setPath(const QString &path)
 	}
 
 	// History management
-	if (_currentHistoryLocation == noHistory || _history.empty())
+	if (toPosixSeparators(_history.currentItem()) != toPosixSeparators(newPath))
 	{
-		assert (_history.empty() && _currentHistoryLocation == noHistory);
-		_history.push_back(newPath);
-		_currentHistoryLocation = 0;
-	}
-	else
-	{
-		assert (_currentHistoryLocation < _history.size());
-		if (toPosixSeparators(_history[_currentHistoryLocation]) != toPosixSeparators(newPath))
-		{
-			_history.push_back(newPath);
-			_currentHistoryLocation = _history.size() - 1;
-		}
+		_history.addLatest(newPath);
+		CSettings().setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
 	}
 
 	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, currentDirPath());
@@ -100,17 +90,22 @@ void CPanel::navigateUp()
 // Go to the previous location from history
 bool CPanel::navigateBack()
 {
-	if (_currentHistoryLocation > 0 && _currentHistoryLocation < _history.size())
-		return setPath(_history[--_currentHistoryLocation]) == rcOk;
+	if (!_history.empty())
+		return setPath(_history.navigateBack()) == rcOk;
 	return false;
 }
 
 // Go to the next location from history, if any
 bool CPanel::navigateForward()
 {
-	if (_currentHistoryLocation != noHistory && _currentHistoryLocation < _history.size() - 1)
-		return setPath(_history[++_currentHistoryLocation]) == rcOk;
+	if (!_history.empty())
+		return setPath(_history.navigateForward()) == rcOk;
 	return false;
+}
+
+const CHistoryList<QString>& CPanel::history() const
+{
+	return _history;
 }
 
 // Info on the dir this panel is currently set to

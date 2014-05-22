@@ -29,6 +29,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
+	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
 
 	_controller.setDisksChangedListener(this);
 
@@ -373,6 +374,28 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	emit itemNameEdited(_panelPosition, hash, newName);
 }
 
+void CPanelWidget::showHistory()
+{
+	const auto& history = _controller.panel(_panelPosition).history();
+	if (history.empty())
+		return;
+
+	QMenu menu;
+	QActionGroup group(0);
+	for(size_t i = 0; i < history.size(); ++i)
+	{
+		QAction * action = menu.addAction(history[i]);
+		group.addAction(action);
+		action->setCheckable(true);
+		if (i == history.currentIndex())
+			action->setChecked(true);
+	}
+
+	QAction * result = menu.exec(mapToGlobal(ui->_btnHistory->geometry().bottomLeft() + QPoint(0, 3)));
+	if (result)
+		_controller.setPath(_panelPosition, result->text());
+}
+
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
 {
 	auto selection = _selectionModel->selectedRows();
@@ -515,9 +538,9 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 			if (wEvent && _shiftPressed)
 			{
 				if (wEvent->delta() > 0)
-					emit stepBackRequested(this);
-				else
 					emit stepForwardRequested(this);
+				else
+					emit stepBackRequested(this);
 				return true;
 			}
 		}

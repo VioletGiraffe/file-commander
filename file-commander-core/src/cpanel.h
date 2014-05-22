@@ -8,6 +8,7 @@
 #include "QtCoreIncludes"
 
 #include "cfilesystemobject.h"
+#include "historylist/chistorylist.h"
 
 enum Panel {LeftPanel, RightPanel, UnknownPanel};
 
@@ -34,6 +35,7 @@ public:
 	bool navigateBack();
 	// Go to the next location from history, if any
 	bool navigateForward();
+	const CHistoryList<QString>& history() const;
 
 	// Info on the dir this panel is currently set to
 	QString currentDirPath () const;
@@ -69,12 +71,10 @@ private slots:
 private:
 	QDir                                       _currentDir;
 	std::vector<CFileSystemObject>             _list;
-	std::vector<QString>                       _history;
+	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
 	std::map<qulonglong, size_t>               _indexByHash;
-	size_t                                     _currentHistoryLocation;
 	std::shared_ptr<QFileSystemWatcher>        _watcher;
-	static const size_t                        noHistory;
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                                _panelPosition;
 };

@@ -71,6 +71,7 @@ private slots:
 	void selectionChanged(QItemSelection selected, QItemSelection deselected);
 	void currentItemChanged(QModelIndex current, QModelIndex previous);
 	void itemNameEdited(qulonglong hash, QString newName);
+	void showHistory();
 
 private:
 	virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex);
