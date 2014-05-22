@@ -72,6 +72,7 @@ private slots:
 	void currentItemChanged(QModelIndex current, QModelIndex previous);
 	void itemNameEdited(qulonglong hash, QString newName);
 	void showHistory();
+	void toRoot();
 
 private:
 	virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex);
@@ -82,6 +83,7 @@ private:
 
 private:
 	std::vector<CFileSystemObject>  _disks;
+	QString                         _currentDisk;
 	QString                         _directoryCurrentlyBeingDisplayed;
 	Ui::CPanelWidget              * ui;
 	CController                   & _controller;
@@ -89,7 +91,6 @@ private:
 	CFileListModel                * _model;
 	CFileListSortFilterProxyModel * _sortModel;
 	Panel			                _panelPosition;
-	bool                            _shiftPressed;
 
 	QShortcut                       _calcDirSizeShortcut;
 	QShortcut                       _selectCurrentItemShortcut;

@@ -20,7 +20,6 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_model(0),
 	_sortModel(0),
 	_panelPosition(UnknownPanel),
-	_shiftPressed (false),
 	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), 0, Qt::WidgetWithChildrenShortcut),
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut)
 {
@@ -30,6 +29,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
 	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
+	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
 	_controller.setDisksChangedListener(this);
 
@@ -91,6 +91,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	_panelPosition = p;
 
 	ui->_list->installEventFilter(this);
+	ui->_list->viewport()->installEventFilter(this);
 	ui->_list->setPanelPosition(p);
 
 	_model = new(std::nothrow) CFileListModel(ui->_list, this);
@@ -396,6 +397,12 @@ void CPanelWidget::showHistory()
 		_controller.setPath(_panelPosition, result->text());
 }
 
+void CPanelWidget::toRoot()
+{
+	if (!_currentDisk.isEmpty())
+		_controller.setPath(_panelPosition, _currentDisk);
+}
+
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
 {
 	auto selection = _selectionModel->selectedRows();
@@ -429,6 +436,8 @@ void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Pane
 {
 	if (p != _panelPosition)
 		return;
+
+	_currentDisk.clear();
 
 	if (!ui->_driveButtonsWidget->layout())
 	{
@@ -464,7 +473,10 @@ void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Pane
 		connect(diskButton, SIGNAL(clicked()), SLOT(driveButtonClicked()));
 		connect(diskButton, SIGNAL(customContextMenuRequested(QPoint)), SLOT(showContextMenuForDisk(QPoint)));
 		if (i == currentDriveIndex)
+		{
 			diskButton->setChecked(true);
+			_currentDisk = drives[i].fileSystemObject.absoluteFilePath();
+		}
 		layout->addWidget(diskButton);
 	}
 }
@@ -509,48 +521,28 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 				emit backSpacePressed(this);
 				return true;
 			}
-			else if (keyEvent && keyEvent->key() == Qt::Key_Shift)
-			{
-				_shiftPressed = true;
-				return true;
-			}
 		}
-			break;
-		case QEvent::KeyRelease:
-		{
-			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(e);
-			if (keyEvent && keyEvent->key() == Qt::Key_Shift)
-			{
-				_shiftPressed = false;
-				return true;
-			}
-		}
-			break;
-		case QEvent::FocusOut:
-			_shiftPressed = false;
 			break;
 		case QEvent::FocusIn:
 			emit focusReceived(this);
 			break;
-		case QEvent::Wheel:
-		{
-			QWheelEvent * wEvent = dynamic_cast<QWheelEvent*>(e);
-			if (wEvent && _shiftPressed)
-			{
-				if (wEvent->delta() > 0)
-					emit stepForwardRequested(this);
-				else
-					emit stepBackRequested(this);
-				return true;
-			}
-		}
-			break;
 		case QEvent::ContextMenu:
 			showContextMenuForItems(QCursor::pos()); // QCursor::pos() returns global pos
 			return true;
-			break;
 		default:
 			break;
+		}
+	}
+	else if(e->type() == QEvent::Wheel && object == ui->_list->viewport())
+	{
+		QWheelEvent * wEvent = dynamic_cast<QWheelEvent*>(e);
+		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
+		{
+			if (wEvent->delta() > 0)
+				emit stepBackRequested(this);
+			else
+				emit stepForwardRequested(this);
+			return true;
 		}
 	}
 	return QWidget::eventFilter(object, e);
