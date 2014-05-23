@@ -81,7 +81,7 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
 				_singleMouseClickValid = false;
 			});
-			timer->start(QApplication::doubleClickInterval()+1);
+			timer->start(QApplication::doubleClickInterval()+50);
 		}
 	}
 
