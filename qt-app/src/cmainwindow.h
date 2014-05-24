@@ -38,8 +38,8 @@ public slots:
 	void updateInterface();
 
 protected:
-	virtual void closeEvent(QCloseEvent * e) override;
-	virtual bool eventFilter(QObject * watched, QEvent * event) override;
+	void closeEvent(QCloseEvent * e) override;
+	bool eventFilter(QObject * watched, QEvent * event) override;
 
 private slots: // For UI
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
@@ -72,6 +72,7 @@ private slots: // For UI
 	void pasteCurrentFilePath();
 
 // Main menu
+	void refresh();
 	void showHiddenFiles();
 	void showAllFilesFromCurrentFolderAndBelow();
 	void openSettingsDialog();

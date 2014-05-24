@@ -119,6 +119,8 @@ void CMainWindow::initButtons()
 
 void CMainWindow::initActions()
 {
+	connect(ui->actionRefresh, SIGNAL(triggered()), SLOT(refresh()));
+
 	connect(ui->actionOpen_Console_Here, SIGNAL(triggered()), SLOT(openTerminal()));
 	connect(ui->actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
 
@@ -446,6 +448,12 @@ void CMainWindow::pasteCurrentFilePath()
 		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}
+}
+
+void CMainWindow::refresh()
+{
+	if (_currentPanel)
+		_controller->refreshPanelContents(_currentPanel->panelPosition());
 }
 
 void CMainWindow::showHiddenFiles()
