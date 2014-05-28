@@ -139,7 +139,17 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
 		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
 	{
-#ifndef __APPLE__
+#ifdef __APPLE__
+		if ((event->modifiers() ^ Qt::KeypadModifier) == Qt::NoModifier)
+		{
+			if (event->key() == Qt::Key_Down)
+				moveCursorToNextItem();
+			else if (event->key() == Qt::Key_Up)
+				moveCursorToPreviousItem();
+
+			return;
+		}
+#else
 		if (!(event->modifiers() & Qt::ControlModifier))
 			event->setModifiers(event->modifiers() | Qt::ControlModifier);
 #endif
@@ -205,6 +215,30 @@ void CFileListView::selectRegion(const QModelIndex &start, const QModelIndex &en
 		if (itemBelongsToSelection)
 			selectionModel()->select(currentItem, QItemSelectionModel::Select | QItemSelectionModel::Rows);
 	}
+}
+
+void CFileListView::moveCursorToNextItem()
+{
+	if (model()->rowCount() <= 0)
+		return;
+
+	QModelIndex curIdx(currentIndex());
+	if (curIdx.isValid() && curIdx.row()+1 < model()->rowCount())
+		moveCursorToItem(model()->index(curIdx.row()+1, 0));
+	else if (!curIdx.isValid())
+		moveCursorToItem(model()->index(0, 0));
+}
+
+void CFileListView::moveCursorToPreviousItem()
+{
+	if (model()->rowCount() <= 0)
+		return;
+
+	QModelIndex curIdx(currentIndex());
+	if (curIdx.isValid() && curIdx.row()-1 > 0)
+		moveCursorToItem(model()->index(curIdx.row()-1, 0));
+	else if (!curIdx.isValid())
+		moveCursorToItem(model()->index(0, 0));
 }
 
 void CFileListView::setHeaderAdjustmentRequired(bool required)

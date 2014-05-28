@@ -49,6 +49,8 @@ protected slots:
 
 private:
 	void selectRegion(const QModelIndex& start, const QModelIndex& end);
+	void moveCursorToNextItem();
+	void moveCursorToPreviousItem();
 
 private slots:
 	void modelAboutToBeReset();
