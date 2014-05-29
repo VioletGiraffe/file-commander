@@ -345,7 +345,12 @@ void CMainWindow::deleteFilesIrrevocably()
 
 void CMainWindow::createFolder()
 {
-	const QString dirName = QInputDialog::getText(this, "New folder", "Enter the name for the new directory");
+	if (!_currentPanel)
+		return;
+
+	const auto currentItem = _currentPanel->currentItemHash() != 0 ? _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()) : CFileSystemObject();
+	const QString currentItemName = !currentItem.isCdUp() ? currentItem.name() : QString();
+	const QString dirName = QInputDialog::getText(this, "New folder", "Enter the name for the new directory", QLineEdit::Normal, currentItemName);
 	if (!dirName.isEmpty())
 	{
 		const bool ok = _controller->createFolder(_currentPanel->currentDir(), dirName);
