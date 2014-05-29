@@ -3,11 +3,6 @@
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
 
-#ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable: 4251)
-#endif
-
 extern "C" {
 	PLUGIN_EXPORT CFileCommanderPlugin * createPlugin();
 }
@@ -21,9 +16,5 @@ public:
 	virtual QWidget* viewCurrentFile() override;
 	virtual QString name() override;
 };
-
-#ifdef _WIN32
-#pragma warning(pop)
-#endif
 
 #endif // CIMAGEVIEWERPLUGIN_H

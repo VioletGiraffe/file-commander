@@ -39,7 +39,7 @@ SOURCES += \
 	src/utils/ctimeelapsed.cpp \
 	src/shell/cshell.cpp
 
-DEFINES += _SCL_SECURE_NO_WARNINGS
+DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 
 INCLUDEPATH += \
 	$$PWD/include \
@@ -49,7 +49,7 @@ include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)
 
 win*{
-	QMAKE_CXXFLAGS += /MP
+	QMAKE_CXXFLAGS += /MP /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 }
 mac*{

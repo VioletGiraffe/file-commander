@@ -7,11 +7,6 @@
 #include "QtCoreIncludes"
 #include <map>
 
-#ifdef _WIN32
-#pragma warning (push)
-#pragma warning (disable: 4251)
-#endif
-
 class CFileCommanderPlugin;
 
 typedef CFileCommanderPlugin* (*CreatePluginFunc)();
@@ -57,9 +52,5 @@ protected:
 	std::map<PanelPosition, PanelState> _panelState;
 	PanelPosition                       _currentPanel;
 };
-
-#ifdef _WIN32
-#pragma warning (pop)
-#endif
 
 #endif // CFILECOMMANDERPLUGIN_H

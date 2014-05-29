@@ -23,7 +23,7 @@ DEFINES += PLUGIN_MODULE
 LIBS += -L../../../bin -lcore
 
 win*{
-	QMAKE_CXXFLAGS += /MP
+	QMAKE_CXXFLAGS += /MP /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 }
 
