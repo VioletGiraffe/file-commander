@@ -1,5 +1,5 @@
 #include "cimageviewerplugin.h"
-#include "cimageviewerwidget.h"
+#include "cimageviewerwindow.h"
 #include "QtIncludes.h"
 
 CImageViewerPlugin::CImageViewerPlugin()
@@ -17,7 +17,7 @@ bool CImageViewerPlugin::canViewCurrentFile() const
 
 CPluginWindow* CImageViewerPlugin::viewCurrentFile()
 {
-	CImageViewerWidget * widget = new CImageViewerWidget;
+	CImageViewerWindow * widget = new CImageViewerWindow;
 	widget->displayImage(currentItemPath());
 	return widget;
 }

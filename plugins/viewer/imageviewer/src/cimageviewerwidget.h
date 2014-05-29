@@ -2,9 +2,8 @@
 #define CIMAGEVIEWERWIDGET_H
 
 #include "QtIncludes.h"
-#include "plugininterface/cpluginwindow.h"
 
-class CImageViewerWidget : public CPluginWindow
+class CImageViewerWidget : public QWidget
 {
 	Q_OBJECT
 public:
@@ -12,12 +11,14 @@ public:
 
 public:
 	void displayImage(const QString& imagePath);
+	QString imageInfoString() const;
 
 protected:
 	void paintEvent(QPaintEvent* e) override;
 
 private:
-	QImage _image;
+	QImage  _image;
+	qint64  _imageFileSize;
 };
 
 #endif // CIMAGEVIEWERWIDGET_H
