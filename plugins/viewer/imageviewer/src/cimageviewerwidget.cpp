@@ -37,6 +37,11 @@ QString CImageViewerWidget::imageInfoString() const
 			arg(8 * _imageFileSize / (double(_image.width()) * _image.height()));
 }
 
+QSize CImageViewerWidget::sizeHint() const
+{
+	return _image.size();
+}
+
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	if (!_image.isNull())

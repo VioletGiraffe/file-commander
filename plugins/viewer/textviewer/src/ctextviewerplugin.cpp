@@ -12,7 +12,7 @@ CTextViewerPlugin::CTextViewerPlugin()
 
 bool CTextViewerPlugin::canViewCurrentFile() const
 {
-	return true;
+	return currentItemIsFile();
 }
 
 CPluginWindow * CTextViewerPlugin::viewCurrentFile()

@@ -13,6 +13,8 @@ public:
 	void displayImage(const QString& imagePath);
 	QString imageInfoString() const;
 
+	QSize sizeHint() const override;
+
 protected:
 	void paintEvent(QPaintEvent* e) override;
 

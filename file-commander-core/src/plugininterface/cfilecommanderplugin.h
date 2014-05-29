@@ -47,6 +47,9 @@ protected:
 	const PanelState& currentPanelState() const;
 	QString currentFolderPath() const;
 	QString currentItemPath() const;
+	const CFileSystemObject& currentItem() const;
+	bool currentItemIsFile() const;
+	bool currentItemIsDir() const;
 
 protected:
 	std::map<PanelPosition, PanelState> _panelState;

@@ -80,13 +80,31 @@ QString CFileCommanderPlugin::currentFolderPath() const
 
 QString CFileCommanderPlugin::currentItemPath() const
 {
+	return currentItem().absoluteFilePath();
+}
+
+const CFileSystemObject &CFileCommanderPlugin::currentItem() const
+{
 	const PanelState& panelState = currentPanelState();
 	if (panelState.currentItemHash != 0)
 	{
 		auto fileSystemObject = panelState.panelContents.find(panelState.currentItemHash);
 		assert(fileSystemObject != panelState.panelContents.end());
-		return fileSystemObject->second.absoluteFilePath();
+		return fileSystemObject->second;
 	}
-	else 
-		return QString();
+	else
+	{
+		static const CFileSystemObject dummy;
+		return dummy;
+	}
+}
+
+bool CFileCommanderPlugin::currentItemIsFile() const
+{
+	return currentItem().isFile();
+}
+
+bool CFileCommanderPlugin::currentItemIsDir() const
+{
+	return currentItem().isDir();
 }
