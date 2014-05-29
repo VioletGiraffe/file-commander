@@ -70,7 +70,11 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 		else if (!leftItem.isDir() && !rightItem.isDir() && leftItem.extension().isEmpty() && rightItem.extension().isEmpty())
 			return _sorter.lessThan(leftItem.name(), rightItem.name());
 		else
-			return _sorter.lessThan(leftItem.properties().extension, rightItem.properties().extension); // Don't use item.extension() because that returns "" for files with no name
+		{
+			// Don't use item.extension() because that returns "" for files with no name
+			const int comparisonResult = _sorter.lessThan(leftItem.properties().extension, rightItem.properties().extension);
+			return comparisonResult != 0 ? (comparisonResult < 0) : _sorter.lessThan(leftItem.name(), rightItem.name());
+		}
 		break;
 	case SizeColumn:
 		return leftItem.size() < rightItem.size();
