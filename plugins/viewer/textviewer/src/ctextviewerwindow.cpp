@@ -34,6 +34,7 @@ CTextViewerWindow::~CTextViewerWindow()
 
 bool CTextViewerWindow::loadTextFile(const QString& file)
 {
+	setWindowTitle(file);
 	_sourceFilePath = file;
 	if (_sourceFilePath.endsWith(".htm", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".html", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".rtf", Qt::CaseInsensitive))
 		asRichText();

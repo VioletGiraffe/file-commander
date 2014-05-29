@@ -22,4 +22,5 @@ void CImageViewerWindow::displayImage(const QString & imagePath)
 	ui->_imageViewerWidget->displayImage(imagePath);
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
 	adjustSize();
+	setWindowTitle(imagePath);
 }
