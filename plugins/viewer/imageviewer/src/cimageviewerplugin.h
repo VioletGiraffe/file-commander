@@ -13,7 +13,7 @@ public:
 	CImageViewerPlugin();
 
 	virtual bool canViewCurrentFile() const override;
-	virtual QWidget* viewCurrentFile() override;
+	virtual CPluginWindow* viewCurrentFile() override;
 	virtual QString name() override;
 };
 

@@ -15,7 +15,7 @@ bool CTextViewerPlugin::canViewCurrentFile() const
 	return true;
 }
 
-QWidget* CTextViewerPlugin::viewCurrentFile()
+CPluginWindow * CTextViewerPlugin::viewCurrentFile()
 {
 	CTextViewerWindow * widget = new CTextViewerWindow;
 	widget->loadTextFile(currentItemPath());

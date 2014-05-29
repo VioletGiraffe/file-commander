@@ -112,7 +112,8 @@ void CPluginEngine::viewCurrentFile()
 			assert(viewer);
 			if (viewer && viewer->canViewCurrentFile())
 			{
-				QWidget * viewerWidget = viewer->viewCurrentFile();
+				auto viewerWidget(viewer->viewCurrentFile());
+				viewerWidget->setAutoDeleteOnClose(true);
 				viewerWidget->showNormal();
 				viewerWidget->raise();
 				viewerWidget->activateWindow();

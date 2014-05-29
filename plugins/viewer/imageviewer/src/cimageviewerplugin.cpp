@@ -15,11 +15,10 @@ bool CImageViewerPlugin::canViewCurrentFile() const
 		return QImageReader(currentItem).canRead();
 }
 
-QWidget* CImageViewerPlugin::viewCurrentFile()
+CPluginWindow* CImageViewerPlugin::viewCurrentFile()
 {
 	CImageViewerWidget * widget = new CImageViewerWidget;
 	widget->displayImage(currentItemPath());
-	widget->connect(widget, SIGNAL(closed()), SLOT(deleteLater()));
 	return widget;
 }
 
