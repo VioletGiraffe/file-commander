@@ -42,6 +42,13 @@ QSize CImageViewerWidget::sizeHint() const
 	return _image.size();
 }
 
+QIcon CImageViewerWidget::imageIcon(const QSize & size) const
+{
+	if (_image.isNull())
+		return QIcon();
+	return QIcon(QPixmap::fromImage(_image.scaled(size, Qt::KeepAspectRatio, Qt::FastTransformation)));
+}
+
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	if (!_image.isNull())

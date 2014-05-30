@@ -15,6 +15,8 @@ public:
 
 	QSize sizeHint() const override;
 
+	QIcon imageIcon(const QSize& size) const;
+
 protected:
 	void paintEvent(QPaintEvent* e) override;
 
