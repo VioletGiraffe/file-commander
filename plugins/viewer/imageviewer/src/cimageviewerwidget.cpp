@@ -11,12 +11,12 @@ CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
 void CImageViewerWidget::displayImage(const QString& imagePath)
 {
 	_imageFileSize = 0;
-	_image = QImageReader(imagePath).read();
-	if (!_image.isNull())
+	_sourceImage = QImageReader(imagePath).read();
+	if (!_sourceImage.isNull())
 	{
 		_imageFileSize = QFileInfo(imagePath).size();
 		QSize screenSize = QApplication::desktop()->availableGeometry().size() - QSize(50, 50);
-		QSize windowSize = _image.size();
+		QSize windowSize = _sourceImage.size();
 		if (windowSize.height() > screenSize.height() || windowSize.width() > screenSize.width())
 			windowSize.scale(screenSize, Qt::KeepAspectRatio);
 		resize(windowSize);
@@ -26,32 +26,35 @@ void CImageViewerWidget::displayImage(const QString& imagePath)
 
 QString CImageViewerWidget::imageInfoString() const
 {
-	if (_image.isNull())
+	if (_sourceImage.isNull())
 		return QString();
 
-	const int numChannels = _image.isGrayscale() ? 1 : (3 + (_image.hasAlphaChannel() ? 1 : 0));
+	const int numChannels = _sourceImage.isGrayscale() ? 1 : (3 + (_sourceImage.hasAlphaChannel() ? 1 : 0));
 	return QString("%1x%2, %3 channels, %4 bits per pixel, compressed to %5 bits per pixel").
-			arg(_image.width()).
-			arg(_image.height()).
+			arg(_sourceImage.width()).
+			arg(_sourceImage.height()).
 			arg(numChannels).
-			arg(_image.bitPlaneCount()).
-			arg(8 * _imageFileSize / (double(_image.width()) * _image.height()));
+			arg(_sourceImage.bitPlaneCount()).
+			arg(8 * _imageFileSize / (double(_sourceImage.width()) * _sourceImage.height()));
 }
 
 QSize CImageViewerWidget::sizeHint() const
 {
-	return _image.size();
+	return _sourceImage.size();
 }
 
 QIcon CImageViewerWidget::imageIcon(const QSize & size) const
 {
-	if (_image.isNull())
+	if (_sourceImage.isNull())
 		return QIcon();
-	return QIcon(QPixmap::fromImage(CImageResizer::resize(_image, size, CImageResizer::Bicubic)));
+	return QIcon(QPixmap::fromImage(CImageResizer::resize(_sourceImage, size, CImageResizer::Bicubic)));
 }
 
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
-	if (!_image.isNull())
-		QPainter(this).drawImage(0, 0, CImageResizer::resize(_image, size(), CImageResizer::Bicubic));
+	if (_scaledImage.isNull() || _scaledImage.size() != _sourceImage.size().scaled(size(), Qt::KeepAspectRatio))
+		_scaledImage = CImageResizer::resize(_sourceImage, size(), CImageResizer::Bicubic);
+
+	if (!_sourceImage.isNull())
+		QPainter(this).drawImage(0, 0, _scaledImage);
 }

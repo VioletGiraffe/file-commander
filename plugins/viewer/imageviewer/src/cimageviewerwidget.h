@@ -21,8 +21,9 @@ protected:
 	void paintEvent(QPaintEvent* e) override;
 
 private:
-	QImage  _image;
-	qint64  _imageFileSize;
+	QImage _sourceImage;
+	QImage _scaledImage;
+	qint64 _imageFileSize;
 };
 
 #endif // CIMAGEVIEWERWIDGET_H
