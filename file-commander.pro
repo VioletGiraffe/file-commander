@@ -14,4 +14,4 @@ textviewerplugin.subdir = plugins/viewer/textviewer
 textviewerplugin.depends = file_commander_core
 
 qt_app.subdir  = qt-app
-qt_app.depends = file_commander_core qtutils
+qt_app.depends = file_commander_core qtutils imageviewerplugin textviewerplugin

@@ -16,11 +16,12 @@ RCC_DIR     = ../../../build/imageviewer
 INCLUDEPATH += \
 	../../../file-commander-core/src \
 	../../../file-commander-core/include \
+	../../../qtutils \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin -lcore
+LIBS += -L../../../bin -lcore -lqtutils
 
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251
@@ -46,12 +47,12 @@ HEADERS += \
 	src/cimageviewerplugin.h \
 	src/QtIncludes.h \
 	src/cimageviewerwidget.h \
-    src/cimageviewerwindow.h
+	src/cimageviewerwindow.h
 
 SOURCES += \
 	src/cimageviewerplugin.cpp \
 	src/cimageviewerwidget.cpp \
-    src/cimageviewerwindow.cpp
+	src/cimageviewerwindow.cpp
 
 win32*:!*msvc2012:*msvc* {
 	QMAKE_CXXFLAGS += /FS
@@ -59,4 +60,4 @@ win32*:!*msvc2012:*msvc* {
 
 FORMS += \
 	src/cimageviewerwidget.ui \
-    src/cimageviewerwindow.ui
+	src/cimageviewerwindow.ui

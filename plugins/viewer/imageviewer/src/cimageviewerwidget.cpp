@@ -1,4 +1,5 @@
 #include "cimageviewerwidget.h"
+#include "../../qtutils/imageprocessing/resize/cimageresizer.h"
 #include <QFileInfo>
 
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
@@ -46,11 +47,11 @@ QIcon CImageViewerWidget::imageIcon(const QSize & size) const
 {
 	if (_image.isNull())
 		return QIcon();
-	return QIcon(QPixmap::fromImage(_image.scaled(size, Qt::KeepAspectRatio, Qt::FastTransformation)));
+	return QIcon(QPixmap::fromImage(CImageResizer::resize(_image, size, CImageResizer::Bicubic)));
 }
 
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	if (!_image.isNull())
-		QPainter(this).drawImage(0, 0, _image.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+		QPainter(this).drawImage(0, 0, CImageResizer::resize(_image, size(), CImageResizer::Bicubic));
 }
