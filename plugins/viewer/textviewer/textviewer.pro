@@ -58,3 +58,6 @@ win32*:!*msvc2012:*msvc* {
 
 FORMS += \
 	src/ctextviewerwindow.ui
+
+RESOURCES += \
+    src/icons.qrc

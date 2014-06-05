@@ -3,6 +3,7 @@
 
 CFileCommanderPlugin * createPlugin()
 {
+	Q_INIT_RESOURCE(icons);
 	return new CTextViewerPlugin;
 }
 

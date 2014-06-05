@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="main_icon">resources/text_doc.ico</file>
+    </qresource>
+</RCC>
