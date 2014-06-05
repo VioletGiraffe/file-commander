@@ -15,7 +15,7 @@ BEGIN
             VALUE "ProductName",        "File Commander"
             VALUE "ProductVersion",     "1.0"
             VALUE "FileDescription",    "Dual-panel file manager"
-            VALUE "InternalName",       "Helicon Remote"
+            VALUE "InternalName",       "File Commander"
             VALUE "LegalCopyright",     "Copyright © 2013 VioletGIraffe"
             VALUE "LegalTrademarks1",   "All Rights Reserved"
             VALUE "LegalTrademarks2",   "All Rights Reserved"

@@ -23,5 +23,17 @@ void CImageViewerWindow::displayImage(const QString & imagePath)
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
 	adjustSize();
 	setWindowTitle(imagePath);
-	setWindowIcon(ui->_imageViewerWidget->imageIcon(QSize(64, 64)));
+	static QList<QSize> requiredIconSizes;
+	if (requiredIconSizes.empty())
+	{
+#ifdef _WIN32
+		requiredIconSizes << QSize(16, 16) << QSize(32, 32);
+#elif defined __APPLE__
+		requiredIconSizes << QSize(16, 16) << QSize(32, 32);
+#else
+		requiredIconSizes << QSize(16, 16) << QSize(32, 32);
+#endif
+	}
+
+	setWindowIcon(ui->_imageViewerWidget->imageIcon(requiredIconSizes));
 }

@@ -43,17 +43,20 @@ QSize CImageViewerWidget::sizeHint() const
 	return _sourceImage.size();
 }
 
-QIcon CImageViewerWidget::imageIcon(const QSize & size) const
+QIcon CImageViewerWidget::imageIcon(const QList<QSize>& sizes) const
 {
-	if (_sourceImage.isNull())
-		return QIcon();
-	return QIcon(QPixmap::fromImage(CImageResizer::resize(_sourceImage, size, CImageResizer::Bicubic)));
+	QIcon result;
+	if (!_sourceImage.isNull())
+		for(QSize s: sizes)
+			result.addPixmap(QPixmap::fromImage(CImageResizer::resize(_sourceImage, s, CImageResizer::Smart)));
+
+	return result;
 }
 
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	if (_scaledImage.isNull() || _scaledImage.size() != _sourceImage.size().scaled(size(), Qt::KeepAspectRatio))
-		_scaledImage = CImageResizer::resize(_sourceImage, size(), CImageResizer::Bicubic);
+		_scaledImage = CImageResizer::resize(_sourceImage, size(), CImageResizer::Smart);
 
 	if (!_sourceImage.isNull())
 		QPainter(this).drawImage(0, 0, _scaledImage);
