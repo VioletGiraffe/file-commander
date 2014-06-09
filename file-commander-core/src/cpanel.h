@@ -54,6 +54,7 @@ public:
 	const CFileSystemObject& itemByIndex (size_t index) const;
 	CFileSystemObject& itemByIndex (size_t index);
 
+	bool itemHashExists(const qulonglong hash) const;
 	const CFileSystemObject& itemByHash (qulonglong hash) const;
 	CFileSystemObject& itemByHash (qulonglong hash);
 

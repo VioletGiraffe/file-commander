@@ -220,6 +220,11 @@ CPluginProxy &CController::pluginProxy()
 	return _pluginProxy;
 }
 
+bool CController::itemHashExists(Panel p, qulonglong hash) const
+{
+	return panel(p).itemHashExists(hash);
+}
+
 CPanel& CController::panel(Panel p)
 {
 	switch (p)

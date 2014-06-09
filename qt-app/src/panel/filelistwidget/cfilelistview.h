@@ -43,6 +43,8 @@ protected:
 
 	bool edit ( const QModelIndex & index, EditTrigger trigger, QEvent * event ) override;
 
+	void dragMoveEvent(QDragMoveEvent * event) override;
+
 protected slots:
 	void closeEditor ( QWidget * editor, QAbstractItemDelegate::EndEditHint hint ) override;
 	void editorDestroyed ( QObject * editor ) override;

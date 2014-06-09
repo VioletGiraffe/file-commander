@@ -370,6 +370,11 @@ qulonglong CFileSystemObject::hash() const
 	return _properties.hash;
 }
 
+const QFileInfo &CFileSystemObject::qFileInfo() const
+{
+	return _fileInfo;
+}
+
 std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPath, bool includeFolders)
 {
 	std::vector<CFileSystemObject> objects;

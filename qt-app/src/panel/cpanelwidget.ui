@@ -126,9 +126,6 @@
      <property name="editTriggers">
       <set>QAbstractItemView::EditKeyPressed</set>
      </property>
-     <property name="showDropIndicator" stdset="0">
-      <bool>false</bool>
-     </property>
      <property name="dragEnabled">
       <bool>true</bool>
      </property>
@@ -136,16 +133,13 @@
       <enum>QAbstractItemView::DragDrop</enum>
      </property>
      <property name="defaultDropAction">
-      <enum>Qt::IgnoreAction</enum>
+      <enum>Qt::MoveAction</enum>
      </property>
      <property name="alternatingRowColors">
       <bool>true</bool>
      </property>
      <property name="selectionMode">
       <enum>QAbstractItemView::ExtendedSelection</enum>
-     </property>
-     <property name="selectionBehavior">
-      <enum>QAbstractItemView::SelectRows</enum>
      </property>
      <property name="uniformRowHeights">
       <bool>true</bool>

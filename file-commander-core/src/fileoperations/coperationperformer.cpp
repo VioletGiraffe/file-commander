@@ -128,7 +128,7 @@ void COperationPerformer::copyFiles()
 	{
 		_observer->onCurrentFileChangedCallback(it->fileName());
 
-		QFileInfo sourceFile (it->absoluteFilePath());
+		QFileInfo sourceFile(it->qFileInfo());
 		if (!sourceFile.exists())
 		{
 			// Global response registered
@@ -365,7 +365,7 @@ void COperationPerformer::deleteFiles()
 	{
 		_observer->onCurrentFileChangedCallback(it->fileName());
 
-		QFileInfo sourceFile (it->absoluteFilePath());
+		QFileInfo sourceFile(it->qFileInfo());
 		if (!sourceFile.exists())
 		{
 			// Global response registered

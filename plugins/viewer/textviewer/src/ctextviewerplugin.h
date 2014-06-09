@@ -12,9 +12,9 @@ class CTextViewerPlugin : public CFileCommanderViewerPlugin
 public:
 	CTextViewerPlugin();
 
-	virtual bool canViewCurrentFile() const override;
-	virtual CPluginWindow* viewCurrentFile() override;
-	virtual QString name() override;
+	bool canViewCurrentFile() const override;
+	CPluginWindow* viewCurrentFile() override;
+	QString name() override;
 };
 
 #endif // CTEXTVIEWERPLUGIN_H

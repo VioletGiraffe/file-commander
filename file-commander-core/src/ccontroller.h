@@ -73,6 +73,7 @@ public:
 	const CPanel& activePanel() const;
 	CPanel& activePanel();
 	CPluginProxy& pluginProxy();
+	bool itemHashExists(Panel p, qulonglong hash) const;
 	const CFileSystemObject& itemByIndex(Panel p, size_t index) const;
 	const CFileSystemObject& itemByHash(Panel p, qulonglong hash) const;
 	CFileSystemObject& itemByHash(Panel p, qulonglong hash);

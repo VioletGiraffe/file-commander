@@ -56,6 +56,7 @@ public:
 	const QIcon& icon() const;
 	uint64_t size() const;
 	qulonglong hash() const;
+	const QFileInfo& qFileInfo() const;
 
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);

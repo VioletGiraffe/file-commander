@@ -190,9 +190,14 @@ CFileSystemObject &CPanel::itemByIndex(size_t index)
 	}
 }
 
+bool CPanel::itemHashExists(const qulonglong hash) const
+{
+	return _indexByHash.count(hash) > 0;
+}
+
 const CFileSystemObject& CPanel::itemByHash( qulonglong hash ) const
 {
-	assert(_indexByHash.count(hash) > 0);
+	assert(itemHashExists(hash));
 	return itemByIndex(_indexByHash.at(hash));
 }
 

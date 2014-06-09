@@ -15,6 +15,9 @@ public:
 
 	void setSortingOptions(SortingOptions options);
 
+// Drag and drop
+	bool canDropMimeData(const QMimeData * data, Qt::DropAction action, int row, int column, const QModelIndex & parent) const override;
+
 protected:
 	virtual bool lessThan(const QModelIndex &left, const QModelIndex &right) const;
 

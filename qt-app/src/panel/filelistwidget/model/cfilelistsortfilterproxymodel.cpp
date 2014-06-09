@@ -25,6 +25,12 @@ void CFileListSortFilterProxyModel::setSortingOptions(SortingOptions options)
 	_sorter.setSortingOptions(options);
 }
 
+bool CFileListSortFilterProxyModel::canDropMimeData(const QMimeData * data, Qt::DropAction action, int row, int column, const QModelIndex & parent) const
+{
+	QModelIndex srcIndex = mapToSource(index(row, column));
+	return sourceModel()->canDropMimeData(data, action, srcIndex.row(), srcIndex.column(), parent);
+}
+
 bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
 	assert(left.column() == right.column());
