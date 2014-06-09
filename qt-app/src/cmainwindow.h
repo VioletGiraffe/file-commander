@@ -24,11 +24,17 @@ class CMainWindow : public QMainWindow
 public:
 	explicit CMainWindow(QWidget *parent = 0);
 	~CMainWindow();
+
+	static CMainWindow* get();
+
 	void initButtons();
 	void initActions();
 
 	// For manual focus management
 	void tabKeyPressed ();
+
+	void copyFiles(const std::vector<CFileSystemObject>& files, const QString& destDir);
+	void moveFiles(const std::vector<CFileSystemObject>& files, const QString& destDir);
 
 signals:
 	// Is used to close all child windows
@@ -51,8 +57,8 @@ private slots: // For UI
 	void splitterContextMenuRequested(QPoint pos);
 
 // File operations UI slots
-	void copyFiles();
-	void moveFiles();
+	void copySelectedFiles();
+	void moveSelectedFiles();
 	void deleteFiles();
 	void deleteFilesIrrevocably();
 	void createFolder();
@@ -86,6 +92,7 @@ private:
 
 private:
 	Ui::CMainWindow              * ui;
+	static CMainWindow*           _instance;
 	std::shared_ptr<CController>  _controller;
 	CPanelWidget                 * _currentPanel;
 	CPanelWidget                 * _otherPanel;

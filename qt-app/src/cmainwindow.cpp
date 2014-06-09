@@ -28,6 +28,8 @@
 #define KEY_SPLITTER_SIZES    "Ui/Splitter"
 #define KEY_LAST_ACTIVE_PANEL "Ui/LastActivePanel"
 
+CMainWindow * CMainWindow::_instance = 0;
+
 CMainWindow::CMainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
@@ -35,6 +37,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_currentPanel(0),
 	_otherPanel(0)
 {
+	assert(!_instance);
+	_instance = this;
 	ui->setupUi(this);
 
 	_controller->pluginProxy().setToolMenuEntryCreatorImplementation(CPluginProxy::CreateToolMenuEntryImplementationType(std::bind(&CMainWindow::createToolMenuEntries, this, std::placeholders::_1)));
@@ -95,11 +99,11 @@ void CMainWindow::initButtons()
 	connect(ui->btnEdit, SIGNAL(clicked()), SLOT(editFile()));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F4"), this, SLOT(editFile()), 0, Qt::ApplicationShortcut)));
 
-	connect(ui->btnCopy, SIGNAL(clicked()), SLOT(copyFiles()));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F5"), this, SLOT(copyFiles()), 0, Qt::ApplicationShortcut)));
+	connect(ui->btnCopy, SIGNAL(clicked()), SLOT(copySelectedFiles()));
+	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F5"), this, SLOT(copySelectedFiles()), 0, Qt::ApplicationShortcut)));
 
-	connect(ui->btnMove, SIGNAL(clicked()), SLOT(moveFiles()));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F6"), this, SLOT(moveFiles()), 0, Qt::ApplicationShortcut)));
+	connect(ui->btnMove, SIGNAL(clicked()), SLOT(moveSelectedFiles()));
+	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F6"), this, SLOT(moveSelectedFiles()), 0, Qt::ApplicationShortcut)));
 
 	connect(ui->btnNewFolder, SIGNAL(clicked()), SLOT(createFolder()));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F7"), this, SLOT(createFolder()), 0, Qt::ApplicationShortcut)));
@@ -146,10 +150,33 @@ void CMainWindow::tabKeyPressed()
 	_currentPanel->setFocusToFileList();
 }
 
+void CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
+{
+
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, destDir, this);
+	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
+	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
+	dialog->show();
+}
+
+void CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
+{
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, destDir, this);
+	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
+	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
+	dialog->show();
+}
+
 
 CMainWindow::~CMainWindow()
 {
+	_instance = this;
 	delete ui;
+}
+
+CMainWindow *CMainWindow::get()
+{
+	return _instance;
 }
 
 void CMainWindow::updateInterface()
@@ -218,14 +245,14 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 	if (!ui->commandLine->currentText().isEmpty())
 		return;
 
-	const FileOperationResultCode result = _controller->itemActivated(hash, panel->panelPosition());
+	const FileOperationResultCode result = _controller->itemHashExists(panel->panelPosition(), hash) ? _controller->itemActivated(hash, panel->panelPosition()) : rcObjectDoesntExist;
 	switch (result)
 	{
 	case rcObjectDoesntExist:
 		QMessageBox(QMessageBox::Warning, "Error", "The file doesn't exist.").exec();
 		break;
 	case rcFail:
-		QMessageBox(QMessageBox::Critical, "Error", "Failed to launch file.").exec();
+		QMessageBox(QMessageBox::Critical, "Error", QString("Failed to launch ")+_controller->itemByHash(panel->panelPosition(), hash).absoluteFilePath()).exec();
 		break;
 	case rcDirNotAccessible:
 		QMessageBox(QMessageBox::Critical, "No access", "This item is not accessible.").exec();
@@ -286,24 +313,16 @@ void CMainWindow::splitterContextMenuRequested(QPoint pos)
 	}
 }
 
-void CMainWindow::copyFiles()
+void CMainWindow::copySelectedFiles()
 {
-	if (!_currentPanel || !_otherPanel)
-		return;
-
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, _controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir(), this);
-	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
-	dialog->show();
+	if (_currentPanel && _otherPanel)
+		copyFiles(_controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir());
 }
 
-void CMainWindow::moveFiles()
+void CMainWindow::moveSelectedFiles()
 {
-	if (!_currentPanel || !_otherPanel)
-		return;
-
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, _controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir(), this);
-	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
-	dialog->show();
+	if (_currentPanel && _otherPanel)
+		moveFiles(_controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir());
 }
 
 void CMainWindow::deleteFiles()

@@ -131,6 +131,9 @@ void CCopyMoveDialog::closeEvent(QCloseEvent *e)
 			QWidget::closeEvent(e);
 		}
 	}
+
+	if (e->type() == QCloseEvent::Close)
+		emit closed();
 }
 
 void CCopyMoveDialog::cancel()

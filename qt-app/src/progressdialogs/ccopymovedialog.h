@@ -25,6 +25,9 @@ public:
 	virtual void onProcessFinished(); // Done or canceled
 	virtual void onCurrentFileChanged(QString file); // Starting to process a new file
 
+signals:
+	void closed();
+
 protected:
 	virtual void closeEvent(QCloseEvent * e);
 
