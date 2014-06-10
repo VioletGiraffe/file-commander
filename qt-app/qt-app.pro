@@ -34,7 +34,8 @@ SOURCES += \
 	src/settings/csettingspageedit.cpp \
 	src/settings/csettingspageother.cpp \
 	src/historycombobox/chistorycombobox.cpp \
-	src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp
+	src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
+    src/progressdialogs/cfileoperationconfirmationprompt.cpp
 
 HEADERS += \
 	src/QtAppIncludes \
@@ -52,7 +53,8 @@ HEADERS += \
 	src/settings/csettingspageedit.h \
 	src/settings/csettingspageother.h \
 	src/historycombobox/chistorycombobox.h \
-	src/panel/filelistwidget/delegate/cfilelistitemdelegate.h
+	src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
+    src/progressdialogs/cfileoperationconfirmationprompt.h
 
 FORMS += \
 	src/cmainwindow.ui \
@@ -62,7 +64,8 @@ FORMS += \
 	src/progressdialogs/cdeleteprogressdialog.ui \
 	src/settings/csettingspageinterface.ui \
 	src/settings/csettingspageedit.ui \
-	src/settings/csettingspageother.ui
+	src/settings/csettingspageother.ui \
+    src/progressdialogs/cfileoperationconfirmationprompt.ui
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 

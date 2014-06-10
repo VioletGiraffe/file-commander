@@ -1,5 +1,6 @@
 #include "progressdialogs/ccopymovedialog.h"
 #include "progressdialogs/cdeleteprogressdialog.h"
+#include "progressdialogs/cfileoperationconfirmationprompt.h"
 #include "cmainwindow.h"
 #include "ui_cmainwindow.h"
 #include "settings.h"
@@ -152,6 +153,12 @@ void CMainWindow::tabKeyPressed()
 
 void CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
 {
+	if (files.empty() || destDir.isEmpty())
+		return;
+
+	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
+	if (prompt.exec() != QDialog::Accepted)
+		return;
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, destDir, this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
@@ -161,6 +168,13 @@ void CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 
 void CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
 {
+	if (files.empty() || destDir.isEmpty())
+		return;
+
+	CFileOperationConfirmationPrompt prompt("Move files", QString("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
+	if (prompt.exec() != QDialog::Accepted)
+		return;
+
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, destDir, this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
 	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
