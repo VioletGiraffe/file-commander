@@ -15,7 +15,7 @@ public:
 	explicit CSettingsPageEdit(QWidget *parent = 0);
 	~CSettingsPageEdit();
 
-	virtual void acceptSettings() override;
+	void acceptSettings() override;
 
 private slots:
 	void browseForEditor();

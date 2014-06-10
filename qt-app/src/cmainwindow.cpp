@@ -8,6 +8,7 @@
 #include "shell/cshell.h"
 #include "settingsui/csettingsdialog.h"
 #include "settings/csettingspageinterface.h"
+#include "settings/csettingspageoperations.h"
 #include "settings/csettingspageedit.h"
 #include "settings/csettingspageother.h"
 #include "pluginengine/cpluginengine.h"
@@ -156,9 +157,12 @@ void CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	if (files.empty() || destDir.isEmpty())
 		return;
 
-	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
-	if (prompt.exec() != QDialog::Accepted)
-		return;
+	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
+	{
+		CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
+		if (prompt.exec() != QDialog::Accepted)
+			return;
+	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, destDir, this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
@@ -171,9 +175,12 @@ void CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 	if (files.empty() || destDir.isEmpty())
 		return;
 
-	CFileOperationConfirmationPrompt prompt("Move files", QString("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
-	if (prompt.exec() != QDialog::Accepted)
-		return;
+	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
+	{
+		CFileOperationConfirmationPrompt prompt("Move files", QString("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
+		if (prompt.exec() != QDialog::Accepted)
+			return;
+	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, destDir, this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
@@ -511,6 +518,7 @@ void CMainWindow::openSettingsDialog()
 {
 	CSettingsDialog settings;
 	settings.addSettingsPage(new CSettingsPageInterface);
+	settings.addSettingsPage(new CSettingsPageOperations);
 	settings.addSettingsPage(new CSettingsPageEdit);
 	settings.addSettingsPage(new CSettingsPageOther);
 	connect(&settings, SIGNAL(settingsChanged()), SLOT(settingsChanged()));
