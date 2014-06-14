@@ -28,6 +28,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
+	connect(ui->_btnFavs, SIGNAL(clicked()), SLOT(showFavoriteLocations()));
 	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
 	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
@@ -401,6 +402,44 @@ void CPanelWidget::toRoot()
 {
 	if (!_currentDisk.isEmpty())
 		_controller.setPath(_panelPosition, _currentDisk);
+}
+
+void CPanelWidget::showFavoriteLocations()
+{
+	QMenu menu;
+	std::function<void(QMenu *, std::list<CLocationsCollection>&)> createMenus = [this, &createMenus](QMenu * parentMenu, std::list<CLocationsCollection>& locations)
+	{
+		for (auto& item: locations)
+		{
+			if (item.subLocations.empty())
+			{
+				QAction * action = parentMenu->addAction(item.displayName);
+				const QString& path = item.absolutePath;
+				QObject::connect(action, &QAction::triggered, this, [this, path](){
+					_controller.setPath(_panelPosition, path);
+				});
+			}
+			else
+			{
+				QMenu * subMenu = parentMenu->addMenu(item.displayName);
+				createMenus(subMenu, item.subLocations);
+			}
+		}
+
+		if (!locations.empty())
+		{
+			parentMenu->addSeparator();
+			QAction * action = parentMenu->addAction("Add current folder here");
+			QObject::connect(action, &QAction::triggered, this, [this, &locations](){
+				const QString path = currentDir();
+				const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, CFileSystemObject(path).fileName());
+				locations.push_back(CLocationsCollection(name, currentDir()));
+			});
+		}
+	};
+
+	createMenus(&menu, _controller.favoriteLocations().locations());
+	menu.exec(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const

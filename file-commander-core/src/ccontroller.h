@@ -7,6 +7,7 @@
 #include "cpanel.h"
 #include "diskenumerator/cdiskenumerator.h"
 #include "plugininterface/cpluginproxy.h"
+#include "favoritelocationslist/cfavoritelocations.h"
 
 struct ItemId
 {
@@ -81,6 +82,7 @@ public:
 	size_t numItems(Panel p) const;
 	QString itemPath(Panel p, qulonglong hash) const;
 	QString diskPath(size_t index) const;
+	CFavoriteLocations& favoriteLocations();
 
 	// Returns hash of an item that was the last selected in the specified dir
 	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
@@ -96,7 +98,7 @@ private:
 
 private:
 	static CController * _instance;
-	// panels
+	CFavoriteLocations   _favoriteLocations;
 	CPanel               _leftPanel, _rightPanel;
 	CPluginProxy         _pluginProxy;
 	CDiskEnumerator &    _diskEnumerator;

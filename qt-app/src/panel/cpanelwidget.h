@@ -73,6 +73,7 @@ private slots:
 	void itemNameEdited(qulonglong hash, QString newName);
 	void showHistory();
 	void toRoot();
+	void showFavoriteLocations();
 
 private:
 	virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex);

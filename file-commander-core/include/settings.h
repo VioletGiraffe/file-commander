@@ -14,6 +14,8 @@
 #define KEY_HISTORY_L "Internal/Core/LPanel/History"
 #define KEY_HISTORY_R "Internal/Core/RPanel/History"
 
+#define KEY_FAVORITES "Internal/Core/Favorites"
+
 
 
 /////////////////////////////////////////////////

@@ -27,7 +27,8 @@ HEADERS += \
 	src/utils/ctimeelapsed.h \
 	src/shell/cshell.h \
 	include/settings.h \
-	include/QtCoreIncludes
+	include/QtCoreIncludes \
+    src/favoritelocationslist/cfavoritelocations.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -37,7 +38,8 @@ SOURCES += \
 	src/iconprovider/ciconprovider.cpp \
 	src/fileoperations/coperationperformer.cpp \
 	src/utils/ctimeelapsed.cpp \
-	src/shell/cshell.cpp
+	src/shell/cshell.cpp \
+    src/favoritelocationslist/cfavoritelocations.cpp
 
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 

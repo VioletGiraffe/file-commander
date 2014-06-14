@@ -276,6 +276,11 @@ QString CController::diskPath(size_t index) const
 	return index < _diskEnumerator.drives().size() ? _diskEnumerator.drives().at(index).fileSystemObject.absoluteFilePath() : QString();
 }
 
+CFavoriteLocations &CController::favoriteLocations()
+{
+	return _favoriteLocations;
+}
+
 // Returns hash of an item that was the last selected in the specified dir
 qulonglong CController::currentItemInFolder(Panel p, const QString &dir) const
 {
