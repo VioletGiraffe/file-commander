@@ -85,15 +85,14 @@ QStringList CFileListModel::mimeTypes() const
 	return QStringList("text/uri-list");
 }
 
-bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action, int row, int column, const QModelIndex & parent)
+bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action, int /*row*/, int /*column*/, const QModelIndex & parent)
 {
 	if (action == Qt::IgnoreAction)
 		return true;
 	else if (!data->hasUrls())
 		return false;
 
-	const auto idx = index(row, column);
-	CFileSystemObject dest = idx.isValid() ? _controller.itemByHash(_panel, itemHash(index(row, 0))) : CFileSystemObject(_controller.panel(_panel).currentDirPath());
+	CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPath());
 	if (!dest.exists() || !dest.isDir())
 	{
 		assert(dest.exists() && dest.isDir());
