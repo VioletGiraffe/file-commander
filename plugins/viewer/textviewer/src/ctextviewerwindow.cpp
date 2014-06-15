@@ -5,8 +5,6 @@
 #include "ctextviewerwindow.h"
 #include "ui_ctextviewerwindow.h"
 
-#include <QMessageBox>
-
 #ifdef _WIN32
 #pragma warning(pop) // set W0
 #endif
@@ -33,13 +31,13 @@ CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
 	});
 	connect(ui->actionFind_next, SIGNAL(triggered()), SLOT(findNext()));
 
-	connect(ui->actionASCI, SIGNAL(triggered()), SLOT(asAscii()));
+	connect(ui->actionSystemLocale, SIGNAL(triggered()), SLOT(asSystemDefault()));
 	connect(ui->actionUTF_8, SIGNAL(triggered()), SLOT(asUtf8()));
 	connect(ui->actionUTF_16, SIGNAL(triggered()), SLOT(asUtf16()));
 	connect(ui->actionHTML_RTF, SIGNAL(triggered()), SLOT(asRichText()));
 
 	QActionGroup * group = new QActionGroup(this);
-	group->addAction(ui->actionASCI);
+	group->addAction(ui->actionSystemLocale);
 	group->addAction(ui->actionUTF_8);
 	group->addAction(ui->actionUTF_16);
 	group->addAction(ui->actionHTML_RTF);
@@ -60,14 +58,18 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 	if (_sourceFilePath.endsWith(".htm", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".html", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".rtf", Qt::CaseInsensitive))
 		asRichText();
 	else
-		asUtf8();
+		asSystemDefault();
 	return true;
 }
 
-void CTextViewerWindow::asAscii()
+void CTextViewerWindow::asSystemDefault()
 {
-	ui->textBrowser->setPlainText(QString::fromLatin1(readSource()));
-	ui->actionASCI->setChecked(true);
+	QTextCodec * codec = QTextCodec::codecForLocale();
+	if (!codec)
+		return;
+
+	ui->textBrowser->setPlainText(codec->toUnicode(readSource()));
+	ui->actionSystemLocale->setChecked(true);
 }
 
 void CTextViewerWindow::asUtf8()

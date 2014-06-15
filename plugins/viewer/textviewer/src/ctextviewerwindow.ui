@@ -44,7 +44,7 @@
     <property name="title">
      <string>&amp;View</string>
     </property>
-    <addaction name="actionASCI"/>
+    <addaction name="actionSystemLocale"/>
     <addaction name="actionUTF_16"/>
     <addaction name="actionUTF_8"/>
     <addaction name="actionHTML_RTF"/>
@@ -69,12 +69,12 @@
    <addaction name="menuEdit"/>
    <addaction name="menuView"/>
   </widget>
-  <action name="actionASCI">
+  <action name="actionSystemLocale">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;ASCI</string>
+    <string>&amp;System locale</string>
    </property>
    <property name="shortcut">
     <string>1</string>

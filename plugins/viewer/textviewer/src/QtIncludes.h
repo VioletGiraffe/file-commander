@@ -8,8 +8,10 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QShortcut>
 #include <QString>
+#include <QTextCodec>
 
 #ifdef _WIN32
 #pragma warning(pop) // set W0
