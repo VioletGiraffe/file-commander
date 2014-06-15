@@ -7,7 +7,6 @@ CHistoryComboBox::CHistoryComboBox(QWidget* parent) : QComboBox(parent)
 // Moves the currently selected item to the top
 void CHistoryComboBox::currentItemActivated()
 {
-	//QAbstractItemModel * model = model();
 	const QString item = itemText(currentIndex());
 	removeItem(currentIndex());
 	insertItem(0, item);
@@ -27,21 +26,21 @@ void CHistoryComboBox::setHistoryMode(bool historyMode)
 // Switch to the next command following the current one
 void CHistoryComboBox::cycleLastCommands()
 {
-	if (!lineEdit() || count() == 0)
+	if (count() <= 0)
 		return;
 
-	if (lineEdit()->text().isEmpty())
+	if (currentText().isEmpty())
 		setCurrentIndex(0);
 	else if (currentIndex() < count() - 1)
 		setCurrentIndex(currentIndex() + 1);
 
-	lineEdit()->selectAll();
+//	lineEdit()->selectAll(); // Causes a bug
 }
 
 // Set current index to 0 and clear line edit
 void CHistoryComboBox::reset()
 {
-	if (!lineEdit() || count() == 0)
+	if (!lineEdit() || count() <= 0)
 		return;
 
 	setCurrentIndex(0);

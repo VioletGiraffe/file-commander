@@ -450,7 +450,7 @@ void CMainWindow::executeCommand()
 	if (!_currentPanel)
 		return;
 
-	const QString commandLine = ui->commandLine->lineEdit()->text();
+	const QString commandLine = ui->commandLine->currentText();
 	if (commandLine.isEmpty())
 		return;
 
