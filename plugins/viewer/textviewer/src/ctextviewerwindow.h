@@ -3,6 +3,7 @@
 
 #include "QtIncludes.h"
 #include "plugininterface/cpluginwindow.h"
+#include "cfinddialog.h"
 
 namespace Ui {
 class CTextViewerWindow;
@@ -24,10 +25,14 @@ private slots:
 	void asUtf16();
 	void asRichText();
 
+	void find();
+	void findNext();
+
 private:
 	QByteArray readSource() const;
 
 private:
+	CFindDialog            _findDialog;
 	QString                _sourceFilePath;
 	Ui::CTextViewerWindow *ui;
 };

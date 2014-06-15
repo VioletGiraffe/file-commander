@@ -16,11 +16,12 @@ RCC_DIR     = ../../../build/textviewer
 INCLUDEPATH += \
 	../../../file-commander-core/src \
 	../../../file-commander-core/include \
+	../../../qtutils \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin -lcore
+LIBS += -L../../../bin -lcore -lqtutils
 
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251
@@ -45,11 +46,13 @@ linux*|mac*{
 HEADERS += \
 	src/QtIncludes.h \
 	src/ctextviewerplugin.h \
-	src/ctextviewerwindow.h
+	src/ctextviewerwindow.h \
+	src/cfinddialog.h
 
 SOURCES += \
 	src/ctextviewerplugin.cpp \
-	src/ctextviewerwindow.cpp
+	src/ctextviewerwindow.cpp \
+	src/cfinddialog.cpp
 
 
 win32*:!*msvc2012:*msvc* {
@@ -57,7 +60,8 @@ win32*:!*msvc2012:*msvc* {
 }
 
 FORMS += \
-	src/ctextviewerwindow.ui
+	src/ctextviewerwindow.ui \
+	src/cfinddialog.ui
 
 RESOURCES += \
-    src/icons.qrc
+	src/icons.qrc

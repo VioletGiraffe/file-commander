@@ -4,7 +4,6 @@ CPluginWindow::CPluginWindow(QWidget *parent) :
 	QMainWindow(parent),
 	_bAutoDeleteOnClose(false)
 {
-	new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 }
 
 bool CPluginWindow::autoDeleteOnClose() const

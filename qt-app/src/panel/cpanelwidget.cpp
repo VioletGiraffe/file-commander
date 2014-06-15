@@ -429,7 +429,7 @@ void CPanelWidget::showFavoriteLocations()
 		if (!locations.empty())
 		{
 			parentMenu->addSeparator();
-			QAction * action = parentMenu->addAction("Add current folder here");
+			QAction * action = parentMenu->addAction("Add current folder here...");
 			QObject::connect(action, &QAction::triggered, this, [this, &locations](){
 				const QString path = currentDir();
 				const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, CFileSystemObject(path).fileName());
