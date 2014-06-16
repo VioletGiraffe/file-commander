@@ -124,7 +124,7 @@ void COperationPerformer::copyFiles()
 
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal condition variable operation */)
+	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal operation of condition variable  */)
 	{
 		_observer->onCurrentFileChangedCallback(it->fileName());
 
@@ -156,7 +156,10 @@ void COperationPerformer::copyFiles()
 			_userResponse = urNone;
 		}
 
-		QFileInfo destInfo (destination[currentItemIndex].absoluteFilePath(it->fileName()));
+		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(it->fileName()));
+		if (destInfo.absoluteFilePath() == sourceFile.absoluteFilePath())
+			continue;
+
 		if (destInfo.exists() && destInfo.isFile())
 		{
 			// Global response registered
@@ -185,7 +188,7 @@ void COperationPerformer::copyFiles()
 
 				_userResponse = urNone;
 
-				CFileSystemObject destFile (destInfo);
+				CFileSystemObject destFile(destInfo);
 				if (!destFile.properties().permissions.write)
 				{
 					if (_globalResponses.count(hrDestFileIsReadOnly) <= 0 || _globalResponses[hrDestFileIsReadOnly] != urProceedWithAll)
@@ -462,9 +465,7 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 		if (o.isFile())
 		{
 			totalSize += o.size();
-			qDebug () << o.absoluteFilePath();
 			QDir baseSourceDir (o.parentDirPath());
-			qDebug() << baseSourceDir.absolutePath();
 			destinations.emplace_back(destinationFolder(o.absoluteFilePath(), o.parentDirPath(), _dest, false));
 			newSourceVector.push_back(o);
 		}
