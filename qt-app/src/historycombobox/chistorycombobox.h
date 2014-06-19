@@ -19,6 +19,12 @@ public slots:
 	void cycleLastCommands();
 	// Set current index to 0 and clear line edit
 	void reset();
+
+
+	bool eventFilter(QObject *, QEvent *) override;
+
+signals:
+	void lineeditReturnPressed();
 };
 
 #endif // CHISTORYCOMBOBOX_H

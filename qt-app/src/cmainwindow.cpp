@@ -89,7 +89,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	connect(ui->leftPanel->fileListView(), SIGNAL(returnPressed()), SLOT(executeCommand()));
 	connect(ui->rightPanel->fileListView(), SIGNAL(returnPressed()), SLOT(executeCommand()));
-	connect(ui->commandLine->lineEdit(), SIGNAL(returnPressed()), SLOT(executeCommand()));
+	connect(ui->commandLine, SIGNAL(lineeditReturnPressed()), SLOT(executeCommand()));
 	dynamic_cast<CHistoryComboBox*>(ui->commandLine)->setHistoryMode(true);
 }
 
@@ -456,10 +456,13 @@ void CMainWindow::executeCommand()
 
 	CShell::executeShellCommand(commandLine, _currentPanel->currentDir());
 
+	ui->commandLine->currentItemActivated();
+
 	QStringList commands;
 	for (int i = 0; i < ui->commandLine->count(); ++i)
 		commands.push_back(ui->commandLine->itemText(i));
 	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, commands);
+
 	ui->commandLine->clearEditText();
 }
 
