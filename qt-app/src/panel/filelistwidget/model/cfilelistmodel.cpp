@@ -98,16 +98,16 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 		assert(dest.exists() && dest.isDir());
 		return false;
 	}
-	
+
 	const QList<QUrl> urls(data->urls());
 	std::vector<CFileSystemObject> objects;
 	for(const QUrl& url: urls)
 		objects.emplace_back(url.toLocalFile());
-	
+
 	if (objects.empty())
 		return false;
 
-	if (action = Qt::CopyAction)
+	if (action == Qt::CopyAction)
 		CMainWindow::get()->copyFiles(objects, dest.absoluteFilePath());
 	else if (action == Qt::MoveAction)
 		CMainWindow::get()->moveFiles(objects, dest.absoluteFilePath());

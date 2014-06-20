@@ -76,7 +76,7 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 			_singleMouseClickPos = e->pos();
 			QTimer * timer = new QTimer;
 			timer->setSingleShot(true);
-			QObject::connect(timer, &QTimer::timeout, this, [this](){
+			QObject::connect(timer, &QTimer::timeout, [this](){
 				if (_singleMouseClickValid)
 					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
 				_singleMouseClickValid = false;

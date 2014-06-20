@@ -26,6 +26,10 @@ CFindDialog::CFindDialog(QWidget *parent) :
 	ui->_cbCaseSensitive->setChecked(s.value(SETTINGS_CASE_SENSITIVE).toBool());
 	ui->_cbRegex->setChecked(s.value(SETTINGS_REGEX).toBool());
 	ui->_cbWholeWords->setChecked(s.value(SETTINGS_WHOLE_WORDS).toBool());
+
+#if QT_VERSION < QT_VERSION_CHECK(5,3,0)
+	ui->_cbRegex->setVisible(false);
+#endif
 }
 
 CFindDialog::~CFindDialog()
