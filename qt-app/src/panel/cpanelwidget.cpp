@@ -32,6 +32,13 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
 	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
+#ifdef __linux__
+	// Raised toolbuttons behave weird on Linux (KDE)
+	ui->_btnFavs->setAutoRaise(false);
+	ui->_btnHistory->setAutoRaise(false);
+	ui->_btnToRoot->setAutoRaise(false);
+#endif
+
 	_controller.setDisksChangedListener(this);
 
 	ui->_infoLabel->clear();
