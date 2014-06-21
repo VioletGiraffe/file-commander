@@ -404,7 +404,7 @@ void CPanelWidget::showFavoriteLocations()
 	{
 		for (auto& item: locations)
 		{
-			if (item.subLocations.empty())
+			if (item.subLocations.empty() && !item.absolutePath.isEmpty())
 			{
 				QAction * action = parentMenu->addAction(item.displayName);
 				const QString& path = item.absolutePath;
@@ -422,12 +422,23 @@ void CPanelWidget::showFavoriteLocations()
 		if (!locations.empty())
 			parentMenu->addSeparator();
 
-		QAction * action = parentMenu->addAction("Add current folder here...");
-		QObject::connect(action, &QAction::triggered, [this, &locations](){
+		QAction * addFolderAction = parentMenu->addAction("Add current folder here...");
+		QObject::connect(addFolderAction, &QAction::triggered, [this, &locations](){
 			const QString path = currentDir();
-			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, CFileSystemObject(path).fileName());
+			const QString displayName = CFileSystemObject(path).fileName();
+			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
 			if (!name.isEmpty() && !path.isEmpty())
 				locations.push_back(CLocationsCollection(name, currentDir()));
+		});
+
+		QAction * addCategoryAction = parentMenu->addAction("Add a new subcategory...");
+		QObject::connect(addCategoryAction, &QAction::triggered, [this, &locations, parentMenu](){
+			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name for the new subcategory");
+			if (!name.isEmpty())
+			{
+				QMenu * subMenu = parentMenu->addMenu(name);
+				locations.push_back(CLocationsCollection(name));
+			}
 		});
 	};
 
