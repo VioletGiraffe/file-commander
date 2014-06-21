@@ -25,6 +25,9 @@ public slots:
 
 signals:
 	void lineeditReturnPressed();
+
+protected:
+	void keyPressEvent(QKeyEvent * e) override;
 };
 
 #endif // CHISTORYCOMBOBOX_H
