@@ -463,7 +463,7 @@ void CMainWindow::executeCommand()
 		commands.push_back(ui->commandLine->itemText(i));
 	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, commands);
 
-	ui->commandLine->clearEditText();
+	clearCommandLineAndRestoreFocus();
 }
 
 void CMainWindow::cycleLastCommands()
