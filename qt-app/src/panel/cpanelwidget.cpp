@@ -33,13 +33,6 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 
 	ui->_list->addEventObserver(this);
 
-#ifdef __linux__
-	// Raised toolbuttons behave weird on Linux (at least in KDE)
-	ui->_btnFavs->setAutoRaise(false);
-	ui->_btnHistory->setAutoRaise(false);
-	ui->_btnToRoot->setAutoRaise(false);
-#endif
-
 	_controller.setDisksChangedListener(this);
 
 	ui->_infoLabel->clear();
@@ -427,15 +420,15 @@ void CPanelWidget::showFavoriteLocations()
 		}
 
 		if (!locations.empty())
-		{
 			parentMenu->addSeparator();
-			QAction * action = parentMenu->addAction("Add current folder here...");
-			QObject::connect(action, &QAction::triggered, [this, &locations](){
-				const QString path = currentDir();
-				const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, CFileSystemObject(path).fileName());
+
+		QAction * action = parentMenu->addAction("Add current folder here...");
+		QObject::connect(action, &QAction::triggered, [this, &locations](){
+			const QString path = currentDir();
+			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, CFileSystemObject(path).fileName());
+			if (!name.isEmpty() && !path.isEmpty())
 				locations.push_back(CLocationsCollection(name, currentDir()));
-			});
-		}
+		});
 	};
 
 	createMenus(&menu, _controller.favoriteLocations().locations());
