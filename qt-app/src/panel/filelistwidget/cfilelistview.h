@@ -5,6 +5,23 @@
 #include "../../QtAppIncludes"
 #include <vector>
 
+// Qt signals/slots system doesn't apply here because there should be a list of observers, and the signal shall not go further once it's been consumed by a listener
+
+struct FileListViewEventObserver {
+	virtual ~FileListViewEventObserver() {}
+
+	virtual bool fileListReturnPressed() = 0;
+	virtual bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& index) = 0;
+};
+
+struct FileListReturnPressedObserver : FileListViewEventObserver {
+	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& index) override {return false;}
+};
+
+struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
+	bool fileListReturnPressed() override {return false;}
+};
+
 class QMouseEvent;
 class CController;
 class CFileListView : public QTreeView
@@ -13,6 +30,8 @@ class CFileListView : public QTreeView
 
 public:
 	explicit CFileListView(QWidget *parent = 0);
+	void addEventObserver(FileListViewEventObserver* observer);
+
 	// Sets the position (left or right) of a panel that this model represents
 	void setPanelPosition(enum Panel p);
 
@@ -27,8 +46,6 @@ public:
 
 signals:
 	void contextMenuRequested (QPoint pos);
-	void returnPressOrDoubleClick(QModelIndex index);
-	void returnPressed();
 	void ctrlEnterPressed();
 	void ctrlShiftEnterPressed();
 
@@ -58,12 +75,13 @@ private slots:
 	void modelAboutToBeReset();
 
 private:
-	QByteArray          _headerGeometry;
-	QByteArray          _headerState;
-	CController       & _controller;
-	enum Panel          _panelPosition;
-	bool                _bHeaderAdjustmentRequired;
-	bool                _bEditInProgress;
-	QPoint              _singleMouseClickPos;
-	bool                _singleMouseClickValid;
+	std::vector<FileListViewEventObserver*> _eventObservers;
+	QByteArray                          _headerGeometry;
+	QByteArray                          _headerState;
+	CController                       & _controller;
+	enum Panel                          _panelPosition;
+	bool                                _bHeaderAdjustmentRequired;
+	bool                                _bEditInProgress;
+	QPoint                              _singleMouseClickPos;
+	bool                                _singleMouseClickValid;
 };

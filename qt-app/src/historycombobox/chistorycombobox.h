@@ -8,26 +8,34 @@ class CHistoryComboBox : public QComboBox
 	Q_OBJECT
 
 public:
-	CHistoryComboBox(QWidget * parent = 0);
+	CHistoryComboBox(QWidget * parent);
+
+	void setSelectPreviousItemShortcut(const QKeySequence& selectPreviousItemShortcut);
+	bool eventFilter(QObject *, QEvent *) override;
+
+	QStringList items() const;
 
 public slots:
-	// Moves the currently selected item to the top
-	void currentItemActivated();
-	// Enables or disables history mode (moving selected item to the top)
+	// Enables or disables history mode (moving activated item to the top)
 	void setHistoryMode(bool historyMode);
-	// Switch to the next command following the current one
-	void cycleLastCommands();
+	// Switch to the next combobox item (which means going back through the history if history mode is set)
+	void selectPreviousItem();
 	// Set current index to 0 and clear line edit
 	void reset();
 
-
-	bool eventFilter(QObject *, QEvent *) override;
-
 signals:
-	void lineeditReturnPressed();
+	void itemActivated(QString itemText);
 
 protected:
-	void keyPressEvent(QKeyEvent * e) override;
+//	void keyPressEvent(QKeyEvent * e) override;
+
+private slots:
+	// Moves the currently selected item to the top
+	void currentItemActivated();
+
+private:
+	// QShortcut doesn't work properly with this class for some reason, so here's a hack for creating a keyboard shortcut to selectPreviousItem
+	QKeySequence _selectPreviousItemShortcut;
 };
 
 #endif // CHISTORYCOMBOBOX_H

@@ -74,8 +74,12 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
 
+	// FIXME: doesn't work on Linux. QTreeView moves cursor between items as their names are typed, and these events never make it to the eventFilter
 	ui->leftPanel->fileListView()->installEventFilter(this);
 	ui->rightPanel->fileListView()->installEventFilter(this);
+
+	ui->leftPanel->fileListView()->addEventObserver(this);
+	ui->rightPanel->fileListView()->addEventObserver(this);
 
 	initButtons();
 	initActions();
@@ -87,10 +91,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	connect(ui->splitter, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
 
-	connect(ui->leftPanel->fileListView(), SIGNAL(returnPressed()), SLOT(executeCommand()));
-	connect(ui->rightPanel->fileListView(), SIGNAL(returnPressed()), SLOT(executeCommand()));
-	connect(ui->commandLine, SIGNAL(lineeditReturnPressed()), SLOT(executeCommand()));
-	dynamic_cast<CHistoryComboBox*>(ui->commandLine)->setHistoryMode(true);
+	connect(ui->commandLine, SIGNAL(itemActivated(QString)), SLOT(executeCommand(QString)));
 }
 
 void CMainWindow::initButtons()
@@ -119,7 +120,12 @@ void CMainWindow::initButtons()
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::WidgetWithChildrenShortcut)));
 
 	// Command line
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(cycleLastCommands()), 0, Qt::WidgetWithChildrenShortcut)));
+	//QShortcut * scut = new QShortcut(QKeySequence("Ctrl+E"), ui->commandLine, 0, 0, Qt::WidgetWithChildrenShortcut);
+	//connect(scut, SIGNAL(activated()), SLOT(cycleLastCommands()));
+	//_shortcuts.push_back(std::shared_ptr<QShortcut>(scut));
+	//_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(cycleLastCommands()))));
+	ui->commandLine->setSelectPreviousItemShortcut(QKeySequence("Ctrl+E"));
+	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(selectPreviousCommandInTheCommandLine()), 0, Qt::WidgetWithChildrenShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Esc"), this, SLOT(clearCommandLineAndRestoreFocus()), 0, Qt::WidgetWithChildrenShortcut)));
 }
 
@@ -249,6 +255,7 @@ bool CMainWindow::eventFilter(QObject * watched, QEvent * event)
 		if (event && event->type() == QEvent::KeyPress)
 		{
 			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(event);
+			// FIXME: a lot of things are missing from this condition
 			if (keyEvent && (keyEvent->modifiers() ^ Qt::ShiftModifier) == Qt::NoModifier && keyEvent->key() != Qt::Key_Space && keyEvent->key() != Qt::Key_Enter && keyEvent->key() != Qt::Key_Return && !keyEvent->text().isEmpty())
 			{
 				ui->commandLine->setFocus();
@@ -445,30 +452,21 @@ void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 	CShell::recycleBinContextMenu(pos.x(), pos.y(), (void*)winId());
 }
 
-void CMainWindow::executeCommand()
+bool CMainWindow::executeCommand(QString commandLineText)
 {
-	if (!_currentPanel)
-		return;
+	if (!_currentPanel || commandLineText.isEmpty())
+		return false;
 
-	const QString commandLine = ui->commandLine->currentText();
-	if (commandLine.isEmpty())
-		return;
-
-	CShell::executeShellCommand(commandLine, _currentPanel->currentDir());
-
-	ui->commandLine->currentItemActivated();
-
-	QStringList commands;
-	for (int i = 0; i < ui->commandLine->count(); ++i)
-		commands.push_back(ui->commandLine->itemText(i));
-	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, commands);
-
+	CShell::executeShellCommand(commandLineText, _currentPanel->currentDir());
+	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->commandLine->items());
 	clearCommandLineAndRestoreFocus();
+
+	return true;
 }
 
-void CMainWindow::cycleLastCommands()
+void CMainWindow::selectPreviousCommandInTheCommandLine()
 {
-	ui->commandLine->cycleLastCommands();
+	ui->commandLine->selectPreviousItem();
 	ui->commandLine->setFocus();
 }
 
@@ -571,4 +569,11 @@ void CMainWindow::addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QM
 	QObject::connect(action, &QAction::triggered, [entry](bool){entry.handler();});
 	for(const auto& childEntry: entry.children)
 		addToolMenuEntriesRecursively(childEntry, toolMenu);
+}
+
+bool CMainWindow::fileListReturnPressed()
+{
+	if (_currentPanel)
+		return executeCommand(ui->commandLine->currentText());
+	return false;
 }

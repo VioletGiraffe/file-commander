@@ -24,7 +24,6 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
-	connect(ui->_list, SIGNAL(returnPressOrDoubleClick(QModelIndex)), SLOT(itemActivatedSlot(QModelIndex)));
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
@@ -32,8 +31,10 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
 	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
+	ui->_list->addEventObserver(this);
+
 #ifdef __linux__
-	// Raised toolbuttons behave weird on Linux (KDE)
+	// Raised toolbuttons behave weird on Linux (at least in KDE)
 	ui->_btnFavs->setAutoRaise(false);
 	ui->_btnHistory->setAutoRaise(false);
 	ui->_btnToRoot->setAutoRaise(false);
@@ -236,14 +237,6 @@ void CPanelWidget::fillFromPanel(const CPanel &panel)
 		ui->_pathNavigator->setText(currentPath + sep);
 	else
 		ui->_pathNavigator->setText(currentPath);
-}
-
-void CPanelWidget::itemActivatedSlot(QModelIndex item)
-{
-	assert(item.isValid());
-	QModelIndex source = _sortModel->mapToSource(item);
-	const qulonglong hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toULongLong();
-	emit itemActivated(hash, this);
 }
 
 void CPanelWidget::showContextMenuForItems(QPoint pos)
@@ -472,10 +465,13 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 	return result;
 }
 
-qulonglong CPanelWidget::currentItemHash() const
+bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
 {
-	QModelIndex currentIndex = _selectionModel->currentIndex();
-	return hashByItemIndex(currentIndex);
+	assert(item.isValid());
+	QModelIndex source = _sortModel->mapToSource(item);
+	const qulonglong hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toULongLong();
+	emit itemActivated(hash, this);
+	return true; // Consuming the event
 }
 
 void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex)
@@ -525,6 +521,12 @@ void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Pane
 		}
 		layout->addWidget(diskButton);
 	}
+}
+
+qulonglong CPanelWidget::currentItemHash() const
+{
+	QModelIndex currentIndex = _selectionModel->currentIndex();
+	return hashByItemIndex(currentIndex);
 }
 
 qulonglong CPanelWidget::hashByItemIndex(const QModelIndex &index) const

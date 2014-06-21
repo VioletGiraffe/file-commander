@@ -4,6 +4,7 @@
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
 #include "panel/cpanelwidget.h"
+#include "panel/filelistwidget/cfilelistview.h"
 
 #include "QtAppIncludes"
 
@@ -17,7 +18,7 @@ class CMainWindow;
 class CPanelWidget;
 class QShortcut;
 
-class CMainWindow : public QMainWindow
+class CMainWindow : public QMainWindow, private FileListReturnPressedObserver
 {
 	Q_OBJECT
 
@@ -70,9 +71,11 @@ private slots: // For UI
 	void editFile();
 	void openTerminal();
 	void showRecycleBInContextMenu(QPoint pos);
-	void executeCommand();
-	// Command line
-	void cycleLastCommands();
+
+// Command line
+	// true if command was executed
+	bool executeCommand(QString commandLineText);
+	void selectPreviousCommandInTheCommandLine();
 	void clearCommandLineAndRestoreFocus();
 	void pasteCurrentFileName();
 	void pasteCurrentFilePath();
@@ -89,6 +92,9 @@ private slots: // For UI
 private:
 	void createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries);
 	void addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu);
+
+	// For command line handling
+	bool fileListReturnPressed() override;
 
 private:
 	Ui::CMainWindow              * ui;

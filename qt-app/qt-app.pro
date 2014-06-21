@@ -94,7 +94,7 @@ linux*|mac*{
 	HEADERS += src/panel/filelistwidget/cfocusframestyle.h
 	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
 
-	QMAKE_CXXFLAGS += --std=c++11
+	CONFIG += c++11
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 }
 

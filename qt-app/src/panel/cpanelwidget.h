@@ -4,6 +4,7 @@
 #include "../QtAppIncludes"
 
 #include "ccontroller.h"
+#include "filelistwidget/cfilelistview.h"
 
 namespace Ui {
 class CPanelWidget;
@@ -16,7 +17,7 @@ class CFileListSortFilterProxyModel;
 class CFileListView;
 
 
-class CPanelWidget : public QWidget, private CController::IDiskListObserver, public PanelContentsChangedListener
+class CPanelWidget : public QWidget, private CController::IDiskListObserver, public PanelContentsChangedListener, private FileListReturnPressOrDoubleClickObserver
 {
 	Q_OBJECT
 
@@ -61,7 +62,6 @@ protected:
 	virtual bool eventFilter (QObject * object , QEvent * e);
 
 private slots:
-	void itemActivatedSlot(QModelIndex item);
 	void showContextMenuForItems(QPoint pos);
 	void showContextMenuForDisk(QPoint pos);
 	void onFolderPathSet();
@@ -76,8 +76,11 @@ private slots:
 	void showFavoriteLocations();
 
 private:
-	virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex);
+// Callbacks
+	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
+	void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex) override;
 
+// Internal methods
 	qulonglong hashByItemIndex(const QModelIndex& index) const;
 	qulonglong hashByItemRow(const int row) const;
 	QModelIndex indexByHash(const qulonglong hash) const;

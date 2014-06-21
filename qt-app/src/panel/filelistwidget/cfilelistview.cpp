@@ -21,10 +21,22 @@ CFileListView::CFileListView(QWidget *parent) :
 {
 	setMouseTracking(true);
 	setItemDelegate(new CFileListItemDelegate);
-	connect(this, SIGNAL(doubleClicked(QModelIndex)), SIGNAL(returnPressOrDoubleClick(QModelIndex)));
+	connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
+		for(FileListViewEventObserver* observer: _eventObservers)
+		{
+			if (observer->fileListReturnPressOrDoubleClickPerformed(idx))
+				break;
+		}
+	});
+
 #if defined __linux__ || defined __APPLE__
 	setStyle(new CFocusFrameStyle);
 #endif
+}
+
+void CFileListView::addEventObserver(FileListViewEventObserver* observer)
+{
+	_eventObservers.push_back(observer);
 }
 
 // Sets the position (left or right) of a panel that this model represents
@@ -158,9 +170,25 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 	{
 		if (event->modifiers() == Qt::NoModifier)
 		{
-			emit returnPressed();
-			if (currentIndex().isValid())
-				emit returnPressOrDoubleClick(currentIndex());
+			bool returnPressConsumed = false;
+			for(FileListViewEventObserver* observer: _eventObservers)
+			{
+				returnPressConsumed = observer->fileListReturnPressed();
+				if (returnPressConsumed)
+					break;
+			}
+
+			if (!returnPressConsumed)
+				for (FileListViewEventObserver* observer: _eventObservers)
+				{
+					if (currentIndex().isValid())
+					{
+						returnPressConsumed = observer->fileListReturnPressOrDoubleClickPerformed(currentIndex());
+						if (returnPressConsumed)
+							break;
+					}
+				}
+
 		}
 		else if (event->modifiers() == Qt::ControlModifier)
 			emit ctrlEnterPressed();
