@@ -436,7 +436,7 @@ void CPanelWidget::showFavoriteLocations()
 			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name for the new subcategory");
 			if (!name.isEmpty())
 			{
-				QMenu * subMenu = parentMenu->addMenu(name);
+				parentMenu->addMenu(name);
 				locations.push_back(CLocationsCollection(name));
 			}
 		});

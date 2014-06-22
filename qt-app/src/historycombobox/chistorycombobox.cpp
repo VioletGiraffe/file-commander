@@ -94,28 +94,6 @@ QStringList CHistoryComboBox::items() const
 	return itemsList;
 }
 
-//bool CHistoryComboBox::eventFilter(QObject * object, QEvent * e)
-//{
-//	const int eType = e->type();
-//	if ((object != this && object != lineEdit()) || !lineEdit()->hasFocus() || (e->type() != QEvent::KeyPress && e->type() != QEvent::KeyRelease))
-//		return false;
-
-//	// FIXME: first return press after starting the program still makes its way to lineedit somehow
-//	QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(e);
-//	assert(e);
-//	const int key = keyEvent->key();
-//	if (keyEvent->key() == Qt::Key_Enter || keyEvent->key() == Qt::Key_Return)
-//	{
-//		if (e->type() == QEvent::KeyPress)
-//			emit lineeditReturnPressed();
-//		return true;
-//	}
-//	else if (keyEvent->modifiers() != Qt::NoModifier && !keyEvent->text().isEmpty())
-//		return true;
-
-//	return false;
-//}
-
 void CHistoryComboBox::keyPressEvent(QKeyEvent* e)
 {
 	if (lineEdit()->hasFocus() && (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter))
