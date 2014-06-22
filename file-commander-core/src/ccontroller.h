@@ -30,7 +30,7 @@ public:
 	CController();
 	static CController& get();
 
-	void setPanelContentsChangedListener(PanelContentsChangedListener * listener);
+	void setPanelContentsChangedListener(Panel p, PanelContentsChangedListener * listener);
 	void setDisksChangedListener(IDiskListObserver * listener);
 
 // Notifications from UI

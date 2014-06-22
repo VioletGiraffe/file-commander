@@ -45,7 +45,7 @@ public:
 	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
 	qulonglong currentItemHash() const;
 
-	virtual void panelContentsChanged(Panel p);
+	void panelContentsChanged(Panel p) override;
 
 	CFileListView * fileListView() const;
 
@@ -59,7 +59,7 @@ signals:
 	void itemNameEdited(Panel panel, qulonglong hash, QString newName);
 
 protected:
-	virtual bool eventFilter (QObject * object , QEvent * e);
+	bool eventFilter (QObject * object , QEvent * e) override;
 
 private slots:
 	void showContextMenuForItems(QPoint pos);

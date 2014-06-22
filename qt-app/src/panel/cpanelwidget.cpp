@@ -111,7 +111,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	connect(_selectionModel, SIGNAL(selectionChanged(QItemSelection,QItemSelection)), SLOT(selectionChanged(QItemSelection,QItemSelection)));
 	connect(_selectionModel, SIGNAL(currentChanged(QModelIndex,QModelIndex)), SLOT(currentItemChanged(QModelIndex,QModelIndex)));
 
-	_controller.setPanelContentsChangedListener(this);
+	_controller.setPanelContentsChangedListener(p, this);
 }
 
 // Returns the list of items added to the view

@@ -3,11 +3,10 @@
 
 CHistoryComboBox::CHistoryComboBox(QWidget* parent) :
 	QComboBox(parent),
-	_bHistoryMode(false)
+	_bHistoryMode(true)
 {
-	// without this call lineEdit is not created so it would be impossible to connect to it
+	// without this call lineEdit is not created so it would be impossible to access it
 	setEditable(true);
-	setHistoryMode(true);
 
 	installEventFilter(this);
 	lineEdit()->installEventFilter(this);

@@ -26,10 +26,9 @@ CController& CController::get()
 	return *_instance;
 }
 
-void CController::setPanelContentsChangedListener(PanelContentsChangedListener *listener)
+void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedListener *listener)
 {
-	_leftPanel.addPanelContentsChangedListener(listener);
-	_rightPanel.addPanelContentsChangedListener(listener);
+	panel(p).addPanelContentsChangedListener(listener);
 }
 
 void CController::setDisksChangedListener(CController::IDiskListObserver *listener)
