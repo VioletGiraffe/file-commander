@@ -2,11 +2,11 @@
 #include <assert.h>
 
 CHistoryComboBox::CHistoryComboBox(QWidget* parent) :
-	QComboBox(parent)
+	QComboBox(parent),
+	_bHistoryMode(false)
 {
 	// without this call lineEdit is not created so it would be impossible to connect to it
 	setEditable(true);
-	// setHistoryMode should only be called after setEditable(true), or lineEdit won't exist yet
 	setHistoryMode(true);
 
 	installEventFilter(this);
@@ -21,10 +21,12 @@ void CHistoryComboBox::setSelectPreviousItemShortcut(const QKeySequence& selectP
 // Enables or disables history mode (moving activated item to the top)
 void CHistoryComboBox::setHistoryMode(bool historyMode)
 {
-	if (historyMode)
-		connect(lineEdit(), SIGNAL(returnPressed()), SLOT(currentItemActivated()), Qt::QueuedConnection);
-	else
-		disconnect(this, SLOT(currentItemActivated()));
+	_bHistoryMode = historyMode;
+}
+
+bool CHistoryComboBox::historyMode() const
+{
+	return _bHistoryMode;
 }
 
 // Switch to the next combobox item (which means going back through the history if history mode is set)
@@ -114,19 +116,28 @@ QStringList CHistoryComboBox::items() const
 //	return false;
 //}
 
-//void CHistoryComboBox::keyPressEvent(QKeyEvent* e)
-//{
-//	if (!lineEdit()->hasFocus() || e->modifiers() == Qt::NoModifier || e->text().isEmpty())
-//		QComboBox::keyPressEvent(e);
-//}
+void CHistoryComboBox::keyPressEvent(QKeyEvent* e)
+{
+	if (lineEdit()->hasFocus() && (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter))
+	{
+		e->accept();
+		currentItemActivated();
+	}
+	else
+		QComboBox::keyPressEvent(e);
+}
 
 // Moves the currently selected item to the top
 void CHistoryComboBox::currentItemActivated()
 {
-	const QString item = itemText(currentIndex());
+	const QString item = currentText();
 	emit itemActivated(item);
-	removeItem(currentIndex());
-	insertItem(0, item);
-	setCurrentIndex(0);
-	lineEdit()->clear();
+
+	if (_bHistoryMode)
+	{
+		removeItem(currentIndex());
+		insertItem(0, item);
+		setCurrentIndex(0);
+		lineEdit()->clear();
+	}
 }

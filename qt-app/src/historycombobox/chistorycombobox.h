@@ -18,6 +18,7 @@ public:
 public slots:
 	// Enables or disables history mode (moving activated item to the top)
 	void setHistoryMode(bool historyMode);
+	bool historyMode() const;
 	// Switch to the next combobox item (which means going back through the history if history mode is set)
 	void selectPreviousItem();
 	// Set current index to 0 and clear line edit
@@ -27,7 +28,7 @@ signals:
 	void itemActivated(QString itemText);
 
 protected:
-//	void keyPressEvent(QKeyEvent * e) override;
+	void keyPressEvent(QKeyEvent * e) override;
 
 private slots:
 	// Moves the currently selected item to the top
@@ -36,6 +37,7 @@ private slots:
 private:
 	// QShortcut doesn't work properly with this class for some reason, so here's a hack for creating a keyboard shortcut to selectPreviousItem
 	QKeySequence _selectPreviousItemShortcut;
+	bool _bHistoryMode;
 };
 
 #endif // CHISTORYCOMBOBOX_H
