@@ -73,7 +73,8 @@ private slots:
 	void itemNameEdited(qulonglong hash, QString newName);
 	void showHistory();
 	void toRoot();
-	void showFavoriteLocations();
+	void showFavoriteLocationsMenu();
+	void showFavoriteLocationsEditor();
 
 private:
 // Callbacks

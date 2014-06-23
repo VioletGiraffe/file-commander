@@ -7,6 +7,7 @@
 #include "columns.h"
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
 #include "pluginengine/cpluginengine.h"
+#include "../favoritelocationseditor/cfavoritelocationseditor.h"
 
 #include <assert.h>
 #include <time.h>
@@ -27,7 +28,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
-	connect(ui->_btnFavs, SIGNAL(clicked()), SLOT(showFavoriteLocations()));
+	connect(ui->_btnFavs, SIGNAL(clicked()), SLOT(showFavoriteLocationsMenu()));
 	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
 	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
@@ -397,7 +398,7 @@ void CPanelWidget::toRoot()
 		_controller.setPath(_panelPosition, _currentDisk);
 }
 
-void CPanelWidget::showFavoriteLocations()
+void CPanelWidget::showFavoriteLocationsMenu()
 {
 	QMenu menu;
 	std::function<void(QMenu *, std::list<CLocationsCollection>&)> createMenus = [this, &createMenus](QMenu * parentMenu, std::list<CLocationsCollection>& locations)
@@ -443,7 +444,15 @@ void CPanelWidget::showFavoriteLocations()
 	};
 
 	createMenus(&menu, _controller.favoriteLocations().locations());
+	menu.addSeparator();
+	QAction * edit = menu.addAction("Edit...");
+	connect(edit, SIGNAL(triggered()), SLOT(showFavoriteLocationsEditor()));
 	menu.exec(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));
+}
+
+void CPanelWidget::showFavoriteLocationsEditor()
+{
+	CFavoriteLocationsEditor(this).exec();
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const

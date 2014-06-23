@@ -36,7 +36,9 @@ SOURCES += \
 	src/historycombobox/chistorycombobox.cpp \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
     src/progressdialogs/cfileoperationconfirmationprompt.cpp \
-    src/settings/csettingspageoperations.cpp
+    src/settings/csettingspageoperations.cpp \
+    src/favoritelocationseditor/cfavoritelocationseditor.cpp \
+    src/favoritelocationseditor/cnewfavoritelocationdialog.cpp
 
 HEADERS += \
 	src/QtAppIncludes \
@@ -56,7 +58,9 @@ HEADERS += \
 	src/historycombobox/chistorycombobox.h \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
     src/progressdialogs/cfileoperationconfirmationprompt.h \
-    src/settings/csettingspageoperations.h
+    src/settings/csettingspageoperations.h \
+    src/favoritelocationseditor/cfavoritelocationseditor.h \
+    src/favoritelocationseditor/cnewfavoritelocationdialog.h
 
 FORMS += \
 	src/cmainwindow.ui \
@@ -68,7 +72,9 @@ FORMS += \
 	src/settings/csettingspageedit.ui \
 	src/settings/csettingspageother.ui \
     src/progressdialogs/cfileoperationconfirmationprompt.ui \
-    src/settings/csettingspageoperations.ui
+    src/settings/csettingspageoperations.ui \
+    src/favoritelocationseditor/cfavoritelocationseditor.ui \
+    src/favoritelocationseditor/cnewfavoritelocationdialog.ui
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
