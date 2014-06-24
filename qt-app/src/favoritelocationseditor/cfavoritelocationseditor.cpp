@@ -50,12 +50,16 @@ private:
 CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) :
 	QDialog(parent),
 	ui(new Ui::CFavoriteLocationsEditor),
-	_locations(CController::get().favoriteLocations())
+	_locations(CController::get().favoriteLocations()),
+	_currentItem(0)
 {
 	ui->setupUi(this);
 
 	connect(ui->_list, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)), SLOT(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
 	connect(ui->_list, SIGNAL(customContextMenuRequested(const QPoint &)),this, SLOT(contextMenu(const QPoint &)));
+
+	connect(ui->_locationEditor, SIGNAL(textEdited(QString)), SLOT(locationEdited(QString)));
+	connect(ui->_nameEditor, SIGNAL(textEdited(QString)), SLOT(nameEdited(QString)));
 
 	fillUI();
 }
@@ -67,7 +71,17 @@ CFavoriteLocationsEditor::~CFavoriteLocationsEditor()
 
 void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * previous)
 {
-
+	_currentItem = dynamic_cast<CFavoriteLocationsListItem*>(current);
+	if (_currentItem)
+	{
+		ui->_locationEditor->setText(_currentItem->itemIterator()->absolutePath);
+		ui->_nameEditor->setText(_currentItem->itemIterator()->displayName);
+	}
+	else
+	{
+		ui->_locationEditor->clear();
+		ui->_nameEditor->clear();
+	}
 }
 
 void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
@@ -135,6 +149,21 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 	}
 
 	menu.exec(ui->_list->mapToGlobal(pos));
+}
+
+void CFavoriteLocationsEditor::nameEdited(QString newName)
+{
+	if (_currentItem)
+	{
+		_currentItem->itemIterator()->displayName = newName;
+		_currentItem->setData(0, Qt::DisplayRole, newName);
+	}
+}
+
+void CFavoriteLocationsEditor::locationEdited(QString newLocation)
+{
+	if (_currentItem)
+		_currentItem->itemIterator()->absolutePath = newLocation;
 }
 
 void CFavoriteLocationsEditor::fillUI()

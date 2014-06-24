@@ -8,6 +8,8 @@ namespace Ui {
 class CFavoriteLocationsEditor;
 }
 
+class CFavoriteLocationsListItem;
+
 class CFavoriteLocationsEditor : public QDialog
 {
 	Q_OBJECT
@@ -19,6 +21,8 @@ public:
 private slots:
 	void currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * previous);
 	void contextMenu(const QPoint& pos);
+	void nameEdited(QString newName);
+	void locationEdited(QString newLocation);
 
 private:
 	void fillUI();
@@ -27,6 +31,7 @@ private:
 private:
 	Ui::CFavoriteLocationsEditor *ui;
 	CFavoriteLocations& _locations;
+	CFavoriteLocationsListItem* _currentItem;
 };
 
 #endif // CFAVORITELOCATIONSEDITOR_H
