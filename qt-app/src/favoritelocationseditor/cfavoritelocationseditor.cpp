@@ -8,18 +8,20 @@
 class CFavoriteLocationsListItem : public QTreeWidgetItem
 {
 public:
-	CFavoriteLocationsListItem(QTreeWidget * parent, std::list<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
+	CFavoriteLocationsListItem(QTreeWidget * parent, std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
 		QTreeWidgetItem(parent, QStringList() << dataItemIterator->displayName),
 		_itemIterator(dataItemIterator),
+		_parentList(parentList),
 		_bIsCategory(isCategory)
 	{
 		if (isCategory)
 			setBold();
 	}
 
-	CFavoriteLocationsListItem(QTreeWidgetItem * parentItem, std::list<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
+	CFavoriteLocationsListItem(QTreeWidgetItem * parentItem, std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
 		QTreeWidgetItem(parentItem, QStringList() << dataItemIterator->displayName),
 		_itemIterator(dataItemIterator),
+		_parentList(parentList),
 		_bIsCategory(isCategory)
 
 	{
@@ -28,6 +30,7 @@ public:
 	}
 
 	std::list<CLocationsCollection>::iterator itemIterator() const {return _itemIterator;}
+	std::list<CLocationsCollection>& list() {return _parentList;}
 	bool isCategory() const {return _bIsCategory;}
 
 private:
@@ -40,6 +43,7 @@ private:
 
 private:
 	std::list<CLocationsCollection>::iterator _itemIterator;
+	std::list<CLocationsCollection>& _parentList;
 	bool _bIsCategory;
 };
 
@@ -87,13 +91,48 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 			list.emplace_back(CLocationsCollection(dialog.name(), dialog.location()));
 			if (item)
 			{
-				new CFavoriteLocationsListItem(item, --list.end(), false);
+				new CFavoriteLocationsListItem(item, list, --list.end(), false);
 				item->setExpanded(true);
 			}
 			else
-				new CFavoriteLocationsListItem(ui->_list, --list.end(), false);
+				new CFavoriteLocationsListItem(ui->_list, list, --list.end(), false);
 		}
 	});
+
+	connect(menu.addAction("Add category..."), &QAction::triggered, [this, item](){
+		CNewFavoriteLocationDialog dialog(this, true);
+		if (dialog.exec() == QDialog::Accepted)
+		{
+			std::list<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
+			list.emplace_back(CLocationsCollection(dialog.name()));
+			if (item)
+			{
+				new CFavoriteLocationsListItem(item, list, --list.end(), true);
+				item->setExpanded(true);
+			}
+			else
+				new CFavoriteLocationsListItem(ui->_list, list, --list.end(), true);
+		}
+	});
+
+	if (item)
+	{
+		connect(menu.addAction("Remove item"), &QAction::triggered, [this, item]() {
+			if (item->isCategory())
+			{
+				if (QMessageBox::question(this, "Delete the item?", "Are you sure you want to delete this category and all its sub-items?") == QMessageBox::Yes)
+				{
+					item->list().erase(item->itemIterator());
+					delete item;
+				}
+			}
+			else
+			{
+				item->list().erase(item->itemIterator());
+				delete item;
+			}
+		});
+	}
 
 	menu.exec(ui->_list->mapToGlobal(pos));
 }
@@ -102,15 +141,15 @@ void CFavoriteLocationsEditor::fillUI()
 {
 	ui->_list->clear();
 	for (auto it = _locations.locations().begin(); it != _locations.locations().end(); ++it)
-		addLocationsToTreeWidget(it, 0);
+		addLocationsToTreeWidget(_locations.locations(), it, 0);
 }
 
-void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::list<CLocationsCollection>::iterator& locationCollectionListIterator, QTreeWidgetItem* parent)
+void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& locationCollectionListIterator, QTreeWidgetItem* parent)
 {
 	assert(locationCollectionListIterator->subLocations.empty() || locationCollectionListIterator->absolutePath.isEmpty());
 	const bool isCategory = locationCollectionListIterator->absolutePath.isEmpty();
-	CFavoriteLocationsListItem * treeWidgetItem = parent ? new CFavoriteLocationsListItem(parent, locationCollectionListIterator, isCategory) : new CFavoriteLocationsListItem(ui->_list, locationCollectionListIterator, isCategory);
+	CFavoriteLocationsListItem * treeWidgetItem = parent ? new CFavoriteLocationsListItem(parent, parentList, locationCollectionListIterator, isCategory) : new CFavoriteLocationsListItem(ui->_list, parentList, locationCollectionListIterator, isCategory);
 	if (!locationCollectionListIterator->subLocations.empty())
 		for (auto it = locationCollectionListIterator->subLocations.begin(); it != locationCollectionListIterator->subLocations.end(); ++it)
-			addLocationsToTreeWidget(it, treeWidgetItem);
+			addLocationsToTreeWidget(locationCollectionListIterator->subLocations, it, treeWidgetItem);
 }

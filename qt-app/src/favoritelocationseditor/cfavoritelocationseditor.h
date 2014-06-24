@@ -22,7 +22,7 @@ private slots:
 
 private:
 	void fillUI();
-	void addLocationsToTreeWidget(std::list<CLocationsCollection>::iterator & locationCollectionListIterator, QTreeWidgetItem * parent);
+	void addLocationsToTreeWidget(std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator & locationCollectionListIterator, QTreeWidgetItem * parent);
 
 private:
 	Ui::CFavoriteLocationsEditor *ui;
