@@ -9,6 +9,7 @@
 #include <QCloseEvent>
 #include <QComboBox>
 #include <QCompleter>
+#include <QDialog>
 #include <QFileDialog>
 #include <QHeaderView>
 #include <QInputDialog>

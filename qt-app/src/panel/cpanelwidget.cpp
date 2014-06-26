@@ -15,6 +15,7 @@
 
 CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	QWidget(parent),
+	_filterDialog(this),
 	ui(new Ui::CPanelWidget),
 	_controller (CController::get()),
 	_selectionModel(0),
@@ -22,12 +23,14 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_sortModel(0),
 	_panelPosition(UnknownPanel),
 	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), 0, Qt::WidgetWithChildrenShortcut),
-	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut)
+	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut),
+	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
 	ui->_infoLabel->clear();
 
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
+	connect(ui->_list, SIGNAL(keyPressed(QString,int,Qt::KeyboardModifiers)), SLOT(fileListViewKeyPressed(QString,int,Qt::KeyboardModifiers)));
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
 	connect(ui->_btnFavs, SIGNAL(clicked()), SLOT(showFavoriteLocationsMenu()));
@@ -455,6 +458,24 @@ void CPanelWidget::showFavoriteLocationsEditor()
 	CFavoriteLocationsEditor(this).exec();
 }
 
+void CPanelWidget::fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers)
+{
+	if (key == Qt::Key_Backspace)
+	{
+		// Navigating back
+		_controller.navigateUp(_panelPosition);
+	}
+	else
+	{
+		emit fileListViewKeyPressedSignal(this, keyText, key, modifiers);
+	}
+}
+
+void CPanelWidget::showFilterEditor()
+{
+	_filterDialog.showAt(ui->_list->geometry().bottomLeft());
+}
+
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
 {
 	auto selection = _selectionModel->selectedRows();
@@ -573,17 +594,6 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	{
 		switch (e->type())
 		{
-		case QEvent::KeyPress:
-		{
-			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(e);
-			if (keyEvent && keyEvent->key() == Qt::Key_Backspace)
-			{
-				// Navigating back
-				emit backSpacePressed(this);
-				return true;
-			}
-		}
-			break;
 		case QEvent::FocusIn:
 			emit focusReceived(this);
 			break;
@@ -600,9 +610,9 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
 		{
 			if (wEvent->delta() > 0)
-				emit stepBackRequested(this);
+				_controller.navigateBack(_panelPosition);
 			else
-				emit stepForwardRequested(this);
+				_controller.navigateForward(_panelPosition);
 			return true;
 		}
 	}

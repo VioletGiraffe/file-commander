@@ -5,6 +5,7 @@
 
 #include "ccontroller.h"
 #include "filelistwidget/cfilelistview.h"
+#include "filelistwidget/cfilelistfilterdialog.h"
 
 namespace Ui {
 class CPanelWidget;
@@ -52,15 +53,13 @@ public:
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
-	void backSpacePressed(CPanelWidget * panel);
-	void stepBackRequested(CPanelWidget * panel);
-	void stepForwardRequested(CPanelWidget * panel);
 	void focusReceived(CPanelWidget * panel);
 	void folderPathSet(QString newPath, const CPanelWidget * panel);
 	void itemNameEdited(Panel panel, qulonglong hash, QString newName);
+	void fileListViewKeyPressedSignal(CPanelWidget* panelWidget, QString keyText, int key, Qt::KeyboardModifiers modifiers);
 
 protected:
-	bool eventFilter (QObject * object , QEvent * e) override;
+	bool eventFilter(QObject * object , QEvent * e) override;
 
 private slots:
 	void showContextMenuForItems(QPoint pos);
@@ -76,6 +75,8 @@ private slots:
 	void toRoot();
 	void showFavoriteLocationsMenu();
 	void showFavoriteLocationsEditor();
+	void fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
+	void showFilterEditor();
 
 private:
 // Callbacks
@@ -88,6 +89,7 @@ private:
 	QModelIndex indexByHash(const qulonglong hash) const;
 
 private:
+	CFileListFilterDialog           _filterDialog;
 	std::vector<CFileSystemObject>  _disks;
 	QString                         _currentDisk;
 	QString                         _directoryCurrentlyBeingDisplayed;
@@ -100,6 +102,7 @@ private:
 
 	QShortcut                       _calcDirSizeShortcut;
 	QShortcut                       _selectCurrentItemShortcut;
+	QShortcut                       _showFilterEditorShortcut;
 };
 
 #endif // CPANELWIDGET_H

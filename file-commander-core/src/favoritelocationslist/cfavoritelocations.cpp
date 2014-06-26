@@ -14,18 +14,15 @@ void serialize(QByteArray& dest, const CLocationsCollection& source, Marker mark
 	assert(length > 0);
 	dest.append((char*)&length, sizeof(length));
 	dest.append(utfStringData);
-	qDebug() << __FUNCTION__ << source.displayName;
 
 	utfStringData = source.absolutePath.toUtf8();
 	length = utfStringData.length();
 	dest.append((char*)&length, sizeof(length));
 	dest.append(utfStringData);
-	qDebug() << __FUNCTION__ << source.absolutePath;
 
 	if (!source.subLocations.empty())
 	{
 		int m = NextLevel;
-		qDebug() << __FUNCTION__ << "NextLevel Marker at" << dest.size();
 		dest.append((char*)&m, sizeof(m));
 
 		size_t i = 0;
@@ -39,7 +36,6 @@ void serialize(QByteArray& dest, const CLocationsCollection& source, Marker mark
 			markerName = "NextLevel marker";
 		else if (marker == LevelEnded)
 			markerName = "LevelEnded marker";
-		qDebug() << __FUNCTION__ << markerName << "at" << dest.size();
 		dest.append((char*)&marker, sizeof(marker));
 	}
 }

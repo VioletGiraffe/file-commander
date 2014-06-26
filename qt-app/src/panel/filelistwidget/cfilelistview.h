@@ -48,6 +48,7 @@ signals:
 	void contextMenuRequested (QPoint pos);
 	void ctrlEnterPressed();
 	void ctrlShiftEnterPressed();
+	void keyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
 
 protected:
 	// For controlling selection

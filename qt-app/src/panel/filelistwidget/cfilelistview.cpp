@@ -167,7 +167,7 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 			event->setModifiers(event->modifiers() | Qt::ControlModifier);
 #endif
 	}
-	else if (event->key() == Qt::Key_Return)
+	else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
 	{
 		if (event->modifiers() == Qt::NoModifier)
 		{
@@ -198,6 +198,8 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 
 		return;
 	}
+	else
+		emit keyPressed(event->text(), event->key(), event->modifiers());
 
 	QTreeView::keyPressEvent(event);
 }

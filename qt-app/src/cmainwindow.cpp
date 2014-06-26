@@ -52,12 +52,6 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->leftPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
 
-	connect(ui->leftPanel, SIGNAL(backSpacePressed(CPanelWidget*)), SLOT(backSpacePressed(CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(backSpacePressed(CPanelWidget*)), SLOT(backSpacePressed(CPanelWidget*)));
-
-	connect(ui->leftPanel, SIGNAL(stepBackRequested(CPanelWidget*)), SLOT(stepBackRequested(CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(stepBackRequested(CPanelWidget*)), SLOT(stepBackRequested(CPanelWidget*)));
-
 	connect(ui->leftPanel, SIGNAL(stepForwardRequested(CPanelWidget*)), SLOT(stepForwardRequested(CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(stepForwardRequested(CPanelWidget*)), SLOT(stepForwardRequested(CPanelWidget*)));
 
@@ -74,10 +68,6 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
-
-	// FIXME: doesn't work on Linux. QTreeView moves cursor between items as their names are typed, and these events never make it to the eventFilter
-	ui->leftPanel->fileListView()->installEventFilter(this);
-	ui->rightPanel->fileListView()->installEventFilter(this);
 
 	ui->leftPanel->fileListView()->addEventObserver(this);
 	ui->rightPanel->fileListView()->addEventObserver(this);
@@ -254,25 +244,6 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	QMainWindow::closeEvent(e);
 }
 
-bool CMainWindow::eventFilter(QObject * watched, QEvent * event)
-{
-	if (watched == (QObject*)ui->leftPanel->fileListView() || watched == (QObject*)ui->rightPanel->fileListView())
-	{
-		if (event && event->type() == QEvent::KeyPress)
-		{
-			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(event);
-			// FIXME: a lot of things are missing from this condition
-			if (keyEvent && (keyEvent->modifiers() & (~Qt::ShiftModifier)) == Qt::NoModifier && keyEvent->key() != Qt::Key_Space && keyEvent->key() != Qt::Key_Enter && keyEvent->key() != Qt::Key_Return && !keyEvent->text().isEmpty())
-			{
-				ui->commandLine->event(event);
-				return false;
-			}
-		}
-	}
-
-	return QMainWindow::eventFilter(watched, event);
-}
-
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
 	if (!ui->commandLine->currentText().isEmpty())
@@ -293,21 +264,6 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 	default:
 		break;
 	}
-}
-
-void CMainWindow::backSpacePressed(CPanelWidget * widget)
-{
-	_controller->navigateUp(widget->panelPosition());
-}
-
-void CMainWindow::stepBackRequested(CPanelWidget *panel)
-{
-	_controller->navigateBack(panel->panelPosition());
-}
-
-void CMainWindow::stepForwardRequested(CPanelWidget *panel)
-{
-	_controller->navigateForward(panel->panelPosition());
 }
 
 void CMainWindow::currentPanelChanged(CPanelWidget *panel)

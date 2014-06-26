@@ -38,7 +38,8 @@ SOURCES += \
     src/progressdialogs/cfileoperationconfirmationprompt.cpp \
     src/settings/csettingspageoperations.cpp \
     src/favoritelocationseditor/cfavoritelocationseditor.cpp \
-    src/favoritelocationseditor/cnewfavoritelocationdialog.cpp
+    src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
+    src/panel/filelistwidget/cfilelistfilterdialog.cpp
 
 HEADERS += \
 	src/QtAppIncludes \
@@ -60,7 +61,8 @@ HEADERS += \
     src/progressdialogs/cfileoperationconfirmationprompt.h \
     src/settings/csettingspageoperations.h \
     src/favoritelocationseditor/cfavoritelocationseditor.h \
-    src/favoritelocationseditor/cnewfavoritelocationdialog.h
+    src/favoritelocationseditor/cnewfavoritelocationdialog.h \
+    src/panel/filelistwidget/cfilelistfilterdialog.h
 
 FORMS += \
 	src/cmainwindow.ui \
@@ -74,7 +76,8 @@ FORMS += \
     src/progressdialogs/cfileoperationconfirmationprompt.ui \
     src/settings/csettingspageoperations.ui \
     src/favoritelocationseditor/cfavoritelocationseditor.ui \
-    src/favoritelocationseditor/cnewfavoritelocationdialog.ui
+    src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
+    src/panel/filelistwidget/cfilelistfilterdialog.ui
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 

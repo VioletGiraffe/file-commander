@@ -46,13 +46,9 @@ public slots:
 
 protected:
 	void closeEvent(QCloseEvent * e) override;
-	bool eventFilter(QObject * watched, QEvent * event) override;
 
 private slots: // For UI
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
-	void backSpacePressed(CPanelWidget * widget);
-	void stepBackRequested(CPanelWidget * panel);
-	void stepForwardRequested(CPanelWidget * panel);
 	void currentPanelChanged(CPanelWidget * panel);
 	void folderPathSet(QString path, const CPanelWidget * panel);
 	void splitterContextMenuRequested(QPoint pos);
