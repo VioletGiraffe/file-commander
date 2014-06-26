@@ -48,6 +48,7 @@ public:
 	void panelContentsChanged(Panel p) override;
 
 	CFileListView * fileListView() const;
+	QAbstractItemModel* model() const;
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);

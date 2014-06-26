@@ -25,6 +25,8 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
+	ui->_infoLabel->clear();
+
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
@@ -35,8 +37,6 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	ui->_list->addEventObserver(this);
 
 	_controller.setDisksChangedListener(this);
-
-	ui->_infoLabel->clear();
 }
 
 CPanelWidget::~CPanelWidget()
@@ -618,4 +618,9 @@ void CPanelWidget::panelContentsChanged( Panel p )
 CFileListView *CPanelWidget::fileListView() const
 {
 	return ui->_list;
+}
+
+QAbstractItemModel * CPanelWidget::model() const
+{
+	return _model;
 }

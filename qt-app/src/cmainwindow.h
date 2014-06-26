@@ -104,6 +104,8 @@ private:
 	CPanelWidget                 * _otherPanel;
 
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
+
+	QCompleter                     _commandLineCompleter;
 };
 
 #endif // CMAINWINDOW_H

@@ -13,6 +13,7 @@
 #include "settings/csettingspageother.h"
 #include "pluginengine/cpluginengine.h"
 #include "panel/filelistwidget/cfilelistview.h"
+#include "panel/columns.h"
 
 #include <assert.h>
 
@@ -92,6 +93,11 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->splitter, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
 
 	connect(ui->commandLine, SIGNAL(itemActivated(QString)), SLOT(executeCommand(QString)));
+
+	_commandLineCompleter.setCaseSensitivity(Qt::CaseInsensitive);
+	_commandLineCompleter.setCompletionMode(QCompleter::InlineCompletion);
+	_commandLineCompleter.setCompletionColumn(NameColumn);
+	ui->commandLine->setCompleter(&_commandLineCompleter);
 }
 
 void CMainWindow::initButtons()
@@ -316,7 +322,10 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, panel->panelPosition());
 		ui->fullPath->setText(_controller->panel(panel->panelPosition()).currentDirPath());
 		CPluginEngine::get().currentPanelChanged(panel->panelPosition());
+		_commandLineCompleter.setModel(_currentPanel->model());
 	}
+	else
+		_commandLineCompleter.setModel(0);
 }
 
 void CMainWindow::folderPathSet(QString path, const CPanelWidget *panel)
