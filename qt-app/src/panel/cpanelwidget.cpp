@@ -157,7 +157,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 
 		QStandardItem * sizeItem = new QStandardItem();
 		sizeItem->setEditable(false);
-		if (props.type != Directory)
+		if (props.type != Directory || props.size > 0)
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
 		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
 		_model->setItem(i, SizeColumn, sizeItem);

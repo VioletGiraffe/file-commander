@@ -140,7 +140,9 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 qulonglong CFileListModel::itemHash(const QModelIndex & index) const
 {
 	QStandardItem * itm = item(index.row(), 0);
-	assert(itm);
+	if (!itm)
+		return 0;
+
 	bool ok = false;
 	const qulonglong hash = itm->data(Qt::UserRole).toULongLong(&ok);
 	assert(ok);

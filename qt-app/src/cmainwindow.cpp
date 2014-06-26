@@ -262,16 +262,15 @@ bool CMainWindow::eventFilter(QObject * watched, QEvent * event)
 		{
 			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(event);
 			// FIXME: a lot of things are missing from this condition
-			if (keyEvent && (keyEvent->modifiers() ^ Qt::ShiftModifier) == Qt::NoModifier && keyEvent->key() != Qt::Key_Space && keyEvent->key() != Qt::Key_Enter && keyEvent->key() != Qt::Key_Return && !keyEvent->text().isEmpty())
+			if (keyEvent && (keyEvent->modifiers() & (~Qt::ShiftModifier)) == Qt::NoModifier && keyEvent->key() != Qt::Key_Space && keyEvent->key() != Qt::Key_Enter && keyEvent->key() != Qt::Key_Return && !keyEvent->text().isEmpty())
 			{
-				ui->commandLine->setFocus();
 				ui->commandLine->event(event);
 				return false;
 			}
 		}
 	}
 
-	return false;
+	return QMainWindow::eventFilter(watched, event);
 }
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
@@ -315,7 +314,7 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 {
 	_currentPanel = panel;
 	if (panel)
-		_otherPanel   = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
+		_otherPanel = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
 	else
 		_otherPanel = 0;
 

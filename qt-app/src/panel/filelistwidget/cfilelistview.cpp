@@ -154,6 +154,7 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 #ifdef __APPLE__
 		if ((event->modifiers() ^ Qt::KeypadModifier) == Qt::NoModifier)
 		{
+			//TODO: PgUp, PgDwn, Home, End
 			if (event->key() == Qt::Key_Down)
 				moveCursorToNextItem();
 			else if (event->key() == Qt::Key_Up)
