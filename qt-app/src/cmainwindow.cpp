@@ -314,7 +314,10 @@ void CMainWindow::stepForwardRequested(CPanelWidget *panel)
 void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 {
 	_currentPanel = panel;
-	_otherPanel   = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
+	if (panel)
+		_otherPanel   = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
+	else
+		_otherPanel = 0;
 
 	if (panel)
 	{
