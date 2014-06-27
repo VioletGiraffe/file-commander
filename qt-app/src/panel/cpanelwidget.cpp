@@ -37,6 +37,8 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
 	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
+	connect(&_filterDialog, SIGNAL(filterTextChanged(QString)), SLOT(filterTextChanged(QString)));
+
 	ui->_list->addEventObserver(this);
 
 	_controller.setDisksChangedListener(this);
@@ -105,6 +107,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	connect(_model, SIGNAL(itemEdited(qulonglong,QString)), SLOT(itemNameEdited(qulonglong,QString)));
 
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
+	_sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
 	_sortModel->setPanelPosition(p);
 	_sortModel->setSourceModel(_model);
 
@@ -476,6 +479,11 @@ void CPanelWidget::showFilterEditor()
 	_filterDialog.showAt(ui->_list->geometry().bottomLeft());
 }
 
+void CPanelWidget::filterTextChanged(QString filterText)
+{
+	_sortModel->setFilterWildcard(filterText);
+}
+
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
 {
 	auto selection = _selectionModel->selectedRows();
@@ -633,4 +641,9 @@ CFileListView *CPanelWidget::fileListView() const
 QAbstractItemModel * CPanelWidget::model() const
 {
 	return _model;
+}
+
+QSortFilterProxyModel *CPanelWidget::sortModel() const
+{
+	return _sortModel;
 }

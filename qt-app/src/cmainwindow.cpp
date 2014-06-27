@@ -280,7 +280,7 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, panel->panelPosition());
 		ui->fullPath->setText(_controller->panel(panel->panelPosition()).currentDirPath());
 		CPluginEngine::get().currentPanelChanged(panel->panelPosition());
-		_commandLineCompleter.setModel(_currentPanel->model());
+		_commandLineCompleter.setModel(_currentPanel->sortModel());
 	}
 	else
 		_commandLineCompleter.setModel(0);

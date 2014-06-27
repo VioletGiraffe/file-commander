@@ -25,4 +25,10 @@ void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 	show();
 	QTimer::singleShot(0, ui->_lineEdit, SLOT(setFocus()));
 	QTimer::singleShot(0, ui->_lineEdit, SLOT(selectAll()));
+	emit filterTextChanged(ui->_lineEdit->text());
+}
+
+void CFileListFilterDialog::closeEvent(QCloseEvent * e)
+{
+	emit filterTextChanged(QString());
 }

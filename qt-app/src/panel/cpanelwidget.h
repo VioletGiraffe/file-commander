@@ -50,6 +50,7 @@ public:
 
 	CFileListView * fileListView() const;
 	QAbstractItemModel* model() const;
+	QSortFilterProxyModel* sortModel() const;
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
@@ -77,6 +78,7 @@ private slots:
 	void showFavoriteLocationsEditor();
 	void fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
 	void showFilterEditor();
+	void filterTextChanged(QString filterText);
 
 private:
 // Callbacks

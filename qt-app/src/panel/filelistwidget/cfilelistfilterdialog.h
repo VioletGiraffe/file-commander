@@ -20,6 +20,9 @@ public:
 signals:
 	void filterTextChanged(QString text);
 
+protected:
+	void closeEvent(QCloseEvent* e) override;
+
 private:
 	Ui::CFileListFilterDialog *ui;
 };
