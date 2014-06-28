@@ -71,6 +71,10 @@ private:
 	void selectRegion(const QModelIndex& start, const QModelIndex& end);
 	void moveCursorToNextItem();
 	void moveCursorToPreviousItem();
+	void pgUp();
+	void pgDn();
+
+	int numRowsVisible() const;
 
 private slots:
 	void modelAboutToBeReset();
