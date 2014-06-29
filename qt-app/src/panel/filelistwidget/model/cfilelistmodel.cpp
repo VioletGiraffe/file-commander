@@ -27,7 +27,7 @@ QTreeView *CFileListModel::treeView() const
 	return _tree;
 }
 
-QVariant CFileListModel::data( const QModelIndex & index, int role /*= Qt::DisplayRole*/ ) const
+QVariant CFileListModel::data(const QModelIndex & index, int role /*= Qt::DisplayRole*/) const
 {
 	if (role == Qt::ToolTipRole)
 	{
@@ -37,7 +37,11 @@ QVariant CFileListModel::data( const QModelIndex & index, int role /*= Qt::Displ
 	}
 	else if (role == Qt::EditRole)
 	{
-		return _controller.itemByHash(_panel, itemHash(index)).fileName();
+		return _controller.itemByHash(_panel, itemHash(index)).baseName();
+	}
+	else if (role == BaseNameRole)
+	{
+		return _controller.itemByHash(_panel, itemHash(index)).baseName();
 	}
 	else
 		return QStandardItemModel::data(index, role);

@@ -321,6 +321,7 @@ void CFileListView::pgDn()
 
 int CFileListView::numRowsVisible() const
 {
+	// FIXME: rewrite it with indexAt to be O(1)
 	int numRowsVisible = 0;
 	for(int row = 0; row < model()->rowCount(); row++)
 	{

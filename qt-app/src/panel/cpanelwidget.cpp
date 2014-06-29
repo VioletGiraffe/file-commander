@@ -108,6 +108,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
 	_sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
+	_sortModel->setFilterRole(BaseNameRole);
 	_sortModel->setPanelPosition(p);
 	_sortModel->setSourceModel(_model);
 
@@ -432,7 +433,7 @@ void CPanelWidget::showFavoriteLocationsMenu()
 		QAction * addFolderAction = parentMenu->addAction("Add current folder here...");
 		QObject::connect(addFolderAction, &QAction::triggered, [this, &locations](){
 			const QString path = currentDir();
-			const QString displayName = CFileSystemObject(path).fileName();
+			const QString displayName = CFileSystemObject(path).baseName();
 			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
 			if (!name.isEmpty() && !path.isEmpty())
 				locations.push_back(CLocationsCollection(name, currentDir()));

@@ -52,7 +52,7 @@ public:
 	bool isChildOf(const CFileSystemObject& parent) const;
 	QString absoluteFilePath() const;
 	QString parentDirPath() const;
-	QString fileName() const;
+	QString baseName() const;
 	const QIcon& icon() const;
 	uint64_t size() const;
 	qulonglong hash() const;

@@ -126,7 +126,7 @@ void COperationPerformer::copyFiles()
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal operation of condition variable  */)
 	{
-		_observer->onCurrentFileChangedCallback(it->fileName());
+		_observer->onCurrentFileChangedCallback(it->baseName());
 
 		QFileInfo sourceFile(it->qFileInfo());
 		if (!sourceFile.exists())
@@ -156,7 +156,7 @@ void COperationPerformer::copyFiles()
 			_userResponse = urNone;
 		}
 
-		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(it->fileName()));
+		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(it->baseName()));
 		if (destInfo.absoluteFilePath() == sourceFile.absoluteFilePath())
 			continue;
 
@@ -366,7 +366,7 @@ void COperationPerformer::deleteFiles()
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal condition variable operation */)
 	{
-		_observer->onCurrentFileChangedCallback(it->fileName());
+		_observer->onCurrentFileChangedCallback(it->baseName());
 
 		QFileInfo sourceFile(it->qFileInfo());
 		if (!sourceFile.exists())

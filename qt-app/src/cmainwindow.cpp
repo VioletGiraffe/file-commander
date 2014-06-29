@@ -383,7 +383,7 @@ void CMainWindow::itemNameEdited(Panel panel, qulonglong hash, QString newName)
 {
 	CFileSystemObject& item = _controller->itemByHash(panel, hash);
 	if (item.rename(newName, true) != rcOk)
-		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.fileName() + " to " + newName);
+		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.baseName() + " to " + newName);
 }
 
 
@@ -444,7 +444,7 @@ void CMainWindow::pasteCurrentFileName()
 {
 	if (_currentPanel && _currentPanel->currentItemHash() != 0)
 	{
-		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).fileName();
+		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).baseName();
 		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}
