@@ -209,6 +209,15 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 		emit keyPressed(event->text(), event->key(), event->modifiers());
 
 	QTreeView::keyPressEvent(event);
+
+#ifdef __linux__
+	// FIXME: find out why this hack is necessary
+	if (event->key() == Qt::Key_Down || event->key() == Qt::Key_Up ||
+		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
+		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
+		if ((event->modifiers() & Qt::ShiftModifier) != 0)
+			scrollTo(currentIndex());
+#endif
 }
 
 bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)
