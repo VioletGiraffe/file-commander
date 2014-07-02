@@ -133,6 +133,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Show_hidden_files, SIGNAL(triggered()), SLOT(showHiddenFiles()));
 	connect(ui->actionShowAllFiles, SIGNAL(triggered()), SLOT(showAllFilesFromCurrentFolderAndBelow()));
 	connect(ui->action_Settings, SIGNAL(triggered()), SLOT(openSettingsDialog()));
+	connect(ui->actionCalculate_occupied_space, SIGNAL(triggered()), SLOT(calculateOccupiedSpace()));
 }
 
 // For manual focus management
@@ -156,14 +157,14 @@ void CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	if (files.empty() || destDir.isEmpty())
 		return;
 
+	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
-		CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
 		if (prompt.exec() != QDialog::Accepted)
 			return;
 	}
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, destDir, this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, prompt.text(), this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
 	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
 	dialog->show();
@@ -488,6 +489,19 @@ void CMainWindow::openSettingsDialog()
 	settings.addSettingsPage(new CSettingsPageOther);
 	connect(&settings, SIGNAL(settingsChanged()), SLOT(settingsChanged()));
 	settings.exec();
+}
+
+void CMainWindow::calculateOccupiedSpace()
+{
+	if (!_currentPanel)
+		return;
+
+	const FilesystemObjectsStatistics stats = _controller->calculateStatistics(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
+	if (stats.empty())
+		return;
+
+	QMessageBox::information(this, "Occupied space", QString("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3").
+							 arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace)));
 }
 
 void CMainWindow::settingsChanged()

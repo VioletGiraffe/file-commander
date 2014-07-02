@@ -214,9 +214,10 @@
    </widget>
    <widget class="QMenu" name="menuCommands">
     <property name="title">
-     <string>&amp;Commands</string>
+     <string>&amp;Tools</string>
     </property>
     <addaction name="actionOpen_Console_Here"/>
+    <addaction name="actionCalculate_occupied_space"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -246,7 +247,7 @@
   </action>
   <action name="actionOpen_Console_Here">
    <property name="text">
-    <string>&amp;Open  Console Here</string>
+    <string>&amp;Open  console here</string>
    </property>
    <property name="shortcut">
     <string>Shift+F2</string>
@@ -259,7 +260,7 @@
   </action>
   <action name="actionShowAllFiles">
    <property name="text">
-    <string>&amp;Show All Files In This Folder And Below</string>
+    <string>&amp;Show all files in this folder and below</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+B</string>
@@ -282,6 +283,14 @@
    </property>
    <property name="shortcut">
     <string>Alt+H</string>
+   </property>
+  </action>
+  <action name="actionCalculate_occupied_space">
+   <property name="text">
+    <string>Calculate occupied space</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
    </property>
   </action>
  </widget>

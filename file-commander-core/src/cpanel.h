@@ -17,6 +17,17 @@ struct PanelContentsChangedListener
 	virtual void panelContentsChanged(Panel p) = 0;
 };
 
+class FilesystemObjectsStatistics
+{
+public:
+	FilesystemObjectsStatistics(uint64_t files_ = 0, uint64_t folders_ = 0, uint64_t occupiedSpace_ = 0): files(files_), folders(folders_), occupiedSpace(occupiedSpace_) {}
+	bool empty() const {return files == 0 && folders == 0 && occupiedSpace == 0;}
+
+	uint64_t files;
+	uint64_t folders;
+	uint64_t occupiedSpace;
+};
+
 class QFileSystemWatcher;
 
 class CPanel : public QObject
@@ -58,8 +69,10 @@ public:
 	const CFileSystemObject& itemByHash (qulonglong hash) const;
 	CFileSystemObject& itemByHash (qulonglong hash);
 
+	// Calculates total size for the specified objects
+	FilesystemObjectsStatistics calculateStatistics(const std::vector<qulonglong> & hashes);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
-	void calculateDirSize(qulonglong dirHash);
+	void displayDirSize(qulonglong dirHash);
 
 	void sendContentsChangedNotification() const;
 

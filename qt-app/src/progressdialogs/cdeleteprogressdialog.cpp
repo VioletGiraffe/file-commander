@@ -62,11 +62,14 @@ void CDeleteProgressDialog::onProcessHalted(HaltReason reason, CFileSystemObject
 	ui->_progress->setState(_performer->paused() ? psPaused : psNormal);
 }
 
-void CDeleteProgressDialog::onProcessFinished()
+void CDeleteProgressDialog::onProcessFinished(QString message)
 {
 	delete _performer;
 	_performer = 0;
 	close();
+
+	if (!message.isEmpty())
+		QMessageBox::information(this, "Operation finished", message);
 }
 
 void CDeleteProgressDialog::onCurrentFileChanged(QString file)

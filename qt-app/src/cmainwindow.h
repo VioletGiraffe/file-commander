@@ -81,6 +81,7 @@ private slots: // For UI
 	void showHiddenFiles();
 	void showAllFilesFromCurrentFolderAndBelow();
 	void openSettingsDialog();
+	void calculateOccupiedSpace();
 
 // Settings
 	void settingsChanged();

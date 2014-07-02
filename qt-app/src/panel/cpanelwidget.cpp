@@ -293,7 +293,7 @@ void CPanelWidget::calcDirectorySize()
 	if (itemIndex.isValid())
 	{
 		_selectionModel->select(itemIndex, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
-		_controller.calculateDirSize(_panelPosition, hashByItemIndex(itemIndex));
+		_controller.displayDirSize(_panelPosition, hashByItemIndex(itemIndex));
 	}
 }
 
@@ -452,7 +452,7 @@ void CPanelWidget::showFavoriteLocationsMenu()
 
 	createMenus(&menu, _controller.favoriteLocations().locations());
 	menu.addSeparator();
-	QAction * edit = menu.addAction("Edit...");
+	QAction * edit = menu.addAction("Edit");
 	connect(edit, SIGNAL(triggered()), SLOT(showFavoriteLocationsEditor()));
 	menu.exec(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));
 }
