@@ -23,7 +23,9 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 		_type = Directory;
 	else
 	{
+#ifdef _WIN32
 		qDebug() << fileInfo.absoluteFilePath() << " is neither a file nor a dir";
+#endif
 		return;
 	}
 
