@@ -207,18 +207,47 @@ CFileSystemObject& CPanel::itemByHash( qulonglong hash )
 	return itemByIndex(_indexByHash[hash]);
 }
 
+// Calculates total size for the specified objects
+FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulonglong>& hashes)
+{
+	if (hashes.empty())
+		return FilesystemObjectsStatistics();
+
+	FilesystemObjectsStatistics stats;
+	for(qulonglong itemHash: hashes)
+	{
+		CFileSystemObject& item = itemByHash(itemHash);
+		if (item.isDir())
+		{
+			++stats.folders;
+			std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.absoluteFilePath(), false);
+			for (auto& subItem: objects)
+			{
+				if (subItem.isFile())
+					++stats.files;
+				else if (subItem.isDir())
+					++stats.folders;
+				stats.occupiedSpace += subItem.size();
+			}
+		}
+		else if (item.isFile())
+		{
+			++stats.files;
+			stats.occupiedSpace += item.size();
+		}
+	}
+	return stats;
+}
+
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
-void CPanel::calculateDirSize(qulonglong dirHash)
+void CPanel::displayDirSize(qulonglong dirHash)
 {
 	assert(dirHash != 0);
 	CFileSystemObject& item = itemByHash(dirHash);
 	if (item.isDir())
 	{
-		uint64_t size = 0;
-		std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.absoluteFilePath(), false);
-		for (auto& dirItem: objects)
-			size += dirItem.size();
-		item.setDirSize(size);
+		const FilesystemObjectsStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));
+		item.setDirSize(stats.occupiedSpace);
 		sendContentsChangedNotification();
 	}
 }

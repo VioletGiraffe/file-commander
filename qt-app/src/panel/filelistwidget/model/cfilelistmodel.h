@@ -4,6 +4,10 @@
 #include "../../../QtAppIncludes"
 #include "cpanel.h"
 
+enum Role {
+	BaseNameRole = Qt::UserRole+1
+};
+
 class CController;
 class QTreeView;
 class CFileListModel : public QStandardItemModel
@@ -16,7 +20,7 @@ public:
 
 	QTreeView * treeView() const;
 
-	QVariant data (const QModelIndex & index, int role = Qt::DisplayRole) const override;
+	QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
 	bool setData(const QModelIndex &index, const QVariant &value, int role);
 	Qt::ItemFlags flags(const QModelIndex & index) const override;
 

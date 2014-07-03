@@ -4,6 +4,7 @@
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
 #include "panel/cpanelwidget.h"
+#include "panel/filelistwidget/cfilelistview.h"
 
 #include "QtAppIncludes"
 
@@ -17,7 +18,7 @@ class CMainWindow;
 class CPanelWidget;
 class QShortcut;
 
-class CMainWindow : public QMainWindow
+class CMainWindow : public QMainWindow, private FileListReturnPressedObserver
 {
 	Q_OBJECT
 
@@ -45,13 +46,9 @@ public slots:
 
 protected:
 	void closeEvent(QCloseEvent * e) override;
-	bool eventFilter(QObject * watched, QEvent * event) override;
 
 private slots: // For UI
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
-	void backSpacePressed(CPanelWidget * widget);
-	void stepBackRequested(CPanelWidget * panel);
-	void stepForwardRequested(CPanelWidget * panel);
 	void currentPanelChanged(CPanelWidget * panel);
 	void folderPathSet(QString path, const CPanelWidget * panel);
 	void splitterContextMenuRequested(QPoint pos);
@@ -70,9 +67,11 @@ private slots: // For UI
 	void editFile();
 	void openTerminal();
 	void showRecycleBInContextMenu(QPoint pos);
-	void executeCommand();
-	// Command line
-	void cycleLastCommands();
+
+// Command line
+	// true if command was executed
+	bool executeCommand(QString commandLineText);
+	void selectPreviousCommandInTheCommandLine();
 	void clearCommandLineAndRestoreFocus();
 	void pasteCurrentFileName();
 	void pasteCurrentFilePath();
@@ -82,6 +81,7 @@ private slots: // For UI
 	void showHiddenFiles();
 	void showAllFilesFromCurrentFolderAndBelow();
 	void openSettingsDialog();
+	void calculateOccupiedSpace();
 
 // Settings
 	void settingsChanged();
@@ -89,6 +89,9 @@ private slots: // For UI
 private:
 	void createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries);
 	void addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu);
+
+	// For command line handling
+	bool fileListReturnPressed() override;
 
 private:
 	Ui::CMainWindow              * ui;
@@ -98,6 +101,8 @@ private:
 	CPanelWidget                 * _otherPanel;
 
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
+
+	QCompleter                     _commandLineCompleter;
 };
 
 #endif // CMAINWINDOW_H

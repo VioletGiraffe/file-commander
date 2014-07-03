@@ -8,7 +8,7 @@ CFileListItemDelegate::CFileListItemDelegate(QObject *parent) :
 QWidget *CFileListItemDelegate::createEditor(QWidget * parent, const QStyleOptionViewItem & option, const QModelIndex & index) const
 {
 	QLineEdit * editor = dynamic_cast<QLineEdit*>(QStyledItemDelegate::createEditor(parent, option, index));
-	connect(editor, &QLineEdit::returnPressed, this, [=](){
+	connect(editor, &QLineEdit::returnPressed, [=](){
 		QStyledItemDelegate::setModelData(editor, const_cast<QAbstractItemModel*>(index.model()), index);
 	});
 	return editor;

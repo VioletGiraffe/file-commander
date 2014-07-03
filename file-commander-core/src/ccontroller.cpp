@@ -26,10 +26,9 @@ CController& CController::get()
 	return *_instance;
 }
 
-void CController::setPanelContentsChangedListener(PanelContentsChangedListener *listener)
+void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedListener *listener)
 {
-	_leftPanel.addPanelContentsChangedListener(listener);
-	_rightPanel.addPanelContentsChangedListener(listener);
+	panel(p).addPanelContentsChangedListener(listener);
 }
 
 void CController::setDisksChangedListener(CController::IDiskListObserver *listener)
@@ -180,10 +179,15 @@ void CController::openTerminal(const QString &folder)
 #endif
 }
 
-// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
-void CController::calculateDirSize(Panel p, qulonglong dirHash)
+FilesystemObjectsStatistics CController::calculateStatistics(Panel p, const std::vector<qulonglong> & hashes)
 {
-	panel(p).calculateDirSize(dirHash);
+	return panel(p).calculateStatistics(hashes);
+}
+
+// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
+void CController::displayDirSize(Panel p, qulonglong dirHash)
+{
+	panel(p).displayDirSize(dirHash);
 }
 
 const CPanel &CController::panel(Panel p) const

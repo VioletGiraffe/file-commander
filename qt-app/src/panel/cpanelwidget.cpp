@@ -7,6 +7,7 @@
 #include "columns.h"
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
 #include "pluginengine/cpluginengine.h"
+#include "../favoritelocationseditor/cfavoritelocationseditor.h"
 
 #include <assert.h>
 #include <time.h>
@@ -14,6 +15,7 @@
 
 CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	QWidget(parent),
+	_filterDialog(this),
 	ui(new Ui::CPanelWidget),
 	_controller (CController::get()),
 	_selectionModel(0),
@@ -21,20 +23,25 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_sortModel(0),
 	_panelPosition(UnknownPanel),
 	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), 0, Qt::WidgetWithChildrenShortcut),
-	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut)
+	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut),
+	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
-	connect(ui->_list, SIGNAL(returnPressOrDoubleClick(QModelIndex)), SLOT(itemActivatedSlot(QModelIndex)));
+	ui->_infoLabel->clear();
+
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
+	connect(ui->_list, SIGNAL(keyPressed(QString,int,Qt::KeyboardModifiers)), SLOT(fileListViewKeyPressed(QString,int,Qt::KeyboardModifiers)));
 
 	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
-	connect(ui->_btnFavs, SIGNAL(clicked()), SLOT(showFavoriteLocations()));
+	connect(ui->_btnFavs, SIGNAL(clicked()), SLOT(showFavoriteLocationsMenu()));
 	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
 	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
-	_controller.setDisksChangedListener(this);
+	connect(&_filterDialog, SIGNAL(filterTextChanged(QString)), SLOT(filterTextChanged(QString)));
 
-	ui->_infoLabel->clear();
+	ui->_list->addEventObserver(this);
+
+	_controller.setDisksChangedListener(this);
 }
 
 CPanelWidget::~CPanelWidget()
@@ -100,6 +107,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 	connect(_model, SIGNAL(itemEdited(qulonglong,QString)), SLOT(itemNameEdited(qulonglong,QString)));
 
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
+	_sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
+	_sortModel->setFilterRole(BaseNameRole);
 	_sortModel->setPanelPosition(p);
 	_sortModel->setSourceModel(_model);
 
@@ -110,7 +119,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	connect(_selectionModel, SIGNAL(selectionChanged(QItemSelection,QItemSelection)), SLOT(selectionChanged(QItemSelection,QItemSelection)));
 	connect(_selectionModel, SIGNAL(currentChanged(QModelIndex,QModelIndex)), SLOT(currentItemChanged(QModelIndex,QModelIndex)));
 
-	_controller.setPanelContentsChangedListener(this);
+	_controller.setPanelContentsChangedListener(p, this);
 }
 
 // Returns the list of items added to the view
@@ -155,7 +164,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 
 		QStandardItem * sizeItem = new QStandardItem();
 		sizeItem->setEditable(false);
-		if (props.type != Directory)
+		if (props.type != Directory || props.size > 0)
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
 		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
 		_model->setItem(i, SizeColumn, sizeItem);
@@ -231,14 +240,6 @@ void CPanelWidget::fillFromPanel(const CPanel &panel)
 		ui->_pathNavigator->setText(currentPath);
 }
 
-void CPanelWidget::itemActivatedSlot(QModelIndex item)
-{
-	assert(item.isValid());
-	QModelIndex source = _sortModel->mapToSource(item);
-	const qulonglong hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toULongLong();
-	emit itemActivated(hash, this);
-}
-
 void CPanelWidget::showContextMenuForItems(QPoint pos)
 {
 	const auto selection = selectedItemsHashes();
@@ -292,7 +293,7 @@ void CPanelWidget::calcDirectorySize()
 	if (itemIndex.isValid())
 	{
 		_selectionModel->select(itemIndex, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
-		_controller.calculateDirSize(_panelPosition, hashByItemIndex(itemIndex));
+		_controller.displayDirSize(_panelPosition, hashByItemIndex(itemIndex));
 	}
 }
 
@@ -404,18 +405,18 @@ void CPanelWidget::toRoot()
 		_controller.setPath(_panelPosition, _currentDisk);
 }
 
-void CPanelWidget::showFavoriteLocations()
+void CPanelWidget::showFavoriteLocationsMenu()
 {
 	QMenu menu;
 	std::function<void(QMenu *, std::list<CLocationsCollection>&)> createMenus = [this, &createMenus](QMenu * parentMenu, std::list<CLocationsCollection>& locations)
 	{
 		for (auto& item: locations)
 		{
-			if (item.subLocations.empty())
+			if (item.subLocations.empty() && !item.absolutePath.isEmpty())
 			{
 				QAction * action = parentMenu->addAction(item.displayName);
 				const QString& path = item.absolutePath;
-				QObject::connect(action, &QAction::triggered, this, [this, path](){
+				QObject::connect(action, &QAction::triggered, [this, path](){
 					_controller.setPath(_panelPosition, path);
 				});
 			}
@@ -427,19 +428,61 @@ void CPanelWidget::showFavoriteLocations()
 		}
 
 		if (!locations.empty())
-		{
 			parentMenu->addSeparator();
-			QAction * action = parentMenu->addAction("Add current folder here...");
-			QObject::connect(action, &QAction::triggered, this, [this, &locations](){
-				const QString path = currentDir();
-				const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, CFileSystemObject(path).fileName());
+
+		QAction * addFolderAction = parentMenu->addAction("Add current folder here...");
+		QObject::connect(addFolderAction, &QAction::triggered, [this, &locations](){
+			const QString path = currentDir();
+			const QString displayName = CFileSystemObject(path).baseName();
+			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
+			if (!name.isEmpty() && !path.isEmpty())
 				locations.push_back(CLocationsCollection(name, currentDir()));
-			});
-		}
+		});
+
+		QAction * addCategoryAction = parentMenu->addAction("Add a new subcategory...");
+		QObject::connect(addCategoryAction, &QAction::triggered, [this, &locations, parentMenu](){
+			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name for the new subcategory");
+			if (!name.isEmpty())
+			{
+				parentMenu->addMenu(name);
+				locations.push_back(CLocationsCollection(name));
+			}
+		});
 	};
 
 	createMenus(&menu, _controller.favoriteLocations().locations());
+	menu.addSeparator();
+	QAction * edit = menu.addAction("Edit");
+	connect(edit, SIGNAL(triggered()), SLOT(showFavoriteLocationsEditor()));
 	menu.exec(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));
+}
+
+void CPanelWidget::showFavoriteLocationsEditor()
+{
+	CFavoriteLocationsEditor(this).exec();
+}
+
+void CPanelWidget::fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers)
+{
+	if (key == Qt::Key_Backspace)
+	{
+		// Navigating back
+		_controller.navigateUp(_panelPosition);
+	}
+	else
+	{
+		emit fileListViewKeyPressedSignal(this, keyText, key, modifiers);
+	}
+}
+
+void CPanelWidget::showFilterEditor()
+{
+	_filterDialog.showAt(ui->_list->geometry().bottomLeft());
+}
+
+void CPanelWidget::filterTextChanged(QString filterText)
+{
+	_sortModel->setFilterWildcard(filterText);
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
@@ -465,10 +508,13 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 	return result;
 }
 
-qulonglong CPanelWidget::currentItemHash() const
+bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
 {
-	QModelIndex currentIndex = _selectionModel->currentIndex();
-	return hashByItemIndex(currentIndex);
+	assert(item.isValid());
+	QModelIndex source = _sortModel->mapToSource(item);
+	const qulonglong hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toULongLong();
+	emit itemActivated(hash, this);
+	return true; // Consuming the event
 }
 
 void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex)
@@ -520,6 +566,12 @@ void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Pane
 	}
 }
 
+qulonglong CPanelWidget::currentItemHash() const
+{
+	QModelIndex currentIndex = _selectionModel->currentIndex();
+	return hashByItemIndex(currentIndex);
+}
+
 qulonglong CPanelWidget::hashByItemIndex(const QModelIndex &index) const
 {
 	if (!index.isValid())
@@ -551,17 +603,6 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	{
 		switch (e->type())
 		{
-		case QEvent::KeyPress:
-		{
-			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(e);
-			if (keyEvent && keyEvent->key() == Qt::Key_Backspace)
-			{
-				// Navigating back
-				emit backSpacePressed(this);
-				return true;
-			}
-		}
-			break;
 		case QEvent::FocusIn:
 			emit focusReceived(this);
 			break;
@@ -578,9 +619,9 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
 		{
 			if (wEvent->delta() > 0)
-				emit stepBackRequested(this);
+				_controller.navigateBack(_panelPosition);
 			else
-				emit stepForwardRequested(this);
+				_controller.navigateForward(_panelPosition);
 			return true;
 		}
 	}
@@ -596,4 +637,14 @@ void CPanelWidget::panelContentsChanged( Panel p )
 CFileListView *CPanelWidget::fileListView() const
 {
 	return ui->_list;
+}
+
+QAbstractItemModel * CPanelWidget::model() const
+{
+	return _model;
+}
+
+QSortFilterProxyModel *CPanelWidget::sortModel() const
+{
+	return _sortModel;
 }

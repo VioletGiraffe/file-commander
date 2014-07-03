@@ -22,7 +22,7 @@ public:
 // Callbacks
 	virtual void onProgressChanged(int totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, int filePercentage, uint64_t speed /* B/s*/);
 	virtual void onProcessHalted(HaltReason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage); // User decision required (file exists, file is read-only etc.)
-	virtual void onProcessFinished(); // Done or canceled
+	virtual void onProcessFinished(QString message = QString()); // Done or canceled
 	virtual void onCurrentFileChanged(QString file); // Starting to process a new file
 
 protected:

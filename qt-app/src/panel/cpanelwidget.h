@@ -4,6 +4,8 @@
 #include "../QtAppIncludes"
 
 #include "ccontroller.h"
+#include "filelistwidget/cfilelistview.h"
+#include "filelistwidget/cfilelistfilterdialog.h"
 
 namespace Ui {
 class CPanelWidget;
@@ -16,7 +18,7 @@ class CFileListSortFilterProxyModel;
 class CFileListView;
 
 
-class CPanelWidget : public QWidget, private CController::IDiskListObserver, public PanelContentsChangedListener
+class CPanelWidget : public QWidget, private CController::IDiskListObserver, public PanelContentsChangedListener, private FileListReturnPressOrDoubleClickObserver
 {
 	Q_OBJECT
 
@@ -44,24 +46,23 @@ public:
 	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
 	qulonglong currentItemHash() const;
 
-	virtual void panelContentsChanged(Panel p);
+	void panelContentsChanged(Panel p) override;
 
 	CFileListView * fileListView() const;
+	QAbstractItemModel* model() const;
+	QSortFilterProxyModel* sortModel() const;
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
-	void backSpacePressed(CPanelWidget * panel);
-	void stepBackRequested(CPanelWidget * panel);
-	void stepForwardRequested(CPanelWidget * panel);
 	void focusReceived(CPanelWidget * panel);
 	void folderPathSet(QString newPath, const CPanelWidget * panel);
 	void itemNameEdited(Panel panel, qulonglong hash, QString newName);
+	void fileListViewKeyPressedSignal(CPanelWidget* panelWidget, QString keyText, int key, Qt::KeyboardModifiers modifiers);
 
 protected:
-	virtual bool eventFilter (QObject * object , QEvent * e);
+	bool eventFilter(QObject * object , QEvent * e) override;
 
 private slots:
-	void itemActivatedSlot(QModelIndex item);
 	void showContextMenuForItems(QPoint pos);
 	void showContextMenuForDisk(QPoint pos);
 	void onFolderPathSet();
@@ -73,16 +74,24 @@ private slots:
 	void itemNameEdited(qulonglong hash, QString newName);
 	void showHistory();
 	void toRoot();
-	void showFavoriteLocations();
+	void showFavoriteLocationsMenu();
+	void showFavoriteLocationsEditor();
+	void fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
+	void showFilterEditor();
+	void filterTextChanged(QString filterText);
 
 private:
-	virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex);
+// Callbacks
+	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
+	void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex) override;
 
+// Internal methods
 	qulonglong hashByItemIndex(const QModelIndex& index) const;
 	qulonglong hashByItemRow(const int row) const;
 	QModelIndex indexByHash(const qulonglong hash) const;
 
 private:
+	CFileListFilterDialog           _filterDialog;
 	std::vector<CFileSystemObject>  _disks;
 	QString                         _currentDisk;
 	QString                         _directoryCurrentlyBeingDisplayed;
@@ -95,6 +104,7 @@ private:
 
 	QShortcut                       _calcDirSizeShortcut;
 	QShortcut                       _selectCurrentItemShortcut;
+	QShortcut                       _showFilterEditorShortcut;
 };
 
 #endif // CPANELWIDGET_H

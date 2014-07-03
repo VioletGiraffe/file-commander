@@ -24,7 +24,7 @@ public:
 
 	virtual void onProgressChanged(int totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, int filePercentage, uint64_t speed /* B/s*/) = 0;
 	virtual void onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) = 0; // User decision required (file exists, file is read-only etc.)
-	virtual void onProcessFinished() = 0; // Done or canceled
+	virtual void onProcessFinished(QString message = QString()) = 0; // Done or canceled
 	virtual void onCurrentFileChanged(QString file) = 0; // Starting to process a new file
 
 	virtual ~CFileOperationObserver() {}
@@ -39,8 +39,8 @@ private:
 	void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) {
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessHalted, this, reason, source, dest, errorMessage));
 	}
-	void onProcessFinishedCallback() {
-		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessFinished, this));
+	void onProcessFinishedCallback(QString message = QString()) {
+		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessFinished, this, message));
 	}
 	void onCurrentFileChangedCallback(QString file) {
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onCurrentFileChanged, this, file));

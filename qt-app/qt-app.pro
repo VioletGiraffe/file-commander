@@ -36,7 +36,10 @@ SOURCES += \
 	src/historycombobox/chistorycombobox.cpp \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
     src/progressdialogs/cfileoperationconfirmationprompt.cpp \
-    src/settings/csettingspageoperations.cpp
+    src/settings/csettingspageoperations.cpp \
+    src/favoritelocationseditor/cfavoritelocationseditor.cpp \
+    src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
+    src/panel/filelistwidget/cfilelistfilterdialog.cpp
 
 HEADERS += \
 	src/QtAppIncludes \
@@ -56,7 +59,10 @@ HEADERS += \
 	src/historycombobox/chistorycombobox.h \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
     src/progressdialogs/cfileoperationconfirmationprompt.h \
-    src/settings/csettingspageoperations.h
+    src/settings/csettingspageoperations.h \
+    src/favoritelocationseditor/cfavoritelocationseditor.h \
+    src/favoritelocationseditor/cnewfavoritelocationdialog.h \
+    src/panel/filelistwidget/cfilelistfilterdialog.h
 
 FORMS += \
 	src/cmainwindow.ui \
@@ -68,7 +74,10 @@ FORMS += \
 	src/settings/csettingspageedit.ui \
 	src/settings/csettingspageother.ui \
     src/progressdialogs/cfileoperationconfirmationprompt.ui \
-    src/settings/csettingspageoperations.ui
+    src/settings/csettingspageoperations.ui \
+    src/favoritelocationseditor/cfavoritelocationseditor.ui \
+    src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
+    src/panel/filelistwidget/cfilelistfilterdialog.ui
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
@@ -94,7 +103,7 @@ linux*|mac*{
 	HEADERS += src/panel/filelistwidget/cfocusframestyle.h
 	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
 
-	QMAKE_CXXFLAGS += --std=c++11
+	CONFIG += c++11
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 }
 

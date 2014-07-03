@@ -27,7 +27,7 @@ QTreeView *CFileListModel::treeView() const
 	return _tree;
 }
 
-QVariant CFileListModel::data( const QModelIndex & index, int role /*= Qt::DisplayRole*/ ) const
+QVariant CFileListModel::data(const QModelIndex & index, int role /*= Qt::DisplayRole*/) const
 {
 	if (role == Qt::ToolTipRole)
 	{
@@ -37,7 +37,11 @@ QVariant CFileListModel::data( const QModelIndex & index, int role /*= Qt::Displ
 	}
 	else if (role == Qt::EditRole)
 	{
-		return _controller.itemByHash(_panel, itemHash(index)).fileName();
+		return _controller.itemByHash(_panel, itemHash(index)).baseName();
+	}
+	else if (role == BaseNameRole)
+	{
+		return _controller.itemByHash(_panel, itemHash(index)).baseName();
 	}
 	else
 		return QStandardItemModel::data(index, role);
@@ -98,16 +102,16 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 		assert(dest.exists() && dest.isDir());
 		return false;
 	}
-	
+
 	const QList<QUrl> urls(data->urls());
 	std::vector<CFileSystemObject> objects;
 	for(const QUrl& url: urls)
 		objects.emplace_back(url.toLocalFile());
-	
+
 	if (objects.empty())
 		return false;
 
-	if (action = Qt::CopyAction)
+	if (action == Qt::CopyAction)
 		CMainWindow::get()->copyFiles(objects, dest.absoluteFilePath());
 	else if (action == Qt::MoveAction)
 		CMainWindow::get()->moveFiles(objects, dest.absoluteFilePath());
@@ -140,7 +144,9 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 qulonglong CFileListModel::itemHash(const QModelIndex & index) const
 {
 	QStandardItem * itm = item(index.row(), 0);
-	assert(itm);
+	if (!itm)
+		return 0;
+
 	bool ok = false;
 	const qulonglong hash = itm->data(Qt::UserRole).toULongLong(&ok);
 	assert(ok);

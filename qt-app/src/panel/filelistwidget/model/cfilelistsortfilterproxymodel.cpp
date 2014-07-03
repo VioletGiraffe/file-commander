@@ -3,7 +3,6 @@
 #include "../../columns.h"
 
 #include <assert.h>
-#include <QStandardItemModel>
 
 CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
 	QSortFilterProxyModel(parent),

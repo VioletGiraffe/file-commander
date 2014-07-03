@@ -13,6 +13,7 @@
 #include "settings/csettingspageother.h"
 #include "pluginengine/cpluginengine.h"
 #include "panel/filelistwidget/cfilelistview.h"
+#include "panel/columns.h"
 
 #include <assert.h>
 
@@ -51,15 +52,6 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->leftPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
 
-	connect(ui->leftPanel, SIGNAL(backSpacePressed(CPanelWidget*)), SLOT(backSpacePressed(CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(backSpacePressed(CPanelWidget*)), SLOT(backSpacePressed(CPanelWidget*)));
-
-	connect(ui->leftPanel, SIGNAL(stepBackRequested(CPanelWidget*)), SLOT(stepBackRequested(CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(stepBackRequested(CPanelWidget*)), SLOT(stepBackRequested(CPanelWidget*)));
-
-	connect(ui->leftPanel, SIGNAL(stepForwardRequested(CPanelWidget*)), SLOT(stepForwardRequested(CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(stepForwardRequested(CPanelWidget*)), SLOT(stepForwardRequested(CPanelWidget*)));
-
 	connect(ui->leftPanel, SIGNAL(focusReceived(CPanelWidget*)), SLOT(currentPanelChanged(CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(focusReceived(CPanelWidget*)), SLOT(currentPanelChanged(CPanelWidget*)));
 
@@ -74,8 +66,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
 
-	ui->leftPanel->fileListView()->installEventFilter(this);
-	ui->rightPanel->fileListView()->installEventFilter(this);
+	ui->leftPanel->fileListView()->addEventObserver(this);
+	ui->rightPanel->fileListView()->addEventObserver(this);
 
 	initButtons();
 	initActions();
@@ -87,10 +79,12 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	connect(ui->splitter, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
 
-	connect(ui->leftPanel->fileListView(), SIGNAL(returnPressed()), SLOT(executeCommand()));
-	connect(ui->rightPanel->fileListView(), SIGNAL(returnPressed()), SLOT(executeCommand()));
-	connect(ui->commandLine->lineEdit(), SIGNAL(returnPressed()), SLOT(executeCommand()));
-	dynamic_cast<CHistoryComboBox*>(ui->commandLine)->setHistoryMode(true);
+	connect(ui->commandLine, SIGNAL(itemActivated(QString)), SLOT(executeCommand(QString)));
+
+	_commandLineCompleter.setCaseSensitivity(Qt::CaseInsensitive);
+	_commandLineCompleter.setCompletionMode(QCompleter::InlineCompletion);
+	_commandLineCompleter.setCompletionColumn(NameColumn);
+	ui->commandLine->setCompleter(&_commandLineCompleter);
 }
 
 void CMainWindow::initButtons()
@@ -119,7 +113,12 @@ void CMainWindow::initButtons()
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::WidgetWithChildrenShortcut)));
 
 	// Command line
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(cycleLastCommands()), 0, Qt::WidgetWithChildrenShortcut)));
+	//QShortcut * scut = new QShortcut(QKeySequence("Ctrl+E"), ui->commandLine, 0, 0, Qt::WidgetWithChildrenShortcut);
+	//connect(scut, SIGNAL(activated()), SLOT(cycleLastCommands()));
+	//_shortcuts.push_back(std::shared_ptr<QShortcut>(scut));
+	//_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(cycleLastCommands()))));
+	ui->commandLine->setSelectPreviousItemShortcut(QKeySequence("Ctrl+E"));
+	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(selectPreviousCommandInTheCommandLine()), 0, Qt::WidgetWithChildrenShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Esc"), this, SLOT(clearCommandLineAndRestoreFocus()), 0, Qt::WidgetWithChildrenShortcut)));
 }
 
@@ -134,6 +133,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Show_hidden_files, SIGNAL(triggered()), SLOT(showHiddenFiles()));
 	connect(ui->actionShowAllFiles, SIGNAL(triggered()), SLOT(showAllFilesFromCurrentFolderAndBelow()));
 	connect(ui->action_Settings, SIGNAL(triggered()), SLOT(openSettingsDialog()));
+	connect(ui->actionCalculate_occupied_space, SIGNAL(triggered()), SLOT(calculateOccupiedSpace()));
 }
 
 // For manual focus management
@@ -157,14 +157,14 @@ void CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	if (files.empty() || destDir.isEmpty())
 		return;
 
+	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
-		CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
 		if (prompt.exec() != QDialog::Accepted)
 			return;
 	}
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, destDir, this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, prompt.text(), this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
 	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
 	dialog->show();
@@ -242,25 +242,6 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	QMainWindow::closeEvent(e);
 }
 
-bool CMainWindow::eventFilter(QObject * watched, QEvent * event)
-{
-	if (watched == (QObject*)ui->leftPanel->fileListView() || watched == (QObject*)ui->rightPanel->fileListView())
-	{
-		if (event && event->type() == QEvent::KeyPress)
-		{
-			QKeyEvent * keyEvent = dynamic_cast<QKeyEvent*>(event);
-			if (keyEvent && (keyEvent->modifiers() ^ Qt::ShiftModifier) == Qt::NoModifier && keyEvent->key() != Qt::Key_Space && keyEvent->key() != Qt::Key_Enter && keyEvent->key() != Qt::Key_Return && !keyEvent->text().isEmpty())
-			{
-				ui->commandLine->setFocus();
-				ui->commandLine->event(event);
-				return false;
-			}
-		}
-	}
-
-	return false;
-}
-
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
 	if (!ui->commandLine->currentText().isEmpty())
@@ -283,25 +264,13 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 	}
 }
 
-void CMainWindow::backSpacePressed(CPanelWidget * widget)
-{
-	_controller->navigateUp(widget->panelPosition());
-}
-
-void CMainWindow::stepBackRequested(CPanelWidget *panel)
-{
-	_controller->navigateBack(panel->panelPosition());
-}
-
-void CMainWindow::stepForwardRequested(CPanelWidget *panel)
-{
-	_controller->navigateForward(panel->panelPosition());
-}
-
 void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 {
 	_currentPanel = panel;
-	_otherPanel   = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
+	if (panel)
+		_otherPanel = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
+	else
+		_otherPanel = 0;
 
 	if (panel)
 	{
@@ -309,7 +278,10 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, panel->panelPosition());
 		ui->fullPath->setText(_controller->panel(panel->panelPosition()).currentDirPath());
 		CPluginEngine::get().currentPanelChanged(panel->panelPosition());
+		_commandLineCompleter.setModel(_currentPanel->sortModel());
 	}
+	else
+		_commandLineCompleter.setModel(0);
 }
 
 void CMainWindow::folderPathSet(QString path, const CPanelWidget *panel)
@@ -412,7 +384,7 @@ void CMainWindow::itemNameEdited(Panel panel, qulonglong hash, QString newName)
 {
 	CFileSystemObject& item = _controller->itemByHash(panel, hash);
 	if (item.rename(newName, true) != rcOk)
-		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.fileName() + " to " + newName);
+		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.baseName() + " to " + newName);
 }
 
 
@@ -445,27 +417,21 @@ void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 	CShell::recycleBinContextMenu(pos.x(), pos.y(), (void*)winId());
 }
 
-void CMainWindow::executeCommand()
+bool CMainWindow::executeCommand(QString commandLineText)
 {
-	if (!_currentPanel)
-		return;
+	if (!_currentPanel || commandLineText.isEmpty())
+		return false;
 
-	const QString commandLine = ui->commandLine->currentText();
-	if (commandLine.isEmpty())
-		return;
+	CShell::executeShellCommand(commandLineText, _currentPanel->currentDir());
+	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->commandLine->items());
+	clearCommandLineAndRestoreFocus();
 
-	CShell::executeShellCommand(commandLine, _currentPanel->currentDir());
-
-	QStringList commands;
-	for (int i = 0; i < ui->commandLine->count(); ++i)
-		commands.push_back(ui->commandLine->itemText(i));
-	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, commands);
-	ui->commandLine->clearEditText();
+	return true;
 }
 
-void CMainWindow::cycleLastCommands()
+void CMainWindow::selectPreviousCommandInTheCommandLine()
 {
-	ui->commandLine->cycleLastCommands();
+	ui->commandLine->selectPreviousItem();
 	ui->commandLine->setFocus();
 }
 
@@ -479,7 +445,7 @@ void CMainWindow::pasteCurrentFileName()
 {
 	if (_currentPanel && _currentPanel->currentItemHash() != 0)
 	{
-		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).fileName();
+		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).baseName();
 		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}
@@ -525,6 +491,19 @@ void CMainWindow::openSettingsDialog()
 	settings.exec();
 }
 
+void CMainWindow::calculateOccupiedSpace()
+{
+	if (!_currentPanel)
+		return;
+
+	const FilesystemObjectsStatistics stats = _controller->calculateStatistics(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
+	if (stats.empty())
+		return;
+
+	QMessageBox::information(this, "Occupied space", QString("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3").
+							 arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace)));
+}
+
 void CMainWindow::settingsChanged()
 {
 	_controller->settingsChanged();
@@ -568,4 +547,11 @@ void CMainWindow::addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QM
 	QObject::connect(action, &QAction::triggered, [entry](bool){entry.handler();});
 	for(const auto& childEntry: entry.children)
 		addToolMenuEntriesRecursively(childEntry, toolMenu);
+}
+
+bool CMainWindow::fileListReturnPressed()
+{
+	if (_currentPanel)
+		return executeCommand(ui->commandLine->currentText());
+	return false;
 }

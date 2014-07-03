@@ -362,7 +362,7 @@ QString CFileSystemObject::lastErrorMessage() const
 	return _lastError;
 }
 
-QString CFileSystemObject::fileName() const
+QString CFileSystemObject::baseName() const
 {
 	return _fileInfo.fileName();
 }

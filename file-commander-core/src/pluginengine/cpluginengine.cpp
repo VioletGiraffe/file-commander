@@ -34,7 +34,7 @@ void CPluginEngine::loadPlugins()
 	fileCommanderDir.cdUp(); // from .app/Contents/MacOS to .app level
 #endif // __APPLE__
 
-	const auto pluginPaths(fileCommanderDir.entryInfoList((QStringList() << QString("*plugin_*")+pluginExtension), QDir::Files | QDir::NoDotAndDotDot));
+	const auto pluginPaths(fileCommanderDir.entryInfoList((QStringList() << QString("*plugin_*")+pluginExtension+"*"), QDir::Files | QDir::NoDotAndDotDot));
 	for (const QFileInfo& path: pluginPaths)
 	{
 		if (path.isSymLink())

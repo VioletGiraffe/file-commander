@@ -8,6 +8,8 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QCompleter>
+#include <QDialog>
 #include <QFileDialog>
 #include <QHeaderView>
 #include <QInputDialog>
@@ -29,8 +31,9 @@
 #include <QStyle>
 #include <QTimer>
 #include <QTreeView>
+#include <QTreeWidgetItem>
 #include <QWheelEvent>
 
 #ifdef _WIN32
-#pragma warning(pop) // set W0
+#pragma warning(pop)
 #endif

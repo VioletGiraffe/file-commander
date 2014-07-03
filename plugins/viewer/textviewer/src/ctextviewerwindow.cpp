@@ -113,9 +113,11 @@ void CTextViewerWindow::findNext()
 
 	bool found = false;
 	const QTextCursor startCursor = ui->textBrowser->textCursor();
+#if  QT_VERSION >= QT_VERSION_CHECK(5,3,0)
 	if (_findDialog.regex())
 		found = ui->textBrowser->find(QRegExp(_findDialog.searchExpression(), _findDialog.caseSensitive() ? Qt::CaseSensitive : Qt::CaseInsensitive), flags);
 	else
+#endif
 		found = ui->textBrowser->find(_findDialog.searchExpression(), flags);
 
 	if(!found && (startCursor.isNull() || startCursor.position() == 0))

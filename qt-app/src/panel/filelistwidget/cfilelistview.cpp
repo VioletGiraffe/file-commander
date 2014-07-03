@@ -21,10 +21,22 @@ CFileListView::CFileListView(QWidget *parent) :
 {
 	setMouseTracking(true);
 	setItemDelegate(new CFileListItemDelegate);
-	connect(this, SIGNAL(doubleClicked(QModelIndex)), SIGNAL(returnPressOrDoubleClick(QModelIndex)));
+	connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
+		for(FileListViewEventObserver* observer: _eventObservers)
+		{
+			if (observer->fileListReturnPressOrDoubleClickPerformed(idx))
+				break;
+		}
+	});
+
 #if defined __linux__ || defined __APPLE__
 	setStyle(new CFocusFrameStyle);
 #endif
+}
+
+void CFileListView::addEventObserver(FileListViewEventObserver* observer)
+{
+	_eventObservers.push_back(observer);
 }
 
 // Sets the position (left or right) of a panel that this model represents
@@ -37,8 +49,11 @@ void CFileListView::setPanelPosition(enum Panel p)
 // Preserves item's selection state
 void CFileListView::moveCursorToItem(const QModelIndex& index)
 {
-	if (selectionModel()->model()->hasIndex(index.row(), index.column()))
+	if (index.isValid() && selectionModel()->model()->hasIndex(index.row(), index.column()))
+	{
 		selectionModel()->setCurrentIndex(index, QItemSelectionModel::Current | QItemSelectionModel::Rows);
+		scrollTo(index);
+	}
 }
 
 // Header management
@@ -76,7 +91,7 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 			_singleMouseClickPos = e->pos();
 			QTimer * timer = new QTimer;
 			timer->setSingleShot(true);
-			QObject::connect(timer, &QTimer::timeout, this, [this](){
+			QObject::connect(timer, &QTimer::timeout, [this](){
 				if (_singleMouseClickValid)
 					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
 				_singleMouseClickValid = false;
@@ -139,28 +154,49 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
 		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
 	{
-#ifdef __APPLE__
-		if ((event->modifiers() ^ Qt::KeypadModifier) == Qt::NoModifier)
+		if ((event->modifiers() & (~Qt::KeypadModifier)) == Qt::NoModifier)
 		{
+			//TODO: PgUp, PgDwn, Home, End
 			if (event->key() == Qt::Key_Down)
 				moveCursorToNextItem();
 			else if (event->key() == Qt::Key_Up)
 				moveCursorToPreviousItem();
+			else if (event->key() == Qt::Key_Home)
+				moveCursorToItem(model()->index(0, 0));
+			else if (event->key() == Qt::Key_End)
+				moveCursorToItem(model()->index(model()->rowCount()-1, 0));
+			else if (event->key() == Qt::Key_PageUp)
+				pgUp();
+			else if (event->key() == Qt::Key_PageDown)
+				pgDn();
 
+			event->accept();
 			return;
 		}
-#else
-		if (!(event->modifiers() & Qt::ControlModifier))
-			event->setModifiers(event->modifiers() | Qt::ControlModifier);
-#endif
 	}
-	else if (event->key() == Qt::Key_Return)
+	else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
 	{
 		if (event->modifiers() == Qt::NoModifier)
 		{
-			emit returnPressed();
-			if (currentIndex().isValid())
-				emit returnPressOrDoubleClick(currentIndex());
+			bool returnPressConsumed = false;
+			for(FileListViewEventObserver* observer: _eventObservers)
+			{
+				returnPressConsumed = observer->fileListReturnPressed();
+				if (returnPressConsumed)
+					break;
+			}
+
+			if (!returnPressConsumed)
+				for (FileListViewEventObserver* observer: _eventObservers)
+				{
+					if (currentIndex().isValid())
+					{
+						returnPressConsumed = observer->fileListReturnPressOrDoubleClickPerformed(currentIndex());
+						if (returnPressConsumed)
+							break;
+					}
+				}
+
 		}
 		else if (event->modifiers() == Qt::ControlModifier)
 			emit ctrlEnterPressed();
@@ -169,8 +205,19 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 
 		return;
 	}
+	else
+		emit keyPressed(event->text(), event->key(), event->modifiers());
 
 	QTreeView::keyPressEvent(event);
+
+#ifdef __linux__
+	// FIXME: find out why this hack is necessary
+	if (event->key() == Qt::Key_Down || event->key() == Qt::Key_Up ||
+		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
+		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
+		if ((event->modifiers() & Qt::ShiftModifier) != 0)
+			scrollTo(currentIndex());
+#endif
 }
 
 bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)
@@ -236,7 +283,7 @@ void CFileListView::moveCursorToNextItem()
 	if (model()->rowCount() <= 0)
 		return;
 
-	QModelIndex curIdx(currentIndex());
+	const QModelIndex curIdx(currentIndex());
 	if (curIdx.isValid() && curIdx.row()+1 < model()->rowCount())
 		moveCursorToItem(model()->index(curIdx.row()+1, 0));
 	else if (!curIdx.isValid())
@@ -248,11 +295,49 @@ void CFileListView::moveCursorToPreviousItem()
 	if (model()->rowCount() <= 0)
 		return;
 
-	QModelIndex curIdx(currentIndex());
-	if (curIdx.isValid() && curIdx.row()-1 > 0)
+	const QModelIndex curIdx(currentIndex());
+	if (curIdx.isValid() && curIdx.row() > 0)
 		moveCursorToItem(model()->index(curIdx.row()-1, 0));
 	else if (!curIdx.isValid())
 		moveCursorToItem(model()->index(0, 0));
+}
+
+void CFileListView::pgUp()
+{
+	const QModelIndex curIdx(currentIndex());
+	if (!curIdx.isValid())
+		return;
+
+	const int numItemsVisible = numRowsVisible();
+	if (numItemsVisible <= 0)
+		return;
+
+	moveCursorToItem(model()->index(std::max(curIdx.row()-numItemsVisible, 0), 0));
+}
+
+void CFileListView::pgDn()
+{
+	const QModelIndex curIdx(currentIndex());
+	if (!curIdx.isValid())
+		return;
+
+	const int numItemsVisible = numRowsVisible();
+	if (numItemsVisible <= 0)
+		return;
+
+	moveCursorToItem(model()->index(std::min(curIdx.row()+numItemsVisible, model()->rowCount()-1), 0));
+}
+
+int CFileListView::numRowsVisible() const
+{
+	// FIXME: rewrite it with indexAt to be O(1)
+	int numRowsVisible = 0;
+	for(int row = 0; row < model()->rowCount(); row++)
+	{
+		if (visualRect(model()->index(row, 0)).intersects(viewport()->rect()))
+			++numRowsVisible;
+	}
+	return numRowsVisible;
 }
 
 void CFileListView::setHeaderAdjustmentRequired(bool required)

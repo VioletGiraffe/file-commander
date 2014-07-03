@@ -74,11 +74,14 @@ void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject sourc
 	ui->_overallProgress->setState(_performer->paused() ? psPaused : psNormal);
 }
 
-void CCopyMoveDialog::onProcessFinished()
+void CCopyMoveDialog::onProcessFinished(QString message)
 {
 	delete _performer;
 	_performer = 0;
 	close();
+
+	if (!message.isEmpty())
+		QMessageBox::information(this, "Operation finished", message);
 }
 
 void CCopyMoveDialog::onCurrentFileChanged(QString file)

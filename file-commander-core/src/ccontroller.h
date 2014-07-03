@@ -30,7 +30,7 @@ public:
 	CController();
 	static CController& get();
 
-	void setPanelContentsChangedListener(PanelContentsChangedListener * listener);
+	void setPanelContentsChangedListener(Panel p, PanelContentsChangedListener * listener);
 	void setDisksChangedListener(IDiskListObserver * listener);
 
 // Notifications from UI
@@ -64,8 +64,10 @@ public:
 	bool createFile(const QString& parentFolder, const QString& name);
 	// Opens a terminal window in the specified folder
 	void openTerminal(const QString& folder);
+	// Calculates total size for the specified objects
+	FilesystemObjectsStatistics calculateStatistics(Panel p, const std::vector<qulonglong> & hashes);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
-	void calculateDirSize(Panel p, qulonglong dirHash);
+	void displayDirSize(Panel p, qulonglong dirHash);
 
 // Getters
 	const CPanel& panel(Panel p) const;
