@@ -11,8 +11,9 @@
 enum FileSystemObjectType { UnknownType, Directory, File };
 
 struct CFileSystemObjectProperties {
-	QString  name;
+	QString  completeBaseName;
 	QString  extension;
+	QString  fullName;
 	QString  parentFolder;
 	QString  fullPath;
 	FileSystemObjectType type;
@@ -52,7 +53,6 @@ public:
 	bool isChildOf(const CFileSystemObject& parent) const;
 	QString absoluteFilePath() const;
 	QString parentDirPath() const;
-	QString baseName() const;
 	const QIcon& icon() const;
 	uint64_t size() const;
 	qulonglong hash() const;
@@ -61,8 +61,10 @@ public:
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);
 
-// Information as should be displayed in the UI
+	// File name without suffix, or folder name
 	QString name() const;
+	// Filename + suffix for files, same as name() for folders
+	QString fullName() const;
 	QString extension() const;
 	QString sizeString() const;
 	QString modificationDateString() const;
@@ -114,6 +116,11 @@ inline QString toPosixSeparators(const QString &path)
 #else
 	return path;
 #endif
+}
+
+inline QString cleanPath(const QString& path)
+{
+	return QString(path).replace("\\\\", "\\").replace("//", "//");
 }
 
 QString fileSizeToString (uint64_t size);

@@ -58,16 +58,16 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 		return descendingOrder;   // always keep directory on top
 
 	// [..] is always on top
-	if (leftItem.name() == "[..]")
+	if (leftItem.isCdUp())
 		return !descendingOrder;
-	else if (rightItem.name() == "[..]")
+	else if (rightItem.isCdUp())
 		return descendingOrder;
 
 	switch (sortColumn)
 	{
 	case NameColumn:
 		// File name and extension sort is case-insensitive
-		return _sorter.lessThan(leftItem.name(), rightItem.name());
+		return _sorter.lessThan(leftItem.fullName(), rightItem.fullName());
 		break;
 	case ExtColumn:
 		if (leftItem.isDir() && rightItem.isDir()) // Sorting directories by name, files - by extension

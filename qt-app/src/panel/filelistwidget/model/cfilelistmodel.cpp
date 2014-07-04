@@ -37,11 +37,11 @@ QVariant CFileListModel::data(const QModelIndex & index, int role /*= Qt::Displa
 	}
 	else if (role == Qt::EditRole)
 	{
-		return _controller.itemByHash(_panel, itemHash(index)).baseName();
+		return _controller.itemByHash(_panel, itemHash(index)).fullName();
 	}
-	else if (role == BaseNameRole)
+	else if (role == FullNameRole)
 	{
-		return _controller.itemByHash(_panel, itemHash(index)).baseName();
+		return _controller.itemByHash(_panel, itemHash(index)).fullName();
 	}
 	else
 		return QStandardItemModel::data(index, role);

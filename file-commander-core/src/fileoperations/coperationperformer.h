@@ -106,4 +106,4 @@ private:
 	CTimeElapsed                  _fileTimeElapsed;
 };
 
-QDir destinationFolder (const QString& absoluteSourcePath, const QString& originPath, const QString& baseDestPath, bool sourceIsDir);
+QDir destinationFolder (const QString& absoluteSourcePath, const QString& originPath, const QString& destPath, bool sourceIsDir);

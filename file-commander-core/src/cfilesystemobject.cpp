@@ -27,15 +27,16 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 		return;
 	}
 
-	_properties.creationDate      = (time_t)_fileInfo.created().toTime_t();
+	_properties.creationDate         = (time_t)_fileInfo.created().toTime_t();
 	if (_type != Directory)
 	{
-		_properties.extension     = _fileInfo.suffix();
-		_properties.name          = _fileInfo.completeBaseName();
+		_properties.extension        = _fileInfo.suffix();
+		_properties.completeBaseName = _fileInfo.completeBaseName();
 	}
 	else
-		_properties.name          = _fileInfo.fileName();
+		_properties.completeBaseName = _fileInfo.baseName();
 
+	_properties.fullName          = _type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
 	_properties.parentFolder      = parentDirPath();
 	_properties.fullPath          = absoluteFilePath();
 	_properties.modificationDate  = _fileInfo.lastModified().toTime_t();
@@ -129,16 +130,21 @@ void CFileSystemObject::setDirSize(uint64_t size)
 	_properties.size = size;
 }
 
-
-// Information as should be displayed in the UI
+// File name without suffix, or folder name
 QString CFileSystemObject::name() const
 {
-	return _type == Directory ? QString("[%1]").arg(_properties.name) : _properties.name;
+	return _properties.completeBaseName;
+}
+
+// Filename + suffix for files, same as name() for folders
+QString CFileSystemObject::fullName() const
+{
+	return _properties.fullName;
 }
 
 QString CFileSystemObject::extension() const
 {
-	if (_properties.type == File && _properties.name.isEmpty()) // File without a name, displaying extension in the name field and adding point to extension
+	if (_properties.type == File && _properties.completeBaseName.isEmpty()) // File without a name, displaying extension in the name field and adding point to extension
 		return QString('.') + _properties.extension;
 	else
 		return _properties.extension;
@@ -358,11 +364,6 @@ FileOperationResultCode CFileSystemObject::remove()
 QString CFileSystemObject::lastErrorMessage() const
 {
 	return _lastError;
-}
-
-QString CFileSystemObject::baseName() const
-{
-	return _fileInfo.fileName();
 }
 
 qulonglong CFileSystemObject::hash() const

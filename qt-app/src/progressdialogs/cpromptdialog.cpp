@@ -68,7 +68,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->lblDestModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
 	}
 
-	_srcFileName = source.baseName();
+	_srcFileName = source.fullName();
 }
 
 UserResponse CPromptDialog::ask()

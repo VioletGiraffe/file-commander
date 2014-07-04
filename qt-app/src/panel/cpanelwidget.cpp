@@ -108,7 +108,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
 	_sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
-	_sortModel->setFilterRole(BaseNameRole);
+	_sortModel->setFilterRole(FullNameRole);
 	_sortModel->setPanelPosition(p);
 	_sortModel->setSourceModel(_model);
 
@@ -146,18 +146,18 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 		QStandardItem * fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
 		if (props.type == Directory)
-			fileNameItem->setData(QString("[%1]").arg(props.name), Qt::DisplayRole);
-		else if (props.name.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
+			fileNameItem->setData(QString("[%1]").arg(items[i].isCdUp() ? QString("..") : props.fullName), Qt::DisplayRole);
+		else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
 			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
 		else
-			fileNameItem->setData(props.name, Qt::DisplayRole);
+			fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
 		fileNameItem->setIcon(items[i].icon());
 		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
 		_model->setItem(i, NameColumn, fileNameItem);
 
 		QStandardItem * fileExtItem = new QStandardItem();
 		fileExtItem->setEditable(false);
-		if (!props.name.isEmpty() && !props.extension.isEmpty())
+		if (!props.completeBaseName.isEmpty() && !props.extension.isEmpty())
 			fileExtItem->setData(props.extension, Qt::DisplayRole);
 		fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
 		_model->setItem(i, ExtColumn, fileExtItem);
@@ -433,7 +433,7 @@ void CPanelWidget::showFavoriteLocationsMenu()
 		QAction * addFolderAction = parentMenu->addAction("Add current folder here...");
 		QObject::connect(addFolderAction, &QAction::triggered, [this, &locations](){
 			const QString path = currentDir();
-			const QString displayName = CFileSystemObject(path).baseName();
+			const QString displayName = CFileSystemObject(path).name();
 			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
 			if (!name.isEmpty() && !path.isEmpty())
 				locations.push_back(CLocationsCollection(name, currentDir()));

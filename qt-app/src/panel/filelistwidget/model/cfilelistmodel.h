@@ -5,7 +5,7 @@
 #include "cpanel.h"
 
 enum Role {
-	BaseNameRole = Qt::UserRole+1
+	FullNameRole = Qt::UserRole+1
 };
 
 class CController;

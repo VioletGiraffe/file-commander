@@ -121,12 +121,19 @@ void COperationPerformer::copyFiles()
 	uint64_t totalSize = 0, sizeProcessed = 0;
 	const auto destination = flattenSourcesAndCalcDest(totalSize);
 	assert (destination.size() == _source.size());
+	// If there's just one file to copy it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
+	QString newFileName;
+	if (_source.size() == 1 && _source.front().isFile())
+	{
+		QFileInfo destInfo(_dest);
+		newFileName = !destInfo.isDir() ? destInfo.fileName() : QString();
+	}
 
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal operation of condition variable  */)
 	{
-		_observer->onCurrentFileChangedCallback(it->baseName());
+		_observer->onCurrentFileChangedCallback(it->fullName());
 
 		QFileInfo sourceFile(it->qFileInfo());
 		if (!sourceFile.exists())
@@ -156,7 +163,7 @@ void COperationPerformer::copyFiles()
 			_userResponse = urNone;
 		}
 
-		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(it->baseName()));
+		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(newFileName.isEmpty() ? it->fullName() : newFileName));
 		if (destInfo.absoluteFilePath() == sourceFile.absoluteFilePath())
 			continue;
 
@@ -243,10 +250,10 @@ void COperationPerformer::copyFiles()
 
 			if (it->isFile())
 			{
-				const FileOperationResultCode result = it->moveAtomically(destination[currentItemIndex].absolutePath() + '/', _newName);
+				const FileOperationResultCode result = it->moveAtomically(destination[currentItemIndex].absolutePath() + '/', _newName.isEmpty() ? newFileName : _newName);
 				if (result != rcOk)
 				{
-					qDebug() << "Error moving file " << it->absoluteFilePath() << " to " << destination[currentItemIndex].absolutePath() + _newName << ", error: " << it->lastErrorMessage();
+					qDebug() << "Error moving file " << it->absoluteFilePath() << " to " << destination[currentItemIndex].absolutePath() + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
 					assert(result != rcOk);
 				}
 
@@ -320,7 +327,7 @@ void COperationPerformer::copyFiles()
 						std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 					_fileTimeElapsed.resume();
-					result = it->copyChunk(chunkSize, destPath, _newName);
+					result = it->copyChunk(chunkSize, destPath, _newName.isEmpty() ? newFileName : _newName);
 					const int totalPercentage = totalSize > 0 ? static_cast<int>((sizeProcessed + it->bytesCopied()) * 100 / totalSize) : 0;
 					const int filePercentage = it->size() > 0 ? static_cast<int>(it->bytesCopied() * 100 / it->size()) : 0;
 					//TODO: smooth speed
@@ -339,7 +346,7 @@ void COperationPerformer::copyFiles()
 
 				if (result != rcOk)
 				{
-					qDebug() << "Error copying file " << it->absoluteFilePath() << " to " << destPath + _newName << ", error: " << it->lastErrorMessage();
+					qDebug() << "Error copying file " << it->absoluteFilePath() << " to " << destPath + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
 					assert(result != rcOk);
 				}
 			}
@@ -366,7 +373,7 @@ void COperationPerformer::deleteFiles()
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal condition variable operation */)
 	{
-		_observer->onCurrentFileChangedCallback(it->baseName());
+		_observer->onCurrentFileChangedCallback(it->fullName());
 
 		QFileInfo sourceFile(it->qFileInfo());
 		if (!sourceFile.exists())
@@ -465,7 +472,6 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 		if (o.isFile())
 		{
 			totalSize += o.size();
-			QDir baseSourceDir (o.parentDirPath());
 			destinations.emplace_back(destinationFolder(o.absoluteFilePath(), o.parentDirPath(), _dest, false));
 			newSourceVector.push_back(o);
 		}
@@ -487,14 +493,12 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 	return destinations;
 }
 
-QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &baseDestPath, bool /*sourceIsDir*/)
+QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)
 {
 	QString localPath = absoluteSourcePath.mid(originPath.length());
 	assert(!localPath.isEmpty());
-	if (localPath[0] == '\\' || localPath[0] == '/')
+	if (localPath.startsWith('\\') || localPath.startsWith('/'))
 		localPath.remove(0, 1);
-	QString path = QDir(baseDestPath).absoluteFilePath(localPath);
-	const QString fullDestDir = QFileInfo(QDir(baseDestPath).absoluteFilePath(localPath)).absolutePath();
 
-	return fullDestDir;
+	return QFileInfo(QFileInfo(destPath).absoluteDir().absoluteFilePath(localPath)).absoluteDir();
 }

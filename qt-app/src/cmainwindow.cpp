@@ -157,7 +157,8 @@ void CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	if (files.empty() || destDir.isEmpty())
 		return;
 
-	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
+	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir + toNativeSeparators("/") + files.front().fullName()) : destDir;
+	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
@@ -361,7 +362,7 @@ void CMainWindow::createFolder()
 		return;
 
 	const auto currentItem = _currentPanel->currentItemHash() != 0 ? _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()) : CFileSystemObject();
-	const QString currentItemName = !currentItem.isCdUp() ? currentItem.name() : QString();
+	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
 	const QString dirName = QInputDialog::getText(this, "New folder", "Enter the name for the new directory", QLineEdit::Normal, currentItemName);
 	if (!dirName.isEmpty())
 	{
@@ -384,7 +385,7 @@ void CMainWindow::itemNameEdited(Panel panel, qulonglong hash, QString newName)
 {
 	CFileSystemObject& item = _controller->itemByHash(panel, hash);
 	if (item.rename(newName, true) != rcOk)
-		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.baseName() + " to " + newName);
+		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.fullName() + " to " + newName);
 }
 
 
@@ -445,7 +446,7 @@ void CMainWindow::pasteCurrentFileName()
 {
 	if (_currentPanel && _currentPanel->currentItemHash() != 0)
 	{
-		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).baseName();
+		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).fullName();
 		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}
