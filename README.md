@@ -6,7 +6,7 @@ Qt-based cross-platform Total Commander-like dual panel file manager for Windows
 ![Windows screenshot](/../gh-pages/screenshots/Windows/Clip.jpg?raw=true)
 
 
-**Building**
+***Building***
 
 * A compiler with C++ 0x/11 support is required (std::thread, lambda functions)
 * Mac and Linux: open the project file in Qt Creator and build it.
