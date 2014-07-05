@@ -47,10 +47,16 @@ void CFileListView::setPanelPosition(enum Panel p)
 }
 
 // Preserves item's selection state
-void CFileListView::moveCursorToItem(const QModelIndex& index)
+void CFileListView::moveCursorToItem(const QModelIndex& index, bool invertSelection)
 {
 	if (index.isValid() && selectionModel()->model()->hasIndex(index.row(), index.column()))
 	{
+		const QModelIndex currentIdx = currentIndex();
+		if (invertSelection && currentIdx.isValid())
+		{
+			for (int row = currentIdx.row(); row < index.row(); ++row)
+				selectionModel()->setCurrentIndex(model()->index(row, 0), QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
+		}
 		selectionModel()->setCurrentIndex(index, QItemSelectionModel::Current | QItemSelectionModel::Rows);
 		scrollTo(index);
 	}
@@ -154,21 +160,21 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
 		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
 	{
-		if ((event->modifiers() & (~Qt::KeypadModifier)) == Qt::NoModifier)
+		if ((event->modifiers() & (~Qt::KeypadModifier) & (~Qt::ShiftModifier)) == Qt::NoModifier)
 		{
-			//TODO: PgUp, PgDwn, Home, End
+			const bool shiftPressed = (event->modifiers() & Qt::ShiftModifier) != 0;
 			if (event->key() == Qt::Key_Down)
-				moveCursorToNextItem();
+				moveCursorToNextItem(shiftPressed);
 			else if (event->key() == Qt::Key_Up)
-				moveCursorToPreviousItem();
+				moveCursorToPreviousItem(shiftPressed);
 			else if (event->key() == Qt::Key_Home)
-				moveCursorToItem(model()->index(0, 0));
+				moveCursorToItem(model()->index(0, 0), shiftPressed);
 			else if (event->key() == Qt::Key_End)
-				moveCursorToItem(model()->index(model()->rowCount()-1, 0));
+				moveCursorToItem(model()->index(model()->rowCount()-1, 0), shiftPressed);
 			else if (event->key() == Qt::Key_PageUp)
-				pgUp();
+				pgUp(shiftPressed);
 			else if (event->key() == Qt::Key_PageDown)
-				pgDn();
+				pgDn(shiftPressed);
 
 			event->accept();
 			return;
@@ -278,31 +284,31 @@ void CFileListView::selectRegion(const QModelIndex &start, const QModelIndex &en
 	}
 }
 
-void CFileListView::moveCursorToNextItem()
+void CFileListView::moveCursorToNextItem(bool invertSelection)
 {
 	if (model()->rowCount() <= 0)
 		return;
 
 	const QModelIndex curIdx(currentIndex());
 	if (curIdx.isValid() && curIdx.row()+1 < model()->rowCount())
-		moveCursorToItem(model()->index(curIdx.row()+1, 0));
+		moveCursorToItem(model()->index(curIdx.row()+1, 0), invertSelection);
 	else if (!curIdx.isValid())
-		moveCursorToItem(model()->index(0, 0));
+		moveCursorToItem(model()->index(0, 0), invertSelection);
 }
 
-void CFileListView::moveCursorToPreviousItem()
+void CFileListView::moveCursorToPreviousItem(bool invertSelection)
 {
 	if (model()->rowCount() <= 0)
 		return;
 
 	const QModelIndex curIdx(currentIndex());
 	if (curIdx.isValid() && curIdx.row() > 0)
-		moveCursorToItem(model()->index(curIdx.row()-1, 0));
+		moveCursorToItem(model()->index(curIdx.row()-1, 0), invertSelection);
 	else if (!curIdx.isValid())
-		moveCursorToItem(model()->index(0, 0));
+		moveCursorToItem(model()->index(0, 0), invertSelection);
 }
 
-void CFileListView::pgUp()
+void CFileListView::pgUp(bool invertSelection)
 {
 	const QModelIndex curIdx(currentIndex());
 	if (!curIdx.isValid())
@@ -312,10 +318,10 @@ void CFileListView::pgUp()
 	if (numItemsVisible <= 0)
 		return;
 
-	moveCursorToItem(model()->index(std::max(curIdx.row()-numItemsVisible, 0), 0));
+	moveCursorToItem(model()->index(std::max(curIdx.row()-numItemsVisible, 0), 0), invertSelection);
 }
 
-void CFileListView::pgDn()
+void CFileListView::pgDn(bool invertSelection)
 {
 	const QModelIndex curIdx(currentIndex());
 	if (!curIdx.isValid())
@@ -325,7 +331,7 @@ void CFileListView::pgDn()
 	if (numItemsVisible <= 0)
 		return;
 
-	moveCursorToItem(model()->index(std::min(curIdx.row()+numItemsVisible, model()->rowCount()-1), 0));
+	moveCursorToItem(model()->index(std::min(curIdx.row()+numItemsVisible, model()->rowCount()-1), 0), invertSelection);
 }
 
 int CFileListView::numRowsVisible() const

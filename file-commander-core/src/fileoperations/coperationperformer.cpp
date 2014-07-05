@@ -102,6 +102,7 @@ void COperationPerformer::threadFunc()
 		deleteFiles();
 		break;
 	default:
+		assert(false);
 		return;
 	}
 }

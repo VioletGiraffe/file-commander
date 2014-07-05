@@ -38,7 +38,7 @@ public:
 	void setHeaderAdjustmentRequired(bool required);
 
 	// Preserves item's selection state
-	void moveCursorToItem(const QModelIndex &item);
+	void moveCursorToItem(const QModelIndex &item, bool invertSelection = false);
 
 	// Header management
 	void saveHeaderState();
@@ -69,10 +69,10 @@ protected slots:
 
 private:
 	void selectRegion(const QModelIndex& start, const QModelIndex& end);
-	void moveCursorToNextItem();
-	void moveCursorToPreviousItem();
-	void pgUp();
-	void pgDn();
+	void moveCursorToNextItem(bool invertSelection = false);
+	void moveCursorToPreviousItem(bool invertSelection = false);
+	void pgUp(bool invertSelection = false);
+	void pgDn(bool invertSelection = false);
 
 	int numRowsVisible() const;
 
