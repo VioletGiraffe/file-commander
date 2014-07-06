@@ -17,7 +17,8 @@ CFileListView::CFileListView(QWidget *parent) :
 	_panelPosition(UnknownPanel),
 	_bHeaderAdjustmentRequired(true),
 	_bEditInProgress(false),
-	_singleMouseClickValid(false)
+	_singleMouseClickValid(false),
+	_shiftPressedItemSelected(false)
 {
 	setMouseTracking(true);
 	setItemDelegate(new CFileListItemDelegate);
@@ -55,7 +56,7 @@ void CFileListView::moveCursorToItem(const QModelIndex& index, bool invertSelect
 		if (invertSelection && currentIdx.isValid())
 		{
 			for (int row = currentIdx.row(); row < index.row(); ++row)
-				selectionModel()->setCurrentIndex(model()->index(row, 0), QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
+				selectionModel()->setCurrentIndex(model()->index(row, 0), (!_shiftPressedItemSelected ? QItemSelectionModel::Select : QItemSelectionModel::Deselect) | QItemSelectionModel::Rows);
 		}
 		selectionModel()->setCurrentIndex(index, QItemSelectionModel::Current | QItemSelectionModel::Rows);
 		scrollTo(index);
@@ -210,6 +211,10 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 			emit ctrlShiftEnterPressed();
 
 		return;
+	}
+	else if (event->key() == Qt::Key_Shift)
+	{
+		_shiftPressedItemSelected = currentIndex().isValid() ? selectionModel()->isSelected(currentIndex()) : false;
 	}
 	else
 		emit keyPressed(event->text(), event->key(), event->modifiers());

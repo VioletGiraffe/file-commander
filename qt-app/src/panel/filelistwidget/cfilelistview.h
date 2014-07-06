@@ -89,4 +89,5 @@ private:
 	bool                                _bEditInProgress;
 	QPoint                              _singleMouseClickPos;
 	bool                                _singleMouseClickValid;
+	bool                                _shiftPressedItemSelected;
 };
