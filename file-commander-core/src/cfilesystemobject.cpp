@@ -48,7 +48,7 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 	_properties.parentFolder      = parentDirPath();
 	_properties.fullPath          = absoluteFilePath();
 	_properties.modificationDate  = _fileInfo.lastModified().toTime_t();
-	_properties.size              = _fileInfo.size();
+    _properties.size              = _type == File ? _fileInfo.size() : 0;
 	_properties.type              = _type;
 
 	const QByteArray hash = QCryptographicHash::hash(_properties.fullPath.toUtf8(), QCryptographicHash::Md5);
