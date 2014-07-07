@@ -203,7 +203,12 @@ const CFileSystemObject& CPanel::itemByHash( qulonglong hash ) const
 
 CFileSystemObject& CPanel::itemByHash( qulonglong hash )
 {
-	assert(_indexByHash.count(hash) > 0);
+    if (_indexByHash.count(hash) == 0)
+    {
+        static CFileSystemObject dummy;
+        dummy = CFileSystemObject();
+        return dummy;
+    }
 	return itemByIndex(_indexByHash[hash]);
 }
 
