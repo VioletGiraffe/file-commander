@@ -36,7 +36,13 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 		_properties.completeBaseName = _fileInfo.completeBaseName();
 	}
 	else
+    {
+        const QString suffix = _fileInfo.completeSuffix();
 		_properties.completeBaseName = _fileInfo.baseName();
+        if (!suffix.isEmpty())
+            _properties.completeBaseName += "." + suffix;
+    }
+
 
 	_properties.fullName          = _type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
 	_properties.parentFolder      = parentDirPath();
