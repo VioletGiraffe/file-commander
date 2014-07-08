@@ -432,6 +432,7 @@ void COperationPerformer::deleteFiles()
 
 					if (!it->makeWritable())
 					{
+                        // TODO: show a message
 						qDebug() << "Error making file" << it->absoluteFilePath() << "writable";
 						assert(false);
 						_userResponse = urNone;
@@ -501,5 +502,8 @@ QDir destinationFolder(const QString &absoluteSourcePath, const QString &originP
 	if (localPath.startsWith('\\') || localPath.startsWith('/'))
 		localPath.remove(0, 1);
 
-	return QFileInfo(QFileInfo(destPath).absoluteDir().absoluteFilePath(localPath)).absoluteDir();
+    const QString tmp = QFileInfo(destPath).absoluteFilePath();
+    assert(QString(destPath+"/").remove("//") == QString(tmp+"/").remove("//"));
+    const QString result = destPath + "/" + localPath;
+    return QFileInfo(result).absolutePath();
 }
