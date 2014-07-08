@@ -20,7 +20,7 @@ void sleep(int ms)
 
 COperationPerformer::COperationPerformer(Operation operation, std::vector<CFileSystemObject> source, QString destination) :
 	_source(source),
-	_dest(destination),
+	_dest(toPosixSeparators(destination)),
 	_op(operation),
 	_paused(false),
 	_inProgress(false),
@@ -432,7 +432,7 @@ void COperationPerformer::deleteFiles()
 
 					if (!it->makeWritable())
 					{
-                        // TODO: show a message
+						// TODO: show a message
 						qDebug() << "Error making file" << it->absoluteFilePath() << "writable";
 						assert(false);
 						_userResponse = urNone;
@@ -502,8 +502,8 @@ QDir destinationFolder(const QString &absoluteSourcePath, const QString &originP
 	if (localPath.startsWith('\\') || localPath.startsWith('/'))
 		localPath.remove(0, 1);
 
-    const QString tmp = QFileInfo(destPath).absoluteFilePath();
-    assert(QString(destPath+"/").remove("//") == QString(tmp+"/").remove("//"));
-    const QString result = destPath + "/" + localPath;
-    return QFileInfo(result).absolutePath();
+	const QString tmp = QFileInfo(destPath).absoluteFilePath();
+	assert(QString(destPath+"/").remove("//") == QString(tmp+"/").remove("//"));
+	const QString result = destPath + "/" + localPath;
+	return QFileInfo(result).absolutePath();
 }
