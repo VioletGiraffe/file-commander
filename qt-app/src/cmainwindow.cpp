@@ -113,10 +113,6 @@ void CMainWindow::initButtons()
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::WidgetWithChildrenShortcut)));
 
 	// Command line
-	//QShortcut * scut = new QShortcut(QKeySequence("Ctrl+E"), ui->commandLine, 0, 0, Qt::WidgetWithChildrenShortcut);
-	//connect(scut, SIGNAL(activated()), SLOT(cycleLastCommands()));
-	//_shortcuts.push_back(std::shared_ptr<QShortcut>(scut));
-	//_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(cycleLastCommands()))));
 	ui->commandLine->setSelectPreviousItemShortcut(QKeySequence("Ctrl+E"));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(selectPreviousCommandInTheCommandLine()), 0, Qt::WidgetWithChildrenShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Esc"), this, SLOT(clearCommandLineAndRestoreFocus()), 0, Qt::WidgetWithChildrenShortcut)));

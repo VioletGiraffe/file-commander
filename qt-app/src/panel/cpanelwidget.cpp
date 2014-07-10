@@ -24,7 +24,9 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_panelPosition(UnknownPanel),
 	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), 0, Qt::WidgetWithChildrenShortcut),
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut),
-	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), 0, Qt::WidgetWithChildrenShortcut)
+	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), 0, Qt::WidgetWithChildrenShortcut),
+	_copyShortcut(QKeySequence("Ctrl+C"), this, SLOT(copySelectionToClipboard()), 0, Qt::WidgetWithChildrenShortcut),
+	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
 	ui->_infoLabel->clear();
@@ -483,6 +485,21 @@ void CPanelWidget::showFilterEditor()
 void CPanelWidget::filterTextChanged(QString filterText)
 {
 	_sortModel->setFilterWildcard(filterText);
+}
+
+void CPanelWidget::copySelectionToClipboard() const
+{
+	const QModelIndexList selection(_selectionModel->selectedRows());
+	QModelIndexList mappedIndexes;
+	for (const auto& index: selection)
+		mappedIndexes.push_back(_sortModel->mapToSource(index));
+
+	QApplication::clipboard()->setMimeData(_model->mimeData(mappedIndexes));
+}
+
+void CPanelWidget::pasteSelectionFromClipboard()
+{
+
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const

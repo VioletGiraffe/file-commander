@@ -79,6 +79,8 @@ private slots:
 	void fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
 	void showFilterEditor();
 	void filterTextChanged(QString filterText);
+	void copySelectionToClipboard() const;
+	void pasteSelectionFromClipboard();
 
 private:
 // Callbacks
@@ -105,6 +107,8 @@ private:
 	QShortcut                       _calcDirSizeShortcut;
 	QShortcut                       _selectCurrentItemShortcut;
 	QShortcut                       _showFilterEditorShortcut;
+	QShortcut                       _copyShortcut;
+	QShortcut                       _pasteShortcut;
 };
 
 #endif // CPANELWIDGET_H
