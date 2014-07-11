@@ -80,6 +80,7 @@ private slots:
 	void showFilterEditor();
 	void filterTextChanged(QString filterText);
 	void copySelectionToClipboard() const;
+	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard();
 
 private:
@@ -108,6 +109,7 @@ private:
 	QShortcut                       _selectCurrentItemShortcut;
 	QShortcut                       _showFilterEditorShortcut;
 	QShortcut                       _copyShortcut;
+	QShortcut                       _cutShortcut;
 	QShortcut                       _pasteShortcut;
 };
 

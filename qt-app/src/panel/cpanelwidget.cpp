@@ -26,6 +26,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut),
 	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), 0, Qt::WidgetWithChildrenShortcut),
 	_copyShortcut(QKeySequence("Ctrl+C"), this, SLOT(copySelectionToClipboard()), 0, Qt::WidgetWithChildrenShortcut),
+	_cutShortcut(QKeySequence("Ctrl+X"), this, SLOT(cutSelectionToClipboard()), 0, Qt::WidgetWithChildrenShortcut),
 	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
@@ -494,12 +495,42 @@ void CPanelWidget::copySelectionToClipboard() const
 	for (const auto& index: selection)
 		mappedIndexes.push_back(_sortModel->mapToSource(index));
 
-	QApplication::clipboard()->setMimeData(_model->mimeData(mappedIndexes));
+	QClipboard * clipBoard = QApplication::clipboard();
+	if (clipBoard)
+	{
+		QMimeData * data = _model->mimeData(mappedIndexes);
+		if (data)
+			data->setProperty("cut", false);
+		clipBoard->setMimeData(data);
+	}
+}
+
+void CPanelWidget::cutSelectionToClipboard() const
+{
+	const QModelIndexList selection(_selectionModel->selectedRows());
+	QModelIndexList mappedIndexes;
+	for (const auto& index: selection)
+		mappedIndexes.push_back(_sortModel->mapToSource(index));
+
+	QClipboard * clipBoard = QApplication::clipboard();
+	if (clipBoard)
+	{
+		QMimeData * data = _model->mimeData(mappedIndexes);
+		if (data)
+			data->setProperty("cut", true);
+		clipBoard->setMimeData(data);
+	}
 }
 
 void CPanelWidget::pasteSelectionFromClipboard()
 {
-
+	QClipboard * clipBoard = QApplication::clipboard();
+	if (clipBoard)
+	{
+		const bool owns = clipBoard->ownsClipboard();
+		const QMimeData * data = clipBoard->mimeData();
+		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
+	}
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
