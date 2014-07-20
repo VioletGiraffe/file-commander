@@ -52,65 +52,103 @@ private:
 	std::vector<ITEMIDLIST*> _array;
 };
 
+bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, IContextMenu*& imenu);
 
 // Pos must be global
 bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> objects, int xPos, int yPos, void * parentWindow)
 {
-	if (objects.empty())
-		return false;
-
-	std::vector<ITEMIDLIST*> ids;
-	std::vector<LPCITEMIDLIST> relativeIds;
-	IShellFolder * ifolder = 0;
-	for (size_t i = 0; i < objects.size(); ++i)
-	{
-		std::replace(objects[i].begin(), objects[i].end(), '/', '\\');
-		ids.push_back(0);
-		HRESULT result = SHParseDisplayName(objects[i].c_str(), 0, &ids.back(), 0, 0);
-		if (!SUCCEEDED(result) || !ids.back())
-		{
-			ids.pop_back();
-			continue;
-		}
-
-		relativeIds.push_back(0);
-		result = SHBindToParent(ids.back(), IID_IShellFolder, (void**)&ifolder, &relativeIds.back());
-		if (!SUCCEEDED(result) || !relativeIds.back())
-			relativeIds.pop_back();
-		if (i < objects.size() - 1 && ifolder)
-			ifolder->Release();
-	}
-
-	CItemIdArrayReleaser arrayReleaser (ids);
-
-	assert (parentWindow);
-	assert (ifolder);
-	assert (!relativeIds.empty());
-
 	IContextMenu * imenu = 0;
-	HRESULT result = ifolder->GetUIObjectOf((HWND)parentWindow, (UINT)relativeIds.size(), (const ITEMIDLIST **)relativeIds.data(), IID_IContextMenu, 0, (void**)&imenu);
-	if (!SUCCEEDED(result) || !imenu)
+	HMENU hMenu = NULL;
+	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
+
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	HMENU hMenu = CreatePopupMenu();
-	if (!hMenu)
-		return false;
-	if (SUCCEEDED(imenu->QueryContextMenu(hMenu, 0, 1, 0x7FFF, CMF_NORMAL)))
+	const int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, (HWND)parentWindow, NULL);
+	if (iCmd > 0)
 	{
-		int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, (HWND)parentWindow, NULL);
-		if (iCmd > 0)
-		{
-			CMINVOKECOMMANDINFOEX info = { 0 };
-			info.cbSize = sizeof(info);
-			info.fMask = CMIC_MASK_UNICODE;
-			info.hwnd = (HWND)parentWindow;
-			info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
-			info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
-			info.nShow = SW_SHOWNORMAL;
-			imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
-		}
+		CMINVOKECOMMANDINFOEX info = { 0 };
+		info.cbSize = sizeof(info);
+		info.fMask = CMIC_MASK_UNICODE;
+		info.hwnd = (HWND)parentWindow;
+		info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
+		info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
+		info.nShow = SW_SHOWNORMAL;
+		imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
 	}
+
+	DestroyMenu(hMenu);
+
+	return true;
+}
+
+bool CShell::copyObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow)
+{
+	IContextMenu * imenu = 0;
+	HMENU hMenu = NULL;
+	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
+		return false;
+
+	CComInterfaceReleaser menuReleaser(imenu);
+
+	const int iCmd = 26;
+	CMINVOKECOMMANDINFOEX info = { 0 };
+	info.cbSize = sizeof(info);
+	info.fMask = CMIC_MASK_UNICODE;
+	info.hwnd = (HWND)parentWindow;
+	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
+	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
+	info.nShow = SW_SHOWNORMAL;
+	imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+
+	DestroyMenu(hMenu);
+
+	return true;
+}
+
+bool CShell::cutObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow)
+{
+	IContextMenu * imenu = 0;
+	HMENU hMenu = NULL;
+	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
+		return false;
+
+	CComInterfaceReleaser menuReleaser(imenu);
+
+	const int iCmd = 25;
+	CMINVOKECOMMANDINFOEX info = { 0 };
+	info.cbSize = sizeof(info);
+	info.fMask = CMIC_MASK_UNICODE;
+	info.hwnd = (HWND)parentWindow;
+	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
+	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
+	info.nShow = SW_SHOWNORMAL;
+	imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+
+	DestroyMenu(hMenu);
+
+	return true;
+}
+
+bool CShell::pasteFromClipboard(std::wstring destFolder, void * parentWindow)
+{
+	IContextMenu * imenu = 0;
+	HMENU hMenu = NULL;
+	if (!prepareContextMenuForObjects(std::vector<std::wstring>(1, destFolder), parentWindow, hMenu, imenu) || !hMenu || !imenu)
+		return false;
+
+	CComInterfaceReleaser menuReleaser(imenu);
+
+	const int iCmd = 27;
+	CMINVOKECOMMANDINFOEX info = { 0 };
+	info.cbSize = sizeof(info);
+	info.fMask = CMIC_MASK_UNICODE;
+	info.hwnd = (HWND)parentWindow;
+	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
+	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
+	info.nShow = SW_SHOWNORMAL;
+	imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+
 	DestroyMenu(hMenu);
 
 	return true;
@@ -237,6 +275,50 @@ bool CShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 	}
 	DestroyMenu(hMenu);
 	return true;
+}
+
+bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * parentWindow, HMENU& hmenu, IContextMenu*& imenu)
+{
+	if (objects.empty())
+		return false;
+
+	std::vector<ITEMIDLIST*> ids;
+	std::vector<LPCITEMIDLIST> relativeIds;
+	IShellFolder * ifolder = 0;
+	for (size_t i = 0; i < objects.size(); ++i)
+	{
+		std::replace(objects[i].begin(), objects[i].end(), '/', '\\');
+		ids.push_back(0);
+		HRESULT result = SHParseDisplayName(objects[i].c_str(), 0, &ids.back(), 0, 0);
+		if (!SUCCEEDED(result) || !ids.back())
+		{
+			ids.pop_back();
+			continue;
+		}
+
+		relativeIds.push_back(0);
+		result = SHBindToParent(ids.back(), IID_IShellFolder, (void**)&ifolder, &relativeIds.back());
+		if (!SUCCEEDED(result) || !relativeIds.back())
+			relativeIds.pop_back();
+		if (i < objects.size() - 1 && ifolder)
+			ifolder->Release();
+	}
+
+	CItemIdArrayReleaser arrayReleaser(ids);
+
+	assert (parentWindow);
+	assert (ifolder);
+	assert (!relativeIds.empty());
+
+	imenu = 0;
+	HRESULT result = ifolder->GetUIObjectOf((HWND)parentWindow, (UINT)relativeIds.size(), (const ITEMIDLIST **)relativeIds.data(), IID_IContextMenu, 0, (void**)&imenu);
+	if (!SUCCEEDED(result) || !imenu)
+		return false;
+
+	hmenu = CreatePopupMenu();
+	if (!hmenu)
+		return false;
+	return (SUCCEEDED(imenu->QueryContextMenu(hmenu, 0, 1, 0x7FFF, CMF_NORMAL)));
 }
 
 #elif defined __linux__

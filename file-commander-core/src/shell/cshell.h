@@ -12,6 +12,10 @@ public:
 	// Pos must be global
 	static bool openShellContextMenuForObjects(std::vector<std::wstring> objects, int xPos, int yPos, void * parentWindow);
 
+	static bool copyObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow);
+	static bool cutObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow);
+	static bool pasteFromClipboard(std::wstring destFolder, void * parentWindow);
+
 	static std::wstring toolTip(std::wstring itemPath);
 
 	static bool deleteItems(std::vector<std::wstring> items, bool moveToTrash = true, void *parentWindow = 0);

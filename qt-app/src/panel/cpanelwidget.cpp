@@ -490,10 +490,18 @@ void CPanelWidget::filterTextChanged(QString filterText)
 
 void CPanelWidget::copySelectionToClipboard() const
 {
+#ifndef _WIN32
 	const QModelIndexList selection(_selectionModel->selectedRows());
 	QModelIndexList mappedIndexes;
 	for (const auto& index: selection)
 		mappedIndexes.push_back(_sortModel->mapToSource(index));
+
+	if (mappedIndexes.empty())
+	{
+		auto currentIndex = _selectionModel->currentIndex();
+		if (currentIndex.isValid())
+			mappedIndexes.push_back(_sortModel->mapToSource(currentIndex));
+	}
 
 	QClipboard * clipBoard = QApplication::clipboard();
 	if (clipBoard)
@@ -503,14 +511,29 @@ void CPanelWidget::copySelectionToClipboard() const
 			data->setProperty("cut", false);
 		clipBoard->setMimeData(data);
 	}
+#else
+	std::vector<std::wstring> paths;
+	auto hashes = selectedItemsHashes();
+	for (auto hash: hashes)
+		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).absoluteFilePath().toStdWString());
+	CShell::copyObjectsToClipboard(paths, (void*)winId());
+#endif
 }
 
 void CPanelWidget::cutSelectionToClipboard() const
 {
+#ifndef _WIN32
 	const QModelIndexList selection(_selectionModel->selectedRows());
 	QModelIndexList mappedIndexes;
 	for (const auto& index: selection)
 		mappedIndexes.push_back(_sortModel->mapToSource(index));
+
+	if (mappedIndexes.empty())
+	{
+		auto currentIndex = _selectionModel->currentIndex();
+		if (currentIndex.isValid())
+			mappedIndexes.push_back(_sortModel->mapToSource(currentIndex));
+	}
 
 	QClipboard * clipBoard = QApplication::clipboard();
 	if (clipBoard)
@@ -520,10 +543,18 @@ void CPanelWidget::cutSelectionToClipboard() const
 			data->setProperty("cut", true);
 		clipBoard->setMimeData(data);
 	}
+#else
+	std::vector<std::wstring> paths;
+	auto hashes = selectedItemsHashes();
+	for (auto hash: hashes)
+		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).absoluteFilePath().toStdWString());
+	CShell::cutObjectsToClipboard(paths, (void*)winId());
+#endif
 }
 
 void CPanelWidget::pasteSelectionFromClipboard()
 {
+#ifndef _WIN32
 	QClipboard * clipBoard = QApplication::clipboard();
 	if (clipBoard)
 	{
@@ -531,6 +562,9 @@ void CPanelWidget::pasteSelectionFromClipboard()
 		const QMimeData * data = clipBoard->mimeData();
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
+#else
+	CShell::pasteFromClipboard(currentDir().toStdWString(), (void*)winId());
+#endif
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
