@@ -556,9 +556,9 @@ void CPanelWidget::pasteSelectionFromClipboard()
 {
 #ifndef _WIN32
 	QClipboard * clipBoard = QApplication::clipboard();
+	QClipboard * clipBoard = 0;
 	if (clipBoard)
 	{
-		const bool owns = clipBoard->ownsClipboard();
 		const QMimeData * data = clipBoard->mimeData();
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
