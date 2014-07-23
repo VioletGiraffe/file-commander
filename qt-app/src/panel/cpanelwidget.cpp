@@ -556,7 +556,6 @@ void CPanelWidget::pasteSelectionFromClipboard()
 {
 #ifndef _WIN32
 	QClipboard * clipBoard = QApplication::clipboard();
-	QClipboard * clipBoard = 0;
 	if (clipBoard)
 	{
 		const QMimeData * data = clipBoard->mimeData();
