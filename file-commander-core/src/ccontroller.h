@@ -9,13 +9,6 @@
 #include "plugininterface/cpluginproxy.h"
 #include "favoritelocationslist/cfavoritelocations.h"
 
-struct ItemId
-{
-	ItemId (size_t index_, qulonglong hash_) : index(index_), hash(hash_) {}
-	size_t index;
-	qulonglong hash;
-};
-
 class CController : private CDiskEnumerator::IDiskListObserver
 {
 public:
@@ -51,13 +44,13 @@ public:
 
 // Operations
 	// Navigates specified panel up the directory tree
-	void navigateUp (Panel p);
+	void navigateUp(Panel p);
 	// Go to the previous location from history, if any
 	void navigateBack(Panel p);
 	// Go to the next location from history, if any
 	void navigateForward(Panel p);
 	// Sets the specified path, if possible. Otherwise reverts to the previously set path
-	FileOperationResultCode setPath(Panel p, const QString& path);
+	FileOperationResultCode setPath(Panel p, const QString& path, NavigationOperation operation);
 	// Creates a folder with a specified name at the specified parent folder
 	bool createFolder(const QString& parentFolder, const QString& name);
 	// Creates a file with a specified name at the specified parent folder
@@ -88,9 +81,6 @@ public:
 
 	// Returns hash of an item that was the last selected in the specified dir
 	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
-
-// Global helper functions
-	static QString shellExecutable();
 
 private:
 	virtual void disksChanged();

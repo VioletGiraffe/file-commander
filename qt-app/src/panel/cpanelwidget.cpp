@@ -126,7 +126,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 }
 
 // Returns the list of items added to the view
-void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, bool sameDirAsPrevious)
+void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, bool sameDirAsPrevious, NavigationOperation operation)
 {
 	const time_t start = clock();
 
@@ -200,7 +200,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 //			ui->_list->moveCursorToItem(indexToMoveCursorTo);
 		}
 	}
-	else
+	else if (operation != nopForward)
 	{
 		const qulonglong lastVisitedItemInDirectory = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPath());
 		if (lastVisitedItemInDirectory != 0)
@@ -215,7 +215,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 }
 
-void CPanelWidget::fillFromPanel(const CPanel &panel)
+void CPanelWidget::fillFromPanel(const CPanel &panel, NavigationOperation operation)
 {
 	auto& itemList = panel.list();
 	const auto previousSelection = selectedItemsHashes(true);
@@ -223,7 +223,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel)
 	for (auto hash = previousSelection.begin(); hash != previousSelection.end(); ++hash)
 		selectedItemsHashes.insert(*hash);
 
-	fillFromList(itemList, toPosixSeparators(panel.currentDirPath()) == _directoryCurrentlyBeingDisplayed);
+	fillFromList(itemList, toPosixSeparators(panel.currentDirPath()) == _directoryCurrentlyBeingDisplayed, operation);
 	_directoryCurrentlyBeingDisplayed = toPosixSeparators(panel.currentDirPath());
 
 	// Restoring previous selection
@@ -399,13 +399,13 @@ void CPanelWidget::showHistory()
 
 	QAction * result = menu.exec(mapToGlobal(ui->_btnHistory->geometry().bottomLeft() + QPoint(0, 3)));
 	if (result)
-		_controller.setPath(_panelPosition, result->text());
+		_controller.setPath(_panelPosition, result->text(), nopOther);
 }
 
 void CPanelWidget::toRoot()
 {
 	if (!_currentDisk.isEmpty())
-		_controller.setPath(_panelPosition, _currentDisk);
+		_controller.setPath(_panelPosition, _currentDisk, nopOther);
 }
 
 void CPanelWidget::showFavoriteLocationsMenu()
@@ -420,7 +420,7 @@ void CPanelWidget::showFavoriteLocationsMenu()
 				QAction * action = parentMenu->addAction(item.displayName);
 				const QString& path = item.absolutePath;
 				QObject::connect(action, &QAction::triggered, [this, path](){
-					_controller.setPath(_panelPosition, path);
+					_controller.setPath(_panelPosition, path, nopOther);
 				});
 			}
 			else
@@ -709,10 +709,10 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	return QWidget::eventFilter(object, e);
 }
 
-void CPanelWidget::panelContentsChanged( Panel p )
+void CPanelWidget::panelContentsChanged(Panel p , NavigationOperation operation)
 {
 	if (p == _panelPosition)
-		fillFromPanel(_controller.panel(_panelPosition));
+		fillFromPanel(_controller.panel(_panelPosition), operation);
 }
 
 CFileListView *CPanelWidget::fileListView() const

@@ -1,6 +1,9 @@
 #include "cshell.h"
 
 #include "QtCoreIncludes"
+#include "settings/csettings.h"
+#include "settings.h"
+
 #include <assert.h>
 #include <algorithm>
 #include <thread>
@@ -9,6 +12,25 @@
 #ifdef _WIN32
 #include <Windows.h>
 #endif
+
+QString CShell::shellExecutable()
+{
+#ifdef _WIN32
+	static const QString defaultShell = QProcessEnvironment::systemEnvironment().value("ComSpec", "cmd.exe");
+	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
+#elif defined __APPLE__
+	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
+#elif defined __linux__
+	QString consoleExecutable = "/usr/bin/konsole"; // KDE
+	if (!QFileInfo(consoleExecutable).exists())
+		consoleExecutable = "/usr/bin/gnome-terminal"; // Gnome
+	if (!QFileInfo(consoleExecutable).exists())
+		consoleExecutable = QString();
+	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, consoleExecutable).toString();
+#else
+	#error unknown platform
+#endif
+}
 
 void CShell::executeShellCommand(const QString& command, const QString& workingDir)
 {
@@ -55,6 +77,7 @@ private:
 bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, IContextMenu*& imenu);
 
 // Pos must be global
+
 bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> objects, int xPos, int yPos, void * parentWindow)
 {
 	IContextMenu * imenu = 0;

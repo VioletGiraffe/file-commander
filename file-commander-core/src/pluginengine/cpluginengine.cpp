@@ -65,7 +65,7 @@ const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_p
 	return _plugins;
 }
 
-void CPluginEngine::panelContentsChanged(Panel p)
+void CPluginEngine::panelContentsChanged(Panel p, NavigationOperation /*operation*/)
 {
 	CController & controller = CController::get();
 	std::map<qulonglong /*hash*/, CFileSystemObject> contents;

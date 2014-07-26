@@ -8,6 +8,7 @@
 #include "settings.h"
 #include "settings/csettings.h"
 #include "ccontroller.h"
+#include "shell/cshell.h"
 
 #ifdef _WIN32
 #pragma warning(pop)
@@ -20,7 +21,7 @@ CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 	ui->setupUi(this);
 
 	CSettings s;
-	ui->_shellCommandName->setText(s.value(KEY_OTHER_SHELL_COMMAND_NAME, CController::get().shellExecutable()).toString());
+	ui->_shellCommandName->setText(s.value(KEY_OTHER_SHELL_COMMAND_NAME, CShell::shellExecutable()).toString());
 }
 
 CSettingsPageOther::~CSettingsPageOther()

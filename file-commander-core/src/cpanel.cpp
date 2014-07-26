@@ -14,10 +14,10 @@ CPanel::CPanel(Panel position) :
 	CSettings s;
 	const QStringList historyList(s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList());
 	_history.addLatest(historyList.toVector().toStdVector());
-	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString());
+	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString(), nopOther);
 }
 
-FileOperationResultCode CPanel::setPath(const QString &path)
+FileOperationResultCode CPanel::setPath(const QString &path, NavigationOperation operation)
 {
 #if defined __linux__ || defined __APPLE__
 	const QString posixPath(path.contains("~") ? QString(path).replace("~", getenv("HOME")) : path);
@@ -33,7 +33,7 @@ FileOperationResultCode CPanel::setPath(const QString &path)
 	if (!_currentDir.exists() || _currentDir.entryList().isEmpty()) // No dot and dotdot on Linux means the dir is not accessible
 	{
 		_currentDir.setPath(oldPath);
-		sendContentsChangedNotification();
+		sendContentsChangedNotification(nopOther);
 		return rcDirNotAccessible;
 	}
 
@@ -73,25 +73,25 @@ FileOperationResultCode CPanel::setPath(const QString &path)
 		}
 	}
 
-	refreshFileList();
+	refreshFileList(operation);
 	return rcOk;
 }
 
 // Navigates up the directory tree
 void CPanel::navigateUp()
 {
-	QDir tmpDir (_currentDir);
+	QDir tmpDir(_currentDir);
 	if (tmpDir.cdUp())
-		setPath(tmpDir.absolutePath());
+		setPath(tmpDir.absolutePath(), nopCdUp);
 	else
-		sendContentsChangedNotification();
+		sendContentsChangedNotification(nopOther);
 }
 
 // Go to the previous location from history
 bool CPanel::navigateBack()
 {
 	if (!_history.empty())
-		return setPath(_history.navigateBack()) == rcOk;
+		return setPath(_history.navigateBack(), nopOther) == rcOk;
 	return false;
 }
 
@@ -99,7 +99,7 @@ bool CPanel::navigateBack()
 bool CPanel::navigateForward()
 {
 	if (!_history.empty())
-		return setPath(_history.navigateForward()) == rcOk;
+		return setPath(_history.navigateForward(), nopOther) == rcOk;
 	return false;
 }
 
@@ -134,18 +134,18 @@ qulonglong CPanel::currentItemInFolder(const QString &dir) const
 }
 
 // Enumerates objects in the current directory
-void CPanel::refreshFileList()
+void CPanel::refreshFileList(NavigationOperation operation)
 {
-	time_t start = clock();
-	QFileInfoList list = _currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+	const time_t start = clock();
+	const QFileInfoList list(_currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System));
 	_list.clear();
 	_indexByHash.clear();
 	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
-	for (int i = 0; i < list.size(); ++i)
+	for (const auto& item: list)
 	{
-		if (list[i].absoluteFilePath() != "/..")
+		if (item.absoluteFilePath() != "/..")
 		{
-			_list.push_back(CFileSystemObject(list[i]));
+			_list.push_back(CFileSystemObject(item));
 			if (!_list.back().exists() || (!showHiddenFiles && _list.back().isHidden()))
 				_list.pop_back();
 			else
@@ -154,7 +154,7 @@ void CPanel::refreshFileList()
 	}
 
 	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << "," << _list.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
-	sendContentsChangedNotification();
+	sendContentsChangedNotification(operation);
 }
 
 // Returns the current list of objects on this panel
@@ -203,12 +203,12 @@ const CFileSystemObject& CPanel::itemByHash( qulonglong hash ) const
 
 CFileSystemObject& CPanel::itemByHash( qulonglong hash )
 {
-    if (_indexByHash.count(hash) == 0)
-    {
-        static CFileSystemObject dummy;
-        dummy = CFileSystemObject();
-        return dummy;
-    }
+	if (_indexByHash.count(hash) == 0)
+	{
+		static CFileSystemObject dummy;
+		dummy = CFileSystemObject();
+		return dummy;
+	}
 	return itemByIndex(_indexByHash[hash]);
 }
 
@@ -253,14 +253,14 @@ void CPanel::displayDirSize(qulonglong dirHash)
 	{
 		const FilesystemObjectsStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));
 		item.setDirSize(stats.occupiedSpace);
-		sendContentsChangedNotification();
+		sendContentsChangedNotification(nopOther);
 	}
 }
 
-void CPanel::sendContentsChangedNotification() const
+void CPanel::sendContentsChangedNotification(NavigationOperation operation) const
 {
 	for (auto listener: _panelContentsChangedListeners)
-		listener->panelContentsChanged(_panelPosition);
+		listener->panelContentsChanged(_panelPosition, operation);
 }
 
 // Settings have changed
@@ -271,12 +271,12 @@ void CPanel::settingsChanged()
 
 void CPanel::contentsChanged(QString /*path*/)
 {
-	refreshFileList();
+	refreshFileList(nopOther);
 }
 
 void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *listener)
 {
 	assert(std::find(_panelContentsChangedListeners.begin(), _panelContentsChangedListeners.end(), listener) == _panelContentsChangedListeners.end()); // Why would we want to set the same listener twice? That'd probably be a mistake.
 	_panelContentsChangedListeners.push_back(listener);
-	sendContentsChangedNotification();
+	sendContentsChangedNotification(nopOther);
 }

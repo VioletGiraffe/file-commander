@@ -2,6 +2,7 @@
 #include "settings/csettings.h"
 #include "settings.h"
 #include "pluginengine/cpluginengine.h"
+#include "shell/cshell.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -38,19 +39,19 @@ void CController::setDisksChangedListener(CController::IDiskListObserver *listen
 }
 
 // Updates the list of files in the current directory this panel is viewing, and send the new state to UI
-void CController::refreshPanelContents (Panel p)
+void CController::refreshPanelContents(Panel p)
 {
-	panel(p).refreshFileList();
+	panel(p).refreshFileList(nopOther);
 }
 
 // Creates a new tab for the specified panel, returns tab ID
-int CController::tabCreated (Panel /*p*/)
+int CController::tabCreated(Panel /*p*/)
 {
 	return -1;
 }
 
 // Removes a tab for the specified panel and tab ID
-void CController::tabRemoved (Panel /*panel*/, int /*tabId*/)
+void CController::tabRemoved(Panel /*panel*/, int /*tabId*/)
 {
 
 }
@@ -62,7 +63,7 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	if (item.isDir())
 	{
 		// Attempting to enter this dir
-		const FileOperationResultCode result = setPath(p, item.absoluteFilePath());
+		const FileOperationResultCode result = setPath(p, item.absoluteFilePath(), nopForward);
 		return result;
 	}
 	else if (item.isFile())
@@ -84,7 +85,7 @@ void CController::diskSelected(Panel p, size_t index)
 	assert(index < _diskEnumerator.drives().size());
 	const QString drivePath = _diskEnumerator.drives()[index].fileSystemObject.absoluteFilePath();
 	const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
-	setPath(p, lastPathForDrive);
+	setPath(p, lastPathForDrive, nopOther);
 }
 
 // Porgram settings have changed
@@ -123,13 +124,13 @@ void CController::navigateForward(Panel p)
 }
 
 // Sets the specified path, if possible. Otherwise reverts to the previously set path
-FileOperationResultCode CController::setPath(Panel p, const QString &path)
+FileOperationResultCode CController::setPath(Panel p, const QString &path, NavigationOperation operation)
 {
 	CPanel& targetPanel = panel(p);
 	const QString prevPath = targetPanel.currentDirPath();
-	const FileOperationResultCode result = targetPanel.setPath(path);
-	if (result != rcOk)
-		targetPanel.setPath(prevPath);
+	const FileOperationResultCode result = targetPanel.setPath(path, operation);
+	if (result != rcOk) // Restoring the previous position
+		targetPanel.setPath(prevPath, nopOther);
 
 	saveDirectoryForCurrentDisk(p);
 	disksChanged(); // To select a proper drive button
@@ -165,7 +166,7 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 void CController::openTerminal(const QString &folder)
 {
 #ifdef _WIN32
-	const bool started = QProcess::startDetached(shellExecutable(), QStringList(), folder);
+	const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
 	assert(started);
 	Q_UNUSED(started);
 #elif defined __APPLE__
@@ -289,25 +290,6 @@ CFavoriteLocations &CController::favoriteLocations()
 qulonglong CController::currentItemInFolder(Panel p, const QString &dir) const
 {
 	return panel(p).currentItemInFolder(dir);
-}
-
-QString CController::shellExecutable()
-{
-#ifdef _WIN32
-	static const QString defaultShell = QProcessEnvironment::systemEnvironment().value("ComSpec", "cmd.exe");
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
-#elif defined __APPLE__
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
-#elif defined __linux__
-	QString consoleExecutable = "/usr/bin/konsole"; // KDE
-	if (!QFileInfo(consoleExecutable).exists())
-		consoleExecutable = "/usr/bin/gnome-terminal"; // Gnome
-	if (!QFileInfo(consoleExecutable).exists())
-		consoleExecutable = QString();
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, consoleExecutable).toString();
-#else
-	#error unknown platform
-#endif
 }
 
 void CController::disksChanged()

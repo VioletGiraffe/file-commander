@@ -1,14 +1,16 @@
 #ifndef CSHELLMENU_H
 #define CSHELLMENU_H
 
+#include <QString>
+
 #include <string>
 #include <vector>
-
-class QString;
 
 class CShell
 {
 public:
+	static QString shellExecutable();
+
 	// Pos must be global
 	static bool openShellContextMenuForObjects(std::vector<std::wstring> objects, int xPos, int yPos, void * parentWindow);
 

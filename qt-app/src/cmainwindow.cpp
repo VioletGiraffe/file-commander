@@ -287,7 +287,7 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 
 void CMainWindow::folderPathSet(QString path, const CPanelWidget *panel)
 {
-	_controller->setPath(panel->panelPosition(), path);
+	_controller->setPath(panel->panelPosition(), path, nopOther);
 }
 
 void CMainWindow::splitterContextMenuRequested(QPoint pos)
@@ -478,7 +478,7 @@ void CMainWindow::showHiddenFiles()
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
 {
 	if (_currentPanel)
-		_currentPanel->fillFromList(recurseDirectoryItems(_currentPanel->currentDir(), false), false);
+		_currentPanel->fillFromList(recurseDirectoryItems(_currentPanel->currentDir(), false), false, nopOther);
 }
 
 void CMainWindow::openSettingsDialog()
