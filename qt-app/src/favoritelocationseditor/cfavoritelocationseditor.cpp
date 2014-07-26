@@ -45,6 +45,9 @@ private:
 	std::list<CLocationsCollection>::iterator _itemIterator;
 	std::list<CLocationsCollection>& _parentList;
 	bool _bIsCategory;
+
+private:
+	CFavoriteLocationsListItem& operator=(const CFavoriteLocationsListItem&) {return *this;}
 };
 
 CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) :
@@ -69,7 +72,7 @@ CFavoriteLocationsEditor::~CFavoriteLocationsEditor()
 	delete ui;
 }
 
-void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * previous)
+void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * /*previous*/)
 {
 	_currentItem = dynamic_cast<CFavoriteLocationsListItem*>(current);
 	if (_currentItem)

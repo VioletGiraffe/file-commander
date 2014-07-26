@@ -35,11 +35,11 @@ SOURCES += \
 	src/settings/csettingspageother.cpp \
 	src/historycombobox/chistorycombobox.cpp \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
-    src/progressdialogs/cfileoperationconfirmationprompt.cpp \
-    src/settings/csettingspageoperations.cpp \
-    src/favoritelocationseditor/cfavoritelocationseditor.cpp \
-    src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
-    src/panel/filelistwidget/cfilelistfilterdialog.cpp
+	src/progressdialogs/cfileoperationconfirmationprompt.cpp \
+	src/settings/csettingspageoperations.cpp \
+	src/favoritelocationseditor/cfavoritelocationseditor.cpp \
+	src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
+	src/panel/filelistwidget/cfilelistfilterdialog.cpp
 
 HEADERS += \
 	src/QtAppIncludes \
@@ -58,11 +58,11 @@ HEADERS += \
 	src/settings/csettingspageother.h \
 	src/historycombobox/chistorycombobox.h \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
-    src/progressdialogs/cfileoperationconfirmationprompt.h \
-    src/settings/csettingspageoperations.h \
-    src/favoritelocationseditor/cfavoritelocationseditor.h \
-    src/favoritelocationseditor/cnewfavoritelocationdialog.h \
-    src/panel/filelistwidget/cfilelistfilterdialog.h
+	src/progressdialogs/cfileoperationconfirmationprompt.h \
+	src/settings/csettingspageoperations.h \
+	src/favoritelocationseditor/cfavoritelocationseditor.h \
+	src/favoritelocationseditor/cnewfavoritelocationdialog.h \
+	src/panel/filelistwidget/cfilelistfilterdialog.h
 
 FORMS += \
 	src/cmainwindow.ui \
@@ -73,11 +73,11 @@ FORMS += \
 	src/settings/csettingspageinterface.ui \
 	src/settings/csettingspageedit.ui \
 	src/settings/csettingspageother.ui \
-    src/progressdialogs/cfileoperationconfirmationprompt.ui \
-    src/settings/csettingspageoperations.ui \
-    src/favoritelocationseditor/cfavoritelocationseditor.ui \
-    src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
-    src/panel/filelistwidget/cfilelistfilterdialog.ui
+	src/progressdialogs/cfileoperationconfirmationprompt.ui \
+	src/settings/csettingspageoperations.ui \
+	src/favoritelocationseditor/cfavoritelocationseditor.ui \
+	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
+	src/panel/filelistwidget/cfilelistfilterdialog.ui
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
@@ -86,7 +86,7 @@ LIBS += -L../bin -lcore -lqtutils
 win*{
 	LIBS += -lole32 -lShell32 -lUser32
 	QMAKE_CXXFLAGS += /MP /wd4251
-	QMAKE_CXXFLAGS_WARN_ON = -W3
+	QMAKE_CXXFLAGS_WARN_ON = /W4
 
 	RC_FILE = resources/file_commander.rc
 }

@@ -31,4 +31,5 @@ void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 void CFileListFilterDialog::closeEvent(QCloseEvent * e)
 {
 	emit filterTextChanged(QString());
+	QDialog::closeEvent(e);
 }

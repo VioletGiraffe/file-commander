@@ -15,7 +15,7 @@ struct FileListViewEventObserver {
 };
 
 struct FileListReturnPressedObserver : FileListViewEventObserver {
-	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& index) override {return false;}
+	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex&) override {return false;}
 };
 
 struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
