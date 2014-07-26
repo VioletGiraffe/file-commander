@@ -148,41 +148,45 @@ void CMainWindow::tabKeyPressed()
 	_currentPanel->setFocusToFileList();
 }
 
-void CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
+bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
 {
 	if (files.empty() || destDir.isEmpty())
-		return;
+		return false;
 
 	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir + toNativeSeparators("/") + files.front().fullName()) : destDir;
 	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
-			return;
+			return false;
 	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, prompt.text(), this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
 	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
 	dialog->show();
+
+	return true;
 }
 
-void CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
+bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
 {
 	if (files.empty() || destDir.isEmpty())
-		return;
+		return false;
 
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		CFileOperationConfirmationPrompt prompt("Move files", QString("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
 		if (prompt.exec() != QDialog::Accepted)
-			return;
+			return false;
 	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, destDir, this);
 	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
 	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
 	dialog->show();
+
+	return true;
 }
 
 

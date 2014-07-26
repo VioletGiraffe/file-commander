@@ -112,11 +112,11 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 		return false;
 
 	if (action == Qt::CopyAction)
-		CMainWindow::get()->copyFiles(objects, dest.absoluteFilePath());
+		return CMainWindow::get()->copyFiles(objects, dest.absoluteFilePath());
 	else if (action == Qt::MoveAction)
-		CMainWindow::get()->moveFiles(objects, dest.absoluteFilePath());
-
-	return true;
+		return CMainWindow::get()->moveFiles(objects, dest.absoluteFilePath());
+	else
+		return false;
 }
 
 QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
