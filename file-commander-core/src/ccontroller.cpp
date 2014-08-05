@@ -63,7 +63,7 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	if (item.isDir())
 	{
 		// Attempting to enter this dir
-		const FileOperationResultCode result = setPath(p, item.absoluteFilePath(), nopForward);
+		const FileOperationResultCode result = setPath(p, item.absoluteFilePath(), item.isCdUp() ? nopCdUp : nopForward);
 		return result;
 	}
 	else if (item.isFile())
