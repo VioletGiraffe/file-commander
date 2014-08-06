@@ -19,11 +19,14 @@ CImageViewerWindow::CImageViewerWindow(QWidget *parent) :
 			displayImage(fileName);
 	});
 
-	connect(ui->actionReload, &QAction::triggered, [this](){
+	connect(ui->actionReload, &QAction::triggered, [this]() {
 		displayImage(_currentImagePath);
 	});
 
 	connect(ui->actionClose, SIGNAL(triggered()), SLOT(close()));
+
+	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
+	connect(this, SIGNAL(destroyed()), escScut, SLOT(deleteLater()));
 }
 
 CImageViewerWindow::~CImageViewerWindow()

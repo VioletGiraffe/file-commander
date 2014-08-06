@@ -44,6 +44,9 @@ CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
 
 	connect(&_findDialog, SIGNAL(find()), SLOT(find()));
 	connect(&_findDialog, SIGNAL(findNext()), SLOT(findNext()));
+
+	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
+	connect(this, SIGNAL(destroyed()), escScut, SLOT(deleteLater()));
 }
 
 CTextViewerWindow::~CTextViewerWindow()
