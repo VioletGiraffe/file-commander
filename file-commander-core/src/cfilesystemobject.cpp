@@ -114,12 +114,12 @@ bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 
 QString CFileSystemObject::absoluteFilePath() const
 {
-	return toNativeSeparators(_fileInfo.absoluteFilePath());
+	return _fileInfo.absoluteFilePath();
 }
 
 QString CFileSystemObject::parentDirPath() const
 {
-	return toNativeSeparators(_fileInfo.absolutePath());
+	return _fileInfo.absolutePath();
 }
 
 const QIcon& CFileSystemObject::icon() const

@@ -460,12 +460,14 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 	totalSize = 0;
 	std::vector<CFileSystemObject> newSourceVector;
 	std::vector<QDir> destinations;
+	const bool destIsFileName = _source.size() == 1 && _source.front().isFile() && !_dest.endsWith("/") && !_dest.endsWith("\\");
 	for (auto& o: _source)
 	{
 		if (o.isFile())
 		{
 			totalSize += o.size();
-			destinations.emplace_back(destinationFolder(o.absoluteFilePath(), o.parentDirPath(), _dest, false));
+			// Ignoring the new file name here if it was supplied. We're only calculating dest dir here, not the file name
+			destinations.emplace_back(destinationFolder(o.absoluteFilePath(), o.parentDirPath(), destIsFileName ? CFileSystemObject(_dest).parentDirPath() : _dest, false));
 			newSourceVector.push_back(o);
 		}
 		else if (o.isDir())
