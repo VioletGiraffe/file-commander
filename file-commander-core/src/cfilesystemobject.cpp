@@ -6,6 +6,8 @@
 #if defined __linux__ || defined __APPLE__
 #include <unistd.h>
 #include <errno.h>
+#elif defined _WIN32
+#include <Windows.h>
 #endif
 
 CFileSystemObject::CFileSystemObject() : _type(UnknownType)
@@ -173,8 +175,29 @@ QString CFileSystemObject::modificationDateString() const
 
 
 // Operations
+// Renames a dir or a file. Unlike move, it requires that destination is on the same volume
 FileOperationResultCode CFileSystemObject::rename(const QString &newName, bool relativeName)
 {
+#ifdef _WIN32
+	if (!exists())
+	{
+		assert(exists());
+		return rcObjectDoesntExist;
+	}
+	else
+	{
+		const QString newPath = relativeName ? QDir(parentDirPath()).absoluteFilePath(newName) : newName;
+		if (QFileInfo(newPath).exists())
+			return rcTargetAlreadyExists;
+		else
+		{
+			WCHAR origNameW[32768] = {0}, newNameW[32768] = {0};
+			toNativeSeparators(QString("\\\\?\\") + absoluteFilePath()).toWCharArray(origNameW);
+			toNativeSeparators(QString("\\\\?\\") + newPath).toWCharArray(newNameW);
+			return MoveFileW(origNameW, newNameW) != 0 ? rcOk : rcFail;
+		}
+	}
+#else
 	if (!exists())
 	{
 		assert(exists());
@@ -202,6 +225,7 @@ FileOperationResultCode CFileSystemObject::rename(const QString &newName, bool r
 	}
 
 	return rcFail;
+#endif // _WIN32
 }
 
 FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFolder, const QString &newName)

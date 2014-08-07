@@ -70,6 +70,7 @@ public:
 	QString modificationDateString() const;
 
 // Operations
+	// Renames a dir or a file. Unlike move, it requires that destination is on the same volume
 	FileOperationResultCode rename(const QString& newName, bool relativeName = false);
 	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = QString());
 	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = QString());

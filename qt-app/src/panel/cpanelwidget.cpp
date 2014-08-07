@@ -377,7 +377,12 @@ void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previou
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 {
-	emit itemNameEdited(_panelPosition, hash, newName);
+	CFileSystemObject& item = _controller.itemByHash(_panelPosition, hash);
+	const auto result = item.rename(newName, true);
+	if (result == rcTargetAlreadyExists)
+		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.fullName() + " to " + newName + " , target already exists");
+	else if (result != rcOk)
+		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.fullName() + " to " + newName);
 }
 
 void CPanelWidget::showHistory()

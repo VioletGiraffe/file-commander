@@ -58,9 +58,6 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->leftPanel, SIGNAL(folderPathSet(QString,const CPanelWidget*)), SLOT(folderPathSet(QString,const CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(folderPathSet(QString,const CPanelWidget*)), SLOT(folderPathSet(QString,const CPanelWidget*)));
 
-	connect(ui->rightPanel, SIGNAL(itemNameEdited(Panel,qulonglong,QString)), SLOT(itemNameEdited(Panel,qulonglong,QString)));
-	connect(ui->leftPanel, SIGNAL(itemNameEdited(Panel,qulonglong,QString)), SLOT(itemNameEdited(Panel,qulonglong,QString)));
-
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
@@ -380,14 +377,6 @@ void CMainWindow::createFile()
 		assert(ok);
 	}
 }
-
-void CMainWindow::itemNameEdited(Panel panel, qulonglong hash, QString newName)
-{
-	CFileSystemObject& item = _controller->itemByHash(panel, hash);
-	if (item.rename(newName, true) != rcOk)
-		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename a file ") + item.fullName() + " to " + newName);
-}
-
 
 // Other UI commands
 void CMainWindow::viewFile()
