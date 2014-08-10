@@ -127,6 +127,8 @@ void CMainWindow::initActions()
 	connect(ui->actionShowAllFiles, SIGNAL(triggered()), SLOT(showAllFilesFromCurrentFolderAndBelow()));
 	connect(ui->action_Settings, SIGNAL(triggered()), SLOT(openSettingsDialog()));
 	connect(ui->actionCalculate_occupied_space, SIGNAL(triggered()), SLOT(calculateOccupiedSpace()));
+
+	connect(ui->actionVerify, &QAction::triggered, &validateHeap);
 }
 
 // For manual focus management

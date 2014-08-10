@@ -28,7 +28,7 @@ HEADERS += \
 	src/shell/cshell.h \
 	include/settings.h \
 	include/QtCoreIncludes \
-    src/favoritelocationslist/cfavoritelocations.h
+	src/favoritelocationslist/cfavoritelocations.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -39,7 +39,7 @@ SOURCES += \
 	src/fileoperations/coperationperformer.cpp \
 	src/utils/ctimeelapsed.cpp \
 	src/shell/cshell.cpp \
-    src/favoritelocationslist/cfavoritelocations.cpp
+	src/favoritelocationslist/cfavoritelocations.cpp
 
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 
@@ -53,6 +53,7 @@ include(src/plugininterface/plugininterface.pri)
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = -W4
+	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 }
 mac*{
 

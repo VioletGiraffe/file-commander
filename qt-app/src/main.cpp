@@ -14,6 +14,7 @@ private:
 
 int main(int argc, char *argv[])
 {
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);
 	CFileCommanderApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
 	app.setApplicationName("File Commander");

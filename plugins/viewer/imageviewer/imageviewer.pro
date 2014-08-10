@@ -26,6 +26,7 @@ LIBS += -L../../../bin -lcore -lqtutils
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = -W4
+	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 }
 
 mac*{

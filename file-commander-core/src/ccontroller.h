@@ -8,6 +8,12 @@
 #include "diskenumerator/cdiskenumerator.h"
 #include "plugininterface/cpluginproxy.h"
 #include "favoritelocationslist/cfavoritelocations.h"
+#include <crtdbg.h>
+
+inline void validateHeap()
+{
+	//assert(_CrtCheckMemory() != 0);
+}
 
 class CController : private CDiskEnumerator::IDiskListObserver
 {
