@@ -1,5 +1,4 @@
 #include "cfilelistitemdelegate.h"
-#include "ccontroller.h"
 
 CFileListItemDelegate::CFileListItemDelegate(QObject *parent) :
 	QStyledItemDelegate(parent)
@@ -10,9 +9,7 @@ QWidget *CFileListItemDelegate::createEditor(QWidget * parent, const QStyleOptio
 {
 	QLineEdit * editor = dynamic_cast<QLineEdit*>(QStyledItemDelegate::createEditor(parent, option, index));
 	connect(editor, &QLineEdit::returnPressed, [=](){
-		//QStyledItemDelegate::setModelData(editor, const_cast<QAbstractItemModel*>(index.model()), index);
-		//QMessageBox::warning(0, "Failed to rename a file", "Failed to rename");
-		validateHeap();
+		QStyledItemDelegate::setModelData(editor, const_cast<QAbstractItemModel*>(index.model()), index);
 	});
 	return editor;
 }
