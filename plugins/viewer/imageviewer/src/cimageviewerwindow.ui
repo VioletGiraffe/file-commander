@@ -76,9 +76,6 @@
    <property name="text">
     <string>Close</string>
    </property>
-   <property name="shortcut">
-    <string>Esc</string>
-   </property>
   </action>
  </widget>
  <customwidgets>

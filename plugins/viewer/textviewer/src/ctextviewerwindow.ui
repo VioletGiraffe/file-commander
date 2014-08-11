@@ -136,9 +136,6 @@
    <property name="text">
     <string>Close</string>
    </property>
-   <property name="shortcut">
-    <string>Esc</string>
-   </property>
   </action>
   <action name="actionFind">
    <property name="text">
