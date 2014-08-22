@@ -1,4 +1,5 @@
 TEMPLATE = subdirs
+CONFIG += ordered
 
 SUBDIRS += qtutils file_commander_core imageviewerplugin textviewerplugin qt_app
 

@@ -66,3 +66,7 @@ FORMS += \
 
 RESOURCES += \
 	src/icons.qrc
+
+mac*|linux*{
+	PRE_TARGETDEPS += $${DESTDIR}/libcore.a
+}

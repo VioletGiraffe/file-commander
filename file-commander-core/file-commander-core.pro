@@ -74,3 +74,7 @@ LIBS += -L../bin -lqtutils
 win32*:!*msvc2012:*msvc* {
 	QMAKE_CXXFLAGS += /FS
 }
+
+mac*|linux*{
+	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a
+}
