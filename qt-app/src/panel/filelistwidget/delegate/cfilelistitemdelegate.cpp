@@ -1,20 +1,27 @@
 #include "cfilelistitemdelegate.h"
+#include <assert.h>
 
 CFileListItemDelegate::CFileListItemDelegate(QObject *parent) :
 	QStyledItemDelegate(parent)
 {
 }
 
-QWidget *CFileListItemDelegate::createEditor(QWidget * parent, const QStyleOptionViewItem & option, const QModelIndex & index) const
+void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & index) const
 {
-	QLineEdit * editor = dynamic_cast<QLineEdit*>(QStyledItemDelegate::createEditor(parent, option, index));
-	connect(editor, &QLineEdit::returnPressed, [=](){
-		QStyledItemDelegate::setModelData(editor, const_cast<QAbstractItemModel*>(index.model()), index);
-	});
-	return editor;
-}
-
-void CFileListItemDelegate::setModelData(QWidget * /*editor*/, QAbstractItemModel * /*model*/, const QModelIndex & /*index*/) const
-{
-	// Doing nothing since we only want to save changes when Enter is pressed
+	QStyledItemDelegate::setEditorData(editor, index);
+	QLineEdit * lineEditor = dynamic_cast<QLineEdit*>(editor);
+	assert(lineEditor);
+	const QString itemName = lineEditor->text();
+	const int dot = itemName.indexOf('.');
+	if (dot != -1)
+	{
+		// TODO: replace this with the new QTimer::singleShot lambda syntax once it's available (presumably Qt 5.4)
+		QTimer* timer = new QTimer();
+		timer->setSingleShot(true);
+		connect(timer, &QTimer::timeout, [=](){
+			lineEditor->setSelection(0, dot);
+			timer->deleteLater();
+		});
+		timer->start(0);
+	}
 }
