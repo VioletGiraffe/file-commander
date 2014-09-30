@@ -10,6 +10,7 @@ class CHistoryComboBox : public QComboBox
 public:
 	CHistoryComboBox(QWidget * parent);
 
+	void setClearEditorOnItemActivation(bool clear);
 	void setSelectPreviousItemShortcut(const QKeySequence& selectPreviousItemShortcut);
 	bool eventFilter(QObject *, QEvent *) override;
 
@@ -38,6 +39,7 @@ private:
 	// QShortcut doesn't work properly with this class for some reason, so here's a hack for creating a keyboard shortcut to selectPreviousItem
 	QKeySequence _selectPreviousItemShortcut;
 	bool _bHistoryMode;
+	bool _bClearEditorOnItemActivation;
 };
 
 #endif // CHISTORYCOMBOBOX_H

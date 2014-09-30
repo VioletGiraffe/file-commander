@@ -55,7 +55,6 @@ public:
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
 	void focusReceived(CPanelWidget * panel);
-	void folderPathSet(QString newPath, const CPanelWidget * panel);
 	void fileListViewKeyPressedSignal(CPanelWidget* panelWidget, QString keyText, int key, Qt::KeyboardModifiers modifiers);
 
 protected:
@@ -64,14 +63,12 @@ protected:
 private slots:
 	void showContextMenuForItems(QPoint pos);
 	void showContextMenuForDisk(QPoint pos);
-	void onFolderPathSet();
 	void calcDirectorySize();
 	void invertCurrentItemSelection();
 	void driveButtonClicked();
 	void selectionChanged(QItemSelection selected, QItemSelection deselected);
 	void currentItemChanged(QModelIndex current, QModelIndex previous);
 	void itemNameEdited(qulonglong hash, QString newName);
-	void showHistory();
 	void toRoot();
 	void showFavoriteLocationsMenu();
 	void showFavoriteLocationsEditor();
@@ -81,8 +78,11 @@ private slots:
 	void copySelectionToClipboard() const;
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard();
+	void pathFromHistoryActivated(QString path);
 
 private:
+	void fillHistory();
+
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
 	void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex) override;

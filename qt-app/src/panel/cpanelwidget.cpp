@@ -8,6 +8,7 @@
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
 #include "pluginengine/cpluginengine.h"
 #include "../favoritelocationseditor/cfavoritelocationseditor.h"
+#include "widgets/clineedit.h"
 
 #include <assert.h>
 #include <time.h>
@@ -30,14 +31,18 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
+
 	ui->_infoLabel->clear();
+
+	ui->_pathNavigator->setLineEdit(new CLineEdit);
+	ui->_pathNavigator->setHistoryMode(true);
+	connect(ui->_pathNavigator, SIGNAL(activated(QString)), SLOT(pathFromHistoryActivated(QString)));
+	connect(ui->_pathNavigator, SIGNAL(itemActivated(QString)), SLOT(pathFromHistoryActivated(QString)));
 
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
 	connect(ui->_list, SIGNAL(keyPressed(QString,int,Qt::KeyboardModifiers)), SLOT(fileListViewKeyPressed(QString,int,Qt::KeyboardModifiers)));
 
-	connect(ui->_pathNavigator, SIGNAL(returnPressed()), SLOT(onFolderPathSet()));
 	connect(ui->_btnFavs, SIGNAL(clicked()), SLOT(showFavoriteLocationsMenu()));
-	connect(ui->_btnHistory, SIGNAL(clicked()), SLOT(showHistory()));
 	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
 	connect(&_filterDialog, SIGNAL(filterTextChanged(QString)), SLOT(filterTextChanged(QString)));
@@ -123,6 +128,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 	connect(_selectionModel, SIGNAL(currentChanged(QModelIndex,QModelIndex)), SLOT(currentItemChanged(QModelIndex,QModelIndex)));
 
 	_controller.setPanelContentsChangedListener(p, this);
+
+	fillHistory();
 }
 
 // Returns the list of items added to the view
@@ -235,12 +242,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, NavigationOperation operat
 				_selectionModel->select(_sortModel->index(row, 0), QItemSelectionModel::Rows | QItemSelectionModel::Select);
 		}
 
-	const QString currentPath(panel.currentDirPath());
-	const QString sep = toNativeSeparators("/");
-	if (!currentPath.endsWith(sep))
-		ui->_pathNavigator->setText(currentPath + sep);
-	else
-		ui->_pathNavigator->setText(currentPath);
+	fillHistory();
 }
 
 void CPanelWidget::showContextMenuForItems(QPoint pos)
@@ -283,11 +285,6 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 #else
 	Q_UNUSED(pos);
 #endif
-}
-
-void CPanelWidget::onFolderPathSet()
-{
-	emit folderPathSet(toPosixSeparators(ui->_pathNavigator->text()), this);
 }
 
 void CPanelWidget::calcDirectorySize()
@@ -383,28 +380,6 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename \"") + item.fullName() + "\" to \"" + newName + "\" , target already exists");
 	else if (result != rcOk)
 		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename \"") + item.fullName() + "\" to \"" + newName + "\"");
-}
-
-void CPanelWidget::showHistory()
-{
-	const auto& history = _controller.panel(_panelPosition).history();
-	if (history.empty())
-		return;
-
-	QMenu menu;
-	QActionGroup group(0);
-	for(size_t i = 0; i < history.size(); ++i)
-	{
-		QAction * action = menu.addAction(history[i]);
-		group.addAction(action);
-		action->setCheckable(true);
-		if (i == history.currentIndex())
-			action->setChecked(true);
-	}
-
-	QAction * result = menu.exec(mapToGlobal(ui->_btnHistory->geometry().bottomLeft() + QPoint(0, 3)));
-	if (result)
-		_controller.setPath(_panelPosition, result->text(), nopOther);
 }
 
 void CPanelWidget::toRoot()
@@ -569,6 +544,24 @@ void CPanelWidget::pasteSelectionFromClipboard()
 #else
 	CShell::pasteFromClipboard(currentDir().toStdWString(), (void*)winId());
 #endif
+}
+
+void CPanelWidget::pathFromHistoryActivated(QString path)
+{
+	_controller.setPath(_panelPosition, path, nopOther);
+}
+
+void CPanelWidget::fillHistory()
+{
+	const auto& history = _controller.panel(_panelPosition).history();
+	if (history.empty())
+		return;
+
+	ui->_pathNavigator->clear();
+	for(auto it = history.rbegin(); it != history.rend(); ++it)
+		ui->_pathNavigator->addItem(toNativeSeparators(it->endsWith("/") ? *it : (*it) + "/"));
+
+	ui->_pathNavigator->setCurrentIndex(history.size() - 1 - history.currentIndex());
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const

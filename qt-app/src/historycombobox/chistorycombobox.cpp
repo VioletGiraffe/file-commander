@@ -3,13 +3,19 @@
 
 CHistoryComboBox::CHistoryComboBox(QWidget* parent) :
 	QComboBox(parent),
-	_bHistoryMode(true)
+	_bHistoryMode(true),
+	_bClearEditorOnItemActivation(false)
 {
 	// without this call lineEdit is not created so it would be impossible to access it
 	setEditable(true);
 
 	installEventFilter(this);
 	lineEdit()->installEventFilter(this);
+}
+
+void CHistoryComboBox::setClearEditorOnItemActivation(bool clear)
+{
+	_bClearEditorOnItemActivation = clear;
 }
 
 void CHistoryComboBox::setSelectPreviousItemShortcut(const QKeySequence& selectPreviousItemShortcut)
@@ -115,6 +121,7 @@ void CHistoryComboBox::currentItemActivated()
 		removeItem(currentIndex());
 		insertItem(0, item);
 		setCurrentIndex(0);
-		lineEdit()->clear();
+		if (_bClearEditorOnItemActivation)
+			lineEdit()->clear();
 	}
 }

@@ -55,9 +55,6 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->leftPanel, SIGNAL(focusReceived(CPanelWidget*)), SLOT(currentPanelChanged(CPanelWidget*)));
 	connect(ui->rightPanel, SIGNAL(focusReceived(CPanelWidget*)), SLOT(currentPanelChanged(CPanelWidget*)));
 
-	connect(ui->leftPanel, SIGNAL(folderPathSet(QString,const CPanelWidget*)), SLOT(folderPathSet(QString,const CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(folderPathSet(QString,const CPanelWidget*)), SLOT(folderPathSet(QString,const CPanelWidget*)));
-
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
@@ -82,6 +79,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_commandLineCompleter.setCompletionMode(QCompleter::InlineCompletion);
 	_commandLineCompleter.setCompletionColumn(NameColumn);
 	ui->commandLine->setCompleter(&_commandLineCompleter);
+	ui->commandLine->setClearEditorOnItemActivation(true);
 }
 
 void CMainWindow::initButtons()
@@ -280,11 +278,6 @@ void CMainWindow::currentPanelChanged(CPanelWidget *panel)
 	}
 	else
 		_commandLineCompleter.setModel(0);
-}
-
-void CMainWindow::folderPathSet(QString path, const CPanelWidget *panel)
-{
-	_controller->setPath(panel->panelPosition(), path, nopOther);
 }
 
 void CMainWindow::splitterContextMenuRequested(QPoint pos)

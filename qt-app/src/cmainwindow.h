@@ -50,7 +50,6 @@ protected:
 private slots: // For UI
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
 	void currentPanelChanged(CPanelWidget * panel);
-	void folderPathSet(QString path, const CPanelWidget * panel);
 	void splitterContextMenuRequested(QPoint pos);
 
 // File operations UI slots

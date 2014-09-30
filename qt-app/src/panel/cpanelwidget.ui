@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>401</width>
+    <height>249</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,12 +30,19 @@
     <number>3</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,0,0">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
      <property name="spacing">
       <number>3</number>
      </property>
      <item>
-      <widget class="CLineEdit" name="_pathNavigator"/>
+      <widget class="CHistoryComboBox" name="_pathNavigator">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QToolButton" name="_btnFavs">
@@ -90,34 +97,6 @@
        </property>
        <property name="text">
         <string>/</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="_btnHistory">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>20</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>20</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="toolTip">
-        <string>History</string>
-       </property>
-       <property name="text">
-        <string>▼ </string>
        </property>
       </widget>
      </item>
@@ -196,9 +175,9 @@
    <header>panel/filelistwidget/cfilelistview.h</header>
   </customwidget>
   <customwidget>
-   <class>CLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>widgets/clineedit.h</header>
+   <class>CHistoryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>historycombobox/chistorycombobox.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
