@@ -49,7 +49,6 @@ protected:
 
 private slots: // For UI
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
-	void currentPanelChanged(CPanelWidget * panel);
 	void splitterContextMenuRequested(QPoint pos);
 
 // File operations UI slots
@@ -84,6 +83,9 @@ private slots: // For UI
 // Settings
 	void settingsChanged();
 
+	// Focus management
+	void focusChanged(QWidget * old, QWidget * now);
+
 private:
 	void createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries);
 	void addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu);
@@ -91,12 +93,19 @@ private:
 	// For command line handling
 	bool fileListReturnPressed() override;
 
+	void currentPanelChanged(QStackedWidget * panel);
+
+	// Helper functions
+	static bool widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy);
+
 private:
 	Ui::CMainWindow              * ui;
 	static CMainWindow*           _instance;
 	std::shared_ptr<CController>  _controller;
-	CPanelWidget                 * _currentPanel;
-	CPanelWidget                 * _otherPanel;
+	CPanelWidget                 * _currentFileList;
+	CPanelWidget                 * _otherFileList;
+	QStackedWidget               * _currentPanel;
+	QStackedWidget               * _otherPanel;
 
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
 

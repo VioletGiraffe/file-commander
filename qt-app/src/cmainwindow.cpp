@@ -37,23 +37,19 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
 	_controller(std::make_shared<CController>()),
-	_currentPanel(0),
-	_otherPanel(0)
+	_currentFileList(0),
+	_otherFileList(0)
 {
 	assert(!_instance);
 	_instance = this;
 	ui->setupUi(this);
 
+	connect(qApp, SIGNAL(focusChanged(QWidget *, QWidget *)), SLOT(focusChanged(QWidget*,QWidget*)));
+
 	_controller->pluginProxy().setToolMenuEntryCreatorImplementation(CPluginProxy::CreateToolMenuEntryImplementationType(std::bind(&CMainWindow::createToolMenuEntries, this, std::placeholders::_1)));
 
-	_currentPanel = ui->leftPanel;
-	_otherPanel   = ui->rightPanel;
-
-	connect(ui->leftPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
-
-	connect(ui->leftPanel, SIGNAL(focusReceived(CPanelWidget*)), SLOT(currentPanelChanged(CPanelWidget*)));
-	connect(ui->rightPanel, SIGNAL(focusReceived(CPanelWidget*)), SLOT(currentPanelChanged(CPanelWidget*)));
+	_currentFileList = ui->leftPanel;
+	_otherFileList   = ui->rightPanel;
 
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
@@ -80,6 +76,9 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_commandLineCompleter.setCompletionColumn(NameColumn);
 	ui->commandLine->setCompleter(&_commandLineCompleter);
 	ui->commandLine->setClearEditorOnItemActivation(true);
+
+	ui->leftWidget->setCurrentIndex(0); // PanelWidget
+	ui->rightWidget->setCurrentIndex(0); // PanelWidget
 }
 
 void CMainWindow::initButtons()
@@ -130,17 +129,7 @@ void CMainWindow::initActions()
 // For manual focus management
 void CMainWindow::tabKeyPressed()
 {
-	if (_currentPanel == ui->leftPanel)
-	{
-		_currentPanel = ui->rightPanel;
-		_otherPanel = ui->leftPanel;
-	}
-	else
-	{
-		_currentPanel = ui->leftPanel;
-		_otherPanel = ui->rightPanel;
-	}
-	_currentPanel->setFocusToFileList();
+	_otherFileList->setFocusToFileList();
 }
 
 bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
@@ -260,24 +249,48 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 	}
 }
 
-void CMainWindow::currentPanelChanged(CPanelWidget *panel)
+void CMainWindow::currentPanelChanged(QStackedWidget *panel)
 {
 	_currentPanel = panel;
-	if (panel)
-		_otherPanel = panel == ui->leftPanel ? ui->rightPanel : ui->leftPanel;
-	else
-		_otherPanel = 0;
-
+	_currentFileList = dynamic_cast<CPanelWidget*>(panel->widget(0));
 	if (panel)
 	{
-		_controller->activePanelChanged(panel->panelPosition());
-		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, panel->panelPosition());
-		ui->fullPath->setText(_controller->panel(panel->panelPosition()).currentDirPath());
-		CPluginEngine::get().currentPanelChanged(panel->panelPosition());
-		_commandLineCompleter.setModel(_currentPanel->sortModel());
+		_otherPanel = panel == ui->leftWidget ? ui->rightWidget : ui->leftWidget;
+		_otherFileList = dynamic_cast<CPanelWidget*>(_otherPanel->widget(0));
+		assert(_otherPanel && _otherFileList);
+	}
+	else
+	{
+		_otherPanel = 0;
+		_otherFileList = 0;
+	}
+
+	if (_currentFileList)
+	{
+		_controller->activePanelChanged(_currentFileList->panelPosition());
+		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, _currentFileList->panelPosition());
+		ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPath());
+		CPluginEngine::get().currentPanelChanged(_currentFileList->panelPosition());
+		_commandLineCompleter.setModel(_currentFileList->sortModel());
 	}
 	else
 		_commandLineCompleter.setModel(0);
+}
+
+bool CMainWindow::widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy)
+{
+	if (widget == hierarchy)
+		return true;
+
+	const auto& children = hierarchy->children();
+	if (children.contains(widget))
+		return true;
+
+	for (const auto& child: children)
+		if (widgetBelongsToHierarchy(widget, child))
+			return true;
+
+	return false;
 }
 
 void CMainWindow::splitterContextMenuRequested(QPoint pos)
@@ -299,23 +312,23 @@ void CMainWindow::splitterContextMenuRequested(QPoint pos)
 
 void CMainWindow::copySelectedFiles()
 {
-	if (_currentPanel && _otherPanel)
-		copyFiles(_controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir());
+	if (_currentFileList && _otherFileList)
+		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir());
 }
 
 void CMainWindow::moveSelectedFiles()
 {
-	if (_currentPanel && _otherPanel)
-		moveFiles(_controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes()), _otherPanel->currentDir());
+	if (_currentFileList && _otherFileList)
+		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir());
 }
 
 void CMainWindow::deleteFiles()
 {
-	if (!_currentPanel)
+	if (!_currentFileList)
 		return;
 
 #ifdef _WIN32
-	auto items = _controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
+	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 	std::vector<std::wstring> paths;
 	for (auto& item: items)
 		paths.emplace_back(toNativeSeparators(item.absoluteFilePath()).toStdWString());
@@ -327,10 +340,10 @@ void CMainWindow::deleteFiles()
 
 void CMainWindow::deleteFilesIrrevocably()
 {
-	if (!_currentPanel)
+	if (!_currentFileList)
 		return;
 
-	auto items = _controller->items(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
+	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 #ifdef _WIN32
 	std::vector<std::wstring> paths;
 	for (auto& item: items)
@@ -348,15 +361,15 @@ void CMainWindow::deleteFilesIrrevocably()
 
 void CMainWindow::createFolder()
 {
-	if (!_currentPanel)
+	if (!_currentFileList)
 		return;
 
-	const auto currentItem = _currentPanel->currentItemHash() != 0 ? _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()) : CFileSystemObject();
+	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
 	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
 	const QString dirName = QInputDialog::getText(this, "New folder", "Enter the name for the new directory", QLineEdit::Normal, currentItemName);
 	if (!dirName.isEmpty())
 	{
-		const bool ok = _controller->createFolder(_currentPanel->currentDir(), dirName);
+		const bool ok = _controller->createFolder(_currentFileList->currentDir(), dirName);
 		assert(ok);
 	}
 }
@@ -366,7 +379,7 @@ void CMainWindow::createFile()
 	const QString fileName = QInputDialog::getText(this, "New file", "Enter the name for the new file");
 	if (!fileName.isEmpty())
 	{
-		const bool ok = _controller->createFile(_currentPanel->currentDir(), fileName);
+		const bool ok = _controller->createFile(_currentFileList->currentDir(), fileName);
 		assert(ok);
 	}
 }
@@ -380,7 +393,7 @@ void CMainWindow::viewFile()
 void CMainWindow::editFile()
 {
 	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
-	QString currentFile = _currentPanel ? _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).absoluteFilePath() : QString();
+	QString currentFile = _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).absoluteFilePath() : QString();
 	if (!editorPath.isEmpty() && !currentFile.isEmpty())
 	{
 		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
@@ -391,7 +404,7 @@ void CMainWindow::editFile()
 
 void CMainWindow::openTerminal()
 {
-	_controller->openTerminal(_currentPanel->currentDir());
+	_controller->openTerminal(_currentFileList->currentDir());
 }
 
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)
@@ -402,10 +415,10 @@ void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 
 bool CMainWindow::executeCommand(QString commandLineText)
 {
-	if (!_currentPanel || commandLineText.isEmpty())
+	if (!_currentFileList || commandLineText.isEmpty())
 		return false;
 
-	CShell::executeShellCommand(commandLineText, _currentPanel->currentDir());
+	CShell::executeShellCommand(commandLineText, _currentFileList->currentDir());
 	CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->commandLine->items());
 	clearCommandLineAndRestoreFocus();
 
@@ -421,14 +434,14 @@ void CMainWindow::selectPreviousCommandInTheCommandLine()
 void CMainWindow::clearCommandLineAndRestoreFocus()
 {
 	ui->commandLine->reset();
-	_currentPanel->setFocusToFileList();
+	_currentFileList->setFocusToFileList();
 }
 
 void CMainWindow::pasteCurrentFileName()
 {
-	if (_currentPanel && _currentPanel->currentItemHash() != 0)
+	if (_currentFileList && _currentFileList->currentItemHash() != 0)
 	{
-		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).fullName();
+		const QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullName();
 		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}
@@ -436,9 +449,9 @@ void CMainWindow::pasteCurrentFileName()
 
 void CMainWindow::pasteCurrentFilePath()
 {
-	if (_currentPanel && _currentPanel->currentItemHash() != 0)
+	if (_currentFileList && _currentFileList->currentItemHash() != 0)
 	{
-		const QString textToAdd = _controller->itemByHash(_currentPanel->panelPosition(), _currentPanel->currentItemHash()).absoluteFilePath();
+		const QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).absoluteFilePath();
 		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}
@@ -446,8 +459,8 @@ void CMainWindow::pasteCurrentFilePath()
 
 void CMainWindow::refresh()
 {
-	if (_currentPanel)
-		_controller->refreshPanelContents(_currentPanel->panelPosition());
+	if (_currentFileList)
+		_controller->refreshPanelContents(_currentFileList->panelPosition());
 }
 
 void CMainWindow::showHiddenFiles()
@@ -459,8 +472,8 @@ void CMainWindow::showHiddenFiles()
 
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
 {
-	if (_currentPanel)
-		_currentPanel->fillFromList(recurseDirectoryItems(_currentPanel->currentDir(), false), false, nopOther);
+	if (_currentFileList)
+		_currentFileList->fillFromList(recurseDirectoryItems(_currentFileList->currentDir(), false), false, nopOther);
 }
 
 void CMainWindow::openSettingsDialog()
@@ -476,10 +489,10 @@ void CMainWindow::openSettingsDialog()
 
 void CMainWindow::calculateOccupiedSpace()
 {
-	if (!_currentPanel)
+	if (!_currentFileList)
 		return;
 
-	const FilesystemObjectsStatistics stats = _controller->calculateStatistics(_currentPanel->panelPosition(), _currentPanel->selectedItemsHashes());
+	const FilesystemObjectsStatistics stats = _controller->calculateStatistics(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 	if (stats.empty())
 		return;
 
@@ -490,6 +503,20 @@ void CMainWindow::calculateOccupiedSpace()
 void CMainWindow::settingsChanged()
 {
 	_controller->settingsChanged();
+}
+
+void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
+{
+	if (!now)
+		return;
+
+	for (int i = 0; i < ui->leftWidget->count(); ++i)
+		if (now == ui->leftWidget || widgetBelongsToHierarchy(now, ui->leftWidget->widget(i)))
+			currentPanelChanged(ui->leftWidget);
+
+	for (int i = 0; i < ui->rightWidget->count(); ++i)
+		if (now == ui->rightWidget || widgetBelongsToHierarchy(now, ui->rightWidget->widget(i)))
+			currentPanelChanged(ui->rightWidget);
 }
 
 void CMainWindow::createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries)
@@ -534,7 +561,7 @@ void CMainWindow::addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QM
 
 bool CMainWindow::fileListReturnPressed()
 {
-	if (_currentPanel)
+	if (_currentFileList)
 		return executeCommand(ui->commandLine->currentText());
 	return false;
 }

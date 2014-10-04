@@ -27,6 +27,7 @@
 #include <QRect>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
+#include <QStackedWidget>
 #include <QStandardItemModel>
 #include <QStyledItemDelegate>
 #include <QStyle>

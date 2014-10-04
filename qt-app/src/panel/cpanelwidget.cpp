@@ -682,9 +682,6 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	{
 		switch (e->type())
 		{
-		case QEvent::FocusIn:
-			emit focusReceived(this);
-			break;
 		case QEvent::ContextMenu:
 			showContextMenuForItems(QCursor::pos()); // QCursor::pos() returns global pos
 			return true;

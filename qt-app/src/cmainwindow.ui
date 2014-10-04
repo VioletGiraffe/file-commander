@@ -41,7 +41,7 @@
       <property name="childrenCollapsible">
        <bool>false</bool>
       </property>
-      <widget class="CPanelWidget" name="leftPanel" native="true">
+      <widget class="QStackedWidget" name="leftWidget">
        <property name="minimumSize">
         <size>
          <width>281</width>
@@ -51,8 +51,9 @@
        <property name="focusPolicy">
         <enum>Qt::TabFocus</enum>
        </property>
+       <widget class="CPanelWidget" name="leftPanel"/>
       </widget>
-      <widget class="CPanelWidget" name="rightPanel" native="true">
+      <widget class="QStackedWidget" name="rightWidget">
        <property name="minimumSize">
         <size>
          <width>281</width>
@@ -62,6 +63,7 @@
        <property name="focusPolicy">
         <enum>Qt::TabFocus</enum>
        </property>
+       <widget class="CPanelWidget" name="rightPanel"/>
       </widget>
      </widget>
     </item>
@@ -231,6 +233,8 @@
     </property>
     <addaction name="action_Show_hidden_files"/>
     <addaction name="actionShowAllFiles"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuick_view"/>
    </widget>
    <addaction name="menuFiles"/>
    <addaction name="menu_View"/>
@@ -291,6 +295,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionQuick_view">
+   <property name="text">
+    <string>Quick view</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>

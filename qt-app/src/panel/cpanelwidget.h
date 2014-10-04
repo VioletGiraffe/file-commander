@@ -54,7 +54,6 @@ public:
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
-	void focusReceived(CPanelWidget * panel);
 	void fileListViewKeyPressedSignal(CPanelWidget* panelWidget, QString keyText, int key, Qt::KeyboardModifiers modifiers);
 
 protected:

@@ -40,7 +40,7 @@
         <bool>true</bool>
        </property>
        <property name="maxVisibleItems">
-        <number>30</number>
+        <number>40</number>
        </property>
       </widget>
      </item>
@@ -170,14 +170,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>CFileListView</class>
-   <extends>QTreeView</extends>
-   <header>panel/filelistwidget/cfilelistview.h</header>
-  </customwidget>
-  <customwidget>
    <class>CHistoryComboBox</class>
    <extends>QComboBox</extends>
    <header>historycombobox/chistorycombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CFileListView</class>
+   <extends>QTreeView</extends>
+   <header>panel/filelistwidget/cfilelistview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
