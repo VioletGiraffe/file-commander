@@ -38,28 +38,33 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 		_properties.completeBaseName = _fileInfo.completeBaseName();
 	}
 	else
-    {
-        const QString suffix = _fileInfo.completeSuffix();
+	{
+		const QString suffix = _fileInfo.completeSuffix();
 		_properties.completeBaseName = _fileInfo.baseName();
-        if (!suffix.isEmpty())
-            _properties.completeBaseName += "." + suffix;
-    }
+		if (!suffix.isEmpty())
+			_properties.completeBaseName += "." + suffix;
+	}
 
 
 	_properties.fullName          = _type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
 	_properties.parentFolder      = parentDirPath();
 	_properties.fullPath          = absoluteFilePath();
 	_properties.modificationDate  = _fileInfo.lastModified().toTime_t();
-    _properties.size              = _type == File ? _fileInfo.size() : 0;
+	_properties.size              = _type == File ? _fileInfo.size() : 0;
 	_properties.type              = _type;
 
 	const QByteArray hash = QCryptographicHash::hash(_properties.fullPath.toUtf8(), QCryptographicHash::Md5);
 	assert(hash.size() == 16);
 	_properties.hash              = *(qulonglong*)(hash.data()) ^ *(qulonglong*)(hash.data()+8);
 
-	_properties.permissions.read  = _fileInfo.isReadable();
-	_properties.permissions.write = _fileInfo.isWritable();
-	_properties.permissions.exec  = _fileInfo.isExecutable();
+#ifdef _WIN32
+	if (_type == File) // Calling these methods for paths on a removable drive that's not ready may cause the "No disk" error
+#endif
+	{
+		_properties.permissions.read  = _fileInfo.isReadable();
+		_properties.permissions.write = _fileInfo.isWritable();
+		_properties.permissions.exec  = _fileInfo.isExecutable();
+	}
 }
 
 CFileSystemObject::~CFileSystemObject()
