@@ -67,7 +67,9 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	ui->fullPath->clear();
 
-	connect(ui->splitter, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
+	QSplitterHandle * handle = ui->splitter->handle(1);
+	handle->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(handle, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
 
 	connect(ui->commandLine, SIGNAL(itemActivated(QString)), SLOT(executeCommand(QString)));
 
