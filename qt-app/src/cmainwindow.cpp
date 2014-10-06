@@ -38,7 +38,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	ui(new Ui::CMainWindow),
 	_controller(std::make_shared<CController>()),
 	_currentFileList(0),
-	_otherFileList(0)
+	_otherFileList(0),
+	_quickViewActive(false)
 {
 	assert(!_instance);
 	_instance = this;
@@ -55,6 +56,9 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
 	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
 	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
+
+	connect(ui->leftPanel, SIGNAL(currentItemChanged(Panel,qulonglong)), SLOT(currentItemChanged(Panel,qulonglong)));
+	connect(ui->rightPanel, SIGNAL(currentItemChanged(Panel,qulonglong)), SLOT(currentItemChanged(Panel,qulonglong)));
 
 	ui->leftPanel->fileListView()->addEventObserver(this);
 	ui->rightPanel->fileListView()->addEventObserver(this);
@@ -126,6 +130,7 @@ void CMainWindow::initActions()
 	connect(ui->actionShowAllFiles, SIGNAL(triggered()), SLOT(showAllFilesFromCurrentFolderAndBelow()));
 	connect(ui->action_Settings, SIGNAL(triggered()), SLOT(openSettingsDialog()));
 	connect(ui->actionCalculate_occupied_space, SIGNAL(triggered()), SLOT(calculateOccupiedSpace()));
+	connect(ui->actionQuick_view, SIGNAL(triggered()), SLOT(toggleQuickView()));
 }
 
 // For manual focus management
@@ -224,6 +229,7 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 		settings.setValue(KEY_RPANEL_STATE, ui->rightPanel->savePanelState());
 
 		emit closed(); // Is used to close all child windows
+		emit fileQuickVewFinished(); // Cleaning up quick view widgets, if any
 	}
 
 	QMainWindow::closeEvent(e);
@@ -415,6 +421,31 @@ void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 	CShell::recycleBinContextMenu(pos.x(), pos.y(), (void*)winId());
 }
 
+#include <QLayout>
+
+void CMainWindow::toggleQuickView()
+{
+	if (_quickViewActive)
+	{
+		_quickViewActive = false;
+		assert(_currentPanel->count() == 2 || _otherPanel->count() == 2);
+		if (_currentPanel->count() == 2)
+			_currentPanel->removeWidget(_currentPanel->widget(1));
+		else
+			_otherPanel->removeWidget(_otherPanel->widget(1));
+
+		emit fileQuickVewFinished();
+	}
+	else
+		quickViewCurrentFile();
+}
+
+void CMainWindow::currentItemChanged(Panel /*p*/, qulonglong /*itemHash*/)
+{
+	if (_quickViewActive)
+		quickViewCurrentFile();
+}
+
 bool CMainWindow::executeCommand(QString commandLineText)
 {
 	if (!_currentFileList || commandLineText.isEmpty())
@@ -566,4 +597,23 @@ bool CMainWindow::fileListReturnPressed()
 	if (_currentFileList)
 		return executeCommand(ui->commandLine->currentText());
 	return false;
+}
+
+void CMainWindow::quickViewCurrentFile()
+{
+	if (_quickViewActive)
+	{
+		assert(_otherPanel->count() == 2);
+		_otherPanel->removeWidget(_otherPanel->widget(1));
+		emit fileQuickVewFinished();
+	}
+
+	QMainWindow * viewerWindow = CPluginEngine::get().createViewerWindowForCurrentFile();
+	if (!viewerWindow)
+		return;
+
+	connect(this, SIGNAL(fileQuickVewFinished()), viewerWindow, SLOT(deleteLater()));
+
+	_otherPanel->setCurrentIndex(_otherPanel->addWidget(viewerWindow->centralWidget()));
+	_quickViewActive = true;
 }

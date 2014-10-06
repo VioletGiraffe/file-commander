@@ -114,7 +114,7 @@ void CTextViewerWindow::findNext()
 	if (_findDialog.wholeWords())
 		flags |= QTextDocument::FindWholeWords;
 
-	bool found = false;
+	bool found;
 	const QTextCursor startCursor = ui->textBrowser->textCursor();
 #if  QT_VERSION >= QT_VERSION_CHECK(5,3,0)
 	if (_findDialog.regex())

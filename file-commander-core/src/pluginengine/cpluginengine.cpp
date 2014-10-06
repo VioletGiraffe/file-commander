@@ -104,6 +104,28 @@ void CPluginEngine::currentPanelChanged(Panel p)
 
 void CPluginEngine::viewCurrentFile()
 {
+	CPluginWindow * viewerWindow = dynamic_cast<CPluginWindow*>(createViewerWindowForCurrentFile());
+	assert(viewerWindow);
+	viewerWindow->setAutoDeleteOnClose(true);
+	viewerWindow->showNormal();
+	viewerWindow->raise();
+	viewerWindow->activateWindow();
+}
+
+QMainWindow *CPluginEngine::createViewerWindowForCurrentFile()
+{
+	auto viewer = viewerForCurrentFile();
+	return viewer ? viewer->viewCurrentFile() : nullptr;
+}
+
+CFileCommanderPlugin::PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
+{
+	assert(p != UnknownPanel);
+	return p == LeftPanel ? CFileCommanderPlugin::PluginLeftPanel : CFileCommanderPlugin::PluginRightPanel;
+}
+
+CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
+{
 	for(auto& plugin: _plugins)
 	{
 		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
@@ -111,20 +133,9 @@ void CPluginEngine::viewCurrentFile()
 			CFileCommanderViewerPlugin * viewer = dynamic_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
 			assert(viewer);
 			if (viewer && viewer->canViewCurrentFile())
-			{
-				auto viewerWidget(viewer->viewCurrentFile());
-				viewerWidget->setAutoDeleteOnClose(true);
-				viewerWidget->showNormal();
-				viewerWidget->raise();
-				viewerWidget->activateWindow();
-				return;
-			}
+				return viewer;
 		}
 	}
-}
 
-CFileCommanderPlugin::PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
-{
-	assert(p!=UnknownPanel);
-	return p == LeftPanel ? CFileCommanderPlugin::PluginLeftPanel : CFileCommanderPlugin::PluginRightPanel;
+	return nullptr;
 }

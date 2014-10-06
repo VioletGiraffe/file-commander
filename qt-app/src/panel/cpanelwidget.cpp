@@ -369,7 +369,10 @@ void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection 
 
 void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previous*/)
 {
-	CPluginEngine::get().currentItemChanged(_panelPosition, current.isValid() ? hashByItemIndex(current) : 0);
+	const qulonglong hash = current.isValid() ? hashByItemIndex(current) : 0;
+	CPluginEngine::get().currentItemChanged(_panelPosition, hash);
+
+	emit currentItemChanged(_panelPosition, hash);
 }
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)

@@ -40,6 +40,8 @@ public:
 signals:
 	// Is used to close all child windows
 	void closed();
+	// Is used to delete
+	void fileQuickVewFinished();
 
 public slots:
 	void updateInterface();
@@ -64,6 +66,8 @@ private slots: // For UI
 	void editFile();
 	void openTerminal();
 	void showRecycleBInContextMenu(QPoint pos);
+	void toggleQuickView();
+	void currentItemChanged(Panel p, qulonglong itemHash);
 
 // Command line
 	// true if command was executed
@@ -83,7 +87,7 @@ private slots: // For UI
 // Settings
 	void settingsChanged();
 
-	// Focus management
+// Focus management
 	void focusChanged(QWidget * old, QWidget * now);
 
 private:
@@ -93,10 +97,14 @@ private:
 	// For command line handling
 	bool fileListReturnPressed() override;
 
-	void currentPanelChanged(QStackedWidget * panel);
+	// Quick view
+	void quickViewCurrentFile();
 
 	// Helper functions
 	static bool widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy);
+
+	// Other
+	void currentPanelChanged(QStackedWidget * panel);
 
 private:
 	Ui::CMainWindow              * ui;
@@ -110,6 +118,8 @@ private:
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
 
 	QCompleter                     _commandLineCompleter;
+
+	bool                           _quickViewActive;
 };
 
 #endif // CMAINWINDOW_H
