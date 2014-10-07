@@ -60,6 +60,9 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(ui->leftPanel, SIGNAL(currentItemChanged(Panel,qulonglong)), SLOT(currentItemChanged(Panel,qulonglong)));
 	connect(ui->rightPanel, SIGNAL(currentItemChanged(Panel,qulonglong)), SLOT(currentItemChanged(Panel,qulonglong)));
 
+	connect(ui->leftPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
+	connect(ui->rightPanel, SIGNAL(itemActivated(qulonglong,CPanelWidget*)), SLOT(itemActivated(qulonglong,CPanelWidget*)));
+
 	ui->leftPanel->fileListView()->addEventObserver(this);
 	ui->rightPanel->fileListView()->addEventObserver(this);
 

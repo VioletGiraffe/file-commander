@@ -54,7 +54,7 @@ protected:
 	// For controlling selection
 	void mousePressEvent(QMouseEvent *e) override;
 	void mouseMoveEvent(QMouseEvent *e) override;
-	// For showing context menu
+	// For showing context menu and managing single click actions
 	void mouseReleaseEvent(QMouseEvent *event) override;
 	// For managing selection and cursor
 	void keyPressEvent(QKeyEvent * event) override;
@@ -83,6 +83,9 @@ private:
 	std::vector<FileListViewEventObserver*> _eventObservers;
 	QByteArray                          _headerGeometry;
 	QByteArray                          _headerState;
+
+	QModelIndex                         _itemUnderCursorBeforeMouseClick;
+
 	CController                       & _controller;
 	enum Panel                          _panelPosition;
 	bool                                _bHeaderAdjustmentRequired;

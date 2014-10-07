@@ -23,6 +23,10 @@ CFileListView::CFileListView(QWidget *parent) :
 	setMouseTracking(true);
 	setItemDelegate(new CFileListItemDelegate);
 	connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
+
+		_itemUnderCursorBeforeMouseClick = QModelIndex();
+		_singleMouseClickValid = false;
+
 		for(FileListViewEventObserver* observer: _eventObservers)
 		{
 			if (observer->fileListReturnPressOrDoubleClickPerformed(idx))
@@ -87,28 +91,13 @@ void CFileListView::restoreHeaderState()
 // For managing selection and cursor
 void CFileListView::mousePressEvent(QMouseEvent *e)
 {
-	const QModelIndex itemUnderCursor = currentIndex();
+	_itemUnderCursorBeforeMouseClick = currentIndex();
 	const QModelIndex itemClicked = indexAt(e->pos());
 
-	if (e->button() == Qt::LeftButton)
-	{
-		_singleMouseClickValid = !_singleMouseClickValid;
-		if (itemUnderCursor == itemClicked && _singleMouseClickValid)
-		{
-			_singleMouseClickPos = e->pos();
-			QTimer * timer = new QTimer;
-			timer->setSingleShot(true);
-			QObject::connect(timer, &QTimer::timeout, [this](){
-				if (_singleMouseClickValid)
-					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
-				_singleMouseClickValid = false;
-			});
-			timer->start(QApplication::doubleClickInterval()+50);
-		}
-	}
-
+	// Always let Qt process this event
 	QTreeView::mousePressEvent(e);
 
+	// TODO: sometimes a double-clicked item remains selected. Find out why it happens.
 	if (e->button() == Qt::LeftButton && itemClicked.isValid())
 	{
 		if (e->modifiers() == Qt::NoModifier)
@@ -117,8 +106,8 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 		}
 		else if (e->modifiers() == Qt::ControlModifier)
 		{
-			if (itemUnderCursor.isValid() && itemUnderCursor != itemClicked)
-				selectionModel()->select(itemUnderCursor, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+			if (_itemUnderCursorBeforeMouseClick.isValid() && _itemUnderCursorBeforeMouseClick != itemClicked)
+				selectionModel()->select(_itemUnderCursorBeforeMouseClick, QItemSelectionModel::Select | QItemSelectionModel::Rows);
 		}
 	}
 }
@@ -126,7 +115,11 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 void CFileListView::mouseMoveEvent(QMouseEvent * e)
 {
 	if (_singleMouseClickValid && (e->pos() - _singleMouseClickPos).manhattanLength() > 15)
+	{
 		_singleMouseClickValid = false;
+		_itemUnderCursorBeforeMouseClick = QModelIndex();
+		qDebug() << __FUNCTION__ << false;
+	}
 	QTreeView::mouseMoveEvent(e);
 }
 
@@ -142,6 +135,30 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 
 		// Calling a context menu
 		emit contextMenuRequested(QCursor::pos()); // Getting global screen coordinates
+	}
+	else if (event && event->button() == Qt::LeftButton)
+	{
+		_singleMouseClickValid = !_singleMouseClickValid;
+		qDebug() << __FUNCTION__ << _singleMouseClickValid;
+		const QModelIndex itemClicked = indexAt(event->pos());
+		if (_itemUnderCursorBeforeMouseClick == itemClicked && _singleMouseClickValid)
+		{
+			_singleMouseClickPos = event->pos();
+			QTimer * timer = new QTimer;
+			timer->setSingleShot(true);
+			QObject::connect(timer, &QTimer::timeout, [this, timer](){
+				if (_singleMouseClickValid)
+				{
+					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
+					qDebug() << __FUNCTION__ << _singleMouseClickValid;
+					_itemUnderCursorBeforeMouseClick = QModelIndex();
+					_singleMouseClickValid = false;
+				}
+
+				timer->deleteLater();
+			});
+			timer->start(QApplication::doubleClickInterval()+50);
+		}
 	}
 
 	// Always let Qt process this event
@@ -358,7 +375,8 @@ void CFileListView::setHeaderAdjustmentRequired(bool required)
 
 void CFileListView::modelAboutToBeReset()
 {
-	_singleMouseClickValid = 0;
+	_itemUnderCursorBeforeMouseClick = QModelIndex();
+	_singleMouseClickValid = false;
 	if (_bHeaderAdjustmentRequired)
 	{
 		_bHeaderAdjustmentRequired = false;
