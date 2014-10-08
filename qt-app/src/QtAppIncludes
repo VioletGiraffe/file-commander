@@ -23,6 +23,7 @@
 #include <QMimeData>
 #include <QModelIndex>
 #include <QMouseEvent>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRect>
 #include <QShortcut>
@@ -31,6 +32,7 @@
 #include <QStandardItemModel>
 #include <QStyledItemDelegate>
 #include <QStyle>
+#include <QTextEdit>
 #include <QTimer>
 #include <QTreeView>
 #include <QTreeWidgetItem>
