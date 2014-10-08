@@ -118,7 +118,6 @@ void CFileListView::mouseMoveEvent(QMouseEvent * e)
 	{
 		_singleMouseClickValid = false;
 		_itemUnderCursorBeforeMouseClick = QModelIndex();
-		qDebug() << __FUNCTION__ << false;
 	}
 	QTreeView::mouseMoveEvent(e);
 }
@@ -139,7 +138,6 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 	else if (event && event->button() == Qt::LeftButton)
 	{
 		_singleMouseClickValid = !_singleMouseClickValid;
-		qDebug() << __FUNCTION__ << _singleMouseClickValid;
 		const QModelIndex itemClicked = indexAt(event->pos());
 		if (_itemUnderCursorBeforeMouseClick == itemClicked && _singleMouseClickValid)
 		{
@@ -150,7 +148,6 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 				if (_singleMouseClickValid)
 				{
 					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
-					qDebug() << __FUNCTION__ << _singleMouseClickValid;
 					_itemUnderCursorBeforeMouseClick = QModelIndex();
 					_singleMouseClickValid = false;
 				}
