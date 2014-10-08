@@ -204,7 +204,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 
 		if (indexToMoveCursorTo.isValid())
 		{
-//			ui->_list->moveCursorToItem(indexToMoveCursorTo);
+			ui->_list->moveCursorToItem(indexToMoveCursorTo);
 		}
 	}
 	else if (operation != nopForward)
