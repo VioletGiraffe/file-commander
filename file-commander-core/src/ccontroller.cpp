@@ -172,7 +172,7 @@ void CController::openTerminal(const QString &folder)
 #elif defined __APPLE__
 	system(QString("osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd %1\\\"\"").arg(folder).toUtf8().data());
 #elif defined __linux__
-	const bool started = QProcess::startDetached(shellExecutable(), QStringList(), folder);
+	const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
 	assert(started);
 	Q_UNUSED(started);
 #else

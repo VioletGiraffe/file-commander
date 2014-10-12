@@ -363,7 +363,7 @@ void CMainWindow::deleteFilesIrrevocably()
 #else
 	if (QMessageBox::question(this, "Are you sure?", QString("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
-		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(items, _otherPanel->currentDir(), this);
+		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(items, _otherFileList->currentDir(), this);
 		connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
 		dialog->show();
 	}
