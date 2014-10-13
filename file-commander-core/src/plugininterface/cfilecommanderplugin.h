@@ -8,6 +8,7 @@
 #include <map>
 
 class CFileCommanderPlugin;
+class CPluginProxy;
 
 typedef CFileCommanderPlugin* (*CreatePluginFunc)();
 
@@ -42,6 +43,8 @@ public:
 	virtual void currentItemChanged(PanelPosition panel, qulonglong currentItemHash);
 	virtual void currentPanelChanged(PanelPosition panel);
 
+	void setProxy(CPluginProxy * proxy);
+
 protected:
 	PanelState& currentPanelState();
 	const PanelState& currentPanelState() const;
@@ -51,9 +54,13 @@ protected:
 	bool currentItemIsFile() const;
 	bool currentItemIsDir() const;
 
+	// Is called after proxy has been set so that the plugin may init itself or the UI
+	virtual void proxySet();
+
 protected:
 	std::map<PanelPosition, PanelState> _panelState;
 	PanelPosition                       _currentPanel;
+	CPluginProxy *                      _proxy;
 };
 
 #endif // CFILECOMMANDERPLUGIN_H

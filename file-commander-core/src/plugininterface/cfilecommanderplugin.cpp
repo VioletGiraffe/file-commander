@@ -1,8 +1,11 @@
 #include "cfilecommanderplugin.h"
+#include "cpluginproxy.h"
+
 #include <assert.h>
 
 CFileCommanderPlugin::CFileCommanderPlugin() :
-	_currentPanel(PluginUnknownPanel)
+	_currentPanel(PluginUnknownPanel),
+	_proxy(nullptr)
 {
 }
 
@@ -27,6 +30,11 @@ void CFileCommanderPlugin::selectionChanged(CFileCommanderPlugin::PanelPosition 
 {
 	PanelState& state = _panelState[panel];
 	state.selectedItemsHashes = selectedItemsHashes;
+
+	for (auto hash: selectedItemsHashes)
+	{
+		qDebug() << state.panelContents[hash].fullName();
+	}
 }
 
 void CFileCommanderPlugin::currentItemChanged(CFileCommanderPlugin::PanelPosition panel, qulonglong currentItemHash)
@@ -40,22 +48,35 @@ void CFileCommanderPlugin::currentPanelChanged(CFileCommanderPlugin::PanelPositi
 	_currentPanel = panel;
 }
 
+void CFileCommanderPlugin::setProxy(CPluginProxy *proxy)
+{
+	assert(proxy);
+	_proxy = proxy;
+	proxySet();
+}
+
 CFileCommanderPlugin::PanelState& CFileCommanderPlugin::currentPanelState()
 {
 	static PanelState empty;
 	if (_currentPanel == CFileCommanderPlugin::PluginUnknownPanel)
+	{
+		empty = PanelState();
 		return empty;
+	}
 
 	const auto state = _panelState.find(_currentPanel);
 	if (state == _panelState.end())
+	{
+		empty = PanelState();
 		return empty;
+	}
 	else
 		return state->second;
 }
 
 const CFileCommanderPlugin::PanelState& CFileCommanderPlugin::currentPanelState() const
 {
-	static PanelState empty;
+	static const PanelState empty;
 	if (_currentPanel == CFileCommanderPlugin::PluginUnknownPanel)
 		return empty;
 
@@ -107,4 +128,9 @@ bool CFileCommanderPlugin::currentItemIsFile() const
 bool CFileCommanderPlugin::currentItemIsDir() const
 {
 	return currentItem().isDir();
+}
+
+void CFileCommanderPlugin::proxySet()
+{
+
 }
