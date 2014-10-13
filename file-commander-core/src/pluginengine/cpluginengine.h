@@ -30,7 +30,7 @@ public:
 private:
 	CPluginEngine();
 	CPluginEngine& operator=(const CPluginEngine&) {return *this;}
-	static CFileCommanderPlugin::PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
+	static PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
 
 	CFileCommanderViewerPlugin * viewerForCurrentFile();
 

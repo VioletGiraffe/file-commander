@@ -13,13 +13,13 @@ CTextViewerPlugin::CTextViewerPlugin()
 
 bool CTextViewerPlugin::canViewCurrentFile() const
 {
-	return currentItemIsFile();
+	return _proxy->currentItemIsFile();
 }
 
 CPluginWindow * CTextViewerPlugin::viewCurrentFile()
 {
 	CTextViewerWindow * widget = new CTextViewerWindow;
-	widget->loadTextFile(currentItemPath());
+	widget->loadTextFile(_proxy->currentItemPath());
 	return widget;
 }
 

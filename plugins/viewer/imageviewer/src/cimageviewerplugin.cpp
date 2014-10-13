@@ -8,7 +8,7 @@ CImageViewerPlugin::CImageViewerPlugin()
 
 bool CImageViewerPlugin::canViewCurrentFile() const
 {
-	const QString currentItem(currentItemPath());
+	const QString currentItem(_proxy->currentItemPath());
 	if (currentItem.isEmpty())
 		return false;
 	else
@@ -18,7 +18,7 @@ bool CImageViewerPlugin::canViewCurrentFile() const
 CPluginWindow* CImageViewerPlugin::viewCurrentFile()
 {
 	CImageViewerWindow * widget = new CImageViewerWindow;
-	widget->displayImage(currentItemPath());
+	widget->displayImage(_proxy->currentItemPath());
 	return widget;
 }
 

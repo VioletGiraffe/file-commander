@@ -2,6 +2,7 @@
 #include "../ccontroller.h"
 #include "../plugininterface/cfilecommanderviewerplugin.h"
 #include "../plugininterface/cfilecommandertoolplugin.h"
+#include "../plugininterface/cpluginproxy.h"
 
 #include <assert.h>
 
@@ -67,34 +68,26 @@ void CPluginEngine::panelContentsChanged(Panel p, NavigationOperation /*operatio
 	for(const CFileSystemObject& object: controller.panel(p).list())
 		contents[object.hash()] = object;
 
-	for(auto& plugin: _plugins)
-	{
-		plugin.first->panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirName(), contents);
-	}
+	auto& proxy = CController::get().pluginProxy();
+	proxy.panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirName(), contents);
 }
 
 void CPluginEngine::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)
 {
-	for(auto& plugin: _plugins)
-	{
-		plugin.first->selectionChanged(pluginPanelEnumFromCorePanelEnum(p), selectedItemsHashes);
-	}
+	auto& proxy = CController::get().pluginProxy();
+	proxy.selectionChanged(pluginPanelEnumFromCorePanelEnum(p), selectedItemsHashes);
 }
 
 void CPluginEngine::currentItemChanged(Panel p, qulonglong currentItemHash)
 {
-	for(auto& plugin: _plugins)
-	{
-		plugin.first->currentItemChanged(pluginPanelEnumFromCorePanelEnum(p), currentItemHash);
-	}
+	auto& proxy = CController::get().pluginProxy();
+	proxy.currentItemChanged(pluginPanelEnumFromCorePanelEnum(p), currentItemHash);
 }
 
 void CPluginEngine::currentPanelChanged(Panel p)
 {
-	for(auto& plugin: _plugins)
-	{
-		plugin.first->currentPanelChanged(pluginPanelEnumFromCorePanelEnum(p));
-	}
+	auto& proxy = CController::get().pluginProxy();
+	proxy.currentPanelChanged(pluginPanelEnumFromCorePanelEnum(p));
 }
 
 void CPluginEngine::viewCurrentFile()
@@ -113,10 +106,10 @@ QMainWindow *CPluginEngine::createViewerWindowForCurrentFile()
 	return viewer ? viewer->viewCurrentFile() : nullptr;
 }
 
-CFileCommanderPlugin::PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
+PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 {
 	assert(p != UnknownPanel);
-	return p == LeftPanel ? CFileCommanderPlugin::PluginLeftPanel : CFileCommanderPlugin::PluginRightPanel;
+	return p == LeftPanel ? PluginLeftPanel : PluginRightPanel;
 }
 
 CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
