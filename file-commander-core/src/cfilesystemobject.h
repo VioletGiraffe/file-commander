@@ -99,31 +99,4 @@ private:
 	std::shared_ptr<QFile>           _destFile;
 };
 
-std::vector<CFileSystemObject> recurseDirectoryItems(const QString& dirPath, bool includeFolders);
-
-inline QString toNativeSeparators(const QString &path)
-{
-#ifdef _WIN32
-	return QString(path).replace('/', '\\');
-#else
-	return path;
-#endif
-}
-
-inline QString toPosixSeparators(const QString &path)
-{
-#ifdef _WIN32
-	return QString(path).replace('\\', '/');
-#else
-	return path;
-#endif
-}
-
-inline QString cleanPath(const QString& path)
-{
-	return QString(path).replace("\\\\", "\\").replace("//", "//");
-}
-
-QString fileSizeToString (uint64_t size);
-
 #endif // CFILESYSTEMOBJECT_H

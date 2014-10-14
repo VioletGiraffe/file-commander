@@ -1,4 +1,5 @@
 #include "coperationperformer.h"
+#include "../filesystemhelperfunctions.h"
 
 #include <assert.h>
 #include <functional>

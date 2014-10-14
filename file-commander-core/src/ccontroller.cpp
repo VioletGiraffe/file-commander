@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "pluginengine/cpluginengine.h"
 #include "shell/cshell.h"
+#include "filesystemhelperfunctions.h"
 
 #include <stdlib.h>
 #include <assert.h>

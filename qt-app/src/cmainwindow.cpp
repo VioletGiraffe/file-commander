@@ -14,6 +14,7 @@
 #include "pluginengine/cpluginengine.h"
 #include "panel/filelistwidget/cfilelistview.h"
 #include "panel/columns.h"
+#include "filesystemhelperfunctions.h"
 
 #include <assert.h>
 

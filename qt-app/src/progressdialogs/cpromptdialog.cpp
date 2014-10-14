@@ -1,5 +1,6 @@
 #include "cpromptdialog.h"
 #include "ui_cpromptdialog.h"
+#include "filesystemhelperfunctions.h"
 
 CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason, const CFileSystemObject& source, const CFileSystemObject& dest /*= CFileSystemObject()*/) :
 	QDialog(parent),

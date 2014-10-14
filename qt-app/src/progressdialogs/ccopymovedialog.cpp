@@ -2,6 +2,7 @@
 #include "ui_ccopymovedialog.h"
 #include "../cmainwindow.h"
 #include "cpromptdialog.h"
+#include "filesystemhelperfunctions.h"
 
 CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObject> source, QString destination, CMainWindow * mainWindow) :
 	QWidget(0, Qt::Window),

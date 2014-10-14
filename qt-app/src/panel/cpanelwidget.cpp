@@ -9,6 +9,7 @@
 #include "pluginengine/cpluginengine.h"
 #include "../favoritelocationseditor/cfavoritelocationseditor.h"
 #include "widgets/clineedit.h"
+#include "filesystemhelperfunctions.h"
 
 #include <assert.h>
 #include <time.h>

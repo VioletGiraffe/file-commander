@@ -1,6 +1,7 @@
 #include "cpanel.h"
 #include "settings/csettings.h"
 #include "settings.h"
+#include "filesystemhelperfunctions.h"
 
 #include "QtCoreIncludes"
 

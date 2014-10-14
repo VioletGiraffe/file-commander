@@ -28,7 +28,8 @@ HEADERS += \
 	src/shell/cshell.h \
 	include/settings.h \
 	include/QtCoreIncludes \
-	src/favoritelocationslist/cfavoritelocations.h
+	src/favoritelocationslist/cfavoritelocations.h \
+    src/filesystemhelperfunctions.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
