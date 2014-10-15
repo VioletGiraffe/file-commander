@@ -25,7 +25,7 @@ inline std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPa
 					objects.emplace_back(CFileSystemObject(*it));
 			}
 			else if (it->isFile())
-				objects.push_back(CFileSystemObject(*it));
+				objects.emplace_back(CFileSystemObject(*it));
 		}
 	}
 	else
@@ -54,7 +54,7 @@ inline QString toPosixSeparators(const QString &path)
 
 inline QString cleanPath(const QString& path)
 {
-	return QString(path).replace("\\\\", "\\").replace("//", "//");
+	return QString(path).replace("\\\\", "\\").replace("//", "/");
 }
 
 inline QString fileSizeToString(uint64_t size)
