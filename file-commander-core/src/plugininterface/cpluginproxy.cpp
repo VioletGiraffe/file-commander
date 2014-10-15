@@ -29,11 +29,6 @@ void CPluginProxy::selectionChanged(PanelPosition panel, std::vector<qulonglong>
 {
 	PanelState& state = _panelState[panel];
 	state.selectedItemsHashes = selectedItemsHashes;
-
-	for (auto hash: selectedItemsHashes)
-	{
-		qDebug() << state.panelContents[hash].fullName();
-	}
 }
 
 void CPluginProxy::currentItemChanged(PanelPosition panel, qulonglong currentItemHash)
