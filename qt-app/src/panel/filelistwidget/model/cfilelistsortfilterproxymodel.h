@@ -8,6 +8,8 @@ class CController;
 
 class CFileListSortFilterProxyModel : public QSortFilterProxyModel
 {
+	Q_OBJECT
+
 public:
 	CFileListSortFilterProxyModel(QObject * parent);
 	// Sets the position (left or right) of a panel that this model represents
@@ -18,8 +20,13 @@ public:
 // Drag and drop
 	bool canDropMimeData(const QMimeData * data, Qt::DropAction action, int row, int column, const QModelIndex & parent) const override;
 
+	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
+
+signals:
+	void sorted();
+
 protected:
-	virtual bool lessThan(const QModelIndex &left, const QModelIndex &right) const;
+	bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
 
 private:
 	CController   & _controller;

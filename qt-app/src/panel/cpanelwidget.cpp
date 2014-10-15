@@ -123,6 +123,10 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	ui->_list->setModel(_sortModel);
 	connect(_sortModel, SIGNAL(modelAboutToBeReset()), ui->_list, SLOT(modelAboutToBeReset()));
+	connect(_sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [=](){
+		ui->_list->scrollTo(ui->_list->currentIndex());
+	});
+
 	_selectionModel = ui->_list->selectionModel(); // can only be called after setModel
 	assert(_selectionModel);
 	connect(_selectionModel, SIGNAL(selectionChanged(QItemSelection,QItemSelection)), SLOT(selectionChanged(QItemSelection,QItemSelection)));
