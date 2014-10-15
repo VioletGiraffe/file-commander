@@ -61,6 +61,8 @@ public:
 	FilesystemObjectsStatistics calculateStatistics(Panel p, const std::vector<qulonglong> & hashes);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
+	// Flattens the current directory and displays all its child files on one level
+	void showAllFilesFromCurrentFolderAndBelow(Panel p);
 
 // Getters
 	const CPanel& panel(Panel p) const;

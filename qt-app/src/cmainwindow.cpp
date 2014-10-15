@@ -510,7 +510,7 @@ void CMainWindow::showHiddenFiles()
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
 {
 	if (_currentFileList)
-		_currentFileList->fillFromList(recurseDirectoryItems(_currentFileList->currentDir(), false), false, nopOther);
+		_controller->showAllFilesFromCurrentFolderAndBelow(_currentFileList->panelPosition());
 }
 
 void CMainWindow::openSettingsDialog()

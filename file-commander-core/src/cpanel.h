@@ -60,6 +60,8 @@ public:
 	// Go to the next location from history, if any
 	bool navigateForward();
 	const CHistoryList<QString>& history() const;
+	// Flattens the current directory and displays all its child files on one level
+	void showAllFilesFromCurrentFolderAndBelow();
 
 	// Info on the dir this panel is currently set to
 	QString currentDirPath() const;

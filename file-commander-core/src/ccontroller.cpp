@@ -192,6 +192,11 @@ void CController::displayDirSize(Panel p, qulonglong dirHash)
 	panel(p).displayDirSize(dirHash);
 }
 
+void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
+{
+	panel(p).showAllFilesFromCurrentFolderAndBelow();
+}
+
 const CPanel &CController::panel(Panel p) const
 {
 	switch (p)

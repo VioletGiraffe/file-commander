@@ -109,6 +109,26 @@ const CHistoryList<QString>& CPanel::history() const
 	return _history;
 }
 
+void CPanel::showAllFilesFromCurrentFolderAndBelow()
+{
+	_watcher.reset();
+	auto items = recurseDirectoryItems(_currentDir.absolutePath(), false);
+
+	_list.clear();
+	_indexByHash.clear();
+	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+	for (const auto& item: items)
+	{
+		_list.push_back(CFileSystemObject(item));
+		if (!_list.back().exists() || (!showHiddenFiles && _list.back().isHidden()))
+			_list.pop_back();
+		else
+			_indexByHash[_list.back().hash()] = _list.size() - 1;
+	}
+
+	sendContentsChangedNotification(nopOther);
+}
+
 // Info on the dir this panel is currently set to
 QString CPanel::currentDirPath() const
 {

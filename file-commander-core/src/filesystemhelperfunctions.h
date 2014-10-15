@@ -62,6 +62,7 @@ inline QString fileSizeToString(uint64_t size)
 	const unsigned int KB = 1024;
 	const unsigned int MB = 1024 * KB;
 	const unsigned int GB = 1024 * MB;
+
 	if (size >= GB)
 		return QString("%1 GiB").arg(QString::number(size / float(GB), 'f', 1));
 	else if (size >= MB)
