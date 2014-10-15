@@ -119,11 +119,11 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 	for (const auto& item: items)
 	{
-		_list.push_back(CFileSystemObject(item));
-		if (!_list.back().exists() || (!showHiddenFiles && _list.back().isHidden()))
-			_list.pop_back();
-		else
+		if (item.exists() && (showHiddenFiles || !item.isHidden()))
+		{
+			_list.push_back(item);
 			_indexByHash[_list.back().hash()] = _list.size() - 1;
+		}
 	}
 
 	sendContentsChangedNotification(nopOther);
