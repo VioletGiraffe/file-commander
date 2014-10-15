@@ -77,8 +77,12 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 		else
 		{
 			// Don't use item.extension() because that returns "" for files with no name
-			const int comparisonResult = _sorter.lessThan(leftItem.properties().extension, rightItem.properties().extension);
-			return comparisonResult != 0 ? (comparisonResult < 0) : _sorter.lessThan(leftItem.name(), rightItem.name());
+			if(_sorter.lessThan(leftItem.properties().extension, rightItem.properties().extension))
+				return true;
+			else if (_sorter.lessThan(rightItem.properties().extension, leftItem.properties().extension)) // check if extensions are the same
+				return false;
+			else // if they are - compare by names
+				return _sorter.lessThan(leftItem.name(), rightItem.name());
 		}
 		break;
 	case SizeColumn:
