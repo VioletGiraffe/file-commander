@@ -142,9 +142,10 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 {
 	const time_t start = clock();
 
-	// Remembering currently highlighted item to restore cursor afterwards
+	// Remembering currently highlighted item, as well as current folder, to restore cursor afterwards
 	const qulonglong currentHash = currentItemHash();
 	const QModelIndex currentIndex = _selectionModel->currentIndex();
+	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
 
 	ui->_list->saveHeaderState();
 	_model->clear();
@@ -211,6 +212,22 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 		{
 			ui->_list->moveCursorToItem(indexToMoveCursorTo);
 		}
+	}
+	else if (operation == nopCdUp)
+	{
+		// Setting the folder we've just stepped out of as current
+		qulonglong targetFolderHash = 0;
+		for (auto& item: items)
+		{
+			if (item.absoluteFilePath() == previousFolder)
+			{
+				targetFolderHash = item.hash();
+				break;
+			}
+		}
+
+		if (targetFolderHash != 0)
+			ui->_list->moveCursorToItem(indexByHash(targetFolderHash));
 	}
 	else if (operation != nopForward)
 	{
