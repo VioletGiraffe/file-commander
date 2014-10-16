@@ -20,6 +20,7 @@ public:
 	bool loadTextFile(const QString& file);
 
 private slots:
+	void asDetectedAutomatically();
 	void asSystemDefault();
 	void asUtf8();
 	void asUtf16();

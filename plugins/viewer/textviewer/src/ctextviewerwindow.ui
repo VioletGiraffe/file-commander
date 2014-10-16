@@ -44,6 +44,7 @@
     <property name="title">
      <string>&amp;View</string>
     </property>
+    <addaction name="actionAuto_detect_encoding"/>
     <addaction name="actionSystemLocale"/>
     <addaction name="actionUTF_16"/>
     <addaction name="actionUTF_8"/>
@@ -151,6 +152,11 @@
    </property>
    <property name="shortcut">
     <string>F3</string>
+   </property>
+  </action>
+  <action name="actionAuto_detect_encoding">
+   <property name="text">
+    <string>Auto detect encoding</string>
    </property>
   </action>
  </widget>

@@ -31,6 +31,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
 	});
 	connect(ui->actionFind_next, SIGNAL(triggered()), SLOT(findNext()));
 
+	connect(ui->actionAuto_detect_encoding, SIGNAL(triggered()), SLOT(asDetectedAutomatically()));
 	connect(ui->actionSystemLocale, SIGNAL(triggered()), SLOT(asSystemDefault()));
 	connect(ui->actionUTF_8, SIGNAL(triggered()), SLOT(asUtf8()));
 	connect(ui->actionUTF_16, SIGNAL(triggered()), SLOT(asUtf16()));
@@ -61,8 +62,25 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 	if (_sourceFilePath.endsWith(".htm", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".html", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".rtf", Qt::CaseInsensitive))
 		asRichText();
 	else
-		asSystemDefault();
+		asDetectedAutomatically();
 	return true;
+}
+
+void CTextViewerWindow::asDetectedAutomatically()
+{
+	QTextCodec::ConverterState state;
+	QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+	const QByteArray data(readSource());
+	const QString text = codec->toUnicode(data.constData(), data.size(), &state);
+	if (state.invalidChars > 0)
+	{
+		asSystemDefault();
+	}
+	else
+	{
+		ui->textBrowser->setPlainText(text);
+		ui->actionUTF_8->setChecked(true);
+	}
 }
 
 void CTextViewerWindow::asSystemDefault()
@@ -77,7 +95,8 @@ void CTextViewerWindow::asSystemDefault()
 
 void CTextViewerWindow::asUtf8()
 {
-	ui->textBrowser->setPlainText(QString::fromUtf8(readSource()));
+	const QByteArray data(readSource());
+	ui->textBrowser->setPlainText(QString::fromUtf8((const char*)data.data(), data.size()));
 	ui->actionUTF_8->setChecked(true);
 }
 
