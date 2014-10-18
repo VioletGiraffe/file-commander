@@ -16,7 +16,6 @@ CFileListView::CFileListView(QWidget *parent) :
 	_controller(CController::get()),
 	_panelPosition(UnknownPanel),
 	_bHeaderAdjustmentRequired(true),
-	_bEditInProgress(false),
 	_singleMouseClickValid(false),
 	_shiftPressedItemSelected(false)
 {
@@ -165,12 +164,6 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 // For managing selection and cursor
 void CFileListView::keyPressEvent(QKeyEvent *event)
 {
-	if (_bEditInProgress)
-	{
-		QTreeView::keyPressEvent(event);
-		return;
-	}
-
 	if (event->key() == Qt::Key_Down || event->key() == Qt::Key_Up ||
 		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
 		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
@@ -247,8 +240,6 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 
 bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)
 {
-	if (trigger & editTriggers())
-		_bEditInProgress = true;
 	return QTreeView::edit(model()->index(index.row(), 0), trigger, event);
 }
 
@@ -264,18 +255,6 @@ void CFileListView::dragMoveEvent(QDragMoveEvent * event)
 	}
 	else
 		event->ignore();
-}
-
-void CFileListView::closeEditor(QWidget * editor, QAbstractItemDelegate::EndEditHint hint)
-{
-	_bEditInProgress = false;
-	QTreeView::closeEditor(editor, hint);
-}
-
-void CFileListView::editorDestroyed(QObject * editor)
-{
-	_bEditInProgress = false;
-	QTreeView::editorDestroyed(editor);
 }
 
 void CFileListView::selectRegion(const QModelIndex &start, const QModelIndex &end)

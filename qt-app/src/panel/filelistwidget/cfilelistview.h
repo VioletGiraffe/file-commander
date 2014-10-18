@@ -63,10 +63,6 @@ protected:
 
 	void dragMoveEvent(QDragMoveEvent * event) override;
 
-protected slots:
-	void closeEditor ( QWidget * editor, QAbstractItemDelegate::EndEditHint hint ) override;
-	void editorDestroyed ( QObject * editor ) override;
-
 private:
 	void selectRegion(const QModelIndex& start, const QModelIndex& end);
 	void moveCursorToNextItem(bool invertSelection = false);
@@ -89,7 +85,6 @@ private:
 	CController                       & _controller;
 	enum Panel                          _panelPosition;
 	bool                                _bHeaderAdjustmentRequired;
-	bool                                _bEditInProgress;
 	QPoint                              _singleMouseClickPos;
 	bool                                _singleMouseClickValid;
 	bool                                _shiftPressedItemSelected;
