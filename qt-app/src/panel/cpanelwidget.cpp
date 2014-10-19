@@ -269,7 +269,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, NavigationOperation operat
 
 void CPanelWidget::showContextMenuForItems(QPoint pos)
 {
-	const auto selection = selectedItemsHashes();
+	const auto selection = selectedItemsHashes(true);
 	std::vector<std::wstring> paths;
 	if (selection.empty())
 		paths.push_back(_controller.panel(_panelPosition).currentDirPath().toStdWString());
