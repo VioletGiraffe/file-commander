@@ -122,6 +122,8 @@ void COperationPerformer::copyFiles()
 		newFileName = !destInfo.isDir() ? destInfo.fileName() : QString();
 	}
 
+	std::vector<CFileSystemObject> dirsToCleanUp;
+
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal operation of condition variable  */)
@@ -285,11 +287,9 @@ void COperationPerformer::copyFiles()
 					}
 				}
 			}
-
-			if (it->remove() != rcOk)
+			else if (it->isDir())
 			{
-				qDebug() << "Error removing file " << it->absoluteFilePath() << ", error: " << it->lastErrorMessage();
-				assert(false);
+				dirsToCleanUp.push_back(*it);
 			}
 		}
 		else if (_op == operationCopy)
@@ -351,6 +351,18 @@ void COperationPerformer::copyFiles()
 
 		sizeProcessed += it->size();
 		_newName.clear();
+	}
+
+	
+	for (auto& dir: dirsToCleanUp)
+		dir.remove();
+
+	if (!dirsToCleanUp.empty() && !_cancelRequested)
+	{
+		assert(_op == operationMove);
+		_source.clear();
+		std::copy_if(dirsToCleanUp.begin(), dirsToCleanUp.end(), _source.begin(), [](const CFileSystemObject& dir){return dir.exists();});
+		deleteFiles();
 	}
 
 	finalize();
