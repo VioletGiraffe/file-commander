@@ -17,24 +17,17 @@ INCLUDEPATH += \
 	../../../file-commander-core/src \
 	../../../file-commander-core/include \
 	../../../qtutils \
+	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin -lcore -lqtutils
+LIBS += -L../../../bin -lcore -lqtutils -ltext_encoding_detector
 
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
-}
-
-mac*{
-
-}
-
-linux*{
-
 }
 
 linux*|mac*{

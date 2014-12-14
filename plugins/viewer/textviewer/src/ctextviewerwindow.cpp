@@ -4,9 +4,12 @@
 
 #include "ctextviewerwindow.h"
 #include "ui_ctextviewerwindow.h"
+#include "ctextencodingdetector.h"
+
+#include <assert.h>
 
 #ifdef _WIN32
-#pragma warning(pop) // set W0
+#pragma warning(pop)
 #endif
 
 CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
@@ -71,10 +74,27 @@ void CTextViewerWindow::asDetectedAutomatically()
 	QTextCodec::ConverterState state;
 	QTextCodec *codec = QTextCodec::codecForName("UTF-8");
 	const QByteArray data(readSource());
-	const QString text = codec->toUnicode(data.constData(), data.size(), &state);
+	assert(codec);
+	QString text(codec->toUnicode(data.constData(), data.size(), &state));
 	if (state.invalidChars > 0)
 	{
-		asSystemDefault();
+		auto detectionResult = CTextEncodingDetector::detect(data);
+		qDebug() << "Encoding detection result for" << _sourceFilePath;
+		for (auto& match: detectionResult)
+			qDebug() << QString("%1, %2: %3").arg(match.language).arg(match.encoding).arg(match.match);
+
+		if (!detectionResult.empty())
+		{
+			codec = QTextCodec::codecForName(detectionResult.front().encoding.toUtf8().data());
+			assert(codec);
+			if (codec)
+			{
+				text = codec->toUnicode(data.constData(), data.size());
+				ui->textBrowser->setPlainText(text);
+			}
+		}
+		else
+			asSystemDefault();
 	}
 	else
 	{

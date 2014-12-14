@@ -353,7 +353,6 @@ void COperationPerformer::copyFiles()
 		_newName.clear();
 	}
 
-	
 	for (auto& dir: dirsToCleanUp)
 		dir.remove();
 

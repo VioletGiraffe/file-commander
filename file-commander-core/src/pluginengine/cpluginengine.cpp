@@ -93,11 +93,13 @@ void CPluginEngine::currentPanelChanged(Panel p)
 void CPluginEngine::viewCurrentFile()
 {
 	CPluginWindow * viewerWindow = dynamic_cast<CPluginWindow*>(createViewerWindowForCurrentFile());
-	assert(viewerWindow);
-	viewerWindow->setAutoDeleteOnClose(true);
-	viewerWindow->showNormal();
-	viewerWindow->raise();
-	viewerWindow->activateWindow();
+	if (viewerWindow)
+	{
+		viewerWindow->setAutoDeleteOnClose(true);
+		viewerWindow->showNormal();
+		viewerWindow->raise();
+		viewerWindow->activateWindow();
+	}
 }
 
 QMainWindow *CPluginEngine::createViewerWindowForCurrentFile()
