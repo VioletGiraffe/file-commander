@@ -78,21 +78,9 @@ void CTextViewerWindow::asDetectedAutomatically()
 	QString text(codec->toUnicode(data.constData(), data.size(), &state));
 	if (state.invalidChars > 0)
 	{
-		auto detectionResult = CTextEncodingDetector::detect(data);
-		qDebug() << "Encoding detection result for" << _sourceFilePath;
-		for (auto& match: detectionResult)
-			qDebug() << QString("%1, %2: %3").arg(match.language).arg(match.encoding).arg(match.match);
-
-		if (!detectionResult.empty())
-		{
-			codec = QTextCodec::codecForName(detectionResult.front().encoding.toUtf8().data());
-			assert(codec);
-			if (codec)
-			{
-				text = codec->toUnicode(data.constData(), data.size());
-				ui->textBrowser->setPlainText(text);
-			}
-		}
+		text = CTextEncodingDetector::decode(data).first;
+		if (!text.isEmpty())
+			ui->textBrowser->setPlainText(text);
 		else
 			asSystemDefault();
 	}
