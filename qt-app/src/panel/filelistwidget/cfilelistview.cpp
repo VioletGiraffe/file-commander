@@ -23,6 +23,7 @@ CFileListView::CFileListView(QWidget *parent) :
 	setItemDelegate(new CFileListItemDelegate);
 	connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
 
+		qDebug() << __FUNCTION__;
 		_itemUnderCursorBeforeMouseClick = QModelIndex();
 		_singleMouseClickValid = false;
 
@@ -90,6 +91,9 @@ void CFileListView::restoreHeaderState()
 // For managing selection and cursor
 void CFileListView::mousePressEvent(QMouseEvent *e)
 {
+	qDebug() << __FUNCTION__;
+	_singleMouseClickValid = !_singleMouseClickValid;
+
 	_itemUnderCursorBeforeMouseClick = currentIndex();
 	const QModelIndex itemClicked = indexAt(e->pos());
 
@@ -136,14 +140,14 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 	}
 	else if (event && event->button() == Qt::LeftButton)
 	{
-		_singleMouseClickValid = !_singleMouseClickValid;
+		qDebug() << __FUNCTION__;
 		const QModelIndex itemClicked = indexAt(event->pos());
 		if (_itemUnderCursorBeforeMouseClick == itemClicked && _singleMouseClickValid)
 		{
 			_singleMouseClickPos = event->pos();
 			QTimer * timer = new QTimer;
 			timer->setSingleShot(true);
-			QObject::connect(timer, &QTimer::timeout, [this, timer](){
+			connect(timer, &QTimer::timeout, [this, timer](){
 				if (_singleMouseClickValid)
 				{
 					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
