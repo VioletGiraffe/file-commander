@@ -35,7 +35,7 @@ QString CImageViewerWidget::imageInfoString() const
 			arg(_sourceImage.height()).
 			arg(numChannels).
 			arg(_sourceImage.bitPlaneCount()).
-			arg(8 * _imageFileSize / (double(_sourceImage.width()) * _sourceImage.height()));
+			arg(QString::number(8 * _imageFileSize / (double(_sourceImage.width()) * _sourceImage.height()), 'f', 2));
 }
 
 QSize CImageViewerWidget::sizeHint() const
