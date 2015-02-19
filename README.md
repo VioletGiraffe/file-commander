@@ -7,7 +7,7 @@ File Commander
 
 ***Cloning the repository***
 
-   The main git repository has submodules, so execute `create_submodules` script (available as .bat for Windows and .sh for Win / Mac) after cloning file-commander to clone the nseted repositories. After that, you can use `pull_submodules` script to pull incoming changes to all the subreporsitories and update them to the latest revision.
+   The main git repository has submodules, so you need to execute the `update_repository` script (available as .bat for Windows and .sh for Win / Mac) after cloning file-commander to clone the nested repositories. Subsequently, you can use the same `update_repository` script at any time to pull incoming changes to the main repo, as well as to all the subrepos, thus updating everything to the latest revision.
 
 ***Building***
 
