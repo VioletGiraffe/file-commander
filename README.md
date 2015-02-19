@@ -1,10 +1,13 @@
 File Commander
 ==============
 
-Qt-based cross-platform Total Commander-like dual panel file manager for Windows, Mac and Linux with support for plugins.
+   Qt-based cross-platform Total Commander-like dual panel file manager for Windows, Mac and Linux with support for plugins.
 
 ![Windows screenshot](/../gh-pages/screenshots/Windows/Clip.jpg?raw=true)
 
+***Cloning the repository***
+
+   The main git repository has submodules, so execute `create_submodules` script (available as .bat for Windows and .sh for Win / Mac) after cloning file-commander to clone the nseted repositories. After that, you can use `pull_submodules` script to pull incoming changes to all the subreporsitories and update them to the latest revision.
 
 ***Building***
 
