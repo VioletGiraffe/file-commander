@@ -45,7 +45,7 @@ private:
 
 private:
 	Ui::CCopyMoveDialog * ui;
-	COperationPerformer * _performer;
+	std::unique_ptr<COperationPerformer> _performer;
 	CMainWindow         * _mainWindow;
 	Operation             _op;
 	QTimer                _eventsProcessTimer;

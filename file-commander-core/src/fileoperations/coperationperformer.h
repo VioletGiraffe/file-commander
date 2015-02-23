@@ -4,6 +4,7 @@
 #include "operationcodes.h"
 #include "../cfilesystemobject.h"
 #include "../utils/ctimeelapsed.h"
+#include "../utils/MeanCounter.h"
 
 #include "../../include/QtCoreIncludes"
 
@@ -104,6 +105,7 @@ private:
 	// For calculating copy / move speed
 	CTimeElapsed                  _totalTimeElapsed;
 	CTimeElapsed                  _fileTimeElapsed;
+	CMeanCounter<uint64_t>        _smoothSpeedCalculator;
 };
 
 QDir destinationFolder (const QString& absoluteSourcePath, const QString& originPath, const QString& destPath, bool sourceIsDir);

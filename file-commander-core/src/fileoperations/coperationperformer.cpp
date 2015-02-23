@@ -323,9 +323,9 @@ void COperationPerformer::copyFiles()
 					result = it->copyChunk(chunkSize, destPath, _newName.isEmpty() ? newFileName : _newName);
 					const int totalPercentage = totalSize > 0 ? static_cast<int>((sizeProcessed + it->bytesCopied()) * 100 / totalSize) : 0;
 					const int filePercentage = it->size() > 0 ? static_cast<int>(it->bytesCopied() * 100 / it->size()) : 0;
-					//TODO: smooth speed
-					const uint64_t speed = _fileTimeElapsed.elapsed() > 0 ? it->bytesCopied() * 1000 / _fileTimeElapsed.elapsed() : 0;// B/s
-					_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, speed);
+					const uint64_t speed = _fileTimeElapsed.elapsed() > 0 ? it->bytesCopied() * 1000 / _fileTimeElapsed.elapsed() : 0; // B/s
+					_smoothSpeedCalculator = speed;
+					_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, _smoothSpeedCalculator.arithmeticMean());
 
 					if (_cancelRequested)
 					{

@@ -7,11 +7,11 @@
 CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObject> source, QString destination, CMainWindow * mainWindow) :
 	QWidget(0, Qt::Window),
 	ui(new Ui::CCopyMoveDialog),
-	_performer(new COperationPerformer(operation, source, destination)),
+	_performer(std::make_unique<COperationPerformer>(operation, source, destination)),
 	_mainWindow(mainWindow),
 	_op(operation),
 	_titleTemplate(_op == operationCopy ? "%1% Copying %2/s" : "%1% Moving %2/s"),
-	_labelTemplate(_op == operationCopy ? "Copying files...  %2/s" : "Moving files...  %2/s"),
+	_labelTemplate(_op == operationCopy ? "Copying files... %2/s" : "Moving files... %2/s"),
 	_speed(0)
 {
 	ui->setupUi(this);
@@ -45,10 +45,8 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 CCopyMoveDialog::~CCopyMoveDialog()
 {
 	if (_performer)
-	{
 		_performer->cancel();
-		delete _performer;
-	}
+
 	delete ui;
 }
 
@@ -77,8 +75,7 @@ void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject sourc
 
 void CCopyMoveDialog::onProcessFinished(QString message)
 {
-	delete _performer;
-	_performer = 0;
+	_performer.reset();
 	close();
 
 	if (!message.isEmpty())
