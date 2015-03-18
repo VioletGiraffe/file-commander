@@ -5,6 +5,13 @@ File Commander
 
 ![Windows screenshot](/../gh-pages/screenshots/Windows/Clip.jpg?raw=true)
 
+###Download for Windows
+
+*<a href="https://github.com/VioletGiraffe/file-commander/releases/latest">Get the latest release</a>*    
+Windows Vista and later systems are supported (x32 and x64).
+
+###Contributing
+
 ***Cloning the repository***
 
    The main git repository has submodules, so you need to execute the `update_repository` script (available as .bat for Windows and .sh for Win / Mac) after cloning file-commander to clone the nested repositories. Subsequently, you can use the same `update_repository` script at any time to pull incoming changes to the main repo, as well as to all the subrepos, thus updating everything to the latest revision.
