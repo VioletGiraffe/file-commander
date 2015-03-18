@@ -11,8 +11,12 @@ bool CImageViewerPlugin::canViewCurrentFile() const
 	const QString currentItem(_proxy->currentItemPath());
 	if (currentItem.isEmpty())
 		return false;
+	
+	QImageReader imageReader(currentItem);
+	if (!imageReader.canRead())
+		return false;
 	else
-		return QImageReader(currentItem).canRead();
+		return !imageReader.read().isNull(); // TODO: find a more lightweight way to deal with non-image files for which canRead() returns 'true'
 }
 
 CPluginWindow* CImageViewerPlugin::viewCurrentFile()
