@@ -77,11 +77,17 @@ void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem * current, QTr
 	_currentItem = dynamic_cast<CFavoriteLocationsListItem*>(current);
 	if (_currentItem)
 	{
+		ui->_locationEditor->setEnabled(true);
+		ui->_nameEditor->setEnabled(true);
+
 		ui->_locationEditor->setText(_currentItem->itemIterator()->absolutePath);
 		ui->_nameEditor->setText(_currentItem->itemIterator()->displayName);
 	}
 	else
 	{
+		ui->_locationEditor->setEnabled(false);
+		ui->_nameEditor->setEnabled(false);
+
 		ui->_locationEditor->clear();
 		ui->_nameEditor->clear();
 	}
@@ -194,14 +200,20 @@ void CFavoriteLocationsEditor::fillUI()
 	ui->_list->clear();
 	for (auto it = _locations.locations().begin(); it != _locations.locations().end(); ++it)
 		addLocationsToTreeWidget(_locations.locations(), it, 0);
+
+	ui->_list->setCurrentItem(nullptr);
 }
 
 void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& locationCollectionListIterator, QTreeWidgetItem* parent)
 {
 	assert(locationCollectionListIterator->subLocations.empty() || locationCollectionListIterator->absolutePath.isEmpty());
+
 	const bool isCategory = locationCollectionListIterator->absolutePath.isEmpty();
 	CFavoriteLocationsListItem * treeWidgetItem = parent ? new CFavoriteLocationsListItem(parent, parentList, locationCollectionListIterator, isCategory) : new CFavoriteLocationsListItem(ui->_list, parentList, locationCollectionListIterator, isCategory);
 	if (!locationCollectionListIterator->subLocations.empty())
 		for (auto it = locationCollectionListIterator->subLocations.begin(); it != locationCollectionListIterator->subLocations.end(); ++it)
 			addLocationsToTreeWidget(locationCollectionListIterator->subLocations, it, treeWidgetItem);
+
+	if (isCategory)
+		treeWidgetItem->setExpanded(true);
 }
