@@ -1,13 +1,8 @@
-#define AppVerStr GetFileVersion("binaries/FileCommander.exe")
-
 [Setup]
 AppName=File Commander
 AppId=FileCommander
-AppVerName=File Commander {#AppVerStr}
+AppVerName=File Commander
 AppPublisher=VioletGiraffe
-VersionInfoVersion={#AppVerStr}
-VersionInfoTextVersion={#AppVerStr}
-AppVersion={#AppVerStr}
 DefaultDirName={pf}\File Commander
 DefaultGroupName=File Commander
 AllowNoIcons=true
@@ -15,7 +10,6 @@ LicenseFile=license.rtf
 OutputDir=.
 OutputBaseFilename=FileCommander
 UsePreviousAppDir=yes
-;RestartIfNeededByRun=false
 
 SetupIconFile=..\..\qt-app\resources\icon.ico
 UninstallDisplayIcon={app}\FileCommander.exe
@@ -23,9 +17,8 @@ UninstallDisplayIcon={app}\FileCommander.exe
 AppCopyright=VioletGiraffe
 WizardImageBackColor=clWhite
 ShowTasksTreeLines=yes
-;ShowUndisplayableLanguages=yes
 
-;ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64
 
 SolidCompression=true
 LZMANumBlockThreads=4
@@ -39,17 +32,26 @@ Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:Ad
 [Files]
 
 ;Remote binaries
-Source: binaries/*; DestDir: {app}; Flags: ignoreversion;
+Source: binaries/32/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
+
+Source: binaries/64/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
 ;Qt binaries
-Source: binaries/Qt/*; DestDir: {app}; Flags: ignoreversion;
+Source: binaries/32/Qt/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
+
+Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
 ;Qt plugins 
-Source: binaries/Qt/imageformats\*; DestDir: {app}\imageformats; Flags: ignoreversion;
-Source: binaries/Qt/platforms\*; DestDir: {app}\platforms; Flags: ignoreversion skipifsourcedoesntexist;
+Source: binaries/32/Qt/imageformats\*; DestDir: {app}\imageformats; Flags: ignoreversion; Check: not Is64BitInstallMode
+Source: binaries/32/Qt/platforms\*; DestDir: {app}\platforms; Flags: ignoreversion skipifsourcedoesntexist; Check: not Is64BitInstallMode
+
+Source: binaries/64/Qt/imageformats\*; DestDir: {app}\imageformats; Flags: ignoreversion; Check: Is64BitInstallMode
+Source: binaries/64/Qt/platforms\*; DestDir: {app}\platforms; Flags: ignoreversion skipifsourcedoesntexist; Check: Is64BitInstallMode
 
 ;MSVC binaries
-Source: binaries/msvcr/*; DestDir: {app}; Flags: ignoreversion;
+Source: binaries/32/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
+
+Source: binaries/64/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
 ;License
 Source: license.rtf; DestDir: {app}; 
