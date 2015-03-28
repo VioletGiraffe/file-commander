@@ -8,7 +8,7 @@ File Commander
 ###Download for Windows
 
 *<a href="https://github.com/VioletGiraffe/file-commander/releases/latest">Get the latest release</a>*    
-Windows Vista and later systems are supported (x32 and x64).
+Windows Vista and later systems are supported (x32 and x64). Windows XP _may_ be supported, but is untested, and system context menus for files / folders won't be displayed there.
 
 ###Known Issues
 For the list of known issues, refer to the project issues on Github, sort by the "bug" label. Or just use <a href="https://github.com/VioletGiraffe/file-commander/labels/bug">this link</a>.
