@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
-SUBDIRS += qtutils file_commander_core imageviewerplugin textviewerplugin qt_app text_encoding_detector
+SUBDIRS += qtutils text_encoding_detector file_commander_core imageviewerplugin textviewerplugin qt_app
 
 qtutils.subdir = qtutils
 
@@ -12,7 +12,7 @@ imageviewerplugin.subdir = plugins/viewer/imageviewer
 imageviewerplugin.depends = file_commander_core
 
 textviewerplugin.subdir = plugins/viewer/textviewer
-textviewerplugin.depends = file_commander_core
+textviewerplugin.depends = file_commander_core text_encoding_detector
 
 text_encoding_detector.subdir = text-encoding-detector/text-encoding-detector
 
