@@ -586,7 +586,7 @@ void CPanelWidget::fillHistory()
 	for(auto it = history.rbegin(); it != history.rend(); ++it)
 		ui->_pathNavigator->addItem(toNativeSeparators(it->endsWith("/") ? *it : (*it) + "/"));
 
-	ui->_pathNavigator->setCurrentIndex(history.size() - 1 - history.currentIndex());
+	ui->_pathNavigator->setCurrentIndex(static_cast<int>(history.size() - 1 - history.currentIndex()));
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
