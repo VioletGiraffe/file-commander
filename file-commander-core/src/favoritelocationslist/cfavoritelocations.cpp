@@ -7,7 +7,7 @@
 
 enum Marker {NoMarker, NextLevel, LevelEnded};
 
-void serialize(QByteArray& dest, const CLocationsCollection& source, Marker marker)
+static inline void serialize(QByteArray& dest, const CLocationsCollection& source, Marker marker)
 {
 	QByteArray utfStringData = source.displayName.toUtf8();
 	int length = utfStringData.length();
@@ -47,25 +47,12 @@ CFavoriteLocations::CFavoriteLocations()
 
 CFavoriteLocations::~CFavoriteLocations()
 {
-	QByteArray data;
-	for (const CLocationsCollection& item: _items)
-		serialize(data, item, NoMarker);
-	CSettings().setValue(KEY_FAVORITES, data);
+	save();
 }
 
-std::list<CLocationsCollection> &CFavoriteLocations::locations()
+std::list<CLocationsCollection>& CFavoriteLocations::locations()
 {
 	return _items;
-}
-
-std::list<CLocationsCollection>::iterator CFavoriteLocations::begin()
-{
-	return _items.begin();
-}
-
-std::list<CLocationsCollection>::iterator CFavoriteLocations::end()
-{
-	return _items.end();
 }
 
 void CFavoriteLocations::load(const QByteArray& data)
@@ -101,4 +88,18 @@ void CFavoriteLocations::load(const QByteArray& data)
 		else if (marker == LevelEnded)
 			currentList.pop();
 	}
+}
+
+void CFavoriteLocations::addItem(std::list<CLocationsCollection>& list, const QString& name, const QString& path)
+{
+	list.emplace_back(name, path);
+	save();
+}
+
+void CFavoriteLocations::save()
+{
+	QByteArray data;
+	for (const CLocationsCollection& item : _items)
+		serialize(data, item, NoMarker);
+	CSettings().setValue(KEY_FAVORITES, data);
 }

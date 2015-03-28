@@ -105,7 +105,19 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		if (dialog.exec() == QDialog::Accepted)
 		{
 			std::list<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
-			list.emplace_back(CLocationsCollection(dialog.name(), dialog.location()));
+			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.absolutePath == dialog.location();}) != list.cend())
+			{
+				QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "This item already exists here (possibly under a different name).", QMessageBox::Cancel);
+				return;
+			}
+			else if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
+			{
+				QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "And item with the same name already exists here (possibly pointing to a different location).", QMessageBox::Cancel);
+				return;
+			}
+
+			_locations.addItem(list, dialog.name(), dialog.location());
+
 			if (item)
 			{
 				new CFavoriteLocationsListItem(item, list, --list.end(), false);
@@ -121,7 +133,13 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		if (dialog.exec() == QDialog::Accepted)
 		{
 			std::list<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
-			list.emplace_back(CLocationsCollection(dialog.name()));
+			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
+			{
+				QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "And item with the same name already exists here (possibly pointing to a different location).", QMessageBox::Cancel);
+				return;
+			}
+
+			_locations.addItem(list, dialog.name());
 			if (item)
 			{
 				new CFavoriteLocationsListItem(item, list, --list.end(), true);
@@ -148,6 +166,8 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 				item->list().erase(item->itemIterator());
 				delete item;
 			}
+
+			_locations.save();
 		});
 	}
 

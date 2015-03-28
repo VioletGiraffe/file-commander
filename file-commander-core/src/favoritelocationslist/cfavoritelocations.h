@@ -20,12 +20,12 @@ public:
 	~CFavoriteLocations();
 
 	std::list<CLocationsCollection>& locations();
-	std::list<CLocationsCollection>::iterator begin();
-	std::list<CLocationsCollection>::iterator end();
+	void addItem(std::list<CLocationsCollection>& list, const QString& name, const QString& path = QString());
+
+	void save();
 
 private:
 	void load(const QByteArray & data);
-	void save();
 
 private:
 	std::list<CLocationsCollection> _items;

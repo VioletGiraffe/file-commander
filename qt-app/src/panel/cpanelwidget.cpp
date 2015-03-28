@@ -444,7 +444,20 @@ void CPanelWidget::showFavoriteLocationsMenu()
 			const QString displayName = CFileSystemObject(path).name();
 			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
 			if (!name.isEmpty() && !path.isEmpty())
-				locations.push_back(CLocationsCollection(name, currentDir()));
+			{
+				if (std::find_if(locations.cbegin(), locations.cend(), [&path](const CLocationsCollection& entry){return entry.absolutePath == path;}) != locations.cend())
+				{
+					QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "This item already exists here (possibly under a different name).", QMessageBox::Cancel);
+					return;
+				}
+				else if (std::find_if(locations.cbegin(), locations.cend(), [&name](const CLocationsCollection& entry){return entry.displayName == name;}) != locations.cend())
+				{
+					QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "And item with the same name already exists here (possibly pointing to a different location).", QMessageBox::Cancel);
+					return;
+				}
+
+				_controller.favoriteLocations().addItem(locations, name, currentDir());
+			}
 		});
 
 		QAction * addCategoryAction = parentMenu->addAction("Add a new subcategory...");
@@ -452,8 +465,14 @@ void CPanelWidget::showFavoriteLocationsMenu()
 			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name for the new subcategory");
 			if (!name.isEmpty())
 			{
+				if (std::find_if(locations.cbegin(), locations.cend(), [&name](const CLocationsCollection& entry){return entry.displayName == name;}) != locations.cend())
+				{
+					QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "An item with the same name already exists here (possibly pointing to a different location).", QMessageBox::Cancel);
+					return;
+				}
+
 				parentMenu->addMenu(name);
-				locations.push_back(CLocationsCollection(name));
+				_controller.favoriteLocations().addItem(locations, name);
 			}
 		});
 	};
