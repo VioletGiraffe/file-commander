@@ -269,7 +269,7 @@
   </action>
   <action name="action_Settings">
    <property name="text">
-    <string>&amp;Settings</string>
+    <string>&amp;Settings...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+P</string>
