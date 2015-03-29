@@ -3,7 +3,7 @@ TARGET   = plugin_textviewer
 DESTDIR  = ../../../bin
 
 QT = core gui
-CONFIG += c++11
+CONFIG += c++14
 
 #check Qt version
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -31,7 +31,6 @@ win*{
 }
 
 linux*|mac*{
-	CONFIG += c++11
 	QMAKE_CXXFLAGS += -pedantic-errors
 	QMAKE_CFLAGS += -pedantic-errors
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register

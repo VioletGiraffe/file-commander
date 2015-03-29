@@ -3,7 +3,7 @@ TARGET   = core
 DESTDIR  = ../bin
 
 QT = core gui #gui is required for QFileIconProvider and plugininterface
-CONFIG += staticlib c++11
+CONFIG += staticlib c++14
 
 #check Qt version
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -64,7 +64,6 @@ linux*{
 }
 
 linux*|mac*{
-	CONFIG += c++11
 	QMAKE_CXXFLAGS += -pedantic-errors
 	QMAKE_CFLAGS += -pedantic-errors
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register

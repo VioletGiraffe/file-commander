@@ -7,7 +7,7 @@
 CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObject> source, QString destination, CMainWindow * mainWindow) :
 	QWidget(0, Qt::Window),
 	ui(new Ui::CCopyMoveDialog),
-	_performer(std::make_unique<COperationPerformer>(operation, source, destination)),
+	_performer(new COperationPerformer(operation, source, destination)),
 	_mainWindow(mainWindow),
 	_op(operation),
 	_titleTemplate(_op == operationCopy ? "%1% Copying %2/s" : "%1% Moving %2/s"),
