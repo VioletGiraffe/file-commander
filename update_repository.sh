@@ -1,7 +1,7 @@
 git pull
 
 #In case there are new submodules that have not yet been cloned
-init_submodules.sh
+./init_submodules.sh
 
 cd qtutils
 git pull
