@@ -85,8 +85,16 @@ void CController::diskSelected(Panel p, size_t index)
 {
 	assert(index < _diskEnumerator.drives().size());
 	const QString drivePath = _diskEnumerator.drives()[index].fileSystemObject.absoluteFilePath();
-	const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
-	setPath(p, lastPathForDrive, nopOther);
+
+	if (drivePath == _diskEnumerator.drives()[currentDiskIndex(otherPanelPosition(p))].fileSystemObject.absoluteFilePath())
+	{
+		setPath(p, otherPanel(p).currentDirPath(), nopOther);
+	}
+	else
+	{
+		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
+		setPath(p, lastPathForDrive, nopOther);
+	}
 }
 
 // Porgram settings have changed
@@ -211,6 +219,64 @@ const CPanel &CController::panel(Panel p) const
 	}
 }
 
+CPanel& CController::panel(Panel p)
+{
+	switch (p)
+	{
+	case LeftPanel:
+		return _leftPanel;
+	case RightPanel:
+		return _rightPanel;
+	default:
+		assert(false);
+		return _rightPanel;
+	}
+}
+
+const CPanel &CController::otherPanel(Panel p) const
+{
+	switch (p)
+	{
+	case LeftPanel:
+		return _rightPanel;
+	case RightPanel:
+		return _leftPanel;
+	default:
+		assert(false);
+		return _rightPanel;
+	}
+}
+
+CPanel& CController::otherPanel(Panel p)
+{
+	switch (p)
+	{
+	case LeftPanel:
+		return _rightPanel;
+	case RightPanel:
+		return _leftPanel;
+	default:
+		assert(false);
+		return _leftPanel;
+	}
+}
+
+
+Panel CController::otherPanelPosition(Panel p)
+{
+	switch (p)
+	{
+	case LeftPanel:
+		return RightPanel;
+	case RightPanel:
+		return LeftPanel;
+	default:
+		assert(false);
+		return LeftPanel;
+	}
+}
+
+
 Panel CController::activePanelPosition() const
 {
 	return _activePanel;
@@ -234,20 +300,6 @@ CPluginProxy &CController::pluginProxy()
 bool CController::itemHashExists(Panel p, qulonglong hash) const
 {
 	return panel(p).itemHashExists(hash);
-}
-
-CPanel& CController::panel(Panel p)
-{
-	switch (p)
-	{
-	case LeftPanel:
-		return _leftPanel;
-	case RightPanel:
-		return _rightPanel;
-	default:
-		assert (false);
-		return _rightPanel;
-	}
 }
 
 const CFileSystemObject& CController::itemByIndex( Panel p, size_t index ) const
@@ -315,7 +367,10 @@ void CController::disksChanged()
 void CController::saveDirectoryForCurrentDisk(Panel p)
 {
 	if(currentDiskIndex(p) >= _diskEnumerator.drives().size())
+	{
+		assert(false);
 		return;
+	}
 
 	const QString drivePath = _diskEnumerator.drives()[currentDiskIndex(p)].fileSystemObject.absoluteFilePath();
 	const QString path = panel(p).currentDirPath();

@@ -67,6 +67,9 @@ public:
 // Getters
 	const CPanel& panel(Panel p) const;
 	CPanel& panel(Panel p);
+	const CPanel& otherPanel(Panel p) const;
+	CPanel& otherPanel(Panel p);
+	static Panel otherPanelPosition(Panel p);
 	Panel activePanelPosition() const;
 	const CPanel& activePanel() const;
 	CPanel& activePanel();
