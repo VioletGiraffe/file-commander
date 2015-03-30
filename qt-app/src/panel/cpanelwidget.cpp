@@ -674,11 +674,12 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 	// Creating and adding new buttons
 	for (int i = 0; i < drives.size(); ++i)
 	{
-		QString name = drives[i].rootPath();
+		const auto& drive = drives[i];
+		QString name = drive.rootPath();
 		if (name.endsWith(":/"))
 			name.remove(":/");
 
-		const CFileSystemObject fileSystemObject(drives[i].rootPath());
+		const CFileSystemObject fileSystemObject(drive.rootPath());
 
 		assert(layout);
 		QPushButton * diskButton = new QPushButton;
@@ -688,13 +689,17 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).width(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 		diskButton->setProperty("id", quint64(i));
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
-		diskButton->setToolTip(drives[i].displayName());
+		diskButton->setToolTip(drive.displayName());
 		connect(diskButton, SIGNAL(clicked()), SLOT(driveButtonClicked()));
 		connect(diskButton, SIGNAL(customContextMenuRequested(QPoint)), SLOT(showContextMenuForDisk(QPoint)));
 		if (i == currentDriveIndex)
 		{
 			diskButton->setChecked(true);
 			_currentDisk = fileSystemObject.absoluteFilePath();
+			ui->_driveInfoLabel->setText(QString("%1: %2 available, %3 free of %4 total").arg(drive.displayName()).
+				arg(fileSizeToString(drive.bytesAvailable(), 'M', " ")).
+				arg(fileSizeToString(drive.bytesFree(), 'M', " ")).
+				arg(fileSizeToString(drive.bytesTotal(), 'M', " ")));
 		}
 		layout->addWidget(diskButton);
 	}
