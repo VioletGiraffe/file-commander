@@ -1,6 +1,10 @@
-SETLOCAL
+REM this script must set QTDIR32 and QTDIR64 paths to the root of corresponding Qt builds. Example:
+REM set QTDIR32=k:\Qt\5\5.4\msvc2013_opengl\
+REM set QTDIR64=k:\Qt\5\5.4\msvc2013_64_opengl\
 
-set QTDIR32=k:\Qt\5\5.4\msvc2013_opengl\
+call set_qt_paths.bat
+
+SETLOCAL
 
 RMDIR  /S /Q binaries\
 
@@ -34,8 +38,6 @@ xcopy /R /Y %SystemRoot%\SysWOW64\msvcp120.dll binaries\32\msvcr\
 ENDLOCAL
 
 SETLOCAL
-
-set QTDIR64=k:\Qt\5\5.4\msvc2013_64_opengl\
 
 REM X64
 pushd ..\..\
