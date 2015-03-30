@@ -170,9 +170,10 @@ void COperationPerformer::copyFiles()
 				if (_globalResponses[hrFileExists] == urSkipAll)
 					continue;
 			}
-			else if (_globalResponses.count(hrFileExists) <= 0 ||_globalResponses[hrFileExists] != urProceedWithAll)
+			else
 			{
-				_observer->onProcessHaltedCallback(hrFileExists, *it, CFileSystemObject(destInfo), QString());
+				CFileSystemObject destFile(destInfo);
+				_observer->onProcessHaltedCallback(hrFileExists, *it, destFile, QString());
 				waitForResponse();
 				if (_userResponse == urSkipThis || _userResponse == urSkipAll)
 				{
@@ -185,12 +186,16 @@ void COperationPerformer::copyFiles()
 					finalize();
 					return;
 				}
+				else if (_userResponse == urRename)
+				{
+					assert(!_newName.isEmpty());
+					destFile = CFileSystemObject(_newName);
+				}
 				else
 					assert (((_userResponse == urProceedWithThis || _userResponse == urProceedWithAll) && _newName.isEmpty()) || (_userResponse == urRename && !_newName.isEmpty()) || (_globalResponses.count(hrFileExists) > 0 &&_globalResponses[hrFileExists] == urProceedWithAll));
 
 				_userResponse = urNone;
 
-				CFileSystemObject destFile(destInfo);
 				if (!destFile.properties().permissions.write)
 				{
 					if (_globalResponses.count(hrDestFileIsReadOnly) <= 0 || _globalResponses[hrDestFileIsReadOnly] != urProceedWithAll)
