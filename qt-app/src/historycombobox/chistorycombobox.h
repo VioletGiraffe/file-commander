@@ -8,7 +8,7 @@ class CHistoryComboBox : public QComboBox
 	Q_OBJECT
 
 public:
-	CHistoryComboBox(QWidget * parent);
+	explicit CHistoryComboBox(QWidget * parent);
 
 	void setClearEditorOnItemActivation(bool clear);
 	void setSelectPreviousItemShortcut(const QKeySequence& selectPreviousItemShortcut);

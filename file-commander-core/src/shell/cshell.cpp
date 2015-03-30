@@ -52,7 +52,7 @@ void CShell::executeShellCommand(const QString& command, const QString& workingD
 
 class CItemIdListReleaser {
 public:
-	CItemIdListReleaser(ITEMIDLIST * idList) : _idList(idList) {}
+	explicit CItemIdListReleaser(ITEMIDLIST * idList) : _idList(idList) {}
 	~CItemIdListReleaser() { if (_idList) CoTaskMemFree(_idList); }
 private:
 	ITEMIDLIST * _idList;
@@ -60,7 +60,7 @@ private:
 
 class CComInterfaceReleaser {
 public:
-	CComInterfaceReleaser(IUnknown * i) : _i(i) {}
+	explicit CComInterfaceReleaser(IUnknown * i) : _i(i) {}
 	~CComInterfaceReleaser() { if (_i) _i->Release(); }
 private:
 	IUnknown * _i;
@@ -68,7 +68,7 @@ private:
 
 class CItemIdArrayReleaser {
 public:
-	CItemIdArrayReleaser(std::vector<ITEMIDLIST*> idArray) : _array(idArray) {}
+	explicit CItemIdArrayReleaser(std::vector<ITEMIDLIST*> idArray) : _array(idArray) {}
 	~CItemIdArrayReleaser() { for (auto it = _array.begin(); it != _array.end(); ++it) if (*it) CoTaskMemFree(*it); }
 private:
 	std::vector<ITEMIDLIST*> _array;

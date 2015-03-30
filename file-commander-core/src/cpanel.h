@@ -50,7 +50,7 @@ class CPanel : public QObject
 public:
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 
-	CPanel(Panel position);
+	explicit CPanel(Panel position);
 	// Sets the current directory
 	FileOperationResultCode setPath(const QString& path, NavigationOperation operation);
 	// Navigates up the directory tree

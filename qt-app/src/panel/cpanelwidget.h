@@ -23,7 +23,7 @@ class CPanelWidget : public QWidget, private CController::IDiskListObserver, pub
 	Q_OBJECT
 
 public:
-	CPanelWidget(QWidget *parent = 0);
+	explicit CPanelWidget(QWidget *parent = 0);
 	~CPanelWidget();
 
 	void setFocusToFileList();

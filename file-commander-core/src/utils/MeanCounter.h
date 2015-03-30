@@ -4,7 +4,7 @@ template <typename T> class CMeanCounter
 {
 public:
 
-	CMeanCounter(float smoothFactor = 0.1f);
+	explicit CMeanCounter(float smoothFactor = 0.1f);
 	~CMeanCounter(void);
 
 	void operator= (const T& value);
@@ -15,9 +15,9 @@ public:
 	T smoothMean () const;
 
 private:
-	T		_arithMeanAccumulator;
-	T		_geomMeanAccumulator;
-	float	_smoothMeanAccumulator;
+	T     _arithMeanAccumulator;
+	T     _geomMeanAccumulator;
+	float _smoothMeanAccumulator;
 
 	float	_smoothFactor;
 	size_t	_counter;

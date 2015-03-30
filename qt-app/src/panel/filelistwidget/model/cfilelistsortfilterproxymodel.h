@@ -11,7 +11,7 @@ class CFileListSortFilterProxyModel : public QSortFilterProxyModel
 	Q_OBJECT
 
 public:
-	CFileListSortFilterProxyModel(QObject * parent);
+	explicit CFileListSortFilterProxyModel(QObject * parent);
 	// Sets the position (left or right) of a panel that this model represents
 	void setPanelPosition(Panel p);
 
