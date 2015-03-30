@@ -82,6 +82,7 @@ private slots:
 
 private:
 	void fillHistory();
+	void updateInfoLabel(const std::vector<qulonglong>& selection);
 
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;

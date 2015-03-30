@@ -240,6 +240,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 		}
 	}
 
+	selectionChanged(QItemSelection(), QItemSelection());
 
 	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 }
@@ -341,8 +342,6 @@ void CPanelWidget::driveButtonClicked()
 
 void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection /*deselected*/)
 {
-	ui->_infoLabel->clear();
-
 	// This doesn't let the user select the [..] item
 	auto selection = selectedItemsHashes();
 	const QString cdUpPath = CFileSystemObject(QFileInfo(currentDir())).parentDirPath();
@@ -359,33 +358,9 @@ void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection 
 	}
 
 	// Updating the selection summary label
-	uint64_t numFilesSelected = 0, numFoldersSelected = 0, totalSize = 0, sizeSelected = 0, totalNumFolders = 0, totalNumFiles = 0;
-	const auto& currentTotalList = _controller.panel(_panelPosition).list();
-	for(auto it = currentTotalList.begin(); it != currentTotalList.end(); ++it)
-	{
-		if (it->isFile())
-			++totalNumFiles;
-		else if (it->isDir())
-			++totalNumFolders;
-		totalSize += it->size();
-	}
+	updateInfoLabel(selection);
 
-	for(auto it = selection.begin(); it != selection.end(); ++it)
-	{
-		const CFileSystemObject& object = _controller.itemByHash(_panelPosition, *it);
-		if (object.isFile())
-			++numFilesSelected;
-		else if (object.isDir())
-			++numFoldersSelected;
-
-		sizeSelected += object.size();
-	}
-
-	ui->_infoLabel->setText(QString("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(totalNumFiles).
-							arg(numFoldersSelected).arg(totalNumFolders).
-							arg(fileSizeToString(sizeSelected)).arg(fileSizeToString(totalSize)));
-
-
+	// Notify the controller of the new selection
 	CPluginEngine::get().selectionChanged(_panelPosition, selection);
 }
 
@@ -606,6 +581,37 @@ void CPanelWidget::fillHistory()
 		ui->_pathNavigator->addItem(toNativeSeparators(it->endsWith("/") ? *it : (*it) + "/"));
 
 	ui->_pathNavigator->setCurrentIndex(static_cast<int>(history.size() - 1 - history.currentIndex()));
+}
+
+void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
+{
+	ui->_infoLabel->clear();
+
+	uint64_t numFilesSelected = 0, numFoldersSelected = 0, totalSize = 0, sizeSelected = 0, totalNumFolders = 0, totalNumFiles = 0;
+	const auto& currentTotalList = _controller.panel(_panelPosition).list();
+	for (auto it = currentTotalList.begin(); it != currentTotalList.end(); ++it)
+	{
+		if (it->isFile())
+			++totalNumFiles;
+		else if (it->isDir())
+			++totalNumFolders;
+		totalSize += it->size();
+	}
+
+	for (auto it = selection.begin(); it != selection.end(); ++it)
+	{
+		const CFileSystemObject& object = _controller.itemByHash(_panelPosition, *it);
+		if (object.isFile())
+			++numFilesSelected;
+		else if (object.isDir())
+			++numFoldersSelected;
+
+		sizeSelected += object.size();
+	}
+
+	ui->_infoLabel->setText(QString("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(totalNumFiles).
+		arg(numFoldersSelected).arg(totalNumFolders).
+		arg(fileSizeToString(sizeSelected)).arg(fileSizeToString(totalSize)));
 }
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
