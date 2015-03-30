@@ -9,17 +9,17 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 {
 	ui->setupUi(this);
 
-	connect(ui->btnCancel, SIGNAL(clicked()), SLOT(on_btnCancel_clicked()));
-	connect(ui->btnCancelDeletion, SIGNAL(clicked()), SLOT(on_btnCancel_clicked()));
-	connect(ui->btnDelete, SIGNAL(clicked()), SLOT(on_btnProceed_clicked()));
-	connect(ui->btnDeleteAll, SIGNAL(clicked()), SLOT(on_btnProceedAll_clicked()));
-	connect(ui->btnOverwrite, SIGNAL(clicked()), SLOT(on_btnProceed_clicked()));
-	connect(ui->btnOverwriteAll, SIGNAL(clicked()), SLOT(on_btnProceedAll_clicked()));
-	connect(ui->btnRename, SIGNAL(clicked()), SLOT(on_btnRename_clicked()));
-	connect(ui->btnSkip, SIGNAL(clicked()), SLOT(on_btnSkip_clicked()));
-	connect(ui->btnSkipAll, SIGNAL(clicked()), SLOT(on_btnSkipAll_clicked()));
-	connect(ui->btnSkipDeletion, SIGNAL(clicked()), SLOT(on_btnSkip_clicked()));
-	connect(ui->btnSkipAllDeletion, SIGNAL(clicked()), SLOT(on_btnSkipAll_clicked()));
+	connect(ui->btnCancel, SIGNAL(clicked()), SLOT(onCancelClicked()));
+	connect(ui->btnCancelDeletion, SIGNAL(clicked()), SLOT(onCancelClicked()));
+	connect(ui->btnDelete, SIGNAL(clicked()), SLOT(onProceedClicked()));
+	connect(ui->btnDeleteAll, SIGNAL(clicked()), SLOT(onProceedAllClicked()));
+	connect(ui->btnOverwrite, SIGNAL(clicked()), SLOT(onProceedClicked()));
+	connect(ui->btnOverwriteAll, SIGNAL(clicked()), SLOT(onProceedAllClicked()));
+	connect(ui->btnRename, SIGNAL(clicked()), SLOT(onRenameClicked()));
+	connect(ui->btnSkip, SIGNAL(clicked()), SLOT(onSkipClicked()));
+	connect(ui->btnSkipAll, SIGNAL(clicked()), SLOT(onSkipAllClicked()));
+	connect(ui->btnSkipDeletion, SIGNAL(clicked()), SLOT(onSkipClicked()));
+	connect(ui->btnSkipAllDeletion, SIGNAL(clicked()), SLOT(onSkipAllClicked()));
 
 	switch (promptReason)
 	{
@@ -92,19 +92,19 @@ CPromptDialog::~CPromptDialog()
 	delete ui;
 }
 
-void CPromptDialog::on_btnSkip_clicked()
+void CPromptDialog::onSkipClicked()
 {
 	_response = urSkipThis;
 	close();
 }
 
-void CPromptDialog::on_btnSkipAll_clicked()
+void CPromptDialog::onSkipAllClicked()
 {
 	_response = urSkipAll;
 	close();
 }
 
-void CPromptDialog::on_btnRename_clicked()
+void CPromptDialog::onRenameClicked()
 {
 	_newName = QInputDialog::getText(this, "Rename the file", "Enter the new name for this file", QLineEdit::Normal, _srcFileName);
 	if (!_newName.isEmpty())
@@ -114,19 +114,19 @@ void CPromptDialog::on_btnRename_clicked()
 	}
 }
 
-void CPromptDialog::on_btnProceed_clicked()
+void CPromptDialog::onProceedClicked()
 {
 	_response = urProceedWithThis;
 	close();
 }
 
-void CPromptDialog::on_btnProceedAll_clicked()
+void CPromptDialog::onProceedAllClicked()
 {
 	_response = urProceedWithAll;
 	close();
 }
 
-void CPromptDialog::on_btnCancel_clicked()
+void CPromptDialog::onCancelClicked()
 {
 	_response = urAbort;
 	close();

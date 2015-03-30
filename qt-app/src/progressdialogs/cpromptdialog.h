@@ -21,12 +21,12 @@ public:
 	QString newName() const;
 
 private slots:
-	void on_btnSkip_clicked();
-	void on_btnSkipAll_clicked();
-	void on_btnRename_clicked();
-	void on_btnProceed_clicked();
-	void on_btnProceedAll_clicked();
-	void on_btnCancel_clicked();
+	void onSkipClicked();
+	void onSkipAllClicked();
+	void onRenameClicked();
+	void onProceedClicked();
+	void onProceedAllClicked();
+	void onCancelClicked();
 
 private:
 	Ui::CPromptDialog *ui;
