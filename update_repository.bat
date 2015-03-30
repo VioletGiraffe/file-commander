@@ -1,7 +1,7 @@
 git pull
 
 REM In case there are new submodules that have not yet been cloned
-init_submodules.bat
+call init_submodules.bat
 
 cd qtutils
 git pull
