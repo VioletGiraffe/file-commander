@@ -39,16 +39,32 @@ CDiskEnumerator::CDiskEnumerator()
 	connect(&_timer, SIGNAL(timeout()), SLOT(enumerateDisks()));
 }
 
-static const auto storageInfoLessComp = [](const QStorageInfo& l, const QStorageInfo& r)
+inline bool operator<(const QStorageInfo& l, const QStorageInfo& r)
 {
 	return (l.name() + l.rootPath() + QString::number(l.bytesAvailable())) < (r.name() + r.rootPath() + QString::number(r.bytesAvailable()));
 };
 
+inline bool drivesChanged(const QList<QStorageInfo>& l, const QList<QStorageInfo>& r)
+{
+	if (l.size() != r.size())
+		return true;
+
+	for (int i = 0; i < l.size(); ++i)
+		if (l[i] < r[i] || r[i] < l[i])
+			return true;
+
+	return false;
+}
+
 // Refresh the list of available disk drives
 void CDiskEnumerator::enumerateDisks()
 {
+	QTime time;
+	time.start();
 	const auto newDrives = QStorageInfo::mountedVolumes();
-	if (setTheoreticDifference<std::vector>(newDrives, _drives, storageInfoLessComp) != setTheoreticDifference<std::vector>(_drives, newDrives, storageInfoLessComp))
+	qDebug() << __FUNCTION__ << "QStorageInfo::mountedVolumes() took" << time.elapsed() << "ms";
+
+	if (drivesChanged(newDrives, _drives))
 	{
 		_drives = newDrives;
 		notifyObservers();
