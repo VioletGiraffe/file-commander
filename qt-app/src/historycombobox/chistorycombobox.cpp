@@ -1,6 +1,8 @@
 #include "chistorycombobox.h"
 #include <assert.h>
 
+#include "utils/utils.h"
+
 CHistoryComboBox::CHistoryComboBox(QWidget* parent) :
 	QComboBox(parent),
 	_bHistoryMode(true),
@@ -113,14 +115,23 @@ void CHistoryComboBox::keyPressEvent(QKeyEvent* e)
 // Moves the currently selected item to the top
 void CHistoryComboBox::currentItemActivated()
 {
-	const QString item = currentText();
-	emit itemActivated(item);
+	const QString newItem = currentText();
+	emit itemActivated(newItem);
 
 	if (_bHistoryMode)
 	{
-		removeItem(currentIndex());
-		insertItem(0, item);
+// No longer neccessary as of Qt 5.4?..
+//		removeItem(currentIndex());
+
+		auto list = items();
+		list.push_front(newItem);
+
+		list = uniqueElements(list);
+		clear();
+		for (int i = list.size() - 1; i >= 0; --i)
+			insertItem(0, list[i]);
 		setCurrentIndex(0);
+
 		if (_bClearEditorOnItemActivation)
 			lineEdit()->clear();
 	}
