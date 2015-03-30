@@ -81,12 +81,12 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 }
 
 // A current disk has been switched
-void CController::diskSelected(Panel p, size_t index)
+void CController::diskSelected(Panel p, int index)
 {
 	assert(index < _diskEnumerator.drives().size());
-	const QString drivePath = _diskEnumerator.drives()[index].fileSystemObject.absoluteFilePath();
+	const QString drivePath = _diskEnumerator.drives().at(index).rootPath();
 
-	if (drivePath == _diskEnumerator.drives()[currentDiskIndex(otherPanelPosition(p))].fileSystemObject.absoluteFilePath())
+	if (drivePath == _diskEnumerator.drives().at(currentDiskIndex(otherPanelPosition(p))).rootPath())
 	{
 		setPath(p, otherPanel(p).currentDirPath(), nopOther);
 	}
@@ -334,9 +334,9 @@ QString CController::itemPath(Panel p, qulonglong hash) const
 	return panel(p).itemByHash(hash).properties().fullPath;
 }
 
-QString CController::diskPath(size_t index) const
+QString CController::diskPath(int index) const
 {
-	return index < _diskEnumerator.drives().size() ? _diskEnumerator.drives().at(index).fileSystemObject.absoluteFilePath() : QString();
+	return index < _diskEnumerator.drives().size() && index >= 0 ? _diskEnumerator.drives().at(index).rootPath() : QString();
 }
 
 CFavoriteLocations &CController::favoriteLocations()
@@ -372,18 +372,18 @@ void CController::saveDirectoryForCurrentDisk(Panel p)
 		return;
 	}
 
-	const QString drivePath = _diskEnumerator.drives()[currentDiskIndex(p)].fileSystemObject.absoluteFilePath();
+	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).rootPath();
 	const QString path = panel(p).currentDirPath();
 	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path);
 }
 
 
-size_t CController::currentDiskIndex(Panel p) const
+int CController::currentDiskIndex(Panel p) const
 {
 	const auto& drives = _diskEnumerator.drives();
-	for (size_t i = 0; i < drives.size(); ++i)
+	for (int i = 0; i < drives.size(); ++i)
 	{
-		if (CFileSystemObject(panel(p).currentDirPath()).isChildOf(drives[i].fileSystemObject))
+		if (CFileSystemObject(panel(p).currentDirPath()).isChildOf(CFileSystemObject(QFileInfo(drives[i].rootPath()))))
 			return i;
 	}
 

@@ -17,7 +17,7 @@ public:
 	{
 	public:
 		virtual ~IDiskListObserver() {}
-		virtual void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex) = 0;
+		virtual void disksChanged(QList<QStorageInfo> drives, Panel p, int currentDriveIndex) = 0;
 	};
 
 	CController();
@@ -36,7 +36,7 @@ public:
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current disk has been switched
-	void diskSelected(Panel p, size_t index);
+	void diskSelected(Panel p, int index);
 	// Program settings have changed
 	void settingsChanged();
 	// Focus is set to a panel
@@ -81,7 +81,7 @@ public:
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
 	size_t numItems(Panel p) const;
 	QString itemPath(Panel p, qulonglong hash) const;
-	QString diskPath(size_t index) const;
+	QString diskPath(int index) const;
 	CFavoriteLocations& favoriteLocations();
 
 	// Returns hash of an item that was the last selected in the specified dir
@@ -91,7 +91,7 @@ private:
 	virtual void disksChanged();
 
 	void saveDirectoryForCurrentDisk(Panel p);
-	size_t currentDiskIndex(Panel p) const;
+	int currentDiskIndex(Panel p) const;
 
 private:
 	static CController * _instance;

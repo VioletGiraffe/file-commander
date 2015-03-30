@@ -22,23 +22,13 @@ public:
 		virtual void disksChanged() = 0;
 	};
 
-
-	struct Drive
-	{
-		Drive(const QFileInfo& pathOrInfo, const QString& name, const QString& description) : fileSystemObject(pathOrInfo), displayName(name), detailedDescription(description) {}
-		bool operator==(const Drive& other) const {return fileSystemObject.absoluteFilePath() == other.fileSystemObject.absoluteFilePath() && displayName == other.displayName;}
-		CFileSystemObject fileSystemObject;
-		QString           displayName;
-		QString           detailedDescription;
-	};
-
 	static CDiskEnumerator& instance();
 	// Adds the observer
 	void addObserver(IDiskListObserver * observer);
 	// Removes the observer
 	void removeObserver(IDiskListObserver * observer);
 	// Returns the drives found
-	const std::vector<Drive>& drives() const;
+	const QList<QStorageInfo>& drives() const;
 
 private slots:
 	// Refresh the list of available disk drives
@@ -48,7 +38,7 @@ private:
 	void notifyObservers() const;
 
 private:
-	std::vector<Drive>              _drives;
+	QList<QStorageInfo>             _drives;
 	std::vector<IDiskListObserver*> _observers;
 	QTimer                          _timer;
 };

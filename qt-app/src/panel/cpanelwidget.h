@@ -86,7 +86,7 @@ private:
 
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
-	void disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex) override;
+	void disksChanged(QList<QStorageInfo> drives, Panel p, int currentDriveIndex) override;
 
 // Internal methods
 	qulonglong hashByItemIndex(const QModelIndex& index) const;

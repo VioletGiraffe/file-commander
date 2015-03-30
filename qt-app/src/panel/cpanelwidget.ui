@@ -106,6 +106,13 @@
     <widget class="QWidget" name="_driveButtonsWidget" native="true"/>
    </item>
    <item>
+    <widget class="QLabel" name="_driveInfoLabel">
+     <property name="text">
+      <string>Drive info</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="CFileListView" name="_list">
      <property name="focusPolicy">
       <enum>Qt::StrongFocus</enum>
@@ -162,7 +169,7 @@
    <item>
     <widget class="QLabel" name="_infoLabel">
      <property name="text">
-      <string>Info label</string>
+      <string>Folder info</string>
      </property>
     </widget>
    </item>

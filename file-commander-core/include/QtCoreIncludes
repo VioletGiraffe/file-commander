@@ -19,6 +19,7 @@
 #include <QObject>
 #include <QProcess>
 #include <QShortcut>
+#include <QStorageInfo>
 #include <QString>
 #include <QTimer>
 #include <QUrl>

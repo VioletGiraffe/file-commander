@@ -34,6 +34,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	ui->setupUi(this);
 
 	ui->_infoLabel->clear();
+	ui->_driveInfoLabel->clear();
 
 	ui->_pathNavigator->setLineEdit(new CLineEdit);
 	ui->_pathNavigator->setHistoryMode(true);
@@ -646,7 +647,7 @@ bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& 
 	return true; // Consuming the event
 }
 
-void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Panel p, size_t currentDriveIndex)
+void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int currentDriveIndex)
 {
 	if (p != _panelPosition)
 		return;
@@ -671,25 +672,29 @@ void CPanelWidget::disksChanged(std::vector<CDiskEnumerator::Drive> drives, Pane
 	}
 
 	// Creating and adding new buttons
-	for (size_t i = 0; i < drives.size(); ++i)
+	for (int i = 0; i < drives.size(); ++i)
 	{
-		const QString name = drives[i].displayName;
+		QString name = drives[i].rootPath();
+		if (name.endsWith(":/"))
+			name.remove(":/");
+
+		const CFileSystemObject fileSystemObject(drives[i].rootPath());
 
 		assert(layout);
 		QPushButton * diskButton = new QPushButton;
 		diskButton->setCheckable(true);
-		diskButton->setIcon(drives[i].fileSystemObject.icon());
+		diskButton->setIcon(fileSystemObject.icon());
 		diskButton->setText(name);
 		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).width(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 		diskButton->setProperty("id", quint64(i));
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
-		diskButton->setToolTip(drives[i].detailedDescription);
+		diskButton->setToolTip(drives[i].displayName());
 		connect(diskButton, SIGNAL(clicked()), SLOT(driveButtonClicked()));
 		connect(diskButton, SIGNAL(customContextMenuRequested(QPoint)), SLOT(showContextMenuForDisk(QPoint)));
 		if (i == currentDriveIndex)
 		{
 			diskButton->setChecked(true);
-			_currentDisk = drives[i].fileSystemObject.absoluteFilePath();
+			_currentDisk = fileSystemObject.absoluteFilePath();
 		}
 		layout->addWidget(diskButton);
 	}
