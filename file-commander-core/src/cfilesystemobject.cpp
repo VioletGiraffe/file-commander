@@ -337,7 +337,6 @@ uint64_t CFileSystemObject::bytesCopied() const
 
 FileOperationResultCode CFileSystemObject::cancelCopy()
 {
-	assert(copyOperationInProgress());
 	if(copyOperationInProgress())
 	{
 		_thisFile->close();

@@ -89,8 +89,17 @@ void CCopyMoveDialog::onCurrentFileChanged(QString file)
 
 void CCopyMoveDialog::cancelPressed()
 {
+	const bool wasPaused = _performer->paused();
+	if (!wasPaused)
+		pauseResume();
+
 	if (QMessageBox::question(this, "Cancel?", "Are you sure you want to cancel this operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	{
+		pauseResume();
 		cancel();
+	}
+	else if (!wasPaused)
+		pauseResume();
 }
 
 void CCopyMoveDialog::pauseResume()
