@@ -59,7 +59,7 @@ protected:
 	// For managing selection and cursor
 	void keyPressEvent(QKeyEvent * event) override;
 
-	bool edit ( const QModelIndex & index, EditTrigger trigger, QEvent * event ) override;
+	bool edit( const QModelIndex & index, EditTrigger trigger, QEvent * event ) override;
 
 	void dragMoveEvent(QDragMoveEvent * event) override;
 

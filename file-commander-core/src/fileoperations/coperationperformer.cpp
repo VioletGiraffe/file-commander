@@ -327,6 +327,7 @@ void COperationPerformer::copyFiles()
 						std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 					_fileTimeElapsed.resume();
+					// TODO: add error checking, message displaying etc.!
 					result = it->copyChunk(chunkSize, destPath, _newName.isEmpty() ? newFileName : _newName);
 					const int totalPercentage = totalSize > 0 ? static_cast<int>((sizeProcessed + it->bytesCopied()) * 100 / totalSize) : 0;
 					const int filePercentage = it->size() > 0 ? static_cast<int>(it->bytesCopied() * 100 / it->size()) : 0;
