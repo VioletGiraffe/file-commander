@@ -675,9 +675,19 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 	for (int i = 0; i < drives.size(); ++i)
 	{
 		const auto& drive = drives[i];
-		QString name = drive.rootPath();
-		if (name.endsWith(":/"))
-			name.remove(":/");
+		if (!drive.isValid())
+			continue;
+
+#ifdef _WIN32
+		const QString name = drive.rootPath().remove(":/");
+#else
+		QString name = drive.displayName();
+		if (name.startsWith("/") && name.indexOf('/', 1) != -1)
+		{
+			const int lastPathPart = name.lastIndexOf('/');
+			name = name.mid(lastPathPart + 1);
+		}
+#endif
 
 		const CFileSystemObject fileSystemObject(drive.rootPath());
 
