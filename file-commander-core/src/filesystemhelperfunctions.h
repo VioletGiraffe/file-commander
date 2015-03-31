@@ -91,10 +91,8 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 
 	if (!spacer.isEmpty())
 	{
-		const int numDigits = (int)log10f(n);
-
-		if (numDigits > 3)
-			str.insert(numDigits - 3 + 1, spacer);
+		for (int spacerPos = (int)log10f(n) - 3; spacerPos > 0; spacerPos -= 3)
+			str.insert(spacerPos + 1, spacer);
 	}
 
 	return str;

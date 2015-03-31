@@ -59,10 +59,7 @@ inline bool drivesChanged(const QList<QStorageInfo>& l, const QList<QStorageInfo
 // Refresh the list of available disk drives
 void CDiskEnumerator::enumerateDisks()
 {
-	QTime time;
-	time.start();
 	const auto newDrives = QStorageInfo::mountedVolumes();
-	qDebug() << __FUNCTION__ << "QStorageInfo::mountedVolumes() took" << time.elapsed() << "ms";
 
 	if (drivesChanged(newDrives, _drives))
 	{
