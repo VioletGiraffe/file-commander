@@ -3,7 +3,6 @@ TARGET   = FileCommander
 DESTDIR  = ../bin
 
 QT = core gui
-CONFIG += c++14
 
 #check Qt version
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -94,6 +93,7 @@ win*{
 
 mac*{
 	ICON = resources/file_commander.icns
+	CONFIG += c++11
 }
 
 linux*{
@@ -113,5 +113,6 @@ win32*:!*msvc2012:*msvc* {
 
 
 mac*|linux*{
+	QMAKE_CXXFLAGS += -std=c++1y
 	PRE_TARGETDEPS += $${DESTDIR}/libcore.a
 }

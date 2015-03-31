@@ -6,6 +6,7 @@
 #include <vector>
 #include <stdint.h>
 #include <assert.h>
+#include <cmath>
 
 inline std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPath, bool includeFolders)
 {
@@ -91,7 +92,7 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 
 	if (!spacer.isEmpty())
 	{
-		for (int spacerPos = (int)log10f(n) - 3; spacerPos > 0; spacerPos -= 3)
+		for (int spacerPos = (int)std::log10(n) - 3; spacerPos > 0; spacerPos -= 3)
 			str.insert(spacerPos + 1, spacer);
 	}
 

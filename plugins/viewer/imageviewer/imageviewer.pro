@@ -3,7 +3,6 @@ TARGET   = plugin_imageviewer
 DESTDIR  = ../../../bin
 
 QT = core gui
-CONFIG += c++14
 
 #check Qt version
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -30,7 +29,7 @@ win*{
 }
 
 mac*{
-
+	CONFIG += c++11
 }
 
 linux*{
@@ -38,7 +37,7 @@ linux*{
 }
 
 linux*|mac*{
-	QMAKE_CXXFLAGS += -pedantic-errors
+	QMAKE_CXXFLAGS += -pedantic-errors -std=c++1y
 	QMAKE_CFLAGS += -pedantic-errors
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 }
