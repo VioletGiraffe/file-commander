@@ -1,7 +1,7 @@
 File Commander
 ==============
 
-   Qt-based cross-platform Total Commander-like dual panel file manager for Windows, Mac and Linux with support for plugins.
+   Qt-based cross-platform Total Commander-like dual panel file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems.
 
 ![Windows screenshot](/../gh-pages/screenshots/Windows/Clip.jpg?raw=true)
 
@@ -24,8 +24,8 @@ For the list of known issues, refer to the project issues on Github, sort by the
 
 ***Building***
 
-* A compiler with C++ 0x/11 support is required (std::thread, lambda functions)
-* Qt 5 required
+* A compiler with C++ 0x/11 support is required (std::thread, lambda functions).
+* Qt 5.4 or newer required.
 * Mac and Linux: open the project file in Qt Creator and build it.
-* Windows: you can build using Qt Creator or Visual Studio for IDE. Visual Studio 2012 or 2013 is required - v110 or v120 toolset (run `qmake -tp vc -r` to generate the solution for Visual Studio). I have not tried building it with MinGW, but it should work as long as you enable C++ 11 support.
-* Qt 5 only.
+* Windows: you can build using either Qt Creator or Visual Studio for IDE. At least Visual Studio 2013 is required - v120 toolset or newer. Run `qmake -tp vc -r` to generate the solution for Visual Studio.
+* I have not tried building with MinGW, but it should work as long as you enable C++ 11 support.
