@@ -696,7 +696,7 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 		{
 			diskButton->setChecked(true);
 			_currentDisk = fileSystemObject.absoluteFilePath();
-			ui->_driveInfoLabel->setText(QString("%1 (%2): %3 available, %4 free of %5 total").arg(drive.displayName()).
+			ui->_driveInfoLabel->setText(QString("%1 (%2): %3 available, <b>%4 free</b> of %5 total").arg(drive.displayName()).
 				arg(QString::fromUtf8(drive.fileSystemType())).
 				arg(fileSizeToString(drive.bytesAvailable(), 'M', " ")).
 				arg(fileSizeToString(drive.bytesFree(), 'M', " ")).
