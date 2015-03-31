@@ -1,5 +1,4 @@
 #pragma once
-#define _VARIADIC_MAX 10
 
 #include "operationcodes.h"
 #include "../cfilesystemobject.h"

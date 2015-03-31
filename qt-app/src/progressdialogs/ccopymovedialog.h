@@ -32,7 +32,8 @@ protected:
 	virtual void closeEvent(QCloseEvent * e);
 
 private slots:
-	void cancelPressed();
+	// True if cancelled, false if the user chose to continue
+	bool cancelPressed();
 	void pauseResume();
 	void background();
 

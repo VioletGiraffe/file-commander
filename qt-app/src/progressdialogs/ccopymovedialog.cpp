@@ -87,8 +87,13 @@ void CCopyMoveDialog::onCurrentFileChanged(QString file)
 	ui->_lblFileName->setText(file);
 }
 
-void CCopyMoveDialog::cancelPressed()
+// True if cancelled, false if the user chose to continue
+bool CCopyMoveDialog::cancelPressed()
 {
+	const bool working = _performer && _performer->working();
+	if (!working)
+		return true;
+
 	const bool wasPaused = _performer->paused();
 	if (!wasPaused)
 		pauseResume();
@@ -97,9 +102,12 @@ void CCopyMoveDialog::cancelPressed()
 	{
 		pauseResume();
 		cancel();
+		return true;
 	}
 	else if (!wasPaused)
 		pauseResume();
+
+	return false;
 }
 
 void CCopyMoveDialog::pauseResume()
@@ -135,15 +143,22 @@ void CCopyMoveDialog::closeEvent(QCloseEvent *e)
 {
 	if (e->type() == QCloseEvent::Close && _performer)
 	{
-		if (QMessageBox::question(this, "Abort?", "Do you want to abort the operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+		if (cancelPressed())
 		{
-			cancel();
 			QWidget::closeEvent(e);
+			emit closed();
+			return;
 		}
 	}
-
-	if (e->type() == QCloseEvent::Close)
+	else if (e->type() == QCloseEvent::Close)
+	{
+		QWidget::closeEvent(e);
 		emit closed();
+		return;
+	}
+
+	if (e)
+		e->ignore();
 }
 
 void CCopyMoveDialog::cancel()

@@ -26,6 +26,8 @@ COperationPerformer::COperationPerformer(Operation operation, std::vector<CFileS
 COperationPerformer::~COperationPerformer()
 {
 	cancel();
+
+	// TODO: this doesn't look thread-safe
 	assert(_thread.joinable());
 	_thread.join();
 }
