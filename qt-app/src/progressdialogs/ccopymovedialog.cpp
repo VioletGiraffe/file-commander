@@ -126,9 +126,13 @@ void CCopyMoveDialog::background()
 
 void CCopyMoveDialog::setMinSize()
 {
-	setGeometry(QRect(geometry().topLeft(), QPoint(geometry().topLeft().x() + minimumSize().width(), geometry().topLeft().y() + minimumSize().height())));
-	_mainWindow->raise();
+	const QSize minsize = minimumSize();
+	const QPoint mainWindowTopLeft = _mainWindow->geometry().topLeft();
+	const QRect newGeometry = QRect(QPoint(mainWindowTopLeft.x(), mainWindowTopLeft.y() - minsize.height()), minsize);
+	setGeometry(newGeometry);
+
 	_mainWindow->activateWindow();
+	raise();
 }
 
 void CCopyMoveDialog::processEvents()
