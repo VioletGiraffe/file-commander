@@ -387,5 +387,5 @@ int CController::currentDiskIndex(Panel p) const
 			return i;
 	}
 
-	return std::numeric_limits<size_t>::max();
+	return std::numeric_limits<int>::max();
 }

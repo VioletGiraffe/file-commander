@@ -42,7 +42,7 @@ CDiskEnumerator::CDiskEnumerator()
 inline bool operator<(const QStorageInfo& l, const QStorageInfo& r)
 {
 	return (l.name() + l.rootPath() + QString::number(l.bytesAvailable())) < (r.name() + r.rootPath() + QString::number(r.bytesAvailable()));
-};
+}
 
 inline bool drivesChanged(const QList<QStorageInfo>& l, const QList<QStorageInfo>& r)
 {

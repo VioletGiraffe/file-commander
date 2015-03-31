@@ -2,11 +2,19 @@
 #include "../cfilesystemobject.h"
 #include <assert.h>
 
+std::shared_ptr<CIconProvider> CIconProvider::_impl = std::shared_ptr<CIconProvider>(new CIconProvider);
+
+const QIcon &CIconProvider::iconForFilesystemObject(const CFileSystemObject &object)
+{
+	static const QIcon dummy;
+	return _impl ? _impl->iconFor(object) : dummy;
+}
+
 CIconProvider::CIconProvider()
 {
 }
 
-const QIcon& CIconProvider::iconForFilesystemObject(const CFileSystemObject& object)
+const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 {
 	if (_iconForObject.count(object.properties().hash) == 0)
 	{
@@ -22,6 +30,3 @@ const QIcon& CIconProvider::iconForFilesystemObject(const CFileSystemObject& obj
 
 	return _iconCache[_iconForObject[object.properties().hash]];
 }
-
-std::unordered_map<qulonglong, quint64> CIconProvider::_iconForObject;
-std::unordered_map<quint64, QIcon> CIconProvider::_iconCache;
