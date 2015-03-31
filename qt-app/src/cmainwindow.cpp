@@ -407,8 +407,27 @@ void CMainWindow::viewFile()
 void CMainWindow::editFile()
 {
 	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
-	QString currentFile = _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).absoluteFilePath() : QString();
-	if (!editorPath.isEmpty() && !currentFile.isEmpty())
+	if (editorPath.isEmpty() || !QFileInfo(editorPath).exists())
+	{
+		if (QMessageBox::question(this, "Editor not configured", "No editor program has been configured (or the specified path doesn't exist). Do you want to specify the editor now?") == QMessageBox::Yes)
+		{
+#ifdef _WIN32
+			const QString mask("Executable files (*.exe *.cmd *.bat)");
+#else
+			const QString mask;
+#endif
+			editorPath = QFileDialog::getOpenFileName(this, "Browse for editor program", QString(), mask);
+			if (editorPath.isEmpty())
+				return;
+
+			CSettings().setValue(KEY_EDITOR_PATH, editorPath);
+		}
+		else
+			return;
+	}
+
+	const QString currentFile = _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).absoluteFilePath() : QString();
+	if (!currentFile.isEmpty())
 	{
 		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
 		if (!editorPath.isEmpty() && !QProcess::startDetached(CSettings().value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile))

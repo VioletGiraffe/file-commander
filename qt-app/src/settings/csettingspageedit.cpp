@@ -38,7 +38,7 @@ void CSettingsPageEdit::acceptSettings()
 void CSettingsPageEdit::browseForEditor()
 {
 #ifdef _WIN32
-	const QString mask("Programs (*.exe)");
+	const QString mask("Executable files (*.exe *.cmd *.bat)");
 #else
 	const QString mask;
 #endif
