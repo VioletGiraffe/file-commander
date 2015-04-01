@@ -18,8 +18,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	CSettings s;
-	ui->_cbSortingNumbersAfterLetters->setChecked(s.value(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, false).toBool());
+	ui->_cbSortingNumbersAfterLetters->setChecked(CSettings::instance()->value(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, false).toBool());
 }
 
 CSettingsPageInterface::~CSettingsPageInterface()
@@ -29,6 +28,5 @@ CSettingsPageInterface::~CSettingsPageInterface()
 
 void CSettingsPageInterface::acceptSettings()
 {
-	CSettings s;
-	s.setValue(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, ui->_cbSortingNumbersAfterLetters->isChecked());
+	CSettings::instance()->setValue(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, ui->_cbSortingNumbersAfterLetters->isChecked());
 }

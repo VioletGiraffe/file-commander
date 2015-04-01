@@ -20,12 +20,12 @@ CFindDialog::CFindDialog(QWidget *parent) :
 	connect(ui->_btnFind, SIGNAL(clicked()), SIGNAL(find()));
 	connect(ui->_btnFindNext, SIGNAL(clicked()), SIGNAL(findNext()));
 
-	CSettings s;
-	ui->_searchText->setText(s.value(SETTINGS_SEARCH_EXPRESSION).toString());
-	ui->_cbSearchBackwards->setChecked(s.value(SETTINGS_BACKWARDS).toBool());
-	ui->_cbCaseSensitive->setChecked(s.value(SETTINGS_CASE_SENSITIVE).toBool());
-	ui->_cbRegex->setChecked(s.value(SETTINGS_REGEX).toBool());
-	ui->_cbWholeWords->setChecked(s.value(SETTINGS_WHOLE_WORDS).toBool());
+	auto s = CSettings::instance();
+	ui->_searchText->setText(s->value(SETTINGS_SEARCH_EXPRESSION).toString());
+	ui->_cbSearchBackwards->setChecked(s->value(SETTINGS_BACKWARDS).toBool());
+	ui->_cbCaseSensitive->setChecked(s->value(SETTINGS_CASE_SENSITIVE).toBool());
+	ui->_cbRegex->setChecked(s->value(SETTINGS_REGEX).toBool());
+	ui->_cbWholeWords->setChecked(s->value(SETTINGS_WHOLE_WORDS).toBool());
 
 #if QT_VERSION < QT_VERSION_CHECK(5,3,0)
 	ui->_cbRegex->setVisible(false);
@@ -71,10 +71,10 @@ void CFindDialog::accept()
 
 void CFindDialog::saveSearchSettings() const
 {
-	CSettings s;
-	s.setValue(SETTINGS_SEARCH_EXPRESSION, searchExpression());
-	s.setValue(SETTINGS_BACKWARDS, searchBackwards());
-	s.setValue(SETTINGS_CASE_SENSITIVE, caseSensitive());
-	s.setValue(SETTINGS_REGEX, regex());
-	s.setValue(SETTINGS_WHOLE_WORDS, wholeWords());
+	auto s = CSettings::instance();
+	s->setValue(SETTINGS_SEARCH_EXPRESSION, searchExpression());
+	s->setValue(SETTINGS_BACKWARDS, searchBackwards());
+	s->setValue(SETTINGS_CASE_SENSITIVE, caseSensitive());
+	s->setValue(SETTINGS_REGEX, regex());
+	s->setValue(SETTINGS_WHOLE_WORDS, wholeWords());
 }

@@ -17,16 +17,16 @@ QString CShell::shellExecutable()
 {
 #ifdef _WIN32
 	static const QString defaultShell = QProcessEnvironment::systemEnvironment().value("ComSpec", "cmd.exe");
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
+	return CSettings::instance()->value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
 #elif defined __APPLE__
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
+	return CSettings::instance()->value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
 #elif defined __linux__
 	QString consoleExecutable = "/usr/bin/konsole"; // KDE
 	if (!QFileInfo(consoleExecutable).exists())
 		consoleExecutable = "/usr/bin/gnome-terminal"; // Gnome
 	if (!QFileInfo(consoleExecutable).exists())
 		consoleExecutable = QString();
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, consoleExecutable).toString();
+	return CSettings::instance()->value(KEY_OTHER_SHELL_COMMAND_NAME, consoleExecutable).toString();
 #else
 	#error unknown platform
 #endif

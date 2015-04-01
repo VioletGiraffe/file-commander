@@ -92,7 +92,7 @@ void CController::diskSelected(Panel p, int index)
 	}
 	else
 	{
-		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
+		const QString lastPathForDrive = CSettings::instance()->value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
 		setPath(p, lastPathForDrive, nopOther);
 	}
 }
@@ -374,7 +374,7 @@ void CController::saveDirectoryForCurrentDisk(Panel p)
 
 	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).rootPath();
 	const QString path = panel(p).currentDirPath();
-	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path);
+	CSettings::instance()->setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path);
 }
 
 

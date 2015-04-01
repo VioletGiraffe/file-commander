@@ -131,7 +131,7 @@ void CMainWindow::initActions()
 	connect(ui->actionOpen_Console_Here, SIGNAL(triggered()), SLOT(openTerminal()));
 	connect(ui->actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
 
-	ui->action_Show_hidden_files->setChecked(CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
+	ui->action_Show_hidden_files->setChecked(CSettings::instance()->value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
 	connect(ui->action_Show_hidden_files, SIGNAL(triggered()), SLOT(showHiddenFiles()));
 	connect(ui->actionShowAllFiles, SIGNAL(triggered()), SLOT(showAllFilesFromCurrentFolderAndBelow()));
 	connect(ui->action_Settings, SIGNAL(triggered()), SLOT(openSettingsDialog()));
@@ -152,7 +152,7 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 
 	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir + toNativeSeparators("/") + files.front().fullName()) : destDir;
 	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
-	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
+	if (CSettings::instance()->value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
 			return false;
@@ -171,7 +171,7 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 	if (files.empty() || destDir.isEmpty())
 		return false;
 
-	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
+	if (CSettings::instance()->value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		CFileOperationConfirmationPrompt prompt("Move files", QString("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
 		if (prompt.exec() != QDialog::Accepted)
@@ -200,21 +200,21 @@ CMainWindow *CMainWindow::get()
 
 void CMainWindow::updateInterface()
 {
-	CSettings s;
-	restoreGeometry(s.value(KEY_GEOMETRY).toByteArray());
-	restoreState(s.value(KEY_STATE).toByteArray());
-	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
-	ui->leftPanel->restorePanelGeometry(s.value(KEY_LPANEL_GEOMETRY).toByteArray());
-	ui->leftPanel->restorePanelState(s.value(KEY_LPANEL_STATE).toByteArray());
-	ui->rightPanel->restorePanelGeometry(s.value(KEY_RPANEL_GEOMETRY).toByteArray());
-	ui->rightPanel->restorePanelState(s.value(KEY_RPANEL_STATE).toByteArray());
+	auto s = CSettings::instance();
+	restoreGeometry(s->value(KEY_GEOMETRY).toByteArray());
+	restoreState(s->value(KEY_STATE).toByteArray());
+	ui->splitter->restoreState(s->value(KEY_SPLITTER_SIZES).toByteArray());
+	ui->leftPanel->restorePanelGeometry(s->value(KEY_LPANEL_GEOMETRY).toByteArray());
+	ui->leftPanel->restorePanelState(s->value(KEY_LPANEL_STATE).toByteArray());
+	ui->rightPanel->restorePanelGeometry(s->value(KEY_RPANEL_GEOMETRY).toByteArray());
+	ui->rightPanel->restorePanelState(s->value(KEY_RPANEL_STATE).toByteArray());
 
-	ui->commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
+	ui->commandLine->addItems(s->value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
 	ui->commandLine->lineEdit()->clear();
 
 	show();
 
-	Panel lastActivePanel = (Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
+	Panel lastActivePanel = (Panel)CSettings::instance()->value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
 	if (lastActivePanel == LeftPanel)
 		ui->leftPanel->setFocusToFileList();
 	else
@@ -225,14 +225,14 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 {
 	if (e->type() == QCloseEvent::Close)
 	{
-		CSettings settings;
-		settings.setValue(KEY_GEOMETRY, saveGeometry());
-		settings.setValue(KEY_STATE, saveState());
-		settings.setValue(KEY_SPLITTER_SIZES, ui->splitter->saveState());
-		settings.setValue(KEY_LPANEL_GEOMETRY, ui->leftPanel->savePanelGeometry());
-		settings.setValue(KEY_RPANEL_GEOMETRY, ui->rightPanel->savePanelGeometry());
-		settings.setValue(KEY_LPANEL_STATE, ui->leftPanel->savePanelState());
-		settings.setValue(KEY_RPANEL_STATE, ui->rightPanel->savePanelState());
+		auto s = CSettings::instance();
+		s->setValue(KEY_GEOMETRY, saveGeometry());
+		s->setValue(KEY_STATE, saveState());
+		s->setValue(KEY_SPLITTER_SIZES, ui->splitter->saveState());
+		s->setValue(KEY_LPANEL_GEOMETRY, ui->leftPanel->savePanelGeometry());
+		s->setValue(KEY_RPANEL_GEOMETRY, ui->rightPanel->savePanelGeometry());
+		s->setValue(KEY_LPANEL_STATE, ui->leftPanel->savePanelState());
+		s->setValue(KEY_RPANEL_STATE, ui->rightPanel->savePanelState());
 
 		emit closed(); // Is used to close all child windows
 		emit fileQuickVewFinished(); // Cleaning up quick view widgets, if any
@@ -282,7 +282,7 @@ void CMainWindow::currentPanelChanged(QStackedWidget *panel)
 	if (_currentFileList)
 	{
 		_controller->activePanelChanged(_currentFileList->panelPosition());
-		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, _currentFileList->panelPosition());
+		CSettings::instance()->setValue(KEY_LAST_ACTIVE_PANEL, _currentFileList->panelPosition());
 		ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPath());
 		CPluginEngine::get().currentPanelChanged(_currentFileList->panelPosition());
 		_commandLineCompleter.setModel(_currentFileList->sortModel());
@@ -406,7 +406,7 @@ void CMainWindow::viewFile()
 
 void CMainWindow::editFile()
 {
-	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
+	QString editorPath = CSettings::instance()->value(KEY_EDITOR_PATH).toString();
 	if (editorPath.isEmpty() || !QFileInfo(editorPath).exists())
 	{
 		if (QMessageBox::question(this, "Editor not configured", "No editor program has been configured (or the specified path doesn't exist). Do you want to specify the editor now?") == QMessageBox::Yes)
@@ -420,7 +420,7 @@ void CMainWindow::editFile()
 			if (editorPath.isEmpty())
 				return;
 
-			CSettings().setValue(KEY_EDITOR_PATH, editorPath);
+			CSettings::instance()->setValue(KEY_EDITOR_PATH, editorPath);
 		}
 		else
 			return;
@@ -429,8 +429,8 @@ void CMainWindow::editFile()
 	const QString currentFile = _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).absoluteFilePath() : QString();
 	if (!currentFile.isEmpty())
 	{
-		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
-		if (!editorPath.isEmpty() && !QProcess::startDetached(CSettings().value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile))
+		const QString editorPath = CSettings::instance()->value(KEY_EDITOR_PATH).toString();
+		if (!editorPath.isEmpty() && !QProcess::startDetached(CSettings::instance()->value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile))
 			QMessageBox::information(this, "Error", QString("Cannot launch ")+editorPath);
 	}
 }
@@ -445,8 +445,6 @@ void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 	pos = ui->btnDelete->mapToGlobal(pos);
 	CShell::recycleBinContextMenu(pos.x(), pos.y(), (void*)winId());
 }
-
-#include <QLayout>
 
 void CMainWindow::toggleQuickView()
 {
@@ -477,7 +475,7 @@ bool CMainWindow::executeCommand(QString commandLineText)
 		return false;
 
 	CShell::executeShellCommand(commandLineText, _currentFileList->currentDir());
-	qtimerSingleShot([=](){CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->commandLine->items());}, 0); // Saving the list AFTER the combobox actually accepts the newly added item
+	qtimerSingleShot([=](){CSettings::instance()->setValue(KEY_LAST_COMMANDS_EXECUTED, ui->commandLine->items());}, 0); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
 	return true;
@@ -523,7 +521,7 @@ void CMainWindow::refresh()
 
 void CMainWindow::showHiddenFiles()
 {
-	CSettings().setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, ui->action_Show_hidden_files->isChecked());
+	CSettings::instance()->setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, ui->action_Show_hidden_files->isChecked());
 	_controller->refreshPanelContents(LeftPanel);
 	_controller->refreshPanelContents(RightPanel);
 }
