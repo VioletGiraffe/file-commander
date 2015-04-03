@@ -253,7 +253,7 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 		QMessageBox(QMessageBox::Warning, "Error", "The file doesn't exist.").exec();
 		break;
 	case rcFail:
-		QMessageBox(QMessageBox::Critical, "Error", QString("Failed to launch ")+_controller->itemByHash(panel->panelPosition(), hash).absoluteFilePath()).exec();
+		QMessageBox(QMessageBox::Critical, "Error", QString("Failed to launch ") + _controller->itemByHash(panel->panelPosition(), hash).absoluteFilePath()).exec();
 		break;
 	case rcDirNotAccessible:
 		QMessageBox(QMessageBox::Critical, "No access", "This item is not accessible.").exec();

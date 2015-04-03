@@ -216,6 +216,13 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 	for (auto& path: items)
 	{
 		__unaligned ITEMIDLIST* idl = ILCreateFromPathW(path.c_str());
+		if (!idl)
+		{
+			for (auto& pid : idLists)
+				ILFree(pid);
+
+			return false;
+		}
 		idLists.push_back(idl);
 		assert(idLists.back());
 	}
@@ -330,8 +337,16 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 	CItemIdArrayReleaser arrayReleaser(ids);
 
 	assert (parentWindow);
-	assert (ifolder);
-	assert (!relativeIds.empty());
+	if (!ifolder)
+	{
+		qDebug() << "Error getting ifolder";
+		return false;
+	}
+	else if (relativeIds.empty())
+	{
+		qDebug() << "relativeIds is empty";
+		return false;
+	}
 
 	imenu = 0;
 	HRESULT result = ifolder->GetUIObjectOf((HWND)parentWindow, (UINT)relativeIds.size(), (const ITEMIDLIST **)relativeIds.data(), IID_IContextMenu, 0, (void**)&imenu);
