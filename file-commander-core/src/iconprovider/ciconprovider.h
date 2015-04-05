@@ -16,10 +16,12 @@ private:
 	const QIcon& iconFor(const CFileSystemObject& object);
 
 private:
-	static std::shared_ptr<CIconProvider> _impl;
+	static std::unique_ptr<CIconProvider> _impl;
 
 	std::unordered_map<quint64, QIcon> _iconCache;
-	std::unordered_map<qulonglong, quint64>  _iconForObject;
+	std::unordered_map<qulonglong, quint64> _iconForObject;
+
+	QFileIconProvider _provider;
 };
 
 #endif // CICONPROVIDER_H
