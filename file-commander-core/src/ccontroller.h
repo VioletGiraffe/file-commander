@@ -50,7 +50,7 @@ public:
 	// Go to the next location from history, if any
 	void navigateForward(Panel p);
 	// Sets the specified path, if possible. Otherwise reverts to the previously set path
-	FileOperationResultCode setPath(Panel p, const QString& path, NavigationOperation operation);
+	FileOperationResultCode setPath(Panel p, const QString& path, FileListRefreshCause operation);
 	// Creates a folder with a specified name at the specified parent folder
 	bool createFolder(const QString& parentFolder, const QString& name);
 	// Creates a file with a specified name at the specified parent folder

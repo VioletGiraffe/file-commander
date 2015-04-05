@@ -56,7 +56,7 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 
 	const QByteArray hash = QCryptographicHash::hash(_properties.fullPath.toUtf8(), QCryptographicHash::Md5);
 	assert(hash.size() == 16);
-	_properties.hash              = *(qulonglong*)(hash.data()) ^ *(qulonglong*)(hash.data()+8);
+	_properties.hash = *(qulonglong*)(hash.data()) ^ *(qulonglong*)(hash.data()+8);
 
 #ifdef _WIN32
 	if (_type == File) // Calling these methods for paths on a removable drive that's not ready may cause the "No disk" error

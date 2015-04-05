@@ -40,13 +40,13 @@ public:
 	void setPanelPosition(Panel p);
 
 	// Returns the list of items added to the view
-	void fillFromList(const std::vector<CFileSystemObject>& items, bool sameDirAsPrevious, NavigationOperation operation);
-	void fillFromPanel(const CPanel& panel, NavigationOperation operation);
+	void fillFromList(const std::vector<CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation);
+	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
 
 	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
 	qulonglong currentItemHash() const;
 
-	void panelContentsChanged(Panel p, NavigationOperation operation) override;
+	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
 
 	CFileListView * fileListView() const;
 	QAbstractItemModel* model() const;

@@ -42,7 +42,7 @@ void CController::setDisksChangedListener(CController::IDiskListObserver *listen
 // Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 void CController::refreshPanelContents(Panel p)
 {
-	panel(p).refreshFileList(nopOther);
+	panel(p).refreshFileList(refreshCauseOther);
 }
 
 // Creates a new tab for the specified panel, returns tab ID
@@ -64,7 +64,7 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	if (item.isDir())
 	{
 		// Attempting to enter this dir
-		const FileOperationResultCode result = setPath(p, item.absoluteFilePath(), item.isCdUp() ? nopCdUp : nopForward);
+		const FileOperationResultCode result = setPath(p, item.absoluteFilePath(), item.isCdUp() ? refreshCauseCdUp : refreshCauseForwardNavigation);
 		return result;
 	}
 	else if (item.isFile())
@@ -88,12 +88,12 @@ void CController::diskSelected(Panel p, int index)
 
 	if (drivePath == _diskEnumerator.drives().at(currentDiskIndex(otherPanelPosition(p))).rootPath())
 	{
-		setPath(p, otherPanel(p).currentDirPath(), nopOther);
+		setPath(p, otherPanel(p).currentDirPath(), refreshCauseOther);
 	}
 	else
 	{
 		const QString lastPathForDrive = CSettings::instance()->value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
-		setPath(p, lastPathForDrive, nopOther);
+		setPath(p, lastPathForDrive, refreshCauseOther);
 	}
 }
 
@@ -133,13 +133,13 @@ void CController::navigateForward(Panel p)
 }
 
 // Sets the specified path, if possible. Otherwise reverts to the previously set path
-FileOperationResultCode CController::setPath(Panel p, const QString &path, NavigationOperation operation)
+FileOperationResultCode CController::setPath(Panel p, const QString &path, FileListRefreshCause operation)
 {
 	CPanel& targetPanel = panel(p);
 	const QString prevPath = targetPanel.currentDirPath();
 	const FileOperationResultCode result = targetPanel.setPath(path, operation);
 	if (result != rcOk) // Restoring the previous position
-		targetPanel.setPath(prevPath, nopOther);
+		targetPanel.setPath(prevPath, refreshCauseOther);
 
 	saveDirectoryForCurrentDisk(p);
 	disksChanged(); // To select a proper drive button
@@ -155,9 +155,15 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 	const QString posixName = toPosixSeparators(name);
 	if (parentDir.mkpath(posixName))
 	{
-		const int slashPosition = posixName.indexOf('/');
-		const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? posixName.left(posixName.indexOf('/')) : posixName);
-		activePanel().setCurrentItemInFolder(activePanel().currentDirPath(), CFileSystemObject(newFolderPath).hash());
+		if (toNativeSeparators(parentDir.absolutePath()) == activePanel().currentDirPath())
+		{
+			const int slashPosition = posixName.indexOf('/');
+			const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? posixName.left(posixName.indexOf('/')) : posixName);
+			// This is required for the UI to know to set the cursor at the new folder
+			activePanel().setCurrentItemInFolder(activePanel().currentDirPath(), CFileSystemObject(newFolderPath).hash());
+			activePanel().refreshFileList(refreshCauseNewItemCreated);
+		}
+
 		return true;
 	}
 	else
@@ -169,7 +175,21 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 	QDir parentDir(parentFolder);
 	if (!parentDir.exists())
 		return false;
-	return QFile(parentDir.absolutePath() + "/" + name).open(QFile::WriteOnly);
+
+	const QString newFilePath = parentDir.absolutePath() + "/" + name;
+	if (QFile(newFilePath).open(QFile::WriteOnly))
+	{
+		if (toPosixSeparators(parentDir.absolutePath()) == activePanel().currentDirPath())
+		{
+			// This is required for the UI to know to set the cursor at the new file
+			activePanel().setCurrentItemInFolder(activePanel().currentDirPath(), CFileSystemObject(newFilePath).hash());
+			activePanel().refreshFileList(refreshCauseNewItemCreated);
+		}
+
+		return true;
+	}
+	else
+		return false;
 }
 
 void CController::openTerminal(const QString &folder)
@@ -353,8 +373,8 @@ qulonglong CController::currentItemInFolder(Panel p, const QString &dir) const
 void CController::disksChanged()
 {
 
-	const size_t leftPanelRoot  = currentDiskIndex(LeftPanel);
-	const size_t rightPanelRoot = currentDiskIndex(RightPanel);
+	const int leftPanelRoot  = currentDiskIndex(LeftPanel);
+	const int rightPanelRoot = currentDiskIndex(RightPanel);
 	const auto& drives = _diskEnumerator.drives();
 
 	for (auto& listener: _disksChangedListeners)

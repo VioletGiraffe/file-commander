@@ -17,17 +17,18 @@ enum Panel
 	UnknownPanel
 };
 
-enum NavigationOperation
+enum FileListRefreshCause
 {
-	nopForward,
-	nopCdUp,
-	nopOther
+	refreshCauseForwardNavigation,
+	refreshCauseCdUp,
+	refreshCauseNewItemCreated,
+	refreshCauseOther
 };
 
 
 struct PanelContentsChangedListener
 {
-	virtual void panelContentsChanged(Panel p, NavigationOperation operation) = 0;
+	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
 };
 
 class FilesystemObjectsStatistics
@@ -52,7 +53,7 @@ public:
 
 	explicit CPanel(Panel position);
 	// Sets the current directory
-	FileOperationResultCode setPath(const QString& path, NavigationOperation operation);
+	FileOperationResultCode setPath(const QString& path, FileListRefreshCause operation);
 	// Navigates up the directory tree
 	void navigateUp();
 	// Go to the previous location from history
@@ -72,7 +73,7 @@ public:
 	qulonglong currentItemInFolder(const QString& dir) const;
 
 	// Enumerates objects in the current directory
-	void refreshFileList(NavigationOperation operation);
+	void refreshFileList(FileListRefreshCause operation);
 	// Returns the current list of objects on this panel
 	const std::vector<CFileSystemObject>& list () const;
 
@@ -89,7 +90,7 @@ public:
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);
 
-	void sendContentsChangedNotification(NavigationOperation operation) const;
+	void sendContentsChangedNotification(FileListRefreshCause operation) const;
 
 	// Settings have changed
 	void settingsChanged();

@@ -139,7 +139,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 }
 
 // Returns the list of items added to the view
-void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, bool sameDirAsPrevious, NavigationOperation operation)
+void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, bool sameDirAsPrevious, FileListRefreshCause operation)
 {
 	const time_t start = clock();
 
@@ -201,7 +201,8 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 
 	ui->_list->moveCursorToItem(_sortModel->index(0, 0));
 
-	if (sameDirAsPrevious)
+	// Setting the cursor position as appropriate
+	if (sameDirAsPrevious && operation != refreshCauseNewItemCreated)
 	{
 		QModelIndex indexToMoveCursorTo;
 		if (currentHash != 0)
@@ -214,7 +215,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 			ui->_list->moveCursorToItem(indexToMoveCursorTo);
 		}
 	}
-	else if (operation == nopCdUp)
+	else if (operation == refreshCauseCdUp)
 	{
 		// Setting the folder we've just stepped out of as current
 		qulonglong targetFolderHash = 0;
@@ -230,7 +231,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 		if (targetFolderHash != 0)
 			ui->_list->moveCursorToItem(indexByHash(targetFolderHash));
 	}
-	else if (operation != nopForward)
+	else if (operation != refreshCauseForwardNavigation) // refreshCauseNewItemCreated must fall into this branch, among other things
 	{
 		const qulonglong lastVisitedItemInDirectory = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPath());
 		if (lastVisitedItemInDirectory != 0)
@@ -246,7 +247,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 }
 
-void CPanelWidget::fillFromPanel(const CPanel &panel, NavigationOperation operation)
+void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
 {
 	auto& itemList = panel.list();
 	const auto previousSelection = selectedItemsHashes(true);
@@ -303,7 +304,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 		return;
 
 	pos = button->mapToGlobal(pos);
-	const size_t diskId = size_t(button->property("id").toUInt());
+	const int diskId = button->property("id").toInt();
 	std::vector<std::wstring> diskPath(1, _controller.diskPath(diskId).toStdWString());
 	CShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), (HWND)winId());
 #else
@@ -337,7 +338,7 @@ void CPanelWidget::driveButtonClicked()
 	if (!sender())
 		return;
 
-	const size_t id = size_t(sender()->property("id").toUInt());
+	const int id = sender()->property("id").toInt();
 	_controller.diskSelected(_panelPosition, id);
 }
 
@@ -386,7 +387,7 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 void CPanelWidget::toRoot()
 {
 	if (!_currentDisk.isEmpty())
-		_controller.setPath(_panelPosition, _currentDisk, nopOther);
+		_controller.setPath(_panelPosition, _currentDisk, refreshCauseOther);
 }
 
 void CPanelWidget::showFavoriteLocationsMenu()
@@ -401,7 +402,7 @@ void CPanelWidget::showFavoriteLocationsMenu()
 				QAction * action = parentMenu->addAction(item.displayName);
 				const QString& path = item.absolutePath;
 				QObject::connect(action, &QAction::triggered, [this, path](){
-					_controller.setPath(_panelPosition, path, nopOther);
+					_controller.setPath(_panelPosition, path, refreshCauseOther);
 				});
 			}
 			else
@@ -568,7 +569,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 
 void CPanelWidget::pathFromHistoryActivated(QString path)
 {
-	_controller.setPath(_panelPosition, path, nopOther);
+	_controller.setPath(_panelPosition, path, refreshCauseOther);
 }
 
 void CPanelWidget::fillHistory()
@@ -697,7 +698,7 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 		diskButton->setIcon(fileSystemObject.icon());
 		diskButton->setText(name);
 		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).width(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
-		diskButton->setProperty("id", quint64(i));
+		diskButton->setProperty("id", i);
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 		diskButton->setToolTip(drive.displayName());
 		connect(diskButton, SIGNAL(clicked()), SLOT(driveButtonClicked()));
@@ -775,7 +776,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	return QWidget::eventFilter(object, e);
 }
 
-void CPanelWidget::panelContentsChanged(Panel p , NavigationOperation operation)
+void CPanelWidget::panelContentsChanged(Panel p , FileListRefreshCause operation)
 {
 	if (p == _panelPosition)
 		fillFromPanel(_controller.panel(_panelPosition), operation);

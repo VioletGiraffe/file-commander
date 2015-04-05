@@ -383,8 +383,8 @@ void CMainWindow::createFolder()
 	const QString dirName = QInputDialog::getText(this, "New folder", "Enter the name for the new directory", QLineEdit::Normal, currentItemName);
 	if (!dirName.isEmpty())
 	{
-		const bool ok = _controller->createFolder(_currentFileList->currentDir(), dirName);
-		assert(ok);
+		if (!_controller->createFolder(_currentFileList->currentDir(), dirName))
+			QMessageBox::warning(this, "Failed to create a folder", "Failed to create the folder " + dirName);
 	}
 }
 
@@ -393,8 +393,9 @@ void CMainWindow::createFile()
 	const QString fileName = QInputDialog::getText(this, "New file", "Enter the name for the new file");
 	if (!fileName.isEmpty())
 	{
-		const bool ok = _controller->createFile(_currentFileList->currentDir(), fileName);
-		assert(ok);
+		if (!_controller->createFile(_currentFileList->currentDir(), fileName))
+			QMessageBox::warning(this, "Failed to create a file", "Failed to create the file " + fileName);
+		
 	}
 }
 
