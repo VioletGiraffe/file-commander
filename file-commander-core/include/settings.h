@@ -16,15 +16,19 @@
 
 #define KEY_FAVORITES "Internal/Core/Favorites"
 
+/////////////////////////////////////////////////
+// Options accessible via the main UI
+/////////////////////////////////////////////////
 
+#define KEY_INTERFACE_SHOW_HIDDEN_FILES "Interface/View/ShowHiddenFiles"
 
 /////////////////////////////////////////////////
 // Options accessible via Settings interface
 /////////////////////////////////////////////////
 
 // Interface
-#define KEY_INTERFACE_NUMBERS_AFFTER_LETTERS "Interface/Sorting/NumbersAfterLetters"
-#define KEY_INTERFACE_SHOW_HIDDEN_FILES      "Interface/View/ShowHiddenFiles"
+#define KEY_INTERFACE_NUMBERS_AFFTER_LETTERS    "Interface/Sorting/NumbersAfterLetters"
+#define KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS "Interface/View/ShowSpecialFolderIcons"
 
 // Operations
 #define KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION "Operations/CopyMove/AskForConfirmation"

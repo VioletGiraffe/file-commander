@@ -10,6 +10,7 @@ class CIconProvider
 {
 public:
 	static const QIcon& iconForFilesystemObject(const CFileSystemObject& object);
+	static void settingsChanged();
 
 private:
 	CIconProvider();

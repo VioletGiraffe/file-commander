@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <widget class="QGroupBox" name="groupBox">
+    <widget class="QGroupBox" name="groupBoxSorting">
      <property name="title">
       <string>File sorting</string>
      </property>
@@ -24,6 +24,25 @@
        <widget class="QCheckBox" name="_cbSortingNumbersAfterLetters">
         <property name="text">
          <string>Numbers after letters</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBoxItemsApperance">
+     <property name="title">
+      <string>Files and folders appearance</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QCheckBox" name="_cbDecoratedFolderIcons">
+        <property name="toolTip">
+         <string>Some programs may modify folder icons for their purposes, esp. on Windows. Displaying such icons may be slow.</string>
+        </property>
+        <property name="text">
+         <string>Display special folder icons</string>
         </property>
        </widget>
       </item>

@@ -4,6 +4,7 @@
 #include "pluginengine/cpluginengine.h"
 #include "shell/cshell.h"
 #include "filesystemhelperfunctions.h"
+#include "iconprovider/ciconprovider.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -102,6 +103,8 @@ void CController::settingsChanged()
 {
 	_rightPanel.settingsChanged();
 	_leftPanel.settingsChanged();
+
+	CIconProvider::settingsChanged();
 }
 
 void CController::activePanelChanged(Panel p)

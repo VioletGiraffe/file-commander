@@ -19,6 +19,8 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 	ui->setupUi(this);
 
 	ui->_cbSortingNumbersAfterLetters->setChecked(CSettings::instance()->value(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, false).toBool());
+
+	ui->_cbDecoratedFolderIcons->setChecked(CSettings::instance()->value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool());
 }
 
 CSettingsPageInterface::~CSettingsPageInterface()
@@ -29,4 +31,6 @@ CSettingsPageInterface::~CSettingsPageInterface()
 void CSettingsPageInterface::acceptSettings()
 {
 	CSettings::instance()->setValue(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, ui->_cbSortingNumbersAfterLetters->isChecked());
+
+	CSettings::instance()->setValue(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, ui->_cbDecoratedFolderIcons->isChecked());
 }

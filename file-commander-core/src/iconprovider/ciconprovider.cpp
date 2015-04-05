@@ -1,18 +1,38 @@
 #include "ciconprovider.h"
 #include "../cfilesystemobject.h"
+#include "settings.h"
+#include "settings/csettings.h"
+
 #include <assert.h>
 
-std::unique_ptr<CIconProvider> CIconProvider::_impl = std::unique_ptr<CIconProvider>(new CIconProvider);
+std::unique_ptr<CIconProvider> CIconProvider::_impl;
 
 const QIcon& CIconProvider::iconForFilesystemObject(const CFileSystemObject &object)
 {
-	static const QIcon dummy;
-	return _impl ? _impl->iconFor(object) : dummy;
+	if (!_impl)
+		_impl = std::unique_ptr<CIconProvider>(new CIconProvider);
+
+	return _impl->iconFor(object);
+}
+
+void CIconProvider::settingsChanged()
+{
+	if (_impl)
+	{
+		const auto oldOptions = _impl->_provider.options();
+		const auto newOptions = CSettings::instance()->value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool() ? QFlags<QFileIconProvider::Option>() : QFileIconProvider::DontUseCustomDirectoryIcons;
+		if (oldOptions != newOptions)
+		{
+			_impl->_provider.setOptions(newOptions);
+			_impl->_iconCache.clear();
+			_impl->_iconForObject.clear();
+		}
+	}
 }
 
 CIconProvider::CIconProvider()
 {
-	_provider.setOptions(QFileIconProvider::DontUseCustomDirectoryIcons);
+	settingsChanged();
 }
 
 
@@ -29,7 +49,7 @@ inline static qulonglong hash(const CFileSystemObject& object)
 }
 
 const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
-{	
+{
 	const qulonglong objectHash = hash(object);
 	if (_iconForObject.count(objectHash) == 0)
 	{
