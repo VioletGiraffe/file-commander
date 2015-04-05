@@ -10,7 +10,10 @@ std::unique_ptr<CIconProvider> CIconProvider::_impl;
 const QIcon& CIconProvider::iconForFilesystemObject(const CFileSystemObject &object)
 {
 	if (!_impl)
+	{
 		_impl = std::unique_ptr<CIconProvider>(new CIconProvider);
+		settingsChanged();
+	}
 
 	return _impl->iconFor(object);
 }
@@ -32,7 +35,6 @@ void CIconProvider::settingsChanged()
 
 CIconProvider::CIconProvider()
 {
-	settingsChanged();
 }
 
 
