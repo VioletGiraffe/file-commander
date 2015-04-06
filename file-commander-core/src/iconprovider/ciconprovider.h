@@ -19,8 +19,8 @@ private:
 private:
 	static std::unique_ptr<CIconProvider> _impl;
 
-	std::unordered_map<quint64, QIcon> _iconCache;
-	std::unordered_map<qulonglong, quint64> _iconForObject;
+	std::unordered_map<qulonglong, QIcon> _iconCache;
+	std::unordered_map<qulonglong, qulonglong> _iconForObject;
 
 	QFileIconProvider _provider;
 };

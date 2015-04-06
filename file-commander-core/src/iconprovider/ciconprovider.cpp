@@ -52,12 +52,16 @@ inline static qulonglong hash(const CFileSystemObject& object)
 
 const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 {
-	const qulonglong objectHash = hash(object);
-	if (_iconForObject.count(objectHash) == 0)
+	const qulonglong objectHash = hash(object);	if (_iconForObject.count(objectHash) == 0)
 	{
 		const QIcon icon = _provider.icon(object.absoluteFilePath());
 		assert(!icon.isNull());
-		const quint64 iconHash = icon.cacheKey();
+		QCryptographicHash qCryptoHash(QCryptographicHash::Md5);
+
+		const auto qimage = icon.pixmap(icon.availableSizes().front()).toImage();
+		qCryptoHash.addData((const char*)qimage.constBits(), qimage.bytesPerLine() * qimage.height());
+		const auto result = qCryptoHash.result();
+		const qulonglong iconHash = *(qulonglong*)(result.data()) ^ *(qulonglong*)(result.data()+8);
 		if (_iconCache.count(iconHash) == 0)
 			_iconCache[iconHash] = icon;
 
