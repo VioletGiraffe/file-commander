@@ -42,7 +42,7 @@ static inline void serialize(QByteArray& dest, const CLocationsCollection& sourc
 
 CFavoriteLocations::CFavoriteLocations()
 {
-	load(CSettings::instance()->value(KEY_FAVORITES).toByteArray());
+	load(CSettings().value(KEY_FAVORITES).toByteArray());
 }
 
 CFavoriteLocations::~CFavoriteLocations()
@@ -101,5 +101,5 @@ void CFavoriteLocations::save()
 	QByteArray data;
 	for (const CLocationsCollection& item : _items)
 		serialize(data, item, NoMarker);
-	CSettings::instance()->setValue(KEY_FAVORITES, data);
+	CSettings().setValue(KEY_FAVORITES, data);
 }

@@ -20,8 +20,8 @@ CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	auto s = CSettings::instance();
-	ui->_shellCommandName->setText(s->value(KEY_OTHER_SHELL_COMMAND_NAME, CShell::shellExecutable()).toString());
+	CSettings s;
+	ui->_shellCommandName->setText(s.value(KEY_OTHER_SHELL_COMMAND_NAME, CShell::shellExecutable()).toString());
 }
 
 CSettingsPageOther::~CSettingsPageOther()
@@ -31,6 +31,6 @@ CSettingsPageOther::~CSettingsPageOther()
 
 void CSettingsPageOther::acceptSettings()
 {
-	auto s = CSettings::instance();
-	s->setValue(KEY_OTHER_SHELL_COMMAND_NAME, ui->_shellCommandName->text());
+	CSettings s;
+	s.setValue(KEY_OTHER_SHELL_COMMAND_NAME, ui->_shellCommandName->text());
 }

@@ -8,8 +8,8 @@ CSettingsPageOperations::CSettingsPageOperations(QWidget *parent) :
 	ui(new Ui::CSettingsPageOperations)
 {
 	ui->setupUi(this);
-	auto s = CSettings::instance();
-	ui->_cbPromptForCopyOrMove->setChecked(s->value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool());
+	CSettings s;
+	ui->_cbPromptForCopyOrMove->setChecked(s.value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool());
 }
 
 CSettingsPageOperations::~CSettingsPageOperations()
@@ -19,6 +19,6 @@ CSettingsPageOperations::~CSettingsPageOperations()
 
 void CSettingsPageOperations::acceptSettings()
 {
-	auto s = CSettings::instance();
-	s->setValue(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, ui->_cbPromptForCopyOrMove->isChecked());
+	CSettings s;
+	s.setValue(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, ui->_cbPromptForCopyOrMove->isChecked());
 }

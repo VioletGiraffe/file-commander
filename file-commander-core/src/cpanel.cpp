@@ -12,10 +12,10 @@
 CPanel::CPanel(Panel position) :
 	_panelPosition(position)
 {
-	auto s = CSettings::instance();
-	const QStringList historyList(s->value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList());
+	CSettings s;
+	const QStringList historyList(s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList());
 	_history.addLatest(historyList.toVector().toStdVector());
-	setPath(s->value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString(), refreshCauseOther);
+	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString(), refreshCauseOther);
 }
 
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
@@ -42,10 +42,10 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (toPosixSeparators(_history.currentItem()) != toPosixSeparators(newPath))
 	{
 		_history.addLatest(newPath);
-		CSettings::instance()->setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
+		CSettings().setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
 	}
 
-	CSettings::instance()->setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, currentDirPath());
+	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, currentDirPath());
 
 	_watcher = std::make_shared<QFileSystemWatcher>();
 
@@ -116,7 +116,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 
 	_list.clear();
 	_indexByHash.clear();
-	const bool showHiddenFiles = CSettings::instance()->value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 	for (const auto& item: items)
 	{
 		if (item.exists() && (showHiddenFiles || !item.isHidden()))
@@ -161,7 +161,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 	const QFileInfoList list(_currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System));
 	_list.clear();
 	_indexByHash.clear();
-	const bool showHiddenFiles = CSettings::instance()->value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 	for (const auto& item: list)
 	{
 		if (item.absoluteFilePath() != "/..")

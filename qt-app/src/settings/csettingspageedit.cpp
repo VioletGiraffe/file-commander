@@ -20,7 +20,7 @@ CSettingsPageEdit::CSettingsPageEdit(QWidget *parent) :
 	ui->setupUi(this);
 	connect(ui->_btnEditorBrowse, SIGNAL(clicked()), SLOT(browseForEditor()));
 
-	ui->_editorNameLine->setText(CSettings::instance()->value(KEY_EDITOR_PATH).toString());
+	ui->_editorNameLine->setText(CSettings().value(KEY_EDITOR_PATH).toString());
 }
 
 CSettingsPageEdit::~CSettingsPageEdit()
@@ -30,7 +30,7 @@ CSettingsPageEdit::~CSettingsPageEdit()
 
 void CSettingsPageEdit::acceptSettings()
 {
-	CSettings::instance()->setValue(KEY_EDITOR_PATH, ui->_editorNameLine->text());
+	CSettings().setValue(KEY_EDITOR_PATH, ui->_editorNameLine->text());
 }
 
 void CSettingsPageEdit::browseForEditor()
