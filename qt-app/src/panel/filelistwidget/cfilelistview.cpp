@@ -55,14 +55,15 @@ void CFileListView::moveCursorToItem(const QModelIndex& index, bool invertSelect
 {
 	if (index.isValid() && selectionModel()->model()->hasIndex(index.row(), index.column()))
 	{
+		const QModelIndex fixedIndex = model()->index(index.row(), index.column());
 		const QModelIndex currentIdx = currentIndex();
 		if (invertSelection && currentIdx.isValid())
 		{
-			for (int row = currentIdx.row(); row < index.row(); ++row)
-				selectionModel()->setCurrentIndex(model()->index(row, 0), (!_shiftPressedItemSelected ? QItemSelectionModel::Select : QItemSelectionModel::Deselect) | QItemSelectionModel::Rows);
+			for (int row = currentIdx.row(); row < fixedIndex.row(); ++row)
+				selectionModel()->setCurrentIndex(fixedIndex, (!_shiftPressedItemSelected ? QItemSelectionModel::Select : QItemSelectionModel::Deselect) | QItemSelectionModel::Rows);
 		}
-		selectionModel()->setCurrentIndex(index, QItemSelectionModel::Current | QItemSelectionModel::Rows);
-		scrollTo(index);
+		selectionModel()->setCurrentIndex(fixedIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
+		scrollTo(fixedIndex);
 	}
 }
 

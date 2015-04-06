@@ -210,7 +210,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 		if (!indexToMoveCursorTo.isValid())
 			indexToMoveCursorTo = currentIndex;
 
-		if (indexToMoveCursorTo.isValid())
+		if (indexToMoveCursorTo.isValid() && currentIndex.row() < ui->_list->model()->rowCount())
 		{
 			ui->_list->moveCursorToItem(indexToMoveCursorTo);
 		}
