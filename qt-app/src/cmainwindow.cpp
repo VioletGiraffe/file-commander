@@ -137,6 +137,8 @@ void CMainWindow::initActions()
 	connect(ui->action_Settings, SIGNAL(triggered()), SLOT(openSettingsDialog()));
 	connect(ui->actionCalculate_occupied_space, SIGNAL(triggered()), SLOT(calculateOccupiedSpace()));
 	connect(ui->actionQuick_view, SIGNAL(triggered()), SLOT(toggleQuickView()));
+
+	connect(ui->action_Invert_selection, SIGNAL(triggered()), SLOT(invertSelection()));
 }
 
 // For manual focus management
@@ -265,17 +267,17 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 
 void CMainWindow::currentPanelChanged(QStackedWidget *panel)
 {
-	_currentPanel = panel;
+	_currentPanelWidget = panel;
 	_currentFileList = dynamic_cast<CPanelWidget*>(panel->widget(0));
 	if (panel)
 	{
-		_otherPanel = panel == ui->leftWidget ? ui->rightWidget : ui->leftWidget;
-		_otherFileList = dynamic_cast<CPanelWidget*>(_otherPanel->widget(0));
-		assert(_otherPanel && _otherFileList);
+		_otherPanelWidget = panel == ui->leftWidget ? ui->rightWidget : ui->leftWidget;
+		_otherFileList = dynamic_cast<CPanelWidget*>(_otherPanelWidget->widget(0));
+		assert(_otherPanelWidget && _otherFileList);
 	}
 	else
 	{
-		_otherPanel = 0;
+		_otherPanelWidget = 0;
 		_otherFileList = 0;
 	}
 
@@ -395,8 +397,14 @@ void CMainWindow::createFile()
 	{
 		if (!_controller->createFile(_currentFileList->currentDir(), fileName))
 			QMessageBox::warning(this, "Failed to create a file", "Failed to create the file " + fileName);
-		
+
 	}
+}
+
+void CMainWindow::invertSelection()
+{
+	if (_currentFileList)
+		_currentFileList->invertSelection();
 }
 
 // Other UI commands
@@ -452,11 +460,11 @@ void CMainWindow::toggleQuickView()
 	if (_quickViewActive)
 	{
 		_quickViewActive = false;
-		assert(_currentPanel->count() == 2 || _otherPanel->count() == 2);
-		if (_currentPanel->count() == 2)
-			_currentPanel->removeWidget(_currentPanel->widget(1));
+		assert(_currentPanelWidget->count() == 2 || _otherPanelWidget->count() == 2);
+		if (_currentPanelWidget->count() == 2)
+			_currentPanelWidget->removeWidget(_currentPanelWidget->widget(1));
 		else
-			_otherPanel->removeWidget(_otherPanel->widget(1));
+			_otherPanelWidget->removeWidget(_otherPanelWidget->widget(1));
 
 		emit fileQuickVewFinished();
 	}
@@ -627,8 +635,8 @@ void CMainWindow::quickViewCurrentFile()
 {
 	if (_quickViewActive)
 	{
-		assert(_otherPanel->count() == 2);
-		_otherPanel->removeWidget(_otherPanel->widget(1));
+		assert(_otherPanelWidget->count() == 2);
+		_otherPanelWidget->removeWidget(_otherPanelWidget->widget(1));
 		emit fileQuickVewFinished();
 	}
 
@@ -638,6 +646,6 @@ void CMainWindow::quickViewCurrentFile()
 
 	connect(this, SIGNAL(fileQuickVewFinished()), viewerWindow, SLOT(deleteLater()));
 
-	_otherPanel->setCurrentIndex(_otherPanel->addWidget(viewerWindow->centralWidget()));
+	_otherPanelWidget->setCurrentIndex(_otherPanelWidget->addWidget(viewerWindow->centralWidget()));
 	_quickViewActive = true;
 }

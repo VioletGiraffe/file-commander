@@ -233,7 +233,14 @@
     <addaction name="separator"/>
     <addaction name="actionQuick_view"/>
    </widget>
+   <widget class="QMenu" name="menuSelection">
+    <property name="title">
+     <string>&amp;Selection</string>
+    </property>
+    <addaction name="action_Invert_selection"/>
+   </widget>
    <addaction name="menuFiles"/>
+   <addaction name="menuSelection"/>
    <addaction name="menu_View"/>
    <addaction name="menuCommands"/>
    <addaction name="menuOptions"/>
@@ -300,6 +307,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="action_Invert_selection">
+   <property name="text">
+    <string>&amp;Invert selection</string>
+   </property>
+   <property name="shortcut">
+    <string>*</string>
    </property>
   </action>
  </widget>

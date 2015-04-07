@@ -61,6 +61,9 @@ private slots: // For UI
 	void createFolder();
 	void createFile();
 
+// Selection slots
+	void invertSelection();
+
 // Other UI commands
 	void viewFile();
 	void editFile();
@@ -112,8 +115,8 @@ private:
 	std::shared_ptr<CController>  _controller;
 	CPanelWidget                 * _currentFileList;
 	CPanelWidget                 * _otherFileList;
-	QStackedWidget               * _currentPanel;
-	QStackedWidget               * _otherPanel;
+	QStackedWidget               * _currentPanelWidget;
+	QStackedWidget               * _otherPanelWidget;
 
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
 

@@ -44,6 +44,8 @@ public:
 	void saveHeaderState();
 	void restoreHeaderState();
 
+	void invertSelection();
+
 signals:
 	void contextMenuRequested (QPoint pos);
 	void ctrlEnterPressed();

@@ -616,29 +616,6 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 		arg(fileSizeToString(sizeSelected)).arg(fileSizeToString(totalSize)));
 }
 
-std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
-{
-	auto selection = _selectionModel->selectedRows();
-	std::vector<qulonglong> result;
-
-	if (!selection.empty())
-	{
-		for (auto it = selection.begin(); it != selection.end(); ++it)
-		{
-			const qulonglong hash = hashByItemIndex(*it);
-			result.push_back(hash);
-		}
-	}
-	else if (!onlyHighlightedItems)
-	{
-		auto currentIndex = _selectionModel->currentIndex();
-		if (currentIndex.isValid())
-			result.push_back(hashByItemIndex(currentIndex));
-	}
-
-	return result;
-}
-
 bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
 {
 	assert(item.isValid());
@@ -717,12 +694,6 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 	}
 }
 
-qulonglong CPanelWidget::currentItemHash() const
-{
-	QModelIndex currentIndex = _selectionModel->currentIndex();
-	return hashByItemIndex(currentIndex);
-}
-
 qulonglong CPanelWidget::hashByItemIndex(const QModelIndex &index) const
 {
 	if (!index.isValid())
@@ -795,4 +766,38 @@ QAbstractItemModel * CPanelWidget::model() const
 QSortFilterProxyModel *CPanelWidget::sortModel() const
 {
 	return _sortModel;
+}
+
+std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
+{
+	auto selection = _selectionModel->selectedRows();
+	std::vector<qulonglong> result;
+
+	if (!selection.empty())
+	{
+		for (auto it = selection.begin(); it != selection.end(); ++it)
+		{
+			const qulonglong hash = hashByItemIndex(*it);
+			result.push_back(hash);
+		}
+	}
+	else if (!onlyHighlightedItems)
+	{
+		auto currentIndex = _selectionModel->currentIndex();
+		if (currentIndex.isValid())
+			result.push_back(hashByItemIndex(currentIndex));
+	}
+
+	return result;
+}
+
+qulonglong CPanelWidget::currentItemHash() const
+{
+	QModelIndex currentIndex = _selectionModel->currentIndex();
+	return hashByItemIndex(currentIndex);
+}
+
+void CPanelWidget::invertSelection()
+{
+	ui->_list->invertSelection();
 }

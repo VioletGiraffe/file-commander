@@ -43,14 +43,16 @@ public:
 	void fillFromList(const std::vector<CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation);
 	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
 
-	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
-	qulonglong currentItemHash() const;
-
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
 
 	CFileListView * fileListView() const;
 	QAbstractItemModel* model() const;
 	QSortFilterProxyModel* sortModel() const;
+
+// Selection
+	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
+	qulonglong currentItemHash() const;
+	void invertSelection();
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);

@@ -88,6 +88,15 @@ void CFileListView::restoreHeaderState()
 	}
 }
 
+void CFileListView::invertSelection()
+{
+	for (int i = 0; i < model()->rowCount(); ++i)
+	{
+		const QModelIndex index = model()->index(i, 0);
+		selectionModel()->select(index, (selectionModel()->isRowSelected(i, QModelIndex()) ? QItemSelectionModel::Deselect : QItemSelectionModel::Select) | QItemSelectionModel::Rows);
+	}
+}
+
 // For managing selection and cursor
 void CFileListView::mousePressEvent(QMouseEvent *e)
 {
