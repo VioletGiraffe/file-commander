@@ -182,7 +182,7 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 	const QString newFilePath = parentDir.absolutePath() + "/" + name;
 	if (QFile(newFilePath).open(QFile::WriteOnly))
 	{
-		if (toPosixSeparators(parentDir.absolutePath()) == activePanel().currentDirPath())
+		if (toNativeSeparators(parentDir.absolutePath()) == activePanel().currentDirPath())
 		{
 			// This is required for the UI to know to set the cursor at the new file
 			activePanel().setCurrentItemInFolder(activePanel().currentDirPath(), CFileSystemObject(newFilePath).hash());
