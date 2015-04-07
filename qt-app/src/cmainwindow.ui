@@ -250,7 +250,7 @@
     <string>&amp;Refresh</string>
    </property>
    <property name="shortcut">
-    <string notr="true">Ctrl+F5</string>
+    <string>Ctrl+R</string>
    </property>
   </action>
   <action name="actionOpen_Console_Here">
