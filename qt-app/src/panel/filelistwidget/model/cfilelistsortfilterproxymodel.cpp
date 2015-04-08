@@ -8,7 +8,7 @@ CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
 	QSortFilterProxyModel(parent),
 	_controller(CController::get()),
 	_panel(UnknownPanel),
-	_sorter(CNaturalSorting(nsaQtForum, SortingOptions()))
+	_sorter(CNaturalSorting(nsaQCollator, SortingOptions()))
 {
 }
 
@@ -82,13 +82,26 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 			return _sorter.lessThan(leftItem.name(), rightItem.name());
 		else
 		{
-			// Don't use item.extension() because that returns "" for files with no name
-			if(_sorter.lessThan(leftItem.properties().extension, rightItem.properties().extension))
+			QString leftExt = leftItem.extension(), rightExt = rightItem.extension();
+			QString leftName = leftItem.name(), rightName = rightItem.name();
+			if (rightName.isEmpty())
+			{
+				rightName = rightExt;
+				rightExt.clear();
+			}
+
+			if (leftName.isEmpty())
+			{
+				leftName = leftExt;
+				leftExt.clear();
+			}
+
+			if (_sorter.lessThan(leftExt, rightExt))
 				return true;
-			else if (_sorter.lessThan(rightItem.properties().extension, leftItem.properties().extension)) // check if extensions are the same
+			else if (_sorter.lessThan(rightExt, leftExt)) // check if extensions are the same
 				return false;
 			else // if they are - compare by names
-				return _sorter.lessThan(leftItem.name(), rightItem.name());
+				return _sorter.lessThan(leftName, rightName);
 		}
 		break;
 	case SizeColumn:
