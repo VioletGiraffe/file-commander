@@ -29,15 +29,28 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 #endif
 
 	const QString oldPath = _currentDir.absolutePath();
-	_currentDir.setPath(posixPath);
-	const QString newPath = _currentDir.absolutePath();
-	if (!_currentDir.exists() || _currentDir.entryList().isEmpty()) // No dot and dotdot on Linux means the dir is not accessible
+	auto pathGraph = CFileSystemObject(posixPath).pathHierarchy();
+	bool pathSet = false;
+	for (const auto& candidatePath: pathGraph)
 	{
-		_currentDir.setPath(oldPath);
+		_currentDir.setPath(candidatePath);
+		pathSet = _currentDir.exists() && ! _currentDir.entryList().isEmpty(); // No dot and dotdot on Linux means the dir is not accessible
+		if (pathSet)
+			break;
+	}
+	
+	if (!pathSet)
+	{
+		if (!oldPath.isEmpty())
+			_currentDir.setPath(oldPath);
+		else
+			_currentDir.setPath(QDir::rootPath());
+
 		sendContentsChangedNotification(refreshCauseOther);
 		return rcDirNotAccessible;
 	}
 
+	const QString newPath = _currentDir.absolutePath();
 	// History management
 	if (toPosixSeparators(_history.currentItem()) != toPosixSeparators(newPath))
 	{

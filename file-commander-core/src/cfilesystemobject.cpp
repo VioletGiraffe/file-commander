@@ -140,6 +140,26 @@ uint64_t CFileSystemObject::size() const
 	return _properties.size;
 }
 
+qulonglong CFileSystemObject::hash() const
+{
+	return _properties.hash;
+}
+
+const QFileInfo &CFileSystemObject::qFileInfo() const
+{
+	return _fileInfo;
+}
+
+std::vector<QString> CFileSystemObject::pathHierarchy() const
+{
+	QString path = absoluteFilePath();
+	std::vector<QString> result(1, path);
+	while ((path = QFileInfo(path).path()).length() < result.back().length())
+		result.push_back(path);
+
+	return result;
+}
+
 // A hack to store the size of a directory after it's calculated
 void CFileSystemObject::setDirSize(uint64_t size)
 {
@@ -401,14 +421,4 @@ FileOperationResultCode CFileSystemObject::remove()
 QString CFileSystemObject::lastErrorMessage() const
 {
 	return _lastError;
-}
-
-qulonglong CFileSystemObject::hash() const
-{
-	return _properties.hash;
-}
-
-const QFileInfo &CFileSystemObject::qFileInfo() const
-{
-	return _fileInfo;
 }

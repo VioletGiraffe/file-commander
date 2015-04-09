@@ -36,9 +36,9 @@ class QIcon;
 class CFileSystemObject
 {
 public:
-	CFileSystemObject ();
-	explicit CFileSystemObject (const QFileInfo & fileInfo);
-	virtual ~CFileSystemObject ();
+	CFileSystemObject();
+	explicit CFileSystemObject(const QFileInfo & fileInfo);
+	virtual ~CFileSystemObject();
 
 // Information about this object
 	bool exists() const;
@@ -57,6 +57,7 @@ public:
 	uint64_t size() const;
 	qulonglong hash() const;
 	const QFileInfo& qFileInfo() const;
+	std::vector<QString> pathHierarchy() const;
 
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);
@@ -95,8 +96,8 @@ private:
 	FileSystemObjectType        _type;
 
 // For copying / moving
-	std::shared_ptr<QFile>           _thisFile;
-	std::shared_ptr<QFile>           _destFile;
+	std::shared_ptr<QFile>      _thisFile;
+	std::shared_ptr<QFile>      _destFile;
 };
 
 #endif // CFILESYSTEMOBJECT_H
