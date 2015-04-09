@@ -174,6 +174,13 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 	const QFileInfoList list(_currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System));
 	_list.clear();
 	_indexByHash.clear();
+
+	if (list.size() <= 0)
+	{
+		setPath(_currentDir.absolutePath(), operation); // setPath will itself find the closest best folder to set instead
+		return;
+	}
+
 	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 	for (const auto& item: list)
 	{
