@@ -22,8 +22,9 @@ void CIconProvider::settingsChanged()
 {
 	if (_impl)
 	{
+		_impl->_showSpecialFolderIcons = CSettings().value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
 		const auto oldOptions = _impl->_provider.options();
-		const auto newOptions = CSettings().value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool() ? QFlags<QFileIconProvider::Option>() : QFileIconProvider::DontUseCustomDirectoryIcons;
+		const auto newOptions = _impl->_showSpecialFolderIcons ? QFlags<QFileIconProvider::Option>() : QFileIconProvider::DontUseCustomDirectoryIcons;
 		if (oldOptions != newOptions)
 		{
 			_impl->_provider.setOptions(newOptions);

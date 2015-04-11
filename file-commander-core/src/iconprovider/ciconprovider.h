@@ -23,6 +23,7 @@ private:
 	std::unordered_map<qulonglong, qulonglong> _iconForObject;
 
 	QFileIconProvider _provider;
+	bool _showSpecialFolderIcons = false;
 };
 
 #endif // CICONPROVIDER_H

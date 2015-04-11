@@ -106,7 +106,7 @@
     <widget class="QWidget" name="_driveButtonsWidget" native="true"/>
    </item>
    <item>
-    <widget class="QLabel" name="_driveInfoLabel">
+    <widget class="CClickableLabel" name="_driveInfoLabel">
      <property name="styleSheet">
       <string notr="true">margin-top:6 dp;
 margin-bottom:6 dp</string>
@@ -189,6 +189,11 @@ margin-bottom:6 dp</string>
    <class>CFileListView</class>
    <extends>QTreeView</extends>
    <header>panel/filelistwidget/cfilelistview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CClickableLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/cclickablelabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -72,7 +72,7 @@ private slots:
 	void currentItemChanged(QModelIndex current, QModelIndex previous);
 	void itemNameEdited(qulonglong hash, QString newName);
 	void toRoot();
-	void showFavoriteLocationsMenu();
+	void showFavoriteLocationsMenu(QPoint pos);
 	void showFavoriteLocationsEditor();
 	void fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
 	void showFilterEditor();
@@ -105,7 +105,7 @@ private:
 	QItemSelectionModel           * _selectionModel;
 	CFileListModel                * _model;
 	CFileListSortFilterProxyModel * _sortModel;
-	Panel			                _panelPosition;
+	Panel                           _panelPosition;
 
 	QShortcut                       _calcDirSizeShortcut;
 	QShortcut                       _selectCurrentItemShortcut;

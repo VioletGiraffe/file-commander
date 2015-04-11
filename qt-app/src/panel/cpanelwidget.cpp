@@ -44,7 +44,8 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
 	connect(ui->_list, SIGNAL(keyPressed(QString,int,Qt::KeyboardModifiers)), SLOT(fileListViewKeyPressed(QString,int,Qt::KeyboardModifiers)));
 
-	connect(ui->_btnFavs, SIGNAL(clicked()), SLOT(showFavoriteLocationsMenu()));
+	connect(ui->_driveInfoLabel, SIGNAL(doubleClicked(QPoint)), SLOT(showFavoriteLocationsMenu(QPoint)));
+	connect(ui->_btnFavs, &QPushButton::clicked, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));});
 	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
 
 	connect(&_filterDialog, SIGNAL(filterTextChanged(QString)), SLOT(filterTextChanged(QString)));
@@ -390,7 +391,7 @@ void CPanelWidget::toRoot()
 		_controller.setPath(_panelPosition, _currentDisk, refreshCauseOther);
 }
 
-void CPanelWidget::showFavoriteLocationsMenu()
+void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 {
 	QMenu menu;
 	std::function<void(QMenu *, std::list<CLocationsCollection>&)> createMenus = [this, &createMenus](QMenu * parentMenu, std::list<CLocationsCollection>& locations)
@@ -458,7 +459,7 @@ void CPanelWidget::showFavoriteLocationsMenu()
 	menu.addSeparator();
 	QAction * edit = menu.addAction("Edit...");
 	connect(edit, SIGNAL(triggered()), SLOT(showFavoriteLocationsEditor()));
-	menu.exec(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));
+	menu.exec(pos);
 }
 
 void CPanelWidget::showFavoriteLocationsEditor()

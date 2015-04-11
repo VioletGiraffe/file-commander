@@ -175,7 +175,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 	_list.clear();
 	_indexByHash.clear();
 
-	if (list.size() <= 0)
+	if (list.empty())
 	{
 		setPath(_currentDir.absolutePath(), operation); // setPath will itself find the closest best folder to set instead
 		return;
