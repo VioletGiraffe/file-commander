@@ -72,6 +72,11 @@ CFileSystemObject::~CFileSystemObject()
 {
 }
 
+bool CFileSystemObject::operator==(const CFileSystemObject& other) const
+{
+	return absoluteFilePath() == other.absoluteFilePath();
+}
+
 
 // Information about this object
 bool CFileSystemObject::exists() const

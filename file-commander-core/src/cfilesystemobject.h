@@ -40,6 +40,8 @@ public:
 	explicit CFileSystemObject(const QFileInfo & fileInfo);
 	virtual ~CFileSystemObject();
 
+	bool operator==(const CFileSystemObject& other) const;
+
 // Information about this object
 	bool exists() const;
 	const CFileSystemObjectProperties& properties() const;

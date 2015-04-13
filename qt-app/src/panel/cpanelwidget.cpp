@@ -402,6 +402,12 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 			{
 				QAction * action = parentMenu->addAction(item.displayName);
 				const QString& path = item.absolutePath;
+				if (CFileSystemObject(path) == CFileSystemObject(currentDir()))
+				{
+					action->setCheckable(true);
+					action->setChecked(true);
+				}
+
 				QObject::connect(action, &QAction::triggered, [this, path](){
 					_controller.setPath(_panelPosition, path, refreshCauseOther);
 				});
