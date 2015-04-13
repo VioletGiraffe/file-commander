@@ -141,8 +141,6 @@ FileOperationResultCode CController::setPath(Panel p, const QString &path, FileL
 	CPanel& targetPanel = panel(p);
 	const QString prevPath = targetPanel.currentDirPath();
 	const FileOperationResultCode result = targetPanel.setPath(path, operation);
-	if (result != rcOk) // Restoring the previous position
-		targetPanel.setPath(prevPath, refreshCauseOther);
 
 	saveDirectoryForCurrentDisk(p);
 	disksChanged(); // To select a proper drive button

@@ -570,7 +570,8 @@ void CPanelWidget::pasteSelectionFromClipboard()
 
 void CPanelWidget::pathFromHistoryActivated(QString path)
 {
-	_controller.setPath(_panelPosition, path, refreshCauseOther);
+	if (_controller.setPath(_panelPosition, path, refreshCauseOther) == rcDirNotAccessible)
+		QMessageBox::information(this, "Failed to set the path", QString("The path ") + path + " is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.");
 }
 
 void CPanelWidget::fillHistory()

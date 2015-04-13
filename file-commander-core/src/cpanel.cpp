@@ -41,10 +41,24 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	
 	if (!pathSet)
 	{
-		if (!oldPath.isEmpty())
+		if (CFileSystemObject(oldPath).exists())
 			_currentDir.setPath(oldPath);
 		else
-			_currentDir.setPath(QDir::rootPath());
+		{
+			QString pathToSet;
+			for (auto it = history().rbegin() + (history().size() - 1 - history().currentIndex()); it != history().rend(); ++it)
+			{
+				if (CFileSystemObject(*it).exists())
+				{
+					pathToSet = *it;
+					break;
+				}
+			}
+
+			if (pathToSet.isEmpty())
+				pathToSet = QDir::rootPath();
+			_currentDir.setPath(pathToSet);
+		}
 
 		sendContentsChangedNotification(refreshCauseOther);
 		return rcDirNotAccessible;
