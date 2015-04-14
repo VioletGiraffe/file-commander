@@ -368,7 +368,7 @@ void COperationPerformer::copyFiles()
 	{
 		assert(_op == operationMove);
 		_source.clear();
-		std::copy_if(dirsToCleanUp.begin(), dirsToCleanUp.end(), _source.begin(), [](const CFileSystemObject& dir){return dir.exists();});
+		std::copy_if(dirsToCleanUp.begin(), dirsToCleanUp.end(), std::back_inserter(_source), [](const CFileSystemObject& dir){return dir.exists();});
 		deleteFiles();
 	}
 
