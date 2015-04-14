@@ -82,20 +82,23 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 }
 
 // A current disk has been switched
-void CController::diskSelected(Panel p, int index)
+bool CController::switchToDisk(Panel p, int index)
 {
 	assert(index < _diskEnumerator.drives().size());
 	const QString drivePath = _diskEnumerator.drives().at(index).rootPath();
 
+	FileOperationResultCode result = rcDirNotAccessible;
 	if (drivePath == _diskEnumerator.drives().at(currentDiskIndex(otherPanelPosition(p))).rootPath())
 	{
-		setPath(p, otherPanel(p).currentDirPath(), refreshCauseOther);
+		result = setPath(p, otherPanel(p).currentDirPath(), refreshCauseOther);
 	}
 	else
 	{
 		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
-		setPath(p, lastPathForDrive, refreshCauseOther);
+		result = setPath(p, lastPathForDrive, refreshCauseOther);
 	}
+
+	return result == rcOk;
 }
 
 // Porgram settings have changed

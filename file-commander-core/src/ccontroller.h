@@ -36,7 +36,7 @@ public:
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current disk has been switched
-	void diskSelected(Panel p, int index);
+	bool switchToDisk(Panel p, int index);
 	// Program settings have changed
 	void settingsChanged();
 	// Focus is set to a panel

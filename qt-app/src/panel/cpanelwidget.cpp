@@ -340,7 +340,8 @@ void CPanelWidget::driveButtonClicked()
 		return;
 
 	const int id = sender()->property("id").toInt();
-	_controller.diskSelected(_panelPosition, id);
+	if (!_controller.switchToDisk(_panelPosition, id))
+		QMessageBox::information(this, "Failed to switch disk", QString("The disk ") + _controller.diskPath(id) + " is inaccessible (locked or doesn't exist).");
 }
 
 void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection /*deselected*/)
