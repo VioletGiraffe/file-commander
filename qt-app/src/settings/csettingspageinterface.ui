@@ -42,7 +42,7 @@
          <string>Some programs may modify folder icons for their purposes, esp. on Windows. Displaying such icons may be slow.</string>
         </property>
         <property name="text">
-         <string>Display special folder icons</string>
+         <string>Display overlay icons (can be slow!)</string>
         </property>
        </widget>
       </item>

@@ -26,5 +26,9 @@
 #include <QWidget>
 
 #ifdef _WIN32
+#include <QtWin>
+#endif
+
+#ifdef _WIN32
 #pragma warning(pop) // set W0
 #endif

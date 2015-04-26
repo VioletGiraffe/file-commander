@@ -7,6 +7,10 @@ QT = core gui
 #check Qt version
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+win*{
+	QT += winextras
+}
+
 OBJECTS_DIR = ../../../build/imageviewer
 MOC_DIR     = ../../../build/imageviewer
 UI_DIR      = ../../../build/imageviewer

@@ -7,6 +7,10 @@ QT = core gui
 #check Qt version
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+win*{
+	QT += winextras
+}
+
 OBJECTS_DIR = ../../../build/textviewer
 MOC_DIR     = ../../../build/textviewer
 UI_DIR      = ../../../build/textviewer

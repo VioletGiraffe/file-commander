@@ -1,43 +1,33 @@
 #include "ciconprovider.h"
 #include "../cfilesystemobject.h"
-#include "settings.h"
-#include "settings/csettings.h"
+#include "ciconproviderimpl.h"
 
-#include <assert.h>
-
-std::unique_ptr<CIconProvider> CIconProvider::_impl;
+std::unique_ptr<CIconProvider> CIconProvider::_instance;
 
 const QIcon& CIconProvider::iconForFilesystemObject(const CFileSystemObject &object)
 {
-	if (!_impl)
+	if (!_instance)
 	{
-		_impl = std::unique_ptr<CIconProvider>(new CIconProvider);
+		_instance = std::unique_ptr<CIconProvider>(new CIconProvider);
 		settingsChanged();
 	}
 
-	return _impl->iconFor(object);
+	return _instance->iconFor(object);
 }
 
 void CIconProvider::settingsChanged()
 {
-	if (_impl)
+	if (_instance && _instance->_provider)
 	{
-		_impl->_showSpecialFolderIcons = CSettings().value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
-		const auto oldOptions = _impl->_provider.options();
-		const auto newOptions = _impl->_showSpecialFolderIcons ? QFlags<QFileIconProvider::Option>() : QFileIconProvider::DontUseCustomDirectoryIcons;
-		if (oldOptions != newOptions)
-		{
-			_impl->_provider.setOptions(newOptions);
-			_impl->_iconCache.clear();
-			_impl->_iconForObject.clear();
-		}
+		_instance->_provider->settingsChanged();
+		_instance->_iconCache.clear();
+		_instance->_iconForObject.clear();
 	}
 }
 
-CIconProvider::CIconProvider()
+CIconProvider::CIconProvider() : _provider(new CIconProviderImpl)
 {
 }
-
 
 inline static qulonglong hash(const CFileSystemObject& object)
 {
@@ -53,10 +43,12 @@ inline static qulonglong hash(const CFileSystemObject& object)
 
 const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 {
-	const qulonglong objectHash = hash(object);	if (_iconForObject.count(objectHash) == 0)
+	const qulonglong objectHash = hash(object);
+	if (_iconForObject.count(objectHash) == 0)
 	{
-		const QIcon icon = _provider.icon(object.absoluteFilePath());
-		assert(!icon.isNull());
+		const QIcon icon = _provider->iconFor(object);
+		Q_ASSERT(!icon.isNull());
+
 		QCryptographicHash qCryptoHash(QCryptographicHash::Md5);
 
 		const auto qimage = icon.pixmap(icon.availableSizes().front()).toImage();

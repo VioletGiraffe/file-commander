@@ -2,10 +2,11 @@ TEMPLATE = app
 TARGET   = FileCommander
 DESTDIR  = ../bin
 
-QT = core gui
+QT = core gui widgets
 
-#check Qt version
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+win*{
+	QT += winextras
+}
 
 OBJECTS_DIR = ../build/app
 MOC_DIR     = ../build/app

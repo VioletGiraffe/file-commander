@@ -2,12 +2,12 @@ TEMPLATE = lib
 TARGET   = core
 DESTDIR  = ../bin
 
-QT = core gui #gui is required for QFileIconProvider and plugininterface
+QT = core widgets gui #gui is required for QFileIconProvider and plugininterface
 CONFIG += staticlib
 
-#check Qt version
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
+win*{
+	QT += winextras
+}
 
 OBJECTS_DIR = ../build/core
 MOC_DIR     = ../build/core
@@ -29,7 +29,8 @@ HEADERS += \
 	include/settings.h \
 	include/QtCoreIncludes \
 	src/favoritelocationslist/cfavoritelocations.h \
-	src/filesystemhelperfunctions.h
+	src/filesystemhelperfunctions.h \
+    src/iconprovider/ciconproviderimpl.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \

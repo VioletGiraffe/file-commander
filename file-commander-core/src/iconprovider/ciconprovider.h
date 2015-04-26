@@ -5,7 +5,13 @@
 #include <memory>
 #include "QtCoreIncludes"
 
+#include <ShlObj.h>
+
 class CFileSystemObject;
+class CIconProviderImpl;
+
+class CIconProviderImpl;
+
 class CIconProvider
 {
 public:
@@ -17,13 +23,12 @@ private:
 	const QIcon& iconFor(const CFileSystemObject& object);
 
 private:
-	static std::unique_ptr<CIconProvider> _impl;
+	static std::unique_ptr<CIconProvider> _instance;
 
 	std::unordered_map<qulonglong, QIcon> _iconCache;
 	std::unordered_map<qulonglong, qulonglong> _iconForObject;
 
-	QFileIconProvider _provider;
-	bool _showSpecialFolderIcons = false;
+	std::unique_ptr<CIconProviderImpl> _provider;
 };
 
 #endif // CICONPROVIDER_H
