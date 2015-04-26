@@ -22,6 +22,7 @@ xcopy /R /Y ..\..\bin\plugin_*.dll binaries\32\
 xcopy /R /Y %QTDIR32%\bin\Qt5Core.dll binaries\32\Qt\
 xcopy /R /Y %QTDIR32%\bin\Qt5Gui.dll binaries\32\Qt\
 xcopy /R /Y %QTDIR32%\bin\Qt5Widgets.dll binaries\32\Qt\
+xcopy /R /Y %QTDIR32%\bin\Qt5WinExtras.dll binaries\32\Qt\
 
 xcopy /R /Y %QTDIR32%\bin\icu*.dll binaries\32\Qt\
 
@@ -53,6 +54,7 @@ xcopy /R /Y ..\..\bin\plugin_*.dll binaries\64\
 xcopy /R /Y %QTDIR64%\bin\Qt5Core.dll binaries\64\Qt\
 xcopy /R /Y %QTDIR64%\bin\Qt5Gui.dll binaries\64\Qt\
 xcopy /R /Y %QTDIR64%\bin\Qt5Widgets.dll binaries\64\Qt\
+xcopy /R /Y %QTDIR64%\bin\Qt5WinExtras.dll binaries\64\Qt\
 
 xcopy /R /Y %QTDIR64%\bin\icu*.dll binaries\64\Qt\
 
