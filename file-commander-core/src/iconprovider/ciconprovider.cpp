@@ -55,11 +55,19 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 		qCryptoHash.addData((const char*)qimage.constBits(), qimage.bytesPerLine() * qimage.height());
 		const auto result = qCryptoHash.result();
 		const qulonglong iconHash = *(qulonglong*)(result.data()) ^ *(qulonglong*)(result.data()+8);
+
 		if (_iconCache.count(iconHash) == 0)
+		{
+			if (_iconCache.size() > 300)
+			{
+				_iconCache.clear();
+				_iconForObject.clear();
+			}
 			_iconCache[iconHash] = icon;
+		}
 
 		_iconForObject[objectHash] = iconHash;
-		return _iconCache[iconHash];
+		return icon;
 	}
 
 	return _iconCache[_iconForObject[objectHash]];
