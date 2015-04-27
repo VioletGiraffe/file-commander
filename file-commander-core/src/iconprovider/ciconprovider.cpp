@@ -56,19 +56,15 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 		const auto result = qCryptoHash.result();
 		const qulonglong iconHash = *(qulonglong*)(result.data()) ^ *(qulonglong*)(result.data()+8);
 
-		auto iconInContainer = _iconCache.find(iconHash);
-		if (iconInContainer == _iconCache.end())
+		if (_iconCache.size() > 300)
 		{
-			if (_iconCache.size() > 300)
-			{
-				_iconCache.clear();
-				_iconForObject.clear();
-			}
-
-			iconInContainer = _iconCache.insert(std::make_pair(iconHash, icon)).first;
+			_iconCache.clear();
+			_iconForObject.clear();
 		}
 
+		const auto iconInContainer = _iconCache.insert(std::make_pair(iconHash, icon)).first;
 		_iconForObject[objectHash] = iconHash;
+
 		return iconInContainer->second;
 	}
 
