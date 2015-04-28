@@ -186,6 +186,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 {
 	const time_t start = clock();
 	const QFileInfoList list(_currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System));
+	qDebug() << "Getting file list for" << _currentDir.absolutePath() << "(" << list.size() << "items) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 	_list.clear();
 	_indexByHash.clear();
 
@@ -200,7 +201,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 	{
 		if (item.absoluteFilePath() != "/..")
 		{
-			_list.push_back(CFileSystemObject(item));
+			_list.emplace_back(item);
 			if (!_list.back().exists() || (!showHiddenFiles && _list.back().isHidden()))
 				_list.pop_back();
 			else
@@ -208,7 +209,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		}
 	}
 
-	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << "," << _list.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << "(" << _list.size() << "items) indexed in" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 	sendContentsChangedNotification(operation);
 }
 

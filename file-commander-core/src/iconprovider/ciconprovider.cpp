@@ -64,7 +64,7 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 
 		const auto iconInContainer = _iconCache.insert(std::make_pair(iconHash, icon)).first;
 		_iconForObject[objectHash] = iconHash;
-
+		
 		return iconInContainer->second;
 	}
 

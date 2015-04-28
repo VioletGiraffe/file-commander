@@ -17,7 +17,8 @@ CFileSystemObject::CFileSystemObject() : _type(UnknownType)
 
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo), _type(UnknownType)
 {
-	if (!fileInfo.exists())
+	_properties.exists = fileInfo.exists();
+	if (!_properties.exists)
 		return; // Symlink pointing to a non-existing file - skipping
 
 	if (fileInfo.isFile())
@@ -27,7 +28,7 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 	else
 	{
 #ifdef _WIN32
-		qDebug() << fileInfo.absoluteFilePath() << " is neither a file nor a dir";
+		qDebug() << _properties.fullPath << " is neither a file nor a dir";
 #endif
 		return;
 	}
@@ -49,7 +50,7 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 
 	_properties.fullName          = _type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
 	_properties.parentFolder      = parentDirPath();
-	_properties.fullPath          = absoluteFilePath();
+	_properties.fullPath          = fileInfo.absoluteFilePath();
 	_properties.modificationDate  = _fileInfo.lastModified().toTime_t();
 	_properties.size              = _type == File ? _fileInfo.size() : 0;
 	_properties.type              = _type;
@@ -81,7 +82,7 @@ bool CFileSystemObject::operator==(const CFileSystemObject& other) const
 // Information about this object
 bool CFileSystemObject::exists() const
 {
-	return _fileInfo.exists();
+	return _properties.exists;
 }
 
 const CFileSystemObjectProperties &CFileSystemObject::properties() const
@@ -127,7 +128,7 @@ bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 
 QString CFileSystemObject::absoluteFilePath() const
 {
-	return _fileInfo.absoluteFilePath();
+	return _properties.fullPath;
 }
 
 QString CFileSystemObject::parentDirPath() const
@@ -236,7 +237,7 @@ FileOperationResultCode CFileSystemObject::rename(const QString &newName, bool r
 	}
 	else if (isFile())
 	{
-		QFile file(_fileInfo.absoluteFilePath());
+		QFile file(_properties.fullPath);
 		const QString newPath = relativeName ? QDir(parentDirPath()).absoluteFilePath(newName) : newName;
 		if (file.rename(newPath))
 			return rcOk;
@@ -248,7 +249,7 @@ FileOperationResultCode CFileSystemObject::rename(const QString &newName, bool r
 	}
 	else if (isDir())
 	{
-		QDir dir(_fileInfo.absoluteFilePath());
+		QDir dir(_properties.fullPath);
 		if (dir.rename(".", newName))
 			return rcOk;
 		else
@@ -264,7 +265,7 @@ FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFol
 	assert(isFile());
 	assert(QFileInfo(destFolder).isDir());
 
-	QFile file (_fileInfo.absoluteFilePath());
+	QFile file (_properties.fullPath);
 	const bool succ = file.copy(destFolder + (newName.isEmpty() ? _fileInfo.fileName() : newName));
 	if (!succ)
 		_lastError = file.errorString();
@@ -276,7 +277,7 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 	assert(isFile());
 	assert(QFileInfo(location).isDir());
 
-	QFile file (_fileInfo.absoluteFilePath());
+	QFile file (_properties.fullPath);
 	const bool succ = file.rename(location + (newName.isEmpty() ? _fileInfo.fileName() : newName));
 
 	if (!succ)
@@ -386,10 +387,10 @@ bool CFileSystemObject::makeWritable()
 
 FileOperationResultCode CFileSystemObject::remove()
 {
-	qDebug() << "Removing" << _fileInfo.absoluteFilePath();
+	qDebug() << "Removing" << _properties.fullPath;
 	if (isFile())
 	{
-		QFile file (_fileInfo.absoluteFilePath());
+		QFile file (_properties.fullPath);
 		if (file.remove())
 			return rcOk;
 		else
@@ -400,7 +401,7 @@ FileOperationResultCode CFileSystemObject::remove()
 	}
 	else if (isDir())
 	{
-		QDir dir (_fileInfo.absoluteFilePath());
+		QDir dir (_properties.fullPath);
 		assert(dir.exists());
 		assert(dir.isReadable());
 		assert(dir.entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).isEmpty());
@@ -411,7 +412,7 @@ FileOperationResultCode CFileSystemObject::remove()
 //			dir.cdUp();
 //			bool succ = dir.remove(_fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1));
 //			qDebug() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();
-			return ::rmdir(_fileInfo.absoluteFilePath().toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
+			return ::rmdir(__properties.fullPath.toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
 //			return rcFail;
 #else
 			return rcFail;

@@ -16,20 +16,18 @@ struct CFileSystemObjectProperties {
 	QString  fullName;
 	QString  parentFolder;
 	QString  fullPath;
-	FileSystemObjectType type;
-	uint64_t size;
-	time_t   creationDate;
-	time_t   modificationDate;
-	qulonglong hash;
+	FileSystemObjectType type = UnknownType;
+	uint64_t size = 0;
+	time_t   creationDate = 0;
+	time_t   modificationDate = 0;
+	qulonglong hash = 0;
+	bool exists = false;
 	struct Permissions
 	{
-		Permissions() : read(false), write(false), exec(false) {}
-		bool read;
-		bool write;
-		bool exec;
+		bool read = false;
+		bool write = false;
+		bool exec = false;
 	} permissions;
-
-	CFileSystemObjectProperties() : type(UnknownType), size(0), creationDate(0), modificationDate(0) {}
 };
 
 class QIcon;
