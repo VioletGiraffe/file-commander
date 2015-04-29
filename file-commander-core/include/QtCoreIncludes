@@ -5,7 +5,6 @@
 #endif
 
 #include <QApplication>
-#include <QCryptographicHash>
 #include <QDateTime>
 #include <QDebug>
 #include <QDesktopServices>

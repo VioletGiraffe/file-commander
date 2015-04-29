@@ -1,6 +1,7 @@
 #include "ciconprovider.h"
 #include "../cfilesystemobject.h"
 #include "ciconproviderimpl.h"
+#include "../fasthash.h"
 
 std::unique_ptr<CIconProvider> CIconProvider::_instance;
 
@@ -32,13 +33,11 @@ CIconProvider::CIconProvider() : _provider(new CIconProviderImpl)
 inline static qulonglong hash(const CFileSystemObject& object)
 {
 	const auto properties = object.properties();
-	const auto hashData = QCryptographicHash::hash(
-		QByteArray::fromRawData((const char*)&properties.hash, sizeof(properties.hash)) +
+	const auto hashData = QByteArray::fromRawData((const char*)&properties.hash, sizeof(properties.hash)) +
 			QByteArray::fromRawData((const char*)&properties.modificationDate, sizeof(properties.modificationDate)) +
-			QByteArray::fromRawData((const char*)&properties.type, sizeof(properties.type)),
-		QCryptographicHash::Md5);
+			QByteArray::fromRawData((const char*)&properties.type, sizeof(properties.type));
 
-	return *(qulonglong*)(hashData.data()) ^ *(qulonglong*)(hashData.data()+8);
+	return fasthash64(hashData.constData(), hashData.size(), 0);
 }
 
 const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
@@ -49,12 +48,8 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 		const QIcon icon = _provider->iconFor(object);
 		Q_ASSERT(!icon.isNull());
 
-		QCryptographicHash qCryptoHash(QCryptographicHash::Md5);
-
 		const auto qimage = icon.pixmap(icon.availableSizes().front()).toImage();
-		qCryptoHash.addData((const char*)qimage.constBits(), qimage.bytesPerLine() * qimage.height());
-		const auto result = qCryptoHash.result();
-		const qulonglong iconHash = *(qulonglong*)(result.data()) ^ *(qulonglong*)(result.data()+8);
+		const qulonglong iconHash = fasthash64((const char*)qimage.constBits(), qimage.bytesPerLine() * qimage.height(), 0);
 
 		if (_iconCache.size() > 300)
 		{

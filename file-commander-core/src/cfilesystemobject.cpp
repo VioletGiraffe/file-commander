@@ -3,6 +3,7 @@
 #include "filesystemhelperfunctions.h"
 
 #include <assert.h>
+#include "fasthash.h"
 
 #if defined __linux__ || defined __APPLE__
 #include <unistd.h>
@@ -20,9 +21,8 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 	_properties.exists = fileInfo.exists();
 	_properties.fullPath = fileInfo.absoluteFilePath();
 
-	const QByteArray hash = QCryptographicHash::hash(_properties.fullPath.toUtf8(), QCryptographicHash::Md5);
-	assert(hash.size() == 16);
-	_properties.hash = *(qulonglong*)(hash.data()) ^ *(qulonglong*)(hash.data()+8);
+	const QByteArray utf8Path = _properties.fullPath.toUtf8();
+	_properties.hash = fasthash64(utf8Path.constData(), utf8Path.size(), 0);
 
 	if (!_properties.exists)
 		return; // Symlink pointing to a non-existing file - skipping

@@ -30,7 +30,8 @@ HEADERS += \
 	include/QtCoreIncludes \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/filesystemhelperfunctions.h \
-    src/iconprovider/ciconproviderimpl.h
+    src/iconprovider/ciconproviderimpl.h \
+    src/fasthash.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -41,7 +42,8 @@ SOURCES += \
 	src/fileoperations/coperationperformer.cpp \
 	src/utils/ctimeelapsed.cpp \
 	src/shell/cshell.cpp \
-	src/favoritelocationslist/cfavoritelocations.cpp
+	src/favoritelocationslist/cfavoritelocations.cpp \
+    src/fasthash.c
 
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 
