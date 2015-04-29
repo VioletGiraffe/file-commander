@@ -18,8 +18,17 @@ CFileSystemObject::CFileSystemObject() : _type(UnknownType)
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo), _type(UnknownType)
 {
 	_properties.exists = fileInfo.exists();
+
+	const QByteArray hash = QCryptographicHash::hash(_properties.fullPath.toUtf8(), QCryptographicHash::Md5);
+	assert(hash.size() == 16);
+	_properties.hash = *(qulonglong*)(hash.data()) ^ *(qulonglong*)(hash.data()+8);
+
+	_properties.fullPath = fileInfo.absoluteFilePath();
+
 	if (!_properties.exists)
 		return; // Symlink pointing to a non-existing file - skipping
+
+	_properties.creationDate = (time_t) _fileInfo.created().toTime_t();
 
 	if (fileInfo.isFile())
 		_type = File;
@@ -33,7 +42,6 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 		return;
 	}
 
-	_properties.creationDate         = (time_t)_fileInfo.created().toTime_t();
 	if (_type != Directory)
 	{
 		_properties.extension        = _fileInfo.suffix();
@@ -47,26 +55,11 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 			_properties.completeBaseName += "." + suffix;
 	}
 
-
 	_properties.fullName          = _type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
-	_properties.parentFolder      = parentDirPath();
-	_properties.fullPath          = fileInfo.absoluteFilePath();
+	_properties.parentFolder      = _fileInfo.absolutePath();
 	_properties.modificationDate  = _fileInfo.lastModified().toTime_t();
 	_properties.size              = _type == File ? _fileInfo.size() : 0;
 	_properties.type              = _type;
-
-	const QByteArray hash = QCryptographicHash::hash(_properties.fullPath.toUtf8(), QCryptographicHash::Md5);
-	assert(hash.size() == 16);
-	_properties.hash = *(qulonglong*)(hash.data()) ^ *(qulonglong*)(hash.data()+8);
-
-#ifdef _WIN32
-	if (_type == File) // Calling these methods for paths on a removable drive that's not ready may cause the "No disk" error
-#endif
-	{
-		_properties.permissions.read  = _fileInfo.isReadable();
-		_properties.permissions.write = _fileInfo.isWritable();
-		_properties.permissions.exec  = _fileInfo.isExecutable();
-	}
 }
 
 CFileSystemObject::~CFileSystemObject()
@@ -75,7 +68,7 @@ CFileSystemObject::~CFileSystemObject()
 
 bool CFileSystemObject::operator==(const CFileSystemObject& other) const
 {
-	return absoluteFilePath() == other.absoluteFilePath();
+	return hash() == other.hash();
 }
 
 
@@ -115,6 +108,16 @@ bool CFileSystemObject::isExecutable() const
 	return _fileInfo.permission(QFile::ExeUser) || _fileInfo.permission(QFile::ExeOwner) || _fileInfo.permission(QFile::ExeGroup) || _fileInfo.permission(QFile::ExeOther);
 }
 
+bool CFileSystemObject::isReadable() const
+{
+	return _fileInfo.isReadable();
+}
+
+bool CFileSystemObject::isWriteable() const
+{
+	return _fileInfo.isWritable();
+}
+
 bool CFileSystemObject::isHidden() const
 {
 	return _fileInfo.isHidden();
@@ -133,7 +136,7 @@ QString CFileSystemObject::absoluteFilePath() const
 
 QString CFileSystemObject::parentDirPath() const
 {
-	return _fileInfo.absolutePath();
+	return _properties.parentFolder;
 }
 
 const QIcon& CFileSystemObject::icon() const

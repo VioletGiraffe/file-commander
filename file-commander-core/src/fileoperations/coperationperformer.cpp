@@ -198,7 +198,7 @@ void COperationPerformer::copyFiles()
 
 				_userResponse = urNone;
 
-				if (!destFile.properties().permissions.write)
+				if (!destFile.isWriteable())
 				{
 					if (_globalResponses.count(hrDestFileIsReadOnly) <= 0 || _globalResponses[hrDestFileIsReadOnly] != urProceedWithAll)
 					{
@@ -259,7 +259,7 @@ void COperationPerformer::copyFiles()
 					assert(result != rcOk);
 				}
 
-				if (!it->properties().permissions.write)
+				if (!it->isWriteable())
 				{
 					if (_globalResponses.count(hrSourceFileIsReadOnly) > 0 && _globalResponses[hrSourceFileIsReadOnly] == urSkipAll)
 					{
@@ -417,7 +417,7 @@ void COperationPerformer::deleteFiles()
 
 		if (it->isFile())
 		{
-			if (!it->properties().permissions.write)
+			if (!it->isWriteable())
 			{
 				if (_globalResponses.count(hrSourceFileIsReadOnly) > 0 && _globalResponses[hrSourceFileIsReadOnly] == urSkipAll)
 				{

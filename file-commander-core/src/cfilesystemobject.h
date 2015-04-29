@@ -22,12 +22,6 @@ struct CFileSystemObjectProperties {
 	time_t   modificationDate = 0;
 	qulonglong hash = 0;
 	bool exists = false;
-	struct Permissions
-	{
-		bool read = false;
-		bool write = false;
-		bool exec = false;
-	} permissions;
 };
 
 class QIcon;
@@ -48,6 +42,8 @@ public:
 	bool isDir () const;
 	bool isCdUp() const; // returns true if it's ".." item
 	bool isExecutable() const;
+	bool isReadable() const;
+	bool isWriteable() const;
 	bool isHidden() const;
 	// Returns true if this object is a child of parent, either direct or indirect
 	bool isChildOf(const CFileSystemObject& parent) const;
@@ -79,7 +75,7 @@ public:
 // Non-blocking file copy API
 	// Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
 	FileOperationResultCode copyChunk(int64_t chunkSize, const QString& destFolder, const QString& newName = QString());
-	FileOperationResultCode moveChunk(int64_t chunkSize, const QString& destFolder, const QString &newName = QString());
+	FileOperationResultCode moveChunk(int64_t chunkSize, const QString& destFolder, const QString& newName = QString());
 	bool copyOperationInProgress() const;
 	uint64_t bytesCopied() const;
 	FileOperationResultCode cancelCopy();
