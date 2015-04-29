@@ -199,17 +199,14 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 	for (const auto& item: list)
 	{
-		if (item.absoluteFilePath() != "/..")
-		{
-			_list.emplace_back(item);
-			if (!_list.back().exists() || (!showHiddenFiles && _list.back().isHidden()))
-				_list.pop_back();
-			else
-				_indexByHash[_list.back().hash()] = _list.size() - 1;
-		}
+		_list.emplace_back(item);
+		if (!_list.back().exists() || (!showHiddenFiles && _list.back().isHidden()))
+			_list.pop_back();
+		else
+			_indexByHash[_list.back().hash()] = _list.size() - 1;
 	}
 
-	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << "(" << _list.size() << "items) indexed in" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << QString("(%1 items) indexed in").arg(_list.size()) << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 	sendContentsChangedNotification(operation);
 }
 

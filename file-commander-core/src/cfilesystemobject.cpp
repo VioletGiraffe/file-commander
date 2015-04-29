@@ -18,12 +18,11 @@ CFileSystemObject::CFileSystemObject() : _type(UnknownType)
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo), _type(UnknownType)
 {
 	_properties.exists = fileInfo.exists();
+	_properties.fullPath = fileInfo.absoluteFilePath();
 
 	const QByteArray hash = QCryptographicHash::hash(_properties.fullPath.toUtf8(), QCryptographicHash::Md5);
 	assert(hash.size() == 16);
 	_properties.hash = *(qulonglong*)(hash.data()) ^ *(qulonglong*)(hash.data()+8);
-
-	_properties.fullPath = fileInfo.absoluteFilePath();
 
 	if (!_properties.exists)
 		return; // Symlink pointing to a non-existing file - skipping
