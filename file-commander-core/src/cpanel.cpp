@@ -28,6 +28,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 #error "Not implemented"
 #endif
 
+	_currentDisplayMode = NormalMode;
+
 	const QString oldPath = _currentDir.absolutePath();
 	auto pathGraph = CFileSystemObject(posixPath).pathHierarchy();
 	bool pathSet = false;
@@ -108,25 +110,33 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 // Navigates up the directory tree
 void CPanel::navigateUp()
 {
-	QDir tmpDir(_currentDir);
-	if (tmpDir.cdUp())
-		setPath(tmpDir.absolutePath(), refreshCauseCdUp);
+	if (_currentDisplayMode != NormalMode)
+		setPath(_currentDir.absolutePath(), refreshCauseOther) == rcOk;
 	else
-		sendContentsChangedNotification(refreshCauseOther);
+	{
+		QDir tmpDir(_currentDir);
+		if (tmpDir.cdUp())
+			setPath(tmpDir.absolutePath(), refreshCauseCdUp);
+		else
+			sendContentsChangedNotification(refreshCauseOther);
+	}
 }
 
 // Go to the previous location from history
 bool CPanel::navigateBack()
 {
-	if (!_history.empty())
+	if (_currentDisplayMode != NormalMode)
+		return setPath(_currentDir.absolutePath(), refreshCauseOther) == rcOk;
+	else if (!_history.empty())
 		return setPath(_history.navigateBack(), refreshCauseOther) == rcOk;
-	return false;
+	else
+		return false;
 }
 
 // Go to the next location from history, if any
 bool CPanel::navigateForward()
 {
-	if (!_history.empty())
+	if (_currentDisplayMode == NormalMode && !_history.empty())
 		return setPath(_history.navigateForward(), refreshCauseOther) == rcOk;
 	return false;
 }
@@ -138,6 +148,8 @@ const CHistoryList<QString>& CPanel::history() const
 
 void CPanel::showAllFilesFromCurrentFolderAndBelow()
 {
+	_currentDisplayMode = AllObjectsMode;
+
 	_watcher.reset();
 	auto items = recurseDirectoryItems(_currentDir.absolutePath(), false);
 

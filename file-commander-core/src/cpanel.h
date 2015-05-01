@@ -49,6 +49,8 @@ class CPanel : public QObject
 	Q_OBJECT
 
 public:
+	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
+
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 
 	explicit CPanel(Panel position);
@@ -107,6 +109,7 @@ private:
 	std::shared_ptr<QFileSystemWatcher>        _watcher;
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                                _panelPosition;
+	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 };
 
 #endif // CPANEL_H
