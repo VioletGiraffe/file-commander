@@ -95,7 +95,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	// Finding hash of an item corresponding to path
 	for (const CFileSystemObject& item: _list)
 	{
-		const QString itemPath = toPosixSeparators(item.absoluteFilePath());
+		const QString itemPath = toPosixSeparators(item.fullAbsolutePath());
 		if (posixPath == itemPath && toPosixSeparators(item.parentDirPath()) != itemPath)
 		{
 			setCurrentItemInFolder(item.parentDirPath(), item.properties().hash);
@@ -111,7 +111,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 void CPanel::navigateUp()
 {
 	if (_currentDisplayMode != NormalMode)
-		setPath(_currentDir.absolutePath(), refreshCauseOther) == rcOk;
+		setPath(_currentDir.absolutePath(), refreshCauseOther);
 	else
 	{
 		QDir tmpDir(_currentDir);
@@ -290,7 +290,7 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 		if (item.isDir())
 		{
 			++stats.folders;
-			std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.absoluteFilePath(), false);
+			std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.fullAbsolutePath(), false);
 			for (auto& subItem: objects)
 			{
 				if (subItem.isFile())

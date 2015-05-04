@@ -32,6 +32,8 @@ public:
 	explicit CFileSystemObject(const QFileInfo & fileInfo);
 	virtual ~CFileSystemObject();
 
+	void refreshInfo();
+
 	bool operator==(const CFileSystemObject& other) const;
 
 // Information about this object
@@ -39,7 +41,8 @@ public:
 	const CFileSystemObjectProperties& properties() const;
 	FileSystemObjectType type() const;
 	bool isFile() const;
-	bool isDir () const;
+	bool isDir() const;
+	bool isEmptyDir() const;
 	bool isCdUp() const; // returns true if it's ".." item
 	bool isExecutable() const;
 	bool isReadable() const;
@@ -47,13 +50,15 @@ public:
 	bool isHidden() const;
 	// Returns true if this object is a child of parent, either direct or indirect
 	bool isChildOf(const CFileSystemObject& parent) const;
-	QString absoluteFilePath() const;
+	QString fullAbsolutePath() const;
 	QString parentDirPath() const;
 	const QIcon& icon() const;
 	uint64_t size() const;
 	qulonglong hash() const;
 	const QFileInfo& qFileInfo() const;
 	std::vector<QString> pathHierarchy() const;
+
+	bool isMovableTo(const CFileSystemObject& dest) const;
 
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);
@@ -67,8 +72,6 @@ public:
 	QString modificationDateString() const;
 
 // Operations
-	// Renames a dir or a file. Unlike move, it requires that destination is on the same volume
-	FileOperationResultCode rename(const QString& newName, bool relativeName = false);
 	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = QString());
 	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = QString());
 
@@ -81,15 +84,20 @@ public:
 	FileOperationResultCode cancelCopy();
 
 	bool                    makeWritable();
-	FileOperationResultCode remove ();
+	FileOperationResultCode remove();
 
-	QString lastErrorMessage () const;
+	QString lastErrorMessage() const;
+
+private:
+	uint64_t rootFileSystemId() const;
 
 private:
 	QFileInfo                   _fileInfo;
 	CFileSystemObjectProperties _properties;
 	QString                     _lastError;
 	FileSystemObjectType        _type;
+	// Can be used to determine whether 2 objects are on the same drive
+	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 
 // For copying / moving
 	std::shared_ptr<QFile>      _thisFile;

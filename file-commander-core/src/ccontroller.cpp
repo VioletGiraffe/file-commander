@@ -65,17 +65,17 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	if (item.isDir())
 	{
 		// Attempting to enter this dir
-		const FileOperationResultCode result = setPath(p, item.absoluteFilePath(), item.isCdUp() ? refreshCauseCdUp : refreshCauseForwardNavigation);
+		const FileOperationResultCode result = setPath(p, item.fullAbsolutePath(), item.isCdUp() ? refreshCauseCdUp : refreshCauseForwardNavigation);
 		return result;
 	}
 	else if (item.isFile())
 	{
 		if (item.isExecutable())
 			// Attempting to launch this exe from the current directory
-			return QProcess::startDetached(toPosixSeparators(item.absoluteFilePath()), QStringList(), toPosixSeparators(item.parentDirPath())) ? rcOk : rcFail;
+			return QProcess::startDetached(toPosixSeparators(item.fullAbsolutePath()), QStringList(), toPosixSeparators(item.parentDirPath())) ? rcOk : rcFail;
 		else
 			// It's probably not a binary file, try opening with openUrl
-			return QDesktopServices::openUrl(QUrl::fromLocalFile(toPosixSeparators(item.absoluteFilePath()))) ? rcOk : rcFail;
+			return QDesktopServices::openUrl(QUrl::fromLocalFile(toPosixSeparators(item.fullAbsolutePath()))) ? rcOk : rcFail;
 	}
 
 	return rcFail;

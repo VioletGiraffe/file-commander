@@ -222,7 +222,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 		qulonglong targetFolderHash = 0;
 		for (auto& item: items)
 		{
-			if (item.absoluteFilePath() == previousFolder)
+			if (item.fullAbsolutePath() == previousFolder)
 			{
 				targetFolderHash = item.hash();
 				break;
@@ -351,7 +351,7 @@ void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection 
 	const QString cdUpPath = CFileSystemObject(QFileInfo(currentDir())).parentDirPath();
 	for(auto it = selection.begin(); it != selection.end(); ++it)
 	{
-		if (_controller.itemByHash(_panelPosition, *it).absoluteFilePath() == cdUpPath)
+		if (_controller.itemByHash(_panelPosition, *it).fullAbsolutePath() == cdUpPath)
 		{
 			auto cdUpIndex = indexByHash(*it);
 			assert(cdUpIndex.isValid());
@@ -379,7 +379,7 @@ void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previou
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 {
 	CFileSystemObject& item = _controller.itemByHash(_panelPosition, hash);
-	const auto result = item.rename(newName, true);
+	const auto result = item.moveAtomically(currentDir(), newName);
 	if (result == rcTargetAlreadyExists)
 		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename \"") + item.fullName() + "\" to \"" + newName + "\" , target already exists");
 	else if (result != rcOk)
@@ -524,7 +524,7 @@ void CPanelWidget::copySelectionToClipboard() const
 	std::vector<std::wstring> paths;
 	auto hashes = selectedItemsHashes();
 	for (auto hash: hashes)
-		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).absoluteFilePath().toStdWString());
+		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 	CShell::copyObjectsToClipboard(paths, (void*)winId());
 #endif
 }
@@ -556,7 +556,7 @@ void CPanelWidget::cutSelectionToClipboard() const
 	std::vector<std::wstring> paths;
 	auto hashes = selectedItemsHashes();
 	for (auto hash: hashes)
-		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).absoluteFilePath().toStdWString());
+		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 	CShell::cutObjectsToClipboard(paths, (void*)winId());
 #endif
 }
@@ -692,7 +692,7 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 		if (i == currentDriveIndex)
 		{
 			diskButton->setChecked(true);
-			_currentDisk = fileSystemObject.absoluteFilePath();
+			_currentDisk = fileSystemObject.fullAbsolutePath();
 			ui->_driveInfoLabel->setText(QString("%1 (%2): %3 available, <b>%4 free</b> of %5 total").arg(drive.displayName()).
 				arg(QString::fromUtf8(drive.fileSystemType())).
 				arg(fileSizeToString(drive.bytesAvailable(), 'M', " ")).

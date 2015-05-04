@@ -9,7 +9,8 @@
 #include <unistd.h>
 #include <errno.h>
 #elif defined _WIN32
-#include <Windows.h>
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
 
 CFileSystemObject::CFileSystemObject() : _type(UnknownType)
@@ -18,8 +19,17 @@ CFileSystemObject::CFileSystemObject() : _type(UnknownType)
 
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo), _type(UnknownType)
 {
-	_properties.exists = fileInfo.exists();
-	_properties.fullPath = fileInfo.absoluteFilePath();
+	refreshInfo();
+}
+
+CFileSystemObject::~CFileSystemObject()
+{
+}
+
+void CFileSystemObject::refreshInfo()
+{
+	_properties.exists = _fileInfo.exists();
+	_properties.fullPath = _fileInfo.absoluteFilePath();
 
 	const QByteArray utf8Path = _properties.fullPath.toUtf8();
 	_properties.hash = fasthash64(utf8Path.constData(), utf8Path.size(), 0);
@@ -29,9 +39,9 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 
 	_properties.creationDate = (time_t) _fileInfo.created().toTime_t();
 
-	if (fileInfo.isFile())
+	if (_fileInfo.isFile())
 		_type = File;
-	else if (fileInfo.isDir())
+	else if (_fileInfo.isDir())
 		_type = Directory;
 	else
 	{
@@ -43,7 +53,7 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 
 	if (_type != Directory)
 	{
-		_properties.extension        = _fileInfo.suffix();
+		_properties.extension = _fileInfo.suffix();
 		_properties.completeBaseName = _fileInfo.completeBaseName();
 	}
 	else
@@ -54,15 +64,11 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 			_properties.completeBaseName += "." + suffix;
 	}
 
-	_properties.fullName          = _type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
-	_properties.parentFolder      = _fileInfo.absolutePath();
-	_properties.modificationDate  = _fileInfo.lastModified().toTime_t();
-	_properties.size              = _type == File ? _fileInfo.size() : 0;
-	_properties.type              = _type;
-}
-
-CFileSystemObject::~CFileSystemObject()
-{
+	_properties.fullName = _type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
+	_properties.parentFolder = _fileInfo.absolutePath();
+	_properties.modificationDate = _fileInfo.lastModified().toTime_t();
+	_properties.size = _type == File ? _fileInfo.size() : 0;
+	_properties.type = _type;
 }
 
 bool CFileSystemObject::operator==(const CFileSystemObject& other) const
@@ -97,6 +103,11 @@ bool CFileSystemObject::isDir() const
 	return _type == Directory;
 }
 
+bool CFileSystemObject::isEmptyDir() const
+{
+	return isDir()? QDir(fullAbsolutePath()).entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).isEmpty() : false;
+}
+
 bool CFileSystemObject::isCdUp() const
 {
 	return _fileInfo.fileName() == "..";
@@ -125,10 +136,10 @@ bool CFileSystemObject::isHidden() const
 // Returns true if this object is a child of parent, either direct or indirect
 bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 {
-	return absoluteFilePath().startsWith(parent.absoluteFilePath(), Qt::CaseInsensitive);
+	return fullAbsolutePath().startsWith(parent.fullAbsolutePath(), Qt::CaseInsensitive);
 }
 
-QString CFileSystemObject::absoluteFilePath() const
+QString CFileSystemObject::fullAbsolutePath() const
 {
 	return _properties.fullPath;
 }
@@ -160,12 +171,18 @@ const QFileInfo &CFileSystemObject::qFileInfo() const
 
 std::vector<QString> CFileSystemObject::pathHierarchy() const
 {
-	QString path = absoluteFilePath();
+	QString path = fullAbsolutePath();
 	std::vector<QString> result(1, path);
 	while ((path = QFileInfo(path).path()).length() < result.back().length())
 		result.push_back(path);
 
 	return result;
+}
+
+bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
+{
+	const auto fileSystemId = rootFileSystemId(), otherFileSystemId = dest.rootFileSystemId();
+	return fileSystemId == otherFileSystemId && fileSystemId != std::numeric_limits<uint64_t>::max() && otherFileSystemId != std::numeric_limits<uint64_t>::max();
 }
 
 // A hack to store the size of a directory after it's calculated
@@ -209,60 +226,7 @@ QString CFileSystemObject::modificationDateString() const
 
 
 // Operations
-// Renames a dir or a file. Unlike move, it requires that destination is on the same volume
-FileOperationResultCode CFileSystemObject::rename(const QString &newName, bool relativeName)
-{
-#ifdef _WIN32
-	if (!exists())
-	{
-		assert(exists());
-		return rcObjectDoesntExist;
-	}
-	else
-	{
-		const QString newPath = relativeName ? QDir(parentDirPath()).absoluteFilePath(newName) : newName;
-		if (QFileInfo(newPath).exists())
-			return rcTargetAlreadyExists;
-		else
-		{
-			WCHAR origNameW[32768] = {0}, newNameW[32768] = {0};
-			toNativeSeparators(QString("\\\\?\\") + absoluteFilePath()).toWCharArray(origNameW);
-			toNativeSeparators(QString("\\\\?\\") + newPath).toWCharArray(newNameW);
-			return MoveFileW(origNameW, newNameW) != 0 ? rcOk : rcFail;
-		}
-	}
-#else
-	if (!exists())
-	{
-		assert(exists());
-		return rcObjectDoesntExist;
-	}
-	else if (isFile())
-	{
-		QFile file(_properties.fullPath);
-		const QString newPath = relativeName ? QDir(parentDirPath()).absoluteFilePath(newName) : newName;
-		if (file.rename(newPath))
-			return rcOk;
-		else
-		{
-			_lastError = file.errorString();
-			return rcFail;
-		}
-	}
-	else if (isDir())
-	{
-		QDir dir(_properties.fullPath);
-		if (dir.rename(".", newName))
-			return rcOk;
-		else
-			return rcFail;
-	}
-
-	return rcFail;
-#endif // _WIN32
-}
-
-FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFolder, const QString &newName)
+FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFolder, const QString& newName)
 {
 	assert(isFile());
 	assert(QFileInfo(destFolder).isDir());
@@ -274,25 +238,43 @@ FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFol
 	return succ ? rcOk : rcFail;
 }
 
-FileOperationResultCode CFileSystemObject::moveAtomically(const QString& location, const QString &newName)
+FileOperationResultCode CFileSystemObject::moveAtomically(const QString& location, const QString& newName)
 {
-	assert(isFile());
+	if (!exists())
+		return rcObjectDoesntExist;
+
 	assert(QFileInfo(location).isDir());
+	const QString fullNewName = location + "/" + (newName.isEmpty() ? _fileInfo.fileName() : newName);
+	const QFileInfo destInfo(fullNewName);
+	if (destInfo.exists() && (isDir() || destInfo.isFile()))
+		return rcTargetAlreadyExists;
 
-	QFile file (_properties.fullPath);
-	const bool succ = file.rename(location + (newName.isEmpty() ? _fileInfo.fileName() : newName));
+	if (isFile())
+	{
+		QFile file(_properties.fullPath);
+		const bool succ = file.rename(fullNewName);
+		if (!succ)
+		{
+			_lastError = file.errorString();
+			return rcFail;
+		}
 
-	if (!succ)
-		_lastError = file.errorString();
-	return succ ? rcOk : rcFail;
-
+		refreshInfo();
+		return rcOk;
+	}
+	else if (isDir())
+	{
+		return QDir().rename(fullAbsolutePath(), fullNewName) ? rcOk : rcFail;
+	}
+	else
+		return rcFail;
 }
 
 
 // Non-blocking file copy API
 
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QString &destFolder, const QString &newName)
+FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QString& destFolder, const QString& newName)
 {
 	assert(bool(_thisFile) == bool(_destFile));
 	assert(isFile());
@@ -308,7 +290,7 @@ FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QS
 		}
 
 		// Initializing - opening files
-		_thisFile->setFileName(absoluteFilePath());
+		_thisFile->setFileName(fullAbsolutePath());
 		if (!_thisFile->open(QFile::ReadOnly))
 		{
 			_lastError = _thisFile->errorString();
@@ -390,9 +372,14 @@ bool CFileSystemObject::makeWritable()
 FileOperationResultCode CFileSystemObject::remove()
 {
 	qDebug() << "Removing" << _properties.fullPath;
-	if (isFile())
+	if (!_fileInfo.exists())
 	{
-		QFile file (_properties.fullPath);
+		Q_ASSERT_X(false, "CFileSystemObject::remove()", "Object doesn't exist");
+		return rcObjectDoesntExist;
+	}
+	else if (isFile())
+	{
+		QFile file(_properties.fullPath);
 		if (file.remove())
 			return rcOk;
 		else
@@ -404,7 +391,6 @@ FileOperationResultCode CFileSystemObject::remove()
 	else if (isDir())
 	{
 		QDir dir (_properties.fullPath);
-		assert(dir.exists());
 		assert(dir.isReadable());
 		assert(dir.entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).isEmpty());
 		errno = 0;
@@ -430,3 +416,28 @@ QString CFileSystemObject::lastErrorMessage() const
 {
 	return _lastError;
 }
+
+uint64_t CFileSystemObject::rootFileSystemId() const
+{
+	if (_rootFileSystemId == std::numeric_limits<uint64_t>::max())
+	{
+#ifdef _WIN32
+		const auto driveNumber = PathGetDriveNumberW((WCHAR*)_properties.fullPath.utf16());
+		if (driveNumber != -1)
+			_rootFileSystemId = (uint64_t)driveNumber;
+#else
+		struct stat info;
+		const int ret = stat(_properties.fullPath.toUtf8().constData(), &info);
+		if (ret == 0)
+			_rootFileSystemId = (uint64_t)info.st_dev;
+		else
+		{
+			_lastError = strerror(errno);
+			qDebug() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
+		}
+#endif
+	}
+
+	return _rootFileSystemId;
+}
+

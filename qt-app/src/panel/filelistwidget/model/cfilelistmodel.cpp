@@ -33,7 +33,7 @@ QVariant CFileListModel::data(const QModelIndex & index, int role /*= Qt::Displa
 	{
 		if (!index.isValid())
 			return QString();
-		return QString::fromStdWString(CShell::toolTip(_controller.itemByHash(_panel, itemHash(index)).absoluteFilePath().toStdWString()));
+		return QString::fromStdWString(CShell::toolTip(_controller.itemByHash(_panel, itemHash(index)).fullAbsolutePath().toStdWString()));
 	}
 	else if (role == Qt::EditRole)
 	{
@@ -112,9 +112,9 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 		return false;
 
 	if (action == Qt::CopyAction)
-		return CMainWindow::get()->copyFiles(objects, dest.absoluteFilePath());
+		return CMainWindow::get()->copyFiles(objects, dest.fullAbsolutePath());
 	else if (action == Qt::MoveAction)
-		return CMainWindow::get()->moveFiles(objects, dest.absoluteFilePath());
+		return CMainWindow::get()->moveFiles(objects, dest.fullAbsolutePath());
 	else
 		return false;
 }
@@ -128,7 +128,7 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 	{
 		if (idx.isValid() && rows.count(idx.row()) == 0)
 		{
-			const QString path = _controller.itemByHash(_panel, itemHash(index(idx.row(), 0))).absoluteFilePath();
+			const QString path = _controller.itemByHash(_panel, itemHash(index(idx.row(), 0))).fullAbsolutePath();
 			if (!path.isEmpty())
 			{
 				rows.insert(idx.row());

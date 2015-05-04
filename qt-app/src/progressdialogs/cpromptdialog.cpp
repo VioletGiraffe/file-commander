@@ -57,14 +57,14 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	{
 		ui->stackedWidget->setCurrentIndex(0);
 
-		ui->lblSrcFile->setText(source.absoluteFilePath());
+		ui->lblSrcFile->setText(source.fullAbsolutePath());
 		ui->lblSourceSize->setText(fileSizeToString(source.size()));
 		QDateTime modificationDate;
 		modificationDate.setTime_t((uint)source.properties().modificationDate);
 		modificationDate = modificationDate.toLocalTime();
 		ui->lblSourceModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
 
-		ui->lblDstFile->setText(dest.absoluteFilePath());
+		ui->lblDstFile->setText(dest.fullAbsolutePath());
 		ui->lblDestSize->setText(fileSizeToString(dest.size()));
 		modificationDate.setTime_t((uint)dest.properties().modificationDate);
 		modificationDate = modificationDate.toLocalTime();

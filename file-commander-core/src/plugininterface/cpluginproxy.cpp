@@ -89,7 +89,7 @@ QString CPluginProxy::currentFolderPath() const
 
 QString CPluginProxy::currentItemPath() const
 {
-	return currentItem().absoluteFilePath();
+	return currentItem().fullAbsolutePath();
 }
 
 const CFileSystemObject &CPluginProxy::currentItem() const

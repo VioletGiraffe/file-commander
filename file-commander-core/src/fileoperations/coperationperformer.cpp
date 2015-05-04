@@ -112,28 +112,46 @@ void COperationPerformer::waitForResponse()
 
 void COperationPerformer::copyFiles()
 {
+	if (_source.empty())
+	{
+		finalize();
+		return;
+	}
+
 	_inProgress = true;
-	uint64_t totalSize = 0, sizeProcessed = 0;
-	const auto destination = flattenSourcesAndCalcDest(totalSize);
-	assert (destination.size() == _source.size());
+
 	// If there's just one file to copy it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
 	QString newFileName;
-	if (_source.size() == 1 && _source.front().isFile())
+	CFileSystemObject destFileSystemObject(_dest);
+	if (_source.size() == 1 && _source.front().isFile() && !destFileSystemObject.isDir())
+		newFileName = destFileSystemObject.fullName();
+
+	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster
+	// If the dest folder is empty, moving means renaming the root source folder / file, which is fast and simple
+	if (_op == operationMove && (!destFileSystemObject.exists() || destFileSystemObject.isEmptyDir()) && _source.front().isMovableTo(destFileSystemObject))
 	{
-		QFileInfo destInfo(_dest);
-		newFileName = !destInfo.isDir() ? destInfo.fileName() : QString();
+		// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
+		for (auto& src: _source)
+			src.moveAtomically(_dest, newFileName);
+
+		finalize();
+		return;
 	}
+
+	uint64_t totalSize = 0, sizeProcessed = 0;
+	const auto destination = flattenSourcesAndCalcDest(totalSize);
+	assert(destination.size() == _source.size());
 
 	std::vector<CFileSystemObject> dirsToCleanUp;
 
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal operation of condition variable  */)
+	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
-		QFileInfo sourceFile(it->qFileInfo());
-		if (!sourceFile.exists())
+		const QFileInfo& sourceFileInfo = it->qFileInfo();
+		if (!sourceFileInfo.exists())
 		{
 			// Global response registered
 			if (_globalResponses.count(hrFileDoesntExit) > 0)
@@ -161,7 +179,7 @@ void COperationPerformer::copyFiles()
 		}
 
 		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(newFileName.isEmpty() ? it->fullName() : newFileName));
-		if (destInfo.absoluteFilePath() == sourceFile.absoluteFilePath())
+		if (destInfo.absoluteFilePath() == sourceFileInfo.absoluteFilePath())
 			continue;
 
 		if (destInfo.exists() && destInfo.isFile())
@@ -220,7 +238,7 @@ void COperationPerformer::copyFiles()
 
 						if (!it->makeWritable())
 						{
-							qDebug() << "Error making file " << it->absoluteFilePath() << " writable";
+							qDebug() << "Error making file " << it->fullAbsolutePath() << " writable";
 							assert(false);
 							_userResponse = urNone;
 							continue;
@@ -231,21 +249,21 @@ void COperationPerformer::copyFiles()
 
 				if (destFile.remove() != rcOk)
 				{
-					qDebug() << "Error removing source file " << destFile.absoluteFilePath() << ", error: " << destFile.lastErrorMessage();
+					qDebug() << "Error removing source file " << destFile.fullAbsolutePath() << ", error: " << destFile.lastErrorMessage();
 					assert(false);
 				}
 			}
 		}
 
-		if (_op	== operationMove)
+		if (_op == operationMove)
 		{
 			if (!destination[currentItemIndex].exists())
 			{
-				const bool ok = destination[currentItemIndex].mkpath(".");
-				if (!ok)
+				const bool pathCreated = destination[currentItemIndex].mkpath(".");
+				if (!pathCreated)
 				{
 					qDebug() << "Error creating path " << destination[currentItemIndex].absolutePath();
-					assert(false);
+					Q_ASSERT(false);
 					continue;
 				}
 			}
@@ -255,43 +273,8 @@ void COperationPerformer::copyFiles()
 				const FileOperationResultCode result = it->moveAtomically(destination[currentItemIndex].absolutePath() + '/', _newName.isEmpty() ? newFileName : _newName);
 				if (result != rcOk)
 				{
-					qDebug() << "Error moving file " << it->absoluteFilePath() << " to " << destination[currentItemIndex].absolutePath() + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
+					qDebug() << "Error moving file " << it->fullAbsolutePath() << " to " << destination[currentItemIndex].absolutePath() + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
 					assert(result != rcOk);
-				}
-
-				if (!it->isWriteable())
-				{
-					if (_globalResponses.count(hrSourceFileIsReadOnly) > 0 && _globalResponses[hrSourceFileIsReadOnly] == urSkipAll)
-					{
-						continue;
-					}
-					else if (_globalResponses.count(hrSourceFileIsReadOnly) <= 0 || _globalResponses[hrSourceFileIsReadOnly] != urProceedWithAll)
-					{
-						_observer->onProcessHaltedCallback(hrSourceFileIsReadOnly, *it, CFileSystemObject(), QString());
-						waitForResponse();
-						if (_userResponse == urSkipThis || _userResponse == urSkipAll)
-						{
-							_userResponse = urNone;
-							continue;
-						}
-						else if (_userResponse == urAbort)
-						{
-							_userResponse = urNone;
-							finalize();
-							return;
-						}
-						else
-							assert ((_userResponse == urProceedWithThis || _userResponse == urProceedWithAll) && _newName.isEmpty());
-
-						if (!it->makeWritable())
-						{
-							qDebug() << "Error making file " << it->absoluteFilePath() << " writable";
-							assert(false);
-							_userResponse = urNone;
-							continue;
-						}
-						_userResponse = urNone;
-					}
 				}
 			}
 			else if (it->isDir())
@@ -347,7 +330,7 @@ void COperationPerformer::copyFiles()
 
 				if (result != rcOk)
 				{
-					qDebug() << "Error copying file " << it->absoluteFilePath() << " to " << destPath + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
+					qDebug() << "Error copying file " << it->fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
 					assert(result != rcOk);
 				}
 			}
@@ -363,14 +346,6 @@ void COperationPerformer::copyFiles()
 
 	for (auto& dir: dirsToCleanUp)
 		dir.remove();
-
-	if (!dirsToCleanUp.empty() && !_cancelRequested)
-	{
-		assert(_op == operationMove);
-		_source.clear();
-		std::copy_if(dirsToCleanUp.begin(), dirsToCleanUp.end(), std::back_inserter(_source), [](const CFileSystemObject& dir){return dir.exists();});
-		deleteFiles();
-	}
 
 	finalize();
 }
@@ -444,7 +419,7 @@ void COperationPerformer::deleteFiles()
 					if (!it->makeWritable())
 					{
 						// TODO: show a message
-						qDebug() << "Error making file" << it->absoluteFilePath() << "writable";
+						qDebug() << "Error making file" << it->fullAbsolutePath() << "writable";
 						assert(false);
 						_userResponse = urNone;
 						continue;
@@ -456,7 +431,7 @@ void COperationPerformer::deleteFiles()
 
 		if (it->remove() != rcOk)
 		{
-			qDebug() << "Error removing" << (it->isFile() ? "file" : "folder") << it->absoluteFilePath() << ", error: " << it->lastErrorMessage();
+			qDebug() << "Error removing" << (it->isFile() ? "file" : "folder") << it->fullAbsolutePath() << ", error: " << it->lastErrorMessage();
 			assert(false);
 		}
 
@@ -487,19 +462,19 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 		{
 			totalSize += o.size();
 			// Ignoring the new file name here if it was supplied. We're only calculating dest dir here, not the file name
-			destinations.emplace_back(destinationFolder(o.absoluteFilePath(), o.parentDirPath(), destIsFileName ? CFileSystemObject(_dest).parentDirPath() : _dest, false));
+			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), destIsFileName ? CFileSystemObject(_dest).parentDirPath() : _dest, false));
 			newSourceVector.push_back(o);
 		}
 		else if (o.isDir())
 		{
-			auto children = recurseDirectoryItems(o.absoluteFilePath(), true);
+			auto children = recurseDirectoryItems(o.fullAbsolutePath(), true);
 			for (auto& file : children)
 			{
 				totalSize += file.size();
-				destinations.emplace_back(destinationFolder(file.absoluteFilePath(), o.parentDirPath(), _dest, file.isDir()));
+				destinations.emplace_back(destinationFolder(file.fullAbsolutePath(), o.parentDirPath(), _dest, file.isDir()));
 				newSourceVector.push_back(file);
 			}
-			destinations.emplace_back(destinationFolder(o.absoluteFilePath(), o.parentDirPath(), _dest, true));
+			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), _dest, true));
 			newSourceVector.push_back(o);
 		}
 	};

@@ -255,7 +255,7 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 		QMessageBox(QMessageBox::Warning, "Error", "The file doesn't exist.").exec();
 		break;
 	case rcFail:
-		QMessageBox(QMessageBox::Critical, "Error", QString("Failed to launch ") + _controller->itemByHash(panel->panelPosition(), hash).absoluteFilePath()).exec();
+		QMessageBox(QMessageBox::Critical, "Error", QString("Failed to launch ") + _controller->itemByHash(panel->panelPosition(), hash).fullAbsolutePath()).exec();
 		break;
 	case rcDirNotAccessible:
 		QMessageBox(QMessageBox::Critical, "No access", "This item is not accessible.").exec();
@@ -347,7 +347,7 @@ void CMainWindow::deleteFiles()
 	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 	std::vector<std::wstring> paths;
 	for (auto& item: items)
-		paths.emplace_back(toNativeSeparators(item.absoluteFilePath()).toStdWString());
+		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 	CShell::deleteItems(paths, true, (void*)winId());
 #else
 	deleteFilesIrrevocably();
@@ -363,7 +363,7 @@ void CMainWindow::deleteFilesIrrevocably()
 #ifdef _WIN32
 	std::vector<std::wstring> paths;
 	for (auto& item: items)
-		paths.emplace_back(toNativeSeparators(item.absoluteFilePath()).toStdWString());
+		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 	CShell::deleteItems(paths, false, (void*)winId());
 #else
 	if (QMessageBox::question(this, "Are you sure?", QString("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
@@ -435,7 +435,7 @@ void CMainWindow::editFile()
 			return;
 	}
 
-	const QString currentFile = _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).absoluteFilePath() : QString();
+	const QString currentFile = _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath() : QString();
 	if (!currentFile.isEmpty())
 	{
 		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
@@ -516,7 +516,7 @@ void CMainWindow::pasteCurrentFilePath()
 {
 	if (_currentFileList && _currentFileList->currentItemHash() != 0)
 	{
-		const QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).absoluteFilePath();
+		const QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath();
 		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}

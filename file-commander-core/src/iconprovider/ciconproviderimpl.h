@@ -16,7 +16,7 @@ public:
 		QIcon icon;
 		SHFILEINFO info;
 		memset(&info, 0, sizeof(info));
-		SHGetFileInfoW((WCHAR*)object.absoluteFilePath().replace('/', '\\').utf16(), object.isDir() ? FILE_ATTRIBUTE_DIRECTORY : 0, &info, sizeof(SHFILEINFO),
+		SHGetFileInfoW((WCHAR*)object.fullAbsolutePath().replace('/', '\\').utf16(), object.isDir() ? FILE_ATTRIBUTE_DIRECTORY : 0, &info, sizeof(SHFILEINFO),
 					   SHGFI_ICON | SHGFI_USEFILEATTRIBUTES | SHGFI_SMALLICON | (_showOverlayIcons ? SHGFI_ADDOVERLAYS : 0));
 
 		if (info.hIcon)
