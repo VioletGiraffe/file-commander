@@ -2,10 +2,12 @@
 #include "ui_cpromptdialog.h"
 #include "filesystemhelperfunctions.h"
 
-CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason, const CFileSystemObject& source, const CFileSystemObject& dest /*= CFileSystemObject()*/) :
-	QDialog(parent),
-	ui(new Ui::CPromptDialog),
-	_response(urNone)
+CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason,
+	const CFileSystemObject& source, const CFileSystemObject& dest /*= CFileSystemObject()*/, const QString& message /* = QString()*/) :
+
+		QDialog(parent),
+		ui(new Ui::CPromptDialog),
+		_response(urNone)
 {
 	ui->setupUi(this);
 
@@ -20,6 +22,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	connect(ui->btnSkipAll, SIGNAL(clicked()), SLOT(onSkipAllClicked()));
 	connect(ui->btnSkipDeletion, SIGNAL(clicked()), SLOT(onSkipClicked()));
 	connect(ui->btnSkipAllDeletion, SIGNAL(clicked()), SLOT(onSkipAllClicked()));
+	connect(ui->btnRetry, SIGNAL(clicked()), SLOT(onRetryClicked()));
 
 	switch (promptReason)
 	{
@@ -35,6 +38,17 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	case hrFileDoesntExit:
 		ui->lblQuestion->setText("The file doesn't exist. What do you want to do?");
 		break;
+	case hrCreatingFolderFailed:
+		ui->lblQuestion->setText(QString("Failed to create the folder\n") + source.fullAbsolutePath() + "\nWhat do you want to do?");
+		ui->btnOverwrite->setEnabled(false);
+		ui->btnOverwriteAll->setEnabled(false);
+		ui->btnRename->setEnabled(false);
+		break;
+	case hrFailedToDelete:
+		ui->btnOverwrite->setEnabled(false);
+		ui->btnOverwriteAll->setEnabled(false);
+		ui->lblQuestion->setText(QString("Failed to delete\n") + source.fullAbsolutePath() + "\nWhat do you want to do?");
+		break;
 	case hrUnknownError:
 		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
 		break;
@@ -42,6 +56,9 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
 		break;
 	}
+
+	if (!message.isEmpty())
+		ui->lblQuestion->setText(ui->lblQuestion->text() + "\nLow-level error message: " + message);
 
 	if (op == operationDelete)
 	{
@@ -123,6 +140,12 @@ void CPromptDialog::onProceedClicked()
 void CPromptDialog::onProceedAllClicked()
 {
 	_response = urProceedWithAll;
+	close();
+}
+
+void CPromptDialog::onRetryClicked()
+{
+	_response = urRetry;
 	close();
 }
 

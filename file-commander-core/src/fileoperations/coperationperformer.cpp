@@ -107,6 +107,7 @@ void COperationPerformer::waitForResponse()
 	_totalTimeElapsed.pause();
 	while (_userResponse == urNone)
 		_waitForResponseCondition.wait(lock);
+
 	_totalTimeElapsed.resume();
 }
 
@@ -146,7 +147,7 @@ void COperationPerformer::copyFiles()
 
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal operation of condition variable */)
+	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
@@ -157,7 +158,11 @@ void COperationPerformer::copyFiles()
 			if (_globalResponses.count(hrFileDoesntExit) > 0)
 			{
 				if (_globalResponses[hrFileDoesntExit] == urSkipAll)
+				{
+					++it;
+					++currentItemIndex;
 					continue;
+				}
 			}
 
 			_observer->onProcessHaltedCallback(hrFileDoesntExit, *it, CFileSystemObject(), QString());
@@ -165,6 +170,8 @@ void COperationPerformer::copyFiles()
 			if (_userResponse == urSkipThis || _userResponse == urSkipAll)
 			{
 				_userResponse = urNone;
+				++it;
+				++currentItemIndex;
 				continue;
 			}
 			else if (_userResponse == urAbort)
@@ -180,7 +187,11 @@ void COperationPerformer::copyFiles()
 
 		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(newFileName.isEmpty() ? it->fullName() : newFileName));
 		if (destInfo.absoluteFilePath() == sourceFileInfo.absoluteFilePath())
+		{
+			++it;
+			++currentItemIndex;
 			continue;
+		}
 
 		if (destInfo.exists() && destInfo.isFile())
 		{
@@ -188,7 +199,11 @@ void COperationPerformer::copyFiles()
 			if (_globalResponses.count(hrFileExists) > 0)
 			{
 				if (_globalResponses[hrFileExists] == urSkipAll)
+				{
+					++it;
+					++currentItemIndex;
 					continue;
+				}
 			}
 			else
 			{
@@ -198,6 +213,8 @@ void COperationPerformer::copyFiles()
 				if (_userResponse == urSkipThis || _userResponse == urSkipAll)
 				{
 					_userResponse = urNone;
+					++it;
+					++currentItemIndex;
 					continue;
 				}
 				else if (_userResponse == urAbort)
@@ -209,7 +226,13 @@ void COperationPerformer::copyFiles()
 				else if (_userResponse == urRename)
 				{
 					assert(!_newName.isEmpty());
+					_userResponse = urNone;
 					destFile = CFileSystemObject(_newName);
+				}
+				else if (_userResponse == urRetry)
+				{
+					_userResponse = urNone;
+					continue;
 				}
 				else
 					assert (((_userResponse == urProceedWithThis || _userResponse == urProceedWithAll) && _newName.isEmpty()) || (_userResponse == urRename && !_newName.isEmpty()) || (_globalResponses.count(hrFileExists) > 0 &&_globalResponses[hrFileExists] == urProceedWithAll));
@@ -225,6 +248,8 @@ void COperationPerformer::copyFiles()
 						if (_userResponse == urSkipThis || _userResponse == urSkipAll)
 						{
 							_userResponse = urNone;
+							++it;
+							++currentItemIndex;
 							continue;
 						}
 						else if (_userResponse == urAbort)
@@ -233,16 +258,20 @@ void COperationPerformer::copyFiles()
 							finalize();
 							return;
 						}
+						else if (_userResponse == urRetry)
+						{
+							_userResponse = urNone;
+							continue;
+						}
 						else
 							assert ((_userResponse == urProceedWithThis || _userResponse == urProceedWithAll) && _newName.isEmpty());
 
 						if (!it->makeWritable())
 						{
 							qDebug() << "Error making file " << it->fullAbsolutePath() << " writable";
-							assert(false);
-							_userResponse = urNone;
 							continue;
 						}
+
 						_userResponse = urNone;
 					}
 				}
@@ -250,48 +279,45 @@ void COperationPerformer::copyFiles()
 				if (destFile.remove() != rcOk)
 				{
 					qDebug() << "Error removing source file " << destFile.fullAbsolutePath() << ", error: " << destFile.lastErrorMessage();
-					assert(false);
-				}
-			}
-		}
-
-		if (_op == operationMove)
-		{
-			if (!destination[currentItemIndex].exists())
-			{
-				const bool pathCreated = destination[currentItemIndex].mkpath(".");
-				if (!pathCreated)
-				{
-					qDebug() << "Error creating path " << destination[currentItemIndex].absolutePath();
-					Q_ASSERT(false);
+					qDebug() << "Marking it as non-writable to prompt for the user decision";
+					it->makeWritable(false);
 					continue;
 				}
 			}
-
-			if (it->isFile())
-			{
-				const FileOperationResultCode result = it->moveAtomically(destination[currentItemIndex].absolutePath() + '/', _newName.isEmpty() ? newFileName : _newName);
-				if (result != rcOk)
-				{
-					qDebug() << "Error moving file " << it->fullAbsolutePath() << " to " << destination[currentItemIndex].absolutePath() + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
-					assert(result != rcOk);
-				}
-			}
-			else if (it->isDir())
-			{
-				dirsToCleanUp.push_back(*it);
-			}
 		}
-		else if (_op == operationCopy)
+
+		if (_op == operationCopy || _op == operationMove)
 		{
 			if (!destination[currentItemIndex].exists())
 			{
 				const bool ok = destination[currentItemIndex].mkpath(".");
 				if (!ok)
 				{
-					qDebug() << "Error creating path " << destination[currentItemIndex].absolutePath();
-					assert(false);
-					continue;
+					_observer->onProcessHaltedCallback(hrFileExists, *it, CFileSystemObject(), QString());
+					waitForResponse();
+					if (_userResponse == urSkipThis || _userResponse == urSkipAll)
+					{
+						_userResponse = urNone;
+						++it;
+						++currentItemIndex;
+						continue;
+					}
+					else if (_userResponse == urAbort)
+					{
+						_userResponse = urNone;
+						finalize();
+						return;
+					}
+					else if (_userResponse == urRetry)
+					{
+						_userResponse = urNone;
+						continue;
+					}
+					else
+					{
+						Q_ASSERT(false);
+						continue;
+					}
 				}
 			}
 
@@ -301,7 +327,7 @@ void COperationPerformer::copyFiles()
 				const QString destPath = destination[currentItemIndex].absolutePath() + '/';
 				FileOperationResultCode result = rcFail;
 
-				// For calculating speed
+				// For speed calculation
 				_fileTimeElapsed.start();
 				do
 				{
@@ -312,12 +338,17 @@ void COperationPerformer::copyFiles()
 					_fileTimeElapsed.resume();
 					// TODO: add error checking, message displaying etc.!
 					result = it->copyChunk(chunkSize, destPath, _newName.isEmpty() ? newFileName : _newName);
+					// Error handling
+					if (result != rcOk)
+						break;
+
 					const int totalPercentage = totalSize > 0 ? static_cast<int>((sizeProcessed + it->bytesCopied()) * 100 / totalSize) : 0;
 					const int filePercentage = it->size() > 0 ? static_cast<int>(it->bytesCopied() * 100 / it->size()) : 0;
 					const uint64_t speed = _fileTimeElapsed.elapsed() > 0 ? it->bytesCopied() * 1000 / _fileTimeElapsed.elapsed() : 0; // B/s
 					_smoothSpeedCalculator = speed;
 					_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, _smoothSpeedCalculator.arithmeticMean());
 
+					// TODO: why isn't this block at the start of 'do-while'?
 					if (_cancelRequested)
 					{
 						if (it->cancelCopy() != rcOk)
@@ -326,22 +357,116 @@ void COperationPerformer::copyFiles()
 						break;
 					}
 				}
-				while (result == rcOk && it->copyOperationInProgress());
+				while (it->copyOperationInProgress());
 
 				if (result != rcOk)
 				{
+					it->cancelCopy();
 					qDebug() << "Error copying file " << it->fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
-					assert(result != rcOk);
+					const auto action = getUserResponse(hrUnknownError, *it, CFileSystemObject(), it->lastErrorMessage());
+					if (action == urSkipThis || action == urSkipAll)
+					{
+						_userResponse = urNone;
+						++it;
+						++currentItemIndex;
+						continue;
+					}
+					else if (action == urAbort)
+					{
+						_userResponse = urNone;
+						finalize();
+						return;
+					}
+					else if (action == urRetry)
+					{
+						continue;
+					}
+					else
+					{
+						Q_ASSERT(false);
+						continue;
+					}
+
 				}
+				else if (_op == operationMove) // result == ok
+				{
+					result = it->remove();
+					if (result != rcOk)
+					{
+						const auto action = getUserResponse(hrFailedToDelete, *it, CFileSystemObject(), it->lastErrorMessage());
+						if (action == urSkipThis || action == urSkipAll)
+						{
+							_userResponse = urNone;
+							++it;
+							++currentItemIndex;
+							continue;
+						}
+						else if (action == urAbort)
+						{
+							_userResponse = urNone;
+							finalize();
+							return;
+						}
+						else if (action == urRetry)
+						{
+							continue;
+						}
+						else
+						{
+							Q_ASSERT(false);
+							continue;
+						}
+					}
+				}
+			}
+			else if (it->isDir() && _op == operationMove)
+			{
+				// TODO:
+				if (it->isEmptyDir())
+				{
+					const auto result = it->remove();
+					if (result != rcOk)
+					{
+						const auto action = getUserResponse(hrFailedToDelete, *it, CFileSystemObject(), it->lastErrorMessage());
+						if (action == urSkipThis || action == urSkipAll)
+						{
+							_userResponse = urNone;
+							++it;
+							++currentItemIndex;
+							continue;
+						}
+						else if (action == urAbort)
+						{
+							_userResponse = urNone;
+							finalize();
+							return;
+						}
+						else if (action == urRetry)
+						{
+							continue;
+						}
+						else
+						{
+							Q_ASSERT(false);
+							continue;
+						}
+					}
+				}
+				else // not empty
+					dirsToCleanUp.push_back(*it);
 			}
 		}
 		else
 		{
 			assert (!"Illegal op");
+			break;
 		}
 
 		sizeProcessed += it->size();
 		_newName.clear();
+
+		++it;
+		++currentItemIndex;
 	}
 
 	for (auto& dir: dirsToCleanUp)
@@ -358,7 +483,7 @@ void COperationPerformer::deleteFiles()
 	assert (destination.size() == _source.size());
 
 	size_t currentItemIndex = 0;
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, ++currentItemIndex, _userResponse = urNone /* needed for normal condition variable operation */)
+	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; currentItemIndex, _userResponse = urNone /* needed for normal condition variable operation */)
 	{
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
@@ -405,6 +530,8 @@ void COperationPerformer::deleteFiles()
 					if (_userResponse == urSkipThis || _userResponse == urSkipAll)
 					{
 						_userResponse = urNone;
+						++it;
+						++currentItemIndex;
 						continue;
 					}
 					else if (_userResponse == urAbort)
@@ -412,6 +539,11 @@ void COperationPerformer::deleteFiles()
 						_userResponse = urNone;
 						finalize();
 						return;
+					}
+					else if (_userResponse == urRetry)
+					{
+						_userResponse = urNone;
+						continue;
 					}
 					else
 						assert ((_userResponse == urProceedWithThis || _userResponse == urProceedWithAll) && _newName.isEmpty());
@@ -436,6 +568,9 @@ void COperationPerformer::deleteFiles()
 		}
 
 		_observer->onProgressChangedCallback(int(currentItemIndex * 100 / _source.size()), currentItemIndex, _source.size(), 0, 0);
+
+		++it;
+		++currentItemIndex;
 	}
 
 	finalize();
@@ -481,6 +616,19 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 
 	_source = newSourceVector;
 	return destinations;
+}
+
+UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message)
+{
+	auto globalResponse = _globalResponses.find(hr);
+	if (globalResponse != _globalResponses.end())
+		return globalResponse->second;
+
+	_observer->onProcessHaltedCallback(hr, src, dst, message);
+	waitForResponse();
+	const auto response = _userResponse;
+	_userResponse = urNone;
+	return response;
 }
 
 QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)

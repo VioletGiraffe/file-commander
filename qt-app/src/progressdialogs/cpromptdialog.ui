@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>472</width>
-    <height>170</height>
+    <width>611</width>
+    <height>266</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -27,7 +27,7 @@
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="twoFiles">
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -141,10 +141,20 @@
        </item>
        <item>
         <layout class="QGridLayout" name="buttons">
-         <item row="2" column="2">
-          <widget class="QPushButton" name="btnCancel">
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btnOverwrite">
            <property name="text">
-            <string>Cancel</string>
+            <string>Overwrite</string>
+           </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QPushButton" name="btnSkip">
+           <property name="text">
+            <string>Skip</string>
            </property>
            <property name="autoDefault">
             <bool>false</bool>
@@ -161,20 +171,10 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
-          <widget class="QPushButton" name="btnSkip">
+         <item row="2" column="3">
+          <widget class="QPushButton" name="btnCancel">
            <property name="text">
-            <string>Skip</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QPushButton" name="btnOverwrite">
-           <property name="text">
-            <string>Overwrite</string>
+            <string>Cancel</string>
            </property>
            <property name="autoDefault">
             <bool>false</bool>
@@ -188,6 +188,13 @@
            </property>
            <property name="autoDefault">
             <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QPushButton" name="btnRetry">
+           <property name="text">
+            <string>Retry</string>
            </property>
           </widget>
          </item>

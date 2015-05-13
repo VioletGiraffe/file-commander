@@ -14,7 +14,7 @@ class CPromptDialog : public QDialog
 	Q_OBJECT
 
 public:
-	explicit CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason, const CFileSystemObject& source, const CFileSystemObject& dest = CFileSystemObject());
+	explicit CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason, const CFileSystemObject& source, const CFileSystemObject& dest = CFileSystemObject(), const QString& message = QString());
 	~CPromptDialog();
 
 	UserResponse ask();
@@ -26,6 +26,7 @@ private slots:
 	void onRenameClicked();
 	void onProceedClicked();
 	void onProceedAllClicked();
+	void onRetryClicked();
 	void onCancelClicked();
 
 private:

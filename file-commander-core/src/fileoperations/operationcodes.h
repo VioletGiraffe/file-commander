@@ -2,6 +2,6 @@
 
 enum Operation {operationCopy, operationMove, operationDelete};
 
-enum UserResponse {urSkipThis, urSkipAll, urProceedWithThis, urProceedWithAll, urRename, urAbort, urNone};
+enum UserResponse {urSkipThis, urSkipAll, urProceedWithThis, urProceedWithAll, urRename, urAbort, urRetry, urNone};
 
-enum HaltReason {hrFileExists, hrSourceFileIsReadOnly, hrDestFileIsReadOnly, hrFileDoesntExit, hrUnknownError};
+enum HaltReason {hrFileExists, hrSourceFileIsReadOnly, hrDestFileIsReadOnly, hrFileDoesntExit, hrCreatingFolderFailed, hrFailedToDelete, hrUnknownError};

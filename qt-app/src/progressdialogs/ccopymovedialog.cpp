@@ -63,7 +63,7 @@ void CCopyMoveDialog::onProgressChanged(int totalPercentage, size_t numFilesProc
 
 void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)
 {
-	CPromptDialog prompt (this, _op, reason, source, dest);
+	CPromptDialog prompt(this, _op, reason, source, dest, errorMessage);
 	if (!errorMessage.isEmpty())
 		qDebug() << "halted because of error: " << errorMessage;
 

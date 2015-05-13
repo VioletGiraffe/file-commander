@@ -83,7 +83,7 @@ public:
 	uint64_t bytesCopied() const;
 	FileOperationResultCode cancelCopy();
 
-	bool                    makeWritable();
+	bool                    makeWritable(bool writeable = true);
 	FileOperationResultCode remove();
 
 	QString lastErrorMessage() const;

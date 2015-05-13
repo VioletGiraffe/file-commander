@@ -37,18 +37,51 @@ private:
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProgressChanged, this, totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed));
 	}
 	void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) {
+		qDebug() << "COperationPerformer: process halted";
+		QString haltReasonString;
+		switch (reason)
+		{
+		case hrFileExists:
+			haltReasonString = "File exists";
+			break;
+		case hrSourceFileIsReadOnly:
+			haltReasonString = "Source file is read-only";
+			break;
+		case hrDestFileIsReadOnly:
+			haltReasonString = "Dest file is read-only";
+			break;
+		case hrFileDoesntExit:
+			haltReasonString = "File doesn't exist";
+			break;
+		case hrUnknownError:
+			haltReasonString = "Unknown error";
+			break;
+		case hrCreatingFolderFailed:
+			haltReasonString = "Failed to create a folder";
+			break;
+		case hrFailedToDelete:
+			haltReasonString = "Failed to delete the item";
+			break;
+		default:
+			Q_ASSERT(false);
+			break;
+		}
+		qDebug() << "Reason:" << haltReasonString << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
+
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessHalted, this, reason, source, dest, errorMessage));
 	}
 	void onProcessFinishedCallback(QString message = QString()) {
+		qDebug() << "COperationPerformer: operation finished, message:" << message;
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessFinished, this, message));
 	}
 	void onCurrentFileChangedCallback(QString file) {
+		qDebug() << "COperationPerformer: processing file" << file;
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onCurrentFileChanged, this, file));
 	}
 
 protected:
-	std::vector<std::function<void ()> > _callbacks;
-	std::mutex                           _callbackMutex;
+	std::vector<std::function<void ()>> _callbacks;
+	std::mutex                          _callbackMutex;
 };
 
 class COperationPerformer
@@ -83,6 +116,8 @@ private:
 	// Iterates over all dirs in the source vector, and their subdirs, and so on and replaces _sources with a flat list of files. Returns a list of destination folders where each of the files must be copied to according to _dest
 	// Also counts the total size of all the files to monitor progress
 	std::vector<QDir> flattenSourcesAndCalcDest(uint64_t& totalSize);
+
+	UserResponse getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message);
 
 private:
 	std::vector<CFileSystemObject> _source;

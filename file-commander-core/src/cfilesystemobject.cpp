@@ -308,6 +308,7 @@ FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QS
 	assert(_destFile->isOpen() == _thisFile->isOpen());
 
 	QByteArray data = _thisFile->read(chunkSize);
+	// TODO: this lacks proper error checking
 	if (data.isEmpty())
 	{
 		_destFile->close();
@@ -347,7 +348,7 @@ uint64_t CFileSystemObject::bytesCopied() const
 
 FileOperationResultCode CFileSystemObject::cancelCopy()
 {
-	if(copyOperationInProgress())
+	if (copyOperationInProgress())
 	{
 		_thisFile->close();
 		_destFile->close();
@@ -357,10 +358,10 @@ FileOperationResultCode CFileSystemObject::cancelCopy()
 		return rcOk;
 }
 
-bool CFileSystemObject::makeWritable()
+bool CFileSystemObject::makeWritable(bool writeable)
 {
-	QFile file (_fileInfo.absoluteFilePath());
-	if (file.setPermissions(file.permissions() | QFile::WriteUser))
+	QFile file(_fileInfo.absoluteFilePath());
+	if (file.setPermissions((writeable ? (file.permissions() | QFile::WriteUser) : (file.permissions() & ~QFile::WriteUser))))
 		return true;
 	else
 	{
@@ -385,7 +386,7 @@ FileOperationResultCode CFileSystemObject::remove()
 		else
 		{
 			_lastError = file.errorString();
-			return  rcFail;
+			return rcFail;
 		}
 	}
 	else if (isDir())
@@ -400,7 +401,7 @@ FileOperationResultCode CFileSystemObject::remove()
 //			dir.cdUp();
 //			bool succ = dir.remove(_fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1));
 //			qDebug() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();
-			return ::rmdir(__properties.fullPath.toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
+			return ::rmdir(_properties.fullPath.toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
 //			return rcFail;
 #else
 			return rcFail;
