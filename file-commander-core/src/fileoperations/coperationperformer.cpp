@@ -149,6 +149,7 @@ void COperationPerformer::copyFiles()
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
+		qDebug() << __FUNCTION__ << "Processing" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
 		const QFileInfo& sourceFileInfo = it->qFileInfo();
@@ -419,41 +420,49 @@ void COperationPerformer::copyFiles()
 					}
 				}
 			}
-			else if (it->isDir() && _op == operationMove)
+			else if (it->isDir())
 			{
-				// TODO:
-				if (it->isEmptyDir())
+				if (_op == operationMove)
 				{
-					const auto result = it->remove();
-					if (result != rcOk)
+					// TODO:
+					if (it->isEmptyDir())
 					{
-						const auto action = getUserResponse(hrFailedToDelete, *it, CFileSystemObject(), it->lastErrorMessage());
-						if (action == urSkipThis || action == urSkipAll)
+						const auto result = it->remove();
+						if (result != rcOk)
 						{
-							_userResponse = urNone;
-							++it;
-							++currentItemIndex;
-							continue;
-						}
-						else if (action == urAbort)
-						{
-							_userResponse = urNone;
-							finalize();
-							return;
-						}
-						else if (action == urRetry)
-						{
-							continue;
-						}
-						else
-						{
-							Q_ASSERT(false);
-							continue;
+							const auto action = getUserResponse(hrFailedToDelete, *it, CFileSystemObject(), it->lastErrorMessage());
+							if (action == urSkipThis || action == urSkipAll)
+							{
+								_userResponse = urNone;
+								++it;
+								++currentItemIndex;
+								continue;
+							}
+							else if (action == urAbort)
+							{
+								_userResponse = urNone;
+								finalize();
+								return;
+							}
+							else if (action == urRetry)
+							{
+								continue;
+							}
+							else
+							{
+								Q_ASSERT(false);
+								continue;
+							}
 						}
 					}
+					else // not empty
+						dirsToCleanUp.push_back(*it);
 				}
-				else // not empty
-					dirsToCleanUp.push_back(*it);
+				else if (_op == operationCopy)
+				{
+					if (!destInfo.exists())
+						QDir(destInfo.absoluteFilePath()).mkdir("."); // TODO: error checking
+				}
 			}
 		}
 		else
@@ -485,6 +494,7 @@ void COperationPerformer::deleteFiles()
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; currentItemIndex, _userResponse = urNone /* needed for normal condition variable operation */)
 	{
+		qDebug() << __FUNCTION__ << "deleting" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
 		QFileInfo sourceFile(it->qFileInfo());

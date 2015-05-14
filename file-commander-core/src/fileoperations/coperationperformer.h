@@ -75,7 +75,6 @@ private:
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessFinished, this, message));
 	}
 	void onCurrentFileChangedCallback(QString file) {
-		qDebug() << "COperationPerformer: processing file" << file;
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onCurrentFileChanged, this, file));
 	}
 
