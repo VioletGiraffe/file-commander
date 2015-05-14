@@ -141,36 +141,6 @@
        </item>
        <item>
         <layout class="QGridLayout" name="buttons">
-         <item row="1" column="1">
-          <widget class="QPushButton" name="btnOverwrite">
-           <property name="text">
-            <string>Overwrite</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QPushButton" name="btnSkip">
-           <property name="text">
-            <string>Skip</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="btnOverwriteAll">
-           <property name="text">
-            <string>Overwrite All</string>
-           </property>
-           <property name="default">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
          <item row="2" column="3">
           <widget class="QPushButton" name="btnCancel">
            <property name="text">
@@ -181,10 +151,10 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="0">
-          <widget class="QPushButton" name="btnSkipAll">
+         <item row="1" column="2">
+          <widget class="QPushButton" name="btnRename">
            <property name="text">
-            <string>Skip All</string>
+            <string>Rename</string>
            </property>
            <property name="autoDefault">
             <bool>false</bool>
@@ -198,10 +168,40 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="2">
-          <widget class="QPushButton" name="btnRename">
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btnOverwrite">
            <property name="text">
-            <string>Rename</string>
+            <string>Overwrite</string>
+           </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btnOverwriteAll">
+           <property name="text">
+            <string>Overwrite All</string>
+           </property>
+           <property name="default">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QPushButton" name="btnSkipAll">
+           <property name="text">
+            <string>Skip All</string>
+           </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QPushButton" name="btnSkip">
+           <property name="text">
+            <string>Skip</string>
            </property>
            <property name="autoDefault">
             <bool>false</bool>

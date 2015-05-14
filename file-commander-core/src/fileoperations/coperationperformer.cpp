@@ -127,13 +127,46 @@ void COperationPerformer::copyFiles()
 	if (_source.size() == 1 && _source.front().isFile() && !destFileSystemObject.isDir())
 		newFileName = destFileSystemObject.fullName();
 
+	_totalTimeElapsed.start();
+	size_t currentItemIndex = 0;
+
 	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster
 	// If the dest folder is empty, moving means renaming the root source folder / file, which is fast and simple
 	if (_op == operationMove && (!destFileSystemObject.exists() || destFileSystemObject.isEmptyDir()) && _source.front().isMovableTo(destFileSystemObject))
 	{
 		// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
-		for (auto& src: _source)
-			src.moveAtomically(_dest, newFileName);
+		for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
+		{
+			const auto result = it->moveAtomically(_dest, newFileName);
+			if (result != rcOk)
+			{
+				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *it, CFileSystemObject(_dest + "/" + (newFileName.isEmpty() ? it->fullName() : newFileName)), it->lastErrorMessage());
+				// Handler is identical to that of the main loop
+				// esp. for the case of hrFileExists
+				if (response == urSkipThis || response == urSkipAll)
+				{
+					++it;
+					++currentItemIndex;
+					continue;
+				}
+				else if (response == urAbort)
+				{
+					finalize();
+					return;
+				}
+				else if (response == urRename)
+				{
+					newFileName = _newName;
+					continue;
+				}
+				else if (response == urRetry)
+				{
+					continue;
+				}
+				else
+					assert(_userResponse == urProceedWithThis || _userResponse == urProceedWithAll);
+			}
+		}
 
 		finalize();
 		return;
@@ -145,8 +178,6 @@ void COperationPerformer::copyFiles()
 
 	std::vector<CFileSystemObject> dirsToCleanUp;
 
-	_totalTimeElapsed.start();
-	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
 		qDebug() << __FUNCTION__ << "Processing" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
@@ -228,7 +259,10 @@ void COperationPerformer::copyFiles()
 				{
 					assert(!_newName.isEmpty());
 					_userResponse = urNone;
-					destFile = CFileSystemObject(_newName);
+					newFileName = _newName;
+					destFile = CFileSystemObject(destFile.parentDirPath() + "/" + _newName);
+					if (destFile.exists())
+						continue; // Retry
 				}
 				else if (_userResponse == urRetry)
 				{
