@@ -90,8 +90,8 @@ void CFileListView::restoreHeaderState()
 
 void CFileListView::invertSelection()
 {
-	for (int i = 0; i < model()->rowCount(); ++i)
-		selectionModel()->select(model()->index(i, 0), QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
+	QItemSelection allItems(model()->index(0, 0), model()->index(model()->rowCount() - 1, 0));
+	selectionModel()->select(allItems, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
 }
 
 // For managing selection and cursor
