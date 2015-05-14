@@ -1,4 +1,4 @@
- #ifndef CMAINWINDOW_H
+#ifndef CMAINWINDOW_H
 #define CMAINWINDOW_H
 
 #include "cfilesystemobject.h"

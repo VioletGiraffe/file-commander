@@ -10,6 +10,8 @@
 #include "../favoritelocationseditor/cfavoritelocationseditor.h"
 #include "widgets/clineedit.h"
 #include "filesystemhelperfunctions.h"
+#include "progressdialogs/ccopymovedialog.h"
+#include "../cmainwindow.h"
 
 #include <assert.h>
 #include <time.h>
@@ -379,11 +381,11 @@ void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previou
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 {
 	CFileSystemObject& item = _controller.itemByHash(_panelPosition, hash);
-	const auto result = item.moveAtomically(currentDir(), newName);
-	if (result == rcTargetAlreadyExists)
-		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename \"") + item.fullName() + "\" to \"" + newName + "\" , target already exists");
-	else if (result != rcOk)
-		QMessageBox::warning(this, "Failed to rename a file", QString("Failed to rename \"") + item.fullName() + "\" to \"" + newName + "\"");
+
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::vector<CFileSystemObject>(1, item), item.parentDirPath() + "/" + newName, CMainWindow::get());
+	connect(CMainWindow::get(), SIGNAL(closed()), dialog, SLOT(deleteLater()));
+	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
+	dialog->show();
 }
 
 void CPanelWidget::toRoot()
