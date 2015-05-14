@@ -13,11 +13,11 @@
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
 
-CFileSystemObject::CFileSystemObject() : _type(UnknownType)
+CFileSystemObject::CFileSystemObject()
 {
 }
 
-CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo), _type(UnknownType)
+CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
 {
 	refreshInfo();
 }
@@ -34,29 +34,24 @@ void CFileSystemObject::refreshInfo()
 	const QByteArray utf8Path = _properties.fullPath.toUtf8();
 	_properties.hash = fasthash64(utf8Path.constData(), utf8Path.size(), 0);
 
-	if (!_properties.exists)
-		return; // Symlink pointing to a non-existing file - skipping
-
-	_properties.creationDate = (time_t) _fileInfo.created().toTime_t();
-
 	if (_fileInfo.isFile())
-		_type = File;
+		_properties.type = File;
 	else if (_fileInfo.isDir())
-		_type = Directory;
+		_properties.type = Directory;
 	else
 	{
 #ifdef _WIN32
-		qDebug() << _properties.fullPath << " is neither a file nor a dir";
+		if (_properties.exists)
+			qDebug() << _properties.fullPath << " is neither a file nor a dir";
 #endif
-		return;
 	}
 
-	if (_type != Directory)
+	if (_properties.type == File)
 	{
 		_properties.extension = _fileInfo.suffix();
 		_properties.completeBaseName = _fileInfo.completeBaseName();
 	}
-	else
+	else if (_properties.type == Directory)
 	{
 		const QString suffix = _fileInfo.completeSuffix();
 		_properties.completeBaseName = _fileInfo.baseName();
@@ -64,11 +59,15 @@ void CFileSystemObject::refreshInfo()
 			_properties.completeBaseName += "." + suffix;
 	}
 
-	_properties.fullName = _type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
+	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
 	_properties.parentFolder = _fileInfo.absolutePath();
+
+	if (!_properties.exists)
+		return;
+
+	_properties.creationDate = (time_t) _fileInfo.created().toTime_t();
 	_properties.modificationDate = _fileInfo.lastModified().toTime_t();
-	_properties.size = _type == File ? _fileInfo.size() : 0;
-	_properties.type = _type;
+	_properties.size = _properties.type == File ? _fileInfo.size() : 0;
 }
 
 bool CFileSystemObject::operator==(const CFileSystemObject& other) const
@@ -90,17 +89,17 @@ const CFileSystemObjectProperties &CFileSystemObject::properties() const
 
 FileSystemObjectType CFileSystemObject::type() const
 {
-	return _type;
+	return _properties.type;
 }
 
 bool CFileSystemObject::isFile() const
 {
-	return _type == File;
+	return _properties.type == File;
 }
 
 bool CFileSystemObject::isDir() const
 {
-	return _type == Directory;
+	return _properties.type == Directory;
 }
 
 bool CFileSystemObject::isEmptyDir() const
@@ -213,7 +212,7 @@ QString CFileSystemObject::extension() const
 
 QString CFileSystemObject::sizeString() const
 {
-	return _type == File ? fileSizeToString(_properties.size) : QString();
+	return _properties.type == File ? fileSizeToString(_properties.size) : QString();
 }
 
 QString CFileSystemObject::modificationDateString() const
