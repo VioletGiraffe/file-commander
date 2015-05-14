@@ -460,8 +460,34 @@ void COperationPerformer::copyFiles()
 				}
 				else if (_op == operationCopy)
 				{
-					if (!destInfo.exists())
-						QDir(destInfo.absoluteFilePath()).mkdir("."); // TODO: error checking
+					CFileSystemObject destObject(destInfo);
+					if (!destObject.exists())
+					{
+						if (!QDir(destObject.fullAbsolutePath()).mkdir("."))
+						{
+							const auto action = getUserResponse(hrCreatingFolderFailed, destObject, CFileSystemObject(), "");
+							if (action == urSkipThis || action == urSkipAll)
+							{
+								++it;
+								++currentItemIndex;
+								continue;
+							}
+							else if (action == urAbort)
+							{
+								finalize();
+								return;
+							}
+							else if (action == urRetry)
+							{
+								continue;
+							}
+							else
+							{
+								Q_ASSERT(false);
+								continue;
+							}
+						}
+					}
 				}
 			}
 		}
