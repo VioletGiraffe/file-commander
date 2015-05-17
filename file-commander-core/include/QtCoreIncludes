@@ -20,6 +20,7 @@
 #include <QShortcut>
 #include <QStorageInfo>
 #include <QString>
+#include <QStringBuilder>
 #include <QTimer>
 #include <QUrl>
 #include <QWidget>

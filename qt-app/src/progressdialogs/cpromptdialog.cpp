@@ -1,6 +1,7 @@
 #include "cpromptdialog.h"
 #include "ui_cpromptdialog.h"
 #include "filesystemhelperfunctions.h"
+#include "widgets/widgetutils.h"
 
 CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason,
 	const CFileSystemObject& source, const CFileSystemObject& dest /*= CFileSystemObject()*/, const QString& message /* = QString()*/) :
@@ -13,8 +14,8 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 
 	connect(ui->btnCancel, SIGNAL(clicked()), SLOT(onCancelClicked()));
 	connect(ui->btnCancelDeletion, SIGNAL(clicked()), SLOT(onCancelClicked()));
-	connect(ui->btnDelete, SIGNAL(clicked()), SLOT(onProceedClicked()));
-	connect(ui->btnDeleteAll, SIGNAL(clicked()), SLOT(onProceedAllClicked()));
+	connect(ui->btnDeleteAnyway, SIGNAL(clicked()), SLOT(onProceedClicked()));
+	connect(ui->btnDeleteAllAnyway, SIGNAL(clicked()), SLOT(onProceedAllClicked()));
 	connect(ui->btnOverwrite, SIGNAL(clicked()), SLOT(onProceedClicked()));
 	connect(ui->btnOverwriteAll, SIGNAL(clicked()), SLOT(onProceedAllClicked()));
 	connect(ui->btnRename, SIGNAL(clicked()), SLOT(onRenameClicked()));
@@ -27,27 +28,36 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	switch (promptReason)
 	{
 	case hrFileExists:
-		ui->lblQuestion->setText("File already exists. What do you want to do?");
+		ui->lblQuestion->setText("File or folder already exists.");
 		break;
 	case hrSourceFileIsReadOnly:
-		ui->lblQuestion->setText("The source file is read-only. What do you want to do?");
+		ui->btnOverwrite->setVisible(false);
+		ui->btnOverwriteAll->setVisible(false);
+		ui->btnRename->setVisible(false);
+		ui->lblQuestion->setText("The source file or folder is read-only.");
 		break;
 	case hrDestFileIsReadOnly:
-		ui->lblQuestion->setText("The destination file is read-only. What do you want to do?");
+		ui->lblQuestion->setText("The destination file or folder is read-only.");
 		break;
+	case hrFailedToMakeItemWritable:
+		ui->lblQuestion->setText("Failed to make the file or folder writable.");
+		ui->btnOverwrite->setVisible(false);
+		ui->btnOverwriteAll->setVisible(false);
+		ui->btnRename->setVisible(false);
 	case hrFileDoesntExit:
-		ui->lblQuestion->setText("The file doesn't exist. What do you want to do?");
+		ui->lblQuestion->setText("The file or folder doesn't exist.");
 		break;
 	case hrCreatingFolderFailed:
-		ui->lblQuestion->setText(QString("Failed to create the folder\n") + source.fullAbsolutePath() + "\nWhat do you want to do?");
-		ui->btnOverwrite->setEnabled(false);
-		ui->btnOverwriteAll->setEnabled(false);
-		ui->btnRename->setEnabled(false);
+		ui->lblQuestion->setText(QString("Failed to create the folder\n") + source.fullAbsolutePath());
+		ui->btnOverwrite->setVisible(false);
+		ui->btnOverwriteAll->setVisible(false);
+		ui->btnRename->setVisible(false);
 		break;
 	case hrFailedToDelete:
-		ui->btnOverwrite->setEnabled(false);
-		ui->btnOverwriteAll->setEnabled(false);
-		ui->lblQuestion->setText(QString("Failed to delete\n") + source.fullAbsolutePath() + "\nWhat do you want to do?");
+		ui->btnOverwrite->setVisible(false);
+		ui->btnOverwriteAll->setVisible(false);
+		ui->btnRename->setVisible(false);
+		ui->lblQuestion->setText(QString("Failed to delete\n") + source.fullAbsolutePath());
 		break;
 	case hrUnknownError:
 		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
@@ -58,9 +68,9 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	}
 
 	if (!message.isEmpty())
-		ui->lblQuestion->setText(ui->lblQuestion->text() + "\nLow-level error message: " + message);
+		ui->lblQuestion->setText(ui->lblQuestion->text() + "\n\n" + message);
 
-	if (op == operationDelete)
+	if (op == operationDelete || promptReason == hrSourceFileIsReadOnly || promptReason == hrFailedToMakeItemWritable)
 	{
 		ui->stackedWidget->setCurrentIndex(1);
 
@@ -74,18 +84,29 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	{
 		ui->stackedWidget->setCurrentIndex(0);
 
-		ui->lblSrcFile->setText(source.fullAbsolutePath());
-		ui->lblSourceSize->setText(fileSizeToString(source.size()));
-		QDateTime modificationDate;
-		modificationDate.setTime_t((uint)source.properties().modificationDate);
-		modificationDate = modificationDate.toLocalTime();
-		ui->lblSourceModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
+		if (source.isValid())
+		{
+			ui->lblSrcFile->setText(source.fullAbsolutePath());
+			ui->lblSourceSize->setText(fileSizeToString(source.size()));
+			QDateTime modificationDate;
+			modificationDate.setTime_t((uint)source.properties().modificationDate);
+			modificationDate = modificationDate.toLocalTime();
+			ui->lblSourceModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
+		}
+		else
+			WidgetUtils::setLayoutVisible(ui->sourceFileInfo, false);
 
-		ui->lblDstFile->setText(dest.fullAbsolutePath());
-		ui->lblDestSize->setText(fileSizeToString(dest.size()));
-		modificationDate.setTime_t((uint)dest.properties().modificationDate);
-		modificationDate = modificationDate.toLocalTime();
-		ui->lblDestModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
+		if (dest.isValid())
+		{
+			ui->lblDstFile->setText(dest.fullAbsolutePath());
+			ui->lblDestSize->setText(fileSizeToString(dest.size()));
+			QDateTime modificationDate;
+			modificationDate.setTime_t((uint)dest.properties().modificationDate);
+			modificationDate = modificationDate.toLocalTime();
+			ui->lblDestModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
+		}
+		else
+			WidgetUtils::setLayoutVisible(ui->destFileInfo, false);
 	}
 
 	_srcFileName = source.fullName();
@@ -102,6 +123,17 @@ UserResponse CPromptDialog::ask()
 QString CPromptDialog::newName() const
 {
 	return _newName;
+}
+
+
+void CPromptDialog::showEvent(QShowEvent * e)
+{
+	QDialog::showEvent(e);
+
+	// Leave width intact, but set optimum height
+	auto g = geometry();
+	g.setHeight(sizeHint().height());
+	setGeometry(g);
 }
 
 CPromptDialog::~CPromptDialog()
@@ -154,3 +186,4 @@ void CPromptDialog::onCancelClicked()
 	_response = urAbort;
 	close();
 }
+

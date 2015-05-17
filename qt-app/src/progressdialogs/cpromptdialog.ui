@@ -92,6 +92,19 @@
           </layout>
          </item>
          <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
           <layout class="QGridLayout" name="destFileInfo">
            <item row="0" column="0">
             <widget class="QLabel" name="label_4">
@@ -266,16 +279,6 @@
        </item>
        <item>
         <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="2">
-          <widget class="QPushButton" name="btnCancelDeletion">
-           <property name="text">
-            <string>Cancel</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
          <item row="1" column="0">
           <widget class="QPushButton" name="btnSkipDeletion">
            <property name="text">
@@ -296,10 +299,10 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="btnDeleteAll">
+         <item row="0" column="1">
+          <widget class="QPushButton" name="btnDeleteAllAnyway">
            <property name="text">
-            <string>Delete All</string>
+            <string>Delete All Anyway</string>
            </property>
            <property name="autoDefault">
             <bool>true</bool>
@@ -309,10 +312,20 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QPushButton" name="btnDelete">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btnDeleteAnyway">
            <property name="text">
-            <string>Delete</string>
+            <string>Delete Anyway</string>
+           </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QPushButton" name="btnCancelDeletion">
+           <property name="text">
+            <string>Cancel</string>
            </property>
            <property name="autoDefault">
             <bool>false</bool>

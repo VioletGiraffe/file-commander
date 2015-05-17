@@ -12,7 +12,7 @@
 
 COperationPerformer::COperationPerformer(Operation operation, std::vector<CFileSystemObject> source, QString destination) :
 	_source(source),
-	_dest(toPosixSeparators(destination)),
+	_destFileSystemObject(toPosixSeparators(destination)),
 	_op(operation),
 	_paused(false),
 	_inProgress(false),
@@ -123,24 +123,30 @@ void COperationPerformer::copyFiles()
 
 	// If there's just one file to copy it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
 	QString newFileName;
-	CFileSystemObject destFileSystemObject(_dest);
-	if (_source.size() == 1 && _source.front().isFile() && !destFileSystemObject.isDir())
-		newFileName = destFileSystemObject.fullName();
+	if (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir())
+		newFileName = _destFileSystemObject.fullName();
 
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
 
 	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster
 	// If the dest folder is empty, moving means renaming the root source folder / file, which is fast and simple
-	if (_op == operationMove && (!destFileSystemObject.exists() || destFileSystemObject.isEmptyDir()) && _source.front().isMovableTo(destFileSystemObject))
+	if (_op == operationMove && (!_destFileSystemObject.exists() || _destFileSystemObject.isEmptyDir()) && _source.front().isMovableTo(_destFileSystemObject))
 	{
 		// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
 		for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 		{
-			const auto result = it->moveAtomically(_dest, newFileName);
+			if (it->isCdUp())
+			{
+				++it;
+				++currentItemIndex;
+				continue;
+			}
+
+			const auto result = it->moveAtomically(_destFileSystemObject.fullAbsolutePath(), newFileName);
 			if (result != rcOk)
 			{
-				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *it, CFileSystemObject(_dest + "/" + (newFileName.isEmpty() ? it->fullName() : newFileName)), it->lastErrorMessage());
+				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *it, CFileSystemObject(QString(_destFileSystemObject.fullAbsolutePath() % "/" % (newFileName.isEmpty() ? it->fullName() : newFileName))), it->lastErrorMessage());
 				// Handler is identical to that of the main loop
 				// esp. for the case of hrFileExists
 				if (response == urSkipThis || response == urSkipAll)
@@ -166,6 +172,9 @@ void COperationPerformer::copyFiles()
 				else
 					assert(_userResponse == urProceedWithThis || _userResponse == urProceedWithAll);
 			}
+
+			++it;
+			++currentItemIndex;
 		}
 
 		finalize();
@@ -180,6 +189,13 @@ void COperationPerformer::copyFiles()
 
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
+		if (it->isCdUp())
+		{
+			++it;
+			++currentItemIndex;
+			continue;
+		}
+
 		qDebug() << __FUNCTION__ << "Processing" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
@@ -366,11 +382,15 @@ void COperationPerformer::copyFiles()
 				_fileTimeElapsed.start();
 				do
 				{
-					_fileTimeElapsed.pause();
-					while (_paused)
-						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					if (_paused) // This code is not strictly thread-safe (the value of _paused can change between 'if' and 'while'), but in this context I'm OK with that
+					{
+						_fileTimeElapsed.pause();
+						while (_paused)
+							std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-					_fileTimeElapsed.resume();
+						_fileTimeElapsed.resume();
+					}
+					
 					// TODO: add error checking, message displaying etc.!
 					result = it->copyChunk(chunkSize, destPath, _newName.isEmpty() ? newFileName : _newName);
 					// Error handling
@@ -425,32 +445,25 @@ void COperationPerformer::copyFiles()
 				}
 				else if (_op == operationMove) // result == ok
 				{
-					result = it->remove();
-					if (result != rcOk)
+					NextAction nextAction;
+					while ((nextAction = deleteItem(*it)) == naRetryOperation);
+
+					switch (nextAction)
 					{
-						const auto action = getUserResponse(hrFailedToDelete, *it, CFileSystemObject(), it->lastErrorMessage());
-						if (action == urSkipThis || action == urSkipAll)
-						{
-							_userResponse = urNone;
-							++it;
-							++currentItemIndex;
-							continue;
-						}
-						else if (action == urAbort)
-						{
-							_userResponse = urNone;
-							finalize();
-							return;
-						}
-						else if (action == urRetry)
-						{
-							continue;
-						}
-						else
-						{
-							Q_ASSERT(false);
-							continue;
-						}
+					case naProceed:
+					case naSkip:
+						++it;
+						++currentItemIndex;
+						continue;
+					case naRetryItem:
+						continue;
+					case naAbort:
+						finalize();
+						return;
+					default:
+						qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
+						Q_ASSERT(!"Unexpected deleteItem() return value");
+						continue; // Retry
 					}
 				}
 			}
@@ -458,7 +471,6 @@ void COperationPerformer::copyFiles()
 			{
 				if (_op == operationMove)
 				{
-					// TODO:
 					if (it->isEmptyDir())
 					{
 						const auto result = it->remove();
@@ -585,62 +597,27 @@ void COperationPerformer::deleteFiles()
 			_userResponse = urNone;
 		}
 
-		if (it->isFile())
+		NextAction nextAction;
+		while ((nextAction = deleteItem(*it)) == naRetryOperation);
+
+		switch (nextAction)
 		{
-			if (!it->isWriteable())
-			{
-				if (_globalResponses.count(hrSourceFileIsReadOnly) > 0 && _globalResponses[hrSourceFileIsReadOnly] == urSkipAll)
-				{
-					continue;
-				}
-				else if (_globalResponses.count(hrSourceFileIsReadOnly) <= 0 || _globalResponses[hrSourceFileIsReadOnly] != urProceedWithAll)
-				{
-					_observer->onProcessHaltedCallback(hrSourceFileIsReadOnly, *it, CFileSystemObject(), QString());
-					waitForResponse();
-					if (_userResponse == urSkipThis || _userResponse == urSkipAll)
-					{
-						_userResponse = urNone;
-						++it;
-						++currentItemIndex;
-						continue;
-					}
-					else if (_userResponse == urAbort)
-					{
-						_userResponse = urNone;
-						finalize();
-						return;
-					}
-					else if (_userResponse == urRetry)
-					{
-						_userResponse = urNone;
-						continue;
-					}
-					else
-						assert ((_userResponse == urProceedWithThis || _userResponse == urProceedWithAll) && _newName.isEmpty());
-
-					if (!it->makeWritable())
-					{
-						// TODO: show a message
-						qDebug() << "Error making file" << it->fullAbsolutePath() << "writable";
-						assert(false);
-						_userResponse = urNone;
-						continue;
-					}
-					_userResponse = urNone;
-				}
-			}
+		case naProceed:
+		case naSkip:
+			_observer->onProgressChangedCallback(int(currentItemIndex * 100 / _source.size()), currentItemIndex, _source.size(), 0, 0);
+			++it;
+			++currentItemIndex;
+			break;
+		case naRetryItem:
+			continue;
+		case naAbort:
+			finalize();
+			return;
+		default:
+			qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
+			Q_ASSERT(!"Unexpected deleteItem() return value");
+			continue;
 		}
-
-		if (it->remove() != rcOk)
-		{
-			qDebug() << "Error removing" << (it->isFile() ? "file" : "folder") << it->fullAbsolutePath() << ", error: " << it->lastErrorMessage();
-			assert(false);
-		}
-
-		_observer->onProgressChangedCallback(int(currentItemIndex * 100 / _source.size()), currentItemIndex, _source.size(), 0, 0);
-
-		++it;
-		++currentItemIndex;
 	}
 
 	finalize();
@@ -660,14 +637,14 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 	totalSize = 0;
 	std::vector<CFileSystemObject> newSourceVector;
 	std::vector<QDir> destinations;
-	const bool destIsFileName = _source.size() == 1 && _source.front().isFile() && !_dest.endsWith("/") && !_dest.endsWith("\\");
+	const bool destIsFileName = _source.size() == 1 && _destFileSystemObject.isFile();
 	for (auto& o: _source)
 	{
 		if (o.isFile())
 		{
 			totalSize += o.size();
 			// Ignoring the new file name here if it was supplied. We're only calculating dest dir here, not the file name
-			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), destIsFileName ? CFileSystemObject(_dest).parentDirPath() : _dest, false));
+			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), destIsFileName ? _destFileSystemObject.parentDirPath() : _destFileSystemObject.fullAbsolutePath(), false));
 			newSourceVector.push_back(o);
 		}
 		else if (o.isDir())
@@ -676,10 +653,10 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 			for (auto& file : children)
 			{
 				totalSize += file.size();
-				destinations.emplace_back(destinationFolder(file.fullAbsolutePath(), o.parentDirPath(), _dest, file.isDir()));
+				destinations.emplace_back(destinationFolder(file.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), file.isDir()));
 				newSourceVector.push_back(file);
 			}
-			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), _dest, true));
+			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), true));
 			newSourceVector.push_back(o);
 		}
 	};
@@ -701,6 +678,71 @@ UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSyst
 	return response;
 }
 
+COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObject& item)
+{
+	if (item.isFile())
+	{
+		if (!item.isWriteable())
+		{
+			const auto response = getUserResponse(hrSourceFileIsReadOnly, item, CFileSystemObject(), item.lastErrorMessage());
+			if (response == urSkipThis || response == urSkipAll)
+				return naSkip;
+			else if (response == urAbort)
+				return naAbort;
+			else if (response == urRetry)
+				return naRetryOperation;
+			else
+				assert((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
+
+			NextAction nextAction;
+			while ((nextAction = makeItemWriteable(item)) == naRetryOperation);
+			if (nextAction != naProceed)
+				return nextAction;
+		}
+	}
+
+	if (item.remove() != rcOk)
+	{
+		qDebug() << "Error removing" << (item.isFile() ? "file" : "folder") << item.fullAbsolutePath() << ", error: " << item.lastErrorMessage();
+		const auto response = getUserResponse(hrFailedToDelete, item, CFileSystemObject(), item.lastErrorMessage());
+		if (response == urSkipThis || response == urSkipAll)
+			return naSkip;
+		else if (response == urAbort)
+			return naAbort;
+		else if (response == urRetry)
+			return naRetryOperation;
+		else
+		{
+			Q_ASSERT(!"Unexpected user response");
+			return naRetryOperation;
+		}
+	}
+
+	return naProceed;
+}
+
+COperationPerformer::NextAction COperationPerformer::makeItemWriteable(CFileSystemObject& item)
+{
+	if (!item.makeWritable())
+	{
+		qDebug() << "Error making file" << item.fullAbsolutePath() << "writable, retrying";
+		const auto response = getUserResponse(hrFailedToMakeItemWritable, item, CFileSystemObject(), item.lastErrorMessage());
+		if (response == urSkipThis || response == urSkipAll)
+			return naSkip;
+		else if (response == urAbort)
+			return naAbort;
+		else if (response == urRetry)
+			return naRetryOperation;
+		else
+		{
+			Q_ASSERT(!"Unexpected user response");
+			return naRetryOperation;
+		}
+	}
+
+	return naProceed;
+}
+
 QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)
 {
 	QString localPath = absoluteSourcePath.mid(originPath.length());
@@ -709,7 +751,7 @@ QDir destinationFolder(const QString &absoluteSourcePath, const QString &originP
 		localPath.remove(0, 1);
 
 	const QString tmp = QFileInfo(destPath).absoluteFilePath();
-	assert(QString(destPath+"/").remove("//") == QString(tmp+"/").remove("//"));
-	const QString result = destPath + "/" + localPath;
+	assert(QString(destPath % "/").remove("//") == QString(tmp % "/").remove("//"));
+	const QString result = destPath % "/" % localPath;
 	return QFileInfo(result).absolutePath();
 }

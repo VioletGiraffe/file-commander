@@ -77,6 +77,11 @@ bool CFileSystemObject::operator==(const CFileSystemObject& other) const
 
 
 // Information about this object
+bool CFileSystemObject::isValid() const
+{
+	return _properties.creationDate != std::numeric_limits<time_t>::max();
+}
+
 bool CFileSystemObject::exists() const
 {
 	return _properties.exists;
@@ -109,7 +114,7 @@ bool CFileSystemObject::isEmptyDir() const
 
 bool CFileSystemObject::isCdUp() const
 {
-	return _fileInfo.fileName() == "..";
+	return _properties.fullName == "..";
 }
 
 bool CFileSystemObject::isExecutable() const
@@ -231,7 +236,7 @@ FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFol
 	assert(QFileInfo(destFolder).isDir());
 
 	QFile file (_properties.fullPath);
-	const bool succ = file.copy(destFolder + (newName.isEmpty() ? _fileInfo.fileName() : newName));
+	const bool succ = file.copy(destFolder + (newName.isEmpty() ? _properties.fullName : newName));
 	if (!succ)
 		_lastError = file.errorString();
 	return succ ? rcOk : rcFail;
@@ -241,9 +246,11 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 {
 	if (!exists())
 		return rcObjectDoesntExist;
+	else if (isCdUp())
+		return rcFail;
 
 	assert(QFileInfo(location).isDir());
-	const QString fullNewName = location + "/" + (newName.isEmpty() ? _fileInfo.fileName() : newName);
+	const QString fullNewName = location + "/" + (newName.isEmpty() ? _properties.fullName : newName);
 	const QFileInfo destInfo(fullNewName);
 	if (destInfo.exists() && (isDir() || destInfo.isFile()))
 		return rcTargetAlreadyExists;
@@ -293,25 +300,34 @@ FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QS
 		if (!_thisFile->open(QFile::ReadOnly))
 		{
 			_lastError = _thisFile->errorString();
+
+			_thisFile.reset();
+			_destFile.reset();
+
 			return rcFail;
 		}
 
-		_destFile->setFileName(destFolder + (newName.isEmpty() ? _fileInfo.fileName() : newName));
+		_destFile->setFileName(destFolder + (newName.isEmpty() ? _properties.fullName : newName));
 		if (!_destFile->open(QFile::WriteOnly))
 		{
 			_lastError = _destFile->errorString();
+
+			_thisFile.reset();
+			_destFile.reset();
+
 			return rcFail;
 		}
 	}
 
 	assert(_destFile->isOpen() == _thisFile->isOpen());
 
-	QByteArray data = _thisFile->read(chunkSize);
+	const QByteArray data = _thisFile->read(chunkSize);
 	// TODO: this lacks proper error checking
 	if (data.isEmpty())
 	{
-		_destFile->close();
-		_thisFile->close();
+		_thisFile.reset();
+		_destFile.reset();
+
 		return rcOk;
 	}
 	else
@@ -351,7 +367,11 @@ FileOperationResultCode CFileSystemObject::cancelCopy()
 	{
 		_thisFile->close();
 		_destFile->close();
-		return _destFile->remove() ? rcOk : rcFail;
+
+		const bool succ = _destFile->remove();
+		_thisFile.reset();
+		_destFile.reset();
+		return succ ? rcOk : rcFail;
 	}
 	else
 		return rcOk;
@@ -359,6 +379,12 @@ FileOperationResultCode CFileSystemObject::cancelCopy()
 
 bool CFileSystemObject::makeWritable(bool writeable)
 {
+	if (!isFile())
+	{
+		Q_ASSERT(!"This method only works for files");
+		return false;
+	}
+
 	QFile file(_fileInfo.absoluteFilePath());
 	if (file.setPermissions((writeable ? (file.permissions() | QFile::WriteUser) : (file.permissions() & ~QFile::WriteUser))))
 		return true;

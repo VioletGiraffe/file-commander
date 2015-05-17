@@ -20,6 +20,9 @@ public:
 	UserResponse ask();
 	QString newName() const;
 
+protected:
+	void showEvent(QShowEvent * e) override;
+
 private slots:
 	void onSkipClicked();
 	void onSkipAllClicked();

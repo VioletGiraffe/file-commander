@@ -32,49 +32,38 @@ public:
 	inline std::mutex& callbackMutex() { return _callbackMutex; }
 
 private:
-	void onProgressChangedCallback(int totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, int filePercentage, uint64_t speed /* B/s*/) {
+	inline void onProgressChangedCallback(int totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, int filePercentage, uint64_t speed /* B/s*/) {
 		assert(filePercentage <= 100 && totalPercentage <= 100);
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProgressChanged, this, totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed));
 	}
-	void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) {
+
+	inline void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) {
 		qDebug() << "COperationPerformer: process halted";
-		QString haltReasonString;
-		switch (reason)
-		{
-		case hrFileExists:
-			haltReasonString = "File exists";
-			break;
-		case hrSourceFileIsReadOnly:
-			haltReasonString = "Source file is read-only";
-			break;
-		case hrDestFileIsReadOnly:
-			haltReasonString = "Dest file is read-only";
-			break;
-		case hrFileDoesntExit:
-			haltReasonString = "File doesn't exist";
-			break;
-		case hrUnknownError:
-			haltReasonString = "Unknown error";
-			break;
-		case hrCreatingFolderFailed:
-			haltReasonString = "Failed to create a folder";
-			break;
-		case hrFailedToDelete:
-			haltReasonString = "Failed to delete the item";
-			break;
-		default:
-			Q_ASSERT(false);
-			break;
-		}
-		qDebug() << "Reason:" << haltReasonString << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
+
+		static const std::map<HaltReason, QString> haltReasonString = {
+			{hrFileExists, "File exists"},
+			{hrSourceFileIsReadOnly, "Source file is read-only"},
+			{hrDestFileIsReadOnly, "Dest file is read-only"},
+			{hrFailedToMakeItemWritable, "Failed to make an item writable"},
+			{hrFileDoesntExit, "File doesn't exist"},
+			{hrCreatingFolderFailed, "Failed to create a folder"},
+			{hrFailedToDelete, "Failed to delete the item"},
+			{hrUnknownError, "Unknown error"}
+		};
+
+		const auto reasonString = haltReasonString.find(reason);
+		Q_ASSERT(reasonString != haltReasonString.end());
+		qDebug() << "Reason:" << (reasonString != haltReasonString.end() ? reasonString->second : "") << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
 
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessHalted, this, reason, source, dest, errorMessage));
 	}
-	void onProcessFinishedCallback(QString message = QString()) {
+
+	inline void onProcessFinishedCallback(QString message = QString()) {
 		qDebug() << "COperationPerformer: operation finished, message:" << message;
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessFinished, this, message));
 	}
-	void onCurrentFileChangedCallback(QString file) {
+
+	inline void onCurrentFileChangedCallback(QString file) {
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onCurrentFileChanged, this, file));
 	}
 
@@ -118,10 +107,16 @@ private:
 
 	UserResponse getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message);
 
+// Suboperation handlers
+	enum NextAction {naProceed, naRetryItem, naRetryOperation, naSkip, naAbort};
+	NextAction deleteItem(CFileSystemObject& item);
+	NextAction makeItemWriteable(CFileSystemObject& item);
+
 private:
 	std::vector<CFileSystemObject> _source;
 	std::map<HaltReason, UserResponse> _globalResponses;
-	QString                        _dest, _newName;
+	CFileSystemObject              _destFileSystemObject;
+	QString                        _newName;
 	Operation                      _op;
 	std::atomic<bool>              _paused;
 	std::atomic<bool>              _inProgress;

@@ -18,8 +18,8 @@ struct CFileSystemObjectProperties {
 	QString  fullPath;
 	FileSystemObjectType type = UnknownType;
 	uint64_t size = 0;
-	time_t   creationDate = 0;
-	time_t   modificationDate = 0;
+	time_t   creationDate = std::numeric_limits<time_t>::max();
+	time_t   modificationDate = std::numeric_limits<time_t>::max();
 	qulonglong hash = 0;
 	bool exists = false;
 };
@@ -37,6 +37,8 @@ public:
 	bool operator==(const CFileSystemObject& other) const;
 
 // Information about this object
+	bool isValid() const;
+
 	bool exists() const;
 	const CFileSystemObjectProperties& properties() const;
 	FileSystemObjectType type() const;
