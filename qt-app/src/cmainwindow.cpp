@@ -152,7 +152,7 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	if (files.empty() || destDir.isEmpty())
 		return false;
 
-	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir + toNativeSeparators("/") + files.front().fullName()) : destDir;
+	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % toNativeSeparators("/") % files.front().fullName()) : destDir;
 	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
@@ -329,13 +329,15 @@ void CMainWindow::splitterContextMenuRequested(QPoint pos)
 void CMainWindow::copySelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
-		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir());
+		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
+		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir() + toNativeSeparators("/"));
 }
 
 void CMainWindow::moveSelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
-		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir());
+		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
+		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir() + toNativeSeparators("/"));
 }
 
 void CMainWindow::deleteFiles()

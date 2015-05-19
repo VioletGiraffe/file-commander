@@ -111,6 +111,8 @@ private:
 	enum NextAction {naProceed, naRetryItem, naRetryOperation, naSkip, naAbort};
 	NextAction deleteItem(CFileSystemObject& item);
 	NextAction makeItemWriteable(CFileSystemObject& item);
+	NextAction copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessed, uint64_t totalSize, size_t currentItemIndex);
+	NextAction mkPath(const QDir& dir);
 
 private:
 	std::vector<CFileSystemObject> _source;
@@ -135,5 +137,3 @@ private:
 	CTimeElapsed                  _fileTimeElapsed;
 	CMeanCounter<uint64_t>        _smoothSpeedCalculator;
 };
-
-QDir destinationFolder (const QString& absoluteSourcePath, const QString& originPath, const QString& destPath, bool sourceIsDir);

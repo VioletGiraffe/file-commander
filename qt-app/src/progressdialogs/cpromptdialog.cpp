@@ -46,6 +46,10 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->btnRename->setVisible(false);
 	case hrFileDoesntExit:
 		ui->lblQuestion->setText("The file or folder doesn't exist.");
+		ui->btnOverwrite->setVisible(false);
+		ui->btnOverwriteAll->setVisible(false);
+		ui->btnRename->setVisible(false);
+		ui->btnRetry->setVisible(false);
 		break;
 	case hrCreatingFolderFailed:
 		ui->lblQuestion->setText(QString("Failed to create the folder\n") + source.fullAbsolutePath());
@@ -61,6 +65,9 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		break;
 	case hrUnknownError:
 		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
+		ui->btnOverwrite->setVisible(false);
+		ui->btnOverwriteAll->setVisible(false);
+		ui->btnRename->setVisible(false);
 		break;
 	default:
 		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");

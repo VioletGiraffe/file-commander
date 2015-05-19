@@ -13,10 +13,6 @@
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
 
-CFileSystemObject::CFileSystemObject()
-{
-}
-
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
 {
 	refreshInfo();
@@ -38,13 +34,15 @@ void CFileSystemObject::refreshInfo()
 		_properties.type = File;
 	else if (_fileInfo.isDir())
 		_properties.type = Directory;
-	else
+	else if (_properties.exists)
 	{
 #ifdef _WIN32
-		if (_properties.exists)
-			qDebug() << _properties.fullPath << " is neither a file nor a dir";
+		qDebug() << _properties.fullPath << " is neither a file nor a dir";
 #endif
 	}
+	else if (_properties.fullPath.endsWith('/'))
+		_properties.type = Directory;
+
 
 	if (_properties.type == File)
 	{
@@ -56,7 +54,7 @@ void CFileSystemObject::refreshInfo()
 		const QString suffix = _fileInfo.completeSuffix();
 		_properties.completeBaseName = _fileInfo.baseName();
 		if (!suffix.isEmpty())
-			_properties.completeBaseName += "." + suffix;
+			_properties.completeBaseName = _properties.completeBaseName % '.' % suffix;
 	}
 
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
@@ -250,7 +248,7 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 		return rcFail;
 
 	assert(QFileInfo(location).isDir());
-	const QString fullNewName = location + "/" + (newName.isEmpty() ? _properties.fullName : newName);
+	const QString fullNewName = location % '/' % (newName.isEmpty() ? _properties.fullName : newName);
 	const QFileInfo destInfo(fullNewName);
 	if (destInfo.exists() && (isDir() || destInfo.isFile()))
 		return rcTargetAlreadyExists;

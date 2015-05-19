@@ -10,6 +10,19 @@
 #include <unistd.h>
 #endif
 
+inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)
+{
+	QString localPath = absoluteSourcePath.mid(originPath.length());
+	assert(!localPath.isEmpty());
+	if (localPath.startsWith('\\') || localPath.startsWith('/'))
+		localPath = localPath.remove(0, 1);
+
+	const QString tmp = QFileInfo(destPath).absoluteFilePath();
+	assert(QString(destPath % "/").remove("//") == QString(tmp % "/").remove("//"));
+	const QString result = destPath % "/" % localPath;
+	return QFileInfo(result).absolutePath();
+}
+
 COperationPerformer::COperationPerformer(Operation operation, std::vector<CFileSystemObject> source, QString destination) :
 	_source(source),
 	_destFileSystemObject(toPosixSeparators(destination)),
@@ -119,12 +132,9 @@ void COperationPerformer::copyFiles()
 		return;
 	}
 
-	_inProgress = true;
+	Q_ASSERT(_op == operationCopy || _op == operationMove);
 
-	// If there's just one file to copy it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
-	QString newFileName;
-	if (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir())
-		newFileName = _destFileSystemObject.fullName();
+	_inProgress = true;
 
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
@@ -143,10 +153,13 @@ void COperationPerformer::copyFiles()
 				continue;
 			}
 
+			// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
+			const QString newFileName = !_newName.isEmpty() ? _newName : (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir() ? _destFileSystemObject.fullName() : it->fullName());
+			_newName.clear();
 			const auto result = it->moveAtomically(_destFileSystemObject.fullAbsolutePath(), newFileName);
 			if (result != rcOk)
 			{
-				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *it, CFileSystemObject(QString(_destFileSystemObject.fullAbsolutePath() % "/" % (newFileName.isEmpty() ? it->fullName() : newFileName))), it->lastErrorMessage());
+				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *it, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), it->lastErrorMessage());
 				// Handler is identical to that of the main loop
 				// esp. for the case of hrFileExists
 				if (response == urSkipThis || response == urSkipAll)
@@ -161,16 +174,12 @@ void COperationPerformer::copyFiles()
 					return;
 				}
 				else if (response == urRename)
-				{
-					newFileName = _newName;
+					// _newName has been set and will be taken into account
 					continue;
-				}
 				else if (response == urRetry)
-				{
 					continue;
-				}
 				else
-					assert(_userResponse == urProceedWithThis || _userResponse == urProceedWithAll);
+					assert(response == urProceedWithThis || response == urProceedWithAll);
 			}
 
 			++it;
@@ -202,38 +211,24 @@ void COperationPerformer::copyFiles()
 		const QFileInfo& sourceFileInfo = it->qFileInfo();
 		if (!sourceFileInfo.exists())
 		{
-			// Global response registered
-			if (_globalResponses.count(hrFileDoesntExit) > 0)
+			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
+			if (response == urSkipThis || response == urSkipAll)
 			{
-				if (_globalResponses[hrFileDoesntExit] == urSkipAll)
-				{
-					++it;
-					++currentItemIndex;
-					continue;
-				}
-			}
-
-			_observer->onProcessHaltedCallback(hrFileDoesntExit, *it, CFileSystemObject(), QString());
-			waitForResponse();
-			if (_userResponse == urSkipThis || _userResponse == urSkipAll)
-			{
-				_userResponse = urNone;
 				++it;
 				++currentItemIndex;
 				continue;
 			}
-			else if (_userResponse == urAbort)
+			else if (response == urAbort)
 			{
-				_userResponse = urNone;
 				finalize();
 				return;
 			}
 			else
 				assert (!"Unknown response");
-			_userResponse = urNone;
 		}
 
-		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(newFileName.isEmpty() ? it->fullName() : newFileName));
+		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(_newName.isEmpty() ? it->fullName() : _newName));
+		_newName.clear();
 		if (destInfo.absoluteFilePath() == sourceFileInfo.absoluteFilePath())
 		{
 			++it;
@@ -241,310 +236,118 @@ void COperationPerformer::copyFiles()
 			continue;
 		}
 
-		if (destInfo.exists() && destInfo.isFile())
+		if (it->isFile())
 		{
-			// Global response registered
-			if (_globalResponses.count(hrFileExists) > 0)
+			NextAction nextAction;
+			while ((nextAction = copyItem(*it, destInfo, destination[currentItemIndex], sizeProcessed, totalSize, currentItemIndex)) == naRetryOperation);
+			switch (nextAction)
 			{
-				if (_globalResponses[hrFileExists] == urSkipAll)
-				{
-					++it;
-					++currentItemIndex;
-					continue;
-				}
+			case naProceed:
+				break;
+			case naSkip:
+				++it;
+				++currentItemIndex;
+				continue;
+			case naRetryItem:
+				continue;
+			case naRetryOperation:
+			case naAbort:
+				finalize();
+				return;
+			default:
+				qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
+				Q_ASSERT(!"Unexpected deleteItem() return value");
+				continue; // Retry
 			}
-			else
+
+			if (_op == operationMove) // result == ok
 			{
-				CFileSystemObject destFile(destInfo);
-				_observer->onProcessHaltedCallback(hrFileExists, *it, destFile, QString());
-				waitForResponse();
-				if (_userResponse == urSkipThis || _userResponse == urSkipAll)
+				while ((nextAction = deleteItem(*it)) == naRetryOperation);
+
+				switch (nextAction)
 				{
-					_userResponse = urNone;
+				case naProceed:
+					break;
+				case naSkip:
 					++it;
 					++currentItemIndex;
 					continue;
-				}
-				else if (_userResponse == urAbort)
-				{
-					_userResponse = urNone;
+				case naRetryItem:
+					continue;
+				case naAbort:
 					finalize();
 					return;
-				}
-				else if (_userResponse == urRename)
-				{
-					assert(!_newName.isEmpty());
-					_userResponse = urNone;
-					newFileName = _newName;
-					destFile = CFileSystemObject(destFile.parentDirPath() + "/" + _newName);
-					if (destFile.exists())
-						continue; // Retry
-				}
-				else if (_userResponse == urRetry)
-				{
-					_userResponse = urNone;
-					continue;
-				}
-				else
-					assert (((_userResponse == urProceedWithThis || _userResponse == urProceedWithAll) && _newName.isEmpty()) || (_userResponse == urRename && !_newName.isEmpty()) || (_globalResponses.count(hrFileExists) > 0 &&_globalResponses[hrFileExists] == urProceedWithAll));
-
-				_userResponse = urNone;
-
-				if (!destFile.isWriteable())
-				{
-					if (_globalResponses.count(hrDestFileIsReadOnly) <= 0 || _globalResponses[hrDestFileIsReadOnly] != urProceedWithAll)
-					{
-						_observer->onProcessHaltedCallback(hrSourceFileIsReadOnly, *it, CFileSystemObject(), QString());
-						waitForResponse();
-						if (_userResponse == urSkipThis || _userResponse == urSkipAll)
-						{
-							_userResponse = urNone;
-							++it;
-							++currentItemIndex;
-							continue;
-						}
-						else if (_userResponse == urAbort)
-						{
-							_userResponse = urNone;
-							finalize();
-							return;
-						}
-						else if (_userResponse == urRetry)
-						{
-							_userResponse = urNone;
-							continue;
-						}
-						else
-							assert ((_userResponse == urProceedWithThis || _userResponse == urProceedWithAll) && _newName.isEmpty());
-
-						if (!it->makeWritable())
-						{
-							qDebug() << "Error making file " << it->fullAbsolutePath() << " writable";
-							continue;
-						}
-
-						_userResponse = urNone;
-					}
-				}
-
-				if (destFile.remove() != rcOk)
-				{
-					qDebug() << "Error removing source file " << destFile.fullAbsolutePath() << ", error: " << destFile.lastErrorMessage();
-					qDebug() << "Marking it as non-writable to prompt for the user decision";
-					it->makeWritable(false);
-					continue;
+				default:
+					qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
+					Q_ASSERT(!"Unexpected deleteItem() return value");
+					continue; // Retry
 				}
 			}
 		}
-
-		if (_op == operationCopy || _op == operationMove)
+		else if (it->isDir())
 		{
-			if (!destination[currentItemIndex].exists())
+			// Creating the folder - empty folders will not be copied without this code
+			CFileSystemObject destObject(destInfo);
+			if (!destObject.exists())
 			{
-				const bool ok = destination[currentItemIndex].mkpath(".");
-				if (!ok)
+				if (!QDir(destObject.fullAbsolutePath()).mkdir("."))
 				{
-					_observer->onProcessHaltedCallback(hrFileExists, *it, CFileSystemObject(), QString());
-					waitForResponse();
-					if (_userResponse == urSkipThis || _userResponse == urSkipAll)
-					{
-						_userResponse = urNone;
-						++it;
-						++currentItemIndex;
-						continue;
-					}
-					else if (_userResponse == urAbort)
-					{
-						_userResponse = urNone;
-						finalize();
-						return;
-					}
-					else if (_userResponse == urRetry)
-					{
-						_userResponse = urNone;
-						continue;
-					}
-					else
-					{
-						Q_ASSERT(false);
-						continue;
-					}
-				}
-			}
-
-			if (it->isFile())
-			{
-				static const int chunkSize = 5 * 1024 * 1024;
-				const QString destPath = destination[currentItemIndex].absolutePath() + '/';
-				FileOperationResultCode result = rcFail;
-
-				// For speed calculation
-				_fileTimeElapsed.start();
-				do
-				{
-					if (_paused) // This code is not strictly thread-safe (the value of _paused can change between 'if' and 'while'), but in this context I'm OK with that
-					{
-						_fileTimeElapsed.pause();
-						while (_paused)
-							std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-						_fileTimeElapsed.resume();
-					}
-					
-					// TODO: add error checking, message displaying etc.!
-					result = it->copyChunk(chunkSize, destPath, _newName.isEmpty() ? newFileName : _newName);
-					// Error handling
-					if (result != rcOk)
-						break;
-
-					const int totalPercentage = totalSize > 0 ? static_cast<int>((sizeProcessed + it->bytesCopied()) * 100 / totalSize) : 0;
-					const int filePercentage = it->size() > 0 ? static_cast<int>(it->bytesCopied() * 100 / it->size()) : 0;
-					const uint64_t speed = _fileTimeElapsed.elapsed() > 0 ? it->bytesCopied() * 1000 / _fileTimeElapsed.elapsed() : 0; // B/s
-					_smoothSpeedCalculator = speed;
-					_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, _smoothSpeedCalculator.arithmeticMean());
-
-					// TODO: why isn't this block at the start of 'do-while'?
-					if (_cancelRequested)
-					{
-						if (it->cancelCopy() != rcOk)
-							assert(false);
-						result = rcOk;
-						break;
-					}
-				}
-				while (it->copyOperationInProgress());
-
-				if (result != rcOk)
-				{
-					it->cancelCopy();
-					qDebug() << "Error copying file " << it->fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? newFileName : _newName) << ", error: " << it->lastErrorMessage();
-					const auto action = getUserResponse(hrUnknownError, *it, CFileSystemObject(), it->lastErrorMessage());
+					const auto action = getUserResponse(hrCreatingFolderFailed, destObject, CFileSystemObject(), "");
 					if (action == urSkipThis || action == urSkipAll)
 					{
-						_userResponse = urNone;
 						++it;
 						++currentItemIndex;
 						continue;
 					}
 					else if (action == urAbort)
 					{
-						_userResponse = urNone;
 						finalize();
 						return;
 					}
 					else if (action == urRetry)
-					{
 						continue;
-					}
 					else
 					{
 						Q_ASSERT(false);
 						continue;
 					}
-
-				}
-				else if (_op == operationMove) // result == ok
-				{
-					NextAction nextAction;
-					while ((nextAction = deleteItem(*it)) == naRetryOperation);
-
-					switch (nextAction)
-					{
-					case naProceed:
-					case naSkip:
-						++it;
-						++currentItemIndex;
-						continue;
-					case naRetryItem:
-						continue;
-					case naAbort:
-						finalize();
-						return;
-					default:
-						qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
-						Q_ASSERT(!"Unexpected deleteItem() return value");
-						continue; // Retry
-					}
 				}
 			}
-			else if (it->isDir())
+
+			if (_op == operationMove)
 			{
-				if (_op == operationMove)
+				if (it->isEmptyDir())
 				{
-					if (it->isEmptyDir())
+					const auto result = it->remove();
+					if (result != rcOk)
 					{
-						const auto result = it->remove();
-						if (result != rcOk)
+						const auto action = getUserResponse(hrFailedToDelete, *it, CFileSystemObject(), it->lastErrorMessage());
+						if (action == urSkipThis || action == urSkipAll)
 						{
-							const auto action = getUserResponse(hrFailedToDelete, *it, CFileSystemObject(), it->lastErrorMessage());
-							if (action == urSkipThis || action == urSkipAll)
-							{
-								_userResponse = urNone;
-								++it;
-								++currentItemIndex;
-								continue;
-							}
-							else if (action == urAbort)
-							{
-								_userResponse = urNone;
-								finalize();
-								return;
-							}
-							else if (action == urRetry)
-							{
-								continue;
-							}
-							else
-							{
-								Q_ASSERT(false);
-								continue;
-							}
+							++it;
+							++currentItemIndex;
+							continue;
 						}
-					}
-					else // not empty
-						dirsToCleanUp.push_back(*it);
-				}
-				else if (_op == operationCopy)
-				{
-					CFileSystemObject destObject(destInfo);
-					if (!destObject.exists())
-					{
-						if (!QDir(destObject.fullAbsolutePath()).mkdir("."))
+						else if (action == urAbort)
 						{
-							const auto action = getUserResponse(hrCreatingFolderFailed, destObject, CFileSystemObject(), "");
-							if (action == urSkipThis || action == urSkipAll)
-							{
-								++it;
-								++currentItemIndex;
-								continue;
-							}
-							else if (action == urAbort)
-							{
-								finalize();
-								return;
-							}
-							else if (action == urRetry)
-							{
-								continue;
-							}
-							else
-							{
-								Q_ASSERT(false);
-								continue;
-							}
+							finalize();
+							return;
+						}
+						else if (action == urRetry)
+							continue;
+						else
+						{
+							Q_ASSERT(false);
+							continue; // Retry
 						}
 					}
 				}
+				else // not empty
+					dirsToCleanUp.push_back(*it);
 			}
-		}
-		else
-		{
-			assert (!"Illegal op");
-			break;
 		}
 
 		sizeProcessed += it->size();
-		_newName.clear();
 
 		++it;
 		++currentItemIndex;
@@ -572,29 +375,22 @@ void COperationPerformer::deleteFiles()
 		QFileInfo sourceFile(it->qFileInfo());
 		if (!sourceFile.exists())
 		{
-			// Global response registered
-			if (_globalResponses.count(hrFileDoesntExit) > 0)
+			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
+			if (response == urSkipThis || response == urSkipAll)
 			{
-				if (_globalResponses[hrFileDoesntExit] == urSkipAll)
-					continue;
-			}
-
-			_observer->onProcessHaltedCallback(hrFileDoesntExit, *it, CFileSystemObject(), QString());
-			waitForResponse();
-			if (_userResponse == urSkipThis || _userResponse == urSkipAll)
-			{
-				_userResponse = urNone;
+				++it;
+				++currentItemIndex;
 				continue;
 			}
-			else if (_userResponse == urAbort)
+			else if (response == urRetry)
+				continue;
+			else if (response == urAbort)
 			{
-				_userResponse = urNone;
 				finalize();
 				return;
 			}
 			else
 				assert (!"Unknown response");
-			_userResponse = urNone;
 		}
 
 		NextAction nextAction;
@@ -603,6 +399,7 @@ void COperationPerformer::deleteFiles()
 		switch (nextAction)
 		{
 		case naProceed:
+			break;
 		case naSkip:
 			_observer->onProgressChangedCallback(int(currentItemIndex * 100 / _source.size()), currentItemIndex, _source.size(), 0, 0);
 			++it;
@@ -637,7 +434,7 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 	totalSize = 0;
 	std::vector<CFileSystemObject> newSourceVector;
 	std::vector<QDir> destinations;
-	const bool destIsFileName = _source.size() == 1 && _destFileSystemObject.isFile();
+	const bool destIsFileName = _source.size() == 1 && !_destFileSystemObject.isDir();
 	for (auto& o: _source)
 	{
 		if (o.isFile())
@@ -743,15 +540,125 @@ COperationPerformer::NextAction COperationPerformer::makeItemWriteable(CFileSyst
 	return naProceed;
 }
 
-QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)
+COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessed, uint64_t totalSize, size_t currentItemIndex)
 {
-	QString localPath = absoluteSourcePath.mid(originPath.length());
-	assert(!localPath.isEmpty());
-	if (localPath.startsWith('\\') || localPath.startsWith('/'))
-		localPath.remove(0, 1);
+	if (!item.isFile())
+		return naProceed;
 
-	const QString tmp = QFileInfo(destPath).absoluteFilePath();
-	assert(QString(destPath % "/").remove("//") == QString(tmp % "/").remove("//"));
-	const QString result = destPath % "/" % localPath;
-	return QFileInfo(result).absolutePath();
+	CFileSystemObject destFile(destInfo);
+
+	if (destFile.exists() && destFile.isFile())
+	{
+		auto response = getUserResponse(hrFileExists, item, destFile, QString::null);
+		if (response == urSkipThis || response == urSkipAll)
+			return naSkip;
+		else if (response == urAbort)
+			return naAbort;
+		else if (response == urRetry)
+			return naRetryItem;
+		else if (response == urRename)
+		{
+			assert(!_newName.isEmpty());
+			return naRetryItem;
+		}
+		else if (response != urProceedWithThis && response != urProceedWithAll)
+		{
+			Q_ASSERT(!"Unexpected user response");
+			return naRetryItem;
+		}
+	}
+
+	if (!destFile.isWriteable())
+	{
+		NextAction nextAction;
+		while ((nextAction = makeItemWriteable(item)) == naRetryOperation);
+		if (nextAction != naProceed)
+			return nextAction;
+	}
+
+	if (!destDir.exists())
+	{
+		NextAction nextAction;
+		while ((nextAction = mkPath(destDir)) == naRetryOperation);
+		if (nextAction != naProceed)
+			return nextAction;
+	}
+
+	static const int chunkSize = 5 * 1024 * 1024;
+	const QString destPath = destDir.absolutePath() + '/';
+	FileOperationResultCode result = rcFail;
+
+	// For speed calculation
+	_fileTimeElapsed.start();
+	do
+	{
+		if (_paused) // This code is not strictly thread-safe (the value of _paused can change between 'if' and 'while'), but in this context I'm OK with that
+		{
+			_fileTimeElapsed.pause();
+			while (_paused)
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+			_fileTimeElapsed.resume();
+		}
+
+		// TODO: add error checking, message displaying etc.!
+		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString::null) : _newName);
+		// Error handling
+		if (result != rcOk)
+			break;
+
+		const int totalPercentage = totalSize > 0 ? static_cast<int>((sizeProcessed + item.bytesCopied()) * 100 / totalSize) : 0;
+		const int filePercentage = item.size() > 0 ? static_cast<int>(item.bytesCopied() * 100 / item.size()) : 0;
+		const uint64_t speed = _fileTimeElapsed.elapsed() > 0 ? item.bytesCopied() * 1000 / _fileTimeElapsed.elapsed() : 0; // B/s
+		_smoothSpeedCalculator = speed;
+		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, _smoothSpeedCalculator.arithmeticMean());
+
+		// TODO: why isn't this block at the start of 'do-while'?
+		if (_cancelRequested)
+		{
+			if (item.cancelCopy() != rcOk)
+				assert(false);
+			result = rcOk;
+			break;
+		}
+	} while (item.copyOperationInProgress());
+
+	if (result != rcOk)
+	{
+		item.cancelCopy();
+		qDebug() << "Error copying file " << item.fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString::null) : _newName) << ", error: " << item.lastErrorMessage();
+		const auto action = getUserResponse(hrUnknownError, item, CFileSystemObject(), item.lastErrorMessage());
+		if (action == urSkipThis || action == urSkipAll)
+			return naSkip;
+		else if (action == urAbort)
+			return naAbort;
+		else if (action == urRetry)
+			return naRetryOperation;
+		else
+		{
+			Q_ASSERT(false);
+			return naRetryOperation;
+		}
+	}
+
+	return naProceed;
+}
+
+COperationPerformer::NextAction COperationPerformer::mkPath(const QDir& dir)
+{
+	if (dir.mkpath("."))
+		return naProceed;
+
+	const auto response = getUserResponse(hrFileExists, CFileSystemObject(dir), CFileSystemObject(), QString::null);
+	if (response == urSkipThis || response == urSkipAll)
+		return naSkip;
+	else if (response == urAbort)
+		return naAbort;
+	else if (response == urRetry)
+		return naRetryOperation;
+	else
+	{
+		Q_ASSERT(!"Unexpected user response");
+		return naRetryItem;
+	}
 }
