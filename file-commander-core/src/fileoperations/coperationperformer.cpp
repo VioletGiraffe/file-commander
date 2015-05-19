@@ -559,7 +559,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		else if (response == urRename)
 		{
 			assert(!_newName.isEmpty());
-			return naRetryItem;
+			// Continue - the new name will be accounted for
 		}
 		else if (response != urProceedWithThis && response != urProceedWithAll)
 		{
@@ -613,7 +613,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		}
 
 		// TODO: add error checking, message displaying etc.!
-		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString::null) : _newName);
+		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString::null) : _newName);
 		// Error handling
 		if (result != rcOk)
 			break;
