@@ -54,6 +54,13 @@
              </property>
             </widget>
            </item>
+           <item row="0" column="1">
+            <widget class="QLabel" name="lblSrcFile">
+             <property name="text">
+              <string>TextLabel</string>
+             </property>
+            </widget>
+           </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_2">
              <property name="text">
@@ -82,13 +89,6 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
-            <widget class="QLabel" name="lblSrcFile">
-             <property name="text">
-              <string>TextLabel</string>
-             </property>
-            </widget>
-           </item>
           </layout>
          </item>
          <item>
@@ -110,6 +110,13 @@
             <widget class="QLabel" name="label_4">
              <property name="text">
               <string>Destination item:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLabel" name="lblDstFile">
+             <property name="text">
+              <string>TextLabel</string>
              </property>
             </widget>
            </item>
@@ -141,26 +148,26 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
-            <widget class="QLabel" name="lblDstFile">
-             <property name="text">
-              <string>TextLabel</string>
-             </property>
-            </widget>
-           </item>
           </layout>
          </item>
         </layout>
        </item>
        <item>
         <layout class="QGridLayout" name="buttons">
-         <item row="2" column="3">
-          <widget class="QPushButton" name="btnCancel">
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btnOverwrite">
            <property name="text">
-            <string>Cancel</string>
+            <string>Overwrite</string>
            </property>
-           <property name="autoDefault">
-            <bool>false</bool>
+           <property name="default">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btnOverwriteAll">
+           <property name="text">
+            <string>Overwrite All</string>
            </property>
           </widget>
          </item>
@@ -169,8 +176,19 @@
            <property name="text">
             <string>Rename</string>
            </property>
-           <property name="autoDefault">
-            <bool>false</bool>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QPushButton" name="btnSkip">
+           <property name="text">
+            <string>Skip</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QPushButton" name="btnSkipAll">
+           <property name="text">
+            <string>Skip All</string>
            </property>
           </widget>
          </item>
@@ -181,43 +199,10 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="btnOverwrite">
+         <item row="2" column="3">
+          <widget class="QPushButton" name="btnCancel">
            <property name="text">
-            <string>Overwrite</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QPushButton" name="btnOverwriteAll">
-           <property name="text">
-            <string>Overwrite All</string>
-           </property>
-           <property name="default">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QPushButton" name="btnSkipAll">
-           <property name="text">
-            <string>Skip All</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QPushButton" name="btnSkip">
-           <property name="text">
-            <string>Skip</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
+            <string>Cancel</string>
            </property>
           </widget>
          </item>
@@ -241,6 +226,20 @@
        </property>
        <item>
         <layout class="QFormLayout" name="formLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Item:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="m_lblItemBeingDeleted">
+           <property name="text">
+            <string>C:/1.txt</string>
+           </property>
+          </widget>
+         </item>
          <item row="1" column="0">
           <widget class="QLabel" name="label_8">
            <property name="text">
@@ -275,41 +274,17 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="0">
-          <widget class="QLabel" name="label_7">
-           <property name="text">
-            <string>Item:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLabel" name="m_lblItemBeingDeleted">
-           <property name="text">
-            <string>C:/1.txt</string>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
        <item>
         <layout class="QGridLayout" name="gridLayout">
-         <item row="1" column="0">
-          <widget class="QPushButton" name="btnSkipDeletion">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btnDeleteAnyway">
            <property name="text">
-            <string>Skip</string>
+            <string>Delete Anyway</string>
            </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QPushButton" name="btnSkipAllDeletion">
-           <property name="text">
-            <string>Skip All</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
+           <property name="default">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -318,21 +293,22 @@
            <property name="text">
             <string>Delete All Anyway</string>
            </property>
-           <property name="autoDefault">
-            <bool>true</bool>
-           </property>
            <property name="default">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
           </widget>
          </item>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="btnDeleteAnyway">
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btnSkipDeletion">
            <property name="text">
-            <string>Delete Anyway</string>
+            <string>Skip</string>
            </property>
-           <property name="autoDefault">
-            <bool>false</bool>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btnSkipAllDeletion">
+           <property name="text">
+            <string>Skip All</string>
            </property>
           </widget>
          </item>
@@ -340,9 +316,6 @@
           <widget class="QPushButton" name="btnCancelDeletion">
            <property name="text">
             <string>Cancel</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
            </property>
           </widget>
          </item>
