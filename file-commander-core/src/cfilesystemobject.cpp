@@ -1,6 +1,7 @@
 #include "cfilesystemobject.h"
 #include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
+#include "windows/windowsutils.h"
 
 #include <assert.h>
 #include "fasthash.h"
@@ -125,6 +126,7 @@ bool CFileSystemObject::isReadable() const
 	return _fileInfo.isReadable();
 }
 
+// Apparently, it will return false for non-existing files
 bool CFileSystemObject::isWriteable() const
 {
 	return _fileInfo.isWritable();
@@ -287,14 +289,10 @@ FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QS
 	if (!copyOperationInProgress())
 	{
 		// Creating files
-		if (!_thisFile)
-		{
-			_thisFile = std::make_shared<QFile>();
-			_destFile = std::make_shared<QFile>();
-		}
+		_thisFile = std::make_shared<QFile>(fullAbsolutePath());
+		_destFile = std::make_shared<QFile>(destFolder + (newName.isEmpty() ? _properties.fullName : newName));
 
 		// Initializing - opening files
-		_thisFile->setFileName(fullAbsolutePath());
 		if (!_thisFile->open(QFile::ReadOnly))
 		{
 			_lastError = _thisFile->errorString();
@@ -305,7 +303,6 @@ FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QS
 			return rcFail;
 		}
 
-		_destFile->setFileName(destFolder + (newName.isEmpty() ? _properties.fullName : newName));
 		if (!_destFile->open(QFile::WriteOnly))
 		{
 			_lastError = _destFile->errorString();
@@ -383,14 +380,26 @@ bool CFileSystemObject::makeWritable(bool writeable)
 		return false;
 	}
 
-	QFile file(_fileInfo.absoluteFilePath());
-	if (file.setPermissions((writeable ? (file.permissions() | QFile::WriteUser) : (file.permissions() & ~QFile::WriteUser))))
-		return true;
-	else
+#ifdef _WIN32
+	const QString UNCPath =  "\\\\?\\" % toNativeSeparators(fullAbsolutePath());
+	const DWORD attributes = GetFileAttributesW((LPCWSTR)UNCPath.utf16());
+	if (attributes == INVALID_FILE_ATTRIBUTES)
 	{
-		_lastError = file.errorString();
+		_lastError = ErrorStringFromLastError();
 		return false;
 	}
+
+	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writeable ? (attributes & (~FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
+	{
+		_lastError = ErrorStringFromLastError();
+		return false;
+	}
+
+	return true;
+#else
+#error "Not implemented"
+	return false;
+#endif
 }
 
 FileOperationResultCode CFileSystemObject::remove()

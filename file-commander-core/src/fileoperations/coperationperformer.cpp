@@ -566,14 +566,25 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			Q_ASSERT(!"Unexpected user response");
 			return naRetryItem;
 		}
-	}
 
-	if (!destFile.isWriteable())
-	{
-		NextAction nextAction;
-		while ((nextAction = makeItemWriteable(item)) == naRetryOperation);
-		if (nextAction != naProceed)
-			return nextAction;
+		// Only call isWriteable for existing items!
+		if (!destFile.isWriteable())
+		{
+			auto response = getUserResponse(hrDestFileIsReadOnly, destFile, CFileSystemObject(), QString::null);
+			if (response == urSkipThis || response == urSkipAll)
+				return naSkip;
+			else if (response == urAbort)
+				return naAbort;
+			else if (response == urRetry)
+				return naRetryOperation;
+			else
+				assert((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
+
+			NextAction nextAction;
+			while ((nextAction = makeItemWriteable(destFile)) == naRetryOperation);
+			if (nextAction != naProceed)
+				return nextAction;
+		}
 	}
 
 	if (!destDir.exists())

@@ -81,6 +81,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	{
 		ui->stackedWidget->setCurrentIndex(1);
 
+		ui->m_lblItemBeingDeleted->setText(source.fullAbsolutePath());
 		ui->lblSize->setText(fileSizeToString(source.size()));
 		QDateTime modificationDate;
 		modificationDate.setTime_t((uint)source.properties().modificationDate);

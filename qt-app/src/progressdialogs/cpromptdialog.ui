@@ -27,7 +27,7 @@
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="twoFiles">
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -50,7 +50,7 @@
            <item row="0" column="0">
             <widget class="QLabel" name="label">
              <property name="text">
-              <string>Source file:</string>
+              <string>Source item:</string>
              </property>
             </widget>
            </item>
@@ -109,7 +109,7 @@
            <item row="0" column="0">
             <widget class="QLabel" name="label_4">
              <property name="text">
-              <string>Destination file:</string>
+              <string>Destination item:</string>
              </property>
             </widget>
            </item>
@@ -241,7 +241,7 @@
        </property>
        <item>
         <layout class="QFormLayout" name="formLayout">
-         <item row="0" column="0">
+         <item row="1" column="0">
           <widget class="QLabel" name="label_8">
            <property name="text">
             <string>Size</string>
@@ -251,14 +251,14 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
+         <item row="1" column="1">
           <widget class="QLabel" name="lblSize">
            <property name="text">
             <string>403 KB</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
+         <item row="2" column="0">
           <widget class="QLabel" name="label_9">
            <property name="text">
             <string>Modification time:</string>
@@ -268,10 +268,24 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
+         <item row="2" column="1">
           <widget class="QLabel" name="lblModTime">
            <property name="text">
             <string>01.02.2013 10:51</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Item:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="m_lblItemBeingDeleted">
+           <property name="text">
+            <string>C:/1.txt</string>
            </property>
           </widget>
          </item>
