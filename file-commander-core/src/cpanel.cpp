@@ -61,9 +61,6 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 				pathToSet = QDir::rootPath();
 			_currentDir.setPath(pathToSet);
 		}
-
-		sendContentsChangedNotification(refreshCauseOther);
-		return rcDirNotAccessible;
 	}
 
 	const QString newPath = _currentDir.absolutePath();
@@ -103,8 +100,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		}
 	}
 
-	refreshFileList(operation);
-	return rcOk;
+	refreshFileList(pathSet ? operation : refreshCauseOther);
+	return pathSet ? rcOk : rcDirNotAccessible;
 }
 
 // Navigates up the directory tree
