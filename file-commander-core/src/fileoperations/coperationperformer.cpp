@@ -126,6 +126,9 @@ void COperationPerformer::waitForResponse()
 
 void COperationPerformer::copyFiles()
 {
+	QTime t;
+	t.start();
+
 	if (_source.empty())
 	{
 		finalize();
@@ -351,6 +354,7 @@ void COperationPerformer::copyFiles()
 	for (auto& dir: dirsToCleanUp)
 		dir.remove();
 
+	qDebug() << __FUNCTION__ << "took" << t.elapsed() << "ms";
 	finalize();
 }
 
@@ -590,7 +594,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			return nextAction;
 	}
 
-	static const int chunkSize = 5 * 1024 * 1024;
+	const int chunkSize = 5 * 1024 * 1024;
 	const QString destPath = destDir.absolutePath() + '/';
 	FileOperationResultCode result = rcFail;
 

@@ -89,8 +89,8 @@ public:
 
 // Non-blocking file copy API
 	// Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-	FileOperationResultCode copyChunk(int64_t chunkSize, const QString& destFolder, const QString& newName = QString());
-	FileOperationResultCode moveChunk(int64_t chunkSize, const QString& destFolder, const QString& newName = QString());
+	FileOperationResultCode copyChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName = QString());
+	FileOperationResultCode moveChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName = QString());
 	bool copyOperationInProgress() const;
 	uint64_t bytesCopied() const;
 	FileOperationResultCode cancelCopy();
@@ -113,6 +113,7 @@ private:
 // For copying / moving
 	std::shared_ptr<QFile>      _thisFile;
 	std::shared_ptr<QFile>      _destFile;
+	uint64_t                    _pos = 0;
 };
 
 #endif // CFILESYSTEMOBJECT_H

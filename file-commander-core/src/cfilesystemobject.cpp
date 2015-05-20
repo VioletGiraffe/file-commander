@@ -280,7 +280,7 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 // Non-blocking file copy API
 
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QString& destFolder, const QString& newName)
+FileOperationResultCode CFileSystemObject::copyChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName)
 {
 	assert(bool(_thisFile) == bool(_destFile));
 	assert(isFile());
@@ -288,6 +288,8 @@ FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QS
 
 	if (!copyOperationInProgress())
 	{
+		_pos = 0;
+
 		// Creating files
 		_thisFile = std::make_shared<QFile>(fullAbsolutePath());
 		_destFile = std::make_shared<QFile>(destFolder + (newName.isEmpty() ? _properties.fullName : newName));
@@ -303,7 +305,7 @@ FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QS
 			return rcFail;
 		}
 
-		if (!_destFile->open(QFile::WriteOnly))
+		if (!_destFile->open(QFile::ReadWrite))
 		{
 			_lastError = _destFile->errorString();
 
@@ -312,32 +314,47 @@ FileOperationResultCode CFileSystemObject::copyChunk(int64_t chunkSize, const QS
 
 			return rcFail;
 		}
+
+		_destFile->resize(size());
 	}
 
 	assert(_destFile->isOpen() == _thisFile->isOpen());
 
-	const QByteArray data = _thisFile->read(chunkSize);
-	// TODO: this lacks proper error checking
-	if (data.isEmpty())
+	const auto actualChunkSize = std::min(chunkSize, size() - _pos);
+
+	if (actualChunkSize != 0)
+	{
+		const auto src = _thisFile->map(_pos, actualChunkSize);
+		if (!src)
+		{
+			_lastError = _thisFile->errorString();
+			return rcFail;
+		}
+
+		const auto dest = _destFile->map(_pos, actualChunkSize);
+		if (!dest)
+		{
+			_lastError = _destFile->errorString();
+			return rcFail;
+		}
+
+		memcpy(dest, src, actualChunkSize);
+		_pos += actualChunkSize;
+
+		_thisFile->unmap(src);
+		_destFile->unmap(dest);
+	}
+
+	if (actualChunkSize < chunkSize || actualChunkSize == 0)
 	{
 		_thisFile.reset();
 		_destFile.reset();
+	}
 
-		return rcOk;
-	}
-	else
-	{
-		if (_destFile->write(data) == data.size())
-			return rcOk;
-		else
-		{
-			_lastError = _thisFile->error() != QFile::NoError ? _thisFile->errorString() : _destFile->errorString();
-			return rcFail;
-		}
-	}
+	return rcOk;
 }
 
-FileOperationResultCode CFileSystemObject::moveChunk(int64_t /*chunkSize*/, const QString &destFolder, const QString& newName)
+FileOperationResultCode CFileSystemObject::moveChunk(uint64_t /*chunkSize*/, const QString &destFolder, const QString& newName)
 {
 	return moveAtomically(destFolder, newName);
 }
@@ -353,7 +370,7 @@ bool CFileSystemObject::copyOperationInProgress() const
 
 uint64_t CFileSystemObject::bytesCopied() const
 {
-	return (_thisFile && _thisFile->isOpen()) ? (uint64_t)_thisFile->pos() : 0;
+	return _pos;
 }
 
 FileOperationResultCode CFileSystemObject::cancelCopy()
