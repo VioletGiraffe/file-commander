@@ -290,28 +290,23 @@ void COperationPerformer::copyFiles()
 			CFileSystemObject destObject(destInfo);
 			if (!destObject.exists())
 			{
-				if (!QDir(destObject.fullAbsolutePath()).mkdir("."))
+				NextAction nextAction;
+				while ((nextAction = mkPath(QDir(destObject.fullAbsolutePath()))) == naRetryOperation);
+				if (nextAction == naRetryItem)
+					continue;
+				else if (nextAction == naSkip)
 				{
-					const auto action = getUserResponse(hrCreatingFolderFailed, destObject, CFileSystemObject(), "");
-					if (action == urSkipThis || action == urSkipAll)
-					{
-						++it;
-						++currentItemIndex;
-						continue;
-					}
-					else if (action == urAbort)
-					{
-						finalize();
-						return;
-					}
-					else if (action == urRetry)
-						continue;
-					else
-					{
-						Q_ASSERT(false);
-						continue;
-					}
+					++currentItemIndex;
+					++it;
+					continue;
 				}
+				else if (nextAction == naRetryOperation)
+				{
+					finalize();
+					return;
+				}
+				else if (nextAction != naProceed)
+					Q_ASSERT(false);
 			}
 
 			if (_op == operationMove)
