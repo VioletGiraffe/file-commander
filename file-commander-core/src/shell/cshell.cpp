@@ -21,12 +21,21 @@ QString CShell::shellExecutable()
 #elif defined __APPLE__
 	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
 #elif defined __linux__
-	QString consoleExecutable = "/usr/bin/konsole"; // KDE
-	if (!QFileInfo(consoleExecutable).exists())
-		consoleExecutable = "/usr/bin/gnome-terminal"; // Gnome
-	if (!QFileInfo(consoleExecutable).exists())
-		consoleExecutable = QString();
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, consoleExecutable).toString();
+	const QString consoleExecutable = CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME).toString();
+	if (QFileInfo(consoleExecutable).exists())
+		return consoleExecutable;
+
+	static const std::vector<QString> knownTerminals = {
+		"/usr/bin/konsole", // KDE
+		"/usr/bin/gnome-terminal", // Gnome
+		"/usr/bin/pantheon-terminal" // Pantheon (Elementary OS)
+	};
+
+	for (const auto& candidate: knownTerminals)
+		if (QFileInfo(candidate).exists())
+			return candidate;
+
+	return QString();
 #else
 	#error unknown platform
 #endif
