@@ -30,8 +30,8 @@ HEADERS += \
 	include/QtCoreIncludes \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/filesystemhelperfunctions.h \
-    src/iconprovider/ciconproviderimpl.h \
-    src/fasthash.h
+	src/iconprovider/ciconproviderimpl.h \
+	src/fasthash.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -43,7 +43,7 @@ SOURCES += \
 	src/utils/ctimeelapsed.cpp \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
-    src/fasthash.c
+	src/fasthash.c
 
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 
@@ -59,9 +59,12 @@ win*{
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 }
-mac*{
+
+mac* | linux* {
 	CONFIG += c++11
+	QMAKE_CFLAGS += -std=c99
 }
+
 linux*{
 
 }

@@ -5,8 +5,6 @@
 #include <memory>
 #include "QtCoreIncludes"
 
-#include <ShlObj.h>
-
 class CFileSystemObject;
 class CIconProviderImpl;
 

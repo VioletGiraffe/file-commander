@@ -3,12 +3,14 @@
 #include "filesystemhelperfunctions.h"
 #include "windows/windowsutils.h"
 
-#include <assert.h>
 #include "fasthash.h"
+
+#include <assert.h>
+#include <errno.h>
 
 #if defined __linux__ || defined __APPLE__
 #include <unistd.h>
-#include <errno.h>
+#include <sys/stat.h>
 #elif defined _WIN32
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
@@ -414,8 +416,22 @@ bool CFileSystemObject::makeWritable(bool writeable)
 
 	return true;
 #else
-#error "Not implemented"
-	return false;
+	struct stat fileInfo;
+
+	const QByteArray fileName = fullAbsolutePath().toUtf8();
+	if (stat(fileName.constData(), &fileInfo) != 0)
+	{
+		_lastError = strerror(errno);
+		return false;
+	}
+
+	if (chmod(fileName.constData(), writeable ? (fileInfo.st_mode | S_IWUSR) : (fileInfo.st_mode & (~S_IWUSR))) != 0)
+	{
+		_lastError = strerror(errno);
+		return false;
+	}
+
+	return true;
 #endif
 }
 
@@ -441,7 +457,6 @@ FileOperationResultCode CFileSystemObject::remove()
 	else if (isDir())
 	{
 		QDir dir (_properties.fullPath);
-		assert(dir.isReadable());
 		assert(dir.entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).isEmpty());
 		errno = 0;
 		if (!dir.rmdir("."))

@@ -3,6 +3,7 @@
 #include "settings/csettings.h"
 
 #include <stack>
+#include <functional>
 #include <assert.h>
 
 enum Marker {NoMarker, NextLevel, LevelEnded};

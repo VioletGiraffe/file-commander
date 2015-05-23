@@ -106,7 +106,7 @@ private:
 private:
 	QFileInfo                   _fileInfo;
 	CFileSystemObjectProperties _properties;
-	QString                     _lastError;
+	mutable QString             _lastError;
 	// Can be used to determine whether 2 objects are on the same drive
 	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 
