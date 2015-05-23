@@ -230,6 +230,7 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 			for (auto& pid : idLists)
 				ILFree(pid);
 
+			qDebug() << "ILCreateFromPathW" << "failed for path" << QString::fromWCharArray(path.c_str());
 			return false;
 		}
 		idLists.push_back(idl);
@@ -245,15 +246,25 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 	idLists.clear();
 
 	if (!iArray || !SUCCEEDED(result))
+	{
+		qDebug() << "SHCreateShellItemArrayFromIDLists failed";
 		return false;
+	}
 
 	IFileOperation * iOperation = 0;
 	result = CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation);
 	if (!SUCCEEDED(result) || !iOperation)
+	{
+		qDebug() << "CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation) failed";
 		return false;
+	}
 
 	result = iOperation->DeleteItems(iArray);
-	if (SUCCEEDED(result))
+	if (!SUCCEEDED(result))
+	{
+		qDebug() << "DeleteItems failed";
+	}
+	else 
 	{
 		if (moveToTrash)
 		{
@@ -261,11 +272,19 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 		}
 		else
 			result = iOperation->SetOperationFlags(FOF_WANTNUKEWARNING);
-		assert(SUCCEEDED(result));
-		result = iOperation->SetOwnerWindow((HWND)parentWindow);
-		assert(SUCCEEDED(result));
+
+		if (!SUCCEEDED(result))
+			qDebug() << "SetOperationFlags failed";
+
+		result = iOperation->SetOwnerWindow((HWND) parentWindow);
+		if (!SUCCEEDED(result))
+			qDebug() << "SetOwnerWindow failed";
+
 		result = iOperation->PerformOperations();
+		if (!SUCCEEDED(result))
+			qDebug() << "PerformOperations failed";
 	}
+
 	iOperation->Release();
 	iArray->Release();
 	return SUCCEEDED(result);

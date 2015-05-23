@@ -350,7 +350,9 @@ void CMainWindow::deleteFiles()
 	std::vector<std::wstring> paths;
 	for (auto& item: items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
-	CShell::deleteItems(paths, true, (void*)winId());
+
+	if (!CShell::deleteItems(paths, true, (void*)winId()))
+		QMessageBox::critical(this, "Error deleting items", "Failed to delete the selected items");
 #else
 	deleteFilesIrrevocably();
 #endif
