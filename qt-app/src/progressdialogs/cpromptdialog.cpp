@@ -60,6 +60,8 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	case hrFailedToDelete:
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
+		ui->btnDeleteAnyway->setVisible(false);
+		ui->btnDeleteAllAnyway->setVisible(false);
 		ui->btnRename->setVisible(false);
 		ui->lblQuestion->setText(QString("Failed to delete\n") + source.fullAbsolutePath());
 		break;

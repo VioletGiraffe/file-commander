@@ -366,7 +366,7 @@ void COperationPerformer::deleteFiles()
 	assert (destination.size() == _source.size());
 
 	size_t currentItemIndex = 0;
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; currentItemIndex, _userResponse = urNone /* needed for normal condition variable operation */)
+	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
 	{
 		qDebug() << __FUNCTION__ << "deleting" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
@@ -414,6 +414,9 @@ void COperationPerformer::deleteFiles()
 			Q_ASSERT(!"Unexpected deleteItem() return value");
 			continue;
 		}
+
+		++it;
+		++currentItemIndex;
 	}
 
 	finalize();

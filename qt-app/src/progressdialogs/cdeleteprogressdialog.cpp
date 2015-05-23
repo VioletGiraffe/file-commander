@@ -51,9 +51,7 @@ void CDeleteProgressDialog::onProgressChanged(int totalPercentage, size_t numFil
 
 void CDeleteProgressDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)
 {
-	CPromptDialog prompt (this, operationDelete, reason, source, dest);
-	if (!errorMessage.isEmpty())
-		qDebug() << "halted because of error: " << errorMessage;
+	CPromptDialog prompt(this, operationDelete, reason, source, dest, errorMessage);
 
 	ui->_progress->setState(psStopped);
 
