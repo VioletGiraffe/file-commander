@@ -368,6 +368,13 @@ void COperationPerformer::deleteFiles()
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
 	{
+		if (it->isCdUp())
+		{
+			++it;
+			++currentItemIndex;
+			continue;
+		}
+
 		qDebug() << __FUNCTION__ << "deleting" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 

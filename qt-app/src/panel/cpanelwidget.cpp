@@ -789,14 +789,19 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 		for (auto it = selection.begin(); it != selection.end(); ++it)
 		{
 			const qulonglong hash = hashByItemIndex(*it);
-			result.push_back(hash);
+			if (!_controller.itemByHash(_panelPosition, hash).isCdUp())
+				result.push_back(hash);
 		}
 	}
 	else if (!onlyHighlightedItems)
 	{
 		auto currentIndex = _selectionModel->currentIndex();
 		if (currentIndex.isValid())
-			result.push_back(hashByItemIndex(currentIndex));
+		{
+			const auto hash = hashByItemIndex(currentIndex);
+			if (!_controller.itemByHash(_panelPosition, hash).isCdUp())
+				result.push_back(hash);
+		}
 	}
 
 	return result;

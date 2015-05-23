@@ -351,6 +351,9 @@ void CMainWindow::deleteFiles()
 	for (auto& item: items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
+	if (paths.empty())
+		return;
+
 	if (!CShell::deleteItems(paths, true, (void*)winId()))
 		QMessageBox::critical(this, "Error deleting items", "Failed to delete the selected items");
 #else
@@ -364,10 +367,13 @@ void CMainWindow::deleteFilesIrrevocably()
 		return;
 
 	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
+	if (items.empty())
+		return;
 #ifdef _WIN32
 	std::vector<std::wstring> paths;
 	for (auto& item: items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
+
 	CShell::deleteItems(paths, false, (void*)winId());
 #else
 	if (QMessageBox::question(this, "Are you sure?", QString("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
