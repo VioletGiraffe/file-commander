@@ -159,7 +159,7 @@ void COperationPerformer::copyFiles()
 			// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
 			const QString newFileName = !_newName.isEmpty() ? _newName : (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir() ? _destFileSystemObject.fullName() : it->fullName());
 			_newName.clear();
-			const auto result = it->moveAtomically(_destFileSystemObject.fullAbsolutePath(), newFileName);
+			const auto result = it->moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
 			if (result != rcOk)
 			{
 				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *it, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), it->lastErrorMessage());
