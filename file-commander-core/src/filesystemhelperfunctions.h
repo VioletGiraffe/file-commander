@@ -90,7 +90,7 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 		str = QString("%1 B").arg(size);
 	}
 
-	if (!spacer.isEmpty())
+	if (!spacer.isEmpty() && n > 0.0f)
 	{
 		for (int spacerPos = (int)std::log10(n) - 3; spacerPos > 0; spacerPos -= 3)
 			str.insert(spacerPos + 1, spacer);
