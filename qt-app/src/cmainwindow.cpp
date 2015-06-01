@@ -494,7 +494,7 @@ bool CMainWindow::executeCommand(QString commandLineText)
 		return false;
 
 	CShell::executeShellCommand(commandLineText, _currentFileList->currentDir());
-	qtimerSingleShot([=](){CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->commandLine->items());}, 0); // Saving the list AFTER the combobox actually accepts the newly added item
+	QTimer::singleShot(0, [=](){CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->commandLine->items());}); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
 	return true;

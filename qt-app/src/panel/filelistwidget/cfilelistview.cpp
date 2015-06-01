@@ -100,24 +100,17 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 	_singleMouseClickValid = !_singleMouseClickValid;
 
 	_itemUnderCursorBeforeMouseClick = currentIndex();
-	const QModelIndex itemClicked = indexAt(e->pos());
 
 	// Always let Qt process this event
 	QTreeView::mousePressEvent(e);
 
-	// TODO: sometimes a double-clicked item remains selected. Find out why it happens.
-	if (e->button() == Qt::LeftButton && itemClicked.isValid())
-	{
-		if (e->modifiers() == Qt::NoModifier)
-		{
-			selectionModel()->clearSelection();
-		}
-		else if (e->modifiers() == Qt::ControlModifier)
-		{
-			if (_itemUnderCursorBeforeMouseClick.isValid() && _itemUnderCursorBeforeMouseClick != itemClicked)
-				selectionModel()->select(_itemUnderCursorBeforeMouseClick, QItemSelectionModel::Select | QItemSelectionModel::Rows);
-		}
-	}
+	// TODO: #47
+
+// 	const QModelIndex itemClicked = indexAt(e->pos());
+// 	if (e->button() == Qt::LeftButton && itemClicked.isValid() && e->modifiers() == Qt::NoModifier)
+// 	{
+// 		selectionModel()->clearSelection();
+// 	}
 }
 
 void CFileListView::mouseMoveEvent(QMouseEvent * e)
@@ -127,6 +120,7 @@ void CFileListView::mouseMoveEvent(QMouseEvent * e)
 		_singleMouseClickValid = false;
 		_itemUnderCursorBeforeMouseClick = QModelIndex();
 	}
+
 	QTreeView::mouseMoveEvent(e);
 }
 
@@ -149,19 +143,14 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 		if (_itemUnderCursorBeforeMouseClick == itemClicked && _singleMouseClickValid)
 		{
 			_singleMouseClickPos = event->pos();
-			QTimer * timer = new QTimer;
-			timer->setSingleShot(true);
-			connect(timer, &QTimer::timeout, [this, timer](){
+			QTimer::singleShot(QApplication::doubleClickInterval()+50, [this]() {
 				if (_singleMouseClickValid)
 				{
 					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
 					_itemUnderCursorBeforeMouseClick = QModelIndex();
 					_singleMouseClickValid = false;
 				}
-
-				timer->deleteLater();
 			});
-			timer->start(QApplication::doubleClickInterval()+50);
 		}
 	}
 
