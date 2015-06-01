@@ -346,23 +346,28 @@ void CPanelWidget::driveButtonClicked()
 		QMessageBox::information(this, "Failed to switch disk", QString("The disk ") + _controller.diskPath(id) + " is inaccessible (locked or doesn't exist).");
 }
 
-void CPanelWidget::selectionChanged(QItemSelection /*selected*/, QItemSelection /*deselected*/)
+void CPanelWidget::selectionChanged(QItemSelection selected, QItemSelection /*deselected*/)
 {
 	// This doesn't let the user select the [..] item
-	auto selection = selectedItemsHashes();
+
 	const QString cdUpPath = CFileSystemObject(QFileInfo(currentDir())).parentDirPath();
-	for(auto it = selection.begin(); it != selection.end(); ++it)
+	for (auto indexRange: selected)
 	{
-		if (_controller.itemByHash(_panelPosition, *it).fullAbsolutePath() == cdUpPath)
+		auto indexList = indexRange.indexes();
+		for (const auto& index: indexList)
 		{
-			auto cdUpIndex = indexByHash(*it);
-			assert(cdUpIndex.isValid());
-			_selectionModel->select(cdUpIndex, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
-			selection.erase(it);
-			break;
+			const auto hash = hashByItemIndex(index);
+			if (_controller.itemByHash(_panelPosition, hash).fullAbsolutePath() == cdUpPath)
+			{
+				auto cdUpIndex = indexByHash(hash);
+				assert(cdUpIndex.isValid());
+				_selectionModel->select(cdUpIndex, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
+				break;
+			}
 		}
 	}
 
+	const auto selection = selectedItemsHashes();
 	// Updating the selection summary label
 	updateInfoLabel(selection);
 
