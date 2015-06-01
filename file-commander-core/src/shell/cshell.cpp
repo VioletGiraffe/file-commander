@@ -281,8 +281,10 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 			qDebug() << "SetOwnerWindow failed";
 
 		result = iOperation->PerformOperations();
-		if (!SUCCEEDED(result))
+		if (!SUCCEEDED(result) && result != 0x80270000)
 			qDebug() << "PerformOperations failed";
+		else
+			result = S_OK;
 	}
 
 	iOperation->Release();
