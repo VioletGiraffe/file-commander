@@ -126,8 +126,8 @@ void COperationPerformer::waitForResponse()
 
 void COperationPerformer::copyFiles()
 {
-	QTime t;
-	t.start();
+	CTimeElapsed timer;
+	timer.start();
 
 	if (_source.empty())
 	{
@@ -354,7 +354,7 @@ void COperationPerformer::copyFiles()
 	for (auto& dir: dirsToCleanUp)
 		dir.remove();
 
-	qDebug() << __FUNCTION__ << "took" << t.elapsed() << "ms";
+	qDebug() << __FUNCTION__ << "took" << timer.elapsed() << "ms";
 	finalize();
 }
 
