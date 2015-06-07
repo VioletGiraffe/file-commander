@@ -17,7 +17,7 @@ public:
 	explicit CImageViewerWindow(QWidget *parent = 0);
 	~CImageViewerWindow();
 
-	void displayImage(const QString& imagePath);
+	bool displayImage(const QString& imagePath, const QImage& image = QImage());
 
 private:
 	QString  _currentImagePath;

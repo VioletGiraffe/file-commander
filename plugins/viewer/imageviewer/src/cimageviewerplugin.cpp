@@ -8,25 +8,43 @@ CImageViewerPlugin::CImageViewerPlugin()
 
 bool CImageViewerPlugin::canViewCurrentFile() const
 {
-	const QString currentItem(_proxy->currentItemPath());
-	if (currentItem.isEmpty())
+	const QString currentItemPath = _proxy->currentItemPath();
+	if (currentItemPath != _cachedImagePath)
+	{
+		_cachedImage = QImage();
+		_cachedImagePath = currentItemPath;
+	}
+
+	if (currentItemPath.isEmpty())
 		return false;
 	
-	QImageReader imageReader(currentItem);
+	if (!_cachedImage.isNull())
+		return true;
+
+	QImageReader imageReader(currentItemPath);
 	if (!imageReader.canRead())
 		return false;
 	else
-		return !imageReader.read().isNull(); // TODO: find a more lightweight way to deal with non-image files for which canRead() returns 'true'
+	{
+		_cachedImage = imageReader.read();
+		return !_cachedImage.isNull();
+	}
 }
 
 CPluginWindow* CImageViewerPlugin::viewCurrentFile()
 {
 	CImageViewerWindow * widget = new CImageViewerWindow;
-	widget->displayImage(_proxy->currentItemPath());
-	return widget;
+	if (widget->displayImage(_proxy->currentItemPath(), _cachedImage))
+	{
+		_cachedImage = QImage();
+		return widget;
+	}
+
+	delete widget;
+	return nullptr;
 }
 
-QString CImageViewerPlugin::name()
+QString CImageViewerPlugin::name() const
 {
 	return "Image viewer plugin";
 }

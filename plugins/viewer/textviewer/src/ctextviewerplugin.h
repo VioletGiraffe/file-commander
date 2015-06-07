@@ -14,7 +14,7 @@ public:
 
 	bool canViewCurrentFile() const override;
 	CPluginWindow* viewCurrentFile() override;
-	QString name() override;
+	QString name() const override;
 };
 
 #endif // CTEXTVIEWERPLUGIN_H

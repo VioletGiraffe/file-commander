@@ -34,24 +34,18 @@ CImageViewerWindow::~CImageViewerWindow()
 	delete ui;
 }
 
-void CImageViewerWindow::displayImage(const QString & imagePath)
+bool CImageViewerWindow::displayImage(const QString& imagePath, const QImage& image /* = QImage() */)
 {
 	_currentImagePath = imagePath;
-	ui->_imageViewerWidget->displayImage(imagePath);
+	if (!ui->_imageViewerWidget->displayImage(imagePath, image))
+		return false;
+
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
 	adjustSize();
 	setWindowTitle(imagePath);
-	static QList<QSize> requiredIconSizes;
-	if (requiredIconSizes.empty())
-	{
-#ifdef _WIN32
-		requiredIconSizes << QSize(16, 16) << QSize(32, 32);
-#elif defined __APPLE__
-		requiredIconSizes << QSize(16, 16) << QSize(32, 32);
-#else
-		requiredIconSizes << QSize(16, 16) << QSize(32, 32);
-#endif
-	}
-
+	
+	static const QList<QSize> requiredIconSizes = { {16, 16}, {32, 32} };
 	setWindowIcon(ui->_imageViewerWidget->imageIcon(requiredIconSizes));
+
+	return true;
 }

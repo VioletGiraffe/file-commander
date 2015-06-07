@@ -19,7 +19,7 @@ public:
 	virtual ~CFileCommanderPlugin() = 0;
 
 	virtual PluginType type() = 0;
-	virtual QString name();
+	virtual QString name() const = 0;
 
 	void setProxy(CPluginProxy * proxy);
 

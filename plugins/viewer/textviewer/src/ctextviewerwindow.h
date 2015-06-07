@@ -20,17 +20,17 @@ public:
 	bool loadTextFile(const QString& file);
 
 private slots:
-	void asDetectedAutomatically();
-	void asSystemDefault();
-	void asUtf8();
-	void asUtf16();
-	void asRichText();
+	bool asDetectedAutomatically();
+	bool asSystemDefault();
+	bool asUtf8();
+	bool asUtf16();
+	bool asRichText();
 
 	void find();
 	void findNext();
 
 private:
-	QByteArray readSource() const;
+	bool readSource(QByteArray& data) const;
 
 private:
 	CFindDialog            _findDialog;

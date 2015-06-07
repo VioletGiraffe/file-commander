@@ -12,9 +12,13 @@ class PLUGIN_EXPORT CImageViewerPlugin : public CFileCommanderViewerPlugin
 public:
 	CImageViewerPlugin();
 
-	virtual bool canViewCurrentFile() const override;
-	virtual CPluginWindow* viewCurrentFile() override;
-	virtual QString name() override;
+	bool canViewCurrentFile() const override;
+	CPluginWindow* viewCurrentFile() override;
+	QString name() const override;
+
+private:
+	mutable QImage _cachedImage;
+	mutable QString _cachedImagePath;
 };
 
 #endif // CIMAGEVIEWERPLUGIN_H

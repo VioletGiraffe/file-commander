@@ -10,7 +10,7 @@ public:
 	explicit CImageViewerWidget(QWidget *parent = 0);
 
 public:
-	void displayImage(const QString& imagePath);
+	bool displayImage(const QString& imagePath, const QImage& image = QImage());
 	QString imageInfoString() const;
 
 	QSize sizeHint() const override;

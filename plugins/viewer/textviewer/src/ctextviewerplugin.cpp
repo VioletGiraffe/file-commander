@@ -19,11 +19,14 @@ bool CTextViewerPlugin::canViewCurrentFile() const
 CPluginWindow * CTextViewerPlugin::viewCurrentFile()
 {
 	CTextViewerWindow * widget = new CTextViewerWindow;
-	widget->loadTextFile(_proxy->currentItemPath());
-	return widget;
+	if (widget->loadTextFile(_proxy->currentItemPath()))
+		return widget;
+
+	delete widget;
+	return nullptr;
 }
 
-QString CTextViewerPlugin::name()
+QString CTextViewerPlugin::name() const
 {
 	return "Plain text, HTML and RTF viewer plugin";
 }

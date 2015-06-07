@@ -1,6 +1,8 @@
 #include "cimageviewerwidget.h"
 #include "../../qtutils/imageprocessing/resize/cimageresizer.h"
+
 #include <QFileInfo>
+#include <QMessageBox>
 
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
 	QWidget(parent),
@@ -8,19 +10,25 @@ CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
 {
 }
 
-void CImageViewerWidget::displayImage(const QString& imagePath)
+bool CImageViewerWidget::displayImage(const QString& imagePath, const QImage& image)
 {
-	_imageFileSize = 0;
-	_sourceImage = QImageReader(imagePath).read();
+	_imageFileSize = QFileInfo(imagePath).size();
+	_sourceImage = image.isNull() ? QImageReader(imagePath).read() : image;
 	if (!_sourceImage.isNull())
 	{
-		_imageFileSize = QFileInfo(imagePath).size();
 		QSize screenSize = QApplication::desktop()->availableGeometry().size() - QSize(50, 50);
 		QSize windowSize = _sourceImage.size();
 		if (windowSize.height() > screenSize.height() || windowSize.width() > screenSize.width())
 			windowSize.scale(screenSize, Qt::KeepAspectRatio);
 		resize(windowSize);
 		update();
+
+		return true;
+	}
+	else
+	{
+		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), "Failed to load the image", QString("Failed to load the image\n\n") + imagePath + "\n\nIt is inaccessible, doesn't exist or is not a supported image file.");
+		return false;
 	}
 }
 

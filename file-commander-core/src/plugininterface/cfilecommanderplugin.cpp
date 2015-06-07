@@ -12,12 +12,6 @@ CFileCommanderPlugin::~CFileCommanderPlugin()
 {
 }
 
-QString CFileCommanderPlugin::name()
-{
-	return QString();
-}
-
-
 void CFileCommanderPlugin::setProxy(CPluginProxy *proxy)
 {
 	assert(proxy);
