@@ -14,24 +14,27 @@ void CDiskEnumerator::removeObserver(IDiskListObserver *observer)
 	_observers.erase(std::remove(_observers.begin(), _observers.end(), observer), _observers.end());
 }
 
+// Returns the drives found
 const QList<QStorageInfo> &CDiskEnumerator::drives() const
 {
 	return _drives;
 }
 
-// Returns the drives found
 CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval)
 {
+	// Setting up the timer to fetch the notifications from the queue and execute them on this thread
 	connect(&_timer, &QTimer::timeout, [this](){
 		_notificationsQueue.exec();
 	});
 	_timer.start(_updateInterval / 3);
 
+	// Starting the worker thread that actually enumerates the disks
 	_enumeratorThread.start([this](){
 		enumerateDisks();
 	});
 }
 
+// A helper function that checks if there are any changes between the old and the new disk lists - including the change in space available
 inline bool drivesChanged(const QList<QStorageInfo>& l, const QList<QStorageInfo>& r)
 {
 	if (l.size() != r.size())
@@ -56,10 +59,14 @@ void CDiskEnumerator::enumerateDisks()
 	}
 }
 
+// Calls all the registered observers with the latest list of drives found
 void CDiskEnumerator::notifyObservers() const
 {
+	// This method is called from the worker thread
+	// Queuing the code to be executed on the thread where CDiskEnumerator was created
+
 	_notificationsQueue.enqueue([this]() {
 		for (auto& observer : _observers)
 			observer->disksChanged();
-	}, 0);
+	}, 0); // Setting the tag to 0 will discard any previous queue items with the same tag that have not yet been processed
 }

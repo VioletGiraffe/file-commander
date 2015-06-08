@@ -37,6 +37,7 @@ private slots:
 	void enumerateDisks();
 
 private:
+	// Calls all the registered observers with the latest list of drives found
 	void notifyObservers() const;
 
 private:
