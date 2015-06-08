@@ -39,7 +39,7 @@ CMainWindow * CMainWindow::_instance = 0;
 CMainWindow::CMainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
-	_controller(std::make_shared<CController>()),
+	_controller(new CController),
 	_currentFileList(0),
 	_otherFileList(0),
 	_quickViewActive(false)

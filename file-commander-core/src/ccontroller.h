@@ -84,6 +84,8 @@ public:
 	QString diskPath(int index) const;
 	CFavoriteLocations& favoriteLocations();
 
+	CDiskEnumerator& diskEnumerator();
+
 	// Returns hash of an item that was the last selected in the specified dir
 	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
 
@@ -98,7 +100,7 @@ private:
 	CFavoriteLocations   _favoriteLocations;
 	CPanel               _leftPanel, _rightPanel;
 	CPluginProxy         _pluginProxy;
-	CDiskEnumerator &    _diskEnumerator;
+	CDiskEnumerator      _diskEnumerator;
 	std::vector<IDiskListObserver*> _disksChangedListeners;
 	Panel                _activePanel;
 };

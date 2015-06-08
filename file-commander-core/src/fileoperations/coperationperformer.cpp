@@ -116,7 +116,7 @@ void COperationPerformer::threadFunc()
 
 void COperationPerformer::waitForResponse()
 {
-	std::unique_lock<std::mutex> lock (_waitForResponseMutex);
+	std::unique_lock<std::mutex> lock(_waitForResponseMutex);
 	_totalTimeElapsed.pause();
 	while (_userResponse == urNone)
 		_waitForResponseCondition.wait(lock);

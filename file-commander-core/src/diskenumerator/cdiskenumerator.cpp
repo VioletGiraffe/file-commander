@@ -3,28 +3,15 @@
 
 #include "utils/utils.h"
 
-CDiskEnumerator &CDiskEnumerator::instance()
-{
-	static CDiskEnumerator instance;
-	return instance;
-}
-
 void CDiskEnumerator::addObserver(IDiskListObserver *observer)
 {
 	assert(std::find(_observers.begin(), _observers.end(), observer) == _observers.end());
 	_observers.push_back(observer);
-	if (!_timer.isActive())
-	{
-		_timer.start();
-		_timer.singleShot(0, this, SLOT(enumerateDisks()));
-	}
 }
 
 void CDiskEnumerator::removeObserver(IDiskListObserver *observer)
 {
 	_observers.erase(std::remove(_observers.begin(), _observers.end(), observer), _observers.end());
-	if (_observers.empty())
-		_timer.stop();
 }
 
 const QList<QStorageInfo> &CDiskEnumerator::drives() const
@@ -33,15 +20,16 @@ const QList<QStorageInfo> &CDiskEnumerator::drives() const
 }
 
 // Returns the drives found
-CDiskEnumerator::CDiskEnumerator()
+CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval)
 {
-	_timer.setInterval(1000);
-	connect(&_timer, SIGNAL(timeout()), SLOT(enumerateDisks()));
-}
+	connect(&_timer, &QTimer::timeout, [this](){
+		_notificationsQueue.exec();
+	});
+	_timer.start(_updateInterval / 3);
 
-inline bool operator<(const QStorageInfo& l, const QStorageInfo& r)
-{
-	return (l.name() + l.rootPath() + QString::number(l.bytesAvailable())) < (r.name() + r.rootPath() + QString::number(r.bytesAvailable()));
+	_enumeratorThread.start([this](){
+		enumerateDisks();
+	});
 }
 
 inline bool drivesChanged(const QList<QStorageInfo>& l, const QList<QStorageInfo>& r)
@@ -50,7 +38,7 @@ inline bool drivesChanged(const QList<QStorageInfo>& l, const QList<QStorageInfo
 		return true;
 
 	for (int i = 0; i < l.size(); ++i)
-		if (l[i] < r[i] || r[i] < l[i])
+		if ((l[i].name() % l[i].rootPath() % QString::number(l[i].bytesAvailable())) != (r[i].name() % r[i].rootPath() % QString::number(r[i].bytesAvailable())))
 			return true;
 
 	return false;
@@ -70,6 +58,8 @@ void CDiskEnumerator::enumerateDisks()
 
 void CDiskEnumerator::notifyObservers() const
 {
-	for (auto& observer: _observers)
-		observer->disksChanged();
+	_notificationsQueue.enqueue([this]() {
+		for (auto& observer : _observers)
+			observer->disksChanged();
+	}, 0);
 }

@@ -2,6 +2,9 @@
 #define CDISKENUMERATOR_H
 
 #include "../cfilesystemobject.h"
+#include "../utils/threading/cexecutionqueue.h"
+#include "../utils/threading/cperiodicexecutionthread.h"
+
 #include "QtCoreIncludes"
 
 #include <vector>
@@ -11,9 +14,9 @@ class CDiskEnumerator : protected QObject
 {
 	Q_OBJECT
 
+public:
 	CDiskEnumerator();
 
-public:
 	// Disk list observer interface
 	class IDiskListObserver
 	{
@@ -22,7 +25,6 @@ public:
 		virtual void disksChanged() = 0;
 	};
 
-	static CDiskEnumerator& instance();
 	// Adds the observer
 	void addObserver(IDiskListObserver * observer);
 	// Removes the observer
@@ -32,7 +34,7 @@ public:
 
 private slots:
 	// Refresh the list of available disk drives
-	void enumerateDisks ();
+	void enumerateDisks();
 
 private:
 	void notifyObservers() const;
@@ -40,7 +42,11 @@ private:
 private:
 	QList<QStorageInfo>             _drives;
 	std::vector<IDiskListObserver*> _observers;
+	mutable CExecutionQueue         _notificationsQueue;
+	CPeriodicExecutionThread        _enumeratorThread;
 	QTimer                          _timer;
+
+	static const int _updateInterval = 1000; // ms
 };
 
 #endif // CDISKENUMERATOR_H

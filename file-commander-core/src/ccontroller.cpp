@@ -11,7 +11,7 @@
 
 CController* CController::_instance = nullptr;
 
-CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _diskEnumerator(CDiskEnumerator::instance())
+CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel)
 {
 	assert(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
@@ -366,6 +366,11 @@ QString CController::diskPath(int index) const
 CFavoriteLocations &CController::favoriteLocations()
 {
 	return _favoriteLocations;
+}
+
+CDiskEnumerator& CController::diskEnumerator()
+{
+	return _diskEnumerator;
 }
 
 // Returns hash of an item that was the last selected in the specified dir

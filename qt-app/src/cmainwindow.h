@@ -111,8 +111,8 @@ private:
 
 private:
 	Ui::CMainWindow              * ui;
-	static CMainWindow*           _instance;
-	std::shared_ptr<CController>  _controller;
+	static CMainWindow*            _instance;
+	std::unique_ptr<CController>   _controller;
 	CPanelWidget                 * _currentFileList;
 	CPanelWidget                 * _otherFileList;
 	QStackedWidget               * _currentPanelWidget;

@@ -31,7 +31,9 @@ HEADERS += \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \
-	src/fasthash.h
+	src/fasthash.h \
+	src/utils/threading/cexecutionqueue.h \
+    src/utils/threading/cperiodicexecutionthread.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
