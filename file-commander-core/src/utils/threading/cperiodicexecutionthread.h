@@ -1,14 +1,8 @@
 #pragma once
 
-#include "../ctimeelapsed.h"
-
-#include "QtCoreIncludes"
-
 #include <assert.h>
 #include <atomic>
-#include <condition_variable>
 #include <limits>
-#include <mutex>
 #include <thread>
 
 class CPeriodicExecutionThread
@@ -69,12 +63,8 @@ private:
 
 		_threadRunning = true;
 
-		_timer.start();
 		while (!_terminate) // Main threadFunc loop
 		{
-			qDebug() << __FUNCTION__ << "Actual period:" << _timer.elapsed() << "ms";
-			_timer.start();
-
 			_workload();
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(_period));
@@ -86,12 +76,9 @@ private:
 private:
 	std::function<void ()> _workload;
 	std::thread            _thread;
-	CTimeElapsed           _timer;
 	const int              _period = std::numeric_limits<int>::max(); // milliseconds
 
 	bool       _terminate = false;
 	std::atomic<bool>       _threadRunning = false;
-	std::mutex              _timerMutex;
-	std::condition_variable _timerConditional;
 };
 
