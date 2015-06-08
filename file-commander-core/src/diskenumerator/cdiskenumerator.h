@@ -47,7 +47,7 @@ private:
 	CPeriodicExecutionThread        _enumeratorThread;
 	QTimer                          _timer;
 
-	static const int _updateInterval = 1000; // ms
+	static const unsigned int       _updateInterval = 1000; // ms
 };
 
 #endif // CDISKENUMERATOR_H

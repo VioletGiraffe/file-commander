@@ -20,7 +20,7 @@ const QList<QStorageInfo> &CDiskEnumerator::drives() const
 	return _drives;
 }
 
-CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval)
+CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval, "CDiskEnumerator thread")
 {
 	// Setting up the timer to fetch the notifications from the queue and execute them on this thread
 	connect(&_timer, &QTimer::timeout, [this](){

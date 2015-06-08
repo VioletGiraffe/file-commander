@@ -45,7 +45,8 @@ SOURCES += \
 	src/utils/ctimeelapsed.cpp \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
-	src/fasthash.c
+	src/fasthash.c \
+    src/utils/threading/cperiodicexecutionthread.cpp
 
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 
