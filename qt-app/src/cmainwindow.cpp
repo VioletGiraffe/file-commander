@@ -91,6 +91,9 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	ui->leftWidget->setCurrentIndex(0); // PanelWidget
 	ui->rightWidget->setCurrentIndex(0); // PanelWidget
+
+	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
+	_uiThreadTimer.start(5);
 }
 
 void CMainWindow::initButtons()
@@ -284,12 +287,18 @@ void CMainWindow::currentPanelChanged(QStackedWidget *panel)
 	{
 		_controller->activePanelChanged(_currentFileList->panelPosition());
 		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, _currentFileList->panelPosition());
-		ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPath());
+		ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPathNative());
 		CPluginEngine::get().currentPanelChanged(_currentFileList->panelPosition());
 		_commandLineCompleter.setModel(_currentFileList->sortModel());
 	}
 	else
 		_commandLineCompleter.setModel(0);
+}
+
+void CMainWindow::uiThreadTimerTick()
+{
+	if (_controller)
+		_controller->uiThreadTimerTick();
 }
 
 bool CMainWindow::widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy)

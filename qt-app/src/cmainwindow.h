@@ -109,9 +109,15 @@ private:
 	// Other
 	void currentPanelChanged(QStackedWidget * panel);
 
+	// Timer
+	void uiThreadTimerTick();
+
 private:
 	Ui::CMainWindow              * ui;
 	static CMainWindow*            _instance;
+
+	QTimer                         _uiThreadTimer;
+
 	std::unique_ptr<CController>   _controller;
 	CPanelWidget                 * _currentFileList;
 	CPanelWidget                 * _otherFileList;

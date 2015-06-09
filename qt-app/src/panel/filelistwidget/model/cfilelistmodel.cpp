@@ -97,7 +97,7 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 	else if (!data->hasUrls())
 		return false;
 
-	CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPath());
+	CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPathNative());
 	if (!dest.exists() || !dest.isDir())
 	{
 		assert(dest.exists() && dest.isDir());

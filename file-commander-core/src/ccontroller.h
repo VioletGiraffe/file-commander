@@ -27,6 +27,8 @@ public:
 	void setDisksChangedListener(IDiskListObserver * listener);
 
 // Notifications from UI
+	void uiThreadTimerTick();
+
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 	void refreshPanelContents(Panel p);
 	// Creates a new tab for the specified panel, returns tab ID

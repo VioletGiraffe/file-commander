@@ -40,6 +40,12 @@ void CController::setDisksChangedListener(CController::IDiskListObserver *listen
 	_disksChangedListeners.push_back(listener);
 }
 
+void CController::uiThreadTimerTick()
+{
+	_leftPanel.uiThreadTimerTick();
+	_rightPanel.uiThreadTimerTick();
+}
+
 // Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 void CController::refreshPanelContents(Panel p)
 {
@@ -90,7 +96,7 @@ bool CController::switchToDisk(Panel p, int index)
 	FileOperationResultCode result = rcDirNotAccessible;
 	if (drivePath == _diskEnumerator.drives().at(currentDiskIndex(otherPanelPosition(p))).rootPath())
 	{
-		result = setPath(p, otherPanel(p).currentDirPath(), refreshCauseOther);
+		result = setPath(p, otherPanel(p).currentDirPathNative(), refreshCauseOther);
 	}
 	else
 	{
@@ -142,7 +148,7 @@ void CController::navigateForward(Panel p)
 FileOperationResultCode CController::setPath(Panel p, const QString &path, FileListRefreshCause operation)
 {
 	CPanel& targetPanel = panel(p);
-	const QString prevPath = targetPanel.currentDirPath();
+	const QString prevPath = targetPanel.currentDirPathNative();
 	const FileOperationResultCode result = targetPanel.setPath(path, operation);
 
 	saveDirectoryForCurrentDisk(p);
@@ -159,12 +165,12 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 	const QString posixName = toPosixSeparators(name);
 	if (parentDir.mkpath(posixName))
 	{
-		if (toNativeSeparators(parentDir.absolutePath()) == activePanel().currentDirPath())
+		if (toNativeSeparators(parentDir.absolutePath()) == activePanel().currentDirPathNative())
 		{
 			const int slashPosition = posixName.indexOf('/');
 			const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? posixName.left(posixName.indexOf('/')) : posixName);
 			// This is required for the UI to know to set the cursor at the new folder
-			activePanel().setCurrentItemInFolder(activePanel().currentDirPath(), CFileSystemObject(newFolderPath).hash());
+			activePanel().setCurrentItemInFolder(activePanel().currentDirPathNative(), CFileSystemObject(newFolderPath).hash());
 			activePanel().refreshFileList(refreshCauseNewItemCreated);
 		}
 
@@ -183,10 +189,10 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 	const QString newFilePath = parentDir.absolutePath() + "/" + name;
 	if (QFile(newFilePath).open(QFile::WriteOnly))
 	{
-		if (toNativeSeparators(parentDir.absolutePath()) == activePanel().currentDirPath())
+		if (toNativeSeparators(parentDir.absolutePath()) == activePanel().currentDirPathNative())
 		{
 			// This is required for the UI to know to set the cursor at the new file
-			activePanel().setCurrentItemInFolder(activePanel().currentDirPath(), CFileSystemObject(newFilePath).hash());
+			activePanel().setCurrentItemInFolder(activePanel().currentDirPathNative(), CFileSystemObject(newFilePath).hash());
 			activePanel().refreshFileList(refreshCauseNewItemCreated);
 		}
 
@@ -387,7 +393,7 @@ void CController::saveDirectoryForCurrentDisk(Panel p)
 	}
 
 	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).rootPath();
-	const QString path = panel(p).currentDirPath();
+	const QString path = panel(p).currentDirPathNative();
 	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path);
 }
 
@@ -397,7 +403,7 @@ int CController::currentDiskIndex(Panel p) const
 	const auto& drives = _diskEnumerator.drives();
 	for (int i = 0; i < drives.size(); ++i)
 	{
-		if (CFileSystemObject(panel(p).currentDirPath()).isChildOf(CFileSystemObject(QFileInfo(drives[i].rootPath()))))
+		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(CFileSystemObject(QFileInfo(drives[i].rootPath()))))
 			return i;
 	}
 

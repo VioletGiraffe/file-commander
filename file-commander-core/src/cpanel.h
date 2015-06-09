@@ -9,6 +9,10 @@
 
 #include "cfilesystemobject.h"
 #include "historylist/chistorylist.h"
+#include "utils/threading/casynctask.h"
+#include "utils/threading/cexecutionqueue.h"
+
+#include <mutex>
 
 enum Panel
 {
@@ -67,7 +71,8 @@ public:
 	void showAllFilesFromCurrentFolderAndBelow();
 
 	// Info on the dir this panel is currently set to
-	QString currentDirPath() const;
+	QString currentDirPathNative() const;
+	QString currentDirPathPosix() const;
 	QString currentDirName() const;
 
 	void setCurrentItemInFolder(const QString& dir, qulonglong currentItemHash);
@@ -92,6 +97,8 @@ public:
 	// Settings have changed
 	void settingsChanged();
 
+	void uiThreadTimerTick();
+
 private slots:
 	void contentsChanged(QString path);
 
@@ -104,6 +111,10 @@ private:
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
+
+	CAsyncTask<void>                           _refreshFileListTask;
+	mutable CExecutionQueue                    _uiThreadQueue;
+	mutable std::mutex                         _fileListAndCurrentDirMutex;
 };
 
 #endif // CPANEL_H

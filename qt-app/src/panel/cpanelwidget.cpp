@@ -98,7 +98,7 @@ bool CPanelWidget::restorePanelGeometry(QByteArray state)
 
 QString CPanelWidget::currentDir() const
 {
-	return _controller.panel(_panelPosition).currentDirPath();
+	return _controller.panel(_panelPosition).currentDirPathNative();
 }
 
 Panel CPanelWidget::panelPosition() const
@@ -240,7 +240,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	}
 	else if (operation != refreshCauseForwardNavigation) // refreshCauseNewItemCreated must fall into this branch, among other things
 	{
-		const qulonglong lastVisitedItemInDirectory = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPath());
+		const qulonglong lastVisitedItemInDirectory = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathNative());
 		if (lastVisitedItemInDirectory != 0)
 		{
 			const QModelIndex lastVisitedIndex = indexByHash(lastVisitedItemInDirectory);
@@ -262,8 +262,8 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 	for (auto hash = previousSelection.begin(); hash != previousSelection.end(); ++hash)
 		selectedItemsHashes.insert(*hash);
 
-	fillFromList(itemList, toPosixSeparators(panel.currentDirPath()) == _directoryCurrentlyBeingDisplayed, operation);
-	_directoryCurrentlyBeingDisplayed = toPosixSeparators(panel.currentDirPath());
+	fillFromList(itemList, toPosixSeparators(panel.currentDirPathNative()) == _directoryCurrentlyBeingDisplayed, operation);
+	_directoryCurrentlyBeingDisplayed = toPosixSeparators(panel.currentDirPathNative());
 
 	// Restoring previous selection
 	if (!selectedItemsHashes.empty())
@@ -282,7 +282,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 	const auto selection = selectedItemsHashes(true);
 	std::vector<std::wstring> paths;
 	if (selection.empty())
-		paths.push_back(_controller.panel(_panelPosition).currentDirPath().toStdWString());
+		paths.push_back(_controller.panel(_panelPosition).currentDirPathNative().toStdWString());
 	else
 	{
 		for (size_t i = 0; i < selection.size(); ++i)

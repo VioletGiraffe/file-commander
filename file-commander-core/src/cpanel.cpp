@@ -30,6 +30,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	_currentDisplayMode = NormalMode;
 
+	std::unique_lock<std::mutex> locker(_fileListAndCurrentDirMutex);
+
 	const QString oldPath = _currentDir.absolutePath();
 	const auto pathGraph = CFileSystemObject(posixPath).pathHierarchy();
 	bool pathSet = false;
@@ -40,7 +42,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		if (pathSet)
 			break;
 	}
-	
+
 	if (!pathSet)
 	{
 		if (CFileSystemObject(oldPath).exists())
@@ -64,6 +66,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	}
 
 	const QString newPath = _currentDir.absolutePath();
+
 	// History management
 	if (toPosixSeparators(_history.currentItem()) != toPosixSeparators(newPath))
 	{
@@ -71,7 +74,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		CSettings().setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
 	}
 
-	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, currentDirPath());
+	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, _currentDir.absolutePath());
 
 	_watcher = std::make_shared<QFileSystemWatcher>();
 
@@ -83,14 +86,12 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (_watcher->addPath(watchPath) == false)
 		qDebug() << __FUNCTION__ << "Error adding path" << watchPath << "to QFileSystemWatcher";
 
-	connect (_watcher.get(), SIGNAL(directoryChanged(QString)), SLOT(contentsChanged(QString)));
-	connect (_watcher.get(), SIGNAL(fileChanged(QString)), SLOT(contentsChanged(QString)));
-#if QT_VERSION >= QT_VERSION_CHECK (5,0,0)
-	connect (_watcher.get(), SIGNAL(objectNameChanged(QString)), SLOT(contentsChanged(QString)));
-#endif
+	connect(_watcher.get(), SIGNAL(directoryChanged(QString)), SLOT(contentsChanged(QString)));
+	connect(_watcher.get(), SIGNAL(fileChanged(QString)), SLOT(contentsChanged(QString)));
+	connect(_watcher.get(), SIGNAL(objectNameChanged(QString)), SLOT(contentsChanged(QString)));
 
 	// Finding hash of an item corresponding to path
-	for (const auto& item: _items)
+	for (const auto& item : _items)
 	{
 		const QString itemPath = toPosixSeparators(item.second.fullAbsolutePath());
 		if (posixPath == itemPath && toPosixSeparators(item.second.parentDirPath()) != itemPath)
@@ -100,6 +101,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		}
 	}
 
+	locker.unlock();
+
 	refreshFileList(pathSet ? operation : refreshCauseOther);
 	return pathSet ? rcOk : rcDirNotAccessible;
 }
@@ -108,10 +111,10 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 void CPanel::navigateUp()
 {
 	if (_currentDisplayMode != NormalMode)
-		setPath(_currentDir.absolutePath(), refreshCauseOther);
+		setPath(currentDirPathPosix(), refreshCauseOther);
 	else
 	{
-		QDir tmpDir(_currentDir);
+		QDir tmpDir(currentDirPathPosix());
 		if (tmpDir.cdUp())
 			setPath(tmpDir.absolutePath(), refreshCauseCdUp);
 		else
@@ -123,7 +126,7 @@ void CPanel::navigateUp()
 bool CPanel::navigateBack()
 {
 	if (_currentDisplayMode != NormalMode)
-		return setPath(_currentDir.absolutePath(), refreshCauseOther) == rcOk;
+		return setPath(currentDirPathPosix(), refreshCauseOther) == rcOk;
 	else if (!_history.empty())
 		return setPath(_history.navigateBack(), refreshCauseOther) == rcOk;
 	else
@@ -145,6 +148,10 @@ const CHistoryList<QString>& CPanel::history() const
 
 void CPanel::showAllFilesFromCurrentFolderAndBelow()
 {
+	// TODO: optimize
+
+	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+
 	_currentDisplayMode = AllObjectsMode;
 
 	_watcher.reset();
@@ -163,13 +170,21 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 }
 
 // Info on the dir this panel is currently set to
-QString CPanel::currentDirPath() const
+QString CPanel::currentDirPathNative() const
 {
+	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
 	return toNativeSeparators(_currentDir.absolutePath());
+}
+
+QString CPanel::currentDirPathPosix() const
+{
+	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+	return _currentDir.absolutePath();
 }
 
 QString CPanel::currentDirName() const
 {
+	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
 	return toNativeSeparators(_currentDir.dirName());
 }
 
@@ -187,43 +202,65 @@ qulonglong CPanel::currentItemInFolder(const QString &dir) const
 // Enumerates objects in the current directory
 void CPanel::refreshFileList(FileListRefreshCause operation)
 {
-	const time_t start = clock();
-	const QFileInfoList list(_currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System));
-	qDebug() << "Getting file list for" << _currentDir.absolutePath() << "(" << list.size() << "items) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
-	
-	_items.clear();
+	_refreshFileListTask.exec([this, operation]() {
+		const time_t start = clock();
+		QFileInfoList list;
 
-	if (list.empty())
-	{
-		setPath(_currentDir.absolutePath(), operation); // setPath will itself find the closest best folder to set instead
-		return;
-	}
+		{
+			std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
 
-	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
-	for (const auto& item: list)
-	{
-		CFileSystemObject object(item);
-		if (object.exists() && (showHiddenFiles || !object.isHidden()))
-			_items[object.hash()] = object;
-	}
+			list = _currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+			qDebug() << "Getting file list for" << _currentDir.absolutePath() << "(" << list.size() << "items ) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
-	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << QString("(%1 items) indexed in").arg(_items.size()) << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
-	sendContentsChangedNotification(operation);
+			_items.clear();
+
+			if (list.empty())
+			{
+				setPath(_currentDir.absolutePath(), operation); // setPath will itself find the closest best folder to set instead
+				return;
+			}
+		}
+
+		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+		std::vector<CFileSystemObject> objectsList;
+		objectsList.reserve(list.size());
+
+		for (const auto& item : list)
+			objectsList.emplace_back(item);
+
+		{
+			std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+
+			for (const auto& object : objectsList)
+			{
+				if (object.exists() && (showHiddenFiles || !object.isHidden()))
+					_items[object.hash()] = object;
+			}
+
+			qDebug() << "Directory:" << _currentDir.absolutePath() << "(" << _items.size() << "items ) indexed in" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+		}
+
+		sendContentsChangedNotification(operation);
+	});
 }
 
 // Returns the current list of objects on this panel
 std::map<qulonglong, CFileSystemObject> CPanel::list() const
 {
+	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
 	return _items;
 }
 
 bool CPanel::itemHashExists(const qulonglong hash) const
 {
+	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
 	return _items.count(hash) > 0;
 }
 
 CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 {
+	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+
 	const auto it = _items.find(hash);
 	return it != _items.end() ? it->second : CFileSystemObject();
 }
@@ -275,14 +312,20 @@ void CPanel::displayDirSize(qulonglong dirHash)
 
 void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
 {
-	for (auto listener: _panelContentsChangedListeners)
-		listener->panelContentsChanged(_panelPosition, operation);
+	_uiThreadQueue.enqueue([this, operation]() {
+		for (auto listener : _panelContentsChangedListeners)
+			listener->panelContentsChanged(_panelPosition, operation);
+	}, 0);
 }
 
 // Settings have changed
 void CPanel::settingsChanged()
 {
+}
 
+void CPanel::uiThreadTimerTick()
+{
+	_uiThreadQueue.exec();
 }
 
 void CPanel::contentsChanged(QString /*path*/)
