@@ -63,13 +63,10 @@ const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_p
 
 void CPluginEngine::panelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
 {
-	CController & controller = CController::get();
-	std::map<qulonglong /*hash*/, CFileSystemObject> contents;
-	for(const CFileSystemObject& object: controller.panel(p).list())
-		contents[object.hash()] = object;
+	CController& controller = CController::get();
 
 	auto& proxy = CController::get().pluginProxy();
-	proxy.panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirName(), contents);
+	proxy.panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirName(), controller.panel(p).list());
 }
 
 void CPluginEngine::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)

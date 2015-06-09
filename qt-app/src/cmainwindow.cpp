@@ -188,7 +188,6 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 	return true;
 }
 
-
 CMainWindow::~CMainWindow()
 {
 	_instance = this;

@@ -31,7 +31,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	_currentDisplayMode = NormalMode;
 
 	const QString oldPath = _currentDir.absolutePath();
-	auto pathGraph = CFileSystemObject(posixPath).pathHierarchy();
+	const auto pathGraph = CFileSystemObject(posixPath).pathHierarchy();
 	bool pathSet = false;
 	for (const auto& candidatePath: pathGraph)
 	{
@@ -90,12 +90,12 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 #endif
 
 	// Finding hash of an item corresponding to path
-	for (const CFileSystemObject& item: _list)
+	for (const auto& item: _items)
 	{
-		const QString itemPath = toPosixSeparators(item.fullAbsolutePath());
-		if (posixPath == itemPath && toPosixSeparators(item.parentDirPath()) != itemPath)
+		const QString itemPath = toPosixSeparators(item.second.fullAbsolutePath());
+		if (posixPath == itemPath && toPosixSeparators(item.second.parentDirPath()) != itemPath)
 		{
-			setCurrentItemInFolder(item.parentDirPath(), item.properties().hash);
+			setCurrentItemInFolder(item.second.parentDirPath(), item.second.properties().hash);
 			break;
 		}
 	}
@@ -150,16 +150,13 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	_watcher.reset();
 	auto items = recurseDirectoryItems(_currentDir.absolutePath(), false);
 
-	_list.clear();
-	_indexByHash.clear();
+	_items.clear();
+
 	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 	for (const auto& item: items)
 	{
 		if (item.exists() && (showHiddenFiles || !item.isHidden()))
-		{
-			_list.push_back(item);
-			_indexByHash[_list.back().hash()] = _list.size() - 1;
-		}
+			_items[item.hash()] = item;
 	}
 
 	sendContentsChangedNotification(refreshCauseOther);
@@ -184,10 +181,7 @@ void CPanel::setCurrentItemInFolder(const QString& dir, qulonglong currentItemHa
 qulonglong CPanel::currentItemInFolder(const QString &dir) const
 {
 	const auto it = _cursorPosForFolder.find(toPosixSeparators(dir));
-	if (it == _cursorPosForFolder.end())
-		return 0;
-	else
-		return it->second;
+	return it == _cursorPosForFolder.end() ? 0 : it->second;
 }
 
 // Enumerates objects in the current directory
@@ -196,8 +190,8 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 	const time_t start = clock();
 	const QFileInfoList list(_currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System));
 	qDebug() << "Getting file list for" << _currentDir.absolutePath() << "(" << list.size() << "items) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
-	_list.clear();
-	_indexByHash.clear();
+	
+	_items.clear();
 
 	if (list.empty())
 	{
@@ -208,70 +202,30 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 	for (const auto& item: list)
 	{
-		_list.emplace_back(item);
-		if (!_list.back().exists() || (!showHiddenFiles && _list.back().isHidden()))
-			_list.pop_back();
-		else
-			_indexByHash[_list.back().hash()] = _list.size() - 1;
+		CFileSystemObject object(item);
+		if (object.exists() && (showHiddenFiles || !object.isHidden()))
+			_items[object.hash()] = object;
 	}
 
-	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << QString("(%1 items) indexed in").arg(_list.size()) << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	qDebug () << __FUNCTION__ << "Directory:" << _currentDir.absolutePath() << QString("(%1 items) indexed in").arg(_items.size()) << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 	sendContentsChangedNotification(operation);
 }
 
 // Returns the current list of objects on this panel
-const std::vector<CFileSystemObject> &CPanel::list() const
+std::map<qulonglong, CFileSystemObject> CPanel::list() const
 {
-	return _list;
-}
-
-// Access to the corresponding item
-const CFileSystemObject &CPanel::itemByIndex(size_t index) const
-{
-	if (index < _list.size())
-	{
-		return _list[index];
-	}
-	else
-	{
-		assert (false);
-		static CFileSystemObject dummyObject((QFileInfo()));
-		return dummyObject;
-	}
-}
-
-CFileSystemObject &CPanel::itemByIndex(size_t index)
-{
-	if (index < _list.size())
-		return _list[index];
-	else
-	{
-		assert (false);
-		static CFileSystemObject dummyObject ((QFileInfo()));
-		return dummyObject;
-	}
+	return _items;
 }
 
 bool CPanel::itemHashExists(const qulonglong hash) const
 {
-	return _indexByHash.count(hash) > 0;
+	return _items.count(hash) > 0;
 }
 
-const CFileSystemObject& CPanel::itemByHash( qulonglong hash ) const
+CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 {
-	assert(itemHashExists(hash));
-	return itemByIndex(_indexByHash.at(hash));
-}
-
-CFileSystemObject& CPanel::itemByHash( qulonglong hash )
-{
-	if (_indexByHash.count(hash) == 0)
-	{
-		static CFileSystemObject dummy;
-		dummy = CFileSystemObject();
-		return dummy;
-	}
-	return itemByIndex(_indexByHash[hash]);
+	const auto it = _items.find(hash);
+	return it != _items.end() ? it->second : CFileSystemObject();
 }
 
 // Calculates total size for the specified objects
@@ -283,7 +237,7 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 	FilesystemObjectsStatistics stats;
 	for(qulonglong itemHash: hashes)
 	{
-		CFileSystemObject& item = itemByHash(itemHash);
+		CFileSystemObject item = itemByHash(itemHash);
 		if (item.isDir())
 		{
 			++stats.folders;
@@ -310,7 +264,7 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 void CPanel::displayDirSize(qulonglong dirHash)
 {
 	assert(dirHash != 0);
-	CFileSystemObject& item = itemByHash(dirHash);
+	CFileSystemObject item = itemByHash(dirHash);
 	if (item.isDir())
 	{
 		const FilesystemObjectsStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));

@@ -75,11 +75,8 @@ public:
 	CPanel& activePanel();
 	CPluginProxy& pluginProxy();
 	bool itemHashExists(Panel p, qulonglong hash) const;
-	const CFileSystemObject& itemByIndex(Panel p, size_t index) const;
-	const CFileSystemObject& itemByHash(Panel p, qulonglong hash) const;
-	CFileSystemObject& itemByHash(Panel p, qulonglong hash);
+	CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
-	size_t numItems(Panel p) const;
 	QString itemPath(Panel p, qulonglong hash) const;
 	QString diskPath(int index) const;
 	CFavoriteLocations& favoriteLocations();

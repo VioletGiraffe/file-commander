@@ -40,7 +40,7 @@ public:
 	void setPanelPosition(Panel p);
 
 	// Returns the list of items added to the view
-	void fillFromList(const std::vector<CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation);
+	void fillFromList(const std::map<qulonglong, CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation);
 	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
 
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;

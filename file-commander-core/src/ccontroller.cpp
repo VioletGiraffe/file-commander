@@ -61,7 +61,7 @@ void CController::tabRemoved(Panel /*panel*/, int /*tabId*/)
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any
 FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 {
-	auto& item = panel(p).itemByHash(itemHash);
+	const auto item = panel(p).itemByHash(itemHash);
 	if (item.isDir())
 	{
 		// Attempting to enter this dir
@@ -326,17 +326,7 @@ bool CController::itemHashExists(Panel p, qulonglong hash) const
 	return panel(p).itemHashExists(hash);
 }
 
-const CFileSystemObject& CController::itemByIndex( Panel p, size_t index ) const
-{
-	return panel(p).itemByIndex(index);
-}
-
-const CFileSystemObject& CController::itemByHash( Panel p, qulonglong hash ) const
-{
-	return panel(p).itemByHash(hash);
-}
-
-CFileSystemObject &CController::itemByHash(Panel p, qulonglong hash)
+CFileSystemObject CController::itemByHash( Panel p, qulonglong hash ) const
 {
 	return panel(p).itemByHash(hash);
 }
@@ -346,11 +336,6 @@ std::vector<CFileSystemObject> CController::items(Panel p, const std::vector<qul
 	std::vector<CFileSystemObject> objects;
 	std::for_each(hashes.begin(), hashes.end(), [&objects, p, this] (qulonglong hash) {objects.push_back(itemByHash(p, hash));});
 	return objects;
-}
-
-size_t CController::numItems(Panel p) const
-{
-	return panel(p).list().size();
 }
 
 QString CController::itemPath(Panel p, qulonglong hash) const

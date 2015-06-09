@@ -142,7 +142,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 }
 
 // Returns the list of items added to the view
-void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, bool sameDirAsPrevious, FileListRefreshCause operation)
+void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation)
 {
 	const time_t start = clock();
 
@@ -158,36 +158,38 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 	_model->setColumnCount(NumberOfColumns);
 	_model->setHorizontalHeaderLabels(QStringList() << "Name" << "Ext" << "Size" << "Date");
 
-	for (int i = 0; i < (int)items.size(); ++i)
+	int itemRow = 0;
+	for (const auto& item: items)
 	{
-		auto props = items[i].properties();
+		const CFileSystemObject& object = item.second;
+		auto props = object.properties();
 
 
 		QStandardItem * fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
 		if (props.type == Directory)
-			fileNameItem->setData(QString("[%1]").arg(items[i].isCdUp() ? QString("..") : props.fullName), Qt::DisplayRole);
+			fileNameItem->setData(QString("[%1]").arg(object.isCdUp() ? QString("..") : props.fullName), Qt::DisplayRole);
 		else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
 			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
 		else
 			fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
-		fileNameItem->setIcon(items[i].icon());
+		fileNameItem->setIcon(object.icon());
 		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		_model->setItem(i, NameColumn, fileNameItem);
+		_model->setItem(itemRow, NameColumn, fileNameItem);
 
 		QStandardItem * fileExtItem = new QStandardItem();
 		fileExtItem->setEditable(false);
 		if (!props.completeBaseName.isEmpty() && !props.extension.isEmpty())
 			fileExtItem->setData(props.extension, Qt::DisplayRole);
 		fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		_model->setItem(i, ExtColumn, fileExtItem);
+		_model->setItem(itemRow, ExtColumn, fileExtItem);
 
 		QStandardItem * sizeItem = new QStandardItem();
 		sizeItem->setEditable(false);
 		if (props.type != Directory || props.size > 0)
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
 		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		_model->setItem(i, SizeColumn, sizeItem);
+		_model->setItem(itemRow, SizeColumn, sizeItem);
 
 		QStandardItem * dateItem = new QStandardItem();
 		dateItem->setEditable(false);
@@ -196,7 +198,9 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 		modificationDate = modificationDate.toLocalTime();
 		dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm"), Qt::DisplayRole);
 		dateItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		_model->setItem(i, DateColumn, dateItem);
+		_model->setItem(itemRow, DateColumn, dateItem);
+
+		++itemRow;
 	}
 
 	_sortModel->setSourceModel(_model);
@@ -224,9 +228,9 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 		qulonglong targetFolderHash = 0;
 		for (auto& item: items)
 		{
-			if (item.fullAbsolutePath() == previousFolder)
+			if (item.second.fullAbsolutePath() == previousFolder)
 			{
-				targetFolderHash = item.hash();
+				targetFolderHash = item.first;
 				break;
 			}
 		}
@@ -252,7 +256,7 @@ void CPanelWidget::fillFromList(const std::vector<CFileSystemObject> &items, boo
 
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
 {
-	auto& itemList = panel.list();
+	const auto itemList = panel.list();
 	const auto previousSelection = selectedItemsHashes(true);
 	std::set<qulonglong> selectedItemsHashes; // For fast search
 	for (auto hash = previousSelection.begin(); hash != previousSelection.end(); ++hash)
@@ -387,7 +391,7 @@ void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previou
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 {
-	CFileSystemObject& item = _controller.itemByHash(_panelPosition, hash);
+	CFileSystemObject item = _controller.itemByHash(_panelPosition, hash);
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::vector<CFileSystemObject>(1, item), item.parentDirPath() + "/" + newName, CMainWindow::get());
 	connect(CMainWindow::get(), SIGNAL(closed()), dialog, SLOT(deleteLater()));
@@ -608,19 +612,20 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 	ui->_infoLabel->clear();
 
 	uint64_t numFilesSelected = 0, numFoldersSelected = 0, totalSize = 0, sizeSelected = 0, totalNumFolders = 0, totalNumFiles = 0;
-	const auto& currentTotalList = _controller.panel(_panelPosition).list();
+	const auto currentTotalList = _controller.panel(_panelPosition).list();
 	for (auto it = currentTotalList.begin(); it != currentTotalList.end(); ++it)
 	{
-		if (it->isFile())
+		const CFileSystemObject& object = it->second;
+		if (object.isFile())
 			++totalNumFiles;
-		else if (it->isDir())
+		else if (object.isDir())
 			++totalNumFolders;
-		totalSize += it->size();
+		totalSize += object.size();
 	}
 
 	for (auto it = selection.begin(); it != selection.end(); ++it)
 	{
-		const CFileSystemObject& object = _controller.itemByHash(_panelPosition, *it);
+		const CFileSystemObject object = _controller.itemByHash(_panelPosition, *it);
 		if (object.isFile())
 			++numFilesSelected;
 		else if (object.isDir())

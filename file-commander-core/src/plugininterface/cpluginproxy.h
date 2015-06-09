@@ -43,7 +43,7 @@ public:
 	void createToolMenuEntries(std::vector<MenuTree> menuEntries);
 
 // Events and data updates from the core
-	void panelContentsChanged(PanelPosition panel, const QString& folder, std::map<qulonglong /*hash*/, CFileSystemObject>& contents);
+	void panelContentsChanged(PanelPosition panel, const QString& folder, const std::map<qulonglong /*hash*/, CFileSystemObject>& contents);
 
 // Events and data updates from UI
 	void selectionChanged(PanelPosition panel, std::vector<qulonglong/*hash*/> selectedItemsHashes);

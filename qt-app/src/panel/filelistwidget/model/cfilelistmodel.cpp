@@ -69,7 +69,8 @@ Qt::ItemFlags CFileListModel::flags(const QModelIndex & idx) const
 		flags |= Qt::ItemIsEditable | Qt::ItemIsDragEnabled;
 
 	const qulonglong hash = itemHash(idx);
-	if (_controller.itemHashExists(_panel, hash) && _controller.itemByHash(_panel, hash).isDir())
+	const CFileSystemObject item = _controller.itemByHash(_panel, hash);
+	if (item.exists() && item.isDir())
 		flags |= Qt::ItemIsDropEnabled;
 
 	return  flags;

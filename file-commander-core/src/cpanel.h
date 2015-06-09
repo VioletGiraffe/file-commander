@@ -77,15 +77,10 @@ public:
 	// Enumerates objects in the current directory
 	void refreshFileList(FileListRefreshCause operation);
 	// Returns the current list of objects on this panel
-	const std::vector<CFileSystemObject>& list () const;
-
-	// Access to the corresponding item
-	const CFileSystemObject& itemByIndex(size_t index) const;
-	CFileSystemObject& itemByIndex(size_t index);
+	std::map<qulonglong, CFileSystemObject> list() const;
 
 	bool itemHashExists(const qulonglong hash) const;
-	const CFileSystemObject& itemByHash(qulonglong hash) const;
-	CFileSystemObject& itemByHash(qulonglong hash);
+	CFileSystemObject itemByHash(qulonglong hash) const;
 
 	// Calculates total size for the specified objects
 	FilesystemObjectsStatistics calculateStatistics(const std::vector<qulonglong> & hashes);
@@ -102,10 +97,9 @@ private slots:
 
 private:
 	QDir                                       _currentDir;
-	std::vector<CFileSystemObject>             _list;
+	std::map<qulonglong, CFileSystemObject>    _items;
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
-	std::map<qulonglong, size_t>               _indexByHash;
 	std::shared_ptr<QFileSystemWatcher>        _watcher;
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                                _panelPosition;

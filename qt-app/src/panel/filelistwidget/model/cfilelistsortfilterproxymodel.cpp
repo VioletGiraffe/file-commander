@@ -54,7 +54,7 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	const qulonglong leftHash = l->data(Qt::UserRole).toULongLong();
 	const qulonglong rightHash = r->data(Qt::UserRole).toULongLong();
 
-	const CFileSystemObject& leftItem = _controller.itemByHash(_panel, leftHash), rightItem = _controller.itemByHash(_panel, rightHash);
+	const CFileSystemObject leftItem = _controller.itemByHash(_panel, leftHash), rightItem = _controller.itemByHash(_panel, rightHash);
 
 	const bool descendingOrder = sortOrder() == Qt::DescendingOrder;
 	// Folders always before files, no matter the sorting column and direction
