@@ -148,25 +148,28 @@ const CHistoryList<QString>& CPanel::history() const
 
 void CPanel::showAllFilesFromCurrentFolderAndBelow()
 {
-	// TODO: optimize
-
-	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
-
 	_currentDisplayMode = AllObjectsMode;
-
 	_watcher.reset();
-	auto items = recurseDirectoryItems(_currentDir.absolutePath(), false);
 
-	_items.clear();
+	_refreshFileListTask.exec([this]() {
+		std::unique_lock<std::mutex> locker(_fileListAndCurrentDirMutex);
+		const QString path = _currentDir.absolutePath();
 
-	const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
-	for (const auto& item: items)
-	{
-		if (item.exists() && (showHiddenFiles || !item.isHidden()))
-			_items[item.hash()] = item;
-	}
+		locker.unlock();
+		auto items = recurseDirectoryItems(path, false);
+		locker.lock();
 
-	sendContentsChangedNotification(refreshCauseOther);
+		_items.clear();
+
+		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+		for (const auto& item : items)
+		{
+			if (item.exists() && (showHiddenFiles || !item.isHidden()))
+				_items[item.hash()] = item;
+		}
+
+		sendContentsChangedNotification(refreshCauseOther);
+	});
 }
 
 // Info on the dir this panel is currently set to
