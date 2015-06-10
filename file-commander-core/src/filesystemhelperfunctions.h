@@ -23,14 +23,14 @@ inline std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPa
 				auto childrenItems = recurseDirectoryItems(it->absoluteFilePath(), includeFolders);
 				objects.insert(objects.end(), childrenItems.begin(), childrenItems.end());
 				if (includeFolders)
-					objects.emplace_back(CFileSystemObject(*it));
+					objects.emplace_back(*it);
 			}
 			else if (it->isFile())
-				objects.emplace_back(CFileSystemObject(*it));
+				objects.emplace_back(*it);
 		}
 	}
 	else
-		objects.push_back(CFileSystemObject(QFileInfo(dirPath)));
+		objects.emplace_back(dirPath);
 
 	return objects;
 }

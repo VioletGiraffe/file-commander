@@ -114,7 +114,7 @@ private:
 
 	CAsyncTask<void>                           _refreshFileListTask;
 	mutable CExecutionQueue                    _uiThreadQueue;
-	mutable std::mutex                         _fileListAndCurrentDirMutex;
+	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
 };
 
 #endif // CPANEL_H

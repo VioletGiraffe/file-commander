@@ -30,7 +30,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	_currentDisplayMode = NormalMode;
 
-	std::unique_lock<std::mutex> locker(_fileListAndCurrentDirMutex);
+	std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
 	const QString oldPath = _currentDir.absolutePath();
 	const auto pathGraph = CFileSystemObject(posixPath).pathHierarchy();
@@ -152,7 +152,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	_watcher.reset();
 
 	_refreshFileListTask.exec([this]() {
-		std::unique_lock<std::mutex> locker(_fileListAndCurrentDirMutex);
+		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 		const QString path = _currentDir.absolutePath();
 
 		locker.unlock();
@@ -175,19 +175,19 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 // Info on the dir this panel is currently set to
 QString CPanel::currentDirPathNative() const
 {
-	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 	return toNativeSeparators(_currentDir.absolutePath());
 }
 
 QString CPanel::currentDirPathPosix() const
 {
-	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 	return _currentDir.absolutePath();
 }
 
 QString CPanel::currentDirName() const
 {
-	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 	return toNativeSeparators(_currentDir.dirName());
 }
 
@@ -210,7 +210,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		QFileInfoList list;
 
 		{
-			std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
 			list = _currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
 			qDebug() << "Getting file list for" << _currentDir.absolutePath() << "(" << list.size() << "items ) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
@@ -232,7 +232,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 			objectsList.emplace_back(item);
 
 		{
-			std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
 			for (const auto& object : objectsList)
 			{
@@ -250,19 +250,19 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 // Returns the current list of objects on this panel
 std::map<qulonglong, CFileSystemObject> CPanel::list() const
 {
-	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 	return _items;
 }
 
 bool CPanel::itemHashExists(const qulonglong hash) const
 {
-	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 	return _items.count(hash) > 0;
 }
 
 CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 {
-	std::lock_guard<std::mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
 	const auto it = _items.find(hash);
 	return it != _items.end() ? it->second : CFileSystemObject();
@@ -303,12 +303,19 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 void CPanel::displayDirSize(qulonglong dirHash)
 {
-	assert(dirHash != 0);
-	CFileSystemObject item = itemByHash(dirHash);
-	if (item.isDir())
+	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+
+	const auto it = _items.find(dirHash);
+	if (it == _items.end())
+	{
+		assert(false);
+		return;
+	}
+
+	if (it->second.isDir())
 	{
 		const FilesystemObjectsStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));
-		item.setDirSize(stats.occupiedSpace);
+		it->second.setDirSize(stats.occupiedSpace);
 		sendContentsChangedNotification(refreshCauseOther);
 	}
 }
