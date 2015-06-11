@@ -43,7 +43,9 @@ public:
 	void fillFromList(const std::map<qulonglong, CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation);
 	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
 
+	// CPanel observers
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress) override;
 
 	CFileListView * fileListView() const;
 	QAbstractItemModel* model() const;

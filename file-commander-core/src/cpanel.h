@@ -33,6 +33,7 @@ enum FileListRefreshCause
 struct PanelContentsChangedListener
 {
 	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
+	virtual void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress) = 0;
 };
 
 class FilesystemObjectsStatistics
@@ -93,6 +94,7 @@ public:
 	void displayDirSize(qulonglong dirHash);
 
 	void sendContentsChangedNotification(FileListRefreshCause operation) const;
+	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress) const;
 
 	// Settings have changed
 	void settingsChanged();
@@ -103,7 +105,7 @@ private slots:
 	void contentsChanged(QString path);
 
 private:
-	QDir                                       _currentDir;
+	CFileSystemObject                          _currentDirObject;
 	std::map<qulonglong, CFileSystemObject>    _items;
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;

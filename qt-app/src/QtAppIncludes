@@ -24,6 +24,7 @@
 #include <QModelIndex>
 #include <QMouseEvent>
 #include <QPlainTextEdit>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QRect>
 #include <QShortcut>

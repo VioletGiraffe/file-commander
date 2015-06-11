@@ -32,27 +32,27 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
-	const QString oldPath = _currentDir.absolutePath();
-	const auto pathGraph = CFileSystemObject(posixPath).pathHierarchy();
+	const QString oldPath = _currentDirObject.fullAbsolutePath();
+	const auto pathGraph = CFileSystemObject::pathHierarchy(posixPath);
 	bool pathSet = false;
 	for (const auto& candidatePath: pathGraph)
 	{
-		_currentDir.setPath(candidatePath);
-		pathSet = _currentDir.exists() && ! _currentDir.entryList().isEmpty(); // No dot and dotdot on Linux means the dir is not accessible
+		_currentDirObject.setPath(candidatePath);
+		pathSet = _currentDirObject.exists() && ! _currentDirObject.qDir().entryList().isEmpty(); // No dot and dotdot on Linux means the dir is not accessible
 		if (pathSet)
 			break;
 	}
 
 	if (!pathSet)
 	{
-		if (CFileSystemObject(oldPath).exists())
-			_currentDir.setPath(oldPath);
+		if (QFileInfo(oldPath).exists())
+			_currentDirObject.setPath(oldPath);
 		else
 		{
 			QString pathToSet;
 			for (auto it = history().rbegin() + (history().size() - 1 - history().currentIndex()); it != history().rend(); ++it)
 			{
-				if (CFileSystemObject(*it).exists())
+				if (QFileInfo(*it).exists())
 				{
 					pathToSet = *it;
 					break;
@@ -61,11 +61,11 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 			if (pathToSet.isEmpty())
 				pathToSet = QDir::rootPath();
-			_currentDir.setPath(pathToSet);
+			_currentDirObject.setPath(pathToSet);
 		}
 	}
 
-	const QString newPath = _currentDir.absolutePath();
+	const QString newPath = _currentDirObject.fullAbsolutePath();
 
 	// History management
 	if (toPosixSeparators(_history.currentItem()) != toPosixSeparators(newPath))
@@ -74,7 +74,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		CSettings().setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
 	}
 
-	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, _currentDir.absolutePath());
+	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
 
 	_watcher = std::make_shared<QFileSystemWatcher>();
 
@@ -153,7 +153,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 
 	_refreshFileListTask.exec([this]() {
 		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-		const QString path = _currentDir.absolutePath();
+		const QString path = _currentDirObject.fullAbsolutePath();
 
 		locker.unlock();
 		auto items = recurseDirectoryItems(path, false);
@@ -176,19 +176,19 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 QString CPanel::currentDirPathNative() const
 {
 	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-	return toNativeSeparators(_currentDir.absolutePath());
+	return toNativeSeparators(_currentDirObject.fullAbsolutePath());
 }
 
 QString CPanel::currentDirPathPosix() const
 {
 	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-	return _currentDir.absolutePath();
+	return _currentDirObject.fullAbsolutePath();
 }
 
 QString CPanel::currentDirName() const
 {
 	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-	return toNativeSeparators(_currentDir.dirName());
+	return toNativeSeparators(_currentDirObject.fullName());
 }
 
 void CPanel::setCurrentItemInFolder(const QString& dir, qulonglong currentItemHash)
@@ -209,27 +209,36 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		const time_t start = clock();
 		QFileInfoList list;
 
+		sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 0);
+
 		{
 			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
-			list = _currentDir.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
-			qDebug() << "Getting file list for" << _currentDir.absolutePath() << "(" << list.size() << "items ) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+			list = _currentDirObject.qDir().entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+			qDebug() << "Getting file list for" << _currentDirObject.fullAbsolutePath() << "(" << list.size() << "items ) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
 			_items.clear();
 
 			if (list.empty())
 			{
-				setPath(_currentDir.absolutePath(), operation); // setPath will itself find the closest best folder to set instead
+				setPath(_currentDirObject.fullAbsolutePath(), operation); // setPath will itself find the closest best folder to set instead
 				return;
 			}
 		}
 
+		sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20);
+
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 		std::vector<CFileSystemObject> objectsList;
-		objectsList.reserve(list.size());
 
-		for (const auto& item : list)
-			objectsList.emplace_back(item);
+		const size_t numItemsFound = list.size();
+		objectsList.reserve(numItemsFound);
+
+		for (int i = 0; i < numItemsFound; ++i)
+		{
+			objectsList.emplace_back(list[i]);
+			sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20 + 80 * i / numItemsFound);
+		}
 
 		{
 			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
@@ -240,9 +249,10 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 					_items[object.hash()] = object;
 			}
 
-			qDebug() << "Directory:" << _currentDir.absolutePath() << "(" << _items.size() << "items ) indexed in" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+			qDebug() << "Directory:" << _currentDirObject.fullAbsolutePath() << "(" << _items.size() << "items ) indexed in" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 		}
 
+		sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 100);
 		sendContentsChangedNotification(operation);
 	});
 }
@@ -274,10 +284,13 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 	if (hashes.empty())
 		return FilesystemObjectsStatistics();
 
+	sendItemDiscoveryProgressNotification(0, 0);
+
 	FilesystemObjectsStatistics stats;
-	for(qulonglong itemHash: hashes)
+	const size_t numItems = hashes.size();
+	for(size_t i = 0; i < numItems; ++i)
 	{
-		CFileSystemObject item = itemByHash(itemHash);
+		CFileSystemObject item = itemByHash(hashes[i]);
 		if (item.isDir())
 		{
 			++stats.folders;
@@ -296,7 +309,11 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 			++stats.files;
 			stats.occupiedSpace += item.size();
 		}
+
+		sendItemDiscoveryProgressNotification(0, i * 100 / numItems);
 	}
+
+	sendItemDiscoveryProgressNotification(0, 100);
 	return stats;
 }
 
@@ -326,6 +343,14 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 		for (auto listener : _panelContentsChangedListeners)
 			listener->panelContentsChanged(_panelPosition, operation);
 	}, 0);
+}
+
+void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress) const
+{
+	_uiThreadQueue.enqueue([this, itemHash, progress]() {
+		for (auto listener : _panelContentsChangedListeners)
+			listener->itemDiscoveryInProgress(_panelPosition, itemHash, progress);
+	}, 1);
 }
 
 // Settings have changed

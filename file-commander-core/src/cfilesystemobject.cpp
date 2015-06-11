@@ -19,6 +19,9 @@
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
 {
 	refreshInfo();
+
+	if (isDir())
+		_dir.setPath(fullAbsolutePath());
 }
 
 CFileSystemObject::~CFileSystemObject()
@@ -69,6 +72,24 @@ void CFileSystemObject::refreshInfo()
 	_properties.creationDate = (time_t) _fileInfo.created().toTime_t();
 	_properties.modificationDate = _fileInfo.lastModified().toTime_t();
 	_properties.size = _properties.type == File ? _fileInfo.size() : 0;
+}
+
+void CFileSystemObject::setPath(const QString& path)
+{
+	_lastError.clear();
+	_rootFileSystemId = std::numeric_limits<uint64_t>::max();
+	_thisFile.reset();
+	_destFile.reset();
+	_pos = 0;
+
+	_fileInfo.setFile(path);
+
+	refreshInfo();
+
+	if (isDir())
+		_dir.setPath(fullAbsolutePath());
+	else
+		_dir = QDir();
 }
 
 bool CFileSystemObject::operator==(const CFileSystemObject& other) const
@@ -175,12 +196,17 @@ const QFileInfo &CFileSystemObject::qFileInfo() const
 	return _fileInfo;
 }
 
-std::vector<QString> CFileSystemObject::pathHierarchy() const
+const QDir& CFileSystemObject::qDir()
 {
-	QString path = fullAbsolutePath();
+	return _dir;
+}
+
+std::vector<QString> CFileSystemObject::pathHierarchy(const QString& path)
+{
+	QString pathItem = path;
 	std::vector<QString> result(1, path);
-	while ((path = QFileInfo(path).path()).length() < result.back().length())
-		result.push_back(path);
+	while ((pathItem = QFileInfo(pathItem).path()).length() < result.back().length())
+		result.push_back(pathItem);
 
 	return result;
 }

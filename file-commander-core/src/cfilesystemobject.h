@@ -39,9 +39,10 @@ public:
 	{
 	}
 
-	virtual ~CFileSystemObject();
+	~CFileSystemObject();
 
 	void refreshInfo();
+	void setPath(const QString& path);
 
 	bool operator==(const CFileSystemObject& other) const;
 
@@ -68,7 +69,8 @@ public:
 	uint64_t size() const;
 	qulonglong hash() const;
 	const QFileInfo& qFileInfo() const;
-	std::vector<QString> pathHierarchy() const;
+	const QDir& qDir();
+	static std::vector<QString> pathHierarchy(const QString& path);
 
 	bool isMovableTo(const CFileSystemObject& dest) const;
 
@@ -105,6 +107,7 @@ private:
 
 private:
 	QFileInfo                   _fileInfo;
+	QDir                        _dir;
 	CFileSystemObjectProperties _properties;
 	mutable QString             _lastError;
 	// Can be used to determine whether 2 objects are on the same drive
