@@ -519,7 +519,7 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 #else
 		struct stat info;
 		const int ret = stat(_properties.fullPath.toUtf8().constData(), &info);
-		if (ret == 0)
+		if (ret == 0 || errno == ENOENT)
 			_rootFileSystemId = (uint64_t)info.st_dev;
 		else
 		{
