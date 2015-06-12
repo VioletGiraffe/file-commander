@@ -142,6 +142,10 @@ void COperationPerformer::copyFiles()
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
 
+	// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
+	if (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir())
+		_newName = _destFileSystemObject.fullName();
+
 	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster
 	// If the dest folder is empty, moving means renaming the root source folder / file, which is fast and simple
 	if (_op == operationMove && (!_destFileSystemObject.exists() || _destFileSystemObject.isEmptyDir()) && _source.front().isMovableTo(_destFileSystemObject))
@@ -156,8 +160,7 @@ void COperationPerformer::copyFiles()
 				continue;
 			}
 
-			// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
-			const QString newFileName = !_newName.isEmpty() ? _newName : (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir() ? _destFileSystemObject.fullName() : it->fullName());
+			const QString newFileName = !_newName.isEmpty() ? _newName :  it->fullName();
 			_newName.clear();
 			const auto result = it->moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
 			if (result != rcOk)
