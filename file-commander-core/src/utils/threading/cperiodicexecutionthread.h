@@ -10,6 +10,9 @@ class CPeriodicExecutionThread
 public:
 	explicit CPeriodicExecutionThread(unsigned int period_ms, const std::string& threadName, const std::function<void ()>& workload = std::function<void ()>());
 
+	CPeriodicExecutionThread(const CPeriodicExecutionThread&) = delete;
+	CPeriodicExecutionThread& operator=(const CPeriodicExecutionThread&) = delete;
+
 	~CPeriodicExecutionThread();
 
 	void setWorkload(const std::function<void ()>& workload);
@@ -27,6 +30,6 @@ private:
 	std::string            _threadName;
 	const unsigned int     _period = std::numeric_limits<unsigned int>::max(); // milliseconds
 
-	std::atomic<bool>      _terminate = false;
+	std::atomic<bool>      _terminate {false};
 };
 
