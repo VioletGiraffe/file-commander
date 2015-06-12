@@ -209,8 +209,6 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		const time_t start = clock();
 		QFileInfoList list;
 
-		sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 0);
-
 		{
 			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
@@ -225,8 +223,6 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 				return;
 			}
 		}
-
-		sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20);
 
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 		std::vector<CFileSystemObject> objectsList;
@@ -252,7 +248,6 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 			qDebug() << "Directory:" << _currentDirObject.fullAbsolutePath() << "(" << _items.size() << "items ) indexed in" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 		}
 
-		sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 100);
 		sendContentsChangedNotification(operation);
 	});
 }
