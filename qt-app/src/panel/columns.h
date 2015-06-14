@@ -1,4 +1,4 @@
 #pragma once
 
 // All the columns of a panel
-enum {NameColumn, ExtColumn, SizeColumn, DateColumn, NumberOfColumns};
+enum FileListViewColumns {NameColumn, ExtColumn, SizeColumn, DateColumn, NumberOfColumns};

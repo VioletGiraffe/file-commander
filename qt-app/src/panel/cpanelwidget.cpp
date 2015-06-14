@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <time.h>
 #include <set>
+#include <tuple>
 
 CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	QWidget(parent),
@@ -144,7 +145,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 // Returns the list of items added to the view
 void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation)
 {
-	const time_t start = clock();
+	time_t start = clock();
+	const auto globalStart = start;
 
 	// Remembering currently highlighted item, as well as current folder, to restore cursor afterwards
 	const qulonglong currentHash = currentItemHash();
@@ -152,18 +154,20 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
 
 	ui->_list->saveHeaderState();
+	_sortModel->setSourceModel(nullptr);
 	_model->clear();
-	_sortModel->setSourceModel(0);
 
 	_model->setColumnCount(NumberOfColumns);
 	_model->setHorizontalHeaderLabels(QStringList() << "Name" << "Ext" << "Size" << "Date");
 
 	int itemRow = 0;
+	std::vector<std::tuple<int, FileListViewColumns, QStandardItem*>> qTreeViewItems;
+	qTreeViewItems.reserve(items.size() * NumberOfColumns);
+
 	for (const auto& item: items)
 	{
 		const CFileSystemObject& object = item.second;
 		auto props = object.properties();
-
 
 		QStandardItem * fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
@@ -175,21 +179,21 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 			fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
 		fileNameItem->setIcon(object.icon());
 		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		_model->setItem(itemRow, NameColumn, fileNameItem);
+		qTreeViewItems.emplace_back(itemRow, NameColumn, fileNameItem);
 
 		QStandardItem * fileExtItem = new QStandardItem();
 		fileExtItem->setEditable(false);
 		if (!props.completeBaseName.isEmpty() && !props.extension.isEmpty())
 			fileExtItem->setData(props.extension, Qt::DisplayRole);
 		fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		_model->setItem(itemRow, ExtColumn, fileExtItem);
+		qTreeViewItems.emplace_back(itemRow, ExtColumn, fileExtItem);
 
 		QStandardItem * sizeItem = new QStandardItem();
 		sizeItem->setEditable(false);
 		if (props.type != Directory || props.size > 0)
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
 		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		_model->setItem(itemRow, SizeColumn, sizeItem);
+		qTreeViewItems.emplace_back(itemRow, SizeColumn, sizeItem);
 
 		QStandardItem * dateItem = new QStandardItem();
 		dateItem->setEditable(false);
@@ -198,12 +202,22 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		modificationDate = modificationDate.toLocalTime();
 		dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm"), Qt::DisplayRole);
 		dateItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		_model->setItem(itemRow, DateColumn, dateItem);
+		qTreeViewItems.emplace_back(itemRow, DateColumn, dateItem);
 
 		++itemRow;
 	}
 
+	qDebug () << __FUNCTION__ << "Creating" << items.size() << "items took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+
+	start = clock();
+	for (const auto& qTreeViewItem: qTreeViewItems)
+		_model->setItem(std::get<0>(qTreeViewItem), std::get<1>(qTreeViewItem), std::get<2>(qTreeViewItem));
+	qDebug () << __FUNCTION__ << "Setting" << items.size() << "items to the model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+
+	start = clock();
 	_sortModel->setSourceModel(_model);
+	qDebug () << __FUNCTION__ << "Setting the source model to sort model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+
 	ui->_list->restoreHeaderState();
 
 	ui->_list->moveCursorToItem(_sortModel->index(0, 0));
@@ -251,7 +265,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 
 	selectionChanged(QItemSelection(), QItemSelection());
 
-	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - globalStart) * 1000 / CLOCKS_PER_SEC << "ms";
 }
 
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
