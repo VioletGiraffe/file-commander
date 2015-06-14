@@ -46,9 +46,11 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	QStandardItem * l = srcModel->item(left.row(), left.column());
 	QStandardItem * r = srcModel->item(right.row(), right.column());
 
-	if (!l)
+	if (!l && r)
 		return true;
-	if (!r)
+	else if (!r && l)
+		return false;
+	else if (!l && !r)
 		return false;
 
 	const qulonglong leftHash = l->data(Qt::UserRole).toULongLong();
