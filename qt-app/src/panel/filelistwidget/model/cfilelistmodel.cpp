@@ -33,7 +33,9 @@ QVariant CFileListModel::data(const QModelIndex & index, int role /*= Qt::Displa
 	{
 		if (!index.isValid())
 			return QString();
-		return QString::fromStdWString(CShell::toolTip(_controller.itemByHash(_panel, itemHash(index)).fullAbsolutePath().toStdWString()));
+
+		const CFileSystemObject item = _controller.itemByHash(_panel, itemHash(index));
+		return item.fullName() % "\n\n" % QString::fromStdWString(CShell::toolTip(item.fullAbsolutePath().toStdWString()));
 	}
 	else if (role == Qt::EditRole)
 	{
