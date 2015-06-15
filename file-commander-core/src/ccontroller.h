@@ -17,7 +17,7 @@ public:
 	{
 	public:
 		virtual ~IDiskListObserver() {}
-		virtual void disksChanged(QList<QStorageInfo> drives, Panel p, int currentDriveIndex) = 0;
+		virtual void disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& drives, Panel p) = 0;
 	};
 
 	CController();
@@ -82,6 +82,7 @@ public:
 	QString itemPath(Panel p, qulonglong hash) const;
 	QString diskPath(int index) const;
 	CFavoriteLocations& favoriteLocations();
+	int currentDiskIndex(Panel p) const;
 
 	CDiskEnumerator& diskEnumerator();
 
@@ -89,10 +90,9 @@ public:
 	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
 
 private:
-	virtual void disksChanged();
+	void disksChanged() override;
 
 	void saveDirectoryForCurrentDisk(Panel p);
-	int currentDiskIndex(Panel p) const;
 
 private:
 	static CController * _instance;

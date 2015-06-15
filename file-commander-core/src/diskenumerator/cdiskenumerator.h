@@ -12,9 +12,17 @@
 // Lists all the disk drives available on a target machine
 class CDiskEnumerator : protected QObject
 {
-	Q_OBJECT
-
 public:
+	struct DiskInfo
+	{
+		DiskInfo() = default;
+		DiskInfo(const QStorageInfo& qStorageInfo) : storageInfo(qStorageInfo), fileSystemObject(qStorageInfo.rootPath()) {}
+
+		QStorageInfo      storageInfo;
+		CFileSystemObject fileSystemObject;
+	};
+
+
 	CDiskEnumerator();
 
 	// Disk list observer interface
@@ -30,18 +38,20 @@ public:
 	// Removes the observer
 	void removeObserver(IDiskListObserver * observer);
 	// Returns the drives found
-	const QList<QStorageInfo>& drives() const;
+	const std::vector<DiskInfo>& drives() const;
 
-private slots:
+	// Forces an update in this thread
+	void updateSynchronously();
+
+private:
 	// Refresh the list of available disk drives
 	void enumerateDisks();
 
-private:
 	// Calls all the registered observers with the latest list of drives found
 	void notifyObservers() const;
 
 private:
-	QList<QStorageInfo>             _drives;
+	std::vector<DiskInfo>           _drives;
 	std::vector<IDiskListObserver*> _observers;
 	mutable CExecutionQueue         _notificationsQueue;
 	CPeriodicExecutionThread        _enumeratorThread;

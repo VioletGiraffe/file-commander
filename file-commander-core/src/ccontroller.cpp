@@ -21,6 +21,8 @@ CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel)
 
 	_leftPanel.addPanelContentsChangedListener(&CPluginEngine::get());
 	_rightPanel.addPanelContentsChangedListener(&CPluginEngine::get());
+
+	_diskEnumerator.updateSynchronously();
 }
 
 CController& CController::get()
@@ -91,10 +93,10 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 bool CController::switchToDisk(Panel p, int index)
 {
 	assert(index < _diskEnumerator.drives().size());
-	const QString drivePath = _diskEnumerator.drives().at(index).rootPath();
+	const QString drivePath = _diskEnumerator.drives().at(index).storageInfo.rootPath();
 
 	FileOperationResultCode result = rcDirNotAccessible;
-	if (drivePath == _diskEnumerator.drives().at(currentDiskIndex(otherPanelPosition(p))).rootPath())
+	if (drivePath == _diskEnumerator.drives().at(currentDiskIndex(otherPanelPosition(p))).storageInfo.rootPath())
 	{
 		result = setPath(p, otherPanel(p).currentDirPathNative(), refreshCauseOther);
 	}
@@ -349,14 +351,26 @@ QString CController::itemPath(Panel p, qulonglong hash) const
 	return panel(p).itemByHash(hash).properties().fullPath;
 }
 
-QString CController::diskPath(int index) const
+QString CController::diskPath(int index) const // TODO: make the argument size_t
 {
-	return index < _diskEnumerator.drives().size() && index >= 0 ? _diskEnumerator.drives().at(index).rootPath() : QString();
+	return index < _diskEnumerator.drives().size() && index >= 0 ? _diskEnumerator.drives()[index].fileSystemObject.fullAbsolutePath() : QString();
 }
 
 CFavoriteLocations &CController::favoriteLocations()
 {
 	return _favoriteLocations;
+}
+
+int CController::currentDiskIndex(Panel p) const
+{
+	const auto& drives = _diskEnumerator.drives();
+	for (int i = 0; i < drives.size(); ++i)
+	{
+		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(drives[i].fileSystemObject))
+			return i;
+	}
+
+	return std::numeric_limits<int>::max();
 }
 
 CDiskEnumerator& CController::diskEnumerator()
@@ -372,15 +386,15 @@ qulonglong CController::currentItemInFolder(Panel p, const QString &dir) const
 
 void CController::disksChanged()
 {
-
-	const int leftPanelRoot  = currentDiskIndex(LeftPanel);
-	const int rightPanelRoot = currentDiskIndex(RightPanel);
 	const auto& drives = _diskEnumerator.drives();
+
+	_rightPanel.disksChanged(drives);
+	_leftPanel.disksChanged(drives);
 
 	for (auto& listener: _disksChangedListeners)
 	{
-		listener->disksChanged(drives, RightPanel, rightPanelRoot);
-		listener->disksChanged(drives, LeftPanel, leftPanelRoot);
+		listener->disksChanged(drives, RightPanel);
+		listener->disksChanged(drives, LeftPanel);
 	}
 }
 
@@ -392,20 +406,7 @@ void CController::saveDirectoryForCurrentDisk(Panel p)
 		return;
 	}
 
-	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).rootPath();
+	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).storageInfo.rootPath();
 	const QString path = panel(p).currentDirPathNative();
 	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path);
-}
-
-
-int CController::currentDiskIndex(Panel p) const
-{
-	const auto& drives = _diskEnumerator.drives();
-	for (int i = 0; i < drives.size(); ++i)
-	{
-		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(CFileSystemObject(QFileInfo(drives[i].rootPath()))))
-			return i;
-	}
-
-	return std::numeric_limits<int>::max();
 }

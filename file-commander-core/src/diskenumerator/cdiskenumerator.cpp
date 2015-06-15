@@ -15,9 +15,14 @@ void CDiskEnumerator::removeObserver(IDiskListObserver *observer)
 }
 
 // Returns the drives found
-const QList<QStorageInfo> &CDiskEnumerator::drives() const
+const std::vector<CDiskEnumerator::DiskInfo>& CDiskEnumerator::drives() const
 {
 	return _drives;
+}
+
+void CDiskEnumerator::updateSynchronously()
+{
+	enumerateDisks();
 }
 
 CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval, "CDiskEnumerator thread")
@@ -35,14 +40,18 @@ CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval, "CDiskEn
 }
 
 // A helper function that checks if there are any changes between the old and the new disk lists - including the change in space available
-inline bool drivesChanged(const QList<QStorageInfo>& l, const QList<QStorageInfo>& r)
+static bool drivesChanged(const QList<QStorageInfo>& newList, const std::vector<CDiskEnumerator::DiskInfo>& oldList)
 {
-	if (l.size() != r.size())
+	if (newList.size() != oldList.size())
 		return true;
 
-	for (int i = 0; i < l.size(); ++i)
-		if ((l[i].name() % l[i].rootPath() % QString::number(l[i].bytesAvailable())) != (r[i].name() % r[i].rootPath() % QString::number(r[i].bytesAvailable())))
+	for (int i = 0; i < newList.size(); ++i)
+	{
+		const QStorageInfo& l = newList[i];
+		const QStorageInfo& r = oldList[i].storageInfo;
+		if ((l.name() % l.rootPath() % QString::number(l.bytesAvailable())) != (r.name() % r.rootPath() % QString::number(r.bytesAvailable())))
 			return true;
+	}
 
 	return false;
 }
@@ -54,7 +63,9 @@ void CDiskEnumerator::enumerateDisks()
 
 	if (drivesChanged(newDrives, _drives))
 	{
-		_drives = newDrives;
+		_drives.resize((size_t)newDrives.size());
+		std::copy(newDrives.cbegin(), newDrives.cend(), _drives.begin());
+
 		notifyObservers();
 	}
 }

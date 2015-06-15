@@ -8,6 +8,7 @@
 #include "QtCoreIncludes"
 
 #include "cfilesystemobject.h"
+#include "diskenumerator/cdiskenumerator.h"
 #include "historylist/chistorylist.h"
 #include "utils/threading/casynctask.h"
 #include "utils/threading/cexecutionqueue.h"
@@ -51,8 +52,6 @@ class QFileSystemWatcher;
 
 class CPanel : public QObject
 {
-	Q_OBJECT
-
 public:
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
 
@@ -96,12 +95,17 @@ public:
 	void sendContentsChangedNotification(FileListRefreshCause operation) const;
 	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress) const;
 
+	void disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& disks);
+
 	// Settings have changed
 	void settingsChanged();
 
 	void uiThreadTimerTick();
 
-private slots:
+private:
+	const QStorageInfo& storageInfoForObject(const CFileSystemObject& object) const;
+	bool pathIsAccessible(const QString& path) const;
+
 	void contentsChanged(QString path);
 
 private:
@@ -113,6 +117,8 @@ private:
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
+
+	std::vector<CDiskEnumerator::DiskInfo>     _disks;
 
 	CAsyncTask<void>                           _refreshFileListTask;
 	mutable CExecutionQueue                    _uiThreadQueue;

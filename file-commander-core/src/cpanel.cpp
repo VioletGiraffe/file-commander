@@ -15,6 +15,7 @@ CPanel::CPanel(Panel position) :
 	CSettings s;
 	const QStringList historyList(s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList());
 	_history.addLatest(historyList.toVector().toStdVector());
+	setPath("M:/", refreshCauseOther);
 	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString(), refreshCauseOther);
 }
 
@@ -37,22 +38,24 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	bool pathSet = false;
 	for (const auto& candidatePath: pathGraph)
 	{
-		_currentDirObject.setPath(candidatePath);
-		pathSet = _currentDirObject.exists() && ! _currentDirObject.qDir().entryList().isEmpty(); // No dot and dotdot on Linux means the dir is not accessible
-		if (pathSet)
+		if (pathIsAccessible(candidatePath))
+		{
+			_currentDirObject.setPath(candidatePath);
+			pathSet = true;
 			break;
+		}
 	}
 
 	if (!pathSet)
 	{
-		if (QFileInfo(oldPath).exists())
+		if (pathIsAccessible(oldPath))
 			_currentDirObject.setPath(oldPath);
 		else
 		{
 			QString pathToSet;
 			for (auto it = history().rbegin() + (history().size() - 1 - history().currentIndex()); it != history().rend(); ++it)
 			{
-				if (QFileInfo(*it).exists())
+				if (pathIsAccessible(*it))
 				{
 					pathToSet = *it;
 					break;
@@ -78,17 +81,12 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	_watcher = std::make_shared<QFileSystemWatcher>();
 
-#if QT_VERSION >= QT_VERSION_CHECK (5,0,0)
-	const QString watchPath(newPath);
-#else
-	const QString watchPath(posixPath);
-#endif
-	if (_watcher->addPath(watchPath) == false)
-		qDebug() << __FUNCTION__ << "Error adding path" << watchPath << "to QFileSystemWatcher";
+	if (_watcher->addPath(newPath) == false)
+		qDebug() << __FUNCTION__ << "Error adding path" << newPath << "to QFileSystemWatcher";
 
-	connect(_watcher.get(), SIGNAL(directoryChanged(QString)), SLOT(contentsChanged(QString)));
-	connect(_watcher.get(), SIGNAL(fileChanged(QString)), SLOT(contentsChanged(QString)));
-	connect(_watcher.get(), SIGNAL(objectNameChanged(QString)), SLOT(contentsChanged(QString)));
+	connect(_watcher.get(), &QFileSystemWatcher::directoryChanged, this, &CPanel::contentsChanged);
+	connect(_watcher.get(), &QFileSystemWatcher::fileChanged, this, &CPanel::contentsChanged);
+	connect(_watcher.get(), &QFileSystemWatcher::objectNameChanged, this, &CPanel::contentsChanged);
 
 	// Finding hash of an item corresponding to path
 	for (const auto& item : _items)
@@ -348,6 +346,15 @@ void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t p
 	}, 1);
 }
 
+void CPanel::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& disks)
+{
+	_disks = disks;
+
+	// Handling an unplugged device
+	if (!storageInfoForObject(_currentDirObject).isReady())
+		setPath(_currentDirObject.fullAbsolutePath(), refreshCauseOther);
+}
+
 // Settings have changed
 void CPanel::settingsChanged()
 {
@@ -368,4 +375,18 @@ void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *liste
 	assert(std::find(_panelContentsChangedListeners.begin(), _panelContentsChangedListeners.end(), listener) == _panelContentsChangedListeners.end()); // Why would we want to set the same listener twice? That'd probably be a mistake.
 	_panelContentsChangedListeners.push_back(listener);
 	sendContentsChangedNotification(refreshCauseOther);
+}
+
+const QStorageInfo& CPanel::storageInfoForObject(const CFileSystemObject& object) const
+{
+	static const QStorageInfo dummy;
+
+	const auto storage = std::find_if(_disks.cbegin(), _disks.cend(), [&object](const CDiskEnumerator::DiskInfo& item) {return item.fileSystemObject.rootFileSystemId() == object.rootFileSystemId();});
+	return storage != _disks.cend() ? storage->storageInfo : dummy;
+}
+
+bool CPanel::pathIsAccessible(const QString& path) const
+{
+	const CFileSystemObject pathObject(path);
+	return pathObject.exists() && storageInfoForObject(pathObject).isReady() && pathObject.isReadable() && !pathObject.qDir().entryList().isEmpty();
 }

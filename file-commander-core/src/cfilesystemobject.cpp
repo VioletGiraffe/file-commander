@@ -163,7 +163,7 @@ bool CFileSystemObject::isHidden() const
 // Returns true if this object is a child of parent, either direct or indirect
 bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 {
-	return fullAbsolutePath().startsWith(parent.fullAbsolutePath(), Qt::CaseInsensitive);
+	return isValid() && parent.isValid() && fullAbsolutePath().startsWith(parent.fullAbsolutePath(), Qt::CaseInsensitive);
 }
 
 QString CFileSystemObject::fullAbsolutePath() const
@@ -196,7 +196,7 @@ const QFileInfo &CFileSystemObject::qFileInfo() const
 	return _fileInfo;
 }
 
-const QDir& CFileSystemObject::qDir()
+const QDir& CFileSystemObject::qDir() const
 {
 	return _dir;
 }
@@ -209,6 +209,30 @@ std::vector<QString> CFileSystemObject::pathHierarchy(const QString& path)
 		result.push_back(pathItem);
 
 	return result;
+}
+
+uint64_t CFileSystemObject::rootFileSystemId() const
+{
+	if (_rootFileSystemId == std::numeric_limits<uint64_t>::max())
+	{
+#ifdef _WIN32
+		const auto driveNumber = PathGetDriveNumberW((WCHAR*) _properties.fullPath.utf16());
+		if (driveNumber != -1)
+			_rootFileSystemId = (uint64_t) driveNumber;
+#else
+		struct stat info;
+		const int ret = stat(_properties.fullPath.toUtf8().constData(), &info);
+		if (ret == 0 || errno == ENOENT)
+			_rootFileSystemId = (uint64_t) info.st_dev;
+		else
+		{
+			_lastError = strerror(errno);
+			qDebug() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
+		}
+#endif
+	}
+
+	return _rootFileSystemId;
 }
 
 bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
@@ -506,29 +530,5 @@ FileOperationResultCode CFileSystemObject::remove()
 QString CFileSystemObject::lastErrorMessage() const
 {
 	return _lastError;
-}
-
-uint64_t CFileSystemObject::rootFileSystemId() const
-{
-	if (_rootFileSystemId == std::numeric_limits<uint64_t>::max())
-	{
-#ifdef _WIN32
-		const auto driveNumber = PathGetDriveNumberW((WCHAR*)_properties.fullPath.utf16());
-		if (driveNumber != -1)
-			_rootFileSystemId = (uint64_t)driveNumber;
-#else
-		struct stat info;
-		const int ret = stat(_properties.fullPath.toUtf8().constData(), &info);
-		if (ret == 0 || errno == ENOENT)
-			_rootFileSystemId = (uint64_t)info.st_dev;
-		else
-		{
-			_lastError = strerror(errno);
-			qDebug() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
-		}
-#endif
-	}
-
-	return _rootFileSystemId;
 }
 

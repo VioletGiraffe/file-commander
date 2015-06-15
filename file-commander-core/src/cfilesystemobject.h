@@ -69,8 +69,9 @@ public:
 	uint64_t size() const;
 	qulonglong hash() const;
 	const QFileInfo& qFileInfo() const;
-	const QDir& qDir();
+	const QDir& qDir() const;
 	static std::vector<QString> pathHierarchy(const QString& path);
+	uint64_t rootFileSystemId() const;
 
 	bool isMovableTo(const CFileSystemObject& dest) const;
 
@@ -101,9 +102,6 @@ public:
 	FileOperationResultCode remove();
 
 	QString lastErrorMessage() const;
-
-private:
-	uint64_t rootFileSystemId() const;
 
 private:
 	QFileInfo                   _fileInfo;

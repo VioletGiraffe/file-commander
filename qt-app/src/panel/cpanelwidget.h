@@ -90,12 +90,14 @@ private:
 
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
-	void disksChanged(QList<QStorageInfo> drives, Panel p, int currentDriveIndex) override;
+	void disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& drives, Panel p) override;
 
 // Internal methods
 	qulonglong hashByItemIndex(const QModelIndex& index) const;
 	qulonglong hashByItemRow(const int row) const;
 	QModelIndex indexByHash(const qulonglong hash) const;
+
+	void updateCurrentDiskButton();
 
 private:
 	CFileListFilterDialog           _filterDialog;

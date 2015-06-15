@@ -172,7 +172,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		QStandardItem * fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
 		if (props.type == Directory)
-			fileNameItem->setData(QString("[%1]").arg(object.isCdUp() ? QString("..") : props.fullName), Qt::DisplayRole);
+			fileNameItem->setData(QString("[" % (object.isCdUp() ? QString("..") : props.fullName) % "]"), Qt::DisplayRole);
 		else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
 			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
 		else
@@ -289,6 +289,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 		}
 
 	fillHistory();
+	updateCurrentDiskButton();
 }
 
 void CPanelWidget::showContextMenuForItems(QPoint pos)
@@ -662,7 +663,7 @@ bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& 
 	return true; // Consuming the event
 }
 
-void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int currentDriveIndex)
+void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& drives, Panel p)
 {
 	if (p != _panelPosition)
 		return;
@@ -689,12 +690,12 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 	// Creating and adding new buttons
 	for (int i = 0; i < drives.size(); ++i)
 	{
-		const auto& drive = drives[i];
-		if (!drive.isValid())
+		const auto& driveInfo = drives[i].storageInfo;
+		if (!driveInfo.isValid())
 			continue;
 
 #ifdef _WIN32
-		const QString name = drive.rootPath().remove(":/");
+		const QString name = driveInfo.rootPath().remove(":/");
 #else
 		QString name = drive.displayName();
 		if (name.startsWith("/") && name.indexOf('/', 1) != -1)
@@ -704,31 +705,21 @@ void CPanelWidget::disksChanged(QList<QStorageInfo> drives, Panel p, int current
 		}
 #endif
 
-		const CFileSystemObject fileSystemObject(drive.rootPath());
-
 		assert(layout);
 		QPushButton * diskButton = new QPushButton;
 		diskButton->setCheckable(true);
-		diskButton->setIcon(fileSystemObject.icon());
+		diskButton->setIcon(drives[i].fileSystemObject.icon());
 		diskButton->setText(name);
 		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).width(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 		diskButton->setProperty("id", i);
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
-		diskButton->setToolTip(drive.displayName());
+		diskButton->setToolTip(driveInfo.displayName());
 		connect(diskButton, SIGNAL(clicked()), SLOT(driveButtonClicked()));
 		connect(diskButton, SIGNAL(customContextMenuRequested(QPoint)), SLOT(showContextMenuForDisk(QPoint)));
-		if (i == currentDriveIndex)
-		{
-			diskButton->setChecked(true);
-			_currentDisk = fileSystemObject.fullAbsolutePath();
-			ui->_driveInfoLabel->setText(QString("%1 (%2): %3 available, <b>%4 free</b> of %5 total").arg(drive.displayName()).
-				arg(QString::fromUtf8(drive.fileSystemType())).
-				arg(fileSizeToString(drive.bytesAvailable(), 'M', " ")).
-				arg(fileSizeToString(drive.bytesFree(), 'M', " ")).
-				arg(fileSizeToString(drive.bytesTotal(), 'M', " ")));
-		}
 		layout->addWidget(diskButton);
 	}
+
+	updateCurrentDiskButton();
 }
 
 qulonglong CPanelWidget::hashByItemIndex(const QModelIndex &index) const
@@ -848,4 +839,35 @@ qulonglong CPanelWidget::currentItemHash() const
 void CPanelWidget::invertSelection()
 {
 	ui->_list->invertSelection();
+}
+
+void CPanelWidget::updateCurrentDiskButton()
+{
+	QLayout * layout = ui->_driveButtonsWidget->layout();
+	if (!layout)
+		return;
+
+	for (int i = 0; i < layout->count(); ++i)
+	{
+		QLayoutItem* item = layout->itemAt(i);
+		QPushButton* button = dynamic_cast<QPushButton*>(item ? item->widget() : nullptr);
+		if (!button)
+			continue;
+
+		const int id = button->property("id").toInt();
+		const int currentDriveId = _controller.currentDiskIndex(_panelPosition);
+		if (id == currentDriveId)
+		{
+			button->setChecked(true);
+			const auto& diskInfo = _controller.diskEnumerator().drives()[id];
+			_currentDisk = diskInfo.fileSystemObject.fullAbsolutePath();
+			ui->_driveInfoLabel->setText(QString("%1 (%2): %3 available, <b>%4 free</b> of %5 total").arg(diskInfo.storageInfo.displayName()).
+				arg(QString::fromUtf8(diskInfo.storageInfo.fileSystemType())).
+				arg(fileSizeToString(diskInfo.storageInfo.bytesAvailable(), 'M', " ")).
+				arg(fileSizeToString(diskInfo.storageInfo.bytesFree(), 'M', " ")).
+				arg(fileSizeToString(diskInfo.storageInfo.bytesTotal(), 'M', " ")));
+
+			return;
+		}
+	}
 }
