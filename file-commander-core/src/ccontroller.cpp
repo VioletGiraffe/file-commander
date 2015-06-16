@@ -22,6 +22,7 @@ CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel)
 	_leftPanel.addPanelContentsChangedListener(&CPluginEngine::get());
 	_rightPanel.addPanelContentsChangedListener(&CPluginEngine::get());
 
+	// Manual update for the CPanels to get the disk list
 	_diskEnumerator.updateSynchronously();
 
 	_leftPanel.restoreFromSettings();
@@ -43,6 +44,9 @@ void CController::setDisksChangedListener(CController::IDiskListObserver *listen
 {
 	assert(std::find(_disksChangedListeners.begin(), _disksChangedListeners.end(), listener) == _disksChangedListeners.end());
 	_disksChangedListeners.push_back(listener);
+
+	// Force an update
+	disksChanged();
 }
 
 void CController::uiThreadTimerTick()
