@@ -153,6 +153,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	const QModelIndex currentIndex = _selectionModel->currentIndex();
 	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
 
+	//ui->_list->setUpdatesEnabled(false);
 	ui->_list->saveHeaderState();
 	_sortModel->setSourceModel(nullptr);
 	_model->clear();

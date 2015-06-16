@@ -22,7 +22,7 @@ const std::vector<CDiskEnumerator::DiskInfo>& CDiskEnumerator::drives() const
 
 void CDiskEnumerator::updateSynchronously()
 {
-	enumerateDisks();
+	enumerateDisks(false);
 }
 
 CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval, "CDiskEnumerator thread")
@@ -35,7 +35,7 @@ CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval, "CDiskEn
 
 	// Starting the worker thread that actually enumerates the disks
 	_enumeratorThread.start([this](){
-		enumerateDisks();
+		enumerateDisks(true);
 	});
 }
 
@@ -57,7 +57,7 @@ static bool drivesChanged(const QList<QStorageInfo>& newList, const std::vector<
 }
 
 // Refresh the list of available disk drives
-void CDiskEnumerator::enumerateDisks()
+void CDiskEnumerator::enumerateDisks(bool async)
 {
 	const auto newDrives = QStorageInfo::mountedVolumes();
 
@@ -66,12 +66,12 @@ void CDiskEnumerator::enumerateDisks()
 		_drives.resize((size_t)newDrives.size());
 		std::copy(newDrives.cbegin(), newDrives.cend(), _drives.begin());
 
-		notifyObservers();
+		notifyObservers(async);
 	}
 }
 
 // Calls all the registered observers with the latest list of drives found
-void CDiskEnumerator::notifyObservers() const
+void CDiskEnumerator::notifyObservers(bool async) const
 {
 	// This method is called from the worker thread
 	// Queuing the code to be executed on the thread where CDiskEnumerator was created
@@ -80,4 +80,7 @@ void CDiskEnumerator::notifyObservers() const
 		for (auto& observer : _observers)
 			observer->disksChanged();
 	}, 0); // Setting the tag to 0 will discard any previous queue items with the same tag that have not yet been processed
+
+	if (!async)
+		_notificationsQueue.exec();
 }

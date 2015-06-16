@@ -58,6 +58,7 @@ public:
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 
 	explicit CPanel(Panel position);
+	void restoreFromSettings();
 	// Sets the current directory
 	FileOperationResultCode setPath(const QString& path, FileListRefreshCause operation);
 	// Navigates up the directory tree

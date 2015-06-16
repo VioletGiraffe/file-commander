@@ -45,10 +45,10 @@ public:
 
 private:
 	// Refresh the list of available disk drives
-	void enumerateDisks();
+	void enumerateDisks(bool async);
 
 	// Calls all the registered observers with the latest list of drives found
-	void notifyObservers() const;
+	void notifyObservers(bool async) const;
 
 private:
 	std::vector<DiskInfo>           _drives;

@@ -23,6 +23,9 @@ CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel)
 	_rightPanel.addPanelContentsChangedListener(&CPluginEngine::get());
 
 	_diskEnumerator.updateSynchronously();
+
+	_leftPanel.restoreFromSettings();
+	_rightPanel.restoreFromSettings();
 }
 
 CController& CController::get()

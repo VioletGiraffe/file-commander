@@ -12,10 +12,13 @@
 CPanel::CPanel(Panel position) :
 	_panelPosition(position)
 {
+}
+
+void CPanel::restoreFromSettings()
+{
 	CSettings s;
 	const QStringList historyList(s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList());
 	_history.addLatest(historyList.toVector().toStdVector());
-	setPath("M:/", refreshCauseOther);
 	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString(), refreshCauseOther);
 }
 
@@ -351,7 +354,7 @@ void CPanel::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& disks)
 	_disks = disks;
 
 	// Handling an unplugged device
-	if (!storageInfoForObject(_currentDirObject).isReady())
+	if (_currentDirObject.isValid() && !storageInfoForObject(_currentDirObject).isReady())
 		setPath(_currentDirObject.fullAbsolutePath(), refreshCauseOther);
 }
 
