@@ -338,7 +338,7 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 	_uiThreadQueue.enqueue([this, operation]() {
 		for (auto listener : _panelContentsChangedListeners)
 			listener->panelContentsChanged(_panelPosition, operation);
-	}, 0);
+	});
 }
 
 void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress) const

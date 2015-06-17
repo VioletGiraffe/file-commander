@@ -180,6 +180,10 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 			const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? posixName.left(posixName.indexOf('/')) : posixName);
 			// This is required for the UI to know to set the cursor at the new folder
 			activePanel().setCurrentItemInFolder(activePanel().currentDirPathNative(), CFileSystemObject(newFolderPath).hash());
+
+			// TODO: refreshCauseNewItemCreated is needed for the cursor to jump to the right item upon refresh.
+			// This means that we must process both refresh operations - this manual one AND the one queued by the file system watcher when it detects the change.
+			// And if we only process the watcher update with refreshCauseOther, the setCurrentItemInFolder has no effect. Can this be fixed to avoid double refresh?
 			activePanel().refreshFileList(refreshCauseNewItemCreated);
 		}
 
