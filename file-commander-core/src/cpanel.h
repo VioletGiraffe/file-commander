@@ -72,6 +72,7 @@ public:
 	void showAllFilesFromCurrentFolderAndBelow();
 
 	// Info on the dir this panel is currently set to
+	CFileSystemObject currentDirObject() const;
 	QString currentDirPathNative() const;
 	QString currentDirPathPosix() const;
 	QString currentDirName() const;

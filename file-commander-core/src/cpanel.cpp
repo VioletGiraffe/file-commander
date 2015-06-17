@@ -173,6 +173,11 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	});
 }
 
+CFileSystemObject CPanel::currentDirObject() const
+{
+	return _currentDirObject;
+}
+
 // Info on the dir this panel is currently set to
 QString CPanel::currentDirPathNative() const
 {
