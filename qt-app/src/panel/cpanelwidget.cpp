@@ -54,8 +54,6 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(&_filterDialog, SIGNAL(filterTextChanged(QString)), SLOT(filterTextChanged(QString)));
 
 	ui->_list->addEventObserver(this);
-
-	_controller.setDisksChangedListener(this);
 }
 
 CPanelWidget::~CPanelWidget()
@@ -140,6 +138,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 	_controller.setPanelContentsChangedListener(p, this);
 
 	fillHistory();
+
+	_controller.setDisksChangedListener(this);
 }
 
 // Returns the list of items added to the view
