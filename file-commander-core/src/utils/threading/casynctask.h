@@ -1,28 +1,42 @@
 #pragma once
 
-#include <future>
+#include <thread>
+#include <assert.h>
 
-template <typename ResultType>
 class CAsyncTask
 {
 public:
+	~CAsyncTask()
+	{
+		if (_thread.joinable())
+			_thread.join();
+	}
+
 	template <class Callable, typename ...Args>
 	void exec(Callable&& task, Args&&... args)
 	{
-		if (_future.valid())
-			_future.wait();
+		try
+		{
+			const auto workerTid = _thread.get_id(), thisTid = std::this_thread::get_id();
+			if (workerTid != thisTid)
+			{
+				if (_thread.joinable())
+					_thread.join();
 
-		_future = std::async(std::launch::async, std::forward<Callable>(task), std::forward<Args>(args)...);
-	}
-
-	ResultType getResult()
-	{
-		if (_future.valid())
-			return _future.get();
-		else
-			return ResultType();
+				_thread = std::thread(std::forward<Callable>(task), std::forward<Args>(args)...);
+			}
+			else
+				task(std::forward<Args>(args)...);
+		}
+		catch (std::exception& e)
+		{
+			assert(false);
+#ifdef QT_VERSION
+			qDebug() << __FUNCTION__ << "Exception occurred: " << e.what();
+#endif
+		}
 	}
 
 private:
-	std::future<ResultType> _future;
+	std::thread _thread;
 };

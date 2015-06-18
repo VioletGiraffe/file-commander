@@ -122,7 +122,7 @@ private:
 
 	std::vector<CDiskEnumerator::DiskInfo>     _disks;
 
-	CAsyncTask<void>                           _refreshFileListTask;
+	CAsyncTask                                 _refreshFileListTask;
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
 };

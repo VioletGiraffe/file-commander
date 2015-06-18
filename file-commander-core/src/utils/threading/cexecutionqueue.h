@@ -18,6 +18,11 @@ class CExecutionQueue
 public:
 	enum ExecutionMode {execFirst, execAll};
 
+	inline ~CExecutionQueue()
+	{
+		std::lock_guard<std::mutex> locker(_queueMutex);
+	}
+
 	inline void enqueue(const std::function<void ()>& code, int tag = -1)
 	{
 		std::lock_guard<std::mutex> locker(_queueMutex);
