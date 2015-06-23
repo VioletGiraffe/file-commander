@@ -382,7 +382,6 @@ void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *liste
 {
 	assert(std::find(_panelContentsChangedListeners.begin(), _panelContentsChangedListeners.end(), listener) == _panelContentsChangedListeners.end()); // Why would we want to set the same listener twice? That'd probably be a mistake.
 	_panelContentsChangedListeners.push_back(listener);
-	sendContentsChangedNotification(refreshCauseOther);
 }
 
 const QStorageInfo& CPanel::storageInfoForObject(const CFileSystemObject& object) const
