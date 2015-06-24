@@ -698,7 +698,7 @@ void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& dr
 #ifdef _WIN32
 		const QString name = driveInfo.rootPath().remove(":/");
 #else
-		QString name = drive.displayName();
+		QString name = driveInfo.displayName();
 		if (name.startsWith("/") && name.indexOf('/', 1) != -1)
 		{
 			const int lastPathPart = name.lastIndexOf('/');
