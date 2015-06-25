@@ -145,7 +145,7 @@ void COperationPerformer::copyFiles()
 	if (_source.size() == 1)
 		// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
 		// Or we're just renaming an item, no matter file or dir, in which case we also must account for the new name
-		if ((_source.front().isFile() && !_destFileSystemObject.isDir()) || _op == operationMove)
+		if ((_source.front().isFile() && !_destFileSystemObject.isDir()) || _source.front().isDir())
 			_newName = _destFileSystemObject.fullName();
 
 	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster
