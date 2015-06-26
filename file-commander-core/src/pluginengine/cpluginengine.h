@@ -5,6 +5,9 @@
 #include "../plugininterface/cfilecommanderplugin.h"
 
 #include "QtCoreIncludes"
+#include <QLibrary>
+#include <QMainWindow>
+
 #include <vector>
 #include <memory>
 

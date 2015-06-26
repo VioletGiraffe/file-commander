@@ -24,6 +24,8 @@
 #include <Windows.h>
 #endif
 
+#include <QProcess>
+
 // Main window settings keys
 #define KEY_RPANEL_STATE      "Ui/RPanel/State"
 #define KEY_LPANEL_STATE      "Ui/LPanel/State"

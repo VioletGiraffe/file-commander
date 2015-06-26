@@ -6,6 +6,9 @@
 
 #include <assert.h>
 
+#include <QApplication>
+#include <QDir>
+
 CPluginEngine::CPluginEngine()
 {
 }

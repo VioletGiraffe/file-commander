@@ -3,7 +3,9 @@
 
 #include <unordered_map>
 #include <memory>
+
 #include "QtCoreIncludes"
+#include <QIcon>
 
 class CFileSystemObject;
 class CIconProviderImpl;

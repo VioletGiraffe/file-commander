@@ -2,6 +2,7 @@
 #define CVIEWERWINDOW_H
 
 #include "QtCoreIncludes"
+#include <QMainWindow>
 #include "plugin_export.h"
 
 class PLUGIN_EXPORT CPluginWindow : public QMainWindow

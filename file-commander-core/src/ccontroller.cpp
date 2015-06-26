@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include <QDesktopServices>
+#include <QProcess>
+
 CController* CController::_instance = nullptr;
 
 CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel)

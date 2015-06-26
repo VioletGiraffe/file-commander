@@ -4,6 +4,7 @@
 #include "filesystemhelperfunctions.h"
 
 #include "QtCoreIncludes"
+#include <QFileSystemWatcher>
 
 #include <assert.h>
 #include <time.h>

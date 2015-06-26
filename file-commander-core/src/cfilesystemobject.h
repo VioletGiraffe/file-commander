@@ -5,6 +5,11 @@
 #include <vector>
 #include <memory>
 #include "QtCoreIncludes"
+#include <QDir>
+#include <QFileInfo>
+#include <QIcon>
+#include <QString>
+#include <QStringBuilder>
 
 #include "fileoperationresultcode.h"
 

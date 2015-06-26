@@ -3,6 +3,8 @@
 #include "ciconproviderimpl.h"
 #include "../fasthash.h"
 
+#include <QIcon>
+
 std::unique_ptr<CIconProvider> CIconProvider::_instance;
 
 const QIcon& CIconProvider::iconForFilesystemObject(const CFileSystemObject &object)

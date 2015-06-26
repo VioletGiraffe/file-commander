@@ -6,8 +6,11 @@
 #include "../utils/threading/cperiodicexecutionthread.h"
 
 #include "QtCoreIncludes"
+#include <QStorageInfo>
+#include <QTimer>
 
 #include <vector>
+
 
 // Lists all the disk drives available on a target machine
 class CDiskEnumerator : protected QObject
