@@ -1,11 +1,11 @@
 #pragma once
 
 #include "operationcodes.h"
-#include "../cfilesystemobject.h"
-#include "../utils/ctimeelapsed.h"
-#include "../utils/MeanCounter.h"
+#include "cfilesystemobject.h"
+#include "utils/ctimeelapsed.h"
+#include "utils/MeanCounter.h"
 
-#include "../../include/QtCoreIncludes"
+#include "QtCoreIncludes"
 
 #include <assert.h>
 #include <vector>

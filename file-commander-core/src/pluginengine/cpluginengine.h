@@ -1,8 +1,8 @@
 #ifndef CPLUGINENGINE_H
 #define CPLUGINENGINE_H
 
-#include "../cpanel.h"
-#include "../plugininterface/cfilecommanderplugin.h"
+#include "cpanel.h"
+#include "plugininterface/cfilecommanderplugin.h"
 
 #include "QtCoreIncludes"
 #include <QLibrary>

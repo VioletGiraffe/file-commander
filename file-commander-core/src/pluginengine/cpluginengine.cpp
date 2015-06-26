@@ -1,8 +1,8 @@
 #include "cpluginengine.h"
-#include "../ccontroller.h"
-#include "../plugininterface/cfilecommanderviewerplugin.h"
-#include "../plugininterface/cfilecommandertoolplugin.h"
-#include "../plugininterface/cpluginproxy.h"
+#include "ccontroller.h"
+#include "plugininterface/cfilecommanderviewerplugin.h"
+#include "plugininterface/cfilecommandertoolplugin.h"
+#include "plugininterface/cpluginproxy.h"
 
 #include <assert.h>
 
