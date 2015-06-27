@@ -5,6 +5,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
+#include <QFileInfo>
 #include <QProcessEnvironment>
 RESTORE_COMPILER_WARNINGS
 
@@ -268,7 +269,7 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 	{
 		qDebug() << "DeleteItems failed";
 	}
-	else 
+	else
 	{
 		if (moveToTrash)
 		{

@@ -14,10 +14,12 @@
 #include "../cmainwindow.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QClipboard>
 #include <QDateTime>
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QPushButton>
 #include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
@@ -698,7 +700,7 @@ void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& dr
 	}
 
 	// Creating and adding new buttons
-	for (int i = 0; i < drives.size(); ++i)
+	for (size_t i = 0; i < drives.size(); ++i)
 	{
 		const auto& driveInfo = drives[i].storageInfo;
 		if (!driveInfo.isValid())
@@ -721,7 +723,7 @@ void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& dr
 		diskButton->setIcon(drives[i].fileSystemObject.icon());
 		diskButton->setText(name);
 		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).width(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
-		diskButton->setProperty("id", i);
+		diskButton->setProperty("id", (qulonglong)i);
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 		diskButton->setToolTip(driveInfo.displayName());
 		connect(diskButton, SIGNAL(clicked()), SLOT(driveButtonClicked()));
@@ -864,8 +866,8 @@ void CPanelWidget::updateCurrentDiskButton()
 		if (!button)
 			continue;
 
-		const int id = button->property("id").toInt();
-		const int currentDriveId = _controller.currentDiskIndex(_panelPosition);
+		const size_t id = button->property("id").toULongLong();
+		const size_t currentDriveId = _controller.currentDiskIndex(_panelPosition);
 		if (id == currentDriveId)
 		{
 			button->setChecked(true);

@@ -240,7 +240,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		const size_t numItemsFound = list.size();
 		objectsList.reserve(numItemsFound);
 
-		for (int i = 0; i < numItemsFound; ++i)
+		for (int i = 0; i < (int)numItemsFound; ++i)
 		{
 			objectsList.emplace_back(list[i]);
 			sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20 + 80 * i / numItemsFound);

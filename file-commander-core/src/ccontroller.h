@@ -36,7 +36,7 @@ public:
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current disk has been switched
-	bool switchToDisk(Panel p, int index);
+	bool switchToDisk(Panel p, size_t index);
 	// Program settings have changed
 	void settingsChanged();
 	// Focus is set to a panel
@@ -78,9 +78,9 @@ public:
 	CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
 	QString itemPath(Panel p, qulonglong hash) const;
-	QString diskPath(int index) const;
+	QString diskPath(size_t index) const;
 	CFavoriteLocations& favoriteLocations();
-	int currentDiskIndex(Panel p) const;
+	size_t currentDiskIndex(Panel p) const;
 
 	CDiskEnumerator& diskEnumerator();
 

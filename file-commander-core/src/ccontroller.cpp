@@ -101,7 +101,7 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 }
 
 // A current disk has been switched
-bool CController::switchToDisk(Panel p, int index)
+bool CController::switchToDisk(Panel p, size_t index)
 {
 	assert(index < _diskEnumerator.drives().size());
 	const QString drivePath = _diskEnumerator.drives().at(index).storageInfo.rootPath();
@@ -366,9 +366,9 @@ QString CController::itemPath(Panel p, qulonglong hash) const
 	return panel(p).itemByHash(hash).properties().fullPath;
 }
 
-QString CController::diskPath(int index) const // TODO: make the argument size_t
+QString CController::diskPath(size_t index) const // TODO: make the argument size_t
 {
-	return index < _diskEnumerator.drives().size() && index >= 0 ? _diskEnumerator.drives()[index].fileSystemObject.fullAbsolutePath() : QString();
+	return index < _diskEnumerator.drives().size() ? _diskEnumerator.drives()[index].fileSystemObject.fullAbsolutePath() : QString();
 }
 
 CFavoriteLocations &CController::favoriteLocations()
@@ -376,10 +376,10 @@ CFavoriteLocations &CController::favoriteLocations()
 	return _favoriteLocations;
 }
 
-int CController::currentDiskIndex(Panel p) const
+size_t CController::currentDiskIndex(Panel p) const
 {
 	const auto& drives = _diskEnumerator.drives();
-	for (int i = 0; i < drives.size(); ++i)
+	for (size_t i = 0; i < drives.size(); ++i)
 	{
 		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(drives[i].fileSystemObject))
 			return i;
