@@ -1,7 +1,3 @@
-#ifdef _WIN32
-#pragma warning(push, 0) // set W0
-#endif
-
 #include "csettingspageother.h"
 #include "ui_csettingspageother.h"
 
@@ -9,10 +5,6 @@
 #include "settings/csettings.h"
 #include "ccontroller.h"
 #include "shell/cshell.h"
-
-#ifdef _WIN32
-#pragma warning(pop)
-#endif
 
 CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 	CSettingsPage(parent),
