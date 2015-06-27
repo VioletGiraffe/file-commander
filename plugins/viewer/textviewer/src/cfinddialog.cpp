@@ -69,6 +69,22 @@ void CFindDialog::accept()
 	saveSearchSettings();
 }
 
+void CFindDialog::showEvent(QShowEvent * e)
+{
+	ui->_searchText->selectAll();
+	ui->_searchText->setFocus();
+
+	// TODO: when a dialog is accepted, the next it's shown offset down and to the right of the previous position, as if the previous one is still on screen. Qt bug?..
+	// This is a fix for it
+
+	QRect dialogGeometry = geometry();
+	const QRect parentGeometry = dynamic_cast<QWidget*>(parent()) ? dynamic_cast<QWidget*>(parent())->geometry() : QRect();
+	dialogGeometry.moveTo(QPoint(parentGeometry.center().x() - dialogGeometry.width() / 2, parentGeometry.center().y() - dialogGeometry.height() / 2));
+	setGeometry(dialogGeometry);
+
+	QDialog::showEvent(e);
+}
+
 void CFindDialog::saveSearchSettings() const
 {
 	CSettings s;

@@ -28,6 +28,9 @@ signals:
 public slots:
 	void accept() override;
 
+protected:
+	void showEvent(QShowEvent * e) override;
+
 private:
 	void saveSearchSettings() const;
 

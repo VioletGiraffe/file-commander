@@ -17,17 +17,17 @@ CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	connect(ui->actionOpen, &QAction::triggered, [this](){
+	connect(ui->actionOpen, &QAction::triggered, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
 		if (!fileName.isEmpty())
 			loadTextFile(fileName);
 	});
-	connect(ui->actionReload, &QAction::triggered, [this](){
+	connect(ui->actionReload, &QAction::triggered, [this]() {
 		loadTextFile(_sourceFilePath);
 	});
 	connect(ui->actionClose, SIGNAL(triggered()), SLOT(close()));
 
-	connect(ui->actionFind, &QAction::triggered, [this](){
+	connect(ui->actionFind, &QAction::triggered, [this]() {
 		_findDialog.exec();
 	});
 	connect(ui->actionFind_next, SIGNAL(triggered()), SLOT(findNext()));
