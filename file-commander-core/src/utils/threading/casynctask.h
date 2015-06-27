@@ -3,10 +3,6 @@
 #include <thread>
 #include <assert.h>
 
-#ifdef QT_VERSION
-#include <QDebug>
-#endif
-
 class CAsyncTask
 {
 public:
@@ -35,11 +31,7 @@ public:
 		catch (std::exception& e)
 		{
 			assert(false);
-#ifdef QT_VERSION
-			qDebug() << __FUNCTION__ << "Exception occurred: " << e.what();
-#else
 			(void)e;
-#endif
 		}
 	}
 

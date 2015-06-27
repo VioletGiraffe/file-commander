@@ -31,6 +31,8 @@ public:
 			setBold();
 	}
 
+	CFavoriteLocationsListItem& operator=(const CFavoriteLocationsListItem&) = delete;
+
 	std::list<CLocationsCollection>::iterator itemIterator() const {return _itemIterator;}
 	std::list<CLocationsCollection>& list() {return _parentList;}
 	bool isCategory() const {return _bIsCategory;}
@@ -47,9 +49,6 @@ private:
 	std::list<CLocationsCollection>::iterator _itemIterator;
 	std::list<CLocationsCollection>& _parentList;
 	bool _bIsCategory;
-
-private:
-	CFavoriteLocationsListItem& operator=(const CFavoriteLocationsListItem&) {return *this;}
 };
 
 CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) :
