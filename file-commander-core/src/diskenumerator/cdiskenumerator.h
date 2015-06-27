@@ -5,7 +5,6 @@
 #include "utils/threading/cexecutionqueue.h"
 #include "utils/threading/cperiodicexecutionthread.h"
 
-#include "QtCoreIncludes"
 #include <QStorageInfo>
 #include <QTimer>
 

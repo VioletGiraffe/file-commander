@@ -4,8 +4,6 @@
 #include "cpluginproxy.h"
 #include "plugin_export.h"
 
-#include "QtCoreIncludes"
-
 class CFileCommanderPlugin;
 
 typedef CFileCommanderPlugin* (*CreatePluginFunc)();

@@ -1,7 +1,7 @@
 #include "cdiskenumerator.h"
-#include <assert.h>
-
 #include "utils/utils.h"
+
+#include <assert.h>
 
 void CDiskEnumerator::addObserver(IDiskListObserver *observer)
 {

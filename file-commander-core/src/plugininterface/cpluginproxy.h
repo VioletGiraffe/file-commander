@@ -3,8 +3,6 @@
 
 #include "cfilesystemobject.h"
 
-#include "QtCoreIncludes"
-
 #include <functional>
 #include <vector>
 #include <map>

@@ -4,14 +4,13 @@
 #include "cpanel.h"
 #include "plugininterface/cfilecommanderplugin.h"
 
-#include "QtCoreIncludes"
-#include <QLibrary>
-#include <QMainWindow>
-
 #include <vector>
 #include <memory>
 
+
 class CFileCommanderViewerPlugin;
+class QLibrary;
+class QMainWindow;
 
 class CPluginEngine : public PanelContentsChangedListener
 {

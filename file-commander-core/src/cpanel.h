@@ -1,19 +1,16 @@
 #ifndef CPANEL_H
 #define CPANEL_H
 
-#include <vector>
-#include <map>
-#include <memory>
-
-#include "QtCoreIncludes"
-
 #include "cfilesystemobject.h"
 #include "diskenumerator/cdiskenumerator.h"
 #include "historylist/chistorylist.h"
 #include "utils/threading/casynctask.h"
 #include "utils/threading/cexecutionqueue.h"
 
+#include <map>
+#include <memory>
 #include <mutex>
+#include <vector>
 
 enum Panel
 {

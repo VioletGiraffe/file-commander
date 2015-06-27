@@ -4,10 +4,14 @@
 #include "plugininterface/cfilecommandertoolplugin.h"
 #include "plugininterface/cpluginproxy.h"
 
-#include <assert.h>
-
+DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QDebug>
 #include <QDir>
+#include <QLibrary>
+RESTORE_COMPILER_WARNINGS
+
+#include <assert.h>
 
 CPluginEngine::CPluginEngine()
 {

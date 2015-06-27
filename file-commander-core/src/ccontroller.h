@@ -1,8 +1,6 @@
 #ifndef CCONTROLLER_H
 #define CCONTROLLER_H
 
-#include "QtCoreIncludes"
-
 #include "fileoperationresultcode.h"
 #include "cpanel.h"
 #include "diskenumerator/cdiskenumerator.h"

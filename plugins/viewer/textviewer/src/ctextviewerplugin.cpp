@@ -1,9 +1,13 @@
 #include "ctextviewerplugin.h"
 #include "ctextviewerwindow.h"
+#include "utils/compiler_warnings_control.h"
 
 CFileCommanderPlugin * createPlugin()
 {
+	DISABLE_COMPILER_WARNINGS
 	Q_INIT_RESOURCE(icons);
+	RESTORE_COMPILER_WARNINGS
+
 	return new CTextViewerPlugin;
 }
 

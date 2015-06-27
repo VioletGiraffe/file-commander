@@ -2,7 +2,6 @@
 
 #include "cfilesystemobject.h"
 
-#include "QtCoreIncludes"
 #include <vector>
 #include <stdint.h>
 #include <assert.h>

@@ -27,7 +27,6 @@ HEADERS += \
 	src/utils/ctimeelapsed.h \
 	src/shell/cshell.h \
 	include/settings.h \
-	include/QtCoreIncludes \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \

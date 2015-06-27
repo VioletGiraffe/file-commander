@@ -1,9 +1,12 @@
 #include "cshell.h"
-
-#include "QtCoreIncludes"
-#include <QFileInfo>
 #include "settings/csettings.h"
 #include "settings.h"
+#include "utils/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QDebug>
+#include <QProcessEnvironment>
+RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 #include <algorithm>

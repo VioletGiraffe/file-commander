@@ -1,6 +1,11 @@
 #include "cperiodicexecutionthread.h"
+#include "utils/compiler_warnings_control.h"
 
-#include "QtCoreIncludes"
+DISABLE_COMPILER_WARNINGS
+#include <QDebug>
+RESTORE_COMPILER_WARNINGS
+
+
 #include <assert.h>
 
 CPeriodicExecutionThread::CPeriodicExecutionThread(unsigned int period_ms, const std::string& threadName, const std::function<void()>& workload /*= std::function<void ()>()*/) :

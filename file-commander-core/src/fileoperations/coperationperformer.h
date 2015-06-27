@@ -5,8 +5,6 @@
 #include "utils/ctimeelapsed.h"
 #include "utils/MeanCounter.h"
 
-#include "QtCoreIncludes"
-
 #include <assert.h>
 #include <vector>
 #include <map>
@@ -15,6 +13,10 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+
+DISABLE_COMPILER_WARNINGS
+#include <QtDebug>
+RESTORE_COMPILER_WARNINGS
 
 class CFileOperationObserver
 {

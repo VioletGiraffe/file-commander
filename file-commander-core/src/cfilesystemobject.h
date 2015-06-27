@@ -1,17 +1,19 @@
 #ifndef CFILESYSTEMOBJECT_H
 #define CFILESYSTEMOBJECT_H
 
+#include "fileoperationresultcode.h"
+#include "utils/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QDir>
+#include <QFileInfo>
+#include <QString>
+#include <QStringBuilder>
+RESTORE_COMPILER_WARNINGS
+
 #include <stdint.h>
 #include <vector>
 #include <memory>
-#include "QtCoreIncludes"
-#include <QDir>
-#include <QFileInfo>
-#include <QIcon>
-#include <QString>
-#include <QStringBuilder>
-
-#include "fileoperationresultcode.h"
 
 enum FileSystemObjectType { UnknownType, Directory, File };
 

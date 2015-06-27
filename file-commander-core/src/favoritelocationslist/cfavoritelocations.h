@@ -1,6 +1,7 @@
 #pragma once
 
-#include "QtCoreIncludes"
+#include <QString>
+
 #include <list>
 
 struct CLocationsCollection

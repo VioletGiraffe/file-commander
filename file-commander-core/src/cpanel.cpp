@@ -3,8 +3,11 @@
 #include "settings.h"
 #include "filesystemhelperfunctions.h"
 
-#include "QtCoreIncludes"
+DISABLE_COMPILER_WARNINGS
+#include <QDebug>
 #include <QFileSystemWatcher>
+#include <QVector>
+RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 #include <time.h>

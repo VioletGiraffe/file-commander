@@ -1,7 +1,10 @@
 #pragma once
 
-#include "QtCoreIncludes"
+#ifdef _WIN32
+#include <QtWin>
+#else
 #include <QFileIconProvider>
+#endif
 
 #include "settings.h"
 #include "settings/csettings.h"

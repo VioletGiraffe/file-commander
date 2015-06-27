@@ -1,11 +1,10 @@
 #ifndef CICONPROVIDER_H
 #define CICONPROVIDER_H
 
+#include <QIcon>
+
 #include <unordered_map>
 #include <memory>
-
-#include "QtCoreIncludes"
-#include <QIcon>
 
 class CFileSystemObject;
 class CIconProviderImpl;

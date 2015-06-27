@@ -6,11 +6,12 @@
 #include "filesystemhelperfunctions.h"
 #include "iconprovider/ciconprovider.h"
 
-#include <stdlib.h>
-#include <assert.h>
-
 #include <QDesktopServices>
 #include <QProcess>
+#include <QUrl>
+
+#include <stdlib.h>
+#include <assert.h>
 
 CController* CController::_instance = nullptr;
 
