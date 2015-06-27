@@ -18,6 +18,8 @@
 #include <set>
 #include <tuple>
 
+#include <QDateTime>
+
 CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	QWidget(parent),
 	_filterDialog(this),

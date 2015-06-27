@@ -3,6 +3,8 @@
 #include "iconprovider/ciconprovider.h"
 #include <assert.h>
 
+#include <QApplication>
+
 class CFileCommanderApplication : public QApplication
 {
 public:

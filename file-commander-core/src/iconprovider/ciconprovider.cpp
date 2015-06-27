@@ -1,7 +1,9 @@
 #include "ciconprovider.h"
-#include "../cfilesystemobject.h"
+#include "cfilesystemobject.h"
 #include "ciconproviderimpl.h"
-#include "../fasthash.h"
+#include "fasthash.h"
+
+#include <QIcon>
 
 std::unique_ptr<CIconProvider> CIconProvider::_instance;
 

@@ -1,6 +1,7 @@
 #include "cshell.h"
 
 #include "QtCoreIncludes"
+#include <QFileInfo>
 #include "settings/csettings.h"
 #include "settings.h"
 

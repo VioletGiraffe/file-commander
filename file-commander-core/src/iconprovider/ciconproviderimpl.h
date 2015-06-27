@@ -1,6 +1,8 @@
 #pragma once
 
 #include "QtCoreIncludes"
+#include <QFileIconProvider>
+
 #include "settings.h"
 #include "settings/csettings.h"
 

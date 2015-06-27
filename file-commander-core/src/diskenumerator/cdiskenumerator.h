@@ -1,13 +1,16 @@
 #ifndef CDISKENUMERATOR_H
 #define CDISKENUMERATOR_H
 
-#include "../cfilesystemobject.h"
-#include "../utils/threading/cexecutionqueue.h"
-#include "../utils/threading/cperiodicexecutionthread.h"
+#include "cfilesystemobject.h"
+#include "utils/threading/cexecutionqueue.h"
+#include "utils/threading/cperiodicexecutionthread.h"
 
 #include "QtCoreIncludes"
+#include <QStorageInfo>
+#include <QTimer>
 
 #include <vector>
+
 
 // Lists all the disk drives available on a target machine
 class CDiskEnumerator : protected QObject

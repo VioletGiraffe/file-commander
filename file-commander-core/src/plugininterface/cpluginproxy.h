@@ -1,7 +1,7 @@
 #ifndef CPLUGINPROXY_H
 #define CPLUGINPROXY_H
 
-#include "../cfilesystemobject.h"
+#include "cfilesystemobject.h"
 
 #include "QtCoreIncludes"
 

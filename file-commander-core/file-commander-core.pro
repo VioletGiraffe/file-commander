@@ -52,7 +52,8 @@ SOURCES += \
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 
 INCLUDEPATH += \
-	$$PWD/include \
+	src \
+	include \
 	../qtutils
 
 include(src/pluginengine/pluginengine.pri)

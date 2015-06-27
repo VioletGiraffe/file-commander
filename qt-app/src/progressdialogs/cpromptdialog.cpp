@@ -3,6 +3,8 @@
 #include "filesystemhelperfunctions.h"
 #include "widgets/widgetutils.h"
 
+#include <QDateTime>
+
 CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason,
 	const CFileSystemObject& source, const CFileSystemObject& dest /*= CFileSystemObject()*/, const QString& message /* = QString()*/) :
 
