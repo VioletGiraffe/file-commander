@@ -2,6 +2,8 @@
 #include "ccontroller.h"
 #include "../../columns.h"
 
+#include <QStandardItemModel>
+
 #include <assert.h>
 
 CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :

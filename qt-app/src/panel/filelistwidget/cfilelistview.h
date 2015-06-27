@@ -2,7 +2,12 @@
 
 #include "cpanel.h"
 #include "ccontroller.h"
-#include "../../QtAppIncludes"
+#include "utils/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QTreeView>
+RESTORE_COMPILER_WARNINGS
+
 #include <vector>
 
 // Qt signals/slots system doesn't apply here because there should be a list of observers, and the signal shall not go further once it's been consumed by a listener

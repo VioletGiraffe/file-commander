@@ -1,7 +1,6 @@
 #ifndef CTEXTVIEWERWINDOW_H
 #define CTEXTVIEWERWINDOW_H
 
-#include "QtIncludes.h"
 #include "plugininterface/cpluginwindow.h"
 #include "cfinddialog.h"
 

@@ -1,7 +1,7 @@
 #ifndef CFILEOPERATIONCONFIRMATIONPROMPT_H
 #define CFILEOPERATIONCONFIRMATIONPROMPT_H
 
-#include "QtAppIncludes"
+#include <QDialog>
 
 namespace Ui {
 class CFileOperationConfirmationPrompt;

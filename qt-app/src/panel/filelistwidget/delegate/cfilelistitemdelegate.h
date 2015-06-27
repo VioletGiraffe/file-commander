@@ -1,7 +1,7 @@
 #ifndef CFILELISTITEMDELEGATE_H
 #define CFILELISTITEMDELEGATE_H
 
-#include "QtAppIncludes"
+#include <QStyledItemDelegate>
 
 class CFileListItemDelegate : public QStyledItemDelegate
 {

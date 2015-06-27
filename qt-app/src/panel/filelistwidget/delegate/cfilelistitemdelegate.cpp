@@ -1,6 +1,12 @@
 #include "cfilelistitemdelegate.h"
 #include <assert.h>
+
+#include <QApplication>
+#include <QKeyEvent>
+#include <QLineEdit>
+#include <QPlainTextEdit>
 #include <QTextEdit>
+#include <QTimer>
 
 CFileListItemDelegate::CFileListItemDelegate(QObject *parent) :
 	QStyledItemDelegate(parent)
@@ -38,7 +44,7 @@ bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
 			return true;
 		case Qt::Key_Enter:
 		case Qt::Key_Return:
-			if (qobject_cast<QTextEdit *>(editor) || qobject_cast<QPlainTextEdit *>(editor))
+			if (qobject_cast<QTextEdit *>(editor) || qobject_cast<QPlainTextEdit*>(editor))
 				return false; // don't filter enter key events for QTextEdit
 
 			// commit data

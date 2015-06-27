@@ -1,6 +1,9 @@
 #include "cfilelistfilterdialog.h"
 #include "ui_cfilelistfilterdialog.h"
 
+#include <QShortcut>
+#include <QTimer>
+
 CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
 	QDialog(parent, Qt::Popup),
 	ui(new Ui::CFileListFilterDialog)

@@ -2,7 +2,11 @@
 #define CDELETEPROGRESSDIALOG_H
 
 #include "fileoperations/coperationperformer.h"
-#include "../QtAppIncludes"
+
+DISABLE_COMPILER_WARNINGS
+#include <QTimer>
+#include <QWidget>
+RESTORE_COMPILER_WARNINGS
 
 namespace Ui {
 class CDeleteProgressDialog;

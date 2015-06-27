@@ -3,7 +3,10 @@
 #include "iconprovider/ciconprovider.h"
 #include <assert.h>
 
+DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QKeyEvent>
+RESTORE_COMPILER_WARNINGS
 
 class CFileCommanderApplication : public QApplication
 {

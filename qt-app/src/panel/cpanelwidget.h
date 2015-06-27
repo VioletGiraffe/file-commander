@@ -1,19 +1,24 @@
 #ifndef CPANELWIDGET_H
 #define CPANELWIDGET_H
 
-#include "../QtAppIncludes"
-
 #include "ccontroller.h"
 #include "filelistwidget/cfilelistview.h"
 #include "filelistwidget/cfilelistfilterdialog.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QShortcut>
+#include <QWidget>
+RESTORE_COMPILER_WARNINGS
 
 namespace Ui {
 class CPanelWidget;
 }
 
 class QItemSelectionModel;
-class CFileListModel;
+class QSortFilterProxyModel;
 class QStandardItem;
+
+class CFileListModel;
 class CFileListSortFilterProxyModel;
 class CFileListView;
 

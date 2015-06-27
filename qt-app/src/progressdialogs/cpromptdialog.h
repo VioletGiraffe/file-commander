@@ -3,7 +3,10 @@
 
 #include "fileoperations/operationcodes.h"
 #include "cfilesystemobject.h"
-#include "../QtAppIncludes"
+
+DISABLE_COMPILER_WARNINGS
+#include <QDialog>
+RESTORE_COMPILER_WARNINGS
 
 namespace Ui {
 class CPromptDialog;

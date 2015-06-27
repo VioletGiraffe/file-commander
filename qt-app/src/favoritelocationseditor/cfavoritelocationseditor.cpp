@@ -1,8 +1,10 @@
 #include "cfavoritelocationseditor.h"
 #include "ui_cfavoritelocationseditor.h"
-
 #include "cnewfavoritelocationdialog.h"
 #include "ccontroller.h"
+
+#include <QMenu>
+#include <QMessageBox>
 
 // If an item represents a subcategory, it cannot link to a location and can only be used as a container
 class CFavoriteLocationsListItem : public QTreeWidgetItem

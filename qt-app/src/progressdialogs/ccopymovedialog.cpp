@@ -4,6 +4,11 @@
 #include "cpromptdialog.h"
 #include "filesystemhelperfunctions.h"
 
+DISABLE_COMPILER_WARNINGS
+#include <QCloseEvent>
+#include <QMessageBox>
+RESTORE_COMPILER_WARNINGS
+
 CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObject> source, QString destination, CMainWindow * mainWindow) :
 	QWidget(0, Qt::Window),
 	ui(new Ui::CCopyMoveDialog),

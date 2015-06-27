@@ -1,7 +1,8 @@
 #ifndef QFLOWLAYOUT_H
 #define QFLOWLAYOUT_H
 
-#include "../QtAppIncludes"
+#include <QLayout>
+#include <QStyle>
 
 class QFlowLayout : public QLayout
 {

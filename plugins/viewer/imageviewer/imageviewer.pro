@@ -48,7 +48,6 @@ linux*|mac*{
 
 HEADERS += \
 	src/cimageviewerplugin.h \
-	src/QtIncludes.h \
 	src/cimageviewerwidget.h \
 	src/cimageviewerwindow.h
 

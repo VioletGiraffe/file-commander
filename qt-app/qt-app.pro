@@ -42,7 +42,6 @@ SOURCES += \
 	src/panel/filelistwidget/cfilelistfilterdialog.cpp
 
 HEADERS += \
-	src/QtAppIncludes \
 	src/cmainwindow.h \
 	src/panel/cpanelwidget.h \
 	src/progressdialogs/ccopymovedialog.h \

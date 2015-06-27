@@ -1,8 +1,14 @@
 #include "cimageviewerwidget.h"
 #include "../../qtutils/imageprocessing/resize/cimageresizer.h"
 
+DISABLE_COMPILER_WARNINGS
+#include <QApplication>
+#include <QDesktopWidget>
 #include <QFileInfo>
+#include <QImageReader>
 #include <QMessageBox>
+#include <QPainter>
+RESTORE_COMPILER_WARNINGS
 
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
 	QWidget(parent),

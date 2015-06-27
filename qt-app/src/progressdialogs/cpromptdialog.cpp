@@ -3,7 +3,11 @@
 #include "filesystemhelperfunctions.h"
 #include "widgets/widgetutils.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
+#include <QInputDialog>
+#include <QLineEdit>
+RESTORE_COMPILER_WARNINGS
 
 CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason,
 	const CFileSystemObject& source, const CFileSystemObject& dest /*= CFileSystemObject()*/, const QString& message /* = QString()*/) :

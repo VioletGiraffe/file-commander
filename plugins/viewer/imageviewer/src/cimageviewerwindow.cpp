@@ -1,8 +1,9 @@
 #include "cimageviewerwindow.h"
 #include "ui_cimageviewerwindow.h"
 
-#include <QLabel>
 #include <QFileDialog>
+#include <QLabel>
+#include <QShortcut>
 
 CImageViewerWindow::CImageViewerWindow(QWidget *parent) :
 	CPluginWindow(parent),

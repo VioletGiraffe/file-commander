@@ -4,6 +4,9 @@
 #include "../../../cmainwindow.h"
 #include "../../columns.h"
 
+#include <QMimeData>
+#include <QUrl>
+
 #include <assert.h>
 #include <set>
 

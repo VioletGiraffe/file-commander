@@ -1,16 +1,14 @@
-#ifdef _WIN32
-#pragma warning(push, 0) // set W0
-#endif
-
 #include "ctextviewerwindow.h"
 #include "ui_ctextviewerwindow.h"
 #include "ctextencodingdetector.h"
 
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QShortcut>
+#include <QTextCodec>
+
 #include <assert.h>
 
-#ifdef _WIN32
-#pragma warning(pop)
-#endif
 
 CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
 	CPluginWindow(parent),

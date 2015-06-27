@@ -1,8 +1,11 @@
 #ifndef CFAVORITELOCATIONSEDITOR_H
 #define CFAVORITELOCATIONSEDITOR_H
 
-#include "QtAppIncludes"
 #include "favoritelocationslist/cfavoritelocations.h"
+
+#include <QDialog>
+
+class QTreeWidgetItem;
 
 namespace Ui {
 class CFavoriteLocationsEditor;

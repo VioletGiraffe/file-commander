@@ -1,6 +1,7 @@
 #include "cimageviewerplugin.h"
 #include "cimageviewerwindow.h"
-#include "QtIncludes.h"
+
+#include <QImageReader>
 
 CImageViewerPlugin::CImageViewerPlugin()
 {

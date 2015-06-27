@@ -1,7 +1,8 @@
 #ifndef CHISTORYCOMBOBOX_H
 #define CHISTORYCOMBOBOX_H
 
-#include "QtAppIncludes"
+#include <QComboBox>
+#include <QKeySequence>
 
 class CHistoryComboBox : public QComboBox
 {

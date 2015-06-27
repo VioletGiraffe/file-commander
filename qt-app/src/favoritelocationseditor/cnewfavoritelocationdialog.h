@@ -1,7 +1,7 @@
 #ifndef CNEWFAVORITELOCATIONDIALOG_H
 #define CNEWFAVORITELOCATIONDIALOG_H
 
-#include "QtAppIncludes"
+#include <QDialog>
 
 namespace Ui {
 class CNewFavoriteLocationDialog;

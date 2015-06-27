@@ -3,6 +3,14 @@
 #include "model/cfilelistsortfilterproxymodel.h"
 #include "delegate/cfilelistitemdelegate.h"
 
+DISABLE_COMPILER_WARNINGS
+#include <QApplication>
+#include <QDragMoveEvent>
+#include <QHeaderView>
+#include <QKeyEvent>
+#include <QMouseEvent>
+RESTORE_COMPILER_WARNINGS
+
 #include <assert.h>
 #include <time.h>
 #include <set>

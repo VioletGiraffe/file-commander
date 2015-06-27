@@ -1,7 +1,7 @@
+#include "cmainwindow.h"
 #include "progressdialogs/ccopymovedialog.h"
 #include "progressdialogs/cdeleteprogressdialog.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
-#include "cmainwindow.h"
 #include "ui_cmainwindow.h"
 #include "settings.h"
 #include "settings/csettings.h"
@@ -14,17 +14,25 @@
 #include "pluginengine/cpluginengine.h"
 #include "panel/filelistwidget/cfilelistview.h"
 #include "panel/columns.h"
+#include "panel/cpanelwidget.h"
 #include "filesystemhelperfunctions.h"
-
 #include "utils/utils.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QCloseEvent>
+#include <QFileDialog>
+#include <QInputDialog>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QProcess>
+#include <QSortFilterProxyModel>
+RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 
 #ifdef _WIN32
 #include <Windows.h>
 #endif
-
-#include <QProcess>
 
 // Main window settings keys
 #define KEY_RPANEL_STATE      "Ui/RPanel/State"

@@ -3,6 +3,8 @@
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
 
+#include <QImage>
+
 extern "C" {
 	PLUGIN_EXPORT CFileCommanderPlugin * createPlugin();
 }

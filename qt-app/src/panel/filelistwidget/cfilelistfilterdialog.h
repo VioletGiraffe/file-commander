@@ -1,7 +1,11 @@
 #ifndef CFILELISTFILTERDIALOG_H
 #define CFILELISTFILTERDIALOG_H
 
-#include "../../QtAppIncludes"
+#include "utils/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QDialog>
+RESTORE_COMPILER_WARNINGS
 
 namespace Ui {
 class CFileListFilterDialog;

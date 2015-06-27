@@ -44,7 +44,6 @@ linux*|mac*{
 }
 
 HEADERS += \
-	src/QtIncludes.h \
 	src/ctextviewerplugin.h \
 	src/ctextviewerwindow.h \
 	src/cfinddialog.h

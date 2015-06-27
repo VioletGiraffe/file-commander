@@ -2,7 +2,8 @@
 
 #include "cpanel.h"
 #include "utils/naturalsorting/cnaturalsorting.h"
-#include "../../../QtAppIncludes"
+
+#include <QSortFilterProxyModel>
 
 class CController;
 

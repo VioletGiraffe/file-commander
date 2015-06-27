@@ -1,7 +1,10 @@
 #include "chistorycombobox.h"
-#include <assert.h>
-
 #include "utils/utils.h"
+
+#include <QKeyEvent>
+#include <QLineEdit>
+
+#include <assert.h>
 
 CHistoryComboBox::CHistoryComboBox(QWidget* parent) :
 	QComboBox(parent),

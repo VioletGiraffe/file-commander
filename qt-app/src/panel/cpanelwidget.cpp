@@ -13,12 +13,19 @@
 #include "progressdialogs/ccopymovedialog.h"
 #include "../cmainwindow.h"
 
+DISABLE_COMPILER_WARNINGS
+#include <QDateTime>
+#include <QInputDialog>
+#include <QMenu>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QWheelEvent>
+RESTORE_COMPILER_WARNINGS
+
 #include <assert.h>
 #include <time.h>
 #include <set>
 #include <tuple>
-
-#include <QDateTime>
 
 CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	QWidget(parent),

@@ -1,8 +1,9 @@
 #ifndef CFILELISTMODEL_H
 #define CFILELISTMODEL_H
 
-#include "../../../QtAppIncludes"
 #include "cpanel.h"
+
+#include <QStandardItemModel>
 
 enum Role {
 	FullNameRole = Qt::UserRole+1

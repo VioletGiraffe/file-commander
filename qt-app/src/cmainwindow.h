@@ -6,7 +6,10 @@
 #include "panel/cpanelwidget.h"
 #include "panel/filelistwidget/cfilelistview.h"
 
-#include "QtAppIncludes"
+DISABLE_COMPILER_WARNINGS
+#include <QCompleter>
+#include <QMainWindow>
+RESTORE_COMPILER_WARNINGS
 
 #include <vector>
 #include <memory>
@@ -17,6 +20,7 @@ class CMainWindow;
 
 class CPanelWidget;
 class QShortcut;
+class QStackedWidget;
 
 class CMainWindow : public QMainWindow, private FileListReturnPressedObserver
 {
