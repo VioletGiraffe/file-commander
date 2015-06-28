@@ -25,7 +25,6 @@ SOURCES += \
 	src/panel/cpanelwidget.cpp \
 	src/progressdialogs/ccopymovedialog.cpp \
 	src/progressdialogs/cpromptdialog.cpp \
-	src/progressdialogs/cdeleteprogressdialog.cpp \
 	src/panel/qflowlayout.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
@@ -46,7 +45,6 @@ HEADERS += \
 	src/panel/cpanelwidget.h \
 	src/progressdialogs/ccopymovedialog.h \
 	src/progressdialogs/cpromptdialog.h \
-	src/progressdialogs/cdeleteprogressdialog.h \
 	src/panel/qflowlayout.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
@@ -68,7 +66,6 @@ FORMS += \
 	src/panel/cpanelwidget.ui \
 	src/progressdialogs/ccopymovedialog.ui \
 	src/progressdialogs/cpromptdialog.ui \
-	src/progressdialogs/cdeleteprogressdialog.ui \
 	src/settings/csettingspageinterface.ui \
 	src/settings/csettingspageedit.ui \
 	src/settings/csettingspageother.ui \
@@ -77,6 +74,17 @@ FORMS += \
 	src/favoritelocationseditor/cfavoritelocationseditor.ui \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
 	src/panel/filelistwidget/cfilelistfilterdialog.ui
+
+!win*{
+	SOURCES += \
+		src/progressdialogs/cdeleteprogressdialog.cpp
+
+	HEADERS += \
+		src/progressdialogs/cdeleteprogressdialog.h
+
+	FORMS += \
+		src/progressdialogs/cdeleteprogressdialog.ui
+}
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
