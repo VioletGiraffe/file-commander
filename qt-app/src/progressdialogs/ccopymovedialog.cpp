@@ -22,6 +22,9 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 	ui->setupUi(this);
 	ui->_overallProgress->linkToWidgetstaskbarButton(this);
 
+	ui->_overallProgressText->setMinimumWidth(QFontMetrics(ui->_overallProgressText->font()).width("100.0%"));
+	ui->_fileProgressText->setMinimumWidth(QFontMetrics(ui->_overallProgressText->font()).width("100.0%"));
+
 	ui->_lblFileName->clear();
 
 	assert(mainWindow);
@@ -55,15 +58,20 @@ CCopyMoveDialog::~CCopyMoveDialog()
 	delete ui;
 }
 
-void CCopyMoveDialog::onProgressChanged(int totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, int filePercentage, uint64_t speed)
+void CCopyMoveDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed)
 {
 	if (speed > 0)
 		_speed = speed;
-	ui->_overallProgress->setValue(totalPercentage);
-	ui->_fileProgress->setValue(filePercentage);
+	ui->_overallProgress->setValue((int)(totalPercentage + 0.5f));
+	ui->_overallProgressText->setText(QString::number(totalPercentage, 'f', 1).append('%'));
+
+	ui->_fileProgress->setValue((int)(filePercentage + 0.5f));
+	ui->_fileProgressText->setText(QString::number(totalPercentage, 'f', 1).append('%'));
+
+
 	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(_speed)));
 	ui->_lblNumFiles->setText(QString("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
-	setWindowTitle(_titleTemplate.arg(totalPercentage).arg(fileSizeToString(_speed)));
+	setWindowTitle(_titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(fileSizeToString(_speed)));
 }
 
 void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)

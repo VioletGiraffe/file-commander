@@ -23,16 +23,16 @@ public:
 	~CCopyMoveDialog();
 
 // Callbacks
-	virtual void onProgressChanged(int totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, int filePercentage, uint64_t speed /* B/s*/);
-	virtual void onProcessHalted(HaltReason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage); // User decision required (file exists, file is read-only etc.)
-	virtual void onProcessFinished(QString message = QString()); // Done or canceled
-	virtual void onCurrentFileChanged(QString file); // Starting to process a new file
+	void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/) override;
+	void onProcessHalted(HaltReason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) override; // User decision required (file exists, file is read-only etc.)
+	void onProcessFinished(QString message = QString()) override; // Done or canceled
+	void onCurrentFileChanged(QString file) override; // Starting to process a new file
 
 signals:
 	void closed();
 
 protected:
-	virtual void closeEvent(QCloseEvent * e);
+	void closeEvent(QCloseEvent * e) override;
 
 private slots:
 	// True if cancelled, false if the user chose to continue

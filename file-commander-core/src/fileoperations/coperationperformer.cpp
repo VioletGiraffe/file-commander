@@ -412,7 +412,7 @@ void COperationPerformer::deleteFiles()
 		case naProceed:
 			break;
 		case naSkip:
-			_observer->onProgressChangedCallback(int(currentItemIndex * 100 / _source.size()), currentItemIndex, _source.size(), 0, 0);
+			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / _source.size(), currentItemIndex, _source.size(), 0, 0);
 			++it;
 			++currentItemIndex;
 			break;
@@ -632,8 +632,8 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		if (result != rcOk)
 			break;
 
-		const int totalPercentage = totalSize > 0 ? static_cast<int>((sizeProcessed + item.bytesCopied()) * 100 / totalSize) : 0;
-		const int filePercentage = item.size() > 0 ? static_cast<int>(item.bytesCopied() * 100 / item.size()) : 0;
+		const float totalPercentage = totalSize > 0 ? float(sizeProcessed + item.bytesCopied()) * 100.0f / totalSize : 0.0f;
+		const float filePercentage = item.size() > 0 ? item.bytesCopied() * 100.0f / item.size() : 0.0f;
 		const uint64_t speed = _fileTimeElapsed.elapsed() > 0 ? item.bytesCopied() * 1000 / _fileTimeElapsed.elapsed() : 0; // B/s
 		_smoothSpeedCalculator = speed;
 		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, _smoothSpeedCalculator.arithmeticMean());

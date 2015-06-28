@@ -6,13 +6,13 @@
 #include "utils/MeanCounter.h"
 
 #include <assert.h>
-#include <vector>
-#include <map>
-#include <functional>
-#include <thread>
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <functional>
+#include <map>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 DISABLE_COMPILER_WARNINGS
 #include <QtDebug>
@@ -24,7 +24,7 @@ friend class COperationPerformer;
 public:
 	CFileOperationObserver() {}
 
-	virtual void onProgressChanged(int totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, int filePercentage, uint64_t speed /* B/s*/) = 0;
+	virtual void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/) = 0;
 	virtual void onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) = 0; // User decision required (file exists, file is read-only etc.)
 	virtual void onProcessFinished(QString message = QString()) = 0; // Done or canceled
 	virtual void onCurrentFileChanged(QString file) = 0; // Starting to process a new file
@@ -34,7 +34,7 @@ public:
 	inline std::mutex& callbackMutex() { return _callbackMutex; }
 
 private:
-	inline void onProgressChangedCallback(int totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, int filePercentage, uint64_t speed /* B/s*/) {
+	inline void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/) {
 		assert(filePercentage <= 100 && totalPercentage <= 100);
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProgressChanged, this, totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed));
 	}
