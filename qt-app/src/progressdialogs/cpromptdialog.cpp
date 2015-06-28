@@ -2,6 +2,8 @@
 #include "ui_cpromptdialog.h"
 #include "filesystemhelperfunctions.h"
 #include "widgets/widgetutils.h"
+#include "settings/csettings.h"
+#include "settings.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
@@ -10,7 +12,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason,
-	const CFileSystemObject& source, const CFileSystemObject& dest /*= CFileSystemObject()*/, const QString& message /* = QString()*/) :
+	const CFileSystemObject& source, const CFileSystemObject& dest, const QString& message) :
 
 		QDialog(parent),
 		ui(new Ui::CPromptDialog),
@@ -144,12 +146,20 @@ QString CPromptDialog::newName() const
 
 void CPromptDialog::showEvent(QShowEvent * e)
 {
+	restoreGeometry(CSettings().value(KEY_PROMPT_DIALOG_GEOMETRY).toByteArray());
+
 	QDialog::showEvent(e);
 
 	// Leave width intact, but set optimum height
 	auto g = geometry();
 	g.setHeight(sizeHint().height());
 	setGeometry(g);
+}
+
+void CPromptDialog::hideEvent(QHideEvent* e)
+{
+	CSettings().setValue(KEY_PROMPT_DIALOG_GEOMETRY, saveGeometry());
+	QDialog::hideEvent(e);
 }
 
 CPromptDialog::~CPromptDialog()

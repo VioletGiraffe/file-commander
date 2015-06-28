@@ -25,6 +25,7 @@ public:
 
 protected:
 	void showEvent(QShowEvent * e) override;
+	void hideEvent(QHideEvent * e) override;
 
 private slots:
 	void onSkipClicked();

@@ -16,6 +16,9 @@
 
 #define KEY_FAVORITES "Internal/Core/Favorites"
 
+// Copy/move/delete prompt dialog geometry
+#define KEY_PROMPT_DIALOG_GEOMETRY "Internal/Interface/PropmptDialog/Geometry"
+
 /////////////////////////////////////////////////
 // Options accessible via the main UI
 /////////////////////////////////////////////////
