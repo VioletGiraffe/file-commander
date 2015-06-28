@@ -12,7 +12,7 @@
 
 CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
 	CPluginWindow(parent),
-	_findDialog(this),
+	_findDialog(this, "Plugins/TextViewer/Find/"),
 	ui(new Ui::CTextViewerWindow)
 {
 	ui->setupUi(this);

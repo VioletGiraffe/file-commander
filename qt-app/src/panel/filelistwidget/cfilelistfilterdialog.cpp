@@ -13,8 +13,6 @@ CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
 	connect(ui->_lineEdit, SIGNAL(textEdited(QString)), SIGNAL(filterTextChanged(QString)));
 
 	new QShortcut(QKeySequence("Esc"), this, SLOT(close()), SLOT(close()), Qt::WidgetWithChildrenShortcut);
-
-//	adjustSize();
 }
 
 CFileListFilterDialog::~CFileListFilterDialog()

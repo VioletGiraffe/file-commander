@@ -2,15 +2,18 @@
 #include "ui_cfinddialog.h"
 #include "settings/csettings.h"
 
-#define SETTINGS_SEARCH_EXPRESSION "Plugins/TextViewer/Expression"
+#define SETTINGS_SEARCH_EXPRESSION "Expression"
 
-#define SETTINGS_REGEX             "Plugins/TextViewer/Regex"
-#define SETTINGS_BACKWARDS         "Plugins/TextViewer/SearchBackwards"
-#define SETTINGS_CASE_SENSITIVE    "Plugins/TextViewer/CaseSensitive"
-#define SETTINGS_WHOLE_WORDS       "Plugins/TextViewer/WholeWords"
+#define SETTINGS_REGEX             "FindDialog/Regex"
+#define SETTINGS_BACKWARDS         "SearchBackwards"
+#define SETTINGS_CASE_SENSITIVE    "CaseSensitive"
+#define SETTINGS_WHOLE_WORDS       "WholeWords"
 
-CFindDialog::CFindDialog(QWidget *parent) :
+#define SETTINGS_GEOMETRY          "Geometry"
+
+CFindDialog::CFindDialog(QWidget *parent, const QString& settingsRootCategory) :
 	QDialog(parent),
+	_settingsRootCategory(settingsRootCategory),
 	ui(new Ui::CFindDialog)
 {
 	ui->setupUi(this);
@@ -20,12 +23,15 @@ CFindDialog::CFindDialog(QWidget *parent) :
 	connect(ui->_btnFind, SIGNAL(clicked()), SIGNAL(find()));
 	connect(ui->_btnFindNext, SIGNAL(clicked()), SIGNAL(findNext()));
 
-	CSettings s;
-	ui->_searchText->setText(s.value(SETTINGS_SEARCH_EXPRESSION).toString());
-	ui->_cbSearchBackwards->setChecked(s.value(SETTINGS_BACKWARDS).toBool());
-	ui->_cbCaseSensitive->setChecked(s.value(SETTINGS_CASE_SENSITIVE).toBool());
-	ui->_cbRegex->setChecked(s.value(SETTINGS_REGEX).toBool());
-	ui->_cbWholeWords->setChecked(s.value(SETTINGS_WHOLE_WORDS).toBool());
+	if (!_settingsRootCategory.isEmpty())
+	{
+		CSettings s;
+		ui->_searchText->setText(s.value(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION).toString());
+		ui->_cbSearchBackwards->setChecked(s.value(_settingsRootCategory + SETTINGS_BACKWARDS).toBool());
+		ui->_cbCaseSensitive->setChecked(s.value(_settingsRootCategory + SETTINGS_CASE_SENSITIVE).toBool());
+		ui->_cbRegex->setChecked(s.value(_settingsRootCategory + SETTINGS_REGEX).toBool());
+		ui->_cbWholeWords->setChecked(s.value(_settingsRootCategory + SETTINGS_WHOLE_WORDS).toBool());
+	}
 
 #if QT_VERSION < QT_VERSION_CHECK(5,3,0)
 	ui->_cbRegex->setVisible(false);
@@ -74,23 +80,26 @@ void CFindDialog::showEvent(QShowEvent * e)
 	ui->_searchText->selectAll();
 	ui->_searchText->setFocus();
 
-	// TODO: when a dialog is accepted, the next it's shown offset down and to the right of the previous position, as if the previous one is still on screen. Qt bug?..
-	// This is a fix for it
-
-	QRect dialogGeometry = geometry();
-	const QRect parentGeometry = dynamic_cast<QWidget*>(parent()) ? dynamic_cast<QWidget*>(parent())->geometry() : QRect();
-	dialogGeometry.moveTo(QPoint(parentGeometry.center().x() - dialogGeometry.width() / 2, parentGeometry.center().y() - dialogGeometry.height() / 2));
-	setGeometry(dialogGeometry);
+	if (!_settingsRootCategory.isEmpty())
+		restoreGeometry(CSettings().value(_settingsRootCategory + SETTINGS_GEOMETRY).toByteArray());
 
 	QDialog::showEvent(e);
+}
+
+void CFindDialog::hideEvent(QHideEvent * e)
+{
+	if (!_settingsRootCategory.isEmpty())
+		CSettings().setValue(_settingsRootCategory + SETTINGS_GEOMETRY, saveGeometry());
+
+	QDialog::hideEvent(e);
 }
 
 void CFindDialog::saveSearchSettings() const
 {
 	CSettings s;
-	s.setValue(SETTINGS_SEARCH_EXPRESSION, searchExpression());
-	s.setValue(SETTINGS_BACKWARDS, searchBackwards());
-	s.setValue(SETTINGS_CASE_SENSITIVE, caseSensitive());
-	s.setValue(SETTINGS_REGEX, regex());
-	s.setValue(SETTINGS_WHOLE_WORDS, wholeWords());
+	s.setValue(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION, searchExpression());
+	s.setValue(_settingsRootCategory + SETTINGS_BACKWARDS, searchBackwards());
+	s.setValue(_settingsRootCategory + SETTINGS_CASE_SENSITIVE, caseSensitive());
+	s.setValue(_settingsRootCategory + SETTINGS_REGEX, regex());
+	s.setValue(_settingsRootCategory + SETTINGS_WHOLE_WORDS, wholeWords());
 }
