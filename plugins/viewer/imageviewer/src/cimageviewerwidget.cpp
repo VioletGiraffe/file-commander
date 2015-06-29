@@ -33,7 +33,7 @@ bool CImageViewerWidget::displayImage(const QString& imagePath, const QImage& im
 	}
 	else
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), "Failed to load the image", QString("Failed to load the image\n\n") + imagePath + "\n\nIt is inaccessible, doesn't exist or is not a supported image file.");
+		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to load the image"), tr("Failed to load the image\n\n%1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
 		return false;
 	}
 }
@@ -44,7 +44,7 @@ QString CImageViewerWidget::imageInfoString() const
 		return QString();
 
 	const int numChannels = _sourceImage.isGrayscale() ? 1 : (3 + (_sourceImage.hasAlphaChannel() ? 1 : 0));
-	return QString("%1x%2, %3 channels, %4 bits per pixel, compressed to %5 bits per pixel").
+	return tr("%1x%2, %3 channels, %4 bits per pixel, compressed to %5 bits per pixel").
 			arg(_sourceImage.width()).
 			arg(_sourceImage.height()).
 			arg(numChannels).

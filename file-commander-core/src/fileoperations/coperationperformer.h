@@ -43,14 +43,14 @@ private:
 		qDebug() << "COperationPerformer: process halted";
 
 		static const std::map<HaltReason, QString> haltReasonString = {
-			{hrFileExists, "File exists"},
-			{hrSourceFileIsReadOnly, "Source file is read-only"},
-			{hrDestFileIsReadOnly, "Dest file is read-only"},
-			{hrFailedToMakeItemWritable, "Failed to make an item writable"},
-			{hrFileDoesntExit, "File doesn't exist"},
-			{hrCreatingFolderFailed, "Failed to create a folder"},
-			{hrFailedToDelete, "Failed to delete the item"},
-			{hrUnknownError, "Unknown error"}
+			{hrFileExists, QObject::tr("File exists")},
+			{hrSourceFileIsReadOnly, QObject::tr("Source file is read-only")},
+			{hrDestFileIsReadOnly, QObject::tr("Dest file is read-only")},
+			{hrFailedToMakeItemWritable, QObject::tr("Failed to make an item writable")},
+			{hrFileDoesntExit, QObject::tr("File doesn't exist")},
+			{hrCreatingFolderFailed, QObject::tr("Failed to create a folder")},
+			{hrFailedToDelete, QObject::tr("Failed to delete the item")},
+			{hrUnknownError, QObject::tr("Unknown error")}
 		};
 
 		const auto reasonString = haltReasonString.find(reason);

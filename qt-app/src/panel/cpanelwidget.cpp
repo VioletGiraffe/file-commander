@@ -170,7 +170,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	_model->clear();
 
 	_model->setColumnCount(NumberOfColumns);
-	_model->setHorizontalHeaderLabels(QStringList() << "Name" << "Ext" << "Size" << "Date");
+	_model->setHorizontalHeaderLabels(QStringList() << tr("Name") << tr("Ext") << tr("Size") << tr("Date"));
 
 	int itemRow = 0;
 	std::vector<std::tuple<int, FileListViewColumns, QStandardItem*>> qTreeViewItems;
@@ -374,7 +374,7 @@ void CPanelWidget::driveButtonClicked()
 
 	const int id = sender()->property("id").toInt();
 	if (!_controller.switchToDisk(_panelPosition, id))
-		QMessageBox::information(this, "Failed to switch disk", QString("The disk ") + _controller.diskPath(id) + " is inaccessible (locked or doesn't exist).");
+		QMessageBox::information(this, tr("Failed to switch disk"), tr("The disk %1 is inaccessible (locked or doesn't exist).").arg(_controller.diskPath(id)));
 
 	ui->_list->setFocus();
 }
@@ -463,21 +463,21 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 		if (!locations.empty())
 			parentMenu->addSeparator();
 
-		QAction * addFolderAction = parentMenu->addAction("Add current folder here...");
+		QAction * addFolderAction = parentMenu->addAction(tr("Add current folder here..."));
 		QObject::connect(addFolderAction, &QAction::triggered, [this, &locations](){
 			const QString path = currentDir();
 			const QString displayName = CFileSystemObject(path).name();
-			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name to store the current location under", QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
+			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name to store the current location under"), QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
 			if (!name.isEmpty() && !path.isEmpty())
 			{
 				if (std::find_if(locations.cbegin(), locations.cend(), [&path](const CLocationsCollection& entry){return entry.absolutePath == path;}) != locations.cend())
 				{
-					QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "This item already exists here (possibly under a different name).", QMessageBox::Cancel);
+					QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("This item already exists here (possibly under a different name)."), QMessageBox::Cancel);
 					return;
 				}
 				else if (std::find_if(locations.cbegin(), locations.cend(), [&name](const CLocationsCollection& entry){return entry.displayName == name;}) != locations.cend())
 				{
-					QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "And item with the same name already exists here (possibly pointing to a different location).", QMessageBox::Cancel);
+					QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("And item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
 					return;
 				}
 
@@ -485,14 +485,14 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 			}
 		});
 
-		QAction * addCategoryAction = parentMenu->addAction("Add a new subcategory...");
+		QAction * addCategoryAction = parentMenu->addAction(tr("Add a new subcategory..."));
 		QObject::connect(addCategoryAction, &QAction::triggered, [this, &locations, parentMenu](){
-			const QString name = QInputDialog::getText(this, "Enter the name", "Enter the name for the new subcategory");
+			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name for the new subcategory"));
 			if (!name.isEmpty())
 			{
 				if (std::find_if(locations.cbegin(), locations.cend(), [&name](const CLocationsCollection& entry){return entry.displayName == name;}) != locations.cend())
 				{
-					QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "An item with the same name already exists here (possibly pointing to a different location).", QMessageBox::Cancel);
+					QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("An item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
 					return;
 				}
 
@@ -504,7 +504,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 
 	createMenus(&menu, _controller.favoriteLocations().locations());
 	menu.addSeparator();
-	QAction * edit = menu.addAction("Edit...");
+	QAction * edit = menu.addAction(tr("Edit..."));
 	connect(edit, SIGNAL(triggered()), SLOT(showFavoriteLocationsEditor()));
 	menu.exec(pos);
 }
@@ -618,7 +618,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 void CPanelWidget::pathFromHistoryActivated(QString path)
 {
 	if (_controller.setPath(_panelPosition, path, refreshCauseOther) == rcDirNotAccessible)
-		QMessageBox::information(this, "Failed to set the path", QString("The path ") + path + " is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.");
+		QMessageBox::information(this, tr("Failed to set the path"), tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(path));
 }
 
 void CPanelWidget::fillHistory()
@@ -661,7 +661,7 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 		sizeSelected += object.size();
 	}
 
-	ui->_infoLabel->setText(QString("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(totalNumFiles).
+	ui->_infoLabel->setText(tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(totalNumFiles).
 		arg(numFoldersSelected).arg(totalNumFolders).
 		arg(fileSizeToString(sizeSelected)).arg(fileSizeToString(totalSize)));
 }
@@ -873,7 +873,7 @@ void CPanelWidget::updateCurrentDiskButton()
 			button->setChecked(true);
 			const auto& diskInfo = _controller.diskEnumerator().drives()[id];
 			_currentDisk = diskInfo.fileSystemObject.fullAbsolutePath();
-			ui->_driveInfoLabel->setText(QString("%1 (%2): %3 available, <b>%4 free</b> of %5 total").arg(diskInfo.storageInfo.displayName()).
+			ui->_driveInfoLabel->setText(tr("%1 (%2): %3 available, <b>%4 free</b> of %5 total").arg(diskInfo.storageInfo.displayName()).
 				arg(QString::fromUtf8(diskInfo.storageInfo.fileSystemType())).
 				arg(fileSizeToString(diskInfo.storageInfo.bytesAvailable(), 'M', " ")).
 				arg(fileSizeToString(diskInfo.storageInfo.bytesFree(), 'M', " ")).

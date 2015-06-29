@@ -100,10 +100,10 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 	QMenu menu;
 	QAction * addItemAction = 0;
 	if (!item || item->isCategory())
-		addItemAction = menu.addAction("Add item...");
+		addItemAction = menu.addAction(tr("Add item..."));
 	else
 	{
-		addItemAction = menu.addAction("You can only add nested items to categories, not to end items");
+		addItemAction = menu.addAction(tr("You can only add nested items to categories, not to end items"));
 		addItemAction->setEnabled(false);
 	}
 
@@ -114,12 +114,12 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 			std::list<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
 			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.absolutePath == dialog.location();}) != list.cend())
 			{
-				QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "This item already exists here (possibly under a different name).", QMessageBox::Cancel);
+				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("This item already exists here (possibly under a different name)."), QMessageBox::Cancel);
 				return;
 			}
 			else if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
 			{
-				QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "And item with the same name already exists here (possibly pointing to a different location).", QMessageBox::Cancel);
+				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("And item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
 				return;
 			}
 
@@ -135,14 +135,14 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		}
 	});
 
-	connect(menu.addAction("Add category..."), &QAction::triggered, [this, item](){
+	connect(menu.addAction(tr("Add category...")), &QAction::triggered, [this, item](){
 		CNewFavoriteLocationDialog dialog(this, true);
 		if (dialog.exec() == QDialog::Accepted)
 		{
 			std::list<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
 			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
 			{
-				QMessageBox::information(dynamic_cast<QWidget*>(parent()), "Similar item already exists", "And item with the same name already exists here (possibly pointing to a different location).", QMessageBox::Cancel);
+				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("And item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
 				return;
 			}
 
@@ -159,10 +159,10 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 
 	if (item)
 	{
-		connect(menu.addAction("Remove item"), &QAction::triggered, [this, item]() {
+		connect(menu.addAction(tr("Remove item")), &QAction::triggered, [this, item]() {
 			if (item->isCategory())
 			{
-				if (QMessageBox::question(this, "Delete the item?", "Are you sure you want to delete this category and all its sub-items?") == QMessageBox::Yes)
+				if (QMessageBox::question(this, tr("Delete the item?"), tr("Are you sure you want to delete this category and all its sub-items?")) == QMessageBox::Yes)
 				{
 					item->list().erase(item->itemIterator());
 					delete item;
