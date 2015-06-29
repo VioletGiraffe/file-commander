@@ -76,7 +76,7 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), "Failed to read the file", QString("Failed to load the file\n\n") + _sourceFilePath + "\n\nIt is inaccessible or doesn't exist.");
+		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
@@ -107,7 +107,7 @@ bool CTextViewerWindow::asSystemDefault()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), "Failed to read the file", QString("Failed to load the file\n\n") + _sourceFilePath + "\n\nIt is inaccessible or doesn't exist.");
+		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
@@ -122,7 +122,7 @@ bool CTextViewerWindow::asUtf8()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), "Failed to read the file", QString("Failed to load the file\n\n") + _sourceFilePath + "\n\nIt is inaccessible or doesn't exist.");
+		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
@@ -137,7 +137,7 @@ bool CTextViewerWindow::asUtf16()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), "Failed to read the file", QString("Failed to load the file\n\n") + _sourceFilePath + "\n\nIt is inaccessible or doesn't exist.");
+		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
@@ -185,10 +185,10 @@ void CTextViewerWindow::findNext()
 		found = ui->textBrowser->find(_findDialog.searchExpression(), flags);
 
 	if(!found && (startCursor.isNull() || startCursor.position() == 0))
-		QMessageBox::information(this, "Not found", QString("Expression \"")+expression+"\" not found");
+		QMessageBox::information(this, tr("Not found"), tr("Expression \"%1\" not found").arg(expression));
 	else if (!found && startCursor.position() > 0)
 	{
-		if (QMessageBox::question(this, "Not found", _findDialog.searchBackwards() ? "Beginning of file reached, do you want to restart search from the end?" : "End of file reached, do you want to restart search from the top?") == QMessageBox::Yes)
+		if (QMessageBox::question(this, tr("Not found"), _findDialog.searchBackwards() ? tr("Beginning of file reached, do you want to restart search from the end?") : tr("End of file reached, do you want to restart search from the top?")) == QMessageBox::Yes)
 			find();
 	}
 }

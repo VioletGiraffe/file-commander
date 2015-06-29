@@ -36,31 +36,31 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	switch (promptReason)
 	{
 	case hrFileExists:
-		ui->lblQuestion->setText("File or folder already exists.");
+		ui->lblQuestion->setText(tr("File or folder already exists."));
 		break;
 	case hrSourceFileIsReadOnly:
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
-		ui->lblQuestion->setText("The source file or folder is read-only.");
+		ui->lblQuestion->setText(tr("The source file or folder is read-only."));
 		break;
 	case hrDestFileIsReadOnly:
-		ui->lblQuestion->setText("The destination file or folder is read-only.");
+		ui->lblQuestion->setText(tr("The destination file or folder is read-only."));
 		break;
 	case hrFailedToMakeItemWritable:
-		ui->lblQuestion->setText("Failed to make the file or folder writable.");
+		ui->lblQuestion->setText(tr("Failed to make the file or folder writable."));
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
 	case hrFileDoesntExit:
-		ui->lblQuestion->setText("The file or folder doesn't exist.");
+		ui->lblQuestion->setText(tr("The file or folder doesn't exist."));
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
 		ui->btnRetry->setVisible(false);
 		break;
 	case hrCreatingFolderFailed:
-		ui->lblQuestion->setText(QString("Failed to create the folder\n") + source.fullAbsolutePath());
+		ui->lblQuestion->setText(tr("Failed to create the folder\n%1").arg(source.fullAbsolutePath()));
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
@@ -71,16 +71,16 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->btnDeleteAnyway->setVisible(false);
 		ui->btnDeleteAllAnyway->setVisible(false);
 		ui->btnRename->setVisible(false);
-		ui->lblQuestion->setText(QString("Failed to delete\n") + source.fullAbsolutePath());
+		ui->lblQuestion->setText(tr("Failed to delete\n%1").arg(source.fullAbsolutePath()));
 		break;
 	case hrUnknownError:
-		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
+		ui->lblQuestion->setText(tr("An unknown error occurred. What do you want to do?"));
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
 		break;
 	default:
-		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
+		ui->lblQuestion->setText(tr("An unknown error occurred. What do you want to do?"));
 		break;
 	}
 
@@ -181,7 +181,7 @@ void CPromptDialog::onSkipAllClicked()
 
 void CPromptDialog::onRenameClicked()
 {
-	_newName = QInputDialog::getText(this, "Rename the file", "Enter the new name for this file", QLineEdit::Normal, _srcFileName);
+	_newName = QInputDialog::getText(this, tr("Rename the file"), tr("Enter the new name for this file"), QLineEdit::Normal, _srcFileName);
 	if (!_newName.isEmpty())
 	{
 		_response = urRename;

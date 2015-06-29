@@ -66,16 +66,8 @@ win*{
 
 mac* | linux* {
 	CONFIG += c++11
-	QMAKE_CFLAGS += -std=c99
-}
-
-linux*{
-
-}
-
-linux*|mac*{
+	QMAKE_CFLAGS   += -pedantic-errors -std=c99
 	QMAKE_CXXFLAGS += -pedantic-errors -std=c++1y
-	QMAKE_CFLAGS += -pedantic-errors
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 }
 

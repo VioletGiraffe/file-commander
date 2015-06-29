@@ -166,7 +166,7 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 		return false;
 
 	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % toNativeSeparators("/") % files.front().fullName()) : destDir;
-	CFileOperationConfirmationPrompt prompt("Copy files", QString("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
+	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
@@ -188,7 +188,7 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
-		CFileOperationConfirmationPrompt prompt("Move files", QString("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
+		CFileOperationConfirmationPrompt prompt(tr("Move files"), tr("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
 		if (prompt.exec() != QDialog::Accepted)
 			return false;
 	}
@@ -264,13 +264,13 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 	switch (result)
 	{
 	case rcObjectDoesntExist:
-		QMessageBox(QMessageBox::Warning, "Error", "The file doesn't exist.").exec();
+		QMessageBox(QMessageBox::Warning, tr("Error"), tr("The file doesn't exist.")).exec();
 		break;
 	case rcFail:
-		QMessageBox(QMessageBox::Critical, "Error", QString("Failed to launch ") + _controller->itemByHash(panel->panelPosition(), hash).fullAbsolutePath()).exec();
+		QMessageBox(QMessageBox::Critical, tr("Error"), tr("Failed to launch %1").arg(_controller->itemByHash(panel->panelPosition(), hash).fullAbsolutePath())).exec();
 		break;
 	case rcDirNotAccessible:
-		QMessageBox(QMessageBox::Critical, "No access", "This item is not accessible.").exec();
+		QMessageBox(QMessageBox::Critical, tr("No access"), tr("This item is not accessible.")).exec();
 		break;
 	default:
 		break;
@@ -375,7 +375,7 @@ void CMainWindow::deleteFiles()
 	_controller->execOnWorkerThread([=]() {
 		if (!CShell::deleteItems(paths, true, (void*) winId()))
 			_controller->execOnUiThread([this]() {
-			QMessageBox::warning(this, "Error deleting items", "Failed to delete the selected items");
+			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
 	});
 	
@@ -400,11 +400,11 @@ void CMainWindow::deleteFilesIrrevocably()
 	_controller->execOnWorkerThread([=]() {
 		if (!CShell::deleteItems(paths, true, (void*) winId()))
 			_controller->execOnUiThread([this]() {
-			QMessageBox::warning(this, "Error deleting items", "Failed to delete the selected items");
+			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
 	});
 #else
-	if (QMessageBox::question(this, "Are you sure?", QString("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
 		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(items, _otherFileList->currentDir(), this);
 		connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
@@ -420,21 +420,21 @@ void CMainWindow::createFolder()
 
 	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
 	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
-	const QString dirName = QInputDialog::getText(this, "New folder", "Enter the name for the new directory", QLineEdit::Normal, currentItemName);
+	const QString dirName = QInputDialog::getText(this, tr("New folder"), tr("Enter the name for the new directory"), QLineEdit::Normal, currentItemName);
 	if (!dirName.isEmpty())
 	{
 		if (!_controller->createFolder(_currentFileList->currentDir(), dirName))
-			QMessageBox::warning(this, "Failed to create a folder", "Failed to create the folder " + dirName);
+			QMessageBox::warning(this, tr("Failed to create a folder"), tr("Failed to create the folder %1").arg(dirName));
 	}
 }
 
 void CMainWindow::createFile()
 {
-	const QString fileName = QInputDialog::getText(this, "New file", "Enter the name for the new file");
+	const QString fileName = QInputDialog::getText(this, tr("New file"), tr("Enter the name for the new file"));
 	if (!fileName.isEmpty())
 	{
 		if (!_controller->createFile(_currentFileList->currentDir(), fileName))
-			QMessageBox::warning(this, "Failed to create a file", "Failed to create the file " + fileName);
+			QMessageBox::warning(this, tr("Failed to create a file"), tr("Failed to create the file %1").arg(fileName));
 
 	}
 }
@@ -456,14 +456,14 @@ void CMainWindow::editFile()
 	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
 	if (editorPath.isEmpty() || !QFileInfo(editorPath).exists())
 	{
-		if (QMessageBox::question(this, "Editor not configured", "No editor program has been configured (or the specified path doesn't exist). Do you want to specify the editor now?") == QMessageBox::Yes)
+		if (QMessageBox::question(this, tr("Editor not configured"), tr("No editor program has been configured (or the specified path doesn't exist). Do you want to specify the editor now?")) == QMessageBox::Yes)
 		{
 #ifdef _WIN32
-			const QString mask("Executable files (*.exe *.cmd *.bat)");
+			const QString mask(tr("Executable files (*.exe *.cmd *.bat)"));
 #else
 			const QString mask;
 #endif
-			editorPath = QFileDialog::getOpenFileName(this, "Browse for editor program", QString(), mask);
+			editorPath = QFileDialog::getOpenFileName(this, tr("Browse for editor program"), QString(), mask);
 			if (editorPath.isEmpty())
 				return;
 
@@ -478,7 +478,7 @@ void CMainWindow::editFile()
 	{
 		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
 		if (!editorPath.isEmpty() && !QProcess::startDetached(CSettings().value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile))
-			QMessageBox::information(this, "Error", QString("Cannot launch ")+editorPath);
+			QMessageBox::information(this, tr("Error"), tr("Cannot launch %1").arg(editorPath));
 	}
 }
 
@@ -599,7 +599,7 @@ void CMainWindow::calculateOccupiedSpace()
 	if (stats.empty())
 		return;
 
-	QMessageBox::information(this, "Occupied space", QString("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3").
+	QMessageBox::information(this, tr("Occupied space"), tr("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3").
 							 arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace)));
 }
 

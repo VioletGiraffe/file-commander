@@ -14,7 +14,7 @@ CImageViewerWindow::CImageViewerWindow(QWidget *parent) :
 	statusBar()->addWidget(_imageInfoLabel);
 
 	connect(ui->actionOpen, &QAction::triggered, [this](){
-		const QString filtersString = "All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg);; TIFF (*.tif);; PNG (*.png)";
+		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg);; TIFF (*.tif);; PNG (*.png)");
 		const QString fileName = QFileDialog::getOpenFileName(this, QString(), QString(), filtersString);
 		if (!fileName.isEmpty())
 			displayImage(fileName);
@@ -44,7 +44,7 @@ bool CImageViewerWindow::displayImage(const QString& imagePath, const QImage& im
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
 	adjustSize();
 	setWindowTitle(imagePath);
-	
+
 	static const QList<QSize> requiredIconSizes = { {16, 16}, {32, 32} };
 	setWindowIcon(ui->_imageViewerWidget->imageIcon(requiredIconSizes));
 
