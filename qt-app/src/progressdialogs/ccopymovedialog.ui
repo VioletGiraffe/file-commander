@@ -58,8 +58,8 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_5">
-     <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
       <widget class="QProgressBar" name="_fileProgress">
        <property name="value">
         <number>0</number>
@@ -69,18 +69,14 @@
        </property>
       </widget>
      </item>
-     <item>
+     <item row="0" column="1">
       <widget class="QLabel" name="_fileProgressText">
        <property name="text">
         <string>0%</string>
        </property>
       </widget>
      </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_4">
-     <item>
+     <item row="1" column="0">
       <widget class="CProgressBarTaskbar" name="_overallProgress">
        <property name="value">
         <number>0</number>
@@ -90,7 +86,7 @@
        </property>
       </widget>
      </item>
-     <item>
+     <item row="1" column="1">
       <widget class="QLabel" name="_overallProgressText">
        <property name="text">
         <string>0%</string>
