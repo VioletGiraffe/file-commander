@@ -64,6 +64,21 @@ public:
 	// Flattens the current directory and displays all its child files on one level
 	void showAllFilesFromCurrentFolderAndBelow(Panel p);
 
+// Threading
+	template <class Executable, typename ...Args>
+	void execOnWorkerThread(Executable&& task, Args&&... args)
+	{
+		_workerThread.exec(std::forward<Executable>(task), std::forward<Args>(args)...);
+	}
+
+	template <class Executable, typename ...Args>
+	void execOnUiThread(Executable&& task, Args&&... args)
+	{
+		_uiQueue.enqueue([=]() {
+			task(std::forward<Args>(args)...);
+		});
+	}
+
 // Getters
 	const CPanel& panel(Panel p) const;
 	CPanel& panel(Panel p);
@@ -73,16 +88,19 @@ public:
 	Panel activePanelPosition() const;
 	const CPanel& activePanel() const;
 	CPanel& activePanel();
+
 	CPluginProxy& pluginProxy();
+
 	bool itemHashExists(Panel p, qulonglong hash) const;
 	CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
 	QString itemPath(Panel p, qulonglong hash) const;
-	QString diskPath(size_t index) const;
-	CFavoriteLocations& favoriteLocations();
-	size_t currentDiskIndex(Panel p) const;
 
 	CDiskEnumerator& diskEnumerator();
+	QString diskPath(size_t index) const;
+	size_t currentDiskIndex(Panel p) const;
+
+	CFavoriteLocations& favoriteLocations();
 
 	// Returns hash of an item that was the last selected in the specified dir
 	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
@@ -100,6 +118,9 @@ private:
 	CDiskEnumerator      _diskEnumerator;
 	std::vector<IDiskListObserver*> _disksChangedListeners;
 	Panel                _activePanel;
+
+	CAsyncTask      _workerThread; // The thread used to execute tasks out of the UI thread
+	CExecutionQueue _uiQueue;      // The queue for actions that must be executed on the UI thread
 };
 
 #endif // CCONTROLLER_H

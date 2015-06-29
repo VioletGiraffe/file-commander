@@ -372,8 +372,13 @@ void CMainWindow::deleteFiles()
 	if (paths.empty())
 		return;
 
-	if (!CShell::deleteItems(paths, true, (void*)winId()))
-		QMessageBox::critical(this, "Error deleting items", "Failed to delete the selected items");
+	_controller->execOnWorkerThread([=]() {
+		if (!CShell::deleteItems(paths, true, (void*) winId()))
+			_controller->execOnUiThread([this]() {
+			QMessageBox::warning(this, "Error deleting items", "Failed to delete the selected items");
+		});
+	});
+	
 #else
 	deleteFilesIrrevocably();
 #endif
@@ -392,7 +397,12 @@ void CMainWindow::deleteFilesIrrevocably()
 	for (auto& item: items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
-	CShell::deleteItems(paths, false, (void*)winId());
+	_controller->execOnWorkerThread([=]() {
+		if (!CShell::deleteItems(paths, true, (void*) winId()))
+			_controller->execOnUiThread([this]() {
+			QMessageBox::warning(this, "Error deleting items", "Failed to delete the selected items");
+		});
+	});
 #else
 	if (QMessageBox::question(this, "Are you sure?", QString("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
@@ -479,8 +489,8 @@ void CMainWindow::openTerminal()
 
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 {
-	pos = ui->btnDelete->mapToGlobal(pos);
-	CShell::recycleBinContextMenu(pos.x(), pos.y(), (void*)winId());
+	const QPoint globalPos = ui->btnDelete->mapToGlobal(pos);
+	CShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), (void*)winId());
 }
 
 void CMainWindow::toggleQuickView()

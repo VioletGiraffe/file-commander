@@ -1,8 +1,8 @@
 #include "ccontroller.h"
 #include "settings/csettings.h"
 #include "settings.h"
-#include "pluginengine/cpluginengine.h"
 #include "shell/cshell.h"
+#include "pluginengine/cpluginengine.h"
 #include "filesystemhelperfunctions.h"
 #include "iconprovider/ciconprovider.h"
 
@@ -57,6 +57,8 @@ void CController::uiThreadTimerTick()
 {
 	_leftPanel.uiThreadTimerTick();
 	_rightPanel.uiThreadTimerTick();
+
+	_uiQueue.exec(CExecutionQueue::execFirst);
 }
 
 // Updates the list of files in the current directory this panel is viewing, and send the new state to UI
@@ -366,14 +368,14 @@ QString CController::itemPath(Panel p, qulonglong hash) const
 	return panel(p).itemByHash(hash).properties().fullPath;
 }
 
+CDiskEnumerator& CController::diskEnumerator()
+{
+	return _diskEnumerator;
+}
+
 QString CController::diskPath(size_t index) const // TODO: make the argument size_t
 {
 	return index < _diskEnumerator.drives().size() ? _diskEnumerator.drives()[index].fileSystemObject.fullAbsolutePath() : QString();
-}
-
-CFavoriteLocations &CController::favoriteLocations()
-{
-	return _favoriteLocations;
 }
 
 size_t CController::currentDiskIndex(Panel p) const
@@ -388,9 +390,9 @@ size_t CController::currentDiskIndex(Panel p) const
 	return std::numeric_limits<int>::max();
 }
 
-CDiskEnumerator& CController::diskEnumerator()
+CFavoriteLocations &CController::favoriteLocations()
 {
-	return _diskEnumerator;
+	return _favoriteLocations;
 }
 
 // Returns hash of an item that was the last selected in the specified dir

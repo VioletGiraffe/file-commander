@@ -88,12 +88,25 @@ private:
 	std::vector<ITEMIDLIST*> _array;
 };
 
+struct ComInitializer {
+	ComInitializer() {
+		const auto result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+		assert(SUCCEEDED(result));
+	}
+
+	~ComInitializer() {
+		CoUninitialize();
+	}
+};
+
 bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, IContextMenu*& imenu);
 
 // Pos must be global
 
 bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> objects, int xPos, int yPos, void * parentWindow)
 {
+	ComInitializer comInitializer;
+
 	IContextMenu * imenu = 0;
 	HMENU hMenu = NULL;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
@@ -121,6 +134,8 @@ bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> objects, i
 
 bool CShell::copyObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow)
 {
+	ComInitializer comInitializer;
+
 	IContextMenu * imenu = 0;
 	HMENU hMenu = NULL;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
@@ -136,15 +151,17 @@ bool CShell::copyObjectsToClipboard(std::vector<std::wstring> objects, void * pa
 	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
 	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
 	info.nShow = SW_SHOWNORMAL;
-	imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
 
 	DestroyMenu(hMenu);
 
-	return true;
+	return SUCCEEDED(result);
 }
 
 bool CShell::cutObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow)
 {
+	ComInitializer comInitializer;
+
 	IContextMenu * imenu = 0;
 	HMENU hMenu = NULL;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
@@ -160,15 +177,17 @@ bool CShell::cutObjectsToClipboard(std::vector<std::wstring> objects, void * par
 	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
 	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
 	info.nShow = SW_SHOWNORMAL;
-	imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
 
 	DestroyMenu(hMenu);
 
-	return true;
+	return SUCCEEDED(result);
 }
 
 bool CShell::pasteFromClipboard(std::wstring destFolder, void * parentWindow)
 {
+	ComInitializer comInitializer;
+
 	IContextMenu * imenu = 0;
 	HMENU hMenu = NULL;
 	if (!prepareContextMenuForObjects(std::vector<std::wstring>(1, destFolder), parentWindow, hMenu, imenu) || !hMenu || !imenu)
@@ -184,15 +203,17 @@ bool CShell::pasteFromClipboard(std::wstring destFolder, void * parentWindow)
 	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
 	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
 	info.nShow = SW_SHOWNORMAL;
-	imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
 
 	DestroyMenu(hMenu);
 
-	return true;
+	return SUCCEEDED(result);
 }
 
 std::wstring CShell::toolTip(std::wstring itemPath)
 {
+	ComInitializer comInitializer;
+
 	std::replace(itemPath.begin(), itemPath.end(), '/', '\\');
 	std::wstring tipString;
 	ITEMIDLIST * id = 0;
@@ -225,6 +246,8 @@ std::wstring CShell::toolTip(std::wstring itemPath)
 
 bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void * parentWindow)
 {
+	ComInitializer comInitializer;
+
 	assert(parentWindow);
 	std::vector<ITEMIDLIST*> idLists;
 	for (auto& path: items)
@@ -299,6 +322,8 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 
 bool CShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 {
+	ComInitializer comInitializer;
+
 	PIDLIST_ABSOLUTE idlist = 0;
 	if (!SUCCEEDED(SHGetFolderLocation(0, CSIDL_BITBUCKET, 0, 0, &idlist)))
 		return false;
@@ -344,6 +369,8 @@ bool CShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 
 bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * parentWindow, HMENU& hmenu, IContextMenu*& imenu)
 {
+	ComInitializer comInitializer;
+
 	if (objects.empty())
 		return false;
 
@@ -429,5 +456,5 @@ bool CShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void */*parentWin
 }
 
 #else
-#error unknown platform
+#error unsupported platform
 #endif

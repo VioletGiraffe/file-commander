@@ -565,6 +565,7 @@ void CPanelWidget::copySelectionToClipboard() const
 	auto hashes = selectedItemsHashes();
 	for (auto hash: hashes)
 		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
+
 	CShell::copyObjectsToClipboard(paths, (void*)winId());
 #endif
 }
@@ -597,6 +598,7 @@ void CPanelWidget::cutSelectionToClipboard() const
 	auto hashes = selectedItemsHashes();
 	for (auto hash: hashes)
 		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
+
 	CShell::cutObjectsToClipboard(paths, (void*)winId());
 #endif
 }
@@ -611,7 +613,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
 #else
-	CShell::pasteFromClipboard(currentDir().toStdWString(), (void*)winId());
+	_controller.execOnWorkerThread(&CShell::pasteFromClipboard, currentDir().toStdWString(), (void*)winId());
 #endif
 }
 
