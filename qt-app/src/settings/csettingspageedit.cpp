@@ -29,11 +29,11 @@ void CSettingsPageEdit::acceptSettings()
 void CSettingsPageEdit::browseForEditor()
 {
 #ifdef _WIN32
-	const QString mask("Executable files (*.exe *.cmd *.bat)");
+	const QString mask(tr("Executable files (*.exe *.cmd *.bat)"));
 #else
 	const QString mask;
 #endif
-	const QString result = QFileDialog::getOpenFileName(this, "Browse for editor program", QFileInfo(ui->_editorNameLine->text()).absolutePath(), mask);
+	const QString result = QFileDialog::getOpenFileName(this, tr("Browse for editor program"), QFileInfo(ui->_editorNameLine->text()).absolutePath(), mask);
 	if (!result.isEmpty())
 		ui->_editorNameLine->setText(result);
 }

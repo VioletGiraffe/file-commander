@@ -26,7 +26,7 @@ CDeleteProgressDialog::CDeleteProgressDialog(std::vector<CFileSystemObject> sour
 	connect (ui->_btnBackground, SIGNAL(clicked()), SLOT(background()));
 	connect (ui->_btnPause,      SIGNAL(clicked()), SLOT(pauseResume()));
 
-	setWindowTitle("Deleting...");
+	setWindowTitle(tr("Deleting..."));
 
 	_eventsProcessTimer.setInterval(100);
 	_eventsProcessTimer.start();
@@ -50,7 +50,7 @@ void CDeleteProgressDialog::onProgressChanged(int totalPercentage, size_t numFil
 {
 	ui->_progress->setValue(totalPercentage);
 	ui->_lblNumFiles->setText(QString("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
-	static const QString titleTemplate ("%1% Deleting....");
+	static const QString titleTemplate(tr("%1% Deleting...."));
 	setWindowTitle(titleTemplate.arg(totalPercentage));
 }
 
@@ -72,7 +72,7 @@ void CDeleteProgressDialog::onProcessFinished(QString message)
 	close();
 
 	if (!message.isEmpty())
-		QMessageBox::information(this, "Operation finished", message);
+		QMessageBox::information(this, tr("Operation finished"), message);
 }
 
 void CDeleteProgressDialog::onCurrentFileChanged(QString file)
@@ -100,7 +100,7 @@ void CDeleteProgressDialog::cancelPressed()
 
 void CDeleteProgressDialog::pauseResume()
 {
-	ui->_btnPause->setText(_performer->togglePause() ? "Resume" : "Pause");
+	ui->_btnPause->setText(_performer->togglePause() ? tr("Resume") : tr("Pause"));
 	ui->_progress->setState(_performer->paused() ? psPaused : psNormal);
 }
 

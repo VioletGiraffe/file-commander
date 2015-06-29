@@ -15,8 +15,8 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 	_performer(new COperationPerformer(operation, source, destination)),
 	_mainWindow(mainWindow),
 	_op(operation),
-	_titleTemplate(_op == operationCopy ? "%1% Copying %2/s" : "%1% Moving %2/s"),
-	_labelTemplate(_op == operationCopy ? "Copying files... %2/s" : "Moving files... %2/s"),
+	_titleTemplate(_op == operationCopy ? tr("%1% Copying %2/s") : tr("%1% Moving %2/s")),
+	_labelTemplate(_op == operationCopy ? tr("Copying files... %2/s") : tr("Moving files... %2/s")),
 	_speed(0)
 {
 	ui->setupUi(this);
@@ -30,9 +30,9 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 	assert(mainWindow);
 
 	if (operation == operationCopy)
-		ui->_lblOperationName->setText("Copying files...");
+		ui->_lblOperationName->setText(tr("Copying files..."));
 	else if (operation == operationMove)
-		ui->_lblOperationName->setText("Moving files...");
+		ui->_lblOperationName->setText(tr("Moving files..."));
 	else
 		assert(false);
 
@@ -90,7 +90,7 @@ void CCopyMoveDialog::onProcessFinished(QString message)
 	close();
 
 	if (!message.isEmpty())
-		QMessageBox::information(this, "Operation finished", message);
+		QMessageBox::information(this, tr("Operation finished"), message);
 }
 
 void CCopyMoveDialog::onCurrentFileChanged(QString file)
@@ -109,7 +109,7 @@ bool CCopyMoveDialog::cancelPressed()
 	if (!wasPaused)
 		pauseResume();
 
-	if (QMessageBox::question(this, "Cancel?", "Are you sure you want to cancel this operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	if (QMessageBox::question(this, tr("Cancel?"), tr("Are you sure you want to cancel this operation?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
 		pauseResume();
 		cancel();
@@ -123,7 +123,7 @@ bool CCopyMoveDialog::cancelPressed()
 
 void CCopyMoveDialog::pauseResume()
 {
-	ui->_btnPause->setText(_performer->togglePause() ? "Resume" : "Pause");
+	ui->_btnPause->setText(_performer->togglePause() ? tr("Resume") : tr("Pause"));
 	ui->_overallProgress->setState(_performer->paused() ? psPaused : psNormal);
 }
 
