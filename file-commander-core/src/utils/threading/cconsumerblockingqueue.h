@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <thread>
+#include <limits>
 #include <mutex>
 #include <condition_variable>
 
@@ -9,7 +10,7 @@ template <typename T>
 class CConsumerBlockingQueue
 {
 public:
-	explicit CConsumerBlockingQueue (size_t maxSize = 100);
+	explicit CConsumerBlockingQueue (size_t maxSize = std::numeric_limits<size_t>::max());
 	void push (const T& element);
 	// Non-blocking
 	bool try_pop (T& element);

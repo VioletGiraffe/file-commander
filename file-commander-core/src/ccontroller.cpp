@@ -15,7 +15,7 @@
 
 CController* CController::_instance = nullptr;
 
-CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel)
+CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _workerThread("CController worker thread")
 {
 	assert(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;

@@ -67,7 +67,7 @@ public:
 // Threading
 	inline void execOnWorkerThread(const std::function<void()>& task)
 	{
-		_workerThread.exec(task);
+		_workerThread.enqueue(task);
 	}
 
 	inline void execOnUiThread(const std::function<void ()>& task)

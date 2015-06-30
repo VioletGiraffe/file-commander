@@ -2,13 +2,21 @@
 
 #include "cconsumerblockingqueue.h"
 
-#include <atomic>
-#include <thread>
 #include <assert.h>
+#include <atomic>
+#include <string>
+#include <thread>
 
 class CWorkerThread
 {
 public:
+	explicit CWorkerThread(const std::string& threadName) : _threadName(threadName)
+	{
+	}
+
+	CWorkerThread(const CWorkerThread&) = delete;
+	// join() may throw& operator=(const CWorkerThread&) = delete;
+
 	~CWorkerThread()
 	{
 		stop();
@@ -27,13 +35,22 @@ public:
 	{
 		if (_working)
 		{
-			_terminate = true;
-			_thread.join();
-			_terminate = false;
+			// join() may throw
+			try {
+				_terminate = true;
+				_queue.push(std::function<void()>()); // Pushing a dummy non-executable item in the task queue so that pop() wakes up and the thread may resume in order to finish
+				_thread.join();
+				_terminate = false;
+			}
+			catch (std::exception& e)
+			{
+				assert(!"Exception caught in CWorkerThread::stop()");
+				(void)e;
+			}
 		}
 	}
 
-	void exec(const std::function<void()>& task)
+	void enqueue(const std::function<void()>& task)
 	{
 		_queue.push(task);
 		start();
@@ -58,4 +75,5 @@ private:
 	std::thread _thread;
 	std::atomic<bool> _working = false;
 	std::atomic<bool> _terminate = false;
+	std::string _threadName;
 };

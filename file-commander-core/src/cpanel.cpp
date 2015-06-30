@@ -14,7 +14,8 @@ RESTORE_COMPILER_WARNINGS
 #include <limits>
 
 CPanel::CPanel(Panel position) :
-	_panelPosition(position)
+	_panelPosition(position),
+	_fileListRefreshThread("File list refresh thread")
 {
 }
 
@@ -156,7 +157,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	_currentDisplayMode = AllObjectsMode;
 	_watcher.reset();
 
-	_refreshFileListTask.exec([this]() {
+	_fileListRefreshThread.enqueue([this]() {
 		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 		const QString path = _currentDirObject.fullAbsolutePath();
 
@@ -215,7 +216,7 @@ qulonglong CPanel::currentItemInFolder(const QString &dir) const
 // Enumerates objects in the current directory
 void CPanel::refreshFileList(FileListRefreshCause operation)
 {
-	_refreshFileListTask.exec([this, operation]() {
+	_fileListRefreshThread.enqueue([this, operation]() {
 		const time_t start = clock();
 		QFileInfoList list;
 
