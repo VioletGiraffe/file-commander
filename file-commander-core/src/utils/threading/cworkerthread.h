@@ -15,7 +15,7 @@ public:
 	}
 
 	CWorkerThread(const CWorkerThread&) = delete;
-	// join() may throw& operator=(const CWorkerThread&) = delete;
+	CWorkerThread& operator=(const CWorkerThread&) = delete;
 
 	~CWorkerThread()
 	{
@@ -73,7 +73,7 @@ private:
 private:
 	CConsumerBlockingQueue<std::function<void()>> _queue;
 	std::thread _thread;
-	std::atomic<bool> _working = false;
-	std::atomic<bool> _terminate = false;
+	std::atomic<bool> _working {false};
+	std::atomic<bool> _terminate {false};
 	std::string _threadName;
 };
