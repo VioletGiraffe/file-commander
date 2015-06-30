@@ -4,7 +4,7 @@
 #include "cfilesystemobject.h"
 #include "diskenumerator/cdiskenumerator.h"
 #include "historylist/chistorylist.h"
-#include "utils/threading/casynctask.h"
+#include "utils/threading/cworkerthread.h"
 #include "utils/threading/cexecutionqueue.h"
 
 #include <map>
@@ -119,7 +119,7 @@ private:
 
 	std::vector<CDiskEnumerator::DiskInfo>     _disks;
 
-	CAsyncTask                                 _refreshFileListTask;
+	CWorkerThread                                 _refreshFileListTask;
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
 };

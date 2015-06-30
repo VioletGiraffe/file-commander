@@ -33,7 +33,8 @@ HEADERS += \
 	src/fasthash.h \
 	src/utils/threading/cexecutionqueue.h \
     src/utils/threading/cperiodicexecutionthread.h \
-    src/utils/threading/casynctask.h
+    src/utils/threading/cconsumerblockingqueue.h \
+    src/utils/threading/cworkerthread.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \

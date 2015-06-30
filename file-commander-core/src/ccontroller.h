@@ -65,10 +65,9 @@ public:
 	void showAllFilesFromCurrentFolderAndBelow(Panel p);
 
 // Threading
-	template <class Executable, typename ...Args>
-	void execOnWorkerThread(Executable&& task, Args&&... args)
+	inline void execOnWorkerThread(const std::function<void()>& task)
 	{
-		_workerThread.exec(std::forward<Executable>(task), std::forward<Args>(args)...);
+		_workerThread.exec(task);
 	}
 
 	inline void execOnUiThread(const std::function<void ()>& task)
@@ -116,7 +115,7 @@ private:
 	std::vector<IDiskListObserver*> _disksChangedListeners;
 	Panel                _activePanel;
 
-	CAsyncTask      _workerThread; // The thread used to execute tasks out of the UI thread
+	CWorkerThread   _workerThread; // The thread used to execute tasks out of the UI thread
 	CExecutionQueue _uiQueue;      // The queue for actions that must be executed on the UI thread
 };
 

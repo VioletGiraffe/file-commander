@@ -613,7 +613,9 @@ void CPanelWidget::pasteSelectionFromClipboard()
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
 #else
-	_controller.execOnWorkerThread(&CShell::pasteFromClipboard, currentDir().toStdWString(), (void*)winId());
+	_controller.execOnWorkerThread([this]() {
+		CShell::pasteFromClipboard(currentDir().toStdWString(), (void*)winId());
+	});
 #endif
 }
 
