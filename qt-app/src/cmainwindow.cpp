@@ -375,7 +375,7 @@ void CMainWindow::deleteFiles()
 	_controller->execOnWorkerThread([=]() {
 		if (!CShell::deleteItems(paths, true, (void*) winId()))
 			_controller->execOnUiThread([this]() {
-			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
+				QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
 	});
 	
@@ -400,7 +400,7 @@ void CMainWindow::deleteFilesIrrevocably()
 	_controller->execOnWorkerThread([=]() {
 		if (!CShell::deleteItems(paths, true, (void*) winId()))
 			_controller->execOnUiThread([this]() {
-			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
+				QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
 	});
 #else
