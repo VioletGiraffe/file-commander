@@ -71,12 +71,9 @@ public:
 		_workerThread.exec(std::forward<Executable>(task), std::forward<Args>(args)...);
 	}
 
-	template <class Executable, typename ...Args>
-	void execOnUiThread(Executable&& task, Args&&... args)
+	inline void execOnUiThread(const std::function<void ()>& task)
 	{
-		_uiQueue.enqueue([=]() {
-			task(std::forward<Args>(args)...);
-		});
+		_uiQueue.enqueue(task);
 	}
 
 // Getters
