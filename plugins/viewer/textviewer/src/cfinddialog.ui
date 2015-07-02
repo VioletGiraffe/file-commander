@@ -22,7 +22,11 @@
     </widget>
    </item>
    <item>
-    <widget class="QLineEdit" name="_searchText"/>
+    <widget class="CHistoryComboBox" name="_searchText">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item>
     <layout class="QFormLayout" name="formLayout">
@@ -109,6 +113,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CHistoryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>widgets/chistorycombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

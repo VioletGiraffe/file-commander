@@ -2,14 +2,16 @@
 #include "ui_cfinddialog.h"
 #include "settings/csettings.h"
 
-#define SETTINGS_SEARCH_EXPRESSION "Expression"
+#include <QLineEdit>
 
-#define SETTINGS_REGEX             "FindDialog/Regex"
-#define SETTINGS_BACKWARDS         "SearchBackwards"
-#define SETTINGS_CASE_SENSITIVE    "CaseSensitive"
-#define SETTINGS_WHOLE_WORDS       "WholeWords"
+#define SETTINGS_SEARCH_EXPRESSION_LIST "Expressions"
 
-#define SETTINGS_GEOMETRY          "Geometry"
+#define SETTINGS_REGEX                  "FindDialog/Regex"
+#define SETTINGS_BACKWARDS              "SearchBackwards"
+#define SETTINGS_CASE_SENSITIVE         "CaseSensitive"
+#define SETTINGS_WHOLE_WORDS            "WholeWords"
+
+#define SETTINGS_GEOMETRY               "Geometry"
 
 CFindDialog::CFindDialog(QWidget *parent, const QString& settingsRootCategory) :
 	QDialog(parent),
@@ -23,10 +25,12 @@ CFindDialog::CFindDialog(QWidget *parent, const QString& settingsRootCategory) :
 	connect(ui->_btnFind, SIGNAL(clicked()), SIGNAL(find()));
 	connect(ui->_btnFindNext, SIGNAL(clicked()), SIGNAL(findNext()));
 
+	connect(ui->_searchText, SIGNAL(itemActivated(QString)), ui->_btnFind, SLOT(click()));
+
 	if (!_settingsRootCategory.isEmpty())
 	{
 		CSettings s;
-		ui->_searchText->setText(s.value(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION).toString());
+		ui->_searchText->addItems(s.value(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION_LIST).toStringList());
 		ui->_cbSearchBackwards->setChecked(s.value(_settingsRootCategory + SETTINGS_BACKWARDS).toBool());
 		ui->_cbCaseSensitive->setChecked(s.value(_settingsRootCategory + SETTINGS_CASE_SENSITIVE).toBool());
 		ui->_cbRegex->setChecked(s.value(_settingsRootCategory + SETTINGS_REGEX).toBool());
@@ -46,7 +50,7 @@ CFindDialog::~CFindDialog()
 
 QString CFindDialog::searchExpression() const
 {
-	return ui->_searchText->text();
+	return ui->_searchText->currentText();
 }
 
 bool CFindDialog::regex() const
@@ -77,8 +81,8 @@ void CFindDialog::accept()
 
 void CFindDialog::showEvent(QShowEvent * e)
 {
-	ui->_searchText->selectAll();
-	ui->_searchText->setFocus();
+	ui->_searchText->lineEdit()->selectAll();
+	ui->_searchText->lineEdit()->setFocus();
 
 	if (!_settingsRootCategory.isEmpty())
 		restoreGeometry(CSettings().value(_settingsRootCategory + SETTINGS_GEOMETRY).toByteArray());
@@ -97,9 +101,10 @@ void CFindDialog::hideEvent(QHideEvent * e)
 void CFindDialog::saveSearchSettings() const
 {
 	CSettings s;
-	s.setValue(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION, searchExpression());
+	s.setValue(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION_LIST, ui->_searchText->items());
 	s.setValue(_settingsRootCategory + SETTINGS_BACKWARDS, searchBackwards());
 	s.setValue(_settingsRootCategory + SETTINGS_CASE_SENSITIVE, caseSensitive());
 	s.setValue(_settingsRootCategory + SETTINGS_REGEX, regex());
 	s.setValue(_settingsRootCategory + SETTINGS_WHOLE_WORDS, wholeWords());
+
 }
