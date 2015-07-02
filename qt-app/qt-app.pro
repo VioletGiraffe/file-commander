@@ -14,9 +14,9 @@ UI_DIR      = ../build/app
 RCC_DIR     = ../build/app
 
 INCLUDEPATH += \
+	$$PWD/src/ \
 	../file-commander-core/src \
 	../file-commander-core/include \
-	$$PWD/src/ \
 	../qtutils
 
 SOURCES += \
@@ -32,7 +32,6 @@ SOURCES += \
 	src/settings/csettingspageinterface.cpp \
 	src/settings/csettingspageedit.cpp \
 	src/settings/csettingspageother.cpp \
-	src/historycombobox/chistorycombobox.cpp \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
 	src/progressdialogs/cfileoperationconfirmationprompt.cpp \
 	src/settings/csettingspageoperations.cpp \
@@ -53,7 +52,6 @@ HEADERS += \
 	src/settings/csettingspageinterface.h \
 	src/settings/csettingspageedit.h \
 	src/settings/csettingspageother.h \
-	src/historycombobox/chistorycombobox.h \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
 	src/progressdialogs/cfileoperationconfirmationprompt.h \
 	src/settings/csettingspageoperations.h \
