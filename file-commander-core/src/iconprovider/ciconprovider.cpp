@@ -3,7 +3,9 @@
 #include "ciconproviderimpl.h"
 #include "fasthash.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QIcon>
+RESTORE_COMPILER_WARNINGS
 
 std::unique_ptr<CIconProvider> CIconProvider::_instance;
 

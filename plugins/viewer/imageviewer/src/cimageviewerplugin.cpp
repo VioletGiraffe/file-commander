@@ -1,7 +1,9 @@
 #include "cimageviewerplugin.h"
 #include "cimageviewerwindow.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QImageReader>
+RESTORE_COMPILER_WARNINGS
 
 CImageViewerPlugin::CImageViewerPlugin()
 {

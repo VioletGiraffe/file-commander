@@ -4,8 +4,10 @@
 #include "../../../cmainwindow.h"
 #include "../../columns.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QMimeData>
 #include <QUrl>
+RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 #include <set>

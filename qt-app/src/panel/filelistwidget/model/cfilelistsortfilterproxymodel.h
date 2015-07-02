@@ -3,7 +3,9 @@
 #include "cpanel.h"
 #include "utils/naturalsorting/cnaturalsorting.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QSortFilterProxyModel>
+RESTORE_COMPILER_WARNINGS
 
 class CController;
 

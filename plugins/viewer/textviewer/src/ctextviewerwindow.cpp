@@ -2,10 +2,12 @@
 #include "ui_ctextviewerwindow.h"
 #include "ctextencodingdetector.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QShortcut>
 #include <QTextCodec>
+RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 

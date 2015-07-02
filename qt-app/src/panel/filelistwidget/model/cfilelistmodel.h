@@ -3,7 +3,9 @@
 
 #include "cpanel.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QStandardItemModel>
+RESTORE_COMPILER_WARNINGS
 
 enum Role {
 	FullNameRole = Qt::UserRole+1

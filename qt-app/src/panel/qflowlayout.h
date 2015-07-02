@@ -1,8 +1,12 @@
 #ifndef QFLOWLAYOUT_H
 #define QFLOWLAYOUT_H
 
+#include "utils/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
 #include <QLayout>
 #include <QStyle>
+RESTORE_COMPILER_WARNINGS
 
 class QFlowLayout : public QLayout
 {

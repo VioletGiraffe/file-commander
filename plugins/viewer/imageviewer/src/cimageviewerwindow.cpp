@@ -1,9 +1,11 @@
 #include "cimageviewerwindow.h"
 #include "ui_cimageviewerwindow.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QLabel>
 #include <QShortcut>
+RESTORE_COMPILER_WARNINGS
 
 CImageViewerWindow::CImageViewerWindow(QWidget *parent) :
 	CPluginWindow(parent),

@@ -1,12 +1,14 @@
 #include "cfilelistitemdelegate.h"
 #include <assert.h>
 
+DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QTextEdit>
 #include <QTimer>
+RESTORE_COMPILER_WARNINGS
 
 CFileListItemDelegate::CFileListItemDelegate(QObject *parent) :
 	QStyledItemDelegate(parent)

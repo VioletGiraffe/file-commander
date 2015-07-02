@@ -6,9 +6,11 @@
 #include "filesystemhelperfunctions.h"
 #include "iconprovider/ciconprovider.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QDesktopServices>
 #include <QProcess>
 #include <QUrl>
+RESTORE_COMPILER_WARNINGS
 
 #include <stdlib.h>
 #include <assert.h>

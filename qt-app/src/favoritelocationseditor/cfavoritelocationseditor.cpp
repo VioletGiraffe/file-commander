@@ -3,8 +3,10 @@
 #include "cnewfavoritelocationdialog.h"
 #include "ccontroller.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QMenu>
 #include <QMessageBox>
+RESTORE_COMPILER_WARNINGS
 
 // If an item represents a subcategory, it cannot link to a location and can only be used as a container
 class CFavoriteLocationsListItem : public QTreeWidgetItem

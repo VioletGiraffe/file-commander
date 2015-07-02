@@ -1,8 +1,10 @@
 #include "cfilelistfilterdialog.h"
 #include "ui_cfilelistfilterdialog.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QShortcut>
 #include <QTimer>
+RESTORE_COMPILER_WARNINGS
 
 CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
 	QDialog(parent, Qt::Popup),

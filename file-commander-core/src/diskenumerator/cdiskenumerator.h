@@ -5,8 +5,10 @@
 #include "utils/threading/cexecutionqueue.h"
 #include "utils/threading/cperiodicexecutionthread.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QStorageInfo>
 #include <QTimer>
+RESTORE_COMPILER_WARNINGS
 
 #include <vector>
 

@@ -1,13 +1,15 @@
 #pragma once
 
+#include "settings.h"
+#include "settings/csettings.h"
+
+DISABLE_COMPILER_WARNINGS
 #ifdef _WIN32
 #include <QtWin>
 #else
 #include <QFileIconProvider>
 #endif
-
-#include "settings.h"
-#include "settings/csettings.h"
+RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 

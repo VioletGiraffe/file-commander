@@ -1,6 +1,8 @@
 #include "qflowlayout.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QWidget>
+RESTORE_COMPILER_WARNINGS
 
 QFlowLayout::QFlowLayout(QWidget *parent, int margin, int hSpacing, int vSpacing)
 	: QLayout(parent), m_hSpace(hSpacing), m_vSpace(vSpacing)

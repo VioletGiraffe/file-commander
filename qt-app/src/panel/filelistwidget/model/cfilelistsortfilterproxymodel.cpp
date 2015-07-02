@@ -2,7 +2,9 @@
 #include "ccontroller.h"
 #include "../../columns.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QStandardItemModel>
+RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 
