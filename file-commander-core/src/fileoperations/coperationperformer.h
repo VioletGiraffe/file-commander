@@ -35,7 +35,7 @@ public:
 
 private:
 	inline void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/) {
-		assert(filePercentage <= 100 && totalPercentage <= 100);
+		assert(filePercentage < 100.5f && totalPercentage < 100.5f);
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProgressChanged, this, totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed));
 	}
 
