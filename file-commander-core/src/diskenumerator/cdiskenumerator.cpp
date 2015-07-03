@@ -40,7 +40,7 @@ CDiskEnumerator::CDiskEnumerator() : _enumeratorThread(_updateInterval, "CDiskEn
 }
 
 // A helper function that checks if there are any changes between the old and the new disk lists - including the change in space available
-static bool drivesChanged(const QList<QStorageInfo>& newList, const std::vector<CDiskEnumerator::DiskInfo>& oldList)
+static bool operator!=(const QList<QStorageInfo>& newList, const std::vector<CDiskEnumerator::DiskInfo>& oldList)
 {
 	if (newList.size() != (int)oldList.size())
 		return true;
@@ -61,7 +61,7 @@ void CDiskEnumerator::enumerateDisks(bool async)
 {
 	const auto newDrives = QStorageInfo::mountedVolumes();
 
-	if (drivesChanged(newDrives, _drives))
+	if (!async || newDrives != _drives)
 	{
 		_drives.resize((size_t)newDrives.size());
 		std::copy(newDrives.cbegin(), newDrives.cend(), _drives.begin());
