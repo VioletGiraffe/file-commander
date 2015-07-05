@@ -30,7 +30,7 @@ public:
 	void onCurrentFileChanged(QString file) override; // Starting to process a new file
 
 protected:
-	virtual void closeEvent(QCloseEvent * e);
+	virtual void closeEvent(QCloseEvent * e) override;
 
 private slots:
 	void cancelPressed();

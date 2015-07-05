@@ -24,7 +24,7 @@ public:
 	QTreeView * treeView() const;
 
 	QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
-	bool setData(const QModelIndex &index, const QVariant &value, int role);
+	bool setData(const QModelIndex &index, const QVariant &value, int role) override;
 	Qt::ItemFlags flags(const QModelIndex & index) const override;
 
 // Drag and drop
