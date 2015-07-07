@@ -20,11 +20,12 @@ INCLUDEPATH += \
 	../../../file-commander-core/src \
 	../../../file-commander-core/include \
 	../../../qtutils \
+	../../../cpputils \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin -lcore -lqtutils
+LIBS += -L../../../bin -lcore -lqtutils -lcpputils
 
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251

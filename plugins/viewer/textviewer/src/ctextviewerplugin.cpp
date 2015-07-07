@@ -1,6 +1,6 @@
 #include "ctextviewerplugin.h"
 #include "ctextviewerwindow.h"
-#include "utils/compiler_warnings_control.h"
+#include "compiler/compiler_warnings_control.h"
 
 CFileCommanderPlugin * createPlugin()
 {

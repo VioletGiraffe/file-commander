@@ -2,8 +2,8 @@
 
 #include "operationcodes.h"
 #include "cfilesystemobject.h"
-#include "utils/ctimeelapsed.h"
-#include "utils/MeanCounter.h"
+#include "system/ctimeelapsed.h"
+#include "math/cmeancounter.h"
 
 #include <assert.h>
 #include <atomic>

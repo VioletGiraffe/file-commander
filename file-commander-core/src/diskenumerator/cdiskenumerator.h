@@ -2,8 +2,8 @@
 #define CDISKENUMERATOR_H
 
 #include "cfilesystemobject.h"
-#include "utils/threading/cexecutionqueue.h"
-#include "utils/threading/cperiodicexecutionthread.h"
+#include "threading/cexecutionqueue.h"
+#include "threading/cperiodicexecutionthread.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QStorageInfo>

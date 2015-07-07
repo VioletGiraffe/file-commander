@@ -24,17 +24,12 @@ HEADERS += \
 	src/fileoperations/operationcodes.h \
 	src/fileoperations/coperationperformer.h \
 	src/fileoperations/cfileoperation.h \
-	src/utils/ctimeelapsed.h \
 	src/shell/cshell.h \
 	include/settings.h \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \
 	src/fasthash.h \
-	src/utils/threading/cexecutionqueue.h \
-    src/utils/threading/cperiodicexecutionthread.h \
-    src/utils/threading/cconsumerblockingqueue.h \
-    src/utils/threading/cworkerthread.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -43,18 +38,17 @@ SOURCES += \
 	src/diskenumerator/cdiskenumerator.cpp \
 	src/iconprovider/ciconprovider.cpp \
 	src/fileoperations/coperationperformer.cpp \
-	src/utils/ctimeelapsed.cpp \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
-	src/fasthash.c \
-    src/utils/threading/cperiodicexecutionthread.cpp
+	src/fasthash.c
 
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 
 INCLUDEPATH += \
 	src \
 	include \
-	../qtutils
+	../qtutils \
+	../cpputils
 
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)

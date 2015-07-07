@@ -4,8 +4,8 @@
 #include "cfilesystemobject.h"
 #include "diskenumerator/cdiskenumerator.h"
 #include "historylist/chistorylist.h"
-#include "utils/threading/cworkerthread.h"
-#include "utils/threading/cexecutionqueue.h"
+#include "threading/cworkerthread.h"
+#include "threading/cexecutionqueue.h"
 
 #include <map>
 #include <memory>

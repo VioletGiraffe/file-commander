@@ -17,7 +17,8 @@ INCLUDEPATH += \
 	$$PWD/src/ \
 	../file-commander-core/src \
 	../file-commander-core/include \
-	../qtutils
+	../qtutils \
+	../cpputils
 
 SOURCES += \
 	src/main.cpp \
@@ -86,7 +87,7 @@ FORMS += \
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
-LIBS += -L../bin -lcore -lqtutils
+LIBS += -L../bin -lcore -lqtutils -lcpputils
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32

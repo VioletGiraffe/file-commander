@@ -10,3 +10,7 @@ cd ..
 cd text-encoding-detector
 git pull
 cd ..
+
+cd cpputils
+git pull
+cd ..

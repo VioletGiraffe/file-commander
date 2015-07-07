@@ -2,7 +2,7 @@
 #define CVIEWERWINDOW_H
 
 #include "plugin_export.h"
-#include "utils/compiler_warnings_control.h"
+#include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>

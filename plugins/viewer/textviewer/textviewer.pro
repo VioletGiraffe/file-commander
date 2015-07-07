@@ -20,12 +20,13 @@ INCLUDEPATH += \
 	../../../file-commander-core/src \
 	../../../file-commander-core/include \
 	../../../qtutils \
+	../../../cpputils \
 	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin -lcore -lqtutils -ltext_encoding_detector
+LIBS += -L../../../bin -lcore -lqtutils -ltext_encoding_detector -lcpputils
 
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251
