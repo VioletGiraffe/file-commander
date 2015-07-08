@@ -780,7 +780,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	}
 	else if(e->type() == QEvent::Wheel && object == ui->_list->viewport())
 	{
-		QWheelEvent * wEvent = dynamic_cast<QWheelEvent*>(e);
+		QWheelEvent * wEvent = static_cast<QWheelEvent*>(e);
 		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
 		{
 			if (wEvent->delta() > 0)
