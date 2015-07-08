@@ -2,6 +2,7 @@
 #include "settings/csettings.h"
 #include "settings.h"
 #include "filesystemhelperfunctions.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -9,7 +10,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QVector>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
 #include <time.h>
 #include <limits>
 
@@ -329,11 +329,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
 	const auto it = _items.find(dirHash);
-	if (it == _items.end())
-	{
-		assert(false);
-		return;
-	}
+	assert_and_return_r(it != _items.end(), );
 
 	if (it->second.isDir())
 	{
@@ -385,7 +381,7 @@ void CPanel::contentsChanged(QString /*path*/)
 
 void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *listener)
 {
-	assert(std::find(_panelContentsChangedListeners.begin(), _panelContentsChangedListeners.end(), listener) == _panelContentsChangedListeners.end()); // Why would we want to set the same listener twice? That'd probably be a mistake.
+	assert_r(std::find(_panelContentsChangedListeners.begin(), _panelContentsChangedListeners.end(), listener) == _panelContentsChangedListeners.end()); // Why would we want to set the same listener twice? That'd probably be a mistake.
 	_panelContentsChangedListeners.push_back(listener);
 }
 

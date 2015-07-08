@@ -8,6 +8,8 @@ win*{
 	QT += winextras
 }
 
+CONFIG += c++14
+
 OBJECTS_DIR = ../build/app
 MOC_DIR     = ../build/app
 UI_DIR      = ../build/app
@@ -100,7 +102,6 @@ win*{
 
 mac*{
 	ICON = resources/file_commander.icns
-	CONFIG += c++11
 }
 
 linux*{

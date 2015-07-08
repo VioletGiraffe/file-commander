@@ -1,10 +1,10 @@
 #include "cmainwindow.h"
 #include "settings/csettings.h"
 #include "iconprovider/ciconprovider.h"
-#include <assert.h>
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QDebug>
 #include <QKeyEvent>
 RESTORE_COMPILER_WARNINGS
 
@@ -20,6 +20,10 @@ private:
 
 int main(int argc, char *argv[])
 {
+	AdvancedAssert::setLoggingFunc([](const char* message){
+		qDebug() << message;
+	});
+
 	CFileCommanderApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
 	app.setApplicationName("File Commander");

@@ -4,8 +4,8 @@
 #include "cfilesystemobject.h"
 #include "system/ctimeelapsed.h"
 #include "math/cmeancounter.h"
+#include "assert/advanced_assert.h"
 
-#include <assert.h>
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -35,7 +35,7 @@ public:
 
 private:
 	inline void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/) {
-		assert(filePercentage < 100.5f && totalPercentage < 100.5f);
+		assert_r(filePercentage < 100.5f && totalPercentage < 100.5f);
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProgressChanged, this, totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed));
 	}
 
@@ -54,7 +54,7 @@ private:
 		};
 
 		const auto reasonString = haltReasonString.find(reason);
-		Q_ASSERT(reasonString != haltReasonString.end());
+		assert_r(reasonString != haltReasonString.end());
 		qDebug() << "Reason:" << (reasonString != haltReasonString.end() ? reasonString->second : "") << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
 
 		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessHalted, this, reason, source, dest, errorMessage));

@@ -4,6 +4,7 @@ DESTDIR  = ../bin
 
 QT = core widgets gui #gui is required for QFileIconProvider and plugininterface
 CONFIG += staticlib
+CONFIG += c++14
 
 win*{
 	QT += winextras
@@ -60,9 +61,8 @@ win*{
 }
 
 mac* | linux* {
-	CONFIG += c++11
 	QMAKE_CFLAGS   += -pedantic-errors -std=c99
-	QMAKE_CXXFLAGS += -pedantic-errors -std=c++1y
+	QMAKE_CXXFLAGS += -pedantic-errors
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 }
 
