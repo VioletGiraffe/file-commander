@@ -6,6 +6,8 @@
 
 #include "ui_ctextviewerwindow.h"
 
+#include <QPlainTextEdit>
+
 class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
 {
 	Q_OBJECT
@@ -29,8 +31,9 @@ private:
 	bool readSource(QByteArray& data) const;
 
 private:
-	CFindDialog            _findDialog;
-	QString                _sourceFilePath;
+	QPlainTextEdit	_textBrowser;
+	CFindDialog		_findDialog;
+	QString			_sourceFilePath;
 };
 
 #endif // CTEXTVIEWERWINDOW_H

@@ -13,9 +13,14 @@ RESTORE_COMPILER_WARNINGS
 
 CTextViewerWindow::CTextViewerWindow() :
 	CPluginWindow(),
+	_textBrowser(this),
 	_findDialog(this, "Plugins/TextViewer/Find/")
 {
 	setupUi(this);
+	setCentralWidget(&_textBrowser);
+	_textBrowser.setReadOnly(true);
+	_textBrowser.setUndoRedoEnabled(false);
+	_textBrowser.setWordWrapMode(QTextOption::NoWrap);
 
 	connect(actionOpen, &QAction::triggered, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
@@ -80,14 +85,14 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	{
 		text = CTextEncodingDetector::decode(data).first;
 		if (!text.isEmpty())
-			textBrowser.setPlainText(text);
+			_textBrowser.setPlainText(text);
 		else
 			return asSystemDefault();
 	}
 	else
 	{
 		actionUTF_8->setChecked(true);
-		textBrowser.setPlainText(text);
+		_textBrowser.setPlainText(text);
 	}
 
 	return true;
@@ -106,7 +111,7 @@ bool CTextViewerWindow::asSystemDefault()
 		return false;
 	}
 
-	textBrowser.setPlainText(codec->toUnicode(data));
+	_textBrowser.setPlainText(codec->toUnicode(data));
 	actionSystemLocale->setChecked(true);
 
 	return true;
@@ -121,7 +126,7 @@ bool CTextViewerWindow::asUtf8()
 		return false;
 	}
 
-	textBrowser.setPlainText(QString::fromUtf8(data));
+	_textBrowser.setPlainText(QString::fromUtf8(data));
 	actionUTF_8->setChecked(true);
 
 	return true;
@@ -136,7 +141,7 @@ bool CTextViewerWindow::asUtf16()
 		return false;
 	}
 
-	textBrowser.setPlainText(QString::fromUtf16((const ushort*)data.constData()));
+	_textBrowser.setPlainText(QString::fromUtf16((const ushort*)data.constData()));
 	actionUTF_16->setChecked(true);
 
 	return true;
@@ -144,7 +149,9 @@ bool CTextViewerWindow::asUtf16()
 
 bool CTextViewerWindow::asRichText()
 {
-	textBrowser.setSource(QUrl::fromLocalFile(_sourceFilePath));
+	QMessageBox::information(parentWidget(), tr("TODO"), tr("RichText not yet supported. Display in plain text."));
+	// TODO: _textBrowser.setSource(QUrl::fromLocalFile(_sourceFilePath));
+	return asDetectedAutomatically();
 	actionHTML_RTF->setChecked(true);
 
 	return true;
@@ -152,7 +159,7 @@ bool CTextViewerWindow::asRichText()
 
 void CTextViewerWindow::find()
 {
-	textBrowser.moveCursor(_findDialog.searchBackwards() ? QTextCursor::End : QTextCursor::Start);
+	_textBrowser.moveCursor(_findDialog.searchBackwards() ? QTextCursor::End : QTextCursor::Start);
 	findNext();
 }
 
@@ -171,13 +178,13 @@ void CTextViewerWindow::findNext()
 		flags |= QTextDocument::FindWholeWords;
 
 	bool found;
-	const QTextCursor startCursor = textBrowser.textCursor();
+	const QTextCursor startCursor = _textBrowser.textCursor();
 #if  QT_VERSION >= QT_VERSION_CHECK(5,3,0)
 	if (_findDialog.regex())
-		found = textBrowser.find(QRegExp(_findDialog.searchExpression(), _findDialog.caseSensitive() ? Qt::CaseSensitive : Qt::CaseInsensitive), flags);
+		found = _textBrowser.find(QRegExp(_findDialog.searchExpression(), _findDialog.caseSensitive() ? Qt::CaseSensitive : Qt::CaseInsensitive), flags);
 	else
 #endif
-		found = textBrowser.find(_findDialog.searchExpression(), flags);
+		found = _textBrowser.find(_findDialog.searchExpression(), flags);
 
 	if(!found && (startCursor.isNull() || startCursor.position() == 0))
 		QMessageBox::information(this, tr("Not found"), tr("Expression \"%1\" not found").arg(expression));
