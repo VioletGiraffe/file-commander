@@ -128,7 +128,7 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 	{
 		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
 		{
-			CFileCommanderViewerPlugin * viewer = dynamic_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
+			CFileCommanderViewerPlugin * viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
 			assert(viewer);
 			if (viewer && viewer->canViewCurrentFile())
 				return viewer;
