@@ -71,7 +71,7 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
@@ -102,7 +102,7 @@ bool CTextViewerWindow::asSystemDefault()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
@@ -117,7 +117,7 @@ bool CTextViewerWindow::asUtf8()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
@@ -132,7 +132,7 @@ bool CTextViewerWindow::asUtf16()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
