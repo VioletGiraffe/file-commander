@@ -14,7 +14,7 @@ class CImageViewerWindow : public CPluginWindow
 	Q_OBJECT
 
 public:
-	explicit CImageViewerWindow(QWidget *parent = 0);
+	CImageViewerWindow();
 	~CImageViewerWindow();
 
 	bool displayImage(const QString& imagePath, const QImage& image = QImage());

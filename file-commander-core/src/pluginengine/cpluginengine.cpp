@@ -100,7 +100,7 @@ void CPluginEngine::currentPanelChanged(Panel p)
 
 void CPluginEngine::viewCurrentFile()
 {
-	CPluginWindow * viewerWindow = dynamic_cast<CPluginWindow*>(createViewerWindowForCurrentFile());
+	CPluginWindow * viewerWindow = createViewerWindowForCurrentFile();
 	if (viewerWindow)
 	{
 		viewerWindow->setAutoDeleteOnClose(true);
@@ -110,7 +110,7 @@ void CPluginEngine::viewCurrentFile()
 	}
 }
 
-QMainWindow *CPluginEngine::createViewerWindowForCurrentFile()
+CPluginWindow *CPluginEngine::createViewerWindowForCurrentFile()
 {
 	auto viewer = viewerForCurrentFile();
 	return viewer ? viewer->viewCurrentFile() : nullptr;

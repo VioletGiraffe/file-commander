@@ -1,25 +1,24 @@
 #include "cpluginwindow.h"
 
-CPluginWindow::CPluginWindow(QWidget *parent) :
-	QMainWindow(parent),
-	_bAutoDeleteOnClose(false)
+DISABLE_COMPILER_WARNINGS
+#include <QApplication>
+RESTORE_COMPILER_WARNINGS
+
+CPluginWindow::CPluginWindow() :
+	QMainWindow(appMainWindow(), Qt::Dialog)
 {
+	setAttribute(Qt::WA_WindowPropagation);
 }
 
-bool CPluginWindow::autoDeleteOnClose() const
+QMainWindow* CPluginWindow::appMainWindow()
 {
-	return _bAutoDeleteOnClose;
-}
+	QList<QWidget*> widgets = qApp->topLevelWidgets();
+	foreach (QWidget* mw, widgets) {
+		if (mw->objectName() == QLatin1Literal("CMainWindow")) {
+			return static_cast<QMainWindow*>(mw);
+		}
+	}
 
-void CPluginWindow::setAutoDeleteOnClose(bool autoDelete)
-{
-	_bAutoDeleteOnClose = autoDelete;
-}
-
-void CPluginWindow::closeEvent(QCloseEvent* event)
-{
-	if (event && _bAutoDeleteOnClose)
-		deleteLater();
-
-	QMainWindow::closeEvent(event);
+	Q_ASSERT(false);
+	return nullptr;
 }
