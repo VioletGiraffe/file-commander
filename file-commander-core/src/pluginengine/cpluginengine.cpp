@@ -105,8 +105,8 @@ void CPluginEngine::viewCurrentFile()
 	{
 		viewerWindow->setAutoDeleteOnClose(true);
 		viewerWindow->showNormal();
-		viewerWindow->raise();
 		viewerWindow->activateWindow();
+		viewerWindow->raise();
 	}
 }
 
