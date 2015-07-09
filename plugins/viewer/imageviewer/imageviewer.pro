@@ -30,9 +30,9 @@ DEFINES += PLUGIN_MODULE
 LIBS += -L../../../bin -lcore -lqtutils -lcpputils
 
 win*{
-	QMAKE_CXXFLAGS += /MP /wd4251
-	QMAKE_CXXFLAGS_WARN_ON = -W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
+    QMAKE_CXXFLAGS += /MP /wd4251
+    QMAKE_CXXFLAGS_WARN_ON = -W4
+    DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 }
 
 linux*{
@@ -40,23 +40,29 @@ linux*{
 }
 
 linux*|mac*{
-	QMAKE_CXXFLAGS += -pedantic-errors -std=c++1y
-	QMAKE_CFLAGS += -pedantic-errors
-	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
+    QMAKE_CXXFLAGS += -pedantic-errors -std=c++1y
+    QMAKE_CFLAGS += -pedantic-errors
+    QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
+
+    CONFIG(release, debug|release):CONFIG += Release
+    CONFIG(debug, debug|release):CONFIG += Debug
+
+    Release:DEFINES += NDEBUG=1
+    Debug:DEFINES += _DEBUG
 }
 
 HEADERS += \
-	src/cimageviewerplugin.h \
-	src/cimageviewerwidget.h \
-	src/cimageviewerwindow.h
+    src/cimageviewerplugin.h \
+    src/cimageviewerwidget.h \
+    src/cimageviewerwindow.h
 
 SOURCES += \
-	src/cimageviewerplugin.cpp \
-	src/cimageviewerwidget.cpp \
-	src/cimageviewerwindow.cpp
+    src/cimageviewerplugin.cpp \
+    src/cimageviewerwidget.cpp \
+    src/cimageviewerwindow.cpp
 
 win32*:!*msvc2012:*msvc* {
-	QMAKE_CXXFLAGS += /FS
+    QMAKE_CXXFLAGS += /FS
 }
 
 FORMS += \
@@ -64,5 +70,5 @@ FORMS += \
 	src/cimageviewerwindow.ui
 
 mac*|linux*{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a
+    PRE_TARGETDEPS += $${DESTDIR}/libcore.a
 }
