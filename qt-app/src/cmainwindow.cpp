@@ -397,7 +397,7 @@ void CMainWindow::deleteFilesIrrevocably()
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
 	_controller->execOnWorkerThread([=]() {
-		if (!CShell::deleteItems(paths, true, (void*) winId()))
+		if (!CShell::deleteItems(paths, false, (void*) winId()))
 			_controller->execOnUiThread([this]() {
 				QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});

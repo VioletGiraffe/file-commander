@@ -489,12 +489,10 @@ bool CFileSystemObject::makeWritable(bool writeable)
 FileOperationResultCode CFileSystemObject::remove()
 {
 	qDebug() << "Removing" << _properties.fullPath;
-	if (!_fileInfo.exists())
-	{
-		Q_ASSERT_X(false, "CFileSystemObject::remove()", "Object doesn't exist");
-		return rcObjectDoesntExist;
-	}
-	else if (isFile())
+
+	assert_and_return_message_r(_fileInfo.exists(), "Object doesn't exist", rcObjectDoesntExist);
+
+	if (isFile())
 	{
 		QFile file(_properties.fullPath);
 		if (file.remove())

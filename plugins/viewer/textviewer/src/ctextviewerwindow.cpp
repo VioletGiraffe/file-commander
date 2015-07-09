@@ -150,9 +150,6 @@ bool CTextViewerWindow::asRichText()
 	QMessageBox::information(parentWidget(), tr("TODO"), tr("RichText not yet supported. Display in plain text."));
 	// TODO: _textBrowser.setSource(QUrl::fromLocalFile(_sourceFilePath));
 	return asDetectedAutomatically();
-	actionHTML_RTF->setChecked(true);
-
-	return true;
 }
 
 void CTextViewerWindow::find()
