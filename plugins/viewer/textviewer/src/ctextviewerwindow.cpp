@@ -1,5 +1,4 @@
 #include "ctextviewerwindow.h"
-#include "ui_ctextviewerwindow.h"
 #include "ctextencodingdetector.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -10,50 +9,49 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 
-CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
-	CPluginWindow(parent),
-	_findDialog(this, "Plugins/TextViewer/Find/"),
-	ui(new Ui::CTextViewerWindow)
+CTextViewerWindow::CTextViewerWindow() :
+	CPluginWindow(),
+	_textBrowser(this),
+	_findDialog(this, "Plugins/TextViewer/Find/")
 {
-	ui->setupUi(this);
+	setupUi(this);
+	setCentralWidget(&_textBrowser);
+	_textBrowser.setReadOnly(true);
+	_textBrowser.setUndoRedoEnabled(false);
+	_textBrowser.setWordWrapMode(QTextOption::NoWrap);
 
-	connect(ui->actionOpen, &QAction::triggered, [this]() {
+	connect(actionOpen, &QAction::triggered, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
 		if (!fileName.isEmpty())
 			loadTextFile(fileName);
 	});
-	connect(ui->actionReload, &QAction::triggered, [this]() {
+	connect(actionReload, &QAction::triggered, [this]() {
 		loadTextFile(_sourceFilePath);
 	});
-	connect(ui->actionClose, SIGNAL(triggered()), SLOT(close()));
+	connect(actionClose, SIGNAL(triggered()), SLOT(close()));
 
-	connect(ui->actionFind, &QAction::triggered, [this]() {
+	connect(actionFind, &QAction::triggered, [this]() {
 		_findDialog.exec();
 	});
-	connect(ui->actionFind_next, SIGNAL(triggered()), SLOT(findNext()));
+	connect(actionFind_next, SIGNAL(triggered()), SLOT(findNext()));
 
-	connect(ui->actionAuto_detect_encoding, SIGNAL(triggered()), SLOT(asDetectedAutomatically()));
-	connect(ui->actionSystemLocale, SIGNAL(triggered()), SLOT(asSystemDefault()));
-	connect(ui->actionUTF_8, SIGNAL(triggered()), SLOT(asUtf8()));
-	connect(ui->actionUTF_16, SIGNAL(triggered()), SLOT(asUtf16()));
-	connect(ui->actionHTML_RTF, SIGNAL(triggered()), SLOT(asRichText()));
+	connect(actionAuto_detect_encoding, SIGNAL(triggered()), SLOT(asDetectedAutomatically()));
+	connect(actionSystemLocale, SIGNAL(triggered()), SLOT(asSystemDefault()));
+	connect(actionUTF_8, SIGNAL(triggered()), SLOT(asUtf8()));
+	connect(actionUTF_16, SIGNAL(triggered()), SLOT(asUtf16()));
+	connect(actionHTML_RTF, SIGNAL(triggered()), SLOT(asRichText()));
 
 	QActionGroup * group = new QActionGroup(this);
-	group->addAction(ui->actionSystemLocale);
-	group->addAction(ui->actionUTF_8);
-	group->addAction(ui->actionUTF_16);
-	group->addAction(ui->actionHTML_RTF);
+	group->addAction(actionSystemLocale);
+	group->addAction(actionUTF_8);
+	group->addAction(actionUTF_16);
+	group->addAction(actionHTML_RTF);
 
 	connect(&_findDialog, SIGNAL(find()), SLOT(find()));
 	connect(&_findDialog, SIGNAL(findNext()), SLOT(findNext()));
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	connect(this, SIGNAL(destroyed()), escScut, SLOT(deleteLater()));
-}
-
-CTextViewerWindow::~CTextViewerWindow()
-{
-	delete ui;
 }
 
 bool CTextViewerWindow::loadTextFile(const QString& file)
@@ -76,7 +74,7 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
@@ -85,14 +83,14 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	{
 		text = CTextEncodingDetector::decode(data).first;
 		if (!text.isEmpty())
-			ui->textBrowser->setPlainText(text);
+			_textBrowser.setPlainText(text);
 		else
 			return asSystemDefault();
 	}
 	else
 	{
-		ui->textBrowser->setPlainText(text);
-		ui->actionUTF_8->setChecked(true);
+		actionUTF_8->setChecked(true);
+		_textBrowser.setPlainText(text);
 	}
 
 	return true;
@@ -107,12 +105,12 @@ bool CTextViewerWindow::asSystemDefault()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
-	ui->textBrowser->setPlainText(codec->toUnicode(data));
-	ui->actionSystemLocale->setChecked(true);
+	_textBrowser.setPlainText(codec->toUnicode(data));
+	actionSystemLocale->setChecked(true);
 
 	return true;
 }
@@ -122,12 +120,12 @@ bool CTextViewerWindow::asUtf8()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
-	ui->textBrowser->setPlainText(QString::fromUtf8((const char*)data.data(), data.size()));
-	ui->actionUTF_8->setChecked(true);
+	_textBrowser.setPlainText(QString::fromUtf8(data));
+	actionUTF_8->setChecked(true);
 
 	return true;
 }
@@ -137,27 +135,29 @@ bool CTextViewerWindow::asUtf16()
 	QByteArray data;
 	if (!readSource(data))
 	{
-		QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
-	ui->textBrowser->setPlainText(QString::fromUtf16((const ushort*)data.data(), data.size()/2));
-	ui->actionUTF_16->setChecked(true);
+	_textBrowser.setPlainText(QString::fromUtf16((const ushort*)data.constData()));
+	actionUTF_16->setChecked(true);
 
 	return true;
 }
 
 bool CTextViewerWindow::asRichText()
 {
-	ui->textBrowser->setSource(QUrl::fromLocalFile(_sourceFilePath));
-	ui->actionHTML_RTF->setChecked(true);
+	QMessageBox::information(parentWidget(), tr("TODO"), tr("RichText not yet supported. Display in plain text."));
+	// TODO: _textBrowser.setSource(QUrl::fromLocalFile(_sourceFilePath));
+	return asDetectedAutomatically();
+	actionHTML_RTF->setChecked(true);
 
 	return true;
 }
 
 void CTextViewerWindow::find()
 {
-	ui->textBrowser->moveCursor(_findDialog.searchBackwards() ? QTextCursor::End : QTextCursor::Start);
+	_textBrowser.moveCursor(_findDialog.searchBackwards() ? QTextCursor::End : QTextCursor::Start);
 	findNext();
 }
 
@@ -176,13 +176,13 @@ void CTextViewerWindow::findNext()
 		flags |= QTextDocument::FindWholeWords;
 
 	bool found;
-	const QTextCursor startCursor = ui->textBrowser->textCursor();
+	const QTextCursor startCursor = _textBrowser.textCursor();
 #if  QT_VERSION >= QT_VERSION_CHECK(5,3,0)
 	if (_findDialog.regex())
-		found = ui->textBrowser->find(QRegExp(_findDialog.searchExpression(), _findDialog.caseSensitive() ? Qt::CaseSensitive : Qt::CaseInsensitive), flags);
+		found = _textBrowser.find(QRegExp(_findDialog.searchExpression(), _findDialog.caseSensitive() ? Qt::CaseSensitive : Qt::CaseInsensitive), flags);
 	else
 #endif
-		found = ui->textBrowser->find(_findDialog.searchExpression(), flags);
+		found = _textBrowser.find(_findDialog.searchExpression(), flags);
 
 	if(!found && (startCursor.isNull() || startCursor.position() == 0))
 		QMessageBox::information(this, tr("Not found"), tr("Expression \"%1\" not found").arg(expression));

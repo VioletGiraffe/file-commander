@@ -66,12 +66,12 @@ mac* | linux* {
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 }
 
-LIBS += -L../bin -lqtutils
+LIBS += -L$${DESTDIR} -lcpputils -lqtutils
 
 win32*:!*msvc2012:*msvc* {
 	QMAKE_CXXFLAGS += /FS
 }
 
 mac*|linux*{
-	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }

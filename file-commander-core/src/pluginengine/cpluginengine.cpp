@@ -11,6 +11,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QLibrary>
 RESTORE_COMPILER_WARNINGS
 
+#include <assert.h>
+
 CPluginEngine::CPluginEngine()
 {
 }
@@ -98,17 +100,17 @@ void CPluginEngine::currentPanelChanged(Panel p)
 
 void CPluginEngine::viewCurrentFile()
 {
-	CPluginWindow * viewerWindow = dynamic_cast<CPluginWindow*>(createViewerWindowForCurrentFile());
+	CPluginWindow * viewerWindow = createViewerWindowForCurrentFile();
 	if (viewerWindow)
 	{
 		viewerWindow->setAutoDeleteOnClose(true);
 		viewerWindow->showNormal();
-		viewerWindow->raise();
 		viewerWindow->activateWindow();
+		viewerWindow->raise();
 	}
 }
 
-QMainWindow *CPluginEngine::createViewerWindowForCurrentFile()
+CPluginWindow *CPluginEngine::createViewerWindowForCurrentFile()
 {
 	auto viewer = viewerForCurrentFile();
 	return viewer ? viewer->viewCurrentFile() : nullptr;
@@ -116,7 +118,7 @@ QMainWindow *CPluginEngine::createViewerWindowForCurrentFile()
 
 PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 {
-	assert_r(p != UnknownPanel);
+	assert(p != UnknownPanel);
 	return p == LeftPanel ? PluginLeftPanel : PluginRightPanel;
 }
 
@@ -126,8 +128,8 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 	{
 		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
 		{
-			CFileCommanderViewerPlugin * viewer = dynamic_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
-			assert_r(viewer);
+			CFileCommanderViewerPlugin * viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
+			assert(viewer);
 			if (viewer && viewer->canViewCurrentFile())
 				return viewer;
 		}

@@ -1,4 +1,5 @@
 #include "cmainwindow.h"
+#include "plugininterface/cpluginwindow.h"
 #include "progressdialogs/ccopymovedialog.h"
 #include "progressdialogs/cdeleteprogressdialog.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
@@ -676,7 +677,7 @@ void CMainWindow::quickViewCurrentFile()
 		emit fileQuickVewFinished();
 	}
 
-	QMainWindow * viewerWindow = CPluginEngine::get().createViewerWindowForCurrentFile();
+	CPluginWindow * viewerWindow = CPluginEngine::get().createViewerWindowForCurrentFile();
 	if (!viewerWindow)
 		return;
 
