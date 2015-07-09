@@ -9,8 +9,8 @@
 
 
 class CFileCommanderViewerPlugin;
+class CPluginWindow;
 class QLibrary;
-class QMainWindow;
 
 class CPluginEngine : public PanelContentsChangedListener
 {
@@ -30,7 +30,7 @@ public:
 
 // Operations
 	void viewCurrentFile();
-	QMainWindow * createViewerWindowForCurrentFile();
+	CPluginWindow* createViewerWindowForCurrentFile();
 
 private:
 	CPluginEngine();

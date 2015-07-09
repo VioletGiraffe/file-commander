@@ -4,17 +4,16 @@
 #include "plugininterface/cpluginwindow.h"
 #include "cfinddialog.h"
 
-namespace Ui {
-class CTextViewerWindow;
-}
+#include "ui_ctextviewerwindow.h"
 
-class CTextViewerWindow : public CPluginWindow
+#include <QPlainTextEdit>
+
+class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
 {
 	Q_OBJECT
 
 public:
-	explicit CTextViewerWindow(QWidget *parent = 0);
-	~CTextViewerWindow();
+	CTextViewerWindow();
 
 	bool loadTextFile(const QString& file);
 
@@ -32,9 +31,9 @@ private:
 	bool readSource(QByteArray& data) const;
 
 private:
-	CFindDialog            _findDialog;
-	QString                _sourceFilePath;
-	Ui::CTextViewerWindow *ui;
+	QPlainTextEdit	_textBrowser;
+	CFindDialog		_findDialog;
+	QString			_sourceFilePath;
 };
 
 #endif // CTEXTVIEWERWINDOW_H
