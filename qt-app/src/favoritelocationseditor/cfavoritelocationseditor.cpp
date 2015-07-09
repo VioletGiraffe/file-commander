@@ -209,7 +209,7 @@ void CFavoriteLocationsEditor::fillUI()
 
 void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& locationCollectionListIterator, QTreeWidgetItem* parent)
 {
-	assert(locationCollectionListIterator->subLocations.empty() || locationCollectionListIterator->absolutePath.isEmpty());
+	assert_r(locationCollectionListIterator->subLocations.empty() || locationCollectionListIterator->absolutePath.isEmpty());
 
 	const bool isCategory = locationCollectionListIterator->absolutePath.isEmpty();
 	CFavoriteLocationsListItem * treeWidgetItem = parent ? new CFavoriteLocationsListItem(parent, parentList, locationCollectionListIterator, isCategory) : new CFavoriteLocationsListItem(ui->_list, parentList, locationCollectionListIterator, isCategory);

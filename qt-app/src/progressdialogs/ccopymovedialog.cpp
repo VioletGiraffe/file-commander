@@ -27,14 +27,14 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 
 	ui->_lblFileName->clear();
 
-	assert(mainWindow);
+	assert_r(mainWindow);
 
 	if (operation == operationCopy)
 		ui->_lblOperationName->setText(tr("Copying files..."));
 	else if (operation == operationMove)
 		ui->_lblOperationName->setText(tr("Moving files..."));
 	else
-		assert(false);
+		assert_unconditional_r("Unknown operation");
 
 	connect (ui->_btnCancel,     SIGNAL(clicked()), SLOT(cancelPressed()));
 	connect (ui->_btnBackground, SIGNAL(clicked()), SLOT(background()));

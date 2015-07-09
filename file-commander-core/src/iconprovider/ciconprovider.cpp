@@ -2,6 +2,7 @@
 #include "cfilesystemobject.h"
 #include "ciconproviderimpl.h"
 #include "fasthash.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QIcon>
@@ -50,7 +51,7 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 	if (_iconForObject.count(objectHash) == 0)
 	{
 		const QIcon icon = _provider->iconFor(object);
-		Q_ASSERT(!icon.isNull());
+		assert_r(!icon.isNull());
 
 		const auto qimage = icon.pixmap(icon.availableSizes().front()).toImage();
 		const qulonglong iconHash = fasthash64((const char*)qimage.constBits(), qimage.bytesPerLine() * qimage.height(), 0);

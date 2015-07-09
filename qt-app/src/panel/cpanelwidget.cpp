@@ -24,7 +24,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
 #include <time.h>
 #include <set>
 #include <tuple>
@@ -118,7 +117,7 @@ Panel CPanelWidget::panelPosition() const
 
 void CPanelWidget::setPanelPosition(Panel p)
 {
-	assert(_panelPosition == UnknownPanel);
+	assert_r(_panelPosition == UnknownPanel);
 	_panelPosition = p;
 
 	ui->_list->installEventFilter(this);
@@ -142,7 +141,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	});
 
 	_selectionModel = ui->_list->selectionModel(); // can only be called after setModel
-	assert(_selectionModel);
+	assert_r(_selectionModel);
 	connect(_selectionModel, SIGNAL(selectionChanged(QItemSelection,QItemSelection)), SLOT(selectionChanged(QItemSelection,QItemSelection)));
 	connect(_selectionModel, SIGNAL(currentChanged(QModelIndex,QModelIndex)), SLOT(currentItemChanged(QModelIndex,QModelIndex)));
 
@@ -393,7 +392,7 @@ void CPanelWidget::selectionChanged(QItemSelection selected, QItemSelection /*de
 			if (_controller.itemByHash(_panelPosition, hash).fullAbsolutePath() == cdUpPath)
 			{
 				auto cdUpIndex = indexByHash(hash);
-				assert(cdUpIndex.isValid());
+				assert_r(cdUpIndex.isValid());
 				_selectionModel->select(cdUpIndex, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
 				break;
 			}
@@ -674,7 +673,7 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 
 bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
 {
-	assert(item.isValid());
+	assert_r(item.isValid());
 	QModelIndex source = _sortModel->mapToSource(item);
 	const qulonglong hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toULongLong();
 	emit itemActivated(hash, this);
@@ -697,7 +696,7 @@ void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& dr
 
 	// Clearing and deleting the previous buttons
 	QLayout * layout = ui->_driveButtonsWidget->layout();
-	assert(layout);
+	assert_r(layout);
 	while (layout->count() > 0)
 	{
 		QWidget * w = layout->itemAt(0)->widget();
@@ -723,7 +722,7 @@ void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& dr
 		}
 #endif
 
-		assert(layout);
+		assert_r(layout);
 		QPushButton * diskButton = new QPushButton;
 		diskButton->setCheckable(true);
 		diskButton->setIcon(drives[i].fileSystemObject.icon());
@@ -745,10 +744,10 @@ qulonglong CPanelWidget::hashByItemIndex(const QModelIndex &index) const
 	if (!index.isValid())
 		return 0;
 	QStandardItem * item = _model->item(_sortModel->mapToSource(index).row(), 0);
-	assert(item);
+	assert_r(item);
 	bool ok = false;
 	const qulonglong hash = item->data(Qt::UserRole).toULongLong(&ok);
-	assert(ok);
+	assert_r(ok);
 	return hash;
 }
 

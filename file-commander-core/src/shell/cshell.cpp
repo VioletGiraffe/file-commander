@@ -2,6 +2,7 @@
 #include "settings/csettings.h"
 #include "settings.h"
 #include "compiler/compiler_warnings_control.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -9,7 +10,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QProcessEnvironment>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
 #include <algorithm>
 #include <thread>
 #include <cstdlib>
@@ -91,7 +91,7 @@ private:
 struct ComInitializer {
 	ComInitializer() {
 		const auto result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-		assert(SUCCEEDED(result));
+		assert_r(SUCCEEDED(result));
 	}
 
 	~ComInitializer() {
@@ -248,7 +248,7 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 {
 	ComInitializer comInitializer;
 
-	assert(parentWindow);
+	assert_r(parentWindow);
 	std::vector<ITEMIDLIST*> idLists;
 	for (auto& path: items)
 	{
@@ -262,7 +262,7 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 			return false;
 		}
 		idLists.push_back(idl);
-		assert(idLists.back());
+		assert_r(idLists.back());
 	}
 
 	IShellItemArray * iArray = 0;
@@ -398,7 +398,7 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 
 	CItemIdArrayReleaser arrayReleaser(ids);
 
-	assert (parentWindow);
+	assert_r(parentWindow);
 	if (!ifolder)
 	{
 		qDebug() << "Error getting ifolder";

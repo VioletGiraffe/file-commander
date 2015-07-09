@@ -9,8 +9,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QTextCodec>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
-
 
 CTextViewerWindow::CTextViewerWindow(QWidget *parent) :
 	CPluginWindow(parent),

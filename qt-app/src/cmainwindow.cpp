@@ -28,8 +28,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QSortFilterProxyModel>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
-
 #ifdef _WIN32
 #include <Windows.h>
 #endif
@@ -54,7 +52,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_otherFileList(0),
 	_quickViewActive(false)
 {
-	assert(!_instance);
+	assert_r(!_instance);
 	_instance = this;
 	ui->setupUi(this);
 
@@ -285,7 +283,7 @@ void CMainWindow::currentPanelChanged(QStackedWidget *panel)
 	{
 		_otherPanelWidget = panel == ui->leftWidget ? ui->rightWidget : ui->leftWidget;
 		_otherFileList = dynamic_cast<CPanelWidget*>(_otherPanelWidget->widget(0));
-		assert(_otherPanelWidget && _otherFileList);
+		assert_r(_otherPanelWidget && _otherFileList);
 	}
 	else
 	{
@@ -498,7 +496,7 @@ void CMainWindow::toggleQuickView()
 	if (_quickViewActive)
 	{
 		_quickViewActive = false;
-		assert(_currentPanelWidget->count() == 2 || _otherPanelWidget->count() == 2);
+		assert_r(_currentPanelWidget->count() == 2 || _otherPanelWidget->count() == 2);
 		if (_currentPanelWidget->count() == 2)
 			_currentPanelWidget->removeWidget(_currentPanelWidget->widget(1));
 		else
@@ -655,7 +653,7 @@ void CMainWindow::createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menu
 
 void CMainWindow::addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu)
 {
-	assert(toolMenu);
+	assert_r(toolMenu);
 	QAction* action = toolMenu->addAction(entry.name);
 	QObject::connect(action, &QAction::triggered, [entry](bool){entry.handler();});
 	for(const auto& childEntry: entry.children)
@@ -673,7 +671,7 @@ void CMainWindow::quickViewCurrentFile()
 {
 	if (_quickViewActive)
 	{
-		assert(_otherPanelWidget->count() == 2);
+		assert_r(_otherPanelWidget->count() == 2);
 		_otherPanelWidget->removeWidget(_otherPanelWidget->widget(1));
 		emit fileQuickVewFinished();
 	}

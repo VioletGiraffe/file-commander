@@ -1,7 +1,6 @@
 #include "coperationperformer.h"
 #include "filesystemhelperfunctions.h"
 
-#include <assert.h>
 #include <functional>
 
 #ifdef _WIN32
@@ -13,12 +12,12 @@
 inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)
 {
 	QString localPath = absoluteSourcePath.mid(originPath.length());
-	assert(!localPath.isEmpty());
+	assert_r(!localPath.isEmpty());
 	if (localPath.startsWith('\\') || localPath.startsWith('/'))
 		localPath = localPath.remove(0, 1);
 
 	const QString tmp = QFileInfo(destPath).absoluteFilePath();
-	assert(QString(destPath % "/").remove("//") == QString(tmp % "/").remove("//"));
+	assert_r(QString(destPath % "/").remove("//") == QString(tmp % "/").remove("//"));
 	const QString result = destPath % "/" % localPath;
 	return QFileInfo(result).absolutePath();
 }
@@ -41,13 +40,13 @@ COperationPerformer::~COperationPerformer()
 	cancel();
 
 	// TODO: this doesn't look thread-safe
-	assert(_thread.joinable());
+	assert_r(_thread.joinable());
 	_thread.join();
 }
 
 void COperationPerformer::setWatcher(CFileOperationObserver *watcher)
 {
-	assert(watcher);
+	assert_r(watcher);
 	_observer = watcher;
 }
 
@@ -75,7 +74,7 @@ bool COperationPerformer::done() const
 // User can supply a new name (not full path)
 void COperationPerformer::userResponse(HaltReason haltReason, UserResponse response, QString newName)
 {
-	assert (_userResponse == urNone); // _userResponse should have been reset after being used
+	assert_r(_userResponse == urNone); // _userResponse should have been reset after being used
 	_newName = newName;
 
 	_userResponse = response;
@@ -109,7 +108,7 @@ void COperationPerformer::threadFunc()
 		deleteFiles();
 		break;
 	default:
-		assert(false);
+		assert_unconditional_r("Uknown operation");
 		return;
 	}
 }
@@ -135,7 +134,7 @@ void COperationPerformer::copyFiles()
 		return;
 	}
 
-	Q_ASSERT(_op == operationCopy || _op == operationMove);
+	assert_r(_op == operationCopy || _op == operationMove);
 
 	_inProgress = true;
 
@@ -187,7 +186,7 @@ void COperationPerformer::copyFiles()
 				else if (response == urRetry)
 					continue;
 				else
-					assert(response == urProceedWithThis || response == urProceedWithAll);
+					assert_r(response == urProceedWithThis || response == urProceedWithAll);
 			}
 
 			++it;
@@ -200,7 +199,7 @@ void COperationPerformer::copyFiles()
 
 	uint64_t totalSize = 0, sizeProcessed = 0;
 	const auto destination = flattenSourcesAndCalcDest(totalSize);
-	assert(destination.size() == _source.size());
+	assert_r(destination.size() == _source.size());
 
 	std::vector<CFileSystemObject> dirsToCleanUp;
 
@@ -232,7 +231,7 @@ void COperationPerformer::copyFiles()
 				return;
 			}
 			else
-				assert (!"Unknown response");
+				assert_unconditional_r("Unknown response");
 		}
 
 		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(_newName.isEmpty() ? it->fullName() : _newName));
@@ -264,7 +263,7 @@ void COperationPerformer::copyFiles()
 				return;
 			default:
 				qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
-				Q_ASSERT(!"Unexpected deleteItem() return value");
+				assert_unconditional_r("Unexpected deleteItem() return value");
 				continue; // Retry
 			}
 
@@ -287,7 +286,7 @@ void COperationPerformer::copyFiles()
 					return;
 				default:
 					qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
-					Q_ASSERT(!"Unexpected deleteItem() return value");
+					assert_unconditional_r("Unexpected deleteItem() return value");
 					continue; // Retry
 				}
 			}
@@ -314,7 +313,7 @@ void COperationPerformer::copyFiles()
 					return;
 				}
 				else if (nextAction != naProceed)
-					Q_ASSERT(false);
+					assert_unconditional_r("Unexpected next action");
 			}
 
 			if (_op == operationMove)
@@ -340,7 +339,7 @@ void COperationPerformer::copyFiles()
 							continue;
 						else
 						{
-							Q_ASSERT(false);
+							assert_unconditional_r("Unexpected next action");
 							continue; // Retry
 						}
 					}
@@ -368,7 +367,7 @@ void COperationPerformer::deleteFiles()
 	_inProgress = true;
 	uint64_t totalSize = 0;
 	auto destination = flattenSourcesAndCalcDest(totalSize);
-	assert (destination.size() == _source.size());
+	assert_r(destination.size() == _source.size());
 
 	size_t currentItemIndex = 0;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
@@ -401,7 +400,7 @@ void COperationPerformer::deleteFiles()
 				return;
 			}
 			else
-				assert (!"Unknown response");
+				assert_unconditional_r("Unknown response");
 		}
 
 		NextAction nextAction;
@@ -423,7 +422,7 @@ void COperationPerformer::deleteFiles()
 			return;
 		default:
 			qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
-			Q_ASSERT(!"Unexpected deleteItem() return value");
+			assert_unconditional_r("Unexpected deleteItem() return value");
 			continue;
 		}
 
@@ -503,7 +502,7 @@ COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObjec
 			else if (response == urRetry)
 				return naRetryOperation;
 			else
-				assert((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
+				assert_r((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
 
 			NextAction nextAction;
 			while ((nextAction = makeItemWriteable(item)) == naRetryOperation);
@@ -524,7 +523,7 @@ COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObjec
 			return naRetryOperation;
 		else
 		{
-			Q_ASSERT(!"Unexpected user response");
+			assert_unconditional_r("Unexpected user response");
 			return naRetryOperation;
 		}
 	}
@@ -546,7 +545,7 @@ COperationPerformer::NextAction COperationPerformer::makeItemWriteable(CFileSyst
 			return naRetryOperation;
 		else
 		{
-			Q_ASSERT(!"Unexpected user response");
+			assert_unconditional_r("Unexpected user response");
 			return naRetryOperation;
 		}
 	}
@@ -572,12 +571,12 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			return naRetryItem;
 		else if (response == urRename)
 		{
-			assert(!_newName.isEmpty());
+			assert_r(!_newName.isEmpty());
 			// Continue - the new name will be accounted for
 		}
 		else if (response != urProceedWithThis && response != urProceedWithAll)
 		{
-			Q_ASSERT(!"Unexpected user response");
+			assert_unconditional_r("Unexpected user response");
 			return naRetryItem;
 		}
 
@@ -592,7 +591,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			else if (response == urRetry)
 				return naRetryOperation;
 			else
-				assert((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
+				assert_r((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
 
 			NextAction nextAction;
 			while ((nextAction = makeItemWriteable(destFile)) == naRetryOperation);
@@ -642,7 +641,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		if (_cancelRequested)
 		{
 			if (item.cancelCopy() != rcOk)
-				assert(false);
+				assert_unconditional_r("Failed to cancel item copying");
 			result = rcOk;
 			break;
 		}
@@ -661,7 +660,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			return naRetryOperation;
 		else
 		{
-			Q_ASSERT(false);
+			assert_unconditional_r("Unexpected user response");
 			return naRetryOperation;
 		}
 	}
@@ -683,7 +682,7 @@ COperationPerformer::NextAction COperationPerformer::mkPath(const QDir& dir)
 		return naRetryOperation;
 	else
 	{
-		Q_ASSERT(!"Unexpected user response");
+		assert_unconditional_r("Unexpected user response");
 		return naRetryItem;
 	}
 }

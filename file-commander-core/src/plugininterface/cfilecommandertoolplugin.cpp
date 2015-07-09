@@ -1,7 +1,5 @@
 #include "cfilecommandertoolplugin.h"
 
-#include <assert.h>
-
 CFileCommanderToolPlugin::CFileCommanderToolPlugin()
 {
 }

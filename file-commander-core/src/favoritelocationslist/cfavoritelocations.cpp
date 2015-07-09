@@ -1,10 +1,10 @@
 #include "cfavoritelocations.h"
 #include "settings.h"
 #include "settings/csettings.h"
+#include "assert/advanced_assert.h"
 
 #include <stack>
 #include <functional>
-#include <assert.h>
 
 enum Marker {NoMarker, NextLevel, LevelEnded};
 
@@ -12,7 +12,7 @@ static inline void serialize(QByteArray& dest, const CLocationsCollection& sourc
 {
 	QByteArray utfStringData = source.displayName.toUtf8();
 	int length = utfStringData.length();
-	assert(length > 0);
+	assert_r(length > 0);
 	dest.append((char*)&length, sizeof(length));
 	dest.append(utfStringData);
 
@@ -66,7 +66,7 @@ void CFavoriteLocations::load(const QByteArray& data)
 	while (currentPosition < data.size())
 	{
 		int length = *(int*)(data.constData()+currentPosition);
-		assert(length > 0);
+		assert_r(length > 0);
 		currentPosition += sizeof(length);
 		const QString displayName = QString::fromUtf8(data.constData()+currentPosition, length);
 		currentPosition += length;

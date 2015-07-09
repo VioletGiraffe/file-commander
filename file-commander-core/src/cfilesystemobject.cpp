@@ -2,6 +2,7 @@
 #include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
 #include "windows/windowsutils.h"
+#include "assert/advanced_assert.h"
 
 #include "fasthash.h"
 
@@ -10,7 +11,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
 #include <errno.h>
 
 #if defined __linux__ || defined __APPLE__
@@ -289,8 +289,8 @@ QString CFileSystemObject::modificationDateString() const
 // Operations
 FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFolder, const QString& newName)
 {
-	assert(isFile());
-	assert(QFileInfo(destFolder).isDir());
+	assert_r(isFile());
+	assert_r(QFileInfo(destFolder).isDir());
 
 	QFile file (_properties.fullPath);
 	const bool succ = file.copy(destFolder + (newName.isEmpty() ? _properties.fullName : newName));
@@ -306,7 +306,7 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 	else if (isCdUp())
 		return rcFail;
 
-	assert(QFileInfo(location).isDir());
+	assert_r(QFileInfo(location).isDir());
 	const QString fullNewName = location % '/' % (newName.isEmpty() ? _properties.fullName : newName);
 	const QFileInfo destInfo(fullNewName);
 	if (destInfo.exists() && (isDir() || destInfo.isFile()))
@@ -339,9 +339,9 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
 FileOperationResultCode CFileSystemObject::copyChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName)
 {
-	assert(bool(_thisFile) == bool(_destFile));
-	assert(isFile());
-	assert(QFileInfo(destFolder).isDir());
+	assert_r(bool(_thisFile) == bool(_destFile));
+	assert_r(isFile());
+	assert_r(QFileInfo(destFolder).isDir());
 
 	if (!copyOperationInProgress())
 	{
@@ -375,7 +375,7 @@ FileOperationResultCode CFileSystemObject::copyChunk(uint64_t chunkSize, const Q
 		_destFile->resize(size());
 	}
 
-	assert(_destFile->isOpen() == _thisFile->isOpen());
+	assert_r(_destFile->isOpen() == _thisFile->isOpen());
 
 	const auto actualChunkSize = std::min(chunkSize, size() - _pos);
 
@@ -421,7 +421,7 @@ bool CFileSystemObject::copyOperationInProgress() const
 	if (!_destFile && !_thisFile)
 		return false;
 
-	assert(_destFile->isOpen() == _thisFile->isOpen());
+	assert_r(_destFile->isOpen() == _thisFile->isOpen());
 	return _destFile->isOpen() && _thisFile->isOpen();
 }
 
@@ -448,11 +448,7 @@ FileOperationResultCode CFileSystemObject::cancelCopy()
 
 bool CFileSystemObject::makeWritable(bool writeable)
 {
-	if (!isFile())
-	{
-		Q_ASSERT(!"This method only works for files");
-		return false;
-	}
+	assert_and_return_message_r(isFile(), "This method only works for files", false);
 
 #ifdef _WIN32
 	const QString UNCPath =  "\\\\?\\" % toNativeSeparators(fullAbsolutePath());
@@ -512,7 +508,7 @@ FileOperationResultCode CFileSystemObject::remove()
 	else if (isDir())
 	{
 		QDir dir (_properties.fullPath);
-		assert(dir.entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).isEmpty());
+		assert_r(dir.entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).isEmpty());
 		errno = 0;
 		if (!dir.rmdir("."))
 		{

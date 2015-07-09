@@ -13,13 +13,12 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <stdlib.h>
-#include <assert.h>
 
 CController* CController::_instance = nullptr;
 
 CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _workerThread("CController worker thread")
 {
-	assert(_instance == nullptr); // Only makes sense to create one controller
+	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
 
 	_diskEnumerator.addObserver(this);
@@ -37,7 +36,7 @@ CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _wo
 
 CController& CController::get()
 {
-	assert(_instance);
+	assert_r(_instance);
 	return *_instance;
 }
 
@@ -48,7 +47,7 @@ void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedL
 
 void CController::setDisksChangedListener(CController::IDiskListObserver *listener)
 {
-	assert(std::find(_disksChangedListeners.begin(), _disksChangedListeners.end(), listener) == _disksChangedListeners.end());
+	assert_r(std::find(_disksChangedListeners.begin(), _disksChangedListeners.end(), listener) == _disksChangedListeners.end());
 	_disksChangedListeners.push_back(listener);
 
 	// Force an update
@@ -107,7 +106,7 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 // A current disk has been switched
 bool CController::switchToDisk(Panel p, size_t index)
 {
-	assert(index < _diskEnumerator.drives().size());
+	assert_r(index < _diskEnumerator.drives().size());
 	const QString drivePath = _diskEnumerator.drives().at(index).storageInfo.rootPath();
 
 	FileOperationResultCode result = rcDirNotAccessible;
@@ -227,14 +226,12 @@ void CController::openTerminal(const QString &folder)
 {
 #ifdef _WIN32
 	const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
-	assert(started);
-	Q_UNUSED(started);
+	assert_r(started);
 #elif defined __APPLE__
 	system(QString("osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd %1\\\"\"").arg(folder).toUtf8().data());
 #elif defined __linux__
 	const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
-	assert(started);
-	Q_UNUSED(started);
+	assert_r(started);
 #else
 	#error unknown platform
 #endif
@@ -265,7 +262,7 @@ const CPanel &CController::panel(Panel p) const
 	case RightPanel:
 		return _rightPanel;
 	default:
-		assert (false);
+		assert_unconditional_r("Uknown panel");
 		return _rightPanel;
 	}
 }
@@ -279,7 +276,7 @@ CPanel& CController::panel(Panel p)
 	case RightPanel:
 		return _rightPanel;
 	default:
-		assert(false);
+		assert_unconditional_r("Uknown panel");
 		return _rightPanel;
 	}
 }
@@ -293,7 +290,7 @@ const CPanel &CController::otherPanel(Panel p) const
 	case RightPanel:
 		return _leftPanel;
 	default:
-		assert(false);
+		assert_unconditional_r("Uknown panel");
 		return _rightPanel;
 	}
 }
@@ -307,7 +304,7 @@ CPanel& CController::otherPanel(Panel p)
 	case RightPanel:
 		return _leftPanel;
 	default:
-		assert(false);
+		assert_unconditional_r("Uknown panel");
 		return _leftPanel;
 	}
 }
@@ -322,7 +319,7 @@ Panel CController::otherPanelPosition(Panel p)
 	case RightPanel:
 		return LeftPanel;
 	default:
-		assert(false);
+		assert_unconditional_r("Uknown panel");
 		return LeftPanel;
 	}
 }
@@ -419,11 +416,7 @@ void CController::disksChanged()
 
 void CController::saveDirectoryForCurrentDisk(Panel p)
 {
-	if(currentDiskIndex(p) >= _diskEnumerator.drives().size())
-	{
-		assert(false);
-		return;
-	}
+	assert_and_return_r(currentDiskIndex(p) < _diskEnumerator.drives().size(), );
 
 	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).storageInfo.rootPath();
 	const QString path = panel(p).currentDirPathNative();

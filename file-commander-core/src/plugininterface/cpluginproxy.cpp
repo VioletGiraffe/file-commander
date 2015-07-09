@@ -1,5 +1,5 @@
 #include "cpluginproxy.h"
-#include <assert.h>
+#include "assert/advanced_assert.h"
 
 CPluginProxy::CPluginProxy() :
 	_currentPanel(PluginUnknownPanel)
@@ -98,7 +98,7 @@ const CFileSystemObject &CPluginProxy::currentItem() const
 	if (panelState.currentItemHash != 0)
 	{
 		auto fileSystemObject = panelState.panelContents.find(panelState.currentItemHash);
-		assert(fileSystemObject != panelState.panelContents.end());
+		assert_r(fileSystemObject != panelState.panelContents.end());
 		return fileSystemObject->second;
 	}
 	else

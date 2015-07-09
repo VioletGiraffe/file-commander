@@ -9,7 +9,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
 #include <set>
 
 CFileListModel::CFileListModel(QTreeView * treeView, QObject *parent) :
@@ -23,7 +22,7 @@ CFileListModel::CFileListModel(QTreeView * treeView, QObject *parent) :
 // Sets the position (left or right) of a panel that this model represents
 void CFileListModel::setPanelPosition(Panel p)
 {
-	assert(_panel == UnknownPanel); // Doesn't make sense to call this method more than once
+	assert_r(_panel == UnknownPanel); // Doesn't make sense to call this method more than once
 	_panel = p;
 }
 
@@ -105,11 +104,7 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 		return false;
 
 	CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPathNative());
-	if (!dest.exists() || !dest.isDir())
-	{
-		assert(dest.exists() && dest.isDir());
-		return false;
-	}
+	assert_and_return_r(dest.exists() && dest.isDir(), false);
 
 	const QList<QUrl> urls(data->urls());
 	std::vector<CFileSystemObject> objects;
@@ -157,7 +152,7 @@ qulonglong CFileListModel::itemHash(const QModelIndex & index) const
 
 	bool ok = false;
 	const qulonglong hash = itm->data(Qt::UserRole).toULongLong(&ok);
-	assert(ok);
+	assert_r(ok);
 	return ok ? hash : 0;
 }
 

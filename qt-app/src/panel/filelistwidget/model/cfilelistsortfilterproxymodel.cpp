@@ -6,8 +6,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QStandardItemModel>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
-
 CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
 	QSortFilterProxyModel(parent),
 	_controller(CController::get()),
@@ -19,7 +17,7 @@ CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
 // Sets the position (left or right) of a panel that this model represents
 void CFileListSortFilterProxyModel::setPanelPosition(Panel p)
 {
-	assert(_panel == UnknownPanel); // Doesn't make sense to call this method more than once
+	assert_r(_panel == UnknownPanel); // Doesn't make sense to call this method more than once
 	_panel = p;
 }
 
@@ -42,8 +40,8 @@ void CFileListSortFilterProxyModel::sort(int column, Qt::SortOrder order)
 
 bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
-	assert(left.column() == right.column());
-	assert(left.isValid() && right.isValid());
+	assert_r(left.column() == right.column());
+	assert_r(left.isValid() && right.isValid());
 	const int sortColumn = left.column();
 
 	QStandardItemModel * srcModel = dynamic_cast<QStandardItemModel*>(sourceModel());
@@ -120,6 +118,6 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 		break;
 	}
 
-	assert (false);
+	assert_unconditional_r("Unhandled code path");
 	return false;
 }

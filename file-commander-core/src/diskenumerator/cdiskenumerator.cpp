@@ -1,11 +1,10 @@
 #include "cdiskenumerator.h"
 #include "utils/utils.h"
-
-#include <assert.h>
+#include "assert/advanced_assert.h"
 
 void CDiskEnumerator::addObserver(IDiskListObserver *observer)
 {
-	assert(std::find(_observers.begin(), _observers.end(), observer) == _observers.end());
+	assert_r(std::find(_observers.begin(), _observers.end(), observer) == _observers.end());
 	_observers.push_back(observer);
 }
 

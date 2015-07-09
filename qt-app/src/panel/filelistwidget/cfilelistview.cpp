@@ -11,7 +11,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QMouseEvent>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
 #include <time.h>
 #include <set>
 
@@ -54,7 +53,7 @@ void CFileListView::addEventObserver(FileListViewEventObserver* observer)
 // Sets the position (left or right) of a panel that this model represents
 void CFileListView::setPanelPosition(enum Panel p)
 {
-	assert(_panelPosition == UnknownPanel); // Doesn't make sense to call this method more than once
+	assert_r(_panelPosition == UnknownPanel); // Doesn't make sense to call this method more than once
 	_panelPosition = p;
 }
 
@@ -265,7 +264,7 @@ void CFileListView::dragMoveEvent(QDragMoveEvent * event)
 void CFileListView::selectRegion(const QModelIndex &start, const QModelIndex &end)
 {
 	bool itemBelongsToSelection = false;
-	assert(selectionModel());
+	assert_r(selectionModel());
 	for (int i = 0; i < model()->rowCount(); ++i)
 	{
 		// Start item found - beginning selection

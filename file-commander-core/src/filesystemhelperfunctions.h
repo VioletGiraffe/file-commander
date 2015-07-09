@@ -1,10 +1,10 @@
 #pragma once
 
 #include "cfilesystemobject.h"
+#include "assert/advanced_assert.h"
 
 #include <vector>
 #include <stdint.h>
-#include <assert.h>
 #include <cmath>
 
 inline std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPath, bool includeFolders)
@@ -13,7 +13,7 @@ inline std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPa
 	if (QFileInfo(dirPath).isDir())
 	{
 		QDir dir (dirPath);
-		assert (dir.exists());
+		assert_r(dir.exists());
 		QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::Dirs |  QDir::Hidden | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::System);
 		for (auto it = list.begin(); it != list.end(); ++it)
 		{

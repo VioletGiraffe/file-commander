@@ -1,5 +1,5 @@
 #include "cfilelistitemdelegate.h"
-#include <assert.h>
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -19,7 +19,7 @@ void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & 
 {
 	QStyledItemDelegate::setEditorData(editor, index);
 	QLineEdit * lineEditor = dynamic_cast<QLineEdit*>(editor);
-	assert(lineEditor);
+	assert_r(lineEditor);
 	const QString itemName = lineEditor->text();
 	const int dot = itemName.indexOf('.');
 	if (dot != -1)
