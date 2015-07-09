@@ -11,8 +11,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QLibrary>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
-
 CPluginEngine::CPluginEngine()
 {
 }
@@ -118,7 +116,7 @@ CPluginWindow *CPluginEngine::createViewerWindowForCurrentFile()
 
 PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 {
-	assert(p != UnknownPanel);
+	assert_r(p != UnknownPanel);
 	return p == LeftPanel ? PluginLeftPanel : PluginRightPanel;
 }
 
@@ -129,7 +127,7 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
 		{
 			CFileCommanderViewerPlugin * viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
-			assert(viewer);
+			assert_r(viewer);
 			if (viewer && viewer->canViewCurrentFile())
 				return viewer;
 		}

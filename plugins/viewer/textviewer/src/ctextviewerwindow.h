@@ -6,7 +6,9 @@
 
 #include "ui_ctextviewerwindow.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QPlainTextEdit>
+RESTORE_COMPILER_WARNINGS
 
 class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
 {

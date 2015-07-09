@@ -1,4 +1,5 @@
 #include "cpluginwindow.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -19,6 +20,6 @@ QMainWindow* CPluginWindow::appMainWindow()
 		}
 	}
 
-	Q_ASSERT(false);
+	assert_unconditional_r("Failed to find the app's main window");
 	return nullptr;
 }
