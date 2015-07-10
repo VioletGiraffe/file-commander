@@ -129,10 +129,11 @@ void CCopyMoveDialog::pauseResume()
 
 void CCopyMoveDialog::background()
 {
-	ui->_lblOperationName->setVisible(false);
-	ui->_btnBackground->setVisible(false);
-	ui->_fileProgress->setVisible(false);
-	QTimer::singleShot(0, this, SLOT(setMinSize()));
+	ui->_lblOperationName->hide();
+	ui->_btnBackground->hide();
+	ui->_fileProgress->hide();
+	ui->_fileProgressText->hide();
+	QTimer::singleShot(0, this, &CCopyMoveDialog::setMinSize);
 }
 
 void CCopyMoveDialog::setMinSize()

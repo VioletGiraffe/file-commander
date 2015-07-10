@@ -41,10 +41,10 @@ private slots:
 	void background();
 
 // Utility slots
-	void setMinSize();
 	void processEvents();
 
 private:
+	void setMinSize();
 	void cancel();
 
 private:
