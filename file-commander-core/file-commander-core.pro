@@ -4,7 +4,7 @@ DESTDIR  = ../bin
 
 QT = core widgets gui #gui is required for QFileIconProvider and plugininterface
 CONFIG += staticlib
-CONFIG += c++14
+CONFIG += c++11
 
 win*{
 	QT += winextras
@@ -55,29 +55,29 @@ include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)
 
 win*{
-    QMAKE_CXXFLAGS += /MP /wd4251
-    QMAKE_CXXFLAGS_WARN_ON = -W4
-    DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
+	QMAKE_CXXFLAGS += /MP /wd4251
+	QMAKE_CXXFLAGS_WARN_ON = -W4
+	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 }
 
 mac* | linux* {
-    QMAKE_CFLAGS   += -pedantic-errors -std=c99
-    QMAKE_CXXFLAGS += -pedantic-errors
-    QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
+	QMAKE_CFLAGS   += -pedantic-errors -std=c99
+	QMAKE_CXXFLAGS += -pedantic-errors
+	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 
-    CONFIG(release, debug|release):CONFIG += Release
-    CONFIG(debug, debug|release):CONFIG += Debug
+	CONFIG(release, debug|release):CONFIG += Release
+	CONFIG(debug, debug|release):CONFIG += Debug
 
-    Release:DEFINES += NDEBUG=1
-    Debug:DEFINES += _DEBUG
+	Release:DEFINES += NDEBUG=1
+	Debug:DEFINES += _DEBUG
 }
 
 LIBS += -L$${DESTDIR} -lcpputils -lqtutils
 
 win32*:!*msvc2012:*msvc* {
-    QMAKE_CXXFLAGS += /FS
+	QMAKE_CXXFLAGS += /FS
 }
 
 mac*|linux*{
-    PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }
