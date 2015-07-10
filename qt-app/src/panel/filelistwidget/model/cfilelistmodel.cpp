@@ -26,6 +26,11 @@ void CFileListModel::setPanelPosition(Panel p)
 	_panel = p;
 }
 
+Panel CFileListModel::panelPosition() const
+{
+	return _panel;
+}
+
 QTreeView *CFileListModel::treeView() const
 {
 	return _tree;
@@ -155,4 +160,3 @@ qulonglong CFileListModel::itemHash(const QModelIndex & index) const
 	assert_r(ok);
 	return ok ? hash : 0;
 }
-

@@ -20,6 +20,7 @@ public:
 	explicit CFileListModel(QTreeView * treeview, QObject *parent = 0);
 	// Sets the position (left or right) of a panel that this model represents
 	void setPanelPosition(Panel p);
+	Panel panelPosition() const;
 
 	QTreeView * treeView() const;
 
@@ -33,11 +34,10 @@ public:
 	bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) override;
 	QMimeData* mimeData(const QModelIndexList &indexes) const override;
 
+	qulonglong itemHash(const QModelIndex& index) const;
+
 signals:
 	void itemEdited(qulonglong itemHash, QString newName);
-
-private:
-	qulonglong itemHash(const QModelIndex& index) const;
 
 private:
 	CController & _controller;

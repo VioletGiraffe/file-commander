@@ -1,11 +1,14 @@
 #include "cfilelistitemdelegate.h"
 #include "assert/advanced_assert.h"
+#include "../model/cfilelistmodel.h"
+#include "ccontroller.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QPlainTextEdit>
+#include <QSortFilterProxyModel>
 #include <QTextEdit>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
@@ -15,17 +18,30 @@ CFileListItemDelegate::CFileListItemDelegate(QObject *parent) :
 {
 }
 
+// Item rename handling
 void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & index) const
 {
 	QStyledItemDelegate::setEditorData(editor, index);
 	QLineEdit * lineEditor = dynamic_cast<QLineEdit*>(editor);
 	assert_r(lineEditor);
-	const QString itemName = lineEditor->text();
-	const int dot = itemName.indexOf('.');
-	if (dot != -1)
-		QTimer::singleShot(0, [=]() {
-		lineEditor->setSelection(0, dot);
-	});
+	assert_and_return_r(index.isValid(), );
+
+	auto sortModel = dynamic_cast<const QSortFilterProxyModel*>(index.model());
+	assert_and_return_message_r(sortModel, "Something has changed in the model hierarchy", );
+	auto model = dynamic_cast<const CFileListModel*>(sortModel->sourceModel());
+	assert_and_return_message_r(model, "Something has changed in the model hierarchy", );
+	auto hash = model->itemHash(sortModel->mapToSource(index));
+	const auto item = CController::get().itemByHash(model->panelPosition(), hash);
+
+	if (item.isValid() && item.isFile())
+	{
+		const QString itemName = lineEditor->text();
+		const int dot = itemName.indexOf('.');
+		if (dot != -1)
+			QTimer::singleShot(0, [=]() {
+			lineEditor->setSelection(0, dot);
+		});
+	}
 }
 
 bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
