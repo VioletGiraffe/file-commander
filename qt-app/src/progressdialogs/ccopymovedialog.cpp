@@ -23,7 +23,7 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 	ui->_overallProgress->linkToWidgetstaskbarButton(this);
 
 	ui->_overallProgressText->setMinimumWidth(QFontMetrics(ui->_overallProgressText->font()).width("100.0%"));
-	ui->_fileProgressText->setMinimumWidth(QFontMetrics(ui->_overallProgressText->font()).width("100.0%"));
+	ui->_fileProgressText->setMinimumWidth(QFontMetrics(ui->_fileProgressText->font()).width("100.0%"));
 
 	ui->_lblFileName->clear();
 
@@ -66,7 +66,7 @@ void CCopyMoveDialog::onProgressChanged(float totalPercentage, size_t numFilesPr
 	ui->_overallProgressText->setText(QString::number(totalPercentage, 'f', 1).append('%'));
 
 	ui->_fileProgress->setValue((int)(filePercentage + 0.5f));
-	ui->_fileProgressText->setText(QString::number(totalPercentage, 'f', 1).append('%'));
+	ui->_fileProgressText->setText(QString::number(filePercentage, 'f', 1).append('%'));
 
 
 	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(_speed)));
