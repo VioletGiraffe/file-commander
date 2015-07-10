@@ -274,7 +274,7 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 		ILFree(pid);
 	idLists.clear();
 
-	if (!iArray || !SUCCEEDED(result))
+	if (!SUCCEEDED(result) || !iArray)
 	{
 		qDebug() << "SHCreateShellItemArrayFromIDLists failed";
 		return false;
@@ -333,11 +333,7 @@ bool CShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 	LPCITEMIDLIST list;
 	HRESULT result = SHBindToParent(idlist, IID_IShellFolder, (void**)&iFolder, &list);
 	if (!SUCCEEDED(result) || !list || !iFolder)
-	{
-		if (iFolder)
-			iFolder->Release();
 		return false;
-	}
 
 	IContextMenu * imenu = 0;
 	result = iFolder->GetUIObjectOf((HWND)parentWindow, 1u, &list, IID_IContextMenu, 0, (void**)&imenu);
@@ -393,23 +389,15 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 		result = SHBindToParent(ids.back(), IID_IShellFolder, (void**)&ifolder, &relativeIds.back());
 		if (!SUCCEEDED(result) || !relativeIds.back())
 			relativeIds.pop_back();
-		if (i < objects.size() - 1 && ifolder)
+		else if (i < objects.size() - 1 && ifolder)
 			ifolder->Release();
 	}
 
 	CItemIdArrayReleaser arrayReleaser(ids);
 
 	assert_r(parentWindow);
-	if (!ifolder)
-	{
-		qDebug() << "Error getting ifolder";
-		return false;
-	}
-	else if (relativeIds.empty())
-	{
-		qDebug() << "relativeIds is empty";
-		return false;
-	}
+	assert_and_return_message_r(ifolder, "Error getting ifolder", false);
+	assert_and_return_message_r(!relativeIds.empty(), "RelativeIds is empty", false);
 
 	imenu = 0;
 	HRESULT result = ifolder->GetUIObjectOf((HWND)parentWindow, (UINT)relativeIds.size(), (const ITEMIDLIST **)relativeIds.data(), IID_IContextMenu, 0, (void**)&imenu);
