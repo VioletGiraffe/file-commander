@@ -429,12 +429,16 @@ void CMainWindow::createFolder()
 
 void CMainWindow::createFile()
 {
-	const QString fileName = QInputDialog::getText(this, tr("New file"), tr("Enter the name for the new file"));
+	if (!_currentFileList)
+		return;
+
+	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
+	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
+	const QString fileName = QInputDialog::getText(this, tr("New file"), tr("Enter the name for the new file"), QLineEdit::Normal, currentItemName);
 	if (!fileName.isEmpty())
 	{
 		if (!_controller->createFile(_currentFileList->currentDir(), fileName))
 			QMessageBox::warning(this, tr("Failed to create a file"), tr("Failed to create the file %1").arg(fileName));
-
 	}
 }
 
