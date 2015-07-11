@@ -31,26 +31,16 @@ Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:Ad
 
 [Files]
 
-;Remote binaries
+;App binaries
 Source: binaries/32/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
-
 Source: binaries/64/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
 ;Qt binaries
-Source: binaries/32/Qt/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
-
-Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
-
-;Qt plugins 
-Source: binaries/32/Qt/imageformats\*; DestDir: {app}\imageformats; Flags: ignoreversion; Check: not Is64BitInstallMode
-Source: binaries/32/Qt/platforms\*; DestDir: {app}\platforms; Flags: ignoreversion skipifsourcedoesntexist; Check: not Is64BitInstallMode
-
-Source: binaries/64/Qt/imageformats\*; DestDir: {app}\imageformats; Flags: ignoreversion; Check: Is64BitInstallMode
-Source: binaries/64/Qt/platforms\*; DestDir: {app}\platforms; Flags: ignoreversion skipifsourcedoesntexist; Check: Is64BitInstallMode
+Source: binaries/32/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; Check: not Is64BitInstallMode 
+Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; Check: Is64BitInstallMode
 
 ;MSVC binaries
 Source: binaries/32/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
-
 Source: binaries/64/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
 ;License

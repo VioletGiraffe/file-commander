@@ -3,38 +3,33 @@ REM set QTDIR32=k:\Qt\5\5.4\msvc2013_opengl\
 REM set QTDIR64=k:\Qt\5\5.4\msvc2013_64_opengl\
 
 call set_qt_paths.bat
+set VS_TOOLS_DIR=%VS120COMNTOOLS%
 
 SETLOCAL
 
-RMDIR  /S /Q binaries\
+RMDIR /S /Q binaries\
 
 REM X86
 pushd ..\..\
 %QTDIR32%\bin\qmake.exe -tp vc -r
 popd
 
-call "%VS120COMNTOOLS%VsDevCmd.bat" x86
+call "%VS_TOOLS_DIR%VsDevCmd.bat" x86
 msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v120_xp
 
 xcopy /R /Y ..\..\bin\FileCommander.exe binaries\32\
 xcopy /R /Y ..\..\bin\plugin_*.dll binaries\32\
 
-xcopy /R /Y %QTDIR32%\bin\Qt5Core.dll binaries\32\Qt\
-xcopy /R /Y %QTDIR32%\bin\Qt5Gui.dll binaries\32\Qt\
-xcopy /R /Y %QTDIR32%\bin\Qt5Widgets.dll binaries\32\Qt\
-xcopy /R /Y %QTDIR32%\bin\Qt5WinExtras.dll binaries\32\Qt\
-
-xcopy /R /Y %QTDIR32%\bin\icu*.dll binaries\32\Qt\
-
-xcopy /R /Y %QTDIR32%\plugins\imageformats\qgif.dll binaries\32\Qt\imageformats\
-xcopy /R /Y %QTDIR32%\plugins\imageformats\qico.dll binaries\32\Qt\imageformats\
-xcopy /R /Y %QTDIR32%\plugins\imageformats\qjpeg.dll binaries\32\Qt\imageformats\
-xcopy /R /Y %QTDIR32%\plugins\imageformats\qtiff.dll binaries\32\Qt\imageformats\
-
-xcopy /R /Y %QTDIR32%\plugins\platforms\qwindows.dll binaries\32\Qt\platforms\
+SETLOCAL
+SET PATH=%QTDIR32%\bin\
+%QTDIR32%\bin\windeployqt.exe --dir binaries/32/Qt --force --no-translations binaries\32\FileCommander.exe
+FOR %%p IN (binaries\32\plugin_*.dll) DO %QTDIR32%\bin\windeployqt.exe --dir binaries\32\Qt --no-translations %%p
+ENDLOCAL
 
 xcopy /R /Y %SystemRoot%\SysWOW64\msvcr120.dll binaries\32\msvcr\
 xcopy /R /Y %SystemRoot%\SysWOW64\msvcp120.dll binaries\32\msvcr\
+
+del binaries\32\Qt\vcredist*.exe
 
 ENDLOCAL
 
@@ -45,28 +40,22 @@ pushd ..\..\
 %QTDIR64%\bin\qmake.exe -tp vc -r
 popd
 
-call "%VS120COMNTOOLS%VsDevCmd.bat" amd64
+call "%VS_TOOLS_DIR%VsDevCmd.bat" amd64
 msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v120_xp
 
 xcopy /R /Y ..\..\bin\FileCommander.exe binaries\64\
 xcopy /R /Y ..\..\bin\plugin_*.dll binaries\64\
 
-xcopy /R /Y %QTDIR64%\bin\Qt5Core.dll binaries\64\Qt\
-xcopy /R /Y %QTDIR64%\bin\Qt5Gui.dll binaries\64\Qt\
-xcopy /R /Y %QTDIR64%\bin\Qt5Widgets.dll binaries\64\Qt\
-xcopy /R /Y %QTDIR64%\bin\Qt5WinExtras.dll binaries\64\Qt\
-
-xcopy /R /Y %QTDIR64%\bin\icu*.dll binaries\64\Qt\
-
-xcopy /R /Y %QTDIR64%\plugins\imageformats\qgif.dll binaries\64\Qt\imageformats\
-xcopy /R /Y %QTDIR64%\plugins\imageformats\qico.dll binaries\64\Qt\imageformats\
-xcopy /R /Y %QTDIR64%\plugins\imageformats\qjpeg.dll binaries\64\Qt\imageformats\
-xcopy /R /Y %QTDIR64%\plugins\imageformats\qtiff.dll binaries\64\Qt\imageformats\
-
-xcopy /R /Y %QTDIR64%\plugins\platforms\qwindows.dll binaries\64\Qt\platforms\
+SETLOCAL
+SET PATH=%QTDIR64%\bin\
+%QTDIR64%\bin\windeployqt.exe --dir binaries/64/Qt --force --no-translations binaries\64\FileCommander.exe
+FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --no-translations %%p
+ENDLOCAL
 
 xcopy /R /Y %SystemRoot%\System32\msvcr120.dll binaries\64\msvcr\
 xcopy /R /Y %SystemRoot%\System32\msvcp120.dll binaries\64\msvcr\
+
+del binaries\64\Qt\vcredist*.exe
 
 "c:\Program Files (x86)\Inno Setup 5\compil32" /cc setup.iss
 
