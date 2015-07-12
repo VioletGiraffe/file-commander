@@ -74,9 +74,9 @@ public:
 	QString currentDirPathPosix() const;
 	QString currentDirName() const;
 
-	void setCurrentItemInFolder(const QString& dir, qulonglong currentItemHash);
+	void setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash);
 	// Returns hash of an item that was the last selected in the specified dir
-	qulonglong currentItemInFolder(const QString& dir) const;
+	qulonglong currentItemForFolder(const QString& dir) const;
 
 	// Enumerates objects in the current directory
 	void refreshFileList(FileListRefreshCause operation);

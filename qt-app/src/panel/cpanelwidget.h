@@ -45,7 +45,7 @@ public:
 	void setPanelPosition(Panel p);
 
 	// Returns the list of items added to the view
-	void fillFromList(const std::map<qulonglong, CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation);
+	void fillFromList(const std::map<qulonglong, CFileSystemObject>& items, FileListRefreshCause operation);
 	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
 
 	// CPanel observers
@@ -63,7 +63,7 @@ public:
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
-	void currentItemChanged(Panel p, qulonglong itemHash);
+	void currentItemChangedSignal(Panel p, qulonglong itemHash);
 	void fileListViewKeyPressedSignal(CPanelWidget* panelWidget, QString keyText, int key, Qt::KeyboardModifiers modifiers);
 
 protected:
@@ -75,8 +75,8 @@ private slots:
 	void calcDirectorySize();
 	void invertCurrentItemSelection();
 	void driveButtonClicked();
-	void selectionChanged(QItemSelection selected, QItemSelection deselected);
-	void currentItemChanged(QModelIndex current, QModelIndex previous);
+	void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
+	void currentItemChanged(const QModelIndex& current, const QModelIndex& previous);
 	void itemNameEdited(qulonglong hash, QString newName);
 	void toRoot();
 	void showFavoriteLocationsMenu(QPoint pos);

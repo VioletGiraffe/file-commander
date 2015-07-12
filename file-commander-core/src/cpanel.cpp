@@ -102,7 +102,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		const QString itemPath = toPosixSeparators(item.second.fullAbsolutePath());
 		if (posixPath == itemPath && toPosixSeparators(item.second.parentDirPath()) != itemPath)
 		{
-			setCurrentItemInFolder(item.second.parentDirPath(), item.second.properties().hash);
+			setCurrentItemForFolder(item.second.parentDirPath(), item.second.properties().hash);
 			break;
 		}
 	}
@@ -202,14 +202,21 @@ QString CPanel::currentDirName() const
 	return toNativeSeparators(_currentDirObject.fullName());
 }
 
-void CPanel::setCurrentItemInFolder(const QString& dir, qulonglong currentItemHash)
+static inline QString normalizeFolderPath(const QString& path)
 {
-	_cursorPosForFolder[toPosixSeparators(dir)] = currentItemHash;
+	const QString posixPath = toPosixSeparators(path);
+	return posixPath.endsWith('/') ? posixPath : (posixPath + '/');
 }
 
-qulonglong CPanel::currentItemInFolder(const QString &dir) const
+void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash)
 {
-	const auto it = _cursorPosForFolder.find(toPosixSeparators(dir));
+	qDebug() << __FUNCTION__ << "Panel:" << _panelPosition << dir << currentItemHash;
+	_cursorPosForFolder[normalizeFolderPath(dir)] = currentItemHash;
+}
+
+qulonglong CPanel::currentItemForFolder(const QString &dir) const
+{
+	const auto it = _cursorPosForFolder.find(normalizeFolderPath(dir));
 	return it == _cursorPosForFolder.end() ? 0 : it->second;
 }
 

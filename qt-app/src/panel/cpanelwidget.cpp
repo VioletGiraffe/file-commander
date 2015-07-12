@@ -142,8 +142,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	_selectionModel = ui->_list->selectionModel(); // can only be called after setModel
 	assert_r(_selectionModel);
-	connect(_selectionModel, SIGNAL(selectionChanged(QItemSelection,QItemSelection)), SLOT(selectionChanged(QItemSelection,QItemSelection)));
-	connect(_selectionModel, SIGNAL(currentChanged(QModelIndex,QModelIndex)), SLOT(currentItemChanged(QModelIndex,QModelIndex)));
+	connect(_selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged);
+	connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 
 	_controller.setPanelContentsChangedListener(p, this);
 
@@ -153,15 +153,15 @@ void CPanelWidget::setPanelPosition(Panel p)
 }
 
 // Returns the list of items added to the view
-void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& items, bool sameDirAsPrevious, FileListRefreshCause operation)
+void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& items, FileListRefreshCause operation)
 {
 	time_t start = clock();
 	const auto globalStart = start;
 
-	// Remembering currently highlighted item, as well as current folder, to restore cursor afterwards
-	const qulonglong currentHash = currentItemHash();
-	const QModelIndex currentIndex = _selectionModel->currentIndex();
+	disconnect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
+
 	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
+	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
 
 	//ui->_list->setUpdatesEnabled(false);
 	ui->_list->saveHeaderState();
@@ -234,20 +234,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	ui->_list->moveCursorToItem(_sortModel->index(0, 0));
 
 	// Setting the cursor position as appropriate
-	if (sameDirAsPrevious && operation != refreshCauseNewItemCreated)
-	{
-		QModelIndex indexToMoveCursorTo;
-		if (currentHash != 0)
-			indexToMoveCursorTo = indexByHash(currentHash);
-		if (!indexToMoveCursorTo.isValid())
-			indexToMoveCursorTo = currentIndex;
-
-		if (indexToMoveCursorTo.isValid() && currentIndex.row() < ui->_list->model()->rowCount())
-		{
-			ui->_list->moveCursorToItem(indexToMoveCursorTo);
-		}
-	}
-	else if (operation == refreshCauseCdUp)
+	if (operation == refreshCauseCdUp)
 	{
 		// Setting the folder we've just stepped out of as current
 		qulonglong targetFolderHash = 0;
@@ -263,17 +250,17 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		if (targetFolderHash != 0)
 			ui->_list->moveCursorToItem(indexByHash(targetFolderHash));
 	}
-	else if (operation != refreshCauseForwardNavigation) // refreshCauseNewItemCreated must fall into this branch, among other things
+	else if (operation != refreshCauseForwardNavigation)
 	{
-		const qulonglong lastVisitedItemInDirectory = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathNative());
-		if (lastVisitedItemInDirectory != 0)
-		{
-			const QModelIndex lastVisitedIndex = indexByHash(lastVisitedItemInDirectory);
-			if (lastVisitedIndex.isValid())
-				ui->_list->moveCursorToItem(lastVisitedIndex);
-		}
+		const qulonglong itemHashToSetCursorTo = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathNative());
+		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo);
+		if (itemIndexToSetCursorTo.isValid())
+			ui->_list->moveCursorToItem(itemIndexToSetCursorTo);
+		else if (previousCurrentIndex.isValid())
+			ui->_list->moveCursorToItem(_sortModel->index(previousCurrentIndex.row(), 0));
 	}
 
+	connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 	selectionChanged(QItemSelection(), QItemSelection());
 
 	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - globalStart) * 1000 / CLOCKS_PER_SEC << "ms";
@@ -287,7 +274,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 	for (auto hash = previousSelection.begin(); hash != previousSelection.end(); ++hash)
 		selectedItemsHashes.insert(*hash);
 
-	fillFromList(itemList, toPosixSeparators(panel.currentDirPathNative()) == _directoryCurrentlyBeingDisplayed, operation);
+	fillFromList(itemList, operation);
 	_directoryCurrentlyBeingDisplayed = toPosixSeparators(panel.currentDirPathNative());
 
 	// Restoring previous selection
@@ -378,7 +365,7 @@ void CPanelWidget::driveButtonClicked()
 	ui->_list->setFocus();
 }
 
-void CPanelWidget::selectionChanged(QItemSelection selected, QItemSelection /*deselected*/)
+void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemSelection& /*deselected*/)
 {
 	// This doesn't let the user select the [..] item
 
@@ -407,19 +394,23 @@ void CPanelWidget::selectionChanged(QItemSelection selected, QItemSelection /*de
 	CPluginEngine::get().selectionChanged(_panelPosition, selection);
 }
 
-void CPanelWidget::currentItemChanged(QModelIndex current, QModelIndex /*previous*/)
+void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
 	const qulonglong hash = current.isValid() ? hashByItemIndex(current) : 0;
-	CPluginEngine::get().currentItemChanged(_panelPosition, hash);
+	_controller.setCursorPositionForCurrentFolder(hash);
 
-	emit currentItemChanged(_panelPosition, hash);
+	emit currentItemChangedSignal(_panelPosition, hash);
 }
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 {
-	CFileSystemObject item = _controller.itemByHash(_panelPosition, hash);
+	const CFileSystemObject item = _controller.itemByHash(_panelPosition, hash);
+	const QString newItemPath = item.parentDirPath() % "/" % newName;
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::vector<CFileSystemObject>(1, item), item.parentDirPath() + "/" + newName, CMainWindow::get());
+	// This is required for the UI to know to move the cursor to the renamed item
+	_controller.setCursorPositionForCurrentFolder(CFileSystemObject(newItemPath).hash());
+
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::vector<CFileSystemObject>(1, item), newItemPath, CMainWindow::get());
 	connect(CMainWindow::get(), SIGNAL(closed()), dialog, SLOT(deleteLater()));
 	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
 	dialog->show();
@@ -758,9 +749,13 @@ qulonglong CPanelWidget::hashByItemRow(const int row) const
 
 QModelIndex CPanelWidget::indexByHash(const qulonglong hash) const
 {
+	if (hash == 0)
+		return QModelIndex();
+
 	for(int row = 0; row < _sortModel->rowCount(); ++row)
 		if (hashByItemRow(row) == hash)
 			return _sortModel->index(row, 0);
+
 	return QModelIndex();
 }
 

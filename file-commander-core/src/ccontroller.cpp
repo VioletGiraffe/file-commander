@@ -186,12 +186,7 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 			const int slashPosition = posixName.indexOf('/');
 			const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? posixName.left(posixName.indexOf('/')) : posixName);
 			// This is required for the UI to know to set the cursor at the new folder
-			activePanel().setCurrentItemInFolder(activePanel().currentDirPathNative(), CFileSystemObject(newFolderPath).hash());
-
-			// TODO: refreshCauseNewItemCreated is needed for the cursor to jump to the right item upon refresh.
-			// This means that we must process both refresh operations - this manual one AND the one queued by the file system watcher when it detects the change.
-			// And if we only process the watcher update with refreshCauseOther, the setCurrentItemInFolder has no effect. Can this be fixed to avoid double refresh?
-			activePanel().refreshFileList(refreshCauseNewItemCreated);
+			setCursorPositionForCurrentFolder(CFileSystemObject(newFolderPath).hash());
 		}
 
 		return true;
@@ -212,8 +207,7 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 		if (toNativeSeparators(parentDir.absolutePath()) == activePanel().currentDirPathNative())
 		{
 			// This is required for the UI to know to set the cursor at the new file
-			activePanel().setCurrentItemInFolder(activePanel().currentDirPathNative(), CFileSystemObject(newFilePath).hash());
-			activePanel().refreshFileList(refreshCauseNewItemCreated);
+			setCursorPositionForCurrentFolder(CFileSystemObject(newFilePath).hash());
 		}
 
 		return true;
@@ -251,6 +245,19 @@ void CController::displayDirSize(Panel p, qulonglong dirHash)
 void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 {
 	panel(p).showAllFilesFromCurrentFolderAndBelow();
+}
+
+// Indicates that we need to move cursor (e. g. a folder is being renamed and we want to keep the cursor on it)
+// This method takes the current folder in the currently active panel
+void CController::setCursorPositionForCurrentFolder(qulonglong newCurrentItemHash)
+{
+	activePanel().setCurrentItemForFolder(activePanel().currentDirPathNative(), newCurrentItemHash);
+	// TODO: refreshCauseNewItemCreated is needed for the cursor to jump to the right item upon refresh.
+	// This means that we must process both refresh operations - this manual one AND the one queued by the file system watcher when it detects the change.
+	// And if we only process the watcher update with refreshCauseOther, the setCurrentItemInFolder has no effect. Can this be fixed to avoid double refresh?
+//	activePanel().refreshFileList(refreshCauseNewItemCreated);
+
+	CPluginEngine::get().currentItemChanged(activePanelPosition(), newCurrentItemHash);
 }
 
 const CPanel &CController::panel(Panel p) const
@@ -397,7 +404,7 @@ CFavoriteLocations &CController::favoriteLocations()
 // Returns hash of an item that was the last selected in the specified dir
 qulonglong CController::currentItemInFolder(Panel p, const QString &dir) const
 {
-	return panel(p).currentItemInFolder(dir);
+	return panel(p).currentItemForFolder(dir);
 }
 
 void CController::disksChanged()
