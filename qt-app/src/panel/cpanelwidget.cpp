@@ -795,10 +795,12 @@ void CPanelWidget::panelContentsChanged(Panel p , FileListRefreshCause operation
 		fillFromPanel(_controller.panel(_panelPosition), operation);
 }
 
-void CPanelWidget::itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress)
+void CPanelWidget::itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir)
 {
 	if (p != _panelPosition)
 		return;
+
+	qDebug() << QString("Discovering %1: %2%, scanning %3").arg(itemHash).arg(progress).arg(currentDir);
 }
 
 CFileListView *CPanelWidget::fileListView() const

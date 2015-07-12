@@ -74,7 +74,7 @@ void CPluginEngine::panelContentsChanged(Panel p, FileListRefreshCause /*operati
 	proxy.panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirName(), controller.panel(p).list());
 }
 
-void CPluginEngine::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/)
+void CPluginEngine::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
 {
 }
 

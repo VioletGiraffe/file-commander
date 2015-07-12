@@ -210,7 +210,6 @@ static inline QString normalizeFolderPath(const QString& path)
 
 void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash)
 {
-	qDebug() << __FUNCTION__ << "Panel:" << _panelPosition << dir << currentItemHash;
 	_cursorPosForFolder[normalizeFolderPath(dir)] = currentItemHash;
 }
 
@@ -251,7 +250,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		for (int i = 0; i < (int)numItemsFound; ++i)
 		{
 			objectsList.emplace_back(list[i]);
-			sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20 + 80 * i / numItemsFound);
+			sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20 + 80 * i / numItemsFound, _currentDirObject.fullAbsolutePath());
 		}
 
 		{
@@ -297,17 +296,18 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 	if (hashes.empty())
 		return FilesystemObjectsStatistics();
 
-	sendItemDiscoveryProgressNotification(0, 0);
-
 	FilesystemObjectsStatistics stats;
 	const size_t numItems = hashes.size();
 	for(size_t i = 0; i < numItems; ++i)
 	{
-		CFileSystemObject item = itemByHash(hashes[i]);
+		const CFileSystemObject item = itemByHash(hashes[i]);
 		if (item.isDir())
 		{
 			++stats.folders;
-			std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.fullAbsolutePath(), false);
+			std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.fullAbsolutePath(), false, [this](const QString& path){
+				sendItemDiscoveryProgressNotification(0, std::numeric_limits<size_t>::max(), path);}
+			);
+
 			for (auto& subItem: objects)
 			{
 				if (subItem.isFile())
@@ -322,28 +322,35 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 			++stats.files;
 			stats.occupiedSpace += item.size();
 		}
-
-		sendItemDiscoveryProgressNotification(0, i * 100 / numItems);
 	}
 
-	sendItemDiscoveryProgressNotification(0, 100);
 	return stats;
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 void CPanel::displayDirSize(qulonglong dirHash)
 {
-	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	_fileListRefreshThread.enqueue([this, dirHash] {
+		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
-	const auto it = _items.find(dirHash);
-	assert_and_return_r(it != _items.end(), );
+		auto it = _items.find(dirHash);
+		assert_and_return_r(it != _items.end(), );
 
-	if (it->second.isDir())
-	{
-		const FilesystemObjectsStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));
-		it->second.setDirSize(stats.occupiedSpace);
-		sendContentsChangedNotification(refreshCauseOther);
-	}
+		if (it->second.isDir())
+		{
+			locker.unlock(); // Without this .unlock() the UI thread will get blocked very easily
+			const FilesystemObjectsStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));
+			locker.lock();
+			// Since we unlocked the mutex, the item we were working on may well be out of the _items list by now
+			// So we find it again and see if it's still there
+			it = _items.find(dirHash);
+			if (it == _items.end())
+				return;
+
+			it->second.setDirSize(stats.occupiedSpace);
+			sendContentsChangedNotification(refreshCauseOther);
+		}
+	});
 }
 
 void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
@@ -354,11 +361,12 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 	});
 }
 
-void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress) const
+// progress > 100 means indefinite
+void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const
 {
-	_uiThreadQueue.enqueue([this, itemHash, progress]() {
+	_uiThreadQueue.enqueue([=]() {
 		for (auto listener : _panelContentsChangedListeners)
-			listener->itemDiscoveryInProgress(_panelPosition, itemHash, progress);
+			listener->itemDiscoveryInProgress(_panelPosition, itemHash, progress, currentDir);
 	}, 1);
 }
 

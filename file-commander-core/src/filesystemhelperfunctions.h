@@ -3,29 +3,33 @@
 #include "cfilesystemobject.h"
 #include "assert/advanced_assert.h"
 
+#include <functional>
 #include <vector>
 #include <stdint.h>
 #include <cmath>
 
-inline std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPath, bool includeFolders)
+inline std::vector<CFileSystemObject> recurseDirectoryItems(const QString &dirPath, bool includeFolders, const std::function<void (const QString&)>& itemBeingScannedPathCallback = std::function<void (const QString&)>())
 {
 	std::vector<CFileSystemObject> objects;
 	if (QFileInfo(dirPath).isDir())
 	{
 		QDir dir (dirPath);
 		assert_r(dir.exists());
-		QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::Dirs |  QDir::Hidden | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::System);
-		for (auto it = list.begin(); it != list.end(); ++it)
+		const QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::Dirs |  QDir::Hidden | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::System);
+		for (const auto item: list)
 		{
-			if(it->isDir())
+			if(item.isDir())
 			{
-				auto childrenItems = recurseDirectoryItems(it->absoluteFilePath(), includeFolders);
+				if (itemBeingScannedPathCallback)
+					itemBeingScannedPathCallback(item.absoluteFilePath());
+
+				auto childrenItems = recurseDirectoryItems(item.absoluteFilePath(), includeFolders, itemBeingScannedPathCallback);
 				objects.insert(objects.end(), childrenItems.begin(), childrenItems.end());
 				if (includeFolders)
-					objects.emplace_back(*it);
+					objects.emplace_back(item);
 			}
-			else if (it->isFile())
-				objects.emplace_back(*it);
+			else if (item.isFile())
+				objects.emplace_back(item);
 		}
 	}
 	else

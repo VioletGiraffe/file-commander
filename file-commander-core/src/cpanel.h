@@ -31,7 +31,8 @@ enum FileListRefreshCause
 struct PanelContentsChangedListener
 {
 	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
-	virtual void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress) = 0;
+	// progress > 100 means indefinite
+	virtual void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) = 0;
 };
 
 class FilesystemObjectsStatistics
@@ -92,7 +93,8 @@ public:
 	void displayDirSize(qulonglong dirHash);
 
 	void sendContentsChangedNotification(FileListRefreshCause operation) const;
-	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress) const;
+	// progress > 100 means indefinite
+	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const;
 
 	void disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& disks);
 
