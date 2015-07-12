@@ -11,7 +11,7 @@ CSettingsPageEdit::CSettingsPageEdit(QWidget *parent) :
 	ui(new Ui::CSettingsPageEdit)
 {
 	ui->setupUi(this);
-	connect(ui->_btnEditorBrowse, SIGNAL(clicked()), SLOT(browseForEditor()));
+	connect(ui->_btnEditorBrowse, &QPushButton::clicked, this, &CSettingsPageEdit::browseForEditor);
 
 	ui->_editorNameLine->setText(CSettings().value(KEY_EDITOR_PATH).toString());
 }

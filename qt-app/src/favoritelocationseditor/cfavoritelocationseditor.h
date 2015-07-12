@@ -23,13 +23,12 @@ public:
 	explicit CFavoriteLocationsEditor(QWidget *parent = 0);
 	~CFavoriteLocationsEditor();
 
-private slots:
+private:
 	void currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * previous);
 	void contextMenu(const QPoint& pos);
 	void nameEdited(QString newName);
 	void locationEdited(QString newLocation);
 
-private:
 	void fillUI();
 	void addLocationsToTreeWidget(std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator & locationCollectionListIterator, QTreeWidgetItem * parent);
 

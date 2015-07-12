@@ -20,18 +20,18 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 {
 	ui->setupUi(this);
 
-	connect(ui->btnCancel, SIGNAL(clicked()), SLOT(onCancelClicked()));
-	connect(ui->btnCancelDeletion, SIGNAL(clicked()), SLOT(onCancelClicked()));
-	connect(ui->btnDeleteAnyway, SIGNAL(clicked()), SLOT(onProceedClicked()));
-	connect(ui->btnDeleteAllAnyway, SIGNAL(clicked()), SLOT(onProceedAllClicked()));
-	connect(ui->btnOverwrite, SIGNAL(clicked()), SLOT(onProceedClicked()));
-	connect(ui->btnOverwriteAll, SIGNAL(clicked()), SLOT(onProceedAllClicked()));
-	connect(ui->btnRename, SIGNAL(clicked()), SLOT(onRenameClicked()));
-	connect(ui->btnSkip, SIGNAL(clicked()), SLOT(onSkipClicked()));
-	connect(ui->btnSkipAll, SIGNAL(clicked()), SLOT(onSkipAllClicked()));
-	connect(ui->btnSkipDeletion, SIGNAL(clicked()), SLOT(onSkipClicked()));
-	connect(ui->btnSkipAllDeletion, SIGNAL(clicked()), SLOT(onSkipAllClicked()));
-	connect(ui->btnRetry, SIGNAL(clicked()), SLOT(onRetryClicked()));
+	connect(ui->btnCancel,          &QPushButton::clicked, this, &CPromptDialog::onCancelClicked);
+	connect(ui->btnCancelDeletion,  &QPushButton::clicked, this, &CPromptDialog::onCancelClicked);
+	connect(ui->btnDeleteAnyway,    &QPushButton::clicked, this, &CPromptDialog::onProceedClicked);
+	connect(ui->btnDeleteAllAnyway, &QPushButton::clicked, this, &CPromptDialog::onProceedAllClicked);
+	connect(ui->btnOverwrite,       &QPushButton::clicked, this, &CPromptDialog::onProceedClicked);
+	connect(ui->btnOverwriteAll,    &QPushButton::clicked, this, &CPromptDialog::onProceedAllClicked);
+	connect(ui->btnRename,          &QPushButton::clicked, this, &CPromptDialog::onRenameClicked);
+	connect(ui->btnSkip,            &QPushButton::clicked, this, &CPromptDialog::onSkipClicked);
+	connect(ui->btnSkipAll,         &QPushButton::clicked, this, &CPromptDialog::onSkipAllClicked);
+	connect(ui->btnSkipDeletion,    &QPushButton::clicked, this, &CPromptDialog::onSkipClicked);
+	connect(ui->btnSkipAllDeletion, &QPushButton::clicked, this, &CPromptDialog::onSkipAllClicked);
+	connect(ui->btnRetry,           &QPushButton::clicked, this, &CPromptDialog::onRetryClicked);
 
 	switch (promptReason)
 	{

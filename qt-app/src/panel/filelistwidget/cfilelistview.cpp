@@ -101,6 +101,19 @@ void CFileListView::invertSelection()
 	selectionModel()->select(allItems, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
 }
 
+void CFileListView::modelAboutToBeReset()
+{
+	_itemUnderCursorBeforeMouseClick = QModelIndex();
+	_singleMouseClickValid = false;
+	if (_bHeaderAdjustmentRequired)
+	{
+		_bHeaderAdjustmentRequired = false;
+		for (int i = 0; i < model()->columnCount(); ++i)
+			resizeColumnToContents(i);
+		sortByColumn(ExtColumn, Qt::AscendingOrder);
+	}
+}
+
 // For managing selection and cursor
 void CFileListView::mousePressEvent(QMouseEvent *e)
 {
@@ -351,17 +364,4 @@ int CFileListView::numRowsVisible() const
 void CFileListView::setHeaderAdjustmentRequired(bool required)
 {
 	_bHeaderAdjustmentRequired = required;
-}
-
-void CFileListView::modelAboutToBeReset()
-{
-	_itemUnderCursorBeforeMouseClick = QModelIndex();
-	_singleMouseClickValid = false;
-	if (_bHeaderAdjustmentRequired)
-	{
-		_bHeaderAdjustmentRequired = false;
-		for (int i = 0; i < model()->columnCount(); ++i)
-			resizeColumnToContents(i);
-		sortByColumn(ExtColumn, Qt::AscendingOrder);
-	}
 }

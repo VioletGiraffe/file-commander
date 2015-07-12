@@ -19,7 +19,7 @@ public:
 
 	bool loadTextFile(const QString& file);
 
-private slots:
+private:
 	bool asDetectedAutomatically();
 	bool asSystemDefault();
 	bool asUtf8();
@@ -29,7 +29,6 @@ private slots:
 	void find();
 	void findNext();
 
-private:
 	bool readSource(QByteArray& data) const;
 
 private:

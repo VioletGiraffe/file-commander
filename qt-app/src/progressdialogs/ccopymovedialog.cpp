@@ -36,15 +36,15 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 	else
 		assert_unconditional_r("Unknown operation");
 
-	connect (ui->_btnCancel,     SIGNAL(clicked()), SLOT(cancelPressed()));
-	connect (ui->_btnBackground, SIGNAL(clicked()), SLOT(background()));
-	connect (ui->_btnPause,      SIGNAL(clicked()), SLOT(pauseResume()));
+	connect (ui->_btnCancel,     &QPushButton::clicked, this, &CCopyMoveDialog::cancelPressed);
+	connect (ui->_btnBackground, &QPushButton::clicked, this, &CCopyMoveDialog::switchToBackground);
+	connect (ui->_btnPause,      &QPushButton::clicked, this, &CCopyMoveDialog::pauseResume);
 
 	setWindowTitle(ui->_lblOperationName->text());
 
 	_eventsProcessTimer.setInterval(100);
 	_eventsProcessTimer.start();
-	connect(&_eventsProcessTimer, SIGNAL(timeout()), SLOT(processEvents()));
+	connect(&_eventsProcessTimer, &QTimer::timeout, this, &CCopyMoveDialog::processEvents);
 
 	_performer->setWatcher(this);
 	_performer->start();
@@ -127,7 +127,7 @@ void CCopyMoveDialog::pauseResume()
 	ui->_overallProgress->setState(_performer->paused() ? psPaused : psNormal);
 }
 
-void CCopyMoveDialog::background()
+void CCopyMoveDialog::switchToBackground()
 {
 	ui->_lblOperationName->hide();
 	ui->_btnBackground->hide();

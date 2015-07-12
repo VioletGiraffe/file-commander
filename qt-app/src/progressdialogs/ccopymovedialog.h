@@ -34,11 +34,11 @@ signals:
 protected:
 	void closeEvent(QCloseEvent * e) override;
 
-private slots:
+private: // slots
 	// True if cancelled, false if the user chose to continue
 	bool cancelPressed();
 	void pauseResume();
-	void background();
+	void switchToBackground();
 
 // Utility slots
 	void processEvents();

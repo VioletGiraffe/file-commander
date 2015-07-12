@@ -29,8 +29,9 @@ class CMainWindow : public QMainWindow, private FileListReturnPressedObserver
 public:
 	explicit CMainWindow(QWidget *parent = 0);
 	~CMainWindow();
-
 	static CMainWindow* get();
+
+	void updateInterface();
 
 	void initButtons();
 	void initActions();
@@ -47,13 +48,10 @@ signals:
 	// Is used to delete
 	void fileQuickVewFinished();
 
-public slots:
-	void updateInterface();
-
 protected:
 	void closeEvent(QCloseEvent * e) override;
 
-private slots: // For UI
+private slots: // UI slots
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
 	void splitterContextMenuRequested(QPoint pos);
 

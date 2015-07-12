@@ -51,6 +51,8 @@ public:
 
 	void invertSelection();
 
+	void modelAboutToBeReset();
+
 signals:
 	void contextMenuRequested (QPoint pos);
 	void ctrlEnterPressed();
@@ -78,9 +80,6 @@ private:
 	void pgDn(bool invertSelection = false);
 
 	int numRowsVisible() const;
-
-private slots:
-	void modelAboutToBeReset();
 
 private:
 	std::vector<FileListViewEventObserver*> _eventObservers;

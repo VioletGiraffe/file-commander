@@ -61,11 +61,11 @@ CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	connect(ui->_list, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)), SLOT(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)));
-	connect(ui->_list, SIGNAL(customContextMenuRequested(const QPoint &)),this, SLOT(contextMenu(const QPoint &)));
+	connect(ui->_list, &QTreeWidget::currentItemChanged, this, &CFavoriteLocationsEditor::currentItemChanged);
+	connect(ui->_list, &QTreeWidget::customContextMenuRequested, this, &CFavoriteLocationsEditor::contextMenu);
 
-	connect(ui->_locationEditor, SIGNAL(textEdited(QString)), SLOT(locationEdited(QString)));
-	connect(ui->_nameEditor, SIGNAL(textEdited(QString)), SLOT(nameEdited(QString)));
+	connect(ui->_locationEditor, &QLineEdit::textEdited, this, &CFavoriteLocationsEditor::locationEdited);
+	connect(ui->_nameEditor, &QLineEdit::textEdited, this, &CFavoriteLocationsEditor::nameEdited);
 
 	fillUI();
 }

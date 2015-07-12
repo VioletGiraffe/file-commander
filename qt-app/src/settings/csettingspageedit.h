@@ -17,7 +17,7 @@ public:
 
 	void acceptSettings() override;
 
-private slots:
+private:
 	void browseForEditor();
 
 private:

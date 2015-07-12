@@ -28,18 +28,18 @@ CTextViewerWindow::CTextViewerWindow() :
 	connect(actionReload, &QAction::triggered, [this]() {
 		loadTextFile(_sourceFilePath);
 	});
-	connect(actionClose, SIGNAL(triggered()), SLOT(close()));
+	connect(actionClose, &QAction::triggered, this, &QDialog::close);
 
 	connect(actionFind, &QAction::triggered, [this]() {
 		_findDialog.exec();
 	});
-	connect(actionFind_next, SIGNAL(triggered()), SLOT(findNext()));
+	connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext);
 
-	connect(actionAuto_detect_encoding, SIGNAL(triggered()), SLOT(asDetectedAutomatically()));
-	connect(actionSystemLocale, SIGNAL(triggered()), SLOT(asSystemDefault()));
-	connect(actionUTF_8, SIGNAL(triggered()), SLOT(asUtf8()));
-	connect(actionUTF_16, SIGNAL(triggered()), SLOT(asUtf16()));
-	connect(actionHTML_RTF, SIGNAL(triggered()), SLOT(asRichText()));
+	connect(actionAuto_detect_encoding, &QAction::triggered, this, &CTextViewerWindow::asDetectedAutomatically);
+	connect(actionSystemLocale, &QAction::triggered, this, &CTextViewerWindow::asSystemDefault);
+	connect(actionUTF_8, &QAction::triggered, this, &CTextViewerWindow::asUtf8);
+	connect(actionUTF_16, &QAction::triggered, this, &CTextViewerWindow::asUtf16);
+	connect(actionHTML_RTF, &QAction::triggered, this, &CTextViewerWindow::asRichText);
 
 	QActionGroup * group = new QActionGroup(this);
 	group->addAction(actionSystemLocale);
@@ -47,11 +47,11 @@ CTextViewerWindow::CTextViewerWindow() :
 	group->addAction(actionUTF_16);
 	group->addAction(actionHTML_RTF);
 
-	connect(&_findDialog, SIGNAL(find()), SLOT(find()));
-	connect(&_findDialog, SIGNAL(findNext()), SLOT(findNext()));
+	connect(&_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find);
+	connect(&_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext);
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
-	connect(this, SIGNAL(destroyed()), escScut, SLOT(deleteLater()));
+	connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater);
 }
 
 bool CTextViewerWindow::loadTextFile(const QString& file)

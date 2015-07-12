@@ -51,17 +51,17 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 
 	ui->_pathNavigator->setLineEdit(new CLineEdit);
 	ui->_pathNavigator->setHistoryMode(true);
-	connect(ui->_pathNavigator, SIGNAL(activated(QString)), SLOT(pathFromHistoryActivated(QString)));
-	connect(ui->_pathNavigator, SIGNAL(itemActivated(QString)), SLOT(pathFromHistoryActivated(QString)));
+	connect(ui->_pathNavigator, static_cast<void (CHistoryComboBox::*) (const QString&)>(&CHistoryComboBox::activated), this, &CPanelWidget::pathFromHistoryActivated);
+	connect(ui->_pathNavigator, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated);
 
-	connect(ui->_list, SIGNAL(contextMenuRequested(QPoint)), SLOT(showContextMenuForItems(QPoint)));
-	connect(ui->_list, SIGNAL(keyPressed(QString,int,Qt::KeyboardModifiers)), SLOT(fileListViewKeyPressed(QString,int,Qt::KeyboardModifiers)));
+	connect(ui->_list, &CFileListView::contextMenuRequested, this, &CPanelWidget::showContextMenuForItems);
+	connect(ui->_list, &CFileListView::keyPressed, this, &CPanelWidget::fileListViewKeyPressed);
 
-	connect(ui->_driveInfoLabel, SIGNAL(doubleClicked(QPoint)), SLOT(showFavoriteLocationsMenu(QPoint)));
+	connect(ui->_driveInfoLabel, &CClickableLabel::doubleClicked, this, &CPanelWidget::showFavoriteLocationsMenu);
 	connect(ui->_btnFavs, &QPushButton::clicked, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));});
-	connect(ui->_btnToRoot, SIGNAL(clicked()), SLOT(toRoot()));
+	connect(ui->_btnToRoot, &QToolButton::clicked, this, &CPanelWidget::toRoot);
 
-	connect(&_filterDialog, SIGNAL(filterTextChanged(QString)), SLOT(filterTextChanged(QString)));
+	connect(&_filterDialog, &CFileListFilterDialog::filterTextChanged, this, &CPanelWidget::filterTextChanged);
 
 	ui->_list->addEventObserver(this);
 }
@@ -126,7 +126,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	_model = new(std::nothrow) CFileListModel(ui->_list, this);
 	_model->setPanelPosition(p);
-	connect(_model, SIGNAL(itemEdited(qulonglong,QString)), SLOT(itemNameEdited(qulonglong,QString)));
+	connect(_model, &CFileListModel::itemEdited, this, &CPanelWidget::itemNameEdited);
 
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
 	_sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
@@ -135,7 +135,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	_sortModel->setSourceModel(_model);
 
 	ui->_list->setModel(_sortModel);
-	connect(_sortModel, SIGNAL(modelAboutToBeReset()), ui->_list, SLOT(modelAboutToBeReset()));
+	connect(_sortModel, &QSortFilterProxyModel::modelAboutToBeReset, ui->_list, &CFileListView::modelAboutToBeReset);
 	connect(_sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [=](){
 		ui->_list->scrollTo(ui->_list->currentIndex());
 	});
@@ -411,8 +411,8 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	_controller.setCursorPositionForCurrentFolder(CFileSystemObject(newItemPath).hash());
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::vector<CFileSystemObject>(1, item), newItemPath, CMainWindow::get());
-	connect(CMainWindow::get(), SIGNAL(closed()), dialog, SLOT(deleteLater()));
-	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
+	connect(CMainWindow::get(), &CMainWindow::closed, dialog, &QObject::deleteLater);
+	dialog->connect(dialog, &CCopyMoveDialog::closed, this, &CPanelWidget::deleteLater);
 	dialog->show();
 }
 
@@ -495,7 +495,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 	createMenus(&menu, _controller.favoriteLocations().locations());
 	menu.addSeparator();
 	QAction * edit = menu.addAction(tr("Edit..."));
-	connect(edit, SIGNAL(triggered()), SLOT(showFavoriteLocationsEditor()));
+	connect(edit, &QAction::triggered, this, &CPanelWidget::showFavoriteLocationsEditor);
 	menu.exec(pos);
 }
 
@@ -722,8 +722,8 @@ void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& dr
 		diskButton->setProperty("id", (qulonglong)i);
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 		diskButton->setToolTip(driveInfo.displayName());
-		connect(diskButton, SIGNAL(clicked()), SLOT(driveButtonClicked()));
-		connect(diskButton, SIGNAL(customContextMenuRequested(QPoint)), SLOT(showContextMenuForDisk(QPoint)));
+		connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked);
+		connect(diskButton, &QPushButton::customContextMenuRequested, this, &CPanelWidget::showContextMenuForDisk);
 		layout->addWidget(diskButton);
 	}
 

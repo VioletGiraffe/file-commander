@@ -26,10 +26,10 @@ CImageViewerWindow::CImageViewerWindow() :
 		displayImage(_currentImagePath);
 	});
 
-	connect(ui->actionClose, SIGNAL(triggered()), SLOT(close()));
+	connect(ui->actionClose, &QAction::triggered, this, &CImageViewerWindow::close);
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
-	connect(this, SIGNAL(destroyed()), escScut, SLOT(deleteLater()));
+	connect(this, &QAction::destroyed, escScut, &QShortcut::deleteLater);
 }
 
 CImageViewerWindow::~CImageViewerWindow()

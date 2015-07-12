@@ -20,12 +20,12 @@ CFindDialog::CFindDialog(QWidget *parent, const QString& settingsRootCategory) :
 {
 	ui->setupUi(this);
 
-	connect(ui->_btnCancel, SIGNAL(clicked()), SLOT(reject()));
-	connect(ui->_btnFind, SIGNAL(clicked()), SLOT(accept()));
-	connect(ui->_btnFind, SIGNAL(clicked()), SIGNAL(find()));
-	connect(ui->_btnFindNext, SIGNAL(clicked()), SIGNAL(findNext()));
+	connect(ui->_btnCancel, &QPushButton::clicked, this, &QDialog::reject);
+	connect(ui->_btnFind, &QPushButton::clicked, this, &QDialog::accept);
+	connect(ui->_btnFind, &QPushButton::clicked, this, &CFindDialog::find);
+	connect(ui->_btnFindNext, &QPushButton::clicked, this, &CFindDialog::findNext);
 
-	connect(ui->_searchText, SIGNAL(itemActivated(QString)), ui->_btnFind, SLOT(click()));
+	connect(ui->_searchText, &CHistoryComboBox::itemActivated, ui->_btnFind, &QPushButton::click);
 
 	if (!_settingsRootCategory.isEmpty())
 	{

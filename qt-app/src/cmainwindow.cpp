@@ -57,17 +57,17 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_instance = this;
 	ui->setupUi(this);
 
-	connect(qApp, SIGNAL(focusChanged(QWidget *, QWidget *)), SLOT(focusChanged(QWidget*,QWidget*)));
+	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
 	_controller->pluginProxy().setToolMenuEntryCreatorImplementation(CPluginProxy::CreateToolMenuEntryImplementationType(std::bind(&CMainWindow::createToolMenuEntries, this, std::placeholders::_1)));
 
 	_currentFileList = ui->leftPanel;
 	_otherFileList   = ui->rightPanel;
 
-	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
-	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlEnterPressed()), SLOT(pasteCurrentFileName()));
-	connect(ui->leftPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
-	connect(ui->rightPanel->fileListView(), SIGNAL(ctrlShiftEnterPressed()), SLOT(pasteCurrentFilePath()));
+	connect(ui->leftPanel->fileListView(),  &CFileListView::ctrlEnterPressed, this, &CMainWindow::pasteCurrentFileName);
+	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlEnterPressed, this, &CMainWindow::pasteCurrentFileName);
+	connect(ui->leftPanel->fileListView(),  &CFileListView::ctrlShiftEnterPressed, this, &CMainWindow::pasteCurrentFilePath);
+	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlShiftEnterPressed, this, &CMainWindow::pasteCurrentFilePath);
 
 	connect(ui->leftPanel, &CPanelWidget::currentItemChangedSignal, this, &CMainWindow::currentItemChanged);
 	connect(ui->rightPanel, &CPanelWidget::currentItemChangedSignal, this, &CMainWindow::currentItemChanged);
@@ -88,9 +88,9 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	QSplitterHandle * handle = ui->splitter->handle(1);
 	handle->setContextMenuPolicy(Qt::CustomContextMenu);
-	connect(handle, SIGNAL(customContextMenuRequested(QPoint)), SLOT(splitterContextMenuRequested(QPoint)));
+	connect(handle, &QSplitterHandle::customContextMenuRequested, this, &CMainWindow::splitterContextMenuRequested);
 
-	connect(ui->commandLine, SIGNAL(itemActivated(QString)), SLOT(executeCommand(QString)));
+	connect(ui->commandLine, &CHistoryComboBox::itemActivated, this, &CMainWindow::executeCommand);
 
 	_commandLineCompleter.setCaseSensitivity(Qt::CaseInsensitive);
 	_commandLineCompleter.setCompletionMode(QCompleter::InlineCompletion);
@@ -107,24 +107,24 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 void CMainWindow::initButtons()
 {
-	connect(ui->btnView, SIGNAL(clicked()), SLOT(viewFile()));
+	connect(ui->btnView, &QPushButton::clicked, this, &CMainWindow::viewFile);
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F3"), this, SLOT(viewFile()), 0, Qt::WidgetWithChildrenShortcut)));
 
-	connect(ui->btnEdit, SIGNAL(clicked()), SLOT(editFile()));
+	connect(ui->btnEdit, &QPushButton::clicked, this, &CMainWindow::editFile);
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F4"), this, SLOT(editFile()), 0, Qt::WidgetWithChildrenShortcut)));
 
-	connect(ui->btnCopy, SIGNAL(clicked()), SLOT(copySelectedFiles()));
+	connect(ui->btnCopy, &QPushButton::clicked, this, &CMainWindow::copySelectedFiles);
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F5"), this, SLOT(copySelectedFiles()), 0, Qt::WidgetWithChildrenShortcut)));
 
-	connect(ui->btnMove, SIGNAL(clicked()), SLOT(moveSelectedFiles()));
+	connect(ui->btnMove, &QPushButton::clicked, this, &CMainWindow::moveSelectedFiles);
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F6"), this, SLOT(moveSelectedFiles()), 0, Qt::WidgetWithChildrenShortcut)));
 
-	connect(ui->btnNewFolder, SIGNAL(clicked()), SLOT(createFolder()));
+	connect(ui->btnNewFolder, &QPushButton::clicked, this, &CMainWindow::createFolder);
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F7"), this, SLOT(createFolder()), 0, Qt::WidgetWithChildrenShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+F7"), this, SLOT(createFile()), 0, Qt::WidgetWithChildrenShortcut)));
 
-	connect(ui->btnDelete, SIGNAL(clicked()), SLOT(deleteFiles()));
-	connect(ui->btnDelete, SIGNAL(customContextMenuRequested(QPoint)), SLOT(showRecycleBInContextMenu(QPoint)));
+	connect(ui->btnDelete, &QPushButton::clicked, this, &CMainWindow::deleteFiles);
+	connect(ui->btnDelete, &QPushButton::customContextMenuRequested, this, &CMainWindow::showRecycleBInContextMenu);
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F8"), this, SLOT(deleteFiles()), 0, Qt::WidgetWithChildrenShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Delete"), this, SLOT(deleteFiles()), 0, Qt::WidgetWithChildrenShortcut)));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+F8"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::WidgetWithChildrenShortcut)));
@@ -138,19 +138,19 @@ void CMainWindow::initButtons()
 
 void CMainWindow::initActions()
 {
-	connect(ui->actionRefresh, SIGNAL(triggered()), SLOT(refresh()));
+	connect(ui->actionRefresh, &QAction::triggered, this, &CMainWindow::refresh);
 
-	connect(ui->actionOpen_Console_Here, SIGNAL(triggered()), SLOT(openTerminal()));
-	connect(ui->actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
+	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, &CMainWindow::openTerminal);
+	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::quit);
 
 	ui->action_Show_hidden_files->setChecked(CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
-	connect(ui->action_Show_hidden_files, SIGNAL(triggered()), SLOT(showHiddenFiles()));
-	connect(ui->actionShowAllFiles, SIGNAL(triggered()), SLOT(showAllFilesFromCurrentFolderAndBelow()));
-	connect(ui->action_Settings, SIGNAL(triggered()), SLOT(openSettingsDialog()));
-	connect(ui->actionCalculate_occupied_space, SIGNAL(triggered()), SLOT(calculateOccupiedSpace()));
-	connect(ui->actionQuick_view, SIGNAL(triggered()), SLOT(toggleQuickView()));
+	connect(ui->action_Show_hidden_files, &QAction::triggered, this, &CMainWindow::showHiddenFiles);
+	connect(ui->actionShowAllFiles, &QAction::triggered, this, &CMainWindow::showAllFilesFromCurrentFolderAndBelow);
+	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
+	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateOccupiedSpace);
+	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
 
-	connect(ui->action_Invert_selection, SIGNAL(triggered()), SLOT(invertSelection()));
+	connect(ui->action_Invert_selection, &QAction::triggered, this, &CMainWindow::invertSelection);
 }
 
 // For manual focus management
@@ -173,8 +173,8 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, prompt.text(), this);
-	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
-	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
+	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
+	dialog->connect(dialog, &CCopyMoveDialog::closed, this, &CMainWindow::deleteLater);
 	dialog->show();
 
 	return true;
@@ -193,8 +193,8 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, destDir, this);
-	connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
-	dialog->connect(dialog, SIGNAL(closed()), SLOT(deleteLater()));
+	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
+	dialog->connect(dialog, &CCopyMoveDialog::closed, this, &CMainWindow::deleteLater);
 	dialog->show();
 
 	return true;
@@ -406,7 +406,7 @@ void CMainWindow::deleteFilesIrrevocably()
 	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
 		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(items, _otherFileList->currentDir(), this);
-		connect(this, SIGNAL(closed()), dialog, SLOT(deleteLater()));
+		connect(this, &CMainWindow::closed, dialog, &CDeleteProgressDialog::deleteLater);
 		dialog->show();
 	}
 #endif
@@ -589,7 +589,7 @@ void CMainWindow::openSettingsDialog()
 	settings.addSettingsPage(new CSettingsPageOperations);
 	settings.addSettingsPage(new CSettingsPageEdit);
 	settings.addSettingsPage(new CSettingsPageOther);
-	connect(&settings, SIGNAL(settingsChanged()), SLOT(settingsChanged()));
+	connect(&settings, &CSettingsDialog::settingsChanged, this, &CMainWindow::settingsChanged);
 	settings.exec();
 }
 
@@ -685,7 +685,7 @@ void CMainWindow::quickViewCurrentFile()
 	if (!viewerWindow)
 		return;
 
-	connect(this, SIGNAL(fileQuickVewFinished()), viewerWindow, SLOT(deleteLater()));
+	connect(this, &CMainWindow::fileQuickVewFinished, viewerWindow, &CPluginWindow::deleteLater);
 
 	_otherPanelWidget->setCurrentIndex(_otherPanelWidget->addWidget(viewerWindow->centralWidget()));
 	_quickViewActive = true;
