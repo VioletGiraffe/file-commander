@@ -39,9 +39,8 @@ COperationPerformer::~COperationPerformer()
 {
 	cancel();
 
-	// TODO: this doesn't look thread-safe
-	assert_r(_thread.joinable());
-	_thread.join();
+	if (_thread.joinable())
+		_thread.join();
 }
 
 void COperationPerformer::setWatcher(CFileOperationObserver *watcher)
@@ -625,7 +624,6 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			_fileTimeElapsed.resume();
 		}
 
-		// TODO: add error checking, message displaying etc.!
 		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString::null) : _newName);
 		// Error handling
 		if (result != rcOk)
