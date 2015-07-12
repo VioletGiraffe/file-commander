@@ -12,6 +12,8 @@
 #include "filesystemhelperfunctions.h"
 #include "progressdialogs/ccopymovedialog.h"
 #include "../cmainwindow.h"
+#include "settings/csettings.h"
+#include "settings.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QClipboard>
@@ -250,7 +252,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		if (targetFolderHash != 0)
 			ui->_list->moveCursorToItem(indexByHash(targetFolderHash));
 	}
-	else if (operation != refreshCauseForwardNavigation)
+	else if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
 		const qulonglong itemHashToSetCursorTo = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathNative());
 		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo);

@@ -30,6 +30,7 @@
 /////////////////////////////////////////////////
 
 // Interface
+#define KEY_INTERFACE_RESPECT_LAST_CURSOR_POS   "Interface/Selection/RespectLastCursorPosition"
 #define KEY_INTERFACE_NUMBERS_AFFTER_LETTERS    "Interface/Sorting/NumbersAfterLetters"
 #define KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS "Interface/View/ShowSpecialFolderIcons"
 

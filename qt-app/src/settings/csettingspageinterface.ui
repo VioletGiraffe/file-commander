@@ -15,6 +15,25 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
+    <widget class="QGroupBox" name="groupBoxSelection">
+     <property name="title">
+      <string>Selection and cursor</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_5">
+      <item>
+       <widget class="QCheckBox" name="_cbRespectLastCursorPos">
+        <property name="toolTip">
+         <string>When entering a floder, restore last known cursor position for this folder, if any (instead of always placing the cursor at the [..] item).</string>
+        </property>
+        <property name="text">
+         <string>Respect last known cursor position</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBoxSorting">
      <property name="title">
       <string>File sorting</string>
