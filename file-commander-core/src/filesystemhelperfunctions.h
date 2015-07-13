@@ -67,7 +67,7 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 	const unsigned int MB = 1024 * KB;
 	const unsigned int GB = 1024 * MB;
 
-	static const std::map<char, unsigned int> unitCodes {{'B', 0}, {'K', KB}, {'M', MB}};
+	const std::map<char, unsigned int> unitCodes {{'B', 0}, {'K', KB}, {'M', MB}};
 	const unsigned int maxUnitSize = unitCodes.count(maxUnit) > 0 ? unitCodes.at(maxUnit) : std::numeric_limits<unsigned int>::max();
 
 	QString str;

@@ -6,6 +6,7 @@
 #include "filelistwidget/cfilelistfilterdialog.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QItemSelection>
 #include <QShortcut>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
