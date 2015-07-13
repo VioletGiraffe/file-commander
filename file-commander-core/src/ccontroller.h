@@ -118,8 +118,8 @@ private:
 	std::vector<IDiskListObserver*> _disksChangedListeners;
 	Panel                _activePanel;
 
-	CWorkerThread   _workerThread; // The thread used to execute tasks out of the UI thread
-	CExecutionQueue _uiQueue;      // The queue for actions that must be executed on the UI thread
+	CWorkerThreadPool _workerThread; // The thread used to execute tasks out of the UI thread
+	CExecutionQueue   _uiQueue;      // The queue for actions that must be executed on the UI thread
 };
 
 #endif // CCONTROLLER_H

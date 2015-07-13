@@ -15,7 +15,7 @@ RESTORE_COMPILER_WARNINGS
 
 CPanel::CPanel(Panel position) :
 	_panelPosition(position),
-	_fileListRefreshThread("File list refresh thread")
+	_workerThreadPool(4, "File list refresh thread")
 {
 }
 
@@ -157,7 +157,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	_currentDisplayMode = AllObjectsMode;
 	_watcher.reset();
 
-	_fileListRefreshThread.enqueue([this]() {
+	_workerThreadPool.enqueue([this]() {
 		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 		const QString path = _currentDirObject.fullAbsolutePath();
 
@@ -222,7 +222,7 @@ qulonglong CPanel::currentItemForFolder(const QString &dir) const
 // Enumerates objects in the current directory
 void CPanel::refreshFileList(FileListRefreshCause operation)
 {
-	_fileListRefreshThread.enqueue([this, operation]() {
+	_workerThreadPool.enqueue([this, operation]() {
 		const time_t start = clock();
 		QFileInfoList list;
 
@@ -330,7 +330,7 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 void CPanel::displayDirSize(qulonglong dirHash)
 {
-	_fileListRefreshThread.enqueue([this, dirHash] {
+	_workerThreadPool.enqueue([this, dirHash] {
 		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
 		auto it = _items.find(dirHash);

@@ -121,7 +121,7 @@ private:
 
 	std::vector<CDiskEnumerator::DiskInfo>     _disks;
 
-	CWorkerThread                              _fileListRefreshThread;
+	CWorkerThreadPool                          _workerThreadPool;
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
 };

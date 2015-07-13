@@ -16,7 +16,7 @@ RESTORE_COMPILER_WARNINGS
 
 CController* CController::_instance = nullptr;
 
-CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _workerThread("CController worker thread")
+CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _workerThread(4, "CController worker thread")
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
