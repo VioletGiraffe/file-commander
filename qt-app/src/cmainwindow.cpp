@@ -202,7 +202,7 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 
 CMainWindow::~CMainWindow()
 {
-	_instance = this;
+	_instance = nullptr;
 	delete ui;
 }
 
