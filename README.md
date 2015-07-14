@@ -24,8 +24,9 @@ For the list of known issues, refer to the project issues on Github, sort by the
 
 ***Building***
 
-* A compiler with C++ 0x/11 support is required (std::thread, lambda functions).
+* A compiler with C++ 0x/11 support is required (std::thread, lambda functions etc.).
 * Qt 5.4 or newer required.
-* Mac and Linux: open the project file in Qt Creator and build it.
-* Windows: you can build using either Qt Creator or Visual Studio for IDE. At least Visual Studio 2013 is required - v120 toolset or newer. Run `qmake -tp vc -r` to generate the solution for Visual Studio.
-* I have not tried building with MinGW, but it should work as long as you enable C++ 11 support.
+
+* Windows: you can build using either Qt Creator or Visual Studio for IDE. Visual Studio 2013 or newer is required - v120 toolset or newer. Run `qmake -tp vc -r` to generate the solution for Visual Studio. I have not tried building with MinGW, but it should work as long as you enable C++ 11 support.
+* Linux: open the project file in Qt Creator and build it.
+* Mac OS X: You can use either Qt Creator (simply open the project in it) or Xcode (run `qmake -r -spec macx-xcode` and open the Xcode project that has been generated).
