@@ -174,7 +174,6 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, prompt.text(), this);
 	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
-	dialog->connect(dialog, &CCopyMoveDialog::closed, this, &CMainWindow::deleteLater);
 	dialog->show();
 
 	return true;
@@ -194,7 +193,6 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, destDir, this);
 	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
-	dialog->connect(dialog, &CCopyMoveDialog::closed, this, &CMainWindow::deleteLater);
 	dialog->show();
 
 	return true;

@@ -414,7 +414,6 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::vector<CFileSystemObject>(1, item), newItemPath, CMainWindow::get());
 	connect(CMainWindow::get(), &CMainWindow::closed, dialog, &QObject::deleteLater);
-	dialog->connect(dialog, &CCopyMoveDialog::closed, this, &CPanelWidget::deleteLater);
 	dialog->show();
 }
 
