@@ -94,18 +94,17 @@ QString CPluginProxy::currentItemPath() const
 
 const CFileSystemObject &CPluginProxy::currentItem() const
 {
+	static const CFileSystemObject dummy;
+
 	const PanelState& panelState = currentPanelState();
 	if (panelState.currentItemHash != 0)
 	{
 		auto fileSystemObject = panelState.panelContents.find(panelState.currentItemHash);
-		assert_r(fileSystemObject != panelState.panelContents.end());
+		assert_and_return_r(fileSystemObject != panelState.panelContents.end(), dummy);
 		return fileSystemObject->second;
 	}
 	else
-	{
-		static const CFileSystemObject dummy;
 		return dummy;
-	}
 }
 
 bool CPluginProxy::currentItemIsFile() const
