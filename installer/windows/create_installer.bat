@@ -22,8 +22,8 @@ xcopy /R /Y ..\..\bin\plugin_*.dll binaries\32\
 
 SETLOCAL
 SET PATH=%QTDIR32%\bin\
-%QTDIR32%\bin\windeployqt.exe --dir binaries\32\Qt --force --no-translations --no-compiler-runtime --no-angle binaries\32\FileCommander.exe
-FOR %%p IN (binaries\32\plugin_*.dll) DO %QTDIR32%\bin\windeployqt.exe --dir binaries\32\Qt --no-compiler-runtime --no-angle --no-translations %%p
+%QTDIR32%\bin\windeployqt.exe --dir binaries\32\Qt --force --no-translations --release --no-compiler-runtime --no-angle binaries\32\FileCommander.exe
+FOR %%p IN (binaries\32\plugin_*.dll) DO %QTDIR32%\bin\windeployqt.exe --dir binaries\32\Qt --release --no-compiler-runtime --no-angle --no-translations %%p
 ENDLOCAL
 
 xcopy /R /Y %SystemRoot%\SysWOW64\msvcr120.dll binaries\32\msvcr\
@@ -48,8 +48,8 @@ xcopy /R /Y ..\..\bin\plugin_*.dll binaries\64\
 
 SETLOCAL
 SET PATH=%QTDIR64%\bin\
-%QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --force --no-compiler-runtime --no-angle --no-translations binaries\64\FileCommander.exe
-FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --no-compiler-runtime --no-angle --no-translations %%p
+%QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --force --release --no-compiler-runtime --no-angle --no-translations binaries\64\FileCommander.exe
+FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --release --no-compiler-runtime --no-angle --no-translations %%p
 ENDLOCAL
 
 xcopy /R /Y %SystemRoot%\System32\msvcr120.dll binaries\64\msvcr\
