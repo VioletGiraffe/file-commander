@@ -111,7 +111,18 @@ void CPluginEngine::viewCurrentFile()
 CPluginWindow *CPluginEngine::createViewerWindowForCurrentFile()
 {
 	auto viewer = viewerForCurrentFile();
-	return viewer ? viewer->viewCurrentFile() : nullptr;
+	if (!viewer)
+		return nullptr;
+
+	CPluginWindow * window = viewer->viewCurrentFile();
+	if (!window)
+		return nullptr;
+
+	_activeWindows.push_back(window);
+	window->connect(window, &QObject::destroyed, [this](QObject* object) {
+		_activeWindows.erase(std::remove(_activeWindows.begin(), _activeWindows.end(), object), _activeWindows.end());
+	});
+	return window;
 }
 
 PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
@@ -134,4 +145,11 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 	}
 
 	return nullptr;
+}
+
+void CPluginEngine::destroyAllPluginWindows()
+{
+	const auto tmpWindowsList = _activeWindows;
+	for (QWidget* window: tmpWindowsList)
+		delete window;
 }

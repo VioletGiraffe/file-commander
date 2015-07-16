@@ -5,21 +5,22 @@ DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 RESTORE_COMPILER_WARNINGS
 
-CPluginWindow::CPluginWindow() :
-	QMainWindow(appMainWindow(), Qt::Dialog)
+CPluginWindow::CPluginWindow()
 {
 	setAttribute(Qt::WA_WindowPropagation);
 }
 
-QMainWindow* CPluginWindow::appMainWindow()
+bool CPluginWindow::autoDeleteOnClose() const
 {
-	QList<QWidget*> widgets = qApp->topLevelWidgets();
-	foreach (QWidget* mw, widgets) {
-		if (mw->objectName() == QLatin1Literal("CMainWindow")) {
-			return static_cast<QMainWindow*>(mw);
-		}
-	}
-
-	assert_unconditional_r("Failed to find the app's main window");
-	return nullptr;
+	return testAttribute(Qt::WA_DeleteOnClose);
 }
+
+void CPluginWindow::setAutoDeleteOnClose(bool autoDelete)
+{
+	setAttribute(Qt::WA_DeleteOnClose, autoDelete);
+}
+
+CPluginWindow::~CPluginWindow()
+{
+}
+

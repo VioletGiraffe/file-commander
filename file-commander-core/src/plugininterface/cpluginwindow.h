@@ -13,23 +13,11 @@ class PLUGIN_EXPORT CPluginWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	static QMainWindow* appMainWindow();
-
-public:
 	CPluginWindow();
+	~CPluginWindow();
 
 	bool autoDeleteOnClose() const;
 	void setAutoDeleteOnClose(bool autoDelete);
 };
-
-inline bool CPluginWindow::autoDeleteOnClose() const
-{
-	return testAttribute(Qt::WA_DeleteOnClose);
-}
-
-inline void CPluginWindow::setAutoDeleteOnClose(bool autoDelete)
-{
-	setAttribute(Qt::WA_DeleteOnClose, autoDelete);
-}
 
 #endif // CVIEWERWINDOW_H

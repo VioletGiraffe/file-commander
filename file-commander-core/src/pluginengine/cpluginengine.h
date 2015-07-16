@@ -20,6 +20,8 @@ public:
 	void loadPlugins();
 	const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary> > >& plugins() const;
 
+	void destroyAllPluginWindows();
+
 	// CPanel observers
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
 	void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
@@ -41,6 +43,7 @@ private:
 
 private:
 	std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary>>> _plugins;
+	std::vector<CPluginWindow*> _activeWindows;
 };
 
 #endif // CPLUGINENGINE_H

@@ -247,6 +247,8 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 
 		emit closed(); // Is used to close all child windows
 		emit fileQuickVewFinished(); // Cleaning up quick view widgets, if any
+
+		CPluginEngine::get().destroyAllPluginWindows();
 	}
 
 	QMainWindow::closeEvent(e);
