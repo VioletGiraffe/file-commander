@@ -6,7 +6,6 @@ AppPublisher=VioletGiraffe
 DefaultDirName={pf}\File Commander
 DefaultGroupName=File Commander
 AllowNoIcons=true
-LicenseFile=license.rtf
 OutputDir=.
 OutputBaseFilename=FileCommander
 UsePreviousAppDir=yes
@@ -42,9 +41,6 @@ Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; C
 ;MSVC binaries
 Source: binaries/32/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
 Source: binaries/64/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
-
-;License
-Source: license.rtf; DestDir: {app}; 
 
 [Icons]
 Name: {group}\File Commander; Filename: {app}\FileCommander.exe;
