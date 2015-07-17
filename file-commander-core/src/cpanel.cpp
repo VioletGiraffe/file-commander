@@ -304,7 +304,7 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 		if (item.isDir())
 		{
 			++stats.folders;
-			std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.fullAbsolutePath(), false, [this](const QString& path){
+			std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.fullAbsolutePath(), true, [this](const QString& path){
 				sendItemDiscoveryProgressNotification(0, std::numeric_limits<size_t>::max(), path);}
 			);
 
