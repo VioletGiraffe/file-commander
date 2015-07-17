@@ -377,7 +377,7 @@ void CMainWindow::deleteFiles()
 				QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
 	});
-	
+
 #else
 	deleteFilesIrrevocably();
 #endif
@@ -480,7 +480,16 @@ void CMainWindow::editFile()
 	if (!currentFile.isEmpty())
 	{
 		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
-		if (!editorPath.isEmpty() && !QProcess::startDetached(CSettings().value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile))
+		if (editorPath.isEmpty())
+			return;
+
+#ifdef __APPLE__
+		const bool started = std::system((QString("open \"") + CSettings().value(KEY_EDITOR_PATH).toString() + "\" --args \"" + currentFile + "\"").toUtf8().constData()) == 0;
+#else
+		const bool started = QProcess::startDetached(CSettings().value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile);
+#endif
+
+		if (!started)
 			QMessageBox::information(this, tr("Error"), tr("Cannot launch %1").arg(editorPath));
 	}
 }
