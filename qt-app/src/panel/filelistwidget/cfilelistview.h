@@ -72,6 +72,8 @@ protected:
 
 	void dragMoveEvent(QDragMoveEvent * event) override;
 
+	bool eventFilter(QObject* target, QEvent* event) override;
+
 private:
 	void selectRegion(const QModelIndex& start, const QModelIndex& end);
 	void moveCursorToNextItem(bool invertSelection = false);

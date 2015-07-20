@@ -40,6 +40,11 @@ CFileListView::CFileListView(QWidget *parent) :
 		}
 	});
 
+	QHeaderView * headerView = header();
+	assert_r(headerView);
+
+	headerView->installEventFilter(this);
+
 #if defined __linux__ || defined __APPLE__
 	setStyle(new CFocusFrameStyle);
 #endif
@@ -86,13 +91,13 @@ void CFileListView::saveHeaderState()
 
 void CFileListView::restoreHeaderState()
 {
-	if (header())
-	{
-		if (!_headerGeometry.isEmpty())
-			header()->restoreGeometry(_headerGeometry);
-		if (!_headerState.isEmpty())
-			header()->restoreState(_headerState);
-	}
+	QHeaderView * headerView = header();
+	assert_and_return_r(headerView, );
+
+	if (!_headerGeometry.isEmpty())
+		headerView->restoreGeometry(_headerGeometry);
+	if (!_headerState.isEmpty())
+		headerView->restoreState(_headerState);
 }
 
 void CFileListView::invertSelection()
@@ -272,6 +277,34 @@ void CFileListView::dragMoveEvent(QDragMoveEvent * event)
 	}
 	else
 		event->ignore();
+}
+
+bool CFileListView::eventFilter(QObject* target, QEvent* event)
+{
+	QHeaderView * headerView = header();
+	if (target == headerView && event && event->type() == QEvent::Resize && headerView->count() == NumberOfColumns)
+	{
+		auto resizeEvent = dynamic_cast<QResizeEvent*>(event);
+		assert_and_return_r(resizeEvent, false);
+		float oldHeaderWidth = 0.0f;
+		for (int i = 0; i < headerView->count(); ++i)
+			oldHeaderWidth += (float)headerView->sectionSize(i);
+
+		const float newHeaderWidth = (float)resizeEvent->size().width();
+		if (oldHeaderWidth <= 0.0f || newHeaderWidth <= 0.0f || oldHeaderWidth == newHeaderWidth)
+			return false;
+
+		std::vector<float> relativeColumnSizes(NumberOfColumns, 0.0f);
+		for (int i = 0; i < headerView->count(); ++i)
+			relativeColumnSizes[i] = headerView->sectionSize(i) / oldHeaderWidth;
+
+		for (int i = 0; i < headerView->count(); ++i)
+			headerView->resizeSection(i, (int)(newHeaderWidth * relativeColumnSizes[i] + 0.5f));
+
+		return false;
+	}
+
+	return QTreeView::eventFilter(target, event);
 }
 
 void CFileListView::selectRegion(const QModelIndex &start, const QModelIndex &end)
