@@ -142,6 +142,7 @@ void CController::navigateUp(Panel p)
 {
 	panel(p).navigateUp();
 	disksChanged(); // To select a proper drive button
+	saveDirectoryForCurrentDisk(p);
 }
 
 // Go to the previous location from history, if any
