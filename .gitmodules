@@ -6,6 +6,3 @@
 	path = text-encoding-detector
 	url = https://github.com/VioletGiraffe/text-encoding-detector.git
 
-[submodule "cpputils"]
-	path = cpputils
-	url = https://github.com/VioletGiraffe/cpputils.git
