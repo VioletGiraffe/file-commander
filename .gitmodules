@@ -2,7 +2,3 @@
 	path = qtutils
 	url = https://github.com/VioletGiraffe/qtutils.git
 
-[submodule "text-encoding-detector"]
-	path = text-encoding-detector
-	url = https://github.com/VioletGiraffe/text-encoding-detector.git
-
