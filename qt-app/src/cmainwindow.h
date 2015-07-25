@@ -74,6 +74,8 @@ private slots: // UI slots
 	void toggleQuickView();
 	void currentItemChanged(Panel p, qulonglong itemHash);
 
+	void toggleFullScreenMode(bool fullscreen);
+
 // Command line
 	// true if command was executed
 	bool executeCommand(QString commandLineText);

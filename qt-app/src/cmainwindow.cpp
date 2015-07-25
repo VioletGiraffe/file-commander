@@ -20,7 +20,9 @@
 #include "utils/utils.h"
 
 DISABLE_COMPILER_WARNINGS
+//#include <QApplication>
 #include <QCloseEvent>
+#include <QDesktopWidget>
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QLineEdit>
@@ -151,6 +153,8 @@ void CMainWindow::initActions()
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
 
 	connect(ui->action_Invert_selection, &QAction::triggered, this, &CMainWindow::invertSelection);
+
+	connect(ui->actionFull_screen_mode, &QAction::toggled, this, &CMainWindow::toggleFullScreenMode);
 }
 
 // For manual focus management
@@ -224,6 +228,9 @@ void CMainWindow::updateInterface()
 	ui->commandLine->lineEdit()->clear();
 
 	show();
+
+	if ((windowState() & Qt::WindowFullScreen) != 0)
+		ui->actionFull_screen_mode->setChecked(true);
 
 	Panel lastActivePanel = (Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
 	if (lastActivePanel == LeftPanel)
@@ -526,6 +533,15 @@ void CMainWindow::currentItemChanged(Panel /*p*/, qulonglong /*itemHash*/)
 {
 	if (_quickViewActive)
 		quickViewCurrentFile();
+}
+
+void CMainWindow::toggleFullScreenMode(bool fullscreen)
+{
+	static auto flags = windowFlags();
+	if (fullscreen)
+		setWindowState(Qt::WindowFullScreen);
+	else
+		setWindowState(windowState() & ~Qt::WindowFullScreen);
 }
 
 bool CMainWindow::executeCommand(QString commandLineText)

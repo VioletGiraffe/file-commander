@@ -240,6 +240,8 @@
     <property name="title">
      <string>&amp;View</string>
     </property>
+    <addaction name="actionFull_screen_mode"/>
+    <addaction name="separator"/>
     <addaction name="action_Show_hidden_files"/>
     <addaction name="actionShowAllFiles"/>
     <addaction name="separator"/>
@@ -327,6 +329,17 @@
    </property>
    <property name="shortcut">
     <string>*</string>
+   </property>
+  </action>
+  <action name="actionFull_screen_mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Full screen mode</string>
+   </property>
+   <property name="shortcut">
+    <string>F11</string>
    </property>
   </action>
  </widget>
