@@ -253,6 +253,7 @@ void COperationPerformer::copyFiles()
 			case naSkip:
 				++it;
 				++currentItemIndex;
+				sizeProcessed += it->size();
 				continue;
 			case naRetryItem:
 				continue;
