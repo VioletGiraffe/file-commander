@@ -165,7 +165,6 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
 
-	//ui->_list->setUpdatesEnabled(false);
 	ui->_list->saveHeaderState();
 	_sortModel->setSourceModel(nullptr);
 	_model->clear();
@@ -263,6 +262,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	}
 
 	connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
+	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
 	selectionChanged(QItemSelection(), QItemSelection());
 
 	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - globalStart) * 1000 / CLOCKS_PER_SEC << "ms";
