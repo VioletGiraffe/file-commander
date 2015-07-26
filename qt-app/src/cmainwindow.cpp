@@ -539,9 +539,9 @@ void CMainWindow::toggleFullScreenMode(bool fullscreen)
 {
 	static auto flags = windowFlags();
 	if (fullscreen)
-		setWindowState(Qt::WindowFullScreen);
+		showFullScreen();
 	else
-		setWindowState(windowState() & ~Qt::WindowFullScreen);
+		showNormal();
 }
 
 bool CMainWindow::executeCommand(QString commandLineText)
