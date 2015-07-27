@@ -263,9 +263,6 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
-	if (!ui->commandLine->currentText().isEmpty())
-		return;
-
 	const FileOperationResultCode result = _controller->itemHashExists(panel->panelPosition(), hash) ? _controller->itemActivated(hash, panel->panelPosition()) : rcObjectDoesntExist;
 	switch (result)
 	{
