@@ -268,7 +268,7 @@ const CPanel &CController::panel(Panel p) const
 	case RightPanel:
 		return _rightPanel;
 	default:
-		assert_unconditional_r("Uknown panel");
+		assert_unconditional_r("Unknown panel");
 		return _rightPanel;
 	}
 }
@@ -282,7 +282,7 @@ CPanel& CController::panel(Panel p)
 	case RightPanel:
 		return _rightPanel;
 	default:
-		assert_unconditional_r("Uknown panel");
+		assert_unconditional_r("Unknown panel");
 		return _rightPanel;
 	}
 }
