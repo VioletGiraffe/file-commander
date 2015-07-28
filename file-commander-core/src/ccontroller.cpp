@@ -252,11 +252,8 @@ void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 // This method takes the current folder in the currently active panel
 void CController::setCursorPositionForCurrentFolder(qulonglong newCurrentItemHash)
 {
-	if (_activePanel != UnknownPanel)
-	{
-		activePanel().setCurrentItemForFolder(activePanel().currentDirPathNative(), newCurrentItemHash);
-		CPluginEngine::get().currentItemChanged(activePanelPosition(), newCurrentItemHash);
-	}
+	activePanel().setCurrentItemForFolder(activePanel().currentDirPathNative(), newCurrentItemHash);
+	CPluginEngine::get().currentItemChanged(activePanelPosition(), newCurrentItemHash);
 }
 
 const CPanel &CController::panel(Panel p) const
