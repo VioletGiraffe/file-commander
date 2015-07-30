@@ -488,7 +488,7 @@ void CMainWindow::editFile()
 			return;
 
 #ifdef __APPLE__
-		const bool started = std::system((QString("open \"") + CSettings().value(KEY_EDITOR_PATH).toString() + "\" --args \"" + currentFile + "\"").toUtf8().constData()) == 0;
+		const bool started = std::system((QString("open -n \"") + CSettings().value(KEY_EDITOR_PATH).toString() + "\" --args \"" + currentFile + "\"").toUtf8().constData()) == 0;
 #else
 		const bool started = QProcess::startDetached(CSettings().value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile);
 #endif
