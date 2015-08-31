@@ -360,7 +360,7 @@
   <customwidget>
    <class>CHistoryComboBox</class>
    <extends>QComboBox</extends>
-   <header>widgets/chistorycombobox.cpp</header>
+   <header>widgets/chistorycombobox.h</header>
   </customwidget>
   <customwidget>
    <class>CPanelWidget</class>
