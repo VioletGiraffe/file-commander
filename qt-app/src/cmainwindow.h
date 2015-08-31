@@ -86,6 +86,7 @@ private slots: // UI slots
 
 // Main menu
 	void refresh();
+	void findFiles();
 	void showHiddenFiles();
 	void showAllFilesFromCurrentFolderAndBelow();
 	void openSettingsDialog();

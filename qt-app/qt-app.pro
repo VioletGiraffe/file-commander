@@ -40,7 +40,8 @@ SOURCES += \
 	src/settings/csettingspageoperations.cpp \
 	src/favoritelocationseditor/cfavoritelocationseditor.cpp \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
-	src/panel/filelistwidget/cfilelistfilterdialog.cpp
+	src/panel/filelistwidget/cfilelistfilterdialog.cpp \
+    src/filessearchdialog/cfilessearchwindow.cpp
 
 HEADERS += \
 	src/cmainwindow.h \
@@ -60,7 +61,8 @@ HEADERS += \
 	src/settings/csettingspageoperations.h \
 	src/favoritelocationseditor/cfavoritelocationseditor.h \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.h \
-	src/panel/filelistwidget/cfilelistfilterdialog.h
+	src/panel/filelistwidget/cfilelistfilterdialog.h \
+    src/filessearchdialog/cfilessearchwindow.h
 
 FORMS += \
 	src/cmainwindow.ui \
@@ -74,7 +76,8 @@ FORMS += \
 	src/settings/csettingspageoperations.ui \
 	src/favoritelocationseditor/cfavoritelocationseditor.ui \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
-	src/panel/filelistwidget/cfilelistfilterdialog.ui
+	src/panel/filelistwidget/cfilelistfilterdialog.ui \
+    src/filessearchdialog/cfilessearchwindow.ui
 
 !win*{
 	SOURCES += \

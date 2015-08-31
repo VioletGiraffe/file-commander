@@ -18,6 +18,7 @@
 #include "panel/cpanelwidget.h"
 #include "filesystemhelperfunctions.h"
 #include "utils/utils.h"
+#include "filessearchdialog/cfilessearchwindow.h"
 
 DISABLE_COMPILER_WARNINGS
 //#include <QApplication>
@@ -141,6 +142,7 @@ void CMainWindow::initButtons()
 void CMainWindow::initActions()
 {
 	connect(ui->actionRefresh, &QAction::triggered, this, &CMainWindow::refresh);
+	connect(ui->actionFind, &QAction::triggered, this, &CMainWindow::findFiles);
 
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, &CMainWindow::openTerminal);
 	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::quit);
@@ -589,6 +591,12 @@ void CMainWindow::refresh()
 {
 	if (_currentFileList)
 		_controller->refreshPanelContents(_currentFileList->panelPosition());
+}
+
+void CMainWindow::findFiles()
+{
+	auto ui = new CFilesSearchWindow(this);
+	ui->show();
 }
 
 void CMainWindow::showHiddenFiles()

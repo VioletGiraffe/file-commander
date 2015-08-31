@@ -221,6 +221,8 @@
     </property>
     <addaction name="actionRefresh"/>
     <addaction name="separator"/>
+    <addaction name="actionFind"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuCommands">
@@ -342,18 +344,29 @@
     <string>F11</string>
    </property>
   </action>
+  <action name="actionFind">
+   <property name="text">
+    <string>&amp;Find...</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+F7</string>
+   </property>
+   <property name="shortcutContext">
+    <enum>Qt::ApplicationShortcut</enum>
+   </property>
+  </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>CHistoryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>widgets/chistorycombobox.cpp</header>
+  </customwidget>
   <customwidget>
    <class>CPanelWidget</class>
    <extends>QWidget</extends>
    <header>panel/cpanelwidget.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>CHistoryComboBox</class>
-   <extends>QComboBox</extends>
-   <header>widgets/chistorycombobox.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

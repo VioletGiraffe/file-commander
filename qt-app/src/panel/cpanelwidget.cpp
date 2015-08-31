@@ -14,6 +14,7 @@
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "settings.h"
+#include "filessearchdialog/cfilessearchwindow.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QClipboard>
@@ -44,7 +45,8 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), 0, Qt::WidgetWithChildrenShortcut),
 	_copyShortcut(QKeySequence("Ctrl+C"), this, SLOT(copySelectionToClipboard()), 0, Qt::WidgetWithChildrenShortcut),
 	_cutShortcut(QKeySequence("Ctrl+X"), this, SLOT(cutSelectionToClipboard()), 0, Qt::WidgetWithChildrenShortcut),
-	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), 0, Qt::WidgetWithChildrenShortcut)
+	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), 0, Qt::WidgetWithChildrenShortcut),
+	_searchShortcut(QKeySequence("Alt+F7"), this, SLOT(openSearchWindow()), 0, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
 
@@ -616,6 +618,11 @@ void CPanelWidget::pathFromHistoryActivated(QString path)
 {
 	if (_controller.setPath(_panelPosition, path, refreshCauseOther) == rcDirNotAccessible)
 		QMessageBox::information(this, tr("Failed to set the path"), tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(path));
+}
+
+void CPanelWidget::openSearchWindow()
+{
+
 }
 
 void CPanelWidget::fillHistory()
