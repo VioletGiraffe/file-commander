@@ -349,7 +349,7 @@
     <string>&amp;Find...</string>
    </property>
    <property name="shortcut">
-    <string>Alt+F7</string>
+    <string>Ctrl+Shift+F</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
