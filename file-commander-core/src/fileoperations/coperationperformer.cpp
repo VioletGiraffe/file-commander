@@ -669,10 +669,10 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 COperationPerformer::NextAction COperationPerformer::mkPath(const QDir& dir)
 {
-	if (dir.mkpath("."))
+	if (dir.mkpath(".") || dir.exists())
 		return naProceed;
 
-	const auto response = getUserResponse(hrFileExists, CFileSystemObject(dir), CFileSystemObject(), QString::null);
+	const auto response = getUserResponse(hrCreatingFolderFailed, CFileSystemObject(dir), CFileSystemObject(), QString::null);
 	if (response == urSkipThis || response == urSkipAll)
 		return naSkip;
 	else if (response == urAbort)
