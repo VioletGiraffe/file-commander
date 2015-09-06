@@ -124,4 +124,20 @@ private:
 	uint64_t                    _pos = 0;
 };
 
+struct DirectoryHierarchy {
+	CFileSystemObject rootItem;
+	std::vector<DirectoryHierarchy> subitems;
+};
+
+// Enumerating the subitems of a folder
+DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root);
+
+struct FlattenedHierarchy {
+	std::vector<CFileSystemObject> directories;
+	std::vector<CFileSystemObject> files;
+};
+
+FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy);
+FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy);
+
 #endif // CFILESYSTEMOBJECT_H

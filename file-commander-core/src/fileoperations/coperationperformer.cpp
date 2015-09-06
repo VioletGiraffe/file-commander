@@ -262,8 +262,7 @@ void COperationPerformer::copyFiles()
 				finalize();
 				return;
 			default:
-				qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
-				assert_unconditional_r("Unexpected deleteItem() return value");
+				assert_unconditional_r(QString("Unexpected deleteItem() return value %1").arg(nextAction).toUtf8().constData());
 				continue; // Retry
 			}
 
@@ -365,25 +364,26 @@ void COperationPerformer::copyFiles()
 void COperationPerformer::deleteFiles()
 {
 	_inProgress = true;
-	uint64_t totalSize = 0;
-	auto destination = flattenSourcesAndCalcDest(totalSize);
-	assert_r(destination.size() == _source.size());
+
+	_totalTimeElapsed.start();
 
 	size_t currentItemIndex = 0;
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
+	std::vector<DirectoryHierarchy> hierarchy;
+	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, _userResponse = urNone /* needed for normal condition variable operation */)
 	{
-		if (it->isCdUp())
-		{
-			++it;
-			++currentItemIndex;
-			continue;
-		}
+		if (!it->isCdUp())
+			hierarchy.emplace_back(enumerateDirectoryRecursively(*it));
+	}
 
-		qDebug() << __FUNCTION__ << "deleting" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
+	auto fileSystemObjectsList = flattenHierarchy(hierarchy);
+
+	const size_t totalNumberOfObjects = fileSystemObjectsList.directories.size() + fileSystemObjectsList.files.size();
+	for (auto it = fileSystemObjectsList.files.begin(); it != fileSystemObjectsList.files.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
+	{
+		qDebug() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
-		QFileInfo sourceFile(it->qFileInfo());
-		if (!sourceFile.exists())
+		if (!it->exists())
 		{
 			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
 			if (response == urSkipThis || response == urSkipAll)
@@ -409,9 +409,11 @@ void COperationPerformer::deleteFiles()
 		switch (nextAction)
 		{
 		case naProceed:
+			++it;
+			++currentItemIndex;
 			break;
 		case naSkip:
-			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / _source.size(), currentItemIndex, _source.size(), 0, 0);
+			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, 0);
 			++it;
 			++currentItemIndex;
 			break;
@@ -425,9 +427,59 @@ void COperationPerformer::deleteFiles()
 			assert_unconditional_r("Unexpected deleteItem() return value");
 			continue;
 		}
+	}
 
-		++it;
-		++currentItemIndex;
+	// TODO: eliminate code duplication
+	// We know that files and directories are being enumerated depth-first, so we need to delete them in reverse order to avoid trying to delete non-empty directories
+	for (auto it = fileSystemObjectsList.directories.rbegin(); it != fileSystemObjectsList.directories.rend() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
+	{
+		qDebug() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
+		_observer->onCurrentFileChangedCallback(it->fullName());
+
+		if (!it->exists())
+		{
+			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
+			if (response == urSkipThis || response == urSkipAll)
+			{
+				++it;
+				++currentItemIndex;
+				continue;
+			}
+			else if (response == urRetry)
+				continue;
+			else if (response == urAbort)
+			{
+				finalize();
+				return;
+			}
+			else
+				assert_unconditional_r("Unknown response");
+		}
+
+		NextAction nextAction;
+		while ((nextAction = deleteItem(*it)) == naRetryOperation);
+
+		switch (nextAction)
+		{
+		case naProceed:
+			++it;
+			++currentItemIndex;
+			break;
+		case naSkip:
+			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, 0);
+			++it;
+			++currentItemIndex;
+			break;
+		case naRetryItem:
+			continue;
+		case naAbort:
+			finalize();
+			return;
+		default:
+			qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
+			assert_unconditional_r("Unexpected deleteItem() return value");
+			continue;
+		}
 	}
 
 	finalize();

@@ -285,7 +285,6 @@ QString CFileSystemObject::modificationDateString() const
 	return modificationDate.toString("dd.MM.yyyy hh:mm");
 }
 
-
 // Operations
 FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFolder, const QString& newName)
 {
@@ -531,3 +530,47 @@ QString CFileSystemObject::lastErrorMessage() const
 	return _lastError;
 }
 
+
+
+DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root)
+{
+	DirectoryHierarchy hierarchy;
+	hierarchy.rootItem = root;
+
+	if (!root.isDir())
+		return hierarchy;
+
+	const auto list = root.qDir().entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+	for (const auto& item: list)
+		hierarchy.subitems.emplace_back(enumerateDirectoryRecursively(CFileSystemObject(item)));
+
+	return hierarchy;
+}
+
+void flattenHierarchy(const DirectoryHierarchy& hierarchy, FlattenedHierarchy& result)
+{
+	if (hierarchy.rootItem.isDir())
+	{
+		result.directories.push_back(hierarchy.rootItem);
+		for (const DirectoryHierarchy& subitem: hierarchy.subitems)
+			flattenHierarchy(subitem, result);
+	}
+	else
+		result.files.push_back(hierarchy.rootItem);
+}
+
+FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy)
+{
+	FlattenedHierarchy result;
+	flattenHierarchy(hierarchy, result);
+	return result;
+}
+
+
+FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy)
+{
+	FlattenedHierarchy result;
+	for (const auto h: hierarchy)
+		flattenHierarchy(h, result);
+	return result;
+}
