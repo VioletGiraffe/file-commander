@@ -162,13 +162,13 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 		const QString path = _currentDirObject.fullAbsolutePath();
 
 		locker.unlock();
-		auto items = recurseDirectoryItems(path, false);
+		const auto items = flattenHierarchy(enumerateDirectoryRecursively(CFileSystemObject(path)));
 		locker.lock();
 
 		_items.clear();
 
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
-		for (const auto& item : items)
+		for (const auto& item : items.files)
 		{
 			if (item.exists() && (showHiddenFiles || !item.isHidden()))
 				_items[item.hash()] = item;
@@ -304,18 +304,15 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 		if (item.isDir())
 		{
 			++stats.folders;
-			std::vector <CFileSystemObject> objects = recurseDirectoryItems(item.fullAbsolutePath(), true, [this](const QString& path){
+			const auto objects = flattenHierarchy(enumerateDirectoryRecursively(item, [this](QString path) {
 				sendItemDiscoveryProgressNotification(0, std::numeric_limits<size_t>::max(), path);}
-			);
+			));
 
-			for (auto& subItem: objects)
-			{
-				if (subItem.isFile())
-					++stats.files;
-				else if (subItem.isDir())
-					++stats.folders;
-				stats.occupiedSpace += subItem.size();
-			}
+			for (auto& file: objects.files)
+				stats.occupiedSpace += file.size();
+
+			stats.files += objects.files.size();
+			stats.folders += objects.directories.size();
 		}
 		else if (item.isFile())
 		{

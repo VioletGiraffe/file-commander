@@ -11,6 +11,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
+#include <functional>
 #include <stdint.h>
 #include <vector>
 #include <memory>
@@ -130,14 +131,14 @@ struct DirectoryHierarchy {
 };
 
 // Enumerating the subitems of a folder
-DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root);
+DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root, const std::function<void (QString)>& observer = std::function<void (QString)>());
 
 struct FlattenedHierarchy {
 	std::vector<CFileSystemObject> directories;
 	std::vector<CFileSystemObject> files;
 };
 
-FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy);
-FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy);
+FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy, const std::function<void (QString)>& observer = std::function<void (QString)>());
+FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy, const std::function<void (QString)>& observer = std::function<void (QString)>());
 
 #endif // CFILESYSTEMOBJECT_H

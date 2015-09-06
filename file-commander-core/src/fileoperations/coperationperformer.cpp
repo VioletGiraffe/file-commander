@@ -511,8 +511,8 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 		}
 		else if (o.isDir())
 		{
-			auto children = recurseDirectoryItems(o.fullAbsolutePath(), true);
-			for (auto& file : children)
+			const auto children = flattenHierarchy(enumerateDirectoryRecursively(o));
+			for (const auto& file : children.files)
 			{
 				totalSize += file.size();
 				destinations.emplace_back(destinationFolder(file.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), file.isDir()));
