@@ -58,10 +58,19 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 {
 	setWindowTitle(file);
 	_sourceFilePath = file;
-	if (_sourceFilePath.endsWith(".htm", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".html", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".rtf", Qt::CaseInsensitive))
-		return asRichText();
-	else
-		return asDetectedAutomatically();
+
+	try
+	{
+		if (_sourceFilePath.endsWith(".htm", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".html", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".rtf", Qt::CaseInsensitive))
+			return asRichText();
+		else
+			return asDetectedAutomatically();
+	}
+	catch (const std::bad_alloc&)
+	{
+		QMessageBox::warning(this, "File is too large", "The text is too large to display");
+		return false;
+	}
 }
 
 bool CTextViewerWindow::asDetectedAutomatically()
