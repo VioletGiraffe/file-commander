@@ -499,7 +499,9 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 	menu.addSeparator();
 	QAction * edit = menu.addAction(tr("Edit..."));
 	connect(edit, &QAction::triggered, this, &CPanelWidget::showFavoriteLocationsEditor);
-	menu.exec(pos);
+	const QAction* action = menu.exec(pos);
+	if (action) // Something was selected
+		setFocusToFileList(); // #84
 }
 
 void CPanelWidget::showFavoriteLocationsEditor()
