@@ -15,8 +15,11 @@ class CFilesSearchWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	explicit CFilesSearchWindow(QWidget *parent = 0);
+	explicit CFilesSearchWindow(QWidget *parent, const QString& root);
 	~CFilesSearchWindow();
+
+private:
+	void search();
 
 private:
 	Ui::CFilesSearchWindow *ui;

@@ -595,7 +595,10 @@ void CMainWindow::refresh()
 
 void CMainWindow::findFiles()
 {
-	auto ui = new CFilesSearchWindow(this);
+	if (!_currentFileList)
+		return;
+
+	auto ui = new CFilesSearchWindow(this, _currentFileList->currentDir());
 	ui->show();
 }
 

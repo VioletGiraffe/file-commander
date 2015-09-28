@@ -14,7 +14,6 @@
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "settings.h"
-#include "filessearchdialog/cfilessearchwindow.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QClipboard>
