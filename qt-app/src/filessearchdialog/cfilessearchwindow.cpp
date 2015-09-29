@@ -1,4 +1,5 @@
 #include "cfilessearchwindow.h"
+#include "cfilesystemobject.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
@@ -23,6 +24,8 @@ CFilesSearchWindow::CFilesSearchWindow(QWidget *parent, const QString& root) :
 	ui->nameToFind->enableAutoSave(SETTINGS_NAME_TO_FIND);
 	ui->fileContentsToFind->enableAutoSave(SETTINGS_CONTENTS_TO_FIND);
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
+
+	ui->progressLabel->clear();
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()
@@ -32,8 +35,18 @@ CFilesSearchWindow::~CFilesSearchWindow()
 
 void CFilesSearchWindow::search()
 {
+	if (_searchInProgress)
+	{
+		_terminateSearch = true;
+		return;
+	}
+
 	const QString what = ui->nameToFind->currentText();
+	const QString where = ui->searchRoot->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
+	if (what.isEmpty() || where.isEmpty())
+		return;
 
+	const auto hierarchy = flattenHierarchy(enumerateDirectoryRecursively(CFileSystemObject(where)));
 }

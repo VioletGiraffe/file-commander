@@ -6,6 +6,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
 
+#include <atomic>
+#include <thread>
+
 namespace Ui {
 class CFilesSearchWindow;
 }
@@ -23,5 +26,9 @@ private:
 
 private:
 	Ui::CFilesSearchWindow *ui;
+
+	std::atomic<bool> _searchInProgress {false};
+	std::atomic<bool> _terminateSearch {false};
+	std::thread _searchThread;
 };
 

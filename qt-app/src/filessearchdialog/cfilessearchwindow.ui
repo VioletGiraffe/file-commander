@@ -79,6 +79,13 @@
      </layout>
     </item>
     <item>
+     <widget class="QLabel" name="progressLabel">
+      <property name="text">
+       <string>Searching...</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QTableWidget" name="resultsList"/>
     </item>
    </layout>
