@@ -31,6 +31,7 @@ HEADERS += \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \
 	src/fasthash.h \
+    src/filesearchengine/cfilesearchengine.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -41,7 +42,8 @@ SOURCES += \
 	src/fileoperations/coperationperformer.cpp \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
-	src/fasthash.c
+	src/fasthash.c \
+    src/filesearchengine/cfilesearchengine.cpp
 
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 

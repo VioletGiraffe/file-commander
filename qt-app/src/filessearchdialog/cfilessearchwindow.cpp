@@ -1,5 +1,6 @@
 #include "cfilessearchwindow.h"
 #include "cfilesystemobject.h"
+#include "ccontroller.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
@@ -14,7 +15,7 @@ RESTORE_COMPILER_WARNINGS
 CFilesSearchWindow::CFilesSearchWindow(QWidget *parent, const QString& root) :
 	QMainWindow(parent),
 	ui(new Ui::CFilesSearchWindow),
-	_workerThread("File search thread")
+	_engine(CController::get().fileSearchEngine())
 {
 	ui->setupUi(this);
 
@@ -30,25 +31,37 @@ CFilesSearchWindow::CFilesSearchWindow(QWidget *parent, const QString& root) :
 
 	ui->progressLabel->clear();
 
-	connect(&_uiUpdateTimer, &QTimer::timeout, this, &CFilesSearchWindow::updateUi);
-	_uiUpdateTimer.setInterval(100);
-	_uiUpdateTimer.start();
+	_engine.addListener(this);
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()
 {
-	_workerThread.interrupt();
-
-	_uiUpdateTimer.stop();
-	disconnect(&_uiUpdateTimer);
+	_engine.removeListener(this);
+	_engine.stopSearching();
 	delete ui;
+}
+
+void CFilesSearchWindow::itemScanned(const QString& currentItem) const
+{
+	ui->progressLabel->setText(tr("Scanning...") % " " % currentItem);
+}
+
+void CFilesSearchWindow::matchFound(const QString& path) const
+{
+	
+}
+
+void CFilesSearchWindow::searchFinished() const
+{
+	ui->btnSearch->setText(tr("Start"));
+	ui->progressLabel->clear();
 }
 
 void CFilesSearchWindow::search()
 {
-	if (_workerThread.running())
+	if (_engine.searchInProgress())
 	{
-		_workerThread.interrupt();
+		_engine.stopSearching();
 		return;
 	}
 
@@ -56,30 +69,6 @@ void CFilesSearchWindow::search()
 	const QString where = ui->searchRoot->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
-	if (what.isEmpty() || where.isEmpty())
-		return;
-
-	_workerThread.exec([this, where, what, withText](){
-		_uiQueue.enqueue([this](){
-			ui->btnSearch->setText(tr("Stop"));
-		});
-
-		const auto hierarchy = flattenHierarchy(enumerateDirectoryRecursively(CFileSystemObject(where), 
-			[this](QString str){
-			_uiQueue.enqueue([this, str](){
-				ui->progressLabel->setText(tr("Scanning...") % " " % str);
-				qDebug() << (tr("Scanning...") % " " % str);
-			}, 1);
-		}, _workerThread.terminationFlag()));
-
-		_uiQueue.enqueue([this](){
-			ui->progressLabel->clear();
-			ui->btnSearch->setText(tr("Search"));
-		});
-	});
-}
-
-void CFilesSearchWindow::updateUi()
-{
-	_uiQueue.exec();
+	_engine.search(what, where, withText);
+	ui->btnSearch->setText(tr("Stop"));
 }
