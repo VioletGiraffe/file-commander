@@ -1,9 +1,12 @@
 #pragma once
 
 #include "compiler/compiler_warnings_control.h"
+#include "threading/cinterruptablethread.h"
+#include "threading/cexecutionqueue.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
@@ -24,11 +27,13 @@ public:
 private:
 	void search();
 
+	void updateUi();
+
 private:
 	Ui::CFilesSearchWindow *ui;
+	QTimer _uiUpdateTimer;
 
-	std::atomic<bool> _searchInProgress {false};
-	std::atomic<bool> _terminateSearch {false};
-	std::thread _searchThread;
+	CInterruptableThread _workerThread;
+	CExecutionQueue _uiQueue;
 };
 

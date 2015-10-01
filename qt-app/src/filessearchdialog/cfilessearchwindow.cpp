@@ -3,6 +3,8 @@
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
+
+#include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
 #define SETTINGS_NAME_TO_FIND     "FileSearchDialog/Ui/NameToFind"
@@ -11,7 +13,8 @@ RESTORE_COMPILER_WARNINGS
 
 CFilesSearchWindow::CFilesSearchWindow(QWidget *parent, const QString& root) :
 	QMainWindow(parent),
-	ui(new Ui::CFilesSearchWindow)
+	ui(new Ui::CFilesSearchWindow),
+	_workerThread("File search thread")
 {
 	ui->setupUi(this);
 
@@ -26,18 +29,26 @@ CFilesSearchWindow::CFilesSearchWindow(QWidget *parent, const QString& root) :
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
 
 	ui->progressLabel->clear();
+
+	connect(&_uiUpdateTimer, &QTimer::timeout, this, &CFilesSearchWindow::updateUi);
+	_uiUpdateTimer.setInterval(100);
+	_uiUpdateTimer.start();
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()
 {
+	_workerThread.interrupt();
+
+	_uiUpdateTimer.stop();
+	disconnect(&_uiUpdateTimer);
 	delete ui;
 }
 
 void CFilesSearchWindow::search()
 {
-	if (_searchInProgress)
+	if (_workerThread.running())
 	{
-		_terminateSearch = true;
+		_workerThread.interrupt();
 		return;
 	}
 
@@ -48,5 +59,27 @@ void CFilesSearchWindow::search()
 	if (what.isEmpty() || where.isEmpty())
 		return;
 
-	const auto hierarchy = flattenHierarchy(enumerateDirectoryRecursively(CFileSystemObject(where)));
+	_workerThread.exec([this, where, what, withText](){
+		_uiQueue.enqueue([this](){
+			ui->btnSearch->setText(tr("Stop"));
+		});
+
+		const auto hierarchy = flattenHierarchy(enumerateDirectoryRecursively(CFileSystemObject(where), 
+			[this](QString str){
+			_uiQueue.enqueue([this, str](){
+				ui->progressLabel->setText(tr("Scanning...") % " " % str);
+				qDebug() << (tr("Scanning...") % " " % str);
+			}, 1);
+		}, _workerThread.terminationFlag()));
+
+		_uiQueue.enqueue([this](){
+			ui->progressLabel->clear();
+			ui->btnSearch->setText(tr("Search"));
+		});
+	});
+}
+
+void CFilesSearchWindow::updateUi()
+{
+	_uiQueue.exec();
 }

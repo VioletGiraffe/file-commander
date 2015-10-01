@@ -330,6 +330,7 @@ Panel CController::otherPanelPosition(Panel p)
 
 Panel CController::activePanelPosition() const
 {
+	assert_r(_activePanel == RightPanel || _activePanel == LeftPanel);
 	return _activePanel;
 }
 
