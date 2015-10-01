@@ -86,7 +86,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QTableWidget" name="resultsList"/>
+     <widget class="QListWidget" name="resultsList"/>
     </item>
    </layout>
   </widget>

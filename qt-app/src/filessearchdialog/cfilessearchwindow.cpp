@@ -48,7 +48,8 @@ void CFilesSearchWindow::itemScanned(const QString& currentItem) const
 
 void CFilesSearchWindow::matchFound(const QString& path) const
 {
-	
+	const bool isDir = CFileSystemObject(path).isDir();
+	ui->resultsList->addItem(isDir ? ("[" % path % "]") : path);
 }
 
 void CFilesSearchWindow::searchFinished() const
@@ -71,4 +72,5 @@ void CFilesSearchWindow::search()
 
 	_engine.search(what, where, withText);
 	ui->btnSearch->setText(tr("Stop"));
+	ui->resultsList->clear();
 }
