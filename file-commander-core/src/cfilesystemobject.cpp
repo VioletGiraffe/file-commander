@@ -534,7 +534,8 @@ QString CFileSystemObject::lastErrorMessage() const
 
 DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root, const std::function<void (QString)>& observer, const std::atomic<bool>& abort)
 {
-	observer(root.fullAbsolutePath());
+	if (observer)
+		observer(root.fullAbsolutePath());
 
 	DirectoryHierarchy hierarchy;
 	hierarchy.rootItem = root;
