@@ -532,48 +532,47 @@ QString CFileSystemObject::lastErrorMessage() const
 
 
 
-DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root, const std::function<void (QString)>& observer)
+DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root, const std::function<void (QString)>& observer, const std::atomic<bool>& abort)
 {
+	observer(root.fullAbsolutePath());
+
 	DirectoryHierarchy hierarchy;
 	hierarchy.rootItem = root;
 
-	if (!root.isDir())
+	if (abort || !root.isDir())
 		return hierarchy;
 
 	const auto list = root.qDir().entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::System);
 	for (const auto& item: list)
-		hierarchy.subitems.emplace_back(enumerateDirectoryRecursively(CFileSystemObject(item), observer));
+		hierarchy.subitems.emplace_back(enumerateDirectoryRecursively(CFileSystemObject(item), observer, abort));
 
 	return hierarchy;
 }
 
-void flattenHierarchy(const DirectoryHierarchy& hierarchy, FlattenedHierarchy& result, const std::function<void (QString)>& observer)
+void flattenHierarchy(const DirectoryHierarchy& hierarchy, FlattenedHierarchy& result)
 {
-	if (observer)
-		observer(hierarchy.rootItem.fullAbsolutePath());
-
 	if (hierarchy.rootItem.isDir())
 	{
 		result.directories.push_back(hierarchy.rootItem);
 		for (const DirectoryHierarchy& subitem: hierarchy.subitems)
-			flattenHierarchy(subitem, result, observer);
+			flattenHierarchy(subitem, result);
 	}
 	else
 		result.files.push_back(hierarchy.rootItem);
 }
 
-FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy, const std::function<void (QString)>& observer)
+FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy)
 {
 	FlattenedHierarchy result;
-	flattenHierarchy(hierarchy, result, observer);
+	flattenHierarchy(hierarchy, result);
 	return result;
 }
 
 
-FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy, const std::function<void (QString)>& observer)
+FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy)
 {
 	FlattenedHierarchy result;
 	for (const auto h: hierarchy)
-		flattenHierarchy(h, result, observer);
+		flattenHierarchy(h, result);
 	return result;
 }

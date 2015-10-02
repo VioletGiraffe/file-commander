@@ -6,7 +6,7 @@
 
 #define SETTINGS_SEARCH_EXPRESSION_LIST "Expressions"
 
-#define SETTINGS_REGEX                  "FindDialog/Regex"
+#define SETTINGS_REGEX                  "Regex"
 #define SETTINGS_BACKWARDS              "SearchBackwards"
 #define SETTINGS_CASE_SENSITIVE         "CaseSensitive"
 #define SETTINGS_WHOLE_WORDS            "WholeWords"
@@ -20,6 +20,8 @@ CFindDialog::CFindDialog(QWidget *parent, const QString& settingsRootCategory) :
 {
 	ui->setupUi(this);
 
+	ui->_searchText->enableAutoSave(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION_LIST);
+
 	connect(ui->_btnCancel, &QPushButton::clicked, this, &QDialog::reject);
 	connect(ui->_btnFind, &QPushButton::clicked, this, &QDialog::accept);
 	connect(ui->_btnFind, &QPushButton::clicked, this, &CFindDialog::find);
@@ -30,7 +32,6 @@ CFindDialog::CFindDialog(QWidget *parent, const QString& settingsRootCategory) :
 	if (!_settingsRootCategory.isEmpty())
 	{
 		CSettings s;
-		ui->_searchText->addItems(s.value(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION_LIST).toStringList());
 		ui->_cbSearchBackwards->setChecked(s.value(_settingsRootCategory + SETTINGS_BACKWARDS).toBool());
 		ui->_cbCaseSensitive->setChecked(s.value(_settingsRootCategory + SETTINGS_CASE_SENSITIVE).toBool());
 		ui->_cbRegex->setChecked(s.value(_settingsRootCategory + SETTINGS_REGEX).toBool());
@@ -101,7 +102,6 @@ void CFindDialog::hideEvent(QHideEvent * e)
 void CFindDialog::saveSearchSettings() const
 {
 	CSettings s;
-	s.setValue(_settingsRootCategory + SETTINGS_SEARCH_EXPRESSION_LIST, ui->_searchText->items());
 	s.setValue(_settingsRootCategory + SETTINGS_BACKWARDS, searchBackwards());
 	s.setValue(_settingsRootCategory + SETTINGS_CASE_SENSITIVE, caseSensitive());
 	s.setValue(_settingsRootCategory + SETTINGS_REGEX, regex());

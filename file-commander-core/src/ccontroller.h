@@ -6,6 +6,7 @@
 #include "diskenumerator/cdiskenumerator.h"
 #include "plugininterface/cpluginproxy.h"
 #include "favoritelocationslist/cfavoritelocations.h"
+#include "filesearchengine/cfilesearchengine.h"
 
 class CController : private CDiskEnumerator::IDiskListObserver
 {
@@ -73,9 +74,9 @@ public:
 		_workerThread.enqueue(task);
 	}
 
-	inline void execOnUiThread(const std::function<void ()>& task)
+	inline void execOnUiThread(const std::function<void ()>& task, int tag = -1)
 	{
-		_uiQueue.enqueue(task);
+		_uiQueue.enqueue(task, tag);
 	}
 
 // Getters
@@ -100,6 +101,7 @@ public:
 	size_t currentDiskIndex(Panel p) const;
 
 	CFavoriteLocations& favoriteLocations();
+	CFileSearchEngine& fileSearchEngine();
 
 	// Returns hash of an item that was the last selected in the specified dir
 	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
@@ -112,6 +114,7 @@ private:
 private:
 	static CController * _instance;
 	CFavoriteLocations   _favoriteLocations;
+	CFileSearchEngine    _fileSearchEngine;
 	CPanel               _leftPanel, _rightPanel;
 	CPluginProxy         _pluginProxy;
 	CDiskEnumerator      _diskEnumerator;

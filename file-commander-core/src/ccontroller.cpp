@@ -16,7 +16,11 @@ RESTORE_COMPILER_WARNINGS
 
 CController* CController::_instance = nullptr;
 
-CController::CController() : _leftPanel(LeftPanel), _rightPanel(RightPanel), _workerThread(4, "CController worker thread")
+CController::CController() :
+	_leftPanel(LeftPanel),
+	_rightPanel(RightPanel),
+	_fileSearchEngine(*this),
+	_workerThread(4, "CController worker thread")
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
@@ -330,6 +334,7 @@ Panel CController::otherPanelPosition(Panel p)
 
 Panel CController::activePanelPosition() const
 {
+	assert_r(_activePanel == RightPanel || _activePanel == LeftPanel);
 	return _activePanel;
 }
 
@@ -392,9 +397,14 @@ size_t CController::currentDiskIndex(Panel p) const
 	return std::numeric_limits<int>::max();
 }
 
-CFavoriteLocations &CController::favoriteLocations()
+CFavoriteLocations& CController::favoriteLocations()
 {
 	return _favoriteLocations;
+}
+
+CFileSearchEngine& CController::fileSearchEngine()
+{
+	return _fileSearchEngine;
 }
 
 // Returns hash of an item that was the last selected in the specified dir
