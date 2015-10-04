@@ -1,4 +1,5 @@
 #include "../ccontroller.h"
+#include "system/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <qhash.h>
@@ -41,8 +42,14 @@ void CFileSearchEngine::search(const QString& what, const QString& where, const 
 
 	_workerThread.exec([this, where, what, contentsToFind](){
 
+		uint64_t itemCounter = 0;
+		CTimeElapsed timer;
+		timer.start();
+
 		const auto hierarchy = enumerateDirectoryRecursively(CFileSystemObject(where),
-			[this, what](QString path){
+			[this, &what, &itemCounter](QString path){
+
+			++itemCounter;
 
 			_controller.execOnUiThread([this, path, what](){
 				for (const auto& listener: _listeners)
@@ -57,9 +64,10 @@ void CFileSearchEngine::search(const QString& what, const QString& where, const 
 
 		}, _workerThread.terminationFlag());
 
-		_controller.execOnUiThread([this](){
+		const uint32_t speed = timer.elapsed() > 0 ? static_cast<uint32_t>(itemCounter * 1000u / timer.elapsed()) : 0;
+		_controller.execOnUiThread([this, speed](){
 			for (const auto& listener: _listeners)
-				listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished);
+				listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, speed);
 		});
 	});
 }

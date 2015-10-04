@@ -73,10 +73,13 @@ void CFilesSearchWindow::matchFound(const QString& path)
 	ui->resultsList->addItem(item);
 }
 
-void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status)
+void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint32_t speed)
 {
 	ui->btnSearch->setText(tr("Start"));
-	_progressLabel->setText(status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
+	QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
+	if (speed > 0)
+		message = message % ", " % tr("search speed: %1 items/sec").arg(speed);
+	_progressLabel->setText(message);
 	ui->resultsList->setFocus();
 }
 
