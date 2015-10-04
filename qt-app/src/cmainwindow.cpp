@@ -170,6 +170,10 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	if (files.empty() || destDir.isEmpty())
 		return false;
 
+	// Fix for #91
+	raise();
+	activateWindow();
+
 	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % toNativeSeparators("/") % files.front().fullName()) : destDir;
 	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
@@ -189,6 +193,10 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 {
 	if (files.empty() || destDir.isEmpty())
 		return false;
+
+	// Fix for #91
+	raise();
+	activateWindow();
 
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{

@@ -108,10 +108,10 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 	else if (!data->hasUrls())
 		return false;
 
-	CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPathNative());
+	const CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPathNative());
 	assert_and_return_r(dest.exists() && dest.isDir(), false);
 
-	const QList<QUrl> urls(data->urls());
+	const QList<QUrl> urls = data->urls();
 	std::vector<CFileSystemObject> objects;
 	for(const QUrl& url: urls)
 		objects.emplace_back(url.toLocalFile());

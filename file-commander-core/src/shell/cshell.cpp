@@ -390,7 +390,10 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 		if (!SUCCEEDED(result) || !relativeIds.back())
 			relativeIds.pop_back();
 		else if (i < objects.size() - 1 && ifolder)
+		{
 			ifolder->Release();
+			ifolder = nullptr;
+		}
 	}
 
 	CItemIdArrayReleaser arrayReleaser(ids);
