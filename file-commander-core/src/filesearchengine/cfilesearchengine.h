@@ -29,7 +29,7 @@ public:
 
 
 	bool searchInProgress() const;
-	void search(const QString& what, const QString& where, const QString& contentsToFind);
+	void search(const QString& what, bool caseSensitive, const QString& where, const QString& contentsToFind);
 	void stopSearching();
 
 private:

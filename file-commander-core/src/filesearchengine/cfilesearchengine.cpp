@@ -29,7 +29,7 @@ bool CFileSearchEngine::searchInProgress() const
 	return _workerThread.running();
 }
 
-void CFileSearchEngine::search(const QString& what, const QString& where, const QString& contentsToFind)
+void CFileSearchEngine::search(const QString& what, bool caseSensitive, const QString& where, const QString& contentsToFind)
 {
 	if (_workerThread.running())
 	{
@@ -40,14 +40,23 @@ void CFileSearchEngine::search(const QString& what, const QString& where, const 
 	if (what.isEmpty() || where.isEmpty())
 		return;
 
-	_workerThread.exec([this, where, what, contentsToFind](){
+	_workerThread.exec([this, what, caseSensitive, where, contentsToFind](){
 
 		uint64_t itemCounter = 0;
 		CTimeElapsed timer;
 		timer.start();
 
+		const bool wildcardMode = what.contains(QRegExp("[*?]"));
+		QRegExp queryRegExp;
+		if (wildcardMode)
+		{
+			queryRegExp.setPatternSyntax(QRegExp::Wildcard);
+			queryRegExp.setPattern(what);
+			queryRegExp.setCaseSensitivity(caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
+		}
+
 		const auto hierarchy = enumerateDirectoryRecursively(CFileSystemObject(where),
-			[this, &what, &itemCounter](QString path){
+			[&](QString path){
 
 			++itemCounter;
 
@@ -56,7 +65,7 @@ void CFileSearchEngine::search(const QString& what, const QString& where, const 
 					listener->itemScanned(path);
 			}, tag);
 
-			if (path.contains(what))
+			if ((wildcardMode && queryRegExp.exactMatch(path)) || (!wildcardMode && path.contains(what, caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)))
 				_controller.execOnUiThread([this, path, what](){
 				for (const auto& listener : _listeners)
 					listener->matchFound(path);

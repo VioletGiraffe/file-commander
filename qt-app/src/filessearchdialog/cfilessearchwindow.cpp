@@ -9,9 +9,25 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
-#define SETTINGS_NAME_TO_FIND     "FileSearchDialog/Ui/NameToFind"
-#define SETTINGS_CONTENTS_TO_FIND "FileSearchDialog/Ui/ContentsToFind"
-#define SETTINGS_ROOT_FOLDER      "FileSearchDialog/Ui/RootFolder"
+#define SETTINGS_NAME_TO_FIND            "FileSearchDialog/Ui/NameToFind"
+#define SETTINGS_NAME_CASE_SENSITIVE     "FileSearchDialog/Ui/CaseSensitiveName"
+#define SETTINGS_CONTENTS_TO_FIND        "FileSearchDialog/Ui/ContentsToFind"
+#define SETTINGS_CONTENTS_CASE_SENSITIVE "FileSearchDialog/Ui/CaseSensitiveContents"
+#define SETTINGS_ROOT_FOLDER             "FileSearchDialog/Ui/RootFolder"
+
+static bool caseSensitiveFilesystem()
+{
+#if defined _WIN32
+	return false;
+#elif __APPLE__
+	return true;
+#elif __linux__
+	return true;
+#else
+#error "Unknown operating system"
+	return true;
+#endif
+}
 
 CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
 	QMainWindow(nullptr),
@@ -29,6 +45,10 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
 	ui->nameToFind->enableAutoSave(SETTINGS_NAME_TO_FIND);
 	ui->fileContentsToFind->enableAutoSave(SETTINGS_CONTENTS_TO_FIND);
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
+
+	CSettings s;
+	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
+	ui->cbContentsCaseSensitive->setChecked(s.value(SETTINGS_CONTENTS_CASE_SENSITIVE, false).toBool());
 
 	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 	connect(ui->fileContentsToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
@@ -49,6 +69,8 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
 		ui->nameToFind->setFocus();
 		ui->nameToFind->lineEdit()->selectAll();
 	});
+
+	ui->cbNameCaseSensitive->setVisible(caseSensitiveFilesystem());
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()
@@ -81,6 +103,8 @@ void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, 
 		message = message % ", " % tr("search speed: %1 items/sec").arg(speed);
 	_progressLabel->setText(message);
 	ui->resultsList->setFocus();
+	if (ui->resultsList->item(0))
+		ui->resultsList->item(0)->setSelected(true);
 }
 
 void CFilesSearchWindow::search()
@@ -95,7 +119,7 @@ void CFilesSearchWindow::search()
 	const QString where = ui->searchRoot->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
-	_engine.search(what, where, withText);
+	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), where, withText);
 	ui->btnSearch->setText(tr("Stop"));
 	ui->resultsList->clear();
 	setWindowTitle('\"' % what % "\" " % tr("search results"));
