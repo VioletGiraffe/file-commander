@@ -10,12 +10,17 @@ class QString;
 class CFileSearchEngine
 {
 public:
+	enum SearchStatus {
+		SearchFinished,
+		SearchCancelled
+	};
+
 	struct FileSearchListener {
 		virtual ~FileSearchListener() {}
 
-		virtual void itemScanned(const QString& currentItem) const = 0;
-		virtual void matchFound(const QString& path) const = 0;
-		virtual void searchFinished() const = 0;
+		virtual void itemScanned(const QString& currentItem) = 0;
+		virtual void matchFound(const QString& path) = 0;
+		virtual void searchFinished(SearchStatus status) = 0;
 	};
 
 	CFileSearchEngine(CController& controller);

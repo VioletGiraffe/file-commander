@@ -11,23 +11,26 @@ namespace Ui {
 class CFilesSearchWindow;
 }
 
+class QLabel;
+
 class CFilesSearchWindow : public QMainWindow, public CFileSearchEngine::FileSearchListener
 {
 	Q_OBJECT
 
 public:
-	explicit CFilesSearchWindow(QWidget *parent, const QString& root);
+	explicit CFilesSearchWindow(const QString& root);
 	~CFilesSearchWindow();
 
-	void itemScanned(const QString& currentItem) const override;
-	void matchFound(const QString& path) const override;
-	void searchFinished() const override;
+	void itemScanned(const QString& currentItem) override;
+	void matchFound(const QString& path) override;
+	void searchFinished(CFileSearchEngine::SearchStatus status) override;
 
 private:
 	void search();
 
 private:
 	Ui::CFilesSearchWindow *ui;
+	QLabel* _progressLabel;
 
 	CFileSearchEngine& _engine;
 };

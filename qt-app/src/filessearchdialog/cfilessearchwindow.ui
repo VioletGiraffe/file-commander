@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Find</string>
+   <string>File search</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -77,13 +77,6 @@
        </widget>
       </item>
      </layout>
-    </item>
-    <item>
-     <widget class="QLabel" name="progressLabel">
-      <property name="text">
-       <string>Searching...</string>
-      </property>
-     </widget>
     </item>
     <item>
      <widget class="QListWidget" name="resultsList"/>

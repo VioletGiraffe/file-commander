@@ -612,7 +612,8 @@ void CMainWindow::findFiles()
 	if (!_currentFileList)
 		return;
 
-	auto ui = new CFilesSearchWindow(this, _currentFileList->currentDir());
+	auto ui = new CFilesSearchWindow(_currentFileList->currentDir());
+	connect(this, &CMainWindow::closed, ui, &CFilesSearchWindow::close);
 	ui->show();
 }
 

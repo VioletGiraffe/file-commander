@@ -178,6 +178,17 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	});
 }
 
+// Switches to the appropriate directory and sets the cursor to the specified item
+bool CPanel::goToItem(const CFileSystemObject& item)
+{
+	if (!item.exists())
+		return false;
+
+	const QString dir = item.parentDirPath();
+	setCurrentItemForFolder(dir, item.hash());
+	return setPath(dir, refreshCauseOther) == rcOk;
+}
+
 CFileSystemObject CPanel::currentDirObject() const
 {
 	return _currentDirObject;

@@ -1,6 +1,7 @@
 #include "cfilessearchwindow.h"
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
+#include "../cmainwindow.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
@@ -12,8 +13,8 @@ RESTORE_COMPILER_WARNINGS
 #define SETTINGS_CONTENTS_TO_FIND "FileSearchDialog/Ui/ContentsToFind"
 #define SETTINGS_ROOT_FOLDER      "FileSearchDialog/Ui/RootFolder"
 
-CFilesSearchWindow::CFilesSearchWindow(QWidget *parent, const QString& root) :
-	QMainWindow(parent),
+CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
+	QMainWindow(nullptr),
 	ui(new Ui::CFilesSearchWindow),
 	_engine(CController::get().fileSearchEngine())
 {
@@ -29,9 +30,25 @@ CFilesSearchWindow::CFilesSearchWindow(QWidget *parent, const QString& root) :
 	ui->fileContentsToFind->enableAutoSave(SETTINGS_CONTENTS_TO_FIND);
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
 
-	ui->progressLabel->clear();
+	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
+	connect(ui->fileContentsToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 
 	_engine.addListener(this);
+
+	_progressLabel = new QLabel(this);
+	assert_r(statusBar());
+	statusBar()->addWidget(_progressLabel, 1);
+	statusBar()->setSizePolicy(QSizePolicy::Ignored, statusBar()->sizePolicy().verticalPolicy());
+
+	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item){
+		CController::get().activePanel().goToItem(CFileSystemObject(item->data(Qt::UserRole).toString()));
+		CMainWindow::get()->activateWindow();
+	});
+
+	QTimer::singleShot(0, [this](){
+		ui->nameToFind->setFocus();
+		ui->nameToFind->lineEdit()->selectAll();
+	});
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()
@@ -41,21 +58,26 @@ CFilesSearchWindow::~CFilesSearchWindow()
 	delete ui;
 }
 
-void CFilesSearchWindow::itemScanned(const QString& currentItem) const
+void CFilesSearchWindow::itemScanned(const QString& currentItem)
 {
-	ui->progressLabel->setText(tr("Scanning...") % " " % currentItem);
+	_progressLabel->setText(currentItem);
 }
 
-void CFilesSearchWindow::matchFound(const QString& path) const
+void CFilesSearchWindow::matchFound(const QString& path)
 {
-	const bool isDir = CFileSystemObject(path).isDir();
-	ui->resultsList->addItem(isDir ? ("[" % path % "]") : path);
+	const bool isDir = QFileInfo(path).isDir();
+
+	QListWidgetItem* item = new QListWidgetItem;
+	item->setText(isDir ? ("[" % path % "]") : path);
+	item->setData(Qt::UserRole, path);
+	ui->resultsList->addItem(item);
 }
 
-void CFilesSearchWindow::searchFinished() const
+void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status)
 {
 	ui->btnSearch->setText(tr("Start"));
-	ui->progressLabel->clear();
+	_progressLabel->setText(status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
+	ui->resultsList->setFocus();
 }
 
 void CFilesSearchWindow::search()
@@ -73,4 +95,5 @@ void CFilesSearchWindow::search()
 	_engine.search(what, where, withText);
 	ui->btnSearch->setText(tr("Stop"));
 	ui->resultsList->clear();
+	setWindowTitle('\"' % what % "\" " % tr("search results"));
 }

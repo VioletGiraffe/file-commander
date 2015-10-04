@@ -59,7 +59,7 @@ void CFileSearchEngine::search(const QString& what, const QString& where, const 
 
 		_controller.execOnUiThread([this](){
 			for (const auto& listener: _listeners)
-				listener->searchFinished();
+				listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished);
 		});
 	});
 }

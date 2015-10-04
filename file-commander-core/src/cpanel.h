@@ -68,6 +68,8 @@ public:
 	const CHistoryList<QString>& history() const;
 	// Flattens the current directory and displays all its child files on one level
 	void showAllFilesFromCurrentFolderAndBelow();
+	// Switches to the appropriate directory and sets the cursor to the specified item
+	bool goToItem(const CFileSystemObject& item);
 
 	// Info on the dir this panel is currently set to
 	CFileSystemObject currentDirObject() const;
