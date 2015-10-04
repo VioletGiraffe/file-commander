@@ -579,8 +579,11 @@ void CMainWindow::pasteCurrentFileName()
 {
 	if (_currentFileList && _currentFileList->currentItemHash() != 0)
 	{
-		const QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullName();
-		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
+		QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullName();
+		if (textToAdd.contains(' '))
+			textToAdd = '\"' % textToAdd % '\"';
+
+		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() % ' ' % textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}
 }
@@ -589,8 +592,11 @@ void CMainWindow::pasteCurrentFilePath()
 {
 	if (_currentFileList && _currentFileList->currentItemHash() != 0)
 	{
-		const QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath();
-		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() + " " + textToAdd);
+		QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath();
+		if (textToAdd.contains(' '))
+			textToAdd = '\"' % textToAdd % '\"';
+
+		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() % ' ' % textToAdd);
 		ui->commandLine->lineEdit()->setText(newText);
 	}
 }
