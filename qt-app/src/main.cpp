@@ -12,7 +12,20 @@ class CFileCommanderApplication : public QApplication
 {
 public:
 	CFileCommanderApplication(int &argc, char **argv) : QApplication(argc, argv) {}
-	bool notify(QObject * receiver, QEvent * e) override;
+	inline bool notify(QObject * receiver, QEvent * e) override
+	{
+		// A dirty hack to implement switching between left and right panels on Tab key press
+		if (e && e->type() == QEvent::KeyPress)
+		{
+			QKeyEvent * keyEvent = static_cast<QKeyEvent*>(e);
+			if (keyEvent && keyEvent->key() == Qt::Key_Tab && CMainWindow::get())
+			{
+				CMainWindow::get()->tabKeyPressed();
+				return true;
+			}
+		}
+		return QApplication::notify(receiver, e);
+	}
 };
 
 int main(int argc, char *argv[])
@@ -35,18 +48,3 @@ int main(int argc, char *argv[])
 	return retCode;
 }
 
-
-bool CFileCommanderApplication::notify(QObject *receiver, QEvent *e)
-{
-	// A dirty hack to implement switching between left and right panels on Tab key press
-	if (e && e->type() == QEvent::KeyPress)
-	{
-		QKeyEvent * keyEvent = static_cast<QKeyEvent*>(e);
-        if (keyEvent && keyEvent->key() == Qt::Key_Tab && CMainWindow::get())
-		{
-			CMainWindow::get()->tabKeyPressed();
-			return true;
-		}
-	}
-	return QApplication::notify(receiver, e);
-}

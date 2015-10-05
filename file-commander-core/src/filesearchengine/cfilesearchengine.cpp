@@ -2,7 +2,9 @@
 #include "system/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDebug>
 #include <qhash.h>
+#include <QTextStream>
 RESTORE_COMPILER_WARNINGS
 
 const int tag = abs((int)qHash(QString("CFileSearchEngine")));
@@ -29,7 +31,7 @@ bool CFileSearchEngine::searchInProgress() const
 	return _workerThread.running();
 }
 
-void CFileSearchEngine::search(const QString& what, bool caseSensitive, const QString& where, const QString& contentsToFind)
+void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QString& where, const QString& contentsToFind, bool contentsCaseSensitive)
 {
 	if (_workerThread.running())
 	{
@@ -40,19 +42,19 @@ void CFileSearchEngine::search(const QString& what, bool caseSensitive, const QS
 	if (what.isEmpty() || where.isEmpty())
 		return;
 
-	_workerThread.exec([this, what, caseSensitive, where, contentsToFind](){
+	_workerThread.exec([this, what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive](){
 
 		uint64_t itemCounter = 0;
 		CTimeElapsed timer;
 		timer.start();
 
-		const bool wildcardMode = what.contains(QRegExp("[*?]"));
+		const bool nameQueryHasWildcards = what.contains(QRegExp("[*?]"));
 		QRegExp queryRegExp;
-		if (wildcardMode)
+		if (nameQueryHasWildcards)
 		{
 			queryRegExp.setPatternSyntax(QRegExp::Wildcard);
 			queryRegExp.setPattern(what);
-			queryRegExp.setCaseSensitivity(caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
+			queryRegExp.setCaseSensitivity(subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
 		}
 
 		const auto hierarchy = enumerateDirectoryRecursively(CFileSystemObject(where),
@@ -65,11 +67,43 @@ void CFileSearchEngine::search(const QString& what, bool caseSensitive, const QS
 					listener->itemScanned(path);
 			}, tag);
 
-			if ((wildcardMode && queryRegExp.exactMatch(path)) || (!wildcardMode && path.contains(what, caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)))
-				_controller.execOnUiThread([this, path, what](){
-				for (const auto& listener : _listeners)
-					listener->matchFound(path);
-			});
+			// contains() is faster than RegEx match (as of Qt 5.4.2)
+			if ((nameQueryHasWildcards && queryRegExp.exactMatch(path)) || (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)))
+			{
+				QFile file(path);
+				if (!contentsToFind.isEmpty())
+				{
+					if (!file.open(QFile::ReadOnly))
+						return;
+				}
+
+				QTextStream stream(&file);
+				bool match = contentsToFind.isEmpty();
+				QRegExp fileContentsRegExp;
+				const bool contentsQueryHasWildcards = contentsToFind.contains(QRegExp("[*?]"));
+				const auto subjectCaseSensitivity = subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+				if (contentsQueryHasWildcards)
+				{
+					fileContentsRegExp.setPatternSyntax(QRegExp::Wildcard);
+					fileContentsRegExp.setPattern(contentsToFind);
+					fileContentsRegExp.setCaseSensitivity(subjectCaseSensitivity);
+				}
+
+				while (!match && !_workerThread.terminationFlag() && !stream.atEnd())
+				{
+					const QString line = stream.readLine();
+					// contains() is faster than RegEx match (as of Qt 5.4.2)
+					match = contentsQueryHasWildcards ? fileContentsRegExp.exactMatch(line) : line.contains(contentsToFind, subjectCaseSensitivity);
+				}
+
+				if (match)
+				{
+					_controller.execOnUiThread([this, path, what](){
+					for (const auto& listener : _listeners)
+						listener->matchFound(path);
+					});
+				}
+			}
 
 		}, _workerThread.terminationFlag());
 

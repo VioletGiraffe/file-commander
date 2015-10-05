@@ -93,6 +93,7 @@ void CFilesSearchWindow::matchFound(const QString& path)
 	item->setText(isDir ? ("[" % path % "]") : path);
 	item->setData(Qt::UserRole, path);
 	ui->resultsList->addItem(item);
+	ui->resultsList->scrollToBottom();
 }
 
 void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint32_t speed)
@@ -103,7 +104,7 @@ void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, 
 		message = message % ", " % tr("search speed: %1 items/sec").arg(speed);
 	_progressLabel->setText(message);
 	ui->resultsList->setFocus();
-	if (ui->resultsList->item(0))
+	if (ui->resultsList->count() > 0)
 		ui->resultsList->item(0)->setSelected(true);
 }
 
@@ -119,7 +120,7 @@ void CFilesSearchWindow::search()
 	const QString where = ui->searchRoot->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
-	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), where, withText);
+	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), where, withText, ui->cbContentsCaseSensitive->isChecked());
 	ui->btnSearch->setText(tr("Stop"));
 	ui->resultsList->clear();
 	setWindowTitle('\"' % what % "\" " % tr("search results"));
