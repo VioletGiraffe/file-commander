@@ -1,6 +1,5 @@
 TEMPLATE = app
 TARGET   = FileCommander
-DESTDIR  = ../bin
 
 QT = core gui widgets
 
@@ -10,10 +9,19 @@ win*{
 
 CONFIG += c++11
 
-OBJECTS_DIR = ../build/app
-MOC_DIR     = ../build/app
-UI_DIR      = ../build/app
-RCC_DIR     = ../build/app
+mac* | linux*{
+    CONFIG(release, debug|release):CONFIG += Release
+    CONFIG(debug, debug|release):CONFIG += Debug
+}
+
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
+
+DESTDIR  = ../bin/$${OUTPUT_DIR}
+OBJECTS_DIR = ../build/$${OUTPUT_DIR}/app
+MOC_DIR     = ../build/$${OUTPUT_DIR}/app
+UI_DIR      = ../build/$${OUTPUT_DIR}/app
+RCC_DIR     = ../build/$${OUTPUT_DIR}/app
 
 INCLUDEPATH += \
     $$PWD/src/ \
@@ -85,7 +93,7 @@ FORMS += \
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
-LIBS += -L../bin -lcore -lqtutils -lcpputils
+LIBS += -L../bin/$${OUTPUT_DIR} -lcore -lqtutils -lcpputils
 
 win*{
     LIBS += -lole32 -lShell32 -lUser32

@@ -1,6 +1,5 @@
 TEMPLATE = lib
 TARGET   = plugin_textviewer
-DESTDIR  = ../../../bin
 
 QT = core gui
 CONFIG += c++11
@@ -9,13 +8,22 @@ CONFIG += c++11
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 win*{
-	QT += winextras
+    QT += winextras
 }
 
-OBJECTS_DIR = ../../../build/textviewer
-MOC_DIR     = ../../../build/textviewer
-UI_DIR      = ../../../build/textviewer
-RCC_DIR     = ../../../build/textviewer
+mac* | linux*{
+    CONFIG(release, debug|release):CONFIG += Release
+    CONFIG(debug, debug|release):CONFIG += Debug
+}
+
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
+
+DESTDIR  = ../../../bin/$${OUTPUT_DIR}
+OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/textviewer
+MOC_DIR     = ../../../build/$${OUTPUT_DIR}/textviewer
+UI_DIR      = ../../../build/$${OUTPUT_DIR}/textviewer
+RCC_DIR     = ../../../build/$${OUTPUT_DIR}/textviewer
 
 INCLUDEPATH += \
 	../../../file-commander-core/src \
@@ -27,7 +35,7 @@ INCLUDEPATH += \
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin -lcore -lqtutils -ltext_encoding_detector -lcpputils
+LIBS += -L../../../bin/$${OUTPUT_DIR} -lcore -lqtutils -ltext_encoding_detector -lcpputils
 
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251

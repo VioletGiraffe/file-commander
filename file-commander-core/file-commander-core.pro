@@ -1,19 +1,27 @@
 TEMPLATE = lib
 TARGET   = core
-DESTDIR  = ../bin
 
 QT = core widgets gui #gui is required for QFileIconProvider and plugininterface
 CONFIG += staticlib
 CONFIG += c++11
 
 win*{
-	QT += winextras
+    QT += winextras
 }
 
-OBJECTS_DIR = ../build/core
-MOC_DIR     = ../build/core
-UI_DIR      = ../build/core
-RCC_DIR     = ../build/core
+mac* | linux*{
+    CONFIG(release, debug|release):CONFIG += Release
+    CONFIG(debug, debug|release):CONFIG += Debug
+}
+
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
+
+DESTDIR  = ../bin/$${OUTPUT_DIR}
+OBJECTS_DIR = ../build/$${OUTPUT_DIR}/core
+MOC_DIR     = ../build/$${OUTPUT_DIR}/core
+UI_DIR      = ../build/$${OUTPUT_DIR}/core
+RCC_DIR     = ../build/$${OUTPUT_DIR}/core
 
 HEADERS += \
 	src/cfilesystemobject.h \
@@ -31,7 +39,7 @@ HEADERS += \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \
 	src/fasthash.h \
-    src/filesearchengine/cfilesearchengine.h
+	src/filesearchengine/cfilesearchengine.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -43,7 +51,7 @@ SOURCES += \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/fasthash.c \
-    src/filesearchengine/cfilesearchengine.cpp
+	src/filesearchengine/cfilesearchengine.cpp
 
 DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
 

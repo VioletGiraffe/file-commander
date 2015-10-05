@@ -1,6 +1,5 @@
 TEMPLATE = lib
 TARGET   = plugin_imageviewer
-DESTDIR  = ../../../bin
 
 QT = core gui
 
@@ -10,13 +9,22 @@ CONFIG += c++11
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 win*{
-	QT += winextras
+    QT += winextras
 }
 
-OBJECTS_DIR = ../../../build/imageviewer
-MOC_DIR     = ../../../build/imageviewer
-UI_DIR      = ../../../build/imageviewer
-RCC_DIR     = ../../../build/imageviewer
+mac* | linux*{
+    CONFIG(release, debug|release):CONFIG += Release
+    CONFIG(debug, debug|release):CONFIG += Debug
+}
+
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
+
+DESTDIR  = ../../../bin/$${OUTPUT_DIR}
+OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/imageviewer
+MOC_DIR     = ../../../build/$${OUTPUT_DIR}/imageviewer
+UI_DIR      = ../../../build/$${OUTPUT_DIR}/imageviewer
+RCC_DIR     = ../../../build/$${OUTPUT_DIR}/imageviewer
 
 INCLUDEPATH += \
 	../../../file-commander-core/src \
@@ -27,7 +35,7 @@ INCLUDEPATH += \
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin -lcore -lqtutils -lcpputils
+LIBS += -L../../../bin/$${OUTPUT_DIR} -lcore -lqtutils -lcpputils
 
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251
