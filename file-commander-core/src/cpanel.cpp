@@ -419,5 +419,14 @@ const QStorageInfo& CPanel::storageInfoForObject(const CFileSystemObject& object
 bool CPanel::pathIsAccessible(const QString& path) const
 {
 	const CFileSystemObject pathObject(path);
-	return pathObject.exists() && storageInfoForObject(pathObject).isReady() && pathObject.isReadable() && !pathObject.qDir().entryList().isEmpty();
+	const auto storageInfo = storageInfoForObject(pathObject);
+	if (!pathObject.exists() || !storageInfo.isReady() || !pathObject.isReadable())
+		return false;
+
+#ifdef _WIN32
+	if (storageInfo.rootPath() == pathObject.fullAbsolutePath())
+		return true; // On Winodws, a drive's root (e. g. C:\) doesn't produce '.' in the entryList, so the list is empty, but it's not an error
+#endif // _WIN32
+
+	return !pathObject.qDir().entryList().empty();
 }

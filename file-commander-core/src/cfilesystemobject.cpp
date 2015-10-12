@@ -210,7 +210,7 @@ std::vector<QString> CFileSystemObject::pathHierarchy(const QString& path)
 {
 	QString pathItem = path.endsWith('/') ? path.left(path.length() - 1) : path;
 	std::vector<QString> result(1, path);
-	while ((pathItem = QFileInfo(pathItem).path()).length() < result.back().length())
+	while ((pathItem = QFileInfo(pathItem).absolutePath()).length() < result.back().length())
 		result.push_back(pathItem);
 
 	return result;
