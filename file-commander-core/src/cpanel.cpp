@@ -240,16 +240,16 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		{
 			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
-			list = _currentDirObject.qDir().entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
-			qDebug() << "Getting file list for" << _currentDirObject.fullAbsolutePath() << "(" << list.size() << "items ) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
-
-			_items.clear();
-
-			if (list.empty())
+			if (!pathIsAccessible(_currentDirObject.fullAbsolutePath()))
 			{
 				setPath(_currentDirObject.fullAbsolutePath(), operation); // setPath will itself find the closest best folder to set instead
 				return;
 			}
+
+			list = _currentDirObject.qDir().entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+			qDebug() << "Getting file list for" << _currentDirObject.fullAbsolutePath() << "(" << list.size() << "items ) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+
+			_items.clear();
 		}
 
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
