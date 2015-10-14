@@ -72,28 +72,18 @@ bool CFileListModel::setData(const QModelIndex & index, const QVariant & value, 
 
 Qt::ItemFlags CFileListModel::flags(const QModelIndex & idx) const
 {
-	Qt::ItemFlags flags = QStandardItemModel::flags(idx);
+	const Qt::ItemFlags flags = QStandardItemModel::flags(idx);
 	if (!idx.isValid())
 		return flags;
 
-	if (data(index(idx.row(), 0)) != "[..]")
-		flags |= Qt::ItemIsEditable | Qt::ItemIsDragEnabled;
-
 	const qulonglong hash = itemHash(idx);
 	const CFileSystemObject item = _controller.itemByHash(_panel, hash);
-	if (item.exists() && item.isDir())
-		flags |= Qt::ItemIsDropEnabled;
-
-	return  flags;
+	return item.exists() ? flags | Qt::ItemIsEditable : flags;
 }
 
 bool CFileListModel::canDropMimeData(const QMimeData * data, Qt::DropAction /*action*/, int row, int /*column*/, const QModelIndex & /*parent*/) const
 {
-	if (!data->hasUrls())
-		return false;
-
-	const QModelIndex idx = index(row, 0);
-	return !idx.isValid() || _controller.itemByHash(_panel, itemHash(index(row, 0))).isDir();
+	return data->hasUrls();
 }
 
 QStringList CFileListModel::mimeTypes() const
@@ -108,7 +98,9 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 	else if (!data->hasUrls())
 		return false;
 
-	const CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPathNative());
+	CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPathNative());
+	if (dest.isFile())
+		dest = CFileSystemObject(dest.parentDirPath());
 	assert_and_return_r(dest.exists() && dest.isDir(), false);
 
 	const QList<QUrl> urls = data->urls();
