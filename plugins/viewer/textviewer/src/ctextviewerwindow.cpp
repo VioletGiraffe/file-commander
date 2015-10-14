@@ -3,8 +3,10 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
+#include <QLabel>
 #include <QMessageBox>
 #include <QShortcut>
+#include <QStringBuilder>
 #include <QTextCodec>
 RESTORE_COMPILER_WARNINGS
 
@@ -52,6 +54,9 @@ CTextViewerWindow::CTextViewerWindow() :
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater);
+
+	_encodingLabel = new QLabel(this);
+	QMainWindow::statusBar()->addWidget(_encodingLabel);
 }
 
 bool CTextViewerWindow::loadTextFile(const QString& file)
@@ -90,14 +95,19 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	QString text(codec->toUnicode(data.constData(), data.size(), &state));
 	if (state.invalidChars > 0)
 	{
-		text = CTextEncodingDetector::decode(data).first;
+		const auto result = CTextEncodingDetector::decode(data);
+		text = result.text;
 		if (!text.isEmpty())
+		{
+			encodingChanged(result.encoding, result.language);
 			_textBrowser.setPlainText(text);
+		}
 		else
 			return asSystemDefault();
 	}
 	else
 	{
+		encodingChanged("UTF-8");
 		actionUTF_8->setChecked(true);
 		_textBrowser.setPlainText(text);
 	}
@@ -119,6 +129,7 @@ bool CTextViewerWindow::asSystemDefault()
 	}
 
 	_textBrowser.setPlainText(codec->toUnicode(data));
+	encodingChanged(codec->name());
 	actionSystemLocale->setChecked(true);
 
 	return true;
@@ -133,6 +144,7 @@ bool CTextViewerWindow::asUtf8()
 		return false;
 	}
 
+	encodingChanged("UTF-8");
 	_textBrowser.setPlainText(QString::fromUtf8(data));
 	actionUTF_8->setChecked(true);
 
@@ -148,6 +160,7 @@ bool CTextViewerWindow::asUtf16()
 		return false;
 	}
 
+	encodingChanged("UTF-16");
 	_textBrowser.setPlainText(QString::fromUtf16((const ushort*)data.constData()));
 	actionUTF_16->setChecked(true);
 
@@ -156,8 +169,7 @@ bool CTextViewerWindow::asUtf16()
 
 bool CTextViewerWindow::asRichText()
 {
-	QMessageBox::information(parentWidget(), tr("TODO"), tr("RichText not yet supported. Display in plain text."));
-	// TODO: _textBrowser.setSource(QUrl::fromLocalFile(_sourceFilePath));
+	// TODO: add RTF support
 	return asDetectedAutomatically();
 }
 
@@ -209,4 +221,15 @@ bool CTextViewerWindow::readSource(QByteArray& data) const
 	}
 	else
 		return false;
+}
+
+void CTextViewerWindow::encodingChanged(const QString& encoding, const QString& language)
+{
+	QString message;
+	if (!encoding.isEmpty())
+		message = tr("Text encoding: ") % encoding;
+	if (!language.isEmpty())
+		message = message % ", " % tr("language: ") % language;
+
+	_encodingLabel->setText(message);
 }

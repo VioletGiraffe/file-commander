@@ -10,6 +10,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QPlainTextEdit>
 RESTORE_COMPILER_WARNINGS
 
+class QLabel;
+
 class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
 {
 	Q_OBJECT
@@ -31,10 +33,14 @@ private:
 
 	bool readSource(QByteArray& data) const;
 
+	void encodingChanged(const QString& encoding, const QString& language = QString());
+
 private:
-	QPlainTextEdit	_textBrowser;
-	CFindDialog		_findDialog;
-	QString			_sourceFilePath;
+	QPlainTextEdit _textBrowser;
+	CFindDialog    _findDialog;
+	QString        _sourceFilePath;
+
+	QLabel       * _encodingLabel = nullptr;
 };
 
 #endif // CTEXTVIEWERWINDOW_H

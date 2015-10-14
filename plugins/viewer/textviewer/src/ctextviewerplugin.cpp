@@ -32,5 +32,5 @@ CPluginWindow * CTextViewerPlugin::viewCurrentFile()
 
 QString CTextViewerPlugin::name() const
 {
-	return "Plain text, HTML and RTF viewer plugin";
+	return "Plain text and HTML viewer plugin";
 }
