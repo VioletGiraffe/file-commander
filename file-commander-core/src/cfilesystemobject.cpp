@@ -141,7 +141,7 @@ bool CFileSystemObject::isEmptyDir() const
 
 bool CFileSystemObject::isCdUp() const
 {
-	return _properties.fullName == "..";
+	return _properties.fullName == QStringLiteral("..");
 }
 
 bool CFileSystemObject::isExecutable() const
@@ -282,7 +282,7 @@ QString CFileSystemObject::modificationDateString() const
 	QDateTime modificationDate;
 	modificationDate.setTime_t((uint)_properties.modificationDate);
 	modificationDate = modificationDate.toLocalTime();
-	return modificationDate.toString("dd.MM.yyyy hh:mm");
+	return modificationDate.toString(QStringLiteral("dd.MM.yyyy hh:mm"));
 }
 
 // Operations
@@ -450,7 +450,7 @@ bool CFileSystemObject::makeWritable(bool writeable)
 	assert_and_return_message_r(isFile(), "This method only works for files", false);
 
 #ifdef _WIN32
-	const QString UNCPath =  "\\\\?\\" % toNativeSeparators(fullAbsolutePath());
+	const QString UNCPath = QStringLiteral("\\\\?\\") % toNativeSeparators(fullAbsolutePath());
 	const DWORD attributes = GetFileAttributesW((LPCWSTR)UNCPath.utf16());
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 	{

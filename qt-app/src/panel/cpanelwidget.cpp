@@ -185,7 +185,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		QStandardItem * fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
 		if (props.type == Directory)
-			fileNameItem->setData(QString("[" % (object.isCdUp() ? QString("..") : props.fullName) % "]"), Qt::DisplayRole);
+			fileNameItem->setData(QString("[" % (object.isCdUp() ? QStringLiteral("..") : props.fullName) % "]"), Qt::DisplayRole);
 		else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
 			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
 		else
@@ -194,28 +194,31 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
 		qTreeViewItems.emplace_back(itemRow, NameColumn, fileNameItem);
 
-		QStandardItem * fileExtItem = new QStandardItem();
-		fileExtItem->setEditable(false);
-		if (!props.completeBaseName.isEmpty() && !props.extension.isEmpty())
-			fileExtItem->setData(props.extension, Qt::DisplayRole);
-		fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		qTreeViewItems.emplace_back(itemRow, ExtColumn, fileExtItem);
+		if (!object.isCdUp())
+		{
+			QStandardItem * fileExtItem = new QStandardItem();
+			fileExtItem->setEditable(false);
+			if (!props.completeBaseName.isEmpty() && !props.extension.isEmpty())
+				fileExtItem->setData(props.extension, Qt::DisplayRole);
+			fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
+			qTreeViewItems.emplace_back(itemRow, ExtColumn, fileExtItem);
 
-		QStandardItem * sizeItem = new QStandardItem();
-		sizeItem->setEditable(false);
-		if (props.type != Directory || props.size > 0)
-			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
-		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		qTreeViewItems.emplace_back(itemRow, SizeColumn, sizeItem);
+			QStandardItem * sizeItem = new QStandardItem();
+			sizeItem->setEditable(false);
+			if (props.type != Directory || props.size > 0)
+				sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
+			sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
+			qTreeViewItems.emplace_back(itemRow, SizeColumn, sizeItem);
 
-		QStandardItem * dateItem = new QStandardItem();
-		dateItem->setEditable(false);
-		QDateTime modificationDate;
-		modificationDate.setTime_t((uint)props.modificationDate);
-		modificationDate = modificationDate.toLocalTime();
-		dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm"), Qt::DisplayRole);
-		dateItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		qTreeViewItems.emplace_back(itemRow, DateColumn, dateItem);
+			QStandardItem * dateItem = new QStandardItem();
+			dateItem->setEditable(false);
+			QDateTime modificationDate;
+			modificationDate.setTime_t((uint)props.modificationDate);
+			modificationDate = modificationDate.toLocalTime();
+			dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm"), Qt::DisplayRole);
+			dateItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
+			qTreeViewItems.emplace_back(itemRow, DateColumn, dateItem);
+		}
 
 		++itemRow;
 	}
@@ -372,7 +375,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 {
 	// This doesn't let the user select the [..] item
 
-	const QString cdUpPath = CFileSystemObject(QFileInfo(currentDir())).parentDirPath();
+	const QString cdUpPath = CFileSystemObject(currentDir()).parentDirPath();
 	for (auto indexRange: selected)
 	{
 		auto indexList = indexRange.indexes();
