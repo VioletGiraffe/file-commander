@@ -40,12 +40,12 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
-	ui->searchRoot->lineEdit()->setText(root);
-
 	ui->nameToFind->enableAutoSave(SETTINGS_NAME_TO_FIND);
 	ui->fileContentsToFind->enableAutoSave(SETTINGS_CONTENTS_TO_FIND);
 	ui->fileContentsToFind->setSaveCurrentText(true);
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
+
+	ui->searchRoot->lineEdit()->setText(root);
 
 	CSettings s;
 	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
