@@ -40,10 +40,11 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
-	ui->searchRoot->addItem(root);
+	ui->searchRoot->lineEdit()->setText(root);
 
 	ui->nameToFind->enableAutoSave(SETTINGS_NAME_TO_FIND);
 	ui->fileContentsToFind->enableAutoSave(SETTINGS_CONTENTS_TO_FIND);
+	ui->fileContentsToFind->setSaveCurrentText(true);
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
 
 	CSettings s;
