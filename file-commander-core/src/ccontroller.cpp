@@ -63,7 +63,7 @@ void CController::uiThreadTimerTick()
 	_leftPanel.uiThreadTimerTick();
 	_rightPanel.uiThreadTimerTick();
 
-	_uiQueue.exec(CExecutionQueue::execFirst);
+	_uiQueue.exec(CExecutionQueue::execAll);
 }
 
 // Updates the list of files in the current directory this panel is viewing, and send the new state to UI

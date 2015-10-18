@@ -5,6 +5,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 namespace Ui {
@@ -28,10 +29,13 @@ public:
 private:
 	void search();
 
+	void addResultsToUi();
+
 private:
 	Ui::CFilesSearchWindow *ui;
 	QLabel* _progressLabel;
-
 	CFileSearchEngine& _engine;
+	QTimer _resultsListUpdateTimer;
+	std::vector<QString> _matches;
 };
 

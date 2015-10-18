@@ -72,6 +72,9 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
 	});
 
 	ui->cbNameCaseSensitive->setVisible(caseSensitiveFilesystem());
+
+	connect(&_resultsListUpdateTimer, &QTimer::timeout, this, &CFilesSearchWindow::addResultsToUi);
+	_resultsListUpdateTimer.start(100);
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()
@@ -88,13 +91,7 @@ void CFilesSearchWindow::itemScanned(const QString& currentItem)
 
 void CFilesSearchWindow::matchFound(const QString& path)
 {
-	const bool isDir = QFileInfo(path).isDir();
-
-	QListWidgetItem* item = new QListWidgetItem;
-	item->setText(isDir ? ("[" % path % "]") : path);
-	item->setData(Qt::UserRole, path);
-	ui->resultsList->addItem(item);
-	ui->resultsList->scrollToBottom();
+	_matches.push_back(path);
 }
 
 void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint32_t speed)
@@ -125,4 +122,22 @@ void CFilesSearchWindow::search()
 	ui->btnSearch->setText(tr("Stop"));
 	ui->resultsList->clear();
 	setWindowTitle('\"' % what % "\" " % tr("search results"));
+}
+
+void CFilesSearchWindow::addResultsToUi()
+{
+	ui->resultsList->setUpdatesEnabled(false);
+	for (const QString& path: _matches)
+	{
+		const bool isDir = QFileInfo(path).isDir();
+
+		QListWidgetItem* item = new QListWidgetItem;
+		item->setText(isDir ? ("[" % path % "]") : path);
+		item->setData(Qt::UserRole, path);
+		ui->resultsList->addItem(item);
+	}
+
+	ui->resultsList->scrollToBottom();
+	ui->resultsList->setUpdatesEnabled(true);
+	_matches.clear();
 }
