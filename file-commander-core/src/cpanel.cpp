@@ -247,6 +247,9 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 			}
 
 			list = _currentDirObject.qDir().entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+			for (auto it: list)
+				qDebug() << it.absoluteFilePath();
+
 			qDebug() << "Getting file list for" << _currentDirObject.fullAbsolutePath() << "(" << list.size() << "items ) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
 			_items.clear();

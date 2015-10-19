@@ -3,6 +3,7 @@
 #include "../../columns.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDebug>
 #include <QStandardItemModel>
 RESTORE_COMPILER_WARNINGS
 
