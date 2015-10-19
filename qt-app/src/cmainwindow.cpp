@@ -30,6 +30,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QProcess>
 #include <QSortFilterProxyModel>
+#include <QWidgetList>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
@@ -157,6 +158,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Invert_selection, &QAction::triggered, this, &CMainWindow::invertSelection);
 
 	connect(ui->actionFull_screen_mode, &QAction::toggled, this, &CMainWindow::toggleFullScreenMode);
+	connect(ui->actionTablet_mode, &QAction::toggled, this, &CMainWindow::toggleTabletMode);
 }
 
 // For manual focus management
@@ -551,6 +553,22 @@ void CMainWindow::toggleFullScreenMode(bool fullscreen)
 		showNormal();
 }
 
+void CMainWindow::toggleTabletMode(bool tabletMode)
+{
+	static const int defaultFontSize = QApplication::font().pointSize();
+
+	ui->actionFull_screen_mode->toggle();
+
+	QFont f = QApplication::font();
+	f.setPointSize(tabletMode ? 24 : defaultFontSize);
+	QApplication::setFont(f);
+
+	auto widgets = QApplication::allWidgets();
+	for (auto widget : widgets)
+		if (widget)
+			widget->setFont(f);
+}
+
 bool CMainWindow::executeCommand(QString commandLineText)
 {
 	if (!_currentFileList || commandLineText.isEmpty())
@@ -612,7 +630,16 @@ void CMainWindow::findFiles()
 	if (!_currentFileList)
 		return;
 
-	auto ui = new CFilesSearchWindow(_currentFileList->currentDir());
+	auto selectedHashes = _currentFileList->selectedItemsHashes(true);
+	std::vector<QString> selectedPaths;
+	if (!selectedHashes.empty())
+		for (const auto hash: selectedHashes)
+			selectedPaths.push_back(_controller->activePanel().itemByHash(hash).fullAbsolutePath());
+	else
+		selectedPaths.push_back(_currentFileList->currentDir());
+
+
+	auto ui = new CFilesSearchWindow(selectedPaths);
 	connect(this, &CMainWindow::closed, ui, &CFilesSearchWindow::close);
 	ui->show();
 }

@@ -75,6 +75,7 @@ private slots: // UI slots
 	void currentItemChanged(Panel p, qulonglong itemHash);
 
 	void toggleFullScreenMode(bool fullscreen);
+	void toggleTabletMode(bool tabletMode);
 
 // Command line
 	// true if command was executed

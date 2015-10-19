@@ -31,7 +31,7 @@ bool CFileSearchEngine::searchInProgress() const
 	return _workerThread.running();
 }
 
-void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QString& where, const QString& contentsToFind, bool contentsCaseSensitive)
+void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const std::vector<QString>& where, const QString& contentsToFind, bool contentsCaseSensitive)
 {
 	if (_workerThread.running())
 	{
@@ -39,7 +39,7 @@ void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		return;
 	}
 
-	if (what.isEmpty() || where.isEmpty())
+	if (what.isEmpty() || where.empty())
 		return;
 
 	_workerThread.exec([this, what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive](){
@@ -57,55 +57,58 @@ void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 			queryRegExp.setCaseSensitivity(subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
 		}
 
-		const auto hierarchy = enumerateDirectoryRecursively(CFileSystemObject(where),
-			[&](QString path){
+		for (const QString& pathToLookIn: where)
+		{
+			const auto hierarchy = enumerateDirectoryRecursively(CFileSystemObject(pathToLookIn),
+				[&](QString path){
 
-			++itemCounter;
+				++itemCounter;
 
-			_controller.execOnUiThread([this, path, what](){
-				for (const auto& listener: _listeners)
-					listener->itemScanned(path);
-			}, tag);
+				_controller.execOnUiThread([this, path, what](){
+					for (const auto& listener: _listeners)
+						listener->itemScanned(path);
+				}, tag);
 
-			// contains() is faster than RegEx match (as of Qt 5.4.2)
-			if ((nameQueryHasWildcards && queryRegExp.exactMatch(path)) || (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)))
-			{
-				QFile file(path);
-				if (!contentsToFind.isEmpty())
+				// contains() is faster than RegEx match (as of Qt 5.4.2)
+				if ((nameQueryHasWildcards && queryRegExp.exactMatch(path)) || (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)))
 				{
-					if (!file.open(QFile::ReadOnly))
-						return;
+					QFile file(path);
+					if (!contentsToFind.isEmpty())
+					{
+						if (!file.open(QFile::ReadOnly))
+							return;
+					}
+
+					QTextStream stream(&file);
+					bool match = contentsToFind.isEmpty();
+					QRegExp fileContentsRegExp;
+					const bool contentsQueryHasWildcards = contentsToFind.contains(QRegExp("[*?]"));
+					const auto subjectCaseSensitivity = subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+					if (contentsQueryHasWildcards)
+					{
+						fileContentsRegExp.setPatternSyntax(QRegExp::Wildcard);
+						fileContentsRegExp.setPattern(contentsToFind);
+						fileContentsRegExp.setCaseSensitivity(subjectCaseSensitivity);
+					}
+
+					while (!match && !_workerThread.terminationFlag() && !stream.atEnd())
+					{
+						const QString line = stream.readLine();
+						// contains() is faster than RegEx match (as of Qt 5.4.2)
+						match = contentsQueryHasWildcards ? fileContentsRegExp.exactMatch(line) : line.contains(contentsToFind, subjectCaseSensitivity);
+					}
+
+					if (match)
+					{
+						_controller.execOnUiThread([this, path, what](){
+						for (const auto& listener : _listeners)
+							listener->matchFound(path);
+						});
+					}
 				}
 
-				QTextStream stream(&file);
-				bool match = contentsToFind.isEmpty();
-				QRegExp fileContentsRegExp;
-				const bool contentsQueryHasWildcards = contentsToFind.contains(QRegExp("[*?]"));
-				const auto subjectCaseSensitivity = subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
-				if (contentsQueryHasWildcards)
-				{
-					fileContentsRegExp.setPatternSyntax(QRegExp::Wildcard);
-					fileContentsRegExp.setPattern(contentsToFind);
-					fileContentsRegExp.setCaseSensitivity(subjectCaseSensitivity);
-				}
-
-				while (!match && !_workerThread.terminationFlag() && !stream.atEnd())
-				{
-					const QString line = stream.readLine();
-					// contains() is faster than RegEx match (as of Qt 5.4.2)
-					match = contentsQueryHasWildcards ? fileContentsRegExp.exactMatch(line) : line.contains(contentsToFind, subjectCaseSensitivity);
-				}
-
-				if (match)
-				{
-					_controller.execOnUiThread([this, path, what](){
-					for (const auto& listener : _listeners)
-						listener->matchFound(path);
-					});
-				}
-			}
-
-		}, _workerThread.terminationFlag());
+			}, _workerThread.terminationFlag());
+		}
 
 		const uint32_t speed = timer.elapsed() > 0 ? static_cast<uint32_t>(itemCounter * 1000u / timer.elapsed()) : 0;
 		_controller.execOnUiThread([this, speed](){

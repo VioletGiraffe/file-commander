@@ -29,10 +29,11 @@ static bool caseSensitiveFilesystem()
 #endif
 }
 
-CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
+CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 	QMainWindow(nullptr),
 	ui(new Ui::CFilesSearchWindow),
-	_engine(CController::get().fileSearchEngine())
+	_engine(CController::get().fileSearchEngine()),
+	_pathsToSearchIn(targets)
 {
 	ui->setupUi(this);
 
@@ -45,7 +46,14 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& root) :
 	ui->fileContentsToFind->setSaveCurrentText(true);
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
 
-	ui->searchRoot->lineEdit()->setText(root);
+	QString pathsToSearchIn;
+	for (size_t i = 0; i < _pathsToSearchIn.size(); ++i)
+	{
+		pathsToSearchIn.append(_pathsToSearchIn[i]);
+		if (i < _pathsToSearchIn.size() - 1)
+			pathsToSearchIn.append("; ");
+	}
+	ui->searchRoot->setCurrentText(pathsToSearchIn);
 
 	CSettings s;
 	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
@@ -115,10 +123,9 @@ void CFilesSearchWindow::search()
 	}
 
 	const QString what = ui->nameToFind->currentText();
-	const QString where = ui->searchRoot->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
-	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), where, withText, ui->cbContentsCaseSensitive->isChecked());
+	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), _pathsToSearchIn, withText, ui->cbContentsCaseSensitive->isChecked());
 	ui->btnSearch->setText(tr("Stop"));
 	ui->resultsList->clear();
 	setWindowTitle('\"' % what % "\" " % tr("search results"));
@@ -126,6 +133,9 @@ void CFilesSearchWindow::search()
 
 void CFilesSearchWindow::addResultsToUi()
 {
+	if (_matches.empty())
+		return;
+
 	ui->resultsList->setUpdatesEnabled(false);
 	for (const QString& path: _matches)
 	{

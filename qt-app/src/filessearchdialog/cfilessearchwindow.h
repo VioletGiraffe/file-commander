@@ -19,7 +19,7 @@ class CFilesSearchWindow : public QMainWindow, public CFileSearchEngine::FileSea
 	Q_OBJECT
 
 public:
-	explicit CFilesSearchWindow(const QString& root);
+	explicit CFilesSearchWindow(const std::vector<QString>& targets);
 	~CFilesSearchWindow();
 
 	void itemScanned(const QString& currentItem) override;
@@ -33,8 +33,10 @@ private:
 
 private:
 	Ui::CFilesSearchWindow *ui;
-	QLabel* _progressLabel;
 	CFileSearchEngine& _engine;
+	const std::vector<QString> _pathsToSearchIn;
+
+	QLabel* _progressLabel;
 	QTimer _resultsListUpdateTimer;
 	std::vector<QString> _matches;
 };

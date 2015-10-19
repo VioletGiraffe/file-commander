@@ -3,6 +3,7 @@
 #include "threading/cinterruptablethread.h"
 
 #include <set>
+#include <vector>
 
 class CController;
 class QString;
@@ -29,7 +30,7 @@ public:
 
 
 	bool searchInProgress() const;
-	void search(const QString& what, bool subjectCaseSensitive, const QString& where, const QString& contentsToFind, bool contentsCaseSensitive);
+	void search(const QString& what, bool subjectCaseSensitive, const std::vector<QString>& where, const QString& contentsToFind, bool contentsCaseSensitive);
 	void stopSearching();
 
 private:

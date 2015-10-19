@@ -243,6 +243,7 @@
      <string>&amp;View</string>
     </property>
     <addaction name="actionFull_screen_mode"/>
+    <addaction name="actionTablet_mode"/>
     <addaction name="separator"/>
     <addaction name="action_Show_hidden_files"/>
     <addaction name="actionShowAllFiles"/>
@@ -353,6 +354,14 @@
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
+   </property>
+  </action>
+  <action name="actionTablet_mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Tablet mode</string>
    </property>
   </action>
  </widget>
