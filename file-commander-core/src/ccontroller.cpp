@@ -20,7 +20,7 @@ CController::CController() :
 	_leftPanel(LeftPanel),
 	_rightPanel(RightPanel),
 	_fileSearchEngine(*this),
-	_workerThread(4, "CController worker thread")
+	_workerThread(32, "CController worker thread")
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
