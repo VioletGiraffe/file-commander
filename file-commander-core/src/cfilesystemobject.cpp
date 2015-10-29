@@ -240,6 +240,15 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 	return _rootFileSystemId;
 }
 
+bool CFileSystemObject::isNetworkObject() const
+{
+#ifdef _WIN32
+	return _properties.fullPath.startsWith("//") && !_properties.fullPath.startsWith("//?/");
+#else
+	return false;
+#endif
+}
+
 bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
 {
 	const auto fileSystemId = rootFileSystemId(), otherFileSystemId = dest.rootFileSystemId();
@@ -529,7 +538,6 @@ QString CFileSystemObject::lastErrorMessage() const
 {
 	return _lastError;
 }
-
 
 
 DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root, const std::function<void (QString)>& observer, const std::atomic<bool>& abort)

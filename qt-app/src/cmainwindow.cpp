@@ -546,7 +546,6 @@ void CMainWindow::currentItemChanged(Panel /*p*/, qulonglong /*itemHash*/)
 
 void CMainWindow::toggleFullScreenMode(bool fullscreen)
 {
-	static auto flags = windowFlags();
 	if (fullscreen)
 		showFullScreen();
 	else

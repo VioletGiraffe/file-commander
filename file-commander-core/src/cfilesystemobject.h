@@ -81,6 +81,7 @@ public:
 	const QDir& qDir() const;
 	static std::vector<QString> pathHierarchy(const QString& path);
 	uint64_t rootFileSystemId() const;
+	bool isNetworkObject() const;
 
 	bool isMovableTo(const CFileSystemObject& dest) const;
 

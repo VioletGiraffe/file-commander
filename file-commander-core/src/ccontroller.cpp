@@ -113,18 +113,16 @@ bool CController::switchToDisk(Panel p, size_t index)
 	assert_r(index < _diskEnumerator.drives().size());
 	const QString drivePath = _diskEnumerator.drives().at(index).storageInfo.rootPath();
 
-	FileOperationResultCode result = rcDirNotAccessible;
-	if (drivePath == _diskEnumerator.drives().at(currentDiskIndex(otherPanelPosition(p))).storageInfo.rootPath())
+	const size_t currentIndex = currentDiskIndex(otherPanelPosition(p));
+	if (currentIndex < _diskEnumerator.drives().size() && drivePath == _diskEnumerator.drives().at(currentIndex).storageInfo.rootPath())
 	{
-		result = setPath(p, otherPanel(p).currentDirPathNative(), refreshCauseOther);
+		return setPath(p, otherPanel(p).currentDirPathNative(), refreshCauseOther) == rcOk;
 	}
 	else
 	{
 		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
-		result = setPath(p, lastPathForDrive, refreshCauseOther);
+		return setPath(p, lastPathForDrive, refreshCauseOther) == rcOk;
 	}
-
-	return result == rcOk;
 }
 
 // Porgram settings have changed
@@ -429,9 +427,12 @@ void CController::disksChanged()
 
 void CController::saveDirectoryForCurrentDisk(Panel p)
 {
-	assert_and_return_r(currentDiskIndex(p) < _diskEnumerator.drives().size(), );
+	const QString path = panel(p).currentDirPathNative();
+	if (CFileSystemObject(path).isNetworkObject())
+		return;
+
+	assert_and_return_r(CFileSystemObject(path).isNetworkObject() || currentDiskIndex(p) < _diskEnumerator.drives().size(), );
 
 	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).storageInfo.rootPath();
-	const QString path = panel(p).currentDirPathNative();
 	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path);
 }
