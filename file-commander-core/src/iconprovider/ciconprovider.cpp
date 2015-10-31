@@ -38,11 +38,12 @@ CIconProvider::CIconProvider() : _provider(new CIconProviderImpl)
 inline static qulonglong hash(const CFileSystemObject& object)
 {
 	const auto properties = object.properties();
-	const auto hashData = QByteArray::fromRawData((const char*)&properties.hash, sizeof(properties.hash)) +
-			QByteArray::fromRawData((const char*)&properties.modificationDate, sizeof(properties.modificationDate)) +
-			QByteArray::fromRawData((const char*)&properties.type, sizeof(properties.type));
+	const auto hashData =
+		QByteArray::fromRawData((const char*) &properties.modificationDate, sizeof(properties.modificationDate)) +
+		QByteArray::fromRawData((const char*) &properties.creationDate, sizeof(properties.creationDate)) +
+		QByteArray::fromRawData((const char*) &properties.type, sizeof(properties.type));
 
-	return fasthash64(hashData.constData(), hashData.size(), 0);
+	return fasthash64(hashData.constData(), hashData.size(), 0) ^ (uint64_t) properties.hash;
 }
 
 const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
@@ -54,7 +55,7 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 		assert_r(!icon.isNull());
 
 		const auto qimage = icon.pixmap(icon.availableSizes().front()).toImage();
-		const qulonglong iconHash = fasthash64((const char*)qimage.constBits(), qimage.bytesPerLine() * qimage.height(), 0);
+		const qulonglong iconHash = fasthash64((const char*) qimage.constBits(), qimage.bytesPerLine() * qimage.height(), 0);
 
 		if (_iconCache.size() > 300)
 		{
@@ -64,7 +65,7 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 
 		const auto iconInContainer = _iconCache.insert(std::make_pair(iconHash, icon)).first;
 		_iconForObject[objectHash] = iconHash;
-		
+
 		return iconInContainer->second;
 	}
 

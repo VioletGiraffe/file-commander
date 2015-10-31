@@ -57,6 +57,6 @@ xcopy /R /Y %SystemRoot%\System32\msvcp120.dll binaries\64\msvcr\
 
 del binaries\64\Qt\opengl*.*
 
-"c:\Program Files (x86)\Inno Setup 5\compil32" /cc setup.iss
+"c:\Program Files (x86)\Inno Setup 5\iscc" setup.iss
 
 ENDLOCAL
