@@ -17,9 +17,9 @@ RESTORE_COMPILER_WARNINGS
 CController* CController::_instance = nullptr;
 
 CController::CController() :
+	_fileSearchEngine(*this),
 	_leftPanel(LeftPanel),
 	_rightPanel(RightPanel),
-	_fileSearchEngine(*this),
 	_workerThread(32, "CController worker thread")
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
