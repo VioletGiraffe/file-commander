@@ -15,7 +15,7 @@ pushd ..\..\
 popd
 
 call "%VS_TOOLS_DIR%VsDevCmd.bat" x86
-msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v120_xp
+msbuild ..\..\file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v120_xp
 
 xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\32\
 xcopy /R /Y ..\..\bin\release\plugin_*.dll binaries\32\
