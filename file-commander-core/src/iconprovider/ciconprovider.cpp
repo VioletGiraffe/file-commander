@@ -41,6 +41,7 @@ inline static qulonglong hash(const CFileSystemObject& object)
 	const auto hashData =
 		QByteArray::fromRawData((const char*) &properties.modificationDate, sizeof(properties.modificationDate)) +
 		QByteArray::fromRawData((const char*) &properties.creationDate, sizeof(properties.creationDate)) +
+		QByteArray::fromRawData((const char*) &properties.size, sizeof(properties.size)) +
 		QByteArray::fromRawData((const char*) &properties.type, sizeof(properties.type));
 
 	return fasthash64(hashData.constData(), hashData.size(), 0) ^ (uint64_t) properties.hash;
