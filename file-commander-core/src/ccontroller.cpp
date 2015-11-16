@@ -96,7 +96,12 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	}
 	else if (item.isFile())
 	{
-		return QDesktopServices::openUrl(QUrl::fromLocalFile(toPosixSeparators(item.fullAbsolutePath()))) ? rcOk : rcFail;
+		if (item.isExecutable())
+			// Attempting to launch this exe from the current directory
+			return QProcess::startDetached(toPosixSeparators(item.fullAbsolutePath()), QStringList(), toPosixSeparators(item.parentDirPath())) ? rcOk : rcFail;
+		else
+			// It's probably not a binary file, try opening with openUrl
+			return QDesktopServices::openUrl(QUrl::fromLocalFile(toPosixSeparators(item.fullAbsolutePath()))) ? rcOk : rcFail;
 	}
 
 	return rcFail;
