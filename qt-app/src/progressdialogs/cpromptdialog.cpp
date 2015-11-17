@@ -57,7 +57,8 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
-		ui->btnRetry->setVisible(false);
+		ui->btnDeleteAllAnyway->setVisible(false);
+		ui->btnDeleteAnyway->setVisible(false);
 		break;
 	case hrCreatingFolderFailed:
 		ui->lblQuestion->setText(tr("Failed to create the folder\n%1").arg(source.fullAbsolutePath()));
