@@ -5,6 +5,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QLabel>
 #include <QShortcut>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 CImageViewerWindow::CImageViewerWindow() :
@@ -44,11 +45,12 @@ bool CImageViewerWindow::displayImage(const QString& imagePath, const QImage& im
 		return false;
 
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
-	adjustSize();
 	setWindowTitle(imagePath);
 
-	static const QList<QSize> requiredIconSizes = { {16, 16}, {32, 32} };
-	setWindowIcon(ui->_imageViewerWidget->imageIcon(requiredIconSizes));
+	QTimer::singleShot(10, [this](){
+		static const QList<QSize> requiredIconSizes = { { 16, 16 }, { 32, 32 } };
+		setWindowIcon(ui->_imageViewerWidget->imageIcon(requiredIconSizes));
+	});
 
 	return true;
 }
