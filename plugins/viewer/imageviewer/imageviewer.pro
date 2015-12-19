@@ -74,7 +74,6 @@ win32*:!*msvc2012:*msvc* {
 }
 
 FORMS += \
-	src/cimageviewerwidget.ui \
 	src/cimageviewerwindow.ui
 
 mac*|linux*{

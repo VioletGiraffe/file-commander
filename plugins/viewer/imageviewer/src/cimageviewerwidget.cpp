@@ -3,17 +3,22 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QDebug>
 #include <QDesktopWidget>
 #include <QFileInfo>
 #include <QImageReader>
+#include <QMainWindow>
 #include <QMessageBox>
 #include <QPainter>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
 	QWidget(parent),
 	_imageFileSize(0)
 {
+	// To avoid double image rendering - on show and on resize
+	setUpdatesEnabled(false);
 }
 
 bool CImageViewerWidget::displayImage(const QString& imagePath, const QImage& image)
@@ -22,12 +27,31 @@ bool CImageViewerWidget::displayImage(const QString& imagePath, const QImage& im
 	_sourceImage = image.isNull() ? QImageReader(imagePath).read() : image;
 	if (!_sourceImage.isNull())
 	{
-		QSize screenSize = QApplication::desktop()->availableGeometry().size() - QSize(50, 50);
-		QSize windowSize = _sourceImage.size();
-		if (windowSize.height() > screenSize.height() || windowSize.width() > screenSize.width())
-			windowSize.scale(screenSize, Qt::KeepAspectRatio);
-		resize(windowSize);
-		update();
+		const QSize screenSize = QApplication::desktop()->availableGeometry().size() - QSize(30, 100);
+		QSize widgetSize = _sourceImage.size();
+		if (widgetSize.height() > screenSize.height() || widgetSize.width() > screenSize.width())
+			widgetSize.scale(screenSize, Qt::KeepAspectRatio);
+
+		resize(widgetSize);
+
+		QTimer::singleShot(0, [this]() {
+			// Apparently, we need the timer in order for the resize to actually be applied before parent's resize
+			QMainWindow * mainWindow = nullptr;
+			for (QWidget * widget = dynamic_cast<QWidget*>(parent()); widget != nullptr; widget = dynamic_cast<QWidget*>(widget->parent()))
+			{
+				widget->resize(widget->sizeHint());
+				if (!mainWindow)
+					mainWindow = dynamic_cast<QMainWindow*>(widget);
+			}
+
+			if (mainWindow)
+			{
+				const auto availableGeometry = QApplication::desktop()->availableGeometry();
+				mainWindow->move(QPoint(availableGeometry.width()/2 - mainWindow->frameGeometry().width()/2, availableGeometry.height()/2 - mainWindow->frameGeometry().height()/2));
+			}
+
+			setUpdatesEnabled(true);
+		});
 
 		return true;
 	}
@@ -54,7 +78,8 @@ QString CImageViewerWidget::imageInfoString() const
 
 QSize CImageViewerWidget::sizeHint() const
 {
-	return _sourceImage.size();
+	// This is required for the size magic to work!
+	return size();
 }
 
 QIcon CImageViewerWidget::imageIcon(const QList<QSize>& sizes) const
