@@ -410,15 +410,19 @@ void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIn
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 {
-	const CFileSystemObject item = _controller.itemByHash(_panelPosition, hash);
-	const QString newItemPath = item.parentDirPath() % "/" % newName;
+	CFileSystemObject item = _controller.itemByHash(_panelPosition, hash);
 
 	// This is required for the UI to know to move the cursor to the renamed item
-	_controller.setCursorPositionForCurrentFolder(CFileSystemObject(newItemPath).hash());
+	_controller.setCursorPositionForCurrentFolder(CFileSystemObject(item.parentDirPath() % "/" % newName).hash());
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::vector<CFileSystemObject>(1, item), newItemPath, CMainWindow::get());
-	connect(CMainWindow::get(), &CMainWindow::closed, dialog, &QObject::deleteLater);
-	dialog->show();
+	if (item.moveAtomically(item.parentDirPath(), newName) != rcOk)
+	{
+		QString errorMessage = tr("Failed to rename %1 to %2").arg(item.fullName()).arg(newName);
+		if (!item.lastErrorMessage().isEmpty())
+			errorMessage.append(":\n" % item.lastErrorMessage() % '.');
+
+		QMessageBox::critical(this, tr("Renaming failed"), errorMessage);
+	}
 }
 
 void CPanelWidget::toRoot()

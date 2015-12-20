@@ -17,6 +17,7 @@ RESTORE_COMPILER_WARNINGS
 #include <unistd.h>
 #include <sys/stat.h>
 #elif defined _WIN32
+#include <Windows.h>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
@@ -81,7 +82,7 @@ void CFileSystemObject::refreshInfo()
 
 void CFileSystemObject::setPath(const QString& path)
 {
-	_lastError.clear();
+	_lastErrorMessage.clear();
 	_rootFileSystemId = std::numeric_limits<uint64_t>::max();
 	_thisFile.reset();
 	_destFile.reset();
@@ -231,7 +232,7 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 			_rootFileSystemId = (uint64_t) info.st_dev;
 		else
 		{
-			_lastError = strerror(errno);
+			_lastErrorMessage = strerror(errno);
 			qDebug() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
 		}
 #endif
@@ -303,7 +304,7 @@ FileOperationResultCode CFileSystemObject::copyAtomically(const QString& destFol
 	QFile file (_properties.fullPath);
 	const bool succ = file.copy(destFolder + (newName.isEmpty() ? _properties.fullName : newName));
 	if (!succ)
-		_lastError = file.errorString();
+		_lastErrorMessage = file.errorString();
 	return succ ? rcOk : rcFail;
 }
 
@@ -317,8 +318,23 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 	assert_r(QFileInfo(location).isDir());
 	const QString fullNewName = location % '/' % (newName.isEmpty() ? _properties.fullName : newName);
 	const QFileInfo destInfo(fullNewName);
+	const bool newNameDiffersOnlyByCase = destInfo.absoluteFilePath().compare(fullAbsolutePath(), Qt::CaseInsensitive) == 0;
 	if (destInfo.exists() && (isDir() || destInfo.isFile()))
-		return rcTargetAlreadyExists;
+		// If the file system is case-insensitive, and the source and destination only differ by case, renaming is allowed even though formally the destination already exists (fix for #102)
+		if (caseSensitiveFilesystem() || !newNameDiffersOnlyByCase)
+			return rcTargetAlreadyExists;
+	
+	// Special case for Windows, where QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
+#ifdef _WIN32
+	if (newNameDiffersOnlyByCase)
+	{
+		if (MoveFileW((WCHAR*)fullAbsolutePath().utf16(), (WCHAR*)destInfo.absoluteFilePath().utf16()) != 0)
+			return rcOk;
+
+		_lastErrorMessage = ErrorStringFromLastError();
+		return rcFail;
+	}
+#endif
 
 	if (isFile())
 	{
@@ -326,7 +342,7 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 		const bool succ = file.rename(fullNewName);
 		if (!succ)
 		{
-			_lastError = file.errorString();
+			_lastErrorMessage = file.errorString();
 			return rcFail;
 		}
 
@@ -362,7 +378,7 @@ FileOperationResultCode CFileSystemObject::copyChunk(uint64_t chunkSize, const Q
 		// Initializing - opening files
 		if (!_thisFile->open(QFile::ReadOnly))
 		{
-			_lastError = _thisFile->errorString();
+			_lastErrorMessage = _thisFile->errorString();
 
 			_thisFile.reset();
 			_destFile.reset();
@@ -372,7 +388,7 @@ FileOperationResultCode CFileSystemObject::copyChunk(uint64_t chunkSize, const Q
 
 		if (!_destFile->open(QFile::ReadWrite))
 		{
-			_lastError = _destFile->errorString();
+			_lastErrorMessage = _destFile->errorString();
 
 			_thisFile.reset();
 			_destFile.reset();
@@ -392,14 +408,14 @@ FileOperationResultCode CFileSystemObject::copyChunk(uint64_t chunkSize, const Q
 		const auto src = _thisFile->map(_pos, actualChunkSize);
 		if (!src)
 		{
-			_lastError = _thisFile->errorString();
+			_lastErrorMessage = _thisFile->errorString();
 			return rcFail;
 		}
 
 		const auto dest = _destFile->map(_pos, actualChunkSize);
 		if (!dest)
 		{
-			_lastError = _destFile->errorString();
+			_lastErrorMessage = _destFile->errorString();
 			return rcFail;
 		}
 
@@ -463,13 +479,13 @@ bool CFileSystemObject::makeWritable(bool writeable)
 	const DWORD attributes = GetFileAttributesW((LPCWSTR)UNCPath.utf16());
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 	{
-		_lastError = ErrorStringFromLastError();
+		_lastErrorMessage = ErrorStringFromLastError();
 		return false;
 	}
 
 	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writeable ? (attributes & (~FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
 	{
-		_lastError = ErrorStringFromLastError();
+		_lastErrorMessage = ErrorStringFromLastError();
 		return false;
 	}
 
@@ -480,13 +496,13 @@ bool CFileSystemObject::makeWritable(bool writeable)
 	const QByteArray fileName = fullAbsolutePath().toUtf8();
 	if (stat(fileName.constData(), &fileInfo) != 0)
 	{
-		_lastError = strerror(errno);
+		_lastErrorMessage = strerror(errno);
 		return false;
 	}
 
 	if (chmod(fileName.constData(), writeable ? (fileInfo.st_mode | S_IWUSR) : (fileInfo.st_mode & (~S_IWUSR))) != 0)
 	{
-		_lastError = strerror(errno);
+		_lastErrorMessage = strerror(errno);
 		return false;
 	}
 
@@ -507,7 +523,7 @@ FileOperationResultCode CFileSystemObject::remove()
 			return rcOk;
 		else
 		{
-			_lastError = file.errorString();
+			_lastErrorMessage = file.errorString();
 			return rcFail;
 		}
 	}
@@ -536,7 +552,7 @@ FileOperationResultCode CFileSystemObject::remove()
 
 QString CFileSystemObject::lastErrorMessage() const
 {
-	return _lastError;
+	return _lastErrorMessage;
 }
 
 

@@ -1,5 +1,4 @@
-#ifndef CFILESYSTEMOBJECT_H
-#define CFILESYSTEMOBJECT_H
+#pragma once
 
 #include "fileoperationresultcode.h"
 #include "compiler/compiler_warnings_control.h"
@@ -117,7 +116,7 @@ private:
 	QFileInfo                   _fileInfo;
 	QDir                        _dir;
 	CFileSystemObjectProperties _properties;
-	mutable QString             _lastError;
+	mutable QString             _lastErrorMessage;
 	// Can be used to determine whether 2 objects are on the same drive
 	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 
@@ -143,4 +142,16 @@ struct FlattenedHierarchy {
 FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy);
 FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy);
 
-#endif // CFILESYSTEMOBJECT_H
+inline bool caseSensitiveFilesystem()
+{
+#if defined _WIN32
+	return false;
+#elif __APPLE__
+	return true;
+#elif __linux__
+	return true;
+#else
+#error "Unknown operating system"
+	return true;
+#endif
+}

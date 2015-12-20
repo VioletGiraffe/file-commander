@@ -15,20 +15,6 @@ RESTORE_COMPILER_WARNINGS
 #define SETTINGS_CONTENTS_CASE_SENSITIVE "FileSearchDialog/Ui/CaseSensitiveContents"
 #define SETTINGS_ROOT_FOLDER             "FileSearchDialog/Ui/RootFolder"
 
-static bool caseSensitiveFilesystem()
-{
-#if defined _WIN32
-	return false;
-#elif __APPLE__
-	return true;
-#elif __linux__
-	return true;
-#else
-#error "Unknown operating system"
-	return true;
-#endif
-}
-
 CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 	QMainWindow(nullptr),
 	ui(new Ui::CFilesSearchWindow),
