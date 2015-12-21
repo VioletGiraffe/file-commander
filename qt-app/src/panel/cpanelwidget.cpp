@@ -411,6 +411,8 @@ void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIn
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 {
 	CFileSystemObject item = _controller.itemByHash(_panelPosition, hash);
+	if (item.isCdUp())
+		return;
 
 	// This is required for the UI to know to move the cursor to the renamed item
 	_controller.setCursorPositionForCurrentFolder(CFileSystemObject(item.parentDirPath() % "/" % newName).hash());

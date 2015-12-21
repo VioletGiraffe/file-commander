@@ -81,7 +81,7 @@ Qt::ItemFlags CFileListModel::flags(const QModelIndex & idx) const
 	return item.exists() ? flags | Qt::ItemIsEditable : flags;
 }
 
-bool CFileListModel::canDropMimeData(const QMimeData * data, Qt::DropAction /*action*/, int row, int /*column*/, const QModelIndex & /*parent*/) const
+bool CFileListModel::canDropMimeData(const QMimeData * data, Qt::DropAction /*action*/, int /*row*/, int /*column*/, const QModelIndex & /*parent*/) const
 {
 	return data->hasUrls();
 }
