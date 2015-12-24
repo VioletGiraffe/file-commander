@@ -21,7 +21,6 @@
 #include "filessearchdialog/cfilessearchwindow.h"
 
 DISABLE_COMPILER_WARNINGS
-//#include <QApplication>
 #include <QCloseEvent>
 #include <QDesktopWidget>
 #include <QFileDialog>
@@ -104,6 +103,9 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	ui->leftWidget->setCurrentIndex(0); // PanelWidget
 	ui->rightWidget->setCurrentIndex(0); // PanelWidget
+
+	_controller->panel(LeftPanel).addPanelContentsChangedListener(this);
+	_controller->panel(RightPanel).addPanelContentsChangedListener(this);
 
 	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
 	_uiThreadTimer.start(5);
@@ -697,6 +699,16 @@ void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
 	for (int i = 0; i < ui->rightWidget->count(); ++i)
 		if (now == ui->rightWidget || widgetBelongsToHierarchy(now, ui->rightWidget->widget(i)))
 			currentPanelChanged(ui->rightWidget);
+}
+
+void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
+{
+	if (_currentFileList && p == _currentFileList->panelPosition())
+		ui->fullPath->setText(_controller->panel(p).currentDirPathNative());
+}
+
+void CMainWindow::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
+{
 }
 
 void CMainWindow::createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries)

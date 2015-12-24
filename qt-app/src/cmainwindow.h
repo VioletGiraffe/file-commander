@@ -5,6 +5,7 @@
 #include "ccontroller.h"
 #include "panel/cpanelwidget.h"
 #include "panel/filelistwidget/cfilelistview.h"
+#include "cpanel.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QCompleter>
@@ -22,7 +23,7 @@ class CPanelWidget;
 class QShortcut;
 class QStackedWidget;
 
-class CMainWindow : public QMainWindow, private FileListReturnPressedObserver
+class CMainWindow : public QMainWindow, private FileListReturnPressedObserver, private PanelContentsChangedListener
 {
 	Q_OBJECT
 
@@ -98,6 +99,10 @@ private slots: // UI slots
 
 // Focus management
 	void focusChanged(QWidget * old, QWidget * now);
+
+private:
+	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	virtual void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
 
 private:
 	void createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries);
