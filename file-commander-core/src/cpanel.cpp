@@ -13,6 +13,11 @@ RESTORE_COMPILER_WARNINGS
 #include <time.h>
 #include <limits>
 
+enum {
+	ContentsChangedNotificationTag,
+	ItemDiscoveryProgressNotificationTag
+};
+
 CPanel::CPanel(Panel position) :
 	_panelPosition(position),
 	_workerThreadPool(4, "File list refresh thread")
@@ -366,7 +371,7 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 	_uiThreadQueue.enqueue([this, operation]() {
 		for (auto listener : _panelContentsChangedListeners)
 			listener->panelContentsChanged(_panelPosition, operation);
-	});
+	}, ContentsChangedNotificationTag);
 }
 
 // progress > 100 means indefinite
@@ -375,7 +380,7 @@ void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t p
 	_uiThreadQueue.enqueue([=]() {
 		for (auto listener : _panelContentsChangedListeners)
 			listener->itemDiscoveryInProgress(_panelPosition, itemHash, progress, currentDir);
-	}, 1);
+	}, ItemDiscoveryProgressNotificationTag);
 }
 
 void CPanel::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& disks)

@@ -310,8 +310,12 @@ bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void
 			qDebug() << "SetOwnerWindow failed";
 
 		result = iOperation->PerformOperations();
-		if (!SUCCEEDED(result) && result != 0x80270000)
+		if (!SUCCEEDED(result) && result != COPYENGINE_E_USER_CANCELLED)
+		{
 			qDebug() << "PerformOperations failed";
+			if (result == COPYENGINE_E_REQUIRES_ELEVATION)
+				qDebug() << "Elevation required";
+		}
 		else
 			result = S_OK;
 	}
