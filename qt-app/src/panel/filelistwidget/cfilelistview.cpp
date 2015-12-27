@@ -5,6 +5,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QDebug>
 #include <QDragMoveEvent>
 #include <QHeaderView>
 #include <QKeyEvent>
@@ -67,15 +68,18 @@ void CFileListView::moveCursorToItem(const QModelIndex& index, bool invertSelect
 {
 	if (index.isValid() && selectionModel()->model()->hasIndex(index.row(), index.column()))
 	{
-		const QModelIndex fixedIndex = model()->index(index.row(), index.column());
+		const QModelIndex normalizedTargetIndex = model()->index(index.row(), index.column()); // There was some problem with using the index directly, like it was from the wrong model or something
 		const QModelIndex currentIdx = currentIndex();
 		if (invertSelection && currentIdx.isValid())
 		{
-			for (int row = currentIdx.row(); row < fixedIndex.row(); ++row)
-				selectionModel()->setCurrentIndex(fixedIndex, (!_shiftPressedItemSelected ? QItemSelectionModel::Select : QItemSelectionModel::Deselect) | QItemSelectionModel::Rows);
+			int startRow = std::min(currentIdx.row(), normalizedTargetIndex.row());
+			int endRow = std::max(currentIdx.row(), normalizedTargetIndex.row());
+			for (int row = startRow; row <= endRow; ++row)
+				selectionModel()->setCurrentIndex(model()->index(row, 0), (!_shiftPressedItemSelected ? QItemSelectionModel::Select : QItemSelectionModel::Deselect) | QItemSelectionModel::Rows);
 		}
-		selectionModel()->setCurrentIndex(fixedIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
-		scrollTo(fixedIndex);
+
+		selectionModel()->setCurrentIndex(normalizedTargetIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
+		scrollTo(normalizedTargetIndex);
 	}
 }
 
@@ -193,6 +197,9 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 		if ((event->modifiers() & (~Qt::KeypadModifier) & (~Qt::ShiftModifier)) == Qt::NoModifier)
 		{
 			const bool shiftPressed = (event->modifiers() & Qt::ShiftModifier) != 0;
+			if (shiftPressed)
+				_shiftPressedItemSelected = currentIndex().isValid() ? selectionModel()->isSelected(currentIndex()) : false;
+
 			if (event->key() == Qt::Key_Down)
 				moveCursorToNextItem(shiftPressed);
 			else if (event->key() == Qt::Key_Up)
