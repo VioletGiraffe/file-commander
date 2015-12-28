@@ -118,12 +118,10 @@ bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> objects, i
 	const int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, (HWND)parentWindow, NULL);
 	if (iCmd > 0)
 	{
-		CMINVOKECOMMANDINFOEX info = { 0 };
+		CMINVOKECOMMANDINFO info = { 0 };
 		info.cbSize = sizeof(info);
-		info.fMask = CMIC_MASK_UNICODE;
 		info.hwnd = (HWND)parentWindow;
 		info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
-		info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
 		info.nShow = SW_SHOWNORMAL;
 		imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
 	}
@@ -144,13 +142,12 @@ bool CShell::copyObjectsToClipboard(std::vector<std::wstring> objects, void * pa
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	const int iCmd = 26;
-	CMINVOKECOMMANDINFOEX info = { 0 };
+	const char command[] = "Copy";
+
+	CMINVOKECOMMANDINFO info = { 0 };
 	info.cbSize = sizeof(info);
-	info.fMask = CMIC_MASK_UNICODE;
 	info.hwnd = (HWND)parentWindow;
-	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
-	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
+	info.lpVerb = command;
 	info.nShow = SW_SHOWNORMAL;
 	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
 
@@ -170,15 +167,14 @@ bool CShell::cutObjectsToClipboard(std::vector<std::wstring> objects, void * par
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	const int iCmd = 25;
-	CMINVOKECOMMANDINFOEX info = { 0 };
+	const char command [] = "Cut";
+
+	CMINVOKECOMMANDINFO info = { 0 };
 	info.cbSize = sizeof(info);
-	info.fMask = CMIC_MASK_UNICODE;
-	info.hwnd = (HWND)parentWindow;
-	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
-	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
+	info.hwnd = (HWND) parentWindow;
+	info.lpVerb = command;
 	info.nShow = SW_SHOWNORMAL;
-	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO) &info);
 
 	DestroyMenu(hMenu);
 
@@ -196,15 +192,14 @@ bool CShell::pasteFromClipboard(std::wstring destFolder, void * parentWindow)
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	const int iCmd = 27;
-	CMINVOKECOMMANDINFOEX info = { 0 };
+	const char command [] = "Paste";
+
+	CMINVOKECOMMANDINFO info = { 0 };
 	info.cbSize = sizeof(info);
-	info.fMask = CMIC_MASK_UNICODE;
-	info.hwnd = (HWND)parentWindow;
-	info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
-	info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
+	info.hwnd = (HWND) parentWindow;
+	info.lpVerb = command;
 	info.nShow = SW_SHOWNORMAL;
-	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO) &info);
 
 	DestroyMenu(hMenu);
 
