@@ -497,10 +497,6 @@ void CMainWindow::editFile()
 	const QString currentFile = _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath() : QString();
 	if (!currentFile.isEmpty())
 	{
-		const QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
-		if (editorPath.isEmpty())
-			return;
-
 #ifdef __APPLE__
 		const bool started = std::system((QString("open -n \"") + CSettings().value(KEY_EDITOR_PATH).toString() + "\" --args \"" + currentFile + "\"").toUtf8().constData()) == 0;
 #else
@@ -640,9 +636,9 @@ void CMainWindow::findFiles()
 		selectedPaths.push_back(_currentFileList->currentDir());
 
 
-	auto ui = new CFilesSearchWindow(selectedPaths);
-	connect(this, &CMainWindow::closed, ui, &CFilesSearchWindow::close);
-	ui->show();
+	auto fileSearchUi = new CFilesSearchWindow(selectedPaths);
+	connect(this, &CMainWindow::closed, fileSearchUi, &CFilesSearchWindow::close);
+	fileSearchUi->show();
 }
 
 void CMainWindow::showHiddenFiles()

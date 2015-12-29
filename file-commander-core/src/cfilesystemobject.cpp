@@ -361,7 +361,7 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 // Non-blocking file copy API
 
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-FileOperationResultCode CFileSystemObject::copyChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName)
+FileOperationResultCode CFileSystemObject::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/)
 {
 	assert_r(bool(_thisFile) == bool(_destFile));
 	assert_r(isFile());
@@ -401,7 +401,7 @@ FileOperationResultCode CFileSystemObject::copyChunk(uint64_t chunkSize, const Q
 
 	assert_r(_destFile->isOpen() == _thisFile->isOpen());
 
-	const auto actualChunkSize = std::min(chunkSize, size() - _pos);
+	const auto actualChunkSize = std::min(chunkSize, (size_t)(size() - _pos));
 
 	if (actualChunkSize != 0)
 	{

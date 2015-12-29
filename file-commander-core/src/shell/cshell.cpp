@@ -84,7 +84,11 @@ private:
 class CItemIdArrayReleaser {
 public:
 	explicit CItemIdArrayReleaser(std::vector<ITEMIDLIST*> idArray) : _array(idArray) {}
-	~CItemIdArrayReleaser() { for (auto it = _array.begin(); it != _array.end(); ++it) if (*it) CoTaskMemFree(*it); }
+	~CItemIdArrayReleaser() {
+		for (ITEMIDLIST* item: _array)
+			if (item)
+				CoTaskMemFree(item);
+	}
 private:
 	std::vector<ITEMIDLIST*> _array;
 };

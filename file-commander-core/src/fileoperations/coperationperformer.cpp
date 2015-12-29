@@ -635,7 +635,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		// Only call isWriteable for existing items!
 		if (!destFile.isWriteable())
 		{
-			auto response = getUserResponse(hrDestFileIsReadOnly, destFile, CFileSystemObject(), QString::null);
+			response = getUserResponse(hrDestFileIsReadOnly, destFile, CFileSystemObject(), QString::null);
 			if (response == urSkipThis || response == urSkipAll)
 				return naSkip;
 			else if (response == urAbort)

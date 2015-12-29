@@ -85,17 +85,17 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	if (!codec)
 		return false;
 
-	QByteArray data;
-	if (!readSource(data))
+	QByteArray textData;
+	if (!readSource(textData))
 	{
 		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
-	QString text(codec->toUnicode(data.constData(), data.size(), &state));
+	QString text(codec->toUnicode(textData.constData(), textData.size(), &state));
 	if (state.invalidChars > 0)
 	{
-		const auto result = CTextEncodingDetector::decode(data);
+		const auto result = CTextEncodingDetector::decode(textData);
 		text = result.text;
 		if (!text.isEmpty())
 		{
@@ -121,14 +121,14 @@ bool CTextViewerWindow::asSystemDefault()
 	if (!codec)
 		return false;
 
-	QByteArray data;
-	if (!readSource(data))
+	QByteArray textData;
+	if (!readSource(textData))
 	{
 		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
-	_textBrowser.setPlainText(codec->toUnicode(data));
+	_textBrowser.setPlainText(codec->toUnicode(textData));
 	encodingChanged(codec->name());
 	actionSystemLocale->setChecked(true);
 
@@ -137,15 +137,15 @@ bool CTextViewerWindow::asSystemDefault()
 
 bool CTextViewerWindow::asUtf8()
 {
-	QByteArray data;
-	if (!readSource(data))
+	QByteArray textData;
+	if (!readSource(textData))
 	{
 		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
 	encodingChanged("UTF-8");
-	_textBrowser.setPlainText(QString::fromUtf8(data));
+	_textBrowser.setPlainText(QString::fromUtf8(textData));
 	actionUTF_8->setChecked(true);
 
 	return true;
@@ -153,15 +153,15 @@ bool CTextViewerWindow::asUtf8()
 
 bool CTextViewerWindow::asUtf16()
 {
-	QByteArray data;
-	if (!readSource(data))
+	QByteArray textData;
+	if (!readSource(textData))
 	{
 		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
 		return false;
 	}
 
 	encodingChanged("UTF-16");
-	_textBrowser.setPlainText(QString::fromUtf16((const ushort*)data.constData()));
+	_textBrowser.setPlainText(QString::fromUtf16((const ushort*)textData.constData()));
 	actionUTF_16->setChecked(true);
 
 	return true;
@@ -211,13 +211,13 @@ void CTextViewerWindow::findNext()
 	}
 }
 
-bool CTextViewerWindow::readSource(QByteArray& data) const
+bool CTextViewerWindow::readSource(QByteArray& textData) const
 {
 	QFile file(_sourceFilePath);
 	if (file.exists() && file.open(QIODevice::ReadOnly))
 	{
-		data = file.readAll();
-		return data.size() > 0 || file.size() == 0;
+		textData = file.readAll();
+		return textData.size() > 0 || file.size() == 0;
 	}
 	else
 		return false;

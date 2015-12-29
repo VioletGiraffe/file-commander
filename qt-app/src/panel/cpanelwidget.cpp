@@ -330,7 +330,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 		return;
 
 	pos = button->mapToGlobal(pos);
-	const int diskId = button->property("id").toInt();
+	const size_t diskId = (size_t)(button->property("id").toULongLong());
 	std::vector<std::wstring> diskPath(1, _controller.diskPath(diskId).toStdWString());
 	CShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), (HWND)winId());
 #else
@@ -364,7 +364,7 @@ void CPanelWidget::driveButtonClicked()
 	if (!sender())
 		return;
 
-	const int id = sender()->property("id").toInt();
+	const size_t id = (size_t)(sender()->property("id").toULongLong());
 	if (!_controller.switchToDisk(_panelPosition, id))
 		QMessageBox::information(this, tr("Failed to switch disk"), tr("The disk %1 is inaccessible (locked or doesn't exist).").arg(_controller.diskPath(id)));
 
@@ -886,7 +886,7 @@ void CPanelWidget::updateCurrentDiskButton()
 		if (!button)
 			continue;
 
-		const size_t id = button->property("id").toULongLong();
+		const size_t id = (size_t)(button->property("id").toULongLong());
 		const size_t currentDriveId = _controller.currentDiskIndex(_panelPosition);
 		if (id == currentDriveId)
 		{
