@@ -179,15 +179,14 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	activateWindow();
 
 	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % '/' % files.front().fullName()) : destDir;
-	assert(!destPath.contains('\\'));
-	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
+	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), toNativeSeparators(destPath), this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
 			return false;
 	}
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, prompt.text(), this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, toPosixSeparators(prompt.text()), this);
 	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
 	dialog->show();
 
@@ -203,14 +202,14 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 	raise();
 	activateWindow();
 
+	CFileOperationConfirmationPrompt prompt(tr("Move files"), tr("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), toNativeSeparators(destDir), this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
-		CFileOperationConfirmationPrompt prompt(tr("Move files"), tr("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destDir, this);
 		if (prompt.exec() != QDialog::Accepted)
 			return false;
 	}
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, destDir, this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, toPosixSeparators(prompt.text()), this);
 	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
 	dialog->show();
 
@@ -366,14 +365,14 @@ void CMainWindow::copySelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
 		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), toPosixSeparators(_otherFileList->currentDir() % '/'));
+		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir() % '/');
 }
 
 void CMainWindow::moveSelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
 		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), toPosixSeparators(_otherFileList->currentDir() % '/'));
+		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir() % '/');
 }
 
 void CMainWindow::deleteFiles()
