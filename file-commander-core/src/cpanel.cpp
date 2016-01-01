@@ -35,9 +35,10 @@ void CPanel::restoreFromSettings()
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
 {
 #if defined __linux__ || defined __APPLE__
-	const QString posixPath(path.contains("~") ? QString(path).replace("~", getenv("HOME")) : path);
+	const QString posixPath = path.contains("~") ? QString(path).replace("~", getenv("HOME")) : path;
 #elif defined _WIN32
-	const QString posixPath(toPosixSeparators(path));
+	assert(!path.contains('\\'));
+	const QString posixPath = path;
 #else
 #error "Not implemented"
 #endif
@@ -84,7 +85,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	const QString newPath = _currentDirObject.fullAbsolutePath();
 
 	// History management
-	if (toPosixSeparators(_history.currentItem()) != toPosixSeparators(newPath))
+	assert(!_history.currentItem().contains('\\') && !newPath.contains('\\'));
+	if (_history.currentItem() != newPath)
 	{
 		_history.addLatest(newPath);
 		CSettings().setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
@@ -104,8 +106,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	// Finding hash of an item corresponding to path
 	for (const auto& item : _items)
 	{
-		const QString itemPath = toPosixSeparators(item.second.fullAbsolutePath());
-		if (posixPath == itemPath && toPosixSeparators(item.second.parentDirPath()) != itemPath)
+		const QString itemPath = item.second.fullAbsolutePath();
+		if (posixPath == itemPath && item.second.parentDirPath() != itemPath)
 		{
 			setCurrentItemForFolder(item.second.parentDirPath(), item.second.properties().hash);
 			break;
@@ -215,22 +217,24 @@ QString CPanel::currentDirPathPosix() const
 QString CPanel::currentDirName() const
 {
 	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-	return toNativeSeparators(_currentDirObject.fullName());
+	return _currentDirObject.fullName();
 }
 
-static inline QString normalizeFolderPath(const QString& path)
+inline QString normalizeFolderPath(const QString& path)
 {
-	const QString posixPath = toPosixSeparators(path);
+	const QString posixPath = cleanPath(path);
 	return posixPath.endsWith('/') ? posixPath : (posixPath + '/');
 }
 
 void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash)
 {
+	assert(!dir.contains('\\'));
 	_cursorPosForFolder[normalizeFolderPath(dir)] = currentItemHash;
 }
 
 qulonglong CPanel::currentItemForFolder(const QString &dir) const
 {
+	assert(!dir.contains('\\'));
 	const auto it = _cursorPosForFolder.find(normalizeFolderPath(dir));
 	return it == _cursorPosForFolder.end() ? 0 : it->second;
 }

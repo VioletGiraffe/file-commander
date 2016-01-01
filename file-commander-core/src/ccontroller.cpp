@@ -98,10 +98,10 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	{
 		if (item.isExecutable())
 			// Attempting to launch this exe from the current directory
-			return QProcess::startDetached(toPosixSeparators(item.fullAbsolutePath()), QStringList(), toPosixSeparators(item.parentDirPath())) ? rcOk : rcFail;
+			return QProcess::startDetached(item.fullAbsolutePath(), QStringList(), item.parentDirPath()) ? rcOk : rcFail;
 		else
 			// It's probably not a binary file, try opening with openUrl
-			return QDesktopServices::openUrl(QUrl::fromLocalFile(toPosixSeparators(item.fullAbsolutePath()))) ? rcOk : rcFail;
+			return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? rcOk : rcFail;
 	}
 
 	return rcFail;
@@ -181,13 +181,12 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 	if (!parentDir.exists())
 		return false;
 
-	const QString posixName = toPosixSeparators(name);
-	if (parentDir.mkpath(posixName))
+	if (parentDir.mkpath(name))
 	{
 		if (parentDir.absolutePath() == activePanel().currentDirObject().qDir().absolutePath())
 		{
-			const int slashPosition = posixName.indexOf('/');
-			const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? posixName.left(posixName.indexOf('/')) : posixName);
+			const int slashPosition = name.indexOf('/');
+			const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? name.left(name.indexOf('/')) : name);
 			// This is required for the UI to know to set the cursor at the new folder
 			setCursorPositionForCurrentFolder(CFileSystemObject(newFolderPath).hash());
 		}
@@ -200,18 +199,16 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 
 bool CController::createFile(const QString &parentFolder, const QString &name)
 {
-	QDir parentDir(parentFolder);
-	if (!parentDir.exists())
+	CFileSystemObject parentDir(parentFolder);
+	if (!parentDir.exists() || !parentDir.isDir())
 		return false;
 
-	const QString newFilePath = parentDir.absolutePath() + "/" + name;
+	const QString newFilePath = parentDir.fullAbsolutePath() % '/' % name;
 	if (QFile(newFilePath).open(QFile::WriteOnly))
 	{
-		if (toNativeSeparators(parentDir.absolutePath()) == activePanel().currentDirPathNative())
-		{
+		if (parentDir.fullAbsolutePath() == activePanel().currentDirPathPosix())
 			// This is required for the UI to know to set the cursor at the new file
 			setCursorPositionForCurrentFolder(CFileSystemObject(newFilePath).hash());
-		}
 
 		return true;
 	}
@@ -254,7 +251,7 @@ void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 // This method takes the current folder in the currently active panel
 void CController::setCursorPositionForCurrentFolder(qulonglong newCurrentItemHash)
 {
-	activePanel().setCurrentItemForFolder(activePanel().currentDirPathNative(), newCurrentItemHash);
+	activePanel().setCurrentItemForFolder(activePanel().currentDirPathPosix(), newCurrentItemHash);
 	CPluginEngine::get().currentItemChanged(activePanelPosition(), newCurrentItemHash);
 }
 

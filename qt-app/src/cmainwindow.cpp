@@ -178,7 +178,8 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	raise();
 	activateWindow();
 
-	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % toNativeSeparators("/") % files.front().fullName()) : destDir;
+	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % '/' % files.front().fullName()) : destDir;
+	assert(!destPath.contains('\\'));
 	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), destPath, this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
@@ -365,14 +366,14 @@ void CMainWindow::copySelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
 		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir() + toNativeSeparators("/"));
+		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), toPosixSeparators(_otherFileList->currentDir() % '/'));
 }
 
 void CMainWindow::moveSelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
 		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir() + toNativeSeparators("/"));
+		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), toPosixSeparators(_otherFileList->currentDir() % '/'));
 }
 
 void CMainWindow::deleteFiles()
@@ -440,7 +441,7 @@ void CMainWindow::createFolder()
 	const QString dirName = QInputDialog::getText(this, tr("New folder"), tr("Enter the name for the new directory"), QLineEdit::Normal, currentItemName);
 	if (!dirName.isEmpty())
 	{
-		if (!_controller->createFolder(_currentFileList->currentDir(), dirName))
+		if (!_controller->createFolder(_currentFileList->currentDir(), toPosixSeparators(dirName)))
 			QMessageBox::warning(this, tr("Failed to create a folder"), tr("Failed to create the folder %1").arg(dirName));
 	}
 }

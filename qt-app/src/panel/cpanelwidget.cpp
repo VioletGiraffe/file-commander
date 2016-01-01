@@ -257,7 +257,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	}
 	else if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
-		const qulonglong itemHashToSetCursorTo = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathNative());
+		const qulonglong itemHashToSetCursorTo = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathPosix());
 		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo);
 		if (itemIndexToSetCursorTo.isValid())
 			ui->_list->moveCursorToItem(itemIndexToSetCursorTo);
@@ -281,7 +281,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 		selectedItemsHashes.insert(*hash);
 
 	fillFromList(itemList, operation);
-	_directoryCurrentlyBeingDisplayed = toPosixSeparators(panel.currentDirPathNative());
+	_directoryCurrentlyBeingDisplayed = panel.currentDirPathPosix();
 
 	// Restoring previous selection
 	if (!selectedItemsHashes.empty())
@@ -643,7 +643,7 @@ void CPanelWidget::fillHistory()
 
 	ui->_pathNavigator->clear();
 	for(auto it = history.rbegin(); it != history.rend(); ++it)
-		ui->_pathNavigator->addItem(toNativeSeparators(it->endsWith("/") ? *it : (*it) + "/"));
+		ui->_pathNavigator->addItem(toNativeSeparators(it->endsWith('/') ? *it : (*it) + "/"));
 
 	ui->_pathNavigator->setCurrentIndex(static_cast<int>(history.size() - 1 - history.currentIndex()));
 }

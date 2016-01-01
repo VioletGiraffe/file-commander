@@ -3,6 +3,7 @@
 #include "cfilesystemobject.h"
 #include "assert/advanced_assert.h"
 
+#include <assert.h>
 #include <stdint.h>
 #include <cmath>
 
@@ -20,6 +21,7 @@ inline QString toPosixSeparators(const QString &path)
 #ifdef _WIN32
 	return QString(path).replace('\\', '/');
 #else
+	assert(!path.contains('\\'));
 	return path;
 #endif
 }
