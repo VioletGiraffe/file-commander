@@ -7,6 +7,7 @@
 #include "iconprovider/ciconprovider.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDebug>
 #include <QDesktopServices>
 #include <QProcess>
 #include <QUrl>

@@ -2,6 +2,7 @@
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
 #include "../cmainwindow.h"
+#include "filesystemhelperfunctions.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
@@ -39,7 +40,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 		if (i < _pathsToSearchIn.size() - 1)
 			pathsToSearchIn.append("; ");
 	}
-	ui->searchRoot->setCurrentText(pathsToSearchIn);
+	ui->searchRoot->setCurrentText(toNativeSeparators(pathsToSearchIn));
 
 	CSettings s;
 	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());

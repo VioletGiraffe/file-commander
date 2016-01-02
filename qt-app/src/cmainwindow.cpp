@@ -607,7 +607,7 @@ void CMainWindow::pasteCurrentFilePath()
 {
 	if (_currentFileList && _currentFileList->currentItemHash() != 0)
 	{
-		QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath();
+		QString textToAdd = toNativeSeparators(_controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath());
 		if (textToAdd.contains(' '))
 			textToAdd = '\"' % textToAdd % '\"';
 
