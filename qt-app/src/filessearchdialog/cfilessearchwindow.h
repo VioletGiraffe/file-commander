@@ -34,7 +34,6 @@ private:
 private:
 	Ui::CFilesSearchWindow *ui;
 	CFileSearchEngine& _engine;
-	const std::vector<QString> _pathsToSearchIn;
 
 	QLabel* _progressLabel;
 	QTimer _resultsListUpdateTimer;

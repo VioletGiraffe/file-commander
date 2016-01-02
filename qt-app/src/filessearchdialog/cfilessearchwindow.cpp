@@ -19,8 +19,7 @@ RESTORE_COMPILER_WARNINGS
 CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 	QMainWindow(nullptr),
 	ui(new Ui::CFilesSearchWindow),
-	_engine(CController::get().fileSearchEngine()),
-	_pathsToSearchIn(targets)
+	_engine(CController::get().fileSearchEngine())
 {
 	ui->setupUi(this);
 
@@ -34,10 +33,10 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
 
 	QString pathsToSearchIn;
-	for (size_t i = 0; i < _pathsToSearchIn.size(); ++i)
+	for (size_t i = 0; i < targets.size(); ++i)
 	{
-		pathsToSearchIn.append(_pathsToSearchIn[i]);
-		if (i < _pathsToSearchIn.size() - 1)
+		pathsToSearchIn.append(targets[i]);
+		if (i < targets.size() - 1)
 			pathsToSearchIn.append("; ");
 	}
 	ui->searchRoot->setCurrentText(toNativeSeparators(pathsToSearchIn));
@@ -112,7 +111,7 @@ void CFilesSearchWindow::search()
 	const QString what = ui->nameToFind->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
-	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), _pathsToSearchIn, withText, ui->cbContentsCaseSensitive->isChecked());
+	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), ui->searchRoot->currentText().split("; "), withText, ui->cbContentsCaseSensitive->isChecked());
 	ui->btnSearch->setText(tr("Stop"));
 	ui->resultsList->clear();
 	setWindowTitle('\"' % what % "\" " % tr("search results"));
@@ -129,7 +128,8 @@ void CFilesSearchWindow::addResultsToUi()
 		const bool isDir = QFileInfo(path).isDir();
 
 		QListWidgetItem* item = new QListWidgetItem;
-		item->setText(isDir ? ("[" % path % "]") : path);
+		const QString nativePath = toNativeSeparators(path);
+		item->setText(isDir ? ('[' % nativePath % ']') : nativePath);
 		item->setData(Qt::UserRole, path);
 		ui->resultsList->addItem(item);
 	}

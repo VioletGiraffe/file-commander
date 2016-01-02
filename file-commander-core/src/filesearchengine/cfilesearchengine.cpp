@@ -31,7 +31,7 @@ bool CFileSearchEngine::searchInProgress() const
 	return _workerThread.running();
 }
 
-void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const std::vector<QString>& where, const QString& contentsToFind, bool contentsCaseSensitive)
+void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive)
 {
 	if (_workerThread.running())
 	{
