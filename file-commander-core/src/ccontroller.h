@@ -119,7 +119,7 @@ private:
 	CPluginProxy         _pluginProxy;
 	CDiskEnumerator      _diskEnumerator;
 	std::vector<IDiskListObserver*> _disksChangedListeners;
-	Panel                _activePanel;
+	Panel                _activePanel = UnknownPanel;
 
 	CWorkerThreadPool _workerThread; // The thread used to execute tasks out of the UI thread
 	CExecutionQueue   _uiQueue;      // The queue for actions that must be executed on the UI thread
