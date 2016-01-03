@@ -256,11 +256,20 @@
     </property>
     <addaction name="action_Invert_selection"/>
    </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="action_Check_for_updates"/>
+    <addaction name="separator"/>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuFiles"/>
    <addaction name="menuSelection"/>
    <addaction name="menu_View"/>
    <addaction name="menuCommands"/>
    <addaction name="menuOptions"/>
+   <addaction name="menu_Help"/>
   </widget>
   <action name="actionRefresh">
    <property name="text">
@@ -362,6 +371,16 @@
    </property>
    <property name="text">
     <string>Tablet mode</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>&amp;About...</string>
+   </property>
+  </action>
+  <action name="action_Check_for_updates">
+   <property name="text">
+    <string>&amp;Check for updates</string>
    </property>
   </action>
  </widget>

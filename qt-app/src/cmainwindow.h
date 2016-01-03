@@ -18,14 +18,14 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 
 namespace Ui {
-class CMainWindow;
+	class CMainWindow;
 }
 
 class CPanelWidget;
 class QShortcut;
 class QStackedWidget;
 
-class CMainWindow : public QMainWindow, private FileListReturnPressedObserver, private PanelContentsChangedListener
+class CMainWindow : public QMainWindow, private FileListReturnPressedObserver, private PanelContentsChangedListener, private CAutoUpdaterGithub::UpdateStatusListener
 {
 	Q_OBJECT
 
@@ -95,6 +95,8 @@ private slots: // UI slots
 	void showAllFilesFromCurrentFolderAndBelow();
 	void openSettingsDialog();
 	void calculateOccupiedSpace();
+	void checkForUpdates();
+	void about();
 
 // Settings
 	void settingsChanged();
@@ -103,8 +105,14 @@ private slots: // UI slots
 	void focusChanged(QWidget * old, QWidget * now);
 
 private:
-	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
-	virtual void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
+	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
+
+	// If no updates are found, the changelog is empty
+	void onUpdateAvailable(CAutoUpdaterGithub::ChangeLog changelog) override;
+	// percentageDownloaded >= 100.0f means the download has finished
+	void onUpdateDownloadProgress(float percentageDownloaded) override;
+	void onUpdateErrorCallback(QString errorMessage) override;
 
 private:
 	void createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries);

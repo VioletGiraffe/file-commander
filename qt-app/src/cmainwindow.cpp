@@ -19,6 +19,7 @@
 #include "utils/utils.h"
 #include "filessearchdialog/cfilessearchwindow.h"
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
+#include "version.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
@@ -57,11 +58,13 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_currentFileList(0),
 	_otherFileList(0),
 	_quickViewActive(false),
-	_autoupdater("https://github.com/VioletGiraffe/file-commander", "0.8", [](const QString& l, const QString& r){return CNaturalSorterQCollator().compare(l, r, SortingOptions());})
+	_autoupdater("https://github.com/VioletGiraffe/file-commander", VERSTION_STRING, [](const QString& l, const QString& r){return CNaturalSorterQCollator().compare(l, r, SortingOptions());})
 {
 	assert_r(!_instance);
 	_instance = this;
 	ui->setupUi(this);
+
+	_autoupdater.setUpdateStatusListener(this);
 
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
@@ -112,8 +115,6 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
 	_uiThreadTimer.start(5);
-
-	_autoupdater.checkForUpdates();
 }
 
 void CMainWindow::initButtons()
@@ -166,6 +167,9 @@ void CMainWindow::initActions()
 
 	connect(ui->actionFull_screen_mode, &QAction::toggled, this, &CMainWindow::toggleFullScreenMode);
 	connect(ui->actionTablet_mode, &QAction::toggled, this, &CMainWindow::toggleTabletMode);
+
+	connect(ui->action_Check_for_updates, &QAction::triggered, this, &CMainWindow::checkForUpdates);
+	connect(ui->actionAbout, &QAction::triggered, this, &CMainWindow::about);
 }
 
 // For manual focus management
@@ -683,6 +687,16 @@ void CMainWindow::calculateOccupiedSpace()
 							 arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace)));
 }
 
+void CMainWindow::checkForUpdates()
+{
+	_autoupdater.checkForUpdates();
+}
+
+void CMainWindow::about()
+{
+	QApplication::aboutQt();
+}
+
 void CMainWindow::settingsChanged()
 {
 	_controller->settingsChanged();
@@ -710,6 +724,24 @@ void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation
 
 void CMainWindow::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
 {
+}
+
+// If no updates are found, the changelog is empty
+void CMainWindow::onUpdateAvailable(CAutoUpdaterGithub::ChangeLog changelog)
+{
+	if (!changelog.empty())
+		_autoupdater.downloadAndInstallUpdate();
+}
+
+// percentageDownloaded >= 100.0f means the download has finished
+void CMainWindow::onUpdateDownloadProgress(float percentageDownloaded)
+{
+	qDebug() << __FUNCTION__ << percentageDownloaded;
+}
+
+void CMainWindow::onUpdateErrorCallback(QString errorMessage)
+{
+
 }
 
 void CMainWindow::createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries)

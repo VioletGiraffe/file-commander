@@ -73,7 +73,8 @@ HEADERS += \
     src/favoritelocationseditor/cnewfavoritelocationdialog.h \
     src/panel/filelistwidget/cfilelistfilterdialog.h \
     src/filessearchdialog/cfilessearchwindow.h \
-    src/progressdialogs/cdeleteprogressdialog.h
+    src/progressdialogs/cdeleteprogressdialog.h \
+    src/version.h
 
 FORMS += \
     src/cmainwindow.ui \
