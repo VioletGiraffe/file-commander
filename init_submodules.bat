@@ -1,6 +1,4 @@
-git clone https://github.com/VioletGiraffe/qtutils.git qtutils
-git clone https://github.com/VioletGiraffe/text-encoding-detector.git
-git clone https://github.com/VioletGiraffe/cpputils.git
-git clone https://github.com/VioletGiraffe/github-releases-autoupdater
+git submodule update --init --recursive
+git submodule foreach --recursive "git checkout master"
 
 exit /B 0
