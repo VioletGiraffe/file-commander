@@ -8,3 +8,6 @@
 [submodule "cpputils"]
 	path = cpputils
 	url = https://github.com/VioletGiraffe/cpputils.git
+[submodule "github-releases-autoupdater"]
+	path = github-releases-autoupdater
+	url = https://github.com/VioletGiraffe/github-releases-autoupdater
