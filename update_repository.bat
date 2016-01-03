@@ -14,3 +14,7 @@ cd ..
 cd cpputils
 git pull
 cd ..
+
+cd github-releases-autoupdater
+git pull
+cd ...

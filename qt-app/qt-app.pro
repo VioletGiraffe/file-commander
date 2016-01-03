@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET   = FileCommander
 
-QT = core gui widgets
+QT = core gui widgets network
 
 win*{
     QT += winextras
@@ -28,7 +28,8 @@ INCLUDEPATH += \
     ../file-commander-core/src \
     ../file-commander-core/include \
     ../qtutils \
-    ../cpputils
+    ../cpputils \
+    ../github-releases-autoupdater/src
 
 SOURCES += \
     src/main.cpp \
@@ -93,7 +94,7 @@ FORMS += \
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
-LIBS += -L../bin/$${OUTPUT_DIR} -lcore -lqtutils -lcpputils
+LIBS += -L../bin/$${OUTPUT_DIR} -lautoupdater -lcore -lqtutils -lcpputils
 
 win*{
     LIBS += -lole32 -lShell32 -lUser32
@@ -106,10 +107,6 @@ win*{
 
 mac*{
     ICON = resources/file_commander.icns
-}
-
-linux*{
-
 }
 
 linux*|mac*{

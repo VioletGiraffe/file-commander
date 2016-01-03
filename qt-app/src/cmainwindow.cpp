@@ -3,7 +3,6 @@
 #include "progressdialogs/ccopymovedialog.h"
 #include "progressdialogs/cdeleteprogressdialog.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
-#include "ui_cmainwindow.h"
 #include "settings.h"
 #include "settings/csettings.h"
 #include "shell/cshell.h"
@@ -19,8 +18,11 @@
 #include "filesystemhelperfunctions.h"
 #include "utils/utils.h"
 #include "filessearchdialog/cfilessearchwindow.h"
+#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 DISABLE_COMPILER_WARNINGS
+#include "ui_cmainwindow.h"
+
 #include <QCloseEvent>
 #include <QDesktopWidget>
 #include <QFileDialog>
@@ -54,7 +56,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_controller(new CController),
 	_currentFileList(0),
 	_otherFileList(0),
-	_quickViewActive(false)
+	_quickViewActive(false),
+	_autoupdater("https://github.com/VioletGiraffe/file-commander", "0.8", [](const QString& l, const QString& r){return CNaturalSorterQCollator().compare(l, r, SortingOptions());})
 {
 	assert_r(!_instance);
 	_instance = this;
@@ -109,6 +112,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
 	_uiThreadTimer.start(5);
+
+	_autoupdater.checkForUpdates();
 }
 
 void CMainWindow::initButtons()

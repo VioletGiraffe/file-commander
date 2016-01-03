@@ -1,9 +1,14 @@
 TEMPLATE = subdirs
 
-SUBDIRS += qtutils text_encoding_detector file_commander_core imageviewerplugin textviewerplugin qt_app cpputils
+SUBDIRS += qtutils text_encoding_detector file_commander_core autoupdater imageviewerplugin textviewerplugin qt_app cpputils
+
+cpputils.subdir = cpputils
 
 qtutils.subdir = qtutils
 qtutils.depends = cpputils
+
+autoupdater.file = github-releases-autoupdater/autoupdater-for-github.pro
+autoupdater.depends = cpputils
 
 file_commander_core.subdir = file-commander-core
 file_commander_core.depends = qtutils
@@ -18,6 +23,4 @@ text_encoding_detector.subdir = text-encoding-detector/text-encoding-detector
 text_encoding_detector.depends = cpputils
 
 qt_app.subdir  = qt-app
-qt_app.depends = file_commander_core qtutils imageviewerplugin textviewerplugin
-
-cpputils.subdir = cpputils
+qt_app.depends = file_commander_core qtutils imageviewerplugin textviewerplugin autoupdater

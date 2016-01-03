@@ -8,6 +8,8 @@
 #include "cpanel.h"
 
 DISABLE_COMPILER_WARNINGS
+#include "cautoupdatergithub.h"
+
 #include <QCompleter>
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
@@ -140,6 +142,8 @@ private:
 	QCompleter                     _commandLineCompleter;
 
 	bool                           _quickViewActive;
+
+	CAutoUpdaterGithub             _autoupdater;
 };
 
 #endif // CMAINWINDOW_H
