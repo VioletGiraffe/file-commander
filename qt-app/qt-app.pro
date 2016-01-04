@@ -51,7 +51,8 @@ SOURCES += \
     src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
     src/panel/filelistwidget/cfilelistfilterdialog.cpp \
     src/filessearchdialog/cfilessearchwindow.cpp \
-    src/progressdialogs/cdeleteprogressdialog.cpp
+    src/progressdialogs/cdeleteprogressdialog.cpp \
+    src/updater/cupdaterdialog.cpp
 
 HEADERS += \
     src/cmainwindow.h \
@@ -74,7 +75,8 @@ HEADERS += \
     src/panel/filelistwidget/cfilelistfilterdialog.h \
     src/filessearchdialog/cfilessearchwindow.h \
     src/progressdialogs/cdeleteprogressdialog.h \
-    src/version.h
+    src/version.h \
+    src/updater/cupdaterdialog.h
 
 FORMS += \
     src/cmainwindow.ui \
@@ -90,7 +92,8 @@ FORMS += \
     src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
     src/panel/filelistwidget/cfilelistfilterdialog.ui \
     src/filessearchdialog/cfilessearchwindow.ui \
-    src/progressdialogs/cdeleteprogressdialog.ui
+    src/progressdialogs/cdeleteprogressdialog.ui \
+    src/updater/cupdaterdialog.ui
 
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
