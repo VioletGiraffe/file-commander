@@ -25,6 +25,7 @@ CUpdaterDialog::CUpdaterDialog(QWidget *parent) :
 	ui->stackedWidget->setCurrentIndex(0);
 	ui->progressBar->setMaximum(0);
 	ui->progressBar->setValue(0);
+	ui->lblPercentage->setVisible(false);
 
 	_updater.setUpdateStatusListener(this);
 	_updater.checkForUpdates();
@@ -37,9 +38,11 @@ CUpdaterDialog::~CUpdaterDialog()
 
 void CUpdaterDialog::applyUpdate()
 {
-	ui->stackedWidget->setCurrentIndex(0);
-	ui->progressBar->setMaximum(1000);
+	ui->progressBar->setMaximum(100);
 	ui->progressBar->setValue(0);
+	ui->lblPercentage->setVisible(true);
+	ui->lblOperationInProgress->setText("Downloading the update...");
+	ui->stackedWidget->setCurrentIndex(0);
 
 	_updater.downloadAndInstallUpdate();
 }
@@ -66,7 +69,8 @@ void CUpdaterDialog::onUpdateAvailable(CAutoUpdaterGithub::ChangeLog changelog)
 // percentageDownloaded >= 100.0f means the download has finished
 void CUpdaterDialog::onUpdateDownloadProgress(float percentageDownloaded)
 {
-	ui->progressBar->setValue((int)(percentageDownloaded * ui->progressBar->maximum()));
+	ui->progressBar->setValue((int)percentageDownloaded);
+	ui->lblPercentage->setText(QString::number(percentageDownloaded, 'f', 2) + " %");
 }
 
 void CUpdaterDialog::onUpdateDownloadFinished()
