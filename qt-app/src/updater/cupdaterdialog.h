@@ -1,6 +1,6 @@
 #pragma once
 
-#include "compiler/compiler_warnings_control.h"
+#include "cautoupdatergithub.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDialog>
@@ -12,19 +12,28 @@ namespace Ui {
 
 class CAutoUpdaterGithub;
 
-class CUpdaterDialog : public QDialog
+class CUpdaterDialog : public QDialog, private CAutoUpdaterGithub::UpdateStatusListener
 {
 	Q_OBJECT
 
 public:
-	explicit CUpdaterDialog(QWidget *parent, CAutoUpdaterGithub& updater);
+	explicit CUpdaterDialog(QWidget *parent);
 	~CUpdaterDialog();
 
-	void downloadProgress(int progress);
+private slots:
+	void applyUpdate();
+
+private:
+	// If no updates are found, the changelog is empty
+	void onUpdateAvailable(CAutoUpdaterGithub::ChangeLog changelog) override;
+	// percentageDownloaded >= 100.0f means the download has finished
+	void onUpdateDownloadProgress(float percentageDownloaded) override;
+	void onUpdateDownloadFinished() override;
+	void onUpdateError(QString errorMessage) override;
 
 private:
 	Ui::CUpdaterDialog *ui;
 
-	CAutoUpdaterGithub& _updater;
+	CAutoUpdaterGithub _updater;
 };
 

@@ -1,5 +1,4 @@
-#ifndef CMAINWINDOW_H
-#define CMAINWINDOW_H
+#pragma once
 
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
@@ -8,8 +7,6 @@
 #include "cpanel.h"
 
 DISABLE_COMPILER_WARNINGS
-#include "cautoupdatergithub.h"
-
 #include <QCompleter>
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
@@ -25,7 +22,9 @@ class CPanelWidget;
 class QShortcut;
 class QStackedWidget;
 
-class CMainWindow : public QMainWindow, private FileListReturnPressedObserver, private PanelContentsChangedListener, private CAutoUpdaterGithub::UpdateStatusListener
+class CMainWindow : public QMainWindow,
+		private FileListReturnPressedObserver,
+		private PanelContentsChangedListener
 {
 	Q_OBJECT
 
@@ -108,12 +107,6 @@ private:
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
 	void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
 
-	// If no updates are found, the changelog is empty
-	void onUpdateAvailable(CAutoUpdaterGithub::ChangeLog changelog) override;
-	// percentageDownloaded >= 100.0f means the download has finished
-	void onUpdateDownloadProgress(float percentageDownloaded) override;
-	void onUpdateErrorCallback(QString errorMessage) override;
-
 private:
 	void createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries);
 	void addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu);
@@ -150,8 +143,5 @@ private:
 	QCompleter                     _commandLineCompleter;
 
 	bool                           _quickViewActive;
-
-	CAutoUpdaterGithub             _autoupdater;
 };
 
-#endif // CMAINWINDOW_H

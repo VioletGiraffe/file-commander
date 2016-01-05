@@ -18,8 +18,8 @@
 #include "filesystemhelperfunctions.h"
 #include "utils/utils.h"
 #include "filessearchdialog/cfilessearchwindow.h"
-#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 #include "version.h"
+#include "updater/cupdaterdialog.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
@@ -57,14 +57,11 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_controller(new CController),
 	_currentFileList(0),
 	_otherFileList(0),
-	_quickViewActive(false),
-	_autoupdater("https://github.com/VioletGiraffe/file-commander", VERSTION_STRING, [](const QString& l, const QString& r){return CNaturalSorterQCollator().compare(l, r, SortingOptions());})
+	_quickViewActive(false)
 {
 	assert_r(!_instance);
 	_instance = this;
 	ui->setupUi(this);
-
-	_autoupdater.setUpdateStatusListener(this);
 
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
@@ -689,7 +686,7 @@ void CMainWindow::calculateOccupiedSpace()
 
 void CMainWindow::checkForUpdates()
 {
-	_autoupdater.checkForUpdates();
+	CUpdaterDialog(this).exec();
 }
 
 void CMainWindow::about()
@@ -724,24 +721,6 @@ void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation
 
 void CMainWindow::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
 {
-}
-
-// If no updates are found, the changelog is empty
-void CMainWindow::onUpdateAvailable(CAutoUpdaterGithub::ChangeLog changelog)
-{
-	if (!changelog.empty())
-		_autoupdater.downloadAndInstallUpdate();
-}
-
-// percentageDownloaded >= 100.0f means the download has finished
-void CMainWindow::onUpdateDownloadProgress(float percentageDownloaded)
-{
-	qDebug() << __FUNCTION__ << percentageDownloaded;
-}
-
-void CMainWindow::onUpdateErrorCallback(QString errorMessage)
-{
-
 }
 
 void CMainWindow::createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries)

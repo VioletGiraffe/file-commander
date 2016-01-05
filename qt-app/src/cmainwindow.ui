@@ -380,7 +380,7 @@
   </action>
   <action name="action_Check_for_updates">
    <property name="text">
-    <string>&amp;Check for updates</string>
+    <string>&amp;Check for updates...</string>
    </property>
   </action>
  </widget>
