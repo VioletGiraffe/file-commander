@@ -6,5 +6,5 @@ DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
-#define VERSTION_STRING QStringLiteral("0.0.1")
+#define VERSION_STRING QStringLiteral("0.0.1")
 

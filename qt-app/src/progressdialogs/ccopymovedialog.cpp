@@ -30,9 +30,9 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 	assert_r(mainWindow);
 
 	if (operation == operationCopy)
-		ui->_lblOperationName->setText(tr("Copying files..."));
+		ui->_lblOperationName->setText("Copying files...");
 	else if (operation == operationMove)
-		ui->_lblOperationName->setText(tr("Moving files..."));
+		ui->_lblOperationName->setText("Moving files...");
 	else
 		assert_unconditional_r("Unknown operation");
 

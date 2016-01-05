@@ -14,13 +14,13 @@ RESTORE_COMPILER_WARNINGS
 CUpdaterDialog::CUpdaterDialog(QWidget *parent) :
 	QDialog(parent),
 	ui(new Ui::CUpdaterDialog),
-	_updater("https://github.com/VioletGiraffe/file-commander", VERSTION_STRING, [](const QString& l, const QString& r){return CNaturalSorterQCollator().compare(l, r, SortingOptions());})
+	_updater("https://github.com/VioletGiraffe/file-commander", VERSION_STRING, [](const QString& l, const QString& r){return CNaturalSorterQCollator().compare(l, r, SortingOptions());})
 {
 	ui->setupUi(this);
 
 	connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &CUpdaterDialog::applyUpdate);
-	ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("Install"));
+	ui->buttonBox->button(QDialogButtonBox::Ok)->setText("Install");
 
 	ui->stackedWidget->setCurrentIndex(0);
 	ui->progressBar->setMaximum(0);

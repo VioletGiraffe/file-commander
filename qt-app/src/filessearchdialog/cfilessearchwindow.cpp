@@ -90,7 +90,7 @@ void CFilesSearchWindow::matchFound(const QString& path)
 
 void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint32_t speed)
 {
-	ui->btnSearch->setText(tr("Start"));
+	ui->btnSearch->setText("Start");
 	QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
 	if (speed > 0)
 		message = message % ", " % tr("search speed: %1 items/sec").arg(speed);
@@ -112,7 +112,7 @@ void CFilesSearchWindow::search()
 	const QString withText = ui->fileContentsToFind->currentText();
 
 	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), ui->searchRoot->currentText().split("; "), withText, ui->cbContentsCaseSensitive->isChecked());
-	ui->btnSearch->setText(tr("Stop"));
+	ui->btnSearch->setText("Stop");
 	ui->resultsList->clear();
 	setWindowTitle('\"' % what % "\" " % tr("search results"));
 }
