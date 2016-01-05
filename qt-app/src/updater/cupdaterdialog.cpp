@@ -14,7 +14,7 @@ RESTORE_COMPILER_WARNINGS
 CUpdaterDialog::CUpdaterDialog(QWidget *parent) :
 	QDialog(parent),
 	ui(new Ui::CUpdaterDialog),
-	_updater("https://github.com/VioletGiraffe/file-commander", VERSION_STRING, [](const QString& l, const QString& r){return CNaturalSorterQCollator().compare(l, r, SortingOptions());})
+	_updater("https://github.com/VioletGiraffe/file-commander", VERSION_STRING)
 {
 	ui->setupUi(this);
 
@@ -62,7 +62,7 @@ void CUpdaterDialog::onUpdateAvailable(CAutoUpdaterGithub::ChangeLog changelog)
 	else
 	{
 		accept();
-		QMessageBox::information(this, tr("No update available"), tr("You already have the latest version of the program"));
+		QMessageBox::information(this, tr("No update available"), tr("You already have the latest version of the program."));
 	}
 }
 
