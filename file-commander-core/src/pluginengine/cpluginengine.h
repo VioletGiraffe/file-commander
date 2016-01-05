@@ -18,7 +18,7 @@ public:
 	static CPluginEngine& get();
 
 	void loadPlugins();
-	const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary> > >& plugins() const;
+	std::vector<QString> activePluginNames();
 
 	void destroyAllPluginWindows();
 

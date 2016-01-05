@@ -18,8 +18,8 @@
 #include "filesystemhelperfunctions.h"
 #include "utils/utils.h"
 #include "filessearchdialog/cfilessearchwindow.h"
-#include "version.h"
 #include "updater/cupdaterdialog.h"
+#include "aboutdialog/caboutdialog.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
@@ -691,7 +691,7 @@ void CMainWindow::checkForUpdates()
 
 void CMainWindow::about()
 {
-	QApplication::aboutQt();
+	CAboutDialog(this).exec();
 }
 
 void CMainWindow::settingsChanged()

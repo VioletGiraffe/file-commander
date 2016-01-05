@@ -61,9 +61,16 @@ void CPluginEngine::loadPlugins()
 	}
 }
 
-const std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary> > >& CPluginEngine::plugins() const
+std::vector<QString> CPluginEngine::activePluginNames()
 {
-	return _plugins;
+	std::vector<QString> names;
+	for (const auto& plugin: _plugins)
+	{
+		assert_r(plugin.first.get());
+		names.push_back(plugin.first->name());
+	}
+
+	return names;
 }
 
 void CPluginEngine::panelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
