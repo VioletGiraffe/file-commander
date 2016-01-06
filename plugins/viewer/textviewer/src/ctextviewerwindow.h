@@ -14,8 +14,6 @@ class QLabel;
 
 class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
 {
-	Q_OBJECT
-
 public:
 	CTextViewerWindow();
 

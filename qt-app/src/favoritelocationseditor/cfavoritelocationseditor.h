@@ -17,8 +17,6 @@ class CFavoriteLocationsListItem;
 
 class CFavoriteLocationsEditor : public QDialog
 {
-	Q_OBJECT
-
 public:
 	explicit CFavoriteLocationsEditor(QWidget *parent = 0);
 	~CFavoriteLocationsEditor();

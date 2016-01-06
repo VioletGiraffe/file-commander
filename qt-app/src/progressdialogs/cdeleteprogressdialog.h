@@ -17,8 +17,6 @@ class COperationPerformer;
 
 class CDeleteProgressDialog : public QWidget, protected CFileOperationObserver
 {
-	Q_OBJECT
-
 public:
 	explicit CDeleteProgressDialog(std::vector<CFileSystemObject> source, QString destination, CMainWindow * mainWindow);
 	~CDeleteProgressDialog();
@@ -30,9 +28,9 @@ public:
 	void onCurrentFileChanged(QString file) override; // Starting to process a new file
 
 protected:
-	virtual void closeEvent(QCloseEvent * e) override;
+	void closeEvent(QCloseEvent * e) override;
 
-private slots:
+private:
 	void cancelPressed();
 	void pauseResume();
 	void background();

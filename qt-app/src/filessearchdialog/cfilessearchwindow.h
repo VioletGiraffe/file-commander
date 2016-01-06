@@ -16,8 +16,6 @@ class QLabel;
 
 class CFilesSearchWindow : public QMainWindow, public CFileSearchEngine::FileSearchListener
 {
-	Q_OBJECT
-
 public:
 	explicit CFilesSearchWindow(const std::vector<QString>& targets);
 	~CFilesSearchWindow();

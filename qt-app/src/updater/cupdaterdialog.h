@@ -14,13 +14,11 @@ class CAutoUpdaterGithub;
 
 class CUpdaterDialog : public QDialog, private CAutoUpdaterGithub::UpdateStatusListener
 {
-	Q_OBJECT
-
 public:
 	explicit CUpdaterDialog(QWidget *parent, bool silentCheck = false);
 	~CUpdaterDialog();
 
-private slots:
+private:
 	void applyUpdate();
 
 private:
