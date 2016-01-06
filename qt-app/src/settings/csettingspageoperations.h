@@ -9,8 +9,6 @@ class CSettingsPageOperations;
 
 class CSettingsPageOperations : public CSettingsPage
 {
-	Q_OBJECT
-
 public:
 	explicit CSettingsPageOperations(QWidget *parent = 0);
 	~CSettingsPageOperations();

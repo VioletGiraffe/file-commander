@@ -14,6 +14,7 @@ CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 
 	CSettings s;
 	ui->_shellCommandName->setText(s.value(KEY_OTHER_SHELL_COMMAND_NAME, CShell::shellExecutable()).toString());
+	ui->_cbCheckForUpdatesAutomatically->setChecked(s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool());
 }
 
 CSettingsPageOther::~CSettingsPageOther()
@@ -25,4 +26,5 @@ void CSettingsPageOther::acceptSettings()
 {
 	CSettings s;
 	s.setValue(KEY_OTHER_SHELL_COMMAND_NAME, ui->_shellCommandName->text());
+	s.setValue(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, ui->_cbCheckForUpdatesAutomatically->isChecked());
 }

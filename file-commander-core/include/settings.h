@@ -44,3 +44,4 @@
 
 // Other
 #define KEY_OTHER_SHELL_COMMAND_NAME "Other/Shell/ShellCommandName"
+#define KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY "Other/UpdateChecking/CheckAutomatically"
