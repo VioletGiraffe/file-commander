@@ -11,12 +11,16 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
-CUpdaterDialog::CUpdaterDialog(QWidget *parent) :
+CUpdaterDialog::CUpdaterDialog(QWidget *parent, bool silentCheck) :
 	QDialog(parent),
 	ui(new Ui::CUpdaterDialog),
+	_silent(silentCheck),
 	_updater("https://github.com/VioletGiraffe/file-commander", VERSION_STRING)
 {
 	ui->setupUi(this);
+
+	if (_silent)
+		hide();
 
 	connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &CUpdaterDialog::applyUpdate);
@@ -54,15 +58,15 @@ void CUpdaterDialog::onUpdateAvailable(CAutoUpdaterGithub::ChangeLog changelog)
 	{
 		ui->stackedWidget->setCurrentIndex(1);
 		for (const auto& changelogItem: changelog)
-		{
-			qDebug() << changelogItem.versionChanges;
 			ui->changeLogViewer->append("<b>" % changelogItem.versionString % "</b>" % '\n' % changelogItem.versionChanges % "<p></p>");
-		}
+
+		show();
 	}
 	else
 	{
 		accept();
-		QMessageBox::information(this, tr("No update available"), tr("You already have the latest version of the program."));
+		if (!_silent)
+			QMessageBox::information(this, tr("No update available"), tr("You already have the latest version of the program."));
 	}
 }
 
@@ -81,5 +85,6 @@ void CUpdaterDialog::onUpdateDownloadFinished()
 void CUpdaterDialog::onUpdateError(QString errorMessage)
 {
 	reject();
-	QMessageBox::critical(this, tr("Error checking for updates"), tr(errorMessage.toUtf8().data()));
+	if (!_silent)
+		QMessageBox::critical(this, tr("Error checking for updates"), tr(errorMessage.toUtf8().data()));
 }

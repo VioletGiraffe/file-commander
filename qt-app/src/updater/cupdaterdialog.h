@@ -17,7 +17,7 @@ class CUpdaterDialog : public QDialog, private CAutoUpdaterGithub::UpdateStatusL
 	Q_OBJECT
 
 public:
-	explicit CUpdaterDialog(QWidget *parent);
+	explicit CUpdaterDialog(QWidget *parent, bool silentCheck = false);
 	~CUpdaterDialog();
 
 private slots:
@@ -33,6 +33,7 @@ private:
 
 private:
 	Ui::CUpdaterDialog *ui;
+	const bool _silent;
 
 	CAutoUpdaterGithub _updater;
 };

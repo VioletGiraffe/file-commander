@@ -259,6 +259,20 @@ void CMainWindow::updateInterface()
 		ui->rightPanel->setFocusToFileList();
 }
 
+void CMainWindow::showEvent(QShowEvent * e)
+{
+	QMainWindow::showEvent(e);
+
+	// Check for updates
+	if (CSettings().value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
+	{
+		CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
+		auto dlg = new CUpdaterDialog(this, true);
+		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
+		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
+	}
+}
+
 void CMainWindow::closeEvent(QCloseEvent *e)
 {
 	if (e->type() == QCloseEvent::Close)
@@ -686,6 +700,7 @@ void CMainWindow::calculateOccupiedSpace()
 
 void CMainWindow::checkForUpdates()
 {
+	CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
 	CUpdaterDialog(this).exec();
 }
 

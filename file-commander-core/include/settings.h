@@ -19,6 +19,8 @@
 // Copy/move/delete prompt dialog geometry
 #define KEY_PROMPT_DIALOG_GEOMETRY "Internal/Interface/PropmptDialog/Geometry"
 
+#define KEY_LAST_UPDATE_CHECK_TIMESTAMP "Internal/Interface/Update/LastUpdateCheckTimestamp"
+
 /////////////////////////////////////////////////
 // Options accessible via the main UI
 /////////////////////////////////////////////////
