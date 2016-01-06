@@ -26,8 +26,11 @@ void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 {
 	setGeometry(QRect(parentWidget()->mapToGlobal(QPoint(bottomLeft.x(), bottomLeft.y()-height())), size()));
 	show();
-	QTimer::singleShot(0, ui->_lineEdit, SLOT(setFocus()));
-	QTimer::singleShot(0, ui->_lineEdit, SLOT(selectAll()));
+	QTimer::singleShot(0, [this](){
+		// TODO: why doesn't it compile as QTimer::singleShot(0, ui->_lineEdit, &QLineEdit::setFocus)
+		ui->_lineEdit->setFocus();
+	});
+	QTimer::singleShot(0, ui->_lineEdit, &QLineEdit::selectAll);
 	emit filterTextChanged(ui->_lineEdit->text());
 }
 

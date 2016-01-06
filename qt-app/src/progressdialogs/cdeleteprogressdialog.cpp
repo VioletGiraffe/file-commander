@@ -22,15 +22,15 @@ CDeleteProgressDialog::CDeleteProgressDialog(std::vector<CFileSystemObject> sour
 	ui->_lblNumFiles->clear();
 	ui->_lblFileName->clear();
 
-	connect (ui->_btnCancel,     SIGNAL(clicked()), SLOT(cancelPressed()));
-	connect (ui->_btnBackground, SIGNAL(clicked()), SLOT(background()));
-	connect (ui->_btnPause,      SIGNAL(clicked()), SLOT(pauseResume()));
+	connect (ui->_btnCancel, &QPushButton::clicked, this, &CDeleteProgressDialog::cancelPressed);
+	connect (ui->_btnBackground, &QPushButton::clicked, this, &CDeleteProgressDialog::background);
+	connect (ui->_btnPause, &QPushButton::clicked, this, &CDeleteProgressDialog::pauseResume);
 
 	setWindowTitle(tr("Deleting..."));
 
 	_eventsProcessTimer.setInterval(100);
 	_eventsProcessTimer.start();
-	connect(&_eventsProcessTimer, SIGNAL(timeout()), SLOT(processEvents()));
+	connect(&_eventsProcessTimer, &QTimer::timeout, this, &CDeleteProgressDialog::processEvents);
 
 	_performer->setWatcher(this);
 	_performer->start();
@@ -107,7 +107,7 @@ void CDeleteProgressDialog::pauseResume()
 void CDeleteProgressDialog::background()
 {
 	ui->_btnBackground->setVisible(false);
-	QTimer::singleShot(0, this, SLOT(setMinSize()));
+	QTimer::singleShot(0, this, &CDeleteProgressDialog::setMinSize);
 }
 
 void CDeleteProgressDialog::setMinSize()
