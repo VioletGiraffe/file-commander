@@ -27,7 +27,7 @@ CImageViewerWindow::CImageViewerWindow() :
 		displayImage(_currentImagePath);
 	});
 
-	connect(ui->actionClose, &QAction::triggered, this, &CImageViewerWindow::close);
+	connect(ui->actionClose, &QAction::triggered, this, &QMainWindow::close);
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	connect(this, &QAction::destroyed, escScut, &QShortcut::deleteLater);

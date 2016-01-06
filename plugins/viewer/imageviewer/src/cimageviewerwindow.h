@@ -11,8 +11,6 @@ class CImageViewerWindow;
 
 class CImageViewerWindow : public CPluginWindow
 {
-	Q_OBJECT
-
 public:
 	CImageViewerWindow();
 	~CImageViewerWindow();

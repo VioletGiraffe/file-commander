@@ -10,8 +10,6 @@ RESTORE_COMPILER_WARNINGS
 
 class PLUGIN_EXPORT CPluginWindow : public QMainWindow
 {
-	Q_OBJECT
-
 public:
 	CPluginWindow();
 	~CPluginWindow();

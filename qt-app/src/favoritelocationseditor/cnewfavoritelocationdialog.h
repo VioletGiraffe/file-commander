@@ -13,8 +13,6 @@ class CNewFavoriteLocationDialog;
 
 class CNewFavoriteLocationDialog : public QDialog
 {
-	Q_OBJECT
-
 public:
 	explicit CNewFavoriteLocationDialog(QWidget *parent, bool subcategory);
 	~CNewFavoriteLocationDialog();

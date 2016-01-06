@@ -12,7 +12,7 @@ CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	connect(ui->_lineEdit, SIGNAL(textEdited(QString)), SIGNAL(filterTextChanged(QString)));
+	connect(ui->_lineEdit, &QLineEdit::textEdited, this, &CFileListFilterDialog::filterTextChanged);
 
 	new QShortcut(QKeySequence("Esc"), this, SLOT(close()), SLOT(close()), Qt::WidgetWithChildrenShortcut);
 }

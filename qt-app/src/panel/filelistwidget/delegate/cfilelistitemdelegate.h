@@ -9,7 +9,6 @@ RESTORE_COMPILER_WARNINGS
 
 class CFileListItemDelegate : public QStyledItemDelegate
 {
-	Q_OBJECT
 public:
 	explicit CFileListItemDelegate(QObject *parent = 0);
 

@@ -12,7 +12,6 @@ RESTORE_COMPILER_WARNINGS
 
 class CImageViewerWidget : public QWidget
 {
-	Q_OBJECT
 public:
 	explicit CImageViewerWidget(QWidget *parent = 0);
 
