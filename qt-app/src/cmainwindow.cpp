@@ -18,8 +18,9 @@
 #include "filesystemhelperfunctions.h"
 #include "utils/utils.h"
 #include "filessearchdialog/cfilessearchwindow.h"
-#include "updater/cupdaterdialog.h"
+#include "updaterUI/cupdaterdialog.h"
 #include "aboutdialog/caboutdialog.h"
+#include "version.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
@@ -267,7 +268,7 @@ void CMainWindow::showEvent(QShowEvent * e)
 	if (CSettings().value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() && CSettings().value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
 	{
 		CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-		auto dlg = new CUpdaterDialog(this, true);
+		auto dlg = new CUpdaterDialog(this, "https://github.com/VioletGiraffe/file-commander", VERSION_STRING, true);
 		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
 		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
 	}
@@ -701,7 +702,7 @@ void CMainWindow::calculateOccupiedSpace()
 void CMainWindow::checkForUpdates()
 {
 	CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-	CUpdaterDialog(this).exec();
+	CUpdaterDialog(this, "https://github.com/VioletGiraffe/file-commander", VERSION_STRING).exec();
 }
 
 void CMainWindow::about()

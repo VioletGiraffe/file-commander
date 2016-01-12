@@ -52,7 +52,6 @@ SOURCES += \
     src/panel/filelistwidget/cfilelistfilterdialog.cpp \
     src/filessearchdialog/cfilessearchwindow.cpp \
     src/progressdialogs/cdeleteprogressdialog.cpp \
-    src/updater/cupdaterdialog.cpp \
     src/aboutdialog/caboutdialog.cpp
 
 HEADERS += \
@@ -77,7 +76,6 @@ HEADERS += \
     src/filessearchdialog/cfilessearchwindow.h \
     src/progressdialogs/cdeleteprogressdialog.h \
     src/version.h \
-    src/updater/cupdaterdialog.h \
     src/aboutdialog/caboutdialog.h
 
 FORMS += \
@@ -95,7 +93,6 @@ FORMS += \
     src/panel/filelistwidget/cfilelistfilterdialog.ui \
     src/filessearchdialog/cfilessearchwindow.ui \
     src/progressdialogs/cdeleteprogressdialog.ui \
-    src/updater/cupdaterdialog.ui \
     src/aboutdialog/caboutdialog.ui
 
 

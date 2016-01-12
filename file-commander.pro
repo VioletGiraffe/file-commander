@@ -7,7 +7,7 @@ cpputils.subdir = cpputils
 qtutils.subdir = qtutils
 qtutils.depends = cpputils
 
-autoupdater.file = github-releases-autoupdater/autoupdater-for-github.pro
+autoupdater.subdir = github-releases-autoupdater
 autoupdater.depends = cpputils
 
 file_commander_core.subdir = file-commander-core
