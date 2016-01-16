@@ -59,7 +59,8 @@ INCLUDEPATH += \
 	src \
 	include \
 	../qtutils \
-	../cpputils
+	../cpputils \
+	../cpp-template-utils
 
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)

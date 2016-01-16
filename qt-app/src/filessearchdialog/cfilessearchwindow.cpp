@@ -2,12 +2,14 @@
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
 #include "../cmainwindow.h"
+#include "settings/csettings.h"
 #include "filesystemhelperfunctions.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
 
 #include <QDebug>
+#include <QLineEdit>
 RESTORE_COMPILER_WARNINGS
 
 #define SETTINGS_NAME_TO_FIND            "FileSearchDialog/Ui/NameToFind"

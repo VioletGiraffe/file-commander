@@ -11,3 +11,6 @@
 [submodule "github-releases-autoupdater"]
 	path = github-releases-autoupdater
 	url = https://github.com/VioletGiraffe/github-releases-autoupdater
+[submodule "cpp-template-utils"]
+	path = cpp-template-utils
+	url = https://github.com/VioletGiraffe/cpp-template-utils

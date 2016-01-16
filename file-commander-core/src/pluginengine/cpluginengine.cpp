@@ -3,6 +3,7 @@
 #include "plugininterface/cfilecommanderviewerplugin.h"
 #include "plugininterface/cfilecommandertoolplugin.h"
 #include "plugininterface/cpluginproxy.h"
+#include "container/algorithms.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -127,7 +128,7 @@ CPluginWindow *CPluginEngine::createViewerWindowForCurrentFile()
 
 	_activeWindows.push_back(window);
 	window->connect(window, &QObject::destroyed, [this](QObject* object) {
-		_activeWindows.erase(std::remove(_activeWindows.begin(), _activeWindows.end(), object), _activeWindows.end());
+		ContainerAlgorithms::erase_all_occurrences(_activeWindows, object);
 	});
 	return window;
 }

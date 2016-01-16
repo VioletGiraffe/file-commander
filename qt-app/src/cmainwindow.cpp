@@ -16,7 +16,6 @@
 #include "panel/columns.h"
 #include "panel/cpanelwidget.h"
 #include "filesystemhelperfunctions.h"
-#include "utils/utils.h"
 #include "filessearchdialog/cfilessearchwindow.h"
 #include "updaterUI/cupdaterdialog.h"
 #include "aboutdialog/caboutdialog.h"

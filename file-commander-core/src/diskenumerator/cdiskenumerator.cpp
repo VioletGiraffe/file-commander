@@ -1,6 +1,6 @@
 #include "cdiskenumerator.h"
-#include "utils/utils.h"
 #include "assert/advanced_assert.h"
+#include "container/algorithms.h"
 
 void CDiskEnumerator::addObserver(IDiskListObserver *observer)
 {
@@ -10,7 +10,7 @@ void CDiskEnumerator::addObserver(IDiskListObserver *observer)
 
 void CDiskEnumerator::removeObserver(IDiskListObserver *observer)
 {
-	_observers.erase(std::remove(_observers.begin(), _observers.end(), observer), _observers.end());
+	ContainerAlgorithms::erase_all_occurrences(_observers, observer);
 }
 
 // Returns the drives found
