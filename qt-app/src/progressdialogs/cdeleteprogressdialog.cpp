@@ -46,12 +46,12 @@ CDeleteProgressDialog::~CDeleteProgressDialog()
 	delete ui;
 }
 
-void CDeleteProgressDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float /*filePercentage*/, uint64_t /*speed*/)
+void CDeleteProgressDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float /*filePercentage*/, uint64_t speed, uint32_t secondsRemaining)
 {
 	ui->_progress->setValue((int)(totalPercentage + 0.5f));
 	ui->_lblNumFiles->setText(QString("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
-	static const QString titleTemplate(tr("%1% Deleting...."));
-	setWindowTitle(titleTemplate.arg(QString::number(totalPercentage, 'f', 1)));
+	static const QString titleTemplate(tr("%1% Deleting... %2 items / second, %3 remaining"));
+	setWindowTitle(titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(speed).arg(secondsRemaining));
 }
 
 void CDeleteProgressDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)

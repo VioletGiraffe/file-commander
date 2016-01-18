@@ -122,7 +122,7 @@ bool CController::switchToDisk(Panel p, size_t index)
 	else
 	{
 		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
-		return setPath(p, lastPathForDrive, refreshCauseOther) == rcOk;
+		return setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == rcOk;
 	}
 }
 
@@ -167,9 +167,7 @@ void CController::navigateForward(Panel p)
 // Sets the specified path, if possible. Otherwise reverts to the previously set path
 FileOperationResultCode CController::setPath(Panel p, const QString &path, FileListRefreshCause operation)
 {
-	CPanel& targetPanel = panel(p);
-	const QString prevPath = targetPanel.currentDirPathNative();
-	const FileOperationResultCode result = targetPanel.setPath(path, operation);
+	const FileOperationResultCode result = panel(p).setPath(path, operation);
 
 	saveDirectoryForCurrentDisk(p);
 	disksChanged(); // To select a proper drive button

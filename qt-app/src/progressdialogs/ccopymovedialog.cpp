@@ -15,9 +15,8 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 	_performer(new COperationPerformer(operation, source, destination)),
 	_mainWindow(mainWindow),
 	_op(operation),
-	_titleTemplate(_op == operationCopy ? tr("%1% Copying %2/s") : tr("%1% Moving %2/s")),
-	_labelTemplate(_op == operationCopy ? tr("Copying files... %2/s") : tr("Moving files... %2/s")),
-	_speed(0)
+	_titleTemplate(_op == operationCopy ? tr("%1% Copying %2/s, %3 remaining") : tr("%1% Moving %2/s, %3 remaining")),
+	_labelTemplate(_op == operationCopy ? tr("Copying files... %2/s, %3 remaining") : tr("Moving files... %2/s, %3 remaining"))
 {
 	ui->setupUi(this);
 	ui->_overallProgress->linkToWidgetstaskbarButton(this);
@@ -58,10 +57,8 @@ CCopyMoveDialog::~CCopyMoveDialog()
 	delete ui;
 }
 
-void CCopyMoveDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed)
+void CCopyMoveDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed, uint32_t secondsRemaining)
 {
-	if (speed > 0)
-		_speed = speed;
 	ui->_overallProgress->setValue((int)(totalPercentage + 0.5f));
 	ui->_overallProgressText->setText(QString::number(totalPercentage, 'f', 1).append('%'));
 
@@ -69,9 +66,9 @@ void CCopyMoveDialog::onProgressChanged(float totalPercentage, size_t numFilesPr
 	ui->_fileProgressText->setText(QString::number(filePercentage, 'f', 1).append('%'));
 
 
-	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(_speed)));
+	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(speed)).arg(secondsRemaining));
 	ui->_lblNumFiles->setText(QString("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
-	setWindowTitle(_titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(fileSizeToString(_speed)));
+	setWindowTitle(_titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(fileSizeToString(speed)).arg(secondsRemaining));
 }
 
 void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)

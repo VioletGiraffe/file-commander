@@ -15,7 +15,7 @@
 #include <vector>
 
 DISABLE_COMPILER_WARNINGS
-#include <QtDebug>
+#include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
 class CFileOperationObserver
@@ -24,7 +24,7 @@ friend class COperationPerformer;
 public:
 	CFileOperationObserver() {}
 
-	virtual void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/) = 0;
+	virtual void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) = 0;
 	virtual void onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) = 0; // User decision required (file exists, file is read-only etc.)
 	virtual void onProcessFinished(QString message = QString()) = 0; // Done or canceled
 	virtual void onCurrentFileChanged(QString file) = 0; // Starting to process a new file
@@ -34,9 +34,10 @@ public:
 	inline std::mutex& callbackMutex() { return _callbackMutex; }
 
 private:
-	inline void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/) {
+	inline void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) {
 		assert_r(filePercentage < 100.5f && totalPercentage < 100.5f);
-		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProgressChanged, this, totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed));
+		std::lock_guard<std::mutex> lock(_callbackMutex);
+		_callbacks.emplace_back(std::bind(&CFileOperationObserver::onProgressChanged, this, totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining));
 	}
 
 	inline void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) {
@@ -57,16 +58,19 @@ private:
 		assert_r(reasonString != haltReasonString.end());
 		qDebug() << "Reason:" << (reasonString != haltReasonString.end() ? reasonString->second : "") << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
 
-		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessHalted, this, reason, source, dest, errorMessage));
+		std::lock_guard<std::mutex> lock(_callbackMutex);
+		_callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessHalted, this, reason, source, dest, errorMessage));
 	}
 
 	inline void onProcessFinishedCallback(QString message = QString()) {
 		qDebug() << "COperationPerformer: operation finished, message:" << message;
-		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessFinished, this, message));
+		std::lock_guard<std::mutex> lock(_callbackMutex);
+		_callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessFinished, this, message));
 	}
 
 	inline void onCurrentFileChangedCallback(QString file) {
-		std::lock_guard<std::mutex> lock(_callbackMutex); _callbacks.emplace_back(std::bind(&CFileOperationObserver::onCurrentFileChanged, this, file));
+		std::lock_guard<std::mutex> lock(_callbackMutex);
+		_callbacks.emplace_back(std::bind(&CFileOperationObserver::onCurrentFileChanged, this, file));
 	}
 
 protected:
@@ -136,6 +140,5 @@ private:
 
 	// For calculating copy / move speed
 	CTimeElapsed                  _totalTimeElapsed;
-	CTimeElapsed                  _fileTimeElapsed;
-	CMeanCounter<uint64_t>        _smoothSpeedCalculator;
+	CMeanCounter<uint64_t>        _smoothSpeedCalculator{0.1f};
 };

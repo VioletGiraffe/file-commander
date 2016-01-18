@@ -23,7 +23,7 @@
    <item>
     <widget class="QLabel" name="_lblOperationName">
      <property name="text">
-      <string>Copying file: 100 MB/s</string>
+      <string>Copying file: 100 MB/s, 1m 30s remaining</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

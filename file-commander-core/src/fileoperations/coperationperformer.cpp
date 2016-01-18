@@ -1,14 +1,6 @@
 #include "coperationperformer.h"
 #include "filesystemhelperfunctions.h"
 
-#include <functional>
-
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-
 inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)
 {
 	QString localPath = absoluteSourcePath.mid(originPath.length());
@@ -134,7 +126,6 @@ void COperationPerformer::copyFiles()
 
 	_inProgress = true;
 
-	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
 
 	if (_source.size() == 1)
@@ -147,6 +138,8 @@ void COperationPerformer::copyFiles()
 	// If the dest folder is empty, moving means renaming the root source folder / file, which is fast and simple
 	if (_op == operationMove && (!_destFileSystemObject.exists() || _destFileSystemObject.isEmptyDir()) && _source.front().isMovableTo(_destFileSystemObject))
 	{
+		_totalTimeElapsed.start();
+
 		// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
 		for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 		{
@@ -198,6 +191,8 @@ void COperationPerformer::copyFiles()
 	assert_r(destination.size() == _source.size());
 
 	std::vector<CFileSystemObject> dirsToCleanUp;
+
+	_totalTimeElapsed.start();
 
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
@@ -380,6 +375,12 @@ void COperationPerformer::deleteFiles()
 		qDebug() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
+		const uint64_t instantaneousSpeed = (currentItemIndex + 1) * 1000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull);
+		_smoothSpeedCalculator.process(instantaneousSpeed);
+		const uint64_t meanSpeed = _smoothSpeedCalculator.smoothMean();
+		const uint32_t secondsRemaining = meanSpeed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex - 1) / meanSpeed) : 0;
+		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, meanSpeed, secondsRemaining);
+
 		if (!it->exists())
 		{
 			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
@@ -410,7 +411,6 @@ void COperationPerformer::deleteFiles()
 			++currentItemIndex;
 			break;
 		case naSkip:
-			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, 0);
 			++it;
 			++currentItemIndex;
 			break;
@@ -433,6 +433,12 @@ void COperationPerformer::deleteFiles()
 		qDebug() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
+		const uint64_t instantaneousSpeed = (currentItemIndex + 1) * 1000 / std::max(_totalTimeElapsed.elapsed(), 1ull);
+		_smoothSpeedCalculator.process(instantaneousSpeed);
+		const uint64_t meanSpeed = _smoothSpeedCalculator.smoothMean();
+		const uint32_t secondsRemaining = meanSpeed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex) / meanSpeed) : 0;
+		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, meanSpeed, secondsRemaining);
+
 		if (!it->exists())
 		{
 			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
@@ -463,7 +469,6 @@ void COperationPerformer::deleteFiles()
 			++currentItemIndex;
 			break;
 		case naSkip:
-			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, 0);
 			++it;
 			++currentItemIndex;
 			break;
@@ -473,8 +478,7 @@ void COperationPerformer::deleteFiles()
 			finalize();
 			return;
 		default:
-			qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
-			assert_unconditional_r("Unexpected deleteItem() return value");
+			assert_unconditional_r(QString("Unexpected deleteItem() return value %1").arg(nextAction).toUtf8().constData());
 			continue;
 		}
 	}
@@ -661,17 +665,15 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	const QString destPath = destDir.absolutePath() + '/';
 	FileOperationResultCode result = rcFail;
 
-	// For speed calculation
-	_fileTimeElapsed.start();
 	do
 	{
-		if (_paused) // This code is not strictly thread-safe (the value of _paused can change between 'if' and 'while'), but in this context I'm OK with that
+		if (_paused) // This code is not strictly thread-safe (the value of _paused may change between 'if' and 'while'), but in this context I'm OK with that
 		{
-			_fileTimeElapsed.pause();
+			_totalTimeElapsed.pause();
 			while (_paused)
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-			_fileTimeElapsed.resume();
+			_totalTimeElapsed.resume();
 		}
 
 		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString::null) : _newName);
@@ -679,11 +681,14 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		if (result != rcOk)
 			break;
 
-		const float totalPercentage = totalSize > 0 ? float(sizeProcessed + item.bytesCopied()) * 100.0f / totalSize : 0.0f;
+		const float totalPercentage = totalSize > 0 ? float(sizeProcessed + item.bytesCopied()) * 100.0f / totalSize : 0.0f; // Bytes
 		const float filePercentage = item.size() > 0 ? item.bytesCopied() * 100.0f / item.size() : 0.0f;
-		const uint64_t speed = _fileTimeElapsed.elapsed() > 0 ? item.bytesCopied() * 1000 / _fileTimeElapsed.elapsed() : 0; // B/s
-		_smoothSpeedCalculator = speed;
-		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, _smoothSpeedCalculator.arithmeticMean());
+
+		const uint64_t meanSpeed = (totalPercentage / 100.0f * sizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull); // Bytes / sec
+		_smoothSpeedCalculator.process(meanSpeed);
+		const uint64_t smoothMeanSpeed = _smoothSpeedCalculator.smoothMean();
+		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / smoothMeanSpeed);
+		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, smoothMeanSpeed, secondsRemaining);
 
 		// TODO: why isn't this block at the start of 'do-while'?
 		if (_cancelRequested)

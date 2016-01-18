@@ -23,7 +23,7 @@ public:
 	~CCopyMoveDialog();
 
 // Callbacks
-	void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/) override;
+	void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) override;
 	void onProcessHalted(HaltReason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) override; // User decision required (file exists, file is read-only etc.)
 	void onProcessFinished(QString message = QString()) override; // Done or canceled
 	void onCurrentFileChanged(QString file) override; // Starting to process a new file
@@ -55,7 +55,6 @@ private:
 	QTimer                _eventsProcessTimer;
 	const QString         _titleTemplate;
 	const QString         _labelTemplate;
-	uint64_t              _speed;
 };
 
 #endif // CCOPYMOVEDIALOG_H
