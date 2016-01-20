@@ -3,7 +3,6 @@
 #include "operationcodes.h"
 #include "cfilesystemobject.h"
 #include "system/ctimeelapsed.h"
-#include "math/cmeancounter.h"
 #include "assert/advanced_assert.h"
 
 #include <atomic>
@@ -120,6 +119,8 @@ private:
 	NextAction copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessed, uint64_t totalSize, size_t currentItemIndex);
 	NextAction mkPath(const QDir& dir);
 
+	void handlePause();
+
 private:
 	std::vector<CFileSystemObject> _source;
 	std::map<HaltReason, UserResponse> _globalResponses;
@@ -140,5 +141,4 @@ private:
 
 	// For calculating copy / move speed
 	CTimeElapsed                  _totalTimeElapsed;
-	CMeanCounter<uint64_t>        _smoothSpeedCalculator{0.1f};
 };

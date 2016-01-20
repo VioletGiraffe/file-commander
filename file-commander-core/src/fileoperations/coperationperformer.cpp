@@ -357,8 +357,6 @@ void COperationPerformer::deleteFiles()
 {
 	_inProgress = true;
 
-	_totalTimeElapsed.start();
-
 	size_t currentItemIndex = 0;
 	std::vector<DirectoryHierarchy> hierarchy;
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, _userResponse = urNone /* needed for normal condition variable operation */)
@@ -369,17 +367,19 @@ void COperationPerformer::deleteFiles()
 
 	auto fileSystemObjectsList = flattenHierarchy(hierarchy);
 
+	_totalTimeElapsed.start();
+
 	const size_t totalNumberOfObjects = fileSystemObjectsList.directories.size() + fileSystemObjectsList.files.size();
 	for (auto it = fileSystemObjectsList.files.begin(); it != fileSystemObjectsList.files.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
 	{
+		handlePause();
+
 		qDebug() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
-		const uint64_t instantaneousSpeed = (currentItemIndex + 1) * 1000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull);
-		_smoothSpeedCalculator.process(instantaneousSpeed);
-		const uint64_t meanSpeed = _smoothSpeedCalculator.smoothMean();
-		const uint32_t secondsRemaining = meanSpeed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex - 1) / meanSpeed) : 0;
-		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, meanSpeed, secondsRemaining);
+		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull);
+		const uint32_t secondsRemaining = speed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex - 1) / speed) : 0;
+		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, speed, secondsRemaining);
 
 		if (!it->exists())
 		{
@@ -430,14 +430,14 @@ void COperationPerformer::deleteFiles()
 	// We know that files and directories are being enumerated depth-first, so we need to delete them in reverse order to avoid trying to delete non-empty directories
 	for (auto it = fileSystemObjectsList.directories.rbegin(); it != fileSystemObjectsList.directories.rend() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
 	{
+		handlePause();
+
 		qDebug() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
-		const uint64_t instantaneousSpeed = (currentItemIndex + 1) * 1000 / std::max(_totalTimeElapsed.elapsed(), 1ull);
-		_smoothSpeedCalculator.process(instantaneousSpeed);
-		const uint64_t meanSpeed = _smoothSpeedCalculator.smoothMean();
-		const uint32_t secondsRemaining = meanSpeed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex) / meanSpeed) : 0;
-		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, meanSpeed, secondsRemaining);
+		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull);
+		const uint32_t secondsRemaining = speed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex) / speed) : 0;
+		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, speed, secondsRemaining);
 
 		if (!it->exists())
 		{
@@ -667,14 +667,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 	do
 	{
-		if (_paused) // This code is not strictly thread-safe (the value of _paused may change between 'if' and 'while'), but in this context I'm OK with that
-		{
-			_totalTimeElapsed.pause();
-			while (_paused)
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-			_totalTimeElapsed.resume();
-		}
+		handlePause();
 
 		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString::null) : _newName);
 		// Error handling
@@ -684,17 +677,14 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		const float totalPercentage = totalSize > 0 ? float(sizeProcessed + item.bytesCopied()) * 100.0f / totalSize : 0.0f; // Bytes
 		const float filePercentage = item.size() > 0 ? item.bytesCopied() * 100.0f / item.size() : 0.0f;
 
-		const uint64_t meanSpeed = (totalPercentage / 100.0f * sizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull); // Bytes / sec
-		_smoothSpeedCalculator.process(meanSpeed);
-		const uint64_t smoothMeanSpeed = _smoothSpeedCalculator.smoothMean();
-		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / smoothMeanSpeed);
-		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, smoothMeanSpeed, secondsRemaining);
+		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * sizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull); // Bytes / sec
+		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / meanSpeed);
+		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
 
 		// TODO: why isn't this block at the start of 'do-while'?
 		if (_cancelRequested)
 		{
-			if (item.cancelCopy() != rcOk)
-				assert_unconditional_r("Failed to cancel item copying");
+			assert_message_r(item.cancelCopy() == rcOk, "Failed to cancel item copying");
 			result = rcOk;
 			break;
 		}
@@ -737,5 +727,17 @@ COperationPerformer::NextAction COperationPerformer::mkPath(const QDir& dir)
 	{
 		assert_unconditional_r("Unexpected user response");
 		return naRetryItem;
+	}
+}
+
+void COperationPerformer::handlePause()
+{
+	if (_paused) // This code is not strictly thread-safe (the value of _paused may change between 'if' and 'while'), but in this context I'm OK with that
+	{
+		_totalTimeElapsed.pause();
+		while (_paused)
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+		_totalTimeElapsed.resume();
 	}
 }
