@@ -8,6 +8,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
+#include <memory>
+
 namespace Ui {
 class CDeleteProgressDialog;
 }
@@ -44,7 +46,7 @@ private:
 
 private:
 	Ui::CDeleteProgressDialog *ui;
-	COperationPerformer * _performer;
+	const std::unique_ptr<COperationPerformer> _performer;
 	CMainWindow         * _mainWindow;
 	QTimer                _eventsProcessTimer;
 };

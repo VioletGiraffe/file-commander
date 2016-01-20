@@ -38,11 +38,6 @@ CDeleteProgressDialog::CDeleteProgressDialog(std::vector<CFileSystemObject> sour
 
 CDeleteProgressDialog::~CDeleteProgressDialog()
 {
-	if (_performer)
-	{
-		_performer->cancel();
-		delete _performer;
-	}
 	delete ui;
 }
 
@@ -67,8 +62,6 @@ void CDeleteProgressDialog::onProcessHalted(HaltReason reason, CFileSystemObject
 
 void CDeleteProgressDialog::onProcessFinished(QString message)
 {
-	delete _performer;
-	_performer = 0;
 	close();
 
 	if (!message.isEmpty())
@@ -94,7 +87,7 @@ void CDeleteProgressDialog::closeEvent(QCloseEvent *e)
 
 void CDeleteProgressDialog::cancelPressed()
 {
-	if (QMessageBox::question(this, "Cancel?", "Are you sure you want to cancel this operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	if (!_performer || QMessageBox::question(this, "Cancel?", "Are you sure you want to cancel this operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 		cancel();
 }
 
