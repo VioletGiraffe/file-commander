@@ -3,6 +3,7 @@
 #include "../cmainwindow.h"
 #include "cpromptdialog.h"
 #include "filesystemhelperfunctions.h"
+#include "progressdialoghelpers.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QCloseEvent>
@@ -66,9 +67,9 @@ void CCopyMoveDialog::onProgressChanged(float totalPercentage, size_t numFilesPr
 	ui->_fileProgressText->setText(QString::number(filePercentage, 'f', 1).append('%'));
 
 
-	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(speed)).arg(secondsRemaining));
+	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(speed)).arg(secondsToTimeIntervalString(secondsRemaining)));
 	ui->_lblNumFiles->setText(QString("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
-	setWindowTitle(_titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(fileSizeToString(speed)).arg(secondsRemaining));
+	setWindowTitle(_titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(fileSizeToString(speed)).arg(secondsToTimeIntervalString(secondsRemaining)));
 }
 
 void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)
@@ -130,18 +131,15 @@ void CCopyMoveDialog::switchToBackground()
 	ui->_btnBackground->hide();
 	ui->_fileProgress->hide();
 	ui->_fileProgressText->hide();
-	QTimer::singleShot(0, this, &CCopyMoveDialog::setMinSize);
-}
+	QTimer::singleShot(0, [this](){
+		const QSize minsize = minimumSize();
+		const QPoint mainWindowTopLeft = _mainWindow->geometry().topLeft();
+		const QRect newGeometry = QRect(QPoint(mainWindowTopLeft.x(), mainWindowTopLeft.y() - minsize.height()), minsize);
+		setGeometry(newGeometry);
 
-void CCopyMoveDialog::setMinSize()
-{
-	const QSize minsize = minimumSize();
-	const QPoint mainWindowTopLeft = _mainWindow->geometry().topLeft();
-	const QRect newGeometry = QRect(QPoint(mainWindowTopLeft.x(), mainWindowTopLeft.y() - minsize.height()), minsize);
-	setGeometry(newGeometry);
-
-	_mainWindow->activateWindow();
-	raise();
+		_mainWindow->activateWindow();
+		raise();
+	});
 }
 
 void CCopyMoveDialog::processEvents()

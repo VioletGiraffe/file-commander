@@ -44,7 +44,6 @@ private: // slots
 	void processEvents();
 
 private:
-	void setMinSize();
 	void cancel();
 
 private:

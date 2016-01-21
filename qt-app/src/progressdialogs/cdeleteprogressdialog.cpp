@@ -1,6 +1,7 @@
 #include "cdeleteprogressdialog.h"
 #include "../cmainwindow.h"
 #include "cpromptdialog.h"
+#include "progressdialoghelpers.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cdeleteprogressdialog.h"
@@ -45,9 +46,9 @@ CDeleteProgressDialog::~CDeleteProgressDialog()
 void CDeleteProgressDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float /*filePercentage*/, uint64_t speed, uint32_t secondsRemaining)
 {
 	ui->_progress->setValue((int)(totalPercentage + 0.5f));
-	ui->_lblOperationNameAndSpeed->setText(tr("Deleting item %1 of %2, %3 items / second, %4 remaining").arg(numFilesProcessed).arg(totalNumFiles).arg(speed).arg(secondsRemaining));
+	ui->_lblOperationNameAndSpeed->setText(tr("Deleting item %1 of %2, %3 items / second, %4 remaining").arg(numFilesProcessed).arg(totalNumFiles).arg(speed).arg(secondsToTimeIntervalString(secondsRemaining)));
 	static const QString titleTemplate(tr("%1% Deleting... %2 items / second, %3 remaining"));
-	setWindowTitle(titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(speed).arg(secondsRemaining));
+	setWindowTitle(titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(speed).arg(secondsToTimeIntervalString(secondsRemaining)));
 }
 
 void CDeleteProgressDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)
