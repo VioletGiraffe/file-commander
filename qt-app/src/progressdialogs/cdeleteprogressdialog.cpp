@@ -101,21 +101,19 @@ void CDeleteProgressDialog::pauseResume()
 void CDeleteProgressDialog::background()
 {
 	ui->_btnBackground->setVisible(false);
-	QTimer::singleShot(0, this, &CDeleteProgressDialog::setMinSize);
-}
-
-void CDeleteProgressDialog::setMinSize()
-{
-	setGeometry(QRect(geometry().topLeft(), QPoint(geometry().topLeft().x() + minimumSize().width(), geometry().topLeft().y() + minimumSize().height())));
-	_mainWindow->raise();
-	_mainWindow->activateWindow();
+	QTimer::singleShot(0, [this](){
+		setGeometry(QRect(geometry().topLeft(), QPoint(geometry().topLeft().x() + minimumSize().width(), geometry().topLeft().y() + minimumSize().height())));
+		_mainWindow->raise();
+		_mainWindow->activateWindow();
+	});
 }
 
 void CDeleteProgressDialog::processEvents()
 {
 	std::lock_guard<std::mutex> lock(_callbackMutex);
-	for (auto event = _callbacks.begin(); event != _callbacks.end(); ++event)
-		(*event)();
+	for (const auto& event: _callbacks)
+		event();
+
 	_callbacks.clear();
 }
 

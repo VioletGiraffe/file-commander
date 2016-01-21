@@ -147,8 +147,9 @@ void CCopyMoveDialog::setMinSize()
 void CCopyMoveDialog::processEvents()
 {
 	std::lock_guard<std::mutex> lock(_callbackMutex);
-	for (auto event = _callbacks.begin(); event != _callbacks.end(); ++event)
-		(*event)();
+	for (const auto& event: _callbacks)
+		event();
+
 	_callbacks.clear();
 }
 

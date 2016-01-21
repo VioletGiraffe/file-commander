@@ -202,7 +202,7 @@ void CFavoriteLocationsEditor::fillUI()
 {
 	ui->_list->clear();
 	for (auto it = _locations.locations().begin(); it != _locations.locations().end(); ++it)
-		addLocationsToTreeWidget(_locations.locations(), it, 0);
+		addLocationsToTreeWidget(_locations.locations(), it, nullptr);
 
 	ui->_list->setCurrentItem(nullptr);
 }

@@ -277,8 +277,8 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 	const auto itemList = panel.list();
 	const auto previousSelection = selectedItemsHashes(true);
 	std::set<qulonglong> selectedItemsHashes; // For fast search
-	for (auto hash = previousSelection.begin(); hash != previousSelection.end(); ++hash)
-		selectedItemsHashes.insert(*hash);
+	for (const auto slectedItemHash: previousSelection)
+		selectedItemsHashes.insert(slectedItemHash);
 
 	fillFromList(itemList, operation);
 	_directoryCurrentlyBeingDisplayed = panel.currentDirPathPosix();
@@ -653,10 +653,9 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 	ui->_infoLabel->clear();
 
 	uint64_t numFilesSelected = 0, numFoldersSelected = 0, totalSize = 0, sizeSelected = 0, totalNumFolders = 0, totalNumFiles = 0;
-	const auto currentTotalList = _controller.panel(_panelPosition).list();
-	for (auto it = currentTotalList.begin(); it != currentTotalList.end(); ++it)
+	for (const auto& item: _controller.panel(_panelPosition).list())
 	{
-		const CFileSystemObject& object = it->second;
+		const CFileSystemObject& object = item.second;
 		if (object.isFile())
 			++totalNumFiles;
 		else if (object.isDir())
@@ -664,9 +663,9 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 		totalSize += object.size();
 	}
 
-	for (auto it = selection.begin(); it != selection.end(); ++it)
+	for (const auto selectedItem: selection)
 	{
-		const CFileSystemObject object = _controller.itemByHash(_panelPosition, *it);
+		const CFileSystemObject object = _controller.itemByHash(_panelPosition, selectedItem);
 		if (object.isFile())
 			++numFilesSelected;
 		else if (object.isDir())
@@ -841,9 +840,9 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 
 	if (!selection.empty())
 	{
-		for (auto it = selection.begin(); it != selection.end(); ++it)
+		for (const auto selectedItem: selection)
 		{
-			const qulonglong hash = hashByItemIndex(*it);
+			const qulonglong hash = hashByItemIndex(selectedItem);
 			if (!_controller.itemByHash(_panelPosition, hash).isCdUp())
 				result.push_back(hash);
 		}
