@@ -20,7 +20,7 @@ COperationPerformer::COperationPerformer(Operation operation, std::vector<CFileS
 	_op(operation),
 	_paused(false),
 	_inProgress(false),
-	_finished(false),
+	_done(false),
 	_cancelRequested(false),
 	_userResponse(urNone),
 	_observer(0)
@@ -59,7 +59,7 @@ bool COperationPerformer::working() const
 
 bool COperationPerformer::done() const
 {
-	return _finished;
+	return _done;
 }
 
 // User can supply a new name (not full path)
@@ -77,7 +77,7 @@ void COperationPerformer::userResponse(HaltReason haltReason, UserResponse respo
 void COperationPerformer::start()
 {
 	_thread = std::thread(&COperationPerformer::threadFunc, this);
-	while (!_inProgress) std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Waiting for thread to start, not sure if needed
+	while (!_inProgress) std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Waiting for thread to start, not sure what for
 }
 
 void COperationPerformer::cancel()
@@ -488,7 +488,7 @@ void COperationPerformer::deleteFiles()
 
 void COperationPerformer::finalize()
 {
-	_finished = true;
+	_done = true;
 	_paused   = false;
 	_observer->onProcessFinishedCallback();
 }

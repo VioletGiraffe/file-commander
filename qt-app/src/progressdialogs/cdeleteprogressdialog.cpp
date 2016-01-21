@@ -76,7 +76,7 @@ void CDeleteProgressDialog::onCurrentFileChanged(QString file)
 
 void CDeleteProgressDialog::closeEvent(QCloseEvent *e)
 {
-	if (e->type() == QCloseEvent::Close)
+	if (!_performer->done() && e->type() == QCloseEvent::Close)
 	{
 		if (QMessageBox::question(this, "Abort?", "Do you want to abort the operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 		{

@@ -129,7 +129,7 @@ private:
 	Operation                      _op;
 	std::atomic<bool>              _paused;
 	std::atomic<bool>              _inProgress;
-	std::atomic<bool>              _finished;
+	std::atomic<bool>              _done;
 	std::atomic<bool>              _cancelRequested;
 	UserResponse                   _userResponse;
 
