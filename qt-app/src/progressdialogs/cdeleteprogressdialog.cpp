@@ -1,9 +1,10 @@
 #include "cdeleteprogressdialog.h"
-#include "ui_cdeleteprogressdialog.h"
 #include "../cmainwindow.h"
 #include "cpromptdialog.h"
 
 DISABLE_COMPILER_WARNINGS
+#include "ui_cdeleteprogressdialog.h"
+
 #include <QCloseEvent>
 #include <QMessageBox>
 RESTORE_COMPILER_WARNINGS
@@ -19,7 +20,7 @@ CDeleteProgressDialog::CDeleteProgressDialog(std::vector<CFileSystemObject> sour
 
 	assert(mainWindow);
 
-	ui->_lblNumFiles->clear();
+	ui->_lblOperationNameAndSpeed->clear();
 	ui->_lblFileName->clear();
 
 	connect (ui->_btnCancel, &QPushButton::clicked, this, &CDeleteProgressDialog::cancelPressed);
@@ -44,7 +45,7 @@ CDeleteProgressDialog::~CDeleteProgressDialog()
 void CDeleteProgressDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float /*filePercentage*/, uint64_t speed, uint32_t secondsRemaining)
 {
 	ui->_progress->setValue((int)(totalPercentage + 0.5f));
-	ui->_lblNumFiles->setText(QString("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
+	ui->_lblOperationNameAndSpeed->setText(tr("Deleting item %1 of %2, %3 items / second, %4 remaining").arg(numFilesProcessed).arg(totalNumFiles).arg(speed).arg(secondsRemaining));
 	static const QString titleTemplate(tr("%1% Deleting... %2 items / second, %3 remaining"));
 	setWindowTitle(titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(speed).arg(secondsRemaining));
 }
@@ -75,7 +76,7 @@ void CDeleteProgressDialog::onCurrentFileChanged(QString file)
 
 void CDeleteProgressDialog::closeEvent(QCloseEvent *e)
 {
-	if (e->type() == QCloseEvent::Close && _performer)
+	if (e->type() == QCloseEvent::Close)
 	{
 		if (QMessageBox::question(this, "Abort?", "Do you want to abort the operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 		{
@@ -87,7 +88,7 @@ void CDeleteProgressDialog::closeEvent(QCloseEvent *e)
 
 void CDeleteProgressDialog::cancelPressed()
 {
-	if (!_performer || QMessageBox::question(this, "Cancel?", "Are you sure you want to cancel this operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	if (QMessageBox::question(this, "Cancel?", "Are you sure you want to cancel this operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 		cancel();
 }
 
