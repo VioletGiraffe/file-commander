@@ -7,6 +7,7 @@
 #include "threading/cworkerthread.h"
 #include "threading/cexecutionqueue.h"
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -110,6 +111,7 @@ private:
 	bool pathIsAccessible(const QString& path) const;
 
 	void contentsChanged(QString path);
+	void processContentsChangedEvent();
 
 private:
 	CFileSystemObject                          _currentDirObject;
@@ -126,6 +128,9 @@ private:
 	CWorkerThreadPool                          _workerThreadPool;
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
+
+	QTimer                                     _fileListRefreshTimer;
+	std::atomic<bool>                          _bContentsChangedEventPending{false};
 };
 
 #endif // CPANEL_H

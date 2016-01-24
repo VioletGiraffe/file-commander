@@ -22,6 +22,9 @@ CPanel::CPanel(Panel position) :
 	_panelPosition(position),
 	_workerThreadPool(4, "File list refresh thread")
 {
+	// The list of items in the current folder is being refreshed asynchronously, not every time a change is detected, to avoid refresh tasks queuing up out of control
+	_fileListRefreshTimer.start(200);
+	connect(&_fileListRefreshTimer, &QTimer::timeout, this, &CPanel::processContentsChangedEvent);
 }
 
 void CPanel::restoreFromSettings()
@@ -408,7 +411,8 @@ void CPanel::uiThreadTimerTick()
 
 void CPanel::contentsChanged(QString /*path*/)
 {
-	refreshFileList(refreshCauseOther);
+	// The list of items in the current folder is being refreshed asynchronously, not every time a change is detected, to avoid refresh tasks queuing up out of control
+	_bContentsChangedEventPending = true;
 }
 
 void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *listener)
@@ -438,4 +442,13 @@ bool CPanel::pathIsAccessible(const QString& path) const
 #endif // _WIN32
 
 	return !pathObject.qDir().entryList().empty();
+}
+
+void CPanel::processContentsChangedEvent()
+{
+	if (_bContentsChangedEventPending)
+	{
+		refreshFileList(refreshCauseOther);
+		_bContentsChangedEventPending = false;
+	}
 }
