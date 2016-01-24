@@ -285,12 +285,22 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 
 	// Restoring previous selection
 	if (!selectedItemsHashes.empty())
+	{
+		CTimeElapsed timer(true);
+		QItemSelection selection;
 		for (int row = 0; row < _sortModel->rowCount(); ++row)
 		{
 			const qulonglong hash = hashByItemRow(row);
 			if (selectedItemsHashes.count(hash) != 0)
-				_selectionModel->select(_sortModel->index(row, 0), QItemSelectionModel::Rows | QItemSelectionModel::Select);
+				selection.select(_sortModel->index(row, 0), _sortModel->index(row, 0));
 		}
+
+		timer.start();
+		if (!selection.empty())
+			_selectionModel->select(selection, QItemSelectionModel::Rows | QItemSelectionModel::Select);
+
+		qDebug() << "_selectionModel->select took" << timer.elapsed() << "ms for" << selection.size() << "items";
+	}
 
 	fillHistory();
 	updateCurrentDiskButton();
