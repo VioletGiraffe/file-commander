@@ -127,19 +127,10 @@ void CFileListView::modelAboutToBeReset()
 void CFileListView::mousePressEvent(QMouseEvent *e)
 {
 	_singleMouseClickValid = !_singleMouseClickValid;
-
 	_itemUnderCursorBeforeMouseClick = currentIndex();
 
 	// Always let Qt process this event
 	QTreeView::mousePressEvent(e);
-
-	// TODO: #47
-
-// 	const QModelIndex itemClicked = indexAt(e->pos());
-// 	if (e->button() == Qt::LeftButton && itemClicked.isValid() && e->modifiers() == Qt::NoModifier)
-// 	{
-// 		selectionModel()->clearSelection();
-// 	}
 }
 
 void CFileListView::mouseMoveEvent(QMouseEvent * e)
@@ -156,7 +147,7 @@ void CFileListView::mouseMoveEvent(QMouseEvent * e)
 // For showing context menu
 void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 {
-	if (event && (event->button() & Qt::RightButton))
+	if (event->button() == Qt::RightButton)
 	{
 		// Selecting an item that was clicked upon
 		const auto index = indexAt(event->pos());
@@ -166,7 +157,7 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 		// Calling a context menu
 		emit contextMenuRequested(QCursor::pos()); // Getting global screen coordinates
 	}
-	else if (event && event->button() == Qt::LeftButton)
+	else if (event->button() == Qt::LeftButton)
 	{
 		const QModelIndex itemClicked = indexAt(event->pos());
 		if (_itemUnderCursorBeforeMouseClick == itemClicked && _singleMouseClickValid)
@@ -181,6 +172,10 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 				}
 			});
 		}
+
+		// Bug fix for #49 - preventing item selection with a single LMB click
+		if (event->modifiers() == Qt::NoModifier && itemClicked.isValid())
+			selectionModel()->clearSelection();
 	}
 
 	// Always let Qt process this event
