@@ -131,6 +131,9 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 
 	// Always let Qt process this event
 	QTreeView::mousePressEvent(e);
+
+	if (e->modifiers() == Qt::ControlModifier && _itemUnderCursorBeforeMouseClick.isValid())
+		selectionModel()->select(_itemUnderCursorBeforeMouseClick, QItemSelectionModel::Rows | QItemSelectionModel::Select);
 }
 
 void CFileListView::mouseMoveEvent(QMouseEvent * e)

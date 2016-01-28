@@ -149,6 +149,6 @@ qulonglong CFileListModel::itemHash(const QModelIndex & index) const
 
 	bool ok = false;
 	const qulonglong hash = itm->data(Qt::UserRole).toULongLong(&ok);
-	assert_r(ok);
-	return ok ? hash : 0;
+	assert_and_return_r(ok, 0);
+	return hash;
 }
