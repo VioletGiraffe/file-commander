@@ -31,7 +31,7 @@ CFileListView::CFileListView(QWidget *parent) :
 	setItemDelegate(new CFileListItemDelegate);
 	connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
 
-		_itemUnderCursorBeforeMouseClick = QModelIndex();
+		_currentItemBeforeMouseClick = QModelIndex();
 		_singleMouseClickValid = false;
 
 		for(FileListViewEventObserver* observer: _eventObservers)
@@ -112,7 +112,7 @@ void CFileListView::invertSelection()
 
 void CFileListView::modelAboutToBeReset()
 {
-	_itemUnderCursorBeforeMouseClick = QModelIndex();
+	_currentItemBeforeMouseClick = QModelIndex();
 	_singleMouseClickValid = false;
 	if (_bHeaderAdjustmentRequired)
 	{
@@ -126,14 +126,15 @@ void CFileListView::modelAboutToBeReset()
 // For managing selection and cursor
 void CFileListView::mousePressEvent(QMouseEvent *e)
 {
-	_singleMouseClickValid = !_singleMouseClickValid;
-	_itemUnderCursorBeforeMouseClick = currentIndex();
+	_singleMouseClickValid = !_singleMouseClickValid && e->modifiers() == Qt::NoModifier;
+	_currentItemBeforeMouseClick = currentIndex();
+	const bool selectionWasEmpty = selectionModel()->selectedRows().empty();
 
 	// Always let Qt process this event
 	QTreeView::mousePressEvent(e);
 
-	if (e->modifiers() == Qt::ControlModifier && _itemUnderCursorBeforeMouseClick.isValid())
-		selectionModel()->select(_itemUnderCursorBeforeMouseClick, QItemSelectionModel::Rows | QItemSelectionModel::Select);
+	if (e->modifiers() == Qt::ControlModifier && selectionWasEmpty && _currentItemBeforeMouseClick.isValid())
+			selectionModel()->select(_currentItemBeforeMouseClick, QItemSelectionModel::Rows | QItemSelectionModel::Select);
 }
 
 void CFileListView::mouseMoveEvent(QMouseEvent * e)
@@ -141,7 +142,7 @@ void CFileListView::mouseMoveEvent(QMouseEvent * e)
 	if (_singleMouseClickValid && (e->pos() - _singleMouseClickPos).manhattanLength() > 15)
 	{
 		_singleMouseClickValid = false;
-		_itemUnderCursorBeforeMouseClick = QModelIndex();
+		_currentItemBeforeMouseClick = QModelIndex();
 	}
 
 	QTreeView::mouseMoveEvent(e);
@@ -163,14 +164,14 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 	else if (event->button() == Qt::LeftButton)
 	{
 		const QModelIndex itemClicked = indexAt(event->pos());
-		if (_itemUnderCursorBeforeMouseClick == itemClicked && _singleMouseClickValid)
+		if (_currentItemBeforeMouseClick == itemClicked && _singleMouseClickValid && event->modifiers() == Qt::NoModifier)
 		{
 			_singleMouseClickPos = event->pos();
 			QTimer::singleShot(QApplication::doubleClickInterval()+50, [this]() {
 				if (_singleMouseClickValid)
 				{
 					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
-					_itemUnderCursorBeforeMouseClick = QModelIndex();
+					_currentItemBeforeMouseClick = QModelIndex();
 					_singleMouseClickValid = false;
 				}
 			});

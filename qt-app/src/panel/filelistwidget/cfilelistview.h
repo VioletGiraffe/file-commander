@@ -88,7 +88,7 @@ private:
 	QByteArray                          _headerGeometry;
 	QByteArray                          _headerState;
 
-	QModelIndex                         _itemUnderCursorBeforeMouseClick;
+	QModelIndex                         _currentItemBeforeMouseClick;
 
 	CController                       & _controller;
 	enum Panel                          _panelPosition;
