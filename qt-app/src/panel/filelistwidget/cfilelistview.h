@@ -67,6 +67,7 @@ protected:
 	void mouseReleaseEvent(QMouseEvent *event) override;
 	// For managing selection and cursor
 	void keyPressEvent(QKeyEvent * event) override;
+	void keyReleaseEvent(QKeyEvent * event) override;
 
 	bool edit( const QModelIndex & index, EditTrigger trigger, QEvent * event ) override;
 
@@ -91,9 +92,10 @@ private:
 	QModelIndex                         _currentItemBeforeMouseClick;
 
 	CController                       & _controller;
-	enum Panel                          _panelPosition;
-	bool                                _bHeaderAdjustmentRequired;
+	enum Panel                          _panelPosition = UnknownPanel;
+	bool                                _bHeaderAdjustmentRequired = true;
 	QPoint                              _singleMouseClickPos;
-	bool                                _singleMouseClickValid;
-	bool                                _shiftPressedItemSelected;
+	bool                                _singleMouseClickValid = false;
+	bool                                _shiftPressedItemSelected = false;
+	bool                                _currentItemShouldBeSelectedOnMouseClick = false;
 };

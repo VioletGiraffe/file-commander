@@ -21,11 +21,7 @@ RESTORE_COMPILER_WARNINGS
 
 CFileListView::CFileListView(QWidget *parent) :
 	QTreeView(parent),
-	_controller(CController::get()),
-	_panelPosition(UnknownPanel),
-	_bHeaderAdjustmentRequired(true),
-	_singleMouseClickValid(false),
-	_shiftPressedItemSelected(false)
+	_controller(CController::get())
 {
 	setMouseTracking(true);
 	setItemDelegate(new CFileListItemDelegate);
@@ -133,8 +129,11 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 	// Always let Qt process this event
 	QTreeView::mousePressEvent(e);
 
-	if (e->modifiers() == Qt::ControlModifier && selectionWasEmpty && _currentItemBeforeMouseClick.isValid())
-			selectionModel()->select(_currentItemBeforeMouseClick, QItemSelectionModel::Rows | QItemSelectionModel::Select);
+	if (_currentItemShouldBeSelectedOnMouseClick && e->modifiers() == Qt::ControlModifier && selectionWasEmpty && _currentItemBeforeMouseClick.isValid())
+	{
+		_currentItemShouldBeSelectedOnMouseClick = false;
+		selectionModel()->select(_currentItemBeforeMouseClick, QItemSelectionModel::Rows | QItemSelectionModel::Select);
+	}
 }
 
 void CFileListView::mouseMoveEvent(QMouseEvent * e)
@@ -189,6 +188,9 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 // For managing selection and cursor
 void CFileListView::keyPressEvent(QKeyEvent *event)
 {
+	if (event->key() == Qt::Key_Control)
+		_currentItemShouldBeSelectedOnMouseClick = true;
+
 	if (event->key() == Qt::Key_Down || event->key() == Qt::Key_Up ||
 		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
 		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
@@ -264,6 +266,14 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 		if ((event->modifiers() & Qt::ShiftModifier) != 0)
 			scrollTo(currentIndex());
 #endif
+}
+
+void CFileListView::keyReleaseEvent(QKeyEvent * event)
+{
+	if (event->key() == Qt::Key_Control)
+		_currentItemShouldBeSelectedOnMouseClick = true;
+
+	QTreeView::keyReleaseEvent(event);
 }
 
 bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)
