@@ -606,7 +606,7 @@ COperationPerformer::NextAction COperationPerformer::makeItemWriteable(CFileSyst
 	return naProceed;
 }
 
-COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessed, uint64_t totalSize, size_t currentItemIndex)
+COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessedPreviously, uint64_t totalSize, size_t currentItemIndex)
 {
 	if (!item.isFile())
 		return naProceed;
@@ -674,10 +674,11 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		if (result != rcOk)
 			break;
 
-		const float totalPercentage = totalSize > 0 ? float(sizeProcessed + item.bytesCopied()) * 100.0f / totalSize : 0.0f; // Bytes
+		const auto actualSizeProcessed = sizeProcessedPreviously + item.bytesCopied();
+		const float totalPercentage = totalSize > 0 ? actualSizeProcessed * 100.0f / totalSize : 0.0f; // Bytes
 		const float filePercentage = item.size() > 0 ? item.bytesCopied() * 100.0f / item.size() : 0.0f;
 
-		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * sizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull); // Bytes / sec
+		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * actualSizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull); // Bytes / sec
 		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / meanSpeed);
 		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
 

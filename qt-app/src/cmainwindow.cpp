@@ -780,9 +780,7 @@ void CMainWindow::addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QM
 
 bool CMainWindow::fileListReturnPressed()
 {
-	if (_currentFileList)
-		return executeCommand(ui->commandLine->currentText());
-	return false;
+	return _currentFileList ? executeCommand(ui->commandLine->currentText()) : false;
 }
 
 void CMainWindow::quickViewCurrentFile()
