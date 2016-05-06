@@ -377,7 +377,7 @@ void COperationPerformer::deleteFiles()
 		qDebug() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
-		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull);
+		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
 		const uint32_t secondsRemaining = speed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex - 1) / speed) : 0;
 		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, speed, secondsRemaining);
 
@@ -435,7 +435,7 @@ void COperationPerformer::deleteFiles()
 		qDebug() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
 		_observer->onCurrentFileChangedCallback(it->fullName());
 
-		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull);
+		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
 		const uint32_t secondsRemaining = speed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex) / speed) : 0;
 		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, speed, secondsRemaining);
 
@@ -678,7 +678,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		const float totalPercentage = totalSize > 0 ? actualSizeProcessed * 100.0f / totalSize : 0.0f; // Bytes
 		const float filePercentage = item.size() > 0 ? item.bytesCopied() * 100.0f / item.size() : 0.0f;
 
-		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * actualSizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ull); // Bytes / sec
+		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * actualSizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1); // Bytes / sec
 		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / meanSpeed);
 		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
 
