@@ -3,7 +3,7 @@ TARGET   = core
 
 QT = core widgets gui #gui is required for QFileIconProvider and plugininterface
 CONFIG += staticlib
-CONFIG += c++11
+CONFIG += c++14
 
 win*{
     QT += winextras
@@ -53,7 +53,7 @@ SOURCES += \
 	src/fasthash.c \
 	src/filesearchengine/cfilesearchengine.cpp
 
-DEFINES += _SCL_SECURE_NO_WARNINGS PLUGIN_MODULE
+DEFINES += PLUGIN_MODULE
 
 INCLUDEPATH += \
 	src \
@@ -68,7 +68,7 @@ include(src/plugininterface/plugininterface.pri)
 win*{
 	QMAKE_CXXFLAGS += /MP /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = -W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
+	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX _SCL_SECURE_NO_WARNINGS
 }
 
 mac* | linux* {
