@@ -1,7 +1,7 @@
 File Commander
 ==============
 
-   Qt-based cross-platform Total Commander-like dual panel file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems.
+   Qt-based cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems.
 
 ![Windows screenshot](/../gh-pages/screenshots/Windows/Clip.jpg?raw=true)
 
