@@ -1,10 +1,8 @@
 TEMPLATE = subdirs
 
-SUBDIRS += qtutils text_encoding_detector file_commander_core autoupdater imageviewerplugin textviewerplugin qt_app cpputils
+SUBDIRS += qtutils text_encoding_detector file_commander_core autoupdater imageviewerplugin
+SUBDIRS += textviewerplugin qt_app cpputils cpp-template-utils
 
-cpputils.subdir = cpputils
-
-qtutils.subdir = qtutils
 qtutils.depends = cpputils
 
 autoupdater.subdir = github-releases-autoupdater
