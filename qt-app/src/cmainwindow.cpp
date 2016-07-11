@@ -63,6 +63,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_instance = this;
 	ui->setupUi(this);
 
+	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt());
+
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
 	_controller->pluginProxy().setToolMenuEntryCreatorImplementation(CPluginProxy::CreateToolMenuEntryImplementationType(std::bind(&CMainWindow::createToolMenuEntries, this, std::placeholders::_1)));
@@ -252,7 +254,7 @@ void CMainWindow::updateInterface()
 	if ((windowState() & Qt::WindowFullScreen) != 0)
 		ui->actionFull_screen_mode->setChecked(true);
 
-	Panel lastActivePanel = (Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
+	const Panel lastActivePanel = (Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
 	if (lastActivePanel == LeftPanel)
 		ui->leftPanel->setFocusToFileList();
 	else
