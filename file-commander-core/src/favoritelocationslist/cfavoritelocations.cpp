@@ -81,7 +81,7 @@ void CFavoriteLocations::load(const QByteArray& data)
 		}
 
 		currentList.top().get().push_back(CLocationsCollection(displayName, path));
-		const Marker marker = *(Marker*)(data.constData()+currentPosition);
+		const Marker marker = *reinterpret_cast<const Marker*>(data.constData()+currentPosition);
 		currentPosition += sizeof(Marker);
 
 		if (marker == NextLevel)
