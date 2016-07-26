@@ -4,5 +4,6 @@ install:
 - set PATH=%PATH%;C:\Qt\5.7\msvc2013\bin; 
 - qmake.exe -tp vc -r
 build:
+  project: file-commander.sln #required to avoid .smproj-induced build error
   parallel: true
   verbosity: minimal
