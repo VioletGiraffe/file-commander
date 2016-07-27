@@ -1,4 +1,6 @@
 version: 1.0.{build}
+init:
+  clone_depth: 1
 environment:
   matrix:
     - qt: 5.7\msvc2013
@@ -6,7 +8,7 @@ environment:
     - qt: 5.7\msvc2015
     - qt: 5.7\msvc2015_64
 install:
-- git submodule update --init --recursive 
+- git submodule update --init --recursive --depth 1
 - set PATH=%PATH%;C:\Qt\%qt%\bin; 
 - qmake.exe -tp vc -r
 build:
