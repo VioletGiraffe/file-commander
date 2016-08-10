@@ -3,7 +3,7 @@
 #include "plugininterface/cfilecommanderviewerplugin.h"
 #include "plugininterface/cfilecommandertoolplugin.h"
 #include "plugininterface/cpluginproxy.h"
-#include "container/algorithms.h"
+#include "container/algorithms.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

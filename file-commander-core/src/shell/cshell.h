@@ -16,15 +16,15 @@ public:
 	static QString shellExecutable();
 
 	// Pos must be global
-	static bool openShellContextMenuForObjects(std::vector<std::wstring> objects, int xPos, int yPos, void * parentWindow);
+	static bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow);
 
-	static bool copyObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow);
-	static bool cutObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow);
+	static bool copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
+	static bool cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
 	static bool pasteFromClipboard(std::wstring destFolder, void * parentWindow);
 
 	static std::wstring toolTip(std::wstring itemPath);
 
-	static bool deleteItems(std::vector<std::wstring> items, bool moveToTrash = true, void *parentWindow = 0);
+	static bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = 0);
 
 	static bool recycleBinContextMenu(int xPos, int yPos, void * parentWindow);
 

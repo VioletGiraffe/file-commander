@@ -80,7 +80,7 @@ protected:
 class COperationPerformer
 {
 public:
-	COperationPerformer(Operation operation, std::vector<CFileSystemObject> source, QString destination = QString());
+	COperationPerformer(Operation operation, const std::vector<CFileSystemObject>& source, QString destination = QString());
 	~COperationPerformer();
 
 	void setWatcher(CFileOperationObserver *watcher);

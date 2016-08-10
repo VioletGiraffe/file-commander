@@ -1,6 +1,6 @@
 #include "cdiskenumerator.h"
 #include "assert/advanced_assert.h"
-#include "container/algorithms.h"
+#include "container/algorithms.hpp"
 
 void CDiskEnumerator::addObserver(IDiskListObserver *observer)
 {

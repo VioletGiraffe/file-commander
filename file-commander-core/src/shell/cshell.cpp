@@ -83,14 +83,13 @@ private:
 
 class CItemIdArrayReleaser {
 public:
-	explicit CItemIdArrayReleaser(std::vector<ITEMIDLIST*> idArray) : _array(idArray) {}
+	explicit CItemIdArrayReleaser(const std::vector<ITEMIDLIST*>& idArray) : _array(idArray) {}
 	~CItemIdArrayReleaser() {
 		for (ITEMIDLIST* item: _array)
-			if (item)
-				CoTaskMemFree(item);
+			CoTaskMemFree(item);
 	}
 private:
-	std::vector<ITEMIDLIST*> _array;
+	const std::vector<ITEMIDLIST*>& _array;
 };
 
 struct ComInitializer {
@@ -108,7 +107,7 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* paren
 
 // Pos must be global
 
-bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> objects, int xPos, int yPos, void * parentWindow)
+bool CShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -135,7 +134,7 @@ bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> objects, i
 	return true;
 }
 
-bool CShell::copyObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow)
+bool CShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -160,7 +159,7 @@ bool CShell::copyObjectsToClipboard(std::vector<std::wstring> objects, void * pa
 	return SUCCEEDED(result);
 }
 
-bool CShell::cutObjectsToClipboard(std::vector<std::wstring> objects, void * parentWindow)
+bool CShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -244,7 +243,7 @@ std::wstring CShell::toolTip(std::wstring itemPath)
 	return tipString;
 }
 
-bool CShell::deleteItems(std::vector<std::wstring> items, bool moveToTrash, void * parentWindow)
+bool CShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTrash, void * parentWindow)
 {
 	ComInitializer comInitializer;
 

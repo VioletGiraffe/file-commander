@@ -23,7 +23,7 @@ class CPluginProxy
 {
 public:
 	struct MenuTree {
-		MenuTree(const QString& name_, std::function<void()> handler_): name(name_), handler(handler_) {}
+		MenuTree(const QString& name_, std::function<void()>&& handler_): name(name_), handler(handler_) {}
 
 		QString name;
 		std::function<void()> handler;

@@ -19,7 +19,7 @@ class CCopyMoveDialog : public QWidget, protected CFileOperationObserver
 	Q_OBJECT
 
 public:
-	explicit CCopyMoveDialog(Operation, std::vector<CFileSystemObject> source, QString destination, CMainWindow * mainWindow);
+	explicit CCopyMoveDialog(Operation, const std::vector<CFileSystemObject>& source, QString destination, CMainWindow * mainWindow);
 	~CCopyMoveDialog();
 
 // Callbacks
