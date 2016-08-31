@@ -20,7 +20,7 @@ enum {
 
 CPanel::CPanel(Panel position) :
 	_panelPosition(position),
-	_workerThreadPool(4, "File list refresh thread")
+	_workerThreadPool(4, std::string(position == LeftPanel ? "Left panel" : "Right panel") + " file list refresh thread pool")
 {
 	// The list of items in the current folder is being refreshed asynchronously, not every time a change is detected, to avoid refresh tasks queuing up out of control
 	_fileListRefreshTimer.start(200);
