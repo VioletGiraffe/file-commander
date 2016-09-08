@@ -66,7 +66,7 @@ public:
 	void showAllFilesFromCurrentFolderAndBelow(Panel p);
 	// Indicates that we need to move cursor (e. g. a folder is being renamed and we want to keep the cursor on it)
 	// This method takes the current folder in the currently active panel
-	void setCursorPositionForCurrentFolder(qulonglong newCurrentItemHash);
+	void setCursorPositionForCurrentFolder(Panel panel, qulonglong newCurrentItemHash);
 
 // Threading
 	inline void execOnWorkerThread(const std::function<void()>& task)

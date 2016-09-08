@@ -117,7 +117,7 @@ bool CController::switchToDisk(Panel p, size_t index)
 	const size_t currentIndex = currentDiskIndex(otherPanelPosition(p));
 	if (currentIndex < _diskEnumerator.drives().size() && drivePath == _diskEnumerator.drives().at(currentIndex).storageInfo.rootPath())
 	{
-		return setPath(p, otherPanel(p).currentDirPathNative(), refreshCauseOther) == rcOk;
+		return setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == rcOk;
 	}
 	else
 	{
@@ -180,20 +180,26 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 	if (!parentDir.exists())
 		return false;
 
-	if (parentDir.mkpath(name))
-	{
-		if (parentDir.absolutePath() == activePanel().currentDirObject().qDir().absolutePath())
-		{
-			const int slashPosition = name.indexOf('/');
-			const QString newFolderPath = parentDir.absolutePath() + "/" + (slashPosition > 0 ? name.left(name.indexOf('/')) : name);
-			// This is required for the UI to know to set the cursor at the new folder
-			setCursorPositionForCurrentFolder(CFileSystemObject(newFolderPath).hash());
-		}
+	const auto currentItemHash = currentItemInFolder(_activePanel, parentDir.absolutePath());
 
-		return true;
+	if (parentDir.absolutePath() == activePanel().currentDirObject().qDir().absolutePath())
+	{
+		const int slashPosition = name.indexOf('/');
+		const QString newFolderPath = parentDir.absolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name);
+		// This is required for the UI to know to set the cursor at the new folder.
+		// It must be done before calling mkpath, or #133 will occur due to asynchronous file list refresh between mkpath and the current item selection logic (it gets overwritten from CPanelWidget::fillFromList).
+		qDebug() << "New folder hash:" << CFileSystemObject(newFolderPath).hash();
+		setCursorPositionForCurrentFolder(activePanelPosition(), CFileSystemObject(newFolderPath).hash());
+	}
+
+	if (!parentDir.mkpath(name))
+	{
+		// Restore the previous current item in case of failure
+		setCursorPositionForCurrentFolder(activePanelPosition(), currentItemHash);
+		return false;
 	}
 	else
-		return false;
+		return true;
 }
 
 bool CController::createFile(const QString &parentFolder, const QString &name)
@@ -207,7 +213,7 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 	{
 		if (parentDir.fullAbsolutePath() == activePanel().currentDirPathPosix())
 			// This is required for the UI to know to set the cursor at the new file
-			setCursorPositionForCurrentFolder(CFileSystemObject(newFilePath).hash());
+			setCursorPositionForCurrentFolder(activePanelPosition(), CFileSystemObject(newFilePath).hash());
 
 		return true;
 	}
@@ -248,9 +254,9 @@ void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 
 // Indicates that we need to move cursor (e. g. a folder is being renamed and we want to keep the cursor on it)
 // This method takes the current folder in the currently active panel
-void CController::setCursorPositionForCurrentFolder(qulonglong newCurrentItemHash)
+void CController::setCursorPositionForCurrentFolder(Panel p, qulonglong newCurrentItemHash)
 {
-	activePanel().setCurrentItemForFolder(activePanel().currentDirPathPosix(), newCurrentItemHash);
+	panel(p).setCurrentItemForFolder(panel(p).currentDirPathPosix(), newCurrentItemHash);
 	CPluginEngine::get().currentItemChanged(activePanelPosition(), newCurrentItemHash);
 }
 

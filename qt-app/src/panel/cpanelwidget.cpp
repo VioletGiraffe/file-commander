@@ -174,6 +174,8 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	_model->setHorizontalHeaderLabels(QStringList() << tr("Name") << tr("Ext") << tr("Size") << tr("Date"));
 
 	int itemRow = 0;
+
+	// TODO: replace with a struct
 	std::vector<std::tuple<int, FileListViewColumns, QStandardItem*>> qTreeViewItems;
 	qTreeViewItems.reserve(items.size() * NumberOfColumns);
 
@@ -413,7 +415,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
 	const qulonglong hash = current.isValid() ? hashByItemIndex(current) : 0;
-	_controller.setCursorPositionForCurrentFolder(hash);
+	_controller.setCursorPositionForCurrentFolder(_panelPosition, hash);
 
 	emit currentItemChangedSignal(_panelPosition, hash);
 }
@@ -425,7 +427,7 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 		return;
 
 	// This is required for the UI to know to move the cursor to the renamed item
-	_controller.setCursorPositionForCurrentFolder(CFileSystemObject(item.parentDirPath() % "/" % newName).hash());
+	_controller.setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() % "/" % newName).hash());
 
 	if (item.moveAtomically(item.parentDirPath(), newName) != rcOk)
 	{
@@ -780,8 +782,10 @@ QModelIndex CPanelWidget::indexByHash(const qulonglong hash) const
 		return QModelIndex();
 
 	for(int row = 0; row < _sortModel->rowCount(); ++row)
+	{
 		if (hashByItemRow(row) == hash)
 			return _sortModel->index(row, 0);
+	}
 
 	return QModelIndex();
 }
