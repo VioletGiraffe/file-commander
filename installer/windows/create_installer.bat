@@ -3,7 +3,7 @@ REM set QTDIR32=k:\Qt\5\5.4\msvc2013_opengl\
 REM set QTDIR64=k:\Qt\5\5.4\msvc2013_64_opengl\
 
 call set_qt_paths.bat
-set VS_TOOLS_DIR=%VS120COMNTOOLS%
+set VS_TOOLS_DIR=%VS140COMNTOOLS%
 
 SETLOCAL
 
@@ -15,7 +15,7 @@ pushd ..\..\
 popd
 
 call "%VS_TOOLS_DIR%VsDevCmd.bat" x86
-msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v120_xp
+msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v140
 
 xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\32\
 xcopy /R /Y ..\..\bin\release\plugin_*.dll binaries\32\
@@ -27,8 +27,9 @@ SET PATH=%QTDIR32%\bin\
 FOR %%p IN (binaries\32\plugin_*.dll) DO %QTDIR32%\bin\windeployqt.exe --dir binaries\32\Qt --release --no-compiler-runtime --no-angle --no-translations %%p
 ENDLOCAL
 
-xcopy /R /Y %SystemRoot%\SysWOW64\msvcr120.dll binaries\32\msvcr\
-xcopy /R /Y %SystemRoot%\SysWOW64\msvcp120.dll binaries\32\msvcr\
+xcopy /R /Y %SystemRoot%\SysWOW64\msvcp140.dll binaries\32\msvcr\
+xcopy /R /Y %SystemRoot%\SysWOW64\vcruntime140.dll binaries\32\msvcr\
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x86\*" binaries\32\msvcr\
 
 del binaries\32\Qt\opengl*.*
 
@@ -42,7 +43,7 @@ pushd ..\..\
 popd
 
 call "%VS_TOOLS_DIR%VsDevCmd.bat" amd64
-msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v120_xp
+msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v140
 
 xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\64\
 xcopy /R /Y ..\..\bin\release\plugin_*.dll binaries\64\
@@ -54,8 +55,9 @@ SET PATH=%QTDIR64%\bin\
 FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --release --no-compiler-runtime --no-angle --no-translations %%p
 ENDLOCAL
 
-xcopy /R /Y %SystemRoot%\System32\msvcr120.dll binaries\64\msvcr\
-xcopy /R /Y %SystemRoot%\System32\msvcp120.dll binaries\64\msvcr\
+xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\
+xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x64\*" binaries\64\msvcr\
 
 del binaries\64\Qt\opengl*.*
 
