@@ -151,9 +151,15 @@ void CMainWindow::initActions()
 {
 	connect(ui->actionRefresh, &QAction::triggered, this, &CMainWindow::refresh);
 	connect(ui->actionFind, &QAction::triggered, this, &CMainWindow::findFiles);
-
-	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, &CMainWindow::openTerminal);
 	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::quit);
+
+	connect(ui->actionOpen_Console_Here, &QAction::triggered, [this]() {
+		_controller->openTerminal(_currentFileList->currentDir());
+	});
+
+	connect(ui->actionOpen_Admin_console_here, &QAction::triggered, [this]() {
+		_controller->openTerminal(_currentFileList->currentDir(), true);
+	});
 
 	ui->action_Show_hidden_files->setChecked(CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
 	connect(ui->action_Show_hidden_files, &QAction::triggered, this, &CMainWindow::showHiddenFiles);
@@ -528,11 +534,6 @@ void CMainWindow::editFile()
 		if (!started)
 			QMessageBox::information(this, tr("Error"), tr("Cannot launch %1").arg(editorPath));
 	}
-}
-
-void CMainWindow::openTerminal()
-{
-	_controller->openTerminal(_currentFileList->currentDir());
 }
 
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)

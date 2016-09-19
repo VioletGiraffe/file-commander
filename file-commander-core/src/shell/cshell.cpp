@@ -58,6 +58,7 @@ void CShell::executeShellCommand(const QString& command, const QString& workingD
 }
 
 #ifdef _WIN32
+#include "windows/windowsutils.h"
 
 #include <Shobjidl.h>
 #include <ShlObj.h>
@@ -412,6 +413,35 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 	if (!hmenu)
 		return false;
 	return (SUCCEEDED(imenu->QueryContextMenu(hmenu, 0, 1, 0x7FFF, CMF_NORMAL)));
+}
+
+bool CShell::runExeAsAdmin(const QString& command, const QString& workingDir)
+{
+	SHELLEXECUTEINFOW shExecInfo;
+	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+
+	const QString commandPathUnc = toUncPath(command);
+	const QString workingDirPathUnc = toUncPath(workingDir);
+
+	shExecInfo.fMask = 0;
+	shExecInfo.hwnd = nullptr;
+	shExecInfo.lpVerb = L"runas";
+	shExecInfo.lpFile = (WCHAR*)commandPathUnc.utf16();
+	shExecInfo.lpParameters = nullptr;
+	shExecInfo.lpDirectory = (WCHAR*)workingDirPathUnc.utf16();
+	shExecInfo.nShow = SW_MAXIMIZE;
+	shExecInfo.hInstApp = nullptr;
+
+	if (ShellExecuteExW(&shExecInfo) == 0)
+	{
+		const QString errorString = ErrorStringFromLastError();
+		qDebug() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirPathUnc;
+		qDebug() << errorString;
+
+		return false;
+	}
+
+	return true;
 }
 
 #elif defined __linux__

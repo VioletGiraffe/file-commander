@@ -29,6 +29,10 @@ public:
 	static bool recycleBinContextMenu(int xPos, int yPos, void * parentWindow);
 
 	static void executeShellCommand(const QString& command, const QString& workingDir);
+
+#ifdef _WIN32
+	static bool runExeAsAdmin(const QString& command, const QString& workingDir);
+#endif
 };
 
 #endif // CSHELLMENU_H

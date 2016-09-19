@@ -72,7 +72,6 @@ private slots: // UI slots
 // Other UI commands
 	void viewFile();
 	void editFile();
-	void openTerminal();
 	void showRecycleBInContextMenu(QPoint pos);
 	void toggleQuickView();
 	void currentItemChanged(Panel p, qulonglong itemHash);

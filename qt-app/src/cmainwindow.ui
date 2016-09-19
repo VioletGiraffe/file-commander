@@ -230,6 +230,8 @@
      <string>&amp;Tools</string>
     </property>
     <addaction name="actionOpen_Console_Here"/>
+    <addaction name="actionOpen_Admin_console_here"/>
+    <addaction name="separator"/>
     <addaction name="actionCalculate_occupied_space"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
@@ -381,6 +383,14 @@
   <action name="action_Check_for_updates">
    <property name="text">
     <string>&amp;Check for updates...</string>
+   </property>
+  </action>
+  <action name="actionOpen_Admin_console_here">
+   <property name="text">
+    <string>Open Admin console here</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Shift+F2</string>
    </property>
   </action>
  </widget>

@@ -221,16 +221,27 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 		return false;
 }
 
-void CController::openTerminal(const QString &folder)
+void CController::openTerminal(const QString &folder, bool admin)
 {
 #if defined __APPLE__
 	system(QString("osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd %1\\\"\"").arg(folder).toUtf8().data());
 #elif defined __linux__ || defined _WIN32
-	const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
-	assert_r(started);
+	if (!admin)
+	{
+		const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
+		assert_r(started);
+	}
+	else
+	{
+#ifdef _WIN32
+		assert_r(CShell::runExeAsAdmin(CShell::shellExecutable(), folder));
+#endif
+	}
 #else
 	#error unknown platform
 #endif
+
+	Q_UNUSED(admin);
 }
 
 FilesystemObjectsStatistics CController::calculateStatistics(Panel p, const std::vector<qulonglong> & hashes)

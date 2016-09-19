@@ -17,6 +17,8 @@ RESTORE_COMPILER_WARNINGS
 #include <unistd.h>
 #include <sys/stat.h>
 #elif defined _WIN32
+#include "windows/windowsutils.h"
+
 #include <Windows.h>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
@@ -475,7 +477,7 @@ bool CFileSystemObject::makeWritable(bool writeable)
 	assert_and_return_message_r(isFile(), "This method only works for files", false);
 
 #ifdef _WIN32
-	const QString UNCPath = QStringLiteral("\\\\?\\") % toNativeSeparators(fullAbsolutePath());
+	const QString UNCPath = toUncPath(fullAbsolutePath());
 	const DWORD attributes = GetFileAttributesW((LPCWSTR)UNCPath.utf16());
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 	{
