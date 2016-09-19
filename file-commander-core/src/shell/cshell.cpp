@@ -7,7 +7,6 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QFileInfo>
-#include <QProcessEnvironment>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -21,7 +20,7 @@ RESTORE_COMPILER_WARNINGS
 QString CShell::shellExecutable()
 {
 #ifdef _WIN32
-	static const QString defaultShell = QProcessEnvironment::systemEnvironment().value("ComSpec", "cmd.exe");
+	static const QString defaultShell = QStringLiteral("powershell.exe");
 	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
 #elif defined __APPLE__
 	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();

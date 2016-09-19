@@ -223,12 +223,9 @@ bool CController::createFile(const QString &parentFolder, const QString &name)
 
 void CController::openTerminal(const QString &folder)
 {
-#ifdef _WIN32
-	const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
-	assert_r(started);
-#elif defined __APPLE__
+#if defined __APPLE__
 	system(QString("osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd %1\\\"\"").arg(folder).toUtf8().data());
-#elif defined __linux__
+#elif defined __linux__ || defined _WIN32
 	const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
 	assert_r(started);
 #else
