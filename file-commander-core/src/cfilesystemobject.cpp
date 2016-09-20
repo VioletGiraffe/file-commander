@@ -566,9 +566,12 @@ QString CFileSystemObject::expandEnvironmentVariables(const QString& string)
 	else
 		return string;
 #else
+	if (!string.contains('$'))
+		return string;
+
 	wordexp_t p;
 	wordexp("$HOME/bin", &p, 0);
-	const char** w = p.we_wordv;
+	const auto w = p.we_wordv;
 	const QString result = p.we_wordc > 0 ? w[0] : string;
 	wordfree(&p);
 

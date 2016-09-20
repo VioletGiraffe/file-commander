@@ -446,7 +446,7 @@ bool CShell::runExeAsAdmin(const QString& command, const QString& workingDir)
 
 #elif defined __linux__
 
-bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
+bool CShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
 {
 	return false;
 }
