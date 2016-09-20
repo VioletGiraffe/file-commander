@@ -39,15 +39,11 @@ public:
 	explicit CFileSystemObject(const QFileInfo & fileInfo);
 
 	inline CFileSystemObject() {}
-	inline explicit CFileSystemObject(const QString& path) : CFileSystemObject(QFileInfo(path)) {}
+	inline explicit CFileSystemObject(const QString& path) : CFileSystemObject(QFileInfo(expandEnvironmentVariables(path))) {}
 	inline explicit CFileSystemObject(const QDir& dir) : CFileSystemObject(QFileInfo(dir.absolutePath())) {}
 
 	template <typename T, typename U>
-	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject(QString(stringBuilder))
-	{
-	}
-
-	~CFileSystemObject();
+	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)stringBuilder) {}
 
 	void refreshInfo();
 	void setPath(const QString& path);
@@ -111,6 +107,9 @@ public:
 	FileOperationResultCode remove();
 
 	QString lastErrorMessage() const;
+
+private:
+	static QString expandEnvironmentVariables(const QString& string);
 
 private:
 	QFileInfo                   _fileInfo;

@@ -437,12 +437,12 @@ void CController::disksChanged()
 
 void CController::saveDirectoryForCurrentDisk(Panel p)
 {
-	const QString path = panel(p).currentDirPathNative();
-	if (CFileSystemObject(path).isNetworkObject())
+	const CFileSystemObject path(panel(p).currentDirPathNative());
+	if (path.isNetworkObject())
 		return;
 
-	assert_and_return_r(CFileSystemObject(path).isNetworkObject() || currentDiskIndex(p) < _diskEnumerator.drives().size(), );
+	assert_and_return_r(path.isNetworkObject() || currentDiskIndex(p) < _diskEnumerator.drives().size(), );
 
 	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).storageInfo.rootPath();
-	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path);
+	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
 }

@@ -16,6 +16,7 @@ RESTORE_COMPILER_WARNINGS
 #if defined __linux__ || defined __APPLE__
 #include <unistd.h>
 #include <sys/stat.h>
+#include <wordexp.h>
 #elif defined _WIN32
 #include "windows/windowsutils.h"
 
@@ -30,10 +31,6 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 
 	if (isDir())
 		_dir.setPath(fullAbsolutePath());
-}
-
-CFileSystemObject::~CFileSystemObject()
-{
 }
 
 void CFileSystemObject::refreshInfo()
@@ -555,6 +552,28 @@ FileOperationResultCode CFileSystemObject::remove()
 QString CFileSystemObject::lastErrorMessage() const
 {
 	return _lastErrorMessage;
+}
+
+QString CFileSystemObject::expandEnvironmentVariables(const QString& string)
+{
+#ifdef _WIN32
+	if (!string.contains('%'))
+		return string;
+
+	static WCHAR result[16384 + 1];
+	if (ExpandEnvironmentStringsW((WCHAR*)string.utf16(), result, sizeof(result) / sizeof(result[0])) != 0)
+		return toPosixSeparators(QString::fromUtf16((char16_t*)result));
+	else
+		return string;
+#else
+	wordexp_t p;
+	wordexp("$HOME/bin", &p, 0);
+	const char** w = p.we_wordv;
+	const QString result = p.we_wordc > 0 ? w[0] : string;
+	wordfree(&p);
+
+	return result;
+#endif
 }
 
 
