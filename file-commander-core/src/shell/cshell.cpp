@@ -7,6 +7,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QFileInfo>
+#include <QProcess>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -60,9 +61,50 @@ void CShell::executeShellCommand(const QString& command, const QString& workingD
 #ifdef _WIN32
 #include "windows/windowsutils.h"
 
+#include <shellapi.h>
+
+bool CShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
+{
+	SHELLEXECUTEINFOW shExecInfo = {0};
+	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+
+	const QString commandPathUnc = toUncPath(command);
+	const QString workingDirPathUnc = toUncPath(workingDir);
+
+	shExecInfo.fMask = 0;
+	shExecInfo.hwnd = nullptr;
+	shExecInfo.lpVerb = L"open";
+	shExecInfo.lpFile = (WCHAR*)commandPathUnc.utf16();
+	shExecInfo.lpParameters = parameters.isEmpty() ? nullptr : (WCHAR*)parameters.utf16();
+	shExecInfo.lpDirectory = (WCHAR*)workingDirPathUnc.utf16();
+	shExecInfo.nShow = SW_SHOWNORMAL;
+	shExecInfo.hInstApp = nullptr;
+
+	if (ShellExecuteExW(&shExecInfo) == 0)
+	{
+		const auto error = GetLastError();
+		if (error != 1223) // Operation cancelled by the user
+		{
+			const QString errorString = ErrorStringFromLastError();
+			qDebug() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirPathUnc;
+			qDebug() << errorString;
+
+			return false;
+		}
+	}
+
+	return true;
+}
+#else
+bool CShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
+{
+	return QProcess::startDetached(item.fullAbsolutePath(), QStringList(), item.parentDirPath());
+}
+#endif
+
+#ifdef _WIN32
 #include <Shobjidl.h>
 #include <ShlObj.h>
-#include <shellapi.h>
 #include <windowsx.h>
 
 class CItemIdListReleaser {
@@ -417,7 +459,7 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 
 bool CShell::runExeAsAdmin(const QString& command, const QString& workingDir)
 {
-	SHELLEXECUTEINFOW shExecInfo;
+	SHELLEXECUTEINFOW shExecInfo = {0};
 	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 
 	const QString commandPathUnc = toUncPath(command);
@@ -429,7 +471,7 @@ bool CShell::runExeAsAdmin(const QString& command, const QString& workingDir)
 	shExecInfo.lpFile = (WCHAR*)commandPathUnc.utf16();
 	shExecInfo.lpParameters = nullptr;
 	shExecInfo.lpDirectory = (WCHAR*)workingDirPathUnc.utf16();
-	shExecInfo.nShow = SW_MAXIMIZE;
+	shExecInfo.nShow = SW_SHOWNORMAL;
 	shExecInfo.hInstApp = nullptr;
 
 	if (ShellExecuteExW(&shExecInfo) == 0)

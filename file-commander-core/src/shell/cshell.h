@@ -30,6 +30,8 @@ public:
 
 	static void executeShellCommand(const QString& command, const QString& workingDir);
 
+	static bool runExecutable(const QString& command, const QString& parameters, const QString& workingDir);
+
 #ifdef _WIN32
 	static bool runExeAsAdmin(const QString& command, const QString& workingDir);
 #endif

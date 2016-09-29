@@ -9,7 +9,6 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QDesktopServices>
-#include <QProcess>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
@@ -99,7 +98,7 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	{
 		if (item.isExecutable())
 			// Attempting to launch this exe from the current directory
-			return QProcess::startDetached(item.fullAbsolutePath(), QStringList(), item.parentDirPath()) ? rcOk : rcFail;
+			return CShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()) ? rcOk : rcFail;
 		else
 			// It's probably not a binary file, try opening with openUrl
 			return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? rcOk : rcFail;
@@ -228,7 +227,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 #elif defined __linux__ || defined _WIN32
 	if (!admin)
 	{
-		const bool started = QProcess::startDetached(CShell::shellExecutable(), QStringList(), folder);
+		const bool started = CShell::runExecutable(CShell::shellExecutable(), QString(), folder);
 		assert_r(started);
 	}
 	else
