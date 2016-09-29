@@ -83,7 +83,7 @@ bool CShell::runExecutable(const QString & command, const QString & parameters, 
 	if (ShellExecuteExW(&shExecInfo) == 0)
 	{
 		const auto error = GetLastError();
-		if (error != 1223) // Operation cancelled by the user
+		if (error != ERROR_CANCELLED) // Operation canceled by the user
 		{
 			const QString errorString = ErrorStringFromLastError();
 			qDebug() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirPathUnc;
