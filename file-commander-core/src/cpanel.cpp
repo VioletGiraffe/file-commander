@@ -89,6 +89,10 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	// History management
 	assert(!_history.currentItem().contains('\\') && !newPath.contains('\\'));
+	if (_history.empty())
+		// The current folder does not automatically make it into history on program startup, but it should (#103)
+		_history.addLatest(oldPath);
+
 	if (_history.currentItem() != newPath)
 	{
 		_history.addLatest(newPath);
