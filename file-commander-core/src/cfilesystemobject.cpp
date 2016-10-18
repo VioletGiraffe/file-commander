@@ -38,13 +38,16 @@ void CFileSystemObject::refreshInfo()
 	_properties.exists = _fileInfo.exists();
 	_properties.fullPath = _fileInfo.absoluteFilePath();
 
-	const QByteArray utf8Path = _properties.fullPath.toUtf8();
-	_properties.hash = fasthash64(utf8Path.constData(), utf8Path.size(), 0);
-
 	if (_fileInfo.isFile())
 		_properties.type = File;
 	else if (_fileInfo.isDir())
+	{
 		_properties.type = Directory;
+		// Normalization - very important for hash calculation and equality checking
+		// C:/1/ must be equal to C:/1
+		if (!_properties.fullPath.endsWith('/'))
+			_properties.fullPath.append('/');
+	}
 	else if (_properties.exists)
 	{
 #ifdef _WIN32
@@ -53,6 +56,9 @@ void CFileSystemObject::refreshInfo()
 	}
 	else if (_properties.fullPath.endsWith('/'))
 		_properties.type = Directory;
+
+	const QByteArray utf8Path = _properties.fullPath.toUtf8();
+	_properties.hash = fasthash64(utf8Path.constData(), utf8Path.size(), 0);
 
 
 	if (_properties.type == File)
@@ -243,7 +249,7 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 bool CFileSystemObject::isNetworkObject() const
 {
 #ifdef _WIN32
-	return _properties.fullPath.startsWith("//") && !_properties.fullPath.startsWith("//?/");
+	return _properties.fullPath.startsWith(QStringLiteral("//")) && !_properties.fullPath.startsWith(QStringLiteral("//?/"));
 #else
 	return false;
 #endif

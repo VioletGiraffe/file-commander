@@ -110,16 +110,15 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	connect(_watcher.get(), &QFileSystemWatcher::fileChanged, this, &CPanel::contentsChanged);
 	connect(_watcher.get(), &QFileSystemWatcher::objectNameChanged, this, &CPanel::contentsChanged);
 
-	// Finding hash of an item corresponding to path
-	for (const auto& item : _items)
-	{
-		const QString itemPath = item.second.fullAbsolutePath();
-		if (posixPath == itemPath && item.second.parentDirPath() != itemPath)
-		{
-			setCurrentItemForFolder(item.second.parentDirPath(), item.second.properties().hash);
-			break;
-		}
-	}
+	// If the new folder is one of the subfolders of the previous folder, mark it as the current for that previous folder
+	// We're using the fact that _currentDirObject is already updated, but the _items list is not as it still corresponds to the previous location
+	const auto newItemInPreviousFolder = _items.find(_currentDirObject.hash());
+	if (operation != refreshCauseCdUp && newItemInPreviousFolder != _items.end() && newItemInPreviousFolder->second.parentDirPath() != newItemInPreviousFolder->second.fullAbsolutePath())
+		// Updating the cursor when navigating downwards
+		setCurrentItemForFolder(newItemInPreviousFolder->second.parentDirPath(), _currentDirObject.hash());
+	else
+		// Updating the cursor when navigating upwards
+		setCurrentItemForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, CFileSystemObject(oldPath).hash() /* where we were */);
 
 	locker.unlock();
 
