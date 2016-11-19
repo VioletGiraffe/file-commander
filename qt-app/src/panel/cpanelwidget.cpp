@@ -238,7 +238,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 
 	ui->_list->restoreHeaderState();
 
-	ui->_list->moveCursorToItem(_sortModel->index(0, 0));
+	auto indexUnderCursor = _sortModel->index(0, 0);
 
 	// Setting the cursor position as appropriate
 	if (operation == refreshCauseCdUp)
@@ -255,17 +255,19 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		}
 
 		if (targetFolderHash != 0)
-			ui->_list->moveCursorToItem(indexByHash(targetFolderHash));
+			indexUnderCursor = indexByHash(targetFolderHash);
 	}
 	else if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
 		const qulonglong itemHashToSetCursorTo = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathPosix());
-		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo);
+		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo, true);
 		if (itemIndexToSetCursorTo.isValid())
-			ui->_list->moveCursorToItem(itemIndexToSetCursorTo);
+			indexUnderCursor = itemIndexToSetCursorTo;
 		else if (previousCurrentIndex.isValid())
-			ui->_list->moveCursorToItem(_sortModel->index(previousCurrentIndex.row(), 0));
+			indexUnderCursor = _sortModel->index(previousCurrentIndex.row(), 0);
 	}
+
+	ui->_list->moveCursorToItem(indexUnderCursor);
 
 	connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
@@ -777,7 +779,7 @@ qulonglong CPanelWidget::hashByItemRow(const int row) const
 	return hashByItemIndex(_sortModel->index(row, 0));
 }
 
-QModelIndex CPanelWidget::indexByHash(const qulonglong hash) const
+QModelIndex CPanelWidget::indexByHash(const qulonglong hash, bool logFailures) const
 {
 	if (hash == 0)
 		return QModelIndex();
@@ -787,6 +789,9 @@ QModelIndex CPanelWidget::indexByHash(const qulonglong hash) const
 		if (hashByItemRow(row) == hash)
 			return _sortModel->index(row, 0);
 	}
+
+	if (logFailures)
+		qDebug() << "Failed to find hash" << hash << "in" << currentDir();
 
 	return QModelIndex();
 }

@@ -102,7 +102,7 @@ private:
 // Internal methods
 	qulonglong hashByItemIndex(const QModelIndex& index) const;
 	qulonglong hashByItemRow(const int row) const;
-	QModelIndex indexByHash(const qulonglong hash) const;
+	QModelIndex indexByHash(const qulonglong hash, bool logFailures = false) const;
 
 	void updateCurrentDiskButton();
 
