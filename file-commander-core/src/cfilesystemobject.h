@@ -29,6 +29,7 @@ struct CFileSystemObjectProperties {
 	time_t   creationDate = std::numeric_limits<time_t>::max();
 	time_t   modificationDate = std::numeric_limits<time_t>::max();
 	qulonglong hash = 0;
+	bool isCdUp = false;
 	bool exists = false;
 };
 

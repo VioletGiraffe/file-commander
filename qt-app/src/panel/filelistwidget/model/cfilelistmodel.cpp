@@ -78,7 +78,13 @@ Qt::ItemFlags CFileListModel::flags(const QModelIndex & idx) const
 
 	const qulonglong hash = itemHash(idx);
 	const CFileSystemObject item = _controller.itemByHash(_panel, hash);
-	return item.exists() && !item.isCdUp() ? flags | Qt::ItemIsEditable : flags;
+
+	if (!item.exists())
+		return flags;
+	else if (item.isCdUp())
+		return flags & ~Qt::ItemIsSelectable;
+	else
+		return flags | Qt::ItemIsEditable;
 }
 
 bool CFileListModel::canDropMimeData(const QMimeData * data, Qt::DropAction /*action*/, int /*row*/, int /*column*/, const QModelIndex & /*parent*/) const

@@ -75,6 +75,7 @@ void CFileSystemObject::refreshInfo()
 	}
 
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
+	_properties.isCdUp = _properties.fullName == "..";
 	_properties.parentFolder = _fileInfo.absolutePath();
 
 	if (!_properties.exists)
@@ -147,7 +148,7 @@ bool CFileSystemObject::isEmptyDir() const
 
 bool CFileSystemObject::isCdUp() const
 {
-	return _properties.fullName == QStringLiteral("..");
+	return _properties.isCdUp;
 }
 
 bool CFileSystemObject::isExecutable() const
