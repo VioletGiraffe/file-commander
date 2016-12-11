@@ -60,7 +60,7 @@ bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
 		case Qt::Key_Backtab:
 			emit closeEditor(editor, EditPreviousItem);
 			return true;
-		case Qt::Key_Enter:
+		case Qt::Key_Enter: // Numpad Enter
 		case Qt::Key_Return:
 			if (qobject_cast<QTextEdit *>(editor) || qobject_cast<QPlainTextEdit*>(editor))
 				return false; // don't filter enter key events for QTextEdit

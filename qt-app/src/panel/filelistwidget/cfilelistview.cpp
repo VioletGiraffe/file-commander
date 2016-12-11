@@ -220,7 +220,8 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 	}
 	else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
 	{
-		if (event->modifiers() == Qt::NoModifier)
+		const auto modifiers = event->modifiers() & ~Qt::KeypadModifier;
+		if (modifiers == Qt::NoModifier)
 		{
 			bool returnPressConsumed = false;
 			for(FileListViewEventObserver* observer: _eventObservers)
@@ -242,9 +243,9 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 				}
 
 		}
-		else if (event->modifiers() == Qt::ControlModifier)
+		else if (modifiers == Qt::ControlModifier)
 			emit ctrlEnterPressed();
-		else if (event->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier))
+		else if (modifiers == (Qt::ControlModifier | Qt::ShiftModifier))
 			emit ctrlShiftEnterPressed();
 
 		return;
