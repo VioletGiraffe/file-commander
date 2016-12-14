@@ -68,10 +68,8 @@ void CFileListView::moveCursorToItem(const QModelIndex& index, bool invertSelect
 		const QModelIndex currentIdx = currentIndex();
 		if (invertSelection && currentIdx.isValid())
 		{
-			int startRow = std::min(currentIdx.row(), normalizedTargetIndex.row());
-			int endRow = std::max(currentIdx.row(), normalizedTargetIndex.row());
-			for (int row = startRow; row <= endRow; ++row)
-				selectionModel()->setCurrentIndex(model()->index(row, 0), (!_shiftPressedItemSelected ? QItemSelectionModel::Select : QItemSelectionModel::Deselect) | QItemSelectionModel::Rows);
+			for (int row = std::min(currentIdx.row(), normalizedTargetIndex.row()), endRow = std::max(currentIdx.row(), normalizedTargetIndex.row()); row <= endRow; ++row)
+				selectionModel()->setCurrentIndex(model()->index(row, 0), (_shiftPressedItemSelected ? QItemSelectionModel::Deselect : QItemSelectionModel::Select) | QItemSelectionModel::Rows);
 		}
 
 		selectionModel()->setCurrentIndex(normalizedTargetIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
@@ -195,12 +193,9 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 		event->key() == Qt::Key_PageDown || event->key() == Qt::Key_PageUp ||
 		event->key() == Qt::Key_Home || event->key() == Qt::Key_End)
 	{
-		if ((event->modifiers() & (~Qt::KeypadModifier) & (~Qt::ShiftModifier)) == Qt::NoModifier)
+		if ((event->modifiers() & ~Qt::KeypadModifier & ~Qt::ShiftModifier) == Qt::NoModifier)
 		{
 			const bool shiftPressed = (event->modifiers() & Qt::ShiftModifier) != 0;
-			if (shiftPressed)
-				_shiftPressedItemSelected = currentIndex().isValid() ? selectionModel()->isSelected(currentIndex()) : false;
-
 			if (event->key() == Qt::Key_Down)
 				moveCursorToNextItem(shiftPressed);
 			else if (event->key() == Qt::Key_Up)
@@ -273,6 +268,8 @@ void CFileListView::keyReleaseEvent(QKeyEvent * event)
 {
 	if (event->key() == Qt::Key_Control)
 		_currentItemShouldBeSelectedOnMouseClick = true;
+	else if (event->key() == Qt::Key_Shift)
+		_shiftPressedItemSelected = false;
 
 	QTreeView::keyReleaseEvent(event);
 }
@@ -401,13 +398,14 @@ void CFileListView::pgDn(bool invertSelection)
 
 int CFileListView::numRowsVisible() const
 {
-	// FIXME: rewrite it with indexAt to be O(1)
+	// TODO: rewrite it with indexAt to be O(1)
 	int numRowsVisible = 0;
-	for(int row = 0; row < model()->rowCount(); row++)
+	for(int row = 0, numRows = model()->rowCount(); row < numRows; row++)
 	{
 		if (visualRect(model()->index(row, 0)).intersects(viewport()->rect()))
 			++numRowsVisible;
 	}
+
 	return numRowsVisible;
 }
 
