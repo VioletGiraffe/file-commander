@@ -33,6 +33,11 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 		_dir.setPath(fullAbsolutePath());
 }
 
+inline uint64_t hash(const QByteArray& byteArray)
+{
+	return fasthash64(byteArray.constData(), byteArray.size(), 0);
+}
+
 void CFileSystemObject::refreshInfo()
 {
 	_properties.exists = _fileInfo.exists();
@@ -57,8 +62,7 @@ void CFileSystemObject::refreshInfo()
 	else if (_properties.fullPath.endsWith('/'))
 		_properties.type = Directory;
 
-	const QByteArray utf8Path = _properties.fullPath.toUtf8();
-	_properties.hash = fasthash64(utf8Path.constData(), utf8Path.size(), 0);
+	_properties.hash = ::hash(_properties.fullPath.toUtf8());
 
 
 	if (_properties.type == File)
@@ -68,10 +72,20 @@ void CFileSystemObject::refreshInfo()
 	}
 	else if (_properties.type == Directory)
 	{
-		const QString suffix = _fileInfo.completeSuffix();
 		_properties.completeBaseName = _fileInfo.baseName();
+		const QString suffix = _fileInfo.completeSuffix();
 		if (!suffix.isEmpty())
 			_properties.completeBaseName = _properties.completeBaseName % '.' % suffix;
+
+		// Ugly temporary bug fix for #141
+		if (_properties.completeBaseName.isEmpty() && _properties.fullPath.endsWith('/'))
+		{
+			const QFileInfo tmpInfo = QFileInfo(_properties.fullPath.left(_properties.fullPath.length() - 1));
+			_properties.completeBaseName = tmpInfo.baseName();
+			const QString sfx = tmpInfo.completeSuffix();
+			if (!sfx.isEmpty())
+				_properties.completeBaseName = _properties.completeBaseName % '.' % sfx;
+		}
 	}
 
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
