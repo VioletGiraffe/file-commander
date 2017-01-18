@@ -6,7 +6,7 @@ CPluginProxy::CPluginProxy() :
 {
 }
 
-void CPluginProxy::setToolMenuEntryCreatorImplementation(CPluginProxy::CreateToolMenuEntryImplementationType implementation)
+void CPluginProxy::setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation)
 {
 	_createToolMenuEntryImplementation = implementation;
 }

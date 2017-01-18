@@ -30,12 +30,12 @@ public:
 		std::vector<MenuTree> children;
 	};
 
-	typedef std::function<void (std::vector<MenuTree> menuEntries)> CreateToolMenuEntryImplementationType;
+	using CreateToolMenuEntryImplementationType = std::function<void(const std::vector<CPluginProxy::MenuTree>&)>;
 
 	CPluginProxy();
 
 // Proxy initialization (by core / UI)
-	void setToolMenuEntryCreatorImplementation(CreateToolMenuEntryImplementationType implementation);
+	void setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation);
 
 // UI access for plugins; every plugin is only supposed to call this method once
 	void createToolMenuEntries(std::vector<MenuTree> menuEntries);

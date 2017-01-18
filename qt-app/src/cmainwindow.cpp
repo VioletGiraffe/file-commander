@@ -67,7 +67,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
-	_controller->pluginProxy().setToolMenuEntryCreatorImplementation(CPluginProxy::CreateToolMenuEntryImplementationType(std::bind(&CMainWindow::createToolMenuEntries, this, std::placeholders::_1)));
+	_controller->pluginProxy().setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(menuEntries);});
 
 	_currentFileList = ui->leftPanel;
 	_otherFileList   = ui->rightPanel;

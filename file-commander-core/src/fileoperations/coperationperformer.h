@@ -36,7 +36,9 @@ private:
 	inline void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) {
 		assert_r(filePercentage < 100.5f && totalPercentage < 100.5f);
 		std::lock_guard<std::mutex> lock(_callbackMutex);
-		_callbacks.emplace_back(std::bind(&CFileOperationObserver::onProgressChanged, this, totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining));
+		_callbacks.emplace_back([=]() {
+			onProgressChanged(totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining);
+		});
 	}
 
 	inline void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) {
@@ -58,18 +60,24 @@ private:
 		qDebug() << "Reason:" << (reasonString != haltReasonString.end() ? reasonString->second : "") << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
 
 		std::lock_guard<std::mutex> lock(_callbackMutex);
-		_callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessHalted, this, reason, source, dest, errorMessage));
+		_callbacks.emplace_back([=]() {
+			onProcessHalted(reason, source, dest, errorMessage);
+		});
 	}
 
 	inline void onProcessFinishedCallback(QString message = QString()) {
 		qDebug() << "COperationPerformer: operation finished, message:" << message;
 		std::lock_guard<std::mutex> lock(_callbackMutex);
-		_callbacks.emplace_back(std::bind(&CFileOperationObserver::onProcessFinished, this, message));
+		_callbacks.emplace_back([=]() {
+			onProcessFinished(message);
+		});
 	}
 
 	inline void onCurrentFileChangedCallback(QString file) {
 		std::lock_guard<std::mutex> lock(_callbackMutex);
-		_callbacks.emplace_back(std::bind(&CFileOperationObserver::onCurrentFileChanged, this, file));
+		_callbacks.emplace_back([=]() {
+			onCurrentFileChanged(file);
+		});
 	}
 
 protected:
