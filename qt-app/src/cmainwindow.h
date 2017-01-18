@@ -126,6 +126,9 @@ private:
 	// Timer
 	void uiThreadTimerTick();
 
+	// Window title management (#143)
+	void updateWindowTitleWithCurrentFolderNames();
+
 private:
 	Ui::CMainWindow              * ui;
 	static CMainWindow*            _instance;
@@ -133,15 +136,15 @@ private:
 	QTimer                         _uiThreadTimer;
 
 	std::unique_ptr<CController>   _controller;
-	CPanelWidget                 * _currentFileList;
-	CPanelWidget                 * _otherFileList;
-	QStackedWidget               * _currentPanelWidget;
-	QStackedWidget               * _otherPanelWidget;
+	CPanelWidget                 * _currentFileList = nullptr;
+	CPanelWidget                 * _otherFileList = nullptr;
+	QStackedWidget               * _currentPanelWidget = nullptr;
+	QStackedWidget               * _otherPanelWidget = nullptr;
 
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
 
 	QCompleter                     _commandLineCompleter;
 
-	bool                           _quickViewActive;
+	bool                           _quickViewActive = false;
 };
 

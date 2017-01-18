@@ -54,10 +54,7 @@ CMainWindow * CMainWindow::_instance = 0;
 CMainWindow::CMainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
-	_controller(new CController),
-	_currentFileList(0),
-	_otherFileList(0),
-	_quickViewActive(false)
+	_controller(std::make_unique<CController>())
 {
 	assert_r(!_instance);
 	_instance = this;
@@ -334,8 +331,8 @@ void CMainWindow::currentPanelChanged(QStackedWidget *panel)
 	}
 	else
 	{
-		_otherPanelWidget = 0;
-		_otherFileList = 0;
+		_otherPanelWidget = nullptr;
+		_otherFileList = nullptr;
 	}
 
 	if (_currentFileList)
@@ -347,13 +344,22 @@ void CMainWindow::currentPanelChanged(QStackedWidget *panel)
 		_commandLineCompleter.setModel(_currentFileList->sortModel());
 	}
 	else
-		_commandLineCompleter.setModel(0);
+		_commandLineCompleter.setModel(nullptr);
 }
 
 void CMainWindow::uiThreadTimerTick()
 {
 	if (_controller)
 		_controller->uiThreadTimerTick();
+}
+
+// Window title management (#143)
+void CMainWindow::updateWindowTitleWithCurrentFolderNames()
+{
+	const QString leftPanelDirName = _controller->panel(LeftPanel).currentDirName();
+	const QString rightPanelDirName = _controller->panel(RightPanel).currentDirName();
+
+	setWindowTitle(leftPanelDirName % " / " % rightPanelDirName);
 }
 
 bool CMainWindow::widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy)
@@ -735,6 +741,8 @@ void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation
 {
 	if (_currentFileList && p == _currentFileList->panelPosition())
 		ui->fullPath->setText(_controller->panel(p).currentDirPathNative());
+
+	updateWindowTitleWithCurrentFolderNames();
 }
 
 void CMainWindow::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
