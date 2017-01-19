@@ -223,7 +223,8 @@ QString CPanel::currentDirPathPosix() const
 QString CPanel::currentDirName() const
 {
 	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-	return _currentDirObject.fullName();
+	const QString name = _currentDirObject.fullName();
+	return !name.isEmpty() ? name : _currentDirObject.fullAbsolutePath();
 }
 
 inline QString normalizeFolderPath(const QString& path)

@@ -356,8 +356,13 @@ void CMainWindow::uiThreadTimerTick()
 // Window title management (#143)
 void CMainWindow::updateWindowTitleWithCurrentFolderNames()
 {
-	const QString leftPanelDirName = _controller->panel(LeftPanel).currentDirName();
-	const QString rightPanelDirName = _controller->panel(RightPanel).currentDirName();
+	QString leftPanelDirName = _controller->panel(LeftPanel).currentDirName();
+	if (leftPanelDirName.length() > 1 && leftPanelDirName.endsWith('/'))
+		leftPanelDirName.chop(1);
+
+	QString rightPanelDirName = _controller->panel(RightPanel).currentDirName();
+	if (rightPanelDirName.length() > 1 && rightPanelDirName.endsWith('/'))
+		rightPanelDirName.chop(1);
 
 	setWindowTitle(leftPanelDirName % " / " % rightPanelDirName);
 }
