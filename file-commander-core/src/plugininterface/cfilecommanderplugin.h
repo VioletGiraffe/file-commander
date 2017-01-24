@@ -18,7 +18,7 @@ public:
 	enum PluginType {Viewer, Archive, Tool};
 
 	CFileCommanderPlugin();
-	virtual ~CFileCommanderPlugin() = 0;
+	virtual ~CFileCommanderPlugin() = default;
 
 	virtual PluginType type() = 0;
 	virtual QString name() const = 0;

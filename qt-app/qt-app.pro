@@ -18,10 +18,10 @@ Release:OUTPUT_DIR=release
 Debug:OUTPUT_DIR=debug
 
 DESTDIR  = ../bin/$${OUTPUT_DIR}
-OBJECTS_DIR = ../build/$${OUTPUT_DIR}/app
-MOC_DIR     = ../build/$${OUTPUT_DIR}/app
-UI_DIR      = ../build/$${OUTPUT_DIR}/app
-RCC_DIR     = ../build/$${OUTPUT_DIR}/app
+OBJECTS_DIR = ../build/$${OUTPUT_DIR}/$${TARGET}
+MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
+UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
+RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 INCLUDEPATH += \
 	$$PWD/src/ \

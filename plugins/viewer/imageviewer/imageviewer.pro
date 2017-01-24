@@ -1,12 +1,9 @@
 TEMPLATE = lib
 TARGET   = plugin_imageviewer
 
-QT = core gui
+QT = core gui widgets
 
 CONFIG += c++11
-
-#check Qt version
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 win*{
 	QT += winextras
@@ -21,10 +18,10 @@ Release:OUTPUT_DIR=release
 Debug:OUTPUT_DIR=debug
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
-OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/imageviewer
-MOC_DIR     = ../../../build/$${OUTPUT_DIR}/imageviewer
-UI_DIR      = ../../../build/$${OUTPUT_DIR}/imageviewer
-RCC_DIR     = ../../../build/$${OUTPUT_DIR}/imageviewer
+OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
+MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
+UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
+RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 INCLUDEPATH += \
 	../../../file-commander-core/src \

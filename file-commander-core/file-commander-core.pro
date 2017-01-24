@@ -6,22 +6,22 @@ CONFIG += staticlib
 CONFIG += c++14
 
 win*{
-    QT += winextras
+	QT += winextras
 }
 
 mac* | linux*{
-    CONFIG(release, debug|release):CONFIG += Release
-    CONFIG(debug, debug|release):CONFIG += Debug
+	CONFIG(release, debug|release):CONFIG += Release
+	CONFIG(debug, debug|release):CONFIG += Debug
 }
 
 Release:OUTPUT_DIR=release
 Debug:OUTPUT_DIR=debug
 
 DESTDIR  = ../bin/$${OUTPUT_DIR}
-OBJECTS_DIR = ../build/$${OUTPUT_DIR}/core
-MOC_DIR     = ../build/$${OUTPUT_DIR}/core
-UI_DIR      = ../build/$${OUTPUT_DIR}/core
-RCC_DIR     = ../build/$${OUTPUT_DIR}/core
+OBJECTS_DIR = ../build/$${OUTPUT_DIR}/$${TARGET}
+MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
+UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
+RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 HEADERS += \
 	src/cfilesystemobject.h \

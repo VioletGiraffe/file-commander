@@ -13,10 +13,6 @@ CFileCommanderPlugin::CFileCommanderPlugin()
 	});
 }
 
-CFileCommanderPlugin::~CFileCommanderPlugin()
-{
-}
-
 void CFileCommanderPlugin::setProxy(CPluginProxy *proxy)
 {
 	assert_r(proxy);
