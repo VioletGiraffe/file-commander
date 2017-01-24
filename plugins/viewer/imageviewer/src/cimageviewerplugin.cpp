@@ -5,10 +5,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QImageReader>
 RESTORE_COMPILER_WARNINGS
 
-CImageViewerPlugin::CImageViewerPlugin()
-{
-}
-
 bool CImageViewerPlugin::canViewCurrentFile() const
 {
 	const QString currentItemPath = _proxy->currentItemPath();
@@ -20,7 +16,7 @@ bool CImageViewerPlugin::canViewCurrentFile() const
 
 	if (currentItemPath.isEmpty())
 		return false;
-	
+
 	if (!_cachedImage.isNull())
 		return true;
 

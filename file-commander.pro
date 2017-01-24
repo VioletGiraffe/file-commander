@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 
-SUBDIRS += qtutils text_encoding_detector file_commander_core autoupdater imageviewerplugin
-SUBDIRS += textviewerplugin qt_app cpputils cpp-template-utils
+SUBDIRS += qt_app qtutils text_encoding_detector file_commander_core autoupdater cpputils
+SUBDIRS += textviewerplugin cpp-template-utils imageviewerplugin filecomparisonplugin
 
 qtutils.depends = cpputils
 
@@ -16,6 +16,9 @@ imageviewerplugin.depends = file_commander_core
 
 textviewerplugin.subdir = plugins/viewer/textviewer
 textviewerplugin.depends = file_commander_core text_encoding_detector
+
+filecomparisonplugin.subdir = plugins/tools/filecomparisonplugin
+filecomparisonplugin.depends = file_commander_core
 
 text_encoding_detector.subdir = text-encoding-detector/text-encoding-detector
 text_encoding_detector.depends = cpputils

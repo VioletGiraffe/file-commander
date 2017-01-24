@@ -11,10 +11,6 @@ CFileCommanderPlugin * createPlugin()
 	return new CTextViewerPlugin;
 }
 
-CTextViewerPlugin::CTextViewerPlugin()
-{
-}
-
 bool CTextViewerPlugin::canViewCurrentFile() const
 {
 	return _proxy->currentItemIsFile();

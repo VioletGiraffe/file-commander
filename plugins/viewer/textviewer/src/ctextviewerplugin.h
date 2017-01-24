@@ -6,7 +6,7 @@
 class CTextViewerPlugin : public CFileCommanderViewerPlugin
 {
 public:
-	CTextViewerPlugin();
+	CTextViewerPlugin() = default;
 
 	bool canViewCurrentFile() const override;
 	CPluginWindow* viewCurrentFile() override;
