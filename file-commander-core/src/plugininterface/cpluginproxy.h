@@ -9,11 +9,9 @@
 
 
 struct PanelState {
-	PanelState() : currentItemHash(0) {}
-
 	std::map<qulonglong/*hash*/, CFileSystemObject> panelContents;
 	std::vector<qulonglong/*hash*/>                 selectedItemsHashes;
-	qulonglong                                      currentItemHash;
+	qulonglong                                      currentItemHash = 0;
 	QString                                         currentFolder;
 };
 
@@ -59,7 +57,7 @@ public:
 private:
 	CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;
 	std::map<PanelPosition, PanelState> _panelState;
-	PanelPosition                       _currentPanel;
+	PanelPosition                       _currentPanel = PluginUnknownPanel;
 };
 
 #endif // CPLUGINPROXY_H

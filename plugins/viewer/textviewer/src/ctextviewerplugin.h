@@ -3,10 +3,6 @@
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
 
-extern "C" {
-	PLUGIN_EXPORT CFileCommanderPlugin * createPlugin();
-}
-
 class CTextViewerPlugin : public CFileCommanderViewerPlugin
 {
 public:

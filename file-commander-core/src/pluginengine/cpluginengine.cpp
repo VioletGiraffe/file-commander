@@ -48,7 +48,7 @@ void CPluginEngine::loadPlugins()
 			continue;
 
 		auto pluginModule = std::make_shared<QLibrary>(path.absoluteFilePath());
-		CreatePluginFunc createFunc = (CreatePluginFunc)pluginModule->resolve("createPlugin");
+		auto createFunc = (decltype(createPlugin)*)(pluginModule->resolve("createPlugin"));
 		if (createFunc)
 		{
 			CFileCommanderPlugin * plugin = createFunc();

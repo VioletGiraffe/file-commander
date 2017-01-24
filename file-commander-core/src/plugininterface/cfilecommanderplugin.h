@@ -6,7 +6,12 @@
 
 class CFileCommanderPlugin;
 
-typedef CFileCommanderPlugin* (*CreatePluginFunc)();
+// A plugin dynamic library must implement this function as follows:
+// return new CFileCommanderPluginSubclass();
+extern "C" {
+	PLUGIN_EXPORT CFileCommanderPlugin * createPlugin();
+}
+
 
 class PLUGIN_EXPORT CFileCommanderPlugin
 {

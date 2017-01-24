@@ -1,8 +1,7 @@
 #include "cpluginproxy.h"
 #include "assert/advanced_assert.h"
 
-CPluginProxy::CPluginProxy() :
-	_currentPanel(PluginUnknownPanel)
+CPluginProxy::CPluginProxy()
 {
 }
 
