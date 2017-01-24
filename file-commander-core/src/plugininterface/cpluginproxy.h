@@ -1,5 +1,4 @@
-#ifndef CPLUGINPROXY_H
-#define CPLUGINPROXY_H
+#pragma once
 
 #include "cfilesystemobject.h"
 
@@ -30,7 +29,7 @@ public:
 
 	using CreateToolMenuEntryImplementationType = std::function<void(const std::vector<CPluginProxy::MenuTree>&)>;
 
-	CPluginProxy();
+	CPluginProxy() = default;
 
 // Proxy initialization (by core / UI)
 	void setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation);
@@ -59,5 +58,3 @@ private:
 	std::map<PanelPosition, PanelState> _panelState;
 	PanelPosition                       _currentPanel = PluginUnknownPanel;
 };
-
-#endif // CPLUGINPROXY_H

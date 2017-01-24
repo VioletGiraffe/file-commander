@@ -19,8 +19,3 @@ void CPluginWindow::setAutoDeleteOnClose(bool autoDelete)
 {
 	setAttribute(Qt::WA_DeleteOnClose, autoDelete);
 }
-
-CPluginWindow::~CPluginWindow()
-{
-}
-

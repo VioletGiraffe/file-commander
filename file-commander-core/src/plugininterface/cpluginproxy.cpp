@@ -1,10 +1,6 @@
 #include "cpluginproxy.h"
 #include "assert/advanced_assert.h"
 
-CPluginProxy::CPluginProxy()
-{
-}
-
 void CPluginProxy::setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation)
 {
 	_createToolMenuEntryImplementation = implementation;

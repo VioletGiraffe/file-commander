@@ -2,9 +2,15 @@
 #include "cpluginproxy.h"
 #include "assert/advanced_assert.h"
 
-CFileCommanderPlugin::CFileCommanderPlugin() :
-	_proxy(nullptr)
+DISABLE_COMPILER_WARNINGS
+#include <QDebug>
+RESTORE_COMPILER_WARNINGS
+
+CFileCommanderPlugin::CFileCommanderPlugin()
 {
+	AdvancedAssert::setLoggingFunc([](const char* message){
+		qDebug() << message;
+	});
 }
 
 CFileCommanderPlugin::~CFileCommanderPlugin()

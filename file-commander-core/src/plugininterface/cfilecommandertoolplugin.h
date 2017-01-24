@@ -1,14 +1,9 @@
-#ifndef CFILECOMMANDERTOOLPLUGIN_H
-#define CFILECOMMANDERTOOLPLUGIN_H
+#pragma once
 
 #include "cfilecommanderplugin.h"
 
 class CFileCommanderToolPlugin : public CFileCommanderPlugin
 {
 public:
-	CFileCommanderToolPlugin();
-
-	virtual PluginType type();
+	PluginType type() override;
 };
-
-#endif // CFILECOMMANDERTOOLPLUGIN_H

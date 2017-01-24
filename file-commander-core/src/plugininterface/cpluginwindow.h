@@ -1,5 +1,4 @@
-#ifndef CVIEWERWINDOW_H
-#define CVIEWERWINDOW_H
+#pragma once
 
 #include "plugin_export.h"
 #include "compiler/compiler_warnings_control.h"
@@ -12,10 +11,7 @@ class PLUGIN_EXPORT CPluginWindow : public QMainWindow
 {
 public:
 	CPluginWindow();
-	~CPluginWindow();
 
 	bool autoDeleteOnClose() const;
 	void setAutoDeleteOnClose(bool autoDelete);
 };
-
-#endif // CVIEWERWINDOW_H

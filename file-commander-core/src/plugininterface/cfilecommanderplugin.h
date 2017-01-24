@@ -1,5 +1,4 @@
-#ifndef CFILECOMMANDERPLUGIN_H
-#define CFILECOMMANDERPLUGIN_H
+#pragma once
 
 #include "cpluginproxy.h"
 #include "plugin_export.h"
@@ -31,7 +30,5 @@ protected:
 	virtual void proxySet();
 
 protected:
-	CPluginProxy * _proxy;
+	CPluginProxy * _proxy = nullptr;
 };
-
-#endif // CFILECOMMANDERPLUGIN_H

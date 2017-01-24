@@ -1,5 +1,4 @@
-#ifndef CFILECOMMANDERVIEWERPLUGIN_H
-#define CFILECOMMANDERVIEWERPLUGIN_H
+#pragma once
 
 #include "cfilecommanderplugin.h"
 #include "cpluginwindow.h"
@@ -7,13 +6,8 @@
 class PLUGIN_EXPORT CFileCommanderViewerPlugin : public CFileCommanderPlugin
 {
 public:
-	CFileCommanderViewerPlugin();
-	virtual ~CFileCommanderViewerPlugin() = 0;
-
 	virtual bool canViewCurrentFile() const = 0;
 	virtual CPluginWindow* viewCurrentFile() = 0;
 
-	virtual PluginType type();
+	PluginType type() override;
 };
-
-#endif // CFILECOMMANDERVIEWERPLUGIN_H
