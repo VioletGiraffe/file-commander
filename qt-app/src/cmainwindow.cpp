@@ -754,16 +754,18 @@ void CMainWindow::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, 
 {
 }
 
-void CMainWindow::createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries)
+void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries)
 {
 	QMenuBar * menu = menuBar();
 	if (!menu)
 		return;
 
-	static QMenu * toolMenu = 0; // Shouldn't have to be static, but 2 subsequent calls to this method result in "Tools" being added twice. QMenuBar needs event loop to update its children?..
-	auto topLevelMenus = menu->findChildren<QMenu*>();
-	for(auto topLevelMenu: topLevelMenus)
+	static QMenu * toolMenu = nullptr; // Shouldn't have to be static, but 2 subsequent calls to this method result in "Tools" being added twice. QMenuBar needs event loop to update its children?..
+	                                   // TODO: make it a class member
+
+	for(auto topLevelMenu: menu->findChildren<QMenu*>())
 	{
+		// TODO: make sure this plays nicely with localization (#145)
 		if (topLevelMenu->title() == "Tools")
 		{
 			toolMenu = topLevelMenu;
@@ -773,14 +775,13 @@ void CMainWindow::createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menu
 
 	if (!toolMenu)
 	{
+		// TODO: make sure this plays nicely with localization (#145)
 		toolMenu = new QMenu("Tools");
 		menu->addMenu(toolMenu);
 	}
 
 	for(const auto& menuTree: menuEntries)
-	{
 		addToolMenuEntriesRecursively(menuTree, toolMenu);
-	}
 
 	toolMenu->addSeparator();
 }
@@ -789,9 +790,14 @@ void CMainWindow::addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QM
 {
 	assert_r(toolMenu);
 	QAction* action = toolMenu->addAction(entry.name);
-	QObject::connect(action, &QAction::triggered, [entry](bool){entry.handler();});
-	for(const auto& childEntry: entry.children)
-		addToolMenuEntriesRecursively(childEntry, toolMenu);
+
+	if (!entry.children.empty())
+		QObject::connect(action, &QAction::triggered, [entry](bool){entry.handler();});
+	else
+	{
+		for (const auto& childEntry : entry.children)
+			addToolMenuEntriesRecursively(childEntry, toolMenu);
+	}
 }
 
 bool CMainWindow::fileListReturnPressed()

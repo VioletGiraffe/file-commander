@@ -6,10 +6,15 @@ void CPluginProxy::setToolMenuEntryCreatorImplementation(const CreateToolMenuEnt
 	_createToolMenuEntryImplementation = implementation;
 }
 
-void CPluginProxy::createToolMenuEntries(const std::vector<MenuTree>& menuEntries)
+void CPluginProxy::createToolMenuEntries(const std::vector<MenuTree>& menuTrees)
 {
 	if (_createToolMenuEntryImplementation)
-		_createToolMenuEntryImplementation(menuEntries);
+		_createToolMenuEntryImplementation(menuTrees);
+}
+
+void CPluginProxy::createToolMenuEntries(const MenuTree& menuTree)
+{
+	createToolMenuEntries(std::vector<MenuTree>(1, menuTree));
 }
 
 void CPluginProxy::panelContentsChanged(PanelPosition panel, const QString &folder, const std::map<qulonglong, CFileSystemObject>& contents)
@@ -38,18 +43,25 @@ void CPluginProxy::currentPanelChanged(PanelPosition panel)
 }
 
 
-PanelState& CPluginProxy::currentPanelState()
+PanelPosition CPluginProxy::currentPanel() const
+{
+	return _currentPanel;
+}
+
+PanelState& CPluginProxy::panelState(const PanelPosition panel)
 {
 	static PanelState empty;
-	if (_currentPanel == PluginUnknownPanel)
+	if (panel == PluginUnknownPanel)
 	{
+		assert_unconditional_r("Unknown panel");
 		empty = PanelState();
 		return empty;
 	}
 
-	const auto state = _panelState.find(_currentPanel);
+	const auto state = _panelState.find(panel);
 	if (state == _panelState.end())
 	{
+		assert_unconditional_r("Unknown panel");
 		empty = PanelState();
 		return empty;
 	}
@@ -57,17 +69,18 @@ PanelState& CPluginProxy::currentPanelState()
 		return state->second;
 }
 
-const PanelState& CPluginProxy::currentPanelState() const
+const PanelState & CPluginProxy::panelState(const PanelPosition panel) const
 {
 	static const PanelState empty;
-	if (_currentPanel == PluginUnknownPanel)
+	if (panel == PluginUnknownPanel)
+	{
 		return empty;
+	}
 
-	const auto state = _panelState.find(_currentPanel);
-	if (state == _panelState.end())
-		return empty;
-	else
-		return state->second;
+	const auto state = _panelState.find(panel);
+	assert_and_return_r(state != _panelState.end(), empty);
+
+	return state->second;
 }
 
 QString CPluginProxy::currentFolderPath() const
@@ -91,23 +104,14 @@ const CFileSystemObject &CPluginProxy::currentItem() const
 {
 	static const CFileSystemObject dummy;
 
-	const PanelState& panelState = currentPanelState();
-	if (panelState.currentItemHash != 0)
+	const PanelState& state = panelState(currentPanel());
+	if (state.currentItemHash != 0)
 	{
-		auto fileSystemObject = panelState.panelContents.find(panelState.currentItemHash);
-		assert_and_return_r(fileSystemObject != panelState.panelContents.end(), dummy);
+		auto fileSystemObject = state.panelContents.find(state.currentItemHash);
+		assert_and_return_r(fileSystemObject != state.panelContents.end(), dummy);
 		return fileSystemObject->second;
 	}
 	else
 		return dummy;
 }
 
-bool CPluginProxy::currentItemIsFile() const
-{
-	return currentItem().isFile();
-}
-
-bool CPluginProxy::currentItemIsDir() const
-{
-	return currentItem().isDir();
-}

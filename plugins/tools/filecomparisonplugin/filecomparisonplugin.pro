@@ -9,6 +9,10 @@ mac* | linux*{
 	CONFIG(debug, debug|release):CONFIG += Debug
 }
 
+win*{
+	QT += winextras
+}
+
 Release:OUTPUT_DIR=release
 Debug:OUTPUT_DIR=debug
 

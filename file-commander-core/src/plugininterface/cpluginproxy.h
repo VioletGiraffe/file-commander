@@ -2,6 +2,10 @@
 
 #include "cfilesystemobject.h"
 
+DISABLE_COMPILER_WARNINGS
+#include <QIcon>
+RESTORE_COMPILER_WARNINGS
+
 #include <functional>
 #include <vector>
 #include <map>
@@ -20,10 +24,11 @@ class CPluginProxy
 {
 public:
 	struct MenuTree {
-		MenuTree(const QString& name_, std::function<void()>&& handler_): name(name_), handler(handler_) {}
+		inline MenuTree(const QString& name_, std::function<void()>&& handler_, const QIcon& icon_ = QIcon()): name(name_), icon(icon_), handler(handler_) {}
 
-		QString name;
-		std::function<void()> handler;
+		const QString name;
+		const QIcon icon;
+		const std::function<void()> handler;
 		std::vector<MenuTree> children;
 	};
 
@@ -35,7 +40,8 @@ public:
 	void setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation);
 
 // UI access for plugins; every plugin is only supposed to call this method once
-	void createToolMenuEntries(const std::vector<MenuTree>& menuEntries);
+	void createToolMenuEntries(const std::vector<MenuTree>& menuTrees);
+	void createToolMenuEntries(const MenuTree& menuTree);
 
 // Events and data updates from the core
 	void panelContentsChanged(PanelPosition panel, const QString& folder, const std::map<qulonglong /*hash*/, CFileSystemObject>& contents);
@@ -45,13 +51,13 @@ public:
 	void currentItemChanged(PanelPosition panel, qulonglong currentItemHash);
 	void currentPanelChanged(PanelPosition panel);
 
-	PanelState& currentPanelState();
-	const PanelState& currentPanelState() const;
+	PanelPosition currentPanel() const;
+
+	PanelState& panelState(const PanelPosition panel);
+	const PanelState& panelState(const PanelPosition panel) const;
 	QString currentFolderPath() const;
 	QString currentItemPath() const;
 	const CFileSystemObject& currentItem() const;
-	bool currentItemIsFile() const;
-	bool currentItemIsDir() const;
 
 private:
 	CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;

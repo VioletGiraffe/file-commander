@@ -108,7 +108,7 @@ private:
 	void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
 
 private:
-	void createToolMenuEntries(std::vector<CPluginProxy::MenuTree> menuEntries);
+	void createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries);
 	void addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu);
 
 	// For command line handling

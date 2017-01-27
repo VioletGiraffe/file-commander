@@ -8,4 +8,10 @@ public:
 	CFileComparisonPlugin();
 
 	QString name() const override;
+
+protected:
+	void proxySet() override;
+
+private:
+	void compareSelectedFiles();
 };
