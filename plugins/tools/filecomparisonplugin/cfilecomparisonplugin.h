@@ -5,7 +5,7 @@
 class CFileComparisonPlugin : public CFileCommanderToolPlugin
 {
 public:
-	CFileComparisonPlugin() = default;
+	CFileComparisonPlugin();
 
 	QString name() const override;
 };

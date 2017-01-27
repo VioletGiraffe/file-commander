@@ -35,13 +35,13 @@ public:
 	void setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation);
 
 // UI access for plugins; every plugin is only supposed to call this method once
-	void createToolMenuEntries(std::vector<MenuTree> menuEntries);
+	void createToolMenuEntries(const std::vector<MenuTree>& menuEntries);
 
 // Events and data updates from the core
 	void panelContentsChanged(PanelPosition panel, const QString& folder, const std::map<qulonglong /*hash*/, CFileSystemObject>& contents);
 
 // Events and data updates from UI
-	void selectionChanged(PanelPosition panel, std::vector<qulonglong/*hash*/> selectedItemsHashes);
+	void selectionChanged(PanelPosition panel, const std::vector<qulonglong/*hash*/>& selectedItemsHashes);
 	void currentItemChanged(PanelPosition panel, qulonglong currentItemHash);
 	void currentPanelChanged(PanelPosition panel);
 

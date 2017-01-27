@@ -17,12 +17,14 @@ public:
 	// A command is an action exported by the plugin for integration into the main File Commander UI
 	class Command {
 	public:
-		Command(const QString& name, const QIcon& icon);
+		Command(const QString& name, const QIcon& icon = QIcon());
 
 		QString name() const;
 		const QIcon& icon() const;
 
 		QString id() const;
+
+		bool operator==(const Command& other) const;
 
 	private:
 		const QString _displayName; // Translated, if appropriate
@@ -34,6 +36,6 @@ public:
 
 	const std::vector<Command>& commands() const;
 
-private:
+protected:
 	std::vector<Command> _commands;
 };

@@ -6,7 +6,7 @@ void CPluginProxy::setToolMenuEntryCreatorImplementation(const CreateToolMenuEnt
 	_createToolMenuEntryImplementation = implementation;
 }
 
-void CPluginProxy::createToolMenuEntries(std::vector<MenuTree> menuEntries)
+void CPluginProxy::createToolMenuEntries(const std::vector<MenuTree>& menuEntries)
 {
 	if (_createToolMenuEntryImplementation)
 		_createToolMenuEntryImplementation(menuEntries);
@@ -20,7 +20,7 @@ void CPluginProxy::panelContentsChanged(PanelPosition panel, const QString &fold
 	state.currentFolder = folder;
 }
 
-void CPluginProxy::selectionChanged(PanelPosition panel, std::vector<qulonglong> selectedItemsHashes)
+void CPluginProxy::selectionChanged(PanelPosition panel, const std::vector<qulonglong/*hash*/>& selectedItemsHashes)
 {
 	PanelState& state = _panelState[panel];
 	state.selectedItemsHashes = selectedItemsHashes;

@@ -26,6 +26,11 @@ QString CFileCommanderToolPlugin::Command::id() const
 	return _id;
 }
 
+bool CFileCommanderToolPlugin::Command::operator==(const Command& other) const
+{
+	return _id == other._id;
+}
+
 CFileCommanderPlugin::PluginType CFileCommanderToolPlugin::type()
 {
 	return Tool;
