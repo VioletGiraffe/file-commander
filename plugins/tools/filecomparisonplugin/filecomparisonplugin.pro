@@ -59,6 +59,7 @@ INCLUDEPATH += \
 	../../../file-commander-core/include \
 	../../../qtutils \
 	../../../cpputils \
+	../../../cpp-template-utils \
 	$$PWD/src/
 
 HEADERS += \

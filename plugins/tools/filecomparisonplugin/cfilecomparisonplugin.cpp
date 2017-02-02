@@ -1,5 +1,8 @@
 #include "cfilecomparisonplugin.h"
 
+#include "assert/advanced_assert.h"
+#include "utility/on_scope_exit.hpp"
+
 DISABLE_COMPILER_WARNINGS
 #include <QFile>
 #include <QMessageBox>
@@ -71,17 +74,26 @@ void CFileComparisonPlugin::compareSelectedFiles()
 
 ComparisonResult compareFilesByContents(QFile& fileA, QFile& fileB, std::function<void(int)> progressCallback)
 {
+	EXEC_ON_SCOPE_EXIT([&]() {progressCallback(100); });
+
 	constexpr int blockSize = 512 * 1024 * 1024;
+
+	QByteArray blockA(blockSize, Qt::Uninitialized), blockB(blockSize, Qt::Uninitialized);
 
 	for (qint64 pos = 0, size = fileA.size(); pos < size; pos += blockSize)
 	{
-		const QByteArray blockA = fileA.read(blockSize), blockB = fileB.read(blockSize);
+		fileA.read(blockSize), blockB = fileB.read(blockSize);
+		const auto block_a_size = fileA.read(blockA.data(), blockSize);
+		const auto block_b_size = fileB.read(blockB.data(), blockSize);
+
+		assert_and_return_r(block_a_size == blockSize, NotEqual);
+		assert_and_return_r(block_b_size == blockSize, NotEqual);
+
 		if (blockA != blockB)
 			return NotEqual;
 
 		progressCallback(static_cast<int>(pos * 100 / size));
 	}
 
-	progressCallback(100);
 	return Equal;
 }
