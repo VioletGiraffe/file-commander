@@ -3,8 +3,6 @@ init:
   clone_depth: 1
 environment:
   matrix:
-    - qt: 5.7\msvc2013
-    - qt: 5.7\msvc2013_64
     - qt: 5.7\msvc2015
     - qt: 5.7\msvc2015_64
 install:
