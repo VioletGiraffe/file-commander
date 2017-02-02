@@ -52,12 +52,16 @@ public:
 	void currentPanelChanged(PanelPosition panel);
 
 	PanelPosition currentPanel() const;
+	PanelPosition otherPanel() const;
 
 	PanelState& panelState(const PanelPosition panel);
 	const PanelState& panelState(const PanelPosition panel) const;
-	QString currentFolderPath() const;
-	QString currentItemPath() const;
+	QString currentFolderPathForPanel(const PanelPosition panel) const;
+	QString currentItemPathForPanel(const PanelPosition panel) const;
+	const CFileSystemObject& currentItemForPanel(const PanelPosition panel) const;
+
 	const CFileSystemObject& currentItem() const;
+	QString currentItemPath() const;
 
 private:
 	CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;

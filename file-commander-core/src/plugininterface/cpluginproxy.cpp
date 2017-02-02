@@ -48,6 +48,13 @@ PanelPosition CPluginProxy::currentPanel() const
 	return _currentPanel;
 }
 
+PanelPosition CPluginProxy::otherPanel() const
+{
+	assert_and_return_r(_currentPanel != PluginUnknownPanel, PluginUnknownPanel);
+
+	return _currentPanel == PluginLeftPanel ? PluginRightPanel : PluginLeftPanel;
+}
+
 PanelState& CPluginProxy::panelState(const PanelPosition panel)
 {
 	static PanelState empty;
@@ -83,35 +90,43 @@ const PanelState & CPluginProxy::panelState(const PanelPosition panel) const
 	return state->second;
 }
 
-QString CPluginProxy::currentFolderPath() const
+QString CPluginProxy::currentFolderPathForPanel(const PanelPosition panel) const
 {
-	if (_currentPanel == PluginUnknownPanel)
-		return QString();
+	assert_and_return_r(panel != PluginUnknownPanel, QString());
 
-	const auto state = _panelState.find(_currentPanel);
-	if (state == _panelState.end())
-		return QString();
-	else
-		return state->second.currentFolder;
+	const auto state = _panelState.find(panel);
+	assert_and_return_r(state != _panelState.end(), QString());
+
+	return state->second.currentFolder;
 }
 
-QString CPluginProxy::currentItemPath() const
+QString CPluginProxy::currentItemPathForPanel(const PanelPosition panel) const
 {
-	return currentItem().fullAbsolutePath();
+	return currentItemForPanel(panel).fullAbsolutePath();
 }
 
-const CFileSystemObject &CPluginProxy::currentItem() const
+const CFileSystemObject& CPluginProxy::currentItemForPanel(const PanelPosition panel) const
 {
 	static const CFileSystemObject dummy;
 
-	const PanelState& state = panelState(currentPanel());
+	const PanelState& state = panelState(panel);
 	if (state.currentItemHash != 0)
 	{
 		auto fileSystemObject = state.panelContents.find(state.currentItemHash);
 		assert_and_return_r(fileSystemObject != state.panelContents.end(), dummy);
+
 		return fileSystemObject->second;
 	}
 	else
 		return dummy;
 }
 
+const CFileSystemObject& CPluginProxy::currentItem() const
+{
+	return currentItemForPanel(currentPanel());
+}
+
+QString CPluginProxy::currentItemPath() const
+{
+	return currentItemPathForPanel(currentPanel());
+}
