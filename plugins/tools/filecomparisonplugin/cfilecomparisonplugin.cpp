@@ -44,9 +44,15 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	}
 
 	const auto& otherItem = _proxy->currentItemForPanel(_proxy->otherPanel());
-	const QString otherFilePath = otherItem.isFile() ? otherItem.fullAbsolutePath() : otherItem.parentDirPath() + "/" + currentItem.fullName();
+	const QString otherFilePath = otherItem.isFile() ? otherItem.fullAbsolutePath() : _proxy->currentFolderPathForPanel(_proxy->otherPanel()) + "/" + currentItem.fullName();
 
 	QFile fileA(currentItem.fullAbsolutePath()), fileB(otherFilePath);
+	if (!fileA.exists() || !fileB.exists())
+	{
+		QMessageBox::information(nullptr, "No file selected", "No file is selected for comparison.");
+		return;
+	}
+
 	if (fileA.size() != fileB.size())
 	{
 		const QString msg = QString("Files have different sizes:\n%1: %2\n%3: %4").arg(currentItem.fullAbsolutePath()).arg(fileA.size()).arg(otherFilePath).arg(fileB.size());
@@ -66,14 +72,16 @@ void CFileComparisonPlugin::compareSelectedFiles()
 		return;
 	}
 
-	if (compareFilesByContents(fileA, fileB, std::function<void(int)>()) == Equal)
-		QMessageBox::information(nullptr, "Files are identical", "The files are identical.");
+	if (compareFilesByContents(fileA, fileB, [](int) {}) == Equal)
+		QMessageBox::information(nullptr, "Files are identical", QObject::tr("The file %1 is identical in both locations.").arg(currentItem.fullName()));
 	else
 		QMessageBox::information(nullptr, "Files differ", "The files are not identical.");
 }
 
 ComparisonResult compareFilesByContents(QFile& fileA, QFile& fileB, std::function<void(int)> progressCallback)
 {
+	assert(progressCallback);
+
 	EXEC_ON_SCOPE_EXIT([&]() {progressCallback(100); });
 
 	constexpr int blockSize = 512 * 1024 * 1024;
@@ -82,12 +90,11 @@ ComparisonResult compareFilesByContents(QFile& fileA, QFile& fileB, std::functio
 
 	for (qint64 pos = 0, size = fileA.size(); pos < size; pos += blockSize)
 	{
-		fileA.read(blockSize), blockB = fileB.read(blockSize);
 		const auto block_a_size = fileA.read(blockA.data(), blockSize);
 		const auto block_b_size = fileB.read(blockB.data(), blockSize);
 
-		assert_and_return_r(block_a_size == blockSize, NotEqual);
-		assert_and_return_r(block_b_size == blockSize, NotEqual);
+		assert_and_return_r(block_a_size == blockSize || block_a_size == block_b_size, NotEqual);
+		assert_and_return_r(block_b_size == blockSize || block_a_size == block_b_size, NotEqual);
 
 		if (blockA != blockB)
 			return NotEqual;

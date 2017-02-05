@@ -127,7 +127,7 @@ bool CFileSystemObject::operator==(const CFileSystemObject& other) const
 // Information about this object
 bool CFileSystemObject::isValid() const
 {
-	return _properties.creationDate != std::numeric_limits<time_t>::max();
+	return hash() != 0;
 }
 
 bool CFileSystemObject::exists() const
