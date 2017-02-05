@@ -26,7 +26,6 @@ CController::CController() :
 	_instance = this;
 
 	_diskEnumerator.addObserver(this);
-	CPluginEngine::get().loadPlugins();
 
 	_leftPanel.addPanelContentsChangedListener(&CPluginEngine::get());
 	_rightPanel.addPanelContentsChangedListener(&CPluginEngine::get());
@@ -42,6 +41,11 @@ CController& CController::get()
 {
 	assert_r(_instance);
 	return *_instance;
+}
+
+void CController::loadPlugins()
+{
+	CPluginEngine::get().loadPlugins();
 }
 
 void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedListener *listener)

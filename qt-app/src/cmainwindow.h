@@ -109,7 +109,7 @@ private:
 
 private:
 	void createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries);
-	void addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu);
+	void addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& entry, QMenu* toolMenu);
 
 	// For command line handling
 	bool fileListReturnPressed() override;

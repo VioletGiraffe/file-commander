@@ -65,6 +65,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
 	_controller->pluginProxy().setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(menuEntries);});
+	// Need to load the plugins only after the menu creator has been set
+	_controller->loadPlugins();
 
 	_currentFileList = ui->leftPanel;
 	_otherFileList   = ui->rightPanel;
@@ -766,7 +768,7 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 	for(auto topLevelMenu: menu->findChildren<QMenu*>())
 	{
 		// TODO: make sure this plays nicely with localization (#145)
-		if (topLevelMenu->title() == "Tools")
+		if (topLevelMenu->title().remove('&') == "Tools")
 		{
 			toolMenu = topLevelMenu;
 			break;
@@ -779,6 +781,8 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 		toolMenu = new QMenu("Tools");
 		menu->addMenu(toolMenu);
 	}
+	else
+		toolMenu->addSeparator();
 
 	for(const auto& menuTree: menuEntries)
 		addToolMenuEntriesRecursively(menuTree, toolMenu);
@@ -786,13 +790,16 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 	toolMenu->addSeparator();
 }
 
-void CMainWindow::addToolMenuEntriesRecursively(CPluginProxy::MenuTree entry, QMenu* toolMenu)
+void CMainWindow::addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& entry, QMenu* toolMenu)
 {
 	assert_r(toolMenu);
 	QAction* action = toolMenu->addAction(entry.name);
 
-	if (!entry.children.empty())
-		QObject::connect(action, &QAction::triggered, [entry](bool){entry.handler();});
+	if (entry.children.empty())
+	{
+		const auto handler = entry.handler;
+		QObject::connect(action, &QAction::triggered, [handler](bool) {handler();});
+	}
 	else
 	{
 		for (const auto& childEntry : entry.children)

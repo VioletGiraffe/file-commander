@@ -22,6 +22,8 @@ public:
 	CController();
 	static CController& get();
 
+	void loadPlugins();
+
 	void setPanelContentsChangedListener(Panel p, PanelContentsChangedListener * listener);
 	void setDisksChangedListener(IDiskListObserver * listener);
 
