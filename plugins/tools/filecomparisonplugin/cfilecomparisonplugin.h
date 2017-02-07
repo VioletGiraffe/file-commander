@@ -1,6 +1,7 @@
 #pragma once
 
 #include "plugininterface/cfilecommandertoolplugin.h"
+#include "cfilecomparator.h"
 
 class CFileComparisonPlugin : public CFileCommanderToolPlugin
 {
@@ -14,4 +15,7 @@ protected:
 
 private:
 	void compareSelectedFiles();
+
+private:
+	CFileComparator _comparator;
 };

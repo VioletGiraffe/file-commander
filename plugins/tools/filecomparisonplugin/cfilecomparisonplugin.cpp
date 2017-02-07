@@ -1,15 +1,13 @@
 #include "cfilecomparisonplugin.h"
 
 #include "assert/advanced_assert.h"
-#include "utility/on_scope_exit.hpp"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDebug>
 #include <QFile>
 #include <QMessageBox>
+#include <QProgressDialog>
 RESTORE_COMPILER_WARNINGS
-
-enum ComparisonResult { Equal, NotEqual };
-static ComparisonResult compareFilesByContents(QFile& fileA, QFile& fileB, std::function<void(int)> progressCallback);
 
 CFileCommanderPlugin* createPlugin()
 {
@@ -72,35 +70,13 @@ void CFileComparisonPlugin::compareSelectedFiles()
 		return;
 	}
 
-	if (compareFilesByContents(fileA, fileB, [](int) {}) == Equal)
-		QMessageBox::information(nullptr, "Files are identical", QObject::tr("The file %1 is identical in both locations.").arg(currentItem.fullName()));
-	else
-		QMessageBox::information(nullptr, "Files differ", "The files are not identical.");
-}
 
-ComparisonResult compareFilesByContents(QFile& fileA, QFile& fileB, std::function<void(int)> progressCallback)
-{
-	assert(progressCallback);
+	QProgressDialog progressDialog();
 
-	EXEC_ON_SCOPE_EXIT([&]() {progressCallback(100); });
+	_comparator.compareFilesThreaded(fileA, fileB, [](int p) {qDebug() << p; }, [](CFileComparator::ComparisonResult result) {});
 
-	constexpr int blockSize = 512 * 1024 * 1024;
-
-	QByteArray blockA(blockSize, Qt::Uninitialized), blockB(blockSize, Qt::Uninitialized);
-
-	for (qint64 pos = 0, size = fileA.size(); pos < size; pos += blockSize)
-	{
-		const auto block_a_size = fileA.read(blockA.data(), blockSize);
-		const auto block_b_size = fileB.read(blockB.data(), blockSize);
-
-		assert_and_return_r(block_a_size == blockSize || block_a_size == block_b_size, NotEqual);
-		assert_and_return_r(block_b_size == blockSize || block_a_size == block_b_size, NotEqual);
-
-		if (blockA != blockB)
-			return NotEqual;
-
-		progressCallback(static_cast<int>(pos * 100 / size));
-	}
-
-	return Equal;
+// 	if (compareFilesByContents(fileA, fileB, [](int p) {qDebug() << p;}) == Equal)
+// 		QMessageBox::information(nullptr, "Files are identical", QObject::tr("The file %1 is identical in both locations.").arg(currentItem.fullName()));
+// 	else
+// 		QMessageBox::information(nullptr, "Files differ", "The files are not identical.");
 }
