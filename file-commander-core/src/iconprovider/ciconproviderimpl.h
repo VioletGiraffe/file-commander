@@ -14,6 +14,8 @@ RESTORE_COMPILER_WARNINGS
 #ifdef _WIN32
 
 #include <shellapi.h>
+#pragma comment(lib, "Shell32.lib")
+#pragma comment(lib, "User32.lib")
 
 class CIconProviderImpl
 {

@@ -71,7 +71,7 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	}
 
 
-	QProgressDialog progressDialog();
+	QProgressDialog progressDialog;
 
 	_comparator.compareFilesThreaded(fileA, fileB, [](int p) {qDebug() << p; }, [](CFileComparator::ComparisonResult result) {});
 

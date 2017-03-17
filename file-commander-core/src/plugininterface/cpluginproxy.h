@@ -25,6 +25,7 @@ class CPluginProxy
 public:
 	struct MenuTree {
 		inline MenuTree(const QString& name_, std::function<void()>&& handler_, const QIcon& icon_ = QIcon()): name(name_), icon(icon_), handler(handler_) {}
+		MenuTree& operator=(const MenuTree&) = delete;
 
 		const QString name;
 		const QIcon icon;

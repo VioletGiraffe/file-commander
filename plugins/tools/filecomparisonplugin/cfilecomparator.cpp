@@ -34,7 +34,7 @@ void CFileComparator::compareFiles(QFile &fileA, QFile &fileB, std::function<voi
 
 	EXEC_ON_SCOPE_EXIT([&]() {progressCallback(100);});
 
-	constexpr int blockSize = 1 * 1024 * 1024; // 1 MiB block size
+	const int blockSize = 1 * 1024 * 1024; // 1 MiB block size
 
 	QByteArray blockA(blockSize, Qt::Uninitialized), blockB(blockSize, Qt::Uninitialized);
 

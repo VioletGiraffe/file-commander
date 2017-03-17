@@ -130,6 +130,8 @@ public:
 		for (ITEMIDLIST* item: _array)
 			CoTaskMemFree(item);
 	}
+
+	CItemIdArrayReleaser& operator=(const CItemIdArrayReleaser&) = delete;
 private:
 	const std::vector<ITEMIDLIST*>& _array;
 };
