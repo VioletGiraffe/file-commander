@@ -120,7 +120,7 @@
     <string>Reload</string>
    </property>
    <property name="shortcut">
-    <string>F2</string>
+    <string>F5</string>
    </property>
   </action>
   <action name="actionClose">
