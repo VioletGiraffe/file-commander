@@ -135,17 +135,17 @@ private:
 	CFileSystemObject              _destFileSystemObject;
 	QString                        _newName;
 	Operation                      _op;
-	std::atomic<bool>              _paused;
-	std::atomic<bool>              _inProgress;
-	std::atomic<bool>              _done;
-	std::atomic<bool>              _cancelRequested;
-	UserResponse                   _userResponse;
+	std::atomic<bool>              _paused {false};
+	std::atomic<bool>              _inProgress {false};
+	std::atomic<bool>              _done {false};
+	std::atomic<bool>              _cancelRequested {false};
+	UserResponse                   _userResponse = urNone;
 
 	std::thread                    _thread;
 	std::mutex                     _waitForResponseMutex;
 	std::condition_variable        _waitForResponseCondition;
 
-	CFileOperationObserver       * _observer;
+	CFileOperationObserver       * _observer = nullptr;
 
 	// For calculating copy / move speed
 	CTimeElapsed                  _totalTimeElapsed;

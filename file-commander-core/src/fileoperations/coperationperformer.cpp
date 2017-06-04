@@ -17,13 +17,7 @@ inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &
 COperationPerformer::COperationPerformer(Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
 	_source(source),
 	_destFileSystemObject(destination),
-	_op(operation),
-	_paused(false),
-	_inProgress(false),
-	_done(false),
-	_cancelRequested(false),
-	_userResponse(urNone),
-	_observer(0)
+	_op(operation)
 {
 }
 
