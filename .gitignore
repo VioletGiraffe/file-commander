@@ -4,10 +4,15 @@
 installer/windows/FileCommander.exe
 installer/windows/binaries/
 
+set_qt_paths.bat
+*.exe
+
 # User-specific files
 *.suo
 *.user
 *.sln.docstates
+*.VC.db
+ClassDiagram.cd
 
 # Build results
 [Dd]ebug/
