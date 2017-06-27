@@ -198,7 +198,7 @@ void COperationPerformer::copyFiles()
 		}
 
 		qDebug() << __FUNCTION__ << "Processing" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
-		_observer->onCurrentFileChangedCallback(it->fullName());
+		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
 
 		const QFileInfo& sourceFileInfo = it->qFileInfo();
 		if (!sourceFileInfo.exists())
@@ -369,11 +369,11 @@ void COperationPerformer::deleteFiles()
 		handlePause();
 
 		qDebug() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
-		_observer->onCurrentFileChangedCallback(it->fullName());
+		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
 
 		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
 		const uint32_t secondsRemaining = speed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex - 1) / speed) : 0;
-		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, speed, secondsRemaining);
+		if (_observer) _observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, speed, secondsRemaining);
 
 		if (!it->exists())
 		{
@@ -427,11 +427,11 @@ void COperationPerformer::deleteFiles()
 		handlePause();
 
 		qDebug() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
-		_observer->onCurrentFileChangedCallback(it->fullName());
+		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
 
 		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
 		const uint32_t secondsRemaining = speed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex) / speed) : 0;
-		_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, speed, secondsRemaining);
+		if (_observer) _observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalNumberOfObjects, currentItemIndex, totalNumberOfObjects, 0, speed, secondsRemaining);
 
 		if (!it->exists())
 		{
@@ -484,7 +484,7 @@ void COperationPerformer::finalize()
 {
 	_done = true;
 	_paused   = false;
-	_observer->onProcessFinishedCallback();
+	if (_observer) _observer->onProcessFinishedCallback();
 }
 
 // Iterates over all dirs in the source vector, and their subdirs, and so on and replaces _sources with a flat list of files. Returns a list of destination folders where each of the files must be copied to according to _dest
@@ -528,7 +528,7 @@ UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSyst
 	if (globalResponse != _globalResponses.end())
 		return globalResponse->second;
 
-	_observer->onProcessHaltedCallback(hr, src, dst, message);
+	if (_observer) _observer->onProcessHaltedCallback(hr, src, dst, message);
 	waitForResponse();
 	const auto response = _userResponse;
 	_userResponse = urNone;
@@ -674,7 +674,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * actualSizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1); // Bytes / sec
 		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / meanSpeed);
-		_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
+		if (_observer) _observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
 
 		// TODO: why isn't this block at the start of 'do-while'?
 		if (_cancelRequested)

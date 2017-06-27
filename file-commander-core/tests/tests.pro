@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 
 SUBDIRS = operationperformer
-SUBDIRS += qtutils cpputils cpp-template-utils
+SUBDIRS += qtutils cpputils cpp-template-utils test-utils
 
 cpp-template-utils.subdir = ../../cpp-template-utils
 cpputils.subdir = ../../cpputils
@@ -24,4 +24,6 @@ textviewerplugin.depends = file_commander_core text_encoding_detector
 filecomparisonplugin.subdir = ../plugins/tools/filecomparisonplugin
 filecomparisonplugin.depends = file_commander_core
 
-operationperformer.depends = qtutils
+test-utils.depends = qtutils
+
+operationperformer.depends = test-utils qtutils
