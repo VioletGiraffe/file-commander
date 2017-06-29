@@ -4,11 +4,6 @@
 
 #include <iterator>
 
-CFolderEnumeratorRecursive::CFolderEnumeratorRecursive()
-{
-
-}
-
 void CFolderEnumeratorRecursive::enumerateFolder(const QString& dirPath, std::vector<CFileSystemObject>& result, bool sort /*= true*/)
 {
 	auto list = QDir(dirPath).entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::System);

@@ -17,7 +17,10 @@ mac*|linux*{
 	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }
 
-INCLUDEPATH += ../../src/
+INCLUDEPATH += \
+	../../src/ \
+	../test-utils/src/
+
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 
 SOURCES += \
