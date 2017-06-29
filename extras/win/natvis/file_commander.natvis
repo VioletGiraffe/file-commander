@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010"> 
+	<Type Name="CFileSystemObject">  
+    <DisplayString>{{ path={_properties.fullPath} }}</DisplayString>  
+    <Expand>  
+        <Item Name="[type]" ExcludeView="simple">_properties.type</Item>
+        <Item Name="[size]" ExcludeView="simple">_properties.size</Item>
+        <Item Name="[exists]" ExcludeView="simple">_properties.exists</Item>
+    </Expand>  
+</Type>  
+</AutoVisualizer>
