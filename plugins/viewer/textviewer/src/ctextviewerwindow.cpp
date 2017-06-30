@@ -11,8 +11,8 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 
-CTextViewerWindow::CTextViewerWindow() :
-	CPluginWindow(),
+CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
+	CPluginWindow(parent),
 	_textBrowser(this),
 	_findDialog(this, "Plugins/TextViewer/Find/")
 {

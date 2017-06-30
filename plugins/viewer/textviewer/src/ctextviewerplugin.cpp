@@ -18,7 +18,8 @@ bool CTextViewerPlugin::canViewCurrentFile() const
 
 CPluginWindow * CTextViewerPlugin::viewCurrentFile()
 {
-	CTextViewerWindow * widget = new CTextViewerWindow;
+	QWidget* mainAppWindow = QApplication::topLevelWidgets().front();
+	CTextViewerWindow * widget = new CTextViewerWindow(mainAppWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
 	if (widget->loadTextFile(_proxy->currentItemPath()))
 		return widget;
 

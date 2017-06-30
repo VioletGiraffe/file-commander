@@ -8,8 +8,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
-CImageViewerWindow::CImageViewerWindow() :
-	CPluginWindow(),
+CImageViewerWindow::CImageViewerWindow(QWidget* parent) :
+	CPluginWindow(parent),
 	ui(new Ui::CImageViewerWindow)
 {
 	ui->setupUi(this);

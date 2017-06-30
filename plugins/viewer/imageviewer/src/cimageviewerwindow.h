@@ -12,7 +12,7 @@ class CImageViewerWindow;
 class CImageViewerWindow : public CPluginWindow
 {
 public:
-	CImageViewerWindow();
+	explicit CImageViewerWindow(QWidget* parent = nullptr);
 	~CImageViewerWindow();
 
 	bool displayImage(const QString& imagePath, const QImage& image = QImage());
