@@ -7,7 +7,7 @@ win*{
 	QT += winextras
 }
 
-CONFIG += c++11
+CONFIG += c++14
 
 mac* | linux*{
 	CONFIG(release, debug|release):CONFIG += Release
