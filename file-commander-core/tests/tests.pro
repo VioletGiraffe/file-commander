@@ -26,4 +26,4 @@ filecomparisonplugin.depends = file_commander_core
 
 test-utils.depends = qtutils
 
-operationperformer.depends = test-utils qtutils
+operationperformer.depends = test-utils file_commander_core
