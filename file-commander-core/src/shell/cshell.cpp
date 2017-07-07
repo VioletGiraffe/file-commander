@@ -98,7 +98,7 @@ bool CShell::runExecutable(const QString & command, const QString & parameters, 
 #else
 bool CShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
 {
-	return QProcess::startDetached(item.fullAbsolutePath(), QStringList(), item.parentDirPath());
+	return QProcess::startDetached(command, QStringList() << parameters, workingDir);
 }
 #endif
 

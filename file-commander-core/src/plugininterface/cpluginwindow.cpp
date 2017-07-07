@@ -5,7 +5,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 RESTORE_COMPILER_WARNINGS
 
-CPluginWindow::CPluginWindow()
+CPluginWindow::CPluginWindow(QWidget* parent) : QMainWindow(parent)
 {
 	setAttribute(Qt::WA_WindowPropagation);
 }

@@ -39,6 +39,8 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #endif
 
+#include <memory>
+
 // Main window settings keys
 #define KEY_RPANEL_STATE      "Ui/RPanel/State"
 #define KEY_LPANEL_STATE      "Ui/LPanel/State"
@@ -763,7 +765,7 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 		return;
 
 	static QMenu * toolMenu = nullptr; // Shouldn't have to be static, but 2 subsequent calls to this method result in "Tools" being added twice. QMenuBar needs event loop to update its children?..
-	                                   // TODO: make it a class member
+					   // TODO: make it a class member
 
 	for(auto topLevelMenu: menu->findChildren<QMenu*>())
 	{

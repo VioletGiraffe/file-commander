@@ -15,7 +15,7 @@ class QLabel;
 class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
 {
 public:
-	CTextViewerWindow();
+	explicit CTextViewerWindow(QWidget* parent = nullptr);
 
 	bool loadTextFile(const QString& file);
 
