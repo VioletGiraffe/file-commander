@@ -1,5 +1,6 @@
 #include "fileoperations/coperationperformer.h"
 #include "cfolderenumeratorrecursive.h"
+#include "container/set_operations.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
@@ -59,6 +60,7 @@ void TestOperationPerformer::testCopy()
 	if (sourceTree != destTree)
 	{
 		printFolderComparison(sourceTree, destTree);
+		const auto diff = SetOperations::calculateDiff(sourceTree, destTree);
 		QVERIFY(false);
 	}
 	else
