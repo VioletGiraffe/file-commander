@@ -7,6 +7,7 @@ RESTORE_COMPILER_WARNINGS
 
 CPluginWindow::CPluginWindow(QWidget* parent) : QMainWindow(parent)
 {
+	assert(parent != nullptr);
 	setAttribute(Qt::WA_WindowPropagation);
 }
 

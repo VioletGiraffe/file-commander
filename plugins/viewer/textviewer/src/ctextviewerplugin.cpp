@@ -18,8 +18,17 @@ bool CTextViewerPlugin::canViewCurrentFile() const
 
 CPluginWindow * CTextViewerPlugin::viewCurrentFile()
 {
-	QWidget* mainAppWindow = QApplication::topLevelWidgets().front();
-	CTextViewerWindow * widget = new CTextViewerWindow(mainAppWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
+	QWidget * mainWindow = nullptr;
+	for (QWidget* topLevelWidget: QApplication::topLevelWidgets())
+	{
+		if (topLevelWidget->inherits("QMainWindow"))
+		{
+			mainWindow = topLevelWidget;
+			break;
+		}
+	}
+
+	CTextViewerWindow * widget = new CTextViewerWindow(mainWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
 	if (widget->loadTextFile(_proxy->currentItemPath()))
 		return widget;
 
