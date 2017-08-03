@@ -1,6 +1,7 @@
 #include "cmainwindow.h"
 #include "settings/csettings.h"
 #include "iconprovider/ciconprovider.h"
+#include "ui/high_dpi_support.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -37,6 +38,8 @@ int main(int argc, char *argv[])
 	CFileCommanderApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
 	app.setApplicationName("File Commander");
+
+	enable_high_dpi_support();
 
 	CSettings::setApplicationName(app.applicationName());
 	CSettings::setOrganizationName(app.organizationName());
