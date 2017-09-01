@@ -19,28 +19,37 @@ private slots:
 
 inline void printFolderComparison(const std::vector<CFileSystemObject>& l, const std::vector<CFileSystemObject>& r)
 {
-	const size_t n = std::min(l.size(), r.size());
-	for (size_t i = 0; i < n; ++i)
-	{
-		qDebug() << l[i].fullAbsolutePath();
-		qDebug() << r[i].fullAbsolutePath() << "\n";
-	}
+	QStringList pathsL;
+	for (const auto& item : l)
+		pathsL.push_back(item.fullAbsolutePath());
 
-	if (l.size() == r.size())
-		return;
+	const auto longestCommonPrefixL = SetOperations::longestCommonStart(pathsL);
 
-	const auto& largerList = l.size() > r.size() ? l : r;
-	if (l.size() > r.size())
-		qDebug() << "Left list is larger. Extra items items from L:";
-	else
-		qDebug() << "Right list is larger. Extra items items from R:";
+	QStringList pathsR;
+	for (const auto& item : r)
+		pathsR.push_back(item.fullAbsolutePath());
 
-	for (size_t i = n, size = std::max(l.size(), r.size()); i < size; ++i)
-		qDebug() << largerList[i].fullAbsolutePath();
+	const auto longestCommonPrefixR = SetOperations::longestCommonStart(pathsR);
+
+	for (auto& path : pathsL)
+		path = path.mid(longestCommonPrefixL.length());
+
+	for (auto& path : pathsR)
+		path = path.mid(longestCommonPrefixR.length());
+
+	const auto diff = SetOperations::calculateDiff(pathsL, pathsR);
+	qDebug() << "Items from L not in R:";
+	for (const auto& item : diff.elements_from_a_not_in_b)
+		qDebug() << item;
+
+	qDebug() << "Items from R not in L:";
+	for (const auto& item : diff.elements_from_b_not_in_a)
+		qDebug() << item;
 }
 
 void TestOperationPerformer::testCopy()
 {
+	// TODO: remove hard-coded paths
 	const QString srcDirPath = QApplication::applicationDirPath() + "/../../file-commander-core/core-tests/operationperformer/test_folder/";
 	const QString destDirPath = QApplication::applicationDirPath() + "/copy-move-test-folder/";
 
