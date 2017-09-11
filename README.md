@@ -1,4 +1,4 @@
-#File Commander
+# File Commander
 
 [![Build status](https://ci.appveyor.com/api/projects/status/0rdr7ordj8khnn8l?svg=true)](https://ci.appveyor.com/project/VioletGiraffe/file-commander)
 
@@ -8,18 +8,18 @@
 
 ![Built with Qt](http://i.imgur.com/O7SUWxn.png)
 
-###Download for Windows
+### Download for Windows
 
 *<a href="https://github.com/VioletGiraffe/file-commander/releases/latest">Get the latest release</a>*    
 Windows Vista and later systems are supported (x32 and x64). Windows XP is not supported.
 
-###Known Issues
+### Known Issues
 For the list of known issues, refer to the project issues on Github, sort by the "bug" label. Or just use <a href="https://github.com/VioletGiraffe/file-commander/labels/bug">this link</a>.
 
-###Reporting an issue
+### Reporting an issue
 <a href="https://github.com/VioletGiraffe/file-commander/issues/new">Create an issue</a> on the project's page on Github.
 
-###Contributing
+### Contributing
 
 ***Cloning the repository***
 
