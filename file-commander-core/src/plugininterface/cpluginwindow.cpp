@@ -5,10 +5,14 @@ DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 RESTORE_COMPILER_WARNINGS
 
-CPluginWindow::CPluginWindow(QWidget* parent) : QMainWindow(parent)
+CPluginWindow::CPluginWindow(QWidget *parent) : QMainWindow(nullptr)
 {
-	assert(parent != nullptr);
-	setAttribute(Qt::WA_WindowPropagation);
+	if (parent)
+	{
+		setFont(parent->font());
+		setPalette(parent->palette());
+		setStyleSheet(parent->styleSheet());
+	}
 }
 
 bool CPluginWindow::autoDeleteOnClose() const
