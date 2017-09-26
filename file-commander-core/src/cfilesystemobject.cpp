@@ -89,8 +89,9 @@ void CFileSystemObject::refreshInfo()
 	}
 
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
-	_properties.isCdUp = _properties.fullName == "..";
-	_properties.parentFolder = _fileInfo.absolutePath();
+	_properties.isCdUp = _properties.fullName == QStringLiteral("..");
+	// QFileInfo::canonicalPath() / QFileInfo::absolutePath are undefined for non-files
+	_properties.parentFolder = _fileInfo.canonicalPath();
 
 	if (!_properties.exists)
 		return;

@@ -135,26 +135,26 @@ void COperationPerformer::copyFiles()
 		_totalTimeElapsed.start();
 
 		// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
-		for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
+		for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 		{
-			if (it->isCdUp())
+			if (sourceIterator->isCdUp())
 			{
-				++it;
+				++sourceIterator;
 				++currentItemIndex;
 				continue;
 			}
 
-			const QString newFileName = !_newName.isEmpty() ? _newName :  it->fullName();
+			const QString newFileName = !_newName.isEmpty() ? _newName :  sourceIterator->fullName();
 			_newName.clear();
-			const auto result = it->moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
+			const auto result = sourceIterator->moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
 			if (result != rcOk)
 			{
-				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *it, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), it->lastErrorMessage());
+				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *sourceIterator, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), sourceIterator->lastErrorMessage());
 				// Handler is identical to that of the main loop
 				// esp. for the case of hrFileExists
 				if (response == urSkipThis || response == urSkipAll)
 				{
-					++it;
+					++sourceIterator;
 					++currentItemIndex;
 					continue;
 				}
@@ -172,7 +172,7 @@ void COperationPerformer::copyFiles()
 					assert_r(response == urProceedWithThis || response == urProceedWithAll);
 			}
 
-			++it;
+			++sourceIterator;
 			++currentItemIndex;
 		}
 
@@ -188,25 +188,25 @@ void COperationPerformer::copyFiles()
 
 	_totalTimeElapsed.start();
 
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
+	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
-		if (it->isCdUp())
+		if (sourceIterator->isCdUp())
 		{
-			++it;
+			++sourceIterator;
 			++currentItemIndex;
 			continue;
 		}
 
-		qDebug() << __FUNCTION__ << "Processing" << (it->isFile() ? "file" : "directory") << it->fullAbsolutePath();
-		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
+		qDebug() << __FUNCTION__ << "Processing" << (sourceIterator->isFile() ? "file" : "directory") << sourceIterator->fullAbsolutePath();
+		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->fullName());
 
-		const QFileInfo& sourceFileInfo = it->qFileInfo();
+		const QFileInfo& sourceFileInfo = sourceIterator->qFileInfo();
 		if (!sourceFileInfo.exists())
 		{
-			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
+			const auto response = getUserResponse(hrFileDoesntExit, *sourceIterator, CFileSystemObject(), QString::null);
 			if (response == urSkipThis || response == urSkipAll)
 			{
-				++it;
+				++sourceIterator;
 				++currentItemIndex;
 				continue;
 			}
@@ -219,27 +219,27 @@ void COperationPerformer::copyFiles()
 				assert_unconditional_r("Unknown response");
 		}
 
-		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(_newName.isEmpty() ? it->fullName() : _newName));
+		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(_newName.isEmpty() ? sourceIterator->fullName() : _newName));
 		_newName.clear();
 		if (destInfo.absoluteFilePath() == sourceFileInfo.absoluteFilePath())
 		{
-			++it;
+			++sourceIterator;
 			++currentItemIndex;
 			continue;
 		}
 
-		if (it->isFile())
+		if (sourceIterator->isFile())
 		{
 			NextAction nextAction;
-			while ((nextAction = copyItem(*it, destInfo, destination[currentItemIndex], sizeProcessed, totalSize, currentItemIndex)) == naRetryOperation);
+			while ((nextAction = copyItem(*sourceIterator, destInfo, destination[currentItemIndex], sizeProcessed, totalSize, currentItemIndex)) == naRetryOperation);
 			switch (nextAction)
 			{
 			case naProceed:
 				break;
 			case naSkip:
-				++it;
+				++sourceIterator;
 				++currentItemIndex;
-				sizeProcessed += it->size();
+				sizeProcessed += sourceIterator->size();
 				continue;
 			case naRetryItem:
 				continue;
@@ -254,14 +254,14 @@ void COperationPerformer::copyFiles()
 
 			if (_op == operationMove) // result == ok
 			{
-				while ((nextAction = deleteItem(*it)) == naRetryOperation);
+				while ((nextAction = deleteItem(*sourceIterator)) == naRetryOperation);
 
 				switch (nextAction)
 				{
 				case naProceed:
 					break;
 				case naSkip:
-					++it;
+					++sourceIterator;
 					++currentItemIndex;
 					continue;
 				case naRetryItem:
@@ -276,7 +276,7 @@ void COperationPerformer::copyFiles()
 				}
 			}
 		}
-		else if (it->isDir())
+		else if (sourceIterator->isDir())
 		{
 			// Creating the folder - empty folders will not be copied without this code
 			CFileSystemObject destObject(destInfo);
@@ -289,7 +289,7 @@ void COperationPerformer::copyFiles()
 				else if (nextAction == naSkip)
 				{
 					++currentItemIndex;
-					++it;
+					++sourceIterator;
 					continue;
 				}
 				else if (nextAction == naRetryOperation)
@@ -303,15 +303,15 @@ void COperationPerformer::copyFiles()
 
 			if (_op == operationMove)
 			{
-				if (it->isEmptyDir())
+				if (sourceIterator->isEmptyDir())
 				{
-					const auto result = it->remove();
+					const auto result = sourceIterator->remove();
 					if (result != rcOk)
 					{
-						const auto action = getUserResponse(hrFailedToDelete, *it, CFileSystemObject(), it->lastErrorMessage());
+						const auto action = getUserResponse(hrFailedToDelete, *sourceIterator, CFileSystemObject(), sourceIterator->lastErrorMessage());
 						if (action == urSkipThis || action == urSkipAll)
 						{
-							++it;
+							++sourceIterator;
 							++currentItemIndex;
 							continue;
 						}
@@ -330,13 +330,13 @@ void COperationPerformer::copyFiles()
 					}
 				}
 				else // not empty
-					dirsToCleanUp.push_back(*it);
+					dirsToCleanUp.push_back(*sourceIterator);
 			}
 		}
 
-		sizeProcessed += it->size();
+		sizeProcessed += sourceIterator->size();
 
-		++it;
+		++sourceIterator;
 		++currentItemIndex;
 	}
 

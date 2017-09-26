@@ -74,7 +74,7 @@ public:
 	uint64_t size() const;
 	qulonglong hash() const;
 	const QFileInfo& qFileInfo() const;
-	const QDir& qDir() const;
+	const QDir& qDir() const; // TODO: this method needs documentation. What's it for?
 	static std::vector<QString> pathHierarchy(const QString& path);
 	uint64_t rootFileSystemId() const;
 	bool isNetworkObject() const;
@@ -114,7 +114,7 @@ private:
 
 private:
 	QFileInfo                   _fileInfo;
-	QDir                        _dir;
+	QDir                        _dir; // TODO: this item needs documentation. What's it for?
 	CFileSystemObjectProperties _properties;
 	mutable QString             _lastErrorMessage;
 	// Can be used to determine whether 2 objects are on the same drive
