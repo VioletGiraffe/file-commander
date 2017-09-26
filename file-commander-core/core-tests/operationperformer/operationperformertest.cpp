@@ -39,13 +39,19 @@ inline void printFolderComparison(const std::vector<CFileSystemObject>& source, 
 		path = path.mid(longestCommonPrefixR.length());
 
 	const auto diff = SetOperations::calculateDiff(pathsSource, pathsDest);
-	qDebug() << "Items from source not in dest:";
-	for (const auto& item : diff.elements_from_a_not_in_b)
-		qDebug() << item;
+	if (!diff.elements_from_a_not_in_b.empty())
+	{
+		qDebug() << "Items from source not in dest:";
+		for (const auto& item : diff.elements_from_a_not_in_b)
+			qDebug() << item;
+	}
 
-	qDebug() << "Items from dest not in source:";
-	for (const auto& item : diff.elements_from_b_not_in_a)
-		qDebug() << item;
+	if (!diff.elements_from_b_not_in_a.empty())
+	{
+		qDebug() << "Items from dest not in source:";
+		for (const auto& item : diff.elements_from_b_not_in_a)
+			qDebug() << item;
+	}
 }
 
 inline QString srcTestDirPath()
@@ -85,7 +91,7 @@ void TestOperationPerformer::testCopy()
 
 	std::vector<CFileSystemObject> sourceTree, destTree;
 	CFolderEnumeratorRecursive::enumerateFolder(srcDirPath, sourceTree);
-	CFolderEnumeratorRecursive::enumerateFolder(destDirPath, destTree);
+	CFolderEnumeratorRecursive::enumerateFolder(destDirPath + CFileSystemObject(srcTestDirPath()).fullName(), destTree);
 
 	if (sourceTree != destTree)
 	{

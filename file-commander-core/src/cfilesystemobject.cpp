@@ -38,6 +38,19 @@ inline uint64_t hash(const QByteArray& byteArray)
 	return fasthash64(byteArray.constData(), byteArray.size(), 0);
 }
 
+inline QString parentForAbsolutePath(QString absolutePath)
+{
+	if (absolutePath.endsWith('/'))
+		absolutePath.chop(1);
+
+	const int lastSlash = absolutePath.lastIndexOf('/');
+	if (lastSlash <= 0)
+		return QString();
+
+	absolutePath.truncate(lastSlash + 1); // Keep the slash as it signifies a directory rather than a file.
+	return absolutePath;
+}
+
 void CFileSystemObject::refreshInfo()
 {
 	_properties.exists = _fileInfo.exists();
@@ -91,7 +104,7 @@ void CFileSystemObject::refreshInfo()
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
 	_properties.isCdUp = _properties.fullName == QStringLiteral("..");
 	// QFileInfo::canonicalPath() / QFileInfo::absolutePath are undefined for non-files
-	_properties.parentFolder = _fileInfo.canonicalPath();
+	_properties.parentFolder = parentForAbsolutePath(_properties.fullPath);
 
 	if (!_properties.exists)
 		return;
@@ -231,7 +244,7 @@ const QDir& CFileSystemObject::qDir() const
 std::vector<QString> CFileSystemObject::pathHierarchy(const QString& path)
 {
 	QString pathItem = path.endsWith('/') ? path.left(path.length() - 1) : path;
-	std::vector<QString> result(1, path);
+	std::vector<QString> result {path};
 	while ((pathItem = QFileInfo(pathItem).absolutePath()).length() < result.back().length())
 		result.push_back(pathItem);
 

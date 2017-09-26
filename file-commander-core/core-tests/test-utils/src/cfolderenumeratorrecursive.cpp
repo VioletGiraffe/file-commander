@@ -1,5 +1,6 @@
 #include "cfolderenumeratorrecursive.h"
 
+#include <QDebug>
 #include <QDir>
 
 #include <iterator>
