@@ -14,45 +14,66 @@ class TestOperationPerformer : public QObject
 	Q_OBJECT
 
 private slots:
+	void fileSystemObjectTest();
 	void testCopy();
 };
 
-inline void printFolderComparison(const std::vector<CFileSystemObject>& l, const std::vector<CFileSystemObject>& r)
+inline void printFolderComparison(const std::vector<CFileSystemObject>& source, const std::vector<CFileSystemObject>& dest)
 {
-	QStringList pathsL;
-	for (const auto& item : l)
-		pathsL.push_back(item.fullAbsolutePath());
+	QStringList pathsSource;
+	for (const auto& item : source)
+		pathsSource.push_back(item.fullAbsolutePath());
 
-	const auto longestCommonPrefixL = SetOperations::longestCommonStart(pathsL);
+	const auto longestCommonPrefixL = SetOperations::longestCommonStart(pathsSource);
 
-	QStringList pathsR;
-	for (const auto& item : r)
-		pathsR.push_back(item.fullAbsolutePath());
+	QStringList pathsDest;
+	for (const auto& item : dest)
+		pathsDest.push_back(item.fullAbsolutePath());
 
-	const auto longestCommonPrefixR = SetOperations::longestCommonStart(pathsR);
+	const auto longestCommonPrefixR = SetOperations::longestCommonStart(pathsDest);
 
-	for (auto& path : pathsL)
+	for (auto& path : pathsSource)
 		path = path.mid(longestCommonPrefixL.length());
 
-	for (auto& path : pathsR)
+	for (auto& path : pathsDest)
 		path = path.mid(longestCommonPrefixR.length());
 
-	const auto diff = SetOperations::calculateDiff(pathsL, pathsR);
-	qDebug() << "Items from L not in R:";
+	const auto diff = SetOperations::calculateDiff(pathsSource, pathsDest);
+	qDebug() << "Items from source not in dest:";
 	for (const auto& item : diff.elements_from_a_not_in_b)
 		qDebug() << item;
 
-	qDebug() << "Items from R not in L:";
+	qDebug() << "Items from dest not in source:";
 	for (const auto& item : diff.elements_from_b_not_in_a)
 		qDebug() << item;
+}
+
+inline QString srcTestDirPath()
+{
+	return QApplication::applicationDirPath() + "/../../file-commander-core/core-tests/operationperformer/test_folder/";
+}
+
+inline QString dstTestDirPath()
+{
+	return QApplication::applicationDirPath() + "/copy-move-test-folder/";
+}
+
+void TestOperationPerformer::fileSystemObjectTest()
+{
+	CFileSystemObject o(srcTestDirPath());
+	QVERIFY(o.fullAbsolutePath() != o.parentDirPath() + '/');
 }
 
 void TestOperationPerformer::testCopy()
 {
 	// TODO: remove hard-coded paths
-	const QString srcDirPath = QApplication::applicationDirPath() + "/../../file-commander-core/core-tests/operationperformer/test_folder/";
-	const QString destDirPath = QApplication::applicationDirPath() + "/copy-move-test-folder/";
+	const QString srcDirPath = srcTestDirPath();
+	const QString destDirPath = dstTestDirPath();
 
+	qDebug() << "Source:" << srcDirPath;
+	qDebug() << "Dest:" << destDirPath;
+
+	// TODO: extract this into init() / cleanup()
 #ifdef _WIN32
 	std::system((QString("rmdir /S /Q ") % '\"' % QString(destDirPath).replace('/', '\\') % '\"').toUtf8().data());
 #else
@@ -70,10 +91,9 @@ void TestOperationPerformer::testCopy()
 	{
 		printFolderComparison(sourceTree, destTree);
 		const auto diff = SetOperations::calculateDiff(sourceTree, destTree);
-		QVERIFY(false);
 	}
-	else
-		QVERIFY(true);
+
+	QVERIFY(sourceTree == destTree);
 }
 
 DISABLE_COMPILER_WARNINGS
