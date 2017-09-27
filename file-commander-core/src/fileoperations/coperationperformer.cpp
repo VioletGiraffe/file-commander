@@ -1,19 +1,6 @@
 #include "coperationperformer.h"
 #include "filesystemhelperfunctions.h"
 
-inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)
-{
-	QString localPath = absoluteSourcePath.mid(originPath.length());
-	assert_r(!localPath.isEmpty());
-	if (localPath.startsWith('\\') || localPath.startsWith('/'))
-		localPath = localPath.remove(0, 1);
-
-	const QString tmp = QFileInfo(destPath).absoluteFilePath();
-	assert_r(QString(destPath % "/").remove("//") == QString(tmp % "/").remove("//"));
-	const QString result = destPath % "/" % localPath;
-	return QFileInfo(result).absolutePath();
-}
-
 COperationPerformer::COperationPerformer(Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
 	_source(source),
 	_destFileSystemObject(destination),
@@ -486,6 +473,26 @@ void COperationPerformer::finalize()
 	_done = true;
 	_paused   = false;
 	if (_observer) _observer->onProcessFinishedCallback();
+}
+
+inline bool isAbsolutePath(const QString& path)
+{
+#ifdef _WIN32
+	return path.contains(':') || path.startsWith("//");
+#else
+	return path.startsWith('/');
+#endif
+}
+
+inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &originPath, const QString &destPath, bool /*sourceIsDir*/)
+{
+	QString localPath = absoluteSourcePath.mid(originPath.length());
+	assert_r(!localPath.isEmpty());
+	if (localPath.startsWith('\\') || localPath.startsWith('/'))
+		localPath = localPath.remove(0, 1);
+
+	assert(isAbsolutePath(destPath));
+	return CFileSystemObject(destPath % '/' % localPath).parentDirPath();
 }
 
 // Iterates over all dirs in the source vector, and their subdirs, and so on and replaces _sources with a flat list of files. Returns a list of destination folders where each of the files must be copied to according to _dest
