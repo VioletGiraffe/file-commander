@@ -18,7 +18,7 @@ private slots:
 	void testCopy();
 };
 
-inline void printFolderComparison(const std::vector<CFileSystemObject>& source, const std::vector<CFileSystemObject>& dest)
+inline bool compareFolderContents(const std::vector<CFileSystemObject>& source, const std::vector<CFileSystemObject>& dest)
 {
 	QStringList pathsSource;
 	for (const auto& item : source)
@@ -38,9 +38,12 @@ inline void printFolderComparison(const std::vector<CFileSystemObject>& source, 
 	for (auto& path : pathsDest)
 		path = path.mid(longestCommonPrefixR.length());
 
+	bool differenceDetected = false;
+
 	const auto diff = SetOperations::calculateDiff(pathsSource, pathsDest);
 	if (!diff.elements_from_a_not_in_b.empty())
 	{
+		differenceDetected = true;
 		qDebug() << "Items from source not in dest:";
 		for (const auto& item : diff.elements_from_a_not_in_b)
 			qDebug() << item;
@@ -48,10 +51,13 @@ inline void printFolderComparison(const std::vector<CFileSystemObject>& source, 
 
 	if (!diff.elements_from_b_not_in_a.empty())
 	{
+		differenceDetected = true;
 		qDebug() << "Items from dest not in source:";
 		for (const auto& item : diff.elements_from_b_not_in_a)
 			qDebug() << item;
 	}
+
+	return !differenceDetected;
 }
 
 inline QString srcTestDirPath()
@@ -93,13 +99,7 @@ void TestOperationPerformer::testCopy()
 	CFolderEnumeratorRecursive::enumerateFolder(srcDirPath, sourceTree);
 	CFolderEnumeratorRecursive::enumerateFolder(destDirPath + CFileSystemObject(srcTestDirPath()).fullName(), destTree);
 
-	if (sourceTree != destTree)
-	{
-		printFolderComparison(sourceTree, destTree);
-		const auto diff = SetOperations::calculateDiff(sourceTree, destTree);
-	}
-
-	QVERIFY(sourceTree == destTree);
+	QVERIFY(compareFolderContents(sourceTree, destTree));
 }
 
 DISABLE_COMPILER_WARNINGS
