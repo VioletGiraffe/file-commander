@@ -1,7 +1,9 @@
 #include "cfolderenumeratorrecursive.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QDir>
+RESTORE_COMPILER_WARNINGS
 
 #include <iterator>
 

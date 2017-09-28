@@ -26,8 +26,8 @@ struct CFileSystemObjectProperties {
 	QString  fullPath;
 	FileSystemObjectType type = UnknownType;
 	uint64_t size = 0;
-	time_t   creationDate = std::numeric_limits<time_t>::max();
-	time_t   modificationDate = std::numeric_limits<time_t>::max();
+	time_t creationDate = std::numeric_limits<time_t>::max();
+	time_t modificationDate = std::numeric_limits<time_t>::max();
 	qulonglong hash = 0;
 	bool isCdUp = false;
 	bool exists = false;
@@ -146,9 +146,9 @@ inline bool caseSensitiveFilesystem()
 {
 #if defined _WIN32
 	return false;
-#elif __APPLE__
+#elif defined __APPLE__
 	return true;
-#elif __linux__
+#elif defined __linux__
 	return true;
 #else
 #error "Unknown operating system"

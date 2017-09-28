@@ -198,7 +198,7 @@ void COperationPerformer::copyFiles()
 			continue;
 		}
 
-		qDebug() << __FUNCTION__ << "Processing" << (sourceIterator->isFile() ? "file" : "directory") << sourceIterator->fullAbsolutePath();
+		qDebug() << __FUNCTION__ << "Processing" << (sourceIterator->isFile() ? "file" : "DIR ") << sourceIterator->fullAbsolutePath();
 		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->fullName());
 
 		const QFileInfo& sourceFileInfo = sourceIterator->qFileInfo();
@@ -490,6 +490,9 @@ void COperationPerformer::finalize()
 
 // Iterates over all dirs in the source vector, and their subdirs, and so on and replaces _sources with a flat list of files. Returns a list of destination folders where each of the files must be copied to according to _dest
 // Also counts the total size of all the files to monitor progress
+
+// TODO: refactor to a separate algorithm that iterates recursively over subdirs.
+// Then I would no longer need to calculate the total size of all files in the same method just to avoid code duplication.
 std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &totalSize)
 {
 	totalSize = 0;
