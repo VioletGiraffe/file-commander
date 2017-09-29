@@ -6,8 +6,6 @@
 class CFileComparisonPlugin : public CFileCommanderToolPlugin
 {
 public:
-	CFileComparisonPlugin();
-
 	QString name() const override;
 
 protected:

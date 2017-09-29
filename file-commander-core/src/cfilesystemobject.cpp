@@ -102,7 +102,7 @@ void CFileSystemObject::refreshInfo()
 	}
 
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
-	_properties.isCdUp = _properties.fullName == QStringLiteral("..");
+	_properties.isCdUp = _properties.fullName == QLatin1String("..");
 	// QFileInfo::canonicalPath() / QFileInfo::absolutePath are undefined for non-files
 	_properties.parentFolder = parentForAbsolutePath(_properties.fullPath);
 
@@ -278,7 +278,7 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 bool CFileSystemObject::isNetworkObject() const
 {
 #ifdef _WIN32
-	return _properties.fullPath.startsWith(QStringLiteral("//")) && !_properties.fullPath.startsWith(QStringLiteral("//?/"));
+	return _properties.fullPath.startsWith(QLatin1String("//")) && !_properties.fullPath.startsWith(QLatin1String("//?/"));
 #else
 	return false;
 #endif
@@ -326,7 +326,7 @@ QString CFileSystemObject::modificationDateString() const
 	QDateTime modificationDate;
 	modificationDate.setTime_t((uint)_properties.modificationDate);
 	modificationDate = modificationDate.toLocalTime();
-	return modificationDate.toString(QStringLiteral("dd.MM.yyyy hh:mm"));
+	return modificationDate.toString(QLatin1String("dd.MM.yyyy hh:mm"));
 }
 
 // Operations

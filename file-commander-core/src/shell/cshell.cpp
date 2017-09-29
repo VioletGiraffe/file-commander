@@ -21,7 +21,7 @@ RESTORE_COMPILER_WARNINGS
 QString CShell::shellExecutable()
 {
 #ifdef _WIN32
-	static const QString defaultShell = QStringLiteral("powershell.exe");
+	static const QString defaultShell = QLatin1String("powershell.exe");
 	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
 #elif defined __APPLE__
 	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();

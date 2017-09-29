@@ -14,10 +14,6 @@ CFileCommanderPlugin* createPlugin()
 	return new CFileComparisonPlugin;
 }
 
-CFileComparisonPlugin::CFileComparisonPlugin()
-{
-}
-
 QString CFileComparisonPlugin::name() const
 {
 	return QObject::tr("File comparison plugin");

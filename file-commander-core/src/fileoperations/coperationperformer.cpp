@@ -191,7 +191,7 @@ void COperationPerformer::copyFiles()
 		const QFileInfo& sourceFileInfo = sourceIterator->qFileInfo();
 		if (!sourceFileInfo.exists())
 		{
-			const auto response = getUserResponse(hrFileDoesntExit, *sourceIterator, CFileSystemObject(), QString::null);
+			const auto response = getUserResponse(hrFileDoesntExit, *sourceIterator, CFileSystemObject(), QString());
 			if (response == urSkipThis || response == urSkipAll)
 			{
 				++sourceIterator;
@@ -365,7 +365,7 @@ void COperationPerformer::deleteFiles()
 
 		if (!it->exists())
 		{
-			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
+			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString());
 			if (response == urSkipThis || response == urSkipAll)
 			{
 				++it;
@@ -423,7 +423,7 @@ void COperationPerformer::deleteFiles()
 
 		if (!it->exists())
 		{
-			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString::null);
+			const auto response = getUserResponse(hrFileDoesntExit, *it, CFileSystemObject(), QString());
 			if (response == urSkipThis || response == urSkipAll)
 			{
 				++it;
@@ -620,7 +620,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 	if (destFile.exists() && destFile.isFile())
 	{
-		auto response = getUserResponse(hrFileExists, item, destFile, QString::null);
+		auto response = getUserResponse(hrFileExists, item, destFile, QString());
 		if (response == urSkipThis || response == urSkipAll)
 			return naSkip;
 		else if (response == urAbort)
@@ -641,7 +641,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		// Only call isWriteable for existing items!
 		if (!destFile.isWriteable())
 		{
-			response = getUserResponse(hrDestFileIsReadOnly, destFile, CFileSystemObject(), QString::null);
+			response = getUserResponse(hrDestFileIsReadOnly, destFile, CFileSystemObject(), QString());
 			if (response == urSkipThis || response == urSkipAll)
 				return naSkip;
 			else if (response == urAbort)
@@ -674,7 +674,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	{
 		handlePause();
 
-		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString::null) : _newName);
+		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString()) : _newName);
 		// Error handling
 		if (result != rcOk)
 			break;
@@ -699,7 +699,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	if (result != rcOk)
 	{
 		item.cancelCopy();
-		qDebug() << "Error copying file " << item.fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString::null) : _newName) << ", error: " << item.lastErrorMessage();
+		qDebug() << "Error copying file " << item.fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) << ", error: " << item.lastErrorMessage();
 		const auto action = getUserResponse(hrUnknownError, item, CFileSystemObject(), item.lastErrorMessage());
 		if (action == urSkipThis || action == urSkipAll)
 			return naSkip;
@@ -722,7 +722,7 @@ COperationPerformer::NextAction COperationPerformer::mkPath(const QDir& dir)
 	if (dir.mkpath(".") || dir.exists())
 		return naProceed;
 
-	const auto response = getUserResponse(hrCreatingFolderFailed, CFileSystemObject(dir), CFileSystemObject(), QString::null);
+	const auto response = getUserResponse(hrCreatingFolderFailed, CFileSystemObject(dir), CFileSystemObject(), QString());
 	if (response == urSkipThis || response == urSkipAll)
 		return naSkip;
 	else if (response == urAbort)
