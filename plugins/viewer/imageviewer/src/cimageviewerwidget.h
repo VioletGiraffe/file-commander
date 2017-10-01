@@ -16,7 +16,8 @@ public:
 	explicit CImageViewerWidget(QWidget *parent = 0);
 
 public:
-	bool displayImage(const QString& imagePath, const QImage& image = QImage());
+	bool displayImage(const QImage& image);
+	bool displayImage(const QString& imagePath);
 	QString imageInfoString() const;
 
 	QSize sizeHint() const override;
@@ -29,7 +30,9 @@ protected:
 private:
 	QImage _sourceImage;
 	QImage _scaledImage;
-	qint64 _imageFileSize;
+
+	QString _currentImageFormat;
+	qint64 _currentImageFileSize = 0;
 };
 
 #endif // CIMAGEVIEWERWIDGET_H

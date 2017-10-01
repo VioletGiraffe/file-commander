@@ -1,11 +1,9 @@
 #include "cimageviewerplugin.h"
 #include "cimageviewerwindow.h"
 
-
-CImageViewerPlugin::CImageViewerPlugin()
-{
-	_imageReader.setDecideFormatFromContent(true);
-}
+DISABLE_COMPILER_WARNINGS
+#include <QImageReader>
+RESTORE_COMPILER_WARNINGS
 
 bool CImageViewerPlugin::canViewCurrentFile() const
 {
@@ -13,14 +11,15 @@ bool CImageViewerPlugin::canViewCurrentFile() const
 	if (currentItemPath.isEmpty())
 		return false;
 
-	_imageReader.setFileName(currentItemPath);
-	return _imageReader.canRead();
+	QImageReader reader(currentItemPath);
+	reader.setDecideFormatFromContent(true);
+	return reader.canRead();
 }
 
 CPluginWindow* CImageViewerPlugin::viewCurrentFile()
 {
 	CImageViewerWindow * widget = new CImageViewerWindow;
-	if (widget->displayImage(_proxy->currentItemPath(), _imageReader.read()))
+	if (widget->displayImage(_proxy->currentItemPath()))
 		return widget;
 	else
 	{

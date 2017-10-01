@@ -15,10 +15,10 @@ public:
 	explicit CImageViewerWindow(QWidget* parent = nullptr);
 	~CImageViewerWindow();
 
-	bool displayImage(const QString& imagePath, const QImage& image = QImage());
+	bool displayImage(const QString& imagePath);
 
 private:
-	QString  _currentImagePath;
+	QString _currentImagePath;
 	Ui::CImageViewerWindow *ui;
 	QLabel * _imageInfoLabel;
 };

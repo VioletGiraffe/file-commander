@@ -38,10 +38,10 @@ CImageViewerWindow::~CImageViewerWindow()
 	delete ui;
 }
 
-bool CImageViewerWindow::displayImage(const QString& imagePath, const QImage& image /* = QImage() */)
+bool CImageViewerWindow::displayImage(const QString& imagePath)
 {
 	_currentImagePath = imagePath;
-	if (!ui->_imageViewerWidget->displayImage(imagePath, image))
+	if (!ui->_imageViewerWidget->displayImage(imagePath))
 		return false;
 
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
