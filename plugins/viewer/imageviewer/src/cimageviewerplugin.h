@@ -5,20 +5,20 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QImage>
+#include <QImageReader>
 RESTORE_COMPILER_WARNINGS
 
 class CImageViewerPlugin : public CFileCommanderViewerPlugin
 {
 public:
-	CImageViewerPlugin() = default;
+	CImageViewerPlugin();
 
 	bool canViewCurrentFile() const override;
 	CPluginWindow* viewCurrentFile() override;
 	QString name() const override;
 
 private:
-	mutable QImage _cachedImage;
-	mutable QString _cachedImagePath;
+	mutable QImageReader _imageReader;
 };
 
 #endif // CIMAGEVIEWERPLUGIN_H
