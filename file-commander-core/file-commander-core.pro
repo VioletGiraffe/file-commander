@@ -31,7 +31,8 @@ HEADERS += \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \
 	src/fasthash.h \
-	src/filesearchengine/cfilesearchengine.h
+	src/filesearchengine/cfilesearchengine.h \
+    src/directoryscanner.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -43,7 +44,8 @@ SOURCES += \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/fasthash.c \
-	src/filesearchengine/cfilesearchengine.cpp
+	src/filesearchengine/cfilesearchengine.cpp \
+    src/directoryscanner.cpp
 
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)

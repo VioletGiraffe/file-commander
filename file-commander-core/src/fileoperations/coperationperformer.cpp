@@ -1,5 +1,6 @@
 #include "coperationperformer.h"
 #include "filesystemhelperfunctions.h"
+#include "directoryscanner.h"
 
 COperationPerformer::COperationPerformer(Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
 	_source(source),
@@ -339,22 +340,29 @@ void COperationPerformer::deleteFiles()
 {
 	_inProgress = true;
 
-	size_t currentItemIndex = 0;
-	std::vector<DirectoryHierarchy> hierarchy;
+	std::vector<CFileSystemObject> fileSystemObjectsList;
+	fileSystemObjectsList.reserve(500);
+
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, _userResponse = urNone /* needed for normal condition variable operation */)
 	{
 		if (!it->isCdUp())
-			hierarchy.emplace_back(enumerateDirectoryRecursively(*it));
+		{
+			scanDirectory(*it, [&fileSystemObjectsList](const CFileSystemObject& item) {
+				fileSystemObjectsList.emplace_back(item);
+			});
+		}
 	}
-
-	auto fileSystemObjectsList = flattenHierarchy(hierarchy);
 
 	_totalTimeElapsed.start();
 
-	const size_t totalNumberOfObjects = fileSystemObjectsList.directories.size() + fileSystemObjectsList.files.size();
-	for (auto it = fileSystemObjectsList.files.begin(); it != fileSystemObjectsList.files.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
+	const size_t totalNumberOfObjects = fileSystemObjectsList.size();
+	size_t currentItemIndex = 0;
+	for (auto it = fileSystemObjectsList.begin(); it != fileSystemObjectsList.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
 	{
 		handlePause();
+
+		if (!it->isFile())
+			continue;
 
 		qDebug() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
 		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
@@ -410,9 +418,12 @@ void COperationPerformer::deleteFiles()
 
 	// TODO: eliminate code duplication
 	// We know that files and directories are being enumerated depth-first, so we need to delete them in reverse order to avoid trying to delete non-empty directories
-	for (auto it = fileSystemObjectsList.directories.rbegin(); it != fileSystemObjectsList.directories.rend() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
+	for (auto it = fileSystemObjectsList.rbegin(); it != fileSystemObjectsList.rend() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
 	{
 		handlePause();
+
+		if (!it->isDir())
+			continue;
 
 		qDebug() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
 		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
@@ -517,13 +528,15 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 		}
 		else if (o.isDir())
 		{
-			const auto children = flattenHierarchy(enumerateDirectoryRecursively(o));
-			for (const auto& file : children.files)
-			{
-				totalSize += file.size();
-				destinations.emplace_back(destinationFolder(file.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), file.isDir()));
-				newSourceVector.push_back(file);
-			}
+			scanDirectory(o, [&](const CFileSystemObject& item) {
+				if (item.isFile())
+				{
+					totalSize += item.size();
+					destinations.emplace_back(destinationFolder(item.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), item.isDir() /* TODO: 'false' ? */)); 
+					newSourceVector.push_back(item);
+				}
+			});
+
 			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), true));
 			newSourceVector.push_back(o);
 		}

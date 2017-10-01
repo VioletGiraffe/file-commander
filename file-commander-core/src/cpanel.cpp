@@ -2,6 +2,7 @@
 #include "settings/csettings.h"
 #include "settings.h"
 #include "filesystemhelperfunctions.h"
+#include "directoryscanner.h"
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -174,18 +175,16 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 		const QString path = _currentDirObject.fullAbsolutePath();
 
-		locker.unlock();
-		const auto items = flattenHierarchy(enumerateDirectoryRecursively(CFileSystemObject(path)));
-		locker.lock();
-
 		_items.clear();
 
+		//locker.unlock();
+		// TODO: synchronization and lock-ups
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
-		for (const auto& item : items.files)
-		{
-			if (item.exists() && (showHiddenFiles || !item.isHidden()))
+		scanDirectory(CFileSystemObject(path), [showHiddenFiles, this](const CFileSystemObject& item) {
+			if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
 				_items[item.hash()] = item;
-		}
+		});
+		//locker.lock();
 
 		sendContentsChangedNotification(refreshCauseOther);
 	});
@@ -324,27 +323,28 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 		return FilesystemObjectsStatistics();
 
 	FilesystemObjectsStatistics stats;
-	const size_t numItems = hashes.size();
-	for(size_t i = 0; i < numItems; ++i)
+	for(size_t i = 0, numItems = hashes.size(); i < numItems; ++i)
 	{
-		const CFileSystemObject item = itemByHash(hashes[i]);
-		if (item.isDir())
+		const CFileSystemObject rootItem = itemByHash(hashes[i]);
+		if (rootItem.isDir())
 		{
 			++stats.folders;
-			const auto objects = flattenHierarchy(enumerateDirectoryRecursively(item, [this](QString path) {
-				sendItemDiscoveryProgressNotification(0, std::numeric_limits<size_t>::max(), path);}
-			));
+			scanDirectory(rootItem, [this, &stats](const CFileSystemObject& discoveredItem) {
+				if (discoveredItem.isFile())
+				{
+					stats.occupiedSpace += discoveredItem.size();
+					++stats.files;
+				}
+				else if (discoveredItem.isDir())
+					++stats.folders;
 
-			for (auto& file: objects.files)
-				stats.occupiedSpace += file.size();
-
-			stats.files += objects.files.size();
-			stats.folders += objects.directories.size();
+				sendItemDiscoveryProgressNotification(0, std::numeric_limits<size_t>::max(), discoveredItem.fullAbsolutePath());
+			});
 		}
-		else if (item.isFile())
+		else if (rootItem.isFile())
 		{
 			++stats.files;
-			stats.occupiedSpace += item.size();
+			stats.occupiedSpace += rootItem.size();
 		}
 	}
 

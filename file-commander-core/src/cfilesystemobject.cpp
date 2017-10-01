@@ -27,6 +27,7 @@ RESTORE_COMPILER_WARNINGS
 
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
 {
+	const auto s = sizeof(*this);
 	refreshInfo();
 
 	if (isDir())
@@ -612,51 +613,4 @@ QString CFileSystemObject::expandEnvironmentVariables(const QString& string)
 
 	return result;
 #endif
-}
-
-
-DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root, const std::function<void (QString)>& observer, const std::atomic<bool>& abort)
-{
-	if (observer)
-		observer(root.fullAbsolutePath());
-
-	DirectoryHierarchy hierarchy;
-	hierarchy.rootItem = root;
-
-	if (abort || !root.isDir())
-		return hierarchy;
-
-	const auto list = root.qDir().entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::System);
-	for (const auto& item: list)
-		hierarchy.subitems.emplace_back(enumerateDirectoryRecursively(CFileSystemObject(item), observer, abort));
-
-	return hierarchy;
-}
-
-void flattenHierarchy(const DirectoryHierarchy& hierarchy, FlattenedHierarchy& result)
-{
-	if (hierarchy.rootItem.isDir())
-	{
-		result.directories.push_back(hierarchy.rootItem);
-		for (const DirectoryHierarchy& subitem: hierarchy.subitems)
-			flattenHierarchy(subitem, result);
-	}
-	else
-		result.files.push_back(hierarchy.rootItem);
-}
-
-FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy)
-{
-	FlattenedHierarchy result;
-	flattenHierarchy(hierarchy, result);
-	return result;
-}
-
-
-FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy)
-{
-	FlattenedHierarchy result;
-	for (const auto h: hierarchy)
-		flattenHierarchy(h, result);
-	return result;
 }

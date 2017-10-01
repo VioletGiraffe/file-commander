@@ -1,5 +1,6 @@
 #include "../ccontroller.h"
 #include "system/ctimeelapsed.h"
+#include "directoryscanner.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -59,11 +60,12 @@ void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 
 		for (const QString& pathToLookIn: where)
 		{
-			const auto hierarchy = enumerateDirectoryRecursively(CFileSystemObject(pathToLookIn),
-				[&](QString path){
+			scanDirectory(CFileSystemObject(pathToLookIn),
+				[&](const CFileSystemObject& item) {
 
 				++itemCounter;
 
+				const QString path = item.fullAbsolutePath();
 				_controller.execOnUiThread([this, path, what](){
 					for (const auto& listener: _listeners)
 						listener->itemScanned(path);

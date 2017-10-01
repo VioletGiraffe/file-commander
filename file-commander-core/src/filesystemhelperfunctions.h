@@ -28,7 +28,7 @@ inline QString toPosixSeparators(const QString &path)
 
 inline QString cleanPath(const QString& path)
 {
-	return QString(path).replace("\\\\", "\\").replace("//", "/");
+	return QString(path).replace(QStringLiteral("\\\\"), QStringLiteral("\\")).replace(QStringLiteral("//"), QStringLiteral("/"));
 }
 
 inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const QString& spacer = QString())
@@ -45,22 +45,22 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 	if (size >= GB && maxUnitSize >= GB)
 	{
 		n = size / float(GB);
-		str = QString("%1 GiB").arg(QString::number(n, 'f', 1));
+		str = QStringLiteral("%1 GiB").arg(QString::number(n, 'f', 1));
 	}
 	else if (size >= MB && maxUnitSize >= MB)
 	{
 		n = size / float(MB);
-		str = QString("%1 MiB").arg(QString::number(n, 'f', 1));
+		str = QStringLiteral("%1 MiB").arg(QString::number(n, 'f', 1));
 	}
 	else if (size >= KB && maxUnitSize >= KB)
 	{
 		n = size / float(KB);
-		str = QString("%1 KiB").arg(QString::number(n, 'f', 1));
+		str = QStringLiteral("%1 KiB").arg(QString::number(n, 'f', 1));
 	}
 	else
 	{
 		n = (float)size;
-		str = QString("%1 B").arg(size);
+		str = QStringLiteral("%1 B").arg(size);
 	}
 
 	if (!spacer.isEmpty() && n > 0.0f)
@@ -70,4 +70,18 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 	}
 
 	return str;
+}
+
+inline bool caseSensitiveFilesystem()
+{
+#if defined _WIN32
+	return false;
+#elif defined __APPLE__
+	return true;
+#elif defined __linux__
+	return true;
+#else
+#error "Unknown operating system"
+	return true;
+#endif
 }

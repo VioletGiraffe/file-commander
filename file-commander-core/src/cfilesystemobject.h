@@ -125,33 +125,3 @@ private:
 	std::shared_ptr<QFile>      _destFile;
 	uint64_t                    _pos = 0;
 };
-
-struct DirectoryHierarchy {
-	CFileSystemObject rootItem;
-	std::vector<DirectoryHierarchy> subitems;
-};
-
-// Enumerating the subitems of a folder
-DirectoryHierarchy enumerateDirectoryRecursively(const CFileSystemObject& root, const std::function<void (QString)>& observer = std::function<void (QString)>(), const std::atomic<bool>& abort = std::atomic<bool>{false});
-
-struct FlattenedHierarchy {
-	std::vector<CFileSystemObject> directories;
-	std::vector<CFileSystemObject> files;
-};
-
-FlattenedHierarchy flattenHierarchy(const DirectoryHierarchy& hierarchy);
-FlattenedHierarchy flattenHierarchy(const std::vector<DirectoryHierarchy>& hierarchy);
-
-inline bool caseSensitiveFilesystem()
-{
-#if defined _WIN32
-	return false;
-#elif defined __APPLE__
-	return true;
-#elif defined __linux__
-	return true;
-#else
-#error "Unknown operating system"
-	return true;
-#endif
-}
