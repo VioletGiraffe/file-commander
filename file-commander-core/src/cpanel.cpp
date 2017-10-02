@@ -117,7 +117,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (operation != refreshCauseCdUp && newItemInPreviousFolder != _items.end() && newItemInPreviousFolder->second.parentDirPath() != newItemInPreviousFolder->second.fullAbsolutePath())
 		// Updating the cursor when navigating downwards
 		setCurrentItemForFolder(newItemInPreviousFolder->second.parentDirPath(), _currentDirObject.hash());
-	else
+	else if (operation == refreshCauseCdUp)
 		// Updating the cursor when navigating upwards
 		setCurrentItemForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, CFileSystemObject(oldPath).hash() /* where we were */);
 

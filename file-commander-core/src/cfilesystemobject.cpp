@@ -27,7 +27,6 @@ RESTORE_COMPILER_WARNINGS
 
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
 {
-	const auto s = sizeof(*this);
 	refreshInfo();
 
 	if (isDir())
