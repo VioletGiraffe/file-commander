@@ -158,8 +158,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 // Returns the list of items added to the view
 void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& items, FileListRefreshCause operation)
 {
-	time_t start = clock();
-	const auto globalStart = start;
+// 	time_t start = clock();
+// 	const auto globalStart = start;
 
 	disconnect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 
@@ -225,16 +225,17 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		++itemRow;
 	}
 
-	qDebug () << __FUNCTION__ << "Creating" << items.size() << "items took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	//qDebug () << __FUNCTION__ << "Creating" << items.size() << "items took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
-	start = clock();
+	//start = clock();
 	for (const auto& qTreeViewItem: qTreeViewItems)
 		_model->setItem(std::get<0>(qTreeViewItem), std::get<1>(qTreeViewItem), std::get<2>(qTreeViewItem));
-	qDebug () << __FUNCTION__ << "Setting" << items.size() << "items to the model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
-	start = clock();
+	//qDebug () << __FUNCTION__ << "Setting" << items.size() << "items to the model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+
+	//start = clock();
 	_sortModel->setSourceModel(_model);
-	qDebug () << __FUNCTION__ << "Setting the source model to sort model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	//qDebug () << __FUNCTION__ << "Setting the source model to sort model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
 	ui->_list->restoreHeaderState();
 
@@ -273,7 +274,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
 	selectionChanged(QItemSelection(), QItemSelection());
 
-	qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - globalStart) * 1000 / CLOCKS_PER_SEC << "ms";
+	//qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - globalStart) * 1000 / CLOCKS_PER_SEC << "ms";
 }
 
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
@@ -835,7 +836,7 @@ void CPanelWidget::itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t 
 	if (p != _panelPosition)
 		return;
 
-	qDebug() << QString("Discovering %1: %2%, scanning %3").arg(itemHash).arg(progress).arg(currentDir);
+//	qDebug() << QStringLiteral("Discovering %1: %2%, scanning %3").arg(itemHash).arg(progress).arg(currentDir);
 }
 
 CFileListView *CPanelWidget::fileListView() const

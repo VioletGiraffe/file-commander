@@ -262,8 +262,6 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 			}
 
 			list = _currentDirObject.qDir().entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
-			qDebug() << "Getting file list for" << _currentDirObject.fullAbsolutePath() << "(" << list.size() << "items ) took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
-
 			_items.clear();
 		}
 
@@ -287,8 +285,6 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 				if (object.exists() && (showHiddenFiles || !object.isHidden()))
 					_items[object.hash()] = object;
 			}
-
-			qDebug() << "Directory:" << _currentDirObject.fullAbsolutePath() << "(" << _items.size() << "items ) indexed in" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 		}
 
 		sendContentsChangedNotification(operation);
