@@ -9,12 +9,13 @@ SETLOCAL
 
 RMDIR /S /Q binaries\
 
+call "%VS_TOOLS_DIR%..\..\VC\vcvarsall.bat" x86
+
 REM X86
 pushd ..\..\
 %QTDIR32%\bin\qmake.exe -tp vc -r
 popd
 
-call "%VS_TOOLS_DIR%VsDevCmd.bat" x86
 msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v140
 
 xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\32\
@@ -37,12 +38,13 @@ ENDLOCAL
 
 SETLOCAL
 
+call "%VS_TOOLS_DIR%..\..\VC\vcvarsall.bat" amd64
+
 REM X64
 pushd ..\..\
 %QTDIR64%\bin\qmake.exe -tp vc -r
 popd
 
-call "%VS_TOOLS_DIR%VsDevCmd.bat" amd64
 msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v140
 
 xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\64\
