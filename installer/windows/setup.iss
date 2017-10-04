@@ -42,6 +42,9 @@ Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; C
 Source: binaries/32/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
 Source: binaries/64/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
+; Fonts
+Source: ../../qt-app/resources/fonts/*; DestDir: {app}/fonts/; Flags: ignoreversion recursesubdirs;
+
 [Icons]
 Name: {group}\File Commander; Filename: {app}\FileCommander.exe;
 Name: {group}\{cm:UninstallProgram,File Commander}; Filename: {uninstallexe}

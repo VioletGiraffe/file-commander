@@ -730,6 +730,8 @@ void CMainWindow::about()
 void CMainWindow::settingsChanged()
 {
 	_controller->settingsChanged();
+	ui->leftPanel->onSettingsChanged();
+	ui->rightPanel->onSettingsChanged();
 }
 
 void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)

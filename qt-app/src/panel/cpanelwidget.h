@@ -30,7 +30,7 @@ class CPanelWidget : public QWidget, private CController::IDiskListObserver, pub
 
 public:
 	explicit CPanelWidget(QWidget *parent = 0);
-	~CPanelWidget();
+	~CPanelWidget() override;
 
 	void setFocusToFileList();
 
@@ -61,6 +61,8 @@ public:
 	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
 	qulonglong currentItemHash() const;
 	void invertSelection();
+
+	void onSettingsChanged();
 
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
@@ -113,10 +115,10 @@ private:
 	QString                         _directoryCurrentlyBeingDisplayed;
 	Ui::CPanelWidget              * ui;
 	CController                   & _controller;
-	QItemSelectionModel           * _selectionModel;
-	CFileListModel                * _model;
-	CFileListSortFilterProxyModel * _sortModel;
-	Panel                           _panelPosition;
+	QItemSelectionModel           * _selectionModel = nullptr;
+	CFileListModel                * _model = nullptr;
+	CFileListSortFilterProxyModel * _sortModel = nullptr;
+	Panel                           _panelPosition = UnknownPanel;
 
 	QShortcut                       _calcDirSizeShortcut;
 	QShortcut                       _selectCurrentItemShortcut;

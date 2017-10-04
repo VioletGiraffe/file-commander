@@ -35,17 +35,13 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	_filterDialog(this),
 	ui(new Ui::CPanelWidget),
 	_controller (CController::get()),
-	_selectionModel(0),
-	_model(0),
-	_sortModel(0),
-	_panelPosition(UnknownPanel),
-	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), 0, Qt::WidgetWithChildrenShortcut),
-	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), 0, Qt::WidgetWithChildrenShortcut),
-	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), 0, Qt::WidgetWithChildrenShortcut),
-	_copyShortcut(QKeySequence("Ctrl+C"), this, SLOT(copySelectionToClipboard()), 0, Qt::WidgetWithChildrenShortcut),
-	_cutShortcut(QKeySequence("Ctrl+X"), this, SLOT(cutSelectionToClipboard()), 0, Qt::WidgetWithChildrenShortcut),
-	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), 0, Qt::WidgetWithChildrenShortcut),
-	_searchShortcut(QKeySequence("Alt+F7"), this, SLOT(openSearchWindow()), 0, Qt::WidgetWithChildrenShortcut)
+	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_copyShortcut(QKeySequence("Ctrl+C"), this, SLOT(copySelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_cutShortcut(QKeySequence("Ctrl+X"), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_searchShortcut(QKeySequence("Alt+F7"), this, SLOT(openSearchWindow()), nullptr, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
 
@@ -67,6 +63,8 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	connect(&_filterDialog, &CFileListFilterDialog::filterTextChanged, this, &CPanelWidget::filterTextChanged);
 
 	ui->_list->addEventObserver(this);
+
+	onSettingsChanged();
 }
 
 CPanelWidget::~CPanelWidget()
@@ -891,6 +889,13 @@ qulonglong CPanelWidget::currentItemHash() const
 void CPanelWidget::invertSelection()
 {
 	ui->_list->invertSelection();
+}
+
+void CPanelWidget::onSettingsChanged()
+{
+	QFont font;
+	font.fromString(CSettings().value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString());
+	ui->_list->setFont(font);
 }
 
 void CPanelWidget::updateCurrentDiskButton()

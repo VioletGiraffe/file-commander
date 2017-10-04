@@ -3,6 +3,9 @@
 
 #include "settingsui/csettingspage.h"
 
+#include <memory>
+
+class QFontDialog;
 namespace Ui {
 class CSettingsPageInterface;
 }
@@ -16,6 +19,10 @@ public:
 	virtual void acceptSettings() override;
 
 private:
+	void updateFontInfoLabel();
+
+private:
+	std::unique_ptr<QFontDialog> _fontDialog;
 	Ui::CSettingsPageInterface *ui;
 };
 

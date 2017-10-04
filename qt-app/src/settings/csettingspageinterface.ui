@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>902</width>
+    <height>557</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -55,6 +55,37 @@
       <string>Files and folders appearance</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Current font:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="_lblCurrentFileListFontDescription">
+          <property name="font">
+           <font>
+            <pointsize>8</pointsize>
+            <italic>true</italic>
+           </font>
+          </property>
+          <property name="text">
+           <string>TextLabel</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="_btnSelectFileListFont">
+          <property name="text">
+           <string>Pick font...</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
       <item>
        <widget class="QCheckBox" name="_cbDecoratedFolderIcons">
         <property name="toolTip">
