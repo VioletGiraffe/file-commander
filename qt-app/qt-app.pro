@@ -138,3 +138,6 @@ win32*:!*msvc2012:*msvc* {
 mac*|linux*{
 	PRE_TARGETDEPS += $${DESTDIR}/libcore.a
 }
+
+RESOURCES += \
+    resources/app-resources.qrc
