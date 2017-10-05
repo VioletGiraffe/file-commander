@@ -507,7 +507,7 @@ bool CShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void * /*parentWi
 
 #elif defined __APPLE__
 
-bool CShell::openShellContextMenuForObjects(std::vector<std::wstring> /*objects*/, int /*xPos*/, int /*yPos*/, void */*parentWindow*/)
+bool CShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
 {
 	return false;
 }
