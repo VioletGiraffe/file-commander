@@ -78,7 +78,7 @@ PanelState& CPluginProxy::panelState(const PanelPosition panel)
 
 const PanelState & CPluginProxy::panelState(const PanelPosition panel) const
 {
-	static const PanelState empty;
+	static const PanelState empty {};
 	if (panel == PluginUnknownPanel)
 	{
 		return empty;
