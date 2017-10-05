@@ -19,16 +19,16 @@ RESTORE_COMPILER_WARNINGS
 enum FileSystemObjectType { UnknownType, Directory, File };
 
 struct CFileSystemObjectProperties {
-	QString  completeBaseName;
-	QString  extension;
-	QString  fullName;
-	QString  parentFolder;
-	QString  fullPath;
-	FileSystemObjectType type = UnknownType;
 	uint64_t size = 0;
+	qulonglong hash = 0;
+	QString completeBaseName;
+	QString extension;
+	QString fullName;
+	QString parentFolder;
+	QString fullPath;
 	time_t creationDate = std::numeric_limits<time_t>::max();
 	time_t modificationDate = std::numeric_limits<time_t>::max();
-	qulonglong hash = 0;
+	FileSystemObjectType type = UnknownType;
 	bool isCdUp = false;
 	bool exists = false;
 };
@@ -39,7 +39,7 @@ class CFileSystemObject
 public:
 	explicit CFileSystemObject(const QFileInfo & fileInfo);
 
-	inline CFileSystemObject() {}
+	CFileSystemObject() = default;
 	inline explicit CFileSystemObject(const QString& path) : CFileSystemObject(QFileInfo(expandEnvironmentVariables(path))) {}
 	inline explicit CFileSystemObject(const QDir& dir) : CFileSystemObject(QFileInfo(dir.absolutePath())) {}
 
@@ -113,15 +113,14 @@ private:
 	static QString expandEnvironmentVariables(const QString& string);
 
 private:
-	QFileInfo                   _fileInfo;
-	QDir                        _dir; // TODO: this item needs documentation. What's it for?
 	CFileSystemObjectProperties _properties;
-	mutable QString             _lastErrorMessage;
-	// Can be used to determine whether 2 objects are on the same drive
-	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
-
-// For copying / moving
+	// For copying / moving
 	std::shared_ptr<QFile>      _thisFile;
 	std::shared_ptr<QFile>      _destFile;
 	uint64_t                    _pos = 0;
+	// Can be used to determine whether 2 objects are on the same drive
+	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
+	QFileInfo                   _fileInfo;
+	QDir                        _dir; // TODO: this item needs documentation. What's it for?
+	mutable QString             _lastErrorMessage;
 };
