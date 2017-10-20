@@ -2,7 +2,8 @@
 #include "cimageviewerwindow.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QImageReader>
+#include <QDebug>
+#include <QMimeDatabase>
 RESTORE_COMPILER_WARNINGS
 
 bool CImageViewerPlugin::canViewCurrentFile() const
@@ -11,9 +12,8 @@ bool CImageViewerPlugin::canViewCurrentFile() const
 	if (currentItemPath.isEmpty())
 		return false;
 
-	QImageReader reader(currentItemPath);
-	reader.setDecideFormatFromContent(true);
-	return reader.canRead();
+	const auto mime = QMimeDatabase().mimeTypeForFile(currentItemPath, QMimeDatabase::MatchContent);
+	return mime.name().startsWith(QStringLiteral("image/"));
 }
 
 CPluginWindow* CImageViewerPlugin::viewCurrentFile()
