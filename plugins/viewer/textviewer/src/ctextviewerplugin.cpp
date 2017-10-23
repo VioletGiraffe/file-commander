@@ -2,6 +2,8 @@
 #include "ctextviewerwindow.h"
 #include "compiler/compiler_warnings_control.h"
 
+#include <QMimeType>
+
 CFileCommanderPlugin * createPlugin()
 {
 	DISABLE_COMPILER_WARNINGS
@@ -11,12 +13,12 @@ CFileCommanderPlugin * createPlugin()
 	return new CTextViewerPlugin;
 }
 
-bool CTextViewerPlugin::canViewCurrentFile() const
+bool CTextViewerPlugin::canViewFile(const QString& /*fileName*/, const QMimeType& /*type*/) const
 {
-	return _proxy->currentItem().isFile();
+	return true;
 }
 
-CPluginWindow * CTextViewerPlugin::viewCurrentFile()
+CPluginWindow * CTextViewerPlugin::viewFile(const QString& fileName)
 {
 	QWidget * mainWindow = nullptr;
 	for (QWidget* topLevelWidget: QApplication::topLevelWidgets())
@@ -29,7 +31,7 @@ CPluginWindow * CTextViewerPlugin::viewCurrentFile()
 	}
 
 	CTextViewerWindow * widget = new CTextViewerWindow(mainWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
-	if (widget->loadTextFile(_proxy->currentItemPath()))
+	if (widget->loadTextFile(fileName))
 		return widget;
 
 	delete widget;

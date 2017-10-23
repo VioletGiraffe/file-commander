@@ -6,20 +6,15 @@ DISABLE_COMPILER_WARNINGS
 #include <QMimeDatabase>
 RESTORE_COMPILER_WARNINGS
 
-bool CImageViewerPlugin::canViewCurrentFile() const
+bool CImageViewerPlugin::canViewFile(const QString& /*fileName*/, const QMimeType& type) const
 {
-	const QString currentItemPath = _proxy->currentItemPath();
-	if (currentItemPath.isEmpty())
-		return false;
-
-	const auto mime = QMimeDatabase().mimeTypeForFile(currentItemPath, QMimeDatabase::MatchContent);
-	return mime.name().startsWith(QStringLiteral("image/"));
+	return type.name().startsWith(QStringLiteral("image/"));
 }
 
-CPluginWindow* CImageViewerPlugin::viewCurrentFile()
+CPluginWindow* CImageViewerPlugin::viewFile(const QString& fileName)
 {
 	CImageViewerWindow * widget = new CImageViewerWindow;
-	if (widget->displayImage(_proxy->currentItemPath()))
+	if (widget->displayImage(fileName))
 		return widget;
 	else
 	{

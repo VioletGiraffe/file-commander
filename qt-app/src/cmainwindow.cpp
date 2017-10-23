@@ -700,6 +700,9 @@ void CMainWindow::openSettingsDialog()
 	settings.addSettingsPage(new CSettingsPageEdit);
 	settings.addSettingsPage(new CSettingsPageOther);
 	connect(&settings, &CSettingsDialog::settingsChanged, this, &CMainWindow::settingsChanged);
+
+	settings.adjustSize();
+
 	settings.exec();
 }
 

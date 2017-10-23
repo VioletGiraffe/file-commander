@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QDir>
 #include <QLibrary>
+#include <QMimeDatabase>
 RESTORE_COMPILER_WARNINGS
 
 CPluginEngine::CPluginEngine()
@@ -122,7 +123,7 @@ CPluginWindow *CPluginEngine::createViewerWindowForCurrentFile()
 	if (!viewer)
 		return nullptr;
 
-	CPluginWindow * window = viewer->viewCurrentFile();
+	CPluginWindow * window = viewer->viewFile(CController::get().pluginProxy().currentItemPath());
 	if (!window)
 		return nullptr;
 
@@ -141,14 +142,22 @@ PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 
 CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 {
+	const QString currentFile = CController::get().pluginProxy().currentItemPath();
+	const auto type = QMimeDatabase().mimeTypeForFile(currentFile, QMimeDatabase::MatchContent);
+	qDebug() << "Selecting a viewer plugin for" << currentFile;
+	qDebug() << "File type:" << type.name() << ", aliases:" << type.aliases();
+
 	for(auto& plugin: _plugins)
 	{
 		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
 		{
 			CFileCommanderViewerPlugin * viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
 			assert_r(viewer);
-			if (viewer && viewer->canViewCurrentFile())
+			if (viewer && viewer->canViewFile(currentFile, type))
+			{
+				qDebug() << viewer->name() << "selected";
 				return viewer;
+			}
 		}
 	}
 

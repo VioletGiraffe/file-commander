@@ -8,8 +8,8 @@ class CTextViewerPlugin : public CFileCommanderViewerPlugin
 public:
 	CTextViewerPlugin() = default;
 
-	bool canViewCurrentFile() const override;
-	CPluginWindow* viewCurrentFile() override;
+	bool canViewFile(const QString& fileName, const QMimeType& type) const override;
+	CPluginWindow* viewFile(const QString& fileName) override;
 	QString name() const override;
 };
 
