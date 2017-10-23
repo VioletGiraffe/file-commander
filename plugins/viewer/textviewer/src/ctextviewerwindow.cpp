@@ -4,6 +4,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QLabel>
+#include <QMimeDatabase>
 #include <QMessageBox>
 #include <QShortcut>
 #include <QStringBuilder>
@@ -38,12 +39,14 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext);
 
 	connect(actionAuto_detect_encoding, &QAction::triggered, this, &CTextViewerWindow::asDetectedAutomatically);
+	connect(actionASCII_Windows_1252, &QAction::triggered, this, &CTextViewerWindow::asAscii);
 	connect(actionSystemLocale, &QAction::triggered, this, &CTextViewerWindow::asSystemDefault);
 	connect(actionUTF_8, &QAction::triggered, this, &CTextViewerWindow::asUtf8);
 	connect(actionUTF_16, &QAction::triggered, this, &CTextViewerWindow::asUtf16);
 	connect(actionHTML_RTF, &QAction::triggered, this, &CTextViewerWindow::asRichText);
 
 	QActionGroup * group = new QActionGroup(this);
+	group->addAction(actionASCII_Windows_1252);
 	group->addAction(actionSystemLocale);
 	group->addAction(actionUTF_8);
 	group->addAction(actionUTF_16);
@@ -64,12 +67,16 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 	setWindowTitle(file);
 	_sourceFilePath = file;
 
+	const QString fileType = QMimeDatabase().mimeTypeForFile(_sourceFilePath, QMimeDatabase::MatchContent).name();
+
 	try
 	{
 		if (_sourceFilePath.endsWith(".htm", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".html", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".rtf", Qt::CaseInsensitive))
 			return asRichText();
-		else
+		else if (fileType.contains("text") || fileType.isEmpty())
 			return asDetectedAutomatically();
+		else
+			return asAscii();
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -131,6 +138,26 @@ bool CTextViewerWindow::asSystemDefault()
 	_textBrowser.setPlainText(codec->toUnicode(textData));
 	encodingChanged(codec->name());
 	actionSystemLocale->setChecked(true);
+
+	return true;
+}
+
+bool CTextViewerWindow::asAscii()
+{
+	QTextCodec* codec = QTextCodec::codecForName("Windows-1252");
+	if (!codec)
+		return false;
+
+	QByteArray textData;
+	if (!readSource(textData))
+	{
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		return false;
+	}
+
+	_textBrowser.setPlainText(codec->toUnicode(textData));
+	encodingChanged(codec->name());
+	actionASCII_Windows_1252->setChecked(true);
 
 	return true;
 }

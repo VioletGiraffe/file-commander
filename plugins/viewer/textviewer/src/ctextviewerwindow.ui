@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
@@ -34,6 +34,7 @@
      <string>&amp;View</string>
     </property>
     <addaction name="actionAuto_detect_encoding"/>
+    <addaction name="actionASCII_Windows_1252"/>
     <addaction name="actionSystemLocale"/>
     <addaction name="actionUTF_16"/>
     <addaction name="actionUTF_8"/>
@@ -147,6 +148,14 @@
   <action name="actionAuto_detect_encoding">
    <property name="text">
     <string>Auto detect encoding</string>
+   </property>
+  </action>
+  <action name="actionASCII_Windows_1252">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ASCII (Windows-1252)</string>
    </property>
   </action>
  </widget>

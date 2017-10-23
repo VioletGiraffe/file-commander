@@ -22,6 +22,7 @@ public:
 private:
 	bool asDetectedAutomatically();
 	bool asSystemDefault();
+	bool asAscii();
 	bool asUtf8();
 	bool asUtf16();
 	bool asRichText();
