@@ -258,7 +258,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	}
 	else if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
-		const qulonglong itemHashToSetCursorTo = _controller.currentItemInFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathPosix());
+		const qulonglong itemHashToSetCursorTo = _controller.currentItemHashForFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathPosix());
 		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo, true);
 		if (itemIndexToSetCursorTo.isValid())
 			indexUnderCursor = itemIndexToSetCursorTo;

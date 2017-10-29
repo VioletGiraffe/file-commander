@@ -7,6 +7,8 @@
 #include "iconprovider/ciconprovider.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QApplication>
+#include <QClipboard>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QUrl>
@@ -183,7 +185,7 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 	if (!parentDir.exists())
 		return false;
 
-	const auto currentItemHash = currentItemInFolder(_activePanel, parentDir.absolutePath());
+	const auto currentItemHash = currentItemHashForFolder(_activePanel, parentDir.absolutePath());
 
 	if (parentDir.absolutePath() == activePanel().currentDirObject().qDir().absolutePath())
 	{
@@ -270,6 +272,13 @@ void CController::setCursorPositionForCurrentFolder(Panel p, qulonglong newCurre
 {
 	panel(p).setCurrentItemForFolder(panel(p).currentDirPathPosix(), newCurrentItemHash);
 	CPluginEngine::get().currentItemChanged(activePanelPosition(), newCurrentItemHash);
+}
+
+void CController::copyCurrentItemToClipboard()
+{
+	const auto item = currentItem();
+	if (item.isValid())
+		QApplication::clipboard()->setText(toNativeSeparators(item.fullAbsolutePath()));
 }
 
 const CPanel &CController::panel(Panel p) const
@@ -420,9 +429,19 @@ CFileSearchEngine& CController::fileSearchEngine()
 }
 
 // Returns hash of an item that was the last selected in the specified dir
-qulonglong CController::currentItemInFolder(Panel p, const QString &dir) const
+qulonglong CController::currentItemHashForFolder(Panel p, const QString &dir) const
 {
 	return panel(p).currentItemForFolder(dir);
+}
+
+qulonglong CController::currentItemHash()
+{
+	return activePanel().currentItemForFolder(activePanel().currentDirPathPosix());
+}
+
+CFileSystemObject CController::currentItem()
+{
+	return activePanel().itemByHash(currentItemHash());
 }
 
 void CController::disksChanged()

@@ -15,7 +15,7 @@ public:
 	class IDiskListObserver
 	{
 	public:
-		virtual ~IDiskListObserver() {}
+		virtual ~IDiskListObserver() = default;
 		virtual void disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& drives, Panel p) = 0;
 	};
 
@@ -69,6 +69,8 @@ public:
 	// Indicates that we need to move cursor (e. g. a folder is being renamed and we want to keep the cursor on it)
 	// This method takes the current folder in the currently active panel
 	void setCursorPositionForCurrentFolder(Panel panel, qulonglong newCurrentItemHash);
+	// Copies the full path of the currently selected item to clipboard
+	void copyCurrentItemToClipboard();
 
 // Threading
 	inline void execOnWorkerThread(const std::function<void()>& task)
@@ -106,7 +108,9 @@ public:
 	CFileSearchEngine& fileSearchEngine();
 
 	// Returns hash of an item that was the last selected in the specified dir
-	qulonglong currentItemInFolder(Panel p, const QString& dir) const;
+	qulonglong currentItemHashForFolder(Panel p, const QString& dir) const;
+	qulonglong currentItemHash();
+	CFileSystemObject currentItem();
 
 private:
 	void disksChanged() override;

@@ -152,6 +152,9 @@ void CMainWindow::initActions()
 {
 	connect(ui->actionRefresh, &QAction::triggered, this, &CMainWindow::refresh);
 	connect(ui->actionFind, &QAction::triggered, this, &CMainWindow::findFiles);
+	connect(ui->actionCopy_current_item_s_path_to_clipboard, &QAction::triggered, this, [this]() {
+		_controller->copyCurrentItemToClipboard();
+	});
 	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::quit);
 
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, [this]() {

@@ -212,7 +212,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFiles">
@@ -222,6 +222,8 @@
     <addaction name="actionRefresh"/>
     <addaction name="separator"/>
     <addaction name="actionFind"/>
+    <addaction name="separator"/>
+    <addaction name="actionCopy_current_item_s_path_to_clipboard"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -391,6 +393,14 @@
    </property>
    <property name="shortcut">
     <string>Alt+Shift+F2</string>
+   </property>
+  </action>
+  <action name="actionCopy_current_item_s_path_to_clipboard">
+   <property name="text">
+    <string>&amp;Copy current item's path to clipboard</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+C</string>
    </property>
   </action>
  </widget>
