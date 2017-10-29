@@ -42,7 +42,7 @@
 #define KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION "Operations/CopyMove/AskForConfirmation"
 
 // Editing
-#define KEY_EDITOR_PATH "Interface/Sorting/NumbersAfterLetters"
+#define KEY_EDITOR_PATH "Edit/EditorProgramPath"
 
 // Other
 #define KEY_OTHER_SHELL_COMMAND_NAME "Other/Shell/ShellCommandName"

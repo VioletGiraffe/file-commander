@@ -22,8 +22,10 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 	ui->setupUi(this);
 	_fontDialog->resize(_fontDialog->sizeHint().width(), _fontDialog->sizeHint().height() * 3/2);
 
+	CSettings s;
+
 	QFont font;
-	if (font.fromString(CSettings().value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
+	if (font.fromString(s.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
 		_fontDialog->setCurrentFont(font);
 
 	updateFontInfoLabel();
@@ -34,9 +36,9 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 			updateFontInfoLabel();
 	});
 
-	ui->_cbRespectLastCursorPos->setChecked(CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, false).toBool());
-	ui->_cbSortingNumbersAfterLetters->setChecked(CSettings().value(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, false).toBool());
-	ui->_cbDecoratedFolderIcons->setChecked(CSettings().value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool());
+	ui->_cbRespectLastCursorPos->setChecked(s.value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, false).toBool());
+	ui->_cbSortingNumbersAfterLetters->setChecked(s.value(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, false).toBool());
+	ui->_cbDecoratedFolderIcons->setChecked(s.value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool());
 }
 
 CSettingsPageInterface::~CSettingsPageInterface()
@@ -46,10 +48,11 @@ CSettingsPageInterface::~CSettingsPageInterface()
 
 void CSettingsPageInterface::acceptSettings()
 {
-	CSettings().setValue(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, ui->_cbRespectLastCursorPos->isChecked());
-	CSettings().setValue(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, ui->_cbSortingNumbersAfterLetters->isChecked());
-	CSettings().setValue(KEY_INTERFACE_FILE_LIST_FONT, _fontDialog->currentFont().toString());
-	CSettings().setValue(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, ui->_cbDecoratedFolderIcons->isChecked());
+	CSettings s;
+	s.setValue(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, ui->_cbRespectLastCursorPos->isChecked());
+	s.setValue(KEY_INTERFACE_NUMBERS_AFFTER_LETTERS, ui->_cbSortingNumbersAfterLetters->isChecked());
+	s.setValue(KEY_INTERFACE_FILE_LIST_FONT, _fontDialog->currentFont().toString());
+	s.setValue(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, ui->_cbDecoratedFolderIcons->isChecked());
 }
 
 void CSettingsPageInterface::updateFontInfoLabel()
