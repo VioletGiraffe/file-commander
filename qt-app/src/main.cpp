@@ -21,12 +21,13 @@ public:
 		if (e && e->type() == QEvent::KeyPress)
 		{
 			QKeyEvent * keyEvent = static_cast<QKeyEvent*>(e);
-			if (keyEvent && keyEvent->key() == Qt::Key_Tab && CMainWindow::get())
+			if (keyEvent->key() == Qt::Key_Tab && CMainWindow::get())
 			{
 				CMainWindow::get()->tabKeyPressed();
 				return true;
 			}
 		}
+
 		return QApplication::notify(receiver, e);
 	}
 };

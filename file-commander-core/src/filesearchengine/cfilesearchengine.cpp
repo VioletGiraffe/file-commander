@@ -18,7 +18,7 @@ CFileSearchEngine::CFileSearchEngine(CController& controller) :
 
 void CFileSearchEngine::addListener(CFileSearchEngine::FileSearchListener* listener)
 {
-	assert_r(listener);
+	assert_and_return_r(listener, );
 	_listeners.insert(listener);
 }
 
