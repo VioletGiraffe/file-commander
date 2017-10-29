@@ -18,8 +18,8 @@ popd
 
 msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v140
 
-xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\32\
-xcopy /R /Y ..\..\bin\release\plugin_*.dll binaries\32\
+xcopy /R /Y ..\..\bin\release\x86\FileCommander.exe binaries\32\
+xcopy /R /Y ..\..\bin\release\x86\plugin_*.dll binaries\32\
 xcopy /R /Y "3rdparty binaries"\32\* binaries\32\
 
 SETLOCAL
@@ -47,8 +47,8 @@ popd
 
 msbuild ..\..\file-commander.sln /t:Rebuild /p:Configuration=Release;PlatformToolset=v140
 
-xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\64\
-xcopy /R /Y ..\..\bin\release\plugin_*.dll binaries\64\
+xcopy /R /Y ..\..\bin\release\x64\FileCommander.exe binaries\64\
+xcopy /R /Y ..\..\bin\release\x64\plugin_*.dll binaries\64\
 xcopy /R /Y "3rdparty binaries"\64\* binaries\64\
 
 SETLOCAL

@@ -13,8 +13,24 @@ win*{
 	QT += winextras
 }
 
-Release:OUTPUT_DIR=release
-Debug:OUTPUT_DIR=debug
+contains(QT_ARCH, x86_64) {
+	ARCHITECTURE = x64
+} else {
+	ARCHITECTURE = x86
+}
+
+android {
+	Release:OUTPUT_DIR=android/release
+	Debug:OUTPUT_DIR=android/debug
+
+} else:ios {
+	Release:OUTPUT_DIR=ios/release
+	Debug:OUTPUT_DIR=ios/debug
+
+} else {
+	Release:OUTPUT_DIR=release/$${ARCHITECTURE}
+	Debug:OUTPUT_DIR=debug/$${ARCHITECTURE}
+}
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
@@ -64,8 +80,8 @@ INCLUDEPATH += \
 
 HEADERS += \
 	cfilecomparisonplugin.h \
-    cfilecomparator.h
+	cfilecomparator.h
 
 SOURCES += \
 	cfilecomparisonplugin.cpp \
-    cfilecomparator.cpp
+	cfilecomparator.cpp
