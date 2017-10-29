@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "compiler/compiler_warnings_control.h"
 #include "assert/advanced_assert.h"
+#include "filesystemhelperfunctions.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -467,11 +468,22 @@ bool CShell::runExeAsAdmin(const QString& command, const QString& workingDir)
 	const QString commandPathUnc = toUncPath(command);
 	const QString workingDirPathUnc = toUncPath(workingDir);
 
-	shExecInfo.fMask = 0;
+	// TODO: remove this hack; move terminal setup arguments to the terminal settings
+	QString params;
+	if (command.toLower().contains("powershell"))
+	{
+		params = QStringLiteral("-noexit -command \"cd %1 \"").arg(toNativeSeparators(workingDir));
+	}
+	else if (command.toLower() == "cmd" || command.toLower() == "cmd.exe")
+	{
+		params = QStringLiteral("/k \"cd /d %1 \"").arg(toNativeSeparators(workingDir));
+	}
+
+	shExecInfo.fMask = SEE_MASK_FLAG_NO_UI;
 	shExecInfo.hwnd = nullptr;
 	shExecInfo.lpVerb = L"runas";
 	shExecInfo.lpFile = (WCHAR*)commandPathUnc.utf16();
-	shExecInfo.lpParameters = nullptr;
+	shExecInfo.lpParameters = (WCHAR*)params.utf16();
 	shExecInfo.lpDirectory = (WCHAR*)workingDirPathUnc.utf16();
 	shExecInfo.nShow = SW_SHOWNORMAL;
 	shExecInfo.hInstApp = nullptr;
