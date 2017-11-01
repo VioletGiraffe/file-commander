@@ -27,13 +27,13 @@ CController::CController() :
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
 
-	_diskEnumerator.addObserver(this);
+	_volumeEnumerator.addObserver(this);
 
 	_leftPanel.addPanelContentsChangedListener(&CPluginEngine::get());
 	_rightPanel.addPanelContentsChangedListener(&CPluginEngine::get());
 
-	// Manual update for the CPanels to get the disk list
-	_diskEnumerator.updateSynchronously();
+	// Manual update for the CPanels to get the volumes list
+	_volumeEnumerator.updateSynchronously();
 
 	_leftPanel.restoreFromSettings();
 	_rightPanel.restoreFromSettings();
@@ -55,13 +55,13 @@ void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedL
 	panel(p).addPanelContentsChangedListener(listener);
 }
 
-void CController::setDisksChangedListener(CController::IDiskListObserver *listener)
+void CController::setVolumesChangedListener(CController::IVolumeListObserver *listener)
 {
-	assert_r(std::find(_disksChangedListeners.begin(), _disksChangedListeners.end(), listener) == _disksChangedListeners.end());
-	_disksChangedListeners.push_back(listener);
+	assert_r(std::find(_volumesChangedListeners.begin(), _volumesChangedListeners.end(), listener) == _volumesChangedListeners.end());
+	_volumesChangedListeners.push_back(listener);
 
 	// Force an update
-	disksChanged();
+	volumesChanged();
 }
 
 void CController::uiThreadTimerTick()
@@ -113,14 +113,14 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	return rcFail;
 }
 
-// A current disk has been switched
-bool CController::switchToDisk(Panel p, size_t index)
+// A current volume has been switched
+bool CController::switchToVolume(Panel p, size_t index)
 {
-	assert_r(index < _diskEnumerator.drives().size());
-	const QString drivePath = _diskEnumerator.drives().at(index).storageInfo.rootPath();
+	assert_r(index < _volumeEnumerator.drives().size());
+	const QString drivePath = _volumeEnumerator.drives().at(index).fileSystemObject.fullAbsolutePath();
 
-	const size_t currentIndex = currentDiskIndex(otherPanelPosition(p));
-	if (currentIndex < _diskEnumerator.drives().size() && drivePath == _diskEnumerator.drives().at(currentIndex).storageInfo.rootPath())
+	const size_t currentIndex = currentVolumeIndex(otherPanelPosition(p));
+	if (currentIndex < _volumeEnumerator.drives().size() && drivePath == _volumeEnumerator.drives().at(currentIndex).fileSystemObject.fullAbsolutePath())
 	{
 		return setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == rcOk;
 	}
@@ -149,24 +149,24 @@ void CController::activePanelChanged(Panel p)
 void CController::navigateUp(Panel p)
 {
 	panel(p).navigateUp();
-	disksChanged(); // To select a proper drive button
-	saveDirectoryForCurrentDisk(p);
+	volumesChanged(); // To select a proper drive button
+	saveDirectoryForCurrentVolume(p);
 }
 
 // Go to the previous location from history, if any
 void CController::navigateBack(Panel p)
 {
 	panel(p).navigateBack();
-	saveDirectoryForCurrentDisk(p);
-	disksChanged(); // To select a proper drive button
+	saveDirectoryForCurrentVolume(p);
+	volumesChanged(); // To select a proper drive button
 }
 
 // Go to the next location from history, if any
 void CController::navigateForward(Panel p)
 {
 	panel(p).navigateForward();
-	saveDirectoryForCurrentDisk(p);
-	disksChanged(); // To select a proper drive button
+	saveDirectoryForCurrentVolume(p);
+	volumesChanged(); // To select a proper drive button
 }
 
 // Sets the specified path, if possible. Otherwise reverts to the previously set path
@@ -174,8 +174,8 @@ FileOperationResultCode CController::setPath(Panel p, const QString &path, FileL
 {
 	const FileOperationResultCode result = panel(p).setPath(path, operation);
 
-	saveDirectoryForCurrentDisk(p);
-	disksChanged(); // To select a proper drive button
+	saveDirectoryForCurrentVolume(p);
+	volumesChanged(); // To select a proper drive button
 	return result;
 }
 
@@ -396,19 +396,19 @@ QString CController::itemPath(Panel p, qulonglong hash) const
 	return panel(p).itemByHash(hash).properties().fullPath;
 }
 
-CDiskEnumerator& CController::diskEnumerator()
+CVolumeEnumerator& CController::volumeEnumerator()
 {
-	return _diskEnumerator;
+	return _volumeEnumerator;
 }
 
-QString CController::diskPath(size_t index) const
+QString CController::volumePath(size_t index) const
 {
-	return index < _diskEnumerator.drives().size() ? _diskEnumerator.drives()[index].fileSystemObject.fullAbsolutePath() : QString();
+	return index < _volumeEnumerator.drives().size() ? _volumeEnumerator.drives()[index].fileSystemObject.fullAbsolutePath() : QString();
 }
 
-size_t CController::currentDiskIndex(Panel p) const
+size_t CController::currentVolumeIndex(Panel p) const
 {
-	const auto& drives = _diskEnumerator.drives();
+	const auto& drives = _volumeEnumerator.drives();
 	for (size_t i = 0; i < drives.size(); ++i)
 	{
 		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(drives[i].fileSystemObject))
@@ -444,28 +444,28 @@ CFileSystemObject CController::currentItem()
 	return activePanel().itemByHash(currentItemHash());
 }
 
-void CController::disksChanged()
+void CController::volumesChanged()
 {
-	const auto& drives = _diskEnumerator.drives();
+	const auto& drives = _volumeEnumerator.drives();
 
-	_rightPanel.disksChanged(drives);
-	_leftPanel.disksChanged(drives);
+	_rightPanel.volumesChanged(drives);
+	_leftPanel.volumesChanged(drives);
 
-	for (auto& listener: _disksChangedListeners)
+	for (auto& listener: _volumesChangedListeners)
 	{
-		listener->disksChanged(drives, RightPanel);
-		listener->disksChanged(drives, LeftPanel);
+		listener->volumesChanged(drives, RightPanel);
+		listener->volumesChanged(drives, LeftPanel);
 	}
 }
 
-void CController::saveDirectoryForCurrentDisk(Panel p)
+void CController::saveDirectoryForCurrentVolume(Panel p)
 {
 	const CFileSystemObject path(panel(p).currentDirPathNative());
 	if (path.isNetworkObject())
 		return;
 
-	assert_and_return_r(path.isNetworkObject() || currentDiskIndex(p) < _diskEnumerator.drives().size(), );
+	assert_and_return_r(path.isNetworkObject() || currentVolumeIndex(p) < _volumeEnumerator.drives().size(), );
 
-	const QString drivePath = _diskEnumerator.drives().at(currentDiskIndex(p)).storageInfo.rootPath();
+	const QString drivePath = _volumeEnumerator.drives().at(currentVolumeIndex(p)).fileSystemObject.fullAbsolutePath();
 	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
 }

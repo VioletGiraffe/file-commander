@@ -390,12 +390,12 @@ void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t p
 	}, ItemDiscoveryProgressNotificationTag);
 }
 
-void CPanel::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& disks)
+void CPanel::volumesChanged(const std::deque<VolumeInfo>& volumes)
 {
-	_disks = disks;
+	_volumes = volumes;
 
 	// Handling an unplugged device
-	if (_currentDirObject.isValid() && !storageInfoForObject(_currentDirObject).isReady())
+	if (_currentDirObject.isValid() && !volumeInfoForObject(_currentDirObject).isReady)
 		setPath(_currentDirObject.fullAbsolutePath(), refreshCauseOther);
 }
 
@@ -421,23 +421,23 @@ void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *liste
 	_panelContentsChangedListeners.push_back(listener);
 }
 
-const QStorageInfo& CPanel::storageInfoForObject(const CFileSystemObject& object) const
+const VolumeInfo& CPanel::volumeInfoForObject(const CFileSystemObject& object) const
 {
-	static const QStorageInfo dummy;
+	static const VolumeInfo dummy;
 
-	const auto storage = std::find_if(_disks.cbegin(), _disks.cend(), [&object](const CDiskEnumerator::DiskInfo& item) {return item.fileSystemObject.rootFileSystemId() == object.rootFileSystemId();});
-	return storage != _disks.cend() ? storage->storageInfo : dummy;
+	const auto storage = std::find_if(_volumes.cbegin(), _volumes.cend(), [&object](const VolumeInfo& item) {return item.fileSystemObject.rootFileSystemId() == object.rootFileSystemId();});
+	return storage != _volumes.cend() ? *storage : dummy;
 }
 
 bool CPanel::pathIsAccessible(const QString& path) const
 {
 	const CFileSystemObject pathObject(path);
-	const auto storageInfo = storageInfoForObject(pathObject);
-	if (!pathObject.exists() || !pathObject.isReadable() || (!pathObject.isNetworkObject() && !storageInfo.isReady()))
+	const auto storageInfo = volumeInfoForObject(pathObject);
+	if (!pathObject.exists() || !pathObject.isReadable() || (!pathObject.isNetworkObject() && !storageInfo.isReady))
 		return false;
 
 #ifdef _WIN32
-	if (storageInfo.rootPath() == pathObject.fullAbsolutePath())
+	if (storageInfo.fileSystemObject.fullAbsolutePath() == pathObject.fullAbsolutePath())
 		return true; // On Windows, a drive root (e. g. C:\) doesn't produce '.' in the entryList, so the list is empty, but it's not an error
 #endif // _WIN32
 

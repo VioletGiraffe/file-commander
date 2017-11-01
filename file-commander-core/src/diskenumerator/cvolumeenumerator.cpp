@@ -1,0 +1,133 @@
+#include "cvolumeenumerator.h"
+#include "assert/advanced_assert.h"
+#include "container/algorithms.hpp"
+
+DISABLE_COMPILER_WARNINGS
+#include <QDebug>
+RESTORE_COMPILER_WARNINGS
+
+void CVolumeEnumerator::addObserver(IVolumeListObserver *observer)
+{
+	assert_r(std::find(_observers.begin(), _observers.end(), observer) == _observers.end());
+	_observers.push_back(observer);
+}
+
+void CVolumeEnumerator::removeObserver(IVolumeListObserver *observer)
+{
+	ContainerAlgorithms::erase_all_occurrences(_observers, observer);
+}
+
+// Returns the drives found
+const std::deque<VolumeInfo>& CVolumeEnumerator::drives() const
+{
+	return _drives;
+}
+
+void CVolumeEnumerator::updateSynchronously()
+{
+	enumerateVolumes(false);
+}
+
+CVolumeEnumerator::CVolumeEnumerator() : _enumeratorThread(_updateInterval, "CVolumeEnumerator thread")
+{
+	// Setting up the timer to fetch the notifications from the queue and execute them on this thread
+	connect(&_timer, &QTimer::timeout, [this](){
+		_notificationsQueue.exec();
+	});
+	_timer.start(_updateInterval / 3);
+
+	// Starting the worker thread that actually enumerates the volumes
+	_enumeratorThread.start([this](){
+		enumerateVolumes(true);
+	});
+}
+
+// Refresh the list of available volumes
+void CVolumeEnumerator::enumerateVolumes(bool async)
+{
+	const auto newDrives = enumerateVolumesImpl();
+
+	if (!async || newDrives != _drives)
+	{
+		_drives.resize(newDrives.size());
+		std::copy(newDrives.cbegin(), newDrives.cend(), _drives.begin());
+
+		notifyObservers(async);
+	}
+}
+
+// Calls all the registered observers with the latest list of drives found
+void CVolumeEnumerator::notifyObservers(bool async) const
+{
+	// This method is called from the worker thread
+	// Queuing the code to be executed on the thread where CVolumeEnumerator was created
+
+	_notificationsQueue.enqueue([this]() {
+		for (auto& observer : _observers)
+			observer->volumesChanged();
+	}, 0); // Setting the tag to 0 will discard any previous queue items with the same tag that have not yet been processed
+
+	if (!async)
+		_notificationsQueue.exec();
+}
+
+
+///////////////////////////////////////////////
+//      SYSTEM-SPECIFIC IMPLEMENTATION
+///////////////////////////////////////////////
+
+#if defined _WIN32
+
+#include "windows/windowsutils.h"
+
+#include <Windows.h>
+
+const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+{
+	std::deque<VolumeInfo> volumes;
+
+	WCHAR volumeId[64];
+	HANDLE volumeSearchHandle = FindFirstVolumeW(volumeId, 64);
+
+	if (volumeSearchHandle == INVALID_HANDLE_VALUE)
+	{
+		qDebug() << "Failed to find first volume. Error:" << ErrorStringFromLastError();
+		return volumes;
+	}
+
+	BOOL findNextVolumeResult = 0;
+	do
+	{
+		findNextVolumeResult = FindNextVolumeW(volumeSearchHandle, volumeId, 64);
+	}
+	while (findNextVolumeResult != 0);
+
+	if (GetLastError() != ERROR_NO_MORE_FILES)
+		qDebug() << "FindNextVolume returned an error:" << ErrorStringFromLastError();
+
+	FindVolumeClose(volumeSearchHandle);
+
+	return volumes;
+}
+
+#elif defined __APPLE__
+
+const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+{
+	std::deque<VolumeInfo> volumes;
+	return volumes;
+}
+
+#elif defined __linux__
+
+const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+{
+	std::deque<VolumeInfo> volumes;
+	return volumes;
+}
+
+#else
+
+#error(Unknown OS)
+
+#endif

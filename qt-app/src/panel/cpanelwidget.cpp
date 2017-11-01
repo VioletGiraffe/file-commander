@@ -150,7 +150,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	fillHistory();
 
-	_controller.setDisksChangedListener(this);
+	_controller.setVolumesChangedListener(this);
 }
 
 // Returns the list of items added to the view
@@ -344,7 +344,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 
 	pos = button->mapToGlobal(pos);
 	const size_t diskId = (size_t)(button->property("id").toULongLong());
-	std::vector<std::wstring> diskPath(1, _controller.diskPath(diskId).toStdWString());
+	std::vector<std::wstring> diskPath(1, _controller.volumePath(diskId).toStdWString());
 	CShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), (HWND)winId());
 #else
 	Q_UNUSED(pos);
@@ -378,8 +378,8 @@ void CPanelWidget::driveButtonClicked()
 		return;
 
 	const size_t id = (size_t)(sender()->property("id").toULongLong());
-	if (!_controller.switchToDisk(_panelPosition, id))
-		QMessageBox::information(this, tr("Failed to switch disk"), tr("The disk %1 is inaccessible (locked or doesn't exist).").arg(_controller.diskPath(id)));
+	if (!_controller.switchToVolume(_panelPosition, id))
+		QMessageBox::information(this, tr("Failed to switch disk"), tr("The disk %1 is inaccessible (locked or doesn't exist).").arg(_controller.volumePath(id)));
 
 	ui->_list->setFocus();
 }
@@ -702,7 +702,7 @@ bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& 
 	return true; // Consuming the event
 }
 
-void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& drives, Panel p)
+void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 {
 	if (p != _panelPosition)
 		return;
@@ -729,12 +729,12 @@ void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& dr
 	// Creating and adding new buttons
 	for (size_t i = 0; i < drives.size(); ++i)
 	{
-		const auto& driveInfo = drives[i].storageInfo;
-		if (!driveInfo.isValid())
+		const auto& driveInfo = drives[i];
+		if (!driveInfo.isReady)
 			continue;
 
 #ifdef _WIN32
-		const QString name = driveInfo.rootPath().remove(":/");
+		const QString name = driveInfo.fileSystemObject.fullAbsolutePath().remove(":/");
 #else
 		QString name = driveInfo.displayName();
 		if (name.startsWith("/") && name.indexOf('/', 1) != -1)
@@ -752,7 +752,7 @@ void CPanelWidget::disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& dr
 		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).width(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 		diskButton->setProperty("id", (qulonglong)i);
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
-		diskButton->setToolTip(driveInfo.displayName());
+		diskButton->setToolTip(driveInfo.volumeLabel);
 		connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked);
 		connect(diskButton, &QPushButton::customContextMenuRequested, this, &CPanelWidget::showContextMenuForDisk);
 		layout->addWidget(diskButton);
@@ -910,17 +910,16 @@ void CPanelWidget::updateCurrentDiskButton()
 			continue;
 
 		const size_t id = (size_t)(button->property("id").toULongLong());
-		const size_t currentDriveId = _controller.currentDiskIndex(_panelPosition);
+		const size_t currentDriveId = _controller.currentVolumeIndex(_panelPosition);
 		if (id == currentDriveId)
 		{
 			button->setChecked(true);
-			const auto& diskInfo = _controller.diskEnumerator().drives()[id];
+			const auto& diskInfo = _controller.volumeEnumerator().drives()[id];
 			_currentDisk = diskInfo.fileSystemObject.fullAbsolutePath();
-			ui->_driveInfoLabel->setText(tr("%1 (%2): %3 available, <b>%4 free</b> of %5 total").arg(diskInfo.storageInfo.displayName()).
-				arg(QString::fromUtf8(diskInfo.storageInfo.fileSystemType())).
-				arg(fileSizeToString(diskInfo.storageInfo.bytesAvailable(), 'M', " ")).
-				arg(fileSizeToString(diskInfo.storageInfo.bytesFree(), 'M', " ")).
-				arg(fileSizeToString(diskInfo.storageInfo.bytesTotal(), 'M', " ")));
+			ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").arg(diskInfo.volumeLabel).
+				arg(diskInfo.fileSystemName).
+				arg(fileSizeToString(diskInfo.freeSize, 'M', " ")).
+				arg(fileSizeToString(diskInfo.volumeSize, 'M', " ")));
 
 			return;
 		}

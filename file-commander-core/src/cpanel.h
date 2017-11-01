@@ -2,7 +2,7 @@
 #define CPANEL_H
 
 #include "cfilesystemobject.h"
-#include "diskenumerator/cdiskenumerator.h"
+#include "diskenumerator/cvolumeenumerator.h"
 #include "historylist/chistorylist.h"
 #include "threading/cworkerthread.h"
 #include "threading/cexecutionqueue.h"
@@ -99,7 +99,7 @@ public:
 	// progress > 100 means indefinite
 	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const;
 
-	void disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& disks);
+	void volumesChanged(const std::deque<VolumeInfo>& volumes);
 
 	// Settings have changed
 	void settingsChanged();
@@ -107,7 +107,7 @@ public:
 	void uiThreadTimerTick();
 
 private:
-	const QStorageInfo& storageInfoForObject(const CFileSystemObject& object) const;
+	const VolumeInfo& volumeInfoForObject(const CFileSystemObject& object) const;
 	bool pathIsAccessible(const QString& path) const;
 
 	void contentsChanged(QString path);
@@ -123,7 +123,7 @@ private:
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 
-	std::vector<CDiskEnumerator::DiskInfo>     _disks;
+	std::deque<VolumeInfo> _volumes;
 
 	CWorkerThreadPool                          _workerThreadPool;
 	mutable CExecutionQueue                    _uiThreadQueue;

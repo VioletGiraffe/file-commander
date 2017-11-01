@@ -24,7 +24,7 @@ class CFileListSortFilterProxyModel;
 class CFileListView;
 
 
-class CPanelWidget : public QWidget, private CController::IDiskListObserver, public PanelContentsChangedListener, private FileListReturnPressOrDoubleClickObserver
+class CPanelWidget : public QWidget, private CController::IVolumeListObserver, public PanelContentsChangedListener, private FileListReturnPressOrDoubleClickObserver
 {
 	Q_OBJECT
 
@@ -99,7 +99,7 @@ private:
 
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
-	void disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& drives, Panel p) override;
+	void volumesChanged(const std::deque<VolumeInfo>& drives, Panel p) override;
 
 // Internal methods
 	qulonglong hashByItemIndex(const QModelIndex& index) const;

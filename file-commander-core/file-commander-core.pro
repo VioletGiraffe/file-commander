@@ -20,7 +20,6 @@ HEADERS += \
 	src/ccontroller.h \
 	src/fileoperationresultcode.h \
 	src/cpanel.h \
-	src/diskenumerator/cdiskenumerator.h \
 	src/iconprovider/ciconprovider.h \
 	src/fileoperations/operationcodes.h \
 	src/fileoperations/coperationperformer.h \
@@ -32,20 +31,22 @@ HEADERS += \
 	src/iconprovider/ciconproviderimpl.h \
 	src/fasthash.h \
 	src/filesearchengine/cfilesearchengine.h \
-    src/directoryscanner.h
+    src/directoryscanner.h \
+    src/diskenumerator/volumeinfo.hpp \
+    src/diskenumerator/cvolumeenumerator.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
 	src/ccontroller.cpp \
 	src/cpanel.cpp \
-	src/diskenumerator/cdiskenumerator.cpp \
 	src/iconprovider/ciconprovider.cpp \
 	src/fileoperations/coperationperformer.cpp \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/fasthash.c \
 	src/filesearchengine/cfilesearchengine.cpp \
-    src/directoryscanner.cpp
+    src/directoryscanner.cpp \
+    src/diskenumerator/cvolumeenumerator.cpp
 
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)

@@ -1,22 +1,21 @@
-#ifndef CCONTROLLER_H
-#define CCONTROLLER_H
+#pragma once
 
 #include "fileoperationresultcode.h"
 #include "cpanel.h"
-#include "diskenumerator/cdiskenumerator.h"
+#include "diskenumerator/cvolumeenumerator.h"
 #include "plugininterface/cpluginproxy.h"
 #include "favoritelocationslist/cfavoritelocations.h"
 #include "filesearchengine/cfilesearchengine.h"
 
-class CController : private CDiskEnumerator::IDiskListObserver
+class CController : private CVolumeEnumerator::IVolumeListObserver
 {
 public:
-	// Disk list observer interface
-	class IDiskListObserver
+	// Volume list observer interface
+	class IVolumeListObserver
 	{
 	public:
-		virtual ~IDiskListObserver() = default;
-		virtual void disksChanged(const std::vector<CDiskEnumerator::DiskInfo>& drives, Panel p) = 0;
+		virtual ~IVolumeListObserver() = default;
+		virtual void volumesChanged(const std::deque<VolumeInfo>& drives, Panel p) = 0;
 	};
 
 	CController();
@@ -25,7 +24,7 @@ public:
 	void loadPlugins();
 
 	void setPanelContentsChangedListener(Panel p, PanelContentsChangedListener * listener);
-	void setDisksChangedListener(IDiskListObserver * listener);
+	void setVolumesChangedListener(IVolumeListObserver * listener);
 
 // Notifications from UI
 	void uiThreadTimerTick();
@@ -38,8 +37,8 @@ public:
 	void tabRemoved(Panel panel, int tabId);
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
-	// A current disk has been switched
-	bool switchToDisk(Panel p, size_t index);
+	// A current volume has been switched
+	bool switchToVolume(Panel p, size_t index);
 	// Program settings have changed
 	void settingsChanged();
 	// Focus is set to a panel
@@ -100,9 +99,9 @@ public:
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
 	QString itemPath(Panel p, qulonglong hash) const;
 
-	CDiskEnumerator& diskEnumerator();
-	QString diskPath(size_t index) const;
-	size_t currentDiskIndex(Panel p) const;
+	CVolumeEnumerator& volumeEnumerator();
+	QString volumePath(size_t index) const;
+	size_t currentVolumeIndex(Panel p) const;
 
 	CFavoriteLocations& favoriteLocations();
 	CFileSearchEngine& fileSearchEngine();
@@ -113,9 +112,9 @@ public:
 	CFileSystemObject currentItem();
 
 private:
-	void disksChanged() override;
+	void volumesChanged() override;
 
-	void saveDirectoryForCurrentDisk(Panel p);
+	void saveDirectoryForCurrentVolume(Panel p);
 
 private:
 	static CController * _instance;
@@ -123,12 +122,10 @@ private:
 	CFileSearchEngine    _fileSearchEngine;
 	CPanel               _leftPanel, _rightPanel;
 	CPluginProxy         _pluginProxy;
-	CDiskEnumerator      _diskEnumerator;
-	std::vector<IDiskListObserver*> _disksChangedListeners;
+	CVolumeEnumerator    _volumeEnumerator;
+	std::vector<IVolumeListObserver*> _volumesChangedListeners;
 	Panel                _activePanel = UnknownPanel;
 
 	CWorkerThreadPool _workerThread; // The thread used to execute tasks out of the UI thread
 	CExecutionQueue   _uiQueue;      // The queue for actions that must be executed on the UI thread
 };
-
-#endif // CCONTROLLER_H
