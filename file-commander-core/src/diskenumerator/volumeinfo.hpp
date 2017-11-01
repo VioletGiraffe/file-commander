@@ -22,4 +22,8 @@ struct VolumeInfo
 				freeSize == other.volumeSize &&
 				isReady == other.isReady;
 	}
+
+	inline bool operator!=(const VolumeInfo& other) const {
+		return !operator==(other);
+	}
 };
