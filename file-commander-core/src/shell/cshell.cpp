@@ -64,30 +64,34 @@ void CShell::executeShellCommand(const QString& command, const QString& workingD
 
 #include <shellapi.h>
 
-bool CShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
+bool CShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
+{
+	return runExe(command, arguments, workingDir, false);
+}
+
+bool CShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
 {
 	SHELLEXECUTEINFOW shExecInfo = {0};
 	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 
 	const QString commandPathUnc = toUncPath(command);
-	const QString workingDirPathUnc = toUncPath(workingDir);
+	const QString workingDirNative = toNativeSeparators(workingDir);
 
-	shExecInfo.fMask = 0;
+	shExecInfo.fMask = SEE_MASK_FLAG_NO_UI;
 	shExecInfo.hwnd = nullptr;
-	shExecInfo.lpVerb = L"open";
+	shExecInfo.lpVerb = asAdmin ? L"runas" : L"open";
 	shExecInfo.lpFile = (WCHAR*)commandPathUnc.utf16();
-	shExecInfo.lpParameters = parameters.isEmpty() ? nullptr : (WCHAR*)parameters.utf16();
-	shExecInfo.lpDirectory = (WCHAR*)workingDirPathUnc.utf16();
+	shExecInfo.lpParameters = arguments.isEmpty() ? nullptr : (WCHAR*)arguments.utf16();
+	shExecInfo.lpDirectory = (WCHAR*)workingDirNative.utf16();
 	shExecInfo.nShow = SW_SHOWNORMAL;
 	shExecInfo.hInstApp = nullptr;
 
 	if (ShellExecuteExW(&shExecInfo) == 0)
 	{
-		const auto error = GetLastError();
-		if (error != ERROR_CANCELLED) // Operation canceled by the user
+		if (GetLastError() != ERROR_CANCELLED) // Operation canceled by the user
 		{
 			const QString errorString = ErrorStringFromLastError();
-			qDebug() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirPathUnc;
+			qDebug() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirNative;
 			qDebug() << errorString;
 
 			return false;
@@ -458,46 +462,6 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 	if (!hmenu)
 		return false;
 	return (SUCCEEDED(imenu->QueryContextMenu(hmenu, 0, 1, 0x7FFF, CMF_NORMAL)));
-}
-
-bool CShell::runExeAsAdmin(const QString& command, const QString& workingDir)
-{
-	SHELLEXECUTEINFOW shExecInfo = {0};
-	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
-
-	const QString commandPathUnc = toUncPath(command);
-	const QString workingDirPathUnc = toUncPath(workingDir);
-
-	// TODO: remove this hack; move terminal setup arguments to the terminal settings
-	QString params;
-	if (command.toLower().contains("powershell"))
-	{
-		params = QStringLiteral("-noexit -command \"cd %1 \"").arg(toNativeSeparators(workingDir));
-	}
-	else if (command.toLower() == "cmd" || command.toLower() == "cmd.exe")
-	{
-		params = QStringLiteral("/k \"cd /d %1 \"").arg(toNativeSeparators(workingDir));
-	}
-
-	shExecInfo.fMask = SEE_MASK_FLAG_NO_UI;
-	shExecInfo.hwnd = nullptr;
-	shExecInfo.lpVerb = L"runas";
-	shExecInfo.lpFile = (WCHAR*)commandPathUnc.utf16();
-	shExecInfo.lpParameters = (WCHAR*)params.utf16();
-	shExecInfo.lpDirectory = (WCHAR*)workingDirPathUnc.utf16();
-	shExecInfo.nShow = SW_SHOWNORMAL;
-	shExecInfo.hInstApp = nullptr;
-
-	if (ShellExecuteExW(&shExecInfo) == 0)
-	{
-		const QString errorString = ErrorStringFromLastError();
-		qDebug() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirPathUnc;
-		qDebug() << errorString;
-
-		return false;
-	}
-
-	return true;
 }
 
 #elif defined __linux__

@@ -240,7 +240,14 @@ void CController::openTerminal(const QString &folder, bool admin)
 	else
 	{
 #ifdef _WIN32
-		assert_r(CShell::runExeAsAdmin(CShell::shellExecutable(), folder));
+		const QString terminalProgram = CShell::shellExecutable();
+		QString arguments;
+		if (terminalProgram.toLower().contains("powershell"))
+			arguments = QStringLiteral("-noexit -command \"cd %1 \"").arg(toNativeSeparators(folder));
+		else if (terminalProgram.toLower() == "cmd" || terminalProgram.toLower() == "cmd.exe")
+			arguments = QStringLiteral("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));
+
+		assert_r(CShell::runExe(terminalProgram, arguments, folder, true));
 #endif
 	}
 #else
