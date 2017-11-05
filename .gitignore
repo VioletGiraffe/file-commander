@@ -12,6 +12,7 @@ set_qt_paths.bat
 *.user
 *.sln.docstates
 *.VC.db
+.vs/
 ClassDiagram.cd
 
 # Build results

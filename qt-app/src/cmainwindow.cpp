@@ -99,13 +99,14 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	handle->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(handle, &QSplitterHandle::customContextMenuRequested, this, &CMainWindow::splitterContextMenuRequested);
 
-	connect(ui->commandLine, &CHistoryComboBox::itemActivated, this, &CMainWindow::executeCommand);
+	connect(ui->_commandLine, &CHistoryComboBox::itemActivated, this, &CMainWindow::executeCommand);
 
 	_commandLineCompleter.setCaseSensitivity(Qt::CaseInsensitive);
 	_commandLineCompleter.setCompletionMode(QCompleter::InlineCompletion);
 	_commandLineCompleter.setCompletionColumn(NameColumn);
-	ui->commandLine->setCompleter(&_commandLineCompleter);
-	ui->commandLine->setClearEditorOnItemActivation(true);
+	ui->_commandLine->setCompleter(&_commandLineCompleter);
+	ui->_commandLine->setClearEditorOnItemActivation(true);
+	ui->_commandLine->installEventFilter(this);
 
 	ui->leftWidget->setCurrentIndex(0); // PanelWidget
 	ui->rightWidget->setCurrentIndex(0); // PanelWidget
@@ -143,9 +144,8 @@ void CMainWindow::initButtons()
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::WidgetWithChildrenShortcut)));
 
 	// Command line
-	ui->commandLine->setSelectPreviousItemShortcut(QKeySequence("Ctrl+E"));
+	ui->_commandLine->setSelectPreviousItemShortcut(QKeySequence("Ctrl+E"));
 	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(selectPreviousCommandInTheCommandLine()), 0, Qt::WidgetWithChildrenShortcut)));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Esc"), this, SLOT(clearCommandLineAndRestoreFocus()), 0, Qt::WidgetWithChildrenShortcut)));
 }
 
 void CMainWindow::initActions()
@@ -256,8 +256,8 @@ void CMainWindow::updateInterface()
 	ui->rightPanel->restorePanelGeometry(s.value(KEY_RPANEL_GEOMETRY).toByteArray());
 	ui->rightPanel->restorePanelState(s.value(KEY_RPANEL_STATE).toByteArray());
 
-	ui->commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
-	ui->commandLine->lineEdit()->clear();
+	ui->_commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
+	ui->_commandLine->lineEdit()->clear();
 
 	show();
 
@@ -305,6 +305,18 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	}
 
 	QMainWindow::closeEvent(e);
+}
+
+bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+	if (watched == ui->_commandLine && event->type() == QEvent::KeyPress)
+	{
+		QKeyEvent * keyEvent = static_cast<QKeyEvent*>(event);
+		if (keyEvent->key() == Qt::Key_Escape)
+			clearCommandLineAndRestoreFocus();
+	}
+
+	return QMainWindow::eventFilter(watched, event);
 }
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
@@ -613,7 +625,7 @@ bool CMainWindow::executeCommand(QString commandLineText)
 		return false;
 
 	CShell::executeShellCommand(commandLineText, _currentFileList->currentDir());
-	QTimer::singleShot(0, [=](){CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->commandLine->items());}); // Saving the list AFTER the combobox actually accepts the newly added item
+	QTimer::singleShot(0, [=](){CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items());}); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
 	return true;
@@ -621,13 +633,13 @@ bool CMainWindow::executeCommand(QString commandLineText)
 
 void CMainWindow::selectPreviousCommandInTheCommandLine()
 {
-	ui->commandLine->selectPreviousItem();
-	ui->commandLine->setFocus();
+	ui->_commandLine->selectPreviousItem();
+	ui->_commandLine->setFocus();
 }
 
 void CMainWindow::clearCommandLineAndRestoreFocus()
 {
-	ui->commandLine->reset();
+	ui->_commandLine->resetToLastSelected(true);
 	_currentFileList->setFocusToFileList();
 }
 
@@ -639,8 +651,8 @@ void CMainWindow::pasteCurrentFileName()
 		if (textToAdd.contains(' '))
 			textToAdd = '\"' % textToAdd % '\"';
 
-		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() % ' ' % textToAdd);
-		ui->commandLine->lineEdit()->setText(newText);
+		const QString newText = ui->_commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->_commandLine->lineEdit()->text() % ' ' % textToAdd);
+		ui->_commandLine->lineEdit()->setText(newText);
 	}
 }
 
@@ -652,8 +664,8 @@ void CMainWindow::pasteCurrentFilePath()
 		if (textToAdd.contains(' '))
 			textToAdd = '\"' % textToAdd % '\"';
 
-		const QString newText = ui->commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->commandLine->lineEdit()->text() % ' ' % textToAdd);
-		ui->commandLine->lineEdit()->setText(newText);
+		const QString newText = ui->_commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->_commandLine->lineEdit()->text() % ' ' % textToAdd);
+		ui->_commandLine->lineEdit()->setText(newText);
 	}
 }
 
@@ -819,7 +831,7 @@ void CMainWindow::addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& en
 
 bool CMainWindow::fileListReturnPressed()
 {
-	return _currentFileList ? executeCommand(ui->commandLine->currentText()) : false;
+	return _currentFileList ? executeCommand(ui->_commandLine->currentText()) : false;
 }
 
 void CMainWindow::quickViewCurrentFile()

@@ -90,7 +90,7 @@
        </widget>
       </item>
       <item>
-       <widget class="CHistoryComboBox" name="commandLine">
+       <widget class="CHistoryComboBox" name="_commandLine">
         <property name="minimumSize">
          <size>
           <width>1</width>

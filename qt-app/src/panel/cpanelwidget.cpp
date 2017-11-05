@@ -50,6 +50,7 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 
 	ui->_pathNavigator->setLineEdit(new CLineEdit);
 	ui->_pathNavigator->setHistoryMode(true);
+	ui->_pathNavigator->installEventFilter(this);
 	connect(ui->_pathNavigator, static_cast<void (CHistoryComboBox::*) (const QString&)>(&CHistoryComboBox::activated), this, &CPanelWidget::pathFromHistoryActivated);
 	connect(ui->_pathNavigator, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated);
 
@@ -820,6 +821,16 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 			return true;
 		}
 	}
+	else if (object == ui->_pathNavigator && e->type() == QEvent::KeyPress)
+	{
+		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(e);
+		if (keyEvent->key() == Qt::Key_Escape)
+		{
+			ui->_pathNavigator->resetToLastSelected(false);
+			ui->_list->setFocus();
+		}
+	}
+
 	return QWidget::eventFilter(object, e);
 }
 

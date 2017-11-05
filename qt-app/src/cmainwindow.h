@@ -53,6 +53,7 @@ signals:
 protected:
 	void showEvent(QShowEvent * e) override;
 	void closeEvent(QCloseEvent * e) override;
+	bool eventFilter(QObject *watched, QEvent *event) override;
 
 private slots: // UI slots
 	void itemActivated(qulonglong hash, CPanelWidget * panel);

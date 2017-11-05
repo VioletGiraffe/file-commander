@@ -11,11 +11,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QKeyEvent>
 RESTORE_COMPILER_WARNINGS
 
-class CFileCommanderApplication : public QApplication
+class ApplicationEventFilter : public QObject
 {
 public:
-	CFileCommanderApplication(int &argc, char **argv) : QApplication(argc, argv) {}
-	inline bool notify(QObject * receiver, QEvent * e) override
+	inline ApplicationEventFilter(QObject* parent) : QObject(parent) {}
+
+	inline bool eventFilter(QObject * /*receiver*/, QEvent * e) override
 	{
 		// A dirty hack to implement switching between left and right panels on Tab key press
 		if (e->type() == QEvent::KeyPress)
@@ -28,7 +29,7 @@ public:
 			}
 		}
 
-		return QApplication::notify(receiver, e);
+		return false;
 	}
 };
 
@@ -38,9 +39,11 @@ int main(int argc, char *argv[])
 		qDebug() << message;
 	});
 
-	CFileCommanderApplication app(argc, argv);
+	QApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
 	app.setApplicationName("File Commander");
+
+	app.installEventFilter(new ApplicationEventFilter(&app));
 
 	QFontDatabase::addApplicationFont(":/fonts/Roboto Mono.ttf");
 
