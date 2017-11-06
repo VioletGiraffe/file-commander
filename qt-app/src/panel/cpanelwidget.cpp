@@ -728,14 +728,14 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 	}
 
 	// Creating and adding new buttons
-	for (size_t i = 0; i < drives.size(); ++i)
+	for (size_t i = 0, n = drives.size(); i < n; ++i)
 	{
 		const auto& driveInfo = drives[i];
-		if (!driveInfo.isReady)
+		if (!driveInfo.isReady || !driveInfo.rootObjectInfo.isValid())
 			continue;
 
 #ifdef _WIN32
-		const QString name = driveInfo.fileSystemObject.fullAbsolutePath().remove(":/");
+		const QString name = driveInfo.rootObjectInfo.fullAbsolutePath().remove(":/");
 #else
 		QString name = driveInfo.displayName();
 		if (name.startsWith("/") && name.indexOf('/', 1) != -1)
@@ -748,7 +748,7 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 		assert_r(layout);
 		QPushButton * diskButton = new QPushButton;
 		diskButton->setCheckable(true);
-		diskButton->setIcon(drives[i].fileSystemObject.icon());
+		diskButton->setIcon(drives[i].rootObjectInfo.icon());
 		diskButton->setText(name);
 		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).width(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 		diskButton->setProperty("id", (qulonglong)i);
@@ -926,7 +926,7 @@ void CPanelWidget::updateCurrentDiskButton()
 		{
 			button->setChecked(true);
 			const auto& diskInfo = _controller.volumeEnumerator().drives()[id];
-			_currentDisk = diskInfo.fileSystemObject.fullAbsolutePath();
+			_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
 			ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").arg(diskInfo.volumeLabel).
 				arg(diskInfo.fileSystemName).
 				arg(fileSizeToString(diskInfo.freeSize, 'M', " ")).

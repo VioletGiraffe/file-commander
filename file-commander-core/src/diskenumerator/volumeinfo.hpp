@@ -6,7 +6,7 @@
 
 struct VolumeInfo
 {
-	CFileSystemObject fileSystemObject;
+	CFileSystemObject rootObjectInfo;
 	QString volumeLabel;
 	QString fileSystemName;
 	uint64_t volumeSize = 0;
@@ -15,12 +15,12 @@ struct VolumeInfo
 
 	inline bool operator==(const VolumeInfo& other) const {
 		return
-				fileSystemObject == other.fileSystemObject &&
-				volumeLabel == other.volumeLabel &&
-				fileSystemName == other.fileSystemName &&
-				volumeSize == other.volumeSize &&
-				freeSize == other.volumeSize &&
-				isReady == other.isReady;
+			rootObjectInfo == other.rootObjectInfo &&
+			volumeLabel == other.volumeLabel &&
+			fileSystemName == other.fileSystemName &&
+			volumeSize == other.volumeSize &&
+			freeSize == other.volumeSize &&
+			isReady == other.isReady;
 	}
 
 	inline bool operator!=(const VolumeInfo& other) const {

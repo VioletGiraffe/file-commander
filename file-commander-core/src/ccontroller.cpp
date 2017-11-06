@@ -117,10 +117,10 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 bool CController::switchToVolume(Panel p, size_t index)
 {
 	assert_r(index < _volumeEnumerator.drives().size());
-	const QString drivePath = _volumeEnumerator.drives().at(index).fileSystemObject.fullAbsolutePath();
+	const QString drivePath = _volumeEnumerator.drives().at(index).rootObjectInfo.fullAbsolutePath();
 
 	const size_t currentIndex = currentVolumeIndex(otherPanelPosition(p));
-	if (currentIndex < _volumeEnumerator.drives().size() && drivePath == _volumeEnumerator.drives().at(currentIndex).fileSystemObject.fullAbsolutePath())
+	if (currentIndex < _volumeEnumerator.drives().size() && drivePath == _volumeEnumerator.drives().at(currentIndex).rootObjectInfo.fullAbsolutePath())
 	{
 		return setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == rcOk;
 	}
@@ -410,7 +410,7 @@ CVolumeEnumerator& CController::volumeEnumerator()
 
 QString CController::volumePath(size_t index) const
 {
-	return index < _volumeEnumerator.drives().size() ? _volumeEnumerator.drives()[index].fileSystemObject.fullAbsolutePath() : QString();
+	return index < _volumeEnumerator.drives().size() ? _volumeEnumerator.drives()[index].rootObjectInfo.fullAbsolutePath() : QString();
 }
 
 size_t CController::currentVolumeIndex(Panel p) const
@@ -418,7 +418,7 @@ size_t CController::currentVolumeIndex(Panel p) const
 	const auto& drives = _volumeEnumerator.drives();
 	for (size_t i = 0; i < drives.size(); ++i)
 	{
-		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(drives[i].fileSystemObject))
+		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(drives[i].rootObjectInfo))
 			return i;
 	}
 
@@ -473,6 +473,6 @@ void CController::saveDirectoryForCurrentVolume(Panel p)
 
 	assert_and_return_r(path.isNetworkObject() || currentVolumeIndex(p) < _volumeEnumerator.drives().size(), );
 
-	const QString drivePath = _volumeEnumerator.drives().at(currentVolumeIndex(p)).fileSystemObject.fullAbsolutePath();
+	const QString drivePath = _volumeEnumerator.drives().at(currentVolumeIndex(p)).rootObjectInfo.fullAbsolutePath();
 	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
 }

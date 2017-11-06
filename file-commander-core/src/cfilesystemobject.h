@@ -37,11 +37,11 @@ class QIcon;
 class CFileSystemObject
 {
 public:
-	explicit CFileSystemObject(const QFileInfo & fileInfo);
-
 	CFileSystemObject() = default;
-	inline explicit CFileSystemObject(const QString& path) : CFileSystemObject(QFileInfo(expandEnvironmentVariables(path))) {}
-	inline explicit CFileSystemObject(const QDir& dir) : CFileSystemObject(QFileInfo(dir.absolutePath())) {}
+	explicit CFileSystemObject(const QFileInfo & fileInfo);
+	explicit CFileSystemObject(const QString& path);
+
+	inline explicit CFileSystemObject(const QDir& dir) : CFileSystemObject(QString(dir.absolutePath())) {}
 
 	template <typename T, typename U>
 	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)stringBuilder) {}

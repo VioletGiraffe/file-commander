@@ -425,7 +425,7 @@ const VolumeInfo& CPanel::volumeInfoForObject(const CFileSystemObject& object) c
 {
 	static const VolumeInfo dummy;
 
-	const auto storage = std::find_if(_volumes.cbegin(), _volumes.cend(), [&object](const VolumeInfo& item) {return item.fileSystemObject.rootFileSystemId() == object.rootFileSystemId();});
+	const auto storage = std::find_if(_volumes.cbegin(), _volumes.cend(), [&object](const VolumeInfo& item) {return item.rootObjectInfo.rootFileSystemId() == object.rootFileSystemId();});
 	return storage != _volumes.cend() ? *storage : dummy;
 }
 
@@ -437,7 +437,7 @@ bool CPanel::pathIsAccessible(const QString& path) const
 		return false;
 
 #ifdef _WIN32
-	if (storageInfo.fileSystemObject.fullAbsolutePath() == pathObject.fullAbsolutePath())
+	if (storageInfo.rootObjectInfo.fullAbsolutePath() == pathObject.fullAbsolutePath())
 		return true; // On Windows, a drive root (e. g. C:\) doesn't produce '.' in the entryList, so the list is empty, but it's not an error
 #endif // _WIN32
 

@@ -28,9 +28,15 @@ RESTORE_COMPILER_WARNINGS
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
 {
 	refreshInfo();
+}
 
-	if (isDir())
-		_dir.setPath(fullAbsolutePath());
+CFileSystemObject::CFileSystemObject(const QString& path)
+{
+	if (!path.isEmpty())
+	{
+		_fileInfo.setFile(expandEnvironmentVariables(path));
+		refreshInfo();
+	}
 }
 
 inline uint64_t hash(const QByteArray& byteArray)
@@ -112,24 +118,30 @@ void CFileSystemObject::refreshInfo()
 	_properties.creationDate = (time_t) _fileInfo.created().toTime_t();
 	_properties.modificationDate = _fileInfo.lastModified().toTime_t();
 	_properties.size = _properties.type == File ? _fileInfo.size() : 0;
+
+	if (isDir())
+		_dir.setPath(fullAbsolutePath());
+	else
+		_dir = QDir();
 }
 
 void CFileSystemObject::setPath(const QString& path)
 {
+	if (path.isEmpty())
+	{
+		*this = CFileSystemObject();
+		return;
+	}
+
 	_lastErrorMessage.clear();
 	_rootFileSystemId = std::numeric_limits<uint64_t>::max();
 	_thisFile.reset();
 	_destFile.reset();
 	_pos = 0;
 
-	_fileInfo.setFile(path);
+	_fileInfo.setFile(expandEnvironmentVariables(path));
 
 	refreshInfo();
-
-	if (isDir())
-		_dir.setPath(fullAbsolutePath());
-	else
-		_dir = QDir();
 }
 
 bool CFileSystemObject::operator==(const CFileSystemObject& other) const

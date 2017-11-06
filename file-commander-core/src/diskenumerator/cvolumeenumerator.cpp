@@ -1,10 +1,13 @@
 #include "cvolumeenumerator.h"
 #include "assert/advanced_assert.h"
 #include "container/algorithms.hpp"
+#include "container/set_operations.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
+
+#include <algorithm>
 
 void CVolumeEnumerator::addObserver(IVolumeListObserver *observer)
 {
@@ -107,26 +110,30 @@ inline VolumeInfo volumeInfoForGuid(WCHAR* volumeGuid)
 		qDebug() << "GetVolumeInformationW() returned error:" << ErrorStringFromLastError();
 		return info;
 	}
+	else
+		info.isReady = error != ERROR_NOT_READY;
 
 	WCHAR pathNames[256];
 	DWORD numNamesReturned = 0;
 	if (GetVolumePathNamesForVolumeNameW(volumeGuid, pathNames, 256, &numNamesReturned) != 0)
-		info.fileSystemObject = CFileSystemObject(numNamesReturned == 1 ? QString::fromUtf16((char16_t*)pathNames) : parseVolumePathFromPathsList(pathNames));
+		info.rootObjectInfo = CFileSystemObject(numNamesReturned == 1 ? QString::fromUtf16((char16_t*)pathNames) : parseVolumePathFromPathsList(pathNames));
 	else
 		qDebug() << "GetVolumePathNamesForVolumeNameW() returned error:" << ErrorStringFromLastError();
 
-	ULARGE_INTEGER totalSpace, freeSpace;
-	if (GetDiskFreeSpaceExW(volumeGuid, &freeSpace, &totalSpace, nullptr) != 0)
+	if (info.isReady)
 	{
-		info.volumeSize = totalSpace.QuadPart;
-		info.freeSize = freeSpace.QuadPart;
+		ULARGE_INTEGER totalSpace, freeSpace;
+		if (GetDiskFreeSpaceExW(volumeGuid, &freeSpace, &totalSpace, nullptr) != 0)
+		{
+			info.volumeSize = totalSpace.QuadPart;
+			info.freeSize = freeSpace.QuadPart;
+		}
+		else
+			qDebug() << "GetDiskFreeSpaceExW() returned error:" << ErrorStringFromLastError();
 	}
-	else
-		qDebug() << "GetDiskFreeSpaceExW() returned error:" << ErrorStringFromLastError();
 
 	info.volumeLabel = QString::fromUtf16((char16_t*)volumeName);
 	info.fileSystemName = QString::fromUtf16((char16_t*)filesystemName);
-	info.isReady = error != ERROR_NOT_READY;
 	return info;
 }
 
@@ -165,6 +172,7 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 
 	FindVolumeClose(volumeSearchHandle);
 
+	std::sort(begin_to_end(volumes), [](const VolumeInfo& l, const VolumeInfo& r) {return l.rootObjectInfo.fullAbsolutePath() < r.rootObjectInfo.fullAbsolutePath();});
 	return volumes;
 }
 
