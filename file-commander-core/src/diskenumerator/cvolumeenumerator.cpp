@@ -115,6 +115,14 @@ inline VolumeInfo volumeInfoForGuid(WCHAR* volumeGuid)
 	else
 		qDebug() << "GetVolumePathNamesForVolumeNameW() returned error:" << ErrorStringFromLastError();
 
+	ULARGE_INTEGER totalSpace, freeSpace;
+	if (GetDiskFreeSpaceExW(volumeGuid, &freeSpace, &totalSpace, nullptr) != 0)
+	{
+		info.volumeSize = totalSpace.QuadPart;
+		info.freeSize = freeSpace.QuadPart;
+	}
+	else
+		qDebug() << "GetDiskFreeSpaceExW() returned error:" << ErrorStringFromLastError();
 
 	info.volumeLabel = QString::fromUtf16((char16_t*)volumeName);
 	info.fileSystemName = QString::fromUtf16((char16_t*)filesystemName);
