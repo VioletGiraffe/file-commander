@@ -99,12 +99,12 @@ inline QString parseVolumePathFromPathsList(WCHAR* paths)
 	return qstring;
 }
 
-inline VolumeInfo volumeInfoForGuid(WCHAR* volumeGuid)
+inline VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 {
 	VolumeInfo info;
 
 	WCHAR volumeName[256], filesystemName[256];
-	const DWORD error = GetVolumeInformationW(volumeGuid, volumeName, 256, nullptr, nullptr, nullptr, filesystemName, 256) != 0 ? 0 : GetLastError();
+	const DWORD error = GetVolumeInformationW((WCHAR*)driveLetter.utf16(), volumeName, 256, nullptr, nullptr, nullptr, filesystemName, 256) != 0 ? 0 : GetLastError();
 
 	if (error != 0 && error != ERROR_NOT_READY)
 	{
@@ -114,17 +114,12 @@ inline VolumeInfo volumeInfoForGuid(WCHAR* volumeGuid)
 	else
 		info.isReady = error != ERROR_NOT_READY;
 
-	WCHAR pathNames[256];
-	DWORD numNamesReturned = 0;
-	if (GetVolumePathNamesForVolumeNameW(volumeGuid, pathNames, 256, &numNamesReturned) != 0)
-		info.rootObjectInfo = CFileSystemObject(numNamesReturned == 1 ? QString::fromWCharArray(pathNames) : parseVolumePathFromPathsList(pathNames));
-	else
-		qDebug() << "GetVolumePathNamesForVolumeNameW() returned error:" << ErrorStringFromLastError();
+	info.rootObjectInfo = driveLetter;
 
 	if (info.isReady)
 	{
 		ULARGE_INTEGER totalSpace, freeSpace;
-		if (GetDiskFreeSpaceExW(volumeGuid, &freeSpace, &totalSpace, nullptr) != 0)
+		if (GetDiskFreeSpaceExW((WCHAR*)driveLetter.utf16(), &freeSpace, &totalSpace, nullptr) != 0)
 		{
 			info.volumeSize = totalSpace.QuadPart;
 			info.freeSize = freeSpace.QuadPart;
@@ -145,38 +140,20 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	const auto oldErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
 	EXEC_ON_SCOPE_EXIT([oldErrorMode]() {SetErrorMode(oldErrorMode);});
 
-	WCHAR volumeId[64];
-	HANDLE volumeSearchHandle = FindFirstVolumeW(volumeId, 64);
+	DWORD drives = GetLogicalDrives();
+	if (GetLastError() != ERROR_SUCCESS)
+		qDebug() << "GetLogicalDrives() returned an error:" << ErrorStringFromLastError();
 
-	if (volumeSearchHandle == INVALID_HANDLE_VALUE)
+	for (char driveLetter = 'A'; drives != 0 && driveLetter <= 'Z'; ++driveLetter, drives >>= 1)
 	{
-		qDebug() << "Failed to find first volume. Error:" << ErrorStringFromLastError();
-		return volumes;
-	}
-	else
-	{
-		const VolumeInfo info = volumeInfoForGuid(volumeId);
-		if (info != VolumeInfo())
-			volumes.push_back(info);
-	}
+		if ((drives & 0x1) == 0)
+			continue;
 
-	for(;;)
-	{
-		const BOOL findNextVolumeResult = FindNextVolumeW(volumeSearchHandle, volumeId, 64);
-		if (findNextVolumeResult == 0)
-			break;
-
-		const VolumeInfo info = volumeInfoForGuid(volumeId);
-		if (info != VolumeInfo())
-			volumes.push_back(info);
+		const auto volumeInfo = volumeInfoForDriveLetter(QString(driveLetter) + QStringLiteral(":\\"));
+		if (!volumeInfo.isEmpty())
+			volumes.push_back(volumeInfo);
 	}
 
-	if (GetLastError() != ERROR_NO_MORE_FILES)
-		qDebug() << "FindNextVolume returned an error:" << ErrorStringFromLastError();
-
-	FindVolumeClose(volumeSearchHandle);
-
-	std::sort(begin_to_end(volumes), [](const VolumeInfo& l, const VolumeInfo& r) {return l.rootObjectInfo.fullAbsolutePath() < r.rootObjectInfo.fullAbsolutePath();});
 	return volumes;
 }
 

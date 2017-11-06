@@ -26,4 +26,8 @@ struct VolumeInfo
 	inline bool operator!=(const VolumeInfo& other) const {
 		return !operator==(other);
 	}
+
+	inline bool isEmpty() const {
+		return *this == VolumeInfo();
+	}
 };

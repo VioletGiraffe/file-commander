@@ -46,6 +46,8 @@ public:
 	template <typename T, typename U>
 	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)stringBuilder) {}
 
+	CFileSystemObject& operator=(const QString& path);
+
 	void refreshInfo();
 	void setPath(const QString& path);
 

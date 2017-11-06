@@ -57,6 +57,12 @@ inline QString parentForAbsolutePath(QString absolutePath)
 	return absolutePath;
 }
 
+CFileSystemObject & CFileSystemObject::operator=(const QString & path)
+{
+	setPath(path);
+	return *this;
+}
+
 void CFileSystemObject::refreshInfo()
 {
 	_properties.exists = _fileInfo.exists();
