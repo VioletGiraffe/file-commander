@@ -2,6 +2,7 @@
 #include "assert/advanced_assert.h"
 #include "container/algorithms.hpp"
 #include "container/set_operations.hpp"
+#include "utility/on_scope_exit.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -90,7 +91,7 @@ inline QString parseVolumePathFromPathsList(WCHAR* paths)
 	QString qstring;
 	for (auto string = paths; string[0] != L'\0'; string += wcslen(string) + 1)
 	{
-		qstring = QString::fromUtf16((char16_t*)string);
+		qstring = QString::fromWCharArray(string);
 		if (qstring.contains(':'))
 			return qstring;
 	}
@@ -116,7 +117,7 @@ inline VolumeInfo volumeInfoForGuid(WCHAR* volumeGuid)
 	WCHAR pathNames[256];
 	DWORD numNamesReturned = 0;
 	if (GetVolumePathNamesForVolumeNameW(volumeGuid, pathNames, 256, &numNamesReturned) != 0)
-		info.rootObjectInfo = CFileSystemObject(numNamesReturned == 1 ? QString::fromUtf16((char16_t*)pathNames) : parseVolumePathFromPathsList(pathNames));
+		info.rootObjectInfo = CFileSystemObject(numNamesReturned == 1 ? QString::fromWCharArray(pathNames) : parseVolumePathFromPathsList(pathNames));
 	else
 		qDebug() << "GetVolumePathNamesForVolumeNameW() returned error:" << ErrorStringFromLastError();
 
@@ -132,14 +133,17 @@ inline VolumeInfo volumeInfoForGuid(WCHAR* volumeGuid)
 			qDebug() << "GetDiskFreeSpaceExW() returned error:" << ErrorStringFromLastError();
 	}
 
-	info.volumeLabel = QString::fromUtf16((char16_t*)volumeName);
-	info.fileSystemName = QString::fromUtf16((char16_t*)filesystemName);
+	info.volumeLabel = QString::fromWCharArray(volumeName);
+	info.fileSystemName = QString::fromWCharArray(filesystemName);
 	return info;
 }
 
 const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
 	std::deque<VolumeInfo> volumes;
+
+	const auto oldErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+	EXEC_ON_SCOPE_EXIT([oldErrorMode]() {SetErrorMode(oldErrorMode);});
 
 	WCHAR volumeId[64];
 	HANDLE volumeSearchHandle = FindFirstVolumeW(volumeId, 64);
