@@ -33,8 +33,16 @@ public:
 	}
 };
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
+	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+#endif
+
 	AdvancedAssert::setLoggingFunc([](const char* message){
 		qDebug() << message;
 	});
