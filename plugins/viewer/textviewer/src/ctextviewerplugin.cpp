@@ -13,9 +13,9 @@ CFileCommanderPlugin * createPlugin()
 	return new CTextViewerPlugin;
 }
 
-bool CTextViewerPlugin::canViewFile(const QString& /*fileName*/, const QMimeType& /*type*/) const
+bool CTextViewerPlugin::canViewFile(const QString& fileName, const QMimeType& /*type*/) const
 {
-	return true;
+	return QFileInfo(fileName).isFile();
 }
 
 CPluginWindow * CTextViewerPlugin::viewFile(const QString& fileName)
