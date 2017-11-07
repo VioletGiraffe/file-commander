@@ -141,8 +141,11 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	EXEC_ON_SCOPE_EXIT([oldErrorMode]() {SetErrorMode(oldErrorMode);});
 
 	DWORD drives = GetLogicalDrives();
-	if (GetLastError() != ERROR_SUCCESS)
+	if (drives == 0)
+	{
 		qDebug() << "GetLogicalDrives() returned an error:" << ErrorStringFromLastError();
+		return volumes;
+	}
 
 	for (char driveLetter = 'A'; drives != 0 && driveLetter <= 'Z'; ++driveLetter, drives >>= 1)
 	{
