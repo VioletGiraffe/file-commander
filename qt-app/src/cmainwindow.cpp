@@ -575,10 +575,21 @@ void CMainWindow::toggleQuickView()
 	{
 		_quickViewActive = false;
 		assert_r(_currentPanelWidget->count() == 2 || _otherPanelWidget->count() == 2);
+
+		QWidget* viewerWidget = nullptr;
 		if (_currentPanelWidget->count() == 2)
-			_currentPanelWidget->removeWidget(_currentPanelWidget->widget(1));
+		{
+			viewerWidget = _currentPanelWidget->widget(1);
+			_currentPanelWidget->removeWidget(viewerWidget);
+		}
 		else
-			_otherPanelWidget->removeWidget(_otherPanelWidget->widget(1));
+		{
+			viewerWidget = _otherPanelWidget->widget(1);
+			_otherPanelWidget->removeWidget(viewerWidget);
+		}
+
+		if (viewerWidget)
+			viewerWidget->deleteLater();
 
 		emit fileQuickVewFinished();
 	}
