@@ -335,6 +335,9 @@
    <property name="text">
     <string>Quick view</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Q</string>
+   </property>
   </action>
   <action name="action_Invert_selection">
    <property name="text">

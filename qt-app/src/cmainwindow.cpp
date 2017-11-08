@@ -172,11 +172,6 @@ void CMainWindow::initActions()
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
 	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateOccupiedSpace);
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
-#ifdef _WIN32
-	ui->actionQuick_view->setShortcut(QKeySequence("Ctrl+Q, Ctrl+Shift+Q"));
-#else
-	ui->actionQuick_view->setShortcut(QKeySequence("Ctrl+Shift+Q"));
-#endif
 
 	connect(ui->action_Invert_selection, &QAction::triggered, this, &CMainWindow::invertSelection);
 
@@ -841,7 +836,9 @@ void CMainWindow::quickViewCurrentFile()
 	if (_quickViewActive)
 	{
 		assert_r(_otherPanelWidget->count() == 2);
-		_otherPanelWidget->removeWidget(_otherPanelWidget->widget(1));
+		QWidget* viewerWidget = _otherPanelWidget->widget(1);
+		_otherPanelWidget->removeWidget(viewerWidget);
+		viewerWidget->deleteLater();
 		emit fileQuickVewFinished();
 	}
 
