@@ -220,13 +220,11 @@ void CTextViewerWindow::findNext()
 	if (_findDialog.wholeWords())
 		flags |= QTextDocument::FindWholeWords;
 
-	bool found;
 	const QTextCursor startCursor = _textBrowser.textCursor();
-#if  QT_VERSION >= QT_VERSION_CHECK(5,3,0)
+	bool found = false;
 	if (_findDialog.regex())
 		found = _textBrowser.find(QRegExp(_findDialog.searchExpression(), _findDialog.caseSensitive() ? Qt::CaseSensitive : Qt::CaseInsensitive), flags);
 	else
-#endif
 		found = _textBrowser.find(_findDialog.searchExpression(), flags);
 
 	if(!found && (startCursor.isNull() || startCursor.position() == 0))

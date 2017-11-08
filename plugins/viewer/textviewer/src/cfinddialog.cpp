@@ -37,10 +37,6 @@ CFindDialog::CFindDialog(QWidget *parent, const QString& settingsRootCategory) :
 		ui->_cbRegex->setChecked(s.value(_settingsRootCategory + SETTINGS_REGEX).toBool());
 		ui->_cbWholeWords->setChecked(s.value(_settingsRootCategory + SETTINGS_WHOLE_WORDS).toBool());
 	}
-
-#if QT_VERSION < QT_VERSION_CHECK(5,3,0)
-	ui->_cbRegex->setVisible(false);
-#endif
 }
 
 CFindDialog::~CFindDialog()
@@ -91,12 +87,12 @@ void CFindDialog::showEvent(QShowEvent * e)
 	QDialog::showEvent(e);
 }
 
-void CFindDialog::hideEvent(QHideEvent * e)
+void CFindDialog::closeEvent(QCloseEvent * e)
 {
 	if (!_settingsRootCategory.isEmpty())
 		CSettings().setValue(_settingsRootCategory + SETTINGS_GEOMETRY, saveGeometry());
 
-	QDialog::hideEvent(e);
+	QDialog::closeEvent(e);
 }
 
 void CFindDialog::saveSearchSettings() const

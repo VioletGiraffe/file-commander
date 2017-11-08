@@ -1,7 +1,7 @@
-#ifndef CFINDDIALOG_H
-#define CFINDDIALOG_H
+#pragma once
 
 #include "compiler/compiler_warnings_control.h"
+#include "widgets/cpersistentwindow.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDialog>
@@ -34,7 +34,7 @@ public slots:
 
 protected:
 	void showEvent(QShowEvent * e) override;
-	void hideEvent(QHideEvent * e) override;
+	void closeEvent(QCloseEvent * e) override;
 
 private:
 	void saveSearchSettings() const;
@@ -43,5 +43,3 @@ private:
 	QString _settingsRootCategory;
 	Ui::CFindDialog *ui;
 };
-
-#endif // CFINDDIALOG_H
