@@ -4,6 +4,7 @@
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "filesystemhelperfunctions.h"
+#include "widgets/cpersistentwindow.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
@@ -26,6 +27,8 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 	ui->setupUi(this);
 
 	setAttribute(Qt::WA_DeleteOnClose, true);
+
+	installEventFilter(new CPersistenceEnabler("UI/FileSearchWindow", this));
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 

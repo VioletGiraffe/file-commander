@@ -1,5 +1,6 @@
 #include "ctextviewerwindow.h"
 #include "ctextencodingdetector.h"
+#include "widgets/cpersistentwindow.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
@@ -18,6 +19,9 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	_findDialog(this, "Plugins/TextViewer/Find/")
 {
 	setupUi(this);
+
+	installEventFilter(new CPersistenceEnabler("Plugins/TextViewer/Window", this));
+
 	setCentralWidget(&_textBrowser);
 	_textBrowser.setReadOnly(true);
 	_textBrowser.setUndoRedoEnabled(false);

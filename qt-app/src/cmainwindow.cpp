@@ -19,6 +19,7 @@
 #include "filessearchdialog/cfilessearchwindow.h"
 #include "updaterUI/cupdaterdialog.h"
 #include "aboutdialog/caboutdialog.h"
+#include "widgets/cpersistentwindow.h"
 #include "version.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -46,8 +47,6 @@ RESTORE_COMPILER_WARNINGS
 #define KEY_LPANEL_STATE      "Ui/LPanel/State"
 #define KEY_RPANEL_GEOMETRY   "Ui/RPanel/Geometry"
 #define KEY_LPANEL_GEOMETRY   "Ui/LPanel/Geometry"
-#define KEY_GEOMETRY          "Ui/Geometry"
-#define KEY_STATE             "Ui/State"
 #define KEY_SPLITTER_SIZES    "Ui/Splitter"
 #define KEY_LAST_ACTIVE_PANEL "Ui/LastActivePanel"
 
@@ -61,6 +60,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	assert_r(!_instance);
 	_instance = this;
 	ui->setupUi(this);
+
+	installEventFilter(new CPersistenceEnabler("UI/MainWindow", this));
 
 	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt());
 
@@ -248,8 +249,6 @@ CMainWindow *CMainWindow::get()
 void CMainWindow::updateInterface()
 {
 	CSettings s;
-	restoreGeometry(s.value(KEY_GEOMETRY).toByteArray());
-	restoreState(s.value(KEY_STATE).toByteArray());
 	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
 	ui->leftPanel->restorePanelGeometry(s.value(KEY_LPANEL_GEOMETRY).toByteArray());
 	ui->leftPanel->restorePanelState(s.value(KEY_LPANEL_STATE).toByteArray());
@@ -290,8 +289,6 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	if (e->type() == QCloseEvent::Close)
 	{
 		CSettings s;
-		s.setValue(KEY_GEOMETRY, saveGeometry());
-		s.setValue(KEY_STATE, saveState());
 		s.setValue(KEY_SPLITTER_SIZES, ui->splitter->saveState());
 		s.setValue(KEY_LPANEL_GEOMETRY, ui->leftPanel->savePanelGeometry());
 		s.setValue(KEY_RPANEL_GEOMETRY, ui->rightPanel->savePanelGeometry());
