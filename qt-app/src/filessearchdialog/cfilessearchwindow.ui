@@ -107,7 +107,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>36</height>
     </rect>
    </property>
   </widget>
@@ -120,6 +120,14 @@
    <header>widgets/chistorycombobox.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>nameToFind</tabstop>
+  <tabstop>fileContentsToFind</tabstop>
+  <tabstop>searchRoot</tabstop>
+  <tabstop>cbNameCaseSensitive</tabstop>
+  <tabstop>cbContentsCaseSensitive</tabstop>
+  <tabstop>resultsList</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
