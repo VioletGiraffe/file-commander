@@ -737,12 +737,7 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 #ifdef _WIN32
 		const QString name = driveInfo.rootObjectInfo.fullAbsolutePath().remove(":/");
 #else
-		QString name = driveInfo.displayName();
-		if (name.startsWith("/") && name.indexOf('/', 1) != -1)
-		{
-			const int lastPathPart = name.lastIndexOf('/');
-			name = name.mid(lastPathPart + 1);
-		}
+		const QString name = driveInfo.volumeLabel;
 #endif
 
 		assert_r(layout);
