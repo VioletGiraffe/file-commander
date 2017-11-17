@@ -1,7 +1,11 @@
 #pragma once
 
+#include "compiler/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
 #include <QTimer>
+RESTORE_COMPILER_WARNINGS
 
 #include <deque>
 #include <functional>
@@ -24,7 +28,7 @@ protected:
 
 private:
 	std::deque<ChangeDetectedCallback> _callbacks;
-	std::deque<QFileInfo> _previousState;
+	QFileInfoList _previousState;
 };
 
 }

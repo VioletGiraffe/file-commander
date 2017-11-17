@@ -23,7 +23,7 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 	// Note: QFileInfo::operator== does exactly what's needed
 	// http://doc.qt.io/qt-5/qfileinfo.html#operator-eq-eq
 	// If this changes, a custom comparator will be required
-	const auto diff = SetOperations::calculateDiff<std::deque<QFileInfo>, QFileInfoList, std::deque<QFileInfo>>(_previousState, newState);
+	const auto diff = SetOperations::calculateDiff<QFileInfoList, QFileInfoList, std::deque<QFileInfo>>(_previousState, newState);
 
 	std::deque<QFileInfo> changedItems;
 	for (const auto& oldItem : diff.common_elements)
@@ -34,8 +34,13 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 			changedItems.push_back(*sameNewItem);
 	}
 
-	for (const auto& callback : _callbacks)
-		callback(diff.elements_from_b_not_in_a, diff.elements_from_a_not_in_b, changedItems);
+	if (!changedItems.empty() || !diff.elements_from_a_not_in_b.empty() || !diff.elements_from_b_not_in_a.empty())
+	{
+		for (const auto& callback : _callbacks)
+			callback(diff.elements_from_b_not_in_a, diff.elements_from_a_not_in_b, changedItems);
+
+		_previousState = newState;
+	}
 }
 
 
@@ -50,6 +55,8 @@ bool CFileSystemWatcher::setPathToWatch(const QString& path)
 {
 	_pathToWatch = path;
 	assert_and_return_r(QFileInfo(path).isDir(), false);
+
+	_timer.start();
 	return true;
 }
 

@@ -4,10 +4,10 @@
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
 #include "assert/advanced_assert.h"
+#include "filesystemwatcher/cfilesystemwatcher.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
-#include <QFileSystemWatcher>
 #include <QVector>
 RESTORE_COMPILER_WARNINGS
 
@@ -102,14 +102,14 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
 
-	_watcher = std::make_shared<QFileSystemWatcher>();
+	_watcher = std::make_shared<CFileSystemWatcher>();
 
-	if (_watcher->addPath(newPath) == false)
-		qDebug() << __FUNCTION__ << "Error adding path" << newPath << "to QFileSystemWatcher";
+	if (_watcher->setPathToWatch(newPath) == false)
+		qDebug() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
 
-	connect(_watcher.get(), &QFileSystemWatcher::directoryChanged, this, &CPanel::contentsChanged);
-	connect(_watcher.get(), &QFileSystemWatcher::fileChanged, this, &CPanel::contentsChanged);
-	connect(_watcher.get(), &QFileSystemWatcher::objectNameChanged, this, &CPanel::contentsChanged);
+	_watcher->addCallback([this](const std::deque<QFileInfo>&, const std::deque<QFileInfo>&, const std::deque<QFileInfo>&) {
+		contentsChanged();
+	});
 
 	// If the new folder is one of the subfolders of the previous folder, mark it as the current for that previous folder
 	// We're using the fact that _currentDirObject is already updated, but the _items list is not as it still corresponds to the previous location
@@ -319,9 +319,9 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 		return FilesystemObjectsStatistics();
 
 	FilesystemObjectsStatistics stats;
-	for(size_t i = 0, numItems = hashes.size(); i < numItems; ++i)
+	for(const auto hash: hashes)
 	{
-		const CFileSystemObject rootItem = itemByHash(hashes[i]);
+		const CFileSystemObject rootItem = itemByHash(hash);
 		if (rootItem.isDir())
 		{
 			++stats.folders;
@@ -409,7 +409,7 @@ void CPanel::uiThreadTimerTick()
 	_uiThreadQueue.exec();
 }
 
-void CPanel::contentsChanged(QString /*path*/)
+void CPanel::contentsChanged()
 {
 	// The list of items in the current folder is being refreshed asynchronously, not every time a change is detected, to avoid refresh tasks queuing up out of control
 	_bContentsChangedEventPending = true;

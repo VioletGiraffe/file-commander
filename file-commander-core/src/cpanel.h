@@ -13,6 +13,8 @@
 #include <mutex>
 #include <vector>
 
+class CFileSystemWatcher;
+
 enum Panel
 {
 	LeftPanel,
@@ -46,8 +48,6 @@ public:
 	uint64_t folders;
 	uint64_t occupiedSpace;
 };
-
-class QFileSystemWatcher;
 
 class CPanel : public QObject
 {
@@ -110,7 +110,7 @@ private:
 	const VolumeInfo& volumeInfoForObject(const CFileSystemObject& object) const;
 	bool pathIsAccessible(const QString& path) const;
 
-	void contentsChanged(QString path);
+	void contentsChanged();
 	void processContentsChangedEvent();
 
 private:
@@ -118,7 +118,7 @@ private:
 	std::map<qulonglong, CFileSystemObject>    _items;
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
-	std::shared_ptr<QFileSystemWatcher>        _watcher;
+	std::shared_ptr<CFileSystemWatcher>        _watcher;
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
