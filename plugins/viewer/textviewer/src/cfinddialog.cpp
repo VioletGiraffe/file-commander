@@ -1,8 +1,11 @@
 #include "cfinddialog.h"
-#include "ui_cfinddialog.h"
 #include "settings/csettings.h"
 
+DISABLE_COMPILER_WARNINGS
+#include "ui_cfinddialog.h"
+
 #include <QLineEdit>
+RESTORE_COMPILER_WARNINGS
 
 #define SETTINGS_SEARCH_EXPRESSION_LIST "Expressions"
 
