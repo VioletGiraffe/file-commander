@@ -9,8 +9,9 @@ RESTORE_COMPILER_WARNINGS
 
 #include <deque>
 #include <functional>
+#include <set>
 
-using ChangeDetectedCallback = std::function<void (const std::deque<QFileInfo>& added, const std::deque<QFileInfo>& removed, const std::deque<QFileInfo>& changed)>;
+using ChangeDetectedCallback = std::function<void (const std::set<QFileInfo>& added, const std::set<QFileInfo>& removed, const std::set<QFileInfo>& changed)>;
 
 namespace detail {
 
@@ -28,9 +29,14 @@ protected:
 
 private:
 	std::deque<ChangeDetectedCallback> _callbacks;
-	QFileInfoList _previousState;
+	std::set<QFileInfo> _previousState;
 };
 
+}
+
+inline bool operator<(const QFileInfo& lItem, const QFileInfo& rItem)
+{
+	return lItem.absoluteFilePath() < rItem.absoluteFilePath();
 }
 
 class CFileSystemWatcher : public detail::CFileSystemWatcherInterface

@@ -1,9 +1,13 @@
 #include "cfilesystemwatcher.h"
 #include "assert/advanced_assert.h"
 #include "container/set_operations.hpp"
+#include "system/ctimeelapsed.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
+#include <QDebug>
 #include <QDir>
+RESTORE_COMPILER_WARNINGS
 
 void detail::CFileSystemWatcherInterface::addCallback(ChangeDetectedCallback callback)
 {
@@ -12,10 +16,7 @@ void detail::CFileSystemWatcherInterface::addCallback(ChangeDetectedCallback cal
 
 inline bool fileInfoChanged(const QFileInfo& oldInfo, const QFileInfo& newInfo)
 {
-	return
-		oldInfo.size() != newInfo.size() ||
-		oldInfo.lastModified() != newInfo.lastModified() ||
-		oldInfo.created() != newInfo.created();
+	return oldInfo.size() != newInfo.size() || oldInfo.lastModified() != newInfo.lastModified();
 }
 
 void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(const QFileInfoList& newState)
@@ -23,23 +24,38 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 	// Note: QFileInfo::operator== does exactly what's needed
 	// http://doc.qt.io/qt-5/qfileinfo.html#operator-eq-eq
 	// If this changes, a custom comparator will be required
-	const auto diff = SetOperations::calculateDiff<QFileInfoList, QFileInfoList, std::deque<QFileInfo>>(_previousState, newState);
 
-	std::deque<QFileInfo> changedItems;
-	for (const auto& oldItem : diff.common_elements)
+	CTimeElapsed timer(true);
+
+	timer.start();
+	decltype(_previousState) newItemsSet;
+	std::copy(begin_to_end(newState), std::inserter(newItemsSet, newItemsSet.end()));
+	qDebug() << "Copying new" << newState.size() << "items to std::set took" << timer.elapsed() << "ms";
+
+	timer.start();
+
+	const auto diff = SetOperations::calculateDiff(_previousState, newItemsSet);
+	qDebug() << "calculateDiff for" << _previousState.size() << "and" << newState.size() << "took" << timer.elapsed() << "ms";
+
+	timer.start();
+
+	std::set<QFileInfo> changedItems;
+	for (const auto& newItem : diff.common_elements)
 	{
-		const auto sameNewItem = std::find(begin_to_end(newState), oldItem);
+		const auto sameOldItem = container_aware_find(_previousState, newItem);
 		assert(sameNewItem != newState.end());
-		if (fileInfoChanged(oldItem, *sameNewItem))
-			changedItems.push_back(*sameNewItem);
+		if (fileInfoChanged(*sameOldItem, newItem))
+			changedItems.insert(newItem);
 	}
+
+	qDebug() << "Detecting changed items for" << diff.common_elements.size() << "took" << timer.elapsed() << "ms";
 
 	if (!changedItems.empty() || !diff.elements_from_a_not_in_b.empty() || !diff.elements_from_b_not_in_a.empty())
 	{
 		for (const auto& callback : _callbacks)
 			callback(diff.elements_from_b_not_in_a, diff.elements_from_a_not_in_b, changedItems);
 
-		_previousState = newState;
+		_previousState = newItemsSet;
 	}
 }
 
