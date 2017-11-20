@@ -43,7 +43,7 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 	for (const auto& newItem : diff.common_elements)
 	{
 		const auto sameOldItem = container_aware_find(_previousState, newItem);
-		assert(sameNewItem != newState.end());
+		assert(sameOldItem != _previousState.end());
 		if (fileInfoChanged(*sameOldItem, newItem))
 			changedItems.insert(newItem);
 	}
