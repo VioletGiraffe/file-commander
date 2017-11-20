@@ -4,7 +4,6 @@
 #include "system/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 RESTORE_COMPILER_WARNINGS
@@ -14,9 +13,14 @@ void detail::CFileSystemWatcherInterface::addCallback(ChangeDetectedCallback cal
 	_callbacks.push_back(callback);
 }
 
-inline bool fileInfoChanged(const QFileInfo& oldInfo, const QFileInfo& newInfo)
+inline bool operator==(const QFileInfo& fullInfo, const BasicFileSystemItemInfo& basicInfo)
 {
-	return oldInfo.size() != newInfo.size() || oldInfo.lastModified() != newInfo.lastModified();
+	return fullInfo.absoluteFilePath() == basicInfo.fullPath;
+}
+
+inline bool operator<(const QFileInfo& fullInfo, const BasicFileSystemItemInfo& basicInfo)
+{
+	return fullInfo.absoluteFilePath() < basicInfo.fullPath;
 }
 
 void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(const QFileInfoList& newState)
@@ -28,7 +32,7 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 	CTimeElapsed timer(true);
 
 	timer.start();
-	decltype(_previousState) newItemsSet;
+	std::set<QFileInfo, std::less<>> newItemsSet;
 	std::copy(begin_to_end(newState), std::inserter(newItemsSet, newItemsSet.end()));
 	qDebug() << "Copying new" << newState.size() << "items to std::set took" << timer.elapsed() << "ms";
 
@@ -39,12 +43,12 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 
 	timer.start();
 
-	std::set<QFileInfo> changedItems;
+	transparent_set<QFileInfo> changedItems;
 	for (const auto& newItem : diff.common_elements)
 	{
 		const auto sameOldItem = container_aware_find(_previousState, newItem);
 		assert(sameOldItem != _previousState.end());
-		if (fileInfoChanged(*sameOldItem, newItem))
+		if (sameOldItem->fileDetailsChanged(newItem))
 			changedItems.insert(newItem);
 	}
 
@@ -55,7 +59,8 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 		for (const auto& callback : _callbacks)
 			callback(diff.elements_from_b_not_in_a, diff.elements_from_a_not_in_b, changedItems);
 
-		_previousState = newItemsSet;
+		_previousState.clear();
+		std::copy(begin_to_end(newState), std::inserter(_previousState, _previousState.end()));
 	}
 }
 

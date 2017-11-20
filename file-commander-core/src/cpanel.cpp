@@ -107,7 +107,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (_watcher->setPathToWatch(newPath) == false)
 		qDebug() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
 
-	_watcher->addCallback([this](const std::set<QFileInfo>&, const std::set<QFileInfo>&, const std::set<QFileInfo>&) {
+	_watcher->addCallback([this](const transparent_set<QFileInfo>&, const transparent_set<QFileInfo>&, const transparent_set<QFileInfo>&) {
 		contentsChanged();
 	});
 
