@@ -29,19 +29,10 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 	// http://doc.qt.io/qt-5/qfileinfo.html#operator-eq-eq
 	// If this changes, a custom comparator will be required
 
-	CTimeElapsed timer(true);
-
-	timer.start();
 	std::set<QFileInfo, std::less<>> newItemsSet;
 	std::copy(begin_to_end(newState), std::inserter(newItemsSet, newItemsSet.end()));
-	qDebug() << "Copying new" << newState.size() << "items to std::set took" << timer.elapsed() << "ms";
-
-	timer.start();
 
 	const auto diff = SetOperations::calculateDiff(_previousState, newItemsSet);
-	qDebug() << "calculateDiff for" << _previousState.size() << "and" << newState.size() << "took" << timer.elapsed() << "ms";
-
-	timer.start();
 
 	transparent_set<QFileInfo> changedItems;
 	for (const auto& newItem : diff.common_elements)
@@ -51,8 +42,6 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 		if (sameOldItem->fileDetailsChanged(newItem))
 			changedItems.insert(newItem);
 	}
-
-	qDebug() << "Detecting changed items for" << diff.common_elements.size() << "took" << timer.elapsed() << "ms";
 
 	if (!changedItems.empty() || !diff.elements_from_a_not_in_b.empty() || !diff.elements_from_b_not_in_a.empty())
 	{
