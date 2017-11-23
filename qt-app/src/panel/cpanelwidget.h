@@ -32,6 +32,8 @@ public:
 	explicit CPanelWidget(QWidget *parent = 0);
 	~CPanelWidget() override;
 
+	void init(CController* controller);
+
 	void setFocusToFileList();
 
 	QByteArray savePanelState() const;
@@ -113,8 +115,8 @@ private:
 	std::vector<CFileSystemObject>  _disks;
 	QString                         _currentDisk;
 	QString                         _directoryCurrentlyBeingDisplayed;
-	Ui::CPanelWidget              * ui;
-	CController                   & _controller;
+	Ui::CPanelWidget              * ui = nullptr;
+	CController                   * _controller = nullptr;
 	QItemSelectionModel           * _selectionModel = nullptr;
 	CFileListModel                * _model = nullptr;
 	CFileListSortFilterProxyModel * _sortModel = nullptr;

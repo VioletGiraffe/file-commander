@@ -26,6 +26,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
 
+#include <assert.h>
 #include <time.h>
 #include <set>
 #include <tuple>
@@ -34,7 +35,6 @@ CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
 	QWidget(parent),
 	_filterDialog(this),
 	ui(new Ui::CPanelWidget),
-	_controller (CController::get()),
 	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), nullptr, Qt::WidgetWithChildrenShortcut),
@@ -73,6 +73,12 @@ CPanelWidget::~CPanelWidget()
 	delete ui;
 }
 
+void CPanelWidget::init(CController* controller)
+{
+	assert(controller);
+	_controller = controller;
+}
+
 void CPanelWidget::setFocusToFileList()
 {
 	ui->_list->setFocus();
@@ -109,7 +115,7 @@ bool CPanelWidget::restorePanelGeometry(QByteArray state)
 
 QString CPanelWidget::currentDir() const
 {
-	return _controller.panel(_panelPosition).currentDirPathNative();
+	return _controller->panel(_panelPosition).currentDirPathNative();
 }
 
 Panel CPanelWidget::panelPosition() const
@@ -147,11 +153,11 @@ void CPanelWidget::setPanelPosition(Panel p)
 	connect(_selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged);
 	connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 
-	_controller.setPanelContentsChangedListener(p, this);
+	_controller->setPanelContentsChangedListener(p, this);
 
 	fillHistory();
 
-	_controller.setVolumesChangedListener(this);
+	_controller->setVolumesChangedListener(this);
 }
 
 // Returns the list of items added to the view
@@ -259,7 +265,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	}
 	else if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
-		const qulonglong itemHashToSetCursorTo = _controller.currentItemHashForFolder(_panelPosition, _controller.panel(_panelPosition).currentDirPathPosix());
+		const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPathPosix());
 		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo, true);
 		if (itemIndexToSetCursorTo.isValid())
 			indexUnderCursor = itemIndexToSetCursorTo;
@@ -315,14 +321,14 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 	const auto selection = selectedItemsHashes(true);
 	std::vector<std::wstring> paths;
 	if (selection.empty())
-		paths.push_back(_controller.panel(_panelPosition).currentDirPathNative().toStdWString());
+		paths.push_back(_controller->panel(_panelPosition).currentDirPathNative().toStdWString());
 	else
 	{
 		for (size_t i = 0; i < selection.size(); ++i)
 		{
-			if (!_controller.itemByHash(_panelPosition, selection[i]).isCdUp() || selection.size() == 1)
+			if (!_controller->itemByHash(_panelPosition, selection[i]).isCdUp() || selection.size() == 1)
 			{
-				QString selectedItemPath = _controller.itemPath(_panelPosition, selection[i]);
+				QString selectedItemPath = _controller->itemPath(_panelPosition, selection[i]);
 				paths.push_back(selectedItemPath.toStdWString());
 			}
 			else if (!selection.empty())
@@ -345,7 +351,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 
 	pos = button->mapToGlobal(pos);
 	const size_t diskId = (size_t)(button->property("id").toULongLong());
-	std::vector<std::wstring> diskPath(1, _controller.volumePath(diskId).toStdWString());
+	std::vector<std::wstring> diskPath(1, _controller->volumePath(diskId).toStdWString());
 	CShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), (HWND)winId());
 #else
 	Q_UNUSED(pos);
@@ -358,7 +364,7 @@ void CPanelWidget::calcDirectorySize()
 	if (itemIndex.isValid())
 	{
 		_selectionModel->select(itemIndex, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
-		_controller.displayDirSize(_panelPosition, hashByItemIndex(itemIndex));
+		_controller->displayDirSize(_panelPosition, hashByItemIndex(itemIndex));
 	}
 }
 
@@ -379,8 +385,8 @@ void CPanelWidget::driveButtonClicked()
 		return;
 
 	const size_t id = (size_t)(sender()->property("id").toULongLong());
-	if (!_controller.switchToVolume(_panelPosition, id))
-		QMessageBox::information(this, tr("Failed to switch disk"), tr("The disk %1 is inaccessible (locked or doesn't exist).").arg(_controller.volumePath(id)));
+	if (!_controller->switchToVolume(_panelPosition, id))
+		QMessageBox::information(this, tr("Failed to switch disk"), tr("The disk %1 is inaccessible (locked or doesn't exist).").arg(_controller->volumePath(id)));
 
 	ui->_list->setFocus();
 }
@@ -396,7 +402,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 		for (const auto& index: indexList)
 		{
 			const auto hash = hashByItemIndex(index);
-			if (_controller.itemByHash(_panelPosition, hash).fullAbsolutePath() == cdUpPath)
+			if (_controller->itemByHash(_panelPosition, hash).fullAbsolutePath() == cdUpPath)
 			{
 				auto cdUpIndex = indexByHash(hash);
 				assert_r(cdUpIndex.isValid());
@@ -417,19 +423,19 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
 	const qulonglong hash = current.isValid() ? hashByItemIndex(current) : 0;
-	_controller.setCursorPositionForCurrentFolder(_panelPosition, hash);
+	_controller->setCursorPositionForCurrentFolder(_panelPosition, hash);
 
 	emit currentItemChangedSignal(_panelPosition, hash);
 }
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 {
-	CFileSystemObject item = _controller.itemByHash(_panelPosition, hash);
+	CFileSystemObject item = _controller->itemByHash(_panelPosition, hash);
 	if (item.isCdUp())
 		return;
 
 	// This is required for the UI to know to move the cursor to the renamed item
-	_controller.setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() % "/" % newName).hash());
+	_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() % "/" % newName).hash());
 
 	if (item.moveAtomically(item.parentDirPath(), newName) != rcOk)
 	{
@@ -444,7 +450,7 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 void CPanelWidget::toRoot()
 {
 	if (!_currentDisk.isEmpty())
-		_controller.setPath(_panelPosition, _currentDisk, refreshCauseOther);
+		_controller->setPath(_panelPosition, _currentDisk, refreshCauseOther);
 }
 
 void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
@@ -465,7 +471,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 				}
 
 				QObject::connect(action, &QAction::triggered, [this, path](){
-					_controller.setPath(_panelPosition, path, refreshCauseOther);
+					_controller->setPath(_panelPosition, path, refreshCauseOther);
 				});
 			}
 			else
@@ -496,7 +502,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 					return;
 				}
 
-				_controller.favoriteLocations().addItem(locations, name, currentDir());
+				_controller->favoriteLocations().addItem(locations, name, currentDir());
 			}
 		});
 
@@ -512,12 +518,12 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 				}
 
 				parentMenu->addMenu(name);
-				_controller.favoriteLocations().addItem(locations, name);
+				_controller->favoriteLocations().addItem(locations, name);
 			}
 		});
 	};
 
-	createMenus(&menu, _controller.favoriteLocations().locations());
+	createMenus(&menu, _controller->favoriteLocations().locations());
 	menu.addSeparator();
 	QAction * edit = menu.addAction(tr("Edit..."));
 	connect(edit, &QAction::triggered, this, &CPanelWidget::showFavoriteLocationsEditor);
@@ -536,7 +542,7 @@ void CPanelWidget::fileListViewKeyPressed(QString keyText, int key, Qt::Keyboard
 	if (key == Qt::Key_Backspace)
 	{
 		// Navigating back
-		_controller.navigateUp(_panelPosition);
+		_controller->navigateUp(_panelPosition);
 	}
 	else
 	{
@@ -581,7 +587,7 @@ void CPanelWidget::copySelectionToClipboard() const
 	std::vector<std::wstring> paths;
 	auto hashes = selectedItemsHashes();
 	for (auto hash: hashes)
-		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
+		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
 	CShell::copyObjectsToClipboard(paths, (void*)winId());
 #endif
@@ -614,7 +620,7 @@ void CPanelWidget::cutSelectionToClipboard() const
 	std::vector<std::wstring> paths;
 	auto hashes = selectedItemsHashes();
 	for (auto hash: hashes)
-		paths.emplace_back(_controller.itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
+		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
 	CShell::cutObjectsToClipboard(paths, (void*)winId());
 #endif
@@ -632,7 +638,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 #else
 	void* hwnd = (void*)winId();
 	const auto currentDirWString = currentDir().toStdWString();
-	_controller.execOnWorkerThread([=]() {
+	_controller->execOnWorkerThread([=]() {
 		CShell::pasteFromClipboard(currentDirWString, hwnd);
 	});
 #endif
@@ -641,7 +647,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 void CPanelWidget::pathFromHistoryActivated(QString path)
 {
 	const CFileSystemObject processedPath(path); // Needed for expanding environment variables in the path
-	if (_controller.setPath(_panelPosition, processedPath.fullAbsolutePath(), refreshCauseOther) == rcDirNotAccessible)
+	if (_controller->setPath(_panelPosition, processedPath.fullAbsolutePath(), refreshCauseOther) == rcDirNotAccessible)
 		QMessageBox::information(this, tr("Failed to set the path"), tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(path));
 }
 
@@ -652,7 +658,7 @@ void CPanelWidget::openSearchWindow()
 
 void CPanelWidget::fillHistory()
 {
-	const auto& history = _controller.panel(_panelPosition).history();
+	const auto& history = _controller->panel(_panelPosition).history();
 	if (history.empty())
 		return;
 
@@ -668,7 +674,7 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 	ui->_infoLabel->clear();
 
 	uint64_t numFilesSelected = 0, numFoldersSelected = 0, totalSize = 0, sizeSelected = 0, totalNumFolders = 0, totalNumFiles = 0;
-	for (const auto& item: _controller.panel(_panelPosition).list())
+	for (const auto& item: _controller->panel(_panelPosition).list())
 	{
 		const CFileSystemObject& object = item.second;
 		if (object.isFile())
@@ -680,7 +686,7 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 
 	for (const auto selectedItem: selection)
 	{
-		const CFileSystemObject object = _controller.itemByHash(_panelPosition, selectedItem);
+		const CFileSystemObject object = _controller->itemByHash(_panelPosition, selectedItem);
 		if (object.isFile())
 			++numFilesSelected;
 		else if (object.isDir())
@@ -810,9 +816,9 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
 		{
 			if (wEvent->delta() > 0)
-				_controller.navigateBack(_panelPosition);
+				_controller->navigateBack(_panelPosition);
 			else
-				_controller.navigateForward(_panelPosition);
+				_controller->navigateForward(_panelPosition);
 			return true;
 		}
 	}
@@ -832,7 +838,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 void CPanelWidget::panelContentsChanged(Panel p , FileListRefreshCause operation)
 {
 	if (p == _panelPosition)
-		fillFromPanel(_controller.panel(_panelPosition), operation);
+		fillFromPanel(_controller->panel(_panelPosition), operation);
 }
 
 void CPanelWidget::itemDiscoveryInProgress(Panel p, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
@@ -866,7 +872,7 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 		for (const auto selectedItem: selection)
 		{
 			const qulonglong hash = hashByItemIndex(selectedItem);
-			if (!_controller.itemByHash(_panelPosition, hash).isCdUp())
+			if (!_controller->itemByHash(_panelPosition, hash).isCdUp())
 				result.push_back(hash);
 		}
 	}
@@ -876,7 +882,7 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 		if (currentIndex.isValid())
 		{
 			const auto hash = hashByItemIndex(currentIndex);
-			if (!_controller.itemByHash(_panelPosition, hash).isCdUp())
+			if (!_controller->itemByHash(_panelPosition, hash).isCdUp())
 				result.push_back(hash);
 		}
 	}
@@ -916,11 +922,11 @@ void CPanelWidget::updateCurrentDiskButton()
 			continue;
 
 		const size_t id = (size_t)(button->property("id").toULongLong());
-		const size_t currentDriveId = _controller.currentVolumeIndex(_panelPosition);
+		const size_t currentDriveId = _controller->currentVolumeIndex(_panelPosition);
 		if (id == currentDriveId)
 		{
 			button->setChecked(true);
-			const auto& diskInfo = _controller.volumeEnumerator().drives()[id];
+			const auto& diskInfo = _controller->volumeEnumerator().drives()[id];
 			_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
 			ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").arg(diskInfo.volumeLabel).
 				arg(diskInfo.fileSystemName).

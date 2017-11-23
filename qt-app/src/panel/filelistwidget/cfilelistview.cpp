@@ -20,8 +20,7 @@ RESTORE_COMPILER_WARNINGS
 #endif
 
 CFileListView::CFileListView(QWidget *parent) :
-	QTreeView(parent),
-	_controller(CController::get())
+	QTreeView(parent)
 {
 	setMouseTracking(true);
 	setItemDelegate(new CFileListItemDelegate);

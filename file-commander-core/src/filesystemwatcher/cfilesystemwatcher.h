@@ -2,6 +2,7 @@
 
 #include "compiler/compiler_warnings_control.h"
 #include "container/std_container_helpers.hpp"
+#include "container/ordered_containers.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>

@@ -1,4 +1,4 @@
- #pragma once
+#pragma once
 
 #include "cpanel.h"
 #include "ccontroller.h"
@@ -20,11 +20,11 @@ struct FileListViewEventObserver {
 };
 
 struct FileListReturnPressedObserver : FileListViewEventObserver {
-	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex&) override {return false;}
+	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex&) override { return false; }
 };
 
 struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
-	bool fileListReturnPressed() override {return false;}
+	bool fileListReturnPressed() override { return false; }
 };
 
 class QMouseEvent;
@@ -54,7 +54,7 @@ public:
 	void modelAboutToBeReset();
 
 signals:
-	void contextMenuRequested (QPoint pos);
+	void contextMenuRequested(QPoint pos);
 	void ctrlEnterPressed();
 	void ctrlShiftEnterPressed();
 	void keyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
@@ -69,7 +69,7 @@ protected:
 	void keyPressEvent(QKeyEvent * event) override;
 	void keyReleaseEvent(QKeyEvent * event) override;
 
-	bool edit( const QModelIndex & index, EditTrigger trigger, QEvent * event ) override;
+	bool edit(const QModelIndex & index, EditTrigger trigger, QEvent * event) override;
 
 	void dragMoveEvent(QDragMoveEvent * event) override;
 
@@ -91,7 +91,6 @@ private:
 
 	QModelIndex                         _currentItemBeforeMouseClick;
 
-	CController                       & _controller;
 	enum Panel                          _panelPosition = UnknownPanel;
 	bool                                _bHeaderAdjustmentRequired = true;
 	QPoint                              _singleMouseClickPos;

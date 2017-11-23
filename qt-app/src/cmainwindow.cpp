@@ -50,51 +50,17 @@ RESTORE_COMPILER_WARNINGS
 #define KEY_SPLITTER_SIZES    "Ui/Splitter"
 #define KEY_LAST_ACTIVE_PANEL "Ui/LastActivePanel"
 
-CMainWindow * CMainWindow::_instance = 0;
+CMainWindow * CMainWindow::_instance = nullptr;
 
 CMainWindow::CMainWindow(QWidget *parent) :
 	QMainWindow(parent),
-	ui(new Ui::CMainWindow),
-	_controller(std::make_unique<CController>())
+	ui(new Ui::CMainWindow)
 {
 	assert_r(!_instance);
 	_instance = this;
 	ui->setupUi(this);
 
 	installEventFilter(new CPersistenceEnabler("UI/MainWindow", this));
-
-	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt());
-
-	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
-
-	_controller->pluginProxy().setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(menuEntries);});
-	// Need to load the plugins only after the menu creator has been set
-	_controller->loadPlugins();
-
-	_currentFileList = ui->leftPanel;
-	_otherFileList   = ui->rightPanel;
-
-	connect(ui->leftPanel->fileListView(),  &CFileListView::ctrlEnterPressed, this, &CMainWindow::pasteCurrentFileName);
-	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlEnterPressed, this, &CMainWindow::pasteCurrentFileName);
-	connect(ui->leftPanel->fileListView(),  &CFileListView::ctrlShiftEnterPressed, this, &CMainWindow::pasteCurrentFilePath);
-	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlShiftEnterPressed, this, &CMainWindow::pasteCurrentFilePath);
-
-	connect(ui->leftPanel, &CPanelWidget::currentItemChangedSignal, this, &CMainWindow::currentItemChanged);
-	connect(ui->rightPanel, &CPanelWidget::currentItemChangedSignal, this, &CMainWindow::currentItemChanged);
-
-	connect(ui->leftPanel, &CPanelWidget::itemActivated, this, &CMainWindow::itemActivated);
-	connect(ui->rightPanel, &CPanelWidget::itemActivated, this, &CMainWindow::itemActivated);
-
-	ui->leftPanel->fileListView()->addEventObserver(this);
-	ui->rightPanel->fileListView()->addEventObserver(this);
-
-	initButtons();
-	initActions();
-
-	ui->leftPanel->setPanelPosition(LeftPanel);
-	ui->rightPanel->setPanelPosition(RightPanel);
-
-	ui->fullPath->clear();
 
 	QSplitterHandle * handle = ui->splitter->handle(1);
 	handle->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -108,15 +74,6 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	ui->_commandLine->setCompleter(&_commandLineCompleter);
 	ui->_commandLine->setClearEditorOnItemActivation(true);
 	ui->_commandLine->installEventFilter(this);
-
-	ui->leftWidget->setCurrentIndex(0); // PanelWidget
-	ui->rightWidget->setCurrentIndex(0); // PanelWidget
-
-	_controller->panel(LeftPanel).addPanelContentsChangedListener(this);
-	_controller->panel(RightPanel).addPanelContentsChangedListener(this);
-
-	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
-	_uiThreadTimer.start(5);
 }
 
 void CMainWindow::initButtons()
@@ -272,6 +229,9 @@ void CMainWindow::updateInterface()
 
 void CMainWindow::showEvent(QShowEvent * e)
 {
+	if (!coreIsInitialized())
+		initCore();
+
 	QMainWindow::showEvent(e);
 
 	// Check for updates
@@ -784,6 +744,60 @@ void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation
 
 void CMainWindow::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
 {
+}
+
+void CMainWindow::initCore()
+{
+	_controller = std::make_unique<CController>();
+	ui->leftPanel->init(_controller.get());
+	ui->rightPanel->init(_controller.get());
+
+	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt());
+
+	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
+
+	_controller->pluginProxy().setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(menuEntries); });
+	// Need to load the plugins only after the menu creator has been set
+	_controller->loadPlugins();
+
+	_currentFileList = ui->leftPanel;
+	_otherFileList = ui->rightPanel;
+
+	connect(ui->leftPanel->fileListView(), &CFileListView::ctrlEnterPressed, this, &CMainWindow::pasteCurrentFileName);
+	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlEnterPressed, this, &CMainWindow::pasteCurrentFileName);
+	connect(ui->leftPanel->fileListView(), &CFileListView::ctrlShiftEnterPressed, this, &CMainWindow::pasteCurrentFilePath);
+	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlShiftEnterPressed, this, &CMainWindow::pasteCurrentFilePath);
+
+	connect(ui->leftPanel, &CPanelWidget::currentItemChangedSignal, this, &CMainWindow::currentItemChanged);
+	connect(ui->rightPanel, &CPanelWidget::currentItemChangedSignal, this, &CMainWindow::currentItemChanged);
+
+	connect(ui->leftPanel, &CPanelWidget::itemActivated, this, &CMainWindow::itemActivated);
+	connect(ui->rightPanel, &CPanelWidget::itemActivated, this, &CMainWindow::itemActivated);
+
+	ui->leftPanel->fileListView()->addEventObserver(this);
+	ui->rightPanel->fileListView()->addEventObserver(this);
+
+	initButtons();
+	initActions();
+
+	ui->leftPanel->setPanelPosition(LeftPanel);
+	ui->rightPanel->setPanelPosition(RightPanel);
+
+	ui->fullPath->clear();
+
+	ui->leftWidget->setCurrentIndex(0); // PanelWidget
+	ui->rightWidget->setCurrentIndex(0); // PanelWidget
+
+	_controller->panel(LeftPanel).addPanelContentsChangedListener(this);
+	_controller->panel(RightPanel).addPanelContentsChangedListener(this);
+
+	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
+	_uiThreadTimer.start(5);
+}
+
+bool CMainWindow::coreIsInitialized() const
+{
+	return _controller != nullptr;
 }
 
 void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries)
