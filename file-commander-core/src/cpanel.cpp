@@ -249,7 +249,6 @@ qulonglong CPanel::currentItemForFolder(const QString &dir) const
 void CPanel::refreshFileList(FileListRefreshCause operation)
 {
 	_workerThreadPool.enqueue([this, operation]() {
-		const time_t start = clock();
 		QFileInfoList list;
 
 		{
