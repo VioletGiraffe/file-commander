@@ -203,6 +203,28 @@ CMainWindow *CMainWindow::get()
 	return _instance;
 }
 
+bool CMainWindow::created() const
+{
+	return _controller != nullptr;
+}
+
+// One-time initialization
+void CMainWindow::onCreate()
+{
+	assert(!created());
+
+	initCore();
+
+	// Check for updates
+	if (CSettings().value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() && CSettings().value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
+	{
+		CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
+		auto dlg = new CUpdaterDialog(this, "https://github.com/VioletGiraffe/file-commander", VERSION_STRING, true);
+		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
+		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
+	}
+}
+
 void CMainWindow::updateInterface()
 {
 	CSettings s;
@@ -225,23 +247,6 @@ void CMainWindow::updateInterface()
 		ui->leftPanel->setFocusToFileList();
 	else
 		ui->rightPanel->setFocusToFileList();
-}
-
-void CMainWindow::showEvent(QShowEvent * e)
-{
-	if (!coreIsInitialized())
-		initCore();
-
-	QMainWindow::showEvent(e);
-
-	// Check for updates
-	if (CSettings().value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() && CSettings().value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
-	{
-		CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-		auto dlg = new CUpdaterDialog(this, "https://github.com/VioletGiraffe/file-commander", VERSION_STRING, true);
-		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
-		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
-	}
 }
 
 void CMainWindow::closeEvent(QCloseEvent *e)
@@ -793,11 +798,6 @@ void CMainWindow::initCore()
 
 	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
 	_uiThreadTimer.start(5);
-}
-
-bool CMainWindow::coreIsInitialized() const
-{
-	return _controller != nullptr;
 }
 
 void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries)

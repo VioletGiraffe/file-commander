@@ -5,6 +5,7 @@
 #include "directoryscanner.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QAbstractNativeEventFilter>
 #include <QApplication>
 #include <QDebug>
 #include <QFontDatabase>
@@ -33,6 +34,24 @@ public:
 	}
 };
 
+struct NativeEventFilter : public QAbstractNativeEventFilter
+{
+	inline NativeEventFilter(CMainWindow& mainApplicationWindow) : _mainWindow(mainApplicationWindow) {}
+
+	inline bool nativeEventFilter(const QByteArray & /*eventType*/, void * /*message*/, long * /*result*/) override {
+		if (!_mainWindow.created())
+		{
+			_mainWindow.onCreate();
+			_mainWindow.updateInterface();
+		}
+
+		return false;
+	}
+
+private:
+	CMainWindow& _mainWindow;
+};
+
 int main(int argc, char *argv[])
 {
 	AdvancedAssert::setLoggingFunc([](const char* message){
@@ -53,9 +72,10 @@ int main(int argc, char *argv[])
 	CSettings::setOrganizationName(app.organizationName());
 
 	CMainWindow w;
-	w.updateInterface();
 
-	const int retCode = app.exec();
-	return retCode;
+	NativeEventFilter nativeEventFilter(w);
+	app.installNativeEventFilter(&nativeEventFilter);
+
+	return app.exec();
 }
 

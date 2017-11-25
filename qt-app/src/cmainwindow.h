@@ -33,6 +33,10 @@ public:
 	~CMainWindow();
 	static CMainWindow* get();
 
+	// One-time initialization
+	bool created() const;
+	void onCreate();
+
 	void updateInterface();
 
 	void initButtons();
@@ -51,7 +55,6 @@ signals:
 	void fileQuickVewFinished();
 
 protected:
-	void showEvent(QShowEvent * e) override;
 	void closeEvent(QCloseEvent * e) override;
 	bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -110,7 +113,6 @@ private:
 
 private:
 	void initCore();
-	bool coreIsInitialized() const;
 
 	void createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries);
 	void addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& entry, QMenu* toolMenu);
