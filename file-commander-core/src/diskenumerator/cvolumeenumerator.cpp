@@ -164,16 +164,22 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 
 const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
-	std::deque<VolumeInfo> volumes;
-	return volumes;
+	VolumeInfo info;
+	info.rootObjectInfo = "/";
+	info.volumeLabel = "root";
+
+	return std::deque<VolumeInfo>(1, info);
 }
 
 #elif defined __linux__
 
 const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
-	std::deque<VolumeInfo> volumes;
-	return volumes;
+	VolumeInfo info;
+	info.rootObjectInfo = "/";
+	info.volumeLabel = "root";
+
+	return std::deque<VolumeInfo>(1, info);
 }
 
 #else
