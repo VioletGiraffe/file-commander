@@ -13,8 +13,6 @@
 #include <mutex>
 #include <vector>
 
-class CFileSystemWatcher;
-
 enum Panel
 {
 	LeftPanel,
@@ -118,7 +116,7 @@ private:
 	std::map<qulonglong, CFileSystemObject>    _items;
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
-	std::shared_ptr<CFileSystemWatcher>        _watcher;
+	std::shared_ptr<class CFileSystemWatcher>  _watcher; // Can't use uniqe_ptr because it doesn't play nicely with forward declaration
 	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;

@@ -57,21 +57,32 @@ void detail::CFileSystemWatcherInterface::processChangesAndNotifySubscribers(con
 
 CFileSystemWatcher::CFileSystemWatcher()
 {
-	_timer.setInterval(333);
 	QObject::connect(&_timer, &QTimer::timeout, [this]() {onCheckForChanges();});
+	_timer.start(333);
 }
 
 bool CFileSystemWatcher::setPathToWatch(const QString& path)
 {
+	std::lock_guard<std::mutex> locker(_pathMutex);
+
 	_pathToWatch = path;
 	assert_and_return_r(QFileInfo(path).isDir(), false);
 
-	_timer.start();
 	return true;
 }
 
 void CFileSystemWatcher::onCheckForChanges()
 {
-	const auto state = QDir(_pathToWatch).entryInfoList(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
+	QDir directory;
+
+	{
+		std::lock_guard<std::mutex> locker(_pathMutex);
+		if (!_pathToWatch.isEmpty())
+			directory.setPath(_pathToWatch);
+		else
+			return;
+	}
+
+	const auto state = directory.entryInfoList(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
 	processChangesAndNotifySubscribers(state);
 }

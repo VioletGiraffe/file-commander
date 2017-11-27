@@ -14,24 +14,31 @@ RESTORE_COMPILER_WARNINGS
 #include <time.h>
 #include <limits>
 
+#define exec_on_UI_thread _uiThreadQueue.enqueue
+
 enum {
 	ContentsChangedNotificationTag,
 	ItemDiscoveryProgressNotificationTag
 };
 
 CPanel::CPanel(Panel position) :
+	_watcher(std::make_shared<CFileSystemWatcher>()),
 	_panelPosition(position),
 	_workerThreadPool(4, std::string(position == LeftPanel ? "Left panel" : "Right panel") + " file list refresh thread pool")
 {
 	// The list of items in the current folder is being refreshed asynchronously, not every time a change is detected, to avoid refresh tasks queuing up out of control
 	_fileListRefreshTimer.start(200);
 	connect(&_fileListRefreshTimer, &QTimer::timeout, this, &CPanel::processContentsChangedEvent);
+
+	_watcher->addCallback([this](const transparent_set<QFileInfo>&, const transparent_set<QFileInfo>&, const transparent_set<QFileInfo>&) {
+		contentsChanged();
+	});
 }
 
 void CPanel::restoreFromSettings()
 {
 	CSettings s;
-	const QStringList historyList(s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList());
+	const QStringList historyList = s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList();
 	_history.addLatest(historyList.toVector().toStdVector());
 	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString(), refreshCauseOther);
 }
@@ -102,14 +109,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
 
-	_watcher = std::make_shared<CFileSystemWatcher>();
-
 	if (_watcher->setPathToWatch(newPath) == false)
 		qDebug() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
-
-	_watcher->addCallback([this](const transparent_set<QFileInfo>&, const transparent_set<QFileInfo>&, const transparent_set<QFileInfo>&) {
-		contentsChanged();
-	});
 
 	// If the new folder is one of the subfolders of the previous folder, mark it as the current for that previous folder
 	// We're using the fact that _currentDirObject is already updated, but the _items list is not as it still corresponds to the previous location
@@ -374,7 +375,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 
 void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
 {
-	_uiThreadQueue.enqueue([this, operation]() {
+	exec_on_UI_thread([this, operation]() {
 		for (auto listener : _panelContentsChangedListeners)
 			listener->panelContentsChanged(_panelPosition, operation);
 	}, ContentsChangedNotificationTag);
@@ -383,7 +384,7 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 // progress > 100 means indefinite
 void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const
 {
-	_uiThreadQueue.enqueue([=]() {
+	exec_on_UI_thread([=]() {
 		for (auto listener : _panelContentsChangedListeners)
 			listener->itemDiscoveryInProgress(_panelPosition, itemHash, progress, currentDir);
 	}, ItemDiscoveryProgressNotificationTag);

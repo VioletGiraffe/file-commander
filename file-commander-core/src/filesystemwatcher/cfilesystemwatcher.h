@@ -12,6 +12,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <deque>
 #include <functional>
+#include <mutex>
 #include <set>
 
 struct BasicFileSystemItemInfo
@@ -54,6 +55,8 @@ namespace detail {
 class CFileSystemWatcherInterface
 {
 public:
+	virtual ~CFileSystemWatcherInterface() = default;
+
 	void addCallback(ChangeDetectedCallback callback);
 	virtual bool setPathToWatch(const QString& path) = 0;
 
@@ -61,6 +64,7 @@ protected:
 	void processChangesAndNotifySubscribers(const QFileInfoList& newState);
 
 protected:
+	std::mutex _pathMutex;
 	QString _pathToWatch;
 
 private:

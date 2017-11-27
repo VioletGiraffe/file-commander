@@ -31,10 +31,10 @@ HEADERS += \
 	src/iconprovider/ciconproviderimpl.h \
 	src/fasthash.h \
 	src/filesearchengine/cfilesearchengine.h \
-    src/directoryscanner.h \
-    src/diskenumerator/volumeinfo.hpp \
-    src/diskenumerator/cvolumeenumerator.h \
-    src/filesystemwatcher/cfilesystemwatcher.h
+	src/directoryscanner.h \
+	src/diskenumerator/volumeinfo.hpp \
+	src/diskenumerator/cvolumeenumerator.h \
+	src/filesystemwatcher/cfilesystemwatcher.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -46,9 +46,9 @@ SOURCES += \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/fasthash.c \
 	src/filesearchengine/cfilesearchengine.cpp \
-    src/directoryscanner.cpp \
-    src/diskenumerator/cvolumeenumerator.cpp \
-    src/filesystemwatcher/cfilesystemwatcher.cpp
+	src/directoryscanner.cpp \
+	src/diskenumerator/cvolumeenumerator.cpp \
+	src/filesystemwatcher/cfilesystemwatcher.cpp
 
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)
