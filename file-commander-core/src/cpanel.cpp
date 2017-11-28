@@ -273,6 +273,10 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 
 		for (size_t i = 0; i < numItemsFound; ++i)
 		{
+#ifndef _WIN32
+			if (list[(int)i].absoluteFilePath() == QLatin1String("/.."))
+				continue;
+#endif
 			objectsList.emplace_back(list[(int)i]);
 			sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20 + 80 * i / numItemsFound, _currentDirObject.fullAbsolutePath());
 		}
