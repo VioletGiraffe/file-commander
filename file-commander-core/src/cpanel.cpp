@@ -40,7 +40,7 @@ void CPanel::restoreFromSettings()
 	CSettings s;
 	const QStringList historyList = s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList();
 	_history.addLatest(historyList.toVector().toStdVector());
-	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::root().absolutePath()).toString(), refreshCauseOther);
+	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString(), refreshCauseOther);
 }
 
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
@@ -88,7 +88,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 			}
 
 			if (pathToSet.isEmpty())
-				pathToSet = QDir::rootPath();
+				pathToSet = QDir::homePath();
 			_currentDirObject.setPath(pathToSet);
 		}
 	}
