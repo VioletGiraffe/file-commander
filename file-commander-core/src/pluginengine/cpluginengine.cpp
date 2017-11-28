@@ -56,7 +56,7 @@ void CPluginEngine::loadPlugins()
 			if (plugin)
 			{
 				plugin->setProxy(&CController::get().pluginProxy());
-				qDebug() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name()).arg(path.fileName());
+				qInfo() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name()).arg(path.fileName());
 				_plugins.emplace_back(std::make_pair(std::shared_ptr<CFileCommanderPlugin>(plugin), pluginModule));
 			}
 		}
@@ -144,8 +144,8 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 {
 	const QString currentFile = CController::get().pluginProxy().currentItemPath();
 	const auto type = QMimeDatabase().mimeTypeForFile(currentFile, QMimeDatabase::MatchContent);
-	qDebug() << "Selecting a viewer plugin for" << currentFile;
-	qDebug() << "File type:" << type.name() << ", aliases:" << type.aliases();
+	qInfo() << "Selecting a viewer plugin for" << currentFile;
+	qInfo() << "File type:" << type.name() << ", aliases:" << type.aliases();
 
 	for(auto& plugin: _plugins)
 	{
@@ -155,7 +155,7 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 			assert_r(viewer);
 			if (viewer && viewer->canViewFile(currentFile, type))
 			{
-				qDebug() << viewer->name() << "selected";
+				qInfo() << viewer->name() << "selected";
 				return viewer;
 			}
 		}

@@ -9,7 +9,7 @@ RESTORE_COMPILER_WARNINGS
 CFileCommanderPlugin::CFileCommanderPlugin()
 {
 	AdvancedAssert::setLoggingFunc([](const char* message){
-		qDebug() << message;
+		qInfo() << message;
 	});
 }
 

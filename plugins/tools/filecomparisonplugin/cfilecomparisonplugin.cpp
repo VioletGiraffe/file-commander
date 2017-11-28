@@ -69,9 +69,9 @@ void CFileComparisonPlugin::compareSelectedFiles()
 
 	QProgressDialog progressDialog;
 
-	_comparator.compareFilesThreaded(fileA, fileB, [](int p) {qDebug() << p; }, [](CFileComparator::ComparisonResult result) {});
+	_comparator.compareFilesThreaded(fileA, fileB, [](int p) {qInfo() << p; }, [](CFileComparator::ComparisonResult result) {});
 
-// 	if (compareFilesByContents(fileA, fileB, [](int p) {qDebug() << p;}) == Equal)
+// 	if (compareFilesByContents(fileA, fileB, [](int p) {qInfo() << p;}) == Equal)
 // 		QMessageBox::information(nullptr, "Files are identical", QObject::tr("The file %1 is identical in both locations.").arg(currentItem.fullName()));
 // 	else
 // 		QMessageBox::information(nullptr, "Files differ", "The files are not identical.");

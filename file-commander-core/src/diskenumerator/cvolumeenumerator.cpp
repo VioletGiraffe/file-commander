@@ -108,7 +108,7 @@ inline VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 
 	if (error != 0 && error != ERROR_NOT_READY)
 	{
-		qDebug() << "GetVolumeInformationW() returned error:" << ErrorStringFromLastError();
+		qInfo() << "GetVolumeInformationW() returned error:" << ErrorStringFromLastError();
 		return info;
 	}
 	else
@@ -125,7 +125,7 @@ inline VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 			info.freeSize = freeSpace.QuadPart;
 		}
 		else
-			qDebug() << "GetDiskFreeSpaceExW() returned error:" << ErrorStringFromLastError();
+			qInfo() << "GetDiskFreeSpaceExW() returned error:" << ErrorStringFromLastError();
 	}
 
 	info.volumeLabel = QString::fromWCharArray(volumeName);
@@ -143,7 +143,7 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	DWORD drives = GetLogicalDrives();
 	if (drives == 0)
 	{
-		qDebug() << "GetLogicalDrives() returned an error:" << ErrorStringFromLastError();
+		qInfo() << "GetLogicalDrives() returned an error:" << ErrorStringFromLastError();
 		return volumes;
 	}
 

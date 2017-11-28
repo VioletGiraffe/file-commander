@@ -91,8 +91,8 @@ bool CShell::runExe(const QString& command, const QString& arguments, const QStr
 		if (GetLastError() != ERROR_CANCELLED) // Operation canceled by the user
 		{
 			const QString errorString = ErrorStringFromLastError();
-			qDebug() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirNative;
-			qDebug() << errorString;
+			qInfo() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirNative;
+			qInfo() << errorString;
 
 			return false;
 		}
@@ -306,7 +306,7 @@ bool CShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTras
 			for (auto& pid : idLists)
 				ILFree(pid);
 
-			qDebug() << "ILCreateFromPathW" << "failed for path" << QString::fromWCharArray(path.c_str());
+			qInfo() << "ILCreateFromPathW" << "failed for path" << QString::fromWCharArray(path.c_str());
 			return false;
 		}
 		idLists.push_back(idl);
@@ -323,7 +323,7 @@ bool CShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTras
 
 	if (!SUCCEEDED(result) || !iArray)
 	{
-		qDebug() << "SHCreateShellItemArrayFromIDLists failed";
+		qInfo() << "SHCreateShellItemArrayFromIDLists failed";
 		return false;
 	}
 
@@ -331,14 +331,14 @@ bool CShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTras
 	result = CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation);
 	if (!SUCCEEDED(result) || !iOperation)
 	{
-		qDebug() << "CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation) failed";
+		qInfo() << "CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation) failed";
 		return false;
 	}
 
 	result = iOperation->DeleteItems(iArray);
 	if (!SUCCEEDED(result))
 	{
-		qDebug() << "DeleteItems failed";
+		qInfo() << "DeleteItems failed";
 	}
 	else
 	{
@@ -350,18 +350,18 @@ bool CShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTras
 			result = iOperation->SetOperationFlags(FOF_WANTNUKEWARNING);
 
 		if (!SUCCEEDED(result))
-			qDebug() << "SetOperationFlags failed";
+			qInfo() << "SetOperationFlags failed";
 
 		result = iOperation->SetOwnerWindow((HWND) parentWindow);
 		if (!SUCCEEDED(result))
-			qDebug() << "SetOwnerWindow failed";
+			qInfo() << "SetOwnerWindow failed";
 
 		result = iOperation->PerformOperations();
 		if (!SUCCEEDED(result) && result != COPYENGINE_E_USER_CANCELLED)
 		{
-			qDebug() << "PerformOperations failed";
+			qInfo() << "PerformOperations failed";
 			if (result == COPYENGINE_E_REQUIRES_ELEVATION)
-				qDebug() << "Elevation required";
+				qInfo() << "Elevation required";
 		}
 		else
 			result = S_OK;

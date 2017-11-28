@@ -27,6 +27,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
+#include <iostream>
 #include <time.h>
 #include <set>
 #include <tuple>
@@ -187,7 +188,9 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	for (const auto& item: items)
 	{
 		const CFileSystemObject& object = item.second;
-		auto props = object.properties();
+		const auto& props = object.properties();
+
+		std::cout << object.fullAbsolutePath().toLatin1().data();
 
 		QStandardItem * fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
@@ -230,17 +233,17 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		++itemRow;
 	}
 
-	//qDebug () << __FUNCTION__ << "Creating" << items.size() << "items took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	//qInfo () << __FUNCTION__ << "Creating" << items.size() << "items took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
 	//start = clock();
 	for (const auto& qTreeViewItem: qTreeViewItems)
 		_model->setItem(std::get<0>(qTreeViewItem), std::get<1>(qTreeViewItem), std::get<2>(qTreeViewItem));
 
-	//qDebug () << __FUNCTION__ << "Setting" << items.size() << "items to the model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	//qInfo () << __FUNCTION__ << "Setting" << items.size() << "items to the model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
 	//start = clock();
 	_sortModel->setSourceModel(_model);
-	//qDebug () << __FUNCTION__ << "Setting the source model to sort model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
+	//qInfo () << __FUNCTION__ << "Setting the source model to sort model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
 	ui->_list->restoreHeaderState();
 
@@ -279,7 +282,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
 	selectionChanged(QItemSelection(), QItemSelection());
 
-	//qDebug () << __FUNCTION__ << items.size() << "items," << (clock() - globalStart) * 1000 / CLOCKS_PER_SEC << "ms";
+	//qInfo () << __FUNCTION__ << items.size() << "items," << (clock() - globalStart) * 1000 / CLOCKS_PER_SEC << "ms";
 }
 
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
@@ -309,7 +312,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 		if (!selection.empty())
 			_selectionModel->select(selection, QItemSelectionModel::Rows | QItemSelectionModel::Select);
 
-		qDebug() << "_selectionModel->select took" << timer.elapsed() << "ms for" << selection.size() << "items";
+		qInfo() << "_selectionModel->select took" << timer.elapsed() << "ms for" << selection.size() << "items";
 	}
 
 	fillHistory();
@@ -792,7 +795,7 @@ QModelIndex CPanelWidget::indexByHash(const qulonglong hash, bool logFailures) c
 	}
 
 	if (logFailures)
-		qDebug() << "Failed to find hash" << hash << "in" << currentDir();
+		qInfo() << "Failed to find hash" << hash << "in" << currentDir();
 
 	return QModelIndex();
 }

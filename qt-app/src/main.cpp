@@ -55,7 +55,7 @@ private:
 int main(int argc, char *argv[])
 {
 	AdvancedAssert::setLoggingFunc([](const char* message){
-		qDebug() << message;
+		qInfo() << message;
 	});
 
 	QApplication app(argc, argv);

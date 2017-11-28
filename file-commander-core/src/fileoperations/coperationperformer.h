@@ -42,7 +42,7 @@ private:
 	}
 
 	inline void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) {
-		qDebug() << "COperationPerformer: process halted";
+		qInfo() << "COperationPerformer: process halted";
 
 		static const std::map<HaltReason, QString> haltReasonString = {
 			{hrFileExists, QObject::tr("File exists")},
@@ -57,7 +57,7 @@ private:
 
 		const auto reasonString = haltReasonString.find(reason);
 		assert_r(reasonString != haltReasonString.end());
-		qDebug() << "Reason:" << (reasonString != haltReasonString.end() ? reasonString->second : "") << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
+		qInfo() << "Reason:" << (reasonString != haltReasonString.end() ? reasonString->second : "") << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
 
 		std::lock_guard<std::mutex> lock(_callbackMutex);
 		_callbacks.emplace_back([=]() {
@@ -66,7 +66,7 @@ private:
 	}
 
 	inline void onProcessFinishedCallback(QString message = QString()) {
-		qDebug() << "COperationPerformer: operation finished, message:" << message;
+		qInfo() << "COperationPerformer: operation finished, message:" << message;
 		std::lock_guard<std::mutex> lock(_callbackMutex);
 		_callbacks.emplace_back([=]() {
 			onProcessFinished(message);

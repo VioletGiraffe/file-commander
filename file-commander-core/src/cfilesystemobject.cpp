@@ -81,7 +81,7 @@ void CFileSystemObject::refreshInfo()
 	else if (_properties.exists)
 	{
 #ifdef _WIN32
-		qDebug() << _properties.fullPath << " is neither a file nor a dir";
+		qInfo() << _properties.fullPath << " is neither a file nor a dir";
 #endif
 	}
 	else if (_properties.fullPath.endsWith('/'))
@@ -285,7 +285,7 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 		else
 		{
 			_lastErrorMessage = strerror(errno);
-			qDebug() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
+			qInfo() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
 		}
 #endif
 	}
@@ -564,7 +564,7 @@ bool CFileSystemObject::makeWritable(bool writeable)
 
 FileOperationResultCode CFileSystemObject::remove()
 {
-	qDebug() << "Removing" << _properties.fullPath;
+	qInfo() << "Removing" << _properties.fullPath;
 
 	assert_and_return_message_r(_fileInfo.exists(), "Object doesn't exist", rcObjectDoesntExist);
 
@@ -589,7 +589,7 @@ FileOperationResultCode CFileSystemObject::remove()
 #if defined __linux || defined __APPLE__
 //			dir.cdUp();
 //			bool succ = dir.remove(_fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1));
-//			qDebug() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();
+//			qInfo() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();
 			return ::rmdir(_properties.fullPath.toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
 //			return rcFail;
 #else

@@ -186,7 +186,7 @@ void COperationPerformer::copyFiles()
 			continue;
 		}
 
-		qDebug() << __FUNCTION__ << "Processing" << (sourceIterator->isFile() ? "file" : "DIR ") << sourceIterator->fullAbsolutePath();
+		qInfo() << __FUNCTION__ << "Processing" << (sourceIterator->isFile() ? "file" : "DIR ") << sourceIterator->fullAbsolutePath();
 		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->fullName());
 
 		const QFileInfo& sourceFileInfo = sourceIterator->qFileInfo();
@@ -259,7 +259,7 @@ void COperationPerformer::copyFiles()
 					finalize();
 					return;
 				default:
-					qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
+					qInfo() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
 					assert_unconditional_r("Unexpected deleteItem() return value");
 					continue; // Retry
 				}
@@ -332,7 +332,7 @@ void COperationPerformer::copyFiles()
 	for (auto& dir: dirsToCleanUp)
 		dir.remove();
 
-	qDebug() << __FUNCTION__ << "took" << _totalTimeElapsed.elapsed() << "ms";
+	qInfo() << __FUNCTION__ << "took" << _totalTimeElapsed.elapsed() << "ms";
 	finalize();
 }
 
@@ -364,7 +364,7 @@ void COperationPerformer::deleteFiles()
 		if (!it->isFile())
 			continue;
 
-		qDebug() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
+		qInfo() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
 		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
 
 		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
@@ -410,7 +410,7 @@ void COperationPerformer::deleteFiles()
 			finalize();
 			return;
 		default:
-			qDebug() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
+			qInfo() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
 			assert_unconditional_r("Unexpected deleteItem() return value");
 			continue;
 		}
@@ -425,7 +425,7 @@ void COperationPerformer::deleteFiles()
 		if (!it->isDir())
 			continue;
 
-		qDebug() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
+		qInfo() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
 		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
 
 		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
@@ -584,7 +584,7 @@ COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObjec
 
 	if (item.remove() != rcOk)
 	{
-		qDebug() << "Error removing" << (item.isFile() ? "file" : "folder") << item.fullAbsolutePath() << ", error: " << item.lastErrorMessage();
+		qInfo() << "Error removing" << (item.isFile() ? "file" : "folder") << item.fullAbsolutePath() << ", error: " << item.lastErrorMessage();
 		const auto response = getUserResponse(hrFailedToDelete, item, CFileSystemObject(), item.lastErrorMessage());
 		if (response == urSkipThis || response == urSkipAll)
 			return naSkip;
@@ -606,7 +606,7 @@ COperationPerformer::NextAction COperationPerformer::makeItemWriteable(CFileSyst
 {
 	if (!item.makeWritable())
 	{
-		qDebug() << "Error making file" << item.fullAbsolutePath() << "writable, retrying";
+		qInfo() << "Error making file" << item.fullAbsolutePath() << "writable, retrying";
 		const auto response = getUserResponse(hrFailedToMakeItemWritable, item, CFileSystemObject(), item.lastErrorMessage());
 		if (response == urSkipThis || response == urSkipAll)
 			return naSkip;
@@ -712,7 +712,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	if (result != rcOk)
 	{
 		item.cancelCopy();
-		qDebug() << "Error copying file " << item.fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) << ", error: " << item.lastErrorMessage();
+		qInfo() << "Error copying file " << item.fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) << ", error: " << item.lastErrorMessage();
 		const auto action = getUserResponse(hrUnknownError, item, CFileSystemObject(), item.lastErrorMessage());
 		if (action == urSkipThis || action == urSkipAll)
 			return naSkip;

@@ -110,7 +110,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
 
 	if (_watcher->setPathToWatch(newPath) == false)
-		qDebug() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
+		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
 
 	// If the new folder is one of the subfolders of the previous folder, mark it as the current for that previous folder
 	// We're using the fact that _currentDirObject is already updated, but the _items list is not as it still corresponds to the previous location
@@ -268,12 +268,12 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 		std::vector<CFileSystemObject> objectsList;
 
-		const size_t numItemsFound = list.size();
+		const size_t numItemsFound = (size_t)list.size();
 		objectsList.reserve(numItemsFound);
 
-		for (int i = 0; i < (int)numItemsFound; ++i)
+		for (size_t i = 0; i < numItemsFound; ++i)
 		{
-			objectsList.emplace_back(list[i]);
+			objectsList.emplace_back(list[(int)i]);
 			sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20 + 80 * i / numItemsFound, _currentDirObject.fullAbsolutePath());
 		}
 

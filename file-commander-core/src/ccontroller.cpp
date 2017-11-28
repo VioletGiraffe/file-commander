@@ -194,7 +194,7 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 		const QString newFolderPath = parentDir.absolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
 		// This is required for the UI to know to set the cursor at the new folder.
 		// It must be done before calling mkpath, or #133 will occur due to asynchronous file list refresh between mkpath and the current item selection logic (it gets overwritten from CPanelWidget::fillFromList).
-		qDebug() << "New folder hash:" << CFileSystemObject(newFolderPath).hash();
+		qInfo() << "New folder hash:" << CFileSystemObject(newFolderPath).hash();
 		setCursorPositionForCurrentFolder(activePanelPosition(), CFileSystemObject(newFolderPath).hash());
 	}
 
