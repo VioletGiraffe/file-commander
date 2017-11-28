@@ -167,6 +167,7 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	VolumeInfo info;
 	info.rootObjectInfo = "/";
 	info.volumeLabel = "root";
+	info.isReady = true;
 
 	return std::deque<VolumeInfo>(1, info);
 }
@@ -178,6 +179,7 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	VolumeInfo info;
 	info.rootObjectInfo = "/";
 	info.volumeLabel = "root";
+	info.isReady = true;
 
 	return std::deque<VolumeInfo>(1, info);
 }
