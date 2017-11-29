@@ -1,7 +1,6 @@
 #include "cmainwindow.h"
 #include "settings/csettings.h"
 #include "iconprovider/ciconprovider.h"
-#include "ui/high_dpi_support.h"
 #include "directoryscanner.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -65,8 +64,6 @@ int main(int argc, char *argv[])
 	app.installEventFilter(new ApplicationEventFilter(&app));
 
 	QFontDatabase::addApplicationFont(":/fonts/Roboto Mono.ttf");
-
-	enable_high_dpi_support();
 
 	CSettings::setApplicationName(app.applicationName());
 	CSettings::setOrganizationName(app.organizationName());
