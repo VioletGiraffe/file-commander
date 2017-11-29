@@ -3,6 +3,7 @@
 #include "container/algorithms.hpp"
 #include "container/set_operations.hpp"
 #include "utility/on_scope_exit.hpp"
+#include "volumeinfohelper.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -169,6 +170,10 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	info.volumeLabel = "root";
 	info.isReady = true;
 
+	const auto sys_info = volumeInfoForPath(info.rootObjectInfo.fullAbsolutePath());
+	info.volumeSize = sys_info.f_bsize * sys_info.f_blocks;
+	info.freeSize = sys_info.f_bsize * sys_info.f_bavail;
+
 	return std::deque<VolumeInfo>(1, info);
 }
 
@@ -180,6 +185,10 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	info.rootObjectInfo = "/";
 	info.volumeLabel = "root";
 	info.isReady = true;
+
+	const auto sys_info = volumeInfoForPath(info.rootObjectInfo.fullAbsolutePath());
+	info.volumeSize = sys_info.f_bsize * sys_info.f_blocks;
+	info.freeSize = sys_info.f_bsize * sys_info.f_bavail;
 
 	return std::deque<VolumeInfo>(1, info);
 }

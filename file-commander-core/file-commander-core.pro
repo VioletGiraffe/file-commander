@@ -34,7 +34,8 @@ HEADERS += \
 	src/directoryscanner.h \
 	src/diskenumerator/volumeinfo.hpp \
 	src/diskenumerator/cvolumeenumerator.h \
-	src/filesystemwatcher/cfilesystemwatcher.h
+	src/filesystemwatcher/cfilesystemwatcher.h \
+    src/diskenumerator/volumeinfohelper.hpp
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
