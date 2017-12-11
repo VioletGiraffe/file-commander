@@ -3,7 +3,6 @@
 set -e
 
 MYSELF="$(basename $0)"
-cd "$(dirname $0)/.."
 
 VOL="FileCommander"
 
@@ -62,6 +61,6 @@ end tell
 rm -f "$DMG"
 hdiutil convert "${TMP_DMG}" -format UDZO -o "${DMG}"
 rm -f "${TMP_DMG}"
-mv "${DMG}" ../../
+mv "${DMG}" ../../../
 
 echo "${MYSELF}: ready for distribution: ${DMG}"
