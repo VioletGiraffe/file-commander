@@ -44,11 +44,11 @@ private:
 	static const std::deque<VolumeInfo> enumerateVolumesImpl();
 
 private:
-	std::deque<VolumeInfo>     _drives;
+	std::deque<VolumeInfo> _drives;
 	std::deque<IVolumeListObserver*> _observers;
-	mutable CExecutionQueue         _notificationsQueue;
-	CPeriodicExecutionThread        _enumeratorThread;
-	QTimer                          _timer;
+	mutable CExecutionQueue          _notificationsQueue;
+	CPeriodicExecutionThread         _enumeratorThread;
+	QTimer                           _timer;
 
-	static const unsigned int       _updateInterval = 1000; // ms
+	const unsigned int _updateInterval = 1000; // ms
 };

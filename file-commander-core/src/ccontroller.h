@@ -74,7 +74,7 @@ public:
 // Threading
 	inline void execOnWorkerThread(const std::function<void()>& task)
 	{
-		_workerThread.enqueue(task);
+		_workerThreadPool.enqueue(task);
 	}
 
 	inline void execOnUiThread(const std::function<void ()>& task, int tag = -1)
@@ -126,6 +126,6 @@ private:
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;
 	Panel                _activePanel = UnknownPanel;
 
-	CWorkerThreadPool _workerThread; // The thread used to execute tasks out of the UI thread
+	CWorkerThreadPool _workerThreadPool; // The thread used to execute tasks out of the UI thread
 	CExecutionQueue   _uiQueue;      // The queue for actions that must be executed on the UI thread
 };

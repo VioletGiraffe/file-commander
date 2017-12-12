@@ -1,6 +1,7 @@
 #include "coperationperformer.h"
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
+#include "threading/thread_helpers.h"
 
 COperationPerformer::COperationPerformer(Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
 	_source(source),
@@ -69,6 +70,8 @@ void COperationPerformer::cancel()
 
 void COperationPerformer::threadFunc()
 {
+	setThreadName("COperationPerformer thread");
+
 	switch (_op)
 	{
 	case operationCopy:

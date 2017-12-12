@@ -2,6 +2,7 @@
 
 #include "assert/advanced_assert.h"
 #include "utility/on_scope_exit.hpp"
+#include "threading/thread_helpers.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFile>
@@ -29,6 +30,8 @@ void CFileComparator::abortComparison()
 
 void CFileComparator::compareFiles(QFile &fileA, QFile &fileB, std::function<void(int)> progressCallback, std::function<void (ComparisonResult)> resultCallback)
 {
+	setThreadName("CFileComparator thread");
+
 	assert(progressCallback);
 	assert(resultCallback);
 
