@@ -50,5 +50,5 @@ private:
 	CPeriodicExecutionThread         _enumeratorThread;
 	QTimer                           _timer;
 
-	const unsigned int _updateInterval = 1000; // ms
+	static const unsigned int _updateInterval = 1000; // ms
 };
