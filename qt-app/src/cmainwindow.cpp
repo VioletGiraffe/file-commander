@@ -79,31 +79,31 @@ CMainWindow::CMainWindow(QWidget *parent) :
 void CMainWindow::initButtons()
 {
 	connect(ui->btnView, &QPushButton::clicked, this, &CMainWindow::viewFile);
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F3"), this, SLOT(viewFile()), 0, Qt::WidgetWithChildrenShortcut)));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F3"), this, SLOT(viewFile()), nullptr , Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnEdit, &QPushButton::clicked, this, &CMainWindow::editFile);
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F4"), this, SLOT(editFile()), 0, Qt::WidgetWithChildrenShortcut)));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F4"), this, SLOT(editFile()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnCopy, &QPushButton::clicked, this, &CMainWindow::copySelectedFiles);
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F5"), this, SLOT(copySelectedFiles()), 0, Qt::WidgetWithChildrenShortcut)));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F5"), this, SLOT(copySelectedFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnMove, &QPushButton::clicked, this, &CMainWindow::moveSelectedFiles);
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F6"), this, SLOT(moveSelectedFiles()), 0, Qt::WidgetWithChildrenShortcut)));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F6"), this, SLOT(moveSelectedFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnNewFolder, &QPushButton::clicked, this, &CMainWindow::createFolder);
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F7"), this, SLOT(createFolder()), 0, Qt::WidgetWithChildrenShortcut)));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+F7"), this, SLOT(createFile()), 0, Qt::WidgetWithChildrenShortcut)));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F7"), this, SLOT(createFolder()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Shift+F7"), this, SLOT(createFile()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnDelete, &QPushButton::clicked, this, &CMainWindow::deleteFiles);
 	connect(ui->btnDelete, &QPushButton::customContextMenuRequested, this, &CMainWindow::showRecycleBInContextMenu);
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("F8"), this, SLOT(deleteFiles()), 0, Qt::WidgetWithChildrenShortcut)));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Delete"), this, SLOT(deleteFiles()), 0, Qt::WidgetWithChildrenShortcut)));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+F8"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::WidgetWithChildrenShortcut)));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), 0, Qt::WidgetWithChildrenShortcut)));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F8"), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Delete"), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Shift+F8"), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	// Command line
 	ui->_commandLine->setSelectPreviousItemShortcut(QKeySequence("Ctrl+E"));
-	_shortcuts.push_back(std::shared_ptr<QShortcut>(new QShortcut(QKeySequence("Ctrl+E"), this, SLOT(selectPreviousCommandInTheCommandLine()), 0, Qt::WidgetWithChildrenShortcut)));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Ctrl+E"), this, SLOT(selectPreviousCommandInTheCommandLine()), nullptr, Qt::WidgetWithChildrenShortcut));
 }
 
 void CMainWindow::initActions()
