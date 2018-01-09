@@ -369,18 +369,18 @@ FileOperationResultCode CFileSystemObject::moveAtomically(const QString& locatio
 
 	assert_r(QFileInfo(location).isDir());
 	const QString fullNewName = location % '/' % (newName.isEmpty() ? _properties.fullName : newName);
-	const QFileInfo destInfo(fullNewName);
-	const bool newNameDiffersOnlyByCase = destInfo.absoluteFilePath().compare(fullAbsolutePath(), Qt::CaseInsensitive) == 0;
+	const CFileSystemObject destInfo(fullNewName);
+	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(fullAbsolutePath(), Qt::CaseInsensitive) == 0;
 	if (destInfo.exists() && (isDir() || destInfo.isFile()))
 		// If the file system is case-insensitive, and the source and destination only differ by case, renaming is allowed even though formally the destination already exists (fix for #102)
-		if (caseSensitiveFilesystem() || !newNameDiffersOnlyByCase)
+		if (caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase)
 			return rcTargetAlreadyExists;
 	
 	// Special case for Windows, where QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
 #ifdef _WIN32
-	if (newNameDiffersOnlyByCase)
+	if (newNameDiffersOnlyInLetterCase)
 	{
-		if (MoveFileW((WCHAR*)fullAbsolutePath().utf16(), (WCHAR*)destInfo.absoluteFilePath().utf16()) != 0)
+		if (MoveFileW((WCHAR*)fullAbsolutePath().utf16(), (WCHAR*)destInfo.fullAbsolutePath().utf16()) != 0)
 			return rcOk;
 
 		_lastErrorMessage = ErrorStringFromLastError();
