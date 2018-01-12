@@ -13,10 +13,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QMimeDatabase>
 RESTORE_COMPILER_WARNINGS
 
-CPluginEngine::CPluginEngine()
-{
-}
-
 CPluginEngine& CPluginEngine::get()
 {
 	static CPluginEngine engine;

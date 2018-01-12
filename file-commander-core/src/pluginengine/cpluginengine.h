@@ -35,8 +35,12 @@ public:
 	CPluginWindow* createViewerWindowForCurrentFile();
 
 private:
-	CPluginEngine();
-	CPluginEngine& operator=(const CPluginEngine&) {return *this;}
+	CPluginEngine() = default;
+
+	CPluginEngine& operator=(const CPluginEngine& other) = delete;
+	CPluginEngine(const CPluginEngine& other) = delete;
+	
+private:
 	static PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
 
 	CFileCommanderViewerPlugin * viewerForCurrentFile();
