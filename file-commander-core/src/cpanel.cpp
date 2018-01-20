@@ -274,6 +274,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		for (size_t i = 0; i < numItemsFound; ++i)
 		{
 #ifndef _WIN32
+			// TODO: Qt bug?
 			if (list[(int)i].absoluteFilePath() == QLatin1String("/.."))
 				continue;
 #endif
