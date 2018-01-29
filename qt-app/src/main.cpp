@@ -38,8 +38,9 @@ struct NativeEventFilter : public QAbstractNativeEventFilter
 	inline NativeEventFilter(CMainWindow& mainApplicationWindow) : _mainWindow(mainApplicationWindow) {}
 
 	inline bool nativeEventFilter(const QByteArray & /*eventType*/, void * /*message*/, long * /*result*/) override {
-		if (!_mainWindow.created())
+		if (!_mainWindowInited)
 		{
+			_mainWindowInited = true;
 			_mainWindow.onCreate();
 			_mainWindow.updateInterface();
 		}
@@ -49,6 +50,7 @@ struct NativeEventFilter : public QAbstractNativeEventFilter
 
 private:
 	CMainWindow& _mainWindow;
+	bool _mainWindowInited = false;
 };
 
 int main(int argc, char *argv[])
