@@ -64,7 +64,7 @@ protected:
 	void processChangesAndNotifySubscribers(const QFileInfoList& newState);
 
 protected:
-	std::mutex _pathMutex;
+	std::recursive_mutex _pathMutex;
 	QString _pathToWatch;
 
 private:
