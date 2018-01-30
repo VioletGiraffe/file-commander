@@ -58,7 +58,6 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
-	const QString oldPath = _currentDirObject.fullAbsolutePath();
 	const auto pathGraph = CFileSystemObject::pathHierarchy(posixPath);
 	bool pathSet = false;
 	for (const auto& candidatePath: pathGraph)
@@ -66,10 +65,15 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		if (pathIsAccessible(candidatePath))
 		{
 			_currentDirObject.setPath(candidatePath);
-			pathSet = true;
-			break;
+			if (_currentDirObject.isDir())
+			{
+				pathSet = true;
+				break;
+			}
 		}
 	}
+
+	const QString oldPath = _currentDirObject.fullAbsolutePath();
 
 	if (!pathSet)
 	{
