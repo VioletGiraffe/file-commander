@@ -31,4 +31,4 @@ before_script:
 script: 
   - $QMAKE -r
   - make -j
-  - ./bin/release/x64/FileCommander
+  - ./bin/release/x64/FileCommander --test-launch

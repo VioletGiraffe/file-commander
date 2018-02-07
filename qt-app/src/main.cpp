@@ -75,6 +75,9 @@ int main(int argc, char *argv[])
 	NativeEventFilter nativeEventFilter(w);
 	app.installNativeEventFilter(&nativeEventFilter);
 
+	if (app.arguments.contains("--test-launch"))
+		return 0; // Test launch succeeded
+
 	return app.exec();
 }
 
