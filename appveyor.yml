@@ -5,6 +5,7 @@ environment:
   matrix:
     - qt: 5.8\msvc2015
     - qt: 5.8\msvc2015_64
+    - qt: 5.10.0\msvc2017
 install:
 - git submodule update --init --recursive --depth 1
 - set PATH=%PATH%;C:\Qt\%qt%\bin; 
