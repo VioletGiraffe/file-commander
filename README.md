@@ -1,15 +1,13 @@
-# File Commander
+# FILE COMMANDER <img align="right" src="http://i.imgur.com/O7SUWxn.png">
+
+   Qt-based cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems.
 
 
 Windows:&nbsp;&nbsp;[![Build status](https://ci.appveyor.com/api/projects/status/0rdr7ordj8khnn8l?svg=true)](https://ci.appveyor.com/project/VioletGiraffe/file-commander)   
 Linux:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)    
 macOS:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)
 
-   Qt-based cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems.
-
 ![Windows screenshot](/../gh-pages/screenshots/Windows/screenshot.png?raw=true)
-
-![Built with Qt](http://i.imgur.com/O7SUWxn.png)
 
 ### Download for Windows
 
