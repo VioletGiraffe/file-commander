@@ -1,4 +1,4 @@
-# FILE COMMANDER <img align="right" src="http://i.imgur.com/O7SUWxn.png">
+# FILE COMMANDER <img align="right" width="150" src="https://i.imgur.com/w003JwI.png">
 
    Qt-based cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems.
 
