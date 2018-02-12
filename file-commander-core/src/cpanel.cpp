@@ -174,7 +174,7 @@ const CHistoryList<QString>& CPanel::history() const
 void CPanel::showAllFilesFromCurrentFolderAndBelow()
 {
 	_currentDisplayMode = AllObjectsMode;
-	_watcher.reset();
+	_watcher->setPathToWatch(QString());
 
 	_workerThreadPool.enqueue([this]() {
 		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);

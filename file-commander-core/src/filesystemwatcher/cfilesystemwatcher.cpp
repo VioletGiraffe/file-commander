@@ -65,7 +65,7 @@ bool CFileSystemWatcher::setPathToWatch(const QString& path)
 {
 	std::lock_guard<std::recursive_mutex> locker(_pathMutex);
 
-	assert_and_return_r(QFileInfo(path).isDir(), false);
+	assert_and_return_r(path.isEmpty() || QFileInfo(path).isDir(), false);
 
 	_pathToWatch = path;
 	return true;
@@ -73,16 +73,13 @@ bool CFileSystemWatcher::setPathToWatch(const QString& path)
 
 void CFileSystemWatcher::onCheckForChanges()
 {
-	QDir directory;
-
 	{
 		std::lock_guard<std::recursive_mutex> locker(_pathMutex);
-		if (!_pathToWatch.isEmpty())
-			directory.setPath(_pathToWatch);
-		else
+		if (_pathToWatch.isEmpty())
 			return;
 	}
 
+	QDir directory(_pathToWatch);
 	const auto state = directory.entryInfoList(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
 	processChangesAndNotifySubscribers(state);
 }
