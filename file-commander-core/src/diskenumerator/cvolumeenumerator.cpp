@@ -25,7 +25,7 @@ void CVolumeEnumerator::removeObserver(IVolumeListObserver *observer)
 // Returns the drives found
 std::deque<VolumeInfo> CVolumeEnumerator::drives() const
 {
-	std::lock_guard<typename decltype(_mutexForDrives)> lock(_mutexForDrives);
+	std::lock_guard<decltype(_mutexForDrives)> lock(_mutexForDrives);
 
 	return _drives;
 }
