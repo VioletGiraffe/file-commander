@@ -54,7 +54,7 @@ void CVolumeEnumerator::enumerateVolumes(bool async)
 {
 	const auto newDrives = enumerateVolumesImpl();
 
-	std::lock_guard<typename decltype(_mutexForDrives)> lock(_mutexForDrives);
+	std::lock_guard<decltype(_mutexForDrives)> lock(_mutexForDrives);
 
 	if (!async || newDrives != _drives)
 	{
