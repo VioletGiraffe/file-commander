@@ -929,7 +929,7 @@ void CPanelWidget::updateCurrentDiskButton()
 		if (id == currentDriveId)
 		{
 			button->setChecked(true);
-			const auto& diskInfo = _controller->volumeEnumerator().drives()[id];
+			const auto diskInfo = _controller->volumeEnumerator().drives()[id];
 			_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
 			ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").arg(diskInfo.volumeLabel).
 				arg(diskInfo.fileSystemName).

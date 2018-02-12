@@ -415,7 +415,7 @@ QString CController::volumePath(size_t index) const
 
 size_t CController::currentVolumeIndex(Panel p) const
 {
-	const auto& drives = _volumeEnumerator.drives();
+	const auto drives = _volumeEnumerator.drives();
 	for (size_t i = 0; i < drives.size(); ++i)
 	{
 		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(drives[i].rootObjectInfo))
@@ -453,7 +453,7 @@ CFileSystemObject CController::currentItem()
 
 void CController::volumesChanged()
 {
-	const auto& drives = _volumeEnumerator.drives();
+	const auto drives = _volumeEnumerator.drives();
 
 	_rightPanel.volumesChanged(drives);
 	_leftPanel.volumesChanged(drives);

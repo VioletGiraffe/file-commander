@@ -9,6 +9,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <deque>
+#include <mutex>
 
 // Lists all the volumes available on a target machine
 class CVolumeEnumerator : protected QObject
@@ -29,7 +30,7 @@ public:
 	// Removes the observer
 	void removeObserver(IVolumeListObserver * observer);
 	// Returns the drives found
-	const std::deque<VolumeInfo>& drives() const;
+	std::deque<VolumeInfo> drives() const;
 
 	// Forces an update in this thread
 	void updateSynchronously();
@@ -45,6 +46,9 @@ private:
 
 private:
 	std::deque<VolumeInfo> _drives;
+	mutable std::recursive_mutex _mutexForDrives; // Has to be recursive:
+	// enumerateVolumes() can be called synchronously through updateSynchronously(), and then drives() getter will fail to acquire the mutex unless it's recursive
+
 	std::deque<IVolumeListObserver*> _observers;
 	mutable CExecutionQueue          _notificationsQueue;
 	CPeriodicExecutionThread         _enumeratorThread;
