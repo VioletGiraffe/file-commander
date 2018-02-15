@@ -1,5 +1,7 @@
 # FILE COMMANDER <img align="right" width="150" src="https://i.imgur.com/w003JwI.png">
 
+[![Join the chat at https://gitter.im/File-Commander/Lobby](https://badges.gitter.im/File-Commander/Lobby.svg)](https://gitter.im/File-Commander/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
    Qt-based cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems.
 
 
