@@ -14,3 +14,6 @@
 [submodule "cpp-template-utils"]
 	path = cpp-template-utils
 	url = https://github.com/VioletGiraffe/cpp-template-utils
+[submodule "image-processing"]
+	path = image-processing
+	url = https://github.com/VioletGiraffe/image-processing

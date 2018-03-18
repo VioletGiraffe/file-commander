@@ -9,6 +9,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QDebug>
+#include <QFile>
 RESTORE_COMPILER_WARNINGS
 
 #include <errno.h>

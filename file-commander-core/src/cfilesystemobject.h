@@ -16,6 +16,8 @@ RESTORE_COMPILER_WARNINGS
 #include <vector>
 #include <memory>
 
+class QFile;
+
 enum FileSystemObjectType { UnknownType, Directory, File };
 
 struct CFileSystemObjectProperties {
