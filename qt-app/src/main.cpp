@@ -59,6 +59,10 @@ int main(int argc, char *argv[])
 		qInfo() << message;
 	});
 
+	qInfo() << "Built with Qt" << QT_VERSION_STR;
+	qInfo() << "Running with Qt" << qVersion();
+	assert_r(QStringLiteral(QT_VERSION_STR) == qVersion());
+
 	QApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
 	app.setApplicationName("File Commander");
