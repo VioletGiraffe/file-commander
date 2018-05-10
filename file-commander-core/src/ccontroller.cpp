@@ -243,7 +243,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 		const QString terminalProgram = CShell::shellExecutable();
 		QString arguments;
 		if (terminalProgram.toLower().contains("powershell"))
-			arguments = QStringLiteral("-noexit -command \"cd %1 \"").arg(toNativeSeparators(folder));
+			arguments = QStringLiteral("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
 		else if (terminalProgram.toLower() == "cmd" || terminalProgram.toLower() == "cmd.exe")
 			arguments = QStringLiteral("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));
 
