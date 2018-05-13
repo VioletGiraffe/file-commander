@@ -89,7 +89,7 @@ void TestOperationPerformer::testCopy()
 #ifdef _WIN32
 	std::system((QString("rmdir /S /Q ") % '\"' % QString(destDirPath).replace('/', '\\') % '\"').toUtf8().data());
 #else
-#error cleanup script not defined
+	std::system((QString("rm -rf ") % '\"' % QString(destDirPath) % '\"').toUtf8().data());
 #endif
 	COperationPerformer p(operationCopy, std::vector<CFileSystemObject> {CFileSystemObject(srcDirPath)}, destDirPath);
 	p.start();

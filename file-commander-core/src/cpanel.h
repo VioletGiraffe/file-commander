@@ -6,6 +6,7 @@
 #include "historylist/chistorylist.h"
 #include "threading/cworkerthread.h"
 #include "threading/cexecutionqueue.h"
+#include "fileoperationresultcode.h"
 
 #include <atomic>
 #include <map>

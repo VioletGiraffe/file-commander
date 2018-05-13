@@ -11,6 +11,7 @@
 #include "widgets/clineedit.h"
 #include "filesystemhelperfunctions.h"
 #include "progressdialogs/ccopymovedialog.h"
+#include "cfilemanipulator.h"
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "settings.h"
@@ -440,11 +441,12 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	// This is required for the UI to know to move the cursor to the renamed item
 	_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() % "/" % newName).hash());
 
-	if (item.moveAtomically(item.parentDirPath(), newName) != rcOk)
+	CFileManipulator itemManipulator(item);
+	if (itemManipulator.moveAtomically(item.parentDirPath(), newName) != rcOk)
 	{
 		QString errorMessage = tr("Failed to rename %1 to %2").arg(item.fullName()).arg(newName);
-		if (!item.lastErrorMessage().isEmpty())
-			errorMessage.append(":\n" % item.lastErrorMessage() % '.');
+		if (!itemManipulator.lastErrorMessage().isEmpty())
+			errorMessage.append(":\n" % itemManipulator.lastErrorMessage() % '.');
 
 		QMessageBox::critical(this, tr("Renaming failed"), errorMessage);
 	}

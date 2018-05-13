@@ -1,6 +1,5 @@
 #pragma once
 
-#include "fileoperationresultcode.h"
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -96,35 +95,13 @@ public:
 	QString sizeString() const;
 	QString modificationDateString() const;
 
-// Operations
-	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = QString());
-	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = QString());
-
-// Non-blocking file copy API
-	// Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-	FileOperationResultCode copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName = QString());
-	FileOperationResultCode moveChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName = QString());
-	bool copyOperationInProgress() const;
-	uint64_t bytesCopied() const;
-	FileOperationResultCode cancelCopy();
-
-	bool                    makeWritable(bool writeable = true);
-	FileOperationResultCode remove();
-
-	QString lastErrorMessage() const;
-
 private:
 	static QString expandEnvironmentVariables(const QString& string);
 
 private:
 	CFileSystemObjectProperties _properties;
-	// For copying / moving
-	std::shared_ptr<QFile>      _thisFile;
-	std::shared_ptr<QFile>      _destFile;
-	uint64_t                    _pos = 0;
-	// Can be used to determine whether 2 objects are on the same drive
+	// Can be used to determine whether two objects are on the same drive
 	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 	QFileInfo                   _fileInfo;
 	QDir                        _dir; // TODO: this item needs documentation. What's it for?
-	mutable QString             _lastErrorMessage;
 };
