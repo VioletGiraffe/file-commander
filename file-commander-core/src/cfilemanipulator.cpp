@@ -31,6 +31,7 @@ FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFold
 	return succ ? rcOk : rcFail;
 }
 
+
 FileOperationResultCode CFileManipulator::moveAtomically(const QString& location, const QString& newName)
 {
 	if (!_object.exists())
@@ -80,6 +81,15 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 		return rcFail;
 }
 
+FileOperationResultCode CFileManipulator::copyAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName /*= QString()*/)
+{
+	return CFileManipulator(object).copyAtomically(destFolder, newName);
+}
+
+FileOperationResultCode CFileManipulator::moveAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName /*= QString()*/)
+{
+	return CFileManipulator(object).moveAtomically(destFolder, newName);
+}
 
 // Non-blocking file copy API
 
@@ -193,7 +203,7 @@ FileOperationResultCode CFileManipulator::cancelCopy()
 		return rcOk;
 }
 
-bool CFileManipulator::makeWritable(bool writeable)
+bool CFileManipulator::makeWritable(bool writable)
 {
 	assert_and_return_message_r(_object.isFile(), "This method only works for files", false);
 
@@ -206,7 +216,7 @@ bool CFileManipulator::makeWritable(bool writeable)
 		return false;
 	}
 
-	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writeable ? (attributes & (~FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
+	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writable ? (attributes & (~FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
 	{
 		_lastErrorMessage = ErrorStringFromLastError();
 		return false;
@@ -231,6 +241,11 @@ bool CFileManipulator::makeWritable(bool writeable)
 
 	return true;
 #endif
+}
+
+bool CFileManipulator::makeWritable(const CFileSystemObject& object, bool writable /*= true*/)
+{
+	return CFileManipulator(object).makeWritable(writable);
 }
 
 FileOperationResultCode CFileManipulator::remove()
@@ -271,6 +286,11 @@ FileOperationResultCode CFileManipulator::remove()
 	}
 	else
 		return rcFail;
+}
+
+FileOperationResultCode CFileManipulator::remove(const CFileSystemObject& object)
+{
+	return CFileManipulator(object).remove();
 }
 
 QString CFileManipulator::lastErrorMessage() const

@@ -1,4 +1,5 @@
 #include "coperationperformer.h"
+#include "cfilemanipulator.h"
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
 #include "threading/thread_helpers.h"
@@ -138,10 +139,11 @@ void COperationPerformer::copyFiles()
 
 			const QString newFileName = !_newName.isEmpty() ? _newName :  sourceIterator->fullName();
 			_newName.clear();
-			const auto result = sourceIterator->moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
+			CFileManipulator itemManipulator(*sourceIterator);
+			const auto result = itemManipulator.moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
 			if (result != rcOk)
 			{
-				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *sourceIterator, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), sourceIterator->lastErrorMessage());
+				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *sourceIterator, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), itemManipulator.lastErrorMessage());
 				// Handler is identical to that of the main loop
 				// esp. for the case of hrFileExists
 				if (response == urSkipThis || response == urSkipAll)
@@ -297,10 +299,11 @@ void COperationPerformer::copyFiles()
 			{
 				if (sourceIterator->isEmptyDir())
 				{
-					const auto result = sourceIterator->remove();
+					CFileManipulator manipulator(*sourceIterator);
+					const auto result = manipulator.remove();
 					if (result != rcOk)
 					{
-						const auto action = getUserResponse(hrFailedToDelete, *sourceIterator, CFileSystemObject(), sourceIterator->lastErrorMessage());
+						const auto action = getUserResponse(hrFailedToDelete, *sourceIterator, CFileSystemObject(), manipulator.lastErrorMessage());
 						if (action == urSkipThis || action == urSkipAll)
 						{
 							++sourceIterator;
@@ -332,8 +335,11 @@ void COperationPerformer::copyFiles()
 		++currentItemIndex;
 	}
 
-	for (auto& dir: dirsToCleanUp)
-		dir.remove();
+	for (auto& dir : dirsToCleanUp)
+	{
+		CFileManipulator dirManipulator(dir);
+		assert_message_r(dirManipulator.remove(), dirManipulator.lastErrorMessage().toUtf8().constData());
+	}
 
 	qInfo() << __FUNCTION__ << "took" << _totalTimeElapsed.elapsed() << "ms";
 	finalize();
@@ -564,11 +570,12 @@ UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSyst
 
 COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObject& item)
 {
+	CFileManipulator itemManipulator(item);
 	if (item.isFile())
 	{
 		if (!item.isWriteable())
 		{
-			const auto response = getUserResponse(hrSourceFileIsReadOnly, item, CFileSystemObject(), item.lastErrorMessage());
+			const auto response = getUserResponse(hrSourceFileIsReadOnly, item, CFileSystemObject(), itemManipulator.lastErrorMessage()); // TODO: is the message "itemManipulator.lastErrorMessage()" correct here? No operation had been attempted yet
 			if (response == urSkipThis || response == urSkipAll)
 				return naSkip;
 			else if (response == urAbort)
@@ -585,10 +592,10 @@ COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObjec
 		}
 	}
 
-	if (item.remove() != rcOk)
+	if (itemManipulator.remove() != rcOk)
 	{
-		qInfo() << "Error removing" << (item.isFile() ? "file" : "folder") << item.fullAbsolutePath() << ", error: " << item.lastErrorMessage();
-		const auto response = getUserResponse(hrFailedToDelete, item, CFileSystemObject(), item.lastErrorMessage());
+		qInfo() << "Error removing" << (item.isFile() ? "file" : "folder") << item.fullAbsolutePath() << ", error: " << itemManipulator.lastErrorMessage();
+		const auto response = getUserResponse(hrFailedToDelete, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
 		if (response == urSkipThis || response == urSkipAll)
 			return naSkip;
 		else if (response == urAbort)
@@ -607,10 +614,11 @@ COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObjec
 
 COperationPerformer::NextAction COperationPerformer::makeItemWriteable(CFileSystemObject& item)
 {
-	if (!item.makeWritable())
+	CFileManipulator itemManipulator(item);
+	if (!itemManipulator.makeWritable())
 	{
 		qInfo() << "Error making file" << item.fullAbsolutePath() << "writable, retrying";
-		const auto response = getUserResponse(hrFailedToMakeItemWritable, item, CFileSystemObject(), item.lastErrorMessage());
+		const auto response = getUserResponse(hrFailedToMakeItemWritable, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
 		if (response == urSkipThis || response == urSkipAll)
 			return naSkip;
 		else if (response == urAbort)
@@ -685,19 +693,20 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	const int chunkSize = 5 * 1024 * 1024;
 	const QString destPath = destDir.absolutePath() + '/';
 	FileOperationResultCode result = rcFail;
+	CFileManipulator itemManipulator(item);
 
 	do
 	{
 		handlePause();
 
-		result = item.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString()) : _newName);
+		result = itemManipulator.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString()) : _newName);
 		// Error handling
 		if (result != rcOk)
 			break;
 
-		const auto actualSizeProcessed = sizeProcessedPreviously + item.bytesCopied();
+		const auto actualSizeProcessed = sizeProcessedPreviously + itemManipulator.bytesCopied();
 		const float totalPercentage = totalSize > 0 ? actualSizeProcessed * 100.0f / totalSize : 0.0f; // Bytes
-		const float filePercentage = item.size() > 0 ? item.bytesCopied() * 100.0f / item.size() : 0.0f;
+		const float filePercentage = item.size() > 0 ? itemManipulator.bytesCopied() * 100.0f / item.size() : 0.0f;
 
 		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * actualSizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1); // Bytes / sec
 		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / meanSpeed);
@@ -706,17 +715,17 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		// TODO: why isn't this block at the start of 'do-while'?
 		if (_cancelRequested)
 		{
-			assert_message_r(item.cancelCopy() == rcOk, "Failed to cancel item copying");
+			assert_message_r(itemManipulator.cancelCopy() == rcOk, "Failed to cancel item copying");
 			result = rcOk;
 			break;
 		}
-	} while (item.copyOperationInProgress());
+	} while (itemManipulator.copyOperationInProgress());
 
 	if (result != rcOk)
 	{
-		item.cancelCopy();
-		qInfo() << "Error copying file " << item.fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) << ", error: " << item.lastErrorMessage();
-		const auto action = getUserResponse(hrUnknownError, item, CFileSystemObject(), item.lastErrorMessage());
+		itemManipulator.cancelCopy();
+		qInfo() << "Error copying file " << item.fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) << ", error: " << itemManipulator.lastErrorMessage();
+		const auto action = getUserResponse(hrUnknownError, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
 		if (action == urSkipThis || action == urSkipAll)
 			return naSkip;
 		else if (action == urAbort)

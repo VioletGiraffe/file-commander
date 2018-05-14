@@ -21,6 +21,15 @@ public:
 	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = QString());
 	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = QString());
 
+	static FileOperationResultCode copyAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());
+	static FileOperationResultCode moveAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());
+
+	bool makeWritable(bool writable = true);
+	FileOperationResultCode remove();
+
+	static bool makeWritable(const CFileSystemObject& object, bool writable = true);
+	static FileOperationResultCode remove(const CFileSystemObject& object);
+
 // Non-blocking file copy API
 	// Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
 	FileOperationResultCode copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName = QString());
@@ -29,9 +38,7 @@ public:
 	uint64_t bytesCopied() const;
 	FileOperationResultCode cancelCopy();
 
-	bool                    makeWritable(bool writeable = true);
-	FileOperationResultCode remove();
-
+// State
 	QString lastErrorMessage() const;
 
 private:
