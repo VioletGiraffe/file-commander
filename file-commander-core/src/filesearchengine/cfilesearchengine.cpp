@@ -53,8 +53,14 @@ void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		QRegExp queryRegExp;
 		if (nameQueryHasWildcards)
 		{
+			QString adjustedQuery = what;
+			if (!what.startsWith('*'))
+				adjustedQuery.prepend('*');
+			if (!what.endsWith('*'))
+				adjustedQuery.append('*');
+
 			queryRegExp.setPatternSyntax(QRegExp::Wildcard);
-			queryRegExp.setPattern(what);
+			queryRegExp.setPattern(adjustedQuery);
 			queryRegExp.setCaseSensitivity(subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive);
 		}
 
