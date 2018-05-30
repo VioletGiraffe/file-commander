@@ -281,8 +281,8 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 			_rootFileSystemId = (uint64_t) info.st_dev;
 		else
 		{
-			_lastErrorMessage = strerror(errno);
 			qInfo() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
+			qInfo() << strerror(errno);
 		}
 #endif
 	}

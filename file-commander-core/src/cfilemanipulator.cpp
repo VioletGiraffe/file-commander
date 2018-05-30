@@ -12,6 +12,9 @@ RESTORE_COMPILER_WARNINGS
 #include "windows/windowsutils.h"
 
 #include <Windows.h>
+#else
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 // Operations
@@ -226,14 +229,14 @@ bool CFileManipulator::makeWritable(bool writable)
 #else
 	struct stat fileInfo;
 
-	const QByteArray fileName = fullAbsolutePath().toUtf8();
+	const QByteArray fileName = _object.fullAbsolutePath().toUtf8();
 	if (stat(fileName.constData(), &fileInfo) != 0)
 	{
 		_lastErrorMessage = strerror(errno);
 		return false;
 	}
 
-	if (chmod(fileName.constData(), writeable ? (fileInfo.st_mode | S_IWUSR) : (fileInfo.st_mode & (~S_IWUSR))) != 0)
+	if (chmod(fileName.constData(), writable ? (fileInfo.st_mode | S_IWUSR) : (fileInfo.st_mode & (~S_IWUSR))) != 0)
 	{
 		_lastErrorMessage = strerror(errno);
 		return false;
@@ -276,7 +279,7 @@ FileOperationResultCode CFileManipulator::remove()
 //			dir.cdUp();
 //			bool succ = dir.remove(_fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1));
 //			qInfo() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();
-			return ::rmdir(_properties.fullPath.toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
+			return ::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
 //			return rcFail;
 #else
 			return rcFail;
