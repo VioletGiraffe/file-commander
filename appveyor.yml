@@ -8,11 +8,11 @@ environment:
       VS_VERSION: 2017
       BUILD_ARCH: x64    
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-      qt: 5.8\msvc2015
+      qt: 5.9\msvc2015
       VS_VERSION: 2015
       BUILD_ARCH: x86
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-      qt: 5.8\msvc2015_64
+      qt: 5.9\msvc2015_64
       VS_VERSION: 2015
       BUILD_ARCH: x64
 configuration:
@@ -21,7 +21,7 @@ install:
 - git submodule update --init --recursive --depth 1
 - set PATH=C:\Qt\%qt%\bin;%PATH%;
 - dir C:\Qt\%qt%\bin\
-- IF "%VS_VERSION%" == "2017" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat" && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r) ELSE (qmake.exe -tp vc -r)
+- IF "%VS_VERSION%" == "2017" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat" && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r) ELSE (IF "%BUILD_ARCH%" == "x64" (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" amd64) ELSE (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x86) qmake.exe -tp vc -r)
 build:
   project: file-commander.sln #required to avoid .smproj-induced build error
   parallel: true
