@@ -1,0 +1,1 @@
+#include "QFileInfo_Test"

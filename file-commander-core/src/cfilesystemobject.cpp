@@ -6,10 +6,14 @@
 
 #include "fasthash.h"
 
+#ifdef CFILESYSTEMOBJECT_TEST
+#define QFileInfo QFileInfo_Test
+#define QDir QDir_Test
+#endif
+
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QDebug>
-#include <QFile>
 RESTORE_COMPILER_WARNINGS
 
 #include <errno.h>
@@ -26,18 +30,40 @@ RESTORE_COMPILER_WARNINGS
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
 
+static inline QString expandEnvironmentVariables(const QString& string)
+{
+#ifdef _WIN32
+	if (!string.contains('%'))
+		return string;
+
+	static WCHAR result[16384 + 1];
+	if (ExpandEnvironmentStringsW((WCHAR*)string.utf16(), result, sizeof(result) / sizeof(result[0])) != 0)
+		return toPosixSeparators(QString::fromUtf16((char16_t*)result));
+	else
+		return string;
+#else
+	if (!string.contains('$'))
+		return string;
+
+	wordexp_t p;
+	wordexp("$HOME/bin", &p, 0);
+	const auto w = p.we_wordv;
+	const QString result = p.we_wordc > 0 ? w[0] : string;
+	wordfree(&p);
+
+	return result;
+#endif
+}
+
+
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
 {
 	refreshInfo();
 }
 
-CFileSystemObject::CFileSystemObject(const QString& path)
+CFileSystemObject::CFileSystemObject(const QString& path) : _fileInfo(expandEnvironmentVariables(path))
 {
-	if (!path.isEmpty())
-	{
-		_fileInfo.setFile(expandEnvironmentVariables(path));
-		refreshInfo();
-	}
+	refreshInfo();
 }
 
 inline uint64_t hash(const QByteArray& byteArray)
@@ -342,29 +368,4 @@ QString CFileSystemObject::modificationDateString() const
 	modificationDate.setTime_t((uint)_properties.modificationDate);
 	modificationDate = modificationDate.toLocalTime();
 	return modificationDate.toString(QLatin1String("dd.MM.yyyy hh:mm"));
-}
-
-QString CFileSystemObject::expandEnvironmentVariables(const QString& string)
-{
-#ifdef _WIN32
-	if (!string.contains('%'))
-		return string;
-
-	static WCHAR result[16384 + 1];
-	if (ExpandEnvironmentStringsW((WCHAR*)string.utf16(), result, sizeof(result) / sizeof(result[0])) != 0)
-		return toPosixSeparators(QString::fromUtf16((char16_t*)result));
-	else
-		return string;
-#else
-	if (!string.contains('$'))
-		return string;
-
-	wordexp_t p;
-	wordexp("$HOME/bin", &p, 0);
-	const auto w = p.we_wordv;
-	const QString result = p.we_wordc > 0 ? w[0] : string;
-	wordfree(&p);
-
-	return result;
-#endif
 }

@@ -29,7 +29,8 @@ SOURCES += \
 	../../src/cfilesystemobject.cpp \
 	../../src/iconprovider/ciconprovider.cpp \
 	../../src/fasthash.c \
-	../../src/directoryscanner.cpp
+	../../src/directoryscanner.cpp \
+    ../../src/cfilemanipulator.cpp
 
 HEADERS += \
 	../../src/fileoperations/cfileoperation.h \
@@ -39,4 +40,5 @@ HEADERS += \
 	../../src/iconprovider/ciconprovider.h \
 	../../src/iconprovider/ciconproviderimpl.h \
 	../../src/fasthash.h \
-	../../src/directoryscanner.h
+	../../src/directoryscanner.h \
+    ../../src/cfilemanipulator.h

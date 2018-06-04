@@ -26,10 +26,18 @@ SOURCES += \
 	fso_test.cpp \
 	../../src/cfilesystemobject.cpp \
 	../../src/fasthash.c \
-	../../src/iconprovider/ciconprovider.cpp
+	../../src/iconprovider/ciconprovider.cpp \
+	qfileinfo_test.cpp \
+	qdir_test.cpp
 
 HEADERS += \
 	../../src/cfilesystemobject.h \
 	../../src/fasthash.h \
 	../../src/iconprovider/ciconprovider.h \
-	../../src/iconprovider/ciconproviderimpl.h
+	../../src/iconprovider/ciconproviderimpl.h \
+	QFileInfo_Test \
+	QDir_Test \
+    qdir_test.h \
+    qfileinfo_test.h
+
+DEFINES += CFILESYSTEMOBJECT_TEST

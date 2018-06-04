@@ -2,9 +2,18 @@
 
 #include "compiler/compiler_warnings_control.h"
 
-DISABLE_COMPILER_WARNINGS
+#ifdef CFILESYSTEMOBJECT_TEST
+#define QFileInfo QFileInfo_Test
+#define QDir QDir_Test
+
+#include <QDir_Test>
+#include <QFileInfo_Test>
+#else
 #include <QDir>
 #include <QFileInfo>
+#endif
+
+DISABLE_COMPILER_WARNINGS
 #include <QString>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
@@ -14,8 +23,6 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <vector>
 #include <memory>
-
-class QFile;
 
 enum FileSystemObjectType { UnknownType, Directory, File };
 
@@ -96,12 +103,12 @@ public:
 	QString modificationDateString() const;
 
 private:
-	static QString expandEnvironmentVariables(const QString& string);
-
-private:
 	CFileSystemObjectProperties _properties;
 	// Can be used to determine whether two objects are on the same drive
 	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 	QFileInfo                   _fileInfo;
 	QDir                        _dir; // TODO: this item needs documentation. What's it for?
 };
+
+#undef QFileInfo
+#undef QDir
