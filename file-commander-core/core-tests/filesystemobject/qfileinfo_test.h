@@ -12,7 +12,7 @@ public:
 	QFileInfo_Test() = default;
 	QFileInfo_Test(const QString& path) {}
 
-	void setFile(const QString& file);
+	void setFile(const QString& file) {}
 
 	QString _absoluteFilePath;
 	QString absoluteFilePath() const {return _absoluteFilePath;}

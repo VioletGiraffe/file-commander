@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QObject>
 #include <QString>
 #include <QStringList>
 
@@ -34,24 +35,33 @@ struct QDir_Test
 	};
 	Q_DECLARE_FLAGS(Filters, Filter)
 
-	enum SortFlag { Name        = 0x00,
-					Time        = 0x01,
-					Size        = 0x02,
-					Unsorted    = 0x03,
-					SortByMask  = 0x03,
+	enum SortFlag {
+		Name        = 0x00,
+		Time = 0x01,
+		Size = 0x02,
+		Unsorted = 0x03,
+		SortByMask = 0x03,
 
-					DirsFirst   = 0x04,
-					Reversed    = 0x08,
-					IgnoreCase  = 0x10,
-					DirsLast    = 0x20,
-					LocaleAware = 0x40,
-					Type        = 0x80,
-					NoSort = -1
+		DirsFirst = 0x04,
+		Reversed = 0x08,
+		IgnoreCase = 0x10,
+		DirsLast = 0x20,
+		LocaleAware = 0x40,
+		Type = 0x80,
+		NoSort = -1
 	};
 	Q_DECLARE_FLAGS(SortFlags, SortFlag)
 
 	QDir_Test() {}
 	QDir_Test(const QString& dirPath) {setPath(dirPath);}
+
+	QDir_Test& operator=(const QDir_Test& other) {
+		_absolutePath = other._absolutePath;
+		_path = other._path;
+		_entryList = other._entryList;
+
+		return *this;
+	}
 
 	QString _path;
 	void setPath(const QString& path) {_path = path;}
@@ -62,3 +72,6 @@ struct QDir_Test
 	QStringList _entryList;
 	QStringList entryList(Filters filters = NoFilter, SortFlags sort = NoSort) const {return _entryList;}
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(QDir_Test::Filters)
+Q_DECLARE_OPERATORS_FOR_FLAGS(QDir_Test::SortFlags)
