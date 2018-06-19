@@ -10,12 +10,15 @@ struct QFileInfo_Test
 {
 public:
 	QFileInfo_Test() = default;
-	QFileInfo_Test(const QString& path) {}
+	QFileInfo_Test(const QString& path) { setFile(path); }
 
-	void setFile(const QString& file) {}
+	QString _file;
+	void setFile(const QString& file) { _file = file; }
 
 	QString _absoluteFilePath;
-	QString absoluteFilePath() const {return _absoluteFilePath;}
+	bool _dummyAbsoluteFilePath = true;
+	static bool _dummyAbsoluteFilePathGlobal;
+	QString absoluteFilePath() const;
 
 	QString _absolutePath;
 	QString absolutePath() const {return _absolutePath;}

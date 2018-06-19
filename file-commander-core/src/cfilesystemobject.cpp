@@ -284,8 +284,11 @@ const QDir& CFileSystemObject::qDir() const
 
 std::vector<QString> CFileSystemObject::pathHierarchy(const QString& path)
 {
+	if (path.isEmpty())
+		return {};
+
 	QString pathItem = path.endsWith('/') ? path.left(path.length() - 1) : path;
-	std::vector<QString> result {path};
+	std::vector<QString> result {path == '/' ? QString() : path};
 	while ((pathItem = QFileInfo(pathItem).absolutePath()).length() < result.back().length())
 		result.push_back(pathItem);
 
