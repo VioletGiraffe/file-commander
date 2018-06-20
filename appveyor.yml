@@ -1,6 +1,7 @@
 version: 1.0.{build}
 init:
   clone_depth: 1
+
 environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
@@ -15,16 +16,23 @@ environment:
       qt: 5.9\msvc2015_64
       VS_VERSION: 2015
       BUILD_ARCH: x64
+
 configuration:
   - Release
+
 install:
 - git submodule update --init --recursive --depth 1
 - set PATH=C:\Qt\%qt%\bin;%PATH%;
 - IF "%VS_VERSION%" == "2017" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat" && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r)
 - IF "%VS_VERSION%" == "2015" (IF "%BUILD_ARCH%" == "x64" (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" amd64 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r) ELSE (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x86 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r))
-build:
-  project: file-commander.sln #required to avoid .smproj-induced build error
-  parallel: true
-  verbosity: minimal
+
+build_script:
+ - msbuild file-commander.sln /t:Build /p:Configuration=Release
+ - cd file-commander-core\core-tests\
+ - msbuild /t:Build /p:Configuration=Release
+ 
+ - cd ..\..\bin\release\%BUILD_ARCH%\
+ - .\fso_test.exe -xunitxml > tests.xml
+
 after_build:
   - bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
