@@ -14,7 +14,6 @@ class FileSystemObjectTest : public QObject
 private slots:
 	void initTestCase();
 	void testEmptyObject();
-	void test();
 	void cleanupTestCase();
 };
 
@@ -50,11 +49,6 @@ void FileSystemObjectTest::testEmptyObject()
 	QVERIFY(fso.parentDirPath() == "");
 	QVERIFY(fso.size() == 0);
 	QVERIFY(fso.type() == UnknownType);
-}
-
-void FileSystemObjectTest::test()
-{
-	QVERIFY(true);
 }
 
 void FileSystemObjectTest::cleanupTestCase()
