@@ -40,14 +40,3 @@ build_script:
 
 after_build:
   - bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
-
-build_script:
- - msbuild file-commander.sln /t:Build /p:Configuration=Release
- - cd file-commander-core\core-tests\
- - msbuild /t:Build /p:Configuration=Release
- 
- - cd ..\..\bin\release\%BUILD_ARCH%\
- - .\fso_test.exe -xunitxml > tests.xml
-
-after_build:
-  - bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
