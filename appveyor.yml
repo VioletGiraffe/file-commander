@@ -35,10 +35,13 @@ build_script:
  - cd file-commander-core\core-tests\
  - msbuild /t:Build /p:Configuration=Release
  - cd ..\..\
- - .\bin\release\%BUILD_ARCH%\fso_test.exe -xunitxml > tests.xml
 
 after_build:
  - .\bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
 
-on_finish:
- - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\tests.xml))
+test_script:
+ - .\bin\release\%BUILD_ARCH%\fso_test.exe -xunitxml > tests_fso.xml
+ - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\tests_fso.xml))
+
+ - .\bin\release\%BUILD_ARCH%\fso_test_high_level.exe -xunitxml > tests_fso_high_level.xml
+ - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\tests_fso_high_level.xml))
