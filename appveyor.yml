@@ -39,3 +39,6 @@ build_script:
 
 after_build:
  - .\bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
+
+on_finish:
+ - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\tests.xml))
