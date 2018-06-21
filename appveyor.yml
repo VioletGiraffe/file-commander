@@ -40,8 +40,8 @@ after_build:
  - .\bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
 
 test_script:
- - .\bin\release\%BUILD_ARCH%\fso_test.exe -xunitxml > tests_fso.xml
+ - .\bin\release\%BUILD_ARCH%\fso_test.exe -r junit > tests_fso.xml
  - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\tests_fso.xml))
 
- - .\bin\release\%BUILD_ARCH%\fso_test_high_level.exe -xunitxml > tests_fso_high_level.xml
+ - .\bin\release\%BUILD_ARCH%\fso_test_high_level.exe -r junit > tests_fso_high_level.xml
  - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\tests_fso_high_level.xml))

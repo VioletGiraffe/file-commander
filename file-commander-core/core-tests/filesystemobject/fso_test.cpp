@@ -1,62 +1,98 @@
 #include "cfilesystemobject.h"
+#include "utility/macro_utils.h"
 
-DISABLE_COMPILER_WARNINGS
-#include <QStringBuilder>
-#include <QtTest>
-RESTORE_COMPILER_WARNINGS
+#define CATCH_CONFIG_MAIN
+#include "../catch2/catch.hpp"
 
-#include <iostream>
-
-class FileSystemObjectTest : public QObject
+TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 {
-	Q_OBJECT
+	CFileSystemObject fso((QFileInfo_Test()));
 
-private slots:
-	void initTestCase();
-	void testEmptyObject();
-	void cleanupTestCase();
-};
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso == CFileSystemObject());
+	}
 
-void FileSystemObjectTest::initTestCase()
-{
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(!fso.exists());
+	}
 
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.extension() == "");
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.fullAbsolutePath() == "");
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.fullName() == "");
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.hash() == 0);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isCdUp() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isChildOf(CFileSystemObject()) == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isDir() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isEmptyDir() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isExecutable() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isFile() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isHidden() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isMovableTo(CFileSystemObject()) == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isNetworkObject() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isReadable() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isValid() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.isWriteable() == false);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.name() == "");
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.parentDirPath() == "");
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.size() == 0);
+	}
+
+	SECTION(STRINGIFY_EXPANDED_ARGUMENT(__LINE__)) {
+		CHECK(fso.type() == UnknownType);
+	}
 }
-
-void FileSystemObjectTest::testEmptyObject()
-{
-	QFileInfo_Test info;
-	CFileSystemObject fso((info));
-
-	QVERIFY(fso == CFileSystemObject());
-	QVERIFY(!fso.exists());
-	QVERIFY(fso.extension() == "");
-	QVERIFY(fso.fullAbsolutePath() == "");
-	QVERIFY(fso.fullName() == "");
-	QVERIFY(fso.hash() == 0);
-	QVERIFY(fso.isCdUp() == false);
-	QVERIFY(fso.isChildOf(CFileSystemObject()) == false);
-	QVERIFY(fso.isDir() == false);
-	QVERIFY(fso.isEmptyDir() == false);
-	QVERIFY(fso.isExecutable() == false);
-	QVERIFY(fso.isFile() == false);
-	QVERIFY(fso.isHidden() == false);
-	QVERIFY(fso.isMovableTo(CFileSystemObject()) == false);
-	QVERIFY(fso.isNetworkObject() == false);
-	QVERIFY(fso.isReadable() == false);
-	QVERIFY(fso.isValid() == false);
-	QVERIFY(fso.isWriteable() == false);
-	QVERIFY(fso.name() == false);
-	QVERIFY(fso.parentDirPath() == "");
-	QVERIFY(fso.size() == 0);
-	QVERIFY(fso.type() == UnknownType);
-}
-
-void FileSystemObjectTest::cleanupTestCase()
-{
-
-}
-
-DISABLE_COMPILER_WARNINGS
-QTEST_APPLESS_MAIN(FileSystemObjectTest)
-#include "fso_test.moc"
-RESTORE_COMPILER_WARNINGS

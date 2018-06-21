@@ -1,9 +1,10 @@
 TEMPLATE = app
-TARGET   = fso_test_high_level
+CONFIG += console
+TARGET = fso_test_high_level
 
 include(../../config.pri)
 
-QT = core testlib
+QT = core
 QT += gui winextras #QIcon, iconprovider
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}

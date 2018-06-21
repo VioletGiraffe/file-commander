@@ -1,9 +1,10 @@
 TEMPLATE = app
+CONFIG += console
 TARGET   = fso_test
 
 include(../../config.pri)
 
-QT = core testlib
+QT = core
 QT += gui winextras #QIcon, iconprovider
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
@@ -37,7 +38,7 @@ HEADERS += \
 	../../src/iconprovider/ciconproviderimpl.h \
 	QFileInfo_Test \
 	QDir_Test \
-    qdir_test.h \
-    qfileinfo_test.h
+	qdir_test.h \
+	qfileinfo_test.h
 
 DEFINES += CFILESYSTEMOBJECT_TEST
