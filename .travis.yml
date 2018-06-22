@@ -43,6 +43,17 @@ before_script:
   - $QMAKE -v
 
 script: 
+  # Building the main binaries
   - $QMAKE -r
   - make -j
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/FileCommander --test-launch; else ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch; fi
+
+  # Building tests
+  - cd file-commander-core\core-tests\
+  - $QMAKE -r
+  - make -j
+  - cd ../../
+
+  # Running tests
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test --test-launch; else ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test --test-launch; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test_high_level --test-launch; else ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level --test-launch; fi
