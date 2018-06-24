@@ -25,6 +25,7 @@ SOURCES += \
 	../../src/cfilesystemobject.cpp \
 	../../src/fasthash.c \
 	../../src/iconprovider/ciconprovider.cpp \
+	../../src/iconprovider/ciconproviderimpl.cpp \
 	qfileinfo_test.cpp \
 	qdir_test.cpp
 

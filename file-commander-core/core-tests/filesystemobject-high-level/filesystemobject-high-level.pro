@@ -24,7 +24,8 @@ SOURCES += \
 	fso_test_high_level.cpp \
 	../../src/cfilesystemobject.cpp \
 	../../src/fasthash.c \
-	../../src/iconprovider/ciconprovider.cpp
+	../../src/iconprovider/ciconprovider.cpp \
+	../../src/iconprovider/ciconproviderimpl.cpp
 
 HEADERS += \
 	../../src/cfilesystemobject.h \

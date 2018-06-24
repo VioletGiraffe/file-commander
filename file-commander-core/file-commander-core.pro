@@ -35,14 +35,15 @@ HEADERS += \
 	src/diskenumerator/volumeinfo.hpp \
 	src/diskenumerator/cvolumeenumerator.h \
 	src/filesystemwatcher/cfilesystemwatcher.h \
-    src/diskenumerator/volumeinfohelper.hpp \
-    src/cfilemanipulator.h
+	src/diskenumerator/volumeinfohelper.hpp \
+	src/cfilemanipulator.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
 	src/ccontroller.cpp \
 	src/cpanel.cpp \
 	src/iconprovider/ciconprovider.cpp \
+	src/iconprovider/ciconproviderimpl.cpp \
 	src/fileoperations/coperationperformer.cpp \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
@@ -51,7 +52,7 @@ SOURCES += \
 	src/directoryscanner.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
 	src/filesystemwatcher/cfilesystemwatcher.cpp \
-    src/cfilemanipulator.cpp
+	src/cfilemanipulator.cpp
 
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)
