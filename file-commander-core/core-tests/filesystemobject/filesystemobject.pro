@@ -5,7 +5,7 @@ TARGET   = fso_test
 include(../../config.pri)
 
 QT = core
-QT += gui winextras #QIcon, iconprovider
+QT += gui #QIcon, iconprovider
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
