@@ -4,9 +4,6 @@ TARGET = fso_test_high_level
 
 include(../../config.pri)
 
-QT = core
-QT += gui #QIcon, iconprovider
-
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
