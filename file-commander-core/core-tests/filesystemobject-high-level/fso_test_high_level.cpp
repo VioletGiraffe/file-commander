@@ -25,7 +25,7 @@ TEST_CASE("CFileSystemObject::pathHierarchy tests", "[CFileSystemObject]" )
 #ifndef _WIN32
 	{
 		const auto hierarchy = CFileSystemObject::pathHierarchy("/Users/admin/Downloads/1.txt");
-		const std::vector<QString> reference{"/Users/admin/Downloads/1.txt", "/Users/admin/Downloads", "/Users/admin", "/Users"};
+		const std::vector<QString> reference{"/Users/admin/Downloads/1.txt", "/Users/admin/Downloads", "/Users/admin", "/Users", "/"};
 		CHECK(hierarchy == reference);
 	}
 #else

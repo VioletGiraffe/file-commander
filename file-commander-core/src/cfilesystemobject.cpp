@@ -332,6 +332,9 @@ bool CFileSystemObject::isNetworkObject() const
 
 bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
 {
+	if (!isValid() || !dest.isValid())
+		return false;
+
 	const auto fileSystemId = rootFileSystemId(), otherFileSystemId = dest.rootFileSystemId();
 	return fileSystemId == otherFileSystemId && fileSystemId != std::numeric_limits<uint64_t>::max() && otherFileSystemId != std::numeric_limits<uint64_t>::max();
 }
