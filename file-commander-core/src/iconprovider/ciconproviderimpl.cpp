@@ -1,6 +1,36 @@
 #include "ciconproviderimpl.h"
 
+#include <QIcon>
+
 #ifdef _WIN32
+#include <QtWin>
+
+#include <shellapi.h>
+#pragma comment(lib, "Shell32.lib")
+#pragma comment(lib, "User32.lib")
+
+QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object)
+{
+	QIcon icon;
+	SHFILEINFO info;
+	memset(&info, 0, sizeof(info));
+	SHGetFileInfoW((WCHAR*)object.fullAbsolutePath().replace('/', '\\').utf16(), object.isDir() ? FILE_ATTRIBUTE_DIRECTORY : 0, &info, sizeof(SHFILEINFO),
+				   SHGFI_ICON | SHGFI_USEFILEATTRIBUTES | SHGFI_SMALLICON | (_showOverlayIcons ? SHGFI_ADDOVERLAYS : 0));
+
+	if (info.hIcon)
+	{
+		icon = QIcon(QtWin::fromHICON(info.hIcon));
+		DestroyIcon(info.hIcon);
+	}
+
+	auto sizes = icon.availableSizes();
+	return icon;
+}
+
+void CIconProviderImpl::settingsChanged()
+{
+	_showOverlayIcons = CSettings().value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
+}
 
 #else
 QIcon CIconProviderImpl::iconFor(const CFileSystemObject &object)

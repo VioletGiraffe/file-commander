@@ -5,44 +5,20 @@
 #include "cfilesystemobject.h"
 
 DISABLE_COMPILER_WARNINGS
-#ifdef _WIN32
-#include <QtWin>
-#else
+#ifndef _WIN32
 #include <QFileIconProvider>
 #endif
 RESTORE_COMPILER_WARNINGS
 
-#ifdef _WIN32
+class QIcon;
 
-#include <shellapi.h>
-#pragma comment(lib, "Shell32.lib")
-#pragma comment(lib, "User32.lib")
+#ifdef _WIN32
 
 class CIconProviderImpl
 {
 public:
-	inline QIcon iconFor(const CFileSystemObject& object)
-	{
-		QIcon icon;
-		SHFILEINFO info;
-		memset(&info, 0, sizeof(info));
-		SHGetFileInfoW((WCHAR*)object.fullAbsolutePath().replace('/', '\\').utf16(), object.isDir() ? FILE_ATTRIBUTE_DIRECTORY : 0, &info, sizeof(SHFILEINFO),
-					   SHGFI_ICON | SHGFI_USEFILEATTRIBUTES | SHGFI_SMALLICON | (_showOverlayIcons ? SHGFI_ADDOVERLAYS : 0));
-
-		if (info.hIcon)
-		{
-			icon = QIcon(QtWin::fromHICON(info.hIcon));
-			DestroyIcon(info.hIcon);
-		}
-
-		auto sizes = icon.availableSizes();
-		return icon;
-	}
-
-	inline void settingsChanged()
-	{
-		_showOverlayIcons = CSettings().value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
-	}
+	QIcon iconFor(const CFileSystemObject& object);
+	void settingsChanged();
 
 private:
 	bool _showOverlayIcons = false;
