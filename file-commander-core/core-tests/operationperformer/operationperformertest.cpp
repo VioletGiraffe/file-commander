@@ -24,13 +24,14 @@ inline bool compareFolderContents(const std::vector<CFileSystemObject>& source, 
 	for (const auto& item : source)
 		pathsSource.push_back(item.fullAbsolutePath());
 
-	const auto longestCommonPrefixL = SetOperations::longestCommonStart(pathsSource);
+	// https://stackoverflow.com/questions/51009172/erroneous-ambiguous-base-class-error-in-template-context
+	const auto longestCommonPrefixL = SetOperations::longestCommonStart((const QList<QString>&)pathsSource);
 
 	QStringList pathsDest;
 	for (const auto& item : dest)
 		pathsDest.push_back(item.fullAbsolutePath());
 
-	const auto longestCommonPrefixR = SetOperations::longestCommonStart(pathsDest);
+	const auto longestCommonPrefixR = SetOperations::longestCommonStart((const QList<QString>&)pathsDest);
 
 	for (auto& path : pathsSource)
 		path = path.mid(longestCommonPrefixL.length());

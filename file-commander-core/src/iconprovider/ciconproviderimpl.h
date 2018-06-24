@@ -2,6 +2,7 @@
 
 #include "settings.h"
 #include "settings/csettings.h"
+#include "cfilesystemobject.h"
 
 DISABLE_COMPILER_WARNINGS
 #ifdef _WIN32
@@ -52,20 +53,8 @@ private:
 class CIconProviderImpl
 {
 public:
-	inline QIcon iconFor(const CFileSystemObject& object)
-	{
-		return _provider.icon(object.qFileInfo());
-	}
-
-	inline void settingsChanged()
-	{
-		_showOverlayIcons = CSettings().value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
-
-		const auto oldOptions = _provider.options();
-		const auto newOptions = _showOverlayIcons ? QFlags<QFileIconProvider::Option>() : QFileIconProvider::DontUseCustomDirectoryIcons;
-		if (oldOptions != newOptions)
-			_provider.setOptions(newOptions);
-	}
+	QIcon iconFor(const CFileSystemObject& object);
+	void settingsChanged();
 
 private:
 	bool _showOverlayIcons = false;
