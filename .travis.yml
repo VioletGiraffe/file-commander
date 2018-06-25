@@ -28,6 +28,7 @@ install:
   
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt59-meta-minimal; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt59/bin/qmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=/opt/qt59/bin/:$PATH; fi
 
 before_script:
   # Start virtual X server, from https://docs.travis-ci.com/user/gui-and-headless-browsers/
@@ -37,6 +38,11 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then gcc --version; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then g++ --version; fi
 
+  # linuxdeployqt
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod a+x linuxdeployqt-continuous-x86_64.AppImage; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH; fi
+
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then clang --version; fi
   - "sh -e ./update_repository.sh"
 
@@ -44,16 +50,24 @@ before_script:
 
 script: 
   # Building the main binaries
-  - $QMAKE -r
+  - $QMAKE -r CONFIG+=release
   - make -j
+
+  # Linux: deploying Qt binaries
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/FileCommander -bundle-non-qt-libs; fi
+
+  # Test launch
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/FileCommander --test-launch; else ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch; fi
 
   # Building tests
   - cd file-commander-core/core-tests
-  - $QMAKE -r
+  - $QMAKE -r CONFIG+=release
   - make -j
   - cd ../../
 
   # Running tests
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/fso_test -bundle-non-qt-libs; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/fso_test_high_level -bundle-non-qt-libs; fi
+
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test; else ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test_high_level; else ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level; fi
