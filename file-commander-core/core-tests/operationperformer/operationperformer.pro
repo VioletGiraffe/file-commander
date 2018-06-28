@@ -3,8 +3,6 @@ TARGET   = operationperformer_test
 
 include(../../config.pri)
 
-QT += testlib
-
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
