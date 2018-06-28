@@ -1,22 +1,17 @@
 #include "fileoperations/coperationperformer.h"
 #include "cfolderenumeratorrecursive.h"
 #include "container/set_operations.hpp"
+#include "../test-utils/src/qt_helpers.hpp"
+#include "system/processfilepath.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
-#include <QtTest>
 RESTORE_COMPILER_WARNINGS
 
 #include <iostream>
 
-class TestOperationPerformer : public QObject
-{
-	Q_OBJECT
-
-private slots:
-	void fileSystemObjectTest();
-	void testCopy();
-};
+#define CATCH_CONFIG_MAIN
+#include "../catch2/catch.hpp"
 
 inline bool compareFolderContents(const std::vector<CFileSystemObject>& source, const std::vector<CFileSystemObject>& dest)
 {
@@ -45,17 +40,17 @@ inline bool compareFolderContents(const std::vector<CFileSystemObject>& source, 
 	if (!diff.elements_from_a_not_in_b.empty())
 	{
 		differenceDetected = true;
-		qDebug() << "Items from source not in dest:";
+		std::cout << "Items from source not in dest:";
 		for (const auto& item : diff.elements_from_a_not_in_b)
-			qDebug() << item;
+			std::cout << item;
 	}
 
 	if (!diff.elements_from_b_not_in_a.empty())
 	{
 		differenceDetected = true;
-		qDebug() << "Items from dest not in source:";
+		std::cout << "Items from dest not in source:";
 		for (const auto& item : diff.elements_from_b_not_in_a)
-			qDebug() << item;
+			std::cout << item;
 	}
 
 	return !differenceDetected;
@@ -63,28 +58,32 @@ inline bool compareFolderContents(const std::vector<CFileSystemObject>& source, 
 
 inline QString srcTestDirPath()
 {
-	return QApplication::applicationDirPath() + "/../../file-commander-core/core-tests/operationperformer/test_folder/";
+	const auto selfExecutablePath = processFilePath();
+	const QString absolutePath = QFileInfo(QString::fromWCharArray(selfExecutablePath.data(), (int)selfExecutablePath.size())).absoluteFilePath();
+	return absolutePath + "/../../file-commander-core/core-tests/operationperformer/test_folder/";
 }
 
 inline QString dstTestDirPath()
 {
-	return QApplication::applicationDirPath() + "/copy-move-test-folder/";
+	const auto selfExecutablePath = processFilePath();
+	const QString absolutePath = QFileInfo(QString::fromWCharArray(selfExecutablePath.data(), (int)selfExecutablePath.size())).absoluteFilePath();
+	return absolutePath + "/copy-move-test-folder/";
 }
 
-void TestOperationPerformer::fileSystemObjectTest()
+TEST_CASE("fileSystemObjectTest", "[operationperformer]")
 {
 	CFileSystemObject o(srcTestDirPath());
-	QVERIFY(o.fullAbsolutePath() != o.parentDirPath() + '/');
+	CHECK(o.fullAbsolutePath() != (o.parentDirPath() + '/'));
 }
 
-void TestOperationPerformer::testCopy()
+TEST_CASE("Copy test", "[operationperformer]")
 {
 	// TODO: remove hard-coded paths
 	const QString srcDirPath = srcTestDirPath();
 	const QString destDirPath = dstTestDirPath();
 
-	qDebug() << "Source:" << srcDirPath;
-	qDebug() << "Dest:" << destDirPath;
+	std::cout << "Source:" << srcDirPath;
+	std::cout << "Dest:" << destDirPath;
 
 	// TODO: extract this into init() / cleanup()
 #ifdef _WIN32
@@ -100,12 +99,5 @@ void TestOperationPerformer::testCopy()
 	CFolderEnumeratorRecursive::enumerateFolder(srcDirPath, sourceTree);
 	CFolderEnumeratorRecursive::enumerateFolder(destDirPath + CFileSystemObject(srcTestDirPath()).fullName(), destTree);
 
-	QVERIFY(compareFolderContents(sourceTree, destTree));
+	CHECK(compareFolderContents(sourceTree, destTree));
 }
-
-DISABLE_COMPILER_WARNINGS
-
-QTEST_MAIN(TestOperationPerformer)
-#include "operationperformertest.moc"
-
-RESTORE_COMPILER_WARNINGS
