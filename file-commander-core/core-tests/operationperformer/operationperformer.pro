@@ -1,5 +1,6 @@
 TEMPLATE = app
 TARGET   = operationperformer_test
+CONFIG += console
 
 include(../../config.pri)
 
