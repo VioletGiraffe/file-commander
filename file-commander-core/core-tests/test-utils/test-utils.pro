@@ -22,8 +22,12 @@ for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 HEADERS += \
 	src/cfolderenumeratorrecursive.h \
 	src/ctestfoldergenerator.h \
-    src/catch2_utils.hpp
+    src/catch2_utils.hpp \
+    src/foldercomparator.h \
+    src/qt_helpers.hpp
 
 SOURCES += \
 	src/cfolderenumeratorrecursive.cpp \
-	src/ctestfoldergenerator.cpp
+	src/ctestfoldergenerator.cpp \
+    src/foldercomparator.cpp \
+    src/qt_helpers.cpp
