@@ -1,11 +1,13 @@
 #include "fileoperations/coperationperformer.h"
 #include "cfolderenumeratorrecursive.h"
+#include "ctestfoldergenerator.h"
 #include "container/set_operations.hpp"
 #include "system/processfilepath.hpp"
 
 // test_utils
 #include "foldercomparator.h"
 #include "qt_helpers.hpp"
+#include "catch2_utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
@@ -18,16 +20,12 @@ RESTORE_COMPILER_WARNINGS
 
 inline QString srcTestDirPath()
 {
-	const auto selfExecutablePath = processFilePath();
-	const QString absolutePath = QFileInfo(QString::fromWCharArray(selfExecutablePath.data(), (int)selfExecutablePath.size())).absoluteFilePath();
-	return absolutePath + "/../../file-commander-core/core-tests/operationperformer/test_folder/";
+	return QFileInfo(qStringFromWstring(processFilePath()) + "/../test_directory_source/").absoluteFilePath();
 }
 
 inline QString dstTestDirPath()
 {
-	const auto selfExecutablePath = processFilePath();
-	const QString absolutePath = QFileInfo(QString::fromWCharArray(selfExecutablePath.data(), (int)selfExecutablePath.size())).absoluteFilePath();
-	return absolutePath + "/copy-move-test-folder/";
+	return QFileInfo(qStringFromWstring(processFilePath()) + "/../test_directory_target/").absoluteFilePath();
 }
 
 TEST_CASE("fileSystemObjectTest", "[operationperformer]")
@@ -36,21 +34,49 @@ TEST_CASE("fileSystemObjectTest", "[operationperformer]")
 	CHECK(o.fullAbsolutePath() != (o.parentDirPath() + '/'));
 }
 
+inline bool deleteDirectoryWithContents(const QString& dirPath)
+{
+	if (!QFileInfo::exists(dirPath))
+		return true;
+
+#ifdef _WIN32
+	return std::system((QString("rmdir /S /Q ") % '\"' % QString(dirPath).replace('/', '\\') % '\"').toUtf8().data()) == 0;
+#else
+	return std::system((QString("rm -rf ") % '\"' % QString(dirPath) % '\"').toUtf8().data()) == 0;
+#endif
+}
+
 TEST_CASE("Copy test", "[operationperformer]")
 {
-	// TODO: remove hard-coded paths
 	const QString srcDirPath = srcTestDirPath();
 	const QString destDirPath = dstTestDirPath();
 
-	std::cout << "Source:" << srcDirPath;
-	std::cout << "Dest:" << destDirPath;
+	TRACE_LOG << "Source: " << srcDirPath;
+	TRACE_LOG << "Target: " << destDirPath;
 
-	// TODO: extract this into init() / cleanup()
-#ifdef _WIN32
-	std::system((QString("rmdir /S /Q ") % '\"' % QString(destDirPath).replace('/', '\\') % '\"').toUtf8().data());
-#else
-	std::system((QString("rm -rf ") % '\"' % QString(destDirPath) % '\"').toUtf8().data());
-#endif
+	if (deleteDirectoryWithContents(srcDirPath) == false)
+	{
+		TRACE_LOG << "Clearing the source folder: FAILED!";
+		FAIL();
+		return;
+	}
+	else
+		TRACE_LOG << "Clearing the source folder: SUCCESS";
+
+	if (deleteDirectoryWithContents(destDirPath) == false)
+	{
+		TRACE_LOG << "Clearing the target folder: FAILED!";
+		FAIL();
+		return;
+	}
+	else
+		TRACE_LOG << "Clearing the target folder: SUCCESS";
+
+	CTestFolderGenerator generator;
+	REQUIRE(generator.generateRandomTree(destDirPath, 1000, 200));
+	SUCCEED();
+	return;
+
 	COperationPerformer p(operationCopy, std::vector<CFileSystemObject> {CFileSystemObject(srcDirPath)}, destDirPath);
 	p.start();
 	while (!p.done());

@@ -10,3 +10,8 @@ std::ostream& operator<<(std::ostream& stream, const QString& qString)
 	stream << qString.toStdString();
 	return stream;
 }
+
+QString qStringFromWstring(const std::wstring ws)
+{
+	return QString::fromWCharArray(ws.data(), (int)ws.size());
+}

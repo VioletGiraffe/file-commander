@@ -22,19 +22,35 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, const ui
 		assert_and_return_r(parentQDir.exists() || parentQDir.mkpath("."), false);
 	}
 
-	std::uniform_int_distribution<uint32_t> numFilesDistribution(0, numFiles), numFoldersDistribution(0, numFolders);
-	const auto numFilesToCreate = numFilesDistribution(_rng);
-	const auto numFoldersToCreate = numFoldersDistribution(_rng);
+	std::vector<QString> newFolders;
+	if (numFolders > 0)
+	{
+		std::uniform_int_distribution<uint32_t> numFoldersDistribution(1, numFolders);
+		const auto numFoldersToCreate = numFoldersDistribution(_rng);
+		newFolders = generateRandomFolders(parentDir, numFoldersToCreate);
+		if (newFolders.empty())
+			return false;
+	}
 
-	const auto newFolders = generateRandomFolders(parentDir, numFoldersToCreate);
-	if (newFolders.empty())
-		return false;
+	if (numFiles > 0)
+	{
+		if (newFolders.size() > 0)
+		{
+			std::uniform_int_distribution<uint32_t> numFilesDistribution(1, numFiles);
+			const auto numFilesToCreate = numFilesDistribution(_rng);
+			if (!generateRandomFiles(parentDir, numFilesToCreate))
+				return false;
 
-	if (!generateRandomFiles(parentDir, numFilesToCreate))
-		return false;
-
-	for (const QString& folder : newFolders)
-		assert_and_return_r(generateRandomTree(folder, numFiles - numFilesToCreate, numFolders - numFoldersToCreate), false);
+			for (const QString& folder : newFolders)
+				assert_and_return_r(generateRandomTree(parentDir + "/" + folder, numFiles - numFilesToCreate, numFolders - newFolders.size()), false);
+		}
+		else
+		{
+			// All the remaining files must go into this last unpopulated directory
+			if (!generateRandomFiles(parentDir, numFiles))
+				return false;
+		}
+	}
 
 	return true;
 }
