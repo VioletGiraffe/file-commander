@@ -1,9 +1,13 @@
 #include "ciconproviderimpl.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QIcon>
+RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
+DISABLE_COMPILER_WARNINGS
 #include <QtWin>
+RESTORE_COMPILER_WARNINGS
 
 #include <shellapi.h>
 #pragma comment(lib, "Shell32.lib")

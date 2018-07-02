@@ -61,6 +61,8 @@ bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const u
 		const QByteArray randomData = randomString(30).toUtf8();
 		assert_and_return_r(file.write(randomData) == (qint64)randomData.size(), false);
 	}
+
+	return true;
 }
 
 std::vector<QString> CTestFolderGenerator::generateRandomFolders(const QString& parentDir, const uint32_t numFolders)
