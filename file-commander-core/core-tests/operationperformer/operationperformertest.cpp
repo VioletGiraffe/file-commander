@@ -3,6 +3,7 @@
 #include "ctestfoldergenerator.h"
 #include "container/set_operations.hpp"
 #include "system/processfilepath.hpp"
+#include "system/ctimeelapsed.h"
 
 // test_utils
 #include "foldercomparator.h"
@@ -56,8 +57,7 @@ TEST_CASE("Copy test", "[operationperformer]")
 
 	if (deleteDirectoryWithContents(srcDirPath) == false)
 	{
-		TRACE_LOG << "Clearing the source folder: FAILED!";
-		FAIL();
+		FAIL("Clearing the source folder: FAILED!");
 		return;
 	}
 	else
@@ -65,28 +65,35 @@ TEST_CASE("Copy test", "[operationperformer]")
 
 	if (deleteDirectoryWithContents(destDirPath) == false)
 	{
-		TRACE_LOG << "Clearing the target folder: FAILED!";
-		FAIL();
+		FAIL("Clearing the target folder: FAILED!");
 		return;
 	}
 	else
 		TRACE_LOG << "Clearing the target folder: SUCCESS";
 
 	REQUIRE(!QFileInfo::exists(srcDirPath));
+	REQUIRE(!QFileInfo::exists(destDirPath));
 	REQUIRE(QDir(srcDirPath).mkpath(".") == true);
 
 	CTestFolderGenerator generator;
 	REQUIRE(generator.generateRandomTree(srcDirPath, 1000, 200));
-	SUCCEED();
-	return;
 
 	COperationPerformer p(operationCopy, std::vector<CFileSystemObject> {CFileSystemObject(srcDirPath)}, destDirPath);
+	CTimeElapsed timer(true);
 	p.start();
-	while (!p.done());
+	while (!p.done())
+	{
+		// Reasonable timeout
+		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
+		{
+			FAIL("File operation timeout reached.");
+			return;
+		}
+	}
 
 	std::vector<CFileSystemObject> sourceTree, destTree;
 	CFolderEnumeratorRecursive::enumerateFolder(srcDirPath, sourceTree);
 	CFolderEnumeratorRecursive::enumerateFolder(destDirPath + CFileSystemObject(srcTestDirPath()).fullName(), destTree);
 
-	CHECK(compareFolderContents(sourceTree, destTree));
+	REQUIRE(compareFolderContents(sourceTree, destTree));
 }

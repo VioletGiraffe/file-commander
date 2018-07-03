@@ -14,6 +14,9 @@ RESTORE_COMPILER_WARNINGS
 // TODO: also compare all the files by contents.
 bool compareFolderContents(const std::vector<CFileSystemObject>& source, const std::vector<CFileSystemObject>& dest)
 {
+	if (source.size() != dest.size())
+		return false;
+
 	QStringList pathsSource;
 	for (const auto& item : source)
 		pathsSource.push_back(item.fullAbsolutePath());
