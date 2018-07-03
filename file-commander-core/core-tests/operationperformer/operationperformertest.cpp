@@ -72,8 +72,11 @@ TEST_CASE("Copy test", "[operationperformer]")
 	else
 		TRACE_LOG << "Clearing the target folder: SUCCESS";
 
+	REQUIRE(!QFileInfo::exists(srcDirPath));
+	REQUIRE(QDir(srcDirPath).mkpath(".") == true);
+
 	CTestFolderGenerator generator;
-	REQUIRE(generator.generateRandomTree(destDirPath, 1000, 200));
+	REQUIRE(generator.generateRandomTree(srcDirPath, 1000, 200));
 	SUCCEED();
 	return;
 
