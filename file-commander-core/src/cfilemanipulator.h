@@ -8,6 +8,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
+#include <memory>
 #include <stdint.h>
 
 class QFile;
