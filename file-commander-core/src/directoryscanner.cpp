@@ -1,7 +1,5 @@
 #include "directoryscanner.h"
 
-#include <assert.h>
-
 void scanDirectory(const CFileSystemObject& root, const std::function<void(const CFileSystemObject&)>& observer, const std::atomic<bool>& abort)
 {
 	if (observer)

@@ -18,11 +18,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
-#include <atomic>
-#include <functional>
 #include <stdint.h>
 #include <vector>
-#include <memory>
 
 enum FileSystemObjectType { UnknownType, Directory, File };
 

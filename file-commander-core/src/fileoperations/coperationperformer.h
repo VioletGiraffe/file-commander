@@ -116,7 +116,7 @@ private:
 
 	// Iterates over all dirs in the source vector, and their subdirs, and so on and replaces _sources with a flat list of files. Returns a list of destination folders where each of the files must be copied to according to _dest
 	// Also counts the total size of all the files to monitor progress
-	std::vector<QDir> flattenSourcesAndCalcDest(uint64_t& totalSize);
+	std::vector<QDir> enumerateSourcesAndCalcDest(uint64_t& totalSize);
 
 	UserResponse getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message);
 

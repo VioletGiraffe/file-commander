@@ -175,7 +175,7 @@ void COperationPerformer::copyFiles()
 	}
 
 	uint64_t totalSize = 0, sizeProcessed = 0;
-	const auto destination = flattenSourcesAndCalcDest(totalSize);
+	const auto destination = enumerateSourcesAndCalcDest(totalSize);
 	assert_r(destination.size() == _source.size());
 
 	std::vector<CFileSystemObject> dirsToCleanUp;
@@ -520,7 +520,7 @@ inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &
 
 // TODO: refactor to a separate algorithm that iterates recursively over subdirs.
 // Then I would no longer need to calculate the total size of all files in the same method just to avoid code duplication.
-std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &totalSize)
+std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &totalSize)
 {
 	totalSize = 0;
 	std::vector<CFileSystemObject> newSourceVector;
@@ -538,16 +538,12 @@ std::vector<QDir> COperationPerformer::flattenSourcesAndCalcDest(uint64_t &total
 		else if (o.isDir())
 		{
 			scanDirectory(o, [&](const CFileSystemObject& item) {
-				if (item.isFile())
-				{
-					totalSize += item.size();
-					destinations.emplace_back(destinationFolder(item.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), item.isDir() /* TODO: 'false' ? */)); 
-					newSourceVector.push_back(item);
-				}
-			});
+				destinations.emplace_back(destinationFolder(item.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), item.isDir() /* TODO: 'false' ? */));
+				newSourceVector.push_back(item);
 
-			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), true));
-			newSourceVector.push_back(o);
+				if (item.isFile())
+					totalSize += item.size();
+			});
 		}
 	};
 
