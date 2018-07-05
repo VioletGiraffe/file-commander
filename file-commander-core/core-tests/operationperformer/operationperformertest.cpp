@@ -16,8 +16,10 @@ RESTORE_COMPILER_WARNINGS
 
 #include <iostream>
 
-#define CATCH_CONFIG_MAIN
+#define CATCH_CONFIG_RUNNER
 #include "../catch2/catch.hpp"
+
+static uint32_t g_randomSeed = 0;
 
 inline QString srcTestDirPath()
 {
@@ -76,6 +78,8 @@ TEST_CASE("Copy test", "[operationperformer]")
 	REQUIRE(QDir(srcDirPath).mkpath(".") == true);
 
 	CTestFolderGenerator generator;
+	generator.setSeed(g_randomSeed);
+	TRACE_LOG << "std::random seed: " << g_randomSeed;
 	REQUIRE(generator.generateRandomTree(srcDirPath, 1000, 200));
 
 	COperationPerformer p(operationCopy, std::vector<CFileSystemObject> {CFileSystemObject(srcDirPath)}, destDirPath);
@@ -96,4 +100,27 @@ TEST_CASE("Copy test", "[operationperformer]")
 	CFolderEnumeratorRecursive::enumerateFolder(destDirPath + CFileSystemObject(srcTestDirPath()).fullName(), destTree);
 
 	REQUIRE(compareFolderContents(sourceTree, destTree));
+}
+
+int main(int argc, char* argv[])
+{
+	Catch::Session session; // There must be exactly one instance
+
+	// Build a new parser on top of Catch's
+	using namespace Catch::clara;
+	auto cli
+		= session.cli() // Get Catch's composite command line parser
+		| Opt(g_randomSeed, "std::random seed") // bind variable to a new option, with a hint string
+		["--std-seed"]        // the option names it will respond to
+		("std::random seed"); // description string for the help output
+
+	// Now pass the new composite back to Catch so it uses that
+	session.cli(cli);
+
+	// Let Catch (using Clara) parse the command line
+	const int returnCode = session.applyCommandLine(argc, argv);
+	if (returnCode != 0) // Indicates a command line error
+		return returnCode;
+
+	return session.run();
 }

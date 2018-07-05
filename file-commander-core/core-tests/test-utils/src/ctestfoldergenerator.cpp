@@ -13,7 +13,7 @@ RESTORE_COMPILER_WARNINGS
 
 void CTestFolderGenerator::setSeed(const std::mt19937::result_type seed)
 {
-	_rng = std::move(std::mt19937(seed));
+	_rng = std::mt19937(seed);
 }
 
 bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t numFiles, size_t numFolders)

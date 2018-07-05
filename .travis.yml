@@ -73,4 +73,5 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test_high_level; else ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/operationperformer_test -bundle-non-qt-libs; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/operationperformer_test; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/operationperformer_test --std-seed $(date +%s); fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/operationperformer_test --std-seed $(date +%s); fi
