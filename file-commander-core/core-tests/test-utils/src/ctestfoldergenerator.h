@@ -13,6 +13,9 @@ public:
 
 private:
 	QString randomString(const size_t length);
+	QString randomFileName(const size_t length);
+	QString randomDirName(const size_t length);
+
 	bool generateRandomFiles(const QString& parentDir, const size_t numFiles);
 	std::vector<QString> generateRandomFolders(const QString& parentDir, const size_t numFolders);
 

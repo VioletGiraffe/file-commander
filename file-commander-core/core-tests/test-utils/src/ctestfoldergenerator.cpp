@@ -6,6 +6,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
 #include <QString>
+#include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
@@ -64,21 +65,32 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 
 QString CTestFolderGenerator::randomString(const size_t length)
 {
-	std::vector<QChar> chars;
-	chars.reserve(length);
+	QString resultString;
+	resultString.reserve((int)length);
 
 	std::uniform_int_distribution<short> distribution('a', 'z');
 	for (size_t i = 0; i < length; ++i)
-		chars.emplace_back(static_cast<char>(distribution(_rng)));
+		resultString.append(QChar(static_cast<char>(distribution(_rng))));
 
-	return QString(chars.data(), (int)chars.size());
+	return resultString;
+}
+
+QString CTestFolderGenerator::randomFileName(const size_t length)
+{
+	assert_and_return_r(length > 3, QString());
+	return randomString(length - 3) % '.' % randomString(3);
+}
+
+QString CTestFolderGenerator::randomDirName(const size_t length)
+{
+	return randomString(length).toUpper();
 }
 
 bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const size_t numFiles)
 {
 	for (uint32_t i = 0; i < numFiles; ++i)
 	{
-		QFile file(parentDir + '/' + randomString(12));
+		QFile file(parentDir + '/' + randomFileName(12));
 		assert_and_return_r(file.open(QFile::WriteOnly), false);
 
 		const QByteArray randomData = randomString(std::uniform_int_distribution<size_t>(10, 100)(_rng)).toUtf8();
@@ -94,7 +106,7 @@ std::vector<QString> CTestFolderGenerator::generateRandomFolders(const QString& 
 	std::vector<QString> newFolderNames;
 	for (uint32_t i = 0; i < numFolders; ++i)
 	{
-		const auto newFolderName = randomString(12);
+		const auto newFolderName = randomDirName(12);
 		assert_and_return_r(parentFolder.mkdir(newFolderName), std::vector<QString>());
 		newFolderNames.emplace_back(newFolderName);
 	}

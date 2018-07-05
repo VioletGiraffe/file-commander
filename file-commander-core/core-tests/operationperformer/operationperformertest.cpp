@@ -11,7 +11,9 @@
 #include "catch2_utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDir>
 #include <QStringBuilder>
+#include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
 #include <iostream>
@@ -21,68 +23,28 @@ RESTORE_COMPILER_WARNINGS
 
 static uint32_t g_randomSeed = 0;
 
-inline QString srcTestDirPath()
-{
-	return QFileInfo(qStringFromWstring(processFilePath()) + "/../test_directory_source/").absoluteFilePath();
-}
-
-inline QString dstTestDirPath()
-{
-	return QFileInfo(qStringFromWstring(processFilePath()) + "/../test_directory_target/").absoluteFilePath();
-}
-
-TEST_CASE("fileSystemObjectTest", "[operationperformer]")
-{
-	CFileSystemObject o(srcTestDirPath());
-	CHECK(o.fullAbsolutePath() != (o.parentDirPath() + '/'));
-}
-
-inline bool deleteDirectoryWithContents(const QString& dirPath)
-{
-	if (!QFileInfo::exists(dirPath))
-		return true;
-
-#ifdef _WIN32
-	return std::system((QString("rmdir /S /Q ") % '\"' % QString(dirPath).replace('/', '\\') % '\"').toUtf8().data()) == 0;
-#else
-	return std::system((QString("rm -rf ") % '\"' % QString(dirPath) % '\"').toUtf8().data()) == 0;
-#endif
-}
-
 TEST_CASE("Copy test", "[operationperformer]")
 {
-	const QString srcDirPath = srcTestDirPath();
-	const QString destDirPath = dstTestDirPath();
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
 
-	TRACE_LOG << "Source: " << srcDirPath;
-	TRACE_LOG << "Target: " << destDirPath;
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+	TRACE_LOG << "Target: " << targetDirectory.path();
 
-	if (deleteDirectoryWithContents(srcDirPath) == false)
-	{
-		FAIL("Clearing the source folder: FAILED!");
-		return;
-	}
-	else
-		TRACE_LOG << "Clearing the source folder: SUCCESS";
+	REQUIRE(QFileInfo::exists(sourceDirectory.path()));
+	REQUIRE(CFileSystemObject(sourceDirectory.path()).isEmptyDir());
 
-	if (deleteDirectoryWithContents(destDirPath) == false)
-	{
-		FAIL("Clearing the target folder: FAILED!");
-		return;
-	}
-	else
-		TRACE_LOG << "Clearing the target folder: SUCCESS";
-
-	REQUIRE(!QFileInfo::exists(srcDirPath));
-	REQUIRE(!QFileInfo::exists(destDirPath));
-	REQUIRE(QDir(srcDirPath).mkpath(".") == true);
+	REQUIRE(QFileInfo::exists(targetDirectory.path()));
+	REQUIRE(CFileSystemObject(targetDirectory.path()).isEmptyDir());
 
 	CTestFolderGenerator generator;
 	generator.setSeed(g_randomSeed);
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
-	REQUIRE(generator.generateRandomTree(srcDirPath, 1000, 200));
+	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
 
-	COperationPerformer p(operationCopy, std::vector<CFileSystemObject> {CFileSystemObject(srcDirPath)}, destDirPath);
+	COperationPerformer p(operationCopy, std::vector<CFileSystemObject> {CFileSystemObject(sourceDirectory.path())}, targetDirectory.path());
 	CTimeElapsed timer(true);
 	p.start();
 	while (!p.done())
@@ -96,8 +58,8 @@ TEST_CASE("Copy test", "[operationperformer]")
 	}
 
 	std::vector<CFileSystemObject> sourceTree, destTree;
-	CFolderEnumeratorRecursive::enumerateFolder(srcDirPath, sourceTree);
-	CFolderEnumeratorRecursive::enumerateFolder(destDirPath + CFileSystemObject(srcTestDirPath()).fullName(), destTree);
+	CFolderEnumeratorRecursive::enumerateFolder(sourceDirectory.path(), sourceTree);
+	CFolderEnumeratorRecursive::enumerateFolder(targetDirectory.path() % '/' % QFileInfo(sourceDirectory.path()).completeBaseName(), destTree);
 
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
