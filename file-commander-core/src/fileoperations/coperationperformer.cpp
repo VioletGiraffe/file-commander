@@ -191,7 +191,9 @@ void COperationPerformer::copyFiles()
 			continue;
 		}
 
+#if !defined _WIN32 || defined _DEBUG
 		qInfo() << __FUNCTION__ << "Processing" << (sourceIterator->isFile() ? "file" : "DIR ") << sourceIterator->fullAbsolutePath();
+#endif
 		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->fullName());
 
 		const QFileInfo& sourceFileInfo = sourceIterator->qFileInfo();
@@ -373,7 +375,9 @@ void COperationPerformer::deleteFiles()
 		if (!it->isFile())
 			continue;
 
+#if !defined _WIN32 || defined _DEBUG
 		qInfo() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
+#endif
 		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
 
 		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
