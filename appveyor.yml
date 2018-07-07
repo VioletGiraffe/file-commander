@@ -1,4 +1,4 @@
-version: {build}
+version: '{build}'
 init:
   clone_depth: 1
 
@@ -47,7 +47,7 @@ test_script:
  - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\fso_test_high_level.xml))
 
  - ps: |
-     For ($i=0; $i -le 5; $i++) {
-       .\bin\release\$($env:BUILD_ARCH)\operationperformer_test.exe -s -r junit -o operationperformer_test_ $i.xml --std-seed ((get-date -Uformat %s).remove(10, 1).substring(5,9));
-       (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\operationperformer_test_ $i.xml))
+     For ($i=1; $i -le 10; $i++) {
+       & .\bin\release\$($env:BUILD_ARCH)\operationperformer_test.exe -s -r junit -o operationperformer_test_$i.xml --std-seed ((get-date -Uformat %s).remove(10, 1).substring(5,9));
+       (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\operationperformer_test_$i.xml));
      }
