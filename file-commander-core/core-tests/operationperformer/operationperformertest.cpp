@@ -24,7 +24,7 @@ RESTORE_COMPILER_WARNINGS
 
 static uint32_t g_randomSeed = 0;
 
-TEST_CASE((std::string("Copy test - seed ") + std::to_string(g_randomSeed)).c_str(), "[operationperformer]")
+TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
 	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
