@@ -253,8 +253,6 @@ bool CFileManipulator::makeWritable(const CFileSystemObject& object, bool writab
 
 FileOperationResultCode CFileManipulator::remove()
 {
-	qInfo() << "Removing" << _object.fullAbsolutePath();
-
 	assert_and_return_message_r(_object.exists(), "Object doesn't exist", rcObjectDoesntExist);
 
 	if (_object.isFile())
