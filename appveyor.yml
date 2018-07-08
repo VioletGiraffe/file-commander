@@ -48,6 +48,8 @@ test_script:
 
  - ps: |
      For ($i=1; $i -le 10; $i++) {
-       & .\bin\release\$($env:BUILD_ARCH)\operationperformer_test.exe -s -r junit -o operationperformer_test_$i.xml --std-seed ((get-date -Uformat %s).remove(10, 1).substring(5,9));
+       $randomSeed = ((get-date -Uformat %s).remove(10, 1));
+       $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
+       & .\bin\release\$($env:BUILD_ARCH)\operationperformer_test.exe -s -r junit -o operationperformer_test_$i.xml --std-seed $randomSeed;
        (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\operationperformer_test_$i.xml));
      }

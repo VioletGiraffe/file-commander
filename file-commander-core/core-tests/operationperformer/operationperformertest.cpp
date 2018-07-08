@@ -50,12 +50,14 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 	p.start();
 	while (!p.done())
 	{
+#ifndef _DEBUG
 		// Reasonable timeout
 		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
 		{
 			FAIL("File operation timeout reached.");
 			return;
 		}
+#endif
 	}
 
 	std::vector<CFileSystemObject> sourceTree, destTree;

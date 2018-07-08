@@ -78,7 +78,11 @@ QString CTestFolderGenerator::randomString(const size_t length)
 QString CTestFolderGenerator::randomFileName(const size_t length)
 {
 	assert_and_return_r(length > 3, QString());
-	return randomString(length - 3) % '.' % randomString(3);
+	const auto extension = randomString(3);
+	if (extension == QLatin1String("lnk"))
+		return randomFileName(length);
+
+	return randomString(length - 3) % '.' % extension;
 }
 
 QString CTestFolderGenerator::randomDirName(const size_t length)
