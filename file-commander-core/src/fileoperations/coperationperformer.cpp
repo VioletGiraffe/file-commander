@@ -25,10 +25,10 @@ COperationPerformer::~COperationPerformer()
 		_thread.join();
 }
 
-void COperationPerformer::setWatcher(CFileOperationObserver *watcher)
+void COperationPerformer::setObserver(CFileOperationObserver *observer)
 {
-	assert_r(watcher);
-	_observer = watcher;
+	assert_r(observer);
+	_observer = observer;
 }
 
 bool COperationPerformer::togglePause()

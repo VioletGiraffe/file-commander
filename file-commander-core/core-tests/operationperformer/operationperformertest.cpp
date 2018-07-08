@@ -24,6 +24,19 @@ RESTORE_COMPILER_WARNINGS
 
 static uint32_t g_randomSeed = 0;
 
+struct ProgressObserver : public CFileOperationObserver {
+	inline void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float filePercentage, uint64_t /*speed*/ /* B/s*/, uint32_t /*secondsRemaining*/) override {
+		CHECK(totalPercentage <= 100.0f);
+		CHECK(filePercentage <= 100.0f);
+	}
+	inline void onProcessHalted(HaltReason /*reason*/, CFileSystemObject /*source*/, CFileSystemObject /*dest*/, QString /*errorMessage*/) override { // User decision required (file exists, file is read-only etc.)
+		FAIL("onProcessHalted called");
+		return;
+	}
+	inline void onProcessFinished(QString /*message*/ = QString()) override {} // Done or canceled
+	inline void onCurrentFileChanged(QString /*file*/) override {} // Starting to process a new file
+};
+
 TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer-copy]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
@@ -47,9 +60,13 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 
 	COperationPerformer p(operationCopy, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
 	CTimeElapsed timer(true);
+
+	ProgressObserver progressObserver;
+	p.setObserver(&progressObserver);
 	p.start();
 	while (!p.done())
 	{
+		progressObserver.processEvents();
 #ifndef _DEBUG
 		// Reasonable timeout
 		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
@@ -92,10 +109,14 @@ TEST_CASE((std::string("Move test #") + std::to_string((srand(time(nullptr)), ra
 	CFolderEnumeratorRecursive::enumerateFolder(sourceDirectory.path(), sourceTree);
 	
 	COperationPerformer p(operationMove, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
+	ProgressObserver progressObserver;
+	p.setObserver(&progressObserver);
+
 	CTimeElapsed timer(true);
 	p.start();
 	while (!p.done())
 	{
+		progressObserver.processEvents();
 #ifndef _DEBUG
 		// Reasonable timeout
 		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
@@ -131,10 +152,14 @@ TEST_CASE((std::string("Delete test #") + std::to_string((srand(time(nullptr)), 
 	REQUIRE(!QDir(sourceDirectory.path()).entryList(QDir::NoDotAndDotDot | QDir::AllEntries).empty());
 
 	COperationPerformer p(operationDelete, CFileSystemObject(sourceDirectory.path()));
+	ProgressObserver progressObserver;
+	p.setObserver(&progressObserver);
+
 	CTimeElapsed timer(true);
 	p.start();
 	while (!p.done())
 	{
+		progressObserver.processEvents();
 #ifndef _DEBUG
 		// Reasonable timeout
 		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)

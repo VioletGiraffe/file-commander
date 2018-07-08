@@ -40,9 +40,6 @@ private: // slots
 	void pauseResume();
 	void switchToBackground();
 
-// Utility slots
-	void processEvents();
-
 private:
 	void cancel();
 

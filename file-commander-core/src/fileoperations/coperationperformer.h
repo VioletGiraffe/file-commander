@@ -21,16 +21,20 @@ class CFileOperationObserver
 {
 friend class COperationPerformer;
 public:
-	CFileOperationObserver() {}
-
 	virtual void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) = 0;
 	virtual void onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) = 0; // User decision required (file exists, file is read-only etc.)
 	virtual void onProcessFinished(QString message = QString()) = 0; // Done or canceled
 	virtual void onCurrentFileChanged(QString file) = 0; // Starting to process a new file
 
-	virtual ~CFileOperationObserver() {}
+	virtual ~CFileOperationObserver() = default;
 
-	inline std::mutex& callbackMutex() { return _callbackMutex; }
+	inline void processEvents() {
+		std::lock_guard<std::mutex> lock(_callbackMutex);
+		for (const auto& event: _callbacks)
+			event();
+
+		_callbacks.clear();
+	}
 
 private:
 	inline void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) {
@@ -66,7 +70,9 @@ private:
 	}
 
 	inline void onProcessFinishedCallback(QString message = QString()) {
-		qInfo() << "COperationPerformer: operation finished, message:" << message;
+		if (!message.isEmpty())
+			qInfo() << "COperationPerformer: operation finished, message:" << message;
+
 		std::lock_guard<std::mutex> lock(_callbackMutex);
 		_callbacks.emplace_back([=]() {
 			onProcessFinished(message);
@@ -80,7 +86,7 @@ private:
 		});
 	}
 
-protected:
+private:
 	std::vector<std::function<void ()>> _callbacks;
 	std::mutex                          _callbackMutex;
 };
@@ -92,7 +98,7 @@ public:
 	COperationPerformer(const Operation operation, const CFileSystemObject& source, QString destination = QString());
 	~COperationPerformer();
 
-	void setWatcher(CFileOperationObserver *watcher);
+	void setObserver(CFileOperationObserver *observer);
 
 	bool togglePause();
 	bool paused()  const;

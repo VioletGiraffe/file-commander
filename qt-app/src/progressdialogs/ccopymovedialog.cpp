@@ -44,9 +44,9 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, const std::vector<CFileSys
 
 	_eventsProcessTimer.setInterval(100);
 	_eventsProcessTimer.start();
-	connect(&_eventsProcessTimer, &QTimer::timeout, this, &CCopyMoveDialog::processEvents);
+	connect(&_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents();});
 
-	_performer->setWatcher(this);
+	_performer->setObserver(this);
 	_performer->start();
 }
 
@@ -140,15 +140,6 @@ void CCopyMoveDialog::switchToBackground()
 		_mainWindow->activateWindow();
 		raise();
 	});
-}
-
-void CCopyMoveDialog::processEvents()
-{
-	std::lock_guard<std::mutex> lock(_callbackMutex);
-	for (const auto& event: _callbacks)
-		event();
-
-	_callbacks.clear();
 }
 
 void CCopyMoveDialog::closeEvent(QCloseEvent *e)

@@ -32,9 +32,9 @@ CDeleteProgressDialog::CDeleteProgressDialog(std::vector<CFileSystemObject> sour
 
 	_eventsProcessTimer.setInterval(100);
 	_eventsProcessTimer.start();
-	connect(&_eventsProcessTimer, &QTimer::timeout, this, &CDeleteProgressDialog::processEvents);
+	connect(&_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents(); });
 
-	_performer->setWatcher(this);
+	_performer->setObserver(this);
 	_performer->start();
 }
 
@@ -107,15 +107,6 @@ void CDeleteProgressDialog::background()
 		_mainWindow->raise();
 		_mainWindow->activateWindow();
 	});
-}
-
-void CDeleteProgressDialog::processEvents()
-{
-	std::lock_guard<std::mutex> lock(_callbackMutex);
-	for (const auto& event: _callbacks)
-		event();
-
-	_callbacks.clear();
 }
 
 void CDeleteProgressDialog::cancel()

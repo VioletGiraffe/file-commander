@@ -37,9 +37,6 @@ private:
 	void pauseResume();
 	void background();
 
-// Utility slots
-	void processEvents();
-
 private:
 	void cancel();
 
