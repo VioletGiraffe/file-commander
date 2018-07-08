@@ -212,7 +212,7 @@ bool CFileSystemObject::isDir() const
 
 bool CFileSystemObject::isEmptyDir() const
 {
-	return isDir()? QDir(fullAbsolutePath()).entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).isEmpty() : false;
+	return isDir() && QDir(fullAbsolutePath()).entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).empty();
 }
 
 bool CFileSystemObject::isCdUp() const

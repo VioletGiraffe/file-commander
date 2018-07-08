@@ -24,7 +24,7 @@ RESTORE_COMPILER_WARNINGS
 
 static uint32_t g_randomSeed = 0;
 
-TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer]")
+TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer-copy]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
 	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
@@ -45,7 +45,7 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
 	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
 
-	COperationPerformer p(operationCopy, std::vector<CFileSystemObject> {CFileSystemObject(sourceDirectory.path())}, targetDirectory.path());
+	COperationPerformer p(operationCopy, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
 	CTimeElapsed timer(true);
 	p.start();
 	while (!p.done())
@@ -65,6 +65,87 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 	CFolderEnumeratorRecursive::enumerateFolder(targetDirectory.path() % '/' % QFileInfo(sourceDirectory.path()).completeBaseName(), destTree);
 
 	REQUIRE(compareFolderContents(sourceTree, destTree));
+}
+
+TEST_CASE((std::string("Move test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer-move]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+	TRACE_LOG << "Target: " << targetDirectory.path();
+
+	REQUIRE(QFileInfo::exists(sourceDirectory.path()));
+	REQUIRE(CFileSystemObject(sourceDirectory.path()).isEmptyDir());
+
+	REQUIRE(QFileInfo::exists(targetDirectory.path()));
+	REQUIRE(CFileSystemObject(targetDirectory.path()).isEmptyDir());
+
+	CTestFolderGenerator generator;
+	generator.setSeed(g_randomSeed);
+	TRACE_LOG << "std::random seed: " << g_randomSeed;
+	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
+
+	std::vector<CFileSystemObject> sourceTree;
+	CFolderEnumeratorRecursive::enumerateFolder(sourceDirectory.path(), sourceTree);
+	
+	COperationPerformer p(operationMove, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
+	CTimeElapsed timer(true);
+	p.start();
+	while (!p.done())
+	{
+#ifndef _DEBUG
+		// Reasonable timeout
+		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
+		{
+			FAIL("File operation timeout reached.");
+			return;
+		}
+#endif
+	}
+
+	REQUIRE(!CFileSystemObject(sourceDirectory.path()).exists());
+
+	std::vector<CFileSystemObject> destTree;
+	CFolderEnumeratorRecursive::enumerateFolder(targetDirectory.path() % '/' % QFileInfo(sourceDirectory.path()).completeBaseName(), destTree);
+
+	REQUIRE(compareFolderContents(sourceTree, destTree));
+}
+
+TEST_CASE((std::string("Delete test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer-delete]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+
+	REQUIRE(QFileInfo::exists(sourceDirectory.path()));
+	REQUIRE(CFileSystemObject(sourceDirectory.path()).isEmptyDir());
+
+	CTestFolderGenerator generator;
+	generator.setSeed(g_randomSeed);
+	TRACE_LOG << "std::random seed: " << g_randomSeed;
+	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
+	REQUIRE(!QDir(sourceDirectory.path()).entryList(QDir::NoDotAndDotDot | QDir::AllEntries).empty());
+
+	COperationPerformer p(operationDelete, CFileSystemObject(sourceDirectory.path()));
+	CTimeElapsed timer(true);
+	p.start();
+	while (!p.done())
+	{
+#ifndef _DEBUG
+		// Reasonable timeout
+		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
+		{
+			FAIL("File operation timeout reached.");
+			return;
+		}
+#endif
+	}
+
+	REQUIRE(!CFileSystemObject(sourceDirectory.path()).exists());
 }
 
 int main(int argc, char* argv[])

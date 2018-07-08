@@ -5,10 +5,15 @@
 #include "threading/thread_helpers.h"
 #include "utility/on_scope_exit.hpp"
 
-COperationPerformer::COperationPerformer(Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
+COperationPerformer::COperationPerformer(const Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
 	_source(source),
 	_destFileSystemObject(destination),
 	_op(operation)
+{
+}
+
+COperationPerformer::COperationPerformer(const Operation operation, const CFileSystemObject& source, QString destination /*= QString()*/) :
+	COperationPerformer(operation, std::vector<CFileSystemObject>{source}, destination)
 {
 }
 
@@ -185,7 +190,7 @@ void COperationPerformer::copyFiles()
 			continue;
 		}
 
-#if !defined _WIN32 || defined _DEBUG
+#if defined _DEBUG
 		qInfo() << __FUNCTION__ << "Processing" << (sourceIterator->isFile() ? "file" : "DIR ") << sourceIterator->fullAbsolutePath();
 #endif
 		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->fullName());
@@ -353,7 +358,10 @@ void COperationPerformer::deleteFiles()
 		handlePause();
 
 		if (!it->isFile())
+		{
+			++it;
 			continue;
+		}
 
 #if !defined _WIN32 || defined _DEBUG
 		qInfo() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
@@ -412,7 +420,10 @@ void COperationPerformer::deleteFiles()
 		handlePause();
 
 		if (!it->isDir())
+		{
+			++it;
 			continue;
+		}
 
 		qInfo() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
 		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
