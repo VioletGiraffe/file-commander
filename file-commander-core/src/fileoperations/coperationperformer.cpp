@@ -430,7 +430,6 @@ void COperationPerformer::deleteFiles()
 			continue;
 		}
 
-		qInfo() << __FUNCTION__ << "deleting directory" << it->fullAbsolutePath();
 		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
 
 		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
