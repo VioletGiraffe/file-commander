@@ -3,6 +3,7 @@
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
 #include "threading/thread_helpers.h"
+#include "utility/on_scope_exit.hpp"
 
 COperationPerformer::COperationPerformer(Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
 	_source(source),
@@ -61,7 +62,6 @@ void COperationPerformer::userResponse(HaltReason haltReason, UserResponse respo
 void COperationPerformer::start()
 {
 	_thread = std::thread(&COperationPerformer::threadFunc, this);
-	while (!_inProgress) std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Waiting for thread to start, not sure what for
 }
 
 void COperationPerformer::cancel()
@@ -71,6 +71,10 @@ void COperationPerformer::cancel()
 
 void COperationPerformer::threadFunc()
 {
+	_inProgress = true;
+
+	EXEC_ON_SCOPE_EXIT([this]() {finalize();});
+
 	setThreadName("COperationPerformer thread");
 
 	switch (_op)
@@ -85,8 +89,7 @@ void COperationPerformer::threadFunc()
 		deleteFiles();
 		break;
 	default:
-		assert_unconditional_r("Uknown operation");
-		return;
+		assert_and_return_r("Uknown operation", );
 	}
 }
 
@@ -103,14 +106,9 @@ void COperationPerformer::waitForResponse()
 void COperationPerformer::copyFiles()
 {
 	if (_source.empty())
-	{
-		finalize();
 		return;
-	}
 
 	assert_r(_op == operationCopy || _op == operationMove);
-
-	_inProgress = true;
 
 	size_t currentItemIndex = 0;
 
@@ -153,10 +151,7 @@ void COperationPerformer::copyFiles()
 					continue;
 				}
 				else if (response == urAbort)
-				{
-					finalize();
 					return;
-				}
 				else if (response == urRename)
 					// _newName has been set and will be taken into account
 					continue;
@@ -170,7 +165,6 @@ void COperationPerformer::copyFiles()
 			++currentItemIndex;
 		}
 
-		finalize();
 		return;
 	}
 
@@ -207,10 +201,7 @@ void COperationPerformer::copyFiles()
 				continue;
 			}
 			else if (response == urAbort)
-			{
-				finalize();
 				return;
-			}
 			else
 				assert_unconditional_r("Unknown response");
 		}
@@ -241,7 +232,6 @@ void COperationPerformer::copyFiles()
 				continue;
 			case naRetryOperation:
 			case naAbort:
-				finalize();
 				return;
 			default:
 				assert_unconditional_r(QString("Unexpected deleteItem() return value %1").arg(nextAction).toUtf8().constData());
@@ -263,7 +253,6 @@ void COperationPerformer::copyFiles()
 				case naRetryItem:
 					continue;
 				case naAbort:
-					finalize();
 					return;
 				default:
 					qInfo() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
@@ -289,10 +278,7 @@ void COperationPerformer::copyFiles()
 					continue;
 				}
 				else if (nextAction == naRetryOperation)
-				{
-					finalize();
 					return;
-				}
 				else if (nextAction != naProceed)
 					assert_unconditional_r("Unexpected next action");
 			}
@@ -313,10 +299,7 @@ void COperationPerformer::copyFiles()
 							continue;
 						}
 						else if (action == urAbort)
-						{
-							finalize();
 							return;
-						}
 						else if (action == urRetry)
 							continue;
 						else
@@ -344,13 +327,10 @@ void COperationPerformer::copyFiles()
 	}
 
 	qInfo() << __FUNCTION__ << "took" << _totalTimeElapsed.elapsed() << "ms";
-	finalize();
 }
 
 void COperationPerformer::deleteFiles()
 {
-	_inProgress = true;
-
 	std::vector<CFileSystemObject> fileSystemObjectsList;
 	fileSystemObjectsList.reserve(500);
 
@@ -396,10 +376,7 @@ void COperationPerformer::deleteFiles()
 			else if (response == urRetry)
 				continue;
 			else if (response == urAbort)
-			{
-				finalize();
 				return;
-			}
 			else
 				assert_unconditional_r("Unknown response");
 		}
@@ -420,7 +397,6 @@ void COperationPerformer::deleteFiles()
 		case naRetryItem:
 			continue;
 		case naAbort:
-			finalize();
 			return;
 		default:
 			qInfo() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
@@ -457,10 +433,7 @@ void COperationPerformer::deleteFiles()
 			else if (response == urRetry)
 				continue;
 			else if (response == urAbort)
-			{
-				finalize();
 				return;
-			}
 			else
 				assert_unconditional_r("Unknown response");
 		}
@@ -481,7 +454,6 @@ void COperationPerformer::deleteFiles()
 		case naRetryItem:
 			continue;
 		case naAbort:
-			finalize();
 			return;
 		default:
 			assert_unconditional_r(QString("Unexpected deleteItem() return value %1").arg(nextAction).toUtf8().constData());
@@ -489,7 +461,6 @@ void COperationPerformer::deleteFiles()
 		}
 	}
 
-	finalize();
 }
 
 void COperationPerformer::finalize()
