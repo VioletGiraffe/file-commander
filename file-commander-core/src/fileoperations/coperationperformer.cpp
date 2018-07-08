@@ -108,12 +108,19 @@ void COperationPerformer::waitForResponse()
 	_totalTimeElapsed.resume();
 }
 
+inline QDebug& operator<<(QDebug& stream, const std::vector<CFileSystemObject>& objects) {
+	for (const auto& object : objects)
+		stream << object.fullAbsolutePath() << '\n';
+	return stream;
+}
+
 void COperationPerformer::copyFiles()
 {
 	if (_source.empty())
 		return;
 
-	assert_r(_op == operationCopy || _op == operationMove);
+	assert_and_return_r(_op == operationCopy || _op == operationMove, );
+	qInfo() << __FUNCTION__ << (_op == operationCopy ? "Copying directory" : "Moving directory") << _source << "to" << _destFileSystemObject.fullAbsolutePath();
 
 	size_t currentItemIndex = 0;
 
@@ -260,8 +267,7 @@ void COperationPerformer::copyFiles()
 				case naAbort:
 					return;
 				default:
-					qInfo() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
-					assert_unconditional_r("Unexpected deleteItem() return value");
+					assert_unconditional_r("Unexpected deleteItem() return value " + std::to_string(nextAction));
 					continue; // Retry
 				}
 			}
@@ -363,7 +369,7 @@ void COperationPerformer::deleteFiles()
 			continue;
 		}
 
-#if !defined _WIN32 || defined _DEBUG
+#if defined _DEBUG
 		qInfo() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
 #endif
 		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
@@ -407,8 +413,7 @@ void COperationPerformer::deleteFiles()
 		case naAbort:
 			return;
 		default:
-			qInfo() << QString("Unexpected deleteItem() return value %1").arg(nextAction);
-			assert_unconditional_r("Unexpected deleteItem() return value");
+			assert_unconditional_r("Unexpected deleteItem() return value " + std::to_string(nextAction));
 			continue;
 		}
 	}
@@ -576,7 +581,7 @@ COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObjec
 
 	if (itemManipulator.remove() != rcOk)
 	{
-		qInfo() << "Error removing" << (item.isFile() ? "file" : "folder") << item.fullAbsolutePath() << ", error: " << itemManipulator.lastErrorMessage();
+		assert_unconditional_r((QString("Error removing ") + (item.isFile() ? "file " : "folder ") + item.fullAbsolutePath() + ", error: " + itemManipulator.lastErrorMessage()).toStdString());
 		const auto response = getUserResponse(hrFailedToDelete, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
 		if (response == urSkipThis || response == urSkipAll)
 			return naSkip;
@@ -599,7 +604,7 @@ COperationPerformer::NextAction COperationPerformer::makeItemWriteable(CFileSyst
 	CFileManipulator itemManipulator(item);
 	if (!itemManipulator.makeWritable())
 	{
-		qInfo() << "Error making file" << item.fullAbsolutePath() << "writable, retrying";
+		assert_unconditional_r((QString("Error making file ") + item.fullAbsolutePath() + " writable, retrying").toStdString());
 		const auto response = getUserResponse(hrFailedToMakeItemWritable, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
 		if (response == urSkipThis || response == urSkipAll)
 			return naSkip;
@@ -608,10 +613,7 @@ COperationPerformer::NextAction COperationPerformer::makeItemWriteable(CFileSyst
 		else if (response == urRetry)
 			return naRetryOperation;
 		else
-		{
-			assert_unconditional_r("Unexpected user response");
-			return naRetryOperation;
-		}
+			assert_and_return_unconditional_r("Unexpected user response", naRetryOperation);
 	}
 
 	return naProceed;
@@ -706,7 +708,10 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	if (result != rcOk)
 	{
 		itemManipulator.cancelCopy();
-		qInfo() << "Error copying file " << item.fullAbsolutePath() << " to " << destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) << ", error: " << itemManipulator.lastErrorMessage();
+		const QString errorMessage =
+			QString("Error copying file ") + item.fullAbsolutePath() + " to " + destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) + ", error: " + itemManipulator.lastErrorMessage();
+		assert_unconditional_r(errorMessage.toStdString());
+		
 		const auto action = getUserResponse(hrUnknownError, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
 		if (action == urSkipThis || action == urSkipAll)
 			return naSkip;
@@ -715,10 +720,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		else if (action == urRetry)
 			return naRetryOperation;
 		else
-		{
-			assert_unconditional_r("Unexpected user response");
-			return naRetryOperation;
-		}
+			assert_and_return_unconditional_r("Unexpected user response", naRetryOperation);
 	}
 
 	return naProceed;
