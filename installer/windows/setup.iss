@@ -14,7 +14,6 @@ SetupIconFile=..\..\qt-app\resources\icon.ico
 UninstallDisplayIcon={app}\FileCommander.exe
 
 AppCopyright=VioletGiraffe
-WizardImageBackColor=clWhite
 ShowTasksTreeLines=yes
 
 ArchitecturesInstallIn64BitMode=x64
@@ -24,6 +23,8 @@ LZMANumBlockThreads=4
 Compression=lzma2/ultra64
 LZMAUseSeparateProcess=yes
 LZMABlockSize=8192
+
+DisableReadyPage=yes
 
 [Tasks]
 Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:AdditionalIcons};

@@ -16,7 +16,7 @@ pushd ..\..\
 %QTDIR32%\bin\qmake.exe -tp vc -r
 popd
 
-msbuild ..\..\file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v140
+msbuild ..\..\file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v140;Platform="Win32"
 
 xcopy /R /Y ..\..\bin\release\x86\FileCommander.exe binaries\32\
 xcopy /R /Y ..\..\bin\release\x86\plugin_*.dll binaries\32\
@@ -45,7 +45,7 @@ pushd ..\..\
 %QTDIR64%\bin\qmake.exe -tp vc -r
 popd
 
-msbuild ..\..\file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v140
+msbuild ..\..\file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v140;Platform="x64"
 
 xcopy /R /Y ..\..\bin\release\x64\FileCommander.exe binaries\64\
 xcopy /R /Y ..\..\bin\release\x64\plugin_*.dll binaries\64\
