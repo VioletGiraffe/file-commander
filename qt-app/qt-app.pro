@@ -134,6 +134,8 @@ win*{
 
 mac*{
 	ICON = resources/file_commander.icns
+
+	QMAKE_POST_LINK = cp -f -p $$PWD/$$DESTDIR/*.dylib $$PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
 }
 
 linux*|mac*{

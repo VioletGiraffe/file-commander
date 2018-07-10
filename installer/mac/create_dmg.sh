@@ -8,11 +8,11 @@ VOL="FileCommander"
 
 APPDIR="FileCommander.app"
 
-QTPATH=~/Qt/5.9.3/clang_64
+QTPATH=$1
 
 rm -rf bin
 echo "${MYSELF}: Building the app"
-${QTPATH}/bin/qmake -spec macx-clang -r -config release "DEFINES+=NDEBUG"
+${QTPATH}/bin/qmake -spec macx-clang -r -config release CONFIG+=release "DEFINES+=NDEBUG"
 make -j
 
 echo "${MYSELF}: deploying Qt frameworks"
