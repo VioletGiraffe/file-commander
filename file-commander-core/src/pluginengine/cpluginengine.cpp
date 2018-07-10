@@ -32,12 +32,6 @@ void CPluginEngine::loadPlugins()
 #endif
 	QDir fileCommanderDir(qApp->applicationDirPath());
 
-#ifdef __APPLE__
-	fileCommanderDir.cdUp();
-	fileCommanderDir.cdUp();
-	fileCommanderDir.cdUp(); // from .app/Contents/MacOS to .app level
-#endif // __APPLE__
-
 	const auto pluginPaths(fileCommanderDir.entryInfoList((QStringList("*plugin_*" + pluginExtension + "*")), QDir::Files | QDir::NoDotAndDotDot));
 	for (const QFileInfo& path: pluginPaths)
 	{
