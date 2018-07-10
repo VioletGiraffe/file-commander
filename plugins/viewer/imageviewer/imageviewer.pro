@@ -2,16 +2,13 @@ TEMPLATE = lib
 TARGET   = plugin_imageviewer
 
 QT = core gui widgets
+win*:QT += winextras
 
-CONFIG += c++14
-
-win*{
-	QT += winextras
-}
+CONFIG += strict_c++ c++14
 
 mac* | linux*{
-	CONFIG(release, debug|release):CONFIG += Release
-	CONFIG(debug, debug|release):CONFIG += Debug
+	CONFIG(release, debug|release):CONFIG *= Release optimize_full
+	CONFIG(debug, debug|release):CONFIG *= Debug
 }
 
 contains(QT_ARCH, x86_64) {

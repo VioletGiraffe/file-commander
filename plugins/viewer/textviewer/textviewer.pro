@@ -2,15 +2,13 @@ TEMPLATE = lib
 TARGET   = plugin_textviewer
 
 QT = core gui widgets
-CONFIG += c++14
+win*: QT += winextras
 
-win*{
-	QT += winextras
-}
+CONFIG += strict_c++ c++14
 
 mac* | linux*{
-	CONFIG(release, debug|release):CONFIG += Release
-	CONFIG(debug, debug|release):CONFIG += Debug
+	CONFIG(release, debug|release):CONFIG *= Release optimize_full
+	CONFIG(debug, debug|release):CONFIG *= Debug
 }
 
 contains(QT_ARCH, x86_64) {
