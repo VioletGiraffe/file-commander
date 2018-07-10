@@ -19,7 +19,7 @@ TEST_CASE("CFileSystemObject::pathHierarchy tests", "[CFileSystemObject]" )
 
 	{
 		const auto hierarchy = CFileSystemObject::pathHierarchy("/");
-		CHECK((hierarchy.size() == 1 && hierarchy.front() == ""));
+		CHECK((hierarchy.size() == 1 && hierarchy.front() == "/"));
 	}
 
 #ifndef _WIN32
