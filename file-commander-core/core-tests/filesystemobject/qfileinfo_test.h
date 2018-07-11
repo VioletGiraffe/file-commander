@@ -62,9 +62,15 @@ public:
 	QDateTime _lastModified;
 	QDateTime lastModified() const {return _lastModified;}
 
-	qint64 _size;
+	qint64 _size = 0;
 	qint64 size() const {return	_size;}
 
 	std::map<QFile::Permissions, bool> _permissions;
 	bool permission(QFile::Permissions permissions) const {return _permissions.count(permissions) > 0 ? _permissions.at(permissions) : false;}
+
+	bool _isSymLink = false;
+	bool isSymLink() const { return _isSymLink; }
+
+	QString _symLinkTarget;
+	QString symLinkTarget() const { return _symLinkTarget; }
 };
