@@ -85,6 +85,8 @@ public:
 	static std::vector<QString> pathHierarchy(const QString& path);
 	uint64_t rootFileSystemId() const;
 	bool isNetworkObject() const;
+	bool isSymLink() const;
+	QString symLinkTarget() const;
 
 	bool isMovableTo(const CFileSystemObject& dest) const;
 

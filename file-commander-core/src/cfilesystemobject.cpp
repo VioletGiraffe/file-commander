@@ -244,7 +244,19 @@ bool CFileSystemObject::isHidden() const
 // Returns true if this object is a child of parent, either direct or indirect
 bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 {
-	return isValid() && parent.isValid() && fullAbsolutePath().startsWith(parent.fullAbsolutePath(), Qt::CaseInsensitive);
+	if (!isValid() || !parent.isValid())
+		return false;
+
+	if (fullAbsolutePath().startsWith(parent.fullAbsolutePath(), caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive))
+		return true;
+
+	if (!isSymLink() && !parent.isSymLink())
+		return false;
+
+	const auto resolvedChildLink = isSymLink() ? symLinkTarget() : fullAbsolutePath();
+	const auto resolvedParentLink = parent.isSymLink() ? parent.symLinkTarget() : parent.fullAbsolutePath();
+
+	return resolvedChildLink.startsWith(resolvedParentLink, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive);
 }
 
 QString CFileSystemObject::fullAbsolutePath() const
@@ -332,6 +344,16 @@ bool CFileSystemObject::isNetworkObject() const
 #else
 	return false;
 #endif
+}
+
+bool CFileSystemObject::isSymLink() const
+{
+	return _fileInfo.isSymLink();
+}
+
+QString CFileSystemObject::symLinkTarget() const
+{
+	return _fileInfo.symLinkTarget();
 }
 
 bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
