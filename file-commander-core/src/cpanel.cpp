@@ -45,20 +45,15 @@ void CPanel::restoreFromSettings()
 
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
 {
-#if defined __linux__ || defined __APPLE__
-	const QString posixPath = path.contains("~") ? QString(path).replace("~", getenv("HOME")) : path;
-#elif defined _WIN32
+#if defined _WIN32
 	assert(!path.contains('\\'));
-	const QString posixPath = path;
-#else
-#error "Not implemented"
 #endif
 
 	_currentDisplayMode = NormalMode;
 
 	std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
-	const auto pathGraph = CFileSystemObject::pathHierarchy(posixPath);
+	const auto pathGraph = CFileSystemObject::pathHierarchy(path);
 	bool pathSet = false;
 	for (const auto& candidatePath: pathGraph)
 	{
