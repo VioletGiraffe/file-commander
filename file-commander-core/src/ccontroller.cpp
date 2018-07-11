@@ -416,7 +416,7 @@ QString CController::volumePath(size_t index) const
 size_t CController::currentVolumeIndex(Panel p) const
 {
 	const auto drives = _volumeEnumerator.drives();
-	for (size_t i = 0; i < drives.size(); ++i)
+	for (size_t i = 0, size = drives.size(); i < size; ++i)
 	{
 		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(drives[i].rootObjectInfo))
 			return i;

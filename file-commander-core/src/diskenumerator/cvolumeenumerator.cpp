@@ -7,6 +7,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
+#include <QDir>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -169,16 +170,23 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 
 const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
-	VolumeInfo info;
-	info.rootObjectInfo = "/";
-	info.volumeLabel = "root";
-	info.isReady = true;
+	std::deque<VolumeInfo> volumes;
 
-	const auto sys_info = volumeInfoForPath(info.rootObjectInfo.fullAbsolutePath());
-	info.volumeSize = sys_info.f_bsize * sys_info.f_blocks;
-	info.freeSize = sys_info.f_bsize * sys_info.f_bavail;
+	for (const QString& volumeName: QDir("/Volumes/").entryList(QDir::NoDotAndDotDot | QDir::Dirs | QDir::Hidden | QDir::System))
+	{
+		VolumeInfo info;
+		info.rootObjectInfo = "/Volumes/" + volumeName;
+		info.volumeLabel = volumeName;
+		info.isReady = true;
 
-	return std::deque<VolumeInfo>(1, info);
+		const auto sys_info = volumeInfoForPath(info.rootObjectInfo.fullAbsolutePath());
+		info.volumeSize = sys_info.f_bsize * sys_info.f_blocks;
+		info.freeSize = sys_info.f_bsize * sys_info.f_bavail;
+
+		volumes.push_back(info);
+	}
+
+	return volumes;
 }
 
 #elif defined __linux__
