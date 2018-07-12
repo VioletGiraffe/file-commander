@@ -42,14 +42,20 @@ static inline QString expandEnvironmentVariables(const QString& string)
 	else
 		return string;
 #else
-	if (!string.contains('$'))
-		return string;
+	QString result = string;
+	if (result.startsWith('~'))
+		result.replace(0, 1, getenv("HOME"));
 
-	wordexp_t p;
-	wordexp("$HOME/bin", &p, 0);
-	const auto w = p.we_wordv;
-	const QString result = p.we_wordc > 0 ? w[0] : string;
-	wordfree(&p);
+	if (result.contains('$'))
+	{
+		wordexp_t p;
+		wordexp("$HOME/bin", &p, 0);
+		const auto w = p.we_wordv;
+		if (p.we_wordc > 0)
+			result = w[0];
+
+		wordfree(&p);
+	}
 
 	return result;
 #endif
