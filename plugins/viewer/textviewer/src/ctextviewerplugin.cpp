@@ -1,6 +1,7 @@
 #include "ctextviewerplugin.h"
 #include "ctextviewerwindow.h"
 #include "compiler/compiler_warnings_control.h"
+#include "widgets/widgetutils.h"
 
 #include <QMimeType>
 
@@ -15,20 +16,12 @@ CFileCommanderPlugin * createPlugin()
 
 bool CTextViewerPlugin::canViewFile(const QString& fileName, const QMimeType& /*type*/) const
 {
-	return QFileInfo(fileName).isFile();
+	return CFileSystemObject(fileName).isFile();
 }
 
 CPluginWindow * CTextViewerPlugin::viewFile(const QString& fileName)
 {
-	QWidget * mainWindow = nullptr;
-	for (QWidget* topLevelWidget: QApplication::topLevelWidgets())
-	{
-		if (topLevelWidget->inherits("QMainWindow"))
-		{
-			mainWindow = topLevelWidget;
-			break;
-		}
-	}
+	QMainWindow * mainWindow = WidgetUtils::findTopLevelWindow();
 
 	CTextViewerWindow * widget = new CTextViewerWindow(mainWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
 	if (widget->loadTextFile(fileName))

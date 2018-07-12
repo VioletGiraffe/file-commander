@@ -20,6 +20,7 @@
 #include "updaterUI/cupdaterdialog.h"
 #include "aboutdialog/caboutdialog.h"
 #include "widgets/cpersistentwindow.h"
+#include "widgets/widgetutils.h"
 #include "version.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -79,7 +80,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 void CMainWindow::initButtons()
 {
 	connect(ui->btnView, &QPushButton::clicked, this, &CMainWindow::viewFile);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F3"), this, SLOT(viewFile()), nullptr , Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F3"), this, SLOT(viewFile()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnEdit, &QPushButton::clicked, this, &CMainWindow::editFile);
 	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F4"), this, SLOT(editFile()), nullptr, Qt::WidgetWithChildrenShortcut));
@@ -261,7 +262,6 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 		s.setValue(KEY_RPANEL_STATE, ui->rightPanel->savePanelState());
 
 		emit closed(); // Is used to close all child windows
-		emit fileQuickVewFinished(); // Cleaning up quick view widgets, if any
 
 		CPluginEngine::get().destroyAllPluginWindows();
 	}
@@ -357,7 +357,7 @@ bool CMainWindow::widgetBelongsToHierarchy(QWidget * const widget, QObject * con
 	if (children.contains(widget))
 		return true;
 
-	for (const auto& child: children)
+	for (const auto& child : children)
 		if (widgetBelongsToHierarchy(widget, child))
 			return true;
 
@@ -403,16 +403,16 @@ void CMainWindow::deleteFiles()
 #ifdef _WIN32
 	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 	std::vector<std::wstring> paths;
-	for (auto& item: items)
+	for (auto& item : items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
 	if (paths.empty())
 		return;
 
 	_controller->execOnWorkerThread([=]() {
-		if (!CShell::deleteItems(paths, true, (void*) winId()))
+		if (!CShell::deleteItems(paths, true, (void*)winId()))
 			_controller->execOnUiThread([this]() {
-				QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
+			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
 	});
 
@@ -431,13 +431,13 @@ void CMainWindow::deleteFilesIrrevocably()
 		return;
 #ifdef _WIN32
 	std::vector<std::wstring> paths;
-	for (auto& item: items)
+	for (auto& item : items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
 	_controller->execOnWorkerThread([=]() {
-		if (!CShell::deleteItems(paths, false, (void*) winId()))
+		if (!CShell::deleteItems(paths, false, (void*)winId()))
 			_controller->execOnUiThread([this]() {
-				QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
+			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
 	});
 #else
@@ -536,30 +536,22 @@ void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 
 void CMainWindow::toggleQuickView()
 {
-	if (_quickViewActive)
+	if (!_quickViewActive)
 	{
-		_quickViewActive = false;
-		assert_r(_currentPanelWidget->count() == 2 || _otherPanelWidget->count() == 2);
-
-		QWidget* viewerWidget = nullptr;
-		if (_currentPanelWidget->count() == 2)
-		{
-			viewerWidget = _currentPanelWidget->widget(1);
-			_currentPanelWidget->removeWidget(viewerWidget);
-		}
-		else
-		{
-			viewerWidget = _otherPanelWidget->widget(1);
-			_otherPanelWidget->removeWidget(viewerWidget);
-		}
-
-		if (viewerWidget)
-			viewerWidget->deleteLater();
-
-		emit fileQuickVewFinished();
-	}
-	else
 		quickViewCurrentFile();
+		return;
+	}
+
+	_quickViewActive = false;
+	assert_and_return_r(_currentPanelWidget->count() == 2 || _otherPanelWidget->count() == 2, );
+
+	QStackedWidget* quickViewContainer = _currentPanelWidget->count() == 2 ? _currentPanelWidget : _otherPanelWidget;
+
+	auto viewerWidget = dynamic_cast<CPluginWindow*>(WidgetUtils::findParentMainWindow(quickViewContainer->widget(1)));
+	assert_and_return_r(viewerWidget, );
+
+	quickViewContainer->removeWidget(viewerWidget);
+	viewerWidget->deleteLaterSafe();
 }
 
 void CMainWindow::currentItemChanged(Panel /*p*/, qulonglong /*itemHash*/)
@@ -598,7 +590,7 @@ bool CMainWindow::executeCommand(QString commandLineText)
 		return false;
 
 	CShell::executeShellCommand(commandLineText, _currentFileList->currentDir());
-	QTimer::singleShot(0, [=](){CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items());}); // Saving the list AFTER the combobox actually accepts the newly added item
+	QTimer::singleShot(0, [=]() {CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
 	return true;
@@ -656,7 +648,7 @@ void CMainWindow::findFiles()
 	auto selectedHashes = _currentFileList->selectedItemsHashes(true);
 	std::vector<QString> selectedPaths;
 	if (!selectedHashes.empty())
-		for (const auto hash: selectedHashes)
+		for (const auto hash : selectedHashes)
 			selectedPaths.push_back(_controller->activePanel().itemByHash(hash).fullAbsolutePath());
 	else
 		selectedPaths.push_back(_currentFileList->currentDir());
@@ -704,7 +696,7 @@ void CMainWindow::calculateOccupiedSpace()
 		return;
 
 	QMessageBox::information(this, tr("Occupied space"), tr("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3").
-							 arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace)));
+		arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace)));
 }
 
 void CMainWindow::checkForUpdates()
@@ -807,9 +799,9 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 		return;
 
 	static QMenu * toolMenu = nullptr; // Shouldn't have to be static, but 2 subsequent calls to this method result in "Tools" being added twice. QMenuBar needs event loop to update its children?..
-					   // TODO: make it a class member
+									   // TODO: make it a class member
 
-	for(auto topLevelMenu: menu->findChildren<QMenu*>())
+	for (auto topLevelMenu : menu->findChildren<QMenu*>())
 	{
 		// TODO: make sure this plays nicely with localization (#145)
 		if (topLevelMenu->title().remove('&') == "Tools")
@@ -828,7 +820,7 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 	else
 		toolMenu->addSeparator();
 
-	for(const auto& menuTree: menuEntries)
+	for (const auto& menuTree : menuEntries)
 		addToolMenuEntriesRecursively(menuTree, toolMenu);
 
 	toolMenu->addSeparator();
@@ -842,7 +834,7 @@ void CMainWindow::addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& en
 	if (entry.children.empty())
 	{
 		const auto handler = entry.handler;
-		QObject::connect(action, &QAction::triggered, [handler](bool) {handler();});
+		QObject::connect(action, &QAction::triggered, [handler](bool) {handler(); });
 	}
 	else
 	{
@@ -858,20 +850,9 @@ bool CMainWindow::fileListReturnPressed()
 
 void CMainWindow::quickViewCurrentFile()
 {
-	if (_quickViewActive)
-	{
-		assert_r(_otherPanelWidget->count() == 2);
-		QWidget* viewerWidget = _otherPanelWidget->widget(1);
-		_otherPanelWidget->removeWidget(viewerWidget);
-		viewerWidget->deleteLater();
-		emit fileQuickVewFinished();
-	}
-
 	CPluginWindow * viewerWindow = CPluginEngine::get().createViewerWindowForCurrentFile();
 	if (!viewerWindow)
 		return;
-
-	connect(this, &CMainWindow::fileQuickVewFinished, viewerWindow, &CPluginWindow::deleteLater);
 
 	_otherPanelWidget->setCurrentIndex(_otherPanelWidget->addWidget(viewerWindow->centralWidget()));
 	_quickViewActive = true;

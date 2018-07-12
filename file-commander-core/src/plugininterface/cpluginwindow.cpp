@@ -15,6 +15,11 @@ CPluginWindow::CPluginWindow(QWidget *parent) : QMainWindow(nullptr)
 	}
 }
 
+void CPluginWindow::deleteLaterSafe()
+{
+	deleteLater();
+}
+
 bool CPluginWindow::autoDeleteOnClose() const
 {
 	return testAttribute(Qt::WA_DeleteOnClose);

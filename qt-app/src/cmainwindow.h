@@ -51,8 +51,6 @@ public:
 signals:
 	// Is used to close all child windows
 	void closed();
-	// Is used to delete
-	void fileQuickVewFinished();
 
 protected:
 	void closeEvent(QCloseEvent * e) override;

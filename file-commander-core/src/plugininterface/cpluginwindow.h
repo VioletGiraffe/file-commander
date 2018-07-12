@@ -12,6 +12,8 @@ class PLUGIN_EXPORT CPluginWindow : public QMainWindow
 public:
 	explicit CPluginWindow(QWidget* parent);
 
+	void deleteLaterSafe();
+
 	bool autoDeleteOnClose() const;
 	void setAutoDeleteOnClose(bool autoDelete);
 };
