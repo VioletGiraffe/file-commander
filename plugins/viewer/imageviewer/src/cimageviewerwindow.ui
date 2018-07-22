@@ -41,7 +41,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -69,7 +69,7 @@
     <string>Reload</string>
    </property>
    <property name="shortcut">
-    <string>F2</string>
+    <string>F5</string>
    </property>
   </action>
   <action name="actionClose">
