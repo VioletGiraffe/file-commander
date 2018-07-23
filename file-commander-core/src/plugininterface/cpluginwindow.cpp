@@ -7,17 +7,12 @@ RESTORE_COMPILER_WARNINGS
 
 CPluginWindow::CPluginWindow(QWidget *parent) : QMainWindow(nullptr)
 {
-	if (parent)
-	{
-		setFont(parent->font());
-		setPalette(parent->palette());
-		setStyleSheet(parent->styleSheet());
-	}
-}
+	if (!parent)
+		return;
 
-void CPluginWindow::deleteLaterSafe()
-{
-	deleteLater();
+	setFont(parent->font());
+	setPalette(parent->palette());
+	setStyleSheet(parent->styleSheet());
 }
 
 bool CPluginWindow::autoDeleteOnClose() const

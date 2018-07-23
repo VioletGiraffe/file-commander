@@ -61,6 +61,12 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_instance = this;
 	ui->setupUi(this);
 
+	_leftPanelDisplayController.setPanelStackedWidget(ui->leftWidget);
+	_leftPanelDisplayController.setPanelWidget(ui->leftPanel);
+
+	_rightPanelDisplayController.setPanelStackedWidget(ui->rightWidget);
+	_rightPanelDisplayController.setPanelWidget(ui->rightPanel);
+
 	installEventFilter(new CPersistenceEnabler("UI/MainWindow", this));
 
 	QSplitterHandle * handle = ui->splitter->handle(1);
@@ -75,6 +81,64 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	ui->_commandLine->setCompleter(&_commandLineCompleter);
 	ui->_commandLine->setClearEditorOnItemActivation(true);
 	ui->_commandLine->installEventFilter(this);
+}
+
+CMainWindow::~CMainWindow()
+{
+	_instance = nullptr;
+	delete ui;
+}
+
+CMainWindow *CMainWindow::get()
+{
+	return _instance;
+}
+
+bool CMainWindow::created() const
+{
+	return _controller != nullptr;
+}
+
+// One-time initialization
+void CMainWindow::onCreate()
+{
+	assert(!created());
+
+	initCore();
+
+	// Check for updates
+	if (CSettings().value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() &&
+		CSettings().value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
+	{
+		CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
+		auto dlg = new CUpdaterDialog(this, "https://github.com/VioletGiraffe/file-commander", VERSION_STRING, true);
+		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
+		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
+	}
+}
+
+void CMainWindow::updateInterface()
+{
+	CSettings s;
+	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
+	ui->leftPanel->restorePanelGeometry(s.value(KEY_LPANEL_GEOMETRY).toByteArray());
+	ui->leftPanel->restorePanelState(s.value(KEY_LPANEL_STATE).toByteArray());
+	ui->rightPanel->restorePanelGeometry(s.value(KEY_RPANEL_GEOMETRY).toByteArray());
+	ui->rightPanel->restorePanelState(s.value(KEY_RPANEL_STATE).toByteArray());
+
+	ui->_commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
+	ui->_commandLine->lineEdit()->clear();
+
+	show();
+
+	if ((windowState() & Qt::WindowFullScreen) != 0)
+		ui->actionFull_screen_mode->setChecked(true);
+
+	const Panel lastActivePanel = (Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
+	if (lastActivePanel == LeftPanel)
+		ui->leftPanel->setFocusToFileList();
+	else
+		ui->rightPanel->setFocusToFileList();
 }
 
 void CMainWindow::initButtons()
@@ -193,63 +257,6 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 	return true;
 }
 
-CMainWindow::~CMainWindow()
-{
-	_instance = nullptr;
-	delete ui;
-}
-
-CMainWindow *CMainWindow::get()
-{
-	return _instance;
-}
-
-bool CMainWindow::created() const
-{
-	return _controller != nullptr;
-}
-
-// One-time initialization
-void CMainWindow::onCreate()
-{
-	assert(!created());
-
-	initCore();
-
-	// Check for updates
-	if (CSettings().value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() && CSettings().value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
-	{
-		CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-		auto dlg = new CUpdaterDialog(this, "https://github.com/VioletGiraffe/file-commander", VERSION_STRING, true);
-		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
-		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
-	}
-}
-
-void CMainWindow::updateInterface()
-{
-	CSettings s;
-	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
-	ui->leftPanel->restorePanelGeometry(s.value(KEY_LPANEL_GEOMETRY).toByteArray());
-	ui->leftPanel->restorePanelState(s.value(KEY_LPANEL_STATE).toByteArray());
-	ui->rightPanel->restorePanelGeometry(s.value(KEY_RPANEL_GEOMETRY).toByteArray());
-	ui->rightPanel->restorePanelState(s.value(KEY_RPANEL_STATE).toByteArray());
-
-	ui->_commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
-	ui->_commandLine->lineEdit()->clear();
-
-	show();
-
-	if ((windowState() & Qt::WindowFullScreen) != 0)
-		ui->actionFull_screen_mode->setChecked(true);
-
-	const Panel lastActivePanel = (Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
-	if (lastActivePanel == LeftPanel)
-		ui->leftPanel->setFocusToFileList();
-	else
-		ui->rightPanel->setFocusToFileList();
-}
-
 void CMainWindow::closeEvent(QCloseEvent *e)
 {
 	if (e->type() == QCloseEvent::Close)
@@ -273,7 +280,7 @@ bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 {
 	if (watched == ui->_commandLine && event->type() == QEvent::KeyPress)
 	{
-		QKeyEvent * keyEvent = static_cast<QKeyEvent*>(event);
+		auto keyEvent = static_cast<QKeyEvent*>(event);
 		if (keyEvent->key() == Qt::Key_Escape)
 			clearCommandLineAndRestoreFocus();
 	}
@@ -300,32 +307,32 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 	}
 }
 
-void CMainWindow::currentPanelChanged(QStackedWidget *panel)
+void CMainWindow::currentPanelChanged(const Panel panel)
 {
-	_currentPanelWidget = panel;
-	_currentFileList = dynamic_cast<CPanelWidget*>(panel->widget(0));
-	if (panel)
+	if (panel == RightPanel)
 	{
-		_otherPanelWidget = panel == ui->leftWidget ? ui->rightWidget : ui->leftWidget;
-		_otherFileList = dynamic_cast<CPanelWidget*>(_otherPanelWidget->widget(0));
-		assert_r(_otherPanelWidget && _otherFileList);
+		_currentFileList = _rightPanelDisplayController.panelWidget();
+		_otherFileList = _leftPanelDisplayController.panelWidget();
+	}
+	else if (panel == LeftPanel)
+	{
+		_currentFileList = _leftPanelDisplayController.panelWidget();
+		_otherFileList = _rightPanelDisplayController.panelWidget();
 	}
 	else
+		assert_unconditional_r("Invalid \'panel\' argument");
+
+	if (!_currentFileList)
 	{
-		_otherPanelWidget = nullptr;
-		_otherFileList = nullptr;
+		_commandLineCompleter.setModel(nullptr);
+		return;
 	}
 
-	if (_currentFileList)
-	{
-		_controller->activePanelChanged(_currentFileList->panelPosition());
-		CSettings().setValue(KEY_LAST_ACTIVE_PANEL, _currentFileList->panelPosition());
-		ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPathNative());
-		CPluginEngine::get().currentPanelChanged(_currentFileList->panelPosition());
-		_commandLineCompleter.setModel(_currentFileList->sortModel());
-	}
-	else
-		_commandLineCompleter.setModel(nullptr);
+	_controller->activePanelChanged(_currentFileList->panelPosition());
+	CSettings().setValue(KEY_LAST_ACTIVE_PANEL, _currentFileList->panelPosition());
+	ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPathNative());
+	CPluginEngine::get().currentPanelChanged(_currentFileList->panelPosition());
+	_commandLineCompleter.setModel(_currentFileList->sortModel());
 }
 
 void CMainWindow::uiThreadTimerTick()
@@ -346,22 +353,6 @@ void CMainWindow::updateWindowTitleWithCurrentFolderNames()
 		rightPanelDirName.chop(1);
 
 	setWindowTitle(leftPanelDirName % " / " % rightPanelDirName);
-}
-
-bool CMainWindow::widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy)
-{
-	if (widget == hierarchy)
-		return true;
-
-	const auto& children = hierarchy->children();
-	if (children.contains(widget))
-		return true;
-
-	for (const auto& child : children)
-		if (widgetBelongsToHierarchy(widget, child))
-			return true;
-
-	return false;
 }
 
 void CMainWindow::splitterContextMenuRequested(QPoint pos)
@@ -403,6 +394,7 @@ void CMainWindow::deleteFiles()
 #ifdef _WIN32
 	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 	std::vector<std::wstring> paths;
+	paths.reserve(items.size());
 	for (auto& item : items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
@@ -431,6 +423,7 @@ void CMainWindow::deleteFilesIrrevocably()
 		return;
 #ifdef _WIN32
 	std::vector<std::wstring> paths;
+	paths.reserve(items.size());
 	for (auto& item : items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
@@ -495,7 +488,7 @@ void CMainWindow::viewFile()
 void CMainWindow::editFile()
 {
 	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
-	if (editorPath.isEmpty() || !QFileInfo(editorPath).exists())
+	if (editorPath.isEmpty() || !QFileInfo::exists(editorPath))
 	{
 		if (QMessageBox::question(this, tr("Editor not configured"), tr("No editor program has been configured (or the specified path doesn't exist). Do you want to specify the editor now?")) == QMessageBox::Yes)
 		{
@@ -536,27 +529,15 @@ void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 
 void CMainWindow::toggleQuickView()
 {
-	if (!_quickViewActive)
-	{
+	if (!otherPanelDisplayController().quickViewActive())
 		quickViewCurrentFile();
-		return;
-	}
-
-	_quickViewActive = false;
-	assert_and_return_r(_currentPanelWidget->count() == 2 || _otherPanelWidget->count() == 2, );
-
-	QStackedWidget* quickViewContainer = _currentPanelWidget->count() == 2 ? _currentPanelWidget : _otherPanelWidget;
-
-	auto viewerWidget = dynamic_cast<CPluginWindow*>(WidgetUtils::findParentMainWindow(quickViewContainer->widget(1)));
-	assert_and_return_r(viewerWidget, );
-
-	quickViewContainer->removeWidget(viewerWidget);
-	viewerWidget->deleteLaterSafe();
+	else
+		otherPanelDisplayController().endQuickView();
 }
 
 void CMainWindow::currentItemChanged(Panel /*p*/, qulonglong /*itemHash*/)
 {
-	if (_quickViewActive)
+	if (otherPanelDisplayController().quickViewActive())
 		quickViewCurrentFile();
 }
 
@@ -584,7 +565,7 @@ void CMainWindow::toggleTabletMode(bool tabletMode)
 			widget->setFont(f);
 }
 
-bool CMainWindow::executeCommand(QString commandLineText)
+bool CMainWindow::executeCommand(const QString& commandLineText)
 {
 	if (!_currentFileList || commandLineText.isEmpty())
 		return false;
@@ -717,6 +698,22 @@ void CMainWindow::settingsChanged()
 	ui->rightPanel->onSettingsChanged();
 }
 
+static bool widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy)
+{
+	if (widget == hierarchy)
+		return true;
+
+	const auto& children = hierarchy->children();
+	if (children.contains(widget))
+		return true;
+
+	for (const auto& child : children)
+		if (widgetBelongsToHierarchy(widget, child))
+			return true;
+
+	return false;
+}
+
 void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
 {
 	if (!now)
@@ -724,11 +721,11 @@ void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
 
 	for (int i = 0; i < ui->leftWidget->count(); ++i)
 		if (now == ui->leftWidget || widgetBelongsToHierarchy(now, ui->leftWidget->widget(i)))
-			currentPanelChanged(ui->leftWidget);
+			currentPanelChanged(LeftPanel);
 
 	for (int i = 0; i < ui->rightWidget->count(); ++i)
 		if (now == ui->rightWidget || widgetBelongsToHierarchy(now, ui->rightWidget->widget(i)))
-			currentPanelChanged(ui->rightWidget);
+			currentPanelChanged(RightPanel);
 }
 
 void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
@@ -843,6 +840,30 @@ void CMainWindow::addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& en
 	}
 }
 
+CPanelDisplayController& CMainWindow::currentPanelDisplayController()
+{
+	const auto panel = _controller->activePanelPosition();
+	if (panel == RightPanel)
+		return _rightPanelDisplayController;
+	else
+	{
+		assert_r(panel != UnknownPanel);
+		return _leftPanelDisplayController;
+	}
+}
+
+CPanelDisplayController&CMainWindow::otherPanelDisplayController()
+{
+	const auto panel = _controller->activePanelPosition();
+	if (panel == RightPanel)
+		return _leftPanelDisplayController;
+	else
+	{
+		assert_r(panel != UnknownPanel);
+		return _rightPanelDisplayController;
+	}
+}
+
 bool CMainWindow::fileListReturnPressed()
 {
 	return _currentFileList ? executeCommand(ui->_commandLine->currentText()) : false;
@@ -850,10 +871,5 @@ bool CMainWindow::fileListReturnPressed()
 
 void CMainWindow::quickViewCurrentFile()
 {
-	CPluginWindow * viewerWindow = CPluginEngine::get().createViewerWindowForCurrentFile();
-	if (!viewerWindow)
-		return;
-
-	_otherPanelWidget->setCurrentIndex(_otherPanelWidget->addWidget(viewerWindow->centralWidget()));
-	_quickViewActive = true;
+	otherPanelDisplayController().startQuickView(CPluginEngine::get().createViewerWindowForCurrentFile());
 }

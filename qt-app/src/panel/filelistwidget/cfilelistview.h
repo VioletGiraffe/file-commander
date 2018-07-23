@@ -13,18 +13,18 @@ RESTORE_COMPILER_WARNINGS
 // Qt signals/slots system doesn't apply here because there should be a list of observers, and the signal shall not go further once it's been consumed by a listener
 
 struct FileListViewEventObserver {
-	virtual ~FileListViewEventObserver() {}
+	virtual ~FileListViewEventObserver() = default;
 
 	virtual bool fileListReturnPressed() = 0;
 	virtual bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& index) = 0;
 };
 
 struct FileListReturnPressedObserver : FileListViewEventObserver {
-	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex&) override { return false; }
+	inline bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex&) override { return false; }
 };
 
 struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
-	bool fileListReturnPressed() override { return false; }
+	inline bool fileListReturnPressed() override { return false; }
 };
 
 class QMouseEvent;

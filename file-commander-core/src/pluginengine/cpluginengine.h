@@ -1,12 +1,11 @@
-#ifndef CPLUGINENGINE_H
-#define CPLUGINENGINE_H
+#pragma once
 
 #include "cpanel.h"
 #include "plugininterface/cfilecommanderplugin.h"
 
-#include <vector>
+#include <functional>
 #include <memory>
-
+#include <vector>
 
 class CFileCommanderViewerPlugin;
 class CPluginWindow;
@@ -15,6 +14,12 @@ class QLibrary;
 class CPluginEngine : public PanelContentsChangedListener
 {
 public:
+	using PluginWindowPointerType = std::unique_ptr<CPluginWindow, std::function<void (CPluginWindow*)>>;
+
+	CPluginEngine() = default;
+	CPluginEngine& operator=(const CPluginEngine& other) = delete;
+	CPluginEngine(const CPluginEngine& other) = delete;
+
 	static CPluginEngine& get();
 
 	void loadPlugins();
@@ -32,22 +37,15 @@ public:
 
 // Operations
 	void viewCurrentFile();
-	CPluginWindow* createViewerWindowForCurrentFile();
+	// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
+	PluginWindowPointerType createViewerWindowForCurrentFile();
 
-private:
-	CPluginEngine() = default;
-
-	CPluginEngine& operator=(const CPluginEngine& other) = delete;
-	CPluginEngine(const CPluginEngine& other) = delete;
-	
 private:
 	static PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
 
 	CFileCommanderViewerPlugin * viewerForCurrentFile();
 
 private:
-	std::vector<std::pair<std::shared_ptr<CFileCommanderPlugin>, std::shared_ptr<QLibrary>>> _plugins;
+	std::vector<std::pair<std::unique_ptr<CFileCommanderPlugin>, std::unique_ptr<QLibrary>>> _plugins;
 	std::vector<CPluginWindow*> _activeWindows;
 };
-
-#endif // CPLUGINENGINE_H

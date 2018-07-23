@@ -2,8 +2,8 @@
 
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
-#include "panel/cpanelwidget.h"
 #include "panel/filelistwidget/cfilelistview.h"
+#include "panel/cpaneldisplaycontroller.h"
 #include "cpanel.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -29,8 +29,8 @@ class CMainWindow : public QMainWindow,
 	Q_OBJECT
 
 public:
-	explicit CMainWindow(QWidget *parent = 0);
-	~CMainWindow();
+	explicit CMainWindow(QWidget *parent = nullptr);
+	~CMainWindow() final;
 	static CMainWindow* get();
 
 	// One-time initialization
@@ -83,7 +83,7 @@ private slots: // UI slots
 
 // Command line
 	// true if command was executed
-	bool executeCommand(QString commandLineText);
+	bool executeCommand(const QString& commandLineText);
 	void selectPreviousCommandInTheCommandLine();
 	void clearCommandLineAndRestoreFocus();
 	void pasteCurrentFileName();
@@ -115,17 +115,17 @@ private:
 	void createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries);
 	void addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& entry, QMenu* toolMenu);
 
+	CPanelDisplayController& currentPanelDisplayController();
+	CPanelDisplayController& otherPanelDisplayController();
+
 	// For command line handling
 	bool fileListReturnPressed() override;
 
 	// Quick view
 	void quickViewCurrentFile();
 
-	// Helper functions
-	static bool widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy);
-
 	// Other
-	void currentPanelChanged(QStackedWidget * panel);
+	void currentPanelChanged(Panel panel);
 
 	// Timer
 	void uiThreadTimerTick();
@@ -134,21 +134,18 @@ private:
 	void updateWindowTitleWithCurrentFolderNames();
 
 private:
-	Ui::CMainWindow              * ui;
-	static CMainWindow*            _instance;
+	Ui::CMainWindow* ui;
+	static CMainWindow* _instance;
 
-	QTimer                         _uiThreadTimer;
+	QTimer _uiThreadTimer;
 
-	std::unique_ptr<CController>   _controller;
-	CPanelWidget                 * _currentFileList = nullptr;
-	CPanelWidget                 * _otherFileList = nullptr;
-	QStackedWidget               * _currentPanelWidget = nullptr;
-	QStackedWidget               * _otherPanelWidget = nullptr;
+	std::unique_ptr<CController> _controller;
+	CPanelWidget* _currentFileList = nullptr;
+	CPanelWidget* _otherFileList = nullptr;
+	CPanelDisplayController _leftPanelDisplayController, _rightPanelDisplayController;
 
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
 
-	QCompleter                     _commandLineCompleter;
-
-	bool                           _quickViewActive = false;
+	QCompleter _commandLineCompleter;
 };
 

@@ -1,5 +1,4 @@
-#ifndef CPANELWIDGET_H
-#define CPANELWIDGET_H
+#pragma once
 
 #include "ccontroller.h"
 #include "filelistwidget/cfilelistview.h"
@@ -29,7 +28,7 @@ class CPanelWidget : public QWidget, private CController::IVolumeListObserver, p
 	Q_OBJECT
 
 public:
-	explicit CPanelWidget(QWidget *parent = 0);
+	explicit CPanelWidget(QWidget *parent = nullptr);
 	~CPanelWidget() override;
 
 	void init(CController* controller);
@@ -130,5 +129,3 @@ private:
 	QShortcut                       _pasteShortcut;
 	QShortcut                       _searchShortcut;
 };
-
-#endif // CPANELWIDGET_H

@@ -38,7 +38,7 @@ void CPluginEngine::loadPlugins()
 		if (path.isSymLink())
 			continue;
 
-		auto pluginModule = std::make_shared<QLibrary>(path.absoluteFilePath());
+		auto pluginModule = std::make_unique<QLibrary>(path.absoluteFilePath());
 		auto createFunc = (decltype(createPlugin)*)(pluginModule->resolve("createPlugin"));
 		if (createFunc)
 		{
@@ -46,8 +46,8 @@ void CPluginEngine::loadPlugins()
 			if (plugin)
 			{
 				plugin->setProxy(&CController::get().pluginProxy());
-				qInfo() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name()).arg(path.fileName());
-				_plugins.emplace_back(std::make_pair(std::shared_ptr<CFileCommanderPlugin>(plugin), pluginModule));
+				qInfo() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name(), path.fileName());
+				_plugins.emplace_back(std::unique_ptr<CFileCommanderPlugin>(plugin), std::move(pluginModule));
 			}
 		}
 	}
@@ -97,7 +97,7 @@ void CPluginEngine::currentPanelChanged(Panel p)
 
 void CPluginEngine::viewCurrentFile()
 {
-	CPluginWindow * viewerWindow = createViewerWindowForCurrentFile();
+	auto viewerWindow = createViewerWindowForCurrentFile().release();
 	if (viewerWindow)
 	{
 		viewerWindow->setAutoDeleteOnClose(true);
@@ -107,7 +107,7 @@ void CPluginEngine::viewCurrentFile()
 	}
 }
 
-CPluginWindow *CPluginEngine::createViewerWindowForCurrentFile()
+CPluginEngine::PluginWindowPointerType CPluginEngine::createViewerWindowForCurrentFile()
 {
 	auto viewer = viewerForCurrentFile();
 	if (!viewer)
@@ -121,7 +121,9 @@ CPluginWindow *CPluginEngine::createViewerWindowForCurrentFile()
 	window->connect(window, &QObject::destroyed, [this](QObject* object) {
 		ContainerAlgorithms::erase_all_occurrences(_activeWindows, object);
 	});
-	return window;
+
+	// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
+	return PluginWindowPointerType(window, [](CPluginWindow* pluginWindow) {delete pluginWindow;});
 }
 
 PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
@@ -141,7 +143,7 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 	{
 		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
 		{
-			CFileCommanderViewerPlugin * viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
+			auto viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
 			assert_r(viewer);
 			if (viewer && viewer->canViewFile(currentFile, type))
 			{

@@ -29,11 +29,11 @@ RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 #include <iostream>
-#include <time.h>
 #include <set>
+#include <time.h>
 #include <tuple>
 
-CPanelWidget::CPanelWidget(QWidget *parent /* = 0 */) :
+CPanelWidget::CPanelWidget(QWidget *parent) :
 	QWidget(parent),
 	_filterDialog(this),
 	ui(new Ui::CPanelWidget),
