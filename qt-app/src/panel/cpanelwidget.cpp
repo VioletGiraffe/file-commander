@@ -193,7 +193,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 
 		std::cout << object.fullAbsolutePath().toLatin1().data();
 
-		QStandardItem * fileNameItem = new QStandardItem();
+		auto fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
 		if (props.type == Directory)
 			fileNameItem->setData(QString("[" % (object.isCdUp() ? QLatin1String("..") : props.fullName) % "]"), Qt::DisplayRole);
@@ -205,21 +205,21 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
 		qTreeViewItems.emplace_back(itemRow, NameColumn, fileNameItem);
 
-		QStandardItem * fileExtItem = new QStandardItem();
+		auto fileExtItem = new QStandardItem();
 		fileExtItem->setEditable(false);
 		if (!object.isCdUp() && !props.completeBaseName.isEmpty() && !props.extension.isEmpty())
 			fileExtItem->setData(props.extension, Qt::DisplayRole);
 		fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
 		qTreeViewItems.emplace_back(itemRow, ExtColumn, fileExtItem);
 
-		QStandardItem * sizeItem = new QStandardItem();
+		auto sizeItem = new QStandardItem();
 		sizeItem->setEditable(false);
 		if (!object.isCdUp() && (props.type != Directory || props.size > 0))
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
 		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
 		qTreeViewItems.emplace_back(itemRow, SizeColumn, sizeItem);
 
-		QStandardItem * dateItem = new QStandardItem();
+		auto dateItem = new QStandardItem();
 		dateItem->setEditable(false);
 		if (!object.isCdUp())
 		{
@@ -349,7 +349,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 void CPanelWidget::showContextMenuForDisk(QPoint pos)
 {
 #ifdef _WIN32
-	const QPushButton * button = dynamic_cast<const QPushButton*>(sender());
+	const auto button = dynamic_cast<const QPushButton*>(sender());
 	if (!button)
 		return;
 
@@ -400,7 +400,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 	// This doesn't let the user select the [..] item
 
 	const QString cdUpPath = CFileSystemObject(currentDir()).parentDirPath();
-	for (auto indexRange: selected)
+	for (auto&& indexRange: selected)
 	{
 		auto indexList = indexRange.indexes();
 		for (const auto& index: indexList)
@@ -444,7 +444,7 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	CFileManipulator itemManipulator(item);
 	if (itemManipulator.moveAtomically(item.parentDirPath(), newName) != rcOk)
 	{
-		QString errorMessage = tr("Failed to rename %1 to %2").arg(item.fullName()).arg(newName);
+		QString errorMessage = tr("Failed to rename %1 to %2").arg(item.fullName(), newName);
 		if (!itemManipulator.lastErrorMessage().isEmpty())
 			errorMessage.append(":\n" % itemManipulator.lastErrorMessage() % '.');
 
@@ -624,6 +624,7 @@ void CPanelWidget::cutSelectionToClipboard() const
 #else
 	std::vector<std::wstring> paths;
 	auto hashes = selectedItemsHashes();
+	paths.reserve(hashes.size());
 	for (auto hash: hashes)
 		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
@@ -702,7 +703,7 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 
 	ui->_infoLabel->setText(tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(totalNumFiles).
 		arg(numFoldersSelected).arg(totalNumFolders).
-		arg(fileSizeToString(sizeSelected)).arg(fileSizeToString(totalSize)));
+		arg(fileSizeToString(sizeSelected), fileSizeToString(totalSize)));
 }
 
 bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
@@ -723,7 +724,7 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 
 	if (!ui->_driveButtonsWidget->layout())
 	{
-		QFlowLayout * flowLayout = new QFlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
+		auto flowLayout = new QFlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
 		flowLayout->setSpacing(1);
 		ui->_driveButtonsWidget->setLayout(flowLayout);
 	}
@@ -752,7 +753,7 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 #endif
 
 		assert_r(layout);
-		QPushButton * diskButton = new QPushButton;
+		auto diskButton = new QPushButton;
 		diskButton->setCheckable(true);
 		diskButton->setIcon(drives[i].rootObjectInfo.icon());
 		diskButton->setText(name);
@@ -788,7 +789,7 @@ qulonglong CPanelWidget::hashByItemRow(const int row) const
 QModelIndex CPanelWidget::indexByHash(const qulonglong hash, bool logFailures) const
 {
 	if (hash == 0)
-		return QModelIndex();
+		return {};
 
 	for(int row = 0; row < _sortModel->rowCount(); ++row)
 	{
@@ -799,7 +800,7 @@ QModelIndex CPanelWidget::indexByHash(const qulonglong hash, bool logFailures) c
 	if (logFailures)
 		qInfo() << "Failed to find hash" << hash << "in" << currentDir();
 
-	return QModelIndex();
+	return {};
 }
 
 bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
@@ -817,7 +818,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	}
 	else if(e->type() == QEvent::Wheel && object == ui->_list->viewport())
 	{
-		QWheelEvent * wEvent = static_cast<QWheelEvent*>(e);
+		auto wEvent = static_cast<QWheelEvent*>(e);
 		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
 		{
 			if (wEvent->delta() > 0)
@@ -829,7 +830,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	}
 	else if (object == ui->_pathNavigator && e->type() == QEvent::KeyPress)
 	{
-		QKeyEvent* keyEvent = static_cast<QKeyEvent*>(e);
+		auto keyEvent = static_cast<QKeyEvent*>(e);
 		if (keyEvent->key() == Qt::Key_Escape)
 		{
 			ui->_pathNavigator->resetToLastSelected(false);
@@ -922,7 +923,7 @@ void CPanelWidget::updateCurrentDiskButton()
 	for (int i = 0; i < layout->count(); ++i)
 	{
 		QLayoutItem* item = layout->itemAt(i);
-		QPushButton* button = dynamic_cast<QPushButton*>(item ? item->widget() : nullptr);
+		auto button = dynamic_cast<QPushButton*>(item ? item->widget() : nullptr);
 		if (!button)
 			continue;
 
@@ -933,10 +934,8 @@ void CPanelWidget::updateCurrentDiskButton()
 			button->setChecked(true);
 			const auto diskInfo = _controller->volumeEnumerator().drives()[id];
 			_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
-			ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").arg(diskInfo.volumeLabel).
-				arg(diskInfo.fileSystemName).
-				arg(fileSizeToString(diskInfo.freeSize, 'M', " ")).
-				arg(fileSizeToString(diskInfo.volumeSize, 'M', " ")));
+			ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").
+				arg(diskInfo.volumeLabel, diskInfo.fileSystemName, fileSizeToString(diskInfo.freeSize, 'M', " "), fileSizeToString(diskInfo.volumeSize, 'M', " ")));
 
 			return;
 		}
