@@ -852,7 +852,7 @@ CPanelDisplayController& CMainWindow::currentPanelDisplayController()
 	}
 }
 
-CPanelDisplayController&CMainWindow::otherPanelDisplayController()
+CPanelDisplayController& CMainWindow::otherPanelDisplayController()
 {
 	const auto panel = _controller->activePanelPosition();
 	if (panel == RightPanel)

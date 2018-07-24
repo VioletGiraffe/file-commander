@@ -34,7 +34,7 @@ class CFileListView : public QTreeView
 	Q_OBJECT
 
 public:
-	explicit CFileListView(QWidget *parent = 0);
+	explicit CFileListView(QWidget *parent = nullptr);
 	void addEventObserver(FileListViewEventObserver* observer);
 
 	// Sets the position (left or right) of a panel that this model represents

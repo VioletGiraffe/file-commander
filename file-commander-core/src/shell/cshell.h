@@ -24,7 +24,7 @@ public:
 
 	static std::wstring toolTip(std::wstring itemPath);
 
-	static bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = 0);
+	static bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
 
 	static bool recycleBinContextMenu(int xPos, int yPos, void * parentWindow);
 
