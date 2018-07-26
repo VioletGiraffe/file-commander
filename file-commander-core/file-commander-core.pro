@@ -54,9 +54,23 @@ SOURCES += \
 	src/filesystemwatcher/cfilesystemwatcher.cpp \
 	src/cfilemanipulator.cpp
 
-win*:SOURCES += src/diskenumerator/cvolumeenumerator_impl_win.cpp
-mac*:SOURCES += src/diskenumerator/cvolumeenumerator_impl_mac.cpp
-linux*:SOURCES += src/diskenumerator/cvolumeenumerator_impl_linux.cpp
+win*{
+	SOURCES += \
+		src/diskenumerator/cvolumeenumerator_impl_win.cpp
+}
+
+mac*{
+	SOURCES += \
+		src/diskenumerator/cvolumeenumerator_impl_mac.cpp
+
+	OBJECTIVE_SOURCES += \
+		src/shell/cshell_mac.mm
+}
+
+linux*{
+	SOURCES += \
+		src/diskenumerator/cvolumeenumerator_impl_linux.cpp
+}
 
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)

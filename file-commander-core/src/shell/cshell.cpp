@@ -19,7 +19,7 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #endif
 
-QString CShell::shellExecutable()
+QString OsShell::shellExecutable()
 {
 #ifdef _WIN32
 	static const QString defaultShell = QLatin1String("powershell.exe");
@@ -47,7 +47,7 @@ QString CShell::shellExecutable()
 #endif
 }
 
-void CShell::executeShellCommand(const QString& command, const QString& workingDir)
+void OsShell::executeShellCommand(const QString& command, const QString& workingDir)
 {
 	std::thread([command, workingDir](){
 	#ifdef _WIN32
@@ -64,12 +64,12 @@ void CShell::executeShellCommand(const QString& command, const QString& workingD
 
 #include <shellapi.h>
 
-bool CShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
+bool OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
 {
 	return runExe(command, arguments, workingDir, false);
 }
 
-bool CShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
+bool OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
 {
 	SHELLEXECUTEINFOW shExecInfo = {0};
 	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
@@ -101,7 +101,7 @@ bool CShell::runExe(const QString& command, const QString& arguments, const QStr
 	return true;
 }
 #else
-bool CShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
+bool OsShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
 {
 	return QProcess::startDetached(command, QStringList() << parameters, workingDir);
 }
@@ -156,7 +156,7 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* paren
 
 // Pos must be global
 
-bool CShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow)
+bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -183,7 +183,7 @@ bool CShell::openShellContextMenuForObjects(const std::vector<std::wstring>& obj
 	return true;
 }
 
-bool CShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
+bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -208,7 +208,7 @@ bool CShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, vo
 	return SUCCEEDED(result);
 }
 
-bool CShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
+bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -233,7 +233,7 @@ bool CShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, voi
 	return SUCCEEDED(result);
 }
 
-bool CShell::pasteFromClipboard(std::wstring destFolder, void * parentWindow)
+bool OsShell::pasteFromClipboard(std::wstring destFolder, void * parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -258,7 +258,7 @@ bool CShell::pasteFromClipboard(std::wstring destFolder, void * parentWindow)
 	return SUCCEEDED(result);
 }
 
-std::wstring CShell::toolTip(std::wstring itemPath)
+std::wstring OsShell::toolTip(std::wstring itemPath)
 {
 	ComInitializer comInitializer;
 
@@ -292,7 +292,7 @@ std::wstring CShell::toolTip(std::wstring itemPath)
 	return tipString;
 }
 
-bool CShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTrash, void * parentWindow)
+bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTrash, void * parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -372,7 +372,7 @@ bool CShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTras
 	return SUCCEEDED(result);
 }
 
-bool CShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
+bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 {
 	ComInitializer comInitializer;
 
@@ -466,34 +466,34 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 
 #elif defined __linux__
 
-bool CShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
+bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
 {
 	return false;
 }
 
-std::wstring CShell::toolTip(std::wstring /*itemPath*/)
+std::wstring OsShell::toolTip(std::wstring /*itemPath*/)
 {
 	return std::wstring();
 }
 
-bool CShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
+bool OsShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
 {
 	return true;
 }
 
 #elif defined __APPLE__
 
-bool CShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
+bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
 {
 	return false;
 }
 
-std::wstring CShell::toolTip(std::wstring /*itemPath*/)
+std::wstring OsShell::toolTip(std::wstring /*itemPath*/)
 {
 	return std::wstring();
 }
 
-bool CShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void */*parentWindow*/)
+bool OsShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void */*parentWindow*/)
 {
 	return true;
 }

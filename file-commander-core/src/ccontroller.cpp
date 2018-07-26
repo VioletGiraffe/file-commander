@@ -104,7 +104,7 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	{
 		if (item.isExecutable())
 			// Attempting to launch this exe from the current directory
-			return CShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()) ? rcOk : rcFail;
+			return OsShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()) ? rcOk : rcFail;
 		else
 			// It's probably not a binary file, try opening with openUrl
 			return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? rcOk : rcFail;
@@ -234,20 +234,20 @@ void CController::openTerminal(const QString &folder, bool admin)
 #elif defined __linux__ || defined _WIN32
 	if (!admin)
 	{
-		const bool started = CShell::runExecutable(CShell::shellExecutable(), QString(), folder);
+		const bool started = OsShell::runExecutable(OsShell::shellExecutable(), QString(), folder);
 		assert_r(started);
 	}
 	else
 	{
 #ifdef _WIN32
-		const QString terminalProgram = CShell::shellExecutable();
+		const QString terminalProgram = OsShell::shellExecutable();
 		QString arguments;
 		if (terminalProgram.toLower().contains("powershell"))
 			arguments = QStringLiteral("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
 		else if (terminalProgram.toLower() == "cmd" || terminalProgram.toLower() == "cmd.exe")
 			arguments = QStringLiteral("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));
 
-		assert_r(CShell::runExe(terminalProgram, arguments, folder, true));
+		assert_r(OsShell::runExe(terminalProgram, arguments, folder, true));
 #endif
 	}
 #else

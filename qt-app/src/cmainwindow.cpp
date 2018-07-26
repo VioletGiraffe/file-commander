@@ -391,7 +391,7 @@ void CMainWindow::deleteFiles()
 	if (!_currentFileList)
 		return;
 
-#ifdef _WIN32
+#if defined _WIN32 || defined __APPLE__
 	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 	std::vector<std::wstring> paths;
 	paths.reserve(items.size());
@@ -401,8 +401,14 @@ void CMainWindow::deleteFiles()
 	if (paths.empty())
 		return;
 
+#ifdef _WIN32
+	auto windowHandle = (void*)winId();
+#else
+	void* windowHandle = nullptr;
+#endif
+
 	_controller->execOnWorkerThread([=]() {
-		if (!CShell::deleteItems(paths, true, (void*)winId()))
+		if (!OsShell::deleteItems(paths, true, windowHandle))
 			_controller->execOnUiThread([this]() {
 			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
@@ -428,7 +434,7 @@ void CMainWindow::deleteFilesIrrevocably()
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
 	_controller->execOnWorkerThread([=]() {
-		if (!CShell::deleteItems(paths, false, (void*)winId()))
+		if (!OsShell::deleteItems(paths, false, (void*)winId()))
 			_controller->execOnUiThread([this]() {
 			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
@@ -524,7 +530,7 @@ void CMainWindow::editFile()
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 {
 	const QPoint globalPos = ui->btnDelete->mapToGlobal(pos);
-	CShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), (void*)winId());
+	OsShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), (void*)winId());
 }
 
 void CMainWindow::toggleQuickView()
@@ -570,7 +576,7 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 	if (!_currentFileList || commandLineText.isEmpty())
 		return false;
 
-	CShell::executeShellCommand(commandLineText, _currentFileList->currentDir());
+	OsShell::executeShellCommand(commandLineText, _currentFileList->currentDir());
 	QTimer::singleShot(0, [=]() {CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
@@ -698,33 +704,17 @@ void CMainWindow::settingsChanged()
 	ui->rightPanel->onSettingsChanged();
 }
 
-static bool widgetBelongsToHierarchy(QWidget * const widget, QObject * const hierarchy)
-{
-	if (widget == hierarchy)
-		return true;
-
-	const auto& children = hierarchy->children();
-	if (children.contains(widget))
-		return true;
-
-	for (const auto& child : children)
-		if (widgetBelongsToHierarchy(widget, child))
-			return true;
-
-	return false;
-}
-
 void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
 {
 	if (!now)
 		return;
 
 	for (int i = 0; i < ui->leftWidget->count(); ++i)
-		if (now == ui->leftWidget || widgetBelongsToHierarchy(now, ui->leftWidget->widget(i)))
+		if (now == ui->leftWidget || WidgetUtils::widgetBelongsToHierarchy(now, ui->leftWidget->widget(i)))
 			currentPanelChanged(LeftPanel);
 
 	for (int i = 0; i < ui->rightWidget->count(); ++i)
-		if (now == ui->rightWidget || widgetBelongsToHierarchy(now, ui->rightWidget->widget(i)))
+		if (now == ui->rightWidget || WidgetUtils::widgetBelongsToHierarchy(now, ui->rightWidget->widget(i)))
 			currentPanelChanged(RightPanel);
 }
 

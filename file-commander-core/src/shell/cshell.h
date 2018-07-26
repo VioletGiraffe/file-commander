@@ -1,40 +1,32 @@
-#ifndef CSHELLMENU_H
-#define CSHELLMENU_H
-
-#include "compiler/compiler_warnings_control.h"
-
-DISABLE_COMPILER_WARNINGS
-#include <QString>
-RESTORE_COMPILER_WARNINGS
+#pragma once
 
 #include <string>
 #include <vector>
 
-class CShell
+class QString;
+
+namespace OsShell
 {
-public:
-	static QString shellExecutable();
+	QString shellExecutable();
 
 	// Pos must be global
-	static bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow);
+	bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow);
 
-	static bool copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
-	static bool cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
-	static bool pasteFromClipboard(std::wstring destFolder, void * parentWindow);
+	bool copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
+	bool cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
+	bool pasteFromClipboard(std::wstring destFolder, void * parentWindow);
 
-	static std::wstring toolTip(std::wstring itemPath);
+	std::wstring toolTip(std::wstring itemPath);
 
-	static bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
+	bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
 
-	static bool recycleBinContextMenu(int xPos, int yPos, void * parentWindow);
+	bool recycleBinContextMenu(int xPos, int yPos, void * parentWindow);
 
-	static void executeShellCommand(const QString& command, const QString& workingDir);
+	void executeShellCommand(const QString& command, const QString& workingDir);
 
-	static bool runExecutable(const QString& command, const QString& arguments, const QString& workingDir);
+	bool runExecutable(const QString& command, const QString& arguments, const QString& workingDir);
 
 #ifdef _WIN32
-	static bool runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin = false);
+	bool runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin = false);
 #endif
-};
-
-#endif // CSHELLMENU_H
+}
