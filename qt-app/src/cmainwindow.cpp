@@ -163,6 +163,9 @@ void CMainWindow::initButtons()
 	connect(ui->btnDelete, &QPushButton::customContextMenuRequested, this, &CMainWindow::showRecycleBInContextMenu);
 	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F8"), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
 	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Delete"), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+#ifdef __APPLE__
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(Qt::CTRL + Qt::Key_Backspace), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+#endif
 	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Shift+F8"), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
 	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
 
