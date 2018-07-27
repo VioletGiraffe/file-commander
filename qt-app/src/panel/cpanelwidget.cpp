@@ -709,7 +709,7 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
 {
 	assert_r(item.isValid());
-	QModelIndex source = _sortModel->mapToSource(item);
+	const QModelIndex source = _sortModel->mapToSource(item);
 	const qulonglong hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toULongLong();
 	emit itemActivated(hash, this);
 	return true; // Consuming the event

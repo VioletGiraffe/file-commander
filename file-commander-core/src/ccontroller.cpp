@@ -94,7 +94,12 @@ void CController::tabRemoved(Panel /*panel*/, int /*tabId*/)
 FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 {
 	const auto item = panel(p).itemByHash(itemHash);
-	if (item.isDir())
+	if (item.isBundle())
+	{
+		// macOS bundle: launch it as an application
+		return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? rcOk : rcFail;
+	}
+	else if (item.isDir())
 	{
 		// Attempting to enter this dir
 		const FileOperationResultCode result = setPath(p, item.fullAbsolutePath(), item.isCdUp() ? refreshCauseCdUp : refreshCauseForwardNavigation);

@@ -247,6 +247,11 @@ bool CFileSystemObject::isHidden() const
 	return _fileInfo.isHidden();
 }
 
+bool CFileSystemObject::isBundle() const
+{
+	return _fileInfo.isBundle();
+}
+
 // Returns true if this object is a child of parent, either direct or indirect
 bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 {

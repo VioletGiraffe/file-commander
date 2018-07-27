@@ -73,6 +73,8 @@ public:
 	// Apparently, it will return false for non-existing files
 	bool isWriteable() const;
 	bool isHidden() const;
+	bool isBundle() const;
+
 	// Returns true if this object is a child of parent, either direct or indirect
 	bool isChildOf(const CFileSystemObject& parent) const;
 	QString fullAbsolutePath() const;

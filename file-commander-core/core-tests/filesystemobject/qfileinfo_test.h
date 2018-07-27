@@ -56,6 +56,9 @@ public:
 	bool _isHidden = false;
 	bool isHidden() const {return _isHidden;}
 
+	bool _isBundle = false;
+	bool isBundle() const {return _isBundle;}
+
 	QDateTime _created;
 	QDateTime created() const {return _created;}
 
