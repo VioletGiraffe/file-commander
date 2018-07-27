@@ -3,17 +3,18 @@
 
 #include <QDebug>
 
-#include <AppKit/NSWorkspace.h>
+#import <Foundation/Foundation.h>
+#import <AppKit/NSWorkspace.h>
 
 NSString* wstring2nsstring(const std::wstring& str)
 {
 	if (!str.empty())
-		return [NSString stringWithCString:str.data() encoding:NSUTF16StringEncoding];
+		return [NSString stringWithCString:(const char*)str.data() encoding:NSUTF16StringEncoding];
 	else
 		return @"";
 }
 
-bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void* /*parentWindow*/ = nullptr);
+bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTrash, void* /*parentWindow*/)
 {
 	assert_and_return_message_r(moveToTrash, "This method can only move files to trash", false);
 
@@ -26,13 +27,9 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 		[files addObject:url];
 	}
 
-	[[NSWorkspace sharedWorkspace] recycleURLs:files completionHandler:^(NSDictionary *newURLs, NSError *error) {
+	[[NSWorkspace sharedWorkspace] recycleURLs:files completionHandler:^(NSDictionary* /*newURLs*/, NSError *error) {
 		if (error != nil)
-		{
-			//do something about the error
-			qDebug() << QString::fromNSString(error);
-			return false;
-		}
+			qDebug() << QString::fromNSString(error.localizedDescription);
 	}];
 
 	return true;

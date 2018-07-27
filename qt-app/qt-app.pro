@@ -134,7 +134,7 @@ win*{
 mac*{
 	ICON = resources/file_commander.icns
 
-	LIBS += -framework IOKit -framework CoreFoundation
+	LIBS += -framework AppKit
 
 	QMAKE_POST_LINK = cp -f -p $$PWD/$$DESTDIR/*.dylib $$PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
 }

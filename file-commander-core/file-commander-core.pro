@@ -65,8 +65,6 @@ mac*{
 
 	OBJECTIVE_SOURCES += \
 		src/shell/cshell_mac.mm
-
-	LIBS += -framework IOKit -framework CoreFoundation
 }
 
 linux*{
