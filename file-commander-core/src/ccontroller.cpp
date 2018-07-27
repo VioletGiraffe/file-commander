@@ -421,13 +421,14 @@ QString CController::volumePath(size_t index) const
 size_t CController::currentVolumeIndex(Panel p) const
 {
 	const auto drives = _volumeEnumerator.drives();
+	const auto currentDirectoryObject = CFileSystemObject(panel(p).currentDirPathNative());
 	for (size_t i = 0, size = drives.size(); i < size; ++i)
 	{
-		if (CFileSystemObject(panel(p).currentDirPathNative()).isChildOf(drives[i].rootObjectInfo))
+		if (currentDirectoryObject.isChildOf(drives[i].rootObjectInfo))
 			return i;
 	}
 
-	return std::numeric_limits<int>::max();
+	return std::numeric_limits<size_t>::max();
 }
 
 CFavoriteLocations& CController::favoriteLocations()
@@ -476,7 +477,7 @@ void CController::saveDirectoryForCurrentVolume(Panel p)
 	if (path.isNetworkObject())
 		return;
 
-	assert_and_return_r(path.isNetworkObject() || currentVolumeIndex(p) < _volumeEnumerator.drives().size(), );
+	assert_and_return_r(currentVolumeIndex(p) < _volumeEnumerator.drives().size(), );
 
 	const QString drivePath = _volumeEnumerator.drives().at(currentVolumeIndex(p)).rootObjectInfo.fullAbsolutePath();
 	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());

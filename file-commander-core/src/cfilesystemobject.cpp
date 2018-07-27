@@ -267,6 +267,7 @@ bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 	const auto resolvedChildLink = isSymLink() ? symLinkTarget() : fullAbsolutePath();
 	const auto resolvedParentLink = parent.isSymLink() ? parent.symLinkTarget() : parent.fullAbsolutePath();
 
+	assert_and_return_r(!resolvedChildLink.isEmpty() && !resolvedParentLink.isEmpty(), false);
 	return resolvedChildLink.startsWith(resolvedParentLink, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive);
 }
 
@@ -359,7 +360,8 @@ bool CFileSystemObject::isNetworkObject() const
 
 bool CFileSystemObject::isSymLink() const
 {
-	return _fileInfo.isSymLink();
+	// Apparently, QFileInfo has a bug that makes it erroneously report a non-link as a link (Qt 5.11)
+	return _fileInfo.isSymLink() && !_fileInfo.symLinkTarget().isEmpty();
 }
 
 QString CFileSystemObject::symLinkTarget() const
