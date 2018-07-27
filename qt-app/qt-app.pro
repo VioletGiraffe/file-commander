@@ -67,7 +67,7 @@ SOURCES += \
 	src/progressdialogs/cdeleteprogressdialog.cpp \
 	src/aboutdialog/caboutdialog.cpp \
 	src/progressdialogs/progressdialoghelpers.cpp \
-    src/panel/cpaneldisplaycontroller.cpp
+	src/panel/cpaneldisplaycontroller.cpp
 
 HEADERS += \
 	src/cmainwindow.h \
@@ -93,7 +93,7 @@ HEADERS += \
 	src/version.h \
 	src/aboutdialog/caboutdialog.h \
 	src/progressdialogs/progressdialoghelpers.h \
-    src/panel/cpaneldisplaycontroller.h
+	src/panel/cpaneldisplaycontroller.h
 
 FORMS += \
 	src/cmainwindow.ui \
@@ -133,6 +133,8 @@ win*{
 
 mac*{
 	ICON = resources/file_commander.icns
+
+	LIBS += -framework IOKit -framework CoreFoundation
 
 	QMAKE_POST_LINK = cp -f -p $$PWD/$$DESTDIR/*.dylib $$PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
 }

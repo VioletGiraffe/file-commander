@@ -13,7 +13,7 @@ NSString* wstring2nsstring(const std::wstring& str)
 		return @"";
 }
 
-bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void* /*parentWindow*/ = nullptr);
+bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void* /*parentWindow*/ = nullptr);
 {
 	assert_and_return_message_r(moveToTrash, "This method can only move files to trash", false);
 
