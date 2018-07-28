@@ -13,7 +13,8 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <thread>
-#include <cstdlib>
+
+#include <cstdlib> // std::system
 
 #ifdef _WIN32
 #include <Windows.h>

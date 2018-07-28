@@ -57,7 +57,7 @@ CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) :
 	QDialog(parent),
 	ui(new Ui::CFavoriteLocationsEditor),
 	_locations(CController::get().favoriteLocations()),
-	_currentItem(0)
+	_currentItem(nullptr)
 {
 	ui->setupUi(this);
 
@@ -98,9 +98,9 @@ void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem * current, QTr
 
 void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 {
-	CFavoriteLocationsListItem * item = dynamic_cast<CFavoriteLocationsListItem*>(ui->_list->itemAt(pos));
+	auto item = dynamic_cast<CFavoriteLocationsListItem*>(ui->_list->itemAt(pos));
 	QMenu menu;
-	QAction * addItemAction = 0;
+	QAction * addItemAction = nullptr;
 	if (!item || item->isCategory())
 		addItemAction = menu.addAction(tr("Add item..."));
 	else

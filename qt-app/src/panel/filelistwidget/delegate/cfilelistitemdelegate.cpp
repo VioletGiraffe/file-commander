@@ -22,7 +22,7 @@ CFileListItemDelegate::CFileListItemDelegate(QObject *parent) :
 void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & index) const
 {
 	QStyledItemDelegate::setEditorData(editor, index);
-	QLineEdit * lineEditor = dynamic_cast<QLineEdit*>(editor);
+	auto lineEditor = dynamic_cast<QLineEdit*>(editor);
 	assert_r(lineEditor);
 	assert_and_return_r(index.isValid(), );
 

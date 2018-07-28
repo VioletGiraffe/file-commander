@@ -36,10 +36,10 @@ public:
 	void setFocusToFileList();
 
 	QByteArray savePanelState() const;
-	bool restorePanelState(QByteArray state);
+	bool restorePanelState(const QByteArray& state);
 
 	QByteArray savePanelGeometry() const;
-	bool restorePanelGeometry(QByteArray state);
+	bool restorePanelGeometry(const QByteArray& state);
 
 	QString currentDir() const;
 

@@ -14,8 +14,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
-#include <stdlib.h>
-
 CController* CController::_instance = nullptr;
 
 CController::CController() :
@@ -247,7 +245,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 #ifdef _WIN32
 		const QString terminalProgram = OsShell::shellExecutable();
 		QString arguments;
-		if (terminalProgram.toLower().contains("powershell"))
+		if (terminalProgram.contains("powershell", Qt::CaseInsensitive))
 			arguments = QStringLiteral("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
 		else if (terminalProgram.toLower() == "cmd" || terminalProgram.toLower() == "cmd.exe")
 			arguments = QStringLiteral("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));

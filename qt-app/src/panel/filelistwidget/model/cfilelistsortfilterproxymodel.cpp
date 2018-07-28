@@ -45,7 +45,7 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	assert_r(left.isValid() && right.isValid());
 	const int sortColumn = left.column();
 
-	QStandardItemModel * srcModel = dynamic_cast<QStandardItemModel*>(sourceModel());
+	auto srcModel = dynamic_cast<QStandardItemModel*>(sourceModel());
 	QStandardItem * l = srcModel->item(left.row(), left.column());
 	QStandardItem * r = srcModel->item(right.row(), right.column());
 

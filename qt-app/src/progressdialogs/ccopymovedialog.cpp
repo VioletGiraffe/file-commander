@@ -11,7 +11,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 CCopyMoveDialog::CCopyMoveDialog(Operation operation, const std::vector<CFileSystemObject>& source, QString destination, CMainWindow * mainWindow) :
-	QWidget(0, Qt::Window),
+	QWidget(nullptr, Qt::Window),
 	ui(new Ui::CCopyMoveDialog),
 	_performer(new COperationPerformer(operation, source, destination)),
 	_mainWindow(mainWindow),
@@ -67,9 +67,9 @@ void CCopyMoveDialog::onProgressChanged(float totalPercentage, size_t numFilesPr
 	ui->_fileProgressText->setText(QString::number(filePercentage, 'f', 1).append('%'));
 
 
-	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(speed)).arg(secondsToTimeIntervalString(secondsRemaining)));
+	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(speed), secondsToTimeIntervalString(secondsRemaining)));
 	ui->_lblNumFiles->setText(QString("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
-	setWindowTitle(_titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(fileSizeToString(speed)).arg(secondsToTimeIntervalString(secondsRemaining)));
+	setWindowTitle(_titleTemplate.arg(QString::number(totalPercentage, 'f', 1), fileSizeToString(speed), secondsToTimeIntervalString(secondsRemaining)));
 }
 
 void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)

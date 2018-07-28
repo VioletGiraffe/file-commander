@@ -303,7 +303,7 @@ bool CFileListView::eventFilter(QObject* target, QEvent* event)
 		for (int i = 0; i < headerView->count(); ++i)
 			oldHeaderWidth += (float)headerView->sectionSize(i);
 
-		const float newHeaderWidth = (float)resizeEvent->size().width();
+		const auto newHeaderWidth = (float)resizeEvent->size().width();
 		if (oldHeaderWidth <= 0.0f || newHeaderWidth <= 0.0f || oldHeaderWidth == newHeaderWidth)
 			return false;
 

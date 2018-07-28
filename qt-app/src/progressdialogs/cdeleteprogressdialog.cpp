@@ -11,7 +11,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 CDeleteProgressDialog::CDeleteProgressDialog(std::vector<CFileSystemObject> source, QString destination, CMainWindow *mainWindow) :
-	QWidget(0, Qt::Window),
+	QWidget(nullptr, Qt::Window),
 	ui(new Ui::CDeleteProgressDialog),
 	_performer(new COperationPerformer(operationDelete, source, destination)),
 	_mainWindow(mainWindow)

@@ -21,7 +21,7 @@ public:
 		// A dirty hack to implement switching between left and right panels on Tab key press
 		if (e->type() == QEvent::KeyPress)
 		{
-			QKeyEvent * keyEvent = static_cast<QKeyEvent*>(e);
+			const auto keyEvent = static_cast<QKeyEvent*>(e);
 			if (keyEvent->key() == Qt::Key_Tab && CMainWindow::get())
 			{
 				CMainWindow::get()->tabKeyPressed();

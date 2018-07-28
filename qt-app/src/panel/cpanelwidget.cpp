@@ -91,7 +91,7 @@ QByteArray CPanelWidget::savePanelState() const
 	return ui->_list->header()->saveState();
 }
 
-bool CPanelWidget::restorePanelState(QByteArray state)
+bool CPanelWidget::restorePanelState(const QByteArray& state)
 {
 	if (!state.isEmpty())
 	{
@@ -110,7 +110,7 @@ QByteArray CPanelWidget::savePanelGeometry() const
 	return ui->_list->header()->saveGeometry();
 }
 
-bool CPanelWidget::restorePanelGeometry(QByteArray state)
+bool CPanelWidget::restorePanelGeometry(const QByteArray& state)
 {
 	return ui->_list->header()->restoreGeometry(state);
 }
@@ -589,8 +589,9 @@ void CPanelWidget::copySelectionToClipboard() const
 		clipBoard->setMimeData(data);
 	}
 #else
+	const auto hashes = selectedItemsHashes();
 	std::vector<std::wstring> paths;
-	auto hashes = selectedItemsHashes();
+	paths.reserve(hashes.size());
 	for (auto hash: hashes)
 		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
@@ -642,7 +643,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
 #else
-	void* hwnd = (void*)winId();
+	auto hwnd = (void*)winId();
 	const auto currentDirWString = currentDir().toStdWString();
 	_controller->execOnWorkerThread([=]() {
 		OsShell::pasteFromClipboard(currentDirWString, hwnd);

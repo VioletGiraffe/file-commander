@@ -127,7 +127,7 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 
 QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 {
-	QMimeData * mime = new QMimeData();
+	auto mime = new QMimeData();
 	QList<QUrl> urls;
 	std::set<int> rows;
 	for(const auto& idx: indexes)
