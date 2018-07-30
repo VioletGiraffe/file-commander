@@ -17,7 +17,7 @@ public:
 	void abortComparison();
 
 private:
-	void compareFiles(QIODevice& fileA, QIODevice& fileB, std::function<void (int)> progressCallback, std::function<void (ComparisonResult)> resultCallback);
+	void compareFiles(QIODevice& fileA, QIODevice& fileB, const std::function<void (int)>& progressCallback, const std::function<void (ComparisonResult)>& resultCallback);
 
 	std::atomic<bool> _terminate {false};
 	std::thread _comparisonThread;
