@@ -21,7 +21,7 @@ QString CFileComparisonPlugin::name() const
 
 void CFileComparisonPlugin::proxySet()
 {
-	CPluginProxy::MenuTree menu("Compare files by contents", [this]() {
+	CPluginProxy::MenuTree menu(QObject::tr("Compare files by contents"), [this]() {
 		compareSelectedFiles();
 	});
 
@@ -33,7 +33,7 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	const auto& currentItem = _proxy->currentItemForPanel(_proxy->currentPanel());
 	if (!currentItem.isFile())
 	{
-		QMessageBox::information(nullptr, "No file selected", "No file is selected for comparison.");
+		QMessageBox::information(nullptr, QObject::tr("No file selected"), QObject::tr("No file is selected for comparison."));
 		return;
 	}
 
@@ -43,26 +43,26 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	QFile fileA(currentItem.fullAbsolutePath()), fileB(otherFilePath);
 	if (!fileA.exists() || !fileB.exists())
 	{
-		QMessageBox::information(nullptr, "No file selected", "No file is selected for comparison.");
+		QMessageBox::information(nullptr, QObject::tr("No file selected"), QObject::tr("No file is selected for comparison."));
 		return;
 	}
 
 	if (fileA.size() != fileB.size())
 	{
-		const QString msg = QString("Files have different sizes:\n%1: %2\n%3: %4").arg(currentItem.fullAbsolutePath()).arg(fileA.size()).arg(otherFilePath).arg(fileB.size());
-		QMessageBox::information(nullptr, "Files differ", msg);
+		const QString msg = QObject::tr("Files have different sizes:\n%1: %2\n%3: %4").arg(currentItem.fullAbsolutePath()).arg(fileA.size()).arg(otherFilePath).arg(fileB.size());
+		QMessageBox::information(nullptr, QObject::tr("Files differ"), msg);
 		return;
 	}
 
 	if (!fileA.open(QFile::ReadOnly))
 	{
-		QMessageBox::warning(nullptr, "Failed to read file", "Failed to open file" + fileA.fileName());
+		QMessageBox::warning(nullptr, QObject::tr("Failed to read file"), QObject::tr("Failed to open file") + fileA.fileName());
 		return;
 	}
 
 	if (!fileB.open(QFile::ReadOnly))
 	{
-		QMessageBox::warning(nullptr, "Failed to read file", "Failed to open file" + fileB.fileName());
+		QMessageBox::warning(nullptr, QObject::tr("Failed to read file"), QObject::tr("Failed to open file") + fileB.fileName());
 		return;
 	}
 
@@ -72,7 +72,7 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	_comparator.compareFilesThreaded(fileA, fileB, [](int p) {qInfo() << p; }, [](CFileComparator::ComparisonResult result) {});
 
 // 	if (compareFilesByContents(fileA, fileB, [](int p) {qInfo() << p;}) == Equal)
-// 		QMessageBox::information(nullptr, "Files are identical", QObject::tr("The file %1 is identical in both locations.").arg(currentItem.fullName()));
+// 		QMessageBox::information(nullptr, QObject::tr("Files are identical"), QObject::tr("The file %1 is identical in both locations.").arg(currentItem.fullName()));
 // 	else
-// 		QMessageBox::information(nullptr, "Files differ", "The files are not identical.");
+// 		QMessageBox::information(nullptr, QObject::tr("Files differ"), QObject::tr("The files are not identical."));
 }
