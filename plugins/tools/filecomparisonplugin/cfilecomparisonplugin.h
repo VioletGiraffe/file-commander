@@ -1,7 +1,7 @@
 #pragma once
 
 #include "plugininterface/cfilecommandertoolplugin.h"
-#include "cfilecomparator.h"
+#include "filecomparator/cfilecomparator.h"
 
 class CFileComparisonPlugin : public CFileCommanderToolPlugin
 {

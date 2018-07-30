@@ -36,7 +36,8 @@ HEADERS += \
 	src/diskenumerator/cvolumeenumerator.h \
 	src/filesystemwatcher/cfilesystemwatcher.h \
 	src/diskenumerator/volumeinfohelper.hpp \
-	src/cfilemanipulator.h
+	src/cfilemanipulator.h \
+	src/filecomparator/cfilecomparator.h
 
 SOURCES += \
 	src/cfilesystemobject.cpp \
@@ -52,7 +53,8 @@ SOURCES += \
 	src/directoryscanner.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
 	src/filesystemwatcher/cfilesystemwatcher.cpp \
-	src/cfilemanipulator.cpp
+	src/cfilemanipulator.cpp \
+	src/filecomparator/cfilecomparator.cpp
 
 win*{
 	SOURCES += \

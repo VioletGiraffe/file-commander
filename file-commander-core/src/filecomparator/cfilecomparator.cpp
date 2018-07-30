@@ -5,15 +5,15 @@
 #include "threading/thread_helpers.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QFile>
+#include <QIODevice>
 RESTORE_COMPILER_WARNINGS
 
-CFileComparator::CFileComparator()
+CFileComparator::~CFileComparator()
 {
 	abortComparison();
 }
 
-void CFileComparator::compareFilesThreaded(QFile &fileA, QFile &fileB, const std::function<void (int)>& progressCallback, const std::function<void (ComparisonResult)>& resultCallback)
+void CFileComparator::compareFilesThreaded(QIODevice &fileA, QIODevice &fileB, const std::function<void (int)>& progressCallback, const std::function<void (ComparisonResult)>& resultCallback)
 {
 	_terminate = false;
 	_comparisonThread = std::thread(&CFileComparator::compareFiles, this, std::ref(fileA), std::ref(fileB), progressCallback, resultCallback);
@@ -28,7 +28,7 @@ void CFileComparator::abortComparison()
 	}
 }
 
-void CFileComparator::compareFiles(QFile &fileA, QFile &fileB, std::function<void(int)> progressCallback, std::function<void (ComparisonResult)> resultCallback)
+void CFileComparator::compareFiles(QIODevice &fileA, QIODevice &fileB, std::function<void(int)> progressCallback, std::function<void (ComparisonResult)> resultCallback)
 {
 	setThreadName("CFileComparator thread");
 

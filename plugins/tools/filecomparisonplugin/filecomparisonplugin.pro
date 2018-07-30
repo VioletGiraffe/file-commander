@@ -78,9 +78,7 @@ INCLUDEPATH += \
 	$$PWD/src/
 
 HEADERS += \
-	cfilecomparisonplugin.h \
-	cfilecomparator.h
+	cfilecomparisonplugin.h
 
 SOURCES += \
-	cfilecomparisonplugin.cpp \
-	cfilecomparator.cpp
+	cfilecomparisonplugin.cpp
