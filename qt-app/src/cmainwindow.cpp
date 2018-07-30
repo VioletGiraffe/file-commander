@@ -379,14 +379,14 @@ void CMainWindow::copySelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
 		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir() % '/');
+		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir());
 }
 
 void CMainWindow::moveSelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
 		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir() % '/');
+		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir());
 }
 
 void CMainWindow::deleteFiles()
