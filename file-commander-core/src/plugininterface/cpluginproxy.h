@@ -33,9 +33,9 @@ public:
 		std::vector<MenuTree> children;
 	};
 
-	using CreateToolMenuEntryImplementationType = std::function<void(const std::vector<CPluginProxy::MenuTree>&)>;
+	CPluginProxy(std::function<void (std::function<void ()>)> execOnUiThreadImplementation);
 
-	CPluginProxy() = default;
+	using CreateToolMenuEntryImplementationType = std::function<void(const std::vector<CPluginProxy::MenuTree>&)>;
 
 // Proxy initialization (by core / UI)
 	void setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation);
@@ -64,8 +64,11 @@ public:
 	const CFileSystemObject& currentItem() const;
 	QString currentItemPath() const;
 
+	void execOnUiThread(const std::function<void()>& code);
+
 private:
 	CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;
 	std::map<PanelPosition, PanelState> _panelState;
+	std::function<void(std::function<void()>)> _execOnUiThreadImplementation;
 	PanelPosition                       _currentPanel = PluginUnknownPanel;
 };

@@ -1,5 +1,5 @@
 #include "cfilecomparisonplugin.h"
-
+#include "plugininterface/cpluginproxy.h"
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -8,6 +8,8 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <limits>
+#include <memory>
+#include <utility> // std::move
 
 CFileCommanderPlugin* createPlugin()
 {
@@ -45,47 +47,53 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	const auto fileName = currentItem.fullName();
 	const QString otherFilePath = otherItem.isFile() ? otherItem.fullAbsolutePath() : _proxy->currentFolderPathForPanel(_proxy->otherPanel()) + "/" + fileName;
 
-	QFile fileA(currentItem.fullAbsolutePath()), fileB(otherFilePath);
-	if (!fileA.exists() || !fileB.exists())
+	auto fileA = std::make_unique<QFile>(currentItem.fullAbsolutePath());
+	auto fileB = std::make_unique<QFile>(otherFilePath);
+
+	if (!fileA->exists() || !fileB->exists())
 	{
 		QMessageBox::information(nullptr, name(), QObject::tr("No file is selected for comparison."));
 		return;
 	}
 
-	if (fileA.size() != fileB.size())
+	if (fileA->size() != fileB->size())
 	{
-		const QString msg = QObject::tr("Files have different sizes:\n%1: %2\n%3: %4").arg(currentItem.fullAbsolutePath()).arg(fileA.size()).arg(otherFilePath).arg(fileB.size());
+		const QString msg = QObject::tr("Files have different sizes:\n%1: %2\n%3: %4").arg(currentItem.fullAbsolutePath()).arg(fileA->size()).arg(otherFilePath).arg(fileB->size());
 		QMessageBox::information(nullptr, name(), msg);
 		return;
 	}
 
-	if (!fileA.open(QFile::ReadOnly))
+	if (!fileA->open(QFile::ReadOnly))
 	{
-		QMessageBox::warning(nullptr, name(), QObject::tr("Failed to open file") % ' ' % fileA.fileName());
+		QMessageBox::warning(nullptr, name(), QObject::tr("Failed to open file") % ' ' % fileA->fileName());
 		return;
 	}
 
-	if (!fileB.open(QFile::ReadOnly))
+	if (!fileB->open(QFile::ReadOnly))
 	{
-		QMessageBox::warning(nullptr, name(), QObject::tr("Failed to open file") % ' ' % fileB.fileName());
+		QMessageBox::warning(nullptr, name(), QObject::tr("Failed to open file") % ' ' % fileB->fileName());
 		return;
 	}
 
 	_progressDialog.show();
 	_progressDialog.adjustSize();
 
-	_comparator.compareFilesThreaded(fileA, fileB,
+	_comparator.compareFilesThreaded(std::move(fileA), std::move(fileB),
 		[this](int progressPercentage) {
-			_progressDialog.setValue(progressPercentage);
+			_proxy->execOnUiThread([this, progressPercentage]() {
+				_progressDialog.setValue(progressPercentage);
+			});
 		},
 
 		[fileName, this](CFileComparator::ComparisonResult result) {
-			if (result == CFileComparator::Equal)
-				QMessageBox::information(nullptr, QObject::tr("Files are identical"), QObject::tr("The file %1 is identical in both locations.").arg(fileName));
-			else if (result == CFileComparator::NotEqual)
-				QMessageBox::information(nullptr, QObject::tr("Files differ"), QObject::tr("The files are not identical."));
+			_proxy->execOnUiThread([this, result, fileName]() {
+				_progressDialog.hide();
 
-			_progressDialog.hide();
+				if (result == CFileComparator::Equal)
+					QMessageBox::information(nullptr, QObject::tr("Files are identical"), QObject::tr("The file %1 is identical in both locations.").arg(fileName));
+				else if (result == CFileComparator::NotEqual)
+					QMessageBox::information(nullptr, QObject::tr("Files differ"), QObject::tr("The files are not identical."));
+			});
 		}
 	);
 }

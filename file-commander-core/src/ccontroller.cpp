@@ -20,6 +20,7 @@ CController::CController() :
 	_fileSearchEngine(*this),
 	_leftPanel(LeftPanel),
 	_rightPanel(RightPanel),
+	_pluginProxy([this](const std::function<void()>& code) {execOnUiThread(code);}),
 	_workerThreadPool(2, "CController thread pool")
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller

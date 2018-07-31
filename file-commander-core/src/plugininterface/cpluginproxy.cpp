@@ -1,6 +1,12 @@
 #include "cpluginproxy.h"
 #include "assert/advanced_assert.h"
 
+CPluginProxy::CPluginProxy(std::function<void(std::function<void()>)> execOnUiThreadImplementation) :
+	_execOnUiThreadImplementation(execOnUiThreadImplementation)
+{
+	assert_r(_execOnUiThreadImplementation);
+}
+
 void CPluginProxy::setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation)
 {
 	_createToolMenuEntryImplementation = implementation;
@@ -41,7 +47,6 @@ void CPluginProxy::currentPanelChanged(PanelPosition panel)
 {
 	_currentPanel = panel;
 }
-
 
 PanelPosition CPluginProxy::currentPanel() const
 {
@@ -129,4 +134,9 @@ const CFileSystemObject& CPluginProxy::currentItem() const
 QString CPluginProxy::currentItemPath() const
 {
 	return currentItemPathForPanel(currentPanel());
+}
+
+void CPluginProxy::execOnUiThread(const std::function<void()>& code)
+{
+	_execOnUiThreadImplementation(code);
 }
