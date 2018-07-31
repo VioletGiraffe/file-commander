@@ -17,7 +17,7 @@ text_encoding_detector.depends = cpputils
 image-processing.depends = cpputils
 
 qt_app.subdir  = qt-app
-qt_app.depends = file_commander_core qtutils imageviewerplugin textviewerplugin autoupdater image-processing
+qt_app.depends = file_commander_core qtutils imageviewerplugin textviewerplugin autoupdater image-processing filecomparisonplugin
 
 imageviewerplugin.subdir = plugins/viewer/imageviewer
 imageviewerplugin.depends = file_commander_core

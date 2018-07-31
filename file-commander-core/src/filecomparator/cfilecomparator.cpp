@@ -37,6 +37,7 @@ void CFileComparator::abortComparison()
 
 void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std::function<void(int)>& progressCallback, const std::function<void(ComparisonResult)>& resultCallback)
 {
+	assert(fileA.isOpen() && fileB.isOpen());
 	assert(progressCallback);
 	assert(resultCallback);
 
@@ -60,6 +61,9 @@ void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std
 
 		progressCallback(Math::round<int>(pos * 100 / size));
 	}
+
+	assert_r(fileA.atEnd());
+	assert_r(fileB.atEnd());
 
 	resultCallback(!_terminate ? Equal : Aborted);
 }
