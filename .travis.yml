@@ -74,3 +74,6 @@ script:
 
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/operationperformer_test -bundle-non-qt-libs; fi
   - set -e; for i in `seq 1 20`; do if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/operationperformer_test --std-seed $(date +%s); else ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); fi; sleep 1; done
+
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/filecomparator_test -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/filecomparator_test --std-seed $(date +%s); else ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s); fi;
