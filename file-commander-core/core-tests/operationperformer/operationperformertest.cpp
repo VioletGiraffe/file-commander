@@ -31,7 +31,6 @@ struct ProgressObserver : public CFileOperationObserver {
 	}
 	inline void onProcessHalted(HaltReason /*reason*/, CFileSystemObject /*source*/, CFileSystemObject /*dest*/, QString /*errorMessage*/) override { // User decision required (file exists, file is read-only etc.)
 		FAIL("onProcessHalted called");
-		return;
 	}
 	inline void onProcessFinished(QString /*message*/ = QString()) override {} // Done or canceled
 	inline void onCurrentFileChanged(QString /*file*/) override {} // Starting to process a new file
@@ -107,7 +106,7 @@ TEST_CASE((std::string("Move test #") + std::to_string((srand(time(nullptr)), ra
 
 	std::vector<CFileSystemObject> sourceTree;
 	CFolderEnumeratorRecursive::enumerateFolder(sourceDirectory.path(), sourceTree);
-	
+
 	COperationPerformer p(operationMove, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
 	ProgressObserver progressObserver;
 	p.setObserver(&progressObserver);

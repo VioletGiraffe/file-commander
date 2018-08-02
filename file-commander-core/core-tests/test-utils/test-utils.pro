@@ -24,10 +24,12 @@ HEADERS += \
 	src/ctestfoldergenerator.h \
     src/catch2_utils.hpp \
     src/foldercomparator.h \
-    src/qt_helpers.hpp
+    src/qt_helpers.hpp \
+    src/crandomdatagenerator.h
 
 SOURCES += \
 	src/cfolderenumeratorrecursive.cpp \
 	src/ctestfoldergenerator.cpp \
     src/foldercomparator.cpp \
-    src/qt_helpers.cpp
+    src/qt_helpers.cpp \
+    src/crandomdatagenerator.cpp

@@ -12,9 +12,9 @@ RESTORE_COMPILER_WARNINGS
 #include <assert.h>
 #include <utility>
 
-void CTestFolderGenerator::setSeed(const std::mt19937::result_type seed)
+void CTestFolderGenerator::setSeed(const uint32_t seed)
 {
-	_rng = std::mt19937(seed);
+	_randomGenerator.setSeed(seed);
 }
 
 bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t numFiles, size_t numFolders)
@@ -34,8 +34,7 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 	std::vector<QString> newFolders;
 
 	{
-		std::uniform_int_distribution<size_t> numFoldersDistribution(1, numFolders);
-		const auto numFoldersToCreate = numFoldersDistribution(_rng);
+		const auto numFoldersToCreate = _randomGenerator.randomInt(1, numFolders);
 		newFolders = generateRandomFolders(parentDir, numFoldersToCreate);
 		assert_and_return_r(!newFolders.empty(), false); // Failure?
 		numFolders -= numFoldersToCreate;
@@ -43,8 +42,7 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 
 	if (numFiles > 0)
 	{
-		std::uniform_int_distribution<size_t> numFilesDistribution(1, numFiles);
-		const auto numFilesToCreate = numFilesDistribution(_rng);
+		const auto numFilesToCreate = _randomGenerator.randomInt(1, numFiles);
 		assert_and_return_r(generateRandomFiles(parentDir, numFilesToCreate), false); // Failure?
 		numFiles -= numFilesToCreate;
 	}
@@ -63,31 +61,19 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 	return generateRandomTree(parentDir, numFiles, numFolders);
 }
 
-QString CTestFolderGenerator::randomString(const size_t length)
-{
-	QString resultString;
-	resultString.reserve((int)length);
-
-	std::uniform_int_distribution<short> distribution('a', 'z');
-	for (size_t i = 0; i < length; ++i)
-		resultString.append(QChar(static_cast<char>(distribution(_rng))));
-
-	return resultString;
-}
-
 QString CTestFolderGenerator::randomFileName(const size_t length)
 {
 	assert_and_return_r(length > 3, QString());
-	const auto extension = randomString(3);
+	const auto extension = _randomGenerator.randomString(3);
 	if (extension == QLatin1String("lnk"))
 		return randomFileName(length);
 
-	return randomString(length - 3) % '.' % extension;
+	return _randomGenerator.randomString(length - 3) % '.' % extension;
 }
 
 QString CTestFolderGenerator::randomDirName(const size_t length)
 {
-	return randomString(length).toUpper();
+	return _randomGenerator.randomString(length).toUpper();
 }
 
 bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const size_t numFiles)
@@ -97,7 +83,7 @@ bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const s
 		QFile file(parentDir + '/' + randomFileName(12));
 		assert_and_return_r(file.open(QFile::WriteOnly), false);
 
-		const QByteArray randomData = randomString(std::uniform_int_distribution<size_t>(10, 100)(_rng)).toUtf8();
+		const QByteArray randomData = _randomGenerator.randomString(_randomGenerator.randomInt(10, 100)).toUtf8();
 		assert_and_return_r(file.write(randomData) == (qint64)randomData.size(), false);
 	}
 
