@@ -4,6 +4,7 @@
 #include "container/set_operations.hpp"
 #include "system/processfilepath.hpp"
 #include "system/ctimeelapsed.h"
+#include "filecomparator/cfilecomparator.h"
 
 // test_utils
 #include "foldercomparator.h"
@@ -16,6 +17,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 
@@ -79,6 +81,23 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 	std::vector<CFileSystemObject> sourceTree, destTree;
 	CFolderEnumeratorRecursive::enumerateFolder(sourceDirectory.path(), sourceTree);
 	CFolderEnumeratorRecursive::enumerateFolder(targetDirectory.path() % '/' % QFileInfo(sourceDirectory.path()).completeBaseName(), destTree);
+
+	CFileComparator comparator;
+	for (size_t i = 0, n = std::min(sourceTree.size(), destTree.size()); i < n; ++i)
+	{
+		if (!sourceTree[i].isFile())
+			continue;
+
+		QFile fileA(sourceTree[i].fullAbsolutePath());
+		REQUIRE(fileA.open(QFile::ReadOnly));
+
+		QFile fileB(destTree[i].fullAbsolutePath());
+		REQUIRE(fileB.open(QFile::ReadOnly));
+
+		comparator.compareFiles(fileA, fileB, [](int) {}, [](CFileComparator::ComparisonResult result) {
+			CHECK(result == CFileComparator::Equal);
+		});
+	}
 
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
