@@ -115,7 +115,7 @@ TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 		}
 	}
 
-	SECTION("Completely data differing in just one byte")
+	SECTION("Data differing in just one byte")
 	{
 		for (int i = 0; i < 500; ++i)
 		{
