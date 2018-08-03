@@ -18,6 +18,7 @@ CFileCommanderPlugin* createPlugin()
 
 CFileComparisonPlugin::CFileComparisonPlugin()
 {
+	_progressDialog.setLabelText("Comparing the selected files...");
 }
 
 QString CFileComparisonPlugin::name() const
