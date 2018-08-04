@@ -2,6 +2,7 @@
 #include "../cmainwindow.h"
 #include "cpromptdialog.h"
 #include "progressdialoghelpers.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cdeleteprogressdialog.h"
@@ -19,7 +20,7 @@ CDeleteProgressDialog::CDeleteProgressDialog(std::vector<CFileSystemObject> sour
 	ui->setupUi(this);
 	ui->_progress->linkToWidgetstaskbarButton(this);
 
-	assert(mainWindow);
+	assert_debug_only(mainWindow);
 
 	ui->_lblOperationNameAndSpeed->clear();
 	ui->_lblFileName->clear();

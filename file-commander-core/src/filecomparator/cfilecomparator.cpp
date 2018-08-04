@@ -41,9 +41,9 @@ void CFileComparator::abortComparison()
 
 void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std::function<void(int)>& progressCallback, const std::function<void(ComparisonResult)>& resultCallback)
 {
-	assert(fileA.isOpen() && fileB.isOpen());
-	assert(progressCallback);
-	assert(resultCallback);
+	assert_debug_only(fileA.isOpen() && fileB.isOpen());
+	assert_debug_only(progressCallback);
+	assert_debug_only(resultCallback);
 
 	EXEC_ON_SCOPE_EXIT([&]() {progressCallback(100);});
 

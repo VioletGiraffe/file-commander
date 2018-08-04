@@ -103,7 +103,7 @@ bool CMainWindow::created() const
 // One-time initialization
 void CMainWindow::onCreate()
 {
-	assert(!created());
+	assert_debug_only(!created());
 
 	initCore();
 

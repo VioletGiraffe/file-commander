@@ -501,7 +501,7 @@ inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &
 	if (localPath.startsWith('\\') || localPath.startsWith('/'))
 		localPath = localPath.remove(0, 1);
 
-	assert(isAbsolutePath(destPath));
+	assert_debug_only(isAbsolutePath(destPath));
 	return CFileSystemObject(destPath % '/' % localPath).parentDirPath();
 }
 
@@ -710,7 +710,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		const QString errorMessage =
 			QString("Error copying file ") + item.fullAbsolutePath() + " to " + destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) + ", error: " + itemManipulator.lastErrorMessage();
 		assert_unconditional_r(errorMessage.toStdString());
-		
+
 		const auto action = getUserResponse(hrUnknownError, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
 		if (action == urSkipThis || action == urSkipAll)
 			return naSkip;

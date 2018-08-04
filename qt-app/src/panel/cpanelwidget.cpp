@@ -77,7 +77,7 @@ CPanelWidget::~CPanelWidget()
 
 void CPanelWidget::init(CController* controller)
 {
-	assert(controller);
+	assert_debug_only(controller);
 	_controller = controller;
 }
 

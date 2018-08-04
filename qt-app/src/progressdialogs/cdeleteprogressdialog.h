@@ -1,5 +1,4 @@
-#ifndef CDELETEPROGRESSDIALOG_H
-#define CDELETEPROGRESSDIALOG_H
+#pragma once
 
 #include "fileoperations/coperationperformer.h"
 
@@ -46,5 +45,3 @@ private:
 	CMainWindow         * _mainWindow;
 	QTimer                _eventsProcessTimer;
 };
-
-#endif // CDELETEPROGRESSDIALOG_H

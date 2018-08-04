@@ -46,7 +46,7 @@ void CPanel::restoreFromSettings()
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
 {
 #if defined _WIN32
-	assert(!path.contains('\\'));
+	assert_r(!path.contains('\\'));
 #endif
 
 	_currentDisplayMode = NormalMode;
@@ -95,7 +95,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	const QString newPath = _currentDirObject.fullAbsolutePath();
 
 	// History management
-	assert(!_history.currentItem().contains('\\') && !newPath.contains('\\'));
+	assert_r(!_history.currentItem().contains('\\') && !newPath.contains('\\'));
 	if (_history.empty())
 		// The current folder does not automatically make it into history on program startup, but it should (#103)
 		_history.addLatest(oldPath);
@@ -234,13 +234,13 @@ inline QString normalizeFolderPath(const QString& path)
 
 void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash)
 {
-	assert(!dir.contains('\\'));
+	assert_r(!dir.contains('\\'));
 	_cursorPosForFolder[normalizeFolderPath(dir)] = currentItemHash;
 }
 
 qulonglong CPanel::currentItemForFolder(const QString &dir) const
 {
-	assert(!dir.contains('\\'));
+	assert_r(!dir.contains('\\'));
 	const auto it = _cursorPosForFolder.find(normalizeFolderPath(dir));
 	return it == _cursorPosForFolder.end() ? 0 : it->second;
 }
