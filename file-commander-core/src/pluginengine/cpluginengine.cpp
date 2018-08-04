@@ -135,6 +135,9 @@ PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 {
 	const QString currentFile = CController::get().pluginProxy().currentItemPath();
+	if (currentFile.isEmpty())
+		return nullptr;
+
 	const auto type = QMimeDatabase().mimeTypeForFile(currentFile, QMimeDatabase::MatchContent);
 	qInfo() << "Selecting a viewer plugin for" << currentFile;
 	qInfo() << "File type:" << type.name() << ", aliases:" << type.aliases();

@@ -39,6 +39,9 @@ CPanelWidget* CPanelDisplayController::panelWidget() const
 
 void CPanelDisplayController::startQuickView(CPluginEngine::PluginWindowPointerType&& viewerWindow)
 {
+	if (!viewerWindow)
+		return;
+
 	// Sanity check
 	assert_r((!_quickViewActive && !_quickViewWindow) || (quickViewActive() && _quickViewWindow));
 
