@@ -21,6 +21,7 @@
 #include "aboutdialog/caboutdialog.h"
 #include "widgets/cpersistentwindow.h"
 #include "widgets/widgetutils.h"
+#include "filesystemhelpers/filesystemhelpers.hpp"
 #include "version.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -497,7 +498,7 @@ void CMainWindow::viewFile()
 void CMainWindow::editFile()
 {
 	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
-	if (editorPath.isEmpty() || !QFileInfo::exists(editorPath))
+	if (FileSystemHelpers::resolvePath(editorPath).isEmpty())
 	{
 		if (QMessageBox::question(this, tr("Editor not configured"), tr("No editor program has been configured (or the specified path doesn't exist). Do you want to specify the editor now?")) == QMessageBox::Yes)
 		{
@@ -522,7 +523,7 @@ void CMainWindow::editFile()
 #ifdef __APPLE__
 		const bool started = std::system((QString("open -n \"") + CSettings().value(KEY_EDITOR_PATH).toString() + "\" --args \"" + currentFile + "\"").toUtf8().constData()) == 0;
 #else
-		const bool started = QProcess::startDetached(CSettings().value(KEY_EDITOR_PATH).toString(), QStringList() << currentFile);
+		const bool started = QProcess::startDetached(editorPath, {currentFile});
 #endif
 
 		if (!started)
