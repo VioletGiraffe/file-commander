@@ -212,12 +212,12 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>36</height>
+     <height>31</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFiles">
     <property name="title">
-     <string>&amp;Files</string>
+     <string>&amp;File</string>
     </property>
     <addaction name="actionRefresh"/>
     <addaction name="separator"/>

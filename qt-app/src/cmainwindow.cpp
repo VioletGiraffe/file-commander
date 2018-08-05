@@ -182,6 +182,8 @@ void CMainWindow::initActions()
 	connect(ui->actionCopy_current_item_s_path_to_clipboard, &QAction::triggered, this, [this]() {
 		_controller->copyCurrentItemToClipboard();
 	});
+
+	ui->actionExit->setShortcut(QKeySequence::Quit);
 	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::quit);
 
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, [this]() {
