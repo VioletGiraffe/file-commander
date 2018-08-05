@@ -275,7 +275,7 @@ FileOperationResultCode CFileManipulator::remove()
 //			dir.cdUp();
 //			bool succ = dir.remove(_fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1));
 //			qInfo() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();
-			return ::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
+			return ::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == -1 ? FileOperationResultCode::Fail : FileOperationResultCode::Ok;
 //			return rcFail;
 #else
 			return FileOperationResultCode::Fail;
