@@ -678,22 +678,27 @@ void CPanelWidget::fillHistory()
 
 void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 {
-	ui->_infoLabel->clear();
-
 	uint64_t numFilesSelected = 0, numFoldersSelected = 0, totalSize = 0, sizeSelected = 0, totalNumFolders = 0, totalNumFiles = 0;
 	for (const auto& item: _controller->panel(_panelPosition).list())
 	{
 		const CFileSystemObject& object = item.second;
+		if (object.isCdUp())
+			continue;
+
 		if (object.isFile())
 			++totalNumFiles;
 		else if (object.isDir())
 			++totalNumFolders;
+
 		totalSize += object.size();
 	}
 
 	for (const auto selectedItem: selection)
 	{
 		const CFileSystemObject object = _controller->itemByHash(_panelPosition, selectedItem);
+		if (object.isCdUp())
+			continue;
+
 		if (object.isFile())
 			++numFilesSelected;
 		else if (object.isDir())
