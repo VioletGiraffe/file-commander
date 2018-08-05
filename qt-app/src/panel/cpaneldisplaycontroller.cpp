@@ -37,7 +37,7 @@ CPanelWidget* CPanelDisplayController::panelWidget() const
 	return _panelWidget;
 }
 
-void CPanelDisplayController::startQuickView(CPluginEngine::PluginWindowPointerType&& viewerWindow)
+void CPanelDisplayController::startQuickView(CFileCommanderViewerPlugin::PluginWindowPointerType&& viewerWindow)
 {
 	if (!viewerWindow)
 		return;

@@ -11,21 +11,24 @@ bool CImageViewerPlugin::canViewFile(const QString& /*fileName*/, const QMimeTyp
 	return type.name().startsWith(QStringLiteral("image/"));
 }
 
-CPluginWindow* CImageViewerPlugin::viewFile(const QString& fileName)
+CFileCommanderViewerPlugin::PluginWindowPointerType CImageViewerPlugin::viewFile(const QString& fileName)
 {
-	CImageViewerWindow * widget = new CImageViewerWindow;
-	if (widget->displayImage(fileName))
-		return widget;
-	else
+	auto window = new CImageViewerWindow;
+	if (window->displayImage(fileName))
 	{
-		delete widget;
-		return nullptr;
+	// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
+		return PluginWindowPointerType(window, [](CPluginWindow* pluginWindow) {
+			delete pluginWindow;
+		});
 	}
+
+	delete window;
+	return nullptr;
 }
 
 QString CImageViewerPlugin::name() const
 {
-	return "Image viewer plugin";
+	return QObject::tr("Image viewer plugin");
 }
 
 

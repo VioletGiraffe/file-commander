@@ -2,6 +2,7 @@
 
 #include "cpanel.h"
 #include "plugininterface/cfilecommanderplugin.h"
+#include "plugininterface/cfilecommanderviewerplugin.h"
 
 #include <functional>
 #include <memory>
@@ -14,8 +15,6 @@ class QLibrary;
 class CPluginEngine : public PanelContentsChangedListener
 {
 public:
-	using PluginWindowPointerType = std::unique_ptr<CPluginWindow, std::function<void (CPluginWindow*)>>;
-
 	CPluginEngine() = default;
 	CPluginEngine& operator=(const CPluginEngine& other) = delete;
 	CPluginEngine(const CPluginEngine& other) = delete;
@@ -24,8 +23,6 @@ public:
 
 	void loadPlugins();
 	std::vector<QString> activePluginNames();
-
-	void destroyAllPluginWindows();
 
 	// CPanel observers
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
@@ -38,7 +35,7 @@ public:
 // Operations
 	void viewCurrentFile();
 	// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
-	PluginWindowPointerType createViewerWindowForCurrentFile();
+	CFileCommanderViewerPlugin::PluginWindowPointerType createViewerWindowForCurrentFile();
 
 private:
 	static PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
@@ -47,5 +44,4 @@ private:
 
 private:
 	std::vector<std::pair<std::unique_ptr<CFileCommanderPlugin>, std::unique_ptr<QLibrary>>> _plugins;
-	std::vector<CPluginWindow*> _activeWindows;
 };

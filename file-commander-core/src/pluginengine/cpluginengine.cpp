@@ -3,7 +3,6 @@
 #include "plugininterface/cfilecommanderviewerplugin.h"
 #include "plugininterface/cfilecommandertoolplugin.h"
 #include "plugininterface/cpluginproxy.h"
-#include "container/algorithms.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -107,23 +106,13 @@ void CPluginEngine::viewCurrentFile()
 	}
 }
 
-CPluginEngine::PluginWindowPointerType CPluginEngine::createViewerWindowForCurrentFile()
+CFileCommanderViewerPlugin::PluginWindowPointerType CPluginEngine::createViewerWindowForCurrentFile()
 {
 	auto viewer = viewerForCurrentFile();
 	if (!viewer)
 		return nullptr;
 
-	CPluginWindow * window = viewer->viewFile(CController::get().pluginProxy().currentItemPath());
-	if (!window)
-		return nullptr;
-
-	_activeWindows.push_back(window);
-	window->connect(window, &QObject::destroyed, [this](QObject* object) {
-		ContainerAlgorithms::erase_all_occurrences(_activeWindows, object);
-	});
-
-	// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
-	return PluginWindowPointerType(window, [](CPluginWindow* pluginWindow) {delete pluginWindow;});
+	return viewer->viewFile(CController::get().pluginProxy().currentItemPath());
 }
 
 PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
@@ -157,11 +146,4 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 	}
 
 	return nullptr;
-}
-
-void CPluginEngine::destroyAllPluginWindows()
-{
-	const auto tmpWindowsList = _activeWindows;
-	for (QWidget* window: tmpWindowsList)
-		delete window;
 }

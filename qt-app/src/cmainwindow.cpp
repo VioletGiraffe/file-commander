@@ -273,8 +273,6 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 		s.setValue(KEY_RPANEL_STATE, ui->rightPanel->savePanelState());
 
 		emit closed(); // Is used to close all child windows
-
-		CPluginEngine::get().destroyAllPluginWindows();
 	}
 
 	QMainWindow::closeEvent(e);

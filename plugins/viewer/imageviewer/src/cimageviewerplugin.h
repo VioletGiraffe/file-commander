@@ -13,7 +13,7 @@ public:
 	CImageViewerPlugin() = default;
 
 	bool canViewFile(const QString& fileName, const QMimeType& type) const override;
-	CPluginWindow* viewFile(const QString& fileName) override;
+	PluginWindowPointerType viewFile(const QString& fileName) override;
 	QString name() const override;
 };
 

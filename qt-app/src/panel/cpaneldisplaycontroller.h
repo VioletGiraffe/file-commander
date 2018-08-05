@@ -13,12 +13,12 @@ public:
 	void setPanelWidget(CPanelWidget* panelWidget);
 	CPanelWidget* panelWidget() const;
 
-	void startQuickView(CPluginEngine::PluginWindowPointerType&& viewerWindow);
+	void startQuickView(CFileCommanderViewerPlugin::PluginWindowPointerType&& viewerWindow);
 	void endQuickView();
 	bool quickViewActive() const;
 
 private:
-	CPluginEngine::PluginWindowPointerType _quickViewWindow;
+	CFileCommanderViewerPlugin::PluginWindowPointerType _quickViewWindow;
 	QStackedWidget* _panelStackedWidget = nullptr;
 	CPanelWidget* _panelWidget = nullptr;
 	bool _quickViewActive = false;
