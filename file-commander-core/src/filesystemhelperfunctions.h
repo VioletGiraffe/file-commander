@@ -76,7 +76,7 @@ inline bool caseSensitiveFilesystem()
 #if defined _WIN32
 	return false;
 #elif defined __APPLE__
-	return true;
+	return false;
 #elif defined __linux__
 	return true;
 #else
