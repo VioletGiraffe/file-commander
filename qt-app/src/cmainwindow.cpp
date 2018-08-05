@@ -356,7 +356,7 @@ void CMainWindow::updateWindowTitleWithCurrentFolderNames()
 	if (rightPanelDirName.length() > 1 && rightPanelDirName.endsWith('/'))
 		rightPanelDirName.chop(1);
 
-	setWindowTitle(leftPanelDirName % " / " % rightPanelDirName);
+	setWindowTitle('[' % leftPanelDirName % "] / [" % rightPanelDirName % ']');
 }
 
 void CMainWindow::splitterContextMenuRequested(QPoint pos)
