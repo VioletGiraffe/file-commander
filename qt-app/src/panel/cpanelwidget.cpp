@@ -442,7 +442,13 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() % "/" % newName).hash());
 
 	CFileManipulator itemManipulator(item);
-	if (itemManipulator.moveAtomically(item.parentDirPath(), newName) != rcOk)
+	const auto result = itemManipulator.moveAtomically(item.parentDirPath(), newName);
+	if (result == FileOperationResultCode::TargetAlreadyExists)
+	{
+		const auto text = item.isFile() ? tr("The file %1 already exists.") : tr("The folder %1 already exists.");
+		QMessageBox::information(this, tr("Item already exists"), text.arg(newName));
+	}
+	else if (result != FileOperationResultCode::Ok)
 	{
 		QString errorMessage = tr("Failed to rename %1 to %2").arg(item.fullName(), newName);
 		if (!itemManipulator.lastErrorMessage().isEmpty())
@@ -654,7 +660,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 void CPanelWidget::pathFromHistoryActivated(QString path)
 {
 	const CFileSystemObject processedPath(path); // Needed for expanding environment variables in the path
-	if (_controller->setPath(_panelPosition, processedPath.fullAbsolutePath(), refreshCauseOther) == rcDirNotAccessible)
+	if (_controller->setPath(_panelPosition, processedPath.fullAbsolutePath(), refreshCauseOther) == FileOperationResultCode::DirNotAccessible)
 		QMessageBox::information(this, tr("Failed to set the path"), tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(path));
 }
 

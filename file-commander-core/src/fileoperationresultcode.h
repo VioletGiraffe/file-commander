@@ -1,3 +1,3 @@
 #pragma once
 
-enum FileOperationResultCode { rcOk, rcFail, rcObjectDoesntExist, rcDirNotAccessible, rcTargetAlreadyExists };
+enum class FileOperationResultCode { Ok, Fail, ObjectDoesntExist, DirNotAccessible, TargetAlreadyExists };

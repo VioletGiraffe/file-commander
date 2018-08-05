@@ -294,16 +294,16 @@ bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
-	const FileOperationResultCode result = _controller->itemHashExists(panel->panelPosition(), hash) ? _controller->itemActivated(hash, panel->panelPosition()) : rcObjectDoesntExist;
+	const auto result = _controller->itemHashExists(panel->panelPosition(), hash) ? _controller->itemActivated(hash, panel->panelPosition()) : FileOperationResultCode::ObjectDoesntExist;
 	switch (result)
 	{
-	case rcObjectDoesntExist:
+	case FileOperationResultCode::ObjectDoesntExist:
 		QMessageBox(QMessageBox::Warning, tr("Error"), tr("The file doesn't exist.")).exec();
 		break;
-	case rcFail:
+	case FileOperationResultCode::Fail:
 		QMessageBox(QMessageBox::Critical, tr("Error"), tr("Failed to launch %1").arg(_controller->itemByHash(panel->panelPosition(), hash).fullAbsolutePath())).exec();
 		break;
-	case rcDirNotAccessible:
+	case FileOperationResultCode::DirNotAccessible:
 		QMessageBox(QMessageBox::Critical, tr("No access"), tr("This item is not accessible.")).exec();
 		break;
 	default:
@@ -461,11 +461,15 @@ void CMainWindow::createFolder()
 	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
 	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
 	const QString dirName = QInputDialog::getText(this, tr("New folder"), tr("Enter the name for the new directory"), QLineEdit::Normal, currentItemName);
-	if (!dirName.isEmpty())
-	{
-		if (!_controller->createFolder(_currentFileList->currentDir(), toPosixSeparators(dirName)))
-			QMessageBox::warning(this, tr("Failed to create a folder"), tr("Failed to create the folder %1").arg(dirName));
-	}
+	if (dirName.isEmpty())
+		return;
+
+	const auto result = _controller->createFolder(_currentFileList->currentDir(), toPosixSeparators(dirName));
+	if (result == FileOperationResultCode::TargetAlreadyExists)
+		QMessageBox::warning(this, tr("Item already exists"), tr("The folder %1 already exists.").arg(dirName));
+	else if (result != FileOperationResultCode::Ok)
+		QMessageBox::warning(this, tr("Failed to create item"), tr("Failed to create the folder %1").arg(dirName));
+	
 }
 
 void CMainWindow::createFile()
@@ -476,11 +480,14 @@ void CMainWindow::createFile()
 	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
 	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
 	const QString fileName = QInputDialog::getText(this, tr("New file"), tr("Enter the name for the new file"), QLineEdit::Normal, currentItemName);
-	if (!fileName.isEmpty())
-	{
-		if (!_controller->createFile(_currentFileList->currentDir(), fileName))
-			QMessageBox::warning(this, tr("Failed to create a file"), tr("Failed to create the file %1").arg(fileName));
-	}
+	if (fileName.isEmpty())
+		return;
+
+	const auto result = _controller->createFile(_currentFileList->currentDir(), fileName);
+	if (result == FileOperationResultCode::TargetAlreadyExists)
+		QMessageBox::warning(this, tr("Item already exists"), tr("The file %1 already exists.").arg(fileName));
+	else if (result != FileOperationResultCode::Ok)
+		QMessageBox::warning(this, tr("Failed to create item"), tr("Failed to create the file %1").arg(fileName));
 }
 
 void CMainWindow::invertSelection()

@@ -96,7 +96,7 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	if (item.isBundle())
 	{
 		// macOS bundle: launch it as an application
-		return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? rcOk : rcFail;
+		return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 	}
 	else if (item.isDir())
 	{
@@ -108,13 +108,13 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 	{
 		if (item.isExecutable())
 			// Attempting to launch this exe from the current directory
-			return OsShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()) ? rcOk : rcFail;
+			return OsShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 		else
 			// It's probably not a binary file, try opening with openUrl
-			return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? rcOk : rcFail;
+			return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 	}
 
-	return rcFail;
+	return FileOperationResultCode::Fail;
 }
 
 // A current volume has been switched
@@ -126,12 +126,12 @@ bool CController::switchToVolume(Panel p, size_t index)
 	const size_t currentIndex = currentVolumeIndex(otherPanelPosition(p));
 	if (currentIndex < _volumeEnumerator.drives().size() && drivePath == _volumeEnumerator.drives().at(currentIndex).rootObjectInfo.fullAbsolutePath())
 	{
-		return setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == rcOk;
+		return setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == FileOperationResultCode::Ok;
 	}
 	else
 	{
 		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
-		return setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == rcOk;
+		return setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok;
 	}
 }
 
@@ -183,11 +183,11 @@ FileOperationResultCode CController::setPath(Panel p, const QString &path, FileL
 	return result;
 }
 
-bool CController::createFolder(const QString &parentFolder, const QString &name)
+FileOperationResultCode CController::createFolder(const QString &parentFolder, const QString &name)
 {
 	QDir parentDir(parentFolder);
 	if (!parentDir.exists())
-		return false;
+		return FileOperationResultCode::Fail;
 
 	const auto currentItemHash = currentItemHashForFolder(_activePanel, parentDir.absolutePath());
 
@@ -195,40 +195,59 @@ bool CController::createFolder(const QString &parentFolder, const QString &name)
 	{
 		const int slashPosition = name.indexOf('/');
 		// The trailing slash is required in order for the hash to match the hash of the item once it will be created: existing folders always have a trailing hash
-		const QString newFolderPath = parentDir.absolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
+		const QString newItemPath = parentDir.absolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
 		// This is required for the UI to know to set the cursor at the new folder.
 		// It must be done before calling mkpath, or #133 will occur due to asynchronous file list refresh between mkpath and the current item selection logic (it gets overwritten from CPanelWidget::fillFromList).
-		qInfo() << "New folder hash:" << CFileSystemObject(newFolderPath).hash();
-		setCursorPositionForCurrentFolder(activePanelPosition(), CFileSystemObject(newFolderPath).hash());
+		const auto newHash = CFileSystemObject(newItemPath).hash();
+		qInfo() << "New folder hash:" << newHash;
+		setCursorPositionForCurrentFolder(activePanelPosition(), newHash);
 	}
+
+	if (parentDir.exists(name))
+		return FileOperationResultCode::TargetAlreadyExists;
 
 	if (!parentDir.mkpath(name))
 	{
 		// Restore the previous current item in case of failure
 		setCursorPositionForCurrentFolder(activePanelPosition(), currentItemHash);
-		return false;
+		return FileOperationResultCode::Fail;
 	}
 	else
-		return true;
+		return FileOperationResultCode::Ok;
 }
 
-bool CController::createFile(const QString &parentFolder, const QString &name)
+FileOperationResultCode CController::createFile(const QString &parentFolder, const QString &name)
 {
 	CFileSystemObject parentDir(parentFolder);
 	if (!parentDir.exists() || !parentDir.isDir())
-		return false;
+		return FileOperationResultCode::Fail;
+
+	if (parentDir.fullAbsolutePath() == activePanel().currentDirObject().fullAbsolutePath())
+	{
+		const int slashPosition = name.indexOf('/');
+		// The trailing slash is required in order for the hash to match the hash of the item once it will be created: existing folders always have a trailing hash
+		const QString newItemPath = parentDir.fullAbsolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
+		// This is required for the UI to know to set the cursor at the new folder.
+		// It must be done before calling mkpath, or #133 will occur due to asynchronous file list refresh between mkpath and the current item selection logic (it gets overwritten from CPanelWidget::fillFromList).
+		const auto newHash = CFileSystemObject(newItemPath).hash();
+		qInfo() << "New file hash:" << newHash;
+		setCursorPositionForCurrentFolder(activePanelPosition(), newHash);
+	}
 
 	const QString newFilePath = parentDir.fullAbsolutePath() % '/' % name;
+	if (QFile::exists(newFilePath))
+		return FileOperationResultCode::TargetAlreadyExists;
+
 	if (QFile(newFilePath).open(QFile::WriteOnly))
 	{
 		if (parentDir.fullAbsolutePath() == activePanel().currentDirPathPosix())
 			// This is required for the UI to know to set the cursor at the new file
 			setCursorPositionForCurrentFolder(activePanelPosition(), CFileSystemObject(newFilePath).hash());
 
-		return true;
+		return FileOperationResultCode::Ok;
 	}
-	else
-		return false;
+
+	return FileOperationResultCode::Fail;
 }
 
 void CController::openTerminal(const QString &folder, bool admin)

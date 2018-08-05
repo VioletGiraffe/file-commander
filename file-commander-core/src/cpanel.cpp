@@ -124,7 +124,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	locker.unlock();
 
 	refreshFileList(pathSet ? operation : refreshCauseOther);
-	return pathSet ? rcOk : rcDirNotAccessible;
+	return pathSet ? FileOperationResultCode::Ok : FileOperationResultCode::DirNotAccessible;
 }
 
 // Navigates up the directory tree
@@ -146,9 +146,9 @@ void CPanel::navigateUp()
 bool CPanel::navigateBack()
 {
 	if (_currentDisplayMode != NormalMode)
-		return setPath(currentDirPathPosix(), refreshCauseOther) == rcOk;
+		return setPath(currentDirPathPosix(), refreshCauseOther) == FileOperationResultCode::Ok;
 	else if (!_history.empty())
-		return setPath(_history.navigateBack(), refreshCauseOther) == rcOk;
+		return setPath(_history.navigateBack(), refreshCauseOther) == FileOperationResultCode::Ok;
 	else
 		return false;
 }
@@ -157,7 +157,7 @@ bool CPanel::navigateBack()
 bool CPanel::navigateForward()
 {
 	if (_currentDisplayMode == NormalMode && !_history.empty())
-		return setPath(_history.navigateForward(), refreshCauseOther) == rcOk;
+		return setPath(_history.navigateForward(), refreshCauseOther) == FileOperationResultCode::Ok;
 	return false;
 }
 
@@ -198,7 +198,7 @@ bool CPanel::goToItem(const CFileSystemObject& item)
 
 	const QString dir = item.parentDirPath();
 	setCurrentItemForFolder(dir, item.hash());
-	return setPath(dir, refreshCauseOther) == rcOk;
+	return setPath(dir, refreshCauseOther) == FileOperationResultCode::Ok;
 }
 
 CFileSystemObject CPanel::currentDirObject() const

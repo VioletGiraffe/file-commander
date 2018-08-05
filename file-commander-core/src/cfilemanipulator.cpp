@@ -31,16 +31,16 @@ FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFold
 	const bool succ = file.copy(destFolder + (newName.isEmpty() ? _object.fullName() : newName));
 	if (!succ)
 		_lastErrorMessage = file.errorString();
-	return succ ? rcOk : rcFail;
+	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
 
 
 FileOperationResultCode CFileManipulator::moveAtomically(const QString& location, const QString& newName)
 {
 	if (!_object.exists())
-		return rcObjectDoesntExist;
+		return FileOperationResultCode::ObjectDoesntExist;
 	else if (_object.isCdUp())
-		return rcFail;
+		return FileOperationResultCode::Fail;
 
 	assert_r(QFileInfo(location).isDir());
 	const QString fullNewName = location % '/' % (newName.isEmpty() ? _object.fullName() : newName);
@@ -49,17 +49,17 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 	if (destInfo.exists() && (_object.isDir() || destInfo.isFile()))
 		// If the file system is case-insensitive, and the source and destination only differ by case, renaming is allowed even though formally the destination already exists (fix for #102)
 		if (caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase)
-			return rcTargetAlreadyExists;
+			return FileOperationResultCode::TargetAlreadyExists;
 
 	// Special case for Windows, where QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
 #ifdef _WIN32
 	if (newNameDiffersOnlyInLetterCase)
 	{
 		if (MoveFileW((const WCHAR*)_object.fullAbsolutePath().utf16(), (const WCHAR*)destInfo.fullAbsolutePath().utf16()) != 0)
-			return rcOk;
+			return FileOperationResultCode::Ok;
 
 		_lastErrorMessage = ErrorStringFromLastError();
-		return rcFail;
+		return FileOperationResultCode::Fail;
 	}
 #endif
 
@@ -70,18 +70,18 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 		if (!succ)
 		{
 			_lastErrorMessage = file.errorString();
-			return rcFail;
+			return FileOperationResultCode::Fail;
 		}
 
 		_object.refreshInfo();
-		return rcOk;
+		return FileOperationResultCode::Ok;
 	}
 	else if (_object.isDir())
 	{
-		return QDir().rename(_object.fullAbsolutePath(), fullNewName) ? rcOk : rcFail;
+		return QDir().rename(_object.fullAbsolutePath(), fullNewName) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 	}
 	else
-		return rcFail;
+		return FileOperationResultCode::Fail;
 }
 
 FileOperationResultCode CFileManipulator::copyAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName /*= QString()*/)
@@ -119,7 +119,7 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			_thisFile.reset();
 			_destFile.reset();
 
-			return rcFail;
+			return FileOperationResultCode::Fail;
 		}
 
 		if (!_destFile->open(QFile::ReadWrite))
@@ -129,7 +129,7 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			_thisFile.reset();
 			_destFile.reset();
 
-			return rcFail;
+			return FileOperationResultCode::Fail;
 		}
 
 		_destFile->resize(_object.size());
@@ -145,14 +145,14 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 		if (!src)
 		{
 			_lastErrorMessage = _thisFile->errorString();
-			return rcFail;
+			return FileOperationResultCode::Fail;
 		}
 
 		const auto dest = _destFile->map(_pos, actualChunkSize);
 		if (!dest)
 		{
 			_lastErrorMessage = _destFile->errorString();
-			return rcFail;
+			return FileOperationResultCode::Fail;
 		}
 
 		memcpy(dest, src, actualChunkSize);
@@ -168,7 +168,7 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 		_destFile.reset();
 	}
 
-	return rcOk;
+	return FileOperationResultCode::Ok;
 }
 
 FileOperationResultCode CFileManipulator::moveChunk(uint64_t /*chunkSize*/, const QString &destFolder, const QString& newName)
@@ -192,18 +192,16 @@ uint64_t CFileManipulator::bytesCopied() const
 
 FileOperationResultCode CFileManipulator::cancelCopy()
 {
-	if (copyOperationInProgress())
-	{
-		_thisFile->close();
-		_destFile->close();
+	if (!copyOperationInProgress())
+		return FileOperationResultCode::Ok;
 
-		const bool succ = _destFile->remove();
-		_thisFile.reset();
-		_destFile.reset();
-		return succ ? rcOk : rcFail;
-	}
-	else
-		return rcOk;
+	_thisFile->close();
+	_destFile->close();
+
+	const bool succ = _destFile->remove();
+	_thisFile.reset();
+	_destFile.reset();
+	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
 
 bool CFileManipulator::makeWritable(bool writable)
@@ -253,17 +251,17 @@ bool CFileManipulator::makeWritable(const CFileSystemObject& object, bool writab
 
 FileOperationResultCode CFileManipulator::remove()
 {
-	assert_and_return_message_r(_object.exists(), "Object doesn't exist", rcObjectDoesntExist);
+	assert_and_return_message_r(_object.exists(), "Object doesn't exist", FileOperationResultCode::ObjectDoesntExist);
 
 	if (_object.isFile())
 	{
 		QFile file(_object.fullAbsolutePath());
 		if (file.remove())
-			return rcOk;
+			return FileOperationResultCode::Ok;
 		else
 		{
 			_lastErrorMessage = file.errorString();
-			return rcFail;
+			return FileOperationResultCode::Fail;
 		}
 	}
 	else if (_object.isDir())
@@ -280,13 +278,13 @@ FileOperationResultCode CFileManipulator::remove()
 			return ::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == -1 ? rcFail : rcOk;
 //			return rcFail;
 #else
-			return rcFail;
+			return FileOperationResultCode::Fail;
 #endif
 		}
-		return rcOk;
+		return FileOperationResultCode::Ok;
 	}
 	else
-		return rcFail;
+		return FileOperationResultCode::Fail;
 }
 
 FileOperationResultCode CFileManipulator::remove(const CFileSystemObject& object)

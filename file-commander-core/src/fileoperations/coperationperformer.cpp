@@ -151,9 +151,9 @@ void COperationPerformer::copyFiles()
 			_newName.clear();
 			CFileManipulator itemManipulator(*sourceIterator);
 			const auto result = itemManipulator.moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
-			if (result != rcOk)
+			if (result != FileOperationResultCode::Ok)
 			{
-				const auto response = getUserResponse(result == rcTargetAlreadyExists ? hrFileExists : hrUnknownError, *sourceIterator, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), itemManipulator.lastErrorMessage());
+				const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, *sourceIterator, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), itemManipulator.lastErrorMessage());
 				// Handler is identical to that of the main loop
 				// esp. for the case of hrFileExists
 				if (response == urSkipThis || response == urSkipAll)
@@ -300,7 +300,7 @@ void COperationPerformer::copyFiles()
 				{
 					CFileManipulator manipulator(*sourceIterator);
 					const auto result = manipulator.remove();
-					if (result != rcOk)
+					if (result != FileOperationResultCode::Ok)
 					{
 						const auto action = getUserResponse(hrFailedToDelete, *sourceIterator, CFileSystemObject(), manipulator.lastErrorMessage());
 						if (action == urSkipThis || action == urSkipAll)
@@ -334,7 +334,7 @@ void COperationPerformer::copyFiles()
 	for (auto& dir : dirsToCleanUp)
 	{
 		CFileManipulator dirManipulator(dir);
-		assert_message_r(dirManipulator.remove(), dirManipulator.lastErrorMessage().toUtf8().constData());
+		assert_message_r(dirManipulator.remove() == FileOperationResultCode::Ok, dirManipulator.lastErrorMessage().toUtf8().constData());
 	}
 
 	qInfo() << __FUNCTION__ << "took" << _totalTimeElapsed.elapsed() << "ms";
@@ -578,7 +578,7 @@ COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObjec
 		}
 	}
 
-	if (itemManipulator.remove() != rcOk)
+	if (itemManipulator.remove() != FileOperationResultCode::Ok)
 	{
 		assert_unconditional_r((QString("Error removing ") + (item.isFile() ? "file " : "folder ") + item.fullAbsolutePath() + ", error: " + itemManipulator.lastErrorMessage()).toStdString());
 		const auto response = getUserResponse(hrFailedToDelete, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
@@ -675,7 +675,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 	const int chunkSize = 5 * 1024 * 1024;
 	const QString destPath = destDir.absolutePath() + '/';
-	FileOperationResultCode result = rcFail;
+	auto result = FileOperationResultCode::Fail;
 	CFileManipulator itemManipulator(item);
 
 	do
@@ -684,7 +684,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 		result = itemManipulator.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString()) : _newName);
 		// Error handling
-		if (result != rcOk)
+		if (result != FileOperationResultCode::Ok)
 			break;
 
 		const auto actualSizeProcessed = sizeProcessedPreviously + itemManipulator.bytesCopied();
@@ -698,13 +698,13 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		// TODO: why isn't this block at the start of 'do-while'?
 		if (_cancelRequested)
 		{
-			assert_message_r(itemManipulator.cancelCopy() == rcOk, "Failed to cancel item copying");
-			result = rcOk;
+			assert_message_r(itemManipulator.cancelCopy() == FileOperationResultCode::Ok, "Failed to cancel item copying");
+			result = FileOperationResultCode::Ok;
 			break;
 		}
 	} while (itemManipulator.copyOperationInProgress());
 
-	if (result != rcOk)
+	if (result != FileOperationResultCode::Ok)
 	{
 		itemManipulator.cancelCopy();
 		const QString errorMessage =

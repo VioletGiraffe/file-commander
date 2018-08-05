@@ -54,9 +54,9 @@ public:
 	// Sets the specified path, if possible. Otherwise reverts to the previously set path
 	FileOperationResultCode setPath(Panel p, const QString& path, FileListRefreshCause operation);
 	// Creates a folder with a specified name at the specified parent folder
-	bool createFolder(const QString& parentFolder, const QString& name);
+	FileOperationResultCode createFolder(const QString& parentFolder, const QString& name);
 	// Creates a file with a specified name at the specified parent folder
-	bool createFile(const QString& parentFolder, const QString& name);
+	FileOperationResultCode createFile(const QString& parentFolder, const QString& name);
 	// Opens a terminal window in the specified folder
 	void openTerminal(const QString & folder, bool admin = false);
 	// Calculates total size for the specified objects
