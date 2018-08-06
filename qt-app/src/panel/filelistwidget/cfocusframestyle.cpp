@@ -1,8 +1,11 @@
 #include "cfocusframestyle.h"
-#include <QPen>
-#include <QPainter>
-#include <QStyleOptionViewItem>
+
+DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QPainter>
+#include <QPen>
+#include <QStyleOptionViewItem>
+RESTORE_COMPILER_WARNINGS
 
 void CFocusFrameStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex * option, QPainter * painter, const QWidget * widget) const
 {
@@ -26,30 +29,32 @@ void CFocusFrameStyle::drawItemText(QPainter * painter, const QRect & rectangle,
 
 void CFocusFrameStyle::drawPrimitive(PrimitiveElement element, const QStyleOption * option, QPainter * painter, const QWidget * widget) const
 {
-	if (element == QStyle::PE_FrameFocusRect) {
-		if (const auto fropt = qstyleoption_cast<const QStyleOptionFocusRect *>(option)) {
-			QColor bg = fropt->backgroundColor;
-			QPen oldPen = painter->pen();
-			QPen newPen;
-			if (bg.isValid()) {
-				int h, s, v;
-				bg.getHsv(&h, &s, &v);
-				if (v >= 128)
-					newPen.setColor(Qt::black);
-				else
-					newPen.setColor(Qt::white);
-			} else {
-				newPen.setColor(option->palette.foreground().color());
-			}
-			newPen.setWidth(0);
-			newPen.setStyle(Qt::DotLine);
-			painter->setPen(newPen);
-			QRect focusRect = option->rect /*.adjusted(1, 1, -1, -1) */;
-			painter->drawRect(focusRect.adjusted(0, 0, -1, -1)); //draw pen inclusive
-			painter->setPen(oldPen);
-		}
-	} else
+	if (element != QStyle::PE_FrameFocusRect)
+	{
 		QApplication::style()->drawPrimitive(element, option, painter, widget);
+		return;
+	}
+
+	if (const auto fropt = qstyleoption_cast<const QStyleOptionFocusRect *>(option))
+	{
+		const QColor bg = fropt->backgroundColor;
+		const QPen oldPen = painter->pen();
+		QPen newPen;
+		if (bg.isValid())
+		{
+			int h = 0, s = 0, l = 0;
+			bg.getHsl(&h, &s, &l);
+			newPen.setColor(l >= 128 ? Qt::black : Qt::white);
+		} else
+			newPen.setColor(option->palette.foreground().color());
+
+		newPen.setWidth(0);
+		newPen.setStyle(Qt::DotLine);
+
+		painter->setPen(newPen);
+		painter->drawRect(option->rect.adjusted(0, 0, -1, -1)); //draw pen inclusive
+		painter->setPen(oldPen);
+	}
 }
 
 QPixmap CFocusFrameStyle::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap & pixmap, const QStyleOption * option) const
@@ -132,7 +137,6 @@ void CFocusFrameStyle::unpolish(QApplication * application)
 	QApplication::style()->unpolish(application);
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK (5,0,0)
 QIcon CFocusFrameStyle::standardIcon(QStyle::StandardPixmap standardIcon, const QStyleOption *option, const QWidget *widget) const
 {
 	return QApplication::style()->standardIcon(standardIcon, option, widget);
@@ -142,4 +146,3 @@ int CFocusFrameStyle::layoutSpacing(QSizePolicy::ControlType control1, QSizePoli
 {
 	return QApplication::style()->layoutSpacing(control1, control2, orientation, option, widget);
 }
-#endif
