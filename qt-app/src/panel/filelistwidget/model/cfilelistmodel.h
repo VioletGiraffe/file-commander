@@ -1,5 +1,4 @@
-#ifndef CFILELISTMODEL_H
-#define CFILELISTMODEL_H
+#pragma once
 
 #include "cpanel.h"
 
@@ -44,5 +43,3 @@ private:
 	QTreeView   * _tree;
 	Panel         _panel;
 };
-
-#endif // CFILELISTMODEL_H

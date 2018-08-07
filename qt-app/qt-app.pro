@@ -42,6 +42,7 @@ INCLUDEPATH += \
 	../file-commander-core/include \
 	../qtutils \
 	../cpputils \
+	../cpp-template-utils \
 	../github-releases-autoupdater/src
 
 SOURCES += \

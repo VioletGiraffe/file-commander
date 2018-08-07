@@ -53,6 +53,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
+	const auto oldPathObject = _currentDirObject;
+
 	const auto pathGraph = CFileSystemObject::pathHierarchy(path);
 	bool pathSet = false;
 	for (const auto& candidatePath: pathGraph)
@@ -68,12 +70,10 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		}
 	}
 
-	const QString oldPath = _currentDirObject.fullAbsolutePath();
-
 	if (!pathSet)
 	{
-		if (pathIsAccessible(oldPath))
-			_currentDirObject.setPath(oldPath);
+		if (pathIsAccessible(oldPathObject.fullAbsolutePath()))
+			_currentDirObject.setPath(oldPathObject.fullAbsolutePath());
 		else
 		{
 			QString pathToSet;
@@ -98,7 +98,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	assert_r(!_history.currentItem().contains('\\') && !newPath.contains('\\'));
 	if (_history.empty())
 		// The current folder does not automatically make it into history on program startup, but it should (#103)
-		_history.addLatest(oldPath);
+		_history.addLatest(oldPathObject.fullAbsolutePath());
 
 	if (_history.currentItem() != newPath)
 	{
@@ -116,10 +116,10 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	const auto newItemInPreviousFolder = _items.find(_currentDirObject.hash());
 	if (operation != refreshCauseCdUp && newItemInPreviousFolder != _items.end() && newItemInPreviousFolder->second.parentDirPath() != newItemInPreviousFolder->second.fullAbsolutePath())
 		// Updating the cursor when navigating downwards
-		setCurrentItemForFolder(newItemInPreviousFolder->second.parentDirPath(), _currentDirObject.hash());
+		setCurrentItemForFolder(newItemInPreviousFolder->second.parentDirPath(), _currentDirObject.hash(), false);
 	else if (operation == refreshCauseCdUp)
 		// Updating the cursor when navigating upwards
-		setCurrentItemForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, CFileSystemObject(oldPath).hash() /* where we were */);
+		setCurrentItemForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, oldPathObject.hash() /* where we were */, false);
 
 	locker.unlock();
 
@@ -134,9 +134,8 @@ void CPanel::navigateUp()
 		setPath(currentDirPathPosix(), refreshCauseOther);
 	else
 	{
-		QDir tmpDir(currentDirPathPosix());
-		if (tmpDir.cdUp())
-			setPath(tmpDir.absolutePath(), refreshCauseCdUp);
+		if (!_currentDirObject.parentDirPath().isEmpty())
+			setPath(_currentDirObject.parentDirPath(), refreshCauseCdUp);
 		else
 			sendContentsChangedNotification(refreshCauseOther);
 	}
@@ -232,10 +231,17 @@ inline QString normalizeFolderPath(const QString& path)
 	return posixPath.endsWith('/') ? posixPath : (posixPath + '/');
 }
 
-void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash)
+void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash, const bool notifyUi)
 {
 	assert_r(!dir.contains('\\'));
 	_cursorPosForFolder[normalizeFolderPath(dir)] = currentItemHash;
+
+	if (notifyUi)
+	{
+		exec_on_UI_thread([this, dir, currentItemHash]() {
+			_currentItemChangeListener.invokeCallback(&CurrentItemChangeListener::setCurrentItem, dir, currentItemHash);
+		});
+	}
 }
 
 qulonglong CPanel::currentItemForFolder(const QString &dir) const
@@ -380,8 +386,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
 {
 	exec_on_UI_thread([this, operation]() {
-		for (auto listener : _panelContentsChangedListeners)
-			listener->panelContentsChanged(_panelPosition, operation);
+		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::panelContentsChanged, _panelPosition, operation);
 	}, ContentsChangedNotificationTag);
 }
 
@@ -389,8 +394,7 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const
 {
 	exec_on_UI_thread([=]() {
-		for (auto listener : _panelContentsChangedListeners)
-			listener->itemDiscoveryInProgress(_panelPosition, itemHash, progress, currentDir);
+		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::itemDiscoveryInProgress, _panelPosition, itemHash, progress, currentDir);
 	}, ItemDiscoveryProgressNotificationTag);
 }
 
@@ -421,8 +425,12 @@ void CPanel::contentsChanged()
 
 void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *listener)
 {
-	assert_r(std::find(_panelContentsChangedListeners.begin(), _panelContentsChangedListeners.end(), listener) == _panelContentsChangedListeners.end()); // Why would we want to set the same listener twice? That'd probably be a mistake.
-	_panelContentsChangedListeners.push_back(listener);
+	_panelContentsChangedListeners.addSubscriber(listener);
+}
+
+void CPanel::addCurrentItemChangeListener(CurrentItemChangeListener * listener)
+{
+	_currentItemChangeListener.addSubscriber(listener);
 }
 
 const VolumeInfo& CPanel::volumeInfoForObject(const CFileSystemObject& object) const

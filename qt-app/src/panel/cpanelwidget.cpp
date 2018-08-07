@@ -160,6 +160,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	fillHistory();
 
 	_controller->setVolumesChangedListener(this);
+	_controller->panel(_panelPosition).addCurrentItemChangeListener(this);
 }
 
 // Returns the list of items added to the view
@@ -302,9 +303,9 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 	{
 		CTimeElapsed timer(true);
 		QItemSelection selection;
-		for (int row = 0; row < _sortModel->rowCount(); ++row)
+		for (int row = 0, numRows = _sortModel->rowCount(); row < numRows; ++row)
 		{
-			const qulonglong hash = hashByItemRow(row);
+			const qulonglong hash = hashBySortModelIndex(_sortModel->index(row, 0));
 			if (selectedItemsHashes.count(hash) != 0)
 				selection.select(_sortModel->index(row, 0), _sortModel->index(row, 0));
 		}
@@ -364,11 +365,11 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 
 void CPanelWidget::calcDirectorySize()
 {
-	QModelIndex itemIndex = _selectionModel->currentIndex();
+	const QModelIndex itemIndex = _selectionModel->currentIndex();
 	if (itemIndex.isValid())
 	{
 		_selectionModel->select(itemIndex, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
-		_controller->displayDirSize(_panelPosition, hashByItemIndex(itemIndex));
+		_controller->displayDirSize(_panelPosition, hashBySortModelIndex(itemIndex));
 	}
 }
 
@@ -405,7 +406,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 		auto indexList = indexRange.indexes();
 		for (const auto& index: indexList)
 		{
-			const auto hash = hashByItemIndex(index);
+			const auto hash = hashBySortModelIndex(index);
 			if (_controller->itemByHash(_panelPosition, hash).fullAbsolutePath() == cdUpPath)
 			{
 				auto cdUpIndex = indexByHash(hash);
@@ -426,10 +427,23 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
-	const qulonglong hash = current.isValid() ? hashByItemIndex(current) : 0;
+	const qulonglong hash = current.isValid() ? hashBySortModelIndex(current) : 0;
 	_controller->setCursorPositionForCurrentFolder(_panelPosition, hash);
 
 	emit currentItemChangedSignal(_panelPosition, hash);
+}
+
+void CPanelWidget::setCurrentItem(const QString& folder, qulonglong currentItemHash)
+{
+	if (_controller->panel(_panelPosition).currentDirObject().fullAbsolutePath() != folder)
+		return;
+
+	const auto newCurrentIndex = indexByHash(currentItemHash);
+	assert_and_return_r(newCurrentIndex.isValid(), );
+
+	//_selectionModel->blockSignals(true);
+	_selectionModel->setCurrentIndex(newCurrentIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
+	//_selectionModel->blockSignals(false);
 }
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
@@ -781,7 +795,7 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 	updateCurrentDiskButton();
 }
 
-qulonglong CPanelWidget::hashByItemIndex(const QModelIndex &index) const
+qulonglong CPanelWidget::hashBySortModelIndex(const QModelIndex &index) const
 {
 	if (!index.isValid())
 		return 0;
@@ -793,20 +807,16 @@ qulonglong CPanelWidget::hashByItemIndex(const QModelIndex &index) const
 	return hash;
 }
 
-qulonglong CPanelWidget::hashByItemRow(const int row) const
-{
-	return hashByItemIndex(_sortModel->index(row, 0));
-}
-
 QModelIndex CPanelWidget::indexByHash(const qulonglong hash, bool logFailures) const
 {
 	if (hash == 0)
 		return {};
 
-	for(int row = 0; row < _sortModel->rowCount(); ++row)
+	for(int row = 0, numRows = _sortModel->rowCount(); row < numRows; ++row)
 	{
-		if (hashByItemRow(row) == hash)
-			return _sortModel->index(row, 0);
+		const auto index = _sortModel->index(row, 0);
+		if (hashBySortModelIndex(index) == hash)
+			return index;
 	}
 
 	if (logFailures)
@@ -889,7 +899,7 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 	{
 		for (const auto selectedItem: selection)
 		{
-			const qulonglong hash = hashByItemIndex(selectedItem);
+			const qulonglong hash = hashBySortModelIndex(selectedItem);
 			if (!_controller->itemByHash(_panelPosition, hash).isCdUp())
 				result.push_back(hash);
 		}
@@ -899,7 +909,7 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 		auto currentIndex = _selectionModel->currentIndex();
 		if (currentIndex.isValid())
 		{
-			const auto hash = hashByItemIndex(currentIndex);
+			const auto hash = hashBySortModelIndex(currentIndex);
 			if (!_controller->itemByHash(_panelPosition, hash).isCdUp())
 				result.push_back(hash);
 		}
@@ -910,8 +920,8 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 
 qulonglong CPanelWidget::currentItemHash() const
 {
-	QModelIndex currentIndex = _selectionModel->currentIndex();
-	return hashByItemIndex(currentIndex);
+	const QModelIndex currentIndex = _selectionModel->currentIndex();
+	return hashBySortModelIndex(currentIndex);
 }
 
 void CPanelWidget::invertSelection()

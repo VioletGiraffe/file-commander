@@ -23,7 +23,11 @@ class CFileListSortFilterProxyModel;
 class CFileListView;
 
 
-class CPanelWidget : public QWidget, private CController::IVolumeListObserver, public PanelContentsChangedListener, private FileListReturnPressOrDoubleClickObserver
+class CPanelWidget : public QWidget,
+                     private CController::IVolumeListObserver,
+                     public PanelContentsChangedListener,
+                     private FileListReturnPressOrDoubleClickObserver,
+                     public CurrentItemChangeListener
 {
 	Q_OBJECT
 
@@ -101,10 +105,10 @@ private:
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
 	void volumesChanged(const std::deque<VolumeInfo>& drives, Panel p) override;
+	void setCurrentItem(const QString& folder, qulonglong currentItemHash) override;
 
 // Internal methods
-	qulonglong hashByItemIndex(const QModelIndex& index) const;
-	qulonglong hashByItemRow(const int row) const;
+	qulonglong hashBySortModelIndex(const QModelIndex& index) const;
 	QModelIndex indexByHash(const qulonglong hash, bool logFailures = false) const;
 
 	void updateCurrentDiskButton();

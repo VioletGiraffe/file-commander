@@ -3,6 +3,7 @@
 #include "ccontroller.h"
 #include "../../../cmainwindow.h"
 #include "../../columns.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QMimeData>

@@ -1,5 +1,4 @@
-#ifndef CPANEL_H
-#define CPANEL_H
+#pragma once
 
 #include "cfilesystemobject.h"
 #include "diskenumerator/cvolumeenumerator.h"
@@ -7,12 +6,15 @@
 #include "threading/cworkerthread.h"
 #include "threading/cexecutionqueue.h"
 #include "fileoperationresultcode.h"
+#include "utility/callback_caller.hpp"
 
 #include <atomic>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <vector>
+
+class CFileSystemWatcher;
 
 enum Panel
 {
@@ -29,7 +31,6 @@ enum FileListRefreshCause
 	refreshCauseOther
 };
 
-
 struct PanelContentsChangedListener
 {
 	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
@@ -37,15 +38,18 @@ struct PanelContentsChangedListener
 	virtual void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) = 0;
 };
 
-class FilesystemObjectsStatistics
+struct FilesystemObjectsStatistics
 {
-public:
-	FilesystemObjectsStatistics(uint64_t files_ = 0, uint64_t folders_ = 0, uint64_t occupiedSpace_ = 0): files(files_), folders(folders_), occupiedSpace(occupiedSpace_) {}
-	bool empty() const {return files == 0 && folders == 0 && occupiedSpace == 0;}
+	inline FilesystemObjectsStatistics(uint64_t files_ = 0, uint64_t folders_ = 0, uint64_t occupiedSpace_ = 0): files(files_), folders(folders_), occupiedSpace(occupiedSpace_) {}
+	inline bool empty() const {return files == 0 && folders == 0 && occupiedSpace == 0;}
 
 	uint64_t files;
 	uint64_t folders;
 	uint64_t occupiedSpace;
+};
+
+struct CurrentItemChangeListener {
+	virtual void setCurrentItem(const QString& folder, qulonglong currentItemHash) = 0;
 };
 
 class CPanel : public QObject
@@ -54,6 +58,7 @@ public:
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
 
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
+	void addCurrentItemChangeListener(CurrentItemChangeListener * listener);
 
 	explicit CPanel(Panel position);
 	void restoreFromSettings();
@@ -77,7 +82,7 @@ public:
 	QString currentDirPathPosix() const;
 	QString currentDirName() const;
 
-	void setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash);
+	void setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash, const bool notifyUi = true);
 	// Returns hash of an item that was the last selected in the specified dir
 	qulonglong currentItemForFolder(const QString& dir) const;
 
@@ -118,7 +123,8 @@ private:
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
 	std::shared_ptr<class CFileSystemWatcher>  _watcher; // Can't use uniqe_ptr because it doesn't play nicely with forward declaration
-	std::vector<PanelContentsChangedListener*> _panelContentsChangedListeners;
+	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
+	CallbackCaller<CurrentItemChangeListener>    _currentItemChangeListener;
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 
@@ -131,5 +137,3 @@ private:
 	QTimer                                     _fileListRefreshTimer;
 	std::atomic<bool>                          _bContentsChangedEventPending{false};
 };
-
-#endif // CPANEL_H
