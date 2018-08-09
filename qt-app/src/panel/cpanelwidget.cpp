@@ -428,12 +428,12 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
 	const qulonglong hash = current.isValid() ? hashBySortModelIndex(current) : 0;
-	_controller->setCursorPositionForCurrentFolder(_panelPosition, hash);
+	_controller->setCursorPositionForCurrentFolder(_panelPosition, hash, false);
 
 	emit currentItemChangedSignal(_panelPosition, hash);
 }
 
-void CPanelWidget::setCurrentItem(const QString& folder, qulonglong currentItemHash)
+void CPanelWidget::setCursorToItem(const QString& folder, qulonglong currentItemHash)
 {
 	if (_controller->panel(_panelPosition).currentDirObject().fullAbsolutePath() != folder)
 		return;
@@ -441,9 +441,7 @@ void CPanelWidget::setCurrentItem(const QString& folder, qulonglong currentItemH
 	const auto newCurrentIndex = indexByHash(currentItemHash);
 	assert_and_return_r(newCurrentIndex.isValid(), );
 
-	//_selectionModel->blockSignals(true);
 	_selectionModel->setCurrentIndex(newCurrentIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
-	//_selectionModel->blockSignals(false);
 }
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
@@ -452,11 +450,15 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	if (item.isCdUp())
 		return;
 
-	// This is required for the UI to know to move the cursor to the renamed item
-	_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() % "/" % newName).hash());
+	assert_r(item.parentDirPath().endsWith('/'));
 
 	CFileManipulator itemManipulator(item);
 	const auto result = itemManipulator.moveAtomically(item.parentDirPath(), newName);
+
+	// This is required for the UI to know to move the cursor to the renamed item
+	if (result == FileOperationResultCode::Ok || result == FileOperationResultCode::TargetAlreadyExists)
+		_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() + newName).hash());
+
 	if (result == FileOperationResultCode::TargetAlreadyExists)
 	{
 		const auto text = item.isFile() ? tr("The file %1 already exists.") : tr("The folder %1 already exists.");

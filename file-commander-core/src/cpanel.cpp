@@ -239,7 +239,7 @@ void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemH
 	if (notifyUi)
 	{
 		exec_on_UI_thread([this, dir, currentItemHash]() {
-			_currentItemChangeListener.invokeCallback(&CurrentItemChangeListener::setCurrentItem, dir, currentItemHash);
+			_currentItemChangeListener.invokeCallback(&CursorPositionListener::setCursorToItem, dir, currentItemHash);
 		});
 	}
 }
@@ -428,7 +428,7 @@ void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *liste
 	_panelContentsChangedListeners.addSubscriber(listener);
 }
 
-void CPanel::addCurrentItemChangeListener(CurrentItemChangeListener * listener)
+void CPanel::addCurrentItemChangeListener(CursorPositionListener * listener)
 {
 	_currentItemChangeListener.addSubscriber(listener);
 }

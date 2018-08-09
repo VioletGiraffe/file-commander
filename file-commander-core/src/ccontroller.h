@@ -67,7 +67,7 @@ public:
 	void showAllFilesFromCurrentFolderAndBelow(Panel p);
 	// Indicates that we need to move cursor (e. g. a folder is being renamed and we want to keep the cursor on it)
 	// This method takes the current folder in the currently active panel
-	void setCursorPositionForCurrentFolder(Panel panel, qulonglong newCurrentItemHash);
+	void setCursorPositionForCurrentFolder(Panel panel, qulonglong newCurrentItemHash, const bool notifyUi = true);
 	// Copies the full path of the currently selected item to clipboard
 	void copyCurrentItemToClipboard();
 

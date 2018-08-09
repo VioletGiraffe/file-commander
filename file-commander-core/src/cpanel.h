@@ -48,8 +48,8 @@ struct FilesystemObjectsStatistics
 	uint64_t occupiedSpace;
 };
 
-struct CurrentItemChangeListener {
-	virtual void setCurrentItem(const QString& folder, qulonglong currentItemHash) = 0;
+struct CursorPositionListener {
+	virtual void setCursorToItem(const QString& folder, qulonglong currentItemHash) = 0;
 };
 
 class CPanel : public QObject
@@ -58,7 +58,7 @@ public:
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
 
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
-	void addCurrentItemChangeListener(CurrentItemChangeListener * listener);
+	void addCurrentItemChangeListener(CursorPositionListener * listener);
 
 	explicit CPanel(Panel position);
 	void restoreFromSettings();
@@ -124,7 +124,7 @@ private:
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
 	std::shared_ptr<class CFileSystemWatcher>  _watcher; // Can't use uniqe_ptr because it doesn't play nicely with forward declaration
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
-	CallbackCaller<CurrentItemChangeListener>    _currentItemChangeListener;
+	CallbackCaller<CursorPositionListener>    _currentItemChangeListener;
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 

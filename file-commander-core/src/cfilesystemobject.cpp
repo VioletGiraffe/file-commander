@@ -84,7 +84,7 @@ inline QString parentForAbsolutePath(QString absolutePath)
 
 	const int lastSlash = absolutePath.lastIndexOf('/');
 	if (lastSlash <= 0)
-		return QString();
+		return {};
 
 	absolutePath.truncate(lastSlash + 1); // Keep the slash as it signifies a directory rather than a file.
 	return absolutePath;
