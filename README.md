@@ -2,12 +2,12 @@
 
 [![Join the chat at https://gitter.im/File-Commander/Lobby](https://badges.gitter.im/File-Commander/Lobby.svg)](https://gitter.im/File-Commander/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-   Qt-based cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems.
+   Qt-based cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems. 
 
+|Windows|Linux|macOS|
+|---	|---	|---	|
+|[![Build status](https://ci.appveyor.com/api/projects/status/0rdr7ordj8khnn8l?svg=true)](https://ci.appveyor.com/project/VioletGiraffe/file-commander)|[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)|[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)|
 
-Windows:&nbsp;&nbsp;[![Build status](https://ci.appveyor.com/api/projects/status/0rdr7ordj8khnn8l?svg=true)](https://ci.appveyor.com/project/VioletGiraffe/file-commander)   
-Linux:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)    
-macOS:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)
 
 ![Windows screenshot](/../gh-pages/screenshots/Windows/screenshot.png?raw=true)
 
