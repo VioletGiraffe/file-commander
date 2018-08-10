@@ -1,5 +1,4 @@
-#ifndef CFILELISTITEMDELEGATE_H
-#define CFILELISTITEMDELEGATE_H
+#pragma once
 
 #include "compiler/compiler_warnings_control.h"
 
@@ -10,11 +9,10 @@ RESTORE_COMPILER_WARNINGS
 class CFileListItemDelegate : public QStyledItemDelegate
 {
 public:
-	explicit CFileListItemDelegate(QObject *parent = 0);
+	using QStyledItemDelegate::QStyledItemDelegate; // "Inherited" constructor
 
 	void setEditorData(QWidget * editor, const QModelIndex & index) const override;
 
+protected:
 	bool eventFilter(QObject *object, QEvent *event) override;
 };
-
-#endif // CFILELISTITEMDELEGATE_H

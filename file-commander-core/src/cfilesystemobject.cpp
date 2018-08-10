@@ -309,7 +309,7 @@ const QDir& CFileSystemObject::qDir() const
 std::vector<QString> CFileSystemObject::pathHierarchy(const QString& path)
 {
 	assert_r(!path.contains('\\'));
-	assert_r(!path.contains(QStringLiteral("//")));
+	assert_r(!path.contains(QStringLiteral("//")) || !path.rightRef(path.length() - 2).contains(QStringLiteral("//")));
 
 	if (path.isEmpty())
 		return {};

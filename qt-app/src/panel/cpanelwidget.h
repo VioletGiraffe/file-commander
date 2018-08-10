@@ -132,4 +132,6 @@ private:
 	QShortcut                       _cutShortcut;
 	QShortcut                       _pasteShortcut;
 	QShortcut                       _searchShortcut;
+
+	QModelIndex _previousCurrentItem;
 };
