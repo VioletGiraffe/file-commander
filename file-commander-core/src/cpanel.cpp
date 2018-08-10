@@ -5,6 +5,7 @@
 #include "directoryscanner.h"
 #include "assert/advanced_assert.h"
 #include "filesystemwatcher/cfilesystemwatcher.h"
+#include "std_helpers/qt_container_helpers.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -39,7 +40,7 @@ void CPanel::restoreFromSettings()
 {
 	CSettings s;
 	const QStringList historyList = s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList();
-	_history.addLatest(historyList.toVector().toStdVector());
+	_history.addLatest(to_vector<QString>(historyList));
 	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString(), refreshCauseOther);
 }
 
