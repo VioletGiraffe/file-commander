@@ -72,11 +72,6 @@ CFileSystemObject::CFileSystemObject(const QString& path) : _fileInfo(expandEnvi
 	refreshInfo();
 }
 
-inline uint64_t hash(const QByteArray& byteArray)
-{
-	return fasthash64(byteArray.constData(), byteArray.size(), 0);
-}
-
 inline QString parentForAbsolutePath(QString absolutePath)
 {
 	if (absolutePath.endsWith('/'))
@@ -120,7 +115,7 @@ void CFileSystemObject::refreshInfo()
 	else if (_properties.fullPath.endsWith('/'))
 		_properties.type = Directory;
 
-	_properties.hash = ::hash(_properties.fullPath.toUtf8());
+	_properties.hash = fasthash64(_properties.fullPath.constData(), _properties.fullPath.size() * sizeof(QChar), 0);
 
 
 	if (_properties.type == File)
