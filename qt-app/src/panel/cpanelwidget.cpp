@@ -275,7 +275,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		if (itemIndexToSetCursorTo.isValid())
 			indexUnderCursor = itemIndexToSetCursorTo;
 		else if (previousCurrentIndex.isValid())
-			indexUnderCursor = _sortModel->index(previousCurrentIndex.row(), 0);
+			indexUnderCursor = _sortModel->index(std::min(previousCurrentIndex.row(), _sortModel->rowCount() - 1), 0);
 	}
 
 	ui->_list->moveCursorToItem(indexUnderCursor);
