@@ -13,11 +13,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
-CFileListItemDelegate::CFileListItemDelegate(QObject *parent) :
-	QStyledItemDelegate(parent)
-{
-}
-
 // Item rename handling
 void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & index) const
 {
@@ -62,13 +57,16 @@ bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
 			return true;
 		case Qt::Key_Enter: // Numpad Enter
 		case Qt::Key_Return:
-			if (qobject_cast<QTextEdit *>(editor) || qobject_cast<QPlainTextEdit*>(editor))
-				return false; // don't filter enter key events for QTextEdit
+			// don't filter enter key events for QTextEdit
+			if (!qobject_cast<QTextEdit *>(editor) && !qobject_cast<QPlainTextEdit*>(editor))
+			{
+				// commit data
+				emit commitData(editor);
+				emit closeEditor(editor);
+				return true;
+			}
 
-			// commit data
-			emit commitData(editor);
-			emit closeEditor(editor);
-			return true;
+			return QStyledItemDelegate::eventFilter(object, event);
 		case Qt::Key_Escape:
 			// don't commit data
 			emit closeEditor(editor, QAbstractItemDelegate::RevertModelCache);
@@ -77,12 +75,11 @@ bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
 		case Qt::Key_Down:
 			// don't commit data
 			emit closeEditor(editor, QAbstractItemDelegate::RevertModelCache);
-			// Return false so that the TreeView will handle this event and highlight the next item properly
-			return false;
+			// Don't consume the event so that the TreeView will handle this event and highlight the next item properly
+			return QStyledItemDelegate::eventFilter(object, event);
 		default:
-			return false;
+			return QStyledItemDelegate::eventFilter(object, event);
 		}
-
 	}
 	else if (event->type() == QEvent::FocusOut || (event->type() == QEvent::Hide && editor->isWindow()))
 	{
@@ -93,7 +90,8 @@ bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
 			while (w)
 			{ // don't worry about focus changes internally in the editor
 				if (w == editor)
-					return false;
+					return QStyledItemDelegate::eventFilter(object, event);
+
 				w = w->parentWidget();
 			}
 
@@ -108,5 +106,6 @@ bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
 			return true;
 		}
 	}
-	return false;
+
+	return QStyledItemDelegate::eventFilter(object, event);
 }
