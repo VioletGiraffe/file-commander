@@ -53,6 +53,8 @@ public:
 
 	void modelAboutToBeReset();
 
+	bool editingInProgress() const;
+
 signals:
 	void contextMenuRequested(QPoint pos);
 	void ctrlEnterPressed();

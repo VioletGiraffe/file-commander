@@ -435,6 +435,9 @@ void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIn
 
 void CPanelWidget::setCursorToItem(const QString& folder, qulonglong currentItemHash)
 {
+	if (ui->_list->editingInProgress())
+		return; // Can't move cursor while editing is in progress, it crashes inside Qt
+
 	if (_controller->panel(_panelPosition).currentDirObject().fullAbsolutePath() != folder)
 		return;
 
@@ -456,7 +459,7 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	const auto result = itemManipulator.moveAtomically(item.parentDirPath(), newName);
 
 	// This is required for the UI to know to move the cursor to the renamed item
-	if (result == FileOperationResultCode::Ok || result == FileOperationResultCode::TargetAlreadyExists)
+	if (result == FileOperationResultCode::Ok)
 		_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() + newName).hash());
 
 	if (result == FileOperationResultCode::TargetAlreadyExists)

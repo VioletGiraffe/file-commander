@@ -112,8 +112,14 @@ void CFileListView::modelAboutToBeReset()
 		_bHeaderAdjustmentRequired = false;
 		for (int i = 0; i < model()->columnCount(); ++i)
 			resizeColumnToContents(i);
+
 		sortByColumn(ExtColumn, Qt::AscendingOrder);
 	}
+}
+
+bool CFileListView::editingInProgress() const
+{
+	return (state() & QAbstractItemView::EditingState) != 0;
 }
 
 // For managing selection and cursor
