@@ -225,7 +225,7 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 	raise();
 	activateWindow();
 
-	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % '/' % files.front().fullName()) : destDir;
+	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % nativeSeparator() % files.front().fullName()) : destDir;
 	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), toNativeSeparators(destPath), this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{

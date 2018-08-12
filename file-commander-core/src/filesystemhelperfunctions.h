@@ -25,6 +25,15 @@ inline QString toPosixSeparators(const QString &path)
 #endif
 }
 
+inline constexpr char nativeSeparator()
+{
+#ifdef _WIN32
+	return '\\';
+#else
+	return '/';
+#endif
+}
+
 inline QString cleanPath(const QString& path)
 {
 	return QString(path).replace(QStringLiteral("\\\\"), QStringLiteral("\\")).replace(QStringLiteral("//"), QStringLiteral("/"));
