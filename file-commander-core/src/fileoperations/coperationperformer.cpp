@@ -236,9 +236,9 @@ void COperationPerformer::copyFiles()
 			case naProceed:
 				break;
 			case naSkip:
+				sizeProcessed += sourceIterator->size();
 				++sourceIterator;
 				++currentItemIndex;
-				sizeProcessed += sourceIterator->size();
 				continue;
 			case naRetryItem:
 				continue;
