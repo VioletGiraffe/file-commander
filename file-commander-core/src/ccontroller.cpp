@@ -200,7 +200,7 @@ FileOperationResultCode CController::createFolder(const QString &parentFolder, c
 		// It must be done before calling mkpath, or #133 will occur due to asynchronous file list refresh between mkpath and the current item selection logic (it gets overwritten from CPanelWidget::fillFromList).
 		const auto newHash = CFileSystemObject(newItemPath).hash();
 		qInfo() << "New folder hash:" << newHash;
-		setCursorPositionForCurrentFolder(activePanelPosition(), newHash);
+		setCursorPositionForCurrentFolder(activePanelPosition(), newHash, false);
 	}
 
 	if (parentDir.exists(name))
