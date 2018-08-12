@@ -74,6 +74,14 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->btnRename->setVisible(false);
 		ui->lblQuestion->setText(tr("Failed to delete\n%1").arg(source.fullAbsolutePath()));
 		break;
+	case hrNotEnoughSpace:
+		ui->lblQuestion->setText("There is not enough space on the destination storage. What do you want to do?");
+		ui->btnOverwrite->setVisible(false);
+		ui->btnOverwriteAll->setVisible(false);
+		ui->btnDeleteAnyway->setVisible(false);
+		ui->btnDeleteAllAnyway->setVisible(false);
+		ui->btnRename->setVisible(false);
+		break;
 	case hrUnknownError:
 		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
 		ui->btnOverwrite->setVisible(false);

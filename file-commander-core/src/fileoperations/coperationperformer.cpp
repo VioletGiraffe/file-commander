@@ -5,6 +5,27 @@
 #include "threading/thread_helpers.h"
 #include "utility/on_scope_exit.hpp"
 
+DISABLE_COMPILER_WARNINGS
+#include <QStringBuilder>
+RESTORE_COMPILER_WARNINGS
+
+inline constexpr HaltReason haltReasonForOperationError(FileOperationResultCode errorCode)
+{
+	assert_without_abort(errorCode != FileOperationResultCode::Ok);
+
+	switch (errorCode)
+	{
+	case FileOperationResultCode::ObjectDoesntExist:
+		return hrFileDoesntExit;
+	case FileOperationResultCode::TargetAlreadyExists:
+		return hrFileExists;
+	case FileOperationResultCode::NotEnoughSpaceAvailable:
+		return hrNotEnoughSpace;
+	default:
+		return hrUnknownError;
+	}
+}
+
 COperationPerformer::COperationPerformer(const Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
 	_source(source),
 	_destFileSystemObject(destination),
@@ -708,10 +729,14 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	{
 		itemManipulator.cancelCopy();
 		const QString errorMessage =
-			QString("Error copying file ") + item.fullAbsolutePath() + " to " + destPath + (_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) + ", error: " + itemManipulator.lastErrorMessage();
+			"Error copying file " % item.fullAbsolutePath() %
+			" to " % destPath %
+			(_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) %
+			", error: " % itemManipulator.lastErrorMessage();
+
 		assert_unconditional_r(errorMessage.toStdString());
 
-		const auto action = getUserResponse(hrUnknownError, item, CFileSystemObject(), itemManipulator.lastErrorMessage());
+		const auto action = getUserResponse(haltReasonForOperationError(result), item, CFileSystemObject(), itemManipulator.lastErrorMessage());
 		if (action == urSkipThis || action == urSkipAll)
 			return naSkip;
 		else if (action == urAbort)

@@ -51,11 +51,12 @@ private:
 		static const std::map<HaltReason, QString> haltReasonString = {
 			{hrFileExists, QObject::tr("File exists")},
 			{hrSourceFileIsReadOnly, QObject::tr("Source file is read-only")},
-			{hrDestFileIsReadOnly, QObject::tr("Dest file is read-only")},
+			{hrDestFileIsReadOnly, QObject::tr("Destination file is read-only")},
 			{hrFailedToMakeItemWritable, QObject::tr("Failed to make an item writable")},
 			{hrFileDoesntExit, QObject::tr("File doesn't exist")},
 			{hrCreatingFolderFailed, QObject::tr("Failed to create a folder")},
 			{hrFailedToDelete, QObject::tr("Failed to delete the item")},
+			{hrNotEnoughSpace, QObject::tr("Not enough space on the destination drive")},
 			{hrUnknownError, QObject::tr("Unknown error")}
 		};
 

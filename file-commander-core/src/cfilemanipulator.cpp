@@ -132,7 +132,17 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			return FileOperationResultCode::Fail;
 		}
 
-		_destFile->resize(_object.size());
+		if (!_destFile->resize(_object.size()))
+		{
+			_lastErrorMessage.clear(); // QFile provides no meaningful message for this case.
+			_destFile->close();
+			assert_r(_destFile->remove());
+
+			_thisFile.reset();
+			_destFile.reset();
+
+			return FileOperationResultCode::NotEnoughSpaceAvailable;
+		}
 	}
 
 	assert_r(_destFile->isOpen() == _thisFile->isOpen());
