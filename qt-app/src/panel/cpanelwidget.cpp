@@ -679,6 +679,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 void CPanelWidget::pathFromHistoryActivated(QString path)
 {
 	const CFileSystemObject processedPath(path); // Needed for expanding environment variables in the path
+	ui->_list->setFocus();
 	if (_controller->setPath(_panelPosition, processedPath.fullAbsolutePath(), refreshCauseOther) == FileOperationResultCode::DirNotAccessible)
 		QMessageBox::information(this, tr("Failed to set the path"), tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(path));
 }
