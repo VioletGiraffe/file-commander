@@ -41,7 +41,7 @@ DEFINES += PLUGIN_MODULE
 LIBS += -L../../../bin/$${OUTPUT_DIR} -lcore -lqtutils -ltext_encoding_detector -lcpputils
 
 win*{
-	QMAKE_CXXFLAGS += /MP /wd4251
+	QMAKE_CXXFLAGS += /MP /Zi /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 

@@ -120,7 +120,7 @@ LIBS += -L../bin/$${OUTPUT_DIR} -lautoupdater -lcore -lqtutils -lcpputils
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32
-	QMAKE_CXXFLAGS += /MP /wd4251
+	QMAKE_CXXFLAGS += /MP /Zi /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = /W4
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 
