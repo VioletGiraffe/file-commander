@@ -254,6 +254,12 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 	{
 		_shiftPressedItemSelected = currentIndex().isValid() ? selectionModel()->isSelected(currentIndex()) : false;
 	}
+#ifdef __APPLE__ // FIXME: Probably a Qt bug; remove this code when it's fixed
+	else if (event->key() == Qt::Key_F2 && event->modifiers() == Qt::NoModifier)
+	{
+		edit(currentIndex(), QAbstractItemView::EditKeyPressed, event);
+	}
+#endif
 	else
 		emit keyPressed(event->text(), event->key(), event->modifiers());
 
