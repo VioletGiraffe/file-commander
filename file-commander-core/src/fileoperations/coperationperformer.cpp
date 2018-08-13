@@ -9,7 +9,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
-inline constexpr HaltReason haltReasonForOperationError(FileOperationResultCode errorCode)
+inline HaltReason haltReasonForOperationError(FileOperationResultCode errorCode)
 {
 	assert_without_abort(errorCode != FileOperationResultCode::Ok);
 
