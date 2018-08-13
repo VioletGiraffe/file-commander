@@ -25,13 +25,13 @@ void CPluginEngine::loadPlugins()
 #elif defined __linux__
 	static const QString pluginExtension(".so");
 #elif defined __APPLE__
-	static const QString pluginExtension(".dylib");
+	static const QString pluginExtension(".1.0.0.dylib");
 #else
 #error
 #endif
 	QDir fileCommanderDir(qApp->applicationDirPath());
 
-	const auto pluginPaths(fileCommanderDir.entryInfoList((QStringList("*plugin_*" + pluginExtension + "*")), QDir::Files | QDir::NoDotAndDotDot));
+	const auto pluginPaths(fileCommanderDir.entryInfoList((QStringList("*plugin_*" + pluginExtension)), QDir::Files | QDir::NoDotAndDotDot));
 	for (const QFileInfo& path: pluginPaths)
 	{
 		if (path.isSymLink())
