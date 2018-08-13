@@ -4,7 +4,6 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QFile>
-#include <QStringBuilder>
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
@@ -20,6 +19,9 @@ RESTORE_COMPILER_WARNINGS
 // Can properly ignore the command's arguments, if any supplied.
 QString FileSystemHelpers::resolvePath(const QString &command)
 {
+	if (QFile::exists(command))
+		return command;
+
 	const QString commandExecutable = command.left(command.indexOf(' '));
 	if (QFile::exists(commandExecutable))
 		return commandExecutable;
@@ -36,7 +38,7 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 
 	for (const auto& directory: pathDirectories)
 	{
-		const auto fullPath = directory % '/' % commandExecutable;
+		const auto fullPath = directory + '/' + commandExecutable;
 		if (QFile::exists(fullPath))
 			return fullPath;
 	}
