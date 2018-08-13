@@ -30,6 +30,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QCloseEvent>
 #include <QDesktopWidget>
 #include <QFileDialog>
+#include <QFileIconProvider>
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -460,7 +461,14 @@ void CMainWindow::createFolder()
 
 	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
 	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
-	const QString dirName = QInputDialog::getText(this, tr("New folder"), tr("Enter the name for the new directory"), QLineEdit::Normal, currentItemName);
+
+	QInputDialog dialog(this);
+	dialog.setWindowIcon(QFileIconProvider().icon(QFileIconProvider::Folder));
+	dialog.setWindowTitle(tr("New folder"));
+	dialog.setLabelText(tr("Enter the name for the new directory"));
+	dialog.setTextValue(currentItemName);
+
+	const QString dirName = dialog.exec() == QDialog::Accepted ? dialog.textValue() : QString();// QInputDialog::getText(this, tr("New folder"), tr("Enter the name for the new directory"), QLineEdit::Normal, currentItemName);
 	if (dirName.isEmpty())
 		return;
 
@@ -479,7 +487,14 @@ void CMainWindow::createFile()
 
 	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
 	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
-	const QString fileName = QInputDialog::getText(this, tr("New file"), tr("Enter the name for the new file"), QLineEdit::Normal, currentItemName);
+
+	QInputDialog dialog(this);
+	dialog.setWindowIcon(QFileIconProvider().icon(QFileIconProvider::File));
+	dialog.setWindowTitle(tr("New file"));
+	dialog.setLabelText(tr("Enter the name for the new file"));
+	dialog.setTextValue(currentItemName);
+
+	const QString fileName = dialog.exec() == QDialog::Accepted ? dialog.textValue() : QString();
 	if (fileName.isEmpty())
 		return;
 
