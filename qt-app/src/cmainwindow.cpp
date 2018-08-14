@@ -185,7 +185,7 @@ void CMainWindow::initActions()
 	});
 
 	ui->actionExit->setShortcut(QKeySequence::Quit);
-	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::quit);
+	connect(ui->actionExit, &QAction::triggered, this, &QMainWindow::close);
 
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, [this]() {
 		_controller->openTerminal(_currentFileList->currentDir());
@@ -477,7 +477,7 @@ void CMainWindow::createFolder()
 		QMessageBox::warning(this, tr("Item already exists"), tr("The folder %1 already exists.").arg(dirName));
 	else if (result != FileOperationResultCode::Ok)
 		QMessageBox::warning(this, tr("Failed to create item"), tr("Failed to create the folder %1").arg(dirName));
-	
+
 }
 
 void CMainWindow::createFile()
