@@ -39,6 +39,11 @@ void CFileListSortFilterProxyModel::sort(int column, Qt::SortOrder order)
 	emit sorted();
 }
 
+inline bool isFileOrBundle(const CFileSystemObject& item)
+{
+	return item.isFile() || item.isBundle();
+}
+
 bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
 	assert_r(left.column() == right.column());
@@ -63,9 +68,9 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 
 	const bool descendingOrder = sortOrder() == Qt::DescendingOrder;
 	// Folders always before files, no matter the sorting column and direction
-	if (leftItem.isDir() && !rightItem.isDir())
+	if (!isFileOrBundle(leftItem) && isFileOrBundle(rightItem))
 		return !descendingOrder;  // always keep directory on top
-	else if (!leftItem.isDir() && rightItem.isDir())
+	else if (isFileOrBundle(leftItem) && !isFileOrBundle(rightItem))
 		return descendingOrder;   // always keep directory on top
 
 	// [..] is always on top
@@ -79,11 +84,10 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	case NameColumn:
 		// File name and extension sort is case-insensitive
 		return _sorter.lessThan(leftItem.fullName(), rightItem.fullName());
-		break;
 	case ExtColumn:
-		if (leftItem.isDir() && rightItem.isDir()) // Sorting directories by name, files - by extension
+		if (!isFileOrBundle(leftItem) && !isFileOrBundle(rightItem)) // Sorting directories by name, files - by extension
 			return _sorter.lessThan(leftItem.name(), rightItem.name());
-		else if (!leftItem.isDir() && !rightItem.isDir() && leftItem.extension().isEmpty() && rightItem.extension().isEmpty())
+		else if (isFileOrBundle(leftItem) && isFileOrBundle(leftItem) && leftItem.extension().isEmpty() && rightItem.extension().isEmpty())
 			return _sorter.lessThan(leftItem.name(), rightItem.name());
 		else
 		{
@@ -108,13 +112,10 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 			else // if they are - compare by names
 				return _sorter.lessThan(leftName, rightName);
 		}
-		break;
 	case SizeColumn:
 		return leftItem.size() < rightItem.size();
-		break;
 	case DateColumn:
 		return leftItem.properties().modificationDate < rightItem.properties().modificationDate;
-		break;
 	default:
 		break;
 	}

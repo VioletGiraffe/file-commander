@@ -21,7 +21,7 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <vector>
 
-enum FileSystemObjectType { UnknownType, Directory, File };
+enum FileSystemObjectType { UnknownType, Directory, File, Bundle };
 
 struct CFileSystemObjectProperties {
 	uint64_t size = 0;
@@ -66,6 +66,7 @@ public:
 	FileSystemObjectType type() const;
 	bool isFile() const;
 	bool isDir() const;
+	bool isBundle() const;
 	bool isEmptyDir() const;
 	bool isCdUp() const; // returns true if it's ".." item
 	bool isExecutable() const;
@@ -73,7 +74,6 @@ public:
 	// Apparently, it will return false for non-existing files
 	bool isWriteable() const;
 	bool isHidden() const;
-	bool isBundle() const;
 
 	// Returns true if this object is a child of parent, either direct or indirect
 	bool isChildOf(const CFileSystemObject& parent) const;

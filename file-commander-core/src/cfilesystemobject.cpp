@@ -100,11 +100,12 @@ void CFileSystemObject::refreshInfo()
 		_properties.type = File;
 	else if (_fileInfo.isDir())
 	{
-		_properties.type = Directory;
 		// Normalization - very important for hash calculation and equality checking
 		// C:/1/ must be equal to C:/1
 		if (!_properties.fullPath.endsWith('/'))
 			_properties.fullPath.append('/');
+
+		_properties.type = _fileInfo.isBundle() ? Bundle : Directory;
 	}
 	else if (_properties.exists)
 	{
@@ -139,6 +140,11 @@ void CFileSystemObject::refreshInfo()
 			if (!sfx.isEmpty())
 				_properties.completeBaseName = _properties.completeBaseName % '.' % sfx;
 		}
+	}
+	else if (_properties.type == Bundle)
+	{
+		_properties.extension = _fileInfo.suffix();
+		_properties.completeBaseName = _fileInfo.completeBaseName();
 	}
 
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
@@ -208,7 +214,12 @@ bool CFileSystemObject::isFile() const
 
 bool CFileSystemObject::isDir() const
 {
-	return _properties.type == Directory;
+	return _properties.type == Directory || _properties.type == Bundle;
+}
+
+bool CFileSystemObject::isBundle() const
+{
+	return _properties.type == Bundle;
 }
 
 bool CFileSystemObject::isEmptyDir() const
@@ -240,11 +251,6 @@ bool CFileSystemObject::isWriteable() const
 bool CFileSystemObject::isHidden() const
 {
 	return _fileInfo.isHidden();
-}
-
-bool CFileSystemObject::isBundle() const
-{
-	return _fileInfo.isBundle();
 }
 
 // Returns true if this object is a child of parent, either direct or indirect
