@@ -196,7 +196,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 
 		auto fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
-		if (props.type == Directory || props.type != Bundle)
+		if (props.type == Directory && props.type != Bundle)
 			fileNameItem->setData(QString("[" % (object.isCdUp() ? QLatin1String("..") : props.fullName) % "]"), Qt::DisplayRole);
 		else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
 			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
