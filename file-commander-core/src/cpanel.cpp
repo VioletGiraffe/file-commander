@@ -285,6 +285,9 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 				continue;
 #endif
 			objectsList.emplace_back(list[(int)i]);
+			if (!objectsList.back().isFile() && !objectsList.back().isDir())
+				objectsList.pop_back(); // Could be a socket
+
 			sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20 + 80 * i / numItemsFound, _currentDirObject.fullAbsolutePath());
 		}
 
