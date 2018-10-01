@@ -16,7 +16,7 @@ inline struct statvfs volumeInfoForPath(const QString& path)
 	struct statvfs info;
 	memset(&info, 0, sizeof(info));
 	if (statvfs(path.toLocal8Bit().data(),&info) != 0)
-		qInfo() << "Error occurred while calling statvfs64:\n" << strerror(errno);
+		qInfo() << "Error occurred while calling statvfs64 for" << path << "\n" << strerror(errno);
 
 	return info;
 }
