@@ -37,10 +37,12 @@ void CFocusFrameStyle::drawPrimitive(PrimitiveElement element, const QStyleOptio
 
 	if (const auto fropt = qstyleoption_cast<const QStyleOptionFocusRect *>(option))
 	{
+		const auto previousClipRegion = painter->clipRegion();
 		painter->setClipRect(option->rect);
 
 		const QColor bg = fropt->backgroundColor;
 		const QPen oldPen = painter->pen();
+
 		QPen newPen;
 		if (bg.isValid())
 		{
@@ -56,6 +58,8 @@ void CFocusFrameStyle::drawPrimitive(PrimitiveElement element, const QStyleOptio
 		painter->setPen(newPen);
 		painter->drawRect(option->rect); //draw pen inclusive
 		painter->setPen(oldPen);
+
+		painter->setClipRect(QRect(), Qt::NoClip);
 	}
 }
 
