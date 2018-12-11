@@ -37,6 +37,7 @@
 #define KEY_INTERFACE_FILE_LIST_FONT "Interface/View/FileListFont"
 #define INTERFACE_FILE_LIST_FONT_DEFAULT "Roboto Mono,9,-1,5,25,0,0,0,0,0,Light"
 #define KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS "Interface/View/ShowSpecialFolderIcons"
+#define KEY_INTERFACE_STYLE_SHEET "Interface/Style/StylesheetText"
 
 // Operations
 #define KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION "Operations/CopyMove/AskForConfirmation"
