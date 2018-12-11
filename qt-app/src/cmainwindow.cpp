@@ -119,6 +119,8 @@ void CMainWindow::onCreate()
 		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
 		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
 	}
+
+	qApp->setStyleSheet(s.value(KEY_INTERFACE_STYLE_SHEET).toString());
 }
 
 void CMainWindow::updateInterface()
@@ -730,6 +732,8 @@ void CMainWindow::settingsChanged()
 	_controller->settingsChanged();
 	ui->leftPanel->onSettingsChanged();
 	ui->rightPanel->onSettingsChanged();
+
+	qApp->setStyleSheet(CSettings().value(KEY_INTERFACE_STYLE_SHEET).toString());
 }
 
 void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
