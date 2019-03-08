@@ -26,7 +26,7 @@ For the list of known issues, refer to the project issues on Github, sort by the
 
 ***Cloning the repository***
 
-   The main git repository has submodules, so you need to execute the `update_repository` script (available as .bat for Windows and .sh for Win / Mac) after cloning file-commander to clone the nested repositories. Subsequently, you can use the same `update_repository` script at any time to pull incoming changes to the main repo, as well as to all the subrepos, thus updating everything to the latest revision.
+   The main git repository has submodules, so you need to execute the `update_repository` script (available as .bat for Windows and .sh for Linux / Mac) after cloning file-commander to clone the nested repositories. Subsequently, you can use the same `update_repository` script at any time to pull incoming changes to the main repo, as well as to all the subrepos, thus updating everything to the latest revision.
 
 ***Building***
 
