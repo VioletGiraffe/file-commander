@@ -31,7 +31,7 @@ void CPluginEngine::loadPlugins()
 #endif
 	QDir fileCommanderDir(qApp->applicationDirPath());
 
-	const auto pluginPaths(fileCommanderDir.entryInfoList((QStringList("*plugin_*" + pluginExtension)), QDir::Files | QDir::NoDotAndDotDot));
+	const auto pluginPaths(fileCommanderDir.entryInfoList(QStringList{"*plugin_*" + pluginExtension + "*"}, QDir::Files | QDir::NoDotAndDotDot));
 	for (const QFileInfo& path: pluginPaths)
 	{
 		if (path.isSymLink())

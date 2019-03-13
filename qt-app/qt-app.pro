@@ -161,3 +161,21 @@ mac*|linux*{
 
 RESOURCES += \
 	resources/app-resources.qrc
+
+linux*{
+	#Installation
+
+	isEmpty(PREFIX) {
+		PREFIX = $${DESTDIR}/installation
+	}
+	target.path = $${PREFIX}/bin
+
+	desktop.path = $${PREFIX}/share/applications/
+	desktop.files += file_commander.desktop
+	icon256.path = $${PREFIX}/share/icons/hicolor/256x256/apps
+	icon256.files += resources\icon.png
+
+	INSTALLS += icon256
+	INSTALLS += desktop
+	INSTALLS += target
+}

@@ -3,6 +3,7 @@
 
 installer/windows/FileCommander.exe
 installer/windows/binaries/
+*.AppImage
 
 set_qt_paths.bat
 *.exe
