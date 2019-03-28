@@ -192,3 +192,4 @@ Makefile.Debug
 Makefile.Release
 .qmake.stash
 *.dmg
+.DS_Store
