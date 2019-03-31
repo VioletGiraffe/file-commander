@@ -290,20 +290,6 @@ bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigg
 	return QTreeView::edit(model()->index(index.row(), 0), trigger, event);
 }
 
-// canDropMimeData is not called by QAbstractItemModel as of Qt 5.3 (https://bugreports.qt-project.org/browse/QTBUG-30534), so we're re-defining dragEnterEvent to fix this
-void CFileListView::dragMoveEvent(QDragMoveEvent * event)
-{
-	QModelIndex targetIndex = indexAt(event->pos());
-	if (model()->canDropMimeData(event->mimeData(), (Qt::DropAction)((int)event->possibleActions()), targetIndex.row(), targetIndex.column(), QModelIndex()))
-	{
-		if (state() != DraggingState)
-			setState(DraggingState);
-		QTreeView::dragMoveEvent(event);
-	}
-	else
-		event->ignore();
-}
-
 bool CFileListView::eventFilter(QObject* target, QEvent* event)
 {
 	QHeaderView * headerView = header();

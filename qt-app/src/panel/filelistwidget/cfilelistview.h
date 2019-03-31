@@ -73,8 +73,6 @@ protected:
 
 	bool edit(const QModelIndex & index, EditTrigger trigger, QEvent * event) override;
 
-	void dragMoveEvent(QDragMoveEvent * event) override;
-
 	bool eventFilter(QObject* target, QEvent* event) override;
 
 private:
