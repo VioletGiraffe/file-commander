@@ -258,14 +258,24 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 	_workerThreadPool.enqueue([this, operation]() {
 		QFileInfoList list;
 
+		bool currentPathIsAccessible = false;
+		QString currentDirPath;
+		
 		{
 			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
-			if (!pathIsAccessible(_currentDirObject.fullAbsolutePath()))
-			{
-				setPath(_currentDirObject.fullAbsolutePath(), operation); // setPath will itself find the closest best folder to set instead
-				return;
-			}
+			currentDirPath = _currentDirObject.fullAbsolutePath();
+			currentPathIsAccessible = pathIsAccessible(currentDirPath);
+		}
+		
+		if (!currentPathIsAccessible)
+		{
+			setPath(currentDirPath, operation); // setPath will itself find the closest best folder to set instead
+			return;
+		}
+		
+		{
+			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
 			list = _currentDirObject.qDir().entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
 			_items.clear();

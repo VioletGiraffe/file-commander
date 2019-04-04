@@ -12,6 +12,10 @@ RESTORE_COMPILER_WARNINGS
 #include <sys/mount.h>
 #include <errno.h>
 
+#ifdef __linux__
+#include <sys/vfs.h> // statfs64
+#endif
+
 inline struct statfs64 volumeInfoForPath(const QString& path)
 {
 	struct statfs64 info;
