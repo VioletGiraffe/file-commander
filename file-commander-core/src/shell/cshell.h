@@ -14,7 +14,7 @@ namespace OsShell
 
 	bool copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
 	bool cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
-	bool pasteFromClipboard(std::wstring destFolder, void * parentWindow);
+	bool pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * parentWindow);
 
 	std::wstring toolTip(std::wstring itemPath);
 

@@ -192,11 +192,11 @@ void CMainWindow::initActions()
 	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::closeAllWindows);
 
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, [this]() {
-		_controller->openTerminal(_currentFileList->currentDir());
+		_controller->openTerminal(_currentFileList->currentDirPathNative());
 	});
 
 	connect(ui->actionOpen_Admin_console_here, &QAction::triggered, [this]() {
-		_controller->openTerminal(_currentFileList->currentDir(), true);
+		_controller->openTerminal(_currentFileList->currentDirPathNative(), true);
 	});
 
 	ui->action_Show_hidden_files->setChecked(CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
@@ -385,14 +385,14 @@ void CMainWindow::copySelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
 		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir());
+		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDirPathNative());
 }
 
 void CMainWindow::moveSelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
 		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDir());
+		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDirPathNative());
 }
 
 void CMainWindow::deleteFiles()
@@ -451,7 +451,7 @@ void CMainWindow::deleteFilesIrrevocably()
 #else
 	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
-		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(items, _otherFileList->currentDir(), this);
+		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(items, _otherFileList->currentDirPathNative(), this);
 		connect(this, &CMainWindow::closed, dialog, &CDeleteProgressDialog::deleteLater);
 		dialog->show();
 	}
@@ -476,7 +476,7 @@ void CMainWindow::createFolder()
 	if (dirName.isEmpty())
 		return;
 
-	const auto result = _controller->createFolder(_currentFileList->currentDir(), toPosixSeparators(dirName));
+	const auto result = _controller->createFolder(_currentFileList->currentDirPathNative(), toPosixSeparators(dirName));
 	if (result == FileOperationResultCode::TargetAlreadyExists)
 		QMessageBox::warning(this, tr("Item already exists"), tr("The folder %1 already exists.").arg(dirName));
 	else if (result != FileOperationResultCode::Ok)
@@ -502,7 +502,7 @@ void CMainWindow::createFile()
 	if (fileName.isEmpty())
 		return;
 
-	const auto result = _controller->createFile(_currentFileList->currentDir(), fileName);
+	const auto result = _controller->createFile(_currentFileList->currentDirPathNative(), fileName);
 	if (result == FileOperationResultCode::TargetAlreadyExists)
 		QMessageBox::warning(this, tr("Item already exists"), tr("The file %1 already exists.").arg(fileName));
 	else if (result != FileOperationResultCode::Ok)
@@ -606,7 +606,7 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 	if (!_currentFileList || commandLineText.isEmpty())
 		return false;
 
-	OsShell::executeShellCommand(commandLineText, _currentFileList->currentDir());
+	OsShell::executeShellCommand(commandLineText, _currentFileList->currentDirPathNative());
 	QTimer::singleShot(0, [=]() {CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
@@ -668,7 +668,7 @@ void CMainWindow::findFiles()
 		for (const auto hash : selectedHashes)
 			selectedPaths.push_back(_controller->activePanel().itemByHash(hash).fullAbsolutePath());
 	else
-		selectedPaths.push_back(_currentFileList->currentDir());
+		selectedPaths.push_back(_currentFileList->currentDirPathNative());
 
 
 	auto fileSearchUi = new CFilesSearchWindow(selectedPaths);

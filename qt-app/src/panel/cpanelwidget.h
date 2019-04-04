@@ -45,7 +45,7 @@ public:
 	QByteArray savePanelGeometry() const;
 	bool restorePanelGeometry(const QByteArray& state);
 
-	QString currentDir() const;
+	QString currentDirPathNative() const;
 
 	Panel panelPosition() const;
 	void setPanelPosition(Panel p);
@@ -112,6 +112,8 @@ private:
 	QModelIndex indexByHash(const qulonglong hash, bool logFailures = false) const;
 
 	void updateCurrentDiskButton();
+
+	bool pasteImage(const QImage& image);
 
 private:
 	CFileListFilterDialog           _filterDialog;

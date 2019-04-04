@@ -274,11 +274,13 @@ bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 
 QString CFileSystemObject::fullAbsolutePath() const
 {
+	assert(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
 	return _properties.fullPath;
 }
 
 QString CFileSystemObject::parentDirPath() const
 {
+	assert(_properties.parentFolder.isEmpty() || _properties.parentFolder.endsWith('/'));
 	return _properties.parentFolder;
 }
 
