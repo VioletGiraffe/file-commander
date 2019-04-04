@@ -9,14 +9,15 @@ SETLOCAL
 
 RMDIR /S /Q binaries\
 
-call "%VS_TOOLS_DIR%..\..\VC\vcvarsall.bat" x86
+call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.17134.0
 
 REM X86
 pushd ..\..\
 %QTDIR32%\bin\qmake.exe -tp vc -r
 popd
 
-msbuild ..\..\file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v140;Platform="Win32"
+msbuild ../../file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v141;Platform="Win32"
+if not %errorlevel% == 0 goto build_fail
 
 xcopy /R /Y ..\..\bin\release\x86\FileCommander.exe binaries\32\
 xcopy /R /Y ..\..\bin\release\x86\plugin_*.dll binaries\32\
@@ -30,7 +31,9 @@ ENDLOCAL
 
 xcopy /R /Y %SystemRoot%\SysWOW64\msvcp140.dll binaries\32\msvcr\
 xcopy /R /Y %SystemRoot%\SysWOW64\vcruntime140.dll binaries\32\msvcr\
+
 xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x86\*" binaries\32\msvcr\
+if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\32\Qt\opengl*.*
 
@@ -38,14 +41,15 @@ ENDLOCAL
 
 SETLOCAL
 
-call "%VS_TOOLS_DIR%..\..\VC\vcvarsall.bat" amd64
+call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.17134.0
 
 REM X64
 pushd ..\..\
 %QTDIR64%\bin\qmake.exe -tp vc -r
 popd
 
-msbuild ..\..\file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v140;Platform="x64"
+msbuild ../../file-commander.sln /t:Build /p:Configuration=Release;Platform="x64";PlatformToolset=v141
+if not %errorlevel% == 0 goto build_fail
 
 xcopy /R /Y ..\..\bin\release\x64\FileCommander.exe binaries\64\
 xcopy /R /Y ..\..\bin\release\x64\plugin_*.dll binaries\64\
@@ -59,10 +63,25 @@ ENDLOCAL
 
 xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\
 xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\
+
 xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x64\*" binaries\64\msvcr\
+if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\64\Qt\opengl*.*
 
 "c:\Program Files (x86)\Inno Setup 5\iscc" setup.iss
 
 ENDLOCAL
+exit /b 0
+
+:build_fail
+ENDLOCAL
+echo Build failed
+pause
+exit /b 1
+
+:windows_sdk_not_found
+ENDLOCAL
+echo Windows SDK not found (required for CRT DLLs)
+pause
+exit /b 1
