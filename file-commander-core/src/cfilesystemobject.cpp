@@ -16,6 +16,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
+#include <assert.h>
 #include <errno.h>
 
 #if defined __linux__ || defined __APPLE__
