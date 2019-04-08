@@ -4,6 +4,7 @@
 #include "directoryscanner.h"
 #include "threading/thread_helpers.h"
 #include "utility/on_scope_exit.hpp"
+#include "utility/integer_literals.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
@@ -712,7 +713,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		const float totalPercentage = totalSize > 0 ? actualSizeProcessed * 100.0f / totalSize : 0.0f; // Bytes
 		const float filePercentage = item.size() > 0 ? itemManipulator.bytesCopied() * 100.0f / item.size() : 0.0f;
 
-		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * actualSizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1ULL); // Bytes / sec
+		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * actualSizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1_u64); // Bytes / sec
 		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / meanSpeed);
 		if (_observer) _observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
 
