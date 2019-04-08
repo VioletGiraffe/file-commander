@@ -14,7 +14,7 @@ RESTORE_COMPILER_WARNINGS
 class ApplicationEventFilter : public QObject
 {
 public:
-	inline ApplicationEventFilter(QObject* parent) : QObject(parent) {}
+	inline explicit ApplicationEventFilter(QObject* parent) : QObject(parent) {}
 
 	inline bool eventFilter(QObject * /*receiver*/, QEvent * e) override
 	{
@@ -35,7 +35,7 @@ public:
 
 struct NativeEventFilter : public QAbstractNativeEventFilter
 {
-	inline NativeEventFilter(CMainWindow& mainApplicationWindow) : _mainWindow(mainApplicationWindow) {}
+	inline explicit NativeEventFilter(CMainWindow& mainApplicationWindow) : _mainWindow(mainApplicationWindow) {}
 
 	inline bool nativeEventFilter(const QByteArray & /*eventType*/, void * /*message*/, long * /*result*/) override {
 		if (!_mainWindowInited)
