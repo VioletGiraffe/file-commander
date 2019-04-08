@@ -1,5 +1,6 @@
 # FILE COMMANDER
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/93f0faeea18f49e1a161b4b77d52bc89)](https://app.codacy.com/app/VioletGiraffe/file-commander?utm_source=github.com&utm_medium=referral&utm_content=VioletGiraffe/file-commander&utm_campaign=Badge_Grade_Dashboard)
 [![Join the chat at https://gitter.im/File-Commander/Lobby](https://badges.gitter.im/File-Commander/Lobby.svg)](https://gitter.im/File-Commander/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
    Cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems. 
