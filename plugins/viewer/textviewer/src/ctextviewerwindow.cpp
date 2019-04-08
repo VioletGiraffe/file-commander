@@ -1,6 +1,7 @@
 #include "ctextviewerwindow.h"
 #include "ctextencodingdetector.h"
 #include "widgets/cpersistentwindow.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
@@ -28,27 +29,28 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	_textBrowser.setWordWrapMode(QTextOption::NoWrap);
 	_textBrowser.setTabStopWidth(4 * _textBrowser.fontMetrics().width(' '));
 
-	connect(actionOpen, &QAction::triggered, [this]() {
+	assert_r(connect(actionOpen, &QAction::triggered, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
 		if (!fileName.isEmpty())
 			loadTextFile(fileName);
-	});
-	connect(actionReload, &QAction::triggered, [this]() {
+	}));
+
+	assert_r(connect(actionReload, &QAction::triggered, [this]() {
 		loadTextFile(_sourceFilePath);
-	});
-	connect(actionClose, &QAction::triggered, this, &QDialog::close);
+	}));
+	assert_r(connect(actionClose, &QAction::triggered, this, &QDialog::close));
 
-	connect(actionFind, &QAction::triggered, [this]() {
+	assert_r(connect(actionFind, &QAction::triggered, [this]() {
 		_findDialog.exec();
-	});
-	connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext);
+	}));
+	assert_r(connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext));
 
-	connect(actionAuto_detect_encoding, &QAction::triggered, this, &CTextViewerWindow::asDetectedAutomatically);
-	connect(actionASCII_Windows_1252, &QAction::triggered, this, &CTextViewerWindow::asAscii);
-	connect(actionSystemLocale, &QAction::triggered, this, &CTextViewerWindow::asSystemDefault);
-	connect(actionUTF_8, &QAction::triggered, this, &CTextViewerWindow::asUtf8);
-	connect(actionUTF_16, &QAction::triggered, this, &CTextViewerWindow::asUtf16);
-	connect(actionHTML_RTF, &QAction::triggered, this, &CTextViewerWindow::asRichText);
+	assert_r(connect(actionAuto_detect_encoding, &QAction::triggered, this, &CTextViewerWindow::asDetectedAutomatically));
+	assert_r(connect(actionASCII_Windows_1252, &QAction::triggered, this, &CTextViewerWindow::asAscii));
+	assert_r(connect(actionSystemLocale, &QAction::triggered, this, &CTextViewerWindow::asSystemDefault));
+	assert_r(connect(actionUTF_8, &QAction::triggered, this, &CTextViewerWindow::asUtf8));
+	assert_r(connect(actionUTF_16, &QAction::triggered, this, &CTextViewerWindow::asUtf16));
+	assert_r(connect(actionHTML_RTF, &QAction::triggered, this, &CTextViewerWindow::asRichText));
 
 	QActionGroup * group = new QActionGroup(this);
 	group->addAction(actionASCII_Windows_1252);
@@ -57,11 +59,11 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	group->addAction(actionUTF_16);
 	group->addAction(actionHTML_RTF);
 
-	connect(&_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find);
-	connect(&_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext);
+	assert_r(connect(&_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find));
+	assert_r(connect(&_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
-	connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater);
+	assert_r(connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater));
 
 	_encodingLabel = new QLabel(this);
 	QMainWindow::statusBar()->addWidget(_encodingLabel);
