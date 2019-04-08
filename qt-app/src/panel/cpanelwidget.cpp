@@ -115,7 +115,7 @@ bool CPanelWidget::restorePanelGeometry(const QByteArray& state)
 	return ui->_list->header()->restoreGeometry(state);
 }
 
-QString CPanelWidget::currentDir() const
+QString CPanelWidget::currentDirPathNative() const
 {
 	return _controller->panel(_panelPosition).currentDirPathNative();
 }
@@ -401,7 +401,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 {
 	// This doesn't let the user select the [..] item
 
-	const QString cdUpPath = CFileSystemObject(currentDir()).parentDirPath();
+	const QString cdUpPath = CFileSystemObject(currentDirPathNative()).parentDirPath();
 	for (auto&& indexRange: selected)
 	{
 		auto indexList = indexRange.indexes();
@@ -495,7 +495,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 			{
 				QAction * action = parentMenu->addAction(item.displayName);
 				const QString& path = toPosixSeparators(item.absolutePath);
-				if (CFileSystemObject(path) == CFileSystemObject(currentDir()))
+				if (CFileSystemObject(path) == CFileSystemObject(currentDirPathNative()))
 				{
 					action->setCheckable(true);
 					action->setChecked(true);
@@ -517,7 +517,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 
 		QAction * addFolderAction = parentMenu->addAction(tr("Add current folder here..."));
 		QObject::connect(addFolderAction, &QAction::triggered, [this, &locations](){
-			const QString path = currentDir();
+			const QString path = currentDirPathNative();
 			const QString displayName = CFileSystemObject(path).name();
 			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name to store the current location under"), QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
 			if (!name.isEmpty() && !path.isEmpty())
@@ -533,7 +533,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 					return;
 				}
 
-				_controller->favoriteLocations().addItem(locations, name, currentDir());
+				_controller->favoriteLocations().addItem(locations, name, currentDirPathNative());
 			}
 		});
 
@@ -661,8 +661,16 @@ void CPanelWidget::cutSelectionToClipboard() const
 
 void CPanelWidget::pasteSelectionFromClipboard()
 {
-#ifndef _WIN32
 	QClipboard * clipBoard = QApplication::clipboard();
+	// If the clipboard contains an image (not a file), paste it into a file
+	if (clipBoard && clipBoard->mimeData()->hasImage())
+	{
+		QImage image = qvariant_cast<QImage>(clipBoard->mimeData()->imageData());
+		if (!image.isNull())
+			assert_r(pasteImage(image));
+	}
+
+#ifndef _WIN32
 	if (clipBoard)
 	{
 		const QMimeData * data = clipBoard->mimeData();
@@ -670,9 +678,9 @@ void CPanelWidget::pasteSelectionFromClipboard()
 	}
 #else
 	auto hwnd = (void*)winId();
-	const auto currentDirWString = currentDir().toStdWString();
+	const auto currentDirWString = currentDirPathNative().toStdWString();
 	_controller->execOnWorkerThread([=]() {
-		OsShell::pasteFromClipboard(currentDirWString, hwnd);
+		OsShell::pasteFilesAndFoldersFromClipboard(currentDirWString, hwnd);
 	});
 #endif
 }
@@ -827,7 +835,7 @@ QModelIndex CPanelWidget::indexByHash(const qulonglong hash, bool logFailures) c
 	}
 
 	if (logFailures)
-		qInfo() << "Failed to find hash" << hash << "in" << currentDir();
+		qInfo() << "Failed to find hash" << hash << "in" << currentDirPathNative();
 
 	return {};
 }
@@ -969,4 +977,18 @@ void CPanelWidget::updateCurrentDiskButton()
 			return;
 		}
 	}
+}
+
+bool CPanelWidget::pasteImage(const QImage& image)
+{
+	const QString currentDirPath = currentDirPathNative();
+	assert(currentDirPath.endsWith(nativeSeparator()));
+
+	QString imagePath = currentDirPath + "clipboard.png";
+	for (int i = 1; CFileSystemObject{ imagePath }.exists(); ++i)
+	{
+		imagePath = currentDirPath + "clipboard(" + QString::number(i) + ").png";
+	}
+
+	return image.save(imagePath, "png");
 }

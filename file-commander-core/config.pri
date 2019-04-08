@@ -31,6 +31,7 @@ android {
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /wd4251
+	QMAKE_CXXFLAGS += /std:c++17 /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX _SCL_SECURE_NO_WARNINGS
 

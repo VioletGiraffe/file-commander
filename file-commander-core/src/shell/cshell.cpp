@@ -234,7 +234,7 @@ bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, vo
 	return SUCCEEDED(result);
 }
 
-bool OsShell::pasteFromClipboard(std::wstring destFolder, void * parentWindow)
+bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * parentWindow)
 {
 	ComInitializer comInitializer;
 

@@ -16,6 +16,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
+#include <assert.h>
 #include <errno.h>
 
 #if defined __linux__ || defined __APPLE__
@@ -274,11 +275,13 @@ bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
 
 QString CFileSystemObject::fullAbsolutePath() const
 {
+	assert(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
 	return _properties.fullPath;
 }
 
 QString CFileSystemObject::parentDirPath() const
 {
+	assert(_properties.parentFolder.isEmpty() || _properties.parentFolder.endsWith('/'));
 	return _properties.parentFolder;
 }
 

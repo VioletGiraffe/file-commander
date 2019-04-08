@@ -193,3 +193,5 @@ Makefile.Release
 .qmake.stash
 *.dmg
 .DS_Store
+
+*.8-pre1
