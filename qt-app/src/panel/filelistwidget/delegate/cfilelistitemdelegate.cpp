@@ -33,9 +33,12 @@ void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & 
 		const QString itemName = lineEditor->text();
 		const int dot = itemName.lastIndexOf('.');
 		if (dot != -1)
-			QTimer::singleShot(0, [=]() {
-			lineEditor->setSelection(0, dot);
-		});
+		{
+			
+			QTimer::singleShot(0, Qt::CoarseTimer, lineEditor, [=]() {
+				lineEditor->setSelection(0, dot);
+			});
+		}
 	}
 }
 
