@@ -23,7 +23,7 @@ configuration:
 install:
 - git submodule update --init --recursive --depth 5
 - set PATH=C:\Qt\%qt%\bin;%PATH%;
-- IF "%VS_VERSION%" == "2017" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat x64" && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r)
+- IF "%VS_VERSION%" == "2017" (call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat x64" && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r)
 - IF "%VS_VERSION%" == "2015" (IF "%BUILD_ARCH%" == "x64" (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" amd64 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r) ELSE (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x86 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r))
 - cd ..\..\
 
