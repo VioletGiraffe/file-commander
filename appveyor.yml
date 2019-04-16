@@ -23,14 +23,20 @@ configuration:
 install:
 - git submodule update --init --recursive --depth 5
 - set PATH=C:\Qt\%qt%\bin;%PATH%;
-- IF "%VS_VERSION%" == "2017" (call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat" && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r)
+- dir "C:\Program Files (x86)\Windows Kits\10\include\"
+- IF "%VS_VERSION%" == "2017" (call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 10.0.17134.0 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r)
+- IF "%VS_VERSION%" == "2015" (IF "%BUILD_ARCH%" == "x64" (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" amd64 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r) ELSE (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x86 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r))
+- cd file-commander-core\core-tests\
+- IF "%VS_VERSION%" == "2017" (call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 10.0.17134.0 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r)
 - IF "%VS_VERSION%" == "2015" (IF "%BUILD_ARCH%" == "x64" (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" amd64 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r) ELSE (call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x86 && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r))
 - cd ..\..\
 
 build_script:
- - msbuild file-commander.sln /t:Build /p:Configuration=Release
+ - IF "%VS_VERSION%" == "2017" (msbuild file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v141)
+ - IF "%VS_VERSION%" == "2015" (msbuild file-commander.sln /t:Build /p:Configuration=Release)
  - cd file-commander-core\core-tests\
- - msbuild /t:Build /p:Configuration=Release
+ - IF "%VS_VERSION%" == "2017" (msbuild /t:Build /p:Configuration=Release;PlatformToolset=v141)
+ - IF "%VS_VERSION%" == "2015" (msbuild /t:Build /p:Configuration=Release)
  - cd ..\..\
 
 after_build:
