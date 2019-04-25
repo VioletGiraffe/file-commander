@@ -2,7 +2,7 @@ TEMPLATE = lib
 TARGET   = plugin_filecomparison
 
 QT = core gui widgets
-CONFIG += strict_c++ c++14
+CONFIG += strict_c++ c++17
 
 mac* | linux*{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
