@@ -8,6 +8,8 @@ matrix:
     - os: linux
       dist: xenial
       compiler: gcc
+      services:
+        - xvfb
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
@@ -52,6 +54,9 @@ script:
 
   # Linux: deploying Qt binaries
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/FileCommander -bundle-non-qt-libs; fi
+
+# Test launch
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/FileCommander --test-launch; else ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch; fi
 
   # Building tests
   - cd file-commander-core/core-tests
