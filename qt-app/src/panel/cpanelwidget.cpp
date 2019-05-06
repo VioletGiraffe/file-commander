@@ -12,7 +12,7 @@
 #include "filesystemhelperfunctions.h"
 #include "progressdialogs/ccopymovedialog.h"
 #include "cfilemanipulator.h"
-#include "directorycompleter.h"
+#include "directorycompleter/cdirectorycompleter.h"
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "settings.h"
@@ -52,7 +52,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	ui->_driveInfoLabel->clear();
 
 	ui->_pathNavigator->setLineEdit(new CLineEdit);
-    ui->_pathNavigator->setCompleter(new DirectoryCompleter());
+	ui->_pathNavigator->setCompleter(new CDirectoryCompleter(ui->_pathNavigator));
 	ui->_pathNavigator->setHistoryMode(true);
 	ui->_pathNavigator->installEventFilter(this);
 	connect(ui->_pathNavigator, static_cast<void (CHistoryComboBox::*) (const QString&)>(&CHistoryComboBox::activated), this, &CPanelWidget::pathFromHistoryActivated);

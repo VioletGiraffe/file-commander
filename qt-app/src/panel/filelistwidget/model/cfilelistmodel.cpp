@@ -15,8 +15,7 @@ RESTORE_COMPILER_WARNINGS
 CFileListModel::CFileListModel(QTreeView * treeView, QObject *parent) :
 	QStandardItemModel(0, NumberOfColumns, parent),
 	_controller(CController::get()),
-	_tree(treeView),
-	_panel(UnknownPanel)
+	_tree(treeView)
 {
 }
 
@@ -45,7 +44,7 @@ QVariant CFileListModel::data(const QModelIndex & index, int role /*= Qt::Displa
 			return QString();
 
 		const CFileSystemObject item = _controller.itemByHash(_panel, itemHash(index));
-		return QString(item.fullName() % "\n\n" % QString::fromStdWString(OsShell::toolTip(item.fullAbsolutePath().toStdWString())));
+		return static_cast<QString>(item.fullName() % "\n\n" % QString::fromStdWString(OsShell::toolTip(item.fullAbsolutePath().toStdWString())));
 	}
 	else if (role == Qt::EditRole)
 	{

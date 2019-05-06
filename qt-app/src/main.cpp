@@ -1,7 +1,6 @@
 #include "cmainwindow.h"
 #include "settings/csettings.h"
 #include "iconprovider/ciconprovider.h"
-#include "directoryscanner.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QAbstractNativeEventFilter>

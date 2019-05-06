@@ -40,6 +40,6 @@ signals:
 
 private:
 	CController & _controller;
-	QTreeView   * _tree;
-	Panel         _panel;
+	QTreeView   * _tree = nullptr;
+	Panel         _panel = UnknownPanel;
 };
