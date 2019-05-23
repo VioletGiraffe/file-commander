@@ -22,7 +22,7 @@ CFileManipulator::CFileManipulator(const CFileSystemObject& object) : _object(ob
 {
 }
 
-FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName, bool copyPermissions)
+FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName, bool transferPermissions)
 {
 	assert_r(_object.isFile());
 	assert_r(QFileInfo{destFolder}.isDir());
@@ -32,12 +32,10 @@ FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFold
 	bool succ = file.copy(newFilePath);
 	if (succ)
 	{
-		if (copyPermissions)
+		if (transferPermissions)
 		{
-			QFile newFile{newFilePath};
-			succ = newFile.setPermissions(file.permissions()); // TODO: benchmark against the static version QFile::setPermissions(filePath, permissions)
-			if (!succ)
-				_lastErrorMessage = newFile.errorString();
+			_lastErrorMessage = copyPermissions(file, newFilePath);
+			succ = _lastErrorMessage.isEmpty();
 		}
 	}
 	else
@@ -45,7 +43,6 @@ FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFold
 
 	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
-
 
 FileOperationResultCode CFileManipulator::moveAtomically(const QString& location, const QString& newName)
 {
@@ -109,7 +106,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const CFileSystemObject
 // Non-blocking file copy API
 
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/)
+FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, bool transferPermissions)
 {
 	assert_r(bool(_thisFile) == bool(_destFile));
 	assert_r(_object.isFile());
@@ -177,17 +174,24 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			return FileOperationResultCode::Fail;
 		}
 
-		memcpy(dest, src, actualChunkSize);
+		::memcpy(dest, src, actualChunkSize);
 		_pos += actualChunkSize;
 
 		_thisFile->unmap(src);
 		_destFile->unmap(dest);
 	}
 
-	if (actualChunkSize < chunkSize || actualChunkSize == 0)
+	if (actualChunkSize < chunkSize)
 	{
+		// Copying complete
+		if (transferPermissions)
+			_lastErrorMessage = copyPermissions(*_thisFile, *_destFile);
+
 		_thisFile.reset();
 		_destFile.reset();
+
+		if (transferPermissions && !_lastErrorMessage.isEmpty())
+			return FileOperationResultCode::Fail;
 	}
 
 	return FileOperationResultCode::Ok;
@@ -239,7 +243,7 @@ bool CFileManipulator::makeWritable(bool writable)
 		return false;
 	}
 
-	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writable ? (attributes & (~FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
+	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writable ? (attributes & (~(uint32_t)FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
 	{
 		_lastErrorMessage = ErrorStringFromLastError();
 		return false;
@@ -319,3 +323,16 @@ QString CFileManipulator::lastErrorMessage() const
 	return _lastErrorMessage;
 }
 
+QString CFileManipulator::copyPermissions(const QFile &sourceFile, QFile &destinationFile)
+{
+	if (!destinationFile.setPermissions(sourceFile.permissions())) // TODO: benchmark against the static version QFile::setPermissions(filePath, permissions)
+		return destinationFile.errorString();
+	else
+		return {};
+}
+
+QString CFileManipulator::copyPermissions(const QFile &sourceFile, const QString &destinationFilePath)
+{
+	QFile destinationFile {destinationFilePath};
+	return copyPermissions(sourceFile, destinationFile);
+}

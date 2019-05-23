@@ -726,6 +726,8 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		}
 	} while (itemManipulator.copyOperationInProgress());
 
+
+
 	if (result != FileOperationResultCode::Ok)
 	{
 		itemManipulator.cancelCopy();
