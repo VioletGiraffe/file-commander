@@ -22,15 +22,27 @@ CFileManipulator::CFileManipulator(const CFileSystemObject& object) : _object(ob
 {
 }
 
-FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName)
+FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName, bool copyPermissions)
 {
 	assert_r(_object.isFile());
-	assert_r(QFileInfo(destFolder).isDir());
+	assert_r(QFileInfo{destFolder}.isDir());
 
-	QFile file (_object.fullAbsolutePath());
-	const bool succ = file.copy(destFolder + (newName.isEmpty() ? _object.fullName() : newName));
-	if (!succ)
+	QFile file(_object.fullAbsolutePath());
+	const QString newFilePath = destFolder + (newName.isEmpty() ? _object.fullName() : newName);
+	bool succ = file.copy(newFilePath);
+	if (succ)
+	{
+		if (copyPermissions)
+		{
+			QFile newFile{newFilePath};
+			succ = newFile.setPermissions(file.permissions()); // TODO: benchmark against the static version QFile::setPermissions(filePath, permissions)
+			if (!succ)
+				_lastErrorMessage = newFile.errorString();
+		}
+	}
+	else
 		_lastErrorMessage = file.errorString();
+
 	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
 

@@ -19,7 +19,7 @@ public:
 	explicit CFileManipulator(const CFileSystemObject& object);
 
 // Operations
-	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = QString());
+	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = QString(), bool copyPermissions = true);
 	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = QString());
 
 	static FileOperationResultCode copyAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());
