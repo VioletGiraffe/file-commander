@@ -297,7 +297,7 @@ FileOperationResultCode CFileManipulator::remove()
 		errno = 0;
 		if (!dir.rmdir("."))
 		{
-#if defined __linux || defined __APPLE__
+#if defined __linux || defined __APPLE__ || defined __FreeBSD__
 //			dir.cdUp();
 //			bool succ = dir.remove(_fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1));
 //			qInfo() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();

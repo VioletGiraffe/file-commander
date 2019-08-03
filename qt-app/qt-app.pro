@@ -6,7 +6,7 @@ win*:QT += winextras
 
 CONFIG += strict_c++ c++14
 
-mac* | linux*{
+mac* | linux* | freebsd{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
 	CONFIG(debug, debug|release):CONFIG *= Debug
 }
@@ -143,7 +143,7 @@ mac*{
 	QMAKE_POST_LINK = cp -f -p $$PWD/$$DESTDIR/*.dylib $$PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
 }
 
-linux*|mac*{
+linux*|mac*|freebsd{
 	HEADERS += src/panel/filelistwidget/cfocusframestyle.h
 	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
 
@@ -158,14 +158,14 @@ win32*:!*msvc2012:*msvc* {
 }
 
 
-mac*|linux*{
+mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libcore.a
 }
 
 RESOURCES += \
 	resources/app-resources.qrc
 
-linux*{
+linux*|freebsd{
 	#Installation
 
 	isEmpty(PREFIX) {

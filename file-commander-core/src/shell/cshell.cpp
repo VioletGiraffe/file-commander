@@ -27,7 +27,7 @@ QString OsShell::shellExecutable()
 	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
 #elif defined __APPLE__
 	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
-#elif defined __linux__
+#elif defined __linux__ || defined __FreeBSD__
 	const QString consoleExecutable = CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME).toString();
 	if (QFileInfo(consoleExecutable).exists())
 		return consoleExecutable;
@@ -35,7 +35,11 @@ QString OsShell::shellExecutable()
 	static const std::vector<QString> knownTerminals = {
 		"/usr/bin/konsole", // KDE
 		"/usr/bin/gnome-terminal", // Gnome
-		"/usr/bin/pantheon-terminal" // Pantheon (Elementary OS)
+		"/usr/bin/pantheon-terminal", // Pantheon (Elementary OS)
+		"/usr/bin/qterminal", // QTerminal under linux
+		"/usr/local/bin/qterminal", // QTerminal under freebsd
+		"/usr/bin/qterminal", // QTerminal under linux
+		
 	};
 
 	for (const auto& candidate: knownTerminals)
@@ -464,8 +468,8 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 		return false;
 	return (SUCCEEDED(imenu->QueryContextMenu(hmenu, 0, 1, 0x7FFF, CMF_NORMAL)));
 }
-
-#elif defined __linux__
+@s
+#elif defined __linux__ || __FreeBSD__
 
 bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
 {

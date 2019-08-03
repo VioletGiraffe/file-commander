@@ -254,7 +254,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 {
 #if defined __APPLE__
 	system(QString("osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd %1\\\"\"").arg(folder).toUtf8().data());
-#elif defined __linux__ || defined _WIN32
+#elif defined __linux__ || __FreeBSD__ || defined _WIN32
 	if (!admin)
 	{
 		const bool started = OsShell::runExecutable(OsShell::shellExecutable(), QString(), folder);

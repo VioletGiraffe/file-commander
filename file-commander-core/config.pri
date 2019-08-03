@@ -4,8 +4,7 @@ win*:QT += winextras
 CONFIG += staticlib
 
 CONFIG += strict_c++ c++17
-
-mac* | linux*{
+mac* | linux*|freebsd{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
 	CONFIG(debug, debug|release):CONFIG *= Debug
 }
@@ -45,7 +44,7 @@ win*{
 	}
 }
 
-mac* | linux* {
+mac* | linux* | freebsd {
 	QMAKE_CFLAGS   += -pedantic-errors -std=c99
 	QMAKE_CXXFLAGS += -pedantic-errors
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register

@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined __linux__ || defined __APPLE__
+#if defined __linux__ || defined __APPLE__ || defined __FreeBSD__
 
 #include "compiler/compiler_warnings_control.h"
 
@@ -14,6 +14,8 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef __linux__
 #include <sys/vfs.h> // statfs64
+#elif defined __FreeBSD__
+#define statfs64 statfs
 #endif
 
 inline struct statfs64 volumeInfoForPath(const QString& path)
