@@ -468,7 +468,7 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 		return false;
 	return (SUCCEEDED(imenu->QueryContextMenu(hmenu, 0, 1, 0x7FFF, CMF_NORMAL)));
 }
-@s
+
 #elif defined __linux__ || __FreeBSD__
 
 bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
