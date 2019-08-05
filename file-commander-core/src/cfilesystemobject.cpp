@@ -19,7 +19,7 @@ RESTORE_COMPILER_WARNINGS
 #include <assert.h>
 #include <errno.h>
 
-#if defined __linux__ || defined __APPLE__
+#if defined __linux__ || defined __APPLE__ || defined __FreeBSD__
 #include <unistd.h>
 #include <sys/stat.h>
 #include <wordexp.h>

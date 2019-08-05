@@ -88,6 +88,8 @@ inline bool caseSensitiveFilesystem()
 	return false;
 #elif defined __linux__
 	return true;
+#elif defined __FreeBSD__
+	return true;
 #else
 #error "Unknown operating system"
 	return true;
