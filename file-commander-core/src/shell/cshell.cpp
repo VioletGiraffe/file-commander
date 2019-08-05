@@ -38,8 +38,7 @@ QString OsShell::shellExecutable()
 		"/usr/bin/pantheon-terminal", // Pantheon (Elementary OS)
 		"/usr/bin/qterminal", // QTerminal under linux
 		"/usr/local/bin/qterminal", // QTerminal under freebsd
-		"/usr/bin/qterminal", // QTerminal under linux
-		
+		"/usr/bin/qterminal", // QTerminal under linux	
 	};
 
 	for (const auto& candidate: knownTerminals)
