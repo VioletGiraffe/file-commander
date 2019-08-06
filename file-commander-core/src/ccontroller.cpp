@@ -86,7 +86,6 @@ int CController::tabCreated(Panel /*p*/)
 // Removes a tab for the specified panel and tab ID
 void CController::tabRemoved(Panel /*panel*/, int /*tabId*/)
 {
-
 }
 
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any

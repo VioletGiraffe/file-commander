@@ -481,7 +481,6 @@ void CMainWindow::createFolder()
 		QMessageBox::warning(this, tr("Item already exists"), tr("The folder %1 already exists.").arg(dirName));
 	else if (result != FileOperationResultCode::Ok)
 		QMessageBox::warning(this, tr("Failed to create item"), tr("Failed to create the folder %1").arg(dirName));
-
 }
 
 void CMainWindow::createFile()

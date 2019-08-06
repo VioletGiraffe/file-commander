@@ -71,7 +71,6 @@ TEST_CASE("CFileComparator identical files tests", "[CFileComparator]")
 
 TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 {
-
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_XXXXXX");
 	CRandomDataGenerator gen;
 	gen.setSeed(g_randomSeed);

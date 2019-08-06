@@ -25,7 +25,6 @@ CFileListView::CFileListView(QWidget *parent) :
 	setMouseTracking(true);
 	setItemDelegate(new CFileListItemDelegate);
 	connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
-
 		_currentItemBeforeMouseClick = QModelIndex();
 		_singleMouseClickValid = false;
 
@@ -241,7 +240,6 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 							break;
 					}
 				}
-
 		}
 		else if (modifiers == Qt::ControlModifier)
 			emit ctrlEnterPressed();

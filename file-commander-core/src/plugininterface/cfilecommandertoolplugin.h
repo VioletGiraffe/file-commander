@@ -16,5 +16,4 @@ public:
 	CFileCommanderToolPlugin() = default;
 
 	PluginType type() override;
-
 };

@@ -1,5 +1,4 @@
-#ifndef CSETTINGSPAGEOTHER_H
-#define CSETTINGSPAGEOTHER_H
+#pragma once
 
 #include "settingsui/csettingspage.h"
 
@@ -13,10 +12,8 @@ public:
 	explicit CSettingsPageOther(QWidget *parent = 0);
 	~CSettingsPageOther();
 
-	virtual void acceptSettings() override;
+	void acceptSettings() override;
 
 private:
 	Ui::CSettingsPageOther *ui;
 };
-
-#endif // CSETTINGSPAGEOTHER_H

@@ -105,5 +105,4 @@ void CFindDialog::saveSearchSettings() const
 	s.setValue(_settingsRootCategory + SETTINGS_CASE_SENSITIVE, caseSensitive());
 	s.setValue(_settingsRootCategory + SETTINGS_REGEX, regex());
 	s.setValue(_settingsRootCategory + SETTINGS_WHOLE_WORDS, wholeWords());
-
 }

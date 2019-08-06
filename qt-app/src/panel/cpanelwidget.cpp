@@ -503,7 +503,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 					action->setChecked(true);
 				}
 
-				QObject::connect(action, &QAction::triggered, [this, path](){
+				connect(action, &QAction::triggered, this, [this, path](){
 					_controller->setPath(_panelPosition, path, refreshCauseOther);
 				});
 			}
@@ -697,7 +697,6 @@ void CPanelWidget::pathFromHistoryActivated(QString path)
 
 void CPanelWidget::openSearchWindow()
 {
-
 }
 
 void CPanelWidget::fillHistory()

@@ -497,7 +497,6 @@ void COperationPerformer::deleteFiles()
 			continue;
 		}
 	}
-
 }
 
 void COperationPerformer::finalize()

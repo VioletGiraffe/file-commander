@@ -114,7 +114,6 @@ void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 						});
 					}
 				}
-
 			}, _workerThread.terminationFlag());
 		}
 
