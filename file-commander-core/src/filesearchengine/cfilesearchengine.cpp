@@ -44,7 +44,6 @@ void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		return;
 
 	_workerThread.exec([this, what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive](){
-
 		uint64_t itemCounter = 0;
 		CTimeElapsed timer;
 		timer.start();
