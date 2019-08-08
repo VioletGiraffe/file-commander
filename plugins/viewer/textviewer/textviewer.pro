@@ -4,7 +4,7 @@ TARGET   = plugin_textviewer
 QT = core gui widgets
 win*: QT += winextras
 
-CONFIG += strict_c++ c++14
+CONFIG += strict_c++ c++17
 
 mac* | linux* | freebsd{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
