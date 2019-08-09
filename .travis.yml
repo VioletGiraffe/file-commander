@@ -1,5 +1,8 @@
 language: cpp
 
+git:
+  depth: false
+
 addons:
   sonarcloud:
     organization: "violetgiraffe"
