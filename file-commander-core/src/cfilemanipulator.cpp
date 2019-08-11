@@ -55,10 +55,12 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 	const QString fullNewName = location % '/' % (newName.isEmpty() ? _object.fullName() : newName);
 	const CFileSystemObject destInfo(fullNewName);
 	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(_object.fullAbsolutePath(), Qt::CaseInsensitive) == 0;
-	if (destInfo.exists() && (_object.isDir() || destInfo.isFile()))
+	if ((caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase) && destInfo.exists())
+	{
 		// If the file system is case-insensitive, and the source and destination only differ by case, renaming is allowed even though formally the destination already exists (fix for #102)
-		if (caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase)
+		if (_object.isDir() || destInfo.isFile())
 			return FileOperationResultCode::TargetAlreadyExists;
+	}
 
 	// Special case for Windows, where QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
 #ifdef _WIN32
@@ -298,11 +300,7 @@ FileOperationResultCode CFileManipulator::remove()
 		if (!dir.rmdir("."))
 		{
 #if defined __linux || defined __APPLE__ || defined __FreeBSD__
-//			dir.cdUp();
-//			bool succ = dir.remove(_fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1));
-//			qInfo() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();
 			return ::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == -1 ? FileOperationResultCode::Fail : FileOperationResultCode::Ok;
-//			return rcFail;
 #else
 			return FileOperationResultCode::Fail;
 #endif

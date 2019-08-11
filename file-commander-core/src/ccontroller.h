@@ -7,7 +7,7 @@
 #include "favoritelocationslist/cfavoritelocations.h"
 #include "filesearchengine/cfilesearchengine.h"
 
-class CController : private CVolumeEnumerator::IVolumeListObserver
+class CController : public CVolumeEnumerator::IVolumeListObserver
 {
 public:
 	// Volume list observer interface
@@ -120,7 +120,8 @@ private:
 	static CController * _instance;
 	CFavoriteLocations   _favoriteLocations;
 	CFileSearchEngine    _fileSearchEngine;
-	CPanel               _leftPanel, _rightPanel;
+	CPanel               _leftPanel;
+	CPanel               _rightPanel;
 	CPluginProxy         _pluginProxy;
 	CVolumeEnumerator    _volumeEnumerator;
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;

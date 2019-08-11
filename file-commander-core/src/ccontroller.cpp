@@ -87,6 +87,7 @@ int CController::tabCreated(Panel /*p*/)
 // Removes a tab for the specified panel and tab ID
 void CController::tabRemoved(Panel /*panel*/, int /*tabId*/)
 {
+	// Tabs not yet implemented
 }
 
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any
@@ -191,7 +192,8 @@ FileOperationResultCode CController::createFolder(const QString &parentFolder, c
 
 	const auto currentItemHash = currentItemHashForFolder(_activePanel, parentDir.absolutePath());
 
-	if (parentDir.absolutePath() == activePanel().currentDirObject().qDir().absolutePath())
+	// Comparing with CFileSystemObject{parentFolder} instead of parentDir to avoid potential slash direction and trailing slash issues for paths coming from different APIs
+	if (CFileSystemObject{parentFolder}.fullAbsolutePath() == activePanel().currentDirObject().fullAbsolutePath())
 	{
 		const int slashPosition = name.indexOf('/');
 		// The trailing slash is required in order for the hash to match the hash of the item once it will be created: existing folders always have a trailing hash
@@ -274,7 +276,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 #endif
 	}
 #else
-	#error unknown platform
+#error unknown platform
 #endif
 
 	Q_UNUSED(admin);

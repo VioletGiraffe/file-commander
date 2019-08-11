@@ -10,7 +10,6 @@
 |---	|---	|---	|
 |[![Build status](https://ci.appveyor.com/api/projects/status/0rdr7ordj8khnn8l?svg=true)](https://ci.appveyor.com/project/VioletGiraffe/file-commander)|[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)|[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)|
 
-[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=VioletGiraffe_file-commander)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=ncloc)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=security_rating)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)

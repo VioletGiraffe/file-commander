@@ -260,24 +260,24 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 
 		bool currentPathIsAccessible = false;
 		QString currentDirPath;
-		
+
 		{
 			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
 			currentDirPath = _currentDirObject.fullAbsolutePath();
 			currentPathIsAccessible = pathIsAccessible(currentDirPath);
 		}
-		
+
 		if (!currentPathIsAccessible)
 		{
 			setPath(currentDirPath, operation); // setPath will itself find the closest best folder to set instead
 			return;
 		}
-		
+
 		{
 			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 
-			list = _currentDirObject.qDir().entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+			list = QDir{currentDirPath}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
 			_items.clear();
 		}
 
@@ -467,7 +467,8 @@ bool CPanel::pathIsAccessible(const QString& path) const
 		return true; // On Windows, a drive root (e. g. C:\) doesn't produce '.' in the entryList, so the list is empty, but it's not an error
 #endif // _WIN32
 
-	return !pathObject.qDir().entryList().empty();
+	const QDir targetDir{pathObject.isDir() ? pathObject.fullAbsolutePath() : pathObject.parentDirPath()};
+	return !targetDir.entryList().empty();
 }
 
 void CPanel::processContentsChangedEvent()

@@ -80,7 +80,7 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 	return str;
 }
 
-inline bool caseSensitiveFilesystem()
+constexpr bool caseSensitiveFilesystem()
 {
 #if defined _WIN32
 	return false;
