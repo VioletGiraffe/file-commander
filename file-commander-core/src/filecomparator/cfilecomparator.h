@@ -14,6 +14,8 @@ public:
 
 	~CFileComparator();
 
+	CFileComparator& operator=(const CFileComparator&) = delete;
+
 	void compareFilesThreaded(std::unique_ptr<QIODevice>&& fileA, std::unique_ptr<QIODevice>&& fileB, const std::function<void (int)>& progressCallback, const std::function<void (ComparisonResult)>& resultCallback);
 	void compareFiles(QIODevice& fileA, QIODevice& fileB, const std::function<void(int)>& progressCallback, const std::function<void(ComparisonResult)>& resultCallback);
 	void abortComparison();

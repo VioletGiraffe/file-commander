@@ -41,9 +41,10 @@ static inline void serialize(QByteArray& dest, const CLocationsCollection& sourc
 	}
 }
 
-CFavoriteLocations::CFavoriteLocations()
+CFavoriteLocations::CFavoriteLocations(const QString& settingsKey) :
+	_settingsKey{settingsKey}
 {
-	load(CSettings().value(KEY_FAVORITES).toByteArray());
+	load();
 }
 
 CFavoriteLocations::~CFavoriteLocations()
@@ -56,8 +57,11 @@ std::list<CLocationsCollection>& CFavoriteLocations::locations()
 	return _items;
 }
 
-void CFavoriteLocations::load(const QByteArray& data)
+void CFavoriteLocations::load()
 {
+	const QByteArray data = CSettings().value(_settingsKey).toByteArray();
+	assert_and_return_r(!data.isEmpty(), );
+
 	int currentPosition = 0;
 	_items.clear();
 	std::stack<std::reference_wrapper<std::list<CLocationsCollection>>> currentList;

@@ -17,11 +17,12 @@ RESTORE_COMPILER_WARNINGS
 CController* CController::_instance = nullptr;
 
 CController::CController() :
-	_fileSearchEngine(*this),
-	_leftPanel(LeftPanel),
-	_rightPanel(RightPanel),
-	_pluginProxy([this](const std::function<void()>& code) {execOnUiThread(code);}),
-	_workerThreadPool(2, "CController thread pool")
+	_favoriteLocations{KEY_FAVORITES},
+	_fileSearchEngine{*this},
+	_leftPanel{LeftPanel},
+	_rightPanel{RightPanel},
+	_pluginProxy{[this](const std::function<void()>& code) {execOnUiThread(code);}},
+	_workerThreadPool{2, "CController thread pool"}
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
@@ -129,7 +130,7 @@ bool CController::switchToVolume(Panel p, size_t index)
 	}
 	else
 	{
-		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
+		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), drivePath).toString();
 		return setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok;
 	}
 }
@@ -497,5 +498,5 @@ void CController::saveDirectoryForCurrentVolume(Panel p)
 	assert_and_return_r(currentVolumeIndex(p) < _volumeEnumerator.drives().size(), );
 
 	const QString drivePath = _volumeEnumerator.drives().at(currentVolumeIndex(p)).rootObjectInfo.fullAbsolutePath();
-	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
+	CSettings().setValue(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
 }
