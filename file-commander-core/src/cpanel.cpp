@@ -407,7 +407,7 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 // progress > 100 means indefinite
 void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const
 {
-	exec_on_UI_thread([=]() {
+	exec_on_UI_thread([this, itemHash, progress, currentDir]() {
 		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::itemDiscoveryInProgress, _panelPosition, itemHash, progress, currentDir);
 	}, ItemDiscoveryProgressNotificationTag);
 }
@@ -419,11 +419,6 @@ void CPanel::volumesChanged(const std::deque<VolumeInfo>& volumes)
 	// Handling an unplugged device
 	if (_currentDirObject.isValid() && !volumeInfoForObject(_currentDirObject).isReady)
 		setPath(_currentDirObject.fullAbsolutePath(), refreshCauseOther);
-}
-
-// Settings have changed
-void CPanel::settingsChanged()
-{
 }
 
 void CPanel::uiThreadTimerTick()

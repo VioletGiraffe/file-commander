@@ -139,9 +139,6 @@ bool CController::switchToVolume(Panel p, size_t index)
 // Porgram settings have changed
 void CController::settingsChanged()
 {
-	_rightPanel.settingsChanged();
-	_leftPanel.settingsChanged();
-
 	CIconProvider::settingsChanged();
 }
 
