@@ -9,10 +9,11 @@ SETLOCAL
 
 RMDIR /S /Q binaries\
 
-call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.17134.0
+call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.18362.0
 
 REM X86
 pushd ..\..\
+del .qmake.stash
 %QTDIR32%\bin\qmake.exe -tp vc -r
 popd
 
@@ -41,10 +42,11 @@ ENDLOCAL
 
 SETLOCAL
 
-call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.17134.0
+call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.18362.0
 
 REM X64
 pushd ..\..\
+del .qmake.stash
 %QTDIR64%\bin\qmake.exe -tp vc -r
 popd
 
