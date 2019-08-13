@@ -73,7 +73,7 @@ CFileSystemObject::CFileSystemObject(const QString& path) : _fileInfo(expandEnvi
 	refreshInfo();
 }
 
-inline QString parentForAbsolutePath(QString absolutePath)
+static QString parentForAbsolutePath(QString absolutePath)
 {
 	if (absolutePath.endsWith('/'))
 		absolutePath.chop(1);
@@ -159,11 +159,6 @@ void CFileSystemObject::refreshInfo()
 	_properties.creationDate = (time_t) _fileInfo.created().toTime_t();
 	_properties.modificationDate = _fileInfo.lastModified().toTime_t();
 	_properties.size = _properties.type == File ? _fileInfo.size() : 0;
-
-	if (isDir())
-		_dir.setPath(fullAbsolutePath());
-	else
-		_dir = QDir();
 }
 
 void CFileSystemObject::setPath(const QString& path)
@@ -305,11 +300,6 @@ const QFileInfo &CFileSystemObject::qFileInfo() const
 	return _fileInfo;
 }
 
-const QDir& CFileSystemObject::qDir() const
-{
-	return _dir;
-}
-
 std::vector<QString> CFileSystemObject::pathHierarchy(const QString& path)
 {
 	assert_r(!path.contains('\\'));
@@ -378,7 +368,9 @@ bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
 	if (!isValid() || !dest.isValid())
 		return false;
 
-	const auto fileSystemId = rootFileSystemId(), otherFileSystemId = dest.rootFileSystemId();
+	const auto fileSystemId = rootFileSystemId();
+	const auto otherFileSystemId = dest.rootFileSystemId();
+
 	return fileSystemId == otherFileSystemId && fileSystemId != std::numeric_limits<uint64_t>::max() && otherFileSystemId != std::numeric_limits<uint64_t>::max();
 }
 

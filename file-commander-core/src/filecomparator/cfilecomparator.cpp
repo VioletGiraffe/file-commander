@@ -45,7 +45,7 @@ void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std
 	assert_debug_only(progressCallback);
 	assert_debug_only(resultCallback);
 
-	EXEC_ON_SCOPE_EXIT([&]() {progressCallback(100);});
+	EXEC_ON_SCOPE_EXIT([&progressCallback]() {progressCallback(100);});
 
 	if (fileA.size() != fileB.size())
 	{
@@ -67,7 +67,7 @@ void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std
 		{
 			resultCallback(NotEqual);
 			return;
-		};
+		}
 
 		progressCallback(Math::round<int>(pos * 100 / size));
 	}

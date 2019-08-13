@@ -33,6 +33,8 @@ enum FileListRefreshCause
 
 struct PanelContentsChangedListener
 {
+	virtual ~PanelContentsChangedListener() = default;
+
 	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
 	// progress > 100 means indefinite
 	virtual void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) = 0;
@@ -49,6 +51,8 @@ struct FilesystemObjectsStatistics
 };
 
 struct CursorPositionListener {
+	virtual ~CursorPositionListener() = default;
+
 	virtual void setCursorToItem(const QString& folder, qulonglong currentItemHash) = 0;
 };
 
@@ -104,9 +108,6 @@ public:
 	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const;
 
 	void volumesChanged(const std::deque<VolumeInfo>& volumes);
-
-	// Settings have changed
-	void settingsChanged();
 
 	void uiThreadTimerTick();
 

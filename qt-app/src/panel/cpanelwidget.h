@@ -96,7 +96,6 @@ private slots:
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard();
 	void pathFromHistoryActivated(QString path);
-	void openSearchWindow();
 
 private:
 	void fillHistory();
@@ -133,7 +132,6 @@ private:
 	QShortcut                       _copyShortcut;
 	QShortcut                       _cutShortcut;
 	QShortcut                       _pasteShortcut;
-	QShortcut                       _searchShortcut;
 
 	QModelIndex _previousCurrentItem;
 };

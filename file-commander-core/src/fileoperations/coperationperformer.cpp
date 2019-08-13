@@ -146,12 +146,9 @@ void COperationPerformer::copyFiles()
 
 	size_t currentItemIndex = 0;
 
-	if (_source.size() == 1)
-	{
-		// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
-		if ((_source.front().isFile() && !_destFileSystemObject.isDir()))
-			_newName = _destFileSystemObject.fullName();
-	}
+	// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
+	if (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir())
+		_newName = _destFileSystemObject.fullName();
 
 	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster
 	// If the dest folder is empty, moving means renaming the root source folder / file, which is fast and simple
@@ -202,7 +199,9 @@ void COperationPerformer::copyFiles()
 		return;
 	}
 
-	uint64_t totalSize = 0, sizeProcessed = 0;
+	uint64_t totalSize = 0;
+	uint64_t sizeProcessed = 0;
+
 	const auto destination = enumerateSourcesAndCalcDest(totalSize);
 	assert_r(destination.size() == _source.size());
 
@@ -548,7 +547,7 @@ std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &tot
 		}
 		else if (o.isDir())
 		{
-			scanDirectory(o, [&](const CFileSystemObject& item) {
+			scanDirectory(o, [&destinations, &newSourceVector, &totalSize, &o, this](const CFileSystemObject& item) {
 				destinations.emplace_back(destinationFolder(item.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), item.isDir() /* TODO: 'false' ? */));
 				newSourceVector.push_back(item);
 
@@ -556,7 +555,7 @@ std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &tot
 					totalSize += item.size();
 			});
 		}
-	};
+	}
 
 	_source = newSourceVector;
 	return destinations;
@@ -578,25 +577,22 @@ UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSyst
 COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObject& item)
 {
 	CFileManipulator itemManipulator(item);
-	if (item.isFile())
+	if (item.isFile() && !item.isWriteable())
 	{
-		if (!item.isWriteable())
-		{
-			const auto response = getUserResponse(hrSourceFileIsReadOnly, item, CFileSystemObject(), itemManipulator.lastErrorMessage()); // TODO: is the message "itemManipulator.lastErrorMessage()" correct here? No operation had been attempted yet
-			if (response == urSkipThis || response == urSkipAll)
-				return naSkip;
-			else if (response == urAbort)
-				return naAbort;
-			else if (response == urRetry)
-				return naRetryOperation;
-			else
-				assert_r((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
+		const auto response = getUserResponse(hrSourceFileIsReadOnly, item, CFileSystemObject(), itemManipulator.lastErrorMessage()); // TODO: is the message "itemManipulator.lastErrorMessage()" correct here? No operation had been attempted yet
+		if (response == urSkipThis || response == urSkipAll)
+			return naSkip;
+		else if (response == urAbort)
+			return naAbort;
+		else if (response == urRetry)
+			return naRetryOperation;
+		else
+			assert_r((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
 
-			NextAction nextAction;
-			while ((nextAction = makeItemWriteable(item)) == naRetryOperation);
-			if (nextAction != naProceed)
-				return nextAction;
-		}
+		NextAction nextAction;
+		while ((nextAction = makeItemWriteable(item)) == naRetryOperation);
+		if (nextAction != naProceed)
+			return nextAction;
 	}
 
 	if (itemManipulator.remove() != FileOperationResultCode::Ok)
@@ -730,10 +726,15 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	if (result != FileOperationResultCode::Ok)
 	{
 		itemManipulator.cancelCopy();
+
+		QString actualNewName = _newName;
+		if (actualNewName.isEmpty() && destInfo.isFile())
+			actualNewName = destInfo.isFile();
+
 		const QString errorMessage =
 			"Error copying file " % item.fullAbsolutePath() %
 			" to " % destPath %
-			(_newName.isEmpty() ? (destInfo.isFile() ? destInfo.fileName() : QString()) : _newName) %
+			actualNewName %
 			", error: " % itemManipulator.lastErrorMessage();
 
 		assert_unconditional_r(errorMessage.toStdString());
