@@ -32,7 +32,6 @@ RESTORE_COMPILER_WARNINGS
 #include <iostream>
 #include <set>
 #include <time.h>
-#include <tuple>
 
 CPanelWidget::CPanelWidget(QWidget *parent) :
 	QWidget(parent),
@@ -43,8 +42,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_copyShortcut(QKeySequence("Ctrl+C"), this, SLOT(copySelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_cutShortcut(QKeySequence("Ctrl+X"), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_searchShortcut(QKeySequence("Alt+F7"), this, SLOT(openSearchWindow()), nullptr, Qt::WidgetWithChildrenShortcut)
+	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
 
@@ -55,17 +53,17 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	ui->_pathNavigator->setCompleter(new CDirectoryCompleter(ui->_pathNavigator));
 	ui->_pathNavigator->setHistoryMode(true);
 	ui->_pathNavigator->installEventFilter(this);
-	connect(ui->_pathNavigator, static_cast<void (CHistoryComboBox::*) (const QString&)>(&CHistoryComboBox::activated), this, &CPanelWidget::pathFromHistoryActivated);
-	connect(ui->_pathNavigator, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated);
+	assert_r(connect(ui->_pathNavigator, static_cast<void (CHistoryComboBox::*) (const QString&)>(&CHistoryComboBox::activated), this, &CPanelWidget::pathFromHistoryActivated));
+	assert_r(connect(ui->_pathNavigator, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated));
 
-	connect(ui->_list, &CFileListView::contextMenuRequested, this, &CPanelWidget::showContextMenuForItems);
-	connect(ui->_list, &CFileListView::keyPressed, this, &CPanelWidget::fileListViewKeyPressed);
+	assert_r(connect(ui->_list, &CFileListView::contextMenuRequested, this, &CPanelWidget::showContextMenuForItems));
+	assert_r(connect(ui->_list, &CFileListView::keyPressed, this, &CPanelWidget::fileListViewKeyPressed));
 
-	connect(ui->_driveInfoLabel, &CClickableLabel::doubleClicked, this, &CPanelWidget::showFavoriteLocationsMenu);
-	connect(ui->_btnFavs, &QPushButton::clicked, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));});
-	connect(ui->_btnToRoot, &QToolButton::clicked, this, &CPanelWidget::toRoot);
+	assert_r(connect(ui->_driveInfoLabel, &CClickableLabel::doubleClicked, this, &CPanelWidget::showFavoriteLocationsMenu));
+	assert_r(connect(ui->_btnFavs, &QPushButton::clicked, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));}));
+	assert_r(connect(ui->_btnToRoot, &QToolButton::clicked, this, &CPanelWidget::toRoot));
 
-	connect(&_filterDialog, &CFileListFilterDialog::filterTextChanged, this, &CPanelWidget::filterTextChanged);
+	assert_r(connect(&_filterDialog, &CFileListFilterDialog::filterTextChanged, this, &CPanelWidget::filterTextChanged));
 
 	ui->_list->addEventObserver(this);
 
@@ -138,7 +136,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	_model = new(std::nothrow) CFileListModel(ui->_list, this);
 	_model->setPanelPosition(p);
-	connect(_model, &CFileListModel::itemEdited, this, &CPanelWidget::itemNameEdited);
+	assert_r(connect(_model, &CFileListModel::itemEdited, this, &CPanelWidget::itemNameEdited));
 
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
 	_sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
@@ -147,15 +145,15 @@ void CPanelWidget::setPanelPosition(Panel p)
 	_sortModel->setSourceModel(_model);
 
 	ui->_list->setModel(_sortModel);
-	connect(_sortModel, &QSortFilterProxyModel::modelAboutToBeReset, ui->_list, &CFileListView::modelAboutToBeReset);
-	connect(_sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [=](){
+	assert_r(connect(_sortModel, &QSortFilterProxyModel::modelAboutToBeReset, ui->_list, &CFileListView::modelAboutToBeReset));
+	assert_r(connect(_sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [=](){
 		ui->_list->scrollTo(ui->_list->currentIndex());
-	});
+	}));
 
 	_selectionModel = ui->_list->selectionModel(); // can only be called after setModel
 	assert_r(_selectionModel);
-	connect(_selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged);
-	connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
+	assert_r(connect(_selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
+	assert_r(connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
 
 	_controller->setPanelContentsChangedListener(p, this);
 
@@ -168,9 +166,6 @@ void CPanelWidget::setPanelPosition(Panel p)
 // Returns the list of items added to the view
 void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& items, FileListRefreshCause operation)
 {
-// 	time_t start = clock();
-// 	const auto globalStart = start;
-
 	disconnect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 
 	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
@@ -185,8 +180,13 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 
 	int itemRow = 0;
 
-	// TODO: replace with a struct
-	std::vector<std::tuple<int, FileListViewColumns, QStandardItem*>> qTreeViewItems;
+	struct TreeViewItem {
+		const int row;
+		const FileListViewColumn column;
+		QStandardItem* const item;
+	};
+
+	std::vector<TreeViewItem> qTreeViewItems;
 	qTreeViewItems.reserve(items.size() * NumberOfColumns);
 
 	for (const auto& item: items)
@@ -205,23 +205,23 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		else
 			fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
 		fileNameItem->setIcon(object.icon());
-		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		qTreeViewItems.emplace_back(itemRow, NameColumn, fileNameItem);
+		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
+		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, NameColumn, fileNameItem });
 
 		auto fileExtItem = new QStandardItem();
 		fileExtItem->setEditable(false);
 		if (!object.isCdUp() && !props.completeBaseName.isEmpty() && !props.extension.isEmpty())
 			fileExtItem->setData(props.extension, Qt::DisplayRole);
-		fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		qTreeViewItems.emplace_back(itemRow, ExtColumn, fileExtItem);
+		fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
+		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, ExtColumn, fileExtItem });
 
 		auto sizeItem = new QStandardItem();
 		sizeItem->setEditable(false);
 		if (props.size > 0 || props.type == File)
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
 
-		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		qTreeViewItems.emplace_back(itemRow, SizeColumn, sizeItem);
+		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
+		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, SizeColumn, sizeItem });
 
 		auto dateItem = new QStandardItem();
 		dateItem->setEditable(false);
@@ -232,23 +232,16 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 			modificationDate = modificationDate.toLocalTime();
 			dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm"), Qt::DisplayRole);
 		}
-		dateItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object;
-		qTreeViewItems.emplace_back(itemRow, DateColumn, dateItem);
+		dateItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
+		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, DateColumn, dateItem });
 
 		++itemRow;
 	}
 
-	//qInfo () << __FUNCTION__ << "Creating" << items.size() << "items took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
-
-	//start = clock();
 	for (const auto& qTreeViewItem: qTreeViewItems)
-		_model->setItem(std::get<0>(qTreeViewItem), std::get<1>(qTreeViewItem), std::get<2>(qTreeViewItem));
+		_model->setItem(qTreeViewItem.row, qTreeViewItem.column, qTreeViewItem.item);
 
-	//qInfo () << __FUNCTION__ << "Setting" << items.size() << "items to the model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
-
-	//start = clock();
 	_sortModel->setSourceModel(_model);
-	//qInfo () << __FUNCTION__ << "Setting the source model to sort model took" << (clock() - start) * 1000 / CLOCKS_PER_SEC << "ms";
 
 	ui->_list->restoreHeaderState();
 
@@ -283,11 +276,9 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 
 	ui->_list->moveCursorToItem(indexUnderCursor);
 
-	connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
+	assert_r(connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
 	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
 	selectionChanged(QItemSelection(), QItemSelection());
-
-	//qInfo () << __FUNCTION__ << items.size() << "items," << (clock() - globalStart) * 1000 / CLOCKS_PER_SEC << "ms";
 }
 
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
@@ -503,9 +494,9 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 					action->setChecked(true);
 				}
 
-				connect(action, &QAction::triggered, this, [this, path](){
+				assert_r(connect(action, &QAction::triggered, this, [this, path](){
 					_controller->setPath(_panelPosition, path, refreshCauseOther);
-				});
+				}));
 			}
 			else
 			{
@@ -518,7 +509,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 			parentMenu->addSeparator();
 
 		QAction * addFolderAction = parentMenu->addAction(tr("Add current folder here..."));
-		QObject::connect(addFolderAction, &QAction::triggered, [this, &locations](){
+		assert_r(QObject::connect(addFolderAction, &QAction::triggered, this, [this, &locations](){
 			const QString path = currentDirPathNative();
 			const QString displayName = CFileSystemObject(path).name();
 			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name to store the current location under"), QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
@@ -537,10 +528,10 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 
 				_controller->favoriteLocations().addItem(locations, name, currentDirPathNative());
 			}
-		});
+		}));
 
 		QAction * addCategoryAction = parentMenu->addAction(tr("Add a new subcategory..."));
-		QObject::connect(addCategoryAction, &QAction::triggered, [this, &locations, parentMenu](){
+		assert_r(QObject::connect(addCategoryAction, &QAction::triggered, this, [this, &locations, parentMenu](){
 			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name for the new subcategory"));
 			if (!name.isEmpty())
 			{
@@ -553,13 +544,13 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 				parentMenu->addMenu(name);
 				_controller->favoriteLocations().addItem(locations, name);
 			}
-		});
+		}));
 	};
 
 	createMenus(&menu, _controller->favoriteLocations().locations());
 	menu.addSeparator();
 	QAction * edit = menu.addAction(tr("Edit..."));
-	connect(edit, &QAction::triggered, this, &CPanelWidget::showFavoriteLocationsEditor);
+	assert_r(connect(edit, &QAction::triggered, this, &CPanelWidget::showFavoriteLocationsEditor));
 	const QAction* action = menu.exec(pos);
 	if (action) // Something was selected
 		setFocusToFileList(); // #84
@@ -695,10 +686,6 @@ void CPanelWidget::pathFromHistoryActivated(QString path)
 		QMessageBox::information(this, tr("Failed to set the path"), tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(path));
 }
 
-void CPanelWidget::openSearchWindow()
-{
-}
-
 void CPanelWidget::fillHistory()
 {
 	const auto& history = _controller->panel(_panelPosition).history();
@@ -714,7 +701,13 @@ void CPanelWidget::fillHistory()
 
 void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 {
-	uint64_t numFilesSelected = 0, numFoldersSelected = 0, totalSize = 0, sizeSelected = 0, totalNumFolders = 0, totalNumFiles = 0;
+	uint64_t numFilesSelected = 0;
+	uint64_t numFoldersSelected = 0;
+	uint64_t totalSize = 0;
+	uint64_t sizeSelected = 0;
+	uint64_t totalNumFolders = 0;
+	uint64_t totalNumFiles = 0;
+
 	for (const auto& item: _controller->panel(_panelPosition).list())
 	{
 		const CFileSystemObject& object = item.second;
@@ -803,8 +796,8 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 		diskButton->setProperty("id", (qulonglong)i);
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 		diskButton->setToolTip(driveInfo.volumeLabel);
-		connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked);
-		connect(diskButton, &QPushButton::customContextMenuRequested, this, &CPanelWidget::showContextMenuForDisk);
+		assert_r(connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked));
+		assert_r(connect(diskButton, &QPushButton::customContextMenuRequested, this, &CPanelWidget::showContextMenuForDisk));
 		layout->addWidget(diskButton);
 	}
 
