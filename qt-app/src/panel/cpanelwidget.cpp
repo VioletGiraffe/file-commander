@@ -176,7 +176,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	_model->clear();
 
 	_model->setColumnCount(NumberOfColumns);
-	_model->setHorizontalHeaderLabels(QStringList() << tr("Name") << tr("Ext") << tr("Size") << tr("Date"));
+	_model->setHorizontalHeaderLabels(QStringList{ tr("Name"), tr("Ext"), tr("Size"), tr("Date") });
 
 	int itemRow = 0;
 
@@ -230,7 +230,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 			QDateTime modificationDate;
 			modificationDate.setTime_t((uint) props.modificationDate);
 			modificationDate = modificationDate.toLocalTime();
-			dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm"), Qt::DisplayRole);
+			dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm:ss"), Qt::DisplayRole);
 		}
 		dateItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, DateColumn, dateItem });
