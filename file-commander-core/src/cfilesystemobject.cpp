@@ -31,7 +31,7 @@ RESTORE_COMPILER_WARNINGS
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
 
-static inline QString expandEnvironmentVariables(const QString& string)
+static QString expandEnvironmentVariables(const QString& string)
 {
 #ifdef _WIN32
 	if (!string.contains('%'))
