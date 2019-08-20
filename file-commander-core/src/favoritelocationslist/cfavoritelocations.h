@@ -21,8 +21,11 @@ struct CLocationsCollection
 class CFavoriteLocations
 {
 public:
-	CFavoriteLocations();
+	explicit CFavoriteLocations(const QString& settingsKey);
 	~CFavoriteLocations();
+
+	CFavoriteLocations(const CFavoriteLocations&) = delete;
+	CFavoriteLocations& operator=(const CFavoriteLocations&) = delete;
 
 	std::list<CLocationsCollection>& locations();
 	void addItem(std::list<CLocationsCollection>& list, const QString& name, const QString& path = QString());
@@ -30,8 +33,9 @@ public:
 	void save();
 
 private:
-	void load(const QByteArray & data);
+	void load();
 
 private:
+	const QString _settingsKey;
 	std::list<CLocationsCollection> _items;
 };

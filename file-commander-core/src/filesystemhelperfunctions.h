@@ -80,13 +80,15 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 	return str;
 }
 
-inline bool caseSensitiveFilesystem()
+constexpr bool caseSensitiveFilesystem()
 {
 #if defined _WIN32
 	return false;
 #elif defined __APPLE__
 	return false;
 #elif defined __linux__
+	return true;
+#elif defined __FreeBSD__
 	return true;
 #else
 #error "Unknown operating system"

@@ -17,11 +17,12 @@ RESTORE_COMPILER_WARNINGS
 CController* CController::_instance = nullptr;
 
 CController::CController() :
-	_fileSearchEngine(*this),
-	_leftPanel(LeftPanel),
-	_rightPanel(RightPanel),
-	_pluginProxy([this](const std::function<void()>& code) {execOnUiThread(code);}),
-	_workerThreadPool(2, "CController thread pool")
+	_favoriteLocations{KEY_FAVORITES},
+	_fileSearchEngine{*this},
+	_leftPanel{LeftPanel},
+	_rightPanel{RightPanel},
+	_pluginProxy{[this](const std::function<void()>& code) {execOnUiThread(code);}},
+	_workerThreadPool{2, "CController thread pool"}
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
@@ -86,7 +87,7 @@ int CController::tabCreated(Panel /*p*/)
 // Removes a tab for the specified panel and tab ID
 void CController::tabRemoved(Panel /*panel*/, int /*tabId*/)
 {
-
+	// Tabs not yet implemented
 }
 
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any
@@ -130,7 +131,7 @@ bool CController::switchToVolume(Panel p, size_t index)
 	}
 	else
 	{
-		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), drivePath).toString();
+		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), drivePath).toString();
 		return setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok;
 	}
 }
@@ -138,9 +139,6 @@ bool CController::switchToVolume(Panel p, size_t index)
 // Porgram settings have changed
 void CController::settingsChanged()
 {
-	_rightPanel.settingsChanged();
-	_leftPanel.settingsChanged();
-
 	CIconProvider::settingsChanged();
 }
 
@@ -191,7 +189,8 @@ FileOperationResultCode CController::createFolder(const QString &parentFolder, c
 
 	const auto currentItemHash = currentItemHashForFolder(_activePanel, parentDir.absolutePath());
 
-	if (parentDir.absolutePath() == activePanel().currentDirObject().qDir().absolutePath())
+	// Comparing with CFileSystemObject{parentFolder} instead of parentDir to avoid potential slash direction and trailing slash issues for paths coming from different APIs
+	if (CFileSystemObject{parentFolder}.fullAbsolutePath() == activePanel().currentDirObject().fullAbsolutePath())
 	{
 		const int slashPosition = name.indexOf('/');
 		// The trailing slash is required in order for the hash to match the hash of the item once it will be created: existing folders always have a trailing hash
@@ -254,7 +253,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 {
 #if defined __APPLE__
 	system(QString("osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd %1\\\"\"").arg(folder).toUtf8().data());
-#elif defined __linux__ || defined _WIN32
+#elif defined __linux__ || __FreeBSD__ || defined _WIN32
 	if (!admin)
 	{
 		const bool started = OsShell::runExecutable(OsShell::shellExecutable(), QString(), folder);
@@ -274,7 +273,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 #endif
 	}
 #else
-	#error unknown platform
+#error unknown platform
 #endif
 
 	Q_UNUSED(admin);
@@ -498,5 +497,5 @@ void CController::saveDirectoryForCurrentVolume(Panel p)
 	assert_and_return_r(currentVolumeIndex(p) < _volumeEnumerator.drives().size(), );
 
 	const QString drivePath = _volumeEnumerator.drives().at(currentVolumeIndex(p)).rootObjectInfo.fullAbsolutePath();
-	CSettings().setValue(p == LeftPanel ? KEY_LAST_PATH_FOR_DRIVE_L.arg(drivePath.toHtmlEscaped()) : KEY_LAST_PATH_FOR_DRIVE_R.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
+	CSettings().setValue(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
 }

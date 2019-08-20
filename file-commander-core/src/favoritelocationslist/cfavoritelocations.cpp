@@ -2,29 +2,30 @@
 #include "settings.h"
 #include "settings/csettings.h"
 #include "assert/advanced_assert.h"
+#include "utility/memory_cast.hpp"
 
 #include <stack>
 #include <functional>
 
 enum Marker {NoMarker, NextLevel, LevelEnded};
 
-static inline void serialize(QByteArray& dest, const CLocationsCollection& source, Marker marker)
+static inline void serialize(QByteArray& dest, const CLocationsCollection& source, const Marker marker)
 {
 	QByteArray utfStringData = source.displayName.toUtf8();
 	int length = utfStringData.length();
 	assert_r(length > 0);
-	dest.append((char*)&length, sizeof(length));
+	dest.append(reinterpret_cast<const char*>(&length), sizeof(length));
 	dest.append(utfStringData);
 
 	utfStringData = source.absolutePath.toUtf8();
 	length = utfStringData.length();
-	dest.append((char*)&length, sizeof(length));
+	dest.append(reinterpret_cast<const char*>(&length), sizeof(length));
 	dest.append(utfStringData);
 
 	if (!source.subLocations.empty())
 	{
-		int m = NextLevel;
-		dest.append((char*)&m, sizeof(m));
+		const int m = NextLevel;
+		dest.append(reinterpret_cast<const char*>(&m), sizeof(m));
 
 		size_t i = 0;
 		for(auto subItem = source.subLocations.begin(); subItem != source.subLocations.end(); ++subItem, ++i)
@@ -37,13 +38,14 @@ static inline void serialize(QByteArray& dest, const CLocationsCollection& sourc
 			markerName = "NextLevel marker";
 		else if (marker == LevelEnded)
 			markerName = "LevelEnded marker";
-		dest.append((char*)&marker, sizeof(marker));
+		dest.append(reinterpret_cast<const char*>(&marker), sizeof(marker));
 	}
 }
 
-CFavoriteLocations::CFavoriteLocations()
+CFavoriteLocations::CFavoriteLocations(const QString& settingsKey) :
+	_settingsKey{settingsKey}
 {
-	load(CSettings().value(KEY_FAVORITES).toByteArray());
+	load();
 }
 
 CFavoriteLocations::~CFavoriteLocations()
@@ -56,8 +58,11 @@ std::list<CLocationsCollection>& CFavoriteLocations::locations()
 	return _items;
 }
 
-void CFavoriteLocations::load(const QByteArray& data)
+void CFavoriteLocations::load()
 {
+	const QByteArray data = CSettings().value(_settingsKey).toByteArray();
+	assert_and_return_r(!data.isEmpty(), );
+
 	int currentPosition = 0;
 	_items.clear();
 	std::stack<std::reference_wrapper<std::list<CLocationsCollection>>> currentList;
@@ -65,13 +70,13 @@ void CFavoriteLocations::load(const QByteArray& data)
 
 	while (currentPosition < data.size())
 	{
-		int length = *(int*)(data.constData()+currentPosition);
+		int length = util::memory_cast<int>(data.constData()+currentPosition);
 		assert_r(length > 0);
 		currentPosition += sizeof(length);
 		const QString displayName = QString::fromUtf8(data.constData()+currentPosition, length);
 		currentPosition += length;
 
-		length = *(int*)(data.constData()+currentPosition);
+		length = util::memory_cast<int>(data.constData()+currentPosition);
 		currentPosition += sizeof(length);
 		QString path;
 		if (length > 0)
@@ -81,7 +86,7 @@ void CFavoriteLocations::load(const QByteArray& data)
 		}
 
 		currentList.top().get().push_back(CLocationsCollection(displayName, path));
-		const Marker marker = *reinterpret_cast<const Marker*>(data.constData()+currentPosition);
+		const Marker marker = util::memory_cast<Marker>(data.constData()+currentPosition);
 		currentPosition += sizeof(Marker);
 
 		if (marker == NextLevel)

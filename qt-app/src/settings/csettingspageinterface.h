@@ -1,5 +1,4 @@
-#ifndef CSETTINGSPAGEINTERFACE_H
-#define CSETTINGSPAGEINTERFACE_H
+#pragma once
 
 #include "settingsui/csettingspage.h"
 
@@ -16,7 +15,7 @@ public:
 	explicit CSettingsPageInterface(QWidget *parent = 0);
 	~CSettingsPageInterface();
 
-	virtual void acceptSettings() override;
+	void acceptSettings() override;
 
 private:
 	void updateFontInfoLabel();
@@ -25,5 +24,3 @@ private:
 	std::unique_ptr<QFontDialog> _fontDialog;
 	Ui::CSettingsPageInterface *ui;
 };
-
-#endif // CSETTINGSPAGEINTERFACE_H

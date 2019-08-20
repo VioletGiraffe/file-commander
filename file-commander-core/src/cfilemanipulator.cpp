@@ -22,18 +22,27 @@ CFileManipulator::CFileManipulator(const CFileSystemObject& object) : _object(ob
 {
 }
 
-FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName)
+FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName, bool transferPermissions)
 {
 	assert_r(_object.isFile());
-	assert_r(QFileInfo(destFolder).isDir());
+	assert_r(QFileInfo{destFolder}.isDir());
 
-	QFile file (_object.fullAbsolutePath());
-	const bool succ = file.copy(destFolder + (newName.isEmpty() ? _object.fullName() : newName));
-	if (!succ)
+	QFile file(_object.fullAbsolutePath());
+	const QString newFilePath = destFolder + (newName.isEmpty() ? _object.fullName() : newName);
+	bool succ = file.copy(newFilePath);
+	if (succ)
+	{
+		if (transferPermissions)
+		{
+			_lastErrorMessage = copyPermissions(file, newFilePath);
+			succ = _lastErrorMessage.isEmpty();
+		}
+	}
+	else
 		_lastErrorMessage = file.errorString();
+
 	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
-
 
 FileOperationResultCode CFileManipulator::moveAtomically(const QString& location, const QString& newName)
 {
@@ -46,10 +55,12 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 	const QString fullNewName = location % '/' % (newName.isEmpty() ? _object.fullName() : newName);
 	const CFileSystemObject destInfo(fullNewName);
 	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(_object.fullAbsolutePath(), Qt::CaseInsensitive) == 0;
-	if (destInfo.exists() && (_object.isDir() || destInfo.isFile()))
+	if ((caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase) && destInfo.exists())
+	{
 		// If the file system is case-insensitive, and the source and destination only differ by case, renaming is allowed even though formally the destination already exists (fix for #102)
-		if (caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase)
+		if (_object.isDir() || destInfo.isFile())
 			return FileOperationResultCode::TargetAlreadyExists;
+	}
 
 	// Special case for Windows, where QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
 #ifdef _WIN32
@@ -97,7 +108,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const CFileSystemObject
 // Non-blocking file copy API
 
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/)
+FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, bool transferPermissions)
 {
 	assert_r(bool(_thisFile) == bool(_destFile));
 	assert_r(_object.isFile());
@@ -165,17 +176,24 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			return FileOperationResultCode::Fail;
 		}
 
-		memcpy(dest, src, actualChunkSize);
+		::memcpy(dest, src, actualChunkSize);
 		_pos += actualChunkSize;
 
 		_thisFile->unmap(src);
 		_destFile->unmap(dest);
 	}
 
-	if (actualChunkSize < chunkSize || actualChunkSize == 0)
+	if (actualChunkSize < chunkSize)
 	{
+		// Copying complete
+		if (transferPermissions)
+			_lastErrorMessage = copyPermissions(*_thisFile, *_destFile);
+
 		_thisFile.reset();
 		_destFile.reset();
+
+		if (transferPermissions && !_lastErrorMessage.isEmpty())
+			return FileOperationResultCode::Fail;
 	}
 
 	return FileOperationResultCode::Ok;
@@ -227,7 +245,7 @@ bool CFileManipulator::makeWritable(bool writable)
 		return false;
 	}
 
-	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writable ? (attributes & (~FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
+	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writable ? (attributes & (~(uint32_t)FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
 	{
 		_lastErrorMessage = ErrorStringFromLastError();
 		return false;
@@ -281,12 +299,8 @@ FileOperationResultCode CFileManipulator::remove()
 		errno = 0;
 		if (!dir.rmdir("."))
 		{
-#if defined __linux || defined __APPLE__
-//			dir.cdUp();
-//			bool succ = dir.remove(_fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1));
-//			qInfo() << "Removing " << _fileInfo.absoluteFilePath().mid(_fileInfo.absoluteFilePath().lastIndexOf("/") + 1) << "from" << dir.absolutePath();
+#if defined __linux || defined __APPLE__ || defined __FreeBSD__
 			return ::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == -1 ? FileOperationResultCode::Fail : FileOperationResultCode::Ok;
-//			return rcFail;
 #else
 			return FileOperationResultCode::Fail;
 #endif
@@ -307,3 +321,16 @@ QString CFileManipulator::lastErrorMessage() const
 	return _lastErrorMessage;
 }
 
+QString CFileManipulator::copyPermissions(const QFile &sourceFile, QFile &destinationFile)
+{
+	if (!destinationFile.setPermissions(sourceFile.permissions())) // TODO: benchmark against the static version QFile::setPermissions(filePath, permissions)
+		return destinationFile.errorString();
+	else
+		return {};
+}
+
+QString CFileManipulator::copyPermissions(const QFile &sourceFile, const QString &destinationFilePath)
+{
+	QFile destinationFile {destinationFilePath};
+	return copyPermissions(sourceFile, destinationFile);
+}

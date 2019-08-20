@@ -3,16 +3,16 @@ REM set QTDIR32=k:\Qt\5\5.4\msvc2013_opengl\
 REM set QTDIR64=k:\Qt\5\5.4\msvc2013_64_opengl\
 
 call set_qt_paths.bat
-set VS_TOOLS_DIR=%VS140COMNTOOLS%
 
 SETLOCAL
 
 RMDIR /S /Q binaries\
 
-call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.17134.0
+call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.17763.0
 
 REM X86
 pushd ..\..\
+del .qmake.stash
 %QTDIR32%\bin\qmake.exe -tp vc -r
 popd
 
@@ -41,10 +41,11 @@ ENDLOCAL
 
 SETLOCAL
 
-call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.17134.0
+call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.17763.0
 
 REM X64
 pushd ..\..\
+del .qmake.stash
 %QTDIR64%\bin\qmake.exe -tp vc -r
 popd
 

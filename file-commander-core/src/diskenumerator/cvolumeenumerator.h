@@ -12,7 +12,7 @@ RESTORE_COMPILER_WARNINGS
 #include <mutex>
 
 // Lists all the volumes available on a target machine
-class CVolumeEnumerator : protected QObject
+class CVolumeEnumerator : public QObject
 {
 public:
 	CVolumeEnumerator();

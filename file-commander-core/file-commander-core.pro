@@ -11,7 +11,7 @@ RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -lcpputils -lqtutils
 
-mac*|linux*{
+mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }
 
@@ -74,6 +74,11 @@ mac*{
 linux*{
 	SOURCES += \
 		src/diskenumerator/cvolumeenumerator_impl_linux.cpp
+}
+
+freebsd{
+	SOURCES += \
+		src/diskenumerator/cvolumeenumerator_impl_freebsd.cpp
 }
 
 include(src/pluginengine/pluginengine.pri)

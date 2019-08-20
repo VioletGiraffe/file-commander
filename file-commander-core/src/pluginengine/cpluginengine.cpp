@@ -22,7 +22,7 @@ void CPluginEngine::loadPlugins()
 {
 #if defined _WIN32
 	static const QString pluginExtension(".dll");
-#elif defined __linux__
+#elif defined __linux__ || defined __FreeBSD__
 	static const QString pluginExtension(".so");
 #elif defined __APPLE__
 	static const QString pluginExtension(".1.0.0.dylib");

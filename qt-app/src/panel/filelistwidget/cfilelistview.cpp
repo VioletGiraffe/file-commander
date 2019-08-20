@@ -2,6 +2,7 @@
 #include "../columns.h"
 #include "model/cfilelistsortfilterproxymodel.h"
 #include "delegate/cfilelistitemdelegate.h"
+#include"assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -24,8 +25,7 @@ CFileListView::CFileListView(QWidget *parent) :
 {
 	setMouseTracking(true);
 	setItemDelegate(new CFileListItemDelegate);
-	connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
-
+	assert_r(connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
 		_currentItemBeforeMouseClick = QModelIndex();
 		_singleMouseClickValid = false;
 
@@ -34,7 +34,7 @@ CFileListView::CFileListView(QWidget *parent) :
 			if (observer->fileListReturnPressOrDoubleClickPerformed(idx))
 				break;
 		}
-	});
+	}));
 
 	QHeaderView * headerView = header();
 	assert_r(headerView);
@@ -241,7 +241,6 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 							break;
 					}
 				}
-
 		}
 		else if (modifiers == Qt::ControlModifier)
 			emit ctrlEnterPressed();
@@ -254,7 +253,7 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 	{
 		_shiftPressedItemSelected = currentIndex().isValid() ? selectionModel()->isSelected(currentIndex()) : false;
 	}
-#ifdef __APPLE__ // FIXME: Probably a Qt bug; remove this code when it's fixed
+#ifdef __APPLE__ // TODO: Probably a Qt bug; remove this code when it's fixed
 	else if (event->key() == Qt::Key_F2 && event->modifiers() == Qt::NoModifier)
 	{
 		edit(currentIndex(), QAbstractItemView::EditKeyPressed, event);
@@ -395,15 +394,17 @@ void CFileListView::pgDn(bool invertSelection)
 
 int CFileListView::numRowsVisible() const
 {
-	// TODO: rewrite it with indexAt to be O(1)
-	int numRowsVisible = 0;
-	for(int row = 0, numRows = model()->rowCount(); row < numRows; row++)
+	const auto viewportRect = viewport()->rect();
+	const auto topIndex = indexAt(QPoint{ 10, viewportRect.top() + 1 });
+	const auto bottomIndex = indexAt(QPoint{ 10, viewportRect.bottom() - 1 });
+
+	if (!topIndex.isValid())
 	{
-		if (visualRect(model()->index(row, 0)).intersects(viewport()->rect()))
-			++numRowsVisible;
+		assert_r(!bottomIndex.isValid());
+		return 0;
 	}
 
-	return numRowsVisible;
+	return bottomIndex.isValid() ? bottomIndex.row() - topIndex.row() : model()->rowCount() - topIndex.row();
 }
 
 void CFileListView::setHeaderAdjustmentRequired(bool required)

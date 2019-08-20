@@ -1,5 +1,14 @@
 language: cpp
 
+git:
+  depth: false
+
+addons:
+  sonarcloud:
+    organization: "violetgiraffe"
+    token:
+      secure: "50687be1590704fcb02527a7eba31f95db5b9518" # encrypted value of your token
+
 matrix:
   include:
     - os: osx
@@ -16,7 +25,7 @@ before_install:
   # C++17
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test; fi
 
-install: 
+install:
   # C++17
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.3-xenial; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qy update; fi
@@ -27,7 +36,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export QMAKE=/usr/local/bin/qmake; fi
-  
+
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt512-meta-minimal; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt512/bin/qmake; fi
@@ -47,10 +56,14 @@ before_script:
 
   - $QMAKE -v
 
-script: 
+script:
   # Building the main binaries
   - $QMAKE -r CONFIG+=release
-  - make -j
+  # Wraps the compilation with the Build Wrapper to generate configuration (used
+  # later by the SonarQube Scanner) into the "bw-output" folder
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then build-wrapper-linux-x86-64 --out-dir . make -j; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sonar-scanner; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then make -j; fi
 
   # Linux: deploying Qt binaries
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/FileCommander -bundle-non-qt-libs; fi

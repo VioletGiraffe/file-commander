@@ -16,26 +16,6 @@ public:
 	inline explicit ApplicationEventFilter(QObject* parent) : QObject(parent) {}
 };
 
-struct NativeEventFilter : public QAbstractNativeEventFilter
-{
-	inline explicit NativeEventFilter(CMainWindow& mainApplicationWindow) : _mainWindow(mainApplicationWindow) {}
-
-	inline bool nativeEventFilter(const QByteArray & /*eventType*/, void * /*message*/, long * /*result*/) override {
-		if (!_mainWindowInited)
-		{
-			_mainWindowInited = true;
-			_mainWindow.onCreate();
-			_mainWindow.updateInterface();
-		}
-
-		return false;
-	}
-
-private:
-	CMainWindow& _mainWindow;
-	bool _mainWindowInited = false;
-};
-
 int main(int argc, char *argv[])
 {
 	AdvancedAssert::setLoggingFunc([](const char* message){
@@ -59,8 +39,8 @@ int main(int argc, char *argv[])
 
 	CMainWindow w;
 
-	NativeEventFilter nativeEventFilter(w);
-	app.installNativeEventFilter(&nativeEventFilter);
+	w.onCreate();
+	w.updateInterface();
 
 	if (app.arguments().contains("--test-launch"))
 		return 0; // Test launch succeeded

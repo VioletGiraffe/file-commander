@@ -1,13 +1,20 @@
 # FILE COMMANDER
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/aec457e63478460194c9ec2e351a6d23)](https://www.codacy.com/app/VioletGiraffe/file-commander?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VioletGiraffe/file-commander&amp;utm_campaign=Badge_Grade) [![Join the chat at https://gitter.im/File-Commander/Lobby](https://badges.gitter.im/File-Commander/Lobby.svg)](https://gitter.im/File-Commander/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+   Cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac,  Linux and FreeBSD with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems. 
 
-   Cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac and Linux with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems. 
+
+[![CodeFactor](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/badge/master)](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/overview/master)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/aec457e63478460194c9ec2e351a6d23)](https://www.codacy.com/app/VioletGiraffe/file-commander?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VioletGiraffe/file-commander&amp;utm_campaign=Badge_Grade) [![Join the chat at https://gitter.im/File-Commander/Lobby](https://badges.gitter.im/File-Commander/Lobby.svg)](https://gitter.im/File-Commander/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 |Windows|Linux|macOS|
 |---	|---	|---	|
 |[![Build status](https://ci.appveyor.com/api/projects/status/0rdr7ordj8khnn8l?svg=true)](https://ci.appveyor.com/project/VioletGiraffe/file-commander)|[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)|[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)|
 
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=ncloc)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=security_rating)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=bugs)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=code_smells)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
 
 ![Windows screenshot](/../gh-pages/screenshots/Windows/screenshot.png?raw=true)
 
