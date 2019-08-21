@@ -3,18 +3,10 @@
 #include "iconprovider/ciconprovider.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QAbstractNativeEventFilter>
 #include <QApplication>
 #include <QDebug>
 #include <QFontDatabase>
-#include <QKeyEvent>
 RESTORE_COMPILER_WARNINGS
-
-class ApplicationEventFilter : public QObject
-{
-public:
-	inline explicit ApplicationEventFilter(QObject* parent) : QObject(parent) {}
-};
 
 int main(int argc, char *argv[])
 {
@@ -29,8 +21,6 @@ int main(int argc, char *argv[])
 	QApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
 	app.setApplicationName("File Commander");
-
-	app.installEventFilter(new ApplicationEventFilter(&app));
 
 	QFontDatabase::addApplicationFont(":/fonts/Roboto Mono.ttf");
 
