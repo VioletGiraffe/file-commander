@@ -50,6 +50,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	ui->_driveInfoLabel->clear();
 
 	ui->_pathNavigator->setLineEdit(new CLineEdit);
+	ui->_pathNavigator->lineEdit()->setFocusPolicy(Qt::ClickFocus);
 	ui->_pathNavigator->setCompleter(new CDirectoryCompleter(ui->_pathNavigator));
 	ui->_pathNavigator->setHistoryMode(true);
 	ui->_pathNavigator->installEventFilter(this);
@@ -789,6 +790,7 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 
 		assert_r(layout);
 		auto diskButton = new QPushButton;
+		diskButton->setFocusPolicy(Qt::NoFocus);
 		diskButton->setCheckable(true);
 		diskButton->setIcon(drives[i].rootObjectInfo.icon());
 		diskButton->setText(name);

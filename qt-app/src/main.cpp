@@ -14,22 +14,6 @@ class ApplicationEventFilter : public QObject
 {
 public:
 	inline explicit ApplicationEventFilter(QObject* parent) : QObject(parent) {}
-
-	inline bool eventFilter(QObject * /*receiver*/, QEvent * e) override
-	{
-		// A dirty hack to implement switching between left and right panels on Tab key press
-		if (e->type() == QEvent::KeyPress)
-		{
-			const auto keyEvent = static_cast<QKeyEvent*>(e);
-			if (keyEvent->key() == Qt::Key_Tab && CMainWindow::get())
-			{
-				CMainWindow::get()->tabKeyPressed();
-				return true;
-			}
-		}
-
-		return false;
-	}
 };
 
 int main(int argc, char *argv[])
