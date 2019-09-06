@@ -1,5 +1,4 @@
-#ifndef CTEXTVIEWERWINDOW_H
-#define CTEXTVIEWERWINDOW_H
+#pragma once
 
 #include "plugininterface/cpluginwindow.h"
 #include "cfinddialog.h"
@@ -41,5 +40,3 @@ private:
 
 	QLabel       * _encodingLabel = nullptr;
 };
-
-#endif // CTEXTVIEWERWINDOW_H
