@@ -195,8 +195,6 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		const CFileSystemObject& object = item.second;
 		const auto& props = object.properties();
 
-		std::cout << object.fullAbsolutePath().toLatin1().data();
-
 		auto fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
 		if (props.type == Directory && props.type != Bundle)
