@@ -337,7 +337,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 		}
 	}
 
-	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), (void*)winId());
+	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), reinterpret_cast<void*>(winId()));
 }
 
 void CPanelWidget::showContextMenuForDisk(QPoint pos)
@@ -350,7 +350,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 	pos = button->mapToGlobal(pos);
 	const size_t diskId = (size_t)(button->property("id").toULongLong());
 	std::vector<std::wstring> diskPath(1, _controller->volumePath(diskId).toStdWString());
-	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), (HWND)winId());
+	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), reinterpret_cast<HWND>(winId()));
 #else
 	Q_UNUSED(pos);
 #endif
@@ -613,7 +613,7 @@ void CPanelWidget::copySelectionToClipboard() const
 	for (auto hash: hashes)
 		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
-	OsShell::copyObjectsToClipboard(paths, (void*)winId());
+	OsShell::copyObjectsToClipboard(paths, reinterpret_cast<void*>(winId()));
 #endif
 }
 
@@ -647,7 +647,7 @@ void CPanelWidget::cutSelectionToClipboard() const
 	for (auto hash: hashes)
 		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
-	OsShell::cutObjectsToClipboard(paths, (void*)winId());
+	OsShell::cutObjectsToClipboard(paths, reinterpret_cast<void*>(winId()));
 #endif
 }
 
@@ -669,7 +669,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
 #else
-	auto hwnd = (void*)winId();
+	auto hwnd = reinterpret_cast<void*>(winId());
 	const auto currentDirWString = currentDirPathNative().toStdWString();
 	_controller->execOnWorkerThread([=]() {
 		OsShell::pasteFilesAndFoldersFromClipboard(currentDirWString, hwnd);
