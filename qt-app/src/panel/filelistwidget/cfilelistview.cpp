@@ -103,12 +103,6 @@ void CFileListView::invertSelection()
 	selectionModel()->select(allItems, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
 }
 
-void CFileListView::selectAll()
-{
-    QItemSelection allItems(model()->index(0, 0), model()->index(model()->rowCount() - 1, 0));
-    selectionModel()->select(allItems, QItemSelectionModel::Select | QItemSelectionModel::Rows);
-}
-
 void CFileListView::clearSelection()
 {
     QItemSelection allItems(model()->index(0, 0), model()->index(model()->rowCount() - 1, 0));
