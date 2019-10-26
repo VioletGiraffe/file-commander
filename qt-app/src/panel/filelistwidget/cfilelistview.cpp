@@ -103,6 +103,18 @@ void CFileListView::invertSelection()
 	selectionModel()->select(allItems, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
 }
 
+void CFileListView::selectAll()
+{
+    QItemSelection allItems(model()->index(0, 0), model()->index(model()->rowCount() - 1, 0));
+    selectionModel()->select(allItems, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+}
+
+void CFileListView::clearSelection()
+{
+    QItemSelection allItems(model()->index(0, 0), model()->index(model()->rowCount() - 1, 0));
+    selectionModel()->select(allItems, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
+}
+
 void CFileListView::modelAboutToBeReset()
 {
 	_currentItemBeforeMouseClick = QModelIndex();
@@ -129,8 +141,14 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 	_currentItemBeforeMouseClick = currentIndex();
 	const bool selectionWasEmpty = selectionModel()->selectedRows().empty();
 
+    auto currentMode = selectionMode();
+    if (e->modifiers() != Qt::ControlModifier && e->modifiers() != Qt::ShiftModifier) {
+        setSelectionMode(QAbstractItemView::NoSelection);
+    }
 	// Always let Qt process this event
 	QTreeView::mousePressEvent(e);
+
+    setSelectionMode(currentMode);
 
 	if (_currentItemShouldBeSelectedOnMouseClick && e->modifiers() == Qt::ControlModifier && selectionWasEmpty && _currentItemBeforeMouseClick.isValid())
 	{
@@ -141,13 +159,20 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 
 void CFileListView::mouseMoveEvent(QMouseEvent * e)
 {
-	if (_singleMouseClickValid && (e->pos() - _singleMouseClickPos).manhattanLength() > 15)
+    if (_singleMouseClickValid && (e->pos() - _singleMouseClickPos).manhattanLength() > 30)
 	{
 		_singleMouseClickValid = false;
 		_currentItemBeforeMouseClick = QModelIndex();
 	}
 
-	QTreeView::mouseMoveEvent(e);
+    auto currentMode = selectionMode();
+    if (_singleMouseClickValid) {
+        setSelectionMode(QAbstractItemView::NoSelection);
+    }
+
+    QTreeView::mouseMoveEvent(e);
+
+    setSelectionMode(currentMode);
 }
 
 // For showing context menu
@@ -178,10 +203,6 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 				}
 			});
 		}
-
-		// Bug fix for #49 - preventing item selection with a single LMB click
-		if (event->modifiers() == Qt::NoModifier && itemClicked.isValid())
-			selectionModel()->clearSelection();
 	}
 
 	// Always let Qt process this event

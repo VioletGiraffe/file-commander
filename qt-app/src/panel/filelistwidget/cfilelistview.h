@@ -50,6 +50,8 @@ public:
 	void restoreHeaderState();
 
 	void invertSelection();
+    void selectAll();
+    void clearSelection();
 
 	void modelAboutToBeReset();
 

@@ -410,7 +410,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 		}
 	}
 
-	const auto selection = selectedItemsHashes();
+    const auto selection = selectedItemsHashes(true);
 	// Updating the selection summary label
 	updateInfoLabel(selection);
 
@@ -936,6 +936,16 @@ qulonglong CPanelWidget::currentItemHash() const
 void CPanelWidget::invertSelection()
 {
 	ui->_list->invertSelection();
+}
+
+void CPanelWidget::selectAll()
+{
+    ui->_list->selectAll();
+}
+
+void CPanelWidget::clearSelection()
+{
+    ui->_list->clearSelection();
 }
 
 void CPanelWidget::onSettingsChanged()
