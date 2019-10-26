@@ -262,6 +262,8 @@
      <string>&amp;Selection</string>
     </property>
     <addaction name="action_Invert_selection"/>
+    <addaction name="actionSelect_all"/>
+    <addaction name="actionClear_selection"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -404,6 +406,22 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+C</string>
+   </property>
+  </action>
+  <action name="actionSelect_all">
+   <property name="text">
+    <string>Select all</string>
+   </property>
+   <property name="shortcut">
+    <string>+</string>
+   </property>
+  </action>
+  <action name="actionClear_selection">
+   <property name="text">
+    <string>Clear selection</string>
+   </property>
+   <property name="shortcut">
+    <string>-</string>
    </property>
   </action>
  </widget>
