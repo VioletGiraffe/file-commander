@@ -966,7 +966,7 @@ void CPanelWidget::updateCurrentDiskButton()
 			const auto diskInfo = _controller->volumeEnumerator().drives()[id];
 			_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
 			ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").
-				arg(diskInfo.volumeLabel, diskInfo.fileSystemName, fileSizeToString(diskInfo.freeSize, 'M', " "), fileSizeToString(diskInfo.volumeSize, 'M', " ")));
+                arg(diskInfo.volumeLabel, diskInfo.fileSystemName, fileSizeToString(diskInfo.freeSize, 0, " "), fileSizeToString(diskInfo.volumeSize, 0, " ")));
 
 			return;
 		}
