@@ -132,6 +132,7 @@ bool CFileListView::editingInProgress() const
 void CFileListView::mousePressEvent(QMouseEvent *e)
 {
 	_singleMouseClickValid = !_singleMouseClickValid && e->modifiers() == Qt::NoModifier;
+    _singleMouseClickPos = e->pos();
 	_currentItemBeforeMouseClick = currentIndex();
 	const bool selectionWasEmpty = selectionModel()->selectedRows().empty();
 
@@ -153,14 +154,18 @@ void CFileListView::mousePressEvent(QMouseEvent *e)
 
 void CFileListView::mouseMoveEvent(QMouseEvent * e)
 {
-    if (_singleMouseClickValid && (e->pos() - _singleMouseClickPos).manhattanLength() > 30)
+    if (_singleMouseClickValid && (e->pos() - _singleMouseClickPos).manhattanLength() > 50)
 	{
 		_singleMouseClickValid = false;
 		_currentItemBeforeMouseClick = QModelIndex();
+        if (e->buttons() == Qt::LeftButton & !selectionModel()->hasSelection()) {
+            selectionModel()->select(indexAt(e->pos()), QItemSelectionModel::Rows | QItemSelectionModel::Select);
+            setState(DraggingState);
+        }
 	}
 
     auto currentMode = selectionMode();
-    if (_singleMouseClickValid) {
+    if (e->modifiers() != Qt::ControlModifier && e->modifiers() != Qt::ShiftModifier) {
         setSelectionMode(QAbstractItemView::NoSelection);
     }
 
