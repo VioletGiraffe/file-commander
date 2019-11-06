@@ -66,8 +66,6 @@ public:
 	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
 	qulonglong currentItemHash() const;
 	void invertSelection();
-    void selectAll();
-    void clearSelection();
 
 	void onSettingsChanged();
 

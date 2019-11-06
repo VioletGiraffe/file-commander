@@ -70,8 +70,6 @@ private slots: // UI slots
 
 // Selection slots
 	void invertSelection();
-    void selectAll();
-    void clearSelection();
 
 // Other UI commands
 	void viewFile();

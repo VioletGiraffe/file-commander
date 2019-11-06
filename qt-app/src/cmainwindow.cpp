@@ -207,8 +207,6 @@ void CMainWindow::initActions()
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
 
 	connect(ui->action_Invert_selection, &QAction::triggered, this, &CMainWindow::invertSelection);
-    connect(ui->actionSelect_all, &QAction::triggered, this, &CMainWindow::selectAll);
-    connect(ui->actionClear_selection, &QAction::triggered, this, &CMainWindow::clearSelection);
 
 	connect(ui->actionFull_screen_mode, &QAction::toggled, this, &CMainWindow::toggleFullScreenMode);
 	connect(ui->actionTablet_mode, &QAction::toggled, this, &CMainWindow::toggleTabletMode);
@@ -514,18 +512,6 @@ void CMainWindow::invertSelection()
 {
 	if (_currentFileList)
 		_currentFileList->invertSelection();
-}
-
-void CMainWindow::selectAll()
-{
-    if (_currentFileList)
-        _currentFileList->selectAll();
-}
-
-void CMainWindow::clearSelection()
-{
-    if (_currentFileList)
-        _currentFileList->clearSelection();
 }
 
 // Other UI commands
