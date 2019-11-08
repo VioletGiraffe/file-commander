@@ -61,6 +61,7 @@ public:
 
 	QDateTime _created;
 	QDateTime created() const {return _created;}
+	QDateTime birthTime() const {return _created;}
 
 	QDateTime _lastModified;
 	QDateTime lastModified() const {return _lastModified;}
