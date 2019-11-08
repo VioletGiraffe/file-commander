@@ -18,6 +18,9 @@ int main(int argc, char *argv[])
 	qInfo() << "Running with Qt" << qVersion();
 	assert_r(QStringLiteral(QT_VERSION_STR) == qVersion());
 
+	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
 	QApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
 	app.setApplicationName("File Commander");
