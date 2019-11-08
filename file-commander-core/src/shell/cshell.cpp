@@ -429,22 +429,24 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 	std::vector<ITEMIDLIST*> ids;
 	std::vector<LPCITEMIDLIST> relativeIds;
 	IShellFolder * ifolder = 0;
-	for (size_t i = 0; i < objects.size(); ++i)
+	for (size_t i = 0, nItems = objects.size(); i < nItems; ++i)
 	{
-		std::replace(objects[i].begin(), objects[i].end(), '/', '\\');
-		ids.push_back(0);
-		HRESULT result = SHParseDisplayName(objects[i].c_str(), 0, &ids.back(), 0, 0);
+		auto& item = objects[i];
+		std::replace(item.begin(), item.end(), '/', '\\');
+		item.pop_back();
+		ids.push_back(nullptr);
+		HRESULT result = SHParseDisplayName(item.c_str(), nullptr, &ids.back(), 0, nullptr);
 		if (!SUCCEEDED(result) || !ids.back())
 		{
 			ids.pop_back();
 			continue;
 		}
 
-		relativeIds.push_back(0);
+		relativeIds.push_back(nullptr);
 		result = SHBindToParent(ids.back(), IID_IShellFolder, (void**)&ifolder, &relativeIds.back());
 		if (!SUCCEEDED(result) || !relativeIds.back())
 			relativeIds.pop_back();
-		else if (i < objects.size() - 1 && ifolder)
+		else if (i < nItems - 1 && ifolder)
 		{
 			ifolder->Release();
 			ifolder = nullptr;
