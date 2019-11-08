@@ -13,6 +13,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QTextCodec>
 RESTORE_COMPILER_WARNINGS
 
+#include <type_traits>
+
 
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	CPluginWindow(parent),
@@ -195,7 +197,11 @@ bool CTextViewerWindow::asUtf16()
 	}
 
 	encodingChanged("UTF-16");
-	_textBrowser.setPlainText(QString::fromUtf16((const ushort*)textData.constData()));
+	static_assert (std::is_trivially_copyable_v<QChar>);
+	QString text;
+	text.resize(textData.size() / 2 + 1, QChar{'\0'});
+	memcpy(text.data(), textData.constData(), textData.size());
+	_textBrowser.setPlainText(std::move(text));
 	actionUTF_16->setChecked(true);
 
 	return true;

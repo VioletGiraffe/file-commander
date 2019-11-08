@@ -43,7 +43,7 @@ static QString expandEnvironmentVariables(const QString& string)
 	static_assert (sizeof(WCHAR) == 2);
 	const auto length = string.toWCharArray(source);
 	source[length] = 0;
-	if (const auto resultLength = ExpandEnvironmentStringsW(source, result, std::size(result)); resultLength > 0)
+	if (const auto resultLength = ExpandEnvironmentStringsW(source, result, static_cast<DWORD>(std::size(result))); resultLength > 0)
 		return toPosixSeparators(QString::fromWCharArray(result, resultLength - 1));
 	else
 		return string;
