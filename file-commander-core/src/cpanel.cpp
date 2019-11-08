@@ -15,8 +15,6 @@ RESTORE_COMPILER_WARNINGS
 #include <time.h>
 #include <limits>
 
-#define exec_on_UI_thread _uiThreadQueue.enqueue
-
 enum {
 	ContentsChangedNotificationTag,
 	ItemDiscoveryProgressNotificationTag
@@ -101,13 +99,14 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		// The current folder does not automatically make it into history on program startup, but it should (#103)
 		_history.addLatest(oldPathObject.fullAbsolutePath());
 
+	CSettings settings;
 	if (_history.currentItem() != newPath)
 	{
 		_history.addLatest(newPath);
-		CSettings().setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
+		settings.setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
 	}
 
-	CSettings().setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
+	settings.setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
 
 	if (_watcher->setPathToWatch(newPath) == false)
 		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
@@ -239,7 +238,7 @@ void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemH
 
 	if (notifyUi)
 	{
-		exec_on_UI_thread([this, dir, currentItemHash]() {
+		execOnUiThread([this, dir, currentItemHash]() {
 			_currentItemChangeListener.invokeCallback(&CursorPositionListener::setCursorToItem, dir, currentItemHash);
 		});
 	}
@@ -399,7 +398,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 
 void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
 {
-	exec_on_UI_thread([this, operation]() {
+	execOnUiThread([this, operation]() {
 		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::panelContentsChanged, _panelPosition, operation);
 	}, ContentsChangedNotificationTag);
 }
@@ -407,7 +406,7 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 // progress > 100 means indefinite
 void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const
 {
-	exec_on_UI_thread([this, itemHash, progress, currentDir]() {
+	execOnUiThread([this, itemHash, progress, currentDir]() {
 		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::itemDiscoveryInProgress, _panelPosition, itemHash, progress, currentDir);
 	}, ItemDiscoveryProgressNotificationTag);
 }
@@ -450,6 +449,23 @@ const VolumeInfo& CPanel::volumeInfoForObject(const CFileSystemObject& object) c
 	return storage != _volumes.cend() ? *storage : dummy;
 }
 
+//#include <dirent.h>
+//bool directoryCanBeOpened(const QString& path)
+//{
+//	DIR *dir = opendir(path.toUtf8().constData());
+//	if (!dir)
+//	{
+//		const auto err = errno;
+//		qInfo() << err << strerror(err);
+//		return false;
+//	}
+//	else
+//	{
+//		closedir(dir);
+//		return true;
+//	}
+//}
+
 bool CPanel::pathIsAccessible(const QString& path) const
 {
 	const CFileSystemObject pathObject(path);
@@ -463,7 +479,9 @@ bool CPanel::pathIsAccessible(const QString& path) const
 #endif // _WIN32
 
 	const QDir targetDir{pathObject.isDir() ? pathObject.fullAbsolutePath() : pathObject.parentDirPath()};
-	return !targetDir.entryList().empty();
+	const auto targetDirContents = targetDir.entryList(QDir::AllEntries);
+	return !targetDirContents.isEmpty();
+	//return directoryCanBeOpened(pathObject.isDir() ? pathObject.fullAbsolutePath() : pathObject.parentDirPath());
 }
 
 void CPanel::processContentsChangedEvent()

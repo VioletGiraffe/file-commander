@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <utility>
 
 class CFileSystemWatcher;
 
@@ -117,6 +118,12 @@ private:
 
 	void contentsChanged();
 	void processContentsChangedEvent();
+
+	template <typename Functor>
+	void execOnUiThread(Functor&& f, int tag = -1) const noexcept
+	{
+		_uiThreadQueue.enqueue(std::forward<Functor>(f), tag);
+	}
 
 private:
 	CFileSystemObject                          _currentDirObject;

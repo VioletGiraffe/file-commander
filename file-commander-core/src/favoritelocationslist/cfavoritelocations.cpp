@@ -61,7 +61,8 @@ std::list<CLocationsCollection>& CFavoriteLocations::locations()
 void CFavoriteLocations::load()
 {
 	const QByteArray data = CSettings().value(_settingsKey).toByteArray();
-	assert_and_return_r(!data.isEmpty(), );
+	if (data.isEmpty())
+		return;
 
 	int currentPosition = 0;
 	_items.clear();
