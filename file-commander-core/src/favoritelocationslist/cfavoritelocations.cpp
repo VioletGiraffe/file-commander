@@ -71,13 +71,13 @@ void CFavoriteLocations::load()
 
 	while (currentPosition < data.size())
 	{
-		int length = util::memory_cast<int>(data.constData()+currentPosition);
+		int length = memory_cast<int>(data.constData()+currentPosition);
 		assert_r(length > 0);
 		currentPosition += sizeof(length);
 		const QString displayName = QString::fromUtf8(data.constData()+currentPosition, length);
 		currentPosition += length;
 
-		length = util::memory_cast<int>(data.constData()+currentPosition);
+		length = memory_cast<int>(data.constData()+currentPosition);
 		currentPosition += sizeof(length);
 		QString path;
 		if (length > 0)
@@ -87,7 +87,7 @@ void CFavoriteLocations::load()
 		}
 
 		currentList.top().get().push_back(CLocationsCollection(displayName, path));
-		const Marker marker = util::memory_cast<Marker>(data.constData()+currentPosition);
+		const Marker marker = memory_cast<Marker>(data.constData()+currentPosition);
 		currentPosition += sizeof(Marker);
 
 		if (marker == NextLevel)

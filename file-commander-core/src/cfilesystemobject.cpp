@@ -37,9 +37,14 @@ static QString expandEnvironmentVariables(const QString& string)
 	if (!string.contains('%'))
 		return string;
 
-	static WCHAR result[16384 + 1];
-	if (ExpandEnvironmentStringsW((WCHAR*)string.utf16(), result, sizeof(result) / sizeof(result[0])) != 0)
-		return toPosixSeparators(QString::fromUtf16((char16_t*)result));
+	WCHAR source[16384 + 1];
+	WCHAR result[16384 + 1];
+
+	static_assert (sizeof(WCHAR) == 2);
+	const auto length = string.toWCharArray(source);
+	source[length] = 0;
+	if (const auto resultLength = ExpandEnvironmentStringsW(source, result, std::size(result)); resultLength > 0)
+		return toPosixSeparators(QString::fromWCharArray(result, resultLength - 1));
 	else
 		return string;
 #else
@@ -156,7 +161,7 @@ void CFileSystemObject::refreshInfo()
 	if (!_properties.exists)
 		return;
 
-	_properties.creationDate = (time_t) _fileInfo.created().toTime_t();
+	_properties.creationDate = (time_t) _fileInfo.birthTime().toTime_t();
 	_properties.modificationDate = _fileInfo.lastModified().toTime_t();
 	_properties.size = _properties.type == File ? _fileInfo.size() : 0;
 }
@@ -324,9 +329,12 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 	if (_rootFileSystemId == std::numeric_limits<uint64_t>::max())
 	{
 #ifdef _WIN32
-		const auto driveNumber = PathGetDriveNumberW((WCHAR*) _properties.fullPath.utf16());
+		WCHAR drivePath[32768];
+		const auto pathLength = _properties.fullPath.toWCharArray(drivePath);
+		drivePath[pathLength] = 0;
+		const auto driveNumber = PathGetDriveNumberW(drivePath);
 		if (driveNumber != -1)
-			_rootFileSystemId = (uint64_t) driveNumber;
+			_rootFileSystemId = static_cast<uint64_t>(driveNumber);
 #else
 		struct stat info;
 		const int ret = stat(_properties.fullPath.toUtf8().constData(), &info);

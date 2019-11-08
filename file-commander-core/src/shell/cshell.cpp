@@ -38,7 +38,7 @@ QString OsShell::shellExecutable()
 		"/usr/bin/pantheon-terminal", // Pantheon (Elementary OS)
 		"/usr/bin/qterminal", // QTerminal under linux
 		"/usr/local/bin/qterminal", // QTerminal under freebsd
-		"/usr/bin/qterminal", // QTerminal under linux	
+		"/usr/bin/qterminal", // QTerminal under linux
 	};
 
 	for (const auto& candidate: knownTerminals)
@@ -301,10 +301,10 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 	ComInitializer comInitializer;
 
 	assert_r(parentWindow);
-	std::vector<ITEMIDLIST*> idLists;
+	std::vector<LPITEMIDLIST> idLists;
 	for (auto& path: items)
 	{
-		__unaligned ITEMIDLIST* idl = ILCreateFromPathW(path.c_str());
+		LPITEMIDLIST idl = ILCreateFromPathW(path.c_str());
 		if (!idl)
 		{
 			for (auto& pid : idLists)

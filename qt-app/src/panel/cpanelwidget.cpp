@@ -16,6 +16,7 @@
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "settings.h"
+#include "utility/memory_cast.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QClipboard>
@@ -337,7 +338,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 		}
 	}
 
-	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), reinterpret_cast<void*>(winId()));
+	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), memory_cast<void*>(winId()));
 }
 
 void CPanelWidget::showContextMenuForDisk(QPoint pos)
@@ -350,7 +351,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 	pos = button->mapToGlobal(pos);
 	const size_t diskId = (size_t)(button->property("id").toULongLong());
 	std::vector<std::wstring> diskPath(1, _controller->volumePath(diskId).toStdWString());
-	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), reinterpret_cast<HWND>(winId()));
+	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), memory_cast<HWND>(winId()));
 #else
 	Q_UNUSED(pos);
 #endif
@@ -613,7 +614,7 @@ void CPanelWidget::copySelectionToClipboard() const
 	for (auto hash: hashes)
 		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
-	OsShell::copyObjectsToClipboard(paths, reinterpret_cast<void*>(winId()));
+	OsShell::copyObjectsToClipboard(paths, memory_cast<void*>(winId()));
 #endif
 }
 
@@ -647,7 +648,7 @@ void CPanelWidget::cutSelectionToClipboard() const
 	for (auto hash: hashes)
 		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
-	OsShell::cutObjectsToClipboard(paths, reinterpret_cast<void*>(winId()));
+	OsShell::cutObjectsToClipboard(paths, memory_cast<void*>(winId()));
 #endif
 }
 
@@ -669,9 +670,9 @@ void CPanelWidget::pasteSelectionFromClipboard()
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
 #else
-	auto hwnd = reinterpret_cast<void*>(winId());
+	const auto hwnd = memory_cast<void*>(winId());
 	const auto currentDirWString = currentDirPathNative().toStdWString();
-	_controller->execOnWorkerThread([=]() {
+	_controller->execOnWorkerThread([hwnd, currentDirWString]() {
 		OsShell::pasteFilesAndFoldersFromClipboard(currentDirWString, hwnd);
 	});
 #endif
@@ -792,7 +793,7 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 		diskButton->setCheckable(true);
 		diskButton->setIcon(drives[i].rootObjectInfo.icon());
 		diskButton->setText(name);
-		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).width(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
+		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).horizontalAdvance(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 		diskButton->setProperty("id", (qulonglong)i);
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 		diskButton->setToolTip(driveInfo.volumeLabel);

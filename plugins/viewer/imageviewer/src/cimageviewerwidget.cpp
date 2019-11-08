@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QPainter>
 #include <QTimer>
+#include <QScreen>
 RESTORE_COMPILER_WARNINGS
 
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
@@ -25,14 +26,17 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 	if (image.isNull())
 		return false;
 
-	const QSize screenSize = QApplication::desktop()->availableGeometry().size() - QSize(30, 100);
+	const auto * const currentScreen = QApplication::screenAt(geometry().center());
+	const auto availableGeometry = currentScreen ? currentScreen->availableGeometry() : QApplication::primaryScreen()->availableGeometry();
+	const QSize screenSize = availableGeometry.size() - QSize(30, 100);
+
 	QSize widgetSize = _sourceImage.size();
 	if (widgetSize.height() > screenSize.height() || widgetSize.width() > screenSize.width())
 		widgetSize.scale(screenSize, Qt::KeepAspectRatio);
 
 	resize(widgetSize);
 
-	QTimer::singleShot(0, [this]() {
+	QTimer::singleShot(0, this, [this, availableGeometry]() {
 		// Apparently, we need the timer in order for the resize to actually be applied before parent's resize
 		QMainWindow * mainWindow = nullptr;
 		for (QWidget * widget = dynamic_cast<QWidget*>(parent()); widget != nullptr; widget = dynamic_cast<QWidget*>(widget->parent()))
@@ -44,7 +48,6 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 
 		if (mainWindow)
 		{
-			const auto availableGeometry = QApplication::desktop()->availableGeometry();
 			mainWindow->move(QPoint(availableGeometry.width()/2 - mainWindow->frameGeometry().width()/2, availableGeometry.height()/2 - mainWindow->frameGeometry().height()/2));
 		}
 
@@ -69,7 +72,7 @@ bool CImageViewerWidget::displayImage(const QString& imagePath)
 
 	_currentImageFileSize = 0;
 	_currentImageFormat.clear();
-	
+
 	QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to load the image"), tr("Failed to load the image\n\n%1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
 	return false;
 }
