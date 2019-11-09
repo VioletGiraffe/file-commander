@@ -50,7 +50,7 @@ void CFocusFrameStyle::drawPrimitive(PrimitiveElement element, const QStyleOptio
 			bg.getHsl(&h, &s, &l);
 			newPen.setColor(l >= 128 ? QColor(70, 70, 70) : QColor(Qt::white));
 		} else
-			newPen.setColor(option->palette.foreground().color());
+			newPen.setColor(option->palette.windowText().color());
 
 		newPen.setWidth(2);
 		newPen.setStyle(Qt::DotLine);
