@@ -200,7 +200,7 @@ bool CTextViewerWindow::asUtf16()
 	static_assert (std::is_trivially_copyable_v<QChar>);
 	QString text;
 	text.resize(textData.size() / 2 + 1, QChar{'\0'});
-	memcpy(text.data(), textData.constData(), textData.size());
+	memcpy(text.data(), textData.constData(), static_cast<size_t>(textData.size()));
 	_textBrowser.setPlainText(std::move(text));
 	actionUTF_16->setChecked(true);
 
@@ -225,7 +225,7 @@ void CTextViewerWindow::findNext()
 	if (expression.isEmpty())
 		return;
 
-	QTextDocument::FindFlags flags = 0;
+	QTextDocument::FindFlags flags {};
 	if (_findDialog.caseSensitive())
 		flags |= QTextDocument::FindCaseSensitively;
 	if (_findDialog.searchBackwards())
