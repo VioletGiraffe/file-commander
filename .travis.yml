@@ -7,7 +7,7 @@ addons:
   sonarcloud:
     organization: "violetgiraffe"
     token:
-      secure: "50687be1590704fcb02527a7eba31f95db5b9518" # encrypted value of your token
+      secure: "5d3f1fbe8fed8d7a79eb6fb2b1e0cd5bd0a5e467" # encrypted value of your token
 
 matrix:
   include:
