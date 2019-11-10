@@ -6,8 +6,7 @@ git:
 addons:
   sonarcloud:
     organization: "violetgiraffe"
-    token:
-      secure: $SONAR_TOKEN
+    token: $SONAR_TOKEN
 
 matrix:
   include:
@@ -35,7 +34,7 @@ install:
   # Qt5
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export QMAKE=/usr/local/bin/qmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export export QTPATH=/usr/local; QMAKE=$QTPATH/bin/qmake; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt512-meta-minimal; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev; fi
@@ -57,16 +56,19 @@ before_script:
   - $QMAKE -v
 
 script:
-  # Building the main binaries
+# Building the main binaries
+
+  # Linux
   - $QMAKE -r CONFIG+=release
   # Wraps the compilation with the Build Wrapper to generate configuration (used
   # later by the SonarQube Scanner) into the "bw-output" folder
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then build-wrapper-linux-x86-64 --out-dir . make -j; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sonar-scanner; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then make -j; fi
-
   # Linux: deploying Qt binaries
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/FileCommander -bundle-non-qt-libs; fi
+
+  # macOS
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sh ./installer/mac/create_dmg.sh $QTPATH; fi
 
 # Test launch
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/FileCommander --test-launch; else ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch; fi
@@ -89,3 +91,21 @@ script:
 
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/filecomparator_test -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/filecomparator_test --std-seed $(date +%s); else ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s); fi;
+
+  
+  # Set up git user name and tag this commit
+  - git config --local user.name "VioletGiraffe"
+  - git config --local user.email "violet.giraffe@noreply.github.com"
+  - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+  - git tag $TRAVIS_TAG
+
+deploy:
+  provider: releases
+  edge: true
+  overwrite: true
+  token: $GITHUB_TOKEN
+  file: FileCommander.dmg
+  on:
+    tags: true
+    all_branches: true
+    condition: $TRAVIS_OS_NAME = osx
