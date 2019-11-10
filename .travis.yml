@@ -105,6 +105,7 @@ deploy:
   overwrite: true
   token: $GITHUB_TOKEN
   file: FileCommander.dmg
+  prerelease: tue
   on:
     tags: true
     all_branches: true
