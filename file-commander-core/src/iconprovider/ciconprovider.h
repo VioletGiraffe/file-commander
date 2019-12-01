@@ -1,5 +1,4 @@
-#ifndef CICONPROVIDER_H
-#define CICONPROVIDER_H
+#pragma once
 
 #include "compiler/compiler_warnings_control.h"
 
@@ -28,10 +27,8 @@ private:
 private:
 	static std::unique_ptr<CIconProvider> _instance;
 
-	std::unordered_map<qulonglong, QIcon> _iconCache;
-	std::unordered_map<qulonglong, qulonglong> _iconForObject;
+	std::unordered_map<qulonglong, QIcon> _iconByItsHash;
+	std::unordered_map<qulonglong, qulonglong> _iconHashForObjectHash;
 
 	std::unique_ptr<CIconProviderImpl> _provider;
 };
-
-#endif // CICONPROVIDER_H
