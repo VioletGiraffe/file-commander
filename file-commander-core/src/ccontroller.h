@@ -7,6 +7,8 @@
 #include "favoritelocationslist/cfavoritelocations.h"
 #include "filesearchengine/cfilesearchengine.h"
 
+#include <optional>
+
 class CController : public CVolumeEnumerator::IVolumeListObserver
 {
 public:
@@ -101,7 +103,7 @@ public:
 
 	CVolumeEnumerator& volumeEnumerator();
 	QString volumePath(size_t index) const;
-	size_t currentVolumeIndex(Panel p) const;
+	std::optional<size_t> currentVolumeIndex(Panel p) const;
 
 	CFavoriteLocations& favoriteLocations();
 	CFileSearchEngine& fileSearchEngine();

@@ -254,25 +254,6 @@ bool CFileSystemObject::isHidden() const
 	return _fileInfo.isHidden();
 }
 
-// Returns true if this object is a child of parent, either direct or indirect
-bool CFileSystemObject::isChildOf(const CFileSystemObject &parent) const
-{
-	if (!isValid() || !parent.isValid())
-		return false;
-
-	if (fullAbsolutePath().startsWith(parent.fullAbsolutePath(), caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive))
-		return true;
-
-	if (!isSymLink() && !parent.isSymLink())
-		return false;
-
-	const auto resolvedChildLink = isSymLink() ? symLinkTarget() : fullAbsolutePath();
-	const auto resolvedParentLink = parent.isSymLink() ? parent.symLinkTarget() : parent.fullAbsolutePath();
-
-	assert_and_return_r(!resolvedChildLink.isEmpty() && !resolvedParentLink.isEmpty(), false);
-	return resolvedChildLink.startsWith(resolvedParentLink, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive);
-}
-
 QString CFileSystemObject::fullAbsolutePath() const
 {
 	assert(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
@@ -303,25 +284,6 @@ qulonglong CFileSystemObject::hash() const
 const QFileInfo &CFileSystemObject::qFileInfo() const
 {
 	return _fileInfo;
-}
-
-std::vector<QString> CFileSystemObject::pathHierarchy(const QString& path)
-{
-	assert_r(!path.contains('\\'));
-	assert_r(!path.contains(QStringLiteral("//")) || !path.rightRef(path.length() - 2).contains(QStringLiteral("//")));
-
-	if (path.isEmpty())
-		return {};
-	else if (path == '/')
-		return { QString('/') };
-
-
-	QString pathItem = path.endsWith('/') ? path.left(path.length() - 1) : path;
-	std::vector<QString> result {path == '/' ? QString() : path};
-	while ((pathItem = QFileInfo(pathItem).absolutePath()).length() < result.back().length())
-		result.push_back(pathItem);
-
-	return result;
 }
 
 uint64_t CFileSystemObject::rootFileSystemId() const

@@ -14,6 +14,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
+#include <iterator>
+
 CController* CController::_instance = nullptr;
 
 CController::CController() :
@@ -124,8 +126,8 @@ bool CController::switchToVolume(Panel p, size_t index)
 	assert_r(index < _volumeEnumerator.drives().size());
 	const QString drivePath = _volumeEnumerator.drives().at(index).rootObjectInfo.fullAbsolutePath();
 
-	const size_t currentIndex = currentVolumeIndex(otherPanelPosition(p));
-	if (currentIndex < _volumeEnumerator.drives().size() && drivePath == _volumeEnumerator.drives().at(currentIndex).rootObjectInfo.fullAbsolutePath())
+	const std::optional<size_t> currentIndex = currentVolumeIndex(otherPanelPosition(p));
+	if (currentIndex && drivePath == _volumeEnumerator.drives().at(*currentIndex).rootObjectInfo.fullAbsolutePath())
 	{
 		return setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == FileOperationResultCode::Ok;
 	}
@@ -435,17 +437,22 @@ QString CController::volumePath(size_t index) const
 	return index < _volumeEnumerator.drives().size() ? _volumeEnumerator.drives()[index].rootObjectInfo.fullAbsolutePath() : QString();
 }
 
-size_t CController::currentVolumeIndex(Panel p) const
+std::optional<size_t> CController::currentVolumeIndex(Panel p) const
 {
 	const auto drives = _volumeEnumerator.drives();
 	const auto currentDirectoryObject = CFileSystemObject(panel(p).currentDirPathNative());
-	for (size_t i = 0, size = drives.size(); i < size; ++i)
-	{
-		if (currentDirectoryObject.isChildOf(drives[i].rootObjectInfo))
-			return i;
-	}
 
-	return std::numeric_limits<size_t>::max();
+	std::vector<int> commonPrefixWithDrive;
+	commonPrefixWithDrive.reserve(drives.size());
+
+	for (size_t i = 0, size = drives.size(); i < size; ++i)
+		commonPrefixWithDrive.emplace_back(longestCommonRootPath(currentDirectoryObject, drives[i].rootObjectInfo).length());
+
+	const auto longestCommonRootIterator = std::max_element(cbegin_to_end(commonPrefixWithDrive));
+	if (*longestCommonRootIterator == 0)
+		return {};
+
+	return static_cast<size_t>(std::distance(commonPrefixWithDrive.cbegin(), longestCommonRootIterator));
 }
 
 CFavoriteLocations& CController::favoriteLocations()
@@ -494,8 +501,9 @@ void CController::saveDirectoryForCurrentVolume(Panel p)
 	if (path.isNetworkObject())
 		return;
 
-	assert_and_return_r(currentVolumeIndex(p) < _volumeEnumerator.drives().size(), );
+	const std::optional<size_t> currentVolume = currentVolumeIndex(p);
+	assert_and_return_r(currentVolume, );
 
-	const QString drivePath = _volumeEnumerator.drives().at(currentVolumeIndex(p)).rootObjectInfo.fullAbsolutePath();
+	const QString drivePath = _volumeEnumerator.drives().at(*currentVolume).rootObjectInfo.fullAbsolutePath();
 	CSettings().setValue(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
 }

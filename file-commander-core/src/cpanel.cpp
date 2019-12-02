@@ -54,7 +54,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	const auto oldPathObject = _currentDirObject;
 
-	const auto pathGraph = CFileSystemObject::pathHierarchy(path);
+	const auto pathGraph = pathHierarchy(path);
 	bool pathSet = false;
 	for (const auto& candidatePath: pathGraph)
 	{

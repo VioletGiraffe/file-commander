@@ -75,15 +75,12 @@ public:
 	bool isWriteable() const;
 	bool isHidden() const;
 
-	// Returns true if this object is a child of parent, either direct or indirect
-	bool isChildOf(const CFileSystemObject& parent) const;
 	QString fullAbsolutePath() const;
 	QString parentDirPath() const;
 	const QIcon& icon() const;
 	uint64_t size() const;
 	qulonglong hash() const;
 	const QFileInfo& qFileInfo() const;
-	static std::vector<QString> pathHierarchy(const QString& path);
 	uint64_t rootFileSystemId() const;
 	bool isNetworkObject() const;
 	bool isSymLink() const;

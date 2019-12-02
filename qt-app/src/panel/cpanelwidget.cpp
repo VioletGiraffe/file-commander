@@ -960,8 +960,8 @@ void CPanelWidget::updateCurrentDiskButton()
 			continue;
 
 		const size_t id = (size_t)(button->property("id").toULongLong());
-		const size_t currentDriveId = _controller->currentVolumeIndex(_panelPosition);
-		if (id == currentDriveId)
+		const std::optional<size_t> currentDriveId = _controller->currentVolumeIndex(_panelPosition);
+		if (id == *currentDriveId)
 		{
 			button->setChecked(true);
 			const auto diskInfo = _controller->volumeEnumerator().drives()[id];

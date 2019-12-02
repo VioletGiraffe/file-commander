@@ -2,9 +2,12 @@
 
 #include "cfilesystemobject.h"
 #include "assert/advanced_assert.h"
+#include "container/std_container_helpers.hpp"
 
-#include <stdint.h>
+#include <algorithm>
 #include <cmath>
+#include <stdint.h>
+#include <vector>
 
 inline QString toNativeSeparators(const QString &path)
 {
@@ -94,4 +97,74 @@ constexpr bool caseSensitiveFilesystem()
 #error "Unknown operating system"
 	return true;
 #endif
+}
+
+inline std::vector<QString> pathHierarchy(const QString& path)
+{
+	assert_r(!path.contains('\\'));
+	assert_r(!path.contains(QStringLiteral("//")) || !path.rightRef(path.length() - 2).contains(QStringLiteral("//")));
+
+	if (path.isEmpty())
+		return {};
+	else if (path == '/')
+		return { path };
+
+	QString pathItem = path.endsWith('/') ? path.left(path.length() - 1) : path;
+	std::vector<QString> result {path == '/' ? QString() : path};
+	while ((pathItem = QFileInfo(pathItem).absolutePath()).length() < result.back().length())
+		result.push_back(pathItem);
+
+	return result;
+}
+
+// Returns true if this object is a child of parent, either direct or indirect
+inline QString longestCommonRootPath(const QString& pathA, const QString& pathB)
+{
+	if (pathA.compare(pathB, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0)
+		return pathA; // Full match
+
+	const auto hierarchyA = pathHierarchy(pathA);
+	const auto hierarchyB = pathHierarchy(pathB);
+
+	const auto mismatch = std::mismatch(cbegin_to_end(hierarchyA), cbegin_to_end(hierarchyB), [](const QString& left, const QString& right){
+		return left.compare(right, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0;
+	});
+
+	if (mismatch.first == hierarchyA.cbegin() || mismatch.second == hierarchyB.cbegin())
+		return {}; // No common prefix
+
+	// Sanity check
+	assert_debug_only(std::distance(mismatch.first, hierarchyA.cbegin()) == std::distance(mismatch.second, hierarchyB.cbegin()) && std::distance(mismatch.first, hierarchyA.cbegin()) <= pathA.size());
+
+	QString result;
+	for (auto it = hierarchyA.cbegin(); it != mismatch.first; ++it)
+	{
+		result += *it;
+		result += '/';
+	}
+
+	return result;
+}
+
+// Returns true if this object is a child of parent, either direct or indirect
+inline QString longestCommonRootPath(const CFileSystemObject& object1, const CFileSystemObject& object2)
+{
+	if (!object1.isValid() || !object2.isValid())
+		return {};
+
+	{
+		const auto longestCommonRoot = longestCommonRootPath(object1.fullAbsolutePath(), object2.fullAbsolutePath());
+		if (!longestCommonRoot.isEmpty())
+			return longestCommonRoot;
+	}
+
+	if (!object1.isSymLink() && !object2.isSymLink())
+		return {};
+
+	const auto resolvedLink1 = object1.isSymLink() ? object1.symLinkTarget() : object1.fullAbsolutePath();
+	const auto resolvedLink2 = object2.isSymLink() ? object2.symLinkTarget() : object2.fullAbsolutePath();
+
+	assert_and_return_r(!resolvedLink1.isEmpty() && !resolvedLink2.isEmpty(), {});
+	const auto longestCommonRootResolved = longestCommonRootPath(resolvedLink1, resolvedLink2);
+	return longestCommonRootResolved;
 }
