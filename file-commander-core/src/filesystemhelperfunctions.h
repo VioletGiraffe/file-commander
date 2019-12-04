@@ -99,6 +99,8 @@ constexpr bool caseSensitiveFilesystem()
 #endif
 }
 
+// Return the list of consecutive full paths leading from the specified target to its root.
+// E. g. C:/Users/user/Documents/ -> {C:/Users/user/Documents/, C:/Users/user/, C:/Users/, C:/}
 inline std::vector<QString> pathHierarchy(const QString& path)
 {
 	assert_r(!path.contains('\\'));
@@ -110,9 +112,14 @@ inline std::vector<QString> pathHierarchy(const QString& path)
 		return { path };
 
 	QString pathItem = path.endsWith('/') ? path.left(path.length() - 1) : path;
-	std::vector<QString> result {path == '/' ? QString() : path};
+	std::vector<QString> result {path};
 	while ((pathItem = QFileInfo(pathItem).absolutePath()).length() < result.back().length())
-		result.push_back(pathItem);
+	{
+		if (pathItem.endsWith('/'))
+			result.emplace_back(pathItem);
+		else
+			result.emplace_back(pathItem + '/');
+	}
 
 	return result;
 }
