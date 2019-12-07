@@ -3,6 +3,7 @@
 #include "cfilesystemobject.h"
 #include "assert/advanced_assert.h"
 #include "container/std_container_helpers.hpp"
+#include "std_helpers/qt_container_helpers.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -124,14 +125,30 @@ inline std::vector<QString> pathHierarchy(const QString& path)
 	return result;
 }
 
+inline std::vector<QString> pathComponents(const QString& path)
+{
+	assert_debug_only(!path.contains('\\') && !path.contains("//"));
+	auto components = path.split('/', QString::KeepEmptyParts);
+	if (components.empty())
+		return { path };
+
+	if (components.front().isEmpty())
+		components.front() = '/';
+
+	if (components.back().isEmpty())
+		components.pop_back();
+
+	return to_vector(std::move(components));
+}
+
 // Returns true if this object is a child of parent, either direct or indirect
 inline QString longestCommonRootPath(const QString& pathA, const QString& pathB)
 {
 	if (pathA.compare(pathB, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0)
 		return pathA; // Full match
 
-	const auto hierarchyA = pathHierarchy(pathA);
-	const auto hierarchyB = pathHierarchy(pathB);
+	const auto hierarchyA = pathComponents(pathA);
+	const auto hierarchyB = pathComponents(pathB);
 
 	const auto mismatch = std::mismatch(cbegin_to_end(hierarchyA), cbegin_to_end(hierarchyB), [](const QString& left, const QString& right){
 		return left.compare(right, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0;
