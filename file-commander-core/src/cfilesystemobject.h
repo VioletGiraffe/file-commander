@@ -21,6 +21,10 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <vector>
 
+// Return the list of consecutive full paths leading from the specified target to its root.
+// E. g. C:/Users/user/Documents/ -> {C:/Users/user/Documents/, C:/Users/user/, C:/Users/, C:/}
+std::vector<QString> pathHierarchy(const QString& path); // Keeping this function here because it's covered by a CFileSystemObject test and needs the QFileInfo_Test include
+
 enum FileSystemObjectType { UnknownType, Directory, File, Bundle };
 
 struct CFileSystemObjectProperties {

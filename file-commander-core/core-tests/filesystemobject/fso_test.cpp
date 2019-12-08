@@ -38,10 +38,6 @@ TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.isChildOf(CFileSystemObject()) == false);
-	}
-
-	SECTION_WITH_AUTO_NAME {
 		CHECK(fso.isDir() == false);
 	}
 
