@@ -40,36 +40,39 @@ echo '
 tell application "Finder"
   tell disk "'${VOL}'"
     open
-    set current view of container window to icon view
-    do shell script "echo Test line 1"
-    set toolbar visible of container window to false
-    do shell script ">&2 echo Test line 2"
-    set statusbar visible of container window to false
-    do shell script ">&2 echo Test line 3"
-    set the bounds of container window to {400, 100, 899, 356}
-    do shell script ">&2 echo Test line 4"
-    set theViewOptions to the icon view options of container window
-    do shell script ">&2 echo Test line 5"
-    set arrangement of theViewOptions to not arranged
-    do shell script ">&2 echo Test line 6"
-    set icon size of theViewOptions to 72
-    do shell script ">&2 echo Test line 7"
     update without registering applications
-    delay 3
-    do shell script "echo Test line 8"
+    delay 2
+    set current view of container window to icon view
+    update without registering applications
+    delay 2
+    set toolbar visible of container window to false
+    update without registering applications
+    delay 2
+    set statusbar visible of container window to false
+    update without registering applications
+    delay 2
+    set the bounds of container window to {400, 100, 899, 356}
+    update without registering applications
+    delay 2
+    set theViewOptions to the icon view options of container window
+    update without registering applications
+    delay 2
+    set arrangement of theViewOptions to not arranged
+    update without registering applications
+    delay 2
+    set icon size of theViewOptions to 72
+    update without registering applications
+    delay 2
     set position of item "Applications" of container window to {400, 90}
     update without registering applications
-    delay 3
-    do shell script "echo Test line 9"
+    delay 2
     set position of item "'${APPDIR}'" of container window to {100, 90}
     update without registering applications
-    delay 3
-    do shell script "echo Test line 10"
-    delay 3
+    delay 2
     eject
   end tell
 end tell
-' | osascript -so
+' | osascript
 
 #convert to compressed image, delete temp image
 rm -f "$DMG"
