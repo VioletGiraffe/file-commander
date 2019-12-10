@@ -43,17 +43,17 @@ tell application "Finder"
     set current view of container window to icon view
     do shell script "echo Test line 1"
     set toolbar visible of container window to false
-    do shell script "echo Test line 2"
+    do shell script ">&2 echo Test line 2"
     set statusbar visible of container window to false
-    do shell script "echo Test line 3"
+    do shell script ">&2 echo Test line 3"
     set the bounds of container window to {400, 100, 899, 356}
-    do shell script "echo Test line 4"
+    do shell script ">&2 echo Test line 4"
     set theViewOptions to the icon view options of container window
-    do shell script "echo Test line 5"
+    do shell script ">&2 echo Test line 5"
     set arrangement of theViewOptions to not arranged
-    do shell script "echo Test line 6"
+    do shell script ">&2 echo Test line 6"
     set icon size of theViewOptions to 72
-    do shell script "echo Test line 7"
+    do shell script ">&2 echo Test line 7"
     update without registering applications
     delay 3
     do shell script "echo Test line 8"
@@ -69,7 +69,7 @@ tell application "Finder"
     eject
   end tell
 end tell
-' | osascript
+' | osascript -so
 
 #convert to compressed image, delete temp image
 rm -f "$DMG"
