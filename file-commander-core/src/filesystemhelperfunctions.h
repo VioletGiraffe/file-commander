@@ -139,7 +139,10 @@ inline QString longestCommonRootPath(const QString& pathA, const QString& pathB)
 	for (auto it = hierarchyA.cbegin(); it != mismatch.first; ++it)
 	{
 		result += *it;
-		result += '/';
+		if (*it != '/')
+			result += '/';
+		else
+			assert_debug_only(it->endsWith('/'));
 	}
 
 	return result;
