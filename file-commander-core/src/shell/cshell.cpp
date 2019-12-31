@@ -248,7 +248,7 @@ bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * 
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	const char command [] = "Paste";
+	const char command[] = "Paste";
 
 	CMINVOKECOMMANDINFO info = { 0 };
 	info.cbSize = sizeof(info);
@@ -433,16 +433,16 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 	{
 		auto& item = objects[i];
 		std::replace(item.begin(), item.end(), '/', '\\');
-		item.pop_back();
-		ids.push_back(nullptr);
-		HRESULT result = SHParseDisplayName(item.c_str(), nullptr, &ids.back(), 0, nullptr);
+		//item.pop_back(); // TODO: ???
+		ids.emplace_back(nullptr);
+		HRESULT result = SHParseDisplayName(item.c_str(), nullptr, &ids.back(), 0, nullptr); // TODO: avoid c_str() somehow?
 		if (!SUCCEEDED(result) || !ids.back())
 		{
 			ids.pop_back();
 			continue;
 		}
 
-		relativeIds.push_back(nullptr);
+		relativeIds.emplace_back(nullptr);
 		result = SHBindToParent(ids.back(), IID_IShellFolder, (void**)&ifolder, &relativeIds.back());
 		if (!SUCCEEDED(result) || !relativeIds.back())
 			relativeIds.pop_back();
