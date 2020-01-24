@@ -8,7 +8,7 @@ SETLOCAL
 
 RMDIR /S /Q binaries\
 
-call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.17763.0
+call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.18362.0
 
 REM X86
 pushd ..\..\

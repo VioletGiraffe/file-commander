@@ -4,9 +4,9 @@ init:
 
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      qt: 5.12\msvc2017_64
-      VS_VERSION: 2017
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      qt: 5.14\msvc2017_64
+      VS_VERSION: 2019
       BUILD_ARCH: x64
 
 configuration:
