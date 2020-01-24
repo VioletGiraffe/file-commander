@@ -103,7 +103,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (_history.currentItem() != newPath)
 	{
 		_history.addLatest(newPath);
-		settings.setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList::fromVector(QVector<QString>::fromStdVector(_history.list()))));
+		settings.setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList(_history.list().cbegin(), _history.list().cend())));
 	}
 
 	settings.setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);

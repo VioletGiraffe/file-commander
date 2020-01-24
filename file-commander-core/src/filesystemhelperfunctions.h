@@ -5,29 +5,12 @@
 #include "container/std_container_helpers.hpp"
 #include "std_helpers/qt_container_helpers.hpp"
 
+#include <QStringBuilder>
+
 #include <algorithm>
 #include <cmath>
 #include <stdint.h>
 #include <vector>
-
-inline QString toNativeSeparators(const QString &path)
-{
-#ifdef _WIN32
-	return QString(path).replace('/', '\\');
-#else
-	return path;
-#endif
-}
-
-inline QString toPosixSeparators(const QString &path)
-{
-#ifdef _WIN32
-	return QString(path).replace('\\', '/');
-#else
-	assert_debug_only(!path.contains('\\'));
-	return path;
-#endif
-}
 
 inline constexpr char nativeSeparator()
 {
@@ -38,9 +21,40 @@ inline constexpr char nativeSeparator()
 #endif
 }
 
-inline QString cleanPath(const QString& path)
+inline QString toNativeSeparators(QString path)
 {
-	return QString(path).replace(QStringLiteral("\\\\"), QStringLiteral("\\")).replace(QStringLiteral("//"), QStringLiteral("/"));
+#ifdef _WIN32
+	return path.replace('/', nativeSeparator());
+#else
+	return path;
+#endif
+}
+
+inline QString toPosixSeparators(QString path)
+{
+#ifdef _WIN32
+	return path.replace(nativeSeparator(), '/');
+#else
+	assert_debug_only(!path.contains('\\'));
+	return path;
+#endif
+}
+
+inline QString escapedPath(QString path)
+{
+	if (!path.contains(' ') || path.startsWith('\"'))
+		return path;
+
+#ifdef _WIN32
+	return '\"' % path % '\"';
+#else
+	return path.replace(' ', QLatin1Literal("\\ "));
+#endif
+}
+
+inline QString cleanPath(QString path)
+{
+	return path.replace(QStringLiteral("\\\\"), QStringLiteral("\\")).replace(QStringLiteral("//"), QStringLiteral("/"));
 }
 
 inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const QString& spacer = QString())

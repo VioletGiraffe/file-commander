@@ -71,7 +71,7 @@ public:
 	// This method takes the current folder in the currently active panel
 	void setCursorPositionForCurrentFolder(Panel panel, qulonglong newCurrentItemHash, const bool notifyUi = true);
 	// Copies the full path of the currently selected item to clipboard
-	void copyCurrentItemToClipboard();
+	void copyCurrentItemPathToClipboard();
 
 // Threading
 	inline void execOnWorkerThread(const std::function<void()>& task)

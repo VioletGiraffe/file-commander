@@ -305,11 +305,11 @@ void CController::setCursorPositionForCurrentFolder(Panel p, qulonglong newCurre
 	CPluginEngine::get().currentItemChanged(activePanelPosition(), newCurrentItemHash);
 }
 
-void CController::copyCurrentItemToClipboard()
+void CController::copyCurrentItemPathToClipboard()
 {
 	const auto item = currentItem();
 	if (item.isValid())
-		QApplication::clipboard()->setText(toNativeSeparators(item.fullAbsolutePath()));
+		QApplication::clipboard()->setText(escapedPath(toNativeSeparators(item.fullAbsolutePath())));
 }
 
 const CPanel &CController::panel(Panel p) const
