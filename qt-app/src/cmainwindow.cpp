@@ -558,7 +558,7 @@ void CMainWindow::editFile()
 
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 {
-	const QPoint globalPos = ui->btnDelete->mapToGlobal(pos);
+	const QPoint globalPos = ui->btnDelete->mapToGlobal(pos) * ui->btnDelete->devicePixelRatioF(); // These coordinates ar egoing directly into the system API so need to account for scaling that Qt tries to abstract away.
 	OsShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), (void*)winId());
 }
 

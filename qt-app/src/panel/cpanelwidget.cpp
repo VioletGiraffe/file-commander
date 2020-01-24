@@ -338,6 +338,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 		}
 	}
 
+	pos *= ui->_list->devicePixelRatioF();
 	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), memory_cast<void*>(winId()));
 }
 
@@ -348,7 +349,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 	if (!button)
 		return;
 
-	pos = button->mapToGlobal(pos);
+	pos = button->mapToGlobal(pos) * button->devicePixelRatioF(); // These coordinates ar egoing directly into the system API so need to account for scaling that Qt tries to abstract away.
 	const size_t diskId = (size_t)(button->property("id").toULongLong());
 	std::vector<std::wstring> diskPath(1, _controller->volumePath(diskId).toStdWString());
 	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), memory_cast<HWND>(winId()));
