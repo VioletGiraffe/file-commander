@@ -350,7 +350,7 @@ void CFileSystemObject::setDirSize(uint64_t size)
 	_properties.size = size;
 }
 
-// File name without suffix, or folder name
+// File name without suffix, or folder name. Same as QFileInfo::completeBaseName.
 QString CFileSystemObject::name() const
 {
 	return _properties.completeBaseName;
@@ -364,10 +364,7 @@ QString CFileSystemObject::fullName() const
 
 QString CFileSystemObject::extension() const
 {
-	if (_properties.type == File && _properties.completeBaseName.isEmpty()) // File without a name, displaying extension in the name field and adding point to extension
-		return QString('.') + _properties.extension;
-	else
-		return _properties.extension;
+	return _properties.extension;
 }
 
 QString CFileSystemObject::sizeString() const

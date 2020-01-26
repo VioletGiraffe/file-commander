@@ -95,7 +95,7 @@ public:
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);
 
-	// File name without suffix, or folder name
+	// File name without suffix, or folder name. Same as QFileInfo::completeBaseName.
 	QString name() const;
 	// Filename + suffix for files, same as name() for folders
 	QString fullName() const;
