@@ -11,7 +11,7 @@ CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
 	QSortFilterProxyModel(parent),
 	_controller(CController::get()),
 	_panel(UnknownPanel),
-	_sorter(CNaturalSorting(nsaQCollator, SortingOptions()))
+	_sorter(CNaturalSorting(nsaQCollator, {}))
 {
 }
 
@@ -82,8 +82,7 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	switch (sortColumn)
 	{
 	case NameColumn:
-		// File name and extension sort is case-insensitive
-		return _sorter.lessThan(leftItem.fullName(), rightItem.fullName());
+		return _sorter.lessThan(leftItem.name(), rightItem.name());
 	case ExtColumn:
 		if (!isFileOrBundle(leftItem) && !isFileOrBundle(rightItem)) // Sorting directories by name, files - by extension
 			return _sorter.lessThan(leftItem.name(), rightItem.name());
@@ -93,15 +92,18 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 		{
 			QString leftExt = leftItem.extension(), rightExt = rightItem.extension();
 			QString leftName = leftItem.name(), rightName = rightItem.name();
+
+			// Special handling for files with no extension.
+			// They will be displayed with a leading '.', and I want them to appear first in the list, before files with no extension.
 			if (rightName.isEmpty())
 			{
-				rightName = rightExt;
+				rightName = '.' + rightExt;
 				rightExt.clear();
 			}
 
 			if (leftName.isEmpty())
 			{
-				leftName = leftExt;
+				leftName = '.' + leftExt;
 				leftExt.clear();
 			}
 
