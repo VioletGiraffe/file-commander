@@ -8,10 +8,12 @@ SETLOCAL
 
 RMDIR /S /Q binaries\
 
+if not defined WIN_SDK set WIN_SDK=10.0.18362.0
+
 if exist "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-    call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.18362.0
+    call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 %WIN_SDK%
 ) else (
-    call "%programfiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 10.0.18362.0
+    call "%programfiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 %WIN_SDK%
 )
 
 REM X86
@@ -36,7 +38,7 @@ ENDLOCAL
 xcopy /R /Y %SystemRoot%\SysWOW64\msvcp140.dll binaries\32\msvcr\
 xcopy /R /Y %SystemRoot%\SysWOW64\vcruntime140.dll binaries\32\msvcr\
 
-xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x86\*" binaries\32\msvcr\
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x86\*" binaries\32\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\32\Qt\opengl*.*
@@ -46,9 +48,9 @@ ENDLOCAL
 SETLOCAL
 
 if exist "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-    call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.18362.0
+    call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 %WIN_SDK%
 ) else (
-    call "%programfiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.18362.0
+    call "%programfiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 %WIN_SDK%
 )
 
 REM X64
@@ -73,7 +75,7 @@ ENDLOCAL
 xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\
 xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\
 
-xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x64\*" binaries\64\msvcr\
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*" binaries\64\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\64\Qt\opengl*.*
