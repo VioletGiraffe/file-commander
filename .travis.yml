@@ -53,7 +53,7 @@ script:
   - $QMAKE -r CONFIG+=release
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j; fi
   # Linux: deploying Qt binaries
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -bundle-non-qt-libs -unsupported-allow-new-glibc ./bin/release/x64/FileCommander; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/FileCommander -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
 
   # macOS
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sh ./installer/mac/create_dmg.sh $QTPATH; fi
@@ -68,16 +68,16 @@ script:
   - cd ../../
 
   # Running tests
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -unsupported-allow-new-glibc ./bin/release/x64/fso_test -bundle-non-qt-libs; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test; else ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test; fi
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -unsupported-allow-new-glibc ./bin/release/x64/fso_test_high_level -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test_high_level; else ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level; fi
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -unsupported-allow-new-glibc ./bin/release/x64/operationperformer_test -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; for i in `seq 1 20`; do if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/operationperformer_test --std-seed $(date +%s); else ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); fi; sleep 1; done
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -unsupported-allow-new-glibc ./bin/release/x64/filecomparator_test -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/filecomparator_test --std-seed $(date +%s); else ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s); fi;
 
   
