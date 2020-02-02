@@ -48,7 +48,7 @@ inline QString escapedPath(QString path)
 #ifdef _WIN32
 	return '\"' % path % '\"';
 #else
-	return path.replace(' ', QLatin1Literal("\\ "));
+    return path.replace(' ', QLatin1String("\\ "));
 #endif
 }
 
