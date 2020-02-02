@@ -3,11 +3,6 @@ language: cpp
 git:
   depth: false
 
-addons:
-  sonarcloud:
-    organization: "violetgiraffe"
-    token: $SONAR_TOKEN
-
 matrix:
   include:
     - os: osx
@@ -28,7 +23,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90; fi
   # Qt5
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5; brew upgrade qt5; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade qt5 || true; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export export QTPATH=/usr/local; QMAKE=$QTPATH/bin/qmake; fi
 
@@ -56,10 +51,7 @@ script:
 
   # Linux
   - $QMAKE -r CONFIG+=release
-  # Wraps the compilation with the Build Wrapper to generate configuration (used
-  # later by the SonarQube Scanner) into the "bw-output" folder
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then build-wrapper-linux-x86-64 --out-dir . make -j; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sonar-scanner; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j; fi
   # Linux: deploying Qt binaries
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -bundle-non-qt-libs -unsupported-allow-new-glibc ./bin/release/x64/FileCommander; fi
 
