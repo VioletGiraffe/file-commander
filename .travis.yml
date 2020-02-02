@@ -14,32 +14,28 @@ matrix:
       osx_image: xcode10.1
       compiler: clang
     - os: linux
-      dist: xenial
+      dist: bionic
       compiler: gcc
       services:
         - xvfb
 
-before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  # C++17
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test; fi
-
 install:
   # C++17
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.3-xenial; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.14.0-bionic; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qy update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq g++-8 gcc-8; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 90; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 90; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq g++-9 gcc-9; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90; fi
   # Qt5
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5; brew upgrade qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export export QTPATH=/usr/local; QMAKE=$QTPATH/bin/qmake; fi
 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt512-meta-minimal; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt514-meta-minimal; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt512/bin/qmake; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=/opt/qt512/bin/:$PATH; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt514/bin/qmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=/opt/qt514/bin/:$PATH; fi
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then gcc --version; fi
@@ -65,7 +61,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then build-wrapper-linux-x86-64 --out-dir . make -j; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sonar-scanner; fi
   # Linux: deploying Qt binaries
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/FileCommander -bundle-non-qt-libs; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -bundle-non-qt-libs -unsupported-allow-new-glibc ./bin/release/x64/FileCommander; fi
 
   # macOS
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sh ./installer/mac/create_dmg.sh $QTPATH; fi
@@ -80,16 +76,16 @@ script:
   - cd ../../
 
   # Running tests
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/fso_test -bundle-non-qt-libs; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -unsupported-allow-new-glibc ./bin/release/x64/fso_test -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test; else ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test; fi
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/fso_test_high_level -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -unsupported-allow-new-glibc ./bin/release/x64/fso_test_high_level -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test_high_level; else ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level; fi
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/operationperformer_test -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -unsupported-allow-new-glibc ./bin/release/x64/operationperformer_test -bundle-non-qt-libs; fi
   - set -e; for i in `seq 1 20`; do if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/operationperformer_test --std-seed $(date +%s); else ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); fi; sleep 1; done
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/filecomparator_test -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage -unsupported-allow-new-glibc ./bin/release/x64/filecomparator_test -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/filecomparator_test --std-seed $(date +%s); else ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s); fi;
 
   
