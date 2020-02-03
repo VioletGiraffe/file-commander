@@ -102,7 +102,12 @@ void CFileSystemObject::refreshInfo()
 	_properties.exists = _fileInfo.exists();
 	_properties.fullPath = _fileInfo.absoluteFilePath();
 
-	if (_fileInfo.isFile())
+	if (_fileInfo.isShortcut()) // This is Windows-specific, place under #ifdef?
+	{
+		_properties.exists = true;
+		_properties.type = File;
+	}
+	else if (_fileInfo.isFile())
 		_properties.type = File;
 	else if (_fileInfo.isDir())
 	{
