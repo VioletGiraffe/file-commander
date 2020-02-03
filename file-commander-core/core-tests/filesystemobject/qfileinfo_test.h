@@ -47,6 +47,9 @@ public:
 	bool _isDir = false;
 	bool isDir() const {return _isDir;}
 
+	bool _isShortcut = false;
+	bool isShortcut() const { return _isShortcut; }
+
 	bool _isReadable = false;
 	bool isReadable() const {return _isReadable;}
 
