@@ -8,9 +8,11 @@ matrix:
     - os: osx
       osx_image: xcode10.1
       compiler: clang
+      if: tag IS blank
     - os: linux
       dist: bionic
       compiler: gcc
+      if: tag IS blank
       services:
         - xvfb
 
