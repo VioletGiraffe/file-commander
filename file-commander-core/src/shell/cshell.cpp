@@ -60,8 +60,6 @@ void OsShell::executeShellCommand(const QString& command, const QString& working
 		//const auto len = QString{"cmd /c \"%1\""}.arg(command).toWCharArray(commandString);
 		assert_and_return_r(len < std::size(commandString), );
 		::_wsystem(commandString);
-		auto e = errno;
-		e = e;
 	#else
 		const int result = std::system((QString("cd ") + workingDir + " && " + command).toUtf8().data());
 		assert_r(result == 0);
