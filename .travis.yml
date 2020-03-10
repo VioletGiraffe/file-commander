@@ -8,6 +8,11 @@ matrix:
     - os: osx
       osx_image: xcode10.1
       compiler: clang
+      addons:
+        homebrew:
+          packages:
+          - qt5
+          update: true
       if: tag IS blank
     - os: linux
       dist: bionic
@@ -25,7 +30,6 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90; fi
   # Qt5
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade qt5 || true; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export export QTPATH=/usr/local; QMAKE=$QTPATH/bin/qmake; fi
 
