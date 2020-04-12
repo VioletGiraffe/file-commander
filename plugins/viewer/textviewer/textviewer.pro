@@ -74,6 +74,7 @@ INCLUDEPATH += \
 	../../../file-commander-core/include \
 	../../../qtutils \
 	../../../cpputils \
+	../../../cpp-template-utils \
 	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD/src/
 

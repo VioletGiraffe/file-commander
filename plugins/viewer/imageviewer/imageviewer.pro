@@ -41,6 +41,7 @@ INCLUDEPATH += \
 	../../../file-commander-core/include \
 	../../../qtutils \
 	../../../cpputils \
+	../../../cpp-template-utils \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
