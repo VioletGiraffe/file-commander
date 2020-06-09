@@ -57,7 +57,7 @@ struct CursorPositionListener {
 	virtual void setCursorToItem(const QString& folder, qulonglong currentItemHash) = 0;
 };
 
-class CPanel : public QObject
+class CPanel final : public QObject
 {
 public:
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode};

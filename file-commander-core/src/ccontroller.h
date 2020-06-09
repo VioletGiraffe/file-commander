@@ -7,7 +7,9 @@
 #include "favoritelocationslist/cfavoritelocations.h"
 #include "filesearchengine/cfilesearchengine.h"
 
+#include <functional>
 #include <optional>
+#include <utility>
 
 class CController : public CVolumeEnumerator::IVolumeListObserver
 {
@@ -74,14 +76,14 @@ public:
 	void copyCurrentItemPathToClipboard();
 
 // Threading
-	inline void execOnWorkerThread(const std::function<void()>& task)
+	inline void execOnWorkerThread(std::function<void()> task)
 	{
-		_workerThreadPool.enqueue(task);
+		_workerThreadPool.enqueue(std::move(task));
 	}
 
-	inline void execOnUiThread(const std::function<void ()>& task, int tag = -1)
+	inline void execOnUiThread(std::function<void ()> task, int tag = -1)
 	{
-		_uiQueue.enqueue(task, tag);
+		_uiQueue.enqueue(std::move(task), tag);
 	}
 
 // Getters

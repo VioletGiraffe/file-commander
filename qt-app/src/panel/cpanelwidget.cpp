@@ -10,6 +10,7 @@
 #include "../favoritelocationseditor/cfavoritelocationseditor.h"
 #include "widgets/clineedit.h"
 #include "filesystemhelperfunctions.h"
+#include "filesystemhelpers/filesystemhelpers.hpp"
 #include "progressdialogs/ccopymovedialog.h"
 #include "cfilemanipulator.h"
 #include "directorycompleter/cdirectorycompleter.h"
@@ -449,6 +450,7 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 		return;
 
 	assert_r(item.parentDirPath().endsWith('/'));
+	newName = FileSystemHelpers::trimUnsupportedSymbols(newName);
 
 	CFileManipulator itemManipulator(item);
 	const auto result = itemManipulator.moveAtomically(item.parentDirPath(), newName);

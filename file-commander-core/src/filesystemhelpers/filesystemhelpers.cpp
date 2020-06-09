@@ -4,6 +4,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QFile>
+#include <QRegularExpression>
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
@@ -44,4 +45,17 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 	}
 
 	return {};
+}
+
+// Removes any CR/LF characters. If there are any other symbols not supported in the current file system's paths, such characters are replaced with '_' (underscore).
+QString FileSystemHelpers::trimUnsupportedSymbols(QString path)
+{
+	path.remove(QRegularExpression("[\\x{1}-\\x{1F}]+"));
+
+#ifdef _WIN32
+	if (path.count(':') > 1)
+		path = path.mid(path.indexOf(':') + 1).replace(':', '_');
+#endif
+
+	return path;
 }

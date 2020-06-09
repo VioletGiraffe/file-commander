@@ -23,7 +23,7 @@ class CFileListSortFilterProxyModel;
 class CFileListView;
 
 
-class CPanelWidget : public QWidget,
+class CPanelWidget final : public QWidget,
                      private CController::IVolumeListObserver,
                      public PanelContentsChangedListener,
                      private FileListReturnPressOrDoubleClickObserver,
