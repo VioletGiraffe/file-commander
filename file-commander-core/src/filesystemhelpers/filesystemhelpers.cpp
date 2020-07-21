@@ -34,7 +34,7 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 
 	const QStringList pathDirectories = QString::fromWCharArray(paths, getEnvironmentVariableW_num_characters_returned).split(';', Qt::SkipEmptyParts);
 #else
-	const QStringList pathDirectories = QString(::getenv("PATH")).split(':', QString::SkipEmptyParts);
+	const QStringList pathDirectories = QString(::getenv("PATH")).split(':', Qt::SkipEmptyParts);
 #endif
 
 	for (const auto& directory: pathDirectories)
