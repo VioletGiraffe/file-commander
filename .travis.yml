@@ -15,20 +15,20 @@ matrix:
           update: true
       if: tag IS blank
     - os: linux
-      dist: bionic
+      dist: focal
       compiler: gcc
       if: tag IS blank
       services:
         - xvfb
 
 install:
-  # C++17
+  # C++2a
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.15.0-bionic; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.15.0-focal; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qy update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq g++-9 gcc-9; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq g++-10 gcc-10; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 90; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 90; fi
   # Qt5
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export export QTPATH=/usr/local; QMAKE=$QTPATH/bin/qmake; fi
