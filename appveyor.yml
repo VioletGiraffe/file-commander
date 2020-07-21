@@ -5,7 +5,7 @@ init:
 environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      qt: 5.14\msvc2017_64
+      qt: 5.15\msvc2019_64
       VS_VERSION: 2019
       WIN_SDK: 10.0.18362.0
       BUILD_ARCH: x64

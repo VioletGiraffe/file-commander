@@ -1,14 +1,13 @@
 #include "cdirectorycompleter.h"
 
-#include <QDirModel>
+#include <QFileSystemModel>
 
 CDirectoryCompleter::CDirectoryCompleter(QObject *parent) :
 	QCompleter(parent),
 	_home(QDir::homePath()) // TODO: use CFileSystemObject?
 {
-	QDirModel *model = new QDirModel(this);
+	auto *model = new QFileSystemModel(this);
 	model->setFilter(QDir::AllDirs | QDir::Hidden | QDir::NoDotAndDotDot);
-	model->setLazyChildCount(true);
 	setModel(model);
 	setCompletionMode(QCompleter::InlineCompletion);
 }

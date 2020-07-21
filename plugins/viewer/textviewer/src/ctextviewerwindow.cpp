@@ -29,7 +29,8 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	_textBrowser.setReadOnly(true);
 	_textBrowser.setUndoRedoEnabled(false);
 	_textBrowser.setWordWrapMode(QTextOption::NoWrap);
-	_textBrowser.setTabStopWidth(4 * _textBrowser.fontMetrics().horizontalAdvance(' '));
+	const auto spaceWidth = _textBrowser.fontMetrics().horizontalAdvance(' ');
+	_textBrowser.setTabStopDistance(static_cast<qreal>(4 * _textBrowser.fontMetrics().boundingRect(' ').width()));
 
 	assert_r(connect(actionOpen, &QAction::triggered, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);

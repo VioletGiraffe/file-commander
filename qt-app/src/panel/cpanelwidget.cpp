@@ -56,7 +56,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	ui->_pathNavigator->setCompleter(new CDirectoryCompleter(ui->_pathNavigator));
 	ui->_pathNavigator->setHistoryMode(true);
 	ui->_pathNavigator->installEventFilter(this);
-	assert_r(connect(ui->_pathNavigator, static_cast<void (CHistoryComboBox::*) (const QString&)>(&CHistoryComboBox::activated), this, &CPanelWidget::pathFromHistoryActivated));
+	assert_r(connect(ui->_pathNavigator, &CHistoryComboBox::textActivated, this, &CPanelWidget::pathFromHistoryActivated));
 	assert_r(connect(ui->_pathNavigator, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated));
 
 	assert_r(connect(ui->_list, &CFileListView::contextMenuRequested, this, &CPanelWidget::showContextMenuForItems));
@@ -796,7 +796,7 @@ void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
 		diskButton->setCheckable(true);
 		diskButton->setIcon(drives[i].rootObjectInfo.icon());
 		diskButton->setText(name);
-		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).horizontalAdvance(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
+		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).boundingRect(diskButton->text()).width() + 5 + diskButton->iconSize().width() + 20);
 		diskButton->setProperty("id", (qulonglong)i);
 		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 		diskButton->setToolTip(driveInfo.volumeLabel);
@@ -856,7 +856,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 		auto wEvent = static_cast<QWheelEvent*>(e);
 		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
 		{
-			if (wEvent->delta() > 0)
+			if (wEvent->angleDelta().y() > 0)
 				_controller->navigateBack(_panelPosition);
 			else
 				_controller->navigateForward(_panelPosition);

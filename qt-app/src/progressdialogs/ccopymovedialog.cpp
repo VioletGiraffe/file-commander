@@ -22,8 +22,8 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, const std::vector<CFileSys
 	ui->setupUi(this);
 	ui->_overallProgress->linkToWidgetstaskbarButton(this);
 
-	ui->_overallProgressText->setMinimumWidth(QFontMetrics(ui->_overallProgressText->font()).horizontalAdvance("100.0%"));
-	ui->_fileProgressText->setMinimumWidth(QFontMetrics(ui->_fileProgressText->font()).horizontalAdvance("100.0%"));
+	ui->_overallProgressText->setMinimumWidth(QFontMetrics(ui->_overallProgressText->font()).boundingRect("100.0%").width());
+	ui->_fileProgressText->setMinimumWidth(QFontMetrics(ui->_fileProgressText->font()).boundingRect("100.0%").width());
 
 	ui->_lblFileName->clear();
 
