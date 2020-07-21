@@ -33,7 +33,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export export QTPATH=/usr/local; QMAKE=$QTPATH/bin/qmake; fi
 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt515-meta-minimal; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt515base qt515imageformats qt515networkauth-no-lgpl qt515tools qt515wayland qt515x11extras; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt515/bin/qmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=/opt/qt515/bin/:$PATH; fi
