@@ -419,6 +419,9 @@ void CPanel::volumesChanged(const std::deque<VolumeInfo>& volumes)
 {
 	_volumes = volumes;
 
+	if (_currentDirObject.isNetworkObject())
+		return;
+
 	// Handling an unplugged device
 	if (_currentDirObject.isValid() && !volumeInfoForObject(_currentDirObject).isReady)
 		setPath(_currentDirObject.fullAbsolutePath(), refreshCauseOther);
@@ -473,7 +476,7 @@ const VolumeInfo& CPanel::volumeInfoForObject(const CFileSystemObject& object) c
 bool CPanel::pathIsAccessible(const QString& path) const
 {
 	const CFileSystemObject pathObject(path);
-	if (!pathObject.exists()/* || !pathObject.isReadable()*/)
+	if (!pathObject.exists())
 		return false;
 
 	const auto storageInfo = volumeInfoForObject(pathObject);
@@ -502,6 +505,9 @@ bool CPanel::pathIsAccessible(const QString& path) const
 		return false;
 	}
 #else // _WIN32
+	if (!pathObject.isReadable())
+		return false;
+
 	// TODO: find a better implementation
 	const QDir targetDir{pathObject.isDir() ? pathObject.fullAbsolutePath() : pathObject.parentDirPath()};
 	const auto targetDirContents = targetDir.entryList(QDir::AllEntries);
