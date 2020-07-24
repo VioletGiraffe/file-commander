@@ -103,14 +103,14 @@ private:
 
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
-	void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p) override;
+	void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p, bool drivesListOrReadinessChanged) noexcept override;
 	void setCursorToItem(const QString& folder, qulonglong currentItemHash) override;
 
 // Internal methods
 	qulonglong hashBySortModelIndex(const QModelIndex& index) const;
 	QModelIndex indexByHash(const qulonglong hash, bool logFailures = false) const;
 
-	void updateCurrentDiskButton();
+	void updateCurrentDiskButtonAndInfoLabel();
 
 	bool pasteImage(const QImage& image);
 

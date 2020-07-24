@@ -13,21 +13,19 @@ struct VolumeInfo
 	uint64_t freeSize = 0;
 	bool isReady = false;
 
-	inline bool operator==(const VolumeInfo& other) const noexcept {
-		return
-			rootObjectInfo == other.rootObjectInfo &&
-			volumeLabel == other.volumeLabel &&
-			fileSystemName == other.fileSystemName &&
-			volumeSize == other.volumeSize &&
-			freeSize == other.freeSize &&
-			isReady == other.isReady;
-	}
-
-	inline bool operator!=(const VolumeInfo& other) const noexcept {
-		return !operator==(other);
+	enum ComparisonResult {Equal, InsignificantChange, SignificantChange, DifferentObject};
+	ComparisonResult compare(const VolumeInfo& other) const noexcept {
+		if (rootObjectInfo.hash() != other.rootObjectInfo.hash())
+			return DifferentObject;
+		else if (isReady != other.isReady)
+			return SignificantChange;
+		else if (freeSize != other.freeSize || volumeSize != other.volumeSize || volumeLabel != other.volumeLabel || fileSystemName != other.fileSystemName)
+			return InsignificantChange;
+		else
+			return Equal;
 	}
 
 	inline bool isEmpty() const noexcept {
-		return *this == VolumeInfo{};
+		return rootObjectInfo.hash() == 0;
 	}
 };

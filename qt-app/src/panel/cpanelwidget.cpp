@@ -313,7 +313,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 	}
 
 	fillHistory();
-	updateCurrentDiskButton();
+	updateCurrentDiskButtonAndInfoLabel();
 }
 
 void CPanelWidget::showContextMenuForItems(QPoint pos)
@@ -753,7 +753,7 @@ bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& 
 	return true; // Consuming the event
 }
 
-void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p)
+void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p, bool drivesListOrReadinessChanged) noexcept
 {
 	if (p != _panelPosition)
 		return;
@@ -767,45 +767,47 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 		ui->_driveButtonsWidget->setLayout(flowLayout);
 	}
 
-	// Clearing and deleting the previous buttons
-	QLayout * layout = ui->_driveButtonsWidget->layout();
-	assert_r(layout);
-	while (layout->count() > 0)
+	if (drivesListOrReadinessChanged)
 	{
-		QWidget * w = layout->itemAt(0)->widget();
-		layout->removeWidget(w);
-		w->deleteLater();
-	}
+		// Clearing and deleting the previous buttons
+		QLayout* layout = ui->_driveButtonsWidget->layout();
+		assert_r(layout);
+		while (layout->count() > 0)
+		{
+			QWidget* w = layout->itemAt(0)->widget();
+			layout->removeWidget(w);
+			w->deleteLater();
+		}
 
-	// Creating and adding new buttons
-	for (size_t i = 0, n = drives.size(); i < n; ++i)
-	{
-		const auto& driveInfo = drives[i];
-		if (!driveInfo.isReady || !driveInfo.rootObjectInfo.isValid())
-			continue;
+		// Creating and adding new buttons
+		for (size_t i = 0, n = drives.size(); i < n; ++i)
+		{
+			const auto& driveInfo = drives[i];
+			if (!driveInfo.isReady || !driveInfo.rootObjectInfo.isValid())
+				continue;
 
 #ifdef _WIN32
-		const QString name = driveInfo.rootObjectInfo.fullAbsolutePath().remove(":/");
+			const QString name = driveInfo.rootObjectInfo.fullAbsolutePath().remove(":/");
 #else
-		const QString name = driveInfo.volumeLabel;
+			const QString name = driveInfo.volumeLabel;
 #endif
 
-		assert_r(layout);
-		auto diskButton = new QPushButton;
-		diskButton->setFocusPolicy(Qt::NoFocus);
-		diskButton->setCheckable(true);
-		diskButton->setIcon(drives[i].rootObjectInfo.icon());
-		diskButton->setText(name);
-		diskButton->setFixedWidth(QFontMetrics(diskButton->font()).boundingRect(diskButton->text()).width() + 5 + diskButton->iconSize().width() + 20);
-		diskButton->setProperty("id", (qulonglong)i);
-		diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
-		diskButton->setToolTip(driveInfo.volumeLabel);
-		assert_r(connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked));
-		assert_r(connect(diskButton, &QPushButton::customContextMenuRequested, this, &CPanelWidget::showContextMenuForDisk));
-		layout->addWidget(diskButton);
+			assert_r(layout);
+			auto diskButton = new QPushButton;
+			diskButton->setFocusPolicy(Qt::NoFocus);
+			diskButton->setCheckable(true);
+			diskButton->setIcon(drives[i].rootObjectInfo.icon());
+			diskButton->setText(name);
+			diskButton->setFixedWidth(QFontMetrics(diskButton->font()).boundingRect(diskButton->text()).width() + 5 + diskButton->iconSize().width() + 20);
+			diskButton->setProperty("id", (qulonglong)i);
+			diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
+			assert_r(connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked));
+			assert_r(connect(diskButton, &QPushButton::customContextMenuRequested, this, &CPanelWidget::showContextMenuForDisk));
+			layout->addWidget(diskButton);
+		}
 	}
 
-	updateCurrentDiskButton();
+	updateCurrentDiskButtonAndInfoLabel();
 }
 
 qulonglong CPanelWidget::hashBySortModelIndex(const QModelIndex &index) const
@@ -945,35 +947,33 @@ void CPanelWidget::invertSelection()
 void CPanelWidget::onSettingsChanged()
 {
 	QFont font;
-	font.fromString(CSettings().value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString());
-	ui->_list->setFont(font);
+	if (font.fromString(CSettings{}.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
+		ui->_list->setFont(font);
 }
 
-void CPanelWidget::updateCurrentDiskButton()
+void CPanelWidget::updateCurrentDiskButtonAndInfoLabel()
 {
-	QLayout * layout = ui->_driveButtonsWidget->layout();
-	if (!layout)
-		return;
-
-	for (int i = 0; i < layout->count(); ++i)
+	const std::optional<size_t> currentDriveId = _controller->currentVolumeIndex(_panelPosition);
+	if (!currentDriveId)
 	{
-		QLayoutItem* item = layout->itemAt(i);
-		auto button = dynamic_cast<QPushButton*>(item ? item->widget() : nullptr);
+		ui->_driveInfoLabel->clear();
+		return;
+	}
+	
+	const auto diskInfo = _controller->volumeEnumerator().drives()[*currentDriveId];
+	_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
+	ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").
+		arg(diskInfo.volumeLabel, diskInfo.fileSystemName, fileSizeToString(diskInfo.freeSize, 'M', " "), fileSizeToString(diskInfo.volumeSize, 'M', " ")));
+
+	auto layout = ui->_driveButtonsWidget->layout();
+	for (int i = 0, n = layout->count(); i < n; ++i)
+	{
+		auto button = dynamic_cast<QPushButton*>(layout->itemAt(i)->widget());
 		if (!button)
 			continue;
 
-		const size_t id = (size_t)(button->property("id").toULongLong());
-		const std::optional<size_t> currentDriveId = _controller->currentVolumeIndex(_panelPosition);
-		if (id == *currentDriveId)
-		{
-			button->setChecked(true);
-			const auto diskInfo = _controller->volumeEnumerator().drives()[id];
-			_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
-			ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").
-				arg(diskInfo.volumeLabel, diskInfo.fileSystemName, fileSizeToString(diskInfo.freeSize, 'M', " "), fileSizeToString(diskInfo.volumeSize, 'M', " ")));
-
-			return;
-		}
+		const size_t id = static_cast<size_t>(button->property("id").toULongLong());
+		button->setChecked(id == *currentDriveId);
 	}
 }
 

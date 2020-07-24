@@ -108,7 +108,7 @@ public:
 	// progress > 100 means indefinite
 	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const;
 
-	void volumesChanged(const std::vector<VolumeInfo>& volumes);
+	void volumesChanged(const std::vector<VolumeInfo>& volumes, bool drivesListOrReadinessChanged);
 
 	void uiThreadTimerTick();
 

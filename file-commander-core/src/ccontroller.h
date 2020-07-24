@@ -20,7 +20,7 @@ public:
 	{
 	public:
 		virtual ~IVolumeListObserver() = default;
-		virtual void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p) = 0;
+		virtual void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p, bool drivesListOrReadinessChanged) noexcept = 0;
 	};
 
 	CController();
@@ -117,7 +117,7 @@ public:
 	CFileSystemObject currentItem();
 
 private:
-	void volumesChanged() override;
+	void volumesChanged(bool drivesListOrReadinessChanged) noexcept override;
 
 	void saveDirectoryForCurrentVolume(Panel p);
 

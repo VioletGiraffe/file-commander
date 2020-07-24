@@ -19,7 +19,7 @@ void CVolumeEnumerator::removeObserver(IVolumeListObserver *observer)
 // Returns the drives found
 std::vector<VolumeInfo> CVolumeEnumerator::drives() const
 {
-	std::lock_guard<decltype(_mutexForDrives)> lock(_mutexForDrives);
+	std::lock_guard lock{ _mutexForDrives };
 
 	return _drives;
 }
@@ -48,24 +48,35 @@ void CVolumeEnumerator::enumerateVolumes(bool async)
 {
 	auto newDrives = enumerateVolumesImpl();
 
-	std::lock_guard<decltype(_mutexForDrives)> lock(_mutexForDrives);
+	std::lock_guard lock{ _mutexForDrives };
 
-	if (!async || newDrives != _drives)
+	VolumeInfo::ComparisonResult levelOfChange = newDrives.size() != _drives.size() ? VolumeInfo::DifferentObject : VolumeInfo::Equal;
+	if (levelOfChange == VolumeInfo::Equal)
+	{
+		for (size_t i = 0, n = _drives.size(); i < n; ++i)
+		{
+			const auto comparisonResult = newDrives[i].compare(_drives[i]);
+			levelOfChange = std::max(levelOfChange, comparisonResult);
+		}
+	}
+
+
+	if (!async || levelOfChange != VolumeInfo::Equal)
 	{
 		_drives = std::move(newDrives);
-		notifyObservers(async);
+		notifyObservers(async, levelOfChange > VolumeInfo::InsignificantChange);
 	}
 }
 
 // Calls all the registered observers with the latest list of drives found
-void CVolumeEnumerator::notifyObservers(bool async) const
+void CVolumeEnumerator::notifyObservers(bool async, bool drivesListOrReadinessChanged) const
 {
 	// This method is called from the worker thread
 	// Queuing the code to be executed on the thread where CVolumeEnumerator was created
 
-	_notificationsQueue.enqueue([this]() {
+	_notificationsQueue.enqueue([this, drivesListOrReadinessChanged]() {
 		for (auto& observer : _observers)
-			observer->volumesChanged();
+			observer->volumesChanged(drivesListOrReadinessChanged);
 	}, 0); // Setting the tag to 0 will discard any previous queue items with the same tag that have not yet been processed
 
 	if (!async)

@@ -63,7 +63,7 @@ void CController::setVolumesChangedListener(CController::IVolumeListObserver *li
 	_volumesChangedListeners.push_back(listener);
 
 	// Force an update
-	volumesChanged();
+	volumesChanged(true /* Significant change */);
 }
 
 void CController::uiThreadTimerTick()
@@ -153,7 +153,8 @@ void CController::activePanelChanged(Panel p)
 void CController::navigateUp(Panel p)
 {
 	panel(p).navigateUp();
-	volumesChanged(); // To select a proper drive button
+	// TODO: this looks weird, a separate notification required?
+	volumesChanged(false); // To select a proper drive button
 	saveDirectoryForCurrentVolume(p);
 }
 
@@ -162,7 +163,8 @@ void CController::navigateBack(Panel p)
 {
 	panel(p).navigateBack();
 	saveDirectoryForCurrentVolume(p);
-	volumesChanged(); // To select a proper drive button
+	// TODO: this looks weird, a separate notification required?
+	volumesChanged(false); // To select a proper drive button
 }
 
 // Go to the next location from history, if any
@@ -170,7 +172,8 @@ void CController::navigateForward(Panel p)
 {
 	panel(p).navigateForward();
 	saveDirectoryForCurrentVolume(p);
-	volumesChanged(); // To select a proper drive button
+	// TODO: this looks weird, a separate notification required?
+	volumesChanged(false); // To select a proper drive button
 }
 
 // Sets the specified path, if possible. Otherwise reverts to the previously set path
@@ -179,7 +182,8 @@ FileOperationResultCode CController::setPath(Panel p, const QString &path, FileL
 	const FileOperationResultCode result = panel(p).setPath(path, operation);
 
 	saveDirectoryForCurrentVolume(p);
-	volumesChanged(); // To select a proper drive button
+	// TODO: this looks weird, a separate notification required?
+	volumesChanged(false); // To select a proper drive button
 	return result;
 }
 
@@ -481,17 +485,17 @@ CFileSystemObject CController::currentItem()
 	return activePanel().itemByHash(currentItemHash());
 }
 
-void CController::volumesChanged()
+void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept
 {
 	const auto drives = _volumeEnumerator.drives();
 
-	_rightPanel.volumesChanged(drives);
-	_leftPanel.volumesChanged(drives);
+	_rightPanel.volumesChanged(drives, drivesListOrReadinessChanged);
+	_leftPanel.volumesChanged(drives, drivesListOrReadinessChanged);
 
 	for (auto& listener: _volumesChangedListeners)
 	{
-		listener->volumesChanged(drives, RightPanel);
-		listener->volumesChanged(drives, LeftPanel);
+		listener->volumesChanged(drives, RightPanel, drivesListOrReadinessChanged);
+		listener->volumesChanged(drives, LeftPanel, drivesListOrReadinessChanged);
 	}
 }
 

@@ -58,9 +58,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	const auto oldPathObject = _currentDirObject;
 
-	const auto pathGraph = pathHierarchy(path);
 	bool pathSet = false;
-	for (const auto& candidatePath: pathGraph)
+	for (auto&& candidatePath: pathHierarchy(path))
 	{
 		if (pathIsAccessible(candidatePath))
 		{
@@ -415,9 +414,12 @@ void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t p
 	}, ItemDiscoveryProgressNotificationTag);
 }
 
-void CPanel::volumesChanged(const std::vector<VolumeInfo>& volumes)
+void CPanel::volumesChanged(const std::vector<VolumeInfo>& volumes, bool drivesListOrReadinessChanged)
 {
 	_volumes = volumes;
+
+	if (!drivesListOrReadinessChanged)
+		return;
 
 	if (_currentDirObject.isNetworkObject())
 		return;
