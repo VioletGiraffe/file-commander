@@ -116,7 +116,12 @@ constexpr bool caseSensitiveFilesystem()
 
 inline std::vector<QString> pathComponents(const QString& path)
 {
+#ifndef _WIN32
 	assert_debug_only(!path.contains('\\') && !path.contains("//"));
+#else
+	// This could be a network path
+	assert_debug_only(!path.contains('\\') && path.lastIndexOf("//") <= 0);
+#endif // !_WIN32
 	auto components = path.split('/', Qt::KeepEmptyParts);
 	if (components.empty())
 		return { path };

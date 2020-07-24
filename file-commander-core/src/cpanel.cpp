@@ -15,6 +15,10 @@ RESTORE_COMPILER_WARNINGS
 #include <time.h>
 #include <limits>
 
+#ifdef _WIN32
+#include <io.h> // _waccess
+#endif
+
 enum {
 	ContentsChangedNotificationTag,
 	ItemDiscoveryProgressNotificationTag
@@ -469,19 +473,40 @@ const VolumeInfo& CPanel::volumeInfoForObject(const CFileSystemObject& object) c
 bool CPanel::pathIsAccessible(const QString& path) const
 {
 	const CFileSystemObject pathObject(path);
+	if (!pathObject.exists()/* || !pathObject.isReadable()*/)
+		return false;
+
 	const auto storageInfo = volumeInfoForObject(pathObject);
-	if (!pathObject.exists() || !pathObject.isReadable() || (!pathObject.isNetworkObject() && !storageInfo.isReady))
+	if (!pathObject.isNetworkObject() && !storageInfo.isReady)
 		return false;
 
 #ifdef _WIN32
-	if (storageInfo.rootObjectInfo.fullAbsolutePath() == pathObject.fullAbsolutePath())
-		return true; // On Windows, a drive root (e. g. C:\) doesn't produce '.' in the entryList, so the list is empty, but it's not an error
-#endif // _WIN32
+	if (pathObject.isNetworkObject()) // TODO: is there a better way? _waccess returns ENOENT for network gost root (e. g. //NETTOP/)
+		return true;
 
+	wchar_t wPath[32768];
+	const auto nCharacters = toNativeSeparators(path).toWCharArray(wPath);
+	wPath[nCharacters] = 0;
+	if (_waccess(wPath, 4) == 0) // Checking for read-only access
+		return true;
+
+	switch (errno)
+	{
+	case EACCES:
+		return false;
+	case ENOENT:
+		return false;
+	case EINVAL:
+		return false;
+	default:
+		return false;
+	}
+#else // _WIN32
+	// TODO: find a better implementation
 	const QDir targetDir{pathObject.isDir() ? pathObject.fullAbsolutePath() : pathObject.parentDirPath()};
 	const auto targetDirContents = targetDir.entryList(QDir::AllEntries);
 	return !targetDirContents.isEmpty();
-	//return directoryCanBeOpened(pathObject.isDir() ? pathObject.fullAbsolutePath() : pathObject.parentDirPath());
+#endif
 }
 
 void CPanel::processContentsChangedEvent()
