@@ -108,7 +108,7 @@ public:
 	// progress > 100 means indefinite
 	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const;
 
-	void volumesChanged(const std::deque<VolumeInfo>& volumes);
+	void volumesChanged(const std::vector<VolumeInfo>& volumes);
 
 	void uiThreadTimerTick();
 
@@ -136,7 +136,7 @@ private:
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 
-	std::deque<VolumeInfo> _volumes;
+	std::vector<VolumeInfo> _volumes;
 
 	CWorkerThreadPool                          _workerThreadPool;
 	mutable CExecutionQueue                    _uiThreadQueue;

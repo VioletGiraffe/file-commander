@@ -17,7 +17,7 @@ void CVolumeEnumerator::removeObserver(IVolumeListObserver *observer)
 }
 
 // Returns the drives found
-std::deque<VolumeInfo> CVolumeEnumerator::drives() const
+std::vector<VolumeInfo> CVolumeEnumerator::drives() const
 {
 	std::lock_guard<decltype(_mutexForDrives)> lock(_mutexForDrives);
 
@@ -46,15 +46,13 @@ CVolumeEnumerator::CVolumeEnumerator() : _enumeratorThread(_updateInterval, "CVo
 // Refresh the list of available volumes
 void CVolumeEnumerator::enumerateVolumes(bool async)
 {
-	const auto newDrives = enumerateVolumesImpl();
+	auto newDrives = enumerateVolumesImpl();
 
 	std::lock_guard<decltype(_mutexForDrives)> lock(_mutexForDrives);
 
 	if (!async || newDrives != _drives)
 	{
-		_drives.resize(newDrives.size());
-		std::copy(newDrives.cbegin(), newDrives.cend(), _drives.begin());
-
+		_drives = std::move(newDrives);
 		notifyObservers(async);
 	}
 }

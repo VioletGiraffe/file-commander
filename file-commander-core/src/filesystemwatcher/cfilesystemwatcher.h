@@ -9,7 +9,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
-#include <deque>
 #include <functional>
 #include <mutex>
 #include <set>
@@ -67,7 +66,7 @@ protected:
 	QString _pathToWatch;
 
 private:
-	std::deque<ChangeDetectedCallback> _callbacks;
+	std::vector<ChangeDetectedCallback> _callbacks;
 	transparent_set<BasicFileSystemItemInfo> _previousState;
 };
 

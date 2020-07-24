@@ -10,6 +10,7 @@
 #include <functional>
 #include <optional>
 #include <utility>
+#include <vector>
 
 class CController : public CVolumeEnumerator::IVolumeListObserver
 {
@@ -19,7 +20,7 @@ public:
 	{
 	public:
 		virtual ~IVolumeListObserver() = default;
-		virtual void volumesChanged(const std::deque<VolumeInfo>& drives, Panel p) = 0;
+		virtual void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p) = 0;
 	};
 
 	CController();

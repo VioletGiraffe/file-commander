@@ -55,9 +55,9 @@ inline VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 	return info;
 }
 
-const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
-	std::deque<VolumeInfo> volumes;
+	std::vector<VolumeInfo> volumes;
 
 	const auto oldErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
 	EXEC_ON_SCOPE_EXIT([oldErrorMode]() {SetErrorMode(oldErrorMode);});
@@ -74,9 +74,9 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 		if ((drives & 0x1) == 0)
 			continue;
 
-		const auto volumeInfo = volumeInfoForDriveLetter(QString(driveLetter) + QStringLiteral(":\\"));
+		auto volumeInfo = volumeInfoForDriveLetter(QString(driveLetter) + QStringLiteral(":\\"));
 		if (!volumeInfo.isEmpty())
-			volumes.push_back(volumeInfo);
+			volumes.emplace_back(std::move(volumeInfo));
 	}
 
 	return volumes;

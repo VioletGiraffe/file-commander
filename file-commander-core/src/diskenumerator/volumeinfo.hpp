@@ -13,7 +13,7 @@ struct VolumeInfo
 	uint64_t freeSize = 0;
 	bool isReady = false;
 
-	inline bool operator==(const VolumeInfo& other) const {
+	inline bool operator==(const VolumeInfo& other) const noexcept {
 		return
 			rootObjectInfo == other.rootObjectInfo &&
 			volumeLabel == other.volumeLabel &&
@@ -23,11 +23,11 @@ struct VolumeInfo
 			isReady == other.isReady;
 	}
 
-	inline bool operator!=(const VolumeInfo& other) const {
+	inline bool operator!=(const VolumeInfo& other) const noexcept {
 		return !operator==(other);
 	}
 
-	inline bool isEmpty() const {
-		return *this == VolumeInfo();
+	inline bool isEmpty() const noexcept {
+		return *this == VolumeInfo{};
 	}
 };

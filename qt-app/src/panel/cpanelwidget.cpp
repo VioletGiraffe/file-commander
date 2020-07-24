@@ -753,7 +753,7 @@ bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& 
 	return true; // Consuming the event
 }
 
-void CPanelWidget::volumesChanged(const std::deque<VolumeInfo>& drives, Panel p)
+void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p)
 {
 	if (p != _panelPosition)
 		return;

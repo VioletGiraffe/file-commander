@@ -103,7 +103,7 @@ private:
 
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
-	void volumesChanged(const std::deque<VolumeInfo>& drives, Panel p) override;
+	void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p) override;
 	void setCursorToItem(const QString& folder, qulonglong currentItemHash) override;
 
 // Internal methods

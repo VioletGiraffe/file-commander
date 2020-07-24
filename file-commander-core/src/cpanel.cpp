@@ -415,7 +415,7 @@ void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t p
 	}, ItemDiscoveryProgressNotificationTag);
 }
 
-void CPanel::volumesChanged(const std::deque<VolumeInfo>& volumes)
+void CPanel::volumesChanged(const std::vector<VolumeInfo>& volumes)
 {
 	_volumes = volumes;
 
