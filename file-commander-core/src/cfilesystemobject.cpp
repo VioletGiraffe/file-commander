@@ -321,7 +321,13 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 bool CFileSystemObject::isNetworkObject() const
 {
 #ifdef _WIN32
-	return _properties.fullPath.startsWith(QLatin1String("//")) && !_properties.fullPath.startsWith(QLatin1String("//?/"));
+	if (!_properties.fullPath.startsWith("//"))
+		return false;
+
+	WCHAR wPath[MAX_PATH];
+	const int nSymbols = toNativeSeparators(_properties.fullPath).toWCharArray(wPath);
+	wPath[nSymbols] = 0;
+	return PathIsNetworkPathW(wPath);
 #else
 	return false;
 #endif
