@@ -19,7 +19,7 @@ struct VolumeInfo
 			volumeLabel == other.volumeLabel &&
 			fileSystemName == other.fileSystemName &&
 			volumeSize == other.volumeSize &&
-			freeSize == other.volumeSize &&
+			freeSize == other.freeSize &&
 			isReady == other.isReady;
 	}
 
