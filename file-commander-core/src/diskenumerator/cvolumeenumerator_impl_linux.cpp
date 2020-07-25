@@ -1,7 +1,7 @@
 #include "cvolumeenumerator.h"
 #include "volumeinfohelper.hpp"
 
-const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
 	VolumeInfo info;
 	info.rootObjectInfo = "/";
@@ -12,5 +12,5 @@ const std::deque<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	info.volumeSize = sys_info.f_bsize * sys_info.f_blocks;
 	info.freeSize = sys_info.f_bsize * sys_info.f_bavail;
 
-	return std::deque<VolumeInfo>(1, info);
+	return std::vector<VolumeInfo>{std::move(info)};
 }
