@@ -16,7 +16,9 @@ RESTORE_COMPILER_WARNINGS
 #include <limits>
 
 #ifdef _WIN32
-#include <io.h> // _waccess
+#include <io.h> // _waccess()
+#else
+#include <unistd.h> // access()
 #endif
 
 enum {
@@ -507,13 +509,7 @@ bool CPanel::pathIsAccessible(const QString& path) const
 		return false;
 	}
 #else // _WIN32
-	if (!pathObject.isReadable())
-		return false;
-
-	// TODO: find a better implementation
-	const QDir targetDir{pathObject.isDir() ? pathObject.fullAbsolutePath() : pathObject.parentDirPath()};
-	const auto targetDirContents = targetDir.entryList(QDir::AllEntries);
-	return !targetDirContents.isEmpty();
+	return ::access(pathObject.fullAbsolutePath().toLocal8Bit().constData(), R_OK) == 0;
 #endif
 }
 

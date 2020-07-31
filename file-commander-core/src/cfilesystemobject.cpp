@@ -23,6 +23,7 @@ RESTORE_COMPILER_WARNINGS
 #include <unistd.h>
 #include <sys/stat.h>
 #include <wordexp.h>
+#include <dirent.h>
 #elif defined _WIN32
 #include "windows/windowsutils.h"
 
@@ -99,7 +100,10 @@ CFileSystemObject & CFileSystemObject::operator=(const QString & path)
 
 void CFileSystemObject::refreshInfo()
 {
-	_properties.exists = _fileInfo.exists();
+	// TODO: is this always correct?
+	// Should there be a special "Symlink" object type? Then it could be handled properly (e. g. delete = unlink)
+	_properties.exists = !_fileInfo.isSymLink() ? _fileInfo.exists() : true;
+
 	_properties.fullPath = _fileInfo.absoluteFilePath();
 
 	if (_fileInfo.isShortcut()) // This is Windows-specific, place under #ifdef?
@@ -118,16 +122,22 @@ void CFileSystemObject::refreshInfo()
 
 		_properties.type = _fileInfo.isBundle() ? Bundle : Directory;
 	}
-	else if (_properties.exists)
+	else if (!_properties.exists && _properties.fullPath.endsWith('/'))
+		_properties.type = Directory;
+	else
 	{
 #ifdef _WIN32
-		qInfo() << _properties.fullPath << " is neither a file nor a dir";
+		if (_properties.exists)
+			qInfo() << _properties.fullPath << " is neither a file nor a dir";
+#else
+		// TODO: is this always correct?
+		// Should there be a special "Symlink" object type? Then it could be handled properly (e. g. delete = unlink)
+		if (_fileInfo.isSymLink())
+			_properties.type = File;
 #endif
 	}
-	else if (_properties.fullPath.endsWith('/'))
-		_properties.type = Directory;
 
-	_properties.hash = fasthash64(_properties.fullPath.constData(), _properties.fullPath.size() * sizeof(QChar), 0);
+	_properties.hash = fasthash64(_properties.fullPath.constData(), static_cast<uint64_t>(_properties.fullPath.size()) * sizeof(QChar), 0);
 
 
 	if (_properties.type == File)
@@ -168,7 +178,7 @@ void CFileSystemObject::refreshInfo()
 
 	_properties.creationDate = (time_t) _fileInfo.birthTime().toTime_t();
 	_properties.modificationDate = _fileInfo.lastModified().toTime_t();
-	_properties.size = _properties.type == File ? _fileInfo.size() : 0;
+	_properties.size = _properties.type == File ? static_cast<uint64_t>(_fileInfo.size()) : 0ULL;
 }
 
 void CFileSystemObject::setPath(const QString& path)
@@ -230,7 +240,28 @@ bool CFileSystemObject::isBundle() const
 
 bool CFileSystemObject::isEmptyDir() const
 {
-	return isDir() && QDir(fullAbsolutePath()).entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).empty();
+	if (!isDir())
+		return false;
+
+#ifdef _WIN32
+	return QDir(fullAbsolutePath()).entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System | QDir::AllEntries).empty();
+#else
+	// TODO: use getdents64 on Linux
+	DIR *dir = ::opendir(_properties.fullPath.toLocal8Bit().constData());
+	if (dir == nullptr) // Not a directory or doesn't exist
+		return false;
+
+	struct dirent *d = nullptr;
+	int n = 0;
+	while ((d = ::readdir(dir)) != nullptr)
+	{
+		if(++n > 2)
+			break;
+	}
+
+	::closedir(dir);
+	return n <= 2; // Only '.' and '..' ?
+#endif
 }
 
 bool CFileSystemObject::isCdUp() const
@@ -335,8 +366,7 @@ bool CFileSystemObject::isNetworkObject() const
 
 bool CFileSystemObject::isSymLink() const
 {
-	// Apparently, QFileInfo has a bug that makes it erroneously report a non-link as a link (Qt 5.11)
-	return _fileInfo.isSymLink() && !_fileInfo.symLinkTarget().isEmpty();
+	return _fileInfo.isSymLink();
 }
 
 QString CFileSystemObject::symLinkTarget() const

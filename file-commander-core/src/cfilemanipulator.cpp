@@ -294,13 +294,16 @@ FileOperationResultCode CFileManipulator::remove()
 	}
 	else if (_object.isDir())
 	{
-		QDir dir (_object.fullAbsolutePath());
-		assert_r(dir.entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System).isEmpty());
+		assert_r(_object.isEmptyDir());
 		errno = 0;
-		if (!dir.rmdir("."))
+		if (!QDir{_object.fullAbsolutePath()}.rmdir("."))
 		{
 #if defined __linux || defined __APPLE__ || defined __FreeBSD__
-			return ::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == -1 ? FileOperationResultCode::Fail : FileOperationResultCode::Ok;
+			if (::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == 0)
+				return FileOperationResultCode::Ok;
+
+			_lastErrorMessage = strerror(errno);
+			return FileOperationResultCode::Fail;
 #else
 			return FileOperationResultCode::Fail;
 #endif

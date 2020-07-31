@@ -58,7 +58,9 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object)
 		const QIcon icon = _provider->iconFor(object);
 		if (icon.isNull())
 		{
-			assert_unconditional_r("Icon for " + object.fullAbsolutePath().toStdString() + " is null.");
+			if (!object.isSymLink())
+				assert_unconditional_r("Icon for " + object.fullAbsolutePath().toStdString() + " is null.");
+
 			static const QIcon nullIcon;
 			return nullIcon;
 		}
