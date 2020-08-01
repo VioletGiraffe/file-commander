@@ -20,6 +20,9 @@ RESTORE_COMPILER_WARNINGS
 // Can properly ignore the command's arguments, if any supplied.
 QString FileSystemHelpers::resolvePath(const QString &command)
 {
+	if (command.isEmpty())
+		return {};
+
 	if (QFile::exists(command))
 		return command;
 

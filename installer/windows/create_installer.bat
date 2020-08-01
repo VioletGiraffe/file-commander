@@ -3,12 +3,11 @@ REM set QTDIR32=k:\Qt\5\5.4\msvc2013_opengl\
 REM set QTDIR64=k:\Qt\5\5.4\msvc2013_64_opengl\
 
 call set_qt_paths.bat
+if not defined WIN_SDK set WIN_SDK=10.0.18362.0
 
 SETLOCAL
 
 RMDIR /S /Q binaries\
-
-if not defined WIN_SDK set WIN_SDK=10.0.18362.0
 
 if exist "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" (
     call "%programfiles(x86)%\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86 %WIN_SDK%
@@ -38,7 +37,8 @@ ENDLOCAL
 xcopy /R /Y %SystemRoot%\SysWOW64\msvcp140.dll binaries\32\msvcr\
 xcopy /R /Y %SystemRoot%\SysWOW64\vcruntime140.dll binaries\32\msvcr\
 
-xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x86\*" binaries\32\msvcr\
+echo "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x86\*.dll"
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x86\*.dll" binaries\32\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\32\Qt\opengl*.*
@@ -75,12 +75,13 @@ ENDLOCAL
 xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\
 xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\
 
-xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*" binaries\64\msvcr\
+echo "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*.dll"
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*.dll" binaries\64\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\64\Qt\opengl*.*
 
-"c:\Program Files (x86)\Inno Setup 5\iscc" setup.iss
+"c:\Program Files (x86)\Inno Setup 6\iscc" setup.iss
 
 ENDLOCAL
 exit /b 0
