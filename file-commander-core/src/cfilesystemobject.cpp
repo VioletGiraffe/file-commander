@@ -244,7 +244,10 @@ bool CFileSystemObject::isEmptyDir() const
 		return false;
 
 #ifdef _WIN32
-	return QDir(fullAbsolutePath()).entryList(QDir::NoDotAndDotDot | QDir::Hidden | QDir::System | QDir::AllEntries).empty();
+	WCHAR path[32768];
+	const int nChars = _properties.fullPath.toWCharArray(path);
+	path[nChars] = 0;
+	return PathIsDirectoryEmptyW(path) != 0;
 #else
 	// TODO: use getdents64 on Linux
 	DIR *dir = ::opendir(_properties.fullPath.toLocal8Bit().constData());
