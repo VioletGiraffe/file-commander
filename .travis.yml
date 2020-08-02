@@ -43,8 +43,8 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then g++ --version; fi
 
   # linuxdeployqt
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod a+x linuxdeployqt-continuous-x86_64.AppImage; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then chmod a+x linuxdeployqt-7-x86_64.AppImage; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then clang --version; fi
@@ -58,14 +58,19 @@ script:
   # Linux
   - $QMAKE -r CONFIG+=release
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then make -j; fi
-  # Linux: deploying Qt binaries
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/FileCommander -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
+  # Linux: building AppImage
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp ./qt-app/resources/icon.png ./bin/release/x64/; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp ./installer/linux/file_commander.desktop ./bin/release/x64/; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QMAKE -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mv ./bin/release/x64/File_Commander*.AppImage ./FileCommander.AppImage; fi
 
   # macOS
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sh ./installer/mac/create_dmg.sh $QTPATH; fi
 
 # Test launch
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/FileCommander --test-launch; else ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch; fi
+# Test AppImage launch
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./FileCommander.AppImage --test-launch; fi
 
   # Building tests
   - cd file-commander-core/core-tests
@@ -74,16 +79,16 @@ script:
   - cd ../../
 
   # Running tests
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test; else ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test; fi
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/fso_test_high_level; else ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level; fi
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; for i in `seq 1 20`; do if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/operationperformer_test --std-seed $(date +%s); else ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); fi; sleep 1; done
 
-  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-continuous-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
+  - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/filecomparator_test --std-seed $(date +%s); else ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s); fi;
 
   
@@ -104,3 +109,15 @@ deploy:
     tags: true
     all_branches: true
     condition: $TRAVIS_OS_NAME = osx
+
+deploy:
+  provider: releases
+  edge: true
+  overwrite: true
+  token: $GITHUB_TOKEN
+  file: FileCommander.AppImage
+  prerelease: true
+  on:
+    tags: true
+    all_branches: true
+    condition: $TRAVIS_OS_NAME = linux
