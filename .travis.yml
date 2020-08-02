@@ -62,7 +62,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp ./qt-app/resources/icon.png ./bin/release/x64/; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp ./installer/linux/file_commander.desktop ./bin/release/x64/; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QMAKE -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ls bin/release/x64/; mv ./bin/release/x64/*.AppImage ./FileCommander.AppImage; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ls .; mv File_Commander*.AppImage ./FileCommander.AppImage; fi
 
   # macOS
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sh ./installer/mac/create_dmg.sh $QTPATH; fi
