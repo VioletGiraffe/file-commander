@@ -97,7 +97,7 @@ script:
   - git config --local user.name "VioletGiraffe"
   - git config --local user.email "violet.giraffe@noreply.github.com"
   - export TRAVIS_TAG="$(awk -F\" '/VERSION_STRING/ {print $2}' qt-app/src/version.h)".$TRAVIS_BUILD_NUMBER
-  - git tag $TRAVIS_TAG
+  - git tag $TRAVIS_TAG || true
 
 deploy:
   provider: releases
