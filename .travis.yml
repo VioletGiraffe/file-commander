@@ -111,7 +111,6 @@ deploy:
     all_branches: true
     condition: $TRAVIS_OS_NAME = osx
 
-deploy:
   provider: releases
   edge: true
   overwrite: true
