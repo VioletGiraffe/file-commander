@@ -100,24 +100,24 @@ script:
   - git tag $TRAVIS_TAG || true
 
 deploy:
-  provider: releases
-  edge: true
-  overwrite: true
-  token: $GITHUB_TOKEN
-  file: FileCommander.dmg
-  prerelease: true
-  on:
-    tags: true
-    all_branches: true
-    condition: $TRAVIS_OS_NAME = osx
+  - provider: releases
+    edge: true
+    overwrite: true
+    token: $GITHUB_TOKEN
+    file: FileCommander.dmg
+    prerelease: true
+    on:
+      tags: true
+      all_branches: true
+      condition: $TRAVIS_OS_NAME = osx
 
-  provider: releases
-  edge: true
-  overwrite: true
-  token: $GITHUB_TOKEN
-  file: FileCommander.AppImage
-  prerelease: true
-  on:
-    tags: true
-    all_branches: true
-    condition: $TRAVIS_OS_NAME = linux
+  - provider: releases
+    edge: true
+    overwrite: true
+    token: $GITHUB_TOKEN
+    file: FileCommander.AppImage
+    prerelease: true
+    on:
+      tags: true
+      all_branches: true
+      condition: $TRAVIS_OS_NAME = linux
