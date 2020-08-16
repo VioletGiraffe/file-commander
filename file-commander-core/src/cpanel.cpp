@@ -16,7 +16,7 @@ RESTORE_COMPILER_WARNINGS
 #include <limits>
 
 #ifdef _WIN32
-#include <io.h> // _waccess()
+#include <Windows.h>
 #else
 #include <unistd.h> // access()
 #endif
@@ -491,25 +491,39 @@ bool CPanel::pathIsAccessible(const QString& path) const
 	if (pathObject.isNetworkObject()) // TODO: is there a better way? _waccess returns ENOENT for network gost root (e. g. //NETTOP/)
 		return true;
 
-	wchar_t wPath[32768];
-	const auto nCharacters = toNativeSeparators(path).toWCharArray(wPath);
-	wPath[nCharacters] = 0;
-	if (_waccess(wPath, 4) == 0) // Checking for read-only access
-		return true;
+	QString pathWithMask = toNativeSeparators(path);
+	if (pathWithMask.endsWith('\\'))
+		pathWithMask = "\\\\?\\" % pathWithMask % '*';
+	else
+		pathWithMask = "\\\\?\\" % pathWithMask % "\\*";
 
-	switch (errno)
+	wchar_t wPath[32768];
+	const auto nCharacters = pathWithMask.toWCharArray(wPath);
+	wPath[nCharacters] = 0;
+
+	WIN32_FIND_DATAW fileData;
+	const HANDLE hFind = ::FindFirstFileExW(wPath, FindExInfoBasic, &fileData, FindExSearchNameMatch, nullptr, 0);
+	if (hFind == INVALID_HANDLE_VALUE)
 	{
-	case EACCES:
-		return false;
-	case ENOENT:
-		return false;
-	case EINVAL:
-		return false;
-	default:
-		return false;
+		const auto err = GetLastError();
+		// ERROR_FILE_NOT_FOUND (2) means "no files in the specified folder", ERROR_PATH_NOT_FOUND (3) - "no such folder"
+		return err == ERROR_FILE_NOT_FOUND ? true : false;
 	}
-#else // _WIN32
+
+	::FindClose(hFind);
+	return true;
+#else // not _WIN32
 	return ::access(pathObject.fullAbsolutePath().toLocal8Bit().constData(), R_OK) == 0;
+
+	// Alternative method:
+
+	//DIR* dir = opendir(path.data());
+
+	//if (dir == nullptr)
+	//	return false;
+
+	//closedir(dir);
+	//return true;
 #endif
 }
 
