@@ -47,7 +47,6 @@ tell application "Finder"
     set theViewOptions to the icon view options of container window
     set arrangement of theViewOptions to not arranged
     set icon size of theViewOptions to 72
-    set background picture of theViewOptions to file ".background:installer2.png"
     update without registering applications
     delay 5
     set position of item "Applications" of container window to {400, 90}

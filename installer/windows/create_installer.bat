@@ -35,7 +35,9 @@ FOR %%p IN (binaries\32\plugin_*.dll) DO %QTDIR32%\bin\windeployqt.exe --dir bin
 ENDLOCAL
 
 xcopy /R /Y %SystemRoot%\SysWOW64\msvcp140.dll binaries\32\msvcr\
+xcopy /R /Y %SystemRoot%\SysWOW64\msvcp140_1.dll binaries\32\msvcr\
 xcopy /R /Y %SystemRoot%\SysWOW64\vcruntime140.dll binaries\32\msvcr\
+xcopy /R /Y %SystemRoot%\SysWOW64\vcruntime140_1.dll binaries\32\msvcr\
 
 echo "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x86\*.dll"
 xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x86\*.dll" binaries\32\msvcr\
@@ -73,7 +75,9 @@ FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir bin
 ENDLOCAL
 
 xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\
+xcopy /R /Y %SystemRoot%\System32\msvcp140_1.dll binaries\64\msvcr\
 xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\
+xcopy /R /Y %SystemRoot%\System32\vcruntime140_1.dll binaries\64\msvcr\
 
 echo "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*.dll"
 xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*.dll" binaries\64\msvcr\
