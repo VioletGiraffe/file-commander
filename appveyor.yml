@@ -15,18 +15,21 @@ configuration:
 
 install:
 - git submodule update --init --recursive --depth 5
-- set PATH=C:\Qt\%qt%\bin;%PATH%;
 - dir "C:\Program Files (x86)\Windows Kits\10\include\"
+- pushd file-commander-core\core-tests\
 - call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
-- cd file-commander-core\core-tests\
-- call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
-- cd ..\..\
+- popd
+- set QTDIR32="C:\Qt\5.15\msvc2019"
+- set QTDIR64="C:\Qt\%qt%"
 
 build_script:
- - msbuild file-commander.sln /t:Build /p:Configuration=Release;PlatformToolset=v141
- - cd file-commander-core\core-tests\
+ - pushd installer\windows\
+ - create_installer.bat
+ - popd
+
+ - pushd file-commander-core\core-tests\
  - msbuild /t:Build /p:Configuration=Release;PlatformToolset=v141
- - cd ..\..\
+ - popd
 
 after_build:
  - .\bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
@@ -50,4 +53,16 @@ test_script:
     $randomSeed = ((get-date -Uformat %s).remove(10, 1));
     $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
     & .\bin\release\$($env:BUILD_ARCH)\filecomparator_test.exe -s -r junit -o filecomparator_test.xml --std-seed $randomSeed;
-    (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\filecomparator_test.xml));
+    (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/", (Resolve-Path .\filecomparator_test.xml));
+
+deploy:
+  description: $($env:APPVEYOR_REPO_COMMIT_MESSAGE)
+  provider: GitHub
+  auth_token:
+    secure: E8CRx0r0qADoE0JR3QUFwD0bQSRGSUerCeCJs4BU6B+Rmz9BMvRLZmbtrqpPzGVS
+  artifact: .\installer\windows\FileCommander.exe
+  draft: false
+  prerelease: true
+  on:
+    branch: master                 # release from master branch only
+    APPVEYOR_REPO_TAG: true        # deploy on tag push only
