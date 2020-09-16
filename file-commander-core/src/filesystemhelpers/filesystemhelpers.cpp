@@ -1,10 +1,12 @@
 #include "filesystemhelpers.hpp"
+#include "../filesystemhelperfunctions.h"
 #include "compiler/compiler_warnings_control.h"
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFile>
 #include <QRegularExpression>
+#include <QStringBuilder>
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
@@ -12,6 +14,7 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #else
 #include <stdlib.h>
+#include <unistd.h> // access()
 #endif
 
 // If the command exists, returns its path: either the argument as is if exists (absolute, or in the working dir),
@@ -61,4 +64,44 @@ QString FileSystemHelpers::trimUnsupportedSymbols(QString path)
 #endif
 
 	return path;
+}
+
+bool FileSystemHelpers::pathIsAccessible(QString path)
+{
+#ifdef _WIN32
+	QString pathWithMask = toNativeSeparators(path);
+	if (pathWithMask.endsWith('\\'))
+		pathWithMask = "\\\\?\\" % pathWithMask % '*';
+	else
+		pathWithMask = "\\\\?\\" % pathWithMask % "\\*";
+
+	wchar_t wPath[32768];
+	const auto nCharacters = pathWithMask.toWCharArray(wPath);
+	wPath[nCharacters] = 0;
+
+	WIN32_FIND_DATAW fileData;
+	const HANDLE hFind = ::FindFirstFileExW(wPath, FindExInfoBasic, &fileData, FindExSearchNameMatch, nullptr, 0);
+	if (hFind == INVALID_HANDLE_VALUE)
+	{
+		const auto err = GetLastError();
+
+		// ERROR_FILE_NOT_FOUND (2) means "no files in the specified folder", ERROR_PATH_NOT_FOUND (3) - "no such folder"
+		return err == ERROR_FILE_NOT_FOUND ? true : false;
+	}
+
+	::FindClose(hFind);
+	return true;
+#else // not _WIN32
+	return ::access(pathObject.fullAbsolutePath().toLocal8Bit().constData(), R_OK) == 0;
+
+	// Alternative method:
+
+	//DIR* dir = opendir(path.data());
+
+	//if (dir == nullptr)
+	//	return false;
+
+	//closedir(dir);
+	//return true;
+#endif
 }

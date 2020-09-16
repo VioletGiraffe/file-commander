@@ -6,6 +6,8 @@
 #include "filesystemhelperfunctions.h"
 #include "iconprovider/ciconprovider.h"
 
+#include "system/ctimeelapsed.h"
+
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QClipboard>
@@ -39,6 +41,8 @@ CController::CController() :
 
 	_leftPanel.restoreFromSettings();
 	_rightPanel.restoreFromSettings();
+
+	_volumeEnumerator.startEnumeratorThread();
 }
 
 CController& CController::get()
@@ -453,7 +457,7 @@ std::optional<size_t> CController::currentVolumeIndex(Panel p) const
 		commonPrefixWithDrive.emplace_back(longestCommonRootPath(currentDirectoryObject, drives[i].rootObjectInfo).length());
 
 	const auto longestCommonRootIterator = std::max_element(cbegin_to_end(commonPrefixWithDrive));
-	if (*longestCommonRootIterator == 0)
+	if (longestCommonRootIterator == commonPrefixWithDrive.cend() || *longestCommonRootIterator == 0)
 		return {};
 
 	return static_cast<size_t>(std::distance(commonPrefixWithDrive.cbegin(), longestCommonRootIterator));

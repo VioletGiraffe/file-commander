@@ -36,11 +36,14 @@ CVolumeEnumerator::CVolumeEnumerator() : _enumeratorThread(_updateInterval, "CVo
 		_notificationsQueue.exec();
 	});
 	_timer.start(_updateInterval / 3);
+}
 
+void CVolumeEnumerator::startEnumeratorThread()
+{
 	// Starting the worker thread that actually enumerates the volumes
-	_enumeratorThread.start([this](){
+	_enumeratorThread.start([this]() {
 		enumerateVolumes(true);
-	});
+	}, 4000);
 }
 
 // Refresh the list of available volumes

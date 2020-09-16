@@ -1,6 +1,9 @@
 #include "cvolumeenumerator.h"
+#include "../filesystemhelpers/filesystemhelpers.hpp"
 #include "windows/windowsutils.h"
 #include "utility/on_scope_exit.hpp"
+
+#include "system/ctimeelapsed.h"
 
 #include <Windows.h>
 
@@ -21,20 +24,23 @@ inline QString parseVolumePathFromPathsList(WCHAR* paths)
 	return qstring;
 }
 
-inline VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
+static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 {
-	VolumeInfo info;
+	if (!FileSystemHelpers::pathIsAccessible(driveLetter))
+		return {};
 
 	WCHAR volumeName[256], filesystemName[256];
 	const DWORD error = GetVolumeInformationW((WCHAR*)driveLetter.utf16(), volumeName, 256, nullptr, nullptr, nullptr, filesystemName, 256) != 0 ? 0 : GetLastError();
 
 	if (error != 0 && error != ERROR_NOT_READY)
 	{
-		qInfo() << "GetVolumeInformationW() returned error:" << ErrorStringFromLastError();
-		return info;
+		const auto text = ErrorStringFromLastError();
+		qInfo() << "GetVolumeInformationW() returned error for" << driveLetter << text;
+		return {};
 	}
-	else
-		info.isReady = error != ERROR_NOT_READY;
+	
+	VolumeInfo info;
+	info.isReady = error != ERROR_NOT_READY;
 
 	info.rootObjectInfo = driveLetter;
 
@@ -59,10 +65,10 @@ const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
 	std::vector<VolumeInfo> volumes;
 
-	const auto oldErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-	EXEC_ON_SCOPE_EXIT([oldErrorMode]() {SetErrorMode(oldErrorMode);});
+	const auto oldErrorMode = ::SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+	EXEC_ON_SCOPE_EXIT([oldErrorMode]() {::SetErrorMode(oldErrorMode);});
 
-	DWORD drives = GetLogicalDrives();
+	DWORD drives = ::GetLogicalDrives();
 	if (drives == 0)
 	{
 		qInfo() << "GetLogicalDrives() returned an error:" << ErrorStringFromLastError();
@@ -74,7 +80,12 @@ const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 		if ((drives & 0x1) == 0)
 			continue;
 
+		CTimeElapsed timer{ true };
 		auto volumeInfo = volumeInfoForDriveLetter(QString(driveLetter) + QStringLiteral(":\\"));
+		const auto elapsedMs = timer.elapsed();
+		if (elapsedMs > 100)
+			qInfo() << "volumeInfoForDriveLetter for" << QString(driveLetter) + QStringLiteral(":\\") << "took" << elapsedMs << "ms";
+
 		if (!volumeInfo.isEmpty())
 			volumes.emplace_back(std::move(volumeInfo));
 	}

@@ -13,4 +13,6 @@ namespace FileSystemHelpers
 	// Removes any CR/LF characters. If there are any other symbols not supported in the current file system's paths, such characters are replaced with '_' (underscore).
 	QString trimUnsupportedSymbols(QString path);
 
+	bool pathIsAccessible(QString path);
+
 } // namespace

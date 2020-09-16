@@ -17,6 +17,8 @@ class CVolumeEnumerator : public QObject
 public:
 	CVolumeEnumerator();
 
+	void startEnumeratorThread();
+
 	// Volumes list observer interface
 	class IVolumeListObserver
 	{
