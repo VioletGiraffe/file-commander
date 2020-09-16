@@ -14,22 +14,22 @@ configuration:
   - Release
 
 install:
-- git submodule update --init --recursive --depth 5
-- dir "C:\Program Files (x86)\Windows Kits\10\include\"
-- pushd file-commander-core\core-tests\
-- call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
-- popd
-- set QTDIR32="C:\Qt\5.15\msvc2019"
-- set QTDIR64="C:\Qt\%qt%"
+ - git submodule update --init --recursive --depth 5
+ - dir "C:\Program Files (x86)\Windows Kits\10\include\"
+ - cd file-commander-core\core-tests\
+ - call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
+ - cd ..\..
+ - set QTDIR32="C:\Qt\5.15\msvc2019"
+ - set QTDIR64="C:\Qt\%qt%"
 
 build_script:
- - pushd installer\windows\
+ - cd installer\windows\
  - create_installer.bat
- - popd
+ - cd ..\..
 
- - pushd file-commander-core\core-tests\
+ - cd file-commander-core\core-tests\
  - msbuild /t:Build /p:Configuration=Release;PlatformToolset=v141
- - popd
+ - cd ..\..
 
 after_build:
  - .\bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
