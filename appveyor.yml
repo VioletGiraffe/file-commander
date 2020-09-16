@@ -37,7 +37,6 @@ after_build:
  - xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\x64\
  - xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\x64\
 # - .\bin\release\x64\FileCommander.exe --test-launch
- - cd ..\..\..\..
 
 test_script:
  - .\bin\release\x64\fso_test.exe -s -r junit -o fso_test.xml
