@@ -5,7 +5,6 @@ init:
 environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      qt: 5.15\msvc2019_64
       VS_VERSION: 2019
       WIN_SDK: 10.0.18362.0
       BUILD_ARCH: x64
@@ -16,11 +15,11 @@ configuration:
 install:
  - git submodule update --init --recursive --depth 5
  - dir "C:\Program Files (x86)\Windows Kits\10\include\"
+ - set QTDIR32=C:\Qt\5.15\msvc2019
+ - set QTDIR64=C:\Qt\5.15\msvc2019_64
  - cd file-commander-core\core-tests\
- - call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
+ - call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "%QTDIR64%\bin\qmake.exe" -tp vc -r
  - cd ..\..
- - set QTDIR32="C:\Qt\5.15\msvc2019"
- - set QTDIR64="C:\Qt\%qt%"
 
 build_script:
  - cd installer\windows\
@@ -32,11 +31,12 @@ build_script:
  - cd ..\..
 
 after_build:
- - xcopy /R /Y .\bin\release\x64\*.exe .\installer\windows\binaries\64\
- - cd .\installer\windows\binaries\64\
- - xcopy /R /Y msvcr\* .\
- - xcopy /R /Y Qt\* .\
- - .\installer\windows\binaries\64\FileCommander.exe --test-launch
+ - dir .\installer\windows\binaries\64\
+ - dir .\installer\windows\binaries\64\msvcr\
+ - dir .\installer\windows\binaries\64\Qt\
+ - xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\x64\
+ - xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\x64\
+ - .\bin\release\x64\FileCommander.exe --test-launch
  - cd ..\..\..\..
 
 test_script:
