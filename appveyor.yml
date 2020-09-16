@@ -32,13 +32,18 @@ build_script:
  - cd ..\..
 
 after_build:
- - .\bin\release\%BUILD_ARCH%\FileCommander.exe --test-launch
+ - xcopy /R /Y .\bin\release\x64\*.exe .\installer\windows\binaries\64\
+ - cd .\installer\windows\binaries\64\
+ - xcopy /R /Y msvcr\* .\
+ - xcopy /R /Y Qt\* .\
+ - .\installer\windows\binaries\64\FileCommander.exe --test-launch
+ - cd ..\..\..\..
 
 test_script:
- - .\bin\release\%BUILD_ARCH%\fso_test.exe -s -r junit -o fso_test.xml
+ - .\bin\release\x64\fso_test.exe -s -r junit -o fso_test.xml
  - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\fso_test.xml))
 
- - .\bin\release\%BUILD_ARCH%\fso_test_high_level.exe -s -r junit -o fso_test_high_level.xml
+ - .\bin\release\x64\fso_test_high_level.exe -s -r junit -o fso_test_high_level.xml
  - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\fso_test_high_level.xml))
 
  - ps: |
