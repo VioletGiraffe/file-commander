@@ -57,7 +57,7 @@ test_script:
     $randomSeed = ((get-date -Uformat %s).remove(10, 1));
     $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
     & .\bin\release\$($env:BUILD_ARCH)\filecomparator_test.exe -s -r junit -o filecomparator_test.xml --std-seed $randomSeed;
-    (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/", (Resolve-Path .\filecomparator_test.xml));
+    (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\filecomparator_test.xml));
 
 deploy:
   description: $($env:APPVEYOR_REPO_COMMIT_MESSAGE)
