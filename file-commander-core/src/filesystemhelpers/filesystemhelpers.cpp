@@ -92,7 +92,7 @@ bool FileSystemHelpers::pathIsAccessible(QString path)
 	::FindClose(hFind);
 	return true;
 #else // not _WIN32
-	return ::access(pathObject.fullAbsolutePath().toLocal8Bit().constData(), R_OK) == 0;
+	return ::access(path.toLocal8Bit().constData(), R_OK) == 0;
 
 	// Alternative method:
 
