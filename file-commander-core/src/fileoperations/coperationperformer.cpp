@@ -704,7 +704,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		if (result != FileOperationResultCode::Ok)
 			break;
 
-		const auto actualSizeProcessed = sizeProcessedPreviously + itemManipulator.bytesCopied();
+		const auto actualSizeProcessed = static_cast<float>(sizeProcessedPreviously + itemManipulator.bytesCopied());
 		const float totalPercentage = totalSize > 0 ? actualSizeProcessed * 100.0f / totalSize : 0.0f; // Bytes
 		const float filePercentage = item.size() > 0 ? itemManipulator.bytesCopied() * 100.0f / item.size() : 0.0f;
 
@@ -720,7 +720,6 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			break;
 		}
 	} while (itemManipulator.copyOperationInProgress());
-
 
 
 	if (result != FileOperationResultCode::Ok)

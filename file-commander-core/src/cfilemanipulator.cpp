@@ -108,19 +108,24 @@ FileOperationResultCode CFileManipulator::moveAtomically(const CFileSystemObject
 // Non-blocking file copy API
 
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, bool transferPermissions)
+FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, const bool transferPermissions, const bool transferDates)
 {
-	assert_r(bool(_thisFile) == bool(_destFile));
-	assert_r(_object.isFile());
-	assert_r(QFileInfo(destFolder).isDir());
+	assert_debug_only(bool(_thisFile) == bool(_destFile));
+	assert_debug_only(_object.isFile());
+	assert_debug_only(QFileInfo(destFolder).isDir());
 
 	if (!copyOperationInProgress())
 	{
 		_pos = 0;
 
 		// Creating files
-		_thisFile = std::make_shared<QFile>(_object.fullAbsolutePath());
-		_destFile = std::make_shared<QFile>(destFolder + (newName.isEmpty() ? _object.fullName() : newName));
+		_thisFile = std::make_unique<QFile>(_object.fullAbsolutePath());
+		_destFile = std::make_unique<QFile>(destFolder + (newName.isEmpty() ? _object.fullName() : newName));
+
+		_sourceFileTime[QFileDevice::FileAccessTime] = _thisFile->fileTime(QFileDevice::FileAccessTime);
+		_sourceFileTime[QFileDevice::FileBirthTime] = _thisFile->fileTime(QFileDevice::FileBirthTime);
+		_sourceFileTime[QFileDevice::FileMetadataChangeTime] = _thisFile->fileTime(QFileDevice::FileMetadataChangeTime);
+		_sourceFileTime[QFileDevice::FileModificationTime] = _thisFile->fileTime(QFileDevice::FileModificationTime);
 
 		// Initializing - opening files
 		if (!_thisFile->open(QFile::ReadOnly))
@@ -154,6 +159,9 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 
 			return FileOperationResultCode::NotEnoughSpaceAvailable;
 		}
+
+		// Store the original file's attributes to later mirror them onto the copy
+
 	}
 
 	assert_r(_destFile->isOpen() == _thisFile->isOpen());
@@ -183,17 +191,32 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 		_destFile->unmap(dest);
 	}
 
+	// TODO: '<=' ?
 	if (actualChunkSize < chunkSize)
 	{
 		// Copying complete
 		if (transferPermissions)
 			_lastErrorMessage = copyPermissions(*_thisFile, *_destFile);
 
+		if (transferDates)
+		{
+			// Note: The file must be open to use setFileTime()
+			assert_r(_destFile->setFileTime(_sourceFileTime[QFileDevice::FileAccessTime], QFileDevice::FileAccessTime));
+			assert_r(_destFile->setFileTime(_sourceFileTime[QFileDevice::FileBirthTime], QFileDevice::FileBirthTime));
+			_destFile->setFileTime(_sourceFileTime[QFileDevice::FileMetadataChangeTime], QFileDevice::FileMetadataChangeTime); // For some reason this fails on Windows 10
+			assert_r(_destFile->setFileTime(_sourceFileTime[QFileDevice::FileModificationTime], QFileDevice::FileModificationTime));
+		}
+
 		_thisFile.reset();
 		_destFile.reset();
 
 		if (transferPermissions && !_lastErrorMessage.isEmpty())
 			return FileOperationResultCode::Fail;
+
+		if (transferDates)
+		{
+
+		}
 	}
 
 	return FileOperationResultCode::Ok;
@@ -209,8 +232,9 @@ bool CFileManipulator::copyOperationInProgress() const
 	if (!_destFile && !_thisFile)
 		return false;
 
-	assert_r(_destFile->isOpen() == _thisFile->isOpen());
-	return _destFile->isOpen() && _thisFile->isOpen();
+	const bool isOpen = _thisFile->isOpen();
+	assert_r(isOpen == _destFile->isOpen());
+	return isOpen;
 }
 
 uint64_t CFileManipulator::bytesCopied() const

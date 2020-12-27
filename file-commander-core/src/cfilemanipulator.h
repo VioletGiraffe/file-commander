@@ -5,9 +5,11 @@
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDateTime>
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
+#include <array>
 #include <memory>
 #include <stdint.h>
 
@@ -33,7 +35,7 @@ public:
 
 // Non-blocking file copy API
 	// Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-	FileOperationResultCode copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName = QString(), bool transferPermissions = true);
+	FileOperationResultCode copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName = QString(), bool transferPermissions = true, bool transferDates = true);
 	FileOperationResultCode moveChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName = QString());
 	bool copyOperationInProgress() const;
 	uint64_t bytesCopied() const;
@@ -50,8 +52,9 @@ private:
 	CFileSystemObject _object;
 
 	// For copying / moving
-	std::shared_ptr<QFile> _thisFile;
-	std::shared_ptr<QFile> _destFile;
+	std::array<QDateTime, 4> _sourceFileTime;
+	std::unique_ptr<QFile> _thisFile;
+	std::unique_ptr<QFile> _destFile;
 	uint64_t               _pos = 0;
 	mutable QString        _lastErrorMessage;
 };
