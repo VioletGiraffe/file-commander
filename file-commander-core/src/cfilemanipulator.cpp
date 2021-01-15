@@ -51,7 +51,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 	else if (_object.isCdUp())
 		return FileOperationResultCode::Fail;
 
-	assert_r(QFileInfo(location).isDir());
+	assert_debug_only(QFileInfo{ location }.isDir());
 	const QString fullNewName = location % '/' % (newName.isEmpty() ? _object.fullName() : newName);
 	const CFileSystemObject destInfo(fullNewName);
 	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(_object.fullAbsolutePath(), Qt::CaseInsensitive) == 0;
@@ -77,19 +77,18 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 	if (_object.isFile())
 	{
 		QFile file(_object.fullAbsolutePath());
-		const bool succ = file.rename(fullNewName);
-		if (!succ)
+		if (!file.rename(fullNewName))
 		{
 			_lastErrorMessage = file.errorString();
 			return FileOperationResultCode::Fail;
 		}
 
-		_object.refreshInfo();
+		_object.refreshInfo(); // TODO: what is this for?
 		return FileOperationResultCode::Ok;
 	}
 	else if (_object.isDir())
 	{
-		return QDir().rename(_object.fullAbsolutePath(), fullNewName) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+		return QDir{}.rename(_object.fullAbsolutePath(), fullNewName) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 	}
 	else
 		return FileOperationResultCode::Fail;

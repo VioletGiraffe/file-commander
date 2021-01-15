@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <vector>
 
-inline constexpr char nativeSeparator()
+inline [[nodiscard]] constexpr char nativeSeparator() noexcept
 {
 #ifdef _WIN32
 	return '\\';
@@ -21,7 +21,7 @@ inline constexpr char nativeSeparator()
 #endif
 }
 
-inline QString toNativeSeparators(QString path)
+inline QString [[nodiscard]] toNativeSeparators(QString path)
 {
 #ifdef _WIN32
 	return path.replace('/', nativeSeparator());
@@ -30,7 +30,7 @@ inline QString toNativeSeparators(QString path)
 #endif
 }
 
-inline QString toPosixSeparators(QString path)
+inline QString [[nodiscard]] toPosixSeparators(QString path)
 {
 #ifdef _WIN32
 	return path.replace(nativeSeparator(), '/');
@@ -40,7 +40,7 @@ inline QString toPosixSeparators(QString path)
 #endif
 }
 
-inline QString escapedPath(QString path)
+inline QString [[nodiscard]] escapedPath(QString path)
 {
 	if (!path.contains(' ') || path.startsWith('\"'))
 		return path;
@@ -52,12 +52,12 @@ inline QString escapedPath(QString path)
 #endif
 }
 
-inline QString cleanPath(QString path)
+inline QString [[nodiscard]] cleanPath(QString path)
 {
 	return path.replace(QStringLiteral("\\\\"), QStringLiteral("\\")).replace(QStringLiteral("//"), QStringLiteral("/"));
 }
 
-inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const QString& spacer = QString())
+inline QString [[nodiscard]] fileSizeToString(uint64_t size, const char maxUnit = '\0', const QString& spacer = QString())
 {
 	const unsigned int KB = 1024;
 	const unsigned int MB = 1024 * KB;
@@ -98,7 +98,7 @@ inline QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const 
 	return str;
 }
 
-constexpr bool caseSensitiveFilesystem()
+inline [[nodiscard]] constexpr bool caseSensitiveFilesystem() noexcept
 {
 #if defined _WIN32
 	return false;
@@ -114,7 +114,7 @@ constexpr bool caseSensitiveFilesystem()
 #endif
 }
 
-inline std::vector<QString> pathComponents(const QString& path)
+inline [[nodiscard]] std::vector<QString> pathComponents(const QString& path)
 {
 #ifndef _WIN32
 	assert_debug_only(!path.contains('\\') && !path.contains("//"));
@@ -136,7 +136,7 @@ inline std::vector<QString> pathComponents(const QString& path)
 }
 
 // Returns true if this object is a child of parent, either direct or indirect
-inline QString longestCommonRootPath(const QString& pathA, const QString& pathB)
+inline [[nodiscard]] QString longestCommonRootPath(const QString& pathA, const QString& pathB)
 {
 	if (pathA.compare(pathB, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0)
 		return pathA; // Full match
@@ -168,7 +168,7 @@ inline QString longestCommonRootPath(const QString& pathA, const QString& pathB)
 }
 
 // Returns true if this object is a child of parent, either direct or indirect
-inline QString longestCommonRootPath(const CFileSystemObject& object1, const CFileSystemObject& object2)
+inline [[nodiscard]] QString longestCommonRootPath(const CFileSystemObject& object1, const CFileSystemObject& object2)
 {
 	if (!object1.isValid() || !object2.isValid())
 		return {};

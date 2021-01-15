@@ -150,10 +150,11 @@ void COperationPerformer::copyFiles()
 	if (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir())
 		_newName = _destFileSystemObject.fullName();
 
-	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster
-	// If the dest folder is empty, moving means renaming the root source folder / file, which is fast and simple
-	if (_op == operationMove && (!_destFileSystemObject.exists() || _destFileSystemObject.isEmptyDir()) && _source.front().isMovableTo(_destFileSystemObject))
+	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster.
+	// Moving means renaming the root source folder / file, which is fast and simple. Just make sure the destination folder exists.
+	if (_op == operationMove && _source.front().isMovableTo(_destFileSystemObject))
 	{
+		assert_r(std::all_of(_source.cbegin() + 1, _source.cend(), [this](const CFileSystemObject& o) { return o.isMovableTo(_destFileSystemObject); }));
 		_totalTimeElapsed.start();
 
 		// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
