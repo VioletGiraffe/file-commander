@@ -27,7 +27,7 @@ build_script:
  - cd ..\..
 
  - cd file-commander-core\core-tests\
- - msbuild /t:Build /p:Configuration=Release;PlatformToolset=v141
+ - msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142
  - cd ..\..
 
 after_build:

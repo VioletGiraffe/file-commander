@@ -12,6 +12,7 @@
 #include "catch2_utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDateTime>
 #include <QDir>
 #include <QStringBuilder>
 #include <QTemporaryDir>
@@ -26,7 +27,13 @@ RESTORE_COMPILER_WARNINGS
 
 static uint32_t g_randomSeed = 0;
 
-struct ProgressObserver : public CFileOperationObserver {
+static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2)
+{
+	return ::abs(t1.toMSecsSinceEpoch() - t2.toMSecsSinceEpoch()) <= 5;
+}
+
+
+struct ProgressObserver final : public CFileOperationObserver {
 	inline void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float filePercentage, uint64_t /*speed*/ /* B/s*/, uint32_t /*secondsRemaining*/) override {
 		CHECK(totalPercentage <= 100.0f);
 		CHECK(filePercentage <= 100.0f);
@@ -83,20 +90,29 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 	CFolderEnumeratorRecursive::enumerateFolder(targetDirectory.path() % '/' % QFileInfo(sourceDirectory.path()).completeBaseName(), destTree);
 
 	CFileComparator comparator;
-	for (size_t i = 0, n = std::min(sourceTree.size(), destTree.size()); i < n; ++i)
+	REQUIRE(sourceTree.size() == destTree.size());
+
+	for (size_t i = 0, n = sourceTree.size(); i < n; ++i)
 	{
-		if (!sourceTree[i].isFile())
+		const auto& sourceItem = sourceTree[i];
+		const auto& destItem = destTree[i];
+		if (!sourceItem.isFile())
 			continue;
 
-		QFile fileA(sourceTree[i].fullAbsolutePath());
+		QFile fileA(sourceItem.fullAbsolutePath());
 		REQUIRE(fileA.open(QFile::ReadOnly));
 
-		QFile fileB(destTree[i].fullAbsolutePath());
+		QFile fileB(destItem.fullAbsolutePath());
 		REQUIRE(fileB.open(QFile::ReadOnly));
 
-		comparator.compareFiles(fileA, fileB, [](int) {}, [](CFileComparator::ComparisonResult result) {
+		comparator.compareFiles(fileA, fileB, [](int) {}, [](const CFileComparator::ComparisonResult result) {
 			CHECK(result == CFileComparator::Equal);
 		});
+
+		CHECK(timesAlmostMatch(fileA.fileTime(QFileDevice::FileAccessTime), fileB.fileTime(QFileDevice::FileAccessTime)));
+		CHECK(timesAlmostMatch(fileA.fileTime(QFileDevice::FileBirthTime), fileB.fileTime(QFileDevice::FileBirthTime)));
+		CHECK(timesAlmostMatch(fileA.fileTime(QFileDevice::FileMetadataChangeTime), fileB.fileTime(QFileDevice::FileMetadataChangeTime)));
+		CHECK(timesAlmostMatch(fileA.fileTime(QFileDevice::FileModificationTime), fileB.fileTime(QFileDevice::FileModificationTime)));
 	}
 
 	REQUIRE(compareFolderContents(sourceTree, destTree));
