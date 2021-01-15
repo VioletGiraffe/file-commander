@@ -7,7 +7,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 RESTORE_COMPILER_WARNINGS
 
-#include <limits>
 #include <memory>
 #include <utility> // std::move
 

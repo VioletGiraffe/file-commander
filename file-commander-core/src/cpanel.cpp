@@ -14,7 +14,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <time.h>
-#include <limits>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -363,7 +362,7 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 				else if (discoveredItem.isDir())
 					++stats.folders;
 
-				sendItemDiscoveryProgressNotification(0, std::numeric_limits<size_t>::max(), discoveredItem.fullAbsolutePath());
+				sendItemDiscoveryProgressNotification(0, size_t_max, discoveredItem.fullAbsolutePath());
 			});
 		}
 		else if (rootItem.isFile())

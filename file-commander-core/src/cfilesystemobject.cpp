@@ -3,6 +3,7 @@
 #include "filesystemhelperfunctions.h"
 #include "windows/windowsutils.h"
 #include "assert/advanced_assert.h"
+#include "lang/type_traits_fast.hpp"
 
 #include "fasthash.h"
 
@@ -189,7 +190,7 @@ void CFileSystemObject::setPath(const QString& path)
 		return;
 	}
 
-	_rootFileSystemId = std::numeric_limits<uint64_t>::max();
+	_rootFileSystemId = uint64_max;
 
 	_fileInfo.setFile(expandEnvironmentVariables(path));
 
@@ -327,7 +328,7 @@ const QFileInfo &CFileSystemObject::qFileInfo() const
 
 uint64_t CFileSystemObject::rootFileSystemId() const
 {
-	if (_rootFileSystemId == std::numeric_limits<uint64_t>::max())
+	if (_rootFileSystemId == uint64_max)
 	{
 #ifdef _WIN32
 		WCHAR drivePath[32768];
@@ -385,7 +386,7 @@ bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
 	const auto fileSystemId = rootFileSystemId();
 	const auto otherFileSystemId = dest.rootFileSystemId();
 
-	return fileSystemId == otherFileSystemId && fileSystemId != std::numeric_limits<uint64_t>::max() && otherFileSystemId != std::numeric_limits<uint64_t>::max();
+	return fileSystemId == otherFileSystemId && fileSystemId != uint64_max;
 }
 
 // A hack to store the size of a directory after it's calculated
