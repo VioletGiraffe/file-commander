@@ -39,8 +39,7 @@ xcopy /R /Y %SystemRoot%\SysWOW64\msvcp140_1.dll binaries\32\msvcr\
 xcopy /R /Y %SystemRoot%\SysWOW64\vcruntime140.dll binaries\32\msvcr\
 xcopy /R /Y %SystemRoot%\SysWOW64\vcruntime140_1.dll binaries\32\msvcr\
 
-echo "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x86\*.dll"
-xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x86\*.dll" binaries\32\msvcr\
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x86\*" binaries\32\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\32\Qt\opengl*.*
@@ -79,8 +78,7 @@ xcopy /R /Y %SystemRoot%\System32\msvcp140_1.dll binaries\64\msvcr\
 xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\
 xcopy /R /Y %SystemRoot%\System32\vcruntime140_1.dll binaries\64\msvcr\
 
-echo "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*.dll"
-xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*.dll" binaries\64\msvcr\
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x64\*" binaries\64\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\64\Qt\opengl*.*
