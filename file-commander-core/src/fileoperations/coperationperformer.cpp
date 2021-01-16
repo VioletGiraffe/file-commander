@@ -32,7 +32,7 @@ COperationPerformer::COperationPerformer(const Operation operation, std::vector<
 	_op(operation)
 {
 	_source.reserve(source.size());
-	for (auto&& o : source)
+	for (auto& o : std::move(source))
 		_source.emplace_back(std::move(o));
 }
 
