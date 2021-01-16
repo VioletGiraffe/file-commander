@@ -146,6 +146,7 @@ private:
 		{}
 
 		ObjectToProcess(ObjectToProcess&&) noexcept = default;
+		ObjectToProcess(const ObjectToProcess&) = default;
 
 		CFileSystemObject object;
 		bool copiedSuccessfully = false;
