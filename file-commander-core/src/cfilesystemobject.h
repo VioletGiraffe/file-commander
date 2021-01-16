@@ -47,6 +47,9 @@ class CFileSystemObject
 {
 public:
 	CFileSystemObject() = default;
+	CFileSystemObject(CFileSystemObject&&) noexcept = default;
+	CFileSystemObject(const CFileSystemObject&) = default;
+
 	explicit CFileSystemObject(const QFileInfo & fileInfo);
 	explicit CFileSystemObject(const QString& path);
 
@@ -54,6 +57,9 @@ public:
 
 	template <typename T, typename U>
 	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)std::forward<QStringBuilder<T, U>>(stringBuilder)) {}
+
+	CFileSystemObject& operator=(CFileSystemObject&&) = default;
+	CFileSystemObject& operator=(const CFileSystemObject&) = default;
 
 	CFileSystemObject& operator=(const QString& path);
 
@@ -106,8 +112,8 @@ public:
 private:
 	CFileSystemObjectProperties _properties;
 	// Can be used to determine whether two objects are on the same drive
-	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 	QFileInfo                   _fileInfo;
+	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 };
 
 #undef QFileInfo

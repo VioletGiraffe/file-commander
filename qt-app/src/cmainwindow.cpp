@@ -221,7 +221,7 @@ void CMainWindow::tabKeyPressed()
 	_otherFileList->setFocusToFileList();
 }
 
-bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
+bool CMainWindow::copyFiles(std::vector<CFileSystemObject>&& files, const QString & destDir)
 {
 	if (files.empty() || destDir.isEmpty())
 		return false;
@@ -238,14 +238,14 @@ bool CMainWindow::copyFiles(const std::vector<CFileSystemObject> & files, const 
 			return false;
 	}
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, files, toPosixSeparators(prompt.text()), this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, std::move(files), toPosixSeparators(prompt.text()), this);
 	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
 	dialog->show();
 
 	return true;
 }
 
-bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const QString & destDir)
+bool CMainWindow::moveFiles(std::vector<CFileSystemObject>&& files, const QString & destDir)
 {
 	if (files.empty() || destDir.isEmpty())
 		return false;
@@ -261,7 +261,7 @@ bool CMainWindow::moveFiles(const std::vector<CFileSystemObject> & files, const 
 			return false;
 	}
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, files, toPosixSeparators(prompt.text()), this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::move(files), toPosixSeparators(prompt.text()), this);
 	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
 	dialog->show();
 

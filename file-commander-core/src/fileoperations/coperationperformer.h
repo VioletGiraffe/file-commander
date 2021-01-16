@@ -95,7 +95,7 @@ private:
 class COperationPerformer
 {
 public:
-	COperationPerformer(const Operation operation, const std::vector<CFileSystemObject>& source, QString destination = QString());
+	COperationPerformer(const Operation operation, std::vector<CFileSystemObject>&& source, QString destination = QString());
 	COperationPerformer(const Operation operation, const CFileSystemObject& source, QString destination = QString());
 	~COperationPerformer();
 
@@ -138,7 +138,22 @@ private:
 	void handlePause();
 
 private:
-	std::vector<CFileSystemObject> _source;
+	struct ObjectToProcess {
+		explicit ObjectToProcess(CFileSystemObject&& fso) : object{ std::move(fso) }
+		{}
+
+		explicit ObjectToProcess(const CFileSystemObject& fso) : object{ fso }
+		{}
+
+		ObjectToProcess(ObjectToProcess&&) noexcept = default;
+
+		CFileSystemObject object;
+		bool copiedSuccessfully = false;
+	};
+
+	friend QDebug& operator<<(QDebug& stream, const std::vector<ObjectToProcess>& objects);
+
+	std::vector<ObjectToProcess> _source;
 	std::map<HaltReason, UserResponse> _globalResponses;
 	CFileSystemObject              _destFileSystemObject;
 	QString                        _newName;

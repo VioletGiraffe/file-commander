@@ -27,11 +27,13 @@ inline HaltReason haltReasonForOperationError(FileOperationResultCode errorCode)
 	}
 }
 
-COperationPerformer::COperationPerformer(const Operation operation, const std::vector<CFileSystemObject>& source, QString destination) :
-	_source(source),
+COperationPerformer::COperationPerformer(const Operation operation, std::vector<CFileSystemObject>&& source, QString destination) :
 	_destFileSystemObject(destination),
 	_op(operation)
 {
+	_source.reserve(source.size());
+	for (auto&& o : source)
+		_source.emplace_back(ObjectToProcess{ std::move(o) });
 }
 
 COperationPerformer::COperationPerformer(const Operation operation, const CFileSystemObject& source, QString destination /*= QString()*/) :
@@ -130,9 +132,10 @@ void COperationPerformer::waitForResponse()
 	_totalTimeElapsed.resume();
 }
 
-inline QDebug& operator<<(QDebug& stream, const std::vector<CFileSystemObject>& objects) {
+inline QDebug& operator<<(QDebug& stream, const std::vector<COperationPerformer::ObjectToProcess>& objects)
+{
 	for (const auto& object : objects)
-		stream << object.fullAbsolutePath() << '\n';
+		stream << object.object.fullAbsolutePath() << '\n';
 	return stream;
 }
 
@@ -147,33 +150,33 @@ void COperationPerformer::copyFiles()
 	size_t currentItemIndex = 0;
 
 	// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
-	if (_source.size() == 1 && _source.front().isFile() && !_destFileSystemObject.isDir())
+	if (_source.size() == 1 && _source.front().object.isFile() && !_destFileSystemObject.isDir())
 		_newName = _destFileSystemObject.fullName();
 
 	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster.
 	// Moving means renaming the root source folder / file, which is fast and simple. Just make sure the destination folder exists.
-	if (_op == operationMove && _source.front().isMovableTo(_destFileSystemObject))
+	if (_op == operationMove && _source.front().object.isMovableTo(_destFileSystemObject))
 	{
-		assert_r(std::all_of(_source.cbegin() + 1, _source.cend(), [this](const CFileSystemObject& o) { return o.isMovableTo(_destFileSystemObject); }));
+		assert_r(std::all_of(_source.cbegin() + 1, _source.cend(), [this](const ObjectToProcess& o) { return o.object.isMovableTo(_destFileSystemObject); }));
 		_totalTimeElapsed.start();
 
 		// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
 		for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 		{
-			if (sourceIterator->isCdUp())
+			if (sourceIterator->object.isCdUp())
 			{
 				++sourceIterator;
 				++currentItemIndex;
 				continue;
 			}
 
-			const QString newFileName = !_newName.isEmpty() ? _newName :  sourceIterator->fullName();
+			const QString newFileName = !_newName.isEmpty() ? _newName :  sourceIterator->object.fullName();
 			_newName.clear();
-			CFileManipulator itemManipulator(*sourceIterator);
+			CFileManipulator itemManipulator(sourceIterator->object);
 			const auto result = itemManipulator.moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
 			if (result != FileOperationResultCode::Ok)
 			{
-				const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, *sourceIterator, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), itemManipulator.lastErrorMessage());
+				const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, sourceIterator->object, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), itemManipulator.lastErrorMessage());
 				// Handler is identical to that of the main loop
 				// esp. for the case of hrFileExists
 				if (response == urSkipThis || response == urSkipAll)
@@ -212,7 +215,7 @@ void COperationPerformer::copyFiles()
 
 	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
-		if (sourceIterator->isCdUp())
+		if (sourceIterator->object.isCdUp())
 		{
 			++sourceIterator;
 			++currentItemIndex;
@@ -220,14 +223,14 @@ void COperationPerformer::copyFiles()
 		}
 
 #if defined _DEBUG
-		qInfo() << __FUNCTION__ << "Processing" << (sourceIterator->isFile() ? "file" : "DIR ") << sourceIterator->fullAbsolutePath();
+		qInfo() << __FUNCTION__ << "Processing" << (sourceIterator->object.isFile() ? "file" : "DIR ") << sourceIterator->object.fullAbsolutePath();
 #endif
-		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->fullName());
+		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->object.fullName());
 
-		const QFileInfo& sourceFileInfo = sourceIterator->qFileInfo();
+		const QFileInfo& sourceFileInfo = sourceIterator->object.qFileInfo();
 		if (!sourceFileInfo.exists())
 		{
-			const auto response = getUserResponse(hrFileDoesntExit, *sourceIterator, CFileSystemObject(), QString());
+			const auto response = getUserResponse(hrFileDoesntExit, sourceIterator->object, CFileSystemObject(), QString());
 			if (response == urSkipThis || response == urSkipAll)
 			{
 				++sourceIterator;
@@ -240,7 +243,7 @@ void COperationPerformer::copyFiles()
 				assert_unconditional_r("Unknown response");
 		}
 
-		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(_newName.isEmpty() ? sourceIterator->fullName() : _newName));
+		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(_newName.isEmpty() ? sourceIterator->object.fullName() : _newName));
 		_newName.clear();
 		if (destInfo.absoluteFilePath() == sourceFileInfo.absoluteFilePath())
 		{
@@ -249,16 +252,17 @@ void COperationPerformer::copyFiles()
 			continue;
 		}
 
-		if (sourceIterator->isFile())
+		if (sourceIterator->object.isFile())
 		{
 			NextAction nextAction;
-			while ((nextAction = copyItem(*sourceIterator, destInfo, destination[currentItemIndex], sizeProcessed, totalSize, currentItemIndex)) == naRetryOperation);
+			while ((nextAction = copyItem(sourceIterator->object, destInfo, destination[currentItemIndex], sizeProcessed, totalSize, currentItemIndex)) == naRetryOperation);
 			switch (nextAction)
 			{
 			case naProceed:
+				sourceIterator->copiedSuccessfully = true;
 				break;
 			case naSkip:
-				sizeProcessed += sourceIterator->size();
+				sizeProcessed += sourceIterator->object.size();
 				++sourceIterator;
 				++currentItemIndex;
 				continue;
@@ -274,7 +278,14 @@ void COperationPerformer::copyFiles()
 
 			if (_op == operationMove) // result == ok
 			{
-				while ((nextAction = deleteItem(*sourceIterator)) == naRetryOperation);
+				if (!sourceIterator->copiedSuccessfully) // A fix for #270 (Cancelling a move operation deletes the original file nonetheless)
+				{
+					++sourceIterator;
+					++currentItemIndex;
+					continue;
+				}
+
+				while ((nextAction = deleteItem(sourceIterator->object)) == naRetryOperation);
 
 				switch (nextAction)
 				{
@@ -294,7 +305,7 @@ void COperationPerformer::copyFiles()
 				}
 			}
 		}
-		else if (sourceIterator->isDir())
+		else if (sourceIterator->object.isDir())
 		{
 			// Creating the folder - empty folders will not be copied without this code
 			CFileSystemObject destObject(destInfo);
@@ -314,17 +325,26 @@ void COperationPerformer::copyFiles()
 					return;
 				else if (nextAction != naProceed)
 					assert_unconditional_r("Unexpected next action");
+				else
+					sourceIterator->copiedSuccessfully = true;
 			}
 
 			if (_op == operationMove)
 			{
-				if (sourceIterator->isEmptyDir())
+				if (!sourceIterator->copiedSuccessfully) // A fix for #270 (Cancelling a move operation deletes the original file nonetheless)
 				{
-					CFileManipulator manipulator(*sourceIterator);
+					++sourceIterator;
+					++currentItemIndex;
+					continue;
+				}
+
+				if (sourceIterator->object.isEmptyDir())
+				{
+					CFileManipulator manipulator(sourceIterator->object);
 					const auto result = manipulator.remove();
 					if (result != FileOperationResultCode::Ok)
 					{
-						const auto action = getUserResponse(hrFailedToDelete, *sourceIterator, CFileSystemObject(), manipulator.lastErrorMessage());
+						const auto action = getUserResponse(hrFailedToDelete, sourceIterator->object, CFileSystemObject(), manipulator.lastErrorMessage());
 						if (action == urSkipThis || action == urSkipAll)
 						{
 							++sourceIterator;
@@ -343,11 +363,11 @@ void COperationPerformer::copyFiles()
 					}
 				}
 				else // not empty
-					dirsToCleanUp.push_back(*sourceIterator);
+					dirsToCleanUp.emplace_back(sourceIterator->object);
 			}
 		}
 
-		sizeProcessed += sourceIterator->size();
+		sizeProcessed += sourceIterator->object.size();
 
 		++sourceIterator;
 		++currentItemIndex;
@@ -369,9 +389,9 @@ void COperationPerformer::deleteFiles()
 
 	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, _userResponse = urNone /* needed for normal condition variable operation */)
 	{
-		if (!it->isCdUp())
+		if (!it->object.isCdUp())
 		{
-			scanDirectory(*it, [&fileSystemObjectsList](const CFileSystemObject& item) {
+			scanDirectory(it->object, [&fileSystemObjectsList](const CFileSystemObject& item) {
 				fileSystemObjectsList.emplace_back(item);
 			});
 		}
@@ -534,31 +554,32 @@ inline QDir destinationFolder(const QString &absoluteSourcePath, const QString &
 std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &totalSize)
 {
 	totalSize = 0;
-	std::vector<CFileSystemObject> newSourceVector;
+	std::vector<ObjectToProcess> newSourceVector;
 	std::vector<QDir> destinations;
 	const bool destIsFileName = _source.size() == 1 && !_destFileSystemObject.isDir();
 	for (auto& o: _source)
 	{
-		if (o.isFile())
+		if (o.object.isFile())
 		{
-			totalSize += o.size();
+			totalSize += o.object.size();
 			// Ignoring the new file name here if it was supplied. We're only calculating dest dir here, not the file name
-			destinations.emplace_back(destinationFolder(o.fullAbsolutePath(), o.parentDirPath(), destIsFileName ? _destFileSystemObject.parentDirPath() : _destFileSystemObject.fullAbsolutePath(), false));
-			newSourceVector.push_back(o);
+			destinations.emplace_back(destinationFolder(o.object.fullAbsolutePath(), o.object.parentDirPath(), destIsFileName ? _destFileSystemObject.parentDirPath() : _destFileSystemObject.fullAbsolutePath(), false));
+			newSourceVector.emplace_back(o.object);
 		}
-		else if (o.isDir())
+		else if (o.object.isDir())
 		{
-			scanDirectory(o, [&destinations, &newSourceVector, &totalSize, &o, this](const CFileSystemObject& item) {
-				destinations.emplace_back(destinationFolder(item.fullAbsolutePath(), o.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), item.isDir() /* TODO: 'false' ? */));
-				newSourceVector.push_back(item);
+			scanDirectory(o.object, [&destinations, &newSourceVector, &totalSize, &o, this](const CFileSystemObject& item) {
+				destinations.emplace_back(destinationFolder(item.fullAbsolutePath(), o.object.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), item.isDir() /* TODO: 'false' ? */));
 
 				if (item.isFile())
 					totalSize += item.size();
+
+				newSourceVector.emplace_back(std::move(item));
 			});
 		}
 	}
 
-	_source = newSourceVector;
+	_source = std::move(newSourceVector);
 	return destinations;
 }
 

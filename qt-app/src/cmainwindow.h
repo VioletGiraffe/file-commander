@@ -45,8 +45,8 @@ public:
 	// For manual focus management
 	void tabKeyPressed ();
 
-	bool copyFiles(const std::vector<CFileSystemObject>& files, const QString& destDir);
-	bool moveFiles(const std::vector<CFileSystemObject>& files, const QString& destDir);
+	bool copyFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
+	bool moveFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
 
 signals:
 	// Is used to close all child windows

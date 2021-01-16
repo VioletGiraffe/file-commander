@@ -19,7 +19,7 @@ class COperationPerformer;
 class CDeleteProgressDialog : public QWidget, protected CFileOperationObserver
 {
 public:
-	explicit CDeleteProgressDialog(std::vector<CFileSystemObject> source, QString destination, CMainWindow * mainWindow);
+	CDeleteProgressDialog(std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow);
 	~CDeleteProgressDialog();
 
 // Callbacks
