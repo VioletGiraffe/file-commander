@@ -33,7 +33,7 @@ COperationPerformer::COperationPerformer(const Operation operation, std::vector<
 {
 	_source.reserve(source.size());
 	for (auto&& o : source)
-		_source.emplace_back(ObjectToProcess{ std::move(o) });
+		_source.emplace_back(std::move(o));
 }
 
 COperationPerformer::COperationPerformer(const Operation operation, const CFileSystemObject& source, QString destination /*= QString()*/) :
