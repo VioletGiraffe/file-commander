@@ -17,6 +17,17 @@ RESTORE_COMPILER_WARNINGS
 #include <unistd.h>
 #endif
 
+static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
+	QFileDevice::FileAccessTime,
+#ifndef __linux__
+	QFileDevice::FileBirthTime,
+#endif
+#if !defined __linux__ && !defined _WIN32
+	QFileDevice::FileMetadataChangeTime,
+#endif
+	QFileDevice::FileModificationTime,
+};
+
 // Operations
 CFileManipulator::CFileManipulator(const CFileSystemObject& object) : _object(object)
 {
@@ -121,10 +132,8 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 		_thisFile = std::make_unique<QFile>(_object.fullAbsolutePath());
 		_destFile = std::make_unique<QFile>(destFolder + (newName.isEmpty() ? _object.fullName() : newName));
 
-		_sourceFileTime[QFileDevice::FileAccessTime] = _thisFile->fileTime(QFileDevice::FileAccessTime);
-		_sourceFileTime[QFileDevice::FileBirthTime] = _thisFile->fileTime(QFileDevice::FileBirthTime);
-		_sourceFileTime[QFileDevice::FileMetadataChangeTime] = _thisFile->fileTime(QFileDevice::FileMetadataChangeTime);
-		_sourceFileTime[QFileDevice::FileModificationTime] = _thisFile->fileTime(QFileDevice::FileModificationTime);
+		for (const auto fileTimeType: supportedFileTimeTypes)
+			_sourceFileTime[fileTimeType] = _thisFile->fileTime(fileTimeType);
 
 		// Initializing - opening files
 		if (!_thisFile->open(QFile::ReadOnly))
@@ -200,10 +209,9 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 		if (transferDates)
 		{
 			// Note: The file must be open to use setFileTime()
-			assert_r(_destFile->setFileTime(_sourceFileTime[QFileDevice::FileAccessTime], QFileDevice::FileAccessTime));
-			assert_r(_destFile->setFileTime(_sourceFileTime[QFileDevice::FileBirthTime], QFileDevice::FileBirthTime));
-			_destFile->setFileTime(_sourceFileTime[QFileDevice::FileMetadataChangeTime], QFileDevice::FileMetadataChangeTime); // For some reason this fails on Windows 10
-			assert_r(_destFile->setFileTime(_sourceFileTime[QFileDevice::FileModificationTime], QFileDevice::FileModificationTime));
+
+			for (const auto fileTimeType: supportedFileTimeTypes)
+				assert_r(_destFile->setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
 		}
 
 		_thisFile.reset();
