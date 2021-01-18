@@ -27,9 +27,42 @@ RESTORE_COMPILER_WARNINGS
 
 static uint32_t g_randomSeed = 0;
 
-static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2)
+static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
+	QFileDevice::FileAccessTime,
+#ifndef __linux__
+	QFileDevice::FileBirthTime,
+#endif
+#if !defined __linux__ && !defined _WIN32
+	QFileDevice::FileMetadataChangeTime,
+#endif
+	QFileDevice::FileModificationTime,
+};
+
+static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFileDevice::FileTime type)
 {
-	return ::abs(t1.toMSecsSinceEpoch() - t2.toMSecsSinceEpoch()) <= 5;
+	const auto diff = ::abs(t1.toMSecsSinceEpoch() - t2.toMSecsSinceEpoch());
+
+	int allowedTimeDiffMs = 0;
+	switch (type)
+	{
+	case QFileDevice::FileAccessTime:
+		allowedTimeDiffMs = 2000;
+		break;
+	case QFileDevice::FileBirthTime:
+		allowedTimeDiffMs = 10;
+		break;
+	case QFileDevice::FileMetadataChangeTime:
+		allowedTimeDiffMs = 1500;
+		break;
+	case QFileDevice::FileModificationTime:
+		allowedTimeDiffMs = 10;
+		break;
+	}
+
+	if (diff <= allowedTimeDiffMs)
+		return true;
+	else
+		return false;
 }
 
 
@@ -109,10 +142,8 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 			CHECK(result == CFileComparator::Equal);
 		});
 
-		CHECK(timesAlmostMatch(fileA.fileTime(QFileDevice::FileAccessTime), fileB.fileTime(QFileDevice::FileAccessTime)));
-		CHECK(timesAlmostMatch(fileA.fileTime(QFileDevice::FileBirthTime), fileB.fileTime(QFileDevice::FileBirthTime)));
-		CHECK(timesAlmostMatch(fileA.fileTime(QFileDevice::FileMetadataChangeTime), fileB.fileTime(QFileDevice::FileMetadataChangeTime)));
-		CHECK(timesAlmostMatch(fileA.fileTime(QFileDevice::FileModificationTime), fileB.fileTime(QFileDevice::FileModificationTime)));
+		for (const auto fileTimeType: supportedFileTimeTypes)
+			CHECK(timesAlmostMatch(fileA.fileTime(fileTimeType), fileB.fileTime(fileTimeType), fileTimeType));
 	}
 
 	REQUIRE(compareFolderContents(sourceTree, destTree));
