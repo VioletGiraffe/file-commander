@@ -54,8 +54,6 @@ tell application "Finder"
       set arrangement to not arranged
     end tell
 
-    update without registering applications
-
     delay 5
     set position of item "Applications" of container window to {400, 90}
     set position of item "'${APPDIR}'" of container window to {100, 90}
