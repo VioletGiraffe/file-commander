@@ -36,32 +36,34 @@ hdiutil detach "/Volumes/${VOL}"
 hdiutil resize "${TMP_DMG}" -size min
 hdiutil attach "${TMP_DMG}"
 
-echo '
-tell application "Finder"
-  tell disk "'${VOL}'"
-    open
-    tell container window
-      set current view to icon view
-      set toolbar visible to false
-      set statusbar visible to false
-      set the bounds to {400, 100, 899, 356}
-      set statusbar visible to false
-    end tell
+# echo '
+# tell application "Finder"
+#   tell disk "'${VOL}'"
+#     open
+#     tell container window
+#       set current view to icon view
+#       set toolbar visible to false
+#       set statusbar visible to false
+#       set the bounds to {400, 100, 899, 356}
+#       set statusbar visible to false
+#     end tell
 
-    set opts to the icon view options of container window
-    tell opts
-      set icon size to 72
-      set arrangement to not arranged
-    end tell
+#     set opts to the icon view options of container window
+#     tell opts
+#       set icon size to 72
+#       set arrangement to not arranged
+#     end tell
 
-    delay 5
-    set position of item "Applications" of container window to {400, 90}
-    set position of item "'${APPDIR}'" of container window to {100, 90}
-    delay 5
-    eject
-  end tell
-end tell
-' | osascript
+#     delay 5
+#     set position of item "Applications" of container window to {400, 90}
+#     set position of item "'${APPDIR}'" of container window to {100, 90}
+#     delay 5
+#   end tell
+# end tell
+# ' | osascript
+
+hdiutil detach "/Volumes/${VOL}"
+diskutil unmount "/Volumes/${VOL}"
 
 #convert to compressed image, delete temp image
 rm -f "$DMG"
