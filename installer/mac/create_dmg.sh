@@ -40,14 +40,22 @@ echo '
 tell application "Finder"
   tell disk "'${VOL}'"
     open
-    set current view of container window to icon view
-    set toolbar visible of container window to false
-    set statusbar visible of container window to false
-    set the bounds of container window to {400, 100, 899, 356}
-    set theViewOptions to the icon view options of container window
-    set arrangement of theViewOptions to not arranged
-    set icon size of theViewOptions to 72
+    tell container window
+      set current view to icon view
+      set toolbar visible to false
+      set statusbar visible to false
+      set the bounds to {400, 100, 899, 356}
+      set statusbar visible to false
+    end tell
+
+    set opts to the icon view options of container window
+    tell opts
+      set icon size to 72
+      set arrangement to not arranged
+    end tell
+
     update without registering applications
+
     delay 5
     set position of item "Applications" of container window to {400, 90}
     set position of item "'${APPDIR}'" of container window to {100, 90}
