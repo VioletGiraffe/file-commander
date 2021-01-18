@@ -92,13 +92,6 @@ script:
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs; fi
   - set -e; if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/release/x64/filecomparator_test --std-seed $(date +%s); else ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s); fi;
 
-  
-  # Set up git user name and tag this commit
-  - git config --local user.name "VioletGiraffe"
-  - git config --local user.email "violet.giraffe@noreply.github.com"
-  - export TRAVIS_TAG="$(awk -F\" '/VERSION_STRING/ {print $2}' qt-app/src/version.h)".$TRAVIS_BUILD_NUMBER
-  - git tag $TRAVIS_TAG || true
-
 deploy:
   - provider: releases
     edge: true
