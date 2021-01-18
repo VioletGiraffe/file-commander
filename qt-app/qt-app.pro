@@ -140,14 +140,14 @@ mac*{
 
 	LIBS += -framework AppKit
 
-        QMAKE_POST_LINK = cp -f -p $$OUT_PWD/$$DESTDIR/*.dylib $$OUT_PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
+		QMAKE_POST_LINK = cp -f -p $$OUT_PWD/$$DESTDIR/*.dylib $$OUT_PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
 }
 
 linux*|mac*|freebsd{
 	HEADERS += src/panel/filelistwidget/cfocusframestyle.h
 	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
 
-	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
+	QMAKE_CXXFLAGS_WARN_ON = -Wall
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG
@@ -177,7 +177,7 @@ linux*|freebsd{
 	desktop.files += file_commander.desktop
 	icon256.path = $${PREFIX}/share/icons/hicolor/256x256/apps
 	icon256.files += resources\icon.png
-	
+
 	INSTALLS += icon256
 	INSTALLS += desktop
 	INSTALLS += target
