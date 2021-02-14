@@ -1,6 +1,6 @@
 #include "cvolumeenumerator.h"
 #include "../filesystemhelpers/filesystemhelpers.hpp"
-#include "windows/windowsutils.h"
+#include "system/win_utils.hpp"
 #include "utility/on_scope_exit.hpp"
 
 #include "system/ctimeelapsed.h"
@@ -34,11 +34,11 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 
 	if (error != 0 && error != ERROR_NOT_READY)
 	{
-		const auto text = ErrorStringFromLastError();
+		const auto text = QString::fromStdString(ErrorStringFromLastError());
 		qInfo() << "GetVolumeInformationW() returned error for" << driveLetter << text;
 		return {};
 	}
-	
+
 	VolumeInfo info;
 	info.isReady = error != ERROR_NOT_READY;
 
@@ -53,7 +53,7 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 			info.freeSize = freeSpace.QuadPart;
 		}
 		else
-			qInfo() << "GetDiskFreeSpaceExW() returned error:" << ErrorStringFromLastError();
+			qInfo() << "GetDiskFreeSpaceExW() returned error:" << QString::fromStdString(ErrorStringFromLastError());
 	}
 
 	info.volumeLabel = QString::fromWCharArray(volumeName);
@@ -71,7 +71,7 @@ const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	DWORD drives = ::GetLogicalDrives();
 	if (drives == 0)
 	{
-		qInfo() << "GetLogicalDrives() returned an error:" << ErrorStringFromLastError();
+		qInfo() << "GetLogicalDrives() returned an error:" << QString::fromStdString(ErrorStringFromLastError());
 		return volumes;
 	}
 

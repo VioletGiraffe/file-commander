@@ -9,6 +9,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
+#include "system/win_utils.hpp"
 #include "windows/windowsutils.h"
 
 #include <Windows.h>
@@ -80,7 +81,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 		if (MoveFileW((const WCHAR*)_object.fullAbsolutePath().utf16(), (const WCHAR*)destInfo.fullAbsolutePath().utf16()) != 0)
 			return FileOperationResultCode::Ok;
 
-		_lastErrorMessage = ErrorStringFromLastError();
+		_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
 		return FileOperationResultCode::Fail;
 	}
 #endif
@@ -272,13 +273,13 @@ bool CFileManipulator::makeWritable(bool writable)
 	const DWORD attributes = GetFileAttributesW((LPCWSTR)UNCPath.utf16());
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 	{
-		_lastErrorMessage = ErrorStringFromLastError();
+		_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
 		return false;
 	}
 
 	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writable ? (attributes & (~(uint32_t)FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
 	{
-		_lastErrorMessage = ErrorStringFromLastError();
+		_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
 		return false;
 	}
 

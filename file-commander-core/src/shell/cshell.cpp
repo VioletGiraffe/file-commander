@@ -1,9 +1,10 @@
 #include "cshell.h"
+#include "filesystemhelperfunctions.h"
 #include "settings/csettings.h"
 #include "settings.h"
 #include "compiler/compiler_warnings_control.h"
 #include "assert/advanced_assert.h"
-#include "filesystemhelperfunctions.h"
+#include "system/win_utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -98,7 +99,7 @@ bool OsShell::runExe(const QString& command, const QString& arguments, const QSt
 	{
 		if (GetLastError() != ERROR_CANCELLED) // Operation canceled by the user
 		{
-			const QString errorString = ErrorStringFromLastError();
+			const QString errorString = QString::fromStdString(ErrorStringFromLastError());
 			qInfo() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirNative;
 			qInfo() << errorString;
 
