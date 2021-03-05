@@ -46,13 +46,13 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	switch (type)
 	{
 	case QFileDevice::FileAccessTime:
-		allowedTimeDiffMs = 2000;
+		allowedTimeDiffMs = 3000;
 		break;
 	case QFileDevice::FileBirthTime:
 		allowedTimeDiffMs = 10;
 		break;
 	case QFileDevice::FileMetadataChangeTime:
-		allowedTimeDiffMs = 1500;
+		allowedTimeDiffMs = 2500;
 		break;
 	case QFileDevice::FileModificationTime:
 		allowedTimeDiffMs = 10;
