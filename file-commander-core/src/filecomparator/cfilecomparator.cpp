@@ -1,9 +1,10 @@
 #include "cfilecomparator.h"
 
 #include "assert/advanced_assert.h"
-#include "utility/on_scope_exit.hpp"
-#include "threading/thread_helpers.h"
+#include "compiler/compiler_warnings_control.h"
 #include "math/math.hpp"
+#include "threading/thread_helpers.h"
+#include "utility/on_scope_exit.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QIODevice>
@@ -63,7 +64,7 @@ void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std
 		const auto block_a_size = fileA.read(blockA.get(), blockSize);
 		const auto block_b_size = fileB.read(blockB.get(), blockSize);
 
-		if (block_a_size != block_b_size || std::memcmp(blockA.get(), blockB.get(), block_a_size) != 0)
+		if (block_a_size != block_b_size || std::memcmp(blockA.get(), blockB.get(), static_cast<size_t>(block_a_size)) != 0)
 		{
 			resultCallback(NotEqual);
 			return;
