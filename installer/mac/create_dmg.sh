@@ -63,7 +63,7 @@ hdiutil attach "${TMP_DMG}"
 # ' | osascript
 
 hdiutil detach "/Volumes/${VOL}"
-diskutil unmount "/Volumes/${VOL}"
+diskutil unmount "/Volumes/${VOL}" || true
 
 #convert to compressed image, delete temp image
 rm -f "$DMG"
