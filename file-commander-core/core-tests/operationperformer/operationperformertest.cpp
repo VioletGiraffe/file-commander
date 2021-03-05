@@ -57,9 +57,17 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	case QFileDevice::FileModificationTime:
 		allowedTimeDiffMs = 10;
 		break;
+	default:
+		assert_and_return_unconditional_r("Unknown QFileDevice::FileTime", false);
 	}
 
-	if (diff <= allowedTimeDiffMs)
+#ifdef __APPLE__
+	static constexpr int multiplier = 4;
+#else
+	static constexpr int multiplier = 1;
+#endif
+
+	if (diff <= allowedTimeDiffMs * multiplier)
 		return true;
 	else
 		return false;
@@ -143,7 +151,13 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 		});
 
 		for (const auto fileTimeType: supportedFileTimeTypes)
-			CHECK(timesAlmostMatch(fileA.fileTime(fileTimeType), fileB.fileTime(fileTimeType), fileTimeType));
+		{
+			if (!timesAlmostMatch(fileA.fileTime(fileTimeType), fileB.fileTime(fileTimeType), fileTimeType))
+			{
+				std::cout << "timesAlmostMatch() failed for fileTimeType = " << fileTimeType << std::endl;
+				FAIL_CHECK();
+			}
+		}
 	}
 
 	REQUIRE(compareFolderContents(sourceTree, destTree));
