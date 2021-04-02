@@ -59,14 +59,18 @@ test_script:
     & .\bin\release\$($env:BUILD_ARCH)\filecomparator_test.exe -s -r junit -o filecomparator_test.xml --std-seed $randomSeed;
     (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\filecomparator_test.xml));
 
-deploy:
-  description: $($env:APPVEYOR_REPO_COMMIT_MESSAGE)
-  provider: GitHub
-  auth_token:
-    secure: E8CRx0r0qADoE0JR3QUFwD0bQSRGSUerCeCJs4BU6B+Rmz9BMvRLZmbtrqpPzGVS
-  artifact: .\installer\windows\FileCommander.exe
-  draft: false
-  prerelease: true
-  on:
-    branch: master                 # release from master branch only
-    APPVEYOR_REPO_TAG: true        # deploy on tag push only
+artifacts:
+  - path: installer\windows\FileCommander.exe
+    type: File
+
+# deploy:
+#   description: $($env:APPVEYOR_REPO_COMMIT_MESSAGE)
+#   provider: GitHub
+#   auth_token:
+#     secure: E8CRx0r0qADoE0JR3QUFwD0bQSRGSUerCeCJs4BU6B+Rmz9BMvRLZmbtrqpPzGVS
+#   artifact: .\installer\windows\FileCommander.exe
+#   draft: false
+#   prerelease: true
+#   on:
+#     branch: master                 # release from master branch only
+#     APPVEYOR_REPO_TAG: true        # deploy on tag push only
