@@ -23,6 +23,13 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 {
 	setupUi(this);
 
+	if (parent)
+	{
+		QFont f = parent->font();
+		f.setPointSizeF(f.pointSizeF() + 0.5);
+		setFont(f);
+	}
+
 	installEventFilter(new CPersistenceEnabler("Plugins/TextViewer/Window", this));
 
 	setCentralWidget(&_textBrowser);

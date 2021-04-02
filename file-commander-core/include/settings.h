@@ -35,7 +35,7 @@ constexpr const char* KEY_INTERFACE_SHOW_HIDDEN_FILES = "Interface/View/ShowHidd
 constexpr const char* KEY_INTERFACE_RESPECT_LAST_CURSOR_POS = "Interface/Selection/RespectLastCursorPosition";
 constexpr const char* KEY_INTERFACE_NUMBERS_AFFTER_LETTERS = "Interface/Sorting/NumbersAfterLetters";
 constexpr const char* KEY_INTERFACE_FILE_LIST_FONT = "Interface/View/FileListFont";
-constexpr const char* INTERFACE_FILE_LIST_FONT_DEFAULT = "Roboto Mono,9,-1,5,25,0,0,0,0,0,Light";
+constexpr const char* INTERFACE_FILE_LIST_FONT_DEFAULT = "Roboto Mono,10,-1,5,25,0,0,0,0,0,Light";
 constexpr const char* KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS = "Interface/View/ShowSpecialFolderIcons";
 constexpr const char* KEY_INTERFACE_STYLE_SHEET = "Interface/Style/StylesheetText";
 

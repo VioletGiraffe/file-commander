@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
 
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 	QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+	QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
 	QApplication app(argc, argv);
 	app.setOrganizationName("GitHubSoft");
@@ -29,6 +30,12 @@ int main(int argc, char *argv[])
 
 	CSettings::setApplicationName(app.applicationName());
 	CSettings::setOrganizationName(app.organizationName());
+
+	{
+		QFont font = QApplication::font();
+		font.setPointSizeF(font.pointSizeF() + 1);
+		QApplication::setFont(font);
+	}
 
 	CMainWindow w;
 
