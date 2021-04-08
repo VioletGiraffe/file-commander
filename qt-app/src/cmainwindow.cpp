@@ -184,6 +184,7 @@ void CMainWindow::initActions()
 {
 	connect(ui->actionRefresh, &QAction::triggered, this, &CMainWindow::refresh);
 	connect(ui->actionFind, &QAction::triggered, this, &CMainWindow::findFiles);
+
 	connect(ui->actionCopy_current_item_s_path_to_clipboard, &QAction::triggered, this, [this]() {
 		_controller->copyCurrentItemPathToClipboard();
 	});

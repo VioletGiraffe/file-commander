@@ -403,7 +403,7 @@
     <string>&amp;Copy current item's path to clipboard</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+C</string>
+    <string>Ctrl+Shift+X</string>
    </property>
   </action>
  </widget>
