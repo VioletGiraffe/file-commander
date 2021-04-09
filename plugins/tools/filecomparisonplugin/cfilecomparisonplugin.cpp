@@ -39,7 +39,7 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	const auto& currentItem = _proxy->currentItemForPanel(_proxy->currentPanel());
 	if (!currentItem.isFile())
 	{
-		QMessageBox::information(nullptr, name(), QObject::tr("No file is selected for comparison."));
+		QMessageBox::warning(nullptr, name(), QObject::tr("The selected item is not a file:\n") + currentItem.fullAbsolutePath());
 		return;
 	}
 
@@ -50,9 +50,15 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	auto fileA = std::make_unique<QFile>(currentItem.fullAbsolutePath());
 	auto fileB = std::make_unique<QFile>(otherFilePath);
 
-	if (!fileA->exists() || !fileB->exists())
+	if (!fileA->exists())
 	{
-		QMessageBox::information(nullptr, name(), QObject::tr("No file is selected for comparison."));
+		QMessageBox::warning(nullptr, name(), QObject::tr("The file\n%1\nis selected for comparison, but doesn't exist.").arg(fileA->fileName()));
+		return;
+	} 
+
+	if (!fileB->exists())
+	{
+		QMessageBox::warning(nullptr, name(), QObject::tr("The file\n%1\nis selected for comparison, but doesn't exist.").arg(fileB->fileName()));
 		return;
 	}
 
