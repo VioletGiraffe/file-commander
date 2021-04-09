@@ -85,14 +85,14 @@ void CFileComparisonPlugin::compareSelectedFiles()
 			});
 		},
 
-		[fileName, this](CFileComparator::ComparisonResult result) {
-			_proxy->execOnUiThread([this, result, fileName]() {
+		[filePathA{ currentItem.fullAbsolutePath() }, filePathB{ otherFilePath }, this](CFileComparator::ComparisonResult result) {
+			_proxy->execOnUiThread([this, result, filePathA, filePathB]() {
 				_progressDialog.hide();
 
 				if (result == CFileComparator::Equal)
-					QMessageBox::information(nullptr, QObject::tr("Files are identical"), QObject::tr("The file %1 is identical in both locations.").arg(fileName));
+					QMessageBox::information(nullptr, QObject::tr("Files are identical"), QObject::tr("The file\n%1\n\nis IDENTICAL to\n\n%2.").arg(filePathA).arg(filePathB));
 				else if (result == CFileComparator::NotEqual)
-					QMessageBox::information(nullptr, QObject::tr("Files differ"), QObject::tr("The files are not identical."));
+					QMessageBox::warning(nullptr, QObject::tr("Files differ"), QObject::tr("The file\n%1\n\nis DIFFERENT from\n\n%2.").arg(filePathA).arg(filePathB));
 			});
 		}
 	);
