@@ -54,7 +54,7 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	{
 		QMessageBox::warning(nullptr, name(), QObject::tr("The file\n%1\nis selected for comparison, but doesn't exist.").arg(fileA->fileName()));
 		return;
-	} 
+	}
 
 	if (!fileB->exists())
 	{
@@ -65,19 +65,19 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	if (fileA->size() != fileB->size())
 	{
 		const QString msg = QObject::tr("Files have different sizes:\n%1: %2\n%3: %4").arg(currentItem.fullAbsolutePath()).arg(fileA->size()).arg(otherFilePath).arg(fileB->size());
-		QMessageBox::information(nullptr, name(), msg);
+		QMessageBox::warning(nullptr, name(), msg);
 		return;
 	}
 
 	if (!fileA->open(QFile::ReadOnly))
 	{
-		QMessageBox::warning(nullptr, name(), QObject::tr("Failed to open file") % ' ' % fileA->fileName());
+		QMessageBox::critical(nullptr, name(), QObject::tr("Failed to open file") % ' ' % fileA->fileName());
 		return;
 	}
 
 	if (!fileB->open(QFile::ReadOnly))
 	{
-		QMessageBox::warning(nullptr, name(), QObject::tr("Failed to open file") % ' ' % fileB->fileName());
+		QMessageBox::critical(nullptr, name(), QObject::tr("Failed to open file") % ' ' % fileB->fileName());
 		return;
 	}
 
