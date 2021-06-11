@@ -50,7 +50,9 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
+        export QT_DEBUG_PLUGINS=1
         sudo apt-get update -y; sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev
+        sudo apt-get install --reinstall -qq libxcb-xinerama0
         g++ --version
         export PATH=$Qt5_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
