@@ -16,11 +16,12 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: ./installer/mac/create_dmg.sh ${{Qt5_DIR}}
+      run: ./installer/mac/create_dmg.sh $Qt5_DIR
