@@ -36,7 +36,7 @@ jobs:
     - name: Windows
       if: ${{ matrix.os == 'windows-latest' }}
       run: |
-        $Qt5_DIR\bin\qmake.exe -v
+        %Qt5_DIR%\bin\qmake.exe -v
 
     - name: Mac
       if: ${{ matrix.os == 'macos-latest' }}
