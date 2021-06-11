@@ -16,6 +16,7 @@ jobs:
     name: Build & test on ${{ matrix.os }} with ${{ matrix.compiler }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
@@ -30,13 +31,13 @@ jobs:
       uses: jurplel/install-qt-action@v2
       
     - name: Windows - setup MSBuild
-      if: ${{ matrix.os == 'windows-latest' }}
+      if: startsWith(matrix.os, 'windows')
       uses: microsoft/setup-msbuild@v1.0.2
       
     - name: Windows
-      if: ${{ matrix.os == 'windows-latest' }}
+      if: startsWith(matrix.os, 'windows')
       run: |
-        %Qt5_DIR%\bin\qmake.exe -v
+        qmake.exe -v
 
     - name: Mac
       if: ${{ matrix.os == 'macos-latest' }}
