@@ -18,6 +18,9 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+      
+    - name: Checkout subrepos
+      run: ./update_repository.sh
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
