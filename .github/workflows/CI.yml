@@ -50,7 +50,7 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev libxcb-iccm4
+        sudo apt-get update -y; sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev libxcb-iccm4 libxcb-randr0-dev libxcb-xtest0-dev libxcb-xinerama0-dev libxcb-shape0-dev libxcb-xkb-dev
         g++ --version
         export PATH=$Qt5_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
@@ -77,7 +77,7 @@ jobs:
     - name: Test run
       if: ${{ matrix.os == 'windows-latest' }}
       run: |
-        bin/release/x64/FileCommander.exe --test-launch  
+        bin\release\x64\FileCommander.exe --test-launch  
       
     - name: Tests - Mac
       if: ${{ matrix.os == 'macos-latest' }}
