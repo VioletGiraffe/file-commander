@@ -24,7 +24,33 @@ jobs:
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
+      
+    - name: Qt version
+      run: $Qt5_DIR/bin/qmake -v
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: ./installer/mac/create_dmg.sh $Qt5_DIR
+      
+    - name: Test run
+      run: ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch
+      
+    - name: Building tests
+      run: |
+        cd file-commander-core/core-tests
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        make -j
+        cd ../../
+        
+    - name: Running tests
+      run: |
+        set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
+        set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
+        set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); sleep 1; done
+        set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
+        
+    - name: Archive DMG
+      uses: actions/upload-artifact@v2
+      with:
+          name: FileCommander.dmg
+          path: FileCommander.dmg
