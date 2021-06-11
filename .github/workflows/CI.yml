@@ -13,7 +13,11 @@ env:
 
 jobs:
   build:
-    runs-on: macos-latest
+    name: Build & test on ${{ matrix.os }} with ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
     - name: Checkout
@@ -27,31 +31,97 @@ jobs:
       
     - name: Qt version
       run: $Qt5_DIR/bin/qmake -v
+      
+    - name: Windows - setup MSBuild
+      if: ${{ matrix.os == 'windows-latest' }}
+      uses: microsoft/setup-msbuild@v1.0.2
+      
+    - name: Windows
+      if: ${{ matrix.os == 'windows-latest' }}
+      run: cmd.exe
 
-    - name: Build
+    - name: Mac
+      if: ${{ matrix.os == 'macos-latest' }}
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: ./installer/mac/create_dmg.sh $Qt5_DIR
+      run: |
+        clang --version
+        ./installer/mac/create_dmg.sh $Qt5_DIR
+      
+    - name: Linux
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        g++ --version
+        export PATH=$Qt5_DIR/bin/:$PATH
+        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
+        chmod a+x linuxdeployqt-7-x86_64.AppImage
+        unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        make -j
+        # Linux: building AppImage
+        cp ./qt-app/resources/icon.png ./bin/release/x64/
+        cp ./installer/linux/file_commander.desktop ./bin/release/x64/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QMAKE -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
+        ls -Ac
+        mv ./File_Commander*.AppImage ./FileCommander.AppImage
       
     - name: Test run
+      if: ${{ matrix.os == 'macos-latest' }}
       run: ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch
       
-    - name: Building tests
+    - name: Test run
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: |
+        sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev
+        ./bin/release/x64/FileCommander --test-launch
+        
+    - name: Test run
+      if: ${{ matrix.os == 'windows-latest' }}
+      run: |
+        bin/release/x64/FileCommander.exe --test-launch  
+      
+    - name: Tests - Mac
+      if: ${{ matrix.os == 'macos-latest' }}
       run: |
         cd file-commander-core/core-tests
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
         for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
-        
-    - name: Running tests
-      run: |
+        echo Running tests...
         set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
         set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
         set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
         
+    - name: Tests - Linux
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: |
+        cd file-commander-core/core-tests
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        make -j
+        cd ../../
+        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs
+        echo Running tests...
+        set -e; ./bin/release/x64/fso_test
+        set -e; ./bin/release/x64/fso_test_high_level
+        set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test --std-seed $(date +%s); sleep 1; done
+        set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
+
     - name: Archive DMG
+      if: ${{ matrix.os == 'macos-latest' }}
       uses: actions/upload-artifact@v2
       with:
           name: FileCommander.dmg
           path: FileCommander.dmg
+          
+    - name: Archive AppImage
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: actions/upload-artifact@v2
+      with:
+          name: FileCommander.AppImage
+          path: FileCommander.AppImage
