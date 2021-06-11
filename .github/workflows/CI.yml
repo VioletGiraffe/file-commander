@@ -76,7 +76,8 @@ jobs:
     - name: Test run
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
-        ./bin/release/x64/FileCommander --test-launch
+        sudo apt-get install xvfb
+        xvfb-run --auto-servernum ./bin/release/x64/FileCommander --test-launch
         
     - name: Test run
       if: ${{ matrix.os == 'windows-latest' }}
