@@ -45,17 +45,18 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	int allowedTimeDiffMs = 0;
 	switch (type)
 	{
+	// These margins are generally too long, but necessary for CI systems (sloooow cloud virtualized hardware)
 	case QFileDevice::FileAccessTime:
 		allowedTimeDiffMs = 3000;
 		break;
 	case QFileDevice::FileBirthTime:
-		allowedTimeDiffMs = 10;
+		allowedTimeDiffMs = 100;
 		break;
 	case QFileDevice::FileMetadataChangeTime:
 		allowedTimeDiffMs = 2500;
 		break;
 	case QFileDevice::FileModificationTime:
-		allowedTimeDiffMs = 10;
+		allowedTimeDiffMs = 100;
 		break;
 	default:
 		assert_and_return_unconditional_r("Unknown QFileDevice::FileTime", false);
