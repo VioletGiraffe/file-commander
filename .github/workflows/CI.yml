@@ -41,7 +41,7 @@ jobs:
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find . -name bin/release/x64/*.app); do $Qt5_DIR/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
         
     - name: Running tests
       run: |
