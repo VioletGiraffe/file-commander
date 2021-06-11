@@ -29,16 +29,14 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
       
-    - name: Qt version
-      run: $Qt5_DIR/bin/qmake -v
-      
     - name: Windows - setup MSBuild
       if: ${{ matrix.os == 'windows-latest' }}
       uses: microsoft/setup-msbuild@v1.0.2
       
     - name: Windows
       if: ${{ matrix.os == 'windows-latest' }}
-      run: cmd.exe
+      run: |
+        $Qt5_DIR\bin\qmake.exe -v
 
     - name: Mac
       if: ${{ matrix.os == 'macos-latest' }}
