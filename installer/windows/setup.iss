@@ -10,6 +10,8 @@ OutputDir=.
 OutputBaseFilename=FileCommander
 UsePreviousAppDir=yes
 
+WizardStyle=modern
+
 SetupIconFile=..\..\qt-app\resources\icon.ico
 UninstallDisplayIcon={app}\FileCommander.exe
 
@@ -32,15 +34,12 @@ Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:Ad
 [Files]
 
 ;App binaries
-Source: binaries/32/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
 Source: binaries/64/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
 ;Qt binaries
-Source: binaries/32/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; Check: not Is64BitInstallMode 
 Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; Check: Is64BitInstallMode
 
 ;MSVC binaries
-Source: binaries/32/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: not Is64BitInstallMode
 Source: binaries/64/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
 [Icons]

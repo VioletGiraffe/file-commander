@@ -36,15 +36,30 @@ jobs:
       
     - name: Windows
       if: startsWith(matrix.os, 'windows')
+      shell: cmd
       run: |
-        qmake.exe -v
+        ${env:Qt5_DIR}/bin/qmake.exe -v
+        dir "C:\Program Files (x86)\Windows Kits\10\include\"
+        set QTDIR64=${env:Qt5_DIR}
+        # Building the main project
+        cd installer\windows\
+        create_installer.bat
+        # Building tests
+        cd ..\..
+        cd file-commander-core\core-tests\
+        call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "%QTDIR64%\bin\qmake.exe" -tp vc -r
+        msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142
+        cd ..\..
+        # Deploying extra files
+        xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\x64\
+        xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\x64\
 
     - name: Mac
       if: startsWith(matrix.os, 'macos')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         clang --version
-        ./installer/mac/create_dmg.sh $Qt5_DIR
+        ./installer/mac/create_dmg.sh ${env:Qt5_DIR}
       
     - name: Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -53,11 +68,11 @@ jobs:
         export QT_DEBUG_PLUGINS=1
         sudo apt-get update -y; sudo apt-get install -qq libglu1-mesa-dev libx11-xcb-dev '^libxcb*'
         g++ --version
-        export PATH=$Qt5_DIR/bin/:$PATH
+        export PATH=${env:Qt5_DIR}/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        ${env:Qt5_DIR}/bin/qmake -r CONFIG+=release
         make -j
         # Linux: building AppImage
         cp ./qt-app/resources/icon.png ./bin/release/x64/
@@ -73,22 +88,21 @@ jobs:
     - name: Test run
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt-get install xvfb
         xvfb-run --auto-servernum ./bin/release/x64/FileCommander --test-launch
         
-    # - name: Test run
-    #   if: startsWith(matrix.os, 'widows')
-    #   run: |
-    #     bin\release\x64\FileCommander.exe --test-launch  
+    - name: Test run
+      if: startsWith(matrix.os, 'widows')
+      run: |
+        .\bin\release\x64\FileCommander.exe --test-launch  
       
     - name: Tests - Mac
       if: startsWith(matrix.os, 'macos')
       run: |
         cd file-commander-core/core-tests
-        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        ${env:Qt5_DIR}/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do ${env:Qt5_DIR}/bin/macdeployqt $f; done
         echo Running tests...
         set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
         set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
@@ -99,10 +113,10 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         cd file-commander-core/core-tests
-        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        ${env:Qt5_DIR}/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do ${env:Qt5_DIR}/bin/macdeployqt $f; done
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs
@@ -112,6 +126,22 @@ jobs:
         set -e; ./bin/release/x64/fso_test_high_level
         set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
+
+    - name: Tests - windows-latest
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        .\bin\release\x64\fso_test.exe
+        .\bin\release\x64\fso_test_high_level.exe
+
+        For ($i=1; $i -le 20; $i++) {
+          $randomSeed = ((get-date -Uformat %s).remove(10, 1));
+          $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
+          & .\bin\release\$($env:BUILD_ARCH)\operationperformer_test.exe --std-seed $randomSeed;
+        }
+
+        $randomSeed = ((get-date -Uformat %s).remove(10, 1));
+        $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
+        & .\bin\release\$($env:BUILD_ARCH)\filecomparator_test.exe --std-seed $randomSeed;
 
     - name: Archive DMG
       if: startsWith(matrix.os, 'macos')
@@ -126,3 +156,10 @@ jobs:
       with:
           name: FileCommander.AppImage
           path: FileCommander.AppImage
+
+    - name: Archive Installer
+      if: startsWith(matrix.os, 'windows')
+      uses: actions/upload-artifact@v2
+      with:
+          name: FileCommander.exe
+          path: FileCommander.exe
