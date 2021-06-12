@@ -139,6 +139,7 @@ jobs:
 
     - name: Tests - windows-latest
       if: startsWith(matrix.os, 'windows')
+      shell: powershell
       run: |
         .\bin\release\x64\fso_test.exe
         .\bin\release\x64\fso_test_high_level.exe
