@@ -38,9 +38,9 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       shell: cmd
       run: |
-        ${env:Qt5_DIR}/bin/qmake.exe -v
+        %Qt5_DIR%\bin\qmake.exe -v
         dir "C:\Program Files (x86)\Windows Kits\10\include\"
-        set QTDIR64=${env:Qt5_DIR}
+        set QTDIR64=%Qt5_DIR%
         cd installer\windows\
         create_installer.bat
         cd ..\..
