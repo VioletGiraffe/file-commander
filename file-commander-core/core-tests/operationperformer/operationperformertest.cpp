@@ -63,7 +63,7 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	}
 
 #ifdef __APPLE__
-	static constexpr int multiplier = 4;
+	static constexpr int multiplier = 10;
 #else
 	static constexpr int multiplier = 1;
 #endif
@@ -71,7 +71,10 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	if (diff <= allowedTimeDiffMs * multiplier)
 		return true;
 	else
+	{
+		std::cerr << "Time mismatch for type " << type << ": diff = " << diff << ", allowed = " << allowedTimeDiffMs * multiplier << '\n';
 		return false;
+	}
 }
 
 
@@ -154,10 +157,7 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 		for (const auto fileTimeType: supportedFileTimeTypes)
 		{
 			if (!timesAlmostMatch(fileA.fileTime(fileTimeType), fileB.fileTime(fileTimeType), fileTimeType))
-			{
-				std::cout << "timesAlmostMatch() failed for fileTimeType = " << fileTimeType << std::endl;
 				FAIL_CHECK();
-			}
 		}
 	}
 
