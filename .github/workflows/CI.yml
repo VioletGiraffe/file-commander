@@ -147,12 +147,12 @@ jobs:
         For ($i=1; $i -le 20; $i++) {
           $randomSeed = ((get-date -Uformat %s).remove(10, 1));
           $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
-          & .\bin\release\$($env:BUILD_ARCH)\operationperformer_test.exe --std-seed $randomSeed;
+          & .\bin\release\x64\operationperformer_test.exe --std-seed $randomSeed;
         }
 
         $randomSeed = ((get-date -Uformat %s).remove(10, 1));
         $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
-        & .\bin\release\$($env:BUILD_ARCH)\filecomparator_test.exe --std-seed $randomSeed;
+        & .\bin\release\x64\filecomparator_test.exe --std-seed $randomSeed;
 
     - name: Archive DMG
       if: startsWith(matrix.os, 'macos')
