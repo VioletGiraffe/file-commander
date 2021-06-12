@@ -23,6 +23,15 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+      
+    - name: Checkout subrepos
+      if: "!startsWith(matrix.os, 'windows')"
+      run: ./update_repository.sh
+      
+    - name: Checkout subrepos
+      if: "startsWith(matrix.os, 'windows')"
+      shell: cmd
+      run: update_repository.bat
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
