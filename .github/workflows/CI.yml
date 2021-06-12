@@ -40,14 +40,14 @@ jobs:
         qmake.exe -v
 
     - name: Mac
-      if: ${{ matrix.os == 'macos-latest' }}
+      if: startsWith(matrix.os, 'macos')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         clang --version
         ./installer/mac/create_dmg.sh $Qt5_DIR
       
     - name: Linux
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         export QT_DEBUG_PLUGINS=1
@@ -65,27 +65,24 @@ jobs:
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QMAKE -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
-        
-    - name: Setup for headless GUI testing on Linux
-      uses: GabrielBB/xvfb-action@v1
       
     - name: Test run
-      if: ${{ matrix.os == 'macos-latest' }}
+      if: startsWith(matrix.os, 'macos')
       run: ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch
       
     - name: Test run
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get install xvfb
         xvfb-run --auto-servernum ./bin/release/x64/FileCommander --test-launch
         
-    - name: Test run
-      if: ${{ matrix.os == 'windows-latest' }}
-      run: |
-        bin\release\x64\FileCommander.exe --test-launch  
+    # - name: Test run
+    #   if: startsWith(matrix.os, 'widows')
+    #   run: |
+    #     bin\release\x64\FileCommander.exe --test-launch  
       
     - name: Tests - Mac
-      if: ${{ matrix.os == 'macos-latest' }}
+      if: startsWith(matrix.os, 'macos')
       run: |
         cd file-commander-core/core-tests
         $Qt5_DIR/bin/qmake -r CONFIG+=release
@@ -99,7 +96,7 @@ jobs:
         set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
         
     - name: Tests - Linux
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         cd file-commander-core/core-tests
         $Qt5_DIR/bin/qmake -r CONFIG+=release
@@ -117,14 +114,14 @@ jobs:
         set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
 
     - name: Archive DMG
-      if: ${{ matrix.os == 'macos-latest' }}
+      if: startsWith(matrix.os, 'macos')
       uses: actions/upload-artifact@v2
       with:
           name: FileCommander.dmg
           path: FileCommander.dmg
           
     - name: Archive AppImage
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      if: startsWith(matrix.os, 'ubuntu')
       uses: actions/upload-artifact@v2
       with:
           name: FileCommander.AppImage
