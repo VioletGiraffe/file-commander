@@ -55,8 +55,10 @@ jobs:
         
     - name: Windows - building tests
       if: startsWith(matrix.os, 'windows')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
       run: |
+        dir
         cd file-commander-core\core-tests\
         call "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%QTDIR64%\bin\qmake.exe" -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142 core-tests.sln
