@@ -41,16 +41,13 @@ jobs:
         ${env:Qt5_DIR}/bin/qmake.exe -v
         dir "C:\Program Files (x86)\Windows Kits\10\include\"
         set QTDIR64=${env:Qt5_DIR}
-        # Building the main project
         cd installer\windows\
         create_installer.bat
-        # Building tests
         cd ..\..
         cd file-commander-core\core-tests\
         call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "%QTDIR64%\bin\qmake.exe" -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142
         cd ..\..
-        # Deploying extra files
         xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\x64\
         xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\x64\
 
