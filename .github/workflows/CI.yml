@@ -51,7 +51,7 @@ jobs:
         create_installer.bat
         cd ..\..
         cd file-commander-core\core-tests\
-        call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "%QTDIR64%\bin\qmake.exe" -tp vc -r
+        call "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%QTDIR64%\bin\qmake.exe" -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142
         cd ..\..
         xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\x64\
@@ -62,7 +62,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         clang --version
-        ./installer/mac/create_dmg.sh ${env:Qt5_DIR}
+        ./installer/mac/create_dmg.sh $Qt5_DIR
       
     - name: Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -71,11 +71,11 @@ jobs:
         export QT_DEBUG_PLUGINS=1
         sudo apt-get update -y; sudo apt-get install -qq libglu1-mesa-dev libx11-xcb-dev '^libxcb*'
         g++ --version
-        export PATH=${env:Qt5_DIR}/bin/:$PATH
+        export PATH=$Qt5_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-        ${env:Qt5_DIR}/bin/qmake -r CONFIG+=release
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         # Linux: building AppImage
         cp ./qt-app/resources/icon.png ./bin/release/x64/
@@ -102,10 +102,10 @@ jobs:
       if: startsWith(matrix.os, 'macos')
       run: |
         cd file-commander-core/core-tests
-        ${env:Qt5_DIR}/bin/qmake -r CONFIG+=release
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do ${env:Qt5_DIR}/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
         echo Running tests...
         set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
         set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
@@ -116,10 +116,10 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         cd file-commander-core/core-tests
-        ${env:Qt5_DIR}/bin/qmake -r CONFIG+=release
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do ${env:Qt5_DIR}/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs
