@@ -6,10 +6,6 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/badge/master)](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/overview/master)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/190add40753b46edbaa1327068263263)](https://www.codacy.com/gh/VioletGiraffe/file-commander/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VioletGiraffe/file-commander&amp;utm_campaign=Badge_Grade)
 
-|Windows|Linux|macOS|
-|---	|---	|---	|
-|[![Build status](https://ci.appveyor.com/api/projects/status/0rdr7ordj8khnn8l?svg=true)](https://ci.appveyor.com/project/VioletGiraffe/file-commander)|[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)|[![Build Status](https://travis-ci.org/VioletGiraffe/file-commander.svg?branch=master)](https://travis-ci.org/VioletGiraffe/file-commander)|
-
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=ncloc)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=security_rating)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
