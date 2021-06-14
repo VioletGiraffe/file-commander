@@ -87,6 +87,8 @@ CMainWindow::CMainWindow(QWidget *parent) :
 
 CMainWindow::~CMainWindow()
 {
+	_uiThreadTimer.disconnect();
+
 	_instance = nullptr;
 	delete ui;
 }

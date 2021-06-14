@@ -62,10 +62,13 @@ class CPanel final : public QObject
 public:
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
 
+
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 	void addCurrentItemChangeListener(CursorPositionListener * listener);
 
 	explicit CPanel(Panel position);
+	~CPanel() override;
+
 	void restoreFromSettings();
 	// Sets the current directory
 	FileOperationResultCode setPath(const QString& path, FileListRefreshCause operation);

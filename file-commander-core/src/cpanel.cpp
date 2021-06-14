@@ -40,6 +40,11 @@ CPanel::CPanel(Panel position) :
 	});
 }
 
+CPanel::~CPanel()
+{
+	_workerThreadPool.finishAllThreads();
+}
+
 void CPanel::restoreFromSettings()
 {
 	CSettings s;
