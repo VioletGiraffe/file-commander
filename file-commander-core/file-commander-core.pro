@@ -20,6 +20,8 @@ HEADERS += \
 	src/ccontroller.h \
 	src/fileoperationresultcode.h \
 	src/cpanel.h \
+	src/filesystemwatcher/cfilesystemwatcherinterface.h \
+	src/filesystemwatcher/cfilesystemwatchertimerbased.h \
 	src/iconprovider/ciconprovider.h \
 	src/fileoperations/operationcodes.h \
 	src/fileoperations/coperationperformer.h \
@@ -34,7 +36,6 @@ HEADERS += \
 	src/directoryscanner.h \
 	src/diskenumerator/volumeinfo.hpp \
 	src/diskenumerator/cvolumeenumerator.h \
-	src/filesystemwatcher/cfilesystemwatcher.h \
 	src/diskenumerator/volumeinfohelper.hpp \
 	src/cfilemanipulator.h \
 	src/filecomparator/cfilecomparator.h \
@@ -44,6 +45,8 @@ SOURCES += \
 	src/cfilesystemobject.cpp \
 	src/ccontroller.cpp \
 	src/cpanel.cpp \
+	src/filesystemwatcher/cfilesystemwatcherinterface.cpp \
+	src/filesystemwatcher/cfilesystemwatchertimerbased.cpp \
 	src/iconprovider/ciconprovider.cpp \
 	src/iconprovider/ciconproviderimpl.cpp \
 	src/fileoperations/coperationperformer.cpp \
@@ -53,7 +56,6 @@ SOURCES += \
 	src/filesearchengine/cfilesearchengine.cpp \
 	src/directoryscanner.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
-	src/filesystemwatcher/cfilesystemwatcher.cpp \
 	src/cfilemanipulator.cpp \
 	src/filecomparator/cfilecomparator.cpp \
 	src/filesystemhelpers/filesystemhelpers.cpp

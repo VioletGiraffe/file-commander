@@ -4,7 +4,7 @@
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
 #include "assert/advanced_assert.h"
-#include "filesystemwatcher/cfilesystemwatcher.h"
+#include "filesystemwatcher/cfilesystemwatchertimerbased.h"
 #include "std_helpers/qt_container_helpers.hpp"
 #include "filesystemhelpers/filesystemhelpers.hpp"
 
@@ -27,7 +27,7 @@ enum {
 };
 
 CPanel::CPanel(Panel position) :
-	_watcher(std::make_shared<CFileSystemWatcher>()),
+	_watcher(std::make_unique<CFileSystemWatcherTimerBased>()),
 	_panelPosition(position),
 	_workerThreadPool(4, std::string(position == LeftPanel ? "Left panel" : "Right panel") + " file list refresh thread pool")
 {
@@ -35,7 +35,7 @@ CPanel::CPanel(Panel position) :
 	_fileListRefreshTimer.start(200);
 	connect(&_fileListRefreshTimer, &QTimer::timeout, this, &CPanel::processContentsChangedEvent);
 
-	_watcher->addCallback([this](const transparent_set<QFileInfo>&, const transparent_set<QFileInfo>&, const transparent_set<QFileInfo>&) {
+	_watcher->addCallback([this] {
 		contentsChanged();
 	});
 }

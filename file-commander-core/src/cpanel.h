@@ -15,7 +15,7 @@
 #include <vector>
 #include <utility>
 
-class CFileSystemWatcher;
+class CFileSystemWatcherTimerBased;
 
 enum Panel
 {
@@ -133,7 +133,7 @@ private:
 	std::map<qulonglong, CFileSystemObject>    _items;
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
-	std::shared_ptr<class CFileSystemWatcher>  _watcher; // Can't use uniqe_ptr because it doesn't play nicely with forward declaration
+	std::unique_ptr<CFileSystemWatcherTimerBased> _watcher;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CursorPositionListener>    _currentItemChangeListener;
 	const Panel                                _panelPosition;
