@@ -1,9 +1,5 @@
 #include "cfilesystemwatcherinterface.h"
-
-DISABLE_COMPILER_WARNINGS
-#include <QFileInfo>
-#include <QTimer>
-RESTORE_COMPILER_WARNINGS
+#include "threading/cperiodicexecutionthread.h"
 
 #include <set>
 
@@ -20,18 +16,17 @@ struct FileSystemInfoWrapper
 	[[nodiscard]] bool operator==(const FileSystemInfoWrapper& other) const noexcept;
 
 	[[nodiscard]] qint64 size() const noexcept;
-	[[nodiscard]] uint modificationTime() const noexcept;
 
 private:
-	QString _fullPath;
+	QString _itemName;
 	mutable qint64 _size = -1;
-	mutable uint _modificationTime = 0;
 };
 
 class CFileSystemWatcherTimerBased final : public detail::CFileSystemWatcherInterface
 {
 public:
 	CFileSystemWatcherTimerBased();
+	~CFileSystemWatcherTimerBased();
 
 	bool setPathToWatch(const QString &path) override;
 
@@ -40,6 +35,6 @@ private:
 	void processChangesAndNotifySubscribers(QFileInfoList&& newState);
 
 private:
+	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CFileSystemWatcher thread" };
 	std::set<FileSystemInfoWrapper> _previousState;
-	QTimer _timer;
 };
