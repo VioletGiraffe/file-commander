@@ -11,16 +11,16 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <mutex>
 
-
-using ChangeDetectedCallback = std::function<void()>;
-
 namespace detail {
 
 class CFileSystemWatcherInterface
 {
 public:
+	using ChangeDetectedCallback = std::function<void()>;
+
 	virtual ~CFileSystemWatcherInterface() = default;
 
+	// Callbacks must be thread-safe!
 	void addCallback(ChangeDetectedCallback callback);
 	virtual bool setPathToWatch(const QString& path) = 0;
 
@@ -28,7 +28,7 @@ protected:
 	void notifySubscribers();
 
 protected:
-	std::recursive_mutex _pathMutex;
+	std::recursive_mutex _mutex;
 	QString _pathToWatch;
 
 private:

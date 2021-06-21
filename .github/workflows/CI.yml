@@ -173,4 +173,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
           name: FileCommander.exe
-          path: FileCommander.exe
+          path: installer/windows/FileCommander.exe

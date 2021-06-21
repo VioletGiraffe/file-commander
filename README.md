@@ -2,6 +2,7 @@
 
    Cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac,  Linux and FreeBSD with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems. 
 
+[![CI](https://github.com/VioletGiraffe/file-commander/actions/workflows/CI.yml/badge.svg)](https://github.com/VioletGiraffe/file-commander/actions/workflows/CI.yml)
 
 [![CodeFactor](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/badge/master)](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/overview/master)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/190add40753b46edbaa1327068263263)](https://www.codacy.com/gh/VioletGiraffe/file-commander/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VioletGiraffe/file-commander&amp;utm_campaign=Badge_Grade)

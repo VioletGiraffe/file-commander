@@ -1,5 +1,6 @@
 #include "cimageviewerwidget.h"
-#include "../../qtutils/imageprocessing/resize/cimageresizer.h"
+#include "widgets/widgetutils.h"
+#include "imageprocessing/resize/cimageresizer.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -38,14 +39,7 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 
 	QTimer::singleShot(0, this, [this, availableGeometry]() {
 		// Apparently, we need the timer in order for the resize to actually be applied before parent's resize
-		QMainWindow * mainWindow = nullptr;
-		for (QWidget * widget = dynamic_cast<QWidget*>(parent()); widget != nullptr; widget = dynamic_cast<QWidget*>(widget->parent()))
-		{
-			widget->resize(widget->sizeHint());
-			if (!mainWindow)
-				mainWindow = dynamic_cast<QMainWindow*>(widget);
-		}
-
+		auto mainWindow = WidgetUtils::findParentMainWindow(this);
 		if (mainWindow)
 		{
 			mainWindow->move(QPoint(availableGeometry.width()/2 - mainWindow->frameGeometry().width()/2, availableGeometry.height()/2 - mainWindow->frameGeometry().height()/2));

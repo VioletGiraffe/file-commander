@@ -42,11 +42,12 @@ INCLUDEPATH += \
 	../../../qtutils \
 	../../../cpputils \
 	../../../cpp-template-utils \
+	../../../image-processing \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L../../../bin/$${OUTPUT_DIR} -lcore -lqtutils -lcpputils
+LIBS += -L../../../bin/$${OUTPUT_DIR} -lcore -limage-processing -lqtutils -lcpputils
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /wd4251
