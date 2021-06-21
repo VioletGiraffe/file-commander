@@ -99,8 +99,6 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject &object, const bool /*g
 
 void CIconProviderImpl::setShowOverlayIcons(const bool show) noexcept
 {
-	_//showOverlayIcons = CSettings().value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
-
 	const auto oldOptions = _provider.options();
 	auto newOptions = oldOptions;
 	if (show)
