@@ -12,17 +12,16 @@ RESTORE_COMPILER_WARNINGS
 class CFileSystemObject;
 class CIconProviderImpl;
 
-class CIconProviderImpl;
-
 class CIconProvider
 {
 public:
-	static const QIcon& iconForFilesystemObject(const CFileSystemObject& object);
+	// guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
+	static const QIcon& iconForFilesystemObject(const CFileSystemObject& object, bool guessIconByFileExtension);
 	static void settingsChanged();
 
 private:
 	CIconProvider();
-	const QIcon& iconFor(const CFileSystemObject& object);
+	const QIcon& iconFor(const CFileSystemObject& object, bool guessIconByFileExtension);
 
 private:
 	static std::unique_ptr<CIconProvider> _instance;

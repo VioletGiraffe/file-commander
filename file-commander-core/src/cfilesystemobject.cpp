@@ -1,5 +1,4 @@
 #include "cfilesystemobject.h"
-#include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
 #include "windows/windowsutils.h"
 #include "assert/advanced_assert.h"
@@ -304,11 +303,6 @@ QString CFileSystemObject::parentDirPath() const
 {
 	assert(_properties.parentFolder.isEmpty() || _properties.parentFolder.endsWith('/'));
 	return _properties.parentFolder;
-}
-
-const QIcon& CFileSystemObject::icon() const
-{
-	return CIconProvider::iconForFilesystemObject(*this);
 }
 
 uint64_t CFileSystemObject::size() const

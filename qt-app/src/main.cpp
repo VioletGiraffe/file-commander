@@ -1,6 +1,7 @@
 #include "cmainwindow.h"
 #include "settings/csettings.h"
 #include "iconprovider/ciconprovider.h"
+#include "system/win_utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -13,6 +14,8 @@ int main(int argc, char *argv[])
 	AdvancedAssert::setLoggingFunc([](const char* message){
 		qInfo() << message;
 	});
+
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	qInfo() << "Built with Qt" << QT_VERSION_STR;
 	qInfo() << "Running with Qt" << qVersion();

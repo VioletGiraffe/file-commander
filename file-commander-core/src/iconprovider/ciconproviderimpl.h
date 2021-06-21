@@ -1,15 +1,14 @@
 #pragma once
 
-#include "settings.h"
-#include "settings/csettings.h"
-#include "cfilesystemobject.h"
+#ifndef _WIN32
+#include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
-#ifndef _WIN32
 #include <QFileIconProvider>
-#endif
 RESTORE_COMPILER_WARNINGS
+#endif
 
+class CFileSystemObject;
 class QIcon;
 
 #ifdef _WIN32
@@ -17,8 +16,9 @@ class QIcon;
 class CIconProviderImpl
 {
 public:
-	QIcon iconFor(const CFileSystemObject& object);
-	void settingsChanged();
+	// guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
+	QIcon iconFor(const CFileSystemObject& object, bool guessIconByFileExtension) noexcept;
+	void setShowOverlayIcons(bool show) noexcept;
 
 private:
 	bool _showOverlayIcons = false;
@@ -29,11 +29,11 @@ private:
 class CIconProviderImpl
 {
 public:
-	QIcon iconFor(const CFileSystemObject& object);
-	void settingsChanged();
+	// guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
+	QIcon iconFor(const CFileSystemObject& object, bool guessIconByFileExtension) noexcept;
+	void setShowOverlayIcons(bool show) noexcept;
 
 private:
-	bool _showOverlayIcons = false;
 	QFileIconProvider _provider;
 };
 

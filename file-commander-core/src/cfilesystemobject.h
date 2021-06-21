@@ -42,7 +42,6 @@ struct CFileSystemObjectProperties {
 	bool exists = false;
 };
 
-class QIcon;
 class CFileSystemObject
 {
 public:
@@ -87,7 +86,6 @@ public:
 
 	QString fullAbsolutePath() const;
 	QString parentDirPath() const;
-	const QIcon& icon() const;
 	uint64_t size() const;
 	qulonglong hash() const;
 	const QFileInfo& qFileInfo() const;

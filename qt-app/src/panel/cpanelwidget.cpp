@@ -9,6 +9,7 @@
 #include "pluginengine/cpluginengine.h"
 #include "../favoritelocationseditor/cfavoritelocationseditor.h"
 #include "widgets/clineedit.h"
+#include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
 #include "progressdialogs/ccopymovedialog.h"
@@ -192,6 +193,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	std::vector<TreeViewItem> qTreeViewItems;
 	qTreeViewItems.reserve(items.size() * NumberOfColumns);
 
+	const bool useLessPreciseIcons = items.size() > 3000;
 	for (const auto& item: items)
 	{
 		const CFileSystemObject& object = item.second;
@@ -205,7 +207,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
 		else
 			fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
-		fileNameItem->setIcon(object.icon());
+		fileNameItem->setIcon(CIconProvider::iconForFilesystemObject(object, useLessPreciseIcons));
 		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, NameColumn, fileNameItem });
 
@@ -796,7 +798,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 			auto diskButton = new QPushButton;
 			diskButton->setFocusPolicy(Qt::NoFocus);
 			diskButton->setCheckable(true);
-			diskButton->setIcon(drives[i].rootObjectInfo.icon());
+			diskButton->setIcon(CIconProvider::iconForFilesystemObject(drives[i].rootObjectInfo, false));
 			diskButton->setText(name);
 			diskButton->setFixedWidth(QFontMetrics(diskButton->font()).boundingRect(diskButton->text()).width() + 5 + diskButton->iconSize().width() + 20);
 			diskButton->setProperty("id", (qulonglong)i);
