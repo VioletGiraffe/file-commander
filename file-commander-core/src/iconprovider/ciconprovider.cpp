@@ -1,7 +1,7 @@
 #include "ciconprovider.h"
 #include "cfilesystemobject.h"
 #include "ciconproviderimpl.h"
-#include "fasthash.h" // TODO: move to cpputils/hash
+#include "hash/fasthash.h"
 #include "assert/advanced_assert.h"
 
 #include "settings/csettings.h"

@@ -16,8 +16,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <shellapi.h>
-#pragma comment(lib, "Shell32.lib")
-#pragma comment(lib, "User32.lib")
 
 inline wchar_t* appendToString(wchar_t* buffer, const wchar_t* what, size_t whatLengthInCharacters = 0)
 {
@@ -44,7 +42,6 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool gue
 	if (!guessIconByFileExtension)
 	{
 		WCHAR pathStringBuffer[32768];
-		// TODO: UNC path?
 		// TODO: create a helper function for this in cpputils
 		const auto length = object.fullAbsolutePath().toWCharArray(pathStringBuffer);
 		pathStringBuffer[length] = 0;

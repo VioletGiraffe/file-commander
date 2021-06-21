@@ -150,24 +150,13 @@ private:
 	const std::vector<ITEMIDLIST*>& _array;
 };
 
-struct ComInitializer {
-	ComInitializer() {
-		const auto result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-		assert_r(SUCCEEDED(result));
-	}
-
-	~ComInitializer() {
-		CoUninitialize();
-	}
-};
-
 bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, IContextMenu*& imenu);
 
 // Pos must be global
 
 bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow)
 {
-	ComInitializer comInitializer;
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	IContextMenu * imenu = 0;
 	HMENU hMenu = NULL;
@@ -194,7 +183,7 @@ bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& ob
 
 bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
 {
-	ComInitializer comInitializer;
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	IContextMenu * imenu = 0;
 	HMENU hMenu = NULL;
@@ -219,7 +208,7 @@ bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, v
 
 bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
 {
-	ComInitializer comInitializer;
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	IContextMenu * imenu = 0;
 	HMENU hMenu = NULL;
@@ -244,7 +233,7 @@ bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, vo
 
 bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * parentWindow)
 {
-	ComInitializer comInitializer;
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	IContextMenu * imenu = 0;
 	HMENU hMenu = NULL;
@@ -269,7 +258,7 @@ bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * 
 
 std::wstring OsShell::toolTip(std::wstring itemPath)
 {
-	ComInitializer comInitializer;
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	std::replace(itemPath.begin(), itemPath.end(), '/', '\\');
 	std::wstring tipString;
@@ -303,7 +292,7 @@ std::wstring OsShell::toolTip(std::wstring itemPath)
 
 bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTrash, void * parentWindow)
 {
-	ComInitializer comInitializer;
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	assert_r(parentWindow);
 	std::vector<LPITEMIDLIST> idLists;
@@ -383,7 +372,7 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 
 bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 {
-	ComInitializer comInitializer;
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	PIDLIST_ABSOLUTE idlist = 0;
 	if (!SUCCEEDED(SHGetFolderLocation(0, CSIDL_BITBUCKET, 0, 0, &idlist)))
@@ -426,7 +415,7 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 
 bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * parentWindow, HMENU& hmenu, IContextMenu*& imenu)
 {
-	ComInitializer comInitializer;
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	if (objects.empty())
 		return false;

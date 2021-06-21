@@ -4,7 +4,7 @@
 #include "assert/advanced_assert.h"
 #include "lang/type_traits_fast.hpp"
 
-#include "fasthash.h"
+#include "hash/fasthash.h"
 
 #ifdef CFILESYSTEMOBJECT_TEST
 #define QFileInfo QFileInfo_Test

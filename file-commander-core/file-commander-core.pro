@@ -31,7 +31,6 @@ HEADERS += \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \
-	src/fasthash.h \
 	src/filesearchengine/cfilesearchengine.h \
 	src/directoryscanner.h \
 	src/diskenumerator/volumeinfo.hpp \
@@ -52,7 +51,6 @@ SOURCES += \
 	src/fileoperations/coperationperformer.cpp \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
-	src/fasthash.c \
 	src/filesearchengine/cfilesearchengine.cpp \
 	src/directoryscanner.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
