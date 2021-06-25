@@ -21,8 +21,3 @@ QString CRandomDataGenerator::randomString(const size_t length)
 
 	return resultString;
 }
-
-int CRandomDataGenerator::randomInt(int min, int max)
-{
-	return std::uniform_int_distribution<int>(min, max)(_rng);
-}

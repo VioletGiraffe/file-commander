@@ -70,7 +70,7 @@ struct QDir_Test
 	QString absolutePath() const {return _absolutePath;}
 
 	QStringList _entryList;
-	QStringList entryList(Filters filters = NoFilter, SortFlags sort = NoSort) const {return _entryList;}
+	QStringList entryList([[maybe_unused]] Filters filters = NoFilter, [[maybe_unused]] SortFlags sort = NoSort) const {return _entryList;}
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QDir_Test::Filters)

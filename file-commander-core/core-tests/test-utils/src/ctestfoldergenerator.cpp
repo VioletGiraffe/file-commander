@@ -34,7 +34,7 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 	std::vector<QString> newFolders;
 
 	{
-		const auto numFoldersToCreate = _randomGenerator.randomInt(1, numFolders);
+		const auto numFoldersToCreate = _randomGenerator.randomNumber<size_t>(1, numFolders);
 		newFolders = generateRandomFolders(parentDir, numFoldersToCreate);
 		assert_and_return_r(!newFolders.empty(), false); // Failure?
 		numFolders -= numFoldersToCreate;
@@ -42,7 +42,7 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 
 	if (numFiles > 0)
 	{
-		const auto numFilesToCreate = _randomGenerator.randomInt(1, numFiles);
+		const auto numFilesToCreate = _randomGenerator.randomNumber<size_t>(1, numFiles);
 		assert_and_return_r(generateRandomFiles(parentDir, numFilesToCreate), false); // Failure?
 		numFiles -= numFilesToCreate;
 	}
@@ -83,7 +83,7 @@ bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const s
 		QFile file(parentDir + '/' + randomFileName(12));
 		assert_and_return_r(file.open(QFile::WriteOnly), false);
 
-		const QByteArray randomData = _randomGenerator.randomString(_randomGenerator.randomInt(10, 100)).toUtf8();
+		const QByteArray randomData = _randomGenerator.randomString(_randomGenerator.randomNumber<size_t>(10, 100)).toUtf8();
 		assert_and_return_r(file.write(randomData) == (qint64)randomData.size(), false);
 	}
 

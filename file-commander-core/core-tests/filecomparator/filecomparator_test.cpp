@@ -32,7 +32,7 @@ TEST_CASE("CFileComparator identical files tests", "[CFileComparator]")
 	timer.pause();
 	for (int i = 0; i < 500; ++i)
 	{
-		const int length = gen.randomInt(10, 3 * 1024 * 1024);
+		const int length = gen.randomNumber<int>(10, 3 * 1024 * 1024);
 		const auto data = gen.randomString(length).toLatin1();
 		if (!fileA.open(QFile::WriteOnly) || !fileB.open(QFile::WriteOnly))
 		{
@@ -80,7 +80,7 @@ TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 	{
 		for (int i = 0; i < 500; ++i)
 		{
-			const int length = gen.randomInt(10, 3 * 1024 * 1024);
+			const int length = gen.randomNumber<int>(10, 3 * 1024 * 1024);
 			if (!fileA.open(QFile::ReadWrite) || !fileB.open(QFile::ReadWrite))
 			{
 				FAIL();
@@ -118,7 +118,7 @@ TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 	{
 		for (int i = 0; i < 500; ++i)
 		{
-			const int length = gen.randomInt(10, 3 * 1024 * 1024);
+			const int length = gen.randomNumber<int>(10, 3 * 1024 * 1024);
 			if (!fileA.open(QFile::ReadWrite) || !fileB.open(QFile::ReadWrite))
 			{
 				FAIL();
