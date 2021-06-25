@@ -100,18 +100,26 @@ CFileSystemObject & CFileSystemObject::operator=(const QString & path)
 
 void CFileSystemObject::refreshInfo()
 {
+#ifndef _WIN32
 	// TODO: is this always correct?
 	// Should there be a special "Symlink" object type? Then it could be handled properly (e. g. delete = unlink)
 	_properties.exists = !_fileInfo.isSymLink() ? _fileInfo.exists() : true;
+#else
+	_properties.exists = _fileInfo.exists();
+#endif
 
 	_properties.fullPath = _fileInfo.absoluteFilePath();
 
-	if (_fileInfo.isShortcut()) // This is Windows-specific, place under #ifdef?
-	{
-		_properties.exists = true;
-		_properties.type = File;
-	}
-	else if (_fileInfo.isFile())
+	// QFileInfo::isShortcut() is quiate a heavy call on Windows - disabled temporarily for better performance enumerating large folders
+	// Time to first update for C:\Windows\WinSxS\ goes from 1900 to 3900 ms
+
+	//if (_fileInfo.isShortcut()) // This is Windows-specific, place under #ifdef?
+	//{
+	//	_properties.exists = true;
+	//	_properties.type = File;
+	//}
+	//else 
+	if (_fileInfo.isFile())
 		_properties.type = File;
 	else if (_fileInfo.isDir())
 	{
@@ -120,7 +128,11 @@ void CFileSystemObject::refreshInfo()
 		if (!_properties.fullPath.endsWith('/'))
 			_properties.fullPath.append('/');
 
+#ifdef __APPLE__
 		_properties.type = _fileInfo.isBundle() ? Bundle : Directory;
+#else
+		_properties.type = Directory;
+#endif
 	}
 	else if (!_properties.exists && _properties.fullPath.endsWith('/'))
 		_properties.type = Directory;
