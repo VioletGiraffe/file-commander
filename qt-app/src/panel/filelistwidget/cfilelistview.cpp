@@ -3,6 +3,7 @@
 #include "model/cfilelistsortfilterproxymodel.h"
 #include "delegate/cfilelistitemdelegate.h"
 #include"assert/advanced_assert.h"
+#include "system/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -289,6 +290,9 @@ bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigg
 	return QTreeView::edit(model()->index(index.row(), 0), trigger, event);
 }
 
+static CTimeElapsed g_timer{ true };
+static bool firstUpdate{ true };
+
 bool CFileListView::eventFilter(QObject* target, QEvent* event)
 {
 	QHeaderView * headerView = header();
@@ -312,6 +316,14 @@ bool CFileListView::eventFilter(QObject* target, QEvent* event)
 			headerView->resizeSection(i, (int)(newHeaderWidth * relativeColumnSizes[i] + 0.5f));
 
 		return false;
+	}
+	else if (event->type() == QEvent::Paint && model()->rowCount() > 1000)
+	{
+		if (firstUpdate)
+		{
+			firstUpdate = false;
+			qInfo() << "Time to first update:" << g_timer.elapsed();
+		}
 	}
 
 	return QTreeView::eventFilter(target, event);

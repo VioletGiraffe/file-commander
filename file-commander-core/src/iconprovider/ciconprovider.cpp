@@ -11,20 +11,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QIcon>
 RESTORE_COMPILER_WARNINGS
 
-#include <memory>
-
 // TODO: refactor this ugly singleton with unclear lifetime!
-std::unique_ptr<CIconProvider> CIconProvider::_instance;
+std::unique_ptr<CIconProvider> CIconProvider::_instance { new CIconProvider }; // Cannot use make_unique because CIconProvider's constructor is private
 
 // guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
 const QIcon& CIconProvider::iconForFilesystemObject(const CFileSystemObject &object, bool guessIconByFileExtension)
 {
-	if (!_instance)
-	{
-		_instance = std::unique_ptr<CIconProvider>{new CIconProvider}; // Cannot use make_unique because CIconProvider's constructor is private
-		settingsChanged();
-	}
-
 	return _instance->iconFor(object, guessIconByFileExtension);
 }
 
@@ -42,8 +34,11 @@ void CIconProvider::settingsChanged()
 
 CIconProvider::CIconProvider() : _provider{std::make_unique<CIconProviderImpl>()}
 {
+	settingsChanged();
 }
 
+// This complicated hashing function should have addressed #97, but it doesn't actually fix it
+// Temporarily disabled for optimization
 inline static qulonglong hash(const CFileSystemObject& object)
 {
 	const auto properties = object.properties();
@@ -59,11 +54,11 @@ inline static qulonglong hash(const CFileSystemObject& object)
 // guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
 const QIcon& CIconProvider::iconFor(const CFileSystemObject& object, bool guessIconByFileExtension)
 {
-	const qulonglong objectHash = hash(object);
+	const qulonglong objectHash = object.hash();
 	const auto iconHashIterator = _iconHashForObjectHash.find(objectHash);
 	if (iconHashIterator == _iconHashForObjectHash.end())
 	{
-		const QIcon icon = _provider->iconFor(object, guessIconByFileExtension);
+		QIcon icon = _provider->iconFor(object, guessIconByFileExtension);
 		if (icon.isNull())
 		{
 			if (!object.isSymLink())
@@ -73,16 +68,14 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object, bool guessI
 			return nullIcon;
 		}
 
-		const auto qimage = icon.pixmap(icon.availableSizes().at(0)).toImage();
-		const qulonglong iconHash = fasthash64(reinterpret_cast<const char*>(qimage.constBits()), qimage.bytesPerLine() * qimage.height(), 0);
-
-		if (_iconByItsHash.size() > 300)
+		if (_iconByItsHash.size() > 10000)
 		{
 			_iconByItsHash.clear();
 			_iconHashForObjectHash.clear();
 		}
 
-		const auto iconInContainer = _iconByItsHash.insert(std::make_pair(iconHash, icon)).first;
+		const auto iconHash = icon.cacheKey();
+		const auto iconInContainer = _iconByItsHash.emplace(iconHash, std::move(icon)).first;
 		_iconHashForObjectHash[objectHash] = iconHash;
 
 		return iconInContainer->second;

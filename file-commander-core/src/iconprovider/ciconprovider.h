@@ -26,8 +26,8 @@ private:
 private:
 	static std::unique_ptr<CIconProvider> _instance;
 
-	std::unordered_map<qulonglong, QIcon> _iconByItsHash;
-	std::unordered_map<qulonglong, qulonglong> _iconHashForObjectHash;
+	std::unordered_map<qint64, QIcon> _iconByItsHash;
+	std::unordered_map<qulonglong, qint64> _iconHashForObjectHash;
 
 	std::unique_ptr<CIconProviderImpl> _provider;
 };

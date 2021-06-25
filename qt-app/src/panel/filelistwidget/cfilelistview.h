@@ -29,7 +29,7 @@ struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
 
 class QMouseEvent;
 class CController;
-class CFileListView : public QTreeView
+class CFileListView final : public QTreeView
 {
 	Q_OBJECT
 

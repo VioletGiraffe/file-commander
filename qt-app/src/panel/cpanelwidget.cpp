@@ -170,6 +170,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 // Returns the list of items added to the view
 void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& items, FileListRefreshCause operation)
 {
+	CTimeElapsed timer{ true };
+
 	disconnect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 
 	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
@@ -282,6 +284,9 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	assert_r(connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
 	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
 	selectionChanged(QItemSelection(), QItemSelection());
+
+	if (items.size() > 1000)
+		qInfo() << __FUNCTION__ << timer.elapsed();
 }
 
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
@@ -961,7 +966,7 @@ void CPanelWidget::updateCurrentDiskButtonAndInfoLabel()
 		ui->_driveInfoLabel->clear();
 		return;
 	}
-	
+
 	const auto diskInfo = _controller->volumeEnumerator().drives()[*currentDriveId];
 	_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
 	ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").
