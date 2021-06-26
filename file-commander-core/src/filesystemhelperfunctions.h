@@ -42,13 +42,18 @@
 
 [[nodiscard]] inline QString escapedPath(QString path)
 {
-	if (!path.contains(' ') || path.startsWith('\"'))
+	if (!path.contains(' '))
 		return path;
 
 #ifdef _WIN32
+	assert_and_return_r(!path.startsWith('\"'), path);
 	return '\"' % path % '\"';
 #else
-	return path.replace(' ', QLatin1String("\\ "));
+	//assert_debug_only(path.count(' ') != path.count(R"(\ )")); // Already escaped!
+	//return path.replace(' ', QLatin1String(R"(\ )"));
+
+	assert_debug_only(!path.startsWith('\'')); // Already escaped!
+	return '\'' % path % '\'';
 #endif
 }
 

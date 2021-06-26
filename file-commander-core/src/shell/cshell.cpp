@@ -62,8 +62,10 @@ void OsShell::executeShellCommand(const QString& command, const QString& working
 		assert_and_return_r(len < std::size(commandString), );
 		::_wsystem(commandString);
 	#else
-		const int result = std::system((QString("cd ") + workingDir + " && " + command).toUtf8().data());
-		assert_r(result == 0);
+		const QString commandLine = "cd " % escapedPath(workingDir) % " && " % command;
+		const int result = std::system(commandLine.toUtf8().constData());
+		if (result != 0)
+			qInfo().noquote() << "The command failed with code " << result << '\n' << commandLine;
 	#endif
 	}).detach();
 }

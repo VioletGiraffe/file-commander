@@ -262,7 +262,10 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 void CController::openTerminal(const QString &folder, bool admin)
 {
 #if defined __APPLE__
-	system(QString("osascript -e \"tell application \\\"Terminal\\\" to do script \\\"cd %1\\\"\"").arg(folder).toUtf8().data());
+	// Regular escaping with "\ " doesn't work here, need to use single quaotes
+	const auto script = QString(R"(osascript -e "tell application \"Terminal\" to do script \"cd %1\"")").arg(escapedPath(folder));
+	system(script.toUtf8().constData());
+	Q_UNUSED(admin);
 #elif defined __linux__ || __FreeBSD__ || defined _WIN32
 	if (!admin)
 	{
@@ -285,8 +288,6 @@ void CController::openTerminal(const QString &folder, bool admin)
 #else
 #error unknown platform
 #endif
-
-	Q_UNUSED(admin);
 }
 
 FilesystemObjectsStatistics CController::calculateStatistics(Panel p, const std::vector<qulonglong> & hashes)
