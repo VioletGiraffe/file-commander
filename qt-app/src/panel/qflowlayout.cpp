@@ -19,7 +19,7 @@ FlowLayout::FlowLayout(int margin, int hSpacing, int vSpacing)
 FlowLayout::~FlowLayout()
 {
 	QLayoutItem *item;
-	while ((item = takeAt(0)))
+	while ((item = takeAt(0)) != nullptr)
 		delete item;
 }
 
@@ -61,7 +61,7 @@ QLayoutItem *FlowLayout::takeAt(int index)
 	if (index >= 0 && index < itemList.size())
 		return itemList.takeAt(index);
 	else
-		return 0;
+		return nullptr;
 }
 
 Qt::Orientations FlowLayout::expandingDirections() const

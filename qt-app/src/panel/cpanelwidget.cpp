@@ -795,7 +795,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 				continue;
 
 #ifdef _WIN32
-			const QString name = driveInfo.rootObjectInfo.fullAbsolutePath().remove(":/");
+			const QString name = volume.rootObjectInfo.fullAbsolutePath().remove(":/");
 #else
 			const QString name = volume.volumeLabel;
 #endif
