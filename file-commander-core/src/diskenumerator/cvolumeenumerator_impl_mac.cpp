@@ -12,11 +12,11 @@ const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	for (const QString& volumeName: QDir("/Volumes/").entryList(QDir::NoDotAndDotDot | QDir::Dirs | QDir::Hidden | QDir::System))
 	{
 		VolumeInfo info;
-		info.rootObjectInfo = "/Volumes/" + volumeName;
 		info.volumeLabel = volumeName;
 		info.isReady = true;
 
-		const auto sys_info = volumeInfoForPath(info.rootObjectInfo.fullAbsolutePath());
+		const auto sys_info = volumeInfoForPath("/Volumes/" + volumeName);
+		info.rootObjectInfo = sys_info.f_mntonname;
 		info.volumeSize = sys_info.f_bsize * sys_info.f_blocks;
 		info.freeSize = sys_info.f_bsize * sys_info.f_bavail;
 		info.fileSystemName = QString(sys_info.f_fstypename).toUpper();
