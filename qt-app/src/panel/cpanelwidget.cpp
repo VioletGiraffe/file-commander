@@ -210,14 +210,14 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		else
 			fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
 		fileNameItem->setIcon(CIconProvider::iconForFilesystemObject(object, useLessPreciseIcons));
-		fileNameItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
+		fileNameItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, NameColumn, fileNameItem });
 
 		auto fileExtItem = new QStandardItem();
 		fileExtItem->setEditable(false);
 		if (!object.isCdUp() && !props.completeBaseName.isEmpty() && !props.extension.isEmpty())
 			fileExtItem->setData(props.extension, Qt::DisplayRole);
-		fileExtItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
+		fileExtItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, ExtColumn, fileExtItem });
 
 		auto sizeItem = new QStandardItem();
@@ -225,7 +225,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		if (props.size > 0 || props.type == File)
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
 
-		sizeItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
+		sizeItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, SizeColumn, sizeItem });
 
 		auto dateItem = new QStandardItem();
@@ -237,7 +237,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 			modificationDate = modificationDate.toLocalTime();
 			dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm:ss"), Qt::DisplayRole);
 		}
-		dateItem->setData(props.hash, Qt::UserRole); // Unique identifier for this object
+		dateItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, DateColumn, dateItem });
 
 		++itemRow;
