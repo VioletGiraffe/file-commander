@@ -29,7 +29,7 @@ enum FileSystemObjectType { UnknownType, Directory, File, Bundle };
 
 struct CFileSystemObjectProperties {
 	uint64_t size = 0;
-	qulonglong hash = 0;
+	uint64_t hash = 0;
 	QString completeBaseName;
 	QString extension;
 	QString fullName;
@@ -87,7 +87,7 @@ public:
 	QString fullAbsolutePath() const;
 	QString parentDirPath() const;
 	uint64_t size() const;
-	qulonglong hash() const;
+	uint64_t hash() const;
 	const QFileInfo& qFileInfo() const;
 	uint64_t rootFileSystemId() const;
 	bool isNetworkObject() const;

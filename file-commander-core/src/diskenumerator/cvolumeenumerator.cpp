@@ -5,6 +5,15 @@
 
 #include <algorithm>
 
+CVolumeEnumerator::CVolumeEnumerator() : _enumeratorThread(_updateInterval, "CVolumeEnumerator thread")
+{
+	// Setting up the timer to fetch the notifications from the queue and execute them on this thread
+	connect(&_timer, &QTimer::timeout, [this](){
+		_notificationsQueue.exec();
+	});
+	_timer.start(_updateInterval / 3);
+}
+
 void CVolumeEnumerator::addObserver(IVolumeListObserver *observer)
 {
 	assert_r(std::find(_observers.begin(), _observers.end(), observer) == _observers.end());
@@ -17,25 +26,28 @@ void CVolumeEnumerator::removeObserver(IVolumeListObserver *observer)
 }
 
 // Returns the drives found
-std::vector<VolumeInfo> CVolumeEnumerator::drives() const
+std::vector<VolumeInfo> CVolumeEnumerator::volumes() const
 {
 	std::lock_guard lock{ _mutexForDrives };
 
-	return _drives;
+	return _volumes;
+}
+
+std::optional<VolumeInfo> CVolumeEnumerator::volumeById(uint64_t id) const noexcept
+{
+	std::lock_guard lock{ _mutexForDrives };
+	for (const auto& info: _volumes)
+	{
+		if (info.id() == id)
+			return info;
+	}
+
+	return {};
 }
 
 void CVolumeEnumerator::updateSynchronously()
 {
 	enumerateVolumes(false);
-}
-
-CVolumeEnumerator::CVolumeEnumerator() : _enumeratorThread(_updateInterval, "CVolumeEnumerator thread")
-{
-	// Setting up the timer to fetch the notifications from the queue and execute them on this thread
-	connect(&_timer, &QTimer::timeout, [this](){
-		_notificationsQueue.exec();
-	});
-	_timer.start(_updateInterval / 3);
 }
 
 void CVolumeEnumerator::startEnumeratorThread()
@@ -53,12 +65,12 @@ void CVolumeEnumerator::enumerateVolumes(bool async)
 
 	std::lock_guard lock{ _mutexForDrives };
 
-	VolumeInfo::ComparisonResult levelOfChange = newDrives.size() != _drives.size() ? VolumeInfo::DifferentObject : VolumeInfo::Equal;
+	VolumeInfo::ComparisonResult levelOfChange = newDrives.size() != _volumes.size() ? VolumeInfo::DifferentObject : VolumeInfo::Equal;
 	if (levelOfChange == VolumeInfo::Equal)
 	{
-		for (size_t i = 0, n = _drives.size(); i < n; ++i)
+		for (size_t i = 0, n = _volumes.size(); i < n; ++i)
 		{
-			const auto comparisonResult = newDrives[i].compare(_drives[i]);
+			const auto comparisonResult = newDrives[i].compare(_volumes[i]);
 			levelOfChange = std::max(levelOfChange, comparisonResult);
 		}
 	}
@@ -66,7 +78,7 @@ void CVolumeEnumerator::enumerateVolumes(bool async)
 
 	if (!async || levelOfChange != VolumeInfo::Equal)
 	{
-		_drives = std::move(newDrives);
+		_volumes = std::move(newDrives);
 		notifyObservers(async, levelOfChange > VolumeInfo::InsignificantChange);
 	}
 }

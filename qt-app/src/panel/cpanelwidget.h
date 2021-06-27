@@ -110,14 +110,14 @@ private:
 	qulonglong hashBySortModelIndex(const QModelIndex& index) const;
 	QModelIndex indexByHash(const qulonglong hash, bool logFailures = false) const;
 
-	void updateCurrentDiskButtonAndInfoLabel();
+	void updateCurrentVolumeButtonAndInfoLabel();
 
 	bool pasteImage(const QImage& image);
 
 private:
 	CFileListFilterDialog           _filterDialog;
 	std::vector<CFileSystemObject>  _disks;
-	QString                         _currentDisk;
+	QString                         _currentVoumePath;
 	QString                         _directoryCurrentlyBeingDisplayed;
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;

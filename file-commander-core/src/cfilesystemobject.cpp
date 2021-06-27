@@ -322,7 +322,7 @@ uint64_t CFileSystemObject::size() const
 	return _properties.size;
 }
 
-qulonglong CFileSystemObject::hash() const
+uint64_t CFileSystemObject::hash() const
 {
 	return _properties.hash;
 }

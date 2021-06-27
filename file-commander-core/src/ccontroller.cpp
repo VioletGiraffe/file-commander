@@ -125,20 +125,21 @@ FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
 }
 
 // A current volume has been switched
-bool CController::switchToVolume(Panel p, size_t index)
+std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVolume(Panel p, uint64_t id)
 {
-	assert_r(index < _volumeEnumerator.drives().size());
-	const QString drivePath = _volumeEnumerator.drives().at(index).rootObjectInfo.fullAbsolutePath();
+	const QString drivePath = volumePathById(id);
 
-	const std::optional<size_t> currentIndex = currentVolumeIndex(otherPanelPosition(p));
-	if (currentIndex && drivePath == _volumeEnumerator.drives().at(*currentIndex).rootObjectInfo.fullAbsolutePath())
+	const auto currentVolume = currentVolumeInfo(otherPanelPosition(p));
+	// When switching to the same volume that is selected in the other panel, also navigate to the same directory that's currently selected
+	if (currentVolume && drivePath == currentVolume->rootObjectInfo.fullAbsolutePath())
 	{
-		return setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == FileOperationResultCode::Ok;
+		return {setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == FileOperationResultCode::Ok, drivePath};
 	}
 	else
 	{
-		const QString lastPathForDrive = CSettings().value(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), drivePath).toString();
-		return setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok;
+		// Otherwise navigate to the last known path for this volume, or its root if no path was recorded previously
+		const QString lastPathForDrive = CSettings{}.value(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), drivePath).toString();
+		return {setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok, drivePath};
 	}
 }
 
@@ -321,6 +322,16 @@ void CController::copyCurrentItemPathToClipboard()
 		QApplication::clipboard()->setText(escapedPath(toNativeSeparators(item.fullAbsolutePath())));
 }
 
+void CController::execOnWorkerThread(std::function<void ()> task)
+{
+	_workerThreadPool.enqueue(std::move(task));
+}
+
+void CController::execOnUiThread(std::function<void ()> task, int tag)
+{
+	_uiQueue.enqueue(std::move(task), tag);
+}
+
 const CPanel &CController::panel(Panel p) const
 {
 	switch (p)
@@ -436,32 +447,31 @@ QString CController::itemPath(Panel p, qulonglong hash) const
 	return panel(p).itemByHash(hash).properties().fullPath;
 }
 
-CVolumeEnumerator& CController::volumeEnumerator()
+std::vector<VolumeInfo> CController::volumes() const
 {
-	return _volumeEnumerator;
+	return _volumeEnumerator.volumes();
 }
 
-QString CController::volumePath(size_t index) const
+std::optional<VolumeInfo> CController::currentVolumeInfo(Panel p) const
 {
-	return index < _volumeEnumerator.drives().size() ? _volumeEnumerator.drives()[index].rootObjectInfo.fullAbsolutePath() : QString();
-}
-
-std::optional<size_t> CController::currentVolumeIndex(Panel p) const
-{
-	const auto drives = _volumeEnumerator.drives();
 	const auto currentDirectoryObject = CFileSystemObject(panel(p).currentDirPathNative());
+	return volumeInfoForObject(currentDirectoryObject);
+}
 
-	std::vector<int> commonPrefixWithDrive;
-	commonPrefixWithDrive.reserve(drives.size());
+std::optional<VolumeInfo> CController::volumeInfoForObject(const CFileSystemObject &object) const noexcept
+{
+	const auto volumes = _volumeEnumerator.volumes();
+	const auto infoIt = std::find_if(cbegin_to_end(volumes), [&object](const VolumeInfo& item) {return item.rootObjectInfo.rootFileSystemId() == object.rootFileSystemId();});
 
-	for (size_t i = 0, size = drives.size(); i < size; ++i)
-		commonPrefixWithDrive.emplace_back(longestCommonRootPath(currentDirectoryObject, drives[i].rootObjectInfo).length());
-
-	const auto longestCommonRootIterator = std::max_element(cbegin_to_end(commonPrefixWithDrive));
-	if (longestCommonRootIterator == commonPrefixWithDrive.cend() || *longestCommonRootIterator == 0)
+	if (infoIt != volumes.cend())
+		return *infoIt;
+	else
 		return {};
+}
 
-	return static_cast<size_t>(std::distance(commonPrefixWithDrive.cbegin(), longestCommonRootIterator));
+std::optional<VolumeInfo> CController::volumeInfoById(uint64_t id) const
+{
+	return _volumeEnumerator.volumeById(id);
 }
 
 CFavoriteLocations& CController::favoriteLocations()
@@ -492,7 +502,7 @@ CFileSystemObject CController::currentItem()
 
 void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept
 {
-	const auto drives = _volumeEnumerator.drives();
+	const auto drives = _volumeEnumerator.volumes();
 
 	_rightPanel.volumesChanged(drives, drivesListOrReadinessChanged);
 	_leftPanel.volumesChanged(drives, drivesListOrReadinessChanged);
@@ -504,15 +514,21 @@ void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept
 	}
 }
 
+QString CController::volumePathById(uint64_t id) const
+{
+	const auto info = _volumeEnumerator.volumeById(id);
+	return info ? info->rootObjectInfo.fullAbsolutePath() : QString{};
+}
+
 void CController::saveDirectoryForCurrentVolume(Panel p)
 {
 	const CFileSystemObject path(panel(p).currentDirPathNative());
 	if (path.isNetworkObject())
 		return;
 
-	const std::optional<size_t> currentVolume = currentVolumeIndex(p);
+	const auto currentVolume = currentVolumeInfo(p);
 	assert_and_return_r(currentVolume, );
 
-	const QString drivePath = _volumeEnumerator.drives().at(*currentVolume).rootObjectInfo.fullAbsolutePath();
+	const QString drivePath = currentVolume->rootObjectInfo.fullAbsolutePath();
 	CSettings().setValue(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
 }

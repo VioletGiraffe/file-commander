@@ -116,7 +116,6 @@ public:
 	void uiThreadTimerTick();
 
 private:
-	const VolumeInfo& volumeInfoForObject(const CFileSystemObject& object) const;
 	bool pathIsAccessible(const QString& path) const;
 
 	void contentsChanged();
@@ -138,8 +137,6 @@ private:
 	CallbackCaller<CursorPositionListener>    _currentItemChangeListener;
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
-
-	std::vector<VolumeInfo> _volumes;
 
 	CWorkerThreadPool                          _workerThreadPool;
 	mutable CExecutionQueue                    _uiThreadQueue;

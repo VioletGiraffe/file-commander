@@ -14,7 +14,7 @@ struct VolumeInfo
 	bool isReady = false;
 
 	enum ComparisonResult {Equal, InsignificantChange, SignificantChange, DifferentObject};
-	ComparisonResult compare(const VolumeInfo& other) const noexcept {
+	[[nodiscard]] ComparisonResult compare(const VolumeInfo& other) const noexcept {
 		if (rootObjectInfo.hash() != other.rootObjectInfo.hash())
 			return DifferentObject;
 		else if (isReady != other.isReady)
@@ -25,7 +25,11 @@ struct VolumeInfo
 			return Equal;
 	}
 
-	inline bool isEmpty() const noexcept {
+	[[nodiscard]] inline bool isEmpty() const noexcept {
 		return rootObjectInfo.hash() == 0;
+	}
+
+	[[nodiscard]] inline uint64_t id() const noexcept {
+		return rootObjectInfo.hash();
 	}
 };

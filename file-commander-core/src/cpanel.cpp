@@ -1,4 +1,5 @@
 #include "cpanel.h"
+#include "ccontroller.h"
 #include "settings/csettings.h"
 #include "settings.h"
 #include "filesystemhelperfunctions.h"
@@ -10,7 +11,6 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
-#include <QVector>
 RESTORE_COMPILER_WARNINGS
 
 #include <time.h>
@@ -421,18 +421,17 @@ void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t p
 	}, ItemDiscoveryProgressNotificationTag);
 }
 
-void CPanel::volumesChanged(const std::vector<VolumeInfo>& volumes, bool drivesListOrReadinessChanged)
+void CPanel::volumesChanged(const std::vector<VolumeInfo>& /*volumes*/, bool drivesListOrReadinessChanged)
 {
-	_volumes = volumes;
-
 	if (!drivesListOrReadinessChanged)
 		return;
 
-	if (_currentDirObject.isNetworkObject())
+	if (_currentDirObject.isNetworkObject() || !_currentDirObject.isValid())
 		return;
 
 	// Handling an unplugged device
-	if (_currentDirObject.isValid() && !volumeInfoForObject(_currentDirObject).isReady)
+	const auto volumeInfo = CController::get().volumeInfoForObject(_currentDirObject);
+	if (volumeInfo && volumeInfo->isReady)
 		setPath(_currentDirObject.fullAbsolutePath(), refreshCauseOther);
 }
 
@@ -455,14 +454,6 @@ void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *liste
 void CPanel::addCurrentItemChangeListener(CursorPositionListener * listener)
 {
 	_currentItemChangeListener.addSubscriber(listener);
-}
-
-const VolumeInfo& CPanel::volumeInfoForObject(const CFileSystemObject& object) const
-{
-	static const VolumeInfo dummy;
-
-	const auto storage = std::find_if(_volumes.cbegin(), _volumes.cend(), [&object](const VolumeInfo& item) {return item.rootObjectInfo.rootFileSystemId() == object.rootFileSystemId();});
-	return storage != _volumes.cend() ? *storage : dummy;
 }
 
 //#include <dirent.h>

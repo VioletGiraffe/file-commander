@@ -9,10 +9,11 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <mutex>
+#include <optional>
 #include <vector>
 
 // Lists all the volumes available on a target machine
-class CVolumeEnumerator : public QObject
+class CVolumeEnumerator final : public QObject
 {
 public:
 	CVolumeEnumerator();
@@ -32,7 +33,8 @@ public:
 	// Removes the observer
 	void removeObserver(IVolumeListObserver * observer);
 	// Returns the drives found
-	std::vector<VolumeInfo> drives() const;
+	[[nodiscard]] std::vector<VolumeInfo> volumes() const;
+	[[nodiscard]] std::optional<VolumeInfo> volumeById(uint64_t id) const noexcept;
 
 	// Forces an update in this thread
 	void updateSynchronously();
@@ -44,10 +46,10 @@ private:
 	// Calls all the registered observers with the latest list of drives found
 	void notifyObservers(bool async, bool drivesListOrReadinessChanged /* Basically, distinguishes between significant and insignificant changes */) const;
 
-	static const std::vector<VolumeInfo> enumerateVolumesImpl();
+	[[nodiscard]] static const std::vector<VolumeInfo> enumerateVolumesImpl();
 
 private:
-	std::vector<VolumeInfo> _drives;
+	std::vector<VolumeInfo> _volumes;
 	mutable std::recursive_mutex _mutexForDrives; // Has to be recursive:
 	// enumerateVolumes() can be called synchronously through updateSynchronously(), and then drives() getter will fail to acquire the mutex unless it's recursive
 

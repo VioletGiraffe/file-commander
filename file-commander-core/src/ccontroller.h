@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-class CController : public CVolumeEnumerator::IVolumeListObserver
+class CController final : public CVolumeEnumerator::IVolumeListObserver
 {
 public:
 	// Volume list observer interface
@@ -43,7 +43,7 @@ public:
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched
-	bool switchToVolume(Panel p, size_t index);
+	std::pair<bool /*success*/, QString/*volume root path*/> switchToVolume(Panel p, uint64_t id);
 	// Program settings have changed
 	void settingsChanged();
 	// Focus is set to a panel
@@ -77,15 +77,8 @@ public:
 	void copyCurrentItemPathToClipboard();
 
 // Threading
-	inline void execOnWorkerThread(std::function<void()> task)
-	{
-		_workerThreadPool.enqueue(std::move(task));
-	}
-
-	inline void execOnUiThread(std::function<void ()> task, int tag = -1)
-	{
-		_uiQueue.enqueue(std::move(task), tag);
-	}
+	void execOnWorkerThread(std::function<void()> task);
+	void execOnUiThread(std::function<void ()> task, int tag = -1);
 
 // Getters
 	const CPanel& panel(Panel p) const;
@@ -104,9 +97,11 @@ public:
 	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
 	QString itemPath(Panel p, qulonglong hash) const;
 
-	CVolumeEnumerator& volumeEnumerator();
-	QString volumePath(size_t index) const;
-	std::optional<size_t> currentVolumeIndex(Panel p) const;
+
+	std::vector<VolumeInfo> volumes() const;
+	std::optional<VolumeInfo> currentVolumeInfo(Panel p) const;
+	std::optional<VolumeInfo> volumeInfoForObject(const CFileSystemObject& object) const noexcept;
+	std::optional<VolumeInfo> volumeInfoById(uint64_t id) const;
 
 	CFavoriteLocations& favoriteLocations();
 	CFileSearchEngine& fileSearchEngine();
@@ -119,6 +114,7 @@ public:
 private:
 	void volumesChanged(bool drivesListOrReadinessChanged) noexcept override;
 
+	QString volumePathById(uint64_t id) const;
 	void saveDirectoryForCurrentVolume(Panel p);
 
 private:

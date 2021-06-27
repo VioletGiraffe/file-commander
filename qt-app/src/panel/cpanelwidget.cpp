@@ -320,7 +320,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 	}
 
 	fillHistory();
-	updateCurrentDiskButtonAndInfoLabel();
+	updateCurrentVolumeButtonAndInfoLabel();
 }
 
 void CPanelWidget::showContextMenuForItems(QPoint pos)
@@ -358,8 +358,10 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 		return;
 
 	pos = button->mapToGlobal(pos) * button->devicePixelRatioF(); // These coordinates ar egoing directly into the system API so need to account for scaling that Qt tries to abstract away.
-	const size_t diskId = (size_t)(button->property("id").toULongLong());
-	std::vector<std::wstring> diskPath(1, _controller->volumePath(diskId).toStdWString());
+	const uint64_t diskId = button->property("id").toULongLong();
+	const auto volumeInfo = _controller->volumeInfoById(diskId);
+	assert_and_return_r(volumeInfo, );
+	std::vector<std::wstring> diskPath(1, volumeInfo->rootObjectInfo.fullAbsolutePath().toStdWString());
 	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), reinterpret_cast<HWND>(winId()));
 #else
 	Q_UNUSED(pos);
@@ -392,9 +394,9 @@ void CPanelWidget::driveButtonClicked()
 	if (!sender())
 		return;
 
-	const size_t id = (size_t)(sender()->property("id").toULongLong());
-	if (!_controller->switchToVolume(_panelPosition, id))
-		QMessageBox::information(this, tr("Failed to switch disk"), tr("The disk %1 is inaccessible (locked or doesn't exist).").arg(_controller->volumePath(id)));
+	const auto id = sender()->property("id").toULongLong();
+	if (const auto result = _controller->switchToVolume(_panelPosition, id); !result.first)
+		QMessageBox::information(this, tr("Failed to switch volume"), tr("The volume %1 is inaccessible (locked or doesn't exist).").arg(result.second));
 
 	ui->_list->setFocus();
 }
@@ -483,8 +485,8 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 
 void CPanelWidget::toRoot()
 {
-	if (!_currentDisk.isEmpty())
-		_controller->setPath(_panelPosition, _currentDisk, refreshCauseOther);
+	if (!_currentVoumePath.isEmpty())
+		_controller->setPath(_panelPosition, _currentVoumePath, refreshCauseOther);
 }
 
 void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
@@ -765,7 +767,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	if (p != _panelPosition)
 		return;
 
-	_currentDisk.clear();
+	_currentVoumePath.clear();
 
 	if (!ui->_driveButtonsWidget->layout())
 	{
@@ -787,26 +789,25 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 		}
 
 		// Creating and adding new buttons
-		for (size_t i = 0, n = drives.size(); i < n; ++i)
+		for (const VolumeInfo& volume: drives)
 		{
-			const auto& driveInfo = drives[i];
-			if (!driveInfo.isReady || !driveInfo.rootObjectInfo.isValid())
+			if (!volume.isReady || !volume.rootObjectInfo.isValid())
 				continue;
 
 #ifdef _WIN32
 			const QString name = driveInfo.rootObjectInfo.fullAbsolutePath().remove(":/");
 #else
-			const QString name = driveInfo.volumeLabel;
+			const QString name = volume.volumeLabel;
 #endif
 
 			assert_r(layout);
-			auto diskButton = new QPushButton;
+			auto* diskButton = new QPushButton;
 			diskButton->setFocusPolicy(Qt::NoFocus);
 			diskButton->setCheckable(true);
-			diskButton->setIcon(CIconProvider::iconForFilesystemObject(drives[i].rootObjectInfo, false));
+			diskButton->setIcon(CIconProvider::iconForFilesystemObject(volume.rootObjectInfo, false));
 			diskButton->setText(name);
 			diskButton->setFixedWidth(QFontMetrics(diskButton->font()).boundingRect(diskButton->text()).width() + 5 + diskButton->iconSize().width() + 20);
-			diskButton->setProperty("id", (qulonglong)i);
+			diskButton->setProperty("id", (qulonglong)volume.id());
 			diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 			assert_r(connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked));
 			assert_r(connect(diskButton, &QPushButton::customContextMenuRequested, this, &CPanelWidget::showContextMenuForDisk));
@@ -814,7 +815,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 		}
 	}
 
-	updateCurrentDiskButtonAndInfoLabel();
+	updateCurrentVolumeButtonAndInfoLabel();
 }
 
 qulonglong CPanelWidget::hashBySortModelIndex(const QModelIndex &index) const
@@ -958,19 +959,17 @@ void CPanelWidget::onSettingsChanged()
 		ui->_list->setFont(font);
 }
 
-void CPanelWidget::updateCurrentDiskButtonAndInfoLabel()
+void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 {
-	const std::optional<size_t> currentDriveId = _controller->currentVolumeIndex(_panelPosition);
-	if (!currentDriveId)
+	const auto currentVolumeInfo = _controller->currentVolumeInfo(_panelPosition);
+	if (currentVolumeInfo)
 	{
-		ui->_driveInfoLabel->clear();
-		return;
+		_currentVoumePath = currentVolumeInfo->rootObjectInfo.fullAbsolutePath();
+		ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").
+			arg(currentVolumeInfo->volumeLabel, currentVolumeInfo->fileSystemName, fileSizeToString(currentVolumeInfo->freeSize, 'M', " "), fileSizeToString(currentVolumeInfo->volumeSize, 'M', " ")));
 	}
-
-	const auto diskInfo = _controller->volumeEnumerator().drives()[*currentDriveId];
-	_currentDisk = diskInfo.rootObjectInfo.fullAbsolutePath();
-	ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").
-		arg(diskInfo.volumeLabel, diskInfo.fileSystemName, fileSizeToString(diskInfo.freeSize, 'M', " "), fileSizeToString(diskInfo.volumeSize, 'M', " ")));
+	else
+		ui->_driveInfoLabel->clear();
 
 	auto layout = ui->_driveButtonsWidget->layout();
 	for (int i = 0, n = layout->count(); i < n; ++i)
@@ -979,8 +978,8 @@ void CPanelWidget::updateCurrentDiskButtonAndInfoLabel()
 		if (!button)
 			continue;
 
-		const size_t id = static_cast<size_t>(button->property("id").toULongLong());
-		button->setChecked(id == *currentDriveId);
+		const auto id = button->property("id").toULongLong();
+		button->setChecked(currentVolumeInfo ? (id == currentVolumeInfo->id()) : false); // Need to clear all selection if the current volume cannot be determined
 	}
 }
 
