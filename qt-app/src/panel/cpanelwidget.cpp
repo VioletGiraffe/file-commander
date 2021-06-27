@@ -771,7 +771,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 
 	if (!ui->_driveButtonsWidget->layout())
 	{
-		auto flowLayout = new QFlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
+		auto flowLayout = new FlowLayout(ui->_driveButtonsWidget, -1, 5, 5);
 		flowLayout->setSpacing(1);
 		ui->_driveButtonsWidget->setLayout(flowLayout);
 	}

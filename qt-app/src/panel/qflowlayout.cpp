@@ -4,32 +4,31 @@ DISABLE_COMPILER_WARNINGS
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
-QFlowLayout::QFlowLayout(QWidget *parent, int margin, int hSpacing, int vSpacing)
+FlowLayout::FlowLayout(QWidget *parent, int margin, int hSpacing, int vSpacing)
 	: QLayout(parent), m_hSpace(hSpacing), m_vSpace(vSpacing)
 {
 	setContentsMargins(margin, margin, margin, margin);
 }
 
-QFlowLayout::QFlowLayout(int margin, int hSpacing, int vSpacing)
+FlowLayout::FlowLayout(int margin, int hSpacing, int vSpacing)
 	: m_hSpace(hSpacing), m_vSpace(vSpacing)
 {
 	setContentsMargins(margin, margin, margin, margin);
 }
 
-
-QFlowLayout::~QFlowLayout()
+FlowLayout::~FlowLayout()
 {
 	QLayoutItem *item;
-	while ((item = takeAt(0)) != nullptr)
+	while ((item = takeAt(0)))
 		delete item;
 }
 
-void QFlowLayout::addItem(QLayoutItem *item)
+void FlowLayout::addItem(QLayoutItem *item)
 {
 	itemList.append(item);
 }
 
-int QFlowLayout::horizontalSpacing() const
+int FlowLayout::horizontalSpacing() const
 {
 	if (m_hSpace >= 0) {
 		return m_hSpace;
@@ -38,7 +37,7 @@ int QFlowLayout::horizontalSpacing() const
 	}
 }
 
-int QFlowLayout::verticalSpacing() const
+int FlowLayout::verticalSpacing() const
 {
 	if (m_vSpace >= 0) {
 		return m_vSpace;
@@ -47,52 +46,52 @@ int QFlowLayout::verticalSpacing() const
 	}
 }
 
-int QFlowLayout::count() const
+int FlowLayout::count() const
 {
 	return itemList.size();
 }
 
-QLayoutItem *QFlowLayout::itemAt(int index) const
+QLayoutItem *FlowLayout::itemAt(int index) const
 {
 	return itemList.value(index);
 }
 
-QLayoutItem *QFlowLayout::takeAt(int index)
+QLayoutItem *FlowLayout::takeAt(int index)
 {
 	if (index >= 0 && index < itemList.size())
 		return itemList.takeAt(index);
 	else
-		return nullptr;
+		return 0;
 }
 
-Qt::Orientations QFlowLayout::expandingDirections() const
+Qt::Orientations FlowLayout::expandingDirections() const
 {
 	return {};
 }
 
-bool QFlowLayout::hasHeightForWidth() const
+bool FlowLayout::hasHeightForWidth() const
 {
 	return true;
 }
 
-int QFlowLayout::heightForWidth(int width) const
+int FlowLayout::heightForWidth(int width) const
 {
 	int height = doLayout(QRect(0, 0, width, 0), true);
 	return height;
 }
 
-void QFlowLayout::setGeometry(const QRect &rect)
+void FlowLayout::setGeometry(const QRect &rect)
 {
 	QLayout::setGeometry(rect);
 	doLayout(rect, false);
 }
 
-QSize QFlowLayout::sizeHint() const
+QSize FlowLayout::sizeHint() const
 {
 	return minimumSize();
 }
 
-QSize QFlowLayout::minimumSize() const
+QSize FlowLayout::minimumSize() const
 {
 	QSize size;
 	QLayoutItem *item;
@@ -103,7 +102,7 @@ QSize QFlowLayout::minimumSize() const
 	return size;
 }
 
-int QFlowLayout::doLayout(const QRect &rect, bool testOnly) const
+int FlowLayout::doLayout(const QRect &rect, bool testOnly) const
 {
 	int left, top, right, bottom;
 	getContentsMargins(&left, &top, &right, &bottom);
@@ -140,7 +139,7 @@ int QFlowLayout::doLayout(const QRect &rect, bool testOnly) const
 	return y + lineHeight - rect.y() + bottom;
 }
 
-int QFlowLayout::smartSpacing(QStyle::PixelMetric pm) const
+int FlowLayout::smartSpacing(QStyle::PixelMetric pm) const
 {
 	QObject *parent = this->parent();
 	if (!parent) {
