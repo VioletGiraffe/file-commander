@@ -965,8 +965,9 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 	if (currentVolumeInfo)
 	{
 		_currentVoumePath = currentVolumeInfo->rootObjectInfo.fullAbsolutePath();
-		ui->_driveInfoLabel->setText(tr("%1 (%2): <b>%4 free</b> of %5 total").
-			arg(currentVolumeInfo->volumeLabel, currentVolumeInfo->fileSystemName, fileSizeToString(currentVolumeInfo->freeSize, 'M', " "), fileSizeToString(currentVolumeInfo->volumeSize, 'M', " ")));
+		const QString volumeInfoText = tr("%1 (%2): <b>%4 free</b> of %5 total").
+				arg(currentVolumeInfo->volumeLabel, currentVolumeInfo->fileSystemName, fileSizeToString(currentVolumeInfo->freeSize, 'M', " "), fileSizeToString(currentVolumeInfo->volumeSize, 'M', " "));
+		ui->_driveInfoLabel->setText(volumeInfoText);
 	}
 	else
 		ui->_driveInfoLabel->clear();
