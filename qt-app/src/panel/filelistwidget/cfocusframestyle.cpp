@@ -37,7 +37,6 @@ void CFocusFrameStyle::drawPrimitive(PrimitiveElement element, const QStyleOptio
 
 	if (const auto fropt = qstyleoption_cast<const QStyleOptionFocusRect *>(option))
 	{
-		const auto previousClipRegion = painter->clipRegion();
 		painter->setClipRect(option->rect);
 
 		const QColor bg = fropt->backgroundColor;

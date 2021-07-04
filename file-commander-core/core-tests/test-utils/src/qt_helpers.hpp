@@ -5,7 +5,7 @@
 class QString;
 
 std::ostream& operator<<(std::ostream& stream, const QString& qString);
-QString qStringFromWstring(const std::wstring ws);
+QString qStringFromWstring(const std::wstring& ws);
 
 struct Logger {
 	template <typename T>

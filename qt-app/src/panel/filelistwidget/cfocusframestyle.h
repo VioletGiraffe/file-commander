@@ -9,7 +9,7 @@ class QPainter;
 class QWidget;
 class QStyleOptionComplex;
 
-class CFocusFrameStyle: public QStyle
+class CFocusFrameStyle final : public QStyle
 {
 public:
 	void drawComplexControl(ComplexControl control, const QStyleOptionComplex * option, QPainter * painter, const QWidget * widget = nullptr) const override;

@@ -11,7 +11,7 @@ std::ostream& operator<<(std::ostream& stream, const QString& qString)
 	return stream;
 }
 
-QString qStringFromWstring(const std::wstring ws)
+QString qStringFromWstring(const std::wstring& ws)
 {
 	return QString::fromWCharArray(ws.data(), (int)ws.size());
 }
