@@ -23,11 +23,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-      
+
     - name: Checkout subrepos
       if: "!startsWith(matrix.os, 'windows')"
       run: ./update_repository.sh
-      
+
     - name: Checkout subrepos
       if: "startsWith(matrix.os, 'windows')"
       shell: cmd
@@ -35,11 +35,11 @@ jobs:
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
-      
+
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
       uses: microsoft/setup-msbuild@v1.0.2
-      
+
     - name: Windows - building main installer
       if: startsWith(matrix.os, 'windows')
       shell: cmd
@@ -52,7 +52,7 @@ jobs:
         cd ..\..
         xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\x64\
         xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\x64\
-        
+
     - name: Windows - building tests
       if: startsWith(matrix.os, 'windows')
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -70,7 +70,7 @@ jobs:
       run: |
         clang --version
         ./installer/mac/create_dmg.sh $Qt5_DIR
-      
+
     - name: Linux
       if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -90,7 +90,7 @@ jobs:
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QMAKE -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
-      
+
     - name: Test run
       if: startsWith(matrix.os, 'macos')
       run: ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch
@@ -99,12 +99,12 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         xvfb-run --auto-servernum ./bin/release/x64/FileCommander --test-launch
-        
+
     - name: Test run
       if: startsWith(matrix.os, 'widows')
       run: |
         .\bin\release\x64\FileCommander.exe --test-launch  
-      
+
     - name: Tests - Mac
       if: startsWith(matrix.os, 'macos')
       run: |
@@ -118,7 +118,7 @@ jobs:
         set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
         set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
-        
+
     - name: Tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
       run: |
@@ -160,7 +160,7 @@ jobs:
       with:
           name: FileCommander.dmg
           path: FileCommander.dmg
-          
+
     - name: Archive AppImage
       if: startsWith(matrix.os, 'ubuntu')
       uses: actions/upload-artifact@v2
