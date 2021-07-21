@@ -76,7 +76,9 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         export QT_DEBUG_PLUGINS=1
-        sudo apt-get update -y; sudo apt-get install -qq libglu1-mesa-dev libx11-xcb-dev '^libxcb*'
+        sudo apt update -y; sudo apt install -qq gcc-10 g++-10 libglu1-mesa-dev libx11-xcb-dev '^libxcb*'
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 50
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 50
         g++ --version
         export PATH=$Qt5_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
