@@ -150,7 +150,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	ui->_list->setModel(_sortModel);
 	assert_r(connect(_sortModel, &QSortFilterProxyModel::modelAboutToBeReset, ui->_list, &CFileListView::modelAboutToBeReset));
-	assert_r(connect(_sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [=](){
+	assert_r(connect(_sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [this](){
 		ui->_list->scrollTo(ui->_list->currentIndex());
 	}));
 

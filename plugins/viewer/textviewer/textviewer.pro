@@ -4,7 +4,7 @@ TARGET   = plugin_textviewer
 QT = core gui widgets
 win*: QT += winextras
 
-CONFIG += strict_c++ c++17
+CONFIG += strict_c++ c++2a
 
 mac* | linux* | freebsd{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
@@ -42,7 +42,7 @@ LIBS += -L../../../bin/$${OUTPUT_DIR} -lcore -lqtutils -ltext_encoding_detector 
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /wd4251 /JMC
-	QMAKE_CXXFLAGS += /std:c++17 /permissive- /Zc:__cplusplus
+	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 
