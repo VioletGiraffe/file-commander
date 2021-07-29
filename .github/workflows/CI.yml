@@ -60,7 +60,7 @@ jobs:
       run: |
         cd file-commander-core\core-tests\
         dir
-        call "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
+        call "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 -vcvars_ver=14.29 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142 core-tests.sln
         cd ..\..
 
