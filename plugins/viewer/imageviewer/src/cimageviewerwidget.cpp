@@ -97,7 +97,7 @@ QIcon CImageViewerWidget::imageIcon(const QList<QSize>& sizes) const
 	if (!_sourceImage.isNull())
 	{
 		for (QSize s : sizes)
-			result.addPixmap(QPixmap::fromImage(CImageResizer::resize(_sourceImage, s, CImageResizer::Smart)));
+			result.addPixmap(QPixmap::fromImage(ImageResizing::resize(_sourceImage, s, ImageResizing::Smart)));
 	}
 
 	return result;
@@ -106,7 +106,7 @@ QIcon CImageViewerWidget::imageIcon(const QList<QSize>& sizes) const
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	if (_scaledImage.isNull() || _scaledImage.size() != _sourceImage.size().scaled(size(), Qt::KeepAspectRatio))
-		_scaledImage = CImageResizer::resize(_sourceImage, size(), CImageResizer::Smart);
+		_scaledImage = ImageResizing::resize(_sourceImage, size(), ImageResizing::Smart);
 
 	if (!_sourceImage.isNull())
 		QPainter(this).drawImage(0, 0, _scaledImage);

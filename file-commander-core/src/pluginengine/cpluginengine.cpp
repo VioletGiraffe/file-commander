@@ -37,7 +37,8 @@ void CPluginEngine::loadPlugins()
 		if (path.isSymLink())
 			continue;
 
-		auto pluginModule = std::make_unique<QLibrary>(path.absoluteFilePath());
+		const auto absolutePath = path.absoluteFilePath();
+		auto pluginModule = std::make_unique<QLibrary>(absolutePath);
 		auto createFunc = (decltype(createPlugin)*)(pluginModule->resolve("createPlugin"));
 		if (createFunc)
 		{
@@ -45,7 +46,7 @@ void CPluginEngine::loadPlugins()
 			if (plugin)
 			{
 				plugin->setProxy(&CController::get().pluginProxy());
-				qInfo() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name(), path.fileName());
+				qInfo().noquote() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name(), absolutePath);
 				_plugins.emplace_back(std::unique_ptr<CFileCommanderPlugin>(plugin), std::move(pluginModule));
 			}
 		}
