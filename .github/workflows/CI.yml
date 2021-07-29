@@ -45,7 +45,7 @@ jobs:
       shell: cmd
       run: |
         %Qt5_DIR%\bin\qmake.exe -v
-        dir "C:\Program Files (x86)\Windows Kits\10\include\"
+        dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC"
         set QTDIR64=%Qt5_DIR%
         cd installer\windows\
         create_installer.bat
