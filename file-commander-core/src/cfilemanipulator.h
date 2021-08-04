@@ -3,6 +3,7 @@
 #include "fileoperationresultcode.h"
 #include "cfilesystemobject.h"
 #include "compiler/compiler_warnings_control.h"
+#include "utility/named_type_wrapper.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
@@ -15,14 +16,18 @@ RESTORE_COMPILER_WARNINGS
 
 class QFile;
 
+using TransferPermissions = UniqueNamedBoolType;
+using OverwriteExistingFile = UniqueNamedBoolType;
+
 class CFileManipulator
 {
 public:
 	explicit CFileManipulator(const CFileSystemObject& object);
 
 // Operations
-	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = QString(), bool copyPermissions = true);
-	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = QString());
+	
+	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = {}, TransferPermissions transferPermissions = TransferPermissions{ true });
+	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = {}, OverwriteExistingFile overwriteExistingFile = {});
 
 	static FileOperationResultCode copyAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());
 	static FileOperationResultCode moveAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());

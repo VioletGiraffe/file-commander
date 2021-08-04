@@ -462,18 +462,36 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	newName = FileSystemHelpers::trimUnsupportedSymbols(newName);
 
 	CFileManipulator itemManipulator(item);
-	const auto result = itemManipulator.moveAtomically(item.parentDirPath(), newName);
-
-	// This is required for the UI to know to move the cursor to the renamed item
-	if (result == FileOperationResultCode::Ok)
-		_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() + newName).hash());
+	auto result = itemManipulator.moveAtomically(item.parentDirPath(), newName);
 
 	if (result == FileOperationResultCode::TargetAlreadyExists)
 	{
-		const auto text = item.isFile() ? tr("The file %1 already exists.") : tr("The folder %1 already exists.");
-		QMessageBox::information(this, tr("Item already exists"), text.arg(newName));
+		if (item.isDir())
+			QMessageBox::information(this, tr("Item already exists"), tr("The folder %1 already exists.").arg(newName));
+		else if (item.isFile())
+		{
+			// Fix for https://github.com/VioletGiraffe/file-commander/issues/123
+			if (QMessageBox::question(
+					this,
+					tr("Item already exists"),
+					tr("The file %1 already exists, do you want to overwrite it?").arg(newName),
+					QMessageBox::Yes | QMessageBox::No,
+					QMessageBox::Yes
+				)
+				== QMessageBox::Yes)
+			{
+				result = itemManipulator.moveAtomically(item.parentDirPath(), newName, OverwriteExistingFile{ true });
+			}
+		}
+
 	}
-	else if (result != FileOperationResultCode::Ok)
+
+	if (result == FileOperationResultCode::Ok)
+	{
+		// This is required for the UI to know to move the cursor to the renamed item
+		_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() + newName).hash());
+	}
+	else
 	{
 		QString errorMessage = tr("Failed to rename %1 to %2").arg(item.fullName(), newName);
 		if (!itemManipulator.lastErrorMessage().isEmpty())

@@ -34,7 +34,7 @@ CFileManipulator::CFileManipulator(const CFileSystemObject& object) : _object(ob
 {
 }
 
-FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName, bool transferPermissions)
+FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName, TransferPermissions transferPermissions)
 {
 	assert_r(_object.isFile());
 	assert_r(QFileInfo{destFolder}.isDir());
@@ -56,7 +56,7 @@ FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFold
 	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
 
-FileOperationResultCode CFileManipulator::moveAtomically(const QString& location, const QString& newName)
+FileOperationResultCode CFileManipulator::moveAtomically(const QString& location, const QString& newName, OverwriteExistingFile overwriteExistingFile)
 {
 	if (!_object.exists())
 		return FileOperationResultCode::ObjectDoesntExist;
@@ -65,12 +65,24 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 
 	assert_debug_only(QFileInfo{ location }.isDir());
 	const QString fullNewName = location % '/' % (newName.isEmpty() ? _object.fullName() : newName);
-	const CFileSystemObject destInfo(fullNewName);
+	CFileSystemObject destInfo(fullNewName);
 	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(_object.fullAbsolutePath(), Qt::CaseInsensitive) == 0;
+
+	// If the file system is case-insensitive, and the source and destination only differ by case, renaming is allowed even though formally the destination already exists (fix for #102)
 	if ((caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase) && destInfo.exists())
 	{
-		// If the file system is case-insensitive, and the source and destination only differ by case, renaming is allowed even though formally the destination already exists (fix for #102)
-		if (_object.isDir() || destInfo.isFile())
+		if (_object.isDir())
+			return FileOperationResultCode::TargetAlreadyExists;
+		else if (overwriteExistingFile == true && _object.isFile() && destInfo.isFile())
+		{
+			// Special case: it may be allowed to replace the existing file (https://github.com/VioletGiraffe/file-commander/issues/123)
+			if (remove(destInfo) != FileOperationResultCode::Ok)
+				return FileOperationResultCode::TargetAlreadyExists;
+
+			// File removed - update the info
+			destInfo = CFileSystemObject{ fullNewName };
+		}
+		else if (destInfo.isFile())
 			return FileOperationResultCode::TargetAlreadyExists;
 	}
 
