@@ -63,7 +63,7 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	}
 
 #ifdef __APPLE__
-	static constexpr int multiplier = 10;
+	static constexpr int multiplier = 20;
 #else
 	static constexpr int multiplier = 1;
 #endif
