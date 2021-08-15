@@ -9,13 +9,13 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QIcon>
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include <QtWinExtras>
-#endif
-
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include <QtWinExtras>
+#endif
 
 #include <shellapi.h>
 
