@@ -21,8 +21,9 @@
 #include "utility/memory_cast.hpp"
 
 DISABLE_COMPILER_WARNINGS
+#include "qtcore_helpers/qdatetime_helpers.hpp"
+
 #include <QClipboard>
-#include <QDateTime>
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
@@ -232,9 +233,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		dateItem->setEditable(false);
 		if (!object.isCdUp())
 		{
-			QDateTime modificationDate;
-			modificationDate.setTime_t((uint) props.modificationDate);
-			modificationDate = modificationDate.toLocalTime();
+			QDateTime modificationDate = fromTime_t(props.modificationDate).toLocalTime();
 			dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm:ss"), Qt::DisplayRole);
 		}
 		dateItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object

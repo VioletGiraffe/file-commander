@@ -4,17 +4,18 @@
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QActionGroup>
 #include <QFileDialog>
 #include <QLabel>
 #include <QMimeDatabase>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QShortcut>
 #include <QStringBuilder>
 #include <QTextCodec>
 RESTORE_COMPILER_WARNINGS
 
 #include <type_traits>
-
 
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	CPluginWindow(parent),
@@ -243,7 +244,7 @@ void CTextViewerWindow::findNext()
 	const QTextCursor startCursor = _textBrowser.textCursor();
 	bool found = false;
 	if (_findDialog.regex())
-		found = _textBrowser.find(QRegExp(_findDialog.searchExpression(), _findDialog.caseSensitive() ? Qt::CaseSensitive : Qt::CaseInsensitive), flags);
+		found = _textBrowser.find(QRegularExpression(_findDialog.searchExpression()), flags);
 	else
 		found = _textBrowser.find(_findDialog.searchExpression(), flags);
 

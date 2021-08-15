@@ -8,9 +8,6 @@ mac* | linux* | freebsd{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
 	CONFIG(debug, debug|release):CONFIG *= Debug
 }
-win*{
-	QT += winextras
-}
 
 contains(QT_ARCH, x86_64) {
 	ARCHITECTURE = x64

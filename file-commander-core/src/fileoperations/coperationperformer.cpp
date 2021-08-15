@@ -750,7 +750,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 		QString actualNewName = _newName;
 		if (actualNewName.isEmpty() && destInfo.isFile())
-			actualNewName = destInfo.isFile();
+			actualNewName = destInfo.fileName();
 
 		const QString errorMessage =
 			"Error copying file " % item.fullAbsolutePath() %

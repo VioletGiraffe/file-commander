@@ -2,7 +2,6 @@ TEMPLATE = lib
 TARGET   = plugin_imageviewer
 
 QT = core gui widgets
-win*:QT += winextras
 
 CONFIG += strict_c++ c++2a
 

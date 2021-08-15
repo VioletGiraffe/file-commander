@@ -2,7 +2,9 @@ TEMPLATE = lib
 TARGET   = plugin_textviewer
 
 QT = core gui widgets
-win*: QT += winextras
+greaterThan(QT_MAJOR_VERSION, 5) {
+	QT += core5compat
+}
 
 CONFIG += strict_c++ c++2a
 

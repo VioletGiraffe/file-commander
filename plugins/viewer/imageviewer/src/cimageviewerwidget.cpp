@@ -5,7 +5,6 @@
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QDebug>
-#include <QDesktopWidget>
 #include <QImageReader>
 #include <QMainWindow>
 #include <QMessageBox>

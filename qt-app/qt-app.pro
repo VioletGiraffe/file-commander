@@ -2,7 +2,9 @@ TEMPLATE = app
 TARGET   = FileCommander
 
 QT = core gui widgets network
-win*:QT += winextras
+lessThan(QT_MAJOR_VERSION, 6) {
+	win*:QT += winextras
+}
 
 CONFIG += strict_c++ c++2a
 

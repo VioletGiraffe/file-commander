@@ -12,7 +12,8 @@
 #endif
 
 DISABLE_COMPILER_WARNINGS
-#include <QDateTime>
+#include "qtcore_helpers/qdatetime_helpers.hpp"
+
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
@@ -118,7 +119,7 @@ void CFileSystemObject::refreshInfo()
 	//	_properties.exists = true;
 	//	_properties.type = File;
 	//}
-	//else 
+	//else
 	if (_fileInfo.isFile())
 		_properties.type = File;
 	else if (_fileInfo.isDir())
@@ -188,8 +189,8 @@ void CFileSystemObject::refreshInfo()
 	if (!_properties.exists)
 		return;
 
-	_properties.creationDate = (time_t) _fileInfo.birthTime().toTime_t();
-	_properties.modificationDate = _fileInfo.lastModified().toTime_t();
+	_properties.creationDate = toTime_t(_fileInfo.birthTime());
+	_properties.modificationDate = toTime_t(_fileInfo.lastModified());
 	_properties.size = _properties.type == File ? static_cast<uint64_t>(_fileInfo.size()) : 0ULL;
 }
 
@@ -425,10 +426,7 @@ QString CFileSystemObject::sizeString() const
 
 QString CFileSystemObject::modificationDateString() const
 {
-	QDateTime modificationDate;
-	modificationDate.setTime_t((uint)_properties.modificationDate);
-	modificationDate = modificationDate.toLocalTime();
-	return modificationDate.toString(QLatin1String("dd.MM.yyyy hh:mm"));
+	return fromTime_t(_properties.modificationDate).toLocalTime().toString(QLatin1String("dd.MM.yyyy hh:mm"));
 }
 
 
@@ -437,7 +435,7 @@ QString CFileSystemObject::modificationDateString() const
 std::vector<QString> pathHierarchy(const QString& path)
 {
 	assert_r(!path.contains('\\'));
-	assert_r(!path.contains(QStringLiteral("//")) || !path.rightRef(path.length() - 2).contains(QStringLiteral("//")));
+	assert_r(!path.contains(QStringLiteral("//")) || !QStringView{path}.right(path.length() - 2).contains(QLatin1String("//")));
 
 	if (path.isEmpty())
 		return {};

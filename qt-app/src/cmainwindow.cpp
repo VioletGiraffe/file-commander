@@ -27,8 +27,9 @@
 DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
 
+#include "qtcore_helpers/qdatetime_helpers.hpp"
+
 #include <QCloseEvent>
-#include <QDesktopWidget>
 #include <QFileDialog>
 #include <QFileIconProvider>
 #include <QInputDialog>
@@ -114,7 +115,7 @@ void CMainWindow::onCreate()
 
 	// Check for updates
 	if (s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() &&
-		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
+		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
 	{
 		s.setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
 		auto dlg = new CUpdaterDialog(this, "https://github.com/VioletGiraffe/file-commander", VERSION_STRING, true);
@@ -419,7 +420,7 @@ void CMainWindow::deleteFiles()
 	void* windowHandle = nullptr;
 #endif
 
-	_controller->execOnWorkerThread([=]() {
+	_controller->execOnWorkerThread([=, this]() {
 		if (!OsShell::deleteItems(paths, true, windowHandle))
 			_controller->execOnUiThread([this]() {
 			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
@@ -445,7 +446,7 @@ void CMainWindow::deleteFilesIrrevocably()
 	for (auto& item : items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
-	_controller->execOnWorkerThread([=]() {
+	_controller->execOnWorkerThread([=, this]() {
 		if (!OsShell::deleteItems(paths, false, (void*)winId()))
 			_controller->execOnUiThread([this]() {
 			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));

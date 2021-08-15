@@ -8,12 +8,14 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QIcon>
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include <QtWinExtras>
+#endif
+
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
-DISABLE_COMPILER_WARNINGS
-#include <QtWin>
-RESTORE_COMPILER_WARNINGS
 
 #include <shellapi.h>
 
@@ -62,7 +64,7 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool gue
 			WCHAR nameBuffer[32768];
 			auto* itemName = appendToString(nameBuffer, L"x", 1);
 			itemName = appendToString(itemName, object.extension());
-			itemName = 0; // Null-terminator
+			*itemName = 0; // Null-terminator
 
 			result = SHGetFileInfoW(nameBuffer, FILE_ATTRIBUTE_NORMAL, &info, sizeof(info), flags);
 		}
@@ -73,7 +75,11 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool gue
 		return {};
 	}
 
-	QIcon icon = QIcon(QtWin::fromHICON(info.hIcon));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QIcon icon = QPixmap::fromImage(QImage::fromHICON(info.hIcon));
+#else
+	QIcon icon = QtWin::fromHICON(info.hIcon);
+#endif
 	DestroyIcon(info.hIcon);
 	return icon;
 }

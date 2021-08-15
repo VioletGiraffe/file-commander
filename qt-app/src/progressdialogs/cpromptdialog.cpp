@@ -6,7 +6,8 @@
 #include "settings.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QDateTime>
+#include "qtcore_helpers/qdatetime_helpers.hpp"
+
 #include <QInputDialog>
 #include <QLineEdit>
 RESTORE_COMPILER_WARNINGS
@@ -52,6 +53,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
+		break;
 	case hrFileDoesntExit:
 		ui->lblQuestion->setText("The file or folder doesn't exist.");
 		ui->btnOverwrite->setVisible(false);
@@ -102,9 +104,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 
 		ui->m_lblItemBeingDeleted->setText(source.fullAbsolutePath());
 		ui->lblSize->setText(fileSizeToString(source.size()));
-		QDateTime modificationDate;
-		modificationDate.setTime_t((uint)source.properties().modificationDate);
-		modificationDate = modificationDate.toLocalTime();
+		auto modificationDate = fromTime_t(source.properties().modificationDate).toLocalTime();
 		ui->lblModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
 	}
 	else
@@ -115,9 +115,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		{
 			ui->lblSrcFile->setText(source.fullAbsolutePath());
 			ui->lblSourceSize->setText(fileSizeToString(source.size()));
-			QDateTime modificationDate;
-			modificationDate.setTime_t((uint)source.properties().modificationDate);
-			modificationDate = modificationDate.toLocalTime();
+			auto modificationDate = fromTime_t(source.properties().modificationDate).toLocalTime();
 			ui->lblSourceModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
 		}
 		else
@@ -127,9 +125,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		{
 			ui->lblDstFile->setText(dest.fullAbsolutePath());
 			ui->lblDestSize->setText(fileSizeToString(dest.size()));
-			QDateTime modificationDate;
-			modificationDate.setTime_t((uint)dest.properties().modificationDate);
-			modificationDate = modificationDate.toLocalTime();
+			auto modificationDate = fromTime_t(dest.properties().modificationDate).toLocalTime();
 			ui->lblDestModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
 		}
 		else

@@ -2,10 +2,11 @@
 
 #include "threading/cinterruptablethread.h"
 
+#include <qcontainerfwd.h>
+
 class CController;
 
 class QString;
-class QStringList;
 
 #include <set>
 
