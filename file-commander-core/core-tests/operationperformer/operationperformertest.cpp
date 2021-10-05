@@ -25,7 +25,7 @@ RESTORE_COMPILER_WARNINGS
 #define CATCH_CONFIG_RUNNER
 #include "../catch2/catch.hpp"
 
-static uint32_t g_randomSeed = 0;
+static uint32_t g_randomSeed = 1633456005;
 
 static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
 	QFileDevice::FileAccessTime,
@@ -90,7 +90,7 @@ struct ProgressObserver final : public CFileOperationObserver {
 	inline void onCurrentFileChanged(QString /*file*/) override {} // Starting to process a new file
 };
 
-TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer-copy]")
+TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
 	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
@@ -164,7 +164,7 @@ TEST_CASE((std::string("Copy test #") + std::to_string((srand(time(nullptr)), ra
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
 
-TEST_CASE((std::string("Move test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer-move]")
+TEST_CASE((std::string("Move test #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
 	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
@@ -215,7 +215,7 @@ TEST_CASE((std::string("Move test #") + std::to_string((srand(time(nullptr)), ra
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
 
-TEST_CASE((std::string("Delete test #") + std::to_string((srand(time(nullptr)), rand()))).c_str(), "[operationperformer-delete]")
+TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[operationperformer-delete]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
 	REQUIRE(sourceDirectory.isValid());
@@ -272,6 +272,8 @@ int main(int argc, char* argv[])
 	const int returnCode = session.applyCommandLine(argc, argv);
 	if (returnCode != 0) // Indicates a command line error
 		return returnCode;
+
+	srand(g_randomSeed);
 
 	return session.run();
 }
