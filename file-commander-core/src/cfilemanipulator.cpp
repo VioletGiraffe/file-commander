@@ -86,18 +86,15 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 			return FileOperationResultCode::TargetAlreadyExists;
 	}
 
-	// Special case for Windows, where QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
+	// Windows: QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
+	// Also, QFile::rename will attempt to painfully copy the file if it's locked.
 #ifdef _WIN32
-	if (newNameDiffersOnlyInLetterCase)
-	{
-		if (MoveFileW((const WCHAR*)_object.fullAbsolutePath().utf16(), (const WCHAR*)destInfo.fullAbsolutePath().utf16()) != 0)
-			return FileOperationResultCode::Ok;
+	if (MoveFileW((const WCHAR*)_object.fullAbsolutePath().utf16(), (const WCHAR*)destInfo.fullAbsolutePath().utf16()) != 0)
+		return FileOperationResultCode::Ok;
 
-		_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
-		return FileOperationResultCode::Fail;
-	}
-#endif
-
+	_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
+	return FileOperationResultCode::Fail;
+#else
 	if (_object.isFile())
 	{
 		QFile file(_object.fullAbsolutePath());
@@ -116,6 +113,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 	}
 	else
 		return FileOperationResultCode::Fail;
+#endif
 }
 
 FileOperationResultCode CFileManipulator::copyAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName /*= QString()*/)

@@ -446,9 +446,8 @@ void CPanelWidget::setCursorToItem(const QString& folder, qulonglong currentItem
 		return;
 
 	const auto newCurrentIndex = indexByHash(currentItemHash);
-	assert_and_return_r(newCurrentIndex.isValid(), );
-
-	_selectionModel->setCurrentIndex(newCurrentIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
+	if(newCurrentIndex.isValid())
+		_selectionModel->setCurrentIndex(newCurrentIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
 }
 
 void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
