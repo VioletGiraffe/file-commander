@@ -111,7 +111,7 @@ void CFileSystemObject::refreshInfo()
 
 	_properties.fullPath = _fileInfo.absoluteFilePath();
 
-	// QFileInfo::isShortcut() is quiate a heavy call on Windows - disabled temporarily for better performance enumerating large folders
+	// QFileInfo::isShortcut() is quite a heavy call on Windows - disabled temporarily for better performance enumerating large folders
 	// Time to first update for C:\Windows\WinSxS\ goes from 1900 to 3900 ms
 
 	//if (_fileInfo.isShortcut()) // This is Windows-specific, place under #ifdef?
