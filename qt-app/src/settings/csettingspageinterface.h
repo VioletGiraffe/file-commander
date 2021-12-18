@@ -9,11 +9,11 @@ namespace Ui {
 class CSettingsPageInterface;
 }
 
-class CSettingsPageInterface : public CSettingsPage
+class CSettingsPageInterface final : public CSettingsPage
 {
 public:
-	explicit CSettingsPageInterface(QWidget *parent = 0);
-	~CSettingsPageInterface();
+	explicit CSettingsPageInterface(QWidget *parent = nullptr);
+	~CSettingsPageInterface() override;
 
 	void acceptSettings() override;
 

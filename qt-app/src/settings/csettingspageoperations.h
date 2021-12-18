@@ -1,5 +1,4 @@
-#ifndef CSETTINGSPAGEOPERATIONS_H
-#define CSETTINGSPAGEOPERATIONS_H
+#pragma once
 
 #include "settingsui/csettingspage.h"
 
@@ -7,16 +6,14 @@ namespace Ui {
 class CSettingsPageOperations;
 }
 
-class CSettingsPageOperations : public CSettingsPage
+class CSettingsPageOperations final : public CSettingsPage
 {
 public:
-	explicit CSettingsPageOperations(QWidget *parent = 0);
-	~CSettingsPageOperations();
+	explicit CSettingsPageOperations(QWidget *parent = nullptr);
+	~CSettingsPageOperations() override;
 
 	void acceptSettings() override;
 
 private:
 	Ui::CSettingsPageOperations *ui;
 };
-
-#endif // CSETTINGSPAGEOPERATIONS_H

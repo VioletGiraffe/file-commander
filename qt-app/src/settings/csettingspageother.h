@@ -6,11 +6,11 @@ namespace Ui {
 class CSettingsPageOther;
 }
 
-class CSettingsPageOther : public CSettingsPage
+class CSettingsPageOther final : public CSettingsPage
 {
 public:
-	explicit CSettingsPageOther(QWidget *parent = 0);
-	~CSettingsPageOther();
+	explicit CSettingsPageOther(QWidget *parent = nullptr);
+	~CSettingsPageOther() override;
 
 	void acceptSettings() override;
 

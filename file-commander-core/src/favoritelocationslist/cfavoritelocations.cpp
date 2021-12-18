@@ -12,13 +12,13 @@ enum Marker {NoMarker, NextLevel, LevelEnded};
 static inline void serialize(QByteArray& dest, const CLocationsCollection& source, const Marker marker)
 {
 	QByteArray utfStringData = source.displayName.toUtf8();
-	int length = utfStringData.length();
+	int length = static_cast<int>(utfStringData.length());
 	assert_r(length > 0);
 	dest.append(reinterpret_cast<const char*>(&length), sizeof(length));
 	dest.append(utfStringData);
 
 	utfStringData = source.absolutePath.toUtf8();
-	length = utfStringData.length();
+	length = static_cast<int>(utfStringData.length());
 	dest.append(reinterpret_cast<const char*>(&length), sizeof(length));
 	dest.append(utfStringData);
 

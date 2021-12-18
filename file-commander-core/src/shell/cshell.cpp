@@ -59,7 +59,7 @@ void OsShell::executeShellCommand(const QString& command, const QString& working
 		WCHAR commandString[32768] = { 0 };
 		const auto len = (QStringLiteral("pushd ") + workingDir + " && " + command).toWCharArray(commandString);
 		//const auto len = QString{"cmd /c \"%1\""}.arg(command).toWCharArray(commandString);
-		assert_and_return_r(len < std::size(commandString), );
+		assert_and_return_r(static_cast<size_t>(len) < std::size(commandString), );
 		::_wsystem(commandString);
 	#else
 		const QString commandLine = "cd " % escapedPath(workingDir) % " && " % command;

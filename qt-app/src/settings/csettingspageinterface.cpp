@@ -1,10 +1,11 @@
 #include "csettingspageinterface.h"
-#include "ui_csettingspageinterface.h"
 
 #include "settings.h"
 #include "settings/csettings.h"
 
 DISABLE_COMPILER_WARNINGS
+#include "ui_csettingspageinterface.h"
+
 #include <QFontDialog>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS

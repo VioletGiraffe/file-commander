@@ -1,9 +1,10 @@
 #include "cfavoritelocationseditor.h"
-#include "ui_cfavoritelocationseditor.h"
 #include "cnewfavoritelocationdialog.h"
 #include "ccontroller.h"
 
 DISABLE_COMPILER_WARNINGS
+#include "ui_cfavoritelocationseditor.h"
+
 #include <QMenu>
 #include <QMessageBox>
 RESTORE_COMPILER_WARNINGS

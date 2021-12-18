@@ -116,7 +116,7 @@ bool CTextViewerWindow::asDetectedAutomatically()
 		return false;
 	}
 
-	QString text(codec->toUnicode(textData.constData(), textData.size(), &state));
+	QString text(codec->toUnicode(textData.constData(), static_cast<int>(textData.size()), &state));
 	if (state.invalidChars > 0)
 	{
 		const auto result = CTextEncodingDetector::decode(textData);
