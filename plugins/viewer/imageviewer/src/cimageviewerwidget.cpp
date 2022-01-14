@@ -54,6 +54,7 @@ bool CImageViewerWidget::displayImage(const QString& imagePath)
 {
 	QImageReader reader(imagePath);
 	reader.setDecideFormatFromContent(true);
+	reader.setAutoTransform(true);
 
 	_currentImageFormat = QString::fromLatin1(reader.format()); // Must be called before read()
 	QImage img = reader.read();
