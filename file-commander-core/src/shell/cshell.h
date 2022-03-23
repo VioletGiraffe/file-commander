@@ -27,6 +27,6 @@ namespace OsShell
 	bool runExecutable(const QString& command, const QString& arguments, const QString& workingDir);
 
 #ifdef _WIN32
-	bool runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin = false);
+	bool runExe(QString command, QString arguments, const QString& workingDir, bool asAdmin = false);
 #endif
 }

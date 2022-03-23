@@ -80,8 +80,22 @@ bool OsShell::runExecutable(const QString& command, const QString& arguments, co
 	return runExe(command, arguments, workingDir, false);
 }
 
-bool OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
+bool OsShell::runExe(QString command, QString arguments, const QString& workingDir, bool asAdmin)
 {
+	// Normalizing the command and arguments if command contains arguments as well
+	if (command.contains(' '))
+	{
+		auto list = command.split(' ', Qt::SkipEmptyParts);
+		assert_debug_only(list.size() >= 2);
+		command = std::move(list.front());
+		list.pop_front();
+		auto extractedArgs = list.join(' ');
+		if (!arguments.isEmpty())
+			(extractedArgs += ' ') += arguments;
+
+		arguments = std::move(extractedArgs);
+	}
+
 	SHELLEXECUTEINFOW shExecInfo = {0};
 	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 
