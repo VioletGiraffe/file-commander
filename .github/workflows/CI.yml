@@ -38,7 +38,9 @@ jobs:
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
-      uses: microsoft/setup-msbuild@v1.0.2
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        vs-version: '[16.10,17.0)'
 
     - name: Windows - building main installer
       if: startsWith(matrix.os, 'windows')
