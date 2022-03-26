@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QFileInfo>
 #include <QProcess>
+#include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -21,11 +22,30 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #endif
 
-QString OsShell::shellExecutable()
+std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 {
 #ifdef _WIN32
-	static const QString defaultShell = QLatin1String("powershell.exe");
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
+	const QString defaultShell = QLatin1String("powershell.exe");
+	QString shell = CSettings{}.value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
+	QStringList argsList = QProcess::splitCommand(shell);
+	assert_and_return_r(!argsList.empty(), {});
+	shell = std::move(argsList.front());
+	argsList.pop_front();
+
+	QString argsString;
+	for (auto&& str : argsList)
+	{
+		if (!argsString.isEmpty())
+			argsString += ' ';
+
+		if (str.contains(' '))
+			argsString += ('\"' % str % '\"');
+		else
+			argsString += str;
+	}
+
+	return { shell, argsString };
+
 #elif defined __APPLE__
 	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
 #elif defined __linux__ || defined __FreeBSD__
@@ -80,22 +100,8 @@ bool OsShell::runExecutable(const QString& command, const QString& arguments, co
 	return runExe(command, arguments, workingDir, false);
 }
 
-bool OsShell::runExe(QString command, QString arguments, const QString& workingDir, bool asAdmin)
+bool OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
 {
-	// Normalizing the command and arguments if command contains arguments as well
-	if (command.contains(' '))
-	{
-		auto list = command.split(' ', Qt::SkipEmptyParts);
-		assert_debug_only(list.size() >= 2);
-		command = std::move(list.front());
-		list.pop_front();
-		auto extractedArgs = list.join(' ');
-		if (!arguments.isEmpty())
-			(extractedArgs += ' ') += arguments;
-
-		arguments = std::move(extractedArgs);
-	}
-
 	SHELLEXECUTEINFOW shExecInfo = {0};
 	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 

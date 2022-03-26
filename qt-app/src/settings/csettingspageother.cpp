@@ -13,7 +13,13 @@ CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 	ui->setupUi(this);
 
 	CSettings s;
-	ui->_shellCommandName->setText(s.value(KEY_OTHER_SHELL_COMMAND_NAME, OsShell::shellExecutable()).toString());
+
+	const auto shellCommandAndArgs = OsShell::shellExecutable();
+	QString shellCommandLine = shellCommandAndArgs.first;
+	if (!shellCommandAndArgs.second.isEmpty())
+		(shellCommandLine += ' ') += shellCommandAndArgs.second;
+
+	ui->_shellCommandName->setText(s.value(KEY_OTHER_SHELL_COMMAND_NAME, shellCommandLine).toString());
 	ui->_cbCheckForUpdatesAutomatically->setChecked(s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool());
 }
 

@@ -2,12 +2,13 @@
 
 #include <string>
 #include <vector>
+#include <utility>
 
 class QString;
 
 namespace OsShell
 {
-	QString shellExecutable();
+	std::pair<QString /* exe path */, QString /* args */> shellExecutable();
 
 	// Pos must be global
 	bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow);
@@ -27,6 +28,6 @@ namespace OsShell
 	bool runExecutable(const QString& command, const QString& arguments, const QString& workingDir);
 
 #ifdef _WIN32
-	bool runExe(QString command, QString arguments, const QString& workingDir, bool asAdmin = false);
+	bool runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin = false);
 #endif
 }

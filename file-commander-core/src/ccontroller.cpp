@@ -270,18 +270,24 @@ void CController::openTerminal(const QString &folder, bool admin)
 #elif defined __linux__ || __FreeBSD__ || defined _WIN32
 	if (!admin)
 	{
-		const bool started = OsShell::runExecutable(OsShell::shellExecutable(), QString(), folder);
+		auto shellArgs = OsShell::shellExecutable();
+		const bool started = OsShell::runExecutable(shellArgs.first, shellArgs.second, folder);
 		assert_r(started);
 	}
 	else
 	{
 #ifdef _WIN32
-		const QString terminalProgram = OsShell::shellExecutable();
+		const auto terminalProgramArgs = OsShell::shellExecutable();
+		const QString& terminalProgram = terminalProgramArgs.first;
 		QString arguments;
 		if (terminalProgram.contains("powershell", Qt::CaseInsensitive))
 			arguments = QStringLiteral("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
 		else if (terminalProgram.toLower() == "cmd" || terminalProgram.toLower() == "cmd.exe")
 			arguments = QStringLiteral("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));
+
+		if (!arguments.isEmpty() && !terminalProgramArgs.second.isEmpty())
+			arguments += ' ';
+		arguments.prepend(terminalProgramArgs.second);
 
 		assert_r(OsShell::runExe(terminalProgram, arguments, folder, true));
 #endif
