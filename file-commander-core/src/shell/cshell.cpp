@@ -47,7 +47,8 @@ std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 	return { shell, argsString };
 
 #elif defined __APPLE__
-	return CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
+	const QString shellCommand = CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
+	return { shellCommand , {} };
 #elif defined __linux__ || defined __FreeBSD__
 	const QString consoleExecutable = CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME).toString();
 	if (QFileInfo(consoleExecutable).exists())
