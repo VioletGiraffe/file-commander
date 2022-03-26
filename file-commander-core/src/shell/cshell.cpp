@@ -51,7 +51,7 @@ std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 #elif defined __linux__ || defined __FreeBSD__
 	const QString consoleExecutable = CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME).toString();
 	if (QFileInfo(consoleExecutable).exists())
-		return { consoleExecutable, };
+		return { consoleExecutable, {} };
 
 	static constexpr const char* knownTerminals[] {
 		"/usr/bin/konsole", // KDE
