@@ -51,22 +51,21 @@ std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 #elif defined __linux__ || defined __FreeBSD__
 	const QString consoleExecutable = CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME).toString();
 	if (QFileInfo(consoleExecutable).exists())
-		return consoleExecutable;
+		return { consoleExecutable, };
 
-	static const std::vector<QString> knownTerminals = {
+	static constexpr const char* knownTerminals[] {
 		"/usr/bin/konsole", // KDE
 		"/usr/bin/gnome-terminal", // Gnome
 		"/usr/bin/pantheon-terminal", // Pantheon (Elementary OS)
 		"/usr/bin/qterminal", // QTerminal under linux
-		"/usr/local/bin/qterminal", // QTerminal under freebsd
-		"/usr/bin/qterminal", // QTerminal under linux
+		"/usr/local/bin/qterminal" // QTerminal under freebsd
 	};
 
 	for (const auto& candidate: knownTerminals)
 		if (QFileInfo(candidate).exists())
-			return candidate;
+			return { candidate, {} };
 
-	return QString();
+	return {};
 #else
 	#error unknown platform
 #endif
