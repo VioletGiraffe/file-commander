@@ -715,7 +715,7 @@ void CMainWindow::calculateOccupiedSpace()
 	if (stats.empty())
 		return;
 
-	QMessageBox::information(this, tr("Occupied space"), tr("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3\n%4 bytes").
+	QMessageBox::information(this, tr("Occupied space"), tr("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3\n%4").
 		arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace)).arg(fileSizeToString(stats.occupiedSpace, 'B', QString{ ' ' })));
 }
 

@@ -6,7 +6,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStyledItemDelegate>
 RESTORE_COMPILER_WARNINGS
 
-class CFileListItemDelegate : public QStyledItemDelegate
+class CFileListItemDelegate final : public QStyledItemDelegate
 {
 public:
 	using QStyledItemDelegate::QStyledItemDelegate; // "Inherited" constructor

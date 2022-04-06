@@ -44,6 +44,7 @@ SOURCES += \
 	src/cfilesystemobject.cpp \
 	src/ccontroller.cpp \
 	src/cpanel.cpp \
+	src/filesystemhelperfunctions.cpp \
 	src/filesystemwatcher/cfilesystemwatcherinterface.cpp \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.cpp \
 	src/iconprovider/ciconprovider.cpp \

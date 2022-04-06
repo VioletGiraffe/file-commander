@@ -25,7 +25,7 @@ CFileListView::CFileListView(QWidget *parent) :
 	QTreeView(parent)
 {
 	setMouseTracking(true);
-	setItemDelegate(new CFileListItemDelegate);
+	setItemDelegate(new CFileListItemDelegate{this});
 	assert_r(connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
 		_currentItemBeforeMouseClick = QModelIndex();
 		_singleMouseClickValid = false;
