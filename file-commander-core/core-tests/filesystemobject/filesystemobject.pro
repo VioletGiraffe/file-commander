@@ -21,6 +21,7 @@ INCLUDEPATH += \
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 
 SOURCES += \
+	../../src/filesystemhelperfunctions.cpp \
 	fso_test.cpp \
 	../../src/cfilesystemobject.cpp \
 	../../src/iconprovider/ciconprovider.cpp \

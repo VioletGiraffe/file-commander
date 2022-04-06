@@ -23,6 +23,7 @@ INCLUDEPATH += \
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 
 SOURCES += \
+	../../src/filesystemhelperfunctions.cpp \
 	operationperformertest.cpp \
 	../../src/fileoperations/coperationperformer.cpp \
 	../../src/cfilesystemobject.cpp \
