@@ -116,10 +116,19 @@ void CFilesSearchWindow::search()
 	const QString what = ui->nameToFind->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
-	_engine.search(what, ui->cbNameCaseSensitive->isChecked(), ui->searchRoot->currentText().split("; "), withText, ui->cbContentsCaseSensitive->isChecked());
-	ui->btnSearch->setText("Stop");
-	ui->resultsList->clear();
-	setWindowTitle('\"' % what % "\" " % tr("search results"));
+	if (_engine.search(
+		what,
+		ui->cbNameCaseSensitive->isChecked(),
+		ui->searchRoot->currentText().split("; "),
+		withText,
+		ui->cbContentsCaseSensitive->isChecked()
+		)
+	)
+	{
+		ui->btnSearch->setText("Stop");
+		ui->resultsList->clear();
+		setWindowTitle('\"' % what % "\" " % tr("search results"));
+	}
 }
 
 void CFilesSearchWindow::addResultsToUi()

@@ -35,7 +35,7 @@ public:
 
 
 	bool searchInProgress() const;
-	void search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive);
+	[[nodiscard]] bool search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive);
 	void stopSearching();
 
 private:

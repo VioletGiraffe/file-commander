@@ -33,16 +33,16 @@ bool CFileSearchEngine::searchInProgress() const
 	return _workerThread.running();
 }
 
-void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive)
+bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive)
 {
 	if (_workerThread.running())
 	{
 		_workerThread.interrupt();
-		return;
+		return true;
 	}
 
 	if (what.isEmpty() || where.empty())
-		return;
+		return false;
 
 	_workerThread.exec([this, what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive](){
 		uint64_t itemCounter = 0;
@@ -59,12 +59,13 @@ void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 			if (!what.endsWith('*'))
 				adjustedQuery.append('*');
 
-			queryRegExp.setPattern(QRegularExpression::wildcardToRegularExpression(adjustedQuery));
+			auto regExString = QRegularExpression::wildcardToRegularExpression(adjustedQuery);
+			regExString.replace(R"([^/\\]*)", ".*");
+			queryRegExp.setPattern(regExString);
 			assert_r(queryRegExp.isValid());
 			if (!subjectCaseSensitive)
 				queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 		}
-
 
 
 		for (const QString& pathToLookIn: where)
@@ -127,6 +128,8 @@ void CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 				listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, speed);
 		});
 	});
+
+	return true;
 }
 
 void CFileSearchEngine::stopSearching()
