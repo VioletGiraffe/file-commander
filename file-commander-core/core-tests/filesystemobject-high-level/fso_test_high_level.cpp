@@ -1,9 +1,9 @@
 #include "cfilesystemobject.h"
 
 #define CATCH_CONFIG_MAIN
-#include "../catch2/catch.hpp"
+#include "3rdparty/catch2/catch.hpp"
 
-TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]" )
+TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 {
 	CHECK(::pathHierarchy("").empty());
 

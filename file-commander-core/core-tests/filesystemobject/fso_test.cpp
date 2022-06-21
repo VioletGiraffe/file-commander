@@ -3,7 +3,7 @@
 #include "../test-utils/src/catch2_utils.hpp"
 
 #define CATCH_CONFIG_MAIN
-#include "../catch2/catch.hpp"
+#include "3rdparty/catch2/catch.hpp"
 
 TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 {

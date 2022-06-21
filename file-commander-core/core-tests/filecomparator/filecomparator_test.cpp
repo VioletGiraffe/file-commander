@@ -4,7 +4,7 @@
 #include "compiler/compiler_warnings_control.h"
 
 #define CATCH_CONFIG_RUNNER
-#include "../catch2/catch.hpp"
+#include "3rdparty/catch2/catch.hpp"
 
 #include "catch2_utils.hpp"
 

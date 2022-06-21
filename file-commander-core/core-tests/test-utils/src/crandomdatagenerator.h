@@ -22,7 +22,7 @@ public:
 			return std::uniform_real_distribution<T>(min, max)(_rng);
 		else
 		{
-			static_assert(false_v<T>);
+			FAIL_COMPILATION;
 			return {};
 		}
 	}

@@ -23,7 +23,7 @@ RESTORE_COMPILER_WARNINGS
 #include <string>
 
 #define CATCH_CONFIG_RUNNER
-#include "../catch2/catch.hpp"
+#include "3rdparty/catch2/catch.hpp"
 
 static uint32_t g_randomSeed = 1633456005;
 
@@ -59,7 +59,8 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 		allowedTimeDiffMs = 100;
 		break;
 	default:
-		assert_and_return_unconditional_r("Unknown QFileDevice::FileTime", false);
+		assert(!"Unknown QFileDevice::FileTime");
+		return false;
 	}
 
 #ifdef __APPLE__
