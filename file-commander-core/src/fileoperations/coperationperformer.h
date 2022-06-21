@@ -3,12 +3,10 @@
 #include "operationcodes.h"
 #include "cfilesystemobject.h"
 #include "system/ctimeelapsed.h"
-#include "assert/advanced_assert.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <functional>
-#include <map>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -28,64 +26,13 @@ public:
 
 	virtual ~CFileOperationObserver() = default;
 
-	inline void processEvents() {
-		std::lock_guard<std::mutex> lock(_callbackMutex);
-		for (const auto& event: _callbacks)
-			event();
-
-		_callbacks.clear();
-	}
+	void processEvents();
 
 private:
-	inline void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) {
-		assert_r(filePercentage < 100.5f && totalPercentage < 100.5f);
-		std::lock_guard<std::mutex> lock(_callbackMutex);
-		_callbacks.emplace_back([=, this]() {
-			onProgressChanged(totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining);
-		});
-	}
-
-	inline void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) {
-		qInfo() << "COperationPerformer: process halted";
-
-		static const std::map<HaltReason, QString> haltReasonString = {
-			{hrFileExists, QObject::tr("File exists")},
-			{hrSourceFileIsReadOnly, QObject::tr("Source file is read-only")},
-			{hrDestFileIsReadOnly, QObject::tr("Destination file is read-only")},
-			{hrFailedToMakeItemWritable, QObject::tr("Failed to make an item writable")},
-			{hrFileDoesntExit, QObject::tr("File doesn't exist")},
-			{hrCreatingFolderFailed, QObject::tr("Failed to create a folder")},
-			{hrFailedToDelete, QObject::tr("Failed to delete the item")},
-			{hrNotEnoughSpace, QObject::tr("Not enough space on the destination drive")},
-			{hrUnknownError, QObject::tr("Unknown error")}
-		};
-
-		const auto reasonString = haltReasonString.find(reason);
-		assert_r(reasonString != haltReasonString.end());
-		qInfo() << "Reason:" << (reasonString != haltReasonString.end() ? reasonString->second : "") << ", source:" << source.fullAbsolutePath() << ", dest:" << dest.fullAbsolutePath() << ", error message:" << errorMessage;
-
-		std::lock_guard<std::mutex> lock(_callbackMutex);
-		_callbacks.emplace_back([=, this]() {
-			onProcessHalted(reason, source, dest, errorMessage);
-		});
-	}
-
-	inline void onProcessFinishedCallback(QString message = QString()) {
-		if (!message.isEmpty())
-			qInfo() << "COperationPerformer: operation finished, message:" << message;
-
-		std::lock_guard<std::mutex> lock(_callbackMutex);
-		_callbacks.emplace_back([=, this]() {
-			onProcessFinished(message);
-		});
-	}
-
-	inline void onCurrentFileChangedCallback(QString file) {
-		std::lock_guard<std::mutex> lock(_callbackMutex);
-		_callbacks.emplace_back([=, this]() {
-			onCurrentFileChanged(file);
-		});
-	}
+	void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining);
+	void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage);
+	void onProcessFinishedCallback(QString message = QString());
+	void onCurrentFileChangedCallback(QString file);
 
 private:
 	std::vector<std::function<void ()>> _callbacks;
@@ -139,10 +86,10 @@ private:
 
 private:
 	struct ObjectToProcess {
-		explicit ObjectToProcess(CFileSystemObject&& fso) : object{ std::move(fso) }
+		inline explicit ObjectToProcess(CFileSystemObject&& fso) : object{ std::move(fso) }
 		{}
 
-		explicit ObjectToProcess(const CFileSystemObject& fso) : object{ fso }
+		inline explicit ObjectToProcess(const CFileSystemObject& fso) : object{ fso }
 		{}
 
 		ObjectToProcess(ObjectToProcess&&) noexcept = default;
@@ -154,6 +101,7 @@ private:
 
 	friend QDebug& operator<<(QDebug& stream, const std::vector<ObjectToProcess>& objects);
 
+private:
 	std::vector<ObjectToProcess> _source;
 	std::map<HaltReason, UserResponse> _globalResponses;
 	CFileSystemObject              _destFileSystemObject;

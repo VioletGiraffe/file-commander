@@ -2,9 +2,13 @@
 #include "cfilemanipulator.h"
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
+
+#include "assert/advanced_assert.h"
 #include "threading/thread_helpers.h"
 #include "utility/on_scope_exit.hpp"
 #include "utility/integer_literals.hpp"
+
+#include "3rdparty/magic_enum/magic_enum.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
@@ -32,7 +36,7 @@ COperationPerformer::COperationPerformer(const Operation operation, std::vector<
 	_op(operation)
 {
 	_source.reserve(source.size());
-	for (auto& o : std::move(source))
+	for (auto&& o: std::move(source))
 		_source.emplace_back(std::move(o));
 }
 
@@ -132,7 +136,7 @@ void COperationPerformer::waitForResponse()
 	_totalTimeElapsed.resume();
 }
 
-inline QDebug& operator<<(QDebug& stream, const std::vector<COperationPerformer::ObjectToProcess>& objects)
+QDebug& operator<<(QDebug& stream, const std::vector<COperationPerformer::ObjectToProcess>& objects)
 {
 	for (const auto& object : objects)
 		stream << object.object.fullAbsolutePath() << '\n';
@@ -726,12 +730,13 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		if (result != FileOperationResultCode::Ok)
 			break;
 
-		const auto actualSizeProcessed = static_cast<float>(sizeProcessedPreviously + itemManipulator.bytesCopied());
-		const float totalPercentage = totalSize > 0 ? actualSizeProcessed * 100.0f / totalSize : 0.0f; // Bytes
-		const float filePercentage = item.size() > 0 ? itemManipulator.bytesCopied() * 100.0f / item.size() : 0.0f;
-
-		const uint64_t meanSpeed = uint64_t(totalPercentage / 100.0f * actualSizeProcessed * 1e6f) / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1_u64); // Bytes / sec
-		const uint32_t secondsRemaining = (uint32_t)((100.0f - totalPercentage) / 100.0f * totalSize / meanSpeed);
+		const uint64_t bytesProcessed /* bytes */ = sizeProcessedPreviously + itemManipulator.bytesCopied();
+		const float totalPercentage = totalSize > 0 ? (bytesProcessed * 100) / static_cast<float>(totalSize) : 0.0f;
+		const float filePercentage = item.size() > 0 ? (itemManipulator.bytesCopied() * 100) / static_cast<float>(item.size()) : 0.0f;
+		// Bytes / sec
+		const uint64_t meanSpeed = bytesProcessed * 1'000'000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1_u64);
+		const uint64_t bytesRemaining = totalSize - bytesProcessed;
+		const uint32_t secondsRemaining = static_cast<uint32_t>(bytesRemaining / meanSpeed);
 		if (_observer) _observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
 
 		// TODO: why isn't this block at the start of 'do-while'?
@@ -803,4 +808,52 @@ void COperationPerformer::handlePause()
 
 		_totalTimeElapsed.resume();
 	}
+}
+
+void CFileOperationObserver::processEvents()
+{
+	std::lock_guard<std::mutex> lock(_callbackMutex);
+	for (const auto& event : _callbacks)
+		event();
+
+	_callbacks.clear();
+}
+
+void CFileOperationObserver::onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed, uint32_t secondsRemaining)
+{
+	assert_r(filePercentage < 100.5f && totalPercentage < 100.5f);
+	std::lock_guard<std::mutex> lock(_callbackMutex);
+	_callbacks.emplace_back([=, this]() {
+		onProgressChanged(totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining);
+	});
+}
+
+void CFileOperationObserver::onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)
+{
+	const auto reasonString = magic_enum::enum_name(reason);
+	qInfo().nospace() << "COperationPerformer: process halted, reason: " << QString::fromLatin1(reasonString.data(), (int)reasonString.size()) << ", source: " << source.fullAbsolutePath() << ", dest: " << dest.fullAbsolutePath() << ", error message: " << errorMessage;
+
+	std::lock_guard<std::mutex> lock(_callbackMutex);
+	_callbacks.emplace_back([=, this]() {
+		onProcessHalted(reason, source, dest, errorMessage);
+	});
+}
+
+void CFileOperationObserver::onProcessFinishedCallback(QString message)
+{
+	if (!message.isEmpty())
+		qInfo() << "COperationPerformer: operation finished, message:" << message;
+
+	std::lock_guard<std::mutex> lock(_callbackMutex);
+	_callbacks.emplace_back([=, this]() {
+		onProcessFinished(message);
+	});
+}
+
+void CFileOperationObserver::onCurrentFileChangedCallback(QString file)
+{
+	std::lock_guard<std::mutex> lock(_callbackMutex);
+	_callbacks.emplace_back([=, this]() {
+		onCurrentFileChanged(file);
+	});
 }
