@@ -35,6 +35,8 @@ jobs:
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
+      with:
+        archives: 'qtbase icu'
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
