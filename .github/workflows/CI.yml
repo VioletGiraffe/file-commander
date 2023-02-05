@@ -43,6 +43,18 @@ jobs:
       with:
         archives: 'qtbase icu'
 
+    - name: Sys info
+      if: "startsWith(matrix.os, 'windows')"
+      run: wmic cpu get name, numberofcores, maxclockspeed
+
+    - name: Sys info
+      if: "startsWith(matrix.os, 'mac')"
+      run: sysctl -a | grep cpu | grep hw
+
+    - name: Sys info
+      if: "startsWith(matrix.os, 'mac')"
+      run: lscpu
+
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
       uses: microsoft/setup-msbuild@v1.1
