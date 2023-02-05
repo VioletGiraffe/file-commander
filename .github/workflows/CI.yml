@@ -75,7 +75,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         export QT_DEBUG_PLUGINS=1
-        sudo apt update -y; sudo apt install -qq gcc-12 g++-12 libglu1-mesa-dev libx11-xcb-dev '^libxcb*'
+        sudo apt update -y; sudo apt install -qq gcc-12 g++-12 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' libfuse2
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 50
         g++ --version
