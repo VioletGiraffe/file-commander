@@ -1,10 +1,11 @@
 #include "cfilesystemobject.h"
 #include "filesystemhelperfunctions.h"
 #include "windows/windowsutils.h"
+
 #include "assert/advanced_assert.h"
+#include "hash/wheathash.hpp"
 #include "lang/type_traits_fast.hpp"
 
-#include "hash/fasthash.h"
 
 #ifdef CFILESYSTEMOBJECT_TEST
 #define QFileInfo QFileInfo_Test
@@ -150,7 +151,7 @@ void CFileSystemObject::refreshInfo()
 #endif
 	}
 
-	_properties.hash = fasthash64(_properties.fullPath.constData(), static_cast<uint64_t>(_properties.fullPath.size()) * sizeof(QChar), 0);
+	_properties.hash = wheathash64(_properties.fullPath.constData(), static_cast<uint64_t>(_properties.fullPath.size()) * sizeof(QChar));
 
 
 	if (_properties.type == File)

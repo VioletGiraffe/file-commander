@@ -18,11 +18,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-11, windows-2019]
+        os: [ubuntu-latest, macos-11, windows-latest]
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Checkout subrepos
       if: "!startsWith(matrix.os, 'windows')"
@@ -34,7 +34,7 @@ jobs:
       run: update_repository.bat
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
@@ -45,7 +45,6 @@ jobs:
       shell: cmd
       run: |
         %Qt5_DIR%\bin\qmake.exe -v
-        dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC"
         set QTDIR64=%Qt5_DIR%
         cd installer\windows\
         create_installer.bat
@@ -60,8 +59,8 @@ jobs:
       run: |
         cd file-commander-core\core-tests\
         dir
-        call "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 -vcvars_ver=14.29 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
-        msbuild /t:Build /p:Configuration=Release;PlatformToolset=v142 core-tests.sln
+        call "%programfiles(x86)%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
+        msbuild /t:Build /p:Configuration=Release;PlatformToolset=v143 core-tests.sln
         cd ..\..
 
     - name: Mac
@@ -76,9 +75,9 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         export QT_DEBUG_PLUGINS=1
-        sudo apt update -y; sudo apt install -qq gcc-10 g++-10 libglu1-mesa-dev libx11-xcb-dev '^libxcb*'
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 50
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 50
+        sudo apt update -y; sudo apt install -qq gcc-12 g++-12 libglu1-mesa-dev libx11-xcb-dev '^libxcb*'
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 50
         g++ --version
         export PATH=$Qt5_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"

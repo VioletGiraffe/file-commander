@@ -1,8 +1,9 @@
 #include "ciconprovider.h"
 #include "cfilesystemobject.h"
 #include "ciconproviderimpl.h"
-#include "hash/fasthash.h"
+
 #include "assert/advanced_assert.h"
+#include "hash/wheathash.hpp"
 
 #include "settings/csettings.h"
 #include "settings.h"
@@ -42,13 +43,13 @@ CIconProvider::CIconProvider() : _provider{std::make_unique<CIconProviderImpl>()
 inline static qulonglong hash(const CFileSystemObject& object)
 {
 	const auto properties = object.properties();
-	const auto hashData =
-		QByteArray::fromRawData(reinterpret_cast<const char*>(std::addressof(properties.modificationDate)), sizeof(properties.modificationDate)) +
-		QByteArray::fromRawData(reinterpret_cast<const char*>(std::addressof(properties.creationDate)), sizeof(properties.creationDate)) +
-		QByteArray::fromRawData(reinterpret_cast<const char*>(std::addressof(properties.size)), sizeof(properties.size)) +
-		QByteArray::fromRawData(reinterpret_cast<const char*>(std::addressof(properties.type)), sizeof(properties.type));
+	// Use the original hash as the seed and mix it with other attributes that uniquely identify this object
+	uint64_t hash = wheathash64v(properties.modificationDate, properties.hash);
+	hash = wheathash64v(properties.creationDate, hash);
+	hash = wheathash64v(properties.size, hash);
+	hash = wheathash64v(properties.type, hash);
 
-	return fasthash64(hashData.constData(), hashData.size(), 0) ^ (uint64_t)properties.hash;
+	return hash;
 }
 
 // guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
