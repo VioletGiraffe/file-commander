@@ -22,7 +22,7 @@ class CPanelWidget;
 class QShortcut;
 class QStackedWidget;
 
-class CMainWindow : public QMainWindow,
+class CMainWindow final : public QMainWindow,
 		private FileListReturnPressedObserver,
 		private PanelContentsChangedListener
 {
@@ -147,5 +147,7 @@ private:
 	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
 
 	QCompleter _commandLineCompleter;
+
+	enum { NormalWindow, MaximizedWindow } _windowStateBeforeFullscreen = NormalWindow;
 };
 

@@ -583,9 +583,17 @@ void CMainWindow::currentItemChanged(Panel /*p*/, qulonglong /*itemHash*/)
 void CMainWindow::toggleFullScreenMode(bool fullscreen)
 {
 	if (fullscreen)
+	{
+		_windowStateBeforeFullscreen = (windowState() & Qt::WindowMaximized) ? MaximizedWindow : NormalWindow;
 		showFullScreen();
+	}
 	else
-		showNormal();
+	{
+		if (_windowStateBeforeFullscreen == MaximizedWindow)
+			showMaximized();
+		else
+			showNormal();
+	}
 }
 
 void CMainWindow::toggleTabletMode(bool tabletMode)
