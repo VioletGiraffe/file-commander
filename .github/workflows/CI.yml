@@ -52,7 +52,7 @@ jobs:
       run: sysctl -a | grep cpu | grep hw
 
     - name: Sys info
-      if: "startsWith(matrix.os, 'mac')"
+      if: "startsWith(matrix.os, 'ubuntu')"
       run: lscpu
 
     - name: Windows - setup MSBuild
