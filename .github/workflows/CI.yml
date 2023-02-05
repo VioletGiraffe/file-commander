@@ -34,14 +34,14 @@ jobs:
       run: update_repository.bat
 
     - name: Install Qt
-      if: startsWith(matrix.os, 'windows')
+      if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v3
 
     - name: Install Qt
-    if: "!startsWith(matrix.os, 'windows')"
-    uses: jurplel/install-qt-action@v3
-    with:
-      archives: 'qtbase icu'
+      if: "!startsWith(matrix.os, 'windows')"
+      uses: jurplel/install-qt-action@v3
+      with:
+        archives: 'qtbase icu'
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
