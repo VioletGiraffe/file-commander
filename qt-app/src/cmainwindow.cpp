@@ -118,7 +118,7 @@ void CMainWindow::onCreate()
 		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
 	{
 		s.setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-		auto dlg = new CUpdaterDialog(this, "VioletGiraffe/file-commander", VERSION_STRING, true);
+		auto dlg = new CUpdaterDialog(this, REPO_NAME, VERSION_STRING, true);
 		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
 		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
 	}
@@ -730,7 +730,7 @@ void CMainWindow::calculateOccupiedSpace()
 void CMainWindow::checkForUpdates()
 {
 	CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-	CUpdaterDialog(this, "https://github.com/VioletGiraffe/file-commander", VERSION_STRING).exec();
+	CUpdaterDialog(this, REPO_NAME, VERSION_STRING).exec();
 }
 
 void CMainWindow::about()

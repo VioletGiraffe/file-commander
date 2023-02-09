@@ -7,3 +7,4 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #define VERSION_STRING QLatin1String("0.9.4.14.1")
+#define REPO_NAME QLatin1String("VioletGiraffe/file-commander")
