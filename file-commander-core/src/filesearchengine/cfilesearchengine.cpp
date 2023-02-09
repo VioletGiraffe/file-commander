@@ -1,15 +1,13 @@
 #include "../ccontroller.h"
 #include "system/ctimeelapsed.h"
 #include "directoryscanner.h"
+#include "hash/jenkins_hash.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
-#include <QHash>
 #include <QRegularExpression>
 #include <QTextStream>
 RESTORE_COMPILER_WARNINGS
-
-static const int uniqueTag = abs((int)qHash(QStringView(L"CFileSearchEngine")));
 
 CFileSearchEngine::CFileSearchEngine(CController& controller) :
 	_controller(controller),
@@ -65,6 +63,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 				queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 		}
 
+		static constexpr int uniqueJobTag = static_cast<int>(jenkins_hash("CFileSearchEngine"));
 
 		for (const QString& pathToLookIn: where)
 		{
@@ -77,7 +76,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 				_controller.execOnUiThread([this, path, what](){
 					for (const auto& listener: _listeners)
 						listener->itemScanned(path);
-				}, uniqueTag);
+				}, uniqueJobTag);
 
 				// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
 				if ((nameQueryHasWildcards && queryRegExp.match(path).hasMatch()) || (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)))
