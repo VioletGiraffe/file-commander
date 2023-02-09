@@ -4,12 +4,12 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
-#include <qhash.h>
+#include <QHash>
 #include <QRegularExpression>
 #include <QTextStream>
 RESTORE_COMPILER_WARNINGS
 
-const int tag = abs((int)qHash(QString("CFileSearchEngine")));
+static const int uniqueTag = abs((int)qHash(QStringView(L"CFileSearchEngine")));
 
 CFileSearchEngine::CFileSearchEngine(CController& controller) :
 	_controller(controller),
@@ -56,8 +56,6 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 			QString adjustedQuery = what;
 			if (!what.startsWith('*'))
 				adjustedQuery.prepend('*');
-			if (!what.endsWith('*'))
-				adjustedQuery.append('*');
 
 			auto regExString = QRegularExpression::wildcardToRegularExpression(adjustedQuery);
 			regExString.replace(R"([^/\\]*)", ".*");
@@ -79,7 +77,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 				_controller.execOnUiThread([this, path, what](){
 					for (const auto& listener: _listeners)
 						listener->itemScanned(path);
-				}, tag);
+				}, uniqueTag);
 
 				// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
 				if ((nameQueryHasWildcards && queryRegExp.match(path).hasMatch()) || (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)))
