@@ -28,7 +28,6 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	setupUi(this);
 
 	_textBrowser = new CTextEditWithLineNumbers(this);
-	_findDialog = new CFindDialog(this, "Plugins/TextViewer/Find/");
 
 	if (parent)
 	{
@@ -57,6 +56,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	assert_r(connect(actionClose, &QAction::triggered, this, &QDialog::close));
 
 	assert_r(connect(actionFind, &QAction::triggered, [this]() {
+		setupFindDialog();
 		_findDialog->exec();
 	}));
 	assert_r(connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext));
@@ -74,9 +74,6 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	group->addAction(actionUTF_8);
 	group->addAction(actionUTF_16);
 	group->addAction(actionHTML_RTF);
-
-	assert_r(connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find));
-	assert_r(connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	assert_r(connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater));
@@ -284,4 +281,14 @@ void CTextViewerWindow::encodingChanged(const QString& encoding, const QString& 
 		message = message % ", " % tr("language: ") % language;
 
 	_encodingLabel->setText(message);
+}
+
+void CTextViewerWindow::setupFindDialog()
+{
+	if (_findDialog)
+		return;
+
+	_findDialog = new CFindDialog(this, "Plugins/TextViewer/Find/");
+	assert_r(connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find));
+	assert_r(connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
 }

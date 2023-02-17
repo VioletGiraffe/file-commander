@@ -1,7 +1,6 @@
 TEMPLATE = subdirs
 
-SUBDIRS += qt_app qtutils text_encoding_detector file_commander_core autoupdater cpputils image-processing cpp-template-utils
-SUBDIRS += textviewerplugin imageviewerplugin filecomparisonplugin
+SUBDIRS += qt_app qtutils text_encoding_detector file_commander_core autoupdater cpputils image-processing cpp-template-utils textviewerplugin imageviewerplugin filecomparisonplugin
 
 qtutils.depends = cpputils image-processing
 

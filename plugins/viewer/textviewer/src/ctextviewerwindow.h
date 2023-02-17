@@ -30,10 +30,12 @@ private:
 
 	void encodingChanged(const QString& encoding, const QString& language = QString());
 
+	void setupFindDialog();
+
 private:
 	QString _sourceFilePath;
 
-	CTextEditWithLineNumbers* _textBrowser;
-	CFindDialog* _findDialog;
+	CTextEditWithLineNumbers* _textBrowser = nullptr;
+	CFindDialog* _findDialog = nullptr;
 	QLabel* _encodingLabel = nullptr;
 };
