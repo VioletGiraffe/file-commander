@@ -42,6 +42,8 @@ int main(int argc, char *argv[])
 		QApplication::setFont(font);
 	}
 
+	qApp->setStyleSheet(CSettings{}.value("Interface/Style/StylesheetText").toString());
+
 	CMainWindow w;
 
 	w.onCreate();

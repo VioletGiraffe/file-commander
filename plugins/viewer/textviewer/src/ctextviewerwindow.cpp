@@ -1,7 +1,12 @@
 #include "ctextviewerwindow.h"
+#include "cfinddialog.h"
+
 #include "ctextencodingdetector.h"
 #include "widgets/cpersistentwindow.h"
+#include "widgets/ctexteditwithlinenumbers.h"
+
 #include "assert/advanced_assert.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QActionGroup>
@@ -18,11 +23,12 @@ RESTORE_COMPILER_WARNINGS
 #include <type_traits>
 
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
-	CPluginWindow(parent),
-	_textBrowser(this),
-	_findDialog(this, "Plugins/TextViewer/Find/")
+	CPluginWindow(parent)
 {
 	setupUi(this);
+
+	_textBrowser = new CTextEditWithLineNumbers(this);
+	_findDialog = new CFindDialog(this, "Plugins/TextViewer/Find/");
 
 	if (parent)
 	{
@@ -33,11 +39,11 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 
 	installEventFilter(new CPersistenceEnabler("Plugins/TextViewer/Window", this));
 
-	setCentralWidget(&_textBrowser);
-	_textBrowser.setReadOnly(true);
-	_textBrowser.setUndoRedoEnabled(false);
-	_textBrowser.setWordWrapMode(QTextOption::NoWrap);
-	_textBrowser.setTabStopDistance(static_cast<qreal>(4 * _textBrowser.fontMetrics().horizontalAdvance(' ')));
+	setCentralWidget(_textBrowser);
+	_textBrowser->setReadOnly(true);
+	_textBrowser->setUndoRedoEnabled(false);
+	_textBrowser->setWordWrapMode(QTextOption::NoWrap);
+	_textBrowser->setTabStopDistance(static_cast<qreal>(4 * _textBrowser->fontMetrics().horizontalAdvance(' ')));
 
 	assert_r(connect(actionOpen, &QAction::triggered, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
@@ -51,7 +57,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	assert_r(connect(actionClose, &QAction::triggered, this, &QDialog::close));
 
 	assert_r(connect(actionFind, &QAction::triggered, [this]() {
-		_findDialog.exec();
+		_findDialog->exec();
 	}));
 	assert_r(connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext));
 
@@ -69,8 +75,8 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	group->addAction(actionUTF_16);
 	group->addAction(actionHTML_RTF);
 
-	assert_r(connect(&_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find));
-	assert_r(connect(&_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
+	assert_r(connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find));
+	assert_r(connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	assert_r(connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater));
@@ -124,7 +130,7 @@ bool CTextViewerWindow::asDetectedAutomatically()
 		if (!text.isEmpty())
 		{
 			encodingChanged(result.encoding, result.language);
-			_textBrowser.setPlainText(text);
+			_textBrowser->setPlainText(text);
 		}
 		else
 			return asSystemDefault();
@@ -133,7 +139,7 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	{
 		encodingChanged("UTF-8");
 		actionUTF_8->setChecked(true);
-		_textBrowser.setPlainText(text);
+		_textBrowser->setPlainText(text);
 	}
 
 	return true;
@@ -152,7 +158,7 @@ bool CTextViewerWindow::asSystemDefault()
 		return false;
 	}
 
-	_textBrowser.setPlainText(codec->toUnicode(textData));
+	_textBrowser->setPlainText(codec->toUnicode(textData));
 	encodingChanged(codec->name());
 	actionSystemLocale->setChecked(true);
 
@@ -172,7 +178,7 @@ bool CTextViewerWindow::asAscii()
 		return false;
 	}
 
-	_textBrowser.setPlainText(codec->toUnicode(textData));
+	_textBrowser->setPlainText(codec->toUnicode(textData));
 	encodingChanged(codec->name());
 	actionASCII_Windows_1252->setChecked(true);
 
@@ -189,7 +195,7 @@ bool CTextViewerWindow::asUtf8()
 	}
 
 	encodingChanged("UTF-8");
-	_textBrowser.setPlainText(QString::fromUtf8(textData));
+	_textBrowser->setPlainText(QString::fromUtf8(textData));
 	actionUTF_8->setChecked(true);
 
 	return true;
@@ -209,7 +215,7 @@ bool CTextViewerWindow::asUtf16()
 	QString text;
 	text.resize(textData.size() / 2 + 1, QChar{'\0'});
 	memcpy(text.data(), textData.constData(), static_cast<size_t>(textData.size()));
-	_textBrowser.setPlainText(std::move(text));
+	_textBrowser->setPlainText(std::move(text));
 	actionUTF_16->setChecked(true);
 
 	return true;
@@ -223,36 +229,36 @@ bool CTextViewerWindow::asRichText()
 
 void CTextViewerWindow::find()
 {
-	_textBrowser.moveCursor(_findDialog.searchBackwards() ? QTextCursor::End : QTextCursor::Start);
+	_textBrowser->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
 	findNext();
 }
 
 void CTextViewerWindow::findNext()
 {
-	const QString expression = _findDialog.searchExpression();
+	const QString expression = _findDialog->searchExpression();
 	if (expression.isEmpty())
 		return;
 
 	QTextDocument::FindFlags flags {};
-	if (_findDialog.caseSensitive())
+	if (_findDialog->caseSensitive())
 		flags |= QTextDocument::FindCaseSensitively;
-	if (_findDialog.searchBackwards())
+	if (_findDialog->searchBackwards())
 		flags |= QTextDocument::FindBackward;
-	if (_findDialog.wholeWords())
+	if (_findDialog->wholeWords())
 		flags |= QTextDocument::FindWholeWords;
 
-	const QTextCursor startCursor = _textBrowser.textCursor();
+	const QTextCursor startCursor = _textBrowser->textCursor();
 	bool found = false;
-	if (_findDialog.regex())
-		found = _textBrowser.find(QRegularExpression(_findDialog.searchExpression()), flags);
+	if (_findDialog->regex())
+		found = _textBrowser->find(QRegularExpression(_findDialog->searchExpression()), flags);
 	else
-		found = _textBrowser.find(_findDialog.searchExpression(), flags);
+		found = _textBrowser->find(_findDialog->searchExpression(), flags);
 
 	if(!found && (startCursor.isNull() || startCursor.position() == 0))
 		QMessageBox::information(this, tr("Not found"), tr("Expression \"%1\" not found").arg(expression));
 	else if (!found && startCursor.position() > 0)
 	{
-		if (QMessageBox::question(this, tr("Not found"), _findDialog.searchBackwards() ? tr("Beginning of file reached, do you want to restart search from the end?") : tr("End of file reached, do you want to restart search from the top?")) == QMessageBox::Yes)
+		if (QMessageBox::question(this, tr("Not found"), _findDialog->searchBackwards() ? tr("Beginning of file reached, do you want to restart search from the end?") : tr("End of file reached, do you want to restart search from the top?")) == QMessageBox::Yes)
 			find();
 	}
 }

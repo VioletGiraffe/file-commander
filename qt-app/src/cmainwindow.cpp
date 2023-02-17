@@ -123,7 +123,7 @@ void CMainWindow::onCreate()
 		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
 	}
 
-	qApp->setStyleSheet(s.value(KEY_INTERFACE_STYLE_SHEET).toString());
+	//qApp->setStyleSheet(s.value(KEY_INTERFACE_STYLE_SHEET).toString());
 }
 
 void CMainWindow::updateInterface()

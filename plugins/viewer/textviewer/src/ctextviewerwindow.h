@@ -1,15 +1,12 @@
 #pragma once
 
 #include "plugininterface/cpluginwindow.h"
-#include "cfinddialog.h"
 
 #include "ui_ctextviewerwindow.h"
 
-DISABLE_COMPILER_WARNINGS
-#include <QPlainTextEdit>
-RESTORE_COMPILER_WARNINGS
-
 class QLabel;
+class CTextEditWithLineNumbers;
+class CFindDialog;
 
 class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
 {
@@ -34,9 +31,9 @@ private:
 	void encodingChanged(const QString& encoding, const QString& language = QString());
 
 private:
-	QPlainTextEdit _textBrowser;
-	CFindDialog    _findDialog;
-	QString        _sourceFilePath;
+	QString _sourceFilePath;
 
-	QLabel       * _encodingLabel = nullptr;
+	CTextEditWithLineNumbers* _textBrowser;
+	CFindDialog* _findDialog;
+	QLabel* _encodingLabel = nullptr;
 };
