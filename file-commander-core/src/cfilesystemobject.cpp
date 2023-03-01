@@ -151,8 +151,10 @@ void CFileSystemObject::refreshInfo()
 #endif
 	}
 
-	_properties.hash = wheathash64(_properties.fullPath.constData(), static_cast<uint64_t>(_properties.fullPath.size()) * sizeof(QChar));
-
+	if (const auto pathLength = static_cast<uint64_t>(_properties.fullPath.size()); pathLength != 0)
+		_properties.hash = wheathash64(_properties.fullPath.constData(), pathLength * sizeof(QChar));
+	else
+		_properties.hash = 0; // Workaround: it's much simpler if all empty objects, both default-constructed and not, have a hash of 0
 
 	if (_properties.type == File)
 	{
