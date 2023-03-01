@@ -71,17 +71,6 @@ jobs:
         xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\x64\
         xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\x64\
 
-    - name: Windows - building tests
-      if: startsWith(matrix.os, 'windows')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: cmd
-      run: |
-        cd file-commander-core\core-tests\
-        dir
-        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
-        msbuild /t:Build /p:Configuration=Release;PlatformToolset=v143 core-tests.sln
-        cd ..\..
-
     - name: Mac
       if: startsWith(matrix.os, 'macos')
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -111,53 +100,32 @@ jobs:
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
 
-    - name: Test run
+    - name: Test launch
       if: startsWith(matrix.os, 'macos')
       run: ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch
       
-    - name: Test run
+    - name: Test launch
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         xvfb-run --auto-servernum ./bin/release/x64/FileCommander --test-launch
 
-    - name: Test run
+    - name: Test launch
       if: startsWith(matrix.os, 'widows')
       run: |
         .\bin\release\x64\FileCommander.exe --test-launch  
 
-    - name: Tests - Mac
-      if: startsWith(matrix.os, 'macos')
+    - name: Building tests - Windows
+      if: startsWith(matrix.os, 'windows')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: cmd
       run: |
-        cd file-commander-core/core-tests
-        $Qt5_DIR/bin/qmake -r CONFIG+=release
-        make -j
-        cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
-        echo Running tests...
-        set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
-        set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
-        set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); sleep 1; done
-        set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
+        cd file-commander-core\core-tests\
+        dir
+        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
+        msbuild /t:Build /p:Configuration=Release;PlatformToolset=v143 core-tests.sln
+        cd ..\..
 
-    - name: Tests - Linux
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        cd file-commander-core/core-tests
-        $Qt5_DIR/bin/qmake -r CONFIG+=release
-        make -j
-        cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs
-        echo Running tests...
-        set -e; ./bin/release/x64/fso_test
-        set -e; ./bin/release/x64/fso_test_high_level
-        set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test --std-seed $(date +%s); sleep 1; done
-        set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
-
-    - name: Tests - windows-latest
+    - name: Running tests - Windows
       if: startsWith(matrix.os, 'windows')
       shell: powershell
       run: |
@@ -174,23 +142,61 @@ jobs:
         $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
         & .\bin\release\x64\filecomparator_test.exe --std-seed $randomSeed;
 
+    - name: Building tests - Mac
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        cd file-commander-core/core-tests
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        make -j
+        cd ../../
+        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
+
+    - name: Running tests - Mac
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
+        set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
+        set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); sleep 1; done
+        set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
+
+    - name: Building tests - Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        cd file-commander-core/core-tests
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        make -j
+        cd ../../
+        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs
+
+    - name: Running tests - Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        set -e; ./bin/release/x64/fso_test
+        set -e; ./bin/release/x64/fso_test_high_level
+        set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test --std-seed $(date +%s); sleep 1; done
+        set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
+
     - name: Archive DMG
       if: startsWith(matrix.os, 'macos')
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           name: FileCommander.dmg
           path: FileCommander.dmg
 
     - name: Archive AppImage
       if: startsWith(matrix.os, 'ubuntu')
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           name: FileCommander.AppImage
           path: FileCommander.AppImage
 
     - name: Archive Installer
       if: startsWith(matrix.os, 'windows')
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           name: FileCommander.exe
           path: installer/windows/FileCommander.exe
