@@ -161,8 +161,6 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	_controller->setPanelContentsChangedListener(p, this);
 
-	fillHistory();
-
 	_controller->setVolumesChangedListener(this);
 	_controller->panel(_panelPosition).addCurrentItemChangeListener(this);
 }
