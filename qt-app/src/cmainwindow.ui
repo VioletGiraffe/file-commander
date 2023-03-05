@@ -323,7 +323,7 @@
     <string>&amp;Show hidden files</string>
    </property>
    <property name="shortcut">
-    <string>Alt+H</string>
+    <string>Ctrl+S</string>
    </property>
   </action>
   <action name="actionCalculate_occupied_space">

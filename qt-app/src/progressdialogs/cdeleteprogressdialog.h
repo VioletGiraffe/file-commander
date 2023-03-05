@@ -16,11 +16,11 @@ class CDeleteProgressDialog;
 class CMainWindow;
 class COperationPerformer;
 
-class CDeleteProgressDialog : public QWidget, protected CFileOperationObserver
+class CDeleteProgressDialog final : public QWidget, protected CFileOperationObserver
 {
 public:
 	CDeleteProgressDialog(std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow);
-	~CDeleteProgressDialog();
+	~CDeleteProgressDialog() override;
 
 // Callbacks
 	void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) override;

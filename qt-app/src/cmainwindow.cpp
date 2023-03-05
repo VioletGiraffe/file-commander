@@ -1,5 +1,4 @@
 #include "cmainwindow.h"
-#include "plugininterface/cpluginwindow.h"
 #include "progressdialogs/ccopymovedialog.h"
 #include "progressdialogs/cdeleteprogressdialog.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
@@ -204,6 +203,12 @@ void CMainWindow::initActions()
 	});
 
 	ui->action_Show_hidden_files->setChecked(CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
+#ifndef _WIN32
+	ui->action_Show_hidden_files->setShortcut(QKeySequence{ "Alt+H" }); // This is a common shortcut for Linux file managers
+#else
+	ui->action_Show_hidden_files->setShortcut(QKeySequence{ "Ctrl+Alt+H" }); // Cannot use Alt+H because it's the accelerator for the "Help" item in the main menu
+#endif
+
 	connect(ui->action_Show_hidden_files, &QAction::triggered, this, &CMainWindow::showHiddenFiles);
 	connect(ui->actionShowAllFiles, &QAction::triggered, this, &CMainWindow::showAllFilesFromCurrentFolderAndBelow);
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
