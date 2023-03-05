@@ -34,11 +34,11 @@ jobs:
       run: update_repository.bat
 
     - name: Install Qt
-      if: "startsWith(matrix.os, 'windows')"
+      if: "!startsWith(matrix.os, 'ubuntu')"
       uses: jurplel/install-qt-action@v3
 
     - name: Install Qt
-      if: "!startsWith(matrix.os, 'windows')"
+      if: "startsWith(matrix.os, 'ubuntu')"
       uses: jurplel/install-qt-action@v3
       with:
         archives: 'qtbase icu'
