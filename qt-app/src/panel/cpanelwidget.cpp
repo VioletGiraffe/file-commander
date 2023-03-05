@@ -43,7 +43,6 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	ui(new Ui::CPanelWidget),
 	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_showFilterEditorShortcut(QKeySequence("Ctrl+F"), this, SLOT(showFilterEditor()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_copyShortcut(QKeySequence("Ctrl+C"), this, SLOT(copySelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_cutShortcut(QKeySequence("Ctrl+X"), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut)
@@ -589,16 +588,12 @@ void CPanelWidget::showFavoriteLocationsEditor()
 	CFavoriteLocationsEditor(this).exec();
 }
 
-void CPanelWidget::fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers)
+void CPanelWidget::fileListViewKeyPressed(const QString& /*keyText*/, int key, Qt::KeyboardModifiers /*modifiers*/)
 {
 	if (key == Qt::Key_Backspace)
 	{
 		// Navigating back
 		_controller->navigateUp(_panelPosition);
-	}
-	else
-	{
-		emit fileListViewKeyPressedSignal(this, keyText, key, modifiers);
 	}
 }
 
@@ -607,7 +602,7 @@ void CPanelWidget::showFilterEditor()
 	_filterDialog.showAt(ui->_list->geometry().bottomLeft());
 }
 
-void CPanelWidget::filterTextChanged(QString filterText)
+void CPanelWidget::filterTextChanged(const QString& filterText)
 {
 	_sortModel->setFilterWildcard(filterText);
 }
@@ -706,7 +701,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 #endif
 }
 
-void CPanelWidget::pathFromHistoryActivated(QString path)
+void CPanelWidget::pathFromHistoryActivated(const QString& path)
 {
 	const CFileSystemObject processedPath(path); // Needed for expanding environment variables in the path
 	ui->_list->setFocus();

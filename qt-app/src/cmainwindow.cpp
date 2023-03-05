@@ -214,6 +214,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
 	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateOccupiedSpace);
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
+	connect(ui->actionFilter_items, &QAction::triggered, this, &CMainWindow::filterItemsByName);
 
 	connect(ui->action_Invert_selection, &QAction::triggered, this, &CMainWindow::invertSelection);
 
@@ -577,6 +578,12 @@ void CMainWindow::toggleQuickView()
 		quickViewCurrentFile();
 	else
 		otherPanelDisplayController().endQuickView();
+}
+
+void CMainWindow::filterItemsByName()
+{
+	if (auto* panel = currentPanelDisplayController().panelWidget(); panel)
+		panel->showFilterEditor();
 }
 
 void CMainWindow::currentItemChanged(Panel /*p*/, qulonglong /*itemHash*/)

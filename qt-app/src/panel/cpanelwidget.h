@@ -24,10 +24,10 @@ class CFileListView;
 
 
 class CPanelWidget final : public QWidget,
-                     private CController::IVolumeListObserver,
-                     public PanelContentsChangedListener,
-                     private FileListReturnPressOrDoubleClickObserver,
-                     public CursorPositionListener
+					 private CController::IVolumeListObserver,
+					 public PanelContentsChangedListener,
+					 private FileListReturnPressOrDoubleClickObserver,
+					 public CursorPositionListener
 {
 	Q_OBJECT
 
@@ -69,10 +69,11 @@ public:
 
 	void onSettingsChanged();
 
+	void showFilterEditor();
+
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
 	void currentItemChangedSignal(Panel p, qulonglong itemHash);
-	void fileListViewKeyPressedSignal(CPanelWidget* panelWidget, QString keyText, int key, Qt::KeyboardModifiers modifiers);
 
 protected:
 	bool eventFilter(QObject * object , QEvent * e) override;
@@ -89,13 +90,12 @@ private slots:
 	void toRoot();
 	void showFavoriteLocationsMenu(QPoint pos);
 	void showFavoriteLocationsEditor();
-	void fileListViewKeyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
-	void showFilterEditor();
-	void filterTextChanged(QString filterText);
+	void fileListViewKeyPressed(const QString& keyText, int key, Qt::KeyboardModifiers modifiers);
+	void filterTextChanged(const QString& filterText);
 	void copySelectionToClipboard() const;
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard();
-	void pathFromHistoryActivated(QString path);
+	void pathFromHistoryActivated(const QString& path);
 
 private:
 	void fillHistory();
@@ -128,7 +128,6 @@ private:
 
 	QShortcut                       _calcDirSizeShortcut;
 	QShortcut                       _selectCurrentItemShortcut;
-	QShortcut                       _showFilterEditorShortcut;
 	QShortcut                       _copyShortcut;
 	QShortcut                       _cutShortcut;
 	QShortcut                       _pasteShortcut;

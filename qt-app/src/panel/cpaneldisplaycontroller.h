@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pluginengine/cpluginengine.h"
+#include "plugininterface/cfilecommanderviewerplugin.h"
 
 class CPluginWindow;
 class CPanelWidget;
@@ -18,8 +18,8 @@ public:
 	bool quickViewActive() const;
 
 private:
-	CFileCommanderViewerPlugin::PluginWindowPointerType _quickViewWindow;
 	QStackedWidget* _panelStackedWidget = nullptr;
 	CPanelWidget* _panelWidget = nullptr;
+	CFileCommanderViewerPlugin::PluginWindowPointerType _quickViewWindow;
 	bool _quickViewActive = false;
 };

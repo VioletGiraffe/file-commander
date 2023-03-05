@@ -1,6 +1,4 @@
-#ifndef CFILELISTFILTERDIALOG_H
-#define CFILELISTFILTERDIALOG_H
-
+#pragma once
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -11,13 +9,14 @@ namespace Ui {
 class CFileListFilterDialog;
 }
 
-class CFileListFilterDialog : public QDialog
+class QShortcut;
+
+class CFileListFilterDialog final : public QDialog
 {
 	Q_OBJECT
-
 public:
-	explicit CFileListFilterDialog(QWidget *parent = 0);
-	~CFileListFilterDialog();
+	explicit CFileListFilterDialog(QWidget *parent);
+	~CFileListFilterDialog() override;
 
 	void showAt(const QPoint& bottomLeft);
 
@@ -29,6 +28,5 @@ protected:
 
 private:
 	Ui::CFileListFilterDialog *ui;
+	QShortcut* _escShortcut;
 };
-
-#endif // CFILELISTFILTERDIALOG_H

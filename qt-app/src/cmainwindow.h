@@ -76,6 +76,7 @@ private slots: // UI slots
 	void editFile();
 	void showRecycleBInContextMenu(QPoint pos);
 	void toggleQuickView();
+	void filterItemsByName();
 	void currentItemChanged(Panel p, qulonglong itemHash);
 
 	void toggleFullScreenMode(bool fullscreen);

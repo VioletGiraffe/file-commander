@@ -256,6 +256,7 @@
     <addaction name="actionShowAllFiles"/>
     <addaction name="separator"/>
     <addaction name="actionQuick_view"/>
+    <addaction name="actionFilter_items"/>
    </widget>
    <widget class="QMenu" name="menuSelection">
     <property name="title">
@@ -404,6 +405,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+X</string>
+   </property>
+  </action>
+  <action name="actionFilter_items">
+   <property name="text">
+    <string>Filter items by name</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
    </property>
   </action>
  </widget>
