@@ -510,9 +510,6 @@ void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept
 {
 	const auto drives = _volumeEnumerator.volumes();
 
-	_rightPanel.volumesChanged(drives, drivesListOrReadinessChanged);
-	_leftPanel.volumesChanged(drives, drivesListOrReadinessChanged);
-
 	for (auto& listener: _volumesChangedListeners)
 	{
 		listener->volumesChanged(drives, RightPanel, drivesListOrReadinessChanged);

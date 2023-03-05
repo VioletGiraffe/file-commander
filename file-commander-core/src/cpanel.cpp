@@ -421,20 +421,6 @@ void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t p
 	}, ItemDiscoveryProgressNotificationTag);
 }
 
-void CPanel::volumesChanged(const std::vector<VolumeInfo>& /*volumes*/, bool drivesListOrReadinessChanged)
-{
-	if (!drivesListOrReadinessChanged)
-		return;
-
-	if (_currentDirObject.isNetworkObject() || !_currentDirObject.isValid())
-		return;
-
-	// Handling an unplugged device
-	const auto volumeInfo = CController::get().volumeInfoForObject(_currentDirObject);
-	if (volumeInfo && volumeInfo->isReady)
-		setPath(_currentDirObject.fullAbsolutePath(), refreshCauseOther);
-}
-
 void CPanel::uiThreadTimerTick()
 {
 	_uiThreadQueue.exec();
