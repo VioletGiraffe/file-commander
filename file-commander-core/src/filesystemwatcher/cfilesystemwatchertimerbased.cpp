@@ -67,7 +67,7 @@ void CFileSystemWatcherTimerBased::onCheckForChanges()
 void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(QFileInfoList&& newState)
 {
 	std::set<FileSystemInfoWrapper> newItemsSet;
-	for (auto&& info : std::move(newState))
+	for (auto&& info : newState)
 		newItemsSet.emplace(std::move(info));
 
 	if (!_previousState.empty()) [[likely]]

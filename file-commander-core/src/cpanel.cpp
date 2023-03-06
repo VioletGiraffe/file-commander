@@ -474,9 +474,9 @@ bool CPanel::pathIsAccessible(const QString& path) const
 
 void CPanel::processContentsChangedEvent()
 {
-	if (_bContentsChangedEventPending)
+	bool expected = true;
+	if (_bContentsChangedEventPending.compare_exchange_strong(expected, false))
 	{
 		refreshFileList(refreshCauseOther);
-		_bContentsChangedEventPending = false;
 	}
 }
