@@ -75,7 +75,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	group->addAction(actionHTML_RTF);
 
 	assert_r(connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap));
-	setLineWrap(true); // Wrap by default
+	actionLine_wrap->setChecked(true); // Wrap by default
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	assert_r(connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater));
