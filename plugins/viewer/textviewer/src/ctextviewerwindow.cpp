@@ -41,7 +41,6 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	setCentralWidget(_textBrowser);
 	_textBrowser->setReadOnly(true);
 	_textBrowser->setUndoRedoEnabled(false);
-	_textBrowser->setWordWrapMode(QTextOption::NoWrap);
 	_textBrowser->setTabStopDistance(static_cast<qreal>(4 * _textBrowser->fontMetrics().horizontalAdvance(' ')));
 
 	assert_r(connect(actionOpen, &QAction::triggered, [this]() {
@@ -74,6 +73,9 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	group->addAction(actionUTF_8);
 	group->addAction(actionUTF_16);
 	group->addAction(actionHTML_RTF);
+
+	assert_r(connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap));
+	setLineWrap(true); // Wrap by default
 
 	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	assert_r(connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater));
@@ -281,6 +283,11 @@ void CTextViewerWindow::encodingChanged(const QString& encoding, const QString& 
 		message = message % ", " % tr("language: ") % language;
 
 	_encodingLabel->setText(message);
+}
+
+void CTextViewerWindow::setLineWrap(bool wrap)
+{
+	_textBrowser->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
 }
 
 void CTextViewerWindow::setupFindDialog()

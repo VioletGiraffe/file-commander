@@ -30,6 +30,8 @@ private:
 
 	void encodingChanged(const QString& encoding, const QString& language = QString());
 
+	void setLineWrap(bool wrap);
+
 	void setupFindDialog();
 
 private:
