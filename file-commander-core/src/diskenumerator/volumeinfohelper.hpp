@@ -18,12 +18,12 @@ RESTORE_COMPILER_WARNINGS
 #define statfs64 statfs
 #endif
 
-inline struct statfs64 volumeInfoForPath(const QString& path)
+inline struct statfs volumeInfoForPath(const QString& path)
 {
-	struct statfs64 info;
+	struct statfs info;
 	memset(&info, 0, sizeof(info));
-	if (statfs64(path.toLocal8Bit().data(), &info) != 0)
-		qInfo() << "Error occurred while calling statvfs64 for" << path << "\n" << strerror(errno);
+	if (statfs(path.toLocal8Bit().data(), &info) != 0)
+		qInfo() << "Error occurred while calling statfs for" << path << "\n" << strerror(errno);
 
 	return info;
 }
