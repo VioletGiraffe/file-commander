@@ -714,9 +714,13 @@ void CPanelWidget::fillHistory()
 		return;
 
 	ui->_pathNavigator->clear();
-	for(auto it = history.rbegin(); it != history.rend(); ++it)
-		ui->_pathNavigator->addItem(toNativeSeparators(it->endsWith('/') ? *it : (*it) + "/"));
 
+	QStringList items;
+	items.reserve((QStringList::size_type)history.size());
+	for (auto it = history.rbegin(); it != history.rend(); ++it)
+		items.push_back(toNativeSeparators(it->endsWith('/') ? *it : (*it) + '/'));
+
+	ui->_pathNavigator->addItems(items);
 	ui->_pathNavigator->setCurrentIndex(static_cast<int>(history.size() - 1 - history.currentIndex()));
 }
 
