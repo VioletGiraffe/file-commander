@@ -7,12 +7,6 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/badge/master)](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/overview/master)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/190add40753b46edbaa1327068263263)](https://www.codacy.com/gh/VioletGiraffe/file-commander/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VioletGiraffe/file-commander&amp;utm_campaign=Badge_Grade)
 
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=ncloc)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=security_rating)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=bugs)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=VioletGiraffe_file-commander&metric=code_smells)](https://sonarcloud.io/dashboard?id=VioletGiraffe_file-commander)
-
 ![Windows screenshot](/../gh-pages/screenshots/Windows/screenshot.png?raw=true)
 
 ### Download for Windows
@@ -34,9 +28,10 @@ For the list of known issues, refer to the project issues on Github, sort by the
 
 ***Building***
 
-* A compiler with C++ 17 support is required.
-* Qt 5.12 or newer required.
-* Windows: you can build using either Qt Creator or Visual Studio for IDE. Visual Studio 2015 or newer is required - v140 toolset or newer. Run `qmake -tp vc -r` to generate the solution for Visual Studio. I have not tried building with MinGW, but it should work as long as you enable C++ 14 support.
+* A compiler with C++20 support is required.
+* Qt 5.12 or newer required (currently tested with 5.15.2 and 6.2.2).
+* Windows: you can build using either Qt Creator or Visual Studio for IDE. Visual Studio 2022 or newer is required - v143 toolset or newer. Run `qmake -tp vc -r` to generate the solution for Visual Studio. I have not tried building with MinGW, but it should work as long as you enable C++20 support.
 * Linux: `cd` to directory with project, run `qmake -r` to generate Makefile and build via `make -j`.
-* Mac OS X: You can use either Qt Creator (simply open the project in it) or Xcode (run `qmake -r -spec macx-xcode` and open the Xcode project that has been generated). Or you an build from command line with `qmake -r` followed by `make -j`.
-   
+* Mac OS X: You can use either Qt Creator (simply open the project in it) or Xcode (run `qmake -r -spec macx-xcode` and open the Xcode project that has been generated). Or you can build from command line with `qmake -r` followed by `make -j`.
+
+See the Github workflow .yml file for reference on building the project.
