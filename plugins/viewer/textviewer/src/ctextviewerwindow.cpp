@@ -228,12 +228,16 @@ bool CTextViewerWindow::asRichText()
 
 void CTextViewerWindow::find()
 {
+	setupFindDialog();
+
 	_textBrowser->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
 	findNext();
 }
 
 void CTextViewerWindow::findNext()
 {
+	setupFindDialog();
+
 	const QString expression = _findDialog->searchExpression();
 	if (expression.isEmpty())
 		return;
