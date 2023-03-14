@@ -55,6 +55,7 @@ jobs:
       if: "startsWith(matrix.os, 'ubuntu')"
       run: |
         echo "GITHUB_REF=$GITHUB_REF"
+        echo "github.ref_name=${{github.ref_name}}"
         lscpu
 
     - name: Windows - setup MSBuild
