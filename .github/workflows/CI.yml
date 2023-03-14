@@ -82,6 +82,7 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
+        echo "GITHUB_REF=$GITHUB_REF"
         export QT_DEBUG_PLUGINS=1
         sudo apt update -y; sudo apt install -qq gcc-12 g++-12 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libfuse2
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
@@ -203,7 +204,7 @@ jobs:
 
   create-release:
     needs: build
-    if: success()
+    if: success() && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
     - name: Download EXE
