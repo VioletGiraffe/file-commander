@@ -33,16 +33,6 @@ jobs:
       shell: cmd
       run: update_repository.bat
 
-    - name: Install Qt
-      if: "!startsWith(matrix.os, 'ubuntu')"
-      uses: jurplel/install-qt-action@v3
-
-    - name: Install Qt
-      if: "startsWith(matrix.os, 'ubuntu')"
-      uses: jurplel/install-qt-action@v3
-      with:
-        archives: 'qtbase icu'
-
     - name: Sys info
       if: "startsWith(matrix.os, 'windows')"
       run: wmic cpu get name, numberofcores, maxclockspeed
@@ -54,9 +44,19 @@ jobs:
     - name: Sys info
       if: "startsWith(matrix.os, 'ubuntu')"
       run: |
-        echo "GITHUB_REF=$GITHUB_REF"
+        echo $GITHUB_REF
         echo "github.ref_name=${{github.ref_name}}"
         lscpu
+
+    - name: Install Qt
+      if: "!startsWith(matrix.os, 'ubuntu')"
+      uses: jurplel/install-qt-action@v3
+
+    - name: Install Qt
+      if: "startsWith(matrix.os, 'ubuntu')"
+      uses: jurplel/install-qt-action@v3
+      with:
+        archives: 'qtbase icu'
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
