@@ -1,6 +1,8 @@
 #include "cdirectorycompleter.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QFileSystemModel>
+RESTORE_COMPILER_WARNINGS
 
 CDirectoryCompleter::CDirectoryCompleter(QObject *parent) :
 	QCompleter(parent),

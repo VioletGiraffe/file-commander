@@ -2,6 +2,8 @@
 
 #include "compiler/compiler_warnings_control.h"
 
+DISABLE_COMPILER_WARNINGS
+
 #ifdef CFILESYSTEMOBJECT_TEST
 #define QFileInfo QFileInfo_Test
 #define QDir QDir_Test
@@ -13,7 +15,6 @@
 #include <QFileInfo>
 #endif
 
-DISABLE_COMPILER_WARNINGS
 #include <QString>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS

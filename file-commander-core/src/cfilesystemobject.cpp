@@ -86,7 +86,7 @@ static QString parentForAbsolutePath(QString absolutePath)
 	if (absolutePath.endsWith('/'))
 		absolutePath.chop(1);
 
-	const int lastSlash = absolutePath.lastIndexOf('/');
+	const auto lastSlash = absolutePath.lastIndexOf('/');
 	if (lastSlash <= 0)
 		return {};
 
@@ -261,7 +261,7 @@ bool CFileSystemObject::isEmptyDir() const
 
 #ifdef _WIN32
 	WCHAR path[32768];
-	const int nChars = _properties.fullPath.toWCharArray(path);
+	const auto nChars = _properties.fullPath.toWCharArray(path);
 	path[nChars] = 0;
 	return PathIsDirectoryEmptyW(path) != 0;
 #else
@@ -370,7 +370,7 @@ bool CFileSystemObject::isNetworkObject() const
 		return false;
 
 	WCHAR wPath[MAX_PATH];
-	const int nSymbols = toNativeSeparators(_properties.fullPath).toWCharArray(wPath);
+	const auto nSymbols = toNativeSeparators(_properties.fullPath).toWCharArray(wPath);
 	wPath[nSymbols] = 0;
 	return PathIsNetworkPathW(wPath);
 #else

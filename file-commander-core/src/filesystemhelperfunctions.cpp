@@ -1,11 +1,14 @@
 #include "filesystemhelperfunctions.h"
-
 #include "cfilesystemobject.h"
+
 #include "assert/advanced_assert.h"
 #include "container/std_container_helpers.hpp"
 #include "std_helpers/qt_container_helpers.hpp"
 
+DISABLE_COMPILER_WARNINGS
+#include <QString>
 #include <QStringBuilder>
+RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <cmath>

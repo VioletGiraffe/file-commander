@@ -1,11 +1,12 @@
 #include "ccopymovedialog.h"
-#include "ui_ccopymovedialog.h"
 #include "../cmainwindow.h"
 #include "cpromptdialog.h"
 #include "filesystemhelperfunctions.h"
 #include "progressdialoghelpers.h"
 
 DISABLE_COMPILER_WARNINGS
+#include "ui_ccopymovedialog.h"
+
 #include <QCloseEvent>
 #include <QMessageBox>
 RESTORE_COMPILER_WARNINGS

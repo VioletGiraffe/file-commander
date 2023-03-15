@@ -1,5 +1,4 @@
-#ifndef CCOPYMOVEDIALOG_H
-#define CCOPYMOVEDIALOG_H
+#pragma once
 
 #include "fileoperations/coperationperformer.h"
 
@@ -14,7 +13,7 @@ class CCopyMoveDialog;
 
 class CMainWindow;
 
-class CCopyMoveDialog : public QWidget, protected CFileOperationObserver
+class CCopyMoveDialog final : public QWidget, protected CFileOperationObserver
 {
 	Q_OBJECT
 
@@ -52,5 +51,3 @@ private:
 	const QString         _titleTemplate;
 	const QString         _labelTemplate;
 };
-
-#endif // CCOPYMOVEDIALOG_H

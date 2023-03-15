@@ -6,7 +6,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
-CFileCommanderPlugin::CFileCommanderPlugin()
+CFileCommanderPlugin::CFileCommanderPlugin() noexcept
 {
 	AdvancedAssert::setLoggingFunc([](const char* message){
 		qInfo() << message;

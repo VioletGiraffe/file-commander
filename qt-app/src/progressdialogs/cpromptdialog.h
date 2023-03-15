@@ -1,5 +1,4 @@
-#ifndef CPROMPTDIALOG_H
-#define CPROMPTDIALOG_H
+#pragma once
 
 #include "fileoperations/operationcodes.h"
 #include "cfilesystemobject.h"
@@ -40,5 +39,3 @@ private:
 	QString            _srcFileName;
 	QString            _newName;
 };
-
-#endif // CPROMPTDIALOG_H

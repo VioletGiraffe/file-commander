@@ -17,8 +17,10 @@ class PLUGIN_EXPORT CFileCommanderPlugin
 public:
 	enum PluginType {Viewer, Archive, Tool};
 
-	CFileCommanderPlugin();
-	virtual ~CFileCommanderPlugin() = default;
+	CFileCommanderPlugin() noexcept;
+	virtual ~CFileCommanderPlugin() noexcept = default;
+
+	CFileCommanderPlugin(const CFileCommanderPlugin&) = delete;
 
 	virtual PluginType type() = 0;
 	virtual QString name() const = 0;
