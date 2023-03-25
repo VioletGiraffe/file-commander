@@ -9,7 +9,7 @@ RMDIR /S /Q binaries\
 
 SETLOCAL
 
-if exist "%systemroot%\Sysnative" (
+if "%programfiles(x86)%" == "%programfiles%" (
     set SYS64=%systemroot%\Sysnative
 ) else (
     set SYS64=%systemroot%\System32
