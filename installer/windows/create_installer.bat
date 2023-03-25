@@ -9,13 +9,19 @@ RMDIR /S /Q binaries\
 
 SETLOCAL
 
-if exist "%programfiles%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-    call "%programfiles%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
+if exist "%systemroot%\Sysnative" (
+    set SYS64=%systemroot%\Sysnative
 ) else (
-    if exist "%programfiles%\Microsoft Visual Studio\2022\Preview\VC\Auxiliary\Build\vcvarsall.bat" (
-        call "%programfiles%\Microsoft Visual Studio\2022\Preview\VC\Auxiliary\Build\vcvarsall.bat" amd64
+    set SYS64=%systemroot%\System32
+)
+
+if exist "%ProgramW6432%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
+    call "%ProgramW6432%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
+) else (
+    if exist "%ProgramW6432%\Microsoft Visual Studio\2022\Preview\VC\Auxiliary\Build\vcvarsall.bat" (
+        call "%ProgramW6432%\Microsoft Visual Studio\2022\Preview\VC\Auxiliary\Build\vcvarsall.bat" amd64
     ) else (
-        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
+        call "%ProgramW6432%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
     )
 )
 
@@ -38,17 +44,17 @@ SET PATH=%QTDIR64%\bin\
 FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --release --no-compiler-runtime --no-angle --no-translations %%p
 ENDLOCAL
 
-xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\
-xcopy /R /Y %SystemRoot%\System32\msvcp140_1.dll binaries\64\msvcr\
-xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\
-xcopy /R /Y %SystemRoot%\System32\vcruntime140_1.dll binaries\64\msvcr\
+xcopy /R /Y %SYS64%\msvcp140.dll binaries\64\msvcr\
+xcopy /R /Y %SYS64%\msvcp140_1.dll binaries\64\msvcr\
+xcopy /R /Y %SYS64%\vcruntime140.dll binaries\64\msvcr\
+xcopy /R /Y %SYS64%\vcruntime140_1.dll binaries\64\msvcr\
 
 xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x64\*" binaries\64\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\64\Qt\opengl*.*
 
-"c:\Program Files (x86)\Inno Setup 6\iscc" setup.iss
+"%programfiles(x86)%\Inno Setup 6\iscc" setup.iss
 
 ENDLOCAL
 exit /b 0
