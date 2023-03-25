@@ -9,11 +9,13 @@ RMDIR /S /Q binaries\
 
 SETLOCAL
 
-if "%programfiles(x86)%" == "%programfiles%" (
+if exist "%systemroot%\Sysnative\" (
     set SYS64=%systemroot%\Sysnative
 ) else (
     set SYS64=%systemroot%\System32
 )
+
+echo %SYS64%
 
 if exist "%ProgramW6432%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
     call "%ProgramW6432%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
@@ -44,10 +46,14 @@ SET PATH=%QTDIR64%\bin\
 FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --release --no-compiler-runtime --no-angle --no-translations %%p
 ENDLOCAL
 
-xcopy /R /Y %SYS64%\msvcp140.dll binaries\64\msvcr\
-xcopy /R /Y %SYS64%\msvcp140_1.dll binaries\64\msvcr\
-xcopy /R /Y %SYS64%\vcruntime140.dll binaries\64\msvcr\
-xcopy /R /Y %SYS64%\vcruntime140_1.dll binaries\64\msvcr\
+%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\"
+if not %errorlevel% == 0 goto dll_not_found
+%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\msvcp140_1.dll binaries\64\msvcr\"
+if not %errorlevel% == 0 goto dll_not_found
+%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\"
+if not %errorlevel% == 0 goto dll_not_found
+%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\vcruntime140_1.dll binaries\64\msvcr\"
+if not %errorlevel% == 0 goto dll_not_found
 
 xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x64\*" binaries\64\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
@@ -62,6 +68,12 @@ exit /b 0
 :build_fail
 ENDLOCAL
 echo Build failed
+pause
+exit /b 1
+
+:dll_not_found
+ENDLOCAL
+echo VC++ Redistributable DLL not found
 pause
 exit /b 1
 
