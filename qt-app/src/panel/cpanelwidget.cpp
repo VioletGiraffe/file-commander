@@ -1,14 +1,12 @@
 #include "cpanelwidget.h"
 #include "filelistwidget/cfilelistview.h"
 #include "filelistwidget/model/cfilelistmodel.h"
-#include "ui_cpanelwidget.h"
 #include "qflowlayout.h"
 #include "shell/cshell.h"
 #include "columns.h"
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
 #include "pluginengine/cpluginengine.h"
 #include "../favoritelocationseditor/cfavoritelocationseditor.h"
-#include "widgets/clineedit.h"
 #include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
@@ -17,10 +15,12 @@
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "settings.h"
+#include "qtcore_helpers/qdatetime_helpers.hpp"
+#include "widgets/clineedit.h"
 #include "utility/memory_cast.hpp"
 
 DISABLE_COMPILER_WARNINGS
-#include "qtcore_helpers/qdatetime_helpers.hpp"
+#include "ui_cpanelwidget.h"
 
 #include <QClipboard>
 #include <QInputDialog>

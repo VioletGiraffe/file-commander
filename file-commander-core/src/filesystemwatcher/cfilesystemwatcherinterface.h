@@ -1,7 +1,6 @@
 #pragma once
 
 #include "compiler/compiler_warnings_control.h"
-#include "container/std_container_helpers.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
@@ -10,6 +9,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 #include <mutex>
+#include <vector>
 
 namespace detail {
 
