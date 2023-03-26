@@ -37,5 +37,6 @@ private:
 private:
 	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CFileSystemWatcher thread" };
 	std::set<FileSystemInfoWrapper> _previousState;
+	bool _firstUpdate = true;
 	bool _pathChanged = false;
 };

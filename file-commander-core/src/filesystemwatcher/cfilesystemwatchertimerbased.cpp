@@ -77,12 +77,14 @@ void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(QFileInfoL
 	for (auto&& info : newState)
 		newItemsSet.emplace(std::move(info));
 
-	if (!_previousState.empty()) [[likely]]
+	if (!_firstUpdate) [[likely]]
 	{
 		const bool differenceFound = !SetOperations::is_equal_sets(newItemsSet, _previousState);
 		if (differenceFound)
 			notifySubscribers();
 	}
+	else
+		_firstUpdate = false;
 
 	_previousState = std::move(newItemsSet);
 }
