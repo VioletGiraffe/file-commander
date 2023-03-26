@@ -14,7 +14,6 @@
 #include "filesystemhelpers/filesystemhelpers.hpp"
 #include "progressdialogs/ccopymovedialog.h"
 #include "cfilemanipulator.h"
-#include "directorycompleter/cdirectorycompleter.h"
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "settings.h"
@@ -54,7 +53,11 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 
 	ui->_pathNavigator->setLineEdit(new CLineEdit);
 	ui->_pathNavigator->lineEdit()->setFocusPolicy(Qt::ClickFocus);
-	ui->_pathNavigator->setCompleter(new CDirectoryCompleter(ui->_pathNavigator));
+
+	auto* completer = ui->_pathNavigator->completer();
+	completer->setCompletionMode(QCompleter::PopupCompletion);
+	completer->setFilterMode(Qt::MatchContains);
+
 	ui->_pathNavigator->setHistoryMode(true);
 	ui->_pathNavigator->installEventFilter(this);
 	assert_r(connect(ui->_pathNavigator, &CHistoryComboBox::textActivated, this, &CPanelWidget::pathFromHistoryActivated));

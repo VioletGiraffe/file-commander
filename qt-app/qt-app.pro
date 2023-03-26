@@ -51,7 +51,6 @@ SOURCES += \
 	src/main.cpp \
 	src/cmainwindow.cpp \
 	src/panel/cpanelwidget.cpp \
-	src/panel/directorycompleter/cdirectorycompleter.cpp \
 	src/progressdialogs/ccopymovedialog.cpp \
 	src/progressdialogs/cpromptdialog.cpp \
 	src/panel/qflowlayout.cpp \
@@ -76,7 +75,6 @@ SOURCES += \
 HEADERS += \
 	src/cmainwindow.h \
 	src/panel/cpanelwidget.h \
-	src/panel/directorycompleter/cdirectorycompleter.h \
 	src/progressdialogs/ccopymovedialog.h \
 	src/progressdialogs/cpromptdialog.h \
 	src/panel/qflowlayout.h \
