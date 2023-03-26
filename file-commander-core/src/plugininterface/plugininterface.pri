@@ -12,3 +12,12 @@ SOURCES += \
     src/plugininterface/cpluginwindow.cpp \
     src/plugininterface/cpluginproxy.cpp \
     src/plugininterface/cfilecommandertoolplugin.cpp
+
+win*{
+    HEADERS += \
+        $$PWD/wcx/cwcxpluginhost.h \
+        $$PWD/wcx/wcx_interface.h
+
+    SOURCES += \
+        $$PWD/wcx/cwcxpluginhost.cpp
+}

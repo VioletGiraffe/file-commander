@@ -1,5 +1,4 @@
 #pragma once
-
 #include "cfilesystemobject.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -7,8 +6,8 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
-#include <vector>
 #include <map>
+#include <vector>
 
 
 struct PanelState {
@@ -24,7 +23,9 @@ class CPluginProxy
 {
 public:
 	struct MenuTree {
-		inline MenuTree(const QString& name_, std::function<void()>&& handler_, const QIcon& icon_ = QIcon()): name(name_), icon(icon_), handler(handler_) {}
+		inline MenuTree(QString name_, std::function<void()>&& handler_, QIcon icon_ = {}):
+			name(std::move(name_)), icon(std::move(icon_)), handler(std::move(handler_))
+		{}
 		MenuTree& operator=(const MenuTree&) = delete;
 
 		const QString name;
@@ -33,7 +34,7 @@ public:
 		std::vector<MenuTree> children;
 	};
 
-	CPluginProxy(std::function<void (std::function<void ()>)> execOnUiThreadImplementation);
+	explicit CPluginProxy(std::function<void (std::function<void ()>)> execOnUiThreadImplementation);
 
 	using CreateToolMenuEntryImplementationType = std::function<void(const std::vector<CPluginProxy::MenuTree>&)>;
 

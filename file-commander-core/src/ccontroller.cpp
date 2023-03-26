@@ -6,8 +6,6 @@
 #include "filesystemhelperfunctions.h"
 #include "iconprovider/ciconprovider.h"
 
-#include "system/ctimeelapsed.h"
-
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QClipboard>
@@ -203,7 +201,7 @@ FileOperationResultCode CController::createFolder(const QString &parentFolder, c
 	// Comparing with CFileSystemObject{parentFolder} instead of parentDir to avoid potential slash direction and trailing slash issues for paths coming from different APIs
 	if (CFileSystemObject{parentFolder}.fullAbsolutePath() == activePanel().currentDirObject().fullAbsolutePath())
 	{
-		const int slashPosition = name.indexOf('/');
+		const auto slashPosition = name.indexOf('/');
 		// The trailing slash is required in order for the hash to match the hash of the item once it will be created: existing folders always have a trailing hash
 		const QString newItemPath = parentDir.absolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
 		// This is required for the UI to know to set the cursor at the new folder.
@@ -234,7 +232,7 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 
 	if (parentDir.fullAbsolutePath() == activePanel().currentDirObject().fullAbsolutePath())
 	{
-		const int slashPosition = name.indexOf('/');
+		const auto slashPosition = name.indexOf('/');
 		// The trailing slash is required in order for the hash to match the hash of the item once it will be created: existing folders always have a trailing hash
 		const QString newItemPath = parentDir.fullAbsolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
 		// This is required for the UI to know to set the cursor at the new folder.

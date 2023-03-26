@@ -1,8 +1,10 @@
 #include "cpluginproxy.h"
 #include "assert/advanced_assert.h"
 
+#include <utility>
+
 CPluginProxy::CPluginProxy(std::function<void(std::function<void()>)> execOnUiThreadImplementation) :
-	_execOnUiThreadImplementation(execOnUiThreadImplementation)
+	_execOnUiThreadImplementation(std::move(execOnUiThreadImplementation))
 {
 	assert_r(_execOnUiThreadImplementation);
 }

@@ -4,6 +4,7 @@
 #include "cpanel.h"
 #include "diskenumerator/cvolumeenumerator.h"
 #include "plugininterface/cpluginproxy.h"
+#include "plugininterface/wcx/cwcxpluginhost.h"
 #include "favoritelocationslist/cfavoritelocations.h"
 #include "filesearchengine/cfilesearchengine.h"
 
@@ -124,6 +125,9 @@ private:
 	CPanel               _leftPanel;
 	CPanel               _rightPanel;
 	CPluginProxy         _pluginProxy;
+#ifdef _WIN32
+	CWcxPluginHost       _wcxHost;
+#endif
 	CVolumeEnumerator    _volumeEnumerator;
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;
 	Panel                _activePanel = UnknownPanel;
