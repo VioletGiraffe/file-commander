@@ -1,13 +1,19 @@
 #pragma once
 
 #include "cfilesystemobject.h"
-#include "filesystemwatcher/cfilesystemwatchertimerbased.h"
-#include "diskenumerator/cvolumeenumerator.h"
 #include "historylist/chistorylist.h"
 #include "threading/cworkerthread.h"
 #include "threading/cexecutionqueue.h"
 #include "fileoperationresultcode.h"
 #include "utility/callback_caller.hpp"
+
+#ifdef _WIN32
+#include "filesystemwatcher/cfilesystemwatcherwindows.h"
+using FileSystemWatcher = CFileSystemWatcherWindows;
+#else
+#include "filesystemwatcher/cfilesystemwatchertimerbased.h"
+using FileSystemWatcher = CFileSystemWatcherTimerBased;
+#endif
 
 #include <map>
 #include <memory>
@@ -59,7 +65,6 @@ class CPanel final : public QObject
 {
 public:
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
-
 
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 	void addCurrentItemChangeListener(CursorPositionListener * listener);
@@ -124,7 +129,7 @@ private:
 
 private:
 	CFileSystemObject                          _currentDirObject;
-	CFileSystemWatcherTimerBased               _watcher;
+	FileSystemWatcher                          _watcher;
 	std::map<qulonglong, CFileSystemObject>    _items;
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;

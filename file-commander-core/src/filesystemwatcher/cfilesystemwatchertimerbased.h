@@ -34,6 +34,7 @@ public:
 	CFileSystemWatcherTimerBased();
 	~CFileSystemWatcherTimerBased();
 
+	// This method is thread-safe.
 	bool setPathToWatch(const QString &path);
 	// Poll this function to find out if there were any changes since the last check.
 	// This method is thread-safe.
