@@ -28,14 +28,15 @@ private:
 	mutable qint64 _size = -1;
 };
 
-class CFileSystemWatcherTimerBased final
+class CFileSystemWatcherTimerBased
 {
 public:
 	CFileSystemWatcherTimerBased();
 	~CFileSystemWatcherTimerBased();
 
 	bool setPathToWatch(const QString &path);
-	// Poll this function to find out if there were any changes since the last check
+	// Poll this function to find out if there were any changes since the last check.
+	// This method is thread-safe.
 	bool changesDetected() noexcept;
 
 private:
