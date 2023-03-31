@@ -52,6 +52,12 @@ bool CFileSystemWatcherTimerBased::setPathToWatch(const QString& path)
 	return true;
 }
 
+bool CFileSystemWatcherTimerBased::changesDetected() noexcept
+{
+	bool expected = true;
+	return _bChangeDetected.compare_exchange_strong(expected, false);
+}
+
 void CFileSystemWatcherTimerBased::onCheckForChanges()
 {
 	std::unique_lock locker{ _mutex };
@@ -81,7 +87,7 @@ void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(QFileInfoL
 	{
 		const bool differenceFound = !SetOperations::is_equal_sets(newItemsSet, _previousState);
 		if (differenceFound)
-			notifySubscribers();
+			_bChangeDetected = true;
 	}
 	else
 		_firstUpdate = false;

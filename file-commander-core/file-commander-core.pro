@@ -20,7 +20,6 @@ HEADERS += \
 	src/ccontroller.h \
 	src/fileoperationresultcode.h \
 	src/cpanel.h \
-	src/filesystemwatcher/cfilesystemwatcherinterface.h \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.h \
 	src/iconprovider/ciconprovider.h \
 	src/fileoperations/operationcodes.h \
@@ -45,7 +44,6 @@ SOURCES += \
 	src/ccontroller.cpp \
 	src/cpanel.cpp \
 	src/filesystemhelperfunctions.cpp \
-	src/filesystemwatcher/cfilesystemwatcherinterface.cpp \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.cpp \
 	src/iconprovider/ciconprovider.cpp \
 	src/iconprovider/ciconproviderimpl.cpp \

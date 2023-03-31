@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cfilesystemobject.h"
+#include "filesystemwatcher/cfilesystemwatchertimerbased.h"
 #include "diskenumerator/cvolumeenumerator.h"
 #include "historylist/chistorylist.h"
 #include "threading/cworkerthread.h"
@@ -8,14 +9,11 @@
 #include "fileoperationresultcode.h"
 #include "utility/callback_caller.hpp"
 
-#include <atomic>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <vector>
 #include <utility>
-
-class CFileSystemWatcherTimerBased;
 
 enum Panel
 {
@@ -116,7 +114,6 @@ public:
 private:
 	bool pathIsAccessible(const QString& path) const;
 
-	void contentsChanged();
 	void processContentsChangedEvent();
 
 	template <typename Functor>
@@ -127,10 +124,10 @@ private:
 
 private:
 	CFileSystemObject                          _currentDirObject;
+	CFileSystemWatcherTimerBased               _watcher;
 	std::map<qulonglong, CFileSystemObject>    _items;
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
-	std::unique_ptr<CFileSystemWatcherTimerBased> _watcher;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CursorPositionListener>    _currentItemChangeListener;
 	const Panel                                _panelPosition;
@@ -139,7 +136,4 @@ private:
 	CWorkerThreadPool                          _workerThreadPool;
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
-
-	QTimer                                     _fileListRefreshTimer;
-	std::atomic<bool>                          _bContentsChangedEventPending{false};
 };

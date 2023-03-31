@@ -831,7 +831,7 @@ void CMainWindow::initCore()
 	_controller->panel(RightPanel).addPanelContentsChangedListener(this);
 
 	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
-	_uiThreadTimer.start(5);
+	_uiThreadTimer.start(10);
 }
 
 void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries)

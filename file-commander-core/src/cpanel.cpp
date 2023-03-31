@@ -1,11 +1,9 @@
 #include "cpanel.h"
-#include "ccontroller.h"
 #include "settings/csettings.h"
 #include "settings.h"
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
 #include "assert/advanced_assert.h"
-#include "filesystemwatcher/cfilesystemwatchertimerbased.h"
 #include "std_helpers/qt_container_helpers.hpp"
 #include "filesystemhelpers/filesystemhelpers.hpp"
 
@@ -13,6 +11,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm> // std::min
 #include <time.h>
 
 #ifdef _WIN32
@@ -27,17 +26,12 @@ enum {
 };
 
 CPanel::CPanel(Panel position) :
-	_watcher(std::make_unique<CFileSystemWatcherTimerBased>()),
 	_panelPosition(position),
-	_workerThreadPool(4, std::string(position == LeftPanel ? "Left panel" : "Right panel") + " file list refresh thread pool")
+	_workerThreadPool(
+		std::min(4u, std::thread::hardware_concurrency()),
+		std::string(position == LeftPanel ? "Left panel" : "Right panel") + " file list refresh thread pool"
+	)
 {
-	// The list of items in the current folder is being refreshed asynchronously, not every time a change is detected, to avoid refresh tasks queuing up out of control
-	_fileListRefreshTimer.start(200);
-	connect(&_fileListRefreshTimer, &QTimer::timeout, this, &CPanel::processContentsChangedEvent);
-
-	_watcher->addCallback([this] {
-		contentsChanged();
-	});
 }
 
 CPanel::~CPanel()
@@ -118,7 +112,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	settings.setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
 
-	if (_watcher->setPathToWatch(newPath) == false)
+	if (_watcher.setPathToWatch(newPath) == false)
 		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
 
 	// If the new folder is one of the subfolders of the previous folder, mark it as the current for that previous folder
@@ -178,7 +172,7 @@ const CHistoryList<QString>& CPanel::history() const
 void CPanel::showAllFilesFromCurrentFolderAndBelow()
 {
 	_currentDisplayMode = AllObjectsMode;
-	_watcher->setPathToWatch(QString());
+	_watcher.setPathToWatch({});
 
 	_workerThreadPool.enqueue([this]() {
 		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
@@ -424,12 +418,7 @@ void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t p
 void CPanel::uiThreadTimerTick()
 {
 	_uiThreadQueue.exec();
-}
-
-void CPanel::contentsChanged()
-{
-	// The list of items in the current folder is being refreshed asynchronously, not every time a change is detected, to avoid refresh tasks queuing up out of control
-	_bContentsChangedEventPending = true;
+	processContentsChangedEvent();
 }
 
 void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *listener)
@@ -474,9 +463,6 @@ bool CPanel::pathIsAccessible(const QString& path) const
 
 void CPanel::processContentsChangedEvent()
 {
-	bool expected = true;
-	if (_bContentsChangedEventPending.compare_exchange_strong(expected, false))
-	{
+	if (_watcher.changesDetected())
 		refreshFileList(refreshCauseOther);
-	}
 }
