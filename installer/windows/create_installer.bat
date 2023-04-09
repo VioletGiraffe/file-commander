@@ -55,7 +55,15 @@ if not %errorlevel% == 0 goto dll_not_found
 %SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\vcruntime140_1.dll binaries\64\msvcr\"
 if not %errorlevel% == 0 goto dll_not_found
 
-xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\ucrt\DLLs\x64\*" binaries\64\msvcr\
+if not defined WIN_SDK (
+    if exist "%programfiles(x86)%\Windows Kits\10\Redist\10.0.19041.0" (
+        set WIN_SDK=10.0.19041.0
+    ) else (
+        set WIN_SDK=10.0.18362.0
+    )
+)
+
+xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*" binaries\64\msvcr\
 if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
 
 del binaries\64\Qt\opengl*.*
