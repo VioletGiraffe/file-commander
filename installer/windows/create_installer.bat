@@ -3,7 +3,6 @@
 :: set QTDIR64=k:\Qt\5\5.4\msvc2013_64_opengl\
 
 call set_qt_paths.bat
-if not defined WIN_SDK set WIN_SDK=10.0.18362.0
 
 RMDIR /S /Q binaries\
 
