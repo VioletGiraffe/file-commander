@@ -1,5 +1,4 @@
 #include "cfilesystemobject.h"
-#include "utility/macro_utils.h"
 #include "../test-utils/src/catch2_utils.hpp"
 
 #define CATCH_CONFIG_MAIN
@@ -7,10 +6,10 @@
 
 TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 {
-	CFileSystemObject fso((QFileInfo_Test()));
+	CFileSystemObject fso{ QFileInfo_Test{} };
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso == CFileSystemObject());
+		CHECK(fso == CFileSystemObject{});
 	}
 
 	SECTION_WITH_AUTO_NAME {
@@ -18,15 +17,15 @@ TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.extension() == "");
+		CHECK(fso.extension().isEmpty());
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.fullAbsolutePath() == "");
+		CHECK(fso.fullAbsolutePath().isEmpty());
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.fullName() == "");
+		CHECK(fso.fullName().isEmpty());
 	}
 
 	SECTION_WITH_AUTO_NAME {
@@ -58,7 +57,7 @@ TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.isMovableTo(CFileSystemObject()) == false);
+		CHECK(fso.isMovableTo(CFileSystemObject{}) == false);
 	}
 
 	SECTION_WITH_AUTO_NAME {
@@ -78,11 +77,11 @@ TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.name() == "");
+		CHECK(fso.name().isEmpty());
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.parentDirPath() == "");
+		CHECK(fso.parentDirPath().isEmpty());
 	}
 
 	SECTION_WITH_AUTO_NAME {

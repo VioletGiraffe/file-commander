@@ -5,7 +5,7 @@
 
 TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 {
-	CHECK(::pathHierarchy("").empty());
+	CHECK(::pathHierarchy( {} ).empty());
 
 	{
 		const auto hierarchy = ::pathHierarchy(".");

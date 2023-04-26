@@ -38,9 +38,9 @@ static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
 
 static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFileDevice::FileTime type)
 {
-	const auto diff = ::abs(t1.toMSecsSinceEpoch() - t2.toMSecsSinceEpoch());
+	const qint64 diff = ::abs(t1.toMSecsSinceEpoch() - t2.toMSecsSinceEpoch());
 
-	int allowedTimeDiffMs = 0;
+	qint64 allowedTimeDiffMs = 0;
 	switch (type)
 	{
 	// These margins are generally too long, but necessary for CI systems (sloooow cloud virtualized hardware)
@@ -62,9 +62,9 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	}
 
 #ifdef __APPLE__
-	static constexpr int multiplier = 50;
+	static constexpr qint64 multiplier = 50;
 #else
-	static constexpr int multiplier = 1;
+	static constexpr qint64 multiplier = 1;
 #endif
 
 	if (diff <= allowedTimeDiffMs * multiplier)
@@ -121,7 +121,7 @@ TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[opera
 		progressObserver.processEvents();
 #ifndef _DEBUG
 		// Reasonable timeout
-		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
+		if (timer.elapsed<std::chrono::seconds>() > 2ull * 60ull)
 		{
 			FAIL("File operation timeout reached.");
 			return;
@@ -198,7 +198,7 @@ TEST_CASE((std::string("Move test #") + std::to_string(rand())).c_str(), "[opera
 		progressObserver.processEvents();
 #ifndef _DEBUG
 		// Reasonable timeout
-		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
+		if (timer.elapsed<std::chrono::seconds>() > 2ull * 60ull)
 		{
 			FAIL("File operation timeout reached.");
 			return;
@@ -241,7 +241,7 @@ TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[ope
 		progressObserver.processEvents();
 #ifndef _DEBUG
 		// Reasonable timeout
-		if (timer.elapsed<std::chrono::seconds>() > 2 * 60)
+		if (timer.elapsed<std::chrono::seconds>() > 2ull * 60ull)
 		{
 			FAIL("File operation timeout reached.");
 			return;

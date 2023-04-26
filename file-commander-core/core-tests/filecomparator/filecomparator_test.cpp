@@ -1,5 +1,8 @@
 #include "filecomparator/cfilecomparator.h"
 #include "crandomdatagenerator.h"
+
+#include "qtcore_helpers/qstring_helpers.hpp"
+
 #include "system/ctimeelapsed.h"
 #include "compiler/compiler_warnings_control.h"
 
@@ -9,12 +12,13 @@
 #include "catch2_utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
+#include <QStringBuilder>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
 #include <iostream>
 
-uint32_t g_randomSeed = 0; // std::random seed
+static uint32_t g_randomSeed = 0; // std::random seed
 
 TEST_CASE("CFileComparator identical files tests", "[CFileComparator]")
 {
@@ -27,7 +31,7 @@ TEST_CASE("CFileComparator identical files tests", "[CFileComparator]")
 
 	CRandomDataGenerator gen;
 	gen.setSeed(g_randomSeed);
-	QFile fileA(sourceDirectory.filePath("A")), fileB(sourceDirectory.filePath("B"));
+	QFile fileA(sourceDirectory.filePath(QSL("A"))), fileB(sourceDirectory.filePath(QSL("B")));
 	CTimeElapsed timer(true);
 	timer.pause();
 	for (int i = 0; i < 500; ++i)
@@ -66,15 +70,15 @@ TEST_CASE("CFileComparator identical files tests", "[CFileComparator]")
 		fileB.close();
 	}
 
-	std::cout << "Total time taken to process 1000 randomly sized files: " << timer.elapsed() / 1000.0f;
+	std::cout << "Total time taken to process 1000 randomly sized files: " << (float)timer.elapsed() / 1000.0f;
 }
 
 TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 {
-	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_XXXXXX");
+	QTemporaryDir sourceDirectory(QDir::tempPath() % "/" % CURRENT_TEST_NAME.c_str() % "_XXXXXX");
 	CRandomDataGenerator gen;
 	gen.setSeed(g_randomSeed);
-	QFile fileA(sourceDirectory.filePath("A")), fileB(sourceDirectory.filePath("B"));
+	QFile fileA{sourceDirectory.filePath(QSL("A"))}, fileB{sourceDirectory.filePath(QSL("B"))};
 
 	SECTION("Completely random data")
 	{
@@ -125,9 +129,9 @@ TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 				return;
 			}
 
-			const auto dataA = gen.randomString(length).toLatin1();
-			auto dataB = dataA;
-			dataB[dataB.size() - 1] = ~dataB[dataB.size() - 1];
+			const QByteArray dataA = gen.randomString(length).toLatin1();
+			QByteArray dataB = dataA;
+			dataB[dataB.size() - 1] = static_cast<char>(~(int)dataB[dataB.size() - 1]);
 			if (fileA.write(dataA) != length || fileB.write(dataB) != length)
 			{
 				FAIL();

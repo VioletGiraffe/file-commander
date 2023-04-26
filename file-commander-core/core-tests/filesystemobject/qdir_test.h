@@ -52,25 +52,19 @@ struct QDir_Test
 	};
 	Q_DECLARE_FLAGS(SortFlags, SortFlag)
 
-	QDir_Test() {}
+	QDir_Test() = default;
 	QDir_Test(const QString& dirPath) {setPath(dirPath);}
 
-	QDir_Test& operator=(const QDir_Test& other) {
-		_absolutePath = other._absolutePath;
-		_path = other._path;
-		_entryList = other._entryList;
-
-		return *this;
-	}
+	QDir_Test& operator=(const QDir_Test& other) = default;
 
 	QString _path;
 	void setPath(const QString& path) {_path = path;}
 
 	QString _absolutePath;
-	QString absolutePath() const {return _absolutePath;}
+	[[nodiscard]] QString absolutePath() const {return _absolutePath;}
 
 	QStringList _entryList;
-	QStringList entryList([[maybe_unused]] Filters filters = NoFilter, [[maybe_unused]] SortFlags sort = NoSort) const {return _entryList;}
+	[[nodiscard]] QStringList entryList([[maybe_unused]] Filters filters = NoFilter, [[maybe_unused]] SortFlags sort = NoSort) const {return _entryList;}
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QDir_Test::Filters)

@@ -1,6 +1,5 @@
 #include "cfilesystemobject.h"
 #include "filesystemhelperfunctions.h"
-#include "windows/windowsutils.h"
 
 #include "assert/advanced_assert.h"
 #include "hash/wheathash.hpp"
@@ -27,8 +26,6 @@ RESTORE_COMPILER_WARNINGS
 #include <wordexp.h>
 #include <dirent.h>
 #elif defined _WIN32
-#include "windows/windowsutils.h"
-
 #include <Windows.h>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
@@ -47,7 +44,7 @@ static QString expandEnvironmentVariables(const QString& string)
 	const auto length = string.toWCharArray(source);
 	source[length] = 0;
 	if (const auto resultLength = ExpandEnvironmentStringsW(source, result, static_cast<DWORD>(std::size(result))); resultLength > 0)
-		return toPosixSeparators(QString::fromWCharArray(result, resultLength - 1));
+		return toPosixSeparators(QString::fromWCharArray(result, (int)resultLength - 1));
 	else
 		return string;
 #else
@@ -366,7 +363,7 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 bool CFileSystemObject::isNetworkObject() const
 {
 #ifdef _WIN32
-	if (!_properties.fullPath.startsWith("//"))
+	if (!_properties.fullPath.startsWith(QStringLiteral("//")))
 		return false;
 
 	WCHAR wPath[MAX_PATH];
