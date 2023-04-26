@@ -1,6 +1,5 @@
 #include "cfilecomparisonplugin.h"
 #include "plugininterface/cpluginproxy.h"
-#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFile>
@@ -17,7 +16,7 @@ CFileCommanderPlugin* createPlugin()
 
 CFileComparisonPlugin::CFileComparisonPlugin()
 {
-	_progressDialog.setLabelText("Comparing the selected files...");
+	_progressDialog.setLabelText(QObject::tr("Comparing the selected files..."));
 }
 
 QString CFileComparisonPlugin::name() const
@@ -96,9 +95,9 @@ void CFileComparisonPlugin::compareSelectedFiles()
 				_progressDialog.hide();
 
 				if (result == CFileComparator::Equal)
-					QMessageBox::information(nullptr, QObject::tr("Files are identical"), QObject::tr("The file\n%1\n\nis IDENTICAL to\n\n%2.").arg(filePathA).arg(filePathB));
+					QMessageBox::information(nullptr, QObject::tr("Files are identical"), QObject::tr("The file\n%1\n\nis IDENTICAL to\n\n%2.").arg(filePathA, filePathB));
 				else if (result == CFileComparator::NotEqual)
-					QMessageBox::warning(nullptr, QObject::tr("Files differ"), QObject::tr("The file\n%1\n\nis DIFFERENT from\n\n%2.").arg(filePathA).arg(filePathB));
+					QMessageBox::warning(nullptr, QObject::tr("Files differ"), QObject::tr("The file\n%1\n\nis DIFFERENT from\n\n%2.").arg(filePathA, filePathB));
 			});
 		}
 	);

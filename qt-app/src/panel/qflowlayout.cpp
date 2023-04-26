@@ -10,12 +10,6 @@ FlowLayout::FlowLayout(QWidget *parent, int margin, int hSpacing, int vSpacing)
 	setContentsMargins(margin, margin, margin, margin);
 }
 
-FlowLayout::FlowLayout(int margin, int hSpacing, int vSpacing)
-	: m_hSpace(hSpacing), m_vSpace(vSpacing)
-{
-	setContentsMargins(margin, margin, margin, margin);
-}
-
 FlowLayout::~FlowLayout()
 {
 	QLayoutItem *item = nullptr;

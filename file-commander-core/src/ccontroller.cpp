@@ -6,6 +6,8 @@
 #include "filesystemhelperfunctions.h"
 #include "iconprovider/ciconprovider.h"
 
+#include "qtcore_helpers/qstring_helpers.hpp"
+
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QClipboard>
@@ -265,7 +267,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 	const auto script = QString(R"(osascript -e "tell application \"Terminal\" to do script \"cd %1\"")").arg(escapedPath(folder));
 	system(script.toUtf8().constData());
 	Q_UNUSED(admin);
-#elif defined __linux__ || __FreeBSD__ || defined _WIN32
+#elif defined __linux__ || defined __FreeBSD__ || defined _WIN32
 	if (!admin)
 	{
 		auto shellArgs = OsShell::shellExecutable();
@@ -278,10 +280,10 @@ void CController::openTerminal(const QString &folder, bool admin)
 		const auto terminalProgramArgs = OsShell::shellExecutable();
 		const QString& terminalProgram = terminalProgramArgs.first;
 		QString arguments;
-		if (terminalProgram.contains("powershell", Qt::CaseInsensitive))
-			arguments = QStringLiteral("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
-		else if (terminalProgram.toLower() == "cmd" || terminalProgram.toLower() == "cmd.exe")
-			arguments = QStringLiteral("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));
+		if (terminalProgram.contains(QSL("powershell"), Qt::CaseInsensitive))
+			arguments = QSL("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
+		else if (terminalProgram.toLower() == QSL("cmd") || terminalProgram.toLower() == QSL("cmd.exe"))
+			arguments = QSL("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));
 
 		if (!arguments.isEmpty() && !terminalProgramArgs.second.isEmpty())
 			arguments += ' ';

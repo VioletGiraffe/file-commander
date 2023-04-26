@@ -15,8 +15,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 RESTORE_COMPILER_WARNINGS
 
-CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow) :
-	QWidget(nullptr, Qt::Window),
+CCopyMoveDialog::CCopyMoveDialog(QWidget* parent, Operation operation, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow) :
+	QWidget(parent, Qt::Window),
 	ui(new Ui::CCopyMoveDialog),
 	_performer(new COperationPerformer(operation, std::move(source), destination)),
 	_mainWindow(mainWindow),

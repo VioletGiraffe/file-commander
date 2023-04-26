@@ -45,7 +45,7 @@ bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
 {
 	QWidget *editor = qobject_cast<QWidget*>(object);
 	if (!editor)
-		return false;
+		return QStyledItemDelegate::eventFilter(object, event);
 
 	if (event->type() == QEvent::KeyPress)
 	{

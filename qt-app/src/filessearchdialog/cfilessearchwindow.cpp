@@ -4,6 +4,8 @@
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "filesystemhelperfunctions.h"
+
+#include "qtcore_helpers/qstring_helpers.hpp"
 #include "widgets/cpersistentwindow.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -13,14 +15,14 @@ DISABLE_COMPILER_WARNINGS
 #include <QLineEdit>
 RESTORE_COMPILER_WARNINGS
 
-#define SETTINGS_NAME_TO_FIND            "FileSearchDialog/Ui/NameToFind"
-#define SETTINGS_NAME_CASE_SENSITIVE     "FileSearchDialog/Ui/CaseSensitiveName"
-#define SETTINGS_CONTENTS_TO_FIND        "FileSearchDialog/Ui/ContentsToFind"
-#define SETTINGS_CONTENTS_CASE_SENSITIVE "FileSearchDialog/Ui/CaseSensitiveContents"
-#define SETTINGS_ROOT_FOLDER             "FileSearchDialog/Ui/RootFolder"
+#define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
+#define SETTINGS_NAME_CASE_SENSITIVE     QSL("FileSearchDialog/Ui/CaseSensitiveName")
+#define SETTINGS_CONTENTS_TO_FIND        QSL("FileSearchDialog/Ui/ContentsToFind")
+#define SETTINGS_CONTENTS_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveContents")
+#define SETTINGS_ROOT_FOLDER             QSL("FileSearchDialog/Ui/RootFolder")
 
-CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
-	QMainWindow(nullptr),
+CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent) :
+	QMainWindow(parent),
 	ui(new Ui::CFilesSearchWindow),
 	_engine(CController::get().fileSearchEngine())
 {
@@ -28,7 +30,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 
 	setAttribute(Qt::WA_DeleteOnClose, true);
 
-	installEventFilter(new CPersistenceEnabler("UI/FileSearchWindow", this));
+	installEventFilter(new CPersistenceEnabler(QSL("UI/FileSearchWindow"), this));
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
@@ -42,7 +44,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 	{
 		pathsToSearchIn.append(targets[i]);
 		if (i < targets.size() - 1)
-			pathsToSearchIn.append("; ");
+			pathsToSearchIn.append(QSL("; "));
 	}
 	ui->searchRoot->setCurrentText(toNativeSeparators(pathsToSearchIn));
 
@@ -65,7 +67,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets) :
 		CMainWindow::get()->activateWindow();
 	});
 
-	QTimer::singleShot(0, [this](){
+	QTimer::singleShot(0, this, [this](){
 		ui->nameToFind->setFocus();
 		ui->nameToFind->lineEdit()->selectAll();
 	});
@@ -95,7 +97,7 @@ void CFilesSearchWindow::matchFound(const QString& path)
 
 void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint32_t speed)
 {
-	ui->btnSearch->setText("Start");
+	ui->btnSearch->setText(tr("Start"));
 	QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
 	if (speed > 0)
 		message = message % ", " % tr("search speed: %1 items/sec").arg(speed);
@@ -119,13 +121,13 @@ void CFilesSearchWindow::search()
 	if (_engine.search(
 		what,
 		ui->cbNameCaseSensitive->isChecked(),
-		ui->searchRoot->currentText().split("; "),
+		ui->searchRoot->currentText().split(QSL("; ")),
 		withText,
 		ui->cbContentsCaseSensitive->isChecked()
 		)
 	)
 	{
-		ui->btnSearch->setText("Stop");
+		ui->btnSearch->setText(tr("Stop"));
 		ui->resultsList->clear();
 		setWindowTitle('\"' % what % "\" " % tr("search results"));
 	}

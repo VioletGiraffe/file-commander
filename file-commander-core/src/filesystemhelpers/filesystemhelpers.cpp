@@ -1,7 +1,10 @@
 #include "filesystemhelpers.hpp"
 #include "../filesystemhelperfunctions.h"
-#include "compiler/compiler_warnings_control.h"
+
+#include "qtcore_helpers/qstring_helpers.hpp"
+
 #include "assert/advanced_assert.h"
+#include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFile>
@@ -56,7 +59,7 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 // Removes any CR/LF characters. If there are any other symbols not supported in the current file system's paths, such characters are replaced with '_' (underscore).
 QString FileSystemHelpers::trimUnsupportedSymbols(QString path)
 {
-	path.remove(QRegularExpression("[\\x{1}-\\x{1F}]+"));
+	path.remove(QRegularExpression(QSL("[\\x{1}-\\x{1F}]+")));
 
 #ifdef _WIN32
 	if (path.count(':') > 1)
@@ -66,7 +69,7 @@ QString FileSystemHelpers::trimUnsupportedSymbols(QString path)
 	return path;
 }
 
-bool FileSystemHelpers::pathIsAccessible(QString path)
+bool FileSystemHelpers::pathIsAccessible(const QString& path)
 {
 #ifdef _WIN32
 	QString pathWithMask = toNativeSeparators(path);

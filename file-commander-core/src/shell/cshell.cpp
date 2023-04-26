@@ -143,7 +143,7 @@ bool OsShell::runExecutable(const QString & command, const QString & parameters,
 #endif
 
 #ifdef _WIN32
-#include <Shobjidl.h>
+#include <ShObjIdl.h>
 #include <ShlObj.h>
 #include <windowsx.h>
 

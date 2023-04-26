@@ -40,17 +40,17 @@ CIconProvider::CIconProvider() : _provider{std::make_unique<CIconProviderImpl>()
 
 // This complicated hashing function should have addressed #97, but it doesn't actually fix it
 // Temporarily disabled for optimization
-inline static qulonglong hash(const CFileSystemObject& object)
-{
-	const auto properties = object.properties();
-	// Use the original hash as the seed and mix it with other attributes that uniquely identify this object
-	uint64_t hash = wheathash64v(properties.modificationDate, properties.hash);
-	hash = wheathash64v(properties.creationDate, hash);
-	hash = wheathash64v(properties.size, hash);
-	hash = wheathash64v(properties.type, hash);
+//inline static qulonglong hash(const CFileSystemObject& object)
+//{
+//	const auto properties = object.properties();
+//	// Use the original hash as the seed and mix it with other attributes that uniquely identify this object
+//	uint64_t hash = wheathash64v(properties.modificationDate, properties.hash);
+//	hash = wheathash64v(properties.creationDate, hash);
+//	hash = wheathash64v(properties.size, hash);
+//	hash = wheathash64v(properties.type, hash);
 
-	return hash;
-}
+//	return hash;
+//}
 
 // guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
 const QIcon& CIconProvider::iconFor(const CFileSystemObject& object, bool guessIconByFileExtension)

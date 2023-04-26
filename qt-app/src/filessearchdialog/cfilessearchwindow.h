@@ -17,7 +17,7 @@ class QLabel;
 class CFilesSearchWindow final : public QMainWindow, public CFileSearchEngine::FileSearchListener
 {
 public:
-	explicit CFilesSearchWindow(const std::vector<QString>& targets);
+	explicit CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent);
 	~CFilesSearchWindow() override;
 
 	void itemScanned(const QString& currentItem) override;

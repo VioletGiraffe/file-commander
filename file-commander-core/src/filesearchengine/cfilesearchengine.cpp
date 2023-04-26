@@ -1,6 +1,9 @@
 #include "../ccontroller.h"
 #include "system/ctimeelapsed.h"
 #include "directoryscanner.h"
+
+#include "qtcore_helpers/qstring_helpers.hpp"
+
 #include "hash/jenkins_hash.hpp"
 
 DISABLE_COMPILER_WARNINGS
@@ -47,7 +50,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		CTimeElapsed timer;
 		timer.start();
 
-		const bool nameQueryHasWildcards = what.contains(QRegularExpression("[*?]"));
+		const bool nameQueryHasWildcards = what.contains(QRegularExpression(QSL("[*?]")));
 		QRegularExpression queryRegExp;
 		if (nameQueryHasWildcards)
 		{
@@ -56,7 +59,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 				adjustedQuery.prepend('*');
 
 			auto regExString = QRegularExpression::wildcardToRegularExpression(adjustedQuery);
-			regExString.replace(R"([^/\\]*)", ".*");
+			regExString.replace(QSL(R"([^/\\]*)"), QSL(".*"));
 			queryRegExp.setPattern(regExString);
 			assert_r(queryRegExp.isValid());
 			if (!subjectCaseSensitive)
@@ -89,7 +92,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 					}
 
 					QTextStream stream(&file);
-					const bool contentsQueryHasWildcards = contentsToFind.contains(QRegularExpression("[*?]"));
+					const bool contentsQueryHasWildcards = contentsToFind.contains(QRegularExpression(QSL("[*?]")));
 					const auto subjectCaseSensitivity = subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 					QRegularExpression fileContentsRegExp;
 					if (contentsQueryHasWildcards)

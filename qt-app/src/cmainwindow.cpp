@@ -249,7 +249,7 @@ bool CMainWindow::copyFiles(std::vector<CFileSystemObject>&& files, const QStrin
 			return false;
 	}
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationCopy, std::move(files), toPosixSeparators(prompt.text()), this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(this, operationCopy, std::move(files), toPosixSeparators(prompt.text()), this);
 	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
 	dialog->show();
 
@@ -272,7 +272,7 @@ bool CMainWindow::moveFiles(std::vector<CFileSystemObject>&& files, const QStrin
 			return false;
 	}
 
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(operationMove, std::move(files), toPosixSeparators(prompt.text()), this);
+	CCopyMoveDialog * dialog = new CCopyMoveDialog(this, operationMove, std::move(files), toPosixSeparators(prompt.text()), this);
 	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
 	dialog->show();
 
@@ -462,7 +462,7 @@ void CMainWindow::deleteFilesIrrevocably()
 #else
 	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
-		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(std::move(items), _otherFileList->currentDirPathNative(), this);
+		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(this, std::move(items), _otherFileList->currentDirPathNative(), this);
 		connect(this, &CMainWindow::closed, dialog, &CDeleteProgressDialog::deleteLater);
 		dialog->show();
 	}
@@ -698,7 +698,7 @@ void CMainWindow::findFiles()
 		selectedPaths.push_back(_currentFileList->currentDirPathNative());
 
 
-	auto fileSearchUi = new CFilesSearchWindow(selectedPaths);
+	auto fileSearchUi = new CFilesSearchWindow(selectedPaths, this);
 	connect(this, &CMainWindow::closed, fileSearchUi, &CFilesSearchWindow::close);
 	fileSearchUi->show();
 }
@@ -740,7 +740,7 @@ void CMainWindow::calculateOccupiedSpace()
 		return;
 
 	QMessageBox::information(this, tr("Occupied space"), tr("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3\n%4").
-		arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace)).arg(fileSizeToString(stats.occupiedSpace, 'B', QString{ ' ' })));
+		arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace), fileSizeToString(stats.occupiedSpace, 'B', QString{ ' ' })));
 }
 
 void CMainWindow::checkForUpdates()

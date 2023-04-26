@@ -1,14 +1,13 @@
 #include "cvolumeenumerator.h"
 #include "assert/advanced_assert.h"
 #include "container/algorithms.hpp"
-#include "container/set_operations.hpp"
 
 #include <algorithm>
 
 CVolumeEnumerator::CVolumeEnumerator() : _enumeratorThread(_updateInterval, "CVolumeEnumerator thread")
 {
 	// Setting up the timer to fetch the notifications from the queue and execute them on this thread
-	connect(&_timer, &QTimer::timeout, [this](){
+	connect(&_timer, &QTimer::timeout, this, [this](){
 		_notificationsQueue.exec();
 	});
 	_timer.start(_updateInterval / 3);
@@ -74,7 +73,6 @@ void CVolumeEnumerator::enumerateVolumes(bool async)
 			levelOfChange = std::max(levelOfChange, comparisonResult);
 		}
 	}
-
 
 	if (!async || levelOfChange != VolumeInfo::Equal)
 	{
