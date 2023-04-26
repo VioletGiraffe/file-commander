@@ -34,7 +34,6 @@ SOURCES += \
 	../../src/filecomparator/cfilecomparator.cpp
 
 HEADERS += \
-	../../src/fileoperations/cfileoperation.h \
 	../../src/fileoperations/coperationperformer.h \
 	../../src/fileoperations/operationcodes.h \
 	../../src/cfilesystemobject.h \

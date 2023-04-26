@@ -1,8 +1,6 @@
 #include "fileoperations/coperationperformer.h"
 #include "cfolderenumeratorrecursive.h"
 #include "ctestfoldergenerator.h"
-#include "container/set_operations.hpp"
-#include "system/processfilepath.hpp"
 #include "system/ctimeelapsed.h"
 #include "filecomparator/cfilecomparator.h"
 
@@ -84,11 +82,11 @@ struct ProgressObserver final : public CFileOperationObserver {
 		CHECK(totalPercentage <= 100.0f);
 		CHECK(filePercentage <= 100.0f);
 	}
-	inline void onProcessHalted(HaltReason /*reason*/, CFileSystemObject /*source*/, CFileSystemObject /*dest*/, QString /*errorMessage*/) override { // User decision required (file exists, file is read-only etc.)
+	inline void onProcessHalted(HaltReason /*reason*/, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override { // User decision required (file exists, file is read-only etc.)
 		FAIL("onProcessHalted called");
 	}
-	inline void onProcessFinished(QString /*message*/ = QString()) override {} // Done or canceled
-	inline void onCurrentFileChanged(QString /*file*/) override {} // Starting to process a new file
+	inline void onProcessFinished(const QString& /*message*/ = QString()) override {} // Done or canceled
+	inline void onCurrentFileChanged(const QString& /*file*/) override {} // Starting to process a new file
 };
 
 TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
