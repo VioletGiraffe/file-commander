@@ -1,5 +1,4 @@
-#ifndef CFILEOPERATIONCONFIRMATIONPROMPT_H
-#define CFILEOPERATIONCONFIRMATIONPROMPT_H
+#pragma once
 
 #include "compiler/compiler_warnings_control.h"
 
@@ -11,16 +10,14 @@ namespace Ui {
 class CFileOperationConfirmationPrompt;
 }
 
-class CFileOperationConfirmationPrompt : public QDialog
+class CFileOperationConfirmationPrompt final : public QDialog
 {
 public:
-	explicit CFileOperationConfirmationPrompt(const QString & caption, const QString& labelText, const QString& editText, QWidget *parent = 0);
-	~CFileOperationConfirmationPrompt();
+	explicit CFileOperationConfirmationPrompt(const QString & caption, const QString& labelText, const QString& editText, QWidget *parent = nullptr);
+	~CFileOperationConfirmationPrompt() override;
 
-	QString text() const;
+	[[nodiscard]] QString text() const;
 
 private:
 	Ui::CFileOperationConfirmationPrompt *ui;
 };
-
-#endif // CFILEOPERATIONCONFIRMATIONPROMPT_H

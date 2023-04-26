@@ -14,11 +14,11 @@ class CFilesSearchWindow;
 
 class QLabel;
 
-class CFilesSearchWindow : public QMainWindow, public CFileSearchEngine::FileSearchListener
+class CFilesSearchWindow final : public QMainWindow, public CFileSearchEngine::FileSearchListener
 {
 public:
 	explicit CFilesSearchWindow(const std::vector<QString>& targets);
-	~CFilesSearchWindow();
+	~CFilesSearchWindow() override;
 
 	void itemScanned(const QString& currentItem) override;
 	void matchFound(const QString& path) override;

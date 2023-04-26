@@ -30,7 +30,7 @@ static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
 };
 
 // Operations
-CFileManipulator::CFileManipulator(const CFileSystemObject& object) : _object(object)
+CFileManipulator::CFileManipulator(CFileSystemObject object) : _object{std::move(object)}
 {
 }
 
@@ -89,7 +89,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& location
 	// Windows: QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
 	// Also, QFile::rename will attempt to painfully copy the file if it's locked.
 #ifdef _WIN32
-	if (MoveFileW((const WCHAR*)_object.fullAbsolutePath().utf16(), (const WCHAR*)destInfo.fullAbsolutePath().utf16()) != 0)
+	if (MoveFileW(reinterpret_cast<const WCHAR*>(_object.fullAbsolutePath().utf16()), reinterpret_cast<const WCHAR*>(destInfo.fullAbsolutePath().utf16())) != 0)
 		return FileOperationResultCode::Ok;
 
 	_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
@@ -167,7 +167,7 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			return FileOperationResultCode::Fail;
 		}
 
-		if (!_destFile->resize(_object.size()))
+		if (!_destFile->resize((qint64)_object.size()))
 		{
 			_lastErrorMessage.clear(); // QFile provides no meaningful message for this case.
 			_destFile->close();
@@ -189,14 +189,14 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 
 	if (actualChunkSize != 0)
 	{
-		const auto src = _thisFile->map(_pos, actualChunkSize);
+		const auto src = _thisFile->map((qint64)_pos, (qint64)actualChunkSize);
 		if (!src)
 		{
 			_lastErrorMessage = _thisFile->errorString();
 			return FileOperationResultCode::Fail;
 		}
 
-		const auto dest = _destFile->map(_pos, actualChunkSize);
+		const auto dest = _destFile->map((qint64)_pos, (qint64)actualChunkSize);
 		if (!dest)
 		{
 			_lastErrorMessage = _destFile->errorString();
@@ -280,14 +280,14 @@ bool CFileManipulator::makeWritable(bool writable)
 
 #ifdef _WIN32
 	const QString UNCPath = toUncPath(_object.fullAbsolutePath());
-	const DWORD attributes = GetFileAttributesW((LPCWSTR)UNCPath.utf16());
+	const DWORD attributes = GetFileAttributesW(reinterpret_cast<LPCWSTR>(UNCPath.utf16()));
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 	{
 		_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
 		return false;
 	}
 
-	if (SetFileAttributesW((LPCWSTR) UNCPath.utf16(), writable ? (attributes & (~(uint32_t)FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
+	if (SetFileAttributesW(reinterpret_cast<LPCWSTR>(UNCPath.utf16()), writable ? (attributes & (~(uint32_t)FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
 	{
 		_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
 		return false;
@@ -338,7 +338,7 @@ FileOperationResultCode CFileManipulator::remove()
 	{
 		assert_r(_object.isEmptyDir());
 		errno = 0;
-		if (!QDir{_object.fullAbsolutePath()}.rmdir("."))
+		if (!QDir{_object.fullAbsolutePath()}.rmdir(QStringLiteral(".")))
 		{
 #if defined __linux || defined __APPLE__ || defined __FreeBSD__
 			if (::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == 0)

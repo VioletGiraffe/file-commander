@@ -1,7 +1,6 @@
 #pragma once
 
 #include "compiler/compiler_warnings_control.h"
-#include "widgets/cpersistentwindow.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDialog>
@@ -11,19 +10,19 @@ namespace Ui {
 class CFindDialog;
 }
 
-class CFindDialog : public QDialog
+class CFindDialog final: public QDialog
 {
 	Q_OBJECT
 
 public:
-	CFindDialog(QWidget *parent, const QString& settingsRootCategory = QString());
-	~CFindDialog();
+	CFindDialog(QWidget *parent, QString settingsRootCategory = {});
+	~CFindDialog() override;
 
-	QString searchExpression() const;
-	bool regex() const;
-	bool searchBackwards() const;
-	bool wholeWords() const;
-	bool caseSensitive() const;
+	[[nodiscard]]QString searchExpression() const;
+	[[nodiscard]] bool regex() const;
+	[[nodiscard]] bool searchBackwards() const;
+	[[nodiscard]] bool wholeWords() const;
+	[[nodiscard]] bool caseSensitive() const;
 
 signals:
 	void find();

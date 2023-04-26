@@ -52,14 +52,14 @@ QString escapedPath(QString path)
 
 QString cleanPath(QString path)
 {
-	return path.replace(QStringLiteral("\\\\"), QStringLiteral("\\")).replace(QStringLiteral("//"), QStringLiteral("/"));
+	return path.replace(QStringLiteral(R"(\\)"), QStringLiteral(R"(\)")).replace(QStringLiteral("//"), QStringLiteral("/"));
 }
 
 QString fileSizeToString(uint64_t size, const char maxUnit, const QString &spacer)
 {
-	const unsigned int KB = 1024;
-	const unsigned int MB = 1024 * KB;
-	const unsigned int GB = 1024 * MB;
+	static constexpr unsigned int KB = 1024;
+	static constexpr unsigned int MB = 1024 * KB;
+	static constexpr unsigned int GB = 1024 * MB;
 
 	const std::map<char, unsigned int> unitCodes {{'B', 0}, {'K', KB}, {'M', MB}};
 	const unsigned int maxUnitSize = unitCodes.count(maxUnit) > 0 ? unitCodes.at(maxUnit) : std::numeric_limits<unsigned int>::max();
@@ -68,17 +68,17 @@ QString fileSizeToString(uint64_t size, const char maxUnit, const QString &space
 	float n = 0.0f;
 	if (size >= GB && maxUnitSize >= GB)
 	{
-		n = size / float(GB);
+		n = (float)size / float(GB);
 		str = QStringLiteral("%1 GiB").arg(QString::number(n, 'f', 1));
 	}
 	else if (size >= MB && maxUnitSize >= MB)
 	{
-		n = size / float(MB);
+		n = (float)size / float(MB);
 		str = QStringLiteral("%1 MiB").arg(QString::number(n, 'f', 1));
 	}
 	else if (size >= KB && maxUnitSize >= KB)
 	{
-		n = size / float(KB);
+		n = (float)size / float(KB);
 		str = QStringLiteral("%1 KiB").arg(QString::number(n, 'f', 1));
 	}
 	else

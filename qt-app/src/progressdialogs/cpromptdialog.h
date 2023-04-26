@@ -11,14 +11,14 @@ namespace Ui {
 class CPromptDialog;
 }
 
-class CPromptDialog : public QDialog
+class CPromptDialog final : public QDialog
 {
 public:
-	explicit CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason, const CFileSystemObject& source, const CFileSystemObject& dest = CFileSystemObject(), const QString& message = QString());
-	~CPromptDialog();
+	CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason, const CFileSystemObject& source, const CFileSystemObject& dest = {}, const QString& message = {});
+	~CPromptDialog() override;
 
-	UserResponse ask();
-	QString newName() const;
+	[[nodiscard]] UserResponse ask();
+	[[nodiscard]] QString newName() const;
 
 protected:
 	void showEvent(QShowEvent * e) override;

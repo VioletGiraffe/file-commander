@@ -11,11 +11,11 @@ class CPanelDisplayController
 public:
 	void setPanelStackedWidget(QStackedWidget* widget);
 	void setPanelWidget(CPanelWidget* panelWidget);
-	CPanelWidget* panelWidget() const;
+	[[nodiscard]] CPanelWidget* panelWidget() const;
 
 	void startQuickView(CFileCommanderViewerPlugin::PluginWindowPointerType&& viewerWindow);
 	void endQuickView();
-	bool quickViewActive() const;
+	[[nodiscard]] bool quickViewActive() const;
 
 private:
 	QStackedWidget* _panelStackedWidget = nullptr;

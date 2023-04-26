@@ -1,7 +1,6 @@
 #include "cpluginengine.h"
 #include "ccontroller.h"
 #include "plugininterface/cfilecommanderviewerplugin.h"
-#include "plugininterface/cfilecommandertoolplugin.h"
 #include "plugininterface/cpluginproxy.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -21,11 +20,11 @@ CPluginEngine& CPluginEngine::get()
 void CPluginEngine::loadPlugins()
 {
 #if defined _WIN32
-	static const QString pluginExtension(".dll");
+	const QString pluginExtension = QStringLiteral(".dll");
 #elif defined __linux__ || defined __FreeBSD__
-	static const QString pluginExtension(".so");
+	const QString pluginExtension = QStringLiteral(".so");
 #elif defined __APPLE__
-	static const QString pluginExtension(".1.0.0.dylib");
+	const QString pluginExtension = QStringLiteral(".1.0.0.dylib");
 #else
 #error
 #endif
@@ -39,14 +38,14 @@ void CPluginEngine::loadPlugins()
 
 		const auto absolutePath = path.absoluteFilePath();
 		auto pluginModule = std::make_unique<QLibrary>(absolutePath);
-		auto createFunc = (decltype(createPlugin)*)(pluginModule->resolve("createPlugin"));
+		auto createFunc = reinterpret_cast<decltype(createPlugin)*>(pluginModule->resolve("createPlugin"));
 		if (createFunc)
 		{
 			CFileCommanderPlugin * plugin = createFunc();
 			if (plugin)
 			{
 				plugin->setProxy(&CController::get().pluginProxy());
-				qInfo().noquote() << QString("Loaded plugin \"%1\" (%2)").arg(plugin->name(), absolutePath);
+				qInfo().noquote() << QStringLiteral("Loaded plugin \"%1\" (%2)").arg(plugin->name(), absolutePath);
 				_plugins.emplace_back(std::unique_ptr<CFileCommanderPlugin>(plugin), std::move(pluginModule));
 			}
 		}

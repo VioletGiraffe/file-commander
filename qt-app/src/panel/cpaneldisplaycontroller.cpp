@@ -1,6 +1,6 @@
 #include "cpaneldisplaycontroller.h"
 #include "cpanelwidget.h"
-#include "plugininterface/cpluginwindow.h"
+
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
 

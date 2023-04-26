@@ -1,8 +1,9 @@
 #include "cfilelistview.h"
 #include "../columns.h"
-#include "model/cfilelistsortfilterproxymodel.h"
 #include "delegate/cfilelistitemdelegate.h"
-#include"assert/advanced_assert.h"
+
+#include "assert/advanced_assert.h"
+#include "math/math.hpp"
 #include "system/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -12,8 +13,10 @@ DISABLE_COMPILER_WARNINGS
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
+#include <array>
 #include <time.h>
 #include <set>
 
@@ -170,7 +173,7 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 		if (_currentItemBeforeMouseClick == itemClicked && _singleMouseClickValid && event->modifiers() == Qt::NoModifier)
 		{
 			_singleMouseClickPos = event->pos();
-			QTimer::singleShot(QApplication::doubleClickInterval()+50, [this]() {
+			QTimer::singleShot(QApplication::doubleClickInterval() + 50, this, [this]() {
 				if (_singleMouseClickValid)
 				{
 					edit(model()->index(currentIndex().row(), 0), AllEditTriggers, nullptr);
@@ -290,34 +293,34 @@ bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigg
 	return QTreeView::edit(model()->index(index.row(), 0), trigger, event);
 }
 
-static CTimeElapsed g_timer{ true };
-static bool firstUpdate{ true };
-
 bool CFileListView::eventFilter(QObject* target, QEvent* event)
 {
+	static CTimeElapsed g_timer{ true };
+	static bool firstUpdate{ true };
+
 	QHeaderView * headerView = header();
 	if (target == headerView && event && event->type() == QEvent::Resize && headerView->count() == NumberOfColumns)
 	{
 		auto resizeEvent = dynamic_cast<QResizeEvent*>(event);
-		assert_and_return_r(resizeEvent, false);
+		assert_and_return_r(resizeEvent, QTreeView::eventFilter(target, event));
 		float oldHeaderWidth = 0.0f;
 		for (int i = 0; i < headerView->count(); ++i)
 			oldHeaderWidth += (float)headerView->sectionSize(i);
 
 		const auto newHeaderWidth = (float)resizeEvent->size().width();
-		if (oldHeaderWidth <= 0.0f || newHeaderWidth <= 0.0f || oldHeaderWidth == newHeaderWidth)
-			return false;
+		if (oldHeaderWidth <= 0.0f || newHeaderWidth <= 0.0f || ::fabs(oldHeaderWidth - newHeaderWidth) < 0.1f)
+			return QTreeView::eventFilter(target, event);
 
-		std::vector<float> relativeColumnSizes(NumberOfColumns, 0.0f);
+		std::array<float, NumberOfColumns> relativeColumnSizes;
+		relativeColumnSizes.fill(0.0f);
+
+		for (int i = 0; i <NumberOfColumns; ++i)
+			relativeColumnSizes[i] = (float)headerView->sectionSize(i) / oldHeaderWidth;
+
 		for (int i = 0; i < headerView->count(); ++i)
-			relativeColumnSizes[i] = headerView->sectionSize(i) / oldHeaderWidth;
-
-		for (int i = 0; i < headerView->count(); ++i)
-			headerView->resizeSection(i, (int)(newHeaderWidth * relativeColumnSizes[i] + 0.5f));
-
-		return false;
+			headerView->resizeSection(i, Math::round<int>(newHeaderWidth * relativeColumnSizes[i]));
 	}
-	else if (event->type() == QEvent::Paint && model()->rowCount() > 1000)
+	else if (event->type() == QEvent::Paint && model() && model()->rowCount() > 1000)
 	{
 		if (firstUpdate)
 		{

@@ -1,6 +1,9 @@
 #include "cfavoritelocations.h"
 #include "settings.h"
+
+#include "qtcore_helpers/qstring_helpers.hpp"
 #include "settings/csettings.h"
+
 #include "assert/advanced_assert.h"
 #include "utility/memory_cast.hpp"
 
@@ -33,17 +36,17 @@ static inline void serialize(QByteArray& dest, const CLocationsCollection& sourc
 	}
 	else
 	{
-		QString markerName = "NoMarker";
+		QString markerName = QSL("NoMarker");
 		if (marker == NextLevel)
-			markerName = "NextLevel marker";
+			markerName = QSL("NextLevel marker");
 		else if (marker == LevelEnded)
-			markerName = "LevelEnded marker";
+			markerName = QSL("LevelEnded marker");
 		dest.append(reinterpret_cast<const char*>(&marker), sizeof(marker));
 	}
 }
 
-CFavoriteLocations::CFavoriteLocations(const QString& settingsKey) :
-	_settingsKey{settingsKey}
+CFavoriteLocations::CFavoriteLocations(QString settingsKey) :
+	_settingsKey{std::move(settingsKey)}
 {
 	load();
 }
@@ -86,12 +89,12 @@ void CFavoriteLocations::load()
 			currentPosition += length;
 		}
 
-		currentList.top().get().push_back(CLocationsCollection(displayName, path));
+		currentList.top().get().emplace_back(displayName, path);
 		const Marker marker = memory_cast<Marker>(data.constData()+currentPosition);
 		currentPosition += sizeof(Marker);
 
 		if (marker == NextLevel)
-			currentList.push(currentList.top().get().back().subLocations);
+			currentList.emplace(currentList.top().get().back().subLocations);
 		else if (marker == LevelEnded)
 			currentList.pop();
 	}

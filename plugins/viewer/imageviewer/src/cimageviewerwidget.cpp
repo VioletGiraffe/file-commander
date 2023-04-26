@@ -82,7 +82,7 @@ QString CImageViewerWidget::imageInfoString() const
 		arg(_sourceImage.height()).
 		arg(numChannels).
 		arg(_sourceImage.bitPlaneCount()).
-		arg(QString::number(8 * _currentImageFileSize / (double(_sourceImage.width()) * _sourceImage.height()), 'f', 2));
+		arg(QString::number(8.0 * (double)_currentImageFileSize / double(_sourceImage.width() * _sourceImage.height()), 'f', 2));
 }
 
 QSize CImageViewerWidget::sizeHint() const
@@ -91,12 +91,12 @@ QSize CImageViewerWidget::sizeHint() const
 	return size();
 }
 
-QIcon CImageViewerWidget::imageIcon(const QList<QSize>& sizes) const
+QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 {
 	QIcon result;
 	if (!_sourceImage.isNull())
 	{
-		for (QSize s : sizes)
+		for (const auto& s : sizes)
 			result.addPixmap(QPixmap::fromImage(ImageResizing::resize(_sourceImage, s, ImageResizing::Smart)));
 	}
 

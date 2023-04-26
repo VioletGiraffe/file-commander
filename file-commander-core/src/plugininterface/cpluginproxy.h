@@ -53,17 +53,17 @@ public:
 	void currentItemChanged(PanelPosition panel, qulonglong currentItemHash);
 	void currentPanelChanged(PanelPosition panel);
 
-	PanelPosition currentPanel() const;
-	PanelPosition otherPanel() const;
+	[[nodiscard]] PanelPosition currentPanel() const;
+	[[nodiscard]] PanelPosition otherPanel() const;
 
-	PanelState& panelState(const PanelPosition panel);
-	const PanelState& panelState(const PanelPosition panel) const;
-	QString currentFolderPathForPanel(const PanelPosition panel) const;
-	QString currentItemPathForPanel(const PanelPosition panel) const;
-	const CFileSystemObject& currentItemForPanel(const PanelPosition panel) const;
+	[[nodiscard]] PanelState& panelState(const PanelPosition panel);
+	[[nodiscard]] const PanelState& panelState(const PanelPosition panel) const;
+	[[nodiscard]] QString currentFolderPathForPanel(const PanelPosition panel) const;
+	[[nodiscard]] QString currentItemPathForPanel(const PanelPosition panel) const;
+	[[nodiscard]] const CFileSystemObject& currentItemForPanel(const PanelPosition panel) const;
 
-	const CFileSystemObject& currentItem() const;
-	QString currentItemPath() const;
+	[[nodiscard]] const CFileSystemObject& currentItem() const;
+	[[nodiscard]] QString currentItemPath() const;
 
 	void execOnUiThread(const std::function<void()>& code);
 

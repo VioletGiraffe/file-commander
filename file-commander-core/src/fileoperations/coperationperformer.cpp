@@ -1,6 +1,5 @@
 #include "coperationperformer.h"
 #include "cfilemanipulator.h"
-#include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
 
 #include "assert/advanced_assert.h"
@@ -9,6 +8,7 @@
 #include "utility/integer_literals.hpp"
 
 #include "3rdparty/magic_enum/magic_enum.hpp"
+#include "lang/utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
@@ -834,7 +834,7 @@ void CFileOperationObserver::onProcessHaltedCallback(HaltReason reason, CFileSys
 	qInfo().nospace() << "COperationPerformer: process halted, reason: " << QString::fromLatin1(reasonString.data(), (int)reasonString.size()) << ", source: " << source.fullAbsolutePath() << ", dest: " << dest.fullAbsolutePath() << ", error message: " << errorMessage;
 
 	std::lock_guard<std::mutex> lock(_callbackMutex);
-	_callbacks.emplace_back([=, this]() {
+	_callbacks.emplace_back([reason, mv(source), mv(dest), mv(errorMessage), this]() {
 		onProcessHalted(reason, source, dest, errorMessage);
 	});
 }
@@ -845,7 +845,7 @@ void CFileOperationObserver::onProcessFinishedCallback(QString message)
 		qInfo() << "COperationPerformer: operation finished, message:" << message;
 
 	std::lock_guard<std::mutex> lock(_callbackMutex);
-	_callbacks.emplace_back([=, this]() {
+	_callbacks.emplace_back([mv(message), this]() {
 		onProcessFinished(message);
 	});
 }
@@ -853,7 +853,7 @@ void CFileOperationObserver::onProcessFinishedCallback(QString message)
 void CFileOperationObserver::onCurrentFileChangedCallback(QString file)
 {
 	std::lock_guard<std::mutex> lock(_callbackMutex);
-	_callbacks.emplace_back([=, this]() {
+	_callbacks.emplace_back([mv(file), this]() {
 		onCurrentFileChanged(file);
 	});
 }

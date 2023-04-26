@@ -71,9 +71,9 @@ bool FileSystemHelpers::pathIsAccessible(QString path)
 #ifdef _WIN32
 	QString pathWithMask = toNativeSeparators(path);
 	if (pathWithMask.endsWith('\\'))
-		pathWithMask = "\\\\?\\" % pathWithMask % '*';
+		pathWithMask = R"(\\?\)" % pathWithMask % '*';
 	else
-		pathWithMask = "\\\\?\\" % pathWithMask % "\\*";
+		pathWithMask = R"(\\?\)" % pathWithMask % "\\*";
 
 	wchar_t wPath[32768];
 	const auto nCharacters = pathWithMask.toWCharArray(wPath);

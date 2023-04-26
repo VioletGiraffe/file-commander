@@ -10,19 +10,20 @@
 #include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
-#include "progressdialogs/ccopymovedialog.h"
 #include "cfilemanipulator.h"
-#include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "settings.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "widgets/clineedit.h"
-#include "utility/memory_cast.hpp"
+
+#include "system/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cpanelwidget.h"
 
 #include <QClipboard>
+#include <QCompleter>
+#include <QDebug>
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
@@ -42,9 +43,9 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	ui(new Ui::CPanelWidget),
 	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_copyShortcut(QKeySequence("Ctrl+C"), this, SLOT(copySelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_cutShortcut(QKeySequence("Ctrl+X"), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_pasteShortcut(QKeySequence("Ctrl+V"), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut)
+	_copyShortcut(QKeySequence(QSL("Ctrl+C")), this, SLOT(copySelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_cutShortcut(QKeySequence(QSL("Ctrl+X")), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_pasteShortcut(QKeySequence(QSL("Ctrl+V")), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut)
 {
 	ui->setupUi(this);
 
@@ -67,7 +68,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	assert_r(connect(ui->_list, &CFileListView::keyPressed, this, &CPanelWidget::fileListViewKeyPressed));
 
 	assert_r(connect(ui->_driveInfoLabel, &CClickableLabel::doubleClicked, this, &CPanelWidget::showFavoriteLocationsMenu));
-	assert_r(connect(ui->_btnFavs, &QPushButton::clicked, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));}));
+	assert_r(connect(ui->_btnFavs, &QPushButton::clicked, this, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));}));
 	assert_r(connect(ui->_btnToRoot, &QToolButton::clicked, this, &CPanelWidget::toRoot));
 
 	assert_r(connect(&_filterDialog, &CFileListFilterDialog::filterTextChanged, this, &CPanelWidget::filterTextChanged));
@@ -234,7 +235,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		if (!object.isCdUp())
 		{
 			QDateTime modificationDate = fromTime_t(props.modificationDate).toLocalTime();
-			dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm:ss"), Qt::DisplayRole);
+			dateItem->setData(modificationDate.toString(QSL("dd.MM.yyyy hh:mm:ss")), Qt::DisplayRole);
 		}
 		dateItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, DateColumn, dateItem });
@@ -285,7 +286,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	selectionChanged(QItemSelection(), QItemSelection());
 
 	if (items.size() > 1000)
-		qInfo() << __FUNCTION__ << timer.elapsed();
+		qInfo() << __FUNCTION__ << "Procesing" << items.size() << "items took" << timer.elapsed() << "ms";
 }
 
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
@@ -788,9 +789,9 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	if (!ui->_driveButtonsWidget->layout())
 	{
 #ifdef _WIN32
-		auto flowLayout = new FlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
+		auto flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
 #else
-		auto flowLayout = new FlowLayout(ui->_driveButtonsWidget, 0, 5, 5);
+		auto flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 5, 5);
 #endif
 		flowLayout->setSpacing(1);
 		ui->_driveButtonsWidget->setLayout(flowLayout);
@@ -815,13 +816,13 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 				continue;
 
 #ifdef _WIN32
-			const QString name = volume.rootObjectInfo.fullAbsolutePath().remove(":/");
+			const QString name = volume.rootObjectInfo.fullAbsolutePath().remove(QL1(":/"));
 #else
 			const QString name = volume.volumeLabel;
 #endif
 
 			assert_r(layout);
-			auto* diskButton = new QPushButton;
+			auto* diskButton = new(std::nothrow) QPushButton;
 			diskButton->setFocusPolicy(Qt::NoFocus);
 			diskButton->setCheckable(true);
 			diskButton->setIcon(CIconProvider::iconForFilesystemObject(volume.rootObjectInfo, false));
@@ -940,6 +941,7 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 
 	if (!selection.empty())
 	{
+		result.reserve(selection.size());
 		for (const auto selectedItem: selection)
 		{
 			const qulonglong hash = hashBySortModelIndex(selectedItem);
@@ -986,7 +988,7 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 	{
 		_currentVoumePath = currentVolumeInfo->rootObjectInfo.fullAbsolutePath();
 		const QString volumeInfoText = tr("%1 (%2): <b>%4 free</b> of %5 total").
-				arg(currentVolumeInfo->volumeLabel, currentVolumeInfo->fileSystemName, fileSizeToString(currentVolumeInfo->freeSize, 'M', " "), fileSizeToString(currentVolumeInfo->volumeSize, 'M', " "));
+									   arg(currentVolumeInfo->volumeLabel, currentVolumeInfo->fileSystemName, fileSizeToString(currentVolumeInfo->freeSize, 'M', QSL(" ")), fileSizeToString(currentVolumeInfo->volumeSize, 'M', QSL(" ")));
 		ui->_driveInfoLabel->setText(volumeInfoText);
 	}
 	else

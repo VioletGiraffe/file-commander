@@ -1,5 +1,4 @@
 #include "cpluginwindow.h"
-#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

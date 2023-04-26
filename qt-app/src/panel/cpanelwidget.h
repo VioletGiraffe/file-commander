@@ -39,15 +39,15 @@ public:
 
 	void setFocusToFileList();
 
-	QByteArray savePanelState() const;
+	[[nodiscard]] QByteArray savePanelState() const;
 	bool restorePanelState(const QByteArray& state);
 
-	QByteArray savePanelGeometry() const;
+	[[nodiscard]] QByteArray savePanelGeometry() const;
 	bool restorePanelGeometry(const QByteArray& state);
 
-	QString currentDirPathNative() const;
+	[[nodiscard]] QString currentDirPathNative() const;
 
-	Panel panelPosition() const;
+	[[nodiscard]] Panel panelPosition() const;
 	void setPanelPosition(Panel p);
 
 	// Returns the list of items added to the view
@@ -58,13 +58,13 @@ public:
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
 	void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
 
-	CFileListView * fileListView() const;
-	QAbstractItemModel* model() const;
-	QSortFilterProxyModel* sortModel() const;
+	[[nodiscard]] CFileListView* fileListView() const;
+	[[nodiscard]] QAbstractItemModel* model() const;
+	[[nodiscard]] QSortFilterProxyModel* sortModel() const;
 
 // Selection
-	std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
-	qulonglong currentItemHash() const;
+	[[nodiscard]] std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
+	[[nodiscard]] qulonglong currentItemHash() const;
 	void invertSelection();
 
 	void onSettingsChanged();
@@ -107,12 +107,12 @@ private:
 	void setCursorToItem(const QString& folder, qulonglong currentItemHash) override;
 
 // Internal methods
-	qulonglong hashBySortModelIndex(const QModelIndex& index) const;
-	QModelIndex indexByHash(const qulonglong hash, bool logFailures = false) const;
+	[[nodiscard]] qulonglong hashBySortModelIndex(const QModelIndex& index) const;
+	[[nodiscard]] QModelIndex indexByHash(const qulonglong hash, bool logFailures = false) const;
 
 	void updateCurrentVolumeButtonAndInfoLabel();
 
-	bool pasteImage(const QImage& image);
+	[[nodiscard]] bool pasteImage(const QImage& image);
 
 private:
 	CFileListFilterDialog           _filterDialog;

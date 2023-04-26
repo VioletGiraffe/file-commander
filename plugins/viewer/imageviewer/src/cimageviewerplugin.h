@@ -1,5 +1,4 @@
-#ifndef CIMAGEVIEWERPLUGIN_H
-#define CIMAGEVIEWERPLUGIN_H
+#pragma once
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
 
@@ -12,9 +11,7 @@ class CImageViewerPlugin : public CFileCommanderViewerPlugin
 public:
 	CImageViewerPlugin() = default;
 
-	bool canViewFile(const QString& fileName, const QMimeType& type) const override;
+	[[nodiscard]] bool canViewFile(const QString& fileName, const QMimeType& type) const override;
 	PluginWindowPointerType viewFile(const QString& fileName) override;
-	QString name() const override;
+	[[nodiscard]] QString name() const override;
 };
-
-#endif // CIMAGEVIEWERPLUGIN_H

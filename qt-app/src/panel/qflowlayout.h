@@ -15,24 +15,24 @@ public:
 	~FlowLayout() override;
 
 	void addItem(QLayoutItem *item) override;
-	int horizontalSpacing() const;
-	int verticalSpacing() const;
-	Qt::Orientations expandingDirections() const override;
-	bool hasHeightForWidth() const override;
-	int heightForWidth(int) const override;
-	int count() const override;
-	QLayoutItem *itemAt(int index) const override;
-	QSize minimumSize() const override;
+	[[nodiscard]] int horizontalSpacing() const;
+	[[nodiscard]] int verticalSpacing() const;
+	[[nodiscard]] Qt::Orientations expandingDirections() const override;
+	[[nodiscard]] bool hasHeightForWidth() const override;
+	[[nodiscard]] int heightForWidth(int) const override;
+	[[nodiscard]] int count() const override;
+	[[nodiscard]] QLayoutItem *itemAt(int index) const override;
+	[[nodiscard]] QSize minimumSize() const override;
 	void setGeometry(const QRect &rect) override;
-	QSize sizeHint() const override;
-	QLayoutItem *takeAt(int index) override;
+	[[nodiscard]] QSize sizeHint() const override;
+	[[nodiscard]] QLayoutItem *takeAt(int index) override;
 
 private:
 	int doLayout(const QRect &rect, bool testOnly) const;
-	int smartSpacing(QStyle::PixelMetric pm) const;
+	[[nodiscard]] int smartSpacing(QStyle::PixelMetric pm) const;
 
 private:
-	QList<QLayoutItem *> itemList;
+	QList<QLayoutItem *> m_itemList;
 	int m_hSpace;
 	int m_vSpace;
 };

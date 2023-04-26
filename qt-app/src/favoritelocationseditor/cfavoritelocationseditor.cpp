@@ -10,7 +10,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 // If an item represents a subcategory, it cannot link to a location and can only be used as a container
-class CFavoriteLocationsListItem : public QTreeWidgetItem
+class CFavoriteLocationsListItem final : public QTreeWidgetItem
 {
 public:
 	CFavoriteLocationsListItem(QTreeWidget * parent, std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
@@ -110,7 +110,7 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		addItemAction->setEnabled(false);
 	}
 
-	connect(addItemAction, &QAction::triggered, [this, item](){
+	connect(addItemAction, &QAction::triggered, this, [this, item](){
 		CNewFavoriteLocationDialog dialog(this, false);
 		if (dialog.exec() == QDialog::Accepted)
 		{
@@ -138,7 +138,7 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		}
 	});
 
-	connect(menu.addAction(tr("Add category...")), &QAction::triggered, [this, item](){
+	connect(menu.addAction(tr("Add category...")), &QAction::triggered, this, [this, item](){
 		CNewFavoriteLocationDialog dialog(this, true);
 		if (dialog.exec() == QDialog::Accepted)
 		{
@@ -162,7 +162,7 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 
 	if (item)
 	{
-		connect(menu.addAction(tr("Remove item")), &QAction::triggered, [this, item]() {
+		connect(menu.addAction(tr("Remove item")), &QAction::triggered, this, [this, item]() {
 			if (item->isCategory())
 			{
 				if (QMessageBox::question(this, tr("Delete the item?"), tr("Are you sure you want to delete this category and all its sub-items?")) == QMessageBox::Yes)
@@ -184,7 +184,7 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 	menu.exec(ui->_list->mapToGlobal(pos));
 }
 
-void CFavoriteLocationsEditor::nameEdited(QString newName)
+void CFavoriteLocationsEditor::nameEdited(const QString& newName)
 {
 	if (_currentItem)
 	{
@@ -193,7 +193,7 @@ void CFavoriteLocationsEditor::nameEdited(QString newName)
 	}
 }
 
-void CFavoriteLocationsEditor::locationEdited(QString newLocation)
+void CFavoriteLocationsEditor::locationEdited(const QString& newLocation)
 {
 	if (_currentItem)
 		_currentItem->itemIterator()->absolutePath = newLocation;
@@ -215,8 +215,10 @@ void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::list<CLocationsColl
 	const bool isCategory = locationCollectionListIterator->absolutePath.isEmpty();
 	CFavoriteLocationsListItem * treeWidgetItem = parent ? new CFavoriteLocationsListItem(parent, parentList, locationCollectionListIterator, isCategory) : new CFavoriteLocationsListItem(ui->_list, parentList, locationCollectionListIterator, isCategory);
 	if (!locationCollectionListIterator->subLocations.empty())
+	{
 		for (auto it = locationCollectionListIterator->subLocations.begin(); it != locationCollectionListIterator->subLocations.end(); ++it)
 			addLocationsToTreeWidget(locationCollectionListIterator->subLocations, it, treeWidgetItem);
+	}
 
 	if (isCategory)
 		treeWidgetItem->setExpanded(true);

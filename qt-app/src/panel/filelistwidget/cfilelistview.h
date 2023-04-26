@@ -1,7 +1,6 @@
 #pragma once
 
 #include "cpanel.h"
-#include "ccontroller.h"
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -53,7 +52,7 @@ public:
 
 	void modelAboutToBeReset();
 
-	bool editingInProgress() const;
+	[[nodiscard]] bool editingInProgress() const;
 
 signals:
 	void contextMenuRequested(QPoint pos);
@@ -82,7 +81,7 @@ private:
 	void pgUp(bool invertSelection = false);
 	void pgDn(bool invertSelection = false);
 
-	int numRowsVisible() const;
+	[[nodiscard]] int numRowsVisible() const;
 
 private:
 	std::vector<FileListViewEventObserver*> _eventObservers;

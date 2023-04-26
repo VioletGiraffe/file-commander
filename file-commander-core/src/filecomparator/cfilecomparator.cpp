@@ -54,7 +54,7 @@ void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std
 		return;
 	}
 
-	constexpr qint64 blockSize = 1 * 1024 * 1024; // 1 MiB block size
+	static constexpr qint64 blockSize = 1LL * 1024LL * 1024LL; // 1 MiB block size
 
 	const auto blockA = std::make_unique<char[]>(blockSize);
 	const auto blockB = std::make_unique<char[]>(blockSize);

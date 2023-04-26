@@ -1,7 +1,8 @@
 #include "cmainwindow.h"
 #include "settings/csettings.h"
-#include "iconprovider/ciconprovider.h"
 #include "system/win_utils.hpp"
+
+#include "qtcore_helpers/qstring_helpers.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -28,10 +29,10 @@ int main(int argc, char *argv[])
 	QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
 	QApplication app(argc, argv);
-	app.setOrganizationName("GitHubSoft");
-	app.setApplicationName("File Commander");
+	app.setOrganizationName(QSL("GitHubSoft"));
+	app.setApplicationName(QSL("File Commander"));
 
-	QFontDatabase::addApplicationFont(":/fonts/Roboto Mono.ttf");
+	QFontDatabase::addApplicationFont(QSL(":/fonts/Roboto Mono.ttf"));
 
 	CSettings::setApplicationName(app.applicationName());
 	CSettings::setOrganizationName(app.organizationName());
@@ -49,7 +50,7 @@ int main(int argc, char *argv[])
 	w.onCreate();
 	w.updateInterface();
 
-	if (app.arguments().contains("--test-launch"))
+	if (app.arguments().contains(QL1("--test-launch")))
 		return 0; // Test launch succeeded
 
 	return app.exec();

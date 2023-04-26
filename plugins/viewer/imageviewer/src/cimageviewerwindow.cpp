@@ -1,7 +1,8 @@
 #include "cimageviewerwindow.h"
-#include "ui_cimageviewerwindow.h"
 
 DISABLE_COMPILER_WARNINGS
+#include "ui_cimageviewerwindow.h"
+
 #include <QFileDialog>
 #include <QLabel>
 #include <QShortcut>
@@ -16,20 +17,20 @@ CImageViewerWindow::CImageViewerWindow(QWidget* parent) :
 	_imageInfoLabel = new QLabel(this);
 	statusBar()->addWidget(_imageInfoLabel);
 
-	connect(ui->actionOpen, &QAction::triggered, [this](){
+	connect(ui->actionOpen, &QAction::triggered, this, [this](){
 		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg);; TIFF (*.tif);; PNG (*.png)");
 		const QString fileName = QFileDialog::getOpenFileName(this, QString(), QString(), filtersString);
 		if (!fileName.isEmpty())
 			displayImage(fileName);
 	});
 
-	connect(ui->actionReload, &QAction::triggered, [this]() {
+	connect(ui->actionReload, &QAction::triggered, this, [this]() {
 		displayImage(_currentImagePath);
 	});
 
 	connect(ui->actionClose, &QAction::triggered, this, &QMainWindow::close);
 
-	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
+	auto escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 	connect(this, &QAction::destroyed, escScut, &QShortcut::deleteLater);
 }
 
@@ -47,9 +48,8 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
 	setWindowTitle(imagePath);
 
-	QTimer::singleShot(10, [this](){
-		static const QList<QSize> requiredIconSizes = { { 16, 16 }, { 32, 32 } };
-		setWindowIcon(ui->_imageViewerWidget->imageIcon(requiredIconSizes));
+	QTimer::singleShot(10, this, [this](){
+		setWindowIcon(ui->_imageViewerWidget->imageIcon({ {16, 16}, {32, 32} }));
 	});
 
 	return true;

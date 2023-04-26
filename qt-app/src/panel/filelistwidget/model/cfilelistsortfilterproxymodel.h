@@ -9,7 +9,7 @@ RESTORE_COMPILER_WARNINGS
 
 class CController;
 
-class CFileListSortFilterProxyModel : public QSortFilterProxyModel
+class CFileListSortFilterProxyModel final : public QSortFilterProxyModel
 {
 	Q_OBJECT
 
@@ -29,7 +29,7 @@ signals:
 	void sorted();
 
 protected:
-	bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
+	[[nodiscard]] bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
 
 private:
 	CController   & _controller;

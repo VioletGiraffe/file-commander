@@ -10,7 +10,7 @@ RESTORE_COMPILER_WARNINGS
 
 struct CLocationsCollection
 {
-	explicit CLocationsCollection(const QString& name, const QString& path = QString()): displayName(name), absolutePath(path) {}
+	explicit CLocationsCollection(QString name, QString path = {}): displayName{std::move(name)}, absolutePath{std::move(path)} {}
 
 	QString displayName;
 	QString absolutePath;
@@ -21,7 +21,7 @@ struct CLocationsCollection
 class CFavoriteLocations
 {
 public:
-	explicit CFavoriteLocations(const QString& settingsKey);
+	explicit CFavoriteLocations(QString settingsKey);
 	~CFavoriteLocations();
 
 	CFavoriteLocations(const CFavoriteLocations&) = delete;

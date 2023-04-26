@@ -1,5 +1,4 @@
-#ifndef CNEWFAVORITELOCATIONDIALOG_H
-#define CNEWFAVORITELOCATIONDIALOG_H
+#pragma once
 
 #include "compiler/compiler_warnings_control.h"
 
@@ -11,17 +10,15 @@ namespace Ui {
 class CNewFavoriteLocationDialog;
 }
 
-class CNewFavoriteLocationDialog : public QDialog
+class CNewFavoriteLocationDialog final : public QDialog
 {
 public:
 	explicit CNewFavoriteLocationDialog(QWidget *parent, bool subcategory);
-	~CNewFavoriteLocationDialog();
+	~CNewFavoriteLocationDialog() override;
 
-	QString name() const;
-	QString location() const;
+	[[nodiscard]] QString name() const;
+	[[nodiscard]] QString location() const;
 
 private:
 	Ui::CNewFavoriteLocationDialog *ui;
 };
-
-#endif // CNEWFAVORITELOCATIONDIALOG_H

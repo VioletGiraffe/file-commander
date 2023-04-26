@@ -1,10 +1,13 @@
 #include "cshell.h"
+
 #include "filesystemhelperfunctions.h"
-#include "settings/csettings.h"
 #include "settings.h"
-#include "compiler/compiler_warnings_control.h"
-#include "assert/advanced_assert.h"
+#include "settings/csettings.h"
 #include "system/win_utils.hpp"
+
+#include "assert/advanced_assert.h"
+#include "compiler/compiler_warnings_control.h"
+#include "utility/on_scope_exit.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -17,6 +20,7 @@ RESTORE_COMPILER_WARNINGS
 #include <thread>
 
 #include <cstdlib> // std::system
+#include <string.h> // memset
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -25,8 +29,7 @@ RESTORE_COMPILER_WARNINGS
 std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 {
 #ifdef _WIN32
-	const QString defaultShell = QLatin1String("powershell.exe");
-	QString shell = CSettings{}.value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShell).toString();
+	QString shell = CSettings{}.value(KEY_OTHER_SHELL_COMMAND_NAME, QStringLiteral("powershell.exe")).toString();
 	QStringList argsList = QProcess::splitCommand(shell);
 	assert_and_return_r(!argsList.empty(), {});
 	shell = std::move(argsList.front());
@@ -102,18 +105,19 @@ bool OsShell::runExecutable(const QString& command, const QString& arguments, co
 
 bool OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
 {
-	SHELLEXECUTEINFOW shExecInfo = {0};
-	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
-
 	const QString commandPathUnc = toUncPath(command);
 	const QString workingDirNative = toNativeSeparators(workingDir);
 
+	SHELLEXECUTEINFOW shExecInfo;
+	::memset(&shExecInfo, 0, sizeof(shExecInfo));
+
+	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 	shExecInfo.fMask = SEE_MASK_FLAG_NO_UI;
 	shExecInfo.hwnd = nullptr;
 	shExecInfo.lpVerb = asAdmin ? L"runas" : L"open";
-	shExecInfo.lpFile = (WCHAR*)commandPathUnc.utf16();
-	shExecInfo.lpParameters = arguments.isEmpty() ? nullptr : (WCHAR*)arguments.utf16();
-	shExecInfo.lpDirectory = (WCHAR*)workingDirNative.utf16();
+	shExecInfo.lpFile = reinterpret_cast<const WCHAR*>(commandPathUnc.utf16());
+	shExecInfo.lpParameters = arguments.isEmpty() ? nullptr : reinterpret_cast<const WCHAR*>(arguments.utf16());
+	shExecInfo.lpDirectory = reinterpret_cast<const WCHAR*>(workingDirNative.utf16());
 	shExecInfo.nShow = SW_SHOWNORMAL;
 	shExecInfo.hInstApp = nullptr;
 
@@ -180,19 +184,20 @@ bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& ob
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	IContextMenu * imenu = 0;
-	HMENU hMenu = NULL;
+	IContextMenu * imenu = nullptr;
+	HMENU hMenu = nullptr;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	const int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, (HWND)parentWindow, NULL);
+	const int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, reinterpret_cast<HWND>(parentWindow), nullptr);
 	if (iCmd > 0)
 	{
-		CMINVOKECOMMANDINFO info = { 0 };
+		CMINVOKECOMMANDINFO info;
+		::memset(&info, 0, sizeof(info));
 		info.cbSize = sizeof(info);
-		info.hwnd = (HWND)parentWindow;
+		info.hwnd = reinterpret_cast<HWND>(parentWindow);
 		info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
 		info.nShow = SW_SHOWNORMAL;
 		imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
@@ -207,8 +212,8 @@ bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, v
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	IContextMenu * imenu = 0;
-	HMENU hMenu = NULL;
+	IContextMenu * imenu = nullptr;
+	HMENU hMenu = nullptr;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
 
@@ -216,9 +221,10 @@ bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, v
 
 	const char command[] = "Copy";
 
-	CMINVOKECOMMANDINFO info = { 0 };
+	CMINVOKECOMMANDINFO info;
+	::memset(&info, 0, sizeof(info));
 	info.cbSize = sizeof(info);
-	info.hwnd = (HWND)parentWindow;
+	info.hwnd = reinterpret_cast<HWND>(parentWindow);
 	info.lpVerb = command;
 	info.nShow = SW_SHOWNORMAL;
 	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
@@ -232,8 +238,8 @@ bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, vo
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	IContextMenu * imenu = 0;
-	HMENU hMenu = NULL;
+	IContextMenu * imenu = nullptr;
+	HMENU hMenu = nullptr;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
 
@@ -241,9 +247,10 @@ bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, vo
 
 	const char command [] = "Cut";
 
-	CMINVOKECOMMANDINFO info = { 0 };
+	CMINVOKECOMMANDINFO info;
+	::memset(&info, 0, sizeof(info));
 	info.cbSize = sizeof(info);
-	info.hwnd = (HWND) parentWindow;
+	info.hwnd = reinterpret_cast<HWND>(parentWindow);
 	info.lpVerb = command;
 	info.nShow = SW_SHOWNORMAL;
 	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO) &info);
@@ -257,18 +264,19 @@ bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * 
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	IContextMenu * imenu = 0;
-	HMENU hMenu = NULL;
-	if (!prepareContextMenuForObjects(std::vector<std::wstring>(1, destFolder), parentWindow, hMenu, imenu) || !hMenu || !imenu)
+	IContextMenu * imenu = nullptr;
+	HMENU hMenu = nullptr;
+	if (!prepareContextMenuForObjects(std::vector<std::wstring>{std::move(destFolder)}, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
 	const char command[] = "Paste";
 
-	CMINVOKECOMMANDINFO info = { 0 };
+	CMINVOKECOMMANDINFO info;
+	::memset(&info, 0, sizeof(info));
 	info.cbSize = sizeof(info);
-	info.hwnd = (HWND) parentWindow;
+	info.hwnd = reinterpret_cast<HWND>(parentWindow);
 	info.lpVerb = command;
 	info.nShow = SW_SHOWNORMAL;
 	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO) &info);
@@ -284,22 +292,22 @@ std::wstring OsShell::toolTip(std::wstring itemPath)
 
 	std::replace(itemPath.begin(), itemPath.end(), '/', '\\');
 	std::wstring tipString;
-	ITEMIDLIST * id = 0;
-	HRESULT result = SHParseDisplayName(itemPath.c_str(), 0, &id, 0, 0);
+	ITEMIDLIST * id = nullptr;
+	HRESULT result = SHParseDisplayName(itemPath.c_str(), nullptr, &id, 0, nullptr);
 	if (!SUCCEEDED(result) || !id)
 		return tipString;
 	CItemIdListReleaser idReleaser (id);
 
-	LPCITEMIDLIST child = 0;
-	IShellFolder * ifolder = 0;
-	result = SHBindToParent(id, IID_IShellFolder, (void**)&ifolder, &child);
+	LPCITEMIDLIST child = nullptr;
+	IShellFolder * ifolder = nullptr;
+	result = SHBindToParent(id, IID_IShellFolder, reinterpret_cast<void**>(&ifolder), &child);
 	if (!SUCCEEDED(result) || !child)
 		return tipString;
 
-	IQueryInfo* iQueryInfo = 0;
-	if (SUCCEEDED(ifolder->GetUIObjectOf(NULL, 1, &child, IID_IQueryInfo, 0, (void**)&iQueryInfo)) && iQueryInfo)
+	IQueryInfo* iQueryInfo = nullptr;
+	if (SUCCEEDED(ifolder->GetUIObjectOf(nullptr, 1, &child, IID_IQueryInfo, nullptr, reinterpret_cast<void**>(&iQueryInfo))) && iQueryInfo)
 	{
-		LPWSTR lpszTip = 0;
+		LPWSTR lpszTip = nullptr;
 		CComInterfaceReleaser releaser (iQueryInfo);
 		if (SUCCEEDED(iQueryInfo->GetInfoTip(0, &lpszTip)) && lpszTip)
 		{
@@ -318,14 +326,19 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 
 	assert_r(parentWindow);
 	std::vector<LPITEMIDLIST> idLists;
+
+	EXEC_ON_SCOPE_EXIT([&idLists] {
+		for (auto& pid : idLists)
+			ILFree(pid);
+
+		idLists.clear();
+	});
+
 	for (auto& path: items)
 	{
 		LPITEMIDLIST idl = ILCreateFromPathW(path.c_str());
 		if (!idl)
 		{
-			for (auto& pid : idLists)
-				ILFree(pid);
-
 			qInfo() << "ILCreateFromPathW" << "failed for path" << QString::fromWCharArray(path.c_str());
 			return false;
 		}
@@ -333,13 +346,8 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 		assert_r(idLists.back());
 	}
 
-	IShellItemArray * iArray = 0;
-	HRESULT result = SHCreateShellItemArrayFromIDLists((UINT)idLists.size(), (LPCITEMIDLIST*)idLists.data(), &iArray);
-
-	// Freeing memory
-	for (auto& pid: idLists)
-		ILFree(pid);
-	idLists.clear();
+	IShellItemArray * iArray = nullptr;
+	HRESULT result = SHCreateShellItemArrayFromIDLists((UINT)idLists.size(), (PCIDLIST_ABSOLUTE_ARRAY)idLists.data(), &iArray);
 
 	if (!SUCCEEDED(result) || !iArray)
 	{
@@ -347,8 +355,8 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 		return false;
 	}
 
-	IFileOperation * iOperation = 0;
-	result = CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation);
+	IFileOperation * iOperation = nullptr;
+	result = CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_ALL, IID_IFileOperation, reinterpret_cast<void**>(&iOperation));
 	if (!SUCCEEDED(result) || !iOperation)
 	{
 		qInfo() << "CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation) failed";
@@ -372,7 +380,7 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 		if (!SUCCEEDED(result))
 			qInfo() << "SetOperationFlags failed";
 
-		result = iOperation->SetOwnerWindow((HWND) parentWindow);
+		result = iOperation->SetOwnerWindow(reinterpret_cast<HWND>(parentWindow));
 		if (!SUCCEEDED(result))
 			qInfo() << "SetOwnerWindow failed";
 
@@ -396,18 +404,18 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	PIDLIST_ABSOLUTE idlist = 0;
-	if (!SUCCEEDED(SHGetFolderLocation(0, CSIDL_BITBUCKET, 0, 0, &idlist)))
+	PIDLIST_ABSOLUTE idlist = nullptr;
+	if (!SUCCEEDED(SHGetFolderLocation(nullptr, CSIDL_BITBUCKET, nullptr, 0, &idlist)))
 		return false;
 
-	IShellFolder * iFolder = 0;
-	LPCITEMIDLIST list;
-	HRESULT result = SHBindToParent(idlist, IID_IShellFolder, (void**)&iFolder, &list);
+	IShellFolder * iFolder = nullptr;
+	LPCITEMIDLIST list = nullptr;
+	HRESULT result = SHBindToParent(idlist, IID_IShellFolder, reinterpret_cast<void**>(&iFolder), &list);
 	if (!SUCCEEDED(result) || !list || !iFolder)
 		return false;
 
-	IContextMenu * imenu = 0;
-	result = iFolder->GetUIObjectOf((HWND)parentWindow, 1u, &list, IID_IContextMenu, 0, (void**)&imenu);
+	IContextMenu * imenu = nullptr;
+	result = iFolder->GetUIObjectOf(reinterpret_cast<HWND>(parentWindow), 1u, &list, IID_IContextMenu, nullptr, reinterpret_cast<void**>(&imenu));
 	CoTaskMemFree(idlist);
 	if (!SUCCEEDED(result) || !imenu)
 		return false;
@@ -418,17 +426,19 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 		return false;
 	if (SUCCEEDED(imenu->QueryContextMenu(hMenu, 0, 1, 0x7FFF, CMF_NORMAL)))
 	{
-		int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, (HWND)parentWindow, NULL);
+		int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, reinterpret_cast<HWND>(parentWindow), nullptr);
 		if (iCmd > 0)
 		{
-			CMINVOKECOMMANDINFOEX info = { 0 };
+			CMINVOKECOMMANDINFOEX info;
+			::memset(&info, 0, sizeof(info));
+
 			info.cbSize = sizeof(info);
 			info.fMask = CMIC_MASK_UNICODE;
-			info.hwnd = (HWND)parentWindow;
+			info.hwnd = reinterpret_cast<HWND>(parentWindow);
 			info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
 			info.lpVerbW = MAKEINTRESOURCEW(iCmd - 1);
 			info.nShow = SW_SHOWNORMAL;
-			imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
+			imenu->InvokeCommand(reinterpret_cast<LPCMINVOKECOMMANDINFO>(&info));
 		}
 	}
 	DestroyMenu(hMenu);
@@ -444,7 +454,7 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 
 	std::vector<ITEMIDLIST*> ids;
 	std::vector<LPCITEMIDLIST> relativeIds;
-	IShellFolder * ifolder = 0;
+	IShellFolder * ifolder = nullptr;
 	for (size_t i = 0, nItems = objects.size(); i < nItems; ++i)
 	{
 		auto& item = objects[i];
@@ -459,7 +469,7 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 		}
 
 		relativeIds.emplace_back(nullptr);
-		result = SHBindToParent(ids.back(), IID_IShellFolder, (void**)&ifolder, &relativeIds.back());
+		result = SHBindToParent(ids.back(), IID_IShellFolder, reinterpret_cast<void**>(&ifolder), &relativeIds.back());
 		if (!SUCCEEDED(result) || !relativeIds.back())
 			relativeIds.pop_back();
 		else if (i < nItems - 1 && ifolder)
@@ -475,8 +485,16 @@ bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * pare
 	assert_and_return_message_r(ifolder, "Error getting ifolder", false);
 	assert_and_return_message_r(!relativeIds.empty(), "RelativeIds is empty", false);
 
-	imenu = 0;
-	HRESULT result = ifolder->GetUIObjectOf((HWND)parentWindow, (UINT)relativeIds.size(), (const ITEMIDLIST **)relativeIds.data(), IID_IContextMenu, 0, (void**)&imenu);
+	imenu = nullptr;
+	const HRESULT result = ifolder->GetUIObjectOf(
+		reinterpret_cast<HWND>(parentWindow),
+		(UINT)relativeIds.size(),
+		reinterpret_cast<const ITEMIDLIST **>(relativeIds.data()),
+		IID_IContextMenu,
+		nullptr,
+		reinterpret_cast<void**>(&imenu)
+	);
+
 	if (!SUCCEEDED(result) || !imenu)
 		return false;
 

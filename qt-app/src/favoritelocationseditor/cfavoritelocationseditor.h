@@ -1,5 +1,4 @@
-#ifndef CFAVORITELOCATIONSEDITOR_H
-#define CFAVORITELOCATIONSEDITOR_H
+#pragma once
 
 #include "favoritelocationslist/cfavoritelocations.h"
 
@@ -15,17 +14,17 @@ class CFavoriteLocationsEditor;
 
 class CFavoriteLocationsListItem;
 
-class CFavoriteLocationsEditor : public QDialog
+class CFavoriteLocationsEditor final : public QDialog
 {
 public:
-	explicit CFavoriteLocationsEditor(QWidget *parent = 0);
-	~CFavoriteLocationsEditor();
+	explicit CFavoriteLocationsEditor(QWidget *parent = nullptr);
+	~CFavoriteLocationsEditor() override;
 
 private:
 	void currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * previous);
 	void contextMenu(const QPoint& pos);
-	void nameEdited(QString newName);
-	void locationEdited(QString newLocation);
+	void nameEdited(const QString& newName);
+	void locationEdited(const QString& newLocation);
 
 	void fillUI();
 	void addLocationsToTreeWidget(std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator & locationCollectionListIterator, QTreeWidgetItem * parent);
@@ -35,5 +34,3 @@ private:
 	CFavoriteLocations& _locations;
 	CFavoriteLocationsListItem* _currentItem;
 };
-
-#endif // CFAVORITELOCATIONSEDITOR_H

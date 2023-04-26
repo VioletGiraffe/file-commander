@@ -1,5 +1,4 @@
-#ifndef CIMAGEVIEWERWINDOW_H
-#define CIMAGEVIEWERWINDOW_H
+#pragma once
 
 #include "plugininterface/cpluginwindow.h"
 
@@ -9,11 +8,11 @@ namespace Ui {
 class CImageViewerWindow;
 }
 
-class CImageViewerWindow : public CPluginWindow
+class CImageViewerWindow final : public CPluginWindow
 {
 public:
 	explicit CImageViewerWindow(QWidget* parent = nullptr);
-	~CImageViewerWindow();
+	~CImageViewerWindow() override;
 
 	bool displayImage(const QString& imagePath);
 
@@ -22,5 +21,3 @@ private:
 	Ui::CImageViewerWindow *ui;
 	QLabel * _imageInfoLabel;
 };
-
-#endif // CIMAGEVIEWERWINDOW_H

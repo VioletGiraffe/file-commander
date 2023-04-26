@@ -18,14 +18,14 @@ FlowLayout::FlowLayout(int margin, int hSpacing, int vSpacing)
 
 FlowLayout::~FlowLayout()
 {
-	QLayoutItem *item;
+	QLayoutItem *item = nullptr;
 	while ((item = takeAt(0)) != nullptr)
 		delete item;
 }
 
 void FlowLayout::addItem(QLayoutItem *item)
 {
-	itemList.append(item);
+	m_itemList.append(item);
 }
 
 int FlowLayout::horizontalSpacing() const
@@ -48,18 +48,18 @@ int FlowLayout::verticalSpacing() const
 
 int FlowLayout::count() const
 {
-	return static_cast<int>(itemList.size());
+	return static_cast<int>(m_itemList.size());
 }
 
 QLayoutItem *FlowLayout::itemAt(int index) const
 {
-	return itemList.value(index);
+	return m_itemList.value(index);
 }
 
 QLayoutItem *FlowLayout::takeAt(int index)
 {
-	if (index >= 0 && index < itemList.size())
-		return itemList.takeAt(index);
+	if (index >= 0 && index < m_itemList.size())
+		return m_itemList.takeAt(index);
 	else
 		return nullptr;
 }
@@ -94,8 +94,7 @@ QSize FlowLayout::sizeHint() const
 QSize FlowLayout::minimumSize() const
 {
 	QSize size;
-	QLayoutItem *item;
-	foreach (item, itemList)
+	for (QLayoutItem *item: m_itemList)
 		size = size.expandedTo(item->minimumSize());
 
 	const auto margins = contentsMargins();
@@ -105,14 +104,14 @@ QSize FlowLayout::minimumSize() const
 
 int FlowLayout::doLayout(const QRect &rect, bool testOnly) const
 {
-	int left, top, right, bottom;
+	int left = 0, top = 0, right = 0, bottom = 0;
 	getContentsMargins(&left, &top, &right, &bottom);
 	QRect effectiveRect = rect.adjusted(+left, +top, -right, -bottom);
 	int x = effectiveRect.x();
 	int y = effectiveRect.y();
 	int lineHeight = 0;
 
-	for (QLayoutItem* item: itemList) {
+	for (QLayoutItem* item: m_itemList) {
 		QWidget *wid = item->widget();
 		int spaceX = horizontalSpacing();
 		if (spaceX == -1)

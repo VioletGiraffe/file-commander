@@ -36,25 +36,25 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 		setFont(f);
 	}
 
-	installEventFilter(new CPersistenceEnabler("Plugins/TextViewer/Window", this));
+	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this));
 
 	setCentralWidget(_textBrowser);
 	_textBrowser->setReadOnly(true);
 	_textBrowser->setUndoRedoEnabled(false);
 	_textBrowser->setTabStopDistance(static_cast<qreal>(4 * _textBrowser->fontMetrics().horizontalAdvance(' ')));
 
-	assert_r(connect(actionOpen, &QAction::triggered, [this]() {
+	assert_r(connect(actionOpen, &QAction::triggered, this, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
 		if (!fileName.isEmpty())
 			loadTextFile(fileName);
 	}));
 
-	assert_r(connect(actionReload, &QAction::triggered, [this]() {
+	assert_r(connect(actionReload, &QAction::triggered, this, [this]() {
 		loadTextFile(_sourceFilePath);
 	}));
 	assert_r(connect(actionClose, &QAction::triggered, this, &QDialog::close));
 
-	assert_r(connect(actionFind, &QAction::triggered, [this]() {
+	assert_r(connect(actionFind, &QAction::triggered, this, [this]() {
 		setupFindDialog();
 		_findDialog->exec();
 	}));
@@ -77,7 +77,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	assert_r(connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap));
 	actionLine_wrap->setChecked(true); // Wrap by default
 
-	auto escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
+	auto escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 	assert_r(connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater));
 
 	_encodingLabel = new QLabel(this);
@@ -93,16 +93,16 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 
 	try
 	{
-		if (_sourceFilePath.endsWith(".htm", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".html", Qt::CaseInsensitive) || _sourceFilePath.endsWith(".rtf", Qt::CaseInsensitive))
+		if (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".rtf"), Qt::CaseInsensitive))
 			return asRichText();
-		else if (fileType.contains("text") || fileType.isEmpty())
+		else if (fileType.contains(QStringLiteral("text")) || fileType.isEmpty())
 			return asDetectedAutomatically();
 		else
 			return asAscii();
 	}
 	catch (const std::bad_alloc&)
 	{
-		QMessageBox::warning(this, "File is too large", "The text is too large to display");
+		QMessageBox::warning(this, tr("File is too large"), tr("The text is too large to display"));
 		return false;
 	}
 }
@@ -136,7 +136,7 @@ bool CTextViewerWindow::asDetectedAutomatically()
 	}
 	else
 	{
-		encodingChanged("UTF-8");
+		encodingChanged(QStringLiteral("UTF-8"));
 		actionUTF_8->setChecked(true);
 		_textBrowser->setPlainText(text);
 	}
@@ -193,7 +193,7 @@ bool CTextViewerWindow::asUtf8()
 		return false;
 	}
 
-	encodingChanged("UTF-8");
+	encodingChanged(QStringLiteral("UTF-8"));
 	_textBrowser->setPlainText(QString::fromUtf8(textData));
 	actionUTF_8->setChecked(true);
 
@@ -209,7 +209,7 @@ bool CTextViewerWindow::asUtf16()
 		return false;
 	}
 
-	encodingChanged("UTF-16");
+	encodingChanged(QStringLiteral("UTF-16"));
 	static_assert (std::is_trivially_copyable_v<QChar>);
 	QString text;
 	text.resize(textData.size() / 2 + 1, QChar{'\0'});
@@ -299,7 +299,7 @@ void CTextViewerWindow::setupFindDialog()
 	if (_findDialog)
 		return;
 
-	_findDialog = new CFindDialog(this, "Plugins/TextViewer/Find/");
+	_findDialog = new CFindDialog(this, QStringLiteral("Plugins/TextViewer/Find/"));
 	assert_r(connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find));
 	assert_r(connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
 }

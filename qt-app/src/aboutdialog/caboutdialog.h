@@ -14,7 +14,7 @@ class CAboutDialog : public QDialog
 {
 public:
 	explicit CAboutDialog(QWidget *parent);
-	~CAboutDialog();
+	~CAboutDialog() override;
 
 private:
 	Ui::CAboutDialog *ui;

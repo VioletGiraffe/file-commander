@@ -20,9 +20,9 @@ class CFileOperationObserver
 friend class COperationPerformer;
 public:
 	virtual void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) = 0;
-	virtual void onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) = 0; // User decision required (file exists, file is read-only etc.)
-	virtual void onProcessFinished(QString message = QString()) = 0; // Done or canceled
-	virtual void onCurrentFileChanged(QString file) = 0; // Starting to process a new file
+	virtual void onProcessHalted(HaltReason reason, const CFileSystemObject& source, const CFileSystemObject& dest, const QString& errorMessage) = 0; // User decision required (file exists, file is read-only etc.)
+	virtual void onProcessFinished(const QString& message) = 0; // Done or canceled
+	virtual void onCurrentFileChanged(const QString& file) = 0; // Starting to process a new file
 
 	virtual ~CFileOperationObserver() = default;
 
@@ -31,7 +31,7 @@ public:
 private:
 	void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining);
 	void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage);
-	void onProcessFinishedCallback(QString message = QString());
+	void onProcessFinishedCallback(QString message = {});
 	void onCurrentFileChangedCallback(QString file);
 
 private:

@@ -80,7 +80,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		else
 		{
 			QString pathToSet;
-			for (auto it = history().rbegin() + (history().size() - 1 - history().currentIndex()); it != history().rend(); ++it)
+			for (auto it = history().rbegin() + ((ptrdiff_t)history().size() - 1 - (ptrdiff_t)history().currentIndex()); it != history().rend(); ++it)
 			{
 				if (pathIsAccessible(*it))
 				{

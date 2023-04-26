@@ -1,5 +1,4 @@
-#ifndef CIMAGEVIEWERWIDGET_H
-#define CIMAGEVIEWERWIDGET_H
+#pragma once
 
 #include "compiler/compiler_warnings_control.h"
 
@@ -10,19 +9,21 @@ DISABLE_COMPILER_WARNINGS
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
+#include <vector>
+
 class CImageViewerWidget : public QWidget
 {
 public:
-	explicit CImageViewerWidget(QWidget *parent = 0);
+	explicit CImageViewerWidget(QWidget *parent = nullptr);
 
 public:
 	bool displayImage(const QImage& image);
 	bool displayImage(const QString& imagePath);
-	QString imageInfoString() const;
+	[[nodiscard]] QString imageInfoString() const;
 
-	QSize sizeHint() const override;
+	[[nodiscard]] QSize sizeHint() const override;
 
-	QIcon imageIcon(const QList<QSize>& sizes) const;
+	[[nodiscard]] QIcon imageIcon(const std::vector<QSize>& sizes) const;
 
 protected:
 	void paintEvent(QPaintEvent* e) override;
@@ -34,5 +35,3 @@ private:
 	QString _currentImageFormat;
 	qint64 _currentImageFileSize = 0;
 };
-
-#endif // CIMAGEVIEWERWIDGET_H

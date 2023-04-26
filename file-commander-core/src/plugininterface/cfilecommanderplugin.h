@@ -22,8 +22,8 @@ public:
 
 	CFileCommanderPlugin(const CFileCommanderPlugin&) = delete;
 
-	virtual PluginType type() = 0;
-	virtual QString name() const = 0;
+	[[nodiscard]] virtual PluginType type() = 0;
+	[[nodiscard]] virtual QString name() const = 0;
 
 	void setProxy(CPluginProxy * proxy);
 

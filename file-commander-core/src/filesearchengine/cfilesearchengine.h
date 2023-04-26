@@ -22,7 +22,7 @@ public:
 	};
 
 	struct FileSearchListener {
-		virtual ~FileSearchListener() {}
+		virtual ~FileSearchListener() noexcept = default;
 
 		virtual void itemScanned(const QString& currentItem) = 0;
 		virtual void matchFound(const QString& path) = 0;

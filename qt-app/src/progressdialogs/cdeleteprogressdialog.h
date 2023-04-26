@@ -24,9 +24,9 @@ public:
 
 // Callbacks
 	void onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* B/s*/, uint32_t secondsRemaining) override;
-	void onProcessHalted(HaltReason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage) override; // User decision required (file exists, file is read-only etc.)
-	void onProcessFinished(QString message = QString()) override; // Done or canceled
-	void onCurrentFileChanged(QString file) override; // Starting to process a new file
+	void onProcessHalted(HaltReason, const CFileSystemObject& source, const CFileSystemObject& dest, const QString& errorMessage) override; // User decision required (file exists, file is read-only etc.)
+	void onProcessFinished(const QString& message) override; // Done or canceled
+	void onCurrentFileChanged(const QString& file) override; // Starting to process a new file
 
 protected:
 	void closeEvent(QCloseEvent * e) override;

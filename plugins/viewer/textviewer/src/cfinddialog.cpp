@@ -1,4 +1,6 @@
 #include "cfinddialog.h"
+
+#include "qtcore_helpers/qstring_helpers.hpp"
 #include "settings/csettings.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -7,18 +9,17 @@ DISABLE_COMPILER_WARNINGS
 #include <QLineEdit>
 RESTORE_COMPILER_WARNINGS
 
-#define SETTINGS_SEARCH_EXPRESSION_LIST "Expressions"
+#define SETTINGS_SEARCH_EXPRESSION_LIST QSL("Expressions")
+#define SETTINGS_REGEX                  QSL("Regex")
+#define SETTINGS_BACKWARDS              QSL("SearchBackwards")
+#define SETTINGS_CASE_SENSITIVE         QSL("CaseSensitive")
+#define SETTINGS_WHOLE_WORDS            QSL("WholeWords")
 
-#define SETTINGS_REGEX                  "Regex"
-#define SETTINGS_BACKWARDS              "SearchBackwards"
-#define SETTINGS_CASE_SENSITIVE         "CaseSensitive"
-#define SETTINGS_WHOLE_WORDS            "WholeWords"
+#define SETTINGS_GEOMETRY               QSL("Geometry")
 
-#define SETTINGS_GEOMETRY               "Geometry"
-
-CFindDialog::CFindDialog(QWidget *parent, const QString& settingsRootCategory) :
+CFindDialog::CFindDialog(QWidget *parent, QString settingsRootCategory) :
 	QDialog(parent),
-	_settingsRootCategory(settingsRootCategory),
+	_settingsRootCategory{std::move(settingsRootCategory)},
 	ui(new Ui::CFindDialog)
 {
 	ui->setupUi(this);

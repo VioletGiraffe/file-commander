@@ -1,5 +1,4 @@
 #include "cpromptdialog.h"
-#include "ui_cpromptdialog.h"
 #include "filesystemhelperfunctions.h"
 #include "widgets/widgetutils.h"
 #include "settings/csettings.h"
@@ -8,6 +7,8 @@
 DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 
+#include "ui_cpromptdialog.h"
+
 #include <QInputDialog>
 #include <QLineEdit>
 RESTORE_COMPILER_WARNINGS
@@ -15,9 +16,9 @@ RESTORE_COMPILER_WARNINGS
 CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptReason,
 	const CFileSystemObject& source, const CFileSystemObject& dest, const QString& message) :
 
-		QDialog(parent),
-		ui(new Ui::CPromptDialog),
-		_response(urNone)
+	QDialog(parent),
+	ui(new Ui::CPromptDialog),
+	_response(urNone)
 {
 	ui->setupUi(this);
 
@@ -37,25 +38,25 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 	switch (promptReason)
 	{
 	case hrFileExists:
-		ui->lblQuestion->setText("File or folder already exists.");
+		ui->lblQuestion->setText(tr("File or folder already exists."));
 		break;
 	case hrSourceFileIsReadOnly:
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
-		ui->lblQuestion->setText("The source file or folder is read-only.");
+		ui->lblQuestion->setText(tr("The source file or folder is read-only."));
 		break;
 	case hrDestFileIsReadOnly:
-		ui->lblQuestion->setText("The destination file or folder is read-only.");
+		ui->lblQuestion->setText(tr("The destination file or folder is read-only."));
 		break;
 	case hrFailedToMakeItemWritable:
-		ui->lblQuestion->setText("Failed to make the file or folder writable.");
+		ui->lblQuestion->setText(tr("Failed to make the file or folder writable."));
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
 		break;
 	case hrFileDoesntExit:
-		ui->lblQuestion->setText("The file or folder doesn't exist.");
+		ui->lblQuestion->setText(tr("The file or folder doesn't exist."));
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
@@ -77,7 +78,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->lblQuestion->setText(tr("Failed to delete\n%1").arg(source.fullAbsolutePath()));
 		break;
 	case hrNotEnoughSpace:
-		ui->lblQuestion->setText("There is not enough space on the destination storage. What do you want to do?");
+		ui->lblQuestion->setText(tr("There is not enough space on the destination storage. What do you want to do?"));
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnDeleteAnyway->setVisible(false);
@@ -85,13 +86,13 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->btnRename->setVisible(false);
 		break;
 	case hrUnknownError:
-		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
+		ui->lblQuestion->setText(tr("An unknown error occurred. What do you want to do?"));
 		ui->btnOverwrite->setVisible(false);
 		ui->btnOverwriteAll->setVisible(false);
 		ui->btnRename->setVisible(false);
 		break;
 	default:
-		ui->lblQuestion->setText("An unknown error occurred. What do you want to do?");
+		ui->lblQuestion->setText(tr("An unknown error occurred. What do you want to do?"));
 		break;
 	}
 
@@ -105,7 +106,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		ui->m_lblItemBeingDeleted->setText(source.fullAbsolutePath());
 		ui->lblSize->setText(fileSizeToString(source.size()));
 		auto modificationDate = fromTime_t(source.properties().modificationDate).toLocalTime();
-		ui->lblModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
+		ui->lblModTime->setText(modificationDate.toString(QSL("dd.MM.yyyy hh:mm")));
 	}
 	else
 	{
@@ -116,7 +117,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 			ui->lblSrcFile->setText(source.fullAbsolutePath());
 			ui->lblSourceSize->setText(fileSizeToString(source.size()));
 			auto modificationDate = fromTime_t(source.properties().modificationDate).toLocalTime();
-			ui->lblSourceModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
+			ui->lblSourceModTime->setText(modificationDate.toString(QSL("dd.MM.yyyy hh:mm")));
 		}
 		else
 			WidgetUtils::setLayoutVisible(ui->sourceFileInfo, false);
@@ -126,7 +127,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 			ui->lblDstFile->setText(dest.fullAbsolutePath());
 			ui->lblDestSize->setText(fileSizeToString(dest.size()));
 			auto modificationDate = fromTime_t(dest.properties().modificationDate).toLocalTime();
-			ui->lblDestModTime->setText(modificationDate.toString("dd.MM.yyyy hh:mm"));
+			ui->lblDestModTime->setText(modificationDate.toString(QSL("dd.MM.yyyy hh:mm")));
 		}
 		else
 			WidgetUtils::setLayoutVisible(ui->destFileInfo, false);
@@ -217,4 +218,3 @@ void CPromptDialog::onCancelClicked()
 	_response = urAbort;
 	close();
 }
-

@@ -24,7 +24,6 @@ HEADERS += \
 	src/iconprovider/ciconprovider.h \
 	src/fileoperations/operationcodes.h \
 	src/fileoperations/coperationperformer.h \
-	src/fileoperations/cfileoperation.h \
 	src/shell/cshell.h \
 	include/settings.h \
 	src/favoritelocationslist/cfavoritelocations.h \

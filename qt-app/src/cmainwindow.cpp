@@ -27,6 +27,7 @@ DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
 
 #include "qtcore_helpers/qdatetime_helpers.hpp"
+#include "qtcore_helpers/qstring_helpers.hpp"
 
 #include <QCloseEvent>
 #include <QFileDialog>
@@ -46,12 +47,12 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 
 // Main window settings keys
-#define KEY_RPANEL_STATE      "Ui/RPanel/State"
-#define KEY_LPANEL_STATE      "Ui/LPanel/State"
-#define KEY_RPANEL_GEOMETRY   "Ui/RPanel/Geometry"
-#define KEY_LPANEL_GEOMETRY   "Ui/LPanel/Geometry"
-#define KEY_SPLITTER_SIZES    "Ui/Splitter"
-#define KEY_LAST_ACTIVE_PANEL "Ui/LastActivePanel"
+#define KEY_RPANEL_STATE      QSL("Ui/RPanel/State")
+#define KEY_LPANEL_STATE      QSL("Ui/LPanel/State")
+#define KEY_RPANEL_GEOMETRY   QSL("Ui/RPanel/Geometry")
+#define KEY_LPANEL_GEOMETRY   QSL("Ui/LPanel/Geometry")
+#define KEY_SPLITTER_SIZES    QSL("Ui/Splitter")
+#define KEY_LAST_ACTIVE_PANEL QSL("Ui/LastActivePanel")
 
 CMainWindow * CMainWindow::_instance = nullptr;
 
@@ -69,7 +70,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	_rightPanelDisplayController.setPanelStackedWidget(ui->rightWidget);
 	_rightPanelDisplayController.setPanelWidget(ui->rightPanel);
 
-	installEventFilter(new CPersistenceEnabler("UI/MainWindow", this));
+	installEventFilter(new CPersistenceEnabler(QSL("UI/MainWindow"), this));
 
 	QSplitterHandle * handle = ui->splitter->handle(1);
 	handle->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -114,7 +115,7 @@ void CMainWindow::onCreate()
 
 	// Check for updates
 	if (s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() &&
-		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000 * 3600 * 24)
+		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000LL * 3600LL * 24LL)
 	{
 		s.setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
 		auto dlg = new CUpdaterDialog(this, REPO_NAME, VERSION_STRING, true);
@@ -152,34 +153,34 @@ void CMainWindow::updateInterface()
 void CMainWindow::initButtons()
 {
 	connect(ui->btnView, &QPushButton::clicked, this, &CMainWindow::viewFile);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F3"), this, SLOT(viewFile()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F3")), this, SLOT(viewFile()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnEdit, &QPushButton::clicked, this, &CMainWindow::editFile);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F4"), this, SLOT(editFile()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F4")), this, SLOT(editFile()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnCopy, &QPushButton::clicked, this, &CMainWindow::copySelectedFiles);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F5"), this, SLOT(copySelectedFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F5")), this, SLOT(copySelectedFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnMove, &QPushButton::clicked, this, &CMainWindow::moveSelectedFiles);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F6"), this, SLOT(moveSelectedFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F6")), this, SLOT(moveSelectedFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnNewFolder, &QPushButton::clicked, this, &CMainWindow::createFolder);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F7"), this, SLOT(createFolder()), nullptr, Qt::WidgetWithChildrenShortcut));
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Shift+F7"), this, SLOT(createFile()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F7")), this, SLOT(createFolder()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Shift+F7")), this, SLOT(createFile()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	connect(ui->btnDelete, &QPushButton::clicked, this, &CMainWindow::deleteFiles);
 	connect(ui->btnDelete, &QPushButton::customContextMenuRequested, this, &CMainWindow::showRecycleBInContextMenu);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("F8"), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Delete"), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F8")), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Delete")), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
 #ifdef __APPLE__
 	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(Qt::CTRL + Qt::Key_Backspace), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
 #endif
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Shift+F8"), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Shift+Delete"), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Shift+F8")), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Shift+Delete")), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
 
 	// Command line
-	ui->_commandLine->setSelectPreviousItemShortcut(QKeySequence("Ctrl+E"));
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence("Ctrl+E"), this, SLOT(selectPreviousCommandInTheCommandLine()), nullptr, Qt::WidgetWithChildrenShortcut));
+	ui->_commandLine->setSelectPreviousItemShortcut(QKeySequence(QSL("Ctrl+E")));
+	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Ctrl+E")), this, SLOT(selectPreviousCommandInTheCommandLine()), nullptr, Qt::WidgetWithChildrenShortcut));
 }
 
 void CMainWindow::initActions()
@@ -194,19 +195,19 @@ void CMainWindow::initActions()
 	ui->actionExit->setShortcut(QKeySequence::Quit);
 	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::closeAllWindows);
 
-	connect(ui->actionOpen_Console_Here, &QAction::triggered, [this]() {
+	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, [this]() {
 		_controller->openTerminal(_currentFileList->currentDirPathNative());
 	});
 
-	connect(ui->actionOpen_Admin_console_here, &QAction::triggered, [this]() {
+	connect(ui->actionOpen_Admin_console_here, &QAction::triggered, this, [this]() {
 		_controller->openTerminal(_currentFileList->currentDirPathNative(), true);
 	});
 
 	ui->action_Show_hidden_files->setChecked(CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
 #ifndef _WIN32
-	ui->action_Show_hidden_files->setShortcut(QKeySequence{ "Alt+H" }); // This is a common shortcut for Linux file managers
+	ui->action_Show_hidden_files->setShortcut(QKeySequence{ QSL("Alt+H") }); // This is a common shortcut for Linux file managers
 #else
-	ui->action_Show_hidden_files->setShortcut(QKeySequence{ "Ctrl+Alt+H" }); // Cannot use Alt+H because it's the accelerator for the "Help" item in the main menu
+	ui->action_Show_hidden_files->setShortcut(QKeySequence{ QSL("Ctrl+Alt+H") }); // Cannot use Alt+H because it's the accelerator for the "Help" item in the main menu
 #endif
 
 	connect(ui->action_Show_hidden_files, &QAction::triggered, this, &CMainWindow::showHiddenFiles);
@@ -241,7 +242,7 @@ bool CMainWindow::copyFiles(std::vector<CFileSystemObject>&& files, const QStrin
 	activateWindow();
 
 	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % nativeSeparator() % files.front().fullName()) : destDir;
-	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), toNativeSeparators(destPath), this);
+	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? QSL("files") : QSL("file")), toNativeSeparators(destPath), this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
@@ -264,7 +265,7 @@ bool CMainWindow::moveFiles(std::vector<CFileSystemObject>&& files, const QStrin
 	raise();
 	activateWindow();
 
-	CFileOperationConfirmationPrompt prompt(tr("Move files"), tr("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? "files" : "file"), toNativeSeparators(destDir), this);
+	CFileOperationConfirmationPrompt prompt(tr("Move files"), tr("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? QSL("files") : QSL("file")), toNativeSeparators(destDir), this);
 	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
@@ -378,7 +379,7 @@ void CMainWindow::splitterContextMenuRequested(QPoint pos)
 {
 	const QPoint globalPos = dynamic_cast<QWidget*>(sender())->mapToGlobal(pos);
 	QMenu menu;
-	menu.addAction("50%");
+	menu.addAction(QSL("50%"));
 	QAction * selectedItem = menu.exec(globalPos);
 	if (selectedItem)
 	{
@@ -421,7 +422,7 @@ void CMainWindow::deleteFiles()
 		return;
 
 #ifdef _WIN32
-	auto windowHandle = (void*)winId();
+	auto windowHandle = reinterpret_cast<void*>(winId());
 #else
 	void* windowHandle = nullptr;
 #endif
@@ -453,7 +454,7 @@ void CMainWindow::deleteFilesIrrevocably()
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
 	_controller->execOnWorkerThread([=, this]() {
-		if (!OsShell::deleteItems(paths, false, (void*)winId()))
+		if (!OsShell::deleteItems(paths, false, reinterpret_cast<void*>(winId())))
 			_controller->execOnUiThread([this]() {
 			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
 		});
@@ -569,7 +570,7 @@ void CMainWindow::editFile()
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 {
 	const QPoint globalPos = ui->btnDelete->mapToGlobal(pos) * ui->btnDelete->devicePixelRatioF(); // These coordinates ar egoing directly into the system API so need to account for scaling that Qt tries to abstract away.
-	OsShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), (void*)winId());
+	OsShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), reinterpret_cast<void*>(winId()));
 }
 
 void CMainWindow::toggleQuickView()
@@ -630,7 +631,7 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 		return false;
 
 	OsShell::executeShellCommand(commandLineText, _currentFileList->currentDirPathNative());
-	QTimer::singleShot(0, [this]() { CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }); // Saving the list AFTER the combobox actually accepts the newly added item
+	QTimer::singleShot(0, this, [this]() { CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
 	return true;
@@ -688,8 +689,11 @@ void CMainWindow::findFiles()
 	auto selectedHashes = _currentFileList->selectedItemsHashes(true);
 	std::vector<QString> selectedPaths;
 	if (!selectedHashes.empty())
+	{
+		selectedPaths.reserve(selectedHashes.size());
 		for (const auto hash : selectedHashes)
 			selectedPaths.push_back(_controller->activePanel().itemByHash(hash).fullAbsolutePath());
+	}
 	else
 		selectedPaths.push_back(_currentFileList->currentDirPathNative());
 
@@ -846,7 +850,7 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 	for (auto topLevelMenu : menu->findChildren<QMenu*>())
 	{
 		// TODO: make sure this plays nicely with localization (#145)
-		if (topLevelMenu->title().remove('&') == "Tools")
+		if (topLevelMenu->title().remove('&') == QL1("Tools"))
 		{
 			toolMenu = topLevelMenu;
 			break;
@@ -856,7 +860,7 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 	if (!toolMenu)
 	{
 		// TODO: make sure this plays nicely with localization (#145)
-		toolMenu = new QMenu("Tools");
+		toolMenu = new QMenu(QSL("Tools"));
 		menu->addMenu(toolMenu);
 	}
 	else

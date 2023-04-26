@@ -48,7 +48,7 @@ struct PanelContentsChangedListener
 struct FilesystemObjectsStatistics
 {
 	inline FilesystemObjectsStatistics(uint64_t files_ = 0, uint64_t folders_ = 0, uint64_t occupiedSpace_ = 0): files(files_), folders(folders_), occupiedSpace(occupiedSpace_) {}
-	inline bool empty() const {return files == 0 && folders == 0 && occupiedSpace == 0;}
+	[[nodiscard]] inline bool empty() const {return files == 0 && folders == 0 && occupiedSpace == 0;}
 
 	uint64_t files;
 	uint64_t folders;

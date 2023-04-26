@@ -58,6 +58,8 @@ public:
 	template <typename T, typename U>
 	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)std::forward<QStringBuilder<T, U>>(stringBuilder)) {}
 
+	~CFileSystemObject() noexcept = default;
+
 	CFileSystemObject& operator=(CFileSystemObject&&) = default;
 	CFileSystemObject& operator=(const CFileSystemObject&) = default;
 

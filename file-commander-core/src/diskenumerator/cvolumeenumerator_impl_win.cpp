@@ -30,7 +30,7 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 		return {};
 
 	WCHAR volumeName[256], filesystemName[256];
-	const DWORD error = GetVolumeInformationW((WCHAR*)driveLetter.utf16(), volumeName, 256, nullptr, nullptr, nullptr, filesystemName, 256) != 0 ? 0 : GetLastError();
+	const DWORD error = GetVolumeInformationW(reinterpret_cast<const WCHAR*>(driveLetter.utf16()), volumeName, 256, nullptr, nullptr, nullptr, filesystemName, 256) != 0 ? 0 : GetLastError();
 
 	if (error != 0 && error != ERROR_NOT_READY)
 	{
@@ -47,7 +47,7 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 	if (info.isReady)
 	{
 		ULARGE_INTEGER totalSpace, freeSpace;
-		if (GetDiskFreeSpaceExW((WCHAR*)driveLetter.utf16(), &freeSpace, &totalSpace, nullptr) != 0)
+		if (GetDiskFreeSpaceExW(reinterpret_cast<const WCHAR*>(driveLetter.utf16()), &freeSpace, &totalSpace, nullptr) != 0)
 		{
 			info.volumeSize = totalSpace.QuadPart;
 			info.freeSize = freeSpace.QuadPart;

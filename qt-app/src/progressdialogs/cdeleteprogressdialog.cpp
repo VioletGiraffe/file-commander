@@ -2,7 +2,9 @@
 #include "../cmainwindow.h"
 #include "cpromptdialog.h"
 #include "progressdialoghelpers.h"
+
 #include "assert/advanced_assert.h"
+#include "math/math.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cdeleteprogressdialog.h"
@@ -46,13 +48,13 @@ CDeleteProgressDialog::~CDeleteProgressDialog()
 
 void CDeleteProgressDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float /*filePercentage*/, uint64_t speed, uint32_t secondsRemaining)
 {
-	ui->_progress->setValue((int)(totalPercentage + 0.5f));
+	ui->_progress->setValue(Math::round<int>(totalPercentage));
 	ui->_lblOperationNameAndSpeed->setText(tr("Deleting item %1 of %2, %3 items / second, %4 remaining").arg(numFilesProcessed).arg(totalNumFiles).arg(speed).arg(secondsToTimeIntervalString(secondsRemaining)));
 	static const QString titleTemplate(tr("%1% Deleting... %2 items / second, %3 remaining"));
 	setWindowTitle(titleTemplate.arg(QString::number(totalPercentage, 'f', 1)).arg(speed).arg(secondsToTimeIntervalString(secondsRemaining)));
 }
 
-void CDeleteProgressDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)
+void CDeleteProgressDialog::onProcessHalted(HaltReason reason, const CFileSystemObject& source, const CFileSystemObject& dest, const QString& errorMessage)
 {
 	CPromptDialog prompt(this, operationDelete, reason, source, dest, errorMessage);
 
@@ -63,7 +65,7 @@ void CDeleteProgressDialog::onProcessHalted(HaltReason reason, CFileSystemObject
 	ui->_progress->setState(_performer->paused() ? psPaused : psNormal);
 }
 
-void CDeleteProgressDialog::onProcessFinished(QString message)
+void CDeleteProgressDialog::onProcessFinished(const QString& message)
 {
 	close();
 
@@ -71,7 +73,7 @@ void CDeleteProgressDialog::onProcessFinished(QString message)
 		QMessageBox::information(this, tr("Operation finished"), message);
 }
 
-void CDeleteProgressDialog::onCurrentFileChanged(QString file)
+void CDeleteProgressDialog::onCurrentFileChanged(const QString& file)
 {
 	ui->_lblFileName->setText(file);
 }
@@ -80,7 +82,7 @@ void CDeleteProgressDialog::closeEvent(QCloseEvent *e)
 {
 	if (!_performer->done() && e->type() == QCloseEvent::Close)
 	{
-		if (QMessageBox::question(this, "Abort?", "Do you want to abort the operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+		if (QMessageBox::question(this, tr("Abort?"), tr("Do you want to abort the operation?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 		{
 			cancel();
 			QWidget::closeEvent(e);
@@ -90,7 +92,7 @@ void CDeleteProgressDialog::closeEvent(QCloseEvent *e)
 
 void CDeleteProgressDialog::cancelPressed()
 {
-	if (QMessageBox::question(this, "Cancel?", "Are you sure you want to cancel this operation?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	if (QMessageBox::question(this, tr("Cancel?"), tr("Are you sure you want to cancel this operation?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 		cancel();
 }
 
@@ -103,7 +105,7 @@ void CDeleteProgressDialog::pauseResume()
 void CDeleteProgressDialog::background()
 {
 	ui->_btnBackground->setVisible(false);
-	QTimer::singleShot(0, [this](){
+	QTimer::singleShot(0, this, [this](){
 		setGeometry(QRect(geometry().topLeft(), QPoint(geometry().topLeft().x() + minimumSize().width(), geometry().topLeft().y() + minimumSize().height())));
 		_mainWindow->raise();
 		_mainWindow->activateWindow();

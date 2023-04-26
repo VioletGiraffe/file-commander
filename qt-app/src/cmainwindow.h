@@ -31,10 +31,10 @@ class CMainWindow final : public QMainWindow,
 public:
 	explicit CMainWindow(QWidget *parent = nullptr);
 	~CMainWindow() final;
-	static CMainWindow* get();
+	[[nodiscard]] static CMainWindow* get();
 
 	// One-time initialization
-	bool created() const;
+	[[nodiscard]] bool created() const;
 	void onCreate();
 
 	void updateInterface();
@@ -43,7 +43,7 @@ public:
 	void initActions();
 
 	// For manual focus management
-	void tabKeyPressed ();
+	void tabKeyPressed();
 
 	bool copyFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
 	bool moveFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);

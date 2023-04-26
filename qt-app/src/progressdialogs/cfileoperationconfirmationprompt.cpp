@@ -1,5 +1,8 @@
 #include "cfileoperationconfirmationprompt.h"
+
+DISABLE_COMPILER_WARNINGS
 #include "ui_cfileoperationconfirmationprompt.h"
+RESTORE_COMPILER_WARNINGS
 
 CFileOperationConfirmationPrompt::CFileOperationConfirmationPrompt(const QString& caption, const QString& labelText, const QString& editText, QWidget *parent) :
 	QDialog(parent),

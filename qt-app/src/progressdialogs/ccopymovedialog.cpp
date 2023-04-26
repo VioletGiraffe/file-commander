@@ -4,6 +4,10 @@
 #include "filesystemhelperfunctions.h"
 #include "progressdialoghelpers.h"
 
+#include "qtcore_helpers/qstring_helpers.hpp"
+
+#include "math/math.hpp"
+
 DISABLE_COMPILER_WARNINGS
 #include "ui_ccopymovedialog.h"
 
@@ -23,17 +27,17 @@ CCopyMoveDialog::CCopyMoveDialog(Operation operation, std::vector<CFileSystemObj
 	ui->setupUi(this);
 	ui->_overallProgress->linkToWidgetstaskbarButton(this);
 
-	ui->_overallProgressText->setMinimumWidth(QFontMetrics(ui->_overallProgressText->font()).boundingRect("100.0%").width());
-	ui->_fileProgressText->setMinimumWidth(QFontMetrics(ui->_fileProgressText->font()).boundingRect("100.0%").width());
+	ui->_overallProgressText->setMinimumWidth(QFontMetrics(ui->_overallProgressText->font()).boundingRect(QSL("100.0%")).width());
+	ui->_fileProgressText->setMinimumWidth(QFontMetrics(ui->_fileProgressText->font()).boundingRect(QSL("100.0%")).width());
 
 	ui->_lblFileName->clear();
 
 	assert_r(mainWindow);
 
 	if (operation == operationCopy)
-		ui->_lblOperationName->setText("Copying files...");
+		ui->_lblOperationName->setText(tr("Copying files..."));
 	else if (operation == operationMove)
-		ui->_lblOperationName->setText("Moving files...");
+		ui->_lblOperationName->setText(tr("Moving files..."));
 	else
 		assert_unconditional_r("Unknown operation");
 
@@ -61,19 +65,19 @@ CCopyMoveDialog::~CCopyMoveDialog()
 
 void CCopyMoveDialog::onProgressChanged(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed, uint32_t secondsRemaining)
 {
-	ui->_overallProgress->setValue((int)(totalPercentage + 0.5f));
+	ui->_overallProgress->setValue(Math::round<int>(totalPercentage));
 	ui->_overallProgressText->setText(QString::number(totalPercentage, 'f', 1).append('%'));
 
-	ui->_fileProgress->setValue((int)(filePercentage + 0.5f));
+	ui->_fileProgress->setValue(Math::round<int>(filePercentage));
 	ui->_fileProgressText->setText(QString::number(filePercentage, 'f', 1).append('%'));
 
 
 	ui->_lblOperationName->setText(_labelTemplate.arg(fileSizeToString(speed), secondsToTimeIntervalString(secondsRemaining)));
-	ui->_lblNumFiles->setText(QString("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
+	ui->_lblNumFiles->setText(QSL("%1/%2").arg(numFilesProcessed).arg(totalNumFiles));
 	setWindowTitle(_titleTemplate.arg(QString::number(totalPercentage, 'f', 1), fileSizeToString(speed), secondsToTimeIntervalString(secondsRemaining)));
 }
 
-void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)
+void CCopyMoveDialog::onProcessHalted(HaltReason reason, const CFileSystemObject& source, const CFileSystemObject& dest, const QString& errorMessage)
 {
 	CPromptDialog prompt(this, _op, reason, source, dest, errorMessage);
 
@@ -83,7 +87,7 @@ void CCopyMoveDialog::onProcessHalted(HaltReason reason, CFileSystemObject sourc
 	ui->_overallProgress->setState(_performer->paused() ? psPaused : psNormal);
 }
 
-void CCopyMoveDialog::onProcessFinished(QString message)
+void CCopyMoveDialog::onProcessFinished(const QString& message)
 {
 	_performer.reset();
 	close();
@@ -92,7 +96,7 @@ void CCopyMoveDialog::onProcessFinished(QString message)
 		QMessageBox::information(this, tr("Operation finished"), message);
 }
 
-void CCopyMoveDialog::onCurrentFileChanged(QString file)
+void CCopyMoveDialog::onCurrentFileChanged(const QString& file)
 {
 	ui->_lblFileName->setText(file);
 }
@@ -132,7 +136,7 @@ void CCopyMoveDialog::switchToBackground()
 	ui->_btnBackground->hide();
 	ui->_fileProgress->hide();
 	ui->_fileProgressText->hide();
-	QTimer::singleShot(0, [this](){
+	QTimer::singleShot(0, this, [this](){
 		const QSize minsize = minimumSize();
 		const QPoint mainWindowTopLeft = _mainWindow->geometry().topLeft();
 		const QRect newGeometry = QRect(QPoint(mainWindowTopLeft.x(), mainWindowTopLeft.y() - minsize.height()), minsize);

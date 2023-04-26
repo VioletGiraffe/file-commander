@@ -22,10 +22,10 @@ using OverwriteExistingFile = UniqueNamedBoolType;
 class CFileManipulator
 {
 public:
-	explicit CFileManipulator(const CFileSystemObject& object);
+	explicit CFileManipulator(CFileSystemObject object);
 
 // Operations
-	
+
 	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = {}, TransferPermissions transferPermissions = TransferPermissions{ true });
 	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = {}, OverwriteExistingFile overwriteExistingFile = {});
 
