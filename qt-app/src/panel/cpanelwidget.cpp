@@ -203,9 +203,9 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		const CFileSystemObject& object = item.second;
 		const auto& props = object.properties();
 
-		auto fileNameItem = new QStandardItem();
+		auto* fileNameItem = new QStandardItem();
 		fileNameItem->setEditable(false);
-		if (props.type == Directory && props.type != Bundle)
+		if (props.type == Directory)
 			fileNameItem->setData(QString("[" % (object.isCdUp() ? QLatin1String("..") : props.fullName) % "]"), Qt::DisplayRole);
 		else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
 			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
@@ -215,14 +215,14 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		fileNameItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, NameColumn, fileNameItem });
 
-		auto fileExtItem = new QStandardItem();
+		auto* fileExtItem = new QStandardItem();
 		fileExtItem->setEditable(false);
 		if (!object.isCdUp() && !props.completeBaseName.isEmpty() && !props.extension.isEmpty())
 			fileExtItem->setData(props.extension, Qt::DisplayRole);
 		fileExtItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, ExtColumn, fileExtItem });
 
-		auto sizeItem = new QStandardItem();
+		auto* sizeItem = new QStandardItem();
 		sizeItem->setEditable(false);
 		if (props.size > 0 || props.type == File)
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
@@ -230,7 +230,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		sizeItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
 		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, SizeColumn, sizeItem });
 
-		auto dateItem = new QStandardItem();
+		auto* dateItem = new QStandardItem();
 		dateItem->setEditable(false);
 		if (!object.isCdUp())
 		{
@@ -257,7 +257,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	{
 		// Setting the folder we've just stepped out of as current
 		qulonglong targetFolderHash = 0;
-		for (auto& item: items)
+		for (const auto& item: items)
 		{
 			if (item.second.fullAbsolutePath() == previousFolder)
 			{
@@ -308,7 +308,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 		for (int row = 0, numRows = _sortModel->rowCount(); row < numRows; ++row)
 		{
 			const qulonglong hash = hashBySortModelIndex(_sortModel->index(row, 0));
-			if (selectedItemsHashes.count(hash) != 0)
+			if (selectedItemsHashes.contains(hash))
 				selection.select(_sortModel->index(row, 0), _sortModel->index(row, 0));
 		}
 
@@ -353,7 +353,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 void CPanelWidget::showContextMenuForDisk(QPoint pos)
 {
 #ifdef _WIN32
-	const auto button = dynamic_cast<const QPushButton*>(sender());
+	const auto* button = dynamic_cast<const QPushButton*>(sender());
 	if (!button)
 		return;
 
@@ -695,7 +695,7 @@ void CPanelWidget::pasteSelectionFromClipboard()
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
 #else
-	const auto hwnd = reinterpret_cast<void*>(winId());
+	auto* hwnd = reinterpret_cast<void*>(winId());
 	const auto currentDirWString = currentDirPathNative().toStdWString();
 	_controller->execOnWorkerThread([hwnd, currentDirWString]() {
 		OsShell::pasteFilesAndFoldersFromClipboard(currentDirWString, hwnd);
@@ -789,9 +789,9 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	if (!ui->_driveButtonsWidget->layout())
 	{
 #ifdef _WIN32
-		auto flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
+		auto* flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
 #else
-		auto flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 5, 5);
+		auto* flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 5, 5);
 #endif
 		flowLayout->setSpacing(1);
 		ui->_driveButtonsWidget->setLayout(flowLayout);
@@ -884,7 +884,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	}
 	else if(e->type() == QEvent::Wheel && object == ui->_list->viewport())
 	{
-		auto wEvent = static_cast<QWheelEvent*>(e);
+		auto* wEvent = static_cast<QWheelEvent*>(e);
 		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
 		{
 			if (wEvent->angleDelta().y() > 0)
@@ -896,7 +896,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	}
 	else if (object == ui->_pathNavigator && e->type() == QEvent::KeyPress)
 	{
-		auto keyEvent = static_cast<QKeyEvent*>(e);
+		auto* keyEvent = static_cast<QKeyEvent*>(e);
 		if (keyEvent->key() == Qt::Key_Escape)
 		{
 			ui->_pathNavigator->resetToLastSelected(false);
@@ -994,10 +994,10 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 	else
 		ui->_driveInfoLabel->clear();
 
-	auto layout = ui->_driveButtonsWidget->layout();
+	auto* layout = ui->_driveButtonsWidget->layout();
 	for (int i = 0, n = layout->count(); i < n; ++i)
 	{
-		auto button = dynamic_cast<QPushButton*>(layout->itemAt(i)->widget());
+		auto* button = dynamic_cast<QPushButton*>(layout->itemAt(i)->widget());
 		if (!button)
 			continue;
 

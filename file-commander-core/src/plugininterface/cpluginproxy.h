@@ -26,7 +26,6 @@ public:
 		inline MenuTree(QString name_, std::function<void()>&& handler_, QIcon icon_ = {}):
 			name(std::move(name_)), icon(std::move(icon_)), handler(std::move(handler_))
 		{}
-		MenuTree& operator=(const MenuTree&) = delete;
 
 		const QString name;
 		const QIcon icon;
@@ -56,11 +55,11 @@ public:
 	[[nodiscard]] PanelPosition currentPanel() const;
 	[[nodiscard]] PanelPosition otherPanel() const;
 
-	[[nodiscard]] PanelState& panelState(const PanelPosition panel);
-	[[nodiscard]] const PanelState& panelState(const PanelPosition panel) const;
-	[[nodiscard]] QString currentFolderPathForPanel(const PanelPosition panel) const;
-	[[nodiscard]] QString currentItemPathForPanel(const PanelPosition panel) const;
-	[[nodiscard]] const CFileSystemObject& currentItemForPanel(const PanelPosition panel) const;
+	[[nodiscard]] PanelState& panelState(PanelPosition panel);
+	[[nodiscard]] const PanelState& panelState(PanelPosition panel) const;
+	[[nodiscard]] QString currentFolderPathForPanel(PanelPosition panel) const;
+	[[nodiscard]] QString currentItemPathForPanel(PanelPosition panel) const;
+	[[nodiscard]] const CFileSystemObject& currentItemForPanel(PanelPosition panel) const;
 
 	[[nodiscard]] const CFileSystemObject& currentItem() const;
 	[[nodiscard]] QString currentItemPath() const;

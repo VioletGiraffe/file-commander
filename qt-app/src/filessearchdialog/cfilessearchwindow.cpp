@@ -143,7 +143,7 @@ void CFilesSearchWindow::addResultsToUi()
 	{
 		const bool isDir = QFileInfo(path).isDir();
 
-		auto item = new QListWidgetItem;
+		auto* item = new QListWidgetItem;
 		const QString nativePath = toNativeSeparators(path);
 		item->setText(isDir ? ('[' % nativePath % ']') : nativePath);
 		item->setData(Qt::UserRole, path);

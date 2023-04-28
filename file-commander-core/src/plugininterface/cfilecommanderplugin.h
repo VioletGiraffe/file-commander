@@ -20,8 +20,6 @@ public:
 	CFileCommanderPlugin() noexcept;
 	virtual ~CFileCommanderPlugin() noexcept = default;
 
-	CFileCommanderPlugin(const CFileCommanderPlugin&) = delete;
-
 	[[nodiscard]] virtual PluginType type() = 0;
 	[[nodiscard]] virtual QString name() const = 0;
 

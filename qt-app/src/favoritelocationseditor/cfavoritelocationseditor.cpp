@@ -99,7 +99,7 @@ void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem * current, QTr
 
 void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 {
-	auto item = dynamic_cast<CFavoriteLocationsListItem*>(ui->_list->itemAt(pos));
+	auto* item = dynamic_cast<CFavoriteLocationsListItem*>(ui->_list->itemAt(pos));
 	QMenu menu;
 	QAction * addItemAction = nullptr;
 	if (!item || item->isCategory())

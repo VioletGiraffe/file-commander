@@ -43,7 +43,7 @@ class CFileSystemObject;
 
 [[nodiscard]] QString cleanPath(QString path);
 
-[[nodiscard]] QString fileSizeToString(uint64_t size, const char maxUnit = '\0', const QString& spacer = {});
+[[nodiscard]] QString fileSizeToString(uint64_t size, char maxUnit = '\0', const QString& spacer = {});
 
 [[nodiscard]] std::vector<QString> pathComponents(const QString& path);
 

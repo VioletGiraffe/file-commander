@@ -16,7 +16,7 @@ RESTORE_COMPILER_WARNINGS
 CDeleteProgressDialog::CDeleteProgressDialog(QWidget* parent, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow *mainWindow) :
 	QWidget(parent, Qt::Window),
 	ui(new Ui::CDeleteProgressDialog),
-	_performer(new COperationPerformer(operationDelete, std::move(source), destination)),
+	_performer(new COperationPerformer(operationDelete, std::move(source), std::move(destination))),
 	_mainWindow(mainWindow)
 {
 	ui->setupUi(this);

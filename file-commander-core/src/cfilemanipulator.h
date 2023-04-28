@@ -26,28 +26,28 @@ public:
 
 // Operations
 
-	FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = {}, TransferPermissions transferPermissions = TransferPermissions{ true });
-	FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = {}, OverwriteExistingFile overwriteExistingFile = {});
+	[[nodiscard]] FileOperationResultCode copyAtomically(const QString& destFolder, const QString& newName = {}, TransferPermissions transferPermissions = TransferPermissions{ true });
+	[[nodiscard]] FileOperationResultCode moveAtomically(const QString& destFolder, const QString& newName = {}, OverwriteExistingFile overwriteExistingFile = {});
 
-	static FileOperationResultCode copyAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());
-	static FileOperationResultCode moveAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());
+	[[nodiscard]] static FileOperationResultCode copyAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());
+	[[nodiscard]] static FileOperationResultCode moveAtomically(const CFileSystemObject& object, const QString& destFolder, const QString& newName = QString());
 
-	bool makeWritable(bool writable = true);
-	FileOperationResultCode remove();
+	[[nodiscard]] bool makeWritable(bool writable = true);
+	[[nodiscard]] FileOperationResultCode remove();
 
-	static bool makeWritable(const CFileSystemObject& object, bool writable = true);
-	static FileOperationResultCode remove(const CFileSystemObject& object);
+	[[nodiscard]] static bool makeWritable(const CFileSystemObject& object, bool writable = true);
+	[[nodiscard]] static FileOperationResultCode remove(const CFileSystemObject& object);
 
 // Non-blocking file copy API
 	// Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-	FileOperationResultCode copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName = QString(), bool transferPermissions = true, bool transferDates = true);
-	FileOperationResultCode moveChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName = QString());
-	bool copyOperationInProgress() const;
-	uint64_t bytesCopied() const;
-	FileOperationResultCode cancelCopy();
+	[[nodiscard]] FileOperationResultCode copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName = QString(), bool transferPermissions = true, bool transferDates = true);
+	[[nodiscard]] FileOperationResultCode moveChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName = QString());
+	[[nodiscard]] bool copyOperationInProgress() const;
+	[[nodiscard]] uint64_t bytesCopied() const;
+	[[nodiscard]] FileOperationResultCode cancelCopy();
 
 // State
-	QString lastErrorMessage() const;
+	[[nodiscard]] QString lastErrorMessage() const;
 
 private:
 	static QString /* error text; empty on success */ copyPermissions(const QFile& sourceFile, QFile& destinationFile);

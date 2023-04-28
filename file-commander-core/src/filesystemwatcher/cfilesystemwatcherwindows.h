@@ -8,7 +8,11 @@ using HANDLE = void*;
 class CFileSystemWatcherWindows
 {
 public:
+	CFileSystemWatcherWindows() noexcept = default;
 	~CFileSystemWatcherWindows() noexcept;
+
+	CFileSystemWatcherWindows(const CFileSystemWatcherWindows&) = delete;
+	CFileSystemWatcherWindows& operator=(const CFileSystemWatcherWindows&) = delete;
 
 	// This method is thread-safe.
 	bool setPathToWatch(const QString &path) noexcept;

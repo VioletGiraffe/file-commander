@@ -13,7 +13,7 @@ bool CImageViewerPlugin::canViewFile(const QString& /*fileName*/, const QMimeTyp
 
 CFileCommanderViewerPlugin::PluginWindowPointerType CImageViewerPlugin::viewFile(const QString& fileName)
 {
-	auto window = new CImageViewerWindow;
+	auto* window = new CImageViewerWindow;
 	if (window->displayImage(fileName))
 	{
 	// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated

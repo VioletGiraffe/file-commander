@@ -1,9 +1,7 @@
 #include "ciconproviderimpl.h"
 #include "cfilesystemobject.h"
 
-#include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
-#include "system/win_utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -18,6 +16,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 #endif
 
+#include <Windows.h>
 #include <shellapi.h>
 
 inline wchar_t* appendToString(wchar_t* buffer, const wchar_t* what, size_t whatLengthInCharacters = 0)
@@ -35,7 +34,7 @@ inline wchar_t* appendToString(wchar_t* buffer, const QString& what)
 	return buffer + written;
 }
 
-QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool guessIconByFileExtension) noexcept
+QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool guessIconByFileExtension) const noexcept
 {
 	SHFILEINFOW info;
 	const UINT flags = SHGFI_ICON | SHGFI_SMALLICON | (_showOverlayIcons ? SHGFI_ADDOVERLAYS : 0) | (guessIconByFileExtension ? SHGFI_USEFILEATTRIBUTES : 0);
@@ -71,7 +70,7 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool gue
 		}
 	}
 
-	if (result == 0 || !info.hIcon)
+	if (result == 0 || info.hIcon == nullptr)
 	{
 		return {};
 	}

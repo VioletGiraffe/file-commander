@@ -301,7 +301,7 @@ bool CFileListView::eventFilter(QObject* target, QEvent* event)
 	QHeaderView * headerView = header();
 	if (target == headerView && event && event->type() == QEvent::Resize && headerView->count() == NumberOfColumns)
 	{
-		auto resizeEvent = dynamic_cast<QResizeEvent*>(event);
+		auto* resizeEvent = dynamic_cast<QResizeEvent*>(event);
 		assert_and_return_r(resizeEvent, QTreeView::eventFilter(target, event));
 		float oldHeaderWidth = 0.0f;
 		for (int i = 0; i < headerView->count(); ++i)

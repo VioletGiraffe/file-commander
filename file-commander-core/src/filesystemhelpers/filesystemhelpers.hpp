@@ -15,4 +15,4 @@ namespace FileSystemHelpers
 
 	[[nodiscard]] bool pathIsAccessible(const QString& path);
 
-} // namespace
+} // namespace FileSystemHelpers

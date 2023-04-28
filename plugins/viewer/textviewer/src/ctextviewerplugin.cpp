@@ -25,7 +25,7 @@ CFileCommanderViewerPlugin::PluginWindowPointerType CTextViewerPlugin::viewFile(
 {
 	QMainWindow * mainWindow = WidgetUtils::findTopLevelWindow();
 
-	auto window = new CTextViewerWindow(mainWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
+	auto* window = new CTextViewerWindow(mainWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
 	if (window->loadTextFile(fileName))
 	{
 		// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated

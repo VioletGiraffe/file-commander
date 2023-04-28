@@ -14,7 +14,7 @@ RESTORE_COMPILER_WARNINGS
 inline QString parseVolumePathFromPathsList(WCHAR* paths)
 {
 	QString qstring;
-	for (auto string = paths; string[0] != L'\0'; string += wcslen(string) + 1)
+	for (auto* string = paths; string[0] != L'\0'; string += wcslen(string) + 1)
 	{
 		qstring = QString::fromWCharArray(string);
 		if (qstring.contains(':'))
@@ -61,7 +61,7 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 	return info;
 }
 
-const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
 	std::vector<VolumeInfo> volumes;
 

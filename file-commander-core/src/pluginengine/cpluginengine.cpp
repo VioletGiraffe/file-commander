@@ -96,7 +96,7 @@ void CPluginEngine::currentPanelChanged(Panel p)
 
 void CPluginEngine::viewCurrentFile()
 {
-	auto viewerWindow = createViewerWindowForCurrentFile().release();
+	auto* viewerWindow = createViewerWindowForCurrentFile().release();
 	if (viewerWindow)
 	{
 		viewerWindow->setAutoDeleteOnClose(true);
@@ -108,7 +108,7 @@ void CPluginEngine::viewCurrentFile()
 
 CFileCommanderViewerPlugin::PluginWindowPointerType CPluginEngine::createViewerWindowForCurrentFile()
 {
-	auto viewer = viewerForCurrentFile();
+	auto* viewer = viewerForCurrentFile();
 	if (!viewer)
 		return nullptr;
 
@@ -135,7 +135,7 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 	{
 		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
 		{
-			auto viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
+			auto* viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
 			assert_r(viewer);
 			if (viewer && viewer->canViewFile(currentFile, type))
 			{

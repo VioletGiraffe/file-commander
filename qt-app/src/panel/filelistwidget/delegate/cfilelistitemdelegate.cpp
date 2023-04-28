@@ -17,13 +17,13 @@ RESTORE_COMPILER_WARNINGS
 void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & index) const
 {
 	QStyledItemDelegate::setEditorData(editor, index);
-	auto lineEditor = dynamic_cast<QLineEdit*>(editor);
+	auto* lineEditor = dynamic_cast<QLineEdit*>(editor);
 	assert_r(lineEditor);
 	assert_and_return_r(index.isValid(), );
 
-	auto sortModel = dynamic_cast<const QSortFilterProxyModel*>(index.model());
+	auto* sortModel = dynamic_cast<const QSortFilterProxyModel*>(index.model());
 	assert_and_return_message_r(sortModel, "Something has changed in the model hierarchy", );
-	auto model = dynamic_cast<const CFileListModel*>(sortModel->sourceModel());
+	auto* model = dynamic_cast<const CFileListModel*>(sortModel->sourceModel());
 	assert_and_return_message_r(model, "Something has changed in the model hierarchy", );
 	auto hash = model->itemHash(sortModel->mapToSource(index));
 	const auto item = CController::get().itemByHash(model->panelPosition(), hash);

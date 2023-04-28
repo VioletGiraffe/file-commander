@@ -46,7 +46,7 @@ private:
 	// Calls all the registered observers with the latest list of drives found
 	void notifyObservers(bool async, bool drivesListOrReadinessChanged /* Basically, distinguishes between significant and insignificant changes */) const;
 
-	[[nodiscard]] static const std::vector<VolumeInfo> enumerateVolumesImpl();
+	[[nodiscard]] static std::vector<VolumeInfo> enumerateVolumesImpl();
 
 private:
 	std::vector<VolumeInfo> _volumes;

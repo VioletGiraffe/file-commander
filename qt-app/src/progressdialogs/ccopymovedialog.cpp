@@ -18,7 +18,7 @@ RESTORE_COMPILER_WARNINGS
 CCopyMoveDialog::CCopyMoveDialog(QWidget* parent, Operation operation, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow) :
 	QWidget(parent, Qt::Window),
 	ui(new Ui::CCopyMoveDialog),
-	_performer(new COperationPerformer(operation, std::move(source), destination)),
+	_performer(new COperationPerformer(operation, std::move(source), std::move(destination))),
 	_mainWindow(mainWindow),
 	_op(operation),
 	_titleTemplate(_op == operationCopy ? tr("%1% Copying %2/s, %3 remaining") : tr("%1% Moving %2/s, %3 remaining")),

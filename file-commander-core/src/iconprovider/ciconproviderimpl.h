@@ -17,7 +17,7 @@ class CIconProviderImpl
 {
 public:
 	// guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
-	QIcon iconFor(const CFileSystemObject& object, bool guessIconByFileExtension) noexcept;
+	[[nodiscard]] QIcon iconFor(const CFileSystemObject& object, bool guessIconByFileExtension) const noexcept;
 	void setShowOverlayIcons(bool show) noexcept;
 
 private:
@@ -30,7 +30,7 @@ class CIconProviderImpl
 {
 public:
 	// guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
-	QIcon iconFor(const CFileSystemObject& object, bool guessIconByFileExtension) noexcept;
+	[[nodiscard]] QIcon iconFor(const CFileSystemObject& object, bool guessIconByFileExtension) noexcept;
 	void setShowOverlayIcons(bool show) noexcept;
 
 private:

@@ -334,12 +334,12 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 		idLists.clear();
 	});
 
-	for (auto& path: items)
+	for (const auto& path: items)
 	{
 		LPITEMIDLIST idl = ILCreateFromPathW(path.c_str());
 		if (!idl)
 		{
-			qInfo() << "ILCreateFromPathW" << "failed for path" << QString::fromWCharArray(path.c_str());
+			qInfo() << "ILCreateFromPathW" << "failed for path" << QString::fromStdWString(path);
 			return false;
 		}
 		idLists.push_back(idl);

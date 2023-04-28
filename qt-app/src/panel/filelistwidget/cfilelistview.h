@@ -42,7 +42,7 @@ public:
 	void setHeaderAdjustmentRequired(bool required);
 
 	// Preserves item's selection state
-	void moveCursorToItem(const QModelIndex &item, bool invertSelection = false);
+	void moveCursorToItem(const QModelIndex &index, bool invertSelection = false);
 
 	// Header management
 	void saveHeaderState();

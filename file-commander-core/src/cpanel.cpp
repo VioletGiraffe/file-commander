@@ -328,7 +328,7 @@ std::map<qulonglong, CFileSystemObject> CPanel::list() const
 bool CPanel::itemHashExists(const qulonglong hash) const
 {
 	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-	return _items.count(hash) > 0;
+	return _items.contains(hash);
 }
 
 CFileSystemObject CPanel::itemByHash(qulonglong hash) const

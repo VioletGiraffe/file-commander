@@ -56,15 +56,15 @@ FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFold
 	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
 
-FileOperationResultCode CFileManipulator::moveAtomically(const QString& location, const QString& newName, OverwriteExistingFile overwriteExistingFile)
+FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFolder, const QString& newName, OverwriteExistingFile overwriteExistingFile)
 {
 	if (!_object.exists())
 		return FileOperationResultCode::ObjectDoesntExist;
 	else if (_object.isCdUp())
 		return FileOperationResultCode::Fail;
 
-	assert_debug_only(QFileInfo{ location }.isDir());
-	const QString fullNewName = location % '/' % (newName.isEmpty() ? _object.fullName() : newName);
+	assert_debug_only(QFileInfo{ destFolder }.isDir());
+	const QString fullNewName = destFolder % '/' % (newName.isEmpty() ? _object.fullName() : newName);
 	CFileSystemObject destInfo(fullNewName);
 	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(_object.fullAbsolutePath(), Qt::CaseInsensitive) == 0;
 
@@ -189,15 +189,15 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 
 	if (actualChunkSize != 0)
 	{
-		const auto src = _thisFile->map((qint64)_pos, (qint64)actualChunkSize);
-		if (!src)
+		auto* src = _thisFile->map((qint64)_pos, (qint64)actualChunkSize);
+		if (src == nullptr)
 		{
 			_lastErrorMessage = _thisFile->errorString();
 			return FileOperationResultCode::Fail;
 		}
 
-		const auto dest = _destFile->map((qint64)_pos, (qint64)actualChunkSize);
-		if (!dest)
+		auto* dest = _destFile->map((qint64)_pos, (qint64)actualChunkSize);
+		if (dest == nullptr)
 		{
 			_lastErrorMessage = _destFile->errorString();
 			return FileOperationResultCode::Fail;

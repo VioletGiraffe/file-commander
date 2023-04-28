@@ -32,7 +32,7 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 	if (QFile::exists(command))
 		return command;
 
-	const QString commandExecutable = command.left(command.indexOf(' '));
+	QString commandExecutable = command.left(command.indexOf(' '));
 	if (QFile::exists(commandExecutable))
 		return commandExecutable;
 
@@ -48,7 +48,7 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 
 	for (const auto& directory: pathDirectories)
 	{
-		const auto fullPath = directory + '/' + commandExecutable;
+		auto fullPath = directory + '/' + commandExecutable;
 		if (QFile::exists(fullPath))
 			return fullPath;
 	}
@@ -59,7 +59,8 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 // Removes any CR/LF characters. If there are any other symbols not supported in the current file system's paths, such characters are replaced with '_' (underscore).
 QString FileSystemHelpers::trimUnsupportedSymbols(QString path)
 {
-	path.remove(QRegularExpression(QSL("[\\x{1}-\\x{1F}]+")));
+	static const QRegularExpression regex(QSL("[\\x{1}-\\x{1F}]+"));
+	path.remove(regex);
 
 #ifdef _WIN32
 	if (path.count(':') > 1)

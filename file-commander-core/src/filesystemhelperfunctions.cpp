@@ -1,9 +1,12 @@
 #include "filesystemhelperfunctions.h"
 #include "cfilesystemobject.h"
 
+#include "qtcore_helpers/qstring_helpers.hpp"
+#include "std_helpers/qt_container_helpers.hpp"
+
 #include "assert/advanced_assert.h"
 #include "container/std_container_helpers.hpp"
-#include "std_helpers/qt_container_helpers.hpp"
+#include "lang/type_traits_fast.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>
@@ -57,12 +60,18 @@ QString cleanPath(QString path)
 
 QString fileSizeToString(uint64_t size, const char maxUnit, const QString &spacer)
 {
-	static constexpr unsigned int KB = 1024;
-	static constexpr unsigned int MB = 1024 * KB;
-	static constexpr unsigned int GB = 1024 * MB;
+	static constexpr uint64_t KB = 1024;
+	static constexpr uint64_t MB = 1024 * KB;
+	static constexpr uint64_t GB = 1024 * MB;
 
-	const std::map<char, unsigned int> unitCodes {{'B', 0}, {'K', KB}, {'M', MB}};
-	const unsigned int maxUnitSize = unitCodes.count(maxUnit) > 0 ? unitCodes.at(maxUnit) : std::numeric_limits<unsigned int>::max();
+	const uint64_t maxUnitSize = [maxUnit]() -> uint64_t {
+		switch(maxUnit) {
+		case 'B': return 0;
+		case 'K': return KB;
+		case 'M': return MB;
+		default:  return uint64_max;
+		}
+	}();
 
 	QString str;
 	float n = 0.0f;
@@ -102,7 +111,7 @@ std::vector<QString> pathComponents(const QString &path)
 	assert_debug_only(!path.contains('\\') && !path.contains("//"));
 #else
 	// This could be a network path
-	assert_debug_only(!path.contains('\\') && path.lastIndexOf("//") <= 0);
+	assert_debug_only(!path.contains('\\') && path.lastIndexOf(QSL("//")) <= 0);
 #endif // !_WIN32
 	auto components = path.split('/', Qt::KeepEmptyParts);
 	if (components.empty())
@@ -156,7 +165,7 @@ QString longestCommonRootPath(const CFileSystemObject &object1, const CFileSyste
 		return {};
 
 	{
-		const auto longestCommonRoot = longestCommonRootPath(object1.fullAbsolutePath(), object2.fullAbsolutePath());
+		auto longestCommonRoot = longestCommonRootPath(object1.fullAbsolutePath(), object2.fullAbsolutePath());
 		if (!longestCommonRoot.isEmpty())
 			return longestCommonRoot;
 	}
@@ -168,6 +177,6 @@ QString longestCommonRootPath(const CFileSystemObject &object1, const CFileSyste
 	const auto resolvedLink2 = object2.isSymLink() ? object2.symLinkTarget() : object2.fullAbsolutePath();
 
 	assert_and_return_r(!resolvedLink1.isEmpty() && !resolvedLink2.isEmpty(), {});
-	const auto longestCommonRootResolved = longestCommonRootPath(resolvedLink1, resolvedLink2);
+	auto longestCommonRootResolved = longestCommonRootPath(resolvedLink1, resolvedLink2);
 	return longestCommonRootResolved;
 }

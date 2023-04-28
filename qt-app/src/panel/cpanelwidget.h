@@ -108,7 +108,7 @@ private:
 
 // Internal methods
 	[[nodiscard]] qulonglong hashBySortModelIndex(const QModelIndex& index) const;
-	[[nodiscard]] QModelIndex indexByHash(const qulonglong hash, bool logFailures = false) const;
+	[[nodiscard]] QModelIndex indexByHash(qulonglong hash, bool logFailures = false) const;
 
 	void updateCurrentVolumeButtonAndInfoLabel();
 

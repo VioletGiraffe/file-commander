@@ -369,7 +369,7 @@ bool CFileSystemObject::isNetworkObject() const
 	WCHAR wPath[MAX_PATH];
 	const auto nSymbols = toNativeSeparators(_properties.fullPath).toWCharArray(wPath);
 	wPath[nSymbols] = 0;
-	return PathIsNetworkPathW(wPath);
+	return PathIsNetworkPathW(wPath) != 0;
 #else
 	return false;
 #endif

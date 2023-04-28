@@ -118,7 +118,7 @@ void CMainWindow::onCreate()
 		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000LL * 3600LL * 24LL)
 	{
 		s.setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-		auto dlg = new CUpdaterDialog(this, REPO_NAME, VERSION_STRING, true);
+		auto* dlg = new CUpdaterDialog(this, REPO_NAME, VERSION_STRING, true);
 		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
 		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
 	}
@@ -300,7 +300,7 @@ bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 {
 	if (watched == ui->_commandLine && event->type() == QEvent::KeyPress)
 	{
-		auto keyEvent = static_cast<QKeyEvent*>(event);
+		auto* keyEvent = static_cast<QKeyEvent*>(event);
 		if (keyEvent->key() == Qt::Key_Escape)
 			clearCommandLineAndRestoreFocus();
 	}
@@ -422,7 +422,7 @@ void CMainWindow::deleteFiles()
 		return;
 
 #ifdef _WIN32
-	auto windowHandle = reinterpret_cast<void*>(winId());
+	auto* windowHandle = reinterpret_cast<void*>(winId());
 #else
 	void* windowHandle = nullptr;
 #endif
@@ -620,9 +620,11 @@ void CMainWindow::toggleTabletMode(bool tabletMode)
 	QApplication::setFont(f);
 
 	auto widgets = QApplication::allWidgets();
-	for (auto widget : widgets)
+	for (auto* widget : widgets)
+	{
 		if (widget)
 			widget->setFont(f);
+	}
 }
 
 bool CMainWindow::executeCommand(const QString& commandLineText)
@@ -698,7 +700,7 @@ void CMainWindow::findFiles()
 		selectedPaths.push_back(_currentFileList->currentDirPathNative());
 
 
-	auto fileSearchUi = new CFilesSearchWindow(selectedPaths, this);
+	auto* fileSearchUi = new CFilesSearchWindow(selectedPaths, this);
 	connect(this, &CMainWindow::closed, fileSearchUi, &CFilesSearchWindow::close);
 	fileSearchUi->show();
 }
@@ -847,7 +849,7 @@ void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree
 	static QMenu * toolMenu = nullptr; // Shouldn't have to be static, but 2 subsequent calls to this method result in "Tools" being added twice. QMenuBar needs event loop to update its children?..
 									   // TODO: make it a class member
 
-	for (auto topLevelMenu : menu->findChildren<QMenu*>())
+	for (auto* topLevelMenu : menu->findChildren<QMenu*>())
 	{
 		// TODO: make sure this plays nicely with localization (#145)
 		if (topLevelMenu->title().remove('&') == QL1("Tools"))

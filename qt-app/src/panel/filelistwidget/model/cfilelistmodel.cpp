@@ -36,7 +36,7 @@ QTreeView *CFileListModel::treeView() const
 	return _tree;
 }
 
-QVariant CFileListModel::data(const QModelIndex & index, int role /*= Qt::DisplayRole*/) const
+QVariant CFileListModel::data(const QModelIndex & index, int role) const
 {
 	if (role == Qt::ToolTipRole)
 	{
@@ -66,13 +66,13 @@ bool CFileListModel::setData(const QModelIndex & index, const QVariant & value, 
 		return QStandardItemModel::setData(index, value, role);
 }
 
-Qt::ItemFlags CFileListModel::flags(const QModelIndex & idx) const
+Qt::ItemFlags CFileListModel::flags(const QModelIndex& index) const
 {
-	const Qt::ItemFlags flags = QStandardItemModel::flags(idx);
-	if (!idx.isValid())
+	const Qt::ItemFlags flags = QStandardItemModel::flags(index);
+	if (!index.isValid())
 		return flags;
 
-	const qulonglong hash = itemHash(idx);
+	const qulonglong hash = itemHash(index);
 	const CFileSystemObject item = _controller.itemByHash(_panel, hash);
 
 	if (!item.exists())
@@ -123,12 +123,12 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 
 QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 {
-	auto mime = new QMimeData();
+	auto* mime = new QMimeData();
 	QList<QUrl> urls;
 	std::set<int> rows;
 	for(const auto& idx: indexes)
 	{
-		if (idx.isValid() && rows.count(idx.row()) == 0)
+		if (idx.isValid() && rows.contains(idx.row()))
 		{
 			const QString path = _controller.itemByHash(_panel, itemHash(index(idx.row(), 0))).fullAbsolutePath();
 			if (!path.isEmpty())

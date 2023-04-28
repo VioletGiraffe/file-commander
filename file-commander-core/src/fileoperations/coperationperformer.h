@@ -42,16 +42,19 @@ private:
 class COperationPerformer
 {
 public:
-	COperationPerformer(const Operation operation, std::vector<CFileSystemObject>&& source, QString destination = QString());
-	COperationPerformer(const Operation operation, const CFileSystemObject& source, QString destination = QString());
+	COperationPerformer(Operation operation, std::vector<CFileSystemObject>&& source, QString destination = QString());
+	COperationPerformer(Operation operation, const CFileSystemObject& source, QString destination = QString());
 	~COperationPerformer();
+
+	COperationPerformer(const COperationPerformer&) = delete;
+	COperationPerformer& operator=(const COperationPerformer&) = delete;
 
 	void setObserver(CFileOperationObserver *observer);
 
-	bool togglePause();
-	bool paused()  const;
-	bool working() const;
-	bool done()    const;
+	[[nodiscard]] bool togglePause();
+	[[nodiscard]] bool paused()  const;
+	[[nodiscard]] bool working() const;
+	[[nodiscard]] bool done()    const;
 
 	// User can supply a new name (not full path)
 	void userResponse(HaltReason haltReason, UserResponse response, QString newName = QString());
@@ -71,16 +74,16 @@ private:
 
 	// Iterates over all dirs in the source vector, and their subdirs, and so on and replaces _sources with a flat list of files. Returns a list of destination folders where each of the files must be copied to according to _dest
 	// Also counts the total size of all the files to monitor progress
-	std::vector<QDir> enumerateSourcesAndCalcDest(uint64_t& totalSize);
+	[[nodiscard]] std::vector<QDir> enumerateSourcesAndCalcDest(uint64_t& totalSize);
 
-	UserResponse getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message);
+	[[nodiscard]] UserResponse getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message);
 
 // Suboperation handlers
 	enum NextAction {naProceed, naRetryItem, naRetryOperation, naSkip, naAbort};
-	NextAction deleteItem(CFileSystemObject& item);
-	NextAction makeItemWriteable(CFileSystemObject& item);
-	NextAction copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessedPreviously, uint64_t totalSize, size_t currentItemIndex);
-	NextAction mkPath(const QDir& dir);
+	[[nodiscard]] NextAction deleteItem(CFileSystemObject& item);
+	[[nodiscard]] NextAction makeItemWriteable(CFileSystemObject& item);
+	[[nodiscard]] NextAction copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessedPreviously, uint64_t totalSize, size_t currentItemIndex);
+	[[nodiscard]] NextAction mkPath(const QDir& dir);
 
 	void handlePause();
 
@@ -91,9 +94,6 @@ private:
 
 		inline explicit ObjectToProcess(const CFileSystemObject& fso) : object{ fso }
 		{}
-
-		ObjectToProcess(ObjectToProcess&&) noexcept = default;
-		ObjectToProcess(const ObjectToProcess&) = default;
 
 		CFileSystemObject object;
 		bool copiedSuccessfully = false;

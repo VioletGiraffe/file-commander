@@ -15,9 +15,6 @@ struct FileSystemInfoWrapper
 
 	explicit FileSystemInfoWrapper(QFileInfo&& fullInfo) noexcept;
 
-	FileSystemInfoWrapper(FileSystemInfoWrapper&&) noexcept = default;
-	FileSystemInfoWrapper(const FileSystemInfoWrapper& other) noexcept = default;
-
 	[[nodiscard]] bool operator<(const FileSystemInfoWrapper& other) const noexcept;
 	[[nodiscard]] bool operator==(const FileSystemInfoWrapper& other) const noexcept;
 
@@ -33,6 +30,9 @@ class CFileSystemWatcherTimerBased
 public:
 	CFileSystemWatcherTimerBased();
 	~CFileSystemWatcherTimerBased();
+
+	CFileSystemWatcherTimerBased(const CFileSystemWatcherTimerBased&) = delete;
+	CFileSystemWatcherTimerBased& operator=(const CFileSystemWatcherTimerBased&) = delete;
 
 	// This method is thread-safe.
 	bool setPathToWatch(const QString &path);

@@ -68,47 +68,47 @@ public:
 	void refreshInfo();
 	void setPath(const QString& path);
 
-	bool operator==(const CFileSystemObject& other) const;
+	[[nodiscard]] bool operator==(const CFileSystemObject& other) const;
 
 // Information about this object
-	bool isValid() const;
+	[[nodiscard]] bool isValid() const;
 
-	bool exists() const;
-	const CFileSystemObjectProperties& properties() const;
-	FileSystemObjectType type() const;
-	bool isFile() const;
-	bool isDir() const;
-	bool isBundle() const;
-	bool isEmptyDir() const;
-	bool isCdUp() const; // returns true if it's ".." item
-	bool isExecutable() const;
-	bool isReadable() const;
+	[[nodiscard]] bool exists() const;
+	[[nodiscard]] const CFileSystemObjectProperties& properties() const;
+	[[nodiscard]] FileSystemObjectType type() const;
+	[[nodiscard]] bool isFile() const;
+	[[nodiscard]] bool isDir() const;
+	[[nodiscard]] bool isBundle() const;
+	[[nodiscard]] bool isEmptyDir() const;
+	[[nodiscard]] bool isCdUp() const; // returns true if it's ".." item
+	[[nodiscard]] bool isExecutable() const;
+	[[nodiscard]] bool isReadable() const;
 	// Apparently, it will return false for non-existing files
-	bool isWriteable() const;
-	bool isHidden() const;
+	[[nodiscard]] bool isWriteable() const;
+	[[nodiscard]] bool isHidden() const;
 
-	QString fullAbsolutePath() const;
-	QString parentDirPath() const;
-	uint64_t size() const;
-	uint64_t hash() const;
-	const QFileInfo& qFileInfo() const;
-	uint64_t rootFileSystemId() const;
-	bool isNetworkObject() const;
-	bool isSymLink() const;
-	QString symLinkTarget() const;
+	[[nodiscard]] QString fullAbsolutePath() const;
+	[[nodiscard]] QString parentDirPath() const;
+	[[nodiscard]] uint64_t size() const;
+	[[nodiscard]] uint64_t hash() const;
+	[[nodiscard]] const QFileInfo& qFileInfo() const;
+	[[nodiscard]] uint64_t rootFileSystemId() const;
+	[[nodiscard]] bool isNetworkObject() const;
+	[[nodiscard]] bool isSymLink() const;
+	[[nodiscard]] QString symLinkTarget() const;
 
-	bool isMovableTo(const CFileSystemObject& dest) const;
+	[[nodiscard]] bool isMovableTo(const CFileSystemObject& dest) const;
 
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);
 
 	// File name without suffix, or folder name. Same as QFileInfo::completeBaseName.
-	QString name() const;
+	[[nodiscard]] QString name() const;
 	// Filename + suffix for files, same as name() for folders
-	QString fullName() const;
-	QString extension() const;
-	QString sizeString() const;
-	QString modificationDateString() const;
+	[[nodiscard]] QString fullName() const;
+	[[nodiscard]] QString extension() const;
+	[[nodiscard]] QString sizeString() const;
+	[[nodiscard]] QString modificationDateString() const;
 
 private:
 	CFileSystemObjectProperties _properties;

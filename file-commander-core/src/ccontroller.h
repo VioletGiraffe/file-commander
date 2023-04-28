@@ -25,7 +25,7 @@ public:
 	};
 
 	CController();
-	static CController& get();
+	[[nodiscard]] static CController& get();
 
 	void loadPlugins();
 
@@ -73,7 +73,7 @@ public:
 	void showAllFilesFromCurrentFolderAndBelow(Panel p);
 	// Indicates that we need to move cursor (e. g. a folder is being renamed and we want to keep the cursor on it)
 	// This method takes the current folder in the currently active panel
-	void setCursorPositionForCurrentFolder(Panel panel, qulonglong newCurrentItemHash, const bool notifyUi = true);
+	void setCursorPositionForCurrentFolder(Panel panel, qulonglong newCurrentItemHash, bool notifyUi = true);
 	// Copies the full path of the currently selected item to clipboard
 	void copyCurrentItemPathToClipboard();
 
@@ -82,40 +82,40 @@ public:
 	void execOnUiThread(std::function<void ()> task, int tag = -1);
 
 // Getters
-	const CPanel& panel(Panel p) const;
-	CPanel& panel(Panel p);
-	const CPanel& otherPanel(Panel p) const;
-	CPanel& otherPanel(Panel p);
-	static Panel otherPanelPosition(Panel p);
-	Panel activePanelPosition() const;
-	const CPanel& activePanel() const;
-	CPanel& activePanel();
+	[[nodiscard]] const CPanel& panel(Panel p) const;
+	[[nodiscard]] CPanel& panel(Panel p);
+	[[nodiscard]] const CPanel& otherPanel(Panel p) const;
+	[[nodiscard]] CPanel& otherPanel(Panel p);
+	[[nodiscard]] static Panel otherPanelPosition(Panel p);
+	[[nodiscard]] Panel activePanelPosition() const;
+	[[nodiscard]] const CPanel& activePanel() const;
+	[[nodiscard]] CPanel& activePanel();
 
-	CPluginProxy& pluginProxy();
+	[[nodiscard]] CPluginProxy& pluginProxy();
 
-	bool itemHashExists(Panel p, qulonglong hash) const;
-	CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
-	std::vector<CFileSystemObject> items (Panel p, const std::vector<qulonglong> &hashes) const;
-	QString itemPath(Panel p, qulonglong hash) const;
+	[[nodiscard]] bool itemHashExists(Panel p, qulonglong hash) const;
+	[[nodiscard]] CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
+	[[nodiscard]] std::vector<CFileSystemObject> items(Panel p, const std::vector<qulonglong> &hashes) const;
+	[[nodiscard]] QString itemPath(Panel p, qulonglong hash) const;
 
 
-	std::vector<VolumeInfo> volumes() const;
-	std::optional<VolumeInfo> currentVolumeInfo(Panel p) const;
-	std::optional<VolumeInfo> volumeInfoForObject(const CFileSystemObject& object) const noexcept;
-	std::optional<VolumeInfo> volumeInfoById(uint64_t id) const;
+	[[nodiscard]] std::vector<VolumeInfo> volumes() const;
+	[[nodiscard]] std::optional<VolumeInfo> currentVolumeInfo(Panel p) const;
+	[[nodiscard]] std::optional<VolumeInfo> volumeInfoForObject(const CFileSystemObject& object) const noexcept;
+	[[nodiscard]] std::optional<VolumeInfo> volumeInfoById(uint64_t id) const;
 
-	CFavoriteLocations& favoriteLocations();
-	CFileSearchEngine& fileSearchEngine();
+	[[nodiscard]] CFavoriteLocations& favoriteLocations();
+	[[nodiscard]] CFileSearchEngine& fileSearchEngine();
 
 	// Returns hash of an item that was the last selected in the specified dir
-	qulonglong currentItemHashForFolder(Panel p, const QString& dir) const;
-	qulonglong currentItemHash();
-	CFileSystemObject currentItem();
+	[[nodiscard]] qulonglong currentItemHashForFolder(Panel p, const QString& dir) const;
+	[[nodiscard]] qulonglong currentItemHash();
+	[[nodiscard]] CFileSystemObject currentItem();
 
 private:
 	void volumesChanged(bool drivesListOrReadinessChanged) noexcept override;
 
-	QString volumePathById(uint64_t id) const;
+	[[nodiscard]] QString volumePathById(uint64_t id) const;
 	void saveDirectoryForCurrentVolume(Panel p);
 
 private:

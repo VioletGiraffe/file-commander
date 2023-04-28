@@ -77,7 +77,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
 	assert_r(connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap));
 	actionLine_wrap->setChecked(true); // Wrap by default
 
-	auto escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
+	auto* escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 	assert_r(connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater));
 
 	_encodingLabel = new QLabel(this);

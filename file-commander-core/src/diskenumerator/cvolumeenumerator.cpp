@@ -88,7 +88,7 @@ void CVolumeEnumerator::notifyObservers(bool async, bool drivesListOrReadinessCh
 	// Queuing the code to be executed on the thread where CVolumeEnumerator was created
 
 	_notificationsQueue.enqueue([this, drivesListOrReadinessChanged]() {
-		for (auto& observer : _observers)
+		for (const auto& observer : _observers)
 			observer->volumesChanged(drivesListOrReadinessChanged);
 	}, 0); // Setting the tag to 0 will discard any previous queue items with the same tag that have not yet been processed
 

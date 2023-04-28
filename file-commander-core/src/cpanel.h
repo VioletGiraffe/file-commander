@@ -81,32 +81,32 @@ public:
 	bool navigateBack();
 	// Go to the next location from history, if any
 	bool navigateForward();
-	const CHistoryList<QString>& history() const;
+	[[nodiscard]] const CHistoryList<QString>& history() const;
 	// Flattens the current directory and displays all its child files on one level
 	void showAllFilesFromCurrentFolderAndBelow();
 	// Switches to the appropriate directory and sets the cursor to the specified item
 	bool goToItem(const CFileSystemObject& item);
 
 	// Info on the dir this panel is currently set to
-	CFileSystemObject currentDirObject() const;
-	QString currentDirPathNative() const;
-	QString currentDirPathPosix() const;
-	QString currentDirName() const;
+	[[nodiscard]] CFileSystemObject currentDirObject() const;
+	[[nodiscard]] QString currentDirPathNative() const;
+	[[nodiscard]] QString currentDirPathPosix() const;
+	[[nodiscard]] QString currentDirName() const;
 
-	void setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash, const bool notifyUi = true);
+	void setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash, bool notifyUi = true);
 	// Returns hash of an item that was the last selected in the specified dir
-	qulonglong currentItemForFolder(const QString& dir) const;
+	[[nodiscard]] qulonglong currentItemForFolder(const QString& dir) const;
 
 	// Enumerates objects in the current directory
 	void refreshFileList(FileListRefreshCause operation);
 	// Returns the current list of objects on this panel
-	std::map<qulonglong, CFileSystemObject> list() const;
+	[[nodiscard]] std::map<qulonglong, CFileSystemObject> list() const;
 
-	bool itemHashExists(const qulonglong hash) const;
-	CFileSystemObject itemByHash(qulonglong hash) const;
+	[[nodiscard]] bool itemHashExists(qulonglong hash) const;
+	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;
 
 	// Calculates total size for the specified objects
-	FilesystemObjectsStatistics calculateStatistics(const std::vector<qulonglong> & hashes);
+	[[nodiscard]] FilesystemObjectsStatistics calculateStatistics(const std::vector<qulonglong> & hashes);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);
 
@@ -117,7 +117,7 @@ public:
 	void uiThreadTimerTick();
 
 private:
-	bool pathIsAccessible(const QString& path) const;
+	[[nodiscard]] bool pathIsAccessible(const QString& path) const;
 
 	void processContentsChangedEvent();
 

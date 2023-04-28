@@ -32,7 +32,7 @@ bool CFileSystemWatcherWindows::setPathToWatch(const QString& path) noexcept
 	if (path.endsWith('/'))
 		wPath[pathLen - 1] = 0; // FindFirstChangeNotificationW fails if the trailing slash is present!
 
-	_handle = ::FindFirstChangeNotificationW(wPath, false, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE);
+	_handle = ::FindFirstChangeNotificationW(wPath, FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE);
 	if (_handle == INVALID_HANDLE_VALUE)
 	{
 		_handle = nullptr;

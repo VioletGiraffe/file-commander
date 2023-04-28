@@ -30,7 +30,7 @@ CImageViewerWindow::CImageViewerWindow(QWidget* parent) :
 
 	connect(ui->actionClose, &QAction::triggered, this, &QMainWindow::close);
 
-	auto escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
+	auto* escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 	connect(this, &QAction::destroyed, escScut, &QShortcut::deleteLater);
 }
 
