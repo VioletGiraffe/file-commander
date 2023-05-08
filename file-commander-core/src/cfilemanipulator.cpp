@@ -109,7 +109,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 			return FileOperationResultCode::Fail;
 		}
 
-		_srcObject.refreshInfo(); // TODO: what is this for?
+		//_srcObject.refreshInfo(); // TODO: what is this for?
 		return FileOperationResultCode::Ok;
 	}
 	else if (_srcObject.isDir())
@@ -195,7 +195,7 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 		// TODO: error handling!
 		_destFile.write(src, actualChunkSize);
 		_pos += actualChunkSize;
-		
+
 		[[maybe_unused]] const bool unmapResult = _thisFile.unmap(src);
 		assert_debug_only(unmapResult);
 	}
