@@ -804,9 +804,9 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 		assert_r(layout);
 		while (layout->count() > 0)
 		{
-			QWidget* w = layout->itemAt(0)->widget();
-			layout->removeWidget(w);
-			w->deleteLater();
+			QLayoutItem* item = layout->takeAt(0);
+			item->widget()->deleteLater();
+			delete item;
 		}
 
 		// Creating and adding new buttons
@@ -827,7 +827,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 			diskButton->setCheckable(true);
 			diskButton->setIcon(CIconProvider::iconForFilesystemObject(volume.rootObjectInfo, false));
 			diskButton->setText(name);
-			diskButton->setFixedWidth(QFontMetrics(diskButton->font()).boundingRect(diskButton->text()).width() + 5 + diskButton->iconSize().width() + 20);
+			diskButton->setFixedWidth(QFontMetrics{ diskButton->font() }.horizontalAdvance(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 			diskButton->setProperty("id", (qulonglong)volume.id());
 			diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 			assert_r(connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked));
