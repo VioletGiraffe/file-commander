@@ -14,7 +14,7 @@ CFileCommanderPlugin* createPlugin()
 	return new CFileComparisonPlugin;
 }
 
-CFileComparisonPlugin::CFileComparisonPlugin()
+CFileComparisonPlugin::CFileComparisonPlugin() noexcept
 {
 	_progressDialog.setLabelText(QObject::tr("Comparing the selected files..."));
 }

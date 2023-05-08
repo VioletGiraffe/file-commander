@@ -37,7 +37,7 @@ RESTORE_COMPILER_WARNINGS
 #include <set>
 #include <time.h>
 
-CPanelWidget::CPanelWidget(QWidget *parent) :
+CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	QWidget(parent),
 	_filterDialog(this),
 	ui(new Ui::CPanelWidget),
@@ -78,7 +78,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) :
 	onSettingsChanged();
 }
 
-CPanelWidget::~CPanelWidget()
+CPanelWidget::~CPanelWidget() noexcept
 {
 	delete ui;
 }

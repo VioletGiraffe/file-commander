@@ -11,7 +11,7 @@ class CFindDialog;
 class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
 {
 public:
-	explicit CTextViewerWindow(QWidget* parent = nullptr);
+	explicit CTextViewerWindow(QWidget* parent = nullptr) noexcept;
 
 	bool loadTextFile(const QString& file);
 

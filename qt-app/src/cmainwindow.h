@@ -29,8 +29,8 @@ class CMainWindow final : public QMainWindow,
 	Q_OBJECT
 
 public:
-	explicit CMainWindow(QWidget *parent = nullptr);
-	~CMainWindow() final;
+	explicit CMainWindow(QWidget* parent = nullptr) noexcept;
+	~CMainWindow() noexcept;
 	[[nodiscard]] static CMainWindow* get();
 
 	// One-time initialization

@@ -32,8 +32,8 @@ class CPanelWidget final : public QWidget,
 	Q_OBJECT
 
 public:
-	explicit CPanelWidget(QWidget *parent = nullptr);
-	~CPanelWidget() override;
+	explicit CPanelWidget(QWidget *parent = nullptr) noexcept;
+	~CPanelWidget() noexcept  override;
 
 	void init(CController* controller);
 

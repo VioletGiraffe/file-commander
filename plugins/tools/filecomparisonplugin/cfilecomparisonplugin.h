@@ -7,7 +7,7 @@
 class CFileComparisonPlugin : public CFileCommanderToolPlugin
 {
 public:
-	CFileComparisonPlugin();
+	CFileComparisonPlugin() noexcept;
 
 	[[nodiscard]] QString name() const override;
 

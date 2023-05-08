@@ -54,7 +54,7 @@ private:
 	bool _bIsCategory;
 };
 
-CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) :
+CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) noexcept :
 	QDialog(parent),
 	ui(new Ui::CFavoriteLocationsEditor),
 	_locations(CController::get().favoriteLocations()),

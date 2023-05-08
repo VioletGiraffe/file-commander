@@ -22,7 +22,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <type_traits>
 
-CTextViewerWindow::CTextViewerWindow(QWidget* parent) :
+CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	CPluginWindow(parent)
 {
 	setupUi(this);

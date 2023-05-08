@@ -9,7 +9,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
-CImageViewerWindow::CImageViewerWindow(QWidget* parent) :
+CImageViewerWindow::CImageViewerWindow(QWidget* parent) noexcept :
 	CPluginWindow(parent),
 	ui(new Ui::CImageViewerWindow)
 {
@@ -34,7 +34,7 @@ CImageViewerWindow::CImageViewerWindow(QWidget* parent) :
 	connect(this, &QAction::destroyed, escScut, &QShortcut::deleteLater);
 }
 
-CImageViewerWindow::~CImageViewerWindow()
+CImageViewerWindow::~CImageViewerWindow() noexcept
 {
 	delete ui;
 }

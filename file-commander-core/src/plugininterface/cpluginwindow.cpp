@@ -4,7 +4,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 RESTORE_COMPILER_WARNINGS
 
-CPluginWindow::CPluginWindow(QWidget *parent) : QMainWindow(nullptr)
+CPluginWindow::CPluginWindow(QWidget *parent) noexcept : QMainWindow(nullptr)
 {
 	if (!parent)
 		return;

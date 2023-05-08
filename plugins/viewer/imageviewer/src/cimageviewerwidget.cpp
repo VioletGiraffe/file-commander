@@ -13,7 +13,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QScreen>
 RESTORE_COMPILER_WARNINGS
 
-CImageViewerWidget::CImageViewerWidget(QWidget *parent) :
+CImageViewerWidget::CImageViewerWidget(QWidget *parent) noexcept :
 	QWidget(parent)
 {
 	// To avoid double image rendering - on show and on resize

@@ -17,7 +17,7 @@ class CFavoriteLocationsListItem;
 class CFavoriteLocationsEditor final : public QDialog
 {
 public:
-	explicit CFavoriteLocationsEditor(QWidget *parent = nullptr);
+	explicit CFavoriteLocationsEditor(QWidget *parent = nullptr) noexcept;
 	~CFavoriteLocationsEditor() override;
 
 private:

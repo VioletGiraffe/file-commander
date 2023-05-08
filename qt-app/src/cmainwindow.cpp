@@ -56,7 +56,7 @@ RESTORE_COMPILER_WARNINGS
 
 CMainWindow * CMainWindow::_instance = nullptr;
 
-CMainWindow::CMainWindow(QWidget *parent) :
+CMainWindow::CMainWindow(QWidget *parent) noexcept :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow)
 {
@@ -86,7 +86,7 @@ CMainWindow::CMainWindow(QWidget *parent) :
 	ui->_commandLine->installEventFilter(this);
 }
 
-CMainWindow::~CMainWindow()
+CMainWindow::~CMainWindow() noexcept
 {
 	_uiThreadTimer.disconnect();
 

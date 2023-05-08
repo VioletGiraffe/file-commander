@@ -11,8 +11,8 @@ class CImageViewerWindow;
 class CImageViewerWindow final : public CPluginWindow
 {
 public:
-	explicit CImageViewerWindow(QWidget* parent = nullptr);
-	~CImageViewerWindow() override;
+	explicit CImageViewerWindow(QWidget* parent = nullptr) noexcept;
+	~CImageViewerWindow() noexcept  override;
 
 	bool displayImage(const QString& imagePath);
 

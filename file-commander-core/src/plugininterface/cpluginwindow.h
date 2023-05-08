@@ -10,7 +10,7 @@ RESTORE_COMPILER_WARNINGS
 class PLUGIN_EXPORT CPluginWindow : public QMainWindow
 {
 public:
-	explicit CPluginWindow(QWidget* parent);
+	explicit CPluginWindow(QWidget* parent) noexcept;
 
 	[[nodiscard]] bool autoDeleteOnClose() const;
 	void setAutoDeleteOnClose(bool autoDelete);
