@@ -1,7 +1,7 @@
 #include "cvolumeenumerator.h"
 #include "volumeinfohelper.hpp"
 
-const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
 	VolumeInfo info;
 	info.rootObjectInfo = "/";
