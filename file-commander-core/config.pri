@@ -28,6 +28,9 @@ android {
 } else {
 	Release:OUTPUT_DIR=release/$${ARCHITECTURE}
 	Debug:OUTPUT_DIR=debug/$${ARCHITECTURE}
+
+	Release:OUTPUT_DIR_NO_ARCH=release/
+	Debug:OUTPUT_DIR_NO_ARCH=debug/
 }
 
 win*{
@@ -62,4 +65,5 @@ INCLUDEPATH += \
 	include \
 	../qtutils \
 	../cpputils \
-	../cpp-template-utils
+	../cpp-template-utils \
+	../thin_io/src

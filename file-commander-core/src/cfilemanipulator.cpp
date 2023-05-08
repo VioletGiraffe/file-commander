@@ -18,6 +18,11 @@ RESTORE_COMPILER_WARNINGS
 #include <unistd.h>
 #endif
 
+inline static QString getLastFileError()
+{
+	return QString::fromStdString(thin_io::file::text_for_last_error());
+}
+
 static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
 	QFileDevice::FileAccessTime,
 #ifndef __linux__
@@ -30,17 +35,18 @@ static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
 };
 
 // Operations
-CFileManipulator::CFileManipulator(CFileSystemObject object) : _object{std::move(object)}
+CFileManipulator::CFileManipulator(const CFileSystemObject& object) :
+	_srcObject{ object }
 {
 }
 
 FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFolder, const QString& newName, TransferPermissions transferPermissions)
 {
-	assert_r(_object.isFile());
+	assert_r(_srcObject.isFile());
 	assert_r(QFileInfo{destFolder}.isDir());
 
-	QFile file(_object.fullAbsolutePath());
-	const QString newFilePath = destFolder + (newName.isEmpty() ? _object.fullName() : newName);
+	QFile file(_srcObject.fullAbsolutePath());
+	const QString newFilePath = destFolder + (newName.isEmpty() ? _srcObject.fullName() : newName);
 	bool succ = file.copy(newFilePath);
 	if (succ)
 	{
@@ -58,22 +64,22 @@ FileOperationResultCode CFileManipulator::copyAtomically(const QString& destFold
 
 FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFolder, const QString& newName, OverwriteExistingFile overwriteExistingFile)
 {
-	if (!_object.exists())
+	if (!_srcObject.exists())
 		return FileOperationResultCode::ObjectDoesntExist;
-	else if (_object.isCdUp())
+	else if (_srcObject.isCdUp())
 		return FileOperationResultCode::Fail;
 
 	assert_debug_only(QFileInfo{ destFolder }.isDir());
-	const QString fullNewName = destFolder % '/' % (newName.isEmpty() ? _object.fullName() : newName);
+	const QString fullNewName = destFolder % '/' % (newName.isEmpty() ? _srcObject.fullName() : newName);
 	CFileSystemObject destInfo(fullNewName);
-	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(_object.fullAbsolutePath(), Qt::CaseInsensitive) == 0;
+	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(_srcObject.fullAbsolutePath(), Qt::CaseInsensitive) == 0;
 
 	// If the file system is case-insensitive, and the source and destination only differ by case, renaming is allowed even though formally the destination already exists (fix for #102)
 	if ((caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase) && destInfo.exists())
 	{
-		if (_object.isDir())
+		if (_srcObject.isDir())
 			return FileOperationResultCode::TargetAlreadyExists;
-		else if (overwriteExistingFile == true && _object.isFile() && destInfo.isFile())
+		else if (overwriteExistingFile == true && _srcObject.isFile() && destInfo.isFile())
 		{
 			// Special case: it may be allowed to replace the existing file (https://github.com/VioletGiraffe/file-commander/issues/123)
 			if (remove(destInfo) != FileOperationResultCode::Ok)
@@ -89,27 +95,27 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 	// Windows: QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
 	// Also, QFile::rename will attempt to painfully copy the file if it's locked.
 #ifdef _WIN32
-	if (MoveFileW(reinterpret_cast<const WCHAR*>(_object.fullAbsolutePath().utf16()), reinterpret_cast<const WCHAR*>(destInfo.fullAbsolutePath().utf16())) != 0)
+	if (MoveFileW(reinterpret_cast<const WCHAR*>(_srcObject.fullAbsolutePath().utf16()), reinterpret_cast<const WCHAR*>(destInfo.fullAbsolutePath().utf16())) != 0)
 		return FileOperationResultCode::Ok;
 
 	_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
 	return FileOperationResultCode::Fail;
 #else
-	if (_object.isFile())
+	if (_srcObject.isFile())
 	{
-		QFile file(_object.fullAbsolutePath());
+		QFile file(_srcObject.fullAbsolutePath());
 		if (!file.rename(fullNewName))
 		{
 			_lastErrorMessage = file.errorString();
 			return FileOperationResultCode::Fail;
 		}
 
-		_object.refreshInfo(); // TODO: what is this for?
+		_srcObject.refreshInfo(); // TODO: what is this for?
 		return FileOperationResultCode::Ok;
 	}
-	else if (_object.isDir())
+	else if (_srcObject.isDir())
 	{
-		return QDir{}.rename(_object.fullAbsolutePath(), fullNewName) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+		return QDir{}.rename(_srcObject.fullAbsolutePath(), fullNewName) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 	}
 	else
 		return FileOperationResultCode::Fail;
@@ -132,7 +138,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const CFileSystemObject
 FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, const bool transferPermissions, const bool transferDates)
 {
 	assert_debug_only(bool(_thisFile) == bool(_destFile));
-	assert_debug_only(_object.isFile());
+	assert_debug_only(_srcObject.isFile());
 	assert_debug_only(QFileInfo(destFolder).isDir());
 
 	if (!copyOperationInProgress())
@@ -140,14 +146,14 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 		_pos = 0;
 
 		// Creating files
-		_thisFile = std::make_unique<QFile>(_object.fullAbsolutePath());
-		_destFile = std::make_unique<QFile>(destFolder + (newName.isEmpty() ? _object.fullName() : newName));
+		_thisFile = std::make_unique<QFile>(_srcObject.fullAbsolutePath());
+		_destFile = std::make_unique<thin_io::file>();
 
 		for (const auto fileTimeType: supportedFileTimeTypes)
 			_sourceFileTime[fileTimeType] = _thisFile->fileTime(fileTimeType);
 
 		// Initializing - opening files
-		if (!_thisFile->open(QFile::ReadOnly))
+		if (!_thisFile->open(QFile::ReadOnly | QFile::Unbuffered))
 		{
 			_lastErrorMessage = _thisFile->errorString();
 
@@ -157,9 +163,11 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			return FileOperationResultCode::Fail;
 		}
 
-		if (!_destFile->open(QFile::ReadWrite))
+		_destinationFilePath = destFolder + (newName.isEmpty() ? _srcObject.fullName() : newName);
+
+		if (!_destFile->open(_destinationFilePath.toUtf8().constData(), thin_io::file_definitions::Write))
 		{
-			_lastErrorMessage = _destFile->errorString();
+			_lastErrorMessage = getLastFileError();
 
 			_thisFile.reset();
 			_destFile.reset();
@@ -167,25 +175,22 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			return FileOperationResultCode::Fail;
 		}
 
-		if (!_destFile->resize((qint64)_object.size()))
-		{
-			_lastErrorMessage.clear(); // QFile provides no meaningful message for this case.
-			_destFile->close();
-			assert_r(_destFile->remove());
+		//if (!_destFile->truncate(_srcObject.size()))
+		//{
+		//	_lastErrorMessage = getLastFileError();
+		//	assert_r(_destFile->close());
+		//	assert_r(QFile::remove(_destinationFilePath));
 
-			_thisFile.reset();
-			_destFile.reset();
+		//	_thisFile.reset();
+		//	_destFile.reset();
 
-			return FileOperationResultCode::NotEnoughSpaceAvailable;
-		}
-
-		// Store the original file's attributes to later mirror them onto the copy
-
+		//	return FileOperationResultCode::NotEnoughSpaceAvailable;
+		//}
 	}
 
-	assert_r(_destFile->isOpen() == _thisFile->isOpen());
+	assert_r(_destFile->is_open() == _thisFile->isOpen());
 
-	const auto actualChunkSize = std::min(chunkSize, (size_t)(_object.size() - _pos));
+	const auto actualChunkSize = std::min(chunkSize, (size_t)(_srcObject.size() - _pos));
 
 	if (actualChunkSize != 0)
 	{
@@ -196,45 +201,48 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			return FileOperationResultCode::Fail;
 		}
 
-		auto* dest = _destFile->map((qint64)_pos, (qint64)actualChunkSize);
-		if (dest == nullptr)
-		{
-			_lastErrorMessage = _destFile->errorString();
-			return FileOperationResultCode::Fail;
-		}
-
-		::memcpy(dest, src, actualChunkSize);
+		// TODO: error handling!
+		_destFile->write(src, actualChunkSize);
 		_pos += actualChunkSize;
-
-		_thisFile->unmap(src);
-		_destFile->unmap(dest);
+		
+		[[maybe_unused]] const bool unmapResult = _thisFile->unmap(src);
+		assert_debug_only(unmapResult);
 	}
 
 	// TODO: '<=' ?
 	if (actualChunkSize < chunkSize)
 	{
+		// TODO: error handling!
+		_destFile->close();
+		_destFile.reset();
+
 		// Copying complete
-		if (transferPermissions)
-			_lastErrorMessage = copyPermissions(*_thisFile, *_destFile);
-
-		if (transferDates)
+		if (transferPermissions || transferDates)
 		{
-			// Note: The file must be open to use setFileTime()
+			assert_debug_only(!_destinationFilePath.isEmpty());
+			// TODO: this is ineffective; need to support permission and date transfer in thin_io
+			QFile qDstFile(_destinationFilePath);
+			if (!qDstFile.open(QFile::ReadOnly | QFile::WriteOnly))
+			{
+				// TODO: error handling!
+			}
 
-			for (const auto fileTimeType: supportedFileTimeTypes)
-				assert_r(_destFile->setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
+			if (transferPermissions)
+				_lastErrorMessage = copyPermissions(*_thisFile, qDstFile);
+
+			if (transferDates)
+			{
+				// Note: The file must be open to use setFileTime()
+
+				for (const auto fileTimeType : supportedFileTimeTypes)
+					assert_r(qDstFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
+			}
 		}
 
 		_thisFile.reset();
-		_destFile.reset();
 
 		if (transferPermissions && !_lastErrorMessage.isEmpty())
 			return FileOperationResultCode::Fail;
-
-		if (transferDates)
-		{
-
-		}
 	}
 
 	return FileOperationResultCode::Ok;
@@ -251,7 +259,7 @@ bool CFileManipulator::copyOperationInProgress() const
 		return false;
 
 	const bool isOpen = _thisFile->isOpen();
-	assert_r(isOpen == _destFile->isOpen());
+	assert_r(isOpen == _destFile->is_open());
 	return isOpen;
 }
 
@@ -268,7 +276,7 @@ FileOperationResultCode CFileManipulator::cancelCopy()
 	_thisFile->close();
 	_destFile->close();
 
-	const bool succ = _destFile->remove();
+	const bool succ = thin_io::file::delete_file(_destinationFilePath.toUtf8().constData());
 	_thisFile.reset();
 	_destFile.reset();
 	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
@@ -276,10 +284,10 @@ FileOperationResultCode CFileManipulator::cancelCopy()
 
 bool CFileManipulator::makeWritable(bool writable)
 {
-	assert_and_return_message_r(_object.isFile(), "This method only works for files", false);
+	assert_and_return_message_r(_srcObject.isFile(), "This method only works for files", false);
 
 #ifdef _WIN32
-	const QString UNCPath = toUncPath(_object.fullAbsolutePath());
+	const QString UNCPath = toUncPath(_srcObject.fullAbsolutePath());
 	const DWORD attributes = GetFileAttributesW(reinterpret_cast<LPCWSTR>(UNCPath.utf16()));
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 	{
@@ -297,7 +305,7 @@ bool CFileManipulator::makeWritable(bool writable)
 #else
 	struct stat fileInfo;
 
-	const QByteArray fileName = _object.fullAbsolutePath().toUtf8();
+	const QByteArray fileName = _srcObject.fullAbsolutePath().toUtf8();
 	if (stat(fileName.constData(), &fileInfo) != 0)
 	{
 		_lastErrorMessage = strerror(errno);
@@ -321,11 +329,11 @@ bool CFileManipulator::makeWritable(const CFileSystemObject& object, bool writab
 
 FileOperationResultCode CFileManipulator::remove()
 {
-	assert_and_return_message_r(_object.exists(), "Object doesn't exist", FileOperationResultCode::ObjectDoesntExist);
+	assert_and_return_message_r(_srcObject.exists(), "Object doesn't exist", FileOperationResultCode::ObjectDoesntExist);
 
-	if (_object.isFile())
+	if (_srcObject.isFile())
 	{
-		QFile file(_object.fullAbsolutePath());
+		QFile file(_srcObject.fullAbsolutePath());
 		if (file.remove())
 			return FileOperationResultCode::Ok;
 		else
@@ -334,14 +342,14 @@ FileOperationResultCode CFileManipulator::remove()
 			return FileOperationResultCode::Fail;
 		}
 	}
-	else if (_object.isDir())
+	else if (_srcObject.isDir())
 	{
-		assert_r(_object.isEmptyDir());
+		assert_r(_srcObject.isEmptyDir());
 		errno = 0;
-		if (!QDir{_object.fullAbsolutePath()}.rmdir(QStringLiteral(".")))
+		if (!QDir{_srcObject.fullAbsolutePath()}.rmdir(QStringLiteral(".")))
 		{
 #if defined __linux || defined __APPLE__ || defined __FreeBSD__
-			if (::rmdir(_object.fullAbsolutePath().toLocal8Bit().constData()) == 0)
+			if (::rmdir(_srcObject.fullAbsolutePath().toLocal8Bit().constData()) == 0)
 				return FileOperationResultCode::Ok;
 
 			_lastErrorMessage = strerror(errno);

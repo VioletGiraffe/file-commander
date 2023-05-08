@@ -17,3 +17,6 @@
 [submodule "image-processing"]
 	path = image-processing
 	url = https://github.com/VioletGiraffe/image-processing
+[submodule "thin_io"]
+	path = thin_io
+	url = https://github.com/VioletGiraffe/thin_io

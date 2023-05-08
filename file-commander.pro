@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
 
-SUBDIRS += qt_app qtutils text_encoding_detector file_commander_core autoupdater cpputils image-processing cpp-template-utils textviewerplugin imageviewerplugin filecomparisonplugin
+SUBDIRS += qt_app qtutils text_encoding_detector file_commander_core autoupdater cpputils image-processing cpp-template-utils thin_io textviewerplugin imageviewerplugin filecomparisonplugin
 
 qtutils.depends = cpputils image-processing
 
@@ -22,7 +22,7 @@ filecomparisonplugin.subdir = plugins/tools/filecomparisonplugin
 filecomparisonplugin.depends = qtutils file_commander_core
 
 file_commander_core.subdir = file-commander-core
-file_commander_core.depends = qtutils
+file_commander_core.depends = qtutils thin_io
 
 qt_app.subdir  = qt-app
 qt_app.depends = file_commander_core qtutils imageviewerplugin textviewerplugin autoupdater image-processing filecomparisonplugin

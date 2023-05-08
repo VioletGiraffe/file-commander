@@ -5,6 +5,8 @@
 #include "compiler/compiler_warnings_control.h"
 #include "utility/named_type_wrapper.hpp"
 
+#include "file.hpp"
+
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QString>
@@ -22,7 +24,7 @@ using OverwriteExistingFile = UniqueNamedBoolType;
 class CFileManipulator
 {
 public:
-	explicit CFileManipulator(CFileSystemObject object);
+	explicit CFileManipulator(const CFileSystemObject& object);
 
 // Operations
 
@@ -54,12 +56,13 @@ private:
 	static QString /* error text; empty on success */ copyPermissions(const QFile& sourceFile, const QString& destinationFilePath);
 
 private:
-	CFileSystemObject _object;
+	const CFileSystemObject& _srcObject;
+	QString _destinationFilePath;
 
 	// For copying / moving
 	std::array<QDateTime, 4> _sourceFileTime;
 	std::unique_ptr<QFile> _thisFile;
-	std::unique_ptr<QFile> _destFile;
+	std::unique_ptr<thin_io::file> _destFile;
 	uint64_t               _pos = 0;
 	mutable QString        _lastErrorMessage;
 };

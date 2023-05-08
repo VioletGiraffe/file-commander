@@ -30,9 +30,13 @@ android {
 } else {
 	Release:OUTPUT_DIR=release/$${ARCHITECTURE}
 	Debug:OUTPUT_DIR=debug/$${ARCHITECTURE}
+
+	Release:OUTPUT_DIR_NO_ARCH=release
+	Debug:OUTPUT_DIR_NO_ARCH=debug
 }
 
-DESTDIR  = ../bin/$${OUTPUT_DIR}
+DESTDIR	= ../bin/$${OUTPUT_DIR}
+DESTDIR_NO_ARCH = ../bin/$${OUTPUT_DIR_NO_ARCH}
 OBJECTS_DIR = ../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
@@ -45,7 +49,8 @@ INCLUDEPATH += \
 	../qtutils \
 	../cpputils \
 	../cpp-template-utils \
-	../github-releases-autoupdater/src
+	../github-releases-autoupdater/src \
+	../thin_io/src
 
 SOURCES += \
 	src/main.cpp \
@@ -118,7 +123,8 @@ FORMS += \
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
-LIBS += -L../bin/$${OUTPUT_DIR} -lautoupdater -lcore -lqtutils -lcpputils
+LIBS += -L$${DESTDIR} -lautoupdater -lcore -lqtutils -lcpputils
+LIBS += -L$${DESTDIR_NO_ARCH} -lthin_io
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32
