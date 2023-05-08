@@ -9,14 +9,13 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
+#include <QFile>
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
 #include <array>
 #include <memory>
 #include <stdint.h>
-
-class QFile;
 
 using TransferPermissions = UniqueNamedBoolType;
 using OverwriteExistingFile = UniqueNamedBoolType;
@@ -61,8 +60,8 @@ private:
 
 	// For copying / moving
 	std::array<QDateTime, 4> _sourceFileTime;
-	std::unique_ptr<QFile> _thisFile;
-	std::unique_ptr<thin_io::file> _destFile;
+	QFile _thisFile;
+	thin_io::file _destFile;
 	uint64_t               _pos = 0;
 	mutable QString        _lastErrorMessage;
 };

@@ -730,14 +730,18 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		if (result != FileOperationResultCode::Ok)
 			break;
 
-		const uint64_t bytesProcessed /* bytes */ = sizeProcessedPreviously + itemManipulator.bytesCopied();
-		const float totalPercentage = totalSize > 0 ? (bytesProcessed * 100) / static_cast<float>(totalSize) : 0.0f;
-		const float filePercentage = item.size() > 0 ? (itemManipulator.bytesCopied() * 100) / static_cast<float>(item.size()) : 0.0f;
-		// Bytes / sec
-		const uint64_t meanSpeed = bytesProcessed * 1'000'000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1_u64);
-		const uint64_t bytesRemaining = totalSize - bytesProcessed;
-		const uint32_t secondsRemaining = static_cast<uint32_t>(bytesRemaining / meanSpeed);
-		if (_observer) _observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
+		if (_observer)
+		{
+			const uint64_t bytesProcessed /* bytes */ = sizeProcessedPreviously + itemManipulator.bytesCopied();
+			const float totalPercentage = totalSize > 0 ? (bytesProcessed * 100) / static_cast<float>(totalSize) : 0.0f;
+			const float filePercentage = item.size() > 0 ? (itemManipulator.bytesCopied() * 100) / static_cast<float>(item.size()) : 0.0f;
+			// Bytes / sec
+			const uint64_t meanSpeed = bytesProcessed * 1'000'000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1_u64);
+			const uint64_t bytesRemaining = totalSize - bytesProcessed;
+			const uint32_t secondsRemaining = static_cast<uint32_t>(bytesRemaining / meanSpeed);
+
+			_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
+		}
 
 		// TODO: why isn't this block at the start of 'do-while'?
 		if (_cancelRequested)
