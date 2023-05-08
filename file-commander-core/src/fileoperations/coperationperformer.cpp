@@ -211,6 +211,7 @@ void COperationPerformer::copyFiles()
 	uint64_t sizeProcessed = 0;
 
 	const auto destination = enumerateSourcesAndCalcDest(totalSize);
+	qInfo() << __FUNCTION__ << "total size:" << totalSize << "bytes";
 	assert_r(destination.size() == _source.size());
 
 	std::vector<CFileSystemObject> dirsToCleanUp;
@@ -370,8 +371,9 @@ void COperationPerformer::copyFiles()
 					dirsToCleanUp.emplace_back(sourceIterator->object);
 			}
 		}
-
-		sizeProcessed += sourceIterator->object.size();
+		
+		if (sourceIterator->object.isFile())
+			sizeProcessed += sourceIterator->object.size();
 
 		++sourceIterator;
 		++currentItemIndex;
@@ -825,7 +827,7 @@ void CFileOperationObserver::processEvents()
 
 void CFileOperationObserver::onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed, uint32_t secondsRemaining)
 {
-	assert_r(filePercentage < 100.5f && totalPercentage < 100.5f);
+	assert_debug_only(filePercentage < 100.5f && totalPercentage < 100.5f);
 	std::lock_guard<std::mutex> lock(_callbackMutex);
 	_callbacks.emplace_back([=, this]() {
 		onProgressChanged(totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining);
