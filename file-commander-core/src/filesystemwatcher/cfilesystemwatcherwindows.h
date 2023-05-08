@@ -1,14 +1,20 @@
 #pragma once
 
+#include "compiler/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QAbstractNativeEventFilter>
+#include <QString>
+RESTORE_COMPILER_WARNINGS
+
 #include <mutex>
 
-class QString;
 using HANDLE = void*;
 
-class CFileSystemWatcherWindows
+class CFileSystemWatcherWindows final : public QAbstractNativeEventFilter
 {
 public:
-	CFileSystemWatcherWindows() noexcept = default;
+	CFileSystemWatcherWindows() noexcept;
 	~CFileSystemWatcherWindows() noexcept;
 
 	CFileSystemWatcherWindows(const CFileSystemWatcherWindows&) = delete;
@@ -23,7 +29,15 @@ public:
 private:
 	void close() noexcept;
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	bool nativeEventFilter(const QByteArray& eventType, void* message, qintptr* result) override;
+#else
+	bool nativeEventFilter(const QByteArray& eventType, void* message, long* result) override;
+#endif
+
 private:
 	std::mutex _mtx;
+	QString _watchedPath;
 	HANDLE _handle = nullptr;
+	bool _volumeRemoved = false;
 };
