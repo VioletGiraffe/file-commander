@@ -5,12 +5,14 @@ CONFIG += console
 include(../../config.pri)
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
+DESTDIR_NO_ARCH = ../../../bin/$${OUTPUT_DIR_NO_ARCH}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -lcpputils -lqtutils -ltest_utils
+LIBS += -L$${DESTDIR_NO_ARCH} -lthin_io
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
