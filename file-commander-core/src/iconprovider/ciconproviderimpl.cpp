@@ -12,6 +12,7 @@ RESTORE_COMPILER_WARNINGS
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 DISABLE_COMPILER_WARNINGS
+#include <ObjIdl.h> // Required prior to including <QtWinExtras>
 #include <QtWinExtras>
 RESTORE_COMPILER_WARNINGS
 #endif

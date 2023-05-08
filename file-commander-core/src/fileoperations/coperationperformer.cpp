@@ -751,7 +751,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 	if (result != FileOperationResultCode::Ok)
 	{
-		itemManipulator.cancelCopy();
+		assert_r(itemManipulator.cancelCopy() == FileOperationResultCode::Ok);
 
 		QString actualNewName = _newName;
 		if (actualNewName.isEmpty() && destInfo.isFile())
