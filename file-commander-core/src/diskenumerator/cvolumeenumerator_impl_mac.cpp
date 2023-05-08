@@ -5,7 +5,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDir>
 RESTORE_COMPILER_WARNINGS
 
-const std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 {
 	std::vector<VolumeInfo> volumes;
 
