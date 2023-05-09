@@ -11,6 +11,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 #include <limits>
+#include <stdexcept>
 #include <utility>
 
 void CTestFolderGenerator::setSeed(const uint32_t seed)
@@ -85,7 +86,7 @@ QString CTestFolderGenerator::randomDirName(const size_t length)
 bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const size_t numFiles)
 {
 	if (numFiles < 20) [[unlikely]]
-		throw std::exception("Too few files requested!");
+		throw std::logic_error("Too few files requested!");
 
 	const auto numZeroFiles = std::min(size_t{2}, numFiles / 100u);
 	const auto numSpecialFiles = _fileChunkSize > 0 ? 10 : 0;
