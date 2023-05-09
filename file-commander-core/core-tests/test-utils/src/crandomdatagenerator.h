@@ -28,5 +28,5 @@ public:
 	}
 
 private:
-	std::mt19937 _rng;
+	std::mt19937_64 _rng;
 };

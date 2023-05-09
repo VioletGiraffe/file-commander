@@ -371,7 +371,7 @@ void COperationPerformer::copyFiles()
 					dirsToCleanUp.emplace_back(sourceIterator->object);
 			}
 		}
-		
+
 		if (sourceIterator->object.isFile())
 			sizeProcessed += sourceIterator->object.size();
 
@@ -718,7 +718,11 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			return nextAction;
 	}
 
-	const int chunkSize = 5 * 1024 * 1024;
+#ifndef OPERATION_PERFORMER_CHUNK_SIZE
+	static constexpr size_t chunkSize = 5 * 1024 * 1024;
+#else
+	static constexpr size_t chunkSize = OPERATION_PERFORMER_CHUNK_SIZE;
+#endif
 	const QString destPath = destDir.absolutePath() + '/';
 	auto result = FileOperationResultCode::Fail;
 	CFileManipulator itemManipulator(item);

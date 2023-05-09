@@ -9,15 +9,21 @@ class CTestFolderGenerator
 {
 public:
 	void setSeed(uint32_t seed);
+	void setFileChunkSize(size_t chunkSize);
+
 	bool generateRandomTree(const QString& parentDir, size_t numFiles, size_t numFolders);
 
 private:
-	QString randomFileName(const size_t length);
-	QString randomDirName(const size_t length);
+	QString randomFileName(size_t length);
+	QString randomDirName(size_t length);
 
-	bool generateRandomFiles(const QString& parentDir, const size_t numFiles);
-	std::vector<QString> generateRandomFolders(const QString& parentDir, const size_t numFolders);
+	bool generateRandomFiles(const QString& parentDir, size_t numFiles);
+	std::vector<QString> generateRandomFolders(const QString& parentDir, size_t numFolders);
+
+private:
+	bool createRandomFile(const QString& parentDir, size_t fileSize);
 
 private:
 	CRandomDataGenerator _randomGenerator;
+	size_t _fileChunkSize = 0;
 };

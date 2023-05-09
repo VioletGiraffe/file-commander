@@ -10,11 +10,17 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
+#include <limits>
 #include <utility>
 
 void CTestFolderGenerator::setSeed(const uint32_t seed)
 {
 	_randomGenerator.setSeed(seed);
+}
+
+void CTestFolderGenerator::setFileChunkSize(size_t chunkSize)
+{
+	_fileChunkSize = chunkSize;
 }
 
 bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t numFiles, size_t numFolders)
@@ -78,13 +84,27 @@ QString CTestFolderGenerator::randomDirName(const size_t length)
 
 bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const size_t numFiles)
 {
-	for (uint32_t i = 0; i < numFiles; ++i)
-	{
-		QFile file(parentDir + '/' + randomFileName(12));
-		assert_and_return_r(file.open(QFile::WriteOnly), false);
+	if (numFiles < 20) [[unlikely]]
+		throw std::exception("Too few files requested!");
 
-		const QByteArray randomData = _randomGenerator.randomString(_randomGenerator.randomNumber<size_t>(10, 100)).toUtf8();
-		assert_and_return_r(file.write(randomData) == (qint64)randomData.size(), false);
+	const auto numZeroFiles = std::min(size_t{2}, numFiles / 100u);
+	const auto numSpecialFiles = _fileChunkSize > 0 ? 10 : 0;
+
+	for (uint32_t i = 0; i < numFiles - numZeroFiles - numSpecialFiles; ++i)
+	{
+		const size_t fileSize = _randomGenerator.randomNumber<size_t>(1, 20000);
+		createRandomFile(parentDir, fileSize);
+	}
+
+	// Add a bunch of 0-sized files, as well as files with size being a multiple of chunk size
+	for (size_t i = 0; i < numZeroFiles; ++i)
+	{
+		createRandomFile(parentDir, 0);
+	}
+
+	for (size_t i = 0; i < numSpecialFiles; ++i)
+	{
+		createRandomFile(parentDir, (i + 1) * _fileChunkSize);
 	}
 
 	return true;
@@ -102,4 +122,28 @@ std::vector<QString> CTestFolderGenerator::generateRandomFolders(const QString& 
 	}
 
 	return newFolderNames;
+}
+
+bool CTestFolderGenerator::createRandomFile(const QString& parentDir, size_t fileSize)
+{
+	QFile file(parentDir + '/' + randomFileName(16));
+	assert_and_return_r(file.open(QFile::WriteOnly), false);
+
+	QByteArray randomData;
+	randomData.reserve((int)fileSize);
+
+	for (; fileSize >= sizeof(uint64_t); fileSize -= sizeof(uint64_t))
+	{
+		const uint64_t randomBytes = _randomGenerator.randomNumber<uint64_t>(0, std::numeric_limits<uint64_t>::max());
+		randomData.append(reinterpret_cast<const char*>(&randomBytes), sizeof(randomBytes));
+	}
+
+	while (fileSize --> 0)
+	{
+		const uint8_t randomByte = static_cast<uint8_t>(_randomGenerator.randomNumber<uint16_t>(0, 255));
+		randomData.append(static_cast<char>(randomByte));
+	}
+
+	assert_and_return_r(file.write(randomData) == (qint64)randomData.size(), false);
+	return true;
 }

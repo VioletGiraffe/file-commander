@@ -24,9 +24,11 @@ INCLUDEPATH += \
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 
+DEFINES += OPERATION_PERFORMER_CHUNK_SIZE=1024
+
 SOURCES += \
-	../../src/filesystemhelperfunctions.cpp \
 	operationperformertest.cpp \
+	../../src/filesystemhelperfunctions.cpp \
 	../../src/fileoperations/coperationperformer.cpp \
 	../../src/cfilesystemobject.cpp \
 	../../src/iconprovider/ciconprovider.cpp \

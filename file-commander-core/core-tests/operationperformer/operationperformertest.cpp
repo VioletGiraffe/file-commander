@@ -106,6 +106,7 @@ TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[opera
 	REQUIRE(CFileSystemObject(targetDirectory.path()).isEmptyDir());
 
 	CTestFolderGenerator generator;
+	generator.setFileChunkSize(OPERATION_PERFORMER_CHUNK_SIZE);
 	generator.setSeed(g_randomSeed);
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
 	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
@@ -180,6 +181,7 @@ TEST_CASE((std::string("Move test #") + std::to_string(rand())).c_str(), "[opera
 	REQUIRE(CFileSystemObject(targetDirectory.path()).isEmptyDir());
 
 	CTestFolderGenerator generator;
+	generator.setFileChunkSize(OPERATION_PERFORMER_CHUNK_SIZE);
 	generator.setSeed(g_randomSeed);
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
 	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
@@ -225,6 +227,7 @@ TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[ope
 	REQUIRE(CFileSystemObject(sourceDirectory.path()).isEmptyDir());
 
 	CTestFolderGenerator generator;
+	generator.setFileChunkSize(OPERATION_PERFORMER_CHUNK_SIZE);
 	generator.setSeed(g_randomSeed);
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
 	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));

@@ -316,7 +316,8 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 		if (!selection.empty())
 			_selectionModel->select(selection, QItemSelectionModel::Rows | QItemSelectionModel::Select);
 
-		qInfo() << "_selectionModel->select took" << timer.elapsed() << "ms for" << selection.size() << "items";
+		if (const auto elapsedMs = timer.elapsed(); elapsedMs >= 100)
+			qInfo() << "_selectionModel->select took" << elapsedMs << "ms for" << selection.size() << "items";
 	}
 
 	fillHistory();
