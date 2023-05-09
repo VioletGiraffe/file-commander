@@ -134,7 +134,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const CFileSystemObject
 // Non-blocking file copy API
 
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, const bool transferPermissions, const bool transferDates)
+FileOperationResultCode CFileManipulator::copyChunk(const size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, const bool transferPermissions, const bool transferDates)
 {
 	assert_debug_only(_srcObject.isFile());
 	assert_debug_only(QFileInfo(destFolder).isDir());
@@ -150,7 +150,7 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			_sourceFileTime[fileTimeType] = _thisFile.fileTime(fileTimeType);
 
 		// Initializing - opening files
-		if (!_thisFile.open(QFile::ReadOnly | QFile::Unbuffered))
+		if (!_thisFile.open(QFile::ReadOnly | QFile::Unbuffered)) [[unlikely]]
 		{
 			_lastErrorMessage = _thisFile.errorString();
 			return FileOperationResultCode::Fail;
@@ -158,7 +158,7 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 
 		_destinationFilePath = destFolder + (newName.isEmpty() ? _srcObject.fullName() : newName);
 
-		if (!_destFile.open(_destinationFilePath.toUtf8().constData(), thin_io::file_definitions::Write))
+		if (!_destFile.open(_destinationFilePath.toUtf8().constData(), thin_io::file_definitions::Write)) [[unlikely]]
 		{
 			_lastErrorMessage = getLastFileError();
 
@@ -183,28 +183,37 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 
 	const auto actualChunkSize = std::min(chunkSize, (size_t)(_srcObject.size() - _pos));
 
+	uint64_t bytesWritten = 0;
 	if (actualChunkSize != 0)
 	{
 		auto* src = _thisFile.map((qint64)_pos, (qint64)actualChunkSize);
-		if (src == nullptr)
+		if (src == nullptr) [[unlikely]]
 		{
 			_lastErrorMessage = _thisFile.errorString();
 			return FileOperationResultCode::Fail;
 		}
 
-		// TODO: error handling!
-		_destFile.write(src, actualChunkSize);
-		_pos += actualChunkSize;
+		const auto written = _destFile.write(src, actualChunkSize);
+		if (!written) [[unlikely]]
+		{
+			_lastErrorMessage = getLastFileError();
+			return FileOperationResultCode::Fail;
+		}
+
+		bytesWritten = *written;
+		_pos += bytesWritten;
 
 		[[maybe_unused]] const bool unmapResult = _thisFile.unmap(src);
 		assert_debug_only(unmapResult);
 	}
 
-	// TODO: '<=' ?
-	if (actualChunkSize < chunkSize)
+	if (bytesWritten == actualChunkSize && actualChunkSize <= chunkSize)
 	{
-		// TODO: error handling!
-		_destFile.close();
+		if (!_destFile.close()) [[unlikely]]
+		{
+			_lastErrorMessage = getLastFileError();
+			return FileOperationResultCode::Fail;
+		}
 
 		// Copying complete
 		if (transferPermissions || transferDates)
@@ -212,9 +221,10 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			assert_debug_only(!_destinationFilePath.isEmpty());
 			// TODO: this is ineffective; need to support permission and date transfer in thin_io
 			QFile qDstFile(_destinationFilePath);
-			if (!qDstFile.open(QFile::ReadOnly | QFile::WriteOnly))
+			if (!qDstFile.open(QFile::ReadOnly | QFile::WriteOnly)) [[unlikely]]
 			{
-				// TODO: error handling!
+				_lastErrorMessage = qDstFile.errorString();
+				return FileOperationResultCode::Fail;
 			}
 
 			if (transferPermissions)
@@ -223,7 +233,6 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 			if (transferDates)
 			{
 				// Note: The file must be open to use setFileTime()
-
 				for (const auto fileTimeType : supportedFileTimeTypes)
 					assert_r(qDstFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
 			}
@@ -231,7 +240,7 @@ FileOperationResultCode CFileManipulator::copyChunk(size_t chunkSize, const QStr
 
 		_thisFile.close();
 
-		if (transferPermissions && !_lastErrorMessage.isEmpty())
+		if (transferPermissions && !_lastErrorMessage.isEmpty()) [[unlikely]]
 			return FileOperationResultCode::Fail;
 	}
 
@@ -261,10 +270,10 @@ FileOperationResultCode CFileManipulator::cancelCopy()
 		return FileOperationResultCode::Ok;
 
 	_thisFile.close();
-	_destFile.close();
+	const bool closed = _destFile.close();
 
-	const bool succ = thin_io::file::delete_file(_destinationFilePath.toUtf8().constData());
-	return succ ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+	const bool deleted = thin_io::file::delete_file(_destinationFilePath.toUtf8().constData());
+	return closed && deleted ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
 
 bool CFileManipulator::makeWritable(bool writable)
