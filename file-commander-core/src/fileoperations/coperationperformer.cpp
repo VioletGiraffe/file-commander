@@ -719,9 +719,9 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	}
 
 #ifndef OPERATION_PERFORMER_CHUNK_SIZE
-	static constexpr size_t chunkSize = 5 * 1024 * 1024;
+	static constexpr uint64_t chunkSize = 5ULL * 1024ULL * 1024ULL;
 #else
-	static constexpr size_t chunkSize = OPERATION_PERFORMER_CHUNK_SIZE;
+	static constexpr uint64_t chunkSize = OPERATION_PERFORMER_CHUNK_SIZE;
 #endif
 	const QString destPath = destDir.absolutePath() + '/';
 	auto result = FileOperationResultCode::Fail;

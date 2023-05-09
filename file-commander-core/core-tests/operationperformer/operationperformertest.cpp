@@ -150,8 +150,20 @@ TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[opera
 		QFile fileB(destItem.fullAbsolutePath());
 		REQUIRE(fileB.open(QFile::ReadOnly));
 
-		comparator.compareFiles(fileA, fileB, [](int) {}, [](const CFileComparator::ComparisonResult result) {
-			CHECK(result == CFileComparator::Equal);
+		comparator.compareFiles(fileA, fileB, [](int) {}, [&fileA, &fileB](const CFileComparator::ComparisonResult result) {
+			if (result != CFileComparator::Equal) [[unlikely]]
+			{
+				std::string msg;
+				if (fileA.size() != fileB.size())
+					msg = "Files are not equal (sizes differ: " + std::to_string(fileA.size()) + " and " + std::to_string(fileB.size()) + "): ";
+				else
+					msg = "Files are not equal: ";
+
+				msg += fileA.fileName().toStdString() + " and " + fileB.fileName().toStdString();
+				FAIL_CHECK(msg);
+			}
+			else
+				CHECK(true);
 		});
 
 		for (const auto fileTimeType: supportedFileTimeTypes)

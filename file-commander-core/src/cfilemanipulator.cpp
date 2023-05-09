@@ -134,7 +134,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const CFileSystemObject
 // Non-blocking file copy API
 
 // Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-FileOperationResultCode CFileManipulator::copyChunk(const size_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, const bool transferPermissions, const bool transferDates)
+FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, const QString& destFolder, const QString& newName /*= QString()*/, const bool transferPermissions, const bool transferDates)
 {
 	assert_debug_only(_srcObject.isFile());
 	assert_debug_only(QFileInfo(destFolder).isDir());
@@ -181,7 +181,8 @@ FileOperationResultCode CFileManipulator::copyChunk(const size_t chunkSize, cons
 
 	assert_debug_only(_destFile.is_open() == _thisFile.isOpen());
 
-	const auto actualChunkSize = std::min(chunkSize, (size_t)(_srcObject.size() - _pos));
+	const uint64_t srcSize = (uint64_t)_srcObject.size();
+	const uint64_t actualChunkSize = std::min(chunkSize, srcSize - _pos);
 
 	uint64_t bytesWritten = 0;
 	if (actualChunkSize != 0)
@@ -207,7 +208,7 @@ FileOperationResultCode CFileManipulator::copyChunk(const size_t chunkSize, cons
 		assert_debug_only(unmapResult);
 	}
 
-	if (bytesWritten == actualChunkSize && actualChunkSize <= chunkSize)
+	if (_pos == srcSize) // All copied, close the files and transfer attributes (if requested)
 	{
 		if (!_destFile.close()) [[unlikely]]
 		{
@@ -254,8 +255,8 @@ FileOperationResultCode CFileManipulator::moveChunk(uint64_t /*chunkSize*/, cons
 
 bool CFileManipulator::copyOperationInProgress() const
 {
-	const bool isOpen = _thisFile.isOpen();
-	assert_r(isOpen == _destFile.is_open());
+	const bool isOpen = _destFile.is_open();
+	assert_debug_only(isOpen == _thisFile.isOpen());
 	return isOpen;
 }
 

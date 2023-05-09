@@ -41,7 +41,7 @@ public:
 
 // Non-blocking file copy API
 	// Requests copying the next (or the first if copyOperationInProgress() returns false) chunk of the file.
-	[[nodiscard]] FileOperationResultCode copyChunk(size_t chunkSize, const QString& destFolder, const QString& newName = QString(), bool transferPermissions = true, bool transferDates = true);
+	[[nodiscard]] FileOperationResultCode copyChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName = QString(), bool transferPermissions = true, bool transferDates = true);
 	[[nodiscard]] FileOperationResultCode moveChunk(uint64_t chunkSize, const QString& destFolder, const QString& newName = QString());
 	[[nodiscard]] bool copyOperationInProgress() const;
 	[[nodiscard]] uint64_t bytesCopied() const;
