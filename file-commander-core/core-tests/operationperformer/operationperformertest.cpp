@@ -9,6 +9,8 @@
 #include "qt_helpers.hpp"
 #include "catch2_utils.hpp"
 
+#include "lang/type_traits_fast.hpp"
+
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QDir>
@@ -18,12 +20,16 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <iostream>
+#include <random>
 #include <string>
 
 #define CATCH_CONFIG_RUNNER
 #include "3rdparty/catch2/catch.hpp"
 
-static uint32_t g_randomSeed = 1633456005;
+static uint32_t g_randomSeed = []{
+	std::random_device rd;
+	return std::uniform_int_distribution<uint32_t>{0, uint32_max}(rd);
+}();
 
 static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
 	QFileDevice::FileAccessTime,
@@ -288,6 +294,12 @@ int main(int argc, char* argv[])
 		return returnCode;
 
 	srand(g_randomSeed);
+
+	{
+		CRandomDataGenerator _randomGenerator;
+		_randomGenerator.setSeed(g_randomSeed);
+		Logger() << "RNG consustency check: seed = " << g_randomSeed <<", first RN = " << _randomGenerator.randomNumber<uint32_t>(0u, uint32_max);
+	}
 
 	return session.run();
 }
