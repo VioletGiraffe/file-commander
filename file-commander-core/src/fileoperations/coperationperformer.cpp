@@ -719,9 +719,9 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	}
 
 #ifndef OPERATION_PERFORMER_CHUNK_SIZE
-	static constexpr size_t chunkSize = 5 * 1024 * 1024;
+	static constexpr uint64_t chunkSize = 5ULL * 1024ULL * 1024ULL;
 #else
-	static constexpr size_t chunkSize = OPERATION_PERFORMER_CHUNK_SIZE;
+	static constexpr uint64_t chunkSize = OPERATION_PERFORMER_CHUNK_SIZE;
 #endif
 	const QString destPath = destDir.absolutePath() + '/';
 	auto result = FileOperationResultCode::Fail;
@@ -742,9 +742,9 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			const float totalPercentage = totalSize > 0 ? (bytesProcessed * 100) / static_cast<float>(totalSize) : 0.0f;
 			const float filePercentage = item.size() > 0 ? (itemManipulator.bytesCopied() * 100) / static_cast<float>(item.size()) : 0.0f;
 			// Bytes / sec
-			const uint64_t meanSpeed = bytesProcessed * 1'000'000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1_u64);
+			const uint64_t meanSpeed = bytesProcessed > 0 ? bytesProcessed * 1'000'000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), 1_u64) : 0;
 			const uint64_t bytesRemaining = totalSize - bytesProcessed;
-			const uint32_t secondsRemaining = static_cast<uint32_t>(bytesRemaining / meanSpeed);
+			const uint32_t secondsRemaining = meanSpeed > 0 ? static_cast<uint32_t>(bytesRemaining / meanSpeed) : 0;
 
 			_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
 		}

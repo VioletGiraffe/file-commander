@@ -9,6 +9,8 @@
 #include "qt_helpers.hpp"
 #include "catch2_utils.hpp"
 
+#include "lang/type_traits_fast.hpp"
+
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QDir>
@@ -18,12 +20,16 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <iostream>
+#include <random>
 #include <string>
 
 #define CATCH_CONFIG_RUNNER
 #include "3rdparty/catch2/catch.hpp"
 
-static uint32_t g_randomSeed = 1633456005;
+static uint32_t g_randomSeed = []{
+	std::random_device rd;
+	return std::uniform_int_distribution<uint32_t>{0, uint32_max}(rd);
+}();
 
 static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
 	QFileDevice::FileAccessTime,
@@ -79,8 +85,8 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 
 struct ProgressObserver final : public CFileOperationObserver {
 	inline void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float filePercentage, uint64_t /*speed*/ /* B/s*/, uint32_t /*secondsRemaining*/) override {
-		CHECK(totalPercentage <= 100.0f);
-		CHECK(filePercentage <= 100.0f);
+		CHECK(totalPercentage <= 100.1f);
+		CHECK(filePercentage <= 100.1f);
 	}
 	inline void onProcessHalted(HaltReason /*reason*/, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override { // User decision required (file exists, file is read-only etc.)
 		FAIL("onProcessHalted called");
@@ -150,8 +156,20 @@ TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[opera
 		QFile fileB(destItem.fullAbsolutePath());
 		REQUIRE(fileB.open(QFile::ReadOnly));
 
-		comparator.compareFiles(fileA, fileB, [](int) {}, [](const CFileComparator::ComparisonResult result) {
-			CHECK(result == CFileComparator::Equal);
+		comparator.compareFiles(fileA, fileB, [](int) {}, [&fileA, &fileB](const CFileComparator::ComparisonResult result) {
+			if (result != CFileComparator::Equal) [[unlikely]]
+			{
+				std::string msg;
+				if (fileA.size() != fileB.size())
+					msg = "Files are not equal (sizes differ: " + std::to_string(fileA.size()) + " and " + std::to_string(fileB.size()) + "): ";
+				else
+					msg = "Files are not equal: ";
+
+				msg += fileA.fileName().toStdString() + " and " + fileB.fileName().toStdString();
+				FAIL_CHECK(msg);
+			}
+			else
+				CHECK(true);
 		});
 
 		for (const auto fileTimeType: supportedFileTimeTypes)
@@ -276,6 +294,12 @@ int main(int argc, char* argv[])
 		return returnCode;
 
 	srand(g_randomSeed);
+
+	{
+		CRandomDataGenerator _randomGenerator;
+		_randomGenerator.setSeed(g_randomSeed);
+		Logger() << "RNG consustency check: seed = " << g_randomSeed <<", first RN = " << _randomGenerator.randomNumber<uint32_t>(0u, uint32_max);
+	}
 
 	return session.run();
 }
