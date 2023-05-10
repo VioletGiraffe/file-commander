@@ -7,19 +7,19 @@
 #include "utility/on_scope_exit.hpp"
 
 DISABLE_COMPILER_WARNINGS
-#include <QIODevice>
+#include <QFile>
 RESTORE_COMPILER_WARNINGS
 
-#include <cstring>
+#include <string.h>
 #include <memory>
 #include <utility> // std::move
 
-CFileComparator::~CFileComparator()
+CFileComparator::~CFileComparator() noexcept
 {
 	abortComparison();
 }
 
-void CFileComparator::compareFilesThreaded(std::unique_ptr<QIODevice>&& fileA, std::unique_ptr<QIODevice>&& fileB, const std::function<void (int)>& progressCallback, const std::function<void (ComparisonResult)>& resultCallback)
+void CFileComparator::compareFilesThreaded(std::unique_ptr<QFile>&& fileA, std::unique_ptr<QFile>&& fileB, const std::function<void (int)>& progressCallback, const std::function<void (ComparisonResult)>& resultCallback)
 {
 	if (_comparisonThread.joinable())
 		_comparisonThread.join();
@@ -40,7 +40,7 @@ void CFileComparator::abortComparison()
 	}
 }
 
-void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std::function<void(int)>& progressCallback, const std::function<void(ComparisonResult)>& resultCallback)
+void CFileComparator::compareFiles(QFile& fileA, QFile& fileB, const std::function<void(int)>& progressCallback, const std::function<void(ComparisonResult)>& resultCallback)
 {
 	assert_debug_only(fileA.isOpen() && fileB.isOpen());
 	assert_debug_only(progressCallback);
@@ -56,15 +56,25 @@ void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std
 
 	static constexpr qint64 blockSize = 1LL * 1024LL * 1024LL; // 1 MiB block size
 
-	const auto blockA = std::make_unique<char[]>(blockSize);
-	const auto blockB = std::make_unique<char[]>(blockSize);
-
 	for (qint64 pos = 0, size = fileA.size(); pos < size && !_terminate; pos += blockSize)
 	{
-		const auto block_a_size = fileA.read(blockA.get(), blockSize);
-		const auto block_b_size = fileB.read(blockB.get(), blockSize);
+		const qint64 sizeToCompare = std::min(blockSize, size - pos);
 
-		if (block_a_size != block_b_size || std::memcmp(blockA.get(), blockB.get(), static_cast<size_t>(block_a_size)) != 0)
+		auto* aData = fileA.map(pos, sizeToCompare);
+		auto* bData = fileB.map(pos, sizeToCompare);
+
+		if (!aData || !bData) [[unlikely]]
+		{
+			resultCallback(Aborted);
+			return;
+		}
+
+		const bool equal = ::memcmp(aData, bData, static_cast<uint64_t>(sizeToCompare)) == 0;
+
+		fileA.unmap(aData);
+		fileB.unmap(bData);
+
+		if (!equal)
 		{
 			resultCallback(NotEqual);
 			return;
@@ -72,9 +82,6 @@ void CFileComparator::compareFiles(QIODevice& fileA, QIODevice& fileB, const std
 
 		progressCallback(Math::round<int>(pos * 100 / size));
 	}
-
-	assert_r(fileA.atEnd());
-	assert_r(fileB.atEnd());
 
 	resultCallback(!_terminate ? Equal : Aborted);
 }
