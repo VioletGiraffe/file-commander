@@ -11,13 +11,13 @@ public:
 	void setSeed(uint32_t seed);
 	void setFileChunkSize(size_t chunkSize);
 
-	bool generateRandomTree(const QString& parentDir, size_t numFiles, size_t numFolders);
+	bool generateRandomTree(const QString& parentDir, size_t numFiles, size_t numFolders, size_t maxFilesSize);
 
 private:
 	QString randomFileName(size_t length);
 	QString randomDirName(size_t length);
 
-	bool generateRandomFiles(const QString& parentDir, size_t numFiles);
+	bool generateRandomFiles(const QString& parentDir, size_t numFiles, size_t maxFilesSize);
 	std::vector<QString> generateRandomFolders(const QString& parentDir, size_t numFolders);
 
 private:

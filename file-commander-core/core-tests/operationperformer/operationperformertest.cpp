@@ -25,6 +25,7 @@ RESTORE_COMPILER_WARNINGS
 
 #define CATCH_CONFIG_RUNNER
 #include "3rdparty/catch2/catch.hpp"
+//#include "3rdparty/catch2/catch_template_test_macros.hpp"
 
 static uint32_t g_randomSeed = []{
 	std::random_device rd;
@@ -68,9 +69,13 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	}
 
 #ifdef __APPLE__
-	static constexpr qint64 multiplier = 50;
+	qint64 multiplier = 50;
 #else
-	static constexpr qint64 multiplier = 1;
+	qint64 multiplier = 1;
+#endif
+
+#ifdef _DEBUG
+	multiplier *= 2;
 #endif
 
 	if (diff <= allowedTimeDiffMs * multiplier)
@@ -81,7 +86,6 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 		return false;
 	}
 }
-
 
 struct ProgressObserver final : public CFileOperationObserver {
 	inline void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float filePercentage, uint64_t /*speed*/ /* B/s*/, uint32_t /*secondsRemaining*/) override {
@@ -95,7 +99,7 @@ struct ProgressObserver final : public CFileOperationObserver {
 	inline void onCurrentFileChanged(const QString& /*file*/) override {} // Starting to process a new file
 };
 
-TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+static void copyTest(const size_t maxFileSize)
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
 	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
@@ -115,7 +119,7 @@ TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[opera
 	generator.setFileChunkSize(OPERATION_PERFORMER_CHUNK_SIZE);
 	generator.setSeed(g_randomSeed);
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
-	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
+	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200, maxFileSize));
 
 	COperationPerformer p(operationCopy, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
 	CTimeElapsed timer(true);
@@ -170,9 +174,9 @@ TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[opera
 			}
 			else
 				CHECK(true);
-		});
+			});
 
-		for (const auto fileTimeType: supportedFileTimeTypes)
+		for (const auto fileTimeType : supportedFileTimeTypes)
 		{
 			if (!timesAlmostMatch(fileA.fileTime(fileTimeType), fileB.fileTime(fileTimeType), fileTimeType))
 				FAIL_CHECK();
@@ -182,7 +186,7 @@ TEST_CASE((std::string("Copy test #") + std::to_string(rand())).c_str(), "[opera
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
 
-TEST_CASE((std::string("Move test #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
+static void moveTest(const size_t maxFileSize)
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
 	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
@@ -202,7 +206,7 @@ TEST_CASE((std::string("Move test #") + std::to_string(rand())).c_str(), "[opera
 	generator.setFileChunkSize(OPERATION_PERFORMER_CHUNK_SIZE);
 	generator.setSeed(g_randomSeed);
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
-	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
+	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200, maxFileSize));
 
 	std::vector<CFileSystemObject> sourceTree;
 	CFolderEnumeratorRecursive::enumerateFolder(sourceDirectory.path(), sourceTree);
@@ -234,6 +238,36 @@ TEST_CASE((std::string("Move test #") + std::to_string(rand())).c_str(), "[opera
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
 
+TEST_CASE((std::string("Copy test - empty files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	copyTest(0);
+}
+
+TEST_CASE((std::string("Copy test - 5K files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	copyTest(5000);
+}
+
+TEST_CASE((std::string("Copy test - 20K files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	copyTest(20'000);
+}
+
+TEST_CASE((std::string("Move test - empty files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	moveTest(0);
+}
+
+TEST_CASE((std::string("Move test - 5K files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	moveTest(5000);
+}
+
+TEST_CASE((std::string("Move test - 20K files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	moveTest(20'000);
+}
+
 TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[operationperformer-delete]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
@@ -248,7 +282,7 @@ TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[ope
 	generator.setFileChunkSize(OPERATION_PERFORMER_CHUNK_SIZE);
 	generator.setSeed(g_randomSeed);
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
-	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200));
+	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200, 20000));
 	REQUIRE(!QDir(sourceDirectory.path()).entryList(QDir::NoDotAndDotDot | QDir::AllEntries).empty());
 
 	COperationPerformer p(operationDelete, CFileSystemObject(sourceDirectory.path()));

@@ -23,7 +23,7 @@ void CTestFolderGenerator::setFileChunkSize(size_t chunkSize)
 	_fileChunkSize = chunkSize;
 }
 
-bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t numFiles, size_t numFolders)
+bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t numFiles, size_t numFolders, size_t maxFilesSize)
 {
 	assert(QDir(parentDir).exists());
 
@@ -33,7 +33,7 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 			return true;
 
 		// All the remaining files must go into this last unpopulated directory
-		assert_and_return_r(generateRandomFiles(parentDir, numFiles), false); // Failure?
+		assert_and_return_r(generateRandomFiles(parentDir, numFiles, maxFilesSize), false); // Failure?
 		return true; // All done.
 	}
 
@@ -49,7 +49,7 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 	if (numFiles > 0)
 	{
 		const auto numFilesToCreate = _randomGenerator.randomNumber<size_t>(1, numFiles);
-		assert_and_return_r(generateRandomFiles(parentDir, numFilesToCreate), false); // Failure?
+		assert_and_return_r(generateRandomFiles(parentDir, numFilesToCreate, maxFilesSize), false); // Failure?
 		numFiles -= numFilesToCreate;
 	}
 
@@ -58,13 +58,13 @@ bool CTestFolderGenerator::generateRandomTree(const QString& parentDir, size_t n
 
 	for (const QString& folder : newFolders)
 	{
-		assert_and_return_r(generateRandomTree(parentDir + "/" + folder, nFilesPerSubdirectory, nDirectoriesPerSubdirectory), false); // Failure?
+		assert_and_return_r(generateRandomTree(parentDir + "/" + folder, nFilesPerSubdirectory, nDirectoriesPerSubdirectory, maxFilesSize), false); // Failure?
 	}
 
 	numFiles = numFiles % newFolders.size();
 	numFolders = numFolders % newFolders.size();
 
-	return generateRandomTree(parentDir, numFiles, numFolders);
+	return generateRandomTree(parentDir, numFiles, numFolders, maxFilesSize);
 }
 
 QString CTestFolderGenerator::randomFileName(const size_t length)
@@ -82,7 +82,7 @@ QString CTestFolderGenerator::randomDirName(const size_t length)
 	return _randomGenerator.randomString(length).toUpper();
 }
 
-bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const size_t numFiles)
+bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const size_t numFiles, size_t maxFilesSize)
 {
 	const size_t numZeroFiles = [numFiles]() -> size_t {
 		if (numFiles > 20)
@@ -93,19 +93,24 @@ bool CTestFolderGenerator::generateRandomFiles(const QString& parentDir, const s
 			return 1;
 	}();
 
-	const auto numSpecialFiles = [nFiles{numFiles - numZeroFiles}, this]() -> size_t {
+	const auto numSpecialFiles = [nFiles{numFiles - numZeroFiles}, this, maxFilesSize]() -> size_t {
+		size_t n = 0;
 		if (_fileChunkSize == 0 || nFiles < 3)
-			return 0;
+			n = 0;
 		else if (nFiles > 30)
-			return 10;
+			n = 10;
 		else
-			return nFiles / 3;
+			n = nFiles / 3;
 
+		if (maxFilesSize < n * _fileChunkSize)
+			n = maxFilesSize / _fileChunkSize;
+
+		return n;
 	}();
 
 	for (uint32_t i = 0; i < numFiles - numZeroFiles - numSpecialFiles; ++i)
 	{
-		const size_t fileSize = _randomGenerator.randomNumber<size_t>(1, 20000);
+		const size_t fileSize = maxFilesSize > 1 ? _randomGenerator.randomNumber<size_t>(1, maxFilesSize) : maxFilesSize;
 		createRandomFile(parentDir, fileSize);
 	}
 
