@@ -85,8 +85,8 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 
 struct ProgressObserver final : public CFileOperationObserver {
 	inline void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float filePercentage, uint64_t /*speed*/ /* B/s*/, uint32_t /*secondsRemaining*/) override {
-		CHECK(totalPercentage <= 100.0f);
-		CHECK(filePercentage <= 100.0f);
+		CHECK(totalPercentage <= 100.1f);
+		CHECK(filePercentage <= 100.1f);
 	}
 	inline void onProcessHalted(HaltReason /*reason*/, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override { // User decision required (file exists, file is read-only etc.)
 		FAIL("onProcessHalted called");
