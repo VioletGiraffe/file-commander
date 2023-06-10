@@ -128,7 +128,7 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 	std::set<int> rows;
 	for(const auto& idx: indexes)
 	{
-		if (idx.isValid() && rows.contains(idx.row()))
+		if (idx.isValid() && !rows.contains(idx.row()))
 		{
 			const QString path = _controller.itemByHash(_panel, itemHash(index(idx.row(), 0))).fullAbsolutePath();
 			if (!path.isEmpty())
