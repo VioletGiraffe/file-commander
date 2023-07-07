@@ -34,6 +34,16 @@
         </item>
        </layout>
       </item>
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Note: you can use %dir% to specify the target directory on the command line</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

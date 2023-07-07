@@ -270,8 +270,17 @@ void CController::openTerminal(const QString &folder, bool admin)
 #elif defined __linux__ || defined __FreeBSD__ || defined _WIN32
 	if (!admin)
 	{
-		auto shellArgs = OsShell::shellExecutable();
-		const bool started = OsShell::runExecutable(shellArgs.first, shellArgs.second, folder);
+		auto [terminalProgram, args] = OsShell::shellExecutable();
+		static constexpr auto* dirTemplate = "%dir%";
+		if (args.contains(dirTemplate))
+		{
+			args.replace(
+				dirTemplate,
+				escapedPath(!folder.endsWith(nativeSeparator()) ? folder : QString{folder}.remove(folder.size() - 1, 1))
+			);
+		}
+
+		const bool started = OsShell::runExecutable(terminalProgram, args, folder);
 		assert_r(started);
 	}
 	else

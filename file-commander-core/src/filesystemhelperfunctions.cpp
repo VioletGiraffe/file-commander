@@ -42,15 +42,16 @@ QString escapedPath(QString path)
 		return path;
 
 #ifdef _WIN32
-	assert_and_return_r(!path.startsWith('\"'), path);
-	return '\"' % path % '\"';
+	static constexpr char quoteCharacter = '\"';
 #else
-	//assert_debug_only(path.count(' ') != path.count(R"(\ )")); // Already escaped!
-	//return path.replace(' ', QLatin1String(R"(\ )"));
-
-	assert_debug_only(!path.startsWith('\'')); // Already escaped!
-	return '\'' % path % '\'';
+	static constexpr char quoteCharacter = '\'';
 #endif
+
+	assert_debug_only(!path.endsWith(nativeSeparator()));
+	assert_and_return_r(!path.startsWith(quoteCharacter), path); // Already escaped!
+	path.reserve(path.size() + 2);
+	path.prepend(quoteCharacter).append(quoteCharacter);
+	return path;
 }
 
 QString cleanPath(QString path)
