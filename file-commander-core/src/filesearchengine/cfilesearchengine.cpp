@@ -55,8 +55,11 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		if (nameQueryHasWildcards)
 		{
 			QString adjustedQuery = what;
-			if (!what.startsWith('*'))
+			if (!adjustedQuery.startsWith('*'))
 				adjustedQuery.prepend('*');
+
+			if (!adjustedQuery.endsWith('*'))
+				adjustedQuery.append('*');
 
 			auto regExString = QRegularExpression::wildcardToRegularExpression(adjustedQuery);
 			regExString.replace(QSL(R"([^/\\]*)"), QSL(".*"));
