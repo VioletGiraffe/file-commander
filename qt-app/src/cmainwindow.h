@@ -97,6 +97,7 @@ private slots: // UI slots
 	void showAllFilesFromCurrentFolderAndBelow();
 	void openSettingsDialog();
 	void calculateOccupiedSpace();
+	void calculateEachFolderSize();
 	void checkForUpdates();
 	void about();
 

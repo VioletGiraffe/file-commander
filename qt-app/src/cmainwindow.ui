@@ -215,7 +215,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFiles">
@@ -238,6 +238,7 @@
     <addaction name="actionOpen_Admin_console_here"/>
     <addaction name="separator"/>
     <addaction name="actionCalculate_occupied_space"/>
+    <addaction name="actionCalculate_each_folder_s_size"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -413,6 +414,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="actionCalculate_each_folder_s_size">
+   <property name="text">
+    <string>Calculate each folder's size</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+L</string>
    </property>
   </action>
  </widget>

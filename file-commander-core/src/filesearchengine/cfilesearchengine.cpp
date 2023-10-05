@@ -125,7 +125,8 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 			}, _workerThread.terminationFlag());
 		}
 
-		const uint32_t speed = timer.elapsed() > 0 ? static_cast<uint32_t>(itemCounter * 1000u / timer.elapsed()) : 0;
+		const auto elapsedMs = timer.elapsed();
+		const uint32_t speed = elapsedMs > 0 ? static_cast<uint32_t>(itemCounter * 1000u / elapsedMs) : 0;
 		_controller.execOnUiThread([this, speed](){
 			for (const auto& listener: _listeners)
 				listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, speed);

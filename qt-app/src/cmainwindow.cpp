@@ -214,6 +214,7 @@ void CMainWindow::initActions()
 	connect(ui->actionShowAllFiles, &QAction::triggered, this, &CMainWindow::showAllFilesFromCurrentFolderAndBelow);
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
 	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateOccupiedSpace);
+	connect(ui->actionCalculate_each_folder_s_size, &QAction::triggered, this, &CMainWindow::calculateEachFolderSize);
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
 	connect(ui->actionFilter_items, &QAction::triggered, this, &CMainWindow::filterItemsByName);
 
@@ -743,6 +744,18 @@ void CMainWindow::calculateOccupiedSpace()
 
 	QMessageBox::information(this, tr("Occupied space"), tr("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3\n%4").
 		arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace), fileSizeToString(stats.occupiedSpace, 'B', QString{ ' ' })));
+}
+
+void CMainWindow::calculateEachFolderSize()
+{
+	if (!_currentFileList)
+		return;
+
+	for (const auto& item : _controller->panel(_currentFileList->panelPosition()).list())
+	{
+		if (item.second.isDir())
+			_controller->displayDirSize(_currentFileList->panelPosition(), item.first);
+	}
 }
 
 void CMainWindow::checkForUpdates()

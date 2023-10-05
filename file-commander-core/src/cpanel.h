@@ -16,7 +16,6 @@ using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #endif
 
 #include <map>
-#include <memory>
 #include <mutex>
 #include <vector>
 #include <utility>
