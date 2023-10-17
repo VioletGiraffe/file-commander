@@ -47,9 +47,10 @@ CCopyMoveDialog::CCopyMoveDialog(QWidget* parent, Operation operation, std::vect
 
 	setWindowTitle(ui->_lblOperationName->text());
 
-	_eventsProcessTimer.setInterval(100);
-	_eventsProcessTimer.start();
-	connect(&_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents();});
+	_eventsProcessTimer = new QTimer{ this };
+	_eventsProcessTimer->setInterval(250);
+	_eventsProcessTimer->start();
+	connect(_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents();});
 
 	_performer->setObserver(this);
 	_performer->start();
@@ -145,6 +146,10 @@ void CCopyMoveDialog::switchToBackground()
 		_mainWindow->activateWindow();
 		raise();
 	});
+}
+
+void CCopyMoveDialog::updateUiWthProgress()
+{
 }
 
 void CCopyMoveDialog::closeEvent(QCloseEvent *e)
