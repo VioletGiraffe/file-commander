@@ -37,6 +37,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QProcess>
 #include <QSortFilterProxyModel>
+#include <QTimer>
 #include <QWidgetList>
 RESTORE_COMPILER_WARNINGS
 
@@ -84,11 +85,13 @@ CMainWindow::CMainWindow(QWidget *parent) noexcept :
 	ui->_commandLine->setCompleter(&_commandLineCompleter);
 	ui->_commandLine->setClearEditorOnItemActivation(true);
 	ui->_commandLine->installEventFilter(this);
+
+	_uiThreadTimer = new QTimer{ this };
 }
 
 CMainWindow::~CMainWindow() noexcept
 {
-	_uiThreadTimer.disconnect();
+	_uiThreadTimer->disconnect();
 
 	_instance = nullptr;
 	delete ui;
@@ -849,8 +852,8 @@ void CMainWindow::initCore()
 	_controller->panel(LeftPanel).addPanelContentsChangedListener(this);
 	_controller->panel(RightPanel).addPanelContentsChangedListener(this);
 
-	connect(&_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
-	_uiThreadTimer.start(10);
+	connect(_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
+	_uiThreadTimer->start(10);
 }
 
 void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries)

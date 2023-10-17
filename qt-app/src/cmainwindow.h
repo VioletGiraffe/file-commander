@@ -139,7 +139,7 @@ private:
 	Ui::CMainWindow* ui;
 	static CMainWindow* _instance;
 
-	QTimer _uiThreadTimer;
+	QTimer* _uiThreadTimer = nullptr;
 
 	std::unique_ptr<CController> _controller;
 	CPanelWidget* _currentFileList = nullptr;

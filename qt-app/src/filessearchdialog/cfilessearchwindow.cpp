@@ -13,6 +13,7 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QDebug>
 #include <QLineEdit>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 #define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
@@ -74,8 +75,9 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	ui->cbNameCaseSensitive->setVisible(caseSensitiveFilesystem());
 
-	connect(&_resultsListUpdateTimer, &QTimer::timeout, this, &CFilesSearchWindow::addResultsToUi);
-	_resultsListUpdateTimer.start(100);
+	_resultsListUpdateTimer = new QTimer{ this };
+	connect(_resultsListUpdateTimer, &QTimer::timeout, this, &CFilesSearchWindow::addResultsToUi);
+	_resultsListUpdateTimer->start(100);
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()

@@ -5,12 +5,14 @@
 #include "threading/cperiodicexecutionthread.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QTimer>
+#include <qobject.h>
 RESTORE_COMPILER_WARNINGS
 
 #include <mutex>
 #include <optional>
 #include <vector>
+
+class QTimer;
 
 // Lists all the volumes available on a target machine
 class CVolumeEnumerator final : public QObject
@@ -56,7 +58,7 @@ private:
 	std::vector<IVolumeListObserver*> _observers;
 	mutable CExecutionQueue          _notificationsQueue;
 	CPeriodicExecutionThread         _enumeratorThread;
-	QTimer                           _timer;
+	QTimer*                          _timer = nullptr;
 
 	static constexpr unsigned int _updateInterval = 1000; // ms
 };

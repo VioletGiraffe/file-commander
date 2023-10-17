@@ -11,6 +11,7 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QCloseEvent>
 #include <QMessageBox>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 CDeleteProgressDialog::CDeleteProgressDialog(QWidget* parent, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow *mainWindow) :
@@ -33,9 +34,10 @@ CDeleteProgressDialog::CDeleteProgressDialog(QWidget* parent, std::vector<CFileS
 
 	setWindowTitle(tr("Deleting..."));
 
-	_eventsProcessTimer.setInterval(100);
-	_eventsProcessTimer.start();
-	connect(&_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents(); });
+	_eventsProcessTimer = new QTimer{ this };
+	_eventsProcessTimer->setInterval(100);
+	_eventsProcessTimer->start();
+	connect(_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents(); });
 
 	_performer->setObserver(this);
 	_performer->start();

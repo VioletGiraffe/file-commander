@@ -2,15 +2,20 @@
 #include "assert/advanced_assert.h"
 #include "container/algorithms.hpp"
 
+DISABLE_COMPILER_WARNINGS
+#include <QTimer>
+RESTORE_COMPILER_WARNINGS
+
 #include <algorithm>
 
 CVolumeEnumerator::CVolumeEnumerator() : _enumeratorThread(_updateInterval, "CVolumeEnumerator thread")
 {
+	_timer = new QTimer{ this };
 	// Setting up the timer to fetch the notifications from the queue and execute them on this thread
-	connect(&_timer, &QTimer::timeout, this, [this](){
+	connect(_timer, &QTimer::timeout, this, [this](){
 		_notificationsQueue.exec();
 	});
-	_timer.start(_updateInterval / 3);
+	_timer->start(_updateInterval / 3);
 }
 
 void CVolumeEnumerator::addObserver(IVolumeListObserver *observer)

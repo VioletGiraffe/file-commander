@@ -3,7 +3,6 @@
 #include "fileoperations/coperationperformer.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QTimer>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
@@ -15,6 +14,7 @@ class CDeleteProgressDialog;
 
 class CMainWindow;
 class COperationPerformer;
+class QTimer;
 
 class CDeleteProgressDialog final : public QWidget, protected CFileOperationObserver
 {
@@ -43,5 +43,5 @@ private:
 	Ui::CDeleteProgressDialog *ui;
 	const std::unique_ptr<COperationPerformer> _performer;
 	CMainWindow         * _mainWindow;
-	QTimer                _eventsProcessTimer;
+	QTimer*               _eventsProcessTimer = nullptr;
 };
