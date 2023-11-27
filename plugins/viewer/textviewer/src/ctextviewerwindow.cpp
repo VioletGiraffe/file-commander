@@ -11,6 +11,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QActionGroup>
 #include <QFileDialog>
+#include <QFontDatabase>
 #include <QLabel>
 #include <QMimeDatabase>
 #include <QMessageBox>
@@ -29,12 +30,11 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 
 	_textBrowser = new CTextEditWithLineNumbers(this);
 
+	QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
 	if (parent)
-	{
-		QFont f = parent->font();
-		f.setPointSizeF(f.pointSizeF() + 0.5);
-		setFont(f);
-	}
+		fixedFont.setPointSizeF(parent->font().pointSizeF() + 0.5);
+
+	setFont(fixedFont);
 
 	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this));
 
