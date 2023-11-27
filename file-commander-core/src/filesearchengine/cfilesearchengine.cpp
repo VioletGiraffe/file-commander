@@ -5,6 +5,7 @@
 #include "qtcore_helpers/qstring_helpers.hpp"
 
 #include "hash/jenkins_hash.hpp"
+#include "threading/thread_helpers.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -46,6 +47,8 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		return false;
 
 	_workerThread.exec([this, what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive](){
+		::setThreadName("File search engine thread");
+
 		uint64_t itemCounter = 0;
 		CTimeElapsed timer;
 		timer.start();
