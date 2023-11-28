@@ -34,7 +34,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	if (parent)
 		fixedFont.setPointSizeF(parent->font().pointSizeF() + 0.5);
 
-	setFont(fixedFont);
+	_textBrowser->setFont(fixedFont);
 
 	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this));
 
