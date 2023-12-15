@@ -15,14 +15,9 @@ class QTimer;
 
 class CCopyMoveDialog final : public QWidget, protected CFileOperationObserver
 {
-	Q_OBJECT
-
 public:
 	CCopyMoveDialog(QWidget* parent, Operation, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow);
 	~CCopyMoveDialog() override;
-
-signals:
-	void closed();
 
 protected:
 	void closeEvent(QCloseEvent * e) override;
@@ -38,8 +33,6 @@ private:
 	bool cancelPressed();
 	void pauseResume();
 	void switchToBackground();
-
-	void updateUiWthProgress();
 
 private:
 	void cancel();

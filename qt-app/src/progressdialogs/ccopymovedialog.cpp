@@ -96,6 +96,8 @@ void CCopyMoveDialog::onProcessFinished(const QString& message)
 
 	if (!message.isEmpty())
 		QMessageBox::information(this, tr("Operation finished"), message);
+
+	deleteLater();
 }
 
 void CCopyMoveDialog::onCurrentFileChanged(const QString& file)
@@ -149,30 +151,12 @@ void CCopyMoveDialog::switchToBackground()
 	});
 }
 
-void CCopyMoveDialog::updateUiWthProgress()
-{
-}
-
 void CCopyMoveDialog::closeEvent(QCloseEvent *e)
 {
-	if (e->type() == QCloseEvent::Close && _performer)
-	{
-		if (cancelPressed())
-		{
-			QWidget::closeEvent(e);
-			emit closed();
-			return;
-		}
-	}
-	else if (e->type() == QCloseEvent::Close)
-	{
-		QWidget::closeEvent(e);
-		emit closed();
-		return;
-	}
-
-	if (e)
-		e->ignore();
+	if (e->type() == QCloseEvent::Close && (!_performer || cancelPressed()))
+		QWidget::closeEvent(e); // OK to process the event and close the dialog
+	else
+		e->ignore(); // We're working - ignore the close event
 }
 
 void CCopyMoveDialog::cancel()

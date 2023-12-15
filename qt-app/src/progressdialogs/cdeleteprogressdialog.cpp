@@ -73,6 +73,8 @@ void CDeleteProgressDialog::onProcessFinished(const QString& message)
 
 	if (!message.isEmpty())
 		QMessageBox::information(this, tr("Operation finished"), message);
+
+	deleteLater();
 }
 
 void CDeleteProgressDialog::onCurrentFileChanged(const QString& file)
@@ -88,8 +90,11 @@ void CDeleteProgressDialog::closeEvent(QCloseEvent *e)
 		{
 			cancel();
 			QWidget::closeEvent(e);
+			return;
 		}
 	}
+
+	e->ignore();
 }
 
 void CDeleteProgressDialog::cancelPressed()
