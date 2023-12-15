@@ -26,8 +26,6 @@ class CMainWindow final : public QMainWindow,
 		private FileListReturnPressedObserver,
 		private PanelContentsChangedListener
 {
-	Q_OBJECT
-
 public:
 	explicit CMainWindow(QWidget* parent = nullptr) noexcept;
 	~CMainWindow() noexcept;
@@ -48,15 +46,12 @@ public:
 	bool copyFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
 	bool moveFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
 
-signals:
-	// Is used to close all child windows
-	void closed();
-
 protected:
 	void closeEvent(QCloseEvent * e) override;
 	bool eventFilter(QObject *watched, QEvent *event) override;
 
-private slots: // UI slots
+private:
+// UI slots
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
 	void splitterContextMenuRequested(QPoint pos);
 
@@ -145,8 +140,6 @@ private:
 	CPanelWidget* _currentFileList = nullptr;
 	CPanelWidget* _otherFileList = nullptr;
 	CPanelDisplayController _leftPanelDisplayController, _rightPanelDisplayController;
-
-	std::vector<std::shared_ptr<QShortcut> > _shortcuts;
 
 	QCompleter _commandLineCompleter;
 

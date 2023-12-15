@@ -39,6 +39,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <QWidgetList>
+#include <QWindow>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
@@ -156,34 +157,34 @@ void CMainWindow::updateInterface()
 void CMainWindow::initButtons()
 {
 	connect(ui->btnView, &QPushButton::clicked, this, &CMainWindow::viewFile);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F3")), this, SLOT(viewFile()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(QSL("F3")), this, this, &CMainWindow::viewFile, Qt::WidgetWithChildrenShortcut);
 
 	connect(ui->btnEdit, &QPushButton::clicked, this, &CMainWindow::editFile);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F4")), this, SLOT(editFile()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(QSL("F4")), this, this, &CMainWindow::editFile, Qt::WidgetWithChildrenShortcut);
 
 	connect(ui->btnCopy, &QPushButton::clicked, this, &CMainWindow::copySelectedFiles);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F5")), this, SLOT(copySelectedFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(QSL("F5")), this, this, &CMainWindow::copySelectedFiles, Qt::WidgetWithChildrenShortcut);
 
 	connect(ui->btnMove, &QPushButton::clicked, this, &CMainWindow::moveSelectedFiles);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F6")), this, SLOT(moveSelectedFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(QSL("F6")), this, this, &CMainWindow::moveSelectedFiles, Qt::WidgetWithChildrenShortcut);
 
 	connect(ui->btnNewFolder, &QPushButton::clicked, this, &CMainWindow::createFolder);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F7")), this, SLOT(createFolder()), nullptr, Qt::WidgetWithChildrenShortcut));
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Shift+F7")), this, SLOT(createFile()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(QSL("F7")),       this, this, &CMainWindow::createFolder, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(QSL("Shift+F7")), this, this, &CMainWindow::createFile, Qt::WidgetWithChildrenShortcut);
 
 	connect(ui->btnDelete, &QPushButton::clicked, this, &CMainWindow::deleteFiles);
 	connect(ui->btnDelete, &QPushButton::customContextMenuRequested, this, &CMainWindow::showRecycleBInContextMenu);
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("F8")), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Delete")), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(QSL("F8")),     this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(QSL("Delete")), this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
 #ifdef __APPLE__
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(Qt::CTRL + Qt::Key_Backspace), this, SLOT(deleteFiles()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Backspace), this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
 #endif
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Shift+F8")), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Shift+Delete")), this, SLOT(deleteFilesIrrevocably()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(QSL("Shift+F8")), this, this, &CMainWindow::deleteFilesIrrevocably, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(QSL("Shift+Delete")), this, this, &CMainWindow::deleteFilesIrrevocably, Qt::WidgetWithChildrenShortcut);
 
 	// Command line
 	ui->_commandLine->setSelectPreviousItemShortcut(QKeySequence(QSL("Ctrl+E")));
-	_shortcuts.push_back(std::make_shared<QShortcut>(QKeySequence(QSL("Ctrl+E")), this, SLOT(selectPreviousCommandInTheCommandLine()), nullptr, Qt::WidgetWithChildrenShortcut));
+	new QShortcut(QKeySequence(QSL("Ctrl+E")), this, this, &CMainWindow::selectPreviousCommandInTheCommandLine, Qt::WidgetWithChildrenShortcut);
 }
 
 void CMainWindow::initActions()
@@ -254,7 +255,6 @@ bool CMainWindow::copyFiles(std::vector<CFileSystemObject>&& files, const QStrin
 	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(this, operationCopy, std::move(files), toPosixSeparators(prompt.text()), this);
-	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
 	dialog->show();
 
 	return true;
@@ -277,7 +277,6 @@ bool CMainWindow::moveFiles(std::vector<CFileSystemObject>&& files, const QStrin
 	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(this, operationMove, std::move(files), toPosixSeparators(prompt.text()), this);
-	connect(this, &CMainWindow::closed, dialog, &CCopyMoveDialog::deleteLater);
 	dialog->show();
 
 	return true;
@@ -294,7 +293,12 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 		s.setValue(KEY_LPANEL_STATE, ui->leftPanel->savePanelState());
 		s.setValue(KEY_RPANEL_STATE, ui->rightPanel->savePanelState());
 
-		emit closed(); // Is used to close all child windows
+		// Close all other top-level windows (incl. the plugins), otherwise the app won't exit.
+		for (QWindow* w : QApplication::topLevelWindows())
+		{
+			if (w)
+				w->close();
+		}
 	}
 
 	QMainWindow::closeEvent(e);
@@ -705,7 +709,6 @@ void CMainWindow::findFiles()
 
 
 	auto* fileSearchUi = new CFilesSearchWindow(selectedPaths, this);
-	connect(this, &CMainWindow::closed, fileSearchUi, &CFilesSearchWindow::close);
 	fileSearchUi->show();
 }
 
