@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 
 	{
 		QFont font = QApplication::font();
-		font.setPointSizeF(font.pointSizeF() + 1);
+		font.setPointSizeF(font.pointSizeF() + 1.0);
 		QApplication::setFont(font);
 	}
 
