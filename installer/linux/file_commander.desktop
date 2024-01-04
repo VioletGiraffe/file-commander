@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=File Commander
-Comment=Dual-panel file manager for Linux
+Comment=Dual-panel file manager
 Exec=FileCommander
 Icon=icon
 Terminal=false

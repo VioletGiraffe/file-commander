@@ -49,25 +49,43 @@ jobs:
         lscpu
 
     - name: Install Qt
-      if: "!startsWith(matrix.os, 'ubuntu')"
+      if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.6.1'
+        arch: 'win64_msvc2019_64'
+        archives: 'qtbase icu qtsvg'
+        modules: 'qt5compat qtimageformats'
 
     - name: Install Qt
       if: "startsWith(matrix.os, 'ubuntu')"
       uses: jurplel/install-qt-action@v3
       with:
-        archives: 'qtbase icu'
+        version: '6.6.1'
+        arch: 'gcc_64'
+        archives: 'qtbase icu qtsvg'
+        modules: 'qt5compat qtimageformats'
+
+
+    - name: Install Qt
+      if: "startsWith(matrix.os, 'macos')"
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.6.1'
+        arch: 'clang_64'
+        archives: 'qtbase icu qtsvg'
+        modules: 'qt5compat qtimageformats'
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v1
 
     - name: Windows - building main installer
       if: startsWith(matrix.os, 'windows')
       shell: cmd
       run: |
-        %Qt5_DIR%\bin\qmake.exe -v
-        set QTDIR64=%Qt5_DIR%
+        %Qt6_DIR%\bin\qmake.exe -v
+        set QTDIR64=%Qt6_DIR%
         cd installer\windows\
         create_installer.bat
         cd ..\..
@@ -79,7 +97,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         clang --version
-        ./installer/mac/create_dmg.sh $Qt5_DIR
+        ./installer/mac/create_dmg.sh $Qt6_DIR
 
     - name: Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -90,11 +108,11 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 50
         g++ --version
-        export PATH=$Qt5_DIR/bin/:$PATH
+        export PATH=$Qt6_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        $Qt6_DIR/bin/qmake -r CONFIG+=release
         make -j
         # Linux: building AppImage
         cp ./qt-app/resources/icon.png ./bin/release/x64/
@@ -124,7 +142,7 @@ jobs:
       run: |
         cd file-commander-core\core-tests\
         dir
-        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
+        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt6_DIR%\bin\qmake.exe" -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v143 core-tests.sln
         cd ..\..
 
@@ -149,10 +167,10 @@ jobs:
       if: startsWith(matrix.os, 'macos')
       run: |
         cd file-commander-core/core-tests
-        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        $Qt6_DIR/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do $Qt6_DIR/bin/macdeployqt $f; done
 
     - name: Running tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -166,10 +184,10 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         cd file-commander-core/core-tests
-        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        $Qt6_DIR/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $Qt5_DIR/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do $Qt6_DIR/bin/macdeployqt $f; done
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs
