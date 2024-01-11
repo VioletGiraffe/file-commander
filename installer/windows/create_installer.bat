@@ -41,8 +41,8 @@ xcopy /R /Y "3rdparty binaries"\64\* binaries\64\
 
 SETLOCAL
 SET PATH=%QTDIR64%\bin\
-%QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --force --release --no-compiler-runtime --no-angle --no-translations binaries\64\FileCommander.exe
-FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --release --no-compiler-runtime --no-angle --no-translations %%p
+%QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --force --release --release --force --no-system-d3d-compiler --no-compiler-runtime --no-translations binaries\64\FileCommander.exe
+FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --release --force --no-system-d3d-compiler --no-compiler-runtime --no-translations %%p
 ENDLOCAL
 
 %SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\"
