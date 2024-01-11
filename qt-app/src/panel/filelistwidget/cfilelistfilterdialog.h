@@ -24,7 +24,7 @@ signals:
 	void filterTextChanged(QString text);
 
 protected:
-	void closeEvent(QCloseEvent* e) override;
+	void hideEvent(QHideEvent* e) override;
 
 private:
 	Ui::CFileListFilterDialog *ui;

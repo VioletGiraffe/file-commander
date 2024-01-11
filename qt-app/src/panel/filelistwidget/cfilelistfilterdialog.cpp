@@ -36,10 +36,10 @@ void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 	emit filterTextChanged(ui->_lineEdit->text());
 }
 
-void CFileListFilterDialog::closeEvent(QCloseEvent * e)
+void CFileListFilterDialog::hideEvent(QHideEvent* e)
 {
 	_escShortcut->setEnabled(false);
 
-	emit filterTextChanged(QString());
-	QDialog::closeEvent(e);
+	emit filterTextChanged(QString{});
+	QDialog::hideEvent(e);
 }
