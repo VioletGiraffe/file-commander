@@ -77,9 +77,10 @@ QString CImageViewerWidget::imageInfoString() const
 		return QString();
 
 	const int numChannels = _sourceImage.isGrayscale() ? 1 : (3 + (_sourceImage.hasAlphaChannel() ? 1 : 0));
-	return _currentImageFormat.toUpper() + ' ' + tr("%1x%2, %3 channels, %4 bits per pixel, compressed to %5 bits per pixel").
+	return _currentImageFormat.toUpper() + ' ' + tr("%1x%2 (%3 MP), %4 channels, %5 bits per pixel, compressed to %6 bits per pixel").
 		arg(_sourceImage.width()).
 		arg(_sourceImage.height()).
+		arg(_sourceImage.width() * _sourceImage.height() * 1e-6, 0, 'f', 1).
 		arg(numChannels).
 		arg(_sourceImage.bitPlaneCount()).
 		arg(QString::number(8.0 * (double)_currentImageFileSize / double(_sourceImage.width() * _sourceImage.height()), 'f', 2));
