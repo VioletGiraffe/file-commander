@@ -12,7 +12,9 @@ DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
 
 #include <QDebug>
+#include <QFileDialog>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
@@ -56,6 +58,9 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 	connect(ui->fileContentsToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 
+	connect(ui->btnSaveResults, &QPushButton::clicked, this, &CFilesSearchWindow::saveResults);
+	connect(ui->btnLoadResults, &QPushButton::clicked, this, &CFilesSearchWindow::loadResults);
+
 	_engine.addListener(this);
 
 	_progressLabel = new QLabel(this);
@@ -63,7 +68,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 	statusBar()->addWidget(_progressLabel, 1);
 	statusBar()->setSizePolicy(QSizePolicy::Ignored, statusBar()->sizePolicy().verticalPolicy());
 
-	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item){
+	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item) {
 		CController::get().activePanel().goToItem(CFileSystemObject(item->data(Qt::UserRole).toString()));
 		CMainWindow::get()->activateWindow();
 	});
@@ -74,10 +79,6 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 	});
 
 	ui->cbNameCaseSensitive->setVisible(caseSensitiveFilesystem());
-
-	_resultsListUpdateTimer = new QTimer{ this };
-	connect(_resultsListUpdateTimer, &QTimer::timeout, this, &CFilesSearchWindow::addResultsToUi);
-	_resultsListUpdateTimer->start(100);
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()
@@ -95,15 +96,20 @@ void CFilesSearchWindow::itemScanned(const QString& currentItem)
 void CFilesSearchWindow::matchFound(const QString& path)
 {
 	_matches.push_back(path);
+	addResultToUi(path);
 }
 
 void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint32_t speed)
 {
 	ui->btnSearch->setText(tr("Start"));
 	QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
+	if (!_matches.empty())
+		message = message % ", " % tr("%1 items found").arg(_matches.size());
 	if (speed > 0)
 		message = message % ", " % tr("search speed: %1 items/sec").arg(speed);
+
 	_progressLabel->setText(message);
+
 	ui->resultsList->setFocus();
 	if (ui->resultsList->count() > 0)
 		ui->resultsList->item(0)->setSelected(true);
@@ -117,6 +123,8 @@ void CFilesSearchWindow::search()
 		return;
 	}
 
+	_matches.clear();
+
 	const QString what = ui->nameToFind->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
@@ -125,34 +133,82 @@ void CFilesSearchWindow::search()
 		ui->cbNameCaseSensitive->isChecked(),
 		ui->searchRoot->currentText().split(QSL("; ")),
 		withText,
-		ui->cbContentsCaseSensitive->isChecked()
+		ui->cbContentsCaseSensitive->isChecked(),
+		ui->cbContentsWholeWords->isChecked()
 		)
 	)
 	{
 		ui->btnSearch->setText(tr("Stop"));
 		ui->resultsList->clear();
-		setWindowTitle('\"' % what % "\" " % tr("search results"));
+
+		QString title = what;
+		if (!withText.isEmpty())
+			title += '/' + withText;
+		title += ' ' + tr("search results");
+		setWindowTitle(title);
 	}
 }
 
-void CFilesSearchWindow::addResultsToUi()
+void CFilesSearchWindow::addResultToUi(const QString& path)
+{
+	ui->resultsList->setUpdatesEnabled(false);
+
+	const bool isDir = QFileInfo(path).isDir();
+
+	auto* item = new QListWidgetItem;
+	const QString nativePath = toNativeSeparators(path);
+	item->setText(isDir ? ('[' % nativePath % ']') : nativePath);
+	item->setData(Qt::UserRole, path);
+	ui->resultsList->addItem(item);
+
+	ui->resultsList->scrollToBottom();
+
+	ui->resultsList->setUpdatesEnabled(true);
+}
+
+void CFilesSearchWindow::saveResults()
 {
 	if (_matches.empty())
 		return;
 
-	ui->resultsList->setUpdatesEnabled(false);
-	for (const QString& path: _matches)
-	{
-		const bool isDir = QFileInfo(path).isDir();
+	const QString path = QFileDialog::getSaveFileName(this, {}, ui->searchRoot->currentText().split(';').front(), QSL("*.searchresult"));
+	if (path.isEmpty())
+		return;
 
-		auto* item = new QListWidgetItem;
-		const QString nativePath = toNativeSeparators(path);
-		item->setText(isDir ? ('[' % nativePath % ']') : nativePath);
-		item->setData(Qt::UserRole, path);
-		ui->resultsList->addItem(item);
+	QFile file{ path };
+	if (!file.open(QFile::WriteOnly))
+	{
+		QMessageBox::critical(this, tr("Error"), tr("Failed to save the search result to %1").arg(path));
+		return;
 	}
 
-	ui->resultsList->scrollToBottom();
-	ui->resultsList->setUpdatesEnabled(true);
-	_matches.clear();
+	for (const auto& match : _matches)
+	{
+		file.write(match.toUtf8());
+		file.write("\n", 1);
+	}
+}
+
+void CFilesSearchWindow::loadResults()
+{
+	const QString path = QFileDialog::getOpenFileName(this, {}, {}, QSL("*.searchresult"));
+	if (path.isEmpty())
+		return;
+
+	QFile file{ path };
+	if (!file.open(QFile::ReadOnly))
+	{
+		QMessageBox::critical(this, tr("Error"), tr("Failed to open the file %1").arg(path));
+		return;
+	}
+
+	QTextStream stream{ &file };
+	stream.setEncoding(QStringConverter::Utf8);
+
+	QString line;
+	while (stream.readLineInto(&line))
+	{
+		_matches.push_back(line);
+		addResultToUi(line);
+	}
 }

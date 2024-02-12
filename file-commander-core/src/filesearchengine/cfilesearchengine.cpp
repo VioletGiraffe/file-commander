@@ -35,7 +35,7 @@ bool CFileSearchEngine::searchInProgress() const
 	return _workerThread.running();
 }
 
-bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive)
+bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords)
 {
 	if (_workerThread.running())
 	{
@@ -46,7 +46,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 	if (what.isEmpty() || where.empty())
 		return false;
 
-	_workerThread.exec([this, what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive](){
+	_workerThread.exec([=](){
 		::setThreadName("File search engine thread");
 
 		uint64_t itemCounter = 0;
@@ -54,8 +54,10 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		timer.start();
 
 		const bool nameQueryHasWildcards = what.contains(QRegularExpression(QSL("[*?]")));
+		const bool noFileNameFilter = what == '*';
+
 		QRegularExpression queryRegExp;
-		if (nameQueryHasWildcards)
+		if (!noFileNameFilter && nameQueryHasWildcards)
 		{
 			QString adjustedQuery = what;
 			if (!adjustedQuery.startsWith('*'))
@@ -71,6 +73,20 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 			if (!subjectCaseSensitive)
 				queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 		}
+
+		QRegularExpression fileContentsRegExp;
+		if (contentsToFind.contains(QRegularExpression(QSL("[*?]"))))
+		{
+			fileContentsRegExp.setPattern(QRegularExpression::wildcardToRegularExpression(contentsToFind));
+			assert_r(fileContentsRegExp.isValid());
+		}
+		else if (contentsWholeWords)
+			fileContentsRegExp = QRegularExpression{ "\\b" + contentsToFind + "\\b" };
+
+		if (!contentsCaseSensitive)
+			fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+
+		const bool useFileContentsRegExp = !fileContentsRegExp.pattern().isEmpty();
 
 		static constexpr int uniqueJobTag = static_cast<int>(jenkins_hash("CFileSearchEngine"));
 
@@ -88,7 +104,10 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 				}, uniqueJobTag);
 
 				// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
-				if ((nameQueryHasWildcards && queryRegExp.match(path).hasMatch()) || (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)))
+				if (   noFileNameFilter
+					|| (nameQueryHasWildcards && queryRegExp.match(path).hasMatch())
+					|| (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive))
+				)
 				{
 					QFile file(path);
 					if (!contentsToFind.isEmpty())
@@ -97,31 +116,23 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 							return;
 					}
 
+					const auto contentsCaseSensitivity = contentsCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+
 					QTextStream stream(&file);
-					const bool contentsQueryHasWildcards = contentsToFind.contains(QRegularExpression(QSL("[*?]")));
-					const auto subjectCaseSensitivity = subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
-					QRegularExpression fileContentsRegExp;
-					if (contentsQueryHasWildcards)
-					{
-						fileContentsRegExp.setPattern(QRegularExpression::wildcardToRegularExpression(contentsToFind));
-						assert_r(fileContentsRegExp.isValid());
-						if (!contentsCaseSensitive)
-							fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-					}
 
 					bool matchFound = contentsToFind.isEmpty();
 					while (!matchFound && !_workerThread.terminationFlag() && !stream.atEnd())
 					{
 						const QString line = stream.readLine();
 						// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
-						matchFound = contentsQueryHasWildcards ? fileContentsRegExp.match(line).hasMatch() : line.contains(contentsToFind, subjectCaseSensitivity);
+						matchFound = useFileContentsRegExp ? fileContentsRegExp.match(line).hasMatch() : line.contains(contentsToFind, contentsCaseSensitivity);
 					}
 
 					if (matchFound)
 					{
 						_controller.execOnUiThread([this, path, what](){
-						for (const auto& listener : _listeners)
-							listener->matchFound(path);
+							for (const auto& listener : _listeners)
+								listener->matchFound(path);
 						});
 					}
 				}

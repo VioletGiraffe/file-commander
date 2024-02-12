@@ -707,7 +707,8 @@ void CMainWindow::findFiles()
 		selectedPaths.push_back(_currentFileList->currentDirPathNative());
 
 
-	auto* fileSearchUi = new CFilesSearchWindow(selectedPaths, this);
+	auto* fileSearchUi = new CFilesSearchWindow(selectedPaths, nullptr);
+	fileSearchUi->setAttribute(Qt::WA_DeleteOnClose);
 	fileSearchUi->show();
 }
 

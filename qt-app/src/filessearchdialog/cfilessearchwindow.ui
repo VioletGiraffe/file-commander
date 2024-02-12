@@ -14,30 +14,9 @@
    <string>File search</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout_4">
     <item>
-     <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0,0">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Seacrh for</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="CHistoryComboBox" name="nameToFind">
-        <property name="editable">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QCheckBox" name="cbNameCaseSensitive">
-        <property name="text">
-         <string>Case sensitive</string>
-        </property>
-       </widget>
-      </item>
+     <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,1" columnstretch="0,1,0,0">
       <item row="0" column="3">
        <widget class="QPushButton" name="btnSearch">
         <property name="focusPolicy">
@@ -48,56 +27,156 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>With contents</string>
+      <item row="0" column="2">
+       <widget class="QCheckBox" name="cbNameCaseSensitive">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="CHistoryComboBox" name="fileContentsToFind">
-        <property name="editable">
-         <bool>true</bool>
+        <property name="baseSize">
+         <size>
+          <width>20</width>
+          <height>20</height>
+         </size>
         </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QCheckBox" name="cbContentsCaseSensitive">
         <property name="text">
          <string>Case sensitive</string>
         </property>
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="Line" name="line_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Search in</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
        <widget class="CHistoryComboBox" name="searchRoot">
         <property name="editable">
          <bool>true</bool>
         </property>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>With contents</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="3">
+       <widget class="QListWidget" name="resultsList">
+        <property name="uniformItemSizes">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Seacrh for</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Search in</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="CHistoryComboBox" name="nameToFind">
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="CHistoryComboBox" name="fileContentsToFind">
+          <property name="editable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="2">
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QCheckBox" name="cbContentsCaseSensitive">
+          <property name="autoFillBackground">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Case sensitive</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="cbContentsWholeWords">
+          <property name="text">
+           <string>Whole words</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="3" column="3">
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <property name="spacing">
+         <number>6</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="btnSaveResults">
+          <property name="text">
+           <string>Save results</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btnLoadResults">
+          <property name="text">
+           <string>Load results</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
      </layout>
-    </item>
-    <item>
-     <widget class="QListWidget" name="resultsList">
-      <property name="uniformItemSizes">
-       <bool>true</bool>
-      </property>
-     </widget>
     </item>
    </layout>
   </widget>
@@ -107,7 +186,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>36</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

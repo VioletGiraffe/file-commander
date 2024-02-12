@@ -7,17 +7,18 @@ DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
 
+#include <vector>
+
 namespace Ui {
 class CFilesSearchWindow;
 }
 
 class QLabel;
-class QTimer;
 
 class CFilesSearchWindow final : public QMainWindow, public CFileSearchEngine::FileSearchListener
 {
 public:
-	explicit CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent);
+	CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent);
 	~CFilesSearchWindow() override;
 
 	void itemScanned(const QString& currentItem) override;
@@ -27,14 +28,16 @@ public:
 private:
 	void search();
 
-	void addResultsToUi();
+	void addResultToUi(const QString& path);
+
+	void saveResults();
+	void loadResults();
 
 private:
-	Ui::CFilesSearchWindow *ui;
+	Ui::CFilesSearchWindow *ui = nullptr;
 	CFileSearchEngine& _engine;
 
-	QLabel* _progressLabel;
-	QTimer* _resultsListUpdateTimer = nullptr;
+	QLabel* _progressLabel = nullptr;
 	std::vector<QString> _matches;
 };
 

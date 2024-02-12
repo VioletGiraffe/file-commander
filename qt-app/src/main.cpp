@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
 	app.setOrganizationName(QSL("GitHubSoft"));
 	app.setApplicationName(QSL("File Commander"));
 
+
 	QFontDatabase::addApplicationFont(QSL(":/fonts/Roboto Mono.ttf"));
 
 	CSettings::setApplicationName(app.applicationName());
