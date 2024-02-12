@@ -191,7 +191,7 @@ void CFilesSearchWindow::saveResults()
 
 void CFilesSearchWindow::loadResults()
 {
-	const QString path = QFileDialog::getOpenFileName(this, {}, {}, QSL("*.searchresult"));
+	const QString path = QFileDialog::getOpenFileName(this, {}, ui->searchRoot->currentText().split(';').front(), QSL("*.searchresult"));
 	if (path.isEmpty())
 		return;
 
