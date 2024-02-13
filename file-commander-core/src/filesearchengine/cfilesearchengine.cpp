@@ -90,6 +90,8 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 
 		static constexpr int uniqueJobTag = static_cast<int>(jenkins_hash("CFileSearchEngine"));
 
+		QString line;
+
 		for (const QString& pathToLookIn: where)
 		{
 			scanDirectory(CFileSystemObject(pathToLookIn),
@@ -118,12 +120,11 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 
 					const auto contentsCaseSensitivity = contentsCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
-					QTextStream stream(&file);
+					QTextStream stream{ &file };
 
 					bool matchFound = contentsToFind.isEmpty();
-					while (!matchFound && !_workerThread.terminationFlag() && !stream.atEnd())
+					while (!matchFound && !_workerThread.terminationFlag() && stream.readLineInto(&line))
 					{
-						const QString line = stream.readLine();
 						// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
 						matchFound = useFileContentsRegExp ? fileContentsRegExp.match(line).hasMatch() : line.contains(contentsToFind, contentsCaseSensitivity);
 					}
