@@ -1,4 +1,5 @@
 #include "cfilesystemwatcherwindows.h"
+#include "windows/windowsutils.h"
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
 
@@ -33,14 +34,18 @@ bool CFileSystemWatcherWindows::setPathToWatch(const QString& path) noexcept
 		return true;
 
 	WCHAR wPath[32768];
-	const auto pathLen = path.toWCharArray(wPath);
+	const auto pathLen = toUncPath(path).remove(R"(\\?\)").toWCharArray(wPath);
 	if (pathLen <= 0)
 		return false;
 
 	assert_debug_only(!path.contains('\\'));
 	wPath[pathLen] = 0;
-	if (path.endsWith('/'))
-		wPath[pathLen - 1] = 0; // FindFirstChangeNotificationW fails if the trailing slash is present!
+	if (const auto trailingChar = wPath[pathLen - 1]; trailingChar == L'\\')
+		wPath[pathLen - 1] = 0; // FindFirstChangeNotificationW fails if the trailing slash is present
+
+	// But the slash is required for a drive root
+	if (pathLen >= 2 && wPath[pathLen - 2] == L':')
+		wPath[pathLen - 1] = L'\\';
 
 	_handle = ::FindFirstChangeNotificationW(wPath, FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE);
 	if (_handle == INVALID_HANDLE_VALUE)
