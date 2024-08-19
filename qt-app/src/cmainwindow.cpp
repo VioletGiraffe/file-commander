@@ -806,10 +806,6 @@ void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation
 	updateWindowTitleWithCurrentFolderNames();
 }
 
-void CMainWindow::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
-{
-}
-
 void CMainWindow::initCore()
 {
 	_controller = std::make_unique<CController>();

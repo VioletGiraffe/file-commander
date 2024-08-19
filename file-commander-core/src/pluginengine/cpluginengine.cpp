@@ -11,6 +11,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QMimeDatabase>
 RESTORE_COMPILER_WARNINGS
 
+CPluginEngine::CPluginEngine() = default;
+CPluginEngine::~CPluginEngine() = default;
+
 CPluginEngine& CPluginEngine::get()
 {
 	static CPluginEngine engine;
@@ -70,10 +73,6 @@ void CPluginEngine::panelContentsChanged(Panel p, FileListRefreshCause /*operati
 
 	auto& proxy = CController::get().pluginProxy();
 	proxy.panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirPathPosix(), controller.panel(p).list());
-}
-
-void CPluginEngine::itemDiscoveryInProgress(Panel /*p*/, qulonglong /*itemHash*/, size_t /*progress*/, const QString& /*currentDir*/)
-{
 }
 
 void CPluginEngine::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)

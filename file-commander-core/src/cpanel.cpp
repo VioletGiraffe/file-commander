@@ -297,11 +297,10 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 			if (list[(int)i].absoluteFilePath() == QLatin1String("/.."))
 				continue;
 #endif
+
 			objectsList.emplace_back(list[(int)i]);
 			if (!objectsList.back().isFile() && !objectsList.back().isDir())
 				objectsList.pop_back(); // Could be a socket
-
-			sendItemDiscoveryProgressNotification(_currentDirObject.hash(), 20 + 80 * i / numItemsFound, _currentDirObject.fullAbsolutePath());
 		}
 
 		{
@@ -360,8 +359,6 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 				}
 				else if (discoveredItem.isDir())
 					++stats.folders;
-
-				sendItemDiscoveryProgressNotification(0, size_t_max, discoveredItem.fullAbsolutePath());
 			});
 		}
 		else if (rootItem.isFile())
@@ -405,14 +402,6 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 	execOnUiThread([this, operation]() {
 		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::panelContentsChanged, _panelPosition, operation);
 	}, ContentsChangedNotificationTag);
-}
-
-// progress > 100 means indefinite
-void CPanel::sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const
-{
-	execOnUiThread([this, itemHash, progress, currentDir]() {
-		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::itemDiscoveryInProgress, _panelPosition, itemHash, progress, currentDir);
-	}, ItemDiscoveryProgressNotificationTag);
 }
 
 void CPanel::uiThreadTimerTick()

@@ -56,7 +56,6 @@ public:
 
 	// CPanel observers
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
-	void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
 
 	[[nodiscard]] CFileListView* fileListView() const;
 	[[nodiscard]] QAbstractItemModel* model() const;

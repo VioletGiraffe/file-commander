@@ -4,7 +4,6 @@
 #include "plugininterface/cfilecommanderplugin.h"
 #include "plugininterface/cfilecommanderviewerplugin.h"
 
-#include <functional>
 #include <memory>
 #include <vector>
 
@@ -12,10 +11,12 @@ class CFileCommanderViewerPlugin;
 class CPluginWindow;
 class QLibrary;
 
-class CPluginEngine : public PanelContentsChangedListener
+class CPluginEngine final : public PanelContentsChangedListener
 {
 public:
-	CPluginEngine() = default;
+	CPluginEngine();
+	~CPluginEngine() override;
+
 	CPluginEngine& operator=(const CPluginEngine& other) = delete;
 	CPluginEngine(const CPluginEngine& other) = delete;
 
@@ -26,7 +27,6 @@ public:
 
 	// CPanel observers
 	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
-	void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) override;
 
 	void selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes);
 	void currentItemChanged(Panel p, qulonglong currentItemHash);

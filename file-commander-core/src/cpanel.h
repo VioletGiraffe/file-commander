@@ -40,8 +40,6 @@ struct PanelContentsChangedListener
 	virtual ~PanelContentsChangedListener() = default;
 
 	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
-	// progress > 100 means indefinite
-	virtual void itemDiscoveryInProgress(Panel p, qulonglong itemHash, size_t progress, const QString& currentDir) = 0;
 };
 
 struct FilesystemObjectsStatistics
@@ -112,8 +110,6 @@ public:
 	void displayDirSize(qulonglong dirHash);
 
 	void sendContentsChangedNotification(FileListRefreshCause operation) const;
-	// progress > 100 means indefinite
-	void sendItemDiscoveryProgressNotification(qulonglong itemHash, size_t progress, const QString& currentDir) const;
 
 	void uiThreadTimerTick();
 
