@@ -759,7 +759,7 @@ void CMainWindow::calculateEachFolderSize()
 
 	for (const auto& item : _controller->panel(_currentFileList->panelPosition()).list())
 	{
-		if (item.second.isDir())
+		if (item.second.isDir() && !item.second.isCdUp())
 			_controller->displayDirSize(_currentFileList->panelPosition(), item.first);
 	}
 }
