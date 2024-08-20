@@ -19,24 +19,18 @@ contains(QT_ARCH, x86_64) {
 	ARCHITECTURE = x86
 }
 
-android {
-	Release:OUTPUT_DIR=android/release
-	Debug:OUTPUT_DIR=android/debug
-
-} else:ios {
-	Release:OUTPUT_DIR=ios/release
-	Debug:OUTPUT_DIR=ios/debug
-
-} else {
-	Release:OUTPUT_DIR=release/$${ARCHITECTURE}
-	Debug:OUTPUT_DIR=debug/$${ARCHITECTURE}
-
-	Release:OUTPUT_DIR_NO_ARCH=release
-	Debug:OUTPUT_DIR_NO_ARCH=debug
+Release{
+	OUTPUT_DIR=release/$${ARCHITECTURE}
+	OUTPUT_DIR_NOARCH=release
 }
 
-DESTDIR	= ../bin/$${OUTPUT_DIR}
-DESTDIR_NO_ARCH = ../bin/$${OUTPUT_DIR_NO_ARCH}
+Debug{
+	OUTPUT_DIR=debug/$${ARCHITECTURE}
+	OUTPUT_DIR_NOARCH=debug
+}
+
+DESTDIR = ../bin/$${OUTPUT_DIR}
+DESTDIR_NOARCH = ../bin/$${OUTPUT_DIR_NOARCH}
 OBJECTS_DIR = ../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
@@ -124,7 +118,7 @@ FORMS += \
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
 LIBS += -L$${DESTDIR} -lautoupdater -lcore -lqtutils -lcpputils
-LIBS += -L$${DESTDIR_NO_ARCH} -lthin_io
+LIBS += -L$${DESTDIR_NOARCH} -lthin_io
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32

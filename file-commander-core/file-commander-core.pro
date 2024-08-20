@@ -3,19 +3,19 @@ TARGET   = core
 
 include(config.pri)
 
-DESTDIR	= ../bin/$${OUTPUT_DIR}
-DESTDIR_NO_ARCH = ../bin/$${OUTPUT_DIR_NO_ARCH}
+DESTDIR = ../bin/$${OUTPUT_DIR}
+DESTDIR_NOARCH = ../bin/$${OUTPUT_DIR_NOARCH}
 OBJECTS_DIR = ../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
-	PRE_TARGETDEPS += $${DESTDIR_NO_ARCH}/libthin_io.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a
+	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libthin_io.a $${DESTDIR_NOARCH}/libcpputils.a
 }
 
-LIBS += -L$${DESTDIR} -lcpputils -lqtutils
+LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcpputils -lqtutils
 
 HEADERS += \
 	src/cfilesystemobject.h \
