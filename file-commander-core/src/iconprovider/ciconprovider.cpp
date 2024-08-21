@@ -57,30 +57,28 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object, bool guessI
 {
 	const qulonglong objectHash = object.hash();
 	const auto iconHashIterator = _iconHashForObjectHash.find(objectHash);
-	if (iconHashIterator == _iconHashForObjectHash.end())
-	{
-		QIcon icon = _provider->iconFor(object, guessIconByFileExtension);
-		if (icon.isNull())
-		{
-			if (!object.isSymLink())
-				assert_unconditional_r("Icon for " + object.fullAbsolutePath().toStdString() + " is null.");
-
-			static const QIcon nullIcon;
-			return nullIcon;
-		}
-
-		if (_iconByItsHash.size() > 10000)
-		{
-			_iconByItsHash.clear();
-			_iconHashForObjectHash.clear();
-		}
-
-		const auto iconHash = icon.cacheKey();
-		const auto iconInContainer = _iconByItsHash.emplace(iconHash, std::move(icon)).first;
-		_iconHashForObjectHash[objectHash] = iconHash;
-
-		return iconInContainer->second;
-	}
-	else
+	if (iconHashIterator != _iconHashForObjectHash.end())
 		return _iconByItsHash[iconHashIterator->second];
+
+	QIcon icon = _provider->iconFor(object, guessIconByFileExtension);
+	if (icon.isNull()) [[unlikely]]
+	{
+		//if (!object.isSymLink())
+		//	assert_unconditional_r("Icon for " + object.fullAbsolutePath().toStdString() + " is null.");
+
+		static const QIcon nullIcon;
+		return nullIcon;
+	}
+
+	if (_iconByItsHash.size() > 10000) [[unlikely]]
+	{
+		_iconByItsHash.clear();
+		_iconHashForObjectHash.clear();
+	}
+
+	const auto iconHash = icon.cacheKey();
+	const auto iconInContainer = _iconByItsHash.emplace(iconHash, std::move(icon)).first;
+	_iconHashForObjectHash[objectHash] = iconHash;
+
+	return iconInContainer->second;
 }
