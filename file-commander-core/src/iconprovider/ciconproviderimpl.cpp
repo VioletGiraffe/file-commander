@@ -63,7 +63,7 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool gue
 		else
 		{
 			WCHAR nameBuffer[32768];
-			auto* itemName = appendToString(nameBuffer, L"x", 1);
+			auto* itemName = appendToString(nameBuffer, L".", 1);
 			itemName = appendToString(itemName, object.extension());
 			*itemName = 0; // Null-terminator
 
