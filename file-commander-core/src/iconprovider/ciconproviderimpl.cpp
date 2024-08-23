@@ -26,13 +26,17 @@ inline wchar_t* appendToString(wchar_t* buffer, const wchar_t* what, size_t what
 		whatLengthInCharacters = wcslen(what);
 
 	memcpy(buffer, what, whatLengthInCharacters * sizeof(wchar_t));
-	return buffer + whatLengthInCharacters;
+	auto* end = buffer + whatLengthInCharacters;
+	*end = 0; // null-terminator;
+	return end;
 }
 
 inline wchar_t* appendToString(wchar_t* buffer, const QString& what)
 {
 	const auto written = what.toWCharArray(buffer);
-	return buffer + written;
+	auto* end = buffer + written;
+	*end = 0; // null-terminator;
+	return end;
 }
 
 QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool guessIconByFileExtension) const noexcept
@@ -64,8 +68,11 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool gue
 		{
 			WCHAR nameBuffer[32768];
 			auto* itemName = appendToString(nameBuffer, L".", 1);
-			itemName = appendToString(itemName, object.extension());
-			*itemName = 0; // Null-terminator
+			QString extension = object.extension();
+			if (extension.isEmpty())
+				extension = "1"; // Empty extension yields a special "system" icon
+
+			itemName = appendToString(itemName, extension);
 
 			result = SHGetFileInfoW(nameBuffer, FILE_ATTRIBUTE_NORMAL, &info, sizeof(info), flags);
 		}

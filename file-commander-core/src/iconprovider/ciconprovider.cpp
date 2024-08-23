@@ -78,7 +78,9 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object, bool guessI
 
 const QIcon& CIconProvider::iconFast(const CFileSystemObject& object)
 {
-	QString extension = object.extension();
+	static const QString folderUid = "@!$%#&?~";
+
+	QString extension = object.isDir() ? folderUid : object.extension();
 	const auto it = _iconByExtension.find(extension);
 	if (it != _iconByExtension.end())
 		return it.value();
