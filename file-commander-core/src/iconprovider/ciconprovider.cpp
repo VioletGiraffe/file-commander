@@ -63,19 +63,17 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object, bool guessI
 	if (iconHashIterator != _iconKeyByObjectHash.end())
 		return _iconByKey[iconHashIterator.value()];
 
-	QIcon icon = _provider->iconFor(object, false);
-
-	if (_iconByKey.size() > 10000) [[unlikely]]
+	if (_iconKeyByObjectHash.size() > 500'000) [[unlikely]]
 	{
-		_iconByKey.clear();
 		_iconKeyByObjectHash.clear();
 	}
 
+	QIcon icon = _provider->iconFor(object, false);
 	const auto iconHash = icon.cacheKey();
-	_iconKeyByObjectHash[objectHash] = iconHash;
+	_iconKeyByObjectHash.emplace(objectHash, iconHash);
 
-	const auto iconInContainer = _iconByKey.emplace(iconHash, std::move(icon));
-	return iconInContainer.value();
+	const auto iconInContainer = _iconByKey.insert_or_assign(iconHash, std::move(icon));
+	return iconInContainer.first->second;
 }
 
 const QIcon& CIconProvider::iconFast(const CFileSystemObject& object)

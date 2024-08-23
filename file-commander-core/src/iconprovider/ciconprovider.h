@@ -8,6 +8,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <memory>
+#include <unordered_map>
 
 class CFileSystemObject;
 class CIconProviderImpl;
@@ -27,7 +28,7 @@ private:
 private:
 	static std::unique_ptr<CIconProvider> _instance;
 
-	QHash<qint64, QIcon> _iconByKey;
+	std::unordered_map<qint64, QIcon> _iconByKey;
 	QHash<QString, QIcon> _iconByExtension;
 
 	QHash<qulonglong, qint64> _iconKeyByObjectHash;
