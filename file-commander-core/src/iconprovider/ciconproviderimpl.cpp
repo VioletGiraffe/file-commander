@@ -72,7 +72,7 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool gue
 			if (extension.isEmpty())
 				extension = "1"; // Empty extension yields a special "system" icon
 
-			itemName = appendToString(itemName, extension);
+			appendToString(itemName, extension);
 
 			result = SHGetFileInfoW(nameBuffer, FILE_ATTRIBUTE_NORMAL, &info, sizeof(info), flags);
 		}
