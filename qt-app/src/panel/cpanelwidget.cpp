@@ -232,7 +232,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 		dateItem->setEditable(false);
 		if (!object.isCdUp())
 		{
-			QDateTime modificationDate = fromTime_t(props.modificationDate).toLocalTime();
+			QDateTime modificationDate = object.qFileInfo().lastModified();
 			dateItem->setData(modificationDate.toString(QSL("dd.MM.yyyy hh:mm:ss")), Qt::DisplayRole);
 		}
 		dateItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object

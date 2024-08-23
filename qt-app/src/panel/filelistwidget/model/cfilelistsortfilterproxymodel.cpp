@@ -117,7 +117,7 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	case SizeColumn:
 		return leftItem.size() < rightItem.size();
 	case DateColumn:
-		return leftItem.properties().modificationDate < rightItem.properties().modificationDate;
+		return leftItem.modificationTime() < rightItem.modificationTime();
 	default:
 		break;
 	}

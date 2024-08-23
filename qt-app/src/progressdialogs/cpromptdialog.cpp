@@ -105,7 +105,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 
 		ui->m_lblItemBeingDeleted->setText(source.fullAbsolutePath());
 		ui->lblSize->setText(fileSizeToString(source.size()));
-		auto modificationDate = fromTime_t(source.properties().modificationDate).toLocalTime();
+		const auto modificationDate = source.qFileInfo().lastModified();
 		ui->lblModTime->setText(modificationDate.toString(QSL("dd.MM.yyyy hh:mm")));
 	}
 	else
@@ -116,7 +116,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		{
 			ui->lblSrcFile->setText(source.fullAbsolutePath());
 			ui->lblSourceSize->setText(fileSizeToString(source.size()));
-			auto modificationDate = fromTime_t(source.properties().modificationDate).toLocalTime();
+			const auto modificationDate = source.qFileInfo().lastModified();
 			ui->lblSourceModTime->setText(modificationDate.toString(QSL("dd.MM.yyyy hh:mm")));
 		}
 		else
@@ -126,7 +126,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 		{
 			ui->lblDstFile->setText(dest.fullAbsolutePath());
 			ui->lblDestSize->setText(fileSizeToString(dest.size()));
-			auto modificationDate = fromTime_t(dest.properties().modificationDate).toLocalTime();
+			const auto modificationDate = dest.qFileInfo().lastModified();
 			ui->lblDestModTime->setText(modificationDate.toString(QSL("dd.MM.yyyy hh:mm")));
 		}
 		else

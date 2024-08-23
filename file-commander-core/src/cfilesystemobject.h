@@ -36,10 +36,7 @@ struct CFileSystemObjectProperties {
 	QString fullName;
 	QString parentFolder;
 	QString fullPath;
-	time_t creationDate = std::numeric_limits<time_t>::max();
-	time_t modificationDate = std::numeric_limits<time_t>::max();
 	FileSystemObjectType type = UnknownType;
-	bool isCdUp = false;
 	bool exists = false;
 };
 
@@ -97,6 +94,9 @@ public:
 	[[nodiscard]] bool isSymLink() const;
 	[[nodiscard]] QString symLinkTarget() const;
 
+	[[nodiscard]] time_t creationTime() const;
+	[[nodiscard]] time_t modificationTime() const;
+
 	[[nodiscard]] bool isMovableTo(const CFileSystemObject& dest) const;
 
 	// A hack to store the size of a directory after it's calculated
@@ -112,6 +112,10 @@ public:
 
 private:
 	CFileSystemObjectProperties _properties;
+
+	static constexpr auto invalid_time = std::numeric_limits<time_t>::max();
+	mutable time_t _creationDate = invalid_time;
+	mutable time_t _modificationDate = invalid_time;
 	// Can be used to determine whether two objects are on the same drive
 	QFileInfo                   _fileInfo;
 	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();

@@ -182,15 +182,12 @@ void CFileSystemObject::refreshInfo()
 	}
 
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
-	_properties.isCdUp = _properties.fullName == QLatin1String("..");
 	// QFileInfo::canonicalPath() / QFileInfo::absolutePath are undefined for non-files
 	_properties.parentFolder = parentForAbsolutePath(_properties.fullPath);
 
 	if (!_properties.exists)
 		return;
 
-	_properties.creationDate = toTime_t(_fileInfo.birthTime());
-	_properties.modificationDate = toTime_t(_fileInfo.lastModified());
 	_properties.size = _properties.type == File ? static_cast<uint64_t>(_fileInfo.size()) : 0ULL;
 }
 
@@ -282,7 +279,7 @@ bool CFileSystemObject::isEmptyDir() const
 
 bool CFileSystemObject::isCdUp() const
 {
-	return _properties.isCdUp;
+	return _properties.fullName == QLatin1StringView("..", 2);
 }
 
 bool CFileSystemObject::isExecutable() const
@@ -385,6 +382,22 @@ QString CFileSystemObject::symLinkTarget() const
 	return _fileInfo.symLinkTarget();
 }
 
+time_t CFileSystemObject::creationTime() const
+{
+	if (_creationDate == invalid_time) [[unlikely]]
+		_creationDate = toTime_t(_fileInfo.birthTime());
+
+	return _creationDate;
+}
+
+time_t CFileSystemObject::modificationTime() const
+{
+	if (_modificationDate == invalid_time) [[unlikely]]
+		_modificationDate = toTime_t(_fileInfo.lastModified());
+
+		return _modificationDate;
+}
+
 bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
 {
 	if (!isValid() || !dest.isValid())
@@ -426,7 +439,7 @@ QString CFileSystemObject::sizeString() const
 
 QString CFileSystemObject::modificationDateString() const
 {
-	return fromTime_t(_properties.modificationDate).toLocalTime().toString(QLatin1String("dd.MM.yyyy hh:mm"));
+	return fromTime_t(modificationTime()).toLocalTime().toString(QLatin1String("dd.MM.yyyy hh:mm"));
 }
 
 
