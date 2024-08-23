@@ -17,20 +17,14 @@ contains(QT_ARCH, x86_64) {
 	ARCHITECTURE = x86
 }
 
-android {
-	Release:OUTPUT_DIR=android/release
-	Debug:OUTPUT_DIR=android/debug
+Release{
+	OUTPUT_DIR=release/$${ARCHITECTURE}
+	OUTPUT_DIR_NOARCH=release
+}
 
-} else:ios {
-	Release:OUTPUT_DIR=ios/release
-	Debug:OUTPUT_DIR=ios/debug
-
-} else {
-	Release:OUTPUT_DIR=release/$${ARCHITECTURE}
-	Debug:OUTPUT_DIR=debug/$${ARCHITECTURE}
-
-	Release:OUTPUT_DIR_NO_ARCH=release/
-	Debug:OUTPUT_DIR_NO_ARCH=debug/
+Debug{
+	OUTPUT_DIR=debug/$${ARCHITECTURE}
+	OUTPUT_DIR_NOARCH=debug
 }
 
 win*{

@@ -46,7 +46,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 	if (what.isEmpty() || where.empty())
 		return false;
 
-	_workerThread.exec([=](){
+	_workerThread.exec([=, this](){
 		::setThreadName("File search engine thread");
 
 		uint64_t itemCounter = 0;
