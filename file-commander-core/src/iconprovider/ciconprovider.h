@@ -3,10 +3,10 @@
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QHash>
 #include <QIcon>
 RESTORE_COMPILER_WARNINGS
 
-#include <unordered_map>
 #include <memory>
 
 class CFileSystemObject;
@@ -22,12 +22,15 @@ public:
 private:
 	CIconProvider();
 	const QIcon& iconFor(const CFileSystemObject& object, bool guessIconByFileExtension);
+	const QIcon& iconFast(const CFileSystemObject& object);
 
 private:
 	static std::unique_ptr<CIconProvider> _instance;
 
-	std::unordered_map<qint64, QIcon> _iconByItsHash;
-	std::unordered_map<qulonglong, qint64> _iconHashForObjectHash;
+	QHash<qint64, QIcon> _iconByKey;
+	QHash<QString, QIcon> _iconByExtension;
+
+	QHash<qulonglong, qint64> _iconKeyByObjectHash;
 
 	std::unique_ptr<CIconProviderImpl> _provider;
 };

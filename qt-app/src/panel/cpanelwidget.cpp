@@ -195,7 +195,7 @@ void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& i
 	std::vector<TreeViewItem> qTreeViewItems;
 	qTreeViewItems.reserve(items.size() * NumberOfColumns);
 
-	const bool useLessPreciseIcons = items.size() > 3000;
+	const bool useLessPreciseIcons = items.size() > 500;
 	for (const auto& item: items)
 	{
 		const CFileSystemObject& object = item.second;

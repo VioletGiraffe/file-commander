@@ -28,8 +28,8 @@ void CIconProvider::settingsChanged()
 		const bool showOverlayIcons = CSettings{}.value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
 		_instance->_provider->setShowOverlayIcons(showOverlayIcons);
 
-		_instance->_iconByItsHash.clear();
-		_instance->_iconHashForObjectHash.clear();
+		_instance->_iconByKey.clear();
+		_instance->_iconKeyByObjectHash.clear();
 	}
 }
 
@@ -55,30 +55,41 @@ CIconProvider::CIconProvider() : _provider{std::make_unique<CIconProviderImpl>()
 // guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
 const QIcon& CIconProvider::iconFor(const CFileSystemObject& object, bool guessIconByFileExtension)
 {
+	if (guessIconByFileExtension)
+		return iconFast(object);
+
 	const qulonglong objectHash = object.hash();
-	const auto iconHashIterator = _iconHashForObjectHash.find(objectHash);
-	if (iconHashIterator != _iconHashForObjectHash.end())
-		return _iconByItsHash[iconHashIterator->second];
+	const auto iconHashIterator = _iconKeyByObjectHash.find(objectHash);
+	if (iconHashIterator != _iconKeyByObjectHash.end())
+		return _iconByKey[iconHashIterator.value()];
 
-	QIcon icon = _provider->iconFor(object, guessIconByFileExtension);
-	if (icon.isNull()) [[unlikely]]
+	QIcon icon = _provider->iconFor(object, false);
+
+	if (_iconByKey.size() > 10000) [[unlikely]]
 	{
-		//if (!object.isSymLink())
-		//	assert_unconditional_r("Icon for " + object.fullAbsolutePath().toStdString() + " is null.");
-
-		static const QIcon nullIcon;
-		return nullIcon;
-	}
-
-	if (_iconByItsHash.size() > 10000) [[unlikely]]
-	{
-		_iconByItsHash.clear();
-		_iconHashForObjectHash.clear();
+		_iconByKey.clear();
+		_iconKeyByObjectHash.clear();
 	}
 
 	const auto iconHash = icon.cacheKey();
-	const auto iconInContainer = _iconByItsHash.emplace(iconHash, std::move(icon)).first;
-	_iconHashForObjectHash[objectHash] = iconHash;
+	_iconKeyByObjectHash[objectHash] = iconHash;
 
-	return iconInContainer->second;
+	const auto iconInContainer = _iconByKey.emplace(iconHash, std::move(icon));
+	return iconInContainer.value();
+}
+
+const QIcon& CIconProvider::iconFast(const CFileSystemObject& object)
+{
+	QString extension = object.extension();
+	const auto it = _iconByExtension.find(extension);
+	if (it != _iconByExtension.end())
+		return it.value();
+
+	QIcon icon = _provider->iconFor(object, true);
+
+	if (_iconByExtension.size() > 10000) [[unlikely]]
+		_iconByExtension.clear();
+
+	const auto iconInContainer = _iconByExtension.emplace(std::move(extension), std::move(icon));
+	return iconInContainer.value();
 }
