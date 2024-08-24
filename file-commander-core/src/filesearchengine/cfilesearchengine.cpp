@@ -46,70 +46,88 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 	if (what.isEmpty() || where.empty())
 		return false;
 
-	_workerThread.exec([=, this](){
-		::setThreadName("File search engine thread");
+	_workerThread.exec([=, this] {
+		searchThread(what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords);
+	});
 
-		uint64_t itemCounter = 0;
-		CTimeElapsed timer;
-		timer.start();
+	return true;
+}
 
-		const bool nameQueryHasWildcards = what.contains(QRegularExpression(QSL("[*?]")));
-		const bool noFileNameFilter = what == '*';
+void CFileSearchEngine::stopSearching()
+{
+	_workerThread.interrupt();
+}
 
-		QRegularExpression queryRegExp;
-		if (!noFileNameFilter && nameQueryHasWildcards)
-		{
-			QString adjustedQuery = what;
-			if (!adjustedQuery.startsWith('*'))
-				adjustedQuery.prepend('*');
+void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords) noexcept
+{
+	::setThreadName("File search engine thread");
 
-			if (!adjustedQuery.endsWith('*'))
-				adjustedQuery.append('*');
+	uint64_t itemCounter = 0;
+	CTimeElapsed timer;
+	timer.start();
 
-			auto regExString = QRegularExpression::wildcardToRegularExpression(adjustedQuery);
-			regExString.replace(QSL(R"([^/\\]*)"), QSL(".*"));
-			queryRegExp.setPattern(regExString);
-			assert_r(queryRegExp.isValid());
-			if (!subjectCaseSensitive)
-				queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-		}
+	const bool nameQueryHasWildcards = what.contains(QRegularExpression(QSL("[*?]")));
+	const bool noFileNameFilter = what == '*';
 
-		QRegularExpression fileContentsRegExp;
-		if (contentsToFind.contains(QRegularExpression(QSL("[*?]"))))
-		{
-			fileContentsRegExp.setPattern(QRegularExpression::wildcardToRegularExpression(contentsToFind));
-			assert_r(fileContentsRegExp.isValid());
-		}
-		else if (contentsWholeWords)
-			fileContentsRegExp = QRegularExpression{ "\\b" + contentsToFind + "\\b" };
+	QRegularExpression queryRegExp;
+	if (!noFileNameFilter && nameQueryHasWildcards)
+	{
+		QString adjustedQuery = what;
+		if (!adjustedQuery.startsWith('*'))
+			adjustedQuery.prepend('*');
 
-		if (!contentsCaseSensitive)
-			fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+		if (!adjustedQuery.endsWith('*'))
+			adjustedQuery.append('*');
 
-		const bool useFileContentsRegExp = !fileContentsRegExp.pattern().isEmpty();
+		auto regExString = QRegularExpression::wildcardToRegularExpression(adjustedQuery);
+		regExString.replace(QSL(R"([^/\\]*)"), QSL(".*"));
+		queryRegExp.setPattern(regExString);
+		assert_r(queryRegExp.isValid());
+		if (!subjectCaseSensitive)
+			queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	}
 
-		static constexpr int uniqueJobTag = static_cast<int>(jenkins_hash("CFileSearchEngine"));
+	QRegularExpression fileContentsRegExp;
+	if (contentsToFind.contains(QRegularExpression(QSL("[*?]"))))
+	{
+		fileContentsRegExp.setPattern(QRegularExpression::wildcardToRegularExpression(contentsToFind));
+		assert_r(fileContentsRegExp.isValid());
+	}
+	else if (contentsWholeWords)
+		fileContentsRegExp = QRegularExpression{ "\\b" + contentsToFind + "\\b" };
 
-		QString line;
+	if (!contentsCaseSensitive)
+		fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 
-		for (const QString& pathToLookIn: where)
-		{
-			scanDirectory(CFileSystemObject(pathToLookIn),
-				[&](const CFileSystemObject& item) {
+	const bool useFileContentsRegExp = !fileContentsRegExp.pattern().isEmpty();
+
+	static constexpr int uniqueJobTag = static_cast<int>(jenkins_hash("CFileSearchEngine"));
+
+	QString line;
+
+	for (const QString& pathToLookIn : where)
+	{
+		scanDirectory(CFileSystemObject(pathToLookIn),
+			[&](const CFileSystemObject& item) {
 
 				++itemCounter;
 
 				const QString path = item.fullAbsolutePath();
-				_controller.execOnUiThread([this, path, what](){
-					for (const auto& listener: _listeners)
-						listener->itemScanned(path);
-				}, uniqueJobTag);
+
+				if (itemCounter % 8192 == 0)
+				{
+					// No need to report every single item and waste CPU cycles
+					_controller.execOnUiThread([this, path, what]() {
+						for (const auto& listener : _listeners)
+							listener->itemScanned(path);
+						}, uniqueJobTag);
+				}
 
 				// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
-				if (   noFileNameFilter
+				if (noFileNameFilter
 					|| (nameQueryHasWildcards && queryRegExp.match(path).hasMatch())
 					|| (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive))
-				)
+					)
 				{
 					QFile file(path);
 					if (!contentsToFind.isEmpty())
@@ -131,28 +149,19 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 
 					if (matchFound)
 					{
-						_controller.execOnUiThread([this, path, what](){
+						_controller.execOnUiThread([this, path, what]() {
 							for (const auto& listener : _listeners)
 								listener->matchFound(path);
 						});
 					}
 				}
 			}, _workerThread.terminationFlag());
-		}
+	}
 
-		const auto elapsedMs = timer.elapsed();
-		const uint32_t speed = elapsedMs > 0 ? static_cast<uint32_t>(itemCounter * 1000u / elapsedMs) : 0;
-		_controller.execOnUiThread([this, speed](){
-			for (const auto& listener: _listeners)
-				listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, speed);
-		});
+	const auto elapsedMs = timer.elapsed();
+	const uint32_t speed = elapsedMs > 0 ? static_cast<uint32_t>(itemCounter * 1000u / elapsedMs) : 0;
+	_controller.execOnUiThread([this, speed]() {
+		for (const auto& listener : _listeners)
+			listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, speed);
 	});
-
-	return true;
 }
-
-void CFileSearchEngine::stopSearching()
-{
-	_workerThread.interrupt();
-}
-

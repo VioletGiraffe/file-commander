@@ -29,7 +29,7 @@ public:
 		virtual void searchFinished(SearchStatus status, uint32_t itemsPerSecond) = 0;
 	};
 
-	CFileSearchEngine(CController& controller);
+	explicit CFileSearchEngine(CController& controller);
 	void addListener(FileSearchListener* listener);
 	void removeListener(FileSearchListener* listener);
 
@@ -37,6 +37,9 @@ public:
 	bool searchInProgress() const;
 	[[nodiscard]] bool search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords);
 	void stopSearching();
+
+private:
+	void searchThread(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords) noexcept;
 
 private:
 	CController& _controller;
