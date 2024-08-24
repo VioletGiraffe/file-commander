@@ -101,7 +101,7 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 
 	const bool useFileContentsRegExp = !fileContentsRegExp.pattern().isEmpty();
 
-	static constexpr int uniqueJobTag = static_cast<int>(jenkins_hash("CFileSearchEngine"));
+	const int uniqueJobTag = static_cast<int>(jenkins_hash("CFileSearchEngine")) + rand();
 
 	QString line;
 
