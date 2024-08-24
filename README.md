@@ -12,7 +12,7 @@
 ### Download for Windows
 
 *<a href="https://github.com/VioletGiraffe/file-commander/releases/latest">Get the latest release</a>*    
-Windows Vista and later systems are supported (x32 and x64). Windows XP is not supported.
+Windows Vista and later systems are supported, x64 only (but older releases supported x86). Windows XP is not supported.
 
 ### Known Issues
 For the list of known issues, refer to the project issues on Github, sort by the "bug" label. Or just use <a href="https://github.com/VioletGiraffe/file-commander/labels/bug">this link</a>.
