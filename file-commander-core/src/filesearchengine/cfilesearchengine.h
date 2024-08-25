@@ -26,7 +26,7 @@ public:
 
 		virtual void itemScanned(const QString& currentItem) = 0;
 		virtual void matchFound(const QString& path) = 0;
-		virtual void searchFinished(SearchStatus status, uint32_t itemsPerSecond) = 0;
+		virtual void searchFinished(SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed) = 0;
 	};
 
 	explicit CFileSearchEngine(CController& controller);

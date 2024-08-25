@@ -63,11 +63,6 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	_engine.addListener(this);
 
-	_progressLabel = new QLabel(this);
-	assert_r(statusBar());
-	statusBar()->addWidget(_progressLabel, 1);
-	statusBar()->setSizePolicy(QSizePolicy::Ignored, statusBar()->sizePolicy().verticalPolicy());
-
 	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item) {
 		CController::get().activePanel().goToItem(CFileSystemObject(item->data(Qt::UserRole).toString()));
 		CMainWindow::get()->activateWindow();
@@ -77,8 +72,6 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 		ui->nameToFind->setFocus();
 		ui->nameToFind->lineEdit()->selectAll();
 	});
-
-	ui->cbNameCaseSensitive->setVisible(caseSensitiveFilesystem());
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()
@@ -90,7 +83,7 @@ CFilesSearchWindow::~CFilesSearchWindow()
 
 void CFilesSearchWindow::itemScanned(const QString& currentItem)
 {
-	_progressLabel->setText(currentItem);
+	ui->progressLabel->setText(currentItem);
 }
 
 void CFilesSearchWindow::matchFound(const QString& path)
@@ -99,16 +92,22 @@ void CFilesSearchWindow::matchFound(const QString& path)
 	addResultToUi(path);
 }
 
-void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint32_t speed)
+void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed)
 {
 	ui->btnSearch->setText(tr("Start"));
 	QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
 	if (!_matches.empty())
 		message = message % ", " % tr("%1 items found").arg(_matches.size());
-	if (speed > 0)
-		message = message % ", " % tr("search speed: %1 items/sec").arg(speed);
 
-	_progressLabel->setText(message);
+	message = message % ": " % tr("%1 items scanned in %2 sec").arg(itemsScanned).arg((double)msElapsed * 1e-3, 0, 'f', 1);
+
+	if (msElapsed > 0)
+	{
+		const uint64_t itemsPerSecond = itemsScanned * 1000ULL / msElapsed;
+		message = message % ", " % tr("search speed: %1 items/sec").arg(itemsPerSecond);
+	}
+
+	ui->progressLabel->setText(message);
 
 	ui->resultsList->setFocus();
 	if (ui->resultsList->count() > 0)

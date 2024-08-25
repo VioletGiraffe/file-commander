@@ -67,7 +67,7 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 	timer.start();
 
 	const bool nameQueryHasWildcards = what.contains(QRegularExpression(QSL("[*?]")));
-	const bool noFileNameFilter = what == '*';
+	const bool noFileNameFilter = (what == '*' || what.isEmpty());
 
 	QRegularExpression queryRegExp;
 	if (!noFileNameFilter && nameQueryHasWildcards)
@@ -98,7 +98,10 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 			assert_r(fileContentsRegExp.isValid());
 		}
 		else if (contentsWholeWords)
-			fileContentsRegExp = QRegularExpression{ "\\b" + contentsToFind + "\\b" };
+		{
+			fileContentsRegExp.setPattern("\\b" + contentsToFind + "\\b");
+			assert_r(fileContentsRegExp.isValid());
+		}
 
 		if (!contentsCaseSensitive)
 			fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
@@ -131,6 +134,9 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 					|| (nameQueryHasWildcards && queryRegExp.match(item.fullName()).hasMatch())
 					|| (!nameQueryHasWildcards && item.fullName().contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive));
 				// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
+
+				if (!nameMatches)
+					return;
 
 				bool matchFound = false;
 
@@ -169,9 +175,8 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 	}
 
 	const auto elapsedMs = timer.elapsed();
-	const uint32_t speed = elapsedMs > 0 ? static_cast<uint32_t>(itemCounter * 1000u / elapsedMs) : 0;
-	_controller.execOnUiThread([this, speed]() {
+	_controller.execOnUiThread([this, elapsedMs, itemCounter]() {
 		for (const auto& listener : _listeners)
-			listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, speed);
+			listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
 	});
 }

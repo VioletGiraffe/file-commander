@@ -23,7 +23,7 @@ public:
 
 	void itemScanned(const QString& currentItem) override;
 	void matchFound(const QString& path) override;
-	void searchFinished(CFileSearchEngine::SearchStatus status, uint32_t speed) override;
+	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed) override;
 
 private:
 	void search();
@@ -37,7 +37,6 @@ private:
 	Ui::CFilesSearchWindow *ui = nullptr;
 	CFileSearchEngine& _engine;
 
-	QLabel* _progressLabel = nullptr;
 	std::vector<QString> _matches;
 };
 
