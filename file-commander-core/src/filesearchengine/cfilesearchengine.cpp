@@ -15,16 +15,15 @@ RESTORE_COMPILER_WARNINGS
 
 static QString queryToRegex(const QString& query)
 {
-	const bool nameQueryHasWildcards = query.contains(QRegularExpression(QSL("[*?]")));
+	// Escape the dots
+	QString regExString = QString{ query }.replace('.', QLatin1StringView{ "\\." });
 
-	QString regExString;
+	const bool nameQueryHasWildcards = query.contains('*') || query.contains('?');
 	if (nameQueryHasWildcards)
 	{
-		regExString = QRegularExpression::wildcardToRegularExpression(query);
-		regExString.replace(QSL(R"([^/\\]*)"), QSL(".*"));
+		regExString.replace('?', '.').replace('*', ".*");
+		regExString.prepend("\\A").append("\\z");
 	}
-	else
-		regExString = query;
 
 	if (!regExString.startsWith('^'))
 		regExString.prepend('^');
