@@ -87,17 +87,22 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 			queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 	}
 
-	QRegularExpression fileContentsRegExp;
-	if (contentsToFind.contains(QRegularExpression(QSL("[*?]"))))
-	{
-		fileContentsRegExp.setPattern(QRegularExpression::wildcardToRegularExpression(contentsToFind));
-		assert_r(fileContentsRegExp.isValid());
-	}
-	else if (contentsWholeWords)
-		fileContentsRegExp = QRegularExpression{ "\\b" + contentsToFind + "\\b" };
+	const bool searchByContents = !contentsToFind.isEmpty();
 
-	if (!contentsCaseSensitive)
-		fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	QRegularExpression fileContentsRegExp;
+	if (searchByContents)
+	{
+		if (contentsToFind.contains(QRegularExpression(QSL("[*?]"))))
+		{
+			fileContentsRegExp.setPattern(QRegularExpression::wildcardToRegularExpression(contentsToFind));
+			assert_r(fileContentsRegExp.isValid());
+		}
+		else if (contentsWholeWords)
+			fileContentsRegExp = QRegularExpression{ "\\b" + contentsToFind + "\\b" };
+
+		if (!contentsCaseSensitive)
+			fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+	}
 
 	const bool useFileContentsRegExp = !fileContentsRegExp.pattern().isEmpty();
 
@@ -112,24 +117,26 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 
 				++itemCounter;
 
-				const QString path = item.fullAbsolutePath();
-
 				if (itemCounter % 8192 == 0)
 				{
 					// No need to report every single item and waste CPU cycles
-					_controller.execOnUiThread([this, path, what]() {
+					_controller.execOnUiThread([this, path{item.fullAbsolutePath()}]() {
 						for (const auto& listener : _listeners)
 							listener->itemScanned(path);
 						}, uniqueJobTag);
 				}
 
+				const bool nameMatches =
+					noFileNameFilter
+					|| (nameQueryHasWildcards && queryRegExp.match(item.fullName()).hasMatch())
+					|| (!nameQueryHasWildcards && item.fullName().contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive));
 				// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
-				if (noFileNameFilter
-					|| (nameQueryHasWildcards && queryRegExp.match(path).hasMatch())
-					|| (!nameQueryHasWildcards && path.contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive))
-					)
+
+				bool matchFound = false;
+
+				if (searchByContents)
 				{
-					QFile file(path);
+					QFile file{ item.fullAbsolutePath() };
 					if (!contentsToFind.isEmpty())
 					{
 						if (!file.open(QFile::ReadOnly))
@@ -140,21 +147,24 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 
 					QTextStream stream{ &file };
 
-					bool matchFound = contentsToFind.isEmpty();
 					while (!matchFound && !_workerThread.terminationFlag() && stream.readLineInto(&line))
 					{
 						// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
 						matchFound = useFileContentsRegExp ? fileContentsRegExp.match(line).hasMatch() : line.contains(contentsToFind, contentsCaseSensitivity);
 					}
-
-					if (matchFound)
-					{
-						_controller.execOnUiThread([this, path, what]() {
-							for (const auto& listener : _listeners)
-								listener->matchFound(path);
-						});
-					}
 				}
+				else
+					matchFound = nameMatches;
+
+
+				if (matchFound)
+				{
+					_controller.execOnUiThread([this, path{ item.fullAbsolutePath() }]() {
+						for (const auto& listener : _listeners)
+							listener->matchFound(path);
+					});
+				}
+
 			}, _workerThread.terminationFlag());
 	}
 

@@ -5,7 +5,7 @@ void scanDirectory(const CFileSystemObject& root, const std::function<void(const
 	if (observer)
 		observer(root);
 
-	if (!root.isDir() || abort)
+	if (!root.isDir())
 		return;
 
 	const auto list = QDir{root.fullAbsolutePath()}.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoDotAndDotDot | QDir::System);
