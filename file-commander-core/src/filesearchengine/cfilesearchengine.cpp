@@ -141,6 +141,9 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 						}, uniqueJobTag);
 				}
 
+				if (searchByContents && !item.isFile())
+					return;
+
 				const bool nameMatches = noFileNameFilter || queryRegExp.match(item.fullName()).hasMatch();
 
 				if (!nameMatches)
