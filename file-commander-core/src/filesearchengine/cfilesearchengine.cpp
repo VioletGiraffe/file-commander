@@ -13,6 +13,28 @@ DISABLE_COMPILER_WARNINGS
 #include <QTextStream>
 RESTORE_COMPILER_WARNINGS
 
+static QString queryToRegex(const QString& query)
+{
+	const bool nameQueryHasWildcards = query.contains(QRegularExpression(QSL("[*?]")));
+
+	QString regExString;
+	if (nameQueryHasWildcards)
+	{
+		regExString = QRegularExpression::wildcardToRegularExpression(query);
+		regExString.replace(QSL(R"([^/\\]*)"), QSL(".*"));
+	}
+	else
+		regExString = query;
+
+	if (!regExString.startsWith('^'))
+		regExString.prepend('^');
+
+	if (!regExString.endsWith('$'))
+		regExString.append('$');
+
+	return regExString;
+}
+
 CFileSearchEngine::CFileSearchEngine(CController& controller) :
 	_controller(controller),
 	_workerThread("File search thread")
@@ -66,23 +88,14 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 	CTimeElapsed timer;
 	timer.start();
 
-	const bool nameQueryHasWildcards = what.contains(QRegularExpression(QSL("[*?]")));
 	const bool noFileNameFilter = (what == '*' || what.isEmpty());
 
 	QRegularExpression queryRegExp;
-	if (!noFileNameFilter && nameQueryHasWildcards)
+	if (!noFileNameFilter)
 	{
-		QString adjustedQuery = what;
-		if (!adjustedQuery.startsWith('*'))
-			adjustedQuery.prepend('*');
-
-		if (!adjustedQuery.endsWith('*'))
-			adjustedQuery.append('*');
-
-		auto regExString = QRegularExpression::wildcardToRegularExpression(adjustedQuery);
-		regExString.replace(QSL(R"([^/\\]*)"), QSL(".*"));
-		queryRegExp.setPattern(regExString);
+		queryRegExp.setPattern(queryToRegex(what));
 		assert_r(queryRegExp.isValid());
+
 		if (!subjectCaseSensitive)
 			queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 	}
@@ -129,11 +142,7 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 						}, uniqueJobTag);
 				}
 
-				const bool nameMatches =
-					noFileNameFilter
-					|| (nameQueryHasWildcards && queryRegExp.match(item.fullName()).hasMatch())
-					|| (!nameQueryHasWildcards && item.fullName().contains(what, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive));
-				// contains() is faster than RegEx match (as of Qt 5.4.2, but this was for QRegExp, not tested with QRegularExpression)
+				const bool nameMatches = noFileNameFilter || queryRegExp.match(item.fullName()).hasMatch();
 
 				if (!nameMatches)
 					return;
