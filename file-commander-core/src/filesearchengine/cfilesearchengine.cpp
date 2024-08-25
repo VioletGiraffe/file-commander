@@ -151,11 +151,8 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 				if (searchByContents)
 				{
 					QFile file{ item.fullAbsolutePath() };
-					if (!contentsToFind.isEmpty())
-					{
-						if (!file.open(QFile::ReadOnly))
-							return;
-					}
+					if (!file.open(QFile::ReadOnly))
+						return;
 
 					const auto contentsCaseSensitivity = contentsCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
