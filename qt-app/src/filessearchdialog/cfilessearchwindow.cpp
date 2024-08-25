@@ -161,8 +161,6 @@ void CFilesSearchWindow::addResultToUi(const QString& path)
 	item->setData(Qt::UserRole, path);
 	ui->resultsList->addItem(item);
 
-	ui->resultsList->scrollToBottom();
-
 	ui->resultsList->setUpdatesEnabled(true);
 }
 
