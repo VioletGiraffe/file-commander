@@ -9,6 +9,10 @@
 #ifdef CFILESYSTEMOBJECT_TEST
 #define QFileInfo QFileInfo_Test
 #define QDir QDir_Test
+
+#include <QDir_Test>
+#else
+#include <QDir>
 #endif
 
 DISABLE_COMPILER_WARNINGS
@@ -76,6 +80,10 @@ CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(file
 CFileSystemObject::CFileSystemObject(const QString& path) : _fileInfo(expandEnvironmentVariables(path))
 {
 	refreshInfo();
+}
+
+CFileSystemObject::CFileSystemObject(const QDir& dir) : CFileSystemObject(QString(dir.absolutePath()))
+{
 }
 
 static QString parentForAbsolutePath(QString absolutePath)
@@ -182,13 +190,13 @@ void CFileSystemObject::refreshInfo()
 	}
 
 	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
-	// QFileInfo::canonicalPath() / QFileInfo::absolutePath are undefined for non-files
-	_properties.parentFolder = parentForAbsolutePath(_properties.fullPath);
 
 	if (!_properties.exists)
 		return;
 
 	_properties.size = _properties.type == File ? static_cast<uint64_t>(_fileInfo.size()) : 0ULL;
+
+	assert(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
 }
 
 void CFileSystemObject::setPath(const QString& path)
@@ -305,14 +313,15 @@ bool CFileSystemObject::isHidden() const
 
 QString CFileSystemObject::fullAbsolutePath() const
 {
-	assert(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
 	return _properties.fullPath;
 }
 
 QString CFileSystemObject::parentDirPath() const
 {
-	assert(_properties.parentFolder.isEmpty() || _properties.parentFolder.endsWith('/'));
-	return _properties.parentFolder;
+	const auto parentFoler = parentForAbsolutePath(_properties.fullPath);
+
+	assert(parentFoler.endsWith('/') || parentFoler.isEmpty());
+	return parentFoler;
 }
 
 uint64_t CFileSystemObject::size() const

@@ -8,10 +8,8 @@ DISABLE_COMPILER_WARNINGS
 #define QFileInfo QFileInfo_Test
 #define QDir QDir_Test
 
-#include <QDir_Test>
 #include <QFileInfo_Test>
 #else
-#include <QDir>
 #include <QFileInfo>
 #endif
 
@@ -21,6 +19,8 @@ RESTORE_COMPILER_WARNINGS
 
 #include <stdint.h>
 #include <vector>
+
+class QDir;
 
 // Return the list of consecutive full paths leading from the specified target to its root.
 // E. g. C:/Users/user/Documents/ -> {C:/Users/user/Documents/, C:/Users/user/, C:/Users/, C:/}
@@ -34,7 +34,6 @@ struct CFileSystemObjectProperties {
 	QString completeBaseName;
 	QString extension;
 	QString fullName;
-	QString parentFolder;
 	QString fullPath;
 	FileSystemObjectType type = UnknownType;
 	bool exists = false;
@@ -50,7 +49,7 @@ public:
 	explicit CFileSystemObject(const QFileInfo & fileInfo);
 	explicit CFileSystemObject(const QString& path);
 
-	inline explicit CFileSystemObject(const QDir& dir) : CFileSystemObject(QString(dir.absolutePath())) {}
+	explicit CFileSystemObject(const QDir& dir);
 
 	template <typename T, typename U>
 	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)std::forward<QStringBuilder<T, U>>(stringBuilder)) {}

@@ -13,6 +13,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QClipboard>
 #include <QDebug>
 #include <QDesktopServices>
+#include <QDir>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 

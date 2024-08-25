@@ -1,5 +1,11 @@
 #include "directoryscanner.h"
 
+#include "cfilesystemobject.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QDir>
+RESTORE_COMPILER_WARNINGS
+
 void scanDirectory(const CFileSystemObject& root, const std::function<void(const CFileSystemObject&)>& observer, const std::atomic<bool>& abort)
 {
 	if (observer)

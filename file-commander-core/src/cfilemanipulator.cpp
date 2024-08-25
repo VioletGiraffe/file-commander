@@ -4,6 +4,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
+#include <QDir>
 #include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
 

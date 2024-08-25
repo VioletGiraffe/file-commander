@@ -11,6 +11,7 @@
 #include "lang/utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDir>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 

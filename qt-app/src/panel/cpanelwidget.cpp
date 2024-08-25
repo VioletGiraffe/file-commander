@@ -456,11 +456,12 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	if (item.isCdUp())
 		return;
 
-	assert_r(item.parentDirPath().endsWith('/'));
+	const auto parentPath = item.parentDirPath();
+	assert_r(parentPath.endsWith('/'));
 	newName = FileSystemHelpers::trimUnsupportedSymbols(newName);
 
 	CFileManipulator itemManipulator(item);
-	auto result = itemManipulator.moveAtomically(item.parentDirPath(), newName);
+	auto result = itemManipulator.moveAtomically(parentPath, newName);
 
 	if (result == FileOperationResultCode::TargetAlreadyExists)
 	{
@@ -478,7 +479,7 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 				)
 				== QMessageBox::Yes)
 			{
-				result = itemManipulator.moveAtomically(item.parentDirPath(), newName, OverwriteExistingFile{ true });
+				result = itemManipulator.moveAtomically(parentPath, newName, OverwriteExistingFile{ true });
 			}
 		}
 
@@ -487,7 +488,7 @@ void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
 	if (result == FileOperationResultCode::Ok)
 	{
 		// This is required for the UI to know to move the cursor to the renamed item
-		_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(item.parentDirPath() + newName).hash());
+		_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(parentPath + newName).hash());
 	}
 	else
 	{

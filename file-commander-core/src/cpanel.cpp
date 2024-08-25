@@ -9,6 +9,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
+#include <QDir>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm> // std::min
@@ -138,8 +139,8 @@ void CPanel::navigateUp()
 		setPath(currentDirPathPosix(), refreshCauseOther);
 	else
 	{
-		if (!_currentDirObject.parentDirPath().isEmpty())
-			setPath(_currentDirObject.parentDirPath(), refreshCauseCdUp);
+		if (const auto parentDir = _currentDirObject.parentDirPath(); !parentDir.isEmpty())
+			setPath(parentDir, refreshCauseCdUp);
 		else
 			sendContentsChangedNotification(refreshCauseOther);
 	}
