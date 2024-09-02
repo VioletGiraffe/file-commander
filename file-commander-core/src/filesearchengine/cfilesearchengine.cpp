@@ -83,7 +83,7 @@ inline void replace_byte(uint8_t* array, size_t size)
 	if (!file.open(path.toUtf8().constData(), thin_io::file::open_mode::Read)) [[unlikely]]
 		return false;
 
-	const auto fileSize = file.size().value_or(0);
+	const uint64_t fileSize = file.size().value_or(0);
 	if (fileSize == 0) [[unlikely]]
 		return false;
 
@@ -99,10 +99,10 @@ inline void replace_byte(uint8_t* array, size_t size)
 	}
 
 
-	static constexpr size_t maxLineLength = 8 * 1024;
+	static constexpr uint64_t maxLineLength = 8 * 1024;
 	char buffer[maxLineLength];
 
-	for (size_t offset = 0; offset < fileSize; )
+	for (uint64_t offset = 0; offset < fileSize; )
 	{
 		const auto maxSearchLength = std::min(fileSize - offset, maxLineLength);
 		const auto lineStart = mappedFile + offset;
