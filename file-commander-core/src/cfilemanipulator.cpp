@@ -159,7 +159,7 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 
 		_destinationFilePath = destFolder + (newName.isEmpty() ? _srcObject.fullName() : newName);
 
-		if (!_destFile.open(_destinationFilePath.toUtf8().constData(), thin_io::file_definitions::Write)) [[unlikely]]
+		if (!_destFile.open(_destinationFilePath.toUtf8().constData(), thin_io::file::open_mode::Write)) [[unlikely]]
 		{
 			_lastErrorMessage = getLastFileError();
 
