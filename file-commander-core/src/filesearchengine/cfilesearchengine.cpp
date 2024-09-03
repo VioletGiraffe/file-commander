@@ -43,7 +43,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <smmintrin.h>  // SSE4.1
 
-inline void replace_byte(uint8_t* array, size_t size) noexcept
+inline void replace_byte(std::byte* array, size_t size) noexcept
 {
 	const __m128i old_sse = _mm_set1_epi8(0);
 	const __m128i new_sse = _mm_set1_epi8(' ');
@@ -61,7 +61,7 @@ inline void replace_byte(uint8_t* array, size_t size) noexcept
 
 #include <arm_neon.h>
 
-inline void replace_byte(uint8_t* array, size_t size)
+inline void replace_byte(std::byte* array, size_t size)
 {
 	uint8x16_t old_neon = vdupq_n_u8(0);  // Duplicate old_value across all 16 bytes in the vector
 	uint8x16_t new_neon = vdupq_n_u8(' ');  // Duplicate new_value across all 16 bytes in the vector
@@ -74,7 +74,6 @@ inline void replace_byte(uint8_t* array, size_t size)
 		vst1q_u8(&array[i], result);                     // Store the result back
 	}
 }
-
 #endif
 
 [[nodiscard]] static bool fileContentsMatches(const QString& path, const QRegularExpression& regex)
@@ -100,7 +99,7 @@ inline void replace_byte(uint8_t* array, size_t size)
 
 
 	static constexpr uint64_t maxLineLength = 8 * 1024;
-	char buffer[maxLineLength];
+	std::byte buffer[maxLineLength];
 
 	for (uint64_t offset = 0; offset < fileSize; )
 	{
@@ -109,9 +108,9 @@ inline void replace_byte(uint8_t* array, size_t size)
 		offset += maxSearchLength;
 
 		::memcpy(buffer, lineStart, maxSearchLength);
-		replace_byte((uint8_t*)buffer, (maxSearchLength + 15) / 16);
+		replace_byte(buffer, (maxSearchLength + 15) / 16);
 
-		QString line = QString::fromUtf8(buffer, maxSearchLength);
+		QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
 		assert(!line.isEmpty());
 		if (regex.match(line).hasMatch())
 			return true;
