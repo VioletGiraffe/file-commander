@@ -4,13 +4,6 @@
 
 #include <qcontainerfwd.h>
 
-class CController;
-
-class QString;
-
-#include <set>
-
-class CController;
 class QString;
 
 class CFileSearchEngine
@@ -29,22 +22,17 @@ public:
 		virtual void searchFinished(SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed) = 0;
 	};
 
-	explicit CFileSearchEngine(CController& controller);
-	void addListener(FileSearchListener* listener);
-	void removeListener(FileSearchListener* listener);
-
-
 	bool searchInProgress() const;
-	[[nodiscard]] bool search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords);
+	[[nodiscard]] bool search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords,
+		FileSearchListener* listener);
+
 	void stopSearching();
 
 private:
-	void searchThread(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords) noexcept;
+	void searchThread(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords,
+		FileSearchListener* listener) noexcept;
 
 private:
-	CController& _controller;
-
-	CInterruptableThread _workerThread;
-	std::set<FileSearchListener*> _listeners;
+	CInterruptableThread _workerThread{ "File search thread" };
 };
 

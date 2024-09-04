@@ -23,7 +23,6 @@ CController* CController::_instance = nullptr;
 
 CController::CController() :
 	_favoriteLocations{KEY_FAVORITES},
-	_fileSearchEngine{*this},
 	_leftPanel{LeftPanel},
 	_rightPanel{RightPanel},
 	_pluginProxy{[this](const std::function<void()>& code) {execOnUiThread(code);}},
@@ -493,11 +492,6 @@ std::optional<VolumeInfo> CController::volumeInfoById(uint64_t id) const
 CFavoriteLocations& CController::favoriteLocations()
 {
 	return _favoriteLocations;
-}
-
-CFileSearchEngine& CController::fileSearchEngine()
-{
-	return _fileSearchEngine;
 }
 
 // Returns hash of an item that was the last selected in the specified dir

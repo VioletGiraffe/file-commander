@@ -26,8 +26,7 @@ RESTORE_COMPILER_WARNINGS
 
 CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent) :
 	QMainWindow(parent),
-	ui(new Ui::CFilesSearchWindow),
-	_engine(CController::get().fileSearchEngine())
+	ui(new Ui::CFilesSearchWindow)
 {
 	ui->setupUi(this);
 
@@ -61,8 +60,6 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 	connect(ui->btnSaveResults, &QPushButton::clicked, this, &CFilesSearchWindow::saveResults);
 	connect(ui->btnLoadResults, &QPushButton::clicked, this, &CFilesSearchWindow::loadResults);
 
-	_engine.addListener(this);
-
 	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item) {
 		CController::get().activePanel().goToItem(CFileSystemObject(item->data(Qt::UserRole).toString()));
 		CMainWindow::get()->activateWindow();
@@ -76,42 +73,53 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 CFilesSearchWindow::~CFilesSearchWindow()
 {
-	_engine.removeListener(this);
 	_engine.stopSearching();
 	delete ui;
 }
 
 void CFilesSearchWindow::itemScanned(const QString& currentItem)
 {
-	ui->progressLabel->setText(currentItem);
+	QMetaObject::invokeMethod(this, [=, this] {
+			ui->progressLabel->setText(currentItem);
+		},
+		Qt::QueuedConnection
+	);
 }
 
 void CFilesSearchWindow::matchFound(const QString& path)
 {
-	_matches.push_back(path);
-	addResultToUi(path);
+	QMetaObject::invokeMethod(this, [=, this] {
+			_matches.push_back(path);
+			addResultToUi(path);
+		},
+		Qt::QueuedConnection
+	);
 }
 
 void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed)
 {
-	ui->btnSearch->setText(tr("Start"));
-	QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
-	if (!_matches.empty())
-		message = message % ", " % tr("%1 items found").arg(_matches.size());
+	QMetaObject::invokeMethod(this, [=, this]{
+			ui->btnSearch->setText(tr("Start"));
+			QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
+			if (!_matches.empty())
+				message = message % ", " % tr("%1 items found").arg(_matches.size());
 
-	message = message % ": " % tr("%1 items scanned in %2 sec").arg(itemsScanned).arg((double)msElapsed * 1e-3, 0, 'f', 1);
+			message = message % ": " % tr("%1 items scanned in %2 sec").arg(itemsScanned).arg((double)msElapsed * 1e-3, 0, 'f', 1);
 
-	if (msElapsed > 0)
-	{
-		const uint64_t itemsPerSecond = itemsScanned * 1000ULL / msElapsed;
-		message = message % ", " % tr("search speed: %1 items/sec").arg(itemsPerSecond);
-	}
+			if (msElapsed > 0)
+			{
+				const uint64_t itemsPerSecond = itemsScanned * 1000ULL / msElapsed;
+				message = message % ", " % tr("search speed: %1 items/sec").arg(itemsPerSecond);
+			}
 
-	ui->progressLabel->setText(message);
+			ui->progressLabel->setText(message);
 
-	ui->resultsList->setFocus();
-	if (ui->resultsList->count() > 0)
-		ui->resultsList->item(0)->setSelected(true);
+			ui->resultsList->setFocus();
+			if (ui->resultsList->count() > 0)
+				ui->resultsList->item(0)->setSelected(true);
+		},
+		Qt::QueuedConnection
+	);
 }
 
 void CFilesSearchWindow::search()
@@ -133,7 +141,8 @@ void CFilesSearchWindow::search()
 		ui->searchRoot->currentText().split(QSL("; ")),
 		withText,
 		ui->cbContentsCaseSensitive->isChecked(),
-		ui->cbContentsWholeWords->isChecked()
+		ui->cbContentsWholeWords->isChecked(),
+		this // listener
 		)
 	)
 	{

@@ -1,18 +1,19 @@
-#include "../ccontroller.h"
+#include "cfilesearchengine.h"
+#include "cfilesystemobject.h"
 #include "system/ctimeelapsed.h"
 #include "directoryscanner.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "file.hpp"
 
+#include "assert/advanced_assert.h"
+#include "compiler/compiler_warnings_control.h"
 #include "hash/jenkins_hash.hpp"
 #include "threading/thread_helpers.h"
 #include "utility_functions/memory_functions.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QDebug>
 #include <QRegularExpression>
-#include <QTextStream>
 RESTORE_COMPILER_WARNINGS
 
 [[nodiscard]] static QString queryToRegex(const QString& query, bool startToEnd)
@@ -119,29 +120,13 @@ inline void replace_byte(std::byte* array, size_t size)
 	return false;
 }
 
-CFileSearchEngine::CFileSearchEngine(CController& controller) :
-	_controller(controller),
-	_workerThread("File search thread")
-{
-}
-
-void CFileSearchEngine::addListener(CFileSearchEngine::FileSearchListener* listener)
-{
-	assert_and_return_r(listener, );
-	_listeners.insert(listener);
-}
-
-void CFileSearchEngine::removeListener(CFileSearchEngine::FileSearchListener* listener)
-{
-	_listeners.erase(listener);
-}
-
 bool CFileSearchEngine::searchInProgress() const
 {
 	return _workerThread.running();
 }
 
-bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords)
+bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords,
+	FileSearchListener* listener)
 {
 	if (_workerThread.running())
 	{
@@ -153,7 +138,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		return false;
 
 	_workerThread.exec([=, this] {
-		searchThread(what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords);
+		searchThread(what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords, listener);
 	});
 
 	return true;
@@ -164,7 +149,8 @@ void CFileSearchEngine::stopSearching()
 	_workerThread.interrupt();
 }
 
-void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords) noexcept
+void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords,
+	FileSearchListener* listener) noexcept
 {
 	::setThreadName("File search engine thread");
 
@@ -198,27 +184,22 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 		if (!contentsCaseSensitive)
 			fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 
-		assert_r(fileContentsRegExp.isValid());
+		if (!fileContentsRegExp.isValid())
+		{
+			listener->searchFinished(SearchCancelled, 0, 0);
+			return;
+		}
 	}
-
-	const int uniqueJobTag = static_cast<int>(jenkins_hash("CFileSearchEngine")) + rand();
-
-	QString line;
-
-	const QByteArray contentsUtf8 = contentsToFind.toUtf8();
 
 	for (const QString& pathToLookIn : where)
 	{
 		scanDirectory(CFileSystemObject(pathToLookIn),
 			[&](const CFileSystemObject& item) {
 
-				if (itemCounter % 8192 == 0)
+				if (itemCounter % 128 == 0)
 				{
 					// No need to report every single item and waste CPU cycles
-					_controller.execOnUiThread([this, path{item.fullAbsolutePath()}]() {
-						for (const auto& listener : _listeners)
-							listener->itemScanned(path);
-						}, uniqueJobTag);
+					listener->itemScanned(item.fullAbsolutePath());
 				}
 
 				++itemCounter;
@@ -241,18 +222,12 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 
 				if (matchFound)
 				{
-					_controller.execOnUiThread([this, path{ item.fullAbsolutePath() }]() {
-						for (const auto& listener : _listeners)
-							listener->matchFound(path);
-					});
+					listener->matchFound(item.fullAbsolutePath());
 				}
 
 			}, _workerThread.terminationFlag());
 	}
 
 	const auto elapsedMs = timer.elapsed();
-	_controller.execOnUiThread([this, elapsedMs, itemCounter]() {
-		for (const auto& listener : _listeners)
-			listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
-	});
+	listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
 }

@@ -34,9 +34,9 @@ private:
 	void loadResults();
 
 private:
-	Ui::CFilesSearchWindow *ui = nullptr;
-	CFileSearchEngine& _engine;
-
+	CFileSearchEngine _engine;
 	std::vector<QString> _matches;
+
+	Ui::CFilesSearchWindow *ui = nullptr;
 };
 

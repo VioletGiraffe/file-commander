@@ -6,7 +6,6 @@
 #include "plugininterface/cpluginproxy.h"
 #include "plugininterface/wcx/cwcxpluginhost.h"
 #include "favoritelocationslist/cfavoritelocations.h"
-#include "filesearchengine/cfilesearchengine.h"
 
 #include <functional>
 #include <optional>
@@ -105,7 +104,6 @@ public:
 	[[nodiscard]] std::optional<VolumeInfo> volumeInfoById(uint64_t id) const;
 
 	[[nodiscard]] CFavoriteLocations& favoriteLocations();
-	[[nodiscard]] CFileSearchEngine& fileSearchEngine();
 
 	// Returns hash of an item that was the last selected in the specified dir
 	[[nodiscard]] qulonglong currentItemHashForFolder(Panel p, const QString& dir) const;
@@ -121,7 +119,6 @@ private:
 private:
 	static CController * _instance;
 	CFavoriteLocations   _favoriteLocations;
-	CFileSearchEngine    _fileSearchEngine;
 	CPanel               _leftPanel;
 	CPanel               _rightPanel;
 	CPluginProxy         _pluginProxy;
