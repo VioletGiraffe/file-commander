@@ -34,7 +34,9 @@ ln -s /Applications /Volumes/${VOL}/
 
 hdiutil detach "/Volumes/${VOL}"
 hdiutil resize "${TMP_DMG}" -size min
+sleep 5
 hdiutil attach "${TMP_DMG}"
+sleep 2
 
 # echo '
 # tell application "Finder"
@@ -62,7 +64,9 @@ hdiutil attach "${TMP_DMG}"
 # end tell
 # ' | osascript
 
+sleep 2
 hdiutil detach "/Volumes/${VOL}"
+sleep 5
 diskutil unmount "/Volumes/${VOL}" || true
 
 #convert to compressed image, delete temp image
