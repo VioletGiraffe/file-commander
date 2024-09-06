@@ -205,21 +205,21 @@ jobs:
 
     - name: Archive DMG
       if: success() && startsWith(matrix.os, 'macos')
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: FileCommander.dmg
         path: FileCommander.dmg
 
     - name: Archive AppImage
       if: success() && startsWith(matrix.os, 'ubuntu')
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: FileCommander.AppImage
         path: FileCommander.AppImage
 
     - name: Archive Installer
       if: success() && startsWith(matrix.os, 'windows')
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: FileCommander.exe
         path: installer/windows/FileCommander.exe
@@ -230,17 +230,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download EXE
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v4
       with:
         name: FileCommander.exe
         path: .
     - name: Download DMG
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v4
       with:
         name: FileCommander.dmg
         path: .
     - name: Download AppImage
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v4
       with:
         name: FileCommander.AppImage
         path: .
