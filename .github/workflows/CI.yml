@@ -45,7 +45,7 @@ jobs:
       if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v3
       with:
-        version: '6.6.1'
+        version: '6.6.3'
         arch: 'win64_msvc2019_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
