@@ -22,6 +22,7 @@ RESTORE_COMPILER_WARNINGS
 #define SETTINGS_NAME_CASE_SENSITIVE     QSL("FileSearchDialog/Ui/CaseSensitiveName")
 #define SETTINGS_CONTENTS_TO_FIND        QSL("FileSearchDialog/Ui/ContentsToFind")
 #define SETTINGS_CONTENTS_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveContents")
+#define SETTINGS_CONTENTS_IS_REGEX       QSL("FileSearchDialog/Ui/ContentsIsRegex")
 #define SETTINGS_ROOT_FOLDER             QSL("FileSearchDialog/Ui/RootFolder")
 
 CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent) :
@@ -53,6 +54,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 	CSettings s;
 	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
 	ui->cbContentsCaseSensitive->setChecked(s.value(SETTINGS_CONTENTS_CASE_SENSITIVE, false).toBool());
+	ui->cbRegexFileContents->setChecked(s.value(SETTINGS_CONTENTS_IS_REGEX, false).toBool());
 
 	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 	connect(ui->fileContentsToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
@@ -74,6 +76,12 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 CFilesSearchWindow::~CFilesSearchWindow()
 {
 	_engine.stopSearching();
+
+	CSettings s;
+	s.setValue(SETTINGS_NAME_CASE_SENSITIVE, ui->cbNameCaseSensitive->isChecked());
+	s.setValue(SETTINGS_CONTENTS_CASE_SENSITIVE, ui->cbContentsCaseSensitive->isChecked());
+	s.setValue(SETTINGS_CONTENTS_IS_REGEX, ui->cbRegexFileContents->isChecked());
+
 	delete ui;
 }
 
@@ -142,6 +150,7 @@ void CFilesSearchWindow::search()
 		withText,
 		ui->cbContentsCaseSensitive->isChecked(),
 		ui->cbContentsWholeWords->isChecked(),
+		ui->cbRegexFileContents->isChecked(),
 		this // listener
 		)
 	)

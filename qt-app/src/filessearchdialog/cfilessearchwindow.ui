@@ -19,52 +19,8 @@
      <number>3</number>
     </property>
     <item>
-     <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,1" columnstretch="0,1,0,0">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>With contents</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Search in</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <property name="spacing">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="CHistoryComboBox" name="fileContentsToFind">
-          <property name="editable">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer">
-          <property name="orientation">
-           <enum>Qt::Orientation::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="3" column="3">
+     <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,0,0" columnstretch="0,1,0,0">
+      <item row="5" column="3">
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <property name="spacing">
          <number>6</number>
@@ -98,41 +54,13 @@
         </item>
        </layout>
       </item>
-      <item row="0" column="1">
-       <widget class="CHistoryComboBox" name="nameToFind">
-        <property name="editable">
-         <bool>true</bool>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>With contents</string>
         </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <property name="spacing">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QCheckBox" name="cbContentsCaseSensitive">
-          <property name="autoFillBackground">
-           <bool>false</bool>
-          </property>
-          <property name="text">
-           <string>Case sensitive</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cbContentsWholeWords">
-          <property name="text">
-           <string>Whole words</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="2" column="1">
-       <widget class="CHistoryComboBox" name="searchRoot">
-        <property name="editable">
-         <bool>true</bool>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
         </property>
        </widget>
       </item>
@@ -143,20 +71,68 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0" colspan="3">
-       <widget class="QListWidget" name="resultsList">
-        <property name="uniformItemSizes">
-         <bool>true</bool>
+      <item row="2" column="1">
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="spacing">
+         <number>0</number>
         </property>
-       </widget>
+        <item>
+         <widget class="CHistoryComboBox" name="fileContentsToFind">
+          <property name="editable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <property name="spacing">
+           <number>18</number>
+          </property>
+          <item>
+           <widget class="QCheckBox" name="cbContentsWholeWords">
+            <property name="text">
+             <string>Whole words</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbRegexFileContents">
+            <property name="text">
+             <string>Regex</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbContentsCaseSensitive">
+            <property name="autoFillBackground">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Case sensitive</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </item>
-      <item row="0" column="3">
-       <widget class="QPushButton" name="btnSearch">
-        <property name="focusPolicy">
-         <enum>Qt::FocusPolicy::ClickFocus</enum>
-        </property>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_3">
         <property name="text">
-         <string>Search</string>
+         <string>Search in</string>
         </property>
        </widget>
       </item>
@@ -176,6 +152,58 @@
         </property>
         <property name="text">
          <string>Case sensitive</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="CHistoryComboBox" name="nameToFind">
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0" colspan="3">
+       <widget class="QListWidget" name="resultsList">
+        <property name="uniformItemSizes">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QPushButton" name="btnSearch">
+        <property name="focusPolicy">
+         <enum>Qt::FocusPolicy::ClickFocus</enum>
+        </property>
+        <property name="text">
+         <string>Search</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="4">
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+       </layout>
+      </item>
+      <item row="4" column="1">
+       <widget class="CHistoryComboBox" name="searchRoot">
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="4">
+       <widget class="Line" name="line_2">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
        </widget>
       </item>
@@ -216,7 +244,6 @@
   <tabstop>fileContentsToFind</tabstop>
   <tabstop>searchRoot</tabstop>
   <tabstop>cbNameCaseSensitive</tabstop>
-  <tabstop>cbContentsCaseSensitive</tabstop>
   <tabstop>resultsList</tabstop>
  </tabstops>
  <resources/>

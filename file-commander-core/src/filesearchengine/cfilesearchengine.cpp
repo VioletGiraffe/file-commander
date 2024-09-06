@@ -10,6 +10,7 @@
 #include "compiler/compiler_warnings_control.h"
 #include "hash/jenkins_hash.hpp"
 #include "threading/thread_helpers.h"
+#include "threading/cworkerthread.h"
 #include "utility_functions/memory_functions.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -44,7 +45,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <smmintrin.h>  // SSE4.1
 
-inline void replace_byte(std::byte* array, size_t size) noexcept
+inline void replace_null(std::byte* array, size_t size) noexcept
 {
 	const __m128i old_sse = _mm_set1_epi8(0);
 	const __m128i new_sse = _mm_set1_epi8(' ');
@@ -62,7 +63,7 @@ inline void replace_byte(std::byte* array, size_t size) noexcept
 
 #include <arm_neon.h>
 
-inline void replace_byte(std::byte* array, size_t size)
+inline void replace_null(std::byte* array, size_t size)
 {
 	uint8x16_t old_neon = vdupq_n_u8(0);  // Duplicate old_value across all 16 bytes in the vector
 	uint8x16_t new_neon = vdupq_n_u8(' ');  // Duplicate new_value across all 16 bytes in the vector
@@ -77,7 +78,7 @@ inline void replace_byte(std::byte* array, size_t size)
 }
 #endif
 
-[[nodiscard]] static bool fileContentsMatches(const QString& path, const QRegularExpression& regex)
+[[nodiscard]] static bool fileContentsMatches(const QString& path, const QRegularExpression& regex, const QByteArray& memoryPattern)
 {
 	thin_io::file file;
 	if (!file.open(path.toUtf8().constData(), thin_io::file::open_mode::Read)) [[unlikely]]
@@ -98,23 +99,31 @@ inline void replace_byte(std::byte* array, size_t size)
 		return false;
 	}
 
-
-	static constexpr uint64_t maxLineLength = 8 * 1024;
-	std::byte buffer[maxLineLength];
-
 	for (uint64_t offset = 0; offset < fileSize; )
 	{
+		static constexpr uint64_t maxLineLength = 4 * 1024;
+
 		const auto maxSearchLength = std::min(fileSize - offset, maxLineLength);
 		const auto lineStart = mappedFile + offset;
 		offset += maxSearchLength;
 
-		::memcpy(buffer, lineStart, maxSearchLength);
-		replace_byte(buffer, (maxSearchLength + 15) / 16);
+		if (memoryPattern.isEmpty()) // Match using regex - slow(er)
+		{
+			alignas(4096) std::byte buffer[maxLineLength];
+			::memcpy(buffer, lineStart, maxSearchLength);
+			// Remove nulls from the contents so that QString ingests all data
+			replace_null(buffer, (maxSearchLength + 15) / 16);
 
-		QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
-		assert(!line.isEmpty());
-		if (regex.match(line).hasMatch())
-			return true;
+			const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
+			assert(!line.isEmpty());
+			if (regex.match(line).hasMatch())
+				return true;
+		}
+		else // Match the string directly - fast
+		{
+			if (memfind(lineStart, maxSearchLength, memoryPattern.constData(), memoryPattern.size()) != nullptr)
+				return true;
+		}
 	}
 
 	return false;
@@ -125,7 +134,10 @@ bool CFileSearchEngine::searchInProgress() const
 	return _workerThread.running();
 }
 
-bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords,
+bool CFileSearchEngine::search(
+	const QString& what, bool subjectCaseSensitive,
+	const QStringList& where,
+	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
 	FileSearchListener* listener)
 {
 	if (_workerThread.running())
@@ -138,7 +150,7 @@ bool CFileSearchEngine::search(const QString& what, bool subjectCaseSensitive, c
 		return false;
 
 	_workerThread.exec([=, this] {
-		searchThread(what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords, listener);
+		searchThread(what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords, contentsIsRegex, listener);
 	});
 
 	return true;
@@ -149,7 +161,10 @@ void CFileSearchEngine::stopSearching()
 	_workerThread.interrupt();
 }
 
-void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensitive, const QStringList& where, const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords,
+void CFileSearchEngine::searchThread(
+	const QString& what, bool subjectCaseSensitive,
+	const QStringList& where,
+	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
 	FileSearchListener* listener) noexcept
 {
 	::setThreadName("File search engine thread");
@@ -173,23 +188,31 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 	const bool searchByContents = !contentsToFind.isEmpty();
 
 	QRegularExpression fileContentsRegExp;
+	QByteArray fileContentsPlainText;
 	if (searchByContents)
 	{
-		QString pattern = queryToRegex(contentsToFind, false);
-		if (contentsWholeWords)
-			pattern.prepend("\\b").append("\\b");
-
-		fileContentsRegExp.setPattern(pattern);
-
-		if (!contentsCaseSensitive)
-			fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-
-		if (!fileContentsRegExp.isValid())
+		if (contentsIsRegex)
 		{
-			listener->searchFinished(SearchCancelled, 0, 0);
-			return;
+			QString pattern = queryToRegex(contentsToFind, false);
+			if (contentsWholeWords)
+				pattern.prepend("\\b").append("\\b");
+
+			fileContentsRegExp.setPattern(pattern);
+
+			if (!contentsCaseSensitive)
+				fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+
+			if (!fileContentsRegExp.isValid())
+			{
+				listener->searchFinished(SearchCancelled, 0, 0);
+				return;
+			}
 		}
+		else
+			fileContentsPlainText = contentsToFind.toUtf8();
 	}
+
+	CWorkerThreadPool pool{ std::max(std::thread::hardware_concurrency(), 16u), "File search by contents thread pool"};
 
 	for (const QString& pathToLookIn : where)
 	{
@@ -212,21 +235,23 @@ void CFileSearchEngine::searchThread(const QString& what, bool subjectCaseSensit
 				if (!nameMatches)
 					return;
 
-				bool matchFound = false;
-
 				if (searchByContents)
-					matchFound = fileContentsMatches(item.fullAbsolutePath(), fileContentsRegExp);
-				else
-					matchFound = nameMatches;
-
-
-				if (matchFound)
+				{
+					pool.enqueue([path{item.fullAbsolutePath()}, listener, &fileContentsRegExp, &fileContentsPlainText] {
+						if (fileContentsMatches(path, fileContentsRegExp, fileContentsPlainText))
+							listener->matchFound(path);
+					});
+				}
+				else if (nameMatches)
 				{
 					listener->matchFound(item.fullAbsolutePath());
 				}
 
 			}, _workerThread.terminationFlag());
 	}
+
+	const bool interrupt = _workerThread.terminationFlag();
+	pool.finishAllThreads(!interrupt); // On normal exit have to waut for all pending search tasks to complete; on abort terminate ASAP
 
 	const auto elapsedMs = timer.elapsed();
 	listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
