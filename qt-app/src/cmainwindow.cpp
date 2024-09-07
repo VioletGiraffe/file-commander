@@ -135,7 +135,7 @@ void CMainWindow::updateInterface()
 	if ((windowState() & Qt::WindowFullScreen) != 0)
 		ui->actionFull_screen_mode->setChecked(true);
 
-	const Panel lastActivePanel = (Panel)s.value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt();
+	const Panel lastActivePanel = _controller->activePanelPosition();
 	if (lastActivePanel == Panel::LeftPanel)
 		ui->leftPanel->setFocusToFileList();
 	else
