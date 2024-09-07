@@ -253,17 +253,17 @@ TEST_CASE((std::string("Copy test - 20K files #") + std::to_string(rand())).c_st
 	copyTest(20'000);
 }
 
-TEST_CASE((std::string("Move test - empty files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+TEST_CASE((std::string("Move test - empty files #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
 {
 	moveTest(0);
 }
 
-TEST_CASE((std::string("Move test - 5K files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+TEST_CASE((std::string("Move test - 5K files #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
 {
 	moveTest(5000);
 }
 
-TEST_CASE((std::string("Move test - 20K files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+TEST_CASE((std::string("Move test - 20K files #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
 {
 	moveTest(20'000);
 }

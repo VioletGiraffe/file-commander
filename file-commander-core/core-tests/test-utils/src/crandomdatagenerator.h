@@ -16,6 +16,9 @@ public:
 	template <typename T>
 	[[nodiscard]] T randomNumber(T min, T max)
 	{
+		if (max < min) [[unlikely]]
+			max = min;
+
 		if constexpr (std::is_integral_v<T>)
 			return std::uniform_int_distribution<T>(min, max)(_rng);
 		else if constexpr (std::is_floating_point_v<T>)

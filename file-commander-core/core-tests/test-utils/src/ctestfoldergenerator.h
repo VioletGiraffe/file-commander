@@ -3,6 +3,7 @@
 
 class QString;
 
+#include <optional>
 #include <vector>
 
 class CTestFolderGenerator
@@ -20,7 +21,8 @@ private:
 	bool generateRandomFiles(const QString& parentDir, size_t numFiles, size_t maxFilesSize);
 	std::vector<QString> generateRandomFolders(const QString& parentDir, size_t numFolders);
 
-private:
+	std::optional<int> generateFolderTree(const QString& parentDir, int numFolders, std::vector<QString>& folders);
+
 	bool createRandomFile(const QString& parentDir, size_t fileSize);
 
 private:
