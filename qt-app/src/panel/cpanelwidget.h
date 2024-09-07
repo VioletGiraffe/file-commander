@@ -123,7 +123,7 @@ private:
 	QItemSelectionModel           * _selectionModel = nullptr;
 	CFileListModel                * _model = nullptr;
 	CFileListSortFilterProxyModel * _sortModel = nullptr;
-	Panel                           _panelPosition = UnknownPanel;
+	Panel                           _panelPosition = Panel::UnknownPanel;
 
 	QShortcut                       _calcDirSizeShortcut;
 	QShortcut                       _selectCurrentItemShortcut;

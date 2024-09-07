@@ -41,5 +41,5 @@ signals:
 private:
 	CController & _controller;
 	QTreeView   * _tree = nullptr;
-	Panel         _panel = UnknownPanel;
+	Panel         _panel = Panel::UnknownPanel;
 };

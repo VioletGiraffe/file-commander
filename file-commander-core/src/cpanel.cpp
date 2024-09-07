@@ -30,7 +30,7 @@ CPanel::CPanel(Panel position) :
 	_panelPosition(position),
 	_workerThreadPool(
 		std::min(4u, std::thread::hardware_concurrency()),
-		std::string(position == LeftPanel ? "Left panel" : "Right panel") + " file list refresh thread pool"
+		std::string(position == Panel::LeftPanel ? "Left panel" : "Right panel") + " file list refresh thread pool"
 	)
 {
 }
@@ -43,9 +43,9 @@ CPanel::~CPanel()
 void CPanel::restoreFromSettings()
 {
 	CSettings s;
-	const QStringList historyList = s.value(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList();
+	const QStringList historyList = s.value(_panelPosition == Panel::RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList();
 	_history.addLatest(to_vector<QString>(historyList));
-	setPath(s.value(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString(), refreshCauseOther);
+	setPath(s.value(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString(), refreshCauseOther);
 }
 
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
@@ -108,10 +108,10 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (_history.currentItem() != newPath)
 	{
 		_history.addLatest(newPath);
-		settings.setValue(_panelPosition == RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList(_history.list().cbegin(), _history.list().cend())));
+		settings.setValue(_panelPosition == Panel::RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList(_history.list().cbegin(), _history.list().cend())));
 	}
 
-	settings.setValue(_panelPosition == LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
+	settings.setValue(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
 
 	if (_watcher.setPathToWatch(newPath) == false)
 		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";

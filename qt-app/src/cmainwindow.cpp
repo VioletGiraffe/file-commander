@@ -147,8 +147,8 @@ void CMainWindow::updateInterface()
 	if ((windowState() & Qt::WindowFullScreen) != 0)
 		ui->actionFull_screen_mode->setChecked(true);
 
-	const Panel lastActivePanel = (Panel)s.value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt();
-	if (lastActivePanel == LeftPanel)
+	const Panel lastActivePanel = (Panel)s.value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt();
+	if (lastActivePanel == Panel::LeftPanel)
 		ui->leftPanel->setFocusToFileList();
 	else
 		ui->rightPanel->setFocusToFileList();
@@ -337,12 +337,12 @@ void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 
 void CMainWindow::currentPanelChanged(const Panel panel)
 {
-	if (panel == RightPanel)
+	if (panel == Panel::RightPanel)
 	{
 		_currentFileList = _rightPanelDisplayController.panelWidget();
 		_otherFileList = _leftPanelDisplayController.panelWidget();
 	}
-	else if (panel == LeftPanel)
+	else if (panel == Panel::LeftPanel)
 	{
 		_currentFileList = _leftPanelDisplayController.panelWidget();
 		_otherFileList = _rightPanelDisplayController.panelWidget();
@@ -357,7 +357,7 @@ void CMainWindow::currentPanelChanged(const Panel panel)
 	}
 
 	_controller->activePanelChanged(_currentFileList->panelPosition());
-	CSettings().setValue(KEY_LAST_ACTIVE_PANEL, _currentFileList->panelPosition());
+	CSettings().setValue(KEY_LAST_ACTIVE_PANEL, (int)_currentFileList->panelPosition());
 	ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPathNative());
 	CPluginEngine::get().currentPanelChanged(_currentFileList->panelPosition());
 	_commandLineCompleter.setModel(_currentFileList->sortModel());
@@ -372,11 +372,11 @@ void CMainWindow::uiThreadTimerTick()
 // Window title management (#143)
 void CMainWindow::updateWindowTitleWithCurrentFolderNames()
 {
-	QString leftPanelDirName = _controller->panel(LeftPanel).currentDirName();
+	QString leftPanelDirName = _controller->panel(Panel::LeftPanel).currentDirName();
 	if (leftPanelDirName.length() > 1 && leftPanelDirName.endsWith('/'))
 		leftPanelDirName.chop(1);
 
-	QString rightPanelDirName = _controller->panel(RightPanel).currentDirName();
+	QString rightPanelDirName = _controller->panel(Panel::RightPanel).currentDirName();
 	if (rightPanelDirName.length() > 1 && rightPanelDirName.endsWith('/'))
 		rightPanelDirName.chop(1);
 
@@ -715,8 +715,8 @@ void CMainWindow::findFiles()
 void CMainWindow::showHiddenFiles()
 {
 	CSettings().setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, ui->action_Show_hidden_files->isChecked());
-	_controller->refreshPanelContents(LeftPanel);
-	_controller->refreshPanelContents(RightPanel);
+	_controller->refreshPanelContents(Panel::LeftPanel);
+	_controller->refreshPanelContents(Panel::RightPanel);
 }
 
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
@@ -791,11 +791,11 @@ void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
 
 	for (int i = 0; i < ui->leftWidget->count(); ++i)
 		if (now == ui->leftWidget || WidgetUtils::widgetBelongsToHierarchy(now, ui->leftWidget->widget(i)))
-			currentPanelChanged(LeftPanel);
+			currentPanelChanged(Panel::LeftPanel);
 
 	for (int i = 0; i < ui->rightWidget->count(); ++i)
 		if (now == ui->rightWidget || WidgetUtils::widgetBelongsToHierarchy(now, ui->rightWidget->widget(i)))
-			currentPanelChanged(RightPanel);
+			currentPanelChanged(Panel::RightPanel);
 }
 
 void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
@@ -812,7 +812,7 @@ void CMainWindow::initCore()
 	ui->leftPanel->init(_controller.get());
 	ui->rightPanel->init(_controller.get());
 
-	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, LeftPanel).toInt());
+	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt());
 
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
@@ -840,16 +840,16 @@ void CMainWindow::initCore()
 	initButtons();
 	initActions();
 
-	ui->leftPanel->setPanelPosition(LeftPanel);
-	ui->rightPanel->setPanelPosition(RightPanel);
+	ui->leftPanel->setPanelPosition(Panel::LeftPanel);
+	ui->rightPanel->setPanelPosition(Panel::RightPanel);
 
 	ui->fullPath->clear();
 
 	ui->leftWidget->setCurrentIndex(0); // PanelWidget
 	ui->rightWidget->setCurrentIndex(0); // PanelWidget
 
-	_controller->panel(LeftPanel).addPanelContentsChangedListener(this);
-	_controller->panel(RightPanel).addPanelContentsChangedListener(this);
+	_controller->panel(Panel::LeftPanel).addPanelContentsChangedListener(this);
+	_controller->panel(Panel::RightPanel).addPanelContentsChangedListener(this);
 
 	connect(_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
 	_uiThreadTimer->start(10);
@@ -909,11 +909,11 @@ void CMainWindow::addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& en
 CPanelDisplayController& CMainWindow::currentPanelDisplayController()
 {
 	const auto panel = _controller->activePanelPosition();
-	if (panel == RightPanel)
+	if (panel == Panel::RightPanel)
 		return _rightPanelDisplayController;
 	else
 	{
-		assert_r(panel != UnknownPanel);
+		assert_r(panel != Panel::UnknownPanel);
 		return _leftPanelDisplayController;
 	}
 }
@@ -921,11 +921,11 @@ CPanelDisplayController& CMainWindow::currentPanelDisplayController()
 CPanelDisplayController& CMainWindow::otherPanelDisplayController()
 {
 	const auto panel = _controller->activePanelPosition();
-	if (panel == RightPanel)
+	if (panel == Panel::RightPanel)
 		return _leftPanelDisplayController;
 	else
 	{
-		assert_r(panel != UnknownPanel);
+		assert_r(panel != Panel::UnknownPanel);
 		return _rightPanelDisplayController;
 	}
 }

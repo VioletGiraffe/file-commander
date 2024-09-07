@@ -116,8 +116,8 @@ CFileCommanderViewerPlugin::PluginWindowPointerType CPluginEngine::createViewerW
 
 PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 {
-	assert_r(p != UnknownPanel);
-	return p == LeftPanel ? PluginLeftPanel : PluginRightPanel;
+	assert_r(p != Panel::UnknownPanel);
+	return p == Panel::LeftPanel ? PluginLeftPanel : PluginRightPanel;
 }
 
 CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()

@@ -90,7 +90,7 @@ private:
 
 	QModelIndex                         _currentItemBeforeMouseClick;
 
-	enum Panel                          _panelPosition = UnknownPanel;
+	enum Panel                          _panelPosition = Panel::UnknownPanel;
 	bool                                _bHeaderAdjustmentRequired = true;
 	QPoint                              _singleMouseClickPos;
 	bool                                _singleMouseClickValid = false;

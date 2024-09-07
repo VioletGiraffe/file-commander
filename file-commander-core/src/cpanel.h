@@ -20,7 +20,7 @@ using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #include <vector>
 #include <utility>
 
-enum Panel
+enum class Panel
 {
 	LeftPanel,
 	RightPanel,

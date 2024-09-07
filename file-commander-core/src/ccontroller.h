@@ -127,7 +127,7 @@ private:
 #endif
 	CVolumeEnumerator    _volumeEnumerator;
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;
-	Panel                _activePanel = UnknownPanel;
+	Panel                _activePanel = Panel::UnknownPanel;
 
 	CWorkerThreadPool _workerThreadPool; // The thread used to execute tasks out of the UI thread
 	CExecutionQueue   _uiQueue;      // The queue for actions that must be executed on the UI thread

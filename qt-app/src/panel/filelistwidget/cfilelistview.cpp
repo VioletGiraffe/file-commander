@@ -58,7 +58,7 @@ void CFileListView::addEventObserver(FileListViewEventObserver* observer)
 // Sets the position (left or right) of a panel that this model represents
 void CFileListView::setPanelPosition(enum Panel p)
 {
-	assert_r(_panelPosition == UnknownPanel); // Doesn't make sense to call this method more than once
+	assert_r(_panelPosition == Panel::UnknownPanel); // Doesn't make sense to call this method more than once
 	_panelPosition = p;
 }
 

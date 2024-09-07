@@ -23,8 +23,8 @@ CController* CController::_instance = nullptr;
 
 CController::CController() :
 	_favoriteLocations{KEY_FAVORITES},
-	_leftPanel{LeftPanel},
-	_rightPanel{RightPanel},
+	_leftPanel{Panel::LeftPanel},
+	_rightPanel{Panel::RightPanel},
 	_pluginProxy{[this](const std::function<void()>& code) {execOnUiThread(code);}},
 	_workerThreadPool{2, "CController thread pool"}
 {
@@ -138,7 +138,7 @@ std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVo
 	else
 	{
 		// Otherwise navigate to the last known path for this volume, or its root if no path was recorded previously
-		const QString lastPathForDrive = CSettings{}.value(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), drivePath).toString();
+		const QString lastPathForDrive = CSettings{}.value(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), drivePath).toString();
 		return {setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok, drivePath};
 	}
 }
@@ -351,9 +351,9 @@ const CPanel &CController::panel(Panel p) const
 {
 	switch (p)
 	{
-	case LeftPanel:
+	case Panel::LeftPanel:
 		return _leftPanel;
-	case RightPanel:
+	case Panel::RightPanel:
 		return _rightPanel;
 	default:
 		assert_unconditional_r("Unknown panel");
@@ -365,9 +365,9 @@ CPanel& CController::panel(Panel p)
 {
 	switch (p)
 	{
-	case LeftPanel:
+	case Panel::LeftPanel:
 		return _leftPanel;
-	case RightPanel:
+	case Panel::RightPanel:
 		return _rightPanel;
 	default:
 		assert_unconditional_r("Unknown panel");
@@ -379,9 +379,9 @@ const CPanel &CController::otherPanel(Panel p) const
 {
 	switch (p)
 	{
-	case LeftPanel:
+	case Panel::LeftPanel:
 		return _rightPanel;
-	case RightPanel:
+	case Panel::RightPanel:
 		return _leftPanel;
 	default:
 		assert_unconditional_r("Uknown panel");
@@ -393,9 +393,9 @@ CPanel& CController::otherPanel(Panel p)
 {
 	switch (p)
 	{
-	case LeftPanel:
+	case Panel::LeftPanel:
 		return _rightPanel;
-	case RightPanel:
+	case Panel::RightPanel:
 		return _leftPanel;
 	default:
 		assert_unconditional_r("Uknown panel");
@@ -408,20 +408,20 @@ Panel CController::otherPanelPosition(Panel p)
 {
 	switch (p)
 	{
-	case LeftPanel:
-		return RightPanel;
-	case RightPanel:
-		return LeftPanel;
+	case Panel::LeftPanel:
+		return Panel::RightPanel;
+	case Panel::RightPanel:
+		return Panel::LeftPanel;
 	default:
 		assert_unconditional_r("Uknown panel");
-		return LeftPanel;
+		return Panel::LeftPanel;
 	}
 }
 
 
 Panel CController::activePanelPosition() const
 {
-	assert_r(_activePanel == RightPanel || _activePanel == LeftPanel);
+	assert_r(_activePanel == Panel::RightPanel || _activePanel == Panel::LeftPanel);
 	return _activePanel;
 }
 
@@ -516,8 +516,8 @@ void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept
 
 	for (auto& listener: _volumesChangedListeners)
 	{
-		listener->volumesChanged(drives, RightPanel, drivesListOrReadinessChanged);
-		listener->volumesChanged(drives, LeftPanel, drivesListOrReadinessChanged);
+		listener->volumesChanged(drives, Panel::RightPanel, drivesListOrReadinessChanged);
+		listener->volumesChanged(drives, Panel::LeftPanel, drivesListOrReadinessChanged);
 	}
 }
 
@@ -537,5 +537,5 @@ void CController::saveDirectoryForCurrentVolume(Panel p)
 	assert_and_return_r(currentVolume, );
 
 	const QString drivePath = currentVolume->rootObjectInfo.fullAbsolutePath();
-	CSettings().setValue(p == LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
+	CSettings().setValue(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
 }

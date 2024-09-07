@@ -10,7 +10,6 @@ RESTORE_COMPILER_WARNINGS
 CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
 	QSortFilterProxyModel(parent),
 	_controller(CController::get()),
-	_panel(UnknownPanel),
 	_sorter(CNaturalSorting(nsaQCollator, {}))
 {
 }
@@ -18,7 +17,7 @@ CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
 // Sets the position (left or right) of a panel that this model represents
 void CFileListSortFilterProxyModel::setPanelPosition(Panel p)
 {
-	assert_r(_panel == UnknownPanel); // Doesn't make sense to call this method more than once
+	assert_r(_panel == Panel::UnknownPanel); // Doesn't make sense to call this method more than once
 	_panel = p;
 }
 

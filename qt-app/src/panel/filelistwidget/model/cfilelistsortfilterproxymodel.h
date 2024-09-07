@@ -33,7 +33,7 @@ protected:
 
 private:
 	CController   & _controller;
-	Panel           _panel;
 	CNaturalSorting _sorter;
+	Panel           _panel = Panel::UnknownPanel;
 };
 

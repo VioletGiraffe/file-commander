@@ -22,7 +22,7 @@ CFileListModel::CFileListModel(QTreeView * treeView, QObject *parent) :
 // Sets the position (left or right) of a panel that this model represents
 void CFileListModel::setPanelPosition(Panel p)
 {
-	assert_r(_panel == UnknownPanel); // Doesn't make sense to call this method more than once
+	assert_r(_panel == Panel::UnknownPanel); // Doesn't make sense to call this method more than once
 	_panel = p;
 }
 

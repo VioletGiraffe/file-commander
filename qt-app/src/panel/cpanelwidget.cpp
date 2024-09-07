@@ -133,7 +133,7 @@ Panel CPanelWidget::panelPosition() const
 
 void CPanelWidget::setPanelPosition(Panel p)
 {
-	assert_r(_panelPosition == UnknownPanel);
+	assert_r(_panelPosition == Panel::UnknownPanel);
 	_panelPosition = p;
 
 	ui->_list->installEventFilter(this);
