@@ -31,10 +31,6 @@ public:
 	~CMainWindow() noexcept;
 	[[nodiscard]] static CMainWindow* get();
 
-	// One-time initialization
-	[[nodiscard]] bool created() const;
-	void onCreate();
-
 	void updateInterface();
 
 	void initButtons();

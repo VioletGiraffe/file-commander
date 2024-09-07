@@ -88,6 +88,21 @@ CMainWindow::CMainWindow(QWidget *parent) noexcept :
 	ui->_commandLine->installEventFilter(this);
 
 	_uiThreadTimer = new QTimer{ this };
+
+	initCore();
+
+	// Check for updates
+	CSettings s;
+	if (s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() &&
+		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000LL * 3600LL * 24LL)
+	{
+		s.setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
+		auto* dlg = new CUpdaterDialog(this, REPO_NAME, VERSION_STRING, true);
+		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
+		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
+	}
+
+	//qApp->setStyleSheet(s.value(KEY_INTERFACE_STYLE_SHEET).toString());
 }
 
 CMainWindow::~CMainWindow() noexcept
@@ -101,33 +116,6 @@ CMainWindow::~CMainWindow() noexcept
 CMainWindow *CMainWindow::get()
 {
 	return _instance;
-}
-
-bool CMainWindow::created() const
-{
-	return _controller != nullptr;
-}
-
-// One-time initialization
-void CMainWindow::onCreate()
-{
-	assert_debug_only(!created());
-
-	initCore();
-
-	CSettings s;
-
-	// Check for updates
-	if (s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() &&
-		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000LL * 3600LL * 24LL)
-	{
-		s.setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-		auto* dlg = new CUpdaterDialog(this, REPO_NAME, VERSION_STRING, true);
-		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
-		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
-	}
-
-	//qApp->setStyleSheet(s.value(KEY_INTERFACE_STYLE_SHEET).toString());
 }
 
 void CMainWindow::updateInterface()

@@ -48,7 +48,6 @@ int main(int argc, char *argv[])
 
 	CMainWindow w;
 
-	w.onCreate();
 	w.updateInterface();
 
 	if (app.arguments().contains(QL1("--test-launch")))
