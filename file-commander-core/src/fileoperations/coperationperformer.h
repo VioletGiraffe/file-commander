@@ -64,11 +64,12 @@ public:
 	void cancel();
 
 private:
-	void threadFunc();
+	void thread();
 	void waitForResponse();
 
 	void copyFiles();
 	void deleteFiles();
+	void moveWithinSameDrive();
 
 	void finalize();
 

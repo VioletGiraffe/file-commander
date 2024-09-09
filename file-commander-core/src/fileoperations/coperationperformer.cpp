@@ -37,7 +37,7 @@ COperationPerformer::COperationPerformer(const Operation operation, std::vector<
 	_op(operation)
 {
 	_source.reserve(source.size());
-	for (auto&& o: std::move(source))
+	for (auto&& o: source)
 		_source.emplace_back(std::move(o));
 }
 
@@ -95,7 +95,7 @@ void COperationPerformer::userResponse(HaltReason haltReason, UserResponse respo
 
 void COperationPerformer::start()
 {
-	_thread = std::thread(&COperationPerformer::threadFunc, this);
+	_thread = std::thread(&COperationPerformer::thread, this);
 }
 
 void COperationPerformer::cancel()
@@ -103,7 +103,7 @@ void COperationPerformer::cancel()
 	_cancelRequested = true;
 }
 
-void COperationPerformer::threadFunc()
+void COperationPerformer::thread()
 {
 	_inProgress = true;
 
@@ -152,8 +152,6 @@ void COperationPerformer::copyFiles()
 	assert_and_return_r(_op == operationCopy || _op == operationMove, );
 	qInfo() << __FUNCTION__ << (_op == operationCopy ? "Copying directory" : "Moving directory") << _source << "to" << _destFileSystemObject.fullAbsolutePath();
 
-	size_t currentItemIndex = 0;
-
 	// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
 	if (_source.size() == 1 && _source.front().object.isFile() && !_destFileSystemObject.isDir())
 		_newName = _destFileSystemObject.fullName();
@@ -162,49 +160,7 @@ void COperationPerformer::copyFiles()
 	// Moving means renaming the root source folder / file, which is fast and simple. Just make sure the destination folder exists.
 	if (_op == operationMove && _source.front().object.isMovableTo(_destFileSystemObject))
 	{
-		assert_r(std::all_of(_source.cbegin() + 1, _source.cend(), [this](const ObjectToProcess& o) { return o.object.isMovableTo(_destFileSystemObject); }));
-		_totalTimeElapsed.start();
-
-		// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
-		for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
-		{
-			if (sourceIterator->object.isCdUp())
-			{
-				++sourceIterator;
-				++currentItemIndex;
-				continue;
-			}
-
-			const QString newFileName = !_newName.isEmpty() ? _newName :  sourceIterator->object.fullName();
-			_newName.clear();
-			CFileManipulator itemManipulator(sourceIterator->object);
-			const auto result = itemManipulator.moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
-			if (result != FileOperationResultCode::Ok)
-			{
-				const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, sourceIterator->object, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), itemManipulator.lastErrorMessage());
-				// Handler is identical to that of the main loop
-				// esp. for the case of hrFileExists
-				if (response == urSkipThis || response == urSkipAll)
-				{
-					++sourceIterator;
-					++currentItemIndex;
-					continue;
-				}
-				else if (response == urAbort)
-					return;
-				else if (response == urRename)
-					// _newName has been set and will be taken into account
-					continue;
-				else if (response == urRetry)
-					continue;
-				else
-					assert_r(response == urProceedWithThis || response == urProceedWithAll);
-			}
-
-			++sourceIterator;
-			++currentItemIndex;
-		}
-
+		moveWithinSameDrive();
 		return;
 	}
 
@@ -218,6 +174,7 @@ void COperationPerformer::copyFiles()
 	std::vector<CFileSystemObject> dirsToCleanUp;
 
 	_totalTimeElapsed.start();
+	size_t currentItemIndex = 0;
 
 	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
 	{
@@ -523,6 +480,54 @@ void COperationPerformer::deleteFiles()
 			assert_unconditional_r(QString("Unexpected deleteItem() return value %1").arg(nextAction).toUtf8().constData());
 			continue;
 		}
+	}
+}
+
+void COperationPerformer::moveWithinSameDrive()
+{
+	assert_r(std::all_of(_source.cbegin() + 1, _source.cend(), [this](const ObjectToProcess& o) { return o.object.isMovableTo(_destFileSystemObject); }));
+	_totalTimeElapsed.start();
+
+	size_t currentItemIndex = 0;
+
+	// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
+	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
+	{
+		if (sourceIterator->object.isCdUp())
+		{
+			++sourceIterator;
+			++currentItemIndex;
+			continue;
+		}
+
+		const QString newFileName = !_newName.isEmpty() ? _newName : sourceIterator->object.fullName();
+		_newName.clear();
+		CFileManipulator itemManipulator(sourceIterator->object);
+		const auto result = itemManipulator.moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
+		if (result != FileOperationResultCode::Ok)
+		{
+			const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, sourceIterator->object, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), itemManipulator.lastErrorMessage());
+			// Handler is identical to that of the main loop
+			// esp. for the case of hrFileExists
+			if (response == urSkipThis || response == urSkipAll)
+			{
+				++sourceIterator;
+				++currentItemIndex;
+				continue;
+			}
+			else if (response == urAbort)
+				return;
+			else if (response == urRename)
+				// _newName has been set and will be taken into account
+				continue;
+			else if (response == urRetry)
+				continue;
+			else
+				assert_r(response == urProceedWithThis || response == urProceedWithAll);
+		}
+
+		++sourceIterator;
+		++currentItemIndex;
 	}
 }
 
