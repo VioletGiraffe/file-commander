@@ -343,7 +343,7 @@ CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulonglong>& hashes)
 {
 	if (hashes.empty())
-		return FilesystemObjectsStatistics();
+		return {};
 
 	FilesystemObjectsStatistics stats;
 	for(const auto hash: hashes)
@@ -351,7 +351,6 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 		const CFileSystemObject rootItem = itemByHash(hash);
 		if (rootItem.isDir())
 		{
-			++stats.folders;
 			scanDirectory(rootItem, [this, &stats](const CFileSystemObject& discoveredItem) {
 				if (discoveredItem.isFile())
 				{
