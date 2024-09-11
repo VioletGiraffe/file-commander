@@ -301,32 +301,7 @@ void COperationPerformer::copyFiles()
 					continue;
 				}
 
-				if (sourceIterator->object.isEmptyDir())
-				{
-					CFileManipulator manipulator(sourceIterator->object);
-					const auto result = manipulator.remove();
-					if (result != FileOperationResultCode::Ok)
-					{
-						const auto action = getUserResponse(hrFailedToDelete, sourceIterator->object, CFileSystemObject(), manipulator.lastErrorMessage());
-						if (action == urSkipThis || action == urSkipAll)
-						{
-							++sourceIterator;
-							++currentItemIndex;
-							continue;
-						}
-						else if (action == urAbort)
-							return;
-						else if (action == urRetry)
-							continue;
-						else
-						{
-							assert_unconditional_r("Unexpected next action");
-							continue; // Retry
-						}
-					}
-				}
-				else // not empty
-					dirsToCleanUp.emplace_back(sourceIterator->object);
+				dirsToCleanUp.emplace_back(sourceIterator->object);
 			}
 		}
 
@@ -337,10 +312,21 @@ void COperationPerformer::copyFiles()
 		++currentItemIndex;
 	}
 
+	// Sort by path legth, remove longest first, because these should be the leaf (deepest) folders
+	std::sort(dirsToCleanUp.begin(), dirsToCleanUp.end(), [](const CFileSystemObject& a, const CFileSystemObject& b) {
+		return a.fullAbsolutePath().length() > b.fullAbsolutePath().length();
+	});
+
+	// Should only get here after moving everything out?
 	for (auto& dir : dirsToCleanUp)
 	{
-		CFileManipulator dirManipulator(dir);
-		assert_message_r(dirManipulator.remove() == FileOperationResultCode::Ok, dirManipulator.lastErrorMessage().toUtf8().constData());
+		NextAction nextAction;
+		while ((nextAction = deleteItem(dir)) == naRetryOperation);
+		switch (nextAction)
+		{
+		case naAbort:
+			return;
+		}
 	}
 
 	qInfo() << __FUNCTION__ << "took" << _totalTimeElapsed.elapsed() << "ms";
