@@ -4,6 +4,7 @@
 #include "assert/advanced_assert.h"
 #include "hash/wheathash.hpp"
 #include "lang/type_traits_fast.hpp"
+#include "windows/windowsutils.h"
 
 
 #ifdef CFILESYSTEMOBJECT_TEST
@@ -263,9 +264,8 @@ bool CFileSystemObject::isEmptyDir() const
 
 #ifdef _WIN32
 	WCHAR path[32768];
-	const auto nChars = _properties.fullPath.toWCharArray(path);
-	path[nChars] = 0;
-	return PathIsDirectoryEmptyW(path) != 0;
+	toUncWcharArray(_properties.fullPath, path);
+	return ::PathIsDirectoryEmptyW(path) != 0;
 #else
 	// TODO: use getdents64 on Linux
 	DIR *dir = ::opendir(_properties.fullPath.toLocal8Bit().constData());
