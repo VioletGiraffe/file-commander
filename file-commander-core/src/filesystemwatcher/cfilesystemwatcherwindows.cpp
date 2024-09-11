@@ -34,12 +34,11 @@ bool CFileSystemWatcherWindows::setPathToWatch(const QString& path) noexcept
 		return true;
 
 	WCHAR wPath[32768];
-	const auto pathLen = toUncPath(path).remove(R"(\\?\)").toWCharArray(wPath);
+	const auto pathLen = toUncWcharArray(path, wPath);
 	if (pathLen <= 0)
 		return false;
 
 	assert_debug_only(!path.contains('\\'));
-	wPath[pathLen] = 0;
 	if (const auto trailingChar = wPath[pathLen - 1]; trailingChar == L'\\')
 		wPath[pathLen - 1] = 0; // FindFirstChangeNotificationW fails if the trailing slash is present
 
@@ -50,6 +49,7 @@ bool CFileSystemWatcherWindows::setPathToWatch(const QString& path) noexcept
 	_handle = ::FindFirstChangeNotificationW(wPath, FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE);
 	if (_handle == INVALID_HANDLE_VALUE)
 	{
+		assert_debug_only(_handle);
 		_handle = nullptr;
 		return false;
 	}

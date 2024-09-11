@@ -283,15 +283,16 @@ bool CFileManipulator::makeWritable(bool writable)
 	assert_and_return_message_r(_srcObject.isFile(), "This method only works for files", false);
 
 #ifdef _WIN32
-	const QString UNCPath = toUncPath(_srcObject.fullAbsolutePath());
-	const DWORD attributes = GetFileAttributesW(reinterpret_cast<LPCWSTR>(UNCPath.utf16()));
+	WCHAR UNCPath[32768];
+	toUncWcharArray(_srcObject.fullAbsolutePath(), UNCPath);
+	const DWORD attributes = ::GetFileAttributesW(UNCPath);
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 	{
 		_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
 		return false;
 	}
 
-	if (SetFileAttributesW(reinterpret_cast<LPCWSTR>(UNCPath.utf16()), writable ? (attributes & (~(uint32_t)FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
+	if (::SetFileAttributesW(UNCPath, writable ? (attributes & (~(uint32_t)FILE_ATTRIBUTE_READONLY)) : (attributes | FILE_ATTRIBUTE_READONLY)) != TRUE)
 	{
 		_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
 		return false;

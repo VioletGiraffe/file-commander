@@ -105,17 +105,19 @@ bool OsShell::runExecutable(const QString& command, const QString& arguments, co
 
 bool OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
 {
-	const QString commandPathUnc = toUncPath(command);
 	const QString workingDirNative = toNativeSeparators(workingDir);
 
 	SHELLEXECUTEINFOW shExecInfo;
 	::memset(&shExecInfo, 0, sizeof(shExecInfo));
 
+	WCHAR commandPathUnc[32768];
+	toUncWcharArray(command, commandPathUnc);
+
 	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 	shExecInfo.fMask = SEE_MASK_FLAG_NO_UI;
 	shExecInfo.hwnd = nullptr;
 	shExecInfo.lpVerb = asAdmin ? L"runas" : L"open";
-	shExecInfo.lpFile = reinterpret_cast<const WCHAR*>(commandPathUnc.utf16());
+	shExecInfo.lpFile = commandPathUnc;
 	shExecInfo.lpParameters = arguments.isEmpty() ? nullptr : reinterpret_cast<const WCHAR*>(arguments.utf16());
 	shExecInfo.lpDirectory = reinterpret_cast<const WCHAR*>(workingDirNative.utf16());
 	shExecInfo.nShow = SW_SHOWNORMAL;
@@ -126,7 +128,7 @@ bool OsShell::runExe(const QString& command, const QString& arguments, const QSt
 		if (GetLastError() != ERROR_CANCELLED) // Operation canceled by the user
 		{
 			const QString errorString = QString::fromStdString(ErrorStringFromLastError());
-			qInfo() << "ShellExecuteExW failed when trying to run" << commandPathUnc << "in" << workingDirNative;
+			qInfo() << "ShellExecuteExW failed when trying to run" << QString::fromWCharArray(commandPathUnc) << "in" << workingDirNative;
 			qInfo() << errorString;
 
 			return false;
