@@ -41,6 +41,10 @@ jobs:
         echo "github.ref_name=${{github.ref_name}}"
         lscpu
 
+    - name: Github environment
+      if: "startsWith(matrix.os, 'linux')"
+      run: echo "$GITHUB_CONTEXT"
+
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v3
