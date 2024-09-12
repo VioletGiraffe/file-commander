@@ -22,6 +22,7 @@ LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcpputils -lqtutils
 HEADERS += \
 	src/cfilesystemobject.h \
 	src/ccontroller.h \
+	src/detail/file_list_hashmap.h \
 	src/fileoperationresultcode.h \
 	src/cpanel.h \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.h \

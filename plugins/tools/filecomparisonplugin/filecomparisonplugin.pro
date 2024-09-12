@@ -71,7 +71,8 @@ INCLUDEPATH += \
 	../../../qtutils \
 	../../../cpputils \
 	../../../cpp-template-utils \
-	$$PWD/src/
+	../../../3rdparty \
+	$$PWD/src
 
 HEADERS += \
 	cfilecomparisonplugin.h

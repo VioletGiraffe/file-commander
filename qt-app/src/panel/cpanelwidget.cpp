@@ -168,7 +168,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 }
 
 // Returns the list of items added to the view
-void CPanelWidget::fillFromList(const std::map<qulonglong, CFileSystemObject>& items, FileListRefreshCause operation)
+void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCause operation)
 {
 	CTimeElapsed timer{ true };
 

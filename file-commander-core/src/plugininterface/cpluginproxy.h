@@ -1,17 +1,17 @@
 #pragma once
 #include "cfilesystemobject.h"
+#include "detail/file_list_hashmap.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QIcon>
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
-#include <map>
 #include <vector>
 
 
 struct PanelState {
-	std::map<qulonglong/*hash*/, CFileSystemObject> panelContents;
+	FileListHashMap panelContents;
 	std::vector<qulonglong/*hash*/>                 selectedItemsHashes;
 	qulonglong                                      currentItemHash = 0;
 	QString                                         currentFolder;
@@ -45,7 +45,7 @@ public:
 	void createToolMenuEntries(const MenuTree& menuTree);
 
 // Events and data updates from the core
-	void panelContentsChanged(PanelPosition panel, const QString& folder, const std::map<qulonglong /*hash*/, CFileSystemObject>& contents);
+	void panelContentsChanged(PanelPosition panel, const QString& folder, const FileListHashMap& contents);
 
 // Events and data updates from UI
 	void selectionChanged(PanelPosition panel, const std::vector<qulonglong/*hash*/>& selectedItemsHashes);

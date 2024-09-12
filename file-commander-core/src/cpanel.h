@@ -1,5 +1,6 @@
 #pragma once
 
+#include "detail/file_list_hashmap.h"
 #include "cfilesystemobject.h"
 #include "historylist/chistorylist.h"
 #include "threading/cworkerthread.h"
@@ -15,7 +16,6 @@ using FileSystemWatcher = CFileSystemWatcherWindows;
 using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #endif
 
-#include <map>
 #include <mutex>
 #include <vector>
 #include <utility>
@@ -99,7 +99,7 @@ public:
 	// Enumerates objects in the current directory
 	void refreshFileList(FileListRefreshCause operation);
 	// Returns the current list of objects on this panel
-	[[nodiscard]] std::map<qulonglong, CFileSystemObject> list() const;
+	[[nodiscard]] FileListHashMap list() const;
 
 	[[nodiscard]] bool itemHashExists(qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;
@@ -127,7 +127,7 @@ private:
 private:
 	CFileSystemObject                          _currentDirObject;
 	FileSystemWatcher                          _watcher;
-	std::map<qulonglong, CFileSystemObject>    _items;
+	FileListHashMap                            _items;
 	CHistoryList<QString>                      _history;
 	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;

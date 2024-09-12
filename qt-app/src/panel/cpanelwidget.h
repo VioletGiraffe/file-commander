@@ -51,7 +51,7 @@ public:
 	void setPanelPosition(Panel p);
 
 	// Returns the list of items added to the view
-	void fillFromList(const std::map<qulonglong, CFileSystemObject>& items, FileListRefreshCause operation);
+	void fillFromList(const FileListHashMap& items, FileListRefreshCause operation);
 	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
 
 	// CPanel observers

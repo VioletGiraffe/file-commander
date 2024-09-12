@@ -25,7 +25,7 @@ void CPluginProxy::createToolMenuEntries(const MenuTree& menuTree)
 	createToolMenuEntries(std::vector<MenuTree>(1, menuTree));
 }
 
-void CPluginProxy::panelContentsChanged(PanelPosition panel, const QString &folder, const std::map<qulonglong, CFileSystemObject>& contents)
+void CPluginProxy::panelContentsChanged(PanelPosition panel, const QString &folder, const FileListHashMap& contents)
 {
 	PanelState& state = _panelState[panel];
 

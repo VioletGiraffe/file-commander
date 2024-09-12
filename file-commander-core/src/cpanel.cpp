@@ -319,7 +319,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 }
 
 // Returns the current list of objects on this panel
-std::map<qulonglong, CFileSystemObject> CPanel::list() const
+FileListHashMap CPanel::list() const
 {
 	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
 	return _items;
