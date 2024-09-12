@@ -221,8 +221,18 @@ jobs:
   create-release:
     needs: build
     if: success() && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+      deployments: write
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
+    - name: 'Build Changelog'
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          token: '${{ github.token }}'
+
     - name: Download EXE
       uses: actions/download-artifact@v4
       with:
@@ -241,9 +251,8 @@ jobs:
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
-      if: success() && startsWith(${{ github.event.workflow_run.head_commit.message }}, 'Release - ')
+      if: success() && startsWith(github.ref, 'refs/tags/')
       with:
-        generate_release_notes: true
         files: |
           FileCommander.exe
           FileCommander.dmg
@@ -251,3 +260,4 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: ${{ github.ref }}
         name: ${{ github.ref_name }}
+        body: ${{steps.build_changelog.outputs.changelog}}
