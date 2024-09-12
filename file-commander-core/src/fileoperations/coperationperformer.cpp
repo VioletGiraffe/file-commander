@@ -583,9 +583,9 @@ std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &tot
 
 UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message)
 {
-	auto globalResponse = _globalResponses.find(hr);
-	if (globalResponse != _globalResponses.end())
-		return globalResponse->second;
+	const auto globalResponse = _globalResponses[hr];
+	if (globalResponse)
+		return globalResponse.value();
 
 	if (_observer) _observer->onProcessHaltedCallback(hr, src, dst, message);
 	waitForResponse();

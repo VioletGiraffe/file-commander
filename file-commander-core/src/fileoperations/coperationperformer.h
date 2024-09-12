@@ -4,10 +4,14 @@
 #include "cfilesystemobject.h"
 #include "system/ctimeelapsed.h"
 
+#include "3rdparty/magic_enum/magic_enum.hpp"
+
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -104,7 +108,8 @@ private:
 
 private:
 	std::vector<ObjectToProcess> _source;
-	std::map<HaltReason, UserResponse> _globalResponses;
+	// Essentially a map<HaltReason, UserResponse>
+	std::array<std::optional<UserResponse>, magic_enum::enum_count<HaltReason>()> _globalResponses;
 	CFileSystemObject              _destFileSystemObject;
 	QString                        _newName;
 	Operation                      _op;

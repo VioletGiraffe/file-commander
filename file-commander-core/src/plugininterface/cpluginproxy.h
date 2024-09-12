@@ -6,6 +6,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QIcon>
 RESTORE_COMPILER_WARNINGS
 
+#include <array>
 #include <functional>
 #include <vector>
 
@@ -68,7 +69,7 @@ public:
 
 private:
 	CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;
-	std::map<PanelPosition, PanelState> _panelState;
+	std::array<PanelState, 2> _panelState;
 	std::function<void(std::function<void()>)> _execOnUiThreadImplementation;
 	PanelPosition                       _currentPanel = PluginUnknownPanel;
 };

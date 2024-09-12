@@ -16,6 +16,8 @@ using FileSystemWatcher = CFileSystemWatcherWindows;
 using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #endif
 
+#include <QHash>
+
 #include <mutex>
 #include <vector>
 #include <utility>
@@ -125,11 +127,19 @@ private:
 	}
 
 private:
+	struct QStringHash {
+		using is_avalanching = void;
+		[[nodiscard]] inline size_t operator()(const QString& s) const noexcept {
+			return qHash(s);
+		}
+	};
+
+private:
 	CFileSystemObject                          _currentDirObject;
 	FileSystemWatcher                          _watcher;
 	FileListHashMap                            _items;
 	CHistoryList<QString>                      _history;
-	std::map<QString, qulonglong /*hash*/>     _cursorPosForFolder;
+	ankerl::unordered_dense::map<QString, qulonglong /*hash*/, QStringHash> _cursorPosForFolder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CursorPositionListener>    _currentItemChangeListener;
 	const Panel                                _panelPosition;

@@ -65,46 +65,30 @@ PanelPosition CPluginProxy::otherPanel() const
 PanelState& CPluginProxy::panelState(const PanelPosition panel)
 {
 	static PanelState empty;
-	if (panel == PluginUnknownPanel)
+	if (panel == PluginUnknownPanel) [[unlikely]]
 	{
 		assert_unconditional_r("Unknown panel");
 		empty = PanelState();
 		return empty;
 	}
 
-	const auto state = _panelState.find(panel);
-	if (state == _panelState.end())
-	{
-		assert_unconditional_r("Unknown panel");
-		empty = PanelState();
-		return empty;
-	}
-	else
-		return state->second;
+	return _panelState[panel];
 }
 
 const PanelState & CPluginProxy::panelState(const PanelPosition panel) const
 {
-	static const PanelState empty {};
-	if (panel == PluginUnknownPanel)
-	{
+	static const PanelState empty;
+	if (panel == PluginUnknownPanel) [[unlikely]]
 		return empty;
-	}
 
-	const auto state = _panelState.find(panel);
-	assert_and_return_r(state != _panelState.end(), empty);
-
-	return state->second;
+	return _panelState[panel];
 }
 
 QString CPluginProxy::currentFolderPathForPanel(const PanelPosition panel) const
 {
 	assert_and_return_r(panel != PluginUnknownPanel, QString());
 
-	const auto state = _panelState.find(panel);
-	assert_and_return_r(state != _panelState.end(), QString());
-
-	return state->second.currentFolder;
+	return _panelState[panel].currentFolder;
 }
 
 QString CPluginProxy::currentItemPathForPanel(const PanelPosition panel) const

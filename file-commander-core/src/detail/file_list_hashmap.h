@@ -7,7 +7,7 @@
 struct NullHash {
 	using is_avalanching = void;
 
-	qulonglong operator()(qulonglong hashValue) const noexcept {
+	[[nodiscard]] inline constexpr qulonglong operator()(qulonglong hashValue) const noexcept {
 		return hashValue;
 	}
 };
