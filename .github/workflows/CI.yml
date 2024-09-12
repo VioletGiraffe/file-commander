@@ -37,13 +37,10 @@ jobs:
     - name: Sys info
       if: "startsWith(matrix.os, 'ubuntu')"
       run: |
-        echo $GITHUB_REF
-        echo "github.ref_name=${{github.ref_name}}"
         lscpu
 
     - name: Github environment
-      if: "startsWith(matrix.os, 'ubuntu')"
-      run: echo "$GITHUB_CONTEXT"
+      run: echo '${{ toJSON(github) }}'
 
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
