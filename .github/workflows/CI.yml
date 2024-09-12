@@ -42,7 +42,7 @@ jobs:
         lscpu
 
     - name: Github environment
-      if: "startsWith(matrix.os, 'linux')"
+      if: "startsWith(matrix.os, 'ubuntu')"
       run: echo "$GITHUB_CONTEXT"
 
     - name: Install Qt
