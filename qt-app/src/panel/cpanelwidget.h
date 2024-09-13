@@ -85,7 +85,7 @@ private slots:
 	void driveButtonClicked();
 	void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 	void currentItemChanged(const QModelIndex& current, const QModelIndex& previous);
-	void itemNameEdited(qulonglong hash, QString newName);
+	void renameItem(qulonglong hash, QString newName);
 	void toRoot();
 	void showFavoriteLocationsMenu(QPoint pos);
 	void showFavoriteLocationsEditor();

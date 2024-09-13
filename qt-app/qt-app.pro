@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET   = FileCommander
 
-QT = core gui widgets network
+QT = core gui widgets network testlib
 lessThan(QT_MAJOR_VERSION, 6) {
 	win*:QT += winextras
 }

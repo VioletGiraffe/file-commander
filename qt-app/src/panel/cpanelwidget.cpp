@@ -33,7 +33,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
-#include <set>
+#include <unordered_set>
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	QWidget(parent),
@@ -142,7 +142,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 
 	_model = new(std::nothrow) CFileListModel(ui->_list, this);
 	_model->setPanelPosition(p);
-	assert_r(connect(_model, &CFileListModel::itemEdited, this, &CPanelWidget::itemNameEdited));
+	assert_r(connect(_model, &CFileListModel::itemEdited, this, &CPanelWidget::renameItem));
 
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
 	_sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
@@ -282,7 +282,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 {
 	const auto itemList = panel.list();
 	const auto previousSelection = selectedItemsHashes(true);
-	std::set<qulonglong> selectedItemsHashes; // For fast search
+	std::unordered_set<qulonglong> selectedItemsHashes; // For fast search
 	for (const auto slectedItemHash: previousSelection)
 		selectedItemsHashes.insert(slectedItemHash);
 
@@ -441,7 +441,7 @@ void CPanelWidget::setCursorToItem(const QString& folder, qulonglong currentItem
 		_selectionModel->setCurrentIndex(newCurrentIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
 }
 
-void CPanelWidget::itemNameEdited(qulonglong hash, QString newName)
+void CPanelWidget::renameItem(qulonglong hash, QString newName)
 {
 	CFileSystemObject item = _controller->itemByHash(_panelPosition, hash);
 	if (item.isCdUp())

@@ -6,17 +6,19 @@
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QAbstractItemModelTester>
 #include <QMimeData>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
-#include <set>
+#include <unordered_set>
 
 CFileListModel::CFileListModel(QTreeView * treeView, QObject *parent) :
 	QStandardItemModel(0, NumberOfColumns, parent),
 	_controller(CController::get()),
 	_tree(treeView)
 {
+//	new QAbstractItemModelTester(this, QAbstractItemModelTester::FailureReportingMode::Fatal, this);
 }
 
 // Sets the position (left or right) of a panel that this model represents
@@ -125,7 +127,7 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 {
 	auto* mime = new QMimeData();
 	QList<QUrl> urls;
-	std::set<int> rows;
+	std::unordered_set<int> rows;
 	for(const auto& idx: indexes)
 	{
 		if (idx.isValid() && !rows.contains(idx.row()))
