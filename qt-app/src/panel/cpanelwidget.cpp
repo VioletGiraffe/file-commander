@@ -186,15 +186,6 @@ void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCau
 
 	int itemRow = 0;
 
-	struct TreeViewItem {
-		const int row;
-		const FileListViewColumn column;
-		QStandardItem* const item;
-	};
-
-	std::vector<TreeViewItem> qTreeViewItems;
-	qTreeViewItems.reserve(items.size() * NumberOfColumns);
-
 	const bool useLessPreciseIcons = items.size() > 500;
 	for (const auto& item: items)
 	{
@@ -202,6 +193,7 @@ void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCau
 		const auto& props = object.properties();
 
 		auto* fileNameItem = new QStandardItem();
+
 		fileNameItem->setEditable(false);
 		if (props.type == Directory)
 			fileNameItem->setData(QString("[" % (object.isCdUp() ? QLatin1String("..") : props.fullName) % "]"), Qt::DisplayRole);
@@ -209,16 +201,18 @@ void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCau
 			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
 		else
 			fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
-		fileNameItem->setIcon(CIconProvider::iconForFilesystemObject(object, useLessPreciseIcons));
+
+		const bool isExeFile = false;//props.type == File && props.extension.compare("exe", Qt::CaseInsensitive) == 0;
+		fileNameItem->setIcon(CIconProvider::iconForFilesystemObject(object, useLessPreciseIcons && !isExeFile));
 		fileNameItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, NameColumn, fileNameItem });
+		_model->setItem(itemRow, NameColumn, fileNameItem);
 
 		auto* fileExtItem = new QStandardItem();
 		fileExtItem->setEditable(false);
 		if (!object.isCdUp() && !props.completeBaseName.isEmpty() && !props.extension.isEmpty())
 			fileExtItem->setData(props.extension, Qt::DisplayRole);
 		fileExtItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, ExtColumn, fileExtItem });
+		_model->setItem(itemRow, ExtColumn, fileExtItem);
 
 		auto* sizeItem = new QStandardItem();
 		sizeItem->setEditable(false);
@@ -226,7 +220,7 @@ void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCau
 			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
 
 		sizeItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, SizeColumn, sizeItem });
+		_model->setItem(itemRow, SizeColumn, sizeItem);
 
 		auto* dateItem = new QStandardItem();
 		dateItem->setEditable(false);
@@ -236,13 +230,10 @@ void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCau
 			dateItem->setData(modificationDate.toString(QSL("dd.MM.yyyy hh:mm:ss")), Qt::DisplayRole);
 		}
 		dateItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-		qTreeViewItems.emplace_back(TreeViewItem{ itemRow, DateColumn, dateItem });
+		_model->setItem(itemRow, DateColumn, dateItem);
 
 		++itemRow;
 	}
-
-	for (const auto& qTreeViewItem: qTreeViewItems)
-		_model->setItem(qTreeViewItem.row, qTreeViewItem.column, qTreeViewItem.item);
 
 	_sortModel->setSourceModel(_model);
 

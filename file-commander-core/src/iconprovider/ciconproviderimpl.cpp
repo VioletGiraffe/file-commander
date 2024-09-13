@@ -49,7 +49,7 @@ QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool gue
 	if (!guessIconByFileExtension)
 	{
 		WCHAR pathStringBuffer[32768];
-		// TODO: create a helper function for this in cpputils
+		// This function does not accept UNC paths!
 		const auto length = object.fullAbsolutePath().toWCharArray(pathStringBuffer);
 		pathStringBuffer[length] = 0;
 
