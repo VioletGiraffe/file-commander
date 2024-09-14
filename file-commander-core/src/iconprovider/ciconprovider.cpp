@@ -61,7 +61,7 @@ const QIcon& CIconProvider::iconFor(const CFileSystemObject& object, bool guessI
 	const qulonglong objectHash = object.hash();
 	const auto iconHashIterator = _iconKeyByObjectHash.find(objectHash);
 	if (iconHashIterator != _iconKeyByObjectHash.end())
-		return _iconByKey[iconHashIterator.value()];
+		return _iconByKey[iconHashIterator->second];
 
 	if (_iconKeyByObjectHash.size() > 500'000) [[unlikely]]
 	{
@@ -83,7 +83,7 @@ const QIcon& CIconProvider::iconFast(const CFileSystemObject& object)
 	QString extension = object.isDir() ? folderUid : object.extension();
 	const auto it = _iconByExtension.find(extension);
 	if (it != _iconByExtension.end())
-		return it.value();
+		return it->second;
 
 	QIcon icon = _provider->iconFor(object, true);
 
@@ -91,5 +91,5 @@ const QIcon& CIconProvider::iconFast(const CFileSystemObject& object)
 		_iconByExtension.clear();
 
 	const auto iconInContainer = _iconByExtension.emplace(std::move(extension), std::move(icon));
-	return iconInContainer.value();
+	return iconInContainer.first->second;
 }

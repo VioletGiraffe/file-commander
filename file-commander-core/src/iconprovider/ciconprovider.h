@@ -1,14 +1,15 @@
 #pragma once
 
 #include "compiler/compiler_warnings_control.h"
+#include "detail/hashmap_helpers.h"
+
+#include "ankerl/unordered_dense.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QHash>
 #include <QIcon>
 RESTORE_COMPILER_WARNINGS
 
 #include <memory>
-#include <unordered_map>
 
 class CFileSystemObject;
 class CIconProviderImpl;
@@ -28,10 +29,10 @@ private:
 private:
 	static std::unique_ptr<CIconProvider> _instance;
 
-	std::unordered_map<qint64, QIcon> _iconByKey;
-	QHash<QString, QIcon> _iconByExtension;
+	ankerl::unordered_dense::segmented_map<qint64, QIcon, NullHashExtraMixing> _iconByKey;
+	ankerl::unordered_dense::segmented_map<QString, QIcon, QStringHash> _iconByExtension;
 
-	QHash<qulonglong, qint64> _iconKeyByObjectHash;
+	ankerl::unordered_dense::map<qulonglong, qint64, NullHash> _iconKeyByObjectHash;
 
 	std::unique_ptr<CIconProviderImpl> _provider;
 };

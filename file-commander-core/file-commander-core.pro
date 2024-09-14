@@ -23,6 +23,7 @@ HEADERS += \
 	src/cfilesystemobject.h \
 	src/ccontroller.h \
 	src/detail/file_list_hashmap.h \
+	src/detail/hashmap_helpers.h \
 	src/fileoperationresultcode.h \
 	src/cpanel.h \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.h \
