@@ -1,10 +1,10 @@
 #include "cfilelistsortfilterproxymodel.h"
+#include "cfilelistmodel.h"
 #include "ccontroller.h"
 #include "../../columns.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
-#include <QStandardItemModel>
 RESTORE_COMPILER_WARNINGS
 
 CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
@@ -49,19 +49,17 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	assert_r(left.isValid() && right.isValid());
 	const int sortColumn = left.column();
 
-	auto* srcModel = dynamic_cast<QStandardItemModel*>(sourceModel());
-	QStandardItem * const l = srcModel->item(left.row(), left.column());
-	QStandardItem * const r = srcModel->item(right.row(), right.column());
+	auto* srcModel = static_cast<CFileListModel*>(sourceModel());
 
-	if (!l && r)
+	if (!left.isValid() && right.isValid())
 		return true;
-	else if (!r && l)
+	else if (!right.isValid() && left.isValid())
 		return false;
-	else if (!l && !r)
+	else if (!left.isValid() && !right.isValid())
 		return false;
 
-	const qulonglong leftHash = l->data(Qt::UserRole).toULongLong();
-	const qulonglong rightHash = r->data(Qt::UserRole).toULongLong();
+	const qulonglong leftHash = srcModel->itemHash(left);
+	const qulonglong rightHash = srcModel->itemHash(right);
 
 	const CFileSystemObject leftItem = _controller.itemByHash(_panel, leftHash), rightItem = _controller.itemByHash(_panel, rightHash);
 

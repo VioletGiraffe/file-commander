@@ -41,7 +41,7 @@ struct PanelContentsChangedListener
 {
 	virtual ~PanelContentsChangedListener() = default;
 
-	virtual void panelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
+	virtual void onPanelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
 };
 
 struct FilesystemObjectsStatistics
@@ -105,9 +105,10 @@ public:
 
 	[[nodiscard]] bool itemHashExists(qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;
+	[[nodiscard]] std::vector<qulonglong> itemHashes() const;
 
 	// Calculates total size for the specified objects
-	[[nodiscard]] FilesystemObjectsStatistics calculateStatistics(const std::vector<qulonglong> & hashes);
+	[[nodiscard]] FilesystemObjectsStatistics calculateStatistics(const std::vector<qulonglong>& hashes);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);
 

@@ -133,15 +133,14 @@ Panel CPanelWidget::panelPosition() const
 
 void CPanelWidget::setPanelPosition(Panel p)
 {
-	assert_r(_panelPosition == Panel::UnknownPanel);
+	assert_r(_panelPosition == Panel::UnknownPanel && !_model);
 	_panelPosition = p;
 
 	ui->_list->installEventFilter(this);
 	ui->_list->viewport()->installEventFilter(this);
 	ui->_list->setPanelPosition(p);
 
-	_model = new(std::nothrow) CFileListModel(ui->_list, this);
-	_model->setPanelPosition(p);
+	_model = new(std::nothrow) CFileListModel(p, this);
 	assert_r(connect(_model, &CFileListModel::itemEdited, this, &CPanelWidget::renameItem));
 
 	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
@@ -168,7 +167,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 }
 
 // Returns the list of items added to the view
-void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCause operation)
+void CPanelWidget::fillFromList(FileListRefreshCause operation)
 {
 	CTimeElapsed timer{ true };
 
@@ -176,87 +175,17 @@ void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCau
 
 	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
-
-	ui->_list->saveHeaderState();
-	_sortModel->setSourceModel(nullptr);
-	_model->clear();
-
-	_model->setColumnCount(NumberOfColumns);
-	_model->setHorizontalHeaderLabels(QStringList{ tr("Name"), tr("Ext"), tr("Size"), tr("Date") });
-
-	int itemRow = 0;
-
-	const bool useLessPreciseIcons = items.size() > 500;
-	for (const auto& item: items)
-	{
-		const CFileSystemObject& object = item.second;
-		const auto& props = object.properties();
-
-		auto* fileNameItem = new QStandardItem();
-
-		fileNameItem->setEditable(false);
-		if (props.type == Directory)
-			fileNameItem->setData(QString("[" % (object.isCdUp() ? QLatin1String("..") : props.fullName) % "]"), Qt::DisplayRole);
-		else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
-			fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
-		else
-			fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
-
-		const bool isExeFile = false;//props.type == File && props.extension.compare("exe", Qt::CaseInsensitive) == 0;
-		fileNameItem->setIcon(CIconProvider::iconForFilesystemObject(object, useLessPreciseIcons && !isExeFile));
-		fileNameItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-		_model->setItem(itemRow, NameColumn, fileNameItem);
-
-		auto* fileExtItem = new QStandardItem();
-		fileExtItem->setEditable(false);
-		if (!object.isCdUp() && !props.completeBaseName.isEmpty() && !props.extension.isEmpty())
-			fileExtItem->setData(props.extension, Qt::DisplayRole);
-		fileExtItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-		_model->setItem(itemRow, ExtColumn, fileExtItem);
-
-		auto* sizeItem = new QStandardItem();
-		sizeItem->setEditable(false);
-		if (props.size > 0 || props.type == File)
-			sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
-
-		sizeItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-		_model->setItem(itemRow, SizeColumn, sizeItem);
-
-		auto* dateItem = new QStandardItem();
-		dateItem->setEditable(false);
-		if (!object.isCdUp())
-		{
-			QDateTime modificationDate = object.qFileInfo().lastModified();
-			dateItem->setData(modificationDate.toString(QSL("dd.MM.yyyy hh:mm:ss")), Qt::DisplayRole);
-		}
-		dateItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-		_model->setItem(itemRow, DateColumn, dateItem);
-
-		++itemRow;
-	}
-
-	_sortModel->setSourceModel(_model);
-
-	ui->_list->restoreHeaderState();
+	
+	_model->onPanelContentsChanged(_controller->panel(_panelPosition).itemHashes());
 
 	auto indexUnderCursor = _sortModel->index(0, 0);
 
 	// Setting the cursor position as appropriate
 	if (operation == refreshCauseCdUp)
 	{
-		// Setting the folder we've just stepped out of as current
-		qulonglong targetFolderHash = 0;
-		for (const auto& item: items)
-		{
-			if (item.second.fullAbsolutePath() == previousFolder)
-			{
-				targetFolderHash = item.first;
-				break;
-			}
-		}
-
-		if (targetFolderHash != 0)
-			indexUnderCursor = indexByHash(targetFolderHash);
+		const auto previousFolderHash = CFileSystemObject{ previousFolder }.hash();
+		if (const auto index = indexByHash(previousFolderHash); index.isValid())
+			indexUnderCursor = index;
 	}
 	else if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
@@ -264,7 +193,7 @@ void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCau
 		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo, true);
 		if (itemIndexToSetCursorTo.isValid())
 			indexUnderCursor = itemIndexToSetCursorTo;
-		else if (previousCurrentIndex.isValid())
+		else if (previousCurrentIndex.isValid() && operation != refreshCauseCdUp && operation != refreshCauseForwardNavigation)
 			indexUnderCursor = _sortModel->index(std::min(previousCurrentIndex.row(), _sortModel->rowCount() - 1), 0);
 	}
 
@@ -274,19 +203,18 @@ void CPanelWidget::fillFromList(const FileListHashMap& items, FileListRefreshCau
 	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
 	selectionChanged(QItemSelection(), QItemSelection());
 
-	if (items.size() > 1000)
-		qInfo() << __FUNCTION__ << "Procesing" << items.size() << "items took" << timer.elapsed() << "ms";
+	if (_model->rowCount() > 1000)
+		qInfo() << __FUNCTION__ << "Procesing" << _model->rowCount() << "items took" << timer.elapsed() << "ms";
 }
 
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
 {
-	const auto itemList = panel.list();
 	const auto previousSelection = selectedItemsHashes(true);
 	std::unordered_set<qulonglong> selectedItemsHashes; // For fast search
 	for (const auto slectedItemHash: previousSelection)
 		selectedItemsHashes.insert(slectedItemHash);
 
-	fillFromList(itemList, operation);
+	fillFromList(operation);
 	_directoryCurrentlyBeingDisplayed = panel.currentDirPathPosix();
 
 	// Restoring previous selection
@@ -765,7 +693,7 @@ bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& 
 {
 	assert_r(item.isValid());
 	const QModelIndex source = _sortModel->mapToSource(item);
-	const qulonglong hash = _model->item(source.row(), source.column())->data(Qt::UserRole).toULongLong();
+	const qulonglong hash = _model->itemHash(source);
 	emit itemActivated(hash, this);
 	return true; // Consuming the event
 }
@@ -834,11 +762,10 @@ qulonglong CPanelWidget::hashBySortModelIndex(const QModelIndex &index) const
 {
 	if (!index.isValid())
 		return 0;
-	QStandardItem * item = _model->item(_sortModel->mapToSource(index).row(), 0);
-	assert_r(item);
-	bool ok = false;
-	const qulonglong hash = item->data(Qt::UserRole).toULongLong(&ok);
-	assert_r(ok);
+
+	const auto sourceIndex = _sortModel->mapToSource(index);
+	const auto hash =_model->itemHash(sourceIndex); // Could only be 0 if some kind of desync occurred between the UI view and the internal data of the model
+	assert_debug_only(hash != 0);
 	return hash;
 }
 
@@ -898,7 +825,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	return QWidget::eventFilter(object, e);
 }
 
-void CPanelWidget::panelContentsChanged(Panel p , FileListRefreshCause operation)
+void CPanelWidget::onPanelContentsChanged(Panel p , FileListRefreshCause operation)
 {
 	if (p == _panelPosition)
 		fillFromPanel(_controller->panel(_panelPosition), operation);

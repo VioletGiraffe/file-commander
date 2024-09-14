@@ -786,7 +786,7 @@ void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
 			currentPanelChanged(Panel::RightPanel);
 }
 
-void CMainWindow::panelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
+void CMainWindow::onPanelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
 {
 	if (_currentFileList && p == _currentFileList->panelPosition())
 		ui->fullPath->setText(_controller->panel(p).currentDirPathNative());

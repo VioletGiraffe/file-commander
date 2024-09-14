@@ -26,7 +26,7 @@ public:
 	std::vector<QString> activePluginNames();
 
 	// CPanel observers
-	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;
 
 	void selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes);
 	void currentItemChanged(Panel p, qulonglong currentItemHash);

@@ -99,7 +99,7 @@ private:
 	void focusChanged(QWidget * old, QWidget * now);
 
 private:
-	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;
 
 private:
 	void initCore();

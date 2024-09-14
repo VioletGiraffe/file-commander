@@ -51,11 +51,11 @@ public:
 	void setPanelPosition(Panel p);
 
 	// Returns the list of items added to the view
-	void fillFromList(const FileListHashMap& items, FileListRefreshCause operation);
+	void fillFromList(FileListRefreshCause operation);
 	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
 
 	// CPanel observers
-	void panelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;
 
 	[[nodiscard]] CFileListView* fileListView() const;
 	[[nodiscard]] QAbstractItemModel* model() const;

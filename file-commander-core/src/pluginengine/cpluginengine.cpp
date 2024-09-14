@@ -67,11 +67,12 @@ std::vector<QString> CPluginEngine::activePluginNames()
 	return names;
 }
 
-void CPluginEngine::panelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
+void CPluginEngine::onPanelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
 {
 	CController& controller = CController::get();
 
 	auto& proxy = CController::get().pluginProxy();
+	// TODO: copying all the data on every refresh, do we need this??
 	proxy.panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirPathPosix(), controller.panel(p).list());
 }
 

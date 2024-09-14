@@ -339,6 +339,19 @@ CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 	return it != _items.end() ? it->second : CFileSystemObject();
 }
 
+std::vector<qulonglong> CPanel::itemHashes() const
+{
+	std::vector<qulonglong> hashes;
+
+	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	hashes.reserve(_items.size());
+
+	for (const auto& pair : _items)
+		hashes.push_back(pair.first);
+	
+	return hashes;
+}
+
 // Calculates total size for the specified objects
 FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulonglong>& hashes)
 {
@@ -400,7 +413,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
 {
 	execOnUiThread([this, operation]() {
-		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::panelContentsChanged, _panelPosition, operation);
+		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsChanged, _panelPosition, operation);
 	}, ContentsChangedNotificationTag);
 }
 

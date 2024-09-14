@@ -448,7 +448,7 @@ QString CFileSystemObject::sizeString() const
 
 QString CFileSystemObject::modificationDateString() const
 {
-	return fromTime_t(modificationTime()).toLocalTime().toString(QLatin1String("dd.MM.yyyy hh:mm"));
+	return fromTime_t(modificationTime()).toLocalTime().toString(QLatin1String("dd.MM.yyyy hh:mm:ss"));
 }
 
 
