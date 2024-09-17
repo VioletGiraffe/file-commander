@@ -143,12 +143,7 @@ Qt::ItemFlags CFileListModel::flags(const QModelIndex& index) const
 	if (!index.isValid())
 		return Qt::NoItemFlags;
 
-	static constexpr Qt::ItemFlags flags =
-		Qt::ItemIsSelectable
-		| Qt::ItemIsEnabled
-		| Qt::ItemIsEditable
-		| Qt::ItemIsDragEnabled
-		| Qt::ItemIsDropEnabled;
+	static constexpr Qt::ItemFlags flags = Qt::ItemIsEnabled;
 
 	const qulonglong hash = itemHash(index);
 	const CFileSystemObject item = _controller.itemByHash(_panel, hash);
@@ -156,9 +151,9 @@ Qt::ItemFlags CFileListModel::flags(const QModelIndex& index) const
 	if (!item.exists())
 		return flags;
 	else if (item.isCdUp())
-		return flags & ~Qt::ItemIsSelectable;
-	else
-		return flags | Qt::ItemIsEditable;
+		return flags | Qt::ItemIsDropEnabled;
+	else [[likely]]
+		return flags | Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
 }
 
 QVariant CFileListModel::headerData(int section, Qt::Orientation orientation, int role) const
