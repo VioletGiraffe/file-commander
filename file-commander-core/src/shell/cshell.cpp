@@ -26,6 +26,8 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #endif
 
+static constexpr HRESULT UserCancelledAltError = 0x800704c7L; // When you close the system dialog with the title bar X rather than the cancel button inside the dialog
+
 std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 {
 #ifdef _WIN32
@@ -387,9 +389,9 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 			qInfo() << "SetOwnerWindow failed";
 
 		result = iOperation->PerformOperations();
-		if (!SUCCEEDED(result) && result != COPYENGINE_E_USER_CANCELLED)
+		if (!SUCCEEDED(result) && result != COPYENGINE_E_USER_CANCELLED && result != UserCancelledAltError)
 		{
-			qInfo() << "PerformOperations failed";
+			qInfo().nospace() << "PerformOperations failed with 0x" << Qt::hex << (uint32_t)result;
 			if (result == COPYENGINE_E_REQUIRES_ELEVATION)
 				qInfo() << "Elevation required";
 		}
