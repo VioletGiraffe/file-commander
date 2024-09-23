@@ -322,11 +322,8 @@ void COperationPerformer::copyFiles()
 	{
 		NextAction nextAction;
 		while ((nextAction = deleteItem(dir)) == naRetryOperation);
-		switch (nextAction)
-		{
-		case naAbort:
+		if (nextAction == naAbort)
 			return;
-		}
 	}
 
 	qInfo() << __FUNCTION__ << "took" << _totalTimeElapsed.elapsed() << "ms";

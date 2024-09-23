@@ -134,7 +134,7 @@ bool CFileListModel::setData(const QModelIndex & index, const QVariant & value, 
 		emit itemEdited(hash, value.toString());
 		return false;
 	}
-	
+
 	return false;
 }
 
@@ -239,7 +239,7 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 
 qulonglong CFileListModel::itemHash(int row) const
 {
-	return row < _itemHashes.size() ? _itemHashes[row] : 0;
+	return row < (int)_itemHashes.size() ? _itemHashes[row] : 0;
 }
 
 qulonglong CFileListModel::itemHash(const QModelIndex & index) const
