@@ -70,10 +70,10 @@ inline void replace_null(std::byte* array, size_t size)
 
 	for (size_t i = 0; i < size; i += 16)
 	{
-		uint8x16_t data = vld1q_u8(&array[i]);           // Load 16 bytes
+		uint8x16_t data = vld1q_u8(reinterpret_cast<const uint8_t*>(&array[i]));           // Load 16 bytes
 		uint8x16_t mask = vceqq_u8(data, old_neon);      // Compare with old_value
 		uint8x16_t result = vbslq_u8(mask, new_neon, data);  // Select new_value where mask is true, else original value
-		vst1q_u8(&array[i], result);                     // Store the result back
+		vst1q_u8(reinterpret_cast<uint8_t*>(&array[i]), result);                     // Store the result back
 	}
 }
 #endif
