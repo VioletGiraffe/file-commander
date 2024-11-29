@@ -8,6 +8,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QDebug>
 #include <QFontDatabase>
+#include <QStyleHints>
 RESTORE_COMPILER_WARNINGS
 
 int main(int argc, char *argv[])
@@ -32,6 +33,10 @@ int main(int argc, char *argv[])
 	app.setOrganizationName(QSL("GitHubSoft"));
 	app.setApplicationName(QSL("File Commander"));
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+	if (auto* styleHints = app.styleHints(); styleHints)
+		styleHints->setColorScheme(Qt::ColorScheme::Light);
+#endif
 
 	QFontDatabase::addApplicationFont(QSL(":/fonts/Roboto Mono.ttf"));
 
