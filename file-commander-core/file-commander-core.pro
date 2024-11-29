@@ -17,7 +17,7 @@ mac*|linux*|freebsd{
 
 LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcpputils -lqtutils
 
-!win*:!contains(QT_ARCH, arm): QMAKE_CXXFLAGS += -msse4.1
+!win*:!contains(QT_ARCH, arm.*): QMAKE_CXXFLAGS += -msse4.1
 
 HEADERS += \
 	src/cfilesystemobject.h \
