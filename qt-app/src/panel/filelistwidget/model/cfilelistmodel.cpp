@@ -141,7 +141,7 @@ bool CFileListModel::setData(const QModelIndex & index, const QVariant & value, 
 Qt::ItemFlags CFileListModel::flags(const QModelIndex& index) const
 {
 	if (!index.isValid())
-		return Qt::NoItemFlags;
+		return Qt::ItemIsDropEnabled;
 
 	static constexpr Qt::ItemFlags flags = Qt::ItemIsEnabled;
 
