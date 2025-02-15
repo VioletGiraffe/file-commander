@@ -75,25 +75,25 @@ QString fileSizeToString(uint64_t size, const char maxUnit, const QString &space
 	}();
 
 	QString str;
-	float n = 0.0f;
+	double n = 0.0;
 	if (size >= GB && maxUnitSize >= GB)
 	{
-		n = (float)size / float(GB);
+		n = (double)size / double(GB);
 		str = QStringLiteral("%1 GiB").arg(QString::number(n, 'f', 1));
 	}
 	else if (size >= MB && maxUnitSize >= MB)
 	{
-		n = (float)size / float(MB);
+		n = (double)size / double(MB);
 		str = QStringLiteral("%1 MiB").arg(QString::number(n, 'f', 1));
 	}
 	else if (size >= KB && maxUnitSize >= KB)
 	{
-		n = (float)size / float(KB);
+		n = (double)size / double(KB);
 		str = QStringLiteral("%1 KiB").arg(QString::number(n, 'f', 1));
 	}
 	else
 	{
-		n = (float)size;
+		n = (double)size;
 		str = QStringLiteral("%1 B").arg(size);
 	}
 

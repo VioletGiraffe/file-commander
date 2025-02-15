@@ -40,9 +40,6 @@ int main(int argc, char *argv[])
 
 	QFontDatabase::addApplicationFont(QSL(":/fonts/Roboto Mono.ttf"));
 
-	CSettings::setApplicationName(app.applicationName());
-	CSettings::setOrganizationName(app.organizationName());
-
 	{
 		QFont font = QApplication::font();
 		font.setPointSizeF(font.pointSizeF() + 1.0);
