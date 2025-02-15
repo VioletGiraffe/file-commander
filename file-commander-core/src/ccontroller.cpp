@@ -272,13 +272,10 @@ void CController::openTerminal(const QString &folder, bool admin)
 	{
 		auto [terminalProgram, args] = OsShell::shellExecutable();
 		static constexpr auto* dirTemplate = "%dir%";
-		if (args.contains(dirTemplate))
-		{
-			args.replace(
-				dirTemplate,
-				escapedPath(!folder.endsWith(nativeSeparator()) ? folder : QString{folder}.remove(folder.size() - 1, 1))
-			);
-		}
+		args.replace(
+			dirTemplate,
+			escapedPath(!folder.endsWith(nativeSeparator()) ? folder : QString{folder}.remove(folder.size() - 1, 1))
+		);
 
 		const bool started = OsShell::runExecutable(terminalProgram, args, folder);
 		assert_r(started);
@@ -286,13 +283,19 @@ void CController::openTerminal(const QString &folder, bool admin)
 	else
 	{
 #ifdef _WIN32
-		const auto terminalProgramArgs = OsShell::shellExecutable();
+		auto terminalProgramArgs = OsShell::shellExecutable();
 		const QString& terminalProgram = terminalProgramArgs.first;
 		QString arguments;
 		if (terminalProgram.contains(QSL("powershell"), Qt::CaseInsensitive))
 			arguments = QSL("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
 		else if (terminalProgram.toLower() == QSL("cmd") || terminalProgram.toLower() == QSL("cmd.exe"))
 			arguments = QSL("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));
+
+		static constexpr auto* dirTemplate = "%dir%";
+		terminalProgramArgs.second.replace(
+			dirTemplate,
+			escapedPath(!folder.endsWith(nativeSeparator()) ? folder : QString{ folder }.remove(folder.size() - 1, 1))
+		);
 
 		if (!arguments.isEmpty() && !terminalProgramArgs.second.isEmpty())
 			arguments += ' ';
