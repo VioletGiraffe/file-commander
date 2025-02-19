@@ -2,14 +2,15 @@
 #include "settings/csettings.h"
 #include "system/win_utils.hpp"
 
-#include "qtcore_helpers/qstring_helpers.hpp"
-
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QDebug>
 #include <QFontDatabase>
 #include <QStyleHints>
+#include <QTimer>
 RESTORE_COMPILER_WARNINGS
+
+#include <string_view>
 
 int main(int argc, char *argv[])
 {
@@ -19,9 +20,8 @@ int main(int argc, char *argv[])
 
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	qInfo() << "Built with Qt" << QT_VERSION_STR;
-	qInfo() << "Running with Qt" << qVersion();
-	assert_r(QStringLiteral(QT_VERSION_STR) == qVersion());
+	qInfo().nospace() << "Built with Qt " << QT_VERSION_STR << ", running with Qt " << qVersion();
+	assert_r(std::string_view{QT_VERSION_STR} == qVersion());
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
@@ -30,15 +30,22 @@ int main(int argc, char *argv[])
 	QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
 	QApplication app(argc, argv);
-	app.setOrganizationName(QSL("GitHubSoft"));
-	app.setApplicationName(QSL("File Commander"));
+	app.setOrganizationName("GitHubSoft");
+	app.setApplicationName("File Commander");
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-	if (auto* styleHints = app.styleHints(); styleHints)
-		styleHints->setColorScheme(Qt::ColorScheme::Light);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0) && defined(_WIN32)
+	if (auto* styleHints = app.styleHints(); styleHints && styleHints->colorScheme() == Qt::ColorScheme::Dark)
+	{
+		// Fix the terrible default alternate row color on Windows
+		QPalette p = QApplication::palette();
+		QColor color = p.color(QPalette::Base);
+		color = color.lighter(115);
+		p.setColor(QPalette::AlternateBase, color);
+		QApplication::setPalette(p);
+	}
 #endif
 
-	QFontDatabase::addApplicationFont(QSL(":/fonts/Roboto Mono.ttf"));
+	QFontDatabase::addApplicationFont(":/fonts/Roboto Mono.ttf");
 
 	{
 		QFont font = QApplication::font();
@@ -46,14 +53,14 @@ int main(int argc, char *argv[])
 		QApplication::setFont(font);
 	}
 
-	qApp->setStyleSheet(CSettings{}.value("Interface/Style/StylesheetText").toString());
+	if (const auto styleSheet = CSettings{}.value("Interface/Style/StylesheetText").toString(); !styleSheet.isEmpty())
+		qApp->setStyleSheet(styleSheet);
 
 	CMainWindow w;
-
 	w.updateInterface();
 
-	if (app.arguments().contains(QL1("--test-launch")))
-		return 0; // Test launch succeeded
+	if (app.arguments().contains("--test-launch"))
+		QTimer::singleShot(5000, [] { qApp->quit(); });
 
 	return app.exec();
 }
