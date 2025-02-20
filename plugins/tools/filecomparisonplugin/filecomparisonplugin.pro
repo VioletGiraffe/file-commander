@@ -62,7 +62,7 @@ win32*:!*msvc2012:*msvc* {
 }
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
 }
 
 INCLUDEPATH += \

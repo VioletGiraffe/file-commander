@@ -66,8 +66,8 @@ win32*:!*msvc2012:*msvc* {
 }
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libqtutils.a
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a
+	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a
 }
 
 INCLUDEPATH += \
@@ -77,7 +77,6 @@ INCLUDEPATH += \
 	../../../cpputils \
 	../../../cpp-template-utils \
 	../../../3rdparty \
-	../../../github-releases-autoupdater/3rdparty \
 	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD/src/
 

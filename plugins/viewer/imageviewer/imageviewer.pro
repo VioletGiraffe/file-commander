@@ -86,6 +86,6 @@ FORMS += \
 	src/cimageviewerwindow.ui
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libimage-processing.a $${DESTDIR}/libqtutils.a
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libimage-processing.a
+	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a
 }
