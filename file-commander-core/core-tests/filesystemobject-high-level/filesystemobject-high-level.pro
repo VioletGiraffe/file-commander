@@ -12,7 +12,7 @@ UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
 }
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}

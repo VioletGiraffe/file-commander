@@ -15,7 +15,7 @@ LIBS += -L$${DESTDIR} -lqtutils -ltest_utils
 LIBS += -L$${DESTDIR_NOARCH} -lcpputils -lthin_io
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
 }
 
 INCLUDEPATH += \
