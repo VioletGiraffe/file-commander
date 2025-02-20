@@ -77,6 +77,7 @@ INCLUDEPATH += \
 	../../../cpputils \
 	../../../cpp-template-utils \
 	../../../3rdparty \
+	../../../github-releases-autoupdater/3rdparty \
 	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD/src/
 

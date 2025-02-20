@@ -1,8 +1,11 @@
 #pragma once
 
 #include "plugininterface/cpluginwindow.h"
+#include "ctextencodingdetector.h"
 
 #include "ui_ctextviewerwindow.h"
+
+#include <optional>
 
 class QLabel;
 class CTextEditWithLineNumbers;
@@ -21,7 +24,11 @@ private:
 	bool asAscii();
 	bool asUtf8();
 	bool asUtf16();
-	bool asRichText();
+	bool asHtml();
+	bool asMarkdown();
+
+	[[nodiscard]] std::optional<QByteArray> readFileAndReportErrors();
+	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeText(const QByteArray& textData);
 
 	void find();
 	void findNext();

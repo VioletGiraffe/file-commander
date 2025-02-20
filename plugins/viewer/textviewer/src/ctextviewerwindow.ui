@@ -38,7 +38,8 @@
     <addaction name="actionSystemLocale"/>
     <addaction name="actionUTF_16"/>
     <addaction name="actionUTF_8"/>
-    <addaction name="actionHTML_RTF"/>
+    <addaction name="actionHTML"/>
+    <addaction name="actionMarkdown"/>
     <addaction name="separator"/>
     <addaction name="actionLine_wrap"/>
    </widget>
@@ -96,7 +97,7 @@
     <string>2</string>
    </property>
   </action>
-  <action name="actionHTML_RTF">
+  <action name="actionHTML">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -104,7 +105,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>&amp;HTML/RTF</string>
+    <string>&amp;HTML</string>
    </property>
    <property name="shortcut">
     <string>4</string>
@@ -169,6 +170,17 @@
    </property>
    <property name="text">
     <string>Line wrap</string>
+   </property>
+  </action>
+  <action name="actionMarkdown">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Markdown</string>
+   </property>
+   <property name="shortcut">
+    <string>5</string>
    </property>
   </action>
  </widget>

@@ -1,7 +1,7 @@
 #include "ctextviewerwindow.h"
 #include "cfinddialog.h"
+#include "maddy/parser.h"
 
-#include "ctextencodingdetector.h"
 #include "widgets/cpersistentwindow.h"
 #include "widgets/ctexteditwithlinenumbers.h"
 
@@ -13,14 +13,15 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QFontDatabase>
 #include <QLabel>
-#include <QMimeDatabase>
 #include <QMessageBox>
+#include <QMimeDatabase>
 #include <QRegularExpression>
 #include <QShortcut>
 #include <QStringBuilder>
 #include <QTextCodec>
 RESTORE_COMPILER_WARNINGS
 
+#include <sstream>
 #include <type_traits>
 
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
@@ -42,6 +43,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	_textBrowser->setReadOnly(true);
 	_textBrowser->setUndoRedoEnabled(false);
 	_textBrowser->setTabStopDistance(static_cast<qreal>(4 * _textBrowser->fontMetrics().horizontalAdvance(' ')));
+	_textBrowser->setAcceptRichText(true);
 
 	assert_r(connect(actionOpen, &QAction::triggered, this, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
@@ -65,14 +67,16 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	assert_r(connect(actionSystemLocale, &QAction::triggered, this, &CTextViewerWindow::asSystemDefault));
 	assert_r(connect(actionUTF_8, &QAction::triggered, this, &CTextViewerWindow::asUtf8));
 	assert_r(connect(actionUTF_16, &QAction::triggered, this, &CTextViewerWindow::asUtf16));
-	assert_r(connect(actionHTML_RTF, &QAction::triggered, this, &CTextViewerWindow::asRichText));
+	assert_r(connect(actionHTML, &QAction::triggered, this, &CTextViewerWindow::asHtml));
+	assert_r(connect(actionMarkdown, &QAction::triggered, this, &CTextViewerWindow::asMarkdown));
 
 	QActionGroup * group = new QActionGroup(this);
 	group->addAction(actionASCII_Windows_1252);
 	group->addAction(actionSystemLocale);
 	group->addAction(actionUTF_8);
 	group->addAction(actionUTF_16);
-	group->addAction(actionHTML_RTF);
+	group->addAction(actionHTML);
+	group->addAction(actionMarkdown);
 
 	assert_r(connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap));
 	actionLine_wrap->setChecked(true); // Wrap by default
@@ -93,8 +97,10 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 
 	try
 	{
-		if (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".rtf"), Qt::CaseInsensitive))
-			return asRichText();
+		if (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive))
+			return asHtml();
+		else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive))
+			return asMarkdown();
 		else if (fileType.contains(QStringLiteral("text")) || fileType.isEmpty())
 			return asDetectedAutomatically();
 		else
@@ -109,38 +115,16 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 
 bool CTextViewerWindow::asDetectedAutomatically()
 {
-	QTextCodec::ConverterState state;
-	QTextCodec *codec = QTextCodec::codecForName("UTF-8");
-	if (!codec)
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData)
 		return false;
 
-	QByteArray textData;
-	if (!readSource(textData))
-	{
-		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
-		return false;
-	}
+	const auto result = decodeText(*textData);
+	if (!result || result->text.isEmpty())
+		return asSystemDefault();
 
-	QString text(codec->toUnicode(textData.constData(), static_cast<int>(textData.size()), &state));
-	if (state.invalidChars > 0)
-	{
-		const auto result = CTextEncodingDetector::decode(textData);
-		text = result.text;
-		if (!text.isEmpty())
-		{
-			encodingChanged(result.encoding, result.language);
-			_textBrowser->setPlainText(text);
-		}
-		else
-			return asSystemDefault();
-	}
-	else
-	{
-		encodingChanged(QStringLiteral("UTF-8"));
-		actionUTF_8->setChecked(true);
-		_textBrowser->setPlainText(text);
-	}
-
+	encodingChanged(result->encoding, result->language);
+	_textBrowser->setPlainText(result->text);
 	return true;
 }
 
@@ -150,14 +134,11 @@ bool CTextViewerWindow::asSystemDefault()
 	if (!codec)
 		return false;
 
-	QByteArray textData;
-	if (!readSource(textData))
-	{
-		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData)
 		return false;
-	}
 
-	_textBrowser->setPlainText(codec->toUnicode(textData));
+	_textBrowser->setPlainText(codec->toUnicode(*textData));
 	encodingChanged(codec->name());
 	actionSystemLocale->setChecked(true);
 
@@ -170,14 +151,11 @@ bool CTextViewerWindow::asAscii()
 	if (!codec)
 		return false;
 
-	QByteArray textData;
-	if (!readSource(textData))
-	{
-		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData)
 		return false;
-	}
 
-	_textBrowser->setPlainText(codec->toUnicode(textData));
+	_textBrowser->setPlainText(codec->toUnicode(*textData));
 	encodingChanged(codec->name());
 	actionASCII_Windows_1252->setChecked(true);
 
@@ -186,15 +164,12 @@ bool CTextViewerWindow::asAscii()
 
 bool CTextViewerWindow::asUtf8()
 {
-	QByteArray textData;
-	if (!readSource(textData))
-	{
-		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData)
 		return false;
-	}
 
-	encodingChanged(QStringLiteral("UTF-8"));
-	_textBrowser->setPlainText(QString::fromUtf8(textData));
+	encodingChanged("UTF-8");
+	_textBrowser->setPlainText(QString::fromUtf8(*textData));
 	actionUTF_8->setChecked(true);
 
 	return true;
@@ -202,28 +177,91 @@ bool CTextViewerWindow::asUtf8()
 
 bool CTextViewerWindow::asUtf16()
 {
-	QByteArray textData;
-	if (!readSource(textData))
-	{
-		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData)
 		return false;
-	}
 
-	encodingChanged(QStringLiteral("UTF-16"));
+	encodingChanged("UTF-16");
 	static_assert (std::is_trivially_copyable_v<QChar>);
 	QString text;
-	text.resize(textData.size() / 2 + 1, QChar{'\0'});
-	memcpy(text.data(), textData.constData(), static_cast<size_t>(textData.size()));
-	_textBrowser->setPlainText(std::move(text));
+	text.resize(textData->size() / 2 + 1, QChar{'\0'});
+	::memcpy(text.data(), textData->constData(), static_cast<size_t>(textData->size()));
+	_textBrowser->setPlainText(text);
 	actionUTF_16->setChecked(true);
 
 	return true;
 }
 
-bool CTextViewerWindow::asRichText()
+bool CTextViewerWindow::asHtml()
 {
-	// TODO: add RTF support
-	return asDetectedAutomatically();
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData)
+		return false;
+
+	const auto result = decodeText(*textData);
+	if (!result || result->text.isEmpty())
+		return false;
+
+	_textBrowser->setHtml(result->text);
+	return true;
+}
+
+bool CTextViewerWindow::asMarkdown()
+{
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData)
+		return false;
+
+	const auto result = decodeText(*textData);
+	if (!result || result->text.isEmpty())
+		return false;
+
+	maddy::Parser markdownParser;
+	std::istringstream istream{ result->text.toStdString() };
+	std::string html = markdownParser.Parse(istream);
+	_textBrowser->setHtml(QString::fromStdString(html));
+	return true;
+}
+
+std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors()
+{
+	QByteArray textData;
+	if (!readSource(textData))
+	{
+		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		return {};
+	}
+
+	return std::optional{ std::move(textData) };
+}
+
+std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeText(const QByteArray& textData)
+{
+	QTextCodec::ConverterState state;
+	QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+	if (!codec)
+		return {};
+
+	QString text = codec->toUnicode(textData.constData(), (int)textData.size(), &state);
+	if (state.invalidChars > 0)
+	{
+		auto result = CTextEncodingDetector::decode(textData);
+		if (!result.text.isEmpty())
+			return result;
+
+		codec = QTextCodec::codecForLocale();
+		if (!codec)
+			return {};
+
+		result.encoding = codec->name();
+		result.language = {};
+		result.text = codec->toUnicode(textData);
+		return std::move(result);
+	}
+	else
+	{
+		return CTextEncodingDetector::DecodedText{.text = std::move(text), .encoding = "utf-8", .language = {}};
+	}
 }
 
 void CTextViewerWindow::find()
