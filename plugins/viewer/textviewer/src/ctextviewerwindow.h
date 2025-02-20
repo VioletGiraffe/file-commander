@@ -11,7 +11,7 @@ class QLabel;
 class CTextEditWithLineNumbers;
 class CFindDialog;
 
-class CTextViewerWindow : public CPluginWindow, private Ui::CTextViewerWindow
+class CTextViewerWindow final : public CPluginWindow, private Ui::CTextViewerWindow
 {
 public:
 	explicit CTextViewerWindow(QWidget* parent = nullptr) noexcept;

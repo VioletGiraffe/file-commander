@@ -12,6 +12,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QActionGroup>
 #include <QFileDialog>
 #include <QFontDatabase>
+#include <QFontMetrics>
 #include <QLabel>
 #include <QMessageBox>
 #include <QMimeDatabase>
@@ -30,8 +31,12 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 
 	_textBrowser = new CTextEditWithLineNumbers(this);
 
-	QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-	_textBrowser->setFont(fixedFont);
+	{
+		QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+		const qreal sizeReatio = (qreal)QFontMetrics{qApp->font()}.height() / (qreal)QFontMetrics{fixedFont}.height();
+		fixedFont.setPointSizeF(fixedFont.pointSizeF() * sizeReatio);
+		_textBrowser->setFont(fixedFont);
+	}
 
 	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this));
 
