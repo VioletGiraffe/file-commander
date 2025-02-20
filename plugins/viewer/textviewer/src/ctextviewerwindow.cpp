@@ -1,6 +1,5 @@
 #include "ctextviewerwindow.h"
 #include "cfinddialog.h"
-#include "maddy/parser.h"
 
 #include "widgets/cpersistentwindow.h"
 #include "widgets/ctexteditwithlinenumbers.h"
@@ -9,6 +8,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QApplication>
 #include <QActionGroup>
 #include <QFileDialog>
 #include <QFontDatabase>
@@ -21,7 +21,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QTextCodec>
 RESTORE_COMPILER_WARNINGS
 
-#include <sstream>
 #include <type_traits>
 
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
@@ -32,9 +31,6 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	_textBrowser = new CTextEditWithLineNumbers(this);
 
 	QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-	if (parent)
-		fixedFont.setPointSizeF(parent->font().pointSizeF() + 0.5);
-
 	_textBrowser->setFont(fixedFont);
 
 	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this));
@@ -216,10 +212,8 @@ bool CTextViewerWindow::asMarkdown()
 	if (!result || result->text.isEmpty())
 		return false;
 
-	maddy::Parser markdownParser;
-	std::istringstream istream{ result->text.toStdString() };
-	std::string html = markdownParser.Parse(istream);
-	_textBrowser->setHtml(QString::fromStdString(html));
+	encodingChanged(result->encoding, result->language);
+	_textBrowser->setMarkdown(result->text);
 	return true;
 }
 
