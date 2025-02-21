@@ -46,7 +46,7 @@ jobs:
       if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v3
       with:
-        version: '6.6.3'
+        version: '6.8.*'
         arch: 'win64_msvc2019_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
@@ -55,7 +55,7 @@ jobs:
       if: "startsWith(matrix.os, 'ubuntu')"
       uses: jurplel/install-qt-action@v3
       with:
-        version: '6.6.1'
+        version: '6.8.*'
         arch: 'gcc_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
@@ -65,7 +65,7 @@ jobs:
       if: "startsWith(matrix.os, 'macos')"
       uses: jurplel/install-qt-action@v3
       with:
-        version: '6.6.1'
+        version: '6.8.*'
         arch: 'clang_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
