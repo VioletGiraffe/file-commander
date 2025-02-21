@@ -50,15 +50,15 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 	for (const QString& style: QStyleFactory::keys())
 	{
 		ui->_cbStyle->addItem(style);
-		if (style == qApp->style()->name())
+		if (style.compare(QApplication::style()->name(), Qt::CaseInsensitive) == 0)
 			currentStyleIndex = ui->_cbStyle->count() - 1;
 	}
 	ui->_cbStyle->setCurrentIndex(currentStyleIndex);
 
 	connect(ui->_cbStyle, &QComboBox::textActivated, this, [this](const QString& style) {
-		if (style == qApp->style()->name())
+		if (style == QApplication::style()->name())
 			return;
-		qApp->setStyle(style);
+		QApplication::setStyle(style);
 		_styleChanged = true;
 	});
 
@@ -67,7 +67,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 	colorSchemeGroup->addButton(ui->_rbColorSchemeLight);
 	colorSchemeGroup->addButton(ui->_rbColorSchemeDark);
 
-	if (const auto colorScheme = qApp->styleHints()->colorScheme(); colorScheme == Qt::ColorScheme::Dark)
+	if (const auto colorScheme = QApplication::styleHints()->colorScheme(); colorScheme == Qt::ColorScheme::Dark)
 		ui->_rbColorSchemeDark->setChecked(true);
 	else if (colorScheme == Qt::ColorScheme::Light)
 		ui->_rbColorSchemeLight->setChecked(true);
@@ -76,7 +76,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 
 	connect(colorSchemeGroup, &QButtonGroup::buttonClicked, this, [this](QAbstractButton* btn) {
 		const auto scheme = static_cast<Qt::ColorScheme>(colorSchemeFromButton(btn));
-		if (auto* styleHints = qApp->styleHints(); scheme != styleHints->colorScheme())
+		if (auto* styleHints = QApplication::styleHints(); scheme != styleHints->colorScheme())
 		{
 			styleHints->setColorScheme(scheme);
 			_colorSchemeChanged = true;
