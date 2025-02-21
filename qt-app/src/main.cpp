@@ -1,4 +1,5 @@
 #include "cmainwindow.h"
+#include "settings.h"
 #include "settings/csettings.h"
 #include "system/win_utils.hpp"
 
@@ -18,6 +19,11 @@ int main(int argc, char *argv[])
 		qInfo() << message;
 	});
 
+	const QString appName = "File Commander";
+	const QString orgName = "GitHubSoft";
+	CSettings::setApplicationName(appName);
+	CSettings::setOrganizationName(orgName);
+
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	qInfo().nospace() << "Built with Qt " << QT_VERSION_STR << ", running with Qt " << qVersion();
@@ -30,8 +36,21 @@ int main(int argc, char *argv[])
 	QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
 	QApplication app(argc, argv);
-	app.setOrganizationName("GitHubSoft");
-	app.setApplicationName("File Commander");
+
+	// Init style and color scheme, if specified
+	{
+		CSettings s;
+		const int colorScheme = s.value(KEY_INTERFACE_COLOR_SCHEME, -1).toInt();
+		if (colorScheme != -1)
+			QApplication::styleHints()->setColorScheme(static_cast<Qt::ColorScheme>(colorScheme));
+
+		const QString styleName = s.value(KEY_INTERFACE_STYLE).toString();
+		if (!styleName.isEmpty())
+			QApplication::setStyle(styleName);
+	}
+
+	app.setApplicationName(appName);
+	app.setOrganizationName(orgName);
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0) && defined(_WIN32)
 	if (auto* styleHints = app.styleHints(); styleHints && styleHints->colorScheme() == Qt::ColorScheme::Dark)

@@ -716,10 +716,10 @@ void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
 void CMainWindow::openSettingsDialog()
 {
 	CSettingsDialog settings;
-	settings.addSettingsPage(new CSettingsPageInterface);
-	settings.addSettingsPage(new CSettingsPageOperations);
-	settings.addSettingsPage(new CSettingsPageEdit);
-	settings.addSettingsPage(new CSettingsPageOther);
+	settings.addSettingsPage(new CSettingsPageInterface(&settings));
+	settings.addSettingsPage(new CSettingsPageOperations(&settings));
+	settings.addSettingsPage(new CSettingsPageEdit(&settings));
+	settings.addSettingsPage(new CSettingsPageOther(&settings));
 	connect(&settings, &CSettingsDialog::settingsChanged, this, &CMainWindow::settingsChanged);
 
 	settings.adjustSize();
