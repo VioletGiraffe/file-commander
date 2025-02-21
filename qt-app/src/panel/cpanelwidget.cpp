@@ -789,18 +789,12 @@ QModelIndex CPanelWidget::indexByHash(const qulonglong hash, bool logFailures) c
 
 bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 {
-	if (object == ui->_list)
+	if (object == ui->_list && e->type() == QEvent::ContextMenu)
 	{
-		switch (e->type())
-		{
-		case QEvent::ContextMenu:
-			showContextMenuForItems(QCursor::pos()); // QCursor::pos() returns global pos
-			return true;
-		default:
-			break;
-		}
+		showContextMenuForItems(QCursor::pos()); // QCursor::pos() returns global pos
+		return true;
 	}
-	else if(e->type() == QEvent::Wheel && object == ui->_list->viewport())
+	else if(object == ui->_list->viewport() && e->type() == QEvent::Wheel)
 	{
 		auto* wEvent = static_cast<QWheelEvent*>(e);
 		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
@@ -854,7 +848,7 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 	if (!selection.empty())
 	{
 		result.reserve(selection.size());
-		for (const auto selectedItem: selection)
+		for (const auto& selectedItem: selection)
 		{
 			const qulonglong hash = hashBySortModelIndex(selectedItem);
 			if (!_controller->itemByHash(_panelPosition, hash).isCdUp())
