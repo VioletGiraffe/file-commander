@@ -1,8 +1,8 @@
 #include "ctextviewerwindow.h"
+#include "ctexteditwithimagesupport.h"
 #include "cfinddialog.h"
 
 #include "widgets/cpersistentwindow.h"
-#include "widgets/ctexteditwithlinenumbers.h"
 
 #include "assert/advanced_assert.h"
 
@@ -29,7 +29,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 {
 	setupUi(this);
 
-	_textBrowser = new CTextEditWithLineNumbers(this);
+	_textBrowser = new CTextEditWithImageSupport(this);
 
 	{
 		QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);

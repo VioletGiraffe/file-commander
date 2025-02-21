@@ -1,7 +1,7 @@
 TEMPLATE = lib
 TARGET   = plugin_textviewer
 
-QT = core gui widgets
+QT = core gui widgets network
 greaterThan(QT_MAJOR_VERSION, 5) {
 	QT += core5compat
 }
@@ -81,11 +81,13 @@ INCLUDEPATH += \
 	$$PWD/src/
 
 HEADERS += \
+	src/ctexteditwithimagesupport.h \
 	src/ctextviewerplugin.h \
 	src/ctextviewerwindow.h \
 	src/cfinddialog.h
 
 SOURCES += \
+	src/ctexteditwithimagesupport.cpp \
 	src/ctextviewerplugin.cpp \
 	src/ctextviewerwindow.cpp \
 	src/cfinddialog.cpp
