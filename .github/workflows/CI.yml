@@ -47,7 +47,7 @@ jobs:
       uses: jurplel/install-qt-action@v3
       with:
         version: '6.8.*'
-        arch: 'win64_msvc2019_64'
+        arch: 'win64_msvc2022_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
 
@@ -56,7 +56,7 @@ jobs:
       uses: jurplel/install-qt-action@v3
       with:
         version: '6.8.*'
-        arch: 'gcc_64'
+        arch: 'linux_gcc_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
 
