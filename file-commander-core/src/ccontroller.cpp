@@ -43,6 +43,8 @@ CController::CController() :
 	_rightPanel.restoreFromSettings();
 
 	_volumeEnumerator.startEnumeratorThread();
+
+	_wcxHost.setWcxSearchPath(QApplication::applicationDirPath());
 }
 
 CController& CController::get()

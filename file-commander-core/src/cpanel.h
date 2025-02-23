@@ -18,8 +18,8 @@ using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #endif
 
 #include <mutex>
-#include <vector>
 #include <utility>
+#include <vector>
 
 enum class Panel
 {
@@ -133,7 +133,7 @@ private:
 	CHistoryList<QString>                      _history;
 	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _cursorPosForFolder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
-	CallbackCaller<CursorPositionListener>    _currentItemChangeListener;
+	CallbackCaller<CursorPositionListener>     _currentItemChangeListener;
 	const Panel                                _panelPosition;
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 

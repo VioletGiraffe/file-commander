@@ -7,11 +7,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QDir>
 RESTORE_COMPILER_WARNINGS
 
-CWcxPluginHost::CWcxPluginHost()
-{
-
-}
-
 void CWcxPluginHost::setWcxSearchPath(QString path)
 {
 	_pluginSearchPath = std::move(path);
@@ -32,7 +27,7 @@ bool CWcxPluginHost::loadPlugin(const QString& path)
 		assert_and_return_unconditional_r("Failed to load WCX", false);
 	}
 
-	if (!wcx.resolve("CanYouHandleThisFileW") /*&& !wcx.resolve("CanYouHandleThisFile")*/)
+	if (!wcx.resolve("SetChangeVolProc") || !wcx.resolve("ReadHeader"))
 	{
 		wcx.unload();
 		_wcxPlugins.pop_back();
