@@ -17,8 +17,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
-#include <iterator>
-
 CController* CController::_instance = nullptr;
 
 CController::CController() :

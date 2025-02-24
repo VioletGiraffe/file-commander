@@ -12,6 +12,7 @@ class CWcxPluginHost
 public:
 	void setWcxSearchPath(QString path);
 
+private:
 	bool loadPlugin(const QString& path);
 
 private:
