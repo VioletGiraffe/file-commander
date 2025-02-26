@@ -15,11 +15,6 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm> // std::min
 #include <time.h>
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h> // access()
-#endif
 
 enum {
 	ContentsChangedNotificationTag,
@@ -181,14 +176,11 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 
 		_items.clear();
 
-		//locker.unlock();
-		// TODO: synchronization and lock-ups
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 		scanDirectory(CFileSystemObject(path), [showHiddenFiles, this](const CFileSystemObject& item) {
 			if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
 				_items[item.hash()] = item;
 		});
-		//locker.lock();
 
 		sendContentsChangedNotification(refreshCauseOther);
 	});
@@ -348,7 +340,7 @@ std::vector<qulonglong> CPanel::itemHashes() const
 
 	for (const auto& pair : _items)
 		hashes.push_back(pair.first);
-	
+
 	return hashes;
 }
 
@@ -433,33 +425,8 @@ void CPanel::addCurrentItemChangeListener(CursorPositionListener * listener)
 	_currentItemChangeListener.addSubscriber(listener);
 }
 
-//#include <dirent.h>
-//bool directoryCanBeOpened(const QString& path)
-//{
-//	DIR *dir = opendir(path.toUtf8().constData());
-//	if (!dir)
-//	{
-//		const auto err = errno;
-//		qInfo() << err << strerror(err);
-//		return false;
-//	}
-//	else
-//	{
-//		closedir(dir);
-//		return true;
-//	}
-//}
-
 bool CPanel::pathIsAccessible(const QString& path) const
 {
-	//const CFileSystemObject pathObject(path);
-	//if (!pathObject.exists())
-	//	return false;
-
-	//const auto storageInfo = volumeInfoForObject(pathObject);
-	//if (!pathObject.isNetworkObject() && !storageInfo.isReady)
-	//	return false;
-
 	return FileSystemHelpers::pathIsAccessible(path);
 }
 

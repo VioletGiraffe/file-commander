@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 		QApplication::setFont(font);
 	}
 
-	if (const auto styleSheet = CSettings{}.value("Interface/Style/StylesheetText").toString(); !styleSheet.isEmpty())
+	if (const auto styleSheet = CSettings{}.value(KEY_INTERFACE_STYLE_SHEET).toString(); !styleSheet.isEmpty())
 		qApp->setStyleSheet(styleSheet);
 
 	CMainWindow w;
