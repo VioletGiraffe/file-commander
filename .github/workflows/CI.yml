@@ -114,7 +114,7 @@ jobs:
         cp ./installer/linux/file_commander.desktop ./bin/release/x64/
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${Qt6_DIR}/lib/
         sudo ldconfig
-        ./linuxdeployqt-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc --plugin qt -bundle-non-qt-libs -qmake=$Qt6_DIR/bin/qmake -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
+        ./linuxdeploy-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc --plugin qt -bundle-non-qt-libs -qmake=$Qt6_DIR/bin/qmake -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
 
