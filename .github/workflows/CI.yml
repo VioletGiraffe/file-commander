@@ -112,9 +112,8 @@ jobs:
         cp ./qt-app/resources/icon.png ./bin/release/x64/
         cp ./installer/linux/file_commander.desktop ./bin/release/x64/
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${Qt6_DIR}/lib/
-        export QT_QPA_PLATFORM="wayland;xcb"
         sudo ldconfig
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$Qt6_DIR/bin/qmake -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$Qt6_DIR/bin/qmake -extra-plugins=platforms/ -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
 
@@ -185,11 +184,10 @@ jobs:
         make -j
         cd ../../
         for f in $(find bin/release/x64/ -name *.app); do $Qt6_DIR/bin/macdeployqt $f; done
-        export QT_QPA_PLATFORM="wayland;xcb"
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
 
     - name: Running tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
