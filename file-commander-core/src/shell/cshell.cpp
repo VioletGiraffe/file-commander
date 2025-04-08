@@ -178,7 +178,7 @@ private:
 	const std::vector<ITEMIDLIST*>& _array;
 };
 
-bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, IContextMenu*& imenu);
+static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, IContextMenu*& imenu);
 
 // Pos must be global
 
@@ -450,7 +450,7 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 	return true;
 }
 
-bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * parentWindow, HMENU& hmenu, IContextMenu*& imenu)
+static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * parentWindow, HMENU& hmenu, IContextMenu*& imenu)
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
