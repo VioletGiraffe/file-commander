@@ -526,7 +526,13 @@ void CMainWindow::viewFile()
 
 void CMainWindow::editFile()
 {
-	QString editorPath = CSettings().value(KEY_EDITOR_PATH).toString();
+#ifdef _WIN32
+	const QString defaultEditor = "notepad.exe";
+#else
+	const QString defaultEditor;
+#endif
+
+	QString editorPath = CSettings().value(KEY_EDITOR_PATH, defaultEditor).toString();
 	if (FileSystemHelpers::resolvePath(editorPath).isEmpty())
 	{
 		if (QMessageBox::question(this, tr("Editor not configured"), tr("No editor program has been configured (or the specified path doesn't exist). Do you want to specify the editor now?")) == QMessageBox::Yes)
