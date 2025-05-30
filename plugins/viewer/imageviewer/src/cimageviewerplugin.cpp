@@ -3,8 +3,8 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
+#include <QImageReader>
 #include <QMimeDatabase>
-#include <qimagereader.h>
 RESTORE_COMPILER_WARNINGS
 
 bool CImageViewerPlugin::canViewFile(const QString& fileName, const QMimeType& type) const
