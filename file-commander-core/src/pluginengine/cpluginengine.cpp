@@ -133,15 +133,15 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 
 	for(auto& plugin: _plugins)
 	{
-		if (plugin.first->type() == CFileCommanderPlugin::Viewer)
+		if (plugin.first->type() != CFileCommanderPlugin::Viewer)
+			continue;
+
+		auto* viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
+		assert_r(viewer);
+		if (viewer && viewer->canViewFile(currentFile, type))
 		{
-			auto* viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
-			assert_r(viewer);
-			if (viewer && viewer->canViewFile(currentFile, type))
-			{
-				qInfo() << viewer->name() << "selected";
-				return viewer;
-			}
+			qInfo() << viewer->name() << "selected";
+			return viewer;
 		}
 	}
 
