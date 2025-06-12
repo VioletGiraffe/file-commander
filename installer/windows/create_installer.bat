@@ -45,13 +45,9 @@ SET PATH=%QTDIR64%\bin\
 FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --release --force --no-system-d3d-compiler --no-compiler-runtime --no-translations %%p
 ENDLOCAL
 
-%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\msvcp140.dll binaries\64\msvcr\"
+%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\msvcp140*.dll binaries\64\msvcr\"
 if not %errorlevel% == 0 goto dll_not_found
-%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\msvcp140_1.dll binaries\64\msvcr\"
-if not %errorlevel% == 0 goto dll_not_found
-%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\vcruntime140.dll binaries\64\msvcr\"
-if not %errorlevel% == 0 goto dll_not_found
-%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\vcruntime140_1.dll binaries\64\msvcr\"
+%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\vcruntime140*.dll binaries\64\msvcr\"
 if not %errorlevel% == 0 goto dll_not_found
 
 if not defined WIN_SDK (
