@@ -25,6 +25,7 @@ signals:
 
 protected:
 	void hideEvent(QHideEvent* e) override;
+	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
 	Ui::CFileListFilterDialog *ui;

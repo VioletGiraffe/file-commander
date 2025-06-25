@@ -3,6 +3,7 @@
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilelistfilterdialog.h"
 
+#include <QKeyEvent>
 #include <QShortcut>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
@@ -13,10 +14,10 @@ CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	connect(ui->_lineEdit, &QLineEdit::textEdited, this, &CFileListFilterDialog::filterTextChanged);
-
 	_escShortcut = new QShortcut(QKeySequence("Esc"), parent, this, &CFileListFilterDialog::close, Qt::WidgetWithChildrenShortcut);
 	_escShortcut->setEnabled(false);
+
+	ui->_lineEdit->installEventFilter(this);
 }
 
 CFileListFilterDialog::~CFileListFilterDialog()
@@ -31,9 +32,14 @@ void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 
 	_escShortcut->setEnabled(true);
 
-	QTimer::singleShot(0, ui->_lineEdit, (void (QLineEdit::*)())&QLineEdit::setFocus);
-	QTimer::singleShot(0, ui->_lineEdit, &QLineEdit::selectAll);
-	emit filterTextChanged(ui->_lineEdit->text());
+	QTimer::singleShot(0, ui->_lineEdit, [this] {
+		ui->_lineEdit->setFocus();
+		ui->_lineEdit->selectAll();
+	});
+
+	QTimer::singleShot(15, this, [this] {
+		emit filterTextChanged(ui->_lineEdit->text());
+	});
 }
 
 void CFileListFilterDialog::hideEvent(QHideEvent* e)
@@ -42,4 +48,18 @@ void CFileListFilterDialog::hideEvent(QHideEvent* e)
 
 	emit filterTextChanged(QString{});
 	QDialog::hideEvent(e);
+}
+
+bool CFileListFilterDialog::eventFilter(QObject* watched, QEvent* event)
+{
+	if (event->type() == QEvent::KeyPress)
+	{
+		QKeyEvent* ke = static_cast<QKeyEvent*>(event);
+		if (ke->key() == Qt::Key_Return)
+		{
+			emit filterTextChanged(ui->_lineEdit->text());
+		}
+	}
+
+	return QDialog::eventFilter(watched, event);
 }
