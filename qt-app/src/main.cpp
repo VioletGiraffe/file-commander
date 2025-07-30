@@ -40,9 +40,11 @@ int main(int argc, char *argv[])
 	// Init style and color scheme, if specified
 	{
 		CSettings s;
+#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
 		const int colorScheme = s.value(KEY_INTERFACE_COLOR_SCHEME, -1).toInt();
 		if (colorScheme != -1)
 			QApplication::styleHints()->setColorScheme(static_cast<Qt::ColorScheme>(colorScheme));
+#endif
 
 		const QString styleName = s.value(KEY_INTERFACE_STYLE).toString();
 		if (!styleName.isEmpty())

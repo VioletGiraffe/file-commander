@@ -33,7 +33,8 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 
 	{
 		QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-		const qreal sizeReatio = (qreal)QFontMetrics{qApp->font()}.height() / (qreal)QFontMetrics{fixedFont}.height();
+		QFontMetrics fm{fixedFont};
+		const qreal sizeReatio = fm.height() > 0 ? ((qreal)QFontMetrics{qApp->font()}.height() / (qreal)fm.height()) : 1.0;
 		fixedFont.setPointSizeF(fixedFont.pointSizeF() * sizeReatio);
 		_textBrowser->setFont(fixedFont);
 	}

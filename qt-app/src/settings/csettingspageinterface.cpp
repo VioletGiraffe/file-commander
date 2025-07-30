@@ -67,6 +67,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 	colorSchemeGroup->addButton(ui->_rbColorSchemeLight);
 	colorSchemeGroup->addButton(ui->_rbColorSchemeDark);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
 	if (const auto colorScheme = QApplication::styleHints()->colorScheme(); colorScheme == Qt::ColorScheme::Dark)
 		ui->_rbColorSchemeDark->setChecked(true);
 	else if (colorScheme == Qt::ColorScheme::Light)
@@ -82,6 +83,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 			_colorSchemeChanged = true;
 		}
 	});
+#endif
 
 	const auto settingsDialog = dynamic_cast<QDialog*>(parent);
 	connect(settingsDialog, &QDialog::finished, this, [this] {
@@ -118,10 +120,14 @@ void CSettingsPageInterface::updateFontInfoLabel()
 
 int CSettingsPageInterface::colorSchemeFromButton(QAbstractButton* btn)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
 	if (btn == ui->_rbColorSchemeDark)
 		return static_cast<int>(Qt::ColorScheme::Dark);
 	else if (btn == ui->_rbColorSchemeLight)
 		return static_cast<int>(Qt::ColorScheme::Light);
 	else
 		return static_cast<int>(Qt::ColorScheme::Unknown);
+#else
+	return 0;
+#endif
 }
