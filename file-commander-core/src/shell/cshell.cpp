@@ -57,17 +57,18 @@ std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 	if (QFileInfo(consoleExecutable).exists())
 		return { consoleExecutable, {} };
 
-	static constexpr const char* knownTerminals[] {
-		"/usr/bin/konsole", // KDE
-		"/usr/bin/gnome-terminal", // Gnome
-		"/usr/bin/pantheon-terminal", // Pantheon (Elementary OS)
-		"/usr/bin/qterminal", // QTerminal under linux
-		"/usr/local/bin/qterminal" // QTerminal under freebsd
+	static constexpr const char* knownTerminals[][2] {
+		{ "/usr/bin/konsole", "" }, // KDE
+		{ "/usr/bin/gnome-terminal", "" }, // Gnome
+		{ "/usr/bin/pantheon-terminal", "" }, // Pantheon (Elementary OS)
+		{ "/usr/bin/qterminal", "" }, // QTerminal under linux
+		{ "/usr/local/bin/qterminal", "" }, // QTerminal under freebsd
+		{ "/usr/bin/lxterminal", "--working-directory=%dir%" }
 	};
 
 	for (const auto& candidate: knownTerminals)
-		if (QFileInfo(candidate).exists())
-			return { candidate, {} };
+		if (QFileInfo(candidate[0]).exists())
+			return { candidate[0], candidate[1] };
 
 	return {};
 #else
