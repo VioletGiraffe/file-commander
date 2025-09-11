@@ -21,7 +21,7 @@ CFileCommanderViewerPlugin::PluginWindowPointerType CImageViewerPlugin::viewFile
 	auto* window = new CImageViewerWindow;
 	if (window->displayImage(fileName))
 	{
-	// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
+		// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
 		return PluginWindowPointerType(window, [](CPluginWindow* pluginWindow) {
 			delete pluginWindow;
 		});

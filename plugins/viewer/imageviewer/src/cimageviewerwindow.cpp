@@ -30,6 +30,8 @@ CImageViewerWindow::CImageViewerWindow(QWidget* parent) noexcept :
 
 	connect(ui->actionClose, &QAction::triggered, this, &QMainWindow::close);
 
+	connect(ui->action_Copy_to_clipboard, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::copyToClipboard);
+
 	auto* escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 	connect(this, &QAction::destroyed, escScut, &QShortcut::deleteLater);
 }

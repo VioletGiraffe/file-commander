@@ -4,6 +4,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QClipboard>
 #include <QDebug>
 #include <QImageReader>
 #include <QMainWindow>
@@ -102,6 +103,12 @@ QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 	}
 
 	return result;
+}
+
+void CImageViewerWidget::copyToClipboard() noexcept
+{
+	if (!_sourceImage.isNull())
+		QApplication::clipboard()->setImage(_sourceImage);
 }
 
 void CImageViewerWidget::paintEvent(QPaintEvent*)

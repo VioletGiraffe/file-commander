@@ -11,7 +11,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <vector>
 
-class CImageViewerWidget : public QWidget
+class CImageViewerWidget final : public QWidget
 {
 public:
 	explicit CImageViewerWidget(QWidget *parent = nullptr) noexcept;
@@ -24,6 +24,8 @@ public:
 	[[nodiscard]] QSize sizeHint() const override;
 
 	[[nodiscard]] QIcon imageIcon(const std::vector<QSize>& sizes) const;
+
+	void copyToClipboard() noexcept;
 
 protected:
 	void paintEvent(QPaintEvent* e) override;
