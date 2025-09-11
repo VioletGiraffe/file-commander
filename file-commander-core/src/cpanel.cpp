@@ -146,17 +146,34 @@ bool CPanel::navigateBack()
 {
 	if (_currentDisplayMode != NormalMode)
 		return setPath(currentDirPathPosix(), refreshCauseOther) == FileOperationResultCode::Ok;
-	else if (!_history.empty())
-		return setPath(_history.navigateBack(), refreshCauseOther) == FileOperationResultCode::Ok;
-	else
+
+	if (_history.empty())
 		return false;
+	
+	while (!_history.isAtBeginning())
+	{
+		const QString path = _history.navigateBack();
+		if (pathIsAccessible(path))
+		{
+			return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
+		}
+	}
+
+	return false;
 }
 
 // Go to the next location from history, if any
 bool CPanel::navigateForward()
 {
-	if (_currentDisplayMode == NormalMode && !_history.empty())
-		return setPath(_history.navigateForward(), refreshCauseOther) == FileOperationResultCode::Ok;
+	if (_currentDisplayMode != NormalMode || _history.empty())
+		return false;
+
+	while (!_history.isAtEnd())
+	{
+		const QString path = _history.navigateForward();
+		return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
+	}
+
 	return false;
 }
 
