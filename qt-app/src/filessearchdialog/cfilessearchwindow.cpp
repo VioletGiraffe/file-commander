@@ -151,8 +151,7 @@ void CFilesSearchWindow::search()
 		ui->cbContentsCaseSensitive->isChecked(),
 		ui->cbContentsWholeWords->isChecked(),
 		ui->cbRegexFileContents->isChecked(),
-		this // listener
-		)
+		this /* listener */)
 	)
 	{
 		ui->btnSearch->setText(tr("Stop"));

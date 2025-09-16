@@ -84,8 +84,12 @@ inline void replace_null(std::byte* array, size_t size)
 	if (!file.open(path.toUtf8().constData(), thin_io::file::open_mode::Read)) [[unlikely]]
 		return false;
 
+	const bool useRawMemoryPattern = !memoryPattern.isEmpty();
+
 	const uint64_t fileSize = file.size().value_or(0);
-	if (fileSize == 0) [[unlikely]]
+	if (useRawMemoryPattern && fileSize < (uint64_t)memoryPattern.size()) [[unlikely]]
+		return false;
+	else if (fileSize == 0) [[unlikely]]
 		return false;
 
 	static constexpr auto toBytePtr = [](const void* ptr) -> const std::byte* {
@@ -107,7 +111,7 @@ inline void replace_null(std::byte* array, size_t size)
 		const auto lineStart = mappedFile + offset;
 		offset += maxSearchLength;
 
-		if (memoryPattern.isEmpty()) // Match using regex - slow(er)
+		if (!useRawMemoryPattern) // Match using regex - slow(er)
 		{
 			alignas(4096) std::byte buffer[maxLineLength];
 			::memcpy(buffer, lineStart, maxSearchLength);
@@ -186,6 +190,8 @@ void CFileSearchEngine::searchThread(
 	}
 
 	const bool searchByContents = !contentsToFind.isEmpty();
+	if (!contentsCaseSensitive)
+		contentsIsRegex = true; // Can't search for the raw memory pattern if it's case-insensitive (TODO: you can, but not with the built-in functions)
 
 	QRegularExpression fileContentsRegExp;
 	QByteArray fileContentsPlainText;
