@@ -313,8 +313,6 @@ jobs:
             --pretty=format:"- %s ([%h]($($env:GITHUB_SERVER_URL)/$($env:GITHUB_REPOSITORY)/commit/%H))"
         }
         else {
-          $title = "Changes since $prevTag"
-
           # Resolve the commit the previous tag points to and exclude it explicitly
           $prevCommit = git rev-list -n 1 $prevTag
 
@@ -330,7 +328,6 @@ jobs:
 
         # Write multiline output for softprops/action-gh-release
         "body<<EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        "$title`n"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         $commits    | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         "EOF"       | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
