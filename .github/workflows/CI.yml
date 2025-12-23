@@ -28,7 +28,19 @@ jobs:
 
     - name: Sys info
       if: "startsWith(matrix.os, 'windows')"
-      run: wmic cpu get name, numberofcores, maxclockspeed
+      shell: pwsh
+      run: |
+        Get-CimInstance Win32_Processor |
+          Select-Object `
+            Name,
+            NumberOfCores,
+            NumberOfLogicalProcessors,
+            MaxClockSpeed |
+          Format-List
+        Get-CimInstance Win32_ComputerSystem |
+          Select-Object `
+            TotalPhysicalMemory |
+          Format-List
 
     - name: Sys info
       if: "startsWith(matrix.os, 'mac')"
