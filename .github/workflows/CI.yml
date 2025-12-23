@@ -244,14 +244,8 @@ jobs:
       contents: write
       deployments: write
       pull-requests: read
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
-    - name: 'Build Changelog'
-      id: build_changelog
-      uses: mikepenz/release-changelog-builder-action@v4
-      with:
-       token: '${{ github.token }}'
-
     - name: Download EXE
       uses: actions/download-artifact@v4
       with:
@@ -268,6 +262,55 @@ jobs:
         name: FileCommander.AppImage
         path: .
 
+    - name: Generate changelog (commits between previous tag and this tag)
+      id: changelog
+      shell: pwsh
+      env:
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        CURRENT_REF: ${{ github.ref }}
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        # Extract current tag name (strip refs/tags/)
+        $currentTag = $env:CURRENT_REF -replace '^refs/tags/', ''
+
+        # Ensure tags are present
+        git fetch --tags --prune
+
+        # Find previous tag (newest first, excluding current tag)
+        $tags = git tag --sort=-creatordate
+        $prevTag = $tags | Where-Object { $_ -ne $currentTag } | Select-Object -First 1
+
+        if ([string]::IsNullOrEmpty($prevTag)) {
+          $title = "Changes up to $currentTag"
+
+          $commits = git log `
+            $currentTag `
+            --pretty=format:"- %s ([%h]($($env:GITHUB_SERVER_URL)/$($env:GITHUB_REPOSITORY)/commit/%H))"
+        }
+        else {
+          $title = "Changes since $prevTag"
+
+          # Resolve the commit the previous tag points to and exclude it explicitly
+          $prevCommit = git rev-list -n 1 $prevTag
+
+          $commits = git log `
+            $currentTag `
+            --not $prevCommit `
+            --pretty=format:"- %s ([%h]($($env:GITHUB_SERVER_URL)/$($env:GITHUB_REPOSITORY)/commit/%H))"
+        }
+
+        if ([string]::IsNullOrWhiteSpace($commits)) {
+          $commits = "(no commits)"
+        }
+
+        # Write multiline output for softprops/action-gh-release
+        "body<<EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "$title`n"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        $commits    | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "EOF"       | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
     - name: Create Release
       uses: softprops/action-gh-release@v2
       if: success() && startsWith(github.ref, 'refs/tags/')
@@ -279,4 +322,4 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: ${{ github.ref }}
         name: ${{ github.ref_name }}
-        body: ${{steps.build_changelog.outputs.changelog}}
+        body: ${{ steps.changelog.outputs.body }}}
