@@ -12,7 +12,7 @@
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
 
-#include <QDebug>
+#include <QClipboard>
 #include <QFileDialog>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -73,6 +73,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 		CController::get().activePanel().goToItem(CFileSystemObject(item->data(Qt::UserRole).toString()));
 		CMainWindow::get()->activateWindow();
 	});
+	connect(ui->resultsList, &QListWidget::customContextMenuRequested, this, &CFilesSearchWindow::showContextMenu);
 
 	QTimer::singleShot(0, this, [this](){
 		ui->nameToFind->setFocus();
@@ -250,4 +251,16 @@ void CFilesSearchWindow::loadResults()
 		_matches.push_back(line);
 		addResultToUi(line);
 	}
+}
+
+void CFilesSearchWindow::showContextMenu(const QPoint& pos)
+{
+	QListWidgetItem *clickedItem = ui->resultsList->itemAt(pos);
+
+	QMenu menu(this);
+	const QAction *copyAction = menu.addAction("Copy path to clipboard");
+	const QAction *selectedAction = menu.exec(ui->resultsList->mapToGlobal(pos));
+
+	if (selectedAction == copyAction)
+		QApplication::clipboard()->setText(escapedPath(toNativeSeparators(clickedItem->data(Qt::UserRole).toString())));
 }

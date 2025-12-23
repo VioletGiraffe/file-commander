@@ -33,6 +33,8 @@ private:
 	void saveResults();
 	void loadResults();
 
+	void showContextMenu(const QPoint &pos);
+
 private:
 	CFileSearchEngine _engine;
 	std::vector<QString> _matches;
