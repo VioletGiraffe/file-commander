@@ -39,6 +39,10 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
+	ui->nameToFind->setHistoryMode(true);
+	ui->fileContentsToFind->setHistoryMode(true);
+	ui->searchRoot->setHistoryMode(true);
+
 	ui->nameToFind->enableAutoSave(SETTINGS_NAME_TO_FIND);
 	ui->fileContentsToFind->enableAutoSave(SETTINGS_CONTENTS_TO_FIND);
 	ui->fileContentsToFind->setSaveCurrentText(true);
