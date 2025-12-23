@@ -163,7 +163,7 @@ jobs:
 
     - name: Setup RAM Disk
       if: startsWith(matrix.os, 'windows')
-      uses: chad-golden/setup-ramdisk
+      uses: chad-golden/setup-ramdisk@v1.0.1
       with:
         size-in-mb: 2048    # Optional: Default is 2048
         drive-letter: 'R'   # Optional: Default is R
