@@ -44,31 +44,34 @@ jobs:
 
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: '6.9.*'
         arch: 'win64_msvc2022_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
+        cache: 'true'
 
     - name: Install Qt
       if: "startsWith(matrix.os, 'ubuntu')"
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: '6.9.*'
         arch: 'linux_gcc_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
+        cache: 'true'
 
 
     - name: Install Qt
       if: "startsWith(matrix.os, 'macos')"
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: '6.9.*'
         arch: 'clang_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
+        cache: 'true'
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
