@@ -4,6 +4,7 @@
 #include "../cmainwindow.h"
 #include "settings/csettings.h"
 #include "filesystemhelperfunctions.h"
+#include "iconprovider/ciconprovider.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "widgets/cpersistentwindow.h"
@@ -180,11 +181,20 @@ void CFilesSearchWindow::addResultToUi(const QString& path)
 {
 	ui->resultsList->setUpdatesEnabled(false);
 
-	const bool isDir = QFileInfo(path).isDir();
+	const CFileSystemObject object{ path };
+	const bool isDir = object.isDir();
+
+	QString name = toNativeSeparators(path);
+	if (isDir)
+	{
+		if (name.endsWith(nativeSeparator()))
+			name.chop(1);
+		name.prepend('[').append(']');
+	}
 
 	auto* item = new QListWidgetItem;
-	const QString nativePath = toNativeSeparators(path);
-	item->setText(isDir ? ('[' % nativePath % ']') : nativePath);
+	item->setText(name);
+	item->setIcon(CIconProvider::iconForFilesystemObject(object, false));
 	item->setData(Qt::UserRole, path);
 	ui->resultsList->addItem(item);
 
