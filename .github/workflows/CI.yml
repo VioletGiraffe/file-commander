@@ -171,12 +171,12 @@ jobs:
 
     - name: Make temp folder on RAM disk
       if: startsWith(matrix.os, 'windows')
-        shell: pwsh
-        run: |
-          New-Item -Path R:\Temp -ItemType Directory -Force
-          echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
-          echo "TMP=R:\\Temp"  >> $env:GITHUB_ENV
-          echo "TMPDIR=R:\\Temp" >> $env:GITHUB_ENV
+      shell: pwsh
+      run: |
+        New-Item -Path R:\Temp -ItemType Directory -Force
+        echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
+        echo "TMP=R:\\Temp"  >> $env:GITHUB_ENV
+        echo "TMPDIR=R:\\Temp" >> $env:GITHUB_ENV
 
     - name: Running tests - Windows
       if: startsWith(matrix.os, 'windows')
