@@ -246,6 +246,12 @@ jobs:
       pull-requests: read
     runs-on: windows-latest
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # required to access full history and tags
+        fetch-tags: true
+        
     - name: Download EXE
       uses: actions/download-artifact@v4
       with:
