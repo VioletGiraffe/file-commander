@@ -194,7 +194,7 @@ void CFilesSearchWindow::addResultToUi(const QString& path)
 
 	auto* item = new QListWidgetItem;
 	item->setText(name);
-	item->setIcon(CIconProvider::iconForFilesystemObject(object, false));
+	item->setIcon(CIconProvider::iconForFilesystemObject(object, true));
 	item->setData(Qt::UserRole, path);
 	ui->resultsList->addItem(item);
 
