@@ -161,6 +161,23 @@ jobs:
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v143 core-tests.sln
         cd ..\..
 
+    - name: Setup RAM Disk
+      if: startsWith(matrix.os, 'windows')
+      uses: chad-golden/setup-ramdisk@v1
+      with:
+        size-in-mb: 2048    # Optional: Default is 2048
+        drive-letter: 'R'   # Optional: Default is R
+        copy-workspace: false # Optional: Default is false
+
+    - name: Make temp folder on RAM disk
+      if: startsWith(matrix.os, 'windows')
+        shell: pwsh
+        run: |
+          New-Item -Path R:\Temp -ItemType Directory -Force
+          echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
+          echo "TMP=R:\\Temp"  >> $env:GITHUB_ENV
+          echo "TMPDIR=R:\\Temp" >> $env:GITHUB_ENV
+
     - name: Running tests - Windows
       if: startsWith(matrix.os, 'windows')
       shell: powershell
@@ -251,7 +268,7 @@ jobs:
       with:
         fetch-depth: 0 # required to access full history and tags
         fetch-tags: true
-        
+
     - name: Download EXE
       uses: actions/download-artifact@v4
       with:
