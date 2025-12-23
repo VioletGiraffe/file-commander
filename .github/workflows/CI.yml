@@ -27,20 +27,21 @@ jobs:
         submodules: recursive
 
     - name: Sys info
-      if: "startsWith(matrix.os, 'windows')"
+      if: startsWith(matrix.os, 'windows')
       shell: pwsh
       run: |
-        Get-CimInstance Win32_Processor |
-          Select-Object `
-            Name,
-            NumberOfCores,
-            NumberOfLogicalProcessors,
-            MaxClockSpeed |
-          Format-List
-        Get-CimInstance Win32_ComputerSystem |
-          Select-Object `
-            TotalPhysicalMemory |
-          Format-List
+        $cpu = Get-CimInstance Win32_Processor
+        $mem = Get-CimInstance Win32_ComputerSystem
+
+        $cpu | ForEach-Object {
+          Write-Host "CPU: $($_.Name)"
+          Write-Host "  Cores: $($_.NumberOfCores)"
+          Write-Host "  Logical processors: $($_.NumberOfLogicalProcessors)"
+          Write-Host "  Max clock (MHz): $($_.MaxClockSpeed)"
+        }
+
+        $totalRamGB = [Math]::Round($mem.TotalPhysicalMemory / 1GB, 2)
+        Write-Host "RAM: $totalRamGB GB"
 
     - name: Sys info
       if: "startsWith(matrix.os, 'mac')"
