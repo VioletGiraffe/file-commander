@@ -8,14 +8,6 @@ RMDIR /S /Q binaries\
 
 SETLOCAL
 
-if exist "%systemroot%\Sysnative\" (
-    set SYS64=%systemroot%\Sysnative
-) else (
-    set SYS64=%systemroot%\System32
-)
-
-echo %SYS64%
-
 if exist "%ProgramW6432%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
     call "%ProgramW6432%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
 ) else (
@@ -41,27 +33,23 @@ xcopy /R /Y "3rdparty binaries"\64\* binaries\64\
 
 SETLOCAL
 SET PATH=%QTDIR64%\bin\
-%QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --force --release --release --force --no-system-d3d-compiler --no-compiler-runtime --no-translations binaries\64\FileCommander.exe
-FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --release --force --no-system-d3d-compiler --no-compiler-runtime --no-translations %%p
+%QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --force --release --no-translations --no-system-d3d-compiler --no-opengl-sw binaries\64\FileCommander.exe
+FOR %%p IN (binaries\64\plugin_*.dll) DO %QTDIR64%\bin\windeployqt.exe --dir binaries\64\Qt --force --release --no-translations --no-system-d3d-compiler --no-opengl-sw %%p
 ENDLOCAL
 
-%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\msvcp140*.dll binaries\64\msvcr\"
-if not %errorlevel% == 0 goto dll_not_found
-%SYS64%\cmd.exe /c "xcopy /R /Y %SystemRoot%\System32\vcruntime140*.dll binaries\64\msvcr\"
-if not %errorlevel% == 0 goto dll_not_found
+pushd binaries\64\Qt\
 
-if not defined WIN_SDK (
-    if exist "%programfiles(x86)%\Windows Kits\10\Redist\10.0.19041.0" (
-        set WIN_SDK=10.0.19041.0
-    ) else (
-        set WIN_SDK=10.0.18362.0
-    )
-)
+mkdir ..\vc_redist\
+move vc_redist.x64.exe ..\vc_redist\
 
-xcopy /R /Y "%programfiles(x86)%\Windows Kits\10\Redist\%WIN_SDK%\ucrt\DLLs\x64\*" binaries\64\msvcr\
-if %ERRORLEVEL% GEQ 1 goto windows_sdk_not_found
+for %%F in (
+    opengl32sw.dll
+    d3dcompiler_*.dll
+    dx*compiler.dll
+    dxil.dll
+) do if exist %%F del %%F
 
-del binaries\64\Qt\opengl*.*
+popd
 
 "%programfiles(x86)%\Inno Setup 6\iscc" setup.iss
 
@@ -71,17 +59,5 @@ exit /b 0
 :build_fail
 ENDLOCAL
 echo Build failed
-pause
-exit /b 1
-
-:dll_not_found
-ENDLOCAL
-echo VC++ Redistributable DLL not found
-pause
-exit /b 1
-
-:windows_sdk_not_found
-ENDLOCAL
-echo Windows SDK not found (required for CRT DLLs)
 pause
 exit /b 1

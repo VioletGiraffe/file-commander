@@ -36,11 +36,9 @@ Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:Ad
 ;App binaries
 Source: binaries/64/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
-;Qt binaries
+;3rdparty
 Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; Check: Is64BitInstallMode
-
-;MSVC binaries
-Source: binaries/64/msvcr/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
+Source: binaries/64/vc_redist/*; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Icons]
 Name: {group}\File Commander; Filename: {app}\FileCommander.exe;
@@ -49,6 +47,7 @@ Name: {group}\{cm:UninstallProgram,File Commander}; Filename: {uninstallexe}
 Name: {userdesktop}\File Commander; Filename: {app}\FileCommander.exe; Tasks: desktopicon;
 
 [Run]
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Runtime..."; Flags: waituntilterminated
 Filename: {app}\FileCommander.exe; Description: {cm:LaunchProgram,File Commander}; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
