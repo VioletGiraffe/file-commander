@@ -60,6 +60,7 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.9.*'
+        target: desktop
         arch: 'win64_msvc2022_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
@@ -70,6 +71,7 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.9.*'
+        target: desktop
         arch: 'linux_gcc_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
@@ -81,6 +83,7 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.9.*'
+        target: desktop
         arch: 'clang_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
@@ -88,14 +91,14 @@ jobs:
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
-      uses: microsoft/setup-msbuild@v1
+      uses: microsoft/setup-msbuild@v2
 
     - name: Windows - building main installer
       if: startsWith(matrix.os, 'windows')
       shell: cmd
       run: |
-        %Qt6_DIR%\bin\qmake.exe -v
-        set QTDIR64=%Qt6_DIR%
+        %QT_ROOT_DIR%\bin\qmake.exe -v
+        set QTDIR64=%QT_ROOT_DIR%
         cd installer\windows\
         create_installer.bat
         cd ..\..
@@ -107,7 +110,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         clang --version
-        ./installer/mac/create_dmg.sh $Qt6_DIR
+        ./installer/mac/create_dmg.sh $QT_ROOT_DIR
 
     - name: Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -118,18 +121,18 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 50
         g++ --version
-        export PATH=$Qt6_DIR/bin/:$PATH
+        export PATH=$QT_ROOT_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-        $Qt6_DIR/bin/qmake -r CONFIG+=release
+        $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -j
         # Linux: building AppImage
         cp ./qt-app/resources/icon.png ./bin/release/x64/
         cp ./installer/linux/file_commander.desktop ./bin/release/x64/
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${Qt6_DIR}/lib/
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${QT_ROOT_DIR}/lib/
         sudo ldconfig
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$Qt6_DIR/bin/qmake -extra-plugins=platforms/,iconengines/,imageformats/,tls/,networkinformation/,platformthemes/,wayland-decoration-client/,wayland-graphics-integration-client/,wayland-shell-integration -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QT_ROOT_DIR/bin/qmake -extra-plugins=platforms/,iconengines/,imageformats/,tls/,networkinformation/,platformthemes/,wayland-decoration-client/,wayland-graphics-integration-client/,wayland-shell-integration -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
 
@@ -154,7 +157,7 @@ jobs:
       run: |
         cd file-commander-core\core-tests\
         dir
-        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt6_DIR%\bin\qmake.exe" -tp vc -r
+        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%QT_ROOT_DIR%\bin\qmake.exe" -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v143 core-tests.sln
         cd ..\..
 
@@ -179,10 +182,10 @@ jobs:
       if: startsWith(matrix.os, 'macos')
       run: |
         cd file-commander-core/core-tests
-        $Qt6_DIR/bin/qmake -r CONFIG+=release
+        $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $Qt6_DIR/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
 
     - name: Running tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -196,10 +199,10 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         cd file-commander-core/core-tests
-        $Qt6_DIR/bin/qmake -r CONFIG+=release
+        $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -j
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $Qt6_DIR/bin/macdeployqt $f; done
+        for f in $(find bin/release/x64/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/operationperformer_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
