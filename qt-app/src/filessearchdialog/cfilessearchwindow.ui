@@ -31,6 +31,12 @@
        <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,1,0">
         <item row="0" column="0" colspan="3">
          <widget class="CHistoryComboBox" name="nameToFind">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="editable">
            <bool>true</bool>
           </property>
@@ -136,6 +142,12 @@
         </property>
         <item>
          <widget class="CHistoryComboBox" name="fileContentsToFind">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="editable">
            <bool>true</bool>
           </property>
@@ -206,6 +218,12 @@
       </item>
       <item row="4" column="1">
        <widget class="CHistoryComboBox" name="searchRoot">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="editable">
          <bool>true</bool>
         </property>
@@ -215,6 +233,21 @@
     </item>
     <item>
      <widget class="QListWidget" name="resultsList">
+      <property name="editTriggers">
+       <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+      </property>
+      <property name="textElideMode">
+       <enum>Qt::TextElideMode::ElideMiddle</enum>
+      </property>
+      <property name="horizontalScrollMode">
+       <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+      </property>
+      <property name="isWrapping" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="resizeMode">
+       <enum>QListView::ResizeMode::Adjust</enum>
+      </property>
       <property name="uniformItemSizes">
        <bool>true</bool>
       </property>
@@ -256,11 +289,20 @@
     </item>
     <item>
      <widget class="QLabel" name="progressLabel">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string notr="true"/>
       </property>
       <property name="textFormat">
        <enum>Qt::TextFormat::PlainText</enum>
+      </property>
+      <property name="textInteractionFlags">
+       <set>Qt::TextInteractionFlag::NoTextInteraction</set>
       </property>
      </widget>
     </item>
