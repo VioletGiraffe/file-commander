@@ -20,6 +20,7 @@ RESTORE_COMPILER_WARNINGS
 
 #define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
 #define SETTINGS_NAME_CASE_SENSITIVE     QSL("FileSearchDialog/Ui/CaseSensitiveName")
+#define SETTINGS_NAME_PARTIAL_MATCH      QSL("FileSearchDialog/Ui/NamePartialMatch")
 #define SETTINGS_CONTENTS_TO_FIND        QSL("FileSearchDialog/Ui/ContentsToFind")
 #define SETTINGS_CONTENTS_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveContents")
 #define SETTINGS_CONTENTS_IS_REGEX       QSL("FileSearchDialog/Ui/ContentsIsRegex")
@@ -53,6 +54,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	CSettings s;
 	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
+	ui->cbNamePartialMatch->setChecked(s.value(SETTINGS_NAME_PARTIAL_MATCH, true).toBool());
 	ui->cbContentsCaseSensitive->setChecked(s.value(SETTINGS_CONTENTS_CASE_SENSITIVE, false).toBool());
 	ui->cbRegexFileContents->setChecked(s.value(SETTINGS_CONTENTS_IS_REGEX, false).toBool());
 
@@ -79,6 +81,7 @@ CFilesSearchWindow::~CFilesSearchWindow()
 
 	CSettings s;
 	s.setValue(SETTINGS_NAME_CASE_SENSITIVE, ui->cbNameCaseSensitive->isChecked());
+	s.setValue(SETTINGS_NAME_PARTIAL_MATCH, ui->cbNamePartialMatch->isChecked());
 	s.setValue(SETTINGS_CONTENTS_CASE_SENSITIVE, ui->cbContentsCaseSensitive->isChecked());
 	s.setValue(SETTINGS_CONTENTS_IS_REGEX, ui->cbRegexFileContents->isChecked());
 
@@ -140,8 +143,16 @@ void CFilesSearchWindow::search()
 
 	_matches.clear();
 
-	const QString what = ui->nameToFind->currentText();
+	QString what = ui->nameToFind->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
+
+	if (ui->cbNamePartialMatch->isChecked())
+	{
+		if (!what.startsWith('*'))
+			what.prepend('*');
+		if (!what.endsWith('*'))
+			what.append('*');
+	}
 
 	if (_engine.search(
 		what,
