@@ -38,7 +38,7 @@ Source: binaries/64/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInsta
 
 ;3rdparty
 Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; Check: Is64BitInstallMode
-Source: binaries/64/vc_redist/*; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: binaries/64/vc_redist/*; DestDir: "{tmp}"; Flags: deleteafterinstall nocompression
 
 [Icons]
 Name: {group}\File Commander; Filename: {app}\FileCommander.exe;
