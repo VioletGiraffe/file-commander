@@ -184,8 +184,9 @@ jobs:
       run: |
         .\bin\release\x64\fso_test.exe
         .\bin\release\x64\fso_test_high_level.exe
-
-        For ($i=1; $i -le 20; $i++) {
+        $N=20
+        For ($i=1; $i -le $N; $i++) {
+          Write-Output "Iteration $i/$N"
           $randomSeed = ((get-date -Uformat %s).remove(10, 1));
           $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
           & .\bin\release\x64\operationperformer_test.exe --std-seed $randomSeed;
@@ -209,7 +210,7 @@ jobs:
       run: |
         set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
         set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
-        set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); sleep 1; done
+        set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/x64/operationperformer_test.app/Contents/MacOS/operationperformer_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
 
     - name: Building tests - Linux
@@ -230,7 +231,7 @@ jobs:
       run: |
         set -e; ./bin/release/x64/fso_test
         set -e; ./bin/release/x64/fso_test_high_level
-        set -e; for i in `seq 1 20`; do ./bin/release/x64/operationperformer_test --std-seed $(date +%s); sleep 1; done
+        set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/x64/operationperformer_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
 
     - name: Archive DMG
