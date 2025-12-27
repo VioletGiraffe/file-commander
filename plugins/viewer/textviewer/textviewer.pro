@@ -6,7 +6,9 @@ greaterThan(QT_MAJOR_VERSION, 5) {
 	QT += core5compat
 }
 
-CONFIG += strict_c++ c++2b
+CONFIG += strict_c++
+
+include(../../../global.pri)
 
 mac* | linux* | freebsd{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full

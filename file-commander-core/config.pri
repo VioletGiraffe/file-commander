@@ -4,8 +4,10 @@ lessThan(QT_MAJOR_VERSION, 6) {
 }
 
 CONFIG += staticlib
+CONFIG += strict_c++
 
-CONFIG += strict_c++ c++2b
+include(../global.pri)
+
 mac* | linux*|freebsd{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
 	CONFIG(debug, debug|release):CONFIG *= Debug

@@ -3,7 +3,9 @@ TARGET   = plugin_imageviewer
 
 QT = core gui widgets
 
-CONFIG += strict_c++ c++2b
+CONFIG += strict_c++
+
+include(../../../global.pri)
 
 mac* | linux* | freebsd{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
