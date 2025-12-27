@@ -10,7 +10,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QPlainTextEdit>
 #include <QSortFilterProxyModel>
 #include <QTextEdit>
-#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 // Item rename handling
@@ -34,9 +33,9 @@ void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & 
 		const auto dot = static_cast<int>(itemName.lastIndexOf('.'));
 		if (dot != -1)
 		{
-			QTimer::singleShot(0, Qt::CoarseTimer, lineEditor, [=]() {
+			QMetaObject::invokeMethod(lineEditor, [=]() {
 				lineEditor->setSelection(0, dot);
-			});
+			}, Qt::QueuedConnection);
 		}
 	}
 }

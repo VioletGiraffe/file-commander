@@ -112,11 +112,11 @@ void CDeleteProgressDialog::pauseResume()
 void CDeleteProgressDialog::background()
 {
 	ui->_btnBackground->setVisible(false);
-	QTimer::singleShot(0, this, [this](){
+	QMetaObject::invokeMethod(this, [this](){
 		setGeometry(QRect(geometry().topLeft(), QPoint(geometry().topLeft().x() + minimumSize().width(), geometry().topLeft().y() + minimumSize().height())));
 		_mainWindow->raise();
 		_mainWindow->activateWindow();
-	});
+	}, Qt::QueuedConnection);
 }
 
 void CDeleteProgressDialog::cancel()

@@ -32,10 +32,10 @@ void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 
 	_escShortcut->setEnabled(true);
 
-	QTimer::singleShot(0, ui->_lineEdit, [this] {
+	QMetaObject::invokeMethod(ui->_lineEdit, [this] {
 		ui->_lineEdit->setFocus();
 		ui->_lineEdit->selectAll();
-	});
+	}, Qt::QueuedConnection);
 
 	QTimer::singleShot(15, this, [this] {
 		emit filterTextChanged(ui->_lineEdit->text());

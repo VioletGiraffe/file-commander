@@ -16,7 +16,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 #define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
@@ -75,10 +74,10 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 	});
 	connect(ui->resultsList, &QListWidget::customContextMenuRequested, this, &CFilesSearchWindow::showContextMenu);
 
-	QTimer::singleShot(0, this, [this](){
+	QMetaObject::invokeMethod(this, [this](){
 		ui->nameToFind->setFocus();
 		ui->nameToFind->lineEdit()->selectAll();
-	});
+	}, Qt::QueuedConnection);
 }
 
 CFilesSearchWindow::~CFilesSearchWindow()

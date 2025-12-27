@@ -10,7 +10,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QPainter>
-#include <QTimer>
 #include <QScreen>
 RESTORE_COMPILER_WARNINGS
 
@@ -37,7 +36,7 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 
 	resize(widgetSize);
 
-	QTimer::singleShot(0, this, [this, availableGeometry]() {
+	QMetaObject::invokeMethod(this, [this, availableGeometry]() {
 		// Apparently, we need the timer in order for the resize to actually be applied before parent's resize
 		auto* mainWindow = WidgetUtils::findParentMainWindow(this);
 		if (mainWindow)
@@ -46,7 +45,7 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 		}
 
 		setUpdatesEnabled(true);
-	});
+	}, Qt::QueuedConnection);
 
 	return true;
 }
