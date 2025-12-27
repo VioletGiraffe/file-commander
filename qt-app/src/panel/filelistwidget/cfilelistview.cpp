@@ -17,8 +17,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <array>
-#include <time.h>
-#include <set>
 
 #if defined __linux__ || defined __APPLE__
 #include "cfocusframestyle.h"
@@ -78,27 +76,6 @@ void CFileListView::moveCursorToItem(const QModelIndex& index, bool invertSelect
 		selectionModel()->setCurrentIndex(normalizedTargetIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
 		scrollTo(normalizedTargetIndex);
 	}
-}
-
-// Header management
-void CFileListView::saveHeaderState()
-{
-	if (header())
-	{
-		_headerGeometry = header()->saveGeometry();
-		_headerState    = header()->saveState();
-	}
-}
-
-void CFileListView::restoreHeaderState()
-{
-	QHeaderView * headerView = header();
-	assert_and_return_r(headerView, );
-
-	if (!_headerGeometry.isEmpty())
-		headerView->restoreGeometry(_headerGeometry);
-	if (!_headerState.isEmpty())
-		headerView->restoreState(_headerState);
 }
 
 void CFileListView::invertSelection()

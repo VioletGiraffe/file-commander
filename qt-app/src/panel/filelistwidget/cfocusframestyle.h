@@ -5,10 +5,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QStyle>
 RESTORE_COMPILER_WARNINGS
 
-class QPainter;
-class QWidget;
-class QStyleOptionComplex;
-
 class CFocusFrameStyle final : public QStyle
 {
 public:

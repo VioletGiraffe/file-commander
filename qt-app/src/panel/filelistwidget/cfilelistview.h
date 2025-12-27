@@ -44,10 +44,6 @@ public:
 	// Preserves item's selection state
 	void moveCursorToItem(const QModelIndex &index, bool invertSelection = false);
 
-	// Header management
-	void saveHeaderState();
-	void restoreHeaderState();
-
 	void invertSelection();
 
 	void modelAboutToBeReset();
@@ -85,8 +81,6 @@ private:
 
 private:
 	std::vector<FileListViewEventObserver*> _eventObservers;
-	QByteArray                          _headerGeometry;
-	QByteArray                          _headerState;
 
 	QModelIndex                         _currentItemBeforeMouseClick;
 

@@ -29,7 +29,7 @@ void CFocusFrameStyle::drawItemText(QPainter * painter, const QRect & rectangle,
 
 void CFocusFrameStyle::drawPrimitive(PrimitiveElement element, const QStyleOption * option, QPainter * painter, const QWidget * widget) const
 {
-	if (element != QStyle::PE_FrameFocusRect)
+	if (element != QStyle::PE_FrameFocusRect) [[likely]]
 	{
 		QApplication::style()->drawPrimitive(element, option, painter, widget);
 		return;
