@@ -15,7 +15,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 CDeleteProgressDialog::CDeleteProgressDialog(QWidget* parent, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow *mainWindow) :
-	QWidget(parent, Qt::Window),
+	CFileOperationDialogBase(parent, Qt::Window),
 	ui(new Ui::CDeleteProgressDialog),
 	_performer(new COperationPerformer(operationDelete, std::move(source), std::move(destination))),
 	_mainWindow(mainWindow)
@@ -37,7 +37,7 @@ CDeleteProgressDialog::CDeleteProgressDialog(QWidget* parent, std::vector<CFileS
 	_eventsProcessTimer = new QTimer{ this };
 	_eventsProcessTimer->setInterval(100);
 	_eventsProcessTimer->start();
-	connect(_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents(); });
+	connect(_eventsProcessTimer, &QTimer::timeout, this, [this]() { processEvents(); });
 
 	adjustSize();
 
@@ -114,11 +114,14 @@ void CDeleteProgressDialog::pauseResume()
 void CDeleteProgressDialog::background()
 {
 	ui->_btnBackground->setVisible(false);
+	// TODO: why the need for QueuedConnection here?
 	QMetaObject::invokeMethod(this, [this](){
 		const QSize minsize = minimumSize();
-		const QPoint mainWindowTopLeft = _mainWindow->frameGeometry().topLeft();
-		const QRect newGeometry = QRect(QPoint(mainWindowTopLeft.x(), mainWindowTopLeft.y() - minsize.height()), minsize);
+		const QPoint position = _mainWindow->nextBackgroundDialogPosition(); // Bottom left point
+		const QRect newGeometry = QRect{ QPoint{ position.x(), position.y() - minsize.height() }, minsize };
 		setGeometry(newGeometry);
+
+		_isInBackroundMode = true;
 		_mainWindow->activateWindow();
 	}, Qt::QueuedConnection);
 }

@@ -11,14 +11,15 @@ DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace Ui {
 	class CMainWindow;
 }
 
 class CPanelWidget;
+class CFileOperationDialogBase;
 class QShortcut;
 class QStackedWidget;
 
@@ -41,6 +42,9 @@ public:
 
 	bool copyFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
 	bool moveFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
+
+	// Bottom left point
+	QPoint nextBackgroundDialogPosition() const;
 
 protected:
 	void closeEvent(QCloseEvent * e) override;
@@ -125,6 +129,9 @@ private:
 	// Window title management (#143)
 	void updateWindowTitleWithCurrentFolderNames();
 
+	void registerFileOperationDialog(CFileOperationDialogBase* dialog);
+	void onFileDialogFinished(QObject* object);
+
 private:
 	Ui::CMainWindow* ui;
 	static CMainWindow* _instance;
@@ -139,5 +146,7 @@ private:
 	QCompleter _commandLineCompleter;
 
 	enum { NormalWindow, MaximizedWindow } _windowStateBeforeFullscreen = NormalWindow;
+
+	std::vector<CFileOperationDialogBase*> _activeFileOperationDialogs;
 };
 

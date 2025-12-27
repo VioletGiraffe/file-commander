@@ -36,6 +36,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QProcess>
+#include <QScreen>
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <QWidgetList>
@@ -241,6 +242,7 @@ bool CMainWindow::copyFiles(std::vector<CFileSystemObject>&& files, const QStrin
 	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(this, operationCopy, std::move(files), toPosixSeparators(prompt.text()), this);
+	registerFileOperationDialog(dialog);
 	dialog->show();
 
 	return true;
@@ -263,9 +265,32 @@ bool CMainWindow::moveFiles(std::vector<CFileSystemObject>&& files, const QStrin
 	}
 
 	CCopyMoveDialog * dialog = new CCopyMoveDialog(this, operationMove, std::move(files), toPosixSeparators(prompt.text()), this);
+	registerFileOperationDialog(dialog);
 	dialog->show();
 
 	return true;
+}
+
+QPoint CMainWindow::nextBackgroundDialogPosition() const
+{
+	QPoint pos;
+	for (auto it = _activeFileOperationDialogs.rbegin(); it != _activeFileOperationDialogs.rend(); ++it)
+	{
+		CFileOperationDialogBase* dialog = *it;
+		if (!dialog->isInBackgroundMode())
+			continue;
+
+		const QRect dialogGeometry = dialog->frameGeometry();
+		// Check if the dialog fits on screen
+		const QRect screenGeometry = screen()->availableGeometry();
+		const QPoint bottomRight = QPoint{ dialogGeometry.right(), frameGeometry().top() };
+		if (screenGeometry.contains(bottomRight.x() + dialogGeometry.width(), bottomRight.y() - dialogGeometry.height()))
+			return bottomRight;
+		else // No space left
+			return frameGeometry().topLeft() + QPoint{ 20, 20 };
+	}
+
+	return frameGeometry().topLeft();
 }
 
 void CMainWindow::closeEvent(QCloseEvent *e)
@@ -457,6 +482,7 @@ void CMainWindow::deleteFilesIrrevocably()
 	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
 		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(this, std::move(items), _otherFileList->currentDirPathNative(), this);
+		registerFileOperationDialog(dialog);
 		dialog->show();
 	}
 #endif
@@ -930,4 +956,16 @@ bool CMainWindow::fileListReturnPressed()
 void CMainWindow::quickViewCurrentFile()
 {
 	otherPanelDisplayController().startQuickView(CPluginEngine::get().createViewerWindowForCurrentFile());
+}
+
+void CMainWindow::registerFileOperationDialog(CFileOperationDialogBase* dialog)
+{
+	_activeFileOperationDialogs.push_back(dialog);
+	connect(dialog, &QObject::destroyed, this, &CMainWindow::onFileDialogFinished);
+}
+
+void CMainWindow::onFileDialogFinished(QObject* object)
+{
+	const size_t count = std::erase(_activeFileOperationDialogs, object);
+	assert_and_return_r(count > 0, );
 }

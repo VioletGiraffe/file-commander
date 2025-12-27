@@ -1,10 +1,7 @@
 #pragma once
 
+#include "cfileoperationdialogbase.h"
 #include "fileoperations/coperationperformer.h"
-
-DISABLE_COMPILER_WARNINGS
-#include <QWidget>
-RESTORE_COMPILER_WARNINGS
 
 namespace Ui {
 class CCopyMoveDialog;
@@ -13,7 +10,7 @@ class CCopyMoveDialog;
 class CMainWindow;
 class QTimer;
 
-class CCopyMoveDialog final : public QWidget, protected CFileOperationObserver
+class CCopyMoveDialog final : public CFileOperationDialogBase, protected CFileOperationObserver
 {
 public:
 	CCopyMoveDialog(QWidget* parent, Operation, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow);

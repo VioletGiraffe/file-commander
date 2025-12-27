@@ -76,6 +76,7 @@ HEADERS += \
 	src/cmainwindow.h \
 	src/panel/cpanelwidget.h \
 	src/progressdialogs/ccopymovedialog.h \
+	src/progressdialogs/cfileoperationdialogbase.h \
 	src/progressdialogs/cpromptdialog.h \
 	src/panel/qflowlayout.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \

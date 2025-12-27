@@ -1,10 +1,7 @@
 #pragma once
 
+#include "cfileoperationdialogbase.h"
 #include "fileoperations/coperationperformer.h"
-
-DISABLE_COMPILER_WARNINGS
-#include <QWidget>
-RESTORE_COMPILER_WARNINGS
 
 #include <memory>
 
@@ -16,7 +13,7 @@ class CMainWindow;
 class COperationPerformer;
 class QTimer;
 
-class CDeleteProgressDialog final : public QWidget, protected CFileOperationObserver
+class CDeleteProgressDialog final : public CFileOperationDialogBase, protected CFileOperationObserver
 {
 public:
 	CDeleteProgressDialog(QWidget* parent, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow);

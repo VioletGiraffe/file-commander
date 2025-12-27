@@ -17,7 +17,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 CCopyMoveDialog::CCopyMoveDialog(QWidget* parent, Operation operation, std::vector<CFileSystemObject>&& source, QString destination, CMainWindow * mainWindow) :
-	QWidget(parent, Qt::Window),
+	CFileOperationDialogBase(parent, Qt::Window),
 	ui(new Ui::CCopyMoveDialog),
 	_performer(new COperationPerformer(operation, std::move(source), std::move(destination))),
 	_mainWindow(mainWindow),
@@ -142,12 +142,14 @@ void CCopyMoveDialog::switchToBackground()
 	ui->_btnBackground->hide();
 	ui->_fileProgress->hide();
 	ui->_fileProgressText->hide();
-	QMetaObject::invokeMethod(this, [this](){
+	// TODO: why the need for QueuedConnection here?
+	QMetaObject::invokeMethod(this, [this]() {
 		const QSize minsize = minimumSize();
-		const QPoint mainWindowTopLeft = _mainWindow->frameGeometry().topLeft();
-		const QRect newGeometry = QRect(QPoint(mainWindowTopLeft.x(), mainWindowTopLeft.y() - minsize.height()), minsize);
+		const QPoint position = _mainWindow->nextBackgroundDialogPosition(); // Bottom left point
+		const QRect newGeometry = QRect{ QPoint{ position.x(), position.y() - minsize.height() }, minsize };
 		setGeometry(newGeometry);
 
+		_isInBackroundMode = true;
 		_mainWindow->activateWindow();
 	}, Qt::QueuedConnection);
 }
