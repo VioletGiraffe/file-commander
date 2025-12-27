@@ -138,6 +138,7 @@ CPromptDialog::CPromptDialog(QWidget *parent, Operation op, HaltReason promptRea
 
 UserResponse CPromptDialog::ask()
 {
+	adjustSize();
 	exec();
 	if (_response == urNone)
 		_response = urAbort;

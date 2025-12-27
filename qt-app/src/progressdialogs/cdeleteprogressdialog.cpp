@@ -39,6 +39,8 @@ CDeleteProgressDialog::CDeleteProgressDialog(QWidget* parent, std::vector<CFileS
 	_eventsProcessTimer->start();
 	connect(_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents(); });
 
+	adjustSize();
+
 	_performer->setObserver(this);
 	_performer->start();
 }

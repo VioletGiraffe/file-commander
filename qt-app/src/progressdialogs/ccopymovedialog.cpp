@@ -53,6 +53,8 @@ CCopyMoveDialog::CCopyMoveDialog(QWidget* parent, Operation operation, std::vect
 	_eventsProcessTimer->start();
 	connect(_eventsProcessTimer, &QTimer::timeout, this, [this]() {processEvents();});
 
+	adjustSize();
+
 	_performer->setObserver(this);
 	_performer->start();
 }
