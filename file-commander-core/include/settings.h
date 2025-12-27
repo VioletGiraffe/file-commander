@@ -35,7 +35,6 @@
 
 // Interface
 #define KEY_INTERFACE_RESPECT_LAST_CURSOR_POS QSL("Interface/Selection/RespectLastCursorPosition")
-#define KEY_INTERFACE_NUMBERS_AFFTER_LETTERS QSL("Interface/Sorting/NumbersAfterLetters")
 #define KEY_INTERFACE_FILE_LIST_FONT QSL("Interface/View/FileListFont")
 #define INTERFACE_FILE_LIST_FONT_DEFAULT QSL("Roboto Mono,10,-1,5,25,0,0,0,0,0,Light")
 #define KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS QSL("Interface/View/ShowSpecialFolderIcons")

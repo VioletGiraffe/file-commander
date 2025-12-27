@@ -34,22 +34,6 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBoxSorting">
-     <property name="title">
-      <string>File sorting</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QCheckBox" name="_cbSortingNumbersAfterLetters">
-        <property name="text">
-         <string>Numbers after letters</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
     <widget class="QGroupBox" name="groupBoxItemsApperance">
      <property name="title">
       <string>Files and folders appearance</string>
@@ -104,7 +88,7 @@
      <property name="title">
       <string>Application style</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_6">
+     <layout class="QVBoxLayout" name="verticalLayout_6" stretch="0,1">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
@@ -182,19 +166,6 @@
       </item>
      </layout>
     </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Orientation::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>223</height>
-      </size>
-     </property>
-    </spacer>
    </item>
   </layout>
  </widget>
