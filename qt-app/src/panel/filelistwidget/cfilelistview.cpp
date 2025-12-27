@@ -88,11 +88,16 @@ void CFileListView::modelAboutToBeReset()
 {
 	_currentItemBeforeMouseClick = QModelIndex();
 	_singleMouseClickValid = false;
-	if (_bHeaderAdjustmentRequired)
+
+	if (_bHeaderAdjustmentRequired) [[unlikely]]
 	{
 		_bHeaderAdjustmentRequired = false;
-		for (int i = 0; i < model()->columnCount(); ++i)
-			resizeColumnToContents(i);
+		static constexpr float RelativeColumnSize[NumberOfColumns] = { 0.52f, 0.135f, 0.143f, 0.2f }; // Relative sizes of columns: Name, Ext, Size, Date
+		assert_and_return_r(model()->columnCount() == NumberOfColumns, );
+		for (int i = 0; i < NumberOfColumns; ++i)
+		{
+			header()->resizeSection(i, Math::round<int>((float)header()->width() * RelativeColumnSize[i]));
+		}
 
 		sortByColumn(ExtColumn, Qt::AscendingOrder);
 	}
