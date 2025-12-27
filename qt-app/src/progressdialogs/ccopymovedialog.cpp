@@ -140,15 +140,14 @@ void CCopyMoveDialog::switchToBackground()
 	ui->_btnBackground->hide();
 	ui->_fileProgress->hide();
 	ui->_fileProgressText->hide();
-	QTimer::singleShot(0, this, [this](){
+	QMetaObject::invokeMethod(this, [this](){
 		const QSize minsize = minimumSize();
-		const QPoint mainWindowTopLeft = _mainWindow->geometry().topLeft();
+		const QPoint mainWindowTopLeft = _mainWindow->frameGeometry().topLeft();
 		const QRect newGeometry = QRect(QPoint(mainWindowTopLeft.x(), mainWindowTopLeft.y() - minsize.height()), minsize);
 		setGeometry(newGeometry);
 
 		_mainWindow->activateWindow();
-		raise();
-	});
+	}, Qt::QueuedConnection);
 }
 
 void CCopyMoveDialog::closeEvent(QCloseEvent *e)
