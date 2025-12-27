@@ -1,6 +1,5 @@
 #include "cvolumeenumerator.h"
 #include "assert/advanced_assert.h"
-#include "container/algorithms.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QTimer>
@@ -26,7 +25,7 @@ void CVolumeEnumerator::addObserver(IVolumeListObserver *observer)
 
 void CVolumeEnumerator::removeObserver(IVolumeListObserver *observer)
 {
-	ContainerAlgorithms::erase_all_occurrences(_observers, observer);
+	std::erase(_observers, observer);
 }
 
 // Returns the drives found
