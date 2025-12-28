@@ -23,6 +23,7 @@ struct CTextEditWithImageSupport::Downloader final : QObject {
 		connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
 		connect(reply, &QNetworkReply::errorOccurred, &loop, &QEventLoop::quit);
 		QTimer::singleShot(1000, &loop, &QEventLoop::quit); // timeout
+		QTimer::singleShot(2500, &loop, &QEventLoop::quit); // timeout
 
 		// Show indefinite progress
 		QProgressDialog progressDialog;
