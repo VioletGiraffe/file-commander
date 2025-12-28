@@ -15,9 +15,7 @@
 #include <thread>
 #include <vector>
 
-DISABLE_COMPILER_WARNINGS
-#include <QDebug>
-RESTORE_COMPILER_WARNINGS
+class QDebug;
 
 class CFileOperationObserver
 {
