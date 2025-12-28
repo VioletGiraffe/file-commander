@@ -94,7 +94,7 @@ private slots:
 	void copySelectionToClipboard() const;
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard();
-	void pathFromHistoryActivated(const QString& path);
+	void pathFromHistoryActivated(QString path);
 
 private:
 	void fillHistory();

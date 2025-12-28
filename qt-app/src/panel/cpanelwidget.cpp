@@ -622,8 +622,10 @@ void CPanelWidget::pasteSelectionFromClipboard()
 #endif
 }
 
-void CPanelWidget::pathFromHistoryActivated(const QString& path)
+void CPanelWidget::pathFromHistoryActivated(QString path)
 {
+	path.remove('\"');
+
 	const CFileSystemObject processedPath(path); // Needed for expanding environment variables in the path
 	ui->_list->setFocus();
 	if (_controller->setPath(_panelPosition, processedPath.fullAbsolutePath(), refreshCauseOther) == FileOperationResultCode::DirNotAccessible)
