@@ -23,7 +23,13 @@ RESTORE_COMPILER_WARNINGS
 #include <string.h> // memset
 
 #ifdef _WIN32
+#include "windows/windowsutils.h"
+
 #include <Windows.h>
+#include <ShObjIdl.h>
+#include <ShlObj.h>
+#include <windowsx.h>
+#include <shellapi.h>
 #endif
 
 static std::pair<QString /* exe path */, QString /* args */> parseCommandAndArguments(const QString& cmdLine)
@@ -113,9 +119,6 @@ void OsShell::executeShellCommand(const QString& command, const QString& working
 }
 
 #ifdef _WIN32
-#include "windows/windowsutils.h"
-
-#include <shellapi.h>
 
 bool OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
 {
@@ -164,10 +167,6 @@ bool OsShell::runExecutable(const QString & command, const QString & parameters,
 #endif
 
 #ifdef _WIN32
-#include <ShObjIdl.h>
-#include <ShlObj.h>
-#include <windowsx.h>
-
 class CItemIdListReleaser {
 public:
 	explicit CItemIdListReleaser(ITEMIDLIST * idList) : _idList(idList) {}
