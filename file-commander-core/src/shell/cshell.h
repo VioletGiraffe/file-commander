@@ -30,4 +30,6 @@ namespace OsShell
 #ifdef _WIN32
 	bool runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin = false);
 #endif
+
+	bool isInPath(const QString& fileName);
 } // namespace OsShell

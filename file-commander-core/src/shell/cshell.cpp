@@ -11,7 +11,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
-#include <QFileInfo>
+#include <QFile>
 #include <QProcess>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
@@ -26,13 +26,11 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #endif
 
-std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
+static std::pair<QString /* exe path */, QString /* args */> parseCommandAndArguments(const QString& cmdLine)
 {
-#ifdef _WIN32
-	QString shell = CSettings{}.value(KEY_OTHER_SHELL_COMMAND_NAME, QStringLiteral("powershell.exe")).toString();
-	QStringList argsList = QProcess::splitCommand(shell);
+	QStringList argsList = QProcess::splitCommand(cmdLine);
 	assert_and_return_r(!argsList.empty(), {});
-	shell = std::move(argsList.front());
+	QString cmd = std::move(argsList.front());
 	argsList.pop_front();
 
 	QString argsString;
@@ -47,38 +45,58 @@ std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 			argsString += str;
 	}
 
-	return { shell, argsString };
+	return { std::move(cmd), std::move(argsString) };
+}
 
-#elif defined __APPLE__
-	const QString shellCommand = CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME, "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal").toString();
-	return { shellCommand , {} };
-#elif defined __linux__ || defined __FreeBSD__
-	const QString consoleExecutable = CSettings().value(KEY_OTHER_SHELL_COMMAND_NAME).toString();
-	if (QFileInfo(consoleExecutable).exists())
-		return { consoleExecutable, {} };
-
-	static constexpr const char* knownTerminals[][2] {
-		{ "/usr/bin/konsole", "" }, // KDE
-		{ "/usr/bin/gnome-terminal", "" }, // Gnome
-		{ "/usr/bin/pantheon-terminal", "" }, // Pantheon (Elementary OS)
-		{ "/usr/bin/qterminal", "" }, // QTerminal under linux
-		{ "/usr/local/bin/qterminal", "" }, // QTerminal under freebsd
+static QString defaultShellExecutableCommand()
+{
+#ifdef _WIN32
+	static constexpr const char* knownTerminals[][2]{
+		{ "wt.exe", "-d %dir%" }, // Windows Terminal
+		{ "pwsh.exe", nullptr }, // New powershell?
+		{ "powershell.exe", nullptr }, // Classic powershell
+		{ "cmd.exe", nullptr }
+	};
+#elif defined __linux__
+	static constexpr const char* knownTerminals[][2]{
+		{ "/usr/bin/konsole", nullptr }, // KDE
+		{ "/usr/bin/gnome-terminal", nullptr }, // Gnome
+		{ "/usr/bin/pantheon-terminal", nullptr }, // Pantheon (Elementary OS)
+		{ "/usr/bin/qterminal", nullptr }, // QTerminal under linux
+		{ "/usr/local/bin/qterminal", nullptr }, // QTerminal under freebsd
 		{ "/usr/bin/lxterminal", "--working-directory=%dir%" }
 	};
+#elif defined __APPLE__
+	static constexpr const char* knownTerminals[][2]{
+		{ "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal", nullptr },
+	};
+#else
+	#pragma message("unknown platform")
+	static constexpr const char* knownTerminals[][2] {
+		{ "", nullptr }
+	};
+#endif
 
-	for (const auto& candidate: knownTerminals)
-		if (QFileInfo(candidate[0]).exists())
-			return { candidate[0], candidate[1] };
+	for (const auto& candidate : knownTerminals)
+	{
+		const QString qstring = candidate[0];
+		if (QFile::exists(qstring) || OsShell::isInPath(qstring))
+			return candidate[1] ? (qstring + ' ' + candidate[1]) : qstring;
+	}
 
 	return {};
-#else
-	#error unknown platform
-#endif
+}
+
+std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
+{
+	//const QString shell = CSettings{}.value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShellExecutableCommand()).toString();
+	auto shell = defaultShellExecutableCommand();
+	return parseCommandAndArguments(shell);
 }
 
 void OsShell::executeShellCommand(const QString& command, const QString& workingDir)
 {
-	std::thread([command, workingDir](){
+	std::thread([command, workingDir] {
 	#ifdef _WIN32
 		WCHAR commandString[32768] = { 0 };
 		const auto len = (QStringLiteral("pushd ") + workingDir + " && " + command).toWCharArray(commandString);
@@ -137,6 +155,18 @@ bool OsShell::runExe(const QString& command, const QString& arguments, const QSt
 	}
 
 	return true;
+}
+bool OsShell::isInPath(const QString& fileName)
+{
+	const QString path = qEnvironmentVariable("PATH");
+	const QStringList pathEntries = path.split(';', Qt::SkipEmptyParts);
+	for (const QString& pathEntry : pathEntries)
+	{
+		if (QFile::exists(pathEntry + '/' + fileName))
+			return true;
+	}
+
+	return false;
 }
 #else
 bool OsShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
