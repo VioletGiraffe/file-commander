@@ -7,7 +7,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/badge/master)](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/overview/master)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/190add40753b46edbaa1327068263263)](https://www.codacy.com/gh/VioletGiraffe/file-commander/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VioletGiraffe/file-commander&amp;utm_campaign=Badge_Grade)
 
-![Windows screenshot](/../gh-pages/screenshots/Windows/screenshot.png?raw=true)
+![Windows screenshot](https://github.com/VioletGiraffe/file-commander/blob/gh-pages/screenshots/Windows/screenshot.png?raw=true)
 
 ### Download for Windows
 
