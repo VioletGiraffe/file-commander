@@ -156,18 +156,6 @@ bool OsShell::runExe(const QString& command, const QString& arguments, const QSt
 
 	return true;
 }
-bool OsShell::isInPath(const QString& fileName)
-{
-	const QString path = qEnvironmentVariable("PATH");
-	const QStringList pathEntries = path.split(';', Qt::SkipEmptyParts);
-	for (const QString& pathEntry : pathEntries)
-	{
-		if (QFile::exists(pathEntry + '/' + fileName))
-			return true;
-	}
-
-	return false;
-}
 #else
 bool OsShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
 {
@@ -577,3 +565,21 @@ bool OsShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void */*parentWi
 #else
 #error unsupported platform
 #endif
+
+bool OsShell::isInPath(const QString& fileName)
+{
+#ifdef _WIN32
+	static constexpr char pathSeparator = ';';
+#else
+	static constexpr char pathSeparator = ':';
+#endif
+	const QString path = qEnvironmentVariable("PATH");
+	const QStringList pathEntries = path.split(pathSeparator, Qt::SkipEmptyParts);
+	for (const QString& pathEntry : pathEntries)
+	{
+		if (QFile::exists(pathEntry + '/' + fileName))
+			return true;
+	}
+
+	return false;
+}
