@@ -100,7 +100,7 @@ static QString parentForAbsolutePath(QString absolutePath)
 	return absolutePath;
 }
 
-CFileSystemObject & CFileSystemObject::operator=(const QString & path)
+CFileSystemObject& CFileSystemObject::operator=(const QString& path)
 {
 	setPath(path);
 	return *this;
@@ -232,7 +232,7 @@ bool CFileSystemObject::exists() const
 	return _properties.exists;
 }
 
-const CFileSystemObjectProperties &CFileSystemObject::properties() const
+const CFileSystemObjectProperties& CFileSystemObject::properties() const
 {
 	return _properties;
 }
@@ -268,15 +268,15 @@ bool CFileSystemObject::isEmptyDir() const
 	return ::PathIsDirectoryEmptyW(path) != 0;
 #else
 	// TODO: use getdents64 on Linux
-	DIR *dir = ::opendir(_properties.fullPath.toLocal8Bit().constData());
+	DIR* dir = ::opendir(_properties.fullPath.toLocal8Bit().constData());
 	if (dir == nullptr) // Not a directory or doesn't exist
 		return false;
 
-	struct dirent *d = nullptr;
-	int n = 0;
+	struct dirent* d = nullptr;
+	size_t n = 0;
 	while ((d = ::readdir(dir)) != nullptr)
 	{
-		if(++n > 2)
+		if (++n > 2)
 			break;
 	}
 
@@ -334,7 +334,7 @@ uint64_t CFileSystemObject::hash() const
 	return _properties.hash;
 }
 
-const QFileInfo &CFileSystemObject::qFileInfo() const
+const QFileInfo& CFileSystemObject::qFileInfo() const
 {
 	return _fileInfo;
 }
@@ -354,7 +354,7 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 		struct stat info;
 		const int ret = stat(_properties.fullPath.toUtf8().constData(), &info);
 		if (ret == 0 || errno == ENOENT)
-			_rootFileSystemId = (uint64_t) info.st_dev;
+			_rootFileSystemId = (uint64_t)info.st_dev;
 		else
 		{
 			qInfo() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
@@ -404,7 +404,7 @@ time_t CFileSystemObject::modificationTime() const
 	if (_modificationDate == invalid_time) [[unlikely]]
 		_modificationDate = toTime_t(_fileInfo.lastModified());
 
-		return _modificationDate;
+	return _modificationDate;
 }
 
 bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
@@ -457,7 +457,7 @@ QString CFileSystemObject::modificationDateString() const
 std::vector<QString> pathHierarchy(const QString& path)
 {
 	assert_r(!path.contains('\\'));
-	assert_r(!path.contains(QStringLiteral("//")) || !QStringView{path}.right(path.length() - 2).contains(QLatin1String("//")));
+	assert_r(!path.contains(QStringLiteral("//")) || !QStringView{ path }.right(path.length() - 2).contains(QLatin1String("//")));
 
 	if (path.isEmpty())
 		return {};
