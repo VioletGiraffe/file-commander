@@ -45,7 +45,9 @@ jobs:
 
     - name: Sys info
       if: "startsWith(matrix.os, 'mac')"
-      run: sysctl -a | grep cpu | grep hw
+      run: |
+        sysctl -a | grep cpu | grep hw
+        sysctl -a | grep brand_string
 
     - name: Sys info
       if: "startsWith(matrix.os, 'ubuntu')"
