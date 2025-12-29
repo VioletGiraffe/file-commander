@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language
+[
+  <!ENTITY symbols ":!&#37;&amp;()+,-/.*&lt;=&gt;?[]|~^;">
+]>
+<language name="Odin" section="Sources"
+          version="5" kateversion="5.79"
+          indenter="cstyle"
+          extensions="*.odin"
+          priority="1"
+          author="Akseli Lahtinen (akselmo@akselmo.dev)"
+          license="MIT">
+
+  <highlighting>
+    <list name="controlflow">
+     <item>if</item>
+     <item>else</item>
+     <item>when</item>
+     <item>for</item>
+     <item>in</item>
+     <item>not_in</item>
+     <item>switch</item>
+     <item>return</item>
+     <item>do</item>
+     <item>where</item>
+     <item>fallthrough</item>
+     <item>break</item>
+     <item>continue</item>
+     <item>or_else</item>
+     <item>or_return</item>
+     <item>or_break</item>
+     <item>or_continue</item>
+    </list>
+
+    <list name="keywords">
+      <item>const</item>
+      <item>case</item>
+      <item>defer</item>
+      <item>asm</item>
+      <item>distinct</item>
+      <item>context</item>
+      <item>nil</item>
+      <item>true</item>
+      <item>false</item>
+      <item>---</item>
+      <item>struct</item>
+      <item>enum</item>
+      <item>union</item>
+      <item>map</item>
+      <item>bit_set</item>
+      <item>dynamic</item>
+      <item>cast</item>
+      <item>transmute</item>
+      <item>auto_cast</item>
+      <item>force_inline</item>
+      <item>force_no_inline</item>
+      <item>size_of</item>
+      <item>align_of</item>
+      <item>offset_of</item>
+      <item>type_of</item>
+      <item>type_info_of</item>
+      <item>typeid_of</item>
+    </list>
+
+    <list name="types">
+      <item>i8</item>
+      <item>i16</item>
+      <item>i32</item>
+      <item>i64</item>
+      <item>i128</item>
+      <item>int</item>
+      <item>u8</item>
+      <item>u16</item>
+      <item>u32</item>
+      <item>u64</item>
+      <item>u128</item>
+      <item>uint</item>
+      <item>uintptr</item>
+      <item>f16</item>
+      <item>f32</item>
+      <item>f64</item>
+      <item>f16le</item>
+      <item>f32le</item>
+      <item>f64le</item>
+      <item>f16be</item>
+      <item>f32be</item>
+      <item>f64be</item>
+      <item>complex32</item>
+      <item>complex64</item>
+      <item>complex128</item>
+      <item>complex_float</item>
+      <item>complex_double</item>
+      <item>quaternion64</item>
+      <item>quaternion128</item>
+      <item>quaternion256</item>
+      <item>bool</item>
+      <item>b8</item>
+      <item>b16</item>
+      <item>b32</item>
+      <item>b64</item>
+      <item>string</item>
+      <item>cstring</item>
+      <item>rune</item>
+      <item>rawptr</item>
+      <item>any</item>
+      <item>typeid</item>
+      <item>byte</item>
+      <item>u16le</item>
+      <item>u32le</item>
+      <item>u64le</item>
+      <item>u128le</item>
+      <item>i16le</item>
+      <item>i32le</item>
+      <item>i64le</item>
+      <item>i128le</item>
+      <item>i16be</item>
+      <item>i32be</item>
+      <item>i64be</item>
+      <item>i128be</item>
+      <item>u16be</item>
+      <item>u32be</item>
+      <item>u64be</item>
+      <item>u128be</item>
+    </list>
+
+    <list name="procedure">
+      <item>proc</item>
+    </list>
+
+    <list name="import">
+      <item>import</item>
+      <item>package</item>
+      <item>foreign</item>
+    </list>
+
+    <contexts>
+      <context attribute="Normal Text" lineEndContext="#stay" name="Normal Text" >
+        <Detect2Chars attribute="Comment" char="/" char1="/" context="SingleLineComment"/>
+        <Detect2Chars attribute="Comment" context="MultiLineComment" char="/" char1="*" lookAhead="true" beginRegion="Comment1" />
+        <Detect2Chars attribute="Operator" char=":" char1=":" context="#stay"/>
+        <AnyChar attribute="String" context="String" String="&quot;&apos;"/>
+        <keyword attribute="Control Flow" context="#stay" String="controlflow" />
+        <keyword attribute="Keyword" context="#stay" String="keywords" />
+        <keyword attribute="Data Type" context="#stay" String="types" />
+        <DetectChar attribute="Attribute" context="#stay" char='@' column="0"/>
+        <RegExpr attribute="Directive" context="#stay" String="\#\w+"/>
+        <RegExpr attribute="Procedure" firstNonSpace="true" context="Procedure" String="\w{1,}\s{0,}::\s{0,}(?=proc)" lookAhead="true"/>
+        <RegExpr attribute="Procedure" context="#stay" String="[A-Za-z_]*(?=\()" />
+        <RegExpr attribute="Variable" context="#stay" firstNonSpace="true" String="\s{0,}\w{1,},{0,1}\s{0,}\w{0,}\s{0,}(?=:\=|:)(?!::)"/>
+        <RegExpr attribute="Variable" context="#stay" String="[A-Za-z_]*(?=\.)"/>
+        <RegExpr attribute="Float" context="#stay" String="\b(\d(\d|_)*(.\d(\d|_)*)?)((e|E)(\+|-)?\d+)?[ijk]?\b" />
+        <RegExpr attribute="Decimal" context="#stay" String="\b((0b(0|1|_)+)|(0o(\d|_)+)|(0d(\d|_)+)|(0[xXh](\h|_)+))[ijk]?\b" />
+        <AnyChar attribute="Operator" context="#stay" String="&symbols;" />
+        <DetectChar attribute="Operator" context="#stay" char="{" beginRegion="Brace1" />
+        <DetectChar attribute="Operator" context="#stay" char="}" endRegion="Brace1" />
+        <DetectChar attribute="RawString" context="RawString" char="`" />
+        <keyword attribute="Use" context="#stay" String="import"/>
+
+      </context>
+
+      <context name="SingleLineComment" attribute="Comment" lineEndContext="#pop">
+        <IncludeRules context="##Comments" />
+      </context>
+
+      <context name="MultiLineComment" attribute="Comment" lineEndContext="#stay">
+        <IncludeRules context="##Comments" />
+        <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/" endRegion="Comment1"/>
+      </context>
+
+      <context name="String" attribute="String" lineEndContext="#stay">
+          <RegExpr attribute="RawString" String="\\." context="#stay"/>
+          <AnyChar attribute="String" context="#pop" String="&quot;&apos;"/>
+      </context>
+
+      <context name="RawString" attribute="RawString" lineEndContext="#stay">
+          <DetectChar attribute="RawString" context="#pop" char="`" />
+      </context>
+
+      <context name="Procedure" attribute="Procedure" lineEndContext="#pop">
+        <Detect2Chars attribute="Operator" char=":" char1=":" context="#stay"/>
+        <StringDetect attribute="Keyword" context="#stay" String="proc" />
+        <AnyChar attribute="Procedure" context="#pop" lookAhead="true" String="\("/>
+      </context>
+
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal Text"  defStyleNum="dsNormal" spellChecking="false"/>
+      <itemData name="Variable" defStyleNum="dsVariable"/>
+      <itemData name="Control Flow" defStyleNum="dsControlFlow" spellChecking="false"/>
+      <itemData name="Keyword"      defStyleNum="dsKeyword" spellChecking="false"/>
+      <itemData name="Data Type"    defStyleNum="dsDataType" spellChecking="false"/>
+      <itemData name="Attribute"       defStyleNum="dsAttribute"/>
+      <itemData name="Directive"       defStyleNum="dsPreprocessor"/>
+      <itemData name="Procedure"       defStyleNum="dsFunction"/>
+      <itemData name="Operator"       defStyleNum="dsOperator"/>
+      <itemData name="String"       defStyleNum="dsString"/>
+      <itemData name="RawString"       defStyleNum="dsSpecialString"/>
+      <itemData name="Comment"      defStyleNum="dsComment"/>
+      <itemData name="Decimal" defStyleNum="dsDecVal"/>
+      <itemData name="Float" defStyleNum="dsFloat"/>
+      <itemData name="Use" defStyleNum="dsImport"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+      <comment name="singleLine" start="//" position="afterwhitespace" />
+      <comment name="multiLine" start="/*" end="*/" region="Comment"/>
+    </comments>
+  </general>
+</language>

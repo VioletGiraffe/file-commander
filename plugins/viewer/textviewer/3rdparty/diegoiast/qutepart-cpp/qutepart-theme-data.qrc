@@ -1,0 +1,6 @@
+<RCC>
+	<qresource prefix="/qutepart">
+		<file>themes/homunculus.theme</file>
+		<file>themes/monokai.theme</file>
+	</qresource>
+</RCC>

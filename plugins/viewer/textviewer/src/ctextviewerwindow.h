@@ -5,16 +5,25 @@
 
 #include "ui_ctextviewerwindow.h"
 
+#include <memory>
 #include <optional>
 
-class QLabel;
-class CTextEditWithLineNumbers;
+class CTextEditWithImageSupport;
 class CFindDialog;
+
+class QLabel;
+class QSyntaxHighlighter;
+
+namespace Qutepart {
+	class Theme;
+	QString chooseLanguageXmlFileName(const QString& mimeType, const QString& languageName, const QString& sourceFilePath, const QString& firstLine);
+}
 
 class CTextViewerWindow final : public CPluginWindow, private Ui::CTextViewerWindow
 {
 public:
 	explicit CTextViewerWindow(QWidget* parent = nullptr) noexcept;
+	~CTextViewerWindow() override;
 
 	bool loadTextFile(const QString& file);
 
@@ -42,9 +51,16 @@ private:
 	void setupFindDialog();
 
 private:
-	QString _sourceFilePath;
+	void setTextAndApplyHighlighter(const QString& text);
 
-	CTextEditWithLineNumbers* _textBrowser = nullptr;
+private:
+	QString _sourceFilePath;
+	QString _mimeType;
+
+	CTextEditWithImageSupport* _textBrowser = nullptr;
 	CFindDialog* _findDialog = nullptr;
 	QLabel* _encodingLabel = nullptr;
+
+	std::unique_ptr<QSyntaxHighlighter> _syntaxHighlighter;
+	std::unique_ptr<Qutepart::Theme> _theme;
 };

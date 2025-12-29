@@ -11,6 +11,8 @@ CFileCommanderPlugin * createPlugin()
 {
 	DISABLE_COMPILER_WARNINGS
 	Q_INIT_RESOURCE(icons);
+	Q_INIT_RESOURCE(qutepart_syntax_files);
+	Q_INIT_RESOURCE(qutepart_theme_data);
 	RESTORE_COMPILER_WARNINGS
 
 	return new CTextViewerPlugin;

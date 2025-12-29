@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<!--
+  Kate highlighting module for R Markdown
+  (c) 2014 Dirk Sarpe (dsarpe@posteo.de)
+
+  depends on:
+    Kate highlighting module for Markdown
+    Kate highlighting module for R script
+    Kate highlighting module for LaTeX
+    Kate highlighting module for YAML
+-->
+
+<language name="R Markdown"
+section="Markup"
+extensions="*.rmd;*.Rmd;*.RMD"
+mimetype="text/x-r-markdown"
+version="4"
+kateversion="3.4"
+casesensitive="true"
+author="Dirk Sarpe (dsarpe@posteo.de)"
+license="GPL">
+
+  <highlighting>
+    <contexts>
+
+      <context attribute="Markdown" name="Normal Text" lineEndContext="#stay">
+        <RegExpr String="^```\{r.*\}" attribute="Structure" context="R block"
+                 beginRegion="block"/>
+        <Detect2Chars char="`" char1="r" attribute="Structure"
+                      context="R inline"/>
+        <Detect2Chars char="$" char1="$" attribute="MathMode"
+                      context="LaTeX equation block" beginRegion="block"/>
+        <DetectChar char="$" attribute="MathMode"
+                    context="LaTeX inline equation"/>
+        <RegExpr String="^---$" context="YAMLhead" beginRegion="block"/>
+        <IncludeRules context="##Markdown" includeAttrib="true"/>
+      </context>
+
+      <context name="R block" attribute="Markdown" lineEndContext="#stay">
+        <RegExpr String="^```$" attribute="Structure" context="Normal Text"
+                 endRegion="block"/>
+        <IncludeRules context="##R Script" includeAttrib="true"/>
+      </context>
+
+      <context name="R inline" attribute="Markdown" lineEndContext="#stay">
+        <DetectChar char="`" attribute="Structure" context="Normal Text"/>
+        <IncludeRules context="##R Script" includeAttrib="true"/>
+      </context>
+
+      <context name="LaTeX equation block" attribute="MathMode"
+               lineEndContext="#stay">
+        <Detect2Chars char="$" char1="$" attribute="MathMode"
+                      context="Normal Text" endRegion="block"/>
+        <IncludeRules context="MathModeDisplay##LaTeX" includeAttrib="true"/>
+      </context>
+
+      <context name="LaTeX inline equation" attribute="MathMode"
+               lineEndContext="#stay">
+        <DetectChar char="$" attribute="MathMode" context="Normal Text"/>
+        <IncludeRules context="MathMode##LaTeX" includeAttrib="true"/>
+      </context>
+
+      <context name="YAMLhead" attribute="Document Headers"
+               lineEndContext="#stay">
+        <RegExpr String="^---$" context="Normal Text"/>
+        <IncludeRules context="##YAML" includeAttrib="true"/>
+      </context>
+
+    </contexts>
+
+    <itemDatas>
+      <itemData name="Markdown" defStyleNum="dsNormal"/>
+      <itemData name="Structure" defStyleNum="dsRegionMarker"/>
+      <itemData name="MathMode" defStyleNum="dsRegionMarker" color="#00A000"/>
+      <itemData name="Document Headers" defStyleNum="dsOthers"/>
+    </itemDatas>
+
+  </highlighting>
+
+</language>

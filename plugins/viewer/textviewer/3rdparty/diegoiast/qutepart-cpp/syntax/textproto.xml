@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language>
+<!--
+ ***************************************************************************
+ ** Text Format Language Specification:
+ ** https://protobuf.dev/reference/protobuf/textformat-spec/
+ **
+ ** Samples: https://github.com/protocolbuffers/protobuf/tree/main/src/google/protobuf/testdata
+ ***************************************************************************
+-->
+<language name="TextProto" section="Other" version="2" kateversion="5.62" extensions="*.textproto;*.textpb;*.pbtxt"
+          author="Alexander Potashev (aspotashev@gmail.com)" license="MIT">
+  <highlighting>
+    <list name="Constants">
+      <item>t</item>
+      <item>true</item>
+      <item>True</item>
+      <item>f</item>
+      <item>false</item>
+      <item>False</item>
+    </list>
+
+    <contexts>
+      <context name="Normal" lineEndContext="#stay" fallthroughContext="Message" attribute="Style_Normal"/>
+
+      <context name="Message" lineEndContext="#stay" attribute="Style_Normal">
+        <DetectSpaces context="#stay" attribute="Style_Normal"/>
+        <DetectChar char="#" context="Comment" attribute="Style_Comment"/>
+        <DetectChar char="," context="#stay" attribute="Style_Separator_Pair"/>
+
+        <DetectIdentifier context="Field_Key" attribute="Style_Key"/>
+
+        <!-- Proto extension -->
+        <DetectChar char="[" context="Extension_Key" attribute="Style_Normal" lookAhead="true"/>
+
+        <AnyChar String="}&gt;" context="#pop" lookAhead="true"/>
+      </context>
+
+      <context name="Extension_Key" lineEndContext="#stay" attribute="Style_Error">
+        <DetectSpaces context="#stay" attribute="Style_Normal"/>
+        <RegExpr String="\[([a-zA-Z0-9\.\-]+/)?[a-zA-Z0-9\._]+\]" context="#pop!Field_Key"
+                 attribute="Style_Extension_Type"/>
+      </context>
+
+      <context name="Field_Key" lineEndContext="#stay" attribute="Style_Normal">
+        <DetectSpaces context="#stay" attribute="Style_Normal"/>
+
+        <DetectChar char=":" context="#pop!Value" attribute="Style_Separator_Pair"/>
+        <AnyChar String="{&lt;" context="#pop!Value" attribute="Style_Normal" lookAhead="true"/>
+      </context>
+
+      <context name="Value" lineEndContext="#stay" attribute="Style_Normal">
+        <DetectSpaces context="#stay" attribute="Style_Normal"/>
+        <DetectChar char="#" context="Comment" attribute="Style_Comment"/>
+
+        <keyword String="Constants" context="#pop" attribute="Style_Keyword"/>
+        <DetectIdentifier context="#pop" attribute="Style_Identifier_Value"/>
+        <RegExpr String="[\-\.0-9]" context="#pop!ScalarValue" lookAhead="true"/>
+        <DetectChar char="&quot;" context="#pop!String_Value" attribute="Style_String_Value"/>
+        <DetectChar char="&lt;" context="#pop!PairAngle" beginRegion="Region_Message_Angle"
+                    attribute="Style_Separator_Pair"/>
+        <DetectChar char="{" context="#pop!PairBrace" beginRegion="Region_Message_Brace"
+                    attribute="Style_Separator_Pair"/>
+        <DetectChar char="[" context="#pop!Array" beginRegion="Region_Array" attribute="Style_Separator_Array"/>
+
+        <DetectChar char="," context="#pop" lookAhead="true"/>
+      </context>
+
+      <context name="ScalarValue" lineEndContext="#stay" attribute="Style_Decimal">
+        <RegExpr String="-?[0-9]*\.?[0-9]*([eE]?[-+]?[0-9]+)?" context="#pop" attribute="Style_Decimal"
+                 insensitive="false" minimal="false"/>
+      </context>
+
+      <!-- Messages formatted as < ... > -->
+      <context name="PairAngle" lineEndContext="#stay" fallthroughContext="Message" attribute="Style_Normal">
+        <DetectChar char="&gt;" context="#pop" endRegion="Region_Message_Angle" attribute="Style_Separator_Pair"/>
+      </context>
+
+      <!-- Messages formatted as { ... } -->
+      <context name="PairBrace" lineEndContext="#stay" fallthroughContext="Message" attribute="Style_Normal">
+        <DetectChar char="}" context="#pop" endRegion="Region_Message_Brace" attribute="Style_Separator_Pair"/>
+      </context>
+
+      <context name="String_Value" lineEndContext="#stay" attribute="Style_String_Value">
+        <DetectChar char="&quot;" context="#pop!String_Value_End" attribute="Style_String_Value"/>
+        <HlCStringChar attribute="Style_String_Value_Char" context="#stay"/>
+      </context>
+
+      <!-- One string has ended, but there may be a continuation in another pair of quotes -->
+      <context name="String_Value_End" lineEndContext="#stay" fallthroughContext="#pop" attribute="Style_Normal">
+        <DetectSpaces context="#stay" attribute="Style_Normal"/>
+        <DetectChar char="#" context="Comment" attribute="Style_Comment"/>
+        <DetectChar char="&quot;" context="#pop!String_Value" attribute="Style_String_Value"/>
+      </context>
+
+      <context name="Array" lineEndContext="#stay" fallthroughContext="Value" attribute="Style_Normal">
+        <DetectSpaces context="#stay" attribute="Style_Normal"/>
+        <DetectChar char="#" context="Comment" attribute="Style_Comment"/>
+        <DetectChar char="," context="#stay" attribute="Style_Separator_Array"/>
+        <DetectChar char="]" context="#pop" endRegion="Region_Array" attribute="Style_Separator_Array"/>
+      </context>
+
+      <context name="Comment" lineEndContext="#pop" attribute="Style_Comment">
+        <IncludeRules context="##Comments" />
+      </context>
+    </contexts>
+
+    <itemDatas>
+      <itemData name="Style_Normal" defStyleNum="dsNormal"/>
+
+      <itemData name="Style_Separator_Pair" defStyleNum="dsFunction" bold="true"/>
+      <itemData name="Style_Separator_Array" defStyleNum="dsOthers" bold="true"/>
+
+      <itemData name="Style_Decimal" defStyleNum="dsDecVal"/>
+      <itemData name="Style_Key" defStyleNum="dsVariable"/>
+
+      <!-- e.g. enum values -->
+      <itemData name="Style_Identifier_Value" defStyleNum="dsConstant"/>
+
+      <itemData name="Style_String_Value" defStyleNum="dsString"/>
+      <itemData name="Style_String_Value_Char" defStyleNum="dsChar"/>
+
+      <itemData name="Style_Keyword" defStyleNum="dsKeyword"/>
+      <itemData name="Style_Extension_Type" defStyleNum="dsDataType"/>
+
+      <itemData name="Style_Comment" defStyleNum="dsComment" />
+
+      <itemData name="Style_Error" defStyleNum="dsError"/>
+    </itemDatas>
+  </highlighting>
+</language>

@@ -8,8 +8,13 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include "3rdparty/diegoiast/qutepart-cpp/hl_factory.h"
+#include "3rdparty/diegoiast/qutepart-cpp/hl/syntax_highlighter.h"
+#include "3rdparty/diegoiast/qutepart-cpp/theme.h"
+
 #include <QApplication>
 #include <QActionGroup>
+#include <QDebug>
 #include <QFileDialog>
 #include <QFontDatabase>
 #include <QFontMetrics>
@@ -19,9 +24,11 @@ DISABLE_COMPILER_WARNINGS
 #include <QRegularExpression>
 #include <QShortcut>
 #include <QStringBuilder>
+#include <QStyleHints>
 #include <QTextCodec>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <type_traits>
 
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
@@ -90,12 +97,14 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	QMainWindow::statusBar()->addWidget(_encodingLabel);
 }
 
+CTextViewerWindow::~CTextViewerWindow() = default;
+
 bool CTextViewerWindow::loadTextFile(const QString& file)
 {
 	setWindowTitle(file);
 	_sourceFilePath = file;
 
-	const QString fileType = QMimeDatabase().mimeTypeForFile(_sourceFilePath, QMimeDatabase::MatchContent).name();
+	_mimeType = QMimeDatabase().mimeTypeForFile(_sourceFilePath, QMimeDatabase::MatchContent).name();
 
 	try
 	{
@@ -103,7 +112,7 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 			return asHtml();
 		else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive))
 			return asMarkdown();
-		else if (fileType.contains(QStringLiteral("text")) || fileType.isEmpty())
+		else if (_mimeType.contains(QStringLiteral("text")) || _mimeType.isEmpty())
 			return asDetectedAutomatically();
 		else
 			return asAscii();
@@ -126,7 +135,7 @@ bool CTextViewerWindow::asDetectedAutomatically()
 		return asSystemDefault();
 
 	encodingChanged(result->encoding, result->language);
-	_textBrowser->setPlainText(result->text);
+	setTextAndApplyHighlighter(result->text);
 	return true;
 }
 
@@ -140,7 +149,7 @@ bool CTextViewerWindow::asSystemDefault()
 	if (!textData)
 		return false;
 
-	_textBrowser->setPlainText(codec->toUnicode(*textData));
+	setTextAndApplyHighlighter(codec->toUnicode(*textData));
 	encodingChanged(codec->name());
 	actionSystemLocale->setChecked(true);
 
@@ -157,7 +166,7 @@ bool CTextViewerWindow::asAscii()
 	if (!textData)
 		return false;
 
-	_textBrowser->setPlainText(codec->toUnicode(*textData));
+	setTextAndApplyHighlighter(codec->toUnicode(*textData));
 	encodingChanged(codec->name());
 	actionASCII_Windows_1252->setChecked(true);
 
@@ -171,7 +180,7 @@ bool CTextViewerWindow::asUtf8()
 		return false;
 
 	encodingChanged("UTF-8");
-	_textBrowser->setPlainText(QString::fromUtf8(*textData));
+	setTextAndApplyHighlighter(QString::fromUtf8(*textData));
 	actionUTF_8->setChecked(true);
 
 	return true;
@@ -188,7 +197,7 @@ bool CTextViewerWindow::asUtf16()
 	QString text;
 	text.resize(textData->size() / 2 + 1, QChar{'\0'});
 	::memcpy(text.data(), textData->constData(), static_cast<size_t>(textData->size()));
-	_textBrowser->setPlainText(text);
+	setTextAndApplyHighlighter(text);
 	actionUTF_16->setChecked(true);
 
 	return true;
@@ -340,4 +349,41 @@ void CTextViewerWindow::setupFindDialog()
 	_findDialog = new CFindDialog(this, QStringLiteral("Plugins/TextViewer/Find/"));
 	assert_r(connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find));
 	assert_r(connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
+}
+
+void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
+{
+	static const auto countNonAsciiChars = [](const QString& str) {
+		return std::count_if(str.begin(), str.end(), [](QChar c) {
+			const auto code = c.unicode();
+			if (code >= 32 && code <= 126)
+				return false;
+			else if (code == '\n' || code == '\r' || code == '\t')
+				return false;
+			return true;
+		});
+	};
+
+	if (const auto size = text.size(); size < 1'000'000 && countNonAsciiChars(text) < size / 10)
+	{
+		const QString langId = Qutepart::chooseLanguageXmlFileName(_mimeType, QString(), _sourceFilePath, text.left(100));
+		qInfo() << "Language detected:" << langId;
+
+		auto* highlighter = static_cast<Qutepart::SyntaxHighlighter*>(Qutepart::makeHighlighter(_textBrowser->document(), langId));
+		if (highlighter)
+		{
+			_theme = std::make_unique<Qutepart::Theme>();
+			QStyleHints* styleHints = QApplication::styleHints();
+			_theme->loadTheme(styleHints && styleHints->colorScheme() == Qt::ColorScheme::Dark ? ":/qutepart/themes/monokai.theme" : ":/qutepart/themes/homunculus.theme");
+			highlighter->setTheme(_theme.get());
+		}
+
+		_syntaxHighlighter.reset(highlighter);
+	}
+	else
+	{
+		_syntaxHighlighter.reset();
+	}
+
+	_textBrowser->setPlainText(text);
 }

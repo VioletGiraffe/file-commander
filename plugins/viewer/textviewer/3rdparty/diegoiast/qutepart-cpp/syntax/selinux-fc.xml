@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd"
+[
+	<!ENTITY symbol "\w\[\]\.@\=\*\-&#036;&#037;\+&#033;\|&amp;\^&#126;\{\}&lt;&gt;\?\\"> <!-- [].@=*-$%+!|&^~#{}<>?\ -->
+]>
+
+<!--
+  SELinux File Contexts (File Labeling Policy) Syntax Highlighting Definition 
+  for the KDE's KSyntaxHighlighting Framework.
+  ==========================================================================================
+   Copyright (c) 2018 Nibaldo González S. (nibgonz@gmail.com)
+  
+   Permission is hereby granted, free of charge, to any person obtaining a copy of this
+   software and associated documentation files (the "Software"), to deal in the Software
+   without restriction, including without limitation the rights to use, copy, modify, merge,
+   publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+   persons to whom the Software is furnished to do so, subject to the following conditions:
+  
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
+  
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+   PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+   AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  ==========================================================================================
+
+  Change log:
+  	* Version 1 [26-Jan-2018, by Nibaldo González]:
+		- Initial version.
+-->
+
+<language name="SELinux File Contexts"
+		version="1"
+        kateversion="5.0"
+		section="Other"
+		extensions="*.fc;file_contexts;file_contexts.local;file_contexts.homedirs;file_contexts.template;homedir_template"
+		priority="6"
+		mimetype=""
+		author="Nibaldo González (nibgonz@gmail.com)"
+		license="MIT">
+
+	<highlighting>
+
+		<list name="keywords">
+			<item>gen_context</item>
+			<item>ifdef</item>
+			<item>define</item>
+		</list>
+
+		<contexts>
+
+			<context name="_normal" attribute="Normal Text" lineEndContext="#stay">
+				<DetectChar context="_comment" attribute="Comment" char="#"/>
+				<RegExpr context="#stay" attribute="File Type" String="(\s|^)\-[bcdpls\-](?=(\s|$))"/>
+
+				<RegExpr context="_path_content" attribute="Path" String="/(?![\s/&#039;])" insensitive="true"/>
+				<RegExpr context="#stay" attribute="Path" String="/(?=(\s|$))"/>
+				<DetectChar context="_quoted" attribute="Text Quoted" char="&quot;"/>
+				<DetectChar context="_content_quoted" attribute="Text Quoted" char="&#096;"/>
+				
+				<!-- File Contexts:   user:role:type:s0 -->
+				<RegExpr context="_fc_user" attribute="User" String="\b[&symbol;,]+(?=(:[&symbol;,]+){2}(:[&symbol;,]+)*\b)"/>
+				
+				<DetectChar context="_parentheses_content" attribute="Normal Text" char="(" beginRegion="Parentheses Block"/>
+				<WordDetect context="#stay" attribute="Other Keywords" String="&lt;&lt;none&gt;&gt;"/>
+				<HlCStringChar context="#stay" attribute="Escape Expression"/>
+				<DetectChar context="#stay" attribute="Special Char" char="*"/>
+				<keyword context="#stay" attribute="Keywords" String="keywords"/>
+				<RegExpr context="#stay" attribute="Keywords" String="\b[&symbol;]+(?=\()"/>
+				
+				<RegExpr context="_path_content" attribute="Variable" String="\bHOME_(DIR|ROOT)"/> <!-- Default Variables -->
+				<RegExpr context="_path_content" attribute="Path" String="\b[&symbol;,]+[/\\\*\?\[\{]" insensitive="true" lookAhead="true" firstNonSpace="true"/>
+				<Detect2Chars context="_path_content" attribute="Variable" char="%" char1="{" lookAhead="true"/>
+			</context>
+			
+			<context name="_parentheses_content" attribute="Normal Text" lineEndContext="#stay">
+				<DetectChar context="#pop" attribute="Normal Text" char=")" endRegion="Parentheses Block"/>
+				
+				<!-- File Contexts:   (user:role:type,s0,c0) -->
+				<RegExpr context="_fc_user" attribute="User" String="\b[&symbol;]+(?=(:[&symbol;]+){2}(\s*,\s*[&symbol;]+)*\b)"/>				
+				
+				<IncludeRules context="_normal"/>
+				<RegExpr context="#stay" attribute="Level" String="\b([sc]\d+[\-\.])?m[lc]s_[\w\-\.]+\b"/>
+				<RegExpr context="#stay" attribute="Level" String="\bs\d+([\-\.]s\d+)*\b"/>
+				<RegExpr context="#stay" attribute="Level" String="\bc\d+([\-\.]c\d+)*\b"/>
+			</context>
+
+			<context name="_comment" attribute="Comment" lineEndContext="#pop">
+				<LineContinue context="#pop" attribute="Comment"/>
+				<DetectSpaces />
+				<IncludeRules context="##Alerts"/>
+				<IncludeRules context="##Modelines"/>
+			</context>
+			<context name="_path_content" attribute="Path" lineEndContext="#pop">
+				<DetectSpaces context="#pop" attribute="Normal Text" lookAhead="true"/>
+				<DetectChar context="#pop" attribute="Normal Text" char="&#039;" lookAhead="true"/>
+				<IncludeRules context="_patterns"/>
+				<IncludeRules context="_variable"/>
+			</context>
+			<context name="_content_quoted" attribute="Text Quoted" lineEndContext="#stay">
+				<DetectChar context="#pop" attribute="Text Quoted" char="&#039;"/>
+				<IncludeRules context="_normal"/>
+			</context>
+			<context name="_quoted" attribute="Text Quoted" lineEndContext="#stay">
+				<DetectChar context="#pop" attribute="Text Quoted" char="&quot;"/>
+				<IncludeRules context="_patterns"/>
+				<IncludeRules context="_variable"/>
+			</context>
+			<context name="_variable" attribute="Normal Text" lineEndContext="#stay">
+				<RegExpr context="#stay" attribute="Variable" String="%\{[a-zA-Z]\w*\}"/>
+			</context>
+
+			<!-- SELinux Security Contexts -->
+			<context name="_fc_user" attribute="User" lineEndContext="#pop">
+				<DetectChar context="#pop!_fc_role" attribute="Normal Text" char=":"/>
+				<DetectSpaces context="#pop" attribute="Normal Text" lookAhead="true"/>
+			</context>
+			<context name="_fc_role" attribute="Role" lineEndContext="#pop">
+				<DetectChar context="#pop!_fc_type" attribute="Normal Text" char=":"/>
+				<DetectSpaces context="#pop" attribute="Normal Text" lookAhead="true"/>
+			</context>
+			<context name="_fc_type" attribute="Type" lineEndContext="#pop" fallthrough="true" fallthroughContext="#pop">
+				<RegExpr context="#pop!_fc_level" attribute="Type" String="[&symbol;,]+(?=:[&symbol;,])"/>
+				<RegExpr context="#pop!_fc_level_parentheses" attribute="Type" String="[&symbol;]+(?=\s*,\s*[&symbol;])"/>
+				<RegExpr context="#pop" attribute="Type" String="[&symbol;]+"/>
+			</context>
+			<context name="_fc_level" attribute="Level" lineEndContext="#pop" fallthrough="true" fallthroughContext="#pop">
+				<RegExpr context="#stay" attribute="Level" String="[&symbol;,]+"/>
+				<RegExpr context="#stay" attribute="Normal Text" String=":(?=[&symbol;,])"/>
+			</context>
+			<context name="_fc_level_parentheses" attribute="Level" lineEndContext="#pop" fallthrough="true" fallthroughContext="#pop">
+				<RegExpr context="#stay" attribute="Level" String="[&symbol;]+"/>
+				<RegExpr context="#stay" attribute="Normal Text" String="\s*,\s*(?=[&symbol;])"/>
+			</context>
+			
+			<!-- Regex (FCGlob?) -->
+			<context name="_patterns" attribute="Normal Text" lineEndContext="#stay">
+				<IncludeRules context="_escape"/>
+				<DetectChar context="_square_brackets" attribute="Pattern Brackets" char="["/>
+				<DetectChar context="_round_brackets" attribute="Pattern Brackets" char="("/>
+				<IncludeRules context="_quantification_brackets"/>
+				<IncludeRules context="_special_chars"/>
+			</context>
+			<context name="_special_chars" attribute="Normal Text" lineEndContext="#stay">
+				<AnyChar context="#stay" attribute="Special Char" String="*?.+"/>
+			</context>
+			<context name="_escape" attribute="Normal Text" lineEndContext="#stay">
+				<HlCStringChar context="#stay" attribute="Escape Expression"/>
+				<RegExpr context="#stay" attribute="Escape Expression" String="\\[\ssSdDwWbBAZiIcC\|\.\-\^\?\*\+\(\)\[\]\{\},]"/>
+			</context>
+			<context name="_quantification_brackets" attribute="Normal Text" lineEndContext="#stay">
+				<!-- {n} {min,} {,max} {min,max} -->
+				<RegExpr context="#stay" attribute="Pattern Brackets" String="\{(\d+(,\d*)?|,\d+)\}"/>
+			</context>
+			<!-- Groups: [ ] and ( ) -->
+			<context name="_square_brackets" attribute="Pattern Brackets" lineEndContext="#pop">
+				<DetectChar context="#pop" attribute="Pattern Brackets" char="]"/>
+				<IncludeRules context="_escape"/>
+
+				<DetectSpaces context="#pop" lookAhead="true"/>
+				<DetectChar context="#pop" attribute="Path" char="&quot;" lookAhead="true"/>
+				<IncludeRules context="_variable"/>
+				<DetectChar context="#stay" attribute="Error" char="["/>
+				<RegExpr context="#stay" attribute="Open Pattern Brackets" String="[^\s\]](?=([\s&quot;]|$))"/>
+				
+				<AnyChar context="#stay" attribute="Special Char 2" String="^-"/>
+				<IncludeRules context="_special_chars"/>
+			</context>
+			<context name="_round_brackets" attribute="Pattern Brackets" lineEndContext="#pop">
+				<DetectChar context="#pop" attribute="Pattern Brackets" char=")"/>
+				<IncludeRules context="_escape"/>
+
+				<DetectSpaces context="#pop" lookAhead="true"/>
+				<DetectChar context="#pop" attribute="Path" char="&quot;" lookAhead="true"/>
+				<IncludeRules context="_variable"/>
+				<DetectChar context="_square_brackets" attribute="Pattern Brackets" char="["/>
+				<DetectChar context="_round_brackets" attribute="Pattern Brackets" char="("/>
+				<IncludeRules context="_quantification_brackets"/>
+				<RegExpr context="#stay" attribute="Open Pattern Brackets" String="[^\s\[\]\(\)](?=([\s&quot;]|$))"/>
+				
+				<DetectChar context="#stay" attribute="Special Char 2" char="|"/>
+				<IncludeRules context="_special_chars"/>
+			</context>
+
+		</contexts>
+
+		<itemDatas>
+			<itemData name="Normal Text" defStyleNum="dsNormal"   spellChecking="false"/>
+			<itemData name="Comment"     defStyleNum="dsComment"/>
+			<itemData name="Text Quoted" defStyleNum="dsString"   spellChecking="false"/>
+			<itemData name="Path"        defStyleNum="dsNormal"   spellChecking="false"/>
+			<itemData name="Variable"    defStyleNum="dsVariable" spellChecking="false"/>
+
+			<itemData name="File Type"      defStyleNum="dsKeyword" spellChecking="false"/>
+			<itemData name="Keywords"       defStyleNum="dsKeyword" spellChecking="false"/>
+			<itemData name="Other Keywords" defStyleNum="dsNormal"  italic="1" spellChecking="false"/>
+			
+			<itemData name="User"  defStyleNum="dsOthers"         spellChecking="false"/>
+			<itemData name="Role"  defStyleNum="dsDecVal"         spellChecking="false"/>
+			<itemData name="Type"  defStyleNum="dsDataType"       spellChecking="false"/>
+			<itemData name="Level" defStyleNum="dsVerbatimString" spellChecking="false"/>
+			
+			<itemData name="Special Char"          defStyleNum="dsSpecialChar"   spellChecking="false"/>
+			<itemData name="Special Char 2"        defStyleNum="dsAnnotation"    spellChecking="false"/>
+			<itemData name="Pattern Brackets"      defStyleNum="dsSpecialString" spellChecking="false"/>
+			<itemData name="Open Pattern Brackets" defStyleNum="dsSpecialString" underline="1" spellChecking="false"/>
+			<itemData name="Escape Expression"     defStyleNum="dsSpecialChar"   spellChecking="false"/>
+			<itemData name="Error" defStyleNum="dsError" spellChecking="false"/>
+		</itemDatas>
+
+	</highlighting>
+
+	<general>
+		<keywords casesensitive="true" additionalDeliminator="&quot;&#096;&#039;" weakDeliminator="*?+.-"/>
+		<comments>
+			<comment name="singleLine" start="#"/>
+		</comments>
+	</general>
+
+</language>
