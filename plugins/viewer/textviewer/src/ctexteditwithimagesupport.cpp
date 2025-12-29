@@ -1,5 +1,7 @@
 #include "ctexteditwithimagesupport.h"
+#include "compiler/compiler_warnings_control.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QDebug>
 #include <QEventLoop>
@@ -9,6 +11,7 @@
 #include <QPointer>
 #include <QProgressDialog>
 #include <QTimer>
+RESTORE_COMPILER_WARNINGS
 
 struct CTextEditWithImageSupport::Downloader final : QObject {
 	using QObject::QObject;
@@ -17,12 +20,11 @@ struct CTextEditWithImageSupport::Downloader final : QObject {
 		QNetworkRequest request(url);
 		request.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0");
 		QPointer<QNetworkReply> reply = nam.get(request);
-		qInfo() << "Fetching remote URL" << url.toString();
 
 		QEventLoop loop;
 		connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+		connect(reply, &QNetworkReply::errorOccurred, this, &Downloader::onErrorOccurred);
 		connect(reply, &QNetworkReply::errorOccurred, &loop, &QEventLoop::quit);
-		QTimer::singleShot(1000, &loop, &QEventLoop::quit); // timeout
 		QTimer::singleShot(2500, &loop, &QEventLoop::quit); // timeout
 
 		// Show indefinite progress
