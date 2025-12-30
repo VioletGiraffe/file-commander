@@ -13,6 +13,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QStyleHints>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
@@ -46,6 +47,15 @@ CFileListView::CFileListView(QWidget *parent) :
 #if defined __linux__ || defined __APPLE__
 	setStyle(new CFocusFrameStyle);
 #endif
+
+	connect(QApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {
+		QMetaObject::invokeMethod(this, [this]() {
+			style()->unpolish(this);
+			style()->unpolish(header());
+			style()->polish(this);
+			style()->polish(header());
+		}, Qt::QueuedConnection);
+	});
 }
 
 void CFileListView::addEventObserver(FileListViewEventObserver* observer)
