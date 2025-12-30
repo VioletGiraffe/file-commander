@@ -55,7 +55,6 @@ SOURCES += \
 	src/panel/cpanelwidget.cpp \
 	src/progressdialogs/ccopymovedialog.cpp \
 	src/progressdialogs/cpromptdialog.cpp \
-	src/panel/qflowlayout.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
 	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.cpp \
@@ -80,7 +79,6 @@ HEADERS += \
 	src/progressdialogs/ccopymovedialog.h \
 	src/progressdialogs/cfileoperationdialogbase.h \
 	src/progressdialogs/cpromptdialog.h \
-	src/panel/qflowlayout.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
 	src/panel/filelistwidget/cfilelistview.h \

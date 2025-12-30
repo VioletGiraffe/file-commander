@@ -1,7 +1,6 @@
 #include "cpanelwidget.h"
 #include "filelistwidget/cfilelistview.h"
 #include "filelistwidget/model/cfilelistmodel.h"
-#include "qflowlayout.h"
 #include "shell/cshell.h"
 #include "columns.h"
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
@@ -15,6 +14,7 @@
 #include "settings.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "widgets/clineedit.h"
+#include "widgets/layouts/cflowlayout.h"
 
 #include "system/ctimeelapsed.h"
 
@@ -175,7 +175,7 @@ void CPanelWidget::fillFromList(FileListRefreshCause operation)
 
 	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
-	
+
 	_model->onPanelContentsChanged(_controller->panel(_panelPosition).itemHashes());
 
 	auto indexUnderCursor = _sortModel->index(0, 0);
@@ -710,7 +710,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	if (!ui->_driveButtonsWidget->layout())
 	{
 #ifdef _WIN32
-		auto* flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
+		auto* flowLayout = new(std::nothrow) CFlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
 #else
 		auto* flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 5, 5);
 #endif
