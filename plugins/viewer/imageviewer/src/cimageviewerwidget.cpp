@@ -23,11 +23,8 @@ CImageViewerWidget::CImageViewerWidget(QWidget *parent) noexcept :
 bool CImageViewerWidget::displayImage(const QImage& image)
 {
 	_sourceImage = image;
-	if (image.isNull())
-		return false;
-
 	update();
-	return true;
+	return !_sourceImage.isNull();
 }
 
 bool CImageViewerWidget::displayImage(const QString& imagePath)
