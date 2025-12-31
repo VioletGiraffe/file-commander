@@ -710,9 +710,9 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	if (!ui->_driveButtonsWidget->layout())
 	{
 #ifdef _WIN32
-		auto* flowLayout = new(std::nothrow) CFlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
+		auto* flowLayout = new CFlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
 #else
-		auto* flowLayout = new(std::nothrow) FlowLayout(ui->_driveButtonsWidget, 0, 5, 5);
+		auto* flowLayout = new CFlowLayout(ui->_driveButtonsWidget, 0, 5, 5);
 #endif
 		flowLayout->setSpacing(1);
 		ui->_driveButtonsWidget->setLayout(flowLayout);
