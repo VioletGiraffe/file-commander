@@ -110,10 +110,9 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		return;
 	}
 
-	QSize scaledSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
+	const QSize scaledSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
 	if (_scaledImage.isNull() || _scaledImage.size() != scaledSize)
 		_scaledImage = ImageResizing::resize(_sourceImage, scaledSize, ImageResizing::Smart);
 
-	if (!_sourceImage.isNull())
-		QPainter(this).drawImage(0, 0, _scaledImage);
+	p.drawImage(0, 0, _scaledImage);
 }
