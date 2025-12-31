@@ -13,6 +13,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QScreen>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm> // clamp
+
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) noexcept :
 	QWidget(parent)
 {
@@ -26,34 +28,14 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 	if (image.isNull())
 		return false;
 
-	const auto * const currentScreen = QApplication::screenAt(geometry().center());
-	const auto availableGeometry = currentScreen ? currentScreen->availableGeometry() : QApplication::primaryScreen()->availableGeometry();
-	const QSize screenSize = availableGeometry.size() - QSize(30, 100);
-
-	QSize widgetSize = _sourceImage.size();
-	if (widgetSize.height() > screenSize.height() || widgetSize.width() > screenSize.width())
-		widgetSize.scale(screenSize, Qt::KeepAspectRatio);
-
-	resize(widgetSize);
-
-	QMetaObject::invokeMethod(this, [this, availableGeometry]() {
-		// Apparently, we need the timer in order for the resize to actually be applied before parent's resize
-		auto* mainWindow = WidgetUtils::findParentMainWindow(this);
-		if (mainWindow)
-		{
-			mainWindow->move(QPoint(availableGeometry.width()/2 - mainWindow->frameGeometry().width()/2, availableGeometry.height()/2 - mainWindow->frameGeometry().height()/2));
-		}
-
-		setUpdatesEnabled(true);
-	}, Qt::QueuedConnection);
-
+	setUpdatesEnabled(true);
 	return true;
 }
 
 bool CImageViewerWidget::displayImage(const QString& imagePath)
 {
 	QImageReader reader(imagePath);
-	reader.setDecideFormatFromContent(true);
+	reader.setAutoDetectImageFormat(true);
 	reader.setAutoTransform(true);
 
 	_currentImageFormat = QString::fromLatin1(reader.format()); // Must be called before read()
@@ -67,7 +49,7 @@ bool CImageViewerWidget::displayImage(const QString& imagePath)
 	_currentImageFileSize = 0;
 	_currentImageFormat.clear();
 
-	QMessageBox::warning(dynamic_cast<QWidget*>(parent()), tr("Failed to load the image"), tr("Failed to load the image\n\n%1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
+	QMessageBox::warning(parentWidget(), tr("Failed to load the image"), tr("Failed to load the image\n\n%1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
 	return false;
 }
 
@@ -88,8 +70,13 @@ QString CImageViewerWidget::imageInfoString() const
 
 QSize CImageViewerWidget::sizeHint() const
 {
-	// This is required for the size magic to work!
-	return size();
+	const auto maxSize = screen()->availableGeometry().size() - QSize(60, 60);
+	if (_sourceImage.isNull())
+		return QWidget::sizeHint();
+
+	return QSize{ std::clamp(_sourceImage.width(),  150, maxSize.width()),
+				  std::clamp(_sourceImage.height(), 150, maxSize.height())
+			};
 }
 
 QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
@@ -112,8 +99,20 @@ void CImageViewerWidget::copyToClipboard() noexcept
 
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
-	if (_scaledImage.isNull() || _scaledImage.size() != _sourceImage.size().scaled(size(), Qt::KeepAspectRatio))
-		_scaledImage = ImageResizing::resize(_sourceImage, size(), ImageResizing::Smart);
+	QPainter p{ this };
+	if (_sourceImage.isNull())
+	{
+		p.fillRect(rect(), palette().color(QPalette::Window));
+		QFont bigFont = font();
+		bigFont.setPointSize(bigFont.pointSize() * 2);
+		p.setFont(bigFont);
+		p.drawText(rect(), Qt::AlignCenter, tr("No image loaded"));
+		return;
+	}
+
+	QSize scaledSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
+	if (_scaledImage.isNull() || _scaledImage.size() != scaledSize)
+		_scaledImage = ImageResizing::resize(_sourceImage, scaledSize, ImageResizing::Smart);
 
 	if (!_sourceImage.isNull())
 		QPainter(this).drawImage(0, 0, _scaledImage);
