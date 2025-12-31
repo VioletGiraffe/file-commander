@@ -188,7 +188,7 @@ void COperationPerformer::copyFiles()
 #if defined _DEBUG
 		qInfo() << __FUNCTION__ << "Processing" << (sourceIterator->object.isFile() ? "file" : "DIR ") << sourceIterator->object.fullAbsolutePath();
 #endif
-		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->object.fullName());
+		if (_observer) _observer->onCurrentFileChangedCallback(sourceIterator->object.fullAbsolutePath());
 
 		const QFileInfo& sourceFileInfo = sourceIterator->object.qFileInfo();
 		if (!sourceFileInfo.exists())
@@ -361,7 +361,7 @@ void COperationPerformer::deleteFiles()
 #if defined _DEBUG
 		qInfo() << __FUNCTION__ << "deleting file" << it->fullAbsolutePath();
 #endif
-		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
+		if (_observer) _observer->onCurrentFileChangedCallback(it->fullAbsolutePath());
 
 		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
 		const uint32_t secondsRemaining = speed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex - 1) / speed) : 0;
@@ -419,7 +419,7 @@ void COperationPerformer::deleteFiles()
 			continue;
 		}
 
-		if (_observer) _observer->onCurrentFileChangedCallback(it->fullName());
+		if (_observer) _observer->onCurrentFileChangedCallback(it->fullAbsolutePath());
 
 		const uint64_t speed = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
 		const uint32_t secondsRemaining = speed > 0 ? (uint32_t) ((totalNumberOfObjects - currentItemIndex) / speed) : 0;
