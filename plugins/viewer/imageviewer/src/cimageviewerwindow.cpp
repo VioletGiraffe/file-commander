@@ -52,7 +52,7 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 
 	// TODO: thread
 	QTimer::singleShot(10, this, [this](){
-		setWindowIcon(ui->_imageViewerWidget->imageIcon({ {16, 16}, {32, 32} }));
+		setWindowIcon(ui->_imageViewerWidget->imageIcon({ {16, 16}, {32, 32}, {256, 256} }));
 	});
 
 	adjustSize();
