@@ -5,8 +5,8 @@
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QClipboard>
-#include <QDebug>
 #include <QImageReader>
+#include <QtMath>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QPainter>
@@ -18,8 +18,6 @@ RESTORE_COMPILER_WARNINGS
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) noexcept :
 	QWidget(parent)
 {
-	// To avoid double image rendering - on show and on resize
-	setUpdatesEnabled(false);
 }
 
 bool CImageViewerWidget::displayImage(const QImage& image)
@@ -28,7 +26,7 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 	if (image.isNull())
 		return false;
 
-	setUpdatesEnabled(true);
+	update();
 	return true;
 }
 
@@ -74,9 +72,12 @@ QSize CImageViewerWidget::sizeHint() const
 	if (_sourceImage.isNull())
 		return QWidget::sizeHint();
 
-	return QSize{ std::clamp(_sourceImage.width(),  150, maxSize.width()),
-				  std::clamp(_sourceImage.height(), 150, maxSize.height())
-			};
+	const qreal dpr = devicePixelRatioF();
+	auto hint = QSize{
+		std::clamp(qCeil(_sourceImage.width() / dpr),  150, maxSize.width()),
+		std::clamp(qCeil(_sourceImage.height() / dpr), 150, maxSize.height())
+	};
+	return hint;
 }
 
 QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
@@ -110,9 +111,20 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		return;
 	}
 
-	const QSize scaledSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
-	if (_scaledImage.isNull() || _scaledImage.size() != scaledSize)
-		_scaledImage = ImageResizing::resize(_sourceImage, scaledSize, ImageResizing::Smart);
+	const qreal dpr = devicePixelRatioF();
 
+	const QSize scaledSize = _sourceImage.size().scaled(size() * dpr, Qt::KeepAspectRatio);
+	// Check if the scaled size is withing +/-3 pixels of the source image size, and display the source image pixel-perfect in that case
+	if (qAbs(scaledSize.width() - _sourceImage.width()) <= 3 &&
+		qAbs(scaledSize.height() - _sourceImage.height()) <= 3)
+	{
+		_scaledImage = _sourceImage;
+	}
+	else if (_scaledImage.isNull() || _scaledImage.size() != scaledSize)
+	{
+		_scaledImage = ImageResizing::resize(_sourceImage, scaledSize, ImageResizing::Smart);
+	}
+
+	_scaledImage.setDevicePixelRatio(devicePixelRatioF());
 	p.drawImage(0, 0, _scaledImage);
 }
