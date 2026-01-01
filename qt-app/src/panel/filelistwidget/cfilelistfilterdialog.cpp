@@ -55,7 +55,7 @@ bool CFileListFilterDialog::eventFilter(QObject* watched, QEvent* event)
 		QKeyEvent* ke = static_cast<QKeyEvent*>(event);
 		if (ke->key() == Qt::Key_Return)
 		{
-			emit filterTextChanged(ui->_lineEdit->text());
+			emit filterTextChanged(ui->_lineEdit->text(), true);
 		}
 	}
 

@@ -21,7 +21,7 @@ public:
 	void showAt(const QPoint& bottomLeft);
 
 signals:
-	void filterTextChanged(QString text);
+	void filterTextChanged(QString text, bool restoreFocus = false);
 
 protected:
 	void hideEvent(QHideEvent* e) override;

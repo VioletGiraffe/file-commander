@@ -523,9 +523,14 @@ void CPanelWidget::showFilterEditor()
 	_filterDialog.showAt(ui->_list->geometry().bottomLeft());
 }
 
-void CPanelWidget::filterTextChanged(const QString& filterText)
+void CPanelWidget::filterTextChanged(const QString& filterText, bool restoreFocus)
 {
 	_sortModel->setFilterWildcard(filterText);
+	if (restoreFocus)
+	{
+		activateWindow();
+		ui->_list->setFocus();
+	}
 }
 
 void CPanelWidget::copySelectionToClipboard() const
