@@ -239,13 +239,11 @@ bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, v
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	const char command[] = "Copy";
-
 	CMINVOKECOMMANDINFO info;
 	::memset(&info, 0, sizeof(info));
 	info.cbSize = sizeof(info);
 	info.hwnd = reinterpret_cast<HWND>(parentWindow);
-	info.lpVerb = command;
+	info.lpVerb = "Copy";
 	info.nShow = SW_SHOWNORMAL;
 	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
 
@@ -265,13 +263,11 @@ bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, vo
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	const char command [] = "Cut";
-
 	CMINVOKECOMMANDINFO info;
 	::memset(&info, 0, sizeof(info));
 	info.cbSize = sizeof(info);
 	info.hwnd = reinterpret_cast<HWND>(parentWindow);
-	info.lpVerb = command;
+	info.lpVerb = "Cut";
 	info.nShow = SW_SHOWNORMAL;
 	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO) &info);
 
@@ -291,13 +287,11 @@ bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * 
 
 	CComInterfaceReleaser menuReleaser(imenu);
 
-	const char command[] = "Paste";
-
 	CMINVOKECOMMANDINFO info;
 	::memset(&info, 0, sizeof(info));
 	info.cbSize = sizeof(info);
 	info.hwnd = reinterpret_cast<HWND>(parentWindow);
-	info.lpVerb = command;
+	info.lpVerb = "Paste";
 	info.nShow = SW_SHOWNORMAL;
 	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO) &info);
 
