@@ -8,6 +8,6 @@ public:
 	CTextViewerPlugin() = default;
 
 	[[nodiscard]] bool canViewFile(const QString& fileName, const QMimeType& type) const override;
-	PluginWindowPointerType viewFile(const QString& fileName) override;
+	WindowPtr<CPluginWindow> viewFile(const QString& fileName) override;
 	[[nodiscard]] QString name() const override;
 };

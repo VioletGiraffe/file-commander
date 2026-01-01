@@ -1,9 +1,11 @@
 #pragma once
 
-#include "cpluginproxy.h"
 #include "plugin_export.h"
 
 class CFileCommanderPlugin;
+class CPluginProxy;
+
+class QString;
 
 // A plugin dynamic library must implement this function as follows:
 // return new CFileCommanderPluginSubclass();

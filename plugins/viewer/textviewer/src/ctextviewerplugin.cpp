@@ -1,6 +1,7 @@
 #include "ctextviewerplugin.h"
 #include "ctextviewerwindow.h"
 #include "compiler/compiler_warnings_control.h"
+#include "cfilesystemobject.h"
 #include "widgets/widgetutils.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -23,21 +24,17 @@ bool CTextViewerPlugin::canViewFile(const QString& fileName, const QMimeType& /*
 	return CFileSystemObject(fileName).isFile();
 }
 
-CFileCommanderViewerPlugin::PluginWindowPointerType CTextViewerPlugin::viewFile(const QString& fileName)
+CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CTextViewerPlugin::viewFile(const QString& fileName)
 {
 	QMainWindow * mainWindow = WidgetUtils::findTopLevelWindow();
 
-	auto* window = new CTextViewerWindow(mainWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
-	if (window->loadTextFile(fileName))
+	auto window = WindowPtr<CTextViewerWindow>::create(mainWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
+	if (!window->loadTextFile(fileName))
 	{
-		// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
-		return PluginWindowPointerType(window, [](CPluginWindow* pluginWindow) {
-			delete pluginWindow;
-		});
+		window.reset();
 	}
 
-	delete window;
-	return nullptr;
+	return window;
 }
 
 QString CTextViewerPlugin::name() const

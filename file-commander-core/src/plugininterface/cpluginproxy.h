@@ -18,7 +18,7 @@ struct PanelState {
 	QString                                         currentFolder;
 };
 
-enum PanelPosition {PluginLeftPanel, PluginRightPanel, PluginUnknownPanel};
+enum PanelPosition : int {PluginLeftPanel, PluginRightPanel, PluginUnknownPanel};
 
 class CPluginProxy
 {

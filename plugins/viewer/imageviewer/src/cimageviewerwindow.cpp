@@ -55,6 +55,5 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 		setWindowIcon(ui->_imageViewerWidget->imageIcon({ {16, 16}, {32, 32}, {256, 256} }));
 	});
 
-	adjustSize();
 	return true;
 }

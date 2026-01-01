@@ -1,14 +1,12 @@
 #pragma once
 
 #include "cpanel.h"
-#include "plugininterface/cfilecommanderplugin.h"
 #include "plugininterface/cfilecommanderviewerplugin.h"
 
 #include <memory>
 #include <vector>
 
-class CFileCommanderViewerPlugin;
-class CPluginWindow;
+enum PanelPosition : int;
 class QLibrary;
 
 class CPluginEngine final : public PanelContentsChangedListener
@@ -34,8 +32,7 @@ public:
 
 // Operations
 	void viewCurrentFile();
-	// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
-	CFileCommanderViewerPlugin::PluginWindowPointerType createViewerWindowForCurrentFile();
+	CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> createViewerWindowForCurrentFile();
 
 private:
 	static PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);

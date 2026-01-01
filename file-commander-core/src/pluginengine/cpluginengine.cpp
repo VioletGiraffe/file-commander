@@ -106,11 +106,11 @@ void CPluginEngine::viewCurrentFile()
 	}
 }
 
-CFileCommanderViewerPlugin::PluginWindowPointerType CPluginEngine::createViewerWindowForCurrentFile()
+CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CPluginEngine::createViewerWindowForCurrentFile()
 {
 	auto* viewer = viewerForCurrentFile();
 	if (!viewer)
-		return nullptr;
+		return {};
 
 	return viewer->viewFile(CController::get().pluginProxy().currentItemPath());
 }

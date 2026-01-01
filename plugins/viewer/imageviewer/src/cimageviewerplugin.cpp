@@ -16,19 +16,18 @@ bool CImageViewerPlugin::canViewFile(const QString& fileName, const QMimeType& t
 	return reader.canRead();
 }
 
-CFileCommanderViewerPlugin::PluginWindowPointerType CImageViewerPlugin::viewFile(const QString& fileName)
+CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CImageViewerPlugin::viewFile(const QString& fileName)
 {
-	auto* window = new CImageViewerWindow;
+	auto window = WindowPtr<CImageViewerWindow>::create();
+
 	if (window->displayImage(fileName))
 	{
-		// The window needs a custom deleter because it must be deleted in the same dynamic library where it was allocated
-		return PluginWindowPointerType(window, [](CPluginWindow* pluginWindow) {
-			delete pluginWindow;
-		});
+		window->adjustSize();
 	}
+	else
+		window.reset();
 
-	delete window;
-	return nullptr;
+	return window;
 }
 
 QString CImageViewerPlugin::name() const
