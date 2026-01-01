@@ -5,7 +5,6 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QKeyEvent>
 #include <QShortcut>
-#include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
@@ -31,15 +30,14 @@ void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 	show();
 
 	_escShortcut->setEnabled(true);
+	activateWindow();
+	ui->_lineEdit->setFocus();
+	ui->_lineEdit->selectAll();
 
-	QMetaObject::invokeMethod(ui->_lineEdit, [this] {
-		ui->_lineEdit->setFocus();
-		ui->_lineEdit->selectAll();
-	}, Qt::QueuedConnection);
-
-	QTimer::singleShot(15, this, [this] {
+	// TODO: why queued?
+	QMetaObject::invokeMethod(this, [this] {
 		emit filterTextChanged(ui->_lineEdit->text());
-	});
+	}, Qt::QueuedConnection);
 }
 
 void CFileListFilterDialog::hideEvent(QHideEvent* e)
