@@ -19,13 +19,14 @@ public:
 	~CFileListFilterDialog() override;
 
 	void showAt(const QPoint& bottomLeft);
+	[[nodiscard]] QString filterText() const;
 
 signals:
-	void filterTextChanged(QString text, bool restoreFocus = false);
+	void filterTextEdited(QString text);
+	void filterTextConfirmed(QString text);
 
 protected:
 	void hideEvent(QHideEvent* e) override;
-	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
 	Ui::CFileListFilterDialog *ui;

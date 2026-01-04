@@ -69,7 +69,8 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	assert_r(connect(ui->_btnFavs, &QPushButton::clicked, this, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));}));
 	assert_r(connect(ui->_btnToRoot, &QToolButton::clicked, this, &CPanelWidget::toRoot));
 
-	assert_r(connect(&_filterDialog, &CFileListFilterDialog::filterTextChanged, this, &CPanelWidget::filterTextChanged));
+	assert_r(connect(&_filterDialog, &CFileListFilterDialog::filterTextEdited, this, &CPanelWidget::filterTextEdited));
+	assert_r(connect(&_filterDialog, &CFileListFilterDialog::filterTextConfirmed, this, &CPanelWidget::filterTextConfirmed));
 
 	ui->_list->addEventObserver(this);
 
@@ -521,16 +522,21 @@ void CPanelWidget::fileListViewKeyPressed(const QString& /*keyText*/, int key, Q
 void CPanelWidget::showFilterEditor()
 {
 	_filterDialog.showAt(ui->_list->geometry().bottomLeft());
+	filterTextEdited(_filterDialog.filterText());
 }
 
-void CPanelWidget::filterTextChanged(const QString& filterText, bool restoreFocus)
+void CPanelWidget::filterTextEdited(const QString& filterText)
+{
+	qInfo() << filterText;
+	if (_sortModel->rowCount() < 1000)
+		_sortModel->setFilterWildcard(filterText);
+}
+
+void CPanelWidget::filterTextConfirmed(const QString& filterText)
 {
 	_sortModel->setFilterWildcard(filterText);
-	if (restoreFocus)
-	{
-		activateWindow();
-		ui->_list->setFocus();
-	}
+	activateWindow();
+	ui->_list->setFocus();
 }
 
 void CPanelWidget::copySelectionToClipboard() const

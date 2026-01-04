@@ -90,7 +90,8 @@ private slots:
 	void showFavoriteLocationsMenu(QPoint pos);
 	void showFavoriteLocationsEditor();
 	void fileListViewKeyPressed(const QString& keyText, int key, Qt::KeyboardModifiers modifiers);
-	void filterTextChanged(const QString& filterText, bool restoreFocus);
+	void filterTextEdited(const QString& filterText);
+	void filterTextConfirmed(const QString& filterText);
 	void copySelectionToClipboard() const;
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard();

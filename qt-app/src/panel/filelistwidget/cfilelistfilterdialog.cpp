@@ -1,4 +1,5 @@
 #include "cfilelistfilterdialog.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilelistfilterdialog.h"
@@ -16,7 +17,10 @@ CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
 	_escShortcut = new QShortcut(QKeySequence("Esc"), parent, this, &CFileListFilterDialog::close, Qt::WidgetWithChildrenShortcut);
 	_escShortcut->setEnabled(false);
 
-	ui->_lineEdit->installEventFilter(this);
+	assert_r(connect(ui->_lineEdit, &QLineEdit::textEdited, this, &CFileListFilterDialog::filterTextEdited));
+	assert_r(connect(ui->_lineEdit, &QLineEdit::returnPressed, this, [this]() {
+		emit filterTextConfirmed(ui->_lineEdit->text());
+	}));
 }
 
 CFileListFilterDialog::~CFileListFilterDialog()
@@ -31,33 +35,19 @@ void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 
 	_escShortcut->setEnabled(true);
 	activateWindow();
-	ui->_lineEdit->setFocus();
 	ui->_lineEdit->selectAll();
+	ui->_lineEdit->setFocus();
+}
 
-	// TODO: why queued?
-	QMetaObject::invokeMethod(this, [this] {
-		emit filterTextChanged(ui->_lineEdit->text());
-	}, Qt::QueuedConnection);
+QString CFileListFilterDialog::filterText() const
+{
+	return ui->_lineEdit->text();
 }
 
 void CFileListFilterDialog::hideEvent(QHideEvent* e)
 {
 	_escShortcut->setEnabled(false);
 
-	emit filterTextChanged(QString{});
+	emit filterTextConfirmed(QString{});
 	QDialog::hideEvent(e);
-}
-
-bool CFileListFilterDialog::eventFilter(QObject* watched, QEvent* event)
-{
-	if (event->type() == QEvent::KeyPress)
-	{
-		QKeyEvent* ke = static_cast<QKeyEvent*>(event);
-		if (ke->key() == Qt::Key_Return)
-		{
-			emit filterTextChanged(ui->_lineEdit->text(), true);
-		}
-	}
-
-	return QDialog::eventFilter(watched, event);
 }
