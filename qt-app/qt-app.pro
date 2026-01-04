@@ -111,7 +111,6 @@ FORMS += \
 	src/settings/csettingspageoperations.ui \
 	src/favoritelocationseditor/cfavoritelocationseditor.ui \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
-	src/panel/filelistwidget/cfilelistfilterdialog.ui \
 	src/filessearchdialog/cfilessearchwindow.ui \
 	src/progressdialogs/cdeleteprogressdialog.ui \
 	src/aboutdialog/caboutdialog.ui
