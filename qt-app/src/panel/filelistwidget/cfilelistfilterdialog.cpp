@@ -2,9 +2,6 @@
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
-#include "ui_cfilelistfilterdialog.h"
-
-#include <QKeyEvent>
 #include <QKeyEvent>
 #include <QResizeEvent>
 #include <QShortcut>
