@@ -2,7 +2,6 @@
 
 #include "ccontroller.h"
 #include "filelistwidget/cfilelistview.h"
-#include "filelistwidget/cfilelistfilterdialog.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QItemSelection>
@@ -20,7 +19,7 @@ class QStandardItem;
 
 class CFileListModel;
 class CFileListSortFilterProxyModel;
-class CFileListView;
+class CFileListFilterDialog;
 
 
 class CPanelWidget final : public QWidget,
@@ -115,7 +114,7 @@ private:
 	[[nodiscard]] bool pasteImage(const QImage& image);
 
 private:
-	CFileListFilterDialog           _filterDialog;
+	CFileListFilterDialog          * _filterDialog = nullptr;
 	std::vector<CFileSystemObject>  _disks;
 	QString                         _currentVoumePath;
 	QString                         _directoryCurrentlyBeingDisplayed;

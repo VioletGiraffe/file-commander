@@ -2,7 +2,7 @@
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QDialog>
+#include <QLineEdit>
 RESTORE_COMPILER_WARNINGS
 
 namespace Ui {
@@ -11,24 +11,23 @@ class CFileListFilterDialog;
 
 class QShortcut;
 
-class CFileListFilterDialog final : public QDialog
+class CFileListFilterDialog final : public QLineEdit
 {
 	Q_OBJECT
 public:
 	explicit CFileListFilterDialog(QWidget *parent);
-	~CFileListFilterDialog() override;
 
 	void showAt(const QPoint& bottomLeft);
-	[[nodiscard]] QString filterText() const;
 
 signals:
 	void filterTextEdited(QString text);
 	void filterTextConfirmed(QString text);
 
 protected:
-	void hideEvent(QHideEvent* e) override;
+	void keyPressEvent(QKeyEvent* event) override;
+
+	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-	Ui::CFileListFilterDialog *ui;
-	QShortcut* _escShortcut;
+	QShortcut* _escShortcut = nullptr;
 };

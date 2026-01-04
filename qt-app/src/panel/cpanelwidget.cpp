@@ -1,5 +1,5 @@
 #include "cpanelwidget.h"
-#include "filelistwidget/cfilelistview.h"
+#include "filelistwidget/cfilelistfilterdialog.h"
 #include "filelistwidget/model/cfilelistmodel.h"
 #include "shell/cshell.h"
 #include "columns.h"
@@ -37,7 +37,6 @@ RESTORE_COMPILER_WARNINGS
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	QWidget(parent),
-	_filterDialog(this),
 	ui(new Ui::CPanelWidget),
 	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut),
@@ -69,8 +68,10 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	assert_r(connect(ui->_btnFavs, &QPushButton::clicked, this, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));}));
 	assert_r(connect(ui->_btnToRoot, &QToolButton::clicked, this, &CPanelWidget::toRoot));
 
-	assert_r(connect(&_filterDialog, &CFileListFilterDialog::filterTextEdited, this, &CPanelWidget::filterTextEdited));
-	assert_r(connect(&_filterDialog, &CFileListFilterDialog::filterTextConfirmed, this, &CPanelWidget::filterTextConfirmed));
+	_filterDialog = new CFileListFilterDialog(ui->_list);
+	assert_r(connect(_filterDialog, &CFileListFilterDialog::filterTextEdited, this, &CPanelWidget::filterTextEdited));
+	assert_r(connect(_filterDialog, &CFileListFilterDialog::filterTextConfirmed, this, &CPanelWidget::filterTextConfirmed));
+	ui->_list->installEventFilter(_filterDialog);
 
 	ui->_list->addEventObserver(this);
 
@@ -521,13 +522,12 @@ void CPanelWidget::fileListViewKeyPressed(const QString& /*keyText*/, int key, Q
 
 void CPanelWidget::showFilterEditor()
 {
-	_filterDialog.showAt(ui->_list->geometry().bottomLeft());
-	filterTextEdited(_filterDialog.filterText());
+	_filterDialog->showAt(QPoint{ 0, ui->_list->height() });
+	filterTextEdited(_filterDialog->text());
 }
 
 void CPanelWidget::filterTextEdited(const QString& filterText)
 {
-	qInfo() << filterText;
 	if (_sortModel->rowCount() < 1000)
 		_sortModel->setFilterWildcard(filterText);
 }
@@ -535,7 +535,7 @@ void CPanelWidget::filterTextEdited(const QString& filterText)
 void CPanelWidget::filterTextConfirmed(const QString& filterText)
 {
 	_sortModel->setFilterWildcard(filterText);
-	activateWindow();
+	raise();
 	ui->_list->setFocus();
 }
 

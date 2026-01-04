@@ -5,49 +5,58 @@ DISABLE_COMPILER_WARNINGS
 #include "ui_cfilelistfilterdialog.h"
 
 #include <QKeyEvent>
+#include <QKeyEvent>
+#include <QResizeEvent>
 #include <QShortcut>
 RESTORE_COMPILER_WARNINGS
 
 CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
-	QDialog(parent, Qt::CustomizeWindowHint | Qt::NoDropShadowWindowHint | Qt::FramelessWindowHint),
-	ui(new Ui::CFileListFilterDialog)
+	QLineEdit(parent)
 {
-	ui->setupUi(this);
+	_escShortcut = new QShortcut(QKeySequence("Esc"), parent, this, [this] {
+			_escShortcut->setEnabled(false);
+			setVisible(false);
+			emit filterTextConfirmed(QString{});
+		}
+	, Qt::WidgetWithChildrenShortcut);
 
-	_escShortcut = new QShortcut(QKeySequence("Esc"), parent, this, &CFileListFilterDialog::close, Qt::WidgetWithChildrenShortcut);
 	_escShortcut->setEnabled(false);
+	setVisible(false);
 
-	assert_r(connect(ui->_lineEdit, &QLineEdit::textEdited, this, &CFileListFilterDialog::filterTextEdited));
-	assert_r(connect(ui->_lineEdit, &QLineEdit::returnPressed, this, [this]() {
-		emit filterTextConfirmed(ui->_lineEdit->text());
-	}));
-}
-
-CFileListFilterDialog::~CFileListFilterDialog()
-{
-	delete ui;
+	assert_r(connect(this, &QLineEdit::textEdited, this, &CFileListFilterDialog::filterTextEdited));
 }
 
 void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
 {
-	setGeometry(QRect(parentWidget()->mapToGlobal(QPoint(bottomLeft.x(), bottomLeft.y()-height())), size()));
-	show();
+	setVisible(true);
+	move(bottomLeft.x(), bottomLeft.y() - height());
 
 	_escShortcut->setEnabled(true);
-	activateWindow();
-	ui->_lineEdit->selectAll();
-	ui->_lineEdit->setFocus();
+	raise();
+	setFocus();
+	selectAll();
 }
 
-QString CFileListFilterDialog::filterText() const
+void CFileListFilterDialog::keyPressEvent(QKeyEvent* event)
 {
-	return ui->_lineEdit->text();
+	if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
+	{
+		emit filterTextConfirmed(text());
+		// consume the event
+		event->accept();
+		return;
+	}
+
+	QLineEdit::keyPressEvent(event);
 }
 
-void CFileListFilterDialog::hideEvent(QHideEvent* e)
+bool CFileListFilterDialog::eventFilter(QObject* watched, QEvent* event)
 {
-	_escShortcut->setEnabled(false);
+	if (event->type() == QEvent::Resize)
+	{
+		const auto newSize = static_cast<QResizeEvent*>(event)->size();
+		move(0, newSize.height() - height());
+	}
 
-	emit filterTextConfirmed(QString{});
-	QDialog::hideEvent(e);
+	return QLineEdit::eventFilter(watched, event);
 }
