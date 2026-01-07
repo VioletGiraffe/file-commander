@@ -1,6 +1,8 @@
 #pragma once
 #include "ui/CProxyStyle.h"
 
+#include <QStyleOption>
+
 class CFocusFrameStyle : public CProxyStyle
 {
 public:
