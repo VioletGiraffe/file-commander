@@ -1,6 +1,7 @@
 #include "cfilelistview.h"
 #include "../columns.h"
 #include "delegate/cfilelistitemdelegate.h"
+#include "cfocusframestyle.h"
 
 #include "assert/advanced_assert.h"
 #include "math/math.hpp"
@@ -18,10 +19,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <array>
-
-#if defined __linux__ || defined __APPLE__
-#include "cfocusframestyle.h"
-#endif
 
 CFileListView::CFileListView(QWidget *parent) :
 	QTreeView(parent)
@@ -44,8 +41,11 @@ CFileListView::CFileListView(QWidget *parent) :
 
 	headerView->installEventFilter(this);
 
-#if defined __linux__ || defined __APPLE__
-	setStyle(new CFocusFrameStyle);
+	// TODO: QProxyStyle?
+#ifdef _WIN32
+	setStyle(new NoHoverHighlightStyle<CProxyStyle>);
+#elif defined __linux__ || defined __APPLE__
+	setStyle(new NoHoverHighlightStyle<CFocusFrameStyle>);
 #endif
 
 	connect(QApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {

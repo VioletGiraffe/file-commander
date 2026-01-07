@@ -40,6 +40,13 @@ void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & 
 	}
 }
 
+void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+	QStyleOptionViewItem opt = option;
+	opt.state &= ~QStyle::State_MouseOver;
+	QStyledItemDelegate::paint(painter, opt, index);
+}
+
 bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)
 {
 	QWidget *editor = qobject_cast<QWidget*>(object);
