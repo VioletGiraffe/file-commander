@@ -79,7 +79,7 @@ protected:
 private slots:
 	void showContextMenuForItems(QPoint pos);
 	void showContextMenuForDisk(QPoint pos);
-	void calcDirectorySize();
+	void onSpacePressed();
 	void invertCurrentItemSelection();
 	void driveButtonClicked();
 	void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected);

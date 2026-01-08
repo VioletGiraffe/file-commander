@@ -390,27 +390,26 @@ std::vector<qulonglong> CPanel::itemHashes() const
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 void CPanel::displayDirSize(qulonglong dirHash)
 {
-	_workerThreadPool.enqueue([this, dirHash] {
-		// TODO: lock for the whole duration?
-		std::unique_lock locker(_fileListAndCurrentDirMutex);
+	// Nothing to do if not a dir
+	const auto item = itemByHash(dirHash);
+	if (!item.isDir())
+		return;
 
-		auto it = _items.find(dirHash);
-		assert_and_return_r(it != _items.end(), );
+	_workerThreadPool.enqueue([this, dirHash, path = item.fullAbsolutePath()] {
+		const FileStatistics stats = calculateStatsFor({ path });
 
-		if (it->second.isDir())
+		// Since this is a background thread, the item we were working on may be out of the _items list by now.
+		// So we find it again and see if it's still there.
 		{
-			locker.unlock(); // Without this .unlock() the UI thread will get blocked very easily
-			const FileStatistics stats = calculateStatsFor(std::vector<QString>{it->second.fullAbsolutePath()});
-			locker.lock();
-			// Since we unlocked the mutex, the item we were working on may well be out of the _items list by now
-			// So we find it again and see if it's still there
-			it = _items.find(dirHash);
+			std::lock_guard locker{ _fileListAndCurrentDirMutex };
+			const auto it = _items.find(dirHash);
 			if (it == _items.end())
 				return;
 
 			it->second.setDirSize(stats.occupiedSpace);
-			sendContentsChangedNotification(refreshCauseOther);
 		}
+
+		sendContentsChangedNotification(refreshCauseOther);
 	});
 }
 

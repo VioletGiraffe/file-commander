@@ -38,7 +38,7 @@ RESTORE_COMPILER_WARNINGS
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	QWidget(parent),
 	ui(new Ui::CPanelWidget),
-	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(calcDirectorySize()), nullptr, Qt::WidgetWithChildrenShortcut),
+	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(onSpacePressed()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_copyShortcut(QKeySequence(QSL("Ctrl+C")), this, SLOT(copySelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
 	_cutShortcut(QKeySequence(QSL("Ctrl+X")), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
@@ -288,7 +288,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 #endif
 }
 
-void CPanelWidget::calcDirectorySize()
+void CPanelWidget::onSpacePressed()
 {
 	const QModelIndex itemIndex = _selectionModel->currentIndex();
 	if (itemIndex.isValid())
