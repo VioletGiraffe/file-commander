@@ -64,40 +64,55 @@ QString fileSizeToString(uint64_t size, const char maxUnit, const QString &space
 	static constexpr uint64_t KB = 1024;
 	static constexpr uint64_t MB = 1024 * KB;
 	static constexpr uint64_t GB = 1024 * MB;
+	static constexpr uint64_t TB = 1024 * GB;
+	static constexpr uint64_t PB = 1024 * TB;
+	static constexpr uint64_t EB = 1024 * PB;
+
+	struct Unit { uint64_t threshold; const char* label; };
+	static constexpr Unit units[] {
+		{ EB, "EiB" },
+		{ PB, "PiB" },
+		{ TB, "TiB" },
+		{ GB, "GiB" },
+		{ MB, "MiB" },
+		{ KB, "KiB" },
+		{ 0ULL, "B" }
+	};
 
 	const uint64_t maxUnitSize = [maxUnit]() -> uint64_t {
-		switch(maxUnit) {
-		case 'B': return 0;
-		case 'K': return KB;
-		case 'M': return MB;
-		default:  return uint64_max;
+		if (maxUnit == 'B') [[unlikely]]
+			return 0ULL;
+
+		for (const auto& u : units) {
+			if (u.label[0] == maxUnit)
+				return u.threshold;
 		}
+		return uint64_max;
 	}();
 
 	QString str;
 	double n = 0.0;
-	if (size >= GB && maxUnitSize >= GB)
+	for (auto const& u : units)
 	{
-		n = (double)size / double(GB);
-		str = QStringLiteral("%1 GiB").arg(QString::number(n, 'f', 1));
-	}
-	else if (size >= MB && maxUnitSize >= MB)
-	{
-		n = (double)size / double(MB);
-		str = QStringLiteral("%1 MiB").arg(QString::number(n, 'f', 1));
-	}
-	else if (size >= KB && maxUnitSize >= KB)
-	{
-		n = (double)size / double(KB);
-		str = QStringLiteral("%1 KiB").arg(QString::number(n, 'f', 1));
-	}
-	else
-	{
-		n = (double)size;
-		str = QStringLiteral("%1 B").arg(size);
+		if (size >= u.threshold && maxUnitSize >= u.threshold)
+		{
+			if (u.threshold == 0ULL)
+			{
+				n = static_cast<double>(size);
+				str = QStringLiteral("%1 B").arg(size);
+			}
+			else
+			{
+				n = static_cast<double>(size) / static_cast<double>(u.threshold);
+				str = QStringLiteral("%1 %2").arg(
+					QString::number(n, 'f', 1), QString::fromLatin1(u.label)
+				);
+			}
+			break;
+		}
 	}
 
-	if (!spacer.isEmpty() && n > 0.0f)
+	if (!spacer.isEmpty() && n > 0.0)
 	{
 		for (int spacerPos = (int)std::log10(n) - 3; spacerPos >= 0; spacerPos -= 3)
 			str.insert(spacerPos + 1, spacer);
