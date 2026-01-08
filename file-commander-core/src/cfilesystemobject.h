@@ -106,8 +106,6 @@ public:
 	// Filename + suffix for files, same as name() for folders
 	[[nodiscard]] QString fullName() const;
 	[[nodiscard]] QString extension() const;
-	[[nodiscard]] QString sizeString() const;
-	[[nodiscard]] QString modificationDateString() const;
 
 private:
 	CFileSystemObjectProperties _properties;

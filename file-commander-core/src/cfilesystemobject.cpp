@@ -394,7 +394,7 @@ QString CFileSystemObject::symLinkTarget() const
 time_t CFileSystemObject::creationTime() const
 {
 	if (_creationDate == invalid_time) [[unlikely]]
-		_creationDate = toTime_t(_fileInfo.birthTime());
+		_creationDate = toTime_t(_fileInfo.birthTime().toLocalTime());
 
 	return _creationDate;
 }
@@ -402,7 +402,7 @@ time_t CFileSystemObject::creationTime() const
 time_t CFileSystemObject::modificationTime() const
 {
 	if (_modificationDate == invalid_time) [[unlikely]]
-		_modificationDate = toTime_t(_fileInfo.lastModified());
+		_modificationDate = toTime_t(_fileInfo.lastModified().toLocalTime());
 
 	return _modificationDate;
 }
@@ -440,17 +440,6 @@ QString CFileSystemObject::extension() const
 {
 	return _properties.extension;
 }
-
-QString CFileSystemObject::sizeString() const
-{
-	return _properties.type == File ? fileSizeToString(_properties.size) : QString();
-}
-
-QString CFileSystemObject::modificationDateString() const
-{
-	return fromTime_t(modificationTime()).toLocalTime().toString(QLatin1String("dd.MM.yyyy hh:mm:ss"));
-}
-
 
 // Return the list of consecutive full paths leading from the specified target to its root.
 // E. g. C:/Users/user/Documents/ -> {C:/Users/user/Documents/, C:/Users/user/, C:/Users/, C:/}

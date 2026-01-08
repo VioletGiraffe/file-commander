@@ -5,6 +5,7 @@
 #include "iconprovider/ciconprovider.h"
 #include "../../../cmainwindow.h"
 #include "../../columns.h"
+#include "qtcore_helpers/qdatetime_helpers.hpp"
 
 #include "assert/advanced_assert.h"
 
@@ -43,7 +44,7 @@ inline QVariant itemData(const CFileSystemObject& item, int column)
 
 	case DateColumn:
 		if (!item.isCdUp()) [[likely]]
-			return item.modificationDateString();
+			return fromTime_t(item.modificationTime()).toString(QStringLiteral("dd.MM.yyyy hh:mm:ss"));
 		else
 			return {};
 
