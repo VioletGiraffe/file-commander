@@ -5,6 +5,7 @@
 #include "directoryscanner.h"
 #include "assert/advanced_assert.h"
 #include "std_helpers/qt_container_helpers.hpp"
+#include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
 
 DISABLE_COMPILER_WARNINGS
@@ -51,7 +52,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	_currentDisplayMode = NormalMode;
 
-	std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	std::unique_lock locker(_fileListAndCurrentDirMutex);
 
 	const auto oldPathObject = _currentDirObject;
 
@@ -188,7 +189,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	_watcher.setPathToWatch({});
 
 	_workerThreadPool.enqueue([this]() {
-		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+		std::unique_lock locker(_fileListAndCurrentDirMutex);
 		const QString path = _currentDirObject.fullAbsolutePath();
 
 		_items.clear();
@@ -222,19 +223,19 @@ CFileSystemObject CPanel::currentDirObject() const
 // Info on the dir this panel is currently set to
 QString CPanel::currentDirPathNative() const
 {
-	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	return toNativeSeparators(_currentDirObject.fullAbsolutePath());
 }
 
 QString CPanel::currentDirPathPosix() const
 {
-	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	return _currentDirObject.fullAbsolutePath();
 }
 
 QString CPanel::currentDirName() const
 {
-	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	const QString name = _currentDirObject.fullName();
 	return !name.isEmpty() ? name : _currentDirObject.fullAbsolutePath();
 }
@@ -275,7 +276,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		QString currentDirPath;
 
 		{
-			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
 
 			currentDirPath = _currentDirObject.fullAbsolutePath();
 			currentPathIsAccessible = pathIsAccessible(currentDirPath);
@@ -288,7 +289,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		}
 
 		{
-			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
 
 			list = QDir{currentDirPath}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
 			_items.clear();
@@ -314,7 +315,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		}
 
 		{
-			std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
 
 			for (const auto& object : objectsList)
 			{
@@ -330,29 +331,54 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 // Returns the current list of objects on this panel
 FileListHashMap CPanel::list() const
 {
-	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	return _items;
 }
 
 bool CPanel::itemHashExists(const qulonglong hash) const
 {
-	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	return _items.contains(hash);
 }
 
 CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 {
-	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 
 	const auto it = _items.find(hash);
 	return it != _items.end() ? it->second : CFileSystemObject();
+}
+
+QString CPanel::itemPathByHash(qulonglong hash) const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	const auto it = _items.find(hash);
+	return it != _items.end() ? it->second.fullAbsolutePath() : QString();
+}
+
+std::vector<QString> CPanel::pathsByHashes(const std::vector<qulonglong>& hashes) const
+{
+	std::vector<QString> paths;
+	paths.reserve(hashes.size());
+
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	for (const auto hash : hashes)
+	{
+		const auto it = _items.find(hash);
+		if (it != _items.end())
+			paths.push_back(it->second.fullAbsolutePath());
+		else
+			paths.push_back({});
+	}
+
+	return paths;
 }
 
 std::vector<qulonglong> CPanel::itemHashes() const
 {
 	std::vector<qulonglong> hashes;
 
-	std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	hashes.reserve(_items.size());
 
 	for (const auto& pair : _items)
@@ -362,12 +388,12 @@ std::vector<qulonglong> CPanel::itemHashes() const
 }
 
 // Calculates total size for the specified objects
-FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulonglong>& hashes)
+FileStatistics CPanel::calculateStatistics(const std::vector<qulonglong>& hashes)
 {
 	if (hashes.empty())
 		return {};
 
-	FilesystemObjectsStatistics stats;
+	FileStatistics stats;
 	for(const auto hash: hashes)
 	{
 		const CFileSystemObject rootItem = itemByHash(hash);
@@ -397,7 +423,7 @@ FilesystemObjectsStatistics CPanel::calculateStatistics(const std::vector<qulong
 void CPanel::displayDirSize(qulonglong dirHash)
 {
 	_workerThreadPool.enqueue([this, dirHash] {
-		std::unique_lock<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+		std::unique_lock locker(_fileListAndCurrentDirMutex);
 
 		auto it = _items.find(dirHash);
 		assert_and_return_r(it != _items.end(), );
@@ -405,7 +431,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 		if (it->second.isDir())
 		{
 			locker.unlock(); // Without this .unlock() the UI thread will get blocked very easily
-			const FilesystemObjectsStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));
+			const FileStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));
 			locker.lock();
 			// Since we unlocked the mutex, the item we were working on may well be out of the _items list by now
 			// So we find it again and see if it's still there

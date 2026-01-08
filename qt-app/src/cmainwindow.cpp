@@ -20,6 +20,7 @@
 #include "aboutdialog/caboutdialog.h"
 #include "widgets/cpersistentwindow.h"
 #include "widgets/widgetutils.h"
+#include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
 #include "version.h"
 
@@ -204,7 +205,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Show_hidden_files, &QAction::triggered, this, &CMainWindow::showHiddenFiles);
 	connect(ui->actionShowAllFiles, &QAction::triggered, this, &CMainWindow::showAllFilesFromCurrentFolderAndBelow);
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
-	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateOccupiedSpace);
+	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateStatistics);
 	connect(ui->actionCalculate_each_folder_s_size, &QAction::triggered, this, &CMainWindow::calculateEachFolderSize);
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
 	connect(ui->actionFilter_items, &QAction::triggered, this, &CMainWindow::filterItemsByName);
@@ -757,12 +758,12 @@ void CMainWindow::openSettingsDialog()
 	settings.exec();
 }
 
-void CMainWindow::calculateOccupiedSpace()
+void CMainWindow::calculateStatistics()
 {
 	if (!_currentFileList)
 		return;
 
-	const FilesystemObjectsStatistics stats = _controller->calculateStatistics(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
+	const FileStatistics stats = _controller->calculateStatistics(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 	if (stats.empty())
 		return;
 

@@ -4,6 +4,7 @@
 #include "shell/cshell.h"
 #include "pluginengine/cpluginengine.h"
 #include "filesystemhelperfunctions.h"
+#include "filesystemhelpers/filestatistics.h"
 #include "iconprovider/ciconprovider.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
@@ -309,7 +310,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 #endif
 }
 
-FilesystemObjectsStatistics CController::calculateStatistics(Panel p, const std::vector<qulonglong> & hashes)
+FileStatistics CController::calculateStatistics(Panel p, const std::vector<qulonglong> & hashes)
 {
 	return panel(p).calculateStatistics(hashes);
 }

@@ -21,6 +21,8 @@ using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #include <utility>
 #include <vector>
 
+struct FileStatistics;
+
 enum class Panel
 {
 	LeftPanel,
@@ -41,18 +43,6 @@ struct PanelContentsChangedListener
 	virtual ~PanelContentsChangedListener() = default;
 
 	virtual void onPanelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
-};
-
-struct FilesystemObjectsStatistics
-{
-	inline FilesystemObjectsStatistics(uint64_t files_ = 0, uint64_t folders_ = 0, uint64_t occupiedSpace_ = 0) noexcept :
-		files(files_), folders(folders_), occupiedSpace(occupiedSpace_)
-	{}
-	[[nodiscard]] inline bool empty() const {return files == 0 && folders == 0 && occupiedSpace == 0;}
-
-	uint64_t files;
-	uint64_t folders;
-	uint64_t occupiedSpace;
 };
 
 struct CursorPositionListener {
@@ -104,10 +94,13 @@ public:
 
 	[[nodiscard]] bool itemHashExists(qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;
+	[[nodiscard]] QString itemPathByHash(qulonglong hash) const;
+	[[nodiscard]] std::vector<QString> pathsByHashes(const std::vector<qulonglong>& hashes) const;
+
 	[[nodiscard]] std::vector<qulonglong> itemHashes() const;
 
 	// Calculates total size for the specified objects
-	[[nodiscard]] FilesystemObjectsStatistics calculateStatistics(const std::vector<qulonglong>& hashes);
+	[[nodiscard]] FileStatistics calculateStatistics(const std::vector<qulonglong>& hashes);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);
 

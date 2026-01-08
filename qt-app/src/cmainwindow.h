@@ -91,7 +91,7 @@ private:
 	void showHiddenFiles();
 	void showAllFilesFromCurrentFolderAndBelow();
 	void openSettingsDialog();
-	void calculateOccupiedSpace();
+	void calculateStatistics();
 	void calculateEachFolderSize();
 	void checkForUpdates();
 	void about();

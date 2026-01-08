@@ -25,6 +25,7 @@ HEADERS += \
 	src/detail/hashmap_helpers.h \
 	src/fileoperationresultcode.h \
 	src/cpanel.h \
+	src/filesystemhelpers/filestatistics.h \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.h \
 	src/iconprovider/ciconprovider.h \
 	src/fileoperations/operationcodes.h \
@@ -48,6 +49,7 @@ SOURCES += \
 	src/ccontroller.cpp \
 	src/cpanel.cpp \
 	src/filesystemhelperfunctions.cpp \
+	src/filesystemhelpers/filestatistics.cpp \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.cpp \
 	src/iconprovider/ciconprovider.cpp \
 	src/iconprovider/ciconproviderimpl.cpp \
