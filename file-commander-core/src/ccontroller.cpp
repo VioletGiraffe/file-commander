@@ -310,11 +310,6 @@ void CController::openTerminal(const QString &folder, bool admin)
 #endif
 }
 
-FileStatistics CController::calculateStatistics(Panel p, const std::vector<qulonglong> & hashes)
-{
-	return panel(p).calculateStatistics(hashes);
-}
-
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 void CController::displayDirSize(Panel p, qulonglong dirHash)
 {

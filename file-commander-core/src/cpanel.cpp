@@ -356,7 +356,7 @@ QString CPanel::itemPathByHash(qulonglong hash) const
 	return it != _items.end() ? it->second.fullAbsolutePath() : QString();
 }
 
-std::vector<QString> CPanel::pathsByHashes(const std::vector<qulonglong>& hashes) const
+std::vector<QString> CPanel::itemPathsByHashes(const std::vector<qulonglong>& hashes) const
 {
 	std::vector<QString> paths;
 	paths.reserve(hashes.size());
@@ -387,42 +387,11 @@ std::vector<qulonglong> CPanel::itemHashes() const
 	return hashes;
 }
 
-// Calculates total size for the specified objects
-FileStatistics CPanel::calculateStatistics(const std::vector<qulonglong>& hashes)
-{
-	if (hashes.empty())
-		return {};
-
-	FileStatistics stats;
-	for(const auto hash: hashes)
-	{
-		const CFileSystemObject rootItem = itemByHash(hash);
-		if (rootItem.isDir())
-		{
-			scanDirectory(rootItem, [this, &stats](const CFileSystemObject& discoveredItem) {
-				if (discoveredItem.isFile())
-				{
-					stats.occupiedSpace += discoveredItem.size();
-					++stats.files;
-				}
-				else if (discoveredItem.isDir())
-					++stats.folders;
-			});
-		}
-		else if (rootItem.isFile())
-		{
-			++stats.files;
-			stats.occupiedSpace += rootItem.size();
-		}
-	}
-
-	return stats;
-}
-
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 void CPanel::displayDirSize(qulonglong dirHash)
 {
 	_workerThreadPool.enqueue([this, dirHash] {
+		// TODO: lock for the whole duration?
 		std::unique_lock locker(_fileListAndCurrentDirMutex);
 
 		auto it = _items.find(dirHash);
@@ -431,7 +400,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 		if (it->second.isDir())
 		{
 			locker.unlock(); // Without this .unlock() the UI thread will get blocked very easily
-			const FileStatistics stats = calculateStatistics(std::vector<qulonglong>(1, dirHash));
+			const FileStatistics stats = calculateStatsFor(std::vector<QString>{it->second.fullAbsolutePath()});
 			locker.lock();
 			// Since we unlocked the mutex, the item we were working on may well be out of the _items list by now
 			// So we find it again and see if it's still there

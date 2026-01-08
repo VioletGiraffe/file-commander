@@ -68,8 +68,6 @@ public:
 	FileOperationResultCode createFile(const QString& parentFolder, const QString& name);
 	// Opens a terminal window in the specified folder
 	void openTerminal(const QString & folder, bool admin = false);
-	// Calculates total size for the specified objects
-	FileStatistics calculateStatistics(Panel p, const std::vector<qulonglong> & hashes);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
 	// Flattens the current directory and displays all its child files on one level

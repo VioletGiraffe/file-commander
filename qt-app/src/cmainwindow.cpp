@@ -763,7 +763,9 @@ void CMainWindow::calculateStatistics()
 	if (!_currentFileList)
 		return;
 
-	const FileStatistics stats = _controller->calculateStatistics(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
+	const auto hashes = _currentFileList->selectedItemsHashes();
+	const auto paths = _controller->panel(_currentFileList->panelPosition()).itemPathsByHashes(hashes);
+	const FileStatistics stats = calculateStatsFor(paths);
 	if (stats.empty())
 		return;
 
