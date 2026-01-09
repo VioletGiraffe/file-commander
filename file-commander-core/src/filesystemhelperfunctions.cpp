@@ -59,17 +59,17 @@ QString cleanPath(QString path)
 	return path.replace(QStringLiteral(R"(\\)"), QStringLiteral(R"(\)")).replace(QStringLiteral("//"), QStringLiteral("/"));
 }
 
-QString fileSizeToString(uint64_t size, const char maxUnit, const QString &spacer)
+QString fileSizeToString(uint64_t size, const char maxUnit, const QString& spacer, int significantPlaces)
 {
-	static constexpr uint64_t KB = 1024;
-	static constexpr uint64_t MB = 1024 * KB;
-	static constexpr uint64_t GB = 1024 * MB;
-	static constexpr uint64_t TB = 1024 * GB;
-	static constexpr uint64_t PB = 1024 * TB;
-	static constexpr uint64_t EB = 1024 * PB;
+	static constexpr uint64_t KB = 1024ULL;
+	static constexpr uint64_t MB = 1024ULL * KB;
+	static constexpr uint64_t GB = 1024ULL * MB;
+	static constexpr uint64_t TB = 1024ULL * GB;
+	static constexpr uint64_t PB = 1024ULL * TB;
+	static constexpr uint64_t EB = 1024ULL * PB;
 
 	struct Unit { uint64_t threshold; const char* label; };
-	static constexpr Unit units[] {
+	static constexpr Unit units[]{
 		{ EB, "EiB" },
 		{ PB, "PiB" },
 		{ TB, "TiB" },
@@ -79,46 +79,102 @@ QString fileSizeToString(uint64_t size, const char maxUnit, const QString &space
 		{ 0ULL, "B" }
 	};
 
-	const uint64_t maxUnitSize = [maxUnit]() -> uint64_t {
-		if (maxUnit == 'B') [[unlikely]]
-			return 0ULL;
+	const char maxUnitUpper = static_cast<char>(std::toupper(static_cast<unsigned char>(maxUnit)));
 
+	const uint64_t maxUnitSize = [maxUnitUpper]() -> uint64_t {
+		if (maxUnitUpper == 'B')
+			return 0ULL; // bytes-only sentinel
 		for (const auto& u : units) {
-			if (u.label[0] == maxUnit)
+			if (u.label[0] == maxUnitUpper)
 				return u.threshold;
 		}
 		return uint64_max;
 	}();
 
-	QString str;
-	double n = 0.0;
-	for (auto const& u : units)
+	// First pass: try to satisfy significantPlaces (if non-zero)
+	const Unit* chosen = nullptr;
+	if (significantPlaces > 0)
 	{
-		if (size >= u.threshold && maxUnitSize >= u.threshold)
+		// iterate from smallest to largest unit
+		for (int i = std::size(units) - 1; i >= 0; --i)
 		{
-			if (u.threshold == 0ULL)
+			const auto& u = units[i];
+
+			if (maxUnitSize < u.threshold)
+				continue;
+
+			if (u.threshold != 0ULL)
 			{
-				n = static_cast<double>(size);
-				str = QStringLiteral("%1 B").arg(size);
+				if (size < u.threshold)
+					continue;
 			}
-			else
+
+			const uint64_t whole = (u.threshold == 0ULL) ? size : (size / u.threshold);
+
+			int digits = 1;
+			for (uint64_t tmp = whole; tmp >= 10; tmp /= 10, ++digits) {}
+
+			if (digits <= significantPlaces)
 			{
-				n = static_cast<double>(size) / static_cast<double>(u.threshold);
-				str = QStringLiteral("%1 %2").arg(
-					QString::number(n, 'f', 1), QString::fromLatin1(u.label)
-				);
+				chosen = &u;
+				break; // smallest unit that fits
 			}
-			break;
 		}
 	}
 
-	if (!spacer.isEmpty() && n > 0.0)
+	// Fallback: only use the unit threshold if none was chosen above (or significantPlaces == 0)
+	if (!chosen)
 	{
-		for (int spacerPos = (int)std::log10(n) - 3; spacerPos >= 0; spacerPos -= 3)
-			str.insert(spacerPos + 1, spacer);
+		for (const auto& u : units)
+		{
+			if (maxUnitSize < u.threshold)
+				continue;
+			if (u.threshold == 0ULL || size >= u.threshold)
+			{
+				chosen = &u;
+				break;
+			}
+		}
 	}
 
-	return str;
+	// Safety: if still not chosen (shouldn't happen), use bytes
+	if (!chosen)
+	{
+		chosen = &units[6]; // bytes entry
+	}
+
+	// Build numeric string separately so we can insert the spacer into the whole part only
+	QString numeric;
+	if (chosen->threshold == 0ULL)
+	{
+		numeric = QString::number(size);
+	}
+	else
+	{
+		double n = static_cast<double>(size) / static_cast<double>(chosen->threshold);
+		numeric = QString::number(n, 'f', 1);
+	}
+
+	// Insert thousands spacer into whole part only
+	if (!spacer.isEmpty())
+	{
+		const qsizetype dotPos = numeric.indexOf('.');
+		const qsizetype wholeLen = (dotPos == -1) ? numeric.size() : dotPos;
+		for (qsizetype pos = wholeLen - 3; pos > 0; pos -= 3)
+			numeric.insert(pos, spacer);
+	}
+
+	QString result;
+	if (chosen->threshold == 0ULL)
+	{
+		result = QStringLiteral("%1 B").arg(numeric);
+	}
+	else
+	{
+		result = QStringLiteral("%1 %2").arg(numeric, QString::fromLatin1(chosen->label));
+	}
+
+	return result;
 }
 
 std::vector<QString> pathComponents(const QString &path)
