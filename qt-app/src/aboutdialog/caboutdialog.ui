@@ -78,7 +78,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;3rdparty acknowledgements:&lt;br/&gt;Syntax highlighter - &lt;a href=&quot;https://github.com/diegoiast/qutepart-cpp&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;Qutepart by diegoiast&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;3rdparty acknowledgements:&lt;br/&gt;Syntax highlighter - &lt;a href=&quot;https://github.com/diegoiast/qutepart-cpp&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;Qutepart by diegoiast&lt;/span&gt;&lt;/a&gt;&lt;br/&gt;Markdown parser - &lt;a href=&quot;https://github.com/progsource/maddy&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;maddy by progsource&lt;/span&gt;&lt;/a&gt;&lt;br/&gt;Hash map - &lt;a href=&quot;https://github.com/martinus/unordered_dense&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;unordered_dense by martinus&lt;/span&gt;&lt;/a&gt;&lt;br/&gt;Unit testing framework - &lt;a href=&quot;https://github.com/catchorg/Catch2&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;Catch2 by catchorg&lt;/span&gt;&lt;/a&gt;&lt;br/&gt;Compile-time enum reflection - &lt;a href=&quot;https://github.com/Neargye/magic_enum&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;magic_enum by Neargye&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="textFormat">
       <enum>Qt::TextFormat::RichText</enum>
