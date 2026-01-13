@@ -100,7 +100,7 @@ void CFileStatsWindow::fillFileList(const FileStatistics& stats)
 		item->setData(columns::Name, Qt::UserRole, file.fullAbsolutePath());
 
 		item->setText(columns::Size, fileSizeToString(file.size()));
-		item->setData(columns::Size, Qt::UserRole, file.size());
+		item->setData(columns::Size, Qt::UserRole, (qulonglong)file.size());
 
 		item->setText(columns::ModDate, fromTime_t(file.modificationTime()).toString("dd.MM.yyyy hh:mm:ss"));
 		item->setData(columns::ModDate, Qt::UserRole, (qulonglong)file.modificationTime());
