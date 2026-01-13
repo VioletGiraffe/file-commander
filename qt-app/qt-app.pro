@@ -71,7 +71,8 @@ SOURCES += \
 	src/progressdialogs/cdeleteprogressdialog.cpp \
 	src/aboutdialog/caboutdialog.cpp \
 	src/progressdialogs/progressdialoghelpers.cpp \
-	src/panel/cpaneldisplaycontroller.cpp
+	src/panel/cpaneldisplaycontroller.cpp \
+	src/tools/CFileStatsWindow.cpp
 
 HEADERS += \
 	src/cmainwindow.h \
@@ -94,6 +95,7 @@ HEADERS += \
 	src/panel/filelistwidget/cfilelistfilterdialog.h \
 	src/filessearchdialog/cfilessearchwindow.h \
 	src/progressdialogs/cdeleteprogressdialog.h \
+	src/tools/CFileStatsWindow.h \
 	src/version.h \
 	src/aboutdialog/caboutdialog.h \
 	src/progressdialogs/progressdialoghelpers.h \

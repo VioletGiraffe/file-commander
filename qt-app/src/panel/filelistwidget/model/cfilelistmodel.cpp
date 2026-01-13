@@ -44,7 +44,7 @@ inline QVariant itemData(const CFileSystemObject& item, int column)
 
 	case DateColumn:
 		if (!item.isCdUp()) [[likely]]
-			return fromTime_t(item.modificationTime()).toString(QStringLiteral("dd.MM.yyyy hh:mm:ss"));
+			return fromTime_t(item.modificationTime()).toString("dd.MM.yyyy hh:mm:ss");
 		else
 			return {};
 

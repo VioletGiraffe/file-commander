@@ -1,15 +1,17 @@
 #pragma once
-
-#include <QString>
+#include "cfilesystemobject.h"
 
 #include <atomic>
+#include <deque>
 #include <stdint.h>
 #include <vector>
 
 struct FileStatistics
 {
-	inline constexpr bool operator==(const FileStatistics& other) const noexcept = default;
-	[[nodiscard]] inline constexpr bool empty() const { return *this == FileStatistics{}; }
+	inline bool operator==(const FileStatistics& other) const noexcept = default;
+	[[nodiscard]] inline bool empty() const { return *this == FileStatistics{}; }
+
+	std::deque<CFileSystemObject> largestFiles;
 
 	uint64_t files = 0;
 	uint64_t folders = 0;

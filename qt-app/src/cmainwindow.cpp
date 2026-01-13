@@ -22,6 +22,7 @@
 #include "widgets/widgetutils.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
+#include "tools/CFileStatsWindow.h"
 #include "version.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -36,6 +37,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QProcess>
 #include <QScreen>
 #include <QSortFilterProxyModel>
@@ -769,8 +771,10 @@ void CMainWindow::calculateStatistics()
 	if (stats.empty())
 		return;
 
-	QMessageBox::information(this, tr("Occupied space"), tr("Statistics for the selected items(including subitems):\nFiles: %1\nFolders: %2\nOccupied space: %3\n%4").
-		arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace), fileSizeToString(stats.occupiedSpace, 'B', QString{ ' ' })));
+	auto* statsWindow = new CFileStatsWindow(this, stats, *_controller);
+	statsWindow->setAttribute(Qt::WA_DeleteOnClose);
+	WidgetUtils::centerWidgetOnScreen(statsWindow, 0.7);
+	statsWindow->show();
 }
 
 void CMainWindow::calculateEachFolderSize()
