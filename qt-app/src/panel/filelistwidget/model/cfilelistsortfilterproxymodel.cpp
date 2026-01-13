@@ -9,8 +9,7 @@ RESTORE_COMPILER_WARNINGS
 
 CFileListSortFilterProxyModel::CFileListSortFilterProxyModel(QObject *parent) :
 	QSortFilterProxyModel(parent),
-	_controller(CController::get()),
-	_sorter(CNaturalSorting(nsaQCollator, {}))
+	_controller(CController::get())
 {
 }
 
@@ -19,11 +18,6 @@ void CFileListSortFilterProxyModel::setPanelPosition(Panel p)
 {
 	assert_r(_panel == Panel::UnknownPanel); // Doesn't make sense to call this method more than once
 	_panel = p;
-}
-
-void CFileListSortFilterProxyModel::setSortingOptions(SortingOptions options)
-{
-	_sorter.setSortingOptions(options);
 }
 
 bool CFileListSortFilterProxyModel::canDropMimeData(const QMimeData * data, Qt::DropAction action, int row, int column, const QModelIndex & parent) const

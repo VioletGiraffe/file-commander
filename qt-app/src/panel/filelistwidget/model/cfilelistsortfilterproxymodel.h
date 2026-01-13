@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cpanel.h"
-#include "utils/naturalsorting/cnaturalsorting.h"
+#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QSortFilterProxyModel>
@@ -18,8 +18,6 @@ public:
 	// Sets the position (left or right) of a panel that this model represents
 	void setPanelPosition(Panel p);
 
-	void setSortingOptions(SortingOptions options);
-
 // Drag and drop
 	bool canDropMimeData(const QMimeData * data, Qt::DropAction action, int row, int column, const QModelIndex & parent) const override;
 
@@ -33,7 +31,7 @@ protected:
 
 private:
 	CController   & _controller;
-	CNaturalSorting _sorter;
+	CNaturalSorterQCollator _sorter;
 	Panel           _panel = Panel::UnknownPanel;
 };
 
