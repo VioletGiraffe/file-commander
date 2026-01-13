@@ -8,9 +8,10 @@
 #include "3rdparty/magic_enum/magic_enum.hpp"
 
 #include <QDateTime>
-#include <QDialogButtonBox>
 #include <QHeaderView>
 #include <QLabel>
+#include <QPushButton>
+#include <QShortcut>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -61,10 +62,10 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats
 	_list = new QTreeWidget;
 	layout->addWidget(_list);
 
-	auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close);
-	layout->addWidget(buttons);
-
-	QObject::connect(buttons, &QDialogButtonBox::clicked, this, &QMainWindow::close);
+	auto* btnClose = new QPushButton(tr("Close"));
+	layout->addWidget(btnClose);
+	layout->setAlignment(btnClose, Qt::AlignRight);
+	QObject::connect(btnClose, &QPushButton::clicked, this, &QMainWindow::close);
 
 	_list->setHeaderLabels({
 		tr("Name"),
@@ -84,6 +85,8 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats
 	});
 
 	fillFileList(stats);
+
+	new QShortcut(QKeySequence{ "Esc" }, this, this, &QMainWindow::close);
 }
 
 void CFileStatsWindow::fillFileList(const FileStatistics& stats)
