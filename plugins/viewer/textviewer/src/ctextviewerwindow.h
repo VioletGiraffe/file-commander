@@ -9,6 +9,7 @@
 #include <optional>
 
 class CTextEditWithImageSupport;
+class CLightningFastViewerWidget;
 class CFindDialog;
 
 class QLabel;
@@ -28,21 +29,23 @@ public:
 	bool loadTextFile(const QString& file);
 
 private:
-	bool asDetectedAutomatically();
-	bool asSystemDefault();
-	bool asAscii();
-	bool asUtf8();
-	bool asUtf16();
-	bool asHtml();
-	bool asMarkdown();
+	bool asDetectedAutomatically(const QByteArray& fileData, bool useFastMode);
+	bool asSystemDefault(const QByteArray& fileData, bool useFastMode);
+	bool asAscii(const QByteArray& fileData, bool useFastMode);
+	bool asUtf8(const QByteArray& fileData, bool useFastMode);
+	bool asUtf16(const QByteArray& fileData, bool useFastMode);
+	bool asHtml(const QByteArray& fileData);
+	bool asMarkdown(const QByteArray& fileData);
 
-	[[nodiscard]] std::optional<QByteArray> readFileAndReportErrors();
+	bool asHexFast(const QByteArray& fileData);
+
+	[[nodiscard]] std::optional<QByteArray> readFileAndReportErrors() const;
 	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeText(const QByteArray& textData);
 
 	void find();
 	void findNext();
 
-	bool readSource(QByteArray& data) const;
+	[[nodiscard]] bool readSource(QByteArray& data) const;
 
 	void encodingChanged(const QString& encoding, const QString& language = QString());
 
@@ -51,16 +54,23 @@ private:
 	void setupFindDialog();
 
 private:
+	enum class Mode {Lightning, Full};
+	void setMode(Mode mode);
+
 	void setTextAndApplyHighlighter(const QString& text);
 
 private:
 	QString _sourceFilePath;
 	QString _mimeType;
 
-	CTextEditWithImageSupport* _textBrowser = nullptr;
+	std::unique_ptr<CTextEditWithImageSupport> _textBrowser;
 	CFindDialog* _findDialog = nullptr;
 	QLabel* _encodingLabel = nullptr;
 
 	std::unique_ptr<QSyntaxHighlighter> _syntaxHighlighter;
 	std::unique_ptr<Qutepart::Theme> _theme;
+
+	std::unique_ptr<CLightningFastViewerWidget> _lightningViewer;
+
+	Mode _currentMode = Mode::Full;
 };

@@ -1,6 +1,7 @@
 #include "ctextviewerwindow.h"
 #include "ctexteditwithimagesupport.h"
 #include "cfinddialog.h"
+#include "clightningfastviewer.h"
 
 #include "widgets/cpersistentwindow.h"
 
@@ -31,28 +32,27 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <type_traits>
 
+inline qsizetype countNonAsciiChars(const QByteArray& data)
+{
+	return (qsizetype)std::count_if(data.begin(), data.end(), [](char c) {
+		return c < 32 || c > 126;
+	});
+}
+
+inline qsizetype countNonAsciiChars(const QString& text)
+{
+	return (qsizetype)std::count_if(text.begin(), text.end(), [](QChar c) {
+		const auto code = c.unicode();
+		return code < 32 || code > 126;
+	});
+}
+
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	CPluginWindow(parent)
 {
 	setupUi(this);
 
-	_textBrowser = new CTextEditWithImageSupport(this);
-
-	{
-		QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-		QFontMetrics fm{fixedFont};
-		const qreal sizeReatio = fm.height() > 0 ? ((qreal)QFontMetrics{qApp->font()}.height() / (qreal)fm.height()) : 1.0;
-		fixedFont.setPointSizeF(fixedFont.pointSizeF() * sizeReatio);
-		_textBrowser->setFont(fixedFont);
-	}
-
 	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this));
-
-	setCentralWidget(_textBrowser);
-	_textBrowser->setReadOnly(true);
-	_textBrowser->setUndoRedoEnabled(false);
-	_textBrowser->setTabStopDistance(static_cast<qreal>(4 * _textBrowser->fontMetrics().horizontalAdvance(' ')));
-	_textBrowser->setAcceptRichText(true);
 
 	assert_r(connect(actionOpen, &QAction::triggered, this, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
@@ -71,13 +71,41 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	}));
 	assert_r(connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext));
 
-	assert_r(connect(actionAuto_detect_encoding, &QAction::triggered, this, &CTextViewerWindow::asDetectedAutomatically));
-	assert_r(connect(actionASCII_Windows_1252, &QAction::triggered, this, &CTextViewerWindow::asAscii));
-	assert_r(connect(actionSystemLocale, &QAction::triggered, this, &CTextViewerWindow::asSystemDefault));
-	assert_r(connect(actionUTF_8, &QAction::triggered, this, &CTextViewerWindow::asUtf8));
-	assert_r(connect(actionUTF_16, &QAction::triggered, this, &CTextViewerWindow::asUtf16));
-	assert_r(connect(actionHTML, &QAction::triggered, this, &CTextViewerWindow::asHtml));
-	assert_r(connect(actionMarkdown, &QAction::triggered, this, &CTextViewerWindow::asMarkdown));
+	assert_r(connect(actionAuto_detect_encoding, &QAction::triggered, this, [this]{
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asDetectedAutomatically(*textData, _currentMode == Mode::Lightning);
+	}));
+	assert_r(connect(actionASCII_Windows_1252, &QAction::triggered, this, [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asAscii(*textData, _currentMode == Mode::Lightning);
+	}));
+	assert_r(connect(actionSystemLocale, &QAction::triggered, this, [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asSystemDefault(*textData, _currentMode == Mode::Lightning);
+	}));
+	assert_r(connect(actionUTF_8, &QAction::triggered, this, [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asUtf8(*textData, _currentMode == Mode::Lightning);
+	}));
+	assert_r(connect(actionUTF_16, &QAction::triggered, this, [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asUtf16(*textData, _currentMode == Mode::Lightning);
+	}));
+	assert_r(connect(actionHTML, &QAction::triggered, this, [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asHtml(*textData);
+	}));
+	assert_r(connect(actionMarkdown, &QAction::triggered, this, [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asMarkdown(*textData);
+	}));
 
 	QActionGroup * group = new QActionGroup(this);
 	group->addAction(actionASCII_Windows_1252);
@@ -108,108 +136,110 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 
 	try
 	{
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (!textData)
+			return false;
+
+		const auto dataSize = textData->size();
+		const bool useFastMode = dataSize > 1'000'000 || countNonAsciiChars(*textData) >= dataSize / 8;
+
 		if (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive))
-			return asHtml();
-		else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive))
-			return asMarkdown();
-		else if (_mimeType.contains(QStringLiteral("text")) || _mimeType.isEmpty())
-			return asDetectedAutomatically();
+			return asHtml(*textData);
+		else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive) && !useFastMode)
+			return asMarkdown(*textData);
+		else if (!useFastMode && (_mimeType.contains(QStringLiteral("text")) || _mimeType.isEmpty()))
+			return asDetectedAutomatically(*textData, useFastMode);
+
+		if (asUtf8(*textData, useFastMode))
+			return true;
 		else
-			return asAscii();
+			return asAscii(*textData, useFastMode);
 	}
 	catch (const std::bad_alloc&)
 	{
-		QMessageBox::warning(this, tr("File is too large"), tr("The text is too large to display"));
+		QMessageBox::warning(this, tr("File is too large"), tr("The file is too large to handle."));
 		return false;
 	}
 }
 
-bool CTextViewerWindow::asDetectedAutomatically()
+bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool useFastMode)
 {
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
-	if (!textData)
-		return false;
+	const auto result = decodeText(fileData);
+	if (result && !result->text.isEmpty())
+	{
+		if (useFastMode)
+		{
+			// Use the fast plain text mode
+			setMode(Mode::Lightning);
+			_lightningViewer->setText(result->text);
+		}
+		else
+		{
+			setMode(Mode::Full);
+			setTextAndApplyHighlighter(result->text);
+		}
 
-	const auto result = decodeText(*textData);
-	if (!result || result->text.isEmpty())
-		return asSystemDefault();
+		encodingChanged(result->encoding, result->language);
+		return true;
+	}
 
-	encodingChanged(result->encoding, result->language);
-	setTextAndApplyHighlighter(result->text);
-	return true;
+	if (asSystemDefault(fileData, useFastMode))
+		return true;
+	else
+		return asAscii(fileData, useFastMode);
 }
 
-bool CTextViewerWindow::asSystemDefault()
+bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFastMode)
 {
 	QTextCodec * codec = QTextCodec::codecForLocale();
 	if (!codec)
 		return false;
 
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
-	if (!textData)
-		return false;
-
-	setTextAndApplyHighlighter(codec->toUnicode(*textData));
+	setTextAndApplyHighlighter(codec->toUnicode(fileData));
 	encodingChanged(codec->name());
 	actionSystemLocale->setChecked(true);
 
 	return true;
 }
 
-bool CTextViewerWindow::asAscii()
+bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 {
 	QTextCodec* codec = QTextCodec::codecForName("Windows-1252");
 	if (!codec)
 		return false;
 
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
-	if (!textData)
-		return false;
-
-	setTextAndApplyHighlighter(codec->toUnicode(*textData));
+	setTextAndApplyHighlighter(codec->toUnicode(fileData));
 	encodingChanged(codec->name());
 	actionASCII_Windows_1252->setChecked(true);
 
 	return true;
 }
 
-bool CTextViewerWindow::asUtf8()
+bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 {
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
-	if (!textData)
-		return false;
-
 	encodingChanged("UTF-8");
-	setTextAndApplyHighlighter(QString::fromUtf8(*textData));
+	setTextAndApplyHighlighter(QString::fromUtf8(fileData));
 	actionUTF_8->setChecked(true);
 
 	return true;
 }
 
-bool CTextViewerWindow::asUtf16()
+bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 {
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
-	if (!textData)
-		return false;
-
 	encodingChanged("UTF-16");
 	static_assert (std::is_trivially_copyable_v<QChar>);
 	QString text;
-	text.resize(textData->size() / 2 + 1, QChar{'\0'});
-	::memcpy(text.data(), textData->constData(), static_cast<size_t>(textData->size()));
+	text.resize(fileData.size() / 2 + 1, QChar{'\0'});
+	::memcpy(text.data(), fileData.constData(), static_cast<size_t>(fileData.size()));
 	setTextAndApplyHighlighter(text);
 	actionUTF_16->setChecked(true);
 
 	return true;
 }
 
-bool CTextViewerWindow::asHtml()
+bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 {
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
-	if (!textData)
-		return false;
-
-	const auto result = decodeText(*textData);
+	const auto result = decodeText(fileData);
 	if (!result || result->text.isEmpty())
 		return false;
 
@@ -217,22 +247,24 @@ bool CTextViewerWindow::asHtml()
 	return true;
 }
 
-bool CTextViewerWindow::asMarkdown()
+bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 {
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
-	if (!textData)
-		return false;
-
-	const auto result = decodeText(*textData);
+	const auto result = decodeText(fileData);
 	if (!result || result->text.isEmpty())
 		return false;
 
 	encodingChanged(result->encoding, result->language);
+	setMode(Mode::Full);
 	_textBrowser->setMarkdown(result->text);
 	return true;
 }
 
-std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors()
+bool CTextViewerWindow::asHexFast(const QByteArray& fileData)
+{
+	return false;
+}
+
+std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
 {
 	QByteArray textData;
 	if (!readSource(textData))
@@ -351,19 +383,46 @@ void CTextViewerWindow::setupFindDialog()
 	assert_r(connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
 }
 
-void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
+void CTextViewerWindow::setMode(Mode mode)
 {
-	static const auto countNonAsciiChars = [](const QString& str) {
-		return std::count_if(str.begin(), str.end(), [](QChar c) {
-			const auto code = c.unicode();
-			if (code >= 32 && code <= 126)
-				return false;
-			else if (code == '\n' || code == '\r' || code == '\t')
-				return false;
-			return true;
-		});
+	static const auto setFixedFont = [](QWidget& w) {
+		QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+		QFontMetrics fm{ fixedFont };
+		const qreal sizeReatio = fm.height() > 0 ? ((qreal)QFontMetrics { qApp->font() }.height() / (qreal)fm.height()) : 1.0;
+		fixedFont.setPointSizeF(fixedFont.pointSizeF() * sizeReatio);
+		w.setFont(fixedFont);
 	};
 
+	_currentMode = mode;
+	if (mode == Mode::Full)
+	{
+		_lightningViewer.reset();
+		if (!_textBrowser)
+		{
+			_textBrowser = std::make_unique<CTextEditWithImageSupport>(this);
+			_textBrowser->setReadOnly(true);
+			_textBrowser->setUndoRedoEnabled(false);
+			_textBrowser->setTabStopDistance(static_cast<qreal>(4 * _textBrowser->fontMetrics().horizontalAdvance(' ')));
+			_textBrowser->setAcceptRichText(true);
+
+			setFixedFont(*_textBrowser);
+			setCentralWidget(_textBrowser.get());
+		}
+	}
+	else
+	{
+		_textBrowser.reset();
+		if (!_lightningViewer)
+		{
+			_lightningViewer = std::make_unique<CLightningFastViewerWidget>(this);
+			setFixedFont(*_lightningViewer);
+			setCentralWidget(_lightningViewer.get());
+		}
+	}
+}
+
+void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
+{
 	if (const auto size = text.size(); size < 1'000'000 && countNonAsciiChars(text) < size / 10)
 	{
 		const QString langId = Qutepart::chooseLanguageXmlFileName(_mimeType, QString(), _sourceFilePath, text.left(100));
