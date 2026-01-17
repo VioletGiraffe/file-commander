@@ -2,7 +2,6 @@
 
 #include <QAbstractScrollArea>
 #include <QByteArray>
-
 #include <vector>
 
 class CLightningFastViewerWidget final : public QAbstractScrollArea
@@ -23,6 +22,7 @@ protected:
 	void mouseMoveEvent(QMouseEvent* event) override;
 	void mouseDoubleClickEvent(QMouseEvent* event) override;
 	void keyPressEvent(QKeyEvent* event) override;
+	bool event(QEvent* event) override;
 
 private:
 	enum Region { REGION_OFFSET, REGION_HEX, REGION_ASCII, REGION_NONE };
@@ -45,6 +45,7 @@ private:
 	void copySelection();
 	void selectAll();
 	[[nodiscard]] bool isSelected(qsizetype offset) const;
+	void updateFontMetrics();
 
 	// Hex mode methods
 	void calculateHexLayout();

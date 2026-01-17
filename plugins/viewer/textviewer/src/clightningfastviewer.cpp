@@ -1,4 +1,6 @@
 #include "clightningfastviewer.h"
+#include "utility/on_scope_exit.hpp"
+#include "system/ctimeelapsed.h"
 
 #include <QPainter>
 #include <QFontMetrics>
@@ -8,6 +10,7 @@
 #include <QClipboard>
 #include <QApplication>
 #include <QtMath>
+#include <QEvent>
 
 static constexpr char hexChars[] = "0123456789ABCDEF";
 
@@ -18,6 +21,7 @@ CLightningFastViewerWidget::CLightningFastViewerWidget(QWidget* parent)
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	setFocusPolicy(Qt::StrongFocus);
 	viewport()->setCursor(Qt::IBeamCursor);
+	updateFontMetrics();
 }
 
 void CLightningFastViewerWidget::setData(const QByteArray& bytes)
@@ -63,8 +67,6 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 	painter.setFont(font());
 
 	QFontMetrics fm(font());
-	_lineHeight = fm.height();
-	_charWidth = fm.horizontalAdvance('0');
 
 	// Calculate layout positions based on mode
 	if (_mode == HEX)
@@ -97,9 +99,22 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 void CLightningFastViewerWidget::resizeEvent(QResizeEvent* event)
 {
 	QAbstractScrollArea::resizeEvent(event);
-	if (_mode == TEXT)
+	if (_mode == TEXT && _wordWrap)
 		wrapText();
 	updateScrollBars();
+}
+
+bool CLightningFastViewerWidget::event(QEvent* event)
+{
+	if (event->type() == QEvent::FontChange)
+	{
+		updateFontMetrics();
+		if (_mode == TEXT && _wordWrap)
+			wrapText();
+		updateScrollBars();
+		viewport()->update();
+	}
+	return QAbstractScrollArea::event(event);
 }
 
 void CLightningFastViewerWidget::mousePressEvent(QMouseEvent* event)
@@ -486,13 +501,6 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, int lineIndex, 
 
 void CLightningFastViewerWidget::updateScrollBars()
 {
-	if (_lineHeight == 0)
-	{
-		QFontMetrics fm(font());
-		_lineHeight = fm.height();
-		_charWidth = fm.horizontalAdvance('0');
-	}
-
 	if (_mode == HEX)
 		calculateHexLayout();
 	else
@@ -723,6 +731,11 @@ void CLightningFastViewerWidget::wrapText()
 	if (_text.isEmpty())
 		return;
 
+	CTimeElapsed timer(true);
+	EXEC_ON_SCOPE_EXIT([&] {
+		qInfo() << "wrap text:" << timer.elapsed();
+	});
+
 	if (!_wordWrap)
 	{
 		// No wrapping - split on newlines only
@@ -745,52 +758,74 @@ void CLightningFastViewerWidget::wrapText()
 		return;
 	}
 
-	// Word wrapping enabled
+	// Word wrapping enabled - optimized version
 	QFontMetrics fm(font());
 	int viewportWidth = viewport()->width() - _charWidth * 2; // Margins
 	int currentLineStart = 0;
-	int currentPos = 0;
-	int lastBreakPos = 0; // Last position where we could break
+	int currentWidth = 0;
+	int lastBreakPos = -1; // Last position where we could break
+	int lastBreakWidth = 0; // Width at last break position
 
-	while (currentPos < _text.length())
+	for (int i = 0; i < _text.length(); ++i)
 	{
+		QChar ch = _text[i];
+
 		// Handle explicit newlines
-		if (_text[currentPos] == '\n')
+		if (ch == '\n')
 		{
 			_lineOffsets.push_back(currentLineStart);
-			_lineLengths.push_back(currentPos - currentLineStart + 1);
-			currentLineStart = currentPos + 1;
-			lastBreakPos = currentPos + 1;
-			++currentPos;
+			_lineLengths.push_back(i - currentLineStart + 1);
+			currentLineStart = i + 1;
+			currentWidth = 0;
+			lastBreakPos = -1;
+			lastBreakWidth = 0;
 			continue;
 		}
 
-		// Calculate width up to current position
-		QString segment = _text.mid(currentLineStart, currentPos - currentLineStart + 1);
-		int width = fm.horizontalAdvance(segment);
+		// Add character width incrementally
+		int charWidth = fm.horizontalAdvance(ch);
+		currentWidth += charWidth;
 
 		// Mark break opportunities (spaces)
-		if (_text[currentPos].isSpace())
-			lastBreakPos = currentPos;
-
-		// Line is too long
-		if (width > viewportWidth && currentPos > currentLineStart)
+		if (ch.isSpace())
 		{
-			// Try to break at last space
-			int breakPos = (lastBreakPos > currentLineStart) ? lastBreakPos : currentPos;
-
-			_lineOffsets.push_back(currentLineStart);
-			_lineLengths.push_back(breakPos - currentLineStart);
-
-			currentLineStart = breakPos;
-			if (_text[breakPos].isSpace())
-				++currentLineStart; // Skip the space
-			lastBreakPos = currentLineStart;
-			currentPos = currentLineStart;
-			continue;
+			lastBreakPos = i;
+			lastBreakWidth = currentWidth;
 		}
 
-		++currentPos;
+		// Line is too long
+		if (currentWidth > viewportWidth && i > currentLineStart)
+		{
+			int breakPos;
+
+			// Try to break at last space
+			if (lastBreakPos > currentLineStart)
+			{
+				breakPos = lastBreakPos;
+				_lineOffsets.push_back(currentLineStart);
+				_lineLengths.push_back(breakPos - currentLineStart);
+
+				// Start new line after the space
+				currentLineStart = breakPos + 1;
+				// Recalculate width from break point to current position
+				currentWidth = 0;
+				for (int j = currentLineStart; j <= i; ++j)
+					currentWidth += fm.horizontalAdvance(_text[j]);
+			}
+			else
+			{
+				// No space found, break at current position
+				breakPos = i;
+				_lineOffsets.push_back(currentLineStart);
+				_lineLengths.push_back(breakPos - currentLineStart);
+
+				currentLineStart = breakPos;
+				currentWidth = charWidth;
+			}
+
+			lastBreakPos = -1;
+			lastBreakWidth = 0;
+		}
 	}
 
 	// Last line
@@ -799,4 +834,11 @@ void CLightningFastViewerWidget::wrapText()
 		_lineOffsets.push_back(currentLineStart);
 		_lineLengths.push_back(_text.length() - currentLineStart);
 	}
+}
+
+void CLightningFastViewerWidget::updateFontMetrics()
+{
+	QFontMetrics fm(font());
+	_lineHeight = fm.height();
+	_charWidth = fm.horizontalAdvance('0');
 }

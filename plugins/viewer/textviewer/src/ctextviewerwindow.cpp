@@ -106,6 +106,11 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 		if (textData)
 			asMarkdown(*textData);
 	}));
+	assert_r(connect(actionHex, &QAction::triggered, this, [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asHexFast(*textData);
+	}));
 
 	QActionGroup * group = new QActionGroup(this);
 	group->addAction(actionASCII_Windows_1252);
@@ -195,7 +200,18 @@ bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFast
 	if (!codec)
 		return false;
 
-	setTextAndApplyHighlighter(codec->toUnicode(fileData));
+	const QString& text = codec->toUnicode(fileData);
+	if (useFastMode)
+	{
+		setMode(Mode::Lightning);
+		_lightningViewer->setText(text);
+	}
+	else
+	{
+		setMode(Mode::Full);
+		setTextAndApplyHighlighter(text);
+	}
+
 	encodingChanged(codec->name());
 	actionSystemLocale->setChecked(true);
 
@@ -208,7 +224,18 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 	if (!codec)
 		return false;
 
-	setTextAndApplyHighlighter(codec->toUnicode(fileData));
+	const QString& text = codec->toUnicode(fileData);
+	if (useFastMode)
+	{
+		setMode(Mode::Lightning);
+		_lightningViewer->setText(text);
+	}
+	else
+	{
+		setMode(Mode::Full);
+		setTextAndApplyHighlighter(text);
+	}
+
 	encodingChanged(codec->name());
 	actionASCII_Windows_1252->setChecked(true);
 
@@ -217,8 +244,19 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 
 bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 {
+	const QString& text = QString::fromUtf8(fileData);
+	if (useFastMode)
+	{
+		setMode(Mode::Lightning);
+		_lightningViewer->setText(text);
+	}
+	else
+	{
+		setMode(Mode::Full);
+		setTextAndApplyHighlighter(text);
+	}
+
 	encodingChanged("UTF-8");
-	setTextAndApplyHighlighter(QString::fromUtf8(fileData));
 	actionUTF_8->setChecked(true);
 
 	return true;
@@ -231,7 +269,18 @@ bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 	QString text;
 	text.resize(fileData.size() / 2 + 1, QChar{'\0'});
 	::memcpy(text.data(), fileData.constData(), static_cast<size_t>(fileData.size()));
-	setTextAndApplyHighlighter(text);
+
+	if (useFastMode)
+	{
+		setMode(Mode::Lightning);
+		_lightningViewer->setText(text);
+	}
+	else
+	{
+		setMode(Mode::Full);
+		setTextAndApplyHighlighter(text);
+	}
+
 	actionUTF_16->setChecked(true);
 
 	return true;
@@ -243,7 +292,9 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 	if (!result || result->text.isEmpty())
 		return false;
 
+	setMode(Mode::Full);
 	_textBrowser->setHtml(result->text);
+	actionHTML->setChecked(true);
 	return true;
 }
 
@@ -256,12 +307,17 @@ bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 	encodingChanged(result->encoding, result->language);
 	setMode(Mode::Full);
 	_textBrowser->setMarkdown(result->text);
+	actionMarkdown->setChecked(true);
 	return true;
 }
 
 bool CTextViewerWindow::asHexFast(const QByteArray& fileData)
 {
-	return false;
+	setMode(Mode::Lightning);
+	_lightningViewer->setData(fileData);
+	encodingChanged("None - viewing raw data");
+	actionHex->setChecked(true);
+	return true;
 }
 
 std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
