@@ -740,16 +740,16 @@ void CLightningFastViewerWidget::wrapText()
 	{
 		// No wrapping - split on newlines only
 		int start = 0;
-		for (int i = 0; i < _text.length(); ++i)
+		int newlinePos;
+
+		while ((newlinePos = _text.indexOf('\n', start)) != -1)
 		{
-			if (_text[i] == '\n')
-			{
-				_lineOffsets.push_back(start);
-				_lineLengths.push_back(i - start + 1); // Include the newline
-				start = i + 1;
-			}
+			_lineOffsets.push_back(start);
+			_lineLengths.push_back(newlinePos - start + 1); // Include the newline
+			start = newlinePos + 1;
 		}
-		// Last line
+
+		// Last line (or entire text if no newlines)
 		if (start < _text.length())
 		{
 			_lineOffsets.push_back(start);
