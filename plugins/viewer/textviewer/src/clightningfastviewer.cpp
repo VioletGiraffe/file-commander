@@ -372,12 +372,10 @@ int CLightningFastViewerWidget::totalLines() const
 
 void CLightningFastViewerWidget::calculateHexLayout()
 {
-	QFontMetrics fm(font());
-
 	// Calculate nDigits once and cache it
 	_nDigits = static_cast<int>(qCeil(::log10(static_cast<double>(_data.size() + 1))));
 	_nDigits = qMax(4, _nDigits); // Minimum 4 digits
-	const int offsetWidth = fm.horizontalAdvance(QString(_nDigits, '0') + ":");
+	const int offsetWidth = _charWidth /* left margin */ + _nDigits + 2 /* colon + space */;
 
 	// Hex area starts after offset
 	_hexStart = offsetWidth;
@@ -446,7 +444,7 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 
 	// Draw separator
 	painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
-	painter.drawText(_asciiStart - _charWidth * 3 - hScroll, y + fm.ascent(), " | ");
+	painter.drawText(_asciiStart - _charWidth * 2 - hScroll, y + fm.ascent(), QChar('|'));
 
 	// Draw ASCII
 	x = _asciiStart;
@@ -466,7 +464,7 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 			painter.setPen(palette().color(QPalette::Text));
 		}
 
-		QChar ch = (byte >= 32 && byte <= 126) ? QChar(byte) : QChar('.');
+		const QChar ch = (byte >= 32 && byte <= 126) ? QChar(byte) : QChar('.');
 		painter.drawText(x - hScroll, y + fm.ascent(), ch);
 		x += _charWidth;
 	}
@@ -521,7 +519,7 @@ void CLightningFastViewerWidget::updateScrollBars()
 	// Horizontal scrollbar
 	if (_mode == HEX)
 	{
-		int totalWidth = _asciiStart + _charWidth * _bytesPerLine + _charWidth * 2;
+		const int totalWidth = _asciiStart + _charWidth * _bytesPerLine + _charWidth * 2;
 		horizontalScrollBar()->setRange(0, qMax(0, totalWidth - viewport()->width()));
 	}
 	else
