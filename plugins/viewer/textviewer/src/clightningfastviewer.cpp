@@ -31,9 +31,11 @@ void CLightningFastViewerWidget::setData(const QByteArray& bytes)
 	_data = bytes;
 
 	_text.clear();
-	_lineOffsets.clear();
-	_lineLengths.clear();
 	_selection = Selection();
+	clearWrappingData();
+
+	if (_initialized) // The initial wrapping on first show is handled in resizeEvent, but for subsequent text changes it is needed here
+		wrapTextIfNeeded();
 
 	updateScrollBars();
 	viewport()->update();
@@ -46,8 +48,10 @@ void CLightningFastViewerWidget::setText(const QString& text)
 
 	_data.clear();
 	_selection = Selection();
-	_lineOffsets.clear();
-	_lineLengths.clear();
+	clearWrappingData();
+
+	if (_initialized) // The initial wrapping on first show is handled in resizeEvent, but for subsequent text changes it is needed here
+		wrapTextIfNeeded();
 
 	updateScrollBars();
 	viewport()->update();
@@ -112,7 +116,7 @@ bool CLightningFastViewerWidget::event(QEvent* event)
 	if (event->type() == QEvent::FontChange)
 	{
 		updateFontMetrics();
-		if (_initialized)
+		if (_initialized) // This will already be handled in resizeEvent on first show, but in case of subsequent font changes we need to re-wrap and update
 		{
 			wrapTextIfNeeded();
 			updateScrollBars();
@@ -742,8 +746,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 
 	if (!_wordWrap && _lineOffsets.empty())
 	{
-		_lineOffsets.clear();
-		_lineLengths.clear();
+		clearWrappingData();
 
 		// No wrapping - split on newlines only
 		int start = 0;
@@ -770,9 +773,8 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 	if (hashKey == _wordWrapParamsHash)
 		return;
 
+	clearWrappingData();
 	_wordWrapParamsHash = hashKey;
-	_lineOffsets.clear();
-	_lineLengths.clear();
 
 	const int viewportWidth = viewport()->width() - _charWidth * 2; // Margins
 	QFontMetrics fm(font());
@@ -849,6 +851,13 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 		_lineOffsets.push_back(currentLineStart);
 		_lineLengths.push_back(_text.length() - currentLineStart);
 	}
+}
+
+void CLightningFastViewerWidget::clearWrappingData()
+{
+	_lineOffsets.clear();
+	_lineLengths.clear();
+	_wordWrapParamsHash = 0;
 }
 
 void CLightningFastViewerWidget::updateFontMetrics()
