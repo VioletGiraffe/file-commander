@@ -33,18 +33,23 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <type_traits>
 
+inline bool isNonAscii(char16_t c)
+{
+	if (c >= 32 && c <= 126)
+		return false;
+	return c != '\n' && c != '\r' && c != '\t';
+}
+
 inline qsizetype countNonAsciiChars(const QByteArray& data)
 {
-	return (qsizetype)std::count_if(data.begin(), data.end(), [](char c) {
-		return c < 32 || c > 126;
-	});
+	return (qsizetype)std::count_if(data.begin(), data.end(), &isNonAscii);
 }
 
 inline qsizetype countNonAsciiChars(const QString& text)
 {
 	return (qsizetype)std::count_if(text.begin(), text.end(), [](QChar c) {
 		const auto code = c.unicode();
-		return code < 32 || code > 126;
+		return isNonAscii(code);
 	});
 }
 
