@@ -57,7 +57,7 @@ private:
 	void calculateTextLayout();
 	void drawTextLine(QPainter& painter, int lineIndex, int y, const QFontMetrics& fm);
 	[[nodiscard]] qsizetype textPosToOffset(const QPoint& pos) const;
-	void wrapText();
+	void wrapTextIfNeeded();
 
 private:
 	Mode _mode = HEX;
@@ -70,12 +70,14 @@ private:
 	QString _text;
 	std::vector<int> _lineOffsets; // Starting character offset for each wrapped line
 	std::vector<int> _lineLengths; // Length of each wrapped line
+	size_t _wordWrapParamsHash = 0;
 	bool _wordWrap = true;
 
 	// Common display data
 	int _lineHeight = 0;
 	int _charWidth = 0;
 	Selection _selection;
+	bool _initialized = false;
 
 	// Hex layout positions (calculated in calculateHexLayout)
 	int _offsetWidth = 0;

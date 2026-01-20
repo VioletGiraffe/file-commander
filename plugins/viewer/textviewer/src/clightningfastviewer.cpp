@@ -1,16 +1,17 @@
 #include "clightningfastviewer.h"
-#include "utility/on_scope_exit.hpp"
 #include "system/ctimeelapsed.h"
+#include "utility/on_scope_exit.hpp"
 
-#include <QPainter>
-#include <QFontMetrics>
-#include <QScrollBar>
-#include <QMouseEvent>
-#include <QKeyEvent>
-#include <QClipboard>
 #include <QApplication>
-#include <QtMath>
+#include <QClipboard>
 #include <QEvent>
+#include <QFontMetrics>
+#include <QHash>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QPainter>
+#include <QScrollBar>
+#include <QtMath>
 
 static constexpr char hexChars[] = "0123456789ABCDEF";
 
@@ -28,10 +29,12 @@ void CLightningFastViewerWidget::setData(const QByteArray& bytes)
 {
 	_mode = HEX;
 	_data = bytes;
+
 	_text.clear();
 	_lineOffsets.clear();
 	_lineLengths.clear();
 	_selection = Selection();
+
 	updateScrollBars();
 	viewport()->update();
 }
@@ -40,9 +43,12 @@ void CLightningFastViewerWidget::setText(const QString& text)
 {
 	_mode = TEXT;
 	_text = text;
+
 	_data.clear();
 	_selection = Selection();
-	wrapText();
+	_lineOffsets.clear();
+	_lineLengths.clear();
+
 	updateScrollBars();
 	viewport()->update();
 }
@@ -52,12 +58,9 @@ void CLightningFastViewerWidget::setWordWrap(bool enabled)
 	if (_wordWrap != enabled)
 	{
 		_wordWrap = enabled;
-		if (_mode == TEXT)
-		{
-			wrapText();
-			updateScrollBars();
-			viewport()->update();
-		}
+		wrapTextIfNeeded();
+		updateScrollBars();
+		viewport()->update();
 	}
 }
 
@@ -99,8 +102,8 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 void CLightningFastViewerWidget::resizeEvent(QResizeEvent* event)
 {
 	QAbstractScrollArea::resizeEvent(event);
-	if (_mode == TEXT && _wordWrap)
-		wrapText();
+	_initialized = true;
+	wrapTextIfNeeded();
 	updateScrollBars();
 }
 
@@ -109,10 +112,12 @@ bool CLightningFastViewerWidget::event(QEvent* event)
 	if (event->type() == QEvent::FontChange)
 	{
 		updateFontMetrics();
-		if (_mode == TEXT && _wordWrap)
-			wrapText();
-		updateScrollBars();
-		viewport()->update();
+		if (_initialized)
+		{
+			wrapTextIfNeeded();
+			updateScrollBars();
+			viewport()->update();
+		}
 	}
 	return QAbstractScrollArea::event(event);
 }
@@ -723,12 +728,11 @@ bool CLightningFastViewerWidget::isSelected(qsizetype offset) const
 		offset <= _selection.selEnd();
 }
 
-void CLightningFastViewerWidget::wrapText()
+void CLightningFastViewerWidget::wrapTextIfNeeded()
 {
-	_lineOffsets.clear();
-	_lineLengths.clear();
-
-	if (_text.isEmpty())
+	if (_mode != TEXT)
+		return;
+	else if (_text.isEmpty())
 		return;
 
 	CTimeElapsed timer(true);
@@ -736,8 +740,11 @@ void CLightningFastViewerWidget::wrapText()
 		qInfo() << "wrap text:" << timer.elapsed();
 	});
 
-	if (!_wordWrap)
+	if (!_wordWrap && _lineOffsets.empty())
 	{
+		_lineOffsets.clear();
+		_lineLengths.clear();
+
 		// No wrapping - split on newlines only
 		int start = 0;
 		int newlinePos;
@@ -758,9 +765,17 @@ void CLightningFastViewerWidget::wrapText()
 		return;
 	}
 
-	// Word wrapping enabled - optimized version
+	// Word wrapping enabled
+	const size_t hashKey = qHash(viewport()->width()) ^ qHash(_charWidth);
+	if (hashKey == _wordWrapParamsHash)
+		return;
+
+	_wordWrapParamsHash = hashKey;
+	_lineOffsets.clear();
+	_lineLengths.clear();
+
+	const int viewportWidth = viewport()->width() - _charWidth * 2; // Margins
 	QFontMetrics fm(font());
-	int viewportWidth = viewport()->width() - _charWidth * 2; // Margins
 	int currentLineStart = 0;
 	int currentWidth = 0;
 	int lastBreakPos = -1; // Last position where we could break
