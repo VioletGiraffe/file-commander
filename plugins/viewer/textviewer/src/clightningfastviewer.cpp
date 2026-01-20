@@ -1,10 +1,12 @@
 #include "clightningfastviewer.h"
 #include "system/ctimeelapsed.h"
 #include "utility/on_scope_exit.hpp"
+#include "assert/advanced_assert.h"
 
 #include <QApplication>
 #include <QClipboard>
 #include <QEvent>
+#include <QFontInfo>
 #include <QFontMetrics>
 #include <QHash>
 #include <QKeyEvent>
@@ -113,8 +115,9 @@ void CLightningFastViewerWidget::resizeEvent(QResizeEvent* event)
 
 bool CLightningFastViewerWidget::event(QEvent* event)
 {
-	if (event->type() == QEvent::FontChange)
+	switch (const auto type = event->type(); type)
 	{
+	case QEvent::FontChange:
 		updateFontMetrics();
 		if (_initialized) // This will already be handled in resizeEvent on first show, but in case of subsequent font changes we need to re-wrap and update
 		{
@@ -122,7 +125,13 @@ bool CLightningFastViewerWidget::event(QEvent* event)
 			updateScrollBars();
 			viewport()->update();
 		}
+		break;
+	case QEvent::Show:
+		QFontInfo fi{ font() };
+		assert_r(fi.fixedPitch());
+		break;
 	}
+
 	return QAbstractScrollArea::event(event);
 }
 
