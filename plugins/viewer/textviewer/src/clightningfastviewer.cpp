@@ -741,7 +741,9 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 
 	CTimeElapsed timer(true);
 	EXEC_ON_SCOPE_EXIT([&] {
-		qInfo() << "wrap text:" << timer.elapsed();
+		const auto elapsed = timer.elapsed();
+		if (elapsed > 2)
+			qInfo() << "wrap text:" << timer.elapsed();
 	});
 
 	if (!_wordWrap && _lineOffsets.empty())
