@@ -67,7 +67,6 @@ private:
 	CFindDialog* _findDialog = nullptr;
 	QLabel* _encodingLabel = nullptr;
 
-	std::unique_ptr<QSyntaxHighlighter> _syntaxHighlighter;
 	std::unique_ptr<Qutepart::Theme> _theme;
 
 	std::unique_ptr<CLightningFastViewerWidget> _lightningViewer;

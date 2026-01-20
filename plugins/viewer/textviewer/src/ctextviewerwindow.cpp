@@ -492,12 +492,6 @@ void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 			_theme->loadTheme(styleHints && styleHints->colorScheme() == Qt::ColorScheme::Dark ? ":/qutepart/themes/monokai.theme" : ":/qutepart/themes/homunculus.theme");
 			highlighter->setTheme(_theme.get());
 		}
-
-		_syntaxHighlighter.reset(highlighter);
-	}
-	else
-	{
-		_syntaxHighlighter.reset();
 	}
 
 	_textBrowser->setPlainText(text);
