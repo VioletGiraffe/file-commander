@@ -17,6 +17,18 @@
 
 static constexpr char hexChars[] = "0123456789ABCDEF";
 
+namespace Layout {
+	// Layout constants
+	static constexpr int MIN_OFFSET_DIGITS = 4;
+	static constexpr int OFFSET_SUFFIX_CHARS = 2; // ": "
+	static constexpr int HEX_CHARS_PER_BYTE = 3; // "XX "
+	static constexpr int HEX_MIDDLE_EXTRA_SPACE = 1; // Extra space after byte 7
+	static constexpr int HEX_ASCII_SEPARATOR_CHARS = 2; // The separator is technically " | ",
+		// but we get the space on the left by default due to it being included with every byte via HEX_CHARS_PER_BYTE
+	static constexpr int LEFT_MARGIN_PIXELS = 2;
+	static constexpr int TEXT_HORIZONTAL_MARGIN_CHARS = 2;
+}
+
 CLightningFastViewerWidget::CLightningFastViewerWidget(QWidget* parent)
 	: QAbstractScrollArea(parent)
 {
@@ -383,15 +395,15 @@ void CLightningFastViewerWidget::calculateHexLayout()
 {
 	// Calculate nDigits once and cache it
 	_nDigits = static_cast<int>(qCeil(::log10(static_cast<double>(_data.size() + 1))));
-	_nDigits = qMax(4, _nDigits); // Minimum 4 digits
-	const int offsetWidth = _charWidth /* left margin */ + _nDigits + 2 /* colon + space */;
+	_nDigits = qMax(Layout::MIN_OFFSET_DIGITS, _nDigits);
+	const int offsetWidth = _charWidth * (_nDigits + Layout::OFFSET_SUFFIX_CHARS) + Layout::LEFT_MARGIN_PIXELS;
 
 	// Hex area starts after offset
 	_hexStart = offsetWidth;
 
 	// ASCII area starts after hex (16 bytes * 3 chars + extra space at middle)
-	const int hexWidth = _charWidth * (_bytesPerLine * 3 + 1);
-	_asciiStart = _hexStart + hexWidth + _charWidth * 3; // " | "
+	const int hexWidth = _charWidth * (_bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE);
+	_asciiStart = _hexStart + hexWidth + _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS;
 }
 
 void CLightningFastViewerWidget::calculateTextLayout()
@@ -411,7 +423,7 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 	const QString offsetStr = QStringLiteral("%1:").arg(offset, _nDigits, 10, QChar('0'));
 
 	painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
-	painter.drawText(_charWidth - hScroll, y + fm.ascent(), offsetStr);
+	painter.drawText(Layout::LEFT_MARGIN_PIXELS - hScroll, y + fm.ascent(), offsetStr);
 
 	painter.setPen(palette().color(QPalette::Text));
 
@@ -442,18 +454,18 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 			hexByte += QChar(hexChars[byte & 0x0F]);
 
 			painter.drawText(x - hScroll, y + fm.ascent(), hexByte);
-			x += _charWidth * 3; // 2 chars + space
+			x += _charWidth * Layout::HEX_CHARS_PER_BYTE;
 
 			if (i == 7)
 			{
-				x += _charWidth; // Extra space in middle
+				x += _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE;
 			}
 		}
 	}
 
 	// Draw separator
 	painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
-	painter.drawText(_asciiStart - _charWidth * 2 - hScroll, y + fm.ascent(), QChar('|'));
+	painter.drawText(_asciiStart - _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS - hScroll, y + fm.ascent(), QChar('|'));
 
 	// Draw ASCII
 	x = _asciiStart;
@@ -491,7 +503,7 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, int lineIndex, 
 	QString lineText = _text.mid(lineStart, lineLen);
 
 	// Draw the line character by character to handle selection
-	int x = _charWidth - hScroll;
+	int x = Layout::LEFT_MARGIN_PIXELS - hScroll;
 	for (int i = 0; i < lineText.length(); ++i)
 	{
 		qsizetype charOffset = lineStart + i;
@@ -528,7 +540,7 @@ void CLightningFastViewerWidget::updateScrollBars()
 	// Horizontal scrollbar
 	if (_mode == HEX)
 	{
-		const int totalWidth = _asciiStart + _charWidth * _bytesPerLine + _charWidth * 2;
+		const int totalWidth = _asciiStart + _charWidth * _bytesPerLine + _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS;
 		horizontalScrollBar()->setRange(0, qMax(0, totalWidth - viewport()->width()));
 	}
 	else
@@ -542,7 +554,7 @@ void CLightningFastViewerWidget::updateScrollBars()
 			int width = fm.horizontalAdvance(lineText);
 			maxWidth = qMax(maxWidth, width);
 		}
-		horizontalScrollBar()->setRange(0, qMax(0, maxWidth - viewport()->width() + _charWidth * 2));
+		horizontalScrollBar()->setRange(0, qMax(0, maxWidth - viewport()->width() + _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS));
 	}
 	horizontalScrollBar()->setPageStep(viewport()->width());
 }
@@ -552,7 +564,7 @@ CLightningFastViewerWidget::Region CLightningFastViewerWidget::regionAtPos(const
 	int x = pos.x() + horizontalScrollBar()->value();
 
 	if (x < _hexStart) return REGION_OFFSET;
-	if (x < _asciiStart - _charWidth * 3) return REGION_HEX;
+	if (x < _asciiStart - _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS) return REGION_HEX;
 	if (x >= _asciiStart) return REGION_ASCII;
 	return REGION_NONE;
 }
@@ -573,13 +585,13 @@ qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos) const
 	if (region == REGION_HEX)
 	{
 		int relX = x - _hexStart;
-		byteInLine = relX / (_charWidth * 3);
+		byteInLine = relX / (_charWidth * Layout::HEX_CHARS_PER_BYTE);
 
 		// Account for extra space at position 8
 		if (byteInLine >= 8)
 		{
-			relX -= _charWidth;
-			byteInLine = relX / (_charWidth * 3);
+			relX -= _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE;
+			byteInLine = relX / (_charWidth * Layout::HEX_CHARS_PER_BYTE);
 		}
 
 		byteInLine = qBound(0, byteInLine, _bytesPerLine - 1);
@@ -615,7 +627,7 @@ qsizetype CLightningFastViewerWidget::textPosToOffset(const QPoint& pos) const
 
 	// Find character at position
 	QFontMetrics fm(font());
-	int currentX = _charWidth;
+	int currentX = Layout::LEFT_MARGIN_PIXELS;
 
 	for (int i = 0; i < lineText.length(); ++i)
 	{
@@ -748,7 +760,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 		const auto elapsed = timer.elapsed();
 		if (elapsed > 2)
 			qInfo() << "wrap text:" << timer.elapsed();
-	});
+		});
 
 	if (!_wordWrap && _lineOffsets.empty())
 	{
@@ -782,7 +794,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 	clearWrappingData();
 	_wordWrapParamsHash = hashKey;
 
-	const int viewportWidth = viewport()->width() - _charWidth * 2; // Margins
+	const int viewportWidth = viewport()->width() - _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS;
 	QFontMetrics fm(font());
 	int currentLineStart = 0;
 	int currentWidth = 0;
