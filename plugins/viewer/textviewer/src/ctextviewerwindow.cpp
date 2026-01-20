@@ -4,6 +4,7 @@
 #include "clightningfastviewer.h"
 
 #include "widgets/cpersistentwindow.h"
+#include "qtcore_helpers/qt_helpers.hpp"
 
 #include "assert/advanced_assert.h"
 
@@ -54,63 +55,63 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 
 	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this, false));
 
-	assert_r(connect(actionOpen, &QAction::triggered, this, [this]() {
+	CR() = connect(actionOpen, &QAction::triggered, this, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
 		if (!fileName.isEmpty())
 			loadTextFile(fileName);
-	}));
+	});
 
-	assert_r(connect(actionReload, &QAction::triggered, this, [this]() {
+	CR() = connect(actionReload, &QAction::triggered, this, [this]() {
 		loadTextFile(_sourceFilePath);
-	}));
-	assert_r(connect(actionClose, &QAction::triggered, this, &QDialog::close));
+	});
+	CR() = connect(actionClose, &QAction::triggered, this, &QDialog::close);
 
-	assert_r(connect(actionFind, &QAction::triggered, this, [this]() {
+	CR() = connect(actionFind, &QAction::triggered, this, [this]() {
 		setupFindDialog();
 		_findDialog->exec();
-	}));
-	assert_r(connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext));
+	});
+	CR() = connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext);
 
-	assert_r(connect(actionAuto_detect_encoding, &QAction::triggered, this, [this]{
+	CR() = connect(actionAuto_detect_encoding, &QAction::triggered, this, [this]{
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asDetectedAutomatically(*textData, _currentMode == Mode::Lightning);
-	}));
-	assert_r(connect(actionASCII_Windows_1252, &QAction::triggered, this, [this] {
+	});
+	CR() = connect(actionASCII_Windows_1252, &QAction::triggered, this, [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asAscii(*textData, _currentMode == Mode::Lightning);
-	}));
-	assert_r(connect(actionSystemLocale, &QAction::triggered, this, [this] {
+	});
+	CR() = connect(actionSystemLocale, &QAction::triggered, this, [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asSystemDefault(*textData, _currentMode == Mode::Lightning);
-	}));
-	assert_r(connect(actionUTF_8, &QAction::triggered, this, [this] {
+	});
+	connect(actionUTF_8, &QAction::triggered, this, [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asUtf8(*textData, _currentMode == Mode::Lightning);
-	}));
-	assert_r(connect(actionUTF_16, &QAction::triggered, this, [this] {
+	});
+	CR() = connect(actionUTF_16, &QAction::triggered, this, [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asUtf16(*textData, _currentMode == Mode::Lightning);
-	}));
-	assert_r(connect(actionHTML, &QAction::triggered, this, [this] {
+	});
+	CR() = connect(actionHTML, &QAction::triggered, this, [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asHtml(*textData);
-	}));
-	assert_r(connect(actionMarkdown, &QAction::triggered, this, [this] {
+	});
+	CR() = connect(actionMarkdown, &QAction::triggered, this, [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asMarkdown(*textData);
-	}));
-	assert_r(connect(actionHex, &QAction::triggered, this, [this] {
+	});
+	CR() = connect(actionHex, &QAction::triggered, this, [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asHexFast(*textData);
-	}));
+	});
 
 	QActionGroup * group = new QActionGroup(this);
 	group->addAction(actionASCII_Windows_1252);
@@ -119,12 +120,13 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	group->addAction(actionUTF_16);
 	group->addAction(actionHTML);
 	group->addAction(actionMarkdown);
+	group->addAction(actionHex);
 
-	assert_r(connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap));
+	CR() = connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap);
 	actionLine_wrap->setChecked(true); // Wrap by default
 
 	auto* escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
-	assert_r(connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater));
+	CR() = connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater);
 
 	_encodingLabel = new QLabel(this);
 	QMainWindow::statusBar()->addWidget(_encodingLabel);
@@ -435,8 +437,8 @@ void CTextViewerWindow::setupFindDialog()
 		return;
 
 	_findDialog = new CFindDialog(this, QStringLiteral("Plugins/TextViewer/Find/"));
-	assert_r(connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find));
-	assert_r(connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext));
+	CR() = connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find);
+	CR() = connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext);
 }
 
 void CTextViewerWindow::setMode(Mode mode)
