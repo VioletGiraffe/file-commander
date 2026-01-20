@@ -2,6 +2,8 @@
 
 #include <QAbstractScrollArea>
 #include <QByteArray>
+#include <QFontMetrics>
+
 #include <vector>
 
 class CLightningFastViewerWidget final : public QAbstractScrollArea
@@ -60,6 +62,7 @@ private:
 
 	void wrapTextIfNeeded();
 	void clearWrappingData();
+	[[nodiscard]] int findLineContainingOffset(qsizetype offset) const;
 
 private:
 	Mode _mode = HEX;
@@ -78,6 +81,7 @@ private:
 	// Common display data
 	int _lineHeight = 0;
 	int _charWidth = 0;
+	QFontMetrics _fontMetrics;
 	Selection _selection;
 	bool _initialized = false;
 

@@ -24,13 +24,13 @@ namespace Layout {
 	static constexpr int HEX_CHARS_PER_BYTE = 3; // "XX "
 	static constexpr int HEX_MIDDLE_EXTRA_SPACE = 1; // Extra space after byte 7
 	static constexpr int HEX_ASCII_SEPARATOR_CHARS = 2; // The separator is technically " | ",
-		// but we get the space on the left by default due to it being included with every byte via HEX_CHARS_PER_BYTE
+	// but we get the space on the left by default due to it being included with every byte via HEX_CHARS_PER_BYTE
 	static constexpr int LEFT_MARGIN_PIXELS = 2;
 	static constexpr int TEXT_HORIZONTAL_MARGIN_CHARS = 2;
 }
 
 CLightningFastViewerWidget::CLightningFastViewerWidget(QWidget* parent)
-	: QAbstractScrollArea(parent)
+	: QAbstractScrollArea(parent), _fontMetrics(font())
 {
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
@@ -87,8 +87,6 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 	QPainter painter(viewport());
 	painter.setFont(font());
 
-	QFontMetrics fm(font());
-
 	// Calculate layout positions based on mode
 	if (_mode == HEX)
 		calculateHexLayout();
@@ -107,11 +105,11 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 		if (_mode == HEX)
 		{
 			const qsizetype offset = line * _bytesPerLine;
-			drawHexLine(painter, offset, y, fm);
+			drawHexLine(painter, offset, y, _fontMetrics);
 		}
 		else
 		{
-			drawTextLine(painter, static_cast<int>(line), y, fm);
+			drawTextLine(painter, static_cast<int>(line), y, _fontMetrics);
 		}
 		y += _lineHeight;
 	}
@@ -166,7 +164,7 @@ void CLightningFastViewerWidget::mouseMoveEvent(QMouseEvent* event)
 	if (event->buttons() & Qt::LeftButton && _selection.start >= 0)
 	{
 		qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos()) : textPosToOffset(event->pos());
-		if (offset >= 0)
+		if (offset >= 0 && offset != _selection.end)
 		{
 			_selection.end = offset;
 			viewport()->update();
@@ -265,19 +263,13 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		else
 		{
 			// Find previous line
-			for (size_t i = 0; i < _lineOffsets.size(); ++i)
+			int currentLine = findLineContainingOffset(cursorPos);
+			if (currentLine > 0)
 			{
-				if (_lineOffsets[i] <= cursorPos && cursorPos < _lineOffsets[i] + _lineLengths[i])
-				{
-					if (i > 0)
-					{
-						// Try to maintain column position
-						int colInLine = cursorPos - _lineOffsets[i];
-						newPos = qMin((qsizetype)(_lineOffsets[i - 1] + colInLine),
-							(qsizetype)(_lineOffsets[i - 1] + _lineLengths[i - 1] - 1));
-					}
-					break;
-				}
+				// Try to maintain column position
+				int colInLine = cursorPos - _lineOffsets[currentLine];
+				newPos = qMin((qsizetype)(_lineOffsets[currentLine - 1] + colInLine),
+					(qsizetype)(_lineOffsets[currentLine - 1] + _lineLengths[currentLine - 1] - 1));
 			}
 		}
 		break;
@@ -289,19 +281,13 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		else
 		{
 			// Find next line
-			for (size_t i = 0; i < _lineOffsets.size(); ++i)
+			int currentLine = findLineContainingOffset(cursorPos);
+			if (currentLine >= 0 && currentLine < static_cast<int>(_lineOffsets.size()) - 1)
 			{
-				if (_lineOffsets[i] <= cursorPos && cursorPos < _lineOffsets[i] + _lineLengths[i])
-				{
-					if (i < _lineOffsets.size() - 1)
-					{
-						// Try to maintain column position
-						int colInLine = cursorPos - _lineOffsets[i];
-						newPos = qMin((qsizetype)(_lineOffsets[i + 1] + colInLine),
-							(qsizetype)(_lineOffsets[i + 1] + _lineLengths[i + 1] - 1));
-					}
-					break;
-				}
+				// Try to maintain column position
+				int colInLine = cursorPos - _lineOffsets[currentLine];
+				newPos = qMin((qsizetype)(_lineOffsets[currentLine + 1] + colInLine),
+					(qsizetype)(_lineOffsets[currentLine + 1] + _lineLengths[currentLine + 1] - 1));
 			}
 		}
 		break;
@@ -323,13 +309,10 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		else
 		{
 			// Find start of current line
-			for (size_t i = 0; i < _lineOffsets.size(); ++i)
+			int currentLine = findLineContainingOffset(cursorPos);
+			if (currentLine >= 0)
 			{
-				if (_lineOffsets[i] <= cursorPos && cursorPos < _lineOffsets[i] + _lineLengths[i])
-				{
-					newPos = _lineOffsets[i];
-					break;
-				}
+				newPos = _lineOffsets[currentLine];
 			}
 		}
 		break;
@@ -346,13 +329,10 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		else
 		{
 			// Find end of current line
-			for (size_t i = 0; i < _lineOffsets.size(); ++i)
+			int currentLine = findLineContainingOffset(cursorPos);
+			if (currentLine >= 0)
 			{
-				if (_lineOffsets[i] <= cursorPos && cursorPos < _lineOffsets[i] + _lineLengths[i])
-				{
-					newPos = qMin(maxOffset, (qsizetype)(_lineOffsets[i] + _lineLengths[i] - 1));
-					break;
-				}
+				newPos = qMin(maxOffset, (qsizetype)(_lineOffsets[currentLine] + _lineLengths[currentLine] - 1));
 			}
 		}
 		break;
@@ -547,11 +527,10 @@ void CLightningFastViewerWidget::updateScrollBars()
 	{
 		// In text mode, find the longest line
 		int maxWidth = 0;
-		QFontMetrics fm(font());
 		for (size_t i = 0; i < _lineOffsets.size(); ++i)
 		{
 			QString lineText = _text.mid(_lineOffsets[i], _lineLengths[i]);
-			int width = fm.horizontalAdvance(lineText);
+			int width = _fontMetrics.horizontalAdvance(lineText);
 			maxWidth = qMax(maxWidth, width);
 		}
 		horizontalScrollBar()->setRange(0, qMax(0, maxWidth - viewport()->width() + _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS));
@@ -626,12 +605,11 @@ qsizetype CLightningFastViewerWidget::textPosToOffset(const QPoint& pos) const
 	QString lineText = _text.mid(lineStart, lineLen);
 
 	// Find character at position
-	QFontMetrics fm(font());
 	int currentX = Layout::LEFT_MARGIN_PIXELS;
 
 	for (int i = 0; i < lineText.length(); ++i)
 	{
-		int charWidth = fm.horizontalAdvance(lineText[i]);
+		int charWidth = _fontMetrics.horizontalAdvance(lineText[i]);
 		if (x < currentX + charWidth / 2)
 			return lineStart + i;
 		currentX += charWidth;
@@ -652,14 +630,9 @@ void CLightningFastViewerWidget::ensureVisible(qsizetype offset)
 	else
 	{
 		// Find which line contains this offset
-		for (size_t i = 0; i < _lineOffsets.size(); ++i)
-		{
-			if (_lineOffsets[i] <= offset && offset < _lineOffsets[i] + _lineLengths[i])
-			{
-				line = static_cast<int>(i);
-				break;
-			}
-		}
+		line = findLineContainingOffset(offset);
+		if (line < 0)
+			return;
 	}
 
 	int firstVisible = verticalScrollBar()->value();
@@ -795,7 +768,9 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 	_wordWrapParamsHash = hashKey;
 
 	const int viewportWidth = viewport()->width() - _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS;
-	QFontMetrics fm(font());
+	if (viewportWidth <= 0)
+		return; // Guard against too small viewport
+
 	int currentLineStart = 0;
 	int currentWidth = 0;
 	int lastBreakPos = -1; // Last position where we could break
@@ -818,7 +793,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 		}
 
 		// Add character width incrementally
-		int charWidth = fm.horizontalAdvance(ch);
+		int charWidth = _fontMetrics.horizontalAdvance(ch);
 		currentWidth += charWidth;
 
 		// Mark break opportunities (spaces)
@@ -840,12 +815,9 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 				_lineOffsets.push_back(currentLineStart);
 				_lineLengths.push_back(breakPos - currentLineStart);
 
-				// Start new line after the space
+				// Start new line after the space and use the already tracked width
 				currentLineStart = breakPos + 1;
-				// Recalculate width from break point to current position
-				currentWidth = 0;
-				for (int j = currentLineStart; j <= i; ++j)
-					currentWidth += fm.horizontalAdvance(_text[j]);
+				currentWidth -= lastBreakWidth;
 			}
 			else
 			{
@@ -880,7 +852,19 @@ void CLightningFastViewerWidget::clearWrappingData()
 
 void CLightningFastViewerWidget::updateFontMetrics()
 {
-	QFontMetrics fm(font());
-	_lineHeight = fm.height();
-	_charWidth = fm.horizontalAdvance('0');
+	_fontMetrics = QFontMetrics(font());
+	_lineHeight = _fontMetrics.height();
+	_charWidth = _fontMetrics.horizontalAdvance('0');
+}
+
+int CLightningFastViewerWidget::findLineContainingOffset(qsizetype offset) const
+{
+	for (size_t i = 0; i < _lineOffsets.size(); ++i)
+	{
+		if (_lineOffsets[i] <= offset && offset < _lineOffsets[i] + _lineLengths[i])
+		{
+			return static_cast<int>(i);
+		}
+	}
+	return -1;
 }
