@@ -82,7 +82,6 @@ private:
 	bool _initialized = false;
 
 	// Hex layout positions (calculated in calculateHexLayout)
-	int _offsetWidth = 0;
 	int _hexStart = 0;
 	int _asciiStart = 0;
 	int _nDigits = 0; // Cached number of digits for offset display

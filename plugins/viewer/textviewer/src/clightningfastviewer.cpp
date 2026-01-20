@@ -377,10 +377,10 @@ void CLightningFastViewerWidget::calculateHexLayout()
 	// Calculate nDigits once and cache it
 	_nDigits = static_cast<int>(qCeil(::log10(static_cast<double>(_data.size() + 1))));
 	_nDigits = qMax(4, _nDigits); // Minimum 4 digits
-	_offsetWidth = fm.horizontalAdvance(QString(_nDigits, '0') + ": ");
+	const int offsetWidth = fm.horizontalAdvance(QString(_nDigits, '0') + ":");
 
 	// Hex area starts after offset
-	_hexStart = _offsetWidth;
+	_hexStart = offsetWidth;
 
 	// ASCII area starts after hex (16 bytes * 3 chars + extra space at middle)
 	const int hexWidth = _charWidth * (_bytesPerLine * 3 + 1);
@@ -397,14 +397,14 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 	if (offset >= _data.size())
 		return;
 
-	// Improvement #8: Account for horizontal scrolling
-	int hScroll = horizontalScrollBar()->value();
+	// Account for horizontal scrolling
+	const int hScroll = horizontalScrollBar()->value();
 
 	// Draw offset
-	QString offsetStr = QString("%1").arg(offset, _nDigits, 10, QChar('0'));
+	const QString offsetStr = QStringLiteral("%1:").arg(offset, _nDigits, 10, QChar('0'));
 
 	painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
-	painter.drawText(_charWidth - hScroll, y + fm.ascent(), offsetStr + ":");
+	painter.drawText(_charWidth - hScroll, y + fm.ascent(), offsetStr);
 
 	painter.setPen(palette().color(QPalette::Text));
 
@@ -419,7 +419,6 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 			const unsigned char byte = static_cast<unsigned char>(_data[offset + i]);
 			qsizetype byteOffset = offset + i;
 
-			// Improvement #2: Use helper method for selection checking
 			if (isSelected(byteOffset))
 			{
 				QRect selRect(x - hScroll, y, _charWidth * 2, _lineHeight);
@@ -456,7 +455,6 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 		const unsigned char byte = static_cast<unsigned char>(_data[offset + i]);
 		qsizetype byteOffset = offset + i;
 
-		// Improvement #2: Use helper method for selection checking
 		if (isSelected(byteOffset))
 		{
 			QRect selRect(x - hScroll, y, _charWidth, _lineHeight);
@@ -726,7 +724,6 @@ void CLightningFastViewerWidget::selectAll()
 
 bool CLightningFastViewerWidget::isSelected(qsizetype offset) const
 {
-	// Improvement #2: Helper method to reduce code duplication
 	return _selection.isValid() &&
 		offset >= _selection.selStart() &&
 		offset <= _selection.selEnd();
