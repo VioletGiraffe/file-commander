@@ -322,7 +322,7 @@ bool CTextViewerWindow::asHexFast(const QByteArray& fileData)
 {
 	setMode(Mode::Lightning);
 	_lightningViewer->setData(fileData);
-	encodingChanged("None - viewing raw data");
+	encodingChanged(tr("none - viewing raw data"));
 	actionHex->setChecked(true);
 	return true;
 }

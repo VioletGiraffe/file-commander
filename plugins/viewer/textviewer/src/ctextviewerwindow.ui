@@ -106,7 +106,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>&amp;HTML</string>
+    <string>H&amp;TML</string>
    </property>
    <property name="shortcut">
     <string>4</string>
@@ -162,7 +162,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>ASCII (Windows-1252)</string>
+    <string>&amp;ASCII (Windows-1252)</string>
    </property>
   </action>
   <action name="actionLine_wrap">
@@ -170,7 +170,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Line wrap</string>
+    <string>&amp;Line wrap</string>
    </property>
   </action>
   <action name="actionMarkdown">
@@ -178,7 +178,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Markdown</string>
+    <string>&amp;Markdown</string>
    </property>
    <property name="shortcut">
     <string>5</string>
@@ -189,7 +189,10 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Hex</string>
+    <string>&amp;Hex</string>
+   </property>
+   <property name="shortcut">
+    <string>6</string>
    </property>
   </action>
  </widget>
