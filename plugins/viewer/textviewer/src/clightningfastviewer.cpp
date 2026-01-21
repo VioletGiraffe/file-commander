@@ -35,7 +35,8 @@ CLightningFastViewerWidget::CLightningFastViewerWidget(QWidget* parent)
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	setFocusPolicy(Qt::StrongFocus);
-	viewport()->setCursor(Qt::IBeamCursor);
+	setMouseTracking(true);
+	viewport()->setMouseTracking(true);
 	updateFontMetrics();
 }
 
@@ -161,6 +162,8 @@ void CLightningFastViewerWidget::mousePressEvent(QMouseEvent* event)
 
 void CLightningFastViewerWidget::mouseMoveEvent(QMouseEvent* event)
 {
+	updateCursorShape(event->pos());
+
 	if (event->buttons() & Qt::LeftButton && _selection.start >= 0)
 	{
 		qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos()) : textPosToOffset(event->pos());
@@ -867,4 +870,22 @@ int CLightningFastViewerWidget::findLineContainingOffset(qsizetype offset) const
 		}
 	}
 	return -1;
+}
+
+void CLightningFastViewerWidget::updateCursorShape(const QPoint& pos)
+{
+	bool overText = false;
+
+	if (_mode == HEX)
+	{
+		Region region = regionAtPos(pos);
+		overText = (region == REGION_HEX || region == REGION_ASCII);
+	}
+	else // TEXT mode
+	{
+		qsizetype offset = textPosToOffset(pos);
+		overText = (offset >= 0);
+	}
+
+	viewport()->setCursor(overText ? Qt::IBeamCursor : Qt::ArrowCursor);
 }
