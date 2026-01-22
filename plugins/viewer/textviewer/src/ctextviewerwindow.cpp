@@ -130,7 +130,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	CR() = connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap);
 	actionLine_wrap->setChecked(true); // Wrap by default
 
-	auto* escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
+	auto* escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	CR() = connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater);
 
 	_encodingLabel = new QLabel(this);
@@ -433,7 +433,10 @@ void CTextViewerWindow::encodingChanged(const QString& encoding, const QString& 
 
 void CTextViewerWindow::setLineWrap(bool wrap)
 {
-	_textBrowser->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
+	if (_textBrowser)
+		_textBrowser->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
+	if (_lightningViewer)
+		_lightningViewer->setWordWrap(wrap);
 }
 
 void CTextViewerWindow::setupFindDialog()
@@ -482,6 +485,9 @@ void CTextViewerWindow::setMode(Mode mode)
 			setCentralWidget(_lightningViewer.get());
 		}
 	}
+
+	// Apply line wrap setting
+	setLineWrap(actionLine_wrap->isChecked());
 }
 
 void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)

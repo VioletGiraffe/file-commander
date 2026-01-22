@@ -77,7 +77,9 @@ void CLightningFastViewerWidget::setWordWrap(bool enabled)
 	if (_wordWrap != enabled)
 	{
 		_wordWrap = enabled;
+		clearWrappingData();
 		wrapTextIfNeeded();
+
 		updateScrollBars();
 		viewport()->update();
 	}
@@ -736,7 +738,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 		const auto elapsed = timer.elapsed();
 		if (elapsed > 2)
 			qInfo() << "wrap text:" << timer.elapsed();
-		});
+	});
 
 	if (!_wordWrap && _lineOffsets.empty())
 	{
@@ -761,6 +763,8 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 		}
 		return;
 	}
+	else if (!_wordWrap)
+		return; // Used the cached wrapped lines
 
 	// Word wrapping enabled
 	const size_t hashKey = qHash(viewport()->width()) ^ qHash(_charWidth);
@@ -781,7 +785,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 
 	for (int i = 0; i < _text.length(); ++i)
 	{
-		QChar ch = _text[i];
+		const QChar ch = _text[i];
 
 		// Handle explicit newlines
 		if (ch == '\n')
