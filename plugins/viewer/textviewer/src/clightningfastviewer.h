@@ -82,6 +82,7 @@ private:
 	// Common display data
 	int _lineHeight = 0;
 	int _charWidth = 0;
+	int _tabWidthInChars = 4; // Default tab width in character positions
 	QFontMetrics _fontMetrics;
 	Selection _selection;
 	bool _initialized = false;

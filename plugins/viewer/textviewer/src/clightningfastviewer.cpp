@@ -79,7 +79,6 @@ void CLightningFastViewerWidget::setWordWrap(bool enabled)
 		_wordWrap = enabled;
 		clearWrappingData();
 		wrapTextIfNeeded();
-
 		updateScrollBars();
 		viewport()->update();
 	}
@@ -530,14 +529,27 @@ void CLightningFastViewerWidget::updateScrollBars()
 	}
 	else
 	{
-		// In text mode, find the longest line
-		int maxWidth = 0;
+		// In text mode, estimate max line width based on character count
+		// For monospace fonts, this is much faster than measuring each line
+		int maxChars = 0;
 		for (size_t i = 0; i < _lineOffsets.size(); ++i)
 		{
-			QString lineText = _text.mid(_lineOffsets[i], _lineLengths[i]);
-			int width = _fontMetrics.horizontalAdvance(lineText);
-			maxWidth = qMax(maxWidth, width);
+			const int lineChars = _lineLengths[i];
+
+			// Quick scan for tabs in this line to adjust estimate
+			int tabCount = 0;
+			for (int j = _lineOffsets[i], end = j + lineChars; j < end; ++j)
+			{
+				if (_text[j] == '\t') [[unlikely]]
+					++tabCount;
+			}
+
+			// Estimate: each tab expands based on measured _tabWidthInChars
+			const int estimatedChars = lineChars + (tabCount * (_tabWidthInChars - 1));
+			maxChars = qMax(maxChars, estimatedChars);
 		}
+
+		const int maxWidth = maxChars * _charWidth;
 		horizontalScrollBar()->setRange(0, qMax(0, maxWidth - viewport()->width() + _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS));
 	}
 	horizontalScrollBar()->setPageStep(viewport()->width());
@@ -738,7 +750,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 		const auto elapsed = timer.elapsed();
 		if (elapsed > 2)
 			qInfo() << "wrap text:" << timer.elapsed();
-	});
+		});
 
 	if (!_wordWrap && _lineOffsets.empty())
 	{
@@ -763,8 +775,6 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 		}
 		return;
 	}
-	else if (!_wordWrap)
-		return; // Used the cached wrapped lines
 
 	// Word wrapping enabled
 	const size_t hashKey = qHash(viewport()->width()) ^ qHash(_charWidth);
@@ -774,18 +784,18 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 	clearWrappingData();
 	_wordWrapParamsHash = hashKey;
 
-	const int viewportWidth = viewport()->width() - _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS;
-	if (viewportWidth <= 0)
+	const int maxCharsPerLine = (viewport()->width() - _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS) / _charWidth;
+	if (maxCharsPerLine <= 0)
 		return; // Guard against too small viewport
 
 	int currentLineStart = 0;
-	int currentWidth = 0;
+	int currentCharCount = 0; // Character count in current line
 	int lastBreakPos = -1; // Last position where we could break
-	int lastBreakWidth = 0; // Width at last break position
+	int lastBreakCharCount = 0; // Character count at last break position
 
 	for (int i = 0; i < _text.length(); ++i)
 	{
-		const QChar ch = _text[i];
+		QChar ch = _text[i];
 
 		// Handle explicit newlines
 		if (ch == '\n')
@@ -793,25 +803,37 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 			_lineOffsets.push_back(currentLineStart);
 			_lineLengths.push_back(i - currentLineStart + 1);
 			currentLineStart = i + 1;
-			currentWidth = 0;
+			currentCharCount = 0;
 			lastBreakPos = -1;
-			lastBreakWidth = 0;
+			lastBreakCharCount = 0;
 			continue;
 		}
 
-		// Add character width incrementally
-		int charWidth = _fontMetrics.horizontalAdvance(ch);
-		currentWidth += charWidth;
+		// Calculate character width in monospace units
+		int charWidth = 1; // Default for most characters
+		if (ch == '\t')
+		{
+			// Tab width: advance to next multiple of _tabWidthInChars
+			int nextTabStop = ((currentCharCount / _tabWidthInChars) + 1) * _tabWidthInChars;
+			charWidth = nextTabStop - currentCharCount;
+		}
+		else if (ch.unicode() < 32 || ch.category() == QChar::Other_Control)
+		{
+			// Control characters take 0 width
+			charWidth = 0;
+		}
+
+		currentCharCount += charWidth;
 
 		// Mark break opportunities (spaces)
-		if (ch.isSpace())
+		if (ch.isSpace() && ch != '\t')
 		{
 			lastBreakPos = i;
-			lastBreakWidth = currentWidth;
+			lastBreakCharCount = currentCharCount;
 		}
 
 		// Line is too long
-		if (currentWidth > viewportWidth && i > currentLineStart)
+		if (currentCharCount > maxCharsPerLine && i > currentLineStart)
 		{
 			int breakPos;
 
@@ -822,9 +844,9 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 				_lineOffsets.push_back(currentLineStart);
 				_lineLengths.push_back(breakPos - currentLineStart);
 
-				// Start new line after the space and use the already tracked width
+				// Start new line after the space and use the already tracked count
 				currentLineStart = breakPos + 1;
-				currentWidth -= lastBreakWidth;
+				currentCharCount -= lastBreakCharCount;
 			}
 			else
 			{
@@ -834,11 +856,11 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 				_lineLengths.push_back(breakPos - currentLineStart);
 
 				currentLineStart = breakPos;
-				currentWidth = charWidth;
+				currentCharCount = charWidth;
 			}
 
 			lastBreakPos = -1;
-			lastBreakWidth = 0;
+			lastBreakCharCount = 0;
 		}
 	}
 
@@ -862,6 +884,12 @@ void CLightningFastViewerWidget::updateFontMetrics()
 	_fontMetrics = QFontMetrics(font());
 	_lineHeight = _fontMetrics.height();
 	_charWidth = _fontMetrics.horizontalAdvance('0');
+
+	// Empirically measure tab width
+	const int widthWithTab = _fontMetrics.horizontalAdvance("X\tY");
+	const int widthWithoutTab = _fontMetrics.horizontalAdvance("XY");
+	const int tabWidth = widthWithTab - widthWithoutTab;
+	_tabWidthInChars = qMax(1, tabWidth / _charWidth); // Ensure at least 1
 }
 
 int CLightningFastViewerWidget::findLineContainingOffset(qsizetype offset) const
