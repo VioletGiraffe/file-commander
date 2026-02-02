@@ -377,11 +377,9 @@ int CLightningFastViewerWidget::totalLines() const
 
 void CLightningFastViewerWidget::calculateHexLayout()
 {
-	// Calculate nDigits once and cache it
 	_nDigits = static_cast<int>(qCeil(::log10(static_cast<double>(_data.size() + 1))));
 	_nDigits = qMax(Layout::MIN_OFFSET_DIGITS, _nDigits);
 
-	// Calculate optimal bytesPerLine that fits viewport width (must be multiple of 4)
 	const int viewportWidth = viewport()->width();
 	int optimalBytesPerLine = 4; // Minimum
 	LineLayout optimalLayout;
@@ -389,12 +387,13 @@ void CLightningFastViewerWidget::calculateHexLayout()
 	// Try increasingly larger values (multiples of 4) until we exceed viewport width
 	for (int candidate = 4; candidate <= 128; candidate += 4)
 	{
-		optimalLayout = calculateHexLineLayout(candidate, _nDigits);
-		const int lineWidth = optimalLayout.asciiStart + optimalLayout.asciiWidth;
-		if (lineWidth <= viewportWidth)
-			optimalBytesPerLine = candidate;
-		else
+		const auto layout = calculateHexLineLayout(candidate, _nDigits);
+		const int lineWidth = layout.asciiStart + layout.asciiWidth;
+		if (lineWidth >= viewportWidth)
 			break;
+
+		optimalBytesPerLine = candidate;
+		optimalLayout = layout;
 	}
 
 	_bytesPerLine = optimalBytesPerLine;
@@ -435,8 +434,8 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 	QString hexByteString;
 	hexByteString.resize(2);
 
-	QPen highlightPen(palette().highlightedText().color());
-	QPen normalPen(palette().color(QPalette::Text));
+	const QPen highlightPen(palette().highlightedText().color());
+	const QPen normalPen(palette().color(QPalette::Text));
 
 	int x = _hexStart;
 	for (qsizetype i = 0; i < lineBytes; ++i)
