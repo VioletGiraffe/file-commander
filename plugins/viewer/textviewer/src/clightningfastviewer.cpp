@@ -89,12 +89,6 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 	QPainter painter(viewport());
 	painter.setFont(font());
 
-	// Calculate layout positions based on mode
-	if (_mode == HEX)
-		calculateHexLayout();
-	else
-		calculateTextLayout();
-
 	// Calculate which lines are visible
 	const qsizetype firstLine = verticalScrollBar()->value();
 	const qsizetype visibleLines = viewport()->height() / _lineHeight + 2;
