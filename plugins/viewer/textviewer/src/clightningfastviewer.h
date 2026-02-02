@@ -65,7 +65,6 @@ private:
 	[[nodiscard]] qsizetype hexPosToOffset(const QPoint& pos) const;
 
 	// Text mode methods
-	void calculateTextLayout();
 	void drawTextLine(QPainter& painter, int lineIndex, int y, const QFontMetrics& fm);
 	[[nodiscard]] qsizetype textPosToOffset(const QPoint& pos) const;
 

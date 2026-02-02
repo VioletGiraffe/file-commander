@@ -387,7 +387,7 @@ void CLightningFastViewerWidget::calculateHexLayout()
 	LineLayout optimalLayout;
 
 	// Try increasingly larger values (multiples of 4) until we exceed viewport width
-	for (int candidate = 4; candidate <= 64; candidate += 4)
+	for (int candidate = 4; candidate <= 128; candidate += 4)
 	{
 		optimalLayout = calculateHexLineLayout(candidate, _nDigits);
 		const int lineWidth = optimalLayout.asciiStart + optimalLayout.asciiWidth;
@@ -406,17 +406,12 @@ CLightningFastViewerWidget::LineLayout CLightningFastViewerWidget::calculateHexL
 {
 	LineLayout layout;
 
-	layout.hexStart = _charWidth * (nDigits + Layout::OFFSET_SUFFIX_CHARS) + Layout::LEFT_MARGIN_PIXELS;
-	layout.hexWidth = _charWidth * (bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE * ((bytesPerLine - 1) / 8));
-	layout.asciiStart = layout.hexStart + layout.hexWidth + _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS;
-	layout.asciiWidth = _charWidth * (bytesPerLine + Layout::HEX_ASCII_SEPARATOR_CHARS);
+	layout.hexStart = Layout::LEFT_MARGIN_PIXELS + (nDigits + Layout::OFFSET_SUFFIX_CHARS) * _charWidth;
+	layout.hexWidth = (bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE * ((bytesPerLine - 1) / 8)) * _charWidth;
+	layout.asciiStart = layout.hexStart + layout.hexWidth + Layout::HEX_ASCII_SEPARATOR_CHARS * _charWidth;
+	layout.asciiWidth = bytesPerLine * _charWidth;
 
 	return layout;
-}
-
-void CLightningFastViewerWidget::calculateTextLayout()
-{
-	// No special layout needed for text mode, but we could add margins here
 }
 
 void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset, int y, const QFontMetrics& fm)
@@ -504,10 +499,10 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, int lineIndex, 
 	if (lineIndex < 0 || lineIndex >= static_cast<int>(_lineOffsets.size()))
 		return;
 
-	int hScroll = horizontalScrollBar()->value();
+	const int hScroll = horizontalScrollBar()->value();
 
-	int lineStart = _lineOffsets[lineIndex];
-	int lineLen = _lineLengths[lineIndex];
+	const int lineStart = _lineOffsets[lineIndex];
+	const int lineLen = _lineLengths[lineIndex];
 	QString lineText = _text.mid(lineStart, lineLen);
 
 	// Draw the line character by character to handle selection
@@ -537,8 +532,6 @@ void CLightningFastViewerWidget::updateScrollBars()
 {
 	if (_mode == HEX)
 		calculateHexLayout();
-	else
-		calculateTextLayout();
 
 	const int visibleLines = viewport()->height() / _lineHeight;
 	verticalScrollBar()->setRange(0, qMax(0, totalLines() - visibleLines));
@@ -583,9 +576,12 @@ CLightningFastViewerWidget::Region CLightningFastViewerWidget::regionAtPos(const
 {
 	int x = pos.x() + horizontalScrollBar()->value();
 
-	if (x < _hexStart) return REGION_OFFSET;
-	if (x < _asciiStart - _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS) return REGION_HEX;
-	if (x >= _asciiStart) return REGION_ASCII;
+	if (x < _hexStart)
+		return REGION_OFFSET;
+	if (x < _asciiStart - _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS)
+		return REGION_HEX;
+	if (x >= _asciiStart)
+		return REGION_ASCII;
 	return REGION_NONE;
 }
 
@@ -620,7 +616,7 @@ qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos) const
 	}
 	else if (region == REGION_ASCII)
 	{
-		int relX = x - _asciiStart;
+		const int relX = x - _asciiStart;
 		byteInLine = relX / _charWidth;
 		byteInLine = qBound(0, byteInLine, _bytesPerLine - 1);
 	}
