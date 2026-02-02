@@ -22,7 +22,7 @@ namespace Layout {
 	static constexpr int MIN_OFFSET_DIGITS = 4;
 	static constexpr int OFFSET_SUFFIX_CHARS = 2; // ": "
 	static constexpr int HEX_CHARS_PER_BYTE = 3; // "XX "
-	static constexpr int HEX_MIDDLE_EXTRA_SPACE = 1; // Extra space after byte 7
+	static constexpr int HEX_MIDDLE_EXTRA_SPACE = 1; // Extra space after each 8 bytes
 	static constexpr int HEX_ASCII_SEPARATOR_CHARS = 2; // The separator is technically " | ",
 	// but we get the space on the left by default due to it being included with every byte via HEX_CHARS_PER_BYTE
 	static constexpr int LEFT_MARGIN_PIXELS = 2;
@@ -380,14 +380,38 @@ void CLightningFastViewerWidget::calculateHexLayout()
 	// Calculate nDigits once and cache it
 	_nDigits = static_cast<int>(qCeil(::log10(static_cast<double>(_data.size() + 1))));
 	_nDigits = qMax(Layout::MIN_OFFSET_DIGITS, _nDigits);
-	const int offsetWidth = _charWidth * (_nDigits + Layout::OFFSET_SUFFIX_CHARS) + Layout::LEFT_MARGIN_PIXELS;
 
-	// Hex area starts after offset
-	_hexStart = offsetWidth;
+	// Calculate optimal bytesPerLine that fits viewport width (must be multiple of 4)
+	const int viewportWidth = viewport()->width();
+	int optimalBytesPerLine = 4; // Minimum
+	LineLayout optimalLayout;
 
-	// ASCII area starts after hex (16 bytes * 3 chars + extra space at middle)
-	const int hexWidth = _charWidth * (_bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE);
-	_asciiStart = _hexStart + hexWidth + _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS;
+	// Try increasingly larger values (multiples of 4) until we exceed viewport width
+	for (int candidate = 4; candidate <= 64; candidate += 4)
+	{
+		optimalLayout = calculateHexLineLayout(candidate, _nDigits);
+		const int lineWidth = optimalLayout.asciiStart + optimalLayout.asciiWidth;
+		if (lineWidth <= viewportWidth)
+			optimalBytesPerLine = candidate;
+		else
+			break;
+	}
+
+	_bytesPerLine = optimalBytesPerLine;
+	_hexStart = optimalLayout.hexStart;
+	_asciiStart = optimalLayout.asciiStart;
+}
+
+CLightningFastViewerWidget::LineLayout CLightningFastViewerWidget::calculateHexLineLayout(int bytesPerLine, int nDigits) const
+{
+	LineLayout layout;
+
+	layout.hexStart = _charWidth * (nDigits + Layout::OFFSET_SUFFIX_CHARS) + Layout::LEFT_MARGIN_PIXELS;
+	layout.hexWidth = _charWidth * (bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE * ((bytesPerLine - 1) / 8));
+	layout.asciiStart = layout.hexStart + layout.hexWidth + _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS;
+	layout.asciiWidth = _charWidth * (bytesPerLine + Layout::HEX_ASCII_SEPARATOR_CHARS);
+
+	return layout;
 }
 
 void CLightningFastViewerWidget::calculateTextLayout()
@@ -440,7 +464,7 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 			painter.drawText(x - hScroll, y + fm.ascent(), hexByte);
 			x += _charWidth * Layout::HEX_CHARS_PER_BYTE;
 
-			if (i == 7)
+			if ((i % 8) == 7)
 			{
 				x += _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE;
 			}
@@ -567,12 +591,14 @@ CLightningFastViewerWidget::Region CLightningFastViewerWidget::regionAtPos(const
 
 qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos) const
 {
-	if (_data.isEmpty()) return -1;
+	if (_data.isEmpty())
+		return -1;
 
-	int line = (pos.y() / _lineHeight) + verticalScrollBar()->value();
-	if (line < 0 || line >= totalLines()) return -1;
+	const int line = (pos.y() / _lineHeight) + verticalScrollBar()->value();
+	if (line < 0 || line >= totalLines())
+		return -1;
 
-	int x = pos.x() + horizontalScrollBar()->value();
+	const int x = pos.x() + horizontalScrollBar()->value();
 	Region region = regionAtPos(pos);
 
 	qsizetype lineOffset = line * _bytesPerLine;
@@ -583,10 +609,10 @@ qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos) const
 		int relX = x - _hexStart;
 		byteInLine = relX / (_charWidth * Layout::HEX_CHARS_PER_BYTE);
 
-		// Account for extra space at position 8
-		if (byteInLine >= 8)
+		// Account for extra space every 8 bytes
+		if (byteInLine > 8)
 		{
-			relX -= _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE;
+			relX -= _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE * ((byteInLine - 1) / 8);
 			byteInLine = relX / (_charWidth * Layout::HEX_CHARS_PER_BYTE);
 		}
 

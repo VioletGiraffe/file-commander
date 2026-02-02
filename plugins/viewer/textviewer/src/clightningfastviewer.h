@@ -52,6 +52,14 @@ private:
 
 	// Hex mode methods
 	void calculateHexLayout();
+
+	struct LineLayout {
+		int hexStart = 0;
+		int hexWidth = 0;
+		int asciiStart = 0;
+		int asciiWidth = 0;
+	};
+	[[nodiscard]] LineLayout calculateHexLineLayout(int bytesPerLine, int nDigits) const;
 	void drawHexLine(QPainter& painter, qsizetype offset, int y, const QFontMetrics& fm);
 	[[nodiscard]] Region regionAtPos(const QPoint& pos) const;
 	[[nodiscard]] qsizetype hexPosToOffset(const QPoint& pos) const;
