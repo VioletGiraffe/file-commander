@@ -432,37 +432,38 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 
 	const qsizetype lineBytes = qMin(static_cast<qsizetype>(_bytesPerLine), _data.size() - offset);
 
-	// Draw hex bytes
+	QString hexByteString;
+	hexByteString.resize(2);
+
+	QPen highlightPen(palette().highlightedText().color());
+	QPen normalPen(palette().color(QPalette::Text));
+
 	int x = _hexStart;
-	for (int i = 0; i < _bytesPerLine; ++i)
+	for (qsizetype i = 0; i < lineBytes; ++i)
 	{
-		if (i < lineBytes)
+		const qsizetype byteOffset = offset + i;
+
+		if (isSelected(byteOffset))
 		{
-			const unsigned char byte = static_cast<unsigned char>(_data[offset + i]);
-			qsizetype byteOffset = offset + i;
+			QRect selRect(x - hScroll, y, _charWidth * 2, _lineHeight);
+			painter.fillRect(selRect, palette().highlight());
+			painter.setPen(highlightPen);
+		}
+		else
+		{
+			painter.setPen(normalPen);
+		}
 
-			if (isSelected(byteOffset))
-			{
-				QRect selRect(x - hScroll, y, _charWidth * 2, _lineHeight);
-				painter.fillRect(selRect, palette().highlight());
-				painter.setPen(palette().highlightedText().color());
-			}
-			else
-			{
-				painter.setPen(palette().color(QPalette::Text));
-			}
+		const uint8_t byte = static_cast<uint8_t>(_data[offset + i]);
+		hexByteString[0] = hexChars[byte >> 4];
+		hexByteString[1] = hexChars[byte & 0x0F];
 
-			QString hexByte;
-			hexByte += QChar(hexChars[byte >> 4]);
-			hexByte += QChar(hexChars[byte & 0x0F]);
+		painter.drawText(x - hScroll, y + fm.ascent(), hexByteString);
+		x += _charWidth * Layout::HEX_CHARS_PER_BYTE;
 
-			painter.drawText(x - hScroll, y + fm.ascent(), hexByte);
-			x += _charWidth * Layout::HEX_CHARS_PER_BYTE;
-
-			if ((i % 8) == 7)
-			{
-				x += _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE;
-			}
+		if ((i % 8) == 7)
+		{
+			x += _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE;
 		}
 	}
 
@@ -481,11 +482,11 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 		{
 			QRect selRect(x - hScroll, y, _charWidth, _lineHeight);
 			painter.fillRect(selRect, palette().highlight());
-			painter.setPen(palette().highlightedText().color());
+			painter.setPen(highlightPen);
 		}
 		else
 		{
-			painter.setPen(palette().color(QPalette::Text));
+			painter.setPen(normalPen);
 		}
 
 		const QChar ch = (byte >= 32 && byte <= 126) ? QChar(byte) : QChar('.');
