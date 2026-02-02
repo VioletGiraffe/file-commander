@@ -43,7 +43,7 @@ private:
 
 	// Common methods
 	[[nodiscard]] int totalLines() const;
-	void updateScrollBars();
+	void updateScrollBarsAndHexLayout();
 	void ensureVisible(qsizetype offset);
 	void copySelection();
 	void selectAll();

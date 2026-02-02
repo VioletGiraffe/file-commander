@@ -52,7 +52,7 @@ void CLightningFastViewerWidget::setData(const QByteArray& bytes)
 	if (_initialized) // The initial wrapping on first show is handled in resizeEvent, but for subsequent text changes it is needed here
 		wrapTextIfNeeded();
 
-	updateScrollBars();
+	updateScrollBarsAndHexLayout();
 	viewport()->update();
 }
 
@@ -68,7 +68,7 @@ void CLightningFastViewerWidget::setText(const QString& text)
 	if (_initialized) // The initial wrapping on first show is handled in resizeEvent, but for subsequent text changes it is needed here
 		wrapTextIfNeeded();
 
-	updateScrollBars();
+	updateScrollBarsAndHexLayout();
 	viewport()->update();
 }
 
@@ -79,7 +79,7 @@ void CLightningFastViewerWidget::setWordWrap(bool enabled)
 		_wordWrap = enabled;
 		clearWrappingData();
 		wrapTextIfNeeded();
-		updateScrollBars();
+		updateScrollBarsAndHexLayout();
 		viewport()->update();
 	}
 }
@@ -116,7 +116,7 @@ void CLightningFastViewerWidget::resizeEvent(QResizeEvent* event)
 	QAbstractScrollArea::resizeEvent(event);
 	_initialized = true;
 	wrapTextIfNeeded();
-	updateScrollBars();
+	updateScrollBarsAndHexLayout();
 }
 
 bool CLightningFastViewerWidget::event(QEvent* event)
@@ -129,7 +129,7 @@ bool CLightningFastViewerWidget::event(QEvent* event)
 		if (_initialized) // This will already be handled in resizeEvent on first show, but in case of subsequent font changes we need to re-wrap and update
 		{
 			wrapTextIfNeeded();
-			updateScrollBars();
+			updateScrollBarsAndHexLayout();
 			viewport()->update();
 		}
 		break;
@@ -528,7 +528,7 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, int lineIndex, 
 	}
 }
 
-void CLightningFastViewerWidget::updateScrollBars()
+void CLightningFastViewerWidget::updateScrollBarsAndHexLayout()
 {
 	if (_mode == HEX)
 		calculateHexLayout();
@@ -541,7 +541,7 @@ void CLightningFastViewerWidget::updateScrollBars()
 	// Horizontal scrollbar
 	if (_mode == HEX)
 	{
-		const int totalWidth = _asciiStart + _charWidth * _bytesPerLine + _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS;
+		const int totalWidth = _asciiStart + _charWidth * _bytesPerLine;
 		horizontalScrollBar()->setRange(0, qMax(0, totalWidth - viewport()->width()));
 	}
 	else
