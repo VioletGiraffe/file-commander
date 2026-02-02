@@ -815,7 +815,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 	int lastBreakPos = -1; // Last position where we could break
 	int lastBreakCharCount = 0; // Character count at last break position
 
-	for (int i = 0; i < _text.length(); ++i)
+	for (qsizetype i = 0, n = _text.length(); i < n; ++i)
 	{
 		QChar ch = _text[i];
 

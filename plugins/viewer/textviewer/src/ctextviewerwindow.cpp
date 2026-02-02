@@ -153,7 +153,9 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 			return false;
 
 		const auto dataSize = textData->size();
-		const bool useFastMode = dataSize > 1'000'000 || countNonAsciiChars(*textData) >= dataSize / 8;
+		const bool useFastMode = dataSize > 1'000'000 || _mimeType.startsWith("application") || countNonAsciiChars(*textData) >= dataSize / 8;
+		if (useFastMode)
+			return asAscii(*textData, useFastMode);
 
 		if (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive))
 			return asHtml(*textData);
@@ -207,7 +209,7 @@ bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFast
 	if (!codec)
 		return false;
 
-	const QString& text = codec->toUnicode(fileData);
+	const QString text = codec->toUnicode(fileData);
 	if (useFastMode)
 	{
 		setMode(Mode::Lightning);
@@ -227,11 +229,7 @@ bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFast
 
 bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 {
-	QTextCodec* codec = QTextCodec::codecForName("Windows-1252");
-	if (!codec)
-		return false;
-
-	const QString& text = codec->toUnicode(fileData);
+	const QString text = QString::fromLatin1(fileData);
 	if (useFastMode)
 	{
 		setMode(Mode::Lightning);
@@ -243,7 +241,7 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 		setTextAndApplyHighlighter(text);
 	}
 
-	encodingChanged(codec->name());
+	encodingChanged("ASCII");
 	actionASCII_Windows_1252->setChecked(true);
 
 	return true;
@@ -251,7 +249,7 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 
 bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 {
-	const QString& text = QString::fromUtf8(fileData);
+	const QString text = QString::fromUtf8(fileData);
 	if (useFastMode)
 	{
 		setMode(Mode::Lightning);
@@ -273,10 +271,8 @@ bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 {
 	encodingChanged("UTF-16");
 	static_assert (std::is_trivially_copyable_v<QChar>);
-	QString text;
-	text.resize(fileData.size() / 2 + 1, QChar{'\0'});
-	::memcpy(text.data(), fileData.constData(), static_cast<size_t>(fileData.size()));
-
+	
+	const QString text = QString::fromUtf16(reinterpret_cast<const char16_t*>(fileData.constData()), fileData.size() / 2);
 	if (useFastMode)
 	{
 		setMode(Mode::Lightning);

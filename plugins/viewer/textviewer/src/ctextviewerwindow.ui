@@ -162,7 +162,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;ASCII (Windows-1252)</string>
+    <string>&amp;ASCII</string>
    </property>
   </action>
   <action name="actionLine_wrap">
