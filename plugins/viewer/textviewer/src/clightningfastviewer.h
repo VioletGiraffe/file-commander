@@ -42,7 +42,7 @@ private:
 	};
 
 	// Common methods
-	[[nodiscard]] int totalLines() const;
+	[[nodiscard]] qsizetype totalLines() const;
 	void updateScrollBarsAndHexLayout();
 	void ensureVisible(qsizetype offset);
 	void copySelection();
@@ -65,31 +65,31 @@ private:
 	[[nodiscard]] qsizetype hexPosToOffset(const QPoint& pos) const;
 
 	// Text mode methods
-	void drawTextLine(QPainter& painter, int lineIndex, int y, const QFontMetrics& fm);
+	void drawTextLine(QPainter& painter, qsizetype lineIndex, int y, const QFontMetrics& fm);
 	[[nodiscard]] qsizetype textPosToOffset(const QPoint& pos) const;
 
 	void wrapTextIfNeeded();
 	void clearWrappingData();
-	[[nodiscard]] int findLineContainingOffset(qsizetype offset) const;
+	[[nodiscard]] qsizetype findLineContainingOffset(qsizetype offset) const;
 
 private:
 	Mode _mode = HEX;
 
 	// Hex mode data
 	QByteArray _data;
-	int _bytesPerLine = 16;
+	qsizetype _bytesPerLine = 16;
 
 	// Text mode data
 	QString _text;
-	std::vector<int> _lineOffsets; // Starting character offset for each wrapped line
-	std::vector<int> _lineLengths; // Length of each wrapped line
+	std::vector<qsizetype> _lineOffsets; // Starting character offset for each wrapped line
+	std::vector<qsizetype> _lineLengths; // Length of each wrapped line
 	size_t _wordWrapParamsHash = 0;
 	bool _wordWrap = true;
 
 	// Common display data
 	int _lineHeight = 0;
 	int _charWidth = 0;
-	int _tabWidthInChars = 4; // Default tab width in character positions
+	qsizetype _tabWidthInChars = 4; // Default tab width in character positions
 	QFontMetrics _fontMetrics;
 	Selection _selection;
 	bool _initialized = false;
