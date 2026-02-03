@@ -155,7 +155,7 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 			return false;
 
 		const auto dataSize = textData->size();
-		const bool useFastMode = dataSize > 1'000'000 || _mimeType.startsWith("application") || countNonAsciiChars(*textData) >= dataSize / 8;
+		const bool useFastMode = dataSize > 1'000'000 || countNonAsciiChars(*textData) >= dataSize / 8;
 		if (useFastMode)
 			return asAscii(*textData, useFastMode);
 
