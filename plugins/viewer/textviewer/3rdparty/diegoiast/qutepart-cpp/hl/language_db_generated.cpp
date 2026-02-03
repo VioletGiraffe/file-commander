@@ -1002,6 +1002,7 @@ QMap<QString, QString> create_extensionToXmlFileName() {
     extensionToXmlFileName["*.vcf"] = "vcard.xml";
     extensionToXmlFileName["*.groovy"] = "groovy.xml";
     extensionToXmlFileName["*.gradle"] = "groovy.xml";
+    extensionToXmlFileName["Jenkinsfile"] = "groovy.xml";
     extensionToXmlFileName["*.fastq"] = "fastq.xml";
     extensionToXmlFileName["*.fq"] = "fastq.xml";
     extensionToXmlFileName["*.fastq.gz"] = "fastq.xml";
@@ -1392,6 +1393,7 @@ QMap<QString, QString> create_firstLineToXmlFileName() {
     firstLineToXmlFileName["Index: *"] = "diff.xml";
     firstLineToXmlFileName["*bash"] = "bash.xml";
     firstLineToXmlFileName["*/sh*"] = "bash.xml";
+    firstLineToXmlFileName["#!groovy*"] = "groovy.xml";
     firstLineToXmlFileName["<!doctype html*"] = "html-php.xml";
     firstLineToXmlFileName["<html*"] = "html-php.xml";
     firstLineToXmlFileName["<?php*"] = "html-php.xml";
