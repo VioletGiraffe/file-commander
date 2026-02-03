@@ -194,6 +194,7 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 		}
 
 		encodingChanged(result->encoding, result->language);
+		actionAuto_detect_encoding->setChecked(true);
 		return true;
 	}
 
