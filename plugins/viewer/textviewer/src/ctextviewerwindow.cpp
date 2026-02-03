@@ -72,6 +72,8 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	CR() = connect(actionClose, &QAction::triggered, this, &QDialog::close);
 
 	CR() = connect(actionFind, &QAction::triggered, this, [this]() {
+		if (!_textBrowser)
+			return;
 		setupFindDialog();
 		_findDialog->exec();
 	});
@@ -375,6 +377,9 @@ void CTextViewerWindow::find()
 
 void CTextViewerWindow::findNext()
 {
+	if (!_textBrowser)
+		return;
+
 	setupFindDialog();
 
 	const QString expression = _findDialog->searchExpression();
