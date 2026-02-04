@@ -2,7 +2,6 @@
 #include "cfilesystemobject.h"
 
 #include <atomic>
-#include <deque>
 #include <stdint.h>
 #include <vector>
 
@@ -11,7 +10,7 @@ struct FileStatistics
 	inline bool operator==(const FileStatistics& other) const noexcept = default;
 	[[nodiscard]] inline bool empty() const { return *this == FileStatistics{}; }
 
-	std::deque<CFileSystemObject> largestFiles;
+	std::vector<CFileSystemObject> largestFiles;
 
 	uint64_t files = 0;
 	uint64_t folders = 0;
