@@ -3,7 +3,7 @@ CONFIG -= c++2a
 CONFIG += strict_c++ c++2b
 
 mac*{
-	exists(/opt/homebrew/bin/ccache)|exists(/usr/local/bin/ccache):CONFIG += ccache
+	#exists(/usr/local/bin/ccache):CONFIG += ccache
 }
 
 linux*{

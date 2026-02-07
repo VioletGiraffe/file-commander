@@ -16,6 +16,7 @@ mac*|linux*|freebsd{
 
 LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcpputils -lqtutils
 
+message(arch: $$QT_ARCH)
 !win*:!contains(QT_ARCH, arm.*): QMAKE_CXXFLAGS += -msse4.1
 
 HEADERS += \
