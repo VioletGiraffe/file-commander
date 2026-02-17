@@ -151,7 +151,7 @@
   </action>
   <action name="actionAuto_detect_encoding">
    <property name="checkable">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="text">
     <string>Auto detect encoding</string>

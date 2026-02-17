@@ -121,6 +121,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	});
 
 	QActionGroup * group = new QActionGroup(this);
+	group->setExclusive(true);
 	group->addAction(actionASCII_Windows_1252);
 	group->addAction(actionSystemLocale);
 	group->addAction(actionUTF_8);
@@ -196,7 +197,15 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 		}
 
 		encodingChanged(result->encoding, result->language);
-		actionAuto_detect_encoding->setChecked(true);
+		// Guess which matching encoding could be marked as selected in the menu
+		if (result->encoding.compare("utf-8", Qt::CaseInsensitive) == 0)
+			actionUTF_8->setChecked(true);
+		else if (result->encoding.compare("utf-16", Qt::CaseInsensitive) == 0)
+			actionUTF_16->setChecked(true);
+		else if (result->encoding.contains("1251") || result->encoding.contains("1252"))
+			actionASCII_Windows_1252->setChecked(true);
+		else if (const auto systemCodecName = QTextCodec::codecForLocale()->name(); result->encoding.compare(systemCodecName, Qt::CaseInsensitive) == 0)
+			actionSystemLocale->setChecked(true);
 		return true;
 	}
 
@@ -502,6 +511,7 @@ void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 		const QString langId = Qutepart::chooseLanguageXmlFileName(_mimeType, QString(), _sourceFilePath, text.left(100));
 		qInfo() << "Language detected:" << langId;
 
+		resetHighlighter();
 		_highlighter = static_cast<Qutepart::SyntaxHighlighter*>(Qutepart::makeHighlighter(_textView->document(), langId));
 		if (_highlighter)
 		{
