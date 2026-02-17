@@ -60,6 +60,8 @@ private:
 	void setTextAndApplyHighlighter(const QString& text);
 	void resetHighlighter();
 
+	void updateContentTypeLabel();
+
 private:
 	QString _sourceFilePath;
 	QString _mimeType;
@@ -67,6 +69,7 @@ private:
 	std::unique_ptr<CTextEditWithImageSupport> _textView;
 	CFindDialog* _findDialog = nullptr;
 	QLabel* _encodingLabel = nullptr;
+	QLabel* _contentTypeLabel = nullptr;
 
 	Qutepart::SyntaxHighlighter* _highlighter = nullptr;
 	std::unique_ptr<Qutepart::Theme> _theme;

@@ -137,7 +137,13 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	CR() = connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater);
 
 	_encodingLabel = new QLabel(this);
-	QMainWindow::statusBar()->addWidget(_encodingLabel);
+	_contentTypeLabel = new QLabel(this);
+	_encodingLabel->setContentsMargins(4, 0, 4, 0);
+	_contentTypeLabel->setContentsMargins(4, 0, 4, 0);
+
+	auto* status = Ui::CTextViewerWindow::statusBar;
+	status->addWidget(_encodingLabel);
+	status->addWidget(_contentTypeLabel);
 }
 
 CTextViewerWindow::~CTextViewerWindow() = default;
@@ -492,6 +498,8 @@ void CTextViewerWindow::setMode(Mode mode)
 	{
 		resetHighlighter();
 		_textView.reset();
+		updateContentTypeLabel();
+
 		if (!_lightningViewer)
 		{
 			_lightningViewer = std::make_unique<CLightningFastViewerWidget>(this);
@@ -522,6 +530,7 @@ void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 		}
 	}
 
+	updateContentTypeLabel();
 	_textView->setPlainText(text);
 }
 
@@ -534,4 +543,13 @@ void CTextViewerWindow::resetHighlighter()
 	delete _highlighter;
 	_highlighter = nullptr;
 	_theme.reset();
+}
+
+void CTextViewerWindow::updateContentTypeLabel()
+{
+	QString format = _highlighter ? _highlighter->languageName() : QString{};
+	if (format.isEmpty())
+		format = _mimeType;
+
+	_contentTypeLabel->setText(tr("Content format: ") + format);
 }

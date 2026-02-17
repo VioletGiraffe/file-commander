@@ -29,6 +29,8 @@ class SyntaxHighlighter : public QSyntaxHighlighter {
         rehighlight();
     }
 
+	inline QString languageName() const { return language->getName(); }
+
   protected:
     void highlightBlock(const QString &text) override;
     QSharedPointer<Language> language;
