@@ -13,10 +13,10 @@ class CLightningFastViewerWidget;
 class CFindDialog;
 
 class QLabel;
-class QSyntaxHighlighter;
 
 namespace Qutepart {
 	class Theme;
+	class SyntaxHighlighter;
 	QString chooseLanguageXmlFileName(const QString& mimeType, const QString& languageName, const QString& sourceFilePath, const QString& firstLine);
 }
 
@@ -58,15 +58,17 @@ private:
 	void setMode(Mode mode);
 
 	void setTextAndApplyHighlighter(const QString& text);
+	void resetHighlighter();
 
 private:
 	QString _sourceFilePath;
 	QString _mimeType;
 
-	std::unique_ptr<CTextEditWithImageSupport> _textBrowser;
+	std::unique_ptr<CTextEditWithImageSupport> _textView;
 	CFindDialog* _findDialog = nullptr;
 	QLabel* _encodingLabel = nullptr;
 
+	Qutepart::SyntaxHighlighter* _highlighter = nullptr;
 	std::unique_ptr<Qutepart::Theme> _theme;
 
 	std::unique_ptr<CLightningFastViewerWidget> _lightningViewer;

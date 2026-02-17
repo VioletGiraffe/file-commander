@@ -72,7 +72,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	CR() = connect(actionClose, &QAction::triggered, this, &QDialog::close);
 
 	CR() = connect(actionFind, &QAction::triggered, this, [this]() {
-		if (!_textBrowser)
+		if (!_textView)
 			return;
 		setupFindDialog();
 		_findDialog->exec();
@@ -298,8 +298,9 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 	if (!result || result->text.isEmpty())
 		return false;
 
+	resetHighlighter();
 	setMode(Mode::Full);
-	_textBrowser->setHtml(result->text);
+	_textView->setHtml(result->text);
 	actionHTML->setChecked(true);
 	return true;
 }
@@ -310,9 +311,10 @@ bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 	if (!result || result->text.isEmpty())
 		return false;
 
+	resetHighlighter();
 	encodingChanged(result->encoding, result->language);
 	setMode(Mode::Full);
-	_textBrowser->setMarkdown(result->text);
+	_textView->setMarkdown(result->text);
 	actionMarkdown->setChecked(true);
 	return true;
 }
@@ -371,13 +373,13 @@ void CTextViewerWindow::find()
 {
 	setupFindDialog();
 
-	_textBrowser->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
+	_textView->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
 	findNext();
 }
 
 void CTextViewerWindow::findNext()
 {
-	if (!_textBrowser)
+	if (!_textView)
 		return;
 
 	setupFindDialog();
@@ -394,12 +396,12 @@ void CTextViewerWindow::findNext()
 	if (_findDialog->wholeWords())
 		flags |= QTextDocument::FindWholeWords;
 
-	const QTextCursor startCursor = _textBrowser->textCursor();
+	const QTextCursor startCursor = _textView->textCursor();
 	bool found = false;
 	if (_findDialog->regex())
-		found = _textBrowser->find(QRegularExpression(_findDialog->searchExpression()), flags);
+		found = _textView->find(QRegularExpression(_findDialog->searchExpression()), flags);
 	else
-		found = _textBrowser->find(_findDialog->searchExpression(), flags);
+		found = _textView->find(_findDialog->searchExpression(), flags);
 
 	if(!found && (startCursor.isNull() || startCursor.position() == 0))
 		QMessageBox::information(this, tr("Not found"), tr("Expression \"%1\" not found").arg(expression));
@@ -435,8 +437,8 @@ void CTextViewerWindow::encodingChanged(const QString& encoding, const QString& 
 
 void CTextViewerWindow::setLineWrap(bool wrap)
 {
-	if (_textBrowser)
-		_textBrowser->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
+	if (_textView)
+		_textView->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
 	if (_lightningViewer)
 		_lightningViewer->setWordWrap(wrap);
 }
@@ -465,21 +467,22 @@ void CTextViewerWindow::setMode(Mode mode)
 	if (mode == Mode::Full)
 	{
 		_lightningViewer.reset();
-		if (!_textBrowser)
+		if (!_textView)
 		{
-			_textBrowser = std::make_unique<CTextEditWithImageSupport>(this);
-			_textBrowser->setReadOnly(true);
-			_textBrowser->setUndoRedoEnabled(false);
-			_textBrowser->setTabStopDistance(static_cast<qreal>(4 * _textBrowser->fontMetrics().horizontalAdvance(' ')));
-			_textBrowser->setAcceptRichText(true);
+			_textView = std::make_unique<CTextEditWithImageSupport>(this);
+			_textView->setReadOnly(true);
+			_textView->setUndoRedoEnabled(false);
+			_textView->setTabStopDistance(static_cast<qreal>(4 * _textView->fontMetrics().horizontalAdvance(' ')));
+			_textView->setAcceptRichText(true);
 
-			setFixedFont(*_textBrowser);
-			setCentralWidget(_textBrowser.get());
+			setFixedFont(*_textView);
+			setCentralWidget(_textView.get());
 		}
 	}
 	else
 	{
-		_textBrowser.reset();
+		resetHighlighter();
+		_textView.reset();
 		if (!_lightningViewer)
 		{
 			_lightningViewer = std::make_unique<CLightningFastViewerWidget>(this);
@@ -499,15 +502,26 @@ void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 		const QString langId = Qutepart::chooseLanguageXmlFileName(_mimeType, QString(), _sourceFilePath, text.left(100));
 		qInfo() << "Language detected:" << langId;
 
-		auto* highlighter = static_cast<Qutepart::SyntaxHighlighter*>(Qutepart::makeHighlighter(_textBrowser->document(), langId));
-		if (highlighter)
+		_highlighter = static_cast<Qutepart::SyntaxHighlighter*>(Qutepart::makeHighlighter(_textView->document(), langId));
+		if (_highlighter)
 		{
 			_theme = std::make_unique<Qutepart::Theme>();
 			QStyleHints* styleHints = QApplication::styleHints();
 			_theme->loadTheme(styleHints && styleHints->colorScheme() == Qt::ColorScheme::Dark ? ":/qutepart/themes/monokai.theme" : ":/qutepart/themes/homunculus.theme");
-			highlighter->setTheme(_theme.get());
+			_highlighter->setTheme(_theme.get());
 		}
 	}
 
-	_textBrowser->setPlainText(text);
+	_textView->setPlainText(text);
+}
+
+void CTextViewerWindow::resetHighlighter()
+{
+	if (!_highlighter)
+		return;
+
+	_highlighter->setDocument(nullptr);
+	delete _highlighter;
+	_highlighter = nullptr;
+	_theme.reset();
 }
