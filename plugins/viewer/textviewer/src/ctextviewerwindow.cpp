@@ -40,11 +40,6 @@ inline bool isNonAscii(char16_t c)
 	return c != '\n' && c != '\r' && c != '\t';
 }
 
-inline qsizetype countNonAsciiChars(const QByteArray& data)
-{
-	return (qsizetype)std::count_if(data.begin(), data.end(), &isNonAscii);
-}
-
 inline qsizetype countNonAsciiChars(const QString& text)
 {
 	return (qsizetype)std::count_if(text.begin(), text.end(), [](QChar c) {
@@ -162,18 +157,17 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 			return false;
 
 		const auto dataSize = textData->size();
-		const bool useFastMode = dataSize > 1'000'000 || countNonAsciiChars(*textData) >= dataSize / 8;
+		const bool useFastMode = dataSize > 1'000'000;
 		if (useFastMode)
 			return asAscii(*textData, useFastMode);
 
-		if (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive))
+		if (!useFastMode && (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive)))
 			return asHtml(*textData);
 		else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive) && !useFastMode)
 			return asMarkdown(*textData);
 		else if (!useFastMode && (_mimeType.contains(QStringLiteral("text")) || _mimeType.isEmpty()))
 			return asDetectedAutomatically(*textData, useFastMode);
-
-		if (asUtf8(*textData, useFastMode))
+		else if (asUtf8(*textData, useFastMode))
 			return true;
 		else
 			return asAscii(*textData, useFastMode);
@@ -267,7 +261,15 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 
 bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 {
-	const QString text = QString::fromUtf8(fileData);
+	QTextCodec* codec = QTextCodec::codecForName("UTF-8");
+	if (!codec)
+		return false;
+
+	QTextCodec::ConverterState state;
+	QString text = codec->toUnicode(fileData.constData(), (int)fileData.size(), &state);
+	if (state.invalidChars > 0)
+		return false;
+
 	if (useFastMode)
 	{
 		setMode(Mode::Lightning);
