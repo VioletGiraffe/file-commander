@@ -5,7 +5,6 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QItemSelection>
-#include <QShortcut>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
@@ -93,7 +92,7 @@ private slots:
 	void filterTextConfirmed(const QString& filterText);
 	void copySelectionToClipboard() const;
 	void cutSelectionToClipboard() const;
-	void pasteSelectionFromClipboard();
+	void pasteSelectionFromClipboard(bool specialPaste = false);
 	void pathFromHistoryActivated(QString path);
 
 private:
@@ -111,7 +110,7 @@ private:
 
 	void updateCurrentVolumeButtonAndInfoLabel();
 
-	[[nodiscard]] bool pasteImage(const QImage& image);
+	[[nodiscard]] bool pasteImage(const QImage& image, bool lossyCompression);
 
 private:
 	CFileListFilterDialog          * _filterDialog = nullptr;
@@ -124,12 +123,6 @@ private:
 	CFileListModel                * _model = nullptr;
 	CFileListSortFilterProxyModel * _sortModel = nullptr;
 	Panel                           _panelPosition = Panel::UnknownPanel;
-
-	QShortcut                       _calcDirSizeShortcut;
-	QShortcut                       _selectCurrentItemShortcut;
-	QShortcut                       _copyShortcut;
-	QShortcut                       _cutShortcut;
-	QShortcut                       _pasteShortcut;
 
 	QModelIndex _previousCurrentItem;
 };

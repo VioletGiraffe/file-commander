@@ -29,6 +29,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPushButton>
+#include <QShortcut>
 #include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
 
@@ -37,12 +38,7 @@ RESTORE_COMPILER_WARNINGS
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	QWidget(parent),
-	ui(new Ui::CPanelWidget),
-	_calcDirSizeShortcut(QKeySequence(Qt::Key_Space), this, SLOT(onSpacePressed()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_selectCurrentItemShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_copyShortcut(QKeySequence(QSL("Ctrl+C")), this, SLOT(copySelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_cutShortcut(QKeySequence(QSL("Ctrl+X")), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut),
-	_pasteShortcut(QKeySequence(QSL("Ctrl+V")), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut)
+	ui(new Ui::CPanelWidget)
 {
 	ui->setupUi(this);
 
@@ -76,6 +72,13 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	ui->_list->addEventObserver(this);
 
 	onSettingsChanged();
+
+	new QShortcut(QKeySequence(Qt::Key_Space), this, SLOT(onSpacePressed()), nullptr, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(QSL("Ctrl+C")), this, SLOT(copySelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(QSL("Ctrl+X")), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(QSL("Ctrl+V")), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(QSL("Ctrl+Shift+V")), this, [this] { pasteSelectionFromClipboard(true); }, Qt::WidgetWithChildrenShortcut);
 }
 
 CPanelWidget::~CPanelWidget() noexcept
@@ -607,15 +610,15 @@ void CPanelWidget::cutSelectionToClipboard() const
 #endif
 }
 
-void CPanelWidget::pasteSelectionFromClipboard()
+void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 {
 	QClipboard * clipBoard = QApplication::clipboard();
 	// If the clipboard contains an image (not a file), paste it into a file
 	if (clipBoard && clipBoard->mimeData()->hasImage())
 	{
 		QImage image = qvariant_cast<QImage>(clipBoard->mimeData()->imageData());
-		if (!image.isNull())
-			assert_r(pasteImage(image));
+		assert_r(pasteImage(image, specialPaste));
+		return;
 	}
 
 #ifndef _WIN32
@@ -925,16 +928,17 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 	}
 }
 
-bool CPanelWidget::pasteImage(const QImage& image)
+bool CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
 {
 	const QString currentDirPath = currentDirPathNative();
 	assert(currentDirPath.endsWith(nativeSeparator()));
 
-	QString imagePath = currentDirPath + "clipboard.png";
-	for (int i = 1; CFileSystemObject{ imagePath }.exists(); ++i)
+	const QString imagePathTemplate = currentDirPath + (lossyCompression ? "%1.jpg" : "%1.png");
+	QString imagePath = imagePathTemplate.arg("clipboard");
+	for (int i = 1; QFile::exists(imagePath); ++i)
 	{
-		imagePath = currentDirPath + "clipboard(" + QString::number(i) + ").png";
+		imagePath = imagePathTemplate.arg("clipboard_" + QString::number(i));
 	}
 
-	return image.save(imagePath, "png");
+	return lossyCompression ? image.save(imagePath, "jpg", 70) : image.save(imagePath, "png");
 }

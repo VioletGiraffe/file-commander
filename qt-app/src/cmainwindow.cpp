@@ -40,6 +40,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QScreen>
+#include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <QWidgetList>
