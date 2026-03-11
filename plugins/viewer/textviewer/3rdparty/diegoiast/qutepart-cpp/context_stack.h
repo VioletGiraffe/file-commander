@@ -15,8 +15,8 @@ class Context;
 struct ContextStackItem;
 class ContextStack;
 
-uint qHash(const ContextStackItem &key, uint seed = 0);
-uint qHash(const ContextStack &key, uint seed = 0);
+size_t qHash(const ContextStackItem &key, size_t seed = 0);
+size_t qHash(const ContextStack &key, size_t seed = 0);
 
 struct ContextStackItem {
     ContextStackItem();
@@ -52,7 +52,7 @@ class ContextStack {
   private:
     QVector<ContextStackItem> items;
 
-    friend uint qHash(const ContextStack &key, uint seed);
+    friend size_t qHash(const ContextStack &key, size_t seed);
 };
 
 } // namespace Qutepart

@@ -50,24 +50,24 @@ void Context::printDescription(QTextStream &out) const {
 
 QString Context::name() const { return _name; }
 
-void Context::setTheme(const Theme *theme) {
-    style.setTheme(theme);
+void Context::setTheme(const Theme *th) {
+    style.setTheme(th);
 
     if (_lineEndContext.context()) {
-        _lineEndContext.context()->setTheme(theme);
+        _lineEndContext.context()->setTheme(th);
     }
     if (_lineBeginContext.context()) {
-        _lineBeginContext.context()->setTheme(theme);
+        _lineBeginContext.context()->setTheme(th);
     }
     if (_lineEmptyContext.context()) {
-        _lineEmptyContext.context()->setTheme(theme);
+        _lineEmptyContext.context()->setTheme(th);
     }
     if (fallthroughContext.context()) {
-        fallthroughContext.context()->setTheme(theme);
+        fallthroughContext.context()->setTheme(th);
     }
 
     for (auto &rule : rules) {
-        rule->setTheme(theme);
+        rule->setTheme(th);
     }
 }
 
