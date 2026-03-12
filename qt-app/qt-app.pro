@@ -162,6 +162,7 @@ win32*:!*msvc2012:*msvc* {
 
 
 mac*|linux*|freebsd{
+	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libthin_io.a $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a
 	PRE_TARGETDEPS += $${DESTDIR}/libcore.a
 }
 
