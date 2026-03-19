@@ -37,8 +37,8 @@ Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:Ad
 Source: binaries/64/*; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode
 
 ;3rdparty
-Source: binaries/64/Qt/*; DestDir: {app}; Flags: ignoreversion recursesubdirs; Check: Is64BitInstallMode
-Source: binaries/64/vc_redist/*; DestDir: "{tmp}"; Flags: deleteafterinstall nocompression
+Source: binaries/64/Qt/*; DestDir: {app}; Flags: recursesubdirs; Check: Is64BitInstallMode
+Source: binaries/64/vc_redist/*; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Icons]
 Name: {group}\File Commander; Filename: {app}\FileCommander.exe;
