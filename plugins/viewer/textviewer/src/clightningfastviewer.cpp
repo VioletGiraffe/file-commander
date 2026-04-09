@@ -940,7 +940,7 @@ void CLightningFastViewerWidget::moveCursor(QTextCursor::MoveOperation operation
 }
 
 // Generic search helper: handles wrap-around and whole-word filtering.
-// Matcher signature: (qsizetype from, bool backward) -> QPair<qsizetype /*pos*/, qsizetype /*len*/>
+// Matcher signature: (qsizetype from, bool backward) -> pair<qsizetype /*pos*/, qsizetype /*len*/>
 // Returns {-1, 0} when no match is found.
 template <typename Matcher>
 static std::pair<qsizetype, qsizetype> searchWithWrapAround(
@@ -952,7 +952,7 @@ static std::pair<qsizetype, qsizetype> searchWithWrapAround(
 		return left && right;
 	};
 
-	auto searchFrom = [&](qsizetype from) -> QPair<qsizetype, qsizetype> {
+	auto searchFrom = [&](qsizetype from) -> std::pair<qsizetype, qsizetype> {
 		qsizetype pos = from;
 		while (true)
 		{
@@ -979,7 +979,7 @@ bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFla
 	if (haystack.isEmpty())
 		return false;
 
-	auto matcher = [&](qsizetype from, bool bwd) -> QPair<qsizetype, qsizetype> {
+	auto matcher = [&](qsizetype from, bool bwd) -> std::pair<qsizetype, qsizetype> {
 		const qsizetype pos = bwd ? haystack.lastIndexOf(exp, from, cs) : haystack.indexOf(exp, from, cs);
 		return { pos, exp.size() };
 	};
@@ -1016,16 +1016,16 @@ bool CLightningFastViewerWidget::find(const QRegularExpression& exp, QTextDocume
 	if (haystack.isEmpty())
 		return false;
 
-	auto matcher = [&](qsizetype from, bool bwd) -> QPair<qsizetype, qsizetype> {
+	auto matcher = [&](qsizetype from, bool bwd) -> std::pair<qsizetype, qsizetype> {
 		if (!bwd)
 		{
 			const QRegularExpressionMatch m = rx.match(haystack, from);
-			return m.hasMatch() ? QPair{ m.capturedStart(), m.capturedLength() } : QPair{ qsizetype(-1), qsizetype(0) };
+			return m.hasMatch() ? std::pair{ m.capturedStart(), m.capturedLength() } : std::pair{ qsizetype(-1), qsizetype(0) };
 		}
 		else
 		{
 			// Qt has no lastIndexOf for regex; iterate forward and keep the rightmost match <= from
-			QPair<qsizetype, qsizetype> last{ -1, 0 };
+			std::pair<qsizetype, qsizetype> last{ -1, 0 };
 			for (auto it = rx.globalMatch(haystack); it.hasNext(); )
 			{
 				const QRegularExpressionMatch m = it.next();
