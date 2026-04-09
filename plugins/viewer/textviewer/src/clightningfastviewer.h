@@ -3,6 +3,9 @@
 #include <QAbstractScrollArea>
 #include <QByteArray>
 #include <QFontMetrics>
+#include <QRegularExpression>
+#include <QTextCursor>
+#include <QTextDocument>
 
 #include <vector>
 
@@ -16,6 +19,11 @@ public:
 	void setData(const QByteArray& bytes);
 	void setText(const QString& text);
 	void setWordWrap(bool enabled);
+
+	bool find(const QString& exp, QTextDocument::FindFlags options = {});
+	bool find(const QRegularExpression& exp, QTextDocument::FindFlags options = {});
+	void moveCursor(QTextCursor::MoveOperation operation, QTextCursor::MoveMode mode = QTextCursor::MoveAnchor);
+	int selectionStart() const;
 
 protected:
 	void paintEvent(QPaintEvent*) override;

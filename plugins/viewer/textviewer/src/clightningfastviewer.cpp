@@ -12,6 +12,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QRegularExpression>
 #include <QScrollBar>
 #include <QtMath>
 
@@ -922,6 +923,137 @@ qsizetype CLightningFastViewerWidget::findLineContainingOffset(qsizetype offset)
 		}
 	}
 	return -1;
+}
+
+void CLightningFastViewerWidget::moveCursor(QTextCursor::MoveOperation operation, QTextCursor::MoveMode mode)
+{
+	const qsizetype dataSize = (_mode == HEX) ? _data.size() : _text.size();
+	const qsizetype targetOffset = (operation == QTextCursor::Start) ? 0 : qMax(qsizetype(0), dataSize - 1);
+
+	if (mode == QTextCursor::MoveAnchor)
+		_selection.start = targetOffset;
+	_selection.end = targetOffset;
+	_selection.region = REGION_ASCII;
+
+	ensureVisible(targetOffset);
+	viewport()->update();
+}
+
+// Generic search helper: handles wrap-around and whole-word filtering.
+// Matcher signature: (qsizetype from, bool backward) -> QPair<qsizetype /*pos*/, qsizetype /*len*/>
+// Returns {-1, 0} when no match is found.
+template <typename Matcher>
+static std::pair<qsizetype, qsizetype> searchWithWrapAround(
+	const QString& haystack, qsizetype currentPos, bool backward, bool wholeWords, Matcher matcher)
+{
+	auto isWholeWord = [&](qsizetype pos, qsizetype len) {
+		const bool left = (pos == 0) || !haystack[pos - 1].isLetterOrNumber();
+		const bool right = (pos + len >= haystack.size()) || !haystack[pos + len].isLetterOrNumber();
+		return left && right;
+	};
+
+	auto searchFrom = [&](qsizetype from) -> QPair<qsizetype, qsizetype> {
+		qsizetype pos = from;
+		while (true)
+		{
+			auto [matchPos, matchLen] = matcher(pos, backward);
+			if (matchPos < 0 || !wholeWords || isWholeWord(matchPos, matchLen))
+				return { matchPos, matchLen };
+			pos = backward ? matchPos - 1 : matchPos + 1;
+		}
+	};
+
+	return searchFrom(backward ? currentPos - 1 : currentPos + 1);
+}
+
+bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFlags options)
+{
+	if (exp.isEmpty())
+		return false;
+
+	const bool backward = options & QTextDocument::FindBackward;
+	const bool wholeWords = options & QTextDocument::FindWholeWords;
+	const Qt::CaseSensitivity cs = (options & QTextDocument::FindCaseSensitively) ? Qt::CaseSensitive : Qt::CaseInsensitive;
+
+	const QString& haystack = (_mode == TEXT) ? _text : QString::fromLatin1(_data);
+	if (haystack.isEmpty())
+		return false;
+
+	auto matcher = [&](qsizetype from, bool bwd) -> QPair<qsizetype, qsizetype> {
+		const qsizetype pos = bwd ? haystack.lastIndexOf(exp, from, cs) : haystack.indexOf(exp, from, cs);
+		return { pos, exp.size() };
+	};
+
+	const qsizetype currentPos = _selection.isValid() ? _selection.selStart() : 0;
+	const auto [matchPos, matchLen] = searchWithWrapAround(haystack, currentPos, backward, wholeWords, matcher);
+	if (matchPos < 0)
+		return false;
+
+	_selection.start = matchPos;
+	_selection.end = matchPos + matchLen - 1;
+	_selection.region = REGION_ASCII;
+	ensureVisible(matchPos);
+	viewport()->update();
+	return true;
+}
+
+bool CLightningFastViewerWidget::find(const QRegularExpression& exp, QTextDocument::FindFlags options)
+{
+	if (!exp.isValid() || exp.pattern().isEmpty())
+		return false;
+
+	const bool backward = options & QTextDocument::FindBackward;
+	const bool wholeWords = options & QTextDocument::FindWholeWords;
+
+	// Enforce the case-sensitivity flag by overriding it in the regex
+	QRegularExpression rx = exp;
+	if (options & QTextDocument::FindCaseSensitively)
+		rx.setPatternOptions(rx.patternOptions() & ~QRegularExpression::CaseInsensitiveOption);
+	else
+		rx.setPatternOptions(rx.patternOptions() | QRegularExpression::CaseInsensitiveOption);
+
+	const QString& haystack = (_mode == TEXT) ? _text : QString::fromLatin1(_data);
+	if (haystack.isEmpty())
+		return false;
+
+	auto matcher = [&](qsizetype from, bool bwd) -> QPair<qsizetype, qsizetype> {
+		if (!bwd)
+		{
+			const QRegularExpressionMatch m = rx.match(haystack, from);
+			return m.hasMatch() ? QPair{ m.capturedStart(), m.capturedLength() } : QPair{ qsizetype(-1), qsizetype(0) };
+		}
+		else
+		{
+			// Qt has no lastIndexOf for regex; iterate forward and keep the rightmost match <= from
+			QPair<qsizetype, qsizetype> last{ -1, 0 };
+			for (auto it = rx.globalMatch(haystack); it.hasNext(); )
+			{
+				const QRegularExpressionMatch m = it.next();
+				if (m.capturedStart() <= from)
+					last = { m.capturedStart(), m.capturedLength() };
+				else
+					break;
+			}
+			return last;
+		}
+	};
+
+	const qsizetype currentPos = _selection.isValid() ? _selection.selStart() : 0;
+	const auto [matchPos, matchLen] = searchWithWrapAround(haystack, currentPos, backward, wholeWords, matcher);
+	if (matchPos < 0)
+		return false;
+
+	_selection.start = matchPos;
+	_selection.end = matchPos + matchLen - 1;
+	_selection.region = REGION_ASCII;
+	ensureVisible(matchPos);
+	viewport()->update();
+	return true;
+}
+
+int CLightningFastViewerWidget::selectionStart() const
+{
+	return _selection.isValid() ? (int)_selection.selStart() : -1;
 }
 
 void CLightningFastViewerWidget::updateCursorShape(const QPoint& pos)

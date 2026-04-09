@@ -67,8 +67,6 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	CR() = connect(actionClose, &QAction::triggered, this, &QDialog::close);
 
 	CR() = connect(actionFind, &QAction::triggered, this, [this]() {
-		if (!_textView)
-			return;
 		setupFindDialog();
 		_findDialog->exec();
 	});
@@ -389,16 +387,16 @@ std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeText(
 void CTextViewerWindow::find()
 {
 	setupFindDialog();
+	if (_textView)
+		_textView->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
+	else if (_lightningViewer)
+		_lightningViewer->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
 
-	_textView->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
 	findNext();
 }
 
 void CTextViewerWindow::findNext()
 {
-	if (!_textView)
-		return;
-
 	setupFindDialog();
 
 	const QString expression = _findDialog->searchExpression();
@@ -413,16 +411,25 @@ void CTextViewerWindow::findNext()
 	if (_findDialog->wholeWords())
 		flags |= QTextDocument::FindWholeWords;
 
-	const QTextCursor startCursor = _textView->textCursor();
+	int initialPosition = 0;
+	if (_textView)
+		initialPosition = _textView->textCursor().isNull() ? -1 : _textView->textCursor().position();
+	else
+		initialPosition = _lightningViewer->selectionStart();
+
+	const auto run_search = [this](auto&& expression, auto&& flags) -> bool {
+		return _textView ? _textView->find(expression, flags) : _lightningViewer->find(expression, flags);
+	};
+
 	bool found = false;
 	if (_findDialog->regex())
-		found = _textView->find(QRegularExpression(_findDialog->searchExpression()), flags);
+		found = run_search(QRegularExpression(_findDialog->searchExpression()), flags);
 	else
-		found = _textView->find(_findDialog->searchExpression(), flags);
+		found = run_search(_findDialog->searchExpression(), flags);
 
-	if(!found && (startCursor.isNull() || startCursor.position() == 0))
+	if (!found && (initialPosition == -1 || initialPosition == 0))
 		QMessageBox::information(this, tr("Not found"), tr("Expression \"%1\" not found").arg(expression));
-	else if (!found && startCursor.position() > 0)
+	else if (!found && initialPosition > 0)
 	{
 		if (QMessageBox::question(this, tr("Not found"), _findDialog->searchBackwards() ? tr("Beginning of file reached, do you want to restart search from the end?") : tr("End of file reached, do you want to restart search from the top?")) == QMessageBox::Yes)
 			find();
