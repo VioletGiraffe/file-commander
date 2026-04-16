@@ -139,7 +139,7 @@ bool CFileSearchEngine::searchInProgress() const
 }
 
 bool CFileSearchEngine::search(
-	const QString& what, bool subjectCaseSensitive,
+	const QStringList& filters, bool subjectCaseSensitive,
 	const QStringList& where,
 	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
 	FileSearchListener* listener)
@@ -150,11 +150,11 @@ bool CFileSearchEngine::search(
 		return true;
 	}
 
-	if (what.isEmpty() || where.empty())
+	if (filters.isEmpty() || where.empty())
 		return false;
 
 	_workerThread.exec([=, this] {
-		searchThread(what, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords, contentsIsRegex, listener);
+		searchThread(filters, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords, contentsIsRegex, listener);
 	});
 
 	return true;
@@ -166,7 +166,7 @@ void CFileSearchEngine::stopSearching()
 }
 
 void CFileSearchEngine::searchThread(
-	const QString& what, bool subjectCaseSensitive,
+	const QStringList& filters, bool subjectCaseSensitive,
 	const QStringList& where,
 	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
 	FileSearchListener* listener) noexcept
@@ -177,16 +177,20 @@ void CFileSearchEngine::searchThread(
 	CTimeElapsed timer;
 	timer.start();
 
-	const bool noFileNameFilter = (what == '*' || what.isEmpty());
+	const bool noFileNameFilter = (filters.isEmpty() || filters.front() == '*');
 
-	QRegularExpression queryRegExp;
+	std::vector<QRegularExpression> filterExpressions;
 	if (!noFileNameFilter)
 	{
-		queryRegExp.setPattern(queryToRegex(what, true));
-		assert_r(queryRegExp.isValid());
+		for (const QString& filterString : filters)
+		{
+			auto& queryRegExp = filterExpressions.emplace_back();
+			queryRegExp.setPattern(queryToRegex(filterString, true));
+			assert_r(queryRegExp.isValid());
 
-		if (!subjectCaseSensitive)
-			queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+			if (!subjectCaseSensitive)
+				queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+		}
 	}
 
 	const bool searchByContents = !contentsToFind.isEmpty();
@@ -236,7 +240,18 @@ void CFileSearchEngine::searchThread(
 				if (searchByContents && !item.isFile())
 					return;
 
-				const bool nameMatches = noFileNameFilter || queryRegExp.match(item.fullName()).hasMatch();
+				bool nameMatches = noFileNameFilter;
+				if (!noFileNameFilter)
+				{
+					for (const auto& regexp : filterExpressions)
+					{
+						if (regexp.match(item.fullName()).hasMatch())
+						{
+							nameMatches = true;
+							break;
+						}
+					}
+				}
 
 				if (!nameMatches)
 					return;

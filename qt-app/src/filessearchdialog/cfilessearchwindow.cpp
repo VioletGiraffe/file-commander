@@ -148,19 +148,24 @@ void CFilesSearchWindow::search()
 
 	_matches.clear();
 
-	QString what = ui->nameToFind->currentText();
+	const QString filtersString = ui->nameToFind->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
+
+	QStringList filters = filtersString.split(';', Qt::SkipEmptyParts);
 
 	if (ui->cbNamePartialMatch->isChecked())
 	{
-		if (!what.startsWith('*'))
-			what.prepend('*');
-		if (!what.endsWith('*'))
-			what.append('*');
+		for (QString& what : filters)
+		{
+			if (!what.startsWith('*'))
+				what.prepend('*');
+			if (!what.endsWith('*'))
+				what.append('*');
+		}
 	}
 
 	if (_engine.search(
-		what,
+		filters,
 		ui->cbNameCaseSensitive->isChecked(),
 		ui->searchRoot->currentText().split(QSL("; ")),
 		withText,
@@ -173,7 +178,7 @@ void CFilesSearchWindow::search()
 		ui->btnSearch->setText(tr("Stop"));
 		ui->resultsList->clear();
 
-		QString title = what;
+		QString title = filtersString;
 		if (!withText.isEmpty())
 			title += '/' + withText;
 		title += ' ' + tr("search results");
