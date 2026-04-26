@@ -940,5 +940,5 @@ bool CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
 		imagePath = imagePathTemplate.arg("clipboard_" + QString::number(i));
 	}
 
-	return lossyCompression ? image.save(imagePath, "jpg", 70) : image.save(imagePath, "png");
+	return lossyCompression ? image.save(imagePath, "jpg", 75) : image.save(imagePath, "png");
 }
