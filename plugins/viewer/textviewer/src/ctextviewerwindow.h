@@ -70,6 +70,7 @@ private:
 	CFindDialog* _findDialog = nullptr;
 	QLabel* _encodingLabel = nullptr;
 	QLabel* _contentTypeLabel = nullptr;
+	QLabel* _infoLabel = nullptr;
 
 	Qutepart::SyntaxHighlighter* _highlighter = nullptr;
 	std::unique_ptr<Qutepart::Theme> _theme;

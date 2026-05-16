@@ -36,11 +36,11 @@
     <addaction name="actionAuto_detect_encoding"/>
     <addaction name="actionASCII_Windows_1252"/>
     <addaction name="actionSystemLocale"/>
-    <addaction name="actionUTF_16"/>
     <addaction name="actionUTF_8"/>
+    <addaction name="actionUTF_16"/>
+    <addaction name="actionHex"/>
     <addaction name="actionHTML"/>
     <addaction name="actionMarkdown"/>
-    <addaction name="actionHex"/>
     <addaction name="separator"/>
     <addaction name="actionLine_wrap"/>
    </widget>
@@ -73,7 +73,7 @@
     <string>&amp;System locale</string>
    </property>
    <property name="shortcut">
-    <string>1</string>
+    <string>3</string>
    </property>
   </action>
   <action name="actionUTF_8">
@@ -84,7 +84,7 @@
     <string>UTF-&amp;8</string>
    </property>
    <property name="shortcut">
-    <string>3</string>
+    <string>4</string>
    </property>
   </action>
   <action name="actionUTF_16">
@@ -95,7 +95,7 @@
     <string>UTF-1&amp;6</string>
    </property>
    <property name="shortcut">
-    <string>2</string>
+    <string>5</string>
    </property>
   </action>
   <action name="actionHTML">
@@ -109,7 +109,7 @@
     <string>H&amp;TML</string>
    </property>
    <property name="shortcut">
-    <string>4</string>
+    <string>7</string>
    </property>
   </action>
   <action name="actionOpen">
@@ -154,7 +154,10 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Auto detect encoding</string>
+    <string>Auto &amp;detect encoding</string>
+   </property>
+   <property name="shortcut">
+    <string>1</string>
    </property>
   </action>
   <action name="actionASCII_Windows_1252">
@@ -164,6 +167,9 @@
    <property name="text">
     <string>&amp;ASCII</string>
    </property>
+   <property name="shortcut">
+    <string>2</string>
+   </property>
   </action>
   <action name="actionLine_wrap">
    <property name="checkable">
@@ -171,6 +177,9 @@
    </property>
    <property name="text">
     <string>&amp;Line wrap</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+W</string>
    </property>
   </action>
   <action name="actionMarkdown">
@@ -181,7 +190,7 @@
     <string>&amp;Markdown</string>
    </property>
    <property name="shortcut">
-    <string>5</string>
+    <string>8</string>
    </property>
   </action>
   <action name="actionHex">

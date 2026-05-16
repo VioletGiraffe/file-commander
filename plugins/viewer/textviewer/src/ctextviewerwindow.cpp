@@ -18,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QActionGroup>
 #include <QDebug>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QFontMetrics>
 #include <QLabel>
@@ -131,19 +132,26 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 
 	_encodingLabel = new QLabel(this);
 	_contentTypeLabel = new QLabel(this);
+	_infoLabel = new QLabel(this);
 	_encodingLabel->setContentsMargins(4, 0, 4, 0);
 	_contentTypeLabel->setContentsMargins(4, 0, 4, 0);
+	_infoLabel->setContentsMargins(4, 0, 4, 0);
 
 	auto* status = Ui::CTextViewerWindow::statusBar;
 	status->addWidget(_encodingLabel);
 	status->addWidget(_contentTypeLabel);
+	status->addWidget(_infoLabel);
+
+	_infoLabel->setVisible(false);
 }
 
 CTextViewerWindow::~CTextViewerWindow() = default;
 
 bool CTextViewerWindow::loadTextFile(const QString& file)
 {
-	setWindowTitle(file);
+	QFileInfo fi(file);
+	setWindowTitle(fi.fileName() + " [" + fi.path() + "]");
+
 	_sourceFilePath = file;
 
 	_mimeType = QMimeDatabase().mimeTypeForFile(_sourceFilePath, QMimeDatabase::MatchContent).name();
@@ -502,6 +510,8 @@ void CTextViewerWindow::setMode(Mode mode)
 			setFixedFont(*_textView);
 			setCentralWidget(_textView.get());
 		}
+
+		_infoLabel->setVisible(false);
 	}
 	else
 	{
@@ -515,6 +525,9 @@ void CTextViewerWindow::setMode(Mode mode)
 			setFixedFont(*_lightningViewer);
 			setCentralWidget(_lightningViewer.get());
 		}
+
+		_infoLabel->setText(tr("FAST MODE! Encoding detection didn't run, you can trigger it manually"));
+		_infoLabel->setVisible(true);
 	}
 
 	// Apply line wrap setting
