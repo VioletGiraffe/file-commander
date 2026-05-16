@@ -1,8 +1,8 @@
 #pragma once
 #include "compiler/compiler_warnings_control.h"
+#include "hash/wheathash.hpp"
 
 DISABLE_COMPILER_WARNINGS
-#include <QHash>
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
@@ -23,6 +23,6 @@ struct NullHashExtraMixing {
 struct QStringHash {
 	using is_avalanching = void;
 	[[nodiscard]] inline size_t operator()(const QString& s) const noexcept {
-		return qHash(s);
+		return ::wheathash64(s.constData(), s.size() * sizeof(QChar));
 	}
 };

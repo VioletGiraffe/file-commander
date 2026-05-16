@@ -1,8 +1,8 @@
 #include "cfilesystemobject.h"
 #include "filesystemhelperfunctions.h"
+#include "detail/hashmap_helpers.h"
 
 #include "assert/advanced_assert.h"
-#include "hash/wheathash.hpp"
 #include "lang/type_traits_fast.hpp"
 #include "windows/windowsutils.h"
 
@@ -158,7 +158,7 @@ void CFileSystemObject::refreshInfo()
 	}
 
 	if (const auto pathLength = static_cast<uint64_t>(_properties.fullPath.size()); pathLength != 0)
-		_properties.hash = wheathash64(_properties.fullPath.constData(), pathLength * sizeof(QChar));
+		_properties.hash = QStringHash{}(_properties.fullPath);
 	else
 		_properties.hash = 0; // Workaround: it's much simpler if all empty objects, both default-constructed and not, have a hash of 0
 

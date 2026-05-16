@@ -163,7 +163,7 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 			return asHtml(*textData);
 		else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive) && !useFastMode)
 			return asMarkdown(*textData);
-		else if (!useFastMode && (_mimeType.contains(QStringLiteral("text")) || _mimeType.isEmpty()))
+		else if (!useFastMode && (_mimeType.contains("text") || _mimeType.isEmpty() || _mimeType.contains("octet-stream")))
 			return asDetectedAutomatically(*textData, useFastMode);
 		else if (asUtf8(*textData, useFastMode))
 			return true;
@@ -357,6 +357,10 @@ std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
 
 std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeText(const QByteArray& textData)
 {
+	auto result = CTextEncodingDetector::decode(textData);
+	if (!result.text.isEmpty())
+		return result;
+
 	QTextCodec::ConverterState state;
 	QTextCodec *codec = QTextCodec::codecForName("UTF-8");
 	if (!codec)
@@ -365,10 +369,6 @@ std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeText(
 	QString text = codec->toUnicode(textData.constData(), (int)textData.size(), &state);
 	if (state.invalidChars > 0)
 	{
-		auto result = CTextEncodingDetector::decode(textData);
-		if (!result.text.isEmpty())
-			return result;
-
 		codec = QTextCodec::codecForLocale();
 		if (!codec)
 			return {};

@@ -17,6 +17,8 @@ using FileSystemWatcher = CFileSystemWatcherWindows;
 using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #endif
 
+#include <3rdparty/ankerl/unordered_dense.h>
+
 #include <mutex>
 #include <utility>
 #include <vector>
