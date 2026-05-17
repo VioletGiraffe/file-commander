@@ -1,6 +1,7 @@
 #include "cimageviewerwidget.h"
 #include "widgets/widgetutils.h"
-#include "imageprocessing/resize/cimageresizer.h"
+#include "resize/cimageresizer.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -15,6 +16,52 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm> // clamp
+
+template <bool ConstView>
+inline CImageResizer::ImageView<ConstView> createView(const QImage& qi) {
+	CImageResizer::ImageView<ConstView> view;
+	view.width = static_cast<uint32_t>(qi.width());
+	view.height = static_cast<uint32_t>(qi.height());
+
+	switch (qi.format())
+	{
+	case QImage::Format_Grayscale8: [[fallthrough]];
+	case QImage::Format_Indexed8:
+		view.channels = 1;
+		view.bytesPerChannel = 1;
+		break;
+	case QImage::Format_Grayscale16:
+		view.channels = 1;
+		view.bytesPerChannel = 2;
+		break;
+	case QImage::Format_RGB888: [[fallthrough]];
+	case QImage::Format_RGB32:
+		view.channels = 3;
+		view.bytesPerChannel = 1;
+		break;
+	case QImage::Format_ARGB32: [[fallthrough]];
+	case QImage::Format_ARGB32_Premultiplied: [[fallthrough]];
+	case QImage::Format_RGBA8888: [[fallthrough]];
+	case QImage::Format_RGBA8888_Premultiplied:
+		view.channels = 4;
+		view.bytesPerChannel = 1;
+		break;
+	default:
+		throw std::runtime_error{ "Unsupported QImage format" };
+	}
+
+	if (qi.format() == QImage::Format_RGB32)
+		view.channelStride = 4;
+	else
+		view.channelStride = view.channels * view.bytesPerChannel;
+
+	view.bytesPerLine = static_cast<size_t>(qi.bytesPerLine());
+	view.data = const_cast<uchar*>(qi.bits());
+
+	assert_r(view.bytesPerLine >= view.width * view.channelStride);
+
+	return view;
+}
 
 CImageViewerWidget::CImageViewerWidget(QWidget *parent) noexcept :
 	QWidget(parent)
@@ -84,7 +131,16 @@ QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 	if (!_sourceImage.isNull())
 	{
 		for (const auto& s : sizes)
-			result.addPixmap(QPixmap::fromImage(ImageResizing::resize(_sourceImage, s, ImageResizing::Smart)));
+		{
+			QImage scaledImage(s.width(), s.height(), _sourceImage.format());
+			scaledImage.fill(Qt::green);
+
+			const auto srcView = createView<true>(_sourceImage);
+			auto dstView = createView<false>(scaledImage);
+			CImageResizer::resize(dstView, srcView);
+
+			result.addPixmap(QPixmap::fromImage(scaledImage));
+		}
 	}
 
 	return result;
@@ -122,7 +178,12 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	}
 	else if (_scaledImage.isNull() || _scaledImage.size() != scaledSize)
 	{
-		_scaledImage = ImageResizing::resize(_sourceImage, scaledSize, ImageResizing::Smart);
+		_scaledImage = QImage(scaledSize, _sourceImage.format());
+		_scaledImage.fill(Qt::green);
+
+		const auto srcView = createView<true>(_sourceImage);
+		auto dstView = createView<false>(_scaledImage);
+		CImageResizer::resize(dstView, srcView);
 	}
 
 	_scaledImage.setDevicePixelRatio(dpr);
