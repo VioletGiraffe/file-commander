@@ -4,6 +4,7 @@ DISABLE_COMPILER_WARNINGS
 #include "ui_cimageviewerwindow.h"
 
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QLabel>
 #include <QShortcut>
 #include <QTimer>
@@ -17,14 +18,14 @@ CImageViewerWindow::CImageViewerWindow(QWidget* parent) noexcept :
 	_imageInfoLabel = new QLabel(this);
 	statusBar()->addWidget(_imageInfoLabel);
 
-	connect(ui->actionOpen, &QAction::triggered, this, [this](){
-		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg);; TIFF (*.tif);; PNG (*.png)");
+	connect(ui->actionOpen, &QAction::triggered, this, [this] {
+		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg *.jpe);; TIFF (*.tif *.tiff);; PNG (*.png)");
 		const QString fileName = QFileDialog::getOpenFileName(this, QString(), QString(), filtersString);
 		if (!fileName.isEmpty())
 			displayImage(fileName);
 	});
 
-	connect(ui->actionReload, &QAction::triggered, this, [this]() {
+	connect(ui->actionReload, &QAction::triggered, this, [this] {
 		displayImage(_currentImagePath);
 	});
 
@@ -48,11 +49,13 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 		return false;
 
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
-	setWindowTitle(imagePath);
+	QFileInfo fi(imagePath);
+	setWindowTitle(fi.fileName() + " [" + fi.absolutePath() + "]");
 
 	// TODO: thread
-	QTimer::singleShot(10, this, [this](){
-		setWindowIcon(ui->_imageViewerWidget->imageIcon({ {16, 16}, {32, 32}, {256, 256} }));
+	QTimer::singleShot(100, this, [this](){
+		QIcon icon = ui->_imageViewerWidget->imageIcon({ {16, 16}, {32, 32}, {256, 256} });
+		setWindowIcon(icon);
 	});
 
 	return true;

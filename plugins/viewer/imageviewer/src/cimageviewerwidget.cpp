@@ -65,10 +65,10 @@ QString CImageViewerWidget::imageInfoString() const
 
 QSize CImageViewerWidget::sizeHint() const
 {
-	const auto maxSize = screen()->availableGeometry().size() - QSize(60, 60);
 	if (_sourceImage.isNull())
 		return QWidget::sizeHint();
 
+	const auto maxSize = screen()->availableGeometry().size() - QSize(60, 60);
 	const qreal dpr = devicePixelRatioF();
 	auto hint = QSize{
 		std::clamp(qCeil(_sourceImage.width() / dpr),  150, maxSize.width()),
@@ -98,11 +98,13 @@ void CImageViewerWidget::copyToClipboard() noexcept
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	QPainter p{ this };
+	// Clear the canvas - in case the new image size is smaller than previous paint, or if the image was not loaded, or the image has transparency
+	p.fillRect(rect(), palette().color(QPalette::Window));
+
 	if (_sourceImage.isNull())
 	{
-		p.fillRect(rect(), palette().color(QPalette::Window));
 		QFont bigFont = font();
-		bigFont.setPointSize(bigFont.pointSize() * 2);
+		bigFont.setPointSize(28);
 		p.setFont(bigFont);
 		p.drawText(rect(), Qt::AlignCenter, tr("No image loaded"));
 		return;
@@ -111,7 +113,7 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	const qreal dpr = devicePixelRatioF();
 
 	const QSize scaledSize = _sourceImage.size().scaled(size() * dpr, Qt::KeepAspectRatio);
-	// Check if the scaled size is withing +/-3 pixels of the source image size, and display the source image pixel-perfect in that case
+	// Check if the scaled size is within +/-3 pixels of the source image size, and display the source image pixel-perfect in that case
 	if (qAbs(scaledSize.width() - _sourceImage.width()) <= 3 &&
 		qAbs(scaledSize.height() - _sourceImage.height()) <= 3)
 	{
@@ -122,6 +124,6 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		_scaledImage = ImageResizing::resize(_sourceImage, scaledSize, ImageResizing::Smart);
 	}
 
-	_scaledImage.setDevicePixelRatio(devicePixelRatioF());
+	_scaledImage.setDevicePixelRatio(dpr);
 	p.drawImage(0, 0, _scaledImage);
 }
