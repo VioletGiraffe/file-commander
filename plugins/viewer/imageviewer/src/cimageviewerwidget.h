@@ -29,6 +29,7 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent* e) override;
+	void wheelEvent(QWheelEvent* e) override;
 
 private:
 	QImage _sourceImage;
@@ -36,4 +37,7 @@ private:
 
 	QString _currentImageFormat;
 	qint64 _currentImageFileSize = 0;
+
+	float _zoom = 1.0f;
+	QPoint _zoomCenter{0, 0};
 };

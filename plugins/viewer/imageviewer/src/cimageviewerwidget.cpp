@@ -11,6 +11,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QPainter>
 #include <QScreen>
+#include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm> // clamp
@@ -112,7 +113,7 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 
 	const qreal dpr = devicePixelRatioF();
 
-	const QSize scaledSize = _sourceImage.size().scaled(size() * dpr, Qt::KeepAspectRatio);
+	const QSize scaledSize = _sourceImage.size().scaled(size() * dpr * _zoom, Qt::KeepAspectRatio);
 	// Check if the scaled size is within +/-3 pixels of the source image size, and display the source image pixel-perfect in that case
 	if (qAbs(scaledSize.width() - _sourceImage.width()) <= 3 &&
 		qAbs(scaledSize.height() - _sourceImage.height()) <= 3)
@@ -125,5 +126,33 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	}
 
 	_scaledImage.setDevicePixelRatio(dpr);
-	p.drawImage(0, 0, _scaledImage);
+
+	// If the image is smaller than viewport, center it
+	QPoint offset{ 0, 0 };
+	if (_scaledImage.width() / dpr < width() && _scaledImage.height() / dpr < height())
+	{
+		offset = QPoint{
+			(width()  - qRound((qreal)_scaledImage.width() / dpr)) / 2,
+			(height() - qRound((qreal)_scaledImage.height() / dpr)) / 2
+		};
+	}
+
+	p.drawImage(offset, _scaledImage);
+}
+
+void CImageViewerWidget::wheelEvent(QWheelEvent* e)
+{
+	// Changing the scale with Ctrl + mouse wheel
+	if (_sourceImage.isNull() || !e->modifiers().testFlag(Qt::ControlModifier))
+		return;
+
+	const int delta = e->angleDelta().y();
+	if (delta == 0)
+		return;
+
+	const float scaleFactor = std::pow(1.0015f, (float)delta);
+	_zoom = std::clamp(_zoom * scaleFactor, 0.01f, 40.0f);
+	_zoomCenter = e->position().toPoint();
+
+	update();
 }
