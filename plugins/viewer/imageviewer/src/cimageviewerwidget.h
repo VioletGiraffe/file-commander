@@ -30,14 +30,20 @@ public:
 protected:
 	void paintEvent(QPaintEvent* e) override;
 	void wheelEvent(QWheelEvent* e) override;
+	void mousePressEvent(QMouseEvent* e) override;
+	void mouseMoveEvent(QMouseEvent* e) override;
+	void mouseReleaseEvent(QMouseEvent* e) override;
 
 private:
 	QImage _sourceImage;
-	QImage _scaledImage;
 
 	QString _currentImageFormat;
 	qint64 _currentImageFileSize = 0;
 
-	float _zoom = 1.0f;
+	qreal _zoom = 1.0;
 	QPoint _zoomCenter{0, 0};
+	QPointF _imageCenterPx{ 0.0, 0.0 };
+	bool _isPanning = false;
+	QPoint _panStartMousePos;
+	QPointF _panStartCenterPx;
 };
