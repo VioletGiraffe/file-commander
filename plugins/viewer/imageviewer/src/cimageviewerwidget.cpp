@@ -2,6 +2,7 @@
 #include "widgets/widgetutils.h"
 #include "resize/cimageresizer.h"
 #include "assert/advanced_assert.h"
+#include "system/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -18,8 +19,8 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm> // clamp
 
 template <bool ConstView>
-inline CImageResizer::ImageView<ConstView> createView(const QImage& qi) {
-	CImageResizer::ImageView<ConstView> view;
+inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi) {
+	ImageProcessing::ImageView<ConstView> view;
 	view.width = static_cast<uint32_t>(qi.width());
 	view.height = static_cast<uint32_t>(qi.height());
 
@@ -137,7 +138,7 @@ QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 
 			const auto srcView = createView<true>(_sourceImage);
 			auto dstView = createView<false>(scaledImage);
-			CImageResizer::resize(dstView, srcView);
+			ImageProcessing::resize(dstView, srcView);
 
 			result.addPixmap(QPixmap::fromImage(scaledImage));
 		}
@@ -178,12 +179,18 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	}
 	else if (_scaledImage.isNull() || _scaledImage.size() != scaledSize)
 	{
+		// Calculate the source images rect
+		ImageProcessing::Rect srcRect(0, 0, scaledSize.width(), scaledSize.height());
+
 		_scaledImage = QImage(scaledSize, _sourceImage.format());
 		_scaledImage.fill(Qt::green);
 
 		const auto srcView = createView<true>(_sourceImage);
 		auto dstView = createView<false>(_scaledImage);
-		CImageResizer::resize(dstView, srcView);
+		CTimeElapsed timer(true);
+
+		ImageProcessing::resize(dstView, srcView, srcRect);
+		qInfo() << "Resizing from" << _sourceImage.size() << "to" << scaledSize << "took" << timer.elapsed() << "ms";
 	}
 
 	_scaledImage.setDevicePixelRatio(dpr);
