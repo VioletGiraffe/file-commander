@@ -28,22 +28,48 @@ namespace
 		};
 	}
 
-	[[nodiscard]] QRect computeSourceRect(const QSize& sourceSize, const QPointF& centerPx, const qreal zoom) noexcept
+	[[nodiscard]] QRect computeSourceRect(const QSize& sourceSize, const QSize& viewportSize, const QPointF& centerPx, const qreal zoom) noexcept
 	{
-		if (sourceSize.isEmpty())
+		if (sourceSize.isEmpty() || viewportSize.isEmpty())
 			return {};
 
 		if (zoom <= 1.0)
 			return QRect{ 0, 0, sourceSize.width(), sourceSize.height() };
 
-		const int visW = std::clamp(std::max(1, qRound(sourceSize.width() / zoom)), 1, sourceSize.width());
-		const int visH = std::clamp(std::max(1, qRound(sourceSize.height() / zoom)), 1, sourceSize.height());
+		const qreal viewAspect = viewportSize.width() / (qreal)viewportSize.height();
+		const qreal sourceAspect = sourceSize.width() / (qreal)sourceSize.height();
+
+		// Largest rectangle inside the source image that has the same aspect ratio as the viewport.
+		qreal baseW = 0.0;
+		qreal baseH = 0.0;
+
+		if (sourceAspect >= viewAspect)
+		{
+			baseH = (qreal)sourceSize.height();
+			baseW = baseH * viewAspect;
+		}
+		else
+		{
+			baseW = (qreal)sourceSize.width();
+			baseH = baseW / viewAspect;
+		}
+
+		// Scale that rectangle down uniformly for zoom > 1.
+		int visW = std::max(1, qRound(baseW / zoom));
+		int visH = std::max(1, qRound((qreal)visW / viewAspect));
+
+		// Keep exact aspect ratio after rounding.
+		if (visH > sourceSize.height())
+		{
+			visH = sourceSize.height();
+			visW = std::max(1, qRound((qreal)visH * viewAspect));
+		}
 
 		const qreal halfW = visW / 2.0;
 		const qreal halfH = visH / 2.0;
 
-		qreal cx = std::clamp(centerPx.x(), halfW, sourceSize.width() - halfW);
-		qreal cy = std::clamp(centerPx.y(), halfH, sourceSize.height() - halfH);
+		const qreal cx = std::clamp(centerPx.x(), halfW, sourceSize.width() - halfW);
+		const qreal cy = std::clamp(centerPx.y(), halfH, sourceSize.height() - halfH);
 
 		int x = qRound(cx - halfW);
 		int y = qRound(cy - halfH);
@@ -247,8 +273,8 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	}
 	else
 	{
-		targetSize = fitSize;
-		sourceRect = computeSourceRect(_sourceImage.size(), _imageCenterPx, zoom);
+		targetSize = size(); // full viewport
+		sourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterPx, zoom);
 	}
 
 	const QRectF targetRect = centeredTargetRect(targetSize, size());
@@ -280,8 +306,8 @@ void CImageViewerWidget::wheelEvent(QWheelEvent* e)
 	}
 	else
 	{
-		oldTargetSize = fitSize;
-		oldSourceRect = computeSourceRect(_sourceImage.size(), _imageCenterPx, oldZoom);
+		oldTargetSize = size();
+		oldSourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterPx, oldZoom);
 	}
 
 	const QRectF oldTargetRect = centeredTargetRect(oldTargetSize, size());
