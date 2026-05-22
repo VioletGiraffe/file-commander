@@ -6,7 +6,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
-#include <list>
+#include <vector>
 
 struct CLocationsCollection
 {
@@ -15,7 +15,7 @@ struct CLocationsCollection
 	QString displayName;
 	QString absolutePath;
 
-	std::list<CLocationsCollection> subLocations;
+	std::vector<CLocationsCollection> subLocations;
 };
 
 class CFavoriteLocations
@@ -27,8 +27,8 @@ public:
 	CFavoriteLocations(const CFavoriteLocations&) = delete;
 	CFavoriteLocations& operator=(const CFavoriteLocations&) = delete;
 
-	std::list<CLocationsCollection>& locations();
-	void addItem(std::list<CLocationsCollection>& list, const QString& name, const QString& path = QString());
+	std::vector<CLocationsCollection>& locations();
+	void addItem(std::vector<CLocationsCollection>& list, const QString& name, const QString& path = {});
 
 	void save();
 
@@ -37,5 +37,5 @@ private:
 
 private:
 	const QString _settingsKey;
-	std::list<CLocationsCollection> _items;
+	std::vector<CLocationsCollection> _items;
 };

@@ -433,7 +433,7 @@ void CPanelWidget::toRoot()
 void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 {
 	QMenu menu;
-	std::function<void(QMenu *, std::list<CLocationsCollection>&)> createMenus = [this, &createMenus](QMenu * parentMenu, std::list<CLocationsCollection>& locations)
+	std::function<void(QMenu *, std::vector<CLocationsCollection>&)> createMenus = [this, &createMenus](QMenu * parentMenu, std::vector<CLocationsCollection>& locations)
 	{
 		for (auto& item: locations)
 		{

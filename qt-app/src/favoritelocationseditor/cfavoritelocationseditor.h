@@ -27,7 +27,7 @@ private:
 	void locationEdited(const QString& newLocation);
 
 	void fillUI();
-	void addLocationsToTreeWidget(std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator & locationCollectionListIterator, QTreeWidgetItem * parent);
+	void addLocationsToTreeWidget(std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator & locationCollectionListIterator, QTreeWidgetItem * parent);
 
 private:
 	Ui::CFavoriteLocationsEditor *ui;

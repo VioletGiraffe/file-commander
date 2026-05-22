@@ -13,7 +13,7 @@ RESTORE_COMPILER_WARNINGS
 class CFavoriteLocationsListItem final : public QTreeWidgetItem
 {
 public:
-	CFavoriteLocationsListItem(QTreeWidget * parent, std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
+	CFavoriteLocationsListItem(QTreeWidget * parent, std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
 		QTreeWidgetItem(parent, QStringList() << dataItemIterator->displayName),
 		_itemIterator(dataItemIterator),
 		_parentList(parentList),
@@ -23,7 +23,7 @@ public:
 			setBold();
 	}
 
-	CFavoriteLocationsListItem(QTreeWidgetItem * parentItem, std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
+	CFavoriteLocationsListItem(QTreeWidgetItem * parentItem, std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
 		QTreeWidgetItem(parentItem, QStringList() << dataItemIterator->displayName),
 		_itemIterator(dataItemIterator),
 		_parentList(parentList),
@@ -36,8 +36,8 @@ public:
 
 	CFavoriteLocationsListItem& operator=(const CFavoriteLocationsListItem&) = delete;
 
-	std::list<CLocationsCollection>::iterator itemIterator() const {return _itemIterator;}
-	std::list<CLocationsCollection>& list() {return _parentList;}
+	std::vector<CLocationsCollection>::iterator itemIterator() const {return _itemIterator;}
+	std::vector<CLocationsCollection>& list() {return _parentList;}
 	bool isCategory() const {return _bIsCategory;}
 
 private:
@@ -49,8 +49,8 @@ private:
 	}
 
 private:
-	std::list<CLocationsCollection>::iterator _itemIterator;
-	std::list<CLocationsCollection>& _parentList;
+	std::vector<CLocationsCollection>::iterator _itemIterator;
+	std::vector<CLocationsCollection>& _parentList;
 	bool _bIsCategory;
 };
 
@@ -114,7 +114,7 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		CNewFavoriteLocationDialog dialog(this, false);
 		if (dialog.exec() == QDialog::Accepted)
 		{
-			std::list<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
+			std::vector<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
 			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.absolutePath == dialog.location();}) != list.cend())
 			{
 				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("This item already exists here (possibly under a different name)."), QMessageBox::Cancel);
@@ -142,7 +142,7 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		CNewFavoriteLocationDialog dialog(this, true);
 		if (dialog.exec() == QDialog::Accepted)
 		{
-			std::list<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
+			std::vector<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
 			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
 			{
 				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("And item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
@@ -208,7 +208,7 @@ void CFavoriteLocationsEditor::fillUI()
 	ui->_list->setCurrentItem(nullptr);
 }
 
-void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::list<CLocationsCollection>& parentList, std::list<CLocationsCollection>::iterator& locationCollectionListIterator, QTreeWidgetItem* parent)
+void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator& locationCollectionListIterator, QTreeWidgetItem* parent)
 {
 	assert_r(locationCollectionListIterator->subLocations.empty() || locationCollectionListIterator->absolutePath.isEmpty());
 

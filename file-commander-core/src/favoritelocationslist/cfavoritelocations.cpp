@@ -56,7 +56,7 @@ CFavoriteLocations::~CFavoriteLocations()
 	save();
 }
 
-std::list<CLocationsCollection>& CFavoriteLocations::locations()
+std::vector<CLocationsCollection>& CFavoriteLocations::locations()
 {
 	return _items;
 }
@@ -69,7 +69,7 @@ void CFavoriteLocations::load()
 
 	int currentPosition = 0;
 	_items.clear();
-	std::stack<std::reference_wrapper<std::list<CLocationsCollection>>> currentList;
+	std::stack<std::reference_wrapper<std::vector<CLocationsCollection>>> currentList;
 	currentList.push(std::ref(_items));
 
 	while (currentPosition < data.size())
@@ -100,7 +100,7 @@ void CFavoriteLocations::load()
 	}
 }
 
-void CFavoriteLocations::addItem(std::list<CLocationsCollection>& list, const QString& name, const QString& path)
+void CFavoriteLocations::addItem(std::vector<CLocationsCollection>& list, const QString& name, const QString& path)
 {
 	list.emplace_back(name, path);
 	save();
