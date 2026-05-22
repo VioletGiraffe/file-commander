@@ -106,8 +106,8 @@ template <bool ConstView>
 inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 {
 	ImageProcessing::ImageView<ConstView> view;
-	view.width = static_cast<uint32_t>(qi.width());
-	view.height = static_cast<uint32_t>(qi.height());
+	view.width = static_cast<uint64_t>(qi.width());
+	view.height = static_cast<uint64_t>(qi.height());
 
 	switch (qi.format())
 	{
