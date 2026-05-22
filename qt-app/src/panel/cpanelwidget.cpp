@@ -18,6 +18,8 @@
 
 #include "system/ctimeelapsed.h"
 
+#include <3rdparty/ankerl/unordered_dense.h>
+
 DISABLE_COMPILER_WARNINGS
 #include "ui_cpanelwidget.h"
 
@@ -34,7 +36,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
-#include <unordered_set>
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	QWidget(parent),
@@ -215,7 +216,7 @@ void CPanelWidget::fillFromList(FileListRefreshCause operation)
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
 {
 	const auto previousSelection = selectedItemsHashes(true);
-	std::unordered_set<qulonglong> selectedItemsHashes; // For fast search
+	ankerl::unordered_dense::set<qulonglong> selectedItemsHashes; // For fast search
 	for (const auto slectedItemHash: previousSelection)
 		selectedItemsHashes.insert(slectedItemHash);
 

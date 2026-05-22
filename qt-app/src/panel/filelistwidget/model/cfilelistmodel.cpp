@@ -9,12 +9,12 @@
 
 #include "assert/advanced_assert.h"
 
+#include <3rdparty/ankerl/unordered_dense.h>
+
 DISABLE_COMPILER_WARNINGS
 #include <QMimeData>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
-
-#include <unordered_set>
 
 inline QVariant itemData(const CFileSystemObject& item, int column)
 {
@@ -220,7 +220,7 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 {
 	auto* mime = new QMimeData();
 	QList<QUrl> urls;
-	std::unordered_set<int> rows;
+	ankerl::unordered_dense::set<int> rows;
 	for(const auto& idx: indexes)
 	{
 		if (idx.isValid() && !rows.contains(idx.row()))
