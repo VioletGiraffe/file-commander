@@ -38,7 +38,21 @@ namespace
 		};
 	}
 
-	[[nodiscard]] QRect computeSourceRect(const QSize& sourceSize, const QSize& viewportSize, const QPointF& centerPx, const qreal zoom) noexcept
+	[[nodiscard]] QPointF visibleSpanUv(const QSize& sourceSize, const QSize& viewportSize, qreal zoom) noexcept
+	{
+		if (sourceSize.isEmpty() || viewportSize.isEmpty() || zoom <= 1.0)
+			return { 1.0, 1.0 };
+
+		const qreal sourceAspect = sourceSize.width() / (qreal)sourceSize.height();
+		const qreal viewAspect = viewportSize.width() / (qreal)viewportSize.height();
+
+		if (sourceAspect >= viewAspect)
+			return { (viewAspect / sourceAspect) / zoom, 1.0 / zoom };
+		else
+			return { 1.0 / zoom, (sourceAspect / viewAspect) / zoom };
+	}
+
+	[[nodiscard]] QRect computeSourceRect(const QSize& sourceSize, const QSize& viewportSize, const QPointF& centerUv, const qreal zoom) noexcept
 	{
 		if (sourceSize.isEmpty() || viewportSize.isEmpty())
 			return {};
@@ -49,7 +63,6 @@ namespace
 		const qreal viewAspect = viewportSize.width() / (qreal)viewportSize.height();
 		const qreal sourceAspect = sourceSize.width() / (qreal)sourceSize.height();
 
-		// Largest rectangle inside the source image that has the same aspect ratio as the viewport.
 		qreal baseW = 0.0;
 		qreal baseH = 0.0;
 
@@ -64,22 +77,17 @@ namespace
 			baseH = baseW / viewAspect;
 		}
 
-		// Scale that rectangle down uniformly for zoom > 1.
-		int visW = std::max(1, qRound(baseW / zoom));
-		int visH = std::max(1, qRound((qreal)visW / viewAspect));
+		const int visW = std::max(1, qRound(baseW / zoom));
+		const int visH = std::max(1, qRound((qreal)visW / viewAspect));
 
-		// Keep exact aspect ratio after rounding.
-		if (visH > sourceSize.height())
-		{
-			visH = sourceSize.height();
-			visW = std::max(1, qRound((qreal)visH * viewAspect));
-		}
+		const qreal centerPxX = centerUv.x() * sourceSize.width();
+		const qreal centerPxY = centerUv.y() * sourceSize.height();
 
 		const qreal halfW = visW / 2.0;
 		const qreal halfH = visH / 2.0;
 
-		const qreal cx = std::clamp(centerPx.x(), halfW, sourceSize.width() - halfW);
-		const qreal cy = std::clamp(centerPx.y(), halfH, sourceSize.height() - halfH);
+		const qreal cx = std::clamp(centerPxX, halfW, sourceSize.width() - halfW);
+		const qreal cy = std::clamp(centerPxY, halfH, sourceSize.height() - halfH);
 
 		int x = qRound(cx - halfW);
 		int y = qRound(cy - halfH);
@@ -100,14 +108,6 @@ namespace
 		return QPointF{
 			srcRect.x() + u * srcRect.width(),
 			srcRect.y() + v * srcRect.height()
-		};
-	}
-
-	[[nodiscard]] inline QPointF centerForAnchorPreservation(const QPointF& anchorSourcePoint, const QPointF& anchorUV, const QSize& visibleSrcSize) noexcept
-	{
-		return QPointF{
-			anchorSourcePoint.x() + (0.5 - anchorUV.x()) * visibleSrcSize.width(),
-			anchorSourcePoint.y() + (0.5 - anchorUV.y()) * visibleSrcSize.height()
 		};
 	}
 }
@@ -159,20 +159,11 @@ inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 	return view;
 }
 
-CImageViewerWidget::CImageViewerWidget(QWidget* parent) noexcept :
-	QWidget(parent)
-{
-}
-
 bool CImageViewerWidget::displayImage(const QImage& image)
 {
 	_sourceImage = image;
 	_zoom = 1.0;
-	_zoomCenter = QPoint{};
-	_imageCenterPx = _sourceImage.isNull() ?
-		QPointF{ 0.0, 0.0 }
-		:
-		QPointF{ (qreal)_sourceImage.width() / 2.0, (qreal)_sourceImage.height() / 2.0 };
+	_imageCenterUv = QPointF{ 0.5, 0.5 };
 	_isPanning = false;
 	update();
 	return !_sourceImage.isNull();
@@ -283,8 +274,8 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	}
 	else
 	{
-		targetSize = size(); // full viewport
-		sourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterPx, zoom);
+		targetSize = size();
+		sourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterUv, zoom);
 	}
 
 	QImage scaledImage(targetSize.width(), targetSize.height(), _sourceImage.format());
@@ -301,7 +292,7 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		p.drawImage(targetRect, scaledImage);
 	}
 	else
-	{	
+	{
 		p.drawImage(0, 0, scaledImage);
 	}
 }
@@ -321,47 +312,58 @@ void CImageViewerWidget::wheelEvent(QWheelEvent* e)
 
 	QSize oldTargetSize;
 	QRect oldSourceRect;
+
 	if (oldZoom <= 1.0)
 	{
 		oldTargetSize = QSize{
 			std::max(1, qRound(fitSize.width() * oldZoom)),
 			std::max(1, qRound(fitSize.height() * oldZoom))
 		};
+
 		oldSourceRect = QRect{ 0, 0, _sourceImage.width(), _sourceImage.height() };
 	}
 	else
 	{
 		oldTargetSize = size();
-		oldSourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterPx, oldZoom);
+		oldSourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterUv, oldZoom);
 	}
 
 	const QRectF oldTargetRect = centeredTargetRect(oldTargetSize, size());
-	const QPointF anchorSourcePoint = sourcePointUnderWidgetPos(anchorWidgetPos, oldTargetRect, oldSourceRect);
-	const QPointF anchorUV {
-		oldTargetRect.width() > 0.0 ? (anchorWidgetPos.x() - oldTargetRect.x()) / oldTargetRect.width() : 0.5,
-		oldTargetRect.height() > 0.0 ? (anchorWidgetPos.y() - oldTargetRect.y()) / oldTargetRect.height() : 0.5
-	};
+
+	const QPointF anchorSourcePoint = sourcePointUnderWidgetPos(
+		anchorWidgetPos,
+		oldTargetRect,
+		oldSourceRect);
+
+	const qreal anchorU =
+		oldTargetRect.width() > 0.0 ?
+		(anchorWidgetPos.x() - oldTargetRect.x()) / oldTargetRect.width()
+		:
+		0.5;
+
+	const qreal anchorV =
+		oldTargetRect.height() > 0.0 ?
+		(anchorWidgetPos.y() - oldTargetRect.y()) / oldTargetRect.height()
+		:
+		0.5;
 
 	const qreal scaleFactor = std::pow(1.0015, (qreal)delta);
 	_zoom = std::clamp(oldZoom * scaleFactor, 0.01, 40.0);
-	_zoomCenter = anchorWidgetPos.toPoint();
 
 	if (_zoom > 1.0)
 	{
-		const QSize newVisibleSrcSize{
-			std::clamp(std::max(1, qRound(_sourceImage.width() / _zoom)), 1, _sourceImage.width()),
-			std::clamp(std::max(1, qRound(_sourceImage.height() / _zoom)), 1, _sourceImage.height())
+		const QPointF spanUv = visibleSpanUv(_sourceImage.size(), size(), _zoom);
+
+		_imageCenterUv = QPointF{
+			anchorSourcePoint.x() / _sourceImage.width() + (0.5 - anchorU) * spanUv.x(),
+			anchorSourcePoint.y() / _sourceImage.height() + (0.5 - anchorV) * spanUv.y()
 		};
 
-		QPointF newCenterPx = centerForAnchorPreservation(anchorSourcePoint, anchorUV, newVisibleSrcSize);
-		newCenterPx.setX(std::clamp(newCenterPx.x(), newVisibleSrcSize.width() / 2.0, _sourceImage.width() - newVisibleSrcSize.width() / 2.0));
-		newCenterPx.setY(std::clamp(newCenterPx.y(), newVisibleSrcSize.height() / 2.0, _sourceImage.height() - newVisibleSrcSize.height() / 2.0));
-		_imageCenterPx = newCenterPx;
-	}
-	else
-	{
-		// Not used when zoomed out
-		_imageCenterPx = {0.0, 0.0};
+		const qreal halfSpanX = spanUv.x() * 0.5;
+		const qreal halfSpanY = spanUv.y() * 0.5;
+
+		_imageCenterUv.setX(std::clamp(_imageCenterUv.x(), halfSpanX, 1.0 - halfSpanX));
+		_imageCenterUv.setY(std::clamp(_imageCenterUv.y(), halfSpanY, 1.0 - halfSpanY));
 	}
 
 	update();
@@ -378,7 +380,7 @@ void CImageViewerWidget::mousePressEvent(QMouseEvent* e)
 
 	_isPanning = true;
 	_panStartMousePos = e->position().toPoint();
-	_panStartCenterPx = _imageCenterPx;
+	_panStartCenterUv = _imageCenterUv;
 	setCursor(Qt::ClosedHandCursor);
 	e->accept();
 }
@@ -391,29 +393,31 @@ void CImageViewerWidget::mouseMoveEvent(QMouseEvent* e)
 		return;
 	}
 
-	const QSize targetSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);;
-	const QSize visibleSrcSize{
-		std::clamp(std::max(1, qRound(_sourceImage.width() / _zoom)), 1, _sourceImage.width()),
-		std::clamp(std::max(1, qRound(_sourceImage.height() / _zoom)), 1, _sourceImage.height())
-	};
+	const QSize viewportSize = size();
 
-	if (targetSize.isEmpty())
+	if (viewportSize.isEmpty())
 	{
 		e->accept();
 		return;
 	}
 
 	const QPoint delta = e->position().toPoint() - _panStartMousePos;
-	const qreal srcPerWidgetX = visibleSrcSize.width() / (qreal)targetSize.width();
-	const qreal srcPerWidgetY = visibleSrcSize.height() / (qreal)targetSize.height();
+	const QPointF spanUv = visibleSpanUv(_sourceImage.size(), viewportSize, _zoom);
 
-	QPoint newCenterPx;
-	newCenterPx.setX(std::clamp(qRound(_panStartCenterPx.x() - delta.x() * srcPerWidgetX), visibleSrcSize.width() / 2, _sourceImage.width() - visibleSrcSize.width() / 2));
-	newCenterPx.setY(std::clamp(qRound(_panStartCenterPx.y() - delta.y() * srcPerWidgetY), visibleSrcSize.height() / 2, _sourceImage.height() - visibleSrcSize.height() / 2));
+	QPointF newCenterUv{
+		_panStartCenterUv.x() - delta.x() * spanUv.x() / viewportSize.width(),
+		_panStartCenterUv.y() - delta.y() * spanUv.y() / viewportSize.height()
+	};
 
-	if (newCenterPx != _imageCenterPx)
+	const qreal halfSpanX = spanUv.x() * 0.5;
+	const qreal halfSpanY = spanUv.y() * 0.5;
+
+	newCenterUv.setX(std::clamp(newCenterUv.x(), halfSpanX, 1.0 - halfSpanX));
+	newCenterUv.setY(std::clamp(newCenterUv.y(), halfSpanY, 1.0 - halfSpanY));
+
+	if (newCenterUv != _imageCenterUv)
 	{
-		_imageCenterPx = newCenterPx;
+		_imageCenterUv = newCenterUv;
 		update();
 	}
 

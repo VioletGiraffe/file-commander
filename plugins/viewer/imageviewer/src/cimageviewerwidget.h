@@ -14,7 +14,7 @@ RESTORE_COMPILER_WARNINGS
 class CImageViewerWidget final : public QWidget
 {
 public:
-	explicit CImageViewerWidget(QWidget *parent = nullptr) noexcept;
+	using QWidget::QWidget;
 
 public:
 	bool displayImage(const QImage& image);
@@ -41,9 +41,8 @@ private:
 	qint64 _currentImageFileSize = 0;
 
 	qreal _zoom = 1.0;
-	QPoint _zoomCenter{0, 0};
-	QPointF _imageCenterPx{ 0.0, 0.0 };
-	bool _isPanning = false;
+	QPointF _imageCenterUv;
+	QPointF _panStartCenterUv;
 	QPoint _panStartMousePos;
-	QPointF _panStartCenterPx;
+	bool _isPanning = false;
 };
