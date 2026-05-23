@@ -165,6 +165,7 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 	_zoom = 1.0;
 	_imageCenterUv = QPointF{ 0.5, 0.5 };
 	_isPanning = false;
+	updateGeometry(); // Because the image affects sizeHint()
 	update();
 	return !_sourceImage.isNull();
 }
