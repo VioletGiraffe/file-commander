@@ -28,6 +28,16 @@ namespace
 		};
 	}
 
+	[[nodiscard]] inline ImageProcessing::Rect toRect(const QRectF& r) noexcept
+	{
+		return {
+			static_cast<uint64_t>(qRound64(r.x())),
+			static_cast<uint64_t>(qRound64(r.y())),
+			static_cast<uint64_t>(qRound64(r.width())),
+			static_cast<uint64_t>(qRound64(r.height()))
+		};
+	}
+
 	[[nodiscard]] QRect computeSourceRect(const QSize& sourceSize, const QSize& viewportSize, const QPointF& centerPx, const qreal zoom) noexcept
 	{
 		if (sourceSize.isEmpty() || viewportSize.isEmpty())
@@ -277,8 +287,23 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		sourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterPx, zoom);
 	}
 
-	const QRectF targetRect = centeredTargetRect(targetSize, size());
-	p.drawImage(targetRect, _sourceImage, sourceRect);
+	QImage scaledImage(targetSize.width(), targetSize.height(), _sourceImage.format());
+	scaledImage.setDevicePixelRatio(devicePixelRatioF());
+	scaledImage.fill(Qt::green);
+
+	const auto srcView = createView<true>(_sourceImage);
+	auto dstView = createView<false>(scaledImage);
+	ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
+
+	if (zoom <= 1.0)
+	{
+		const QRectF targetRect = centeredTargetRect(targetSize, size());
+		p.drawImage(targetRect, scaledImage);
+	}
+	else
+	{	
+		p.drawImage(0, 0, scaledImage);
+	}
 }
 
 void CImageViewerWidget::wheelEvent(QWheelEvent* e)
@@ -318,15 +343,14 @@ void CImageViewerWidget::wheelEvent(QWheelEvent* e)
 	};
 
 	const qreal scaleFactor = std::pow(1.0015, (qreal)delta);
-	const qreal newZoom = std::clamp(oldZoom * scaleFactor, 0.01, 40.0);
-	_zoom = newZoom;
+	_zoom = std::clamp(oldZoom * scaleFactor, 0.01, 40.0);
 	_zoomCenter = anchorWidgetPos.toPoint();
 
-	if (newZoom > 1.0)
+	if (_zoom > 1.0)
 	{
 		const QSize newVisibleSrcSize{
-			std::clamp(std::max(1, qRound(_sourceImage.width() / newZoom)), 1, _sourceImage.width()),
-			std::clamp(std::max(1, qRound(_sourceImage.height() / newZoom)), 1, _sourceImage.height())
+			std::clamp(std::max(1, qRound(_sourceImage.width() / _zoom)), 1, _sourceImage.width()),
+			std::clamp(std::max(1, qRound(_sourceImage.height() / _zoom)), 1, _sourceImage.height())
 		};
 
 		QPointF newCenterPx = centerForAnchorPreservation(anchorSourcePoint, anchorUV, newVisibleSrcSize);
@@ -336,8 +360,8 @@ void CImageViewerWidget::wheelEvent(QWheelEvent* e)
 	}
 	else
 	{
-		// Keep the view centered on the image while zooming out.
-		_imageCenterPx = QPointF{ _sourceImage.width() / 2.0, _sourceImage.height() / 2.0 };
+		// Not used when zoomed out
+		_imageCenterPx = {0.0, 0.0};
 	}
 
 	update();
@@ -367,12 +391,10 @@ void CImageViewerWidget::mouseMoveEvent(QMouseEvent* e)
 		return;
 	}
 
-	const QSize fitSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
-	const qreal zoom = std::clamp(_zoom, 0.01, 40.0);
-	const QSize targetSize = fitSize;
+	const QSize targetSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);;
 	const QSize visibleSrcSize{
-		std::clamp(std::max(1, qRound(_sourceImage.width() / zoom)), 1, _sourceImage.width()),
-		std::clamp(std::max(1, qRound(_sourceImage.height() / zoom)), 1, _sourceImage.height())
+		std::clamp(std::max(1, qRound(_sourceImage.width() / _zoom)), 1, _sourceImage.width()),
+		std::clamp(std::max(1, qRound(_sourceImage.height() / _zoom)), 1, _sourceImage.height())
 	};
 
 	if (targetSize.isEmpty())
@@ -385,12 +407,9 @@ void CImageViewerWidget::mouseMoveEvent(QMouseEvent* e)
 	const qreal srcPerWidgetX = visibleSrcSize.width() / (qreal)targetSize.width();
 	const qreal srcPerWidgetY = visibleSrcSize.height() / (qreal)targetSize.height();
 
-	QPointF newCenterPx{
-		_panStartCenterPx.x() - delta.x() * srcPerWidgetX,
-		_panStartCenterPx.y() - delta.y() * srcPerWidgetY
-	};
-	newCenterPx.setX(std::clamp(newCenterPx.x(), visibleSrcSize.width() / 2.0, _sourceImage.width() - visibleSrcSize.width() / 2.0));
-	newCenterPx.setY(std::clamp(newCenterPx.y(), visibleSrcSize.height() / 2.0, _sourceImage.height() - visibleSrcSize.height() / 2.0));
+	QPoint newCenterPx;
+	newCenterPx.setX(std::clamp(qRound(_panStartCenterPx.x() - delta.x() * srcPerWidgetX), visibleSrcSize.width() / 2, _sourceImage.width() - visibleSrcSize.width() / 2));
+	newCenterPx.setY(std::clamp(qRound(_panStartCenterPx.y() - delta.y() * srcPerWidgetY), visibleSrcSize.height() / 2, _sourceImage.height() - visibleSrcSize.height() / 2));
 
 	if (newCenterPx != _imageCenterPx)
 	{
