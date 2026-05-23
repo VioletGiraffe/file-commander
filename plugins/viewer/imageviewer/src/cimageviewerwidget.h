@@ -36,6 +36,8 @@ protected:
 
 private:
 	QImage _sourceImage;
+	QImage _displayImage;
+	size_t _cacheKey = 0;
 
 	QString _currentImageFormat;
 	qint64 _currentImageFileSize = 0;

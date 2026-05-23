@@ -165,6 +165,7 @@ bool CImageViewerWidget::displayImage(const QImage& image)
 	_zoom = 1.0;
 	_imageCenterUv = QPointF{ 0.5, 0.5 };
 	_isPanning = false;
+	_cacheKey = 0;
 	updateGeometry(); // Because the image affects sizeHint()
 	update();
 	return !_sourceImage.isNull();
@@ -279,22 +280,29 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		sourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterUv, zoom);
 	}
 
-	QImage scaledImage(targetSize.width(), targetSize.height(), _sourceImage.format());
-	scaledImage.setDevicePixelRatio(devicePixelRatioF());
-	scaledImage.fill(Qt::green);
+	if (_displayImage.size() != targetSize || _displayImage.format() != _sourceImage.format())
+		_displayImage = QImage(targetSize.width(), targetSize.height(), _sourceImage.format());
 
-	const auto srcView = createView<true>(_sourceImage);
-	auto dstView = createView<false>(scaledImage);
-	ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
+	_displayImage.setDevicePixelRatio(devicePixelRatioF());
+
+	const size_t newCacheKey = qHash(sourceRect) ^ qHash(targetSize);
+	if (newCacheKey != _cacheKey)
+	{
+		_cacheKey = newCacheKey;
+
+		const auto srcView = createView<true>(_sourceImage);
+		auto dstView = createView<false>(_displayImage);
+		ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
+	}
 
 	if (zoom <= 1.0)
 	{
 		const QRectF targetRect = centeredTargetRect(targetSize, size());
-		p.drawImage(targetRect, scaledImage);
+		p.drawImage(targetRect, _displayImage);
 	}
 	else
 	{
-		p.drawImage(0, 0, scaledImage);
+		p.drawImage(0, 0, _displayImage);
 	}
 }
 
