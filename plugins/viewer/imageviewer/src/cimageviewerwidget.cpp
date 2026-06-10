@@ -178,13 +178,18 @@ bool CImageViewerWidget::displayImage(const QString& imagePath)
 	reader.setAutoTransform(true);
 
 	_currentImageFormat = QString::fromLatin1(reader.format());
-	const QImage img = reader.read();
+	QImage img = reader.read();
 	if (img.isNull())
 	{
 		_currentImageFileSize = 0;
 		_currentImageFormat.clear();
 		QMessageBox::warning(parentWidget(), tr("Failed to load the image"), tr("Failed to load the image %1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
 		return false;
+	}
+
+	if (img.format() == QImage::Format_Indexed8)
+	{
+		img.convertTo(img.hasAlphaChannel() ? QImage::Format_ARGB32 : QImage::Format_RGB32);
 	}
 
 	_currentImageFileSize = reader.device()->size();
