@@ -119,6 +119,8 @@ inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 	view.width = static_cast<uint64_t>(qi.width());
 	view.height = static_cast<uint64_t>(qi.height());
 
+	const auto format = qi.format();
+
 	switch (qi.format())
 	{
 	case QImage::Format_Grayscale8: [[fallthrough]];
@@ -141,6 +143,14 @@ inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 	case QImage::Format_RGBA8888_Premultiplied:
 		view.channels = 4;
 		view.bytesPerChannel = 1;
+		break;
+	case QImage::Format_RGBA64:
+		view.channels = 4;
+		view.bytesPerChannel = 2;
+		break;
+	case QImage::Format_RGBX64:
+		view.channels = 3;
+		view.bytesPerChannel = 2;
 		break;
 	default:
 		throw std::runtime_error{ "Unsupported QImage format" };
@@ -187,7 +197,7 @@ bool CImageViewerWidget::displayImage(const QString& imagePath)
 		return false;
 	}
 
-	if (img.format() == QImage::Format_Indexed8)
+	if (img.format() == QImage::Format_Indexed8 || img.format() == QImage::Format_Grayscale16 || img.format() == QImage::Format_RGBA64 || img.format() == QImage::Format_RGBX64)
 	{
 		img.convertTo(img.hasAlphaChannel() ? QImage::Format_ARGB32 : QImage::Format_RGB32);
 	}
@@ -227,20 +237,23 @@ QSize CImageViewerWidget::sizeHint() const
 QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 {
 	QIcon result;
-	if (!_sourceImage.isNull())
-	{
-		for (const auto& s : sizes)
+
+	try {
+		if (!_sourceImage.isNull())
 		{
-			QImage scaledImage(s.width(), s.height(), _sourceImage.format());
-			scaledImage.fill(Qt::green);
+			for (const auto& s : sizes)
+			{
+				QImage scaledImage(s.width(), s.height(), _sourceImage.format());
+				scaledImage.fill(Qt::green);
 
-			const auto srcView = createView<true>(_sourceImage);
-			auto dstView = createView<false>(scaledImage);
-			ImageProcessing::resize(dstView, srcView);
+				const auto srcView = createView<true>(_sourceImage);
+				auto dstView = createView<false>(scaledImage);
+				ImageProcessing::resize(dstView, srcView);
 
-			result.addPixmap(QPixmap::fromImage(scaledImage));
+				result.addPixmap(QPixmap::fromImage(scaledImage));
+			}
 		}
-	}
+	} catch (...) {}
 
 	return result;
 }
@@ -295,9 +308,15 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	{
 		_cacheKey = newCacheKey;
 
-		const auto srcView = createView<true>(_sourceImage);
-		auto dstView = createView<false>(_displayImage);
-		ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
+		try {
+			const auto srcView = createView<true>(_sourceImage);
+			auto dstView = createView<false>(_displayImage);
+			ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
+		}
+		catch (...) {
+			_displayImage = _sourceImage.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+			_displayImage.setDevicePixelRatio(devicePixelRatioF());
+		}
 	}
 
 	if (zoom <= 1.0)
