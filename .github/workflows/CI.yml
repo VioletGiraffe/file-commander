@@ -139,6 +139,13 @@ jobs:
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
 
+    - name: .exe file size
+      if: startsWith(matrix.os, 'windows')
+      shell: powershell
+      run: |
+        $sizeKB = (Get-Item "bin\release\x64\FileCommander.exe").Length / 1KB
+        "{0:N2} KB" -f $sizeKB
+
     - name: Test launch
       if: startsWith(matrix.os, 'macos')
       run: ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch
