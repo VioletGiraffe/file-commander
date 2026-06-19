@@ -149,7 +149,7 @@ jobs:
         xvfb-run --auto-servernum ./bin/release/x64/FileCommander --test-launch
 
     - name: Test launch
-      if: startsWith(matrix.os, 'widows')
+      if: startsWith(matrix.os, 'windows')
       run: |
         .\bin\release\x64\FileCommander.exe --test-launch  
 
