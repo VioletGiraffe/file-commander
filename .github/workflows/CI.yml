@@ -171,7 +171,7 @@ jobs:
       run: |
         cd file-commander-core\core-tests\
         dir
-        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%QT_ROOT_DIR%\bin\qmake.exe" -tp vc -r
+        "%QT_ROOT_DIR%\bin\qmake.exe" -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v143 core-tests.sln
         cd ..\..
 
