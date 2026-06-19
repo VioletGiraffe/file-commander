@@ -96,6 +96,10 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       uses: microsoft/setup-msbuild@v2
 
+    - name: Setup MSVC Developer Command Prompt
+      if: startsWith(matrix.os, 'windows')
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: Windows - building main installer
       if: startsWith(matrix.os, 'windows')
       shell: cmd
