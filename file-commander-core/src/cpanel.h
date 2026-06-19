@@ -51,7 +51,7 @@ struct CursorPositionListener {
 	virtual void setCursorToItem(const QString& folder, qulonglong currentItemHash) = 0;
 };
 
-class CPanel final : public QObject
+class CPanel final
 {
 public:
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
@@ -60,7 +60,7 @@ public:
 	void addCurrentItemChangeListener(CursorPositionListener * listener);
 
 	explicit CPanel(Panel position);
-	~CPanel() override;
+	~CPanel();
 
 	void restoreFromSettings();
 	// Sets the current directory
