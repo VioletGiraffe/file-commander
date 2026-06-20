@@ -30,9 +30,6 @@
     <number>3</number>
    </property>
    <item>
-    <widget class="QTabBar" name="_tabBar"/>
-   </item>
-   <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
      <property name="spacing">
       <number>3</number>
@@ -137,6 +134,13 @@ margin-bottom:6 dp</string>
      </property>
      <property name="text">
       <string>Drive info</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTabBar" name="_tabBar">
+     <property name="contextMenuPolicy">
+      <enum>Qt::CustomContextMenu</enum>
      </property>
     </widget>
    </item>
