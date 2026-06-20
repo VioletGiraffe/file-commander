@@ -48,6 +48,12 @@ public:
 	[[nodiscard]] Panel panelPosition() const;
 	void setPanelPosition(Panel p);
 
+	// Tabs (this side). These keep the QTabBar, the per-tab model triplets, and CController's tab list index-aligned.
+	void createNewTab();          // New tab showing the current folder, switched to
+	void closeCurrentTab();       // Closes the active tab (no-op when it's the only one)
+	void switchToNextTab();
+	void switchToPreviousTab();
+
 	// Returns the list of items added to the view
 	void fillFromList(FileListRefreshCause operation);
 	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
@@ -112,6 +118,19 @@ private:
 
 	[[nodiscard]] bool pasteImage(const QImage& image, bool lossyCompression);
 
+// Tab helpers (UI side; index-aligned with CController's tabs and the QTabBar)
+	struct PanelTab {
+		CFileListModel* model = nullptr;
+		CFileListSortFilterProxyModel* sortModel = nullptr;
+		QItemSelectionModel* selectionModel = nullptr;
+	};
+	[[nodiscard]] PanelTab createModelTriplet();   // Creates and wires a model / sort-proxy / selection-model trio (not shown yet)
+	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, preserving column widths
+	void onTabBarCurrentChanged(int index);
+	void onTabBarCloseRequested(int index);
+	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
+	void updateTabText(int index);
+
 private:
 	CFileListFilterDialog          * _filterDialog = nullptr;
 	std::vector<CFileSystemObject>  _disks;
@@ -119,9 +138,12 @@ private:
 	QString                         _directoryCurrentlyBeingDisplayed;
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;
+	// The active tab's triplet (also held in _tabs[_activeTab]); kept as members so the rest of the widget stays tab-agnostic.
 	QItemSelectionModel           * _selectionModel = nullptr;
 	CFileListModel                * _model = nullptr;
 	CFileListSortFilterProxyModel * _sortModel = nullptr;
+	std::vector<PanelTab>           _tabs;
+	int                             _activeTab = -1;
 	Panel                           _panelPosition = Panel::UnknownPanel;
 
 	QModelIndex _previousCurrentItem;

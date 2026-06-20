@@ -27,11 +27,13 @@ DISABLE_COMPILER_WARNINGS
 #include <QCompleter>
 #include <QDebug>
 #include <QInputDialog>
+#include <QItemSelectionModel>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPushButton>
 #include <QShortcut>
+#include <QTabBar>
 #include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
 
@@ -139,37 +141,163 @@ Panel CPanelWidget::panelPosition() const
 
 void CPanelWidget::setPanelPosition(Panel p)
 {
-	assert_r(_panelPosition == Panel::UnknownPanel && !_model);
+	assert_r(_panelPosition == Panel::UnknownPanel && _tabs.empty());
 	_panelPosition = p;
 
 	ui->_list->installEventFilter(this);
 	ui->_list->viewport()->installEventFilter(this);
 	ui->_list->setPanelPosition(p);
 
-	_model = new(std::nothrow) CFileListModel(p, this);
-	assert_r(connect(_model, &CFileListModel::itemEdited, this, &CPanelWidget::renameItem));
+	ui->_tabBar->setExpanding(false);
+	ui->_tabBar->setTabsClosable(true);
+	ui->_tabBar->setElideMode(Qt::ElideMiddle);
+	ui->_tabBar->setDrawBase(false);
+	assert_r(connect(ui->_tabBar, &QTabBar::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
+	assert_r(connect(ui->_tabBar, &QTabBar::tabCloseRequested, this, &CPanelWidget::onTabBarCloseRequested));
 
-	_sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
-	_sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
-	_sortModel->setFilterRole(FullNameRole);
-	_sortModel->setPanelPosition(p);
-	_sortModel->setSourceModel(_model);
+	// Mirror however many tabs CController restored for this side (usually one, but persisted multi-tab state may have more).
+	const int tabCount = _controller->tabCount(p);
+	const int activeIndex = _controller->activeTabIndex(p);
+	{
+		const QSignalBlocker block(ui->_tabBar);
+		for (int i = 0; i < tabCount; ++i)
+		{
+			_tabs.push_back(createModelTriplet());
+			ui->_tabBar->addTab(QString());
+		}
+		ui->_tabBar->setCurrentIndex(activeIndex);
+	}
+	for (int i = 0; i < tabCount; ++i)
+		updateTabText(i);
+	activateTab(activeIndex);
+	updateTabBarVisibility();
 
-	ui->_list->setModel(_sortModel);
-	assert_r(connect(_sortModel, &QSortFilterProxyModel::modelAboutToBeReset, ui->_list, &CFileListView::modelAboutToBeReset));
-	assert_r(connect(_sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [this](){
+	_controller->setPanelContentsChangedListener(p, this);
+	_controller->setVolumesChangedListener(this);
+	_controller->setCursorPositionListener(p, this);
+}
+
+CPanelWidget::PanelTab CPanelWidget::createModelTriplet()
+{
+	PanelTab tab;
+
+	tab.model = new(std::nothrow) CFileListModel(_panelPosition, this);
+	assert_r(connect(tab.model, &CFileListModel::itemEdited, this, &CPanelWidget::renameItem));
+
+	tab.sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
+	tab.sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
+	tab.sortModel->setFilterRole(FullNameRole);
+	tab.sortModel->setPanelPosition(_panelPosition);
+	tab.sortModel->setSourceModel(tab.model);
+	assert_r(connect(tab.sortModel, &QSortFilterProxyModel::modelAboutToBeReset, ui->_list, &CFileListView::modelAboutToBeReset));
+	assert_r(connect(tab.sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [this](){
 		ui->_list->scrollTo(ui->_list->currentIndex());
 	}));
 
-	_selectionModel = ui->_list->selectionModel(); // can only be called after setModel
-	assert_r(_selectionModel);
-	assert_r(connect(_selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
-	assert_r(connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
+	// Each tab owns its selection model (parented to the widget, not the view) so it survives the view->setModel() swaps.
+	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.sortModel, this);
+	assert_r(connect(tab.selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
+	assert_r(connect(tab.selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
 
-	_controller->setPanelContentsChangedListener(p, this);
+	return tab;
+}
 
-	_controller->setVolumesChangedListener(this);
-	_controller->panel(_panelPosition).addCurrentItemChangeListener(this);
+void CPanelWidget::activateTab(int index)
+{
+	assert_and_return_r(index >= 0 && index < (int)_tabs.size(), );
+	_activeTab = index;
+	PanelTab& tab = _tabs[(size_t)index];
+	_model = tab.model;
+	_sortModel = tab.sortModel;
+	_selectionModel = tab.selectionModel;
+
+	// Preserve the panel's column layout across the model swap (setModel re-initializes the header otherwise).
+	const QByteArray headerState = ui->_list->header()->saveState();
+	ui->_list->setModel(_sortModel);
+	ui->_list->setSelectionModel(_selectionModel);
+	if (!headerState.isEmpty())
+		ui->_list->header()->restoreState(headerState);
+
+	// Show the now-active panel's contents immediately (the CPanel may also refresh asynchronously on activation).
+	fillFromPanel(_controller->panel(_panelPosition), refreshCauseOther);
+}
+
+void CPanelWidget::createNewTab()
+{
+	const QString path = _controller->panel(_panelPosition).currentDirPathPosix();
+	const int index = _controller->addTab(_panelPosition, path);
+
+	_tabs.push_back(createModelTriplet());
+	{
+		const QSignalBlocker block(ui->_tabBar);
+		ui->_tabBar->addTab(QString());
+	}
+	updateTabText(index);
+	updateTabBarVisibility();
+
+	ui->_tabBar->setCurrentIndex(index); // fires currentChanged -> onTabBarCurrentChanged -> setActiveTab + activateTab
+}
+
+void CPanelWidget::closeCurrentTab()
+{
+	onTabBarCloseRequested(_activeTab);
+}
+
+void CPanelWidget::switchToNextTab()
+{
+	if (_tabs.size() <= 1)
+		return;
+	ui->_tabBar->setCurrentIndex((_activeTab + 1) % (int)_tabs.size());
+}
+
+void CPanelWidget::switchToPreviousTab()
+{
+	if (_tabs.size() <= 1)
+		return;
+	ui->_tabBar->setCurrentIndex((_activeTab - 1 + (int)_tabs.size()) % (int)_tabs.size());
+}
+
+void CPanelWidget::onTabBarCurrentChanged(int index)
+{
+	if (index < 0 || index >= (int)_tabs.size())
+		return;
+	_controller->setActiveTab(_panelPosition, index);
+	activateTab(index);
+}
+
+void CPanelWidget::onTabBarCloseRequested(int index)
+{
+	if (_tabs.size() <= 1 || index < 0 || index >= (int)_tabs.size())
+		return;
+
+	_controller->closeTab(_panelPosition, index);
+	const int controllerActive = _controller->activeTabIndex(_panelPosition); // post-removal index
+
+	// Detach the view from the closing triplet (via activateTab below) BEFORE deleting it.
+	const PanelTab closing = _tabs[(size_t)index];
+	_tabs.erase(_tabs.begin() + index);
+	{
+		const QSignalBlocker block(ui->_tabBar);
+		ui->_tabBar->removeTab(index);
+		ui->_tabBar->setCurrentIndex(controllerActive);
+	}
+	updateTabBarVisibility();
+	activateTab(controllerActive);
+
+	delete closing.selectionModel;
+	delete closing.sortModel;
+	delete closing.model;
+}
+
+void CPanelWidget::updateTabBarVisibility()
+{
+	ui->_tabBar->setVisible(_tabs.size() > 1); // "no tabs created by the user" => no tab bar in the UI
+}
+
+void CPanelWidget::updateTabText(int index)
+{
+	if (index >= 0 && index < ui->_tabBar->count())
+		ui->_tabBar->setTabText(index, _controller->tabName(_panelPosition, index));
 }
 
 // Returns the list of items added to the view
@@ -839,7 +967,10 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 void CPanelWidget::onPanelContentsChanged(Panel p , FileListRefreshCause operation)
 {
 	if (p == _panelPosition)
+	{
 		fillFromPanel(_controller->panel(_panelPosition), operation);
+		updateTabText(_activeTab);
+	}
 }
 
 CFileListView *CPanelWidget::fileListView() const
@@ -918,6 +1049,9 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 		ui->_driveInfoLabel->clear();
 
 	auto* layout = ui->_driveButtonsWidget->layout();
+	if (!layout)
+		return; // The drive buttons (and their layout) aren't created until volumesChanged() first runs; nothing to update yet.
+
 	for (int i = 0, n = layout->count(); i < n; ++i)
 	{
 		auto* button = dynamic_cast<QPushButton*>(layout->itemAt(i)->widget());

@@ -220,6 +220,29 @@ void CMainWindow::initActions()
 
 	connect(ui->action_Check_for_updates, &QAction::triggered, this, &CMainWindow::checkForUpdates);
 	connect(ui->actionAbout, &QAction::triggered, this, &CMainWindow::about);
+
+	// Tabs menu (created programmatically; inserted before the View menu). Actions route to the active panel's widget.
+	QMenu* tabsMenu = new QMenu(tr("Tabs"), this);
+
+	auto* newTabAction = tabsMenu->addAction(tr("New Tab"));
+	newTabAction->setShortcut(QKeySequence(QSL("Ctrl+T")));
+	connect(newTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->createNewTab(); });
+
+	auto* closeTabAction = tabsMenu->addAction(tr("Close Tab"));
+	closeTabAction->setShortcut(QKeySequence(QSL("Ctrl+W")));
+	connect(closeTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->closeCurrentTab(); });
+
+	tabsMenu->addSeparator();
+
+	auto* nextTabAction = tabsMenu->addAction(tr("Next Tab"));
+	nextTabAction->setShortcut(QKeySequence(QSL("Ctrl+Tab")));
+	connect(nextTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToNextTab(); });
+
+	auto* prevTabAction = tabsMenu->addAction(tr("Previous Tab"));
+	prevTabAction->setShortcut(QKeySequence(QSL("Ctrl+Shift+Tab")));
+	connect(prevTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToPreviousTab(); });
+
+	ui->menubar->insertMenu(ui->menu_View->menuAction(), tabsMenu);
 }
 
 // For manual focus management
@@ -881,8 +904,9 @@ void CMainWindow::initCore()
 	ui->leftWidget->setCurrentIndex(0); // PanelWidget
 	ui->rightWidget->setCurrentIndex(0); // PanelWidget
 
-	_controller->panel(Panel::LeftPanel).addPanelContentsChangedListener(this);
-	_controller->panel(Panel::RightPanel).addPanelContentsChangedListener(this);
+	// Through the controller so it attaches to every tab of the side, not just the one active right now.
+	_controller->setPanelContentsChangedListener(Panel::LeftPanel, this);
+	_controller->setPanelContentsChangedListener(Panel::RightPanel, this);
 
 	connect(_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
 	_uiThreadTimer->start(10);
