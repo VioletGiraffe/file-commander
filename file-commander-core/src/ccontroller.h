@@ -11,7 +11,9 @@
 #include "plugininterface/wcx/cwcxpluginhost_stub.h"
 #endif
 
+#include <array>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -33,6 +35,7 @@ public:
 	void loadPlugins();
 
 	void setPanelContentsChangedListener(Panel p, PanelContentsChangedListener * listener);
+	void setCursorPositionListener(Panel p, CursorPositionListener * listener);
 	void setVolumesChangedListener(IVolumeListObserver * listener);
 
 // Notifications from UI
@@ -40,10 +43,16 @@ public:
 
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 	void refreshPanelContents(Panel p);
-	// Creates a new tab for the specified panel, returns tab ID
-	int tabCreated (Panel p);
-	// Removes a tab for the specified panel and tab ID
-	void tabRemoved(Panel panel, int tabId);
+	// Tab management. A tab is an independent CPanel; panel(p) returns the active tab's CPanel for side p.
+	// Creates a new tab for side p showing 'path' and returns its index. The new tab is created inactive.
+	int addTab(Panel p, const QString& path);
+	// Closes the tab at tabIndex. Never removes the last tab (a panel always keeps >= 1 tab).
+	void closeTab(Panel p, int tabIndex);
+	// Makes tabIndex the active tab for side p (deactivates the previously active tab, activates the new one).
+	void setActiveTab(Panel p, int tabIndex);
+	[[nodiscard]] int tabCount(Panel p) const;
+	[[nodiscard]] int activeTabIndex(Panel p) const;
+	[[nodiscard]] QString tabPath(Panel p, int tabIndex) const;
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched
@@ -118,11 +127,25 @@ private:
 	[[nodiscard]] QString volumePathById(uint64_t id) const;
 	void saveDirectoryForCurrentVolume(Panel p);
 
+	// Each side holds a list of tabs; each tab is an independent CPanel. panel(p) returns the active tab.
+	struct TabList {
+		std::vector<std::unique_ptr<CPanel>> tabs;
+		size_t activeTab = 0;
+	};
+	// Creates a CPanel for side p, wires its listeners, appends it as a new tab and returns it. Does NOT set a path.
+	CPanel& createTab(Panel p);
+	// Attaches all of side p's recorded contents/cursor listeners (plus the plugin engine) to a freshly created tab.
+	void attachListenersToTab(Panel p, CPanel& tab);
+
 private:
 	static CController * _instance;
 	CFavoriteLocations   _favoriteLocations;
-	CPanel               _leftPanel;
-	CPanel               _rightPanel;
+	// Shared worker pool for all panel tabs. Declared before _panels so it outlives the CPanels that post tasks to it.
+	CWorkerThreadPool    _panelWorkerPool;
+	std::array<TabList, 2> _panels;
+	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
+	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
+	std::array<std::vector<CursorPositionListener*>, 2> _cursorPositionListeners;
 	CPluginProxy         _pluginProxy;
 	CWcxPluginHost       _wcxHost;
 	CVolumeEnumerator    _volumeEnumerator;

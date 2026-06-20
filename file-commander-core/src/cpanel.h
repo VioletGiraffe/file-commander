@@ -59,10 +59,13 @@ public:
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 	void addCurrentItemChangeListener(CursorPositionListener * listener);
 
-	explicit CPanel(Panel position);
+	explicit CPanel(Panel position, CWorkerThreadPool& workerThreadPool);
 	~CPanel();
 
 	void restoreFromSettings();
+	// Activates/deactivates this tab. An inactive tab releases its filesystem watch handle; activating re-arms the watch and
+	// refreshes the file list (the folder's changes weren't being watched while the tab was inactive).
+	void setActive(bool active);
 	// Sets the current directory
 	FileOperationResultCode setPath(const QString& path, FileListRefreshCause operation);
 	// Navigates up the directory tree
@@ -126,9 +129,10 @@ private:
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CursorPositionListener>     _currentItemChangeListener;
 	const Panel                                _panelPosition;
+	const uint64_t                             _taskTag; // Unique per panel; tags this panel's tasks in the shared pool so they can be retired when the panel is destroyed
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 
-	CWorkerThreadPool                          _workerThreadPool;
+	CWorkerThreadPool&                         _workerThreadPool; // Shared pool owned by CController; this panel's tasks carry _taskTag
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
 };

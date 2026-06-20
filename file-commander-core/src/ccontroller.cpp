@@ -18,12 +18,13 @@ DISABLE_COMPILER_WARNINGS
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
+#include <thread>
+
 CController* CController::_instance = nullptr;
 
 CController::CController() :
 	_favoriteLocations{KEY_FAVORITES},
-	_leftPanel{Panel::LeftPanel},
-	_rightPanel{Panel::RightPanel},
+	_panelWorkerPool{ std::min(4u, std::thread::hardware_concurrency()), "Panel file list pool" },
 	_pluginProxy{[this](const std::function<void()>& code) {execOnUiThread(code);}},
 	_workerThreadPool{2, "CController thread pool"}
 {
@@ -32,14 +33,13 @@ CController::CController() :
 
 	_volumeEnumerator.addObserver(this);
 
-	_leftPanel.addPanelContentsChangedListener(&CPluginEngine::get());
-	_rightPanel.addPanelContentsChangedListener(&CPluginEngine::get());
-
-	// Manual update for the CPanels to get the volumes list
+	// Volumes must be enumerated before restoring panel paths: setPath checks path accessibility against the volume list.
 	_volumeEnumerator.updateSynchronously();
 
-	_leftPanel.restoreFromSettings();
-	_rightPanel.restoreFromSettings();
+	// One tab per side for now (multi-tab persistence comes later). createTab() wires the plugin-engine listener;
+	// restoreFromSettings() restores the saved path + history, exactly as before tabs existed.
+	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+		createTab(p).restoreFromSettings();
 
 	_volumeEnumerator.startEnumeratorThread();
 
@@ -59,7 +59,17 @@ void CController::loadPlugins()
 
 void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedListener *listener)
 {
-	panel(p).addPanelContentsChangedListener(listener);
+	// Record it so tabs created later also get it, and attach it to every existing tab of this side.
+	_panelContentsListeners[(size_t)p].push_back(listener);
+	for (auto& tab : _panels[(size_t)p].tabs)
+		tab->addPanelContentsChangedListener(listener);
+}
+
+void CController::setCursorPositionListener(Panel p, CursorPositionListener *listener)
+{
+	_cursorPositionListeners[(size_t)p].push_back(listener);
+	for (auto& tab : _panels[(size_t)p].tabs)
+		tab->addCurrentItemChangeListener(listener);
 }
 
 void CController::setVolumesChangedListener(CController::IVolumeListObserver *listener)
@@ -73,8 +83,13 @@ void CController::setVolumesChangedListener(CController::IVolumeListObserver *li
 
 void CController::uiThreadTimerTick()
 {
-	_leftPanel.uiThreadTimerTick();
-	_rightPanel.uiThreadTimerTick();
+	// Tick every tab, not just the active one: a tab that was switched away from may still have an in-flight refresh
+	// whose result is queued in its UI-thread queue and needs to be drained.
+	for (auto& tabList : _panels)
+	{
+		for (auto& tab : tabList.tabs)
+			tab->uiThreadTimerTick();
+	}
 
 	_uiQueue.exec(CExecutionQueue::execAll);
 }
@@ -85,16 +100,81 @@ void CController::refreshPanelContents(Panel p)
 	panel(p).refreshFileList(refreshCauseOther);
 }
 
-// Creates a new tab for the specified panel, returns tab ID
-int CController::tabCreated(Panel /*p*/)
+CPanel& CController::createTab(Panel p)
 {
-	return -1;
+	auto& tabList = _panels[(size_t)p];
+	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _panelWorkerPool));
+	attachListenersToTab(p, tab);
+	return tab;
 }
 
-// Removes a tab for the specified panel and tab ID
-void CController::tabRemoved(Panel /*panel*/, int /*tabId*/)
+void CController::attachListenersToTab(Panel p, CPanel& tab)
 {
-	// Tabs not yet implemented
+	tab.addPanelContentsChangedListener(&CPluginEngine::get());
+	for (auto* listener : _panelContentsListeners[(size_t)p])
+		tab.addPanelContentsChangedListener(listener);
+	for (auto* listener : _cursorPositionListeners[(size_t)p])
+		tab.addCurrentItemChangeListener(listener);
+}
+
+int CController::addTab(Panel p, const QString& path)
+{
+	CPanel& tab = createTab(p);
+	tab.setPath(path, refreshCauseOther);
+	return (int)_panels[(size_t)p].tabs.size() - 1;
+}
+
+void CController::closeTab(Panel p, int tabIndex)
+{
+	auto& tabList = _panels[(size_t)p];
+	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), );
+	if (tabList.tabs.size() == 1)
+		return; // A panel always keeps at least one tab
+
+	const size_t idx = (size_t)tabIndex;
+	const bool wasActive = (idx == tabList.activeTab);
+
+	tabList.tabs[idx]->setActive(false); // Release its watch handle before destruction
+	tabList.tabs.erase(tabList.tabs.begin() + (ptrdiff_t)idx);
+
+	if (tabList.activeTab > idx)
+		--tabList.activeTab; // The active tab shifted left but is still the same tab
+	else if (wasActive)
+	{
+		// The active tab was the one removed: clamp the index and activate whatever now occupies the slot.
+		if (tabList.activeTab >= tabList.tabs.size())
+			tabList.activeTab = tabList.tabs.size() - 1;
+		tabList.tabs[tabList.activeTab]->setActive(true);
+	}
+}
+
+void CController::setActiveTab(Panel p, int tabIndex)
+{
+	auto& tabList = _panels[(size_t)p];
+	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), );
+	if ((size_t)tabIndex == tabList.activeTab)
+		return;
+
+	tabList.tabs[tabList.activeTab]->setActive(false);
+	tabList.activeTab = (size_t)tabIndex;
+	tabList.tabs[tabList.activeTab]->setActive(true);
+}
+
+int CController::tabCount(Panel p) const
+{
+	return (int)_panels[(size_t)p].tabs.size();
+}
+
+int CController::activeTabIndex(Panel p) const
+{
+	return (int)_panels[(size_t)p].activeTab;
+}
+
+QString CController::tabPath(Panel p, int tabIndex) const
+{
+	const auto& tabList = _panels[(size_t)p];
+	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), QString());
+	return tabList.tabs[(size_t)tabIndex]->currentDirPathPosix();
 }
 
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any
@@ -351,12 +431,14 @@ const CPanel &CController::panel(Panel p) const
 	switch (p)
 	{
 	case Panel::LeftPanel:
-		return _leftPanel;
 	case Panel::RightPanel:
-		return _rightPanel;
+	{
+		const TabList& tabList = _panels[(size_t)p];
+		return *tabList.tabs[tabList.activeTab];
+	}
 	default:
 		assert_unconditional_r("Unknown panel");
-		return _rightPanel;
+		return *_panels[(size_t)Panel::RightPanel].tabs[_panels[(size_t)Panel::RightPanel].activeTab];
 	}
 }
 
@@ -365,41 +447,25 @@ CPanel& CController::panel(Panel p)
 	switch (p)
 	{
 	case Panel::LeftPanel:
-		return _leftPanel;
 	case Panel::RightPanel:
-		return _rightPanel;
+	{
+		TabList& tabList = _panels[(size_t)p];
+		return *tabList.tabs[tabList.activeTab];
+	}
 	default:
 		assert_unconditional_r("Unknown panel");
-		return _rightPanel;
+		return *_panels[(size_t)Panel::RightPanel].tabs[_panels[(size_t)Panel::RightPanel].activeTab];
 	}
 }
 
 const CPanel &CController::otherPanel(Panel p) const
 {
-	switch (p)
-	{
-	case Panel::LeftPanel:
-		return _rightPanel;
-	case Panel::RightPanel:
-		return _leftPanel;
-	default:
-		assert_unconditional_r("Uknown panel");
-		return _rightPanel;
-	}
+	return panel(otherPanelPosition(p));
 }
 
 CPanel& CController::otherPanel(Panel p)
 {
-	switch (p)
-	{
-	case Panel::LeftPanel:
-		return _rightPanel;
-	case Panel::RightPanel:
-		return _leftPanel;
-	default:
-		assert_unconditional_r("Uknown panel");
-		return _leftPanel;
-	}
+	return panel(otherPanelPosition(p));
 }
 
 

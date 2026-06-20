@@ -14,6 +14,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm> // std::min
+#include <atomic>
 #include <time.h>
 
 
@@ -22,18 +23,25 @@ enum {
 	ItemDiscoveryProgressNotificationTag
 };
 
-CPanel::CPanel(Panel position) :
+// Process-wide source of unique, non-zero task tags (one per CPanel) for the shared worker pool.
+static uint64_t nextPanelTaskTag()
+{
+	static std::atomic<uint64_t> counter{ 1 };
+	return counter.fetch_add(1, std::memory_order_relaxed);
+}
+
+CPanel::CPanel(Panel position, CWorkerThreadPool& workerThreadPool) :
 	_panelPosition(position),
-	_workerThreadPool(
-		std::min(4u, std::thread::hardware_concurrency()),
-		std::string(position == Panel::LeftPanel ? "Left panel" : "Right panel") + " file list refresh thread pool"
-	)
+	_taskTag(nextPanelTaskTag()),
+	_workerThreadPool(workerThreadPool)
 {
 }
 
 CPanel::~CPanel()
 {
-	_workerThreadPool.finishAllThreads();
+	// Drop this panel's queued tasks from the shared pool and wait out any in-flight one,
+	// so no task touches this panel's members after it's destroyed.
+	_workerThreadPool.retire(_taskTag);
 }
 
 void CPanel::restoreFromSettings()
@@ -42,6 +50,18 @@ void CPanel::restoreFromSettings()
 	const QStringList historyList = s.value(_panelPosition == Panel::RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList();
 	_history.addLatest(to_vector<QString>(historyList));
 	setPath(s.value(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString(), refreshCauseOther);
+}
+
+void CPanel::setActive(bool active)
+{
+	if (active)
+	{
+		// Re-arm the watch for the current folder and refresh, since changes weren't tracked while the tab was inactive.
+		_watcher.setPathToWatch(currentDirPathPosix());
+		refreshFileList(refreshCauseOther);
+	}
+	else
+		_watcher.setPathToWatch({}); // Release the OS watch handle while inactive
 }
 
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
@@ -201,7 +221,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 		});
 
 		sendContentsChangedNotification(refreshCauseOther);
-	});
+	}, _taskTag);
 }
 
 // Switches to the appropriate directory and sets the cursor to the specified item
@@ -325,7 +345,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 		}
 
 		sendContentsChangedNotification(operation);
-	});
+	}, _taskTag);
 }
 
 // Returns the current list of objects on this panel
@@ -410,7 +430,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 		}
 
 		sendContentsChangedNotification(refreshCauseOther);
-	});
+	}, _taskTag);
 }
 
 void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
