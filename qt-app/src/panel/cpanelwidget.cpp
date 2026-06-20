@@ -112,7 +112,12 @@ bool CPanelWidget::restorePanelState(const QByteArray& state)
 	if (!state.isEmpty())
 	{
 		ui->_list->setHeaderAdjustmentRequired(false);
-		return ui->_list->header()->restoreState(state);
+		const bool ok = ui->_list->header()->restoreState(state);
+		// Mirror the persisted blob into the startup-active tab's own storage, otherwise switching away
+		// from and back to it (before ever resizing anything) would revert to its stale, pre-restore seed.
+		if (_activeTab >= 0 && _activeTab < (int)_tabs.size())
+			_tabs[(size_t)_activeTab].headerState = state;
+		return ok;
 	}
 	else
 	{
@@ -203,6 +208,10 @@ CPanelWidget::PanelTab CPanelWidget::createModelTriplet()
 	else
 		tab.sortModel->sort(NameColumn, Qt::AscendingOrder);
 
+	// Likewise, a new tab starts with whatever column layout is currently displayed (or Qt's defaults for
+	// the very first tab); from this point on each tab's column widths/order/visibility are independent.
+	tab.headerState = ui->_list->header()->saveState();
+
 	// Each tab owns its selection model (parented to the widget, not the view) so it survives the view->setModel() swaps.
 	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.sortModel, this);
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
@@ -220,15 +229,12 @@ void CPanelWidget::activateTab(int index)
 	_sortModel = tab.sortModel;
 	_selectionModel = tab.selectionModel;
 
-	// Preserve column widths/order/visibility across the model swap (setModel re-initializes the header otherwise).
-	QHeaderView* header = ui->_list->header();
-	const QByteArray headerState = header->saveState();
-
 	// QTreeView::setModel(), with sortingEnabled on, unconditionally re-sorts whatever model it's just been
 	// given using the header's CURRENT sort indicator -- a direct internal call made from inside setModel()
 	// itself, not a signal, so a QSignalBlocker placed around/after the setModel() call can't stop it. Point
 	// the indicator at the tab we're switching TO (its own remembered sort column/order) *before* the swap,
 	// with signals blocked here so this step doesn't itself resort the OLD, still-attached model.
+	QHeaderView* header = ui->_list->header();
 	{
 		const QSignalBlocker blocker(header);
 		header->setSortIndicator(_sortModel->sortColumn(), _sortModel->sortOrder());
@@ -237,12 +243,14 @@ void CPanelWidget::activateTab(int index)
 	ui->_list->setModel(_sortModel); // re-sorts _sortModel by the indicator set above -- already its own sort, so this is a no-op
 	ui->_list->setSelectionModel(_selectionModel);
 
-	// Restore column widths/order/visibility, but keep the (now-correct) sort indicator: restoring the saved
-	// blob's indicator here would just put the OLD tab's sort back, the same way the plain setModel() call did.
-	if (!headerState.isEmpty())
+	// Restore THIS tab's own column widths/order/visibility (captured by onTabBarCurrentChanged /
+	// onTabBarCloseRequested when we last switched away from it), but keep the (now-correct) sort
+	// indicator: restoring the stored blob's indicator here would just put this tab's OLD sort back,
+	// the same way the plain setModel() call would if left unguarded.
+	if (!tab.headerState.isEmpty())
 	{
 		const QSignalBlocker blocker(header);
-		header->restoreState(headerState);
+		header->restoreState(tab.headerState);
 		header->setSortIndicator(_sortModel->sortColumn(), _sortModel->sortOrder());
 	}
 
@@ -318,6 +326,12 @@ void CPanelWidget::onTabBarCurrentChanged(int index)
 {
 	if (index < 0 || index >= (int)_tabs.size())
 		return;
+
+	// Snapshot the tab we're switching away from so its column layout survives the swap; activateTab()
+	// below restores the new tab's own snapshot.
+	if (_activeTab >= 0 && _activeTab < (int)_tabs.size())
+		_tabs[(size_t)_activeTab].headerState = ui->_list->header()->saveState();
+
 	_controller->setActiveTab(_panelPosition, index);
 	activateTab(index);
 }
@@ -326,6 +340,14 @@ void CPanelWidget::onTabBarCloseRequested(int index)
 {
 	if (_tabs.size() <= 1 || index < 0 || index >= (int)_tabs.size())
 		return;
+
+	// activateTab() runs unconditionally below, even when we're closing some OTHER tab and the active one
+	// just shifts index -- without this, it would reapply the active tab's possibly-stale stored layout
+	// over a live, not-yet-captured resize. Capture before the erase, while _activeTab still indexes the
+	// correct (unshifted) slot. Closing the active tab itself (index == _activeTab) needs no capture, since
+	// that tab is about to be destroyed anyway.
+	if (index != _activeTab && _activeTab >= 0 && _activeTab < (int)_tabs.size())
+		_tabs[(size_t)_activeTab].headerState = ui->_list->header()->saveState();
 
 	_controller->closeTab(_panelPosition, index);
 	const int controllerActive = _controller->activeTabIndex(_panelPosition); // post-removal index

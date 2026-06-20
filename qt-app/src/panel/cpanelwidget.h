@@ -126,9 +126,10 @@ private:
 		CFileListModel* model = nullptr;
 		CFileListSortFilterProxyModel* sortModel = nullptr;
 		QItemSelectionModel* selectionModel = nullptr;
+		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - sortModel owns the sort)
 	};
 	[[nodiscard]] PanelTab createModelTriplet();   // Creates and wires a model / sort-proxy / selection-model trio (not shown yet)
-	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, preserving column widths
+	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, restoring its own column widths and sort
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);
 	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
