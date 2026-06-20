@@ -242,6 +242,12 @@ void CMainWindow::initActions()
 	prevTabAction->setShortcut(QKeySequence(QSL("Ctrl+Shift+Tab")));
 	connect(prevTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToPreviousTab(); });
 
+	tabsMenu->addSeparator();
+
+	auto* openInNewTabAction = tabsMenu->addAction(tr("Open Folder Under Cursor in New Tab"));
+	openInNewTabAction->setShortcut(QKeySequence(QSL("Ctrl+Up")));
+	connect(openInNewTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->openCurrentItemInNewTab(); });
+
 	ui->menubar->insertMenu(ui->menu_View->menuAction(), tabsMenu);
 }
 

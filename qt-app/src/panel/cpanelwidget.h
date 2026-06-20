@@ -53,6 +53,7 @@ public:
 	void closeCurrentTab();       // Closes the active tab (no-op when it's the only one)
 	void switchToNextTab();
 	void switchToPreviousTab();
+	void openCurrentItemInNewTab(); // Ctrl+Up: opens the folder under the cursor in a new tab (no-op if it's not a folder)
 
 	// Returns the list of items added to the view
 	void fillFromList(FileListRefreshCause operation);
@@ -100,6 +101,7 @@ private slots:
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard(bool specialPaste = false);
 	void pathFromHistoryActivated(QString path);
+	void onItemMiddleClicked(const QModelIndex& sortModelIndex); // Middle-click: opens the folder in a new tab (no-op if it's not a folder)
 
 private:
 	void fillHistory();
@@ -130,6 +132,8 @@ private:
 	void onTabBarCloseRequested(int index);
 	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
 	void updateTabText(int index);
+	void openPathInNewTab(const QString& path, bool activate = true); // Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab in the background
+	void tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate); // Opens the item in a new tab if it's a folder (and not "..")
 
 private:
 	CFileListFilterDialog          * _filterDialog = nullptr;

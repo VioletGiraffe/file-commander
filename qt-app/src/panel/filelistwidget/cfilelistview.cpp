@@ -179,6 +179,12 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 		if (event->modifiers() == Qt::NoModifier && itemClicked.isValid())
 			selectionModel()->clearSelection();
 	}
+	else if (event->button() == Qt::MiddleButton)
+	{
+		const QModelIndex itemClicked = indexAt(event->pos());
+		if (itemClicked.isValid())
+			emit itemMiddleClicked(itemClicked);
+	}
 
 	// Always let Qt process this event
 	QTreeView::mouseReleaseEvent(event);

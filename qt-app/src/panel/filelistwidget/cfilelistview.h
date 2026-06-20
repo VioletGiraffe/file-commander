@@ -54,6 +54,7 @@ signals:
 	void contextMenuRequested(QPoint pos);
 	void ctrlEnterPressed();
 	void ctrlShiftEnterPressed();
+	void itemMiddleClicked(const QModelIndex& index);
 	void keyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
 
 protected:

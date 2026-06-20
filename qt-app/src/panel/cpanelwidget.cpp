@@ -62,6 +62,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 
 	assert_r(connect(ui->_list, &CFileListView::contextMenuRequested, this, &CPanelWidget::showContextMenuForItems));
 	assert_r(connect(ui->_list, &CFileListView::keyPressed, this, &CPanelWidget::fileListViewKeyPressed));
+	assert_r(connect(ui->_list, &CFileListView::itemMiddleClicked, this, &CPanelWidget::onItemMiddleClicked));
 
 	assert_r(connect(ui->_driveInfoLabel, &CClickableLabel::doubleClicked, this, &CPanelWidget::showFavoriteLocationsMenu));
 	assert_r(connect(ui->_btnFavs, &QPushButton::clicked, this, [&]{showFavoriteLocationsMenu(mapToGlobal(ui->_btnFavs->geometry().bottomLeft()));}));
@@ -224,7 +225,35 @@ void CPanelWidget::activateTab(int index)
 
 void CPanelWidget::createNewTab()
 {
-	const QString path = _controller->panel(_panelPosition).currentDirPathPosix();
+	openPathInNewTab(_controller->panel(_panelPosition).currentDirPathPosix());
+}
+
+void CPanelWidget::openCurrentItemInNewTab()
+{
+	tryOpenItemInNewTab(_selectionModel->currentIndex(), /*activate=*/true);
+}
+
+void CPanelWidget::onItemMiddleClicked(const QModelIndex& sortModelIndex)
+{
+	// Middle-click opens a background tab (browser-style): don't switch the current panel away from what it's showing.
+	tryOpenItemInNewTab(sortModelIndex, /*activate=*/false);
+}
+
+void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate)
+{
+	const qulonglong hash = hashBySortModelIndex(sortModelIndex);
+	if (hash == 0)
+		return;
+
+	const CFileSystemObject item = _controller->itemByHash(_panelPosition, hash);
+	if (!item.isDir() || item.isCdUp())
+		return;
+
+	openPathInNewTab(item.fullAbsolutePath(), activate);
+}
+
+void CPanelWidget::openPathInNewTab(const QString& path, bool activate)
+{
 	const int index = _controller->addTab(_panelPosition, path);
 
 	_tabs.push_back(createModelTriplet());
@@ -235,7 +264,8 @@ void CPanelWidget::createNewTab()
 	updateTabText(index);
 	updateTabBarVisibility();
 
-	ui->_tabBar->setCurrentIndex(index); // fires currentChanged -> onTabBarCurrentChanged -> setActiveTab + activateTab
+	if (activate)
+		ui->_tabBar->setCurrentIndex(index); // fires currentChanged -> onTabBarCurrentChanged -> setActiveTab + activateTab
 }
 
 void CPanelWidget::closeCurrentTab()
