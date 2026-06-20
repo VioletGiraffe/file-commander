@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-class CController final : public CVolumeEnumerator::IVolumeListObserver
+class CController final : public CVolumeEnumerator::IVolumeListObserver, public PanelContentsChangedListener
 {
 public:
 	// Volume list observer interface
@@ -53,6 +53,7 @@ public:
 	[[nodiscard]] int tabCount(Panel p) const;
 	[[nodiscard]] int activeTabIndex(Panel p) const;
 	[[nodiscard]] QString tabPath(Panel p, int tabIndex) const;
+	[[nodiscard]] QString tabName(Panel p, int tabIndex) const; // The tab's folder name, for the tab label
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched
@@ -137,6 +138,13 @@ private:
 	// Attaches all of side p's recorded contents/cursor listeners (plus the plugin engine) to a freshly created tab.
 	void attachListenersToTab(Panel p, CPanel& tab);
 
+	// Persistence (centralized here; CPanel no longer touches settings).
+	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
+	void savePanelState(Panel p);    // Writes side p's tab paths + active index + the active tab's path/history (deduplicated)
+
+	// PanelContentsChangedListener: the controller listens to its own tabs only to persist on navigation.
+	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;
+
 private:
 	static CController * _instance;
 	CFavoriteLocations   _favoriteLocations;
@@ -146,6 +154,7 @@ private:
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
 	std::array<std::vector<CursorPositionListener*>, 2> _cursorPositionListeners;
+	std::array<QString, 2> _lastSavedTabSignature; // Dedup key for savePanelState (avoids rewriting settings on every watcher refresh)
 	CPluginProxy         _pluginProxy;
 	CWcxPluginHost       _wcxHost;
 	CVolumeEnumerator    _volumeEnumerator;

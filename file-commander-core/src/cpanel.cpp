@@ -14,7 +14,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm> // std::min
-#include <atomic>
 #include <time.h>
 
 
@@ -23,16 +22,11 @@ enum {
 	ItemDiscoveryProgressNotificationTag
 };
 
-// Process-wide source of unique, non-zero task tags (one per CPanel) for the shared worker pool.
-static uint64_t nextPanelTaskTag()
-{
-	static std::atomic<uint64_t> counter{ 1 };
-	return counter.fetch_add(1, std::memory_order_relaxed);
-}
-
 CPanel::CPanel(Panel position, CWorkerThreadPool& workerThreadPool) :
 	_panelPosition(position),
-	_taskTag(nextPanelTaskTag()),
+	// The panel's own address is a unique, non-zero pool tag. Reuse-safe: ~CPanel retires all of this tag's tasks
+	// before the address can be recycled by another CPanel, so a reused address never inherits stale tasks.
+	_taskTag(reinterpret_cast<uint64_t>(this)),
 	_workerThreadPool(workerThreadPool)
 {
 }
@@ -44,12 +38,9 @@ CPanel::~CPanel()
 	_workerThreadPool.retire(_taskTag);
 }
 
-void CPanel::restoreFromSettings()
+void CPanel::restoreHistory(const std::vector<QString>& history)
 {
-	CSettings s;
-	const QStringList historyList = s.value(_panelPosition == Panel::RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L).toStringList();
-	_history.addLatest(to_vector<QString>(historyList));
-	setPath(s.value(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString(), refreshCauseOther);
+	_history.addLatest(history);
 }
 
 void CPanel::setActive(bool active)
@@ -120,14 +111,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		// The current folder does not automatically make it into history on program startup, but it should (#103)
 		_history.addLatest(oldPathObject.fullAbsolutePath());
 
-	CSettings settings;
 	if (_history.currentItem() != newPath)
-	{
 		_history.addLatest(newPath);
-		settings.setValue(_panelPosition == Panel::RightPanel ? KEY_HISTORY_R : KEY_HISTORY_L, QVariant(QStringList(_history.list().cbegin(), _history.list().cend())));
-	}
-
-	settings.setValue(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, newPath);
 
 	if (_watcher.setPathToWatch(newPath) == false)
 		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";

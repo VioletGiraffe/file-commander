@@ -36,10 +36,9 @@ CController::CController() :
 	// Volumes must be enumerated before restoring panel paths: setPath checks path accessibility against the volume list.
 	_volumeEnumerator.updateSynchronously();
 
-	// One tab per side for now (multi-tab persistence comes later). createTab() wires the plugin-engine listener;
-	// restoreFromSettings() restores the saved path + history, exactly as before tabs existed.
+	// Rebuild each side's tabs from settings (migrating from the legacy single-path keys on first run).
 	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
-		createTab(p).restoreFromSettings();
+		restorePanelState(p);
 
 	_volumeEnumerator.startEnumeratorThread();
 
@@ -111,6 +110,7 @@ CPanel& CController::createTab(Panel p)
 void CController::attachListenersToTab(Panel p, CPanel& tab)
 {
 	tab.addPanelContentsChangedListener(&CPluginEngine::get());
+	tab.addPanelContentsChangedListener(this); // The controller listens to persist tab state on navigation (deduped)
 	for (auto* listener : _panelContentsListeners[(size_t)p])
 		tab.addPanelContentsChangedListener(listener);
 	for (auto* listener : _cursorPositionListeners[(size_t)p])
@@ -121,6 +121,7 @@ int CController::addTab(Panel p, const QString& path)
 {
 	CPanel& tab = createTab(p);
 	tab.setPath(path, refreshCauseOther);
+	savePanelState(p);
 	return (int)_panels[(size_t)p].tabs.size() - 1;
 }
 
@@ -146,6 +147,8 @@ void CController::closeTab(Panel p, int tabIndex)
 			tabList.activeTab = tabList.tabs.size() - 1;
 		tabList.tabs[tabList.activeTab]->setActive(true);
 	}
+
+	savePanelState(p);
 }
 
 void CController::setActiveTab(Panel p, int tabIndex)
@@ -158,6 +161,8 @@ void CController::setActiveTab(Panel p, int tabIndex)
 	tabList.tabs[tabList.activeTab]->setActive(false);
 	tabList.activeTab = (size_t)tabIndex;
 	tabList.tabs[tabList.activeTab]->setActive(true);
+
+	savePanelState(p);
 }
 
 int CController::tabCount(Panel p) const
@@ -175,6 +180,88 @@ QString CController::tabPath(Panel p, int tabIndex) const
 	const auto& tabList = _panels[(size_t)p];
 	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), QString());
 	return tabList.tabs[(size_t)tabIndex]->currentDirPathPosix();
+}
+
+QString CController::tabName(Panel p, int tabIndex) const
+{
+	const auto& tabList = _panels[(size_t)p];
+	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), QString());
+	return tabList.tabs[(size_t)tabIndex]->currentDirName();
+}
+
+void CController::restorePanelState(Panel p)
+{
+	const size_t side = (size_t)p;
+	CSettings s;
+
+	QStringList tabPaths = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS).toStringList();
+	if (tabPaths.isEmpty())
+	{
+		// Migration from the pre-tabs single-path setting (also the first-run default): one tab at the legacy location.
+		tabPaths.push_back(s.value(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString());
+	}
+
+	int activeIndex = s.value(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, 0).toInt();
+	if (activeIndex < 0 || activeIndex >= tabPaths.size())
+		activeIndex = 0;
+
+	// v1 restores only the active tab's history (saved under the legacy key).
+	const QStringList historyList = s.value(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R).toStringList();
+	const std::vector<QString> history(historyList.cbegin(), historyList.cend());
+
+	auto& tabList = _panels[side];
+	for (int i = 0; i < tabPaths.size(); ++i)
+	{
+		CPanel& tab = createTab(p);
+		if (i == activeIndex)
+			tab.restoreHistory(history);
+		tab.setPath(tabPaths[i], refreshCauseOther);
+	}
+	tabList.activeTab = (size_t)activeIndex;
+
+	// createTab() + setPath() armed each tab's watcher; release it on every inactive tab.
+	for (size_t i = 0; i < tabList.tabs.size(); ++i)
+		if (i != tabList.activeTab)
+			tabList.tabs[i]->setActive(false);
+}
+
+void CController::savePanelState(Panel p)
+{
+	const size_t side = (size_t)p;
+	const auto& tabList = _panels[side];
+	if (tabList.tabs.empty())
+		return;
+
+	QStringList tabPaths;
+	for (const auto& tab : tabList.tabs)
+		tabPaths.push_back(tab->currentDirPathPosix());
+	const int activeIndex = (int)tabList.activeTab;
+
+	// Dedup: contents-changed also fires on watcher refreshes, where nothing relevant to persistence changed.
+	QString signature = QString::number(activeIndex);
+	for (const QString& path : tabPaths)
+	{
+		signature += QChar('\n');
+		signature += path;
+	}
+	if (signature == _lastSavedTabSignature[side])
+		return;
+	_lastSavedTabSignature[side] = signature;
+
+	CSettings s;
+	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS, tabPaths);
+	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, activeIndex);
+
+	// Mirror the active tab's path + history to the legacy keys (back-compat + crash recovery).
+	const CPanel& activeTab = *tabList.tabs[tabList.activeTab];
+	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, tabPaths[activeIndex]);
+	const auto& historyDeque = activeTab.history().list();
+	s.setValue(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R, QStringList(historyDeque.cbegin(), historyDeque.cend()));
+}
+
+void CController::onPanelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
+{
+	savePanelState(p);
 }
 
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any

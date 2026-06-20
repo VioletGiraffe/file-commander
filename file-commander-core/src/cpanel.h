@@ -62,7 +62,9 @@ public:
 	explicit CPanel(Panel position, CWorkerThreadPool& workerThreadPool);
 	~CPanel();
 
-	void restoreFromSettings();
+	// Seeds the navigation history when restoring a tab from saved settings. The controller owns persistence now,
+	// so CPanel no longer reads or writes QSettings itself.
+	void restoreHistory(const std::vector<QString>& history);
 	// Activates/deactivates this tab. An inactive tab releases its filesystem watch handle; activating re-arms the watch and
 	// refreshes the file list (the folder's changes weren't being watched while the tab was inactive).
 	void setActive(bool active);

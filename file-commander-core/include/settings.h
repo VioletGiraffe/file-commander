@@ -11,6 +11,13 @@
 #define KEY_LAST_PATH_FOR_DRIVE_L QSL("Internal/Core/LPanel/LastPathForDrive%1")
 #define KEY_LAST_PATH_FOR_DRIVE_R QSL("Internal/Core/RPanel/LastPathForDrive%1")
 
+// Per-panel tabs: the list of tab paths and the index of the active tab. (v1 persists only the active tab's
+// history, under KEY_HISTORY_* below; the active tab's path is also mirrored to KEY_*PANEL_PATH for back-compat.)
+#define KEY_LPANEL_TABS QSL("Internal/Core/LPanel/Tabs")
+#define KEY_RPANEL_TABS QSL("Internal/Core/RPanel/Tabs")
+#define KEY_LPANEL_ACTIVE_TAB QSL("Internal/Core/LPanel/ActiveTab")
+#define KEY_RPANEL_ACTIVE_TAB QSL("Internal/Core/RPanel/ActiveTab")
+
 #define KEY_LAST_COMMANDS_EXECUTED QSL("Internal/Interface/LastCommandsExecuted")
 
 #define KEY_HISTORY_L QSL("Internal/Core/LPanel/History")
