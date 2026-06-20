@@ -265,6 +265,18 @@
     </property>
     <addaction name="action_Invert_selection"/>
    </widget>
+   <widget class="QMenu" name="menuTabs">
+    <property name="title">
+     <string>Ta&amp;bs</string>
+    </property>
+    <addaction name="actionNew_Tab"/>
+    <addaction name="actionClose_Tab"/>
+    <addaction name="separator"/>
+    <addaction name="actionNext_Tab"/>
+    <addaction name="actionPrevious_Tab"/>
+    <addaction name="separator"/>
+    <addaction name="actionOpen_Folder_Under_Cursor_in_New_Tab"/>
+   </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
      <string>&amp;Help</string>
@@ -275,6 +287,7 @@
    </widget>
    <addaction name="menuFiles"/>
    <addaction name="menuSelection"/>
+   <addaction name="menuTabs"/>
    <addaction name="menu_View"/>
    <addaction name="menuCommands"/>
    <addaction name="menuOptions"/>
@@ -422,6 +435,46 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+L</string>
+   </property>
+  </action>
+  <action name="actionNew_Tab">
+   <property name="text">
+    <string>&amp;New Tab</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
+  </action>
+  <action name="actionClose_Tab">
+   <property name="text">
+    <string>&amp;Close Tab</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionNext_Tab">
+   <property name="text">
+    <string>Ne&amp;xt Tab</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Tab</string>
+   </property>
+  </action>
+  <action name="actionPrevious_Tab">
+   <property name="text">
+    <string>&amp;Previous Tab</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Tab</string>
+   </property>
+  </action>
+  <action name="actionOpen_Folder_Under_Cursor_in_New_Tab">
+   <property name="text">
+    <string>&amp;Open Folder Under Cursor in New Tab</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Up</string>
    </property>
   </action>
  </widget>

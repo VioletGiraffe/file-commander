@@ -221,34 +221,12 @@ void CMainWindow::initActions()
 	connect(ui->action_Check_for_updates, &QAction::triggered, this, &CMainWindow::checkForUpdates);
 	connect(ui->actionAbout, &QAction::triggered, this, &CMainWindow::about);
 
-	// Tabs menu (created programmatically; inserted before the View menu). Actions route to the active panel's widget.
-	QMenu* tabsMenu = new QMenu(tr("Tabs"), this);
-
-	auto* newTabAction = tabsMenu->addAction(tr("New Tab"));
-	newTabAction->setShortcut(QKeySequence(QSL("Ctrl+T")));
-	connect(newTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->createNewTab(); });
-
-	auto* closeTabAction = tabsMenu->addAction(tr("Close Tab"));
-	closeTabAction->setShortcut(QKeySequence(QSL("Ctrl+W")));
-	connect(closeTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->closeCurrentTab(); });
-
-	tabsMenu->addSeparator();
-
-	auto* nextTabAction = tabsMenu->addAction(tr("Next Tab"));
-	nextTabAction->setShortcut(QKeySequence(QSL("Ctrl+Tab")));
-	connect(nextTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToNextTab(); });
-
-	auto* prevTabAction = tabsMenu->addAction(tr("Previous Tab"));
-	prevTabAction->setShortcut(QKeySequence(QSL("Ctrl+Shift+Tab")));
-	connect(prevTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToPreviousTab(); });
-
-	tabsMenu->addSeparator();
-
-	auto* openInNewTabAction = tabsMenu->addAction(tr("Open Folder Under Cursor in New Tab"));
-	openInNewTabAction->setShortcut(QKeySequence(QSL("Ctrl+Up")));
-	connect(openInNewTabAction, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->openCurrentItemInNewTab(); });
-
-	ui->menubar->insertMenu(ui->menu_View->menuAction(), tabsMenu);
+	// Tabs menu. Actions route to the active panel's widget.
+	connect(ui->actionNew_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->createNewTab(); });
+	connect(ui->actionClose_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->closeCurrentTab(); });
+	connect(ui->actionNext_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToNextTab(); });
+	connect(ui->actionPrevious_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToPreviousTab(); });
+	connect(ui->actionOpen_Folder_Under_Cursor_in_New_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->openCurrentItemInNewTab(); });
 }
 
 // For manual focus management
