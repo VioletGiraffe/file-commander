@@ -117,12 +117,19 @@ void CController::attachListenersToTab(Panel p, CPanel& tab)
 		tab.addCurrentItemChangeListener(listener);
 }
 
-int CController::addTab(Panel p, const QString& path)
+int CController::addTab(Panel p, const QString& path, bool activate)
 {
 	CPanel& tab = createTab(p);
 	tab.setPath(path, refreshCauseOther);
+	const int newIndex = (int)_panels[(size_t)p].tabs.size() - 1;
+
+	if (activate)
+		switchActiveTab(p, newIndex);
+	else
+		tab.setActive(false); // Not the active tab: release the watch handle setPath() just armed
+
 	savePanelState(p);
-	return (int)_panels[(size_t)p].tabs.size() - 1;
+	return newIndex;
 }
 
 void CController::closeTab(Panel p, int tabIndex)
@@ -158,11 +165,18 @@ void CController::setActiveTab(Panel p, int tabIndex)
 	if ((size_t)tabIndex == tabList.activeTab)
 		return;
 
+	switchActiveTab(p, tabIndex);
+	savePanelState(p);
+}
+
+void CController::switchActiveTab(Panel p, int tabIndex)
+{
+	auto& tabList = _panels[(size_t)p];
+	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), );
+
 	tabList.tabs[tabList.activeTab]->setActive(false);
 	tabList.activeTab = (size_t)tabIndex;
 	tabList.tabs[tabList.activeTab]->setActive(true);
-
-	savePanelState(p);
 }
 
 int CController::tabCount(Panel p) const

@@ -44,8 +44,9 @@ public:
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 	void refreshPanelContents(Panel p);
 	// Tab management. A tab is an independent CPanel; panel(p) returns the active tab's CPanel for side p.
-	// Creates a new tab for side p showing 'path' and returns its index. The new tab is created inactive.
-	int addTab(Panel p, const QString& path);
+	// Creates a new tab for side p showing 'path' and returns its index. Active by default; pass activate=false
+	// to leave the currently active tab as is (e. g. for a background tab opened via middle-click).
+	int addTab(Panel p, const QString& path, bool activate = true);
 	// Closes the tab at tabIndex. Never removes the last tab (a panel always keeps >= 1 tab).
 	void closeTab(Panel p, int tabIndex);
 	// Makes tabIndex the active tab for side p (deactivates the previously active tab, activates the new one).
@@ -137,6 +138,9 @@ private:
 	CPanel& createTab(Panel p);
 	// Attaches all of side p's recorded contents/cursor listeners (plus the plugin engine) to a freshly created tab.
 	void attachListenersToTab(Panel p, CPanel& tab);
+	// Deactivates the currently active tab and activates tabIndex. Shared by addTab and setActiveTab; callers are
+	// responsible for skipping the call when tabIndex is already the active tab.
+	void switchActiveTab(Panel p, int tabIndex);
 
 	// Persistence (centralized here; CPanel no longer touches settings).
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)

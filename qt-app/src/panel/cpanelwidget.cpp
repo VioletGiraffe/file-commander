@@ -255,7 +255,7 @@ void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool a
 
 void CPanelWidget::openPathInNewTab(const QString& path, bool activate)
 {
-	const int index = _controller->addTab(_panelPosition, path);
+	const int index = _controller->addTab(_panelPosition, path, activate);
 
 	_tabs.push_back(createModelTriplet());
 	{
@@ -266,7 +266,7 @@ void CPanelWidget::openPathInNewTab(const QString& path, bool activate)
 	updateTabBarVisibility();
 
 	if (activate)
-		ui->_tabBar->setCurrentIndex(index); // fires currentChanged -> onTabBarCurrentChanged -> setActiveTab + activateTab
+		ui->_tabBar->setCurrentIndex(index); // fires currentChanged -> onTabBarCurrentChanged -> activateTab (controller side is already active, addTab(activate=true) did that)
 }
 
 void CPanelWidget::closeCurrentTab()
