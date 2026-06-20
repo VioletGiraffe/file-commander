@@ -46,10 +46,18 @@ bool CFileSystemWatcherTimerBased::setPathToWatch(const QString& path)
 {
 	assert_and_return_r(path.isEmpty() || QFileInfo(path).isDir(), false);
 
-	std::lock_guard locker{ _mutex };
-	_pathChanged = true; // This is a signal that the currently stored state is not valid. Avoids the need to lock all accesses to '_previousState'.
-	_pathToWatch = path;
-	_bChangeDetected = false;
+	{
+		std::lock_guard locker{ _mutex };
+		_pathChanged = true; // This is a signal that the currently stored state is not valid. Avoids the need to lock all accesses to '_previousState'.
+		_pathToWatch = path;
+		_bChangeDetected = false;
+	}
+
+	if (path.isEmpty())
+		_periodicThread.pause(); // Nothing to watch: park the thread instead of letting it poll for no reason.
+	else
+		_periodicThread.resume(); // No-op if it wasn't paused (e.g. just navigating within the already-active tab).
+
 	return true;
 }
 
