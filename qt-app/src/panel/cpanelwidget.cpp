@@ -155,6 +155,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	ui->_tabBar->setDrawBase(false);
 	assert_r(connect(ui->_tabBar, &QTabBar::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
 	assert_r(connect(ui->_tabBar, &QTabBar::tabCloseRequested, this, &CPanelWidget::onTabBarCloseRequested));
+	assert_r(connect(ui->_tabBar, &QTabBar::customContextMenuRequested, this, &CPanelWidget::showContextMenuForTab));
 
 	// Mirror however many tabs CController restored for this side (usually one, but persisted multi-tab state may have more).
 	const int tabCount = _controller->tabCount(p);
@@ -317,6 +318,39 @@ void CPanelWidget::onTabBarCloseRequested(int index)
 	delete closing.selectionModel;
 	delete closing.sortModel;
 	delete closing.model;
+}
+
+void CPanelWidget::showContextMenuForTab(QPoint pos)
+{
+	const int index = ui->_tabBar->tabAt(pos);
+	if (index < 0)
+		return;
+
+	QMenu menu;
+	QAction* duplicateTabAction = menu.addAction(tr("Duplicate tab"));
+	QAction* closeOthersAction = menu.addAction(tr("Close all other tabs"));
+	closeOthersAction->setEnabled(_tabs.size() > 1);
+
+	const QAction* chosenAction = menu.exec(ui->_tabBar->mapToGlobal(pos));
+	if (chosenAction == duplicateTabAction)
+		duplicateTab(index);
+	else if (chosenAction == closeOthersAction)
+		closeAllOtherTabs(index);
+}
+
+void CPanelWidget::duplicateTab(int index)
+{
+	openPathInNewTab(_controller->tabPath(_panelPosition, index));
+}
+
+void CPanelWidget::closeAllOtherTabs(int index)
+{
+	assert_and_return_r(index >= 0 && index < (int)_tabs.size(), );
+
+	// Close from the back so removing a tab never shifts the index of one not yet processed.
+	for (int i = (int)_tabs.size() - 1; i >= 0; --i)
+		if (i != index)
+			onTabBarCloseRequested(i);
 }
 
 void CPanelWidget::updateTabBarVisibility()
