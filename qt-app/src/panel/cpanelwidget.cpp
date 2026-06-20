@@ -340,7 +340,8 @@ void CPanelWidget::showContextMenuForTab(QPoint pos)
 
 void CPanelWidget::duplicateTab(int index)
 {
-	openPathInNewTab(_controller->tabPath(_panelPosition, index));
+	// Browser-style background tab, like middle-click: don't switch away from what's currently showing.
+	openPathInNewTab(_controller->tabPath(_panelPosition, index), /*activate=*/false);
 }
 
 void CPanelWidget::closeAllOtherTabs(int index)
