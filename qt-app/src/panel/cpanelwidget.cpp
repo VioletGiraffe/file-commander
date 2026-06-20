@@ -26,6 +26,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QClipboard>
 #include <QCompleter>
 #include <QDebug>
+#include <QHeaderView>
 #include <QInputDialog>
 #include <QItemSelectionModel>
 #include <QMenu>
@@ -196,6 +197,12 @@ CPanelWidget::PanelTab CPanelWidget::createModelTriplet()
 		ui->_list->scrollTo(ui->_list->currentIndex());
 	}));
 
+	// A new tab starts sorted like the tab it was opened from (or Name/Ascending for the very first tab); from this point on each tab's sort is independent (see activateTab).
+	if (_sortModel)
+		tab.sortModel->sort(_sortModel->sortColumn(), _sortModel->sortOrder());
+	else
+		tab.sortModel->sort(NameColumn, Qt::AscendingOrder);
+
 	// Each tab owns its selection model (parented to the widget, not the view) so it survives the view->setModel() swaps.
 	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.sortModel, this);
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
@@ -213,12 +220,31 @@ void CPanelWidget::activateTab(int index)
 	_sortModel = tab.sortModel;
 	_selectionModel = tab.selectionModel;
 
-	// Preserve the panel's column layout across the model swap (setModel re-initializes the header otherwise).
-	const QByteArray headerState = ui->_list->header()->saveState();
-	ui->_list->setModel(_sortModel);
+	// Preserve column widths/order/visibility across the model swap (setModel re-initializes the header otherwise).
+	QHeaderView* header = ui->_list->header();
+	const QByteArray headerState = header->saveState();
+
+	// QTreeView::setModel(), with sortingEnabled on, unconditionally re-sorts whatever model it's just been
+	// given using the header's CURRENT sort indicator -- a direct internal call made from inside setModel()
+	// itself, not a signal, so a QSignalBlocker placed around/after the setModel() call can't stop it. Point
+	// the indicator at the tab we're switching TO (its own remembered sort column/order) *before* the swap,
+	// with signals blocked here so this step doesn't itself resort the OLD, still-attached model.
+	{
+		const QSignalBlocker blocker(header);
+		header->setSortIndicator(_sortModel->sortColumn(), _sortModel->sortOrder());
+	}
+
+	ui->_list->setModel(_sortModel); // re-sorts _sortModel by the indicator set above -- already its own sort, so this is a no-op
 	ui->_list->setSelectionModel(_selectionModel);
+
+	// Restore column widths/order/visibility, but keep the (now-correct) sort indicator: restoring the saved
+	// blob's indicator here would just put the OLD tab's sort back, the same way the plain setModel() call did.
 	if (!headerState.isEmpty())
-		ui->_list->header()->restoreState(headerState);
+	{
+		const QSignalBlocker blocker(header);
+		header->restoreState(headerState);
+		header->setSortIndicator(_sortModel->sortColumn(), _sortModel->sortOrder());
+	}
 
 	// Show the now-active panel's contents immediately (the CPanel may also refresh asynchronously on activation).
 	fillFromPanel(_controller->panel(_panelPosition), refreshCauseOther);
