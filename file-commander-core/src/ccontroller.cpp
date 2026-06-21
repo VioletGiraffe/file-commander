@@ -477,18 +477,6 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 	if (!parentDir.exists() || !parentDir.isDir())
 		return FileOperationResultCode::Fail;
 
-	if (parentDir.fullAbsolutePath() == activePanel().currentDirObject().fullAbsolutePath())
-	{
-		const auto slashPosition = name.indexOf('/');
-		// The trailing slash is required in order for the hash to match the hash of the item once it will be created: existing folders always have a trailing hash
-		const QString newItemPath = parentDir.fullAbsolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
-		// This is required for the UI to know to set the cursor at the new folder.
-		// It must be done before calling mkpath, or #133 will occur due to asynchronous file list refresh between mkpath and the current item selection logic (it gets overwritten from CPanelWidget::fillFromList).
-		const auto newHash = CFileSystemObject(newItemPath).hash();
-		qInfo() << "New file hash:" << newHash;
-		setCursorPositionForCurrentFolder(activePanelPosition(), newHash);
-	}
-
 	const QString newFilePath = parentDir.fullAbsolutePath() % '/' % name;
 	if (QFile::exists(newFilePath))
 		return FileOperationResultCode::TargetAlreadyExists;
