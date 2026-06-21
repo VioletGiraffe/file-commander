@@ -159,6 +159,7 @@ void CPanelWidget::setPanelPosition(Panel p)
 	ui->_tabBar->setTabsClosable(true);
 	ui->_tabBar->setElideMode(Qt::ElideMiddle);
 	ui->_tabBar->setDrawBase(false);
+	ui->_tabBar->setStyleSheet("QTabBar::tab { height: 32px; }");
 	assert_r(connect(ui->_tabBar, &QTabBar::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
 	assert_r(connect(ui->_tabBar, &QTabBar::tabCloseRequested, this, &CPanelWidget::onTabBarCloseRequested));
 	assert_r(connect(ui->_tabBar, &QTabBar::customContextMenuRequested, this, &CPanelWidget::showContextMenuForTab));
