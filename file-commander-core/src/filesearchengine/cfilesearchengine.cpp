@@ -116,7 +116,7 @@ inline void replace_null(std::byte* array, size_t size)
 			alignas(4096) std::byte buffer[maxLineLength];
 			::memcpy(buffer, lineStart, maxSearchLength);
 			// Remove nulls from the contents so that QString ingests all data
-			replace_null(buffer, (maxSearchLength + 15) / 16);
+			replace_null(buffer, maxSearchLength);
 
 			const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
 			assert(!line.isEmpty());
