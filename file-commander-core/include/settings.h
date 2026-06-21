@@ -18,6 +18,11 @@
 #define KEY_LPANEL_ACTIVE_TAB QSL("Internal/Core/LPanel/ActiveTab")
 #define KEY_RPANEL_ACTIVE_TAB QSL("Internal/Core/RPanel/ActiveTab")
 
+// Per-tab cursor (current item) position, stored as a list of item hashes parallel to KEY_*PANEL_TABS.
+// The hash is a deterministic function of the item's path, so it survives restarts; a missing/stale entry falls back to the first item.
+#define KEY_LPANEL_TAB_CURSORS QSL("Internal/Core/LPanel/TabCursors")
+#define KEY_RPANEL_TAB_CURSORS QSL("Internal/Core/RPanel/TabCursors")
+
 #define KEY_LAST_COMMANDS_EXECUTED QSL("Internal/Interface/LastCommandsExecuted")
 
 #define KEY_HISTORY_L QSL("Internal/Core/LPanel/History")

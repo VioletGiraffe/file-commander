@@ -45,6 +45,16 @@ CController::CController() :
 	_wcxHost.setWcxSearchPath(QApplication::applicationDirPath());
 }
 
+CController::~CController()
+{
+	// Capture the final state (notably each tab's cursor position, which pure cursor moves don't otherwise persist).
+	// The tabs are our own members, so they're still valid here.
+	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+		savePanelState(p);
+
+	_instance = nullptr;
+}
+
 CController& CController::get()
 {
 	assert_r(_instance);
@@ -268,6 +278,9 @@ void CController::restorePanelState(Panel p)
 	if (activeIndex < 0 || activeIndex >= tabPaths.size())
 		activeIndex = 0;
 
+	// Cursor (current item) position per tab, parallel to tabPaths. Absent for tabs migrated from the pre-tabs settings.
+	const QStringList tabCursors = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS).toStringList();
+
 	// v1 restores only the active tab's history (saved under the legacy key).
 	const QStringList historyList = s.value(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R).toStringList();
 	const std::vector<QString> history(historyList.cbegin(), historyList.cend());
@@ -283,6 +296,12 @@ void CController::restorePanelState(Panel p)
 		CPanel& tab = createTab(p);
 		if (i == activeIndex)
 			tab.restoreHistory(history);
+		// Seed the cursor before setPath: the resulting refresh reads it back to position the cursor.
+		if (i < tabCursors.size())
+		{
+			if (const qulonglong cursorHash = tabCursors[i].toULongLong(); cursorHash != 0)
+				tab.setCurrentItemForFolder(tabPaths[i], cursorHash, false);
+		}
 		tab.setPath(tabPaths[i], refreshCauseOther);
 	}
 	tabList.activeTab = (size_t)activeIndex;
@@ -300,17 +319,26 @@ void CController::savePanelState(Panel p)
 	if (tabList.tabs.empty())
 		return;
 
-	QStringList tabPaths;
+	QStringList tabPaths, tabCursors;
 	for (const auto& tab : tabList.tabs)
+	{
 		tabPaths.push_back(tab->currentDirPathPosix());
+		tabCursors.push_back(QString::number(tab->currentItemForFolder(tab->currentDirPathPosix())));
+	}
 	const int activeIndex = (int)tabList.activeTab;
 
 	// Dedup: contents-changed also fires on watcher refreshes, where nothing relevant to persistence changed.
+	// The cursor hashes are part of the signature so a cursor move (e.g. captured at shutdown) isn't swallowed.
 	QString signature = QString::number(activeIndex);
 	for (const QString& path : tabPaths)
 	{
 		signature += QChar('\n');
 		signature += path;
+	}
+	for (const QString& cursor : tabCursors)
+	{
+		signature += QChar('\n');
+		signature += cursor;
 	}
 	if (signature == _lastSavedTabSignature[side])
 		return;
@@ -318,6 +346,7 @@ void CController::savePanelState(Panel p)
 
 	CSettings s;
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS, tabPaths);
+	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS, tabCursors);
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, activeIndex);
 
 	// Mirror the active tab's path + history to the legacy keys (back-compat + crash recovery).

@@ -30,6 +30,7 @@ public:
 	};
 
 	CController();
+	~CController(); // Saves the panel state (incl. cursor positions) on graceful shutdown
 	[[nodiscard]] static CController& get();
 
 	void loadPlugins();
