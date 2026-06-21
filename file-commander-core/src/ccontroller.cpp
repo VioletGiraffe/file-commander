@@ -382,7 +382,7 @@ std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVo
 	else
 	{
 		// Otherwise navigate to the last known path for this volume, or its root if no path was recorded previously
-		const QString lastPathForDrive = CSettings{}.value(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), drivePath).toString();
+		const QString lastPathForDrive = CSettings{}.value(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), drivePath).toString();
 		return {setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok, drivePath};
 	}
 }
@@ -761,5 +761,5 @@ void CController::saveDirectoryForCurrentVolume(Panel p)
 	assert_and_return_r(currentVolume, );
 
 	const QString drivePath = currentVolume->rootObjectInfo.fullAbsolutePath();
-	CSettings().setValue(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(drivePath.toHtmlEscaped()) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(drivePath.toHtmlEscaped()), path.fullAbsolutePath());
+	CSettings().setValue(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), path.fullAbsolutePath());
 }
