@@ -182,16 +182,11 @@ bool CPanel::navigateBack()
 // Go to the next location from history, if any
 bool CPanel::navigateForward()
 {
-	if (_currentDisplayMode != NormalMode || _history.empty())
+	if (_currentDisplayMode != NormalMode || _history.empty() || _history.isAtEnd())
 		return false;
 
-	while (!_history.isAtEnd())
-	{
-		const QString path = _history.navigateForward();
-		return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
-	}
-
-	return false;
+	const QString path = _history.navigateForward();
+	return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
 }
 
 const CHistoryList<QString>& CPanel::history() const
