@@ -22,8 +22,9 @@ enum {
 	ItemDiscoveryProgressNotificationTag
 };
 
-CPanel::CPanel(Panel position, CWorkerThreadPool& workerThreadPool) :
+CPanel::CPanel(Panel position, CWorkerThreadPool& workerThreadPool, TabId id) :
 	_panelPosition(position),
+	_id(id),
 	// The panel's own address is a unique, non-zero pool tag. Reuse-safe: ~CPanel retires all of this tag's tasks
 	// before the address can be recycled by another CPanel, so a reused address never inherits stale tasks.
 	_taskTag(reinterpret_cast<uint64_t>(this)),
@@ -36,6 +37,11 @@ CPanel::~CPanel()
 	// Drop this panel's queued tasks from the shared pool and wait out any in-flight one,
 	// so no task touches this panel's members after it's destroyed.
 	_workerThreadPool.retire(_taskTag);
+}
+
+TabId CPanel::id() const noexcept
+{
+	return _id;
 }
 
 void CPanel::restoreHistory(const std::vector<QString>& history)

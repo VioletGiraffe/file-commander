@@ -46,9 +46,10 @@ public:
 	[[nodiscard]] QString currentDirPathNative() const;
 
 	[[nodiscard]] Panel panelPosition() const;
-	void setPanelPosition(Panel p);
+	void initPanel(Panel p);
 
-	// Tabs (this side). These keep the QTabBar, the per-tab model triplets, and CController's tab list index-aligned.
+	// Tabs (this side). The QTabBar and the per-tab model triplets (_tabs) are kept position-aligned with each
+	// other; CController's tabs are addressed by TabId, recovered from a QTabBar position via tabIdAt().
 	void createNewTab();          // New tab showing the current folder, switched to
 	void closeCurrentTab();       // Closes the active tab (no-op when it's the only one)
 	void switchToNextTab();
@@ -121,14 +122,15 @@ private:
 
 	[[nodiscard]] bool pasteImage(const QImage& image, bool lossyCompression);
 
-// Tab helpers (UI side; index-aligned with CController's tabs and the QTabBar)
+// Tab helpers (UI side; _tabs is position-aligned with the QTabBar; CController is addressed by TabId, see tabIdAt())
 	struct PanelTab {
 		CFileListModel* model = nullptr;
 		CFileListSortFilterProxyModel* sortModel = nullptr;
 		QItemSelectionModel* selectionModel = nullptr;
 		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - sortModel owns the sort)
 	};
-	[[nodiscard]] PanelTab createModelTriplet();   // Creates and wires a model / sort-proxy / selection-model trio (not shown yet)
+	void populateTriplet(PanelTab& tab);            // Wires a model / sort-proxy / selection-model trio into an already-emplaced tab (not shown yet)
+	[[nodiscard]] TabId tabIdAt(int index) const;   // The TabId stored as this QTabBar position's tab data
 	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, restoring its own column widths and sort
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);

@@ -44,17 +44,20 @@ public:
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 	void refreshPanelContents(Panel p);
 	// Tab management. A tab is an independent CPanel; panel(p) returns the active tab's CPanel for side p.
-	// Creates a new tab for side p showing 'path' and returns its index. Active by default; pass activate=false
+	// Tabs are identified by TabId, not by position: the underlying tab list may be reordered/resized freely
+	// without invalidating an id a caller is holding onto.
+	// Creates a new tab for side p showing 'path' and returns its id. Active by default; pass activate=false
 	// to leave the currently active tab as is (e. g. for a background tab opened via middle-click).
-	int addTab(Panel p, const QString& path, bool activate = true);
-	// Closes the tab at tabIndex. Never removes the last tab (a panel always keeps >= 1 tab).
-	void closeTab(Panel p, int tabIndex);
-	// Makes tabIndex the active tab for side p (deactivates the previously active tab, activates the new one).
-	void setActiveTab(Panel p, int tabIndex);
+	TabId addTab(Panel p, const QString& path, bool activate = true);
+	// Closes the tab with id. Never removes the last tab (a panel always keeps >= 1 tab).
+	void closeTab(Panel p, TabId tabId);
+	// Makes tabId the active tab for side p (deactivates the previously active tab, activates the new one).
+	void setActiveTab(Panel p, TabId tabId);
 	[[nodiscard]] int tabCount(Panel p) const;
-	[[nodiscard]] int activeTabIndex(Panel p) const;
-	[[nodiscard]] QString tabPath(Panel p, int tabIndex) const;
-	[[nodiscard]] QString tabName(Panel p, int tabIndex) const; // The tab's folder name, for the tab label
+	[[nodiscard]] TabId activeTabId(Panel p) const;
+	[[nodiscard]] std::vector<TabId> tabIds(Panel p) const; // Tab ids in display order, for the UI to (re)build its tab strip
+	[[nodiscard]] QString tabPath(Panel p, TabId tabId) const;
+	[[nodiscard]] QString tabName(Panel p, TabId tabId) const; // The tab's folder name, for the tab label
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched
@@ -138,9 +141,11 @@ private:
 	CPanel& createTab(Panel p);
 	// Attaches all of side p's recorded contents/cursor listeners (plus the plugin engine) to a freshly created tab.
 	void attachListenersToTab(Panel p, CPanel& tab);
-	// Deactivates the currently active tab and activates tabIndex. Shared by addTab and setActiveTab; callers are
-	// responsible for skipping the call when tabIndex is already the active tab.
-	void switchActiveTab(Panel p, int tabIndex);
+	// Deactivates the currently active tab and activates tabId. Shared by addTab and setActiveTab; callers are
+	// responsible for skipping the call when tabId is already the active tab.
+	void switchActiveTab(Panel p, TabId tabId);
+	// Returns tabId's position within side p's tab list, or tabs.size() if not found (should never happen for a live id).
+	[[nodiscard]] size_t tabIndexById(Panel p, TabId tabId) const;
 
 	// Persistence (centralized here; CPanel no longer touches settings).
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
@@ -155,6 +160,7 @@ private:
 	// Shared worker pool for all panel tabs. Declared before _panels so it outlives the CPanels that post tasks to it.
 	CWorkerThreadPool    _panelWorkerPool;
 	std::array<TabList, 2> _panels;
+	TabId                  _nextTabId = 1; // 0 is reserved as "no tab"/invalid
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
 	std::array<std::vector<CursorPositionListener*>, 2> _cursorPositionListeners;

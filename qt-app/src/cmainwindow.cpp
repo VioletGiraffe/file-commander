@@ -880,8 +880,8 @@ void CMainWindow::initCore()
 	initButtons();
 	initActions();
 
-	ui->leftPanel->setPanelPosition(Panel::LeftPanel);
-	ui->rightPanel->setPanelPosition(Panel::RightPanel);
+	ui->leftPanel->initPanel(Panel::LeftPanel);
+	ui->rightPanel->initPanel(Panel::RightPanel);
 
 	ui->fullPath->clear();
 

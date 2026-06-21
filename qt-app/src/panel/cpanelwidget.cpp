@@ -146,7 +146,7 @@ Panel CPanelWidget::panelPosition() const
 	return _panelPosition;
 }
 
-void CPanelWidget::setPanelPosition(Panel p)
+void CPanelWidget::initPanel(Panel p)
 {
 	assert_r(_panelPosition == Panel::UnknownPanel && _tabs.empty());
 	_panelPosition = p;
@@ -165,18 +165,24 @@ void CPanelWidget::setPanelPosition(Panel p)
 	assert_r(connect(ui->_tabBar, &QTabBar::customContextMenuRequested, this, &CPanelWidget::showContextMenuForTab));
 
 	// Mirror however many tabs CController restored for this side (usually one, but persisted multi-tab state may have more).
-	const int tabCount = _controller->tabCount(p);
-	const int activeIndex = _controller->activeTabIndex(p);
+	const std::vector<TabId> ids = _controller->tabIds(p);
+	const TabId activeId = _controller->activeTabId(p);
+	int activeIndex = 0;
 	{
 		const QSignalBlocker block(ui->_tabBar);
-		for (int i = 0; i < tabCount; ++i)
+		for (const TabId id : ids)
 		{
-			_tabs.push_back(createModelTriplet());
-			ui->_tabBar->addTab(QString());
+			PanelTab& tab = _tabs.emplace_back();
+			populateTriplet(tab);
+
+			const int index = ui->_tabBar->addTab(QString());
+			ui->_tabBar->setTabData(index, id);
+			if (id == activeId)
+				activeIndex = index;
 		}
 		ui->_tabBar->setCurrentIndex(activeIndex);
 	}
-	for (int i = 0; i < tabCount; ++i)
+	for (int i = 0; i < (int)_tabs.size(); ++i)
 		updateTabText(i);
 	activateTab(activeIndex);
 	updateTabBarVisibility();
@@ -186,10 +192,8 @@ void CPanelWidget::setPanelPosition(Panel p)
 	_controller->setCursorPositionListener(p, this);
 }
 
-CPanelWidget::PanelTab CPanelWidget::createModelTriplet()
+void CPanelWidget::populateTriplet(PanelTab& tab)
 {
-	PanelTab tab;
-
 	tab.model = new(std::nothrow) CFileListModel(_panelPosition, this);
 	assert_r(connect(tab.model, &CFileListModel::itemEdited, this, &CPanelWidget::renameItem));
 
@@ -217,8 +221,6 @@ CPanelWidget::PanelTab CPanelWidget::createModelTriplet()
 	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.sortModel, this);
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
-
-	return tab;
 }
 
 void CPanelWidget::activateTab(int index)
@@ -290,12 +292,16 @@ void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool a
 
 void CPanelWidget::openPathInNewTab(const QString& path, bool activate)
 {
-	const int index = _controller->addTab(_panelPosition, path, activate);
+	const TabId id = _controller->addTab(_panelPosition, path, activate);
 
-	_tabs.push_back(createModelTriplet());
+	PanelTab& tab = _tabs.emplace_back();
+	populateTriplet(tab);
+
+	int index = 0;
 	{
 		const QSignalBlocker block(ui->_tabBar);
-		ui->_tabBar->addTab(QString());
+		index = ui->_tabBar->addTab(QString());
+		ui->_tabBar->setTabData(index, id);
 	}
 	updateTabText(index);
 	updateTabBarVisibility();
@@ -333,7 +339,7 @@ void CPanelWidget::onTabBarCurrentChanged(int index)
 	if (_activeTab >= 0 && _activeTab < (int)_tabs.size())
 		_tabs[(size_t)_activeTab].headerState = ui->_list->header()->saveState();
 
-	_controller->setActiveTab(_panelPosition, index);
+	_controller->setActiveTab(_panelPosition, tabIdAt(index));
 	activateTab(index);
 }
 
@@ -350,19 +356,30 @@ void CPanelWidget::onTabBarCloseRequested(int index)
 	if (index != _activeTab && _activeTab >= 0 && _activeTab < (int)_tabs.size())
 		_tabs[(size_t)_activeTab].headerState = ui->_list->header()->saveState();
 
-	_controller->closeTab(_panelPosition, index);
-	const int controllerActive = _controller->activeTabIndex(_panelPosition); // post-removal index
+	_controller->closeTab(_panelPosition, tabIdAt(index));
+	const TabId activeId = _controller->activeTabId(_panelPosition); // post-removal active tab
 
 	// Detach the view from the closing triplet (via activateTab below) BEFORE deleting it.
 	const PanelTab closing = _tabs[(size_t)index];
 	_tabs.erase(_tabs.begin() + index);
+	int controllerActiveIndex = 0;
 	{
 		const QSignalBlocker block(ui->_tabBar);
 		ui->_tabBar->removeTab(index);
-		ui->_tabBar->setCurrentIndex(controllerActive);
+		// Removing 'index' shifted every later tab's position; find wherever the active tab landed by id
+		// rather than assuming any particular arithmetic on 'index'.
+		for (int i = 0; i < ui->_tabBar->count(); ++i)
+		{
+			if (tabIdAt(i) == activeId)
+			{
+				controllerActiveIndex = i;
+				break;
+			}
+		}
+		ui->_tabBar->setCurrentIndex(controllerActiveIndex);
 	}
 	updateTabBarVisibility();
-	activateTab(controllerActive);
+	activateTab(controllerActiveIndex);
 
 	delete closing.selectionModel;
 	delete closing.sortModel;
@@ -390,7 +407,7 @@ void CPanelWidget::showContextMenuForTab(QPoint pos)
 void CPanelWidget::duplicateTab(int index)
 {
 	// Browser-style background tab, like middle-click: don't switch away from what's currently showing.
-	openPathInNewTab(_controller->tabPath(_panelPosition, index), /*activate=*/false);
+	openPathInNewTab(_controller->tabPath(_panelPosition, tabIdAt(index)), /*activate=*/false);
 }
 
 void CPanelWidget::closeAllOtherTabs(int index)
@@ -411,7 +428,12 @@ void CPanelWidget::updateTabBarVisibility()
 void CPanelWidget::updateTabText(int index)
 {
 	if (index >= 0 && index < ui->_tabBar->count())
-		ui->_tabBar->setTabText(index, _controller->tabName(_panelPosition, index));
+		ui->_tabBar->setTabText(index, _controller->tabName(_panelPosition, tabIdAt(index)));
+}
+
+TabId CPanelWidget::tabIdAt(int index) const
+{
+	return ui->_tabBar->tabData(index).toULongLong();
 }
 
 // Returns the list of items added to the view

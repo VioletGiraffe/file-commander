@@ -30,6 +30,8 @@ enum class Panel
 	UnknownPanel
 };
 
+using TabId = uint64_t; // Stable identifier for a CPanel-as-tab, assigned once by CController when the tab is created
+
 enum FileListRefreshCause
 {
 	refreshCauseForwardNavigation,
@@ -59,8 +61,10 @@ public:
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 	void addCurrentItemChangeListener(CursorPositionListener * listener);
 
-	explicit CPanel(Panel position, CWorkerThreadPool& workerThreadPool);
+	explicit CPanel(Panel position, CWorkerThreadPool& workerThreadPool, TabId id);
 	~CPanel();
+
+	[[nodiscard]] TabId id() const noexcept; // Stable per-tab identifier; never changes for this CPanel's lifetime
 
 	// Seeds the navigation history when restoring a tab from saved settings. The controller owns persistence now,
 	// so CPanel no longer reads or writes QSettings itself.
@@ -131,6 +135,7 @@ private:
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CursorPositionListener>     _currentItemChangeListener;
 	const Panel                                _panelPosition;
+	const TabId                                _id; // Stable identity for this tab; assigned by CController. Distinct from _taskTag below.
 	const uint64_t                             _taskTag; // Unique per panel; tags this panel's tasks in the shared pool so they can be retired when the panel is destroyed
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 

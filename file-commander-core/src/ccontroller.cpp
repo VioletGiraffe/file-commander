@@ -102,7 +102,7 @@ void CController::refreshPanelContents(Panel p)
 CPanel& CController::createTab(Panel p)
 {
 	auto& tabList = _panels[(size_t)p];
-	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _panelWorkerPool));
+	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _panelWorkerPool, _nextTabId++));
 	attachListenersToTab(p, tab);
 	return tab;
 }
@@ -117,29 +117,29 @@ void CController::attachListenersToTab(Panel p, CPanel& tab)
 		tab.addCurrentItemChangeListener(listener);
 }
 
-int CController::addTab(Panel p, const QString& path, bool activate)
+TabId CController::addTab(Panel p, const QString& path, bool activate)
 {
 	CPanel& tab = createTab(p);
 	tab.setPath(path, refreshCauseOther);
-	const int newIndex = (int)_panels[(size_t)p].tabs.size() - 1;
+	const TabId newId = tab.id();
 
 	if (activate)
-		switchActiveTab(p, newIndex);
+		switchActiveTab(p, newId);
 	else
 		tab.setActive(false); // Not the active tab: release the watch handle setPath() just armed
 
 	savePanelState(p);
-	return newIndex;
+	return newId;
 }
 
-void CController::closeTab(Panel p, int tabIndex)
+void CController::closeTab(Panel p, TabId tabId)
 {
 	auto& tabList = _panels[(size_t)p];
-	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), );
 	if (tabList.tabs.size() == 1)
 		return; // A panel always keeps at least one tab
 
-	const size_t idx = (size_t)tabIndex;
+	const size_t idx = tabIndexById(p, tabId);
+	assert_and_return_r(idx < tabList.tabs.size(), );
 	const bool wasActive = (idx == tabList.activeTab);
 
 	tabList.tabs[idx]->setActive(false); // Release its watch handle before destruction
@@ -158,25 +158,34 @@ void CController::closeTab(Panel p, int tabIndex)
 	savePanelState(p);
 }
 
-void CController::setActiveTab(Panel p, int tabIndex)
+void CController::setActiveTab(Panel p, TabId tabId)
 {
 	auto& tabList = _panels[(size_t)p];
-	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), );
-	if ((size_t)tabIndex == tabList.activeTab)
+	if (tabList.tabs[tabList.activeTab]->id() == tabId)
 		return;
 
-	switchActiveTab(p, tabIndex);
+	switchActiveTab(p, tabId);
 	savePanelState(p);
 }
 
-void CController::switchActiveTab(Panel p, int tabIndex)
+void CController::switchActiveTab(Panel p, TabId tabId)
 {
 	auto& tabList = _panels[(size_t)p];
-	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), );
+	const size_t idx = tabIndexById(p, tabId);
+	assert_and_return_r(idx < tabList.tabs.size(), );
 
 	tabList.tabs[tabList.activeTab]->setActive(false);
-	tabList.activeTab = (size_t)tabIndex;
+	tabList.activeTab = idx;
 	tabList.tabs[tabList.activeTab]->setActive(true);
+}
+
+size_t CController::tabIndexById(Panel p, TabId tabId) const
+{
+	const auto& tabList = _panels[(size_t)p];
+	for (size_t i = 0; i < tabList.tabs.size(); ++i)
+		if (tabList.tabs[i]->id() == tabId)
+			return i;
+	return tabList.tabs.size();
 }
 
 int CController::tabCount(Panel p) const
@@ -184,23 +193,36 @@ int CController::tabCount(Panel p) const
 	return (int)_panels[(size_t)p].tabs.size();
 }
 
-int CController::activeTabIndex(Panel p) const
-{
-	return (int)_panels[(size_t)p].activeTab;
-}
-
-QString CController::tabPath(Panel p, int tabIndex) const
+TabId CController::activeTabId(Panel p) const
 {
 	const auto& tabList = _panels[(size_t)p];
-	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), QString());
-	return tabList.tabs[(size_t)tabIndex]->currentDirPathPosix();
+	return tabList.tabs[tabList.activeTab]->id();
 }
 
-QString CController::tabName(Panel p, int tabIndex) const
+std::vector<TabId> CController::tabIds(Panel p) const
 {
 	const auto& tabList = _panels[(size_t)p];
-	assert_and_return_r(tabIndex >= 0 && (size_t)tabIndex < tabList.tabs.size(), QString());
-	return tabList.tabs[(size_t)tabIndex]->currentDirName();
+	std::vector<TabId> ids;
+	ids.reserve(tabList.tabs.size());
+	for (const auto& tab : tabList.tabs)
+		ids.push_back(tab->id());
+	return ids;
+}
+
+QString CController::tabPath(Panel p, TabId tabId) const
+{
+	const auto& tabList = _panels[(size_t)p];
+	const size_t idx = tabIndexById(p, tabId);
+	assert_and_return_r(idx < tabList.tabs.size(), QString());
+	return tabList.tabs[idx]->currentDirPathPosix();
+}
+
+QString CController::tabName(Panel p, TabId tabId) const
+{
+	const auto& tabList = _panels[(size_t)p];
+	const size_t idx = tabIndexById(p, tabId);
+	assert_and_return_r(idx < tabList.tabs.size(), QString());
+	return tabList.tabs[idx]->currentDirName();
 }
 
 void CController::restorePanelState(Panel p)
