@@ -72,30 +72,47 @@ void CFavoriteLocations::load()
 	std::stack<std::reference_wrapper<std::vector<CLocationsCollection>>> currentList;
 	currentList.push(std::ref(_items));
 
+	// Guards against corrupted or truncated settings data, which would otherwise cause out-of-bounds reads below.
+	const auto canRead = [&data](int pos, int n) {
+		return n >= 0 && pos >= 0 && n <= data.size() - pos;
+	};
+
 	while (currentPosition < data.size())
 	{
+		if (!canRead(currentPosition, static_cast<int>(sizeof(int))))
+			break;
+
 		int length = memory_cast<int>(data.constData()+currentPosition);
 		assert_r(length > 0);
 		currentPosition += sizeof(length);
+		if (!canRead(currentPosition, length))
+			break;
 		const QString displayName = QString::fromUtf8(data.constData()+currentPosition, length);
 		currentPosition += length;
 
+		if (!canRead(currentPosition, static_cast<int>(sizeof(int))))
+			break;
 		length = memory_cast<int>(data.constData()+currentPosition);
 		currentPosition += sizeof(length);
 		QString path;
 		if (length > 0)
 		{
+			if (!canRead(currentPosition, length))
+				break;
 			path = QString::fromUtf8(data.constData()+currentPosition, length);
 			currentPosition += length;
 		}
 
 		currentList.top().get().emplace_back(displayName, path);
+
+		if (!canRead(currentPosition, static_cast<int>(sizeof(Marker))))
+			break;
 		const Marker marker = memory_cast<Marker>(data.constData()+currentPosition);
 		currentPosition += sizeof(Marker);
 
 		if (marker == NextLevel)
 			currentList.emplace(currentList.top().get().back().subLocations);
-		else if (marker == LevelEnded)
+		else if (marker == LevelEnded && currentList.size() > 1) // size() == 1 would mean popping the root list, which corrupted data could otherwise trigger
 			currentList.pop();
 	}
 }
