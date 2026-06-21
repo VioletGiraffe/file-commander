@@ -53,6 +53,9 @@ public:
 	void closeTab(Panel p, TabId tabId);
 	// Makes tabId the active tab for side p (deactivates the previously active tab, activates the new one).
 	void setActiveTab(Panel p, TabId tabId);
+	// Moves the tab with id to newPosition within side p's tab list (e. g. to mirror a drag-reorder in the UI).
+	// No-op if tabId is already at newPosition. newPosition must be a valid index (same semantics as QTabBar::tabMoved's 'to').
+	void moveTabPosition(Panel p, TabId tabId, size_t newPosition);
 	[[nodiscard]] int tabCount(Panel p) const;
 	[[nodiscard]] TabId activeTabId(Panel p) const;
 	[[nodiscard]] std::vector<TabId> tabIds(Panel p) const; // Tab ids in display order, for the UI to (re)build its tab strip

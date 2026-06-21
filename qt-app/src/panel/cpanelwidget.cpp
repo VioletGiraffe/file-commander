@@ -157,11 +157,13 @@ void CPanelWidget::initPanel(Panel p)
 
 	ui->_tabBar->setExpanding(false);
 	ui->_tabBar->setTabsClosable(true);
+	ui->_tabBar->setMovable(true);
 	ui->_tabBar->setElideMode(Qt::ElideMiddle);
 	ui->_tabBar->setDrawBase(false);
 	ui->_tabBar->setStyleSheet("QTabBar::tab { height: 32px; }");
 	assert_r(connect(ui->_tabBar, &QTabBar::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
 	assert_r(connect(ui->_tabBar, &QTabBar::tabCloseRequested, this, &CPanelWidget::onTabBarCloseRequested));
+	assert_r(connect(ui->_tabBar, &QTabBar::tabMoved, this, &CPanelWidget::onTabBarTabMoved));
 	assert_r(connect(ui->_tabBar, &QTabBar::customContextMenuRequested, this, &CPanelWidget::showContextMenuForTab));
 
 	// Mirror however many tabs CController restored for this side (usually one, but persisted multi-tab state may have more).
@@ -405,6 +407,27 @@ void CPanelWidget::closeTabById(TabId id)
 	delete closing.selectionModel;
 	delete closing.sortModel;
 	delete closing.model;
+}
+
+void CPanelWidget::onTabBarTabMoved(int from, int to)
+{
+	if (from == to)
+		return;
+
+	// By the time this signal fires, the QTabBar (and the per-tab data carrying its TabId) has already moved
+	// the tab internally -- mirror the same reorder into _tabs, which has no notion of its own beyond position.
+	PanelTab movedTab = std::move(_tabs[(size_t)from]);
+	_tabs.erase(_tabs.begin() + from);
+	_tabs.insert(_tabs.begin() + to, std::move(movedTab));
+
+	if (_activeTab == from)
+		_activeTab = to;
+	else if (from < _activeTab && to >= _activeTab)
+		--_activeTab; // the active tab shifted left to fill the gap the move left behind
+	else if (from > _activeTab && to <= _activeTab)
+		++_activeTab; // the active tab shifted right to make room for the incoming tab
+
+	_controller->moveTabPosition(_panelPosition, tabIdAt(to), (size_t)to);
 }
 
 void CPanelWidget::showContextMenuForTab(QPoint pos)

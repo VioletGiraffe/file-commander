@@ -134,6 +134,7 @@ private:
 	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, restoring its own column widths and sort
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);
+	void onTabBarTabMoved(int from, int to);        // Drag-reorder: mirrors the QTabBar's move into _tabs and CController
 	void closeTabById(TabId id);            // Closes whichever tab currently holds id (re-resolves its position fresh); shared by onTabBarCloseRequested and closeAllOtherTabs
 	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
 	void updateTabText(int index);

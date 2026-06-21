@@ -179,6 +179,32 @@ void CController::switchActiveTab(Panel p, TabId tabId)
 	tabList.tabs[tabList.activeTab]->setActive(true);
 }
 
+void CController::moveTabPosition(Panel p, TabId tabId, size_t newPosition)
+{
+	auto& tabList = _panels[(size_t)p];
+	const auto idx = tabIndexById(p, tabId);
+	assert_and_return_r(idx.has_value(), );
+	assert_and_return_r(newPosition < tabList.tabs.size(), );
+
+	const size_t oldPosition = *idx;
+	if (oldPosition == newPosition)
+		return;
+
+	auto movedTab = std::move(tabList.tabs[oldPosition]);
+	tabList.tabs.erase(tabList.tabs.begin() + (ptrdiff_t)oldPosition);
+	tabList.tabs.insert(tabList.tabs.begin() + (ptrdiff_t)newPosition, std::move(movedTab));
+
+	// Recompute which slot the active tab now occupies, mirroring the same shift the moved tab just caused.
+	if (oldPosition == tabList.activeTab)
+		tabList.activeTab = newPosition;
+	else if (oldPosition < tabList.activeTab && newPosition >= tabList.activeTab)
+		--tabList.activeTab; // the active tab shifted left to fill the gap the move left behind
+	else if (oldPosition > tabList.activeTab && newPosition <= tabList.activeTab)
+		++tabList.activeTab; // the active tab shifted right to make room for the incoming tab
+
+	savePanelState(p);
+}
+
 std::optional<size_t> CController::tabIndexById(Panel p, TabId tabId) const
 {
 	const auto& tabList = _panels[(size_t)p];
