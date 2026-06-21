@@ -84,12 +84,15 @@ bool COperationPerformer::done() const
 // User can supply a new name (not full path)
 void COperationPerformer::userResponse(HaltReason haltReason, UserResponse response, QString newName)
 {
-	assert_r(_userResponse == urNone); // _userResponse should have been reset after being used
 	_newName = newName;
 
-	_userResponse = response;
-	if (_userResponse == urSkipAll || _userResponse == urProceedWithAll)
-		_globalResponses[haltReason] = response;
+	{
+		std::lock_guard<std::mutex> lock(_waitForResponseMutex);
+		assert_r(_userResponse == urNone); // _userResponse should have been reset after being used
+		_userResponse = response;
+		if (_userResponse == urSkipAll || _userResponse == urProceedWithAll)
+			_globalResponses[haltReason] = response;
+	}
 	_waitForResponseCondition.notify_one();
 }
 
@@ -127,14 +130,18 @@ void COperationPerformer::thread()
 	}
 }
 
-void COperationPerformer::waitForResponse()
+UserResponse COperationPerformer::waitForResponse()
 {
 	std::unique_lock<std::mutex> lock(_waitForResponseMutex);
 	_totalTimeElapsed.pause();
 	while (_userResponse == urNone)
 		_waitForResponseCondition.wait(lock);
 
+	const UserResponse response = _userResponse;
+	_userResponse = urNone;
+
 	_totalTimeElapsed.resume();
+	return response;
 }
 
 QDebug& operator<<(QDebug& stream, const std::vector<COperationPerformer::ObjectToProcess>& objects)
@@ -580,15 +587,15 @@ std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &tot
 
 UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message)
 {
-	const auto globalResponse = _globalResponses[hr];
-	if (globalResponse)
-		return globalResponse.value();
+	{
+		std::lock_guard<std::mutex> lock(_waitForResponseMutex);
+		const auto globalResponse = _globalResponses[hr];
+		if (globalResponse)
+			return globalResponse.value();
+	}
 
 	if (_observer) _observer->onProcessHaltedCallback(hr, src, dst, message);
-	waitForResponse();
-	const auto response = _userResponse;
-	_userResponse = urNone;
-	return response;
+	return waitForResponse();
 }
 
 COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObject& item)

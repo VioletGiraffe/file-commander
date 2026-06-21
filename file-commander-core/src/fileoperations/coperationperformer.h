@@ -67,7 +67,7 @@ public:
 
 private:
 	void thread();
-	void waitForResponse();
+	UserResponse waitForResponse();
 
 	void copyFiles();
 	void deleteFiles();
