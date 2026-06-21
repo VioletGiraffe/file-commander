@@ -17,6 +17,7 @@
 #include "widgets/layouts/cflowlayout.h"
 
 #include "system/ctimeelapsed.h"
+#include "detail/hashmap_helpers.h"
 
 #include <3rdparty/ankerl/unordered_dense.h>
 
@@ -541,9 +542,10 @@ void CPanelWidget::fillFromList(FileListRefreshCause operation)
 void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
 {
 	const auto previousSelection = selectedItemsHashes(true);
-	ankerl::unordered_dense::set<qulonglong> selectedItemsHashes; // For fast search
-	for (const auto slectedItemHash: previousSelection)
-		selectedItemsHashes.insert(slectedItemHash);
+	// Mapping hash -> full path, so that a hash collision against a different, unrelated file that appears after the refresh can't cause it to be silently re-selected in place of the item the user actually had selected.
+	ankerl::unordered_dense::segmented_map<qulonglong, QString, NullHash> selectedItemsHashes;
+	for (const auto selectedItemHash: previousSelection)
+		selectedItemsHashes[selectedItemHash] = _controller->itemByHash(_panelPosition, selectedItemHash).fullAbsolutePath();
 
 	fillFromList(operation);
 	_directoryCurrentlyBeingDisplayed = panel.currentDirPathPosix();
@@ -555,9 +557,11 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 		QItemSelection selection;
 		for (int row = 0, numRows = _sortModel->rowCount(); row < numRows; ++row)
 		{
-			const qulonglong hash = hashBySortModelIndex(_sortModel->index(row, 0));
-			if (selectedItemsHashes.contains(hash))
-				selection.select(_sortModel->index(row, 0), _sortModel->index(row, 0));
+			const QModelIndex idx = _sortModel->index(row, 0);
+			const qulonglong hash = hashBySortModelIndex(idx);
+			const auto it = selectedItemsHashes.find(hash);
+			if (it != selectedItemsHashes.end() && _controller->itemByHash(_panelPosition, hash).fullAbsolutePath() == it->second)
+				selection.select(idx, idx);
 		}
 
 		timer.start();
