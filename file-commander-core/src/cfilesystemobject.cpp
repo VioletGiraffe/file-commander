@@ -60,7 +60,7 @@ static QString expandEnvironmentVariables(const QString& string)
 	if (result.contains('$'))
 	{
 		wordexp_t p;
-		wordexp("$HOME/bin", &p, 0);
+		wordexp(result.toUtf8().constData(), &p, 0);
 		const auto w = p.we_wordv;
 		if (p.we_wordc > 0)
 			result = w[0];
