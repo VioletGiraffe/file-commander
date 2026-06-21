@@ -345,7 +345,28 @@ void CPanelWidget::onTabBarCurrentChanged(int index)
 
 void CPanelWidget::onTabBarCloseRequested(int index)
 {
-	if (_tabs.size() <= 1 || index < 0 || index >= (int)_tabs.size())
+	if (index < 0 || index >= (int)_tabs.size())
+		return;
+	closeTabById(tabIdAt(index));
+}
+
+void CPanelWidget::closeTabById(TabId id)
+{
+	if (_tabs.size() <= 1)
+		return;
+
+	// Resolve id's CURRENT position fresh, right before acting on it: callers (e.g. closeAllOtherTabs) may
+	// close several tabs in a row, and each earlier close shifts the positions of every tab after it.
+	int index = -1;
+	for (int i = 0; i < ui->_tabBar->count(); ++i)
+	{
+		if (tabIdAt(i) == id)
+		{
+			index = i;
+			break;
+		}
+	}
+	if (index < 0)
 		return;
 
 	// activateTab() runs unconditionally below, even when we're closing some OTHER tab and the active one
@@ -356,7 +377,7 @@ void CPanelWidget::onTabBarCloseRequested(int index)
 	if (index != _activeTab && _activeTab >= 0 && _activeTab < (int)_tabs.size())
 		_tabs[(size_t)_activeTab].headerState = ui->_list->header()->saveState();
 
-	_controller->closeTab(_panelPosition, tabIdAt(index));
+	_controller->closeTab(_panelPosition, id);
 	const TabId activeId = _controller->activeTabId(_panelPosition); // post-removal active tab
 
 	// Detach the view from the closing triplet (via activateTab below) BEFORE deleting it.
@@ -414,10 +435,17 @@ void CPanelWidget::closeAllOtherTabs(int index)
 {
 	assert_and_return_r(index >= 0 && index < (int)_tabs.size(), );
 
-	// Close from the back so removing a tab never shifts the index of one not yet processed.
-	for (int i = (int)_tabs.size() - 1; i >= 0; --i)
-		if (i != index)
-			onTabBarCloseRequested(i);
+	const TabId keepId = tabIdAt(index);
+	std::vector<TabId> idsToClose;
+	for (int i = 0; i < ui->_tabBar->count(); ++i)
+	{
+		const TabId id = tabIdAt(i);
+		if (id != keepId)
+			idsToClose.push_back(id);
+	}
+
+	for (const TabId id : idsToClose)
+		closeTabById(id);
 }
 
 void CPanelWidget::updateTabBarVisibility()

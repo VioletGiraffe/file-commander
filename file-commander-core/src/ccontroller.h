@@ -144,8 +144,8 @@ private:
 	// Deactivates the currently active tab and activates tabId. Shared by addTab and setActiveTab; callers are
 	// responsible for skipping the call when tabId is already the active tab.
 	void switchActiveTab(Panel p, TabId tabId);
-	// Returns tabId's position within side p's tab list, or tabs.size() if not found (should never happen for a live id).
-	[[nodiscard]] size_t tabIndexById(Panel p, TabId tabId) const;
+	// Returns tabId's position within side p's tab list, or nullopt if not found (should never happen for a live id).
+	[[nodiscard]] std::optional<size_t> tabIndexById(Panel p, TabId tabId) const;
 
 	// Persistence (centralized here; CPanel no longer touches settings).
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
