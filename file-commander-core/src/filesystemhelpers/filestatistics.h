@@ -17,4 +17,8 @@ struct FileStatistics
 	uint64_t occupiedSpace = 0;
 };
 
-[[nodiscard]] FileStatistics calculateStatsFor(const std::vector<QString>& paths, const std::atomic_bool& abort = false);
+// numThreads > 1 parallelizes the directory traversal across that many threads spun up just for this call (not a
+// shared pool). Each thread accumulates into its own FileStatistics with no locking on the scanning hot path;
+// the partial results are only merged into the final FileStatistics after every thread is done, on the calling thread.
+// numThreads = 0 means automatic thread count calculation inside the function
+[[nodiscard]] FileStatistics calculateStatsFor(const std::vector<QString>& paths, const std::atomic_bool& abort = false, size_t numThreads = 0);
