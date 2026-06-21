@@ -23,6 +23,11 @@
 #define KEY_HISTORY_L QSL("Internal/Core/LPanel/History")
 #define KEY_HISTORY_R QSL("Internal/Core/RPanel/History")
 
+// Per-side, tab-independent log of visited folders (survives tab close/open, unlike KEY_HISTORY_* above
+// which is one tab's back/forward chain). Powers the path navigator's quick-revisit dropdown.
+#define KEY_LPANEL_VISITED_LOCATIONS QSL("Internal/Core/LPanel/VisitedLocations")
+#define KEY_RPANEL_VISITED_LOCATIONS QSL("Internal/Core/RPanel/VisitedLocations")
+
 #define KEY_FAVORITES QSL("Internal/Core/Favorites")
 
 // Copy/move/delete prompt dialog geometry

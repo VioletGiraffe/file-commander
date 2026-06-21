@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-class CController final : public CVolumeEnumerator::IVolumeListObserver, public PanelContentsChangedListener
+class CController final : public CVolumeEnumerator::IVolumeListObserver, public PanelContentsChangedListener, public CurrentPathChangedListener
 {
 public:
 	// Volume list observer interface
@@ -109,6 +109,10 @@ public:
 	[[nodiscard]] const CPanel& activePanel() const;
 	[[nodiscard]] CPanel& activePanel();
 
+	// Per-side, tab-independent log of visited folders (unlike a tab's own back/forward CHistoryList, this
+	// survives tab close/open). Powers the path navigator's quick-revisit dropdown.
+	[[nodiscard]] const CHistoryList<QString>& visitedLocations(Panel p) const;
+
 	[[nodiscard]] CPluginProxy& pluginProxy();
 
 	[[nodiscard]] bool itemHashExists(Panel p, qulonglong hash) const;
@@ -156,6 +160,8 @@ private:
 
 	// PanelContentsChangedListener: the controller listens to its own tabs only to persist on navigation.
 	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	// CurrentPathChangedListener: appends to the side's visited-locations log whenever any tab's directory changes.
+	void onCurrentPathChanged(Panel p, const QString& newPath) override;
 
 private:
 	static CController * _instance;
@@ -168,6 +174,7 @@ private:
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
 	std::array<std::vector<CursorPositionListener*>, 2> _cursorPositionListeners;
 	std::array<QString, 2> _lastSavedTabSignature; // Dedup key for savePanelState (avoids rewriting settings on every watcher refresh)
+	std::array<CHistoryList<QString>, 2> _visitedLocations; // Per-side, tab-independent visited-folders log; see visitedLocations()
 	CPluginProxy         _pluginProxy;
 	CWcxPluginHost       _wcxHost;
 	CVolumeEnumerator    _volumeEnumerator;

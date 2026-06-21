@@ -53,6 +53,15 @@ struct CursorPositionListener {
 	virtual void setCursorToItem(const QString& folder, qulonglong currentItemHash) = 0;
 };
 
+// Fires only when the panel's current directory actually changes (not on every refresh, unlike
+// PanelContentsChangedListener). Distinct from the per-tab back/forward history: a tab's owner uses this
+// to maintain a navigation-independent log of visited locations.
+struct CurrentPathChangedListener {
+	virtual ~CurrentPathChangedListener() = default;
+
+	virtual void onCurrentPathChanged(Panel p, const QString& newPath) = 0;
+};
+
 class CPanel final
 {
 public:
@@ -60,6 +69,7 @@ public:
 
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 	void addCurrentItemChangeListener(CursorPositionListener * listener);
+	void addCurrentPathChangedListener(CurrentPathChangedListener * listener);
 
 	explicit CPanel(Panel position, CWorkerThreadPool& workerThreadPool, TabId id);
 	~CPanel();
@@ -134,6 +144,7 @@ private:
 	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _cursorPosForFolder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CursorPositionListener>     _currentItemChangeListener;
+	CallbackCaller<CurrentPathChangedListener> _currentPathChangedListeners;
 	const Panel                                _panelPosition;
 	const TabId                                _id; // Stable identity for this tab; assigned by CController. Distinct from _taskTag below.
 	const uint64_t                             _taskTag; // Unique per panel; tags this panel's tasks in the shared pool so they can be retired when the panel is destroyed

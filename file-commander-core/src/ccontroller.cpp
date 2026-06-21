@@ -111,6 +111,7 @@ void CController::attachListenersToTab(Panel p, CPanel& tab)
 {
 	tab.addPanelContentsChangedListener(&CPluginEngine::get());
 	tab.addPanelContentsChangedListener(this); // The controller listens to persist tab state on navigation (deduped)
+	tab.addCurrentPathChangedListener(this);   // ...and to append to the side's visited-locations log on a real path change
 	for (auto* listener : _panelContentsListeners[(size_t)p])
 		tab.addPanelContentsChangedListener(listener);
 	for (auto* listener : _cursorPositionListeners[(size_t)p])
@@ -120,7 +121,7 @@ void CController::attachListenersToTab(Panel p, CPanel& tab)
 TabId CController::addTab(Panel p, const QString& path, bool activate)
 {
 	CPanel& tab = createTab(p);
-	tab.setPath(path, refreshCauseOther);
+	tab.setPath(path, refreshCauseOther); // Fires onCurrentPathChanged -> logs the new tab's path to the visited-locations list
 	const TabId newId = tab.id();
 
 	if (activate)
@@ -271,6 +272,11 @@ void CController::restorePanelState(Panel p)
 	const QStringList historyList = s.value(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R).toStringList();
 	const std::vector<QString> history(historyList.cbegin(), historyList.cend());
 
+	// The side-wide visited-locations log is independent of any tab's lifetime, so it's loaded once here
+	// rather than per-tab.
+	const QStringList visitedList = s.value(p == Panel::LeftPanel ? KEY_LPANEL_VISITED_LOCATIONS : KEY_RPANEL_VISITED_LOCATIONS).toStringList();
+	_visitedLocations[side].addLatest(std::vector<QString>(visitedList.cbegin(), visitedList.cend()));
+
 	auto& tabList = _panels[side];
 	for (int i = 0; i < tabPaths.size(); ++i)
 	{
@@ -319,11 +325,19 @@ void CController::savePanelState(Panel p)
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, tabPaths[activeIndex]);
 	const auto& historyDeque = activeTab.history().list();
 	s.setValue(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R, QStringList(historyDeque.cbegin(), historyDeque.cend()));
+
+	const auto& visitedDeque = _visitedLocations[side].list();
+	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_VISITED_LOCATIONS : KEY_RPANEL_VISITED_LOCATIONS, QStringList(visitedDeque.cbegin(), visitedDeque.cend()));
 }
 
 void CController::onPanelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
 {
 	savePanelState(p);
+}
+
+void CController::onCurrentPathChanged(Panel p, const QString& newPath)
+{
+	_visitedLocations[(size_t)p].addLatest(newPath);
 }
 
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any
@@ -415,6 +429,7 @@ void CController::navigateForward(Panel p)
 FileOperationResultCode CController::setPath(Panel p, const QString &path, FileListRefreshCause operation)
 {
 	const FileOperationResultCode result = panel(p).setPath(path, operation);
+	// The visited-locations log is updated via CPanel's onCurrentPathChanged callback, not here.
 
 	saveDirectoryForCurrentVolume(p);
 	// TODO: this looks weird, a separate notification required?
@@ -647,6 +662,11 @@ const CPanel& CController::activePanel() const
 CPanel& CController::activePanel()
 {
 	return panel(activePanelPosition());
+}
+
+const CHistoryList<QString>& CController::visitedLocations(Panel p) const
+{
+	return _visitedLocations[(size_t)p];
 }
 
 CPluginProxy &CController::pluginProxy()

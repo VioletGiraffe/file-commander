@@ -120,6 +120,11 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (_history.currentItem() != newPath)
 		_history.addLatest(newPath);
 
+	// Notify on an actual directory change. Keyed off the path changing, NOT off the history-add above: on
+	// back/forward the history cursor has already moved, so addLatest is skipped, but the current dir still changed.
+	if (pathSet && oldPathObject.fullAbsolutePath() != newPath)
+		_currentPathChangedListeners.invokeCallback(&CurrentPathChangedListener::onCurrentPathChanged, _panelPosition, newPath);
+
 	if (_watcher.setPathToWatch(newPath) == false)
 		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
 
@@ -445,6 +450,11 @@ void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *liste
 void CPanel::addCurrentItemChangeListener(CursorPositionListener * listener)
 {
 	_currentItemChangeListener.addSubscriber(listener);
+}
+
+void CPanel::addCurrentPathChangedListener(CurrentPathChangedListener * listener)
+{
+	_currentPathChangedListeners.addSubscriber(listener);
 }
 
 bool CPanel::pathIsAccessible(const QString& path) const

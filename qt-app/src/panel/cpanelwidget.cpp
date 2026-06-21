@@ -974,19 +974,28 @@ void CPanelWidget::pathFromHistoryActivated(QString path)
 
 void CPanelWidget::fillHistory()
 {
-	const auto& history = _controller->panel(_panelPosition).history();
-	if (history.empty())
+	const auto& visited = _controller->visitedLocations(_panelPosition);
+	if (visited.empty())
 		return;
 
 	ui->_pathNavigator->clear();
 
 	QStringList items;
-	items.reserve((QStringList::size_type)history.size());
-	for (auto it = history.rbegin(); it != history.rend(); ++it)
+	items.reserve((QStringList::size_type)visited.size());
+	for (auto it = visited.rbegin(); it != visited.rend(); ++it)
 		items.push_back(toNativeSeparators(it->endsWith('/') ? *it : (*it) + '/'));
 
 	ui->_pathNavigator->addItems(items);
-	ui->_pathNavigator->setCurrentIndex(static_cast<int>(history.size() - 1 - history.currentIndex()));
+
+	// Highlight wherever the ACTIVE tab's current directory sits in this side-wide list -- the list's own
+	// cursor only tracks "most recently visited anywhere on this side," not "where this tab currently is."
+	const QString currentDir = _controller->panel(_panelPosition).currentDirPathPosix();
+	const auto matchIt = std::find(visited.begin(), visited.end(), currentDir);
+	if (matchIt != visited.end())
+	{
+		const auto originalIndex = std::distance(visited.begin(), matchIt);
+		ui->_pathNavigator->setCurrentIndex(static_cast<int>(visited.size() - 1 - originalIndex));
+	}
 }
 
 void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
@@ -1033,7 +1042,7 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 
 bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
 {
-	assert_r(item.isValid());
+	assert_and_return_r(item.isValid(), false);
 	const QModelIndex source = _sortModel->mapToSource(item);
 	const qulonglong hash = _model->itemHash(source);
 	emit itemActivated(hash, this);
