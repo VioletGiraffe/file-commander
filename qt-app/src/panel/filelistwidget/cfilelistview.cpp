@@ -279,7 +279,7 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 void CFileListView::keyReleaseEvent(QKeyEvent * event)
 {
 	if (event->key() == Qt::Key_Control)
-		_currentItemShouldBeSelectedOnMouseClick = true;
+		_currentItemShouldBeSelectedOnMouseClick = false;
 	else if (event->key() == Qt::Key_Shift)
 		_shiftPressedItemSelected = false;
 
