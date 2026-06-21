@@ -22,6 +22,7 @@
 #include "widgets/widgetutils.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
+#include "system/ctimeelapsed.h"
 #include "tools/CFileStatsWindow.h"
 #include "version.h"
 
@@ -782,11 +783,14 @@ void CMainWindow::calculateStatistics()
 
 	const auto hashes = _currentFileList->selectedItemsHashes();
 	const auto paths = _controller->panel(_currentFileList->panelPosition()).itemPathsByHashes(hashes);
+
+	CTimeElapsed timer{ true };
 	const FileStatistics stats = calculateStatsFor(paths);
+	const uint64_t elapsedMs = timer.elapsed();
 	if (stats.empty())
 		return;
 
-	auto* statsWindow = new CFileStatsWindow(this, stats, *_controller);
+	auto* statsWindow = new CFileStatsWindow(this, stats, *_controller, elapsedMs);
 	statsWindow->setAttribute(Qt::WA_DeleteOnClose);
 	WidgetUtils::centerWidgetOnScreen(statsWindow, 0.7);
 	statsWindow->show();

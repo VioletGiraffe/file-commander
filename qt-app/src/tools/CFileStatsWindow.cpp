@@ -43,7 +43,7 @@ public:
 	}
 };
 
-CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats, CController& controller) :
+CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats, CController& controller, uint64_t elapsedMs) :
 	QMainWindow{ nullptr }
 {
 	setWindowTitle(tr("Statistics"));
@@ -67,13 +67,18 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats
 	layout->setAlignment(btnClose, Qt::AlignRight);
 	QObject::connect(btnClose, &QPushButton::clicked, this, &QMainWindow::close);
 
+	const QString elapsedText = tr("Scanned in %1 s").arg(elapsedMs * 1e-3f, 0, 'f', 1);
+
+	_statusLabel = new QLabel(elapsedText, this);
+	_statusLabel->setStyleSheet("color: palette(placeholder-text);");
+	layout->addWidget(_statusLabel);
+
 	_list->setHeaderLabels({
 		tr("Name"),
 		tr("Size"),
 		tr("Modification date"),
 		tr("Folder")
 	});
-	_list->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
 	_list->header()->setStretchLastSection(false);
 	_list->setSortingEnabled(true);
 	_list->sortByColumn(columns::Size, Qt::DescendingOrder);
@@ -114,4 +119,7 @@ void CFileStatsWindow::fillFileList(const FileStatistics& stats)
 	}
 
 	_list->addTopLevelItems(items);
+
+	for (int col = 0; col < _list->columnCount(); ++col)
+		_list->resizeColumnToContents(col);
 }
