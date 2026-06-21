@@ -6,7 +6,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
-struct NullHash {
+struct IdentityHash {
 	using is_avalanching = void;
 
 	[[nodiscard]] inline constexpr qulonglong operator()(qulonglong hashValue) const noexcept {
@@ -14,7 +14,7 @@ struct NullHash {
 	}
 };
 
-struct NullHashExtraMixing {
+struct IdentityHashExtraMixing {
 	[[nodiscard]] inline constexpr qulonglong operator()(qulonglong hashValue) const noexcept {
 		return hashValue;
 	}

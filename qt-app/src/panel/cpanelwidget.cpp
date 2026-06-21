@@ -543,7 +543,7 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 {
 	const auto previousSelection = selectedItemsHashes(true);
 	// Mapping hash -> full path, so that a hash collision against a different, unrelated file that appears after the refresh can't cause it to be silently re-selected in place of the item the user actually had selected.
-	ankerl::unordered_dense::segmented_map<qulonglong, QString, NullHash> selectedItemsHashes;
+	ankerl::unordered_dense::segmented_map<qulonglong, QString, IdentityHash> selectedItemsHashes;
 	for (const auto selectedItemHash: previousSelection)
 		selectedItemsHashes[selectedItemHash] = _controller->itemByHash(_panelPosition, selectedItemHash).fullAbsolutePath();
 
