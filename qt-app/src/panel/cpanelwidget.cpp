@@ -84,6 +84,9 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	new QShortcut(QKeySequence(QSL("Ctrl+X")), this, SLOT(cutSelectionToClipboard()), nullptr, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Ctrl+V")), this, SLOT(pasteSelectionFromClipboard()), nullptr, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Ctrl+Shift+V")), this, [this] { pasteSelectionFromClipboard(true); }, Qt::WidgetWithChildrenShortcut);
+
+	for (int i = 1; i <= 9; ++i)
+		new QShortcut(QKeySequence(QSL("Ctrl+%1").arg(i)), this, [this, i] { switchToTabByPosition(i - 1); }, Qt::WidgetWithChildrenShortcut);
 }
 
 CPanelWidget::~CPanelWidget() noexcept
@@ -322,6 +325,13 @@ void CPanelWidget::switchToNextTab()
 	if (_tabs.size() <= 1)
 		return;
 	ui->_tabBar->setCurrentIndex((_activeTab + 1) % (int)_tabs.size());
+}
+
+void CPanelWidget::switchToTabByPosition(int position)
+{
+	if (position < 0 || position >= (int)_tabs.size())
+		return;
+	ui->_tabBar->setCurrentIndex(position);
 }
 
 void CPanelWidget::switchToPreviousTab()

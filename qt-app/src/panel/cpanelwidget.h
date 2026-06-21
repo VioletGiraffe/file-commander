@@ -142,6 +142,7 @@ private:
 	void tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate); // Opens the item in a new tab if it's a folder (and not "..")
 	void duplicateTab(int index);       // Tab context menu: opens a new tab showing the same path as tab 'index'
 	void closeAllOtherTabs(int index);  // Tab context menu: closes every tab except 'index'
+	void switchToTabByPosition(int position); // Ctrl+1..9: jumps to the tab at this position (no-op if it doesn't exist)
 
 private:
 	CFileListFilterDialog          * _filterDialog = nullptr;
