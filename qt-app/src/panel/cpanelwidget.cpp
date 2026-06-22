@@ -219,9 +219,10 @@ void CPanelWidget::populateTriplet(PanelTab& tab)
 	else
 		tab.sortModel->sort(NameColumn, Qt::AscendingOrder);
 
-	// Likewise, a new tab starts with whatever column layout is currently displayed (or Qt's defaults for
-	// the very first tab); from this point on each tab's column widths/order/visibility are independent.
-	tab.headerState = ui->_list->header()->saveState();
+	// Header state only can stored the view has a model; during initPanel it doesn't yet (0 sections), and saving that
+	// would later desync the 4-section header in activateTab. Leave it empty -> activateTab skips restoreState.
+	if (ui->_list->header()->count() == NumberOfColumns)
+		tab.headerState = ui->_list->header()->saveState();
 
 	// Each tab owns its selection model (parented to the widget, not the view) so it survives the view->setModel() swaps.
 	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.sortModel, this);
