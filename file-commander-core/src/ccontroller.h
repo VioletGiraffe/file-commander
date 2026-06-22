@@ -45,23 +45,23 @@ public:
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 	void refreshPanelContents(Panel p);
 	// Tab management. A tab is an independent CPanel; panel(p) returns the active tab's CPanel for side p.
-	// Tabs are identified by TabId, not by position: the underlying tab list may be reordered/resized freely
+	// Tabs are identified by tab ID, not by position: the underlying tab list may be reordered/resized freely
 	// without invalidating an id a caller is holding onto.
 	// Creates a new tab for side p showing 'path' and returns its id. Active by default; pass activate=false
 	// to leave the currently active tab as is (e. g. for a background tab opened via middle-click).
-	TabId addTab(Panel p, const QString& path, bool activate = true);
+	qulonglong addTab(Panel p, const QString& path, bool activate = true);
 	// Closes the tab with id. Never removes the last tab (a panel always keeps >= 1 tab).
-	void closeTab(Panel p, TabId tabId);
+	void closeTab(Panel p, qulonglong tabId);
 	// Makes tabId the active tab for side p (deactivates the previously active tab, activates the new one).
-	void setActiveTab(Panel p, TabId tabId);
+	void setActiveTab(Panel p, qulonglong tabId);
 	// Moves the tab with id to newPosition within side p's tab list (e. g. to mirror a drag-reorder in the UI).
 	// No-op if tabId is already at newPosition. newPosition must be a valid index (same semantics as QTabBar::tabMoved's 'to').
-	void moveTabPosition(Panel p, TabId tabId, size_t newPosition);
+	void moveTabPosition(Panel p, qulonglong tabId, size_t newPosition);
 	[[nodiscard]] int tabCount(Panel p) const;
-	[[nodiscard]] TabId activeTabId(Panel p) const;
-	[[nodiscard]] std::vector<TabId> tabIds(Panel p) const; // Tab ids in display order, for the UI to (re)build its tab strip
-	[[nodiscard]] QString tabPath(Panel p, TabId tabId) const;
-	[[nodiscard]] QString tabName(Panel p, TabId tabId) const; // The tab's folder name, for the tab label
+	[[nodiscard]] qulonglong activeTabId(Panel p) const;
+	[[nodiscard]] std::vector<qulonglong> tabIds(Panel p) const; // Tab ids in display order, for the UI to (re)build its tab strip
+	[[nodiscard]] QString tabPath(Panel p, qulonglong tabId) const;
+	[[nodiscard]] QString tabName(Panel p, qulonglong tabId) const; // The tab's folder name, for the tab label
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched
@@ -151,9 +151,9 @@ private:
 	void attachListenersToTab(Panel p, CPanel& tab);
 	// Deactivates the currently active tab and activates tabId. Shared by addTab and setActiveTab; callers are
 	// responsible for skipping the call when tabId is already the active tab.
-	void switchActiveTab(Panel p, TabId tabId);
+	void switchActiveTab(Panel p, qulonglong tabId);
 	// Returns tabId's position within side p's tab list, or nullopt if not found (should never happen for a live id).
-	[[nodiscard]] std::optional<size_t> tabIndexById(Panel p, TabId tabId) const;
+	[[nodiscard]] std::optional<size_t> tabIndexById(Panel p, qulonglong tabId) const;
 
 	// Persistence (centralized here; CPanel no longer touches settings).
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
@@ -170,7 +170,7 @@ private:
 	// Shared worker pool for all panel tabs. Declared before _panels so it outlives the CPanels that post tasks to it.
 	CWorkerThreadPool    _panelWorkerPool;
 	std::array<TabList, 2> _panels;
-	TabId                  _nextTabId = 1; // 0 is reserved as "no tab"/invalid
+	qulonglong             _nextTabId = 1; // 0 is reserved as "no tab"/invalid
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
 	std::array<std::vector<CursorPositionListener*>, 2> _cursorPositionListeners;

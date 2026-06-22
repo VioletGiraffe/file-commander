@@ -171,12 +171,12 @@ void CPanelWidget::initPanel(Panel p)
 	assert_r(connect(ui->_tabBar, &QTabBar::customContextMenuRequested, this, &CPanelWidget::showContextMenuForTab));
 
 	// Mirror however many tabs CController restored for this side (usually one, but persisted multi-tab state may have more).
-	const std::vector<TabId> ids = _controller->tabIds(p);
-	const TabId activeId = _controller->activeTabId(p);
+	const std::vector<qulonglong> ids = _controller->tabIds(p);
+	const qulonglong activeId = _controller->activeTabId(p);
 	int activeIndex = 0;
 	{
 		const QSignalBlocker block(ui->_tabBar);
-		for (const TabId id : ids)
+		for (const qulonglong id : ids)
 		{
 			PanelTab& tab = _tabs.emplace_back();
 			populateTriplet(tab);
@@ -299,7 +299,7 @@ void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool a
 
 void CPanelWidget::openPathInNewTab(const QString& path, bool activate)
 {
-	const TabId id = _controller->addTab(_panelPosition, path, activate);
+	const qulonglong id = _controller->addTab(_panelPosition, path, activate);
 
 	PanelTab& tab = _tabs.emplace_back();
 	populateTriplet(tab);
@@ -364,7 +364,7 @@ void CPanelWidget::onTabBarCloseRequested(int index)
 	closeTabById(tabIdAt(index));
 }
 
-void CPanelWidget::closeTabById(TabId id)
+void CPanelWidget::closeTabById(qulonglong id)
 {
 	if (_tabs.size() <= 1)
 		return;
@@ -392,7 +392,7 @@ void CPanelWidget::closeTabById(TabId id)
 		_tabs[(size_t)_activeTab].headerState = ui->_list->header()->saveState();
 
 	_controller->closeTab(_panelPosition, id);
-	const TabId activeId = _controller->activeTabId(_panelPosition); // post-removal active tab
+	const qulonglong activeId = _controller->activeTabId(_panelPosition); // post-removal active tab
 
 	// Detach the view from the closing triplet (via activateTab below) BEFORE deleting it.
 	const PanelTab closing = _tabs[(size_t)index];
@@ -426,7 +426,7 @@ void CPanelWidget::onTabBarTabMoved(int from, int to)
 	if (from == to)
 		return;
 
-	// By the time this signal fires, the QTabBar (and the per-tab data carrying its TabId) has already moved
+	// By the time this signal fires, the QTabBar (and the per-tab data carrying its tab ID) has already moved
 	// the tab internally -- mirror the same reorder into _tabs, which has no notion of its own beyond position.
 	PanelTab movedTab = std::move(_tabs[(size_t)from]);
 	_tabs.erase(_tabs.begin() + from);
@@ -470,16 +470,16 @@ void CPanelWidget::closeAllOtherTabs(int index)
 {
 	assert_and_return_r(index >= 0 && index < (int)_tabs.size(), );
 
-	const TabId keepId = tabIdAt(index);
-	std::vector<TabId> idsToClose;
+	const qulonglong keepId = tabIdAt(index);
+	std::vector<qulonglong> idsToClose;
 	for (int i = 0; i < ui->_tabBar->count(); ++i)
 	{
-		const TabId id = tabIdAt(i);
+		const qulonglong id = tabIdAt(i);
 		if (id != keepId)
 			idsToClose.push_back(id);
 	}
 
-	for (const TabId id : idsToClose)
+	for (const qulonglong id : idsToClose)
 		closeTabById(id);
 }
 
@@ -494,7 +494,7 @@ void CPanelWidget::updateTabText(int index)
 		ui->_tabBar->setTabText(index, _controller->tabName(_panelPosition, tabIdAt(index)));
 }
 
-TabId CPanelWidget::tabIdAt(int index) const
+qulonglong CPanelWidget::tabIdAt(int index) const
 {
 	return ui->_tabBar->tabData(index).toULongLong();
 }

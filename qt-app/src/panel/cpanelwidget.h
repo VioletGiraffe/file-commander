@@ -49,7 +49,7 @@ public:
 	void initPanel(Panel p);
 
 	// Tabs (this side). The QTabBar and the per-tab model triplets (_tabs) are kept position-aligned with each
-	// other; CController's tabs are addressed by TabId, recovered from a QTabBar position via tabIdAt().
+	// other; CController's tabs are addressed by tab ID, recovered from a QTabBar position via tabIdAt().
 	void createNewTab();          // New tab showing the current folder, switched to
 	void closeCurrentTab();       // Closes the active tab (no-op when it's the only one)
 	void switchToNextTab();
@@ -122,7 +122,7 @@ private:
 
 	[[nodiscard]] bool pasteImage(const QImage& image, bool lossyCompression);
 
-// Tab helpers (UI side; _tabs is position-aligned with the QTabBar; CController is addressed by TabId, see tabIdAt())
+// Tab helpers (UI side; _tabs is position-aligned with the QTabBar; CController is addressed by tab ID, see tabIdAt())
 	struct PanelTab {
 		CFileListModel* model = nullptr;
 		CFileListSortFilterProxyModel* sortModel = nullptr;
@@ -130,12 +130,12 @@ private:
 		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - sortModel owns the sort)
 	};
 	void populateTriplet(PanelTab& tab);            // Wires a model / sort-proxy / selection-model trio into an already-emplaced tab (not shown yet)
-	[[nodiscard]] TabId tabIdAt(int index) const;   // The TabId stored as this QTabBar position's tab data
+	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
 	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, restoring its own column widths and sort
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);
 	void onTabBarTabMoved(int from, int to);        // Drag-reorder: mirrors the QTabBar's move into _tabs and CController
-	void closeTabById(TabId id);            // Closes whichever tab currently holds id (re-resolves its position fresh); shared by onTabBarCloseRequested and closeAllOtherTabs
+	void closeTabById(qulonglong id);       // Closes whichever tab currently holds id (re-resolves its position fresh); shared by onTabBarCloseRequested and closeAllOtherTabs
 	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
 	void updateTabText(int index);
 	void openPathInNewTab(const QString& path, bool activate = true); // Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab in the background

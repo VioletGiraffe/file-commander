@@ -128,11 +128,11 @@ void CController::attachListenersToTab(Panel p, CPanel& tab)
 		tab.addCurrentItemChangeListener(listener);
 }
 
-TabId CController::addTab(Panel p, const QString& path, bool activate)
+qulonglong CController::addTab(Panel p, const QString& path, bool activate)
 {
 	CPanel& tab = createTab(p);
 	tab.setPath(path, refreshCauseOther); // Fires onCurrentPathChanged -> logs the new tab's path to the visited-locations list
-	const TabId newId = tab.id();
+	const qulonglong newId = tab.id();
 
 	if (activate)
 		switchActiveTab(p, newId);
@@ -143,7 +143,7 @@ TabId CController::addTab(Panel p, const QString& path, bool activate)
 	return newId;
 }
 
-void CController::closeTab(Panel p, TabId tabId)
+void CController::closeTab(Panel p, qulonglong tabId)
 {
 	auto& tabList = _panels[(size_t)p];
 	if (tabList.tabs.size() == 1)
@@ -169,7 +169,7 @@ void CController::closeTab(Panel p, TabId tabId)
 	savePanelState(p);
 }
 
-void CController::setActiveTab(Panel p, TabId tabId)
+void CController::setActiveTab(Panel p, qulonglong tabId)
 {
 	auto& tabList = _panels[(size_t)p];
 	if (tabList.tabs[tabList.activeTab]->id() == tabId)
@@ -179,7 +179,7 @@ void CController::setActiveTab(Panel p, TabId tabId)
 	savePanelState(p);
 }
 
-void CController::switchActiveTab(Panel p, TabId tabId)
+void CController::switchActiveTab(Panel p, qulonglong tabId)
 {
 	auto& tabList = _panels[(size_t)p];
 	const auto idx = tabIndexById(p, tabId);
@@ -190,7 +190,7 @@ void CController::switchActiveTab(Panel p, TabId tabId)
 	tabList.tabs[tabList.activeTab]->setActive(true);
 }
 
-void CController::moveTabPosition(Panel p, TabId tabId, size_t newPosition)
+void CController::moveTabPosition(Panel p, qulonglong tabId, size_t newPosition)
 {
 	auto& tabList = _panels[(size_t)p];
 	const auto idx = tabIndexById(p, tabId);
@@ -216,7 +216,7 @@ void CController::moveTabPosition(Panel p, TabId tabId, size_t newPosition)
 	savePanelState(p);
 }
 
-std::optional<size_t> CController::tabIndexById(Panel p, TabId tabId) const
+std::optional<size_t> CController::tabIndexById(Panel p, qulonglong tabId) const
 {
 	const auto& tabList = _panels[(size_t)p];
 	for (size_t i = 0; i < tabList.tabs.size(); ++i)
@@ -230,23 +230,23 @@ int CController::tabCount(Panel p) const
 	return (int)_panels[(size_t)p].tabs.size();
 }
 
-TabId CController::activeTabId(Panel p) const
+qulonglong CController::activeTabId(Panel p) const
 {
 	const auto& tabList = _panels[(size_t)p];
 	return tabList.tabs[tabList.activeTab]->id();
 }
 
-std::vector<TabId> CController::tabIds(Panel p) const
+std::vector<qulonglong> CController::tabIds(Panel p) const
 {
 	const auto& tabList = _panels[(size_t)p];
-	std::vector<TabId> ids;
+	std::vector<qulonglong> ids;
 	ids.reserve(tabList.tabs.size());
 	for (const auto& tab : tabList.tabs)
 		ids.push_back(tab->id());
 	return ids;
 }
 
-QString CController::tabPath(Panel p, TabId tabId) const
+QString CController::tabPath(Panel p, qulonglong tabId) const
 {
 	const auto& tabList = _panels[(size_t)p];
 	const auto idx = tabIndexById(p, tabId);
@@ -254,7 +254,7 @@ QString CController::tabPath(Panel p, TabId tabId) const
 	return tabList.tabs[*idx]->currentDirPathPosix();
 }
 
-QString CController::tabName(Panel p, TabId tabId) const
+QString CController::tabName(Panel p, qulonglong tabId) const
 {
 	const auto& tabList = _panels[(size_t)p];
 	const auto idx = tabIndexById(p, tabId);
