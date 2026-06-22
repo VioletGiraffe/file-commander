@@ -55,9 +55,6 @@ jobs:
       run: |
         lscpu
 
-    - name: Github environment
-      run: echo '${{ toJSON(github) }}'
-
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v4
