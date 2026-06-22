@@ -3,10 +3,11 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
-#include <QSet>
 RESTORE_COMPILER_WARNINGS
 
 #include <mntent.h>
+
+#include <set>
 
 namespace {
 
@@ -15,7 +16,7 @@ namespace {
 // which is what lets us tell them apart without having to chase an ever-changing list of virtual fs type names.
 bool isPseudoFilesystem(const QString& fsType)
 {
-	static const QSet<QString> pseudoFsTypes = {
+	static const std::set<QString> pseudoFsTypes = {
 		QStringLiteral("sysfs"), QStringLiteral("proc"), QStringLiteral("devtmpfs"), QStringLiteral("devpts"),
 		QStringLiteral("tmpfs"), QStringLiteral("securityfs"), QStringLiteral("cgroup"), QStringLiteral("cgroup2"),
 		QStringLiteral("pstore"), QStringLiteral("efivarfs"), QStringLiteral("bpf"), QStringLiteral("autofs"),
@@ -28,7 +29,7 @@ bool isPseudoFilesystem(const QString& fsType)
 
 bool isKnownNetworkFilesystem(const QString& fsType)
 {
-	static const QSet<QString> networkFsTypes = {
+	static const std::set<QString> networkFsTypes = {
 		QStringLiteral("nfs"), QStringLiteral("nfs4"), QStringLiteral("cifs"), QStringLiteral("smbfs"),
 		QStringLiteral("smb3"), QStringLiteral("davfs"), QStringLiteral("afpfs")
 	};
@@ -107,6 +108,9 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 		// TODO: pathIsAccessible()?
 		info.isReady = true;
 	}
+
+	// Remove all 0-size volumes, this should remove junk like vmblock-fuse
+	std::erase_if(volumes, [](const VolumeInfo& v) { return v.volumeSize == 0; });
 
 	return volumes;
 }
