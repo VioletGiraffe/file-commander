@@ -40,6 +40,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
+#include <unordered_set>
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	QWidget(parent),
@@ -985,10 +986,26 @@ void CPanelWidget::fillHistory()
 
 	ui->_pathNavigator->clear();
 
+	static const auto ensureTrailingSlash = [](const QString& path) {
+		return path.endsWith('/') ? path : path + '/';
+	};
+
 	QStringList items;
-	items.reserve((QStringList::size_type)visited.size());
+	items.reserve((qsizetype)visited.size());
+	std::unordered_set<QString> seen;
 	for (auto it = visited.rbegin(); it != visited.rend(); ++it)
-		items.push_back(toNativeSeparators(it->endsWith('/') ? *it : (*it) + '/'));
+	{
+		items.push_back(toNativeSeparators(ensureTrailingSlash(*it)));
+		seen.insert(*it);
+	}
+
+	// The other panel's visited folders, appended after this panel's own, deduplicated, added to the bottom without displacing this panel's own most-recent entries from the top.
+	const auto& otherVisited = _controller->visitedLocations(CController::otherPanelPosition(_panelPosition));
+	for (auto it = otherVisited.rbegin(); it != otherVisited.rend(); ++it)
+	{
+		if (seen.insert(*it).second)
+			items.push_back(toNativeSeparators(ensureTrailingSlash(*it)));
+	}
 
 	ui->_pathNavigator->addItems(items);
 
