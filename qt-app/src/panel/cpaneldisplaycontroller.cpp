@@ -67,7 +67,11 @@ void CPanelDisplayController::endQuickView()
 
 	// Sanity check
 	assert_and_return_r(_panelStackedWidget && _panelStackedWidget->count() == 2, );
-	_panelStackedWidget->removeWidget(_panelStackedWidget->widget(1));
+	QWidget* contentWidget = _panelStackedWidget->widget(1);
+	_panelStackedWidget->removeWidget(contentWidget);
+	// QStackedWidget::removeWidget() doesn't restore the widget's parent, so it's left dangling as a child of
+	// _panelStackedWidget. Re-parent it back to the window it came from so the window's destructor can delete it normally.
+	contentWidget->setParent(_quickViewWindow.get());
 
 	_quickViewActive = false;
 	_quickViewWindow.reset();
