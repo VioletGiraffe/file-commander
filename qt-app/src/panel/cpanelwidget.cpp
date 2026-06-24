@@ -1012,7 +1012,7 @@ void CPanelWidget::fillHistory()
 	// unrelated entry.
 	const QString currentDir = _controller->panel(_panelPosition).currentDirPathPosix();
 	const QString currentDirDisplay = toNativeSeparators(ensureTrailingSlash(currentDir));
-	int currentDirRow = items.indexOf(currentDirDisplay);
+	qsizetype currentDirRow = items.indexOf(currentDirDisplay);
 	if (currentDirRow < 0)
 	{
 		items.push_front(currentDirDisplay);
@@ -1020,7 +1020,7 @@ void CPanelWidget::fillHistory()
 	}
 
 	ui->_pathNavigator->addItems(items);
-	ui->_pathNavigator->setCurrentIndex(currentDirRow);
+	ui->_pathNavigator->setCurrentIndex((int)currentDirRow);
 }
 
 void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
