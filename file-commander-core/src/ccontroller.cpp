@@ -340,8 +340,10 @@ void CController::savePanelState(Panel p)
 		signature += QChar('\n');
 		signature += cursor;
 	}
+
 	if (signature == _lastSavedTabSignature[side])
 		return;
+
 	_lastSavedTabSignature[side] = signature;
 
 	CSettings s;

@@ -1007,17 +1007,20 @@ void CPanelWidget::fillHistory()
 			items.push_back(toNativeSeparators(ensureTrailingSlash(*it)));
 	}
 
-	ui->_pathNavigator->addItems(items);
-
-	// Highlight wherever the ACTIVE tab's current directory sits in this side-wide list -- the list's own
-	// cursor only tracks "most recently visited anywhere on this side," not "where this tab currently is."
+	// The active tab's current directory might not be in either list yet (e.g. a deferred save hasn't
+	// caught up) -- prepend it so it's still shown/highlighted correctly instead of defaulting to some
+	// unrelated entry.
 	const QString currentDir = _controller->panel(_panelPosition).currentDirPathPosix();
-	const auto matchIt = std::find(visited.begin(), visited.end(), currentDir);
-	if (matchIt != visited.end())
+	const QString currentDirDisplay = toNativeSeparators(ensureTrailingSlash(currentDir));
+	int currentDirRow = items.indexOf(currentDirDisplay);
+	if (currentDirRow < 0)
 	{
-		const auto originalIndex = std::distance(visited.begin(), matchIt);
-		ui->_pathNavigator->setCurrentIndex(static_cast<int>(visited.size() - 1 - originalIndex));
+		items.push_front(currentDirDisplay);
+		currentDirRow = 0;
 	}
+
+	ui->_pathNavigator->addItems(items);
+	ui->_pathNavigator->setCurrentIndex(currentDirRow);
 }
 
 void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
