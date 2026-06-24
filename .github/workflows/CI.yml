@@ -26,6 +26,16 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Detect test-relevant changes
+      uses: dorny/paths-filter@v4
+      id: changes
+      with:
+        filters: |
+          tests_relevant:
+            - 'file-commander-core/src/**'
+            - 'file-commander-core/core-tests/**'
+            - '.github/workflows/CI.yml'
+
     - name: Sys info
       if: startsWith(matrix.os, 'windows')
       shell: pwsh
@@ -190,7 +200,7 @@ jobs:
         echo "TMPDIR=R:\\Temp" >> $env:GITHUB_ENV
 
     - name: Running tests - Windows
-      if: startsWith(matrix.os, 'windows')
+      if: startsWith(matrix.os, 'windows') && steps.changes.outputs.tests_relevant == 'true'
       shell: powershell
       run: |
         .\bin\release\x64\fso_test.exe
@@ -217,7 +227,7 @@ jobs:
         for f in $(find bin/release/x64/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
 
     - name: Running tests - Mac
-      if: startsWith(matrix.os, 'macos')
+      if: startsWith(matrix.os, 'macos') && steps.changes.outputs.tests_relevant == 'true'
       run: |
         set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
         set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
@@ -238,7 +248,7 @@ jobs:
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
 
     - name: Running tests - Linux
-      if: startsWith(matrix.os, 'ubuntu')
+      if: startsWith(matrix.os, 'ubuntu') && steps.changes.outputs.tests_relevant == 'true'
       run: |
         set -e; ./bin/release/x64/fso_test
         set -e; ./bin/release/x64/fso_test_high_level
