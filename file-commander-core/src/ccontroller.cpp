@@ -302,9 +302,13 @@ void CController::restorePanelState(Panel p)
 			if (const qulonglong cursorHash = tabCursors[i].toULongLong(); cursorHash != 0)
 				tab.setCurrentItemForFolder(tabPaths[i], cursorHash, false);
 		}
-		tab.setPath(tabPaths[i], refreshCauseOther);
+		// The active tab's setPath is deferred below so it's always the most-recently-visited entry in the
+		// side-wide visited-locations list on restore, regardless of tab order.
+		if (i != activeIndex)
+			tab.setPath(tabPaths[i], refreshCauseOther);
 	}
 	tabList.activeTab = (size_t)activeIndex;
+	tabList.tabs[tabList.activeTab]->setPath(tabPaths[activeIndex], refreshCauseOther);
 
 	// createTab() + setPath() armed each tab's watcher; release it on every inactive tab.
 	for (size_t i = 0; i < tabList.tabs.size(); ++i)
