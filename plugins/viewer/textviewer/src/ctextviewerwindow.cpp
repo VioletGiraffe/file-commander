@@ -318,7 +318,7 @@ bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 {
 	const auto result = decodeText(fileData);
-	if (!result || result->text.isEmpty())
+	if (!result || (result->text.isEmpty() && !fileData.isEmpty()))
 		return false;
 
 	resetHighlighter();
@@ -331,7 +331,7 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 {
 	const auto result = decodeText(fileData);
-	if (!result || result->text.isEmpty())
+	if (!result || (result->text.isEmpty() && !fileData.isEmpty()))
 		return false;
 
 	resetHighlighter();

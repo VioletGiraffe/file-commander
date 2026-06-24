@@ -9,7 +9,8 @@ RESTORE_COMPILER_WARNINGS
 
 bool CImageViewerPlugin::canViewFile(const QString& fileName, const QMimeType& type) const
 {
-	if (type.name().startsWith(QStringLiteral("image/")))
+	const QString mimeTypeName = type.name();
+	if (mimeTypeName.startsWith(QStringLiteral("image/")))
 		return true;
 
 	QImageReader reader(fileName);
