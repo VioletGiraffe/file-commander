@@ -157,7 +157,8 @@ private:
 
 	// Persistence (centralized here; CPanel no longer touches settings).
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
-	void savePanelState(Panel p);    // Writes side p's tab paths + active index + the active tab's path/history (deduplicated)
+	void savePanelState(Panel p);    // Writes side p's tab paths + active index + the active tab's path (deduplicated)
+	void saveHistoryList(Panel p);   // Writes side p's active-tab back/forward history + visited-locations log; called only on shutdown
 
 	// PanelContentsChangedListener: the controller listens to its own tabs only to persist on navigation.
 	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;

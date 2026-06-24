@@ -50,7 +50,10 @@ CController::~CController()
 	// Capture the final state (notably each tab's cursor position, which pure cursor moves don't otherwise persist).
 	// The tabs are our own members, so they're still valid here.
 	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+	{
 		savePanelState(p);
+		saveHistoryList(p);
+	}
 
 	_instance = nullptr;
 }
@@ -355,9 +358,19 @@ void CController::savePanelState(Panel p)
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS, tabCursors);
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, activeIndex);
 
-	// Mirror the active tab's path + history to the legacy keys (back-compat + crash recovery).
-	const CPanel& activeTab = *tabList.tabs[tabList.activeTab];
+	// Mirror the active tab's path to the legacy key (back-compat + crash recovery).
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, tabPaths[activeIndex]);
+}
+
+void CController::saveHistoryList(Panel p)
+{
+	const size_t side = (size_t)p;
+	const auto& tabList = _panels[side];
+	if (tabList.tabs.empty())
+		return;
+
+	CSettings s;
+	const CPanel& activeTab = *tabList.tabs[tabList.activeTab];
 	const auto& historyDeque = activeTab.history().list();
 	s.setValue(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R, QStringList(historyDeque.cbegin(), historyDeque.cend()));
 
