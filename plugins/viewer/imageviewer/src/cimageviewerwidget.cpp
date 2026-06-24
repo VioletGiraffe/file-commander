@@ -121,7 +121,7 @@ inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 
 	const auto format = qi.format();
 
-	switch (qi.format())
+	switch (format)
 	{
 	case QImage::Format_Grayscale8: [[fallthrough]];
 	case QImage::Format_Indexed8:
@@ -156,7 +156,7 @@ inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 		throw std::runtime_error{ "Unsupported QImage format" };
 	}
 
-	if (qi.format() == QImage::Format_RGB32)
+	if (format == QImage::Format_RGB32)
 		view.channelStride = 4;
 	else
 		view.channelStride = view.channels * view.bytesPerChannel;
@@ -264,6 +264,12 @@ void CImageViewerWidget::copyToClipboard() noexcept
 		QApplication::clipboard()->setImage(_sourceImage);
 }
 
+void CImageViewerWidget::copyDisplayedToClipboard() noexcept
+{
+	if (!_displayImage.isNull())
+		QApplication::clipboard()->setImage(_displayImage);
+}
+
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	QPainter p{ this };
@@ -317,6 +323,9 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 			_displayImage = _sourceImage.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 			_displayImage.setDevicePixelRatio(devicePixelRatioF());
 		}
+
+		const qreal magnification = targetSize.width() / (qreal)sourceRect.width();
+		emit displayedSizeChanged(_displayImage.size(), magnification);
 	}
 
 	if (zoom <= 1.0)

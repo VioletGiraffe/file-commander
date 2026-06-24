@@ -17,6 +17,8 @@ CImageViewerWindow::CImageViewerWindow(QWidget* parent) noexcept :
 	ui->setupUi(this);
 	_imageInfoLabel = new QLabel(this);
 	statusBar()->addWidget(_imageInfoLabel);
+	_viewingAtLabel = new QLabel(this);
+	statusBar()->addWidget(_viewingAtLabel);
 
 	connect(ui->actionOpen, &QAction::triggered, this, [this] {
 		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg *.jpe);; TIFF (*.tif *.tiff);; PNG (*.png)");
@@ -32,6 +34,11 @@ CImageViewerWindow::CImageViewerWindow(QWidget* parent) noexcept :
 	connect(ui->actionClose, &QAction::triggered, this, &QMainWindow::close);
 
 	connect(ui->action_Copy_to_clipboard, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::copyToClipboard);
+	connect(ui->action_Copy_to_clipboard_as_displayed, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::copyDisplayedToClipboard);
+
+	connect(ui->_imageViewerWidget, &CImageViewerWidget::displayedSizeChanged, this, [this](QSize size, qreal magnification) {
+		_viewingAtLabel->setText(tr("Viewing at %1x%2 (%3% / %4x)").arg(size.width()).arg(size.height()).arg(qRound(magnification * 100.0)).arg(magnification, 0, 'f', 2));
+	});
 
 	auto* escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 	connect(this, &QAction::destroyed, escScut, &QShortcut::deleteLater);

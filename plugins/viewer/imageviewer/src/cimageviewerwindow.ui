@@ -58,6 +58,7 @@
      <string>&amp;Edit</string>
     </property>
     <addaction name="action_Copy_to_clipboard"/>
+    <addaction name="action_Copy_to_clipboard_as_displayed"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_Edit"/>
@@ -90,6 +91,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+C</string>
+   </property>
+  </action>
+  <action name="action_Copy_to_clipboard_as_displayed">
+   <property name="text">
+    <string>Copy to clipboard as displa&amp;yed</string>
    </property>
   </action>
  </widget>

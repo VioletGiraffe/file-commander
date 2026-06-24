@@ -20,4 +20,5 @@ private:
 	QString _currentImagePath;
 	Ui::CImageViewerWindow *ui;
 	QLabel * _imageInfoLabel;
+	QLabel * _viewingAtLabel;
 };

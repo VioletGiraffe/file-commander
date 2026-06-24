@@ -13,6 +13,8 @@ RESTORE_COMPILER_WARNINGS
 
 class CImageViewerWidget final : public QWidget
 {
+	Q_OBJECT
+
 public:
 	using QWidget::QWidget;
 
@@ -26,6 +28,11 @@ public:
 	[[nodiscard]] QIcon imageIcon(const std::vector<QSize>& sizes) const;
 
 	void copyToClipboard() noexcept;
+	void copyDisplayedToClipboard() noexcept;
+
+signals:
+	// magnification is the ratio of on-screen pixels to source-image pixels, i.e. 1.0 = native resolution ("100%")
+	void displayedSizeChanged(QSize size, qreal magnification);
 
 protected:
 	void paintEvent(QPaintEvent* e) override;
