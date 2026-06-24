@@ -9,3 +9,8 @@ mac*{
 linux*{
 	exists(/usr/bin/ccache)|exists(/usr/lib/ccache):CONFIG += ccache
 }
+
+windows*{
+	Release:QMAKE_CXXFLAGS += /GL
+	Release:QMAKE_LFLAGS += /DEBUG:FULL /OPT:REF /OPT:ICF /TIME /LTCG:INCREMENTAL
+}
