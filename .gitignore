@@ -4,6 +4,8 @@
 installer/windows/FileCommander.exe
 installer/windows/binaries/
 *.AppImage
+/!TestImages/
+/WCX/
 
 set_qt_paths.bat
 *.exe
