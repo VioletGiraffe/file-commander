@@ -69,7 +69,7 @@ jobs:
       if: "startsWith(matrix.os, 'windows')"
       run: |
         choco install cloc -y
-        cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=cpp-template-utils/tests,bin,build,.git,3rdparty,trigramfrequencytables . 
+        cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables . 
 
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
