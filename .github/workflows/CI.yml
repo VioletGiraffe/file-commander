@@ -66,10 +66,10 @@ jobs:
         lscpu
 
     - name: Count lines of C/C++ code
-      uses: svenstaro/cloc-action@v2
+      uses: djdefi/cloc-action@6
       if: "startsWith(matrix.os, 'windows')"
       with:
-        args: --include-lang="C,C++" --exclude-dir=cpp-template-utils/tests,bin,build,.git,3rdparty,trigramfrequencytables .
+        args: --include-lang="C,C++" --strip-str-comments --no-zeros --exclude-dir=cpp-template-utils/tests,bin,build,.git,3rdparty,trigramfrequencytables . 
 
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
