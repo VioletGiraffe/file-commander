@@ -65,6 +65,12 @@ jobs:
       run: |
         lscpu
 
+    - name: Count lines of C/C++ code
+      uses: svenstaro/cloc-action@v2
+      if: "startsWith(matrix.os, 'windows')"
+      with:
+        args: --include-lang="C,C++" --exclude-dir=cpp-template-utils/tests,bin,build,.git,3rdparty,trigramfrequencytables .
+
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v4
