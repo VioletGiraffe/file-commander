@@ -1,6 +1,13 @@
 TEMPLATE = app
 TARGET   = FileCommander
 
+# Single-source version: extracted from the VERSION_STRING define in src/version.h.
+# Note: editing version.h does not re-run qmake; a local build regenerates version metadata only after the next qmake run (CI always runs it fresh).
+VERSION_H_LINES  = $$cat($$PWD/src/version.h, lines)
+VERSION_DEF_LINE = $$find(VERSION_H_LINES, VERSION_STRING)
+VERSION = $$replace(VERSION_DEF_LINE, [^0-9.], )
+isEmpty(VERSION): error("Failed to parse VERSION_STRING out of src/version.h")
+
 QT = core gui widgets network
 lessThan(QT_MAJOR_VERSION, 6) {
 	win*:QT += winextras
