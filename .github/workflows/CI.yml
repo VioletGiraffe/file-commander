@@ -77,12 +77,6 @@ jobs:
         choco install cloc -y
         cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,qt-app,plugins,file-commander-core .
 
-    - name: LOC count - libs
-      if: "startsWith(matrix.os, 'windows')"
-      run: |
-        choco install cloc -y
-        cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables . 
-
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v4
