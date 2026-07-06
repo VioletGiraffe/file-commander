@@ -254,6 +254,7 @@ void CFileListView::keyPressEvent(QKeyEvent *event)
 	else if (event->key() == Qt::Key_Shift)
 	{
 		_shiftPressedItemSelected = currentIndex().isValid() ? selectionModel()->isSelected(currentIndex()) : false;
+		emit shiftStateChanged(true);
 	}
 #ifdef __APPLE__ // TODO: Probably a Qt bug; remove this code when it's fixed
 	else if (event->key() == Qt::Key_F2 && event->modifiers() == Qt::NoModifier)
@@ -281,9 +282,27 @@ void CFileListView::keyReleaseEvent(QKeyEvent * event)
 	if (event->key() == Qt::Key_Control)
 		_currentItemShouldBeSelectedOnMouseClick = false;
 	else if (event->key() == Qt::Key_Shift)
+	{
 		_shiftPressedItemSelected = false;
+		emit shiftStateChanged(false);
+	}
 
 	QTreeView::keyReleaseEvent(event);
+}
+
+void CFileListView::focusInEvent(QFocusEvent * event)
+{
+	QTreeView::focusInEvent(event);
+
+	// Shift may have been pressed or released while a dialog (or another window) held focus and no key event reached us, so re-sync the captions with the live state.
+	emit shiftStateChanged((QGuiApplication::queryKeyboardModifiers() & Qt::ShiftModifier) != 0);
+}
+
+void CFileListView::focusOutEvent(QFocusEvent * event)
+{
+	emit shiftStateChanged(false);
+
+	QTreeView::focusOutEvent(event);
 }
 
 bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)

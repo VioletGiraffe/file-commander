@@ -22,6 +22,7 @@ class CPanelWidget;
 class CFileOperationDialogBase;
 class QShortcut;
 class QStackedWidget;
+class QPushButton;
 
 class CMainWindow final : public QMainWindow,
 		private FileListReturnPressedObserver,
@@ -71,6 +72,9 @@ private:
 	void viewFileInTextViewer();
 	void editFile();
 	void showRecycleBInContextMenu(QPoint pos);
+	// Swaps the bottom command buttons' captions between their normal and Shift-modified variants
+	void setShiftCaptions(bool shifted);
+	[[nodiscard]] static bool shiftKeyHeld();
 	void toggleQuickView();
 	void filterItemsByName();
 	void currentItemChanged(Panel p, qulonglong itemHash);
@@ -149,5 +153,9 @@ private:
 	enum { NormalWindow, MaximizedWindow } _windowStateBeforeFullscreen = NormalWindow;
 
 	std::vector<CFileOperationDialogBase*> _activeFileOperationDialogs;
+
+	// Bottom command buttons whose caption reflects the Shift-modified action while Shift is held
+	struct ShiftCaption { QPushButton* button; QString normal; QString shifted; };
+	std::vector<ShiftCaption> _shiftCaptions;
 };
 

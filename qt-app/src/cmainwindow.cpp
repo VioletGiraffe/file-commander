@@ -148,7 +148,7 @@ void CMainWindow::updateInterface()
 
 void CMainWindow::initButtons()
 {
-	connect(ui->btnView, &QPushButton::clicked, this, &CMainWindow::viewFile);
+	connect(ui->btnView, &QPushButton::clicked, this, [this] { shiftKeyHeld() ? viewFileInTextViewer() : viewFile(); });
 	new QShortcut(QKeySequence(QSL("F3")), this, this, &CMainWindow::viewFile, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Shift+F3")), this, this, &CMainWindow::viewFileInTextViewer, Qt::WidgetWithChildrenShortcut);
 
@@ -161,11 +161,11 @@ void CMainWindow::initButtons()
 	connect(ui->btnMove, &QPushButton::clicked, this, &CMainWindow::moveSelectedFiles);
 	new QShortcut(QKeySequence(QSL("F6")), this, this, &CMainWindow::moveSelectedFiles, Qt::WidgetWithChildrenShortcut);
 
-	connect(ui->btnNewFolder, &QPushButton::clicked, this, &CMainWindow::createFolder);
+	connect(ui->btnNewFolder, &QPushButton::clicked, this, [this] { shiftKeyHeld() ? createFile() : createFolder(); });
 	new QShortcut(QKeySequence(QSL("F7")),       this, this, &CMainWindow::createFolder, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Shift+F7")), this, this, &CMainWindow::createFile, Qt::WidgetWithChildrenShortcut);
 
-	connect(ui->btnDelete, &QPushButton::clicked, this, &CMainWindow::deleteFiles);
+	connect(ui->btnDelete, &QPushButton::clicked, this, [this] { shiftKeyHeld() ? deleteFilesIrrevocably() : deleteFiles(); });
 	connect(ui->btnDelete, &QPushButton::customContextMenuRequested, this, &CMainWindow::showRecycleBInContextMenu);
 	new QShortcut(QKeySequence(QSL("F8")),     this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Delete")), this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
@@ -178,6 +178,27 @@ void CMainWindow::initButtons()
 	// Command line
 	ui->_commandLine->setSelectPreviousItemShortcut(QKeySequence(QSL("Ctrl+E")));
 	new QShortcut(QKeySequence(QSL("Ctrl+E")), this, this, &CMainWindow::selectPreviousCommandInTheCommandLine, Qt::WidgetWithChildrenShortcut);
+
+	// Buttons whose caption reflects their Shift-modified action while Shift is held (mirrors the Shift+F* shortcuts above). The normal captions come from the .ui.
+	_shiftCaptions = {
+		{ ui->btnView,      ui->btnView->text(),      tr("F3 View as text") },
+		{ ui->btnNewFolder, ui->btnNewFolder->text(), tr("F7 New File") },
+		{ ui->btnDelete,    ui->btnDelete->text(),    tr("F8 Delete permanently") }
+	};
+
+	connect(ui->leftPanel->fileListView(),  &CFileListView::shiftStateChanged, this, &CMainWindow::setShiftCaptions);
+	connect(ui->rightPanel->fileListView(), &CFileListView::shiftStateChanged, this, &CMainWindow::setShiftCaptions);
+}
+
+void CMainWindow::setShiftCaptions(bool shifted)
+{
+	for (const auto& caption : _shiftCaptions)
+		caption.button->setText(shifted ? caption.shifted : caption.normal);
+}
+
+bool CMainWindow::shiftKeyHeld()
+{
+	return (QApplication::keyboardModifiers() & Qt::ShiftModifier) != 0;
 }
 
 void CMainWindow::initActions()

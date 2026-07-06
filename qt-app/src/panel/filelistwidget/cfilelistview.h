@@ -27,6 +27,7 @@ struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
 };
 
 class QMouseEvent;
+class QFocusEvent;
 class CController;
 class CFileListView final : public QTreeView
 {
@@ -56,6 +57,7 @@ signals:
 	void ctrlShiftEnterPressed();
 	void itemMiddleClicked(const QModelIndex& index);
 	void keyPressed(QString keyText, int key, Qt::KeyboardModifiers modifiers);
+	void shiftStateChanged(bool shiftPressed);
 
 protected:
 	// For controlling selection
@@ -66,6 +68,9 @@ protected:
 	// For managing selection and cursor
 	void keyPressEvent(QKeyEvent * event) override;
 	void keyReleaseEvent(QKeyEvent * event) override;
+	// Keep the bottom command buttons' Shift captions in sync across focus changes, when key events aren't delivered here (e. g. while a dialog spawned by a command is open)
+	void focusInEvent(QFocusEvent * event) override;
+	void focusOutEvent(QFocusEvent * event) override;
 
 	bool edit(const QModelIndex & index, EditTrigger trigger, QEvent * event) override;
 
