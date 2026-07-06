@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783374192005,
+  "lastUpdate": 1783375676343,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -186,6 +186,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 411.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c861147fe9685dd66254fec3046442797d326b31",
+          "message": "QRC compression enabled",
+          "timestamp": "2026-07-07T01:01:55+03:00",
+          "tree_id": "c9572e3485127985ae2f2bc9b3a19dd1fd9f7a0e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c861147fe9685dd66254fec3046442797d326b31"
+        },
+        "date": 1783375673995,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 11563,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 4191,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1181,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 597.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 362.5,
             "unit": "KB"
           },
           {
