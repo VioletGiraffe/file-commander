@@ -1,281 +1,242 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes" />
-    <style>
-      html {
-        font-family: BlinkMacSystemFont,-apple-system,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
-        -webkit-font-smoothing: antialiased;
-        background-color: #fff;
-        font-size: 16px;
-      }
-      body {
-        color: #4a4a4a;
-        margin: 8px;
-        font-size: 1em;
-        font-weight: 400;
-      }
-      header {
-        margin-bottom: 8px;
-        display: flex;
-        flex-direction: column;
-      }
-      main {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      a {
-        color: #3273dc;
-        cursor: pointer;
-        text-decoration: none;
-      }
-      a:hover {
-        color: #000;
-      }
-      button {
-        color: #fff;
-        background-color: #3298dc;
-        border-color: transparent;
-        cursor: pointer;
-        text-align: center;
-      }
-      button:hover {
-        background-color: #2793da;
-        flex: none;
-      }
-      .spacer {
-        flex: auto;
-      }
-      .small {
-        font-size: 0.75rem;
-      }
-      footer {
-        margin-top: 16px;
-        display: flex;
-        align-items: center;
-      }
-      .header-label {
-        margin-right: 4px;
-      }
-      .benchmark-set {
-        margin: 8px 0;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      .benchmark-title {
-        font-size: 3rem;
-        font-weight: 600;
-        word-break: break-word;
-        text-align: center;
-      }
-      .benchmark-graphs {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
-        align-items: center;
-        flex-wrap: wrap;
-        width: 100%;
-      }
-      .benchmark-chart {
-        max-width: 1000px;
-      }
-    </style>
-    <title>Benchmarks</title>
-  </head>
+<!--
+  Custom viewer for the metrics collected by benchmark-action/github-action-benchmark.
+  It replaces the default page the action generates. Drop it in next to data.js on the
+  gh-pages branch (dev/bench/index.html); the action never overwrites an existing
+  index.html, so this file survives every future run.
 
-  <body>
-    <header id="header">
-      <div class="header-item">
-        <strong class="header-label">Last Update:</strong>
-        <span id="last-update"></span>
-      </div>
-      <div class="header-item">
-        <strong class="header-label">Repository:</strong>
-        <a id="repository-link" rel="noopener"></a>
-      </div>
-    </header>
-    <main id="main"></main>
-    <footer>
-      <button id="dl-button">Download data as JSON</button>
-      <div class="spacer"></div>
-      <div class="small">Powered by <a rel="noopener" href="https://github.com/marketplace/actions/continuous-benchmark">github-action-benchmark</a></div>
-    </footer>
+  Data contract: data.js defines window.BENCHMARK_DATA = { lastUpdate, repoUrl, entries }.
+  Each entry under entries[<suite>] is one commit datapoint: { commit, date, tool, benches[] },
+  and each bench is { name, value, unit }. Series are matched by bench name.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File Commander build metrics</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.2/dist/Chart.min.js"></script>
-    <script src="data.js"></script>
-    <script id="main-script">
-      'use strict';
-      (function() {
-        // Colors from https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
-        const toolColors = {
-          cargo: '#dea584',
-          go: '#00add8',
-          benchmarkjs: '#f1e05a',
-          benchmarkluau: '#000080',
-          pytest: '#3572a5',
-          googlecpp: '#f34b7d',
-          catch2: '#f34b7d',
-          julia: '#a270ba',
-          jmh: '#b07219',
-          benchmarkdotnet: '#178600',
-          customBiggerIsBetter: '#38ff38',
-          customSmallerIsBetter: '#ff3838',
-          _: '#333333'
-        };
+  <script>
+    // Resolve the theme before first paint to avoid a flash of the wrong background.
+    (function () {
+      var t = localStorage.getItem('theme');
+      if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
 
-        function init() {
-          function collectBenchesPerTestCase(entries) {
-            const map = new Map();
-            for (const entry of entries) {
-              const {commit, date, tool, benches} = entry;
-              for (const bench of benches) {
-                const result = { commit, date, tool, bench };
-                const arr = map.get(bench.name);
-                if (arr === undefined) {
-                  map.set(bench.name, [result]);
-                } else {
-                  arr.push(result);
-                }
+  <style>
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg:#ffffff; --card:#f6f8fa; --text:#1f2328; --muted:#59636e; --border:#d1d9e0; --accent:#0969da;
+      --grid:rgba(27,31,36,0.09);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --bg:#0d1117; --card:#161b22; --text:#e6edf3; --muted:#8b949e; --border:#30363d; --accent:#58a6ff;
+      --grid:rgba(240,246,252,0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+    }
+    header h1 { margin: 0; font-size: 20px; }
+    .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .sub a { color: var(--accent); text-decoration: none; }
+    .sub a:hover { text-decoration: underline; }
+    #themeToggle {
+      cursor: pointer; background: var(--card); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; white-space: nowrap;
+    }
+    #themeToggle:hover { border-color: var(--accent); }
+    main {
+      padding: 24px; display: grid; gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 16px 10px; }
+    .card h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+    .card .canvas-wrap { position: relative; height: 300px; }
+    .card.wide { grid-column: 1 / -1; }
+    .card.wide .canvas-wrap { height: 380px; }
+    footer { color: var(--muted); font-size: 12px; padding: 16px 24px; border-top: 1px solid var(--border); }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .empty { padding: 40px 24px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Build metrics</h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+    <button id="themeToggle" type="button"></button>
+  </header>
+
+  <main id="charts"></main>
+
+  <script src="data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <script>
+  (function () {
+    // Distinct, dark- and light-legible line colors (Tableau 10-ish), cycled as needed.
+    const PALETTE = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
+                     '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#86bcb6', '#d37295', '#bab0ac'];
+
+    // Combined charts: every series matched by `match` is drawn on one chart. Anything unmatched
+    // gets its own single-line chart. To also merge the two LOC series, add another group here.
+    const GROUPS = [
+      { title: 'Binary size by section', unit: 'KB', wide: true, match: n => n.startsWith('Section '), strip: n => n.replace(/^Section /, '') },
+    ];
+
+    const data = window.BENCHMARK_DATA;
+    const charts_el = document.getElementById('charts');
+    if (!data || !data.entries || !Object.keys(data.entries).length) {
+      charts_el.innerHTML = '<div class="empty">No benchmark data found. This page expects data.js (window.BENCHMARK_DATA) alongside it.</div>';
+      return;
+    }
+
+    // One benchmark suite in this repo; use the first key generically.
+    const suiteName = Object.keys(data.entries)[0];
+    const suite = data.entries[suiteName];               // array of commit datapoints, oldest -> newest
+    const labels = suite.map(e => new Date(e.date).toLocaleDateString());
+    const commits = suite.map(e => e.commit);
+
+    // Series names in first-seen order, plus their unit.
+    const seriesNames = [];
+    const unitByName = {};
+    for (const e of suite) {
+      for (const b of e.benches) {
+        if (!(b.name in unitByName)) { seriesNames.push(b.name); unitByName[b.name] = b.unit; }
+      }
+    }
+    // Value of a series aligned to the shared commit timeline (null where the series didn't exist yet).
+    const valuesFor = name => suite.map(e => {
+      const b = e.benches.find(x => x.name === name);
+      return b ? b.value : null;
+    });
+
+    // Build chart specs: grouped (combined) charts, then solo charts for the remainder.
+    const used = new Set();
+    const groupSpecs = [];
+    for (const g of GROUPS) {
+      const names = seriesNames.filter(g.match);
+      if (!names.length) continue;
+      names.forEach(n => used.add(n));
+      groupSpecs.push({
+        title: g.title, unit: g.unit, wide: !!g.wide, combined: true,
+        datasets: names.map((n, i) => ({ label: g.strip ? g.strip(n) : n, data: valuesFor(n), color: PALETTE[i % PALETTE.length] })),
+      });
+    }
+    const soloSpecs = seriesNames.filter(n => !used.has(n)).map((n, i) => ({
+      title: n, unit: unitByName[n], wide: false, combined: false,
+      datasets: [{ label: n, data: valuesFor(n), color: PALETTE[i % PALETTE.length] }],
+    }));
+    const specs = soloSpecs.concat(groupSpecs);
+
+    const themeVars = () => {
+      const cs = getComputedStyle(document.documentElement);
+      return { text: cs.getPropertyValue('--muted').trim(), grid: cs.getPropertyValue('--grid').trim() };
+    };
+
+    let charts = [];
+    function render() {
+      charts.forEach(c => c.destroy());
+      charts = [];
+      const t = themeVars();
+      Chart.defaults.color = t.text;
+      Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+
+      charts_el.innerHTML = '';
+      for (const spec of specs) {
+        const card = document.createElement('div');
+        card.className = 'card' + (spec.wide ? ' wide' : '');
+        const h = document.createElement('h2');
+        h.textContent = spec.unit ? spec.title + ' (' + spec.unit + ')' : spec.title;
+        const wrap = document.createElement('div');
+        wrap.className = 'canvas-wrap';
+        const canvas = document.createElement('canvas');
+        wrap.appendChild(canvas);
+        card.appendChild(h);
+        card.appendChild(wrap);
+        charts_el.appendChild(card);
+
+        const chart = new Chart(canvas.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels,
+            datasets: spec.datasets.map(ds => ({
+              label: ds.label, data: ds.data,
+              borderColor: ds.color, backgroundColor: ds.color, pointBackgroundColor: ds.color,
+              borderWidth: 2, pointRadius: 2, pointHoverRadius: 5, tension: 0.2, spanGaps: true,
+            })),
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: spec.combined ? { mode: 'index', intersect: false } : { mode: 'nearest', intersect: false },
+            onClick: (evt, els) => {
+              if (els.length) {
+                const c = commits[els[0].index];
+                if (c && c.url) window.open(c.url, '_blank');
               }
-            }
-            return map;
-          }
-
-          const data = window.BENCHMARK_DATA;
-
-          // Render header
-          document.getElementById('last-update').textContent = new Date(data.lastUpdate).toString();
-          const repoLink = document.getElementById('repository-link');
-          repoLink.href = data.repoUrl;
-          repoLink.textContent = data.repoUrl;
-
-          // Render footer
-          document.getElementById('dl-button').onclick = () => {
-            const dataUrl = 'data:,' + JSON.stringify(data, null, 2);
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = 'benchmark_data.json';
-            a.click();
-          };
-
-          // Prepare data points for charts
-          return Object.keys(data.entries).map(name => ({
-            name,
-            dataSet: collectBenchesPerTestCase(data.entries[name]),
-          }));
-        }
-
-        function renderAllChars(dataSets) {
-
-          function renderGraph(parent, name, dataset) {
-            const canvas = document.createElement('canvas');
-            canvas.className = 'benchmark-chart';
-            parent.appendChild(canvas);
-
-            const color = toolColors[dataset.length > 0 ? dataset[0].tool : '_'];
-            const data = {
-              labels: dataset.map(d => d.commit.id.slice(0, 7)),
-              datasets: [
-                {
-                  label: name,
-                  data: dataset.map(d => d.bench.value),
-                  borderColor: color,
-                  backgroundColor: color + '60', // Add alpha for #rrggbbaa
-                }
-              ],
-            };
-            const options = {
-              scales: {
-                xAxes: [
-                  {
-                    scaleLabel: {
-                      display: true,
-                      labelString: 'commit',
-                    },
-                  }
-                ],
-                yAxes: [
-                  {
-                    scaleLabel: {
-                      display: true,
-                      labelString: dataset.length > 0 ? dataset[0].bench.unit : '',
-                    },
-                    ticks: {
-                      beginAtZero: true,
-                    }
-                  }
-                ],
-              },
-              tooltips: {
+            },
+            plugins: {
+              legend: { display: spec.combined, labels: { color: t.text, boxWidth: 12, usePointStyle: true } },
+              tooltip: {
                 callbacks: {
+                  title: items => { const c = commits[items[0].dataIndex]; return c ? c.message.split('\n')[0] : ''; },
                   afterTitle: items => {
-                    const {index} = items[0];
-                    const data = dataset[index];
-                    return '\n' + data.commit.message + '\n\n' + data.commit.timestamp + ' committed by @' + data.commit.committer.username + '\n';
+                    const i = items[0].dataIndex, c = commits[i];
+                    if (!c) return '';
+                    const d = new Date(suite[i].date).toLocaleString();
+                    return c.id.slice(0, 7) + (c.author ? ' · ' + c.author.name : '') + ' · ' + d;
                   },
                   label: item => {
-                    let label = item.value;
-                    const { range, unit } = dataset[item.index].bench;
-                    label += ' ' + unit;
-                    if (range) {
-                      label += ' (' + range + ')';
-                    }
-                    return label;
+                    const v = item.parsed.y;
+                    return item.dataset.label + ': ' + (v == null ? '—' : v.toLocaleString()) + ' ' + spec.unit;
                   },
-                  afterLabel: item => {
-                    const { extra } = dataset[item.index].bench;
-                    return extra ? '\n' + extra : '';
-                  }
-                }
+                  afterBody: () => 'Click a point to open the commit',
+                },
               },
-              onClick: (_mouseEvent, activeElems) => {
-                if (activeElems.length === 0) {
-                  return;
-                }
-                // XXX: Undocumented. How can we know the index?
-                const index = activeElems[0]._index;
-                const url = dataset[index].commit.url;
-                window.open(url, '_blank');
+            },
+            scales: {
+              x: { grid: { color: t.grid }, ticks: { color: t.text, maxRotation: 0, autoSkip: true } },
+              y: {
+                grid: { color: t.grid }, ticks: { color: t.text },
+                title: { display: !!spec.unit, text: spec.unit, color: t.text },
               },
-            };
+            },
+          },
+        });
+        charts.push(chart);
+      }
+    }
 
-            new Chart(canvas, {
-              type: 'line',
-              data,
-              options,
-            });
-          }
+    // Header: suite name, last update, repo link.
+    const repo = data.repoUrl || '';
+    const updated = data.lastUpdate ? new Date(data.lastUpdate).toLocaleString() : 'unknown';
+    document.getElementById('subtitle').innerHTML =
+      suiteName + ' · last updated ' + updated +
+      (repo ? ' · <a href="' + repo + '">' + repo.replace('https://github.com/', '') + '</a>' : '');
 
-          function renderBenchSet(name, benchSet, main) {
-            const setElem = document.createElement('div');
-            setElem.className = 'benchmark-set';
-            main.appendChild(setElem);
+    // Theme toggle (persists to localStorage).
+    const btn = document.getElementById('themeToggle');
+    const syncBtn = () => { btn.textContent = document.documentElement.dataset.theme === 'dark' ? '☀ Light' : '☾ Dark'; };
+    btn.addEventListener('click', () => {
+      const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem('theme', next);
+      syncBtn();
+      render();
+    });
 
-            const nameElem = document.createElement('h1');
-            nameElem.className = 'benchmark-title';
-            nameElem.textContent = name;
-            setElem.appendChild(nameElem);
-
-            const graphsElem = document.createElement('div');
-            graphsElem.className = 'benchmark-graphs';
-            setElem.appendChild(graphsElem);
-
-            for (const [benchName, benches] of benchSet.entries()) {
-              renderGraph(graphsElem, benchName, benches)
-            }
-          }
-
-          const main = document.getElementById('main');
-          for (const {name, dataSet} of dataSets) {
-            renderBenchSet(name, dataSet, main);
-          }
-        }
-
-        renderAllChars(init()); // Start
-      })();
-    </script>
-  </body>
+    syncBtn();
+    render();
+  })();
+  </script>
+</body>
 </html>
