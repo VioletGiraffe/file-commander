@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783371932137,
+  "lastUpdate": 1783374192005,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -112,6 +112,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 597,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 411.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e9dc938e18120a08d4b4f5fed7ab9e42cbdaeddd",
+          "message": "Cleanup after previous commit, Plugin::id() -> category(), and text viewers are now prioritized last so image viewers and other types work reliably, not by accidental ordering",
+          "timestamp": "2026-07-07T00:36:59+03:00",
+          "tree_id": "0ecef778a5e08facc3b6ea6c71878eea63fa748c",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e9dc938e18120a08d4b4f5fed7ab9e42cbdaeddd"
+        },
+        "date": 1783374189249,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 11563,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 4191,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1230,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 597.5,
             "unit": "KB"
           },
           {
