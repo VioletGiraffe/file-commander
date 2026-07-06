@@ -32,12 +32,16 @@ public:
 
 // Operations
 	void viewCurrentFile();
+	void viewCurrentFileInTextViewer();
 	CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> createViewerWindowForCurrentFile();
 
 private:
 	static PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
 
-	CFileCommanderViewerPlugin * viewerForCurrentFile();
+	// An empty requiredPluginId matches any viewer (auto-detect by file type); a non-empty one restricts the search to plugins with that id().
+	CFileCommanderViewerPlugin * viewerForCurrentFile(const QString& requiredPluginId);
+
+	static void showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> window);
 
 private:
 	std::vector<std::pair<std::unique_ptr<CFileCommanderPlugin>, std::unique_ptr<QLibrary>>> _plugins;

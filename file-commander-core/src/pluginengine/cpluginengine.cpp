@@ -96,19 +96,34 @@ void CPluginEngine::currentPanelChanged(Panel p)
 
 void CPluginEngine::viewCurrentFile()
 {
-	auto* viewerWindow = createViewerWindowForCurrentFile().release();
-	if (viewerWindow)
-	{
-		viewerWindow->setAutoDeleteOnClose(true);
-		viewerWindow->showNormal();
-		viewerWindow->activateWindow();
-		viewerWindow->raise();
-	}
+	showViewerWindow(createViewerWindowForCurrentFile());
+}
+
+void CPluginEngine::viewCurrentFileInTextViewer()
+{
+	// Unlike F3, restrict the candidates to the text viewer plugin(s) instead of auto-detecting across all viewers; canViewFile still applies (so e. g. folders are rejected).
+	auto* viewer = viewerForCurrentFile(PluginId::TextViewer);
+	if (!viewer)
+		return;
+
+	showViewerWindow(viewer->viewFile(CController::get().pluginProxy().currentItemPath()));
+}
+
+void CPluginEngine::showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> window)
+{
+	auto* viewerWindow = window.release();
+	if (!viewerWindow)
+		return;
+
+	viewerWindow->setAutoDeleteOnClose(true);
+	viewerWindow->showNormal();
+	viewerWindow->activateWindow();
+	viewerWindow->raise();
 }
 
 CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CPluginEngine::createViewerWindowForCurrentFile()
 {
-	auto* viewer = viewerForCurrentFile();
+	auto* viewer = viewerForCurrentFile({}); // Empty id: accept any viewer, i. e. auto-detect by file type
 	if (!viewer)
 		return {};
 
@@ -121,7 +136,7 @@ PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 	return p == Panel::LeftPanel ? PluginLeftPanel : PluginRightPanel;
 }
 
-CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
+CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile(const QString& requiredPluginId)
 {
 	const QString currentFile = CController::get().pluginProxy().currentItemPath();
 	if (currentFile.isEmpty())
@@ -134,6 +149,9 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile()
 	for(auto& plugin: _plugins)
 	{
 		if (plugin.first->type() != CFileCommanderPlugin::Viewer)
+			continue;
+
+		if (!requiredPluginId.isEmpty() && plugin.first->id() != requiredPluginId)
 			continue;
 
 		auto* viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());

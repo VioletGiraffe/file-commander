@@ -10,9 +10,11 @@ Two independent mechanisms:
 
 `PLUGIN_EXPORT` (from `plugin_export.h`, gated by `PLUGIN_MODULE` define) marks the exported symbols.
 
-- **`CFileCommanderPlugin`** (base) — `enum PluginType { Viewer, Archive, Tool }`; pure virtual `type()` and
-  `name()`. `setProxy(CPluginProxy*)` is called by the engine after load; `proxySet()` is the init hook
-  (plugins build their UI / register menu entries there). Holds `_proxy`.
+- **`CFileCommanderPlugin`** (base) — `enum PluginType { Viewer, Archive, Tool }`; pure virtual `type()`,
+  `name()`, and `id()` (a stable, non-localized identifier — unlike the tr()-translated `name()` — used to
+  target a specific plugin; well-known values live in the `PluginId` namespace). `setProxy(CPluginProxy*)`
+  is called by the engine after load; `proxySet()` is the init hook (plugins build their UI / register menu
+  entries there). Holds `_proxy`.
 - Each plugin DLL exports **`extern "C" CFileCommanderPlugin* createPlugin()`** — the only required symbol.
 - **`CFileCommanderViewerPlugin`** — adds `bool canViewFile(fileName, QMimeType)` and
   `WindowPtr<CPluginWindow> viewFile(fileName)`; `type()` returns `Viewer`.
@@ -50,8 +52,11 @@ Singleton (`CPluginEngine::get()`), a `PanelContentsChangedListener` attached to
   and stores `pair<unique_ptr<plugin>, unique_ptr<QLibrary>>` (library kept alive for the plugin's lifetime).
 - Forwards `onPanelContentsChanged` / `selectionChanged` / `currentItemChanged` / `currentPanelChanged` into
   the proxy (translating `Panel` -> `PanelPosition`).
-- **Viewer dispatch:** `viewerForCurrentFile` / `createViewerWindowForCurrentFile` pick the first viewer
-  whose `canViewFile` accepts the current item; `viewCurrentFile` opens it (full window or quick-view).
+- **Viewer dispatch:** `viewerForCurrentFile(requiredPluginId)` picks the first viewer whose `canViewFile`
+  accepts the current item; an empty `requiredPluginId` considers all viewers (auto-detect by file type),
+  a non-empty one restricts to plugins with that `id()`. `createViewerWindowForCurrentFile` / `viewCurrentFile`
+  open it (full window or quick-view). `viewCurrentFileInTextViewer` (Shift+F3) passes `PluginId::TextViewer`,
+  so the text viewer is used regardless of file type — but `canViewFile` still applies (e.g. folders are rejected).
 
 ## WCX archive host (`core/src/plugininterface/wcx/`)
 

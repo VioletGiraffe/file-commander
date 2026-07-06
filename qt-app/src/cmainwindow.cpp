@@ -150,6 +150,7 @@ void CMainWindow::initButtons()
 {
 	connect(ui->btnView, &QPushButton::clicked, this, &CMainWindow::viewFile);
 	new QShortcut(QKeySequence(QSL("F3")), this, this, &CMainWindow::viewFile, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(QSL("Shift+F3")), this, this, &CMainWindow::viewFileInTextViewer, Qt::WidgetWithChildrenShortcut);
 
 	connect(ui->btnEdit, &QPushButton::clicked, this, &CMainWindow::editFile);
 	new QShortcut(QKeySequence(QSL("F4")), this, this, &CMainWindow::editFile, Qt::WidgetWithChildrenShortcut);
@@ -560,6 +561,11 @@ void CMainWindow::invertSelection()
 void CMainWindow::viewFile()
 {
 	CPluginEngine::get().viewCurrentFile();
+}
+
+void CMainWindow::viewFileInTextViewer()
+{
+	CPluginEngine::get().viewCurrentFileInTextViewer();
 }
 
 void CMainWindow::editFile()

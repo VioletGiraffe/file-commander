@@ -68,6 +68,7 @@ private:
 
 // Other UI commands
 	void viewFile();
+	void viewFileInTextViewer();
 	void editFile();
 	void showRecycleBInContextMenu(QPoint pos);
 	void toggleQuickView();
