@@ -48,23 +48,6 @@ jobs:
             - '.github/workflows/CI.yml'
 
     - name: Sys info
-      if: startsWith(matrix.os, 'windows')
-      shell: pwsh
-      run: |
-        $cpu = Get-CimInstance Win32_Processor
-        $mem = Get-CimInstance Win32_ComputerSystem
-
-        $cpu | ForEach-Object {
-          Write-Host "CPU: $($_.Name)"
-          Write-Host "  Cores: $($_.NumberOfCores)"
-          Write-Host "  Logical processors: $($_.NumberOfLogicalProcessors)"
-          Write-Host "  Max clock (MHz): $($_.MaxClockSpeed)"
-        }
-
-        $totalRamGB = [Math]::Round($mem.TotalPhysicalMemory / 1GB, 2)
-        Write-Host "RAM: $totalRamGB GB"
-
-    - name: Sys info
       if: "startsWith(matrix.os, 'mac')"
       run: |
         sysctl -a | grep cpu | grep hw
