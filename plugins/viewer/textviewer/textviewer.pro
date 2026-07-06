@@ -44,6 +44,8 @@ DEFINES += PLUGIN_MODULE
 
 LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -lqtutils -ltext_encoding_detector -lcpputils
 
+QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
+
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /wd4251 /JMC
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus

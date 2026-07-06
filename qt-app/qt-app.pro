@@ -45,6 +45,8 @@ MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
+QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
+
 INCLUDEPATH += \
 	$$PWD/src/ \
 	../file-commander-core/src \
