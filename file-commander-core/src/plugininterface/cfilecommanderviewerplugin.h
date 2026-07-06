@@ -7,6 +7,11 @@
 
 class QMimeType;
 
+// Well-known values returned by CFileCommanderViewerPlugin::category(). Free-form so third-party plugins may define their own; the app only special-cases Text (the omnivorous fallback viewer, and the Shift+F3 target).
+namespace ViewerCategory {
+	inline constexpr auto Text = "textviewer";
+}
+
 class PLUGIN_EXPORT CFileCommanderViewerPlugin : public CFileCommanderPlugin
 {
 public:
@@ -29,6 +34,8 @@ public:
 
 	[[nodiscard]] virtual bool canViewFile(const QString& fileName, const QMimeType& type) const = 0;
 	virtual WindowPtr<CPluginWindow> viewFile(const QString& fileName) = 0;
+	// A free-form classification (see ViewerCategory) used to order viewer selection; the text viewer's category marks it as the omnivorous fallback.
+	[[nodiscard]] virtual QString category() const = 0;
 
 	PluginType type() override;
 };

@@ -10,7 +10,6 @@ public:
 	CFileComparisonPlugin() noexcept;
 
 	[[nodiscard]] QString name() const override;
-	[[nodiscard]] QString id() const override;
 
 protected:
 	void proxySet() override;

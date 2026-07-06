@@ -101,8 +101,8 @@ void CPluginEngine::viewCurrentFile()
 
 void CPluginEngine::viewCurrentFileInTextViewer()
 {
-	// Unlike F3, restrict the candidates to the text viewer plugin(s) instead of auto-detecting across all viewers; canViewFile still applies (so e. g. folders are rejected).
-	auto* viewer = viewerForCurrentFile(PluginId::TextViewer);
+	// Unlike F3, restrict the candidates to text viewer plugin(s) instead of auto-detecting across all viewers; canViewFile still applies (so e. g. folders are rejected).
+	auto* viewer = viewerForCurrentFile(ViewerCategory::Text);
 	if (!viewer)
 		return;
 
@@ -123,7 +123,7 @@ void CPluginEngine::showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPlug
 
 CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CPluginEngine::createViewerWindowForCurrentFile()
 {
-	auto* viewer = viewerForCurrentFile({}); // Empty id: accept any viewer, i. e. auto-detect by file type
+	auto* viewer = viewerForCurrentFile({}); // Empty category: accept any viewer, i. e. auto-detect by file type
 	if (!viewer)
 		return {};
 
@@ -136,7 +136,7 @@ PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
 	return p == Panel::LeftPanel ? PluginLeftPanel : PluginRightPanel;
 }
 
-CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile(const QString& requiredPluginId)
+CFileCommanderViewerPlugin* CPluginEngine::viewerForCurrentFile(const QString& requiredCategory)
 {
 	const QString currentFile = CController::get().pluginProxy().currentItemPath();
 	if (currentFile.isEmpty())
@@ -146,21 +146,41 @@ CFileCommanderViewerPlugin *CPluginEngine::viewerForCurrentFile(const QString& r
 	qInfo() << "Selecting a viewer plugin for" << currentFile;
 	qInfo() << "File type:" << type.name() << ", aliases:" << type.aliases();
 
+	// The text viewer is omnivorous (its canViewFile accepts any file), so it must not shadow a specialized viewer: defer any text-category viewer and use it only if nothing more specific claims the file. This keeps selection independent of _plugins order.
+	CFileCommanderViewerPlugin* textFallback = nullptr;
 	for(auto& plugin: _plugins)
 	{
 		if (plugin.first->type() != CFileCommanderPlugin::Viewer)
 			continue;
 
-		if (!requiredPluginId.isEmpty() && plugin.first->id() != requiredPluginId)
-			continue;
-
 		auto* viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
 		assert_r(viewer);
-		if (viewer && viewer->canViewFile(currentFile, type))
+		if (!viewer)
+			continue;
+
+		const QString category = viewer->category();
+		if (!requiredCategory.isEmpty() && category != requiredCategory)
+			continue;
+
+		if (!viewer->canViewFile(currentFile, type))
+			continue;
+
+		if (category == ViewerCategory::Text)
 		{
-			qInfo() << viewer->name() << "selected";
-			return viewer;
+			if (!textFallback)
+				textFallback = viewer;
+
+			continue;
 		}
+
+		qInfo() << viewer->name() << "selected";
+		return viewer;
+	}
+
+	if (textFallback)
+	{
+		qInfo() << textFallback->name() << "selected";
+		return textFallback;
 	}
 
 	return nullptr;

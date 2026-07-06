@@ -24,11 +24,6 @@ QString CFileComparisonPlugin::name() const
 	return QObject::tr("File comparison plugin");
 }
 
-QString CFileComparisonPlugin::id() const
-{
-	return QStringLiteral("filecomparison");
-}
-
 void CFileComparisonPlugin::proxySet()
 {
 	CPluginProxy::MenuTree menu(QObject::tr("Compare files by contents"), [this]() {

@@ -38,8 +38,8 @@ public:
 private:
 	static PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
 
-	// An empty requiredPluginId matches any viewer (auto-detect by file type); a non-empty one restricts the search to plugins with that id().
-	CFileCommanderViewerPlugin * viewerForCurrentFile(const QString& requiredPluginId);
+	// An empty requiredCategory matches any viewer (auto-detect by file type, with the text viewer as fallback); a non-empty one restricts to viewers of that category().
+	CFileCommanderViewerPlugin* viewerForCurrentFile(const QString& requiredCategory);
 
 	static void showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> window);
 

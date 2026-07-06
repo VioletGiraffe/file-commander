@@ -42,7 +42,7 @@ QString CTextViewerPlugin::name() const
 	return QObject::tr("Plain text and HTML viewer plugin");
 }
 
-QString CTextViewerPlugin::id() const
+QString CTextViewerPlugin::category() const
 {
-	return PluginId::TextViewer;
+	return ViewerCategory::Text;
 }

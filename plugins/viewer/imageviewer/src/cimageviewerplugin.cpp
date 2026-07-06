@@ -36,7 +36,7 @@ QString CImageViewerPlugin::name() const
 	return QObject::tr("Image viewer plugin");
 }
 
-QString CImageViewerPlugin::id() const
+QString CImageViewerPlugin::category() const
 {
 	return QStringLiteral("imageviewer");
 }
