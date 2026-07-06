@@ -230,7 +230,7 @@ jobs:
         .\bin\release\x64\FileCommander.exe --test-launch  
 
     - name: Building tests - Windows
-      if: startsWith(matrix.os, 'windows')
+      if: startsWith(matrix.os, 'windows') && steps.changes.outputs.tests_relevant == 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
       run: |
@@ -276,7 +276,7 @@ jobs:
         & .\bin\release\x64\filecomparator_test.exe --std-seed $randomSeed;
 
     - name: Building tests - Mac
-      if: startsWith(matrix.os, 'macos')
+      if: startsWith(matrix.os, 'macos') && steps.changes.outputs.tests_relevant == 'true'
       run: |
         cd file-commander-core/core-tests
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
@@ -293,7 +293,7 @@ jobs:
         set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
 
     - name: Building tests - Linux
-      if: startsWith(matrix.os, 'ubuntu')
+      if: startsWith(matrix.os, 'ubuntu') && steps.changes.outputs.tests_relevant == 'true'
       run: |
         cd file-commander-core/core-tests
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
