@@ -1,6 +1,17 @@
 name: CI
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches-ignore: [gh-pages]  # metrics commits to gh-pages must not re-trigger CI
+    tags: ['**']                 # but keep tag pushes so the create-release job still runs
+  pull_request:
+  workflow_dispatch:
+
+# github-action-benchmark pushes the metrics history to the gh-pages branch.
+permissions:
+  contents: write
+  deployments: write
+  pull-requests: read   # dorny/paths-filter reads the changed-files list on PRs
 
 env:
   # Path to the solution file relative to the root of the project.
@@ -67,15 +78,21 @@ jobs:
 
     - name: LOC count - app
       if: "startsWith(matrix.os, 'windows')"
+      shell: pwsh
       run: |
         choco install cloc -y
-        cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables ./qt-app/ ./plugins/ ./file-commander-core/
+        $loc = (cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables --json --quiet ./qt-app/ ./plugins/ ./file-commander-core/ | ConvertFrom-Json).SUM.code
+        "App C/C++ code: $loc LOC"
+        "LOC_APP=$loc" >> $env:GITHUB_ENV
 
     - name: LOC count - libs
       if: "startsWith(matrix.os, 'windows')"
+      shell: pwsh
       run: |
         choco install cloc -y
-        cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,qt-app,plugins,file-commander-core .
+        $loc = (cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,qt-app,plugins,file-commander-core --json --quiet . | ConvertFrom-Json).SUM.code
+        "Libs C/C++ code: $loc LOC"
+        "LOC_LIBS=$loc" >> $env:GITHUB_ENV
 
     - name: Install Qt
       if: "startsWith(matrix.os, 'windows')"
@@ -168,6 +185,52 @@ jobs:
       run: |
         $sizeKB = (Get-Item "bin\release\x64\FileCommander.exe").Length / 1KB
         "{0:N2} KB" -f $sizeKB
+        "EXE_KB=$([math]::Round($sizeKB, 2))" >> $env:GITHUB_ENV
+
+    # Record LOC, exe size + per-section sizes to the gh-pages history and regenerate the chart.
+    # Only on pushes to master so PRs/forks don't write history (and forks lack a write token).
+    - name: Assemble metrics data
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master' && startsWith(matrix.os, 'windows')
+      shell: pwsh
+      run: |
+        $data = @(
+          @{ name = 'Lines of code (app)';    unit = 'LOC'; value = [int]$env:LOC_APP  }
+          @{ name = 'Lines of code (libs)';   unit = 'LOC'; value = [int]$env:LOC_LIBS }
+          @{ name = 'FileCommander.exe size'; unit = 'KB';  value = [double]$env:EXE_KB }
+        )
+
+        # Per-PE-section on-disk sizes from the "size of raw data" field of each SECTION HEADER.
+        # dumpbin is on PATH via the earlier MSVC dev-cmd step. Each section becomes its own chart; .msvcjmc is skipped.
+        $name = $null
+        $sections = @()
+        foreach ($line in (dumpbin /headers bin\release\x64\FileCommander.exe)) {
+          if     ($line -match '^\s+(\S+) name$')                                 { $name = $Matches[1] }
+          elseif ($line -match '^\s+([0-9A-Fa-f]+) size of raw data$' -and $name) {
+            $sections += [pscustomobject]@{ Name = $name; KB = [math]::Round([Convert]::ToInt64($Matches[1], 16) / 1KB, 2) }
+            $name = $null
+          }
+        }
+        $sections | Sort-Object KB -Descending | Format-Table Name, KB -AutoSize
+        foreach ($s in $sections | Where-Object Name -ne '.msvcjmc') {
+          $data += @{ name = "Section $($s.Name)"; unit = 'KB'; value = $s.KB }
+        }
+
+        $data | ConvertTo-Json -AsArray | Out-File -FilePath metrics.json -Encoding utf8
+        Get-Content metrics.json
+
+    - name: Update metrics history & chart (gh-pages)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master' && startsWith(matrix.os, 'windows')
+      uses: benchmark-action/github-action-benchmark@v1
+      with:
+        name: File Commander metrics
+        tool: customSmallerIsBetter
+        output-file-path: metrics.json
+        benchmark-data-dir-path: dev/metrics  # where data.js + index.html live on gh-pages (default: dev/bench)
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        auto-push: true
+        # Don't treat a change as a regression
+        comment-on-alert: false
+        fail-on-alert: false
 
     - name: Test launch
       if: startsWith(matrix.os, 'macos')
