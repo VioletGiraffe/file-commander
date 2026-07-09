@@ -64,7 +64,7 @@ jobs:
       shell: pwsh
       run: |
         choco install cloc -y
-        $loc = (cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables --json --quiet ./qt-app/ ./plugins/ ./file-commander-core/ | ConvertFrom-Json).SUM.code
+        $loc = (cloc --include-lang="C,C++,C/C++ Header" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables --json --quiet ./qt-app/ ./plugins/ ./file-commander-core/ | ConvertFrom-Json).SUM.code
         "App C/C++ code: $loc LOC"
         "LOC_APP=$loc" >> $env:GITHUB_ENV
 
@@ -73,7 +73,7 @@ jobs:
       shell: pwsh
       run: |
         choco install cloc -y
-        $loc = (cloc --include-lang="C,C++" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,qt-app,plugins,file-commander-core --json --quiet . | ConvertFrom-Json).SUM.code
+        $loc = (cloc --include-lang="C,C++,C/C++ Header" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,qt-app,plugins,file-commander-core --json --quiet . | ConvertFrom-Json).SUM.code
         "Libs C/C++ code: $loc LOC"
         "LOC_LIBS=$loc" >> $env:GITHUB_ENV
 
