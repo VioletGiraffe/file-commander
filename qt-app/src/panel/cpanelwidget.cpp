@@ -162,6 +162,7 @@ void CPanelWidget::initPanel(Panel p)
 	ui->_list->viewport()->installEventFilter(this);
 	ui->_list->setPanelPosition(p);
 
+	ui->_tabBar->installEventFilter(this); // For closing tabs on middle click
 	ui->_tabBar->setExpanding(false);
 	ui->_tabBar->setTabsClosable(true);
 	ui->_tabBar->setMovable(true);
@@ -1209,6 +1210,18 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 		else if (mouseEvent->button() == Qt::ForwardButton)
 		{
 			_controller->navigateForward(_panelPosition);
+			return true;
+		}
+	}
+	else if (object == ui->_tabBar && e->type() == QEvent::MouseButtonRelease)
+	{
+		// Release, not press: don't close on an accidental press-and-drag-away, matching browser behavior
+		const auto* mouseEvent = static_cast<QMouseEvent*>(e);
+		if (mouseEvent->button() == Qt::MiddleButton)
+		{
+			const int index = ui->_tabBar->tabAt(mouseEvent->pos());
+			if (index >= 0)
+				onTabBarCloseRequested(index);
 			return true;
 		}
 	}
