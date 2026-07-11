@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783808222101,
+  "lastUpdate": 1783808981767,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -807,6 +807,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 364.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "474a0f3d5776eb4a73a5aaf44f79c3c512a2d0dd",
+          "message": "Tooltips for tabs",
+          "timestamp": "2026-07-12T01:23:56+03:00",
+          "tree_id": "9cc162d2c5d0acd0f0d5504d4e27b7afdc799878",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/474a0f3d5776eb4a73a5aaf44f79c3c512a2d0dd"
+        },
+        "date": 1783808979240,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14166,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8073,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1198,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 611,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 365,
             "unit": "KB"
           },
           {
