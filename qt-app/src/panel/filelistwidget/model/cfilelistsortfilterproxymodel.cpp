@@ -39,6 +39,19 @@ inline bool isFileOrBundle(const CFileSystemObject& item)
 	return item.isFile() || item.isBundle();
 }
 
+int CFileListSortFilterProxyModel::firstFileRow() const
+{
+	auto* srcModel = static_cast<CFileListModel*>(sourceModel());
+	for (int row = 0, numRows = rowCount(); row < numRows; ++row)
+	{
+		const qulonglong hash = srcModel->itemHash(mapToSource(index(row, 0)));
+		if (isFileOrBundle(_controller.itemByHash(_panel, hash)))
+			return row;
+	}
+
+	return -1;
+}
+
 bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
 	assert_r(left.column() == right.column());

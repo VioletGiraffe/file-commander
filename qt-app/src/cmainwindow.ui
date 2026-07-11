@@ -239,6 +239,8 @@
     <addaction name="separator"/>
     <addaction name="actionCalculate_occupied_space"/>
     <addaction name="actionCalculate_each_folder_s_size"/>
+    <addaction name="separator"/>
+    <addaction name="actionJump_to_first_file"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -435,6 +437,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+L</string>
+   </property>
+  </action>
+  <action name="actionJump_to_first_file">
+   <property name="text">
+    <string>Jump to first file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Home</string>
    </property>
   </action>
   <action name="actionNew_Tab">

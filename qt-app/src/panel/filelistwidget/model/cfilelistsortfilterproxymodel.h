@@ -22,6 +22,9 @@ public:
 
 	void sort(int column, Qt::SortOrder order) override;
 
+	// The topmost row holding a file (folders always sort above files), or -1 if there are no files
+	[[nodiscard]] int firstFileRow() const;
+
 signals:
 	void sorted();
 

@@ -71,6 +71,7 @@ public:
 	[[nodiscard]] std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
 	[[nodiscard]] qulonglong currentItemHash() const;
 	void invertSelection();
+	void moveCursorToFirstFile(); // Scrolls past the folders (they always sort on top) and puts the cursor on the first file
 
 	void onSettingsChanged();
 

@@ -233,6 +233,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
 	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateStatistics);
 	connect(ui->actionCalculate_each_folder_s_size, &QAction::triggered, this, &CMainWindow::calculateEachFolderSize);
+	connect(ui->actionJump_to_first_file, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->moveCursorToFirstFile(); });
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
 	connect(ui->actionFilter_items, &QAction::triggered, this, &CMainWindow::filterItemsByName);
 

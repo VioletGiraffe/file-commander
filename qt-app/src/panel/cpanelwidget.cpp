@@ -1261,6 +1261,13 @@ void CPanelWidget::invertSelection()
 	ui->_list->invertSelection();
 }
 
+void CPanelWidget::moveCursorToFirstFile()
+{
+	const int row = _sortModel->firstFileRow();
+	if (row >= 0)
+		ui->_list->moveCursorToItem(_sortModel->index(row, 0));
+}
+
 void CPanelWidget::onSettingsChanged()
 {
 	QFont font;
