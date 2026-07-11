@@ -219,9 +219,10 @@ void CMainWindow::initActions()
 	connect(ui->actionGo_to_root, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->toRoot(); });
 	ui->actionGo_to_root->setShortcuts({ ui->actionGo_to_root->shortcut(), QKeySequence{ QSL("Ctrl+\\") } });
 
-	// QMenu renders the text after '\t' in the shortcut column instead of the real shortcut - used to also advertise the wheel gesture
+	// QMenu renders the text after '\t' in the shortcut column instead of the real shortcut - used to also advertise mouse gestures
 	ui->actionGo_back->setText(ui->actionGo_back->text() + QSL("\tAlt+Left, Shift+Wheel Up"));
 	ui->actionGo_forward->setText(ui->actionGo_forward->text() + QSL("\tAlt+Right, Shift+Wheel Down"));
+	ui->actionClose_Tab->setText(ui->actionClose_Tab->text() + QSL("\tCtrl+W, MMB"));
 
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, [this]() {
 		_controller->openTerminal(_currentFileList->currentDirPathNative());
@@ -259,6 +260,8 @@ void CMainWindow::initActions()
 	connect(ui->actionNew_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->createNewTab(); });
 	connect(ui->actionClose_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->closeCurrentTab(); });
 	connect(ui->actionReopen_Closed_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->reopenLastClosedTab(); });
+	connect(ui->actionDuplicate_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->duplicateCurrentTab(); });
+	connect(ui->actionClose_All_Other_Tabs, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->closeAllTabsExceptCurrent(); });
 	connect(ui->actionNext_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToNextTab(); });
 	connect(ui->actionPrevious_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToPreviousTab(); });
 	connect(ui->actionOpen_Folder_Under_Cursor_in_New_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->openCurrentItemInNewTab(); });

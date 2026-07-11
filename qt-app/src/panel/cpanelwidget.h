@@ -56,6 +56,8 @@ public:
 	void switchToPreviousTab();
 	void openCurrentItemInNewTab(); // Ctrl+Up: opens the folder under the cursor in a new tab (no-op if it's not a folder)
 	void reopenLastClosedTab();   // Reopens this side's most recently closed tab as a new tab at the end (path only, history is not preserved)
+	void duplicateCurrentTab();   // Opens a background tab with the same path (menu counterpart of the tab context menu's "Duplicate tab")
+	void closeAllTabsExceptCurrent();
 
 	// Returns the list of items added to the view
 	void fillFromList(FileListRefreshCause operation);

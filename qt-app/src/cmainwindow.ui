@@ -275,7 +275,9 @@
      <string>Ta&amp;bs</string>
     </property>
     <addaction name="actionNew_Tab"/>
+    <addaction name="actionDuplicate_Tab"/>
     <addaction name="actionClose_Tab"/>
+    <addaction name="actionClose_All_Other_Tabs"/>
     <addaction name="actionReopen_Closed_Tab"/>
     <addaction name="separator"/>
     <addaction name="actionNext_Tab"/>
@@ -497,6 +499,16 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+T</string>
+   </property>
+  </action>
+  <action name="actionDuplicate_Tab">
+   <property name="text">
+    <string>&amp;Duplicate Tab</string>
+   </property>
+  </action>
+  <action name="actionClose_All_Other_Tabs">
+   <property name="text">
+    <string>Close &amp;All Other Tabs</string>
    </property>
   </action>
   <action name="actionNext_Tab">
