@@ -55,6 +55,7 @@ public:
 	void switchToNextTab();
 	void switchToPreviousTab();
 	void openCurrentItemInNewTab(); // Ctrl+Up: opens the folder under the cursor in a new tab (no-op if it's not a folder)
+	void reopenLastClosedTab();   // Reopens this side's most recently closed tab as a new tab at the end (path only, history is not preserved)
 
 	// Returns the list of items added to the view
 	void fillFromList(FileListRefreshCause operation);
@@ -158,6 +159,7 @@ private:
 	CFileListModel                * _model = nullptr;
 	CFileListSortFilterProxyModel * _sortModel = nullptr;
 	std::vector<PanelTab>           _tabs;
+	std::vector<QString>            _recentlyClosedTabsPaths; // LIFO for reopenLastClosedTab()
 	int                             _activeTab = -1;
 	Panel                           _panelPosition = Panel::UnknownPanel;
 

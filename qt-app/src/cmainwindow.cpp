@@ -258,6 +258,7 @@ void CMainWindow::initActions()
 	// Tabs menu. Actions route to the active panel's widget.
 	connect(ui->actionNew_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->createNewTab(); });
 	connect(ui->actionClose_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->closeCurrentTab(); });
+	connect(ui->actionReopen_Closed_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->reopenLastClosedTab(); });
 	connect(ui->actionNext_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToNextTab(); });
 	connect(ui->actionPrevious_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToPreviousTab(); });
 	connect(ui->actionOpen_Folder_Under_Cursor_in_New_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->openCurrentItemInNewTab(); });

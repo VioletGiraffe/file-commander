@@ -276,6 +276,7 @@
     </property>
     <addaction name="actionNew_Tab"/>
     <addaction name="actionClose_Tab"/>
+    <addaction name="actionReopen_Closed_Tab"/>
     <addaction name="separator"/>
     <addaction name="actionNext_Tab"/>
     <addaction name="actionPrevious_Tab"/>
@@ -488,6 +489,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionReopen_Closed_Tab">
+   <property name="text">
+    <string>&amp;Reopen Closed Tab</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+T</string>
    </property>
   </action>
   <action name="actionNext_Tab">
