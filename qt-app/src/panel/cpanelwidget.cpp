@@ -325,10 +325,10 @@ void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool a
 		return;
 
 	const CFileSystemObject item = _controller->itemByHash(_panelPosition, hash);
-	if (!item.isDir() || item.isCdUp())
+	if (!item.isDir())
 		return;
 
-	openPathInNewTab(item.fullAbsolutePath(), activate);
+	openPathInNewTab(item.fullAbsolutePath(), activate); // For [..] this opens the parent folder ('..' is cleaned out of the path by QFileInfo)
 }
 
 void CPanelWidget::openPathInNewTab(const QString& path, bool activate)

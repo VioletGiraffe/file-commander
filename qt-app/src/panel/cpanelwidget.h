@@ -145,7 +145,7 @@ private:
 	void updateTabText(int index);
 	[[nodiscard]] QString tabToolTipText(int index) const; // Tab's full path + folder contents stats, composed on hover
 	void openPathInNewTab(const QString& path, bool activate = true); // Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab in the background
-	void tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate); // Opens the item in a new tab if it's a folder (and not "..")
+	void tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate); // Opens the item in a new tab if it's a folder ([..] opens the parent)
 	void duplicateTab(int index);       // Tab context menu: opens a new tab showing the same path as tab 'index'
 	void closeAllOtherTabs(int index);  // Tab context menu: closes every tab except 'index'
 	void switchToTabByPosition(int position); // Ctrl+1..9: jumps to the tab at this position (no-op if it doesn't exist)
