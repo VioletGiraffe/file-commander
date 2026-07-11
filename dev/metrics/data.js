@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783790383720,
+  "lastUpdate": 1783804447300,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -536,6 +536,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e4300606a73ab7b38289aca195e96bf8961d93ec",
+          "message": "Ctrl+Home = \"jump to first file\"",
+          "timestamp": "2026-07-12T00:08:34+03:00",
+          "tree_id": "0851eb7c0ee1c32e5f89fd5235cc31dedadf2417",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e4300606a73ab7b38289aca195e96bf8961d93ec"
+        },
+        "date": 1783804445200,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14082,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8073,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1188.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 603,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 364,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
             "unit": "KB"
           },
           {
