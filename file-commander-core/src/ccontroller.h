@@ -62,6 +62,7 @@ public:
 	[[nodiscard]] std::vector<qulonglong> tabIds(Panel p) const; // Tab ids in display order, for the UI to (re)build its tab strip
 	[[nodiscard]] QString tabPath(Panel p, qulonglong tabId) const;
 	[[nodiscard]] QString tabName(Panel p, qulonglong tabId) const; // The tab's folder name, for the tab label
+	[[nodiscard]] const CPanel& tabById(Panel p, qulonglong tabId) const; // For read-only queries against non-active tabs (their lists are as of when they were last active)
 	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
 	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched

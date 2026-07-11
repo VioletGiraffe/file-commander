@@ -28,6 +28,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QCompleter>
 #include <QDebug>
 #include <QHeaderView>
+#include <QHelpEvent>
 #include <QInputDialog>
 #include <QItemSelectionModel>
 #include <QMenu>
@@ -37,12 +38,39 @@ DISABLE_COMPILER_WARNINGS
 #include <QPushButton>
 #include <QShortcut>
 #include <QTabBar>
+#include <QToolTip>
 #include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <assert.h>
 #include <unordered_set>
+
+struct FolderContentsSummary {
+	uint64_t numFiles = 0;
+	uint64_t numFolders = 0;
+	uint64_t size = 0; // Only counts files' sizes, folder sizes are unknown without explicit calculation
+};
+
+static FolderContentsSummary summarizeFolderContents(const FileListHashMap& items)
+{
+	FolderContentsSummary summary;
+	for (const auto& item: items)
+	{
+		const CFileSystemObject& object = item.second;
+		if (object.isCdUp())
+			continue;
+
+		if (object.isFile())
+			++summary.numFiles;
+		else if (object.isDir())
+			++summary.numFolders;
+
+		summary.size += object.size();
+	}
+
+	return summary;
+}
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	QWidget(parent),
@@ -510,6 +538,15 @@ void CPanelWidget::updateTabText(int index)
 {
 	if (index >= 0 && index < ui->_tabBar->count())
 		ui->_tabBar->setTabText(index, _controller->tabName(_panelPosition, tabIdAt(index)));
+}
+
+QString CPanelWidget::tabToolTipText(int index) const
+{
+	const CPanel& tab = _controller->tabById(_panelPosition, tabIdAt(index));
+	const FolderContentsSummary contents = summarizeFolderContents(tab.list());
+
+	return tab.currentDirPathNative() % '\n' %
+		tr("%1 folders, %2 files (%3)").arg(contents.numFolders).arg(contents.numFiles).arg(fileSizeToString(contents.size));
 }
 
 qulonglong CPanelWidget::tabIdAt(int index) const
@@ -1042,26 +1079,11 @@ void CPanelWidget::fillHistory()
 
 void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 {
+	const FolderContentsSummary total = summarizeFolderContents(_controller->panel(_panelPosition).list());
+
 	uint64_t numFilesSelected = 0;
 	uint64_t numFoldersSelected = 0;
-	uint64_t totalSize = 0;
 	uint64_t sizeSelected = 0;
-	uint64_t totalNumFolders = 0;
-	uint64_t totalNumFiles = 0;
-
-	for (const auto& item: _controller->panel(_panelPosition).list())
-	{
-		const CFileSystemObject& object = item.second;
-		if (object.isCdUp())
-			continue;
-
-		if (object.isFile())
-			++totalNumFiles;
-		else if (object.isDir())
-			++totalNumFolders;
-
-		totalSize += object.size();
-	}
 
 	for (const auto selectedItem: selection)
 	{
@@ -1077,9 +1099,9 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 		sizeSelected += object.size();
 	}
 
-	ui->_infoLabel->setText(tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(totalNumFiles).
-		arg(numFoldersSelected).arg(totalNumFolders).
-		arg(fileSizeToString(sizeSelected), fileSizeToString(totalSize)));
+	ui->_infoLabel->setText(tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(total.numFiles).
+		arg(numFoldersSelected).arg(total.numFolders).
+		arg(fileSizeToString(sizeSelected), fileSizeToString(total.size)));
 }
 
 bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
@@ -1224,6 +1246,17 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 				onTabBarCloseRequested(index);
 			return true;
 		}
+	}
+	else if (object == ui->_tabBar && e->type() == QEvent::ToolTip)
+	{
+		// Composed on demand rather than set via setTabToolTip so that the stats are never stale
+		const auto* helpEvent = static_cast<QHelpEvent*>(e);
+		const int index = ui->_tabBar->tabAt(helpEvent->pos());
+		if (index >= 0)
+			QToolTip::showText(helpEvent->globalPos(), tabToolTipText(index), ui->_tabBar);
+		else
+			QToolTip::hideText();
+		return true;
 	}
 	else if (object == ui->_pathNavigator && e->type() == QEvent::KeyPress)
 	{

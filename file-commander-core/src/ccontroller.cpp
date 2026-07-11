@@ -265,6 +265,13 @@ QString CController::tabName(Panel p, qulonglong tabId) const
 	return tabList.tabs[*idx]->currentDirName();
 }
 
+const CPanel& CController::tabById(Panel p, qulonglong tabId) const
+{
+	const auto idx = tabIndexById(p, tabId);
+	assert_r(idx.has_value());
+	return *_panels[(size_t)p].tabs[idx.value_or(0)]; // A panel always keeps >= 1 tab, so [0] is a safe release-mode fallback
+}
+
 void CController::restorePanelState(Panel p)
 {
 	const size_t side = (size_t)p;

@@ -141,6 +141,7 @@ private:
 	void closeTabById(qulonglong id);       // Closes whichever tab currently holds id (re-resolves its position fresh); shared by onTabBarCloseRequested and closeAllOtherTabs
 	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
 	void updateTabText(int index);
+	[[nodiscard]] QString tabToolTipText(int index) const; // Tab's full path + folder contents stats, composed on hover
 	void openPathInNewTab(const QString& path, bool activate = true); // Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab in the background
 	void tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate); // Opens the item in a new tab if it's a folder (and not "..")
 	void duplicateTab(int index);       // Tab context menu: opens a new tab showing the same path as tab 'index'
