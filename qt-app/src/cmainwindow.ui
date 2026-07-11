@@ -232,7 +232,7 @@
    </widget>
    <widget class="QMenu" name="menuCommands">
     <property name="title">
-     <string>&amp;Tools</string>
+     <string>&amp;Commands</string>
     </property>
     <addaction name="actionOpen_Console_Here"/>
     <addaction name="actionOpen_Admin_console_here"/>
