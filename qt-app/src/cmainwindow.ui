@@ -226,7 +226,7 @@
     <addaction name="separator"/>
     <addaction name="actionFind"/>
     <addaction name="separator"/>
-    <addaction name="actionCopy_current_item_s_path_to_clipboard"/>
+    <addaction name="actionCopy_paths_to_clipboard"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -234,13 +234,16 @@
     <property name="title">
      <string>&amp;Commands</string>
     </property>
+    <addaction name="actionGo_back"/>
+    <addaction name="actionGo_forward"/>
+    <addaction name="actionGo_to_root"/>
+    <addaction name="actionJump_to_first_file"/>
+    <addaction name="separator"/>
     <addaction name="actionOpen_Console_Here"/>
     <addaction name="actionOpen_Admin_console_here"/>
     <addaction name="separator"/>
     <addaction name="actionCalculate_occupied_space"/>
     <addaction name="actionCalculate_each_folder_s_size"/>
-    <addaction name="separator"/>
-    <addaction name="actionJump_to_first_file"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -415,9 +418,9 @@
     <string>Alt+Shift+F2</string>
    </property>
   </action>
-  <action name="actionCopy_current_item_s_path_to_clipboard">
+  <action name="actionCopy_paths_to_clipboard">
    <property name="text">
-    <string>&amp;Copy current item's path to clipboard</string>
+    <string>&amp;Copy path(s) to clipboard</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+X</string>
@@ -445,6 +448,30 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Home</string>
+   </property>
+  </action>
+  <action name="actionGo_back">
+   <property name="text">
+    <string>&amp;Back</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Left</string>
+   </property>
+  </action>
+  <action name="actionGo_forward">
+   <property name="text">
+    <string>&amp;Forward</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Right</string>
+   </property>
+  </action>
+  <action name="actionGo_to_root">
+   <property name="text">
+    <string>Go to &amp;root</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+/</string>
    </property>
   </action>
   <action name="actionNew_Tab">

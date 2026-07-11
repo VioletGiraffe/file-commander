@@ -35,8 +35,8 @@ The API surface a plugin uses to talk back to the app (the plugin never sees `CC
   `currentPanelChanged`.
 - **Queries for plugins:** `currentPanel`/`otherPanel`, `panelState`, `currentFolderPathForPanel`,
   `currentItemPathForPanel`, `currentItemForPanel`, `currentItem`, `currentItemPath`.
-- **Tool menu:** `createToolMenuEntries(MenuTree)` — a `MenuTree` is a recursive `{name, icon, handler,
-  children}`; the UI (`CMainWindow::createToolMenuEntries`) renders it into the real Tools menu. Each plugin
+- **Menu entries:** `createToolMenuEntries(MenuTree)` — a `MenuTree` is a recursive `{name, icon, handler,
+  children}`; the UI (`CMainWindow::createToolMenuEntries`) appends it to the Commands menu. Each plugin
   is expected to call this once.
 - **`execOnUiThread(code)`** — the proxy is constructed with a UI-thread executor (wired to
   `CController::execOnUiThread`) so plugins can marshal work to the UI thread.

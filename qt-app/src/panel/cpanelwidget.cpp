@@ -33,12 +33,14 @@ DISABLE_COMPILER_WARNINGS
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QShortcut>
 #include <QTabBar>
 #include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <assert.h>
 #include <unordered_set>
 
@@ -1184,6 +1186,20 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 			return true;
 		}
 	}
+	else if (object == ui->_list->viewport() && e->type() == QEvent::MouseButtonPress)
+	{
+		const auto* mouseEvent = static_cast<QMouseEvent*>(e);
+		if (mouseEvent->button() == Qt::BackButton)
+		{
+			_controller->navigateBack(_panelPosition);
+			return true;
+		}
+		else if (mouseEvent->button() == Qt::ForwardButton)
+		{
+			_controller->navigateForward(_panelPosition);
+			return true;
+		}
+	}
 	else if (object == ui->_pathNavigator && e->type() == QEvent::KeyPress)
 	{
 		auto* keyEvent = static_cast<QKeyEvent*>(e);
@@ -1266,6 +1282,28 @@ void CPanelWidget::moveCursorToFirstFile()
 	const int row = _sortModel->firstFileRow();
 	if (row >= 0)
 		ui->_list->moveCursorToItem(_sortModel->index(row, 0));
+}
+
+void CPanelWidget::copySelectedItemsPathsToClipboard() const
+{
+	auto selection = _selectionModel->selectedRows();
+	std::sort(selection.begin(), selection.end(), [](const QModelIndex& l, const QModelIndex& r) { return l.row() < r.row(); });
+
+	QString paths;
+	for (const auto& index : selection)
+	{
+		const CFileSystemObject item = _controller->itemByHash(_panelPosition, hashBySortModelIndex(index));
+		if (!item.isCdUp())
+			paths += escapedPath(toNativeSeparators(item.fullAbsolutePath())) + '\n';
+	}
+
+	if (!paths.isEmpty())
+	{
+		paths.chop(1);
+		QApplication::clipboard()->setText(paths);
+	}
+	else // Nothing (or only [..]) selected
+		_controller->copyCurrentItemPathToClipboard();
 }
 
 void CPanelWidget::onSettingsChanged()

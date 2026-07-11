@@ -113,8 +113,8 @@ private:
 private:
 	void initCore();
 
-	void createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries);
-	void addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& entry, QMenu* toolMenu);
+	void createToolMenuEntries(QMenu* menu, const std::vector<CPluginProxy::MenuTree>& menuEntries);
+	void addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& entry, QMenu* parentMenu);
 
 	CPanelDisplayController& currentPanelDisplayController();
 	CPanelDisplayController& otherPanelDisplayController();

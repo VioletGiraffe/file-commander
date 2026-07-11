@@ -206,12 +206,22 @@ void CMainWindow::initActions()
 	connect(ui->actionRefresh, &QAction::triggered, this, &CMainWindow::refresh);
 	connect(ui->actionFind, &QAction::triggered, this, &CMainWindow::findFiles);
 
-	connect(ui->actionCopy_current_item_s_path_to_clipboard, &QAction::triggered, this, [this]() {
-		_controller->copyCurrentItemPathToClipboard();
+	connect(ui->actionCopy_paths_to_clipboard, &QAction::triggered, this, [this]() {
+		if (_currentFileList)
+			_currentFileList->copySelectedItemsPathsToClipboard();
 	});
 
 	ui->actionExit->setShortcut(QKeySequence::Quit);
 	connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::closeAllWindows);
+
+	connect(ui->actionGo_back, &QAction::triggered, this, [this]{ if (_currentFileList) _controller->navigateBack(_currentFileList->panelPosition()); });
+	connect(ui->actionGo_forward, &QAction::triggered, this, [this]{ if (_currentFileList) _controller->navigateForward(_currentFileList->panelPosition()); });
+	connect(ui->actionGo_to_root, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->toRoot(); });
+	ui->actionGo_to_root->setShortcuts({ ui->actionGo_to_root->shortcut(), QKeySequence{ QSL("Ctrl+\\") } });
+
+	// QMenu renders the text after '\t' in the shortcut column instead of the real shortcut - used to also advertise the wheel gesture
+	ui->actionGo_back->setText(ui->actionGo_back->text() + QSL("\tAlt+Left, Shift+Wheel Up"));
+	ui->actionGo_forward->setText(ui->actionGo_forward->text() + QSL("\tAlt+Right, Shift+Wheel Down"));
 
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, [this]() {
 		_controller->openTerminal(_currentFileList->currentDirPathNative());
@@ -888,7 +898,7 @@ void CMainWindow::initCore()
 
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
-	_controller->pluginProxy().setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(menuEntries); });
+	_controller->pluginProxy().setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(ui->menuCommands, menuEntries); });
 	// Need to load the plugins only after the menu creator has been set
 	_controller->loadPlugins();
 
@@ -928,44 +938,18 @@ void CMainWindow::initCore()
 	_uiThreadTimer->start(10);
 }
 
-void CMainWindow::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuEntries)
+void CMainWindow::createToolMenuEntries(QMenu* menu, const std::vector<CPluginProxy::MenuTree>& menuEntries)
 {
-	QMenuBar * menu = menuBar();
-	if (!menu)
-		return;
-
-	static QMenu * toolMenu = nullptr; // Shouldn't have to be static, but 2 subsequent calls to this method result in "Tools" being added twice. QMenuBar needs event loop to update its children?..
-									   // TODO: make it a class member
-
-	for (auto* topLevelMenu : menu->findChildren<QMenu*>())
-	{
-		// TODO: make sure this plays nicely with localization (#145)
-		if (topLevelMenu->title().remove('&') == QL1("Tools"))
-		{
-			toolMenu = topLevelMenu;
-			break;
-		}
-	}
-
-	if (!toolMenu)
-	{
-		// TODO: make sure this plays nicely with localization (#145)
-		toolMenu = new QMenu(QSL("Tools"));
-		menu->addMenu(toolMenu);
-	}
-	else
-		toolMenu->addSeparator();
-
+	assert_r(menu);
+	menu->addSeparator();
 	for (const auto& menuTree : menuEntries)
-		addToolMenuEntriesRecursively(menuTree, toolMenu);
-
-	toolMenu->addSeparator();
+		addToolMenuEntriesRecursively(menuTree, menu);
 }
 
-void CMainWindow::addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& entry, QMenu* toolMenu)
+void CMainWindow::addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& entry, QMenu* parentMenu)
 {
-	assert_r(toolMenu);
-	QAction* action = toolMenu->addAction(entry.name);
+	assert_r(parentMenu);
+	QAction* action = parentMenu->addAction(entry.name);
 
 	if (entry.children.empty())
 	{
@@ -975,7 +959,7 @@ void CMainWindow::addToolMenuEntriesRecursively(const CPluginProxy::MenuTree& en
 	else
 	{
 		for (const auto& childEntry : entry.children)
-			addToolMenuEntriesRecursively(childEntry, toolMenu);
+			addToolMenuEntriesRecursively(childEntry, parentMenu);
 	}
 }
 

@@ -37,7 +37,7 @@ nearly every menu/toolbar/shortcut action is a private method here.
   (Enter in the list with text in the command box runs the command).
 - **Focus management:** `focusChanged`, `tabKeyPressed` (manual Tab between panels), `currentPanelChanged`.
 - **Plugins:** `createToolMenuEntries` / `addToolMenuEntriesRecursively` materialize a plugin's
-  `CPluginProxy::MenuTree` into the real Tools menu.
+  `CPluginProxy::MenuTree` into the Commands menu.
 - **Window title (#143):** `updateWindowTitleWithCurrentFolderNames`.
 - **Background file-op dialogs:** registered in `_activeFileOperationDialogs`; `nextBackgroundDialogPosition`
   cascades them; `onFileDialogFinished` cleans up.

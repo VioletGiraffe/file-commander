@@ -72,6 +72,8 @@ public:
 	[[nodiscard]] qulonglong currentItemHash() const;
 	void invertSelection();
 	void moveCursorToFirstFile(); // Scrolls past the folders (they always sort on top) and puts the cursor on the first file
+	void toRoot();
+	void copySelectedItemsPathsToClipboard() const; // Paths of all the selected items, or of the item under cursor if there's no selection
 
 	void onSettingsChanged();
 
@@ -94,7 +96,6 @@ private slots:
 	void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 	void currentItemChanged(const QModelIndex& current, const QModelIndex& previous);
 	void renameItem(qulonglong hash, QString newName);
-	void toRoot();
 	void showFavoriteLocationsMenu(QPoint pos);
 	void showFavoriteLocationsEditor();
 	void fileListViewKeyPressed(const QString& keyText, int key, Qt::KeyboardModifiers modifiers);
