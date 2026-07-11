@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783809829271,
+  "lastUpdate": 1783810017400,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -920,6 +920,75 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/f9cdbd87fc704a60a5b7b555c1f3538a071481fa"
         },
         "date": 1783809826560,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14183,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8073,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1200,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 612.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 365.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "93c1a5b0b26682db816a42a68d6f72feb92128c6",
+          "message": "MMB/Ctrl+Up also works on the [..] item",
+          "timestamp": "2026-07-12T01:42:38+03:00",
+          "tree_id": "780dfb9bcdab2fc5b033ae2f537b5139205141af",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/93c1a5b0b26682db816a42a68d6f72feb92128c6"
+        },
+        "date": 1783810015016,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
