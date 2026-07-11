@@ -33,7 +33,7 @@ public:
 		{
 		case columns::Name: [[fallthrough]];
 		case columns::Folder:
-			return CNaturalSorterQCollator{}.lessThan(text(col), other.text(col));
+			return NaturalSort::lessThan(text(col), other.text(col));
 		case columns::Size: [[fallthrough]];
 		case columns::ModDate:
 			return data(col, Qt::UserRole).toULongLong() < other.data(col, Qt::UserRole).toULongLong();

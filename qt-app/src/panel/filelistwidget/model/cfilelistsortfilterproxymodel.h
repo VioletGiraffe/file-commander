@@ -1,7 +1,6 @@
 #pragma once
 
 #include "cpanel.h"
-#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QSortFilterProxyModel>
@@ -31,7 +30,6 @@ protected:
 
 private:
 	CController   & _controller;
-	CNaturalSorterQCollator _sorter;
 	Panel           _panel = Panel::UnknownPanel;
 };
 

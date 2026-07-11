@@ -3,6 +3,8 @@
 #include "ccontroller.h"
 #include "../../columns.h"
 
+#include "utils/naturalsorting/cnaturalsorterqcollator.h"
+
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
@@ -73,12 +75,12 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 	switch (sortColumn)
 	{
 	case NameColumn:
-		return _sorter.lessThan(leftItem.name(), rightItem.name());
+		return NaturalSort::lessThan(leftItem.name(), rightItem.name());
 	case ExtColumn:
 		if (!isFileOrBundle(leftItem) && !isFileOrBundle(rightItem)) // Sorting directories by name, files - by extension
-			return _sorter.lessThan(leftItem.name(), rightItem.name());
+			return NaturalSort::lessThan(leftItem.name(), rightItem.name());
 		else if (isFileOrBundle(leftItem) && isFileOrBundle(rightItem) && leftItem.extension().isEmpty() && rightItem.extension().isEmpty())
-			return _sorter.lessThan(leftItem.name(), rightItem.name());
+			return NaturalSort::lessThan(leftItem.name(), rightItem.name());
 		else
 		{
 			QString leftExt = leftItem.extension(), rightExt = rightItem.extension();
@@ -98,12 +100,12 @@ bool CFileListSortFilterProxyModel::lessThan(const QModelIndex &left, const QMod
 				leftExt.clear();
 			}
 
-			if (_sorter.lessThan(leftExt, rightExt))
+			if (NaturalSort::lessThan(leftExt, rightExt))
 				return true;
-			else if (_sorter.lessThan(rightExt, leftExt)) // check if extensions are the same
+			else if (NaturalSort::lessThan(rightExt, leftExt)) // check if extensions are the same
 				return false;
 			else // if they are - compare by names
-				return _sorter.lessThan(leftName, rightName);
+				return NaturalSort::lessThan(leftName, rightName);
 		}
 	case SizeColumn:
 		return leftItem.size() < rightItem.size();
