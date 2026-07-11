@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783804499808,
+  "lastUpdate": 1783807493693,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -679,6 +679,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 35,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "982e96a4af7a8880342ec91e5d4f9a700d8a2c94",
+          "message": "Ctrl+Shift+X turned into \"Copy selected paths\"; more actions added to the Commands menu; plugins now add their items to Commands instead of Tools",
+          "timestamp": "2026-07-12T00:59:47+03:00",
+          "tree_id": "96374b5ae90be6614f99c117f7c2b6ce8edc4c04",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/982e96a4af7a8880342ec91e5d4f9a700d8a2c94"
+        },
+        "date": 1783807491651,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14107,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8073,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1195,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 608.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 364.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
             "unit": "KB"
           },
           {
