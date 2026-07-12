@@ -1,5 +1,7 @@
 #include "cfilesystemobject.h"
 
+#include <QTemporaryDir>
+
 #define CATCH_CONFIG_MAIN
 #include "3rdparty/catch2/catch.hpp"
 
@@ -47,5 +49,24 @@ TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 		CHECK(hierarchy == reference);
 	}
 #endif
+}
+
+TEST_CASE("isMovableTo for a non-existent destination path", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+
+	const CFileSystemObject existingDir{ tempDir.path() };
+	REQUIRE(existingDir.exists());
+
+	// A destination that doesn't exist yet, nested inside the existing temp dir (e.g. a move target folder still to be created)
+	const CFileSystemObject nonExistentChild{ tempDir.path() + "/does_not_exist/child.txt" };
+	REQUIRE(!nonExistentChild.exists());
+
+	// Regression: rootFileSystemId() used to read uninitialized memory for a non-existent path and return a garbage device ID.
+	// It must resolve to the device of the nearest existing ancestor, so moving into a not-yet-created subfolder of the same
+	// volume is recognized as a same-drive move rather than a cross-device copy.
+	CHECK(existingDir.rootFileSystemId() == nonExistentChild.rootFileSystemId());
+	CHECK(existingDir.isMovableTo(nonExistentChild));
 }
 

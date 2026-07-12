@@ -551,8 +551,7 @@ TEST_CASE((std::string("Move overwrite conflict test #") + std::to_string(rand()
 }
 
 // Regression test for a same-drive move to a non-existent destination folder: the folder must be created and the items placed
-// INSIDE it, not dumped into its parent. On Windows this deterministically exercises moveWithinSameDrive(); on POSIX the move may
-// route through the copy path instead (isMovableTo() to a non-existent path is unreliable there), but the result must be identical.
+// INSIDE it, not dumped into its parent. Source and target are on the same drive, so this exercises the moveWithinSameDrive() path.
 TEST_CASE((std::string("Move to non-existent folder test #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");

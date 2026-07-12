@@ -351,14 +351,32 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 		if (driveNumber != -1)
 			_rootFileSystemId = static_cast<uint64_t>(driveNumber);
 #else
+		// stat() only succeeds on an existing path. If this path doesn't exist yet (e.g. a copy/move destination that will be
+		// created), walk up to the nearest existing ancestor: the path will be created on that same device / filesystem.
+		QByteArray path = _properties.fullPath.toUtf8();
 		struct stat info;
-		const int ret = stat(_properties.fullPath.toUtf8().constData(), &info);
-		if (ret == 0 || errno == ENOENT)
-			_rootFileSystemId = (uint64_t)info.st_dev;
-		else
+		while (!path.isEmpty())
 		{
-			qInfo() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath;
-			qInfo() << strerror(errno);
+			if (stat(path.constData(), &info) == 0)
+			{
+				_rootFileSystemId = static_cast<uint64_t>(info.st_dev);
+				break;
+			}
+
+			if (errno != ENOENT)
+			{
+				qInfo() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath << strerror(errno);
+				break;
+			}
+
+			if (path == "/")
+				break; // Reached the filesystem root and even it doesn't stat - give up
+
+			const auto lastSlash = path.lastIndexOf('/');
+			if (lastSlash < 0)
+				break; // No parent component left (shouldn't happen for an absolute path)
+
+			path.truncate(lastSlash == 0 ? 1 : lastSlash); // Keep the leading '/' when the parent is the root itself
 		}
 #endif
 	}
