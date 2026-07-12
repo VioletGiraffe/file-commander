@@ -189,7 +189,7 @@ void COperationPerformer::copyFiles()
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
 
-	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
+	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; )
 	{
 		if (sourceIterator->object.isCdUp())
 		{
@@ -215,6 +215,8 @@ void COperationPerformer::copyFiles()
 			}
 			else if (response == urAbort)
 				return;
+			else if (response == urRetry)
+				continue;
 			else
 				assert_unconditional_r("Unknown response");
 		}
@@ -348,7 +350,7 @@ void COperationPerformer::deleteFiles()
 	std::vector<CFileSystemObject> fileSystemObjectsList;
 	fileSystemObjectsList.reserve(500);
 
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it, _userResponse = urNone /* needed for normal condition variable operation */)
+	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it)
 	{
 		if (!it->object.isCdUp())
 		{
@@ -362,7 +364,7 @@ void COperationPerformer::deleteFiles()
 
 	const size_t totalNumberOfObjects = fileSystemObjectsList.size();
 	size_t currentItemIndex = 0;
-	for (auto it = fileSystemObjectsList.begin(); it != fileSystemObjectsList.end() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
+	for (auto it = fileSystemObjectsList.begin(); it != fileSystemObjectsList.end() && !_cancelRequested; )
 	{
 		handlePause();
 
@@ -423,7 +425,7 @@ void COperationPerformer::deleteFiles()
 
 	// TODO: eliminate code duplication
 	// We know that files and directories are being enumerated depth-first, so we need to delete them in reverse order to avoid trying to delete non-empty directories
-	for (auto it = fileSystemObjectsList.rbegin(); it != fileSystemObjectsList.rend() && !_cancelRequested; _userResponse = urNone /* needed for normal condition variable operation */)
+	for (auto it = fileSystemObjectsList.rbegin(); it != fileSystemObjectsList.rend() && !_cancelRequested; )
 	{
 		handlePause();
 
@@ -488,7 +490,7 @@ void COperationPerformer::moveWithinSameDrive()
 	size_t currentItemIndex = 0;
 
 	// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
-	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; _userResponse = urNone /* needed for normal operation of condition variable */)
+	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; )
 	{
 		if (sourceIterator->object.isCdUp())
 		{
@@ -551,6 +553,7 @@ void COperationPerformer::moveWithinSameDrive()
 
 void COperationPerformer::finalize()
 {
+	_inProgress = false;
 	_done = true;
 	_paused   = false;
 	if (_observer) _observer->onProcessFinishedCallback();
