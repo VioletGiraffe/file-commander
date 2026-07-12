@@ -177,17 +177,15 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 			return FileOperationResultCode::Fail;
 		}
 
-		//if (!_destFile->truncate(_srcObject.size()))
-		//{
-		//	_lastErrorMessage = getLastFileError();
-		//	assert_r(_destFile->close());
-		//	assert_r(QFile::remove(_destinationFilePath));
-
-		//	_thisFile.reset();
-		//	_destFile.reset();
-
-		//	return FileOperationResultCode::NotEnoughSpaceAvailable;
-		//}
+		// Reserve the destination space up front: fail before copying if the disk is full, and reduce fragmentation
+		if (!_destFile.truncate(static_cast<uint64_t>(_srcObject.size()))) [[unlikely]]
+		{
+			_lastErrorMessage = getLastFileError();
+			assert_r(_destFile.close());
+			_thisFile.close();
+			thin_io::file::delete_file(_destinationFilePath.toUtf8().constData());
+			return FileOperationResultCode::NotEnoughSpaceAvailable;
+		}
 	}
 
 	assert_debug_only(_destFile.is_open() == _thisFile.isOpen());
