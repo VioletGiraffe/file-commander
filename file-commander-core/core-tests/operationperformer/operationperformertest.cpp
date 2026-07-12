@@ -550,6 +550,79 @@ TEST_CASE((std::string("Move overwrite conflict test #") + std::to_string(rand()
 	REQUIRE(!QFileInfo::exists(sourceDirectory.path() % "/file3.bin"));
 }
 
+// Regression test for a same-drive move to a non-existent destination folder: the folder must be created and the items placed
+// INSIDE it, not dumped into its parent. On Windows this deterministically exercises moveWithinSameDrive(); on POSIX the move may
+// route through the copy path instead (isMovableTo() to a non-existent path is unreliable there), but the result must be identical.
+TEST_CASE((std::string("Move to non-existent folder test #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+	TRACE_LOG << "Target: " << targetDirectory.path();
+
+	const QByteArray contents1(3000, 'A');
+	const QByteArray contents2(4000, 'B');
+	writeTestFile(sourceDirectory.path() % "/file1.bin", contents1);
+	writeTestFile(sourceDirectory.path() % "/file2.bin", contents2);
+
+	// A subfolder of the target that does not exist yet
+	const QString destFolder = targetDirectory.path() % "/new_subfolder";
+
+	std::vector<CFileSystemObject> source;
+	source.emplace_back(sourceDirectory.path() % "/file1.bin");
+	source.emplace_back(sourceDirectory.path() % "/file2.bin");
+
+	auto p = std::make_unique<COperationPerformer>(operationMove, std::move(source), destFolder);
+	auto observer = std::make_unique<ProgressObserver>(); // No prompts are expected - ProgressObserver fails the test on any halt
+	p->setObserver(observer.get());
+	p->start();
+	pumpOperationToCompletion(p, observer);
+
+	// The destination folder was created and both files landed inside it
+	REQUIRE(QFileInfo(destFolder).isDir());
+	REQUIRE(readFileContents(destFolder % "/file1.bin") == contents1);
+	REQUIRE(readFileContents(destFolder % "/file2.bin") == contents2);
+	// The sources are gone
+	REQUIRE(!QFileInfo::exists(sourceDirectory.path() % "/file1.bin"));
+	REQUIRE(!QFileInfo::exists(sourceDirectory.path() % "/file2.bin"));
+	// Regression guard: the old code dumped the files into the parent instead of creating the subfolder
+	REQUIRE(!QFileInfo::exists(targetDirectory.path() % "/file1.bin"));
+	REQUIRE(!QFileInfo::exists(targetDirectory.path() % "/file2.bin"));
+}
+
+// Regression test for a same-drive move-and-rename of a single file into a non-existent folder: the folder is created and the file renamed into it
+TEST_CASE((std::string("Move-rename into non-existent folder test #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+	TRACE_LOG << "Target: " << targetDirectory.path();
+
+	const QByteArray contents(3000, 'A');
+	writeTestFile(sourceDirectory.path() % "/original.bin", contents);
+
+	// A single file moved onto a full path whose folder does not exist yet
+	const QString destFolder = targetDirectory.path() % "/new_subfolder";
+	const QString destFilePath = destFolder % "/renamed.bin";
+
+	auto p = std::make_unique<COperationPerformer>(operationMove, CFileSystemObject(sourceDirectory.path() % "/original.bin"), destFilePath);
+	auto observer = std::make_unique<ProgressObserver>();
+	p->setObserver(observer.get());
+	p->start();
+	pumpOperationToCompletion(p, observer);
+
+	// The folder was created and the file was renamed into it
+	REQUIRE(QFileInfo(destFolder).isDir());
+	REQUIRE(readFileContents(destFilePath) == contents);
+	REQUIRE(!QFileInfo::exists(sourceDirectory.path() % "/original.bin"));
+}
+
 TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[operationperformer-delete]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
