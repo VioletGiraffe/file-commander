@@ -589,6 +589,9 @@ std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &tot
 	const bool destIsFileName = _source.size() == 1 && !_destFileSystemObject.isDir();
 	for (auto& o: _source)
 	{
+		if (o.object.isCdUp()) // Never traverse into the parent directory; matches the checks in deleteFiles() and moveWithinSameDrive()
+			continue;
+
 		if (o.object.isFile())
 		{
 			totalSize += o.object.size();
