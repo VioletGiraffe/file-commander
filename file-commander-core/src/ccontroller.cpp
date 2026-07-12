@@ -613,7 +613,7 @@ void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 void CController::setCursorPositionForCurrentFolder(Panel p, qulonglong newCurrentItemHash, const bool notifyUi)
 {
 	panel(p).setCurrentItemForFolder(panel(p).currentDirPathPosix(), newCurrentItemHash, notifyUi);
-	CPluginEngine::get().currentItemChanged(activePanelPosition(), newCurrentItemHash);
+	CPluginEngine::get().currentItemChanged(p, newCurrentItemHash);
 }
 
 void CController::copyCurrentItemPathToClipboard()
