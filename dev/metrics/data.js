@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783872290157,
+  "lastUpdate": 1783874909516,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -1354,6 +1354,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 613,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 365.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "82d4a0bd380ea15eff4314d4d0c7795975102222",
+          "message": "Fixed: \"proceed\" did nothing on same-drive move (COperationPerformer)",
+          "timestamp": "2026-07-12T19:43:19+03:00",
+          "tree_id": "7808a430275f4de0702bcc287b953c4cc47f6c0e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/82d4a0bd380ea15eff4314d4d0c7795975102222"
+        },
+        "date": 1783874906122,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14387,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8253,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1201.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 614,
             "unit": "KB"
           },
           {
