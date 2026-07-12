@@ -211,6 +211,11 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 			_lastErrorMessage = getLastFileError();
 			return FileOperationResultCode::Fail;
 		}
+		else if (*written == 0) [[unlikely]] // A zero-byte write for a non-empty chunk would stall the caller's copy loop forever
+		{
+			_lastErrorMessage = QStringLiteral("Failed to write to the destination file (zero bytes written).");
+			return FileOperationResultCode::Fail;
+		}
 
 		bytesWritten = *written;
 		_pos += bytesWritten;
