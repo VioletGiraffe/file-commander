@@ -263,7 +263,7 @@ static void pumpUntil(std::unique_ptr<COperationPerformer>& p, std::unique_ptr<O
 	while (!condition())
 	{
 		observer->processEvents();
-		if (timer.elapsed<std::chrono::seconds>() > 60)
+		if (timer.elapsed<std::chrono::seconds>() > 30)
 		{
 			(void)p.release();
 			(void)observer.release();

@@ -103,7 +103,12 @@ void COperationPerformer::start()
 
 void COperationPerformer::cancel()
 {
-	_cancelRequested = true;
+	{
+		// The lock prevents a lost wakeup: waitForResponse() must not check the predicate and then start waiting in between the store and the notify
+		std::lock_guard<std::mutex> lock(_waitForResponseMutex);
+		_cancelRequested = true;
+	}
+	_waitForResponseCondition.notify_one();
 }
 
 void COperationPerformer::thread()
@@ -134,10 +139,11 @@ UserResponse COperationPerformer::waitForResponse()
 {
 	std::unique_lock<std::mutex> lock(_waitForResponseMutex);
 	_totalTimeElapsed.pause();
-	while (_userResponse == urNone)
+	while (_userResponse == urNone && !_cancelRequested)
 		_waitForResponseCondition.wait(lock);
 
-	const UserResponse response = _userResponse;
+	// Cancellation overrides any user response and aborts the operation
+	const UserResponse response = !_cancelRequested ? _userResponse : urAbort;
 	_userResponse = urNone;
 
 	_totalTimeElapsed.resume();
@@ -348,7 +354,7 @@ void COperationPerformer::deleteFiles()
 		{
 			scanDirectory(it->object, [&fileSystemObjectsList](const CFileSystemObject& item) {
 				fileSystemObjectsList.emplace_back(item);
-			});
+			}, _cancelRequested);
 		}
 	}
 
@@ -599,7 +605,7 @@ std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &tot
 					totalSize += item.size();
 
 				newSourceVector.emplace_back(std::move(item));
-			});
+			}, _cancelRequested);
 		}
 	}
 
@@ -830,7 +836,7 @@ void COperationPerformer::handlePause()
 	if (_paused) // This code is not strictly thread-safe (the value of _paused may change between 'if' and 'while'), but in this context I'm OK with that
 	{
 		_totalTimeElapsed.pause();
-		while (_paused)
+		while (_paused && !_cancelRequested)
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 		_totalTimeElapsed.resume();
