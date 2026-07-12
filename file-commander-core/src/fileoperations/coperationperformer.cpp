@@ -169,8 +169,8 @@ void COperationPerformer::copyFiles()
 	if (_source.size() == 1 && _source.front().object.isFile() && !_destFileSystemObject.isDir())
 		_newName = _destFileSystemObject.fullName();
 
-	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster.
-	// Moving means renaming the root source folder / file, which is fast and simple. Just make sure the destination folder exists.
+	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster:
+	// moving means renaming the root source folder / file rather than copying. moveWithinSameDrive() creates the destination folder as needed.
 	if (_op == operationMove && !_forceMoveByCopy && _source.front().object.isMovableTo(_destFileSystemObject))
 	{
 		moveWithinSameDrive();
@@ -489,6 +489,20 @@ void COperationPerformer::moveWithinSameDrive()
 
 	size_t currentItemIndex = 0;
 
+	// Resolve the destination folder the same way the copy path does (see enumerateSourcesAndCalcDest): a single file moved onto a
+	// non-existent name is a rename into that name's parent folder; in every other case the destination itself is the target folder.
+	const bool destIsFileName = _source.size() == 1 && _source.front().object.isFile() && !_destFileSystemObject.isDir();
+	const QString destFolderPath = destIsFileName ? _destFileSystemObject.parentDirPath() : _destFileSystemObject.fullAbsolutePath();
+
+	// A rename can't create intermediate folders the way copyItem() does, so ensure the destination folder exists up front
+	if (const QDir destFolder(destFolderPath); !destFolder.exists())
+	{
+		NextAction nextAction;
+		while ((nextAction = mkPath(destFolder)) == naRetryOperation);
+		if (nextAction != naProceed)
+			return; // Nothing can be moved without the destination folder
+	}
+
 	// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
 	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; )
 	{
@@ -513,11 +527,10 @@ void COperationPerformer::moveWithinSameDrive()
 		const QString newFileName = !_newName.isEmpty() ? _newName : sourceIterator->object.fullName();
 		_newName.clear();
 		CFileManipulator itemManipulator(sourceIterator->object);
-		const QString destFolderPath = _destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath();
 		const auto result = itemManipulator.moveAtomically(destFolderPath, newFileName);
 		if (result != FileOperationResultCode::Ok)
 		{
-			const CFileSystemObject destObject{ _destFileSystemObject.fullAbsolutePath() % '/' % newFileName };
+			const CFileSystemObject destObject{ destFolderPath % '/' % newFileName };
 			const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, sourceIterator->object, destObject, itemManipulator.lastErrorMessage());
 			if (response == urSkipThis || response == urSkipAll)
 			{
