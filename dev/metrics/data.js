@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783871059521,
+  "lastUpdate": 1783871368525,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -1201,6 +1201,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (app)",
             "value": 14261,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8253,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1200.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 613,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 365.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "33454214eecb25a37f80a81c0df766adf42ce983",
+          "message": "File operations: multiple bugs fixed that could arise when something failed and needed a resolution (stemming from re-entrancy in CFileOperationObserver::processEvents())",
+          "timestamp": "2026-07-12T18:43:53+03:00",
+          "tree_id": "0a85a585e5f8b8e9ea983f58d5a4f5ebb9318c3e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/33454214eecb25a37f80a81c0df766adf42ce983"
+        },
+        "date": 1783871365891,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14264,
             "unit": "LOC"
           },
           {
