@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783889306815,
+  "lastUpdate": 1783891217133,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -1768,6 +1768,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 614,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 366,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "faf49e792c09fb5b7338fa57fba9e7b1400c46e0",
+          "message": "Bugfix: renaming to the same drive with non-existent target folder is now handled properly",
+          "timestamp": "2026-07-13T00:14:29+03:00",
+          "tree_id": "51c599fc31dd98eb4ef2dce6cb5e2061700ed347",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/faf49e792c09fb5b7338fa57fba9e7b1400c46e0"
+        },
+        "date": 1783891214937,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14448,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8280,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1202.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 614.5,
             "unit": "KB"
           },
           {
