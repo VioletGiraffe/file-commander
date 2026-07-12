@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783810017400,
+  "lastUpdate": 1783865801953,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -1009,6 +1009,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 612.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 365.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "d68dfc8a957d924dad85eee4d08621fef9a84fec",
+          "message": "Fixed incorrect reporting of cursor position to plugins (no more \"Nothing happens when I press F3\"!)",
+          "timestamp": "2026-07-12T17:11:12+03:00",
+          "tree_id": "a4dd8c9b9f1d2d10159d069ece2d38d7adbdd9db",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/d68dfc8a957d924dad85eee4d08621fef9a84fec"
+        },
+        "date": 1783865798576,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14183,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8073,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1199.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 612,
             "unit": "KB"
           },
           {
