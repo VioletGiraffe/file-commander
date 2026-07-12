@@ -14,6 +14,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <Windows.h>
 #else
+#include <stdio.h> // ::rename
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
@@ -82,27 +83,19 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 			_lastErrorMessage = QStringLiteral("Replacing an existing item with a folder is not supported.");
 			return FileOperationResultCode::TargetAlreadyExists;
 		}
-		else if (overwriteExistingFile == true && _srcObject.isFile() && destInfo.isFile())
-		{
-			// Special case: it may be allowed to replace the existing file (https://github.com/VioletGiraffe/file-commander/issues/123)
-			CFileManipulator destManipulator(destInfo);
-			if (destManipulator.remove() != FileOperationResultCode::Ok)
-			{
-				_lastErrorMessage = destManipulator.lastErrorMessage();
-				return FileOperationResultCode::TargetAlreadyExists;
-			}
 
-			// File removed - update the info
-			destInfo = CFileSystemObject{ fullNewName };
-		}
-		else if (destInfo.isFile())
+		// Replacing an existing file is only allowed when explicitly requested (https://github.com/VioletGiraffe/file-commander/issues/123),
+		// and is performed atomically by the rename below
+		if (destInfo.isFile() && !(overwriteExistingFile == true && _srcObject.isFile()))
 			return FileOperationResultCode::TargetAlreadyExists;
 	}
 
 	// Windows: QFile::rename and QDir::rename fail to handle names that only differ by letter case (https://bugreports.qt.io/browse/QTBUG-3570)
 	// Also, QFile::rename will attempt to painfully copy the file if it's locked.
 #ifdef _WIN32
-	if (MoveFileW(reinterpret_cast<const WCHAR*>(_srcObject.fullAbsolutePath().utf16()), reinterpret_cast<const WCHAR*>(destInfo.fullAbsolutePath().utf16())) != 0)
+	// MOVEFILE_REPLACE_EXISTING is only valid for files, not directories
+	const DWORD moveFlags = (overwriteExistingFile == true && _srcObject.isFile()) ? MOVEFILE_REPLACE_EXISTING : 0;
+	if (MoveFileExW(reinterpret_cast<const WCHAR*>(_srcObject.fullAbsolutePath().utf16()), reinterpret_cast<const WCHAR*>(destInfo.fullAbsolutePath().utf16()), moveFlags) != 0)
 		return FileOperationResultCode::Ok;
 
 	_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
@@ -110,6 +103,16 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 #else
 	if (_srcObject.isFile())
 	{
+		if (overwriteExistingFile == true)
+		{
+			// QFile::rename refuses to replace an existing file; ::rename() does, atomically
+			if (::rename(QFile::encodeName(_srcObject.fullAbsolutePath()).constData(), QFile::encodeName(fullNewName).constData()) == 0)
+				return FileOperationResultCode::Ok;
+
+			_lastErrorMessage = strerror(errno);
+			return FileOperationResultCode::Fail;
+		}
+
 		QFile file(_srcObject.fullAbsolutePath());
 		if (!file.rename(fullNewName))
 		{
