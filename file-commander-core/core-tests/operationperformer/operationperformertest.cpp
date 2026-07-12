@@ -20,6 +20,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <iostream>
+#include <memory>
 #include <random>
 #include <string>
 
@@ -252,19 +253,29 @@ static QByteArray readFileContents(const QString& path)
 	return file.readAll();
 }
 
-// For operations that complete on their own (possibly after scripted prompt responses), without external cancellation
-static void pumpOperationToCompletion(COperationPerformer& p, CFileOperationObserver& observer)
+// Pumps the observer's event queue until the condition becomes true.
+// On timeout, deliberately leaks the performer and the observer - the worker thread is likely stuck, and ~COperationPerformer
+// would hang forever trying to join it - and fails the test, so that a hang is flagged red in-process.
+template <typename ObserverT, typename ConditionT>
+static void pumpUntil(std::unique_ptr<COperationPerformer>& p, std::unique_ptr<ObserverT>& observer, ConditionT&& condition)
 {
 	CTimeElapsed timer(true);
-	while (!p.done())
+	while (!condition())
 	{
-		observer.processEvents();
+		observer->processEvents();
 		if (timer.elapsed<std::chrono::seconds>() > 60)
 		{
-			FAIL("File operation timeout reached.");
-			return;
+			(void)p.release();
+			(void)observer.release();
+			FAIL("File operation timeout reached - the worker thread is likely stuck.");
 		}
 	}
+}
+
+template <typename ObserverT>
+static void pumpOperationToCompletion(std::unique_ptr<COperationPerformer>& p, std::unique_ptr<ObserverT>& observer)
+{
+	pumpUntil(p, observer, [&p] { return p->done(); });
 }
 
 struct CancellationTestObserver final : public ProgressObserver {
@@ -299,42 +310,25 @@ static void cancellationTest(const Operation op)
 	const QString sourceFilePath = sourceDirectory.path() % '/' % fileName;
 	writeTestFile(sourceFilePath, fileContents);
 
-	COperationPerformer p(op, CFileSystemObject(sourceFilePath), targetDirectory.path());
+	auto p = std::make_unique<COperationPerformer>(op, CFileSystemObject(sourceFilePath), targetDirectory.path());
 	// Source and target are on the same drive; force the chunked copy+delete path for move - it's the one that can be canceled mid-file
-	COperationPerformerTestSeam::setForceMoveByCopy(p, true);
+	COperationPerformerTestSeam::setForceMoveByCopy(*p, true);
 
-	CancellationTestObserver observer;
-	p.setObserver(&observer);
+	auto observer = std::make_unique<CancellationTestObserver>();
+	p->setObserver(observer.get());
 
 	// Pause before starting: handlePause() precedes the first chunk copy, so the worker parks before copying anything
-	REQUIRE(p.togglePause());
-	p.start();
+	REQUIRE(p->togglePause());
+	p->start();
 
-	CTimeElapsed timer(true);
-	bool cancelIssued = false;
-	while (!p.done())
-	{
-		observer.processEvents();
+	pumpUntil(p, observer, [&observer] { return observer->fileProcessingStarted; });
 
-		if (!cancelIssued && observer.fileProcessingStarted)
-		{
-			// The worker is committed to processing the file (past the loop's cancel check) but hasn't copied a single chunk yet.
-			// Request cancellation, then let it run: it will copy exactly one chunk and then detect the cancellation - mid-file, deterministically.
-			p.cancel();
-			REQUIRE(!p.togglePause());
-			cancelIssued = true;
-		}
+	// The worker is committed to processing the file (past the loop's cancel check) but hasn't copied a single chunk yet.
+	// Request cancellation, then let it run: it will copy exactly one chunk and then detect the cancellation - mid-file, deterministically.
+	p->cancel();
+	REQUIRE(!p->togglePause());
 
-		// Unlike the other tests, the timeout also applies to debug builds: a canceled operation that never finishes
-		// is one of the failure modes this test guards against
-		if (timer.elapsed<std::chrono::seconds>() > 60)
-		{
-			FAIL("The operation did not finish after being canceled.");
-			return;
-		}
-	}
-
-	REQUIRE(cancelIssued);
+	pumpOperationToCompletion(p, observer);
 
 	QFile sourceFile(sourceFilePath);
 	QFile destFile(targetDirectory.path() % '/' % fileName);
@@ -392,6 +386,50 @@ TEST_CASE((std::string("Copy cancellation test #") + std::to_string(rand())).c_s
 	cancellationTest(operationCopy);
 }
 
+// Receives conflict prompts and deliberately leaves them unanswered, blocking the worker thread in waitForResponse()
+struct UnansweredPromptObserver final : public ProgressObserver {
+	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
+		CHECK(reason == hrFileExists);
+		++promptCount;
+	}
+
+	int promptCount = 0;
+};
+
+// Verifies that cancel() aborts the operation even while the worker thread is blocked waiting for a prompt response
+TEST_CASE((std::string("Cancel during prompt test #") + std::to_string(rand())).c_str(), "[operationperformer-cancel]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+	TRACE_LOG << "Target: " << targetDirectory.path();
+
+	const QByteArray sourceContents(3000, 'A');
+	const QByteArray destContents(4000, 'B');
+	writeTestFile(sourceDirectory.path() % "/conflict.bin", sourceContents);
+	writeTestFile(targetDirectory.path() % "/conflict.bin", destContents);
+
+	auto p = std::make_unique<COperationPerformer>(operationCopy, CFileSystemObject(sourceDirectory.path() % "/conflict.bin"), targetDirectory.path());
+	auto observer = std::make_unique<UnansweredPromptObserver>();
+	p->setObserver(observer.get());
+	p->start();
+
+	// Wait for the conflict prompt and leave it unanswered - the worker blocks in waitForResponse()
+	pumpUntil(p, observer, [&observer] { return observer->promptCount > 0; });
+
+	// cancel() must wake the blocked worker, and the operation must end as aborted
+	p->cancel();
+	pumpOperationToCompletion(p, observer);
+
+	CHECK(observer->promptCount == 1);
+	// The aborted operation must not have copied or overwritten anything
+	REQUIRE(readFileContents(targetDirectory.path() % "/conflict.bin") == destContents);
+	REQUIRE(readFileContents(sourceDirectory.path() % "/conflict.bin") == sourceContents);
+}
+
 // Answers hrFileExists prompts with a pre-defined sequence of responses, the way the real prompt dialog would
 struct ScriptedResponsesObserver final : public ProgressObserver {
 	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
@@ -438,17 +476,17 @@ TEST_CASE((std::string("Copy rename conflict test #") + std::to_string(rand())).
 	source.emplace_back(sourceDirectory.path() % "/a_conflict.bin");
 	source.emplace_back(sourceDirectory.path() % "/b_normal.bin");
 
-	COperationPerformer p(operationCopy, std::move(source), targetDirectory.path());
+	auto p = std::make_unique<COperationPerformer>(operationCopy, std::move(source), targetDirectory.path());
 
-	ScriptedResponsesObserver observer;
-	observer.performer = &p;
-	observer.scriptedResponses = { {urRename, QStringLiteral("taken.bin")}, {urRename, QStringLiteral("renamed.bin")} };
-	p.setObserver(&observer);
+	auto observer = std::make_unique<ScriptedResponsesObserver>();
+	observer->performer = p.get();
+	observer->scriptedResponses = { {urRename, QStringLiteral("taken.bin")}, {urRename, QStringLiteral("renamed.bin")} };
+	p->setObserver(observer.get());
 
-	p.start();
+	p->start();
 	pumpOperationToCompletion(p, observer);
 
-	REQUIRE(observer.scriptedResponses.empty()); // Both prompts must have occurred
+	REQUIRE(observer->scriptedResponses.empty()); // Both prompts must have occurred
 
 	// The first file ended up under the second new name, and the conflicting files are untouched
 	REQUIRE(readFileContents(targetDirectory.path() % "/renamed.bin") == contentsA);
@@ -490,18 +528,18 @@ TEST_CASE((std::string("Move overwrite conflict test #") + std::to_string(rand()
 	source.emplace_back(sourceDirectory.path() % "/file3.bin");
 
 	// Source and target are on the same drive - this exercises the moveWithinSameDrive() path
-	COperationPerformer p(operationMove, std::move(source), targetDirectory.path());
+	auto p = std::make_unique<COperationPerformer>(operationMove, std::move(source), targetDirectory.path());
 
-	ScriptedResponsesObserver observer;
-	observer.performer = &p;
+	auto observer = std::make_unique<ScriptedResponsesObserver>();
+	observer->performer = p.get();
 	// The third conflict must be resolved by the remembered "proceed with all" without a prompt
-	observer.scriptedResponses = { {urProceedWithThis, {}}, {urProceedWithAll, {}} };
-	p.setObserver(&observer);
+	observer->scriptedResponses = { {urProceedWithThis, {}}, {urProceedWithAll, {}} };
+	p->setObserver(observer.get());
 
-	p.start();
+	p->start();
 	pumpOperationToCompletion(p, observer);
 
-	REQUIRE(observer.scriptedResponses.empty());
+	REQUIRE(observer->scriptedResponses.empty());
 
 	// The files were moved: the conflicting destination files are replaced, the sources are gone
 	REQUIRE(readFileContents(targetDirectory.path() % "/file1.bin") == contents1);
