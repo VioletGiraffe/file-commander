@@ -238,6 +238,20 @@ static void moveTest(const size_t maxFileSize)
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
 
+static void writeTestFile(const QString& path, const QByteArray& contents)
+{
+	QFile file(path);
+	REQUIRE(file.open(QFile::WriteOnly));
+	REQUIRE(file.write(contents) == contents.size());
+}
+
+static QByteArray readFileContents(const QString& path)
+{
+	QFile file(path);
+	REQUIRE(file.open(QFile::ReadOnly));
+	return file.readAll();
+}
+
 struct CancellationTestObserver final : public ProgressObserver {
 	inline void onCurrentFileChanged(const QString& /*file*/) override { fileProcessingStarted = true; }
 
@@ -268,11 +282,7 @@ static void cancellationTest(const Operation op)
 
 	const QString fileName = QStringLiteral("cancellation_test.bin");
 	const QString sourceFilePath = sourceDirectory.path() % '/' % fileName;
-	{
-		QFile sourceFile(sourceFilePath);
-		REQUIRE(sourceFile.open(QFile::WriteOnly));
-		REQUIRE(sourceFile.write(fileContents) == fileContents.size());
-	}
+	writeTestFile(sourceFilePath, fileContents);
 
 	COperationPerformer p(op, CFileSystemObject(sourceFilePath), targetDirectory.path());
 	// Source and target are on the same drive; force the chunked copy+delete path for move - it's the one that can be canceled mid-file
@@ -316,10 +326,7 @@ static void cancellationTest(const Operation op)
 
 	// No partial file may be left at the destination
 	if (destFile.exists())
-	{
-		REQUIRE(destFile.open(QFile::ReadOnly));
-		REQUIRE(destFile.readAll() == fileContents);
-	}
+		REQUIRE(readFileContents(destFile.fileName()) == fileContents);
 
 	// Canceling a copy must leave the source untouched; a canceled move must preserve the file in at least one location
 	if (op == operationCopy)
@@ -327,10 +334,7 @@ static void cancellationTest(const Operation op)
 	REQUIRE((sourceFile.exists() || destFile.exists()));
 
 	if (sourceFile.exists())
-	{
-		REQUIRE(sourceFile.open(QFile::ReadOnly));
-		REQUIRE(sourceFile.readAll() == fileContents);
-	}
+		REQUIRE(readFileContents(sourceFilePath) == fileContents);
 }
 
 TEST_CASE((std::string("Copy test - empty files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
@@ -371,6 +375,84 @@ TEST_CASE((std::string("Move cancellation test #") + std::to_string(rand())).c_s
 TEST_CASE((std::string("Copy cancellation test #") + std::to_string(rand())).c_str(), "[operationperformer-cancel]")
 {
 	cancellationTest(operationCopy);
+}
+
+// Answers hrFileExists prompts with a pre-defined sequence of responses, the way the real prompt dialog would
+struct ScriptedResponsesObserver final : public ProgressObserver {
+	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
+		CHECK(reason == hrFileExists);
+		if (scriptedResponses.empty())
+		{
+			FAIL_CHECK("A prompt occurred, but no scripted response is left for it");
+			performer->userResponse(reason, urAbort, {}); // Must still respond, or the worker thread will wait forever
+			return;
+		}
+
+		const auto [response, newName] = scriptedResponses.front();
+		scriptedResponses.erase(scriptedResponses.begin());
+		performer->userResponse(reason, response, newName);
+	}
+
+	COperationPerformer* performer = nullptr;
+	std::vector<std::pair<UserResponse, QString>> scriptedResponses;
+};
+
+// Verifies the urRename response handling: the renamed destination must undergo the same conflict checks (i.e. prompt again if taken),
+// and the new name must only apply to the item it was given for, without leaking to the subsequent items
+TEST_CASE((std::string("Copy rename conflict test #") + std::to_string(rand())).c_str(), "[operationperformer-conflict]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+	TRACE_LOG << "Target: " << targetDirectory.path();
+
+	// Two files to copy; the first one conflicts at the destination, and so does the first rename attempt for it
+	const QByteArray contentsA(3000, 'A');
+	const QByteArray contentsB(4000, 'B');
+	const QByteArray contentsExisting(5000, 'C');
+	const QByteArray contentsTaken(6000, 'D');
+	writeTestFile(sourceDirectory.path() % "/a_conflict.bin", contentsA);
+	writeTestFile(sourceDirectory.path() % "/b_normal.bin", contentsB);
+	writeTestFile(targetDirectory.path() % "/a_conflict.bin", contentsExisting);
+	writeTestFile(targetDirectory.path() % "/taken.bin", contentsTaken);
+
+	std::vector<CFileSystemObject> source;
+	source.emplace_back(sourceDirectory.path() % "/a_conflict.bin");
+	source.emplace_back(sourceDirectory.path() % "/b_normal.bin");
+
+	COperationPerformer p(operationCopy, std::move(source), targetDirectory.path());
+
+	ScriptedResponsesObserver observer;
+	observer.performer = &p;
+	observer.scriptedResponses = { {urRename, QStringLiteral("taken.bin")}, {urRename, QStringLiteral("renamed.bin")} };
+	p.setObserver(&observer);
+
+	CTimeElapsed timer(true);
+	p.start();
+	while (!p.done())
+	{
+		observer.processEvents();
+		if (timer.elapsed<std::chrono::seconds>() > 60)
+		{
+			FAIL("File operation timeout reached.");
+			return;
+		}
+	}
+
+	REQUIRE(observer.scriptedResponses.empty()); // Both prompts must have occurred
+
+	// The first file ended up under the second new name, and the conflicting files are untouched
+	REQUIRE(readFileContents(targetDirectory.path() % "/renamed.bin") == contentsA);
+	REQUIRE(readFileContents(targetDirectory.path() % "/a_conflict.bin") == contentsExisting);
+	REQUIRE(readFileContents(targetDirectory.path() % "/taken.bin") == contentsTaken);
+	// The second file was copied under its own name - the rename must not leak to it
+	REQUIRE(readFileContents(targetDirectory.path() % "/b_normal.bin") == contentsB);
+	// The sources are untouched
+	REQUIRE(readFileContents(sourceDirectory.path() % "/a_conflict.bin") == contentsA);
+	REQUIRE(readFileContents(sourceDirectory.path() % "/b_normal.bin") == contentsB);
 }
 
 TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[operationperformer-delete]")
