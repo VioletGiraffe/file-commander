@@ -679,7 +679,8 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		else if (response == urRename)
 		{
 			assert_r(!_newName.isEmpty());
-			// Continue - the new name will be accounted for
+			// Retry the item: the caller re-computes the destination with the new name (consuming _newName) and re-runs the conflict checks against it
+			return naRetryItem;
 		}
 		else if (response != urProceedWithThis && response != urProceedWithAll)
 		{
@@ -728,7 +729,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	{
 		handlePause();
 
-		result = itemManipulator.copyChunk(chunkSize, destPath, _newName.isEmpty() ? (!destFile.isDir() ? destFile.fullName() : QString()) : _newName);
+		result = itemManipulator.copyChunk(chunkSize, destPath, !destFile.isDir() ? destFile.fullName() : QString());
 		// Error handling
 		if (result != FileOperationResultCode::Ok)
 			break;
@@ -763,14 +764,9 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	{
 		assert_r(itemManipulator.cancelCopy() == FileOperationResultCode::Ok);
 
-		QString actualNewName = _newName;
-		if (actualNewName.isEmpty() && destInfo.isFile())
-			actualNewName = destInfo.fileName();
-
 		const QString errorMessage =
 			"Error copying file " % item.fullAbsolutePath() %
-			" to " % destPath %
-			actualNewName %
+			" to " % destPath % destInfo.fileName() %
 			", error: " % itemManipulator.lastErrorMessage();
 
 		assert_unconditional_r(errorMessage.toStdString());
