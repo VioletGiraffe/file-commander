@@ -252,6 +252,21 @@ static QByteArray readFileContents(const QString& path)
 	return file.readAll();
 }
 
+// For operations that complete on their own (possibly after scripted prompt responses), without external cancellation
+static void pumpOperationToCompletion(COperationPerformer& p, CFileOperationObserver& observer)
+{
+	CTimeElapsed timer(true);
+	while (!p.done())
+	{
+		observer.processEvents();
+		if (timer.elapsed<std::chrono::seconds>() > 60)
+		{
+			FAIL("File operation timeout reached.");
+			return;
+		}
+	}
+}
+
 struct CancellationTestObserver final : public ProgressObserver {
 	inline void onCurrentFileChanged(const QString& /*file*/) override { fileProcessingStarted = true; }
 
@@ -430,17 +445,8 @@ TEST_CASE((std::string("Copy rename conflict test #") + std::to_string(rand())).
 	observer.scriptedResponses = { {urRename, QStringLiteral("taken.bin")}, {urRename, QStringLiteral("renamed.bin")} };
 	p.setObserver(&observer);
 
-	CTimeElapsed timer(true);
 	p.start();
-	while (!p.done())
-	{
-		observer.processEvents();
-		if (timer.elapsed<std::chrono::seconds>() > 60)
-		{
-			FAIL("File operation timeout reached.");
-			return;
-		}
-	}
+	pumpOperationToCompletion(p, observer);
 
 	REQUIRE(observer.scriptedResponses.empty()); // Both prompts must have occurred
 
@@ -453,6 +459,57 @@ TEST_CASE((std::string("Copy rename conflict test #") + std::to_string(rand())).
 	// The sources are untouched
 	REQUIRE(readFileContents(sourceDirectory.path() % "/a_conflict.bin") == contentsA);
 	REQUIRE(readFileContents(sourceDirectory.path() % "/b_normal.bin") == contentsB);
+}
+
+// Verifies the urProceedWithThis / urProceedWithAll (overwrite) response handling for a same-drive move:
+// the conflicting destination files must be replaced with the source files, and "... with all" must be remembered (no further prompts)
+TEST_CASE((std::string("Move overwrite conflict test #") + std::to_string(rand())).c_str(), "[operationperformer-conflict]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+	TRACE_LOG << "Target: " << targetDirectory.path();
+
+	// All three files conflict at the destination
+	const QByteArray contents1(3000, 'A');
+	const QByteArray contents2(4000, 'B');
+	const QByteArray contents3(5000, 'C');
+	writeTestFile(sourceDirectory.path() % "/file1.bin", contents1);
+	writeTestFile(sourceDirectory.path() % "/file2.bin", contents2);
+	writeTestFile(sourceDirectory.path() % "/file3.bin", contents3);
+	writeTestFile(targetDirectory.path() % "/file1.bin", QByteArray(1000, 'X'));
+	writeTestFile(targetDirectory.path() % "/file2.bin", QByteArray(1100, 'Y'));
+	writeTestFile(targetDirectory.path() % "/file3.bin", QByteArray(1200, 'Z'));
+
+	std::vector<CFileSystemObject> source;
+	source.emplace_back(sourceDirectory.path() % "/file1.bin");
+	source.emplace_back(sourceDirectory.path() % "/file2.bin");
+	source.emplace_back(sourceDirectory.path() % "/file3.bin");
+
+	// Source and target are on the same drive - this exercises the moveWithinSameDrive() path
+	COperationPerformer p(operationMove, std::move(source), targetDirectory.path());
+
+	ScriptedResponsesObserver observer;
+	observer.performer = &p;
+	// The third conflict must be resolved by the remembered "proceed with all" without a prompt
+	observer.scriptedResponses = { {urProceedWithThis, {}}, {urProceedWithAll, {}} };
+	p.setObserver(&observer);
+
+	p.start();
+	pumpOperationToCompletion(p, observer);
+
+	REQUIRE(observer.scriptedResponses.empty());
+
+	// The files were moved: the conflicting destination files are replaced, the sources are gone
+	REQUIRE(readFileContents(targetDirectory.path() % "/file1.bin") == contents1);
+	REQUIRE(readFileContents(targetDirectory.path() % "/file2.bin") == contents2);
+	REQUIRE(readFileContents(targetDirectory.path() % "/file3.bin") == contents3);
+	REQUIRE(!QFileInfo::exists(sourceDirectory.path() % "/file1.bin"));
+	REQUIRE(!QFileInfo::exists(sourceDirectory.path() % "/file2.bin"));
+	REQUIRE(!QFileInfo::exists(sourceDirectory.path() % "/file3.bin"));
 }
 
 TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[operationperformer-delete]")

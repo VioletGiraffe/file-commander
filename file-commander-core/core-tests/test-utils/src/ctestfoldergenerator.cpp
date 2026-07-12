@@ -150,8 +150,8 @@ std::optional<int> CTestFolderGenerator::generateFolderTree(const QString& paren
 		{
 			const QString fullPath = folders.emplace_back(parentDir + '/' + subfolder);
 
-			const int n = _randomGenerator.randomNumber<int>(1, nRemaining * 4 / (int)subfolders.size());
-			const auto result = generateFolderTree(fullPath, n, folders);
+			const int localFolders = _randomGenerator.randomNumber<int>(1, nRemaining * 4 / (int)subfolders.size());
+			const auto result = generateFolderTree(fullPath, localFolders, folders);
 			assert_and_return_r(result, {});
 			nRemaining -= result.value();
 

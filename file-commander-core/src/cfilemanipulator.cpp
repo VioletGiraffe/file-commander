@@ -78,12 +78,19 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 	if ((caseSensitiveFilesystem() || !newNameDiffersOnlyInLetterCase) && destInfo.exists())
 	{
 		if (_srcObject.isDir())
+		{
+			_lastErrorMessage = QStringLiteral("Replacing an existing item with a folder is not supported.");
 			return FileOperationResultCode::TargetAlreadyExists;
+		}
 		else if (overwriteExistingFile == true && _srcObject.isFile() && destInfo.isFile())
 		{
 			// Special case: it may be allowed to replace the existing file (https://github.com/VioletGiraffe/file-commander/issues/123)
-			if (remove(destInfo) != FileOperationResultCode::Ok)
+			CFileManipulator destManipulator(destInfo);
+			if (destManipulator.remove() != FileOperationResultCode::Ok)
+			{
+				_lastErrorMessage = destManipulator.lastErrorMessage();
 				return FileOperationResultCode::TargetAlreadyExists;
+			}
 
 			// File removed - update the info
 			destInfo = CFileSystemObject{ fullNewName };

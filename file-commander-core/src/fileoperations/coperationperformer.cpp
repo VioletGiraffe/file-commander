@@ -494,12 +494,12 @@ void COperationPerformer::moveWithinSameDrive()
 		const QString newFileName = !_newName.isEmpty() ? _newName : sourceIterator->object.fullName();
 		_newName.clear();
 		CFileManipulator itemManipulator(sourceIterator->object);
-		const auto result = itemManipulator.moveAtomically(_destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath(), newFileName);
+		const QString destFolderPath = _destFileSystemObject.isDir() ? _destFileSystemObject.fullAbsolutePath() : _destFileSystemObject.parentDirPath();
+		const auto result = itemManipulator.moveAtomically(destFolderPath, newFileName);
 		if (result != FileOperationResultCode::Ok)
 		{
-			const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, sourceIterator->object, CFileSystemObject(_destFileSystemObject.fullAbsolutePath() % '/' % newFileName), itemManipulator.lastErrorMessage());
-			// Handler is identical to that of the main loop
-			// esp. for the case of hrFileExists
+			const CFileSystemObject destObject{ _destFileSystemObject.fullAbsolutePath() % '/' % newFileName };
+			const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, sourceIterator->object, destObject, itemManipulator.lastErrorMessage());
 			if (response == urSkipThis || response == urSkipAll)
 			{
 				++sourceIterator;
@@ -514,7 +514,28 @@ void COperationPerformer::moveWithinSameDrive()
 			else if (response == urRetry)
 				continue;
 			else
+			{
 				assert_r(response == urProceedWithThis || response == urProceedWithAll);
+				// Overwrite the destination file, as approved by the user
+				const auto overwriteResult = itemManipulator.moveAtomically(destFolderPath, newFileName, OverwriteExistingFile{ true });
+				if (overwriteResult != FileOperationResultCode::Ok)
+				{
+					// Deliberately not mapping TargetAlreadyExists to hrFileExists here: a remembered "overwrite all" would answer
+					// that prompt automatically, and the operation could loop forever without user interaction
+					const auto failureResponse = getUserResponse(hrUnknownError, sourceIterator->object, destObject, itemManipulator.lastErrorMessage());
+					if (failureResponse == urAbort)
+						return;
+					else if (failureResponse == urRetry)
+						continue; // Retry the item from scratch, starting with the conflict prompt
+					else if (failureResponse != urSkipThis && failureResponse != urSkipAll)
+						assert_unconditional_r("Unexpected user response");
+
+					// Skip this item
+					++sourceIterator;
+					++currentItemIndex;
+					continue;
+				}
+			}
 		}
 
 		++sourceIterator;
