@@ -236,7 +236,7 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 			assert_debug_only(!_destinationFilePath.isEmpty());
 			// TODO: this is ineffective; need to support permission and date transfer in thin_io
 			QFile qDstFile(_destinationFilePath);
-			if (!qDstFile.open(QFile::ReadOnly | QFile::WriteOnly)) [[unlikely]]
+			if (!qDstFile.open(QFile::ReadWrite)) [[unlikely]]
 			{
 				_lastErrorMessage = qDstFile.errorString();
 				return FileOperationResultCode::Fail;
