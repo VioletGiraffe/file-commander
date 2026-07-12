@@ -87,7 +87,7 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 	}
 }
 
-struct ProgressObserver final : public CFileOperationObserver {
+struct ProgressObserver : public CFileOperationObserver {
 	inline void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float filePercentage, uint64_t /*speed*/ /* B/s*/, uint32_t /*secondsRemaining*/) override {
 		CHECK(totalPercentage <= 100.1f);
 		CHECK(filePercentage <= 100.1f);
@@ -238,6 +238,101 @@ static void moveTest(const size_t maxFileSize)
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
 
+struct CancellationTestObserver final : public ProgressObserver {
+	inline void onCurrentFileChanged(const QString& /*file*/) override { fileProcessingStarted = true; }
+
+	bool fileProcessingStarted = false;
+};
+
+// Friend of COperationPerformer
+struct COperationPerformerTestSeam {
+	static void setForceMoveByCopy(COperationPerformer& p, const bool force) { p._forceMoveByCopy = force; }
+};
+
+// Cancels the operation while the first file is mid-copy and verifies that no data is lost:
+// the file must survive intact in at least one of the two locations, and no partial file may be left at the destination.
+static void cancellationTest(const Operation op)
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	TRACE_LOG << "Source: " << sourceDirectory.path();
+	TRACE_LOG << "Target: " << targetDirectory.path();
+
+	// A file spanning many chunks, with a partial chunk at the end
+	QByteArray fileContents(100 * OPERATION_PERFORMER_CHUNK_SIZE + 512, '\0');
+	for (int i = 0, n = static_cast<int>(fileContents.size()); i < n; ++i)
+		fileContents[i] = static_cast<char>(i % 251); // 251 is coprime with the chunk size - no two chunks are identical
+
+	const QString fileName = QStringLiteral("cancellation_test.bin");
+	const QString sourceFilePath = sourceDirectory.path() % '/' % fileName;
+	{
+		QFile sourceFile(sourceFilePath);
+		REQUIRE(sourceFile.open(QFile::WriteOnly));
+		REQUIRE(sourceFile.write(fileContents) == fileContents.size());
+	}
+
+	COperationPerformer p(op, CFileSystemObject(sourceFilePath), targetDirectory.path());
+	// Source and target are on the same drive; force the chunked copy+delete path for move - it's the one that can be canceled mid-file
+	COperationPerformerTestSeam::setForceMoveByCopy(p, true);
+
+	CancellationTestObserver observer;
+	p.setObserver(&observer);
+
+	// Pause before starting: handlePause() precedes the first chunk copy, so the worker parks before copying anything
+	REQUIRE(p.togglePause());
+	p.start();
+
+	CTimeElapsed timer(true);
+	bool cancelIssued = false;
+	while (!p.done())
+	{
+		observer.processEvents();
+
+		if (!cancelIssued && observer.fileProcessingStarted)
+		{
+			// The worker is committed to processing the file (past the loop's cancel check) but hasn't copied a single chunk yet.
+			// Request cancellation, then let it run: it will copy exactly one chunk and then detect the cancellation - mid-file, deterministically.
+			p.cancel();
+			REQUIRE(!p.togglePause());
+			cancelIssued = true;
+		}
+
+		// Unlike the other tests, the timeout also applies to debug builds: a canceled operation that never finishes
+		// is one of the failure modes this test guards against
+		if (timer.elapsed<std::chrono::seconds>() > 60)
+		{
+			FAIL("The operation did not finish after being canceled.");
+			return;
+		}
+	}
+
+	REQUIRE(cancelIssued);
+
+	QFile sourceFile(sourceFilePath);
+	QFile destFile(targetDirectory.path() % '/' % fileName);
+
+	// No partial file may be left at the destination
+	if (destFile.exists())
+	{
+		REQUIRE(destFile.open(QFile::ReadOnly));
+		REQUIRE(destFile.readAll() == fileContents);
+	}
+
+	// Canceling a copy must leave the source untouched; a canceled move must preserve the file in at least one location
+	if (op == operationCopy)
+		REQUIRE(sourceFile.exists());
+	REQUIRE((sourceFile.exists() || destFile.exists()));
+
+	if (sourceFile.exists())
+	{
+		REQUIRE(sourceFile.open(QFile::ReadOnly));
+		REQUIRE(sourceFile.readAll() == fileContents);
+	}
+}
+
 TEST_CASE((std::string("Copy test - empty files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
 {
 	copyTest(0);
@@ -266,6 +361,16 @@ TEST_CASE((std::string("Move test - 5K files #") + std::to_string(rand())).c_str
 TEST_CASE((std::string("Move test - 20K files #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
 {
 	moveTest(20'000);
+}
+
+TEST_CASE((std::string("Move cancellation test #") + std::to_string(rand())).c_str(), "[operationperformer-cancel]")
+{
+	cancellationTest(operationMove);
+}
+
+TEST_CASE((std::string("Copy cancellation test #") + std::to_string(rand())).c_str(), "[operationperformer-cancel]")
+{
+	cancellationTest(operationCopy);
 }
 
 TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[operationperformer-delete]")

@@ -66,6 +66,9 @@ public:
 	void cancel();
 
 private:
+	// Test-only access to the private state (e.g. _forceMoveByCopy); defined in the test code
+	friend struct COperationPerformerTestSeam;
+
 	void thread();
 	UserResponse waitForResponse();
 
@@ -82,7 +85,8 @@ private:
 	[[nodiscard]] UserResponse getUserResponse(HaltReason hr, const CFileSystemObject& src, const CFileSystemObject& dst, const QString& message);
 
 // Suboperation handlers
-	enum NextAction {naProceed, naRetryItem, naRetryOperation, naSkip, naAbort};
+	// naAbort: the user chose to abort in a prompt; naCancel: cancel() was requested while processing the item
+	enum NextAction {naProceed, naRetryItem, naRetryOperation, naSkip, naAbort, naCancel};
 	[[nodiscard]] NextAction deleteItem(CFileSystemObject& item);
 	[[nodiscard]] NextAction makeItemWriteable(CFileSystemObject& item);
 	[[nodiscard]] NextAction copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessedPreviously, uint64_t totalSize, size_t currentItemIndex);
@@ -115,6 +119,8 @@ private:
 	std::atomic<bool>              _inProgress {false};
 	std::atomic<bool>              _done {false};
 	std::atomic<bool>              _cancelRequested {false};
+	// Forces a move to take the chunked copy+delete path even when a same-drive rename is possible
+	bool                           _forceMoveByCopy = false;
 	UserResponse                   _userResponse = urNone;
 
 	std::thread                    _thread;

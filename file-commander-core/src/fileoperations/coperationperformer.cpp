@@ -165,7 +165,7 @@ void COperationPerformer::copyFiles()
 
 	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster.
 	// Moving means renaming the root source folder / file, which is fast and simple. Just make sure the destination folder exists.
-	if (_op == operationMove && _source.front().object.isMovableTo(_destFileSystemObject))
+	if (_op == operationMove && !_forceMoveByCopy && _source.front().object.isMovableTo(_destFileSystemObject))
 	{
 		moveWithinSameDrive();
 		return;
@@ -238,11 +238,12 @@ void COperationPerformer::copyFiles()
 				continue;
 			case naRetryItem:
 				continue;
+			case naCancel: // The file was not copied - it must not be deleted by the move logic below
 			case naRetryOperation:
 			case naAbort:
 				return;
 			default:
-				assert_unconditional_r(QString("Unexpected deleteItem() return value %1").arg(nextAction).toUtf8().constData());
+				assert_unconditional_r(QString("Unexpected copyItem() return value %1").arg(nextAction).toUtf8().constData());
 				continue; // Retry
 			}
 
@@ -748,9 +749,12 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		// TODO: why isn't this block at the start of 'do-while'?
 		if (_cancelRequested)
 		{
+			// If the file had just been copied in full (the loop is about to exit), there is nothing to cancel - let it count as processed
+			if (!itemManipulator.copyOperationInProgress())
+				break; // result == Ok
+
 			assert_message_r(itemManipulator.cancelCopy() == FileOperationResultCode::Ok, "Failed to cancel item copying");
-			result = FileOperationResultCode::Ok;
-			break;
+			return naCancel;
 		}
 	} while (itemManipulator.copyOperationInProgress());
 
