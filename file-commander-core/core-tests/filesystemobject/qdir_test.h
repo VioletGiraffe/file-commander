@@ -4,8 +4,9 @@
 #include <QString>
 #include <QStringList>
 
-struct QDir_Test
+class QDir_Test
 {
+public:
 	enum Filter {
 		Dirs        = 0x001,
 		Files       = 0x002,
