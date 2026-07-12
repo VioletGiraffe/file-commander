@@ -499,6 +499,17 @@ void COperationPerformer::moveWithinSameDrive()
 			continue;
 		}
 
+		if (_observer)
+		{
+			_observer->onCurrentFileChangedCallback(sourceIterator->object.fullAbsolutePath());
+
+			// A same-drive move is a metadata-only rename: no bytes are transferred, so progress is item-based (like delete) and the byte speed is 0
+			const size_t totalItems = _source.size();
+			const uint64_t itemsPerSecond = (currentItemIndex + 1) * 1000000 / std::max(_totalTimeElapsed.elapsed<std::chrono::microseconds>(), (uint64_t)1);
+			const uint32_t secondsRemaining = itemsPerSecond > 0 ? static_cast<uint32_t>((totalItems - currentItemIndex - 1) / itemsPerSecond) : 0;
+			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalItems, currentItemIndex, totalItems, 0.0f, 0, secondsRemaining);
+		}
+
 		const QString newFileName = !_newName.isEmpty() ? _newName : sourceIterator->object.fullName();
 		_newName.clear();
 		CFileManipulator itemManipulator(sourceIterator->object);
