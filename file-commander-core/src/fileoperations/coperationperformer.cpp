@@ -822,11 +822,16 @@ void COperationPerformer::handlePause()
 
 void CFileOperationObserver::processEvents()
 {
-	std::lock_guard<std::mutex> lock(_callbackMutex);
-	for (const auto& event : _callbacks)
-		event();
+	// The callbacks must be executed with the mutex released: a callback may spin a nested event loop (e.g. a modal prompt)
+	// that re-enters processEvents() on the next timer tick, and the worker thread must be able to post new callbacks meanwhile
+	std::vector<std::function<void ()>> callbacks;
+	{
+		std::lock_guard<std::mutex> lock(_callbackMutex);
+		callbacks.swap(_callbacks);
+	}
 
-	_callbacks.clear();
+	for (const auto& event : callbacks)
+		event();
 }
 
 void CFileOperationObserver::onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed, uint32_t secondsRemaining)
