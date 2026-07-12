@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783874909516,
+  "lastUpdate": 1783875307191,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -1423,6 +1423,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 614,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 365.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "acae9d530dbff31f83970295b087412b0f8e3ef0",
+          "message": "moveAtomically() made actually atomic via MoveFileExW()/rename()",
+          "timestamp": "2026-07-12T19:49:35+03:00",
+          "tree_id": "4d2ec48878578f27e3bba3185f5994ddf5bed0c3",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/acae9d530dbff31f83970295b087412b0f8e3ef0"
+        },
+        "date": 1783875304695,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14386,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8253,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1201,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 613.5,
             "unit": "KB"
           },
           {
