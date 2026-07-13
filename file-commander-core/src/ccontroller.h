@@ -184,6 +184,7 @@ private:
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;
 	Panel                _activePanel = Panel::UnknownPanel;
 
+	// Declared before the worker pool so it outlives every controller task that can enqueue UI work.
+	CExecutionQueue   _uiQueue;
 	CWorkerThreadPool _workerThreadPool; // The thread used to execute tasks out of the UI thread
-	CExecutionQueue   _uiQueue;      // The queue for actions that must be executed on the UI thread
 };

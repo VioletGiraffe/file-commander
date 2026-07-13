@@ -10,8 +10,8 @@ come from the **qtutils**/**cpputils** submodules — described here by role, no
 | Mechanism | Owner | Purpose |
 |-----------|-------|---------|
 | `CWorkerThreadPool _panelWorkerPool` | `CController` (shared) | All panel tasks for **every tab on both sides**. Injected into each `CPanel`. Declared before `_panels` so it outlives them. |
-| `CWorkerThreadPool _workerThreadPool` | `CController` | General `execOnWorkerThread` tasks not tied to a panel. |
-| `CExecutionQueue _uiQueue` | `CController` | Tasks to run on the UI thread; drained on the UI timer tick. |
+| `CWorkerThreadPool _workerThreadPool` | `CController` | General `execOnWorkerThread` tasks not tied to a panel. Destroyed before `_uiQueue`, which its tasks can post to. |
+| `CExecutionQueue _uiQueue` | `CController` | Tasks to run on the UI thread; drained on the UI timer tick. Declared before `_workerThreadPool` so it outlives that producer. |
 | `CExecutionQueue _uiThreadQueue` | each `CPanel` | Per-panel UI marshaling (`execOnUiThread`). |
 | `std::thread _thread` | each `COperationPerformer` | One copy/move/delete batch; blocks on a condition variable for user decisions. |
 | `CInterruptableThread` | `CFileSearchEngine` | One file search; `stopSearching()` interrupts it. |
