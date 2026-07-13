@@ -33,8 +33,9 @@ come from the **qtutils**/**cpputils** submodules — described here by role, no
 Each `CPanel` computes `_taskTag = reinterpret_cast<uint64_t>(this)` and tags every task it posts to the
 **shared** pool with it. The `CPanel` dtor calls `pool.retire(_taskTag)`, guaranteeing no task that captured
 `this` runs after the panel is destroyed. **Critical for tabs:** closing a tab destroys its `CPanel` while
-the shared pool may hold its in-flight tasks — `retire` is what makes that safe. Preserve this whenever you
-add async work in `CPanel`.
+the shared pool may hold its in-flight tasks — `retire` removes that tag's queued tasks and waits only for
+that tag's popped/running tasks, without waiting for work owned by other tabs. Preserve this whenever you add
+async work in `CPanel`.
 
 Every asynchronous operation that replaces a panel's file list also carries that panel's monotonically
 increasing file-list generation, path, and display mode. Workers build a complete local map and publish it
