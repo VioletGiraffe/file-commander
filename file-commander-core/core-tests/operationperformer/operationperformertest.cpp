@@ -1,4 +1,6 @@
-#include "fileoperations/coperationperformer.h"
+#define CATCH_CONFIG_RUNNER
+
+#include "operationperformertesthelpers.h"
 #include "cfolderenumeratorrecursive.h"
 #include "ctestfoldergenerator.h"
 #include "system/ctimeelapsed.h"
@@ -24,8 +26,6 @@ RESTORE_COMPILER_WARNINGS
 #include <random>
 #include <string>
 
-#define CATCH_CONFIG_RUNNER
-#include "3rdparty/catch2/catch.hpp"
 //#include "3rdparty/catch2/catch_template_test_macros.hpp"
 
 static uint32_t g_randomSeed = []{
@@ -87,18 +87,6 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 		return false;
 	}
 }
-
-struct ProgressObserver : public CFileOperationObserver {
-	inline void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float filePercentage, uint64_t /*speed*/ /* B/s*/, uint32_t /*secondsRemaining*/) override {
-		CHECK(totalPercentage <= 100.1f);
-		CHECK(filePercentage <= 100.1f);
-	}
-	inline void onProcessHalted(HaltReason /*reason*/, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override { // User decision required (file exists, file is read-only etc.)
-		FAIL("onProcessHalted called");
-	}
-	inline void onProcessFinished(const QString& /*message*/ = QString()) override {} // Done or canceled
-	inline void onCurrentFileChanged(const QString& /*file*/) override {} // Starting to process a new file
-};
 
 static void copyTest(const size_t maxFileSize)
 {
@@ -239,54 +227,10 @@ static void moveTest(const size_t maxFileSize)
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
 
-static void writeTestFile(const QString& path, const QByteArray& contents)
-{
-	QFile file(path);
-	REQUIRE(file.open(QFile::WriteOnly));
-	REQUIRE(file.write(contents) == contents.size());
-}
-
-static QByteArray readFileContents(const QString& path)
-{
-	QFile file(path);
-	REQUIRE(file.open(QFile::ReadOnly));
-	return file.readAll();
-}
-
-// Pumps the observer's event queue until the condition becomes true.
-// On timeout, deliberately leaks the performer and the observer - the worker thread is likely stuck, and ~COperationPerformer
-// would hang forever trying to join it - and fails the test, so that a hang is flagged red in-process.
-template <typename ObserverT, typename ConditionT>
-static void pumpUntil(std::unique_ptr<COperationPerformer>& p, std::unique_ptr<ObserverT>& observer, ConditionT&& condition)
-{
-	CTimeElapsed timer(true);
-	while (!condition())
-	{
-		observer->processEvents();
-		if (timer.elapsed<std::chrono::seconds>() > 30)
-		{
-			(void)p.release();
-			(void)observer.release();
-			FAIL("File operation timeout reached - the worker thread is likely stuck.");
-		}
-	}
-}
-
-template <typename ObserverT>
-static void pumpOperationToCompletion(std::unique_ptr<COperationPerformer>& p, std::unique_ptr<ObserverT>& observer)
-{
-	pumpUntil(p, observer, [&p] { return p->done(); });
-}
-
 struct CancellationTestObserver final : public ProgressObserver {
 	inline void onCurrentFileChanged(const QString& /*file*/) override { fileProcessingStarted = true; }
 
 	bool fileProcessingStarted = false;
-};
-
-// Friend of COperationPerformer
-struct COperationPerformerTestSeam {
-	static void setForceMoveByCopy(COperationPerformer& p, const bool force) { p._forceMoveByCopy = force; }
 };
 
 // Cancels the operation while the first file is mid-copy and verifies that no data is lost:
