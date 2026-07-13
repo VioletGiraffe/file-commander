@@ -256,7 +256,8 @@ TEST_CASE((std::string("Copy of a tree with a link cycle terminates without runa
 	REQUIRE(isDirectoryLink(sourceDirectory.path() % "/sub/link_up"));
 }
 
-TEST_CASE((std::string("CFileManipulator::remove() on a directory link removes only the link #") + std::to_string(rand())).c_str(), "[operationperformer-links]")
+// The test name is used as a directory name template, so it must not contain characters illegal in file names (e. g. ':' on Windows)
+TEST_CASE((std::string("Removing a directory link via CFileManipulator removes only the link #") + std::to_string(rand())).c_str(), "[operationperformer-links]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
 	QTemporaryDir linkTargetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_LINKTARGET_XXXXXX");

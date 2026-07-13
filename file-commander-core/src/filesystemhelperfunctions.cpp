@@ -17,6 +17,37 @@ RESTORE_COMPILER_WARNINGS
 #include <cmath>
 #include <stdint.h>
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <sys/stat.h>
+#endif
+
+std::optional<std::pair<uint64_t, uint64_t>> resolvedFileSystemItemId(const QString& path)
+{
+#ifdef _WIN32
+	// FILE_FLAG_BACKUP_SEMANTICS is required to open directories; the final link of the path is followed (no FILE_FLAG_OPEN_REPARSE_POINT)
+	const HANDLE handle = CreateFileW(reinterpret_cast<const WCHAR*>(path.utf16()), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	if (handle == INVALID_HANDLE_VALUE)
+		return {};
+
+	BY_HANDLE_FILE_INFORMATION info;
+	const bool succeeded = GetFileInformationByHandle(handle, &info) != 0;
+	CloseHandle(handle);
+	if (!succeeded)
+		return {};
+
+	return std::pair{ static_cast<uint64_t>(info.dwVolumeSerialNumber), (static_cast<uint64_t>(info.nFileIndexHigh) << 32) | info.nFileIndexLow };
+#else
+	struct stat info;
+	if (::stat(path.toLocal8Bit().constData(), &info) != 0)
+		return {};
+
+	return std::pair{ static_cast<uint64_t>(info.st_dev), static_cast<uint64_t>(info.st_ino) };
+#endif
+}
+
 QString toNativeSeparators(QString path)
 {
 #ifdef _WIN32

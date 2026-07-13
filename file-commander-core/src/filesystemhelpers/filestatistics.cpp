@@ -1,5 +1,6 @@
 #include "filestatistics.h"
 #include "../cfilesystemobject.h"
+#include "../filesystemhelperfunctions.h"
 
 #include <3rdparty/ankerl/unordered_dense.h>
 
@@ -43,9 +44,9 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 	std::vector<QString> dirsToScan;
 	FileStatistics rootStats; // stats for the root entries themselves (passed directly in rootPaths, not discovered by scanning)
 
-	// Canonical targets of directory links already queued for scanning: each target is counted once, and link cycles can't
-	// keep the queue alive forever. Guarded by queueMutex once the worker threads are running.
-	ankerl::unordered_dense::set<QString> queuedLinkTargets;
+	// Identities (see resolvedFileSystemItemId) of directory link targets already queued for scanning: each target is counted
+	// once, and link cycles can't keep the queue alive forever. Guarded by queueMutex once the worker threads are running.
+	ankerl::unordered_dense::set<std::pair<uint64_t, uint64_t>> queuedLinkTargets;
 
 	for (const QString& path : rootPaths)
 	{
@@ -55,14 +56,10 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 			++rootStats.folders; // scanDirectory() elsewhere in the codebase counts the root dir itself; stay consistent with that
 			if (!rootItem.isLink())
 				dirsToScan.push_back(path);
-			else
+			else if (const auto targetId = resolvedFileSystemItemId(path); targetId && !queuedLinkTargets.contains(*targetId))
 			{
-				const QString canonicalTarget = rootItem.qFileInfo().canonicalFilePath();
-				if (!canonicalTarget.isEmpty() && !queuedLinkTargets.contains(canonicalTarget))
-				{
-					queuedLinkTargets.insert(canonicalTarget);
-					dirsToScan.push_back(path);
-				}
+				queuedLinkTargets.insert(*targetId);
+				dirsToScan.push_back(path);
 			}
 		}
 		else if (rootItem.isFile())
@@ -113,20 +110,14 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 						++stats.folders;
 						if (!item.isLink())
 							newDirs.push_back(item.fullAbsolutePath());
-						else
+						// An unresolvable id means a broken link - not traversable
+						else if (const auto targetId = resolvedFileSystemItemId(item.fullAbsolutePath()); targetId)
 						{
-							// A broken link is not traversable, and a link pointing at its own ancestor is a guaranteed cycle
-							const QString canonicalTarget = entry.canonicalFilePath();
-							const QString canonicalParentDir = entry.canonicalPath();
-							if (!canonicalTarget.isEmpty()
-								&& canonicalParentDir != canonicalTarget && !canonicalParentDir.startsWith(canonicalTarget % '/'))
+							std::lock_guard locker(queueMutex);
+							if (!queuedLinkTargets.contains(*targetId))
 							{
-								std::lock_guard locker(queueMutex);
-								if (!queuedLinkTargets.contains(canonicalTarget))
-								{
-									queuedLinkTargets.insert(canonicalTarget);
-									newDirs.push_back(item.fullAbsolutePath());
-								}
+								queuedLinkTargets.insert(*targetId);
+								newDirs.push_back(item.fullAbsolutePath());
 							}
 						}
 					}
