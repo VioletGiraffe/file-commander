@@ -24,6 +24,8 @@ class CFileManipulator
 {
 public:
 	explicit CFileManipulator(const CFileSystemObject& object);
+	// Only a reference to the object is stored, so a temporary is a guaranteed dangling reference
+	explicit CFileManipulator(CFileSystemObject&&) = delete;
 
 // Operations
 

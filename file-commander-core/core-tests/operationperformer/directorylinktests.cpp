@@ -271,7 +271,9 @@ TEST_CASE((std::string("Removing a directory link via CFileManipulator removes o
 	const QString linkPath = sourceDirectory.path() % "/dir_link";
 	REQUIRE(createDirectoryLink(linkTargetDirectory.path(), linkPath));
 
-	CFileManipulator manipulator{ CFileSystemObject(linkPath) };
+	// CFileManipulator stores a reference to the object, so it must outlive the manipulator
+	const CFileSystemObject linkObject(linkPath);
+	CFileManipulator manipulator{ linkObject };
 	REQUIRE(manipulator.remove() == FileOperationResultCode::Ok);
 
 	REQUIRE(!QFileInfo::exists(linkPath));
