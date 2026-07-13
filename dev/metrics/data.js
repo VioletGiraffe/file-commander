@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783943022106,
+  "lastUpdate": 1783944587082,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -2024,6 +2024,75 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/df31d52dd388812cce536746caa2337089e48b3f"
         },
         "date": 1783943019459,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14729,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8280,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1202.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 614.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 366,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e02e197b8440693b36c78770b492a1266c899a1c",
+          "message": "CI.yml: error detection on Windows fixed",
+          "timestamp": "2026-07-13T15:04:47+03:00",
+          "tree_id": "03c09e40e27ac1929a62fd5435ffaba66def939c",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e02e197b8440693b36c78770b492a1266c899a1c"
+        },
+        "date": 1783944584661,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
