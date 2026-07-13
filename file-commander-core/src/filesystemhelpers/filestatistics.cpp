@@ -3,6 +3,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
+#include <QSet>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -41,13 +42,27 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 	std::vector<QString> dirsToScan;
 	FileStatistics rootStats; // stats for the root entries themselves (passed directly in rootPaths, not discovered by scanning)
 
+	// Canonical targets of directory links already queued for scanning: each target is counted once, and link cycles can't
+	// keep the queue alive forever. Guarded by queueMutex once the worker threads are running.
+	QSet<QString> queuedLinkTargets;
+
 	for (const QString& path : rootPaths)
 	{
 		const CFileSystemObject rootItem(path);
 		if (rootItem.isDir())
 		{
-			dirsToScan.push_back(path);
 			++rootStats.folders; // scanDirectory() elsewhere in the codebase counts the root dir itself; stay consistent with that
+			if (!rootItem.isLink())
+				dirsToScan.push_back(path);
+			else
+			{
+				const QString canonicalTarget = rootItem.qFileInfo().canonicalFilePath();
+				if (!canonicalTarget.isEmpty() && !queuedLinkTargets.contains(canonicalTarget))
+				{
+					queuedLinkTargets.insert(canonicalTarget);
+					dirsToScan.push_back(path);
+				}
+			}
 		}
 		else if (rootItem.isFile())
 		{
@@ -95,7 +110,24 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 					else if (item.isDir())
 					{
 						++stats.folders;
-						newDirs.push_back(item.fullAbsolutePath());
+						if (!item.isLink())
+							newDirs.push_back(item.fullAbsolutePath());
+						else
+						{
+							// A broken link is not traversable, and a link pointing at its own ancestor is a guaranteed cycle
+							const QString canonicalTarget = entry.canonicalFilePath();
+							const QString canonicalParentDir = entry.canonicalPath();
+							if (!canonicalTarget.isEmpty()
+								&& canonicalParentDir != canonicalTarget && !canonicalParentDir.startsWith(canonicalTarget % '/'))
+							{
+								std::lock_guard locker(queueMutex);
+								if (!queuedLinkTargets.contains(canonicalTarget))
+								{
+									queuedLinkTargets.insert(canonicalTarget);
+									newDirs.push_back(item.fullAbsolutePath());
+								}
+							}
+						}
 					}
 				}
 

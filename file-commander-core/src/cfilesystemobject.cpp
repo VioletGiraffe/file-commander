@@ -108,13 +108,9 @@ CFileSystemObject& CFileSystemObject::operator=(const QString& path)
 
 void CFileSystemObject::refreshInfo()
 {
-#ifndef _WIN32
-	// TODO: is this always correct?
-	// Should there be a special "Symlink" object type? Then it could be handled properly (e. g. delete = unlink)
-	_properties.exists = !_fileInfo.isSymLink() ? _fileInfo.exists() : true;
-#else
-	_properties.exists = _fileInfo.exists();
-#endif
+	_properties.isLink = _fileInfo.isSymbolicLink() || _fileInfo.isJunction();
+	// A link exists as an object even when its target is gone (exists() follows the link)
+	_properties.exists = _properties.isLink || _fileInfo.exists();
 
 	_properties.fullPath = _fileInfo.absoluteFilePath();
 
@@ -144,18 +140,12 @@ void CFileSystemObject::refreshInfo()
 	}
 	else if (!_properties.exists && _properties.fullPath.endsWith('/'))
 		_properties.type = Directory;
-	else
-	{
+	else if (_properties.isLink)
+		_properties.type = File; // Broken link: show it as an item and let delete unlink it
 #ifdef _WIN32
-		if (_properties.exists)
-			qInfo() << _properties.fullPath << " is neither a file nor a dir";
-#else
-		// TODO: is this always correct?
-		// Should there be a special "Symlink" object type? Then it could be handled properly (e. g. delete = unlink)
-		if (_fileInfo.isSymLink())
-			_properties.type = File;
+	else if (_properties.exists)
+		qInfo() << _properties.fullPath << " is neither a file nor a dir";
 #endif
-	}
 
 	if (const auto pathLength = static_cast<uint64_t>(_properties.fullPath.size()); pathLength != 0)
 		_properties.hash = QStringHash{}(_properties.fullPath);
@@ -399,6 +389,11 @@ bool CFileSystemObject::isNetworkObject() const
 #endif
 }
 
+bool CFileSystemObject::isLink() const
+{
+	return _properties.isLink;
+}
+
 bool CFileSystemObject::isSymLink() const
 {
 	return _fileInfo.isSymLink();
@@ -430,7 +425,9 @@ bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
 	if (!isValid() || !dest.isValid())
 		return false;
 
-	const auto fileSystemId = rootFileSystemId();
+	// A rename moves a link entry itself, so for a link the deciding device is that of the directory holding it,
+	// not of its target. The destination is the opposite: the moved entry ends up wherever the destination resolves to.
+	const auto fileSystemId = isLink() ? CFileSystemObject(parentDirPath()).rootFileSystemId() : rootFileSystemId();
 	const auto otherFileSystemId = dest.rootFileSystemId();
 
 	return fileSystemId == otherFileSystemId && fileSystemId != uint64_max;

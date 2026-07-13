@@ -255,7 +255,8 @@ void COperationPerformer::copyFiles()
 				continue; // Retry
 			}
 
-			if (_op == operationMove) // result == ok
+			// Items reached through a directory link are only materialized at the destination; their originals belong to the link's target and must not be deleted
+			if (_op == operationMove && !sourceIterator->reachedThroughLink) // result == ok
 			{
 				if (!sourceIterator->copiedSuccessfully) // A fix for #270 (Cancelling a move operation deletes the original file nonetheless)
 				{
@@ -308,7 +309,8 @@ void COperationPerformer::copyFiles()
 					sourceIterator->copiedSuccessfully = true;
 			}
 
-			if (_op == operationMove)
+			// Dirs reached through a directory link belong to the link's target - not to be cleaned up; the link itself is a regular cleanup item and gets unlinked
+			if (_op == operationMove && !sourceIterator->reachedThroughLink)
 			{
 				if (!sourceIterator->copiedSuccessfully) // A fix for #270 (Cancelling a move operation deletes the original file nonetheless)
 				{
@@ -354,9 +356,10 @@ void COperationPerformer::deleteFiles()
 	{
 		if (!it->object.isCdUp())
 		{
-			scanDirectory(it->object, [&fileSystemObjectsList](const CFileSystemObject& item) {
+			// followDirLinks = false: delete removes a link itself and must never touch the target's contents
+			scanDirectory(it->object, [&fileSystemObjectsList](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
 				fileSystemObjectsList.emplace_back(item);
-			}, _cancelRequested);
+			}, _cancelRequested, false);
 		}
 	}
 
@@ -628,13 +631,13 @@ std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &tot
 		}
 		else if (o.object.isDir())
 		{
-			scanDirectory(o.object, [&destinations, &newSourceVector, &totalSize, &o, this](const CFileSystemObject& item) {
+			scanDirectory(o.object, [&destinations, &newSourceVector, &totalSize, &o, this](const CFileSystemObject& item, bool reachedThroughLink) {
 				destinations.emplace_back(destinationFolder(item.fullAbsolutePath(), o.object.parentDirPath(), _destFileSystemObject.fullAbsolutePath(), item.isDir() /* TODO: 'false' ? */));
 
 				if (item.isFile())
 					totalSize += item.size();
 
-				newSourceVector.emplace_back(std::move(item));
+				newSourceVector.emplace_back(std::move(item)).reachedThroughLink = reachedThroughLink;
 			}, _cancelRequested);
 		}
 	}

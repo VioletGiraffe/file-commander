@@ -104,6 +104,8 @@ private:
 
 		CFileSystemObject object;
 		bool copiedSuccessfully = false;
+		// The item was found by traversing a directory link; it must be copied (materialized), but never deleted by move
+		bool reachedThroughLink = false;
 	};
 
 	friend QDebug& operator<<(QDebug& stream, const std::vector<ObjectToProcess>& objects);

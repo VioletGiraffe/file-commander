@@ -71,6 +71,13 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 		return FileOperationResultCode::Fail;
 
 	assert_debug_only(QFileInfo{ destFolder }.isDir());
+
+	QString srcPath = _srcObject.fullAbsolutePath();
+	// A link is moved as the link entry itself: the dir path's trailing slash must go
+	// because "link/" resolves through the link, addressing the target instead of the link
+	if (_srcObject.isLink() && srcPath.endsWith('/'))
+		srcPath.chop(1);
+
 	const QString fullNewName = destFolder % '/' % (newName.isEmpty() ? _srcObject.fullName() : newName);
 	CFileSystemObject destInfo(fullNewName);
 	const bool newNameDiffersOnlyInLetterCase = destInfo.fullAbsolutePath().compare(_srcObject.fullAbsolutePath(), Qt::CaseInsensitive) == 0;
@@ -95,7 +102,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 #ifdef _WIN32
 	// MOVEFILE_REPLACE_EXISTING is only valid for files, not directories
 	const DWORD moveFlags = (overwriteExistingFile == true && _srcObject.isFile()) ? MOVEFILE_REPLACE_EXISTING : 0;
-	if (MoveFileExW(reinterpret_cast<const WCHAR*>(_srcObject.fullAbsolutePath().utf16()), reinterpret_cast<const WCHAR*>(destInfo.fullAbsolutePath().utf16()), moveFlags) != 0)
+	if (MoveFileExW(reinterpret_cast<const WCHAR*>(srcPath.utf16()), reinterpret_cast<const WCHAR*>(destInfo.fullAbsolutePath().utf16()), moveFlags) != 0)
 		return FileOperationResultCode::Ok;
 
 	_lastErrorMessage = QString::fromStdString(ErrorStringFromLastError());
@@ -106,14 +113,14 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 		if (overwriteExistingFile == true)
 		{
 			// QFile::rename refuses to replace an existing file; ::rename() does, atomically
-			if (::rename(QFile::encodeName(_srcObject.fullAbsolutePath()).constData(), QFile::encodeName(fullNewName).constData()) == 0)
+			if (::rename(QFile::encodeName(srcPath).constData(), QFile::encodeName(fullNewName).constData()) == 0)
 				return FileOperationResultCode::Ok;
 
 			_lastErrorMessage = strerror(errno);
 			return FileOperationResultCode::Fail;
 		}
 
-		QFile file(_srcObject.fullAbsolutePath());
+		QFile file(srcPath);
 		if (!file.rename(fullNewName))
 		{
 			_lastErrorMessage = file.errorString();
@@ -125,7 +132,7 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 	}
 	else if (_srcObject.isDir())
 	{
-		return QDir{}.rename(_srcObject.fullAbsolutePath(), fullNewName) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+		return QDir{}.rename(srcPath, fullNewName) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 	}
 	else
 		return FileOperationResultCode::Fail;
@@ -341,7 +348,27 @@ FileOperationResultCode CFileManipulator::remove()
 {
 	assert_and_return_message_r(_srcObject.exists(), "Object doesn't exist", FileOperationResultCode::ObjectDoesntExist);
 
-	if (_srcObject.isFile())
+	if (_srcObject.isLink())
+	{
+		// Deleting a link removes the link entry itself; the target's contents must never be touched.
+		// The dir path's trailing slash must go: "link/" resolves through the link on POSIX, addressing the target instead of the link.
+		QString linkPath = _srcObject.fullAbsolutePath();
+		if (linkPath.endsWith('/'))
+			linkPath.chop(1);
+
+		// A directory link is a directory entry: rmdir (RemoveDirectory) deletes it without following, but fails
+		// on file symlinks, for which QFile::remove() (unlink / DeleteFile) does the job.
+		if (QDir{}.rmdir(linkPath))
+			return FileOperationResultCode::Ok;
+
+		QFile linkFile(linkPath);
+		if (linkFile.remove())
+			return FileOperationResultCode::Ok;
+
+		_lastErrorMessage = linkFile.errorString();
+		return FileOperationResultCode::Fail;
+	}
+	else if (_srcObject.isFile())
 	{
 		QFile file(_srcObject.fullAbsolutePath());
 		if (file.remove())

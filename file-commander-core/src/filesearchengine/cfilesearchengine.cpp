@@ -227,7 +227,7 @@ void CFileSearchEngine::searchThread(
 	for (const QString& pathToLookIn : where)
 	{
 		scanDirectory(CFileSystemObject(pathToLookIn),
-			[&](const CFileSystemObject& item) {
+			[&](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
 
 				if (itemCounter % 128 == 0)
 				{

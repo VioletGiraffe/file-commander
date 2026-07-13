@@ -78,6 +78,12 @@ public:
 	bool _isSymLink = false;
 	[[nodiscard]] bool isSymLink() const { return _isSymLink; }
 
+	bool _isSymbolicLink = false;
+	[[nodiscard]] bool isSymbolicLink() const { return _isSymbolicLink; }
+
+	bool _isJunction = false;
+	[[nodiscard]] bool isJunction() const { return _isJunction; }
+
 	QString _symLinkTarget;
 	[[nodiscard]] QString symLinkTarget() const { return _symLinkTarget; }
 };

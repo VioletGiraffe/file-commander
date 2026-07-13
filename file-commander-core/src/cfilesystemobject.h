@@ -37,6 +37,8 @@ struct CFileSystemObjectProperties {
 	QString fullPath;
 	FileSystemObjectType type = UnknownType;
 	bool exists = false;
+	// Symlink or junction; a Windows .lnk shortcut is not a link but a regular file
+	bool isLink = false;
 };
 
 class CFileSystemObject
@@ -90,6 +92,8 @@ public:
 	[[nodiscard]] const QFileInfo& qFileInfo() const;
 	[[nodiscard]] uint64_t rootFileSystemId() const;
 	[[nodiscard]] bool isNetworkObject() const;
+	// Symlink or junction, unlike isSymLink(), which also matches .lnk shortcuts on Windows
+	[[nodiscard]] bool isLink() const;
 	[[nodiscard]] bool isSymLink() const;
 	[[nodiscard]] QString symLinkTarget() const;
 

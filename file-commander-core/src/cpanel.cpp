@@ -206,7 +206,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 		_items.clear();
 
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
-		scanDirectory(CFileSystemObject(path), [showHiddenFiles, this](const CFileSystemObject& item) {
+		scanDirectory(CFileSystemObject(path), [showHiddenFiles, this](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
 			if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
 				_items[item.hash()] = item;
 		});
