@@ -44,7 +44,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 	std::vector<QString> dirsToScan;
 	FileStatistics rootStats; // stats for the root entries themselves (passed directly in rootPaths, not discovered by scanning)
 
-	// Identities (see resolvedFileSystemItemId) of directory link targets already queued for scanning: each target is counted
+	// Identities (see resolvedObjectId) of directory link targets already queued for scanning: each target is counted
 	// once, and link cycles can't keep the queue alive forever. Guarded by queueMutex once the worker threads are running.
 	ankerl::unordered_dense::set<std::pair<uint64_t, uint64_t>> queuedLinkTargets;
 
@@ -56,7 +56,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 			++rootStats.folders; // scanDirectory() elsewhere in the codebase counts the root dir itself; stay consistent with that
 			if (!rootItem.isLink())
 				dirsToScan.push_back(path);
-			else if (const auto targetId = resolvedFileSystemItemId(path); targetId && !queuedLinkTargets.contains(*targetId))
+			else if (const auto targetId = resolvedObjectId(path); targetId && !queuedLinkTargets.contains(*targetId))
 			{
 				queuedLinkTargets.insert(*targetId);
 				dirsToScan.push_back(path);
@@ -111,7 +111,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 						if (!item.isLink())
 							newDirs.push_back(item.fullAbsolutePath());
 						// An unresolvable id means a broken link - not traversable
-						else if (const auto targetId = resolvedFileSystemItemId(item.fullAbsolutePath()); targetId)
+						else if (const auto targetId = resolvedObjectId(item.fullAbsolutePath()); targetId)
 						{
 							std::lock_guard locker(queueMutex);
 							if (!queuedLinkTargets.contains(*targetId))

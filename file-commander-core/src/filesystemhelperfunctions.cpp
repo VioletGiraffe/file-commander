@@ -23,7 +23,7 @@ RESTORE_COMPILER_WARNINGS
 #include <sys/stat.h>
 #endif
 
-std::optional<std::pair<uint64_t, uint64_t>> resolvedFileSystemItemId(const QString& path)
+std::optional<std::pair<uint64_t, uint64_t>> resolvedObjectId(const QString& path)
 {
 #ifdef _WIN32
 	// FILE_FLAG_BACKUP_SEMANTICS is required to open directories; the final link of the path is followed (no FILE_FLAG_OPEN_REPARSE_POINT)

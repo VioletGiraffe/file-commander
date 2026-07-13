@@ -15,7 +15,7 @@ class CFileSystemObject;
 // Unique identity of the filesystem entry the path resolves to (links are followed):
 // {volume serial, file index} on Windows, {device, inode} on POSIX.
 // Empty if the path cannot be resolved (e. g. a broken link).
-[[nodiscard]] std::optional<std::pair<uint64_t, uint64_t>> resolvedFileSystemItemId(const QString& path);
+[[nodiscard]] std::optional<std::pair<uint64_t, uint64_t>> resolvedObjectId(const QString& path);
 
 [[nodiscard]] consteval char nativeSeparator() noexcept
 {

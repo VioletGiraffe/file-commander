@@ -154,7 +154,7 @@ see [oddities.md](oddities.md).)
   move *copies* through-link items but never *deletes* them (they belong to the link's target, not the source).
 - **Cycle guard.** Following links can loop (a link to its own ancestor, or two links pointing at each other).
   The scanner keeps the chain of directories currently on the recursion stack and refuses to descend into a
-  link whose target is one of them. **Identity is compared via `resolvedFileSystemItemId` (device+inode /
+  link whose target is one of them. **Identity is compared via `resolvedObjectId` (device+inode /
   volume-serial+file-index), not path strings** — `QFileInfo::canonicalFilePath()` does not resolve NTFS
   junction targets, so an earlier path-prefix version passed on POSIX but let junction cycles through on
   Windows. Only links pay for the identity lookups; plain trees never reach this branch.
@@ -197,7 +197,7 @@ Each `CPanel` owns one and polls it on the UI timer tick.
 - **`CFileComparator` (`src/filecomparator/`)** — binary/byte comparison engine; used by the file-comparison
   plugin and covered by `filecomparator_test`.
 - **`filestatistics` / `filesystemhelpers` / `filesystemhelperfunctions`** — recursive size/count stats,
-  path helpers, misc fs utilities. `resolvedFileSystemItemId(path)` (in `filesystemhelperfunctions`) returns
+  path helpers, misc fs utilities. `resolvedObjectId(path)` (in `filesystemhelperfunctions`) returns
   the unique identity of the entry a path resolves to (`{device, inode}` on POSIX, `{volume serial, file
   index}` via `GetFileInformationByHandle` on Windows) — the correct primitive for "same file/dir?" tests,
   used by both link cycle guards. `filestatistics`' parallel BFS carries the same guard as a visited-target set.

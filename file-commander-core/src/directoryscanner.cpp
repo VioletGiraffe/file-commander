@@ -35,13 +35,13 @@ static void scanDirectoryRecursive(const CFileSystemObject& root,
 		// that covers links to their own ancestors as well as loops between links. Comparing filesystem identities rather than
 		// paths sidesteps path normalization pitfalls (letter case, junction targets that Qt does not canonicalize).
 		// Only links pay for the identity lookups; plain directory trees don't reach this code.
-		const auto targetId = resolvedFileSystemItemId(root.fullAbsolutePath());
+		const auto targetId = resolvedObjectId(root.fullAbsolutePath());
 		if (!targetId) // Broken link
 			return;
 
 		for (const QString& dirPath : dirsBeingScanned)
 		{
-			if (resolvedFileSystemItemId(dirPath) == targetId)
+			if (resolvedObjectId(dirPath) == targetId)
 				return;
 		}
 	}
