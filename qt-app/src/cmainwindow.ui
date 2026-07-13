@@ -291,6 +291,7 @@
     </property>
     <addaction name="action_Check_for_updates"/>
     <addaction name="separator"/>
+    <addaction name="action_Report_a_bug"/>
     <addaction name="actionAbout"/>
    </widget>
    <addaction name="menuFiles"/>
@@ -401,6 +402,11 @@
    </property>
    <property name="text">
     <string>Tablet mode</string>
+   </property>
+  </action>
+  <action name="action_Report_a_bug">
+   <property name="text">
+    <string>&amp;Report a bug...</string>
    </property>
   </action>
   <action name="actionAbout">

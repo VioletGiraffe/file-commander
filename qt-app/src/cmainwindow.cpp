@@ -33,6 +33,7 @@ DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/qstring_helpers.hpp"
 
 #include <QCloseEvent>
+#include <QDesktopServices>
 #include <QFileDialog>
 #include <QFileIconProvider>
 #include <QInputDialog>
@@ -44,6 +45,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QTimer>
+#include <QUrl>
 #include <QWidgetList>
 #include <QWindow>
 RESTORE_COMPILER_WARNINGS
@@ -254,6 +256,9 @@ void CMainWindow::initActions()
 	connect(ui->actionTablet_mode, &QAction::toggled, this, &CMainWindow::toggleTabletMode);
 
 	connect(ui->action_Check_for_updates, &QAction::triggered, this, &CMainWindow::checkForUpdates);
+	connect(ui->action_Report_a_bug, &QAction::triggered, this, []{
+		QDesktopServices::openUrl(QUrl("https://github.com/" + REPO_NAME + "/issues/new"));
+	});
 	connect(ui->actionAbout, &QAction::triggered, this, &CMainWindow::about);
 
 	// Tabs menu. Actions route to the active panel's widget.
