@@ -167,13 +167,17 @@ jobs:
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
 
-    - name: .exe file size
+    - name: Binary sizes - Windows
       if: startsWith(matrix.os, 'windows')
       shell: powershell
       run: |
-        $sizeKB = (Get-Item "bin\release\x64\FileCommander.exe").Length / 1KB
-        "{0:N2} KB" -f $sizeKB
-        "EXE_KB=$([math]::Round($sizeKB, 2))" >> $env:GITHUB_ENV
+        # Sizes of our own binaries (app + every plugin); the Qt/MSVC runtime DLLs xcopied into bin/ are excluded by name.
+        $exe = Get-Item "bin\release\x64\FileCommander.exe"
+        foreach ($b in @($exe) + (Get-ChildItem "bin\release\x64\plugin_*.dll")) {
+          "{0,10:N2} KB  {1}" -f ($b.Length / 1KB), $b.Name
+        }
+        # Metrics history tracks only the main executable.
+        "EXE_KB=$([math]::Round($exe.Length / 1KB, 2))" >> $env:GITHUB_ENV
 
     # Record LOC, exe size + per-section sizes to the gh-pages history and regenerate the chart.
     # Only on pushes to master so PRs/forks don't write history (and forks lack a write token).
@@ -219,6 +223,25 @@ jobs:
         # Don't treat a change as a regression
         comment-on-alert: false
         fail-on-alert: false
+
+    # Sizes of our own binaries (app + every plugin), excluding the Qt/system libs the deploy tools copy into bin/.
+    - name: Binary sizes - Mac
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        cd bin/release/x64
+        for f in FileCommander.app/Contents/MacOS/FileCommander libplugin_*.dylib; do
+          [ -f "$f" ] && [ ! -L "$f" ] || continue
+          awk -v b="$(wc -c < "$f")" -v n="$f" 'BEGIN { printf "%10.2f KB  %s\n", b/1024, n }'
+        done
+
+    - name: Binary sizes - Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        cd bin/release/x64
+        for f in FileCommander libplugin_*.so.*; do
+          [ -f "$f" ] && [ ! -L "$f" ] || continue
+          awk -v b="$(wc -c < "$f")" -v n="$f" 'BEGIN { printf "%10.2f KB  %s\n", b/1024, n }'
+        done
 
     - name: Test launch
       if: startsWith(matrix.os, 'macos')
