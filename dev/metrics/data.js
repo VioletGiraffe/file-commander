@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783971949506,
+  "lastUpdate": 1783982977411,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -2828,6 +2828,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .reloc",
             "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e5e6a74d0d570d53ed2dfeeda6713a9c110f3116",
+          "message": "CPanel: racy panel contents refresh fixed (UI state and internal state could diverge through the magic of multithreading bugs)",
+          "timestamp": "2026-07-14T01:44:00+03:00",
+          "tree_id": "1c03d4e7c6b8e37cabfe00b28cae594395bfeb94",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e5e6a74d0d570d53ed2dfeeda6713a9c110f3116"
+        },
+        "date": 1783982974075,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14941,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8330,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1211,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 621.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
             "unit": "KB"
           }
         ]
