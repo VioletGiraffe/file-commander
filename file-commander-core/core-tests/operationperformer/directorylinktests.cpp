@@ -21,6 +21,10 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 #include <string>
 
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
+
 // Creates the platform's common directory link type: a symlink on POSIX, a junction on Windows
 // (junction creation, unlike symlink creation, requires no special privileges on Windows)
 static bool createDirectoryLink(const QString& targetPath, const QString& linkPath)
@@ -272,3 +276,43 @@ TEST_CASE((std::string("CFileManipulator::remove() on a directory link removes o
 	REQUIRE(!QFileInfo::exists(linkPath));
 	requireLinkTargetContentsIntact(linkTargetDirectory.path());
 }
+
+#ifndef _WIN32
+// isMovableTo() decides between a same-drive rename and the chunked copy+delete path.
+// A rename moves the link entry itself, so for the moved object the device of the link must decide, not the device of its
+// target; for the destination it's the opposite - the moved entry is physically created wherever the destination resolves to.
+// /dev (devtmpfs on Linux, devfs on macOS) serves as a filesystem that is always mounted and always distinct from the temp dir.
+// No Windows variant: rootFileSystemId() there parses the drive letter out of the link's own path, so the source-side
+// misclassification is not possible in the first place.
+TEST_CASE((std::string("isMovableTo: link device decides for the source, target device for the destination #") + std::to_string(rand())).c_str(), "[ismovableto]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir destinationDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_DEST_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(destinationDirectory.isValid());
+
+	// Premise: /dev is on a different filesystem than the temp dir
+	struct stat devInfo, tmpInfo;
+	REQUIRE(::stat("/dev", &devInfo) == 0);
+	REQUIRE(::stat(sourceDirectory.path().toLocal8Bit().constData(), &tmpInfo) == 0);
+	if (devInfo.st_dev == tmpInfo.st_dev)
+	{
+		WARN("/dev and the temp dir are on the same filesystem - the test premise does not hold on this system, skipping");
+		return;
+	}
+
+	// Two temp dirs are trivially on the same filesystem, /dev is not
+	CHECK(CFileSystemObject(sourceDirectory.path()).isMovableTo(CFileSystemObject(destinationDirectory.path())));
+	CHECK(!CFileSystemObject(QStringLiteral("/dev")).isMovableTo(CFileSystemObject(destinationDirectory.path())));
+
+	const QString linkPath = sourceDirectory.path() % "/dev_link";
+	REQUIRE(QFile::link(QStringLiteral("/dev"), linkPath));
+
+	// Moving the link within its own filesystem is a rename of the link entry; the target's device must not matter
+	CHECK(CFileSystemObject(linkPath).isMovableTo(CFileSystemObject(destinationDirectory.path())));
+
+	// A destination that is a link to another filesystem resolves there, so a rename into it is not possible
+	writeTestFile(sourceDirectory.path() % "/file.bin", QByteArray(100, 'F'));
+	CHECK(!CFileSystemObject(sourceDirectory.path() % "/file.bin").isMovableTo(CFileSystemObject(linkPath)));
+}
+#endif
