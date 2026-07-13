@@ -206,7 +206,7 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 		// Guess which matching encoding could be marked as selected in the menu
 		if (result->encoding.compare("utf-8", Qt::CaseInsensitive) == 0)
 			actionUTF_8->setChecked(true);
-		else if (result->encoding.compare("utf-16", Qt::CaseInsensitive) == 0)
+		else if (result->encoding.startsWith(QStringLiteral("UTF-16"), Qt::CaseInsensitive))
 			actionUTF_16->setChecked(true);
 		else if (result->encoding.contains("1251") || result->encoding.contains("1252"))
 			actionASCII_Windows_1252->setChecked(true);
@@ -267,14 +267,21 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 
 bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 {
-	QTextCodec* codec = QTextCodec::codecForName("UTF-8");
-	if (!codec)
-		return false;
+	QString text;
+	if (const CTextEncodingDetector::DecodedText decodedText = CTextEncodingDetector::decodeUtfBom(fileData); !decodedText.encoding.isEmpty())
+	{
+		if (decodedText.encoding.compare(QStringLiteral("UTF-8"), Qt::CaseInsensitive) != 0)
+			return false;
 
-	QTextCodec::ConverterState state;
-	QString text = codec->toUnicode(fileData.constData(), (int)fileData.size(), &state);
-	if (state.invalidChars > 0)
-		return false;
+		text = decodedText.text;
+	}
+	else
+	{
+		if (!isUtf8(fileData))
+			return false;
+
+		text = QString::fromUtf8(fileData);
+	}
 
 	if (useFastMode)
 	{
@@ -330,8 +337,8 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 
 bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 {
-	const auto result = decodeText(fileData);
-	if (!result || (result->text.isEmpty() && !fileData.isEmpty()))
+	const auto result = decodeUnicodeText(fileData);
+	if (!result)
 		return false;
 
 	resetHighlighter();
@@ -366,30 +373,25 @@ std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
 std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeText(const QByteArray& textData)
 {
 	auto result = CTextEncodingDetector::decode(textData);
-	if (!result.text.isEmpty())
+	if (!result.encoding.isEmpty() || !result.text.isEmpty())
 		return result;
 
-	QTextCodec::ConverterState state;
-	QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+	QTextCodec *codec = QTextCodec::codecForLocale();
 	if (!codec)
 		return {};
 
-	QString text = codec->toUnicode(textData.constData(), (int)textData.size(), &state);
-	if (state.invalidChars > 0)
-	{
-		codec = QTextCodec::codecForLocale();
-		if (!codec)
-			return {};
+	result.encoding = codec->name();
+	result.language = {};
+	result.text = codec->toUnicode(textData);
+	return result;
+}
 
-		result.encoding = codec->name();
-		result.language = {};
-		result.text = codec->toUnicode(textData);
-		return std::move(result);
-	}
-	else
-	{
-		return CTextEncodingDetector::DecodedText{.text = std::move(text), .encoding = "utf-8", .language = {}};
-	}
+std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeUnicodeText(const QByteArray& textData)
+{
+	if (const CTextEncodingDetector::DecodedText decodedText = CTextEncodingDetector::decodeUtfBom(textData); !decodedText.encoding.isEmpty())
+		return decodedText;
+
+	return CTextEncodingDetector::DecodedText{QString::fromUtf8(textData), "UTF-8", {}};
 }
 
 void CTextViewerWindow::find()

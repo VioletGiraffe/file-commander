@@ -41,6 +41,7 @@ private:
 
 	[[nodiscard]] std::optional<QByteArray> readFileAndReportErrors() const;
 	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeText(const QByteArray& textData);
+	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeUnicodeText(const QByteArray& textData);
 
 	void find();
 	void findNext();
