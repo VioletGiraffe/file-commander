@@ -1,9 +1,10 @@
 #include "filestatistics.h"
 #include "../cfilesystemobject.h"
 
+#include <3rdparty/ankerl/unordered_dense.h>
+
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
-#include <QSet>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -44,7 +45,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 
 	// Canonical targets of directory links already queued for scanning: each target is counted once, and link cycles can't
 	// keep the queue alive forever. Guarded by queueMutex once the worker threads are running.
-	QSet<QString> queuedLinkTargets;
+	ankerl::unordered_dense::set<QString> queuedLinkTargets;
 
 	for (const QString& path : rootPaths)
 	{
