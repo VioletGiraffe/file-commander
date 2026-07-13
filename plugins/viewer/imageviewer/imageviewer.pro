@@ -7,11 +7,6 @@ CONFIG += strict_c++
 
 include(../../../global.pri)
 
-mac* | linux* | freebsd{
-	CONFIG(release, debug|release):CONFIG *= Release optimize_full
-	CONFIG(debug, debug|release):CONFIG *= Debug
-}
-
 contains(QT_ARCH, x86_64) {
 	ARCHITECTURE = x64
 } else {
