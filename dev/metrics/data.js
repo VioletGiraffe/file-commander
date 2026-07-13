@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783949210445,
+  "lastUpdate": 1783950403986,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -2369,6 +2369,75 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/3c7b0767b329a957dba98a1dbac376f7250ae101"
         },
         "date": 1783949207373,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14857,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8280,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1210,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 621.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 366.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "452aa75e43373090b2a607e68e8efeaa6754b3b0",
+          "message": "CI: parallel app compilation and testing",
+          "timestamp": "2026-07-13T16:40:40+03:00",
+          "tree_id": "620cdcd3bdca3be35ef5f25aaf42fd575546307f",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/452aa75e43373090b2a607e68e8efeaa6754b3b0"
+        },
+        "date": 1783950400726,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
