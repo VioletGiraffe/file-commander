@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783947070162,
+  "lastUpdate": 1783947751148,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -2256,6 +2256,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 366.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "73c6b402497153963b69f9a94bb5e9fb0475be28",
+          "message": "QSet -> ankerl::unordered_dense::set",
+          "timestamp": "2026-07-13T15:57:13+03:00",
+          "tree_id": "4013f86f051cdd7aa712106fe497d05d936b768e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/73c6b402497153963b69f9a94bb5e9fb0475be28"
+        },
+        "date": 1783947748664,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14840,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8280,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1207.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 619.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 366,
             "unit": "KB"
           },
           {
