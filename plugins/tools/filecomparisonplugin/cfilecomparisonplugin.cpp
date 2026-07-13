@@ -2,8 +2,10 @@
 #include "plugininterface/cpluginproxy.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QApplication>
 #include <QFile>
 #include <QMessageBox>
+#include <QMetaObject>
 RESTORE_COMPILER_WARNINGS
 
 #include <memory>
@@ -14,9 +16,14 @@ CFileCommanderPlugin* createPlugin()
 	return new CFileComparisonPlugin;
 }
 
-CFileComparisonPlugin::CFileComparisonPlugin() noexcept
+CFileComparisonPlugin::CFileComparisonPlugin() noexcept :
+	_progressDialog(std::make_unique<CSimpleProgressDialog>())
 {
-	_progressDialog.setLabelText(QObject::tr("Comparing the selected files..."));
+	_progressDialog->setLabelText(QObject::tr("Comparing the selected files..."));
+	QObject::connect(qApp, &QCoreApplication::aboutToQuit, _progressDialog.get(), [this]() {
+		_comparator.abortComparison();
+		_progressDialog.reset();
+	});
 }
 
 QString CFileComparisonPlugin::name() const
@@ -80,25 +87,26 @@ void CFileComparisonPlugin::compareSelectedFiles()
 		return;
 	}
 
-	_progressDialog.show();
-	_progressDialog.adjustSize();
+	_progressDialog->show();
+	_progressDialog->adjustSize();
+	auto* const progressDialog = _progressDialog.get();
 
 	_comparator.compareFilesThreaded(std::move(fileA), std::move(fileB),
-		[this](int progressPercentage) {
-			_proxy->execOnUiThread([this, progressPercentage]() {
-				_progressDialog.setValue(progressPercentage);
-			});
+		[progressDialog](int progressPercentage) {
+			QMetaObject::invokeMethod(progressDialog, [progressDialog, progressPercentage]() {
+				progressDialog->setValue(progressPercentage);
+			}, Qt::QueuedConnection);
 		},
 
-		[filePathA{ currentItem.fullAbsolutePath() }, filePathB{ otherFilePath }, this](CFileComparator::ComparisonResult result) {
-			_proxy->execOnUiThread([this, result, filePathA, filePathB]() {
-				_progressDialog.hide();
+		[filePathA{ currentItem.fullAbsolutePath() }, filePathB{ otherFilePath }, progressDialog](CFileComparator::ComparisonResult result) {
+			QMetaObject::invokeMethod(progressDialog, [progressDialog, result, filePathA, filePathB]() {
+				progressDialog->hide();
 
 				if (result == CFileComparator::Equal)
 					QMessageBox::information(nullptr, QObject::tr("Files are identical"), QObject::tr("The file\n%1\n\nis IDENTICAL to\n\n%2.").arg(filePathA, filePathB));
 				else if (result == CFileComparator::NotEqual)
 					QMessageBox::warning(nullptr, QObject::tr("Files differ"), QObject::tr("The file\n%1\n\nis DIFFERENT from\n\n%2.").arg(filePathA, filePathB));
-			});
+			}, Qt::QueuedConnection);
 		}
 	);
 }

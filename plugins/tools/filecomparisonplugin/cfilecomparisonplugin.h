@@ -4,6 +4,8 @@
 #include "filecomparator/cfilecomparator.h"
 #include "dialogs/csimpleprogressdialog.h"
 
+#include <memory>
+
 class CFileComparisonPlugin : public CFileCommanderToolPlugin
 {
 public:
@@ -18,6 +20,6 @@ private:
 	void compareSelectedFiles();
 
 private:
-	CFileComparator _comparator;
-	CSimpleProgressDialog _progressDialog;
+	std::unique_ptr<CSimpleProgressDialog> _progressDialog;
+	CFileComparator _comparator; // Must stop its worker before _progressDialog is destroyed.
 };

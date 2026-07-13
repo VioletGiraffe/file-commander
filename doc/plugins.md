@@ -77,7 +77,7 @@ Built before `qt-app`. Output names `plugin_<x>` (e.g. `libplugin_imageviewer.so
 |--------|------|------|-------|
 | Image viewer | `plugins/viewer/imageviewer` | Viewer | `CImageViewerPlugin` + `CImageViewerWidget`/`Window`. Backed by the **image-processing** submodule. |
 | Text viewer | `plugins/viewer/textviewer` | Viewer | `CTextViewerPlugin` + `CTextViewerWindow`, `CLightningFastViewer`, `CTextEditWithImageSupport`, `CFindDialog`. Encoding detection via **text-encoding-detector** submodule; syntax highlighting via vendored **qutepart-cpp** (`3rdparty/diegoiast/qutepart-cpp`). |
-| File comparison | `plugins/tools/filecomparisonplugin` | Tool | `CFileComparisonPlugin` — adds a Tools-menu entry; compares the two selected files via core `CFileComparator`, shows a `CSimpleProgressDialog`. |
+| File comparison | `plugins/tools/filecomparisonplugin` | Tool | `CFileComparisonPlugin` — adds a Tools-menu entry; compares the two selected files via core `CFileComparator`, shows a `CSimpleProgressDialog`. Worker callbacks are queued against the dialog's Qt lifetime rather than through the controller proxy. Application shutdown aborts and joins the comparator before destroying the dialog; member order provides the same guarantee on other destruction paths. |
 
 Each `.pro` declares its `depends` on `file_commander_core` + needed submodules (see top-level
 `file-commander.pro`).
