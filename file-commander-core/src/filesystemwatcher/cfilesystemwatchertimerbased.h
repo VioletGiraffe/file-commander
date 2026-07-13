@@ -6,6 +6,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
+#include <stdint.h>
 #include <mutex>
 #include <set>
 
@@ -42,17 +43,17 @@ public:
 
 private:
 	void onCheckForChanges();
-	void processChangesAndNotifySubscribers(QFileInfoList&& newState);
+	void processChangesAndNotifySubscribers(QFileInfoList&& newState, uint64_t pathGeneration);
 
 private:
 	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CFileSystemWatcher thread" };
+	// Accessed only by the periodic thread. A generation mismatch makes the next completed scan a silent baseline.
 	std::set<FileSystemInfoWrapper> _previousState;
+	uint64_t _previousStateGeneration = 0;
 
 	std::recursive_mutex _mutex;
 	QString _pathToWatch;
+	uint64_t _pathGeneration = 0;
 
 	std::atomic_bool _bChangeDetected = false;
-
-	bool _firstUpdate = true;
-	bool _pathChanged = false;
 };

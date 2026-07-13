@@ -52,7 +52,9 @@ hide it as soon as the panel moves to a different view. Preserve this for every 
 - `COperationPerformer`: `_waitForResponseMutex` + `_waitForResponseCondition` (worker blocks for the user's
   conflict decision); state flags are `std::atomic<bool>` (`_paused/_inProgress/_done/_cancelRequested`).
 - `CFileOperationObserver`: `_callbackMutex` guarding the buffered `_callbacks` replayed on `processEvents()`.
-- Both filesystem watchers: an internal mutex makes `setPathToWatch`/`changesDetected` thread-safe.
+- Both filesystem watchers: an internal mutex makes `setPathToWatch`/`changesDetected` thread-safe. The
+  timer-based watcher associates each scan with a path generation, discards obsolete scans, and treats the
+  first committed scan of every generation as a silent baseline.
 
 ## File-operation handshake (worker <-> UI)
 

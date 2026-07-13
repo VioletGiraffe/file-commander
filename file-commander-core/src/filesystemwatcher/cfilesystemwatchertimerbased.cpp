@@ -48,8 +48,8 @@ bool CFileSystemWatcherTimerBased::setPathToWatch(const QString& path)
 
 	{
 		std::lock_guard locker{ _mutex };
-		_pathChanged = true; // This is a signal that the currently stored state is not valid. Avoids the need to lock all accesses to '_previousState'.
 		_pathToWatch = path;
+		++_pathGeneration;
 		_bChangeDetected = false;
 	}
 
@@ -69,37 +69,41 @@ bool CFileSystemWatcherTimerBased::changesDetected() noexcept
 
 void CFileSystemWatcherTimerBased::onCheckForChanges()
 {
-	std::unique_lock locker{ _mutex };
-	if (_pathToWatch.isEmpty())
-		return;
-
-	if (_pathChanged) [[unlikely]]
+	QString pathToWatch;
+	uint64_t pathGeneration;
 	{
-		_pathChanged = false;
-		_previousState.clear();
+		std::lock_guard locker{ _mutex };
+		if (_pathToWatch.isEmpty())
+			return;
+
+		pathToWatch = _pathToWatch;
+		pathGeneration = _pathGeneration;
 	}
 
-	QDir directory(_pathToWatch);
-	locker.unlock();
-
+	QDir directory(pathToWatch);
 	auto state = directory.entryInfoList(QDir::Dirs | QDir::Files | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
-	processChangesAndNotifySubscribers(std::move(state));
+	processChangesAndNotifySubscribers(std::move(state), pathGeneration);
 }
 
-void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(QFileInfoList&& newState)
+void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(QFileInfoList&& newState, uint64_t pathGeneration)
 {
 	std::set<FileSystemInfoWrapper> newItemsSet;
 	for (auto&& info : newState)
 		newItemsSet.emplace(std::move(info));
 
-	if (!_firstUpdate) [[likely]]
+	// _previousState is polling-thread-only, so the potentially expensive comparison needs no mutex. A path
+	// change during the scan or comparison is rejected by the generation check below.
+	const bool differenceFound = _previousStateGeneration == pathGeneration && !SetOperations::is_equal_sets(newItemsSet, _previousState);
+
 	{
-		const bool differenceFound = !SetOperations::is_equal_sets(newItemsSet, _previousState);
+		std::lock_guard locker{ _mutex };
+		if (_pathToWatch.isEmpty() || pathGeneration != _pathGeneration)
+			return;
+
 		if (differenceFound)
 			_bChangeDetected = true;
-	}
-	else
-		_firstUpdate = false;
 
-	_previousState = std::move(newItemsSet);
+		_previousState.swap(newItemsSet);
+		_previousStateGeneration = pathGeneration;
+	}
 }

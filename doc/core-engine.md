@@ -165,7 +165,9 @@ see [oddities.md](oddities.md).)
 - **Windows:** `CFileSystemWatcherWindows` — `QAbstractNativeEventFilter`, native `HANDLE`-based change
   notifications. `setPathToWatch` / poll `changesDetected()`; both thread-safe (`_mtx`).
 - **Else:** `CFileSystemWatcherTimerBased` — periodic re-scan on a `CPeriodicExecutionThread`, diffing a
-  `std::set<FileSystemInfoWrapper>` (name + size). Same `setPathToWatch` / `changesDetected` poll contract.
+  `std::set<FileSystemInfoWrapper>` (name + size). Each path assignment advances a generation; obsolete scans
+  are discarded and the first committed scan for the new generation establishes a baseline without reporting
+  a change. Same `setPathToWatch` / `changesDetected` poll contract.
 
 Each `CPanel` owns one and polls it on the UI timer tick.
 
