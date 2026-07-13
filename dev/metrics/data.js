@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783954319205,
+  "lastUpdate": 1783956349815,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -2576,6 +2576,75 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/fdfa41eb7b00c501780688ce260d984e29c65dab"
         },
         "date": 1783954316822,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14859,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8280,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1210,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 621.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 366.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "8d53ab35098f1edb168b0ee260c7203582bc8f8f",
+          "message": "LTO enabled on Linux/Mac; minor .pro cleanup",
+          "timestamp": "2026-07-13T18:20:05+03:00",
+          "tree_id": "0ca9111269f6779d386349f0b84b68bfe58a30b9",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/8d53ab35098f1edb168b0ee260c7203582bc8f8f"
+        },
+        "date": 1783956346775,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
