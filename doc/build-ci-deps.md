@@ -60,7 +60,9 @@ Triggers: push, pull_request, workflow_dispatch. Matrix (`fail-fast: false`): `u
 - **Build + run core tests** (when `tests_relevant`): `fso_test`, `fso_test_high_level`,
   `operationperformer_test` **x20 with random `--std-seed`**, `filecomparator_test` (random seed). Windows
   runs the op-performer tests against a **512 MB RAM disk (R:)** set as TEMP/TMP. See [../doc/qt-ui.md]
-  and core-tests below.
+  and core-tests below. The Windows step runs under **`pwsh` with `$PSNativeCommandUseErrorActionPreference
+  = $true`**: without it PowerShell propagates only the *last* command's exit code, so a test failing before
+  the final one leaves the step green — this exact hole hid failing tests until it was fixed.
 - Upload artifacts: `FileCommander.exe` / `.dmg` / `.AppImage`.
 
 **`create-release` job** (only on tag push `refs/tags/*`): downloads the three artifacts, generates a
@@ -76,11 +78,16 @@ Core tests: `file-commander-core/core-tests/` (`core-tests.pro` aggregates sub-`
 |------|--------|-------|
 | `fso_test` | `filesystemobject/fso_test.cpp` | Uses `QFileInfo_Test`/`QDir_Test` mocks (`CFILESYSTEMOBJECT_TEST`). `qdir_test.*`, `qfileinfo_test.*`. |
 | `fso_test_high_level` | `filesystemobject-high-level/fso_test_high_level.cpp` | Real filesystem. |
-| `operationperformer_test` | `operationperformer/operationperformertest.cpp` | Stress: 20x random seed; RAM disk on Windows CI. |
+| `operationperformer_test` | `operationperformer/operationperformertest.cpp` + `directorylinktests.cpp` (shared helpers in `operationperformertesthelpers.h`) | Stress: 20x random seed; RAM disk on Windows CI. Link tests (`[operationperformer-links]`) create junctions on Windows via `mklink /J` — no admin needed, unlike symlinks. |
 | `filecomparator_test` | `filecomparator/filecomparator_test.cpp` | Random seed. |
 
 Shared test helpers in `core-tests/test-utils/src/`: `ctestfoldergenerator`, `crandomdatagenerator`,
 `cfolderenumeratorrecursive`, `foldercomparator`, `qt_helpers`.
+
+**Caution — Catch2 test names become directory names.** Test titles are interpolated into `QTemporaryDir`
+templates, so a title must not contain characters illegal in a filename on the strictest platform. A `:` in
+a test name (e.g. `CFileManipulator::remove()`) silently fails temp-dir creation on Windows only, surfacing
+as an unrelated-looking `isValid()` REQUIRE failure.
 
 GUI tests: `qt-app/gui-tests/` (e.g. `combobox/`) — minimal, manual, not in CI.
 

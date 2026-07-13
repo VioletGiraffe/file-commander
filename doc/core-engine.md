@@ -82,11 +82,20 @@ to its own panels purely to drive persistence and the visited-locations log).
 ## CFileSystemObject (`src/cfilesystemobject.{h,cpp}`)
 
 Wrapper around `QFileInfo` for one file/dir/bundle. Carries a `CFileSystemObjectProperties` value
-(`size, hash, completeBaseName, extension, fullName, fullPath, type, exists`). `type()` is
+(`size, hash, completeBaseName, extension, fullName, fullPath, type, exists, isLink`). `type()` is
 `UnknownType/Directory/File/Bundle`.
 
 - Rich predicates: `isFile/isDir/isBundle/isEmptyDir/isCdUp/isExecutable/isReadable/isWriteable/isHidden/
-  isSymLink/isNetworkObject`, `symLinkTarget`, `rootFileSystemId` (same-drive test), `isMovableTo`.
+  isLink/isSymLink/isNetworkObject`, `symLinkTarget`, `rootFileSystemId` (same-drive test), `isMovableTo`.
+- **Links are the sharp edge.** Qt's *classification* calls (`isDir/isFile/exists/size`) transparently
+  follow a symlink/junction to its target and that cannot be turned off — a dir link classifies as
+  `Directory`, which is why `type` deliberately stays `Directory` for one (navigation works). To ask "is
+  this *itself* a link?" use `isLink()` = `QFileInfo::isSymbolicLink() || isJunction()`, computed once in
+  `refreshInfo()` and stored. **Not `isSymLink()`** — the legacy Qt call also reports `true` for Windows
+  `.lnk` shortcuts, which are regular files here. `exists = isLink || QFileInfo::exists()` so a broken link
+  still counts as existing, and a broken link gets `type = File` so it stays listed and deletable. For a
+  link, `isMovableTo` decides by the link's *parent* directory's device (a same-drive move renames the link
+  entry itself, so the target's device is irrelevant).
 - `hash()` is the identity used everywhere. `setDirSize` is a documented hack to stash a computed dir size.
 - Times (`creationTime`/`modificationTime`) are lazily cached (`mutable`, sentinel `invalid_time`).
 - **Test seam:** under `#define CFILESYSTEMOBJECT_TEST`, `QFileInfo`/`QDir` are macro-swapped for
@@ -104,6 +113,14 @@ Two layers:
   (`_destFile`) for the destination and `QFile` for the source; preserves permissions + the 4 file
   timestamps. `lastErrorMessage()` for diagnostics. `TransferPermissions`/`OverwriteExistingFile` are
   named-bool wrappers (from cpputils) to avoid bare-bool params.
+  - **Stores `const CFileSystemObject& _srcObject` — a reference, not a copy.** The object must outlive the
+    manipulator; binding a temporary is a dangling reference (heap-corruption crash on Windows, empty-path
+    failures on macOS, silent luck on Linux). The rvalue ctor is `= delete`d to make that a compile error —
+    always pass a named lvalue.
+  - **Link handling:** `remove` on a link unlinks the link entry itself, never the target (`rmdir`/
+    `RemoveDirectory` for a dir link, `QFile::remove` for a file link); `moveAtomically` renames the link
+    as-is. Both first strip a trailing `/` from the path — a dir object's `fullAbsolutePath()` ends in `/`,
+    and `"link/"` resolves *through* the link on POSIX, hitting the target instead of the link.
 - **`COperationPerformer` (`src/fileoperations/coperationperformer.{h,cpp}`)** — the batch engine. Runs a
   whole copy/move/delete on its **own `std::thread`**, reporting through `CFileOperationObserver`.
   - Ctor takes `Operation` (`operationCopy/Move/Delete`) + source FSO(s) + optional destination.
@@ -124,10 +141,23 @@ Two layers:
 
 ## Directory traversal — `scanDirectory` (`src/directoryscanner.{h,cpp}`)
 
-Free function: `scanDirectory(root, observer, abort = atomic<bool>{false})`. Recursively walks `root`,
-invoking `observer(fso)` per item, abortable via the atomic flag. The shared recursive enumeration used by
-size calculation / "show all files below" / search-like sweeps. (Default arg binds a const ref to a
-temporary `atomic` — valid for the whole call incl. recursion; see [oddities.md](oddities.md).)
+Free function: `scanDirectory(root, observer, abort = atomic<bool>{false}, followDirLinks = true)`.
+Recursively walks `root`, invoking `observer(fso, reachedThroughLink)` per item, abortable via the atomic
+flag. The shared recursive enumeration used by size calculation / "show all files below" / search-like
+sweeps. (Default arg binds a const ref to a temporary `atomic` — valid for the whole call incl. recursion;
+see [oddities.md](oddities.md).)
+
+- **`followDirLinks`** — when `false`, a dir link is reported as an item but not descended into. Delete
+  passes `false` (it must remove the link, never recurse into and destroy the target's contents); copy/move
+  enumeration passes `true` (linked content is materialized as real files at the destination).
+- **`reachedThroughLink`** — `true` for items found by traversing a link. `COperationPerformer` uses it so a
+  move *copies* through-link items but never *deletes* them (they belong to the link's target, not the source).
+- **Cycle guard.** Following links can loop (a link to its own ancestor, or two links pointing at each other).
+  The scanner keeps the chain of directories currently on the recursion stack and refuses to descend into a
+  link whose target is one of them. **Identity is compared via `resolvedFileSystemItemId` (device+inode /
+  volume-serial+file-index), not path strings** — `QFileInfo::canonicalFilePath()` does not resolve NTFS
+  junction targets, so an earlier path-prefix version passed on POSIX but let junction cycles through on
+  Windows. Only links pay for the identity lookups; plain trees never reach this branch.
 
 ## Filesystem watching (`src/filesystemwatcher/`)
 
@@ -167,7 +197,10 @@ Each `CPanel` owns one and polls it on the UI timer tick.
 - **`CFileComparator` (`src/filecomparator/`)** — binary/byte comparison engine; used by the file-comparison
   plugin and covered by `filecomparator_test`.
 - **`filestatistics` / `filesystemhelpers` / `filesystemhelperfunctions`** — recursive size/count stats,
-  path helpers, misc fs utilities.
+  path helpers, misc fs utilities. `resolvedFileSystemItemId(path)` (in `filesystemhelperfunctions`) returns
+  the unique identity of the entry a path resolves to (`{device, inode}` on POSIX, `{volume serial, file
+  index}` via `GetFileInformationByHandle` on Windows) — the correct primitive for "same file/dir?" tests,
+  used by both link cycle guards. `filestatistics`' parallel BFS carries the same guard as a visited-target set.
 
 ## Key core data structures
 
