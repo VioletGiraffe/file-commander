@@ -66,6 +66,15 @@ RESTORE_COMPILER_WARNINGS
 
 CMainWindow * CMainWindow::_instance = nullptr;
 
+namespace
+{
+void showDeleteItemsError()
+{
+	if (auto* mainWindow = CMainWindow::get())
+		QMessageBox::warning(mainWindow, mainWindow->tr("Error deleting items"), mainWindow->tr("Failed to delete the selected items"));
+}
+}
+
 CMainWindow::CMainWindow(QWidget *parent) noexcept :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow)
@@ -500,11 +509,10 @@ void CMainWindow::deleteFiles()
 	void* windowHandle = nullptr;
 #endif
 
-	_controller->execOnWorkerThread([=, this]() {
+	auto* controller = _controller.get();
+	controller->execOnWorkerThread([controller, paths = std::move(paths), windowHandle]() {
 		if (!OsShell::deleteItems(paths, true, windowHandle))
-			_controller->execOnUiThread([this]() {
-			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
-		});
+			controller->execOnUiThread(showDeleteItemsError);
 	});
 
 #else
@@ -526,11 +534,11 @@ void CMainWindow::deleteFilesIrrevocably()
 	for (auto& item : items)
 		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
-	_controller->execOnWorkerThread([=, this]() {
-		if (!OsShell::deleteItems(paths, false, reinterpret_cast<void*>(winId())))
-			_controller->execOnUiThread([this]() {
-			QMessageBox::warning(this, tr("Error deleting items"), tr("Failed to delete the selected items"));
-		});
+	auto* windowHandle = reinterpret_cast<void*>(winId());
+	auto* controller = _controller.get();
+	controller->execOnWorkerThread([controller, paths = std::move(paths), windowHandle]() {
+		if (!OsShell::deleteItems(paths, false, windowHandle))
+			controller->execOnUiThread(showDeleteItemsError);
 	});
 #else
 	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
