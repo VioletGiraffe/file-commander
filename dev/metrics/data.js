@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783944890821,
+  "lastUpdate": 1783947070162,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -2187,6 +2187,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 366,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "72f49cea510795c9742c4de9035aa3f0c77c28e3",
+          "message": "Symlink/junction handling fixed. Proper implementation; move/copy operations materialize the content (same drive rename still renames the link itself); guard against cyclic links added",
+          "timestamp": "2026-07-13T15:46:37+03:00",
+          "tree_id": "5396f1939b8cba2ae2e598eba7d2108cd8c35600",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/72f49cea510795c9742c4de9035aa3f0c77c28e3"
+        },
+        "date": 1783947067979,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14840,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8280,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1209,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 620.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 366.5,
             "unit": "KB"
           },
           {
