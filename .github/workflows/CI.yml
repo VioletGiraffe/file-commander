@@ -234,7 +234,6 @@ jobs:
         dir
         "%QT_ROOT_DIR%\bin\qmake.exe" -tp vc -r
         msbuild /t:Build /p:Configuration=Release;PlatformToolset=v143 core-tests.sln
-        cd ..\..
 
     - name: Setup RAM Disk
       if: startsWith(matrix.os, 'windows')
@@ -255,20 +254,21 @@ jobs:
 
     - name: Running tests - Windows
       if: startsWith(matrix.os, 'windows') && steps.changes.outputs.tests_relevant == 'true'
-      shell: powershell
+      shell: pwsh
       run: |
+        # Fail the step on the first test executable that exits with a nonzero code (default pwsh behavior only propagates the last command's exit code)
+        $PSNativeCommandUseErrorActionPreference = $true
+        $ErrorActionPreference = 'Stop'
         .\bin\release\x64\fso_test.exe
         .\bin\release\x64\fso_test_high_level.exe
         $N=20
         For ($i=1; $i -le $N; $i++) {
           Write-Output "Iteration $i/$N"
-          $randomSeed = ((get-date -Uformat %s).remove(10, 1));
-          $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
+          $randomSeed = Get-Date -UFormat %s
           & .\bin\release\x64\operationperformer_test.exe --std-seed $randomSeed;
         }
 
-        $randomSeed = ((get-date -Uformat %s).remove(10, 1));
-        $randomSeed = $randomSeed.substring($randomSeed.Length - 8);
+        $randomSeed = Get-Date -UFormat %s
         & .\bin\release\x64\filecomparator_test.exe --std-seed $randomSeed;
 
     - name: Building tests - Mac
