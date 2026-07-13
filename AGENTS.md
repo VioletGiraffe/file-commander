@@ -25,5 +25,6 @@
 - Filesystem items are identified throughout the core, UI, selection state, and plugin API by their deterministic `qulonglong` path hash, not directly by path.
 - Core-to-UI notifications use listener/observer interfaces. Slow work runs off the UI thread and returns through execution queues or buffered observer callbacks.
 - All `CPanel` work posted to the shared panel worker pool must carry the panel's task tag. Panel destruction retires that tag; preserve this lifetime guarantee when adding asynchronous work.
+- Every asynchronous `CPanel` operation that can replace the file list must carry the current file-list generation, path, and display mode, build its result locally, and publish only through the guarded commit funnel. Never build or replace `_items` incrementally from a worker.
 - Filesystem links are entries distinct from their targets. Use `CFileSystemObject::isLink()` when that distinction matters, and ensure delete/move operations on a link cannot affect the target. Read the traversal rules in `doc/core-engine.md` before changing recursive operations.
 - Existing settings keys and release identity values are compatibility contracts. Consult the persistence and release-metadata documents before renaming or normalizing them; several intentionally retained values look misspelled or inconsistent.

@@ -36,10 +36,16 @@ Each `CPanel` computes `_taskTag = reinterpret_cast<uint64_t>(this)` and tags ev
 the shared pool may hold its in-flight tasks — `retire` is what makes that safe. Preserve this whenever you
 add async work in `CPanel`.
 
+Every asynchronous operation that replaces a panel's file list also carries that panel's monotonically
+increasing file-list generation, path, and display mode. Workers build a complete local map and publish it
+only through the guarded commit funnel when the request is still current; obsolete results and recovery
+callbacks are discarded. The retained list is labeled with its source path and display mode, and accessors
+hide it as soon as the panel moves to a different view. Preserve this for every new list-producing operation.
+
 ## Locks
 
-- `CPanel::_fileListAndCurrentDirMutex` — `recursive_mutex` guarding the file list + current dir object
-  (written by pool tasks, read by the UI). Recursive because refresh paths can re-enter.
+- `CPanel::_fileListAndCurrentDirMutex` — `recursive_mutex` guarding the current directory, file-list
+  generation, committed list, and its source-view metadata across the UI and panel-pool threads.
 - `CVolumeEnumerator::_mutexForDrives` — `recursive_mutex`; `updateSynchronously()` can enumerate while a
   getter already holds it.
 - `COperationPerformer`: `_waitForResponseMutex` + `_waitForResponseCondition` (worker blocks for the user's

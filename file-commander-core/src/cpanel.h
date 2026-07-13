@@ -19,6 +19,7 @@ using FileSystemWatcher = CFileSystemWatcherTimerBased;
 
 #include <3rdparty/ankerl/unordered_dense.h>
 
+#include <stdint.h>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -124,7 +125,22 @@ public:
 	void uiThreadTimerTick();
 
 private:
+	struct FileListUpdateRequest
+	{
+		uint64_t generation;
+		QString path;
+		CurrentDisplayMode displayMode;
+	};
+
 	[[nodiscard]] bool pathIsAccessible(const QString& path) const;
+	[[nodiscard]] FileListUpdateRequest beginFileListUpdateLocked(CurrentDisplayMode displayMode);
+	[[nodiscard]] bool fileListUpdateIsCurrentLocked(const FileListUpdateRequest& request) const;
+	[[nodiscard]] bool fileListBelongsToCurrentViewLocked() const;
+
+	void enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation);
+	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation);
+	void recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request, FileListRefreshCause operation);
+	void enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const;
 
 	void processContentsChangedEvent();
 
@@ -138,6 +154,9 @@ private:
 	CFileSystemObject                          _currentDirObject;
 	FileSystemWatcher                          _watcher;
 	FileListHashMap                            _items;
+	QString                                    _itemsSourcePath;
+	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
+	uint64_t                                   _fileListGeneration = 0;
 	CHistoryList<QString>                      _history;
 	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _cursorPosForFolder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;

@@ -53,12 +53,40 @@ void CPanel::setActive(bool active)
 {
 	if (active)
 	{
-		// Re-arm the watch for the current folder and refresh, since changes weren't tracked while the tab was inactive.
-		_watcher.setPathToWatch(currentDirPathPosix());
+		CurrentDisplayMode displayMode;
+		QString currentPath;
+		{
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			displayMode = _currentDisplayMode;
+			currentPath = _currentDirObject.fullAbsolutePath();
+		}
+
+		// Flattened mode has no watcher because a single-directory watcher cannot represent its recursive contents.
+		_watcher.setPathToWatch(displayMode == NormalMode ? currentPath : QString{});
 		refreshFileList(refreshCauseOther);
 	}
 	else
 		_watcher.setPathToWatch({}); // Release the OS watch handle while inactive
+}
+
+CPanel::FileListUpdateRequest CPanel::beginFileListUpdateLocked(CurrentDisplayMode displayMode)
+{
+	_currentDisplayMode = displayMode;
+	FileListUpdateRequest request{ ++_fileListGeneration, _currentDirObject.fullAbsolutePath(), displayMode };
+	if (!fileListBelongsToCurrentViewLocked())
+		enqueueContentsChangedNotificationLocked(refreshCauseOther, request.generation);
+
+	return request;
+}
+
+bool CPanel::fileListUpdateIsCurrentLocked(const FileListUpdateRequest& request) const
+{
+	return request.generation == _fileListGeneration && request.path == _currentDirObject.fullAbsolutePath() && request.displayMode == _currentDisplayMode;
+}
+
+bool CPanel::fileListBelongsToCurrentViewLocked() const
+{
+	return _itemsSourcePath == _currentDirObject.fullAbsolutePath() && _itemsSourceDisplayMode == _currentDisplayMode;
 }
 
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
@@ -67,11 +95,10 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	assert_r(!path.contains('\\'));
 #endif
 
-	_currentDisplayMode = NormalMode;
-
 	std::unique_lock locker(_fileListAndCurrentDirMutex);
 
 	const auto oldPathObject = _currentDirObject;
+	const auto oldDisplayMode = _currentDisplayMode;
 
 	bool pathSet = false;
 	for (auto&& candidatePath: pathHierarchy(path))
@@ -128,9 +155,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (_watcher.setPathToWatch(newPath) == false)
 		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
 
-	// If the new folder is one of the subfolders of the previous folder, mark it as the current for that previous folder
-	// We're using the fact that _currentDirObject is already updated, but the _items list is not as it still corresponds to the previous location
-	const auto newItemInPreviousFolder = _items.find(_currentDirObject.hash());
+	// Use the previous view's committed list to remember the selected child when navigating down.
+	const auto newItemInPreviousFolder = _itemsSourcePath == oldPathObject.fullAbsolutePath() && _itemsSourceDisplayMode == oldDisplayMode ? _items.find(_currentDirObject.hash()) : _items.end();
 	if (operation != refreshCauseCdUp && newItemInPreviousFolder != _items.end() && newItemInPreviousFolder->second.parentDirPath() != newItemInPreviousFolder->second.fullAbsolutePath())
 		// Updating the cursor when navigating downwards
 		setCurrentItemForFolder(newItemInPreviousFolder->second.parentDirPath(), _currentDirObject.hash(), false);
@@ -138,9 +164,10 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		// Updating the cursor when navigating upwards
 		setCurrentItemForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, oldPathObject.hash() /* where we were */, false);
 
+	const auto request = beginFileListUpdateLocked(NormalMode);
 	locker.unlock();
 
-	refreshFileList(pathSet ? operation : refreshCauseOther);
+	enqueueFileListUpdate(request, pathSet ? operation : refreshCauseOther);
 	return pathSet ? FileOperationResultCode::Ok : FileOperationResultCode::DirNotAccessible;
 }
 
@@ -196,23 +223,14 @@ const CHistoryList<QString>& CPanel::history() const
 
 void CPanel::showAllFilesFromCurrentFolderAndBelow()
 {
-	_currentDisplayMode = AllObjectsMode;
+	FileListUpdateRequest request;
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		request = beginFileListUpdateLocked(AllObjectsMode);
+	}
+
 	_watcher.setPathToWatch({});
-
-	_workerThreadPool.enqueue([this]() {
-		std::unique_lock locker(_fileListAndCurrentDirMutex);
-		const QString path = _currentDirObject.fullAbsolutePath();
-
-		_items.clear();
-
-		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
-		scanDirectory(CFileSystemObject(path), [showHiddenFiles, this](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
-			if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
-				_items[item.hash()] = item;
-		});
-
-		sendContentsChangedNotification(refreshCauseOther);
-	}, _taskTag);
+	enqueueFileListUpdate(request, refreshCauseOther);
 }
 
 // Switches to the appropriate directory and sets the cursor to the specified item
@@ -228,6 +246,7 @@ bool CPanel::goToItem(const CFileSystemObject& item)
 
 CFileSystemObject CPanel::currentDirObject() const
 {
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	return _currentDirObject;
 }
 
@@ -280,81 +299,102 @@ qulonglong CPanel::currentItemForFolder(const QString &dir) const
 // Enumerates objects in the current directory
 void CPanel::refreshFileList(FileListRefreshCause operation)
 {
-	_workerThreadPool.enqueue([this, operation]() {
-		QFileInfoList list;
+	FileListUpdateRequest request;
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		request = beginFileListUpdateLocked(_currentDisplayMode);
+	}
 
-		bool currentPathIsAccessible = false;
-		QString currentDirPath;
+	enqueueFileListUpdate(request, operation);
+}
 
+void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation)
+{
+	_workerThreadPool.enqueue([this, request = std::move(request), operation]() {
+		if (!pathIsAccessible(request.path))
 		{
-			std::lock_guard locker(_fileListAndCurrentDirMutex);
-
-			currentDirPath = _currentDirObject.fullAbsolutePath();
-			currentPathIsAccessible = pathIsAccessible(currentDirPath);
-		}
-
-		if (!currentPathIsAccessible)
-		{
-			setPath(currentDirPath, operation); // setPath will itself find the closest best folder to set instead
+			execOnUiThread([this, request, operation]() { recoverFromInaccessiblePathIfCurrent(request, operation); });
 			return;
 		}
 
-		{
-			std::lock_guard locker(_fileListAndCurrentDirMutex);
-
-			list = QDir{currentDirPath}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
-			_items.clear();
-		}
-
+		FileListHashMap items;
 		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
-		std::vector<CFileSystemObject> objectsList;
 
-		const size_t numItemsFound = (size_t)list.size();
-		objectsList.reserve(numItemsFound);
-
-		for (size_t i = 0; i < numItemsFound; ++i)
+		if (request.displayMode == AllObjectsMode)
 		{
+			scanDirectory(CFileSystemObject(request.path), [&items, showHiddenFiles](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
+				if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
+					items[item.hash()] = item;
+			});
+		}
+		else
+		{
+			const QFileInfoList directoryEntries = QDir{request.path}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+			for (const QFileInfo& directoryEntry : directoryEntries)
+			{
 #ifndef _WIN32
-			// TODO: Qt bug?
-			if (list[(int)i].absoluteFilePath() == QLatin1String("/.."))
-				continue;
+				// TODO: Qt bug?
+				if (directoryEntry.absoluteFilePath() == QLatin1String("/.."))
+					continue;
 #endif
 
-			objectsList.emplace_back(list[(int)i]);
-			if (!objectsList.back().isFile() && !objectsList.back().isDir())
-				objectsList.pop_back(); // Could be a socket
-		}
+				CFileSystemObject object(directoryEntry);
+				if ((!object.isFile() && !object.isDir()) || !object.exists() || (!showHiddenFiles && object.isHidden()))
+					continue; // Could be a socket
 
-		{
-			std::lock_guard locker(_fileListAndCurrentDirMutex);
-
-			for (const auto& object : objectsList)
-			{
-				if (object.exists() && (showHiddenFiles || !object.isHidden()))
-					_items[object.hash()] = object;
+				const qulonglong hash = object.hash();
+				items[hash] = std::move(object);
 			}
 		}
 
-		sendContentsChangedNotification(operation);
+		publishFileListIfCurrent(request, std::move(items), operation);
 	}, _taskTag);
+}
+
+void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation)
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListUpdateIsCurrentLocked(request))
+		return;
+
+	_items.swap(items);
+	_itemsSourcePath = request.path;
+	_itemsSourceDisplayMode = request.displayMode;
+	enqueueContentsChangedNotificationLocked(operation, request.generation);
+}
+
+void CPanel::recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request, FileListRefreshCause operation)
+{
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		if (!fileListUpdateIsCurrentLocked(request))
+			return;
+	}
+
+	setPath(request.path, operation); // setPath will itself find the closest best folder to set instead
 }
 
 // Returns the current list of objects on this panel
 FileListHashMap CPanel::list() const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return {};
+
 	return _items;
 }
 
 bool CPanel::itemHashExists(const qulonglong hash) const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	return _items.contains(hash);
+	return fileListBelongsToCurrentViewLocked() && _items.contains(hash);
 }
 
 CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return {};
 
 	const auto it = _items.find(hash);
 	return it != _items.end() ? it->second : CFileSystemObject();
@@ -363,6 +403,9 @@ CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 QString CPanel::itemPathByHash(qulonglong hash) const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return {};
+
 	const auto it = _items.find(hash);
 	return it != _items.end() ? it->second.fullAbsolutePath() : QString();
 }
@@ -373,6 +416,9 @@ std::vector<QString> CPanel::itemPathsByHashes(const std::vector<qulonglong>& ha
 	paths.reserve(hashes.size());
 
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return std::vector<QString>(hashes.size());
+
 	for (const auto hash : hashes)
 	{
 		const auto it = _items.find(hash);
@@ -390,6 +436,9 @@ std::vector<qulonglong> CPanel::itemHashes() const
 	std::vector<qulonglong> hashes;
 
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return hashes;
+
 	hashes.reserve(_items.size());
 
 	for (const auto& pair : _items)
@@ -413,20 +462,34 @@ void CPanel::displayDirSize(qulonglong dirHash)
 		// So we find it again and see if it's still there.
 		{
 			std::lock_guard locker{ _fileListAndCurrentDirMutex };
+			if (!fileListBelongsToCurrentViewLocked())
+				return;
+
 			const auto it = _items.find(dirHash);
 			if (it == _items.end())
 				return;
 
 			it->second.setDirSize(stats.occupiedSpace);
+			enqueueContentsChangedNotificationLocked(refreshCauseOther, _fileListGeneration);
 		}
-
-		sendContentsChangedNotification(refreshCauseOther);
 	}, _taskTag);
 }
 
 void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) const
 {
-	execOnUiThread([this, operation]() {
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	enqueueContentsChangedNotificationLocked(operation, _fileListGeneration);
+}
+
+void CPanel::enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const
+{
+	execOnUiThread([this, operation, generation]() {
+		{
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			if (generation != _fileListGeneration)
+				return;
+		}
+
 		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsChanged, _panelPosition, operation);
 	}, ContentsChangedNotificationTag);
 }
