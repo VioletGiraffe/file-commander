@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783965134238,
+  "lastUpdate": 1783971949506,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -2739,6 +2739,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 366.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "feb5ab63caac5f277de519347e48a058e6c3f0d6",
+          "message": "Text viewer: better and more robust unicode auto-detection; opening Markdown only as Unicode - no autodetection",
+          "timestamp": "2026-07-13T22:40:09+03:00",
+          "tree_id": "4003230e8a6225bb037b32ed1c55610c280bdddc",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/feb5ab63caac5f277de519347e48a058e6c3f0d6"
+        },
+        "date": 1783971946676,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14865,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8330,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1212,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 623,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 367,
             "unit": "KB"
           },
           {
