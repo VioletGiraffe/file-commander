@@ -31,6 +31,7 @@ SOURCES += \
 	directorylinktests.cpp \
 	filelinktests.cpp \
 	movelifecycletests.cpp \
+	nativeerrortests.cpp \
 	timestamptransfertests.cpp \
 	../../src/filesystemhelperfunctions.cpp \
 	../../src/fileoperations/coperationperformer.cpp \

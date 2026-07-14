@@ -132,7 +132,7 @@ void COperationPerformer::thread()
 		deleteFiles();
 		break;
 	default:
-		assert_and_return_r("Uknown operation", );
+		assert_and_return_unconditional_r("Unknown operation", );
 	}
 }
 

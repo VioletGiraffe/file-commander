@@ -269,7 +269,11 @@ FileOperationResultCode CFileManipulator::moveAtomically(const QString& destFold
 	}
 	else if (_srcObject.isDir())
 	{
-		return QDir{}.rename(srcPath, fullNewName) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+		if (::rename(QFile::encodeName(srcPath).constData(), QFile::encodeName(fullNewName).constData()) == 0)
+			return FileOperationResultCode::Ok;
+
+		_lastErrorMessage = getLastNativeFileError();
+		return FileOperationResultCode::Fail;
 	}
 	else
 		return FileOperationResultCode::Fail;
@@ -582,20 +586,23 @@ FileOperationResultCode CFileManipulator::remove()
 	else if (_srcObject.isDir())
 	{
 		assert_r(_srcObject.isEmptyDir());
-		errno = 0;
-		if (!QDir{_srcObject.fullAbsolutePath()}.rmdir(QStringLiteral(".")))
-		{
-#if defined __linux || defined __APPLE__ || defined __FreeBSD__
-			if (::rmdir(_srcObject.fullAbsolutePath().toLocal8Bit().constData()) == 0)
-				return FileOperationResultCode::Ok;
 
-			_lastErrorMessage = strerror(errno);
-			return FileOperationResultCode::Fail;
+		QString directoryPath = _srcObject.fullAbsolutePath();
+		if (directoryPath.endsWith('/') && !QDir{directoryPath}.isRoot())
+			directoryPath.chop(1);
+
+#ifdef _WIN32
+		WCHAR directoryPathUnc[32768];
+		toUncWcharArray(directoryPath, directoryPathUnc);
+		if (::RemoveDirectoryW(directoryPathUnc) != 0)
+			return FileOperationResultCode::Ok;
 #else
-			return FileOperationResultCode::Fail;
+		if (::rmdir(QFile::encodeName(directoryPath).constData()) == 0)
+			return FileOperationResultCode::Ok;
 #endif
-		}
-		return FileOperationResultCode::Ok;
+
+		_lastErrorMessage = getLastNativeFileError();
+		return FileOperationResultCode::Fail;
 	}
 	else
 		return FileOperationResultCode::Fail;
