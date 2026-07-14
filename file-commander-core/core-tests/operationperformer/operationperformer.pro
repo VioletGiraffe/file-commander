@@ -30,6 +30,7 @@ SOURCES += \
 	operationperformertest.cpp \
 	directorylinktests.cpp \
 	filelinktests.cpp \
+	timestamptransfertests.cpp \
 	../../src/filesystemhelperfunctions.cpp \
 	../../src/fileoperations/coperationperformer.cpp \
 	../../src/cfilesystemobject.cpp \

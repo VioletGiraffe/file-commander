@@ -53,6 +53,8 @@ public:
 	[[nodiscard]] QString lastErrorMessage() const;
 
 private:
+	friend struct CFileManipulatorTestSeam;
+
 	static QString /* error text; empty on success */ copyPermissions(const QFile& sourceFile, QFile& destinationFile);
 	static QString /* error text; empty on success */ copyPermissions(const QFile& sourceFile, const QString& destinationFilePath);
 

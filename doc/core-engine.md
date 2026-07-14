@@ -128,8 +128,9 @@ Two layers:
     selected pathname: symlink targets and other names for a hard-linked destination remain untouched.
     The staging file is resized before best-effort physical preallocation: unsupported preallocation falls
     back to streaming writes, while actual storage exhaustion is reported distinctly. Cancellation or any
-    pre-publication failure removes the temporary file and preserves the old destination; cleanup failures
-    are reported rather than hidden.
+    pre-publication failure, including failure to transfer permissions or timestamps, removes the temporary
+    file and preserves the old destination; cleanup failures are reported rather than hidden. A copy-based
+    move deletes its source only after publication succeeds.
 - **`COperationPerformer` (`src/fileoperations/coperationperformer.{h,cpp}`)** — the batch engine. Runs a
   whole copy/move/delete on its **own `std::thread`**, reporting through `CFileOperationObserver`.
   - Ctor takes `Operation` (`operationCopy/Move/Delete`) + source FSO(s) + optional destination.

@@ -154,6 +154,24 @@ static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
 	QFileDevice::FileModificationTime,
 };
 
+static QString fileTimeName(const QFileDevice::FileTime fileTimeType)
+{
+	switch (fileTimeType)
+	{
+	case QFileDevice::FileAccessTime:
+		return QStringLiteral("access time");
+	case QFileDevice::FileBirthTime:
+		return QStringLiteral("creation time");
+	case QFileDevice::FileMetadataChangeTime:
+		return QStringLiteral("metadata change time");
+	case QFileDevice::FileModificationTime:
+		return QStringLiteral("modification time");
+	default:
+		assert_unconditional_r("Unknown QFileDevice::FileTime");
+		return QStringLiteral("timestamp");
+	}
+}
+
 // Operations
 CFileManipulator::CFileManipulator(const CFileSystemObject& object) :
 	_srcObject{ object }
@@ -389,9 +407,14 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 
 			if (transferDates)
 			{
-				// Note: The file must be open to use setFileTime()
 				for (const auto fileTimeType : supportedFileTimeTypes)
-					assert_r(metadataFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
+				{
+					if (!metadataFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType)) [[unlikely]]
+					{
+						_lastErrorMessage = QStringLiteral("Failed to set the destination file's %1: %2").arg(fileTimeName(fileTimeType), metadataFile.errorString());
+						return FileOperationResultCode::Fail;
+					}
+				}
 			}
 
 			if (!metadataFile.flush()) [[unlikely]]
