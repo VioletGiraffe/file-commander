@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784053220601,
+  "lastUpdate": 1784054762772,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -3769,6 +3769,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 630.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 368.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e53a587de647de41c60d120dbf7778bd1e9aab05",
+          "message": "Timestamp-setting failures now return Fail with a field-specific diagnostic",
+          "timestamp": "2026-07-14T21:40:29+03:00",
+          "tree_id": "af2cac328d8122ea2927ebbab15e982751e6ae47",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e53a587de647de41c60d120dbf7778bd1e9aab05"
+        },
+        "date": 1784054751151,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15625,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8509,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1221,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 631,
             "unit": "KB"
           },
           {
