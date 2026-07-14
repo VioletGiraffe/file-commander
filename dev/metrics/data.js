@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784045998249,
+  "lastUpdate": 1784053220601,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -3705,6 +3705,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 368,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "5018718fd7770856953ebca94417b93ca1bc3fd5",
+          "message": "Using thin_io again for file copy; unsupported preallocation no longer fails the copy operation - it falls back to streaming; disk-full/quota errors are distinguished from other I/O failures; staging data is synced before atomic publication",
+          "timestamp": "2026-07-14T21:14:02+03:00",
+          "tree_id": "83fe385f6ce5b52eba378335eb86c64637689c57",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/5018718fd7770856953ebca94417b93ca1bc3fd5"
+        },
+        "date": 1784053216519,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15559,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8509,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1220.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 630.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 368.5,
             "unit": "KB"
           },
           {
