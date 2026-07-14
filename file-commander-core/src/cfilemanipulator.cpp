@@ -143,13 +143,13 @@ static bool replaceFileEntry(const QString& sourcePath, const QString& destinati
 #endif
 }
 
-static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
+// Types QFile::setFileTime() can write: access and modification on every platform, birth time only on Windows.
+// (Qt rejects birth/metadata-change writes on Unix, and any invalid QDateTime, with EINVAL.) The copy reads only
+// these from the source so it never reads a timestamp it cannot write back.
+static constexpr QFileDevice::FileTime settableFileTimeTypes[] {
 	QFileDevice::FileAccessTime,
-#ifndef __linux__
+#ifdef _WIN32
 	QFileDevice::FileBirthTime,
-#endif
-#if !defined __linux__ && !defined _WIN32
-	QFileDevice::FileMetadataChangeTime,
 #endif
 	QFileDevice::FileModificationTime,
 };
@@ -315,7 +315,7 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 		// Creating files
 		_thisFile.setFileName(_srcObject.fullAbsolutePath());
 
-		for (const auto fileTimeType: supportedFileTimeTypes)
+		for (const auto fileTimeType: settableFileTimeTypes)
 			_sourceFileTime[fileTimeType] = _thisFile.fileTime(fileTimeType);
 
 		// Initializing - opening files
@@ -411,7 +411,7 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 
 			if (transferDates)
 			{
-				for (const auto fileTimeType : supportedFileTimeTypes)
+				for (const auto fileTimeType : settableFileTimeTypes)
 				{
 					if (!metadataFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType)) [[unlikely]]
 					{
