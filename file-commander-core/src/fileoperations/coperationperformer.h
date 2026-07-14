@@ -17,6 +17,7 @@
 #include <vector>
 
 class QDebug;
+class QFileInfo;
 
 class CFileOperationObserver
 {
@@ -119,6 +120,8 @@ private:
 	// naAbort: the user chose to abort in a prompt; naCancel: cancel() was requested while processing the item
 	enum NextAction {naProceed, naRetryItem, naRetryOperation, naSkip, naAbort, naCancel};
 	[[nodiscard]] NextAction deleteItem(CFileSystemObject& item);
+	[[nodiscard]] NextAction materializeDestinationDirectory(const CFileSystemObject& source, const QFileInfo& destination);
+	[[nodiscard]] NextAction removeDestinationForReplacement(CFileSystemObject& destination);
 	[[nodiscard]] NextAction makeItemWriteable(CFileSystemObject& item);
 	[[nodiscard]] NextAction copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessedPreviously, uint64_t totalSize, size_t currentItemIndex);
 	[[nodiscard]] NextAction mkPath(const QDir& dir);

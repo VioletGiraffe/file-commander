@@ -480,26 +480,6 @@ TEST_CASE((std::string("Cancel during prompt test #") + std::to_string(rand())).
 	REQUIRE(readFileContents(sourceDirectory.path() % "/conflict.bin") == sourceContents);
 }
 
-// Answers hrFileExists prompts with a pre-defined sequence of responses, the way the real prompt dialog would
-struct ScriptedResponsesObserver final : public ProgressObserver {
-	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
-		CHECK(reason == hrFileExists);
-		if (scriptedResponses.empty())
-		{
-			FAIL_CHECK("A prompt occurred, but no scripted response is left for it");
-			performer->userResponse(reason, urAbort, {}); // Must still respond, or the worker thread will wait forever
-			return;
-		}
-
-		const auto [response, newName] = scriptedResponses.front();
-		scriptedResponses.erase(scriptedResponses.begin());
-		performer->userResponse(reason, response, newName);
-	}
-
-	COperationPerformer* performer = nullptr;
-	std::vector<std::pair<UserResponse, QString>> scriptedResponses;
-};
-
 // Verifies the urRename response handling: the renamed destination must undergo the same conflict checks (i.e. prompt again if taken),
 // and the new name must only apply to the item it was given for, without leaking to the subsequent items
 TEST_CASE((std::string("Copy rename conflict test #") + std::to_string(rand())).c_str(), "[operationperformer-conflict]")

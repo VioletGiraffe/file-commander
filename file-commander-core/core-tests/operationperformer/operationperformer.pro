@@ -28,6 +28,7 @@ DEFINES += OPERATION_PERFORMER_CHUNK_SIZE=1024
 
 SOURCES += \
 	operationperformertest.cpp \
+	directorycollisiontests.cpp \
 	directorylinktests.cpp \
 	filelinktests.cpp \
 	movelifecycletests.cpp \

@@ -12,6 +12,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "3rdparty/catch2/catch.hpp"
 
@@ -36,6 +37,26 @@ struct AutoAbortObserver final : public ProgressObserver {
 
 	COperationPerformer* performer = nullptr;
 	int promptCount = 0;
+};
+
+// Answers hrFileExists prompts with a pre-defined sequence of responses, the way the real prompt dialog would.
+struct ScriptedResponsesObserver final : public ProgressObserver {
+	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
+		CHECK(reason == hrFileExists);
+		if (scriptedResponses.empty())
+		{
+			FAIL_CHECK("A prompt occurred, but no scripted response is left for it");
+			performer->userResponse(reason, urAbort, {}); // Must still respond, or the worker thread will wait forever
+			return;
+		}
+
+		const auto [response, newName] = scriptedResponses.front();
+		scriptedResponses.erase(scriptedResponses.begin());
+		performer->userResponse(reason, response, newName);
+	}
+
+	COperationPerformer* performer = nullptr;
+	std::vector<std::pair<UserResponse, QString>> scriptedResponses;
 };
 
 // Friend of COperationPerformer

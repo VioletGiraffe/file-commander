@@ -140,6 +140,9 @@ Two layers:
     source-directory cleanup.
   - Copy-based directory moves merge into compatible existing destination directories and remove each
     source directory, deepest first, after its destination has been materialized successfully.
+  - A source directory colliding with a destination file uses the normal conflict prompt. Overwrite
+    replaces the file and materializes the directory tree, rename rebases all descendants to the new
+    directory name, and skip leaves the whole source subtree untouched.
   - Conflict handling: when it hits a halt condition it calls `onProcessHalted(HaltReason, src, dst, msg)`
     and blocks on a condition variable until the UI calls `userResponse(haltReason, response, newName)`.
     `HaltReason` = `hrFileExists/hrSourceFileIsReadOnly/hrDestFileIsReadOnly/hrFailedToMakeItemWritable/

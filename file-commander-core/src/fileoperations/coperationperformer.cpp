@@ -184,7 +184,7 @@ void COperationPerformer::copyFiles()
 	uint64_t totalSize = 0;
 	uint64_t sizeProcessed = 0;
 
-	const auto destination = enumerateSourcesAndCalcDest(totalSize);
+	auto destination = enumerateSourcesAndCalcDest(totalSize);
 	qInfo() << __FUNCTION__ << "total size:" << totalSize << "bytes";
 	assert_r(destination.size() == _source.size());
 
@@ -301,30 +301,39 @@ void COperationPerformer::copyFiles()
 			if (!waitWhilePaused())
 				return;
 
-			// Creating the folder - empty folders will not be copied without this code
-			CFileSystemObject destObject(destInfo);
-			if (destObject.exists())
-				sourceIterator->materializedSuccessfully = destObject.isDir();
-			else
+			const QString sourceDirectoryPath = sourceIterator->object.fullAbsolutePath();
+			const QString defaultDestinationPath = QDir::cleanPath(destination[currentItemIndex].absoluteFilePath(sourceIterator->object.fullName()));
+			const NextAction nextAction = materializeDestinationDirectory(sourceIterator->object, destInfo);
+			if (nextAction == naRetryItem)
+				continue;
+			else if (nextAction == naSkip)
 			{
-				NextAction nextAction;
-				while ((nextAction = mkPath(QDir(destObject.fullAbsolutePath()))) == naRetryOperation);
-				if (nextAction == naRetryItem)
-					continue;
-				else if (nextAction == naSkip)
+				do
 				{
+					if (sourceIterator->object.isFile())
+						sizeProcessed += sourceIterator->object.size();
 					++currentItemIndex;
 					++sourceIterator;
-					continue;
+				} while (sourceIterator != _source.end() && sourceIterator->object.fullAbsolutePath().startsWith(sourceDirectoryPath));
+				continue;
+			}
+			else if (nextAction != naProceed)
+				return;
+
+			sourceIterator->materializedSuccessfully = true;
+
+			const QString selectedDestinationPath = QDir::cleanPath(destInfo.absoluteFilePath());
+			if (selectedDestinationPath != defaultDestinationPath)
+			{
+				const QString defaultDestinationPrefix = defaultDestinationPath + '/';
+				for (size_t i = currentItemIndex + 1; i < _source.size() && _source[i].object.fullAbsolutePath().startsWith(sourceDirectoryPath); ++i)
+				{
+					QString descendantDestinationPath = QDir::cleanPath(destination[i].absolutePath());
+					if (descendantDestinationPath != defaultDestinationPath && !descendantDestinationPath.startsWith(defaultDestinationPrefix)) [[unlikely]]
+						assert_and_return_unconditional_r("A directory descendant has an unrelated destination path", );
+					descendantDestinationPath.replace(0, defaultDestinationPath.length(), selectedDestinationPath);
+					destination[i] = QDir(descendantDestinationPath);
 				}
-				else if (nextAction == naRetryOperation)
-					return;
-				else if (nextAction == naAbort)
-					return;
-				else if (nextAction != naProceed)
-					assert_unconditional_r("Unexpected next action");
-				else
-					sourceIterator->materializedSuccessfully = true;
 			}
 
 			// Dirs reached through a directory link belong to the link's target - not to be cleaned up; the link itself is a regular cleanup item and gets unlinked
@@ -565,7 +574,7 @@ void COperationPerformer::moveWithinSameDrive()
 		const auto result = itemManipulator.moveAtomically(destFolderPath, newFileName);
 		if (result != FileOperationResultCode::Ok)
 		{
-			const CFileSystemObject destObject{ destFolderPath % '/' % newFileName };
+			CFileSystemObject destObject{ destFolderPath % '/' % newFileName };
 			const auto response = getUserResponse(result == FileOperationResultCode::TargetAlreadyExists ? hrFileExists : hrUnknownError, sourceIterator->object, destObject, itemManipulator.lastErrorMessage());
 			if (response == urSkipThis || response == urSkipAll)
 			{
@@ -583,8 +592,28 @@ void COperationPerformer::moveWithinSameDrive()
 			else
 			{
 				assert_r(response == urProceedWithThis || response == urProceedWithAll);
-				// Overwrite the destination file, as approved by the user
-				const auto overwriteResult = itemManipulator.moveAtomically(destFolderPath, newFileName, OverwriteExistingFile{ true });
+				FileOperationResultCode overwriteResult;
+				if (sourceIterator->object.isDir() && destObject.exists() && !destObject.isDir())
+				{
+					const NextAction removalResult = removeDestinationForReplacement(destObject);
+					if (removalResult == naSkip)
+					{
+						++sourceIterator;
+						++currentItemIndex;
+						continue;
+					}
+					else if (removalResult == naRetryItem)
+						continue;
+					else if (removalResult != naProceed)
+						return;
+
+					destObject.refreshInfo();
+					overwriteResult = itemManipulator.moveAtomically(destFolderPath, newFileName);
+				}
+				else
+					// File replacement is atomic; directories cannot use the replace-existing primitive.
+					overwriteResult = itemManipulator.moveAtomically(destFolderPath, newFileName, OverwriteExistingFile{ true });
+
 				if (overwriteResult != FileOperationResultCode::Ok)
 				{
 					// Deliberately not mapping TargetAlreadyExists to hrFileExists here: a remembered "overwrite all" would answer
@@ -689,6 +718,50 @@ UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSyst
 
 	if (_observer) _observer->onProcessHaltedCallback(hr, src, dst, message, _cancellationRequested);
 	return waitForResponse();
+}
+
+COperationPerformer::NextAction COperationPerformer::materializeDestinationDirectory(const CFileSystemObject& source, const QFileInfo& destination)
+{
+	CFileSystemObject destinationObject(destination);
+	if (destinationObject.exists())
+	{
+		if (destinationObject.isDir())
+			return naProceed;
+
+		const UserResponse response = getUserResponse(hrFileExists, source, destinationObject, {});
+		if (response == urSkipThis || response == urSkipAll)
+			return naSkip;
+		else if (response == urAbort)
+			return naAbort;
+		else if (response == urRetry || response == urRename)
+			return naRetryItem;
+		else if (response != urProceedWithThis && response != urProceedWithAll)
+			assert_and_return_unconditional_r("Unexpected user response", naRetryItem);
+
+		const NextAction removalResult = removeDestinationForReplacement(destinationObject);
+		if (removalResult != naProceed)
+			return removalResult;
+	}
+
+	NextAction creationResult;
+	while ((creationResult = mkPath(QDir(destinationObject.fullAbsolutePath()))) == naRetryOperation);
+	return creationResult;
+}
+
+COperationPerformer::NextAction COperationPerformer::removeDestinationForReplacement(CFileSystemObject& destination)
+{
+	assert_debug_only(destination.exists() && !destination.isDir());
+
+	NextAction result;
+	do
+	{
+		if (!waitWhilePaused())
+			return naCancel;
+
+		result = deleteItem(destination);
+	} while (result == naRetryOperation);
+
+	return result;
 }
 
 COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObject& item)
