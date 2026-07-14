@@ -11,11 +11,19 @@
 #include "hash/jenkins_hash.hpp"
 #include "threading/thread_helpers.h"
 #include "threading/cworkerthread.h"
+#include "utility/on_scope_exit.hpp"
 #include "utility_functions/memory_functions.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QRegularExpression>
 RESTORE_COMPILER_WARNINGS
+
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <memory>
+#include <semaphore>
+#include <thread>
 
 [[nodiscard]] static QString queryToRegex(const QString& query, bool startToEnd)
 {
@@ -78,8 +86,11 @@ inline void replace_null(std::byte* array, size_t size)
 }
 #endif
 
-[[nodiscard]] static bool fileContentsMatches(const QString& path, const QRegularExpression& regex, const QByteArray& memoryPattern)
+[[nodiscard]] static bool fileContentsMatches(const QString& path, const QRegularExpression& regex, const QByteArray& memoryPattern, const std::atomic_bool& cancellationRequested)
 {
+	if (cancellationRequested)
+		return false;
+
 	thin_io::file file;
 	if (!file.open(path.toUtf8().constData(), thin_io::file::open_mode::Read)) [[unlikely]]
 		return false;
@@ -89,7 +100,9 @@ inline void replace_null(std::byte* array, size_t size)
 	const uint64_t fileSize = file.size().value_or(0);
 	if (useRawMemoryPattern && fileSize < (uint64_t)memoryPattern.size()) [[unlikely]]
 		return false;
-	else if (fileSize == 0) [[unlikely]]
+	if (fileSize == 0) [[unlikely]]
+		return false;
+	if (cancellationRequested)
 		return false;
 
 	static constexpr auto toBytePtr = [](const void* ptr) -> const std::byte* {
@@ -105,6 +118,9 @@ inline void replace_null(std::byte* array, size_t size)
 
 	for (uint64_t offset = 0; offset < fileSize; )
 	{
+		if (cancellationRequested)
+			return false;
+
 		static constexpr uint64_t maxLineLength = 4 * 1024;
 
 		const auto maxSearchLength = std::min(fileSize - offset, maxLineLength);
@@ -132,6 +148,34 @@ inline void replace_null(std::byte* array, size_t size)
 
 	return false;
 }
+
+namespace
+{
+struct ContentSearchContext
+{
+	CFileSearchEngine::FileSearchListener* listener;
+	const QRegularExpression* regex;
+	const QByteArray* plainText;
+	const std::atomic_bool* cancellationRequested;
+	std::counting_semaphore<>* availableTaskSlots = nullptr;
+};
+
+[[nodiscard]] static bool acquireContentTaskSlotUnlessCancelled(std::counting_semaphore<>& availableTaskSlots, const std::atomic_bool& cancellationRequested)
+{
+	while (!cancellationRequested)
+	{
+		if (!availableTaskSlots.try_acquire_for(std::chrono::milliseconds{20}))
+			continue;
+
+		if (!cancellationRequested)
+			return true;
+
+		availableTaskSlots.release();
+	}
+
+	return false;
+}
+} // namespace
 
 bool CFileSearchEngine::searchInProgress() const
 {
@@ -222,12 +266,17 @@ void CFileSearchEngine::searchThread(
 			fileContentsPlainText = contentsToFind.toUtf8();
 	}
 
-	CWorkerThreadPool pool{ std::max(std::thread::hardware_concurrency(), 16u), "File search by contents thread pool"};
+	const auto* cancellationRequested = &_workerThread.terminationFlag();
+	ContentSearchContext contentSearchContext{ listener, &fileContentsRegExp, &fileContentsPlainText, cancellationRequested };
+	std::unique_ptr<std::counting_semaphore<>> availableContentTaskSlots;
+	std::unique_ptr<CWorkerThreadPool> contentSearchPool;
 
 	for (const QString& pathToLookIn : where)
 	{
 		scanDirectory(CFileSystemObject(pathToLookIn),
 			[&](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
+				if (*cancellationRequested)
+					return;
 
 				if (itemCounter % 128 == 0)
 				{
@@ -258,22 +307,43 @@ void CFileSearchEngine::searchThread(
 
 				if (searchByContents)
 				{
-					pool.enqueue([path{item.fullAbsolutePath()}, listener, &fileContentsRegExp, &fileContentsPlainText] {
-						if (fileContentsMatches(path, fileContentsRegExp, fileContentsPlainText))
-							listener->matchFound(path);
+					if (*cancellationRequested)
+						return;
+
+					if (!contentSearchPool)
+					{
+						static constexpr uint32_t maximumContentWorkers = 8;
+						const uint32_t contentWorkerCount = std::clamp(std::thread::hardware_concurrency(), 1u, maximumContentWorkers);
+						availableContentTaskSlots = std::make_unique<std::counting_semaphore<>>(contentWorkerCount * 2);
+						contentSearchContext.availableTaskSlots = availableContentTaskSlots.get();
+						contentSearchPool = std::make_unique<CWorkerThreadPool>(contentWorkerCount, "File search by contents thread pool");
+					}
+
+					if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, *cancellationRequested))
+						return;
+
+					contentSearchPool->enqueue([path{item.fullAbsolutePath()}, &contentSearchContext] {
+						EXEC_ON_SCOPE_EXIT([&contentSearchContext] { contentSearchContext.availableTaskSlots->release(); });
+						if (*contentSearchContext.cancellationRequested)
+							return;
+
+						if (fileContentsMatches(path, *contentSearchContext.regex, *contentSearchContext.plainText, *contentSearchContext.cancellationRequested) &&
+							!*contentSearchContext.cancellationRequested)
+							contentSearchContext.listener->matchFound(path);
 					});
 				}
-				else if (nameMatches)
-				{
+				else
 					listener->matchFound(item.fullAbsolutePath());
-				}
 
-			}, _workerThread.terminationFlag());
+			}, *cancellationRequested);
 	}
 
-	const bool interrupt = _workerThread.terminationFlag();
-	pool.finishAllThreads(!interrupt); // On normal exit have to waut for all pending search tasks to complete; on abort terminate ASAP
+	if (contentSearchPool)
+	{
+		// The queue is bounded and every task observes cancellation, so the same drain path is prompt on both normal and canceled exits.
+		contentSearchPool->finishAllThreads(true);
+	}
 
 	const auto elapsedMs = timer.elapsed();
-	listener->searchFinished(_workerThread.terminationFlag() ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
+	listener->searchFinished(*cancellationRequested ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
 }

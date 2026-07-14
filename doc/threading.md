@@ -11,6 +11,7 @@ come from the **qtutils**/**cpputils** submodules — described here by role, no
 |-----------|-------|---------|
 | `CWorkerThreadPool _panelWorkerPool` | `CController` (shared) | All panel tasks for **every tab on both sides**. Injected into each `CPanel`. Declared before `_panels` so it outlives them. |
 | `CWorkerThreadPool _workerThreadPool` | `CController` | General `execOnWorkerThread` tasks not tied to a panel. Destroyed before `_uiQueue`, which its tasks can post to. |
+| lazy `CWorkerThreadPool` | each content search with eligible files | 1-8 content workers, with at most two outstanding file tasks per worker. Name-only searches do not construct it. |
 | `CExecutionQueue _uiQueue` | `CController` | Tasks to run on the UI thread; drained on the UI timer tick. Declared before `_workerThreadPool` so it outlives that producer. |
 | `CExecutionQueue _uiThreadQueue` | each `CPanel` | Per-panel UI marshaling (`execOnUiThread`). |
 | `std::thread _thread` | each `COperationPerformer` | One copy/move/delete batch; blocks on a condition variable for user decisions. |
@@ -27,6 +28,11 @@ come from the **qtutils**/**cpputils** submodules — described here by role, no
 3. Closures run on the UI thread; widgets update.
 
 `execOnUiThread(task, tag)` carries an optional `tag` so queued tasks can be coalesced/cancelled by tag.
+
+Content-search cancellation is checked while waiting for bounded pool capacity and between 4 KiB chunks of
+each mapped file. Search completion always drains the bounded pool: at most 16 outstanding tasks exist, and
+canceled tasks return promptly. A name-only search uses just its outer `CInterruptableThread`; a content
+search adds up to eight content workers only after finding its first eligible file.
 
 ## Lifetime safety: task tags + retire
 

@@ -194,8 +194,9 @@ Each `CPanel` owns one and polls it on the UI timer tick.
   with `subLocations`), persisted under its own settings key (`KEY_FAVORITES`). Owned by the controller.
 - **`CFileSearchEngine` (`src/filesearchengine/`)** — name + content search on a `CInterruptableThread`.
   `search(filters, caseSens, where, contents, ..., listener)`; reports via `FileSearchListener`
-  (`itemScanned`/`matchFound`/`searchFinished(status, itemsScanned, msElapsed)`); `stopSearching`.
-  Backs the Find Files dialog.
+  (`itemScanned`/`matchFound`/`searchFinished(status, itemsScanned, msElapsed)`); `stopSearching`. Name-only
+  searches use only that outer thread. Content searches lazily add 1-8 workers, bound outstanding file tasks
+  to twice the worker count, and check cancellation between 4 KiB chunks. Backs the Find Files dialog.
 - **`CFileComparator` (`src/filecomparator/`)** — binary/byte comparison engine; used by the file-comparison
   plugin and covered by `filecomparator_test`.
 - **`filestatistics` / `filesystemhelpers` / `filesystemhelperfunctions`** — recursive size/count stats,
