@@ -330,6 +330,77 @@ TEST_CASE((std::string("Copy cancellation test #") + std::to_string(rand())).c_s
 	cancellationTest(operationCopy);
 }
 
+struct BufferedEventsObserver final : public CFileOperationObserver {
+	void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float /*filePercentage*/, uint64_t /*speed*/, uint32_t /*secondsRemaining*/) override {
+		events.emplace_back('p');
+		progressPercentages.emplace_back(totalPercentage);
+	}
+
+	void onProcessHalted(HaltReason /*reason*/, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
+		events.emplace_back('h');
+	}
+
+	void onProcessFinished(const QString& /*message*/) override {
+		events.emplace_back('f');
+	}
+
+	void onCurrentFileChanged(const QString& file) override {
+		events.emplace_back('c');
+		currentFiles.emplace_back(file);
+		if (cancellationToRequest)
+			cancellationToRequest->store(true);
+	}
+
+	std::vector<char> events;
+	std::vector<float> progressPercentages;
+	std::vector<QString> currentFiles;
+	std::shared_ptr<std::atomic<bool>> cancellationToRequest;
+};
+
+TEST_CASE("File-operation state events coalesce around ordering barriers", "[operationperformer-observer]")
+{
+	BufferedEventsObserver observer;
+	auto cancellationRequested = std::make_shared<std::atomic<bool>>(false);
+
+	CFileOperationObserverTestSeam::postCurrentFile(observer, QStringLiteral("first"));
+	CFileOperationObserverTestSeam::postProgress(observer, 10.0f, 1, 10, 20.0f, 100, 9);
+	CFileOperationObserverTestSeam::postCurrentFile(observer, QStringLiteral("second"));
+	CFileOperationObserverTestSeam::postProgress(observer, 20.0f, 2, 10, 40.0f, 200, 8);
+	CHECK(CFileOperationObserverTestSeam::pendingEventCount(observer) == 1);
+
+	CFileOperationObserverTestSeam::postHalt(observer, hrFileExists, cancellationRequested);
+	CFileOperationObserverTestSeam::postCurrentFile(observer, QStringLiteral("third"));
+	CFileOperationObserverTestSeam::postProgress(observer, 30.0f, 3, 10, 60.0f, 300, 7);
+	CFileOperationObserverTestSeam::postFinished(observer);
+	CHECK(CFileOperationObserverTestSeam::pendingEventCount(observer) == 4);
+
+	observer.processEvents();
+
+	const std::vector<char> expectedEvents{ 'c', 'p', 'h', 'c', 'p', 'f' };
+	CHECK(observer.events == expectedEvents);
+	REQUIRE(observer.currentFiles.size() == 2);
+	CHECK(observer.currentFiles[0] == QStringLiteral("second"));
+	CHECK(observer.currentFiles[1] == QStringLiteral("third"));
+	REQUIRE(observer.progressPercentages.size() == 2);
+	CHECK(observer.progressPercentages[0] == 20.0f);
+	CHECK(observer.progressPercentages[1] == 30.0f);
+}
+
+TEST_CASE("Cancellation suppresses a halt event already being dispatched", "[operationperformer-observer]")
+{
+	BufferedEventsObserver observer;
+	auto cancellationRequested = std::make_shared<std::atomic<bool>>(false);
+	observer.cancellationToRequest = cancellationRequested;
+
+	CFileOperationObserverTestSeam::postCurrentFile(observer, QStringLiteral("cancel"));
+	CFileOperationObserverTestSeam::postHalt(observer, hrFileExists, cancellationRequested);
+	CFileOperationObserverTestSeam::postFinished(observer);
+	observer.processEvents();
+
+	const std::vector<char> expectedEvents{ 'c', 'f' };
+	CHECK(observer.events == expectedEvents);
+}
+
 // Receives conflict prompts and deliberately leaves them unanswered, blocking the worker thread in waitForResponse()
 struct UnansweredPromptObserver final : public ProgressObserver {
 	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {

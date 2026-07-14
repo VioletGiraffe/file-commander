@@ -106,7 +106,7 @@ void COperationPerformer::cancel()
 	{
 		// The lock prevents a lost wakeup: waitForResponse() must not check the predicate and then start waiting in between the store and the notify
 		std::lock_guard<std::mutex> lock(_waitForResponseMutex);
-		_cancelRequested = true;
+		_cancellationRequested->store(true);
 	}
 	_waitForResponseCondition.notify_one();
 }
@@ -139,11 +139,11 @@ UserResponse COperationPerformer::waitForResponse()
 {
 	std::unique_lock<std::mutex> lock(_waitForResponseMutex);
 	_totalTimeElapsed.pause();
-	while (_userResponse == urNone && !_cancelRequested)
+	while (_userResponse == urNone && !_cancellationRequested->load())
 		_waitForResponseCondition.wait(lock);
 
 	// Cancellation overrides any user response and aborts the operation
-	const UserResponse response = !_cancelRequested ? _userResponse : urAbort;
+	const UserResponse response = !_cancellationRequested->load() ? _userResponse : urAbort;
 	_userResponse = urNone;
 
 	_totalTimeElapsed.resume();
@@ -189,7 +189,7 @@ void COperationPerformer::copyFiles()
 	_totalTimeElapsed.start();
 	size_t currentItemIndex = 0;
 
-	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; )
+	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancellationRequested->load(); )
 	{
 		if (sourceIterator->object.isCdUp())
 		{
@@ -352,14 +352,14 @@ void COperationPerformer::deleteFiles()
 	std::vector<CFileSystemObject> fileSystemObjectsList;
 	fileSystemObjectsList.reserve(500);
 
-	for (auto it = _source.begin(); it != _source.end() && !_cancelRequested; ++it)
+	for (auto it = _source.begin(); it != _source.end() && !_cancellationRequested->load(); ++it)
 	{
 		if (!it->object.isCdUp())
 		{
 			// followDirLinks = false: delete removes a link itself and must never touch the target's contents
 			scanDirectory(it->object, [&fileSystemObjectsList](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
 				fileSystemObjectsList.emplace_back(item);
-			}, _cancelRequested, false);
+			}, *_cancellationRequested, false);
 		}
 	}
 
@@ -367,7 +367,7 @@ void COperationPerformer::deleteFiles()
 
 	const size_t totalNumberOfObjects = fileSystemObjectsList.size();
 	size_t currentItemIndex = 0;
-	for (auto it = fileSystemObjectsList.begin(); it != fileSystemObjectsList.end() && !_cancelRequested; )
+	for (auto it = fileSystemObjectsList.begin(); it != fileSystemObjectsList.end() && !_cancellationRequested->load(); )
 	{
 		handlePause();
 
@@ -428,7 +428,7 @@ void COperationPerformer::deleteFiles()
 
 	// TODO: eliminate code duplication
 	// We know that files and directories are being enumerated depth-first, so we need to delete them in reverse order to avoid trying to delete non-empty directories
-	for (auto it = fileSystemObjectsList.rbegin(); it != fileSystemObjectsList.rend() && !_cancelRequested; )
+	for (auto it = fileSystemObjectsList.rbegin(); it != fileSystemObjectsList.rend() && !_cancellationRequested->load(); )
 	{
 		handlePause();
 
@@ -507,7 +507,7 @@ void COperationPerformer::moveWithinSameDrive()
 	}
 
 	// TODO: Assuming that all sources are from the same drive / file system. Can that assumption ever be incorrect?
-	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancelRequested; )
+	for (auto sourceIterator = _source.begin(); sourceIterator != _source.end() && !_cancellationRequested->load(); )
 	{
 		if (sourceIterator->object.isCdUp())
 		{
@@ -638,7 +638,7 @@ std::vector<QDir> COperationPerformer::enumerateSourcesAndCalcDest(uint64_t &tot
 					totalSize += item.size();
 
 				newSourceVector.emplace_back(std::move(item)).reachedThroughLink = reachedThroughLink;
-			}, _cancelRequested);
+			}, *_cancellationRequested);
 		}
 	}
 
@@ -655,7 +655,7 @@ UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSyst
 			return globalResponse.value();
 	}
 
-	if (_observer) _observer->onProcessHaltedCallback(hr, src, dst, message);
+	if (_observer) _observer->onProcessHaltedCallback(hr, src, dst, message, _cancellationRequested);
 	return waitForResponse();
 }
 
@@ -808,7 +808,7 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		}
 
 		// TODO: why isn't this block at the start of 'do-while'?
-		if (_cancelRequested)
+		if (_cancellationRequested->load())
 		{
 			// If the file had just been copied in full (the loop is about to exit), there is nothing to cancel - let it count as processed
 			if (!itemManipulator.copyOperationInProgress())
@@ -869,7 +869,7 @@ void COperationPerformer::handlePause()
 	if (_paused) // This code is not strictly thread-safe (the value of _paused may change between 'if' and 'while'), but in this context I'm OK with that
 	{
 		_totalTimeElapsed.pause();
-		while (_paused && !_cancelRequested)
+		while (_paused && !_cancellationRequested->load())
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 		_totalTimeElapsed.resume();
@@ -878,36 +878,54 @@ void COperationPerformer::handlePause()
 
 void CFileOperationObserver::processEvents()
 {
-	// The callbacks must be executed with the mutex released: a callback may spin a nested event loop (e.g. a modal prompt)
-	// that re-enters processEvents() on the next timer tick, and the worker thread must be able to post new callbacks meanwhile
-	std::vector<std::function<void ()>> callbacks;
+	// Events must be dispatched with the mutex released: a modal prompt may spin a nested event loop that re-enters processEvents(),
+	// and the worker thread must remain able to post events meanwhile.
+	std::vector<Event> events;
 	{
-		std::lock_guard<std::mutex> lock(_callbackMutex);
-		callbacks.swap(_callbacks);
+		std::lock_guard<std::mutex> lock(_eventMutex);
+		events.swap(_events);
 	}
 
-	for (const auto& event : callbacks)
-		event();
+	for (const auto& event : events)
+	{
+		if (const auto* state = std::get_if<StateEvent>(&event))
+		{
+			if (state->currentFile)
+				onCurrentFileChanged(*state->currentFile);
+
+			if (state->progress)
+			{
+				const auto& progress = *state->progress;
+				onProgressChanged(progress.totalPercentage, progress.numFilesProcessed, progress.totalNumFiles, progress.filePercentage, progress.speed, progress.secondsRemaining);
+			}
+		}
+		else if (const auto* halt = std::get_if<HaltEvent>(&event))
+		{
+			if (!halt->cancellationRequested->load())
+				onProcessHalted(halt->reason, halt->source, halt->dest, halt->errorMessage);
+		}
+		else
+			onProcessFinished(std::get<FinishedEvent>(event).message);
+	}
 }
 
 void CFileOperationObserver::onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed, uint32_t secondsRemaining)
 {
 	assert_debug_only(filePercentage < 100.5f && totalPercentage < 100.5f);
-	std::lock_guard<std::mutex> lock(_callbackMutex);
-	_callbacks.emplace_back([=, this]() {
-		onProgressChanged(totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining);
-	});
+	std::lock_guard<std::mutex> lock(_eventMutex);
+	if (_events.empty() || !std::holds_alternative<StateEvent>(_events.back()))
+		_events.emplace_back(StateEvent{});
+
+	std::get<StateEvent>(_events.back()).progress = ProgressEvent{ totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining };
 }
 
-void CFileOperationObserver::onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage)
+void CFileOperationObserver::onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage, std::shared_ptr<const std::atomic<bool>> cancellationRequested)
 {
 	const auto reasonString = magic_enum::enum_name(reason);
 	qInfo().nospace() << "COperationPerformer: process halted, reason: " << QString::fromLatin1(reasonString.data(), (int)reasonString.size()) << ", source: " << source.fullAbsolutePath() << ", dest: " << dest.fullAbsolutePath() << ", error message: " << errorMessage;
 
-	std::lock_guard<std::mutex> lock(_callbackMutex);
-	_callbacks.emplace_back([reason, mv(source), mv(dest), mv(errorMessage), this]() {
-		onProcessHalted(reason, source, dest, errorMessage);
-	});
+	std::lock_guard<std::mutex> lock(_eventMutex);
+	_events.emplace_back(HaltEvent{ reason, mv(source), mv(dest), mv(errorMessage), mv(cancellationRequested) });
 }
 
 void CFileOperationObserver::onProcessFinishedCallback(QString message)
@@ -915,16 +933,15 @@ void CFileOperationObserver::onProcessFinishedCallback(QString message)
 	if (!message.isEmpty())
 		qInfo() << "COperationPerformer: operation finished, message:" << message;
 
-	std::lock_guard<std::mutex> lock(_callbackMutex);
-	_callbacks.emplace_back([mv(message), this]() {
-		onProcessFinished(message);
-	});
+	std::lock_guard<std::mutex> lock(_eventMutex);
+	_events.emplace_back(FinishedEvent{ mv(message) });
 }
 
 void CFileOperationObserver::onCurrentFileChangedCallback(QString file)
 {
-	std::lock_guard<std::mutex> lock(_callbackMutex);
-	_callbacks.emplace_back([mv(file), this]() {
-		onCurrentFileChanged(file);
-	});
+	std::lock_guard<std::mutex> lock(_eventMutex);
+	if (_events.empty() || !std::holds_alternative<StateEvent>(_events.back()))
+		_events.emplace_back(StateEvent{});
+
+	std::get<StateEvent>(_events.back()).currentFile = mv(file);
 }

@@ -9,10 +9,11 @@
 #include <array>
 #include <atomic>
 #include <condition_variable>
-#include <functional>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <thread>
+#include <variant>
 #include <vector>
 
 class QDebug;
@@ -31,14 +32,44 @@ public:
 	void processEvents();
 
 private:
+	struct ProgressEvent {
+		float totalPercentage;
+		size_t numFilesProcessed;
+		size_t totalNumFiles;
+		float filePercentage;
+		uint64_t speed;
+		uint32_t secondsRemaining;
+	};
+
+	struct StateEvent {
+		std::optional<ProgressEvent> progress;
+		std::optional<QString> currentFile;
+	};
+
+	struct HaltEvent {
+		HaltReason reason;
+		CFileSystemObject source;
+		CFileSystemObject dest;
+		QString errorMessage;
+		std::shared_ptr<const std::atomic<bool>> cancellationRequested;
+	};
+
+	struct FinishedEvent {
+		QString message;
+	};
+
+	using Event = std::variant<StateEvent, HaltEvent, FinishedEvent>;
+
+	friend struct CFileOperationObserverTestSeam;
+
 	void onProgressChangedCallback(float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed /* bytes/s for copy & move, items/s for delete */, uint32_t secondsRemaining);
-	void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage);
+	void onProcessHaltedCallback(HaltReason reason, CFileSystemObject source, CFileSystemObject dest, QString errorMessage, std::shared_ptr<const std::atomic<bool>> cancellationRequested);
 	void onProcessFinishedCallback(QString message = {});
 	void onCurrentFileChangedCallback(QString file);
 
 private:
-	std::vector<std::function<void ()>> _callbacks;
-	std::mutex                          _callbackMutex;
+	std::vector<Event> _events;
+	std::mutex         _eventMutex;
 };
 
 class COperationPerformer
@@ -120,7 +151,7 @@ private:
 	std::atomic<bool>              _paused {false};
 	std::atomic<bool>              _inProgress {false};
 	std::atomic<bool>              _done {false};
-	std::atomic<bool>              _cancelRequested {false};
+	std::shared_ptr<std::atomic<bool>> _cancellationRequested = std::make_shared<std::atomic<bool>>(false);
 	// Forces a move to take the chunked copy+delete path even when a same-drive rename is possible
 	bool                           _forceMoveByCopy = false;
 	UserResponse                   _userResponse = urNone;

@@ -11,6 +11,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <memory>
+#include <utility>
 
 #include "3rdparty/catch2/catch.hpp"
 
@@ -29,6 +30,29 @@ struct ProgressObserver : public CFileOperationObserver {
 // Friend of COperationPerformer
 struct COperationPerformerTestSeam {
 	static void setForceMoveByCopy(COperationPerformer& p, const bool force) { p._forceMoveByCopy = force; }
+};
+
+struct CFileOperationObserverTestSeam {
+	static void postProgress(CFileOperationObserver& observer, float totalPercentage, size_t numFilesProcessed, size_t totalNumFiles, float filePercentage, uint64_t speed, uint32_t secondsRemaining) {
+		observer.onProgressChangedCallback(totalPercentage, numFilesProcessed, totalNumFiles, filePercentage, speed, secondsRemaining);
+	}
+
+	static void postHalt(CFileOperationObserver& observer, HaltReason reason, std::shared_ptr<const std::atomic<bool>> cancellationRequested) {
+		observer.onProcessHaltedCallback(reason, CFileSystemObject(), CFileSystemObject(), {}, std::move(cancellationRequested));
+	}
+
+	static void postFinished(CFileOperationObserver& observer, QString message = {}) {
+		observer.onProcessFinishedCallback(std::move(message));
+	}
+
+	static void postCurrentFile(CFileOperationObserver& observer, QString file) {
+		observer.onCurrentFileChangedCallback(std::move(file));
+	}
+
+	static size_t pendingEventCount(CFileOperationObserver& observer) {
+		std::lock_guard<std::mutex> lock(observer._eventMutex);
+		return observer._events.size();
+	}
 };
 
 inline void writeTestFile(const QString& path, const QByteArray& contents)

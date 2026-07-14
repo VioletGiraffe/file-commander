@@ -136,8 +136,10 @@ Two layers:
     and totals bytes for progress; `copyItem/deleteItem/makeItemWriteable/mkPath` return a `NextAction`
     (`naProceed/naRetryItem/naRetryOperation/naSkip/naAbort`). `moveWithinSameDrive` is the rename fast-path.
     Progress speed/ETA via `CTimeElapsed`. Halt-reason enum iterated with vendored `magic_enum`.
-  - `CFileOperationObserver` buffers callbacks (`_callbacks` under `_callbackMutex`) and replays them on
-    `processEvents()` — i.e. the worker thread enqueues, the UI thread drains. See [threading.md](threading.md).
+  - `CFileOperationObserver` buffers typed events under `_eventMutex` and replays them on `processEvents()` —
+    i.e. the worker thread enqueues, the UI thread drains. Progress and current-file updates are coalesced
+    between halt/finish barriers, and canceled operations suppress halt events at dispatch time. See
+    [threading.md](threading.md).
 
 ## Directory traversal — `scanDirectory` (`src/directoryscanner.{h,cpp}`)
 

@@ -21,7 +21,7 @@ come from the **qtutils**/**cpputils** submodules — described here by role, no
 
 ## UI-thread marshaling pattern
 
-1. Off-thread code finishes work and enqueues a closure (`execOnUiThread` / observer callback buffer).
+1. Off-thread code finishes work and enqueues a closure (`execOnUiThread`) or a typed file-operation event.
 2. `CMainWindow`'s `QTimer _uiThreadTimer` fires -> `CMainWindow::uiThreadTimerTick()` ->
    `CController::uiThreadTimerTick()` -> drains `_uiQueue`, pumps each `CPanel::uiThreadTimerTick()` (which
    polls its watcher and drains its `_uiThreadQueue`), and pumps volume notifications.
@@ -56,8 +56,11 @@ hide it as soon as the panel moves to a different view. Preserve this for every 
 - `CVolumeEnumerator::_mutexForDrives` — `recursive_mutex`; `updateSynchronously()` can enumerate while a
   getter already holds it.
 - `COperationPerformer`: `_waitForResponseMutex` + `_waitForResponseCondition` (worker blocks for the user's
-  conflict decision); state flags are `std::atomic<bool>` (`_paused/_inProgress/_done/_cancelRequested`).
-- `CFileOperationObserver`: `_callbackMutex` guarding the buffered `_callbacks` replayed on `processEvents()`.
+  conflict decision); paused/working/done state uses atomics, and cancellation is a shared atomic flag so a
+  buffered halt event can validate it after the performer has finished.
+- `CFileOperationObserver`: `_eventMutex` guards typed events replayed on `processEvents()`. Progress and
+  current-file updates coalesce into the latest state between halt/finish ordering barriers, bounding routine
+  update backlog while preserving state-before-barrier order. Events are dispatched with the mutex released.
 - Both filesystem watchers: an internal mutex makes `setPathToWatch`/`changesDetected` thread-safe. The
   timer-based watcher associates each scan with a path generation, discards obsolete scans, and treats the
   first committed scan of every generation as a silent baseline.
@@ -68,14 +71,16 @@ hide it as soon as the panel moves to a different view. Preserve this for every 
 COperationPerformer thread            UI thread (progress dialog)
 ---------------------------           ---------------------------------
 copy/move/delete loop
-  hit conflict -> onProcessHalted  -> buffered; replayed on processEvents()
+  hit conflict -> onProcessHalted  -> buffered; replayed unless cancellation has since won
   wait on condition variable            user picks -> userResponse(reason, resp, newName)
   <- wakes, applies resp                (urProceedWithAll/urSkipAll remembered in _globalResponses)
   onProgressChanged (periodic)     -> progress bar / speed / ETA
   onProcessFinished                -> dialog closes
 ```
 
-`togglePause`/`cancel` flip atomics the worker checks at safe points. Multiple operations can run at once;
+`togglePause`/`cancel` flip atomics the worker checks at safe points. Halt events re-check the shared
+cancellation flag at UI dispatch time, including after `processEvents()` has moved them to its local batch,
+so cancellation cannot be followed by a stale conflict prompt. Multiple operations can run at once;
 `CMainWindow` cascades their dialogs (`_activeFileOperationDialogs`, `nextBackgroundDialogPosition`).
 
 ## Reminder (project rule)
