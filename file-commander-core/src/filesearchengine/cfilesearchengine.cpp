@@ -92,7 +92,7 @@ inline void replace_null(std::byte* array, size_t size)
 		return false;
 
 	thin_io::file file;
-	if (!file.open(path.toUtf8().constData(), thin_io::file::open_mode::Read)) [[unlikely]]
+	if (!file.open(path.toUtf8().constData(), thin_io::file::access_mode::Read)) [[unlikely]]
 		return false;
 
 	const bool useRawMemoryPattern = !memoryPattern.isEmpty();
