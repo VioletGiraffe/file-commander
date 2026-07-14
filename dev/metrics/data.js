@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783988135992,
+  "lastUpdate": 1783989325973,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -3296,6 +3296,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "30322116511e63064165d33afc693143c97eead4",
+          "message": "CFileOperationObserver::processEvents(): event coalescing; fixes stale prompts that could still apear after cancellation, and fixes the progress falling behind and accumulating many updates on heavy operations; test added",
+          "timestamp": "2026-07-14T03:29:29+03:00",
+          "tree_id": "00b24e82e72322d7417b56d1e333b90dda9cf212",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/30322116511e63064165d33afc693143c97eead4"
+        },
+        "date": 1783989323066,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15132,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8401,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1214,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 625.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22,
             "unit": "KB"
           },
           {
