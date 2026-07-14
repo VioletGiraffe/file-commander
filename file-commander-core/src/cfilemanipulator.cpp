@@ -6,6 +6,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
+#include <QUuid>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
@@ -13,15 +14,114 @@ RESTORE_COMPILER_WARNINGS
 #include "windows/windowsutils.h"
 
 #include <Windows.h>
+#include <io.h>
 #else
+#include <fcntl.h>
 #include <stdio.h> // ::rename
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
 
-inline static QString getLastFileError()
+#include <optional>
+
+inline static QString getLastNativeFileError()
 {
-	return QString::fromStdString(thin_io::file::text_for_last_error());
+#ifdef _WIN32
+	return QString::fromStdString(ErrorStringFromLastError());
+#else
+	return QString::fromLocal8Bit(strerror(errno));
+#endif
+}
+
+#ifdef _WIN32
+static bool setFileAttribute(const QString& path, const DWORD attribute, const bool enabled)
+{
+	WCHAR pathUnc[32768];
+	toUncWcharArray(path, pathUnc);
+	const DWORD attributes = ::GetFileAttributesW(pathUnc);
+	if (attributes == INVALID_FILE_ATTRIBUTES)
+		return false;
+
+	const DWORD newAttributes = enabled ? attributes | attribute : attributes & ~attribute;
+	return newAttributes == attributes || ::SetFileAttributesW(pathUnc, newAttributes) != 0;
+}
+#endif
+
+static bool openTemporarySibling(QFile& file, const QString& destinationFolder, QString& errorMessage)
+{
+	static constexpr int maxAttempts = 10;
+	for (int attempt = 0; attempt < maxAttempts; ++attempt)
+	{
+		const QString path = destinationFolder % QStringLiteral(".file-commander-copy-") % QUuid::createUuid().toString(QUuid::WithoutBraces) % QStringLiteral(".tmp");
+		file.setFileName(path);
+		if (file.open(QFile::ReadWrite | QFile::NewOnly | QFile::Unbuffered))
+		{
+#ifdef _WIN32
+			(void)setFileAttribute(path, FILE_ATTRIBUTE_HIDDEN, true);
+#endif
+			return true;
+		}
+
+		errorMessage = file.errorString();
+	}
+
+	return false;
+}
+
+static bool preallocateFile(QFile& file, const uint64_t size)
+{
+	if (size == 0)
+		return true;
+
+#ifdef _WIN32
+	const HANDLE handle = reinterpret_cast<HANDLE>(::_get_osfhandle(file.handle()));
+	if (handle == INVALID_HANDLE_VALUE)
+	{
+		::SetLastError(ERROR_INVALID_HANDLE);
+		return false;
+	}
+
+	FILE_END_OF_FILE_INFO eof;
+	eof.EndOfFile.QuadPart = static_cast<LONGLONG>(size);
+	return ::SetFileInformationByHandle(handle, FileEndOfFileInfo, &eof, sizeof(eof)) != 0;
+#elif defined __APPLE__
+	fstore_t store;
+	store.fst_flags = F_ALLOCATECONTIG;
+	store.fst_posmode = F_PEOFPOSMODE;
+	store.fst_offset = 0;
+	store.fst_length = static_cast<off_t>(size);
+	store.fst_bytesalloc = 0;
+	if (::fcntl(file.handle(), F_PREALLOCATE, &store) == -1)
+	{
+		store.fst_flags = F_ALLOCATEALL;
+		if (::fcntl(file.handle(), F_PREALLOCATE, &store) == -1)
+			return false;
+	}
+
+	return ::ftruncate(file.handle(), static_cast<off_t>(size)) == 0;
+#else
+	const int error = ::posix_fallocate(file.handle(), 0, static_cast<off_t>(size));
+	if (error != 0)
+	{
+		errno = error;
+		return false;
+	}
+
+	return true;
+#endif
+}
+
+static bool replaceFileEntry(const QString& sourcePath, const QString& destinationPath)
+{
+#ifdef _WIN32
+	WCHAR sourcePathUnc[32768];
+	WCHAR destinationPathUnc[32768];
+	toUncWcharArray(sourcePath, sourcePathUnc);
+	toUncWcharArray(destinationPath, destinationPathUnc);
+	return ::MoveFileExW(sourcePathUnc, destinationPathUnc, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+	return ::rename(QFile::encodeName(sourcePath).constData(), QFile::encodeName(destinationPath).constData()) == 0;
+#endif
 }
 
 static constexpr QFileDevice::FileTime supportedFileTimeTypes[] {
@@ -160,7 +260,9 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 	if (!copyOperationInProgress())
 	{
 		_pos = 0;
+		_lastErrorMessage.clear();
 		_destinationFilePath = destFolder + (newName.isEmpty() ? _srcObject.fullName() : newName);
+		assert_debug_only(_temporaryDestinationFilePath.isEmpty());
 
 		const auto sourceObjectId = resolvedObjectId(_srcObject.fullAbsolutePath());
 		if (_destinationFilePath == _srcObject.fullAbsolutePath() || (sourceObjectId && sourceObjectId == resolvedObjectId(_destinationFilePath))) [[unlikely]]
@@ -182,26 +284,26 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 			return FileOperationResultCode::Fail;
 		}
 
-		if (!_destFile.open(_destinationFilePath.toUtf8().constData(), thin_io::file::open_mode::Write)) [[unlikely]]
+		if (!openTemporarySibling(_destinationFile, destFolder, _lastErrorMessage)) [[unlikely]]
 		{
-			_lastErrorMessage = getLastFileError();
-
 			_thisFile.close();
 			return FileOperationResultCode::Fail;
 		}
+		_temporaryDestinationFilePath = _destinationFile.fileName();
 
 		// Reserve the destination space up front: fail before copying if the disk is full, and reduce fragmentation
-		if (!_destFile.truncate(static_cast<uint64_t>(_srcObject.size()))) [[unlikely]]
+		if (!preallocateFile(_destinationFile, static_cast<uint64_t>(_srcObject.size()))) [[unlikely]]
 		{
-			_lastErrorMessage = getLastFileError();
-			assert_r(_destFile.close());
+			_lastErrorMessage = getLastNativeFileError();
+			_destinationFile.close();
 			_thisFile.close();
-			thin_io::file::delete_file(_destinationFilePath.toUtf8().constData());
+			if (QFile::remove(_temporaryDestinationFilePath))
+				_temporaryDestinationFilePath.clear();
 			return FileOperationResultCode::NotEnoughSpaceAvailable;
 		}
 	}
 
-	assert_debug_only(_destFile.is_open() == _thisFile.isOpen());
+	assert_debug_only(_destinationFile.isOpen() == _thisFile.isOpen());
 
 	const uint64_t srcSize = (uint64_t)_srcObject.size();
 	const uint64_t actualChunkSize = std::min(chunkSize, srcSize - _pos);
@@ -216,19 +318,19 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 			return FileOperationResultCode::Fail;
 		}
 
-		const auto written = _destFile.write(src, actualChunkSize);
-		if (!written) [[unlikely]]
+		const qint64 written = _destinationFile.write(reinterpret_cast<const char*>(src), static_cast<qint64>(actualChunkSize));
+		if (written < 0) [[unlikely]]
 		{
-			_lastErrorMessage = getLastFileError();
+			_lastErrorMessage = _destinationFile.errorString();
 			return FileOperationResultCode::Fail;
 		}
-		else if (*written == 0) [[unlikely]] // A zero-byte write for a non-empty chunk would stall the caller's copy loop forever
+		else if (written == 0) [[unlikely]] // A zero-byte write for a non-empty chunk would stall the caller's copy loop forever
 		{
 			_lastErrorMessage = QStringLiteral("Failed to write to the destination file (zero bytes written).");
 			return FileOperationResultCode::Fail;
 		}
 
-		bytesWritten = *written;
+		bytesWritten = static_cast<uint64_t>(written);
 		_pos += bytesWritten;
 
 		[[maybe_unused]] const bool unmapResult = _thisFile.unmap(src);
@@ -237,39 +339,43 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 
 	if (_pos == srcSize) // All copied, close the files and transfer attributes (if requested)
 	{
-		if (!_destFile.close()) [[unlikely]]
+		// Copying complete
+		if (transferPermissions)
 		{
-			_lastErrorMessage = getLastFileError();
+			_lastErrorMessage = copyPermissions(_thisFile, _destinationFile);
+			if (!_lastErrorMessage.isEmpty()) [[unlikely]]
+				return FileOperationResultCode::Fail;
+		}
+
+		if (transferDates)
+		{
+			// Note: The file must be open to use setFileTime()
+			for (const auto fileTimeType : supportedFileTimeTypes)
+				assert_r(_destinationFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
+		}
+
+		if (!_destinationFile.flush()) [[unlikely]]
+		{
+			_lastErrorMessage = _destinationFile.errorString();
 			return FileOperationResultCode::Fail;
 		}
-
-		// Copying complete
-		if (transferPermissions || transferDates)
-		{
-			assert_debug_only(!_destinationFilePath.isEmpty());
-			// TODO: this is ineffective; need to support permission and date transfer in thin_io
-			QFile qDstFile(_destinationFilePath);
-			if (!qDstFile.open(QFile::ReadWrite)) [[unlikely]]
-			{
-				_lastErrorMessage = qDstFile.errorString();
-				return FileOperationResultCode::Fail;
-			}
-
-			if (transferPermissions)
-				_lastErrorMessage = copyPermissions(_thisFile, qDstFile);
-
-			if (transferDates)
-			{
-				// Note: The file must be open to use setFileTime()
-				for (const auto fileTimeType : supportedFileTimeTypes)
-					assert_r(qDstFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
-			}
-		}
-
+		_destinationFile.close();
 		_thisFile.close();
 
-		if (transferPermissions && !_lastErrorMessage.isEmpty()) [[unlikely]]
+#ifdef _WIN32
+		if (!setFileAttribute(_temporaryDestinationFilePath, FILE_ATTRIBUTE_HIDDEN, false)) [[unlikely]]
+		{
+			_lastErrorMessage = getLastNativeFileError();
 			return FileOperationResultCode::Fail;
+		}
+#endif
+
+		if (!replaceFileEntry(_temporaryDestinationFilePath, _destinationFilePath)) [[unlikely]]
+		{
+			_lastErrorMessage = getLastNativeFileError();
+			return FileOperationResultCode::Fail;
+		}
+		_temporaryDestinationFilePath.clear();
 	}
 
 	return FileOperationResultCode::Ok;
@@ -282,7 +388,7 @@ FileOperationResultCode CFileManipulator::moveChunk(uint64_t /*chunkSize*/, cons
 
 bool CFileManipulator::copyOperationInProgress() const
 {
-	const bool isOpen = _destFile.is_open();
+	const bool isOpen = _destinationFile.isOpen();
 	assert_debug_only(isOpen == _thisFile.isOpen());
 	return isOpen;
 }
@@ -294,13 +400,26 @@ uint64_t CFileManipulator::bytesCopied() const
 
 FileOperationResultCode CFileManipulator::cancelCopy()
 {
-	if (!copyOperationInProgress())
-		return FileOperationResultCode::Ok;
+	if (_thisFile.isOpen())
+		_thisFile.close();
+	bool closed = true;
+	if (_destinationFile.isOpen())
+	{
+		closed = _destinationFile.flush();
+		_destinationFile.close();
+	}
 
-	_thisFile.close();
-	const bool closed = _destFile.close();
+	bool deleted = true;
+	if (!_temporaryDestinationFilePath.isEmpty())
+	{
+#ifdef _WIN32
+		(void)setFileAttribute(_temporaryDestinationFilePath, FILE_ATTRIBUTE_READONLY, false);
+#endif
+		deleted = QFile::remove(_temporaryDestinationFilePath);
+		if (deleted)
+			_temporaryDestinationFilePath.clear();
+	}
 
-	const bool deleted = thin_io::file::delete_file(_destinationFilePath.toUtf8().constData());
 	return closed && deleted ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
 }
 

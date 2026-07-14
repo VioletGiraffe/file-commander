@@ -167,12 +167,15 @@ void COperationPerformer::copyFiles()
 	qInfo() << __FUNCTION__ << (_op == operationCopy ? "Copying directory" : "Moving directory") << _source << "to" << _destFileSystemObject.fullAbsolutePath();
 
 	// If there's just one file to copy, it is allowed to set a new file name as dest (C:/1.txt) instead of just the path (C:/)
-	if (_source.size() == 1 && _source.front().object.isFile() && !_destFileSystemObject.isDir())
+	const bool destIsFileName = _source.size() == 1 && _source.front().object.isFile() && !_destFileSystemObject.isDir();
+	if (destIsFileName)
 		_newName = _destFileSystemObject.fullName();
 
 	// Check if source and dest are on the same file system / disk drive, in which case moving is much simpler and faster:
 	// moving means renaming the root source folder / file rather than copying. moveWithinSameDrive() creates the destination folder as needed.
-	if (_op == operationMove && !_forceMoveByCopy && _source.front().object.isMovableTo(_destFileSystemObject))
+	// For a destination file name, the parent directory's device decides: rename replaces the final entry rather than following it.
+	const CFileSystemObject moveDestination = destIsFileName ? CFileSystemObject(_destFileSystemObject.parentDirPath()) : _destFileSystemObject;
+	if (_op == operationMove && !_forceMoveByCopy && _source.front().object.isMovableTo(moveDestination))
 	{
 		moveWithinSameDrive();
 		return;
@@ -754,25 +757,6 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		{
 			assert_unconditional_r("Unexpected user response");
 			return naRetryItem;
-		}
-
-		// Only call isWriteable for existing items!
-		if (!destFile.isWriteable())
-		{
-			response = getUserResponse(hrDestFileIsReadOnly, destFile, CFileSystemObject(), QString());
-			if (response == urSkipThis || response == urSkipAll)
-				return naSkip;
-			else if (response == urAbort)
-				return naAbort;
-			else if (response == urRetry)
-				return naRetryOperation;
-			else
-				assert_r((response == urProceedWithThis || response == urProceedWithAll) && _newName.isEmpty());
-
-			NextAction nextAction;
-			while ((nextAction = makeItemWriteable(destFile)) == naRetryOperation);
-			if (nextAction != naProceed)
-				return nextAction;
 		}
 	}
 

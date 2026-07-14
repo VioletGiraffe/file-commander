@@ -346,6 +346,60 @@ TEST_CASE((std::string("Copy cancellation test #") + std::to_string(rand())).c_s
 	cancellationTest(operationCopy);
 }
 
+struct OverwriteCancellationObserver final : public ProgressObserver {
+	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
+		CHECK(reason == hrFileExists);
+		++promptCount;
+		performer->userResponse(reason, urProceedWithThis);
+	}
+
+	COperationPerformer* performer = nullptr;
+	int promptCount = 0;
+};
+
+static void overwriteCancellationTest(const Operation operation)
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	const QByteArray sourceContents(100 * OPERATION_PERFORMER_CHUNK_SIZE + 512, 'A');
+	const QByteArray destinationContents(3000, 'B');
+	const QString fileName = QStringLiteral("overwrite-cancellation.bin");
+	const QString sourcePath = sourceDirectory.path() % '/' % fileName;
+	const QString destinationPath = targetDirectory.path() % '/' % fileName;
+	writeTestFile(sourcePath, sourceContents);
+	writeTestFile(destinationPath, destinationContents);
+
+	auto p = std::make_unique<COperationPerformer>(operation, CFileSystemObject(sourcePath), targetDirectory.path());
+	COperationPerformerTestSeam::setForceMoveByCopy(*p, true);
+	auto observer = std::make_unique<OverwriteCancellationObserver>();
+	observer->performer = p.get();
+	p->setObserver(observer.get());
+
+	REQUIRE(p->togglePause());
+	p->start();
+	pumpUntil(p, observer, [&observer] { return observer->promptCount == 1; });
+	p->cancel();
+	REQUIRE(!p->togglePause());
+	pumpOperationToCompletion(p, observer);
+
+	REQUIRE(readFileContents(sourcePath) == sourceContents);
+	REQUIRE(readFileContents(destinationPath) == destinationContents);
+	REQUIRE(QDir(targetDirectory.path()).entryList(QDir::AllEntries | QDir::Hidden | QDir::NoDotAndDotDot) == QStringList{ fileName });
+}
+
+TEST_CASE((std::string("Canceled copy overwrite preserves the destination #") + std::to_string(rand())).c_str(), "[operationperformer-cancel]")
+{
+	overwriteCancellationTest(operationCopy);
+}
+
+TEST_CASE((std::string("Canceled move overwrite preserves the destination #") + std::to_string(rand())).c_str(), "[operationperformer-cancel]")
+{
+	overwriteCancellationTest(operationMove);
+}
+
 struct BufferedEventsObserver final : public CFileOperationObserver {
 	void onProgressChanged(float totalPercentage, size_t /*numFilesProcessed*/, size_t /*totalNumFiles*/, float /*filePercentage*/, uint64_t /*speed*/, uint32_t /*secondsRemaining*/) override {
 		events.emplace_back('p');
@@ -522,6 +576,72 @@ TEST_CASE((std::string("Copy to a hard-link alias of the source is a no-op #") +
 	REQUIRE(readFileContents(sourcePath) == contents);
 	REQUIRE(readFileContents(aliasPath) == contents);
 }
+
+enum class DestinationAlias { HardLink, SymbolicLink };
+
+static void destinationAliasOverwriteTest(const Operation operation, const DestinationAlias aliasType)
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	const QByteArray sourceContents(3000, 'A');
+	const QByteArray linkTargetContents(4000, 'B');
+	const QString sourcePath = sourceDirectory.path() % "/file.bin";
+	const QString linkTargetPath = targetDirectory.path() % "/link-target.bin";
+	const QString destinationPath = targetDirectory.path() % "/file.bin";
+	writeTestFile(sourcePath, sourceContents);
+	writeTestFile(linkTargetPath, linkTargetContents);
+
+	if (aliasType == DestinationAlias::SymbolicLink)
+	{
+		REQUIRE(QFile::setPermissions(linkTargetPath, QFile::ReadOwner | QFile::ReadGroup | QFile::ReadOther));
+		REQUIRE(QFile::link(linkTargetPath, destinationPath));
+	}
+	else
+		REQUIRE(createHardLink(linkTargetPath, destinationPath));
+
+	auto p = std::make_unique<COperationPerformer>(operation, CFileSystemObject(sourcePath), targetDirectory.path());
+	if (operation == operationMove)
+		COperationPerformerTestSeam::setForceMoveByCopy(*p, true);
+
+	auto observer = std::make_unique<OverwriteConflictObserver>();
+	observer->performer = p.get();
+	p->setObserver(observer.get());
+	p->start();
+	pumpOperationToCompletion(p, observer);
+
+	CHECK(observer->promptCount == 1);
+	REQUIRE(readFileContents(destinationPath) == sourceContents);
+	REQUIRE(readFileContents(linkTargetPath) == linkTargetContents);
+	REQUIRE(QFileInfo(destinationPath).isSymbolicLink() == false);
+	REQUIRE(QFileInfo::exists(sourcePath) == (operation == operationCopy));
+	if (aliasType == DestinationAlias::SymbolicLink)
+		REQUIRE((QFileInfo(linkTargetPath).permissions() & (QFile::WriteOwner | QFile::WriteGroup | QFile::WriteOther)) == 0);
+}
+
+TEST_CASE((std::string("Copy overwrite replaces a destination hard-link entry #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	destinationAliasOverwriteTest(operationCopy, DestinationAlias::HardLink);
+}
+
+TEST_CASE((std::string("Move by copy overwrite replaces a destination hard-link entry #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
+{
+	destinationAliasOverwriteTest(operationMove, DestinationAlias::HardLink);
+}
+
+#ifndef _WIN32
+TEST_CASE((std::string("Copy overwrite replaces a destination symbolic-link entry #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	destinationAliasOverwriteTest(operationCopy, DestinationAlias::SymbolicLink);
+}
+
+TEST_CASE((std::string("Move by copy overwrite replaces a destination symbolic-link entry #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
+{
+	destinationAliasOverwriteTest(operationMove, DestinationAlias::SymbolicLink);
+}
+#endif
 
 // Verifies the urRename response handling: the renamed destination must undergo the same conflict checks (i.e. prompt again if taken),
 // and the new name must only apply to the item it was given for, without leaking to the subsequent items

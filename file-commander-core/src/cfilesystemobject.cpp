@@ -108,6 +108,7 @@ CFileSystemObject& CFileSystemObject::operator=(const QString& path)
 
 void CFileSystemObject::refreshInfo()
 {
+	_fileInfo.refresh();
 	_properties.isLink = _fileInfo.isSymbolicLink() || _fileInfo.isJunction();
 	// A link exists as an object even when its target is gone (exists() follows the link)
 	_properties.exists = _properties.isLink || _fileInfo.exists();

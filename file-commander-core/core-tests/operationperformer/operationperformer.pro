@@ -12,7 +12,7 @@ UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -lqtutils -ltest_utils
-LIBS += -L$${DESTDIR_NOARCH} -lcpputils -lthin_io
+LIBS += -L$${DESTDIR_NOARCH} -lcpputils
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a

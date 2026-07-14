@@ -109,9 +109,9 @@ Two layers:
 - **`CFileManipulator` (`src/cfilemanipulator.{h,cpp}`)** — single-object primitives. `copyAtomically` /
   `moveAtomically` (instance + static forms), `remove`, `makeWritable`. Plus a **non-blocking chunked** API:
   `copyChunk(chunkSize,...)` / `moveChunk` / `copyOperationInProgress` / `bytesCopied` / `cancelCopy` —
-  lets the caller drive a copy chunk-by-chunk (for responsiveness/pause/cancel). Uses `thin_io::file`
-  (`_destFile`) for the destination and `QFile` for the source; preserves permissions + the 4 file
-  timestamps. `lastErrorMessage()` for diagnostics. `TransferPermissions`/`OverwriteExistingFile` are
+  lets the caller drive a copy chunk-by-chunk (for responsiveness/pause/cancel). Uses `QFile` for the
+  source and the exclusively created staging file; preserves permissions + the 4 file timestamps.
+  `lastErrorMessage()` provides diagnostics. `TransferPermissions`/`OverwriteExistingFile` are
   named-bool wrappers (from cpputils) to avoid bare-bool params.
   - **Stores `const CFileSystemObject& _srcObject` — a reference, not a copy.** The object must outlive the
     manipulator; binding a temporary is a dangling reference (heap-corruption crash on Windows, empty-path
@@ -121,6 +121,10 @@ Two layers:
     `RemoveDirectory` for a dir link, `QFile::remove` for a file link); `moveAtomically` renames the link
     as-is. Both first strip a trailing `/` from the path — a dir object's `fullAbsolutePath()` ends in `/`,
     and `"link/"` resolves *through* the link on POSIX, hitting the target instead of the link.
+  - **Copy publication:** chunked copies write to a uniquely created temporary sibling, transfer metadata
+    there, then atomically replace the final destination entry. Overwrite therefore replaces only the
+    selected pathname: symlink targets and other names for a hard-linked destination remain untouched.
+    Cancellation or any pre-publication failure removes the temporary file and preserves the old destination.
 - **`COperationPerformer` (`src/fileoperations/coperationperformer.{h,cpp}`)** — the batch engine. Runs a
   whole copy/move/delete on its **own `std::thread`**, reporting through `CFileOperationObserver`.
   - Ctor takes `Operation` (`operationCopy/Move/Delete`) + source FSO(s) + optional destination.
