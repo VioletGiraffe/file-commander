@@ -1,6 +1,7 @@
 #include "coperationperformer.h"
 #include "cfilemanipulator.h"
 #include "directoryscanner.h"
+#include "filesystemhelperfunctions.h"
 
 #include "assert/advanced_assert.h"
 #include "threading/thread_helpers.h"
@@ -223,7 +224,14 @@ void COperationPerformer::copyFiles()
 
 		QFileInfo destInfo(destination[currentItemIndex].absoluteFilePath(_newName.isEmpty() ? sourceIterator->object.fullName() : _newName));
 		_newName.clear();
-		if (destInfo.absoluteFilePath() == sourceFileInfo.absoluteFilePath())
+		bool sourceIsDestination = destInfo.absoluteFilePath() == sourceFileInfo.absoluteFilePath();
+		if (!sourceIsDestination)
+		{
+			const auto sourceObjectId = resolvedObjectId(sourceFileInfo.absoluteFilePath());
+			sourceIsDestination = sourceObjectId && sourceObjectId == resolvedObjectId(destInfo.absoluteFilePath());
+		}
+
+		if (sourceIsDestination)
 		{
 			++sourceIterator;
 			++currentItemIndex;

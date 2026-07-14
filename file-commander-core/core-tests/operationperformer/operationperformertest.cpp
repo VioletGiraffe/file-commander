@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_RUNNER
 
 #include "operationperformertesthelpers.h"
+#include "cfilemanipulator.h"
 #include "cfolderenumeratorrecursive.h"
 #include "ctestfoldergenerator.h"
 #include "system/ctimeelapsed.h"
@@ -25,6 +26,12 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 #include <random>
 #include <string>
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
 
 //#include "3rdparty/catch2/catch_template_test_macros.hpp"
 
@@ -86,6 +93,15 @@ static bool timesAlmostMatch(const QDateTime& t1, const QDateTime& t2, const QFi
 		std::cerr << "Time mismatch for type " << type << ": diff = " << diff << ", allowed = " << allowedTimeDiffMs * multiplier << '\n';
 		return false;
 	}
+}
+
+static bool createHardLink(const QString& existingPath, const QString& linkPath)
+{
+#ifdef _WIN32
+	return CreateHardLinkW(reinterpret_cast<const WCHAR*>(linkPath.utf16()), reinterpret_cast<const WCHAR*>(existingPath.utf16()), nullptr) != 0;
+#else
+	return ::link(QFile::encodeName(existingPath).constData(), QFile::encodeName(linkPath).constData()) == 0;
+#endif
 }
 
 static void copyTest(const size_t maxFileSize)
@@ -464,6 +480,48 @@ struct ScriptedResponsesObserver final : public ProgressObserver {
 	COperationPerformer* performer = nullptr;
 	std::vector<std::pair<UserResponse, QString>> scriptedResponses;
 };
+
+struct OverwriteConflictObserver final : public ProgressObserver {
+	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
+		CHECK(reason == hrFileExists);
+		++promptCount;
+		performer->userResponse(reason, urProceedWithThis);
+	}
+
+	COperationPerformer* performer = nullptr;
+	int promptCount = 0;
+};
+
+TEST_CASE((std::string("Copy to a hard-link alias of the source is a no-op #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	const QByteArray contents(3000, 'A');
+	const QString sourcePath = sourceDirectory.path() % "/file.bin";
+	const QString aliasPath = targetDirectory.path() % "/file.bin";
+	writeTestFile(sourcePath, contents);
+	REQUIRE(createHardLink(sourcePath, aliasPath));
+
+	const CFileSystemObject sourceObject(sourcePath);
+	CFileManipulator manipulator(sourceObject);
+	REQUIRE(manipulator.copyChunk(1024, targetDirectory.path() % '/') == FileOperationResultCode::Fail);
+	REQUIRE(readFileContents(sourcePath) == contents);
+	REQUIRE(readFileContents(aliasPath) == contents);
+
+	auto p = std::make_unique<COperationPerformer>(operationCopy, sourceObject, targetDirectory.path());
+	auto observer = std::make_unique<OverwriteConflictObserver>();
+	observer->performer = p.get();
+	p->setObserver(observer.get());
+	p->start();
+	pumpOperationToCompletion(p, observer);
+
+	CHECK(observer->promptCount == 0);
+	REQUIRE(readFileContents(sourcePath) == contents);
+	REQUIRE(readFileContents(aliasPath) == contents);
+}
 
 // Verifies the urRename response handling: the renamed destination must undergo the same conflict checks (i.e. prompt again if taken),
 // and the new name must only apply to the item it was given for, without leaking to the subsequent items

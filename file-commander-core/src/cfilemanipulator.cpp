@@ -160,6 +160,14 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 	if (!copyOperationInProgress())
 	{
 		_pos = 0;
+		_destinationFilePath = destFolder + (newName.isEmpty() ? _srcObject.fullName() : newName);
+
+		const auto sourceObjectId = resolvedObjectId(_srcObject.fullAbsolutePath());
+		if (_destinationFilePath == _srcObject.fullAbsolutePath() || (sourceObjectId && sourceObjectId == resolvedObjectId(_destinationFilePath))) [[unlikely]]
+		{
+			_lastErrorMessage = QStringLiteral("Source and destination refer to the same file.");
+			return FileOperationResultCode::Fail;
+		}
 
 		// Creating files
 		_thisFile.setFileName(_srcObject.fullAbsolutePath());
@@ -173,8 +181,6 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 			_lastErrorMessage = _thisFile.errorString();
 			return FileOperationResultCode::Fail;
 		}
-
-		_destinationFilePath = destFolder + (newName.isEmpty() ? _srcObject.fullName() : newName);
 
 		if (!_destFile.open(_destinationFilePath.toUtf8().constData(), thin_io::file::open_mode::Write)) [[unlikely]]
 		{
