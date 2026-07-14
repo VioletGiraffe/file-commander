@@ -136,6 +136,10 @@ Two layers:
   - Ctor takes `Operation` (`operationCopy/Move/Delete`) + source FSO(s) + optional destination.
   - Lifecycle: `start`, `cancel`, `togglePause`/`paused`, `working`, `done`; `done` becomes true only after
     the final observer event has been queued, so it is safe to use as the worker-side teardown boundary.
+    Pause/cancellation safe points cover chunked copies, same-drive renames, delete passes, and post-copy
+    source-directory cleanup.
+  - Copy-based directory moves merge into compatible existing destination directories and remove each
+    source directory, deepest first, after its destination has been materialized successfully.
   - Conflict handling: when it hits a halt condition it calls `onProcessHalted(HaltReason, src, dst, msg)`
     and blocks on a condition variable until the UI calls `userResponse(haltReason, response, newName)`.
     `HaltReason` = `hrFileExists/hrSourceFileIsReadOnly/hrDestFileIsReadOnly/hrFailedToMakeItemWritable/

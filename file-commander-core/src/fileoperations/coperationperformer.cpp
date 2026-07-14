@@ -248,7 +248,7 @@ void COperationPerformer::copyFiles()
 			switch (nextAction)
 			{
 			case naProceed:
-				sourceIterator->copiedSuccessfully = true;
+				sourceIterator->materializedSuccessfully = true;
 				break;
 			case naSkip:
 				sizeProcessed += sourceIterator->object.size();
@@ -269,7 +269,7 @@ void COperationPerformer::copyFiles()
 			// Items reached through a directory link are only materialized at the destination; their originals belong to the link's target and must not be deleted
 			if (_op == operationMove && !sourceIterator->reachedThroughLink) // result == ok
 			{
-				if (!sourceIterator->copiedSuccessfully) // A fix for #270 (Cancelling a move operation deletes the original file nonetheless)
+				if (!sourceIterator->materializedSuccessfully)
 				{
 					++sourceIterator;
 					++currentItemIndex;
@@ -300,7 +300,9 @@ void COperationPerformer::copyFiles()
 		{
 			// Creating the folder - empty folders will not be copied without this code
 			CFileSystemObject destObject(destInfo);
-			if (!destObject.exists())
+			if (destObject.exists())
+				sourceIterator->materializedSuccessfully = destObject.isDir();
+			else
 			{
 				NextAction nextAction;
 				while ((nextAction = mkPath(QDir(destObject.fullAbsolutePath()))) == naRetryOperation);
@@ -319,13 +321,13 @@ void COperationPerformer::copyFiles()
 				else if (nextAction != naProceed)
 					assert_unconditional_r("Unexpected next action");
 				else
-					sourceIterator->copiedSuccessfully = true;
+					sourceIterator->materializedSuccessfully = true;
 			}
 
 			// Dirs reached through a directory link belong to the link's target - not to be cleaned up; the link itself is a regular cleanup item and gets unlinked
 			if (_op == operationMove && !sourceIterator->reachedThroughLink)
 			{
-				if (!sourceIterator->copiedSuccessfully) // A fix for #270 (Cancelling a move operation deletes the original file nonetheless)
+				if (!sourceIterator->materializedSuccessfully)
 				{
 					++sourceIterator;
 					++currentItemIndex;
@@ -343,16 +345,26 @@ void COperationPerformer::copyFiles()
 		++currentItemIndex;
 	}
 
-	// Sort by path legth, remove longest first, because these should be the leaf (deepest) folders
+	// Remove deepest source directories first.
 	std::sort(dirsToCleanUp.begin(), dirsToCleanUp.end(), [](const CFileSystemObject& a, const CFileSystemObject& b) {
 		return a.fullAbsolutePath().length() > b.fullAbsolutePath().length();
 	});
 
-	// Should only get here after moving everything out?
+	if (_pauseBeforeDirectoryCleanupForTest)
+		_paused = true;
+
 	for (auto& dir : dirsToCleanUp)
 	{
 		NextAction nextAction;
-		while ((nextAction = deleteItem(dir)) == naRetryOperation);
+		do
+		{
+			handlePause();
+			if (_cancellationRequested->load())
+				return;
+
+			nextAction = deleteItem(dir);
+		} while (nextAction == naRetryOperation);
+
 		if (nextAction == naAbort)
 			return;
 	}
@@ -539,6 +551,10 @@ void COperationPerformer::moveWithinSameDrive()
 			const uint32_t secondsRemaining = itemsPerSecond > 0 ? static_cast<uint32_t>((totalItems - currentItemIndex - 1) / itemsPerSecond) : 0;
 			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalItems, currentItemIndex, totalItems, 0.0f, 0, secondsRemaining);
 		}
+
+		handlePause();
+		if (_cancellationRequested->load())
+			return;
 
 		const QString newFileName = !_newName.isEmpty() ? _newName : sourceIterator->object.fullName();
 		_newName.clear();

@@ -134,7 +134,7 @@ private:
 		{}
 
 		CFileSystemObject object;
-		bool copiedSuccessfully = false;
+		bool materializedSuccessfully = false;
 		// The item was found by traversing a directory link; it must be copied (materialized), but never deleted by move
 		bool reachedThroughLink = false;
 	};
@@ -154,6 +154,7 @@ private:
 	std::shared_ptr<std::atomic<bool>> _cancellationRequested = std::make_shared<std::atomic<bool>>(false);
 	// Forces a move to take the chunked copy+delete path even when a same-drive rename is possible
 	bool                           _forceMoveByCopy = false;
+	bool                           _pauseBeforeDirectoryCleanupForTest = false;
 	UserResponse                   _userResponse = urNone;
 
 	std::thread                    _thread;
