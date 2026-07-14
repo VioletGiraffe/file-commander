@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784054762772,
+  "lastUpdate": 1784055818378,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -3838,6 +3838,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 631,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 368.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "8b0c752d17b0aacd95749d689d146029b9e6865f",
+          "message": "Copy-based moves now remove source directories when merging into existing destination directories; cancellation handling fixed",
+          "timestamp": "2026-07-14T21:57:57+03:00",
+          "tree_id": "f657600769cf3458a19044bc8efd0596bce9639e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/8b0c752d17b0aacd95749d689d146029b9e6865f"
+        },
+        "date": 1784055815488,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15732,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8509,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1221.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 631.5,
             "unit": "KB"
           },
           {
