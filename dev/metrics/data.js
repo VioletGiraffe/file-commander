@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784039781376,
+  "lastUpdate": 1784043869336,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -3498,6 +3498,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 367.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c46e09773b8857122de2b5ec264096938841ac4a",
+          "message": "Copy/move: atomicity fixed, link following fixed (target links are NOT followed). Writes go to a temp staging file that is atomically renamed to the target",
+          "timestamp": "2026-07-14T18:38:35+03:00",
+          "tree_id": "3e54953b52d909370006ba94c04484a34b9e2838",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c46e09773b8857122de2b5ec264096938841ac4a"
+        },
+        "date": 1784043867057,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15394,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8401,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1217,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 627.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 368,
             "unit": "KB"
           },
           {
