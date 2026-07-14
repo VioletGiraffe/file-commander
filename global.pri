@@ -15,7 +15,9 @@ linux*{
 	exists(/usr/bin/ccache)|exists(/usr/lib/ccache):CONFIG += ccache
 }
 
-windows*{
+win*{
+	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
+
 	Release:QMAKE_CXXFLAGS += /GL
 	Release:QMAKE_LFLAGS += /DEBUG:FULL /OPT:REF /OPT:ICF /TIME /LTCG:INCREMENTAL
 }
