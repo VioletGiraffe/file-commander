@@ -25,7 +25,7 @@ Debug{
 }
 
 # This is so that all the tests link to the library automatically; harmless to anyone who doesn't use the libraries
-LIBS += -L$${PWD}/bin/OUTPUT_DIR_NOARCH -lthin_io
+LIBS += -L$${PWD}/bin/$${OUTPUT_DIR_NOARCH} -lthin_io
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /wd4251 /JMC
