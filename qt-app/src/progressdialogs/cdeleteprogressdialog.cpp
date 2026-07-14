@@ -86,23 +86,37 @@ void CDeleteProgressDialog::onCurrentFileChanged(const QString& file)
 
 void CDeleteProgressDialog::closeEvent(QCloseEvent *e)
 {
-	if (!_performer->done() && e->type() == QCloseEvent::Close)
-	{
-		if (QMessageBox::question(this, tr("Abort?"), tr("Do you want to abort the operation?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
-		{
-			cancel();
-			QWidget::closeEvent(e);
-			return;
-		}
-	}
-
-	e->ignore();
+	if (e->type() == QCloseEvent::Close && (_performer->done() || confirmCancellation(tr("Abort?"), tr("Do you want to abort the operation?"))))
+		QWidget::closeEvent(e);
+	else
+		e->ignore();
 }
 
 void CDeleteProgressDialog::cancelPressed()
 {
-	if (QMessageBox::question(this, tr("Cancel?"), tr("Are you sure you want to cancel this operation?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	(void)confirmCancellation(tr("Cancel?"), tr("Are you sure you want to cancel this operation?"));
+}
+
+bool CDeleteProgressDialog::confirmCancellation(const QString& title, const QString& question)
+{
+	if (!_performer->working())
+		return true;
+
+	const bool wasPaused = _performer->paused();
+	if (!wasPaused)
+		pauseResume();
+
+	if (QMessageBox::question(this, title, question, QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	{
 		cancel();
+		return true;
+	}
+	else if (!_performer->working())
+		return true;
+	else if (!wasPaused)
+		pauseResume();
+
+	return false;
 }
 
 void CDeleteProgressDialog::pauseResume()

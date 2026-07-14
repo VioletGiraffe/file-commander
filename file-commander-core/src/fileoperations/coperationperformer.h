@@ -123,7 +123,8 @@ private:
 	[[nodiscard]] NextAction copyItem(CFileSystemObject& item, const QFileInfo& destInfo, const QDir& destDir, uint64_t sizeProcessedPreviously, uint64_t totalSize, size_t currentItemIndex);
 	[[nodiscard]] NextAction mkPath(const QDir& dir);
 
-	void handlePause();
+	// Returns false if cancellation was requested while waiting or before this boundary.
+	[[nodiscard]] bool waitWhilePaused();
 
 private:
 	struct ObjectToProcess {
@@ -154,6 +155,7 @@ private:
 	std::shared_ptr<std::atomic<bool>> _cancellationRequested = std::make_shared<std::atomic<bool>>(false);
 	// Forces a move to take the chunked copy+delete path even when a same-drive rename is possible
 	bool                           _forceMoveByCopy = false;
+	bool                           _pauseAfterFirstCopyChunkForTest = false;
 	bool                           _pauseBeforeDirectoryCleanupForTest = false;
 	UserResponse                   _userResponse = urNone;
 

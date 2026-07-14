@@ -106,7 +106,9 @@ the panel, page 1 is a plugin viewer window. `startQuickView(WindowPtr<CPluginWi
 
 - **`progressdialogs/`** — `CCopyMoveDialog` (drives + observes a `COperationPerformer`),
   `CDeleteProgressDialog`, `CPromptDialog` (the file-exists / read-only / error prompt; returns a
-  `UserResponse`), `CFileOperationConfirmationPrompt`, `progressdialoghelpers`. Common base
+  `UserResponse`), `CFileOperationConfirmationPrompt`, `progressdialoghelpers`. Cancellation confirmation
+  pauses copy/move/delete work; declining restores the prior pause state, while confirming signals
+  cancellation without first resuming filesystem mutations. Common base
   `CFileOperationDialogBase` (registered with `CMainWindow` for background cascading).
 - **`settings/`** — 4 pages implementing a `SettingsPage` interface (from qtutils `CSettingsDialog`):
   `CSettingsPageInterface`, `CSettingsPageEdit`, `CSettingsPageOperations`, `CSettingsPageOther`.

@@ -227,14 +227,7 @@ static void moveTest(const size_t maxFileSize)
 	REQUIRE(compareFolderContents(sourceTree, destTree));
 }
 
-struct CancellationTestObserver final : public ProgressObserver {
-	inline void onCurrentFileChanged(const QString& /*file*/) override { fileProcessingStarted = true; }
-
-	bool fileProcessingStarted = false;
-};
-
-// Cancels the operation while the first file is mid-copy and verifies that no data is lost:
-// the file must survive intact in at least one of the two locations, and no partial file may be left at the destination.
+// Cancels after the first chunk has been staged and verifies that cancellation releases the pause and removes the partial copy.
 static void cancellationTest(const Operation op)
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
@@ -257,37 +250,26 @@ static void cancellationTest(const Operation op)
 	auto p = std::make_unique<COperationPerformer>(op, CFileSystemObject(sourceFilePath), targetDirectory.path());
 	// Source and target are on the same drive; force the chunked copy+delete path for move - it's the one that can be canceled mid-file
 	COperationPerformerTestSeam::setForceMoveByCopy(*p, true);
+	COperationPerformerTestSeam::setPauseAfterFirstCopyChunk(*p, true);
 
-	auto observer = std::make_unique<CancellationTestObserver>();
+	auto observer = std::make_unique<ProgressObserver>();
 	p->setObserver(observer.get());
-
-	// Pause before starting: handlePause() precedes the first chunk copy, so the worker parks before copying anything
-	REQUIRE(p->togglePause());
 	p->start();
 
-	pumpUntil(p, observer, [&observer] { return observer->fileProcessingStarted; });
+	pumpUntil(p, observer, [&p] { return p->paused(); });
 
-	// The worker is committed to processing the file (past the loop's cancel check) but hasn't copied a single chunk yet.
-	// Request cancellation, then let it run: it will copy exactly one chunk and then detect the cancellation - mid-file, deterministically.
+	// Do not resume: cancellation must stop at this boundary without allowing another chunk.
 	p->cancel();
-	REQUIRE(!p->togglePause());
 
 	pumpOperationToCompletion(p, observer);
 
 	QFile sourceFile(sourceFilePath);
 	QFile destFile(targetDirectory.path() % '/' % fileName);
 
-	// No partial file may be left at the destination
-	if (destFile.exists())
-		REQUIRE(readFileContents(destFile.fileName()) == fileContents);
-
-	// Canceling a copy must leave the source untouched; a canceled move must preserve the file in at least one location
-	if (op == operationCopy)
-		REQUIRE(sourceFile.exists());
-	REQUIRE((sourceFile.exists() || destFile.exists()));
-
-	if (sourceFile.exists())
-		REQUIRE(readFileContents(sourceFilePath) == fileContents);
+	REQUIRE(sourceFile.exists());
+	REQUIRE(readFileContents(sourceFilePath) == fileContents);
+	REQUIRE(!destFile.exists());
+	REQUIRE(QDir(targetDirectory.path()).entryList(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot).isEmpty());
 }
 
 TEST_CASE((std::string("Copy test - empty files #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
@@ -366,7 +348,6 @@ static void overwriteCancellationTest(const Operation operation)
 	p->start();
 	pumpUntil(p, observer, [&observer] { return observer->promptCount == 1; });
 	p->cancel();
-	REQUIRE(!p->togglePause());
 	pumpOperationToCompletion(p, observer);
 
 	REQUIRE(readFileContents(sourcePath) == sourceContents);

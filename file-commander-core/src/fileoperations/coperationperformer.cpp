@@ -298,6 +298,9 @@ void COperationPerformer::copyFiles()
 		}
 		else if (sourceIterator->object.isDir())
 		{
+			if (!waitWhilePaused())
+				return;
+
 			// Creating the folder - empty folders will not be copied without this code
 			CFileSystemObject destObject(destInfo);
 			if (destObject.exists())
@@ -358,8 +361,7 @@ void COperationPerformer::copyFiles()
 		NextAction nextAction;
 		do
 		{
-			handlePause();
-			if (_cancellationRequested->load())
+			if (!waitWhilePaused())
 				return;
 
 			nextAction = deleteItem(dir);
@@ -394,7 +396,8 @@ void COperationPerformer::deleteFiles()
 	size_t currentItemIndex = 0;
 	for (auto it = fileSystemObjectsList.begin(); it != fileSystemObjectsList.end() && !_cancellationRequested->load(); )
 	{
-		handlePause();
+		if (!waitWhilePaused())
+			return;
 
 		if (!it->isFile())
 		{
@@ -455,7 +458,8 @@ void COperationPerformer::deleteFiles()
 	// We know that files and directories are being enumerated depth-first, so we need to delete them in reverse order to avoid trying to delete non-empty directories
 	for (auto it = fileSystemObjectsList.rbegin(); it != fileSystemObjectsList.rend() && !_cancellationRequested->load(); )
 	{
-		handlePause();
+		if (!waitWhilePaused())
+			return;
 
 		if (!it->isDir())
 		{
@@ -552,8 +556,7 @@ void COperationPerformer::moveWithinSameDrive()
 			_observer->onProgressChangedCallback(currentItemIndex * 100.0f / totalItems, currentItemIndex, totalItems, 0.0f, 0, secondsRemaining);
 		}
 
-		handlePause();
-		if (_cancellationRequested->load())
+		if (!waitWhilePaused())
 			return;
 
 		const QString newFileName = !_newName.isEmpty() ? _newName : sourceIterator->object.fullName();
@@ -778,6 +781,9 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 		}
 	}
 
+	if (!waitWhilePaused())
+		return naCancel;
+
 	if (!destDir.exists())
 	{
 		NextAction nextAction;
@@ -794,15 +800,30 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 	const QString destPath = destDir.absolutePath() + '/';
 	auto result = FileOperationResultCode::Fail;
 	CFileManipulator itemManipulator(item);
+	const auto cancelItemCopy = [this, &itemManipulator] {
+		if (itemManipulator.cancelCopy() != FileOperationResultCode::Ok) [[unlikely]]
+		{
+			_completionMessage = QStringLiteral("The operation was canceled, but its temporary file could not be cleaned up completely.\n") % itemManipulator.lastErrorMessage();
+			assert_unconditional_r("Failed to cancel item copying");
+		}
+		return naCancel;
+	};
 
 	do
 	{
-		handlePause();
+		if (!waitWhilePaused())
+			return cancelItemCopy();
 
 		result = itemManipulator.copyChunk(chunkSize, destPath, !destFile.isDir() ? destFile.fullName() : QString());
 		// Error handling
 		if (result != FileOperationResultCode::Ok)
 			break;
+
+		if (_pauseAfterFirstCopyChunkForTest && itemManipulator.copyOperationInProgress())
+		{
+			_pauseAfterFirstCopyChunkForTest = false;
+			_paused = true;
+		}
 
 		if (_observer)
 		{
@@ -817,19 +838,13 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			_observer->onProgressChangedCallback(totalPercentage, currentItemIndex, _source.size(), filePercentage, meanSpeed, secondsRemaining);
 		}
 
-		// TODO: why isn't this block at the start of 'do-while'?
 		if (_cancellationRequested->load())
 		{
 			// If the file had just been copied in full (the loop is about to exit), there is nothing to cancel - let it count as processed
 			if (!itemManipulator.copyOperationInProgress())
 				break; // result == Ok
 
-			if (itemManipulator.cancelCopy() != FileOperationResultCode::Ok) [[unlikely]]
-			{
-				_completionMessage = QStringLiteral("The operation was canceled, but its temporary file could not be cleaned up completely.\n") % itemManipulator.lastErrorMessage();
-				assert_unconditional_r("Failed to cancel item copying");
-			}
-			return naCancel;
+			return cancelItemCopy();
 		}
 	} while (itemManipulator.copyOperationInProgress());
 
@@ -879,9 +894,9 @@ COperationPerformer::NextAction COperationPerformer::mkPath(const QDir& dir)
 	}
 }
 
-void COperationPerformer::handlePause()
+bool COperationPerformer::waitWhilePaused()
 {
-	if (_paused) // This code is not strictly thread-safe (the value of _paused may change between 'if' and 'while'), but in this context I'm OK with that
+	if (_paused)
 	{
 		_totalTimeElapsed.pause();
 		while (_paused && !_cancellationRequested->load())
@@ -889,6 +904,8 @@ void COperationPerformer::handlePause()
 
 		_totalTimeElapsed.resume();
 	}
+
+	return !_cancellationRequested->load();
 }
 
 void CFileOperationObserver::processEvents()

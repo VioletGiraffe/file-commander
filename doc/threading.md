@@ -78,10 +78,12 @@ copy/move/delete loop
   onProcessFinished                -> dialog closes
 ```
 
-`togglePause`/`cancel` flip atomics the worker checks at safe points. Halt events re-check the shared
-cancellation flag at UI dispatch time, including after `processEvents()` has moved them to its local batch,
-so cancellation cannot be followed by a stale conflict prompt. Multiple operations can run at once;
-`CMainWindow` cascades their dialogs (`_activeFileOperationDialogs`, `nextBackgroundDialogPosition`).
+`togglePause`/`cancel` flip atomics the worker checks at safe points. Cancellation also releases a paused
+worker, and every filesystem-mutation loop re-checks cancellation immediately after its pause boundary.
+Halt events re-check the shared cancellation flag at UI dispatch time, including after `processEvents()`
+has moved them to its local batch, so cancellation cannot be followed by a stale conflict prompt. Multiple
+operations can run at once; `CMainWindow` cascades their dialogs (`_activeFileOperationDialogs`,
+`nextBackgroundDialogPosition`).
 
 ## Reminder (project rule)
 

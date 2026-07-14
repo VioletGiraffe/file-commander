@@ -42,7 +42,7 @@ CCopyMoveDialog::CCopyMoveDialog(QWidget* parent, Operation operation, std::vect
 	else
 		assert_unconditional_r("Unknown operation");
 
-	connect (ui->_btnCancel,     &QPushButton::clicked, this, &CCopyMoveDialog::cancelPressed);
+	connect (ui->_btnCancel,     &QPushButton::clicked, this, &CCopyMoveDialog::confirmCancellation);
 	connect (ui->_btnBackground, &QPushButton::clicked, this, &CCopyMoveDialog::switchToBackground);
 	connect (ui->_btnPause,      &QPushButton::clicked, this, &CCopyMoveDialog::pauseResume);
 
@@ -107,8 +107,7 @@ void CCopyMoveDialog::onCurrentFileChanged(const QString& file)
 	ui->_lblFileName->setText(file);
 }
 
-// True if cancelled, false if the user chose to continue
-bool CCopyMoveDialog::cancelPressed()
+bool CCopyMoveDialog::confirmCancellation()
 {
 	const bool working = _performer && _performer->working();
 	if (!working)
@@ -120,10 +119,12 @@ bool CCopyMoveDialog::cancelPressed()
 
 	if (QMessageBox::question(this, tr("Cancel?"), tr("Are you sure you want to cancel this operation?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
 	{
-		pauseResume();
-		cancel();
+		if (_performer)
+			cancel();
 		return true;
 	}
+	else if (!_performer || !_performer->working())
+		return true;
 	else if (!wasPaused)
 		pauseResume();
 
@@ -156,7 +157,7 @@ void CCopyMoveDialog::switchToBackground()
 
 void CCopyMoveDialog::closeEvent(QCloseEvent *e)
 {
-	if (e->type() == QCloseEvent::Close && (!_performer || cancelPressed()))
+	if (e->type() == QCloseEvent::Close && (!_performer || confirmCancellation()))
 		QWidget::closeEvent(e); // OK to process the event and close the dialog
 	else
 		e->ignore(); // We're working - ignore the close event

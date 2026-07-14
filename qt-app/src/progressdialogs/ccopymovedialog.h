@@ -26,8 +26,8 @@ private:
 	void onProcessFinished(const QString& message) override; // Done or canceled
 	void onCurrentFileChanged(const QString& file) override; // Starting to process a new file
 
-	// True if cancelled, false if the user chose to continue
-	bool cancelPressed();
+	// True if cancellation was requested or the operation has already finished; false if it should continue.
+	bool confirmCancellation();
 	void pauseResume();
 	void switchToBackground();
 

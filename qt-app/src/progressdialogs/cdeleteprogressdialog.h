@@ -30,6 +30,7 @@ protected:
 
 private:
 	void cancelPressed();
+	[[nodiscard]] bool confirmCancellation(const QString& title, const QString& question);
 	void pauseResume();
 	void background();
 

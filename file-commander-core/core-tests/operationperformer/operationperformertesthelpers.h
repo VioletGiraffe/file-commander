@@ -41,6 +41,7 @@ struct AutoAbortObserver final : public ProgressObserver {
 // Friend of COperationPerformer
 struct COperationPerformerTestSeam {
 	static void setForceMoveByCopy(COperationPerformer& p, const bool force) { p._forceMoveByCopy = force; }
+	static void setPauseAfterFirstCopyChunk(COperationPerformer& p, const bool pause) { p._pauseAfterFirstCopyChunkForTest = pause; }
 	static void setPauseBeforeDirectoryCleanup(COperationPerformer& p, const bool pause) { p._pauseBeforeDirectoryCleanupForTest = pause; }
 };
 

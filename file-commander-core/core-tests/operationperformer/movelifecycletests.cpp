@@ -74,7 +74,6 @@ TEST_CASE((std::string("Paused same-drive move performs no rename #") + std::to_
 	REQUIRE(!QFileInfo::exists(destinationPath));
 
 	performer->cancel();
-	REQUIRE_FALSE(performer->togglePause());
 	pumpOperationToCompletion(performer, observer);
 
 	REQUIRE(QFileInfo::exists(sourcePath));
