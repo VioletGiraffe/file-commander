@@ -673,7 +673,7 @@ UserResponse COperationPerformer::getUserResponse(HaltReason hr, const CFileSyst
 COperationPerformer::NextAction COperationPerformer::deleteItem(CFileSystemObject& item)
 {
 	CFileManipulator itemManipulator(item);
-	if (item.isFile() && !item.isWriteable())
+	if (item.isFile() && !item.isLink() && !item.isWriteable())
 	{
 		const auto response = getUserResponse(hrSourceFileIsReadOnly, item, CFileSystemObject(), itemManipulator.lastErrorMessage()); // TODO: is the message "itemManipulator.lastErrorMessage()" correct here? No operation had been attempted yet
 		if (response == urSkipThis || response == urSkipAll)

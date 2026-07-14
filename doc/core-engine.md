@@ -120,7 +120,8 @@ Two layers:
   - **Link handling:** `remove` on a link unlinks the link entry itself, never the target (`rmdir`/
     `RemoveDirectory` for a dir link, `QFile::remove` for a file link); `moveAtomically` renames the link
     as-is. Both first strip a trailing `/` from the path — a dir object's `fullAbsolutePath()` ends in `/`,
-    and `"link/"` resolves *through* the link on POSIX, hitting the target instead of the link.
+    and `"link/"` resolves *through* the link on POSIX, hitting the target instead of the link. Batch delete
+    and copy-based move never run writability remediation on a link because that would inspect or modify its target.
   - **Copy publication:** chunked copies write to a uniquely created temporary sibling, transfer metadata
     there, then atomically replace the final destination entry. Overwrite therefore replaces only the
     selected pathname: symlink targets and other names for a hard-linked destination remain untouched.

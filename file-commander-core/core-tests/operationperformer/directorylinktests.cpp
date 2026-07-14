@@ -57,30 +57,6 @@ static void requireLinkTargetContentsIntact(const QString& path)
 	REQUIRE(readFileContents(path % "/sub/victim2.bin") == QByteArray(4000, 'W'));
 }
 
-// Responds to any prompt with urAbort so that a failing operation can't hang the worker thread
-struct AutoAbortObserver final : public ProgressObserver {
-	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
-		++promptCount;
-		performer->userResponse(reason, urAbort, {});
-	}
-
-	COperationPerformer* performer = nullptr;
-	int promptCount = 0;
-};
-
-// Runs the operation to completion, auto-aborting on any prompt, and returns the number of prompts that occurred
-// (correct link handling must complete without a single prompt).
-// Takes ownership of the performer; pumpOperationToCompletion() joins its worker while the observer is still alive.
-static int runOperationAutoAbortingPrompts(std::unique_ptr<COperationPerformer> p)
-{
-	auto observer = std::make_unique<AutoAbortObserver>();
-	observer->performer = p.get();
-	p->setObserver(observer.get());
-	p->start();
-	pumpOperationToCompletion(p, observer);
-	return observer->promptCount;
-}
-
 TEST_CASE((std::string("Delete must not follow directory links #") + std::to_string(rand())).c_str(), "[operationperformer-links]")
 {
 	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");

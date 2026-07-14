@@ -27,6 +27,17 @@ struct ProgressObserver : public CFileOperationObserver {
 	inline void onCurrentFileChanged(const QString& /*file*/) override {} // Starting to process a new file
 };
 
+// Responds to any prompt with urAbort so a failing operation cannot leave its worker waiting for a response.
+struct AutoAbortObserver final : public ProgressObserver {
+	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
+		++promptCount;
+		performer->userResponse(reason, urAbort, {});
+	}
+
+	COperationPerformer* performer = nullptr;
+	int promptCount = 0;
+};
+
 // Friend of COperationPerformer
 struct COperationPerformerTestSeam {
 	static void setForceMoveByCopy(COperationPerformer& p, const bool force) { p._forceMoveByCopy = force; }
@@ -97,4 +108,16 @@ static void pumpOperationToCompletion(std::unique_ptr<COperationPerformer>& p, s
 	// then dispatch that event so neither the worker nor a buffered callback can outlive the observer.
 	p.reset();
 	observer->processEvents();
+}
+
+// Runs an operation to completion and returns how many prompts it raised. Tests expecting no interaction use this instead of
+// ProgressObserver directly so an unexpected prompt fails cleanly rather than leaving the worker blocked.
+inline int runOperationAutoAbortingPrompts(std::unique_ptr<COperationPerformer> p)
+{
+	auto observer = std::make_unique<AutoAbortObserver>();
+	observer->performer = p.get();
+	p->setObserver(observer.get());
+	p->start();
+	pumpOperationToCompletion(p, observer);
+	return observer->promptCount;
 }

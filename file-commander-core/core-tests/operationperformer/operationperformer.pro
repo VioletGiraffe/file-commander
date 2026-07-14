@@ -29,6 +29,7 @@ DEFINES += OPERATION_PERFORMER_CHUNK_SIZE=1024
 SOURCES += \
 	operationperformertest.cpp \
 	directorylinktests.cpp \
+	filelinktests.cpp \
 	../../src/filesystemhelperfunctions.cpp \
 	../../src/fileoperations/coperationperformer.cpp \
 	../../src/cfilesystemobject.cpp \
