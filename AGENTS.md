@@ -2,7 +2,7 @@
 
 ## Project essentials
 
-- File Commander is a cross-platform orthodox dual-panel file manager. Windows is the primary target; macOS, Linux, and FreeBSD are also supported.
+- File Commander is a cross-platform orthodox dual-panel file manager. Windows is the primary target; macOS and Linux are also supported. FreeBSD is best-effort only: support it where the Linux implementation works unchanged, but do not add FreeBSD-specific code or compatibility work.
 - The codebase is C++23 with Qt 6.8+ and uses qmake (`file-commander.pro` plus `.pro`/`.pri` files), not CMake.
 - The main dependency direction is `qt-app/` (Qt Widgets GUI) -> `file-commander-core/` (controller, panels, filesystem and operations). Native plugins under `plugins/` depend on the core interface but are loaded dynamically. Keep UI access to panels and filesystem objects behind `CController`.
 - Several top-level dependency directories are Git submodules. Treat them as separate repositories and do not modify them unless the task explicitly targets them.
