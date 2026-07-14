@@ -314,6 +314,8 @@ void COperationPerformer::copyFiles()
 				}
 				else if (nextAction == naRetryOperation)
 					return;
+				else if (nextAction == naAbort)
+					return;
 				else if (nextAction != naProceed)
 					assert_unconditional_r("Unexpected next action");
 				else

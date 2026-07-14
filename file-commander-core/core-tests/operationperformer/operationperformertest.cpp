@@ -619,6 +619,47 @@ TEST_CASE((std::string("Move overwrite conflict test #") + std::to_string(rand()
 	REQUIRE(!QFileInfo::exists(sourceDirectory.path() % "/file3.bin"));
 }
 
+struct AbortFolderCreationObserver final : public ProgressObserver {
+	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
+		CHECK(reason == hrCreatingFolderFailed);
+		++promptCount;
+		performer->userResponse(reason, urAbort);
+	}
+
+	inline void onCurrentFileChanged(const QString& file) override {
+		processedItems.emplace_back(file);
+	}
+
+	COperationPerformer* performer = nullptr;
+	int promptCount = 0;
+	std::vector<QString> processedItems;
+};
+
+TEST_CASE((std::string("Cancel after destination folder creation failure stops the copy #") + std::to_string(rand())).c_str(), "[operationperformer-copy]")
+{
+	QTemporaryDir sourceDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_SOURCE_XXXXXX");
+	QTemporaryDir targetDirectory(QDir::tempPath() + "/" + CURRENT_TEST_NAME.c_str() + "_TARGET_XXXXXX");
+	REQUIRE(sourceDirectory.isValid());
+	REQUIRE(targetDirectory.isValid());
+
+	writeTestFile(sourceDirectory.path() % "/must-not-copy.bin", QByteArray(3000, 'A'));
+	const QString blockingFilePath = targetDirectory.path() % "/blocking-file";
+	writeTestFile(blockingFilePath, QByteArray(100, 'B'));
+	const QString impossibleDestinationPath = blockingFilePath % "/destination";
+
+	auto p = std::make_unique<COperationPerformer>(operationCopy, CFileSystemObject(sourceDirectory.path()), impossibleDestinationPath);
+	auto observer = std::make_unique<AbortFolderCreationObserver>();
+	observer->performer = p.get();
+	p->setObserver(observer.get());
+	p->start();
+	pumpOperationToCompletion(p, observer);
+
+	REQUIRE(observer->promptCount == 1);
+	REQUIRE(observer->processedItems.size() == 1);
+	REQUIRE(!QFileInfo::exists(impossibleDestinationPath));
+	REQUIRE(readFileContents(blockingFilePath) == QByteArray(100, 'B'));
+}
+
 // Regression test for a same-drive move to a non-existent destination folder: the folder must be created and the items placed
 // INSIDE it, not dumped into its parent. Source and target are on the same drive, so this exercises the moveWithinSameDrive() path.
 TEST_CASE((std::string("Move to non-existent folder test #") + std::to_string(rand())).c_str(), "[operationperformer-move]")
