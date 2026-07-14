@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784055818378,
+  "lastUpdate": 1784058273083,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -3912,6 +3912,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 368.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "6c5dca7650f2a330fac7043704632e225df9ab8c",
+          "message": "Using native rmdir() API and reporting native errors",
+          "timestamp": "2026-07-14T22:39:36+03:00",
+          "tree_id": "9da3bcb51ef47720a43f87278916bd70d0047232",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/6c5dca7650f2a330fac7043704632e225df9ab8c"
+        },
+        "date": 1784058270938,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15782,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8509,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1222,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 631.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 369,
             "unit": "KB"
           },
           {
