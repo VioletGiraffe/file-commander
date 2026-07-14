@@ -70,8 +70,7 @@ struct AutoAbortObserver final : public ProgressObserver {
 
 // Runs the operation to completion, auto-aborting on any prompt, and returns the number of prompts that occurred
 // (correct link handling must complete without a single prompt).
-// Takes ownership of the performer: _done is set before the worker's final observer callback,
-// so the thread must be joined (by destroying the performer) while the observer is still alive.
+// Takes ownership of the performer; pumpOperationToCompletion() joins its worker while the observer is still alive.
 static int runOperationAutoAbortingPrompts(std::unique_ptr<COperationPerformer> p)
 {
 	auto observer = std::make_unique<AutoAbortObserver>();
@@ -79,7 +78,6 @@ static int runOperationAutoAbortingPrompts(std::unique_ptr<COperationPerformer> 
 	p->setObserver(observer.get());
 	p->start();
 	pumpOperationToCompletion(p, observer);
-	p.reset();
 	return observer->promptCount;
 }
 

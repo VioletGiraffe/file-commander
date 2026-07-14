@@ -110,10 +110,10 @@ static void copyTest(const size_t maxFileSize)
 	TRACE_LOG << "std::random seed: " << g_randomSeed;
 	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200, maxFileSize));
 
+	ProgressObserver progressObserver;
 	COperationPerformer p(operationCopy, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
 	CTimeElapsed timer(true);
 
-	ProgressObserver progressObserver;
 	p.setObserver(&progressObserver);
 	p.start();
 	while (!p.done())
@@ -200,8 +200,8 @@ static void moveTest(const size_t maxFileSize)
 	std::vector<CFileSystemObject> sourceTree;
 	CFolderEnumeratorRecursive::enumerateFolder(sourceDirectory.path(), sourceTree);
 
-	COperationPerformer p(operationMove, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
 	ProgressObserver progressObserver;
+	COperationPerformer p(operationMove, CFileSystemObject(sourceDirectory.path()), targetDirectory.path());
 	p.setObserver(&progressObserver);
 
 	CTimeElapsed timer(true);
@@ -654,8 +654,8 @@ TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[ope
 	REQUIRE(generator.generateRandomTree(sourceDirectory.path(), 1000, 200, 20000));
 	REQUIRE(!QDir(sourceDirectory.path()).entryList(QDir::NoDotAndDotDot | QDir::AllEntries).empty());
 
-	COperationPerformer p(operationDelete, CFileSystemObject(sourceDirectory.path()));
 	ProgressObserver progressObserver;
+	COperationPerformer p(operationDelete, CFileSystemObject(sourceDirectory.path()));
 	p.setObserver(&progressObserver);
 
 	CTimeElapsed timer(true);
