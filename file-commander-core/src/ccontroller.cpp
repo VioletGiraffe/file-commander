@@ -18,13 +18,14 @@ DISABLE_COMPILER_WARNINGS
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <thread>
 
 CController* CController::_instance = nullptr;
 
 CController::CController() :
 	_favoriteLocations{KEY_FAVORITES},
-	_panelWorkerPool{ std::min(4u, std::thread::hardware_concurrency()), "Panel file list pool" },
+	_panelWorkerPool{ std::clamp(std::thread::hardware_concurrency(), 1u, 4u), "Panel file list pool" },
 	_pluginProxy{[this](const std::function<void()>& code) {execOnUiThread(code);}},
 	_workerThreadPool{2, "CController thread pool"}
 {

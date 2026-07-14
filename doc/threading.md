@@ -9,7 +9,7 @@ come from the **qtutils**/**cpputils** submodules — described here by role, no
 
 | Mechanism | Owner | Purpose |
 |-----------|-------|---------|
-| `CWorkerThreadPool _panelWorkerPool` | `CController` (shared) | All panel tasks for **every tab on both sides**. Injected into each `CPanel`. Declared before `_panels` so it outlives them. |
+| `CWorkerThreadPool _panelWorkerPool` | `CController` (shared) | 1-4 workers for all panel tasks across **every tab on both sides**. Injected into each `CPanel`. Declared before `_panels` so it outlives them. |
 | `CWorkerThreadPool _workerThreadPool` | `CController` | General `execOnWorkerThread` tasks not tied to a panel. Destroyed before `_uiQueue`, which its tasks can post to. |
 | lazy `CWorkerThreadPool` | each content search with eligible files | 1-8 content workers, with at most two outstanding file tasks per worker. Name-only searches do not construct it. |
 | `CExecutionQueue _uiQueue` | `CController` | Tasks to run on the UI thread; drained on the UI timer tick. Declared before `_workerThreadPool` so it outlives that producer. |
