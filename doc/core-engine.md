@@ -110,7 +110,8 @@ Two layers:
   `moveAtomically` (instance + static forms), `remove`, `makeWritable`. Plus a **non-blocking chunked** API:
   `copyChunk(chunkSize,...)` / `moveChunk` / `copyOperationInProgress` / `bytesCopied` / `cancelCopy` —
   lets the caller drive a copy chunk-by-chunk (for responsiveness/pause/cancel). Uses `QFile` for the
-  source and the exclusively created staging file; preserves permissions + the 4 file timestamps.
+  source and metadata transfer, and `thin_io` for the exclusively created, preallocated staging file;
+  preserves permissions + the 4 file timestamps.
   `lastErrorMessage()` provides diagnostics. `TransferPermissions`/`OverwriteExistingFile` are
   named-bool wrappers (from cpputils) to avoid bare-bool params.
   - **Stores `const CFileSystemObject& _srcObject` — a reference, not a copy.** The object must outlive the
@@ -125,11 +126,15 @@ Two layers:
   - **Copy publication:** chunked copies write to a uniquely created temporary sibling, transfer metadata
     there, then atomically replace the final destination entry. Overwrite therefore replaces only the
     selected pathname: symlink targets and other names for a hard-linked destination remain untouched.
-    Cancellation or any pre-publication failure removes the temporary file and preserves the old destination.
+    The staging file is resized before best-effort physical preallocation: unsupported preallocation falls
+    back to streaming writes, while actual storage exhaustion is reported distinctly. Cancellation or any
+    pre-publication failure removes the temporary file and preserves the old destination; cleanup failures
+    are reported rather than hidden.
 - **`COperationPerformer` (`src/fileoperations/coperationperformer.{h,cpp}`)** — the batch engine. Runs a
   whole copy/move/delete on its **own `std::thread`**, reporting through `CFileOperationObserver`.
   - Ctor takes `Operation` (`operationCopy/Move/Delete`) + source FSO(s) + optional destination.
-  - Lifecycle: `start`, `cancel`, `togglePause`/`paused`, `working`, `done`.
+  - Lifecycle: `start`, `cancel`, `togglePause`/`paused`, `working`, `done`; `done` becomes true only after
+    the final observer event has been queued, so it is safe to use as the worker-side teardown boundary.
   - Conflict handling: when it hits a halt condition it calls `onProcessHalted(HaltReason, src, dst, msg)`
     and blocks on a condition variable until the UI calls `userResponse(haltReason, response, newName)`.
     `HaltReason` = `hrFileExists/hrSourceFileIsReadOnly/hrDestFileIsReadOnly/hrFailedToMakeItemWritable/

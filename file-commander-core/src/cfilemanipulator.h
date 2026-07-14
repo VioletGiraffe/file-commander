@@ -5,6 +5,8 @@
 #include "compiler/compiler_warnings_control.h"
 #include "utility/named_type_wrapper.hpp"
 
+#include "file.hpp"
+
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QFile>
@@ -62,7 +64,7 @@ private:
 	// For copying / moving
 	std::array<QDateTime, 4> _sourceFileTime;
 	QFile _thisFile;
-	QFile _destinationFile;
+	thin_io::file _stagingFile;
 	uint64_t               _pos = 0;
 	mutable QString        _lastErrorMessage;
 };

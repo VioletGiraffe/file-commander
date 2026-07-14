@@ -3,6 +3,7 @@
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QByteArray>
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
@@ -14,15 +15,12 @@ RESTORE_COMPILER_WARNINGS
 #include "windows/windowsutils.h"
 
 #include <Windows.h>
-#include <io.h>
 #else
-#include <fcntl.h>
+#include <errno.h>
 #include <stdio.h> // ::rename
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
-
-#include <optional>
 
 inline static QString getLastNativeFileError()
 {
@@ -47,68 +45,89 @@ static bool setFileAttribute(const QString& path, const DWORD attribute, const b
 }
 #endif
 
-static bool openTemporarySibling(QFile& file, const QString& destinationFolder, QString& errorMessage)
+using ThinIoErrorCode = decltype(thin_io::file::error_code());
+
+static QString thinIoErrorMessage(const ThinIoErrorCode errorCode)
+{
+	return QString::fromStdString(thin_io::file::text_for_error(errorCode));
+}
+
+static bool isFileAlreadyExistsError(const ThinIoErrorCode errorCode)
+{
+#ifdef _WIN32
+	return errorCode == ERROR_FILE_EXISTS || errorCode == ERROR_ALREADY_EXISTS;
+#else
+	return errorCode == EEXIST;
+#endif
+}
+
+static bool isStorageExhaustedError(const ThinIoErrorCode errorCode)
+{
+#ifdef _WIN32
+	return errorCode == ERROR_DISK_FULL || errorCode == ERROR_HANDLE_DISK_FULL || errorCode == ERROR_DISK_QUOTA_EXCEEDED;
+#else
+	return errorCode == ENOSPC || errorCode == EDQUOT;
+#endif
+}
+
+static bool isUnsupportedPreallocationError(const ThinIoErrorCode errorCode)
+{
+#ifdef _WIN32
+	return errorCode == ERROR_INVALID_FUNCTION || errorCode == ERROR_NOT_SUPPORTED || errorCode == ERROR_CALL_NOT_IMPLEMENTED || errorCode == ERROR_INVALID_PARAMETER;
+#else
+	// All arguments have already been validated, so EINVAL here means the filesystem cannot service the request.
+	return errorCode == EOPNOTSUPP || errorCode == ENOSYS || errorCode == EINVAL;
+#endif
+}
+
+static FileOperationResultCode classifyThinIoFailure(const ThinIoErrorCode errorCode, QString& errorMessage)
+{
+	errorMessage = thinIoErrorMessage(errorCode);
+	return isStorageExhaustedError(errorCode) ? FileOperationResultCode::NotEnoughSpaceAvailable : FileOperationResultCode::Fail;
+}
+
+static FileOperationResultCode openTemporarySibling(thin_io::file& file, const QString& destinationFolder, QString& temporaryPath, QString& errorMessage)
 {
 	static constexpr int maxAttempts = 10;
 	for (int attempt = 0; attempt < maxAttempts; ++attempt)
 	{
 		const QString path = destinationFolder % QStringLiteral(".file-commander-copy-") % QUuid::createUuid().toString(QUuid::WithoutBraces) % QStringLiteral(".tmp");
-		file.setFileName(path);
-		if (file.open(QFile::ReadWrite | QFile::NewOnly | QFile::Unbuffered))
+		const QByteArray encodedPath = path.toUtf8();
+		if (file.open(encodedPath.constData(), thin_io::file::access_mode::Write, thin_io::file::open_disposition::CreateNew))
 		{
+			temporaryPath = path;
+			errorMessage.clear();
 #ifdef _WIN32
 			(void)setFileAttribute(path, FILE_ATTRIBUTE_HIDDEN, true);
 #endif
-			return true;
+			return FileOperationResultCode::Ok;
 		}
 
-		errorMessage = file.errorString();
+		const auto errorCode = thin_io::file::error_code();
+		if (!isFileAlreadyExistsError(errorCode))
+			return classifyThinIoFailure(errorCode, errorMessage);
+		errorMessage = thinIoErrorMessage(errorCode);
 	}
 
-	return false;
+	return FileOperationResultCode::Fail;
 }
 
-static bool preallocateFile(QFile& file, const uint64_t size)
+static FileOperationResultCode prepareStagingFile(thin_io::file& file, const uint64_t size, QString& errorMessage)
 {
-	if (size == 0)
-		return true;
-
-#ifdef _WIN32
-	const HANDLE handle = reinterpret_cast<HANDLE>(::_get_osfhandle(file.handle()));
-	if (handle == INVALID_HANDLE_VALUE)
+	if (!file.resize(size)) [[unlikely]]
 	{
-		::SetLastError(ERROR_INVALID_HANDLE);
-		return false;
+		const auto errorCode = thin_io::file::error_code();
+		return classifyThinIoFailure(errorCode, errorMessage);
 	}
 
-	FILE_END_OF_FILE_INFO eof;
-	eof.EndOfFile.QuadPart = static_cast<LONGLONG>(size);
-	return ::SetFileInformationByHandle(handle, FileEndOfFileInfo, &eof, sizeof(eof)) != 0;
-#elif defined __APPLE__
-	fstore_t store;
-	store.fst_flags = F_ALLOCATECONTIG;
-	store.fst_posmode = F_PEOFPOSMODE;
-	store.fst_offset = 0;
-	store.fst_length = static_cast<off_t>(size);
-	store.fst_bytesalloc = 0;
-	if (::fcntl(file.handle(), F_PREALLOCATE, &store) == -1)
-	{
-		store.fst_flags = F_ALLOCATEALL;
-		if (::fcntl(file.handle(), F_PREALLOCATE, &store) == -1)
-			return false;
-	}
+	if (file.preallocate(size))
+		return FileOperationResultCode::Ok;
 
-	return ::ftruncate(file.handle(), static_cast<off_t>(size)) == 0;
-#else
-	const int error = ::posix_fallocate(file.handle(), 0, static_cast<off_t>(size));
-	if (error != 0)
-	{
-		errno = error;
-		return false;
-	}
+	const auto errorCode = thin_io::file::error_code();
+	if (isUnsupportedPreallocationError(errorCode))
+		return FileOperationResultCode::Ok;
 
-	return true;
-#endif
+	return classifyThinIoFailure(errorCode, errorMessage);
 }
 
 static bool replaceFileEntry(const QString& sourcePath, const QString& destinationPath)
@@ -284,26 +303,26 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 			return FileOperationResultCode::Fail;
 		}
 
-		if (!openTemporarySibling(_destinationFile, destFolder, _lastErrorMessage)) [[unlikely]]
+		const auto openResult = openTemporarySibling(_stagingFile, destFolder, _temporaryDestinationFilePath, _lastErrorMessage);
+		if (openResult != FileOperationResultCode::Ok) [[unlikely]]
 		{
 			_thisFile.close();
-			return FileOperationResultCode::Fail;
+			return openResult;
 		}
-		_temporaryDestinationFilePath = _destinationFile.fileName();
 
-		// Reserve the destination space up front: fail before copying if the disk is full, and reduce fragmentation
-		if (!preallocateFile(_destinationFile, static_cast<uint64_t>(_srcObject.size()))) [[unlikely]]
+		// Set the final logical size, then reserve physical space when supported to detect storage exhaustion early and reduce fragmentation.
+		const auto preparationResult = prepareStagingFile(_stagingFile, static_cast<uint64_t>(_srcObject.size()), _lastErrorMessage);
+		if (preparationResult != FileOperationResultCode::Ok) [[unlikely]]
 		{
-			_lastErrorMessage = getLastNativeFileError();
-			_destinationFile.close();
+			_stagingFile.close();
 			_thisFile.close();
 			if (QFile::remove(_temporaryDestinationFilePath))
 				_temporaryDestinationFilePath.clear();
-			return FileOperationResultCode::NotEnoughSpaceAvailable;
+			return preparationResult;
 		}
 	}
 
-	assert_debug_only(_destinationFile.isOpen() == _thisFile.isOpen());
+	assert_debug_only(_stagingFile.is_open() == _thisFile.isOpen());
 
 	const uint64_t srcSize = (uint64_t)_srcObject.size();
 	const uint64_t actualChunkSize = std::min(chunkSize, srcSize - _pos);
@@ -318,19 +337,19 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 			return FileOperationResultCode::Fail;
 		}
 
-		const qint64 written = _destinationFile.write(reinterpret_cast<const char*>(src), static_cast<qint64>(actualChunkSize));
-		if (written < 0) [[unlikely]]
+		const auto written = _stagingFile.write(src, actualChunkSize);
+		if (!written) [[unlikely]]
 		{
-			_lastErrorMessage = _destinationFile.errorString();
-			return FileOperationResultCode::Fail;
+			const auto errorCode = thin_io::file::error_code();
+			return classifyThinIoFailure(errorCode, _lastErrorMessage);
 		}
-		else if (written == 0) [[unlikely]] // A zero-byte write for a non-empty chunk would stall the caller's copy loop forever
+		else if (*written == 0) [[unlikely]] // A zero-byte write for a non-empty chunk would stall the caller's copy loop forever
 		{
 			_lastErrorMessage = QStringLiteral("Failed to write to the destination file (zero bytes written).");
 			return FileOperationResultCode::Fail;
 		}
 
-		bytesWritten = static_cast<uint64_t>(written);
+		bytesWritten = *written;
 		_pos += bytesWritten;
 
 		[[maybe_unused]] const bool unmapResult = _thisFile.unmap(src);
@@ -339,28 +358,48 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 
 	if (_pos == srcSize) // All copied, close the files and transfer attributes (if requested)
 	{
-		// Copying complete
-		if (transferPermissions)
+		if (!_stagingFile.fdatasync()) [[unlikely]]
 		{
-			_lastErrorMessage = copyPermissions(_thisFile, _destinationFile);
-			if (!_lastErrorMessage.isEmpty()) [[unlikely]]
-				return FileOperationResultCode::Fail;
+			const auto errorCode = thin_io::file::error_code();
+			return classifyThinIoFailure(errorCode, _lastErrorMessage);
 		}
 
-		if (transferDates)
+		if (!_stagingFile.close()) [[unlikely]]
 		{
-			// Note: The file must be open to use setFileTime()
-			for (const auto fileTimeType : supportedFileTimeTypes)
-				assert_r(_destinationFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
+			const auto errorCode = thin_io::file::error_code();
+			return classifyThinIoFailure(errorCode, _lastErrorMessage);
 		}
-
-		if (!_destinationFile.flush()) [[unlikely]]
-		{
-			_lastErrorMessage = _destinationFile.errorString();
-			return FileOperationResultCode::Fail;
-		}
-		_destinationFile.close();
 		_thisFile.close();
+
+		if (transferPermissions || transferDates)
+		{
+			QFile metadataFile(_temporaryDestinationFilePath);
+			if (!metadataFile.open(QFile::ReadWrite | QFile::Unbuffered)) [[unlikely]]
+			{
+				_lastErrorMessage = metadataFile.errorString();
+				return FileOperationResultCode::Fail;
+			}
+
+			if (transferPermissions)
+			{
+				_lastErrorMessage = copyPermissions(_thisFile, metadataFile);
+				if (!_lastErrorMessage.isEmpty()) [[unlikely]]
+					return FileOperationResultCode::Fail;
+			}
+
+			if (transferDates)
+			{
+				// Note: The file must be open to use setFileTime()
+				for (const auto fileTimeType : supportedFileTimeTypes)
+					assert_r(metadataFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType));
+			}
+
+			if (!metadataFile.flush()) [[unlikely]]
+			{
+				_lastErrorMessage = metadataFile.errorString();
+				return FileOperationResultCode::Fail;
+			}
+		}
 
 #ifdef _WIN32
 		if (!setFileAttribute(_temporaryDestinationFilePath, FILE_ATTRIBUTE_HIDDEN, false)) [[unlikely]]
@@ -388,7 +427,7 @@ FileOperationResultCode CFileManipulator::moveChunk(uint64_t /*chunkSize*/, cons
 
 bool CFileManipulator::copyOperationInProgress() const
 {
-	const bool isOpen = _destinationFile.isOpen();
+	const bool isOpen = _stagingFile.is_open();
 	assert_debug_only(isOpen == _thisFile.isOpen());
 	return isOpen;
 }
@@ -402,25 +441,38 @@ FileOperationResultCode CFileManipulator::cancelCopy()
 {
 	if (_thisFile.isOpen())
 		_thisFile.close();
-	bool closed = true;
-	if (_destinationFile.isOpen())
+
+	QString cleanupError;
+	if (_stagingFile.is_open())
 	{
-		closed = _destinationFile.flush();
-		_destinationFile.close();
+		if (!_stagingFile.close())
+			cleanupError = QStringLiteral("Failed to close the temporary file: ") % QString::fromStdString(thin_io::file::text_for_last_error());
 	}
 
-	bool deleted = true;
 	if (!_temporaryDestinationFilePath.isEmpty())
 	{
 #ifdef _WIN32
 		(void)setFileAttribute(_temporaryDestinationFilePath, FILE_ATTRIBUTE_READONLY, false);
 #endif
-		deleted = QFile::remove(_temporaryDestinationFilePath);
+		QFile temporaryFile(_temporaryDestinationFilePath);
+		const bool deleted = temporaryFile.remove();
 		if (deleted)
 			_temporaryDestinationFilePath.clear();
+		else
+		{
+			if (!cleanupError.isEmpty())
+				cleanupError += '\n';
+			cleanupError += QStringLiteral("Failed to remove the temporary file: ") % temporaryFile.errorString();
+		}
 	}
 
-	return closed && deleted ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+	if (cleanupError.isEmpty())
+		return FileOperationResultCode::Ok;
+
+	if (!_lastErrorMessage.isEmpty())
+		_lastErrorMessage += '\n';
+	_lastErrorMessage += cleanupError;
+	return FileOperationResultCode::Fail;
 }
 
 bool CFileManipulator::makeWritable(bool writable)

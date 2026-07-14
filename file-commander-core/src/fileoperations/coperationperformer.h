@@ -159,6 +159,7 @@ private:
 	std::thread                    _thread;
 	std::mutex                     _waitForResponseMutex;
 	std::condition_variable        _waitForResponseCondition;
+	QString                        _completionMessage;
 
 	CFileOperationObserver       * _observer = nullptr;
 

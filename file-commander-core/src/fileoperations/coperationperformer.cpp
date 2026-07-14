@@ -594,9 +594,9 @@ void COperationPerformer::moveWithinSameDrive()
 void COperationPerformer::finalize()
 {
 	_inProgress = false;
-	_done = true;
 	_paused   = false;
-	if (_observer) _observer->onProcessFinishedCallback();
+	if (_observer) _observer->onProcessFinishedCallback(_completionMessage);
+	_done = true;
 }
 
 inline bool isAbsolutePath(const QString& path)
@@ -808,7 +808,11 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 			if (!itemManipulator.copyOperationInProgress())
 				break; // result == Ok
 
-			assert_message_r(itemManipulator.cancelCopy() == FileOperationResultCode::Ok, "Failed to cancel item copying");
+			if (itemManipulator.cancelCopy() != FileOperationResultCode::Ok) [[unlikely]]
+			{
+				_completionMessage = QStringLiteral("The operation was canceled, but its temporary file could not be cleaned up completely.\n") % itemManipulator.lastErrorMessage();
+				assert_unconditional_r("Failed to cancel item copying");
+			}
 			return naCancel;
 		}
 	} while (itemManipulator.copyOperationInProgress());
@@ -816,7 +820,8 @@ COperationPerformer::NextAction COperationPerformer::copyItem(CFileSystemObject&
 
 	if (result != FileOperationResultCode::Ok)
 	{
-		assert_r(itemManipulator.cancelCopy() == FileOperationResultCode::Ok);
+		const bool cleanupSucceeded = itemManipulator.cancelCopy() == FileOperationResultCode::Ok;
+		assert_r(cleanupSucceeded);
 
 		const QString errorMessage =
 			"Error copying file " % item.fullAbsolutePath() %

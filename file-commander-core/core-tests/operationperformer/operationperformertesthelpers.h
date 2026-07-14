@@ -104,8 +104,6 @@ static void pumpOperationToCompletion(std::unique_ptr<COperationPerformer>& p, s
 {
 	pumpUntil(p, observer, [&p] { return p->done(); });
 
-	// done() becomes true immediately before the worker posts its final observer event. Join the worker while the observer is still alive,
-	// then dispatch that event so neither the worker nor a buffered callback can outlive the observer.
 	p.reset();
 	observer->processEvents();
 }
