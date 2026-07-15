@@ -8,7 +8,6 @@
 
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
-#include "hash/jenkins_hash.hpp"
 #include "threading/thread_helpers.h"
 #include "threading/cworkerthread.h"
 #include "utility/on_scope_exit.hpp"
