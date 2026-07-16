@@ -46,6 +46,11 @@ class CFileSystemObject;
 
 [[nodiscard]] QString toPosixSeparators(QString path);
 
+// CFileSystemObject normalizes a directory's path to always end with a slash; native APIs are less accommodating,
+// CreateFileW especially, once the \\?\ prefix has turned path normalization off. Strip it before handing a path to
+// one. A root keeps its slash: "C:" names the drive's current directory rather than its root.
+[[nodiscard]] QString withoutTrailingSeparator(QString path);
+
 [[nodiscard]] QString escapedPath(QString path);
 
 [[nodiscard]] QString cleanPath(QString path);

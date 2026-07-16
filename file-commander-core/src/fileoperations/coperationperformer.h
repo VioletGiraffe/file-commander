@@ -5,6 +5,7 @@
 #include "system/ctimeelapsed.h"
 
 #include "3rdparty/magic_enum/magic_enum.hpp"
+#include "fs.hpp"
 
 #include <array>
 #include <atomic>
@@ -109,6 +110,9 @@ private:
 	void moveWithinSameDrive();
 
 	void finalize();
+	// Writes the timestamps collected in _pendingDirectoryTimes. Failures are reported through _completionMessage
+	// rather than aborting: the folder's contents are already in place, which is what the operation was asked to do.
+	void applyPendingDirectoryTimes();
 
 	// Iterates over all dirs in the source vector, and their subdirs, and so on and replaces _sources with a flat list of files. Returns a list of destination folders where each of the files must be copied to according to _dest
 	// Also counts the total size of all the files to monitor progress
@@ -143,10 +147,19 @@ private:
 		bool reachedThroughLink = false;
 	};
 
+	// A destination folder this operation created, and the source timestamps it must end up with. Deferred to the end
+	// of the operation: creating an entry inside a folder updates that folder's modification time, so stamping it any
+	// earlier would be undone by its own contents being copied in.
+	struct PendingDirectoryTimes {
+		QString destinationPath;
+		thin_io::entry_times times;
+	};
+
 	friend QDebug& operator<<(QDebug& stream, const std::vector<ObjectToProcess>& objects);
 
 private:
 	std::vector<ObjectToProcess> _source;
+	std::vector<PendingDirectoryTimes> _pendingDirectoryTimes;
 	// Essentially a map<HaltReason, UserResponse>
 	std::array<std::optional<UserResponse>, magic_enum::enum_count<HaltReason>()> _globalResponses;
 	CFileSystemObject              _destFileSystemObject;

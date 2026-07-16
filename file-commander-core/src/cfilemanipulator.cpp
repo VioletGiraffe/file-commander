@@ -587,9 +587,7 @@ FileOperationResultCode CFileManipulator::remove()
 	{
 		assert_r(_srcObject.isEmptyDir());
 
-		QString directoryPath = _srcObject.fullAbsolutePath();
-		if (directoryPath.endsWith('/') && !QDir{directoryPath}.isRoot())
-			directoryPath.chop(1);
+		const QString directoryPath = withoutTrailingSeparator(_srcObject.fullAbsolutePath());
 
 #ifdef _WIN32
 		WCHAR directoryPathUnc[32768];

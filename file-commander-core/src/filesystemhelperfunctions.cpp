@@ -9,6 +9,7 @@
 #include "lang/type_traits_fast.hpp"
 
 DISABLE_COMPILER_WARNINGS
+#include <QDir>
 #include <QString>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
@@ -65,6 +66,14 @@ QString toPosixSeparators(QString path)
 	assert_debug_only(!path.contains('\\'));
 	return path;
 #endif
+}
+
+QString withoutTrailingSeparator(QString path)
+{
+	if (path.endsWith('/') && !QDir{ path }.isRoot())
+		path.chop(1);
+
+	return path;
 }
 
 QString escapedPath(QString path)

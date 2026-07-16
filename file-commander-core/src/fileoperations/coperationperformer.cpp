@@ -3,6 +3,8 @@
 #include "directoryscanner.h"
 #include "filesystemhelperfunctions.h"
 
+#include "file.hpp" // thin_io::file::text_for_last_error
+
 #include "assert/advanced_assert.h"
 #include "threading/thread_helpers.h"
 #include "utility/on_scope_exit.hpp"
@@ -639,8 +641,41 @@ void COperationPerformer::moveWithinSameDrive()
 	}
 }
 
+void COperationPerformer::applyPendingDirectoryTimes()
+{
+	size_t failureCount = 0;
+	QString firstFailure;
+
+	for (const auto& pending : _pendingDirectoryTimes)
+	{
+		// Cancellation asks for a prompt exit, and every folder here is already on disk with its contents - only the
+		// timestamps would be off
+		if (_cancellationRequested->load())
+			break;
+
+		if (thin_io::set_times(pending.destinationPath.toUtf8().constData(), pending.times)) [[likely]]
+			continue;
+
+		if (failureCount++ == 0)
+			firstFailure = pending.destinationPath % QStringLiteral(": ") % QString::fromStdString(thin_io::file::text_for_last_error());
+	}
+
+	if (failureCount == 0)
+		return;
+
+	if (!_completionMessage.isEmpty())
+		_completionMessage += '\n';
+
+	_completionMessage += failureCount == 1
+		? QStringLiteral("The timestamps of a folder could not be set:\n")
+		: QStringLiteral("The timestamps of %1 folders could not be set. The first failure:\n").arg(failureCount);
+	_completionMessage += firstFailure;
+}
+
 void COperationPerformer::finalize()
 {
+	applyPendingDirectoryTimes();
+
 	_inProgress = false;
 	_paused   = false;
 	if (_observer) _observer->onProcessFinishedCallback(_completionMessage);
@@ -745,7 +780,22 @@ COperationPerformer::NextAction COperationPerformer::materializeDestinationDirec
 
 	NextAction creationResult;
 	while ((creationResult = mkPath(QDir(destinationObject.fullAbsolutePath()))) == naRetryOperation);
-	return creationResult;
+	if (creationResult != naProceed)
+		return creationResult;
+
+	// Only folders created here are stamped. The early return above leaves a pre-existing destination folder alone:
+	// merging into it is not a reason to overwrite the timestamps it already has.
+	// A source whose timestamps cannot be read is simply not recorded: the folder is materialized either way, and a
+	// failure to stat a folder that is being actively copied is already being reported, loudly, by the copy itself.
+	const auto sourceTimes = thin_io::get_times(withoutTrailingSeparator(source.fullAbsolutePath()).toUtf8().constData());
+	if (sourceTimes) [[likely]]
+	{
+		auto& pending = _pendingDirectoryTimes.emplace_back();
+		pending.destinationPath = withoutTrailingSeparator(destinationObject.fullAbsolutePath());
+		pending.times = *sourceTimes;
+	}
+
+	return naProceed;
 }
 
 COperationPerformer::NextAction COperationPerformer::removeDestinationForReplacement(CFileSystemObject& destination)
