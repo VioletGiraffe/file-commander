@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784142527326,
+  "lastUpdate": 1784206125251,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -4405,6 +4405,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "39f1f9a20e2315763d8477b9de2ccbf9f8875a60",
+          "message": "Preserving birth time for directories; using thin_io for it, which also support birth time on Mac",
+          "timestamp": "2026-07-16T15:44:04+03:00",
+          "tree_id": "a64d414324a6750d52782f95acaf408c6d60148c",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/39f1f9a20e2315763d8477b9de2ccbf9f8875a60"
+        },
+        "date": 1784206122691,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16092,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8723,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1230,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 638,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 370,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36.5,
             "unit": "KB"
           },
           {
