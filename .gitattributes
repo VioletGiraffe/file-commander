@@ -1,0 +1,8 @@
+# LF in the repository and in the working tree, on every platform, so that what is on disk is byte-for-byte what is
+# committed. This only ever acts when something writes CRLF, which `git add` then normalizes back; text=auto keeps
+# git's hands off the binaries rather than corrupting them.
+* text=auto eol=lf
+
+# cmd.exe is unreliable reading LF-only batch files, notably around goto and its labels, so these alone are CRLF on
+# disk. Their blobs are still LF, as git stores every text file.
+*.bat text eol=crlf
