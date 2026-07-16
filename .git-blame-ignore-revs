@@ -1,0 +1,5 @@
+# Revisions for git blame to skip, one full SHA per line. GitHub's blame view reads this file on its own; locally it
+# takes `git config blame.ignoreRevsFile .git-blame-ignore-revs`, which every clone has to set for itself.
+
+# CRLF->LF, except .bat files which are forced to CRLF
+2f98fdac1870fcb241ee77fed8adc751b16e9ebc
