@@ -40,6 +40,7 @@ jobs:
           tests_relevant:
             - 'file-commander-core/src/**'
             - 'file-commander-core/core-tests/**'
+            - 'thin_io/**'
             - '.github/workflows/CI.yml'
             - 'global.pri'
             - 'file-commander-core/config.pri'
