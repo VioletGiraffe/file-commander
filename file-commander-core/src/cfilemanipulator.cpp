@@ -143,11 +143,11 @@ static bool replaceFileEntry(const QString& sourcePath, const QString& destinati
 #endif
 }
 
-// Types QFile::setFileTime() can write: access and modification on every platform, birth time only on Windows.
-// (Qt rejects birth/metadata-change writes on Unix, and any invalid QDateTime, with EINVAL.) The copy reads only
-// these from the source so it never reads a timestamp it cannot write back.
-static constexpr QFileDevice::FileTime settableFileTimeTypes[] {
-	QFileDevice::FileAccessTime,
+// What the copy transfers: the modification time everywhere, and the birth time on Windows, the only platform where
+// QFile::setFileTime() will write it (Qt rejects birth/metadata-change writes on Unix, and any invalid QDateTime, with
+// EINVAL). The access time is writable but deliberately left out - reading the source in order to copy it updates the
+// source's own access time, so transferring the pre-copy value hands the destination a time the source no longer has.
+static constexpr QFileDevice::FileTime transferredFileTimeTypes[] {
 #ifdef _WIN32
 	QFileDevice::FileBirthTime,
 #endif
@@ -315,7 +315,7 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 		// Creating files
 		_thisFile.setFileName(_srcObject.fullAbsolutePath());
 
-		for (const auto fileTimeType: settableFileTimeTypes)
+		for (const auto fileTimeType: transferredFileTimeTypes)
 			_sourceFileTime[fileTimeType] = _thisFile.fileTime(fileTimeType);
 
 		// Initializing - opening files
@@ -411,7 +411,7 @@ FileOperationResultCode CFileManipulator::copyChunk(const uint64_t chunkSize, co
 
 			if (transferDates)
 			{
-				for (const auto fileTimeType : settableFileTimeTypes)
+				for (const auto fileTimeType : transferredFileTimeTypes)
 				{
 					if (!metadataFile.setFileTime(_sourceFileTime[fileTimeType], fileTimeType)) [[unlikely]]
 					{

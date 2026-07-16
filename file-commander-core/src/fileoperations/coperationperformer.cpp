@@ -792,7 +792,10 @@ COperationPerformer::NextAction COperationPerformer::materializeDestinationDirec
 	{
 		auto& pending = _pendingDirectoryTimes.emplace_back();
 		pending.destinationPath = withoutTrailingSeparator(destinationObject.fullAbsolutePath());
-		pending.times = *sourceTimes;
+		// The access time is left out, matching transferredFileTimeTypes in cfilemanipulator.cpp. Enumerating a folder
+		// overwrites that folder's own access time, so by now the source's is just the time the scan reached it.
+		pending.times.creation = sourceTimes->creation;
+		pending.times.last_write = sourceTimes->last_write;
 	}
 
 	return naProceed;

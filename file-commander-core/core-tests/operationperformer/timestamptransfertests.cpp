@@ -78,9 +78,9 @@ static void setTimes(const QString& path, const thin_io::entry_times& times)
 	return *times;
 }
 
-// The access time is deliberately not compared: enumerating the source folder updates that folder's own access time
-// before the operation gets to read it, so what reaches the destination is whatever the scan left behind - and whether
-// it moves at all comes down to the platform and the mount options.
+// The access time is not compared because the operation does not transfer it - see transferredFileTimeTypes in
+// cfilemanipulator.cpp. Nor could it be usefully asserted either way: enumerating the source folder overwrites that
+// folder's own access time before the operation ever reads it.
 static void checkTimesMatch(const thin_io::entry_times& actual, const thin_io::entry_times& expected)
 {
 	CHECK(actual.last_write == expected.last_write);

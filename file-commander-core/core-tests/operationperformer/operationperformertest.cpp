@@ -33,9 +33,8 @@ static uint32_t g_randomSeed = []{
 	return std::uniform_int_distribution<uint32_t>{0, uint32_max}(rd);
 }();
 
-// Must mirror settableFileTimeTypes in cfilemanipulator.cpp: the copy transfers exactly these, so the verification checks exactly these.
-static constexpr QFileDevice::FileTime settableFileTimeTypes[] {
-	QFileDevice::FileAccessTime,
+// Must mirror transferredFileTimeTypes in cfilemanipulator.cpp: the copy transfers exactly these, so the verification checks exactly these.
+static constexpr QFileDevice::FileTime transferredFileTimeTypes[] {
 #ifdef _WIN32
 	QFileDevice::FileBirthTime,
 #endif
@@ -163,7 +162,7 @@ static void copyTest(const size_t maxFileSize)
 				CHECK(true);
 			});
 
-		for (const auto fileTimeType : settableFileTimeTypes)
+		for (const auto fileTimeType : transferredFileTimeTypes)
 		{
 			if (!timesAlmostMatch(fileA.fileTime(fileTimeType), fileB.fileTime(fileTimeType), fileTimeType))
 				FAIL_CHECK();
