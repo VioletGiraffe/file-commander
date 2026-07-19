@@ -15,6 +15,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
+#include <QMessageBox>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
@@ -397,7 +398,36 @@ void CController::onPanelContentsChanged(Panel p, FileListRefreshCause /*operati
 
 void CController::onCurrentPathChanged(Panel p, const QString& newPath)
 {
-	_visitedLocations[(size_t)p].addLatest(newPath);
+	auto& visited = _visitedLocations[(size_t)p];
+
+	const size_t sizeBefore = visited.size();
+	const bool alreadyLogged = std::find(visited.begin(), visited.end(), newPath) != visited.end();
+
+	visited.addLatest(newPath);
+
+	warnIfVisitedLocationDropped(p, newPath, sizeBefore, alreadyLogged);
+}
+
+void CController::warnIfVisitedLocationDropped(Panel p, const QString& newPath, size_t sizeBefore, bool wasAlreadyLogged)
+{
+	// Tripwire for the "visited folders silently disappear" bug: addLatest must only append newPath (or move it to the
+	// newest slot when it was already logged), evicting a single oldest entry only once the maxSize ceiling is reached.
+	// Any other resulting size means an entry was dropped.
+	const auto& visited = _visitedLocations[(size_t)p];
+	const size_t permissibleSize = std::min(wasAlreadyLogged ? sizeBefore : sizeBefore + 1, visited.maxSize());
+	if (visited.size() == permissibleSize)
+		return;
+
+	// We run inside setPath with the panel mutex held, so a modal here would deadlock against queued panel work
+	// draining on the UI thread - surface it via the UI queue, which runs it after setPath has released the lock.
+	const size_t actualSize = visited.size();
+	execOnUiThread([p, newPath, sizeBefore, permissibleSize, actualSize] {
+		const QString panelSide = p == Panel::LeftPanel ? QSL("left") : QSL("right");
+		QMessageBox::critical(nullptr, QSL("Visited-locations history tripwire"),
+			QSL("An entry was unexpectedly dropped from the %1 panel's visited-folders history while adding:\n%2\n\n"
+				"Size before: %3, expected: %4, actual: %5.\n\nPlease note the steps that led here and report them.")
+				.arg(panelSide, newPath).arg(qulonglong(sizeBefore)).arg(qulonglong(permissibleSize)).arg(qulonglong(actualSize)));
+	});
 }
 
 // Indicates that an item was activated and appropriate action should be taken. Returns error message, if any
