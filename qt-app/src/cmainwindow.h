@@ -142,6 +142,7 @@ private:
 	static CMainWindow* _instance;
 
 	QTimer* _uiThreadTimer = nullptr;
+	QTimer* _historyAutosaveTimer = nullptr; // Periodically persists the visited-folders history so an abrupt exit doesn't lose it
 
 	std::unique_ptr<CController> _controller;
 	CPanelWidget* _currentFileList = nullptr;

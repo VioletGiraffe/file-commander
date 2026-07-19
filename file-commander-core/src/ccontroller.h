@@ -41,6 +41,9 @@ public:
 
 // Notifications from UI
 	void uiThreadTimerTick();
+	// Persists both sides' history + visited-locations logs. Driven periodically by the UI (autosave) in addition to
+	// the destructor, so a session that ends without unwinding (kill, power loss, debugger stop) doesn't lose the log.
+	void saveHistory();
 
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 	void refreshPanelContents(Panel p);
@@ -159,7 +162,7 @@ private:
 	// Persistence (centralized here; CPanel no longer touches settings).
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
 	void savePanelState(Panel p);    // Writes side p's tab paths + active index + the active tab's path (deduplicated)
-	void saveHistoryList(Panel p);   // Writes side p's active-tab back/forward history + visited-locations log; called only on shutdown
+	void saveHistoryList(Panel p);   // Writes side p's active-tab back/forward history + visited-locations log; see saveHistory()
 
 	// PanelContentsChangedListener: the controller listens to its own tabs only to persist on navigation.
 	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;

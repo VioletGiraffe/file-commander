@@ -105,6 +105,7 @@ CMainWindow::CMainWindow(QWidget *parent) noexcept :
 	ui->_commandLine->installEventFilter(this);
 
 	_uiThreadTimer = new QTimer{ this };
+	_historyAutosaveTimer = new QTimer{ this };
 
 	initCore();
 
@@ -123,6 +124,7 @@ CMainWindow::CMainWindow(QWidget *parent) noexcept :
 CMainWindow::~CMainWindow() noexcept
 {
 	_uiThreadTimer->disconnect();
+	_historyAutosaveTimer->disconnect();
 
 	_instance = nullptr;
 	delete ui;
@@ -953,6 +955,9 @@ void CMainWindow::initCore()
 
 	connect(_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
 	_uiThreadTimer->start(10);
+
+	connect(_historyAutosaveTimer, &QTimer::timeout, this, [this] { _controller->saveHistory(); });
+	_historyAutosaveTimer->start(5 * 60 * 1000);
 }
 
 void CMainWindow::createToolMenuEntries(QMenu* menu, const std::vector<CPluginProxy::MenuTree>& menuEntries)

@@ -51,10 +51,8 @@ CController::~CController()
 	// Capture the final state (notably each tab's cursor position, which pure cursor moves don't otherwise persist).
 	// The tabs are our own members, so they're still valid here.
 	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
-	{
 		savePanelState(p);
-		saveHistoryList(p);
-	}
+	saveHistory();
 
 	_instance = nullptr;
 }
@@ -368,6 +366,12 @@ void CController::savePanelState(Panel p)
 
 	// Mirror the active tab's path to the legacy key (back-compat + crash recovery).
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, tabPaths[activeIndex]);
+}
+
+void CController::saveHistory()
+{
+	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+		saveHistoryList(p);
 }
 
 void CController::saveHistoryList(Panel p)
