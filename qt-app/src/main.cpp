@@ -2,6 +2,7 @@
 #include "settings.h"
 #include "settings/csettings.h"
 #include "system/win_utils.hpp"
+#include "logger/cloggerinmemory.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -11,10 +12,46 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
+#include <cstdio>
+#include <cstdlib>
 #include <string_view>
+
+namespace {
+QtMessageHandler g_previousMessageHandler = nullptr;
+
+// Global sink for every Qt message (qDebug/qInfo/qWarning/qCritical, plus our asserts, which route through qInfo).
+// Captures into the in-memory log so "Report a bug" can display it, then reproduces the output the default handler
+// would have written, so console/debugger visibility isn't lost. Fires on any thread; CLoggerInMemory is thread-safe.
+void appMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message)
+{
+	const QString formatted = qFormatLogMessage(type, context, message);
+	loggerInstance<CLoggerInMemory>().log(formatted);
+
+	if (g_previousMessageHandler)
+		g_previousMessageHandler(type, context, message);
+	else
+	{
+		fprintf(stderr, "%s\n", qUtf8Printable(formatted));
+		fflush(stderr);
+#ifdef _WIN32
+		const QString line = formatted + QLatin1Char('\n');
+		OutputDebugStringW(reinterpret_cast<const wchar_t*>(line.utf16()));
+#endif
+	}
+
+	if (type == QtFatalMsg)
+		abort(); // Installing a handler suppresses Qt's own abort-on-fatal; keep the process terminating as before.
+}
+}
 
 int main(int argc, char *argv[])
 {
+	g_previousMessageHandler = qInstallMessageHandler(appMessageHandler);
+
 	AdvancedAssert::setLoggingFunc([](const char* message){
 		qInfo() << message;
 	});

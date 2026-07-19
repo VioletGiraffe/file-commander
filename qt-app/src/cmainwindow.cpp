@@ -24,6 +24,7 @@
 #include "filesystemhelpers/filesystemhelpers.hpp"
 #include "system/ctimeelapsed.h"
 #include "tools/CFileStatsWindow.h"
+#include "logger/cloggerinmemory.h"
 #include "version.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -34,18 +35,24 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QCloseEvent>
 #include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFileIconProvider>
+#include <QFontDatabase>
 #include <QInputDialog>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QProcess>
+#include <QPushButton>
 #include <QScreen>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <QUrl>
+#include <QVBoxLayout>
 #include <QWidgetList>
 #include <QWindow>
 RESTORE_COMPILER_WARNINGS
@@ -267,9 +274,7 @@ void CMainWindow::initActions()
 	connect(ui->actionTablet_mode, &QAction::toggled, this, &CMainWindow::toggleTabletMode);
 
 	connect(ui->action_Check_for_updates, &QAction::triggered, this, &CMainWindow::checkForUpdates);
-	connect(ui->action_Report_a_bug, &QAction::triggered, this, []{
-		QDesktopServices::openUrl(QUrl("https://github.com/" + REPO_NAME + "/issues/new"));
-	});
+	connect(ui->action_Report_a_bug, &QAction::triggered, this, &CMainWindow::reportBug);
 	connect(ui->actionAbout, &QAction::triggered, this, &CMainWindow::about);
 
 	// Tabs menu. Actions route to the active panel's widget.
@@ -874,6 +879,40 @@ void CMainWindow::checkForUpdates()
 void CMainWindow::about()
 {
 	CAboutDialog(this).exec();
+}
+
+void CMainWindow::reportBug()
+{
+	QDialog dialog(this);
+	dialog.setWindowTitle(tr("Report a bug"));
+	dialog.resize(750, 520);
+
+	auto* layout = new QVBoxLayout(&dialog);
+
+	auto* instructions = new QLabel(tr("Please describe the problem on the issue tracker. The application log below may help - "
+		"select and copy any relevant lines into your report."), &dialog);
+	instructions->setWordWrap(true);
+	layout->addWidget(instructions);
+
+	auto* logView = new QPlainTextEdit(&dialog);
+	logView->setReadOnly(true);
+	logView->setLineWrapMode(QPlainTextEdit::NoWrap);
+	logView->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+	logView->setPlainText(loggerInstance<CLoggerInMemory>().contents().join('\n'));
+	logView->moveCursor(QTextCursor::End); // Reveal the most recent entries
+	layout->addWidget(logView, 1);
+
+	auto* buttons = new QDialogButtonBox(&dialog);
+	auto* openTracker = buttons->addButton(tr("Open issue tracker"), QDialogButtonBox::ActionRole);
+	buttons->addButton(QDialogButtonBox::Close);
+	layout->addWidget(buttons);
+
+	connect(openTracker, &QPushButton::clicked, &dialog, []{
+		QDesktopServices::openUrl(QUrl("https://github.com/" + REPO_NAME + "/issues/new"));
+	});
+	connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+	dialog.exec();
 }
 
 void CMainWindow::settingsChanged()

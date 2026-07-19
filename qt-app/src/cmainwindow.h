@@ -99,6 +99,7 @@ private:
 	void calculateStatistics();
 	void calculateEachFolderSize();
 	void checkForUpdates();
+	void reportBug();
 	void about();
 
 // Settings
