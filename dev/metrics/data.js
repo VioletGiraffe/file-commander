@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784475510501,
+  "lastUpdate": 1784477711114,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -4740,6 +4740,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 370,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "ea8ab6b72353b0f8732cfa53ad096254fb7206eb",
+          "message": "Tripwire code for catching paths disappearing from history",
+          "timestamp": "2026-07-19T19:10:10+03:00",
+          "tree_id": "3f26347f4865f0cf9226b4d43b249e0c9d863305",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/ea8ab6b72353b0f8732cfa53ad096254fb7206eb"
+        },
+        "date": 1784477708242,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16121,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 8755,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1233.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 640.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 371,
             "unit": "KB"
           },
           {
