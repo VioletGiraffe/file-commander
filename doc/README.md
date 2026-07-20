@@ -63,6 +63,7 @@ without going through `CController` getters.
 8. [oddities.md](oddities.md) — flagged bugs, smells, and open questions found while documenting.
 9. [release-metadata-audit.md](release-metadata-audit.md) — app/vendor identity, version info, installer, license metadata: current values, defects, and what must NOT be changed.
 10. [code-review-plan.md](code-review-plan.md) — how to segment a future review/audit (risk-tiered, with file sets); process doc, not architecture.
+11. [TODO.md](TODO.md) — deferred work items with the context needed to act on them; process doc, not architecture.
 
 ## Naming & cross-cutting conventions
 
