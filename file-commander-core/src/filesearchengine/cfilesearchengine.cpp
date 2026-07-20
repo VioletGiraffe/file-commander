@@ -178,7 +178,7 @@ struct ContentSearchContext
 
 bool CFileSearchEngine::searchInProgress() const
 {
-	return _workerThread.running();
+	return _searchInProgress;
 }
 
 bool CFileSearchEngine::search(
@@ -187,17 +187,21 @@ bool CFileSearchEngine::search(
 	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
 	FileSearchListener* listener)
 {
-	if (_workerThread.running())
+	if (searchInProgress())
 	{
-		_workerThread.interrupt();
+		stopSearching();
 		return true;
 	}
 
 	if (filters.isEmpty() || where.empty())
 		return false;
 
-	_workerThread.exec([=, this] {
-		searchThread(filters, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords, contentsIsRegex, listener);
+	// The previous search reported completion before its thread finished unwinding, and start() requires a joined thread
+	waitForSearchToFinish();
+
+	_searchInProgress = true;
+	_workerThread.start([=, this](const std::atomic<bool>& cancellationRequested) {
+		searchThread(filters, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords, contentsIsRegex, listener, cancellationRequested);
 	});
 
 	return true;
@@ -205,14 +209,25 @@ bool CFileSearchEngine::search(
 
 void CFileSearchEngine::stopSearching()
 {
-	_workerThread.interrupt();
+	_workerThread.requestCancellation();
+}
+
+void CFileSearchEngine::waitForSearchToFinish()
+{
+	_workerThread.join();
+}
+
+void CFileSearchEngine::notifySearchFinished(FileSearchListener* listener, SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed)
+{
+	_searchInProgress = false;
+	listener->searchFinished(status, itemsScanned, msElapsed);
 }
 
 void CFileSearchEngine::searchThread(
 	const QStringList& filters, bool subjectCaseSensitive,
 	const QStringList& where,
 	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
-	FileSearchListener* listener) noexcept
+	FileSearchListener* listener, const std::atomic<bool>& cancellationRequested) noexcept
 {
 	::setThreadName("File search engine thread");
 
@@ -257,7 +272,7 @@ void CFileSearchEngine::searchThread(
 
 			if (!fileContentsRegExp.isValid())
 			{
-				listener->searchFinished(SearchCancelled, 0, 0);
+				notifySearchFinished(listener, SearchCancelled, 0, 0);
 				return;
 			}
 		}
@@ -265,8 +280,7 @@ void CFileSearchEngine::searchThread(
 			fileContentsPlainText = contentsToFind.toUtf8();
 	}
 
-	const auto* cancellationRequested = &_workerThread.terminationFlag();
-	ContentSearchContext contentSearchContext{ listener, &fileContentsRegExp, &fileContentsPlainText, cancellationRequested };
+	ContentSearchContext contentSearchContext{ listener, &fileContentsRegExp, &fileContentsPlainText, &cancellationRequested };
 	std::unique_ptr<std::counting_semaphore<>> availableContentTaskSlots;
 	std::unique_ptr<CWorkerThreadPool> contentSearchPool;
 
@@ -274,7 +288,7 @@ void CFileSearchEngine::searchThread(
 	{
 		scanDirectory(CFileSystemObject(pathToLookIn),
 			[&](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
-				if (*cancellationRequested)
+				if (cancellationRequested)
 					return;
 
 				if (itemCounter % 128 == 0)
@@ -306,7 +320,7 @@ void CFileSearchEngine::searchThread(
 
 				if (searchByContents)
 				{
-					if (*cancellationRequested)
+					if (cancellationRequested)
 						return;
 
 					if (!contentSearchPool)
@@ -318,7 +332,7 @@ void CFileSearchEngine::searchThread(
 						contentSearchPool = std::make_unique<CWorkerThreadPool>(contentWorkerCount, "File search by contents thread pool");
 					}
 
-					if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, *cancellationRequested))
+					if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, cancellationRequested))
 						return;
 
 					contentSearchPool->enqueue([path{item.fullAbsolutePath()}, &contentSearchContext] {
@@ -334,7 +348,7 @@ void CFileSearchEngine::searchThread(
 				else
 					listener->matchFound(item.fullAbsolutePath());
 
-			}, *cancellationRequested);
+			}, cancellationRequested);
 	}
 
 	if (contentSearchPool)
@@ -344,5 +358,5 @@ void CFileSearchEngine::searchThread(
 	}
 
 	const auto elapsedMs = timer.elapsed();
-	listener->searchFinished(*cancellationRequested ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
+	notifySearchFinished(listener, cancellationRequested ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
 }

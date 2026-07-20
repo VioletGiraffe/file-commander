@@ -82,7 +82,9 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 CFilesSearchWindow::~CFilesSearchWindow()
 {
+	// The worker calls back into this listener, so it must be gone before `ui` and the rest of this window are
 	_engine.stopSearching();
+	_engine.waitForSearchToFinish();
 
 	CSettings s;
 	s.setValue(SETTINGS_NAME_CASE_SENSITIVE, ui->cbNameCaseSensitive->isChecked());
