@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
 
-SUBDIRS = operationperformer filesystemobject filesystemobject-high-level filecomparator
+SUBDIRS = fileoperations filesystemobject filesystemobject-high-level filecomparator
 SUBDIRS += qtutils cpputils cpp-template-utils test-utils thin_io
 
 cpp-template-utils.subdir = ../../cpp-template-utils
@@ -12,7 +12,7 @@ qtutils.depends = cpputils
 
 test-utils.depends = qtutils
 
-operationperformer.depends = test-utils
+fileoperations.depends = test-utils
 filesystemobject.depends = qtutils
 filesystemobject-high-level.depends = qtutils
 filecomparator.depends = cpputils test-utils

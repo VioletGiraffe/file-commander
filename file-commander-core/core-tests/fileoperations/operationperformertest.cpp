@@ -1,5 +1,3 @@
-#define CATCH_CONFIG_RUNNER
-
 #include "operationperformertesthelpers.h"
 #include "cfolderenumeratorrecursive.h"
 #include "ctestfoldergenerator.h"
@@ -23,15 +21,9 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <iostream>
 #include <memory>
-#include <random>
 #include <string>
 
 //#include "3rdparty/catch2/catch_template_test_macros.hpp"
-
-static uint32_t g_randomSeed = []{
-	std::random_device rd;
-	return std::uniform_int_distribution<uint32_t>{0, uint32_max}(rd);
-}();
 
 // Must mirror transferredFileTimeTypes in cfilemanipulator.cpp: the copy transfers exactly these, so the verification checks exactly these.
 static constexpr QFileDevice::FileTime transferredFileTimeTypes[] {
@@ -727,35 +719,4 @@ TEST_CASE((std::string("Delete test #") + std::to_string(rand())).c_str(), "[ope
 	}
 
 	REQUIRE(!CFileSystemObject(sourceDirectory.path()).exists());
-}
-
-int main(int argc, char* argv[])
-{
-	Catch::Session session; // There must be exactly one instance
-
-	// Build a new parser on top of Catch's
-	using namespace Catch::clara;
-	auto cli
-		= session.cli() // Get Catch's composite command line parser
-		| Opt(g_randomSeed, "std::random seed") // bind variable to a new option, with a hint string
-		["--std-seed"]        // the option names it will respond to
-		("std::random seed"); // description string for the help output
-
-	// Now pass the new composite back to Catch so it uses that
-	session.cli(cli);
-
-	// Let Catch (using Clara) parse the command line
-	const int returnCode = session.applyCommandLine(argc, argv);
-	if (returnCode != 0) // Indicates a command line error
-		return returnCode;
-
-	srand(g_randomSeed);
-
-	{
-		CRandomDataGenerator _randomGenerator;
-		_randomGenerator.setSeed(g_randomSeed);
-		Logger() << "RNG consustency check: seed = " << g_randomSeed <<", first RN = " << _randomGenerator.randomNumber<uint32_t>(0u, uint32_max);
-	}
-
-	return session.run();
 }

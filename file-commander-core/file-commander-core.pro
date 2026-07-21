@@ -86,5 +86,6 @@ freebsd{
 		src/diskenumerator/cvolumeenumerator_impl_freebsd.cpp
 }
 
+include(src/fileoperations/fileoperations.pri)
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)

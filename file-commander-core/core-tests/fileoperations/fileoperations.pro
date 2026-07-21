@@ -1,5 +1,5 @@
 TEMPLATE = app
-TARGET   = operationperformer_test
+TARGET   = fileoperations_test
 CONFIG += console
 
 include(../../config.pri)
@@ -25,8 +25,14 @@ INCLUDEPATH += \
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 
 DEFINES += OPERATION_PERFORMER_CHUNK_SIZE=1024
+DEFINES += FILE_OPERATIONS_TEST_HOOKS
+
+# The replacement module under test, compiled directly from source.
+include(../../src/fileoperations/fileoperations.pri)
 
 SOURCES += \
+	main.cpp \
+	testhooktests.cpp \
 	operationperformertest.cpp \
 	directorycollisiontests.cpp \
 	directorylinktests.cpp \
@@ -44,6 +50,7 @@ SOURCES += \
 	../../src/filecomparator/cfilecomparator.cpp
 
 HEADERS += \
+	fileoperationtesthelpers.h \
 	operationperformertesthelpers.h \
 	../../src/fileoperations/coperationperformer.h \
 	../../src/fileoperations/operationcodes.h \
