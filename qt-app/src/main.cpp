@@ -8,6 +8,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QDebug>
 #include <QFontDatabase>
+#include <QImageReader>
 #include <QStyleHints>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
@@ -55,6 +56,8 @@ int main(int argc, char *argv[])
 	AdvancedAssert::setLoggingFunc([](const char* message){
 		qInfo() << message;
 	});
+
+	QImageReader::setAllocationLimit(2048); // raise Qt's 256 MB decode cap; 67 MP at 3x8 bits already exceeds it
 
 	const QString appName = "File Commander";
 	const QString orgName = "GitHubSoft";
