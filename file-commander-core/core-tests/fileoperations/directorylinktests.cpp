@@ -25,18 +25,6 @@ RESTORE_COMPILER_WARNINGS
 #include <sys/stat.h>
 #endif
 
-// Creates the platform's common directory link type: a symlink on POSIX, a junction on Windows
-// (junction creation, unlike symlink creation, requires no special privileges on Windows)
-static bool createDirectoryLink(const QString& targetPath, const QString& linkPath)
-{
-#ifdef _WIN32
-	return QProcess::execute(QStringLiteral("cmd"), { QStringLiteral("/c"), QStringLiteral("mklink"), QStringLiteral("/J"),
-		QDir::toNativeSeparators(linkPath), QDir::toNativeSeparators(targetPath) }) == 0;
-#else
-	return QFile::link(targetPath, linkPath);
-#endif
-}
-
 static bool isDirectoryLink(const QString& path)
 {
 	const QFileInfo info(path);

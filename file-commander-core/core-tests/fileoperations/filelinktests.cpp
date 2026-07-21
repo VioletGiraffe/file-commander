@@ -18,21 +18,6 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 #include <string>
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-
-static bool createHardLink(const QString& existingPath, const QString& linkPath)
-{
-#ifdef _WIN32
-	return CreateHardLinkW(reinterpret_cast<const WCHAR*>(linkPath.utf16()), reinterpret_cast<const WCHAR*>(existingPath.utf16()), nullptr) != 0;
-#else
-	return ::link(QFile::encodeName(existingPath).constData(), QFile::encodeName(linkPath).constData()) == 0;
-#endif
-}
-
 struct OverwriteConflictObserver final : public ProgressObserver {
 	inline void onProcessHalted(HaltReason reason, const CFileSystemObject& /*source*/, const CFileSystemObject& /*dest*/, const QString& /*errorMessage*/) override {
 		CHECK(reason == hrFileExists);

@@ -52,6 +52,10 @@ std::string pointName(const Point point)
 	{
 	case Point::SelfTest1: return "SelfTest1";
 	case Point::SelfTest2: return "SelfTest2";
+	case Point::RenameEntry_Native: return "RenameEntry_Native";
+	case Point::RemoveEntry_Native: return "RemoveEntry_Native";
+	case Point::CreateDirectory_FinalNative: return "CreateDirectory_FinalNative";
+	case Point::SetEntryWritable_Native: return "SetEntryWritable_Native";
 	case Point::PointCount_: break;
 	}
 	return "<invalid point>";

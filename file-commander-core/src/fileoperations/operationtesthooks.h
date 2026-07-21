@@ -29,6 +29,12 @@ enum class Point : uint32_t
 	SelfTest1,
 	SelfTest2,
 
+	// CFileSystemMutator primitives, immediately before their native mutation call.
+	RenameEntry_Native,
+	RemoveEntry_Native,
+	CreateDirectory_FinalNative,
+	SetEntryWritable_Native,
+
 	PointCount_ // Not a point - registry size marker.
 };
 

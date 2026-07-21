@@ -33,6 +33,8 @@ include(../../src/fileoperations/fileoperations.pri)
 SOURCES += \
 	main.cpp \
 	testhooktests.cpp \
+	entrypathtests.cpp \
+	filesystemmutatortests.cpp \
 	operationperformertest.cpp \
 	directorycollisiontests.cpp \
 	directorylinktests.cpp \
