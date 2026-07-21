@@ -5,6 +5,8 @@
 
 #include "fileoperationtesthelpers.h"
 
+#include "lang/utils.hpp"
+
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -33,7 +35,7 @@ struct ViolationCapture
 
 	~ViolationCapture()
 	{
-		CFaultHookScope::setViolationReporter(std::move(previousReporter));
+		CFaultHookScope::setViolationReporter(mv(previousReporter));
 	}
 
 	std::vector<std::string> violations;

@@ -5,6 +5,7 @@
 #include "operationtesthooks.h"
 
 #include "assert/advanced_assert.h"
+#include "lang/utils.hpp"
 
 #include <array>
 #include <condition_variable>
@@ -181,7 +182,7 @@ std::function<void(const std::string&)> CFaultHookScope::setViolationReporter(st
 {
 	std::lock_guard lock{g_mutex};
 	assert_r(reporter);
-	return std::exchange(g_violationReporter, std::move(reporter));
+	return std::exchange(g_violationReporter, mv(reporter));
 }
 
 } // namespace OperationTestHooks

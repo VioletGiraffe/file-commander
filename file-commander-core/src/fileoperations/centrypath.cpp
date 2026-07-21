@@ -2,6 +2,7 @@
 #include "filesystemhelperfunctions.h"
 
 #include "assert/advanced_assert.h"
+#include "lang/utils.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
@@ -40,7 +41,7 @@ qsizetype rootLength(const QString& path)
 } // namespace
 
 CEntryPath::CEntryPath(QString normalizedPath) noexcept :
-	_path{ std::move(normalizedPath) }
+	_path{ mv(normalizedPath) }
 {
 }
 
@@ -147,8 +148,10 @@ std::optional<CEntryPath> parseOperationPath(QString path)
 	}
 
 	if (components.isEmpty())
-		return CEntryPath{ std::move(root) };
+		return CEntryPath{ mv(root) };
 
-	const QString joined = components.join(QLatin1Char('/'));
-	return CEntryPath{ root.endsWith(QLatin1Char('/')) ? root % joined : root % QLatin1Char('/') % joined };
+	if (!root.endsWith(QLatin1Char('/')))
+		root += QLatin1Char('/');
+	root += components.join(QLatin1Char('/'));
+	return CEntryPath{ mv(root) };
 }
