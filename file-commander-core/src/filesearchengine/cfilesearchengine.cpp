@@ -52,6 +52,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <smmintrin.h>  // SSE4.1
 
+// array is 4k in size and 4k aligned, so buffer overrun by the tail of <16 bytes is allowed.
 inline void replace_null(std::byte* array, size_t size) noexcept
 {
 	const __m128i old_sse = _mm_set1_epi8(0);
@@ -70,6 +71,7 @@ inline void replace_null(std::byte* array, size_t size) noexcept
 
 #include <arm_neon.h>
 
+// array is 4k in size and 4k aligned, so buffer overrun by the tail of <16 bytes is allowed.
 inline void replace_null(std::byte* array, size_t size)
 {
 	uint8x16_t old_neon = vdupq_n_u8(0);  // Duplicate old_value across all 16 bytes in the vector
@@ -129,6 +131,8 @@ inline void replace_null(std::byte* array, size_t size)
 		if (!useRawMemoryPattern) // Match using regex - slow(er)
 		{
 			alignas(4096) std::byte buffer[maxLineLength];
+			static_assert(sizeof(buffer) % 16 == 0);
+
 			::memcpy(buffer, lineStart, maxSearchLength);
 			// Remove nulls from the contents so that QString ingests all data
 			replace_null(buffer, maxSearchLength);
