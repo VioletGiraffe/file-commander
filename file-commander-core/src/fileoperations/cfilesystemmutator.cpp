@@ -1,12 +1,9 @@
 #include "cfilesystemmutator.h"
 #include "operationtesthooks.h"
+#include "thiniobridge.h"
 #include "filesystemhelperfunctions.h" // caseSensitiveFilesystem
 
 #include "assert/advanced_assert.h"
-
-DISABLE_COMPILER_WARNINGS
-#include <QFile>
-RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include "windows/windowsutils.h"
@@ -24,38 +21,6 @@ RESTORE_COMPILER_WARNINGS
 
 namespace
 {
-
-#ifdef _WIN32
-using NativePathString = std::wstring;
-
-NativePathString thinIoPath(const CEntryPath& path)
-{
-	return path.value().toStdWString();
-}
-
-const wchar_t* nativeCStr(const NativePathString& path)
-{
-	return path.c_str();
-}
-#else
-using NativePathString = QByteArray;
-
-NativePathString thinIoPath(const CEntryPath& path)
-{
-	return QFile::encodeName(path.value());
-}
-
-const char* nativeCStr(const NativePathString& path)
-{
-	return path.constData();
-}
-#endif
-
-// Must be called immediately after the failing native call, before anything can overwrite the thread-local error state.
-NativeErrorCode captureNativeError() noexcept
-{
-	return thin_io::capture_last_filesystem_error().native_code;
-}
 
 // On Windows, only name-surrogate reparse points (symlinks, junctions) are links; other reparse entries
 // (OneDrive placeholders and the like) are ordinary files/directories.

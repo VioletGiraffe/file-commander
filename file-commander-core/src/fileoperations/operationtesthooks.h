@@ -35,6 +35,17 @@ enum class Point : uint32_t
 	CreateDirectory_FinalNative,
 	SetEntryWritable_Native,
 
+	// CStagedFileCopy lifecycle boundaries, in lifecycle order, immediately before the corresponding native call.
+	StagedCopy_CaptureMetadata_Native,
+	StagedCopy_CreateStaging_Native,
+	StagedCopy_ResizeStaging_Native,
+	StagedCopy_PreallocateStaging_Native,
+	StagedCopy_WriteStaging_Native,
+	StagedCopy_FlushStaging_Native,
+	StagedCopy_ApplyMetadata_Native,
+	StagedCopy_CloseStaging_Native,
+	StagedCopy_RemoveStaging_Native,
+
 	PointCount_ // Not a point - registry size marker.
 };
 

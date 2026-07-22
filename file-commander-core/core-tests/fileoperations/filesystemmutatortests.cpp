@@ -19,51 +19,6 @@ RESTORE_COMPILER_WARNINGS
 using OperationTestHooks::CFaultHookScope;
 using OperationTestHooks::Point;
 
-namespace
-{
-
-CEntryPath ep(const QString& text)
-{
-	const auto path = parseOperationPath(text);
-	REQUIRE(path.has_value());
-	return *path;
-}
-
-EntrySnapshot snapshotOf(const QString& text)
-{
-	const auto result = inspectEntry(ep(text));
-	REQUIRE(result.has_value());
-	REQUIRE(result->has_value());
-	return **result;
-}
-
-bool entryAbsent(const QString& text)
-{
-	const auto result = inspectEntry(ep(text));
-	REQUIRE(result.has_value());
-	return !result->has_value();
-}
-
-bool setEntryTimes(const QString& path, const thin_io::entry_times& times)
-{
-#ifdef _WIN32
-	return thin_io::set_times(path.toStdWString().c_str(), times);
-#else
-	return thin_io::set_times(QFile::encodeName(path).constData(), times);
-#endif
-}
-
-std::optional<thin_io::entry_times> getEntryTimes(const QString& path)
-{
-#ifdef _WIN32
-	return thin_io::get_times(path.toStdWString().c_str());
-#else
-	return thin_io::get_times(QFile::encodeName(path).constData());
-#endif
-}
-
-} // namespace
-
 //
 // Entry inspection
 //

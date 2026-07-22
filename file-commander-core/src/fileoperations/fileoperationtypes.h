@@ -91,6 +91,22 @@ enum class ReplacementMode
 	ReplaceExistingFile
 };
 
+// Whether staged data must reach storage before publication. The executor owns the choice: flushing is
+// required exactly where publication destroys the only other copy of the data.
+enum class CommitDurability
+{
+	NoFlush,           // Fresh copy: the source still exists, so a crash at worst means re-running the copy
+	FlushBeforePublish // Move or authorized replacement: publication (then source removal) destroys the only other copy
+};
+
+// One writeNext() step. bytesWritten may be less than requested - partial writes are normal and the next
+// call continues; readyToCommit reports that every source byte is staged.
+struct CopyChunkResult
+{
+	uint64_t bytesWritten;
+	bool readyToCommit;
+};
+
 enum class DirectoryCreationOutcome
 {
 	CreatedFinalDirectory, // The operation created the final directory, whether or not missing parents were created too
