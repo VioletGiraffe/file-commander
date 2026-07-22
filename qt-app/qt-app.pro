@@ -61,6 +61,7 @@ SOURCES += \
 	src/progressdialogs/cpromptdialog.cpp \
 	src/progressdialogs/cfileoperationprompt.cpp \
 	src/progressdialogs/cfileoperationdialog.cpp \
+	src/progressdialogs/fileoperationlaunch.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
 	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.cpp \
@@ -88,6 +89,7 @@ HEADERS += \
 	src/progressdialogs/cpromptdialog.h \
 	src/progressdialogs/cfileoperationprompt.h \
 	src/progressdialogs/cfileoperationdialog.h \
+	src/progressdialogs/fileoperationlaunch.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
 	src/panel/filelistwidget/cfilelistview.h \

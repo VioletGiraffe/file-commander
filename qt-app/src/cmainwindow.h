@@ -20,6 +20,7 @@ namespace Ui {
 
 class CPanelWidget;
 class CFileOperationDialogBase;
+enum class TransferKind; // fileoperations/fileoperationtypes.h
 class QShortcut;
 class QStackedWidget;
 class QPushButton;
@@ -43,6 +44,10 @@ public:
 
 	bool copyFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
 	bool moveFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
+
+	// The unified transfer launch path over the new operation engine. During the migration it coexists with
+	// copyFiles/moveFiles, which stay the live F5/F6 and drag-and-drop route until the routing cutover.
+	bool launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory);
 
 	// Bottom left point
 	QPoint nextBackgroundDialogPosition() const;

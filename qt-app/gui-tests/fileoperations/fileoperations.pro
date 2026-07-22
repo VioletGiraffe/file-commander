@@ -34,8 +34,10 @@ SOURCES += \
 	main.cpp \
 	fileoperationprompttests.cpp \
 	fileoperationdialogtests.cpp \
+	fileoperationlaunchtests.cpp \
 	../../src/progressdialogs/cfileoperationprompt.cpp \
 	../../src/progressdialogs/cfileoperationdialog.cpp \
+	../../src/progressdialogs/fileoperationlaunch.cpp \
 	../../src/progressdialogs/progressdialoghelpers.cpp
 
 # fileSizeToString lives in filesystemhelperfunctions.cpp, whose other functions reach into CFileSystemObject;
@@ -51,6 +53,7 @@ HEADERS += \
 	../../src/progressdialogs/cfileoperationprompt.h \
 	../../src/progressdialogs/cfileoperationdialog.h \
 	../../src/progressdialogs/cfileoperationdialogbase.h \
+	../../src/progressdialogs/fileoperationlaunch.h \
 	../../src/progressdialogs/progressdialoghelpers.h \
 	../../../file-commander-core/src/cfilesystemobject.h \
 	../../../file-commander-core/src/iconprovider/ciconprovider.h \

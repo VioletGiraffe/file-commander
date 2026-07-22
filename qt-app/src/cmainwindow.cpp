@@ -2,6 +2,8 @@
 #include "progressdialogs/ccopymovedialog.h"
 #include "progressdialogs/cdeleteprogressdialog.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
+#include "progressdialogs/cfileoperationdialog.h"
+#include "progressdialogs/fileoperationlaunch.h"
 #include "settings.h"
 #include "settings/csettings.h"
 #include "shell/cshell.h"
@@ -338,6 +340,62 @@ bool CMainWindow::moveFiles(std::vector<CFileSystemObject>&& files, const QStrin
 	registerFileOperationDialog(dialog);
 	dialog->show();
 
+	return true;
+}
+
+static QString transferRequestErrorText(const RequestValidationError error)
+{
+	switch (error)
+	{
+	case RequestValidationError::NoSources:
+		return CMainWindow::tr("No valid items are selected for the operation.");
+	case RequestValidationError::InvalidPath:
+		return CMainWindow::tr("The source or destination path is not a valid absolute path.");
+	case RequestValidationError::RootSource:
+		return CMainWindow::tr("A drive root cannot be copied, moved, or deleted.");
+	case RequestValidationError::ExactEntryRequiresSingleSource:
+		return CMainWindow::tr("An exact destination entry can only be chosen for a single source.");
+	}
+	return {};
+}
+
+bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory)
+{
+	if (sources.empty() || destinationDirectory.isEmpty())
+		return false;
+
+	// Fix for #91
+	raise();
+	activateWindow();
+
+	QStringList sourcePaths;
+	sourcePaths.reserve(static_cast<qsizetype>(sources.size()));
+	for (const CFileSystemObject& source : sources)
+		sourcePaths.push_back(source.fullAbsolutePath());
+
+	const QString prefill = prefillTransferDestination(kind, sourcePaths, destinationDirectory);
+	const QString caption = kind == TransferKind::Copy ? tr("Copy files") : tr("Move files");
+	const QString label = (kind == TransferKind::Copy ? tr("Copy %1 %2 to") : tr("Move %1 %2 to"))
+		.arg(sources.size()).arg(sources.size() > 1 ? tr("files") : tr("file"));
+
+	CFileOperationConfirmationPrompt prompt(caption, label, toNativeSeparators(prefill), this);
+	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
+	{
+		if (prompt.exec() != QDialog::Accepted)
+			return false;
+	}
+
+	auto request = makeUiTransferRequest(kind, sourcePaths, toPosixSeparators(prompt.text()));
+	if (!request)
+	{
+		QMessageBox::warning(this, tr("Operation cannot start"), transferRequestErrorText(request.error()));
+		return false;
+	}
+
+	auto* dialog = new CFileOperationDialog(std::move(*request), [this] { return nextBackgroundDialogPosition(); }, this);
+	registerFileOperationDialog(dialog);
+	dialog->show();
+	dialog->start();
 	return true;
 }
 
