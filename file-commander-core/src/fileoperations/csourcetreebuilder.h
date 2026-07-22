@@ -24,9 +24,10 @@ struct SourceNode
 };
 
 // The manifest is O(number of entries), so per-node size multiplies into every large tree. Accidental
-// growth must fail the build; a deliberate layout change updates these consciously.
+// growth must fail the build; a deliberate layout change updates these consciously. The vector's size is
+// measured, not assumed: MSVC debug builds grow it by an iterator-debugging pointer.
 static_assert(sizeof(void*) != 8 || sizeof(EntrySnapshot) == 40);
-static_assert(sizeof(void*) != 8 || sizeof(SourceNode) == 88);
+static_assert(sizeof(void*) != 8 || sizeof(SourceNode) == sizeof(EntrySnapshot) + sizeof(std::vector<SourceNode>) + 24);
 
 // Tree construction is operation-specific.
 enum class SourceTreeBuildMode

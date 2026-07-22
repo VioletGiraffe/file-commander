@@ -99,9 +99,7 @@ std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, cons
 	++state.discoveredCount;
 	publishScanProgress(state, entry.path);
 
-	SourceNode node;
-	node.entry = mv(entry);
-	node.ownership = ownership;
+	SourceNode node{ .entry = mv(entry), .ownership = ownership };
 
 	bool descend = false;
 	bool identityPushed = false;

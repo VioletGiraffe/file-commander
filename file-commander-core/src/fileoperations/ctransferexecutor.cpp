@@ -83,10 +83,9 @@ NodeOutcome CTransferExecutor::copyRoot(const RootTransferIntent& intent)
 	if (!directoryLike)
 	{
 		// A single-entry manifest; Other and file kinds route through the ordinary node dispatch.
-		SourceNode leaf;
-		leaf.subtreeBytes = root.size;
+		SourceNode leaf{ .entry = mv(root) };
+		leaf.subtreeBytes = leaf.entry.size;
 		leaf.subtreeItems = 1;
-		leaf.entry = mv(root);
 		rootTotalsResolved(leaf.subtreeBytes, 1);
 		return copyNode(leaf, intent.proposedDestination, TransferNodePosition::SelectedRoot);
 	}
