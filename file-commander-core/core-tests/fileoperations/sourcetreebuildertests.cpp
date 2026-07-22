@@ -22,8 +22,9 @@ namespace
 struct ScanScript
 {
 	std::vector<ProgressSnapshot> progress;
-	int checkpointsBeforeCancel = -1; // -1 = never cancel
-	int checkpointCalls = 0;
+	// Cancellation is requested through observable state, never by counting checkpoint calls (call order
+	// is an implementation detail): the build cancels at the first checkpoint where this holds.
+	std::function<bool()> cancelAtCheckpoint;
 };
 
 COperationExecutionContext scanContext(ScanScript& script)
@@ -31,8 +32,7 @@ COperationExecutionContext scanContext(ScanScript& script)
 	return COperationExecutionContext{
 		PrimaryProgressUnit::Bytes,
 		[&script] {
-			++script.checkpointCalls;
-			return script.checkpointsBeforeCancel < 0 || script.checkpointCalls <= script.checkpointsBeforeCancel;
+			return !script.cancelAtCheckpoint || !script.cancelAtCheckpoint();
 		},
 		[](const DecisionRequest&) -> std::optional<Decision> {
 			FAIL("Scanning must never request a decision");
@@ -336,7 +336,9 @@ TEST_CASE("source tree: scanning progress and cancellation", "[sourcetree]")
 
 	SECTION("cancellation at a checkpoint abandons the build")
 	{
-		ScanScript script{ .checkpointsBeforeCancel = 1 };
+		ScanScript script;
+		// Cancel at the first checkpoint once discovery has begun: no partial tree may come back.
+		script.cancelAtCheckpoint = [&script] { return !script.progress.empty(); };
 		auto context = scanContext(script);
 		const auto result = buildSourceTree(context, snapshotOf(base % "/root"), SourceTreeBuildMode::MaterializingTransfer);
 		CHECK(std::holds_alternative<ScanCancelled>(result));

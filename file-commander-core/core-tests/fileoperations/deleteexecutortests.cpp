@@ -16,6 +16,7 @@ RESTORE_COMPILER_WARNINGS
 #include <sys/stat.h> // mkfifo
 #endif
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -41,12 +42,13 @@ struct DeleteScript
 	size_t nextDecision = 0;
 	std::vector<DecisionRequest> seenRequests;
 	std::vector<ProgressSnapshot> progress;
-	int checkpointsBeforeCancel = -1; // -1 = never cancel
-	int checkpointCalls = 0;
-	// Run mid-operation, for filesystem changes at exact execution points: at every checkpoint (after
-	// counting it), and at every decision request before the scripted answer.
+	// Run mid-operation, for filesystem changes at exact execution points: at every checkpoint (before
+	// the cancellation predicate), and at every decision request before the scripted answer.
 	std::function<void()> onCheckpoint;
 	std::function<void(const DecisionRequest&)> onDecisionRequest;
+	// Cancellation is requested through observable state, never by counting checkpoint calls (call order
+	// is an implementation detail): the operation cancels at the first checkpoint where this holds.
+	std::function<bool()> cancelAtCheckpoint;
 };
 
 COperationExecutionContext deleteContext(DeleteScript& script)
@@ -54,10 +56,9 @@ COperationExecutionContext deleteContext(DeleteScript& script)
 	return COperationExecutionContext{
 		PrimaryProgressUnit::Items,
 		[&script] {
-			++script.checkpointCalls;
 			if (script.onCheckpoint)
 				script.onCheckpoint();
-			return script.checkpointsBeforeCancel < 0 || script.checkpointCalls <= script.checkpointsBeforeCancel;
+			return !script.cancelAtCheckpoint || !script.cancelAtCheckpoint();
 		},
 		[&script](const DecisionRequest& request) -> std::optional<Decision> {
 			script.seenRequests.push_back(request);
@@ -201,9 +202,10 @@ TEST_CASE("delete executor: absent and vanished entries", "[deleteexecutor]")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/root"));
 
-		// Checkpoint 2 is the builder's, fired immediately before listing the root directory.
+		// Remove the root at the first checkpoint after scanning has begun (the builder publishes the
+		// root's Scanning snapshot, then checkpoints before listing it) - after inspection, before the listing.
 		script.onCheckpoint = [&] {
-			if (script.checkpointCalls == 2)
+			if (!script.progress.empty() && QFileInfo::exists(base % "/root"))
 				REQUIRE(QDir{ base % "/root" }.removeRecursively());
 		};
 		const auto summary = runDelete(script, { base % "/root" });
@@ -681,13 +683,14 @@ TEST_CASE("delete executor: cancellation checkpoints", "[deleteexecutor]")
 
 	DeleteScript script;
 
-	// Checkpoint order for this tree (implementation-coupled; adjust if checkpoint placement changes):
-	// 1 = deleteRoot, 2 = builder at the root directory, 3 = deleteNode(root), 4 = deleteNode(f.bin),
-	// 5 = removal attempt for f.bin, 6 = removal attempt for root.
-
 	SECTION("cancellation during scanning deletes nothing")
 	{
-		script.checkpointsBeforeCancel = 1;
+		// The builder checkpoints before every listing, so once a Scanning snapshot has been seen,
+		// cancellation still precedes any removal.
+		script.cancelAtCheckpoint = [&script] {
+			return std::any_of(script.progress.begin(), script.progress.end(),
+				[](const ProgressSnapshot& snapshot) { return snapshot.phase == OperationPhase::Scanning; });
+		};
 		const auto summary = runDelete(script, { base % "/root" });
 
 		CHECK(summary.status == CompletionStatus::Cancelled);
@@ -697,7 +700,9 @@ TEST_CASE("delete executor: cancellation checkpoints", "[deleteexecutor]")
 
 	SECTION("cancellation before directory cleanup preserves the emptied directory")
 	{
-		script.checkpointsBeforeCancel = 5;
+		// Cancel at the first checkpoint after the child's deletion is observable; by the
+		// checkpoint-before-every-mutation contract, that is before the emptied directory's removal.
+		script.cancelAtCheckpoint = [&] { return !QFileInfo::exists(base % "/root/f.bin"); };
 		const auto summary = runDelete(script, { base % "/root" });
 
 		CHECK(summary.status == CompletionStatus::Cancelled);

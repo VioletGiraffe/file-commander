@@ -40,9 +40,10 @@ struct ExecScript
 	size_t nextDecision = 0;
 	std::vector<DecisionRequest> seenRequests;
 	std::vector<ProgressSnapshot> progress;
-	int checkpointsBeforeCancel = -1; // -1 = never cancel
-	int checkpointCalls = 0;
 	bool cancelInsteadOfAnswering = false;
+	// Cancellation is requested through observable state, never by counting checkpoint calls (call order
+	// is an implementation detail): the operation cancels at the first checkpoint where this holds.
+	std::function<bool()> cancelAtCheckpoint;
 };
 
 COperationExecutionContext execContext(ExecScript& script)
@@ -50,8 +51,7 @@ COperationExecutionContext execContext(ExecScript& script)
 	return COperationExecutionContext{
 		PrimaryProgressUnit::Bytes,
 		[&script] {
-			++script.checkpointCalls;
-			return script.checkpointsBeforeCancel < 0 || script.checkpointCalls <= script.checkpointsBeforeCancel;
+			return !script.cancelAtCheckpoint || !script.cancelAtCheckpoint();
 		},
 		[&script](const DecisionRequest& request) -> std::optional<Decision> {
 			script.seenRequests.push_back(request);
@@ -529,7 +529,10 @@ TEST_CASE("copy executor: cancellation", "[executor]")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-		ExecScript script{ .checkpointsBeforeCancel = 4 };
+		ExecScript script;
+		// Cancel at the first checkpoint at which a staged transfer is underway; the abort must leave
+		// no staging leftovers behind.
+		script.cancelAtCheckpoint = [&] { return stagingFileCount(base % "/dest/src") > 0; };
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Cancelled);
@@ -541,9 +544,10 @@ TEST_CASE("copy executor: cancellation", "[executor]")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-		// Checkpoints: 1 = copyRoot, 2 = the tree builder entering the root directory, 3 = the first
-		// child's copyNode. Cancelling at the third leaves dest/src created but its children unprocessed.
-		ExecScript script{ .checkpointsBeforeCancel = 2 };
+		// Cancel at the first checkpoint after the destination directory exists: its children are then
+		// still unprocessed, and the created directory must not be stamped with the source time.
+		ExecScript script;
+		script.cancelAtCheckpoint = [&] { return QFileInfo{ base % "/dest/src" }.isDir(); };
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Cancelled);
