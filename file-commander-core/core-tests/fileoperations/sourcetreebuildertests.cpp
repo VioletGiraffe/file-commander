@@ -5,6 +5,7 @@
 #include "fileoperations/coperationexecutioncontext.h"
 
 #include "fileoperationtesthelpers.h"
+#include "lang/utils.hpp" // mv()
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
