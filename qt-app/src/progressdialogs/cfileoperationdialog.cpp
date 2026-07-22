@@ -81,7 +81,12 @@ CFileOperationDialog::CFileOperationDialog(FileOperationRequest request, std::fu
 
 	// While running this button cancels (and the dialog lives on until the job reports); once finished it
 	// is relabeled Close and simply dismisses the dialog.
-	connect(ui->_btnCancel, &QPushButton::clicked, this, [this] { _result ? close() : void(confirmCancellation()); });
+	connect(ui->_btnCancel, &QPushButton::clicked, this, [this] {
+		if (_result)
+			close();
+		else
+			(void)confirmCancellation();
+	});
 	connect(ui->_btnPause, &QPushButton::clicked, this, &CFileOperationDialog::togglePause);
 	connect(ui->_btnBackground, &QPushButton::clicked, this, &CFileOperationDialog::switchToBackground);
 

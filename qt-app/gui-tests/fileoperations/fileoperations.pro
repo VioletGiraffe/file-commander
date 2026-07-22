@@ -36,14 +36,26 @@ SOURCES += \
 	fileoperationdialogtests.cpp \
 	../../src/progressdialogs/cfileoperationprompt.cpp \
 	../../src/progressdialogs/cfileoperationdialog.cpp \
-	../../src/progressdialogs/progressdialoghelpers.cpp \
-	../../../file-commander-core/src/filesystemhelperfunctions.cpp
+	../../src/progressdialogs/progressdialoghelpers.cpp
+
+# fileSizeToString lives in filesystemhelperfunctions.cpp, whose other functions reach into CFileSystemObject;
+# object-file granularity means the whole CFileSystemObject tree must be compiled in (as the core test does).
+SOURCES += \
+	../../../file-commander-core/src/filesystemhelperfunctions.cpp \
+	../../../file-commander-core/src/cfilesystemobject.cpp \
+	../../../file-commander-core/src/iconprovider/ciconprovider.cpp \
+	../../../file-commander-core/src/iconprovider/ciconproviderimpl.cpp \
+	../../../file-commander-core/src/directoryscanner.cpp
 
 HEADERS += \
 	../../src/progressdialogs/cfileoperationprompt.h \
 	../../src/progressdialogs/cfileoperationdialog.h \
 	../../src/progressdialogs/cfileoperationdialogbase.h \
-	../../src/progressdialogs/progressdialoghelpers.h
+	../../src/progressdialogs/progressdialoghelpers.h \
+	../../../file-commander-core/src/cfilesystemobject.h \
+	../../../file-commander-core/src/iconprovider/ciconprovider.h \
+	../../../file-commander-core/src/iconprovider/ciconproviderimpl.h \
+	../../../file-commander-core/src/directoryscanner.h
 
 FORMS += \
 	../../src/progressdialogs/cfileoperationprompt.ui \
