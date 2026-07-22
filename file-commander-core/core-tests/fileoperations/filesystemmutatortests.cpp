@@ -203,6 +203,31 @@ TEST_CASE("renameEntry: replacing a hard-link pathname does not change the other
 	CHECK(readFileContents(base % "/original.bin") == oldContents);
 }
 
+TEST_CASE("renameEntry: require-absent onto a hardlink alias of the source diverges by platform", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	const QByteArray contents(1000, 'h');
+	writeTestFile(base % "/file.bin", contents);
+	REQUIRE(createHardLink(base % "/file.bin", base % "/alias.bin"));
+
+	const auto result = CFileSystemMutator::renameEntry(ep(base % "/file.bin"), ep(base % "/alias.bin"), ReplacementMode::RequireAbsent);
+#ifdef _WIN32
+	// MoveFileExW flag 0 exempts a same-file destination, so the exclusive rename succeeds by removing the source name.
+	REQUIRE(result.has_value());
+	CHECK(entryAbsent(base % "/file.bin"));
+	CHECK(readFileContents(base % "/alias.bin") == contents);
+#else
+	// POSIX exclusive rename refuses a destination name that already exists, even for the same inode.
+	REQUIRE(!result.has_value());
+	CHECK(result.error().category == FileErrorCategory::AlreadyExists);
+	CHECK(!entryAbsent(base % "/file.bin")); // Both names retained
+	CHECK(readFileContents(base % "/alias.bin") == contents);
+#endif
+}
+
 #ifndef _WIN32
 TEST_CASE("renameEntry: replacing a symlink pathname does not change its target", "[mutator]")
 {
@@ -369,6 +394,61 @@ TEST_CASE("renameEntry: native error classification through forced faults", "[mu
 		CHECK(result.error().nativeCode == expectation.code);
 		CHECK(!result.error().diagnostic.isEmpty());
 		CHECK(!entryAbsent(base % "/src.bin")); // The forced fault replaced the native call; nothing moved
+	}
+}
+
+TEST_CASE("classifyNativeError: every native code maps to its category", "[mutator]")
+{
+	// The context-free classifier tested directly, covering every mapped code (the forced-fault rename test above
+	// exercises only the handful reachable through a real rename).
+	struct CodeExpectation
+	{
+		NativeErrorCode code;
+		FileErrorCategory category;
+	};
+#ifdef _WIN32
+	constexpr CodeExpectation table[] {
+		{ ERROR_FILE_NOT_FOUND, FileErrorCategory::NotFound },
+		{ ERROR_PATH_NOT_FOUND, FileErrorCategory::NotFound },
+		{ ERROR_DIRECTORY, FileErrorCategory::NotFound },
+		{ ERROR_FILE_EXISTS, FileErrorCategory::AlreadyExists },
+		{ ERROR_ALREADY_EXISTS, FileErrorCategory::AlreadyExists },
+		{ ERROR_NOT_SAME_DEVICE, FileErrorCategory::CrossDevice },
+		{ ERROR_WRITE_PROTECT, FileErrorCategory::ReadOnly },
+		{ ERROR_FILE_READ_ONLY, FileErrorCategory::ReadOnly },
+		{ ERROR_ACCESS_DENIED, FileErrorCategory::PermissionDenied },
+		{ ERROR_DISK_FULL, FileErrorCategory::NotEnoughSpace },
+		{ ERROR_HANDLE_DISK_FULL, FileErrorCategory::NotEnoughSpace },
+		{ ERROR_DISK_QUOTA_EXCEEDED, FileErrorCategory::NotEnoughSpace },
+		{ ERROR_NOT_SUPPORTED, FileErrorCategory::Unsupported },
+		{ ERROR_INVALID_FUNCTION, FileErrorCategory::Unsupported },
+		{ ERROR_CALL_NOT_IMPLEMENTED, FileErrorCategory::Unsupported },
+		{ ERROR_GEN_FAILURE, FileErrorCategory::IoFailure }, // Unmapped: the default arm
+	};
+#else
+	constexpr CodeExpectation table[] {
+		{ ENOENT, FileErrorCategory::NotFound },
+		{ ENOTDIR, FileErrorCategory::NotFound },
+		{ EEXIST, FileErrorCategory::AlreadyExists },
+		{ EXDEV, FileErrorCategory::CrossDevice },
+		{ EROFS, FileErrorCategory::ReadOnly },
+		{ EACCES, FileErrorCategory::PermissionDenied },
+		{ EPERM, FileErrorCategory::PermissionDenied },
+		{ ENOSPC, FileErrorCategory::NotEnoughSpace },
+		{ EDQUOT, FileErrorCategory::NotEnoughSpace },
+		{ ENOSYS, FileErrorCategory::Unsupported },
+		{ ENOTSUP, FileErrorCategory::Unsupported },
+#if defined(EOPNOTSUPP) && EOPNOTSUPP != ENOTSUP
+		{ EOPNOTSUPP, FileErrorCategory::Unsupported },
+#endif
+		{ EIO, FileErrorCategory::IoFailure }, // Unmapped: the default arm
+	};
+#endif
+
+	for (const auto& expectation : table)
+	{
+		INFO("native code: " << static_cast<long long>(expectation.code));
+		CHECK(classifyNativeError(expectation.code) == expectation.category);
 	}
 }
 

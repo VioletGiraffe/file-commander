@@ -76,6 +76,22 @@ TEST_CASE("inline rename: a case-only change is performed", "[inlinerename]")
 	CHECK(!names.contains(QStringLiteral("file.bin")));
 }
 
+TEST_CASE("inline rename: renaming onto a hardlink alias of the file is nothing to do", "[inlinerename]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeTestFile(base % "/file.bin", patternedContents(200));
+	REQUIRE(createHardLink(base % "/file.bin", base % "/alias.bin"));
+
+	// The destination is a genuinely different name for the same inode (not a case respell): already satisfied.
+	const auto result = inlineRename(ep(base % "/file.bin"), QStringLiteral("alias.bin"), false);
+	CHECK(result.status == InlineRenameStatus::NothingToDo);
+	CHECK(!entryAbsent(base % "/file.bin"));
+	CHECK(!entryAbsent(base % "/alias.bin"));
+	CHECK(readFileContents(base % "/file.bin") == patternedContents(200));
+}
+
 TEST_CASE("inline rename: a file-like collision needs confirmation, then replaces", "[inlinerename]")
 {
 	QTemporaryDir tempDir;
