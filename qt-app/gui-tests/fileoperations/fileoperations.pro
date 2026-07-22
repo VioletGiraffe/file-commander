@@ -25,17 +25,26 @@ INCLUDEPATH += \
 # config.pri's INCLUDEPATH entries are relative to file-commander-core; rebase them for this project's location.
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../../file-commander-core/$${included_item}
 
-# The tested UI sources and their minimal core dependencies, compiled directly from source.
+# The dialog drives a real job to exact points, so the module is compiled from source with its fault hooks
+# active - the same arrangement the core file-operation test project uses.
+DEFINES += FILE_OPERATIONS_TEST_HOOKS
+include(../../../file-commander-core/src/fileoperations/fileoperations.pri)
+
 SOURCES += \
 	main.cpp \
 	fileoperationprompttests.cpp \
+	fileoperationdialogtests.cpp \
 	../../src/progressdialogs/cfileoperationprompt.cpp \
-	../../../file-commander-core/src/fileoperations/fileoperationtypes.cpp \
-	../../../file-commander-core/src/fileoperations/centrypath.cpp \
+	../../src/progressdialogs/cfileoperationdialog.cpp \
+	../../src/progressdialogs/progressdialoghelpers.cpp \
 	../../../file-commander-core/src/filesystemhelperfunctions.cpp
 
 HEADERS += \
-	../../src/progressdialogs/cfileoperationprompt.h
+	../../src/progressdialogs/cfileoperationprompt.h \
+	../../src/progressdialogs/cfileoperationdialog.h \
+	../../src/progressdialogs/cfileoperationdialogbase.h \
+	../../src/progressdialogs/progressdialoghelpers.h
 
 FORMS += \
-	../../src/progressdialogs/cfileoperationprompt.ui
+	../../src/progressdialogs/cfileoperationprompt.ui \
+	../../src/progressdialogs/cfileoperationdialog.ui

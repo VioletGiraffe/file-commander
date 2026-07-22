@@ -1,5 +1,6 @@
 #include "cfileoperationprompt.h"
 #include "filesystemhelperfunctions.h"
+#include "progressdialoghelpers.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfileoperationprompt.h"
@@ -17,73 +18,9 @@ RESTORE_COMPILER_WARNINGS
 namespace
 {
 
-QString kindNoun(const OperationEntryKind kind)
-{
-	using enum OperationEntryKind;
-	switch (kind)
-	{
-	case RegularFile: return QObject::tr("file");
-	case Directory: return QObject::tr("folder");
-	case FileLink: return QObject::tr("link to a file");
-	case DirectoryLink: return QObject::tr("link to a folder");
-	case Other: return QObject::tr("special entry");
-	}
-	return {};
-}
-
-QString failedActionDescription(const FailedAction action)
-{
-	using enum FailedAction;
-	switch (action)
-	{
-	case InspectSource: return QObject::tr("Reading the source entry's properties");
-	case InspectDestination: return QObject::tr("Reading the destination entry's properties");
-	case ReadSource: return QObject::tr("Reading the source file");
-	case CreateDestinationDirectory: return QObject::tr("Creating the destination folder");
-	case PrepareStagingFile: return QObject::tr("Creating the temporary destination file");
-	case WriteDestination: return QObject::tr("Writing the destination file");
-	case PreserveFileMetadata: return QObject::tr("Preserving the file's attributes");
-	case PublishDestination: return QObject::tr("Finalizing the destination file");
-	case RenameEntry: return QObject::tr("Moving the entry into place");
-	case MakeWritable: return QObject::tr("Making the entry writable");
-	case RemoveEntry: return QObject::tr("Removing the entry");
-	case RemovePublishedMoveSource: return QObject::tr("Removing the moved entry's source");
-	case CleanupStaging: return QObject::tr("Removing the temporary destination file");
-	case PreserveDirectoryTimestamps: return QObject::tr("Preserving the folder's timestamps");
-	}
-	return {};
-}
-
-QString categoryDescription(const FileErrorCategory category)
-{
-	using enum FileErrorCategory;
-	switch (category)
-	{
-	case NotFound: return QObject::tr("the entry does not exist");
-	case AlreadyExists: return QObject::tr("an entry with this name already exists");
-	case CrossDevice: return QObject::tr("the destination is on a different volume");
-	case ReadOnly: return QObject::tr("the entry is read-only");
-	case PermissionDenied: return QObject::tr("access denied");
-	case NotEnoughSpace: return QObject::tr("not enough free space");
-	case Unsupported: return QObject::tr("the operation is not supported here");
-	case IoFailure: return QObject::tr("an input/output error occurred");
-	}
-	return {};
-}
-
-QString errorText(const CFileSystemError& error)
-{
-	QString text = categoryDescription(error.category);
-	if (!error.diagnostic.isEmpty())
-		text += QLatin1String(" (") % error.diagnostic % QLatin1Char(')');
-	else if (error.nativeCode != 0)
-		text += QObject::tr(" (error code %1)").arg(error.nativeCode);
-	return text;
-}
-
 QString entryDetails(const EntrySnapshot& entry)
 {
-	QString details = kindNoun(entry.kind);
+	QString details = fileOperationEntryKindNoun(entry.kind);
 	if (entry.kind == OperationEntryKind::RegularFile || entry.kind == OperationEntryKind::FileLink)
 		details += QLatin1String(", ") % fileSizeToString(entry.size);
 
@@ -209,8 +146,8 @@ void CFileOperationPrompt::setupAuxiliaryTexts()
 		// For ActionFailed the headline already names the attempted action; other kinds carry a raced
 		// failure and present it in full.
 		ui->lblFailure->setText(issue.kind == IssueKind::ActionFailed
-			? tr("Reason: %1").arg(errorText(issue.failure->filesystemError))
-			: tr("%1 failed: %2").arg(failedActionDescription(issue.failure->action), errorText(issue.failure->filesystemError)));
+			? tr("Reason: %1").arg(fileSystemErrorText(issue.failure->filesystemError))
+			: tr("%1 failed: %2").arg(fileOperationFailedActionText(issue.failure->action), fileSystemErrorText(issue.failure->filesystemError)));
 	}
 	else
 		ui->lblFailure->hide();
@@ -252,14 +189,14 @@ QString CFileOperationPrompt::questionText() const
 	switch (issue.kind)
 	{
 	case FileReplacement:
-		return tr("The destination %1 already exists.").arg(kindNoun(destinationKind));
+		return tr("The destination %1 already exists.").arg(fileOperationEntryKindNoun(destinationKind));
 	case RootDirectoryMerge:
 		return tr("The destination folder already exists. Merge the source folder's contents into it?");
 	case TypeMismatch:
 		return tr("The source is a %1, but the existing destination is a %2. An entry cannot replace an entry of a different type.")
-			.arg(kindNoun(issue.source.kind), kindNoun(destinationKind));
+			.arg(fileOperationEntryKindNoun(issue.source.kind), fileOperationEntryKindNoun(destinationKind));
 	case ActionFailed:
-		return issue.failure ? tr("%1 failed.").arg(failedActionDescription(issue.failure->action)) : tr("The operation failed.");
+		return issue.failure ? tr("%1 failed.").arg(fileOperationFailedActionText(issue.failure->action)) : tr("The operation failed.");
 	case ReadOnlySourceRemoval:
 		return _operation == PromptOperation::Move
 			? tr("The source file is read-only, and moving it requires removing the source.")
