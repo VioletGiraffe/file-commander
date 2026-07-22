@@ -375,8 +375,7 @@ TEST_CASE("execution context: summary accumulation is bounded", "[decisions]")
 	for (int i = 0; i < 20; ++i)
 		context.recordWarning(diagnostic);
 	context.recordFailure(diagnostic);
-	context.addCompletedItem();
-	context.addCompletedItem();
+	context.addCompletedItems(2);
 	context.addSkippedItems(1);
 	context.addAlreadySatisfiedItems(1);
 	context.addTransferredBytes(1234);
