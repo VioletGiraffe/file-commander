@@ -40,6 +40,7 @@ SOURCES += \
 	sourcetreebuildertests.cpp \
 	transferexecutortests.cpp \
 	deleteexecutortests.cpp \
+	moveexecutortests.cpp \
 	operationperformertest.cpp \
 	directorycollisiontests.cpp \
 	directorylinktests.cpp \

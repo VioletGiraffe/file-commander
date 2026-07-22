@@ -36,75 +36,13 @@ constexpr NativeErrorCode ioFailureCode = EIO;
 constexpr NativeErrorCode readOnlyCode = EROFS;
 #endif
 
-struct DeleteScript
-{
-	std::vector<Decision> decisions;
-	size_t nextDecision = 0;
-	std::vector<DecisionRequest> seenRequests;
-	std::vector<ProgressSnapshot> progress;
-	// Run mid-operation, for filesystem changes at exact execution points: at every checkpoint (before
-	// the cancellation predicate), and at every decision request before the scripted answer.
-	std::function<void()> onCheckpoint;
-	std::function<void(const DecisionRequest&)> onDecisionRequest;
-	// Cancellation is requested through observable state, never by counting checkpoint calls (call order
-	// is an implementation detail): the operation cancels at the first checkpoint where this holds.
-	std::function<bool()> cancelAtCheckpoint;
-};
-
-COperationExecutionContext deleteContext(DeleteScript& script)
-{
-	return COperationExecutionContext{
-		PrimaryProgressUnit::Items,
-		[&script] {
-			if (script.onCheckpoint)
-				script.onCheckpoint();
-			return !script.cancelAtCheckpoint || !script.cancelAtCheckpoint();
-		},
-		[&script](const DecisionRequest& request) -> std::optional<Decision> {
-			script.seenRequests.push_back(request);
-			if (script.onDecisionRequest)
-				script.onDecisionRequest(request);
-			REQUIRE(script.nextDecision < script.decisions.size());
-			return script.decisions[script.nextDecision++];
-		},
-		[&script](const ProgressSnapshot& snapshot) { script.progress.push_back(snapshot); }
-	};
-}
-
-OperationSummary runDelete(DeleteScript& script, const QStringList& sources)
+OperationSummary runDelete(OperationScript& script, const QStringList& sources)
 {
 	const auto request = makePermanentDeleteRequest(sources);
 	REQUIRE(request.has_value());
-	auto context = deleteContext(script);
+	auto context = makeScriptedContext(script, PrimaryProgressUnit::Items);
 	CDeleteExecutor executor{ context };
 	return executor.run(*request);
-}
-
-Decision act(const DecisionAction action, const DecisionScope scope = DecisionScope::ThisItem)
-{
-	return Decision{ action, scope, {} };
-}
-
-void setFileReadOnly(const QString& path, const bool readOnly)
-{
-	using P = QFileDevice::Permission;
-	const QFileDevice::Permissions perms = readOnly
-		? (P::ReadOwner | P::ReadUser | P::ReadGroup | P::ReadOther)
-		: (P::ReadOwner | P::WriteOwner | P::ReadUser | P::WriteUser | P::ReadGroup | P::ReadOther);
-	REQUIRE(QFile::setPermissions(path, perms));
-}
-
-// On POSIX, permission bits do not restrict root: the read-only preflight can never trigger.
-bool readOnlySemanticsUnavailable()
-{
-#ifndef _WIN32
-	if (::geteuid() == 0)
-	{
-		WARN("Running as root: file permissions do not apply, read-only sections skipped");
-		return true;
-	}
-#endif
-	return false;
 }
 
 } // namespace
@@ -115,7 +53,7 @@ TEST_CASE("delete executor: basic and multi-root deletion", "[deleteexecutor]")
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
-	DeleteScript script;
+	OperationScript script;
 
 	SECTION("a single file")
 	{
@@ -187,7 +125,7 @@ TEST_CASE("delete executor: absent and vanished entries", "[deleteexecutor]")
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
-	DeleteScript script;
+	OperationScript script;
 
 	SECTION("an absent root is already satisfied, not an error")
 	{
@@ -228,7 +166,7 @@ TEST_CASE("delete executor: absent and vanished entries", "[deleteexecutor]")
 		// so no Catch assertions can race between the two threads.
 		const auto request = makePermanentDeleteRequest({ filePath });
 		REQUIRE(request.has_value());
-		auto context = deleteContext(script);
+		auto context = makeScriptedContext(script, PrimaryProgressUnit::Items);
 		CDeleteExecutor executor{ context };
 
 		OperationSummary summary;
@@ -259,7 +197,7 @@ TEST_CASE("delete executor: read-only preflight row behavior", "[deleteexecutor]
 	writeTestFile(filePath, patternedContents(100));
 	setFileReadOnly(filePath, true);
 
-	DeleteScript script;
+	OperationScript script;
 
 	SECTION("MakeWritable deletes the file")
 	{
@@ -373,7 +311,7 @@ TEST_CASE("delete executor: read-only question is isolated from remembered Actio
 	CFaultHookScope hooks;
 	hooks.forceNativeError(Point::RemoveEntry_Native, ioFailureCode);
 
-	DeleteScript script;
+	OperationScript script;
 	script.decisions = { act(DecisionAction::Skip, DecisionScope::RemainingMatchingIssues), act(DecisionAction::MakeWritable) };
 	const auto summary = runDelete(script, { failingPath, readOnlyPath });
 
@@ -395,7 +333,7 @@ TEST_CASE("delete executor: remediation and removal failures", "[deleteexecutor]
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
-	DeleteScript script;
+	OperationScript script;
 
 	SECTION("a make-writable failure is ordinary ActionFailed")
 	{
@@ -521,12 +459,12 @@ TEST_CASE("delete executor: raced read-only state is reclassified reactively", "
 	hooks.armBarrier(Point::RemoveEntry_Native);
 	hooks.forceNativeError(Point::RemoveEntry_Native, readOnlyCode);
 
-	DeleteScript script;
+	OperationScript script;
 	script.decisions = { act(DecisionAction::MakeWritable) };
 
 	const auto request = makePermanentDeleteRequest({ filePath });
 	REQUIRE(request.has_value());
-	auto context = deleteContext(script);
+	auto context = makeScriptedContext(script, PrimaryProgressUnit::Items);
 	CDeleteExecutor executor{ context };
 
 	OperationSummary summary;
@@ -554,7 +492,7 @@ TEST_CASE("delete executor: links and special entries are unlinked without targe
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
-	DeleteScript script;
+	OperationScript script;
 
 	SECTION("a directory link inside a tree: the link goes, the target stays")
 	{
@@ -656,7 +594,7 @@ TEST_CASE("delete executor: parent preservation after skipped content", "[delete
 	setFileReadOnly(base % "/root/sub/kept.bin", true);
 	writeTestFile(base % "/root/removed.bin", patternedContents(20));
 
-	DeleteScript script;
+	OperationScript script;
 	script.decisions = { act(DecisionAction::Skip) };
 	const auto summary = runDelete(script, { base % "/root" });
 
@@ -681,7 +619,7 @@ TEST_CASE("delete executor: cancellation checkpoints", "[deleteexecutor]")
 	REQUIRE(QDir{}.mkpath(base % "/root"));
 	writeTestFile(base % "/root/f.bin", patternedContents(100));
 
-	DeleteScript script;
+	OperationScript script;
 
 	SECTION("cancellation during scanning deletes nothing")
 	{
@@ -722,7 +660,7 @@ TEST_CASE("delete executor: item-based progress and summary", "[deleteexecutor]"
 	writeTestFile(base % "/root/a.bin", patternedContents(10));
 	writeTestFile(base % "/root/sub/b.bin", patternedContents(20));
 
-	DeleteScript script;
+	OperationScript script;
 	const auto summary = runDelete(script, { base % "/root" });
 	CHECK(summary.status == CompletionStatus::Completed);
 	CHECK(summary.completedItems == 4);

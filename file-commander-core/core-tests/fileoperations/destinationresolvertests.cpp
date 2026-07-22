@@ -68,11 +68,6 @@ COperationExecutionContext scriptedContext(ScriptedDecisions& decisions)
 	};
 }
 
-Decision act(const DecisionAction action, const DecisionScope scope = DecisionScope::ThisItem)
-{
-	return Decision{ action, scope, {} };
-}
-
 Decision renameTo(const QString& newName)
 {
 	return Decision{ DecisionAction::Rename, DecisionScope::ThisItem, newName };

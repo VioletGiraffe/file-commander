@@ -196,7 +196,7 @@ NodeOutcome CDeleteExecutor::removeEntryWithPolicy(const EntrySnapshot& entry)
 		auto removed = CFileSystemMutator::removeEntry(entry);
 		if (removed)
 		{
-			_context.addCompletedItem();
+			_context.addCompletedItems(1);
 			_context.progress().itemCompleted();
 			_context.progress().clearCurrentEntry();
 			_context.publishProgressSnapshot();

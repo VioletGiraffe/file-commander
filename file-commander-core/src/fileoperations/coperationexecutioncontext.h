@@ -91,7 +91,7 @@ public:
 	void recordWarning(OperationDiagnostic diagnostic);
 	void recordFailure(OperationDiagnostic diagnostic);
 
-	void addCompletedItem() noexcept { ++_accumulatedSummary.completedItems; }
+	void addCompletedItems(const size_t count) noexcept { _accumulatedSummary.completedItems += count; }
 	void addSkippedItems(const size_t count) noexcept { _accumulatedSummary.skippedItems += count; }
 	void addAlreadySatisfiedItems(const size_t count) noexcept { _accumulatedSummary.alreadySatisfiedItems += count; }
 	void addTransferredBytes(const uint64_t bytes) noexcept { _accumulatedSummary.transferredBytes += bytes; }

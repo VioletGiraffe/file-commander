@@ -34,78 +34,14 @@ constexpr NativeErrorCode existsCode = EEXIST;
 constexpr NativeErrorCode ioFailureCode = EIO;
 #endif
 
-struct ExecScript
-{
-	std::vector<Decision> decisions;
-	size_t nextDecision = 0;
-	std::vector<DecisionRequest> seenRequests;
-	std::vector<ProgressSnapshot> progress;
-	bool cancelInsteadOfAnswering = false;
-	// Cancellation is requested through observable state, never by counting checkpoint calls (call order
-	// is an implementation detail): the operation cancels at the first checkpoint where this holds.
-	std::function<bool()> cancelAtCheckpoint;
-};
-
-COperationExecutionContext execContext(ExecScript& script)
-{
-	return COperationExecutionContext{
-		PrimaryProgressUnit::Bytes,
-		[&script] {
-			return !script.cancelAtCheckpoint || !script.cancelAtCheckpoint();
-		},
-		[&script](const DecisionRequest& request) -> std::optional<Decision> {
-			script.seenRequests.push_back(request);
-			if (script.cancelInsteadOfAnswering)
-				return {};
-			REQUIRE(script.nextDecision < script.decisions.size());
-			return script.decisions[script.nextDecision++];
-		},
-		[&script](const ProgressSnapshot& snapshot) { script.progress.push_back(snapshot); }
-	};
-}
-
-OperationSummary runCopy(ExecScript& script, const QStringList& sources, const DestinationIntent intent, const QString& destination,
+OperationSummary runCopy(OperationScript& script, const QStringList& sources, const DestinationIntent intent, const QString& destination,
 	const uint64_t chunkSize = 64 * 1024)
 {
 	const auto request = makeTransferRequest(TransferKind::Copy, sources, intent, destination);
 	REQUIRE(request.has_value());
-	auto context = execContext(script);
+	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
 	CTransferExecutor executor{ context, chunkSize };
 	return executor.run(*request);
-}
-
-Decision act(const DecisionAction action, const DecisionScope scope = DecisionScope::ThisItem)
-{
-	return Decision{ action, scope, {} };
-}
-
-// Compares the followed shapes and file contents; exactly right for materializing copies, where source
-// links become real destination entries with the target content.
-void requireEqualTrees(const QString& expectedDir, const QString& actualDir)
-{
-	const auto filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System;
-	const QStringList expected = QDir{ expectedDir }.entryList(filters, QDir::Name);
-	const QStringList actual = QDir{ actualDir }.entryList(filters, QDir::Name);
-	REQUIRE(expected == actual);
-
-	for (const QString& name : expected)
-	{
-		const QString expectedPath = expectedDir % '/' % name;
-		const QString actualPath = actualDir % '/' % name;
-		REQUIRE(QFileInfo{ expectedPath }.isDir() == QFileInfo{ actualPath }.isDir());
-		if (QFileInfo{ expectedPath }.isDir())
-			requireEqualTrees(expectedPath, actualPath);
-		else
-			REQUIRE(readFileContents(expectedPath) == readFileContents(actualPath));
-	}
-}
-
-int64_t entryLastWriteSeconds(const QString& path)
-{
-	const auto times = getEntryTimes(path);
-	REQUIRE(times.has_value());
-	REQUIRE(times->last_write.has_value());
-	return times->last_write->seconds;
 }
 
 } // namespace
@@ -121,7 +57,7 @@ TEST_CASE("copy executor: files, trees, and multiple roots", "[executor]")
 		const QByteArray contents = patternedContents(3000);
 		writeTestFile(base % "/a.bin", contents);
 
-		ExecScript script;
+		OperationScript script;
 		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/copied.bin");
 		CHECK(summary.status == CompletionStatus::Completed);
 		CHECK(summary.completedItems == 1);
@@ -136,7 +72,7 @@ TEST_CASE("copy executor: files, trees, and multiple roots", "[executor]")
 		writeTestFile(base % "/large.bin", patternedContents(300'000));
 		REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-		ExecScript script;
+		OperationScript script;
 		const auto summary = runCopy(script, { base % "/empty.bin", base % "/large.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
 		CHECK(summary.status == CompletionStatus::Completed);
 		CHECK(summary.completedItems == 2);
@@ -152,7 +88,7 @@ TEST_CASE("copy executor: files, trees, and multiple roots", "[executor]")
 		writeTestFile(base % "/solo.bin", patternedContents(300));
 		REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-		ExecScript script;
+		OperationScript script;
 		const auto summary = runCopy(script, { base % "/src", base % "/solo.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
 		CHECK(summary.status == CompletionStatus::Completed);
 		CHECK(summary.completedItems == 5); // src, one.bin, sub, two.bin, solo.bin
@@ -174,7 +110,7 @@ TEST_CASE("copy executor: random tree round-trip", "[executor]")
 	buildRandomTree(base % "/src", 3);
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-	ExecScript script;
+	OperationScript script;
 	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 	CHECK(summary.status == CompletionStatus::Completed);
 	CHECK(summary.completedItems == countTreeEntries(base % "/src") + 1); // Every entry plus the root itself
@@ -192,7 +128,7 @@ TEST_CASE("copy executor: root rename rebases descendants", "[executor]")
 	writeTestFile(base % "/src/sub/deep.bin", patternedContents(700));
 	REQUIRE(QDir{}.mkpath(base % "/dest/src")); // The proposed root target collides
 
-	ExecScript script{ .decisions = { Decision{ DecisionAction::Rename, DecisionScope::ThisItem, QStringLiteral("renamed") } } };
+	OperationScript script{ .decisions = { Decision{ DecisionAction::Rename, DecisionScope::ThisItem, QStringLiteral("renamed") } } };
 	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 	CHECK(summary.status == CompletionStatus::Completed);
@@ -214,7 +150,7 @@ TEST_CASE("copy executor: skips leave siblings running and never demote completi
 		REQUIRE(QDir{}.mkpath(base % "/dest/src"));
 		writeTestFile(base % "/dest/src/colliding.bin", QByteArray{ "OLD" });
 
-		ExecScript script{ .decisions = { act(DecisionAction::Merge), act(DecisionAction::Skip) } };
+		OperationScript script{ .decisions = { act(DecisionAction::Merge), act(DecisionAction::Skip) } };
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Completed); // Skips do not demote
@@ -230,7 +166,7 @@ TEST_CASE("copy executor: skips leave siblings running and never demote completi
 		writeTestFile(base % "/src/deep/deeper/x.bin", patternedContents(100));
 		REQUIRE(QDir{}.mkpath(base % "/dest/src"));
 
-		ExecScript script{ .decisions = { act(DecisionAction::Skip) } };
+		OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -251,7 +187,7 @@ TEST_CASE("copy executor: same-object roots are silently already satisfied", "[e
 	writeTestFile(base % "/a.bin", contents);
 	REQUIRE(createHardLink(base % "/a.bin", base % "/alias.bin"));
 
-	ExecScript script;
+	OperationScript script;
 	const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/alias.bin");
 
 	CHECK(summary.status == CompletionStatus::Completed);
@@ -291,7 +227,7 @@ TEST_CASE("copy executor: counters count only at the originating node", "[execut
 	REQUIRE(QDir{}.mkpath(base % "/dest/src/a/b/c"));
 	writeTestFile(base % "/dest/src/a/b/c/colliding.bin", QByteArray{ "OLD" });
 
-	ExecScript script{ .decisions = { act(DecisionAction::Merge), act(DecisionAction::Skip) } };
+	OperationScript script{ .decisions = { act(DecisionAction::Merge), act(DecisionAction::Skip) } };
 	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 	CHECK(summary.status == CompletionStatus::Completed);
@@ -316,7 +252,7 @@ TEST_CASE("copy executor: remembered decisions span items with accurate wording"
 		writeTestFile(base % "/dest/src/one.bin", QByteArray{ "OLD1" });
 		writeTestFile(base % "/dest/src/two.bin", QByteArray{ "OLD2" });
 
-		ExecScript script{ .decisions = { act(DecisionAction::Merge), act(DecisionAction::Replace, DecisionScope::RemainingMatchingIssues) } };
+		OperationScript script{ .decisions = { act(DecisionAction::Merge), act(DecisionAction::Replace, DecisionScope::RemainingMatchingIssues) } };
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -334,7 +270,7 @@ TEST_CASE("copy executor: remembered decisions span items with accurate wording"
 		hooks.forceNativeError(Point::StagedCopy_CreateStaging_Native, accessDeniedCode); // Fails whichever file goes first
 		hooks.forceNativeError(Point::StagedCopy_WriteStaging_Native, ioFailureCode);     // Fails the other one
 
-		ExecScript script{ .decisions = { act(DecisionAction::Skip, DecisionScope::RemainingMatchingIssues) } };
+		OperationScript script{ .decisions = { act(DecisionAction::Skip, DecisionScope::RemainingMatchingIssues) } };
 		const auto summary = runCopy(script, { base % "/src/one.bin", base % "/src/two.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -360,7 +296,7 @@ TEST_CASE("copy executor: retries restart a fresh staging session", "[executor]"
 		CFaultHookScope hooks;
 		hooks.forceNativeError(Point::StagedCopy_CreateStaging_Native, accessDeniedCode);
 
-		ExecScript script{ .decisions = { act(DecisionAction::Retry) } };
+		OperationScript script{ .decisions = { act(DecisionAction::Retry) } };
 		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/copied.bin");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -376,7 +312,7 @@ TEST_CASE("copy executor: retries restart a fresh staging session", "[executor]"
 		CFaultHookScope hooks;
 		hooks.forceNativeError(Point::RenameEntry_Native, accessDeniedCode);
 
-		ExecScript script{ .decisions = { act(DecisionAction::Replace), act(DecisionAction::Retry) } };
+		OperationScript script{ .decisions = { act(DecisionAction::Replace), act(DecisionAction::Retry) } };
 		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/taken.bin");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -392,7 +328,7 @@ TEST_CASE("copy executor: retries restart a fresh staging session", "[executor]"
 		CFaultHookScope hooks;
 		hooks.forceNativeError(Point::RenameEntry_Native, existsCode);
 
-		ExecScript script{ .decisions = { act(DecisionAction::Skip) } };
+		OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
 		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/copied.bin");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -420,7 +356,7 @@ TEST_CASE("copy executor: Other entries are skippable, links materialize", "[exe
 	REQUIRE(createDirectoryLink(base % "/dirtarget", base % "/src/dirlink"));
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-	ExecScript script{ .decisions = { act(DecisionAction::Skip) } }; // For the FIFO
+	OperationScript script{ .decisions = { act(DecisionAction::Skip) } }; // For the FIFO
 	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 	CHECK(summary.status == CompletionStatus::Completed);
@@ -448,7 +384,7 @@ TEST_CASE("copy executor: a cycle-terminated directory link materializes as an e
 	REQUIRE(createDirectoryLink(base % "/src", base % "/src/sub/uplink"));
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-	ExecScript script;
+	OperationScript script;
 	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 	CHECK(summary.status == CompletionStatus::Completed);
@@ -472,7 +408,7 @@ TEST_CASE("copy executor: directory timestamps are preserved for created directo
 	{
 		REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-		ExecScript script;
+		OperationScript script;
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -485,7 +421,7 @@ TEST_CASE("copy executor: directory timestamps are preserved for created directo
 	{
 		REQUIRE(QDir{}.mkpath(base % "/dest/src"));
 
-		ExecScript script{ .decisions = { act(DecisionAction::Merge) } };
+		OperationScript script{ .decisions = { act(DecisionAction::Merge) } };
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -502,7 +438,7 @@ TEST_CASE("copy executor: directory timestamps are preserved for created directo
 		CFaultHookScope hooks;
 		hooks.forceNativeError(Point::ApplyDirectoryTimes_Native, accessDeniedCode);
 
-		ExecScript script;
+		OperationScript script;
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -529,7 +465,7 @@ TEST_CASE("copy executor: cancellation", "[executor]")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-		ExecScript script;
+		OperationScript script;
 		// Cancel at the first checkpoint at which a staged transfer is underway; the abort must leave
 		// no staging leftovers behind.
 		script.cancelAtCheckpoint = [&] { return stagingFileCount(base % "/dest/src") > 0; };
@@ -546,7 +482,7 @@ TEST_CASE("copy executor: cancellation", "[executor]")
 
 		// Cancel at the first checkpoint after the destination directory exists: its children are then
 		// still unprocessed, and the created directory must not be stamped with the source time.
-		ExecScript script;
+		OperationScript script;
 		script.cancelAtCheckpoint = [&] { return QFileInfo{ base % "/dest/src" }.isDir(); };
 		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
@@ -568,7 +504,7 @@ TEST_CASE("copy executor: progress across scanning and working", "[executor]")
 	writeTestFile(base % "/srcB/b.bin", patternedContents(1000));
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-	ExecScript script;
+	OperationScript script;
 	const auto summary = runCopy(script, { base % "/srcA", base % "/srcB" }, DestinationIntent::IntoDirectory, base % "/dest");
 	REQUIRE(summary.status == CompletionStatus::Completed);
 
