@@ -1,9 +1,8 @@
 #include "cmainwindow.h"
-#include "progressdialogs/ccopymovedialog.h"
-#include "progressdialogs/cdeleteprogressdialog.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
 #include "progressdialogs/cfileoperationdialog.h"
 #include "progressdialogs/fileoperationlaunch.h"
+#include "fileoperations/fileoperationtypes.h"
 #include "settings.h"
 #include "settings/csettings.h"
 #include "shell/cshell.h"
@@ -296,54 +295,7 @@ void CMainWindow::tabKeyPressed()
 	_otherFileList->setFocusToFileList();
 }
 
-bool CMainWindow::copyFiles(std::vector<CFileSystemObject>&& files, const QString & destDir)
-{
-	if (files.empty() || destDir.isEmpty())
-		return false;
-
-	// Fix for #91
-	raise();
-	activateWindow();
-
-	const QString destPath = files.size() == 1 && files.front().isFile() ? cleanPath(destDir % nativeSeparator() % files.front().fullName()) : destDir;
-	CFileOperationConfirmationPrompt prompt(tr("Copy files"), tr("Copy %1 %2 to").arg(files.size()).arg(files.size() > 1 ? QSL("files") : QSL("file")), toNativeSeparators(destPath), this);
-	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
-	{
-		if (prompt.exec() != QDialog::Accepted)
-			return false;
-	}
-
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(this, operationCopy, std::move(files), toPosixSeparators(prompt.text()), this);
-	registerFileOperationDialog(dialog);
-	dialog->show();
-
-	return true;
-}
-
-bool CMainWindow::moveFiles(std::vector<CFileSystemObject>&& files, const QString & destDir)
-{
-	if (files.empty() || destDir.isEmpty())
-		return false;
-
-	// Fix for #91
-	raise();
-	activateWindow();
-
-	CFileOperationConfirmationPrompt prompt(tr("Move files"), tr("Move %1 %2 to").arg(files.size()).arg(files.size() > 1 ? QSL("files") : QSL("file")), toNativeSeparators(destDir), this);
-	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
-	{
-		if (prompt.exec() != QDialog::Accepted)
-			return false;
-	}
-
-	CCopyMoveDialog * dialog = new CCopyMoveDialog(this, operationMove, std::move(files), toPosixSeparators(prompt.text()), this);
-	registerFileOperationDialog(dialog);
-	dialog->show();
-
-	return true;
-}
-
-static QString transferRequestErrorText(const RequestValidationError error)
+static QString requestValidationErrorText(const RequestValidationError error)
 {
 	switch (error)
 	{
@@ -388,7 +340,7 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 	auto request = makeUiTransferRequest(kind, sourcePaths, toPosixSeparators(prompt.text()));
 	if (!request)
 	{
-		QMessageBox::warning(this, tr("Operation cannot start"), transferRequestErrorText(request.error()));
+		QMessageBox::warning(this, tr("Operation cannot start"), requestValidationErrorText(request.error()));
 		return false;
 	}
 
@@ -401,10 +353,9 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 
 QPoint CMainWindow::nextBackgroundDialogPosition() const
 {
-	QPoint pos;
 	for (auto it = _activeFileOperationDialogs.rbegin(); it != _activeFileOperationDialogs.rend(); ++it)
 	{
-		CFileOperationDialogBase* dialog = *it;
+		CFileOperationDialog* dialog = *it;
 		if (!dialog->isInBackgroundMode())
 			continue;
 
@@ -542,50 +493,26 @@ void CMainWindow::splitterContextMenuRequested(QPoint pos)
 void CMainWindow::copySelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
-		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		copyFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDirPathNative());
+		launchFileTransfer(TransferKind::Copy, _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDirPathNative());
 }
 
 void CMainWindow::moveSelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
-		// Some algorithms rely on trailing slash for distinguishing between files and folders for non-existent items
-		moveFiles(_controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDirPathNative());
+		launchFileTransfer(TransferKind::Move, _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDirPathNative());
 }
 
 void CMainWindow::deleteFiles()
 {
-	if (!_currentFileList)
-		return;
-
-#if defined _WIN32 || defined __APPLE__
-	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
-	std::vector<std::wstring> paths;
-	paths.reserve(items.size());
-	for (auto& item : items)
-		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
-
-	if (paths.empty())
-		return;
-
-#ifdef _WIN32
-	auto* windowHandle = reinterpret_cast<void*>(winId());
-#else
-	void* windowHandle = nullptr;
-#endif
-
-	auto* controller = _controller.get();
-	controller->execOnWorkerThread([controller, paths = std::move(paths), windowHandle]() {
-		if (!OsShell::deleteItems(paths, true, windowHandle))
-			controller->execOnUiThread(showDeleteItemsError);
-	});
-
-#else
-	deleteFilesIrrevocably();
-#endif
+	performDeletion(true);
 }
 
 void CMainWindow::deleteFilesIrrevocably()
+{
+	performDeletion(false);
+}
+
+void CMainWindow::performDeletion(const bool toTrash)
 {
 	if (!_currentFileList)
 		return;
@@ -593,26 +520,49 @@ void CMainWindow::deleteFilesIrrevocably()
 	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
 	if (items.empty())
 		return;
-#ifdef _WIN32
-	std::vector<std::wstring> paths;
-	paths.reserve(items.size());
-	for (auto& item : items)
-		paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
-	auto* windowHandle = reinterpret_cast<void*>(winId());
-	auto* controller = _controller.get();
-	controller->execOnWorkerThread([controller, paths = std::move(paths), windowHandle]() {
-		if (!OsShell::deleteItems(paths, false, windowHandle))
-			controller->execOnUiThread(showDeleteItemsError);
-	});
-#else
-	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+	const DeletionBackend backend = deletionBackendFor(toTrash);
+	if (backend == DeletionBackend::NativeTrash || backend == DeletionBackend::NativeShellPermanent)
 	{
-		CDeleteProgressDialog * dialog = new CDeleteProgressDialog(this, std::move(items), _otherFileList->currentDirPathNative(), this);
-		registerFileOperationDialog(dialog);
-		dialog->show();
-	}
+		std::vector<std::wstring> paths;
+		paths.reserve(items.size());
+		for (const auto& item : items)
+			paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
+
+#ifdef _WIN32
+		auto* windowHandle = reinterpret_cast<void*>(winId());
+#else
+		void* windowHandle = nullptr;
 #endif
+		const bool moveToTrash = backend == DeletionBackend::NativeTrash;
+		auto* controller = _controller.get();
+		controller->execOnWorkerThread([controller, paths = std::move(paths), moveToTrash, windowHandle]() {
+			if (!OsShell::deleteItems(paths, moveToTrash, windowHandle))
+				controller->execOnUiThread(showDeleteItemsError);
+		});
+		return;
+	}
+
+	// InternalJob: the custom permanent-delete engine. Deletion here is irreversible, so confirm first.
+	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	QStringList sourcePaths;
+	sourcePaths.reserve(static_cast<qsizetype>(items.size()));
+	for (const auto& item : items)
+		sourcePaths.push_back(item.fullAbsolutePath());
+
+	auto request = makePermanentDeleteRequest(sourcePaths);
+	if (!request)
+	{
+		QMessageBox::warning(this, tr("Operation cannot start"), requestValidationErrorText(request.error()));
+		return;
+	}
+
+	auto* dialog = new CFileOperationDialog(std::move(*request), [this] { return nextBackgroundDialogPosition(); }, this);
+	registerFileOperationDialog(dialog);
+	dialog->show();
+	dialog->start();
 }
 
 void CMainWindow::createFolder()
@@ -1116,7 +1066,7 @@ void CMainWindow::quickViewCurrentFile()
 	otherPanelDisplayController().startQuickView(CPluginEngine::get().createViewerWindowForCurrentFile());
 }
 
-void CMainWindow::registerFileOperationDialog(CFileOperationDialogBase* dialog)
+void CMainWindow::registerFileOperationDialog(CFileOperationDialog* dialog)
 {
 	_activeFileOperationDialogs.push_back(dialog);
 	connect(dialog, &QObject::destroyed, this, &CMainWindow::onFileDialogFinished);

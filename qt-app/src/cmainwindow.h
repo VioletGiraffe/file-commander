@@ -19,7 +19,7 @@ namespace Ui {
 }
 
 class CPanelWidget;
-class CFileOperationDialogBase;
+class CFileOperationDialog;
 enum class TransferKind; // fileoperations/fileoperationtypes.h
 class QShortcut;
 class QStackedWidget;
@@ -42,11 +42,8 @@ public:
 	// For manual focus management
 	void tabKeyPressed();
 
-	bool copyFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
-	bool moveFiles(std::vector<CFileSystemObject>&& files, const QString& destDir);
-
-	// The unified transfer launch path over the new operation engine. During the migration it coexists with
-	// copyFiles/moveFiles, which stay the live F5/F6 and drag-and-drop route until the routing cutover.
+	// The transfer launch path (F5/F6, menu/toolbar, and drag-and-drop) over the operation engine: it converts
+	// the panel selection and edited destination into a typed request and drives one CFileOperationDialog.
 	bool launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory);
 
 	// Bottom left point
@@ -66,6 +63,8 @@ private:
 	void moveSelectedFiles();
 	void deleteFiles();
 	void deleteFilesIrrevocably();
+	// Shared by both delete slots: routes to the platform backend (native trash/shell) or the internal dialog.
+	void performDeletion(bool toTrash);
 	void createFolder();
 	void createFile();
 
@@ -140,7 +139,7 @@ private:
 	// Window title management (#143)
 	void updateWindowTitleWithCurrentFolderNames();
 
-	void registerFileOperationDialog(CFileOperationDialogBase* dialog);
+	void registerFileOperationDialog(CFileOperationDialog* dialog);
 	void onFileDialogFinished(QObject* object);
 
 private:
@@ -159,7 +158,7 @@ private:
 
 	enum { NormalWindow, MaximizedWindow } _windowStateBeforeFullscreen = NormalWindow;
 
-	std::vector<CFileOperationDialogBase*> _activeFileOperationDialogs;
+	std::vector<CFileOperationDialog*> _activeFileOperationDialogs;
 
 	// Bottom command buttons whose caption reflects the Shift-modified action while Shift is held
 	struct ShiftCaption { QPushButton* button; QString normal; QString shifted; };

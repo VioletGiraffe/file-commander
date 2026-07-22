@@ -4,6 +4,7 @@
 #include "filesystemhelperfunctions.h"
 #include "iconprovider/ciconprovider.h"
 #include "../../../cmainwindow.h"
+#include "fileoperations/fileoperationtypes.h"
 #include "../../columns.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 
@@ -209,9 +210,9 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 		return false;
 
 	if (action == Qt::CopyAction)
-		return CMainWindow::get()->copyFiles(std::move(objects), dest.fullAbsolutePath());
+		return CMainWindow::get()->launchFileTransfer(TransferKind::Copy, std::move(objects), dest.fullAbsolutePath());
 	else if (action == Qt::MoveAction)
-		return CMainWindow::get()->moveFiles(std::move(objects), dest.fullAbsolutePath());
+		return CMainWindow::get()->launchFileTransfer(TransferKind::Move, std::move(objects), dest.fullAbsolutePath());
 	else
 		return false;
 }
