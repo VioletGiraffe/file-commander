@@ -41,6 +41,7 @@ SOURCES += \
 	transferexecutortests.cpp \
 	deleteexecutortests.cpp \
 	moveexecutortests.cpp \
+	fileoperationjobtests.cpp \
 	operationperformertest.cpp \
 	directorycollisiontests.cpp \
 	directorylinktests.cpp \

@@ -14,6 +14,7 @@ HEADERS += \
 	$$PWD/coperationexecutioncontext.h \
 	$$PWD/ctransferexecutor.h \
 	$$PWD/cdeleteexecutor.h \
+	$$PWD/cfileoperationjob.h \
 	$$PWD/operationtesthooks.h
 
 SOURCES += \
@@ -25,7 +26,8 @@ SOURCES += \
 	$$PWD/csourcetreebuilder.cpp \
 	$$PWD/coperationexecutioncontext.cpp \
 	$$PWD/ctransferexecutor.cpp \
-	$$PWD/cdeleteexecutor.cpp
+	$$PWD/cdeleteexecutor.cpp \
+	$$PWD/cfileoperationjob.cpp
 
 # The hook implementation exists only in test builds; production builds see just the no-op stub in the header.
 contains(DEFINES, FILE_OPERATIONS_TEST_HOOKS): SOURCES += \
