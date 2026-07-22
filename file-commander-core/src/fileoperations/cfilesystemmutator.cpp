@@ -271,8 +271,11 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 	toUncWcharArray(source.value(), sourceNative);
 	toUncWcharArray(destination.value(), destinationNative);
 
-	// Flag 0 is the native exclusive mechanism: the API refuses an existing destination on every filesystem,
-	// so no unsupported-degradation path exists on Windows. It also permits a case-only rename of the same entry.
+	// Flag 0 is the native exclusive mechanism; no unsupported-degradation path exists on Windows. It has a
+	// same-file exemption: a destination that is another name for the source file does not count as occupied.
+	// That is what permits case-only renames - and it also lets a rename onto a hardlink alias succeed by
+	// removing the source name (accepted divergence, see the design plan's same-object note: POSIX exclusive
+	// rename refuses same-inode destinations).
 	const DWORD flags = replacement == ReplacementMode::ReplaceExistingFile ? MOVEFILE_REPLACE_EXISTING : 0;
 
 	if (const auto forcedError = fireHook(Point::RenameEntry_Native))

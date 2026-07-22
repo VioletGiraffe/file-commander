@@ -125,17 +125,28 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 		CHECK(script.seenRequests[0].issue.kind == IssueKind::FileReplacement);
 	}
 
-	SECTION("moving onto the same object is silently already satisfied")
+	SECTION("moving onto a hardlink alias of the source")
 	{
 		writeTestFile(base % "/same.bin", patternedContents(100));
 		REQUIRE(createHardLink(base % "/same.bin", base % "/alias.bin"));
 
 		const auto summary = runMove(script, { base % "/same.bin" }, DestinationIntent::ExactEntry, base % "/alias.bin");
 		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(script.seenRequests.empty());
+#ifdef _WIN32
+		// NTFS's exclusive rename exempts same-file destinations, so the rename-first attempt completes the
+		// move natively: the source name is removed. Accepted divergence, see the design plan's same-object note.
+		CHECK(summary.completedItems == 1);
+		CHECK(summary.alreadySatisfiedItems == 0);
+		CHECK(entryAbsent(base % "/same.bin"));
+#else
+		// POSIX exclusive rename refuses a same-inode destination, so resolution classifies the pair as the
+		// same object: already satisfied, source retained.
 		CHECK(summary.alreadySatisfiedItems == 1);
 		CHECK(summary.completedItems == 0);
-		CHECK(!entryAbsent(base % "/same.bin")); // Move never removes a source that is also the destination
-		CHECK(script.seenRequests.empty());
+		CHECK(!entryAbsent(base % "/same.bin"));
+#endif
+		CHECK(readFileContents(base % "/alias.bin") == patternedContents(100));
 	}
 
 #ifndef _WIN32
