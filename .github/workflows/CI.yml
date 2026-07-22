@@ -392,6 +392,8 @@ jobs:
         $randomSeed = Get-Date -UFormat %s
         & .\bin\release\x64\filecomparator_test.exe --std-seed $randomSeed;
 
+        & .\bin\release\x64\fileoperations_gui_test.exe
+
     - name: Building tests - Mac
       if: startsWith(matrix.os, 'macos')
       run: |
@@ -408,6 +410,7 @@ jobs:
         set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
         set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/x64/fileoperations_test.app/Contents/MacOS/fileoperations_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
+        set -e; ./bin/release/x64/fileoperations_gui_test.app/Contents/MacOS/fileoperations_gui_test
 
     - name: Building tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -420,6 +423,7 @@ jobs:
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fileoperations_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fileoperations_gui_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
 
     - name: Running tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -428,6 +432,7 @@ jobs:
         set -e; ./bin/release/x64/fso_test_high_level
         set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/x64/fileoperations_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
+        set -e; QT_QPA_PLATFORM=offscreen ./bin/release/x64/fileoperations_gui_test
 
   create-release:
     needs: [build, test]

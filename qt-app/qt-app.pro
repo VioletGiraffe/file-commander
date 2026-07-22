@@ -59,6 +59,7 @@ SOURCES += \
 	src/panel/cpanelwidget.cpp \
 	src/progressdialogs/ccopymovedialog.cpp \
 	src/progressdialogs/cpromptdialog.cpp \
+	src/progressdialogs/cfileoperationprompt.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
 	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.cpp \
@@ -84,6 +85,7 @@ HEADERS += \
 	src/progressdialogs/ccopymovedialog.h \
 	src/progressdialogs/cfileoperationdialogbase.h \
 	src/progressdialogs/cpromptdialog.h \
+	src/progressdialogs/cfileoperationprompt.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
 	src/panel/filelistwidget/cfilelistview.h \
@@ -110,6 +112,7 @@ FORMS += \
 	src/panel/cpanelwidget.ui \
 	src/progressdialogs/ccopymovedialog.ui \
 	src/progressdialogs/cpromptdialog.ui \
+	src/progressdialogs/cfileoperationprompt.ui \
 	src/settings/csettingspageinterface.ui \
 	src/settings/csettingspageedit.ui \
 	src/settings/csettingspageother.ui \

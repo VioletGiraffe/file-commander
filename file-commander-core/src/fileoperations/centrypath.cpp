@@ -65,10 +65,7 @@ CEntryPath CEntryPath::parent() const
 
 CEntryPath CEntryPath::child(const QString& name) const
 {
-	assert_r(!name.isEmpty() && !name.contains(QLatin1Char('/')) && name != QLatin1String(".") && name != QLatin1String(".."));
-#ifdef _WIN32
-	assert_debug_only(!name.contains(QLatin1Char('\\')));
-#endif
+	assert_r(isValidEntryName(name));
 	return _path.endsWith(QLatin1Char('/')) ? CEntryPath{ _path % name } : CEntryPath{ _path % QLatin1Char('/') % name };
 }
 
@@ -154,4 +151,10 @@ std::optional<CEntryPath> parseOperationPath(QString path)
 		root += QLatin1Char('/');
 	root += components.join(QLatin1Char('/'));
 	return CEntryPath{ mv(root) };
+}
+
+bool isValidEntryName(const QString& name)
+{
+	return !name.isEmpty() && !name.contains(QLatin1Char('/')) && !name.contains(QLatin1Char('\\'))
+		&& name != QLatin1String(".") && name != QLatin1String("..");
 }

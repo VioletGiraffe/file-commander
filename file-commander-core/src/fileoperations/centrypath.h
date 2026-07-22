@@ -36,3 +36,7 @@ private:
 // forms on Windows, either separator. Collapses duplicate separators and "."/".." components (".." clamps at the
 // root) and trims surrounding whitespace as a typed-text artifact. All invalid inputs share one response: nullopt.
 [[nodiscard]] std::optional<CEntryPath> parseOperationPath(QString path);
+
+// Whether text is usable as one new entry name (a Rename decision, the child() precondition):
+// non-empty, no separators, not "." or "..".
+[[nodiscard]] bool isValidEntryName(const QString& name);

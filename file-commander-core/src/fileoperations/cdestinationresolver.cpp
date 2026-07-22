@@ -8,12 +8,6 @@
 namespace
 {
 
-bool isValidEntryName(const QString& name)
-{
-	return !name.isEmpty() && !name.contains(QLatin1Char('/')) && !name.contains(QLatin1Char('\\'))
-		&& name != QLatin1String(".") && name != QLatin1String("..");
-}
-
 // One prompt for a collision-type issue, owning the Rename input handling: an invalid or missing new
 // name re-asks rather than failing the node. Returns the respelled proposal for a usable Rename,
 // or the chosen non-rename action (cancellation collapses to Cancel).

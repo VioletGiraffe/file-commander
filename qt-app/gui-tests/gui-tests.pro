@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
 
-SUBDIRS = combobox
+SUBDIRS = combobox fileoperations
 SUBDIRS += qtutils cpputils cpp-template-utils
 
 cpp-template-utils.subdir = ../../cpp-template-utils
@@ -10,3 +10,4 @@ qtutils.subdir = ../../qtutils
 qtutils.depends = cpputils
 
 combobox.depends = qtutils cpputils
+fileoperations.depends = qtutils cpputils
