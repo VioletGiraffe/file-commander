@@ -27,7 +27,8 @@ jobs:
     name: Detect test-relevant changes
     runs-on: ubuntu-latest
     outputs:
-      tests_relevant: ${{ steps.filter.outputs.tests_relevant }}
+      # A manual (workflow_dispatch) run always counts as test-relevant; otherwise defer to the path filter.
+      tests_relevant: ${{ steps.filter.outputs.tests_relevant == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
