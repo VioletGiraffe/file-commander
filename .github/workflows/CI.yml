@@ -41,6 +41,8 @@ jobs:
           tests_relevant:
             - 'file-commander-core/src/**'
             - 'file-commander-core/core-tests/**'
+            - 'qt-app/src/**'          # compiled by the gui-tests target (typed prompt, dialog, launch routing)
+            - 'qt-app/gui-tests/**'
             - 'thin_io/**'
             - '.github/workflows/CI.yml'
             - 'global.pri'
