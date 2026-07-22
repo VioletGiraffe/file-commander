@@ -39,6 +39,7 @@ SOURCES += \
 	destinationresolvertests.cpp \
 	sourcetreebuildertests.cpp \
 	transferexecutortests.cpp \
+	deleteexecutortests.cpp \
 	operationperformertest.cpp \
 	directorycollisiontests.cpp \
 	directorylinktests.cpp \

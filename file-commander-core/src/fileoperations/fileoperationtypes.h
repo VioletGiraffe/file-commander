@@ -270,7 +270,7 @@ struct Decision
 enum class NodeOutcome
 {
 	Completed,        // Required work for the subtree finished (and, where applicable, cleanup succeeded)
-	AlreadySatisfied, // Source and destination were the same object; no mutation was needed
+	AlreadySatisfied, // The desired end state already held (same-object transfer, delete target absent); no mutation was needed
 	Skipped,          // Deliberately left untouched
 	Partial,          // Some work completed, but skipped/partial owned content prevents full completion; a non-failure result
 	Failed,           // Required work did not complete; detail travels through the failure-diagnostic channel

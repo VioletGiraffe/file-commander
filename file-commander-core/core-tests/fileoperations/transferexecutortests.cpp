@@ -100,35 +100,6 @@ void requireEqualTrees(const QString& expectedDir, const QString& actualDir)
 	}
 }
 
-void buildRandomTree(const QString& dir, const int remainingDepth)
-{
-	const int childCount = 1 + rand() % 5;
-	for (int i = 0; i < childCount; ++i)
-	{
-		if (remainingDepth > 0 && rand() % 3 == 0)
-		{
-			const QString subdir = dir % "/dir" % QString::number(i);
-			REQUIRE(QDir{}.mkpath(subdir));
-			buildRandomTree(subdir, remainingDepth - 1);
-		}
-		else
-			writeTestFile(dir % "/file" % QString::number(i) % ".bin", patternedContents(rand() % 5000));
-	}
-}
-
-size_t countTreeEntries(const QString& dir)
-{
-	size_t count = 0;
-	const auto filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System;
-	for (const QString& name : QDir{ dir }.entryList(filters))
-	{
-		++count;
-		if (QFileInfo{ dir % '/' % name }.isDir())
-			count += countTreeEntries(dir % '/' % name);
-	}
-	return count;
-}
-
 int64_t entryLastWriteSeconds(const QString& path)
 {
 	const auto times = getEntryTimes(path);

@@ -57,6 +57,16 @@ std::string pointName(const Point point)
 	case Point::RemoveEntry_Native: return "RemoveEntry_Native";
 	case Point::CreateDirectory_FinalNative: return "CreateDirectory_FinalNative";
 	case Point::SetEntryWritable_Native: return "SetEntryWritable_Native";
+	case Point::ApplyDirectoryTimes_Native: return "ApplyDirectoryTimes_Native";
+	case Point::StagedCopy_CaptureMetadata_Native: return "StagedCopy_CaptureMetadata_Native";
+	case Point::StagedCopy_CreateStaging_Native: return "StagedCopy_CreateStaging_Native";
+	case Point::StagedCopy_ResizeStaging_Native: return "StagedCopy_ResizeStaging_Native";
+	case Point::StagedCopy_PreallocateStaging_Native: return "StagedCopy_PreallocateStaging_Native";
+	case Point::StagedCopy_WriteStaging_Native: return "StagedCopy_WriteStaging_Native";
+	case Point::StagedCopy_FlushStaging_Native: return "StagedCopy_FlushStaging_Native";
+	case Point::StagedCopy_ApplyMetadata_Native: return "StagedCopy_ApplyMetadata_Native";
+	case Point::StagedCopy_CloseStaging_Native: return "StagedCopy_CloseStaging_Native";
+	case Point::StagedCopy_RemoveStaging_Native: return "StagedCopy_RemoveStaging_Native";
 	case Point::PointCount_: break;
 	}
 	return "<invalid point>";
