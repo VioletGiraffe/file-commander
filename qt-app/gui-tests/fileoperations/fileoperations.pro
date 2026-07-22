@@ -35,6 +35,7 @@ SOURCES += \
 	fileoperationprompttests.cpp \
 	fileoperationdialogtests.cpp \
 	fileoperationlaunchtests.cpp \
+	fileoperationroutingtests.cpp \
 	../../src/progressdialogs/cfileoperationprompt.cpp \
 	../../src/progressdialogs/cfileoperationdialog.cpp \
 	../../src/progressdialogs/fileoperationlaunch.cpp \
@@ -50,6 +51,7 @@ SOURCES += \
 	../../../file-commander-core/src/directoryscanner.cpp
 
 HEADERS += \
+	fileoperationguitesthelpers.h \
 	../../src/progressdialogs/cfileoperationprompt.h \
 	../../src/progressdialogs/cfileoperationdialog.h \
 	../../src/progressdialogs/cfileoperationdialogbase.h \

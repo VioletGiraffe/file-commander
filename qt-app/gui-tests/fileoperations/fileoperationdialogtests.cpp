@@ -1,6 +1,8 @@
 // WP10B: the one internal-operation dialog driving a real CFileOperationJob - event rendering, decision
 // dispatch, pause/cancel via deterministic hook barriers, background placement, and completion.
 
+#include "fileoperationguitesthelpers.h"
+
 #include "progressdialogs/cfileoperationdialog.h"
 
 #include "fileoperations/operationtesthooks.h"
@@ -26,31 +28,10 @@ RESTORE_COMPILER_WARNINGS
 using OperationTestHooks::CFaultHookScope;
 using OperationTestHooks::Point;
 using namespace std::chrono_literals;
+using namespace guitest;
 
 namespace
 {
-
-void writeFile(const QString& path, const QByteArray& contents)
-{
-	QFile file{ path };
-	REQUIRE(file.open(QFile::WriteOnly));
-	REQUIRE(file.write(contents) == contents.size());
-}
-
-QByteArray blob(const int size)
-{
-	QByteArray data(size, '\0');
-	for (int i = 0; i < size; ++i)
-		data[i] = static_cast<char>((i * 37 + 11) & 0xFF);
-	return data;
-}
-
-CEntryPath entryPath(const QString& text)
-{
-	auto path = parseOperationPath(text);
-	REQUIRE(path.has_value());
-	return *path;
-}
 
 TransferRequest copyInto(const QString& source, const QString& destinationDir)
 {
@@ -62,54 +43,6 @@ TransferRequest copyOnto(const QString& source, const QString& destination)
 {
 	return TransferRequest{ TransferKind::Copy, { entryPath(source) },
 		DestinationSpec{ DestinationIntent::ExactEntry, entryPath(destination) } };
-}
-
-// Pumps the main-thread event loop (so the dialog's timer fires and its queue drains) until the condition
-// holds or the deadline passes.
-[[nodiscard]] bool pumpUntil(const std::function<bool()>& condition, const std::chrono::milliseconds timeout = 10s)
-{
-	const auto deadline = std::chrono::steady_clock::now() + timeout;
-	while (!condition())
-	{
-		QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
-		if (std::chrono::steady_clock::now() > deadline)
-			return false;
-		std::this_thread::sleep_for(2ms);
-	}
-	return true;
-}
-
-// Answers decision requests from a script instead of showing a modal prompt, and exposes the protected
-// rendering/drain seams so tests can drive them directly.
-class ScriptedDialog final : public CFileOperationDialog
-{
-public:
-	using CFileOperationDialog::CFileOperationDialog;
-	using CFileOperationDialog::drainEvents;
-	using CFileOperationDialog::renderProgress;
-
-	std::vector<Decision> scriptedDecisions;
-	size_t nextDecision = 0;
-	int decisionRequestsPresented = 0;
-
-protected:
-	Decision presentDecision(const DecisionRequest& request) override
-	{
-		++decisionRequestsPresented;
-		lastRequestKind = request.issue.kind;
-		REQUIRE(nextDecision < scriptedDecisions.size());
-		return scriptedDecisions[nextDecision++];
-	}
-
-public:
-	std::optional<IssueKind> lastRequestKind;
-};
-
-QLabel* label(const CFileOperationDialog& dialog, const char* name)
-{
-	auto* found = dialog.findChild<QLabel*>(QLatin1String(name));
-	REQUIRE(found != nullptr);
-	return found;
 }
 
 } // namespace
