@@ -166,7 +166,11 @@ TEST_CASE("source tree: directory links per build mode", "[sourcetree][link]")
 
 		const SourceNode* link = childNamed(tree, QStringLiteral("dirlink"));
 		REQUIRE(link != nullptr);
-		CHECK(link->entry.kind == OperationEntryKind::DirectoryLink);
+#ifdef _WIN32
+		CHECK(link->entry.kind == OperationEntryKind::DirectoryLink); // A junction is itself a directory
+#else
+		CHECK(link->entry.kind == OperationEntryKind::FileLink); // A symlink is never itself a directory; unlink() removes it
+#endif
 		CHECK(link->children.empty());
 		CHECK(link->ownership == SourceOwnership::Owned);
 	}
@@ -174,14 +178,14 @@ TEST_CASE("source tree: directory links per build mode", "[sourcetree][link]")
 	SECTION("materializing transfer borrows the linked content")
 	{
 		const SourceNode tree = buildTree(base % "/root", SourceTreeBuildMode::MaterializingTransfer);
-		CHECK(tree.subtreeItems == 6); // root, dirlink, t.bin, nested, n.bin... and root has just the link child
+		CHECK(tree.subtreeItems == 5); // root, dirlink, t.bin, nested, n.bin
 		CHECK(tree.subtreeBytes == 4500);
 
 		const SourceNode* link = childNamed(tree, QStringLiteral("dirlink"));
 		REQUIRE(link != nullptr);
 		CHECK(link->entry.kind == OperationEntryKind::DirectoryLink);
 		CHECK(link->ownership == SourceOwnership::Owned); // The link entry itself is ours
-		CHECK(link->subtreeItems == 5);
+		CHECK(link->subtreeItems == 4);
 		CHECK(link->subtreeBytes == 4500);
 
 		const SourceNode* borrowedFile = childNamed(*link, QStringLiteral("t.bin"));
