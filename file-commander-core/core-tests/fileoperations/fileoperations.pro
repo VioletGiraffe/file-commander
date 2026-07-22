@@ -37,6 +37,7 @@ SOURCES += \
 	filesystemmutatortests.cpp \
 	stagedfilecopytests.cpp \
 	destinationresolvertests.cpp \
+	sourcetreebuildertests.cpp \
 	operationperformertest.cpp \
 	directorycollisiontests.cpp \
 	directorylinktests.cpp \

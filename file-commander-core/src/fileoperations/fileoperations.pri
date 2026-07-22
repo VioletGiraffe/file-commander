@@ -10,6 +10,7 @@ HEADERS += \
 	$$PWD/cfilesystemmutator.h \
 	$$PWD/cstagedfilecopy.h \
 	$$PWD/cdestinationresolver.h \
+	$$PWD/csourcetreebuilder.h \
 	$$PWD/coperationexecutioncontext.h \
 	$$PWD/operationtesthooks.h
 
@@ -19,6 +20,7 @@ SOURCES += \
 	$$PWD/cfilesystemmutator.cpp \
 	$$PWD/cstagedfilecopy.cpp \
 	$$PWD/cdestinationresolver.cpp \
+	$$PWD/csourcetreebuilder.cpp \
 	$$PWD/coperationexecutioncontext.cpp
 
 # The hook implementation exists only in test builds; production builds see just the no-op stub in the header.

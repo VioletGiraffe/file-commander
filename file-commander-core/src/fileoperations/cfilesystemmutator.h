@@ -11,6 +11,11 @@
 // Complete structured error from a captured native code: classification plus the OS's own description.
 [[nodiscard]] CFileSystemError makeFileSystemError(NativeErrorCode code);
 
+// True for entries that are links in the operation sense: POSIX symlinks, and on Windows only name-surrogate
+// reparse points (symlinks, junctions) - other reparse entries (OneDrive placeholders and the like) are
+// ordinary files/directories.
+[[nodiscard]] bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept;
+
 // Fresh state of one filesystem entry; the canonical mapping to OperationEntryKind. nullopt = no entry at
 // the path. Link kind precedes followed classification: a broken (or uninspectable) link is an existing
 // FileLink entry; a link to a non-regular non-directory target is Other.

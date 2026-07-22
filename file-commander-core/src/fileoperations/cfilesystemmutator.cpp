@@ -19,11 +19,6 @@
 
 #include <vector>
 
-namespace
-{
-
-// On Windows, only name-surrogate reparse points (symlinks, junctions) are links; other reparse entries
-// (OneDrive placeholders and the like) are ordinary files/directories.
 bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept
 {
 #ifdef _WIN32
@@ -32,6 +27,9 @@ bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept
 	return attributes.is_link;
 #endif
 }
+
+namespace
+{
 
 CFileSystemError makeError(const FileErrorCategory category, const NativeErrorCode code)
 {

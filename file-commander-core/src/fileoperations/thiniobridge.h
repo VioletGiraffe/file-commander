@@ -5,6 +5,7 @@
 #include "centrypath.h"
 
 #include "filesystem_error.hpp" // thin_io
+#include "filesystem_types.hpp" // thin_io: native_string
 
 #ifdef _WIN32
 
@@ -20,6 +21,11 @@ inline NativePathString thinIoPath(const CEntryPath& path)
 inline const wchar_t* nativeCStr(const NativePathString& path)
 {
 	return path.c_str();
+}
+
+inline QString fromNativeName(const thin_io::native_string& name)
+{
+	return QString::fromStdWString(name);
 }
 
 #else
@@ -38,6 +44,11 @@ inline NativePathString thinIoPath(const CEntryPath& path)
 inline const char* nativeCStr(const NativePathString& path)
 {
 	return path.constData();
+}
+
+inline QString fromNativeName(const thin_io::native_string& name)
+{
+	return QFile::decodeName(QByteArray(name.data(), static_cast<qsizetype>(name.size())));
 }
 
 #endif
