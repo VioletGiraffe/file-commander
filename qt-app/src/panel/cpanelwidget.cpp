@@ -9,7 +9,9 @@
 #include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
-#include "cfilemanipulator.h"
+#include "fileoperationresultcode.h" // Was reached transitively through the now-removed cfilemanipulator.h
+#include "fileoperations/inlinerename.h"
+#include "progressdialogs/progressdialoghelpers.h"
 #include "settings/csettings.h"
 #include "settings.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
@@ -776,51 +778,59 @@ void CPanelWidget::setCursorToItem(const QString& folder, qulonglong currentItem
 
 void CPanelWidget::renameItem(qulonglong hash, QString newName)
 {
-	CFileSystemObject item = _controller->itemByHash(_panelPosition, hash);
+	const CFileSystemObject item = _controller->itemByHash(_panelPosition, hash);
 	if (item.isCdUp())
 		return;
 
-	const auto parentPath = item.parentDirPath();
+	const QString parentPath = item.parentDirPath();
 	assert_r(parentPath.endsWith('/'));
 	newName = FileSystemHelpers::trimUnsupportedSymbols(newName);
 
-	CFileManipulator itemManipulator(item);
-	auto result = itemManipulator.moveAtomically(parentPath, newName);
+	const auto source = parseOperationPath(item.fullAbsolutePath());
+	if (!source)
+		return; // A real panel item always has a valid absolute path
 
-	if (result == FileOperationResultCode::TargetAlreadyExists)
+	auto result = inlineRename(*source, newName, false);
+	if (result.status == InlineRenameStatus::ReplacementRequired)
 	{
-		if (item.isDir())
-			QMessageBox::information(this, tr("Item already exists"), tr("The folder %1 already exists.").arg(newName));
-		else if (item.isFile())
-		{
-			// Fix for https://github.com/VioletGiraffe/file-commander/issues/123
-			if (QMessageBox::question(
-					this,
-					tr("Item already exists"),
-					tr("The file %1 already exists, do you want to overwrite it?").arg(newName),
-					QMessageBox::Yes | QMessageBox::No,
-					QMessageBox::Yes
-				)
-				== QMessageBox::Yes)
-			{
-				result = itemManipulator.moveAtomically(parentPath, newName, OverwriteExistingFile{ true });
-			}
-		}
+		// Fix for https://github.com/VioletGiraffe/file-commander/issues/123
+		if (QMessageBox::question(this, tr("Item already exists"),
+				tr("The file %1 already exists, do you want to overwrite it?").arg(newName),
+				QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) != QMessageBox::Yes)
+			return;
 
+		result = inlineRename(*source, newName, true);
 	}
 
-	if (result == FileOperationResultCode::Ok)
+	switch (result.status)
 	{
-		// This is required for the UI to know to move the cursor to the renamed item
+	case InlineRenameStatus::Renamed:
+	case InlineRenameStatus::NothingToDo:
+		// Move the cursor to the renamed item.
 		_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(parentPath + newName).hash());
-	}
-	else
-	{
-		QString errorMessage = tr("Failed to rename %1 to %2").arg(item.fullName(), newName);
-		if (!itemManipulator.lastErrorMessage().isEmpty())
-			errorMessage.append(":\n" % itemManipulator.lastErrorMessage() % '.');
+		break;
 
-		QMessageBox::critical(this, tr("Renaming failed"), errorMessage);
+	case InlineRenameStatus::Rejected:
+		QMessageBox::information(this, tr("Item already exists"),
+			tr("Cannot rename this %1 to \"%2\": a %3 with that name already exists.")
+				.arg(fileOperationEntryKindNoun(*result.sourceKind), newName, fileOperationEntryKindNoun(*result.destinationKind)));
+		break;
+
+	case InlineRenameStatus::RejectedInvalidName:
+		QMessageBox::warning(this, tr("Invalid name"), tr("\"%1\" is not a valid file or folder name.").arg(newName));
+		break;
+
+	case InlineRenameStatus::Failed:
+	{
+		QString message = tr("Failed to rename %1 to %2").arg(item.fullName(), newName);
+		if (result.failure)
+			message.append(":\n" % fileSystemErrorText(result.failure->filesystemError) % '.');
+		QMessageBox::critical(this, tr("Renaming failed"), message);
+		break;
+	}
+
+	case InlineRenameStatus::ReplacementRequired:
+		break; // Declined above
 	}
 }
 
