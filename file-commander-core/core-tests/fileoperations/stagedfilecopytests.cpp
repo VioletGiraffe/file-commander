@@ -38,15 +38,6 @@ constexpr NativeErrorCode unsupportedCode = ENOSYS;
 constexpr NativeErrorCode invalidArgumentCode = EINVAL;
 #endif
 
-QByteArray patternedContents(const int size)
-{
-	QByteArray data(size, '\0');
-	char* bytes = data.data();
-	for (int i = 0; i < size; ++i)
-		bytes[i] = static_cast<char>(i * 31 + 7);
-	return data;
-}
-
 // Drives writeNext() until readyToCommit; returns the number of writeNext() calls made.
 int stageAll(CStagedFileCopy& session, const uint64_t chunkSize)
 {
@@ -69,12 +60,6 @@ std::expected<void, FailureDetails> copyFile(const QString& source, const QStrin
 	REQUIRE(session.has_value());
 	stageAll(*session, chunkSize);
 	return session->commit(replacement, durability);
-}
-
-int stagingFileCount(const QString& directory)
-{
-	return static_cast<int>(QDir{ directory }.entryList({ QStringLiteral(".file-commander-copy-*") },
-		QDir::Files | QDir::Hidden | QDir::System).size());
 }
 
 #ifdef _WIN32

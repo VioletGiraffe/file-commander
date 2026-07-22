@@ -265,7 +265,31 @@ struct Decision
 // Rename, Retry, and Cancel are never rememberable.
 [[nodiscard]] bool isActionRememberable(IssueKind kind, DecisionAction action);
 
+// --- Recursive execution result ---
+
+enum class NodeOutcome
+{
+	Completed,        // Required work for the subtree finished (and, where applicable, cleanup succeeded)
+	AlreadySatisfied, // Source and destination were the same object; no mutation was needed
+	Skipped,          // Deliberately left untouched
+	Partial,          // Some work completed, but skipped/partial owned content prevents full completion; a non-failure result
+	Failed,           // Required work did not complete; detail travels through the failure-diagnostic channel
+	Cancelled         // Cancellation stops further traversal
+};
+
+// The one exact aggregation precedence: Cancelled wins, then Failed, then skipped/partial descendants
+// make the containing subtree Partial; Completed and AlreadySatisfied children change nothing.
+[[nodiscard]] NodeOutcome aggregateChildOutcome(NodeOutcome aggregate, NodeOutcome child) noexcept;
+
 // --- Progress and completion ---
+
+// Fixed per job at launch by the request kind: bytes for transfers, items for permanent delete.
+// There is no unit switching mid-job.
+enum class PrimaryProgressUnit
+{
+	Bytes,
+	Items
+};
 
 enum class OperationPhase
 {

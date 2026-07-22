@@ -61,6 +61,7 @@ struct ScriptedDecisions
 COperationExecutionContext scriptedContext(ScriptedDecisions& decisions)
 {
 	return COperationExecutionContext{
+		PrimaryProgressUnit::Bytes,
 		[] { return true; },
 		[&decisions](const DecisionRequest& request) { return decisions.answer(request); },
 		[](const ProgressSnapshot&) {}
@@ -381,8 +382,8 @@ TEST_CASE("execution context: summary accumulation is bounded", "[decisions]")
 	context.recordFailure(diagnostic);
 	context.addCompletedItem();
 	context.addCompletedItem();
-	context.addSkippedItem();
-	context.addAlreadySatisfiedItem();
+	context.addSkippedItems(1);
+	context.addAlreadySatisfiedItems(1);
 	context.addTransferredBytes(1234);
 
 	const auto summary = context.makeSummary(CompletionStatus::Failed);

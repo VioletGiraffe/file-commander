@@ -34,6 +34,7 @@ enum class Point : uint32_t
 	RemoveEntry_Native,
 	CreateDirectory_FinalNative,
 	SetEntryWritable_Native,
+	ApplyDirectoryTimes_Native,
 
 	// CStagedFileCopy lifecycle boundaries, in lifecycle order, immediately before the corresponding native call.
 	StagedCopy_CaptureMetadata_Native,

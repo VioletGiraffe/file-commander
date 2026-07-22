@@ -459,6 +459,11 @@ std::expected<DirectoryCreationOutcome, CFileSystemError> CFileSystemMutator::cr
 
 std::expected<void, CFileSystemError> CFileSystemMutator::applyDirectoryTimes(const CEntryPath& destination, const CopyableDirectoryTimes& times)
 {
+	using OperationTestHooks::fireHook, OperationTestHooks::Point;
+
+	if (const auto forcedError = fireHook(Point::ApplyDirectoryTimes_Native))
+		return std::unexpected(makeFileSystemError(*forcedError));
+
 	const thin_io::entry_times nativeTimes{ .creation = times.creation, .last_access = {}, .last_write = times.lastWrite };
 
 	const auto native = thinIoPath(destination);

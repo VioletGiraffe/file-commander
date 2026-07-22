@@ -38,6 +38,7 @@ SOURCES += \
 	stagedfilecopytests.cpp \
 	destinationresolvertests.cpp \
 	sourcetreebuildertests.cpp \
+	transferexecutortests.cpp \
 	operationperformertest.cpp \
 	directorycollisiontests.cpp \
 	directorylinktests.cpp \

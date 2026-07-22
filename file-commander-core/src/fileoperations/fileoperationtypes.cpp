@@ -87,6 +87,17 @@ std::vector<RootTransferIntent> rootTransferIntents(const TransferRequest& reque
 	return intents;
 }
 
+NodeOutcome aggregateChildOutcome(const NodeOutcome aggregate, const NodeOutcome child) noexcept
+{
+	if (aggregate == NodeOutcome::Cancelled || child == NodeOutcome::Cancelled)
+		return NodeOutcome::Cancelled;
+	if (aggregate == NodeOutcome::Failed || child == NodeOutcome::Failed)
+		return NodeOutcome::Failed;
+	if (child == NodeOutcome::Skipped || child == NodeOutcome::Partial)
+		return NodeOutcome::Partial;
+	return aggregate;
+}
+
 AllowedActions allowedActionsFor(const IssueKind kind)
 {
 	using enum DecisionAction;

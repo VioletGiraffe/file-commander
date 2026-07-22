@@ -83,6 +83,21 @@ inline bool entryAbsent(const QString& text)
 	return !result->has_value();
 }
 
+inline QByteArray patternedContents(const int size)
+{
+	QByteArray data(size, '\0');
+	char* bytes = data.data();
+	for (int i = 0; i < size; ++i)
+		bytes[i] = static_cast<char>(i * 31 + 7);
+	return data;
+}
+
+inline int stagingFileCount(const QString& directory)
+{
+	return static_cast<int>(QDir{ directory }.entryList({ QStringLiteral(".file-commander-copy-*") },
+		QDir::Files | QDir::Hidden | QDir::System).size());
+}
+
 inline bool setEntryTimes(const QString& path, const thin_io::entry_times& times)
 {
 #ifdef _WIN32

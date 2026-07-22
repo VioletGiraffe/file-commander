@@ -28,6 +28,7 @@ struct ScanScript
 COperationExecutionContext scanContext(ScanScript& script)
 {
 	return COperationExecutionContext{
+		PrimaryProgressUnit::Bytes,
 		[&script] {
 			++script.checkpointCalls;
 			return script.checkpointsBeforeCancel < 0 || script.checkpointCalls <= script.checkpointsBeforeCancel;
