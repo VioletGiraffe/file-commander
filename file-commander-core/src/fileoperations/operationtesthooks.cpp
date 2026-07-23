@@ -119,6 +119,7 @@ CFaultHookScope::CFaultHookScope()
 CFaultHookScope::~CFaultHookScope()
 {
 	std::vector<std::string> violations;
+	std::function<void(const std::string&)> reporter;
 
 	{
 		std::unique_lock lock{g_mutex};
@@ -149,10 +150,11 @@ CFaultHookScope::~CFaultHookScope()
 		});
 
 		g_state = {};
+		reporter = g_violationReporter; // Captured under the lock; the callback itself runs unlocked below
 	}
 
 	for (const auto& violation : violations)
-		g_violationReporter(violation);
+		reporter(violation);
 }
 
 void CFaultHookScope::forceNativeError(const Point point, const thin_io::filesystem_error_code code, const uint32_t times, const uint32_t skipArrivals)

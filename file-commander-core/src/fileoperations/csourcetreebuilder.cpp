@@ -54,7 +54,10 @@ std::optional<EntrySnapshot> classifyChild(BuildState& state, CEntryPath childPa
 		auto inspected = inspectEntry(childPath);
 		if (!inspected)
 		{
-			failBuild(state, EntrySnapshot{ mv(childPath), OperationEntryKind::FileLink, 0 }, mv(inspected.error()));
+			// The diagnostic keeps the link's own kind: a directory link must not be reported as a file link.
+			const bool directoryEntry = listed.attributes.kind == thin_io::entry_kind::directory;
+			failBuild(state, EntrySnapshot{ mv(childPath), directoryEntry ? OperationEntryKind::DirectoryLink : OperationEntryKind::FileLink, 0 },
+				mv(inspected.error()));
 			return {};
 		}
 		if (!inspected->has_value())

@@ -340,11 +340,13 @@ bool CFileOperationDialog::confirmCancellation()
 		setPaused(true);
 
 	// This modal is not reached through drainEvents, so guard the drain explicitly: a decision prompt
-	// must not stack on top of the confirmation while the worker keeps reporting.
+	// must not stack on top of the confirmation while the worker keeps reporting. Save and restore rather
+	// than clear, so a call already nested inside a drain leaves that outer guard intact.
+	const bool wasDraining = _draining;
 	_draining = true;
 	const auto answer = QMessageBox::question(this, tr("Cancel?"), tr("Are you sure you want to cancel this operation?"),
 		QMessageBox::Yes | QMessageBox::No);
-	_draining = false;
+	_draining = wasDraining;
 
 	if (answer == QMessageBox::Yes)
 	{

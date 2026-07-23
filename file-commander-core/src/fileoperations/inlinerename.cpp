@@ -47,7 +47,9 @@ InlineRenameResult inlineRename(const CEntryPath& source, const QString& newName
 	// hardlink aliases. A case-only respell is performed through the primitive's case-only fallback;
 	// aliasing the same file under a genuinely different name is already satisfied.
 	const auto sameEntry = checkSameEntry(source, destination, thin_io::link_behavior::do_not_follow);
-	if (sameEntry && *sameEntry == SameEntryVerdict::Same)
+	if (!sameEntry)
+		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectSource, sameEntry.error() } };
+	if (*sameEntry == SameEntryVerdict::Same)
 	{
 		if (newName.compare(source.name(), Qt::CaseInsensitive) == 0)
 			return performRename(source, destination, ReplacementMode::RequireAbsent);

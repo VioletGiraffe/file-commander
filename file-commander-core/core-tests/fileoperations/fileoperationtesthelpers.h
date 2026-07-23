@@ -117,6 +117,9 @@ inline CEntryPath ep(const QString& text)
 	return *path;
 }
 
+// These route through the production inspectEntry, so an armed Point::InspectEntry_Native forced error is
+// consumed here too. Snapshot/assert absence before opening a CFaultHookScope that arms that point, or the
+// helper eats the forced error the code under test was meant to see (and its REQUIRE trips on the failure).
 inline EntrySnapshot snapshotOf(const QString& text)
 {
 	const auto result = inspectEntry(ep(text));
