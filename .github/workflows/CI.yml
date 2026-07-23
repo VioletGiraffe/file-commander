@@ -414,6 +414,15 @@ jobs:
         cd ../../
         for f in $(find bin/release/x64/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
 
+    - name: Second volume for cross-volume tests - Mac
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        set -e
+        # TMPDIR is on the system volume, so this RAM disk is a genuinely different one.
+        disk=$(hdiutil attach -nomount ram://262144 | awk '{print $1}')  # 512-byte sectors: 128 MB
+        diskutil erasevolume HFS+ fc-second "$disk"
+        echo "FILE_COMMANDER_TEST_SECOND_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
+
     - name: Running tests - Mac
       if: startsWith(matrix.os, 'macos')
       run: |
@@ -435,6 +444,17 @@ jobs:
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fileoperations_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fileoperations_gui_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+
+    - name: Second volume for cross-volume tests - Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        set -e
+        # /tmp shares the root filesystem here, so a separate tmpfs mount is what makes a rename into the
+        # destination genuinely report EXDEV.
+        sudo mkdir -p /mnt/fc-second
+        sudo mount -t tmpfs -o size=128M tmpfs /mnt/fc-second
+        sudo chown "$(id -u):$(id -g)" /mnt/fc-second
+        echo "FILE_COMMANDER_TEST_SECOND_VOLUME=/mnt/fc-second" >> $GITHUB_ENV
 
     - name: Running tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
