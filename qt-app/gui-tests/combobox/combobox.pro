@@ -1,12 +1,8 @@
 TEMPLATE = app
 TARGET   = combobox_test
 QT = core gui widgets
-CONFIG += c++14
 
-mac* | linux* | freebsd{
-	CONFIG(release, debug|release):CONFIG += Release
-	CONFIG(debug, debug|release):CONFIG += Debug
-}
+include(../../../global.pri)
 
 contains(QT_ARCH, x86_64) {
 	ARCHITECTURE = x64
@@ -47,12 +43,10 @@ win*{
 	LIBS += -lole32 -lShell32 -lUser32
 	QMAKE_CXXFLAGS += /MP /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = /W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 
 	!*msvc2013*:QMAKE_LFLAGS += /DEBUG:FASTLINK
 
 	Debug:QMAKE_LFLAGS += /INCREMENTAL
-	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF
 }
 
 linux*|mac*|freebsd{
