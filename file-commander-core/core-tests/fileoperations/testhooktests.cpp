@@ -94,6 +94,23 @@ TEST_CASE("Test hooks: a repeat-count forced error fails that many times, then p
 	CHECK(scope.arrivalCount(Point::SelfTest1) == 4);
 }
 
+TEST_CASE("Test hooks: skipped arrivals pass through before a forced error fires", "[testhooks]")
+{
+	CFaultHookScope scope;
+	scope.forceNativeError(Point::SelfTest1, testErrorCode, 1, 1);
+
+	CHECK(!fireHook(Point::SelfTest1).has_value()); // The skipped arrival proceeds normally
+	CHECK(!scope.forcedErrorConsumed(Point::SelfTest1));
+
+	const auto forced = fireHook(Point::SelfTest1);
+	REQUIRE(forced.has_value());
+	CHECK(*forced == testErrorCode);
+	CHECK(scope.forcedErrorConsumed(Point::SelfTest1));
+
+	CHECK(!fireHook(Point::SelfTest1).has_value());
+	CHECK(scope.arrivalCount(Point::SelfTest1) == 3);
+}
+
 TEST_CASE("Test hooks: concurrent workers consume a one-shot exactly once", "[testhooks]")
 {
 	CFaultHookScope scope;

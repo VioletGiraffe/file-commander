@@ -134,6 +134,15 @@ CFileSystemError makeFileSystemError(const NativeErrorCode code)
 
 std::expected<std::optional<EntrySnapshot>, CFileSystemError> inspectEntry(const CEntryPath& path)
 {
+	using OperationTestHooks::fireHook, OperationTestHooks::Point;
+
+	if (const auto forcedError = fireHook(Point::InspectEntry_Native))
+	{
+		if (classifyNativeError(*forcedError) == FileErrorCategory::NotFound)
+			return std::optional<EntrySnapshot>{};
+		return std::unexpected(makeFileSystemError(*forcedError));
+	}
+
 	const auto native = thinIoPath(path);
 	const auto metadata = thin_io::get_entry_metadata(nativeCStr(native), thin_io::link_behavior::do_not_follow);
 	if (!metadata)

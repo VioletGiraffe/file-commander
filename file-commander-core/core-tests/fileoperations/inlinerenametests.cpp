@@ -182,6 +182,70 @@ TEST_CASE("inline rename: a directory-like source rejects an occupied destinatio
 	CHECK(result.sourceKind == OperationEntryKind::DirectoryLink);
 }
 
+TEST_CASE("inline rename: a directory link renames to an absent name as the link", "[inlinerename]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	REQUIRE(QDir{}.mkpath(base % "/realTarget"));
+	writeTestFile(base % "/realTarget/x.bin", patternedContents(50));
+	REQUIRE(createDirectoryLink(base % "/realTarget", base % "/aLink"));
+
+	const auto result = inlineRename(ep(base % "/aLink"), QStringLiteral("renamedLink"), false);
+	CHECK(result.status == InlineRenameStatus::Renamed);
+	CHECK(entryAbsent(base % "/aLink"));
+
+	const QFileInfo renamedInfo{ base % "/renamedLink" };
+	CHECK((renamedInfo.isSymLink() || renamedInfo.isJunction()));
+	CHECK(readFileContents(base % "/realTarget/x.bin") == patternedContents(50)); // The target was not touched
+}
+
+TEST_CASE("inline rename: inspection failures surface structured errors", "[inlinerename]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeTestFile(base % "/src.bin", patternedContents(80));
+	writeTestFile(base % "/dst.bin", patternedContents(40));
+
+	SECTION("a destination inspection failure")
+	{
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::InspectEntry_Native, ioFailureCode);
+
+		const auto result = inlineRename(ep(base % "/src.bin"), QStringLiteral("dst.bin"), false);
+		CHECK(result.status == InlineRenameStatus::Failed);
+		REQUIRE(result.failure.has_value());
+		CHECK(result.failure->action == FailedAction::InspectDestination);
+		CHECK(result.failure->filesystemError.category == FileErrorCategory::IoFailure);
+		CHECK(!entryAbsent(base % "/src.bin"));
+	}
+
+	SECTION("a source inspection failure")
+	{
+		// The destination inspect arrives first and must succeed; the source inspect is the second arrival.
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::InspectEntry_Native, ioFailureCode, 1, 1);
+
+		const auto result = inlineRename(ep(base % "/src.bin"), QStringLiteral("dst.bin"), false);
+		CHECK(result.status == InlineRenameStatus::Failed);
+		REQUIRE(result.failure.has_value());
+		CHECK(result.failure->action == FailedAction::InspectSource);
+		CHECK(readFileContents(base % "/dst.bin") == patternedContents(40)); // Untouched
+	}
+
+	SECTION("a source that vanished after selection")
+	{
+		REQUIRE(QFile::remove(base % "/src.bin"));
+
+		const auto result = inlineRename(ep(base % "/src.bin"), QStringLiteral("dst.bin"), false);
+		CHECK(result.status == InlineRenameStatus::Failed);
+		REQUIRE(result.failure.has_value());
+		CHECK(result.failure->action == FailedAction::InspectSource);
+		CHECK(result.failure->filesystemError.category == FileErrorCategory::NotFound);
+	}
+}
+
 TEST_CASE("inline rename: a native failure surfaces a structured error", "[inlinerename]")
 {
 	QTemporaryDir tempDir;

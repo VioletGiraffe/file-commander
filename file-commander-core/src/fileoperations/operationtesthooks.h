@@ -35,6 +35,7 @@ enum class Point : uint32_t
 	CreateDirectory_FinalNative,
 	SetEntryWritable_Native,
 	ApplyDirectoryTimes_Native,
+	InspectEntry_Native, // inspectEntry's primary metadata query; a forced code classifies like a real failure
 
 	// CStagedFileCopy lifecycle boundaries, in lifecycle order, immediately before the corresponding native call.
 	StagedCopy_CaptureMetadata_Native,
@@ -72,8 +73,10 @@ public:
 	CFaultHookScope& operator=(const CFaultHookScope&) = delete;
 
 	// The next `times` fireHook(point) calls each consume the code instead of performing the real native
-	// call (default: one-shot). Arming the same point twice within one scope is a usage error.
-	void forceNativeError(Point point, thin_io::filesystem_error_code code, uint32_t times = 1);
+	// call (default: one-shot). `skipArrivals` lets that many arrivals pass through first - for failing a
+	// specific later call at a point that fires more than once (e.g. the second of two entry inspections).
+	// Arming the same point twice within one scope is a usage error.
+	void forceNativeError(Point point, thin_io::filesystem_error_code code, uint32_t times = 1, uint32_t skipArrivals = 0);
 
 	// fireHook(point) blocks until releaseBarrier(point). Arming twice is a usage error.
 	void armBarrier(Point point);

@@ -24,6 +24,7 @@ struct PointState
 {
 	std::optional<thin_io::filesystem_error_code> forcedError;
 	uint32_t forcedErrorRemaining = 0;
+	uint32_t forcedErrorSkipRemaining = 0;
 	bool barrierArmed = false;
 	bool barrierReached = false;
 	bool barrierReleased = false;
@@ -58,6 +59,7 @@ std::string pointName(const Point point)
 	case Point::CreateDirectory_FinalNative: return "CreateDirectory_FinalNative";
 	case Point::SetEntryWritable_Native: return "SetEntryWritable_Native";
 	case Point::ApplyDirectoryTimes_Native: return "ApplyDirectoryTimes_Native";
+	case Point::InspectEntry_Native: return "InspectEntry_Native";
 	case Point::StagedCopy_CaptureMetadata_Native: return "StagedCopy_CaptureMetadata_Native";
 	case Point::StagedCopy_CreateStaging_Native: return "StagedCopy_CreateStaging_Native";
 	case Point::StagedCopy_ResizeStaging_Native: return "StagedCopy_ResizeStaging_Native";
@@ -95,8 +97,13 @@ std::optional<thin_io::filesystem_error_code> fireHook(const Point point)
 
 	if (state.forcedError && state.forcedErrorRemaining > 0)
 	{
-		--state.forcedErrorRemaining;
-		return state.forcedError;
+		if (state.forcedErrorSkipRemaining > 0)
+			--state.forcedErrorSkipRemaining;
+		else
+		{
+			--state.forcedErrorRemaining;
+			return state.forcedError;
+		}
 	}
 
 	return {};
@@ -148,7 +155,7 @@ CFaultHookScope::~CFaultHookScope()
 		g_violationReporter(violation);
 }
 
-void CFaultHookScope::forceNativeError(const Point point, const thin_io::filesystem_error_code code, const uint32_t times)
+void CFaultHookScope::forceNativeError(const Point point, const thin_io::filesystem_error_code code, const uint32_t times, const uint32_t skipArrivals)
 {
 	std::lock_guard lock{g_mutex};
 	auto& state = stateFor(point);
@@ -156,6 +163,7 @@ void CFaultHookScope::forceNativeError(const Point point, const thin_io::filesys
 	assert_r(times > 0);
 	state.forcedError = code;
 	state.forcedErrorRemaining = times;
+	state.forcedErrorSkipRemaining = skipArrivals;
 }
 
 void CFaultHookScope::armBarrier(const Point point)

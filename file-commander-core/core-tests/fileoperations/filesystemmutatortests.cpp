@@ -90,6 +90,40 @@ TEST_CASE("inspectEntry: file link, broken link, link to non-regular target", "[
 }
 #endif
 
+TEST_CASE("inspectEntry: a forced native failure classifies; a forced not-found reads as absent", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString filePath = tempDir.path() % "/file.bin";
+	writeTestFile(filePath, QByteArray(10, 'f'));
+
+#ifdef _WIN32
+	constexpr NativeErrorCode deniedCode = ERROR_ACCESS_DENIED;
+	constexpr NativeErrorCode notFoundCode = ERROR_FILE_NOT_FOUND;
+#else
+	constexpr NativeErrorCode deniedCode = EACCES;
+	constexpr NativeErrorCode notFoundCode = ENOENT;
+#endif
+
+	{
+		CFaultHookScope scope;
+		scope.forceNativeError(Point::InspectEntry_Native, deniedCode);
+		const auto result = inspectEntry(ep(filePath));
+		REQUIRE(!result.has_value());
+		CHECK(result.error().category == FileErrorCategory::PermissionDenied);
+		CHECK(result.error().nativeCode == deniedCode);
+	}
+
+	{
+		// A not-found class code is not an inspection failure: the entry reads as absent, exactly like a real one.
+		CFaultHookScope scope;
+		scope.forceNativeError(Point::InspectEntry_Native, notFoundCode);
+		const auto result = inspectEntry(ep(filePath));
+		REQUIRE(result.has_value());
+		CHECK(!result->has_value());
+	}
+}
+
 //
 // Identity and same-object checks
 //
@@ -117,6 +151,11 @@ TEST_CASE("checkSameEntry: hard-link aliases, distinct files, absent entries", "
 	const auto absentVerdict = checkSameEntry(ep(filePath), ep(base % "/missing"), thin_io::link_behavior::do_not_follow);
 	REQUIRE(absentVerdict.has_value());
 	CHECK(*absentVerdict == SameEntryVerdict::Different);
+
+	// Two absent entries share no identity evidence; equality is never assumed without it.
+	const auto bothAbsent = checkSameEntry(ep(base % "/missing1"), ep(base % "/missing2"), thin_io::link_behavior::do_not_follow);
+	REQUIRE(bothAbsent.has_value());
+	CHECK(*bothAbsent == SameEntryVerdict::Different);
 }
 
 #ifndef _WIN32
@@ -295,6 +334,29 @@ TEST_CASE("renameEntry: case-only rename", "[mutator]")
 	CHECK(QDir{ base }.entryList(QDir::Dirs).contains(QStringLiteral("FOLDER")));
 }
 
+#ifndef _WIN32
+TEST_CASE("renameEntry: a case-respell onto a distinct entry on a case-sensitive filesystem collides", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/case.txt", QByteArray(10, 'a'));
+	writeTestFile(base % "/CASE.txt", QByteArray(10, 'b'));
+	// On a case-insensitive filesystem (e.g. default APFS) the second write addressed the same entry;
+	// the two-distinct-entries scenario does not exist there.
+	if (readFileContents(base % "/case.txt") != QByteArray(10, 'a'))
+		return;
+
+	// Both spellings name real distinct entries, so this is an ordinary collision, not a case respell.
+	const auto result = CFileSystemMutator::renameEntry(ep(base % "/case.txt"), ep(base % "/CASE.txt"), ReplacementMode::RequireAbsent);
+	REQUIRE(!result.has_value());
+	CHECK(result.error().category == FileErrorCategory::AlreadyExists);
+	CHECK(readFileContents(base % "/case.txt") == QByteArray(10, 'a'));
+	CHECK(readFileContents(base % "/CASE.txt") == QByteArray(10, 'b'));
+}
+#endif
+
 TEST_CASE("renameEntry: directory replacement is rejected", "[mutator]")
 {
 	QTemporaryDir tempDir;
@@ -347,6 +409,27 @@ TEST_CASE("renameEntry: unsupported exclusive rename degrades to recheck-then-re
 		CHECK(readFileContents(base % "/dst.bin") == contents);
 		CHECK(!entryAbsent(base % "/src2.bin"));
 	}
+
+	{
+		// ENOSYS is the third unsupported-mechanism trigger; absent destination degrades and publishes.
+		CFaultHookScope scope;
+		scope.forceNativeError(Point::RenameEntry_Native, ENOSYS);
+		writeTestFile(base % "/src3.bin", contents);
+		REQUIRE(CFileSystemMutator::renameEntry(ep(base % "/src3.bin"), ep(base % "/dst3.bin"), ReplacementMode::RequireAbsent).has_value());
+		CHECK(entryAbsent(base % "/src3.bin"));
+		CHECK(readFileContents(base % "/dst3.bin") == contents);
+	}
+
+	{
+		// ENOSYS with an entry present at the recheck: AlreadyExists, same as ENOTSUP.
+		CFaultHookScope scope;
+		scope.forceNativeError(Point::RenameEntry_Native, ENOSYS);
+		writeTestFile(base % "/src4.bin", QByteArray(100, 's'));
+		const auto result = CFileSystemMutator::renameEntry(ep(base % "/src4.bin"), ep(base % "/dst3.bin"), ReplacementMode::RequireAbsent);
+		REQUIRE(!result.has_value());
+		CHECK(result.error().category == FileErrorCategory::AlreadyExists);
+		CHECK(!entryAbsent(base % "/src4.bin"));
+	}
 }
 #endif
 
@@ -378,6 +461,10 @@ TEST_CASE("renameEntry: native error classification through forced faults", "[mu
 		{ EROFS, FileErrorCategory::ReadOnly },
 		{ ENOTSUP, FileErrorCategory::Unsupported }, // Unsupported-degradation applies only to require-absent mode
 		{ EIO, FileErrorCategory::IoFailure },
+		// Rename knows more than the context-free classifier: these mean "the destination exists in a form
+		// this rename cannot replace" and must re-enter resolution as AlreadyExists.
+		{ EISDIR, FileErrorCategory::AlreadyExists },
+		{ ENOTEMPTY, FileErrorCategory::AlreadyExists },
 	};
 #endif
 
@@ -579,6 +666,38 @@ TEST_CASE("setEntryWritable and isEntryWritableNoFollow: fresh state round trip"
 	CHECK(readFileContents(filePath) == QByteArray(10, 'f'));
 }
 
+TEST_CASE("setEntryWritable: a forced failure classifies; a matching state performs no native call", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString filePath = tempDir.path() % "/file.bin";
+	writeTestFile(filePath, QByteArray(10, 'f'));
+	const auto snapshot = snapshotOf(filePath);
+
+	{
+		CFaultHookScope scope;
+#ifdef _WIN32
+		scope.forceNativeError(Point::SetEntryWritable_Native, ERROR_ACCESS_DENIED);
+#else
+		scope.forceNativeError(Point::SetEntryWritable_Native, EACCES);
+#endif
+		const auto result = CFileSystemMutator::setEntryWritable(snapshot, false);
+		REQUIRE(!result.has_value());
+		CHECK(result.error().category == FileErrorCategory::PermissionDenied);
+
+		const auto stillWritable = isEntryWritableNoFollow(snapshot); // The forced fault replaced the native call
+		REQUIRE(stillWritable.has_value());
+		CHECK(*stillWritable);
+	}
+
+	{
+		// The entry is already writable: requesting writable is satisfied without reaching the native call.
+		CFaultHookScope scope;
+		REQUIRE(CFileSystemMutator::setEntryWritable(snapshot, true).has_value());
+		CHECK(scope.arrivalCount(Point::SetEntryWritable_Native) == 0);
+	}
+}
+
 #ifdef _WIN32
 TEST_CASE("removeEntry: a read-only file fails with PermissionDenied, not ReadOnly", "[mutator]")
 {
@@ -702,6 +821,28 @@ TEST_CASE("directory times: read, apply, and follow a directory link on read", "
 	CHECK(missing.error().category == FileErrorCategory::NotFound);
 }
 
+TEST_CASE("directory times: a forced native failure on apply classifies", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	REQUIRE(QDir{}.mkpath(base % "/dir"));
+
+	CFaultHookScope scope;
+#ifdef _WIN32
+	constexpr NativeErrorCode deniedCode = ERROR_ACCESS_DENIED;
+#else
+	constexpr NativeErrorCode deniedCode = EACCES;
+#endif
+	scope.forceNativeError(Point::ApplyDirectoryTimes_Native, deniedCode);
+
+	const CopyableDirectoryTimes times{ .creation = {}, .lastWrite = thin_io::timestamp{ .seconds = 1'500'000'000, .nanoseconds = 0 } };
+	const auto result = CFileSystemMutator::applyDirectoryTimes(ep(base % "/dir"), times);
+	REQUIRE(!result.has_value());
+	CHECK(result.error().category == FileErrorCategory::PermissionDenied);
+	CHECK(result.error().nativeCode == deniedCode);
+}
+
 //
 // createDirectories
 //
@@ -721,6 +862,13 @@ TEST_CASE("createDirectories: creation, deep chain, and pre-existing outcomes", 
 	REQUIRE(deep.has_value());
 	CHECK(*deep == DirectoryCreationOutcome::CreatedFinalDirectory); // Missing parents do not change the outcome
 	CHECK(snapshotOf(base % "/a/b/c/d").kind == OperationEntryKind::Directory);
+
+	// Partially existing parents: only the missing tail of the chain is created.
+	REQUIRE(QDir{}.mkpath(base % "/p/q"));
+	const auto partial = CFileSystemMutator::createDirectories(ep(base % "/p/q/r/s"));
+	REQUIRE(partial.has_value());
+	CHECK(*partial == DirectoryCreationOutcome::CreatedFinalDirectory);
+	CHECK(snapshotOf(base % "/p/q/r/s").kind == OperationEntryKind::Directory);
 
 	const auto repeated = CFileSystemMutator::createDirectories(ep(base % "/a/b/c/d"));
 	REQUIRE(repeated.has_value());
@@ -747,6 +895,7 @@ TEST_CASE("createDirectories: a non-directory collision and an unusable parent a
 
 	const auto fileParent = CFileSystemMutator::createDirectories(ep(base % "/file.bin/sub"));
 	REQUIRE(!fileParent.has_value());
+	CHECK(fileParent.error().category == FileErrorCategory::NotFound); // A path component is not a directory: the ENOTDIR analog
 	CHECK(readFileContents(base % "/file.bin") == QByteArray(10, 'f')); // The file was not disturbed
 }
 

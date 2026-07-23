@@ -45,6 +45,8 @@ TEST_CASE("parseOperationPath: rejection table", "[entrypath]")
 	requireRejected(QStringLiteral("\\\\\\x")); // Three leading separators is no recognized form
 	requireRejected(QStringLiteral("\\\\.\\pipe")); // Device namespace
 	requireRejected(QStringLiteral("\\\\..\\share"));
+	requireRejected(QStringLiteral("\\\\server\\..")); // A dot component is a traversal, never a share name
+	requireRejected(QStringLiteral("\\\\server\\."));
 #endif
 }
 
@@ -156,6 +158,18 @@ TEST_CASE("CEntryPath: spelling comparison follows platform case policy", "[entr
 }
 
 #endif
+
+TEST_CASE("isValidEntryName: single-component name validation", "[entrypath]")
+{
+	CHECK(!isValidEntryName({}));
+	CHECK(!isValidEntryName(QStringLiteral("a/b")));
+	CHECK(!isValidEntryName(QStringLiteral("a\\b"))); // '\' is rejected as a separator on every platform
+	CHECK(!isValidEntryName(QStringLiteral(".")));
+	CHECK(!isValidEntryName(QStringLiteral("..")));
+	CHECK(isValidEntryName(QStringLiteral("a")));
+	CHECK(isValidEntryName(QStringLiteral("...")));
+	CHECK(isValidEntryName(QStringLiteral("valid name.txt")));
+}
 
 TEST_CASE("parseOperationPath: parse round trip is the identity", "[entrypath]")
 {

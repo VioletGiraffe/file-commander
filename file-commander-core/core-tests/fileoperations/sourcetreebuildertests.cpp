@@ -3,6 +3,7 @@
 
 #include "fileoperations/csourcetreebuilder.h"
 #include "fileoperations/coperationexecutioncontext.h"
+#include "fileoperations/operationtesthooks.h"
 
 #include "fileoperationtesthelpers.h"
 #include "lang/utils.hpp" // mv()
@@ -13,8 +14,12 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #ifndef _WIN32
+#include <errno.h>
 #include <sys/stat.h>
 #endif
+
+using OperationTestHooks::CFaultHookScope;
+using OperationTestHooks::Point;
 
 namespace
 {
@@ -257,6 +262,42 @@ TEST_CASE("source tree: broken links remain leaf entries", "[sourcetree][link]")
 #endif
 	CHECK(link->children.empty());
 	CHECK(link->entry.size == 0);
+}
+
+TEST_CASE("source tree: an entry vanishing between listing and classification is silently omitted", "[sourcetree]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/root"));
+	writeTestFile(base % "/root/a.bin", QByteArray(100, 'a'));
+	writeTestFile(base % "/root/b.bin", QByteArray(200, 'b'));
+	REQUIRE(QDir{}.mkpath(base % "/target"));
+	REQUIRE(createDirectoryLink(base % "/target", base % "/root/thelink"));
+
+	const auto rootSnapshot = snapshotOf(base % "/root"); // Taken before the scope: only the link child's classification inspects
+
+	// The link is present in the directory listing, but its classification inspect reports it gone -
+	// the vanish race window the builder must skip over without failing the build.
+	CFaultHookScope hooks;
+#ifdef _WIN32
+	hooks.forceNativeError(Point::InspectEntry_Native, ERROR_FILE_NOT_FOUND);
+#else
+	hooks.forceNativeError(Point::InspectEntry_Native, ENOENT);
+#endif
+
+	ScanScript script;
+	auto context = scanContext(script);
+	auto result = buildSourceTree(context, rootSnapshot, SourceTreeBuildMode::MaterializingTransfer);
+
+	REQUIRE(std::holds_alternative<SourceNode>(result));
+	const SourceNode& tree = std::get<SourceNode>(result);
+	CHECK(tree.subtreeItems == 3); // The root and both files; the vanished entry is omitted, not a failure
+	CHECK(tree.subtreeBytes == 300);
+	CHECK(childNamed(tree, QStringLiteral("a.bin")) != nullptr);
+	CHECK(childNamed(tree, QStringLiteral("b.bin")) != nullptr);
+	CHECK(childNamed(tree, QStringLiteral("thelink")) == nullptr);
 }
 
 TEST_CASE("source tree: link cycles terminate by identity", "[sourcetree][link]")

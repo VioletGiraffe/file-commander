@@ -3,6 +3,7 @@
 
 #include "fileoperations/cdestinationresolver.h"
 #include "fileoperations/coperationexecutioncontext.h"
+#include "fileoperations/operationtesthooks.h"
 
 #include "fileoperationtesthelpers.h"
 
@@ -12,6 +13,13 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+
+#ifndef _WIN32
+#include <errno.h>
+#endif
+
+using OperationTestHooks::CFaultHookScope;
+using OperationTestHooks::Point;
 
 namespace
 {
@@ -138,6 +146,26 @@ TEST_CASE("request factory: source filtering and validation", "[requests]")
 		REQUIRE(!request.has_value());
 		CHECK(request.error() == RequestValidationError::ExactEntryRequiresSingleSource);
 	}
+
+	SECTION("exact-entry intent counts sources after the parent filter")
+	{
+		const auto request = makeTransferRequest(TransferKind::Move,
+			{ abstractPath("dir/.."), fileA }, DestinationIntent::ExactEntry, destination);
+		REQUIRE(request.has_value());
+		REQUIRE(request->sources.size() == 1);
+		CHECK(request->sources[0].value() == fileA);
+	}
+
+#ifdef _WIN32
+	SECTION("the synthetic parent entry is filtered in its backslash spelling too")
+	{
+		const auto request = makeTransferRequest(TransferKind::Copy,
+			{ QStringLiteral("C:\\dir\\.."), fileA }, DestinationIntent::IntoDirectory, destination);
+		REQUIRE(request.has_value());
+		REQUIRE(request->sources.size() == 1);
+		CHECK(request->sources[0].value() == fileA);
+	}
+#endif
 
 	SECTION("exact-entry destination cannot be a root")
 	{
@@ -294,6 +322,37 @@ TEST_CASE("remembered decisions: storage, replay, and isolation", "[decisions]")
 
 		REQUIRE(context.resolveDecision(writeFailure).has_value());
 		const auto second = context.resolveDecision(removeFailure);
+		REQUIRE(second.has_value());
+		CHECK(second->action == DecisionAction::Skip);
+		CHECK(decisions.seenRequests.size() == 1);
+	}
+
+	SECTION("a remembered MakeWritable answers the remaining read-only removals")
+	{
+		const OperationIssue readOnlyIssue{ IssueKind::ReadOnlySourceRemoval,
+			fakeSnapshot(OperationEntryKind::RegularFile, "src/ro1.bin"), {}, {} };
+		const OperationIssue secondReadOnlyIssue{ IssueKind::ReadOnlySourceRemoval,
+			fakeSnapshot(OperationEntryKind::RegularFile, "src/ro2.bin"), {}, {} };
+
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::MakeWritable, DecisionScope::RemainingMatchingIssues) } };
+		auto context = scriptedContext(decisions);
+
+		REQUIRE(context.resolveDecision(readOnlyIssue).has_value());
+		const auto second = context.resolveDecision(secondReadOnlyIssue);
+		REQUIRE(second.has_value());
+		CHECK(second->action == DecisionAction::MakeWritable);
+		CHECK(decisions.seenRequests.size() == 1);
+	}
+
+	SECTION("a remembered TypeMismatch Skip answers the remaining mismatches")
+	{
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip, DecisionScope::RemainingMatchingIssues) } };
+		auto context = scriptedContext(decisions);
+
+		REQUIRE(context.resolveDecision(mismatchIssue).has_value());
+		const OperationIssue secondMismatch{ IssueKind::TypeMismatch,
+			fakeSnapshot(OperationEntryKind::Directory, "src/c"), fakeSnapshot(OperationEntryKind::RegularFile, "dest/c.bin"), {} };
+		const auto second = context.resolveDecision(secondMismatch);
 		REQUIRE(second.has_value());
 		CHECK(second->action == DecisionAction::Skip);
 		CHECK(decisions.seenRequests.size() == 1);
@@ -613,6 +672,23 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::FileReplacement);
 		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::FileLink);
 	}
+
+	SECTION("a file symlink source resolves like a file")
+	{
+		writeTestFile(base % "/target.bin", QByteArray{ "T" });
+		REQUIRE(QFile::link(base % "/target.bin", base % "/linksource.bin"));
+		const EntrySnapshot linkSource = snapshotOf(base % "/linksource.bin");
+		REQUIRE(linkSource.kind == OperationEntryKind::FileLink);
+
+		ScriptedDecisions decisions;
+		auto context = scriptedContext(decisions);
+
+		const auto choice = resolveFileDestination(context, linkSource, ep(base % "/new.bin"));
+		const auto* use = std::get_if<UseDestination>(&choice);
+		REQUIRE(use != nullptr);
+		CHECK(use->replacement == ReplacementMode::RequireAbsent);
+		CHECK(decisions.seenRequests.empty());
+	}
 #endif
 }
 
@@ -662,6 +738,28 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 		CHECK(decisions.seenRequests[0].allowedActions == allowedActionsFor(IssueKind::RootDirectoryMerge));
 	}
 
+	SECTION("a selected-root collision skips, cancels, and honors the cancellation override")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/existing"));
+
+		ScriptedDecisions skipDecisions{ .script = { act(DecisionAction::Skip) } };
+		auto skipContext = scriptedContext(skipDecisions);
+		CHECK(std::holds_alternative<SkipNode>(
+			resolveDirectoryDestination(skipContext, source, ep(base % "/existing"), TransferNodePosition::SelectedRoot)));
+		REQUIRE(skipDecisions.seenRequests.size() == 1);
+		CHECK(skipDecisions.seenRequests[0].issue.kind == IssueKind::RootDirectoryMerge);
+
+		ScriptedDecisions cancelDecisions{ .script = { act(DecisionAction::Cancel) } };
+		auto cancelContext = scriptedContext(cancelDecisions);
+		CHECK(std::holds_alternative<CancelOperation>(
+			resolveDirectoryDestination(cancelContext, source, ep(base % "/existing"), TransferNodePosition::SelectedRoot)));
+
+		ScriptedDecisions overridden{ .cancelInsteadOfAnswering = true };
+		auto overriddenContext = scriptedContext(overridden);
+		CHECK(std::holds_alternative<CancelOperation>(
+			resolveDirectoryDestination(overriddenContext, source, ep(base % "/existing"), TransferNodePosition::SelectedRoot)));
+	}
+
 	SECTION("Merge All remembers for the remaining selected-root collisions")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/existing"));
@@ -707,6 +805,40 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 		CHECK(request.issue.destination->kind == OperationEntryKind::RegularFile);
 	}
 
+	SECTION("a type mismatch cancels, directly or via the cancellation override")
+	{
+		writeTestFile(base % "/taken.bin", QByteArray{ "OLD" });
+
+		ScriptedDecisions cancelDecisions{ .script = { act(DecisionAction::Cancel) } };
+		auto cancelContext = scriptedContext(cancelDecisions);
+		CHECK(std::holds_alternative<CancelOperation>(
+			resolveDirectoryDestination(cancelContext, source, ep(base % "/taken.bin"), TransferNodePosition::SelectedRoot)));
+		CHECK(cancelDecisions.seenRequests[0].issue.kind == IssueKind::TypeMismatch);
+
+		ScriptedDecisions overridden{ .cancelInsteadOfAnswering = true };
+		auto overriddenContext = scriptedContext(overridden);
+		CHECK(std::holds_alternative<CancelOperation>(
+			resolveDirectoryDestination(overriddenContext, source, ep(base % "/taken.bin"), TransferNodePosition::SelectedRoot)));
+	}
+
+#ifndef _WIN32
+	SECTION("a file symlink destination is a type mismatch as a FileLink, never followed")
+	{
+		writeTestFile(base % "/target.bin", QByteArray{ "T" });
+		REQUIRE(QFile::link(base % "/target.bin", base % "/filelink.bin"));
+
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip) } };
+		auto context = scriptedContext(decisions);
+
+		CHECK(std::holds_alternative<SkipNode>(
+			resolveDirectoryDestination(context, source, ep(base % "/filelink.bin"), TransferNodePosition::SelectedRoot)));
+
+		REQUIRE(decisions.seenRequests.size() == 1);
+		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::TypeMismatch);
+		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::FileLink);
+	}
+#endif
+
 	SECTION("a directory link destination is never merged through")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/link-target"));
@@ -735,6 +867,152 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 		REQUIRE(use != nullptr);
 		CHECK(use->path.value() == ep(base % "/renamed-dir").value());
 		CHECK(use->replacement == ReplacementMode::RequireAbsent);
+	}
+}
+
+TEST_CASE("directory resolver: the rename loop", "[resolver]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/srcdir"));
+	REQUIRE(QDir{}.mkpath(base % "/existing"));
+	const EntrySnapshot source = snapshotOf(base % "/srcdir");
+
+	SECTION("invalid rename input re-asks instead of failing")
+	{
+		ScriptedDecisions decisions{ .script = {
+			renameTo(QString{}),
+			renameTo(QStringLiteral("bad/name")),
+			act(DecisionAction::Skip) } };
+		auto context = scriptedContext(decisions);
+
+		CHECK(std::holds_alternative<SkipNode>(
+			resolveDirectoryDestination(context, source, ep(base % "/existing"), TransferNodePosition::SelectedRoot)));
+		CHECK(decisions.seenRequests.size() == 3);
+	}
+
+	SECTION("rename onto another existing directory re-enters as a merge question")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/existing2"));
+
+		ScriptedDecisions decisions{ .script = { renameTo(QStringLiteral("existing2")), act(DecisionAction::Merge) } };
+		auto context = scriptedContext(decisions);
+
+		const auto choice = resolveDirectoryDestination(context, source, ep(base % "/existing"), TransferNodePosition::SelectedRoot);
+		const auto* merge = std::get_if<MergeDirectory>(&choice);
+		REQUIRE(merge != nullptr);
+		CHECK(merge->path.value() == ep(base % "/existing2").value());
+		REQUIRE(decisions.seenRequests.size() == 2);
+		CHECK(decisions.seenRequests[1].issue.kind == IssueKind::RootDirectoryMerge);
+	}
+
+	SECTION("rename onto a file becomes a type mismatch")
+	{
+		writeTestFile(base % "/taken.bin", QByteArray{ "OLD" });
+
+		ScriptedDecisions decisions{ .script = { renameTo(QStringLiteral("taken.bin")), act(DecisionAction::Skip) } };
+		auto context = scriptedContext(decisions);
+
+		CHECK(std::holds_alternative<SkipNode>(
+			resolveDirectoryDestination(context, source, ep(base % "/existing"), TransferNodePosition::SelectedRoot)));
+		REQUIRE(decisions.seenRequests.size() == 2);
+		CHECK(decisions.seenRequests[1].issue.kind == IssueKind::TypeMismatch);
+	}
+
+	SECTION("rename onto the source itself is already satisfied")
+	{
+		ScriptedDecisions decisions{ .script = { renameTo(QStringLiteral("srcdir")) } };
+		auto context = scriptedContext(decisions);
+
+		CHECK(std::holds_alternative<AlreadySatisfied>(
+			resolveDirectoryDestination(context, source, ep(base % "/existing"), TransferNodePosition::SelectedRoot)));
+		CHECK(decisions.seenRequests.size() == 1);
+	}
+}
+
+TEST_CASE("resolver: a destination inspection failure prompts ActionFailed", "[resolver]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/source.bin", QByteArray{ "DATA" });
+	const EntrySnapshot source = snapshotOf(base % "/source.bin");
+
+#ifdef _WIN32
+	constexpr NativeErrorCode inspectFailureCode = ERROR_ACCESS_DENIED;
+#else
+	constexpr NativeErrorCode inspectFailureCode = EACCES;
+#endif
+
+	SECTION("Retry re-inspects and resolution proceeds")
+	{
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::InspectEntry_Native, inspectFailureCode);
+
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::Retry) } };
+		auto context = scriptedContext(decisions);
+
+		const auto choice = resolveFileDestination(context, source, ep(base % "/new.bin"));
+		const auto* use = std::get_if<UseDestination>(&choice);
+		REQUIRE(use != nullptr);
+		CHECK(use->replacement == ReplacementMode::RequireAbsent);
+
+		REQUIRE(decisions.seenRequests.size() == 1);
+		const DecisionRequest& request = decisions.seenRequests[0];
+		CHECK(request.issue.kind == IssueKind::ActionFailed);
+		CHECK(request.allowedActions == allowedActionsFor(IssueKind::ActionFailed));
+		REQUIRE(request.issue.failure.has_value());
+		CHECK(request.issue.failure->action == FailedAction::InspectDestination);
+		CHECK(request.issue.failure->filesystemError.category == FileErrorCategory::PermissionDenied);
+	}
+
+	SECTION("Skip abandons the node")
+	{
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::InspectEntry_Native, inspectFailureCode);
+
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip) } };
+		auto context = scriptedContext(decisions);
+		CHECK(std::holds_alternative<SkipNode>(resolveFileDestination(context, source, ep(base % "/new.bin"))));
+	}
+
+	SECTION("Cancel and the cancellation override end the operation")
+	{
+		{
+			CFaultHookScope hooks;
+			hooks.forceNativeError(Point::InspectEntry_Native, inspectFailureCode);
+
+			ScriptedDecisions decisions{ .script = { act(DecisionAction::Cancel) } };
+			auto context = scriptedContext(decisions);
+			CHECK(std::holds_alternative<CancelOperation>(resolveFileDestination(context, source, ep(base % "/new.bin"))));
+		}
+		{
+			CFaultHookScope hooks;
+			hooks.forceNativeError(Point::InspectEntry_Native, inspectFailureCode);
+
+			ScriptedDecisions overridden{ .cancelInsteadOfAnswering = true };
+			auto context = scriptedContext(overridden);
+			CHECK(std::holds_alternative<CancelOperation>(resolveFileDestination(context, source, ep(base % "/new.bin"))));
+		}
+	}
+
+	SECTION("the directory resolver shares the same failure path")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/srcdir"));
+
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::InspectEntry_Native, inspectFailureCode);
+
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::Retry) } };
+		auto context = scriptedContext(decisions);
+
+		const auto choice = resolveDirectoryDestination(context, snapshotOf(base % "/srcdir"), ep(base % "/newdir"), TransferNodePosition::SelectedRoot);
+		REQUIRE(std::get_if<UseDestination>(&choice) != nullptr);
+		REQUIRE(decisions.seenRequests.size() == 1);
+		CHECK(decisions.seenRequests[0].issue.failure->action == FailedAction::InspectDestination);
 	}
 }
 
