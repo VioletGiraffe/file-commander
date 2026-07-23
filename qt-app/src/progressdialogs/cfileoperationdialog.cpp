@@ -210,6 +210,28 @@ void CFileOperationDialog::handleCompletion(const OperationSummary& summary)
 
 	ui->_lblSummary->setText(composeSummaryText(summary, _operation));
 	ui->_lblSummary->show();
+
+	// An embedded or component-test dialog is owned and inspected by its caller; only a self-disposing
+	// production dialog manages its own lifetime past completion.
+	if (!_selfDisposes)
+		return;
+
+	// Off-screen at completion - dismissed while it ran (now hidden), or backgrounded and finished with
+	// nothing to report - so it removes itself; a backgrounded result worth seeing returns to the front.
+	const bool nothingToReport = summary.status == CompletionStatus::Completed && summary.failedItems == 0;
+	if (!isVisible() || (_isInBackgroundMode && nothingToReport))
+	{
+		deleteLater();
+		return;
+	}
+
+	if (_isInBackgroundMode)
+	{
+		_isInBackgroundMode = false; // Back to the foreground: the outcome needs the user's attention
+		adjustSize(); // Refit: backgrounding shrank the window to the detail widgets it has now hidden
+		raise();
+		activateWindow();
+	}
 }
 
 QString CFileOperationDialog::composeSummaryText(const OperationSummary& summary, const PromptOperation operation)
@@ -337,8 +359,17 @@ bool CFileOperationDialog::confirmCancellation()
 
 void CFileOperationDialog::closeEvent(QCloseEvent* e)
 {
-	// A finished operation closes freely; a running one asks first and stays alive until it truly ends.
-	if (_result || confirmCancellation())
+	if (_result)
+	{
+		QWidget::closeEvent(e);
+		if (_selfDisposes)
+			deleteLater(); // The user dismissed a finished dialog; a self-disposing one lives no longer
+		return;
+	}
+
+	// A running operation asks first and, on confirmation, stays alive (hidden) until it truly ends;
+	// handleCompletion then disposes of it.
+	if (confirmCancellation())
 		QWidget::closeEvent(e);
 	else
 		e->ignore();

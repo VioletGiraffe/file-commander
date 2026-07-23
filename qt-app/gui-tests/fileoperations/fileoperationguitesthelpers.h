@@ -23,6 +23,7 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <optional>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace guitest
@@ -78,7 +79,14 @@ inline CEntryPath entryPath(const QString& text)
 class ScriptedDialog final : public CFileOperationDialog
 {
 public:
-	using CFileOperationDialog::CFileOperationDialog;
+	// Test dialogs are stack-owned and inspected after completion, so they never self-dispose.
+	ScriptedDialog(FileOperationRequest request, std::function<QPoint()> backgroundAnchorProvider,
+		QWidget* parent = nullptr, uint64_t transferChunkSize = 8 * 1024 * 1024)
+		: CFileOperationDialog(std::move(request), std::move(backgroundAnchorProvider), parent, transferChunkSize)
+	{
+		disableSelfDisposal();
+	}
+
 	using CFileOperationDialog::drainEvents;
 	using CFileOperationDialog::renderProgress;
 

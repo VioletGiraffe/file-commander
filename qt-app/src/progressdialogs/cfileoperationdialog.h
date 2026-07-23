@@ -56,6 +56,12 @@ public:
 
 	[[nodiscard]] bool isInBackgroundMode() const noexcept { return _isInBackgroundMode; }
 
+	// By default the dialog manages its own lifetime: after the operation ends it removes itself once it is
+	// off-screen (dismissed while running, or backgrounded and finished cleanly) and deletes when the user
+	// closes it. A caller that owns the instance - a component test that inspects it after completion, or an
+	// embedded use - disables that, so the dialog lives until its owner destroys it.
+	void disableSelfDisposal() noexcept { _selfDisposes = false; }
+
 protected:
 	// Presents one decision request and returns the user's choice. The production path shows a modal
 	// CFileOperationPrompt; a test overrides this to answer synchronously.
@@ -94,5 +100,6 @@ private:
 	bool _draining = false; // A modal prompt spins a nested loop; the timer must not re-enter the drain
 	bool _paused = false;
 	bool _isInBackgroundMode = false;
+	bool _selfDisposes = true; // On by default (production); a caller that owns the instance disables it
 	std::optional<OperationSummary> _result;
 };
