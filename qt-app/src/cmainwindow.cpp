@@ -74,6 +74,8 @@ RESTORE_COMPILER_WARNINGS
 
 CMainWindow * CMainWindow::_instance = nullptr;
 
+#if defined _WIN32 || defined __APPLE__
+// Only the native-shell deletion path reports through this; that path is not compiled elsewhere.
 namespace
 {
 void showDeleteItemsError()
@@ -82,6 +84,7 @@ void showDeleteItemsError()
 		QMessageBox::warning(mainWindow, mainWindow->tr("Error deleting items"), mainWindow->tr("Failed to delete the selected items"));
 }
 }
+#endif
 
 CMainWindow::CMainWindow(QWidget *parent) noexcept :
 	QMainWindow(parent),
@@ -521,6 +524,9 @@ void CMainWindow::performDeletion(const bool toTrash)
 	if (items.empty())
 		return;
 
+	// OsShell::deleteItems only exists on Windows and macOS; elsewhere deletionBackendFor always selects InternalJob,
+	// so the native-shell branch must not be compiled at all.
+#if defined _WIN32 || defined __APPLE__
 	const DeletionBackend backend = deletionBackendFor(toTrash);
 	if (backend == DeletionBackend::NativeTrash || backend == DeletionBackend::NativeShellPermanent)
 	{
@@ -542,6 +548,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 		});
 		return;
 	}
+#endif
 
 	// InternalJob: the custom permanent-delete engine. Deletion here is irreversible, so confirm first.
 	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
