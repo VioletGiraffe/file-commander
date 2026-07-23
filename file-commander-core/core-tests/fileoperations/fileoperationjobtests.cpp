@@ -218,6 +218,42 @@ TEST_CASE("job: status derivation and summary-before-Finished ordering", "[fileo
 	CHECK(readFileContents(base % "/dest.bin") == patternedContents(2000));
 }
 
+TEST_CASE("job: cancellation after Finished is inert", "[fileoperationjob]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/src.bin", patternedContents(1000));
+
+	CFileOperationJob job{ transferRequest(TransferKind::Copy, { base % "/src.bin" }, DestinationIntent::ExactEntry, base % "/dest.bin"), 1024 };
+	JobDriver driver{ job };
+	job.start();
+
+	SECTION("after the summary was drained: status stays Finished and no further events appear")
+	{
+		REQUIRE(driver.pumpToCompletion());
+		REQUIRE(driver.summary()->status == CompletionStatus::Completed);
+
+		job.cancel();
+		CHECK(job.status() == JobStatus::Finished);
+		job.processEvents(driver);
+		CHECK(driver.summaryCount() == 1);
+		CHECK(readFileContents(base % "/dest.bin") == patternedContents(1000));
+	}
+
+	SECTION("between the worker finishing and the drain: the queued summary survives the cancel")
+	{
+		REQUIRE(waitUntil([&job] { return job.status() == JobStatus::Finished; }));
+
+		job.cancel(); // Scrubs only decision events; the summary must still be deliverable
+		REQUIRE(driver.pumpToCompletion());
+		CHECK(driver.summaryCount() == 1);
+		CHECK(driver.summary()->status == CompletionStatus::Completed);
+		CHECK(driver.summary()->completedItems == 1);
+	}
+}
+
 TEST_CASE("job: pause and resume", "[fileoperationjob]")
 {
 	QTemporaryDir tempDir;
@@ -428,6 +464,28 @@ TEST_CASE("job: the destructor is the lifetime barrier", "[fileoperationjob]")
 	// The destructor joined: the worker has fully unwound, which includes aborting and removing its staging file.
 	CHECK(stagingFileCount(base) == 0);
 	CHECK(entryAbsent(base % "/copy.bin"));
+}
+
+TEST_CASE("job: the destructor unblocks a worker waiting on a decision", "[fileoperationjob]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/src.bin", patternedContents(700));
+	writeTestFile(base % "/dest.bin", patternedContents(50));
+
+	{
+		CFileOperationJob job{ transferRequest(TransferKind::Copy, { base % "/src.bin" }, DestinationIntent::ExactEntry, base % "/dest.bin"), 1024 };
+		job.start();
+		// Never pumped, never answered: the worker sits inside the decision wait when the job dies.
+		REQUIRE(waitUntil([&job] { return job.hasPendingDecision(); }));
+	}
+
+	// The destructor's cancellation woke the decision wait and joined; reaching this line is the hang proof.
+	CHECK(readFileContents(base % "/dest.bin") == patternedContents(50)); // The replacement was never authorized
+	CHECK(readFileContents(base % "/src.bin") == patternedContents(700));
+	CHECK(stagingFileCount(base) == 0);
 }
 
 TEST_CASE("job: concurrent independent jobs", "[fileoperationjob]")

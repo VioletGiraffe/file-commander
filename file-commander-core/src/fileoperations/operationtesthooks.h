@@ -71,9 +71,9 @@ public:
 	CFaultHookScope(const CFaultHookScope&) = delete;
 	CFaultHookScope& operator=(const CFaultHookScope&) = delete;
 
-	// One-shot: the next fireHook(point) consumes the code instead of performing the real native call.
-	// Arming the same point twice within one scope is a usage error.
-	void forceNativeError(Point point, thin_io::filesystem_error_code code);
+	// The next `times` fireHook(point) calls each consume the code instead of performing the real native
+	// call (default: one-shot). Arming the same point twice within one scope is a usage error.
+	void forceNativeError(Point point, thin_io::filesystem_error_code code, uint32_t times = 1);
 
 	// fireHook(point) blocks until releaseBarrier(point). Arming twice is a usage error.
 	void armBarrier(Point point);
@@ -83,7 +83,7 @@ public:
 
 	// How many times fireHook(point) was called while this scope is active.
 	[[nodiscard]] uint32_t arrivalCount(Point point) const;
-	// Whether the one-shot forced error armed at the point was consumed.
+	// Whether the forced error armed at the point was consumed the full requested number of times.
 	[[nodiscard]] bool forcedErrorConsumed(Point point) const;
 
 	// The reporter outlives any scope; it is invoked once per violation during scope teardown.

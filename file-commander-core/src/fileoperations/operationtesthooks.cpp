@@ -23,7 +23,7 @@ namespace
 struct PointState
 {
 	std::optional<thin_io::filesystem_error_code> forcedError;
-	bool forcedErrorConsumed = false;
+	uint32_t forcedErrorRemaining = 0;
 	bool barrierArmed = false;
 	bool barrierReached = false;
 	bool barrierReleased = false;
@@ -93,9 +93,9 @@ std::optional<thin_io::filesystem_error_code> fireHook(const Point point)
 		g_stateChanged.notify_all();
 	}
 
-	if (state.forcedError && !state.forcedErrorConsumed)
+	if (state.forcedError && state.forcedErrorRemaining > 0)
 	{
-		state.forcedErrorConsumed = true;
+		--state.forcedErrorRemaining;
 		return state.forcedError;
 	}
 
@@ -120,8 +120,9 @@ CFaultHookScope::~CFaultHookScope()
 		{
 			const auto& state = g_state[i];
 			const auto name = pointName(static_cast<Point>(i));
-			if (state.forcedError && !state.forcedErrorConsumed)
-				violations.emplace_back("forced error at " + name + " was never consumed");
+			if (state.forcedError && state.forcedErrorRemaining > 0)
+				violations.emplace_back("forced error at " + name + " was not fully consumed ("
+					+ std::to_string(state.forcedErrorRemaining) + " left)");
 			if (state.barrierArmed && !state.barrierReached)
 				violations.emplace_back("barrier at " + name + " was never reached");
 			if (state.workerBlockedAtBarrier)
@@ -147,12 +148,14 @@ CFaultHookScope::~CFaultHookScope()
 		g_violationReporter(violation);
 }
 
-void CFaultHookScope::forceNativeError(const Point point, const thin_io::filesystem_error_code code)
+void CFaultHookScope::forceNativeError(const Point point, const thin_io::filesystem_error_code code, const uint32_t times)
 {
 	std::lock_guard lock{g_mutex};
 	auto& state = stateFor(point);
 	assert_r(!state.forcedError);
+	assert_r(times > 0);
 	state.forcedError = code;
+	state.forcedErrorRemaining = times;
 }
 
 void CFaultHookScope::armBarrier(const Point point)
@@ -185,7 +188,8 @@ uint32_t CFaultHookScope::arrivalCount(const Point point) const
 bool CFaultHookScope::forcedErrorConsumed(const Point point) const
 {
 	std::lock_guard lock{g_mutex};
-	return stateFor(point).forcedErrorConsumed;
+	const auto& state = stateFor(point);
+	return state.forcedError.has_value() && state.forcedErrorRemaining == 0;
 }
 
 std::function<void(const std::string&)> CFaultHookScope::setViolationReporter(std::function<void(const std::string&)> reporter)

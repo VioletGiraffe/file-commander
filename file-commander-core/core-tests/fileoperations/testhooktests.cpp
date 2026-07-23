@@ -76,6 +76,24 @@ TEST_CASE("Test hooks: forced error is one-shot and per-point", "[testhooks]")
 	CHECK(scope.arrivalCount(Point::SelfTest1) == 2);
 }
 
+TEST_CASE("Test hooks: a repeat-count forced error fails that many times, then passes through", "[testhooks]")
+{
+	CFaultHookScope scope;
+	scope.forceNativeError(Point::SelfTest1, testErrorCode, 3);
+
+	for (int i = 0; i < 3; ++i)
+	{
+		INFO("arrival " << i);
+		const auto forced = fireHook(Point::SelfTest1);
+		REQUIRE(forced.has_value());
+		CHECK(*forced == testErrorCode);
+		CHECK(scope.forcedErrorConsumed(Point::SelfTest1) == (i == 2));
+	}
+
+	CHECK(!fireHook(Point::SelfTest1).has_value());
+	CHECK(scope.arrivalCount(Point::SelfTest1) == 4);
+}
+
 TEST_CASE("Test hooks: concurrent workers consume a one-shot exactly once", "[testhooks]")
 {
 	CFaultHookScope scope;
@@ -155,7 +173,7 @@ TEST_CASE("Test hooks: teardown reports a missed forced error", "[testhooks]")
 		scope.forceNativeError(Point::SelfTest1, testErrorCode);
 	}
 	REQUIRE(capture.violations.size() == 1);
-	CHECK(capture.violations.front().find("never consumed") != std::string::npos);
+	CHECK(capture.violations.front().find("not fully consumed") != std::string::npos);
 }
 
 TEST_CASE("Test hooks: scope teardown resets all state", "[testhooks]")

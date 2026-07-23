@@ -164,6 +164,35 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 #endif
 }
 
+TEST_CASE("move executor: a same-filesystem directory-link root renames as the link", "[moveexecutor][link]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/target"));
+	writeTestFile(base % "/target/x.bin", patternedContents(300));
+	REQUIRE(createDirectoryLink(base % "/target", base % "/thelink"));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	OperationScript script;
+	CFaultHookScope hooks;
+	const auto summary = runMove(script, { base % "/thelink" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	CHECK(summary.transferredBytes == 0);
+	CHECK(script.seenRequests.empty());
+	CHECK(hooks.arrivalCount(Point::StagedCopy_CreateStaging_Native) == 0); // Renamed, never staged
+
+	// The link itself moved: the destination is a link, the source name is gone, the target tree untouched.
+	CHECK(entryAbsent(base % "/thelink"));
+	const QFileInfo movedInfo{ base % "/dest/thelink" };
+	CHECK((movedInfo.isSymLink() || movedInfo.isJunction()));
+	CHECK(readFileContents(base % "/target/x.bin") == patternedContents(300));
+	CHECK(readFileContents(base % "/dest/thelink/x.bin") == patternedContents(300)); // Still resolves through the link
+}
+
 TEST_CASE("move executor: cross-device fallback", "[moveexecutor]")
 {
 	QTemporaryDir tempDir;
@@ -700,6 +729,45 @@ TEST_CASE("move executor: committed cleanup", "[moveexecutor]")
 		CHECK(entryAbsent(base % "/clean.bin"));
 		CHECK(!entryAbsent(base % "/dest/clean.bin"));
 	}
+}
+
+TEST_CASE("move executor: an already-satisfied child blocks owned-directory cleanup like a skip", "[moveexecutor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/src"));
+	writeTestFile(base % "/src/a.bin", patternedContents(400));
+	writeTestFile(base % "/src/b.bin", patternedContents(900));
+	// The merge target already holds a hardlink alias of a.bin: that child's desired end state already holds.
+	REQUIRE(QDir{}.mkpath(base % "/dest/src"));
+	REQUIRE(createHardLink(base % "/src/a.bin", base % "/dest/src/a.bin"));
+
+	CFaultHookScope hooks;
+	// Forcing cross-device on the root rename keeps the children off the rename-first path, so the alias
+	// child reaches resolution's same-object check uniformly on every platform.
+	hooks.forceNativeError(Point::RenameEntry_Native, crossDeviceCode);
+
+	OperationScript script{ .decisions = { act(DecisionAction::Merge) } };
+	const auto summary = runMove(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.alreadySatisfiedItems == 1);
+	CHECK(summary.completedItems == 1); // b.bin only; the source directory was retained, so it never counted
+	CHECK(summary.skippedItems == 0);
+	CHECK(summary.failedItems == 0);
+	CHECK(summary.transferredBytes == 900);
+
+	// The already-satisfied child keeps its source entry, which blocks the owned directory's cleanup.
+	CHECK(!entryAbsent(base % "/src"));
+	CHECK(readFileContents(base % "/src/a.bin") == patternedContents(400));
+	CHECK(entryAbsent(base % "/src/b.bin"));
+	CHECK(readFileContents(base % "/dest/src/a.bin") == patternedContents(400));
+	CHECK(readFileContents(base % "/dest/src/b.bin") == patternedContents(900));
+
+	REQUIRE(script.seenRequests.size() == 1);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::RootDirectoryMerge);
 }
 
 TEST_CASE("move executor: raced read-only state during committed removal", "[moveexecutor][readonly]")

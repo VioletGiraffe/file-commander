@@ -530,6 +530,38 @@ TEST_CASE("copy executor: directory timestamps are preserved for created directo
 	}
 }
 
+TEST_CASE("copy executor: warnings beyond the representative cap keep an exact count", "[executor][metadata]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	// One timestamp warning per created directory; 17 exceeds the 16-representative retention cap.
+	QStringList sources;
+	for (int i = 1; i <= 17; ++i)
+	{
+		const QString dir = base % "/src" % QString::number(i);
+		REQUIRE(QDir{}.mkpath(dir));
+		sources.push_back(dir);
+	}
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::ApplyDirectoryTimes_Native, accessDeniedCode, 17);
+
+	OperationScript script;
+	const auto summary = runCopy(script, sources, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 17);
+	CHECK(summary.failedItems == 0);
+	CHECK(summary.warningCount == 17);
+	REQUIRE(summary.representativeWarnings.size() == 16);
+	for (const auto& warning : summary.representativeWarnings)
+		CHECK(warning.failure.action == FailedAction::PreserveDirectoryTimestamps);
+	CHECK(script.seenRequests.empty()); // Warnings never await a decision
+}
+
 TEST_CASE("copy executor: cancellation", "[executor]")
 {
 	QTemporaryDir tempDir;
