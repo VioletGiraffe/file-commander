@@ -339,6 +339,86 @@ TEST_CASE("copy executor: retries restart a fresh staging session", "[executor]"
 	}
 }
 
+TEST_CASE("copy executor: a retried publication does not push progress past the file size", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	const QByteArray contents = patternedContents(3000);
+	writeTestFile(base % "/a.bin", contents);
+
+	// The first publication fails after every chunk has been staged and counted; the abandoned attempt must
+	// un-count its bytes so the retry's progress starts from zero rather than doubling.
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::RenameEntry_Native, ioFailureCode);
+
+	OperationScript script{ .decisions = { act(DecisionAction::Retry) } };
+	const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/copied.bin", 512);
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	CHECK(readFileContents(base % "/copied.bin") == contents);
+	for (const ProgressSnapshot& snapshot : script.progress)
+		CHECK(snapshot.bytesProcessed <= 3000); // No snapshot overshoots the single file's size
+}
+
+TEST_CASE("copy executor: a file colliding with an existing directory is a type mismatch", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeTestFile(base % "/a.bin", patternedContents(120));
+	REQUIRE(QDir{}.mkpath(base % "/dest/a.bin")); // A directory occupies the incoming file's target name
+
+	SECTION("skip leaves the directory intact")
+	{
+		OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.skippedItems == 1);
+		REQUIRE(script.seenRequests.size() == 1);
+		CHECK(script.seenRequests[0].issue.kind == IssueKind::TypeMismatch);
+		CHECK(!entryAbsent(base % "/dest/a.bin"));
+	}
+
+	SECTION("rename to a free name completes the copy")
+	{
+		OperationScript script{ .decisions = { Decision{ DecisionAction::Rename, DecisionScope::ThisItem, QStringLiteral("a_copy.bin") } } };
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.completedItems == 1);
+		CHECK(readFileContents(base % "/dest/a_copy.bin") == patternedContents(120));
+	}
+}
+
+TEST_CASE("copy executor: a collision appearing at publication re-enters resolution", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	const QByteArray contents = patternedContents(2000);
+	writeTestFile(base % "/a.bin", contents);
+
+	// The destination is absent at resolution but a racing writer creates it mid-transfer (once staging exists,
+	// before publication). The executor must detect the proven fresh collision, re-resolve, and publish over it.
+	OperationScript script{ .decisions = { act(DecisionAction::Replace) } };
+	script.onCheckpoint = [&] {
+		if (stagingFileCount(base) > 0 && entryAbsent(base % "/copied.bin"))
+			writeTestFile(base % "/copied.bin", QByteArray{ "RACE" });
+	};
+
+	const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/copied.bin", 256);
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	REQUIRE(script.seenRequests.size() == 1); // No ActionFailed: the fresh collision re-resolves silently
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::FileReplacement);
+	CHECK(readFileContents(base % "/copied.bin") == contents); // Published over the raced file
+}
+
 #ifndef _WIN32
 TEST_CASE("copy executor: Other entries are skippable, links materialize", "[executor][link]")
 {

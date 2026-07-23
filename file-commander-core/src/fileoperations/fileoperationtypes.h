@@ -333,6 +333,8 @@ struct OperationSummary
 	size_t skippedItems = 0;
 	size_t failedItems = 0;
 	size_t alreadySatisfiedItems = 0;
+	// Running total of bytes actually written: a retried entry's bytes are counted per attempt, so this can
+	// exceed the summed source sizes. It is a throughput tally, not the logical amount moved.
 	uint64_t transferredBytes = 0;
 	size_t warningCount = 0;
 	std::vector<OperationDiagnostic> representativeWarnings;
