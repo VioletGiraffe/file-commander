@@ -940,3 +940,98 @@ TEST_CASE("move executor: directory timestamps in the fallback", "[moveexecutor]
 		CHECK(readFileContents(base % "/dest/src/nested/f.bin") == patternedContents(100));
 	}
 }
+
+#ifndef _WIN32
+TEST_CASE("move executor: a file link skips the read-only preflight", "[moveexecutor][link][readonly]")
+{
+	if (readOnlySemanticsUnavailable())
+		return;
+
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/target.bin", patternedContents(300));
+	setFileReadOnly(base % "/target.bin", true);
+	REQUIRE(QFile::link(base % "/target.bin", base % "/link.bin"));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::RenameEntry_Native, crossDeviceCode);
+
+	OperationScript script;
+	const auto summary = runMove(script, { base % "/link.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	CHECK(script.seenRequests.empty()); // The read-only policy question applies to regular files only
+
+	CHECK(entryAbsent(base % "/link.bin")); // The link entry moved...
+	CHECK(readFileContents(base % "/dest/link.bin") == patternedContents(300)); // ...as materialized target content
+	CHECK(!QFileInfo{ base % "/target.bin" }.isWritable()); // The target file is untouched, still read-only
+
+	setFileReadOnly(base % "/target.bin", false);
+}
+#endif
+
+TEST_CASE("move executor: a committed-cleanup failure on a directory entry is item-only ActionFailed", "[moveexecutor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/srcdir")); // Empty: the directory's own removal is the only cleanup
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::RenameEntry_Native, crossDeviceCode);
+	hooks.forceNativeError(Point::RemoveEntry_Native, ioFailureCode);
+
+	OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
+	const auto summary = runMove(script, { base % "/srcdir" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Failed);
+	CHECK(summary.failedItems == 1);
+	CHECK(summary.completedItems == 0); // A directory counts only after its source entry is removed
+	REQUIRE(summary.representativeFailures.size() == 1);
+	CHECK(summary.representativeFailures[0].failure.action == FailedAction::RemovePublishedMoveSource);
+
+	REQUIRE(script.seenRequests.size() == 1);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+	CHECK(!script.seenRequests[0].remainingMatchingScopeAllowed); // Committed: item-only
+	CHECK(script.seenRequests[0].issue.source.kind == OperationEntryKind::Directory);
+
+	CHECK(!entryAbsent(base % "/srcdir")); // Source retained...
+	CHECK(!entryAbsent(base % "/dest/srcdir")); // ...and the published destination is never rolled back
+}
+
+TEST_CASE("move executor: all-rename multi-root totals resolve only at the last root", "[moveexecutor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/a.bin", patternedContents(100));
+	writeTestFile(base % "/b.bin", patternedContents(200));
+	writeTestFile(base % "/c.bin", patternedContents(300));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	OperationScript script;
+	const auto summary = runMove(script, { base % "/a.bin", base % "/b.bin", base % "/c.bin" },
+		DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 3);
+	CHECK(summary.transferredBytes == 0);
+
+	// The first root's completion publishes with two roots still unresolved; once a total appears it is exact.
+	REQUIRE(!script.progress.empty());
+	CHECK(!script.progress.front().itemsTotal.has_value());
+	for (const ProgressSnapshot& snapshot : script.progress)
+	{
+		if (snapshot.itemsTotal.has_value())
+			CHECK(*snapshot.itemsTotal == 3);
+	}
+	REQUIRE(script.progress.back().itemsTotal.has_value());
+	CHECK(script.progress.back().itemsProcessed == 3);
+}

@@ -150,6 +150,18 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 		REQUIRE(!request.has_value());
 		CHECK(request.error() == RequestValidationError::InvalidPath);
 	}
+
+	SECTION("a filesystem root is rejected as a source")
+	{
+#ifdef _WIN32
+		const QString root = QStringLiteral("C:/");
+#else
+		const QString root = QStringLiteral("/");
+#endif
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { root }, base % "/existingDir");
+		REQUIRE(!request.has_value());
+		CHECK(request.error() == RequestValidationError::RootSource);
+	}
 }
 
 TEST_CASE("launch: deletion backend selection", "[fileoperationlaunch]")

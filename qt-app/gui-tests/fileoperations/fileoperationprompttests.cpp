@@ -221,6 +221,12 @@ TEST_CASE("prompt: rename controls and validation", "[fileoperationprompt]")
 		}
 	}
 
+	SECTION("a case-only respell is a real rename and enables the button")
+	{
+		edit->setText(QStringLiteral("SRC.BIN"));
+		CHECK(renameButton->isEnabled());
+	}
+
 	SECTION("a valid different name enables the button; surrounding whitespace is trimmed in the decision")
 	{
 		edit->setText(QStringLiteral("  renamed.bin  "));
@@ -309,6 +315,71 @@ TEST_CASE("prompt: wording", "[fileoperationprompt]")
 		auto* failureLabel = prompt.findChild<QLabel*>(QStringLiteral("lblFailure"));
 		CHECK(!failureLabel->isHidden());
 		CHECK(failureLabel->text().contains(QStringLiteral("failed")));
+	}
+
+	SECTION("the failure label format distinguishes ActionFailed from a raced failure")
+	{
+		// The ActionFailed headline already names the action, so the label carries only the reason.
+		CFileOperationPrompt failedPrompt{ makeRequest(IssueKind::ActionFailed, snapshot("src.bin", OperationEntryKind::RegularFile),
+			{}, ioFailure(FailedAction::WriteDestination)), PromptOperation::Copy };
+		CHECK(failedPrompt.findChild<QLabel*>(QStringLiteral("lblFailure"))->text().startsWith(QStringLiteral("Reason:")));
+
+		// A raced failure on another kind must name the failed action itself.
+		CFileOperationPrompt racedPrompt{ makeRequest(IssueKind::ReadOnlySourceRemoval, snapshot("src.bin", OperationEntryKind::RegularFile),
+			{}, ioFailure(FailedAction::RemoveEntry), false), PromptOperation::Move };
+		const QString racedText = racedPrompt.findChild<QLabel*>(QStringLiteral("lblFailure"))->text();
+		CHECK(!racedText.startsWith(QStringLiteral("Reason:")));
+		CHECK(racedText.contains(QStringLiteral(" failed: ")));
+	}
+
+	SECTION("the unsupported-entry question names the operation")
+	{
+		CFileOperationPrompt movePrompt{ makeRequest(IssueKind::UnsupportedEntry, snapshot("pipe", OperationEntryKind::Other)), PromptOperation::Move };
+		CHECK(questionOf(movePrompt).contains(QStringLiteral("moved")));
+
+		CFileOperationPrompt copyPrompt{ makeRequest(IssueKind::UnsupportedEntry, snapshot("pipe", OperationEntryKind::Other)), PromptOperation::Copy };
+		CHECK(questionOf(copyPrompt).contains(QStringLiteral("copied")));
+	}
+
+	SECTION("the read-only question explains source removal only for a move")
+	{
+		CFileOperationPrompt movePrompt{ makeRequest(IssueKind::ReadOnlySourceRemoval,
+			snapshot("src.bin", OperationEntryKind::RegularFile)), PromptOperation::Move };
+		CHECK(questionOf(movePrompt).contains(QStringLiteral("requires removing the source")));
+
+		CFileOperationPrompt deletePrompt{ makeRequest(IssueKind::ReadOnlySourceRemoval,
+			snapshot("src.bin", OperationEntryKind::RegularFile)), PromptOperation::Delete };
+		CHECK(questionOf(deletePrompt) == QStringLiteral("The file is read-only."));
+	}
+
+	SECTION("each issue kind carries its own scope label")
+	{
+		using enum IssueKind;
+		const struct
+		{
+			IssueKind kind;
+			QString expectedFragment;
+		} rows[] = {
+			{ FileReplacement, QStringLiteral("file collisions") },
+			{ RootDirectoryMerge, QStringLiteral("folder collisions") },
+			{ TypeMismatch, QStringLiteral("type mismatches") },
+			{ ReadOnlySourceRemoval, QStringLiteral("read-only items") },
+			{ UnsupportedEntry, QStringLiteral("unsupported entries") },
+		};
+
+		for (const auto& row : rows)
+		{
+			const bool hasDestination = row.kind == FileReplacement || row.kind == RootDirectoryMerge || row.kind == TypeMismatch;
+			const auto sourceKind = row.kind == RootDirectoryMerge ? OperationEntryKind::Directory : OperationEntryKind::RegularFile;
+			CFileOperationPrompt prompt{ makeRequest(row.kind, snapshot("src", sourceKind),
+				hasDestination ? std::optional{ snapshot("dest", sourceKind) } : std::nullopt), PromptOperation::Move };
+
+			INFO("IssueKind " << static_cast<int>(row.kind));
+			auto* checkbox = prompt.findChild<QCheckBox*>(QStringLiteral("scopeCheckBox"));
+			REQUIRE(checkbox != nullptr);
+			CHECK(!checkbox->isHidden());
+			CHECK(checkbox->text().contains(row.expectedFragment));
+		}
 	}
 
 	SECTION("committed-cleanup prompts spell out the Cancel consequences")

@@ -57,8 +57,6 @@ SOURCES += \
 	src/main.cpp \
 	src/cmainwindow.cpp \
 	src/panel/cpanelwidget.cpp \
-	src/progressdialogs/ccopymovedialog.cpp \
-	src/progressdialogs/cpromptdialog.cpp \
 	src/progressdialogs/cfileoperationprompt.cpp \
 	src/progressdialogs/cfileoperationdialog.cpp \
 	src/progressdialogs/fileoperationlaunch.cpp \
@@ -75,7 +73,6 @@ SOURCES += \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
 	src/panel/filelistwidget/cfilelistfilterdialog.cpp \
 	src/filessearchdialog/cfilessearchwindow.cpp \
-	src/progressdialogs/cdeleteprogressdialog.cpp \
 	src/aboutdialog/caboutdialog.cpp \
 	src/progressdialogs/progressdialoghelpers.cpp \
 	src/panel/cpaneldisplaycontroller.cpp \
@@ -84,9 +81,6 @@ SOURCES += \
 HEADERS += \
 	src/cmainwindow.h \
 	src/panel/cpanelwidget.h \
-	src/progressdialogs/ccopymovedialog.h \
-	src/progressdialogs/cfileoperationdialogbase.h \
-	src/progressdialogs/cpromptdialog.h \
 	src/progressdialogs/cfileoperationprompt.h \
 	src/progressdialogs/cfileoperationdialog.h \
 	src/progressdialogs/fileoperationlaunch.h \
@@ -104,7 +98,6 @@ HEADERS += \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.h \
 	src/panel/filelistwidget/cfilelistfilterdialog.h \
 	src/filessearchdialog/cfilessearchwindow.h \
-	src/progressdialogs/cdeleteprogressdialog.h \
 	src/tools/CFileStatsWindow.h \
 	src/version.h \
 	src/aboutdialog/caboutdialog.h \
@@ -114,8 +107,6 @@ HEADERS += \
 FORMS += \
 	src/cmainwindow.ui \
 	src/panel/cpanelwidget.ui \
-	src/progressdialogs/ccopymovedialog.ui \
-	src/progressdialogs/cpromptdialog.ui \
 	src/progressdialogs/cfileoperationprompt.ui \
 	src/progressdialogs/cfileoperationdialog.ui \
 	src/settings/csettingspageinterface.ui \
@@ -126,7 +117,6 @@ FORMS += \
 	src/favoritelocationseditor/cfavoritelocationseditor.ui \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
 	src/filessearchdialog/cfilessearchwindow.ui \
-	src/progressdialogs/cdeleteprogressdialog.ui \
 	src/aboutdialog/caboutdialog.ui
 
 

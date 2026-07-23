@@ -24,7 +24,6 @@ INCLUDEPATH += \
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 
-DEFINES += OPERATION_PERFORMER_CHUNK_SIZE=1024
 DEFINES += FILE_OPERATIONS_TEST_HOOKS
 
 # The replacement module under test, compiled directly from source.
@@ -43,30 +42,17 @@ SOURCES += \
 	moveexecutortests.cpp \
 	fileoperationjobtests.cpp \
 	inlinerenametests.cpp \
-	operationperformertest.cpp \
-	directorycollisiontests.cpp \
-	directorylinktests.cpp \
-	filelinktests.cpp \
-	movelifecycletests.cpp \
-	nativeerrortests.cpp \
-	timestamptransfertests.cpp \
 	../../src/filesystemhelperfunctions.cpp \
-	../../src/fileoperations/coperationperformer.cpp \
 	../../src/cfilesystemobject.cpp \
 	../../src/iconprovider/ciconprovider.cpp \
 	../../src/iconprovider/ciconproviderimpl.cpp \
 	../../src/directoryscanner.cpp \
-	../../src/cfilemanipulator.cpp \
 	../../src/filecomparator/cfilecomparator.cpp
 
 HEADERS += \
 	fileoperationtesthelpers.h \
-	operationperformertesthelpers.h \
-	../../src/fileoperations/coperationperformer.h \
-	../../src/fileoperations/operationcodes.h \
 	../../src/cfilesystemobject.h \
 	../../src/iconprovider/ciconprovider.h \
 	../../src/iconprovider/ciconproviderimpl.h \
 	../../src/directoryscanner.h \
-	../../src/cfilemanipulator.h \
 	../../src/filecomparator/cfilecomparator.h

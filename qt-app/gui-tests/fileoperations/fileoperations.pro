@@ -54,7 +54,6 @@ HEADERS += \
 	fileoperationguitesthelpers.h \
 	../../src/progressdialogs/cfileoperationprompt.h \
 	../../src/progressdialogs/cfileoperationdialog.h \
-	../../src/progressdialogs/cfileoperationdialogbase.h \
 	../../src/progressdialogs/fileoperationlaunch.h \
 	../../src/progressdialogs/progressdialoghelpers.h \
 	../../../file-commander-core/src/cfilesystemobject.h \

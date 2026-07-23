@@ -9,7 +9,7 @@
 #include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
-#include "fileoperationresultcode.h" // Was reached transitively through the now-removed cfilemanipulator.h
+#include "fileoperationresultcode.h"
 #include "fileoperations/inlinerename.h"
 #include "progressdialogs/progressdialoghelpers.h"
 #include "settings/csettings.h"

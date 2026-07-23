@@ -24,8 +24,6 @@ HEADERS += \
 	src/filesystemhelpers/filestatistics.h \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.h \
 	src/iconprovider/ciconprovider.h \
-	src/fileoperations/operationcodes.h \
-	src/fileoperations/coperationperformer.h \
 	src/shell/cshell.h \
 	include/settings.h \
 	src/favoritelocationslist/cfavoritelocations.h \
@@ -36,7 +34,6 @@ HEADERS += \
 	src/diskenumerator/volumeinfo.hpp \
 	src/diskenumerator/cvolumeenumerator.h \
 	src/diskenumerator/volumeinfohelper.hpp \
-	src/cfilemanipulator.h \
 	src/filecomparator/cfilecomparator.h \
 	src/filesystemhelpers/filesystemhelpers.hpp
 
@@ -49,13 +46,11 @@ SOURCES += \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.cpp \
 	src/iconprovider/ciconprovider.cpp \
 	src/iconprovider/ciconproviderimpl.cpp \
-	src/fileoperations/coperationperformer.cpp \
 	src/shell/cshell.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/filesearchengine/cfilesearchengine.cpp \
 	src/directoryscanner.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
-	src/cfilemanipulator.cpp \
 	src/filecomparator/cfilecomparator.cpp \
 	src/filesystemhelpers/filesystemhelpers.cpp
 

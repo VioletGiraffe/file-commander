@@ -610,6 +610,68 @@ TEST_CASE("delete executor: parent preservation after skipped content", "[delete
 	setFileReadOnly(base % "/root/sub/kept.bin", false);
 }
 
+TEST_CASE("delete executor: depth-3 partial propagation preserves every ancestor", "[deleteexecutor]")
+{
+	if (readOnlySemanticsUnavailable())
+		return;
+
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/root/mid/leaf"));
+	writeTestFile(base % "/root/mid/leaf/file.bin", patternedContents(10));
+	setFileReadOnly(base % "/root/mid/leaf/file.bin", true);
+	writeTestFile(base % "/root/mid/sibling.bin", patternedContents(20));
+
+	OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
+	const auto summary = runDelete(script, { base % "/root" });
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1); // Only sibling.bin
+	CHECK(summary.skippedItems == 1);
+	CHECK(summary.failedItems == 0);
+
+	// The skip makes leaf Partial, and Partial must climb the whole chain: every ancestor is retained.
+	CHECK(entryAbsent(base % "/root/mid/sibling.bin"));
+	CHECK(!entryAbsent(base % "/root/mid/leaf/file.bin"));
+	CHECK(!entryAbsent(base % "/root/mid/leaf"));
+	CHECK(!entryAbsent(base % "/root/mid"));
+	CHECK(!entryAbsent(base % "/root"));
+
+	setFileReadOnly(base % "/root/mid/leaf/file.bin", false);
+}
+
+#ifndef _WIN32
+TEST_CASE("delete executor: a read-only failure on a file link stays ActionFailed", "[deleteexecutor][link][readonly]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/target.bin", patternedContents(60));
+	REQUIRE(QFile::link(base % "/target.bin", base % "/thelink"));
+
+	// A ReadOnly-classified removal failure is only reinterpreted as the read-only policy question for a
+	// regular file; a link entry is never remediated, so the failure stays a plain ActionFailed.
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::RemoveEntry_Native, readOnlyCode);
+
+	OperationScript script{ .decisions = { act(DecisionAction::Retry) } };
+	const auto summary = runDelete(script, { base % "/thelink" });
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+
+	REQUIRE(script.seenRequests.size() == 1);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+	CHECK(script.seenRequests[0].allowedActions == allowedActionsFor(IssueKind::ActionFailed));
+
+	CHECK(entryAbsent(base % "/thelink"));
+	CHECK(readFileContents(base % "/target.bin") == patternedContents(60)); // The target was never touched
+}
+#endif
+
 TEST_CASE("delete executor: cancellation checkpoints", "[deleteexecutor]")
 {
 	QTemporaryDir tempDir;
@@ -685,4 +747,35 @@ TEST_CASE("delete executor: item-based progress and summary", "[deleteexecutor]"
 	CHECK(last.itemsProcessed == 4);
 	REQUIRE(last.bytesTotal.has_value());
 	CHECK(*last.bytesTotal == 0); // A delete moves no bytes
+}
+
+TEST_CASE("delete executor: multi-root totals stay absent until every root is scanned", "[deleteexecutor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/rootA/sub"));
+	writeTestFile(base % "/rootA/a.bin", patternedContents(10));
+	writeTestFile(base % "/rootA/sub/b.bin", patternedContents(20));
+	REQUIRE(QDir{}.mkpath(base % "/rootB"));
+	writeTestFile(base % "/rootB/c.bin", patternedContents(30));
+	writeTestFile(base % "/rootB/d.bin", patternedContents(40));
+	writeTestFile(base % "/rootB/e.bin", patternedContents(50));
+
+	OperationScript script;
+	const auto summary = runDelete(script, { base % "/rootA", base % "/rootB" });
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 8);
+
+	// One root's manifest alone must never publish as the exact total; once present, it is the full 8.
+	REQUIRE(!script.progress.empty());
+	CHECK(!script.progress.front().itemsTotal.has_value());
+	for (const ProgressSnapshot& snapshot : script.progress)
+	{
+		if (snapshot.itemsTotal.has_value())
+			CHECK(*snapshot.itemsTotal == 8);
+	}
+	REQUIRE(script.progress.back().itemsTotal.has_value());
 }

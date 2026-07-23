@@ -13,6 +13,10 @@
 #include <random>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#include <crtdbg.h>
+#endif
+
 uint32_t g_randomSeed = []{
 	std::random_device rd;
 	return std::uniform_int_distribution<uint32_t>{0, uint32_max}(rd);
@@ -39,6 +43,13 @@ int main(int argc, char* argv[])
 		return returnCode;
 
 	srand(g_randomSeed);
+
+#if defined _WIN32 && defined _DEBUG
+	// Some tests deliberately exercise recoverable-assert failure paths (e.g. submitDecision rejecting an
+	// illegal action); the CRT assert must report to stderr instead of opening an interactive dialog.
+	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+#endif
 
 	// A hook violation is a test-logic error; make it fail the test that caused it rather than only logging to stderr.
 	OperationTestHooks::CFaultHookScope::setViolationReporter([](const std::string& message) {

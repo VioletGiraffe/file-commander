@@ -56,7 +56,7 @@ QString speedText(const uint64_t primaryUnitsPerSecond, const PrimaryProgressUni
 
 CFileOperationDialog::CFileOperationDialog(FileOperationRequest request, std::function<QPoint()> backgroundAnchorProvider,
 	QWidget* parent, const uint64_t transferChunkSize) :
-	CFileOperationDialogBase(parent, Qt::Window),
+	QWidget(parent, Qt::Window),
 	ui(new Ui::CFileOperationDialog),
 	_operation(operationFromRequest(request)),
 	_primaryUnit(unitFromRequest(request)),
@@ -294,7 +294,7 @@ void CFileOperationDialog::switchToBackground()
 
 	if (!_backgroundAnchorProvider)
 	{
-		_isInBackroundMode = true;
+		_isInBackgroundMode = true;
 		return;
 	}
 
@@ -303,7 +303,7 @@ void CFileOperationDialog::switchToBackground()
 		adjustSize(); // Shrink to fit now that the per-file detail widgets are hidden
 		const QPoint anchor = _backgroundAnchorProvider(); // Bottom-left corner
 		move(anchor.x(), anchor.y() - height());
-		_isInBackroundMode = true;
+		_isInBackgroundMode = true;
 	}, Qt::QueuedConnection);
 }
 

@@ -13,6 +13,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QEventLoop>
 #include <QFile>
 #include <QLabel>
+#include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QStringBuilder>
@@ -251,7 +252,58 @@ TEST_CASE("dialog: background mode repositions to the injected anchor", "[fileop
 	// The reposition is posted through a queued call; let it run.
 	REQUIRE(pumpUntil([&dialog] { return dialog.isInBackgroundMode(); }, 2s));
 	CHECK(dialog.x() == anchor.x());
+	CHECK(dialog.y() + dialog.height() == anchor.y()); // The anchor is the bottom-left corner
 	CHECK(dialog.findChild<QPushButton*>(QStringLiteral("_btnBackground"))->isHidden());
+}
+
+TEST_CASE("dialog: the cancel confirmation blocks decision presentation until dismissed", "[fileoperationdialog]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeFile(base % "/src.bin", blob(700));
+	writeFile(base % "/dest.bin", blob(50)); // Collides: the worker will block awaiting a decision
+
+	ScriptedDialog dialog{ copyOnto(base % "/src.bin", base % "/dest.bin"), {}, nullptr, 1024 };
+	dialog.scriptedDecisions = { Decision{ DecisionAction::Skip, DecisionScope::ThisItem, {} } };
+	dialog.start();
+
+	// Draining is driven manually from here so the prompt cannot be presented before the confirmation opens.
+	auto* eventTimer = dialog.findChild<QTimer*>(QStringLiteral("eventTimer"));
+	REQUIRE(eventTimer != nullptr);
+	eventTimer->stop();
+
+	// The worker needs no main-thread service to reach its decision wait and queue the request.
+	std::this_thread::sleep_for(std::chrono::milliseconds{ 300 });
+
+	int drainAttemptsDuringConfirm = 0;
+	QTimer poller;
+	poller.setInterval(25);
+	QObject::connect(&poller, &QTimer::timeout, &poller, [&] {
+		auto* box = dialog.findChild<QMessageBox*>();
+		if (box == nullptr || !box->isVisible())
+			return;
+		dialog.drainEvents(); // Must be swallowed by the guard while the confirmation is up
+		if (++drainAttemptsDuringConfirm >= 3)
+		{
+			poller.stop();
+			box->button(QMessageBox::No)->click();
+		}
+	});
+	poller.start();
+
+	dialog.findChild<QPushButton*>(QStringLiteral("_btnCancel"))->click(); // Spins the confirmation's nested loop
+
+	CHECK(drainAttemptsDuringConfirm >= 3);
+	CHECK(dialog.decisionRequestsPresented == 0); // The queued prompt never surfaced over the confirmation
+	CHECK(!dialog.result().has_value());
+
+	// With the confirmation declined, draining presents the pending prompt and the operation finishes.
+	REQUIRE(pumpUntil([&dialog] { dialog.drainEvents(); return dialog.result().has_value(); }));
+	CHECK(dialog.decisionRequestsPresented == 1);
+	CHECK(dialog.result()->status == CompletionStatus::Completed);
+	CHECK(dialog.result()->skippedItems == 1);
+	CHECK(readFile(base % "/dest.bin") == blob(50)); // Skip left the destination untouched
 }
 
 TEST_CASE("dialog: two operations run simultaneously", "[fileoperationdialog]")
@@ -318,6 +370,24 @@ TEST_CASE("dialog: completion text summarizes the outcome", "[fileoperationdialo
 
 		const QString text = CFileOperationDialog::composeSummaryText(summary, PromptOperation::Move);
 		CHECK(text.contains(QStringLiteral("stuck.bin")));
+		CHECK(text.contains(QStringLiteral("access denied")));
+	}
+
+	SECTION("representative warnings are listed with the affected entry and reason")
+	{
+#ifdef _WIN32
+		const CEntryPath warnedEntry = entryPath(QStringLiteral("C:/somewhere/slowdir"));
+#else
+		const CEntryPath warnedEntry = entryPath(QStringLiteral("/somewhere/slowdir"));
+#endif
+		OperationSummary summary{ .status = CompletionStatus::Completed, .completedItems = 3, .warningCount = 1 };
+		summary.representativeWarnings.push_back(OperationDiagnostic{
+			FailureDetails{ FailedAction::PreserveDirectoryTimestamps, CFileSystemError{ FileErrorCategory::PermissionDenied, 5, {} } },
+			EntrySnapshot{ warnedEntry, OperationEntryKind::Directory, 0 }, {} });
+
+		const QString text = CFileOperationDialog::composeSummaryText(summary, PromptOperation::Copy);
+		CHECK(text.contains(QStringLiteral("1 warnings")));
+		CHECK(text.contains(QStringLiteral("slowdir")));
 		CHECK(text.contains(QStringLiteral("access denied")));
 	}
 }

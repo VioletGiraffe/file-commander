@@ -562,6 +562,81 @@ TEST_CASE("copy executor: warnings beyond the representative cap keep an exact c
 	CHECK(script.seenRequests.empty()); // Warnings never await a decision
 }
 
+TEST_CASE("copy executor: a failed staging cleanup is a warning, not a failure", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/a.bin", patternedContents(500));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::StagedCopy_WriteStaging_Native, ioFailureCode);
+	hooks.forceNativeError(Point::StagedCopy_RemoveStaging_Native, accessDeniedCode);
+
+	OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
+	const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.skippedItems == 1);
+	CHECK(summary.failedItems == 0);
+	CHECK(summary.warningCount == 1);
+	REQUIRE(summary.representativeWarnings.size() == 1);
+	CHECK(summary.representativeWarnings[0].failure.action == FailedAction::CleanupStaging);
+
+	REQUIRE(script.seenRequests.size() == 1); // Only the write failure asked; the cleanup failure never does
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+	CHECK(stagingFileCount(base % "/dest") == 1); // The staging file the failed cleanup left behind
+}
+
+TEST_CASE("copy executor: a missing source root prompts and skips", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
+	const auto summary = runCopy(script, { base % "/ghost.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.skippedItems == 1);
+	CHECK(summary.completedItems == 0);
+
+	REQUIRE(script.seenRequests.size() == 1);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+	REQUIRE(script.seenRequests[0].issue.failure.has_value());
+	CHECK(script.seenRequests[0].issue.failure->action == FailedAction::InspectSource);
+	CHECK(script.seenRequests[0].issue.failure->filesystemError.category == FileErrorCategory::NotFound);
+}
+
+TEST_CASE("copy executor: skipping a scanned directory counts its whole subtree", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/src/A/C"));
+	writeTestFile(base % "/src/A/b.bin", patternedContents(100));
+	writeTestFile(base % "/src/A/C/d.bin", patternedContents(200));
+	REQUIRE(QDir{}.mkpath(base % "/dest/src"));
+	writeTestFile(base % "/dest/src/A", patternedContents(10)); // A file occupying the incoming directory's name
+
+	OperationScript script{ .decisions = { act(DecisionAction::Merge), act(DecisionAction::Skip) } };
+	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1); // The merged root directory
+	CHECK(summary.skippedItems == 4); // A, b.bin, C, d.bin - the whole scanned subtree, not one item
+
+	REQUIRE(script.seenRequests.size() == 2);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::RootDirectoryMerge);
+	CHECK(script.seenRequests[1].issue.kind == IssueKind::TypeMismatch);
+	CHECK(readFileContents(base % "/dest/src/A") == patternedContents(10)); // The occupying file is untouched
+	CHECK(readFileContents(base % "/src/A/C/d.bin") == patternedContents(200));
+}
+
 TEST_CASE("copy executor: cancellation", "[executor]")
 {
 	QTemporaryDir tempDir;

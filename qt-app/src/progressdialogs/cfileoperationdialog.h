@@ -1,11 +1,11 @@
 #pragma once
 
-#include "cfileoperationdialogbase.h"
 #include "cfileoperationprompt.h" // PromptOperation
 #include "fileoperations/cfileoperationjob.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QPoint>
+#include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
@@ -24,7 +24,7 @@ class QTimer;
 // It never depends on CMainWindow: the background-stacking anchor is injected as a provider, because the
 // main window is a collaborator (not a base) and because the component tests construct the dialog without
 // an application. Decision presentation is a protected virtual so a test can answer without a modal loop.
-class CFileOperationDialog : public CFileOperationDialogBase, private CFileOperationListener
+class CFileOperationDialog : public QWidget, private CFileOperationListener
 {
 public:
 	// backgroundAnchorProvider returns the bottom-left corner the next backgrounded dialog should occupy;
@@ -53,6 +53,8 @@ public:
 	void requestCancellation();
 
 	void setPaused(bool paused);
+
+	[[nodiscard]] bool isInBackgroundMode() const noexcept { return _isInBackgroundMode; }
 
 protected:
 	// Presents one decision request and returns the user's choice. The production path shows a modal
@@ -91,5 +93,6 @@ private:
 	QTimer* _eventTimer = nullptr;
 	bool _draining = false; // A modal prompt spins a nested loop; the timer must not re-enter the drain
 	bool _paused = false;
+	bool _isInBackgroundMode = false;
 	std::optional<OperationSummary> _result;
 };

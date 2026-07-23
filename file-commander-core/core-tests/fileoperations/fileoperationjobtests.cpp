@@ -383,6 +383,72 @@ TEST_CASE("job: decision flow", "[fileoperationjob]")
 	}
 }
 
+TEST_CASE("job: a decision outside the delivered request is rejected", "[fileoperationjob]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/src.bin", patternedContents(700));
+	writeTestFile(base % "/dest.bin", patternedContents(50));
+
+	CFileOperationJob job{ transferRequest(TransferKind::Copy, { base % "/src.bin" }, DestinationIntent::ExactEntry, base % "/dest.bin"), 1024 };
+	job.start();
+	REQUIRE(waitUntil([&job] { return job.hasPendingDecision(); }));
+
+	// FileReplacement never offers Merge; the rejection logs a recoverable assert and answers nothing.
+	CHECK(!job.submitDecision(act(DecisionAction::Merge)));
+	CHECK(job.hasPendingDecision()); // The prompt is still live and answerable
+
+	CHECK(job.submitDecision(act(DecisionAction::Skip)));
+
+	JobDriver driver{ job };
+	driver.autoCancelUnscripted = false; // The queued request event is already answered; its dispatch is not a hang
+	REQUIRE(driver.pumpToCompletion());
+	CHECK(driver.summary()->status == CompletionStatus::Completed);
+	CHECK(driver.summary()->skippedItems == 1);
+	CHECK(readFileContents(base % "/dest.bin") == patternedContents(50));
+}
+
+TEST_CASE("job: progress after a decision barrier is not merged into earlier snapshots", "[fileoperationjob]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/src1.bin", patternedContents(500));
+	writeTestFile(base % "/src2.bin", patternedContents(300'000));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+	writeTestFile(base % "/dest/src1.bin", patternedContents(10)); // Collides: the prompt is the barrier
+
+	CFileOperationJob job{ transferRequest(TransferKind::Copy, { base % "/src1.bin", base % "/src2.bin" },
+		DestinationIntent::IntoDirectory, base % "/dest"), 1024 };
+	JobDriver driver{ job };
+	driver.decisions = { act(DecisionAction::Replace) };
+
+	job.start();
+	REQUIRE(driver.pumpToCompletion());
+	CHECK(driver.summary()->status == CompletionStatus::Completed);
+	CHECK(driver.summary()->completedItems == 2);
+
+	size_t requestIndex = driver.events.size();
+	for (size_t i = 0; i < driver.events.size(); ++i)
+	{
+		if (std::holds_alternative<DecisionRequest>(driver.events[i]))
+		{
+			requestIndex = i;
+			break;
+		}
+	}
+	REQUIRE(requestIndex < driver.events.size());
+
+	// The second file's progress must appear as entries after the barrier, never coalesced across it.
+	bool progressAfterRequest = false;
+	for (size_t i = requestIndex + 1; i < driver.events.size(); ++i)
+		progressAfterRequest = progressAfterRequest || std::holds_alternative<ProgressSnapshot>(driver.events[i]);
+	CHECK(progressAfterRequest);
+}
+
 TEST_CASE("job: progress coalescing and barrier ordering", "[fileoperationjob]")
 {
 	QTemporaryDir tempDir;

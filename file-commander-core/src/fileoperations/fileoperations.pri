@@ -1,7 +1,6 @@
-# Single source manifest for the replacement file-operation module.
+# Single source manifest for the file-operation module.
 # Included from file-commander-core.pro and from the direct-source test project core-tests/fileoperations,
 # so every module source is listed exactly once.
-# The frozen old engine (coperationperformer.*, operationcodes.h, cfilemanipulator.*) is deliberately not listed here.
 
 HEADERS += \
 	$$PWD/fileoperationtypes.h \
