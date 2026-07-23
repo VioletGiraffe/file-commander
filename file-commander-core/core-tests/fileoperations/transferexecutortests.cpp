@@ -573,7 +573,8 @@ TEST_CASE("copy executor: a failed staging cleanup is a warning, not a failure",
 
 	CFaultHookScope hooks;
 	hooks.forceNativeError(Point::StagedCopy_WriteStaging_Native, ioFailureCode);
-	hooks.forceNativeError(Point::StagedCopy_RemoveStaging_Native, accessDeniedCode);
+	// Not a PermissionDenied-class code: that one the cleanup remediates (make writable, retry) and succeeds.
+	hooks.forceNativeError(Point::StagedCopy_RemoveStaging_Native, ioFailureCode);
 
 	OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
 	const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
