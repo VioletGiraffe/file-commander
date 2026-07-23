@@ -367,14 +367,22 @@ jobs:
         drive-letter: 'R'   # Optional: Default is R
         copy-workspace: false # Optional: Default is false
 
-    - name: Make temp folder on RAM disk
+    - name: Second RAM disk and temp folders
       if: startsWith(matrix.os, 'windows')
       shell: pwsh
       run: |
+        # Fail the step if imdisk does (pwsh otherwise propagates only the last command's exit code)
+        $PSNativeCommandUseErrorActionPreference = $true
+        $ErrorActionPreference = 'Stop'
+        # The action above leaves ImDisk in System32, so a second RAM disk is one command. S: has to be a
+        # volume genuinely distinct from R: - that is the whole point of the cross-volume tests.
+        imdisk -a -s 128M -m S: -p "/FS:NTFS /Q /Y"
         New-Item -Path R:\Temp -ItemType Directory -Force
+        New-Item -Path S:\Temp -ItemType Directory -Force
         echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
         echo "TMP=R:\\Temp"  >> $env:GITHUB_ENV
         echo "TMPDIR=R:\\Temp" >> $env:GITHUB_ENV
+        echo "FILE_COMMANDER_TEST_SECOND_VOLUME=S:\\Temp" >> $env:GITHUB_ENV
 
     - name: Running tests - Windows
       if: startsWith(matrix.os, 'windows')

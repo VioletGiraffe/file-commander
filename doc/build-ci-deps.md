@@ -60,8 +60,10 @@ Triggers: push, pull_request, workflow_dispatch. Matrix (`fail-fast: false`): `u
 - **Build + run core tests** (when `tests_relevant`): `fso_test`, `fso_test_high_level`,
   `fileoperations_test` **x20 with random `--std-seed`**, `filecomparator_test` (random seed), and
   `fileoperations_gui_test` (the dialog/prompt/launch/routing GUI suite; Linux runs it with
-  `QT_QPA_PLATFORM=offscreen`). Windows runs the file-operation tests against a **512 MB RAM disk (R:)** set
-  as TEMP/TMP (see the test table below). The Windows step runs under **`pwsh` with
+  `QT_QPA_PLATFORM=offscreen`). Windows mounts **two ImDisk RAM disks**: **R:** (512 MB) backs TEMP/TMP, and
+  **S:** (128 MB) is exported as `FILE_COMMANDER_TEST_SECOND_VOLUME` so the cross-volume tests get a genuinely
+  different filesystem. Only the first is created by the `setup-ramdisk` action; it leaves `imdisk` in
+  System32, so the second costs one command (see the test table below). The Windows step runs under **`pwsh` with
   `$PSNativeCommandUseErrorActionPreference = $true`**: without it PowerShell propagates only the *last*
   command's exit code, so a test failing before the final one leaves the step green — this exact hole hid
   failing tests until it was fixed.
@@ -80,7 +82,7 @@ Core tests: `file-commander-core/core-tests/` (`core-tests.pro` aggregates sub-`
 |------|--------|-------|
 | `fso_test` | `filesystemobject/fso_test.cpp` | Uses `QFileInfo_Test`/`QDir_Test` mocks (`CFILESYSTEMOBJECT_TEST`). `qdir_test.*`, `qfileinfo_test.*`. |
 | `fso_test_high_level` | `filesystemobject-high-level/fso_test_high_level.cpp` | Real filesystem. |
-| `fileoperations_test` | `fileoperations/*.cpp` | The whole file-operation engine: path/error types, mutator & staged copy, resolver, tree builder, transfer/delete/move executors, job, inline rename, hooks. Stress: 20x random seed; RAM disk on Windows CI. Compiled with `FILE_OPERATIONS_TEST_HOOKS`. Link tests create junctions on Windows via `mklink /J` — no admin needed, unlike symlinks. |
+| `fileoperations_test` | `fileoperations/*.cpp` | The whole file-operation engine: path/error types, mutator & staged copy, resolver, tree builder, transfer/delete/move executors, job, inline rename, hooks. Stress: 20x random seed. Compiled with `FILE_OPERATIONS_TEST_HOOKS`. Link tests create junctions on Windows via `mklink /J` — no admin needed, unlike symlinks. The cross-volume case needs a real second filesystem: it skips with a WARN unless `FILE_COMMANDER_TEST_SECOND_VOLUME` points at a directory on one, so only Windows CI currently runs it. |
 | `fileoperations_gui_test` | `qt-app/gui-tests/fileoperations/*.cpp` | The Qt file-operation UI: typed prompt, the real-job dialog, launch policy, and production-routing integration. Linux runs it with `QT_QPA_PLATFORM=offscreen`. Also built with `FILE_OPERATIONS_TEST_HOOKS`. |
 | `filecomparator_test` | `filecomparator/filecomparator_test.cpp` | Random seed. |
 

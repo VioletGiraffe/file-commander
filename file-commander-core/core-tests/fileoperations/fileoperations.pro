@@ -40,6 +40,7 @@ SOURCES += \
 	transferexecutortests.cpp \
 	deleteexecutortests.cpp \
 	moveexecutortests.cpp \
+	crossvolumetests.cpp \
 	fileoperationjobtests.cpp \
 	inlinerenametests.cpp \
 	../../src/filesystemhelperfunctions.cpp \
