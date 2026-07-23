@@ -100,8 +100,6 @@ public:
 	[[nodiscard]] time_t creationTime() const;
 	[[nodiscard]] time_t modificationTime() const;
 
-	[[nodiscard]] bool isMovableTo(const CFileSystemObject& dest) const;
-
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);
 
@@ -117,8 +115,8 @@ private:
 	static constexpr auto invalid_time = std::numeric_limits<time_t>::max();
 	mutable time_t _creationDate = invalid_time;
 	mutable time_t _modificationDate = invalid_time;
-	// Can be used to determine whether two objects are on the same drive
 	QFileInfo                   _fileInfo;
+	// Lazily resolved device id of the containing filesystem; identifies which volume the object is on
 	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 };
 

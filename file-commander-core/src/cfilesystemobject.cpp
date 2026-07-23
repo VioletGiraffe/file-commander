@@ -421,19 +421,6 @@ time_t CFileSystemObject::modificationTime() const
 	return _modificationDate;
 }
 
-bool CFileSystemObject::isMovableTo(const CFileSystemObject& dest) const
-{
-	if (!isValid() || !dest.isValid())
-		return false;
-
-	// A rename moves a link entry itself, so for a link the deciding device is that of the directory holding it,
-	// not of its target. The destination is the opposite: the moved entry ends up wherever the destination resolves to.
-	const auto fileSystemId = isLink() ? CFileSystemObject(parentDirPath()).rootFileSystemId() : rootFileSystemId();
-	const auto otherFileSystemId = dest.rootFileSystemId();
-
-	return fileSystemId == otherFileSystemId && fileSystemId != uint64_max;
-}
-
 // A hack to store the size of a directory after it's calculated
 void CFileSystemObject::setDirSize(uint64_t size)
 {

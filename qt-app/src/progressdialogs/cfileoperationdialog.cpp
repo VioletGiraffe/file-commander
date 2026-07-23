@@ -298,7 +298,8 @@ void CFileOperationDialog::switchToBackground()
 		return;
 	}
 
-	// TODO: why the need for QueuedConnection here? Inherited from the dialogs this one replaces.
+	// Queued: hiding the detail widgets only posts a deferred LayoutRequest, so an adjustSize() in this
+	// stack would measure the not-yet-relaid-out size.
 	QMetaObject::invokeMethod(this, [this] {
 		adjustSize(); // Shrink to fit now that the per-file detail widgets are hidden
 		const QPoint anchor = _backgroundAnchorProvider(); // Bottom-left corner

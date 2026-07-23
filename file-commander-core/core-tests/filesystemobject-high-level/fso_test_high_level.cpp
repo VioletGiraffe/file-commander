@@ -51,7 +51,7 @@ TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 #endif
 }
 
-TEST_CASE("isMovableTo for a non-existent destination path", "[CFileSystemObject]")
+TEST_CASE("rootFileSystemId for a non-existent path", "[CFileSystemObject]")
 {
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
@@ -59,14 +59,11 @@ TEST_CASE("isMovableTo for a non-existent destination path", "[CFileSystemObject
 	const CFileSystemObject existingDir{ tempDir.path() };
 	REQUIRE(existingDir.exists());
 
-	// A destination that doesn't exist yet, nested inside the existing temp dir (e.g. a move target folder still to be created)
 	const CFileSystemObject nonExistentChild{ tempDir.path() + "/does_not_exist/child.txt" };
 	REQUIRE(!nonExistentChild.exists());
 
-	// Regression: rootFileSystemId() used to read uninitialized memory for a non-existent path and return a garbage device ID.
-	// It must resolve to the device of the nearest existing ancestor, so moving into a not-yet-created subfolder of the same
-	// volume is recognized as a same-drive move rather than a cross-device copy.
+	// Regression: rootFileSystemId() used to read uninitialized memory for a non-existent path and return a garbage
+	// device ID. It must resolve to the device of the nearest existing ancestor.
 	CHECK(existingDir.rootFileSystemId() == nonExistentChild.rootFileSystemId());
-	CHECK(existingDir.isMovableTo(nonExistentChild));
 }
 

@@ -57,10 +57,6 @@ TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.isMovableTo(CFileSystemObject{}) == false);
-	}
-
-	SECTION_WITH_AUTO_NAME {
 		CHECK(fso.isNetworkObject() == false);
 	}
 
