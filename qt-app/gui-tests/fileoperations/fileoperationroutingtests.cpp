@@ -17,7 +17,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <Windows.h> // ERROR_* codes
+#else
 #include <errno.h>
 #endif
 
