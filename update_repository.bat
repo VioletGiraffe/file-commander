@@ -1,7 +1,7 @@
 REM Update the main repo
 git checkout master
-git fetch
-git pull
+git fetch origin master
+git pull origin master
 
 REM Init the subrepos
 git submodule update --init --recursive
