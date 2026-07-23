@@ -21,7 +21,9 @@ segment of its matching translation unit; pure-interface/enum/data-structure hea
 (`fileoperationresultcode.h`, `detail/*.h`, `diskenumerator/*.hpp`, `columns.h`, `version.h`) go with their
 owning segment. In-scope but not named individually
 above: plugin-interface bases `cfilecommander{plugin,toolplugin,viewerplugin}.cpp` + the viewer
-window/widget sources -> H; `iconprovider/ciconprovider.cpp` (facade over the impl) -> I.
+window/widget sources -> H; `iconprovider/ciconprovider.cpp` (facade over the impl) -> I; the
+`fileoperations/` fault-injection seam `operationtesthooks.cpp` + the header-only `thiniobridge.h`
+adapter -> A.
 
 **Deliberately outside A-J — review as separate buckets, like the submodules:**
 - Submodules: `qtutils cpputils cpp-template-utils thin_io text-encoding-detector image-processing github-releases-autoupdater`.
