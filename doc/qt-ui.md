@@ -25,9 +25,11 @@ nearly every menu/toolbar/shortcut action is a private method here.
   (`_leftPanelDisplayController`, `_rightPanelDisplayController`). "current" vs "other" follow focus, not side.
 - `initCore` wires the controller to the widgets; `initButtons`/`initActions` build the command set;
   `updateInterface` applies settings.
-- **File-op slots:** `copySelectedFiles`/`moveSelectedFiles` (build FSO list + dest, hand to
-  `copyFiles`/`moveFiles` -> a progress dialog driving a `COperationPerformer`), `deleteFiles`/
-  `deleteFilesIrrevocably`, `createFolder`/`createFile`.
+- **File-op slots:** `copySelectedFiles`/`moveSelectedFiles` (via `launchFileTransfer`) and `deleteFiles`/
+  `deleteFilesIrrevocably` (via `performDeletion`) gather the selected FSOs + destination, run them through
+  the launch boundary (`progressdialogs/fileoperationlaunch`) to build a typed request, and hand it to a
+  `CFileOperationDialog`. Delete also picks a backend (`deletionBackendFor`): native trash / native shell
+  delete where the OS provides it, otherwise the internal job. Plus `createFolder`/`createFile`.
 - **Other commands:** `viewFile`/`editFile`/`quickViewCurrentFile`/`toggleQuickView`, `invertSelection`,
   `filterItemsByName`, `refresh`, `findFiles`, `showHiddenFiles`, `showAllFilesFromCurrentFolderAndBelow`,
   `openSettingsDialog`, `calculateStatistics`, `calculateEachFolderSize`, `checkForUpdates` (github auto
@@ -40,7 +42,8 @@ nearly every menu/toolbar/shortcut action is a private method here.
   `CPluginProxy::MenuTree` into the Commands menu.
 - **Window title (#143):** `updateWindowTitleWithCurrentFolderNames`.
 - **Background file-op dialogs:** registered in `_activeFileOperationDialogs`; `nextBackgroundDialogPosition`
-  cascades them; `onFileDialogFinished` cleans up.
+  cascades them; each dialog self-disposes when finished/dismissed and `onFileDialogFinished` drops it from
+  the list.
 - A `QTimer _uiThreadTimer` -> `uiThreadTimerTick()` -> `CController::uiThreadTimerTick()` (drains UI queue,
   polls watchers/volumes). See [threading.md](threading.md).
 
@@ -104,12 +107,17 @@ the panel, page 1 is a plugin viewer window. `startQuickView(WindowPtr<CPluginWi
 
 ## Dialogs & windows
 
-- **`progressdialogs/`** — `CCopyMoveDialog` (drives + observes a `COperationPerformer`),
-  `CDeleteProgressDialog`, `CPromptDialog` (the file-exists / read-only / error prompt; returns a
-  `UserResponse`), `CFileOperationConfirmationPrompt`, `progressdialoghelpers`. Cancellation confirmation
-  pauses copy/move/delete work; declining restores the prior pause state, while confirming signals
-  cancellation without first resuming filesystem mutations. Common base
-  `CFileOperationDialogBase` (registered with `CMainWindow` for background cascading).
+- **`progressdialogs/`** — the file-operation UI. `fileoperationlaunch` is the launch boundary (panel
+  selection + edited destination -> a typed request; chooses the destination intent and the deletion
+  backend). `CFileOperationDialog` is the **one** progress dialog for copy, move, and permanent delete: it
+  owns a `CFileOperationJob`, drains its event queue on a timer, and renders scanning / progress / completion;
+  a decision is presented through the modal `CFileOperationPrompt` (file-exists / read-only / type-mismatch /
+  error, returning a `Decision`). The dialog **manages its own lifetime** — it removes itself once finished
+  and off-screen (dismissed while running, or backgrounded and finished cleanly), returns a
+  finished-with-problems background op to the foreground, and deletes on close. Cancellation confirmation
+  pauses the work; declining restores the prior pause state, confirming signals cancellation without first
+  resuming. `CFileOperationConfirmationPrompt` is the pre-operation copy/move confirmation;
+  `progressdialoghelpers` formats sizes and diagnostics.
 - **`settings/`** — 4 pages implementing a `SettingsPage` interface (from qtutils `CSettingsDialog`):
   `CSettingsPageInterface`, `CSettingsPageEdit`, `CSettingsPageOperations`, `CSettingsPageOther`.
 - **`favoritelocationseditor/`** — `CFavoriteLocationsEditor` + `CNewFavoriteLocationDialog`.

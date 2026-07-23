@@ -12,9 +12,9 @@ Nothing here is known to break the app at runtime except where stated.
 
 ## Cosmetic / harmless-but-note
 
-- **Misspelled settings key:** `KEY_PROMPT_DIALOG_GEOMETRY = "Internal/Interface/PropmptDialog/Geometry"`
-  ("Propmpt"). Harmless (it's an internal key, consistent with itself). **Do not "fix" it** — renaming
-  orphans users' saved dialog geometry. (settings.h.)
+- **Dead settings key:** `KEY_PROMPT_DIALOG_GEOMETRY` (note the "Propmpt" misspelling) belonged to the
+  removed `CPromptDialog`; its replacement prompt does not persist geometry, so the key is now unused. Left
+  in `settings.h` (harmless); a future cleanup could drop it.
 - **Doc vs build C++ standard:** README says "C++20 minimum", but `global.pri` forces `c++2b` (C++23) and
   MSVC `/std:c++latest`. The real floor is higher than documented. Not a bug; update the README if it
   matters.
@@ -47,9 +47,10 @@ Nothing here is known to break the app at runtime except where stated.
   dangles. The only hazard would be a future refactor that *stores* the reference beyond the call.
 - **`CFileSystemObject::isWriteable()` returns false for non-existing files** (documented in the header).
   Gotcha for callers that test writability of a not-yet-created path — check the parent dir instead.
-- **`CFileOperationObserver`** declares pure-virtual `onXxx` callbacks *and* a non-virtual `processEvents`.
-  Not a contradiction: the worker thread enqueues via the private `onXxxCallback` buffer; `processEvents`
-  (UI thread) replays them into the public virtuals. See [threading.md](threading.md).
+- **The file-operation executors are fully synchronous and block freely** — including blocking the worker on
+  the user's decision (`resolveDecision`) and on pause. Intended: they run on `CFileOperationJob`'s worker
+  thread, never on the UI thread, and reach the UI only by queuing events the dialog drains. Don't "fix" them
+  into async/non-blocking form. See [threading.md](threading.md).
 
 ## Two-phase init patterns to be aware of
 

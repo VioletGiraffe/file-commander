@@ -74,7 +74,7 @@ without going through `CController` getters.
 - Core->UI notification is via **listener/observer interfaces**, not Qt signals (so the core stays
   widget-agnostic and a notification can be consumed/stop-propagating). Key interfaces:
   `PanelContentsChangedListener`, `CursorPositionListener`, `CurrentPathChangedListener`,
-  `CController::IVolumeListObserver`, `CFileOperationObserver`, `FileListViewEventObserver`.
+  `CController::IVolumeListObserver`, `CFileOperationListener`, `FileListViewEventObserver`.
 - Worker-thread results are marshaled back to the UI thread via `CExecutionQueue` drained on a UI timer.
 - `DISABLE_COMPILER_WARNINGS` / `RESTORE_COMPILER_WARNINGS` wrap Qt/3rdparty includes (from cpputils).
 - Per-OS code is selected at compile time via `#ifdef _WIN32` etc. and `win*{}`/`mac*{}`/`linux*{}` qmake scopes.

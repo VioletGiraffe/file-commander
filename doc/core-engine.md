@@ -86,92 +86,102 @@ Wrapper around `QFileInfo` for one file/dir/bundle. Carries a `CFileSystemObject
 `UnknownType/Directory/File/Bundle`.
 
 - Rich predicates: `isFile/isDir/isBundle/isEmptyDir/isCdUp/isExecutable/isReadable/isWriteable/isHidden/
-  isLink/isSymLink/isNetworkObject`, `symLinkTarget`, `rootFileSystemId` (same-drive test), `isMovableTo`.
+  isLink/isSymLink/isNetworkObject`, `symLinkTarget`, `rootFileSystemId` (which volume the entry is on).
 - **Links are the sharp edge.** Qt's *classification* calls (`isDir/isFile/exists/size`) transparently
   follow a symlink/junction to its target and that cannot be turned off — a dir link classifies as
   `Directory`, which is why `type` deliberately stays `Directory` for one (navigation works). To ask "is
   this *itself* a link?" use `isLink()` = `QFileInfo::isSymbolicLink() || isJunction()`, computed once in
   `refreshInfo()` and stored. **Not `isSymLink()`** — the legacy Qt call also reports `true` for Windows
   `.lnk` shortcuts, which are regular files here. `exists = isLink || QFileInfo::exists()` so a broken link
-  still counts as existing, and a broken link gets `type = File` so it stays listed and deletable. For a
-  link, `isMovableTo` decides by the link's *parent* directory's device (a same-drive move renames the link
-  entry itself, so the target's device is irrelevant).
+  still counts as existing, and a broken link gets `type = File` so it stays listed and deletable. (The
+  file-operation engine's own no-follow link handling lives with that engine, not here.)
 - `hash()` is the identity used everywhere. `setDirSize` is a documented hack to stash a computed dir size.
 - Times (`creationTime`/`modificationTime`) are lazily cached (`mutable`, sentinel `invalid_time`).
 - **Test seam:** under `#define CFILESYSTEMOBJECT_TEST`, `QFileInfo`/`QDir` are macro-swapped for
   `QFileInfo_Test`/`QDir_Test` mocks (header `#define` at top, `#undef` at bottom). Free function
   `pathHierarchy(path)` lives here only because a CFSO test covers it and it needs the same QFileInfo include.
 
-## File operations
+## File operations (`src/fileoperations/`)
 
-Two layers:
+Copy, move, and permanent delete. A layered stack of **synchronous, single-purpose pieces** with one thin
+threading wrapper at the top — so all policy and filesystem logic is unit-testable without threads, and only
+one small class is ever concurrent.
 
-- **`CFileManipulator` (`src/cfilemanipulator.{h,cpp}`)** — single-object primitives. `copyAtomically` /
-  `moveAtomically` (instance + static forms), `remove`, `makeWritable`. Plus a **non-blocking chunked** API:
-  `copyChunk(chunkSize,...)` / `moveChunk` / `copyOperationInProgress` / `bytesCopied` / `cancelCopy` —
-  lets the caller drive a copy chunk-by-chunk (for responsiveness/pause/cancel). Uses `QFile` for the
-  source and metadata transfer, and `thin_io` for the exclusively created, preallocated staging file;
-  preserves permissions + the 4 file timestamps.
-  `lastErrorMessage()` provides diagnostics. `TransferPermissions`/`OverwriteExistingFile` are
-  named-bool wrappers (from cpputils) to avoid bare-bool params.
-  - **Stores `const CFileSystemObject& _srcObject` — a reference, not a copy.** The object must outlive the
-    manipulator; binding a temporary is a dangling reference (heap-corruption crash on Windows, empty-path
-    failures on macOS, silent luck on Linux). The rvalue ctor is `= delete`d to make that a compile error —
-    always pass a named lvalue.
-  - **Link handling:** `remove` on a link unlinks the link entry itself, never the target (`rmdir`/
-    `RemoveDirectory` for a dir link, `QFile::remove` for a file link); `moveAtomically` renames the link
-    as-is. Both first strip a trailing `/` from the path — a dir object's `fullAbsolutePath()` ends in `/`,
-    and `"link/"` resolves *through* the link on POSIX, hitting the target instead of the link. Batch delete
-    and copy-based move never run writability remediation on a link because that would inspect or modify its target.
-  - **Copy publication:** chunked copies write to a uniquely created temporary sibling, transfer metadata
-    there, then atomically replace the final destination entry. Overwrite therefore replaces only the
-    selected pathname: symlink targets and other names for a hard-linked destination remain untouched.
-    The staging file is resized before best-effort physical preallocation: unsupported preallocation falls
-    back to streaming writes, while actual storage exhaustion is reported distinctly. Cancellation or any
-    pre-publication failure, including failure to transfer permissions or timestamps, removes the temporary
-    file and preserves the old destination; cleanup failures are reported rather than hidden. A copy-based
-    move deletes its source only after publication succeeds.
-- **`COperationPerformer` (`src/fileoperations/coperationperformer.{h,cpp}`)** — the batch engine. Runs a
-  whole copy/move/delete on its **own `std::thread`**, reporting through `CFileOperationObserver`.
-  - Ctor takes `Operation` (`operationCopy/Move/Delete`) + source FSO(s) + optional destination.
-  - Lifecycle: `start`, `cancel`, `togglePause`/`paused`, `working`, `done`; `done` becomes true only after
-    the final observer event has been queued, so it is safe to use as the worker-side teardown boundary.
-    Pause/cancellation safe points cover chunked copies, same-drive renames, delete passes, and post-copy
-    source-directory cleanup.
-  - Copy-based directory moves merge into compatible existing destination directories and remove each
-    source directory, deepest first, after its destination has been materialized successfully.
-  - A source directory colliding with a destination file uses the normal conflict prompt. Overwrite
-    replaces the file and materializes the directory tree, rename rebases all descendants to the new
-    directory name, and skip leaves the whole source subtree untouched.
-  - Conflict handling: when it hits a halt condition it calls `onProcessHalted(HaltReason, src, dst, msg)`
-    and blocks on a condition variable until the UI calls `userResponse(haltReason, response, newName)`.
-    `HaltReason` = `hrFileExists/hrSourceFileIsReadOnly/hrDestFileIsReadOnly/hrFailedToMakeItemWritable/
-    hrFileDoesntExit/hrCreatingFolderFailed/hrFailedToDelete/hrUnknownError/hrNotEnoughSpace`.
-    `UserResponse` = `urSkipThis/urSkipAll/urProceedWithThis/urProceedWithAll/urRename/urAbort/urRetry/urNone`.
-    `_globalResponses[HaltReason]` (a `std::array<optional<UserResponse>, enum_count>`) remembers "...All"
-    decisions so the same conflict type isn't re-asked.
-  - Internals: `enumerateSourcesAndCalcDest` flattens dir trees into a flat file list + per-file dest dirs
-    and totals bytes for progress; `copyItem/deleteItem/makeItemWriteable/mkPath` return a `NextAction`
-    (`naProceed/naRetryItem/naRetryOperation/naSkip/naAbort`). `moveWithinSameDrive` is the rename fast-path.
-    Progress speed/ETA via `CTimeElapsed`. Halt-reason enum iterated with vendored `magic_enum`.
-  - `CFileOperationObserver` buffers typed events under `_eventMutex` and replays them on `processEvents()` —
-    i.e. the worker thread enqueues, the UI thread drains. Progress and current-file updates are coalesced
-    between halt/finish barriers, and canceled operations suppress halt events at dispatch time. See
-    [threading.md](threading.md).
+```
+CFileOperationJob      worker thread + event queue  (the only concurrent piece)
+  drives one of:
+    CTransferExecutor  recursive copy / move
+    CDeleteExecutor    recursive permanent delete
+      through COperationExecutionContext   the executor's entire environment: cancel/pause
+                                            checkpoints, decision prompts, progress, diagnostics,
+                                            remembered answers, the accumulating summary
+      using:
+        CDestinationResolver   one collision   -> an issue + a user decision
+        CSourceTreeBuilder     one source root -> an immutable manifest tree
+        CStagedFileCopy        one file: copy to a temp sibling, transfer metadata, publish by rename
+        CFileSystemMutator     stateless inspect / rename / remove / create / writability / same-object / dir-times
+```
+
+- **Typed vocabulary (`fileoperationtypes.h`, `centrypath.h`).** A request is a `TransferRequest` or a
+  `PermanentDeleteRequest` (variant `FileOperationRequest`). A problem is an `OperationIssue` — an `IssueKind`
+  (file replacement, directory merge, type mismatch, read-only source removal, unsupported entry, or generic
+  action-failed) plus `EntrySnapshot`s and an optional structured `FailureDetails`. The answer is a `Decision`
+  (`DecisionAction` × `DecisionScope`). Native errors are classified into a `FileErrorCategory` at the point of
+  failure and never travel as raw codes above the primitive layer. `CEntryPath` is the one normalized absolute
+  path (single `/` separator, no trailing separator except roots) used throughout the module.
+- **The executors are synchronous, with no threads, UI, or ambient I/O of their own.** Every side effect goes
+  through `CFileSystemMutator` / `CStagedFileCopy`; every contact with the outside world goes through
+  `COperationExecutionContext` callbacks (`checkpoint()` for pause/cancel, `resolveDecision()` for prompts,
+  progress publish, warning/failure recording). The context also owns the **remembered-decision table**
+  ("...to all", keyed by `IssueKind`, stored only for rememberable actions) and accumulates the
+  `OperationSummary`.
+- **`CFileOperationJob` is the only cross-thread owner** — one worker thread (`CInterruptableThread`), one
+  mutex, one condition variable, one event queue. It binds the context callbacks to that machinery and exposes
+  `OperationEvent` (`ProgressSnapshot | DecisionRequest | OperationSummary`), which the UI drains via
+  `processEvents`. See [threading.md](threading.md).
+- **Move is rename-first.** A native rename is attempted at every owned root/subtree boundary; only a
+  classified `CrossDevice` result (EXDEV / `ERROR_NOT_SAME_DEVICE`) selects the staged-copy fallback with its
+  committed source-cleanup segment. Once a boundary classifies cross-device, the whole subtree skips rename.
+- **Staged copy = atomic publish.** A file is streamed to a uniquely created, preallocated temp sibling;
+  metadata (times, permissions) is applied there; then it atomically replaces the destination by rename — so
+  an overwrite replaces only the selected pathname, leaving symlink targets and other hard-link names for the
+  destination untouched. Any pre-publication failure or cancellation discards the temp file and preserves the
+  old destination; a copy-based move removes its source only after publication succeeds.
+
+Inline rename (single-item rename from the panel, `inlinerename.{h,cpp}`) reuses the same mutator primitives
+and the same case-only / same-object rules, without the batch machinery. Test-only fault injection lives in
+`operationtesthooks.{h,cpp}` (compiled only under `FILE_OPERATIONS_TEST_HOOKS`): it forces a native error, or
+pauses a worker, at a named point so tests can exercise failure and race paths deterministically.
+
+**Sharp edges worth knowing:**
+
+- **No-follow link discipline.** Inspect / remove / make-writable on a link entry act on the *link itself*,
+  never its target; copy and copy-based move *materialize* a link target's contents, while delete and
+  same-drive move act on the link entry. A broken link stays a listed, removable entry. Link cycles during
+  materialization are broken by filesystem **identity** (device+inode / volume-serial+file-index), not path
+  strings. A link is never routed through writability remediation.
+- **Read-only is a narrow category.** `FileErrorCategory::ReadOnly` is set only from an unambiguous native
+  meaning (POSIX `EROFS`; Windows media write-protect / read-only attribute); generic access-denied stays
+  `PermissionDenied` and must never be treated as read-only. Only a confirmed non-link regular-file source
+  removal turns a fresh read-only reading into the read-only-source-removal policy question.
+- **Totals stay absent until every root is scanned** — a partial aggregate must never render as an exact
+  total. `inspectEntry` likewise distinguishes *absent* (an empty optional) from *error* (an `unexpected`);
+  both paths must be handled by callers.
+- **The committed move-cleanup segment (publish -> remove source) takes no cancellation checkpoint**, and
+  every prompt inside it is item-only — it neither consults nor updates the remembered-decision table.
 
 ## Directory traversal — `scanDirectory` (`src/directoryscanner.{h,cpp}`)
 
 Free function: `scanDirectory(root, observer, abort = atomic<bool>{false}, followDirLinks = true)`.
 Recursively walks `root`, invoking `observer(fso, reachedThroughLink)` per item, abortable via the atomic
-flag. The shared recursive enumeration used by size calculation / "show all files below" / search-like
-sweeps. (Default arg binds a const ref to a temporary `atomic` — valid for the whole call incl. recursion;
-see [oddities.md](oddities.md).)
+flag. The shared enumeration behind **size calculation, "show all files below", and search** — the
+file-operation engine does *not* use it (it scans through its own `CSourceTreeBuilder`). (Default arg binds a
+const ref to a temporary `atomic` — valid for the whole call incl. recursion; see [oddities.md](oddities.md).)
 
-- **`followDirLinks`** — when `false`, a dir link is reported as an item but not descended into. Delete
-  passes `false` (it must remove the link, never recurse into and destroy the target's contents); copy/move
-  enumeration passes `true` (linked content is materialized as real files at the destination).
-- **`reachedThroughLink`** — `true` for items found by traversing a link. `COperationPerformer` uses it so a
-  move *copies* through-link items but never *deletes* them (they belong to the link's target, not the source).
+- **`followDirLinks`** — when `false`, a dir link is reported as an item but not descended into (for a caller
+  that must not recurse into a link's target).
+- **`reachedThroughLink`** — `true` for items found by traversing a link, letting a caller treat linked
+  content differently from owned content.
 - **Cycle guard.** Following links can loop (a link to its own ancestor, or two links pointing at each other).
   The scanner keeps the chain of directories currently on the recursion stack and refuses to descend into a
   link whose target is one of them. **Identity is compared via `resolvedObjectId` (device+inode /

@@ -15,11 +15,11 @@ Grounded in the architecture (see [README.md](README.md)) and the known sharp ed
 
 ## Coverage
 
-Segments A-J partition **all 63 product `.cpp`/`.mm` files** (core + qt-app + shipped plugins) — one home
+Segments A-J partition **every product `.cpp`/`.mm` file** (core + qt-app + shipped plugins) — one home
 segment each; B is a concurrency overlay over A/C/G/I, not a separate bucket. Every header folds into the
 segment of its matching translation unit; pure-interface/enum/data-structure headers
-(`fileoperationresultcode.h`, `operationcodes.h`, `detail/*.h`, `diskenumerator/*.hpp`, `columns.h`,
-`version.h`, `cfileoperationdialogbase.h`) go with their owning segment. In-scope but not named individually
+(`fileoperationresultcode.h`, `detail/*.h`, `diskenumerator/*.hpp`, `columns.h`, `version.h`) go with their
+owning segment. In-scope but not named individually
 above: plugin-interface bases `cfilecommander{plugin,toolplugin,viewerplugin}.cpp` + the viewer
 window/widget sources -> H; `iconprovider/ciconprovider.cpp` (facade over the impl) -> I.
 
@@ -51,14 +51,19 @@ window/widget sources -> H; `iconprovider/ciconprovider.cpp` (facade over the im
 ## Tier 1 — highest risk, behavior-heavy, data-integrity (review first)
 
 ### A. File-operation engine
-- **Files:** `fileoperations/coperationperformer.{h,cpp}`, `cfilemanipulator.{h,cpp}`, `operationcodes.h`.
-- **Why first:** data-loss potential; the most consequential code in the repo; never read at `.cpp` level yet.
-- **Focus:** the worker<->UI condition-variable handshake (deadlock/lost-wakeup/spurious-wakeup); cancel/pause
-  at every safe point; partial-copy cleanup on error/cancel; `_globalResponses` "...All" memory correctness;
-  `moveWithinSameDrive` rename fast-path vs copy+delete fallback; overwrite semantics + permission/timestamp
-  transfer; chunked copy (`copyChunk`/`bytesCopied`/`cancelCopy`) and `thin_io::file` use; the `NextAction`
-  retry loop (infinite-retry / progress-not-advancing hazards); free space check (`hrNotEnoughSpace`).
-- **Effort:** max. **Delegation:** keep in main thread or a single dedicated subagent — findings interrelate.
+- **Files:** `fileoperations/` — `cfilesystemmutator`, `cstagedfilecopy`, `cdestinationresolver`,
+  `csourcetreebuilder`, `coperationexecutioncontext`, `ctransferexecutor`, `cdeleteexecutor`,
+  `cfileoperationjob`, `inlinerename`, plus the type headers (`fileoperationtypes`, `centrypath`).
+- **Why first:** data-loss potential; the most consequential code in the repo.
+- **Focus:** no-follow link discipline (act on the link entry, never its target); staged-copy atomicity and
+  temp-file cleanup on every failure/cancel path; rename-first move + the committed source-cleanup segment
+  (no cancellation checkpoint, item-only prompts); conservative error classification (`ReadOnly` only from
+  unambiguous native codes); the remembered-decision table (per `IssueKind`, rememberable actions only);
+  progress totals staying absent until every root is scanned; and the `CFileOperationJob` worker<->UI
+  handshake (lost/spurious-wakeup, the mutex-guarded event queue and cancellation flag). The executors are
+  synchronous — most findings need no threading reasoning; the job is the one concurrent piece.
+- **Effort:** max. **Delegation:** the primitives/executors split cleanly across subagents by file; keep the
+  job's threading handshake in one place.
 
 ### B. Concurrency & lifetime (cross-cutting sweep)
 - **Files:** the threading touchpoints — `ccontroller.cpp` (queues, `execOn*Thread`, `uiThreadTimerTick`),
@@ -103,8 +108,8 @@ window/widget sources -> H; `iconprovider/ciconprovider.cpp` (facade over the im
 - **Files:** `cfilesystemobject.cpp`, `filesystemhelperfunctions.cpp`, `filesystemhelpers/*.cpp`,
   `filestatistics.cpp`, `directoryscanner.cpp` (already read).
 - **Focus:** **hash computation** (determinism across runs, collision behavior — everything keys on it);
-  `refreshInfo`/lazy time caching; type detection incl. `Bundle` (open question #13); `isMovableTo`,
-  symlink handling; the `CFILESYSTEMOBJECT_TEST` mock seam (parity between mock and real `QFileInfo`/`QDir`).
+  `refreshInfo`/lazy time caching; type detection incl. `Bundle` (open question #13); symlink handling; the
+  `CFILESYSTEMOBJECT_TEST` mock seam (parity between mock and real `QFileInfo`/`QDir`).
 - **Effort:** high (hashing) / medium (rest). **Delegation:** subagent OK.
 
 ### G. Platform integration (per-OS, test-on-each)
@@ -136,9 +141,10 @@ window/widget sources -> H; `iconprovider/ciconprovider.cpp` (facade over the im
 ### J. App shell & dialogs
 - **Files:** `main.cpp`, `cmainwindow.{cpp,ui}`, `progressdialogs/*`, `settings/*` (4 pages),
   `favoritelocationseditor/*`, `filessearchdialog/*`, `aboutdialog/*`, `tools/CFileStatsWindow.*`.
-- **Focus:** file-op dialog orchestration (`_activeFileOperationDialogs` lifetime, observer wiring to
-  `COperationPerformer`, background cascade); command-line routing + history; focus management; settings
-  apply/round-trip; menu/action wiring incl. the programmatic Tabs & Tools menus.
+- **Focus:** file-op dialog orchestration (`_activeFileOperationDialogs` lifetime, the launch boundary +
+  `CFileOperationDialog`/`CFileOperationJob` wiring, dialog self-disposal, background cascade); command-line
+  routing + history; focus management; settings apply/round-trip; menu/action wiring incl. the programmatic
+  Tabs & Tools menus.
 - **Effort:** medium. **Delegation:** subagent OK.
 
 ## Execution order & dependencies
@@ -169,5 +175,5 @@ I (subsystems) ── J (app shell)        Tier 4: last, lowest risk
   to apply, `--comment` to post inline. `/code-review ultra` is the deep multi-agent cloud pass (user-triggered).
 - For auditing **existing** (un-diffed) code, drive a segment by handing a subagent its file set + the
   segment's focus list + the Cross-cutting checklist; ask for factual findings with file:line citations.
-- Keep `coperationperformer.cpp` and the threading sweep (A/B) in the main thread — their findings are too
-  interdependent to summarize losslessly through a subagent.
+- Keep the `CFileOperationJob` threading handshake and the concurrency sweep (A/B) in the main thread — their
+  findings are too interdependent to summarize losslessly through a subagent.

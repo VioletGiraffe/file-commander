@@ -58,11 +58,13 @@ Triggers: push, pull_request, workflow_dispatch. Matrix (`fail-fast: false`): `u
   - Linux: `qmake -r CONFIG+=release && make -j`, then `linuxdeployqt` -> AppImage (bundling the 3 plugin .so).
 - **Smoke test:** launch `FileCommander --test-launch` (auto-quits after 5 s); Linux under `xvfb-run`.
 - **Build + run core tests** (when `tests_relevant`): `fso_test`, `fso_test_high_level`,
-  `operationperformer_test` **x20 with random `--std-seed`**, `filecomparator_test` (random seed). Windows
-  runs the op-performer tests against a **512 MB RAM disk (R:)** set as TEMP/TMP. See [../doc/qt-ui.md]
-  and core-tests below. The Windows step runs under **`pwsh` with `$PSNativeCommandUseErrorActionPreference
-  = $true`**: without it PowerShell propagates only the *last* command's exit code, so a test failing before
-  the final one leaves the step green — this exact hole hid failing tests until it was fixed.
+  `fileoperations_test` **x20 with random `--std-seed`**, `filecomparator_test` (random seed), and
+  `fileoperations_gui_test` (the dialog/prompt/launch/routing GUI suite; Linux runs it with
+  `QT_QPA_PLATFORM=offscreen`). Windows runs the file-operation tests against a **512 MB RAM disk (R:)** set
+  as TEMP/TMP (see the test table below). The Windows step runs under **`pwsh` with
+  `$PSNativeCommandUseErrorActionPreference = $true`**: without it PowerShell propagates only the *last*
+  command's exit code, so a test failing before the final one leaves the step green — this exact hole hid
+  failing tests until it was fixed.
 - Upload artifacts: `FileCommander.exe` / `.dmg` / `.AppImage`.
 
 **`create-release` job** (only on tag push `refs/tags/*`): downloads the three artifacts, generates a
@@ -78,7 +80,8 @@ Core tests: `file-commander-core/core-tests/` (`core-tests.pro` aggregates sub-`
 |------|--------|-------|
 | `fso_test` | `filesystemobject/fso_test.cpp` | Uses `QFileInfo_Test`/`QDir_Test` mocks (`CFILESYSTEMOBJECT_TEST`). `qdir_test.*`, `qfileinfo_test.*`. |
 | `fso_test_high_level` | `filesystemobject-high-level/fso_test_high_level.cpp` | Real filesystem. |
-| `operationperformer_test` | `operationperformer/operationperformertest.cpp` + `directorylinktests.cpp` (shared helpers in `operationperformertesthelpers.h`) | Stress: 20x random seed; RAM disk on Windows CI. Link tests (`[operationperformer-links]`) create junctions on Windows via `mklink /J` — no admin needed, unlike symlinks. |
+| `fileoperations_test` | `fileoperations/*.cpp` | The whole file-operation engine: path/error types, mutator & staged copy, resolver, tree builder, transfer/delete/move executors, job, inline rename, hooks. Stress: 20x random seed; RAM disk on Windows CI. Compiled with `FILE_OPERATIONS_TEST_HOOKS`. Link tests create junctions on Windows via `mklink /J` — no admin needed, unlike symlinks. |
+| `fileoperations_gui_test` | `qt-app/gui-tests/fileoperations/*.cpp` | The Qt file-operation UI: typed prompt, the real-job dialog, launch policy, and production-routing integration. Linux runs it with `QT_QPA_PLATFORM=offscreen`. Also built with `FILE_OPERATIONS_TEST_HOOKS`. |
 | `filecomparator_test` | `filecomparator/filecomparator_test.cpp` | Random seed. |
 
 Shared test helpers in `core-tests/test-utils/src/`: `ctestfoldergenerator`, `crandomdatagenerator`,
@@ -86,10 +89,11 @@ Shared test helpers in `core-tests/test-utils/src/`: `ctestfoldergenerator`, `cr
 
 **Caution — Catch2 test names become directory names.** Test titles are interpolated into `QTemporaryDir`
 templates, so a title must not contain characters illegal in a filename on the strictest platform. A `:` in
-a test name (e.g. `CFileManipulator::remove()`) silently fails temp-dir creation on Windows only, surfacing
-as an unrelated-looking `isValid()` REQUIRE failure.
+a test name (e.g. a `Foo::bar()`-style title) silently fails temp-dir creation on Windows only, surfacing as
+an unrelated-looking `isValid()` REQUIRE failure.
 
-GUI tests: `qt-app/gui-tests/` (e.g. `combobox/`) — minimal, manual, not in CI.
+GUI tests: `qt-app/gui-tests/`. The `fileoperations/` suite (`fileoperations_gui_test`) runs in CI on all
+three OSes (see above); `combobox/` is a minimal manual harness, not in CI.
 
 ## Dependencies
 
@@ -100,7 +104,7 @@ GUI tests: `qt-app/gui-tests/` (e.g. `combobox/`) — minimal, manual, not in CI
 | **qtutils** | Reusable Qt classes: `CSettings`, threading (`CWorkerThreadPool`, `CExecutionQueue`, `CPeriodicExecutionThread`, `CInterruptableThread`), `CHistoryList`, natural sort (`CNaturalSorterQCollator`), `CSettingsDialog`, string helpers (`QSL`). |
 | **cpputils** | Plain-C++ utils: `assert_r`/`AdvancedAssert`, `CTimeElapsed`, named-type wrappers, compiler-warning macros, threading. |
 | **cpp-template-utils** | Header-only template/metaprogramming + container algorithms + preprocessor helpers. |
-| **thin_io** | Cross-platform low-level file I/O on native OS APIs (no `<fstream>`/`<stdio>`); `thin_io::file` used by `CFileManipulator`. |
+| **thin_io** | Cross-platform low-level file I/O on native OS APIs (no `<fstream>`/`<stdio>`); `thin_io::file` + metadata used by the file-operation engine (`CStagedFileCopy`, `CFileSystemMutator`). |
 | **text-encoding-detector** | Detects text encoding of bytes -> QString. Backs the text-viewer plugin. |
 | **image-processing** | Image processing lib. Backs the image-viewer plugin. (One of two submodules currently showing local working-tree changes.) |
 | **github-releases-autoupdater** | Update check + download for GitHub-release-distributed builds (Windows-installer focused). |
@@ -111,7 +115,7 @@ GUI tests: `qt-app/gui-tests/` (e.g. `combobox/`) — minimal, manual, not in CI
 ### Vendored 3rdparty (not submodules)
 
 - `3rdparty/ankerl/unordered_dense.h` — fast hash map (`segmented_map` for panel file lists).
-- `3rdparty/magic_enum` — enum reflection (used in `COperationPerformer` for `HaltReason`).
+- `3rdparty/magic_enum` — enum reflection (used in `CFileStatsWindow`).
 - `plugins/viewer/textviewer/3rdparty/diegoiast/qutepart-cpp` — Kate-style syntax highlighting for the text viewer.
 
 ### Other root items

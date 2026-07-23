@@ -14,7 +14,7 @@ come from the **qtutils**/**cpputils** submodules — described here by role, no
 | lazy `CWorkerThreadPool` | each content search with eligible files | 1-8 content workers, with at most two outstanding file tasks per worker. Name-only searches do not construct it. |
 | `CExecutionQueue _uiQueue` | `CController` | Tasks to run on the UI thread; drained on the UI timer tick. Declared before `_workerThreadPool` so it outlives that producer. |
 | `CExecutionQueue _uiThreadQueue` | each `CPanel` | Per-panel UI marshaling (`execOnUiThread`). |
-| `std::thread _thread` | each `COperationPerformer` | One copy/move/delete batch; blocks on a condition variable for user decisions. |
+| `CInterruptableThread` | each `CFileOperationJob` | One copy/move/delete batch; runs the synchronous executor and blocks on a condition variable for user decisions. |
 | `CInterruptableThread` | `CFileSearchEngine` | One file search; `stopSearching()` interrupts it. |
 | `CPeriodicExecutionThread` | `CVolumeEnumerator` (1 s) and the **non-Windows** `CFileSystemWatcherTimerBased` | Periodic background polling. |
 | native HANDLE + `QAbstractNativeEventFilter` | `CFileSystemWatcherWindows` | Windows change notifications (no extra thread; rides the Qt native event filter). |
@@ -55,12 +55,14 @@ hide it as soon as the panel moves to a different view. Preserve this for every 
   generation, committed list, and its source-view metadata across the UI and panel-pool threads.
 - `CVolumeEnumerator::_mutexForDrives` — `recursive_mutex`; `updateSynchronously()` can enumerate while a
   getter already holds it.
-- `COperationPerformer`: `_waitForResponseMutex` + `_waitForResponseCondition` (worker blocks for the user's
-  conflict decision); paused/working/done state uses atomics, and cancellation is a shared atomic flag so a
-  buffered halt event can validate it after the performer has finished.
-- `CFileOperationObserver`: `_eventMutex` guards typed events replayed on `processEvents()`. Progress and
-  current-file updates coalesce into the latest state between halt/finish ordering barriers, bounding routine
-  update backlog while preserving state-before-barrier order. Events are dispatched with the mutex released.
+- `CFileOperationJob`: a single mutex covers both the control state and the event queue, and one condition
+  variable wakes the worker for resume, cancellation, and decision submission. Cancellation is the wrapper
+  thread's own flag (there is no duplicate job-side boolean); every wait predicate is evaluated under the
+  mutex and every waker mutates under it before notifying, so a lost wakeup is unrepresentable. The queued
+  events (`ProgressSnapshot | DecisionRequest | OperationSummary`) are swapped out under the mutex and then
+  dispatched with it released, because a modal decision prompt may enter a nested event loop and call back
+  in. Repeated progress snapshots coalesce to the latest; `DecisionRequest` and `OperationSummary` are
+  ordering barriers that never coalesce across.
 - Both filesystem watchers: an internal mutex makes `setPathToWatch`/`changesDetected` thread-safe. The
   timer-based watcher associates each scan with a path generation, discards obsolete scans, and treats the
   first committed scan of every generation as a silent baseline.
@@ -68,22 +70,24 @@ hide it as soon as the panel moves to a different view. Preserve this for every 
 ## File-operation handshake (worker <-> UI)
 
 ```
-COperationPerformer thread            UI thread (progress dialog)
----------------------------           ---------------------------------
-copy/move/delete loop
-  hit conflict -> onProcessHalted  -> buffered; replayed unless cancellation has since won
-  wait on condition variable            user picks -> userResponse(reason, resp, newName)
-  <- wakes, applies resp                (urProceedWithAll/urSkipAll remembered in _globalResponses)
-  onProgressChanged (periodic)     -> progress bar / speed / ETA
-  onProcessFinished                -> dialog closes
+CFileOperationJob worker thread          UI thread (progress dialog)
+-------------------------------          ---------------------------------
+synchronous executor runs
+  hit an issue -> resolveDecision   -> DecisionRequest queued (a barrier)
+  wait on condition variable            dialog drains queue on a timer, presents a modal prompt
+  <- wakes, applies Decision            submitDecision(decision) (an "...all" answer is remembered
+                                        in the context, keyed by IssueKind)
+  publish ProgressSnapshot (coalesced) -> progress bar / speed / ETA
+  finish -> OperationSummary queued -> dialog renders the summary, then disposes itself
 ```
 
-`togglePause`/`cancel` flip atomics the worker checks at safe points. Cancellation also releases a paused
-worker, and every filesystem-mutation loop re-checks cancellation immediately after its pause boundary.
-Halt events re-check the shared cancellation flag at UI dispatch time, including after `processEvents()`
-has moved them to its local batch, so cancellation cannot be followed by a stale conflict prompt. Multiple
-operations can run at once; `CMainWindow` cascades their dialogs (`_activeFileOperationDialogs`,
-`nextBackgroundDialogPosition`).
+`setPaused`/`cancel` set state under the job mutex and notify the condition variable, which the worker
+re-checks at every `checkpoint()`. Cancellation also releases a paused worker, drops any undrained
+`DecisionRequest` (it is now unanswerable), and wins even over a decision that arrived in the same wakeup.
+A `cancel()` before `start()` is remembered and applied at start, past the wrapper's cancellation-flag reset.
+Multiple operations can run at once; `CMainWindow` cascades their dialogs (`_activeFileOperationDialogs`,
+`nextBackgroundDialogPosition`), and each dialog removes itself from that list when it finishes or is
+dismissed (see [qt-ui.md](qt-ui.md)).
 
 ## Reminder (project rule)
 
