@@ -1002,6 +1002,7 @@ TEST_CASE("resolver: a destination inspection failure prompts ActionFailed", "[r
 	SECTION("the directory resolver shares the same failure path")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/srcdir"));
+		const EntrySnapshot dirSource = snapshotOf(base % "/srcdir"); // Snapshotted before the scope: only the resolver's inspect may consume the forced error
 
 		CFaultHookScope hooks;
 		hooks.forceNativeError(Point::InspectEntry_Native, inspectFailureCode);
@@ -1009,7 +1010,7 @@ TEST_CASE("resolver: a destination inspection failure prompts ActionFailed", "[r
 		ScriptedDecisions decisions{ .script = { act(DecisionAction::Retry) } };
 		auto context = scriptedContext(decisions);
 
-		const auto choice = resolveDirectoryDestination(context, snapshotOf(base % "/srcdir"), ep(base % "/newdir"), TransferNodePosition::SelectedRoot);
+		const auto choice = resolveDirectoryDestination(context, dirSource, ep(base % "/newdir"), TransferNodePosition::SelectedRoot);
 		REQUIRE(std::get_if<UseDestination>(&choice) != nullptr);
 		REQUIRE(decisions.seenRequests.size() == 1);
 		CHECK(decisions.seenRequests[0].issue.failure->action == FailedAction::InspectDestination);
