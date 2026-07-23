@@ -23,13 +23,17 @@ android {
 	Debug:OUTPUT_DIR=debug/$${ARCHITECTURE}
 }
 
+Release:OUTPUT_DIR_NOARCH=release
+Debug:OUTPUT_DIR_NOARCH=debug
+
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
-LIBS += -L$${DESTDIR} -lcpputils -lqtutils
+# cpputils and qtutils are built into the arch-less bin directory, same as for the fileoperations gui-test.
+LIBS += -L$${DESTDIR} -L../../../bin/$${OUTPUT_DIR_NOARCH} -lcpputils -lqtutils
 
 INCLUDEPATH += \
 	$$PWD/src/ \
