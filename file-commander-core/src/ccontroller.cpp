@@ -492,8 +492,7 @@ void CController::activePanelChanged(Panel p)
 void CController::navigateUp(Panel p)
 {
 	panel(p).navigateUp();
-	// TODO: this looks weird, a separate notification required?
-	volumesChanged(false); // To select a proper drive button
+	notifyCurrentVolumeChanged(p);
 	saveDirectoryForCurrentVolume(p);
 }
 
@@ -502,8 +501,7 @@ void CController::navigateBack(Panel p)
 {
 	panel(p).navigateBack();
 	saveDirectoryForCurrentVolume(p);
-	// TODO: this looks weird, a separate notification required?
-	volumesChanged(false); // To select a proper drive button
+	notifyCurrentVolumeChanged(p);
 }
 
 // Go to the next location from history, if any
@@ -511,8 +509,7 @@ void CController::navigateForward(Panel p)
 {
 	panel(p).navigateForward();
 	saveDirectoryForCurrentVolume(p);
-	// TODO: this looks weird, a separate notification required?
-	volumesChanged(false); // To select a proper drive button
+	notifyCurrentVolumeChanged(p);
 }
 
 // Sets the specified path, if possible. Otherwise reverts to the previously set path
@@ -522,8 +519,7 @@ FileOperationResultCode CController::setPath(Panel p, const QString &path, FileL
 	// The visited-locations log is updated via CPanel's onCurrentPathChanged callback, not here.
 
 	saveDirectoryForCurrentVolume(p);
-	// TODO: this looks weird, a separate notification required?
-	volumesChanged(false); // To select a proper drive button
+	notifyCurrentVolumeChanged(p);
 	return result;
 }
 
@@ -720,7 +716,7 @@ Panel CController::otherPanelPosition(Panel p)
 	case Panel::RightPanel:
 		return Panel::LeftPanel;
 	default:
-		assert_unconditional_r("Uknown panel");
+		assert_unconditional_r("Unknown panel");
 		return Panel::LeftPanel;
 	}
 }
@@ -833,6 +829,12 @@ void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept
 		listener->volumesChanged(drives, Panel::RightPanel, drivesListOrReadinessChanged);
 		listener->volumesChanged(drives, Panel::LeftPanel, drivesListOrReadinessChanged);
 	}
+}
+
+void CController::notifyCurrentVolumeChanged(Panel p) noexcept
+{
+	for (auto& listener: _volumesChangedListeners)
+		listener->currentVolumeChanged(p);
 }
 
 QString CController::volumePathById(uint64_t id) const

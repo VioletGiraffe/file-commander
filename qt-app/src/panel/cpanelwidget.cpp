@@ -1197,6 +1197,15 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	updateCurrentVolumeButtonAndInfoLabel();
 }
 
+void CPanelWidget::currentVolumeChanged(Panel p) noexcept
+{
+	if (p != _panelPosition)
+		return;
+
+	_currentVoumePath.clear();
+	updateCurrentVolumeButtonAndInfoLabel();
+}
+
 qulonglong CPanelWidget::hashBySortModelIndex(const QModelIndex &index) const
 {
 	if (!index.isValid())
