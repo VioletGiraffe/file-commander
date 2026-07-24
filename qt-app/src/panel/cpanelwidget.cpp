@@ -836,8 +836,8 @@ void CPanelWidget::renameItem(qulonglong hash, QString newName)
 
 void CPanelWidget::toRoot()
 {
-	if (!_currentVoumePath.isEmpty())
-		_controller->setPath(_panelPosition, _currentVoumePath, refreshCauseOther);
+	if (!_currentVolumePath.isEmpty())
+		_controller->setPath(_panelPosition, _currentVolumePath, refreshCauseOther);
 }
 
 void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
@@ -1142,7 +1142,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	if (p != _panelPosition)
 		return;
 
-	_currentVoumePath.clear();
+	_currentVolumePath.clear();
 
 	if (!ui->_driveButtonsWidget->layout())
 	{
@@ -1202,7 +1202,7 @@ void CPanelWidget::currentVolumeChanged(Panel p) noexcept
 	if (p != _panelPosition)
 		return;
 
-	_currentVoumePath.clear();
+	_currentVolumePath.clear();
 	updateCurrentVolumeButtonAndInfoLabel();
 }
 
@@ -1409,7 +1409,7 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 	const auto currentVolumeInfo = _controller->currentVolumeInfo(_panelPosition);
 	if (currentVolumeInfo)
 	{
-		_currentVoumePath = currentVolumeInfo->rootObjectInfo.fullAbsolutePath();
+		_currentVolumePath = currentVolumeInfo->rootObjectInfo.fullAbsolutePath();
 		const QString volumeInfoText = tr("%1 (%2): <b>%4 free</b> of %5 total").
 									   arg(currentVolumeInfo->volumeLabel, currentVolumeInfo->fileSystemName, fileSizeToString(currentVolumeInfo->freeSize, 'M', QSL(" ")), fileSizeToString(currentVolumeInfo->volumeSize, 'M', QSL(" ")));
 		ui->_driveInfoLabel->setText(volumeInfoText);

@@ -336,7 +336,8 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 			for (const QFileInfo& directoryEntry : directoryEntries)
 			{
 #ifndef _WIN32
-				// TODO: Qt bug?
+				// The root's ".." entry is itself (/.. == /); skip it so the root listing has no self-referential parent row.
+				// Only the filesystem root yields this exact path. (Windows roots don't produce it.)
 				if (directoryEntry.absoluteFilePath() == QLatin1String("/.."))
 					continue;
 #endif

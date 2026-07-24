@@ -181,6 +181,8 @@ private:
 	static CController * _instance;
 	CFavoriteLocations   _favoriteLocations;
 	// Shared worker pool for all panel tabs. Declared before _panels so it outlives the CPanels that post tasks to it.
+	// Its position relative to _uiQueue is not load-bearing the way _workerThreadPool's is: panel tasks marshal to the
+	// UI thread through each CPanel's own _uiThreadQueue, never the controller's _uiQueue.
 	CWorkerThreadPool    _panelWorkerPool;
 	std::array<TabList, 2> _panels;
 	qulonglong             _nextTabId = 1; // 0 is reserved as "no tab"/invalid

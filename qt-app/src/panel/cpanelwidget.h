@@ -154,7 +154,7 @@ private:
 private:
 	CFileListFilterDialog          * _filterDialog = nullptr;
 	std::vector<CFileSystemObject>  _disks;
-	QString                         _currentVoumePath;
+	QString                         _currentVolumePath;
 	QString                         _directoryCurrentlyBeingDisplayed;
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;
