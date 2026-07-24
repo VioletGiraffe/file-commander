@@ -112,9 +112,11 @@ the panel, page 1 is a plugin viewer window. `startQuickView(WindowPtr<CPluginWi
   backend). `CFileOperationDialog` is the **one** progress dialog for copy, move, and permanent delete: it
   owns a `CFileOperationJob`, drains its event queue on a timer, and renders scanning / progress / completion;
   a decision is presented through the modal `CFileOperationPrompt` (file-exists / read-only / type-mismatch /
-  error, returning a `Decision`). The dialog **manages its own lifetime** — it removes itself once finished
-  and off-screen (dismissed while running, or backgrounded and finished cleanly), returns a
-  finished-with-problems background op to the foreground, and deletes on close. Cancellation confirmation
+  error, returning a `Decision`). The dialog **manages its own visibility and lifetime** — it shows itself
+  only once the operation has run long enough to be worth a window (or sooner, if a decision prompt needs
+  it), and at completion it stays on screen **only for an outcome that needs attention** (a failure or a
+  warning), raising a backgrounded one to the foreground; every other outcome, and one the user dismissed
+  while it ran, disposes of itself silently. It also deletes on close. Cancellation confirmation
   pauses the work; declining restores the prior pause state, confirming signals cancellation without first
   resuming. `CFileOperationConfirmationPrompt` is the pre-operation copy/move confirmation;
   `progressdialoghelpers` formats sizes and diagnostics.

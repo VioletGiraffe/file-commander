@@ -21,6 +21,10 @@ RESTORE_COMPILER_WARNINGS
 namespace
 {
 
+// How long an operation must run, in milliseconds, before its dialog appears. Short operations finish and
+// dispose of themselves within it, so they never flash a window on screen.
+constexpr int firstShowDelay = 500;
+
 PromptOperation operationFromRequest(const FileOperationRequest& request)
 {
 	if (const auto* transfer = std::get_if<TransferRequest>(&request))
@@ -103,6 +107,14 @@ void CFileOperationDialog::start()
 	assert_debug_only(_job.status() == JobStatus::NotStarted);
 	_job.start();
 	_eventTimer->start();
+
+	// Anything that needs the user before this fires - a decision prompt, an outcome worth reporting - shows
+	// the dialog itself; a finished one either disposed of itself or belongs to a caller that decides its
+	// own visibility.
+	QTimer::singleShot(firstShowDelay, this, [this] {
+		if (!_result)
+			show();
+	});
 }
 
 CFileOperationDialog::~CFileOperationDialog()
@@ -186,6 +198,7 @@ void CFileOperationDialog::handleDecisionRequest(const DecisionRequest& request)
 	if (!_job.hasPendingDecision())
 		return;
 
+	show(); // The modal prompt must not stand alone on screen if the first show is still pending
 	ui->_overallProgress->setState(psStopped);
 	const Decision decision = presentDecision(request);
 	_job.submitDecision(decision); // false only if cancellation already won; nothing to do then
@@ -216,10 +229,8 @@ void CFileOperationDialog::handleCompletion(const OperationSummary& summary)
 	if (!_selfDisposes)
 		return;
 
-	// Off-screen at completion - dismissed while it ran (now hidden), or backgrounded and finished with
-	// nothing to report - so it removes itself; a backgrounded result worth seeing returns to the front.
-	const bool nothingToReport = summary.status == CompletionStatus::Completed && summary.failedItems == 0;
-	if (!isVisible() || (_isInBackgroundMode && nothingToReport))
+	// Nothing left for the user to act on, or a dialog they already dismissed: leave no window behind.
+	if (_dismissedWhileRunning || !outcomeNeedsAttention(summary))
 	{
 		deleteLater();
 		return;
@@ -232,6 +243,16 @@ void CFileOperationDialog::handleCompletion(const OperationSummary& summary)
 		raise();
 		activateWindow();
 	}
+	else if (!isVisible())
+		show(); // Finished before the delayed first show, with an outcome worth showing
+}
+
+bool CFileOperationDialog::outcomeNeedsAttention(const OperationSummary& summary) noexcept
+{
+	// Only diagnostics are worth a window the user has to dismiss. A clean run needs no acknowledgement,
+	// and a cancelled one was their own doing. Failed without a failed item is a job that never got that
+	// far - a scan failure - and must not vanish silently.
+	return summary.status == CompletionStatus::Failed || summary.failedItems > 0 || summary.warningCount > 0;
 }
 
 QString CFileOperationDialog::composeSummaryText(const OperationSummary& summary, const PromptOperation operation)
@@ -246,13 +267,6 @@ QString CFileOperationDialog::composeSummaryText(const OperationSummary& summary
 	case CompletionStatus::Cancelled: headline = tr("Operation cancelled."); break;
 	case CompletionStatus::Failed: headline = tr("Operation failed."); break;
 	}
-
-	// A clean run where nothing actually had to be done - including one where every item was already
-	// satisfied (the desired end state already held). Already-satisfied alone does not count as activity.
-	const bool nothingHappened = summary.completedItems == 0 && summary.skippedItems == 0
-		&& summary.failedItems == 0 && summary.warningCount == 0;
-	if (nothingHappened && summary.status == CompletionStatus::Completed)
-		return tr("Nothing needed to be %1.").arg(verb);
 
 	QStringList facts;
 	if (summary.completedItems > 0)
@@ -372,7 +386,10 @@ void CFileOperationDialog::closeEvent(QCloseEvent* e)
 	// A running operation asks first and, on confirmation, stays alive (hidden) until it truly ends;
 	// handleCompletion then disposes of it.
 	if (confirmCancellation())
+	{
+		_dismissedWhileRunning = true;
 		QWidget::closeEvent(e);
+	}
 	else
 		e->ignore();
 }

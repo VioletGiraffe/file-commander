@@ -10,10 +10,12 @@
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
 #include <QDir>
+#include <QEvent>
 #include <QEventLoop>
 #include <QFile>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPointer>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QStringBuilder>
@@ -22,6 +24,12 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include "3rdparty/catch2/catch.hpp"
+
+#ifdef _WIN32
+#include <Windows.h> // ERROR_* codes
+#else
+#include <errno.h>
+#endif
 
 #include <chrono>
 #include <thread>
@@ -33,6 +41,12 @@ using namespace guitest;
 
 namespace
 {
+
+#ifdef _WIN32
+constexpr NativeErrorCode accessDeniedCode = ERROR_ACCESS_DENIED;
+#else
+constexpr NativeErrorCode accessDeniedCode = EACCES;
+#endif
 
 TransferRequest copyInto(const QString& source, const QString& destinationDir)
 {
@@ -329,6 +343,62 @@ TEST_CASE("dialog: two operations run simultaneously", "[fileoperationdialog]")
 	CHECK(QFile::exists(tempB.path() % "/dest/b.bin"));
 }
 
+TEST_CASE("dialog: only a diagnostic outcome needs the user's attention", "[fileoperationdialog]")
+{
+	CHECK(!CFileOperationDialog::outcomeNeedsAttention(OperationSummary{ .status = CompletionStatus::Completed, .completedItems = 3 }));
+	CHECK(!CFileOperationDialog::outcomeNeedsAttention(OperationSummary{ .status = CompletionStatus::Completed, .skippedItems = 2, .alreadySatisfiedItems = 1 }));
+	CHECK(!CFileOperationDialog::outcomeNeedsAttention(OperationSummary{ .status = CompletionStatus::Cancelled, .completedItems = 1 }));
+
+	CHECK(CFileOperationDialog::outcomeNeedsAttention(OperationSummary{ .status = CompletionStatus::Completed, .completedItems = 3, .warningCount = 1 }));
+	CHECK(CFileOperationDialog::outcomeNeedsAttention(OperationSummary{ .status = CompletionStatus::Cancelled, .failedItems = 1 }));
+	CHECK(CFileOperationDialog::outcomeNeedsAttention(OperationSummary{ .status = CompletionStatus::Failed })); // A scan failure counts no items
+}
+
+TEST_CASE("dialog: a self-disposing dialog outlives its operation only for a diagnostic", "[fileoperationdialog]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/src/sub"));
+	writeFile(base % "/src/sub/x.bin", blob(500));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	// Production-mode dialogs: heap-allocated and self-disposing, so the outcome alone decides their fate.
+	SECTION("a clean run leaves nothing behind")
+	{
+		// It also finishes well inside the first-show delay, so no window is ever created.
+		auto* dialog = new CFileOperationDialog{ copyInto(base % "/src", base % "/dest"), {}, nullptr, 1024 };
+		QPointer<CFileOperationDialog> alive{ dialog };
+		dialog->start();
+
+		// processEvents() alone never delivers a deferred delete posted at this loop level; ask for it.
+		REQUIRE(pumpUntil([&alive] {
+			QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+			return alive.isNull();
+		}));
+	}
+
+	SECTION("a warning keeps the dialog and its summary")
+	{
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::ApplyDirectoryTimes_Native, accessDeniedCode); // A bounded warning, not a failure
+
+		auto* dialog = new CFileOperationDialog{ copyInto(base % "/src", base % "/dest"), {}, nullptr, 1024 };
+		QPointer<CFileOperationDialog> alive{ dialog };
+		dialog->start();
+
+		REQUIRE(pumpUntil([dialog] { return dialog->result().has_value(); }));
+		CHECK(dialog->result()->warningCount == 1);
+
+		QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+		REQUIRE(!alive.isNull());
+		CHECK(!label(*dialog, "_lblSummary")->isHidden());
+
+		delete dialog; // Kept alive for the user, so the test has to dispose of it
+	}
+}
+
 TEST_CASE("dialog: completion text summarizes the outcome", "[fileoperationdialog]")
 {
 	SECTION("mixed counts list every non-zero fact")
@@ -343,11 +413,11 @@ TEST_CASE("dialog: completion text summarizes the outcome", "[fileoperationdialo
 		CHECK(text.contains(QStringLiteral("4 warnings")));
 	}
 
-	SECTION("an all-already-satisfied run reads as nothing needed")
+	SECTION("an all-already-satisfied run states only what it found")
 	{
 		const OperationSummary summary{ .status = CompletionStatus::Completed, .alreadySatisfiedItems = 2 };
 		const QString text = CFileOperationDialog::composeSummaryText(summary, PromptOperation::Move);
-		CHECK(text.contains(QStringLiteral("Nothing needed to be moved")));
+		CHECK(text.contains(QStringLiteral("2 already up to date")));
 	}
 
 	SECTION("cancellation is stated")

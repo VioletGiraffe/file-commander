@@ -353,8 +353,7 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this] { return nextBackgroundDialogPosition(); }, this);
 	registerFileOperationDialog(dialog);
-	dialog->show();
-	dialog->start();
+	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 	return true;
 }
 
@@ -572,8 +571,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this] { return nextBackgroundDialogPosition(); }, this);
 	registerFileOperationDialog(dialog);
-	dialog->show();
-	dialog->start();
+	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 }
 
 void CMainWindow::createFolder()

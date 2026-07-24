@@ -36,8 +36,9 @@ public:
 	CFileOperationDialog(const CFileOperationDialog&) = delete;
 	CFileOperationDialog& operator=(const CFileOperationDialog&) = delete;
 
-	// Starts the job and the event timer. Separate from construction so the caller can register and place
-	// the dialog before any event is emitted.
+	// Starts the job and the event timer, and schedules the dialog's own first appearance. Separate from
+	// construction so the caller can register the dialog before any event is emitted. The caller must not
+	// show the dialog: an operation that finishes quickly and cleanly never appears on screen at all.
 	void start();
 
 	// The completed operation's summary once finished; nullopt while still running. Presentation state,
@@ -48,6 +49,10 @@ public:
 	// bounded diagnostics. Static and pure so it can be verified directly.
 	[[nodiscard]] static QString composeSummaryText(const OperationSummary& summary, PromptOperation operation);
 
+	// Whether the finished operation left something the user must act on. Only that keeps the dialog on
+	// screen after completion; every other outcome disposes of it silently.
+	[[nodiscard]] static bool outcomeNeedsAttention(const OperationSummary& summary) noexcept;
+
 	// The cancellation action without the confirmation prompt: request cancellation (never joins) and
 	// lock out further control. The Cancel button wraps this in a confirmation; tests call it directly.
 	void requestCancellation();
@@ -56,10 +61,10 @@ public:
 
 	[[nodiscard]] bool isInBackgroundMode() const noexcept { return _isInBackgroundMode; }
 
-	// By default the dialog manages its own lifetime: after the operation ends it removes itself once it is
-	// off-screen (dismissed while running, or backgrounded and finished cleanly) and deletes when the user
-	// closes it. A caller that owns the instance - a component test that inspects it after completion, or an
-	// embedded use - disables that, so the dialog lives until its owner destroys it.
+	// By default the dialog manages its own lifetime: once the operation ends it removes itself unless the
+	// outcome needs the user's attention, and deletes when the user closes it. A caller that owns the
+	// instance - a component test that inspects it after completion, or an embedded use - disables that, so
+	// the dialog lives until its owner destroys it.
 	void disableSelfDisposal() noexcept { _selfDisposes = false; }
 
 protected:
@@ -100,6 +105,7 @@ private:
 	bool _draining = false; // A modal prompt spins a nested loop; the timer must not re-enter the drain
 	bool _paused = false;
 	bool _isInBackgroundMode = false;
+	bool _dismissedWhileRunning = false; // Closed by the user mid-operation; completion must not bring it back
 	bool _selfDisposes = true; // On by default (production); a caller that owns the instance disables it
 	std::optional<OperationSummary> _result;
 };
