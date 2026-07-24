@@ -1,25 +1,31 @@
 #pragma once
 
+#include "filecontentcomparison.h"
+
+#include "compiler/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QString>
+RESTORE_COMPILER_WARNINGS
+
 #include <atomic>
 #include <functional>
-#include <memory>
 #include <thread>
 
-class QFile;
-
+// Runs compareFileContents() on a worker thread, reporting progress as a percentage: for a single file the denominator
+// is unambiguously its size. Callers comparing many files should use compareFileContents() directly instead, so that
+// progress can be aggregated over the whole batch.
 class CFileComparator
 {
 public:
-	enum ComparisonResult { Equal, NotEqual, Aborted };
-
 	CFileComparator() noexcept = default;
 	~CFileComparator() noexcept;
 
 	CFileComparator(const CFileComparator&) = delete;
 	CFileComparator& operator=(const CFileComparator&) = delete;
 
-	void compareFilesThreaded(std::unique_ptr<QFile>&& fileA, std::unique_ptr<QFile>&& fileB, const std::function<void (int)>& progressCallback, const std::function<void (ComparisonResult)>& resultCallback);
-	void compareFiles(QFile& fileA, QFile& fileB, const std::function<void(int)>& progressCallback, const std::function<void(ComparisonResult)>& resultCallback);
+	void compareFilesThreaded(QString pathA, QString pathB, const std::function<void (int percent)>& progressCallback,
+		const std::function<void (ContentComparisonResult)>& resultCallback);
 	void abortComparison();
 
 private:

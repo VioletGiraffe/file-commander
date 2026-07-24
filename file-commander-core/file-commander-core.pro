@@ -35,6 +35,8 @@ HEADERS += \
 	src/diskenumerator/cvolumeenumerator.h \
 	src/diskenumerator/volumeinfohelper.hpp \
 	src/filecomparator/cfilecomparator.h \
+	src/filecomparator/filecontentcomparison.h \
+	src/filecomparator/foldercomparison.h \
 	src/filesystemhelpers/filesystemhelpers.hpp
 
 SOURCES += \
@@ -52,6 +54,8 @@ SOURCES += \
 	src/directoryscanner.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
 	src/filecomparator/cfilecomparator.cpp \
+	src/filecomparator/filecontentcomparison.cpp \
+	src/filecomparator/foldercomparison.cpp \
 	src/filesystemhelpers/filesystemhelpers.cpp
 
 win*{

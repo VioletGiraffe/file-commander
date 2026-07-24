@@ -1,4 +1,4 @@
-#include "filecomparator/cfilecomparator.h"
+#include "filecomparator/filecontentcomparison.h"
 #include "crandomdatagenerator.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
@@ -53,21 +53,9 @@ TEST_CASE("CFileComparator identical files tests", "[CFileComparator]")
 		fileA.close();
 		fileB.close();
 
-		if (!fileA.open(QFile::ReadOnly) || !fileB.open(QFile::ReadOnly))
-		{
-			FAIL();
-			return;
-		}
-
-		CFileComparator comparator;
 		timer.resume();
-		comparator.compareFiles(fileA, fileB, [](int) {}, [](CFileComparator::ComparisonResult result) {
-			CHECK(result == CFileComparator::Equal);
-		});
+		CHECK(compareFileContents(fileA.fileName(), fileB.fileName()) == ContentComparisonResult::Equal);
 		timer.pause();
-
-		fileA.close();
-		fileB.close();
 	}
 
 	std::cout << "Total time taken to process 1000 randomly sized files: " << (float)timer.elapsed() / 1000.0f;
@@ -102,19 +90,7 @@ TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 			fileA.close();
 			fileB.close();
 
-			if (!fileA.open(QFile::ReadOnly) || !fileB.open(QFile::ReadOnly))
-			{
-				FAIL();
-				return;
-			}
-
-			CFileComparator comparator;
-			comparator.compareFiles(fileA, fileB, [](int) {}, [](CFileComparator::ComparisonResult result) {
-				CHECK(result == CFileComparator::NotEqual);
-			});
-
-			fileA.close();
-			fileB.close();
+			CHECK(compareFileContents(fileA.fileName(), fileB.fileName()) == ContentComparisonResult::Different);
 		}
 	}
 
@@ -141,19 +117,7 @@ TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 			fileA.close();
 			fileB.close();
 
-			if (!fileA.open(QFile::ReadOnly) || !fileB.open(QFile::ReadOnly))
-			{
-				FAIL();
-				return;
-			}
-
-			CFileComparator comparator;
-			comparator.compareFiles(fileA, fileB, [](int) {}, [](CFileComparator::ComparisonResult result) {
-				CHECK(result == CFileComparator::NotEqual);
-			});
-
-			fileA.close();
-			fileB.close();
+			CHECK(compareFileContents(fileA.fileName(), fileB.fileName()) == ContentComparisonResult::Different);
 		}
 	}
 }
