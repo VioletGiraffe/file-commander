@@ -56,11 +56,8 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 			++rootStats.folders; // scanDirectory() elsewhere in the codebase counts the root dir itself; stay consistent with that
 			if (!rootItem.isLink())
 				dirsToScan.push_back(path);
-			else if (const auto targetId = resolvedObjectId(path); targetId && !queuedLinkTargets.contains(*targetId))
-			{
-				queuedLinkTargets.insert(*targetId);
+			else if (const auto targetId = resolvedObjectId(path); targetId && queuedLinkTargets.insert(*targetId).second)
 				dirsToScan.push_back(path);
-			}
 		}
 		else if (rootItem.isFile())
 		{
@@ -114,11 +111,8 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 						else if (const auto targetId = resolvedObjectId(item.fullAbsolutePath()); targetId)
 						{
 							std::lock_guard locker(queueMutex);
-							if (!queuedLinkTargets.contains(*targetId))
-							{
-								queuedLinkTargets.insert(*targetId);
+							if (queuedLinkTargets.insert(*targetId).second)
 								newDirs.push_back(item.fullAbsolutePath());
-							}
 						}
 					}
 				}
