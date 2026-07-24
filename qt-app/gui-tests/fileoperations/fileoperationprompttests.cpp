@@ -48,6 +48,28 @@ FailureDetails ioFailure(const FailedAction action, const QString& diagnostic = 
 	return FailureDetails{ action, CFileSystemError{ FileErrorCategory::IoFailure, 5, diagnostic } };
 }
 
+// A renderable request for any kind: exactly the destination and failure that kind carries.
+DecisionRequest requestForKind(const IssueKind kind)
+{
+	using enum IssueKind;
+	const bool hasDestination = kind == FileReplacement || kind == RootDirectoryMerge || kind == TypeMismatch;
+	const auto entryKind = kind == RootDirectoryMerge ? OperationEntryKind::Directory : OperationEntryKind::RegularFile;
+	return makeRequest(kind, snapshot("src.bin", entryKind, 700),
+		hasDestination ? std::optional{ snapshot("dest.bin", entryKind, 50) } : std::nullopt,
+		kind == ActionFailed ? std::optional{ ioFailure(FailedAction::WriteDestination) } : std::nullopt);
+}
+
+// The button Enter would activate, empty when the prompt deliberately has no default at all.
+QString defaultButtonName(const CFileOperationPrompt& prompt)
+{
+	for (const auto* button : prompt.findChildren<QPushButton*>())
+	{
+		if (button->isDefault())
+			return button->objectName();
+	}
+	return {};
+}
+
 // The dynamically created action buttons, in creation (= layout) order.
 QStringList actionButtonNames(const CFileOperationPrompt& prompt)
 {
@@ -192,6 +214,128 @@ TEST_CASE("prompt: returned decisions", "[fileoperationprompt]")
 		const Decision decision = askWith(prompt, [](auto& p) { click(p, "btnCancel"); });
 		CHECK(decision.action == DecisionAction::Cancel);
 		CHECK(decision.scope == DecisionScope::ThisItem);
+	}
+}
+
+TEST_CASE("prompt: what Enter does", "[fileoperationprompt]")
+{
+	using enum IssueKind;
+
+	SECTION("each kind's default action, and none where the user must read and choose")
+	{
+		const struct
+		{
+			IssueKind kind;
+			QString expectedDefault; // Empty: no default button, so Enter does nothing
+		} rows[] = {
+			{ FileReplacement, QStringLiteral("btnReplace") },
+			{ RootDirectoryMerge, QStringLiteral("btnMerge") },
+			{ ActionFailed, QStringLiteral("btnRetry") },
+			{ TypeMismatch, {} },
+			{ ReadOnlySourceRemoval, {} },
+			{ UnsupportedEntry, {} },
+		};
+
+		for (const auto& row : rows)
+		{
+			CFileOperationPrompt prompt{ requestForKind(row.kind), PromptOperation::Move };
+			INFO("IssueKind " << static_cast<int>(row.kind));
+			CHECK(defaultButtonName(prompt) == row.expectedDefault);
+		}
+	}
+
+	SECTION("the operation changes the wording, never the default")
+	{
+		const struct
+		{
+			IssueKind kind;
+			PromptOperation operation;
+			QString expectedDefault;
+		} rows[] = {
+			// ActionFailed is the one kind every operation can raise.
+			{ ActionFailed, PromptOperation::Copy, QStringLiteral("btnRetry") },
+			{ ActionFailed, PromptOperation::Move, QStringLiteral("btnRetry") },
+			{ ActionFailed, PromptOperation::Delete, QStringLiteral("btnRetry") },
+			// A transfer-only collision...
+			{ FileReplacement, PromptOperation::Copy, QStringLiteral("btnReplace") },
+			{ FileReplacement, PromptOperation::Move, QStringLiteral("btnReplace") },
+			// ...and the removal prompt whose own question and button text do vary by operation.
+			{ ReadOnlySourceRemoval, PromptOperation::Move, {} },
+			{ ReadOnlySourceRemoval, PromptOperation::Delete, {} },
+		};
+
+		for (const auto& row : rows)
+		{
+			CFileOperationPrompt prompt{ requestForKind(row.kind), row.operation };
+			INFO("IssueKind " << static_cast<int>(row.kind) << ", operation " << static_cast<int>(row.operation));
+			CHECK(defaultButtonName(prompt) == row.expectedDefault);
+		}
+	}
+
+	SECTION("a usable new name makes Enter rename, and giving it up restores the kind's default")
+	{
+		CFileOperationPrompt prompt{ requestForKind(FileReplacement), PromptOperation::Copy };
+		auto* edit = prompt.findChild<QLineEdit*>(QStringLiteral("renameEdit"));
+		REQUIRE(edit != nullptr);
+
+		edit->setText(QStringLiteral("renamed.bin"));
+		CHECK(defaultButtonName(prompt) == QStringLiteral("btnRename"));
+
+		edit->setText(QStringLiteral("src.bin")); // Back to the original name: no longer a rename
+		CHECK(defaultButtonName(prompt) == QStringLiteral("btnReplace"));
+	}
+
+	SECTION("a kind with no default gains one only while a usable new name is entered")
+	{
+		CFileOperationPrompt prompt{ requestForKind(TypeMismatch), PromptOperation::Copy };
+		auto* edit = prompt.findChild<QLineEdit*>(QStringLiteral("renameEdit"));
+		REQUIRE(edit != nullptr);
+
+		edit->setText(QStringLiteral("renamed.bin"));
+		CHECK(defaultButtonName(prompt) == QStringLiteral("btnRename"));
+
+		edit->setText(QStringLiteral("src.bin"));
+		CHECK(defaultButtonName(prompt).isEmpty()); // Inert again: Enter neither skips nor cancels
+	}
+}
+
+TEST_CASE("prompt: where the initial focus lands", "[fileoperationprompt]")
+{
+	using enum IssueKind;
+
+	SECTION("the rename field where one exists, with the old name selected for replacement")
+	{
+		for (const IssueKind kind : { FileReplacement, RootDirectoryMerge, TypeMismatch })
+		{
+			CFileOperationPrompt prompt{ requestForKind(kind), PromptOperation::Move };
+			INFO("IssueKind " << static_cast<int>(kind));
+
+			auto* edit = prompt.findChild<QLineEdit*>(QStringLiteral("renameEdit"));
+			CHECK(prompt.focusWidget() == edit);
+			CHECK(edit->selectedText() == QStringLiteral("src.bin"));
+		}
+	}
+
+	SECTION("Skip otherwise - never the scope box, whose Space would broaden the next decision")
+	{
+		for (const IssueKind kind : { ActionFailed, ReadOnlySourceRemoval, UnsupportedEntry })
+		{
+			CFileOperationPrompt prompt{ requestForKind(kind), PromptOperation::Move };
+			INFO("IssueKind " << static_cast<int>(kind));
+			CHECK(prompt.focusWidget() == prompt.findChild<QPushButton*>(QStringLiteral("btnSkip")));
+		}
+	}
+
+	SECTION("the raced read-only prompt, which offers no other control at all")
+	{
+		// Neither a rename field nor a scope box, so creation order would leave focus on "Make writable
+		// and move" - one Space from overriding the read-only flag and removing the source.
+		CFileOperationPrompt prompt{ makeRequest(ReadOnlySourceRemoval, snapshot("src.bin", OperationEntryKind::RegularFile),
+			{}, ioFailure(FailedAction::RemoveEntry), false), PromptOperation::Move };
+
+		REQUIRE(prompt.findChild<QCheckBox*>(QStringLiteral("scopeCheckBox"))->isHidden());
+		REQUIRE(prompt.findChild<QLineEdit*>(QStringLiteral("renameEdit"))->isHidden());
+		CHECK(prompt.focusWidget() == prompt.findChild<QPushButton*>(QStringLiteral("btnSkip")));
 	}
 }
 

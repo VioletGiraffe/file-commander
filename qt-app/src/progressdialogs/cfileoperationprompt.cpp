@@ -14,6 +14,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <optional>
 
 namespace
 {
@@ -47,6 +48,24 @@ QString buttonName(const DecisionAction action)
 	return {};
 }
 
+// The action Enter performs. Where the user must read the prompt and choose deliberately there is none: no
+// default button leaves Enter inert, since every button here has autoDefault off.
+std::optional<DecisionAction> defaultActionFor(const IssueKind kind)
+{
+	using enum DecisionAction;
+	switch (kind)
+	{
+	case IssueKind::FileReplacement: return Replace;
+	case IssueKind::RootDirectoryMerge: return Merge;
+	case IssueKind::ActionFailed: return Retry;
+	case IssueKind::TypeMismatch: // Nothing to proceed with: an entry cannot replace one of a different type
+	case IssueKind::ReadOnlySourceRemoval: // Overriding the read-only flag to delete the file must be deliberate
+	case IssueKind::UnsupportedEntry: // Only Skip and Cancel exist, and neither should happen by reflex
+		return {};
+	}
+	return {};
+}
+
 } // namespace
 
 CFileOperationPrompt::CFileOperationPrompt(const DecisionRequest& request, const PromptOperation operation, QWidget* parent) :
@@ -70,6 +89,7 @@ CFileOperationPrompt::CFileOperationPrompt(const DecisionRequest& request, const
 	createActionButtons();
 	if (_renameButton)
 		updateRenameControls();
+	setInitialFocus();
 }
 
 CFileOperationPrompt::~CFileOperationPrompt()
@@ -98,23 +118,50 @@ void CFileOperationPrompt::updateRenameControls()
 {
 	const QString name = ui->renameEdit->text().trimmed();
 	// An unchanged name is not a rename; an exact-case respell of the same name is.
-	_renameButton->setEnabled(isValidEntryName(name) && name != _request.issue.source.path.name());
+	const bool renameUsable = isValidEntryName(name) && name != _request.issue.source.path.name();
+	_renameButton->setEnabled(renameUsable);
+
+	// Enter follows the intent expressed in the edit: a usable new name renames, and without one Enter falls
+	// back to the kind's own default - which may be none. Otherwise typing a name and pressing Enter from the
+	// edit would run the kind's default action on the original name.
+	_renameButton->setDefault(renameUsable);
+	if (!renameUsable && _defaultButton)
+		_defaultButton->setDefault(true);
 }
 
 void CFileOperationPrompt::createActionButtons()
 {
+	const std::optional<DecisionAction> defaultAction = defaultActionFor(_request.issue.kind);
 	for (const DecisionAction action : _request.allowedActions)
 	{
 		auto* button = new QPushButton{ actionLabel(action), this };
 		button->setObjectName(buttonName(action));
 		button->setAutoDefault(false);
-		// Enter must not trigger a mutating action by accident; Cancel is the only default.
-		button->setDefault(action == DecisionAction::Cancel);
+		button->setDefault(defaultAction && action == *defaultAction);
 		connect(button, &QPushButton::clicked, this, [this, action] { onActionChosen(action); });
 		ui->buttonsLayout->addWidget(button);
 		if (action == DecisionAction::Rename)
 			_renameButton = button;
+		if (button->isDefault())
+			_defaultButton = button;
 	}
+}
+
+void CFileOperationPrompt::setInitialFocus()
+{
+	// Chosen, not inherited from the tab order. The rename field is the only control that expects typing, so
+	// it takes focus where it exists, with the old name selected for replacement. Otherwise Skip: it changes
+	// nothing, and it keeps a mutating button - or the scope box, which silently broadens the next decision
+	// to every remaining item - from being one Space away.
+	if (!ui->renameEdit->isHidden())
+	{
+		ui->renameEdit->setFocus();
+		ui->renameEdit->selectAll();
+		return;
+	}
+
+	auto* skipButton = findChild<QPushButton*>(buttonName(DecisionAction::Skip));
+	skipButton->setFocus(); // Every issue kind offers Skip
 }
 
 void CFileOperationPrompt::setupEntryInfo()

@@ -43,6 +43,7 @@ private:
 	void updateRenameControls();
 
 	void createActionButtons();
+	void setInitialFocus();
 	void setupEntryInfo();
 	void setupAuxiliaryTexts();
 
@@ -54,5 +55,6 @@ private:
 	const DecisionRequest _request;
 	const PromptOperation _operation;
 	QPushButton* _renameButton = nullptr; // Only when Rename is offered; enabled while the entered name is usable
+	QPushButton* _defaultButton = nullptr; // The kind's Enter action; null where Enter must do nothing at all
 	Decision _decision{ .action = DecisionAction::Cancel, .scope = DecisionScope::ThisItem, .newName = {} };
 };
