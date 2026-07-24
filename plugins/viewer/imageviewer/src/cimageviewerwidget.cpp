@@ -286,6 +286,7 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 
 	const QSize fitSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
 	const qreal zoom = std::clamp(_zoom, 0.01, 40.0);
+	const qreal dpr = devicePixelRatioF();
 
 	QSize targetSize;
 	QRect sourceRect;
@@ -304,12 +305,18 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		sourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterUv, zoom);
 	}
 
-	if (_displayImage.size() != targetSize || _displayImage.format() != _sourceImage.format())
-		_displayImage = QImage(targetSize.width(), targetSize.height(), _sourceImage.format());
+	// targetSize is the on-screen placement in logical pixels; render the buffer at physical resolution (x dpr) so the blit is 1:1 with device pixels.
+	const QSize bufferPx{
+		std::max(1, qRound(targetSize.width() * dpr)),
+		std::max(1, qRound(targetSize.height() * dpr))
+	};
 
-	_displayImage.setDevicePixelRatio(devicePixelRatioF());
+	if (_displayImage.size() != bufferPx || _displayImage.format() != _sourceImage.format())
+		_displayImage = QImage(bufferPx.width(), bufferPx.height(), _sourceImage.format());
 
-	const size_t newCacheKey = qHash(sourceRect) ^ qHash(targetSize);
+	_displayImage.setDevicePixelRatio(dpr);
+
+	const size_t newCacheKey = qHash(sourceRect) ^ qHash(bufferPx);
 	if (newCacheKey != _cacheKey)
 	{
 		_cacheKey = newCacheKey;
@@ -320,23 +327,17 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 			ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
 		}
 		catch (...) {
-			_displayImage = _sourceImage.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-			_displayImage.setDevicePixelRatio(devicePixelRatioF());
+			_displayImage = _sourceImage.scaled(bufferPx, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+			_displayImage.setDevicePixelRatio(dpr);
 		}
 
-		const qreal magnification = targetSize.width() / (qreal)sourceRect.width();
+		// magnification is source-pixel : device-pixel, so it reads off the physical buffer, not the logical placement.
+		const qreal magnification = _displayImage.width() / (qreal)sourceRect.width();
 		emit displayedSizeChanged(_displayImage.size(), magnification);
 	}
 
-	if (zoom <= 1.0)
-	{
-		const QRectF targetRect = centeredTargetRect(targetSize, size());
-		p.drawImage(targetRect, _displayImage);
-	}
-	else
-	{
-		p.drawImage(0, 0, _displayImage);
-	}
+	// zoom > 1 fills the viewport (targetSize == size()), so the centering offset is zero and this one blit serves both regimes.
+	p.drawImage(centeredTargetRect(targetSize, size()), _displayImage);
 }
 
 void CImageViewerWidget::wheelEvent(QWheelEvent* e)
