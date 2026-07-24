@@ -17,6 +17,9 @@ public:
 	bool displayImage(const QString& imagePath);
 
 private:
+	void saveImageAs();
+
+private:
 	QString _currentImagePath;
 	Ui::CImageViewerWindow *ui;
 	QLabel * _imageInfoLabel;

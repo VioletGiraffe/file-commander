@@ -21,6 +21,7 @@ public:
 public:
 	bool displayImage(const QImage& image);
 	bool displayImage(const QString& imagePath);
+	[[nodiscard]] const QImage& sourceImage() const noexcept { return _sourceImage; }
 	[[nodiscard]] QString imageInfoString() const;
 
 	[[nodiscard]] QSize sizeHint() const override;
