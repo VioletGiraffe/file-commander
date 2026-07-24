@@ -9,8 +9,10 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QResizeEvent>
 #include <QScreen>
 #include <QWheelEvent>
+#include <QtMath>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -18,98 +20,28 @@ RESTORE_COMPILER_WARNINGS
 
 namespace
 {
-	[[nodiscard]] inline QRectF centeredTargetRect(const QSize& targetSize, const QSize& viewportSize) noexcept
+	// Position of one axis of the image within the viewport, in device pixels: center it when it is smaller than the
+	// viewport (letterbox), otherwise keep its edges inside (crop/pan). Applied per axis, this is what lets a single
+	// view letterbox one axis while cropping the other.
+	[[nodiscard]] inline qreal clampAxis(qreal offset, qreal imageLength, qreal viewportLength) noexcept
 	{
-		return QRectF{
-			(viewportSize.width() - targetSize.width()) / 2.0,
-			(viewportSize.height() - targetSize.height()) / 2.0,
-			(qreal)targetSize.width(),
-			(qreal)targetSize.height()
-		};
+		if (imageLength <= viewportLength)
+			return (viewportLength - imageLength) / 2.0;
+
+		return std::clamp(offset, viewportLength - imageLength, 0.0);
 	}
 
-	[[nodiscard]] inline ImageProcessing::Rect toRect(const QRectF& r) noexcept
+	[[nodiscard]] inline ImageProcessing::Rect toRect(const QRect& r) noexcept
 	{
 		return {
-			static_cast<uint64_t>(qRound64(r.x())),
-			static_cast<uint64_t>(qRound64(r.y())),
-			static_cast<uint64_t>(qRound64(r.width())),
-			static_cast<uint64_t>(qRound64(r.height()))
+			static_cast<uint64_t>(r.x()),
+			static_cast<uint64_t>(r.y()),
+			static_cast<uint64_t>(r.width()),
+			static_cast<uint64_t>(r.height())
 		};
 	}
 
-	[[nodiscard]] QPointF visibleSpanUv(const QSize& sourceSize, const QSize& viewportSize, qreal zoom) noexcept
-	{
-		if (sourceSize.isEmpty() || viewportSize.isEmpty() || zoom <= 1.0)
-			return { 1.0, 1.0 };
-
-		const qreal sourceAspect = sourceSize.width() / (qreal)sourceSize.height();
-		const qreal viewAspect = viewportSize.width() / (qreal)viewportSize.height();
-
-		if (sourceAspect >= viewAspect)
-			return { (viewAspect / sourceAspect) / zoom, 1.0 / zoom };
-		else
-			return { 1.0 / zoom, (sourceAspect / viewAspect) / zoom };
-	}
-
-	[[nodiscard]] QRect computeSourceRect(const QSize& sourceSize, const QSize& viewportSize, const QPointF& centerUv, const qreal zoom) noexcept
-	{
-		if (sourceSize.isEmpty() || viewportSize.isEmpty())
-			return {};
-
-		if (zoom <= 1.0)
-			return QRect{ 0, 0, sourceSize.width(), sourceSize.height() };
-
-		const qreal viewAspect = viewportSize.width() / (qreal)viewportSize.height();
-		const qreal sourceAspect = sourceSize.width() / (qreal)sourceSize.height();
-
-		qreal baseW = 0.0;
-		qreal baseH = 0.0;
-
-		if (sourceAspect >= viewAspect)
-		{
-			baseH = (qreal)sourceSize.height();
-			baseW = baseH * viewAspect;
-		}
-		else
-		{
-			baseW = (qreal)sourceSize.width();
-			baseH = baseW / viewAspect;
-		}
-
-		const int visW = std::max(1, qRound(baseW / zoom));
-		const int visH = std::max(1, qRound((qreal)visW / viewAspect));
-
-		const qreal centerPxX = centerUv.x() * sourceSize.width();
-		const qreal centerPxY = centerUv.y() * sourceSize.height();
-
-		const qreal halfW = visW / 2.0;
-		const qreal halfH = visH / 2.0;
-
-		const qreal cx = std::clamp(centerPxX, halfW, sourceSize.width() - halfW);
-		const qreal cy = std::clamp(centerPxY, halfH, sourceSize.height() - halfH);
-
-		int x = qRound(cx - halfW);
-		int y = qRound(cy - halfH);
-		x = std::clamp(x, 0, sourceSize.width() - visW);
-		y = std::clamp(y, 0, sourceSize.height() - visH);
-
-		return QRect{ x, y, visW, visH };
-	}
-
-	[[nodiscard]] QPointF sourcePointUnderWidgetPos(const QPointF& widgetPos, const QRectF& targetRect, const QRect& srcRect) noexcept
-	{
-		if (targetRect.width() <= 0.0 || targetRect.height() <= 0.0)
-			return QPointF{ (qreal)srcRect.center().x(), (qreal)srcRect.center().y() };
-
-		const qreal u = std::clamp((widgetPos.x() - targetRect.x()) / targetRect.width(), 0.0, 1.0);
-		const qreal v = std::clamp((widgetPos.y() - targetRect.y()) / targetRect.height(), 0.0, 1.0);
-
-		return QPointF{
-			srcRect.x() + u * srcRect.width(),
-			srcRect.y() + v * srcRect.height()
-		};
-	}
+	constexpr qreal kMaxScale = 40.0; // device px per source px; the maximum magnification.
 }
 
 template <bool ConstView>
@@ -172,10 +104,9 @@ inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 bool CImageViewerWidget::displayImage(const QImage& image)
 {
 	_sourceImage = image;
-	_zoom = 1.0;
-	_imageCenterUv = QPointF{ 0.5, 0.5 };
 	_isPanning = false;
 	_cacheKey = 0;
+	_viewInitialized = false; // Refit to the new image on the next paint.
 	updateGeometry(); // Because the image affects sizeHint()
 	update();
 	return !_sourceImage.isNull();
@@ -270,13 +201,55 @@ void CImageViewerWidget::copyDisplayedToClipboard() noexcept
 		QApplication::clipboard()->setImage(_displayImage);
 }
 
+qreal CImageViewerWidget::fitScale(const QSize& viewportLogicalSize) const noexcept
+{
+	const qreal dpr = devicePixelRatioF();
+	return std::min(viewportLogicalSize.width() * dpr / _sourceImage.width(),
+	                viewportLogicalSize.height() * dpr / _sourceImage.height());
+}
+
+qreal CImageViewerWidget::minScale() const noexcept
+{
+	// Zoom out until the whole image fits, but never below 1:1 so a small image can still be shown at native size.
+	return std::min(fitScale(size()), 1.0);
+}
+
+QPointF CImageViewerWidget::centeredOffset() const noexcept
+{
+	const qreal dpr = devicePixelRatioF();
+	return QPointF{
+		(width() * dpr - _sourceImage.width() * _scale) / 2.0,
+		(height() * dpr - _sourceImage.height() * _scale) / 2.0
+	};
+}
+
+bool CImageViewerWidget::isPannable() const noexcept
+{
+	const qreal dpr = devicePixelRatioF();
+	return _sourceImage.width() * _scale > width() * dpr + 0.5
+		|| _sourceImage.height() * _scale > height() * dpr + 0.5;
+}
+
+void CImageViewerWidget::clampOffset() noexcept
+{
+	const qreal dpr = devicePixelRatioF();
+	_offset.setX(clampAxis(_offset.x(), _sourceImage.width() * _scale, width() * dpr));
+	_offset.setY(clampAxis(_offset.y(), _sourceImage.height() * _scale, height() * dpr));
+}
+
+void CImageViewerWidget::resetToFit() noexcept
+{
+	_scale = fitScale(size());
+	_offset = centeredOffset();
+	_viewInitialized = true;
+}
+
 void CImageViewerWidget::fitToWindow() noexcept
 {
-	if (_sourceImage.isNull())
+	if (_sourceImage.isNull() || size().isEmpty())
 		return;
 
-	_zoom = 1.0;
-	_imageCenterUv = QPointF{ 0.5, 0.5 };
+	resetToFit();
 	update();
 }
 
@@ -285,22 +258,10 @@ void CImageViewerWidget::zoomToActualPixels() noexcept
 	if (_sourceImage.isNull() || size().isEmpty())
 		return;
 
-	// On-screen magnification is zoom * dpr * scale, where scale shows the whole image (fit) while zoom <= 1
-	// and crops to fill the viewport while zoom > 1. Invert that per regime to reach magnification 1.0, i.e.
-	// one source pixel per one device pixel.
-	const qreal dpr = devicePixelRatioF();
-	const QSize fitSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
-	const QSize fillSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatioByExpanding);
-
-	const qreal zoomForFit = _sourceImage.width() / (fitSize.width() * dpr);
-	if (zoomForFit <= 1.0)
-		_zoom = zoomForFit; // Native size fits inside the window: shrink within the fit regime.
-	else
-		// Native size exceeds the window: crop at native pixels. The clamp handles the rare image that fits one
-		// axis but overflows the other at 1:1, which the fit/fill model can't show exactly - fall back to fit.
-		_zoom = std::max(1.0, _sourceImage.width() / (fillSize.width() * dpr));
-
-	_imageCenterUv = QPointF{ 0.5, 0.5 };
+	_scale = 1.0; // 1:1 == one source pixel per one device pixel; always within [minScale(), kMaxScale].
+	_offset = centeredOffset();
+	clampOffset();
+	_viewInitialized = true;
 	update();
 }
 
@@ -318,31 +279,30 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		return;
 	}
 
-	const QSize fitSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
-	const qreal zoom = std::clamp(_zoom, 0.01, 40.0);
+	if (size().isEmpty())
+		return;
+
+	if (!_viewInitialized)
+		resetToFit();
+
 	const qreal dpr = devicePixelRatioF();
+	const qreal viewW = width() * dpr;
+	const qreal viewH = height() * dpr;
 
-	QSize targetSize;
-	QRect sourceRect;
+	// Visible source rectangle: back-project the viewport through the inverse transform sourcePx = (devicePx - offset) / scale, clipped to the image.
+	const int srcX0 = qFloor(std::clamp(-_offset.x() / _scale, 0.0, (qreal)_sourceImage.width()));
+	const int srcY0 = qFloor(std::clamp(-_offset.y() / _scale, 0.0, (qreal)_sourceImage.height()));
+	const int srcX1 = qCeil(std::clamp((viewW - _offset.x()) / _scale, 0.0, (qreal)_sourceImage.width()));
+	const int srcY1 = qCeil(std::clamp((viewH - _offset.y()) / _scale, 0.0, (qreal)_sourceImage.height()));
 
-	if (zoom <= 1.0)
-	{
-		targetSize = QSize{
-			std::max(1, qRound(fitSize.width() * zoom)),
-			std::max(1, qRound(fitSize.height() * zoom))
-		};
-		sourceRect = QRect{ 0, 0, _sourceImage.width(), _sourceImage.height() };
-	}
-	else
-	{
-		targetSize = size();
-		sourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterUv, zoom);
-	}
+	const QRect sourceRect{ srcX0, srcY0, srcX1 - srcX0, srcY1 - srcY0 };
+	if (sourceRect.isEmpty())
+		return;
 
-	// targetSize is the on-screen placement in logical pixels; render the buffer at physical resolution (x dpr) so the blit is 1:1 with device pixels.
+	// The visible crop occupies sourceRect * scale device pixels; render the buffer at exactly that resolution for a 1:1 blit.
 	const QSize bufferPx{
-		std::max(1, qRound(targetSize.width() * dpr)),
-		std::max(1, qRound(targetSize.height() * dpr))
+		std::max(1, qRound(sourceRect.width() * _scale)),
+		std::max(1, qRound(sourceRect.height() * _scale))
 	};
 
 	if (_displayImage.size() != bufferPx || _displayImage.format() != _sourceImage.format())
@@ -361,143 +321,91 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 			ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
 		}
 		catch (...) {
-			_displayImage = _sourceImage.scaled(bufferPx, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+			_displayImage = _sourceImage.copy(sourceRect).scaled(bufferPx, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 			_displayImage.setDevicePixelRatio(dpr);
 		}
 
-		// magnification is source-pixel : device-pixel, so it reads off the physical buffer, not the logical placement.
-		const qreal magnification = _displayImage.width() / (qreal)sourceRect.width();
-		emit displayedSizeChanged(_displayImage.size(), magnification);
+		emit displayedSizeChanged(_displayImage.size(), _scale); // _scale is the magnification (source px : device px).
 	}
 
-	// zoom > 1 fills the viewport (targetSize == size()), so the centering offset is zero and this one blit serves both regimes.
-	p.drawImage(centeredTargetRect(targetSize, size()), _displayImage);
+	// Snap the blit to a whole device pixel so a 1:1 view stays pixel-exact; a fractional origin would make the painter resample the buffer.
+	const QPoint targetDevice = (_offset + QPointF{ (qreal)sourceRect.x(), (qreal)sourceRect.y() } * _scale).toPoint();
+	p.drawImage(QPointF{ targetDevice } / dpr, _displayImage);
+}
+
+void CImageViewerWidget::resizeEvent(QResizeEvent* e)
+{
+	QWidget::resizeEvent(e);
+
+	if (_sourceImage.isNull() || !_viewInitialized || !e->oldSize().isValid() || size().isEmpty())
+		return;
+
+	// A view that showed the whole image keeps fitting it; a zoomed-in view keeps its scale and the source point at the viewport center.
+	if (_scale <= fitScale(e->oldSize()) * (1.0 + 1e-3))
+	{
+		resetToFit();
+		return;
+	}
+
+	const qreal dpr = devicePixelRatioF();
+	const QPointF centerSource = (QPointF{ e->oldSize().width() * dpr / 2.0, e->oldSize().height() * dpr / 2.0 } - _offset) / _scale;
+
+	_scale = std::clamp(_scale, minScale(), kMaxScale);
+	_offset = QPointF{ width() * dpr / 2.0, height() * dpr / 2.0 } - centerSource * _scale;
+	clampOffset();
 }
 
 void CImageViewerWidget::wheelEvent(QWheelEvent* e)
 {
-	if (_sourceImage.isNull() || !e->modifiers().testFlag(Qt::ControlModifier))
+	if (_sourceImage.isNull() || !_viewInitialized || size().isEmpty() || !e->modifiers().testFlag(Qt::ControlModifier))
 		return;
 
 	const int delta = e->angleDelta().y();
 	if (delta == 0)
 		return;
 
-	const QSize fitSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
-	const qreal oldZoom = std::clamp(_zoom, 0.01, 40.0);
-	const QPointF anchorWidgetPos = e->position();
+	const qreal dpr = devicePixelRatioF();
+	const QPointF cursorDevice = e->position() * dpr;
+	const qreal newScale = std::clamp(_scale * std::pow(1.0015, (qreal)delta), minScale(), kMaxScale);
 
-	QSize oldTargetSize;
-	QRect oldSourceRect;
-
-	if (oldZoom <= 1.0)
+	if (newScale != _scale)
 	{
-		oldTargetSize = QSize{
-			std::max(1, qRound(fitSize.width() * oldZoom)),
-			std::max(1, qRound(fitSize.height() * oldZoom))
-		};
-
-		oldSourceRect = QRect{ 0, 0, _sourceImage.width(), _sourceImage.height() };
-	}
-	else
-	{
-		oldTargetSize = size();
-		oldSourceRect = computeSourceRect(_sourceImage.size(), size(), _imageCenterUv, oldZoom);
+		// Keep the source pixel under the cursor pinned in place as the scale changes.
+		_offset = cursorDevice - (cursorDevice - _offset) * (newScale / _scale);
+		_scale = newScale;
+		clampOffset();
+		update();
 	}
 
-	const QRectF oldTargetRect = centeredTargetRect(oldTargetSize, size());
-
-	const QPointF anchorSourcePoint = sourcePointUnderWidgetPos(
-		anchorWidgetPos,
-		oldTargetRect,
-		oldSourceRect);
-
-	const qreal anchorU =
-		oldTargetRect.width() > 0.0 ?
-		(anchorWidgetPos.x() - oldTargetRect.x()) / oldTargetRect.width()
-		:
-		0.5;
-
-	const qreal anchorV =
-		oldTargetRect.height() > 0.0 ?
-		(anchorWidgetPos.y() - oldTargetRect.y()) / oldTargetRect.height()
-		:
-		0.5;
-
-	const qreal scaleFactor = std::pow(1.0015, (qreal)delta);
-	_zoom = std::clamp(oldZoom * scaleFactor, 0.01, 40.0);
-
-	if (_zoom > 1.0)
-	{
-		const QPointF spanUv = visibleSpanUv(_sourceImage.size(), size(), _zoom);
-
-		_imageCenterUv = QPointF{
-			anchorSourcePoint.x() / _sourceImage.width() + (0.5 - anchorU) * spanUv.x(),
-			anchorSourcePoint.y() / _sourceImage.height() + (0.5 - anchorV) * spanUv.y()
-		};
-
-		const qreal halfSpanX = spanUv.x() * 0.5;
-		const qreal halfSpanY = spanUv.y() * 0.5;
-
-		_imageCenterUv.setX(std::clamp(_imageCenterUv.x(), halfSpanX, 1.0 - halfSpanX));
-		_imageCenterUv.setY(std::clamp(_imageCenterUv.y(), halfSpanY, 1.0 - halfSpanY));
-	}
-
-	update();
 	e->accept();
 }
 
 void CImageViewerWidget::mousePressEvent(QMouseEvent* e)
 {
-	if (_sourceImage.isNull() || e->button() != Qt::LeftButton || _zoom <= 1.0)
+	if (_sourceImage.isNull() || !_viewInitialized || e->button() != Qt::LeftButton || !isPannable())
 	{
 		QWidget::mousePressEvent(e);
 		return;
 	}
 
 	_isPanning = true;
-	_panStartMousePos = e->position().toPoint();
-	_panStartCenterUv = _imageCenterUv;
+	_panStartOffset = _offset;
+	_panStartMouseDevice = e->position() * devicePixelRatioF();
 	setCursor(Qt::ClosedHandCursor);
 	e->accept();
 }
 
 void CImageViewerWidget::mouseMoveEvent(QMouseEvent* e)
 {
-	if (!_isPanning || _sourceImage.isNull() || _zoom <= 1.0)
+	if (!_isPanning || _sourceImage.isNull())
 	{
 		QWidget::mouseMoveEvent(e);
 		return;
 	}
 
-	const QSize viewportSize = size();
-
-	if (viewportSize.isEmpty())
-	{
-		e->accept();
-		return;
-	}
-
-	const QPoint delta = e->position().toPoint() - _panStartMousePos;
-	const QPointF spanUv = visibleSpanUv(_sourceImage.size(), viewportSize, _zoom);
-
-	QPointF newCenterUv{
-		_panStartCenterUv.x() - delta.x() * spanUv.x() / viewportSize.width(),
-		_panStartCenterUv.y() - delta.y() * spanUv.y() / viewportSize.height()
-	};
-
-	const qreal halfSpanX = spanUv.x() * 0.5;
-	const qreal halfSpanY = spanUv.y() * 0.5;
-
-	newCenterUv.setX(std::clamp(newCenterUv.x(), halfSpanX, 1.0 - halfSpanX));
-	newCenterUv.setY(std::clamp(newCenterUv.y(), halfSpanY, 1.0 - halfSpanY));
-
-	if (newCenterUv != _imageCenterUv)
-	{
-		_imageCenterUv = newCenterUv;
-		update();
-	}
-
+	_offset = _panStartOffset + (e->position() * devicePixelRatioF() - _panStartMouseDevice);
+	clampOffset();
+	update();
 	e->accept();
 }
 

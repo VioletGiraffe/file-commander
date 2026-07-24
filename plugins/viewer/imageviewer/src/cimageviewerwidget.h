@@ -40,10 +40,20 @@ signals:
 
 protected:
 	void paintEvent(QPaintEvent* e) override;
+	void resizeEvent(QResizeEvent* e) override;
 	void wheelEvent(QWheelEvent* e) override;
 	void mousePressEvent(QMouseEvent* e) override;
 	void mouseMoveEvent(QMouseEvent* e) override;
 	void mouseReleaseEvent(QMouseEvent* e) override;
+
+private:
+	// The view is an affine map from source pixels to viewport device pixels: devicePos = _offset + sourcePos * _scale.
+	[[nodiscard]] qreal fitScale(const QSize& viewportLogicalSize) const noexcept; // scale that fits the whole image
+	[[nodiscard]] qreal minScale() const noexcept;                                 // most zoomed-out scale allowed
+	[[nodiscard]] QPointF centeredOffset() const noexcept;                         // offset that centers the image at _scale
+	[[nodiscard]] bool isPannable() const noexcept;                                // image larger than the viewport on some axis
+	void clampOffset() noexcept;                                                   // per-axis: center if smaller, keep inside if larger
+	void resetToFit() noexcept;
 
 private:
 	QImage _sourceImage;
@@ -53,9 +63,11 @@ private:
 	QString _currentImageFormat;
 	qint64 _currentImageFileSize = 0;
 
-	qreal _zoom = 1.0;
-	QPointF _imageCenterUv;
-	QPointF _panStartCenterUv;
-	QPoint _panStartMousePos;
+	qreal _scale = 1.0;    // device px per source px; 1.0 == 1:1 (native resolution)
+	QPointF _offset;       // device-px position of source (0,0) within the viewport
+	bool _viewInitialized = false;
+
+	QPointF _panStartOffset;
+	QPointF _panStartMouseDevice;
 	bool _isPanning = false;
 };
