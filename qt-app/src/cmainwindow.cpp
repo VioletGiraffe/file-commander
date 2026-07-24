@@ -137,6 +137,10 @@ CMainWindow::~CMainWindow() noexcept
 	_uiThreadTimer->disconnect();
 	_historyAutosaveTimer->disconnect();
 
+	// Destroy the controller (which deterministically stops its worker threads) before the UI, so no background
+	// task can be running while the widgets are torn down.
+	_controller.reset();
+
 	_instance = nullptr;
 	delete ui;
 }

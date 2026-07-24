@@ -19,6 +19,7 @@ using FileSystemWatcher = CFileSystemWatcherTimerBased;
 
 #include <3rdparty/ankerl/unordered_dense.h>
 
+#include <atomic>
 #include <stdint.h>
 #include <mutex>
 #include <utility>
@@ -170,4 +171,7 @@ private:
 	CWorkerThreadPool&                         _workerThreadPool; // Shared pool owned by CController; this panel's tasks carry _taskTag
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
+	// Signals this panel's background scans to bail out. Currently set only during destruction, so retiring
+	// the pool tasks doesn't block on a full recursive scan; usable by any future need to abort background work.
+	std::atomic<bool>                          _abortBackgroundTasks{false};
 };

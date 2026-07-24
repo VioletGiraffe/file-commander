@@ -55,6 +55,12 @@ CController::~CController()
 		savePanelState(p);
 	saveHistory();
 
+	// Deterministically stop the controller's own background tasks before _uiQueue is torn down: on completion
+	// they report back through execOnUiThread (_uiQueue), so they must finish while it is still alive. Done here
+	// explicitly rather than leaning on member declaration order. The panels' pool tasks are stopped separately -
+	// each CPanel retires them in its destructor during member teardown, prompt thanks to the panel abort flag.
+	_workerThreadPool.finishAllThreads();
+
 	_instance = nullptr;
 }
 

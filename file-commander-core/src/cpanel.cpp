@@ -34,6 +34,9 @@ CPanel::CPanel(Panel position, CWorkerThreadPool& workerThreadPool, qulonglong i
 
 CPanel::~CPanel()
 {
+	// Cut short any in-flight background scan first, so the wait below is prompt instead of blocking until a
+	// full recursive scan of the subtree completes.
+	_abortBackgroundTasks = true;
 	// Drop this panel's queued tasks from the shared pool and wait out any in-flight one,
 	// so no task touches this panel's members after it's destroyed.
 	_workerThreadPool.retire(_taskTag);
@@ -325,7 +328,7 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 			scanDirectory(CFileSystemObject(request.path), [&items, showHiddenFiles](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
 				if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
 					items[item.hash()] = item;
-			});
+			}, _abortBackgroundTasks);
 		}
 		else
 		{
@@ -456,7 +459,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 		return;
 
 	_workerThreadPool.enqueue([this, dirHash, path = item.fullAbsolutePath()] {
-		const FileStatistics stats = calculateStatsFor({ path });
+		const FileStatistics stats = calculateStatsFor({ path }, _abortBackgroundTasks);
 
 		// Since this is a background thread, the item we were working on may be out of the _items list by now.
 		// So we find it again and see if it's still there.
