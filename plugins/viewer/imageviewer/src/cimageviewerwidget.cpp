@@ -270,6 +270,40 @@ void CImageViewerWidget::copyDisplayedToClipboard() noexcept
 		QApplication::clipboard()->setImage(_displayImage);
 }
 
+void CImageViewerWidget::fitToWindow() noexcept
+{
+	if (_sourceImage.isNull())
+		return;
+
+	_zoom = 1.0;
+	_imageCenterUv = QPointF{ 0.5, 0.5 };
+	update();
+}
+
+void CImageViewerWidget::zoomToActualPixels() noexcept
+{
+	if (_sourceImage.isNull() || size().isEmpty())
+		return;
+
+	// On-screen magnification is zoom * dpr * scale, where scale shows the whole image (fit) while zoom <= 1
+	// and crops to fill the viewport while zoom > 1. Invert that per regime to reach magnification 1.0, i.e.
+	// one source pixel per one device pixel.
+	const qreal dpr = devicePixelRatioF();
+	const QSize fitSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatio);
+	const QSize fillSize = _sourceImage.size().scaled(size(), Qt::KeepAspectRatioByExpanding);
+
+	const qreal zoomForFit = _sourceImage.width() / (fitSize.width() * dpr);
+	if (zoomForFit <= 1.0)
+		_zoom = zoomForFit; // Native size fits inside the window: shrink within the fit regime.
+	else
+		// Native size exceeds the window: crop at native pixels. The clamp handles the rare image that fits one
+		// axis but overflows the other at 1:1, which the fit/fill model can't show exactly - fall back to fit.
+		_zoom = std::max(1.0, _sourceImage.width() / (fillSize.width() * dpr));
+
+	_imageCenterUv = QPointF{ 0.5, 0.5 };
+	update();
+}
+
 void CImageViewerWidget::paintEvent(QPaintEvent*)
 {
 	QPainter p{ this };

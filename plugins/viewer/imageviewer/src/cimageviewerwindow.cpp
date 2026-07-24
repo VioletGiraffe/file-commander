@@ -40,6 +40,9 @@ CImageViewerWindow::CImageViewerWindow(QWidget* parent) noexcept :
 	connect(ui->action_Copy_to_clipboard, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::copyToClipboard);
 	connect(ui->action_Copy_to_clipboard_as_displayed, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::copyDisplayedToClipboard);
 
+	connect(ui->actionFitToScreen, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::fitToWindow);
+	connect(ui->actionZoom1to1, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::zoomToActualPixels);
+
 	connect(ui->_imageViewerWidget, &CImageViewerWidget::displayedSizeChanged, this, [this](QSize size, qreal magnification) {
 		_viewingAtLabel->setText(tr("Viewing at %1x%2 (%3% / %4x)").arg(size.width()).arg(size.height()).arg(qRound(magnification * 100.0)).arg(magnification, 0, 'f', 2));
 	});

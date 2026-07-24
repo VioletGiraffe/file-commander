@@ -62,8 +62,16 @@
     <addaction name="action_Copy_to_clipboard"/>
     <addaction name="action_Copy_to_clipboard_as_displayed"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="actionFitToScreen"/>
+    <addaction name="actionZoom1to1"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_Edit"/>
+   <addaction name="menuView"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -106,6 +114,22 @@
   <action name="action_Copy_to_clipboard_as_displayed">
    <property name="text">
     <string>Copy to clipboard as displa&amp;yed</string>
+   </property>
+  </action>
+  <action name="actionFitToScreen">
+   <property name="text">
+    <string>&amp;Fit to screen</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+0</string>
+   </property>
+  </action>
+  <action name="actionZoom1to1">
+   <property name="text">
+    <string>&amp;Zoom 1:1</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+1</string>
    </property>
   </action>
  </widget>
