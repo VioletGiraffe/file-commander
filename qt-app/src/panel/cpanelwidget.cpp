@@ -31,6 +31,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QHeaderView>
 #include <QHelpEvent>
+#include <QImageWriter>
 #include <QInputDialog>
 #include <QItemSelectionModel>
 #include <QMenu>
@@ -1444,5 +1445,11 @@ bool CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
 		imagePath = imagePathTemplate.arg("clipboard_" + QString::number(i));
 	}
 
-	return lossyCompression ? image.save(imagePath, "jpg", 75) : image.save(imagePath, "png");
+	QImageWriter writer(imagePath, lossyCompression ? "jpg" : "png");
+	if (lossyCompression)
+		writer.setQuality(80);
+	else
+		writer.setCompression(100); // Maximum zlib compression level for PNG; lossless, so there's no quality trade-off.
+
+	return writer.write(image);
 }
