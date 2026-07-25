@@ -1,9 +1,21 @@
 #!/bin/bash
+set -eu
 
 # Update the main repo
-git checkout master
-git fetch
-git pull
+remote="${1:-origin}"
+
+git remote set-head "$remote" -a >/dev/null
+
+default_branch="$(git symbolic-ref --short "refs/remotes/$remote/HEAD")"
+default_branch="${default_branch#"$remote/"}"
+current_branch="$(git symbolic-ref --short HEAD)"
+
+if [ "$current_branch" != "$default_branch" ]; then
+	>&2 echo "On branch $current_branch, expected $default_branch; aborting."
+	exit 1
+fi
+
+git pull --ff-only "$remote" "$default_branch"
 
 # Init the subrepos
 git submodule update --init --recursive
