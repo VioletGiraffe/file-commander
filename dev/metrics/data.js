@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784990581645,
+  "lastUpdate": 1784991504797,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -8027,6 +8027,75 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/9e894375a9a0920bc1ff89a0066efbbae660902b"
         },
         "date": 1784990578138,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16334,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10899,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1316,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 705,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 380.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "bf77481ed7d2f493830c11414c45f80af5a6e959",
+          "message": "Tests cleanup",
+          "timestamp": "2026-07-25T17:53:05+03:00",
+          "tree_id": "15bff7602b966dc9c81ceb0d0f8d66c5a2d1e326",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/bf77481ed7d2f493830c11414c45f80af5a6e959"
+        },
+        "date": 1784991501660,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
