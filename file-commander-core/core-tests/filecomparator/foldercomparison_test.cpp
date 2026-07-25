@@ -25,6 +25,15 @@ void writeFile(const QString& path, const QByteArray& contents)
 	REQUIRE(file.write(contents) == contents.size());
 }
 
+// The one entry a root holds, named as the filesystem actually stored it rather than as it was asked for: macOS
+// renormalizes names on create, so what went in is not always what comes back.
+QString soleStoredName(const QString& dir)
+{
+	const QStringList entries = QDir{ dir }.entryList(QDir::Files | QDir::Hidden | QDir::System);
+	REQUIRE(entries.size() == 1);
+	return entries.front();
+}
+
 const FolderComparisonEntry* findEntry(const FolderComparisonResult& result, const QString& relativePath)
 {
 	const auto it = std::find_if(result.differences.begin(), result.differences.end(),
@@ -170,6 +179,52 @@ TEST_CASE("compareFolders: pairing of names that differ only in letter case", "[
 		CHECK(onlyLeft->status == EntryDifference::OnlyInLeft);
 
 		const auto* onlyRight = findEntry(result, QSL("file.txt"));
+		REQUIRE(onlyRight != nullptr);
+		CHECK(onlyRight->status == EntryDifference::OnlyInRight);
+	}
+}
+
+TEST_CASE("compareFolders: pairing of names in different Unicode normalization forms", "[foldercomparison]")
+{
+	QTemporaryDir left, right;
+	REQUIRE(left.isValid());
+	REQUIRE(right.isValid());
+
+	// The same glyph twice: precomposed U+00E9, then "e" plus combining acute U+0301. Assembled from code points
+	// deliberately - written literally the two are indistinguishable on screen, and an editor or tool could
+	// renormalize one into the other without anyone noticing.
+	const QString precomposed = QStringLiteral("caf") % QChar{ 0x00E9 } % QStringLiteral(".bin");
+	const QString decomposed = QStringLiteral("cafe") % QChar{ 0x0301 } % QStringLiteral(".bin");
+
+	writeFile(left.path() % '/' % precomposed, QByteArray(40, 'u'));
+	writeFile(right.path() % '/' % decomposed, QByteArray(40, 'u'));
+
+	const QString storedOnTheLeft = soleStoredName(left.path()), storedOnTheRight = soleStoredName(right.path());
+	if (storedOnTheLeft == storedOnTheRight)
+	{
+		// Nothing to test: this filesystem normalizes on create, so the two forms cannot coexist as distinct names.
+		WARN("Filenames are normalized by this filesystem; the two normalization forms are indistinguishable here");
+		return;
+	}
+
+	{
+		const auto result = compareFolders(left.path(), right.path(), PairingMode::FoldCaseAndNormalization);
+
+		CHECK(result.differences.empty());
+		CHECK(result.identicalFiles == 1);
+	}
+
+	{
+		const auto result = compareFolders(left.path(), right.path());
+
+		CHECK(result.identicalFiles == 0);
+		REQUIRE(result.differences.size() == 2);
+
+		const auto* onlyLeft = findEntry(result, storedOnTheLeft);
+		REQUIRE(onlyLeft != nullptr);
+		CHECK(onlyLeft->status == EntryDifference::OnlyInLeft);
+
+		const auto* onlyRight = findEntry(result, storedOnTheRight);
 		REQUIRE(onlyRight != nullptr);
 		CHECK(onlyRight->status == EntryDifference::OnlyInRight);
 	}
