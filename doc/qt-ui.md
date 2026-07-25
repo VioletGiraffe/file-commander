@@ -32,7 +32,7 @@ nearly every menu/toolbar/shortcut action is a private method here.
   delete where the OS provides it, otherwise the internal job. Plus `createFolder`/`createFile`.
 - **Other commands:** `viewFile`/`editFile`/`quickViewCurrentFile`/`toggleQuickView`, `invertSelection`,
   `filterItemsByName`, `refresh`, `findFiles`, `showHiddenFiles`, `showAllFilesFromCurrentFolderAndBelow`,
-  `openSettingsDialog`, `calculateStatistics`, `calculateEachFolderSize`, `checkForUpdates` (github auto
+  `openSettingsDialog`, `calculateStatistics`, `calculateEachFolderSize`, `compareFolders`, `checkForUpdates` (github auto
   updater), `about`, `toggleFullScreenMode`, `toggleTabletMode`, recycle-bin context menu.
 - **Command line:** `executeCommand`, history recall (`selectPreviousCommandInTheCommandLine`,
   `_commandLineCompleter`), `pasteCurrentFileName`/`pasteCurrentFilePath`, `fileListReturnPressed`
@@ -126,6 +126,11 @@ the panel, page 1 is a plugin viewer window. `startQuickView(WindowPtr<CPluginWi
 - **`filessearchdialog/`** — `CFilesSearchWindow` (front-end for `CFileSearchEngine`; double-click a result
   navigates the panel to it).
 - **`aboutdialog/`** — `CAboutDialog`. **`tools/CFileStatsWindow`** — folder statistics view.
+- **`tools/cfoldercomparisonwindow`** — compares the two panels' folders by content. `runFolderComparison()`
+  drives core's `compareFolders()` on a worker thread behind a cancellable progress dialog; the window then
+  lists the differences (activating one reveals it in whichever panel holds it). Read-only: acting on the
+  differences is a separate, later feature. `tools/csortbydatatreeitem.h` gives both tool windows their
+  numeric-aware column sorting.
 - **`version.h`** — app version string.
 
 ## GUI tests (`qt-app/gui-tests/`)

@@ -227,8 +227,13 @@ Each `CPanel` owns one and polls it on the UI timer tick.
   (`itemScanned`/`matchFound`/`searchFinished(status, itemsScanned, msElapsed)`); `stopSearching`. Name-only
   searches use only that outer thread. Content searches lazily add 1-8 workers, bound outstanding file tasks
   to twice the worker count, and check cancellation between 4 KiB chunks. Backs the Find Files dialog.
-- **`CFileComparator` (`src/filecomparator/`)** — binary/byte comparison engine; used by the file-comparison
-  plugin and covered by `filecomparator_test`.
+- **Comparison (`src/filecomparator/`)** — three layers, covered by `filecomparator_test`.
+  `compareFileContents()` is the primitive: byte-wise comparison of two files, reporting progress in *bytes*
+  rather than percent so that a batch caller can aggregate against its own denominator. `compareFolders()`
+  builds on it, pairing two trees by relative path (exact match first, case/Unicode-folded only for the
+  leftovers, and never on an ambiguous fold) and reading bytes only where entry type and size cannot already
+  separate a pair; unreadable pairs are reported as such rather than as differing. `CFileComparator` is just
+  the threading wrapper the file-comparison plugin uses, converting bytes to a percentage for one file.
 - **`filestatistics` / `filesystemhelpers` / `filesystemhelperfunctions`** — recursive size/count stats,
   path helpers, misc fs utilities. `resolvedObjectId(path)` (in `filesystemhelperfunctions`) returns
   the unique identity of the entry a path resolves to (`{device, inode}` on POSIX, `{volume serial, file

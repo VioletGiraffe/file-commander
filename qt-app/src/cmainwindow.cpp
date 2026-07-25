@@ -25,6 +25,7 @@
 #include "filesystemhelpers/filesystemhelpers.hpp"
 #include "system/ctimeelapsed.h"
 #include "tools/CFileStatsWindow.h"
+#include "tools/cfoldercomparisonwindow.h"
 #include "logger/cloggerinmemory.h"
 #include "version.h"
 
@@ -272,6 +273,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
 	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateStatistics);
 	connect(ui->actionCalculate_each_folder_s_size, &QAction::triggered, this, &CMainWindow::calculateEachFolderSize);
+	connect(ui->actionCompare_folders, &QAction::triggered, this, &CMainWindow::compareFolders);
 	connect(ui->actionJump_to_first_file, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->moveCursorToFirstFile(); });
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
 	connect(ui->actionFilter_items, &QAction::triggered, this, &CMainWindow::filterItemsByName);
@@ -885,6 +887,21 @@ void CMainWindow::calculateEachFolderSize()
 		if (item.second.isDir() && !item.second.isCdUp())
 			_controller->displayDirSize(_currentFileList->panelPosition(), item.first);
 	}
+}
+
+void CMainWindow::compareFolders()
+{
+	const QString leftRoot = _controller->panel(Panel::LeftPanel).currentDirPathPosix();
+	const QString rightRoot = _controller->panel(Panel::RightPanel).currentDirPathPosix();
+
+	const auto result = runFolderComparison(this, leftRoot, rightRoot);
+	if (!result) // Cancelled
+		return;
+
+	auto* comparisonWindow = new CFolderComparisonWindow(this, *result, leftRoot, rightRoot, *_controller);
+	comparisonWindow->setAttribute(Qt::WA_DeleteOnClose);
+	WidgetUtils::centerWidgetOnScreen(comparisonWindow, 0.7);
+	comparisonWindow->show();
 }
 
 void CMainWindow::checkForUpdates()

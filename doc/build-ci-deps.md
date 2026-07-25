@@ -85,7 +85,7 @@ Core tests: `file-commander-core/core-tests/` (`core-tests.pro` aggregates sub-`
 | `fso_test_high_level` | `filesystemobject-high-level/fso_test_high_level.cpp` | Real filesystem. |
 | `fileoperations_test` | `fileoperations/*.cpp` | The whole file-operation engine: path/error types, mutator & staged copy, resolver, tree builder, transfer/delete/move executors, job, inline rename, hooks. Stress: 20x random seed. Compiled with `FILE_OPERATIONS_TEST_HOOKS`. Link tests create junctions on Windows via `mklink /J` — no admin needed, unlike symlinks. The cross-volume case needs a real second filesystem: it skips with a WARN unless `FILE_COMMANDER_TEST_SECOND_VOLUME` points at a directory on one. All three CI OSes provide one (ImDisk RAM disk / `hdiutil` RAM disk / tmpfs mount). |
 | `fileoperations_gui_test` | `qt-app/gui-tests/fileoperations/*.cpp` | The Qt file-operation UI: typed prompt, the real-job dialog, launch policy, and production-routing integration. Linux runs it with `QT_QPA_PLATFORM=offscreen`. Also built with `FILE_OPERATIONS_TEST_HOOKS`. |
-| `filecomparator_test` | `filecomparator/filecomparator_test.cpp` | Random seed. |
+| `filecomparator_test` | `filecomparator/{filecomparator,foldercomparison}_test.cpp` | Byte comparison of two files (random seed) plus the folder-tree comparison: pairing, one-sided entries, type/size/content differences, progress and cancellation. |
 
 Shared test helpers in `core-tests/test-utils/src/`: `ctestfoldergenerator`, `crandomdatagenerator`,
 `cfolderenumeratorrecursive`, `foldercomparator`, `qt_helpers`.

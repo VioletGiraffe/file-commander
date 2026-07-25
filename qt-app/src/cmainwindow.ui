@@ -244,6 +244,8 @@
     <addaction name="separator"/>
     <addaction name="actionCalculate_occupied_space"/>
     <addaction name="actionCalculate_each_folder_s_size"/>
+    <addaction name="separator"/>
+    <addaction name="actionCompare_folders"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -356,6 +358,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionCompare_folders">
+   <property name="text">
+    <string>Compare folders by contents</string>
    </property>
   </action>
   <action name="actionQuick_view">

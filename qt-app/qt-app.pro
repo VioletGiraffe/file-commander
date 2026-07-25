@@ -76,7 +76,8 @@ SOURCES += \
 	src/aboutdialog/caboutdialog.cpp \
 	src/progressdialogs/progressdialoghelpers.cpp \
 	src/panel/cpaneldisplaycontroller.cpp \
-	src/tools/CFileStatsWindow.cpp
+	src/tools/CFileStatsWindow.cpp \
+	src/tools/cfoldercomparisonwindow.cpp
 
 HEADERS += \
 	src/cmainwindow.h \
@@ -99,6 +100,8 @@ HEADERS += \
 	src/panel/filelistwidget/cfilelistfilterdialog.h \
 	src/filessearchdialog/cfilessearchwindow.h \
 	src/tools/CFileStatsWindow.h \
+	src/tools/cfoldercomparisonwindow.h \
+	src/tools/csortbydatatreeitem.h \
 	src/version.h \
 	src/aboutdialog/caboutdialog.h \
 	src/progressdialogs/progressdialoghelpers.h \

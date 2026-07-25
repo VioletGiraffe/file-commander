@@ -102,6 +102,7 @@ private:
 	void openSettingsDialog();
 	void calculateStatistics();
 	void calculateEachFolderSize();
+	void compareFolders();
 	void checkForUpdates();
 	void reportBug();
 	void about();

@@ -134,15 +134,17 @@ adapter -> A.
 ## Tier 4 — self-contained / lower risk
 
 ### I. Standalone subsystems
-- **Files:** `filecomparator/cfilecomparator.cpp`, `filesearchengine/cfilesearchengine.cpp` (thread covered in B),
+- **Files:** `filecomparator/{cfilecomparator,filecontentcomparison,foldercomparison}.cpp`,
+  `filesearchengine/cfilesearchengine.cpp` (thread covered in B),
   `iconprovider/ciconproviderimpl.cpp`, `favoritelocationslist/cfavoritelocations.cpp`.
-- **Focus:** comparator correctness (covered by `filecomparator_test` — cross-check); favorites
-  load/save + nested tree; icon caching + settings reaction.
+- **Focus:** comparator correctness (covered by `filecomparator_test` — cross-check), especially the
+  tree-pairing rules in `foldercomparison.cpp`; favorites load/save + nested tree; icon caching + settings reaction.
 - **Effort:** medium. **Delegation:** subagent OK.
 
 ### J. App shell & dialogs
 - **Files:** `main.cpp`, `cmainwindow.{cpp,ui}`, `progressdialogs/*`, `settings/*` (4 pages),
-  `favoritelocationseditor/*`, `filessearchdialog/*`, `aboutdialog/*`, `tools/CFileStatsWindow.*`.
+  `favoritelocationseditor/*`, `filessearchdialog/*`, `aboutdialog/*`, `tools/*` (`CFileStatsWindow`,
+  `cfoldercomparisonwindow`, `csortbydatatreeitem.h`).
 - **Focus:** file-op dialog orchestration (`_activeFileOperationDialogs` lifetime, the launch boundary +
   `CFileOperationDialog`/`CFileOperationJob` wiring, dialog self-disposal, background cascade); command-line
   routing + history; focus management; settings apply/round-trip; menu/action wiring incl. the programmatic

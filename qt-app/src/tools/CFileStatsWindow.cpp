@@ -1,9 +1,9 @@
 #include "CFileStatsWindow.h"
+#include "csortbydatatreeitem.h"
 #include "ccontroller.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelperfunctions.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
-#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 #include "3rdparty/magic_enum/magic_enum.hpp"
 
@@ -20,28 +20,6 @@ namespace columns {
 		Name, Size, ModDate, Folder
 	};
 }
-
-class SortByDataTreeItem final : public QTreeWidgetItem
-{
-public:
-	using QTreeWidgetItem::QTreeWidgetItem;
-
-	inline bool operator<(const QTreeWidgetItem& other) const override
-	{
-		const int col = treeWidget()->sortColumn();
-		switch (col)
-		{
-		case columns::Name: [[fallthrough]];
-		case columns::Folder:
-			return NaturalSort::lessThan(text(col), other.text(col));
-		case columns::Size: [[fallthrough]];
-		case columns::ModDate:
-			return data(col, Qt::UserRole).toULongLong() < other.data(col, Qt::UserRole).toULongLong();
-		default: // Fallback
-			return QTreeWidgetItem::operator<(other);
-		}
-	}
-};
 
 CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats, CController& controller, uint64_t elapsedMs) :
 	QMainWindow{ nullptr }
@@ -103,7 +81,7 @@ void CFileStatsWindow::fillFileList(const FileStatistics& stats)
 
 	for (const CFileSystemObject& file : stats.largestFiles)
 	{
-		auto* item = new SortByDataTreeItem;
+		auto* item = new CSortByDataTreeItem;
 		item->setText(columns::Name, file.fullName());
 		item->setData(columns::Name, Qt::UserRole, file.fullAbsolutePath());
 
