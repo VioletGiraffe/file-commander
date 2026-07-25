@@ -88,7 +88,8 @@ Core tests: `file-commander-core/core-tests/` (`core-tests.pro` aggregates sub-`
 | `filecomparator_test` | `filecomparator/{filecomparator,foldercomparison}_test.cpp` | Byte comparison of two files (random seed) plus the folder-tree comparison: pairing, one-sided entries, type/size/content differences, progress and cancellation. |
 
 Shared test helpers in `core-tests/test-utils/src/`: `ctestfoldergenerator`, `crandomdatagenerator`,
-`cfolderenumeratorrecursive`, `foldercomparator`, `qt_helpers`.
+`qt_helpers`. Tree equality is asserted by `requireEqualTrees` in `fileoperations/fileoperationtesthelpers.h`,
+which runs core's `compareFolders()` in `PairingMode::Exact` and reports every difference at once.
 
 **Caution — Catch2 test names become directory names.** Test titles are interpolated into `QTemporaryDir`
 templates, so a title must not contain characters illegal in a filename on the strictest platform. A `:` in

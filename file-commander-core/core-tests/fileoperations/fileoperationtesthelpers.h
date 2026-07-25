@@ -5,6 +5,7 @@
 
 #include "fileoperations/cfilesystemmutator.h"
 #include "fileoperations/coperationexecutioncontext.h"
+#include "filecomparator/foldercomparison.h"
 
 #include "compiler/compiler_warnings_control.h"
 
@@ -24,6 +25,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <stdint.h>
 #include <stdlib.h> // rand()
+#include <string>
 
 #include "3rdparty/catch2/catch.hpp"
 
@@ -173,25 +175,35 @@ inline size_t countTreeEntries(const QString& dir)
 	return count;
 }
 
+inline const char* differenceName(const EntryDifference status)
+{
+	switch (status) // No default: a new EntryDifference value has to surface here as a compiler warning
+	{
+	case EntryDifference::OnlyInLeft: return "only in expected";
+	case EntryDifference::OnlyInRight: return "only in actual";
+	case EntryDifference::Different: return "differs";
+	case EntryDifference::ComparisonFailed: return "unreadable";
+	}
+
+	return "?";
+}
+
 // Compares the followed shapes and file contents; exactly right for materializing transfers, where source
 // links become real destination entries with the target content.
 inline void requireEqualTrees(const QString& expectedDir, const QString& actualDir)
 {
-	const auto filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System;
-	const QStringList expected = QDir{ expectedDir }.entryList(filters, QDir::Name);
-	const QStringList actual = QDir{ actualDir }.entryList(filters, QDir::Name);
-	REQUIRE(expected == actual);
+	// Exact pairing, spelled out: here a name differing only in letter case is a defect to catch, not a match.
+	const auto comparison = compareFolders(expectedDir, actualDir, PairingMode::Exact);
+	if (comparison.differences.empty())
+		return;
 
-	for (const QString& name : expected)
-	{
-		const QString expectedPath = expectedDir % '/' % name;
-		const QString actualPath = actualDir % '/' % name;
-		REQUIRE(QFileInfo{ expectedPath }.isDir() == QFileInfo{ actualPath }.isDir());
-		if (QFileInfo{ expectedPath }.isDir())
-			requireEqualTrees(expectedPath, actualPath);
-		else
-			REQUIRE(readFileContents(expectedPath) == readFileContents(actualPath));
-	}
+	// Name every difference: a tree that came out wrong usually differs in more than one place, and the first
+	// one alone seldom explains why.
+	std::string report = "Trees differ.\n  expected: " + expectedDir.toStdString() + "\n  actual:   " + actualDir.toStdString();
+	for (const FolderComparisonEntry& entry : comparison.differences)
+		report += "\n  " + std::string{ differenceName(entry.status) } + ": " + entry.relativePath.toStdString();
+
+	FAIL(report);
 }
 
 inline int stagingFileCount(const QString& directory)

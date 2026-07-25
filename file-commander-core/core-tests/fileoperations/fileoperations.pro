@@ -47,11 +47,15 @@ SOURCES += \
 	../../src/cfilesystemobject.cpp \
 	../../src/iconprovider/ciconprovider.cpp \
 	../../src/iconprovider/ciconproviderimpl.cpp \
-	../../src/directoryscanner.cpp
+	../../src/directoryscanner.cpp \
+	../../src/filecomparator/filecontentcomparison.cpp \
+	../../src/filecomparator/foldercomparison.cpp
 
 HEADERS += \
 	fileoperationtesthelpers.h \
 	../../src/cfilesystemobject.h \
 	../../src/iconprovider/ciconprovider.h \
 	../../src/iconprovider/ciconproviderimpl.h \
-	../../src/directoryscanner.h
+	../../src/directoryscanner.h \
+	../../src/filecomparator/filecontentcomparison.h \
+	../../src/filecomparator/foldercomparison.h
