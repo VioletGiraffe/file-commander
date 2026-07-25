@@ -83,7 +83,6 @@ bool CEntryPath::operator==(const CEntryPath& other) const noexcept
 
 std::optional<CEntryPath> parseOperationPath(QString path)
 {
-	path = path.trimmed();
 	if (path.isEmpty())
 		return {};
 

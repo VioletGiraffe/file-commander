@@ -8,11 +8,11 @@ namespace
 
 // A panel's synthetic parent item ([..]) arrives as a path whose last component is "..". It is filtered
 // on the raw text: parsing would silently collapse it into the parent directory instead.
-bool isSyntheticParentEntry(const QString& trimmedRawPath)
+bool isSyntheticParentEntry(const QString& rawPath)
 {
-	return trimmedRawPath == QLatin1String("..")
-		|| trimmedRawPath.endsWith(QLatin1String("/.."))
-		|| trimmedRawPath.endsWith(QLatin1String("\\.."));
+	return rawPath == QLatin1String("..")
+		|| rawPath.endsWith(QLatin1String("/.."))
+		|| rawPath.endsWith(QLatin1String("\\.."));
 }
 
 std::expected<std::vector<CEntryPath>, RequestValidationError> parseSourcePaths(const QStringList& rawSourcePaths)
@@ -21,7 +21,7 @@ std::expected<std::vector<CEntryPath>, RequestValidationError> parseSourcePaths(
 	sources.reserve(static_cast<size_t>(rawSourcePaths.size()));
 	for (const QString& rawPath : rawSourcePaths)
 	{
-		if (isSyntheticParentEntry(rawPath.trimmed()))
+		if (isSyntheticParentEntry(rawPath))
 			continue;
 
 		auto parsed = parseOperationPath(rawPath);

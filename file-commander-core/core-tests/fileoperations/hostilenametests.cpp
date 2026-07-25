@@ -64,8 +64,8 @@ QStringList awkwardNames()
 		QString(200, QChar{ 'x' }) % QStringLiteral(".bin"), // Long single component, comfortably under the 255 limit
 		// Looks exactly like the staging file a copy creates. Nothing may mistake a real source entry for its own debris.
 		QStringLiteral(".file-commander-copy-decoy.bin"),
-		// Windows' path normalization strips a trailing space or dot, but Qt evidently creates these verbatim on NTFS
-		// anyway, so the names do exist and the engine has to cope with them rather than these cases skipping.
+		// Win32 path normalization strips a trailing space or period, but Qt's file APIs go out `\\?\`-prefixed and so
+		// bypass it: where NTFS does end up holding the name, the engine has to reach it rather than the case skipping.
 		QStringLiteral("trailing-space "),
 		QStringLiteral("trailing-dot."),
 		QStringLiteral("colon:star*question?.bin"),

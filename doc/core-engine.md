@@ -128,7 +128,10 @@ CFileOperationJob      worker thread + event queue  (the only concurrent piece)
   action-failed) plus `EntrySnapshot`s and an optional structured `FailureDetails`. The answer is a `Decision`
   (`DecisionAction` × `DecisionScope`). Native errors are classified into a `FileErrorCategory` at the point of
   failure and never travel as raw codes above the primitive layer. `CEntryPath` is the one normalized absolute
-  path (single `/` separator, no trailing separator except roots) used throughout the module.
+  path (single `/` separator, no trailing separator except roots) used throughout the module. On Windows every
+  native call goes out `\\?\`-prefixed with the component names verbatim, so entries whose names Win32
+  normalization would rewrite — trailing spaces or periods — are addressed as they are on disk rather than
+  silently redirected to a differently-named sibling. This matches what Qt's own file APIs see.
 - **The executors are synchronous, with no threads, UI, or ambient I/O of their own.** Every side effect goes
   through `CFileSystemMutator` / `CStagedFileCopy`; every contact with the outside world goes through
   `COperationExecutionContext` callbacks (`checkpoint()` for pause/cancel, `resolveDecision()` for prompts,

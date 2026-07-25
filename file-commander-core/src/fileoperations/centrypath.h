@@ -34,7 +34,8 @@ private:
 // The only entry point for untrusted path text (confirmation-field edits, external drag-and-drop).
 // Accepts absolute paths only: rooted paths on POSIX; drive-absolute ("C:\...") and UNC ("\\server\share\...")
 // forms on Windows, either separator. Collapses duplicate separators and "."/".." components (".." clamps at the
-// root) and trims surrounding whitespace as a typed-text artifact. All invalid inputs share one response: nullopt.
+// root). Whitespace is never trimmed: a trailing space is part of the name a filesystem can legitimately hold, and
+// removing it would address a different entry. All invalid inputs share one response: nullopt.
 [[nodiscard]] std::optional<CEntryPath> parseOperationPath(QString path);
 
 // Whether text is usable as one new entry name (a Rename decision, the child() precondition):

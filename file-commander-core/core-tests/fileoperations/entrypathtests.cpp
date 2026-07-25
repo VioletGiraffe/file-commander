@@ -33,8 +33,10 @@ TEST_CASE("parseOperationPath: rejection table", "[entrypath]")
 	requireRejected(QStringLiteral("./x"));
 	requireRejected(QStringLiteral("../x"));
 	requireRejected(QStringLiteral("file.txt"));
+	requireRejected(QStringLiteral(" /leading-space")); // Whitespace is not stripped, so this is simply not an absolute path
 
 #ifdef _WIN32
+	requireRejected(QStringLiteral(" C:/foo"));
 	requireRejected(QStringLiteral("C:")); // Drive-relative: names the drive's current directory, not its root
 	requireRejected(QStringLiteral("C:foo"));
 	requireRejected(QStringLiteral("/rootless")); // Current-drive-relative on Windows
@@ -65,7 +67,7 @@ TEST_CASE("parseOperationPath: Windows drive paths", "[entrypath]")
 	requireParsesTo(QStringLiteral("C:/a/b/../c"), QStringLiteral("C:/a/c"));
 	requireParsesTo(QStringLiteral("C:/../../x"), QStringLiteral("C:/x")); // ".." clamps at the root
 	requireParsesTo(QStringLiteral("C:/a/.."), QStringLiteral("C:/"));
-	requireParsesTo(QStringLiteral("  C:/foo  "), QStringLiteral("C:/foo")); // Typed-text whitespace artifact
+	requireParsesTo(QStringLiteral("C:/foo "), QStringLiteral("C:/foo ")); // Trailing space: part of the name, never trimmed
 	requireParsesTo(QStringLiteral("C:\\mixed/separators\\path"), QStringLiteral("C:/mixed/separators/path"));
 }
 
@@ -126,7 +128,7 @@ TEST_CASE("parseOperationPath: POSIX paths", "[entrypath]")
 	requireParsesTo(QStringLiteral("/a/b/../c"), QStringLiteral("/a/c"));
 	requireParsesTo(QStringLiteral("/../x"), QStringLiteral("/x")); // ".." clamps at the root, as the OS resolves it
 	requireParsesTo(QStringLiteral("/a/.."), QStringLiteral("/"));
-	requireParsesTo(QStringLiteral("  /tmp/x  "), QStringLiteral("/tmp/x")); // Typed-text whitespace artifact
+	requireParsesTo(QStringLiteral("/tmp/x "), QStringLiteral("/tmp/x ")); // Trailing space: part of the name, never trimmed
 	requireParsesTo(QStringLiteral("/name.with\\backslash"), QStringLiteral("/name.with\\backslash")); // '\' is an ordinary name character
 }
 
