@@ -230,10 +230,13 @@ Each `CPanel` owns one and polls it on the UI timer tick.
 - **Comparison (`src/filecomparator/`)** — three layers, covered by `filecomparator_test`.
   `compareFileContents()` is the primitive: byte-wise comparison of two files, reporting progress in *bytes*
   rather than percent so that a batch caller can aggregate against its own denominator. `compareFolders()`
-  builds on it, pairing two trees by relative path (exact match first, case/Unicode-folded only for the
-  leftovers, and never on an ambiguous fold) and reading bytes only where entry type and size cannot already
-  separate a pair; unreadable pairs are reported as such rather than as differing. `CFileComparator` is just
-  the threading wrapper the file-comparison plugin uses, converting bytes to a percentage for one file.
+  builds on it, pairing two trees by relative path and reading bytes only where entry type and size cannot
+  already separate a pair; unreadable pairs are reported as such rather than as differing. `PairingMode`
+  chooses how names are matched: `Exact` (the default) treats a differently spelled name as a difference,
+  which is what "is this precisely the expected tree?" requires, while `FoldCaseAndNormalization` falls back
+  to case-folded, NFC-normalized matching for whatever the exact pass left over — never on an ambiguous
+  fold — so that trees pair up across filesystems that disagree on spelling. `CFileComparator` is just the
+  threading wrapper the file-comparison plugin uses, converting bytes to a percentage for one file.
 - **`filestatistics` / `filesystemhelpers` / `filesystemhelperfunctions`** — recursive size/count stats,
   path helpers, misc fs utilities. `resolvedObjectId(path)` (in `filesystemhelperfunctions`) returns
   the unique identity of the entry a path resolves to (`{device, inode}` on POSIX, `{volume serial, file

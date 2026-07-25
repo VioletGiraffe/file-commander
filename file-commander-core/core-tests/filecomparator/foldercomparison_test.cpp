@@ -141,7 +141,7 @@ TEST_CASE("compareFolders: a file against a directory of the same name", "[folde
 	CHECK(inner->status == EntryDifference::OnlyInRight);
 }
 
-TEST_CASE("compareFolders: names differing only in letter case are paired", "[foldercomparison]")
+TEST_CASE("compareFolders: pairing of names that differ only in letter case", "[foldercomparison]")
 {
 	QTemporaryDir left, right;
 	REQUIRE(left.isValid());
@@ -150,10 +150,29 @@ TEST_CASE("compareFolders: names differing only in letter case are paired", "[fo
 	writeFile(left.path() % "/File.txt", QByteArray(50, 'z'));
 	writeFile(right.path() % "/file.txt", QByteArray(50, 'z'));
 
-	const auto result = compareFolders(left.path(), right.path());
+	{
+		const auto result = compareFolders(left.path(), right.path(), PairingMode::FoldCaseAndNormalization);
 
-	CHECK(result.differences.empty());
-	CHECK(result.identicalFiles == 1);
+		CHECK(result.differences.empty());
+		CHECK(result.identicalFiles == 1);
+	}
+
+	{
+		// Exact is the default: a name spelled differently counts as a difference, which is what makes the comparison
+		// usable for asserting that an operation produced precisely the expected tree.
+		const auto result = compareFolders(left.path(), right.path());
+
+		CHECK(result.identicalFiles == 0);
+		REQUIRE(result.differences.size() == 2);
+
+		const auto* onlyLeft = findEntry(result, QSL("File.txt"));
+		REQUIRE(onlyLeft != nullptr);
+		CHECK(onlyLeft->status == EntryDifference::OnlyInLeft);
+
+		const auto* onlyRight = findEntry(result, QSL("file.txt"));
+		REQUIRE(onlyRight != nullptr);
+		CHECK(onlyRight->status == EntryDifference::OnlyInRight);
+	}
 }
 
 TEST_CASE("compareFolders: progress rises to completion", "[foldercomparison]")
@@ -172,7 +191,7 @@ TEST_CASE("compareFolders: progress rises to completion", "[foldercomparison]")
 
 	int lastPercent = -1;
 	bool monotonic = true;
-	const auto result = compareFolders(left.path(), right.path(), std::atomic<bool>{ false }, [&](int percent) {
+	const auto result = compareFolders(left.path(), right.path(), PairingMode::Exact, std::atomic<bool>{ false }, [&](int percent) {
 		monotonic = monotonic && percent >= lastPercent;
 		lastPercent = percent;
 	});
@@ -192,7 +211,7 @@ TEST_CASE("compareFolders: an aborted comparison says so", "[foldercomparison]")
 	writeFile(right.path() % "/a.bin", QByteArray(100, 'a'));
 
 	const std::atomic<bool> abort{ true };
-	const auto result = compareFolders(left.path(), right.path(), abort);
+	const auto result = compareFolders(left.path(), right.path(), PairingMode::Exact, abort);
 
 	CHECK(result.aborted);
 	CHECK(result.identicalFiles == 0);

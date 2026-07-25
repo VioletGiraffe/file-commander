@@ -58,7 +58,8 @@ std::optional<FolderComparisonResult> runFolderComparison(QWidget* parent, const
 
 	FolderComparisonResult result;
 	std::thread worker{ [&]() {
-		result = compareFolders(leftRoot, rightRoot, abort, [&progressDialog](const int percent) {
+		// Folded pairing: the two panels routinely sit on filesystems that disagree on case or Unicode normalization.
+		result = compareFolders(leftRoot, rightRoot, PairingMode::FoldCaseAndNormalization, abort, [&progressDialog](const int percent) {
 			QMetaObject::invokeMethod(&progressDialog, [&progressDialog, percent]() {
 				progressDialog.setLabelText(QObject::tr("Comparing file contents..."));
 				progressDialog.setValue(percent);

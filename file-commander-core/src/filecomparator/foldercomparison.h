@@ -30,12 +30,21 @@ struct FolderComparisonResult {
 	bool aborted = false;
 };
 
-// Recursive content-aware comparison of two directory trees. Entries are paired by relative path, and a pair is only
-// read byte by byte when the cheap checks - entry type, then size - cannot already tell the two apart.
+// How the two sides' relative paths are matched up. The tolerant mode is what pairs entries across filesystems that
+// disagree on letter case or on Unicode normalization; asking whether one tree is precisely the expected tree needs
+// Exact instead, where a name that only differs in spelling is a difference rather than a match.
+enum class PairingMode {
+	Exact,
+	FoldCaseAndNormalization // Exact matches first, folded only for what is left over
+};
+
+// Recursive content-aware comparison of two directory trees. Entries are paired by relative path per pairingMode, and a
+// pair is only read byte by byte when the cheap checks - entry type, then size - cannot already tell the two apart.
 // Directory links are followed and files are compared through links, so a link is judged by the contents a transfer
 // would actually copy.
 // A directory present on one side only contributes an entry for itself and one for each of its descendants, leaving the
 // caller free to collapse them for display.
 // Progress covers the content-comparison phase only - enumeration runs first and has no denominator to report against.
 FolderComparisonResult compareFolders(const QString& leftRoot, const QString& rightRoot,
-	const std::atomic<bool>& abort = std::atomic<bool>{false}, const std::function<void (int percent)>& onProgress = {});
+	PairingMode pairingMode = PairingMode::Exact, const std::atomic<bool>& abort = std::atomic<bool>{false},
+	const std::function<void (int percent)>& onProgress = {});

@@ -99,8 +99,8 @@ FolderComparisonEntry singleSidedEntry(const SideEntry& side, const EntryDiffere
 
 } // namespace
 
-FolderComparisonResult compareFolders(const QString& leftRoot, const QString& rightRoot, const std::atomic<bool>& abort,
-	const std::function<void (int percent)>& onProgress)
+FolderComparisonResult compareFolders(const QString& leftRoot, const QString& rightRoot, const PairingMode pairingMode,
+	const std::atomic<bool>& abort, const std::function<void (int percent)>& onProgress)
 {
 	FolderComparisonResult result;
 
@@ -146,7 +146,7 @@ FolderComparisonResult compareFolders(const QString& leftRoot, const QString& ri
 
 	// Only what the exact pass left over is folded, so that two entries differing just in case on a case-sensitive
 	// filesystem still pair with their true counterparts rather than with each other.
-	if (!left.empty() && !right.empty())
+	if (pairingMode == PairingMode::FoldCaseAndNormalization && !left.empty() && !right.empty())
 	{
 		std::map<QString, QString> foldedRight; // Folded key -> the one exact key it stands for; emptied when several do
 		for (const auto& item : right)
