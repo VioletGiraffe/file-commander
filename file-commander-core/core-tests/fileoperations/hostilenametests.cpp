@@ -7,13 +7,15 @@
 // they are indistinguishable on screen and a tool could silently renormalize one into the other.
 //
 // Every case skips itself where the filesystem will not store the name verbatim, which is what keeps the table free of
-// platform guards: Windows strips trailing dots and spaces and rejects `:*?`, macOS renormalizes Unicode.
+// platform guards: Windows rejects `:*?`, macOS renormalizes Unicode.
 
 #include "fileoperations/ctransferexecutor.h"
 #include "fileoperations/cdeleteexecutor.h"
 #include "fileoperations/coperationexecutioncontext.h"
 
 #include "fileoperationtesthelpers.h"
+
+#include "3rdparty/magic_enum/magic_enum.hpp"
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
@@ -62,12 +64,38 @@ QStringList awkwardNames()
 		QString(200, QChar{ 'x' }) % QStringLiteral(".bin"), // Long single component, comfortably under the 255 limit
 		// Looks exactly like the staging file a copy creates. Nothing may mistake a real source entry for its own debris.
 		QStringLiteral(".file-commander-copy-decoy.bin"),
-		QStringLiteral("trailing-space "), // Windows strips it, and so skips this case
+		// Windows' path normalization strips a trailing space or dot, but Qt evidently creates these verbatim on NTFS
+		// anyway, so the names do exist and the engine has to cope with them rather than these cases skipping.
+		QStringLiteral("trailing-space "),
 		QStringLiteral("trailing-dot."),
 		QStringLiteral("colon:star*question?.bin"),
 		QStringLiteral("back\\slash.bin"),                                // A separator on Windows, an ordinary character on POSIX
 		QStringLiteral("line") % QChar{ '\n' } % QStringLiteral("break.bin")
 	};
+}
+
+// Reports what the engine asked about, which the harness's own "nextDecision < decisions.size()" assert cannot: that
+// one only says a question arrived, never which. Non-fatal on purpose, so that one run covers every name in the table.
+[[nodiscard]] bool noDecisionRequested(const OperationScript& script, const char* stage)
+{
+	if (script.seenRequests.empty())
+		return true;
+
+	std::string report = std::string{ "The engine needed a policy decision during " } + stage
+		+ " - carrying an awkward name should not raise a question.";
+	for (const DecisionRequest& request : script.seenRequests)
+	{
+		report += "\n  " + std::string{ magic_enum::enum_name(request.issue.kind) } + " on "
+			+ request.issue.source.path.value().toStdString();
+		if (request.issue.failure)
+			report += "\n    failed action: " + std::string{ magic_enum::enum_name(request.issue.failure->action) }
+				+ ", error: " + std::string{ magic_enum::enum_name(request.issue.failure->filesystemError.category) }
+				+ " native=" + std::to_string(request.issue.failure->filesystemError.nativeCode)
+				+ " (" + request.issue.failure->filesystemError.diagnostic.toStdString() + ')';
+	}
+
+	FAIL_CHECK(report);
+	return false;
 }
 
 // Whether the name can be tested here at all: the filesystem has to accept it and hand back the very same name, since
@@ -105,25 +133,35 @@ void checkNameSurvivesCopyMoveDelete(const QString& name)
 	writeTestFile(base % "/src/asDir/" % name % "/inner.bin", patternedContents(500));
 
 	OperationScript script;
+	// Cancel rather than answer anything that does come up: it ends the run deterministically instead of tripping the
+	// harness's out-of-decisions assert, leaving the check below free to report the actual question.
+	script.cancelInsteadOfAnswering = true;
 
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 	const auto copySummary = runTransfer(script, TransferKind::Copy, { base % "/src" }, DestinationIntent::IntoDirectory,
 		base % "/dest");
+	// Once a decision was requested the run was cancelled, so everything below would only pile noise onto the report.
+	if (!noDecisionRequested(script, "the copy"))
+		return;
+
 	CHECK(copySummary.status == CompletionStatus::Completed);
-	CHECK(script.seenRequests.empty()); // Nothing about an awkward name should need a decision from the user
 	requireEqualTrees(base % "/src", base % "/dest/src");
 
 	REQUIRE(QDir{}.mkpath(base % "/moved"));
 	const auto moveSummary = runTransfer(script, TransferKind::Move, { base % "/src" }, DestinationIntent::IntoDirectory,
 		base % "/moved");
+	if (!noDecisionRequested(script, "the move"))
+		return;
+
 	CHECK(moveSummary.status == CompletionStatus::Completed);
-	CHECK(script.seenRequests.empty());
 	CHECK(entryAbsent(base % "/src"));
 	requireEqualTrees(base % "/dest/src", base % "/moved/src"); // Against the copy, which the assertion above vouched for
 
 	const auto deleteSummary = runDelete(script, { base % "/moved/src" });
+	if (!noDecisionRequested(script, "the delete"))
+		return;
+
 	CHECK(deleteSummary.status == CompletionStatus::Completed);
-	CHECK(script.seenRequests.empty());
 	CHECK(entryAbsent(base % "/moved/src"));
 }
 
