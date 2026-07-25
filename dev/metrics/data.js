@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785003981423,
+  "lastUpdate": 1785018048061,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -8254,6 +8254,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 705,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 380.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "6ed463d46f12e404bdb9a46c9b2e9fe740d4fd17",
+          "message": "CEntryPath: erroneous trim() removed",
+          "timestamp": "2026-07-26T01:16:07+03:00",
+          "tree_id": "589027e8cd20bd3549a19f264593c3bae0f39fce",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/6ed463d46f12e404bdb9a46c9b2e9fe740d4fd17"
+        },
+        "date": 1785018045195,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16333,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10889,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1315.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 704.5,
             "unit": "KB"
           },
           {
