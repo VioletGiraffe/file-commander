@@ -6,7 +6,7 @@
 #include "assert/advanced_assert.h"
 
 #ifdef _WIN32
-#include "windows/windowsutils.h"
+#include "windows_path_win.hpp" // thin_io
 
 #include <Windows.h>
 #else
@@ -40,6 +40,26 @@ CFileSystemError unsupportedEntryError(const char* what)
 {
 	return { FileErrorCategory::Unsupported, 0, QLatin1String(what) };
 }
+
+#ifdef _WIN32
+
+// A path prepared for one of this module's own Win32 calls exactly as thin_io prepares the ones it makes itself,
+// so the same entry is addressed either way: the extended-length prefix in both its drive and \\?\UNC\ forms, and
+// a reported error where a fixed-size buffer used to truncate. Holds the buffer inline - construct it in place.
+class Win32Path
+{
+public:
+	explicit Win32Path(const CEntryPath& path) : _buffer{ reinterpret_cast<const wchar_t*>(path.value().utf16()) } {}
+
+	[[nodiscard]] inline explicit operator bool() const noexcept { return static_cast<bool>(_buffer); }
+	[[nodiscard]] inline const wchar_t* c_str() const noexcept { return _buffer.c_str(); }
+	[[nodiscard]] inline NativeErrorCode error() const noexcept { return static_cast<NativeErrorCode>(_buffer.error_code()); }
+
+private:
+	thin_io::windows_path_buffer _buffer;
+};
+
+#endif
 
 // Rename knows more than the context-free classifier: these codes mean "the destination exists in a form
 // the requested rename cannot replace", which must re-enter destination resolution.
@@ -225,10 +245,11 @@ std::expected<bool, CFileSystemError> isEntryWritableNoFollow(const EntrySnapsho
 	assert_debug_only(entry.kind == OperationEntryKind::RegularFile);
 
 #ifdef _WIN32
-	WCHAR nativePath[32768];
-	toUncWcharArray(entry.path.value(), nativePath);
+	const Win32Path nativePath{ entry.path };
+	if (!nativePath) [[unlikely]]
+		return std::unexpected(makeFileSystemError(nativePath.error()));
 
-	const DWORD attributes = ::GetFileAttributesW(nativePath); // Reports the entry itself, links are not followed
+	const DWORD attributes = ::GetFileAttributesW(nativePath.c_str()); // Reports the entry itself, links are not followed
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 		return std::unexpected(makeFileSystemError(captureNativeError()));
 
@@ -276,9 +297,11 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 	using OperationTestHooks::fireHook, OperationTestHooks::Point;
 
 #ifdef _WIN32
-	WCHAR sourceNative[32768], destinationNative[32768];
-	toUncWcharArray(source.value(), sourceNative);
-	toUncWcharArray(destination.value(), destinationNative);
+	const Win32Path sourceNative{ source }, destinationNative{ destination };
+	if (!sourceNative) [[unlikely]]
+		return std::unexpected(makeFileSystemError(sourceNative.error()));
+	if (!destinationNative) [[unlikely]]
+		return std::unexpected(makeFileSystemError(destinationNative.error()));
 
 	// Flag 0 is the native exclusive mechanism; no unsupported-degradation path exists on Windows. It has a
 	// same-file exemption: a destination that is another name for the source file does not count as occupied.
@@ -290,7 +313,7 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 	if (const auto forcedError = fireHook(Point::RenameEntry_Native))
 		return std::unexpected(renameErrorFromNative(*forcedError));
 
-	if (::MoveFileExW(sourceNative, destinationNative, flags) != 0)
+	if (::MoveFileExW(sourceNative.c_str(), destinationNative.c_str(), flags) != 0)
 		return {};
 
 	return std::unexpected(renameErrorFromNative(captureNativeError()));
@@ -377,13 +400,14 @@ std::expected<void, CFileSystemError> CFileSystemMutator::removeEntry(const Entr
 		return std::unexpected(makeFileSystemError(*forcedError));
 
 #ifdef _WIN32
-	WCHAR nativePath[32768];
-	toUncWcharArray(entry.path.value(), nativePath);
+	const Win32Path nativePath{ entry.path };
+	if (!nativePath) [[unlikely]]
+		return std::unexpected(makeFileSystemError(nativePath.error()));
 
 	// Directory entries - real or links (junctions, directory symlinks) - are removed with RemoveDirectory,
 	// which deletes the entry without following it; everything else, including file symlinks, with DeleteFile.
 	const bool isDirectoryEntry = entry.kind == OperationEntryKind::Directory || entry.kind == OperationEntryKind::DirectoryLink;
-	if ((isDirectoryEntry ? ::RemoveDirectoryW(nativePath) : ::DeleteFileW(nativePath)) != 0)
+	if ((isDirectoryEntry ? ::RemoveDirectoryW(nativePath.c_str()) : ::DeleteFileW(nativePath.c_str())) != 0)
 		return {};
 
 	return std::unexpected(makeFileSystemError(captureNativeError()));
@@ -415,9 +439,14 @@ bool createOneDirectory(const CEntryPath& path, NativeErrorCode& errorCode, cons
 	}
 
 #ifdef _WIN32
-	WCHAR nativePath[32768];
-	toUncWcharArray(path.value(), nativePath);
-	if (::CreateDirectoryW(nativePath, nullptr) != 0)
+	const Win32Path nativePath{ path };
+	if (!nativePath) [[unlikely]]
+	{
+		errorCode = nativePath.error();
+		return false;
+	}
+
+	if (::CreateDirectoryW(nativePath.c_str(), nullptr) != 0)
 		return true;
 #else
 	const auto native = thinIoPath(path);
@@ -492,10 +521,11 @@ std::expected<void, CFileSystemError> CFileSystemMutator::setEntryWritable(const
 	assert_debug_only(entry.kind == OperationEntryKind::RegularFile);
 
 #ifdef _WIN32
-	WCHAR nativePath[32768];
-	toUncWcharArray(entry.path.value(), nativePath);
+	const Win32Path nativePath{ entry.path };
+	if (!nativePath) [[unlikely]]
+		return std::unexpected(makeFileSystemError(nativePath.error()));
 
-	const DWORD attributes = ::GetFileAttributesW(nativePath);
+	const DWORD attributes = ::GetFileAttributesW(nativePath.c_str());
 	if (attributes == INVALID_FILE_ATTRIBUTES)
 		return std::unexpected(makeFileSystemError(captureNativeError()));
 
@@ -509,7 +539,7 @@ std::expected<void, CFileSystemError> CFileSystemMutator::setEntryWritable(const
 	if (const auto forcedError = fireHook(Point::SetEntryWritable_Native))
 		return std::unexpected(makeFileSystemError(*forcedError));
 
-	if (::SetFileAttributesW(nativePath, newAttributes) == 0)
+	if (::SetFileAttributesW(nativePath.c_str(), newAttributes) == 0)
 		return std::unexpected(makeFileSystemError(captureNativeError()));
 
 	return {};

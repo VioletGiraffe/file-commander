@@ -1,6 +1,8 @@
 #pragma once
 
 // Module-private glue between CEntryPath and the thin_io native path and error surfaces.
+// NativePathString must stay small: buildNode() holds one across its recursion, so an inline 32K path buffer
+// would overflow the stack a few directory levels down.
 
 #include "centrypath.h"
 
