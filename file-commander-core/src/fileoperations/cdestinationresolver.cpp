@@ -21,9 +21,8 @@ std::variant<CEntryPath, DecisionAction> promptForCollision(COperationExecutionC
 		if (decision->action != DecisionAction::Rename)
 			return decision->action;
 
-		const QString newName = decision->newName ? decision->newName->trimmed() : QString{};
-		if (isValidEntryName(newName))
-			return proposed.parent().child(newName);
+		if (decision->newName && isValidUserEnteredName(*decision->newName))
+			return proposed.parent().child(*decision->newName);
 	}
 }
 

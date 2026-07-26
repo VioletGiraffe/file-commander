@@ -154,6 +154,15 @@ std::optional<CEntryPath> parseOperationPath(QString path)
 
 bool isValidEntryName(const QString& name)
 {
-	return !name.isEmpty() && !name.contains(QLatin1Char('/')) && !name.contains(QLatin1Char('\\'))
-		&& name != QLatin1String(".") && name != QLatin1String("..");
+#ifdef _WIN32
+	if (name.contains(QLatin1Char('\\'))) // A separator here; on POSIX an ordinary character a name may contain
+		return false;
+#endif
+
+	return !name.isEmpty() && !name.contains(QLatin1Char('/')) && name != QLatin1String(".") && name != QLatin1String("..");
+}
+
+bool isValidUserEnteredName(const QString& name)
+{
+	return isValidEntryName(name) && std::any_of(name.cbegin(), name.cend(), [](const QChar c) { return !c.isSpace(); });
 }

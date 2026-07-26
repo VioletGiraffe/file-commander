@@ -622,12 +622,13 @@ TEST_CASE("file resolver: the rename loop", "[resolver]")
 		ScriptedDecisions decisions{ .script = {
 			renameTo(QString{}),
 			renameTo(QStringLiteral("bad/name")),
+			renameTo(QStringLiteral("   ")), // Refused as entered, not trimmed into the empty name above
 			Decision{ DecisionAction::Rename, DecisionScope::ThisItem, {} }, // No name at all
 			act(DecisionAction::Skip) } };
 		auto context = scriptedContext(decisions);
 
 		CHECK(std::holds_alternative<SkipNode>(resolveFileDestination(context, source, ep(base % "/taken.bin"))));
-		CHECK(decisions.seenRequests.size() == 4);
+		CHECK(decisions.seenRequests.size() == 5);
 	}
 }
 
@@ -885,12 +886,13 @@ TEST_CASE("directory resolver: the rename loop", "[resolver]")
 		ScriptedDecisions decisions{ .script = {
 			renameTo(QString{}),
 			renameTo(QStringLiteral("bad/name")),
+			renameTo(QStringLiteral("   ")),
 			act(DecisionAction::Skip) } };
 		auto context = scriptedContext(decisions);
 
 		CHECK(std::holds_alternative<SkipNode>(
 			resolveDirectoryDestination(context, source, ep(base % "/existing"), TransferNodePosition::SelectedRoot)));
-		CHECK(decisions.seenRequests.size() == 3);
+		CHECK(decisions.seenRequests.size() == 4);
 	}
 
 	SECTION("rename onto another existing directory re-enters as a merge question")

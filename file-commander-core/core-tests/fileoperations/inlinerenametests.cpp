@@ -51,7 +51,8 @@ TEST_CASE("inline rename: no-op and straight rename", "[inlinerename]")
 
 	SECTION("an invalid name is rejected")
 	{
-		for (const QString& bad : { QString{}, QStringLiteral("a/b.bin"), QStringLiteral(".."), QStringLiteral(".") })
+		// "   " is refused as entered, never trimmed into the empty name.
+		for (const QString& bad : { QString{}, QStringLiteral("a/b.bin"), QStringLiteral(".."), QStringLiteral("."), QStringLiteral("   ") })
 		{
 			INFO("name: '" << bad.toStdString() << "'");
 			CHECK(inlineRename(ep(base % "/file.bin"), bad, false).status == InlineRenameStatus::RejectedInvalidName);
