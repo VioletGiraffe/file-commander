@@ -1,7 +1,9 @@
 #include "cfilesystemwatcherwindows.h"
-#include "windows/windowsutils.h"
+#include "filesystemhelperfunctions.h" // withoutTrailingSeparator
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
+
+#include "windows_path_win.hpp" // thin_io
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -33,20 +35,15 @@ bool CFileSystemWatcherWindows::setPathToWatch(const QString& path) noexcept
 	if (path.isEmpty())
 		return true;
 
-	WCHAR wPath[32768];
-	const auto pathLen = toUncWcharArray(path, wPath);
-	if (pathLen <= 0)
+	assert_debug_only(!path.contains('\\'));
+
+	// FindFirstChangeNotificationW fails on a trailing separator, which a drive root nonetheless requires.
+	const QString directoryPath = withoutTrailingSeparator(path);
+	const thin_io::windows_path_buffer nativePath{ reinterpret_cast<const wchar_t*>(directoryPath.utf16()) };
+	if (!nativePath)
 		return false;
 
-	assert_debug_only(!path.contains('\\'));
-	if (const auto trailingChar = wPath[pathLen - 1]; trailingChar == L'\\')
-		wPath[pathLen - 1] = 0; // FindFirstChangeNotificationW fails if the trailing slash is present
-
-	// But the slash is required for a drive root
-	if (pathLen >= 2 && wPath[pathLen - 2] == L':')
-		wPath[pathLen - 1] = L'\\';
-
-	_handle = ::FindFirstChangeNotificationW(wPath, FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE);
+	_handle = ::FindFirstChangeNotificationW(nativePath.c_str(), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE);
 	if (_handle == INVALID_HANDLE_VALUE)
 	{
 		assert_debug_only(_handle);
