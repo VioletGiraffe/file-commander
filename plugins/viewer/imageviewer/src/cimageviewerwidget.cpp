@@ -89,14 +89,14 @@ inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 	}
 
 	if (format == QImage::Format_RGB32)
-		view.channelStride = 4;
+		view.pixelStrideBytes = 4;
 	else
-		view.channelStride = view.channels * view.bytesPerChannel;
+		view.pixelStrideBytes = view.channels * view.bytesPerChannel;
 
 	view.bytesPerLine = static_cast<size_t>(qi.bytesPerLine());
 	view.data = const_cast<uchar*>(qi.bits());
 
-	assert_r(view.bytesPerLine >= view.width * view.channelStride);
+	assert_r(view.bytesPerLine >= view.width * view.pixelStrideBytes);
 
 	return view;
 }
