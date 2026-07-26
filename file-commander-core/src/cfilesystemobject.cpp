@@ -403,7 +403,9 @@ QString CFileSystemObject::extension() const
 // E. g. C:/Users/user/Documents/ -> {C:/Users/user/Documents/, C:/Users/user/, C:/Users/, C:/}
 std::vector<QString> pathHierarchy(const QString& path)
 {
-	assert_r(!path.contains('\\'));
+#ifdef _WIN32
+	assert_r(!path.contains('\\')); // A native-separator path leaking in; elsewhere a backslash is a name character
+#endif
 	assert_r(!path.contains(QStringLiteral("//")) || !QStringView{ path }.right(path.length() - 2).contains(QLatin1String("//")));
 
 	if (path.isEmpty())

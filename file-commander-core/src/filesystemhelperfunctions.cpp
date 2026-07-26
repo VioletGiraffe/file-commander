@@ -52,8 +52,7 @@ QString toPosixSeparators(QString path)
 #ifdef _WIN32
 	return path.replace(nativeSeparator(), '/');
 #else
-	assert_debug_only(!path.contains('\\'));
-	return path;
+	return path; // A backslash is an ordinary character in a name here, not a separator to convert
 #endif
 }
 
@@ -204,7 +203,7 @@ QString fileSizeToString(uint64_t size, const char maxUnit, const QString& space
 std::vector<QString> pathComponents(const QString &path)
 {
 #ifndef _WIN32
-	assert_debug_only(!path.contains('\\') && !path.contains("//"));
+	assert_debug_only(!path.contains("//"));
 #else
 	// This could be a network path
 	assert_debug_only(!path.contains('\\') && path.lastIndexOf(QSL("//")) <= 0);

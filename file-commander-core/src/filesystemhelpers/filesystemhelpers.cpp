@@ -64,7 +64,14 @@ bool FileSystemHelpers::pathIsAccessible(const QString& path)
 	else
 		pathWithMask = R"(\\?\)" % pathWithMask % "\\*";
 
-	wchar_t wPath[32768];
+	static constexpr qsizetype pathBufferLength = 32768;
+	wchar_t wPath[pathBufferLength];
+
+	// toWCharArray writes no terminator, so the path must be one shorter than the buffer. Nothing that long is
+	// openable anyway, making "not accessible" the accurate answer rather than a bail-out.
+	if (pathWithMask.size() >= pathBufferLength) [[unlikely]]
+		return false;
+
 	const auto nCharacters = pathWithMask.toWCharArray(wPath);
 	wPath[nCharacters] = 0;
 
