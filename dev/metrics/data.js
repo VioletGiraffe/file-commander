@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785061591903,
+  "lastUpdate": 1785064061381,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -8392,6 +8392,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 705,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "0b4e7ed956b7cc40dd308e0a69068e7ed916043e",
+          "message": "CFileSystemMutator: toUncWcharArray replaced with thin_io path preparation",
+          "timestamp": "2026-07-26T14:01:43+03:00",
+          "tree_id": "842f59c08ee60fa34edbf584880370378f52d9e6",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/0b4e7ed956b7cc40dd308e0a69068e7ed916043e"
+        },
+        "date": 1785064058102,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16328,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10889,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1317,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 705.5,
             "unit": "KB"
           },
           {
