@@ -5,16 +5,19 @@
 Top-level `file-commander.pro` (`TEMPLATE = subdirs`). Sub-projects + their `depends` (build order):
 
 ```
-qt_app  depends: file_commander_core qtutils imageviewerplugin textviewerplugin autoupdater image-processing filecomparisonplugin
+qt_app  depends: file_commander_core qtutils imageviewerplugin textviewerplugin autoupdater image-processing filecomparisonplugin thin_io
 file_commander_core   (file-commander-core/)              -> static lib "core"
 qtutils, cpputils, cpp-template-utils, thin_io            submodule libs
 text_encoding_detector (text-encoding-detector/text-encoding-detector)
 autoupdater            (github-releases-autoupdater/)
 image-processing
-imageviewerplugin   depends: file_commander_core image-processing qtutils
-textviewerplugin    depends: file_commander_core text_encoding_detector qtutils
-filecomparisonplugin depends: qtutils file_commander_core
+imageviewerplugin   depends: file_commander_core image-processing qtutils thin_io
+textviewerplugin    depends: file_commander_core text_encoding_detector qtutils thin_io
+filecomparisonplugin depends: qtutils file_commander_core thin_io
 ```
+
+Everything that links `core` also links `thin_io`: core's filesystem helpers and its whole file-operation module
+call into it.
 
 - `global.pri`: `CONFIG += strict_c++ c++2b` (**C++23**), removes c++17/c++2a. Windows Release adds `/GL`
   (whole-program opt) + `/LTCG:INCREMENTAL`, `/OPT:REF /OPT:ICF`. ccache on mac/linux when present.

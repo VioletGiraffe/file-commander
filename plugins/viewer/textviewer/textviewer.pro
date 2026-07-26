@@ -37,7 +37,7 @@ RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -lqtutils -ltext_encoding_detector -lcpputils
+LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
 
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 
@@ -68,7 +68,7 @@ win32*:!*msvc2012:*msvc* {
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a
+	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libthin_io.a
 }
 
 INCLUDEPATH += \

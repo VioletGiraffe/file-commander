@@ -1,21 +1,22 @@
 #pragma once
 #include "compiler/compiler_warnings_control.h"
 
+#include "filesystem_types.hpp" // thin_io: entry_identity
+
 DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
 #include <optional>
 #include <stdint.h>
-#include <utility>
 #include <vector>
 
 class CFileSystemObject;
 
-// Unique identity of the filesystem entry the path resolves to (links are followed):
-// {volume serial, file index} on Windows, {device, inode} on POSIX.
-// Empty if the path cannot be resolved (e. g. a broken link).
-[[nodiscard]] std::optional<std::pair<uint64_t, uint64_t>> resolvedObjectId(const QString& path);
+// Unique identity of the filesystem entry the path resolves to (links are followed).
+// Empty both when the path cannot be resolved (e. g. a broken link) and when the filesystem exposes no stable
+// identity, so two empty results are never the same entry.
+[[nodiscard]] std::optional<thin_io::entry_identity> resolvedObjectId(const QString& path);
 
 [[nodiscard]] consteval char nativeSeparator() noexcept
 {

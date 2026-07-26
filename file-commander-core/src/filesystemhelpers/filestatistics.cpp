@@ -35,6 +35,18 @@ void mergeFileIntoStats(FileStatistics& stats, const CFileSystemObject& discover
 		largestFiles.pop_back();
 }
 
+// thin_io::entry_identity is a plain aggregate, so unordered_dense has no hash for it.
+struct EntryIdentityHash
+{
+	using is_avalanching = void;
+
+	[[nodiscard]] uint64_t operator()(const thin_io::entry_identity& id) const noexcept
+	{
+		static_assert(sizeof(id) == sizeof(id.filesystem) + sizeof(id.entry), "Padding would put indeterminate bytes into the hash");
+		return ankerl::unordered_dense::detail::wyhash::hash(&id, sizeof(id));
+	}
+};
+
 // Parallel breadth-first traversal: worker threads pull directories from a shared queue and push discovered
 // subdirectories back onto it, so the fan-out isn't limited to the root's immediate children. Each thread
 // accumulates into its own FileStatistics with no locking on the hot path - the caller merges the per-thread
@@ -46,7 +58,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 
 	// Identities (see resolvedObjectId) of directory link targets already queued for scanning: each target is counted
 	// once, and link cycles can't keep the queue alive forever. Guarded by queueMutex once the worker threads are running.
-	ankerl::unordered_dense::set<std::pair<uint64_t, uint64_t>> queuedLinkTargets;
+	ankerl::unordered_dense::set<thin_io::entry_identity, EntryIdentityHash> queuedLinkTargets;
 
 	for (const QString& path : rootPaths)
 	{

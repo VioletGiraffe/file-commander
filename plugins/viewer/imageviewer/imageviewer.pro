@@ -42,7 +42,7 @@ INCLUDEPATH += \
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -limage-processing -lqtutils -lcpputils
+LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -limage-processing -lqtutils -lcpputils -lthin_io
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /wd4251
@@ -84,5 +84,5 @@ FORMS += \
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libimage-processing.a
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a
+	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libthin_io.a
 }

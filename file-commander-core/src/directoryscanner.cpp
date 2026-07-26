@@ -36,7 +36,7 @@ static void scanDirectoryRecursive(const CFileSystemObject& root,
 		// paths sidesteps path normalization pitfalls (letter case, junction targets that Qt does not canonicalize).
 		// Only links pay for the identity lookups; plain directory trees don't reach this code.
 		const auto targetId = resolvedObjectId(root.fullAbsolutePath());
-		if (!targetId) // Broken link
+		if (!targetId) // Broken link, or a filesystem exposing no identity: refuse to follow rather than risk looping
 			return;
 
 		for (const QString& dirPath : dirsBeingScanned)

@@ -187,10 +187,11 @@ const ref to a temporary `atomic` — valid for the whole call incl. recursion; 
   content differently from owned content.
 - **Cycle guard.** Following links can loop (a link to its own ancestor, or two links pointing at each other).
   The scanner keeps the chain of directories currently on the recursion stack and refuses to descend into a
-  link whose target is one of them. **Identity is compared via `resolvedObjectId` (device+inode /
-  volume-serial+file-index), not path strings** — `QFileInfo::canonicalFilePath()` does not resolve NTFS
-  junction targets, so an earlier path-prefix version passed on POSIX but let junction cycles through on
-  Windows. Only links pay for the identity lookups; plain trees never reach this branch.
+  link whose target is one of them. **Identity is compared via `resolvedObjectId`, not path strings** —
+  `QFileInfo::canonicalFilePath()` does not resolve NTFS junction targets, so an earlier path-prefix version
+  passed on POSIX but let junction cycles through on Windows. A filesystem that exposes no identity yields no
+  answer rather than a fabricated one, and the link is left untraversed. Only links pay for the identity
+  lookups; plain trees never reach this branch.
 
 ## Filesystem watching (`src/filesystemwatcher/`)
 
@@ -241,10 +242,11 @@ Each `CPanel` owns one and polls it on the UI timer tick.
   fold — so that trees pair up across filesystems that disagree on spelling. `CFileComparator` is just the
   threading wrapper the file-comparison plugin uses, converting bytes to a percentage for one file.
 - **`filestatistics` / `filesystemhelpers` / `filesystemhelperfunctions`** — recursive size/count stats,
-  path helpers, misc fs utilities. `resolvedObjectId(path)` (in `filesystemhelperfunctions`) returns
-  the unique identity of the entry a path resolves to (`{device, inode}` on POSIX, `{volume serial, file
-  index}` via `GetFileInformationByHandle` on Windows) — the correct primitive for "same file/dir?" tests,
-  used by both link cycle guards. `filestatistics`' parallel BFS carries the same guard as a visited-target set.
+  path helpers, misc fs utilities. `resolvedObjectId(path)` (in `filesystemhelperfunctions`) returns the
+  unique identity of the entry a path resolves to — a thin wrapper over `thin_io::get_entry_metadata`, so it
+  inherits the same native path handling and the same `thin_io::entry_identity` the file-operation engine
+  compares. The correct primitive for "same file/dir?" tests, used by both link cycle guards.
+  `filestatistics`' parallel BFS carries the same guard as a visited-target set.
 
 ## Key core data structures
 

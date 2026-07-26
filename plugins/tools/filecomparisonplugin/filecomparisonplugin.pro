@@ -29,7 +29,7 @@ MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
-LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -lqtutils -lcpputils
+LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -lqtutils -lcpputils -lthin_io
 
 DEFINES += PLUGIN_MODULE
 
@@ -59,7 +59,7 @@ win32*:!*msvc2012:*msvc* {
 }
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libthin_io.a
 }
 
 INCLUDEPATH += \
