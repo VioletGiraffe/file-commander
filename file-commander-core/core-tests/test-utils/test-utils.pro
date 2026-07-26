@@ -23,6 +23,7 @@ for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 HEADERS += \
 	src/ctestfoldergenerator.h \
 	src/catch2_utils.hpp \
+	src/link_helpers.hpp \
 	src/qt_helpers.hpp \
 	src/crandomdatagenerator.h
 

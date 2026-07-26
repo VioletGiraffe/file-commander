@@ -1,5 +1,6 @@
 #include "cfilesystemobject.h"
 #include "filesystemhelperfunctions.h" // toNativeSeparators
+#include "link_helpers.hpp"
 
 #include <QDir>
 #include <QFile>
@@ -155,6 +156,38 @@ TEST_CASE("A dotted directory name is reported whole", "[CFileSystemObject]")
 		CHECK(object.fullName() == "txt.files");
 		CHECK(object.extension().isEmpty()); // A directory has no extension, however its name is spelled
 	}
+}
+
+// Qt's isDir() follows a directory link and cannot be told not to, so a link is classified - and separator-normalized -
+// as the directory it points at. Once the target is gone there is nothing to follow, and the entry becomes a File
+// carrying no separator, which is how a broken link stays visible and deletable.
+TEST_CASE("A directory link is a directory until its target is gone", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString target = tempDir.path() + "/target";
+	const QString link = tempDir.path() + "/link";
+	REQUIRE(QDir{}.mkpath(target));
+	REQUIRE(createDirectoryLink(target, link));
+
+	{
+		const CFileSystemObject linkObject{ link };
+		REQUIRE(linkObject.exists());
+		CHECK(linkObject.isLink());
+		CHECK(linkObject.isDir());
+		CHECK(linkObject.type() == Directory);
+		CHECK(linkObject.fullAbsolutePath() == link + "/"); // Followed, so it is separator-normalized like any directory
+		CHECK(CFileSystemObject{ link + "/" } == linkObject);
+	}
+
+	REQUIRE(QDir{ target }.removeRecursively());
+
+	const CFileSystemObject brokenLink{ link };
+	CHECK(brokenLink.isLink());
+	CHECK(brokenLink.exists()); // A link entry exists even when its target does not
+	CHECK(!brokenLink.isDir());
+	CHECK(brokenLink.type() == File);
+	CHECK(brokenLink.fullAbsolutePath() == link);
 }
 
 TEST_CASE("A filesystem root is its own path and has no parent", "[CFileSystemObject]")

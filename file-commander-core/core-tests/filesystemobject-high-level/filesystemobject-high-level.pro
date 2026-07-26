@@ -17,7 +17,8 @@ mac*|linux*|freebsd{
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 INCLUDEPATH += \
-	$${PWD}/
+	$${PWD}/ \
+	../test-utils/src/ # link_helpers.hpp is header-only, so no test_utils link dependency
 
 LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lqtutils -lcpputils
 
