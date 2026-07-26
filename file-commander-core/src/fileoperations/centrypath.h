@@ -38,10 +38,10 @@ private:
 // removing it would address a different entry. All invalid inputs share one response: nullopt.
 [[nodiscard]] std::optional<CEntryPath> parseOperationPath(QString path);
 
-// Whether text is usable as one path component (the child() precondition): non-empty, not "." or "..", and free of
-// separators - '/' everywhere, plus '\' on Windows only, exactly as parseOperationPath reads them.
+// The child() precondition, in two parts: exactly one component - non-empty, no '/', and no '\' on Windows, exactly as
+// parseOperationPath reads them - and a name rather than path syntax, since "." and ".." are components but never names.
 // A name read from a listing must pass, so a POSIX backslash and whitespace alone both qualify.
-[[nodiscard]] bool isValidEntryName(const QString& name);
+[[nodiscard]] bool isSingleComponentName(const QString& name);
 
 // The above, plus what only typed input has to clear: whitespace alone is a slip, not a name.
 // Never trim to make input pass - that would create an entry under a different name than the one entered.

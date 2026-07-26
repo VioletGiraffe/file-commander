@@ -118,7 +118,7 @@ void CFileOperationPrompt::updateRenameControls()
 {
 	const QString name = ui->renameEdit->text().trimmed();
 	// An unchanged name is not a rename; an exact-case respell of the same name is.
-	const bool renameUsable = isValidEntryName(name) && name != _request.issue.source.path.name();
+	const bool renameUsable = isSingleComponentName(name) && name != _request.issue.source.path.name();
 	_renameButton->setEnabled(renameUsable);
 
 	// Enter follows the intent expressed in the edit: a usable new name renames, and without one Enter falls

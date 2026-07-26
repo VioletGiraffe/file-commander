@@ -65,7 +65,7 @@ CEntryPath CEntryPath::parent() const
 
 CEntryPath CEntryPath::child(const QString& name) const
 {
-	assert_r(isValidEntryName(name));
+	assert_r(isSingleComponentName(name));
 	return _path.endsWith(QLatin1Char('/')) ? CEntryPath{ _path % name } : CEntryPath{ _path % QLatin1Char('/') % name };
 }
 
@@ -152,7 +152,7 @@ std::optional<CEntryPath> parseOperationPath(QString path)
 	return CEntryPath{ mv(root) };
 }
 
-bool isValidEntryName(const QString& name)
+bool isSingleComponentName(const QString& name)
 {
 #ifdef _WIN32
 	if (name.contains(QLatin1Char('\\'))) // A separator here; on POSIX an ordinary character a name may contain
@@ -164,5 +164,5 @@ bool isValidEntryName(const QString& name)
 
 bool isValidUserEnteredName(const QString& name)
 {
-	return isValidEntryName(name) && std::any_of(name.cbegin(), name.cend(), [](const QChar c) { return !c.isSpace(); });
+	return isSingleComponentName(name) && std::any_of(name.cbegin(), name.cend(), [](const QChar c) { return !c.isSpace(); });
 }

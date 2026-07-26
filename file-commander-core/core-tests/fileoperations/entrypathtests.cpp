@@ -161,21 +161,21 @@ TEST_CASE("CEntryPath: spelling comparison follows platform case policy", "[entr
 
 #endif
 
-TEST_CASE("isValidEntryName: single-component name validation", "[entrypath]")
+TEST_CASE("isSingleComponentName: what may be appended as one component", "[entrypath]")
 {
-	CHECK(!isValidEntryName({}));
-	CHECK(!isValidEntryName(QStringLiteral("a/b")));
+	CHECK(!isSingleComponentName({}));
+	CHECK(!isSingleComponentName(QStringLiteral("a/b")));
 #ifdef _WIN32
-	CHECK(!isValidEntryName(QStringLiteral("a\\b")));
+	CHECK(!isSingleComponentName(QStringLiteral("a\\b")));
 #else
-	CHECK(isValidEntryName(QStringLiteral("a\\b"))); // A legal POSIX name, and one parseOperationPath produces there
+	CHECK(isSingleComponentName(QStringLiteral("a\\b"))); // A legal POSIX name, and one parseOperationPath produces there
 #endif
-	CHECK(!isValidEntryName(QStringLiteral(".")));
-	CHECK(!isValidEntryName(QStringLiteral("..")));
-	CHECK(isValidEntryName(QStringLiteral("a")));
-	CHECK(isValidEntryName(QStringLiteral("...")));
-	CHECK(isValidEntryName(QStringLiteral("valid name.txt")));
-	CHECK(isValidEntryName(QStringLiteral("   "))); // A listing can hand one back, so child() has to accept it
+	CHECK(!isSingleComponentName(QStringLiteral(".")));
+	CHECK(!isSingleComponentName(QStringLiteral("..")));
+	CHECK(isSingleComponentName(QStringLiteral("a")));
+	CHECK(isSingleComponentName(QStringLiteral("...")));
+	CHECK(isSingleComponentName(QStringLiteral("valid name.txt")));
+	CHECK(isSingleComponentName(QStringLiteral("   "))); // A listing can hand one back, so child() has to accept it
 }
 
 // A refusal, not a repair: input is never trimmed to make it pass.
@@ -202,7 +202,7 @@ TEST_CASE("a backslash name survives the name()/child() round trip", "[entrypath
 {
 	const CEntryPath path = parsed(QStringLiteral("/tmp/a\\b"));
 	CHECK(path.name() == QStringLiteral("a\\b"));
-	CHECK(isValidEntryName(path.name()));
+	CHECK(isSingleComponentName(path.name()));
 	CHECK(path.parent().child(path.name()).value() == path.value());
 }
 #endif
