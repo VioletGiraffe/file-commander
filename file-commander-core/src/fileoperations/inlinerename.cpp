@@ -23,8 +23,8 @@ InlineRenameResult inlineRename(const CEntryPath& source, const QString& newName
 	using enum InlineRenameStatus;
 	assert_debug_only(!source.isRoot());
 
-	if (!isValidUserEnteredName(newName))
-		return { .status = RejectedInvalidName };
+	if (const NameRejection rejection = checkNewEntryName(newName); rejection != NameRejection::None)
+		return { .status = RejectedInvalidName, .nameRejection = rejection };
 
 	const CEntryPath destination = source.parent().child(newName);
 

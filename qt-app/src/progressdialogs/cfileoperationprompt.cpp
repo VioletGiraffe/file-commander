@@ -1,4 +1,5 @@
 #include "cfileoperationprompt.h"
+#include "fileoperations/newnamecheck.h"
 #include "filesystemhelperfunctions.h"
 #include "progressdialoghelpers.h"
 
@@ -9,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFileInfo>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
@@ -106,24 +108,45 @@ Decision CFileOperationPrompt::ask()
 
 void CFileOperationPrompt::onActionChosen(const DecisionAction action)
 {
+	if (action == DecisionAction::Rename && !renameNameAccepted())
+		return; // Reason given; the prompt stays open on the text the user typed
+
 	const bool remember = !ui->scopeCheckBox->isHidden() && ui->scopeCheckBox->isChecked()
 		&& isActionRememberable(_request.issue.kind, action);
 	_decision = Decision{ .action = action, .scope = remember ? DecisionScope::RemainingMatchingIssues : DecisionScope::ThisItem, .newName = {} };
 	if (action == DecisionAction::Rename)
-		_decision.newName = ui->renameEdit->text().trimmed();
+		_decision.newName = ui->renameEdit->text();
 	accept();
+}
+
+bool CFileOperationPrompt::renameNameAccepted()
+{
+	const QString name = ui->renameEdit->text();
+	if (const NameRejection rejection = checkNewEntryName(name); rejection != NameRejection::None)
+	{
+		QMessageBox::warning(this, tr("Cannot use this name"), newNameRejectionText(rejection));
+		return false;
+	}
+
+	// An unchanged name is not a rename; an exact-case respell of the same name is, hence the case-sensitive compare.
+	if (name == _request.issue.source.path.name())
+	{
+		QMessageBox::warning(this, tr("Nothing to rename"),
+			tr("This is already the entry's name. Enter a different one to rename it."));
+		return false;
+	}
+
+	return true;
 }
 
 void CFileOperationPrompt::updateRenameControls()
 {
-	const QString name = ui->renameEdit->text().trimmed();
-	// An unchanged name is not a rename; an exact-case respell of the same name is.
-	const bool renameUsable = isSingleComponentName(name) && name != _request.issue.source.path.name();
-	_renameButton->setEnabled(renameUsable);
-
-	// Enter follows the intent expressed in the edit: a usable new name renames, and without one Enter falls
-	// back to the kind's own default - which may be none. Otherwise typing a name and pressing Enter from the
-	// edit would run the kind's default action on the original name.
+	// Enter follows the intent expressed in the edit: a name that would rename makes Rename the default, and without
+	// one Enter falls back to the kind's own default - which may be none. Otherwise typing a name and pressing Enter
+	// from the edit would run the kind's default action on the original name.
+	// The button stays enabled either way: a refusal the user can read beats a dead control they cannot explain.
+	const QString name = ui->renameEdit->text();
+	const bool renameUsable = checkNewEntryName(name) == NameRejection::None && name != _request.issue.source.path.name();
 	_renameButton->setDefault(renameUsable);
 	if (!renameUsable && _defaultButton)
 		_defaultButton->setDefault(true);

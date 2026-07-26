@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fileoperations/fileoperationtypes.h"
+#include "fileoperations/newnamecheck.h"
 
 #include <stdint.h>
 
@@ -15,3 +16,5 @@ QString secondsToTimeIntervalString(uint32_t secondsTotal);
 [[nodiscard]] QString fileSystemErrorText(const CFileSystemError& error);
 // One line for a completion diagnostic: the affected entry, the attempted action, and the reason.
 [[nodiscard]] QString fileOperationDiagnosticText(const OperationDiagnostic& diagnostic);
+// Why a proposed name was refused, phrased for the user. Empty for NameRejection::None.
+[[nodiscard]] QString newNameRejectionText(NameRejection rejection);

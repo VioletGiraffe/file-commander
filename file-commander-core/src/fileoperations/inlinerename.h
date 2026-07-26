@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fileoperationtypes.h"
+#include "newnamecheck.h"
 
 #include <optional>
 
@@ -20,6 +21,7 @@ struct InlineRenameResult
 	std::optional<OperationEntryKind> sourceKind;      // Rejected: for the type-aware message
 	std::optional<OperationEntryKind> destinationKind; // Rejected: for the type-aware message
 	std::optional<FailureDetails> failure;             // Failed: the attempted action and native error
+	NameRejection nameRejection = NameRejection::None; // RejectedInvalidName: which rule the name broke
 };
 
 // The synchronous single-entry rename command, applying the inline-rename matrix - deliberately distinct

@@ -7,6 +7,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QCheckBox>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSet>
 #include <QStringBuilder>
@@ -349,19 +350,23 @@ TEST_CASE("prompt: rename controls and validation", "[fileoperationprompt]")
 	REQUIRE(edit != nullptr);
 	REQUIRE(renameButton != nullptr);
 
-	SECTION("prefilled with the current name, which is not an acceptable new name")
+	// Rename is never disabled - an unusable name is explained when it is clicked. Only its default-button status
+	// tracks usability, so Enter does not run a rename that cannot happen.
+	SECTION("prefilled with the current name, which is not a rename")
 	{
 		CHECK(edit->text() == QStringLiteral("src.bin"));
-		CHECK(!renameButton->isEnabled());
+		CHECK(renameButton->isEnabled());
+		CHECK(!renameButton->isDefault());
 	}
 
-	SECTION("invalid names disable the button")
+	SECTION("an unusable name leaves the button enabled but not the default")
 	{
-		for (const char* invalid : { "", "   ", "a/b.bin", ".", ".." })
+		for (const char* unusable : { "", "   ", "a/b.bin", ".", ".." })
 		{
-			edit->setText(QLatin1String(invalid));
-			INFO("name: '" << invalid << "'");
-			CHECK(!renameButton->isEnabled());
+			edit->setText(QLatin1String(unusable));
+			INFO("name: '" << unusable << "'");
+			CHECK(renameButton->isEnabled());
+			CHECK(!renameButton->isDefault());
 		}
 	}
 
@@ -369,27 +374,59 @@ TEST_CASE("prompt: rename controls and validation", "[fileoperationprompt]")
 	{
 		edit->setText(QStringLiteral("a\\b.bin"));
 #ifdef _WIN32
-		CHECK(!renameButton->isEnabled());
+		CHECK(!renameButton->isDefault());
 #else
-		CHECK(renameButton->isEnabled()); // An ordinary character in a POSIX name
+		CHECK(renameButton->isDefault()); // An ordinary character in a POSIX name
 #endif
 	}
 
-	SECTION("a case-only respell is a real rename and enables the button")
+	SECTION("a case-only respell is a real rename")
 	{
 		edit->setText(QStringLiteral("SRC.BIN"));
-		CHECK(renameButton->isEnabled());
+		CHECK(renameButton->isDefault());
 	}
 
-	SECTION("a valid different name enables the button; surrounding whitespace is trimmed in the decision")
+	SECTION("the name reaches the decision exactly as entered, not trimmed")
 	{
-		edit->setText(QStringLiteral("  renamed.bin  "));
-		CHECK(renameButton->isEnabled());
+		edit->setText(QStringLiteral(" renamed.bin"));
+		CHECK(renameButton->isDefault());
 
 		const Decision decision = askWith(prompt, [](auto& p) { click(p, "btnRename"); });
 		CHECK(decision.action == DecisionAction::Rename);
 		REQUIRE(decision.newName.has_value());
-		CHECK(*decision.newName == QStringLiteral("renamed.bin"));
+		CHECK(*decision.newName == QStringLiteral(" renamed.bin"));
+	}
+
+	SECTION("clicking Rename with an unusable name explains why and does not close the prompt")
+	{
+		edit->setText(QStringLiteral("   "));
+
+		int explanationsDismissed = 0;
+		int idleTicks = 0;
+		QTimer poller;
+		poller.setInterval(25);
+		QObject::connect(&poller, &QTimer::timeout, &poller, [&] {
+			auto* box = prompt.findChild<QMessageBox*>();
+			if (box != nullptr && box->isVisible())
+			{
+				++explanationsDismissed;
+				box->button(QMessageBox::Ok)->click();
+				return; // Let the explanation's own event loop unwind before touching the prompt
+			}
+
+			// Either the explanation has been dealt with, or it never came - end the dialog either way rather
+			// than leave the suite spinning, and let the checks below report which it was.
+			if (explanationsDismissed > 0 || ++idleTicks > 40)
+			{
+				poller.stop();
+				prompt.reject();
+			}
+		});
+		poller.start();
+
+		const Decision decision = askWith(prompt, [](auto& p) { click(p, "btnRename"); });
+		CHECK(explanationsDismissed == 1);
+		CHECK(decision.action == DecisionAction::Cancel); // The refused click produced no decision at all
 	}
 
 	SECTION("the rename row does not exist for issues that cannot rename")

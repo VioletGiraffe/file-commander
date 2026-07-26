@@ -5,6 +5,7 @@
 HEADERS += \
 	$$PWD/fileoperationtypes.h \
 	$$PWD/centrypath.h \
+	$$PWD/newnamecheck.h \
 	$$PWD/thiniobridge.h \
 	$$PWD/cfilesystemmutator.h \
 	$$PWD/cstagedfilecopy.h \
@@ -19,6 +20,7 @@ HEADERS += \
 
 SOURCES += \
 	$$PWD/centrypath.cpp \
+	$$PWD/newnamecheck.cpp \
 	$$PWD/fileoperationtypes.cpp \
 	$$PWD/cfilesystemmutator.cpp \
 	$$PWD/cstagedfilecopy.cpp \

@@ -178,23 +178,6 @@ TEST_CASE("isSingleComponentName: what may be appended as one component", "[entr
 	CHECK(isSingleComponentName(QStringLiteral("   "))); // A listing can hand one back, so child() has to accept it
 }
 
-// A refusal, not a repair: input is never trimmed to make it pass.
-TEST_CASE("isValidUserEnteredName: a whitespace-only name is rejected", "[entrypath]")
-{
-	CHECK(!isValidUserEnteredName(QStringLiteral(" ")));
-	CHECK(!isValidUserEnteredName(QStringLiteral("   ")));
-	CHECK(!isValidUserEnteredName(QStringLiteral("\t")));
-
-	CHECK(isValidUserEnteredName(QStringLiteral(" a ")));
-	CHECK(isValidUserEnteredName(QStringLiteral("name ")));
-	CHECK(isValidUserEnteredName(QStringLiteral(". "))); // A trim would have collapsed this to the rejected "."
-
-	CHECK(!isValidUserEnteredName({}));
-	CHECK(!isValidUserEnteredName(QStringLiteral("a/b")));
-	CHECK(!isValidUserEnteredName(QStringLiteral(".")));
-	CHECK(!isValidUserEnteredName(QStringLiteral("..")));
-}
-
 #ifndef _WIN32
 // The parser and the component check must read '\' the same way: scanning and copying rebuild a path from name(), so a
 // disagreement makes child() reject a path parseOperationPath itself produced.

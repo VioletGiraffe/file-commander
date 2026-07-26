@@ -1,6 +1,7 @@
 #include "cdestinationresolver.h"
 #include "cfilesystemmutator.h"
 #include "coperationexecutioncontext.h"
+#include "newnamecheck.h"
 
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
@@ -21,7 +22,7 @@ std::variant<CEntryPath, DecisionAction> promptForCollision(COperationExecutionC
 		if (decision->action != DecisionAction::Rename)
 			return decision->action;
 
-		if (decision->newName && isValidUserEnteredName(*decision->newName))
+		if (decision->newName && checkNewEntryName(*decision->newName) == NameRejection::None)
 			return proposed.parent().child(*decision->newName);
 	}
 }

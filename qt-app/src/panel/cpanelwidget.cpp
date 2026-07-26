@@ -8,7 +8,6 @@
 #include "../favoritelocationseditor/cfavoritelocationseditor.h"
 #include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
-#include "filesystemhelpers/filesystemhelpers.hpp"
 #include "fileoperationresultcode.h"
 #include "fileoperations/inlinerename.h"
 #include "progressdialogs/progressdialoghelpers.h"
@@ -785,7 +784,6 @@ void CPanelWidget::renameItem(qulonglong hash, QString newName)
 
 	const QString parentPath = item.parentDirPath();
 	assert_r(parentPath.endsWith('/'));
-	newName = FileSystemHelpers::trimUnsupportedSymbols(newName);
 
 	const auto source = parseOperationPath(item.fullAbsolutePath());
 	if (!source)
@@ -818,7 +816,7 @@ void CPanelWidget::renameItem(qulonglong hash, QString newName)
 		break;
 
 	case InlineRenameStatus::RejectedInvalidName:
-		QMessageBox::warning(this, tr("Invalid name"), tr("\"%1\" is not a valid file or folder name.").arg(newName));
+		QMessageBox::warning(this, tr("Cannot use this name"), newNameRejectionText(result.nameRejection));
 		break;
 
 	case InlineRenameStatus::Failed:

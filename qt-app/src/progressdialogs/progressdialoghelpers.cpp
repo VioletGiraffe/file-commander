@@ -98,3 +98,19 @@ QString fileOperationDiagnosticText(const OperationDiagnostic& diagnostic)
 		% fileOperationFailedActionText(diagnostic.failure.action) % QLatin1String(" - ")
 		% fileSystemErrorText(diagnostic.failure.filesystemError);
 }
+
+QString newNameRejectionText(const NameRejection rejection)
+{
+	using enum NameRejection;
+	switch (rejection)
+	{
+	case None: return {};
+	case Empty: return QObject::tr("The name is empty.");
+	case WhitespaceOnly: return QObject::tr("The name consists only of spaces.");
+	case Separator: return QObject::tr("A name cannot contain a path separator.");
+	case DotComponent: return QObject::tr("\".\" and \"..\" refer to existing folders and cannot be used as names.");
+	case TrailingDotOrSpace:
+		return QObject::tr("A name cannot end with a dot or a space: Windows would not find the entry afterwards.");
+	}
+	return {};
+}

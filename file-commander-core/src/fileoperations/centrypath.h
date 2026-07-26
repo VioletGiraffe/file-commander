@@ -42,6 +42,3 @@ private:
 // parseOperationPath reads them - and a name rather than path syntax, since "." and ".." are components but never names.
 // A name read from a listing must pass, so a POSIX backslash and whitespace alone both qualify.
 [[nodiscard]] bool isSingleComponentName(const QString& name);
-
-// Whitespace-only string is rejected
-[[nodiscard]] bool isValidUserEnteredName(const QString& name);

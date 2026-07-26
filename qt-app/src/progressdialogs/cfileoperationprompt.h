@@ -41,6 +41,8 @@ public:
 private:
 	void onActionChosen(DecisionAction action);
 	void updateRenameControls();
+	// Explains in a message box why the typed name cannot be used, and returns whether it can be.
+	[[nodiscard]] bool renameNameAccepted();
 
 	void createActionButtons();
 	void setInitialFocus();
@@ -54,7 +56,7 @@ private:
 	Ui::CFileOperationPrompt* ui;
 	const DecisionRequest _request;
 	const PromptOperation _operation;
-	QPushButton* _renameButton = nullptr; // Only when Rename is offered; enabled while the entered name is usable
+	QPushButton* _renameButton = nullptr; // Only when Rename is offered; always enabled, so a refusal can be explained
 	QPushButton* _defaultButton = nullptr; // The kind's Enter action; null where Enter must do nothing at all
 	Decision _decision{ .action = DecisionAction::Cancel, .scope = DecisionScope::ThisItem, .newName = {} };
 };

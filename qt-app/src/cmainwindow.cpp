@@ -2,7 +2,9 @@
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
 #include "progressdialogs/cfileoperationdialog.h"
 #include "progressdialogs/fileoperationlaunch.h"
+#include "progressdialogs/progressdialoghelpers.h"
 #include "fileoperations/fileoperationtypes.h"
+#include "fileoperations/newnamecheck.h"
 #include "settings.h"
 #include "settings/csettings.h"
 #include "shell/cshell.h"
@@ -594,6 +596,13 @@ void CMainWindow::createFolder()
 	if (dirName.isEmpty())
 		return;
 
+	// Per component: this command creates a whole chain, so "a/b/c" is legitimate input.
+	if (const NameRejection rejection = checkNewEntryPath(dirName); rejection != NameRejection::None)
+	{
+		QMessageBox::warning(this, tr("Cannot use this name"), newNameRejectionText(rejection));
+		return;
+	}
+
 	const auto result = _controller->createFolder(_currentFileList->currentDirPathNative(), toPosixSeparators(dirName));
 	if (result == FileOperationResultCode::TargetAlreadyExists)
 		QMessageBox::warning(this, tr("Item already exists"), tr("The folder %1 already exists.").arg(dirName));
@@ -618,6 +627,12 @@ void CMainWindow::createFile()
 	const QString fileName = dialog.exec() == QDialog::Accepted ? dialog.textValue() : QString();
 	if (fileName.isEmpty())
 		return;
+
+	if (const NameRejection rejection = checkNewEntryName(fileName); rejection != NameRejection::None)
+	{
+		QMessageBox::warning(this, tr("Cannot use this name"), newNameRejectionText(rejection));
+		return;
+	}
 
 	const auto result = _controller->createFile(_currentFileList->currentDirPathNative(), fileName);
 	if (result == FileOperationResultCode::TargetAlreadyExists)

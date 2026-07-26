@@ -161,9 +161,3 @@ bool isSingleComponentName(const QString& name)
 
 	return !name.isEmpty() && !name.contains(QLatin1Char('/')) && name != QLatin1String(".") && name != QLatin1String("..");
 }
-
-bool isValidUserEnteredName(const QString& name)
-{
-	return isSingleComponentName(name)
-		&& !std::all_of(name.cbegin(), name.cend(), [](const QChar c) { return c.isSpace(); });
-}

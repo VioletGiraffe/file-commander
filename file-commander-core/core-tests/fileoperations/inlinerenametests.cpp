@@ -57,6 +57,9 @@ TEST_CASE("inline rename: no-op and straight rename", "[inlinerename]")
 			INFO("name: '" << bad.toStdString() << "'");
 			CHECK(inlineRename(ep(base % "/file.bin"), bad, false).status == InlineRenameStatus::RejectedInvalidName);
 		}
+		// The reason travels with the rejection, so the caller can say which rule the name broke.
+		CHECK(inlineRename(ep(base % "/file.bin"), QStringLiteral("   "), false).nameRejection == NameRejection::WhitespaceOnly);
+
 		CHECK(!entryAbsent(base % "/file.bin")); // Nothing touched
 	}
 }

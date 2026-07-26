@@ -154,7 +154,15 @@ CFileOperationJob      worker thread + event queue  (the only concurrent piece)
   old destination; a copy-based move removes its source only after publication succeeds.
 
 Inline rename (single-item rename from the panel, `inlinerename.{h,cpp}`) reuses the same mutator primitives
-and the same case-only / same-object rules, without the batch machinery. Test-only fault injection lives in
+and the same case-only / same-object rules, without the batch machinery.
+
+`newnamecheck.{h,cpp}` is the single gate for a name a **user** proposes - rename prompt, inline rename, New
+Folder, New File. It never repairs input: text is judged exactly as entered and refused with a `NameRejection`
+the UI words, so a name that is accepted is the name that gets created. It is deliberately stricter than
+`isSingleComponentName`, which is `CEntryPath::child()`'s precondition and must keep accepting anything a
+filesystem listing can hand back. Declining to *create* a hostile name (on Windows, one ending in a dot or a
+space, which Win32 normalization would strip and every other tool would then fail to find) is a separate
+decision from being able to *address* one that already exists. Test-only fault injection lives in
 `operationtesthooks.{h,cpp}` (compiled only under `FILE_OPERATIONS_TEST_HOOKS`): it forces a native error, or
 pauses a worker, at a named point so tests can exercise failure and race paths deterministically.
 

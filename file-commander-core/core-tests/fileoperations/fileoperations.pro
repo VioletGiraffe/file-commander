@@ -33,6 +33,7 @@ SOURCES += \
 	main.cpp \
 	testhooktests.cpp \
 	entrypathtests.cpp \
+	newnamechecktests.cpp \
 	filesystemmutatortests.cpp \
 	stagedfilecopytests.cpp \
 	destinationresolvertests.cpp \
