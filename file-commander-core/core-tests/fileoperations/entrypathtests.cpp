@@ -179,7 +179,7 @@ TEST_CASE("isSingleComponentName: what may be appended as one component", "[entr
 }
 
 // A refusal, not a repair: input is never trimmed to make it pass.
-TEST_CASE("isValidUserEnteredName: whitespace alone is the only extra rejection", "[entrypath]")
+TEST_CASE("isValidUserEnteredName: a whitespace-only name is rejected", "[entrypath]")
 {
 	CHECK(!isValidUserEnteredName(QStringLiteral(" ")));
 	CHECK(!isValidUserEnteredName(QStringLiteral("   ")));

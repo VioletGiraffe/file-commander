@@ -164,5 +164,6 @@ bool isSingleComponentName(const QString& name)
 
 bool isValidUserEnteredName(const QString& name)
 {
-	return isSingleComponentName(name) && std::any_of(name.cbegin(), name.cend(), [](const QChar c) { return !c.isSpace(); });
+	return isSingleComponentName(name)
+		&& !std::all_of(name.cbegin(), name.cend(), [](const QChar c) { return c.isSpace(); });
 }

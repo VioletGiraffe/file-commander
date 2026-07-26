@@ -43,6 +43,5 @@ private:
 // A name read from a listing must pass, so a POSIX backslash and whitespace alone both qualify.
 [[nodiscard]] bool isSingleComponentName(const QString& name);
 
-// The above, plus what only typed input has to clear: whitespace alone is a slip, not a name.
-// Never trim to make input pass - that would create an entry under a different name than the one entered.
+// Whitespace-only string is rejected
 [[nodiscard]] bool isValidUserEnteredName(const QString& name);
