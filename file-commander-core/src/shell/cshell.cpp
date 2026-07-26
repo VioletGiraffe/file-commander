@@ -23,8 +23,6 @@ RESTORE_COMPILER_WARNINGS
 #include <string.h> // memset
 
 #ifdef _WIN32
-#include "windows/windowsutils.h"
-
 #include <Windows.h>
 #include <ShObjIdl.h>
 #include <ShlObj.h>
@@ -128,18 +126,17 @@ bool OsShell::runExecutable(const QString& command, const QString& arguments, co
 bool OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
 {
 	const QString workingDirNative = toNativeSeparators(workingDir);
+	// A plain native path, deliberately not the \\?\ extended form: the shell does not accept one.
+	const QString commandNative = toNativeSeparators(command);
 
 	SHELLEXECUTEINFOW shExecInfo;
 	::memset(&shExecInfo, 0, sizeof(shExecInfo));
-
-	WCHAR commandPathUnc[32768];
-	toUncWcharArray(command, commandPathUnc);
 
 	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 	shExecInfo.fMask = SEE_MASK_FLAG_NO_UI;
 	shExecInfo.hwnd = nullptr;
 	shExecInfo.lpVerb = asAdmin ? L"runas" : L"open";
-	shExecInfo.lpFile = commandPathUnc;
+	shExecInfo.lpFile = reinterpret_cast<const WCHAR*>(commandNative.utf16());
 	shExecInfo.lpParameters = arguments.isEmpty() ? nullptr : reinterpret_cast<const WCHAR*>(arguments.utf16());
 	shExecInfo.lpDirectory = reinterpret_cast<const WCHAR*>(workingDirNative.utf16());
 	shExecInfo.nShow = SW_SHOWNORMAL;
@@ -150,7 +147,7 @@ bool OsShell::runExe(const QString& command, const QString& arguments, const QSt
 		if (GetLastError() != ERROR_CANCELLED) // Operation canceled by the user
 		{
 			const QString errorString = QString::fromStdString(ErrorStringFromLastError());
-			qInfo() << "ShellExecuteExW failed when trying to run" << QString::fromWCharArray(commandPathUnc) << "in" << workingDirNative;
+			qInfo() << "ShellExecuteExW failed when trying to run" << commandNative << "in" << workingDirNative;
 			qInfo() << errorString;
 
 			return false;
