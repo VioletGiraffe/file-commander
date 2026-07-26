@@ -1,5 +1,8 @@
 #include "cfilesystemobject.h"
+#include "filesystemhelperfunctions.h" // toNativeSeparators
 
+#include <QDir>
+#include <QFile>
 #include <QTemporaryDir>
 
 #define CATCH_CONFIG_MAIN
@@ -65,5 +68,105 @@ TEST_CASE("rootFileSystemId for a non-existent path", "[CFileSystemObject]")
 	// Regression: rootFileSystemId() used to read uninitialized memory for a non-existent path and return a garbage
 	// device ID. It must resolve to the device of the nearest existing ancestor.
 	CHECK(existingDir.rootFileSystemId() == nonExistentChild.rootFileSystemId());
+}
+
+// The trailing separator on a directory's path is load-bearing: it is what makes "dir" and "dir/" hash and compare
+// equal, it is how a non-existent path gets classified at all, and parentDirPath() preserves it.
+TEST_CASE("A directory's path always ends with a separator", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + "/folder";
+	REQUIRE(QDir{}.mkpath(folder));
+
+	const CFileSystemObject withoutSeparator{ folder };
+	const CFileSystemObject withSeparator{ folder + "/" };
+
+	REQUIRE(withoutSeparator.isDir());
+	CHECK(withoutSeparator.fullAbsolutePath() == folder + "/");
+	CHECK(withSeparator.fullAbsolutePath() == folder + "/");
+
+	// The point of the normalization: either spelling names the same object.
+	CHECK(withoutSeparator.hash() == withSeparator.hash());
+	CHECK(withoutSeparator == withSeparator);
+
+	// The native spelling round-trips, which is what lets a path leave through currentDirPathNative() and come back.
+	CHECK(CFileSystemObject{ toNativeSeparators(withoutSeparator.fullAbsolutePath()) } == withoutSeparator);
+
+	const QString filePath = folder + "/file.txt";
+	{
+		QFile file{ filePath };
+		REQUIRE(file.open(QFile::WriteOnly));
+	}
+
+	const CFileSystemObject fileObject{ filePath };
+	REQUIRE(fileObject.isFile());
+	CHECK(fileObject.fullAbsolutePath() == filePath); // Only directories carry the separator
+	CHECK(fileObject.parentDirPath() == folder + "/");
+}
+
+// Nothing on disk to inspect means the spelling is the only classification available. This is what lets a copy or move
+// destination be recognized as a folder before it exists.
+TEST_CASE("A non-existent path is a directory exactly when spelled with a separator", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString missing = tempDir.path() + "/not_created";
+
+	const CFileSystemObject asDirectory{ missing + "/" };
+	REQUIRE(!asDirectory.exists());
+	CHECK(asDirectory.isDir());
+	CHECK(asDirectory.type() == Directory);
+	CHECK(asDirectory.fullAbsolutePath() == missing + "/");
+
+	const CFileSystemObject asEntry{ missing };
+	REQUIRE(!asEntry.exists());
+	CHECK(!asEntry.isDir());
+	CHECK(!asEntry.isFile());
+	CHECK(asEntry.fullAbsolutePath() == missing);
+}
+
+// Duplicate separators and "."/".." resolve before the trailing separator is applied, so a directory still comes out
+// with exactly one.
+TEST_CASE("Path normalization precedes the trailing separator", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + "/folder";
+	REQUIRE(QDir{}.mkpath(folder));
+
+	CHECK(CFileSystemObject{ folder + "//" }.fullAbsolutePath() == folder + "/");
+	CHECK(CFileSystemObject{ tempDir.path() + "//folder" }.fullAbsolutePath() == folder + "/");
+	CHECK(CFileSystemObject{ folder + "/." }.fullAbsolutePath() == folder + "/");
+	CHECK(CFileSystemObject{ folder + "/../folder" }.fullAbsolutePath() == folder + "/");
+	CHECK(CFileSystemObject{ QDir::toNativeSeparators(folder) }.fullAbsolutePath() == folder + "/");
+}
+
+// Qt reports a dotted directory name as though its last component were an extension, so the name is reassembled.
+TEST_CASE("A dotted directory name is reported whole", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + "/txt.files";
+	REQUIRE(QDir{}.mkpath(folder));
+
+	for (const CFileSystemObject& object : { CFileSystemObject{ folder }, CFileSystemObject{ folder + "/" } })
+	{
+		CHECK(object.fullName() == "txt.files");
+		CHECK(object.extension().isEmpty()); // A directory has no extension, however its name is spelled
+	}
+}
+
+TEST_CASE("A filesystem root is its own path and has no parent", "[CFileSystemObject]")
+{
+	const CFileSystemObject root{ QDir::rootPath() };
+	REQUIRE(root.isDir());
+	CHECK(root.fullAbsolutePath().endsWith('/'));
+	CHECK(root.parentDirPath().isEmpty()); // What stops navigateUp() at the top of a volume
+
+#ifdef _WIN32
+	// The drive letter is canonically uppercase, so either spelling hashes to the same object.
+	CHECK(CFileSystemObject{ QStringLiteral("c:/") } == CFileSystemObject{ QStringLiteral("C:/") });
+#endif
 }
 
