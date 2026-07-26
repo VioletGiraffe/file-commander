@@ -83,11 +83,6 @@ QString escapedPath(QString path)
 	return path;
 }
 
-QString cleanPath(QString path)
-{
-	return path.replace(QStringLiteral(R"(\\)"), QStringLiteral(R"(\)")).replace(QStringLiteral("//"), QStringLiteral("/"));
-}
-
 QString fileSizeToString(uint64_t size, const char maxUnit, const QString& spacer, int significantPlaces)
 {
 	static constexpr uint64_t KB = 1024ULL;

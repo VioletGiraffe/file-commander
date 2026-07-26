@@ -273,16 +273,18 @@ QString CPanel::currentDirName() const
 	return !name.isEmpty() ? name : _currentDirObject.fullAbsolutePath();
 }
 
-inline QString normalizeFolderPath(const QString& path)
+// One key per folder for the cursor map. Callers pass either a CFileSystemObject path or QDir::absolutePath(),
+// both already absolute, POSIX-separated and free of duplicate separators - the trailing slash is the only thing
+// that varies, and QDir::absolutePath() is the caller that omits it.
+static QString folderKey(const QString& path)
 {
-	const QString posixPath = cleanPath(path);
-	return posixPath.endsWith('/') ? posixPath : (posixPath + '/');
+	return path.endsWith('/') ? path : path + '/';
 }
 
 void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash, const bool notifyUi)
 {
 	assert_r(!dir.contains('\\'));
-	_cursorPosForFolder[normalizeFolderPath(dir)] = currentItemHash;
+	_cursorPosForFolder[folderKey(dir)] = currentItemHash;
 
 	if (notifyUi)
 	{
@@ -295,7 +297,7 @@ void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemH
 qulonglong CPanel::currentItemForFolder(const QString &dir) const
 {
 	assert_r(!dir.contains('\\'));
-	const auto it = _cursorPosForFolder.find(normalizeFolderPath(dir));
+	const auto it = _cursorPosForFolder.find(folderKey(dir));
 	return it == _cursorPosForFolder.end() ? 0 : it->second;
 }
 
