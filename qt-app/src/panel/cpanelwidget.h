@@ -19,6 +19,7 @@ class QStandardItem;
 class CFileListModel;
 class CFileListSortFilterProxyModel;
 class CFileListFilterDialog;
+struct InlineRenameResult;
 
 
 class CPanelWidget final : public QWidget,
@@ -98,7 +99,7 @@ private slots:
 	void driveButtonClicked();
 	void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 	void currentItemChanged(const QModelIndex& current, const QModelIndex& previous);
-	void renameItem(qulonglong hash, QString newName);
+	void renameItem(qulonglong hash, const QString& newName);
 	void showFavoriteLocationsMenu(QPoint pos);
 	void showFavoriteLocationsEditor();
 	void fileListViewKeyPressed(const QString& keyText, int key, Qt::KeyboardModifiers modifiers);
@@ -125,6 +126,9 @@ private:
 	[[nodiscard]] QModelIndex indexByHash(qulonglong hash, bool logFailures = false) const;
 
 	void updateCurrentVolumeButtonAndInfoLabel();
+
+	// The message for every inline-rename outcome in which the entry was not renamed.
+	void reportFailedRename(const InlineRenameResult& result, const QString& oldName, const QString& newName);
 
 	[[nodiscard]] bool pasteImage(const QImage& image, bool lossyCompression);
 

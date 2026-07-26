@@ -776,14 +776,11 @@ void CPanelWidget::setCursorToItem(const QString& folder, qulonglong currentItem
 		_selectionModel->setCurrentIndex(newCurrentIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
 }
 
-void CPanelWidget::renameItem(qulonglong hash, QString newName)
+void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 {
 	const CFileSystemObject item = _controller->itemByHash(_panelPosition, hash);
 	if (item.isCdUp())
 		return;
-
-	const QString parentPath = item.parentDirPath();
-	assert_r(parentPath.endsWith('/'));
 
 	const auto source = parseOperationPath(item.fullAbsolutePath());
 	if (!source)
@@ -801,14 +798,21 @@ void CPanelWidget::renameItem(qulonglong hash, QString newName)
 		result = inlineRename(*source, newName, true);
 	}
 
+	if (result.status != InlineRenameStatus::Renamed && result.status != InlineRenameStatus::NothingToDo)
+	{
+		reportFailedRename(result, item.fullName(), newName);
+		return;
+	}
+
+	// Move the cursor onto the renamed entry. Only an accepted name reaches this, so child()'s precondition holds.
+	const CEntryPath renamed = source->parent().child(newName);
+	_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject{ renamed.value() }.hash());
+}
+
+void CPanelWidget::reportFailedRename(const InlineRenameResult& result, const QString& oldName, const QString& newName)
+{
 	switch (result.status)
 	{
-	case InlineRenameStatus::Renamed:
-	case InlineRenameStatus::NothingToDo:
-		// Move the cursor to the renamed item.
-		_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject(parentPath + newName).hash());
-		break;
-
 	case InlineRenameStatus::Rejected:
 		QMessageBox::information(this, tr("Item already exists"),
 			tr("Cannot rename this %1 to \"%2\": a %3 with that name already exists.")
@@ -821,15 +825,18 @@ void CPanelWidget::renameItem(qulonglong hash, QString newName)
 
 	case InlineRenameStatus::Failed:
 	{
-		QString message = tr("Failed to rename %1 to %2").arg(item.fullName(), newName);
+		QString message = tr("Failed to rename %1 to %2").arg(oldName, newName);
 		if (result.failure)
 			message.append(":\n" % fileSystemErrorText(result.failure->filesystemError) % '.');
 		QMessageBox::critical(this, tr("Renaming failed"), message);
 		break;
 	}
 
+	// ReplacementRequired is resolved by the caller before reporting: confirmed and retried, or declined and abandoned.
+	case InlineRenameStatus::Renamed:
+	case InlineRenameStatus::NothingToDo:
 	case InlineRenameStatus::ReplacementRequired:
-		break; // Declined above
+		break;
 	}
 }
 
