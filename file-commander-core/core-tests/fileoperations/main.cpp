@@ -11,7 +11,6 @@
 #include "lang/type_traits_fast.hpp"
 
 #include <random>
-#include <stdlib.h>
 
 #ifdef _WIN32
 #include <crtdbg.h>
@@ -42,8 +41,6 @@ int main(int argc, char* argv[])
 	if (returnCode != 0) // Indicates a command line error
 		return returnCode;
 
-	srand(g_randomSeed);
-
 #if defined _WIN32 && defined _DEBUG
 	// Some tests deliberately exercise recoverable-assert failure paths (e.g. submitDecision rejecting an
 	// illegal action); the CRT assert must report to stderr instead of opening an interactive dialog.
@@ -57,9 +54,9 @@ int main(int argc, char* argv[])
 	});
 
 	{
-		CRandomDataGenerator _randomGenerator;
-		_randomGenerator.setSeed(g_randomSeed);
-		Logger() << "RNG consustency check: seed = " << g_randomSeed <<", first RN = " << _randomGenerator.randomNumber<uint32_t>(0u, uint32_max);
+		CRandomDataGenerator randomGenerator;
+		randomGenerator.setSeed(g_randomSeed);
+		Logger() << "RNG consistency check: seed = " << g_randomSeed << ", first RN = " << randomGenerator.randomNumber<uint32_t>(0u, uint32_max);
 	}
 
 	return session.run();

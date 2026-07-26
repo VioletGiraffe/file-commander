@@ -7,6 +7,9 @@
 
 #include "fileoperationtesthelpers.h"
 
+// test_utils
+#include "ctestfoldergenerator.h"
+
 DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
@@ -106,14 +109,17 @@ TEST_CASE("delete executor: basic and multi-root deletion", "[deleteexecutor]")
 
 	SECTION("a random tree")
 	{
-		srand(g_randomSeed);
+		INFO("Random seed: " << g_randomSeed);
 		REQUIRE(QDir{}.mkpath(base % "/random"));
-		buildRandomTree(base % "/random", 4);
-		const size_t totalEntries = countTreeEntries(base % "/random") + 1; // Plus the root itself
+
+		CTestFolderGenerator generator;
+		generator.setSeed(g_randomSeed);
+		const auto tree = generator.generateRandomTree(base % "/random", { .numFiles = 40, .numFolders = 10 });
+		REQUIRE(tree.has_value());
 
 		const auto summary = runDelete(script, { base % "/random" });
 		CHECK(summary.status == CompletionStatus::Completed);
-		CHECK(summary.completedItems == totalEntries);
+		CHECK(summary.completedItems == tree->files.size() + tree->folders.size() + 1); // Plus the root itself
 		CHECK(summary.skippedItems == 0);
 		CHECK(entryAbsent(base % "/random"));
 	}

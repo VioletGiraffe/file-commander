@@ -25,7 +25,6 @@ RESTORE_COMPILER_WARNINGS
 #endif
 
 #include <stdint.h>
-#include <stdlib.h> // rand()
 #include <string>
 
 #include "3rdparty/catch2/catch.hpp"
@@ -124,22 +123,6 @@ inline QByteArray patternedContents(const int size)
 	for (int i = 0; i < size; ++i)
 		bytes[i] = static_cast<char>(i * 31 + 7);
 	return data;
-}
-
-inline void buildRandomTree(const QString& dir, const int remainingDepth)
-{
-	const int childCount = 1 + rand() % 5;
-	for (int i = 0; i < childCount; ++i)
-	{
-		if (remainingDepth > 0 && rand() % 3 == 0)
-		{
-			const QString subdir = dir % "/dir" % QString::number(i);
-			REQUIRE(QDir{}.mkpath(subdir));
-			buildRandomTree(subdir, remainingDepth - 1);
-		}
-		else
-			writeTestFile(dir % "/file" % QString::number(i) % ".bin", patternedContents(rand() % 5000));
-	}
 }
 
 inline size_t countTreeEntries(const QString& dir)

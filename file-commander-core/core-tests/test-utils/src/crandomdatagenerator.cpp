@@ -15,14 +15,10 @@ void CRandomDataGenerator::setSeed(uint32_t seed)
 QString CRandomDataGenerator::randomString(const size_t length)
 {
 	QString resultString;
-	resultString.reserve((int)length);
+	resultString.reserve(static_cast<qsizetype>(length));
 
-	std::uniform_int_distribution<int16_t> distribution('A', 'Z');
 	for (size_t i = 0; i < length; ++i)
-	{
-		const char ch = static_cast<char>(distribution(_rng));
-		resultString.append(QChar(ch));
-	}
+		resultString.append(QChar{ randomNumber<char16_t>(u'A', u'Z') });
 
 	return resultString;
 }

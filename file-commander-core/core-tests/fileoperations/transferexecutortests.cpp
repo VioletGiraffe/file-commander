@@ -2,10 +2,14 @@
 // context policy, outcome aggregation, accounting, timestamps, and progress.
 
 #include "fileoperations/ctransferexecutor.h"
+#include "fileoperations/cdeleteexecutor.h"
 #include "fileoperations/coperationexecutioncontext.h"
 #include "fileoperations/operationtesthooks.h"
 
 #include "fileoperationtesthelpers.h"
+
+// test_utils
+#include "ctestfoldergenerator.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
@@ -34,8 +38,11 @@ constexpr NativeErrorCode existsCode = EEXIST;
 constexpr NativeErrorCode ioFailureCode = EIO;
 #endif
 
+// The random-tree recipe plants files at exactly this boundary, so the two must not drift apart.
+constexpr uint64_t defaultCopyChunkSize = 64 * 1024;
+
 OperationSummary runCopy(OperationScript& script, const QStringList& sources, const DestinationIntent intent, const QString& destination,
-	const uint64_t chunkSize = 64 * 1024)
+	const uint64_t chunkSize = defaultCopyChunkSize)
 {
 	const auto request = makeTransferRequest(TransferKind::Copy, sources, intent, destination);
 	REQUIRE(request.has_value());
@@ -107,15 +114,61 @@ TEST_CASE("copy executor: random tree round-trip", "[executor]")
 
 	INFO("Random seed: " << g_randomSeed);
 	REQUIRE(QDir{}.mkpath(base % "/src"));
-	buildRandomTree(base % "/src", 3);
+
+	CTestFolderGenerator generator;
+	generator.setSeed(g_randomSeed);
+	const auto tree = generator.generateRandomTree(base % "/src",
+		{ .numFiles = 50, .numFolders = 12, .maxFileSize = 8000, .chunkSize = defaultCopyChunkSize });
+	REQUIRE(tree.has_value());
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	// Nothing else here vouches for the generator, and every assertion below trusts the counts it reports.
+	REQUIRE(countTreeEntries(base % "/src") == tree->files.size() + tree->folders.size());
+
+	OperationScript script;
+	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == tree->files.size() + tree->folders.size() + 1); // Every entry plus the root itself
+	CHECK(summary.transferredBytes == tree->totalBytes);
+	CHECK(summary.skippedItems == 0);
+	requireEqualTrees(base % "/src", base % "/dest/src");
+}
+
+TEST_CASE("copy executor: a tree whose paths exceed MAX_PATH", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	INFO("Random seed: " << g_randomSeed);
+	REQUIRE(QDir{}.mkpath(base % "/src"));
+
+	// Past Windows' 260-character limit, which only the \\?\ prefix gets beyond - and the destination side goes
+	// further still, since the staging name a copy appends is longer than the final one.
+	CTestFolderGenerator generator;
+	generator.setSeed(g_randomSeed);
+	const auto tree = generator.generateRandomTree(base % "/src",
+		{ .numFiles = 8, .numFolders = 4, .maxFileSize = 2048, .minPathLength = 400 });
+	REQUIRE(tree.has_value());
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
 	OperationScript script;
 	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 	CHECK(summary.status == CompletionStatus::Completed);
-	CHECK(summary.completedItems == countTreeEntries(base % "/src") + 1); // Every entry plus the root itself
-	CHECK(summary.skippedItems == 0);
+	CHECK(summary.completedItems == tree->files.size() + tree->folders.size() + 1);
+	CHECK(summary.transferredBytes == tree->totalBytes);
+	CHECK(script.seenRequests.empty());
 	requireEqualTrees(base % "/src", base % "/dest/src");
+
+	// Removed through the engine rather than left to QTemporaryDir: it covers the delete side of the same boundary,
+	// and a tree left behind here would need the \\?\ prefix to delete at all.
+	OperationScript cleanupScript;
+	auto cleanupContext = makeScriptedContext(cleanupScript, PrimaryProgressUnit::Items);
+	const auto cleanupRequest = makePermanentDeleteRequest({ base % "/src", base % "/dest" });
+	REQUIRE(cleanupRequest.has_value());
+	CHECK(CDeleteExecutor{ cleanupContext }.run(*cleanupRequest).status == CompletionStatus::Completed);
+	CHECK(entryAbsent(base % "/src"));
+	CHECK(entryAbsent(base % "/dest"));
 }
 
 TEST_CASE("copy executor: root rename rebases descendants", "[executor]")
