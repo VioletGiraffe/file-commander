@@ -85,7 +85,7 @@ Wrapper around `QFileInfo` for one file/dir/bundle. Carries a `CFileSystemObject
 (`size, hash, completeBaseName, extension, fullName, fullPath, type, exists, isLink`). `type()` is
 `UnknownType/Directory/File/Bundle`.
 
-- Rich predicates: `isFile/isDir/isBundle/isEmptyDir/isCdUp/isExecutable/isReadable/isWriteable/isHidden/
+- Rich predicates: `isFile/isDir/isBundle/isCdUp/isExecutable/isReadable/isWriteable/isHidden/
   isLink/isSymLink/isNetworkObject`, `symLinkTarget`, `rootFileSystemId` (which volume the entry is on).
 - **Links are the sharp edge.** Qt's *classification* calls (`isDir/isFile/exists/size`) transparently
   follow a symlink/junction to its target and that cannot be turned off — a dir link classifies as

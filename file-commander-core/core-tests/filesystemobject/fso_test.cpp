@@ -41,10 +41,6 @@ TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.isEmptyDir() == false);
-	}
-
-	SECTION_WITH_AUTO_NAME {
 		CHECK(fso.isExecutable() == false);
 	}
 
