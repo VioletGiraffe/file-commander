@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785093309312,
+  "lastUpdate": 1785095059568,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -9072,6 +9072,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (libs)",
             "value": 10889,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1315.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 704.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 380.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "80b42859a0f2f7799bdc2061034d8c6d9f4f4fda",
+          "message": "cimageresizer.cpp: properly copying the pixel tail (e. g. 0xff in the 4th channel of RGB32)",
+          "timestamp": "2026-07-26T22:38:42+03:00",
+          "tree_id": "5793000c7451acb9a0bda433b25173c2bd307d5b",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/80b42859a0f2f7799bdc2061034d8c6d9f4f4fda"
+        },
+        "date": 1785095057208,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16408,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10897,
             "unit": "LOC"
           },
           {
