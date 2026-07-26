@@ -77,7 +77,6 @@ public:
 	[[nodiscard]] bool isFile() const;
 	[[nodiscard]] bool isDir() const;
 	[[nodiscard]] bool isBundle() const;
-	[[nodiscard]] bool isEmptyDir() const;
 	[[nodiscard]] bool isCdUp() const; // returns true if it's ".." item
 	[[nodiscard]] bool isExecutable() const;
 	[[nodiscard]] bool isReadable() const;

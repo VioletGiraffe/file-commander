@@ -248,34 +248,6 @@ bool CFileSystemObject::isBundle() const
 	return _properties.type == Bundle;
 }
 
-bool CFileSystemObject::isEmptyDir() const
-{
-	if (!isDir())
-		return false;
-
-#ifdef _WIN32
-	WCHAR path[32768];
-	toUncWcharArray(_properties.fullPath, path);
-	return ::PathIsDirectoryEmptyW(path) != 0;
-#else
-	// TODO: use getdents64 on Linux
-	DIR* dir = ::opendir(_properties.fullPath.toLocal8Bit().constData());
-	if (dir == nullptr) // Not a directory or doesn't exist
-		return false;
-
-	struct dirent* d = nullptr;
-	size_t n = 0;
-	while ((d = ::readdir(dir)) != nullptr)
-	{
-		if (++n > 2)
-			break;
-	}
-
-	::closedir(dir);
-	return n <= 2; // Only '.' and '..' ?
-#endif
-}
-
 bool CFileSystemObject::isCdUp() const
 {
 	return _properties.fullName == QLatin1StringView("..", 2);
