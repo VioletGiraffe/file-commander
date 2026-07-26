@@ -3,7 +3,6 @@
 // volumes reports ERROR_NOT_SAME_DEVICE / EXDEV, and so actually engages the staged-copy fallback.
 // Opt-in: needs a writable directory on a volume other than the one holding TEMP.
 
-#include "fileoperations/ctransferexecutor.h"
 #include "fileoperations/coperationexecutioncontext.h"
 #include "fileoperations/operationtesthooks.h"
 
@@ -22,16 +21,6 @@ namespace
 {
 
 constexpr const char* secondVolumeVariable = "FILE_COMMANDER_TEST_SECOND_VOLUME";
-
-OperationSummary runTransfer(OperationScript& script, const TransferKind kind, const QStringList& sources,
-	const DestinationIntent intent, const QString& destination)
-{
-	const auto request = makeTransferRequest(kind, sources, intent, destination);
-	REQUIRE(request.has_value());
-	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
-	CTransferExecutor executor{ context, 64 * 1024 };
-	return executor.run(*request);
-}
 
 } // namespace
 

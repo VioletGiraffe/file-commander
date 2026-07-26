@@ -37,16 +37,6 @@ constexpr NativeErrorCode ioFailureCode = EIO;
 constexpr NativeErrorCode readOnlyCode = EROFS;
 #endif
 
-OperationSummary runMove(OperationScript& script, const QStringList& sources, const DestinationIntent intent, const QString& destination,
-	const uint64_t chunkSize = 64 * 1024)
-{
-	const auto request = makeTransferRequest(TransferKind::Move, sources, intent, destination);
-	REQUIRE(request.has_value());
-	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
-	CTransferExecutor executor{ context, chunkSize };
-	return executor.run(*request);
-}
-
 } // namespace
 
 TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")

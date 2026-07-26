@@ -1,8 +1,6 @@
 // WP5: the recursive copy executor - the composed behavior of resolver, tree builder, staged copy,
 // context policy, outcome aggregation, accounting, timestamps, and progress.
 
-#include "fileoperations/ctransferexecutor.h"
-#include "fileoperations/cdeleteexecutor.h"
 #include "fileoperations/coperationexecutioncontext.h"
 #include "fileoperations/operationtesthooks.h"
 
@@ -37,19 +35,6 @@ constexpr NativeErrorCode accessDeniedCode = EACCES;
 constexpr NativeErrorCode existsCode = EEXIST;
 constexpr NativeErrorCode ioFailureCode = EIO;
 #endif
-
-// The random-tree recipe plants files at exactly this boundary, so the two must not drift apart.
-constexpr uint64_t defaultCopyChunkSize = 64 * 1024;
-
-OperationSummary runCopy(OperationScript& script, const QStringList& sources, const DestinationIntent intent, const QString& destination,
-	const uint64_t chunkSize = defaultCopyChunkSize)
-{
-	const auto request = makeTransferRequest(TransferKind::Copy, sources, intent, destination);
-	REQUIRE(request.has_value());
-	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
-	CTransferExecutor executor{ context, chunkSize };
-	return executor.run(*request);
-}
 
 } // namespace
 
@@ -118,7 +103,7 @@ TEST_CASE("copy executor: random tree round-trip", "[executor]")
 	CTestFolderGenerator generator;
 	generator.setSeed(g_randomSeed);
 	const auto tree = generator.generateRandomTree(base % "/src",
-		{ .numFiles = 50, .numFolders = 12, .maxFileSize = 8000, .chunkSize = defaultCopyChunkSize });
+		{ .numFiles = 50, .numFolders = 12, .maxFileSize = 8000, .chunkSize = defaultTransferChunkSize });
 	REQUIRE(tree.has_value());
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
@@ -163,10 +148,7 @@ TEST_CASE("copy executor: a tree whose paths exceed MAX_PATH", "[executor]")
 	// Removed through the engine rather than left to QTemporaryDir: it covers the delete side of the same boundary,
 	// and a tree left behind here would need the \\?\ prefix to delete at all.
 	OperationScript cleanupScript;
-	auto cleanupContext = makeScriptedContext(cleanupScript, PrimaryProgressUnit::Items);
-	const auto cleanupRequest = makePermanentDeleteRequest({ base % "/src", base % "/dest" });
-	REQUIRE(cleanupRequest.has_value());
-	CHECK(CDeleteExecutor{ cleanupContext }.run(*cleanupRequest).status == CompletionStatus::Completed);
+	CHECK(runDelete(cleanupScript, { base % "/src", base % "/dest" }).status == CompletionStatus::Completed);
 	CHECK(entryAbsent(base % "/src"));
 	CHECK(entryAbsent(base % "/dest"));
 }

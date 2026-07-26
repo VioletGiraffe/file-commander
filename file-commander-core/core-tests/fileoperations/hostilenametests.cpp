@@ -9,8 +9,6 @@
 // Every case skips itself where the filesystem will not store the name verbatim, which is what keeps the table free of
 // platform guards: Windows rejects `:*?`, macOS renormalizes Unicode.
 
-#include "fileoperations/ctransferexecutor.h"
-#include "fileoperations/cdeleteexecutor.h"
 #include "fileoperations/coperationexecutioncontext.h"
 
 #include "fileoperationtesthelpers.h"
@@ -24,25 +22,6 @@ RESTORE_COMPILER_WARNINGS
 
 namespace
 {
-
-OperationSummary runTransfer(OperationScript& script, const TransferKind kind, const QStringList& sources,
-	const DestinationIntent intent, const QString& destination)
-{
-	const auto request = makeTransferRequest(kind, sources, intent, destination);
-	REQUIRE(request.has_value());
-	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
-	CTransferExecutor executor{ context, 64 * 1024 };
-	return executor.run(*request);
-}
-
-OperationSummary runDelete(OperationScript& script, const QStringList& sources)
-{
-	const auto request = makePermanentDeleteRequest(sources);
-	REQUIRE(request.has_value());
-	auto context = makeScriptedContext(script, PrimaryProgressUnit::Items);
-	CDeleteExecutor executor{ context };
-	return executor.run(*request);
-}
 
 QString nonBmpName()
 {

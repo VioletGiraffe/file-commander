@@ -5,6 +5,8 @@
 
 #include "fileoperations/cfilesystemmutator.h"
 #include "fileoperations/coperationexecutioncontext.h"
+#include "fileoperations/ctransferexecutor.h"
+#include "fileoperations/cdeleteexecutor.h"
 #include "filecomparator/foldercomparison.h"
 
 #include "link_helpers.hpp"
@@ -75,6 +77,42 @@ inline COperationExecutionContext makeScriptedContext(OperationScript& script, c
 inline Decision act(const DecisionAction action, const DecisionScope scope = DecisionScope::ThisItem)
 {
 	return Decision{ action, scope, {} };
+}
+
+// Changing this silently un-tests a boundary: the random-tree recipe in transferexecutortests.cpp sizes files on it.
+inline constexpr uint64_t defaultTransferChunkSize = 64 * 1024;
+
+// One synchronous run of an operation, with the request validated on the way in. A case that has to interleave with
+// an operation already in flight builds the executor itself: releasing a barrier takes a second thread.
+inline OperationSummary runTransfer(OperationScript& script, const TransferKind kind, const QStringList& sources,
+	const DestinationIntent intent, const QString& destination, const uint64_t chunkSize = defaultTransferChunkSize)
+{
+	const auto request = makeTransferRequest(kind, sources, intent, destination);
+	REQUIRE(request.has_value());
+	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
+	CTransferExecutor executor{ context, chunkSize };
+	return executor.run(*request);
+}
+
+inline OperationSummary runCopy(OperationScript& script, const QStringList& sources, const DestinationIntent intent,
+	const QString& destination, const uint64_t chunkSize = defaultTransferChunkSize)
+{
+	return runTransfer(script, TransferKind::Copy, sources, intent, destination, chunkSize);
+}
+
+inline OperationSummary runMove(OperationScript& script, const QStringList& sources, const DestinationIntent intent,
+	const QString& destination, const uint64_t chunkSize = defaultTransferChunkSize)
+{
+	return runTransfer(script, TransferKind::Move, sources, intent, destination, chunkSize);
+}
+
+inline OperationSummary runDelete(OperationScript& script, const QStringList& sources)
+{
+	const auto request = makePermanentDeleteRequest(sources);
+	REQUIRE(request.has_value());
+	auto context = makeScriptedContext(script, PrimaryProgressUnit::Items);
+	CDeleteExecutor executor{ context };
+	return executor.run(*request);
 }
 
 inline void writeTestFile(const QString& path, const QByteArray& contents)

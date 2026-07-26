@@ -39,15 +39,6 @@ constexpr NativeErrorCode ioFailureCode = EIO;
 constexpr NativeErrorCode readOnlyCode = EROFS;
 #endif
 
-OperationSummary runDelete(OperationScript& script, const QStringList& sources)
-{
-	const auto request = makePermanentDeleteRequest(sources);
-	REQUIRE(request.has_value());
-	auto context = makeScriptedContext(script, PrimaryProgressUnit::Items);
-	CDeleteExecutor executor{ context };
-	return executor.run(*request);
-}
-
 } // namespace
 
 TEST_CASE("delete executor: basic and multi-root deletion", "[deleteexecutor]")
