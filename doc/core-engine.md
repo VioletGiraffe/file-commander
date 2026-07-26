@@ -93,8 +93,10 @@ Wrapper around `QFileInfo` for one file/dir/bundle. Carries a `CFileSystemObject
   this *itself* a link?" use `isLink()` = `QFileInfo::isSymbolicLink() || isJunction()`, computed once in
   `refreshInfo()` and stored. **Not `isSymLink()`** — the legacy Qt call also reports `true` for Windows
   `.lnk` shortcuts, which are regular files here. `exists = isLink || QFileInfo::exists()` so a broken link
-  still counts as existing, and a broken link gets `type = File` so it stays listed and deletable. (The
-  file-operation engine's own no-follow link handling lives with that engine, not here.)
+  still counts as existing, and stays listed and deletable — but its `type` is platform-dependent: `File` on
+  POSIX, where nothing is left to follow, and still `Directory` for a Windows dir link, which carries the
+  directory attribute on the link entry itself. (The file-operation engine's own no-follow link handling
+  lives with that engine, not here.)
 - `hash()` is the identity used everywhere. `setDirSize` is a documented hack to stash a computed dir size.
 - Times (`creationTime`/`modificationTime`) are lazily cached (`mutable`, sentinel `invalid_time`).
 - **Test seam:** under `#define CFILESYSTEMOBJECT_TEST`, `QFileInfo`/`QDir` are macro-swapped for

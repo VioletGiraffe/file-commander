@@ -158,9 +158,10 @@ TEST_CASE("A dotted directory name is reported whole", "[CFileSystemObject]")
 	}
 }
 
-// Qt's isDir() follows a directory link and cannot be told not to, so a link is classified - and separator-normalized -
-// as the directory it points at. Once the target is gone there is nothing to follow, and the entry becomes a File
-// carrying no separator, which is how a broken link stays visible and deletable.
+// Qt's isDir() follows a directory link and cannot be told not to, so a live link is classified - and
+// separator-normalized - as the directory it points at. A dead one stays a listed, deletable entry either way, but its
+// classification diverges: a Windows junction carries the directory attribute on the link entry itself, so it remains a
+// Directory with nothing left to point at, while on POSIX there is nothing to follow and it falls back to File.
 TEST_CASE("A directory link is a directory until its target is gone", "[CFileSystemObject]")
 {
 	QTemporaryDir tempDir;
@@ -185,9 +186,16 @@ TEST_CASE("A directory link is a directory until its target is gone", "[CFileSys
 	const CFileSystemObject brokenLink{ link };
 	CHECK(brokenLink.isLink());
 	CHECK(brokenLink.exists()); // A link entry exists even when its target does not
+
+#ifdef _WIN32
+	CHECK(brokenLink.isDir());
+	CHECK(brokenLink.type() == Directory);
+	CHECK(brokenLink.fullAbsolutePath() == link + "/");
+#else
 	CHECK(!brokenLink.isDir());
 	CHECK(brokenLink.type() == File);
 	CHECK(brokenLink.fullAbsolutePath() == link);
+#endif
 }
 
 TEST_CASE("A filesystem root is its own path and has no parent", "[CFileSystemObject]")
