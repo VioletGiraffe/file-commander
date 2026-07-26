@@ -10,9 +10,12 @@ namespace
 // on the raw text: parsing would silently collapse it into the parent directory instead.
 bool isSyntheticParentEntry(const QString& rawPath)
 {
-	return rawPath == QLatin1String("..")
-		|| rawPath.endsWith(QLatin1String("/.."))
-		|| rawPath.endsWith(QLatin1String("\\.."));
+#ifdef _WIN32
+	if (rawPath.endsWith(QLatin1String("\\.."))) // A separator here; on POSIX "x\.." is one ordinary name
+		return true;
+#endif
+
+	return rawPath == QLatin1String("..") || rawPath.endsWith(QLatin1String("/.."));
 }
 
 std::expected<std::vector<CEntryPath>, RequestValidationError> parseSourcePaths(const QStringList& rawSourcePaths)

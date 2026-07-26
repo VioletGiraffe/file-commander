@@ -165,6 +165,18 @@ TEST_CASE("request factory: source filtering and validation", "[requests]")
 		REQUIRE(request->sources.size() == 1);
 		CHECK(request->sources[0].value() == fileA);
 	}
+#else
+	// The filter runs on raw text and drops what it matches, so a name it matches by accident is a source silently
+	// missing from the operation. On POSIX only "/.." ends a path with the parent reference.
+	SECTION("a name ending in a backslash and dots is a source, not the parent entry")
+	{
+		const QString oddName = abstractPath("dir/x\\..");
+		const auto request = makeTransferRequest(TransferKind::Copy,
+			{ oddName, fileA }, DestinationIntent::IntoDirectory, destination);
+		REQUIRE(request.has_value());
+		REQUIRE(request->sources.size() == 2);
+		CHECK(request->sources[0].value() == oddName);
+	}
 #endif
 
 	SECTION("exact-entry destination cannot be a root")
