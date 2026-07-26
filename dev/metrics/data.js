@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785084507786,
+  "lastUpdate": 1785086998170,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -8959,6 +8959,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e29e94bed9cda55e4fc6ee31c1b77c68027cf9f3",
+          "message": "Better and consistent input validation in place of (now removed) isValidUserEnteredName()",
+          "timestamp": "2026-07-26T20:25:29+03:00",
+          "tree_id": "0efdf8fb0dfd8378d4e72512c29317194eb4d8f8",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e29e94bed9cda55e4fc6ee31c1b77c68027cf9f3"
+        },
+        "date": 1785086996009,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16406,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10889,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1318,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 706,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
             "unit": "KB"
           },
           {
