@@ -357,12 +357,22 @@ TEST_CASE("prompt: rename controls and validation", "[fileoperationprompt]")
 
 	SECTION("invalid names disable the button")
 	{
-		for (const char* invalid : { "", "   ", "a/b.bin", "a\\b.bin", ".", ".." })
+		for (const char* invalid : { "", "   ", "a/b.bin", ".", ".." })
 		{
 			edit->setText(QLatin1String(invalid));
 			INFO("name: '" << invalid << "'");
 			CHECK(!renameButton->isEnabled());
 		}
+	}
+
+	SECTION("a backslash separates components only on Windows")
+	{
+		edit->setText(QStringLiteral("a\\b.bin"));
+#ifdef _WIN32
+		CHECK(!renameButton->isEnabled());
+#else
+		CHECK(renameButton->isEnabled()); // An ordinary character in a POSIX name
+#endif
 	}
 
 	SECTION("a case-only respell is a real rename and enables the button")

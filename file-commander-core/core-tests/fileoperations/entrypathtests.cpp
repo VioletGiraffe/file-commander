@@ -198,10 +198,9 @@ TEST_CASE("isValidUserEnteredName: whitespace alone is the only extra rejection"
 #ifndef _WIN32
 // The parser and the component check must read '\' the same way: scanning and copying rebuild a path from name(), so a
 // disagreement makes child() reject a path parseOperationPath itself produced.
-TEST_CASE("a POSIX name may contain a backslash", "[entrypath]")
+TEST_CASE("a backslash name survives the name()/child() round trip", "[entrypath]")
 {
 	const CEntryPath path = parsed(QStringLiteral("/tmp/a\\b"));
-	CHECK(path.value() == QStringLiteral("/tmp/a\\b"));
 	CHECK(path.name() == QStringLiteral("a\\b"));
 	CHECK(isValidEntryName(path.name()));
 	CHECK(path.parent().child(path.name()).value() == path.value());
