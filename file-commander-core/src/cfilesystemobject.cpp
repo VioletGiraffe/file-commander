@@ -4,7 +4,6 @@
 
 #include "assert/advanced_assert.h"
 #include "lang/type_traits_fast.hpp"
-#include "windows/windowsutils.h"
 
 
 #ifdef CFILESYSTEMOBJECT_TEST
@@ -29,7 +28,6 @@ RESTORE_COMPILER_WARNINGS
 #include <unistd.h>
 #include <sys/stat.h>
 #include <wordexp.h>
-#include <dirent.h>
 #elif defined _WIN32
 #include <Windows.h>
 #include <Shlwapi.h>
@@ -345,21 +343,6 @@ uint64_t CFileSystemObject::rootFileSystemId() const
 	}
 
 	return _rootFileSystemId;
-}
-
-bool CFileSystemObject::isNetworkObject() const
-{
-#ifdef _WIN32
-	if (!_properties.fullPath.startsWith(QStringLiteral("//")))
-		return false;
-
-	WCHAR wPath[MAX_PATH];
-	const auto nSymbols = toNativeSeparators(_properties.fullPath).toWCharArray(wPath);
-	wPath[nSymbols] = 0;
-	return PathIsNetworkPathW(wPath) != 0;
-#else
-	return false;
-#endif
 }
 
 bool CFileSystemObject::isLink() const

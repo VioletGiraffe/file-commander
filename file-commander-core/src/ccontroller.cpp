@@ -851,13 +851,10 @@ QString CController::volumePathById(uint64_t id) const
 
 void CController::saveDirectoryForCurrentVolume(Panel p)
 {
-	const CFileSystemObject path(panel(p).currentDirPathNative());
-	if (path.isNetworkObject())
+	const auto currentVolume = currentVolumeInfo(p);
+	if (!currentVolume) // A network share, or anything else outside the enumerated volumes: no drive to key by
 		return;
 
-	const auto currentVolume = currentVolumeInfo(p);
-	assert_and_return_r(currentVolume, );
-
 	const QString drivePath = currentVolume->rootObjectInfo.fullAbsolutePath();
-	CSettings().setValue(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), path.fullAbsolutePath());
+	CSettings().setValue(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), panel(p).currentDirPathPosix());
 }

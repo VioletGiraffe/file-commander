@@ -90,7 +90,6 @@ public:
 	[[nodiscard]] uint64_t hash() const;
 	[[nodiscard]] const QFileInfo& qFileInfo() const;
 	[[nodiscard]] uint64_t rootFileSystemId() const;
-	[[nodiscard]] bool isNetworkObject() const;
 	// Symlink or junction, unlike isSymLink(), which also matches .lnk shortcuts on Windows
 	[[nodiscard]] bool isLink() const;
 	[[nodiscard]] bool isSymLink() const;
