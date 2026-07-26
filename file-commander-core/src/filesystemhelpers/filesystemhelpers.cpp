@@ -1,18 +1,16 @@
 #include "filesystemhelpers.hpp"
-#include "../filesystemhelperfunctions.h"
-
-#include "qtcore_helpers/qstring_helpers.hpp"
 
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QFile>
-#include <QStringBuilder>
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
+#include "windows_path_win.hpp" // thin_io
+
 #include <Windows.h>
 #else
 #include <stdlib.h>
@@ -58,25 +56,15 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 bool FileSystemHelpers::pathIsAccessible(const QString& path)
 {
 #ifdef _WIN32
-	QString pathWithMask = toNativeSeparators(path);
-	if (pathWithMask.endsWith('\\'))
-		pathWithMask = R"(\\?\)" % pathWithMask % '*';
-	else
-		pathWithMask = R"(\\?\)" % pathWithMask % "\\*";
-
-	static constexpr qsizetype pathBufferLength = 32768;
-	wchar_t wPath[pathBufferLength];
-
-	// toWCharArray writes no terminator, so the path must be one shorter than the buffer. Nothing that long is
-	// openable anyway, making "not accessible" the accurate answer rather than a bail-out.
-	if (pathWithMask.size() >= pathBufferLength) [[unlikely]]
+	// thin_io does the whole native preparation: separator conversion, normalization, the extended-length prefix in
+	// both its drive and \\?\UNC\ forms, and the length limit. Appending reports a failed preparation too, and a path
+	// thin_io refuses is one FindFirstFileExW could not have opened either.
+	thin_io::windows_path_buffer searchMask{ reinterpret_cast<const wchar_t*>(path.utf16()) };
+	if (!searchMask.append_directory_search_pattern())
 		return false;
 
-	const auto nCharacters = pathWithMask.toWCharArray(wPath);
-	wPath[nCharacters] = 0;
-
 	WIN32_FIND_DATAW fileData;
-	const HANDLE hFind = ::FindFirstFileExW(wPath, FindExInfoBasic, &fileData, FindExSearchNameMatch, nullptr, 0);
+	const HANDLE hFind = ::FindFirstFileExW(searchMask.c_str(), FindExInfoBasic, &fileData, FindExSearchNameMatch, nullptr, 0);
 	if (hFind == INVALID_HANDLE_VALUE)
 	{
 		const auto err = GetLastError();
