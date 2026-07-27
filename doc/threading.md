@@ -110,6 +110,21 @@ dismissed (see [qt-ui.md](qt-ui.md)).
 
 ## Reminder (project rule)
 
-Always do a dedicated, thorough review pass after any threading/concurrency change — never skip it
-(project memory `feedback-threading-review`). The tag/retire and active/inactive-watch logic are the
-easiest places to introduce a use-after-free or a missed refresh.
+Always do a dedicated, thorough review pass after any threading/concurrency change — never skip it, however
+small or obvious the edit looks. The tag/retire and active/inactive-watch logic are the easiest places to
+introduce a use-after-free or a missed refresh.
+
+The pass is separate from reading the diff because concurrency bugs do not surface in a read-through: they
+are found by tracing invariants explicitly, one at a time. What that pass checks:
+
+- Lock/unlock pairing, and which lock covers which field.
+- What each shared counter or flag *means*, and its full state-transition invariant — can it go negative,
+  can a thread exit before restoring it.
+- Whether every `wait()` has a guaranteed corresponding `notify()`, and whether the predicate is evaluated
+  under the same mutex the waker mutates.
+- Whether any early-return or error path can leave another thread stuck.
+- Where a parallel path has a serial equivalent, whether the two produce identical results.
+
+That last one is not hypothetical: the review pass over `scanParallel` (`filesystemhelpers/filestatistics.cpp`)
+caught the parallel path undercounting `folders` by one per root against the serial path — a defect that
+reading the diff had missed.

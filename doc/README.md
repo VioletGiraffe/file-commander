@@ -64,6 +64,7 @@ without going through `CController` getters.
 9. [release-metadata-audit.md](release-metadata-audit.md) — app/vendor identity, version info, installer, license metadata: current values, defects, and what must NOT be changed.
 10. [code-review-plan.md](code-review-plan.md) — how to segment a future review/audit (risk-tiered, with file sets); process doc, not architecture.
 11. [TODO.md](TODO.md) — deferred work items with the context needed to act on them; process doc, not architecture.
+12. [coding-style.md](coding-style.md) — authoring preferences for new code (C++/Qt specifics, concurrency review pass, test scripting); process doc, not architecture.
 
 ## Naming & cross-cutting conventions
 

@@ -2,115 +2,35 @@
 
 ## Build system: qmake
 
-Top-level `file-commander.pro` (`TEMPLATE = subdirs`). Sub-projects + their `depends` (build order):
-
-```
-qt_app  depends: file_commander_core qtutils imageviewerplugin textviewerplugin autoupdater image-processing filecomparisonplugin thin_io
-file_commander_core   (file-commander-core/)              -> static lib "core"
-qtutils, cpputils, cpp-template-utils, thin_io            submodule libs
-text_encoding_detector (text-encoding-detector/text-encoding-detector)
-autoupdater            (github-releases-autoupdater/)
-image-processing
-imageviewerplugin   depends: file_commander_core image-processing qtutils thin_io
-textviewerplugin    depends: file_commander_core text_encoding_detector qtutils thin_io
-filecomparisonplugin depends: qtutils file_commander_core thin_io
-```
+Top-level `file-commander.pro` (`TEMPLATE = subdirs`). Sub-projects + their `depends` (build order).
 
 Everything that links `core` also links `thin_io`: core's filesystem helpers and its whole file-operation module
 call into it.
 
-- `global.pri`: `CONFIG += strict_c++ c++2b` (**C++23**), removes c++17/c++2a. Windows Release adds `/GL`
-  (whole-program opt) + `/LTCG:INCREMENTAL`, `/OPT:REF /OPT:ICF`. ccache on mac/linux when present.
-- `file-commander-core/config.pri`: `QT = core widgets gui`, `staticlib`, `DEFINES += PLUGIN_MODULE`,
-  MSVC `/std:c++latest /permissive- /Zc:__cplusplus /W4`, `WIN32_LEAN_AND_MEAN NOMINMAX`; non-Win non-ARM
-  `-msse4.1`; output dirs `bin/{release,debug}/{x64,x86}`, intermediates `build/...`. INCLUDEPATH pulls in
-  `../qtutils ../cpputils ../cpp-template-utils ../thin_io/src ../3rdparty`.
+- `global.pri`: `CONFIG += strict_c++ c++2b` (**C++23**) and other shared/global build flags.
 - **Requirements:** C++20-capable compiler (README floor) — actually built as C++23; Qt 6.8+ (CI uses 6.9.*).
   Windows x64 only, MSVC 2022 / v143.
 
-### Local build commands
-
-| OS | Commands |
-|----|----------|
-| Windows (VS) | `qmake -tp vc -r` -> build `file-commander.sln` (v143, Release) |
-| Windows (Qt Creator) | open `file-commander.pro` |
-| Linux | `qmake6 -r` (ensure Qt6 qmake) then `make -j` |
-| macOS | `qmake -r && make -j`, or `qmake -r -spec macx-xcode` for Xcode |
+### Build artifacts
 
 Output binaries: `bin/release/x64/`. Root `Makefile` is qmake-generated. Installers in
-`installer/{windows,mac,linux}/`. **Per project rule: don't build here — the user builds & verifies.**
+`installer/{windows,mac,linux}/`.
 
-### Cloning
+## CI
 
-Repo uses submodules. After clone run `update_repository.bat`/`.sh` (also pulls + updates all subrepos).
-`push_repository.*` pushes main + subrepos.
-
-## CI (`.github/workflows/CI.yml`)
-
-Triggers: push, pull_request, workflow_dispatch. Matrix (`fail-fast: false`): `ubuntu-22.04`, `macos-14`,
-`windows-latest`. Checks out submodules recursively. Installs Qt **6.9.*** (`qtbase icu qtsvg` + modules
-`qt5compat qtimageformats`).
-
-**`build` job per OS:**
-- Sys-info + `cloc` line count (Windows).
-- **`dorny/paths-filter`** sets `tests_relevant` if `file-commander-core/src/**`,
-  `file-commander-core/core-tests/**`, or `.github/workflows/CI.yml` changed. Tests only run when true.
-- Build the installer/dmg/AppImage:
-  - Windows: `installer/windows/create_installer.bat`, then xcopy MSVC + Qt runtime into `bin/release/x64/`.
-  - macOS: `installer/mac/create_dmg.sh`.
-  - Linux: `qmake -r CONFIG+=release && make -j`, then `linuxdeployqt` -> AppImage (bundling the 3 plugin .so).
-- **Smoke test:** launch `FileCommander --test-launch` (auto-quits after 5 s); Linux under `xvfb-run`.
-- **Build + run core tests** (when `tests_relevant`): `fso_test`, `fso_test_high_level`, `panel_test`,
-  `fileoperations_test` **x20 with random `--std-seed`**, `filecomparator_test` (random seed), and
-  `fileoperations_gui_test` (the dialog/prompt/launch/routing GUI suite; Linux runs it with
-  `QT_QPA_PLATFORM=offscreen`). Windows mounts **two ImDisk RAM disks**: **R:** (512 MB) backs TEMP/TMP, and
-  **S:** (128 MB) is exported as `FILE_COMMANDER_TEST_SECOND_VOLUME` so the cross-volume tests get a genuinely
-  different filesystem. Only the first is created by the `setup-ramdisk` action; it leaves `imdisk` in
-  System32, so the second costs one command. macOS and Linux mount a second volume of their own for the same
-  purpose (an `hdiutil` RAM disk, a tmpfs mount) but leave TMPDIR alone. The Windows step runs under **`pwsh` with
-  `$PSNativeCommandUseErrorActionPreference = $true`**: without it PowerShell propagates only the *last*
-  command's exit code, so a test failing before the final one leaves the step green — this exact hole hid
-  failing tests until it was fixed.
-- Upload artifacts: `FileCommander.exe` / `.dmg` / `.AppImage`.
-
-**`create-release` job** (only on tag push `refs/tags/*`): downloads the three artifacts, generates a
-changelog from `git log` between the previous and current tag, publishes a GitHub Release via
-`softprops/action-gh-release`. (Bug: the `body:` line has a stray trailing `}` — see [oddities.md](oddities.md).)
+Github CI configured, see `.github/workflows/CI.yml`
 
 ## Tests
 
-Core tests: `file-commander-core/core-tests/` (`core-tests.pro` aggregates sub-`.pro`s). Build mirrors CI:
-`qmake -tp vc -r` + msbuild (Win) or `qmake -r CONFIG+=release && make -j` (Unix). Executables -> `bin/release/x64/`.
+`file-commander-core/core-tests/core-tests.pro` builds the automated test suite, including the file-operation
+GUI tests under `qt-app/gui-tests/fileoperations/`. `qt-app/gui-tests/combobox/` is a manual harness. See
+`file-commander-core/core-tests/core-tests.pro` and `qt-app/gui-tests/gui-tests.pro` for the current list of test
+projects; each test project's `.pro` file is the source of truth for its test sources.
 
-| Test | Source | Notes |
-|------|--------|-------|
-| `fso_test` | `filesystemobject/fso_test.cpp` | Uses `QFileInfo_Test`/`QDir_Test` mocks (`CFILESYSTEMOBJECT_TEST`). `qdir_test.*`, `qfileinfo_test.*`. |
-| `fso_test_high_level` | `filesystemobject-high-level/fso_test_high_level.cpp` | Real filesystem: `pathHierarchy`, `rootFileSystemId` for a non-existent path, and the `CFileSystemObject` path invariants — the trailing separator on a directory, hash/equality normalization across spellings, classification of a path that does not exist, dotted directory names, roots. |
-| `panel_test` | `panel/*.cpp` | `CPanel`'s navigation and refresh pipeline: path setting and its fallback ladder, the two-phase contents notification, the file-list generation guard, per-folder current-item memory, history, contents-accessor hiding, panel lifetime against the shared pool, and the filesystem watcher. Runs on a `QCoreApplication` — no GUI, no platform plugin. Determinism comes from a **single-lane worker pool**: `WorkerGate` parks its one worker to hold a listing in flight, and an untagged probe task run behind the panel's own tells the test a listing has completed while its notification is still undelivered. That is what makes "the listing outlives the drain" and "the listing completes within the drain" two separate, reproducible cases rather than a race to sample. |
-| `fileoperations_test` | `fileoperations/*.cpp` | The whole file-operation engine: path/error types, mutator & staged copy, resolver, tree builder, transfer/delete/move executors, job, inline rename, hooks. `hostilenametests.cpp` runs legal-but-awkward filenames (spaces, leading/trailing dots, both Unicode normalization forms, CJK, non-BMP, a staging-file lookalike, Windows-illegal punctuation) through copy/move/delete; each case skips itself with a WARN where the filesystem will not store the name verbatim, which is what keeps it free of platform guards. The copy and delete executors are also run over generated trees (`CTestFolderGenerator`), which vary their names, sizes and shape per seed and deliberately plant the copy chunk-size boundaries and one near-limit-length component; a separate case nests one past Windows' MAX_PATH and deletes it through the engine, since Qt's own recursive removal is not relied on to reach that far. Stress: 20x random seed. Compiled with `FILE_OPERATIONS_TEST_HOOKS`. Link tests create junctions on Windows via `mklink /J` — no admin needed, unlike symlinks. The cross-volume case needs a real second filesystem: it skips with a WARN unless `FILE_COMMANDER_TEST_SECOND_VOLUME` points at a directory on one. All three CI OSes provide one (ImDisk RAM disk / `hdiutil` RAM disk / tmpfs mount). |
-| `fileoperations_gui_test` | `qt-app/gui-tests/fileoperations/*.cpp` | The Qt file-operation UI: typed prompt, the real-job dialog, launch policy, and production-routing integration. Linux runs it with `QT_QPA_PLATFORM=offscreen`. Also built with `FILE_OPERATIONS_TEST_HOOKS`. |
-| `filecomparator_test` | `filecomparator/{filecomparator,foldercomparison}_test.cpp` | Byte comparison of two files (random seed) plus the folder-tree comparison: pairing, one-sided entries, type/size/content differences, progress and cancellation. |
-
-Shared test helpers in `core-tests/test-utils/src/`: `ctestfoldergenerator`, `crandomdatagenerator`,
-`qt_helpers`. Tree equality is asserted by `requireEqualTrees` in `fileoperations/fileoperationtesthelpers.h`,
-which runs core's `compareFolders()` in `PairingMode::Exact` and reports every difference at once. The panel
-suite has its own harness in `panel/paneltesthelpers.h` (`PanelHarness`, `WorkerGate`, `RecordingListener`);
-`panel_test` writes its settings to an ini of its own under the temp directory, since `CPanel` reads
-`ShowHiddenFiles` on every listing and must not see - or change - the user's real ones.
-
-`CRandomDataGenerator` reproduces its whole sequence from a seed alone, on any platform and standard library,
-which is why it does its own range mapping instead of using `std::uniform_int_distribution` (unspecified). Tests
-that need a tree of a *named* shape build it by hand; `CTestFolderGenerator` is for the ones that need bulk. Its
-alphabet is limited to what all three target filesystems store verbatim, because a generated tree is compared
-whole and so has no way to skip a name the filesystem rewrote - that is what `hostilenametests.cpp` is for.
-
-**Caution — Catch2 test names become directory names.** Test titles are interpolated into `QTemporaryDir`
-templates, so a title must not contain characters illegal in a filename on the strictest platform. A `:` in
-a test name (e.g. a `Foo::bar()`-style title) silently fails temp-dir creation on Windows only, surfacing as
-an unrelated-looking `isValid()` REQUIRE failure.
-
-GUI tests: `qt-app/gui-tests/`. The `fileoperations/` suite (`fileoperations_gui_test`) runs in CI on all
-three OSes (see above); `combobox/` is a minimal manual harness, not in CI.
+`fileoperations_test` and `filecomparator_test` accept `--std-seed <seed>`. Genuine cross-volume tests additionally
+require `FILE_COMMANDER_TEST_SECOND_VOLUME` to name a writable directory on a filesystem different from the one
+containing `TEMP`; without it, that coverage is skipped. Headless GUI-test runs may use
+`QT_QPA_PLATFORM=offscreen`.
 
 ## Dependencies
 
@@ -123,19 +43,11 @@ three OSes (see above); `combobox/` is a minimal manual harness, not in CI.
 | **cpp-template-utils** | Header-only template/metaprogramming + container algorithms + preprocessor helpers. |
 | **thin_io** | Cross-platform low-level file I/O on native OS APIs (no `<fstream>`/`<stdio>`); `thin_io::file` + metadata used by the file-operation engine (`CStagedFileCopy`, `CFileSystemMutator`). |
 | **text-encoding-detector** | Detects text encoding of bytes -> QString. Backs the text-viewer plugin. |
-| **image-processing** | Image processing lib. Backs the image-viewer plugin. (One of two submodules currently showing local working-tree changes.) |
+| **image-processing** | Image processing lib. Backs the image-viewer plugin.
 | **github-releases-autoupdater** | Update check + download for GitHub-release-distributed builds (Windows-installer focused). |
-
-`git submodule status` working-tree state changes over time; at last check `image-processing` and
-`text-encoding-detector` had local modifications (`?` in `git status`). The rest were clean on `master`.
 
 ### Vendored 3rdparty (not submodules)
 
 - `3rdparty/ankerl/unordered_dense.h` — fast hash map (`segmented_map` for panel file lists).
 - `3rdparty/magic_enum` — enum reflection (used in `CFileStatsWindow`).
 - `plugins/viewer/textviewer/3rdparty/diegoiast/qutepart-cpp` — Kate-style syntax highlighting for the text viewer.
-
-### Other root items
-
-`extras/win/natvis/file_commander.natvis` (MSVC debug visualizers), `Dbgview.exe`/`depends.exe` (local
-tools), `.qtcreator/ .vs/ .qtc_clangd/` (IDE), `WCX/ !TestImages/ Debug/` (untracked scratch).

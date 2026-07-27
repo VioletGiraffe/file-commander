@@ -69,5 +69,5 @@ tab's back/forward history is persisted (`KEY_HISTORY_*`). See [persistence.md](
 
 ## Deferred / nice-to-have backlog
 
-Per project memory `plan-ui-tabs`: a short list of deferred niceties remains (e.g. session/named tabs,
-locked tabs). Re-check that note and `git log` before assuming status.
+A short list of deferred niceties remains (e.g. session/named tabs, locked tabs): see
+[TODO.md](TODO.md), "Tabs: deferred nice-to-haves". Re-check it and `git log` before assuming status.

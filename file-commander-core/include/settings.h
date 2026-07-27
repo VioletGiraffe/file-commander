@@ -35,9 +35,6 @@
 
 #define KEY_FAVORITES QSL("Internal/Core/Favorites")
 
-// Copy/move/delete prompt dialog geometry
-#define KEY_PROMPT_DIALOG_GEOMETRY QSL("Internal/Interface/PropmptDialog/Geometry")
-
 #define KEY_LAST_UPDATE_CHECK_TIMESTAMP QSL("Internal/Interface/Update/LastUpdateCheckTimestamp")
 
 /////////////////////////////////////////////////

@@ -37,19 +37,16 @@ and the native-shell branch in `CMainWindow::performDeletion` is compiled only u
 
 ## Tabs: deferred nice-to-haves
 
-- Double-click empty tab bar area opens a new tab.
 - Locked tabs.
 - Drag files from the list onto a tab header to copy/move into that tab's folder without switching to it.
 - Per-tab history persistence beyond the active tab: only the active tab's back/forward history is
   persisted; other tabs' history resets on restart. Full fix is a list-of-lists with stale-key cleanup.
-- Merge the per-side "visited locations" logs (`CController::_visitedLocations`, feeds the path-navigator
-  dropdown) into one global list. Has unresolved design wrinkles; not designed yet.
 - `CFileListView::_bHeaderAdjustmentRequired` fresh-install gap: the flag is not per-tab and self-clears
   on the first model reset ever, so on a brand-new install switching tabs before resizing a column can
   transiently revert to Qt's default column sizing. Accepted; rare and self-correcting.
 
 Considered and rejected (not worth the complexity at this app's scale) - do not revisit unprompted:
-cooperative task-cancellation on tab close; lazy triplet creation for restored-but-unopened tabs.
+cooperative task-cancellation on tab close.
 
 ## File-operation engine: deferred P3 test coverage
 

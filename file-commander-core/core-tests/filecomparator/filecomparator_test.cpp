@@ -9,10 +9,7 @@
 #define CATCH_CONFIG_RUNNER
 #include "3rdparty/catch2/catch.hpp"
 
-#include "catch2_utils.hpp"
-
 DISABLE_COMPILER_WARNINGS
-#include <QStringBuilder>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
@@ -63,7 +60,7 @@ TEST_CASE("CFileComparator identical files tests", "[CFileComparator]")
 
 TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 {
-	QTemporaryDir sourceDirectory(QDir::tempPath() % "/" % CURRENT_TEST_NAME.c_str() % "_XXXXXX");
+	QTemporaryDir sourceDirectory;
 	CRandomDataGenerator gen;
 	gen.setSeed(g_randomSeed);
 	QFile fileA{sourceDirectory.filePath(QSL("A"))}, fileB{sourceDirectory.filePath(QSL("B"))};
