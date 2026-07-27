@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785104722237,
+  "lastUpdate": 1785144576988,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -9373,6 +9373,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "b26fedeedc1ea2b42edcdc923141d0cb168746b2",
+          "message": "Bugfix: separate onPanelContentsChanged/onPanelContentsInvalidated notifications, that include the tab ID, so an invalidation (first phase of navigating to a new folder) is not treated as \"contents is available\". Fixes the cursor not highlighting the correct folder",
+          "timestamp": "2026-07-27T12:23:55+03:00",
+          "tree_id": "09425d7bb54212b19ef18c566efc027606870318",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/b26fedeedc1ea2b42edcdc923141d0cb168746b2"
+        },
+        "date": 1785144573772,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16449,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1317.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 705.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
             "unit": "KB"
           },
           {
