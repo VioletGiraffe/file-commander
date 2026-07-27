@@ -393,6 +393,7 @@ jobs:
         $ErrorActionPreference = 'Stop'
         .\bin\release\x64\fso_test.exe
         .\bin\release\x64\fso_test_high_level.exe
+        .\bin\release\x64\panel_test.exe
         $N=20
         For ($i=1; $i -le $N; $i++) {
           Write-Output "Iteration $i/$N"
@@ -428,6 +429,7 @@ jobs:
       run: |
         set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
         set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
+        set -e; ./bin/release/x64/panel_test.app/Contents/MacOS/panel_test
         set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/x64/fileoperations_test.app/Contents/MacOS/fileoperations_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
         set -e; ./bin/release/x64/fileoperations_gui_test.app/Contents/MacOS/fileoperations_gui_test
@@ -441,6 +443,7 @@ jobs:
         cd ../../
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/panel_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fileoperations_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fileoperations_gui_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
@@ -461,6 +464,7 @@ jobs:
       run: |
         set -e; ./bin/release/x64/fso_test
         set -e; ./bin/release/x64/fso_test_high_level
+        set -e; ./bin/release/x64/panel_test
         set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/x64/fileoperations_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
         set -e; QT_QPA_PLATFORM=offscreen ./bin/release/x64/fileoperations_gui_test

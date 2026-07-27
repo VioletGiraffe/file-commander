@@ -6,7 +6,7 @@
 #include "windows_path_win.hpp" // thin_io
 
 DISABLE_COMPILER_WARNINGS
-#include <QApplication>
+#include <QCoreApplication>
 RESTORE_COMPILER_WARNINGS
 
 #include <Windows.h>
@@ -14,13 +14,13 @@ RESTORE_COMPILER_WARNINGS
 
 CFileSystemWatcherWindows::CFileSystemWatcherWindows() noexcept
 {
-	qApp->installNativeEventFilter(this);
+	QCoreApplication::instance()->installNativeEventFilter(this);
 }
 
 CFileSystemWatcherWindows::~CFileSystemWatcherWindows() noexcept
 {
 	std::lock_guard lock{ _mtx };
-	qApp->removeNativeEventFilter(this);
+	QCoreApplication::instance()->removeNativeEventFilter(this);
 	close();
 }
 

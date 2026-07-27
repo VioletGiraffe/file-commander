@@ -147,10 +147,6 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 #if defined _WIN32
 	assert_r(!_history.currentItem().contains('\\') && !newPath.contains('\\'));
 #endif
-	if (_history.empty())
-		// The current folder does not automatically make it into history on program startup, but it should (#103)
-		_history.addLatest(oldPathObject.fullAbsolutePath());
-
 	if (_history.currentItem() != newPath)
 		_history.addLatest(newPath);
 

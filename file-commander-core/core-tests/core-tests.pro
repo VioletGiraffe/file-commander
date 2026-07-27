@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
 
-SUBDIRS = fileoperations filesystemobject filesystemobject-high-level filecomparator
+SUBDIRS = fileoperations filesystemobject filesystemobject-high-level filecomparator panel
 SUBDIRS += qtutils cpputils cpp-template-utils test-utils thin_io
 
 # The automated GUI-component tests live with the UI sources but build and run with the test suite.
@@ -22,3 +22,4 @@ fileoperations.depends = test-utils thin_io
 filesystemobject.depends = qtutils thin_io
 filesystemobject-high-level.depends = qtutils thin_io
 filecomparator.depends = cpputils test-utils thin_io
+panel.depends = cpputils test-utils thin_io

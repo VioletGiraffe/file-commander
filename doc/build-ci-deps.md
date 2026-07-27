@@ -60,7 +60,7 @@ Triggers: push, pull_request, workflow_dispatch. Matrix (`fail-fast: false`): `u
   - macOS: `installer/mac/create_dmg.sh`.
   - Linux: `qmake -r CONFIG+=release && make -j`, then `linuxdeployqt` -> AppImage (bundling the 3 plugin .so).
 - **Smoke test:** launch `FileCommander --test-launch` (auto-quits after 5 s); Linux under `xvfb-run`.
-- **Build + run core tests** (when `tests_relevant`): `fso_test`, `fso_test_high_level`,
+- **Build + run core tests** (when `tests_relevant`): `fso_test`, `fso_test_high_level`, `panel_test`,
   `fileoperations_test` **x20 with random `--std-seed`**, `filecomparator_test` (random seed), and
   `fileoperations_gui_test` (the dialog/prompt/launch/routing GUI suite; Linux runs it with
   `QT_QPA_PLATFORM=offscreen`). Windows mounts **two ImDisk RAM disks**: **R:** (512 MB) backs TEMP/TMP, and
@@ -86,13 +86,17 @@ Core tests: `file-commander-core/core-tests/` (`core-tests.pro` aggregates sub-`
 |------|--------|-------|
 | `fso_test` | `filesystemobject/fso_test.cpp` | Uses `QFileInfo_Test`/`QDir_Test` mocks (`CFILESYSTEMOBJECT_TEST`). `qdir_test.*`, `qfileinfo_test.*`. |
 | `fso_test_high_level` | `filesystemobject-high-level/fso_test_high_level.cpp` | Real filesystem: `pathHierarchy`, `rootFileSystemId` for a non-existent path, and the `CFileSystemObject` path invariants — the trailing separator on a directory, hash/equality normalization across spellings, classification of a path that does not exist, dotted directory names, roots. |
+| `panel_test` | `panel/*.cpp` | `CPanel`'s navigation and refresh pipeline: path setting and its fallback ladder, the two-phase contents notification, the file-list generation guard, per-folder current-item memory, history, contents-accessor hiding, panel lifetime against the shared pool, and the filesystem watcher. Runs on a `QCoreApplication` — no GUI, no platform plugin. Determinism comes from a **single-lane worker pool**: `WorkerGate` parks its one worker to hold a listing in flight, and an untagged probe task run behind the panel's own tells the test a listing has completed while its notification is still undelivered. That is what makes "the listing outlives the drain" and "the listing completes within the drain" two separate, reproducible cases rather than a race to sample. |
 | `fileoperations_test` | `fileoperations/*.cpp` | The whole file-operation engine: path/error types, mutator & staged copy, resolver, tree builder, transfer/delete/move executors, job, inline rename, hooks. `hostilenametests.cpp` runs legal-but-awkward filenames (spaces, leading/trailing dots, both Unicode normalization forms, CJK, non-BMP, a staging-file lookalike, Windows-illegal punctuation) through copy/move/delete; each case skips itself with a WARN where the filesystem will not store the name verbatim, which is what keeps it free of platform guards. The copy and delete executors are also run over generated trees (`CTestFolderGenerator`), which vary their names, sizes and shape per seed and deliberately plant the copy chunk-size boundaries and one near-limit-length component; a separate case nests one past Windows' MAX_PATH and deletes it through the engine, since Qt's own recursive removal is not relied on to reach that far. Stress: 20x random seed. Compiled with `FILE_OPERATIONS_TEST_HOOKS`. Link tests create junctions on Windows via `mklink /J` — no admin needed, unlike symlinks. The cross-volume case needs a real second filesystem: it skips with a WARN unless `FILE_COMMANDER_TEST_SECOND_VOLUME` points at a directory on one. All three CI OSes provide one (ImDisk RAM disk / `hdiutil` RAM disk / tmpfs mount). |
 | `fileoperations_gui_test` | `qt-app/gui-tests/fileoperations/*.cpp` | The Qt file-operation UI: typed prompt, the real-job dialog, launch policy, and production-routing integration. Linux runs it with `QT_QPA_PLATFORM=offscreen`. Also built with `FILE_OPERATIONS_TEST_HOOKS`. |
 | `filecomparator_test` | `filecomparator/{filecomparator,foldercomparison}_test.cpp` | Byte comparison of two files (random seed) plus the folder-tree comparison: pairing, one-sided entries, type/size/content differences, progress and cancellation. |
 
 Shared test helpers in `core-tests/test-utils/src/`: `ctestfoldergenerator`, `crandomdatagenerator`,
 `qt_helpers`. Tree equality is asserted by `requireEqualTrees` in `fileoperations/fileoperationtesthelpers.h`,
-which runs core's `compareFolders()` in `PairingMode::Exact` and reports every difference at once.
+which runs core's `compareFolders()` in `PairingMode::Exact` and reports every difference at once. The panel
+suite has its own harness in `panel/paneltesthelpers.h` (`PanelHarness`, `WorkerGate`, `RecordingListener`);
+`panel_test` writes its settings to an ini of its own under the temp directory, since `CPanel` reads
+`ShowHiddenFiles` on every listing and must not see - or change - the user's real ones.
 
 `CRandomDataGenerator` reproduces its whole sequence from a seed alone, on any platform and standard library,
 which is why it does its own range mapping instead of using `std::uniform_int_distribution` (unspecified). Tests
