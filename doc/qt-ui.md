@@ -1,141 +1,100 @@
 # Qt GUI app (`qt-app/`)
 
-The `FileCommander` executable. Qt Widgets. Depends on `core` + all submodules + the three plugins (so they
-build first). Sources in `qt-app/src/`. `.ui` files are Qt Designer forms; widget classes pair `.h/.cpp/.ui`.
+`qt-app.pro` is the authoritative source list for the `FileCommander` Qt Widgets executable. Designer forms live
+beside their `.h/.cpp` owners. The GUI reaches filesystem and panel state through `CController`.
 
-## Entry point (`src/main.cpp`)
+## Source map
 
-1. `AdvancedAssert::setLoggingFunc` -> `qInfo`. App/org name = "File Commander" / "GitHubSoft" (drives
-   `QSettings` location). `CO_INIT_HELPER(COINIT_APARTMENTTHREADED)` (COM for shell integration).
-2. Asserts build-time and runtime Qt versions match. High-DPI rounding = `PassThrough`.
-3. Applies saved **color scheme** (Qt 6.8+ `QStyleHints::setColorScheme`), **style**, and **stylesheet**
-   from settings before building the window. On Windows dark mode, lightens `AlternateBase` (fixes Qt's
-   poor default alternate-row color).
-4. Loads bundled **Roboto Mono** font (`:/fonts/Roboto Mono.ttf`); bumps default app font +1 pt.
-5. Creates `CMainWindow`, `updateInterface()`, `app.exec()`.
-6. `--test-launch` arg: `QTimer::singleShot(5000, quit)` — the CI smoke test.
+| Area | Start here |
+|------|------------|
+| Startup and application-wide settings | `src/main.cpp` |
+| Commands, focus, shortcuts, and top-level ownership | `src/cmainwindow.{h,cpp,ui}` |
+| One visual side and its tabs | `src/panel/cpanelwidget.{h,cpp,ui}` |
+| File-list view/model/proxy/delegate | `src/panel/filelistwidget/` |
+| Quick view | `src/panel/cpaneldisplaycontroller.{h,cpp}` |
+| Copy/move/delete launch and UI | `src/progressdialogs/` |
+| Search UI | `src/filessearchdialog/` |
+| Statistics and folder comparison | `src/tools/` |
+| Settings pages | `src/settings/` |
+| Favorites editor | `src/favoritelocationseditor/` |
 
-## CMainWindow (`src/cmainwindow.{h,cpp,ui}`)
+`main.cpp` applies settings that must precede widget creation, initializes platform services, then owns the main
+event loop. `--test-launch` schedules an automatic quit for the CI smoke test.
 
-`final : QMainWindow`, singleton via `get()`. Implements `FileListReturnPressedObserver` and
-`PanelContentsChangedListener`. **Owns the `CController`** (`std::unique_ptr`). This is the command hub —
-nearly every menu/toolbar/shortcut action is a private method here.
+## Main window
 
-- Owns two `CPanelWidget*` (`_currentFileList`, `_otherFileList`) and two `CPanelDisplayController`
-  (`_leftPanelDisplayController`, `_rightPanelDisplayController`). "current" vs "other" follow focus, not side.
-- `initCore` wires the controller to the widgets; `initButtons`/`initActions` build the command set;
-  `updateInterface` applies settings.
-- **File-op slots:** `copySelectedFiles`/`moveSelectedFiles` (via `launchFileTransfer`) and `deleteFiles`/
-  `deleteFilesIrrevocably` (via `performDeletion`) gather the selected FSOs + destination, run them through
-  the launch boundary (`progressdialogs/fileoperationlaunch`) to build a typed request, and hand it to a
-  `CFileOperationDialog`. Delete also picks a backend (`deletionBackendFor`): native trash / native shell
-  delete where the OS provides it, otherwise the internal job. Plus `createFolder`/`createFile`.
-- **Other commands:** `viewFile`/`editFile`/`quickViewCurrentFile`/`toggleQuickView`, `invertSelection`,
-  `filterItemsByName`, `refresh`, `findFiles`, `showHiddenFiles`, `showAllFilesFromCurrentFolderAndBelow`,
-  `openSettingsDialog`, `calculateStatistics`, `calculateEachFolderSize`, `compareFolders`, `checkForUpdates` (github auto
-  updater), `about`, `toggleFullScreenMode`, `toggleTabletMode`, recycle-bin context menu.
-- **Command line:** `executeCommand`, history recall (`selectPreviousCommandInTheCommandLine`,
-  `_commandLineCompleter`), `pasteCurrentFileName`/`pasteCurrentFilePath`, `fileListReturnPressed`
-  (Enter in the list with text in the command box runs the command).
-- **Focus management:** `focusChanged`, `tabKeyPressed` (manual Tab between panels), `currentPanelChanged`.
-- **Plugins:** `createToolMenuEntries` / `addToolMenuEntriesRecursively` materialize a plugin's
-  `CPluginProxy::MenuTree` into the Commands menu.
-- **Window title (#143):** `updateWindowTitleWithCurrentFolderNames`.
-- **Background file-op dialogs:** registered in `_activeFileOperationDialogs`; `nextBackgroundDialogPosition`
-  cascades them; each dialog self-disposes when finished/dismissed and `onFileDialogFinished` drops it from
-  the list.
-- A `QTimer _uiThreadTimer` -> `uiThreadTimerTick()` -> `CController::uiThreadTimerTick()` (drains UI queue,
-  polls watchers/volumes). See [threading.md](threading.md).
+`CMainWindow` owns `CController`, the two `CPanelWidget`s, and two `CPanelDisplayController`s. Its “current” and
+“other” panel pointers follow focus rather than fixed left/right position. It is the command-routing hub: actions
+gather UI state, call a core or launch boundary, and own the resulting dialogs. Read its header for the current
+command set rather than maintaining another list here.
 
-## CPanelWidget (`src/panel/cpanelwidget.{h,cpp,ui}`) — one per side
+The UI timer enters `CController::uiThreadTimerTick()` to drain cross-thread work. Concurrent file-operation dialogs
+register with the main window only for background placement/lifetime tracking; each dialog owns its job. Plugin
+`MenuTree`s are materialized into the Commands menu here.
 
-`final : QWidget`, implements `IVolumeListObserver`, `PanelContentsChangedListener`,
-`FileListReturnPressOrDoubleClickObserver`, `CurrentItemChangedListener`. The visual panel: drive buttons,
-path navigator, info label, the file list view, and **the tab bar**.
+## Panel widget and tabs
 
-- **Single shared view, per-tab models.** The `.ui` provides one `CFileListView`. The widget keeps a
-  `std::vector<PanelTab> _tabs`, index-aligned with the `QTabBar` and with the controller's tab list.
-  `PanelTab = { CFileListModel*, CFileListSortFilterProxyModel*, QItemSelectionModel*, QByteArray headerState }`.
-  `_model`/`_sortModel`/`_selectionModel` are just the **active** triplet's pointers, so the rest of the
-  widget stays tab-agnostic. `activateTab(index)` swaps the active triplet into the shared view,
-  saving/restoring that tab's own `headerState` (column widths/order/visibility — the sort indicator bits
-  are ignored because the sort proxy owns the sort).
-- **Tabs:** `createNewTab`, `closeCurrentTab` (no-op if last), `switchToNext/PreviousTab`,
-  `openCurrentItemInNewTab` (Ctrl+Up), middle-click-folder (`onItemMiddleClicked`), `duplicateTab`,
-  `closeAllOtherTabs`, `switchToTabByPosition` (Ctrl+1..9). Bar hidden while a single tab. Tab data stores
-  the controller's tab **ID** (`tabIdAt`), so UI positions map to stable core ids. Drag-reorder
-  (`onTabBarTabMoved`) mirrors into `_tabs` and the controller. See [tabs.md](tabs.md).
-- **Selection/cursor:** Total Commander semantics (Space toggles + shows dir size, Insert-style region
-  selection, shift-region). `selectedItemsHashes`, `currentItemHash`, `invertSelection`. Emits
-  `itemActivated(hash, panel)` and `currentItemChangedSignal(panel, hash)`.
-- **Clipboard / DnD:** copy/cut/paste via `OsShell`; `pasteImage` (saves clipboard image to a file).
-- **Navigation UI:** drive buttons (`driveButtonClicked`), `toRoot`, favorites menu/editor, path history
-  dropdown (`fillHistory`, `pathFromHistoryActivated`) fed by the controller's visited-locations.
-- **Filter:** `showFilterEditor` / `CFileListFilterDialog` -> live name filter on the sort proxy.
-- `savePanelState`/`restorePanelState` here are the **view header** (column) state, distinct from the
-  controller's path/tab persistence.
+Each side has one `CPanelWidget` and one shared `CFileListView`. Every tab owns a `PanelTab` containing its own
+`CFileListModel`, sort/filter proxy, selection model, and saved header state. `_model`, `_sortModel`, and
+`_selectionModel` are aliases to the active triplet.
 
-## File list MVC (`src/panel/filelistwidget/`)
+The QTabBar position, the `_tabs` vector position, and the active core tab ordering are kept aligned, but calls into
+the controller use the stable tab ID stored in `QTabBar::tabData`. Closing or reordering multiple tabs must resolve
+positions from IDs immediately before acting; positions are not durable identities.
 
-- **`CFileListView` (`cfilelistview.{h,cpp}`)** — `final : QTreeView` (flat, used as a multi-column list).
-  Custom mouse/key handling for TC-style selection (drag-select, shift/ctrl, PgUp/PgDn region,
-  single-click vs context menu). Uses an **observer list** (`FileListViewEventObserver`) rather than signals
-  for Enter/double-click so the event stops at the first consumer:
-  `FileListReturnPressedObserver` (Enter only, for command line) and
-  `FileListReturnPressOrDoubleClickObserver` (activation) are the two convenience bases.
-  Signals: `contextMenuRequested`, `ctrlEnterPressed`, `ctrlShiftEnterPressed`, `itemMiddleClicked`,
-  `keyPressed`. `setHeaderAdjustmentRequired` / column auto-sizing.
-- **`CFileListModel` (`model/cfilelistmodel.{h,cpp}`)** — `final : QAbstractItemModel`. Holds only
-  `std::vector<qulonglong> _itemHashes`; **reads actual cell data live from `_controller.panel(p)`** (the
-  active tab) in `data()`. Columns: `Name/Ext/Size/Date` (`columns.h`, `NumberOfColumns`). Custom role
-  `FullNameRole`. Full **drag & drop** (`mimeData`/`dropMimeData`/`canDropMimeData`, file-url mime). Emits
-  `itemEdited(hash, newName)` for inline rename.
-- **`CFileListSortFilterProxyModel` (`model/cfilelistsortfilterproxymodel.{h,cpp}`)** — `final :
-  QSortFilterProxyModel`. Natural sort via `CNaturalSorterQCollator` (from qtutils); `lessThan` keeps "`..`"
-  and dirs ordered correctly; also reads through `_controller`. Emits `sorted`.
-- **Consequence:** because both models query `panel(side)` = active tab, a tab's models are only valid while
-  that tab is active. The design guarantees only the active triplet is ever attached to the view, so only it
-  is queried. See [tabs.md](tabs.md) and [oddities.md](oddities.md).
-- **`delegate/cfilelistitemdelegate`** — custom painting (icons, selection). **`cfocusframestyle`** — draws
-  the active-panel focus frame. **`cfilelistfilterdialog`** — the quick name filter.
+Only the active triplet may be attached to the view. Both the model and proxy obtain item data through
+`CController::panel(side)`, which means a background tab's model would read the active tab's panel if queried. Tab
+switching must set the incoming model, selection model, sort indicator, and header state as one operation. The exact
+Qt ordering workaround is documented in `CPanelWidget::activateTab()`.
 
-## CPanelDisplayController (`src/panel/cpaneldisplaycontroller.{h,cpp}`)
+Panel notifications arrive from every tab on the side. `displaysTab()` filters by both side and stable tab ID before
+the widget updates the active model or cursor. Invalidation clears display only; committed contents repopulate it.
+See [tabs.md](tabs.md) and [threading.md](threading.md).
 
-Thin bridge between a side and its `CPanelWidget`, managing the **quick-view** `QStackedWidget`: page 0 is
-the panel, page 1 is a plugin viewer window. `startQuickView(WindowPtr<CPluginWindow>&&)` / `endQuickView`
-/ `quickViewActive`. Owns the live quick-view window (custom-deleter `WindowPtr`, see [plugins.md](plugins.md)).
+`CPanelWidget::savePanelState()`/`restorePanelState()` concern column header state, not core tab/path persistence.
 
-## Dialogs & windows
+## File-list MVC
 
-- **`progressdialogs/`** — the file-operation UI. `fileoperationlaunch` is the launch boundary (panel
-  selection + edited destination -> a typed request; chooses the destination intent and the deletion
-  backend). `CFileOperationDialog` is the **one** progress dialog for copy, move, and permanent delete: it
-  owns a `CFileOperationJob`, drains its event queue on a timer, and renders scanning / progress / completion;
-  a decision is presented through the modal `CFileOperationPrompt` (file-exists / read-only / type-mismatch /
-  error, returning a `Decision`). The dialog **manages its own visibility and lifetime** — it shows itself
-  only once the operation has run long enough to be worth a window (or sooner, if a decision prompt needs
-  it), and at completion it stays on screen **only for an outcome that needs attention** (a failure or a
-  warning), raising a backgrounded one to the foreground; every other outcome, and one the user dismissed
-  while it ran, disposes of itself silently. It also deletes on close. Cancellation confirmation
-  pauses the work; declining restores the prior pause state, confirming signals cancellation without first
-  resuming. `CFileOperationConfirmationPrompt` is the pre-operation copy/move confirmation;
-  `progressdialoghelpers` formats sizes and diagnostics.
-- **`settings/`** — 4 pages implementing a `SettingsPage` interface (from qtutils `CSettingsDialog`):
-  `CSettingsPageInterface`, `CSettingsPageEdit`, `CSettingsPageOperations`, `CSettingsPageOther`.
-- **`favoritelocationseditor/`** — `CFavoriteLocationsEditor` + `CNewFavoriteLocationDialog`.
-- **`filessearchdialog/`** — `CFilesSearchWindow` (front-end for `CFileSearchEngine`; double-click a result
-  navigates the panel to it).
-- **`aboutdialog/`** — `CAboutDialog`. **`tools/CFileStatsWindow`** — folder statistics view.
-- **`tools/cfoldercomparisonwindow`** — compares the two panels' folders by content. `runFolderComparison()`
-  drives core's `compareFolders()` on a worker thread behind a cancellable progress dialog; the window then
-  lists the differences (activating one reveals it in whichever panel holds it). Read-only: acting on the
-  differences is a separate, later feature. `tools/csortbydatatreeitem.h` gives both tool windows their
-  numeric-aware column sorting.
-- **`version.h`** — app version string.
+- `CFileListView` implements orthodox selection and keyboard/mouse behavior. Enter/double-click uses an observer
+  chain rather than a Qt signal because the first consumer may stop propagation.
+- `CFileListModel` stores only item hashes. Cell data is resolved live from the active controller panel; inline edit
+  emits the hash and proposed name.
+- `CFileListSortFilterProxyModel` owns sort/filter state and natural ordering. Directories and the synthetic parent
+  entry receive special ordering.
+- The delegate and focus style own painting only. Drag/drop request construction routes through the same operation
+  launch boundary as commands.
 
-## GUI tests (`qt-app/gui-tests/`)
+Read the corresponding headers and implementations for roles, signals, and interaction details.
 
-Minimal/manual. `combobox/` is a standalone harness for the history combo box. Not part of CI.
+## File-operation UI
 
-See [core-engine.md](core-engine.md) for everything behind the controller, [tabs.md](tabs.md) for the
-tab machinery that spans this layer and the core.
+`progressdialogs/fileoperationlaunch.{h,cpp}` is the boundary from raw UI selection/destination text to a typed core
+request. It chooses `DestinationIntent` exactly once and selects the platform deletion backend; only
+`DeletionBackend::InternalJob` uses the custom permanent-delete engine.
+
+`CFileOperationDialog` owns one `CFileOperationJob`, drains typed events on a timer, and formats rather than invents
+policy. `CFileOperationPrompt` renders only the actions delivered in a `DecisionRequest`. Keep decision capability
+in the core policy table, not in parallel UI logic.
+
+The dialog controls its own visibility and, by default, lifetime:
+
+1. Callers register it, call `start()`, and do not call `show()`; quick successful operations never appear.
+2. A decision request may force it visible. Background mode uses an injected placement provider.
+3. Completion remains visible only when the summary needs attention; other outcomes dispose silently.
+4. Closing during execution suppresses later reappearance but does not make the dialog's job/listener lifetime
+   optional. Tests or embedded owners call `disableSelfDisposal()`.
+
+Cancellation confirmation pauses the job while the modal question is open. Event draining has a reentrancy guard
+because decision presentation runs a nested Qt event loop.
+
+## Quick view and plugins
+
+`CPanelDisplayController` switches a `QStackedWidget` between the normal panel and a plugin window. It owns the
+quick-view window through the plugin-defined custom-deleter pointer, ensuring destruction happens in the dynamic
+library that allocated it. See [plugins.md](plugins.md).
+
+## Tests
+
+Automated file-operation UI tests live in `qt-app/gui-tests/fileoperations/` and are included by the core test
+aggregate. `qt-app/gui-tests/combobox/` is a manual history-combobox harness. See [build-ci-deps.md](build-ci-deps.md)
+for discovery and runtime knobs.

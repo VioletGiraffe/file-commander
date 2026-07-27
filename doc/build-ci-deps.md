@@ -2,23 +2,22 @@
 
 ## Build system: qmake
 
-Top-level `file-commander.pro` (`TEMPLATE = subdirs`). Sub-projects + their `depends` (build order).
+`file-commander.pro` is the authoritative project graph; each project `.pro` and included `.pri` file lists its
+sources and platform branches. `global.pri` selects C++23 and shared optimization flags. The supported floor is
+Qt 6.8+ and a C++20-capable compiler, although the project itself is built as C++23. Windows builds are x64 with
+MSVC 2022/v143.
 
-Everything that links `core` also links `thin_io`: core's filesystem helpers and its whole file-operation module
-call into it.
-
-- `global.pri`: `CONFIG += strict_c++ c++2b` (**C++23**) and other shared/global build flags.
-- **Requirements:** C++20-capable compiler (README floor) — actually built as C++23; Qt 6.8+ (CI uses 6.9.*).
-  Windows x64 only, MSVC 2022 / v143.
+Everything that links `core` also links `thin_io`, because core filesystem helpers and file operations call it.
 
 ### Build artifacts
 
-Output binaries: `bin/release/x64/`. Root `Makefile` is qmake-generated. Installers in
-`installer/{windows,mac,linux}/`.
+Output binaries go to `bin/{release,debug}/{x64,x86}/` as selected in the project files; supported Windows builds
+are x64. Installer entry points live under `installer/{windows,mac,linux}/`.
 
 ## CI
 
-Github CI configured, see `.github/workflows/CI.yml`
+`.github/workflows/CI.yml` is the source of truth for the current matrix, tool versions, packaging, smoke test,
+test invocation, and release workflow.
 
 ## Tests
 
@@ -34,16 +33,18 @@ containing `TEMP`; without it, that coverage is skipped. Headless GUI-test runs 
 
 ## Dependencies
 
-### Submodules (`.gitmodules`, all github.com/VioletGiraffe — the author's own libs)
+### Submodules
+
+`.gitmodules` is authoritative for the current set and repository URLs.
 
 | Submodule | Role |
 |-----------|------|
-| **qtutils** | Reusable Qt classes: `CSettings`, threading (`CWorkerThreadPool`, `CExecutionQueue`, `CPeriodicExecutionThread`, `CInterruptableThread`), `CHistoryList`, natural sort (`CNaturalSorterQCollator`), `CSettingsDialog`, string helpers (`QSL`). |
-| **cpputils** | Plain-C++ utils: `assert_r`/`AdvancedAssert`, `CTimeElapsed`, named-type wrappers, compiler-warning macros, threading. |
+| **qtutils** | Qt settings, widgets/dialog helpers, history, natural sorting, and string helpers. |
+| **cpputils** | Assertions, threading/execution queues, compiler helpers, and general C++ utilities. |
 | **cpp-template-utils** | Header-only template/metaprogramming + container algorithms + preprocessor helpers. |
-| **thin_io** | Cross-platform low-level file I/O on native OS APIs (no `<fstream>`/`<stdio>`); `thin_io::file` + metadata used by the file-operation engine (`CStagedFileCopy`, `CFileSystemMutator`). |
+| **thin_io** | Cross-platform native file I/O and metadata used by core filesystem and operation code. |
 | **text-encoding-detector** | Detects text encoding of bytes -> QString. Backs the text-viewer plugin. |
-| **image-processing** | Image processing lib. Backs the image-viewer plugin.
+| **image-processing** | Image processing library used by the image-viewer plugin. |
 | **github-releases-autoupdater** | Update check + download for GitHub-release-distributed builds (Windows-installer focused). |
 
 ### Vendored 3rdparty (not submodules)

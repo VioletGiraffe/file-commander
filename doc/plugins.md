@@ -1,88 +1,64 @@
 # Plugin system
 
-Two independent mechanisms:
+There are two unrelated mechanisms:
 
-1. **Native File Commander plugins** — dynamic libs implementing the `CFileCommanderPlugin` interface,
-   loaded by `CPluginEngine`. The three shipped plugins use this.
-2. **WCX archive plugins** — Total Commander `.wcx` archive plugins, hosted by `CWcxPluginHost` (Windows only).
+1. Native File Commander plugins implement `CFileCommanderPlugin` and are loaded by `CPluginEngine`.
+2. Windows WCX archive modules are discovered by `CWcxPluginHost`; this is currently only a loader, not panel
+   archive integration.
 
-## Native plugin interface (`core/src/plugininterface/`)
+## Native plugin source map
 
-`PLUGIN_EXPORT` (from `plugin_export.h`, gated by `PLUGIN_MODULE` define) marks the exported symbols.
+| Concern | Source |
+|---------|--------|
+| ABI and base interfaces | `file-commander-core/src/plugininterface/cfilecommanderplugin.*`, `cfilecommanderviewerplugin.*`, `cfilecommandertoolplugin.*` |
+| Plugin-to-application facade | `file-commander-core/src/plugininterface/cpluginproxy.*` |
+| Window ownership | `file-commander-core/src/plugininterface/cpluginwindow.*` |
+| Discovery and viewer selection | `file-commander-core/src/pluginengine/cpluginengine.*` |
+| Quick-view host | `qt-app/src/panel/cpaneldisplaycontroller.*` |
+| Commands-menu materialization | `qt-app/src/cmainwindow.*` |
 
-- **`CFileCommanderPlugin`** (base) — `enum PluginType { Viewer, Archive, Tool }`; pure virtual `type()` and
-  `name()`. `setProxy(CPluginProxy*)` is called by the engine after load; `proxySet()` is the init hook
-  (plugins build their UI / register menu entries there). Holds `_proxy`.
-- Each plugin DLL exports **`extern "C" CFileCommanderPlugin* createPlugin()`** — the only required symbol.
-- **`CFileCommanderViewerPlugin`** — adds `bool canViewFile(fileName, QMimeType)`,
-  `WindowPtr<CPluginWindow> viewFile(fileName)`, and a free-form `QString category()` (well-known values in
-  the `ViewerCategory` namespace; third-party plugins may define their own); `type()` returns `Viewer`.
-- **`CFileCommanderToolPlugin`** — `type()` returns `Tool`; tools add Tools-menu entries via the proxy.
-- **`CPluginWindow`** — base for plugin-provided windows (viewer / diff windows).
-- **`WindowPtr<T>`** — `unique_ptr<T, void(*)(CPluginWindow*)>` with a **custom deleter that deletes inside
-  the plugin's own DLL** (`WindowPtr::create` captures a deleter lambda compiled in the plugin module). This
-  is the standard cross-DLL allocate/free-in-the-same-module discipline; the default-constructed form holds
-  null with a no-op deleter.
+Each native library exports `extern "C" CFileCommanderPlugin* createPlugin()`. After creation, the engine calls
+`setProxy()`; `proxySet()` is the initialization hook for registering menus or other proxy-dependent setup. Read the
+interface headers for the current virtual API rather than copying it here.
 
-## CPluginProxy (`core/src/plugininterface/cpluginproxy.{h,cpp}`)
+Plugin windows use `CFileCommanderViewerPlugin::WindowPtr`, a unique pointer whose deleter is instantiated in the
+plugin module. Keep that type across the boundary so allocation and deletion occur in the same dynamic library.
+Full viewer windows opt into deletion on close; quick view retains the `WindowPtr` in `CPanelDisplayController`.
 
-The API surface a plugin uses to talk back to the app (the plugin never sees `CController` directly).
+## Proxy and tab visibility
 
-- Holds a snapshot `std::array<PanelState,2>` where `PanelState = { FileListHashMap panelContents,
-  vector<qulonglong> selectedItemsHashes, qulonglong currentItemHash, QString currentFolder }`. Panel sides
-  are the plugin-facing enum `PanelPosition { PluginLeftPanel, PluginRightPanel, PluginUnknownPanel }`.
-- **Updates pushed in by core/UI:** `panelContentsChanged`, `selectionChanged`, `currentItemChanged`,
-  `currentPanelChanged`.
-- **Queries for plugins:** `currentPanel`/`otherPanel`, `panelState`, `currentFolderPathForPanel`,
-  `currentItemPathForPanel`, `currentItemForPanel`, `currentItem`, `currentItemPath`.
-- **Menu entries:** `createToolMenuEntries(MenuTree)` — a `MenuTree` is a recursive `{name, icon, handler,
-  children}`; the UI (`CMainWindow::createToolMenuEntries`) appends it to the Commands menu. Each plugin
-  is expected to call this once.
-- **`execOnUiThread(code)`** — the proxy is constructed with a UI-thread executor (wired to
-  `CController::execOnUiThread`) so plugins can marshal work to the UI thread.
+`CPluginProxy` exposes snapshots of both visible panels: current folder, file-list map, selection, and current item.
+It also provides current/other-panel queries, UI-thread dispatch, and recursive `MenuTree` registration. Plugins do
+not receive `CController` directly.
 
-## CPluginEngine (`core/src/pluginengine/cpluginengine.{h,cpp}`)
+The plugin engine is attached to every tab but publishes only a side's active tab. It ignores
+`onPanelContentsInvalidated`, retaining the last consistent folder/list pair until committed contents arrive; an
+intermediate update would otherwise pair a new folder path with an empty list. Selection/current-item/focus updates
+come from the UI for the visible triplets.
 
-Singleton (`CPluginEngine::get()`), a `PanelContentsChangedListener` attached to panels.
+## Discovery and viewer selection
 
-- **Discovery/loading (`loadPlugins`):** scans `qApp->applicationDirPath()` for files matching
-  `*plugin_*<ext>*` where `<ext>` = `.dll` (Win) / `.so` (Linux/FreeBSD) / `.1.0.0.dylib` (macOS); skips
-  symlinks; `QLibrary::resolve("createPlugin")`; on success `setProxy(&CController::get().pluginProxy())`
-  and stores `pair<unique_ptr<plugin>, unique_ptr<QLibrary>>` (library kept alive for the plugin's lifetime).
-- Forwards `onPanelContentsChanged` / `selectionChanged` / `currentItemChanged` / `currentPanelChanged` into
-  the proxy (translating `Panel` -> `PanelPosition`). The plugin API only ever describes the tab on screen, so
-  contents notifications from a side's background tabs are dropped, as is `onPanelContentsInvalidated`
-  (plugins keep the last consistent path + contents pair rather than seeing an empty intermediate one).
-- **Viewer dispatch:** `viewerForCurrentFile(requiredCategory)` scans viewers whose `canViewFile` accepts the
-  current item. The text viewer is omnivorous (accepts any file), so it is treated as a fallback: a specialized
-  viewer wins, and a `ViewerCategory::Text` viewer is used only if nothing more specific claims the file — so
-  selection does **not** depend on plugin (`_plugins`) load order. An empty `requiredCategory` considers all
-  viewers; a non-empty one restricts to that `category()`. `createViewerWindowForCurrentFile` / `viewCurrentFile`
-  open the result (full window or quick-view); `viewCurrentFileInTextViewer` (Shift+F3) passes `ViewerCategory::Text`
-  to force the text viewer (still subject to `canViewFile`, so e.g. folders are rejected).
+`CPluginEngine::loadPlugins()` scans the application directory for the platform-specific `*plugin_*` library
+pattern, skips symlinks, resolves `createPlugin`, and retains the plugin and `QLibrary` objects. Consult
+`cpluginengine.cpp` for the exact filename suffixes.
 
-## WCX archive host (`core/src/plugininterface/wcx/`)
+Automatic viewer selection asks each viewer's `canViewFile()`. The text viewer accepts essentially any file, so its
+well-known `ViewerCategory::Text` is held as a fallback until specialized viewers have declined. Shift+F3 restricts
+selection to that category. Preserve this ordering; plugin discovery order is not a priority mechanism.
 
-- **`CWcxPluginHost`** (Windows) — `setWcxSearchPath(path)` then `loadPlugin` each `.wcx` (`QLibrary`,
-  stored in a `std::deque` because `QLibrary` isn't movable). `wcxhead.h` is the Total Commander WCX C API.
-  Owned by `CController` as `_wcxHost`.
-- **`cwcxpluginhost_stub.h`** — no-op stand-in compiled on non-Windows (`#ifdef _WIN32` in `ccontroller.h`).
-- Status: host/loader present; full browse-archive-as-folder integration is partial. Confirm against code
-  before assuming archive contents are mountable into a panel.
+## WCX status
 
-## Shipped plugins (`plugins/`)
+On Windows, `CWcxPluginHost` scans the application directory for `*.wcx64`, loads each library, and currently checks
+only the small symbol subset in `cwcxpluginhost.cpp`. The non-Windows host is a stub. No code mounts WCX contents as a
+`CPanel` filesystem, so do not infer archive browsing from the presence of the loader.
 
-Built before `qt-app`. Output names `plugin_<x>` (e.g. `libplugin_imageviewer.so.1.0.0`,
-`plugin_imageviewer.dll`) so they match the engine's `*plugin_*` glob.
+## Shipped native plugins
 
-| Plugin | Path | Type | Notes |
-|--------|------|------|-------|
-| Image viewer | `plugins/viewer/imageviewer` | Viewer | `CImageViewerPlugin` + `CImageViewerWidget`/`Window`. Backed by the **image-processing** submodule. |
-| Text viewer | `plugins/viewer/textviewer` | Viewer | `CTextViewerPlugin` + `CTextViewerWindow`, `CLightningFastViewer`, `CTextEditWithImageSupport`, `CFindDialog`. Encoding detection via **text-encoding-detector** submodule; syntax highlighting via vendored **qutepart-cpp** (`3rdparty/diegoiast/qutepart-cpp`). |
-| File comparison | `plugins/tools/filecomparisonplugin` | Tool | `CFileComparisonPlugin` — adds a Tools-menu entry; compares the two selected files via core `CFileComparator`, shows a `CSimpleProgressDialog`. Worker callbacks are queued against the dialog's Qt lifetime rather than through the controller proxy. Application shutdown aborts and joins the comparator before destroying the dialog; member order provides the same guarantee on other destruction paths. |
+| Plugin | Source | Notes |
+|--------|--------|-------|
+| Image viewer | `plugins/viewer/imageviewer/` | Viewer backed by the `image-processing` submodule. |
+| Text viewer | `plugins/viewer/textviewer/` | Viewer using `text-encoding-detector` and vendored qutepart syntax highlighting. |
+| File comparison | `plugins/tools/filecomparisonplugin/` | Tool-menu command using core `CFileComparator`; its header/member order and shutdown callback document worker/dialog lifetime. |
 
-Each `.pro` declares its `depends` on `file_commander_core` + needed submodules (see top-level
-`file-commander.pro`).
-
-See [core-engine.md](core-engine.md) for `CFileComparator`, [qt-ui.md](qt-ui.md) for quick-view hosting
-(`CPanelDisplayController`).
+The plugin `.pro` files are authoritative for sources, dependencies, output names, and platform branches. The
+top-level `file-commander.pro` records their build ordering relative to core and the application.

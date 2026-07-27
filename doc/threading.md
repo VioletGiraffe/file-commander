@@ -1,130 +1,101 @@
-# Threading & concurrency model
+# Threading and concurrency
 
-The UI runs on Qt's main thread. Anything potentially slow (filesystem I/O, enumeration, copy/move/delete,
-search, volume polling) runs off-thread and marshals results back to the UI thread. The threading
-primitives (`CWorkerThreadPool`, `CExecutionQueue`, `CPeriodicExecutionThread`, `CInterruptableThread`)
-come from the **qtutils**/**cpputils** submodules — described here by role, not internals.
+Qt's main thread owns the UI. Filesystem enumeration, operations, search, and periodic polling run elsewhere and
+return through `CExecutionQueue`, listener callbacks, or typed operation events. The reusable primitives live in the
+`cpputils` submodule; read their headers before depending on exact queue/pool semantics.
 
-## Threads / executors in play
+## Execution map
 
-| Mechanism | Owner | Purpose |
-|-----------|-------|---------|
-| `CWorkerThreadPool _panelWorkerPool` | `CController` (shared) | 1-4 workers for all panel tasks across **every tab on both sides**. Injected into each `CPanel`. Declared before `_panels` so it outlives them. |
-| `CWorkerThreadPool _workerThreadPool` | `CController` | General `execOnWorkerThread` tasks not tied to a panel. Destroyed before `_uiQueue`, which its tasks can post to. |
-| lazy `CWorkerThreadPool` | each content search with eligible files | 1-8 content workers, with at most two outstanding file tasks per worker. Name-only searches do not construct it. |
-| `CExecutionQueue _uiQueue` | `CController` | Tasks to run on the UI thread; drained on the UI timer tick. Declared before `_workerThreadPool` so it outlives that producer. |
-| `CExecutionQueue _uiThreadQueue` | each `CPanel` | Per-panel UI marshaling (`execOnUiThread`). |
-| `CInterruptableThread` | each `CFileOperationJob` | One copy/move/delete batch; runs the synchronous executor and blocks on a condition variable for user decisions. |
-| `CInterruptableThread` | `CFileSearchEngine` | One file search; `stopSearching()` interrupts it. |
-| `CPeriodicExecutionThread` | `CVolumeEnumerator` (1 s) and the **non-Windows** `CFileSystemWatcherTimerBased` | Periodic background polling. |
-| native HANDLE + `QAbstractNativeEventFilter` | `CFileSystemWatcherWindows` | Windows change notifications (no extra thread; rides the Qt native event filter). |
+| Owner | Mechanism | Work |
+|-------|-----------|------|
+| `CController` | shared `CWorkerThreadPool _panelWorkerPool` (1-4 workers) | All `CPanel` tasks across both sides and every tab. |
+| `CController` | `CWorkerThreadPool _workerThreadPool` (2 workers) | General core tasks. |
+| `CController` | `CExecutionQueue _uiQueue` | General callbacks marshaled to the UI thread. |
+| each `CPanel` | `CExecutionQueue _uiThreadQueue` | Panel results and observer delivery on the UI thread. |
+| each `CFileOperationJob` | `CInterruptableThread` | One copy/move/delete request around synchronous executors. |
+| `CFileSearchEngine` | `CInterruptableThread`; bounded pool for content search | Search traversal and file-content matching. |
+| `CVolumeEnumerator` | `CPeriodicExecutionThread` | Volume polling. |
+| non-Windows panel watcher | `CPeriodicExecutionThread` | Directory snapshot polling. |
+| Windows panel watcher | native handle + Qt event filter | Directory change notifications without another thread. |
 
-## UI-thread marshaling pattern
+`CMainWindow`'s UI timer calls `CController::uiThreadTimerTick()`, which drains every tab's panel queue (including
+inactive tabs with an older in-flight result) and the controller UI queue. An execution-queue tag replaces an older
+pending task with the same tag. An `execAll` drain executes only the tasks present when the drain began; work queued
+by those tasks waits for the next tick.
 
-1. Off-thread code finishes work and enqueues a closure (`execOnUiThread`) or a typed file-operation event.
-2. `CMainWindow`'s `QTimer _uiThreadTimer` fires -> `CMainWindow::uiThreadTimerTick()` ->
-   `CController::uiThreadTimerTick()` -> drains `_uiQueue`, pumps each `CPanel::uiThreadTimerTick()` (which
-   polls its watcher and drains its `_uiThreadQueue`), and pumps volume notifications.
-3. Closures run on the UI thread; widgets update.
+## Panel lifetime and publication invariants
 
-`execOnUiThread(task, tag)` carries an optional `tag` so queued tasks can be coalesced/cancelled by tag.
+Every pool task that captures a `CPanel` must carry its nonzero `_taskTag`. The panel destructor first asks its
+background scan to abort, then calls `CWorkerThreadPool::retire(tag)`. Retirement removes queued work of that owner
+and waits for already-popped work of the same tag, without waiting for unrelated tabs. The shared pool must outlive
+all panels; `CController` member order enforces that.
 
-Content-search cancellation is checked while waiting for bounded pool capacity and between 4 KiB chunks of
-each mapped file. Search completion always drains the bounded pool: at most 16 outstanding tasks exist, and
-canceled tasks return promptly. A name-only search uses just its outer `CInterruptableThread`; a content
-search adds up to eight content workers only after finding its first eligible file.
+Every asynchronous list replacement carries the current generation, path, and display mode, builds a local map,
+and commits only through `publishFileListIfCurrent()`. Accessors hide a retained list as soon as it no longer belongs
+to the current view. Preserve this funnel rather than adding a second publication path or incrementally mutating
+`_items` from a worker.
 
-## Lifetime safety: task tags + retire
+List replacement has two notifications:
 
-Each `CPanel` computes `_taskTag = reinterpret_cast<uint64_t>(this)` and tags every task it posts to the
-**shared** pool with it. The `CPanel` dtor calls `pool.retire(_taskTag)`, guaranteeing no task that captured
-`this` runs after the panel is destroyed. **Critical for tabs:** closing a tab destroys its `CPanel` while
-the shared pool may hold its in-flight tasks — `retire` removes that tag's queued tasks and waits only for
-that tag's popped/running tasks, without waiting for work owned by other tabs. Preserve this whenever you add
-async work in `CPanel`.
+- `onPanelContentsInvalidated`: the old list no longer describes the view; display may blank, but derived state must
+  not be updated.
+- `onPanelContentsChanged`: the new list is committed; cursor, selection, persistence, and plugin state may update.
 
-Every asynchronous operation that replaces a panel's file list also carries that panel's monotonically
-increasing file-list generation, path, and display mode. Workers build a complete local map and publish it
-only through the guarded commit funnel when the request is still current; obsolete results and recovery
-callbacks are discarded. The retained list is labeled with its source path and display mode, and accessors
-hide it as soon as the panel moves to a different view. Preserve this for every new list-producing operation.
+They share a queue tag, allowing a fast completion to replace the pending invalidation. Both carry a tab ID, as does
+the asynchronous current-item callback. A screen-facing listener must compare it with `activeTabId()`; folder path
+is not an identity because duplicate tabs may show the same folder.
 
-Because the accessors start hiding the list the moment the panel moves, an update spans two observer
-notifications, and they mean different things. `onPanelContentsInvalidated` says the previous contents no
-longer apply and the tab currently reports none — observers may update what's on screen and nothing else.
-`onPanelContentsChanged` says the new contents are committed, and only it carries a `FileListRefreshCause`,
-because only it corresponds to a navigation. Anything derived from the contents (cursor position, selection,
-persisted state, data published to plugins) belongs in the latter: deriving it from the intermediate state
-means deriving it from an empty listing labeled with the destination folder. The two share a notification tag,
-so an update that completes within one UI queue drain replaces the invalidation and the view never blanks.
+## Locks and ownership
 
-Both carry the id of the tab they come from, as does `CurrentItemChangedListener::onCurrentItemChanged`. A listener is
-registered per side and attached to every tab of it, so a listener concerned with the tab on screen must compare
-that id against `CController::activeTabId()`; only `CController` itself, which persists every tab, handles them
-all. Identifying the sender is not optional for correctness: two tabs of a side can sit on the same folder (that
-is what "Duplicate tab" produces), so a folder path does not identify the tab a notification came from.
+- `CPanel::_fileListAndCurrentDirMutex` guards the directory, list generation, committed list, and source-view
+  metadata. Do not hold it while entering the polling watcher's mutex.
+- `CVolumeEnumerator::_mutexForDrives` is recursive because synchronous enumeration can re-enter a getter.
+- The polling watcher's baseline is written by its poll thread and by the panel worker's synchronous
+  `captureBaselineState()`, always under the watcher mutex and tagged with a path generation.
+- `CController::_uiQueue` must outlive the general worker pool that produces work for it. The destructor explicitly
+  stops those workers before member teardown.
 
-## Locks
+Declaration order that encodes lifetime is documented beside the relevant members. Preserve or update those
+comments when changing ownership.
 
-- `CPanel::_fileListAndCurrentDirMutex` — `recursive_mutex` guarding the current directory, file-list
-  generation, committed list, and its source-view metadata across the UI and panel-pool threads.
-- `CVolumeEnumerator::_mutexForDrives` — `recursive_mutex`; `updateSynchronously()` can enumerate while a
-  getter already holds it.
-- `CFileOperationJob`: a single mutex covers both the control state and the event queue, and one condition
-  variable wakes the worker for resume, cancellation, and decision submission. Cancellation is the wrapper
-  thread's own flag (there is no duplicate job-side boolean); every wait predicate is evaluated under the
-  mutex and every waker mutates under it before notifying, so a lost wakeup is unrepresentable. The queued
-  events (`ProgressSnapshot | DecisionRequest | OperationSummary`) are swapped out under the mutex and then
-  dispatched with it released, because a modal decision prompt may enter a nested event loop and call back
-  in. Repeated progress snapshots coalesce to the latest; `DecisionRequest` and `OperationSummary` are
-  ordering barriers that never coalesce across.
-- Both filesystem watchers: an internal mutex makes `setPathToWatch`/`changesDetected` thread-safe. The
-  timer-based watcher tags each scan with a path generation, discards obsolete scans, and treats the first
-  committed scan of every generation as a silent baseline. That baseline is normally taken by the poll loop;
-  `CPanel`'s file-list worker also calls `captureBaselineState()` to take it synchronously, aligned with the
-  listing it is about to publish (see [core-engine.md](core-engine.md)). So the baseline set is written from
-  two threads, all under the watcher's mutex — and the panel worker never holds `_fileListAndCurrentDirMutex`
-  when it calls in, so the two locks don't order against each other.
+## File-operation handshake
 
-## File-operation handshake (worker <-> UI)
+`CFileOperationJob` owns one worker, one mutex covering control state and the event queue, and one condition variable
+for pause, cancellation, and decisions. Its event type is
+`ProgressSnapshot | DecisionRequest | OperationSummary`.
 
 ```
-CFileOperationJob worker thread          UI thread (progress dialog)
--------------------------------          ---------------------------------
-synchronous executor runs
-  hit an issue -> resolveDecision   -> DecisionRequest queued (a barrier)
-  wait on condition variable            dialog drains queue on a timer, presents a modal prompt
-  <- wakes, applies Decision            submitDecision(decision) (an "...all" answer is remembered
-                                        in the context, keyed by IssueKind)
-  publish ProgressSnapshot (coalesced) -> progress bar / speed / ETA
-  finish -> OperationSummary queued -> dialog renders the summary, then disposes itself
+worker                               UI dialog
+executor reaches issue
+  -> queue DecisionRequest           drain, present modal prompt
+  -> wait                            submitDecision(), wake worker
+publish progress                     render progress
+finish -> queue summary              render outcome / dispose
 ```
 
-`setPaused`/`cancel` set state under the job mutex and notify the condition variable, which the worker
-re-checks at every `checkpoint()`. Cancellation also releases a paused worker, drops any undrained
-`DecisionRequest` (it is now unanswerable), and wins even over a decision that arrived in the same wakeup.
-A `cancel()` before `start()` is remembered and applied at start, past the wrapper's cancellation-flag reset.
-Multiple operations can run at once; `CMainWindow` cascades their dialogs (`_activeFileOperationDialogs`,
-`nextBackgroundDialogPosition`), and each dialog removes itself from that list when it finishes or is
-dismissed (see [qt-ui.md](qt-ui.md)).
+Progress events coalesce; decisions and the summary are ordering barriers. `processEvents()` swaps the queue under
+the mutex and dispatches after unlocking because a modal prompt can enter a nested event loop. Wait predicates and
+their state mutations use the same mutex, then the mutator notifies. Cancellation releases pause/decision waits,
+invalidates an undrained decision, and wins over a simultaneously submitted answer. A cancellation requested before
+`start()` is remembered across the thread wrapper's flag reset.
 
-## Reminder (project rule)
+The job destructor cancels, wakes, and joins. UI objects owning jobs/listeners must preserve that ordering; see
+`CFileOperationDialog` and its member comments.
 
-Always do a dedicated, thorough review pass after any threading/concurrency change — never skip it, however
-small or obvious the edit looks. The tag/retire and active/inactive-watch logic are the easiest places to
-introduce a use-after-free or a missed refresh.
+## Search
 
-The pass is separate from reading the diff because concurrency bugs do not surface in a read-through: they
-are found by tracing invariants explicitly, one at a time. What that pass checks:
+Name-only search uses the outer `CInterruptableThread`. Content search lazily creates 1-8 workers and bounds
+outstanding file tasks to twice the worker count; cancellation is checked while waiting for capacity and between
+file chunks. `CFileSearchEngine` retains a raw listener pointer, so the listener owner must call
+`waitForSearchToFinish()` before destruction.
 
-- Lock/unlock pairing, and which lock covers which field.
-- What each shared counter or flag *means*, and its full state-transition invariant — can it go negative,
-  can a thread exit before restoring it.
-- Whether every `wait()` has a guaranteed corresponding `notify()`, and whether the predicate is evaluated
-  under the same mutex the waker mutates.
-- Whether any early-return or error path can leave another thread stuck.
-- Where a parallel path has a serial equivalent, whether the two produce identical results.
+## Mandatory review after concurrency changes
 
-That last one is not hypothetical: the review pass over `scanParallel` (`filesystemhelpers/filestatistics.cpp`)
-caught the parallel path undercounting `folders` by one per root against the serial path — a defect that
-reading the diff had missed.
+Perform a separate invariant pass after reading the code and diff:
+
+1. Name every shared field and the lock/thread that owns it.
+2. Trace each flag/counter through success, cancellation, exception, and early-return paths.
+3. Pair every wait with a guaranteed state mutation and notification under the correct mutex.
+4. Verify producer objects cannot outlive their queues, callbacks, listeners, or captured owners.
+5. Compare parallel behavior and accounting with the serial equivalent.
+6. For panel work, recheck task tagging, generation/path/mode validation, notification meaning, and tab ID filtering.

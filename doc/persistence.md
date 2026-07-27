@@ -18,7 +18,8 @@ Persistence is managed by `CController`.
   refreshes don't rewrite settings every tick. Driven by `onPanelContentsChanged` (controller listens to its
   own tabs) and on shutdown (dtor).
 - **History/visited (`saveHistoryList(p)`):** writes the active tab's back/forward history + the side's
-  visited-locations log. **Shutdown only** (it's churny; not worth writing on every navigation).
+  visited-locations log. `CMainWindow` saves it every five minutes, and `CController` saves it again on
+  shutdown; it is deliberately not written on every navigation.
 - **Visited-locations** are appended live in `onCurrentPathChanged` (fires only on an actual directory
   change, not every refresh).
 

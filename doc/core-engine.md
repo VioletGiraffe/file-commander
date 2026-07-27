@@ -1,277 +1,135 @@
 # Core engine (`file-commander-core/`)
 
-UI-agnostic static lib (`TARGET = core`). Depends on Qt `core widgets gui` (gui/widgets only for
-`QFileIconProvider` and the plugin interface) and submodules `cpputils`, `qtutils`. Public headers:
-`include/` (only `settings.h`). All implementation under `src/`.
+The core is the `core` static library. `file-commander-core.pro` and the included `.pri` files are the source of
+truth for its contents. The UI-facing facade is `CController`; implementation lives under `src/`.
 
-`config.pri` sets the build: C++23 (`/std:c++latest`, `strict_c++`, `c++2b`), `staticlib`,
-`DEFINES += PLUGIN_MODULE`, SSE4.1 on non-ARM non-Windows, MSVC `/W4` + `/permissive-` + `/Zc:__cplusplus`.
-
-## Object graph
+## Ownership and panel model
 
 ```
-CController (singleton, CController::get())
- |- std::array<TabList,2> _panels            one TabList per side
- |    TabList { vector<unique_ptr<CPanel>> tabs; size_t activeTab }
- |        CPanel (one per tab) -- current dir, file list, history, watcher
- |            CFileSystemObject (current dir + each listed item)
- |- CWorkerThreadPool _panelWorkerPool       SHARED by every CPanel (declared before _panels)
- |- CPluginProxy _pluginProxy                 API surface handed to plugins
- |- CWcxPluginHost _wcxHost                   TC .wcx archive plugins (Windows; stub elsewhere)
- |- CVolumeEnumerator _volumeEnumerator       background drive enumeration
- |- CFavoriteLocations _favoriteLocations
- |- CWorkerThreadPool _workerThreadPool       general (separate from the panel pool)
- |- CExecutionQueue _uiQueue                  UI-thread task queue (drained on timer)
+CController
+ |- two TabLists
+ |    `- CPanel per tab
+ |         `- current directory, file list, history, watcher
+ |- shared panel worker pool
+ |- general worker pool and UI execution queue
+ |- volume enumerator and favorites
+ |- plugin proxy and WCX host
 ```
 
-## CController (`src/ccontroller.{h,cpp}`)
+`CController::panel(side)` returns that side's active tab. A tab is a `CPanel`; its stable ID is independent of
+its vector/QTabBar position. The controller records side listeners and attaches them to tabs created later. See
+`ccontroller.{h,cpp}` for the current facade and [tabs.md](tabs.md) for the cross-layer invariants.
 
-Central singleton, `CController::get()`. The single facade the UI calls; owns everything stateful.
-Implements `IVolumeListObserver`, `PanelContentsChangedListener`, `CurrentPathChangedListener` (it listens
-to its own panels purely to drive persistence and the visited-locations log).
+Every `CPanel` uses the controller's shared panel pool. Its tasks carry a per-panel tag, and destruction retires
+that tag before panel storage disappears. The pool is declared before the tab lists so it outlives every panel.
+Inactive tabs release their filesystem watcher and refresh when reactivated.
 
-- **Panels/tabs:** `std::array<TabList,2> _panels`. `panel(Panel p)` returns the **active tab's** `CPanel`
-  for side `p` — this indirection is why most call sites never had to learn about tabs. `otherPanel`,
-  `activePanel`, `activePanelPosition`, `activePanelChanged(p)`.
-- **Tab API (ID-based; ids are `qulonglong`, `_nextTabId` starts at 1, 0 = invalid):** `addTab(p,path,activate)`,
-  `closeTab(p,id)` (never removes the last tab), `setActiveTab`, `moveTabPosition`, `tabCount`, `activeTabId`,
-  `tabIds` (display order), `tabPath(p,id)`, `tabName(p,id)`. Private helpers `createTab`, `attachListenersToTab`,
-  `switchActiveTab`, `tabIndexById`. See [tabs.md](tabs.md).
-- **Navigation/ops (delegate to the active CPanel):** `setPath`, `navigateUp/Back/Forward`,
-  `refreshPanelContents`, `itemActivated(hash,p)` (open file / cd into folder / mount archive),
-  `createFolder`, `createFile`, `openTerminal`, `displayDirSize`, `showAllFilesFromCurrentFolderAndBelow`,
-  `setCurrentItemHashForCurrentFolder`, `copyCurrentItemPathToClipboard`, `switchToVolume`.
-- **Item access by hash:** `itemHashExists`, `itemByHash`, `items(hashes)`, `itemPath`, `currentItem`,
-  `currentItemHash`, `currentItemHashForFolder`.
-- **Volumes:** `volumes()`, `currentVolumeInfo`, `volumeInfoForObject`, `volumeInfoById`; observer fan-out
-  via `setVolumesChangedListener`. Per-side last-path-per-drive remembered (`saveDirectoryForCurrentVolume`).
-- **Visited locations:** `visitedLocations(p)` — per-side, **tab-independent** `CHistoryList<QString>` log of
-  visited folders (survives tab close, unlike a tab's own back/forward history). Fed by `onCurrentPathChanged`.
-  Powers the path navigator's quick-revisit dropdown.
-- **Threading:** `execOnWorkerThread` (general `_workerThreadPool`), `execOnUiThread(task,tag)` (`_uiQueue`),
-  `uiThreadTimerTick()` drains the queue + pumps panels. See [threading.md](threading.md).
-- **Persistence (centralized here — CPanel no longer touches settings):** `restorePanelState`/`savePanelState`
-  (deduped via `_lastSavedTabSignature`; migrates legacy single-path keys), `saveHistoryList` (shutdown only).
-  Dtor saves state on graceful shutdown. See [persistence.md](persistence.md).
-- Records per-side listener lists `_panelContentsListeners` / `_currentItemChangedListeners` so tabs created
-  later also receive them (re-attached by `attachListenersToTab`).
+## File-list publication
 
-## CPanel (`src/cpanel.{h,cpp}`) — one per tab
+An asynchronous operation that can replace a panel's list must preserve the pipeline in `cpanel.{h,cpp}`:
 
-**Not a QObject** (deliberately). Represents one tab's view of one directory.
+1. Capture a monotonically increasing generation, path, and display mode.
+2. Build the complete result in worker-local storage.
+3. Publish only through `publishFileListIfCurrent()` after rechecking all three values.
+4. Label the retained list with its source path/mode; accessors return no list once the panel has moved to another
+   view.
 
-- Ctor `CPanel(Panel position, CWorkerThreadPool& pool, qulonglong id)` — uses the controller's **shared**
-  pool, not its own. `id()` is a stable per-tab identity assigned by the controller. `_taskTag =
-  reinterpret_cast<uint64_t>(this)` tags this panel's async tasks; the dtor calls `pool.retire(_taskTag)`
-  so no in-flight task touches freed memory.
-- State: `_currentDirObject` (FSO), `_items` (`FileListHashMap`), `_history` (`CHistoryList<QString>`),
-  `_currentItemHashForFolder` (`segmented_map<QString,qulonglong>` — remembers the current item per folder),
-  `_watcher` (`FileSystemWatcher`), `_currentDisplayMode` (Normal / AllObjects).
-- `setActive(bool)`: an **inactive tab releases its filesystem watch handle**; activating re-arms the watch
-  and refreshes (folder changes weren't observed while inactive). Resource-saving for many tabs.
-- Navigation: `setPath`, `navigateUp/Back/Forward`, `history()`, `goToItem`, `showAllFilesFromCurrentFolderAndBelow`.
-- Dir info: `currentDirObject`, `currentDirPathNative/Posix`, `currentDirName`.
-- File list: `refreshFileList(cause)`, `list()`, `itemHashExists/itemByHash/itemPathByHash/itemHashes`,
-  `displayDirSize(hash)` (async size calc, then data-change notification).
-- Current-item memory: `setCurrentItemHashForFolder`, `currentItemHashForFolder`.
-- Notifies three observer lists (`CallbackCaller<...>`): `PanelContentsChangedListener` (both of its
-  callbacks - see the two-notification contract in `doc/threading.md`), `CurrentItemChangedListener`,
-  `CurrentPathChangedListener`. `restoreHistory(vector)` seeds history on restore.
-- Sync: `mutable std::recursive_mutex _fileListAndCurrentDirMutex` guards the file list + current dir
-  (touched from the worker pool and the UI). `_uiThreadQueue` (`CExecutionQueue`) marshals back to UI.
+Moving to a view whose list is not ready produces `onPanelContentsInvalidated`; committing the list produces
+`onPanelContentsChanged`. Invalidation is display-only: cursor, selection, persistence, and plugin state must wait
+for the committed notification. The notifications share a queue tag, so a list completed in the same drain
+replaces the invalidation and avoids a visible blank. Both notifications identify their originating tab; listeners
+that represent the screen must reject background-tab notifications by ID.
 
-## CFileSystemObject (`src/cfilesystemobject.{h,cpp}`)
+See [threading.md](threading.md) before changing this path.
 
-Wrapper around `QFileInfo` for one file/dir/bundle. Carries a `CFileSystemObjectProperties` value
-(`size, hash, completeBaseName, extension, fullName, fullPath, type, exists, isLink`). `type()` is
-`UnknownType/Directory/File/Bundle`.
+## Filesystem objects and paths
 
-- Rich predicates: `isFile/isDir/isBundle/isCdUp/isExecutable/isReadable/isWriteable/isHidden/
-  isLink/isSymLink`, `symLinkTarget`, `rootFileSystemId` (which volume the entry is on).
-- **Links are the sharp edge.** Qt's *classification* calls (`isDir/isFile/exists/size`) transparently
-  follow a symlink/junction to its target and that cannot be turned off — a dir link classifies as
-  `Directory`, which is why `type` deliberately stays `Directory` for one (navigation works). To ask "is
-  this *itself* a link?" use `isLink()` = `QFileInfo::isSymbolicLink() || isJunction()`, computed once in
-  `refreshInfo()` and stored. **Not `isSymLink()`** — the legacy Qt call also reports `true` for Windows
-  `.lnk` shortcuts, which are regular files here. `exists = isLink || QFileInfo::exists()` so a broken link
-  still counts as existing, and stays listed and deletable — but its `type` is platform-dependent: `File` on
-  POSIX, where nothing is left to follow, and still `Directory` for a Windows dir link, which carries the
-  directory attribute on the link entry itself. (The file-operation engine's own no-follow link handling
-  lives with that engine, not here.)
-- `hash()` is the identity used everywhere. `setDirSize` is a documented hack to stash a computed dir size.
-- Times (`creationTime`/`modificationTime`) are lazily cached (`mutable`, sentinel `invalid_time`).
-- **Test seam:** under `#define CFILESYSTEMOBJECT_TEST`, `QFileInfo`/`QDir` are macro-swapped for
-  `QFileInfo_Test`/`QDir_Test` mocks (header `#define` at top, `#undef` at bottom). Free function
-  `pathHierarchy(path)` lives here only because a CFSO test covers it and it needs the same QFileInfo include.
+`CFileSystemObject` (`cfilesystemobject.{h,cpp}`) wraps `QFileInfo` for panel/navigation use. Directory paths are
+normalized with a trailing separator before hashing; the deterministic path hash is the application key used by
+panels, UI models, selection, and plugins. It is not filesystem object identity: use `resolvedObjectId()` or the
+file-operation identity primitives when aliases/links may name the same object.
+
+Links are a sharp edge:
+
+- `isLink()` means a POSIX symlink or Windows name-surrogate link/junction. It deliberately excludes `.lnk`
+  shortcuts, which are regular files here; do not substitute `isSymLink()`.
+- Qt classification such as `isDir()`, `isFile()`, and size follows the target. The entry's separate link flag is
+  therefore required whenever ownership or deletion matters.
+- A broken link still exists as an entry and must remain listable and removable.
+
+The file-operation module uses a different path type, `CEntryPath`: absolute, `/`-separated, and without a trailing
+separator except for roots. Do not pass assumptions about one representation into the other without using their
+conversion/parse boundaries.
 
 ## File operations (`src/fileoperations/`)
 
-Copy, move, and permanent delete. A layered stack of **synchronous, single-purpose pieces** with one thin
-threading wrapper at the top — so all policy and filesystem logic is unit-testable without threads, and only
-one small class is ever concurrent.
+`fileoperations.pri` lists the current module. Its architecture separates synchronous policy/filesystem logic from
+the one threaded wrapper:
 
 ```
-CFileOperationJob      worker thread + event queue  (the only concurrent piece)
-  drives one of:
-    CTransferExecutor  recursive copy / move
-    CDeleteExecutor    recursive permanent delete
-      through COperationExecutionContext   the executor's entire environment: cancel/pause
-                                            checkpoints, decision prompts, progress, diagnostics,
-                                            remembered answers, the accumulating summary
-      using:
-        CDestinationResolver   one collision   -> an issue + a user decision
-        CSourceTreeBuilder     one source root -> an immutable manifest tree
-        CStagedFileCopy        one file: copy to a temp sibling, transfer metadata, publish by rename
-        CFileSystemMutator     stateless inspect / rename / remove / create / writability / same-object / dir-times
+CFileOperationJob                 worker, pause/cancel/decision handshake, event queue
+  `- CTransferExecutor or CDeleteExecutor
+       |- COperationExecutionContext   decisions, progress, diagnostics, remembered answers
+       |- CDestinationResolver         collision policy
+       |- CSourceTreeBuilder           immutable operation-specific manifest
+       |- CStagedFileCopy              copy to sibling, transfer metadata, publish by rename
+       `- CFileSystemMutator           native inspect/mutate primitives
 ```
 
-- **Typed vocabulary (`fileoperationtypes.h`, `centrypath.h`).** A request is a `TransferRequest` or a
-  `PermanentDeleteRequest` (variant `FileOperationRequest`). A problem is an `OperationIssue` — an `IssueKind`
-  (file replacement, directory merge, type mismatch, read-only source removal, unsupported entry, or generic
-  action-failed) plus `EntrySnapshot`s and an optional structured `FailureDetails`. The answer is a `Decision`
-  (`DecisionAction` × `DecisionScope`). Native errors are classified into a `FileErrorCategory` at the point of
-  failure and never travel as raw codes above the primitive layer. `CEntryPath` is the one normalized absolute
-  path (single `/` separator, no trailing separator except roots) used throughout the module. On Windows every
-  native call goes out `\\?\`-prefixed with the component names verbatim, so entries whose names Win32
-  normalization would rewrite — trailing spaces or periods — are addressed as they are on disk rather than
-  silently redirected to a differently-named sibling. This matches what Qt's own file APIs see.
-- **The executors are synchronous, with no threads, UI, or ambient I/O of their own.** Every side effect goes
-  through `CFileSystemMutator` / `CStagedFileCopy`; every contact with the outside world goes through
-  `COperationExecutionContext` callbacks (`checkpoint()` for pause/cancel, `resolveDecision()` for prompts,
-  progress publish, warning/failure recording). The context also owns the **remembered-decision table**
-  ("...to all", keyed by `IssueKind`, stored only for rememberable actions) and accumulates the
-  `OperationSummary`.
-- **`CFileOperationJob` is the only cross-thread owner** — one worker thread (`CInterruptableThread`), one
-  mutex, one condition variable, one event queue. It binds the context callbacks to that machinery and exposes
-  `OperationEvent` (`ProgressSnapshot | DecisionRequest | OperationSummary`), which the UI drains via
-  `processEvents`. See [threading.md](threading.md).
-- **Move is rename-first.** A native rename is attempted at every owned root/subtree boundary; only a
-  classified `CrossDevice` result (EXDEV / `ERROR_NOT_SAME_DEVICE`) selects the staged-copy fallback with its
-  committed source-cleanup segment. Once a boundary classifies cross-device, the whole subtree skips rename.
-- **Staged copy = atomic publish.** A file is streamed to a uniquely created, preallocated temp sibling;
-  metadata (times, permissions) is applied there; then it atomically replaces the destination by rename — so
-  an overwrite replaces only the selected pathname, leaving symlink targets and other hard-link names for the
-  destination untouched. Any pre-publication failure or cancellation discards the temp file and preserves the
-  old destination; a copy-based move removes its source only after publication succeeds.
+`fileoperationtypes.h` defines requests, issues/decisions, progress, and summaries. `centrypath.h` owns raw path
+parsing; `newnamecheck.h` owns validation of names proposed by users. The UI chooses `DestinationIntent` once when
+constructing the request; lower layers must not reinterpret it from source count, spelling, or destination state.
 
-Inline rename (single-item rename from the panel, `inlinerename.{h,cpp}`) reuses the same mutator primitives
-and the same case-only / same-object rules, without the batch machinery.
+Important behavioral boundaries:
 
-`newnamecheck.{h,cpp}` is the single gate for a name a **user** proposes - rename prompt, inline rename, New
-Folder, New File. It never repairs input: text is judged exactly as entered and refused with a `NameRejection`
-the UI words, so a name that is accepted is the name that gets created. It is deliberately stricter than
-`isSingleComponentName`, which is `CEntryPath::child()`'s precondition and must keep accepting anything a
-filesystem listing can hand back. Declining to *create* a hostile name (on Windows, one ending in a dot or a
-space, which Win32 normalization would strip and every other tool would then fail to find) is a separate
-decision from being able to *address* one that already exists. Test-only fault injection lives in
-`operationtesthooks.{h,cpp}` (compiled only under `FILE_OPERATIONS_TEST_HOOKS`): it forces a native error, or
-pauses a worker, at a named point so tests can exercise failure and race paths deterministically.
+1. Executors are synchronous and interact with their environment only through `COperationExecutionContext` and
+   the filesystem primitives. `CFileOperationJob` is the only cross-thread owner.
+2. Move is rename-first. Only a classified native `CrossDevice` result selects staged copy plus source cleanup;
+   after such a result, descendants skip further rename attempts.
+3. Staged copy publishes by rename only after data and required metadata are ready. Failure or cancellation before
+   publication preserves the old destination. Durability flush is required where publication/cleanup destroys the
+   only other copy, not for an ordinary fresh copy.
+4. Delete and same-filesystem move operate on link entries. Copy and copy-based move materialize link targets;
+   directory-link cycles terminate by native filesystem identity. Content reached through a directory link is
+   borrowed and is never removed by move cleanup.
+5. Writability remediation applies only to confirmed, non-link regular files. Generic access denied is
+   `PermissionDenied`, not `ReadOnly`.
+6. Aggregate totals remain absent until every source root has been scanned. `inspectEntry()` distinguishes absence
+   from inspection failure; callers must handle both.
+7. The committed move segment between publication and source removal has no cancellation checkpoint. Its prompts
+   are item-only and do not consult or update remembered decisions.
 
-**Sharp edges worth knowing:**
+Inline rename (`inlinerename.{h,cpp}`) is a separate synchronous command with its own replacement matrix, reusing
+the name, inspection, identity, and native rename primitives. Test-only deterministic errors/barriers are isolated
+in `operationtesthooks.{h,cpp}` and compile out without `FILE_OPERATIONS_TEST_HOOKS`.
 
-- **No-follow link discipline.** Inspect / remove / make-writable on a link entry act on the *link itself*,
-  never its target; copy and copy-based move *materialize* a link target's contents, while delete and
-  same-drive move act on the link entry. A broken link stays a listed, removable entry. Link cycles during
-  materialization are broken by filesystem **identity** (device+inode / volume-serial+file-index), not path
-  strings. A link is never routed through writability remediation.
-- **Read-only is a narrow category.** `FileErrorCategory::ReadOnly` is set only from an unambiguous native
-  meaning (POSIX `EROFS`; Windows media write-protect / read-only attribute); generic access-denied stays
-  `PermissionDenied` and must never be treated as read-only. Only a confirmed non-link regular-file source
-  removal turns a fresh read-only reading into the read-only-source-removal policy question.
-- **Totals stay absent until every root is scanned** — a partial aggregate must never render as an exact
-  total. `inspectEntry` likewise distinguishes *absent* (an empty optional) from *error* (an `unexpected`);
-  both paths must be handled by callers.
-- **The committed move-cleanup segment (publish -> remove source) takes no cancellation checkpoint**, and
-  every prompt inside it is item-only — it neither consults nor updates the remembered-decision table.
+## Traversal and watchers
 
-## Directory traversal — `scanDirectory` (`src/directoryscanner.{h,cpp}`)
+`scanDirectory()` in `directoryscanner.{h,cpp}` is shared by flattened panel display, search, and folder comparison;
+file operations and statistics use their own traversals. It can follow directory links, reports whether an item was
+reached through one, and breaks cycles using `resolvedObjectId()` rather than path strings. That distinction matters
+on Windows, where canonical path text does not reliably resolve junction targets.
 
-Free function: `scanDirectory(root, observer, abort = atomic<bool>{false}, followDirLinks = true)`.
-Recursively walks `root`, invoking `observer(fso, reachedThroughLink)` per item, abortable via the atomic
-flag. The shared enumeration behind **size calculation, "show all files below", and search** — the
-file-operation engine does *not* use it (it scans through its own `CSourceTreeBuilder`). (Default arg binds a
-const ref to a temporary `atomic` — valid for the whole call incl. recursion; see [oddities.md](oddities.md).)
+Each panel owns a platform watcher selected in `cpanel.h`:
 
-- **`followDirLinks`** — when `false`, a dir link is reported as an item but not descended into (for a caller
-  that must not recurse into a link's target).
-- **`reachedThroughLink`** — `true` for items found by traversing a link, letting a caller treat linked
-  content differently from owned content.
-- **Cycle guard.** Following links can loop (a link to its own ancestor, or two links pointing at each other).
-  The scanner keeps the chain of directories currently on the recursion stack and refuses to descend into a
-  link whose target is one of them. **Identity is compared via `resolvedObjectId`, not path strings** —
-  `QFileInfo::canonicalFilePath()` does not resolve NTFS junction targets, so an earlier path-prefix version
-  passed on POSIX but let junction cycles through on Windows. A filesystem that exposes no identity yields no
-  answer rather than a fabricated one, and the link is left untraversed. Only links pay for the identity
-  lookups; plain trees never reach this branch.
+- Windows uses `CFileSystemWatcherWindows`, backed by native change notification handles.
+- Other platforms use `CFileSystemWatcherTimerBased`, which compares periodic snapshots. A path generation rejects
+  obsolete scans. `CPanel` calls `captureBaselineState()` immediately before its own enumeration so a change made
+  after navigation cannot disappear into a later lazy baseline.
 
-## Filesystem watching (`src/filesystemwatcher/`)
+Flattened recursive display disarms the single-directory watcher. Inactive tabs also disarm it.
 
-`using FileSystemWatcher =` platform pick:
-- **Windows:** `CFileSystemWatcherWindows` — `QAbstractNativeEventFilter`, native `HANDLE`-based change
-  notifications. `setPathToWatch` / poll `changesDetected()`; both thread-safe (`_mtx`).
-- **Else:** `CFileSystemWatcherTimerBased` — periodic re-scan on a `CPeriodicExecutionThread`, diffing a
-  `std::set<FileSystemInfoWrapper>` (name + size). Each path assignment advances a generation; obsolete scans
-  are discarded and the first committed scan for the new generation establishes a baseline without reporting
-  a change. Same `setPathToWatch` / `changesDetected` poll contract, plus `captureBaselineState()`.
+## Other core areas
 
-`captureBaselineState()` closes a window specific to the polling watcher: with the baseline captured lazily on
-the next poll, a change made just after a navigation lands in the baseline itself and is never reported, so the
-new file stays invisible until something else touches the folder. `CPanel` calls it from its file-list worker
-just before enumerating, aligning the baseline with the listing shown. The Windows watcher arms synchronously
-and needs none of this — its override is a no-op. The baseline is therefore written from two threads (poll loop
-and panel worker) under the watcher's mutex; see [threading.md](threading.md).
+| Area | Source and boundary |
+|------|---------------------|
+| Volumes | `diskenumerator/`; periodic enumeration with UI-queued observer delivery. Initial enumeration is synchronous because restored panel paths depend on it. |
+| Search | `filesearchengine/`; one interruptible outer thread, with a bounded worker pool only for content searches. The listener must outlive the worker; use `waitForSearchToFinish()` before teardown. |
+| Folder/file comparison | `filecomparator/`; synchronous byte/tree primitives plus `CFileComparator` as the single-file threaded wrapper. Pairing policy is explicit in `PairingMode`. |
+| Shell integration | `shell/`; platform clipboard, context menus, launching, and supported native deletion backends. |
+| Favorites | `favoritelocationslist/`; nested locations persisted under its supplied settings key. |
+| Icons | `iconprovider/`; extension guessing is the fast path because it avoids disk access. |
+| Statistics/helpers | `filesystemhelpers/`, `filesystemhelperfunctions.{h,cpp}`; recursive statistics, path conversion, and resolved native identity. |
 
-Each `CPanel` owns one and polls it on the UI timer tick.
-
-## Volumes (`src/diskenumerator/`)
-
-`CVolumeEnumerator` (a `QObject`): background drive/volume enumeration on a `CPeriodicExecutionThread`
-(1 s interval). `startEnumeratorThread()` is a separate second-phase init. `volumes()` / `volumeById` /
-`updateSynchronously()`. Observers (`IVolumeListObserver::volumesChanged(bool significant)`) notified via a
-`CExecutionQueue` (UI thread). `_mutexForDrives` is **recursive** because `updateSynchronously()` can call
-`enumerateVolumes()` while a getter already holds the lock. Platform impls:
-`cvolumeenumerator_impl_{win,mac,linux,freebsd}.cpp`; `VolumeInfo` value type in `volumeinfo.hpp`.
-
-## Other core subsystems
-
-- **`OsShell` namespace (`src/shell/cshell.{h,cpp}`, `cshell_mac.mm`)** — native shell integration:
-  context menu for items (`openShellContextMenuForObjects`), clipboard cut/copy/paste of files,
-  recycle-bin delete (`deleteItems(moveToTrash)`) + recycle-bin context menu, tooltips, run executables
-  (`runExe(... asAdmin)` on Windows), `shellExecutable()`, `executeShellCommand`, `isInPath`. Heavy
-  Win32/COM on Windows; `.mm` Cocoa on macOS. `main.cpp` does `CO_INIT_HELPER(COINIT_APARTMENTTHREADED)`.
-- **`CIconProvider` (`src/iconprovider/`)** — static `iconForFilesystemObject(fso, guessByExtension)`;
-  the `guessByExtension=true` path avoids disk access (fast). Pimpl (`CIconProviderImpl`); reacts to
-  `settingsChanged()`.
-- **`CFavoriteLocations` (`src/favoritelocationslist/`)** — nested favorites tree (`CLocationsCollection`
-  with `subLocations`), persisted under its own settings key (`KEY_FAVORITES`). Owned by the controller.
-- **`CFileSearchEngine` (`src/filesearchengine/`)** — name + content search on a `CInterruptableThread`.
-  `search(filters, caseSens, where, contents, ..., listener)`; reports via `FileSearchListener`
-  (`itemScanned`/`matchFound`/`searchFinished(status, itemsScanned, msElapsed)`); `stopSearching`. Name-only
-  searches use only that outer thread. Content searches lazily add 1-8 workers, bound outstanding file tasks
-  to twice the worker count, and check cancellation between 4 KiB chunks. Backs the Find Files dialog.
-- **Comparison (`src/filecomparator/`)** — three layers, covered by `filecomparator_test`.
-  `compareFileContents()` is the primitive: byte-wise comparison of two files, reporting progress in *bytes*
-  rather than percent so that a batch caller can aggregate against its own denominator. `compareFolders()`
-  builds on it, pairing two trees by relative path and reading bytes only where entry type and size cannot
-  already separate a pair; unreadable pairs are reported as such rather than as differing. `PairingMode`
-  chooses how names are matched: `Exact` (the default) treats a differently spelled name as a difference,
-  which is what "is this precisely the expected tree?" requires, while `FoldCaseAndNormalization` falls back
-  to case-folded, NFC-normalized matching for whatever the exact pass left over — never on an ambiguous
-  fold — so that trees pair up across filesystems that disagree on spelling. `CFileComparator` is just the
-  threading wrapper the file-comparison plugin uses, converting bytes to a percentage for one file.
-- **`filestatistics` / `filesystemhelpers` / `filesystemhelperfunctions`** — recursive size/count stats,
-  path helpers, misc fs utilities. `resolvedObjectId(path)` (in `filesystemhelperfunctions`) returns the
-  unique identity of the entry a path resolves to — a thin wrapper over `thin_io::get_entry_metadata`, so it
-  inherits the same native path handling and the same `thin_io::entry_identity` the file-operation engine
-  compares. The correct primitive for "same file/dir?" tests, used by both link cycle guards.
-  `filestatistics`' parallel BFS carries the same guard as a visited-target set.
-
-## Key core data structures
-
-- `FileListHashMap = ankerl::unordered_dense::segmented_map<qulonglong, CFileSystemObject, IdentityHash>`
-  — a panel's current file list, keyed by item hash. `segmented_map` keeps element addresses stable across
-  growth; `IdentityHash` because the key is already a good hash.
-- `CHistoryList<QString>` (from qtutils) — bounded back/forward navigation history; used both per-tab and
-  for the per-side visited-locations log.
-
-See [qt-ui.md](qt-ui.md) for how the UI consumes all this, [plugins.md](plugins.md) for the plugin surface.
+See [qt-ui.md](qt-ui.md) for consumers, [plugins.md](plugins.md) for the plugin surface, and
+[persistence.md](persistence.md) for settings ownership.

@@ -1,73 +1,58 @@
-# Per-panel tabs (cross-cutting feature)
+# Per-panel tabs
 
-Total Commander-style tabs: each side has >=1 tab, each tab is an independent folder view. Feature is
-complete and shipped. The design's central trick keeps ~all pre-tabs call sites unchanged.
+Tabs cross core ownership, UI model/view state, notifications, worker lifetime, and persistence. Start with
+`CController` and `CPanelWidget`; their headers contain the current tab operations.
 
-## The linchpin
+## Core model
 
-`CController::panel(Panel p)` returns the side's **active tab's** `CPanel`. A tab *is* a `CPanel`. Code that
-predates tabs (navigation, the file-list models, selection, file ops) keeps calling `panel(side)` and
-transparently operates on whatever tab is active. Only code that manages tabs themselves is tab-aware.
+A tab is an independent `CPanel`. Each side's `CController::TabList` owns one or more panels and identifies the
+active position. `CController::panel(side)` returns the active tab, which keeps non-tab-specific navigation,
+selection, and operation code unchanged.
 
-## Identity: tabs are addressed by ID, not position
+Tabs have stable, nonzero `qulonglong` IDs. IDs survive vector growth and reordering; positions do not. Core APIs
+that identify a tab use its ID. The QTabBar stores that ID as tab data, and the UI resolves it immediately before
+close/reorder operations rather than retaining a position that another operation may shift.
 
-- Core assigns each tab a stable `qulonglong` id (`CController::_nextTabId`, starts at 1; 0 = "no tab").
-  `CPanel::id()` exposes it. The id never changes for a tab's lifetime and survives reorder/resize of the
-  underlying vector.
-- The UI's `QTabBar` stores the core id as each tab's `tabData` (`CPanelWidget::tabIdAt(pos)`), so a UI
-  position is converted to a core id whenever core is called. This is what makes drag-reorder and
-  close-arbitrary-tab safe.
+The controller records side-wide panel/content listeners and attaches them, plus the plugin engine, to every new
+tab. Notifications therefore identify the source tab. A consumer representing the visible tab must compare the ID
+with `activeTabId(side)`; folder path cannot substitute because duplicate tabs may show the same path.
 
-## Core side (`CController`)
+## UI model invariant
 
-- `std::array<TabList,2> _panels`, `TabList { vector<unique_ptr<CPanel>> tabs; size_t activeTab }`.
-- API (all id-based): `addTab(p, path, activate=true) -> id`, `closeTab(p, id)` (refuses to remove the last
-  tab), `setActiveTab(p, id)`, `moveTabPosition(p, id, newPos)`, `tabCount`, `activeTabId`,
-  `tabIds` (display order), `tabPath(p,id)`, `tabName(p,id)`.
-- Helpers: `createTab` (make CPanel, wire listeners, append), `attachListenersToTab` (re-attach the side's
-  recorded contents/cursor listeners + the plugin engine to a new tab), `switchActiveTab`
-  (deactivate old / activate new — callers skip it when already active), `tabIndexById`.
-- **Activation cost:** `switchActiveTab` calls `CPanel::setActive(false)` on the outgoing tab (which
-  **releases its filesystem watch handle**) and `setActive(true)` on the incoming (re-arms the watch + a
-  refresh-on-activate). So inactive tabs are cheap — they don't hold watch handles or get change events.
-- The shared `_panelWorkerPool` is injected into every tab's `CPanel` and is **declared before `_panels`**
-  so it outlives them. Each tab tags its pool tasks with `_taskTag` and retires them in its dtor.
+`CPanelWidget` owns one shared `CFileListView` and a position-aligned `std::vector<PanelTab>`. Each `PanelTab` owns a
+model, sort/filter proxy, selection model, and header-state snapshot. The widget's `_model`, `_sortModel`, and
+`_selectionModel` alias the active triplet.
 
-## UI side (`CPanelWidget`)
+Both models resolve data through `CController::panel(side)`, not through a stored non-active `CPanel`. Consequently:
 
-- `std::vector<PanelTab> _tabs` index-aligned with the `QTabBar` and (by id mapping) with core's tab list.
-  `PanelTab = { CFileListModel*, CFileListSortFilterProxyModel*, QItemSelectionModel*, QByteArray headerState }`.
-- **One shared `CFileListView`.** `activateTab(index)` points the view at that tab's triplet and
-  saves/restores `headerState` (per-tab column widths/order/visibility; sort-indicator bits ignored because
-  the proxy owns the sort). `_model`/`_sortModel`/`_selectionModel` always alias the active triplet so the
-  rest of the widget is tab-agnostic.
-- `populateTriplet(tab)` wires a fresh model/proxy/selection trio.
-- User ops: `createNewTab` (current folder, switch to it), `closeCurrentTab`/`closeTabById`/`closeAllOtherTabs`,
-  `duplicateTab`, `switchToNext/PreviousTab`, `switchToTabByPosition` (Ctrl+1..9),
-  `openCurrentItemInNewTab` (Ctrl+Up) + middle-click folder (`onItemMiddleClicked`) both via
-  `tryOpenItemInNewTab` -> `openPathInNewTab(path, activate)` (activate=false = background tab).
-- Tab-bar plumbing: `onTabBarCurrentChanged`, `onTabBarCloseRequested`, `onTabBarTabMoved` (mirrors a drag
-  into both `_tabs` and core via `moveTabPosition`), `showContextMenuForTab`, `updateTabBarVisibility` (bar
-  hidden while a single tab), `updateTabText`/`updateTabBarVisibility`.
-- `CMainWindow` owns a programmatic **"Tabs" menu** (New Ctrl+T / Close Ctrl+W / Next Ctrl+Tab /
-  Prev Ctrl+Shift+Tab) routing to the active panel widget.
+1. Only the active triplet may be queried or attached to the shared view.
+2. Switching tabs must swap model and selection ownership together and restore that tab's sort/header state.
+3. Background-tab notifications must be filtered before touching the active triplet.
 
-## Model validity invariant
+The Qt-specific sort-indicator ordering needed during `setModel()` is documented in
+`CPanelWidget::activateTab()` and should remain there.
 
-Both `CFileListModel` and `CFileListSortFilterProxyModel` read item data through `_controller.panel(side)`
-= the **active** tab. A per-tab model is therefore only correct while its tab is active. The architecture
-guarantees only the active triplet is ever attached to the view, so only it is ever queried — but this is an
-invariant to respect when touching tab-switch code (see [oddities.md](oddities.md)).
+## Lifetime and resources
+
+All panels share `CController::_panelWorkerPool`. Each panel tags its tasks and retires its tag on destruction, so
+closing one tab cannot leave a task touching freed panel state and does not wait for unrelated tabs. The pool is
+declared before the tab lists so it outlives them.
+
+Only active tabs hold a filesystem watch. Deactivation releases it; activation re-arms it and refreshes because
+changes while inactive were intentionally not observed. A newly opened background tab is deactivated after its
+initial path is set for the same reason.
 
 ## Persistence
 
-Tabs are saved/restored by `CController` (not `CPanel`). Per side: the list of tab paths
-(`KEY_*PANEL_TABS`), the active index (`KEY_*PANEL_ACTIVE_TAB`), per-tab cursor item hashes
-(`KEY_*PANEL_TAB_CURSORS`), and — for back-compat — the active tab's path mirrored to the legacy
-`KEY_*PANEL_PATH`. `restorePanelState` migrates old single-path installs into a single tab. Only the active
-tab's back/forward history is persisted (`KEY_HISTORY_*`). See [persistence.md](persistence.md).
+`CController`, not `CPanel`, persists tab paths, active position, and per-tab cursor hashes and migrates the legacy
+single-path settings. Back/forward history and the side-wide visited-locations log have different lifetimes; see
+[persistence.md](persistence.md) rather than duplicating their key/state machine here.
 
-## Deferred / nice-to-have backlog
+UI-only state is separate: `CPanelWidget` saves column header state, each live tab retains its own sort/header
+snapshot, and the recently-closed-tab stack retains paths only for the current process.
 
-A short list of deferred niceties remains (e.g. session/named tabs, locked tabs): see
-[TODO.md](TODO.md), "Tabs: deferred nice-to-haves". Re-check it and `git log` before assuming status.
+## Change checklist
+
+When changing tab creation, activation, close, or reorder, verify stable ID mapping, core/UI ordering, active-triplet
+attachment, notification filtering, watcher activation, pool task retirement, and persistence independently. See
+[threading.md](threading.md) for the panel publication contract.
