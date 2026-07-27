@@ -99,10 +99,10 @@ TEST_CASE("CPanel - a folder that vanishes before its listing runs falls back to
 	h.settle();
 	h.listener().clear();
 
-	// Hold the listing while the folder is removed under it. The accessibility check the worker makes is not
-	// redundant with the one setPath already made - this window is the whole reason it exists.
+	// Enter the folder, then remove it before its listing gets to run. The accessibility check the worker makes is
+	// not redundant with the one setPath already made - this window is the whole reason it exists.
 	h.worker().close();
-	h.panel().refreshFileList(refreshCauseOther);
+	REQUIRE(h.panel().setPath(doomed, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
 	REQUIRE(QDir{ doomed }.removeRecursively());
 	h.worker().open();
 
@@ -110,7 +110,9 @@ TEST_CASE("CPanel - a folder that vanishes before its listing runs falls back to
 	h.settle();
 
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
-	CHECK(h.listener().count(PanelEvent::CurrentPathChanged) == 1);
+	// Into the folder, then back out of it once it turned out to be gone.
+	CHECK(h.listener().count(PanelEvent::CurrentPathChanged) == 2);
+	// Landing on the parent is not the navigation that was asked for, so it is not reported as one.
 	const PanelEvent& contentsChanged = h.listener().last(PanelEvent::ContentsChanged);
 	CHECK(contentsChanged.cause == refreshCauseOther);
 }

@@ -327,7 +327,7 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 	_workerThreadPool.enqueue([this, request = std::move(request), operation]() {
 		if (!pathIsAccessible(request.path))
 		{
-			execOnUiThread([this, request, operation]() { recoverFromInaccessiblePathIfCurrent(request, operation); });
+			execOnUiThread([this, request]() { recoverFromInaccessiblePathIfCurrent(request); });
 			return;
 		}
 
@@ -378,7 +378,7 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	enqueueContentsChangedNotificationLocked(operation, request.generation);
 }
 
-void CPanel::recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request, FileListRefreshCause operation)
+void CPanel::recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request)
 {
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
@@ -386,7 +386,9 @@ void CPanel::recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& r
 			return;
 	}
 
-	setPath(request.path, operation); // setPath will itself find the closest best folder to set instead
+	// Deliberately the path we just found inaccessible: setPath finds the closest accessible folder to land on
+	// instead. This is not a user-requested navigation, so refreshCauseOther.
+	setPath(request.path, refreshCauseOther);
 }
 
 // Returns the current list of objects on this panel

@@ -147,7 +147,7 @@ private:
 
 	void enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation);
 	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation);
-	void recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request, FileListRefreshCause operation);
+	void recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request);
 	void sendContentsChangedNotification(FileListRefreshCause operation) const;
 	void enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const;
 	void enqueueContentsInvalidatedNotificationLocked(uint64_t generation) const;
