@@ -296,6 +296,9 @@ void CPanel::setCurrentItemHashForFolder(const QString& dir, qulonglong currentI
 
 	if (notifyUi)
 	{
+		// The caller is already on the UI thread, this is deferred invocation. Listeners must not run inside the
+		// caller's stack: rename gets here from inside the delegate's commitData, where the view is still in
+		// EditingState and would reject the cursor move, and setPath gets here under the mutex, mid-update.
 		execOnUiThread([this, dir, currentItemHash]() {
 			_currentItemChangedListeners.invokeCallback(&CurrentItemChangedListener::onCurrentItemChanged, _panelPosition, _id, dir, currentItemHash);
 		});
