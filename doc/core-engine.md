@@ -212,7 +212,14 @@ const ref to a temporary `atomic` — valid for the whole call incl. recursion; 
 - **Else:** `CFileSystemWatcherTimerBased` — periodic re-scan on a `CPeriodicExecutionThread`, diffing a
   `std::set<FileSystemInfoWrapper>` (name + size). Each path assignment advances a generation; obsolete scans
   are discarded and the first committed scan for the new generation establishes a baseline without reporting
-  a change. Same `setPathToWatch` / `changesDetected` poll contract.
+  a change. Same `setPathToWatch` / `changesDetected` poll contract, plus `captureBaselineState()`.
+
+`captureBaselineState()` closes a window specific to the polling watcher: with the baseline captured lazily on
+the next poll, a change made just after a navigation lands in the baseline itself and is never reported, so the
+new file stays invisible until something else touches the folder. `CPanel` calls it from its file-list worker
+just before enumerating, aligning the baseline with the listing shown. The Windows watcher arms synchronously
+and needs none of this — its override is a no-op. The baseline is therefore written from two threads (poll loop
+and panel worker) under the watcher's mutex; see [threading.md](threading.md).
 
 Each `CPanel` owns one and polls it on the UI timer tick.
 

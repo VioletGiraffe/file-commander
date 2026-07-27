@@ -37,17 +37,22 @@ public:
 
 	// This method is thread-safe.
 	bool setPathToWatch(const QString &path);
+	// The poll loop takes its baseline up to a period after setPathToWatch, so a change made in that gap is
+	// absorbed into the baseline and never reported. Call this when you take your own snapshot of the folder, to
+	// pin the baseline to that moment instead. Scans synchronously on the calling thread.
+	void captureBaselineState();
 	// Poll this function to find out if there were any changes since the last check.
 	// This method is thread-safe.
 	bool changesDetected() noexcept;
 
 private:
 	void onCheckForChanges();
-	void processChangesAndNotifySubscribers(QFileInfoList&& newState, uint64_t pathGeneration);
+	[[nodiscard]] static std::set<FileSystemInfoWrapper> snapshotDirectory(const QString& path);
+	void processChangesAndNotifySubscribers(std::set<FileSystemInfoWrapper>&& newState, uint64_t pathGeneration);
 
 private:
 	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CFileSystemWatcher thread" };
-	// Accessed only by the periodic thread. A generation mismatch makes the next completed scan a silent baseline.
+	// Written by the poll thread and by captureBaselineState() (panel worker thread); all access under _mutex.
 	std::set<FileSystemInfoWrapper> _previousState;
 	uint64_t _previousStateGeneration = 0;
 

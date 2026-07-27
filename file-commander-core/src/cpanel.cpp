@@ -343,6 +343,10 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 		}
 		else
 		{
+			// Baseline the folder before the enumeration below, so the watcher's snapshot matches this listing
+			// (why: see captureBaselineState). Skipped for AllObjectsMode - flattened mode disarms the watcher.
+			_watcher.captureBaselineState();
+
 			const QFileInfoList directoryEntries = QDir{request.path}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
 			for (const QFileInfo& directoryEntry : directoryEntries)
 			{

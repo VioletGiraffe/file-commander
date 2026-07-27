@@ -80,30 +80,58 @@ void CFileSystemWatcherTimerBased::onCheckForChanges()
 		pathGeneration = _pathGeneration;
 	}
 
-	QDir directory(pathToWatch);
-	auto state = directory.entryInfoList(QDir::Dirs | QDir::Files | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
-	processChangesAndNotifySubscribers(std::move(state), pathGeneration);
+	processChangesAndNotifySubscribers(snapshotDirectory(pathToWatch), pathGeneration);
 }
 
-void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(QFileInfoList&& newState, uint64_t pathGeneration)
+// Baseline and poll scans must use identical filters, else every poll diffs against a differently-built
+// baseline and reports phantom changes. Sharing this call guarantees it.
+std::set<FileSystemInfoWrapper> CFileSystemWatcherTimerBased::snapshotDirectory(const QString& path)
 {
-	std::set<FileSystemInfoWrapper> newItemsSet;
-	for (auto&& info : newState)
-		newItemsSet.emplace(std::move(info));
+	std::set<FileSystemInfoWrapper> snapshot;
+	for (auto&& info : QDir{ path }.entryInfoList(QDir::Dirs | QDir::Files | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot))
+		snapshot.emplace(std::move(info));
 
-	// _previousState is polling-thread-only, so the potentially expensive comparison needs no mutex. A path
-	// change during the scan or comparison is rejected by the generation check below.
-	const bool differenceFound = _previousStateGeneration == pathGeneration && !SetOperations::is_equal_sets(newItemsSet, _previousState);
+	return snapshot;
+}
 
+void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(std::set<FileSystemInfoWrapper>&& newState, uint64_t pathGeneration)
+{
+	std::lock_guard locker{ _mutex };
+	if (_pathToWatch.isEmpty() || pathGeneration != _pathGeneration)
+		return;
+
+	// captureBaselineState() writes _previousState from another thread, so this comparison can't be hoisted out of the lock.
+	if (_previousStateGeneration == pathGeneration && !SetOperations::is_equal_sets(newState, _previousState))
+		_bChangeDetected = true;
+
+	_previousState.swap(newState);
+	_previousStateGeneration = pathGeneration;
+}
+
+void CFileSystemWatcherTimerBased::captureBaselineState()
+{
+	uint64_t pathGeneration;
+	QString pathToWatch;
 	{
 		std::lock_guard locker{ _mutex };
-		if (_pathToWatch.isEmpty() || pathGeneration != _pathGeneration)
+		// Nothing watched, or the current path is already baselined (here or by the poll thread); advancing it is
+		// the poll loop's job.
+		if (_pathToWatch.isEmpty() || _previousStateGeneration == _pathGeneration)
 			return;
 
-		if (differenceFound)
-			_bChangeDetected = true;
-
-		_previousState.swap(newItemsSet);
-		_previousStateGeneration = pathGeneration;
+		pathToWatch = _pathToWatch;
+		pathGeneration = _pathGeneration;
 	}
+
+	// Scanned without the lock: it can block on a slow volume, and holding the lock would stall the other watcher methods.
+	auto snapshot = snapshotDirectory(pathToWatch);
+
+	std::lock_guard locker{ _mutex };
+	// Discard if a navigation superseded us mid-scan, or a baseline landed meanwhile - clobbering it could
+	// re-hide an already-detected change.
+	if (_pathGeneration != pathGeneration || _previousStateGeneration == pathGeneration)
+		return;
+
+	_previousState.swap(snapshot);
+	_previousStateGeneration = pathGeneration;
 }

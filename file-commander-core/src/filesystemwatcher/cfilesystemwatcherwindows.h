@@ -22,6 +22,8 @@ public:
 
 	// This method is thread-safe.
 	bool setPathToWatch(const QString &path) noexcept;
+	// The native handle set up by setPathToWatch already reports every change from arm time on - explicit call is no-op
+	inline void captureBaselineState() noexcept {}
 	// Poll this function to find out if there were any changes since the last check.
 	// This method is thread-safe.
 	bool changesDetected() noexcept;

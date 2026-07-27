@@ -79,8 +79,12 @@ is what "Duplicate tab" produces), so a folder path does not identify the tab a 
   in. Repeated progress snapshots coalesce to the latest; `DecisionRequest` and `OperationSummary` are
   ordering barriers that never coalesce across.
 - Both filesystem watchers: an internal mutex makes `setPathToWatch`/`changesDetected` thread-safe. The
-  timer-based watcher associates each scan with a path generation, discards obsolete scans, and treats the
-  first committed scan of every generation as a silent baseline.
+  timer-based watcher tags each scan with a path generation, discards obsolete scans, and treats the first
+  committed scan of every generation as a silent baseline. That baseline is normally taken by the poll loop;
+  `CPanel`'s file-list worker also calls `captureBaselineState()` to take it synchronously, aligned with the
+  listing it is about to publish (see [core-engine.md](core-engine.md)). So the baseline set is written from
+  two threads, all under the watcher's mutex — and the panel worker never holds `_fileListAndCurrentDirMutex`
+  when it calls in, so the two locks don't order against each other.
 
 ## File-operation handshake (worker <-> UI)
 
