@@ -54,7 +54,7 @@ private:
 	bool _waiting = false;
 };
 
-// The one concrete seam between the synchronous executors and their environment. The job (WP9) binds the
+// The one concrete seam between the synchronous executors and their environment. The job binds the
 // callbacks to its mutex/condition-variable/event queue; synchronous tests bind them to scripted providers.
 // Owns the remembered-decision table, the progress tracker, and the warning/failure/summary accumulation.
 // Not an application-level service: private to the file-operation module.

@@ -26,8 +26,8 @@ private:
 
 	// One entry's removal with the local retry policy: the read-only preflight and reactive
 	// reclassification for non-link regular files, MakeWritable remediation, Retry/Skip/Cancel.
-	// Links and directories are removed as themselves and never remediated. Pre-commit semantics;
-	// WP7's committed move cleanup adds the phase distinction when its call site exists.
+	// Links and directories are removed as themselves and never remediated. Pre-commit semantics; the
+	// committed move-cleanup counterpart is CTransferExecutor::removePublishedSourceWithPolicy.
 	[[nodiscard]] NodeOutcome removeEntryWithPolicy(const EntrySnapshot& entry);
 
 	[[nodiscard]] NodeOutcome recordEntrySkipped();

@@ -184,9 +184,9 @@ enum class RequestValidationError
 	ExactEntryRequiresSingleSource
 };
 
-// The only entry points for raw UI/drag-and-drop path text. Trim and parse every path, filter the
-// synthetic parent ([..]) entries once, and enforce the source-count rules. The UI has already chosen
-// the intent; no filesystem inspection happens here.
+// The only entry points for raw UI/drag-and-drop path text. Parse every path (never trimmed - a trailing
+// space belongs to the name), filter the synthetic parent ([..]) entries once, and enforce the source-count
+// rules. The UI has already chosen the intent; no filesystem inspection happens here.
 [[nodiscard]] std::expected<TransferRequest, RequestValidationError> makeTransferRequest(
 	TransferKind kind, const QStringList& rawSourcePaths, DestinationIntent intent, const QString& rawDestinationPath);
 [[nodiscard]] std::expected<PermanentDeleteRequest, RequestValidationError> makePermanentDeleteRequest(const QStringList& rawSourcePaths);
