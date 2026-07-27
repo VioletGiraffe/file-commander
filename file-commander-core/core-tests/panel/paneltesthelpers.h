@@ -22,6 +22,8 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <Windows.h>
+#elif defined __APPLE__
+#include <sys/stat.h> // chflags, UF_HIDDEN
 #endif
 
 #include "3rdparty/catch2/catch.hpp"
@@ -74,11 +76,14 @@ private:
 	return CFileSystemObject{ path }.hash();
 }
 
-// On Unix the leading dot is what makes a name hidden; on Windows it takes the attribute.
+// Windows takes the hidden attribute; Linux/FreeBSD honor a leading dot; macOS honors neither for Qt's
+// isHidden() (it reads the filesystem UF_HIDDEN flag), so set that explicitly there.
 inline bool setFileHidden(const QString& path)
 {
-#ifdef _WIN32
+#if defined _WIN32
 	return ::SetFileAttributesW(reinterpret_cast<const wchar_t*>(path.utf16()), FILE_ATTRIBUTE_HIDDEN) != FALSE;
+#elif defined __APPLE__
+	return ::chflags(QFile::encodeName(path).constData(), UF_HIDDEN) == 0;
 #else
 	return QFileInfo{ path }.fileName().startsWith('.');
 #endif

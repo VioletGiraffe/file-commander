@@ -45,6 +45,13 @@ TEST_CASE("CPanel - hidden entries follow the setting", "[panel][contents]")
 	const QString hidden = tree.makeFile(QStringLiteral(".hidden.txt"));
 	REQUIRE(setFileHidden(hidden));
 
+	// The core must actually regard the file as hidden, or there is nothing for the exclusion below to test.
+	if (!CFileSystemObject{ hidden }.isHidden())
+	{
+		WARN("The filesystem does not report the test file as hidden, skipping");
+		return;
+	}
+
 	{
 		const ShowHiddenFilesSetting setting{ false };
 		PanelHarness h;
