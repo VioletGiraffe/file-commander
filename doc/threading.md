@@ -58,9 +58,11 @@ persisted state, data published to plugins) belongs in the latter: deriving it f
 means deriving it from an empty listing labeled with the destination folder. The two share a notification tag,
 so an update that completes within one UI queue drain replaces the invalidation and the view never blanks.
 
-Both carry the id of the tab they come from. A listener is registered per side and attached to every tab of it,
-so a listener concerned with the tab on screen must compare that id against `CController::activeTabId()`;
-only `CController` itself, which persists every tab, handles them all.
+Both carry the id of the tab they come from, as does `CursorPositionListener::setCursorToItem`. A listener is
+registered per side and attached to every tab of it, so a listener concerned with the tab on screen must compare
+that id against `CController::activeTabId()`; only `CController` itself, which persists every tab, handles them
+all. Identifying the sender is not optional for correctness: two tabs of a side can sit on the same folder (that
+is what "Duplicate tab" produces), so a folder path does not identify the tab a notification came from.
 
 ## Locks
 

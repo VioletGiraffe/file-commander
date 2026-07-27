@@ -39,9 +39,10 @@ enum FileListRefreshCause
 	refreshCauseOther
 };
 
-// Both callbacks name the tab they come from: a listener is attached to every tab of a side, so a listener that
-// only deals with the one on screen (as opposed to, say, persisting all of them) must compare tabId against
-// CController::activeTabId() rather than assume the notification is about the tab it's showing.
+// Callbacks name the tab they come from: a listener is attached to every tab of a side, so a listener that only
+// deals with the one on screen (as opposed to, say, persisting all of them) must compare tabId against
+// CController::activeTabId() rather than assume the notification is about the tab it's showing. Applies to
+// CursorPositionListener below as well.
 struct PanelContentsChangedListener
 {
 	virtual ~PanelContentsChangedListener() = default;
@@ -56,7 +57,9 @@ struct PanelContentsChangedListener
 struct CursorPositionListener {
 	virtual ~CursorPositionListener() = default;
 
-	virtual void setCursorToItem(const QString& folder, qulonglong currentItemHash) = 0;
+	// Delivered asynchronously, so folder names the directory the position was recorded for: the tab may have
+	// navigated elsewhere in the meantime, and the position doesn't apply there.
+	virtual void setCursorToItem(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash) = 0;
 };
 
 // Fires only when the panel's current directory actually changes (not on every refresh, unlike

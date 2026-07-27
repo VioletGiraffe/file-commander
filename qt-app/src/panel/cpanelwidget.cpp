@@ -760,11 +760,15 @@ void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIn
 	emit currentItemChangedSignal(_panelPosition, hash);
 }
 
-void CPanelWidget::setCursorToItem(const QString& folder, qulonglong currentItemHash)
+void CPanelWidget::setCursorToItem(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash)
 {
+	if (!displaysTab(p, tabId))
+		return;
+
 	if (ui->_list->editingInProgress())
 		return; // Can't move cursor while editing is in progress, it crashes inside Qt
 
+	// Queued, so the tab may have navigated away from the folder this position belongs to
 	if (_controller->panel(_panelPosition).currentDirObject().fullAbsolutePath() != folder)
 		return;
 

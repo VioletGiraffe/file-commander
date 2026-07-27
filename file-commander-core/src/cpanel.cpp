@@ -247,7 +247,9 @@ bool CPanel::goToItem(const CFileSystemObject& item)
 		return false;
 
 	const QString dir = item.parentDirPath();
-	setCurrentItemForFolder(dir, item.hash());
+	// Placing the cursor is left to the refresh setPath() triggers, which reads this entry. A UI notification from
+	// here would run before that refresh, against the folder we're leaving, and find nothing.
+	setCurrentItemForFolder(dir, item.hash(), false);
 	return setPath(dir, refreshCauseOther) == FileOperationResultCode::Ok;
 }
 
@@ -295,7 +297,7 @@ void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemH
 	if (notifyUi)
 	{
 		execOnUiThread([this, dir, currentItemHash]() {
-			_currentItemChangeListener.invokeCallback(&CursorPositionListener::setCursorToItem, dir, currentItemHash);
+			_currentItemChangeListener.invokeCallback(&CursorPositionListener::setCursorToItem, _panelPosition, _id, dir, currentItemHash);
 		});
 	}
 }
