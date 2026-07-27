@@ -84,11 +84,11 @@ void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedL
 		tab->addPanelContentsChangedListener(listener);
 }
 
-void CController::setCursorPositionListener(Panel p, CursorPositionListener *listener)
+void CController::setCurrentItemChangedListener(Panel p, CurrentItemChangedListener *listener)
 {
-	_cursorPositionListeners[(size_t)p].push_back(listener);
+	_currentItemChangedListeners[(size_t)p].push_back(listener);
 	for (auto& tab : _panels[(size_t)p].tabs)
-		tab->addCurrentItemChangeListener(listener);
+		tab->addCurrentItemChangedListener(listener);
 }
 
 void CController::setVolumesChangedListener(CController::IVolumeListObserver *listener)
@@ -134,8 +134,8 @@ void CController::attachListenersToTab(Panel p, CPanel& tab)
 	tab.addCurrentPathChangedListener(this);   // ...and to append to the side's visited-locations log on a real path change
 	for (auto* listener : _panelContentsListeners[(size_t)p])
 		tab.addPanelContentsChangedListener(listener);
-	for (auto* listener : _cursorPositionListeners[(size_t)p])
-		tab.addCurrentItemChangeListener(listener);
+	for (auto* listener : _currentItemChangedListeners[(size_t)p])
+		tab.addCurrentItemChangedListener(listener);
 }
 
 qulonglong CController::addTab(Panel p, const QString& path, bool activate)
@@ -295,8 +295,8 @@ void CController::restorePanelState(Panel p)
 	if (activeIndex < 0 || activeIndex >= tabPaths.size())
 		activeIndex = 0;
 
-	// Cursor (current item) position per tab, parallel to tabPaths. Absent for tabs migrated from the pre-tabs settings.
-	const QStringList tabCursors = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS).toStringList();
+	// Current item per tab, parallel to tabPaths. Absent for tabs migrated from the pre-tabs settings.
+	const QStringList tabCurrentItems = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS).toStringList();
 
 	// v1 restores only the active tab's history (saved under the legacy key).
 	const QStringList historyList = s.value(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R).toStringList();
@@ -314,10 +314,10 @@ void CController::restorePanelState(Panel p)
 		if (i == activeIndex)
 			tab.restoreHistory(history);
 		// Seed the cursor before setPath: the resulting refresh reads it back to position the cursor.
-		if (i < tabCursors.size())
+		if (i < tabCurrentItems.size())
 		{
-			if (const qulonglong cursorHash = tabCursors[i].toULongLong(); cursorHash != 0)
-				tab.setCurrentItemForFolder(tabPaths[i], cursorHash, false);
+			if (const qulonglong currentItemHash = tabCurrentItems[i].toULongLong(); currentItemHash != 0)
+				tab.setCurrentItemHashForFolder(tabPaths[i], currentItemHash, false);
 		}
 		// The active tab's setPath is deferred below so it's always the most-recently-visited entry in the
 		// side-wide visited-locations list on restore, regardless of tab order.
@@ -340,26 +340,26 @@ void CController::savePanelState(Panel p)
 	if (tabList.tabs.empty())
 		return;
 
-	QStringList tabPaths, tabCursors;
+	QStringList tabPaths, tabCurrentItems;
 	for (const auto& tab : tabList.tabs)
 	{
 		tabPaths.push_back(tab->currentDirPathPosix());
-		tabCursors.push_back(QString::number(tab->currentItemForFolder(tab->currentDirPathPosix())));
+		tabCurrentItems.push_back(QString::number(tab->currentItemHashForFolder(tab->currentDirPathPosix())));
 	}
 	const int activeIndex = (int)tabList.activeTab;
 
 	// Dedup: contents-changed also fires on watcher refreshes, where nothing relevant to persistence changed.
-	// The cursor hashes are part of the signature so a cursor move (e.g. captured at shutdown) isn't swallowed.
+	// The current-item hashes are part of the signature so a cursor move (e.g. captured at shutdown) isn't swallowed.
 	QString signature = QString::number(activeIndex);
 	for (const QString& path : tabPaths)
 	{
 		signature += QChar('\n');
 		signature += path;
 	}
-	for (const QString& cursor : tabCursors)
+	for (const QString& currentItem : tabCurrentItems)
 	{
 		signature += QChar('\n');
-		signature += cursor;
+		signature += currentItem;
 	}
 
 	if (signature == _lastSavedTabSignature[side])
@@ -369,7 +369,7 @@ void CController::savePanelState(Panel p)
 
 	CSettings s;
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS, tabPaths);
-	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS, tabCursors);
+	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS, tabCurrentItems);
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, activeIndex);
 
 	// Mirror the active tab's path to the legacy key (back-compat + crash recovery).
@@ -555,7 +555,7 @@ FileOperationResultCode CController::createFolder(const QString &parentFolder, c
 		// It must be done before calling mkpath, or #133 will occur due to asynchronous file list refresh between mkpath and the current item selection logic (it gets overwritten from CPanelWidget::fillFromList).
 		const auto newHash = CFileSystemObject(newItemPath).hash();
 		qInfo() << "New folder hash:" << newHash;
-		setCursorPositionForCurrentFolder(activePanelPosition(), newHash, false);
+		setCurrentItemHashForCurrentFolder(activePanelPosition(), newHash, false);
 	}
 
 	if (parentDir.exists(name))
@@ -564,7 +564,7 @@ FileOperationResultCode CController::createFolder(const QString &parentFolder, c
 	if (!parentDir.mkpath(name))
 	{
 		// Restore the previous current item in case of failure
-		setCursorPositionForCurrentFolder(activePanelPosition(), currentItemHash);
+		setCurrentItemHashForCurrentFolder(activePanelPosition(), currentItemHash);
 		return FileOperationResultCode::Fail;
 	}
 	else
@@ -585,7 +585,7 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 	{
 		if (parentDir.fullAbsolutePath() == activePanel().currentDirPathPosix())
 			// This is required for the UI to know to set the cursor at the new file
-			setCursorPositionForCurrentFolder(activePanelPosition(), CFileSystemObject(newFilePath).hash());
+			setCurrentItemHashForCurrentFolder(activePanelPosition(), CFileSystemObject(newFilePath).hash());
 
 		return FileOperationResultCode::Ok;
 	}
@@ -653,11 +653,11 @@ void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 	panel(p).showAllFilesFromCurrentFolderAndBelow();
 }
 
-// Indicates that we need to move cursor (e. g. a folder is being renamed and we want to keep the cursor on it)
-// This method takes the current folder in the currently active panel
-void CController::setCursorPositionForCurrentFolder(Panel p, qulonglong newCurrentItemHash, const bool notifyUi)
+// Designates a new current item (e. g. a folder is being renamed and we want to keep the cursor on it).
+// Applies to whichever folder the given panel is currently showing.
+void CController::setCurrentItemHashForCurrentFolder(Panel p, qulonglong newCurrentItemHash, const bool notifyUi)
 {
-	panel(p).setCurrentItemForFolder(panel(p).currentDirPathPosix(), newCurrentItemHash, notifyUi);
+	panel(p).setCurrentItemHashForFolder(panel(p).currentDirPathPosix(), newCurrentItemHash, notifyUi);
 	CPluginEngine::get().currentItemChanged(p, newCurrentItemHash);
 }
 
@@ -811,12 +811,12 @@ CFavoriteLocations& CController::favoriteLocations()
 // Returns hash of an item that was the last selected in the specified dir
 qulonglong CController::currentItemHashForFolder(Panel p, const QString &dir) const
 {
-	return panel(p).currentItemForFolder(dir);
+	return panel(p).currentItemHashForFolder(dir);
 }
 
 qulonglong CController::currentItemHash()
 {
-	return activePanel().currentItemForFolder(activePanel().currentDirPathPosix());
+	return activePanel().currentItemHashForFolder(activePanel().currentDirPathPosix());
 }
 
 CFileSystemObject CController::currentItem()

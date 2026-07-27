@@ -73,7 +73,7 @@ without going through `CController` getters.
   API all key on this hash. `IdentityHash` is used for the hash->object map (the key is already a hash).
 - Core->UI notification is via **listener/observer interfaces**, not Qt signals (so the core stays
   widget-agnostic and a notification can be consumed/stop-propagating). Key interfaces:
-  `PanelContentsChangedListener`, `CursorPositionListener`, `CurrentPathChangedListener`,
+  `PanelContentsChangedListener`, `CurrentItemChangedListener`, `CurrentPathChangedListener`,
   `CController::IVolumeListObserver`, `CFileOperationListener`, `FileListViewEventObserver`.
 - Worker-thread results are marshaled back to the UI thread via `CExecutionQueue` drained on a UI timer.
 - `DISABLE_COMPILER_WARNINGS` / `RESTORE_COMPILER_WARNINGS` wrap Qt/3rdparty includes (from cpputils).

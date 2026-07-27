@@ -165,11 +165,11 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	// Use the previous view's committed list to remember the selected child when navigating down.
 	const auto newItemInPreviousFolder = _itemsSourcePath == oldPathObject.fullAbsolutePath() && _itemsSourceDisplayMode == oldDisplayMode ? _items.find(_currentDirObject.hash()) : _items.end();
 	if (operation != refreshCauseCdUp && newItemInPreviousFolder != _items.end() && newItemInPreviousFolder->second.parentDirPath() != newItemInPreviousFolder->second.fullAbsolutePath())
-		// Updating the cursor when navigating downwards
-		setCurrentItemForFolder(newItemInPreviousFolder->second.parentDirPath(), _currentDirObject.hash(), false);
+		// Navigating downwards: the folder we're entering becomes the current item of the one we're leaving
+		setCurrentItemHashForFolder(newItemInPreviousFolder->second.parentDirPath(), _currentDirObject.hash(), false);
 	else if (operation == refreshCauseCdUp)
-		// Updating the cursor when navigating upwards
-		setCurrentItemForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, oldPathObject.hash() /* where we were */, false);
+		// Navigating upwards: the folder we're leaving becomes the current item of the one we're entering
+		setCurrentItemHashForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, oldPathObject.hash() /* where we were */, false);
 
 	const auto request = beginFileListUpdateLocked(NormalMode);
 	locker.unlock();
@@ -240,7 +240,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	enqueueFileListUpdate(request, refreshCauseOther);
 }
 
-// Switches to the appropriate directory and sets the cursor to the specified item
+// Switches to the appropriate directory and makes the specified item current
 bool CPanel::goToItem(const CFileSystemObject& item)
 {
 	if (!item.exists())
@@ -249,7 +249,7 @@ bool CPanel::goToItem(const CFileSystemObject& item)
 	const QString dir = item.parentDirPath();
 	// Placing the cursor is left to the refresh setPath() triggers, which reads this entry. A UI notification from
 	// here would run before that refresh, against the folder we're leaving, and find nothing.
-	setCurrentItemForFolder(dir, item.hash(), false);
+	setCurrentItemHashForFolder(dir, item.hash(), false);
 	return setPath(dir, refreshCauseOther) == FileOperationResultCode::Ok;
 }
 
@@ -279,7 +279,7 @@ QString CPanel::currentDirName() const
 	return !name.isEmpty() ? name : _currentDirObject.fullAbsolutePath();
 }
 
-// One key per folder for the cursor map. Callers pass either a CFileSystemObject path or QDir::absolutePath(),
+// One key per folder for the current-item map. Callers pass either a CFileSystemObject path or QDir::absolutePath(),
 // both already absolute, POSIX-separated and free of duplicate separators - the trailing slash is the only thing
 // that varies, and QDir::absolutePath() is the caller that omits it.
 static QString folderKey(const QString& path)
@@ -287,28 +287,28 @@ static QString folderKey(const QString& path)
 	return path.endsWith('/') ? path : path + '/';
 }
 
-void CPanel::setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash, const bool notifyUi)
+void CPanel::setCurrentItemHashForFolder(const QString& dir, qulonglong currentItemHash, const bool notifyUi)
 {
 #if defined _WIN32
 	assert_r(!dir.contains('\\'));
 #endif
-	_cursorPosForFolder[folderKey(dir)] = currentItemHash;
+	_currentItemHashForFolder[folderKey(dir)] = currentItemHash;
 
 	if (notifyUi)
 	{
 		execOnUiThread([this, dir, currentItemHash]() {
-			_currentItemChangeListener.invokeCallback(&CursorPositionListener::setCursorToItem, _panelPosition, _id, dir, currentItemHash);
+			_currentItemChangedListeners.invokeCallback(&CurrentItemChangedListener::onCurrentItemChanged, _panelPosition, _id, dir, currentItemHash);
 		});
 	}
 }
 
-qulonglong CPanel::currentItemForFolder(const QString &dir) const
+qulonglong CPanel::currentItemHashForFolder(const QString &dir) const
 {
 #if defined _WIN32
 	assert_r(!dir.contains('\\'));
 #endif
-	const auto it = _cursorPosForFolder.find(folderKey(dir));
-	return it == _cursorPosForFolder.end() ? 0 : it->second;
+	const auto it = _currentItemHashForFolder.find(folderKey(dir));
+	return it == _currentItemHashForFolder.end() ? 0 : it->second;
 }
 
 // Enumerates objects in the current directory
@@ -536,9 +536,9 @@ void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *liste
 	_panelContentsChangedListeners.addSubscriber(listener);
 }
 
-void CPanel::addCurrentItemChangeListener(CursorPositionListener * listener)
+void CPanel::addCurrentItemChangedListener(CurrentItemChangedListener * listener)
 {
-	_currentItemChangeListener.addSubscriber(listener);
+	_currentItemChangedListeners.addSubscriber(listener);
 }
 
 void CPanel::addCurrentPathChangedListener(CurrentPathChangedListener * listener)

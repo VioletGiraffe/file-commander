@@ -232,7 +232,7 @@ void CPanelWidget::initPanel(Panel p)
 
 	_controller->setPanelContentsChangedListener(p, this);
 	_controller->setVolumesChangedListener(this);
-	_controller->setCursorPositionListener(p, this);
+	_controller->setCurrentItemChangedListener(p, this);
 }
 
 void CPanelWidget::populateTriplet(PanelTab& tab)
@@ -751,17 +751,17 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
 	// An invalid index means the view has no contents to put the cursor on, not that the user moved it off every item.
-	// Recording it would erase the folder's remembered cursor position, including the one a pending navigation just set.
+	// Recording it would erase the folder's remembered current item, including the one a pending navigation just set.
 	if (!current.isValid())
 		return;
 
 	const qulonglong hash = hashBySortModelIndex(current);
-	_controller->setCursorPositionForCurrentFolder(_panelPosition, hash, false);
+	_controller->setCurrentItemHashForCurrentFolder(_panelPosition, hash, false);
 
 	emit currentItemChangedSignal(_panelPosition, hash);
 }
 
-void CPanelWidget::setCursorToItem(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash)
+void CPanelWidget::onCurrentItemChanged(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash)
 {
 	if (!displaysTab(p, tabId))
 		return;
@@ -769,7 +769,7 @@ void CPanelWidget::setCursorToItem(Panel p, qulonglong tabId, const QString& fol
 	if (ui->_list->editingInProgress())
 		return; // Can't move cursor while editing is in progress, it crashes inside Qt
 
-	// Queued, so the tab may have navigated away from the folder this position belongs to
+	// Queued, so the tab may have navigated away from the folder this item belongs to
 	if (_controller->panel(_panelPosition).currentDirObject().fullAbsolutePath() != folder)
 		return;
 
@@ -808,7 +808,7 @@ void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 
 	// Move the cursor onto the renamed entry. Only an accepted name reaches this, so child()'s precondition holds.
 	const CEntryPath renamed = source->parent().child(newName);
-	_controller->setCursorPositionForCurrentFolder(_panelPosition, CFileSystemObject{ renamed.value() }.hash());
+	_controller->setCurrentItemHashForCurrentFolder(_panelPosition, CFileSystemObject{ renamed.value() }.hash());
 }
 
 void CPanelWidget::reportFailedRename(const InlineRenameResult& result, const QString& oldName, const QString& newName)

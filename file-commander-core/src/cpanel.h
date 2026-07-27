@@ -42,24 +42,24 @@ enum FileListRefreshCause
 // Callbacks name the tab they come from: a listener is attached to every tab of a side, so a listener that only
 // deals with the one on screen (as opposed to, say, persisting all of them) must compare tabId against
 // CController::activeTabId() rather than assume the notification is about the tab it's showing. Applies to
-// CursorPositionListener below as well.
+// CurrentItemChangedListener below as well.
 struct PanelContentsChangedListener
 {
 	virtual ~PanelContentsChangedListener() = default;
 
 	virtual void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) = 0;
 	// The tab has moved to a view whose listing isn't ready yet, so the contents it reports are empty until the
-	// onPanelContentsChanged that follows. Handle display only: anything derived from the contents (cursor position,
+	// onPanelContentsChanged that follows. Handle display only: anything derived from the contents (current item,
 	// selection, persisted state, data published to plugins) must wait for that notification.
 	virtual void onPanelContentsInvalidated(Panel p, qulonglong tabId) = 0;
 };
 
-struct CursorPositionListener {
-	virtual ~CursorPositionListener() = default;
+struct CurrentItemChangedListener {
+	virtual ~CurrentItemChangedListener() = default;
 
-	// Delivered asynchronously, so folder names the directory the position was recorded for: the tab may have
-	// navigated elsewhere in the meantime, and the position doesn't apply there.
-	virtual void setCursorToItem(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash) = 0;
+	// Delivered asynchronously, so folder names the directory the item was recorded for: the tab may have
+	// navigated elsewhere in the meantime, where that item isn't the current one.
+	virtual void onCurrentItemChanged(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash) = 0;
 };
 
 // Fires only when the panel's current directory actually changes (not on every refresh, unlike
@@ -77,7 +77,7 @@ public:
 	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
 
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
-	void addCurrentItemChangeListener(CursorPositionListener * listener);
+	void addCurrentItemChangedListener(CurrentItemChangedListener * listener);
 	void addCurrentPathChangedListener(CurrentPathChangedListener * listener);
 
 	explicit CPanel(Panel position, CWorkerThreadPool& workerThreadPool, qulonglong id);
@@ -111,9 +111,9 @@ public:
 	[[nodiscard]] QString currentDirPathPosix() const;
 	[[nodiscard]] QString currentDirName() const;
 
-	void setCurrentItemForFolder(const QString& dir, qulonglong currentItemHash, bool notifyUi = true);
+	void setCurrentItemHashForFolder(const QString& dir, qulonglong currentItemHash, bool notifyUi = true);
 	// Returns hash of an item that was the last selected in the specified dir
-	[[nodiscard]] qulonglong currentItemForFolder(const QString& dir) const;
+	[[nodiscard]] qulonglong currentItemHashForFolder(const QString& dir) const;
 
 	// Enumerates objects in the current directory
 	void refreshFileList(FileListRefreshCause operation);
@@ -169,9 +169,9 @@ private:
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;
 	CHistoryList<QString>                      _history;
-	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _cursorPosForFolder;
+	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _currentItemHashForFolder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
-	CallbackCaller<CursorPositionListener>     _currentItemChangeListener;
+	CallbackCaller<CurrentItemChangedListener> _currentItemChangedListeners;
 	CallbackCaller<CurrentPathChangedListener> _currentPathChangedListeners;
 	const Panel                                _panelPosition;
 	const qulonglong                           _id; // Stable identity for this tab; assigned by CController. Distinct from _taskTag below.

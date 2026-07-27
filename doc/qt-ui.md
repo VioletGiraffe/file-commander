@@ -50,7 +50,7 @@ nearly every menu/toolbar/shortcut action is a private method here.
 ## CPanelWidget (`src/panel/cpanelwidget.{h,cpp,ui}`) — one per side
 
 `final : QWidget`, implements `IVolumeListObserver`, `PanelContentsChangedListener`,
-`FileListReturnPressOrDoubleClickObserver`, `CursorPositionListener`. The visual panel: drive buttons,
+`FileListReturnPressOrDoubleClickObserver`, `CurrentItemChangedListener`. The visual panel: drive buttons,
 path navigator, info label, the file list view, and **the tab bar**.
 
 - **Single shared view, per-tab models.** The `.ui` provides one `CFileListView`. The widget keeps a

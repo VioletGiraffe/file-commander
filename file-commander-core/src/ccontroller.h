@@ -38,7 +38,7 @@ public:
 	void loadPlugins();
 
 	void setPanelContentsChangedListener(Panel p, PanelContentsChangedListener * listener);
-	void setCursorPositionListener(Panel p, CursorPositionListener * listener);
+	void setCurrentItemChangedListener(Panel p, CurrentItemChangedListener * listener);
 	void setVolumesChangedListener(IVolumeListObserver * listener);
 
 // Notifications from UI
@@ -96,9 +96,9 @@ public:
 	void displayDirSize(Panel p, qulonglong dirHash);
 	// Flattens the current directory and displays all its child files on one level
 	void showAllFilesFromCurrentFolderAndBelow(Panel p);
-	// Indicates that we need to move cursor (e. g. a folder is being renamed and we want to keep the cursor on it)
-	// This method takes the current folder in the currently active panel
-	void setCursorPositionForCurrentFolder(Panel panel, qulonglong newCurrentItemHash, bool notifyUi = true);
+	// Designates a new current item (e. g. a folder is being renamed and we want to keep the cursor on it).
+	// Applies to whichever folder the given panel is currently showing.
+	void setCurrentItemHashForCurrentFolder(Panel panel, qulonglong newCurrentItemHash, bool notifyUi = true);
 	// Copies the full path of the currently selected item to clipboard
 	void copyCurrentItemPathToClipboard();
 
@@ -198,7 +198,7 @@ private:
 	qulonglong             _nextTabId = 1; // 0 is reserved as "no tab"/invalid
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
-	std::array<std::vector<CursorPositionListener*>, 2> _cursorPositionListeners;
+	std::array<std::vector<CurrentItemChangedListener*>, 2> _currentItemChangedListeners;
 	std::array<QString, 2> _lastSavedTabSignature; // Dedup key for savePanelState (avoids rewriting settings on every watcher refresh)
 	std::array<CHistoryList<QString>, 2> _visitedLocations; // Per-side, tab-independent visited-folders log; see visitedLocations()
 	CPluginProxy         _pluginProxy;

@@ -40,7 +40,7 @@ to its own panels purely to drive persistence and the visited-locations log).
 - **Navigation/ops (delegate to the active CPanel):** `setPath`, `navigateUp/Back/Forward`,
   `refreshPanelContents`, `itemActivated(hash,p)` (open file / cd into folder / mount archive),
   `createFolder`, `createFile`, `openTerminal`, `displayDirSize`, `showAllFilesFromCurrentFolderAndBelow`,
-  `setCursorPositionForCurrentFolder`, `copyCurrentItemPathToClipboard`, `switchToVolume`.
+  `setCurrentItemHashForCurrentFolder`, `copyCurrentItemPathToClipboard`, `switchToVolume`.
 - **Item access by hash:** `itemHashExists`, `itemByHash`, `items(hashes)`, `itemPath`, `currentItem`,
   `currentItemHash`, `currentItemHashForFolder`.
 - **Volumes:** `volumes()`, `currentVolumeInfo`, `volumeInfoForObject`, `volumeInfoById`; observer fan-out
@@ -53,7 +53,7 @@ to its own panels purely to drive persistence and the visited-locations log).
 - **Persistence (centralized here — CPanel no longer touches settings):** `restorePanelState`/`savePanelState`
   (deduped via `_lastSavedTabSignature`; migrates legacy single-path keys), `saveHistoryList` (shutdown only).
   Dtor saves state on graceful shutdown. See [persistence.md](persistence.md).
-- Records per-side listener lists `_panelContentsListeners` / `_cursorPositionListeners` so tabs created
+- Records per-side listener lists `_panelContentsListeners` / `_currentItemChangedListeners` so tabs created
   later also receive them (re-attached by `attachListenersToTab`).
 
 ## CPanel (`src/cpanel.{h,cpp}`) — one per tab
@@ -65,7 +65,7 @@ to its own panels purely to drive persistence and the visited-locations log).
   reinterpret_cast<uint64_t>(this)` tags this panel's async tasks; the dtor calls `pool.retire(_taskTag)`
   so no in-flight task touches freed memory.
 - State: `_currentDirObject` (FSO), `_items` (`FileListHashMap`), `_history` (`CHistoryList<QString>`),
-  `_cursorPosForFolder` (`segmented_map<QString,qulonglong>` — remembers cursor item per folder),
+  `_currentItemHashForFolder` (`segmented_map<QString,qulonglong>` — remembers the current item per folder),
   `_watcher` (`FileSystemWatcher`), `_currentDisplayMode` (Normal / AllObjects).
 - `setActive(bool)`: an **inactive tab releases its filesystem watch handle**; activating re-arms the watch
   and refreshes (folder changes weren't observed while inactive). Resource-saving for many tabs.
@@ -73,9 +73,9 @@ to its own panels purely to drive persistence and the visited-locations log).
 - Dir info: `currentDirObject`, `currentDirPathNative/Posix`, `currentDirName`.
 - File list: `refreshFileList(cause)`, `list()`, `itemHashExists/itemByHash/itemPathByHash/itemHashes`,
   `displayDirSize(hash)` (async size calc, then data-change notification).
-- Cursor memory: `setCurrentItemForFolder`, `currentItemForFolder`.
+- Current-item memory: `setCurrentItemHashForFolder`, `currentItemHashForFolder`.
 - Notifies three observer lists (`CallbackCaller<...>`): `PanelContentsChangedListener` (both of its
-  callbacks - see the two-notification contract in `doc/threading.md`), `CursorPositionListener`,
+  callbacks - see the two-notification contract in `doc/threading.md`), `CurrentItemChangedListener`,
   `CurrentPathChangedListener`. `restoreHistory(vector)` seeds history on restore.
 - Sync: `mutable std::recursive_mutex _fileListAndCurrentDirMutex` guards the file list + current dir
   (touched from the worker pool and the UI). `_uiThreadQueue` (`CExecutionQueue`) marshals back to UI.

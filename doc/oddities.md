@@ -18,10 +18,6 @@ Nothing here is known to break the app at runtime except where stated.
 - **Doc vs build C++ standard:** README says "C++20 minimum", but `global.pri` forces `c++2b` (C++23) and
   MSVC `/std:c++latest`. The real floor is higher than documented. Not a bug; update the README if it
   matters.
-- **Listener naming drift in `CPanel`:** method `addCurrentItemChangeListener` takes a
-  `CursorPositionListener`, and the member is `_currentItemChangeListener` (singular) while the sibling
-  lists are plural (`_panelContentsChangedListeners`, `_currentPathChangedListeners`). Two names for one
-  concept (current item == cursor position). Cosmetic.
 
 ## Architectural sharp edges (by design, but easy to break)
 

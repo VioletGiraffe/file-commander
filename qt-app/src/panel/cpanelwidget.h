@@ -26,7 +26,7 @@ class CPanelWidget final : public QWidget,
 					 private CController::IVolumeListObserver,
 					 public PanelContentsChangedListener,
 					 private FileListReturnPressOrDoubleClickObserver,
-					 public CursorPositionListener
+					 public CurrentItemChangedListener
 {
 	Q_OBJECT
 
@@ -118,7 +118,7 @@ private:
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
 	void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p, bool drivesListOrReadinessChanged) noexcept override;
 	void currentVolumeChanged(Panel p) noexcept override;
-	void setCursorToItem(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash) override;
+	void onCurrentItemChanged(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash) override;
 
 // Internal methods
 	[[nodiscard]] qulonglong hashBySortModelIndex(const QModelIndex& index) const;
