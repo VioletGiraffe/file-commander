@@ -169,6 +169,7 @@ private:
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;
 	CHistoryList<QString>                      _history;
+	// UI thread only, hence unguarded. If ever something needs to access it from a different thread, add a mutex and lock it in the accessors.
 	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _currentItemHashForFolder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CurrentItemChangedListener> _currentItemChangedListeners;
