@@ -40,11 +40,18 @@ enum FileListRefreshCause
 	refreshCauseOther
 };
 
+// Both callbacks name the tab they come from: a listener is attached to every tab of a side, so a listener that
+// only deals with the one on screen (as opposed to, say, persisting all of them) must compare tabId against
+// CController::activeTabId() rather than assume the notification is about the tab it's showing.
 struct PanelContentsChangedListener
 {
 	virtual ~PanelContentsChangedListener() = default;
 
-	virtual void onPanelContentsChanged(Panel p, FileListRefreshCause operation) = 0;
+	virtual void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) = 0;
+	// The tab has moved to a view whose listing isn't ready yet, so the contents it reports are empty until the
+	// onPanelContentsChanged that follows. Handle display only: anything derived from the contents (cursor position,
+	// selection, persisted state, data published to plugins) must wait for that notification.
+	virtual void onPanelContentsInvalidated(Panel p, qulonglong tabId) = 0;
 };
 
 struct CursorPositionListener {
@@ -142,6 +149,8 @@ private:
 	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation);
 	void recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request, FileListRefreshCause operation);
 	void enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const;
+	void enqueueContentsInvalidatedNotificationLocked(uint64_t generation) const;
+	[[nodiscard]] bool fileListGenerationIsCurrent(uint64_t generation) const;
 
 	void processContentsChangedEvent();
 

@@ -50,7 +50,9 @@ Singleton (`CPluginEngine::get()`), a `PanelContentsChangedListener` attached to
   symlinks; `QLibrary::resolve("createPlugin")`; on success `setProxy(&CController::get().pluginProxy())`
   and stores `pair<unique_ptr<plugin>, unique_ptr<QLibrary>>` (library kept alive for the plugin's lifetime).
 - Forwards `onPanelContentsChanged` / `selectionChanged` / `currentItemChanged` / `currentPanelChanged` into
-  the proxy (translating `Panel` -> `PanelPosition`).
+  the proxy (translating `Panel` -> `PanelPosition`). The plugin API only ever describes the tab on screen, so
+  contents notifications from a side's background tabs are dropped, as is `onPanelContentsInvalidated`
+  (plugins keep the last consistent path + contents pair rather than seeing an empty intermediate one).
 - **Viewer dispatch:** `viewerForCurrentFile(requiredCategory)` scans viewers whose `canViewFile` accepts the
   current item. The text viewer is omnivorous (accepts any file), so it is treated as a fallback: a specialized
   viewer wins, and a `ViewerCategory::Text` viewer is used only if nothing more specific claims the file — so

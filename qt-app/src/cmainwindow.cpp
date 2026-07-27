@@ -987,7 +987,21 @@ void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
 			currentPanelChanged(Panel::RightPanel);
 }
 
-void CMainWindow::onPanelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
+void CMainWindow::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/)
+{
+	if (tabId == _controller->activeTabId(p))
+		updatePathBarAndWindowTitle(p);
+}
+
+void CMainWindow::onPanelContentsInvalidated(Panel p, qulonglong tabId)
+{
+	// The tab's folder has already changed, so these are updated now rather than left showing the folder we came
+	// from for however long the listing takes.
+	if (tabId == _controller->activeTabId(p))
+		updatePathBarAndWindowTitle(p);
+}
+
+void CMainWindow::updatePathBarAndWindowTitle(Panel p)
 {
 	if (_currentFileList && p == _currentFileList->panelPosition())
 		ui->fullPath->setText(_controller->panel(p).currentDirPathNative());

@@ -170,7 +170,8 @@ private:
 	void saveHistoryList(Panel p);   // Writes side p's active-tab back/forward history + visited-locations log; see saveHistory()
 
 	// PanelContentsChangedListener: the controller listens to its own tabs only to persist on navigation.
-	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
+	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
 	// CurrentPathChangedListener: appends to the side's visited-locations log whenever any tab's directory changes.
 	void onCurrentPathChanged(Panel p, const QString& newPath) override;
 	// Diagnostic tripwire: after the addLatest in onCurrentPathChanged, verifies no entry was silently dropped from

@@ -67,13 +67,21 @@ std::vector<QString> CPluginEngine::activePluginNames()
 	return names;
 }
 
-void CPluginEngine::onPanelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
+void CPluginEngine::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/)
 {
 	CController& controller = CController::get();
+	if (tabId != controller.activeTabId(p))
+		return; // The plugin API exposes the panel the user is looking at, so background tabs aren't published
 
-	auto& proxy = CController::get().pluginProxy();
+	auto& proxy = controller.pluginProxy();
 	// TODO: copying all the data on every refresh, do we need this??
 	proxy.panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirPathPosix(), controller.panel(p).list());
+}
+
+void CPluginEngine::onPanelContentsInvalidated(Panel /*p*/, qulonglong /*tabId*/)
+{
+	// Plugins keep the last path + contents pair they were given until the new listing arrives. Publishing the
+	// intermediate state would pair the new path with an empty list, i.e. show them a folder that isn't empty as one that is.
 }
 
 void CPluginEngine::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)

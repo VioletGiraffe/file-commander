@@ -74,8 +74,9 @@ to its own panels purely to drive persistence and the visited-locations log).
 - File list: `refreshFileList(cause)`, `list()`, `itemHashExists/itemByHash/itemPathByHash/itemHashes`,
   `displayDirSize(hash)` (async size calc, then data-change notification).
 - Cursor memory: `setCurrentItemForFolder`, `currentItemForFolder`.
-- Notifies three observer lists (`CallbackCaller<...>`): `PanelContentsChangedListener`,
-  `CursorPositionListener`, `CurrentPathChangedListener`. `restoreHistory(vector)` seeds history on restore.
+- Notifies three observer lists (`CallbackCaller<...>`): `PanelContentsChangedListener` (both of its
+  callbacks - see the two-notification contract in `doc/threading.md`), `CursorPositionListener`,
+  `CurrentPathChangedListener`. `restoreHistory(vector)` seeds history on restore.
 - Sync: `mutable std::recursive_mutex _fileListAndCurrentDirMutex` guards the file list + current dir
   (touched from the worker pool and the UI). `_uiThreadQueue` (`CExecutionQueue`) marshals back to UI.
 

@@ -60,12 +60,12 @@ public:
 	void duplicateCurrentTab();   // Opens a background tab with the same path (menu counterpart of the tab context menu's "Duplicate tab")
 	void closeAllTabsExceptCurrent();
 
-	// Returns the list of items added to the view
 	void fillFromList(FileListRefreshCause operation);
-	void fillFromPanel(const CPanel& panel, FileListRefreshCause operation);
+	void fillFromPanel(FileListRefreshCause operation);
 
 	// CPanel observers
-	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
+	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
 
 	[[nodiscard]] CFileListView* fileListView() const;
 	[[nodiscard]] QAbstractItemModel* model() const;
@@ -141,6 +141,7 @@ private:
 	};
 	void populateTriplet(PanelTab& tab);            // Wires a model / sort-proxy / selection-model trio into an already-emplaced tab (not shown yet)
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
+	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
 	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, restoring its own column widths and sort
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);
@@ -159,7 +160,6 @@ private:
 	CFileListFilterDialog          * _filterDialog = nullptr;
 	std::vector<CFileSystemObject>  _disks;
 	QString                         _currentVolumePath;
-	QString                         _directoryCurrentlyBeingDisplayed;
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;
 	// The active tab's triplet (also held in _tabs[_activeTab]); kept as members so the rest of the widget stays tab-agnostic.

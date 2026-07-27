@@ -301,7 +301,7 @@ void CPanelWidget::activateTab(int index)
 	}
 
 	// Show the now-active panel's contents immediately (the CPanel may also refresh asynchronously on activation).
-	fillFromPanel(_controller->panel(_panelPosition), refreshCauseOther);
+	fillFromPanel(refreshCauseOther);
 }
 
 void CPanelWidget::createNewTab()
@@ -570,28 +570,21 @@ qulonglong CPanelWidget::tabIdAt(int index) const
 	return ui->_tabBar->tabData(index).toULongLong();
 }
 
-// Returns the list of items added to the view
 void CPanelWidget::fillFromList(FileListRefreshCause operation)
 {
 	CTimeElapsed timer{ true };
 
 	disconnect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 
-	const QString previousFolder = _directoryCurrentlyBeingDisplayed;
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
 
 	_model->onPanelContentsChanged(_controller->panel(_panelPosition).itemHashes());
 
 	auto indexUnderCursor = _sortModel->index(0, 0);
 
-	// Setting the cursor position as appropriate
-	if (operation == refreshCauseCdUp)
-	{
-		const auto previousFolderHash = CFileSystemObject{ previousFolder }.hash();
-		if (const auto index = indexByHash(previousFolderHash); index.isValid())
-			indexUnderCursor = index;
-	}
-	else if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
+	// Setting the cursor position as appropriate. Stepping up is not a special case here: setPath() has already
+	// recorded the folder we came from as the current item for the folder we arrived at.
+	if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
 		const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPathPosix());
 		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo, true);
@@ -611,7 +604,7 @@ void CPanelWidget::fillFromList(FileListRefreshCause operation)
 		qInfo() << __FUNCTION__ << "Procesing" << _model->rowCount() << "items took" << timer.elapsed() << "ms";
 }
 
-void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause operation)
+void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 {
 	const auto previousSelection = selectedItemsHashes(true);
 	// Mapping hash -> full path, so that a hash collision against a different, unrelated file that appears after the refresh can't cause it to be silently re-selected in place of the item the user actually had selected.
@@ -620,7 +613,6 @@ void CPanelWidget::fillFromPanel(const CPanel &panel, FileListRefreshCause opera
 		selectedItemsHashes[selectedItemHash] = _controller->itemByHash(_panelPosition, selectedItemHash).fullAbsolutePath();
 
 	fillFromList(operation);
-	_directoryCurrentlyBeingDisplayed = panel.currentDirPathPosix();
 
 	// Restoring previous selection
 	if (!selectedItemsHashes.empty())
@@ -757,7 +749,12 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
-	const qulonglong hash = current.isValid() ? hashBySortModelIndex(current) : 0;
+	// An invalid index means the view has no contents to put the cursor on, not that the user moved it off every item.
+	// Recording it would erase the folder's remembered cursor position, including the one a pending navigation just set.
+	if (!current.isValid())
+		return;
+
+	const qulonglong hash = hashBySortModelIndex(current);
 	_controller->setCursorPositionForCurrentFolder(_panelPosition, hash, false);
 
 	emit currentItemChangedSignal(_panelPosition, hash);
@@ -1310,13 +1307,31 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	return QWidget::eventFilter(object, e);
 }
 
-void CPanelWidget::onPanelContentsChanged(Panel p , FileListRefreshCause operation)
+void CPanelWidget::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation)
 {
-	if (p == _panelPosition)
-	{
-		fillFromPanel(_controller->panel(_panelPosition), operation);
-		updateTabText(_activeTab);
-	}
+	if (!displaysTab(p, tabId))
+		return;
+
+	fillFromPanel(operation);
+	updateTabText(_activeTab);
+}
+
+void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
+{
+	if (!displaysTab(p, tabId))
+		return;
+
+	// Display only - see PanelContentsChangedListener. The tab is already at the new folder, so its name is shown
+	// right away instead of lagging behind for however long the listing takes.
+	_model->onPanelContentsChanged({});
+	updateInfoLabel({});
+	updateTabText(_activeTab);
+}
+
+// Every tab of this side notifies us, but only one of them is on screen.
+bool CPanelWidget::displaysTab(Panel p, qulonglong tabId) const
+{
+	return p == _panelPosition && tabId == tabIdAt(_activeTab);
 }
 
 CFileListView *CPanelWidget::fileListView() const

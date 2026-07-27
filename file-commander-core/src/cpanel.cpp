@@ -76,8 +76,10 @@ CPanel::FileListUpdateRequest CPanel::beginFileListUpdateLocked(CurrentDisplayMo
 {
 	_currentDisplayMode = displayMode;
 	FileListUpdateRequest request{ ++_fileListGeneration, _currentDirObject.fullAbsolutePath(), displayMode };
+	// The committed list now belongs to a view we've left, and the accessors hide it from here on, so the UI has to
+	// be told to stop displaying it. Not a refresh: there are no contents to report until this update completes.
 	if (!fileListBelongsToCurrentViewLocked())
-		enqueueContentsChangedNotificationLocked(refreshCauseOther, request.generation);
+		enqueueContentsInvalidatedNotificationLocked(request.generation);
 
 	return request;
 }
@@ -496,14 +498,29 @@ void CPanel::sendContentsChangedNotification(FileListRefreshCause operation) con
 void CPanel::enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const
 {
 	execOnUiThread([this, operation, generation]() {
-		{
-			std::lock_guard locker(_fileListAndCurrentDirMutex);
-			if (generation != _fileListGeneration)
-				return;
-		}
+		if (!fileListGenerationIsCurrent(generation))
+			return;
 
-		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsChanged, _panelPosition, operation);
+		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsChanged, _panelPosition, _id, operation);
 	}, ContentsChangedNotificationTag);
+}
+
+// Shares ContentsChangedNotificationTag with the notification above: when the update completes within the same UI
+// queue drain, the contents-changed notification replaces this one and the view never blanks.
+void CPanel::enqueueContentsInvalidatedNotificationLocked(uint64_t generation) const
+{
+	execOnUiThread([this, generation]() {
+		if (!fileListGenerationIsCurrent(generation))
+			return;
+
+		_panelContentsChangedListeners.invokeCallback(&PanelContentsChangedListener::onPanelContentsInvalidated, _panelPosition, _id);
+	}, ContentsChangedNotificationTag);
+}
+
+bool CPanel::fileListGenerationIsCurrent(uint64_t generation) const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	return generation == _fileListGeneration;
 }
 
 void CPanel::uiThreadTimerTick()

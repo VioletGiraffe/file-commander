@@ -397,9 +397,16 @@ void CController::saveHistoryList(Panel p)
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_VISITED_LOCATIONS : KEY_RPANEL_VISITED_LOCATIONS, QStringList(visitedDeque.cbegin(), visitedDeque.cend()));
 }
 
-void CController::onPanelContentsChanged(Panel p, FileListRefreshCause /*operation*/)
+// Every tab is persisted, so this deliberately doesn't filter by tabId.
+void CController::onPanelContentsChanged(Panel p, qulonglong /*tabId*/, FileListRefreshCause /*operation*/)
 {
 	savePanelState(p);
+}
+
+void CController::onPanelContentsInvalidated(Panel /*p*/, qulonglong /*tabId*/)
+{
+	// Nothing to persist yet: the cursor hash for the folder being navigated to is only meaningful once its
+	// contents are in, and the path is saved by the contents-changed notification that follows.
 }
 
 void CController::onCurrentPathChanged(Panel p, const QString& newPath)

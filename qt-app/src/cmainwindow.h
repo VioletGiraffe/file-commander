@@ -114,7 +114,9 @@ private:
 	void focusChanged(QWidget * old, QWidget * now);
 
 private:
-	void onPanelContentsChanged(Panel p, FileListRefreshCause operation) override;
+	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
+	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
+	void updatePathBarAndWindowTitle(Panel p);
 
 private:
 	void initCore();

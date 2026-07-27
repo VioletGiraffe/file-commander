@@ -49,6 +49,19 @@ only through the guarded commit funnel when the request is still current; obsole
 callbacks are discarded. The retained list is labeled with its source path and display mode, and accessors
 hide it as soon as the panel moves to a different view. Preserve this for every new list-producing operation.
 
+Because the accessors start hiding the list the moment the panel moves, an update spans two observer
+notifications, and they mean different things. `onPanelContentsInvalidated` says the previous contents no
+longer apply and the tab currently reports none — observers may update what's on screen and nothing else.
+`onPanelContentsChanged` says the new contents are committed, and only it carries a `FileListRefreshCause`,
+because only it corresponds to a navigation. Anything derived from the contents (cursor position, selection,
+persisted state, data published to plugins) belongs in the latter: deriving it from the intermediate state
+means deriving it from an empty listing labeled with the destination folder. The two share a notification tag,
+so an update that completes within one UI queue drain replaces the invalidation and the view never blanks.
+
+Both carry the id of the tab they come from. A listener is registered per side and attached to every tab of it,
+so a listener concerned with the tab on screen must compare that id against `CController::activeTabId()`;
+only `CController` itself, which persists every tab, handles them all.
+
 ## Locks
 
 - `CPanel::_fileListAndCurrentDirMutex` — `recursive_mutex` guarding the current directory, file-list
