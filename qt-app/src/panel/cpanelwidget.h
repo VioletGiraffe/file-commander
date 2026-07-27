@@ -60,9 +60,6 @@ public:
 	void duplicateCurrentTab();   // Opens a background tab with the same path (menu counterpart of the tab context menu's "Duplicate tab")
 	void closeAllTabsExceptCurrent();
 
-	void fillFromList(FileListRefreshCause operation);
-	void fillFromPanel(FileListRefreshCause operation);
-
 	// CPanel observers
 	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
@@ -112,6 +109,8 @@ private slots:
 	void onItemMiddleClicked(const QModelIndex& sortModelIndex); // Middle-click: opens the folder in a new tab (no-op if it's not a folder)
 
 private:
+	void fillFromList(FileListRefreshCause operation);
+	void fillFromPanel(FileListRefreshCause operation);
 	void fillHistory();
 	void updateInfoLabel(const std::vector<qulonglong>& selection);
 
@@ -170,6 +169,4 @@ private:
 	std::vector<QString>            _recentlyClosedTabsPaths; // LIFO for reopenLastClosedTab()
 	int                             _activeTab = -1;
 	Panel                           _panelPosition = Panel::UnknownPanel;
-
-	QModelIndex _previousCurrentItem;
 };

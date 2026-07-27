@@ -526,7 +526,7 @@ bool CPanel::fileListGenerationIsCurrent(uint64_t generation) const
 void CPanel::uiThreadTimerTick()
 {
 	_uiThreadQueue.exec();
-	processContentsChangedEvent();
+	refreshIfWatcherDetectedChanges();
 }
 
 void CPanel::addPanelContentsChangedListener(PanelContentsChangedListener *listener)
@@ -549,7 +549,7 @@ bool CPanel::pathIsAccessible(const QString& path) const
 	return FileSystemHelpers::pathIsAccessible(path);
 }
 
-void CPanel::processContentsChangedEvent()
+void CPanel::refreshIfWatcherDetectedChanges()
 {
 	if (_watcher.changesDetected())
 		refreshFileList(refreshCauseOther);

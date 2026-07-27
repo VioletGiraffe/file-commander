@@ -36,7 +36,6 @@ enum FileListRefreshCause
 {
 	refreshCauseForwardNavigation,
 	refreshCauseCdUp,
-	refreshCauseNewItemCreated,
 	refreshCauseOther
 };
 
@@ -128,8 +127,6 @@ public:
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);
 
-	void sendContentsChangedNotification(FileListRefreshCause operation) const;
-
 	void uiThreadTimerTick();
 
 private:
@@ -148,11 +145,12 @@ private:
 	void enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation);
 	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation);
 	void recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request, FileListRefreshCause operation);
+	void sendContentsChangedNotification(FileListRefreshCause operation) const;
 	void enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const;
 	void enqueueContentsInvalidatedNotificationLocked(uint64_t generation) const;
 	[[nodiscard]] bool fileListGenerationIsCurrent(uint64_t generation) const;
 
-	void processContentsChangedEvent();
+	void refreshIfWatcherDetectedChanges();
 
 	template <typename Functor>
 	void execOnUiThread(Functor&& f, int tag = -1) const noexcept
