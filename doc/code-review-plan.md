@@ -39,8 +39,9 @@ adapter -> A.
 2. **Concurrency** — every field touched off the UI thread must be guarded or atomic; check queue-drain
    ordering and re-entrancy on the recursive mutexes. (Project rule: never skip a dedicated threading pass —
    see [threading.md](threading.md).)
-3. **Error handling** — `FileOperationResultCode` / `lastErrorMessage` propagated, not swallowed; native
-   API failures checked; partial-state cleanup on failure/cancel.
+3. **Error handling** — errors propagated, not swallowed: `std::expected<T, CFileSystemError>` in the
+   file-op engine, `FileOperationResultCode` for navigation; native API failures checked; partial-state
+   cleanup on failure/cancel.
 4. **Hash identity** — code keying on `qulonglong` item hash must tolerate collisions/stale hashes (fall back
    to first item, never crash/misfile).
 5. **Cross-platform** — `#ifdef _WIN32`/`win*{}` branches have parity; a change to one OS path has the
@@ -55,13 +56,17 @@ adapter -> A.
 ### A. File-operation engine
 - **Files:** `fileoperations/` — `cfilesystemmutator`, `cstagedfilecopy`, `cdestinationresolver`,
   `csourcetreebuilder`, `coperationexecutioncontext`, `ctransferexecutor`, `cdeleteexecutor`,
-  `cfileoperationjob`, `inlinerename`, plus the type headers (`fileoperationtypes`, `centrypath`).
+  `cfileoperationjob`, `inlinerename`, `newnamecheck`, plus the types and path/name vocabulary
+  (`fileoperationtypes`, `centrypath`).
 - **Why first:** data-loss potential; the most consequential code in the repo.
 - **Focus:** no-follow link discipline (act on the link entry, never its target); staged-copy atomicity and
   temp-file cleanup on every failure/cancel path; rename-first move + the committed source-cleanup segment
   (no cancellation checkpoint, item-only prompts); conservative error classification (`ReadOnly` only from
   unambiguous native codes); the remembered-decision table (per `IssueKind`, rememberable actions only);
-  progress totals staying absent until every root is scanned; and the `CFileOperationJob` worker<->UI
+  progress totals staying absent until every root is scanned; the name/path vocabulary — `parseOperationPath`
+  and `checkNewEntryName` judge untrusted text exactly as entered, never trimmed, since a trailing space
+  belongs to the name and trimming would address a different entry, with `'\'`-as-separator diverging per OS
+  (`isSingleComponentName`, `isSyntheticParentEntry`); and the `CFileOperationJob` worker<->UI
   handshake (lost/spurious-wakeup, the mutex-guarded event queue and cancellation flag). The executors are
   synchronous — most findings need no threading reasoning; the job is the one concurrent piece.
 - **Effort:** max. **Delegation:** the primitives/executors split cleanly across subagents by file; keep the
@@ -172,6 +177,8 @@ I (subsystems) ── J (app shell)        Tier 4: last, lowest risk
 - Tiers 3 and 4 are mutually independent -> good parallel-subagent candidates; Tier 1 stays in the main
   thread for finding correlation.
 - For a **diff** that spans tabs, expect to touch C + D together (tabs are split core/UI by design).
+- Name validation is split the same way: `checkNewEntry*` (A) returns the reason, the UI supplies the wording
+  (`newNameRejectionText`, J) — a change to the rejection set spans A + D + J.
 
 ## Tooling
 
