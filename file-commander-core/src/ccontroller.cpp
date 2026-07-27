@@ -20,6 +20,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <functional>
 #include <thread>
 
 CController* CController::_instance = nullptr;
@@ -665,16 +666,6 @@ void CController::copyCurrentItemPathToClipboard()
 	const auto item = currentItem();
 	if (item.isValid())
 		QApplication::clipboard()->setText(escapedPath(toNativeSeparators(item.fullAbsolutePath())));
-}
-
-void CController::execOnWorkerThread(std::function<void ()> task)
-{
-	_workerThreadPool.enqueue(std::move(task));
-}
-
-void CController::execOnUiThread(std::function<void ()> task, int tag)
-{
-	_uiQueue.enqueue(std::move(task), tag);
 }
 
 const CPanel &CController::panel(Panel p) const

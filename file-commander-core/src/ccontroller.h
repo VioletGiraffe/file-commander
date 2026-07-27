@@ -12,7 +12,6 @@
 #endif
 
 #include <array>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -104,8 +103,18 @@ public:
 	void copyCurrentItemPathToClipboard();
 
 // Threading
-	void execOnWorkerThread(std::function<void()> task);
-	void execOnUiThread(std::function<void ()> task, int tag = -1);
+	// Templated so a callable goes straight into the target queue's own type erasure instead of through a std::function first
+	template <typename Functor>
+	void execOnWorkerThread(Functor&& f)
+	{
+		_workerThreadPool.enqueue(std::forward<Functor>(f));
+	}
+
+	template <typename Functor>
+	void execOnUiThread(Functor&& f, int tag = -1)
+	{
+		_uiQueue.enqueue(std::forward<Functor>(f), tag);
+	}
 
 // Getters
 	[[nodiscard]] const CPanel& panel(Panel p) const;

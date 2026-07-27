@@ -46,6 +46,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <assert.h>
+#include <functional>
 #include <unordered_set>
 
 struct FolderContentsSummary {
