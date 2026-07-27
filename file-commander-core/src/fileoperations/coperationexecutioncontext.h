@@ -2,6 +2,8 @@
 
 #include "fileoperationtypes.h"
 
+#include "3rdparty/magic_enum/magic_enum.hpp"
+
 #include <array>
 #include <chrono>
 #include <functional>
@@ -108,7 +110,7 @@ private:
 	COperationProgress _progress;
 
 	// Keyed by IssueKind; only actions rememberable per the normative table are ever stored.
-	std::array<std::optional<DecisionAction>, 6> _rememberedDecisions;
+	std::array<std::optional<DecisionAction>, magic_enum::enum_count<IssueKind>()> _rememberedDecisions;
 
 	OperationSummary _accumulatedSummary;
 };

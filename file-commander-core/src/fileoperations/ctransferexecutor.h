@@ -13,7 +13,7 @@ class CStagedFileCopy;
 class CTransferExecutor
 {
 public:
-	explicit CTransferExecutor(COperationExecutionContext& context, uint64_t transferChunkSize = 8 * 1024 * 1024) noexcept;
+	explicit CTransferExecutor(COperationExecutionContext& context, uint64_t transferChunkSize) noexcept;
 
 	[[nodiscard]] OperationSummary run(const TransferRequest& request);
 

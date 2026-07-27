@@ -787,7 +787,7 @@ TEST_CASE("move executor: raced read-only state during committed removal", "[mov
 	const auto request = makeTransferRequest(TransferKind::Move, { filePath }, DestinationIntent::IntoDirectory, base % "/dest");
 	REQUIRE(request.has_value());
 	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
-	CTransferExecutor executor{ context };
+	CTransferExecutor executor{ context, defaultTransferChunkSize };
 
 	OperationSummary summary;
 	std::thread worker{ [&] { summary = executor.run(*request); } };
