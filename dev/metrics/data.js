@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785171630306,
+  "lastUpdate": 1785173462168,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -9550,6 +9550,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (app)",
             "value": 16448,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1320.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 709.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 380.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c57f9814b37466a22e1bcfa4157f6adca5d79cc7",
+          "message": "CFileSystemWatcherTimerBased: issue with missing updates (changes never become visible) fixed (Linux/Macos)",
+          "timestamp": "2026-07-27T20:25:15+03:00",
+          "tree_id": "7f11ebae143b47008eeca0f38ab11edd09ac4a86",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c57f9814b37466a22e1bcfa4157f6adca5d79cc7"
+        },
+        "date": 1785173458429,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16469,
             "unit": "LOC"
           },
           {
