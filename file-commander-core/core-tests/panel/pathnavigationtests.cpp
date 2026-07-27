@@ -95,7 +95,7 @@ TEST_CASE("CPanel - a folder that vanishes before its listing runs falls back to
 	const QString doomed = tree.makeDir(QStringLiteral("doomed"));
 
 	PanelHarness h;
-	REQUIRE(h.panel().setPath(doomed, refreshCauseOther) == FileOperationResultCode::Ok);
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
 	h.settle();
 	h.listener().clear();
 
