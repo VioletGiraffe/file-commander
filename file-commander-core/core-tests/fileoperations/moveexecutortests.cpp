@@ -167,16 +167,28 @@ TEST_CASE("move executor: cancellation is checked when a destination race restar
 		REQUIRE(QDir{}.mkpath(base % "/source"));
 		writeTestFile(base % "/occupied", QByteArray{ "OLD" });
 
+		CFaultHookScope hooks;
 		OperationScript script{ .decisions = {
 			Decision{ DecisionAction::Rename, DecisionScope::ThisItem, QStringLiteral("raced") },
 			act(DecisionAction::Skip) } };
 		script.onDecisionRequest = [&](const DecisionRequest&) {
 			if (script.nextDecision == 0)
-				writeTestFile(base % "/raced", QByteArray{ "RACE" });
+				hooks.armBarrier(Point::RenameEntry_Native);
 		};
 		script.cancelAtCheckpoint = [&] { return script.nextDecision == 1; };
+		const auto request = makeTransferRequest(TransferKind::Move, { base % "/source" },
+			DestinationIntent::ExactEntry, base % "/occupied");
+		REQUIRE(request.has_value());
+		auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
+		CTransferExecutor executor{ context, defaultTransferChunkSize };
 
-		const auto summary = runMove(script, { base % "/source" }, DestinationIntent::ExactEntry, base % "/occupied");
+		OperationSummary summary;
+		std::thread worker{ [&] { summary = executor.run(*request); } };
+
+		REQUIRE(hooks.waitForBarrier(Point::RenameEntry_Native, std::chrono::milliseconds{ 5000 }));
+		writeTestFile(base % "/raced", QByteArray{ "RACE" });
+		hooks.releaseBarrier(Point::RenameEntry_Native);
+		worker.join();
 
 		CHECK(summary.status == CompletionStatus::Cancelled);
 		CHECK(!entryAbsent(base % "/source"));
