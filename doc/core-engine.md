@@ -97,8 +97,9 @@ Important behavioral boundaries:
    borrowed and is never removed by move cleanup.
 5. Writability remediation applies only to confirmed, non-link regular files. Generic access denied is
    `PermissionDenied`, not `ReadOnly`.
-6. Aggregate totals remain absent until every source root has been scanned. `inspectEntry()` distinguishes absence
-   from inspection failure; callers must handle both.
+6. Aggregate totals remain absent until every source root has been scanned. A descendant that disappears after
+   enumeration is omitted when its inspection or directory listing reports `NotFound`; the selected root and every
+   non-`NotFound` scan error retain their operation-level failure handling.
 7. The committed move segment between publication and source removal has no cancellation checkpoint. Its prompts
    are item-only and do not consult or update remembered decisions.
 8. Before a root file is staged or any root is renamed, the executor silently creates an absent destination-parent
@@ -126,6 +127,10 @@ time-of-check-to-time-of-use sequences are accepted limitations:
 2. After the user authorizes replacement of an existing destination entry, another process may replace that entry
    at the same path before publication. The authorization applies to the path, so publication may replace the new
    occupant without another prompt. A staged copy makes this interval potentially as long as the transfer itself.
+3. During manifest construction, a descendant may disappear between its parent's enumeration and its own
+   inspection or directory listing. A resulting `NotFound` omits that descendant from the complete manifest; it
+   does not make the operation fail merely because the race occurred later for a directory than for a file. A
+   selected root disappearing retains its existing operation-level outcome.
 
 Rechecking kind or size immediately before mutation would detect some substitutions but would neither identify an
 entry nor close the final check-to-act window. Size checks would also reject legitimate in-place modification of

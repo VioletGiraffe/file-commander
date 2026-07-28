@@ -5,6 +5,7 @@
 
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
+#include "utility/on_scope_exit.hpp"
 
 #include <algorithm>
 
@@ -18,10 +19,20 @@ struct BuildState
 	size_t discoveredCount = 0;
 	std::vector<thin_io::entry_identity> activeBranchIdentities; // Directories on the current recursion path (materializing mode only)
 
-	// Why buildNode() returned without a tree; exactly one is set on termination.
+	// Why buildNode() returned BuildStopped; exactly one is set on termination.
 	std::optional<OperationDiagnostic> failure;
 	bool cancelled = false;
 };
+
+enum class NodePosition
+{
+	Root,
+	Child
+};
+
+struct ChildVanished {};
+struct BuildStopped {};
+using BuildNodeResult = std::variant<SourceNode, ChildVanished, BuildStopped>;
 
 void publishScanProgress(BuildState& state, const CEntryPath& currentEntry)
 {
@@ -102,16 +113,25 @@ std::optional<EntrySnapshot> classifyChild(BuildState& state, CEntryPath childPa
 	}
 }
 
-// Recursive DFS producing one immutable node. nullopt = the build terminated; state says why.
-std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, const SourceOwnership ownership)
+// Recursive DFS producing one immutable node. A vanished child is recoverable by its parent; a stopped
+// build has recorded either a failure or cancellation in state.
+BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOwnership ownership, const NodePosition position)
 {
+	const size_t activeIdentityCountOnEntry = state.activeBranchIdentities.size();
+	// A frame owns every branch identity added beneath it. Restore the incoming depth on every exit,
+	// including cancellation, failure, and a recoverable child disappearance.
+	EXEC_ON_SCOPE_EXIT([&state, activeIdentityCountOnEntry] {
+		assert_debug_only(state.activeBranchIdentities.size() >= activeIdentityCountOnEntry);
+		while (state.activeBranchIdentities.size() > activeIdentityCountOnEntry)
+			state.activeBranchIdentities.pop_back();
+	});
+
 	++state.discoveredCount;
 	publishScanProgress(state, entry.path);
 
 	SourceNode node{ .entry = mv(entry), .ownership = ownership };
 
 	bool descend = false;
-	bool identityPushed = false;
 	if (node.entry.kind == OperationEntryKind::Directory)
 	{
 		descend = true;
@@ -125,14 +145,11 @@ std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, cons
 				if (identity.error().category != FileErrorCategory::NotFound)
 				{
 					failBuild(state, node.entry, identity.error());
-					return {};
+					return BuildStopped{};
 				}
 			}
 			else if (*identity)
-			{
 				state.activeBranchIdentities.push_back(**identity);
-				identityPushed = true;
-			}
 			// An identity-less filesystem cannot be cycle-protected, but such filesystems do not support
 			// links either, so an unprotected branch cannot loop.
 		}
@@ -147,7 +164,7 @@ std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, cons
 			if (targetIdentity.error().category != FileErrorCategory::NotFound)
 			{
 				failBuild(state, node.entry, targetIdentity.error());
-				return {};
+				return BuildStopped{};
 			}
 		}
 		else if (*targetIdentity)
@@ -156,7 +173,6 @@ std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, cons
 			{
 				descend = true;
 				state.activeBranchIdentities.push_back(**targetIdentity);
-				identityPushed = true;
 			}
 			// A target already on the recursion path stays a leaf: traversing it again could only
 			// duplicate content or recurse forever.
@@ -169,15 +185,18 @@ std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, cons
 		if (!state.context.checkpoint())
 		{
 			state.cancelled = true;
-			return {};
+			return BuildStopped{};
 		}
 
 		const auto native = thinIoPath(node.entry.path);
 		const auto listing = thin_io::list_directory(nativeCStr(native));
 		if (!listing)
 		{
-			failBuild(state, node.entry, makeFileSystemError(listing.error().native_code));
-			return {};
+			auto error = makeFileSystemError(listing.error().native_code);
+			if (position == NodePosition::Child && error.category == FileErrorCategory::NotFound)
+				return ChildVanished{};
+			failBuild(state, node.entry, mv(error));
+			return BuildStopped{};
 		}
 
 		const bool borrowedChildren = ownership == SourceOwnership::BorrowedThroughDirectoryLink || node.entry.kind == OperationEntryKind::DirectoryLink;
@@ -192,26 +211,24 @@ std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, cons
 				// The parent is the narrowest path that can be named faithfully. Never manufacture a child
 				// path: it could alias a different entry after the lossy decode/encode round trip.
 				failBuild(state, node.entry, unrepresentableSourceNameError());
-				return {};
+				return BuildStopped{};
 			}
 
 			auto childEntry = classifyChild(state, node.entry.path.child(*childName), listed);
 			if (!childEntry)
 			{
 				if (state.failure)
-					return {};
+					return BuildStopped{};
 				continue; // Vanished between listing and classification
 			}
 
-			auto childNode = buildNode(state, mv(*childEntry), childOwnership);
-			if (!childNode)
-				return {};
-			node.children.push_back(mv(*childNode));
+			auto childResult = buildNode(state, mv(*childEntry), childOwnership, NodePosition::Child);
+			if (auto* childNode = std::get_if<SourceNode>(&childResult))
+				node.children.push_back(mv(*childNode));
+			else if (std::holds_alternative<BuildStopped>(childResult))
+				return BuildStopped{};
 		}
 	}
-
-	if (identityPushed)
-		state.activeBranchIdentities.pop_back();
 
 	node.subtreeBytes = node.entry.size;
 	node.subtreeItems = 1;
@@ -228,9 +245,12 @@ std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, cons
 SourceTreeResult buildSourceTree(COperationExecutionContext& context, EntrySnapshot root, const SourceTreeBuildMode mode)
 {
 	BuildState state{ .context = context, .mode = mode };
-	auto tree = buildNode(state, mv(root), SourceOwnership::Owned);
-	if (tree)
+	auto result = buildNode(state, mv(root), SourceOwnership::Owned, NodePosition::Root);
+	assert_debug_only(state.activeBranchIdentities.empty());
+	if (auto* tree = std::get_if<SourceNode>(&result))
 		return mv(*tree);
+
+	assert_debug_only(std::holds_alternative<BuildStopped>(result)); // A root is never a recoverable child disappearance
 	if (state.failure)
 		return mv(*state.failure);
 

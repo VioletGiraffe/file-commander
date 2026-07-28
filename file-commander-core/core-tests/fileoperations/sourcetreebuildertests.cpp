@@ -303,6 +303,68 @@ TEST_CASE("source tree: an entry vanishing between listing and classification is
 	CHECK(childNamed(tree, QStringLiteral("thelink")) == nullptr);
 }
 
+TEST_CASE("source tree: a child directory vanishing before its listing is silently omitted", "[sourcetree]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	const QString rootPath = base % "/root";
+	const QString vanishingPath = rootPath % "/vanishing";
+
+	REQUIRE(QDir{}.mkpath(vanishingPath));
+	writeTestFile(rootPath % "/stable.bin", QByteArray(100, 's'));
+
+	bool removalAttempted = false;
+	bool removalSucceeded = false;
+	ScanScript script;
+	script.cancelAtCheckpoint = [&] {
+		const auto& currentEntry = script.progress.back().currentEntry;
+		if (!removalAttempted && currentEntry && currentEntry->value() == vanishingPath)
+		{
+			removalAttempted = true;
+			removalSucceeded = QDir{}.rmdir(vanishingPath);
+		}
+		return false;
+	};
+	auto context = scanContext(script);
+	auto result = buildSourceTree(context, snapshotOf(rootPath), SourceTreeBuildMode::MaterializingTransfer);
+
+	REQUIRE(removalAttempted);
+	REQUIRE(removalSucceeded);
+	REQUIRE(std::holds_alternative<SourceNode>(result));
+	const SourceNode& tree = std::get<SourceNode>(result);
+	CHECK(tree.subtreeItems == 2);
+	CHECK(tree.subtreeBytes == 100);
+	CHECK(childNamed(tree, QStringLiteral("stable.bin")) != nullptr);
+	CHECK(childNamed(tree, QStringLiteral("vanishing")) == nullptr);
+}
+
+TEST_CASE("source tree: a root directory vanishing before its listing remains a failure", "[sourcetree]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString rootPath = tempDir.path() % "/root";
+	REQUIRE(QDir{}.mkpath(rootPath));
+	const EntrySnapshot rootSnapshot = snapshotOf(rootPath);
+
+	bool removalSucceeded = false;
+	ScanScript script;
+	script.cancelAtCheckpoint = [&] {
+		if (!removalSucceeded)
+			removalSucceeded = QDir{}.rmdir(rootPath);
+		return false;
+	};
+	auto context = scanContext(script);
+	auto result = buildSourceTree(context, rootSnapshot, SourceTreeBuildMode::MaterializingTransfer);
+
+	REQUIRE(removalSucceeded);
+	REQUIRE(std::holds_alternative<OperationDiagnostic>(result));
+	const OperationDiagnostic& diagnostic = std::get<OperationDiagnostic>(result);
+	CHECK(diagnostic.source.path.value() == rootPath);
+	CHECK(diagnostic.failure.action == FailedAction::InspectSource);
+	CHECK(diagnostic.failure.filesystemError.category == FileErrorCategory::NotFound);
+}
+
 #if !defined(_WIN32) && !defined(__APPLE__)
 TEST_CASE("source tree: a non-round-tripping POSIX name aborts the manifest before decode aliases can form", "[sourcetree][posix]")
 {

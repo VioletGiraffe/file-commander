@@ -120,17 +120,15 @@ diagnostic. It is never classified as `NotFound`, skipped silently, or converted
 This prevents incomplete-success reports and wrong-entry mutations but deliberately does not operate on the
 offending entry.
 
-### 2. Genuine disappearance races
+### 2. Genuine disappearance races (implemented)
 
-Once conversion failures are separated, make directory disappearance match file disappearance: a
-`list_directory()` `NotFound` result for a non-root node means that child vanished and the parent scan continues.
-The selected root retains its existing operation-level handling. The builder needs an explicit internal result
-such as `Node`, `ChildVanished`, and `BuildStopped`; overloading an empty optional would make cancellation,
-failure, and benign disappearance too easy to confuse.
+Directory disappearance now matches file disappearance: a `list_directory()` `NotFound` result for a non-root
+node means that child vanished and the parent scan continues. The selected root retains its existing
+operation-level handling. The builder uses explicit `Node`, `ChildVanished`, and `BuildStopped` internal results;
+cancellation, failure, and benign disappearance do not share an empty optional.
 
-This change also requires guaranteed unwinding of `activeBranchIdentities`. Today a failure can leave an identity
-pushed because the entire build ends. A vanished child becomes a recoverable return, so the push/pop must become
-RAII-managed before the parent is allowed to continue.
+Each recursive frame restores `activeBranchIdentities` to its incoming depth on scope exit. Recovery from a
+vanished child therefore cannot leave stale cycle-detection state in the continuing parent scan.
 
 ### 3. Native paths inside the operation engine
 
