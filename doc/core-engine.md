@@ -99,6 +99,29 @@ Important behavioral boundaries:
 7. The committed move segment between publication and source removal has no cancellation checkpoint. Its prompts
    are item-only and do not consult or update remembered decisions.
 
+### Accepted data races and TOCTOU sequences
+
+The file-operation engine does not lock filesystem namespaces against concurrent changes by other processes. In
+this section, "data race" means that external filesystem activity races the operation; it does not mean an
+unsynchronized C++ memory access.
+
+Source manifests and replacement decisions are path-bound rather than filesystem-identity-bound. The following
+time-of-check-to-time-of-use sequences are accepted limitations:
+
+1. After a source entry is scanned, another process may move it away and place a different same-kind entry at the
+   same path. A later source-side action can then open, rename, modify, or remove the replacement. This includes
+   permanent deletion, per-child rename during a merged move, directory-timestamp handling, and removal of an owned
+   source after a copy-based move has published its destination.
+2. After the user authorizes replacement of an existing destination entry, another process may replace that entry
+   at the same path before publication. The authorization applies to the path, so publication may replace the new
+   occupant without another prompt. A staged copy makes this interval potentially as long as the transfer itself.
+
+Rechecking kind or size immediately before mutation would detect some substitutions but would neither identify an
+entry nor close the final check-to-act window. Size checks would also reject legitimate in-place modification of
+the original file while missing a same-sized replacement. Do not add such heuristics as if they were an identity
+guarantee. A future hardening pass would need stable identities carried through the manifest and replacement
+authorization plus handle-bound or conditional native mutation where the platform supports it.
+
 Inline rename (`inlinerename.{h,cpp}`) is a separate synchronous command with its own replacement matrix, reusing
 the name, inspection, identity, and native rename primitives. Test-only deterministic errors/barriers are isolated
 in `operationtesthooks.{h,cpp}` and compile out without `FILE_OPERATIONS_TEST_HOOKS`.

@@ -486,13 +486,13 @@ std::expected<DirectoryCreationOutcome, CFileSystemError> CFileSystemMutator::cr
 
 	if (classifyNativeError(errorCode) == FileErrorCategory::AlreadyExists)
 	{
-		// mkdir reports the collision for any entry type; only a directory (or directory link) counts as
-		// the final directory already existing. Anything else re-enters resolution as a collision error.
+		// Preserve a proven collision as an outcome; the destination resolver owns its entry-kind policy.
+		// A phantom AlreadyExists remains an error rather than becoming an invisible create/resolve loop.
 		const auto existing = inspectEntry(path);
 		if (!existing)
 			return std::unexpected(existing.error());
-		if (*existing && ((*existing)->kind == OperationEntryKind::Directory || (*existing)->kind == OperationEntryKind::DirectoryLink))
-			return DirectoryCreationOutcome::FinalDirectoryAlreadyExisted;
+		if (existing->has_value())
+			return DirectoryCreationOutcome::FinalEntryAlreadyExisted;
 	}
 
 	return std::unexpected(makeFileSystemError(errorCode));

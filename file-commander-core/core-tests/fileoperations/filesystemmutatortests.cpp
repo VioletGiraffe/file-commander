@@ -872,16 +872,16 @@ TEST_CASE("createDirectories: creation, deep chain, and pre-existing outcomes", 
 
 	const auto repeated = CFileSystemMutator::createDirectories(ep(base % "/a/b/c/d"));
 	REQUIRE(repeated.has_value());
-	CHECK(*repeated == DirectoryCreationOutcome::FinalDirectoryAlreadyExisted);
+	CHECK(*repeated == DirectoryCreationOutcome::FinalEntryAlreadyExisted);
 
-	// A directory link at the final path counts as the directory existing; resolution decides what that means
+	// A directory link is a proven collision too; destination resolution decides what that means.
 	REQUIRE(createDirectoryLink(base % "/newdir", base % "/dirlink"));
 	const auto linkExisted = CFileSystemMutator::createDirectories(ep(base % "/dirlink"));
 	REQUIRE(linkExisted.has_value());
-	CHECK(*linkExisted == DirectoryCreationOutcome::FinalDirectoryAlreadyExisted);
+	CHECK(*linkExisted == DirectoryCreationOutcome::FinalEntryAlreadyExisted);
 }
 
-TEST_CASE("createDirectories: a non-directory collision and an unusable parent are errors", "[mutator]")
+TEST_CASE("createDirectories: a final-entry collision is an outcome and an unusable parent is an error", "[mutator]")
 {
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
@@ -890,8 +890,8 @@ TEST_CASE("createDirectories: a non-directory collision and an unusable parent a
 	writeTestFile(base % "/file.bin", QByteArray(10, 'f'));
 
 	const auto fileCollision = CFileSystemMutator::createDirectories(ep(base % "/file.bin"));
-	REQUIRE(!fileCollision.has_value());
-	CHECK(fileCollision.error().category == FileErrorCategory::AlreadyExists);
+	REQUIRE(fileCollision.has_value());
+	CHECK(*fileCollision == DirectoryCreationOutcome::FinalEntryAlreadyExisted);
 
 	const auto fileParent = CFileSystemMutator::createDirectories(ep(base % "/file.bin/sub"));
 	REQUIRE(!fileParent.has_value());

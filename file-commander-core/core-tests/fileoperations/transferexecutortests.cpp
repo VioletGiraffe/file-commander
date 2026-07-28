@@ -20,6 +20,9 @@ RESTORE_COMPILER_WARNINGS
 #include <sys/stat.h> // mkfifo
 #endif
 
+#include <chrono>
+#include <thread>
+
 using OperationTestHooks::CFaultHookScope;
 using OperationTestHooks::Point;
 
@@ -169,6 +172,43 @@ TEST_CASE("copy executor: root rename rebases descendants", "[executor]")
 	CHECK(summary.status == CompletionStatus::Completed);
 	CHECK(readFileContents(base % "/dest/renamed/sub/deep.bin") == patternedContents(700));
 	CHECK(QDir{ base % "/dest/src" }.isEmpty()); // The colliding directory was left alone
+}
+
+TEST_CASE("copy executor: a file raced into a directory destination re-enters resolution", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/src"));
+	writeTestFile(base % "/src/inside.bin", patternedContents(300));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	CFaultHookScope hooks;
+	hooks.armBarrier(Point::CreateDirectory_FinalNative);
+
+	OperationScript script{ .decisions = { Decision{ DecisionAction::Rename, DecisionScope::ThisItem, QStringLiteral("renamed") } } };
+	const auto request = makeTransferRequest(TransferKind::Copy, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
+	REQUIRE(request.has_value());
+	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
+	CTransferExecutor executor{ context, defaultTransferChunkSize };
+
+	OperationSummary summary;
+	std::thread worker{ [&] { summary = executor.run(*request); } };
+
+	REQUIRE(hooks.waitForBarrier(Point::CreateDirectory_FinalNative, std::chrono::milliseconds{ 5000 }));
+	writeTestFile(base % "/dest/src", QByteArray{ "RACE" });
+	hooks.releaseBarrier(Point::CreateDirectory_FinalNative);
+	worker.join();
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 2);
+	REQUIRE(script.seenRequests.size() == 1);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::TypeMismatch);
+	REQUIRE(script.seenRequests[0].issue.destination.has_value());
+	CHECK(script.seenRequests[0].issue.destination->kind == OperationEntryKind::RegularFile);
+	CHECK(readFileContents(base % "/dest/src") == QByteArray{ "RACE" });
+	CHECK(readFileContents(base % "/dest/renamed/inside.bin") == patternedContents(300));
 }
 
 TEST_CASE("copy executor: skips leave siblings running and never demote completion", "[executor]")

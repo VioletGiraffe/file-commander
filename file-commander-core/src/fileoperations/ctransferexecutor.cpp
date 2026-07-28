@@ -239,6 +239,7 @@ NodeOutcome CTransferExecutor::runDirectoryNode(const SourceNode& node, const Tr
 					: copyDirectoryContents(node, use.path, true);
 			}
 
+			assert_debug_only(*created == DirectoryCreationOutcome::FinalEntryAlreadyExisted);
 			// An entry appeared since resolution: a fresh collision, resolved anew.
 			choice = resolveDirectoryDestination(_context, node.entry, use.path, position);
 			continue;

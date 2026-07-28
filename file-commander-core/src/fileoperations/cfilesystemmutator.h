@@ -51,8 +51,8 @@ public:
 	// Removes the entry itself: links are unlinked, never followed; a directory must be empty.
 	static std::expected<void, CFileSystemError> removeEntry(const EntrySnapshot& entry);
 
-	// Creates the directory and any missing parents. FinalDirectoryAlreadyExisted (a directory or directory
-	// link already present) returns to destination resolution; any other entry at the path is an AlreadyExists error.
+	// Creates the directory and any missing parents. A freshly confirmed entry at the final path returns
+	// FinalEntryAlreadyExisted so destination resolution remains the one owner of entry-kind collision policy.
 	static std::expected<DirectoryCreationOutcome, CFileSystemError> createDirectories(const CEntryPath& path);
 
 	static std::expected<void, CFileSystemError> applyDirectoryTimes(const CEntryPath& destination, const CopyableDirectoryTimes& times);

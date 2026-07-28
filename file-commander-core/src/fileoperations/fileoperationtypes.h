@@ -119,7 +119,7 @@ struct CopyChunkResult
 enum class DirectoryCreationOutcome
 {
 	CreatedFinalDirectory, // The operation created the final directory, whether or not missing parents were created too
-	FinalDirectoryAlreadyExisted // A directory (or directory link) is already present; never operation ownership
+	FinalEntryAlreadyExisted // Fresh inspection proved that an entry is present; destination resolution decides its kind
 };
 
 // What the product transfers to an operation-created destination directory: last-write time, and creation
