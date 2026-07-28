@@ -68,3 +68,5 @@ repositories.
 - [coding-style.md](coding-style.md): authoring rules.
 - [TODO.md](TODO.md), [code-review-plan.md](code-review-plan.md), and
   [release-metadata-audit.md](release-metadata-audit.md): process and deferred-work documents.
+- [planned-refactors/native-paths.md](planned-refactors/native-paths.md): lossless native filesystem paths and
+  arbitrary POSIX filename support.

@@ -37,6 +37,12 @@ void failBuild(BuildState& state, EntrySnapshot failedEntry, CFileSystemError er
 	state.failure = OperationDiagnostic{ FailureDetails{ FailedAction::InspectSource, mv(error) }, mv(failedEntry), {} };
 }
 
+CFileSystemError unrepresentableSourceNameError()
+{
+	return { FileErrorCategory::Unsupported, 0,
+		QStringLiteral("A source entry name cannot be represented without changing its native spelling") };
+}
+
 // Classifies one listed child into a snapshot. nullopt without a recorded failure means the entry
 // vanished between the listing and its inspection - a race, the child is simply not part of the tree.
 std::optional<EntrySnapshot> classifyChild(BuildState& state, CEntryPath childPath, const thin_io::directory_entry& listed)
@@ -180,7 +186,16 @@ std::optional<SourceNode> buildNode(BuildState& state, EntrySnapshot entry, cons
 		node.children.reserve(listing->size());
 		for (const auto& listed : *listing)
 		{
-			auto childEntry = classifyChild(state, node.entry.path.child(fromNativeName(listed.name)), listed);
+			auto childName = decodeNativeNameLosslessly(listed.name);
+			if (!childName)
+			{
+				// The parent is the narrowest path that can be named faithfully. Never manufacture a child
+				// path: it could alias a different entry after the lossy decode/encode round trip.
+				failBuild(state, node.entry, unrepresentableSourceNameError());
+				return {};
+			}
+
+			auto childEntry = classifyChild(state, node.entry.path.child(*childName), listed);
 			if (!childEntry)
 			{
 				if (state.failure)

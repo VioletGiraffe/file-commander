@@ -9,13 +9,16 @@
 #include "lang/utils.hpp" // mv()
 
 DISABLE_COMPILER_WARNINGS
+#include <QFile>
 #include <QStringBuilder>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
 #ifndef _WIN32
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 using OperationTestHooks::CFaultHookScope;
@@ -299,6 +302,41 @@ TEST_CASE("source tree: an entry vanishing between listing and classification is
 	CHECK(childNamed(tree, QStringLiteral("b.bin")) != nullptr);
 	CHECK(childNamed(tree, QStringLiteral("thelink")) == nullptr);
 }
+
+#if !defined(_WIN32) && !defined(__APPLE__)
+TEST_CASE("source tree: a non-round-tripping POSIX name aborts the manifest before decode aliases can form", "[sourcetree][posix]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	REQUIRE(QDir{}.mkpath(base % "/root"));
+
+	const QChar replacementCharacter{ QChar::ReplacementCharacter };
+	const QString decodedAlias = base % "/root/" % replacementCharacter;
+	writeTestFile(decodedAlias, QByteArray{ "VALID" });
+	const SourceNode validTree = buildTree(base % "/root", SourceTreeBuildMode::PermanentDelete);
+	CHECK(childNamed(validTree, QString{ replacementCharacter }) != nullptr); // U+FFFD itself is valid when it round-trips.
+
+	QByteArray nativePath = QFile::encodeName(base % "/root/");
+	nativePath.append(static_cast<char>(0xff));
+	const int nativeFile = ::open(nativePath.constData(), O_CREAT | O_EXCL | O_WRONLY, 0600);
+	REQUIRE(nativeFile >= 0);
+	REQUIRE(::close(nativeFile) == 0);
+
+	ScanScript script;
+	auto context = scanContext(script);
+	auto result = buildSourceTree(context, snapshotOf(base % "/root"), SourceTreeBuildMode::PermanentDelete);
+
+	REQUIRE(::unlink(nativePath.constData()) == 0); // QTemporaryDir cannot address this entry through QString.
+	REQUIRE(std::holds_alternative<OperationDiagnostic>(result));
+	const OperationDiagnostic& diagnostic = std::get<OperationDiagnostic>(result);
+	CHECK(diagnostic.source.path.value() == base % "/root");
+	CHECK(diagnostic.failure.action == FailedAction::InspectSource);
+	CHECK(diagnostic.failure.filesystemError.category == FileErrorCategory::Unsupported);
+	CHECK(!diagnostic.failure.filesystemError.diagnostic.isEmpty());
+	CHECK(readFileContents(decodedAlias) == QByteArray{ "VALID" });
+}
+#endif
 
 TEST_CASE("source tree: link cycles terminate by identity", "[sourcetree][link]")
 {

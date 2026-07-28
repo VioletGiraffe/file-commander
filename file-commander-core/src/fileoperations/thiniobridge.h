@@ -11,6 +11,8 @@
 
 #include "assert/advanced_assert.h"
 
+#include <optional>
+
 // Native APIs consume NUL-terminated strings, so an embedded NUL would address only a prefix. CEntryPath rejects
 // it at construction; this last shared boundary makes any future invariant breach fail loudly in development.
 inline const QString& nativePathValue(const CEntryPath& path)
@@ -35,7 +37,7 @@ inline const wchar_t* nativeCStr(const NativePathString& path)
 	return path.c_str();
 }
 
-inline QString fromNativeName(const thin_io::native_string& name)
+inline std::optional<QString> decodeNativeNameLosslessly(const thin_io::native_string& name)
 {
 	return QString::fromStdWString(name);
 }
@@ -58,9 +60,22 @@ inline const char* nativeCStr(const NativePathString& path)
 	return path.constData();
 }
 
-inline QString fromNativeName(const thin_io::native_string& name)
+inline std::optional<QString> decodeNativeNameLosslessly(const thin_io::native_string& name)
 {
-	return QFile::decodeName(QByteArray(name.data(), static_cast<qsizetype>(name.size())));
+	const QByteArray nativeName{ name.data(), static_cast<qsizetype>(name.size()) };
+#ifdef __APPLE__
+	// QFile's Darwin codec deliberately normalizes Unicode, so its encoded bytes need not match the
+	// directory spelling. Validate the UTF-8 conversion itself before applying that normalization.
+	const QString decodedUtf8 = QString::fromUtf8(nativeName);
+	if (decodedUtf8.toUtf8() != nativeName)
+		return std::nullopt;
+	return QFile::decodeName(nativeName);
+#else
+	const QString decoded = QFile::decodeName(nativeName);
+	if (QFile::encodeName(decoded) != nativeName)
+		return std::nullopt;
+	return decoded;
+#endif
 }
 
 #endif

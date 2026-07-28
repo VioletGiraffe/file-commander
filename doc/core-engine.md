@@ -105,6 +105,10 @@ Important behavioral boundaries:
    chain. Directory materialization provides the same behavior while creating the selected directory itself.
    Existing non-directory parents and genuine inspection or creation failures use
    `ActionFailed(CreateDestinationDirectory)` policy; the mere absence of one or more parents never prompts.
+9. Before constructing a source child path, manifest scanning verifies that its native name converts to Qt path
+   text without information loss, while allowing Darwin's deliberate Unicode normalization. Failure aborts the
+   complete manifest with an `Unsupported` source-inspection diagnostic; it is never treated as a vanished child
+   or allowed to alias a different native entry.
 
 ### Accepted data races and TOCTOU sequences
 
