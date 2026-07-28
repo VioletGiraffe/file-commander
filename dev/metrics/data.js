@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785263191976,
+  "lastUpdate": 1785264511802,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -9979,6 +9979,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 709,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 380,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f43c45c38d392d6e66ffdd414c3c0f57ab04e68c",
+          "message": "Honor cancellation during move re-resolution and before staged publication; reject duplicate prompt answers",
+          "timestamp": "2026-07-28T21:43:22+03:00",
+          "tree_id": "c485a4dffa3e30fa75e8f2c550deeea29d1bde44",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f43c45c38d392d6e66ffdd414c3c0f57ab04e68c"
+        },
+        "date": 1785264509383,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16501,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1320,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 709.5,
             "unit": "KB"
           },
           {
