@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785269210762,
+  "lastUpdate": 1785270611435,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -10304,6 +10304,75 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/e0b38fd349a35e72c6a7193d5032af5eb89bc854"
         },
         "date": 1785269208174,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16664,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1326,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 714.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "52bf5120fc5f99574aee50dba14d08d52c06b24b",
+          "message": "Treat filesystem links as distinct entries during transfer destination resolution",
+          "timestamp": "2026-07-28T23:24:30+03:00",
+          "tree_id": "442e49edab897d4474f088e85014c323579ec2ce",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/52bf5120fc5f99574aee50dba14d08d52c06b24b"
+        },
+        "date": 1785270609225,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
