@@ -310,13 +310,26 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 	// rename refuses same-inode destinations).
 	const DWORD flags = replacement == ReplacementMode::ReplaceExistingFile ? MOVEFILE_REPLACE_EXISTING : 0;
 
+	NativeErrorCode errorCode;
 	if (const auto forcedError = fireHook(Point::RenameEntry_Native))
-		return std::unexpected(renameErrorFromNative(*forcedError));
+		errorCode = *forcedError;
+	else
+	{
+		if (::MoveFileExW(sourceNative.c_str(), destinationNative.c_str(), flags) != 0)
+			return {};
+		errorCode = captureNativeError();
+	}
 
-	if (::MoveFileExW(sourceNative.c_str(), destinationNative.c_str(), flags) != 0)
-		return {};
+	// ERROR_ACCESS_DENIED is also how MoveFileExW reports an unreplaceable directory-bearing destination.
+	// Refine only when fresh no-follow attributes prove that collision; ordinary permission failures remain so.
+	if (replacement == ReplacementMode::ReplaceExistingFile && errorCode == ERROR_ACCESS_DENIED)
+	{
+		const DWORD destinationAttributes = ::GetFileAttributesW(destinationNative.c_str());
+		if (destinationAttributes != INVALID_FILE_ATTRIBUTES && (destinationAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+			return std::unexpected(makeError(FileErrorCategory::AlreadyExists, errorCode));
+	}
 
-	return std::unexpected(renameErrorFromNative(captureNativeError()));
+	return std::unexpected(renameErrorFromNative(errorCode));
 #else
 	const auto sourceNative = thinIoPath(source);
 	const auto destinationNative = thinIoPath(destination);

@@ -380,6 +380,60 @@ TEST_CASE("renameEntry: directory replacement is rejected", "[mutator]")
 	CHECK(readFileContents(base % "/srcdir/inner.bin") == QByteArray(5, 'i'));
 }
 
+#ifdef _WIN32
+TEST_CASE("renameEntry: Windows refines access denied for directory-bearing replacement destinations", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/source.bin", QByteArray(10, 's'));
+	writeTestFile(base % "/file.bin", QByteArray(10, 'f'));
+	REQUIRE(QDir{}.mkpath(base % "/directory"));
+	REQUIRE(QDir{}.mkpath(base % "/link-target"));
+	REQUIRE(createDirectoryLink(base % "/link-target", base % "/dirlink"));
+
+	SECTION("real directory")
+	{
+		CFaultHookScope scope;
+		scope.forceNativeError(Point::RenameEntry_Native, ERROR_ACCESS_DENIED);
+
+		const auto result = CFileSystemMutator::renameEntry(
+			ep(base % "/source.bin"), ep(base % "/directory"), ReplacementMode::ReplaceExistingFile);
+		REQUIRE(!result.has_value());
+		CHECK(result.error().category == FileErrorCategory::AlreadyExists);
+		CHECK(result.error().nativeCode == ERROR_ACCESS_DENIED);
+		CHECK(!entryAbsent(base % "/source.bin"));
+	}
+
+	SECTION("directory link")
+	{
+		CFaultHookScope scope;
+		scope.forceNativeError(Point::RenameEntry_Native, ERROR_ACCESS_DENIED);
+
+		const auto result = CFileSystemMutator::renameEntry(
+			ep(base % "/source.bin"), ep(base % "/dirlink"), ReplacementMode::ReplaceExistingFile);
+		REQUIRE(!result.has_value());
+		CHECK(result.error().category == FileErrorCategory::AlreadyExists);
+		CHECK(result.error().nativeCode == ERROR_ACCESS_DENIED);
+		CHECK(!entryAbsent(base % "/source.bin"));
+	}
+
+	SECTION("regular file")
+	{
+		CFaultHookScope scope;
+		scope.forceNativeError(Point::RenameEntry_Native, ERROR_ACCESS_DENIED);
+
+		const auto result = CFileSystemMutator::renameEntry(
+			ep(base % "/source.bin"), ep(base % "/file.bin"), ReplacementMode::ReplaceExistingFile);
+		REQUIRE(!result.has_value());
+		CHECK(result.error().category == FileErrorCategory::PermissionDenied);
+		CHECK(result.error().nativeCode == ERROR_ACCESS_DENIED);
+		CHECK(!entryAbsent(base % "/source.bin"));
+	}
+}
+#endif
+
 #ifndef _WIN32
 TEST_CASE("renameEntry: unsupported exclusive rename degrades to recheck-then-rename", "[mutator]")
 {

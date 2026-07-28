@@ -494,6 +494,49 @@ TEST_CASE("copy executor: a collision appearing at publication re-enters resolut
 	CHECK(readFileContents(base % "/copied.bin") == contents); // Published over the raced file
 }
 
+#ifdef _WIN32
+TEST_CASE("copy executor: a directory raced into a Replace destination re-enters resolution", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	const QByteArray contents = patternedContents(2000);
+	writeTestFile(base % "/source.bin", contents);
+	writeTestFile(base % "/destination.bin", QByteArray{ "OLD" });
+
+	CFaultHookScope hooks;
+	hooks.armBarrier(Point::RenameEntry_Native);
+
+	OperationScript script{ .decisions = {
+		act(DecisionAction::Replace),
+		Decision{ DecisionAction::Rename, DecisionScope::ThisItem, QStringLiteral("renamed.bin") } } };
+	const auto request = makeTransferRequest(TransferKind::Copy, { base % "/source.bin" },
+		DestinationIntent::ExactEntry, base % "/destination.bin");
+	REQUIRE(request.has_value());
+	auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
+	CTransferExecutor executor{ context, 256 };
+
+	OperationSummary summary;
+	std::thread worker{ [&] { summary = executor.run(*request); } };
+
+	REQUIRE(hooks.waitForBarrier(Point::RenameEntry_Native, std::chrono::milliseconds{ 5000 }));
+	REQUIRE(QFile::remove(base % "/destination.bin"));
+	REQUIRE(QDir{}.mkpath(base % "/destination.bin"));
+	hooks.releaseBarrier(Point::RenameEntry_Native);
+	worker.join();
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	REQUIRE(script.seenRequests.size() == 2);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::FileReplacement);
+	CHECK(script.seenRequests[1].issue.kind == IssueKind::TypeMismatch);
+	REQUIRE(script.seenRequests[1].issue.destination.has_value());
+	CHECK(script.seenRequests[1].issue.destination->kind == OperationEntryKind::Directory);
+	CHECK(QFileInfo{ base % "/destination.bin" }.isDir());
+	CHECK(readFileContents(base % "/renamed.bin") == contents);
+}
+#endif
+
 #ifndef _WIN32
 TEST_CASE("copy executor: Other entries are skippable, links materialize", "[executor][link]")
 {

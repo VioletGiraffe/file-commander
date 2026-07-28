@@ -67,10 +67,9 @@ InlineRenameResult inlineRename(const CEntryPath& source, const QString& newName
 	const OperationEntryKind sourceKind = (*sourceInspect)->kind;
 	const OperationEntryKind destinationKind = (*destinationInspect)->kind;
 
-	// Inline rename is a single atomic native rename. A directory-like entry - a real directory or a
-	// directory link - can be neither replaced by nor the source of one: Windows refuses to replace a
-	// directory (a junction is one) via the atomic rename, and a folder is never merged. A directory link
-	// is therefore directory-like here, unlike in the batch resolver, which has staged copy to fall back on.
+	// Inline rename keeps one cross-platform matrix and rejects every directory-like entry. Batch transfer
+	// additionally follows native capability: POSIX can atomically replace a directory symlink entry, while
+	// Windows cannot replace a directory symlink or junction through either direct or staged publication.
 	const auto isDirectoryLike = [](const OperationEntryKind kind) { return kind == Directory || kind == DirectoryLink; };
 	if (isDirectoryLike(sourceKind) || isDirectoryLike(destinationKind))
 		return { .status = Rejected, .sourceKind = sourceKind, .destinationKind = destinationKind };

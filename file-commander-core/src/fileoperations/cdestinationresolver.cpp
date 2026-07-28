@@ -9,6 +9,22 @@
 namespace
 {
 
+bool fileReplacementUnsupported(const OperationEntryKind destinationKind) noexcept
+{
+	if (destinationKind == OperationEntryKind::Directory)
+		return true;
+
+#ifdef _WIN32
+	// POSIX rename() can atomically replace a directory symlink entry without touching its target. Windows
+	// records directory symlinks and junctions with FILE_ATTRIBUTE_DIRECTORY, and MoveFileExW with
+	// MOVEFILE_REPLACE_EXISTING refuses every such destination. Staged copy publishes through that same
+	// primitive, so it provides no fallback that could honor Replace on Windows.
+	return destinationKind == OperationEntryKind::DirectoryLink;
+#else
+	return false;
+#endif
+}
+
 // One prompt for a collision-type issue, owning the Rename input handling: an invalid or missing new
 // name re-asks rather than failing the node. Returns the respelled proposal for a usable Rename,
 // or the chosen non-rename action (cancellation collapses to Cancel).
@@ -71,8 +87,8 @@ DestinationChoice resolveFileDestination(COperationExecutionContext& context, co
 			return AlreadySatisfied{};
 
 		const EntrySnapshot& destinationEntry = **destination;
-		const bool destinationIsRealDirectory = destinationEntry.kind == OperationEntryKind::Directory;
-		const OperationIssue issue{ destinationIsRealDirectory ? IssueKind::TypeMismatch : IssueKind::FileReplacement,
+		const bool replacementUnsupported = fileReplacementUnsupported(destinationEntry.kind);
+		const OperationIssue issue{ replacementUnsupported ? IssueKind::TypeMismatch : IssueKind::FileReplacement,
 			source, destinationEntry, {} };
 
 		auto outcome = promptForCollision(context, issue, proposed);
@@ -85,7 +101,7 @@ DestinationChoice resolveFileDestination(COperationExecutionContext& context, co
 		switch (std::get<DecisionAction>(outcome))
 		{
 		case DecisionAction::Replace:
-			assert_debug_only(!destinationIsRealDirectory);
+			assert_debug_only(!replacementUnsupported);
 			return UseDestination{ mv(proposed), ReplacementMode::ReplaceExistingFile };
 		case DecisionAction::Skip:
 			return SkipNode{};

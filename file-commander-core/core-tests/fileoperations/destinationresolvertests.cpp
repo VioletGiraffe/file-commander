@@ -653,11 +653,22 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 	writeTestFile(base % "/source.bin", QByteArray{ "DATA" });
 	const EntrySnapshot source = snapshotOf(base % "/source.bin");
 
-	SECTION("a directory link destination is a replaceable entry, not a directory")
+	SECTION("a directory link destination follows native atomic-replacement capability")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/link-target"));
 		REQUIRE(createDirectoryLink(base % "/link-target", base % "/dirlink"));
 
+#ifdef _WIN32
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip) } };
+		auto context = scriptedContext(decisions);
+
+		CHECK(std::holds_alternative<SkipNode>(resolveFileDestination(context, source, ep(base % "/dirlink"))));
+
+		REQUIRE(decisions.seenRequests.size() == 1);
+		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::TypeMismatch);
+		REQUIRE(decisions.seenRequests[0].issue.destination.has_value());
+		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::DirectoryLink);
+#else
 		ScriptedDecisions decisions{ .script = { act(DecisionAction::Replace) } };
 		auto context = scriptedContext(decisions);
 
@@ -668,7 +679,9 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 
 		REQUIRE(decisions.seenRequests.size() == 1);
 		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::FileReplacement);
+		REQUIRE(decisions.seenRequests[0].issue.destination.has_value());
 		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::DirectoryLink);
+#endif
 	}
 
 #ifndef _WIN32
