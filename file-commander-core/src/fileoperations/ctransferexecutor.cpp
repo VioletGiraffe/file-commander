@@ -119,6 +119,54 @@ NodeOutcome CTransferExecutor::finishUnscannedRoot(const NodeOutcome outcome)
 	return outcome;
 }
 
+std::optional<NodeOutcome> CTransferExecutor::ensureDestinationParentExistsWithPolicy(
+	const EntrySnapshot& source, const CEntryPath& proposedDestination)
+{
+	const CEntryPath parent = proposedDestination.isRoot() ? proposedDestination : proposedDestination.parent();
+	for (;;)
+	{
+		if (!_context.checkpoint())
+			return NodeOutcome::Cancelled;
+
+		std::optional<CFileSystemError> failure;
+		auto parentEntry = inspectEntry(parent);
+		if (!parentEntry)
+		{
+			failure = mv(parentEntry.error());
+		}
+		else if (parentEntry->has_value())
+		{
+			const OperationEntryKind kind = (**parentEntry).kind;
+			if (kind == OperationEntryKind::Directory || kind == OperationEntryKind::DirectoryLink)
+				return std::nullopt;
+
+			failure = CFileSystemError{ FileErrorCategory::AlreadyExists, 0,
+				QStringLiteral("The destination parent is not a directory") };
+		}
+		else
+		{
+			auto created = CFileSystemMutator::createDirectories(parent);
+			if (created)
+			{
+				if (*created == DirectoryCreationOutcome::CreatedFinalDirectory)
+					return std::nullopt;
+
+				assert_debug_only(*created == DirectoryCreationOutcome::FinalEntryAlreadyExisted);
+				continue; // An entry raced into the final parent: inspect its kind freshly.
+			}
+			failure = mv(created.error());
+		}
+
+		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, source,
+			{}, FailureDetails{ FailedAction::CreateDestinationDirectory, mv(*failure) } });
+		if (!decision || decision->action == DecisionAction::Cancel)
+			return NodeOutcome::Cancelled;
+		if (decision->action == DecisionAction::Skip)
+			return NodeOutcome::Skipped;
+		assert_debug_only(decision->action == DecisionAction::Retry);
+	}
+}
+
 // --- Copy ---
 
 NodeOutcome CTransferExecutor::copyRoot(const RootTransferIntent& intent)
@@ -134,6 +182,13 @@ NodeOutcome CTransferExecutor::copyRoot(const RootTransferIntent& intent)
 	const bool directoryLike = root.kind == OperationEntryKind::Directory || root.kind == OperationEntryKind::DirectoryLink;
 	if (!directoryLike)
 	{
+		const bool fileLike = root.kind == OperationEntryKind::RegularFile || root.kind == OperationEntryKind::FileLink;
+		if (fileLike)
+		{
+			if (const auto outcome = ensureDestinationParentExistsWithPolicy(root, intent.proposedDestination))
+				return finishUnscannedRoot(*outcome);
+		}
+
 		// A single-entry manifest; Other and file kinds route through the ordinary node dispatch.
 		SourceNode leaf{ .entry = mv(root) };
 		leaf.subtreeBytes = leaf.entry.size;
@@ -306,6 +361,9 @@ NodeOutcome CTransferExecutor::moveRoot(const RootTransferIntent& intent)
 	if (const auto* endedOutcome = std::get_if<NodeOutcome>(&rootEntry))
 		return finishUnscannedRoot(*endedOutcome);
 	EntrySnapshot& root = std::get<EntrySnapshot>(rootEntry);
+
+	if (const auto outcome = ensureDestinationParentExistsWithPolicy(root, intent.proposedDestination))
+		return finishUnscannedRoot(*outcome);
 
 	// Optimistic whole-root rename before resolution and scanning. RequireAbsent cannot clobber anything,
 	// and a case-only respell on a case-insensitive filesystem succeeds right here through the primitive's

@@ -69,8 +69,10 @@ Read the corresponding headers and implementations for roles, signals, and inter
 ## File-operation UI
 
 `progressdialogs/fileoperationlaunch.{h,cpp}` is the boundary from raw UI selection/destination text to a typed core
-request. It chooses `DestinationIntent` exactly once and selects the platform deletion backend; only
-`DeletionBackend::InternalJob` uses the custom permanent-delete engine.
+request. It chooses `DestinationIntent` exactly once, before parsing removes a trailing separator: `/` on every
+platform and `\\` on Windows explicitly mean "into this directory," even when the directory does not exist yet.
+It also selects the platform deletion backend; only `DeletionBackend::InternalJob` uses the custom permanent-delete
+engine.
 
 `CFileOperationDialog` owns one `CFileOperationJob`, drains typed events on a timer, and formats rather than invents
 policy. `CFileOperationPrompt` renders only the actions delivered in a `DecisionRequest`. Keep decision capability

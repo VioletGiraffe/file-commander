@@ -13,8 +13,9 @@ RESTORE_COMPILER_WARNINGS
 // executor, or mutator ever re-derives intent. These are free functions, not a class: there is no launch
 // state to own, and keeping them separate from CMainWindow is what lets them be tested without an application.
 
-// The preserved heuristic: multiple sources, or a single directory-like source, map into the destination
-// directory; a single file is an exact target unless the edited destination already exists as a directory.
+// The preserved heuristic: multiple sources, a destination with an explicit trailing platform separator, or a
+// single directory-like source map into the destination directory; otherwise a single file is an exact target
+// unless the edited destination already exists as a directory.
 // Inspects the filesystem for the single-source kind and the destination kind.
 [[nodiscard]] DestinationIntent transferDestinationIntent(const QStringList& rawSourcePaths, const QString& destinationText);
 

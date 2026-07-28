@@ -62,6 +62,46 @@ TEST_CASE("copy executor: files, trees, and multiple roots", "[executor]")
 		CHECK(script.seenRequests.empty());
 	}
 
+	SECTION("exact-entry file copy silently creates missing destination parents")
+	{
+		const QByteArray contents = patternedContents(3000);
+		writeTestFile(base % "/a.bin", contents);
+
+		OperationScript script;
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/new/deep/copied.bin");
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(readFileContents(base % "/new/deep/copied.bin") == contents);
+		CHECK(script.seenRequests.empty());
+	}
+
+	SECTION("into-directory file copy silently creates the missing destination chain")
+	{
+		const QByteArray contents = patternedContents(3000);
+		writeTestFile(base % "/a.bin", contents);
+
+		OperationScript script;
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::IntoDirectory, base % "/new/deep");
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(readFileContents(base % "/new/deep/a.bin") == contents);
+		CHECK(script.seenRequests.empty());
+	}
+
+	SECTION("an occupied destination parent uses the directory-creation failure policy")
+	{
+		writeTestFile(base % "/a.bin", patternedContents(100));
+		writeTestFile(base % "/occupied", QByteArray{ "OLD" });
+
+		OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/occupied/copied.bin");
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.skippedItems == 1);
+		CHECK(entryAbsent(base % "/occupied/copied.bin"));
+		REQUIRE(script.seenRequests.size() == 1);
+		CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+		REQUIRE(script.seenRequests[0].issue.failure.has_value());
+		CHECK(script.seenRequests[0].issue.failure->action == FailedAction::CreateDestinationDirectory);
+	}
+
 	SECTION("empty and multi-chunk files")
 	{
 		writeTestFile(base % "/empty.bin", {});

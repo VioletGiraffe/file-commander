@@ -57,6 +57,20 @@ TEST_CASE("launch: destination-intent heuristic", "[fileoperationlaunch]")
 		CHECK(transferDestinationIntent({ base % "/a.txt" }, base % "/renamed.txt") == ExactEntry);
 	}
 
+	SECTION("a trailing forward slash makes an absent destination a directory target")
+	{
+		CHECK(transferDestinationIntent({ base % "/a.txt" }, base % "/new/deep/") == IntoDirectory);
+	}
+
+	SECTION("a trailing backslash follows the host platform's path syntax")
+	{
+#ifdef _WIN32
+		CHECK(transferDestinationIntent({ base % "/a.txt" }, base % "/new/deep\\") == IntoDirectory);
+#else
+		CHECK(transferDestinationIntent({ base % "/a.txt" }, base % "/new/deep\\") == ExactEntry);
+#endif
+	}
+
 	SECTION("a single file with a destination that exists as a file is an exact target")
 	{
 		CHECK(transferDestinationIntent({ base % "/a.txt" }, base % "/b.txt") == ExactEntry);
@@ -120,6 +134,18 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 		const auto request = makeUiTransferRequest(TransferKind::Move, { base % "/a.txt" }, base % "/moved.txt");
 		REQUIRE(request.has_value());
 		CHECK(request->destination.intent == DestinationIntent::ExactEntry);
+	}
+
+	SECTION("a trailing separator preserves IntoDirectory intent through request parsing")
+	{
+		const QString destination = base % "/new/deep/";
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, destination);
+		REQUIRE(request.has_value());
+		CHECK(request->destination.intent == DestinationIntent::IntoDirectory);
+
+		const auto intents = rootTransferIntents(*request);
+		REQUIRE(intents.size() == 1);
+		CHECK(intents.front().proposedDestination.value() == QDir::cleanPath(destination % "a.txt"));
 	}
 
 	SECTION("multiple sources are always IntoDirectory, never ExactEntry")

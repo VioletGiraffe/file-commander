@@ -44,6 +44,11 @@ private:
 	// itself is the only known item.
 	[[nodiscard]] NodeOutcome finishUnscannedRoot(NodeOutcome outcome);
 
+	// Silently creates an absent destination-parent chain. nullopt means the parent is usable; an outcome
+	// means its inspection/creation failure was resolved as Skip or Cancel through the ordinary ActionFailed policy.
+	[[nodiscard]] std::optional<NodeOutcome> ensureDestinationParentExistsWithPolicy(
+		const EntrySnapshot& source, const CEntryPath& proposedDestination);
+
 	// Acts on an already-resolved directory disposition, re-entering resolution when the destination
 	// races; owns the create-versus-merge disposition. Dispatches contents by the request kind.
 	[[nodiscard]] NodeOutcome runDirectoryNode(const SourceNode& node, TransferNodePosition position, DestinationChoice choice, bool knownCrossDevice);

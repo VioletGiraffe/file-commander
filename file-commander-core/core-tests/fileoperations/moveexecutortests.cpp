@@ -49,6 +49,34 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 
 	OperationScript script;
 
+	SECTION("a file renames to an exact target below missing destination parents")
+	{
+		writeTestFile(base % "/source.bin", patternedContents(1000));
+
+		const auto summary = runMove(script, { base % "/source.bin" }, DestinationIntent::ExactEntry, base % "/new/deep/renamed.bin");
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(entryAbsent(base % "/source.bin"));
+		CHECK(readFileContents(base % "/new/deep/renamed.bin") == patternedContents(1000));
+		CHECK(script.seenRequests.empty());
+	}
+
+	SECTION("a whole tree renames into a missing destination chain")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/src/sub"));
+		writeTestFile(base % "/src/sub/a.bin", patternedContents(1000));
+
+		CFaultHookScope hooks;
+		const auto summary = runMove(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/new/deep");
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.completedItems == 1);
+		CHECK(entryAbsent(base % "/src"));
+		CHECK(readFileContents(base % "/new/deep/src/sub/a.bin") == patternedContents(1000));
+		CHECK(script.seenRequests.empty());
+		CHECK(hooks.arrivalCount(Point::StagedCopy_CreateStaging_Native) == 0);
+	}
+
 	SECTION("a whole tree renames without a manifest scan")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/src/sub"));

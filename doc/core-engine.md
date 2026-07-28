@@ -101,6 +101,10 @@ Important behavioral boundaries:
    from inspection failure; callers must handle both.
 7. The committed move segment between publication and source removal has no cancellation checkpoint. Its prompts
    are item-only and do not consult or update remembered decisions.
+8. Before a root file is staged or any root is renamed, the executor silently creates an absent destination-parent
+   chain. Directory materialization provides the same behavior while creating the selected directory itself.
+   Existing non-directory parents and genuine inspection or creation failures use
+   `ActionFailed(CreateDestinationDirectory)` policy; the mere absence of one or more parents never prompts.
 
 ### Accepted data races and TOCTOU sequences
 

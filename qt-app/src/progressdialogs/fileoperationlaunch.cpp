@@ -5,11 +5,29 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
 
+namespace
+{
+
+bool hasTrailingPathSeparator(const QString& path)
+{
+	if (path.endsWith(QLatin1Char('/')))
+		return true;
+#ifdef _WIN32
+	return path.endsWith(QLatin1Char('\\'));
+#else
+	return false;
+#endif
+}
+
+} // namespace
+
 DestinationIntent transferDestinationIntent(const QStringList& rawSourcePaths, const QString& destinationText)
 {
 	using enum DestinationIntent;
 
 	if (rawSourcePaths.size() != 1)
+		return IntoDirectory;
+	if (hasTrailingPathSeparator(destinationText))
 		return IntoDirectory;
 
 	// A single non-file source (a directory, a link, a special entry) always maps into the destination.
