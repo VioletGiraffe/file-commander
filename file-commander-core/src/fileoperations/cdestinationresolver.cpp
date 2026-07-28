@@ -76,7 +76,7 @@ DestinationChoice resolveFileDestination(COperationExecutionContext& context, co
 		if (!destination->has_value())
 			return UseDestination{ mv(proposed), ReplacementMode::RequireAbsent };
 
-		const auto sameEntry = checkSameEntry(source.path, proposed, thin_io::link_behavior::follow);
+		const auto sameEntry = checkSameEntry(source.path, proposed, thin_io::link_behavior::do_not_follow);
 		if (!sameEntry) [[unlikely]]
 		{
 			if (auto verdict = resolveInspectionFailure(context, source, sameEntry.error()))
@@ -130,7 +130,7 @@ DestinationChoice resolveDirectoryDestination(COperationExecutionContext& contex
 		if (!destination->has_value())
 			return UseDestination{ mv(proposed), ReplacementMode::RequireAbsent };
 
-		const auto sameEntry = checkSameEntry(source.path, proposed, thin_io::link_behavior::follow);
+		const auto sameEntry = checkSameEntry(source.path, proposed, thin_io::link_behavior::do_not_follow);
 		if (!sameEntry) [[unlikely]]
 		{
 			if (auto verdict = resolveInspectionFailure(context, source, sameEntry.error()))

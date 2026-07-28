@@ -94,7 +94,8 @@ Important behavioral boundaries:
    required where publication/cleanup destroys the only other copy, not for an ordinary fresh copy.
 4. Delete and same-filesystem move operate on link entries. Copy and copy-based move materialize link targets;
    directory-link cycles terminate by native filesystem identity. Content reached through a directory link is
-   borrowed and is never removed by move cleanup.
+   borrowed and is never removed by move cleanup. Transfer same-entry checks do not follow links: a link and
+   its target are distinct entries, while hard-link aliases remain the same entry.
 5. Writability remediation applies only to confirmed, non-link regular files. Generic access denied is
    `PermissionDenied`, not `ReadOnly`.
 6. Aggregate totals remain absent until every source root has been scanned. A descendant that disappears after

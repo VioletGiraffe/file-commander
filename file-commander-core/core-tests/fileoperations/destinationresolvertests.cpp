@@ -685,10 +685,9 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 	}
 
 #ifndef _WIN32
-	SECTION("a file symlink destination is a file-like collision")
+	SECTION("a file symlink to the source is a file-like collision, not the same entry")
 	{
-		writeTestFile(base % "/target.bin", QByteArray{ "T" });
-		REQUIRE(QFile::link(base % "/target.bin", base % "/filelink.bin"));
+		REQUIRE(QFile::link(base % "/source.bin", base % "/filelink.bin"));
 
 		ScriptedDecisions decisions{ .script = { act(DecisionAction::Replace) } };
 		auto context = scriptedContext(decisions);
@@ -697,6 +696,23 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 		REQUIRE(std::get_if<UseDestination>(&choice) != nullptr);
 		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::FileReplacement);
 		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::FileLink);
+	}
+
+	SECTION("a file symlink source is distinct from its target")
+	{
+		writeTestFile(base % "/target.bin", QByteArray{ "T" });
+		REQUIRE(QFile::link(base % "/target.bin", base % "/linksource.bin"));
+		const EntrySnapshot linkSource = snapshotOf(base % "/linksource.bin");
+		REQUIRE(linkSource.kind == OperationEntryKind::FileLink);
+
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip) } };
+		auto context = scriptedContext(decisions);
+
+		CHECK(std::holds_alternative<SkipNode>(resolveFileDestination(context, linkSource, ep(base % "/target.bin"))));
+		REQUIRE(decisions.seenRequests.size() == 1);
+		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::FileReplacement);
+		CHECK(decisions.seenRequests[0].issue.source.kind == OperationEntryKind::FileLink);
+		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::RegularFile);
 	}
 
 	SECTION("a file symlink source resolves like a file")
@@ -865,10 +881,9 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 	}
 #endif
 
-	SECTION("a directory link destination is never merged through")
+	SECTION("a directory link to the source is a type mismatch, not the same entry")
 	{
-		REQUIRE(QDir{}.mkpath(base % "/link-target"));
-		REQUIRE(createDirectoryLink(base % "/link-target", base % "/dirlink"));
+		REQUIRE(createDirectoryLink(base % "/srcdir", base % "/dirlink"));
 
 		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip) } };
 		auto context = scriptedContext(decisions);
@@ -879,6 +894,24 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 		REQUIRE(decisions.seenRequests.size() == 1);
 		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::TypeMismatch);
 		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::DirectoryLink);
+	}
+
+	SECTION("a directory link source is distinct from its target")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/link-target"));
+		REQUIRE(createDirectoryLink(base % "/link-target", base % "/dirlink"));
+		const EntrySnapshot linkSource = snapshotOf(base % "/dirlink");
+		REQUIRE(linkSource.kind == OperationEntryKind::DirectoryLink);
+
+		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip) } };
+		auto context = scriptedContext(decisions);
+
+		CHECK(std::holds_alternative<SkipNode>(
+			resolveDirectoryDestination(context, linkSource, ep(base % "/link-target"), TransferNodePosition::SelectedRoot)));
+		REQUIRE(decisions.seenRequests.size() == 1);
+		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::RootDirectoryMerge);
+		CHECK(decisions.seenRequests[0].issue.source.kind == OperationEntryKind::DirectoryLink);
+		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::Directory);
 	}
 
 	SECTION("rename resolves a selected-root collision to a fresh directory")
