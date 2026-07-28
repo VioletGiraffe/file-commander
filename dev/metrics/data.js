@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785270611435,
+  "lastUpdate": 1785273619996,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -10393,6 +10393,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 714.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "1878d64c5f0ecb237c7a3c28f9f2d5332efb64a2",
+          "message": "Bound source-tree depth and directory link expansion during manifest construction",
+          "timestamp": "2026-07-29T00:15:06+03:00",
+          "tree_id": "630fb636962bc6fb57625324040eb33c2276ebea",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/1878d64c5f0ecb237c7a3c28f9f2d5332efb64a2"
+        },
+        "date": 1785273616761,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16707,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1326.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 715,
             "unit": "KB"
           },
           {
