@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785265421451,
+  "lastUpdate": 1785266385378,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -10117,6 +10117,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 710.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 380.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "9ac7ad8e766a52a351e96a9664aad61315947f0f",
+          "message": "Silently create missing transfer destination directory chains and preserve trailing-separator directory intent",
+          "timestamp": "2026-07-28T22:14:27+03:00",
+          "tree_id": "7e3385ca44899e66da2d7c38331eb9dd84533b96",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/9ac7ad8e766a52a351e96a9664aad61315947f0f"
+        },
+        "date": 1785266383220,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16627,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1323.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 712.5,
             "unit": "KB"
           },
           {
