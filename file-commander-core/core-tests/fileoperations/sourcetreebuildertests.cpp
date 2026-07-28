@@ -60,11 +60,12 @@ SourceNode buildTree(const QString& rootPath, const SourceTreeBuildMode mode)
 }
 
 SourceTreeResult buildTreeWithTestLimits(const QString& rootPath, const SourceTreeBuildMode mode,
-	const size_t maximumDepth, const size_t maximumNodeCount)
+	const size_t maximumDepth, const size_t maximumNodeCount,
+	const DirectoryLinkIdentityModeForTesting directoryLinkIdentityMode = DirectoryLinkIdentityModeForTesting::Native)
 {
 	ScanScript script;
 	auto context = scanContext(script);
-	return buildSourceTreeForTesting(context, snapshotOf(rootPath), mode, maximumDepth, maximumNodeCount);
+	return buildSourceTreeForTesting(context, snapshotOf(rootPath), mode, maximumDepth, maximumNodeCount, directoryLinkIdentityMode);
 }
 
 const SourceNode* childNamed(const SourceNode& node, const QString& name)
@@ -270,6 +271,47 @@ TEST_CASE("source tree: directory links per build mode", "[sourcetree][link]")
 		CHECK(borrowedDir->ownership == SourceOwnership::BorrowedThroughDirectoryLink);
 		REQUIRE(borrowedDir->children.size() == 1);
 		CHECK(borrowedDir->children.front().ownership == SourceOwnership::BorrowedThroughDirectoryLink);
+	}
+}
+
+TEST_CASE("source tree: identity-less directory links materialize under the traversal limits", "[sourcetree][link][limits]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	SECTION("an acyclic link still contributes its content")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/root"));
+		REQUIRE(QDir{}.mkpath(base % "/target/nested"));
+		writeTestFile(base % "/target/nested/file.bin", QByteArray(400, 'f'));
+		REQUIRE(createDirectoryLink(base % "/target", base % "/root/dirlink"));
+
+		auto result = buildTreeWithTestLimits(base % "/root", SourceTreeBuildMode::MaterializingTransfer, 20, 100,
+			DirectoryLinkIdentityModeForTesting::Unavailable);
+		REQUIRE(std::holds_alternative<SourceNode>(result));
+		const SourceNode& tree = std::get<SourceNode>(result);
+		const SourceNode* link = childNamed(tree, QStringLiteral("dirlink"));
+		REQUIRE(link != nullptr);
+		const SourceNode* nested = childNamed(*link, QStringLiteral("nested"));
+		REQUIRE(nested != nullptr);
+		REQUIRE(nested->children.size() == 1);
+		CHECK(nested->children.front().entry.path.name() == QStringLiteral("file.bin"));
+		CHECK(nested->children.front().ownership == SourceOwnership::BorrowedThroughDirectoryLink);
+	}
+
+	SECTION("a cycle aborts the complete manifest at the depth limit")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/root/sub"));
+		REQUIRE(createDirectoryLink(base % "/root", base % "/root/sub/uplink"));
+
+		auto result = buildTreeWithTestLimits(base % "/root", SourceTreeBuildMode::MaterializingTransfer, 6, 100,
+			DirectoryLinkIdentityModeForTesting::Unavailable);
+		REQUIRE(std::holds_alternative<OperationDiagnostic>(result));
+		const OperationDiagnostic& diagnostic = std::get<OperationDiagnostic>(result);
+		CHECK(diagnostic.failure.action == FailedAction::InspectSource);
+		CHECK(diagnostic.failure.filesystemError.category == FileErrorCategory::Unsupported);
+		CHECK(diagnostic.failure.filesystemError.diagnostic.contains(QStringLiteral("depth"), Qt::CaseInsensitive));
 	}
 }
 

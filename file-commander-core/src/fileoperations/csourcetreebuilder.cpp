@@ -16,6 +16,9 @@ struct SourceTreeBuildLimits
 {
 	size_t maximumDepth;
 	size_t maximumNodeCount;
+#ifdef FILE_OPERATIONS_TEST_HOOKS
+	DirectoryLinkIdentityModeForTesting directoryLinkIdentityMode = DirectoryLinkIdentityModeForTesting::Native;
+#endif
 };
 
 // Root is depth 1. These ceilings bound every recursive manifest consumer because executors only traverse
@@ -182,13 +185,17 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 			}
 			else if (*identity)
 				state.activeBranchIdentities.push_back(**identity);
-			// An identity-less filesystem cannot be cycle-protected, but such filesystems do not support
-			// links either, so an unprotected branch cannot loop.
+			// Without an identity this directory cannot participate in early cycle detection; the fixed
+			// traversal limits remain the fallback.
 		}
 	}
 	else if (node.entry.kind == OperationEntryKind::DirectoryLink && state.mode == SourceTreeBuildMode::MaterializingTransfer)
 	{
-		const auto targetIdentity = readEntryIdentity(node.entry.path, thin_io::link_behavior::follow);
+		auto targetIdentity = readEntryIdentity(node.entry.path, thin_io::link_behavior::follow);
+#ifdef FILE_OPERATIONS_TEST_HOOKS
+		if (targetIdentity && state.limits.directoryLinkIdentityMode == DirectoryLinkIdentityModeForTesting::Unavailable)
+			targetIdentity = std::optional<thin_io::entry_identity>{};
+#endif
 		if (!targetIdentity)
 		{
 			// A broken link stays a leaf entry. Any other failure aborts the build: silently materializing
@@ -209,7 +216,12 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 			// A target already on the recursion path stays a leaf: traversing it again could only
 			// duplicate content or recurse forever.
 		}
-		// No identity available: the target cannot be proven distinct from every ancestor, so do not traverse.
+		else
+		{
+			// Identity is an optimization for terminating cycles early, not a prerequisite for correct
+			// materialization. The depth and node-count limits bound an identity-less cycle before execution.
+			descend = true;
+		}
 	}
 
 	if (descend)
@@ -299,9 +311,10 @@ SourceTreeResult buildSourceTree(COperationExecutionContext& context, EntrySnaps
 
 #ifdef FILE_OPERATIONS_TEST_HOOKS
 SourceTreeResult buildSourceTreeForTesting(COperationExecutionContext& context, EntrySnapshot root, const SourceTreeBuildMode mode,
-	const size_t maximumDepth, const size_t maximumNodeCount)
+	const size_t maximumDepth, const size_t maximumNodeCount, const DirectoryLinkIdentityModeForTesting directoryLinkIdentityMode)
 {
 	return buildSourceTreeWithLimits(context, mv(root), mode,
-		SourceTreeBuildLimits{ .maximumDepth = maximumDepth, .maximumNodeCount = maximumNodeCount });
+		SourceTreeBuildLimits{ .maximumDepth = maximumDepth, .maximumNodeCount = maximumNodeCount,
+			.directoryLinkIdentityMode = directoryLinkIdentityMode });
 }
 #endif
