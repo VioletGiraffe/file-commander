@@ -86,9 +86,10 @@ Important behavioral boundaries:
    the filesystem primitives. `CFileOperationJob` is the only cross-thread owner.
 2. Move is rename-first. Only a classified native `CrossDevice` result selects staged copy plus source cleanup;
    after such a result, descendants skip further rename attempts.
-3. Staged copy publishes by rename only after data and required metadata are ready. Failure or cancellation before
-   publication preserves the old destination. Durability flush is required where publication/cleanup destroys the
-   only other copy, not for an ordinary fresh copy.
+3. Staged copy publishes by rename only after data and required metadata are ready. A final cancellation checkpoint
+   separates completed staging from commit; once commit begins, publication and any owned-source cleanup are not
+   interruptible. Failure or cancellation before publication preserves the old destination. Durability flush is
+   required where publication/cleanup destroys the only other copy, not for an ordinary fresh copy.
 4. Delete and same-filesystem move operate on link entries. Copy and copy-based move materialize link targets;
    directory-link cycles terminate by native filesystem identity. Content reached through a directory link is
    borrowed and is never removed by move cleanup.

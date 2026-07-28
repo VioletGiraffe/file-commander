@@ -349,6 +349,28 @@ TEST_CASE("job: decision flow", "[fileoperationjob]")
 		CHECK(!job.hasPendingDecision());
 	}
 
+	SECTION("a decision request accepts exactly one answer")
+	{
+		driver.autoCancelUnscripted = false;
+		bool firstAnswerAccepted = false;
+		bool pendingAfterFirstAnswer = true;
+		bool secondAnswerAccepted = true;
+		driver.onDecisionRequest = [&](const DecisionRequest&) {
+			firstAnswerAccepted = job.submitDecision(act(DecisionAction::Replace));
+			pendingAfterFirstAnswer = job.hasPendingDecision();
+			secondAnswerAccepted = job.submitDecision(act(DecisionAction::Skip));
+		};
+
+		job.start();
+		REQUIRE(driver.pumpToCompletion());
+
+		CHECK(firstAnswerAccepted);
+		CHECK(!pendingAfterFirstAnswer);
+		CHECK(!secondAnswerAccepted);
+		CHECK(driver.summary()->status == CompletionStatus::Completed);
+		CHECK(readFileContents(base % "/dest.bin") == patternedContents(700));
+	}
+
 	SECTION("cancellation while a decision is pending suppresses the undrained event")
 	{
 		job.start();

@@ -20,6 +20,7 @@ RESTORE_COMPILER_WARNINGS
 #include <sys/stat.h> // mkfifo
 #endif
 
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -780,6 +781,37 @@ TEST_CASE("copy executor: cancellation", "[executor]")
 		CHECK(summary.status == CompletionStatus::Cancelled);
 		CHECK(stagingFileCount(base % "/dest") == 0);
 		CHECK(stagingFileCount(base % "/dest/src") == 0);
+	}
+
+	SECTION("cancellation during the final write prevents publication")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+		CFaultHookScope hooks;
+		hooks.armBarrier(Point::StagedCopy_WriteStaging_Native);
+
+		std::atomic_bool cancellationRequested = false;
+		OperationScript script;
+		script.cancelAtCheckpoint = [&] { return cancellationRequested.load(); };
+		const auto request = makeTransferRequest(TransferKind::Copy, { base % "/src/one.bin" },
+			DestinationIntent::ExactEntry, base % "/dest/one.bin");
+		REQUIRE(request.has_value());
+		auto context = makeScriptedContext(script, PrimaryProgressUnit::Bytes);
+		CTransferExecutor executor{ context, defaultTransferChunkSize };
+
+		OperationSummary summary;
+		std::thread worker{ [&] { summary = executor.run(*request); } };
+
+		REQUIRE(hooks.waitForBarrier(Point::StagedCopy_WriteStaging_Native, std::chrono::milliseconds{ 5000 }));
+		cancellationRequested.store(true);
+		hooks.releaseBarrier(Point::StagedCopy_WriteStaging_Native);
+		worker.join();
+
+		CHECK(summary.status == CompletionStatus::Cancelled);
+		CHECK(summary.completedItems == 0);
+		CHECK(!entryAbsent(base % "/src/one.bin"));
+		CHECK(entryAbsent(base % "/dest/one.bin"));
+		CHECK(stagingFileCount(base % "/dest") == 0);
 	}
 
 	SECTION("cancellation during a child suppresses the created parent's timestamp finalization")

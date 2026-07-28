@@ -329,6 +329,9 @@ NodeOutcome CTransferExecutor::moveRoot(const RootTransferIntent& intent)
 	CEntryPath proposedDestination = intent.proposedDestination;
 	for (;;)
 	{
+		if (!_context.checkpoint())
+			return finishUnscannedRoot(NodeOutcome::Cancelled);
+
 		DestinationChoice choice = resolveDirectoryDestination(_context, root, proposedDestination, TransferNodePosition::SelectedRoot);
 		if (std::holds_alternative<SkipNode>(choice))
 			return finishUnscannedRoot(NodeOutcome::Skipped);
@@ -411,6 +414,9 @@ NodeOutcome CTransferExecutor::moveFileNode(const SourceNode& node, CEntryPath p
 
 	for (;;)
 	{
+		if (!_context.checkpoint())
+			return NodeOutcome::Cancelled;
+
 		DestinationChoice choice = resolveFileDestination(_context, node.entry, mv(proposedDestination));
 		if (std::holds_alternative<SkipNode>(choice))
 		{
@@ -708,6 +714,13 @@ std::optional<NodeOutcome> CTransferExecutor::stagedFileTransferWithPolicy(const
 
 			if (!transferFailed)
 			{
+				if (!_context.checkpoint())
+				{
+					abortStagedSession(*session, source);
+					_context.progress().currentEntryAbandoned();
+					return NodeOutcome::Cancelled;
+				}
+
 				// The durability contract: flushing is required exactly where publication destroys the only
 				// other copy - an authorized replacement, and every owned-source move (removal follows).
 				const CommitDurability durability = (sourceAction == PublishedSourceAction::RemoveOwnedSource || replacement == ReplacementMode::ReplaceExistingFile)

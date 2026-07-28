@@ -49,13 +49,14 @@ public:
 	// is remembered and applied there, past the wrapper's flag reset.
 	void cancel();
 	void setPaused(bool paused);
-	// False = no decision is pending (a late response after cancellation invalidated the prompt).
+	// False = no unanswered decision is pending, or the supplied answer is invalid. Duplicate and late responses
+	// are therefore rejected.
 	// There are no decision IDs: the worker cannot reach a second decision while blocked on the first.
 	bool submitDecision(Decision decision);
 
 	[[nodiscard]] JobStatus status() const;
 	// The dialog's pre-show check: a DecisionRequest already swapped out of the queue must not be
-	// presented once cancellation has invalidated it.
+	// presented once cancellation has invalidated it or another response has answered it.
 	[[nodiscard]] bool hasPendingDecision() const;
 
 	// Swaps the queued events out under the mutex, then dispatches with the mutex released: a modal

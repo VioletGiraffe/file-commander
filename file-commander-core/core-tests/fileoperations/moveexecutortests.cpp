@@ -28,11 +28,13 @@ namespace
 #ifdef _WIN32
 constexpr NativeErrorCode crossDeviceCode = ERROR_NOT_SAME_DEVICE;
 constexpr NativeErrorCode accessDeniedCode = ERROR_ACCESS_DENIED;
+constexpr NativeErrorCode existsCode = ERROR_ALREADY_EXISTS;
 constexpr NativeErrorCode ioFailureCode = ERROR_GEN_FAILURE;
 constexpr NativeErrorCode readOnlyCode = ERROR_FILE_READ_ONLY;
 #else
 constexpr NativeErrorCode crossDeviceCode = EXDEV;
 constexpr NativeErrorCode accessDeniedCode = EACCES;
+constexpr NativeErrorCode existsCode = EEXIST;
 constexpr NativeErrorCode ioFailureCode = EIO;
 constexpr NativeErrorCode readOnlyCode = EROFS;
 #endif
@@ -152,6 +154,58 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 		CHECK(script.seenRequests.empty());
 	}
 #endif
+}
+
+TEST_CASE("move executor: cancellation is checked when a destination race restarts resolution", "[moveexecutor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	SECTION("selected directory root")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/source"));
+		writeTestFile(base % "/occupied", QByteArray{ "OLD" });
+
+		OperationScript script{ .decisions = {
+			Decision{ DecisionAction::Rename, DecisionScope::ThisItem, QStringLiteral("raced") },
+			act(DecisionAction::Skip) } };
+		script.onDecisionRequest = [&](const DecisionRequest&) {
+			if (script.nextDecision == 0)
+				writeTestFile(base % "/raced", QByteArray{ "RACE" });
+		};
+		script.cancelAtCheckpoint = [&] { return script.nextDecision == 1; };
+
+		const auto summary = runMove(script, { base % "/source" }, DestinationIntent::ExactEntry, base % "/occupied");
+
+		CHECK(summary.status == CompletionStatus::Cancelled);
+		CHECK(!entryAbsent(base % "/source"));
+		CHECK(readFileContents(base % "/occupied") == QByteArray{ "OLD" });
+		CHECK(readFileContents(base % "/raced") == QByteArray{ "RACE" });
+		REQUIRE(script.seenRequests.size() == 1);
+		CHECK(script.seenRequests[0].issue.kind == IssueKind::TypeMismatch);
+	}
+
+	SECTION("file with a remembered replacement decision")
+	{
+		writeTestFile(base % "/source.bin", QByteArray{ "SOURCE" });
+		writeTestFile(base % "/destination.bin", QByteArray{ "OLD" });
+
+		CFaultHookScope hooks;
+		// The root and leaf rename-first attempts encounter the real destination. The authorized
+		// replacement then reports a fresh collision and restarts the resolution loop.
+		hooks.forceNativeError(Point::RenameEntry_Native, existsCode, 1, 2);
+
+		OperationScript script{ .decisions = { act(DecisionAction::Replace, DecisionScope::RemainingMatchingIssues) } };
+		script.cancelAtCheckpoint = [&] { return script.nextDecision == 1; };
+		const auto summary = runMove(script, { base % "/source.bin" }, DestinationIntent::ExactEntry, base % "/destination.bin");
+
+		CHECK(summary.status == CompletionStatus::Cancelled);
+		CHECK(!entryAbsent(base % "/source.bin"));
+		CHECK(readFileContents(base % "/destination.bin") == QByteArray{ "OLD" });
+		REQUIRE(script.seenRequests.size() == 1); // The remembered answer was never consulted for another turn
+		CHECK(script.seenRequests[0].issue.kind == IssueKind::FileReplacement);
+	}
 }
 
 TEST_CASE("move executor: a same-filesystem directory-link root renames as the link", "[moveexecutor][link]")

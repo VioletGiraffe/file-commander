@@ -76,8 +76,9 @@ finish -> queue summary              render outcome / dispose
 Progress events coalesce; decisions and the summary are ordering barriers. `processEvents()` swaps the queue under
 the mutex and dispatches after unlocking because a modal prompt can enter a nested event loop. Wait predicates and
 their state mutations use the same mutex, then the mutator notifies. Cancellation releases pause/decision waits,
-invalidates an undrained decision, and wins over a simultaneously submitted answer. A cancellation requested before
-`start()` is remembered across the thread wrapper's flag reset.
+invalidates an undrained decision, and wins over a simultaneously submitted answer. The first valid decision
+submission makes its request immediately unanswerable; duplicate submissions are rejected even before the worker
+consumes the answer. A cancellation requested before `start()` is remembered across the thread wrapper's flag reset.
 
 The job destructor cancels, wakes, and joins. UI objects owning jobs/listeners must preserve that ordering; see
 `CFileOperationDialog` and its member comments.

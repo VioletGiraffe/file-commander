@@ -201,7 +201,7 @@ void CFileOperationDialog::handleDecisionRequest(const DecisionRequest& request)
 	show(); // The modal prompt must not stand alone on screen if the first show is still pending
 	ui->_overallProgress->setState(psStopped);
 	const Decision decision = presentDecision(request);
-	_job.submitDecision(decision); // false only if cancellation already won; nothing to do then
+	(void)_job.submitDecision(decision); // Cancellation or re-entrant submission may already have closed the request
 	ui->_overallProgress->setState(_paused ? psPaused : psNormal);
 }
 

@@ -70,8 +70,8 @@ void CFileOperationJob::setPaused(const bool paused)
 bool CFileOperationJob::submitDecision(Decision decision)
 {
 	std::unique_lock lock{ _mutex };
-	if (!_pendingRequest || _thread.cancellationRequested())
-		return false; // A late response: the prompt has been invalidated
+	if (!_pendingRequest || _submittedDecision || _thread.cancellationRequested())
+		return false; // No unanswered prompt: invalidated, already answered, or never pending
 
 	// The UI builds its controls from the delivered request, so anything outside it is a caller bug.
 	const DecisionRequest& request = *_pendingRequest;
@@ -100,7 +100,7 @@ JobStatus CFileOperationJob::status() const
 bool CFileOperationJob::hasPendingDecision() const
 {
 	std::lock_guard lock{ _mutex };
-	return _pendingRequest.has_value() && !_thread.cancellationRequested();
+	return _pendingRequest.has_value() && !_submittedDecision.has_value() && !_thread.cancellationRequested();
 }
 
 void CFileOperationJob::processEvents(CFileOperationListener& listener)
