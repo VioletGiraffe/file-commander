@@ -1,9 +1,13 @@
 #include "cfilesystemmutator.h"
 #include "operationtesthooks.h"
 #include "thiniobridge.h"
-#include "filesystemhelperfunctions.h" // caseSensitiveFilesystem
 
 #include "assert/advanced_assert.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QStringBuilder>
+#include <QUuid>
+RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include "windows_path_win.hpp" // thin_io
@@ -17,6 +21,7 @@
 #include <unistd.h>
 #endif
 
+#include <utility>
 #include <vector>
 
 bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept
@@ -82,6 +87,83 @@ bool isExclusiveRenameUnsupported(const NativeErrorCode code) noexcept
 		|| code == EOPNOTSUPP
 #endif
 		;
+}
+
+std::optional<NativeErrorCode> exclusiveRenameError(const NativePathString& source, const NativePathString& destination,
+	const OperationTestHooks::Point hookPoint)
+{
+	if (const auto forcedError = OperationTestHooks::fireHook(hookPoint))
+		return *forcedError;
+
+#if defined __linux__
+	if (::renameat2(AT_FDCWD, nativeCStr(source), AT_FDCWD, nativeCStr(destination), RENAME_NOREPLACE) == 0)
+		return {};
+#elif defined __APPLE__
+	if (::renamex_np(nativeCStr(source), nativeCStr(destination), RENAME_EXCL) == 0)
+		return {};
+#else
+	return ENOSYS;
+#endif
+	return captureNativeError();
+}
+
+CFileSystemError exclusiveRenameFailure(const NativeErrorCode code)
+{
+	if (isExclusiveRenameUnsupported(code))
+		return makeError(FileErrorCategory::Unsupported, code);
+	return renameErrorFromNative(code);
+}
+
+CFileSystemError caseRespellRollbackFailure(const CEntryPath& temporaryPath, const NativeErrorCode publicationCode,
+	const NativeErrorCode rollbackCode)
+{
+	const CFileSystemError publicationError = exclusiveRenameFailure(publicationCode);
+	const CFileSystemError rollbackError = exclusiveRenameFailure(rollbackCode);
+	return { FileErrorCategory::IoFailure, rollbackCode,
+		QStringLiteral("The requested case respelling failed (%1), and the source could not be restored (%2). The source remains at: %3")
+			.arg(publicationError.diagnostic, rollbackError.diagnostic, temporaryPath.value()) };
+}
+
+std::expected<void, CFileSystemError> renameCaseOnlyThroughTemporary(const CEntryPath& source, const NativePathString& sourceNative,
+	const NativePathString& destinationNative)
+{
+	static constexpr int maximumTemporaryNameAttempts = 10;
+	std::optional<CEntryPath> temporaryPath;
+	NativePathString temporaryNative;
+	for (int attempt = 0; attempt < maximumTemporaryNameAttempts; ++attempt)
+	{
+		CEntryPath candidate = source.parent().child(
+			QStringLiteral(".file-commander-rename-") % QUuid::createUuid().toString(QUuid::WithoutBraces) % QStringLiteral(".tmp"));
+		auto candidateNative = thinIoPath(candidate);
+		const auto moveError = exclusiveRenameError(sourceNative, candidateNative, OperationTestHooks::Point::CaseRespell_MoveToTemporary_Native);
+		if (!moveError)
+		{
+			temporaryPath = std::move(candidate);
+			temporaryNative = std::move(candidateNative);
+			break;
+		}
+		CFileSystemError moveFailure = exclusiveRenameFailure(*moveError);
+		if (moveFailure.category != FileErrorCategory::AlreadyExists)
+			return std::unexpected(std::move(moveFailure));
+	}
+
+	if (!temporaryPath)
+	{
+		return std::unexpected(CFileSystemError{ FileErrorCategory::IoFailure, EEXIST,
+			QStringLiteral("Could not reserve a unique temporary name for the case respelling") });
+	}
+
+	const auto publicationError = exclusiveRenameError(temporaryNative, destinationNative,
+		OperationTestHooks::Point::CaseRespell_PublishTemporary_Native);
+	if (!publicationError)
+		return {};
+
+	const auto rollbackError = exclusiveRenameError(temporaryNative, sourceNative,
+		OperationTestHooks::Point::CaseRespell_RestoreSource_Native);
+	if (rollbackError)
+		return std::unexpected(caseRespellRollbackFailure(*temporaryPath, *publicationError, *rollbackError));
+
+	return std::unexpected(exclusiveRenameFailure(*publicationError));
 }
 #endif
 
@@ -351,24 +433,11 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 		return std::unexpected(renameErrorFromNative(captureNativeError()));
 	}
 
-	// RequireAbsent: the native exclusive mechanism, never check-then-rename.
-	NativeErrorCode errorCode;
-	if (const auto forcedError = fireHook(Point::RenameEntry_Native))
-		errorCode = *forcedError;
-	else
-	{
-#if defined __linux__
-		if (::renameat2(AT_FDCWD, nativeCStr(sourceNative), AT_FDCWD, nativeCStr(destinationNative), RENAME_NOREPLACE) == 0)
-			return {};
-		errorCode = captureNativeError();
-#elif defined __APPLE__
-		if (::renamex_np(nativeCStr(sourceNative), nativeCStr(destinationNative), RENAME_EXCL) == 0)
-			return {};
-		errorCode = captureNativeError();
-#else
-		errorCode = ENOSYS; // No exclusive-rename mechanism on this platform - degrade below
-#endif
-	}
+	// RequireAbsent starts with the native exclusive mechanism.
+	const auto exclusiveError = exclusiveRenameError(sourceNative, destinationNative, Point::RenameEntry_Native);
+	if (!exclusiveError)
+		return {};
+	const NativeErrorCode errorCode = *exclusiveError;
 
 	if (isExclusiveRenameUnsupported(errorCode))
 	{
@@ -386,19 +455,14 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 		return std::unexpected(renameErrorFromNative(captureNativeError()));
 	}
 
-	if constexpr (!caseSensitiveFilesystem())
+	// An exclusive case-respell can collide with the source entry itself on a case-insensitive filesystem.
+	// Moving through a unique sibling distinguishes that from a real case-sensitive collision without guessing
+	// volume semantics: the requested spelling becomes free only when both spellings were one directory entry.
+	if (classifyNativeError(errorCode) == FileErrorCategory::AlreadyExists
+		&& source.value().compare(destination.value(), Qt::CaseInsensitive) == 0
+		&& source.value() != destination.value())
 	{
-		// A case-only rename addresses the same entry, so the exclusive mechanism sees the destination as
-		// occupied - by the source itself. Plain rename changes the case in place; at worst it replaces the
-		// entry with itself, so this is not a check-then-replace hole.
-		if (classifyNativeError(errorCode) == FileErrorCategory::AlreadyExists
-			&& source.value().compare(destination.value(), Qt::CaseInsensitive) == 0
-			&& source.value() != destination.value())
-		{
-			if (::rename(nativeCStr(sourceNative), nativeCStr(destinationNative)) == 0)
-				return {};
-			return std::unexpected(renameErrorFromNative(captureNativeError()));
-		}
+		return renameCaseOnlyThroughTemporary(source, sourceNative, destinationNative);
 	}
 
 	return std::unexpected(renameErrorFromNative(errorCode));

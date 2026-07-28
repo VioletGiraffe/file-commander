@@ -31,6 +31,9 @@ enum class Point : uint32_t
 
 	// CFileSystemMutator primitives, immediately before their native mutation call.
 	RenameEntry_Native,
+	CaseRespell_MoveToTemporary_Native,
+	CaseRespell_PublishTemporary_Native,
+	CaseRespell_RestoreSource_Native,
 	RemoveEntry_Native,
 	CreateDirectory_FinalNative,
 	SetEntryWritable_Native,

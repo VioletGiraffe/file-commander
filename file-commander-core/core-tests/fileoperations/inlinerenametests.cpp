@@ -109,6 +109,28 @@ TEST_CASE("inline rename: renaming onto a hardlink alias of the file is nothing 
 	CHECK(readFileContents(base % "/file.bin") == patternedContents(200));
 }
 
+#ifndef _WIN32
+TEST_CASE("inline rename: a case-equivalent hardlink alias is not mistaken for a case respell", "[inlinerename]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeTestFile(base % "/file.bin", patternedContents(200));
+	if (!entryAbsent(base % "/FILE.BIN"))
+	{
+		WARN("The test volume is case-insensitive: distinct case-equivalent hard-link names cannot be created");
+		return;
+	}
+	REQUIRE(createHardLink(base % "/file.bin", base % "/FILE.BIN"));
+
+	const auto result = inlineRename(ep(base % "/file.bin"), QStringLiteral("FILE.BIN"), false);
+	CHECK(result.status == InlineRenameStatus::NothingToDo);
+	CHECK(!entryAbsent(base % "/file.bin"));
+	CHECK(!entryAbsent(base % "/FILE.BIN"));
+	CHECK(QDir{ base }.entryList({ QStringLiteral(".file-commander-rename-*.tmp") }, QDir::Files | QDir::Hidden).isEmpty());
+}
+#endif
+
 TEST_CASE("inline rename: a file-like collision needs confirmation, then replaces", "[inlinerename]")
 {
 	QTemporaryDir tempDir;

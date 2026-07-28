@@ -42,10 +42,11 @@
 class CFileSystemMutator
 {
 public:
-	// Atomic rename. RequireAbsent uses the native exclusive mechanism, never check-then-rename; where the
-	// filesystem reports that mechanism itself unsupported, degrades internally to a fresh no-follow recheck
-	// plus plain rename and returns AlreadyExists if an entry is present. ReplaceExistingFile atomically
-	// replaces a regular-file (or link) destination; a directory destination is rejected.
+	// Rename with explicit replacement policy. RequireAbsent normally uses one native exclusive rename. A case
+	// respell that collides with its source uses exclusive source->temporary->destination renames and exclusive
+	// rollback, never replacing another entry. Where the exclusive mechanism itself is unsupported, RequireAbsent
+	// degrades to a fresh no-follow recheck plus plain rename. ReplaceExistingFile atomically replaces a regular-file
+	// (or link) destination; a directory destination is rejected.
 	static std::expected<void, CFileSystemError> renameEntry(const CEntryPath& source, const CEntryPath& destination, ReplacementMode replacement);
 
 	// Removes the entry itself: links are unlinked, never followed; a directory must be empty.

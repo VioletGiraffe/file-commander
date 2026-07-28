@@ -335,6 +335,29 @@ TEST_CASE("renameEntry: case-only rename", "[mutator]")
 }
 
 #ifndef _WIN32
+TEST_CASE("renameEntry: an exclusive case self-collision respells through a temporary sibling", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeTestFile(base % "/case.txt", QByteArray(10, 'c'));
+
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::RenameEntry_Native, EEXIST); // Simulate a case-insensitive volume's self-collision
+	hooks.forceNativeError(Point::CaseRespell_MoveToTemporary_Native, EEXIST); // The first UUID collision is retried
+
+	REQUIRE(CFileSystemMutator::renameEntry(
+		ep(base % "/case.txt"), ep(base % "/CASE.txt"), ReplacementMode::RequireAbsent).has_value());
+	CHECK(readFileContents(base % "/CASE.txt") == QByteArray(10, 'c'));
+	const QStringList names = QDir{ base }.entryList(QDir::Files);
+	CHECK(names.contains(QStringLiteral("CASE.txt")));
+	CHECK(!names.contains(QStringLiteral("case.txt")));
+	CHECK(QDir{ base }.entryList({ QStringLiteral(".file-commander-rename-*.tmp") }, QDir::Files | QDir::Hidden).isEmpty());
+	CHECK(hooks.arrivalCount(Point::CaseRespell_MoveToTemporary_Native) == 2);
+	CHECK(hooks.arrivalCount(Point::CaseRespell_PublishTemporary_Native) == 1);
+	CHECK(hooks.arrivalCount(Point::CaseRespell_RestoreSource_Native) == 0);
+}
+
 TEST_CASE("renameEntry: a case-respell onto a distinct entry on a case-sensitive filesystem collides", "[mutator]")
 {
 	QTemporaryDir tempDir;
@@ -354,6 +377,76 @@ TEST_CASE("renameEntry: a case-respell onto a distinct entry on a case-sensitive
 	CHECK(result.error().category == FileErrorCategory::AlreadyExists);
 	CHECK(readFileContents(base % "/case.txt") == QByteArray(10, 'a'));
 	CHECK(readFileContents(base % "/CASE.txt") == QByteArray(10, 'b'));
+}
+
+TEST_CASE("renameEntry: case-equivalent hard-link aliases remain distinct names", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeTestFile(base % "/case.txt", QByteArray(10, 'c'));
+	if (!entryAbsent(base % "/CASE.txt"))
+	{
+		WARN("The test volume is case-insensitive: distinct case-equivalent hard-link names cannot be created");
+		return;
+	}
+	REQUIRE(createHardLink(base % "/case.txt", base % "/CASE.txt"));
+
+	const auto result = CFileSystemMutator::renameEntry(
+		ep(base % "/case.txt"), ep(base % "/CASE.txt"), ReplacementMode::RequireAbsent);
+	REQUIRE(!result.has_value());
+	CHECK(result.error().category == FileErrorCategory::AlreadyExists);
+	CHECK(!entryAbsent(base % "/case.txt"));
+	CHECK(!entryAbsent(base % "/CASE.txt"));
+	CHECK(QDir{ base }.entryList({ QStringLiteral(".file-commander-rename-*.tmp") }, QDir::Files | QDir::Hidden).isEmpty());
+}
+
+TEST_CASE("renameEntry: a failed case-respell publication restores the original name", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeTestFile(base % "/case.txt", QByteArray(10, 'c'));
+
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::RenameEntry_Native, EEXIST);
+	hooks.forceNativeError(Point::CaseRespell_PublishTemporary_Native, EEXIST);
+
+	const auto result = CFileSystemMutator::renameEntry(
+		ep(base % "/case.txt"), ep(base % "/CASE.txt"), ReplacementMode::RequireAbsent);
+	REQUIRE(!result.has_value());
+	CHECK(result.error().category == FileErrorCategory::AlreadyExists);
+	CHECK(readFileContents(base % "/case.txt") == QByteArray(10, 'c'));
+	const QStringList names = QDir{ base }.entryList(QDir::Files);
+	CHECK(names.contains(QStringLiteral("case.txt")));
+	CHECK(!names.contains(QStringLiteral("CASE.txt")));
+	CHECK(QDir{ base }.entryList({ QStringLiteral(".file-commander-rename-*.tmp") }, QDir::Files | QDir::Hidden).isEmpty());
+	CHECK(hooks.arrivalCount(Point::CaseRespell_RestoreSource_Native) == 1);
+}
+
+TEST_CASE("renameEntry: a failed case-respell rollback reports the retained temporary path", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	writeTestFile(base % "/case.txt", QByteArray(10, 'c'));
+
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::RenameEntry_Native, EEXIST);
+	hooks.forceNativeError(Point::CaseRespell_PublishTemporary_Native, EEXIST);
+	hooks.forceNativeError(Point::CaseRespell_RestoreSource_Native, EACCES);
+
+	const auto result = CFileSystemMutator::renameEntry(
+		ep(base % "/case.txt"), ep(base % "/CASE.txt"), ReplacementMode::RequireAbsent);
+	REQUIRE(!result.has_value());
+	CHECK(result.error().category == FileErrorCategory::IoFailure); // Never misclassified as a normal destination collision
+	CHECK(entryAbsent(base % "/case.txt"));
+	CHECK(entryAbsent(base % "/CASE.txt"));
+	const QStringList temporaryNames = QDir{ base }.entryList(
+		{ QStringLiteral(".file-commander-rename-*.tmp") }, QDir::Files | QDir::Hidden);
+	REQUIRE(temporaryNames.size() == 1);
+	CHECK(readFileContents(base % '/' % temporaryNames.front()) == QByteArray(10, 'c'));
+	CHECK(result.error().diagnostic.contains(base % '/' % temporaryNames.front()));
 }
 #endif
 

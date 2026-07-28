@@ -61,6 +61,26 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 		CHECK(script.seenRequests.empty());
 	}
 
+#ifdef __linux__
+	SECTION("a case respell is not swallowed as already satisfied after an exclusive self-collision")
+	{
+		writeTestFile(base % "/case.txt", patternedContents(1000));
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::RenameEntry_Native, EEXIST); // Simulate a case-insensitive Linux volume
+
+		const auto summary = runMove(script, { base % "/case.txt" }, DestinationIntent::ExactEntry, base % "/CASE.txt");
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.completedItems == 1);
+		CHECK(summary.alreadySatisfiedItems == 0);
+		CHECK(readFileContents(base % "/CASE.txt") == patternedContents(1000));
+		const QStringList names = QDir{ base }.entryList(QDir::Files);
+		CHECK(names.contains(QStringLiteral("CASE.txt")));
+		CHECK(!names.contains(QStringLiteral("case.txt")));
+		CHECK(script.seenRequests.empty());
+	}
+#endif
+
 	SECTION("a whole tree renames into a missing destination chain")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/src/sub"));

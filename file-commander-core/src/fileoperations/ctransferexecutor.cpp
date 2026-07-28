@@ -366,8 +366,8 @@ NodeOutcome CTransferExecutor::moveRoot(const RootTransferIntent& intent)
 		return finishUnscannedRoot(*outcome);
 
 	// Optimistic whole-root rename before resolution and scanning. RequireAbsent cannot clobber anything,
-	// and a case-only respell on a case-insensitive filesystem succeeds right here through the primitive's
-	// fallback - which is why resolution's silent same-object handling never swallows one.
+	// and a case-only respell succeeds right here through the primitive's exclusive temporary-sibling path -
+	// which is why resolution's silent same-object handling never swallows one.
 	auto renamed = renameEntryWithPolicy(root, intent.proposedDestination, ReplacementMode::RequireAbsent);
 	if (const auto* outcome = std::get_if<NodeOutcome>(&renamed))
 		return finishUnscannedRoot(*outcome);

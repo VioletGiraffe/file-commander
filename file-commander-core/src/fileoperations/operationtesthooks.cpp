@@ -55,6 +55,9 @@ std::string pointName(const Point point)
 	case Point::SelfTest1: return "SelfTest1";
 	case Point::SelfTest2: return "SelfTest2";
 	case Point::RenameEntry_Native: return "RenameEntry_Native";
+	case Point::CaseRespell_MoveToTemporary_Native: return "CaseRespell_MoveToTemporary_Native";
+	case Point::CaseRespell_PublishTemporary_Native: return "CaseRespell_PublishTemporary_Native";
+	case Point::CaseRespell_RestoreSource_Native: return "CaseRespell_RestoreSource_Native";
 	case Point::RemoveEntry_Native: return "RemoveEntry_Native";
 	case Point::CreateDirectory_FinalNative: return "CreateDirectory_FinalNative";
 	case Point::SetEntryWritable_Native: return "SetEntryWritable_Native";

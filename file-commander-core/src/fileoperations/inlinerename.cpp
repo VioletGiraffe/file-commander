@@ -4,6 +4,8 @@
 
 #include "assert/advanced_assert.h"
 
+#include <utility>
+
 namespace
 {
 
@@ -14,6 +16,28 @@ InlineRenameResult performRename(const CEntryPath& source, const CEntryPath& des
 		return { .status = InlineRenameStatus::Renamed };
 
 	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, result.error() } };
+}
+
+InlineRenameResult performCaseRespellOrRecognizeAlias(const CEntryPath& source, const CEntryPath& destination)
+{
+	auto result = CFileSystemMutator::renameEntry(source, destination, ReplacementMode::RequireAbsent);
+	if (result)
+		return { .status = InlineRenameStatus::Renamed };
+
+	CFileSystemError error = std::move(result.error());
+	if (error.category == FileErrorCategory::AlreadyExists)
+	{
+		// The temporary probe restored the source because the destination remained occupied. A surviving
+		// hard-link alias is already satisfied; a raced-in different entry remains a real rename failure.
+		const auto stillSameEntry = checkSameEntry(source, destination, thin_io::link_behavior::do_not_follow);
+		if (!stillSameEntry)
+			return { .status = InlineRenameStatus::Failed,
+				.failure = FailureDetails{ FailedAction::InspectDestination, stillSameEntry.error() } };
+		if (*stillSameEntry == SameEntryVerdict::Same)
+			return { .status = InlineRenameStatus::NothingToDo };
+	}
+
+	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, std::move(error) } };
 }
 
 } // namespace
@@ -44,7 +68,7 @@ InlineRenameResult inlineRename(const CEntryPath& source, const QString& newName
 
 	// The destination exists. If it is the source itself, this is either a case-only respell (the same file
 	// under a different case, on a case-insensitive filesystem) or renaming onto one of the file's own
-	// hardlink aliases. A case-only respell is performed through the primitive's case-only fallback;
+	// hardlink aliases. A case-only respell is performed through the primitive's exclusive temporary path;
 	// aliasing the same file under a genuinely different name is already satisfied.
 	const auto sameEntry = checkSameEntry(source, destination, thin_io::link_behavior::do_not_follow);
 	if (!sameEntry)
@@ -52,7 +76,7 @@ InlineRenameResult inlineRename(const CEntryPath& source, const QString& newName
 	if (*sameEntry == SameEntryVerdict::Same)
 	{
 		if (newName.compare(source.name(), Qt::CaseInsensitive) == 0)
-			return performRename(source, destination, ReplacementMode::RequireAbsent);
+			return performCaseRespellOrRecognizeAlias(source, destination);
 		return { .status = NothingToDo };
 	}
 

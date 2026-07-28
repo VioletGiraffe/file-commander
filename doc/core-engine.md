@@ -87,7 +87,12 @@ Important behavioral boundaries:
 1. Executors are synchronous and interact with their environment only through `COperationExecutionContext` and
    the filesystem primitives. `CFileOperationJob` is the only cross-thread owner.
 2. Move is rename-first. Only a classified native `CrossDevice` result selects staged copy plus source cleanup;
-   after such a result, descendants skip further rename attempts.
+   after such a result, descendants skip further rename attempts. On POSIX filesystems served by a native exclusive
+   rename primitive, case respelling does not assume platform-wide case sensitivity: after an exclusive self-collision
+   it moves the source to a unique sibling, publishes to the requested spelling exclusively, and restores the original
+   spelling exclusively if publication fails. A rollback failure leaves the source at the reported temporary path
+   rather than overwriting a raced-in occupant. This sequence is deliberately non-atomic; a process crash between its
+   renames can leave that temporary entry behind.
 3. Staged copy publishes by rename only after data and required metadata are ready. A final cancellation checkpoint
    separates completed staging from commit; once commit begins, publication and any owned-source cleanup are not
    interruptible. Failure or cancellation before publication preserves the old destination. Durability flush is
