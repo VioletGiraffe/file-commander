@@ -28,6 +28,16 @@ static void requireRejected(const QString& input)
 TEST_CASE("parseOperationPath: rejection table", "[entrypath]")
 {
 	requireRejected({});
+	QString pathWithNull =
+#ifdef _WIN32
+		QStringLiteral("C:/victim");
+#else
+		QStringLiteral("/victim");
+#endif
+	pathWithNull += QChar{ 0 };
+	pathWithNull += QStringLiteral("suffix");
+	requireRejected(pathWithNull);
+
 	requireRejected(QStringLiteral("   "));
 	requireRejected(QStringLiteral("relative/path"));
 	requireRejected(QStringLiteral("./x"));
@@ -46,6 +56,9 @@ TEST_CASE("parseOperationPath: rejection table", "[entrypath]")
 	requireRejected(QStringLiteral("\\\\server\\"));
 	requireRejected(QStringLiteral("\\\\\\x")); // Three leading separators is no recognized form
 	requireRejected(QStringLiteral("\\\\.\\pipe")); // Device namespace
+	requireRejected(QStringLiteral("\\\\?\\C:\\dir\\file")); // Extended drive path: the native bridge owns prefixing
+	requireRejected(QStringLiteral("\\\\?\\UNC\\server\\share\\file"));
+	requireRejected(QStringLiteral("//?/C:/dir/file"));
 	requireRejected(QStringLiteral("\\\\..\\share"));
 	requireRejected(QStringLiteral("\\\\server\\..")); // A dot component is a traversal, never a share name
 	requireRejected(QStringLiteral("\\\\server\\."));
@@ -164,6 +177,10 @@ TEST_CASE("CEntryPath: spelling comparison follows platform case policy", "[entr
 TEST_CASE("isSingleComponentName: what may be appended as one component", "[entrypath]")
 {
 	CHECK(!isSingleComponentName({}));
+	QString nameWithNull = QStringLiteral("victim");
+	nameWithNull += QChar{ 0 };
+	nameWithNull += QStringLiteral("suffix");
+	CHECK(!isSingleComponentName(nameWithNull));
 	CHECK(!isSingleComponentName(QStringLiteral("a/b")));
 #ifdef _WIN32
 	CHECK(!isSingleComponentName(QStringLiteral("a\\b")));

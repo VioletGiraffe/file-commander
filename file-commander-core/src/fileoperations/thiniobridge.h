@@ -9,6 +9,16 @@
 #include "filesystem_error.hpp" // thin_io
 #include "filesystem_types.hpp" // thin_io: native_string
 
+#include "assert/advanced_assert.h"
+
+// Native APIs consume NUL-terminated strings, so an embedded NUL would address only a prefix. CEntryPath rejects
+// it at construction; this last shared boundary makes any future invariant breach fail loudly in development.
+inline const QString& nativePathValue(const CEntryPath& path)
+{
+	assert_debug_only(!path.value().contains(QChar{ 0 }));
+	return path.value();
+}
+
 #ifdef _WIN32
 
 #include <string>
@@ -17,7 +27,7 @@ using NativePathString = std::wstring;
 
 inline NativePathString thinIoPath(const CEntryPath& path)
 {
-	return path.value().toStdWString();
+	return nativePathValue(path).toStdWString();
 }
 
 inline const wchar_t* nativeCStr(const NativePathString& path)
@@ -40,7 +50,7 @@ using NativePathString = QByteArray;
 
 inline NativePathString thinIoPath(const CEntryPath& path)
 {
-	return QFile::encodeName(path.value());
+	return QFile::encodeName(nativePathValue(path));
 }
 
 inline const char* nativeCStr(const NativePathString& path)

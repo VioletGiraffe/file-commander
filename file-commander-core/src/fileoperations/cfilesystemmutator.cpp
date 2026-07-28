@@ -49,7 +49,7 @@ CFileSystemError unsupportedEntryError(const char* what)
 class Win32Path
 {
 public:
-	explicit Win32Path(const CEntryPath& path) : _buffer{ reinterpret_cast<const wchar_t*>(path.value().utf16()) } {}
+	explicit Win32Path(const CEntryPath& path) : _buffer{ reinterpret_cast<const wchar_t*>(nativePathValue(path).utf16()) } {}
 
 	[[nodiscard]] inline explicit operator bool() const noexcept { return static_cast<bool>(_buffer); }
 	[[nodiscard]] inline const wchar_t* c_str() const noexcept { return _buffer.c_str(); }

@@ -59,7 +59,9 @@ Links are a sharp edge:
 
 The file-operation module uses a different path type, `CEntryPath`: absolute, `/`-separated, and without a trailing
 separator except for roots. Do not pass assumptions about one representation into the other without using their
-conversion/parse boundaries.
+conversion/parse boundaries. Its parser rejects embedded NUL and user-supplied Win32 namespace prefixes; the native
+bridge owns extended-path prefixing. User-proposed names are separately checked for native-forbidden syntax before
+they can reach a filesystem mutation.
 
 ## File operations (`src/fileoperations/`)
 

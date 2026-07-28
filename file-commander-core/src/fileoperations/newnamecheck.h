@@ -14,6 +14,8 @@ enum class NameRejection
 	WhitespaceOnly,
 	Separator,         // Would span more than one directory level
 	DotComponent,      // "." and ".." are path syntax, never names
+	InvalidCharacter,  // Embedded NUL everywhere; additional native-forbidden characters on Windows
+	ReservedDeviceName, // Windows: CON, NUL, COM1, etc., with or without an extension
 	TrailingDotOrSpace // Windows: NTFS stores it, Win32 strips it, so nothing else can reach the entry afterwards
 };
 

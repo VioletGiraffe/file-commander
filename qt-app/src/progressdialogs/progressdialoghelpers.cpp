@@ -109,6 +109,8 @@ QString newNameRejectionText(const NameRejection rejection)
 	case WhitespaceOnly: return QObject::tr("The name consists only of spaces.");
 	case Separator: return QObject::tr("A name cannot contain a path separator.");
 	case DotComponent: return QObject::tr("\".\" and \"..\" refer to existing folders and cannot be used as names.");
+	case InvalidCharacter: return QObject::tr("The name contains a character that cannot be used in a file or folder name.");
+	case ReservedDeviceName: return QObject::tr("This name is reserved by Windows.");
 	case TrailingDotOrSpace:
 		return QObject::tr("A name cannot end with a dot or a space: Windows would not find the entry afterwards.");
 	}

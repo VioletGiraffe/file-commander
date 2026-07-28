@@ -60,6 +60,19 @@ TEST_CASE("inline rename: no-op and straight rename", "[inlinerename]")
 		// The reason travels with the rejection, so the caller can say which rule the name broke.
 		CHECK(inlineRename(ep(base % "/file.bin"), QStringLiteral("   "), false).nameRejection == NameRejection::WhitespaceOnly);
 
+		QString nameWithNull = QStringLiteral("victim");
+		nameWithNull += QChar{ 0 };
+		nameWithNull += QStringLiteral("suffix");
+		const auto nulResult = inlineRename(ep(base % "/file.bin"), nameWithNull, false);
+		CHECK(nulResult.status == InlineRenameStatus::RejectedInvalidName);
+		CHECK(nulResult.nameRejection == NameRejection::InvalidCharacter);
+
+#ifdef _WIN32
+		const auto reservedResult = inlineRename(ep(base % "/file.bin"), QStringLiteral("NUL.txt"), false);
+		CHECK(reservedResult.status == InlineRenameStatus::RejectedInvalidName);
+		CHECK(reservedResult.nameRejection == NameRejection::ReservedDeviceName);
+#endif
+
 		CHECK(!entryAbsent(base % "/file.bin")); // Nothing touched
 	}
 }

@@ -83,7 +83,7 @@ bool CEntryPath::operator==(const CEntryPath& other) const noexcept
 
 std::optional<CEntryPath> parseOperationPath(QString path)
 {
-	if (path.isEmpty())
+	if (path.isEmpty() || path.contains(QChar{ 0 }))
 		return {};
 
 	QString root;
@@ -91,6 +91,8 @@ std::optional<CEntryPath> parseOperationPath(QString path)
 
 #ifdef _WIN32
 	path.replace(QLatin1Char('\\'), QLatin1Char('/'));
+	if (path.startsWith(QLatin1String("//?/"))) // The native bridge owns extended-path prefixing
+		return {};
 
 	if (path.startsWith(QLatin1String("//")) && path.length() > 2 && path[2] != QLatin1Char('/'))
 	{
@@ -154,6 +156,9 @@ std::optional<CEntryPath> parseOperationPath(QString path)
 
 bool isSingleComponentName(const QString& name)
 {
+	if (name.contains(QChar{ 0 }))
+		return false;
+
 #ifdef _WIN32
 	if (name.contains(QLatin1Char('\\'))) // A separator here; on POSIX an ordinary character a name may contain
 		return false;
