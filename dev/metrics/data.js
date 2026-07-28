@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785268824095,
+  "lastUpdate": 1785269210762,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -10255,6 +10255,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 713,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e0b38fd349a35e72c6a7193d5032af5eb89bc854",
+          "message": "Treat vanished child directories as benign source-scan races",
+          "timestamp": "2026-07-28T23:00:58+03:00",
+          "tree_id": "5e41dd083a51eea43a6b464afba47afe1fc21e38",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e0b38fd349a35e72c6a7193d5032af5eb89bc854"
+        },
+        "date": 1785269208174,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16664,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1326,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 714.5,
             "unit": "KB"
           },
           {
