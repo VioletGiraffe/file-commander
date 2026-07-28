@@ -6,6 +6,10 @@
 
 #include "fileoperationtesthelpers.h"
 
+#ifndef _WIN32
+#include "threading/cinterruptablethread.h"
+#endif
+
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 #include <QTemporaryDir>
@@ -304,8 +308,9 @@ TEST_CASE("staged copy: begin failures leave nothing behind", "[stagedcopy]")
 		REQUIRE(::mkfifo(fifoPath.constData(), 0600) == 0);
 
 		// If nonblocking open regresses, release the stuck reader so this test fails instead of hanging the suite.
-		std::jthread blockingOpenFailsafe{ [fifoPath](const std::stop_token stopToken) {
-			while (!stopToken.stop_requested())
+		CInterruptableThread blockingOpenFailsafe{ "FIFO open failsafe" };
+		blockingOpenFailsafe.start([fifoPath](const std::atomic<bool>& cancellationRequested) {
+			while (!cancellationRequested.load())
 			{
 				const int writer = ::open(fifoPath.constData(), O_WRONLY | O_NONBLOCK);
 				if (writer != -1)
@@ -315,10 +320,10 @@ TEST_CASE("staged copy: begin failures leave nothing behind", "[stagedcopy]")
 				}
 				std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
 			}
-		} };
+		});
 
 		const auto session = CStagedFileCopy::begin(ep(base % "/source-fifo"), ep(base % "/dest.bin"));
-		blockingOpenFailsafe.request_stop();
+		blockingOpenFailsafe.requestCancellation();
 		blockingOpenFailsafe.join();
 		REQUIRE(!session.has_value());
 		CHECK(session.error().action == FailedAction::ReadSource);
