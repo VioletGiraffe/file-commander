@@ -590,6 +590,22 @@ TEST_CASE("source tree: scanning progress and cancellation", "[sourcetree]")
 		const auto result = buildSourceTree(context, snapshotOf(base % "/root"), SourceTreeBuildMode::MaterializingTransfer);
 		CHECK(std::holds_alternative<ScanCancelled>(result));
 	}
+
+	SECTION("cancellation is checked while processing a wide flat directory")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/wide"));
+		for (int i = 0; i < 100; ++i)
+			writeTestFile(base % "/wide/file-" % QString::number(i), QByteArray(1, 'f'));
+
+		ScanScript script;
+		script.cancelAtCheckpoint = [&script] { return script.progress.size() > 10; };
+		auto context = scanContext(script);
+		const auto result = buildSourceTree(context, snapshotOf(base % "/wide"), SourceTreeBuildMode::MaterializingTransfer);
+
+		CHECK(std::holds_alternative<ScanCancelled>(result));
+		CHECK(script.progress.size() > 1); // Some leaf children were processed after the directory listing
+		CHECK(script.progress.size() < 101); // Cancellation was observed before all 100 children were processed
+	}
 }
 
 #ifndef _WIN32

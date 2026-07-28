@@ -24,6 +24,7 @@ struct SourceTreeBuildLimits
 // Root is depth 1. These ceilings bound every recursive manifest consumer because executors only traverse
 // trees successfully produced here.
 constexpr SourceTreeBuildLimits productionLimits{ .maximumDepth = 300, .maximumNodeCount = 2'000'000 };
+constexpr size_t directoryChildrenPerCheckpoint = 64;
 
 struct BuildState
 {
@@ -60,6 +61,14 @@ void publishScanProgress(BuildState& state, const CEntryPath& currentEntry)
 void failBuild(BuildState& state, EntrySnapshot failedEntry, CFileSystemError error)
 {
 	state.failure = OperationDiagnostic{ FailureDetails{ FailedAction::InspectSource, mv(error) }, mv(failedEntry), {} };
+}
+
+bool buildCancelledAtCheckpoint(BuildState& state)
+{
+	if (state.context.checkpoint())
+		return false;
+	state.cancelled = true;
+	return true;
 }
 
 CFileSystemError unrepresentableSourceNameError()
@@ -226,11 +235,8 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 
 	if (descend)
 	{
-		if (!state.context.checkpoint())
-		{
-			state.cancelled = true;
+		if (buildCancelledAtCheckpoint(state))
 			return BuildStopped{};
-		}
 
 		const auto native = thinIoPath(node.entry.path);
 		const auto listing = thin_io::list_directory(nativeCStr(native));
@@ -242,14 +248,25 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 			failBuild(state, node.entry, mv(error));
 			return BuildStopped{};
 		}
+		if (buildCancelledAtCheckpoint(state))
+			return BuildStopped{};
 
 		const bool borrowedChildren = ownership == SourceOwnership::BorrowedThroughDirectoryLink || node.entry.kind == OperationEntryKind::DirectoryLink;
 		const SourceOwnership childOwnership = borrowedChildren ? SourceOwnership::BorrowedThroughDirectoryLink : SourceOwnership::Owned;
 
 		const size_t remainingNodeBudget = state.limits.maximumNodeCount - state.discoveredCount;
 		node.children.reserve(std::min(listing->size(), remainingNodeBudget));
+		size_t childrenSinceCheckpoint = 0;
 		for (const auto& listed : *listing)
 		{
+			if (childrenSinceCheckpoint == directoryChildrenPerCheckpoint)
+			{
+				if (buildCancelledAtCheckpoint(state))
+					return BuildStopped{};
+				childrenSinceCheckpoint = 0;
+			}
+			++childrenSinceCheckpoint;
+
 			auto childName = decodeNativeNameLosslessly(listed.name);
 			if (!childName)
 			{

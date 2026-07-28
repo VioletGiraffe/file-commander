@@ -107,7 +107,9 @@ Important behavioral boundaries:
    `PermissionDenied`, not `ReadOnly`.
 6. Aggregate totals remain absent until every source root has been scanned. A descendant that disappears after
    enumeration is omitted when its inspection or directory listing reports `NotFound`; the selected root and every
-   non-`NotFound` scan error retain their operation-level failure handling.
+   non-`NotFound` scan error retain their operation-level failure handling. Processing rechecks cancellation after
+   each synchronous directory listing and every 64 listed children; the listing call itself remains one blocking
+   filesystem operation.
 7. The committed move segment between publication and source removal has no cancellation checkpoint. Its prompts
    are item-only and do not consult or update remembered decisions.
 8. Before a root file is staged or any root is renamed, the executor silently creates an absent destination-parent
