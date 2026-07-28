@@ -55,6 +55,17 @@ std::expected<CStagedFileCopy, FailureDetails> CStagedFileCopy::begin(CEntryPath
 			return fail(FailedAction::ReadSource, captureNativeError());
 	}
 
+#ifndef _WIN32
+	const auto sourceIsRegularFile = sourceFile.is_regular_file();
+	if (!sourceIsRegularFile) [[unlikely]]
+		return fail(FailedAction::ReadSource, captureNativeError());
+	if (!*sourceIsRegularFile) [[unlikely]]
+	{
+		return std::unexpected{ FailureDetails{ FailedAction::ReadSource,
+			CFileSystemError{ FileErrorCategory::Unsupported, 0, QStringLiteral("The opened source is not a regular file") } } };
+	}
+#endif
+
 	// Metadata comes from the open handle - provably the same effective file that supplies the bytes,
 	// even when the source path is a link being materialized.
 	thin_io::entry_times sourceTimes;

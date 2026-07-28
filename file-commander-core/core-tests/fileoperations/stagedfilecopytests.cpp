@@ -13,7 +13,12 @@ RESTORE_COMPILER_WARNINGS
 
 #ifndef _WIN32
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
+#include <chrono>
+#include <thread>
 #endif
 
 using OperationTestHooks::CFaultHookScope;
@@ -291,6 +296,35 @@ TEST_CASE("staged copy: begin failures leave nothing behind", "[stagedcopy]")
 		CHECK(session.error().action == FailedAction::ReadSource);
 		CHECK(session.error().filesystemError.category == FileErrorCategory::NotFound);
 	}
+
+#ifndef _WIN32
+	SECTION("FIFO source")
+	{
+		const QByteArray fifoPath = QFile::encodeName(base % "/source-fifo");
+		REQUIRE(::mkfifo(fifoPath.constData(), 0600) == 0);
+
+		// If nonblocking open regresses, release the stuck reader so this test fails instead of hanging the suite.
+		std::jthread blockingOpenFailsafe{ [fifoPath](const std::stop_token stopToken) {
+			while (!stopToken.stop_requested())
+			{
+				const int writer = ::open(fifoPath.constData(), O_WRONLY | O_NONBLOCK);
+				if (writer != -1)
+				{
+					(void)::close(writer);
+					return;
+				}
+				std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
+			}
+		} };
+
+		const auto session = CStagedFileCopy::begin(ep(base % "/source-fifo"), ep(base % "/dest.bin"));
+		blockingOpenFailsafe.request_stop();
+		blockingOpenFailsafe.join();
+		REQUIRE(!session.has_value());
+		CHECK(session.error().action == FailedAction::ReadSource);
+		CHECK(session.error().filesystemError.category == FileErrorCategory::Unsupported);
+	}
+#endif
 
 	SECTION("metadata capture failure")
 	{
