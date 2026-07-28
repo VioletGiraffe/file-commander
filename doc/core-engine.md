@@ -144,6 +144,13 @@ time-of-check-to-time-of-use sequences are accepted limitations:
    inspection or directory listing. A resulting `NotFound` omits that descendant from the complete manifest; it
    does not make the operation fail merely because the race occurred later for a directory than for a file. A
    selected root disappearing retains its existing operation-level outcome.
+4. On Windows, an authorized replacement that initially fails because its regular-file destination is read-only
+   clears `FILE_ATTRIBUTE_READONLY` and immediately retries the native replacement. The destination can be
+   substituted between the attribute inspection, attribute change, and replacement; those steps remain path-bound
+   and may therefore change or replace the new occupant. If the retry fails, restoring the original attribute mask
+   is path-bound in the same way. A restoration failure is reported, but the race itself is deliberate accepted
+   behavior, not a defect. Moving the destination aside is intentionally avoided: it would add an absent-destination
+   window, crash/rollback states, and an old-file cleanup that still requires clearing the read-only attribute.
 
 Rechecking kind or size immediately before mutation would detect some substitutions but would neither identify an
 entry nor close the final check-to-act window. Size checks would also reject legitimate in-place modification of

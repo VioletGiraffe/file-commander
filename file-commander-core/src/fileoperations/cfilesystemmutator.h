@@ -46,7 +46,8 @@ public:
 	// respell that collides with its source uses exclusive source->temporary->destination renames and exclusive
 	// rollback, never replacing another entry. Where the exclusive mechanism itself is unsupported, RequireAbsent
 	// degrades to a fresh no-follow recheck plus plain rename. ReplaceExistingFile atomically replaces a regular-file
-	// (or link) destination; a directory destination is rejected.
+	// (or link) destination; a directory destination is rejected. On Windows, an authorized replacement clears a
+	// regular destination's read-only attribute when the native replacement requires it, then retries once.
 	static std::expected<void, CFileSystemError> renameEntry(const CEntryPath& source, const CEntryPath& destination, ReplacementMode replacement);
 
 	// Removes the entry itself: links are unlinked, never followed; a directory must be empty.

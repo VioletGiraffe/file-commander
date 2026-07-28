@@ -225,6 +225,76 @@ TEST_CASE("renameEntry: replace-existing-file replaces atomically", "[mutator]")
 	CHECK(readFileContents(base % "/dst.bin") == newContents);
 }
 
+#ifdef _WIN32
+TEST_CASE("renameEntry: Windows replaces a read-only destination and restores it after a failed retry", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	const QString sourcePath = base % "/src.bin";
+	const QString destinationPath = base % "/dst.bin";
+	const QByteArray newContents(2000, 'n');
+	const QByteArray oldContents(3000, 'o');
+
+	SECTION("authorized replacement clears the attribute and publishes")
+	{
+		writeTestFile(sourcePath, newContents);
+		writeTestFile(destinationPath, oldContents);
+		setFileReadOnly(destinationPath, true);
+
+		REQUIRE(CFileSystemMutator::renameEntry(
+			ep(sourcePath), ep(destinationPath), ReplacementMode::ReplaceExistingFile).has_value());
+		CHECK(entryAbsent(sourcePath));
+		CHECK(readFileContents(destinationPath) == newContents);
+	}
+
+	SECTION("a failed retry restores the destination's original attributes")
+	{
+		writeTestFile(sourcePath, newContents);
+		writeTestFile(destinationPath, oldContents);
+		setFileReadOnly(destinationPath, true);
+
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::RenameEntry_Native, ERROR_ACCESS_DENIED, 1, 1);
+
+		const auto result = CFileSystemMutator::renameEntry(
+			ep(sourcePath), ep(destinationPath), ReplacementMode::ReplaceExistingFile);
+		REQUIRE(!result.has_value());
+		CHECK(result.error().category == FileErrorCategory::PermissionDenied);
+		CHECK(hooks.arrivalCount(Point::RenameEntry_Native) == 2);
+		CHECK(!entryAbsent(sourcePath));
+		CHECK(readFileContents(destinationPath) == oldContents);
+		const auto writable = isEntryWritableNoFollow(snapshotOf(destinationPath));
+		REQUIRE(writable.has_value());
+		CHECK(!*writable);
+
+		setFileReadOnly(destinationPath, false); // Let the temporary directory clean up
+	}
+
+	SECTION("a restoration failure reports the incomplete recovery")
+	{
+		writeTestFile(sourcePath, newContents);
+		writeTestFile(destinationPath, oldContents);
+		setFileReadOnly(destinationPath, true);
+
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::RenameEntry_Native, ERROR_ACCESS_DENIED, 1, 1);
+		hooks.forceNativeError(Point::SetEntryWritable_Native, ERROR_ACCESS_DENIED, 1, 1);
+
+		const auto result = CFileSystemMutator::renameEntry(
+			ep(sourcePath), ep(destinationPath), ReplacementMode::ReplaceExistingFile);
+		REQUIRE(!result.has_value());
+		CHECK(result.error().category == FileErrorCategory::IoFailure);
+		CHECK(result.error().diagnostic.contains(QStringLiteral("could not be restored")));
+		CHECK(!entryAbsent(sourcePath));
+		CHECK(readFileContents(destinationPath) == oldContents);
+		const auto writable = isEntryWritableNoFollow(snapshotOf(destinationPath));
+		REQUIRE(writable.has_value());
+		CHECK(*writable); // The diagnostic reports this incomplete recovery rather than hiding it
+	}
+}
+#endif
+
 TEST_CASE("renameEntry: replacing a hard-link pathname does not change the other alias", "[mutator]")
 {
 	QTemporaryDir tempDir;

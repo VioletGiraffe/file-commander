@@ -64,6 +64,26 @@ private:
 	thin_io::windows_path_buffer _buffer;
 };
 
+std::optional<NativeErrorCode> moveFileError(const wchar_t* source, const wchar_t* destination, const DWORD flags)
+{
+	if (const auto forcedError = OperationTestHooks::fireHook(OperationTestHooks::Point::RenameEntry_Native))
+		return *forcedError;
+
+	if (::MoveFileExW(source, destination, flags) != 0)
+		return {};
+	return captureNativeError();
+}
+
+std::optional<NativeErrorCode> setFileAttributesError(const wchar_t* path, const DWORD attributes)
+{
+	if (const auto forcedError = OperationTestHooks::fireHook(OperationTestHooks::Point::SetEntryWritable_Native))
+		return *forcedError;
+
+	if (::SetFileAttributesW(path, attributes) != 0)
+		return {};
+	return captureNativeError();
+}
+
 #endif
 
 // Rename knows more than the context-free classifier: these codes mean "the destination exists in a form
@@ -376,8 +396,6 @@ std::expected<CopyableDirectoryTimes, CFileSystemError> readCopyableDirectoryTim
 
 std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEntryPath& source, const CEntryPath& destination, const ReplacementMode replacement)
 {
-	using OperationTestHooks::fireHook, OperationTestHooks::Point;
-
 #ifdef _WIN32
 	const Win32Path sourceNative{ source }, destinationNative{ destination };
 	if (!sourceNative) [[unlikely]]
@@ -392,27 +410,55 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 	// rename refuses same-inode destinations).
 	const DWORD flags = replacement == ReplacementMode::ReplaceExistingFile ? MOVEFILE_REPLACE_EXISTING : 0;
 
-	NativeErrorCode errorCode;
-	if (const auto forcedError = fireHook(Point::RenameEntry_Native))
-		errorCode = *forcedError;
-	else
-	{
-		if (::MoveFileExW(sourceNative.c_str(), destinationNative.c_str(), flags) != 0)
-			return {};
-		errorCode = captureNativeError();
-	}
+	auto moveError = moveFileError(sourceNative.c_str(), destinationNative.c_str(), flags);
+	if (!moveError)
+		return {};
 
 	// ERROR_ACCESS_DENIED is also how MoveFileExW reports an unreplaceable directory-bearing destination.
-	// Refine only when fresh no-follow attributes prove that collision; ordinary permission failures remain so.
-	if (replacement == ReplacementMode::ReplaceExistingFile && errorCode == ERROR_ACCESS_DENIED)
+	// Refine only from fresh no-follow attributes; ordinary permission failures remain permission failures.
+	if (replacement == ReplacementMode::ReplaceExistingFile && *moveError == ERROR_ACCESS_DENIED)
 	{
 		const DWORD destinationAttributes = ::GetFileAttributesW(destinationNative.c_str());
 		if (destinationAttributes != INVALID_FILE_ATTRIBUTES && (destinationAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
-			return std::unexpected(makeError(FileErrorCategory::AlreadyExists, errorCode));
+			return std::unexpected(makeError(FileErrorCategory::AlreadyExists, *moveError));
+
+		const bool readOnlyRegularFile = destinationAttributes != INVALID_FILE_ATTRIBUTES
+			&& (destinationAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) == 0
+			&& (destinationAttributes & FILE_ATTRIBUTE_READONLY) != 0;
+		if (readOnlyRegularFile)
+		{
+			if (const auto attributeError = setFileAttributesError(
+				destinationNative.c_str(), destinationAttributes & ~static_cast<DWORD>(FILE_ATTRIBUTE_READONLY)))
+				return std::unexpected(makeFileSystemError(*attributeError));
+
+			moveError = moveFileError(sourceNative.c_str(), destinationNative.c_str(), flags);
+			if (!moveError)
+				return {};
+
+			if (const auto restorationError = setFileAttributesError(destinationNative.c_str(), destinationAttributes))
+			{
+				const CFileSystemError replacementFailure = renameErrorFromNative(*moveError);
+				const CFileSystemError restorationFailure = makeFileSystemError(*restorationError);
+				return std::unexpected(CFileSystemError{ FileErrorCategory::IoFailure, *restorationError,
+					QStringLiteral("Replacement failed (%1), and the destination's read-only attribute could not be restored (%2)")
+						.arg(replacementFailure.diagnostic, restorationFailure.diagnostic) });
+			}
+
+			// The retry opens a new race window: preserve the directory-collision refinement if one appeared
+			// after the read-only file was inspected.
+			if (*moveError == ERROR_ACCESS_DENIED)
+			{
+				const DWORD freshAttributes = ::GetFileAttributesW(destinationNative.c_str());
+				if (freshAttributes != INVALID_FILE_ATTRIBUTES && (freshAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+					return std::unexpected(makeError(FileErrorCategory::AlreadyExists, *moveError));
+			}
+		}
 	}
 
-	return std::unexpected(renameErrorFromNative(errorCode));
+	return std::unexpected(renameErrorFromNative(*moveError));
 #else
+	using OperationTestHooks::fireHook, OperationTestHooks::Point;
+
 	const auto sourceNative = thinIoPath(source);
 	const auto destinationNative = thinIoPath(destination);
 
@@ -593,8 +639,6 @@ std::expected<void, CFileSystemError> CFileSystemMutator::applyDirectoryTimes(co
 
 std::expected<void, CFileSystemError> CFileSystemMutator::setEntryWritable(const EntrySnapshot& entry, const bool writable)
 {
-	using OperationTestHooks::fireHook, OperationTestHooks::Point;
-
 	assert_debug_only(entry.kind == OperationEntryKind::RegularFile);
 
 #ifdef _WIN32
@@ -613,14 +657,13 @@ std::expected<void, CFileSystemError> CFileSystemMutator::setEntryWritable(const
 	if (newAttributes == attributes)
 		return {};
 
-	if (const auto forcedError = fireHook(Point::SetEntryWritable_Native))
-		return std::unexpected(makeFileSystemError(*forcedError));
-
-	if (::SetFileAttributesW(nativePath.c_str(), newAttributes) == 0)
-		return std::unexpected(makeFileSystemError(captureNativeError()));
+	if (const auto error = setFileAttributesError(nativePath.c_str(), newAttributes))
+		return std::unexpected(makeFileSystemError(*error));
 
 	return {};
 #else
+	using OperationTestHooks::fireHook, OperationTestHooks::Point;
+
 	const auto native = thinIoPath(entry.path);
 
 	// lstat first: chmod() follows links, and a link (or anything but a regular file) must never be remediated.

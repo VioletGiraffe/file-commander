@@ -455,6 +455,32 @@ TEST_CASE("copy executor: retries restart a fresh staging session", "[executor]"
 	}
 }
 
+#ifdef _WIN32
+TEST_CASE("copy executor: authorized replacement publishes over a read-only destination without restaging", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	const QByteArray contents = patternedContents(1000);
+	writeTestFile(base % "/source.bin", contents);
+	writeTestFile(base % "/destination.bin", QByteArray{ "OLD" });
+	setFileReadOnly(base % "/destination.bin", true);
+
+	CFaultHookScope hooks;
+	OperationScript script{ .decisions = { act(DecisionAction::Replace) } };
+	const auto summary = runCopy(script, { base % "/source.bin" }, DestinationIntent::ExactEntry, base % "/destination.bin");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	REQUIRE(script.seenRequests.size() == 1);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::FileReplacement);
+	CHECK(hooks.arrivalCount(Point::StagedCopy_CreateStaging_Native) == 1);
+	CHECK(hooks.arrivalCount(Point::RenameEntry_Native) == 2);
+	CHECK(readFileContents(base % "/source.bin") == contents);
+	CHECK(readFileContents(base % "/destination.bin") == contents);
+}
+#endif
+
 TEST_CASE("copy executor: a retried publication does not push progress past the file size", "[executor]")
 {
 	QTemporaryDir tempDir;
