@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785264511802,
+  "lastUpdate": 1785265421451,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -10053,6 +10053,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 380,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "1b8206be90a342c30087d6c7bee47e66a145c5b9",
+          "message": "Test fixed",
+          "timestamp": "2026-07-28T21:58:25+03:00",
+          "tree_id": "431c55864858341334225a980ad1c07d12c2efc2",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/1b8206be90a342c30087d6c7bee47e66a145c5b9"
+        },
+        "date": 1785265419133,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16559,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1321.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 710.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 380.5,
             "unit": "KB"
           },
           {
