@@ -124,7 +124,7 @@ Important behavioral boundaries:
     child-vector spare capacity, and transient directory listings are additional, so this is a fail-safe ceiling,
     not a promised memory budget.
 
-### Accepted data races and TOCTOU sequences
+### Accepted corner cases
 
 The file-operation engine does not lock filesystem namespaces against concurrent changes by other processes. In
 this section, "data race" means that external filesystem activity races the operation; it does not mean an
@@ -150,6 +150,14 @@ entry nor close the final check-to-act window. Size checks would also reject leg
 the original file while missing a same-sized replacement. Do not add such heuristics as if they were an identity
 guarantee. A future hardening pass would need stable identities carried through the manifest and replacement
 authorization plus handle-bound or conditional native mutation where the platform supports it.
+
+Staged copy maps each source chunk and passes that mapping directly as the input buffer to the native destination
+write; File Commander never dereferences the mapping itself. Supported kernels are expected to turn a fault while
+copying that user buffer into a failed or partial write, which the operation already handles. Installing a process-wide
+`SIGBUS` handler would not itself provide recovery: safe continuation would still require per-thread jump state around
+each write, correct handling of unrelated signals, and a separate Windows mechanism. The residual possibility that a
+POSIX implementation signals instead of reporting the buffer fault is accepted. If this is reproduced on a supported
+platform, replace mapping with a reusable `pread()` buffer rather than adding signal recovery.
 
 Inline rename (`inlinerename.{h,cpp}`) is a separate synchronous command with its own replacement matrix, reusing
 the name, inspection, identity, and native rename primitives. Test-only deterministic errors/barriers are isolated
