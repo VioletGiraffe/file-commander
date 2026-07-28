@@ -6,16 +6,24 @@
 namespace
 {
 
-// A panel's synthetic parent item ([..]) arrives as a path whose last component is "..". It is filtered
-// on the raw text: parsing would silently collapse it into the parent directory instead.
+// A panel's synthetic parent item ([..]) arrives as a directory path ending in "../". It is filtered on the raw
+// text so selecting only that sentinel behaves like selecting no source, rather than like supplying an invalid path.
 bool isSyntheticParentEntry(const QString& rawPath)
 {
+	QString path = rawPath;
 #ifdef _WIN32
-	if (rawPath.endsWith(QLatin1String("\\.."))) // A separator here; on POSIX "x\.." is one ordinary name
+	if (path.endsWith(QLatin1Char('/')) || path.endsWith(QLatin1Char('\\')))
+#else
+	if (path.endsWith(QLatin1Char('/')))
+#endif
+		path.chop(1);
+
+#ifdef _WIN32
+	if (path.endsWith(QLatin1String("\\.."))) // A separator here; on POSIX "x\.." is one ordinary name
 		return true;
 #endif
 
-	return rawPath == QLatin1String("..") || rawPath.endsWith(QLatin1String("/.."));
+	return path == QLatin1String("..") || path.endsWith(QLatin1String("/.."));
 }
 
 std::expected<std::vector<CEntryPath>, RequestValidationError> parseSourcePaths(const QStringList& rawSourcePaths)

@@ -10,6 +10,16 @@ RESTORE_COMPILER_WARNINGS
 namespace
 {
 
+bool isRejectedWhitespaceCharacter(const QChar c)
+{
+#ifdef _WIN32
+	return c.isSpace();
+#else
+	// Non-ASCII characters that Qt classifies as whitespace are ordinary filename text on POSIX.
+	return c.unicode() < 0x80 && c.isSpace();
+#endif
+}
+
 #ifdef _WIN32
 bool isWindowsInvalidNameCharacter(const QChar c)
 {
@@ -64,7 +74,7 @@ NameRejection checkNewEntryName(const QString& name)
 		return NameRejection::InvalidCharacter;
 #endif
 
-	if (std::all_of(name.cbegin(), name.cend(), [](const QChar c) { return c.isSpace(); }))
+	if (std::all_of(name.cbegin(), name.cend(), isRejectedWhitespaceCharacter))
 		return NameRejection::WhitespaceOnly;
 
 	// isSingleComponentName owns the structural rules; which of them failed matters only for the wording.

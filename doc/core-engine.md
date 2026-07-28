@@ -151,6 +151,14 @@ the original file while missing a same-sized replacement. Do not add such heuris
 guarantee. A future hardening pass would need stable identities carried through the manifest and replacement
 authorization plus handle-bound or conditional native mutation where the platform supports it.
 
+`RequireAbsent` is strictly non-clobbering when the platform and filesystem provide a native exclusive-rename
+primitive. If that primitive reports itself unsupported, the mutator deliberately degrades to a fresh no-follow
+destination check immediately followed by plain rename. This preserves otherwise workable operations on such
+filesystems and on best-effort FreeBSD, but accepts a narrow TOCTOU window in which an entry created after the check
+can be replaced. Failing every fresh publication on those filesystems is not an acceptable compatibility tradeoff.
+Hard-link-plus-unlink emulation is intentionally rejected: it is type- and filesystem-dependent, does not cover
+directories, and introduces additional partial/crash states for disproportionate complexity.
+
 Staged copy maps each source chunk and passes that mapping directly as the input buffer to the native destination
 write; File Commander never dereferences the mapping itself. Supported kernels are expected to turn a fault while
 copying that user buffer into a failed or partial write, which the operation already handles. Installing a process-wide

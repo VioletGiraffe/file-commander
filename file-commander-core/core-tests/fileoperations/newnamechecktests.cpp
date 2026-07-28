@@ -38,6 +38,19 @@ TEST_CASE("checkNewEntryName: whitespace alone is refused rather than trimmed aw
 	CHECK(checkNewEntryName(QStringLiteral(". ")) != NameRejection::DotComponent);
 }
 
+TEST_CASE("checkNewEntryName: Unicode whitespace follows the platform filename policy", "[newnamecheck]")
+{
+	for (const QChar whitespace : { QChar{ 0x00a0 }, QChar{ 0x2003 }, QChar{ 0x3000 } })
+	{
+		const QString name(1, whitespace);
+#ifdef _WIN32
+		CHECK(checkNewEntryName(name) == NameRejection::WhitespaceOnly);
+#else
+		CHECK(checkNewEntryName(name) == NameRejection::None);
+#endif
+	}
+}
+
 #ifdef _WIN32
 
 // Storable on NTFS through the extended-length prefix this app uses, but Win32 normalization strips them, so
@@ -106,6 +119,10 @@ TEST_CASE("checkNewEntryPath: every component is judged", "[newnamecheck]")
 
 	CHECK(checkNewEntryPath(QStringLiteral("a/ /c")) == NameRejection::WhitespaceOnly);
 	CHECK(checkNewEntryPath(QStringLiteral("a/../c")) == NameRejection::DotComponent);
+
+#ifndef _WIN32
+	CHECK(checkNewEntryPath(QStringLiteral("a/\u2003/c")) == NameRejection::None);
+#endif
 
 	QString pathWithNull = QStringLiteral("a/victim");
 	pathWithNull += QChar{ 0 };

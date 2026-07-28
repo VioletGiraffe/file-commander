@@ -76,10 +76,10 @@ TEST_CASE("parseOperationPath: Windows drive paths", "[entrypath]")
 	requireParsesTo(QStringLiteral("C:\\"), QStringLiteral("C:/"));
 	requireParsesTo(QStringLiteral("C:/foo/"), QStringLiteral("C:/foo")); // No trailing separator except a root
 	requireParsesTo(QStringLiteral("C://foo\\\\bar"), QStringLiteral("C:/foo/bar")); // Duplicate separators collapse
-	requireParsesTo(QStringLiteral("C:/a/./b"), QStringLiteral("C:/a/b"));
-	requireParsesTo(QStringLiteral("C:/a/b/../c"), QStringLiteral("C:/a/c"));
-	requireParsesTo(QStringLiteral("C:/../../x"), QStringLiteral("C:/x")); // ".." clamps at the root
-	requireParsesTo(QStringLiteral("C:/a/.."), QStringLiteral("C:/"));
+	requireRejected(QStringLiteral("C:/a/./b"));
+	requireRejected(QStringLiteral("C:/a/b/../c"));
+	requireRejected(QStringLiteral("C:/../../x"));
+	requireRejected(QStringLiteral("C:/a/.."));
 	requireParsesTo(QStringLiteral("C:/foo "), QStringLiteral("C:/foo ")); // Trailing space: part of the name, never trimmed
 	requireParsesTo(QStringLiteral("C:\\mixed/separators\\path"), QStringLiteral("C:/mixed/separators/path"));
 }
@@ -90,8 +90,8 @@ TEST_CASE("parseOperationPath: Windows UNC paths", "[entrypath]")
 	requireParsesTo(QStringLiteral("\\\\server\\share\\"), QStringLiteral("//server/share"));
 	requireParsesTo(QStringLiteral("\\\\server\\share\\dir\\file"), QStringLiteral("//server/share/dir/file"));
 	requireParsesTo(QStringLiteral("//server/share/dir"), QStringLiteral("//server/share/dir"));
-	requireParsesTo(QStringLiteral("\\\\server\\share\\a\\..\\b"), QStringLiteral("//server/share/b"));
-	requireParsesTo(QStringLiteral("\\\\server\\share\\.."), QStringLiteral("//server/share")); // Clamps at the share root
+	requireRejected(QStringLiteral("\\\\server\\share\\a\\..\\b"));
+	requireRejected(QStringLiteral("\\\\server\\share\\.."));
 	requireParsesTo(QStringLiteral("\\\\server\\share\\\\x"), QStringLiteral("//server/share/x"));
 }
 
@@ -137,10 +137,10 @@ TEST_CASE("parseOperationPath: POSIX paths", "[entrypath]")
 	requireParsesTo(QStringLiteral("/usr/local/bin"), QStringLiteral("/usr/local/bin"));
 	requireParsesTo(QStringLiteral("/usr/"), QStringLiteral("/usr")); // No trailing separator except the root
 	requireParsesTo(QStringLiteral("//usr///bin"), QStringLiteral("/usr/bin")); // Duplicate separators collapse
-	requireParsesTo(QStringLiteral("/a/./b"), QStringLiteral("/a/b"));
-	requireParsesTo(QStringLiteral("/a/b/../c"), QStringLiteral("/a/c"));
-	requireParsesTo(QStringLiteral("/../x"), QStringLiteral("/x")); // ".." clamps at the root, as the OS resolves it
-	requireParsesTo(QStringLiteral("/a/.."), QStringLiteral("/"));
+	requireRejected(QStringLiteral("/a/./b"));
+	requireRejected(QStringLiteral("/a/b/../c"));
+	requireRejected(QStringLiteral("/../x"));
+	requireRejected(QStringLiteral("/a/.."));
 	requireParsesTo(QStringLiteral("/tmp/x "), QStringLiteral("/tmp/x ")); // Trailing space: part of the name, never trimmed
 	requireParsesTo(QStringLiteral("/name.with\\backslash"), QStringLiteral("/name.with\\backslash")); // '\' is an ordinary name character
 }

@@ -113,7 +113,7 @@ TEST_CASE("request factory: source filtering and validation", "[requests]")
 	SECTION("the synthetic parent entry is filtered once")
 	{
 		const auto request = makeTransferRequest(TransferKind::Copy,
-			{ abstractPath("dir/.."), fileA, QStringLiteral("..") }, DestinationIntent::IntoDirectory, destination);
+			{ abstractPath("dir/../"), abstractPath("dir/.."), fileA, QStringLiteral("..") }, DestinationIntent::IntoDirectory, destination);
 		REQUIRE(request.has_value());
 		REQUIRE(request->sources.size() == 1);
 		CHECK(request->sources[0].value() == fileA);
@@ -121,7 +121,7 @@ TEST_CASE("request factory: source filtering and validation", "[requests]")
 
 	SECTION("a selection reduced to nothing by the parent filter is NoSources")
 	{
-		const auto request = makeTransferRequest(TransferKind::Copy, { abstractPath("dir/..") }, DestinationIntent::IntoDirectory, destination);
+		const auto request = makeTransferRequest(TransferKind::Copy, { abstractPath("dir/../") }, DestinationIntent::IntoDirectory, destination);
 		REQUIRE(!request.has_value());
 		CHECK(request.error() == RequestValidationError::NoSources);
 	}
@@ -160,7 +160,7 @@ TEST_CASE("request factory: source filtering and validation", "[requests]")
 	SECTION("the synthetic parent entry is filtered in its backslash spelling too")
 	{
 		const auto request = makeTransferRequest(TransferKind::Copy,
-			{ QStringLiteral("C:\\dir\\.."), fileA }, DestinationIntent::IntoDirectory, destination);
+			{ QStringLiteral("C:\\dir\\..\\"), fileA }, DestinationIntent::IntoDirectory, destination);
 		REQUIRE(request.has_value());
 		REQUIRE(request->sources.size() == 1);
 		CHECK(request->sources[0].value() == fileA);

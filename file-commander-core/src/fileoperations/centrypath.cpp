@@ -132,15 +132,8 @@ std::optional<CEntryPath> parseOperationPath(QString path)
 	QStringList components;
 	for (const auto& part : rest.split(QLatin1Char('/'), Qt::SkipEmptyParts))
 	{
-		if (part == QLatin1String("."))
-			continue;
-
-		if (part == QLatin1String(".."))
-		{
-			if (!components.isEmpty()) // ".." at the root clamps, like the OS itself resolves "/.."
-				components.removeLast();
-			continue;
-		}
+		if (part == QLatin1String(".") || part == QLatin1String(".."))
+			return {};
 
 		components.push_back(part);
 	}
