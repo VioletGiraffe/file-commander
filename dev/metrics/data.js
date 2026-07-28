@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785273619996,
+  "lastUpdate": 1785275801018,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -10462,6 +10462,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 715,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "ccb4998a65273b0061cee15aa6011d43c96d0208",
+          "message": "Renaming through temporary sibling, doesn't rely on FS case sensitivity detection",
+          "timestamp": "2026-07-29T00:51:02+03:00",
+          "tree_id": "40f27a7767431ea452c09c4f899369ad9d5b846b",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/ccb4998a65273b0061cee15aa6011d43c96d0208"
+        },
+        "date": 1785275797138,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16785,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10884,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1327,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 715.5,
             "unit": "KB"
           },
           {
