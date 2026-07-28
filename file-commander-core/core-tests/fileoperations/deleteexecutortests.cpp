@@ -382,6 +382,39 @@ TEST_CASE("delete executor: remediation and removal failures", "[deleteexecutor]
 		CHECK(script.seenRequests[0].issue.failure->action == FailedAction::RemoveEntry);
 	}
 
+	SECTION("successful MakeWritable authorization is consumed before a removal retry")
+	{
+		if (readOnlySemanticsUnavailable())
+			return;
+
+		const QString filePath = base % "/readonly.bin";
+		writeTestFile(filePath, patternedContents(100));
+		setFileReadOnly(filePath, true);
+
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::RemoveEntry_Native, ioFailureCode);
+
+		script.onDecisionRequest = [&](const DecisionRequest& request) {
+			if (request.issue.kind == IssueKind::ActionFailed && request.issue.failure
+				&& request.issue.failure->action == FailedAction::RemoveEntry)
+				setFileReadOnly(filePath, true); // External change after the first authorization was applied
+		};
+		script.decisions = { act(DecisionAction::MakeWritable), act(DecisionAction::Retry), act(DecisionAction::Skip) };
+		const auto summary = runDelete(script, { filePath });
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.skippedItems == 1);
+		CHECK(!entryAbsent(filePath));
+		CHECK(!QFileInfo{ filePath }.isWritable());
+
+		REQUIRE(script.seenRequests.size() == 3);
+		CHECK(script.seenRequests[0].issue.kind == IssueKind::ReadOnlySourceRemoval);
+		CHECK(script.seenRequests[1].issue.kind == IssueKind::ActionFailed);
+		CHECK(script.seenRequests[2].issue.kind == IssueKind::ReadOnlySourceRemoval);
+
+		setFileReadOnly(filePath, false);
+	}
+
 	SECTION("generic access denied is never reclassified as read-only")
 	{
 		const QString filePath = base % "/f.bin";

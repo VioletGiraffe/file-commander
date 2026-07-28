@@ -165,6 +165,22 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 		CHECK(script.seenRequests[0].issue.kind == IssueKind::FileReplacement);
 	}
 
+	SECTION("an occupied leaf is attempted once before destination resolution")
+	{
+		writeTestFile(base % "/src.bin", patternedContents(700));
+		writeTestFile(base % "/dest.bin", patternedContents(50));
+
+		CFaultHookScope hooks;
+		script.decisions = { act(DecisionAction::Skip) };
+		const auto summary = runMove(script, { base % "/src.bin" }, DestinationIntent::ExactEntry, base % "/dest.bin");
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.skippedItems == 1);
+		CHECK(!entryAbsent(base % "/src.bin"));
+		CHECK(readFileContents(base % "/dest.bin") == patternedContents(50));
+		CHECK(hooks.arrivalCount(Point::RenameEntry_Native) == 1);
+	}
+
 	SECTION("moving onto a hardlink alias of the source")
 	{
 		writeTestFile(base % "/same.bin", patternedContents(100));
@@ -252,9 +268,9 @@ TEST_CASE("move executor: cancellation is checked when a destination race restar
 		writeTestFile(base % "/destination.bin", QByteArray{ "OLD" });
 
 		CFaultHookScope hooks;
-		// The root and leaf rename-first attempts encounter the real destination. The authorized
-		// replacement then reports a fresh collision and restarts the resolution loop.
-		hooks.forceNativeError(Point::RenameEntry_Native, existsCode, 1, 2);
+		// The leaf's rename-first attempt encounters the real destination. The authorized replacement
+		// then reports a fresh collision and restarts the resolution loop.
+		hooks.forceNativeError(Point::RenameEntry_Native, existsCode, 1, 1);
 
 		OperationScript script{ .decisions = { act(DecisionAction::Replace, DecisionScope::RemainingMatchingIssues) } };
 		script.cancelAtCheckpoint = [&] { return script.nextDecision == 1; };

@@ -191,6 +191,7 @@ NodeOutcome CDeleteExecutor::removeEntryWithPolicy(const EntrySnapshot& entry)
 				assert_debug_only(decision->action == DecisionAction::Retry);
 				continue;
 			}
+			makeWritableAuthorized = false; // Applied; a removal retry must freshly inspect and authorize another change
 		}
 
 		auto removed = CFileSystemMutator::removeEntry(entry);

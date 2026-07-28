@@ -365,14 +365,6 @@ NodeOutcome CTransferExecutor::moveRoot(const RootTransferIntent& intent)
 	if (const auto outcome = ensureDestinationParentExistsWithPolicy(root, intent.proposedDestination))
 		return finishUnscannedRoot(*outcome);
 
-	// Optimistic whole-root rename before resolution and scanning. RequireAbsent cannot clobber anything,
-	// and a case-only respell succeeds right here through the primitive's exclusive temporary-sibling path -
-	// which is why resolution's silent same-object handling never swallows one.
-	auto renamed = renameEntryWithPolicy(root, intent.proposedDestination, ReplacementMode::RequireAbsent);
-	if (const auto* outcome = std::get_if<NodeOutcome>(&renamed))
-		return finishUnscannedRoot(*outcome);
-	bool knownCrossDevice = std::get<RenameBlock>(renamed) == RenameBlock::CrossDevice;
-
 	const bool directoryLike = root.kind == OperationEntryKind::Directory || root.kind == OperationEntryKind::DirectoryLink;
 	if (!directoryLike)
 	{
@@ -380,8 +372,16 @@ NodeOutcome CTransferExecutor::moveRoot(const RootTransferIntent& intent)
 		leaf.subtreeBytes = leaf.entry.size;
 		leaf.subtreeItems = 1;
 		rootTotalsResolved(leaf.subtreeBytes, 1);
-		return moveNode(leaf, intent.proposedDestination, TransferNodePosition::SelectedRoot, knownCrossDevice);
+		return moveNode(leaf, intent.proposedDestination, TransferNodePosition::SelectedRoot, false);
 	}
+
+	// Optimistic whole-root rename before resolution and scanning. RequireAbsent cannot clobber anything,
+	// and a case-only respell succeeds right here through the primitive's exclusive temporary-sibling path -
+	// which is why resolution's silent same-object handling never swallows one.
+	auto renamed = renameEntryWithPolicy(root, intent.proposedDestination, ReplacementMode::RequireAbsent);
+	if (const auto* outcome = std::get_if<NodeOutcome>(&renamed))
+		return finishUnscannedRoot(*outcome);
+	bool knownCrossDevice = std::get<RenameBlock>(renamed) == RenameBlock::CrossDevice;
 
 	// Root-first resolution; a rename decision loops back so the respelled target gets its own rename attempt.
 	CEntryPath proposedDestination = intent.proposedDestination;
