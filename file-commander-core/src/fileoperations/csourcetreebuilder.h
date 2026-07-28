@@ -46,5 +46,12 @@ using SourceTreeResult = std::variant<SourceNode, OperationDiagnostic, ScanCance
 // Builds the manifest for one root whose fresh snapshot the caller already holds. Publishes Scanning
 // progress through the context - the current root's discovered count with all totals absent - and honors
 // its cancellation checkpoints. Directory-link cycles terminate via filesystem identities held for the
-// active recursion branch only; no identity is stored in the result.
+// active recursion branch only; no identity is stored in the result. Trees deeper than 300 levels or requiring
+// more than 2,000,000 visited nodes fail before a manifest is returned.
 [[nodiscard]] SourceTreeResult buildSourceTree(COperationExecutionContext& context, EntrySnapshot root, SourceTreeBuildMode mode);
+
+#ifdef FILE_OPERATIONS_TEST_HOOKS
+// Exercises production limit handling with small fixtures; production callers always use the fixed safety limits.
+[[nodiscard]] SourceTreeResult buildSourceTreeForTesting(COperationExecutionContext& context, EntrySnapshot root, SourceTreeBuildMode mode,
+	size_t maximumDepth, size_t maximumNodeCount);
+#endif

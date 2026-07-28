@@ -59,6 +59,14 @@ SourceNode buildTree(const QString& rootPath, const SourceTreeBuildMode mode)
 	return std::get<SourceNode>(mv(result));
 }
 
+SourceTreeResult buildTreeWithTestLimits(const QString& rootPath, const SourceTreeBuildMode mode,
+	const size_t maximumDepth, const size_t maximumNodeCount)
+{
+	ScanScript script;
+	auto context = scanContext(script);
+	return buildSourceTreeForTesting(context, snapshotOf(rootPath), mode, maximumDepth, maximumNodeCount);
+}
+
 const SourceNode* childNamed(const SourceNode& node, const QString& name)
 {
 	for (const SourceNode& child : node.children)
@@ -151,6 +159,62 @@ TEST_CASE("source tree: empty, deep, and wide directories", "[sourcetree]")
 		CHECK(tree.subtreeItems == fileCount + 1);
 		CHECK(tree.subtreeBytes == fileCount * 10);
 		CHECK(tree.children.size() == fileCount);
+	}
+}
+
+TEST_CASE("source tree: the traversal-depth limit is inclusive", "[sourcetree][limits]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString rootPath = tempDir.path() % "/root";
+	const QString leafPath = rootPath % "/branch/leaf.bin";
+	REQUIRE(QDir{}.mkpath(rootPath % "/branch"));
+	writeTestFile(leafPath, QByteArray{ "DATA" });
+
+	SECTION("a leaf at the maximum depth is accepted")
+	{
+		auto result = buildTreeWithTestLimits(rootPath, SourceTreeBuildMode::PermanentDelete, 3, 100);
+		REQUIRE(std::holds_alternative<SourceNode>(result));
+		CHECK(std::get<SourceNode>(result).subtreeItems == 3);
+	}
+
+	SECTION("the next level aborts the complete manifest")
+	{
+		auto result = buildTreeWithTestLimits(rootPath, SourceTreeBuildMode::PermanentDelete, 2, 100);
+		REQUIRE(std::holds_alternative<OperationDiagnostic>(result));
+		const OperationDiagnostic& diagnostic = std::get<OperationDiagnostic>(result);
+		CHECK(diagnostic.source.path.value() == leafPath);
+		CHECK(diagnostic.failure.action == FailedAction::InspectSource);
+		CHECK(diagnostic.failure.filesystemError.category == FileErrorCategory::Unsupported);
+		CHECK(diagnostic.failure.filesystemError.diagnostic.contains(QStringLiteral("depth"), Qt::CaseInsensitive));
+	}
+}
+
+TEST_CASE("source tree: the node limit bounds repeated directory-link traversal", "[sourcetree][limits][link]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString rootPath = tempDir.path() % "/root";
+	REQUIRE(QDir{}.mkpath(rootPath % "/dirA"));
+	REQUIRE(QDir{}.mkpath(rootPath % "/dirB"));
+	REQUIRE(createDirectoryLink(rootPath % "/dirB", rootPath % "/dirA/linkToB"));
+	REQUIRE(createDirectoryLink(rootPath % "/dirA", rootPath % "/dirB/linkToA"));
+
+	SECTION("the exact node budget is accepted")
+	{
+		auto result = buildTreeWithTestLimits(rootPath, SourceTreeBuildMode::MaterializingTransfer, 100, 7);
+		REQUIRE(std::holds_alternative<SourceNode>(result));
+		CHECK(std::get<SourceNode>(result).subtreeItems == 7);
+	}
+
+	SECTION("the next repeated node aborts the complete manifest")
+	{
+		auto result = buildTreeWithTestLimits(rootPath, SourceTreeBuildMode::MaterializingTransfer, 100, 6);
+		REQUIRE(std::holds_alternative<OperationDiagnostic>(result));
+		const OperationDiagnostic& diagnostic = std::get<OperationDiagnostic>(result);
+		CHECK(diagnostic.failure.action == FailedAction::InspectSource);
+		CHECK(diagnostic.failure.filesystemError.category == FileErrorCategory::Unsupported);
+		CHECK(diagnostic.failure.filesystemError.diagnostic.contains(QStringLiteral("too many entries"), Qt::CaseInsensitive));
 	}
 }
 

@@ -12,10 +12,21 @@
 namespace
 {
 
+struct SourceTreeBuildLimits
+{
+	size_t maximumDepth;
+	size_t maximumNodeCount;
+};
+
+// Root is depth 1. These ceilings bound every recursive manifest consumer because executors only traverse
+// trees successfully produced here.
+constexpr SourceTreeBuildLimits productionLimits{ .maximumDepth = 300, .maximumNodeCount = 2'000'000 };
+
 struct BuildState
 {
 	COperationExecutionContext& context;
 	const SourceTreeBuildMode mode;
+	const SourceTreeBuildLimits limits;
 	size_t discoveredCount = 0;
 	std::vector<thin_io::entry_identity> activeBranchIdentities; // Directories on the current recursion path (materializing mode only)
 
@@ -52,6 +63,16 @@ CFileSystemError unrepresentableSourceNameError()
 {
 	return { FileErrorCategory::Unsupported, 0,
 		QStringLiteral("A source entry name cannot be represented without changing its native spelling") };
+}
+
+CFileSystemError sourceTreeDepthLimitError()
+{
+	return { FileErrorCategory::Unsupported, 0, QStringLiteral("The source tree exceeds the supported traversal depth") };
+}
+
+CFileSystemError sourceTreeNodeLimitError()
+{
+	return { FileErrorCategory::Unsupported, 0, QStringLiteral("The source tree contains too many entries to process safely") };
 }
 
 // Classifies one listed child into a snapshot. nullopt without a recorded failure means the entry
@@ -115,8 +136,19 @@ std::optional<EntrySnapshot> classifyChild(BuildState& state, CEntryPath childPa
 
 // Recursive DFS producing one immutable node. A vanished child is recoverable by its parent; a stopped
 // build has recorded either a failure or cancellation in state.
-BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOwnership ownership, const NodePosition position)
+BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOwnership ownership, const NodePosition position, const size_t depth)
 {
+	if (depth > state.limits.maximumDepth)
+	{
+		failBuild(state, mv(entry), sourceTreeDepthLimitError());
+		return BuildStopped{};
+	}
+	if (state.discoveredCount >= state.limits.maximumNodeCount)
+	{
+		failBuild(state, mv(entry), sourceTreeNodeLimitError());
+		return BuildStopped{};
+	}
+
 	const size_t activeIdentityCountOnEntry = state.activeBranchIdentities.size();
 	// A frame owns every branch identity added beneath it. Restore the incoming depth on every exit,
 	// including cancellation, failure, and a recoverable child disappearance.
@@ -202,7 +234,8 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 		const bool borrowedChildren = ownership == SourceOwnership::BorrowedThroughDirectoryLink || node.entry.kind == OperationEntryKind::DirectoryLink;
 		const SourceOwnership childOwnership = borrowedChildren ? SourceOwnership::BorrowedThroughDirectoryLink : SourceOwnership::Owned;
 
-		node.children.reserve(listing->size());
+		const size_t remainingNodeBudget = state.limits.maximumNodeCount - state.discoveredCount;
+		node.children.reserve(std::min(listing->size(), remainingNodeBudget));
 		for (const auto& listed : *listing)
 		{
 			auto childName = decodeNativeNameLosslessly(listed.name);
@@ -222,7 +255,7 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 				continue; // Vanished between listing and classification
 			}
 
-			auto childResult = buildNode(state, mv(*childEntry), childOwnership, NodePosition::Child);
+			auto childResult = buildNode(state, mv(*childEntry), childOwnership, NodePosition::Child, depth + 1);
 			if (auto* childNode = std::get_if<SourceNode>(&childResult))
 				node.children.push_back(mv(*childNode));
 			else if (std::holds_alternative<BuildStopped>(childResult))
@@ -240,12 +273,11 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 	return node;
 }
 
-} // namespace
-
-SourceTreeResult buildSourceTree(COperationExecutionContext& context, EntrySnapshot root, const SourceTreeBuildMode mode)
+SourceTreeResult buildSourceTreeWithLimits(COperationExecutionContext& context, EntrySnapshot root, const SourceTreeBuildMode mode,
+	const SourceTreeBuildLimits limits)
 {
-	BuildState state{ .context = context, .mode = mode };
-	auto result = buildNode(state, mv(root), SourceOwnership::Owned, NodePosition::Root);
+	BuildState state{ .context = context, .mode = mode, .limits = limits };
+	auto result = buildNode(state, mv(root), SourceOwnership::Owned, NodePosition::Root, 1);
 	assert_debug_only(state.activeBranchIdentities.empty());
 	if (auto* tree = std::get_if<SourceNode>(&result))
 		return mv(*tree);
@@ -257,3 +289,19 @@ SourceTreeResult buildSourceTree(COperationExecutionContext& context, EntrySnaps
 	assert_debug_only(state.cancelled);
 	return ScanCancelled{};
 }
+
+} // namespace
+
+SourceTreeResult buildSourceTree(COperationExecutionContext& context, EntrySnapshot root, const SourceTreeBuildMode mode)
+{
+	return buildSourceTreeWithLimits(context, mv(root), mode, productionLimits);
+}
+
+#ifdef FILE_OPERATIONS_TEST_HOOKS
+SourceTreeResult buildSourceTreeForTesting(COperationExecutionContext& context, EntrySnapshot root, const SourceTreeBuildMode mode,
+	const size_t maximumDepth, const size_t maximumNodeCount)
+{
+	return buildSourceTreeWithLimits(context, mv(root), mode,
+		SourceTreeBuildLimits{ .maximumDepth = maximumDepth, .maximumNodeCount = maximumNodeCount });
+}
+#endif

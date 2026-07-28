@@ -111,6 +111,13 @@ Important behavioral boundaries:
    text without information loss, while allowing Darwin's deliberate Unicode normalization. Failure aborts the
    complete manifest with an `Unsupported` source-inspection diagnostic; it is never treated as a vanished child
    or allowed to alias a different native entry.
+10. Manifest construction admits at most 300 root-to-leaf nodes (the selected root is level 1) and 2,000,000
+    visited nodes. Crossing either fixed safety limit aborts the complete manifest with an `Unsupported`
+    source-inspection diagnostic. The depth limit bounds the builder and all recursive manifest consumers; the
+    node limit also bounds repeated traversal of directory-link graphs that do not form an active-branch cycle.
+    At the current 64-bit layouts, two million `SourceNode` objects alone occupy roughly 168-183 MiB; path strings,
+    child-vector spare capacity, and transient directory listings are additional, so this is a fail-safe ceiling,
+    not a promised memory budget.
 
 ### Accepted data races and TOCTOU sequences
 
