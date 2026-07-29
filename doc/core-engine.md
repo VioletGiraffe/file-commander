@@ -94,7 +94,9 @@ Important behavioral boundaries:
    it moves the source to a unique sibling, publishes to the requested spelling exclusively, and restores the original
    spelling exclusively if publication fails. A rollback failure leaves the source at the reported temporary path
    rather than overwriting a raced-in occupant. This sequence is deliberately non-atomic; a process crash between its
-   renames can leave that temporary entry behind.
+   renames can leave that temporary entry behind. A wholesale native rename is unscanned and accounts as one completed
+   item and zero transferred bytes; a materializing fallback reports the detailed manifest and bytes it actually
+   processes. These counters describe observed execution work, not an execution-path-independent subtree cardinality.
 3. Staged copy publishes by rename only after data and required metadata are ready. A final cancellation checkpoint
    separates completed staging from commit; once commit begins, publication and any owned-source cleanup are not
    interruptible. Failure or cancellation before publication preserves the old destination. Durability flush is
