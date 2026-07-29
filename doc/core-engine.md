@@ -104,7 +104,12 @@ Important behavioral boundaries:
    same-entry checks do not follow links: a link and its target are distinct entries, while hard-link aliases remain
    the same entry.
 5. Writability remediation applies only to confirmed, non-link regular files. Generic access denied is
-   `PermissionDenied`, not `ReadOnly`.
+   `PermissionDenied`, not `ReadOnly`. On POSIX, a file's own write permission does not govern `unlink()` or
+   `rename()`; the preflight is nevertheless an intentional confirmation policy for write-protected source
+   files, not a prediction that removal will fail. Its traditional owner/group/other mode check uses the effective
+   UID, effective GID, and supplementary groups with POSIX class precedence. Make-writable authorization adds the
+   owner-write bit only at the mutation point; copy-based move defers it until destination publication. A failed
+   writability query falls through to the real operation and its ordinary error policy.
 6. Aggregate totals remain absent until every source root has been scanned. A descendant that disappears after
    enumeration is omitted when its inspection or directory listing reports `NotFound`; the selected root and every
    non-`NotFound` scan error retain their operation-level failure handling. Processing rechecks cancellation after

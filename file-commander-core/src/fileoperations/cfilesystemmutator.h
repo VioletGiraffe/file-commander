@@ -29,8 +29,10 @@
 // An entry absent on either side is Different.
 [[nodiscard]] std::expected<SameEntryVerdict, CFileSystemError> checkSameEntry(const CEntryPath& a, const CEntryPath& b, thin_io::link_behavior linkBehavior);
 
-// Fresh preflight/reactive writability of a non-link regular file, answered from the entry itself.
-// A link or non-file entry at the path is rejected with Unsupported - the answer never comes from a link target.
+// Fresh preflight/reactive writability of a non-link regular file. POSIX evaluates traditional permission
+// classes against the effective UID, effective GID, and supplementary groups; Windows evaluates the read-only
+// attribute. A link or non-file entry at the path is rejected with Unsupported - the answer never comes from
+// a link target.
 [[nodiscard]] std::expected<bool, CFileSystemError> isEntryWritableNoFollow(const EntrySnapshot& entry);
 
 // Directory times for later application to an operation-created destination directory. Follows a directory

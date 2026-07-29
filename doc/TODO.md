@@ -55,9 +55,10 @@ environment (root, a mock filesystem, or a specific OS feature). Revisit opportu
 
 - **mutator** (`filesystemmutatortests.cpp`): `EOPNOTSUPP`-when-distinct-from-`ENOTSUP` degradation
   trigger (platform-conditional); `checkSameEntry` `Unknown` verdict when identity is unavailable (needs
-  an identity-less mock fs); `isEntryWritableNoFollow` POSIX group/other permission branches (needs
-  `chown`/root); `isLinkEntry` Windows non-surrogate reparse point treated as an ordinary entry (needs a
-  OneDrive-style environment); `readCopyableDirectoryTimes` missing-`last_write` guard.
+  an identity-less mock fs); `isEntryWritableNoFollow` POSIX group/other and supplementary-group permission
+  branches (needs a non-owner fixture via `chown`/root); `isLinkEntry` Windows non-surrogate reparse point
+  treated as an ordinary entry (needs a OneDrive-style environment); `readCopyableDirectoryTimes`
+  missing-`last_write` guard.
 - **staged copy** (`stagedfilecopytests.cpp`): POSIX special permission bits setuid/setgid/sticky (mode
   `07777`, needs root); moved-from-session destructor performs no cleanup (verify no double
   `RemoveStaging`); explicit-`abort()` one-shot arrival count == 1.

@@ -98,6 +98,28 @@ CFileSystemError renameErrorFromNative(const NativeErrorCode code)
 }
 
 #ifndef _WIN32
+std::expected<bool, CFileSystemError> processHasSupplementaryGroup(const gid_t group)
+{
+	const int groupCount = ::getgroups(0, nullptr);
+	if (groupCount < 0)
+		return std::unexpected(makeFileSystemError(captureNativeError()));
+	if (groupCount == 0)
+		return false;
+
+	std::vector<gid_t> groups(static_cast<size_t>(groupCount));
+	const int returnedCount = ::getgroups(groupCount, groups.data());
+	if (returnedCount < 0)
+		return std::unexpected(makeFileSystemError(captureNativeError()));
+
+	groups.resize(static_cast<size_t>(returnedCount));
+	for (const gid_t candidate : groups)
+	{
+		if (candidate == group)
+			return true;
+	}
+	return false;
+}
+
 // The exclusive rename mechanism itself reporting it is unsupported, as opposed to a real failure.
 // All arguments are validated by construction, so EINVAL here means the filesystem cannot service the flag.
 bool isExclusiveRenameUnsupported(const NativeErrorCode code) noexcept
@@ -372,9 +394,19 @@ std::expected<bool, CFileSystemError> isEntryWritableNoFollow(const EntrySnapsho
 		return true;
 	if (entryStat.st_uid == ::geteuid())
 		return (entryStat.st_mode & S_IWUSR) != 0;
-	if (entryStat.st_gid == ::getegid()) // Supplementary groups are not consulted; close enough for a remediation prompt
-		return (entryStat.st_mode & S_IWGRP) != 0;
-	return (entryStat.st_mode & S_IWOTH) != 0;
+
+	const bool groupWritable = (entryStat.st_mode & S_IWGRP) != 0;
+	const bool otherWritable = (entryStat.st_mode & S_IWOTH) != 0;
+	if (entryStat.st_gid == ::getegid())
+		return groupWritable;
+	if (groupWritable == otherWritable) // Membership cannot change the answer
+		return groupWritable;
+
+	// POSIX permits getgroups() to include or omit the effective GID; it was checked separately above.
+	const auto supplementaryGroup = processHasSupplementaryGroup(entryStat.st_gid);
+	if (!supplementaryGroup)
+		return std::unexpected(supplementaryGroup.error());
+	return *supplementaryGroup ? groupWritable : otherWritable;
 #endif
 }
 
