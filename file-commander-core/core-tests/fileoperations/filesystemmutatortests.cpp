@@ -430,16 +430,28 @@ TEST_CASE("renameEntry: an exclusive case self-collision respells through a temp
 
 TEST_CASE("renameEntry: a case-respell onto a distinct entry on a case-sensitive filesystem collides", "[mutator]")
 {
-	QTemporaryDir tempDir;
+	static constexpr const char* caseSensitiveVolumeVariable = "FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME";
+	QString testRoot = qEnvironmentVariable(caseSensitiveVolumeVariable);
+	const bool caseSensitiveVolumeRequired = !testRoot.isEmpty();
+	if (!caseSensitiveVolumeRequired)
+		testRoot = QDir::tempPath();
+
+	QTemporaryDir tempDir{ QDir{ testRoot }.filePath(QStringLiteral("fc-case-sensitive-XXXXXX")) };
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
 	writeTestFile(base % "/case.txt", QByteArray(10, 'a'));
 	writeTestFile(base % "/CASE.txt", QByteArray(10, 'b'));
 	// On a case-insensitive filesystem (e.g. default APFS) the second write addressed the same entry;
-	// the two-distinct-entries scenario does not exist there.
+	// the two-distinct-entries scenario does not exist there. A configured volume is an explicit test
+	// contract and must fail loudly if CI accidentally provisions it with the wrong filesystem personality.
 	if (readFileContents(base % "/case.txt") != QByteArray(10, 'a'))
+	{
+		if (caseSensitiveVolumeRequired)
+			FAIL("FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME does not name a case-sensitive filesystem");
+		WARN("The test volume is case-insensitive: the distinct-entry case-respell collision is not exercised");
 		return;
+	}
 
 	// Both spellings name real distinct entries, so this is an ordinary collision, not a case respell.
 	const auto result = CFileSystemMutator::renameEntry(ep(base % "/case.txt"), ep(base % "/CASE.txt"), ReplacementMode::RequireAbsent);

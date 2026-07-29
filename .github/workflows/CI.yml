@@ -415,14 +415,16 @@ jobs:
         cd ../../
         for f in $(find bin/release/x64/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
 
-    - name: Second volume for cross-volume tests - Mac
+    - name: Case-sensitive second volume for filesystem tests - Mac
       if: startsWith(matrix.os, 'macos')
       run: |
         set -e
-        # TMPDIR is on the system volume, so this RAM disk is a genuinely different one.
+        # TMPDIR is on the system volume, so this RAM disk is genuinely different. HFSX also gives the
+        # rename tests a case-sensitive volume without provisioning and attaching another disk.
         disk=$(hdiutil attach -nomount ram://262144 | awk '{print $1}')  # 512-byte sectors: 128 MB
-        diskutil erasevolume HFS+ fc-second "$disk"
+        diskutil erasevolume HFSX fc-second "$disk"
         echo "FILE_COMMANDER_TEST_SECOND_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
+        echo "FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
 
     - name: Running tests - Mac
       if: startsWith(matrix.os, 'macos')

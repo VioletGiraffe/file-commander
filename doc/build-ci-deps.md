@@ -28,8 +28,10 @@ projects; each test project's `.pro` file is the source of truth for its test so
 
 `fileoperations_test` and `filecomparator_test` accept `--std-seed <seed>`. Genuine cross-volume tests additionally
 require `FILE_COMMANDER_TEST_SECOND_VOLUME` to name a writable directory on a filesystem different from the one
-containing `TEMP`; without it, that coverage is skipped. Headless GUI-test runs may use
-`QT_QPA_PLATFORM=offscreen`.
+containing `TEMP`; without it, that coverage is skipped. The distinct-entry case-respell test uses
+`FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME` when provided; the named writable directory must reside on a
+case-sensitive filesystem, and violating that explicit test contract is a failure rather than a skip. macOS CI
+uses one case-sensitive RAM disk for both variables. Headless GUI-test runs may use `QT_QPA_PLATFORM=offscreen`.
 
 ## Dependencies
 
