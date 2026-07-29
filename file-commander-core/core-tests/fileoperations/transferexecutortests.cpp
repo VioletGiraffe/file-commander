@@ -34,10 +34,12 @@ namespace
 constexpr NativeErrorCode accessDeniedCode = ERROR_ACCESS_DENIED;
 constexpr NativeErrorCode existsCode = ERROR_FILE_EXISTS;
 constexpr NativeErrorCode ioFailureCode = ERROR_GEN_FAILURE;
+constexpr NativeErrorCode diskFullCode = ERROR_DISK_FULL;
 #else
 constexpr NativeErrorCode accessDeniedCode = EACCES;
 constexpr NativeErrorCode existsCode = EEXIST;
 constexpr NativeErrorCode ioFailureCode = EIO;
+constexpr NativeErrorCode diskFullCode = ENOSPC;
 #endif
 
 } // namespace
