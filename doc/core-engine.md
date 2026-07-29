@@ -57,6 +57,12 @@ Links are a sharp edge:
   therefore required whenever ownership or deletion matters.
 - A broken link still exists as an entry and must remain listable and removable.
 
+On Windows, `FILE_ATTRIBUTE_REPARSE_POINT` alone does not make an entry a link. Both directory enumeration and
+fresh inspection preserve the reparse tag, and only a tag carrying the Windows name-surrogate bit is classified as
+a link. Cloud-provider placeholders and other non-surrogate reparse points remain ordinary files or directories:
+copying reads their logical contents and may let the provider hydrate them, while move and delete address the entry
+itself. File Commander does not currently expose or preserve cloud-placeholder state as a separate feature.
+
 The file-operation module uses a different path type, `CEntryPath`: absolute, `/`-separated, and without a trailing
 separator except for roots. Do not pass assumptions about one representation into the other without using their
 conversion/parse boundaries. Its parser rejects embedded NUL and user-supplied Win32 namespace prefixes; the native
