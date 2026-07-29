@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785338377234,
+  "lastUpdate": 1785341540126,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -11305,6 +11305,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "4f863939886f85461025d77bca74b73d2742c159",
+          "message": "Make directory-link cycle detection aware of bind-mounted views",
+          "timestamp": "2026-07-29T19:07:26+03:00",
+          "tree_id": "49c1e4c593ed99e909ca434cff4911b4451cc787",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/4f863939886f85461025d77bca74b73d2742c159"
+        },
+        "date": 1785341537205,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16984,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10897,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1331.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 719,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40.5,
             "unit": "KB"
           },
           {
