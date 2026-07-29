@@ -12,8 +12,6 @@ RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcpputils -lqtutils
 
-!win*:!contains(QT_ARCH, arm.*): QMAKE_CXXFLAGS += -msse4.1
-
 HEADERS += \
 	src/cfilesystemobject.h \
 	src/ccontroller.h \
