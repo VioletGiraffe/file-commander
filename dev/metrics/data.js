@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785334943100,
+  "lastUpdate": 1785336541534,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -11014,6 +11014,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 717,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 381.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "0a8e1da9e84db80cffd09a9587644abb319eb1e4",
+          "message": "Report failed staging cleanup without masking the primary copy error",
+          "timestamp": "2026-07-29T17:43:40+03:00",
+          "tree_id": "7495466f76cc002967b7d02ee40439c21ec31505",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/0a8e1da9e84db80cffd09a9587644abb319eb1e4"
+        },
+        "date": 1785336538165,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16935,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10897,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1330,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 718,
             "unit": "KB"
           },
           {
