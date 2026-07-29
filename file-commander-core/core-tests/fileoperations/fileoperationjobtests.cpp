@@ -10,6 +10,10 @@ DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
+#ifndef _WIN32
+#include <errno.h>
+#endif
+
 #include <chrono>
 #include <thread>
 
@@ -19,6 +23,12 @@ using namespace std::chrono_literals;
 
 namespace
 {
+
+#ifdef _WIN32
+constexpr NativeErrorCode crossDeviceCode = ERROR_NOT_SAME_DEVICE;
+#else
+constexpr NativeErrorCode crossDeviceCode = EXDEV;
+#endif
 
 [[nodiscard]] bool waitUntil(const std::function<bool()>& condition, const std::chrono::milliseconds timeout = 10s)
 {
@@ -165,6 +175,57 @@ TEST_CASE("job: copy runs to completion with ordered events", "[fileoperationjob
 	job.processEvents(driver);
 	CHECK(driver.events.size() == eventCount);
 	CHECK(!job.submitDecision(act(DecisionAction::Skip))); // Late responses stay rejected after completion
+}
+
+TEST_CASE("job: move routes to the transfer executor's move path", "[fileoperationjob]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/src/sub"));
+	writeTestFile(base % "/src/a.bin", patternedContents(3000));
+	writeTestFile(base % "/src/sub/b.bin", patternedContents(5000));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	SECTION("a same-volume tree renames wholesale")
+	{
+		CFaultHookScope hooks;
+		CFileOperationJob job{ transferRequest(TransferKind::Move, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest"), 1024 };
+		JobDriver driver{ job };
+		job.start();
+		REQUIRE(driver.pumpToCompletion());
+
+		const OperationSummary* summary = driver.summary();
+		CHECK(summary->status == CompletionStatus::Completed);
+		CHECK(summary->completedItems == 1); // The unscanned root entry
+		CHECK(summary->transferredBytes == 0);
+		CHECK(!driver.unscriptedRequestSeen);
+		CHECK(entryAbsent(base % "/src"));
+		CHECK(readFileContents(base % "/dest/src/a.bin") == patternedContents(3000));
+		CHECK(readFileContents(base % "/dest/src/sub/b.bin") == patternedContents(5000));
+		CHECK(hooks.arrivalCount(Point::StagedCopy_CreateStaging_Native) == 0);
+	}
+
+	SECTION("a cross-volume file stages, publishes, and removes its source")
+	{
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::RenameEntry_Native, crossDeviceCode);
+
+		CFileOperationJob job{ transferRequest(TransferKind::Move, { base % "/src/a.bin" }, DestinationIntent::IntoDirectory, base % "/dest"), 1024 };
+		JobDriver driver{ job };
+		job.start();
+		REQUIRE(driver.pumpToCompletion());
+
+		const OperationSummary* summary = driver.summary();
+		CHECK(summary->status == CompletionStatus::Completed);
+		CHECK(summary->completedItems == 1);
+		CHECK(summary->transferredBytes == 3000);
+		CHECK(!driver.unscriptedRequestSeen);
+		CHECK(entryAbsent(base % "/src/a.bin"));
+		CHECK(readFileContents(base % "/dest/a.bin") == patternedContents(3000));
+		CHECK(stagingFileCount(base % "/dest") == 0);
+	}
 }
 
 TEST_CASE("job: delete routes to the delete executor", "[fileoperationjob]")
@@ -403,6 +464,77 @@ TEST_CASE("job: decision flow", "[fileoperationjob]")
 		CHECK(driver.summary()->status == CompletionStatus::Cancelled);
 		CHECK(readFileContents(base % "/dest.bin") == patternedContents(50));
 	}
+}
+
+TEST_CASE("job: two decisions in one run are prompted and answered in order", "[fileoperationjob]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/one.bin", patternedContents(700));
+	writeTestFile(base % "/two.bin", patternedContents(900));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+	writeTestFile(base % "/dest/one.bin", QByteArray{ "OLD1" });
+	writeTestFile(base % "/dest/two.bin", QByteArray{ "OLD2" });
+
+	CFileOperationJob job{ transferRequest(TransferKind::Copy, { base % "/one.bin", base % "/two.bin" },
+		DestinationIntent::IntoDirectory, base % "/dest"), 1024 };
+	JobDriver driver{ job };
+	driver.decisions = { act(DecisionAction::Replace), act(DecisionAction::Skip) };
+
+	QStringList promptedNames;
+	driver.onDecisionRequest = [&](const DecisionRequest& request) {
+		CHECK(request.issue.kind == IssueKind::FileReplacement);
+		promptedNames.push_back(request.issue.source.path.name());
+	};
+
+	job.start();
+	REQUIRE(driver.pumpToCompletion());
+
+	// The second prompt exists only because the worker resumed from the first, and each answer landed on
+	// the file that asked for it.
+	CHECK(promptedNames.join(QLatin1Char(',')).toStdString() == "one.bin,two.bin");
+	CHECK(driver.decisionRequestCount() == 2);
+	CHECK(driver.summary()->status == CompletionStatus::Completed);
+	CHECK(driver.summary()->completedItems == 1);
+	CHECK(driver.summary()->skippedItems == 1);
+	CHECK(readFileContents(base % "/dest/one.bin") == patternedContents(700));
+	CHECK(readFileContents(base % "/dest/two.bin") == QByteArray{ "OLD2" });
+	CHECK(!job.hasPendingDecision());
+}
+
+TEST_CASE("job: a pause requested while a decision is pending holds the answered worker", "[fileoperationjob]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/src.bin", patternedContents(300'000));
+	writeTestFile(base % "/dest.bin", QByteArray{ "OLD" });
+
+	CFaultHookScope hooks;
+	CFileOperationJob job{ transferRequest(TransferKind::Copy, { base % "/src.bin" }, DestinationIntent::ExactEntry, base % "/dest.bin"), 1024 };
+	JobDriver driver{ job };
+	driver.autoCancelUnscripted = false; // Answered here, before the queued request event is ever drained
+
+	job.start();
+	REQUIRE(waitUntil([&job] { return job.hasPendingDecision(); }));
+
+	// The decision wait does not observe the pause: the answer is accepted, and the pause then holds the
+	// worker at the checkpoint that follows.
+	job.setPaused(true);
+	REQUIRE(job.submitDecision(act(DecisionAction::Replace)));
+
+	std::this_thread::sleep_for(100ms);
+	CHECK(hooks.arrivalCount(Point::StagedCopy_WriteStaging_Native) == 0); // One-sided: no chunk may stream while paused
+	CHECK(job.status() == JobStatus::Running);
+	CHECK(readFileContents(base % "/dest.bin") == QByteArray{ "OLD" });
+
+	job.setPaused(false);
+	REQUIRE(driver.pumpToCompletion());
+	CHECK(driver.summary()->status == CompletionStatus::Completed);
+	CHECK(readFileContents(base % "/dest.bin") == patternedContents(300'000));
 }
 
 TEST_CASE("job: a decision outside the delivered request is rejected", "[fileoperationjob]")

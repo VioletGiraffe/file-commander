@@ -134,3 +134,31 @@ TEST_CASE("checkNewEntryPath: every component is judged", "[newnamecheck]")
 	CHECK(checkNewEntryPath(QStringLiteral("a/good:b")) == NameRejection::InvalidCharacter);
 #endif
 }
+
+#ifdef _WIN32
+
+TEST_CASE("checkNewEntryPath: Windows separates on a backslash too", "[newnamecheck]")
+{
+	CHECK(checkNewEntryPath(QStringLiteral("\\")) == NameRejection::Empty);
+	CHECK(checkNewEntryPath(QStringLiteral("a\\b\\c")) == NameRejection::None);
+	CHECK(checkNewEntryPath(QStringLiteral("a\\\\b")) == NameRejection::None);
+	CHECK(checkNewEntryPath(QStringLiteral("a/b\\c")) == NameRejection::None); // Mixed separators
+
+	// Each rule that judges a component reaches it through a backslash as well.
+	CHECK(checkNewEntryPath(QStringLiteral("a\\..\\c")) == NameRejection::DotComponent);
+	CHECK(checkNewEntryPath(QStringLiteral("a\\ \\c")) == NameRejection::WhitespaceOnly);
+	CHECK(checkNewEntryPath(QStringLiteral("a\\NUL\\b")) == NameRejection::ReservedDeviceName);
+	CHECK(checkNewEntryPath(QStringLiteral("a\\good:b")) == NameRejection::InvalidCharacter);
+	CHECK(checkNewEntryPath(QStringLiteral("a\\name.\\b")) == NameRejection::TrailingDotOrSpace);
+}
+
+#else
+
+TEST_CASE("checkNewEntryPath: a backslash is ordinary POSIX name text", "[newnamecheck]")
+{
+	CHECK(checkNewEntryPath(QStringLiteral("\\")) == NameRejection::None); // One component, named "\"
+	CHECK(checkNewEntryPath(QStringLiteral("a\\b\\c")) == NameRejection::None);
+	CHECK(checkNewEntryPath(QStringLiteral("a\\..\\c")) == NameRejection::None); // No component here is ".."
+}
+
+#endif

@@ -254,6 +254,47 @@ TEST_CASE("copy executor: a file raced into a directory destination re-enters re
 	CHECK(readFileContents(base % "/dest/renamed/inside.bin") == patternedContents(300));
 }
 
+TEST_CASE("copy executor: a failed destination directory creation is skippable and retryable", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/src/sub"));
+	writeTestFile(base % "/src/one.bin", patternedContents(100));
+	writeTestFile(base % "/src/sub/two.bin", patternedContents(200));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::CreateDirectory_FinalNative, accessDeniedCode);
+
+	SECTION("skip after the manifest exists accounts the whole subtree")
+	{
+		OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
+		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.skippedItems == 4); // src, one.bin, sub, two.bin - the root's creation failed after the scan
+		CHECK(summary.completedItems == 0);
+		REQUIRE(script.seenRequests.size() == 1);
+		CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+		REQUIRE(script.seenRequests[0].issue.failure.has_value());
+		CHECK(script.seenRequests[0].issue.failure->action == FailedAction::CreateDestinationDirectory);
+		CHECK(entryAbsent(base % "/dest/src"));
+	}
+
+	SECTION("retry re-attempts the same directory")
+	{
+		OperationScript script{ .decisions = { act(DecisionAction::Retry) } };
+		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.completedItems == 4);
+		CHECK(hooks.arrivalCount(Point::CreateDirectory_FinalNative) == 3); // The failed root, its retry, then sub
+		requireEqualTrees(base % "/src", base % "/dest/src");
+	}
+}
+
 TEST_CASE("copy executor: skips leave siblings running and never demote completion", "[executor]")
 {
 	QTemporaryDir tempDir;
@@ -400,6 +441,33 @@ TEST_CASE("copy executor: remembered decisions span items with accurate wording"
 	}
 }
 
+TEST_CASE("copy executor: Merge All answers the remaining root collisions", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	// Two selected roots, both colliding: descendants merge silently, so only roots can ask twice.
+	REQUIRE(QDir{}.mkpath(base % "/srcA"));
+	writeTestFile(base % "/srcA/a.bin", patternedContents(100));
+	REQUIRE(QDir{}.mkpath(base % "/srcB"));
+	writeTestFile(base % "/srcB/b.bin", patternedContents(200));
+	REQUIRE(QDir{}.mkpath(base % "/dest/srcA"));
+	REQUIRE(QDir{}.mkpath(base % "/dest/srcB"));
+	writeTestFile(base % "/dest/srcA/keep.bin", QByteArray{ "KEEP" });
+
+	OperationScript script{ .decisions = { act(DecisionAction::Merge, DecisionScope::RemainingMatchingIssues) } };
+	const auto summary = runCopy(script, { base % "/srcA", base % "/srcB" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 4); // Both merged roots and both files
+	REQUIRE(script.seenRequests.size() == 1); // The second root's collision was answered from the remembered Merge
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::RootDirectoryMerge);
+	CHECK(readFileContents(base % "/dest/srcA/a.bin") == patternedContents(100));
+	CHECK(readFileContents(base % "/dest/srcA/keep.bin") == QByteArray{ "KEEP" }); // Merged, not replaced
+	CHECK(readFileContents(base % "/dest/srcB/b.bin") == patternedContents(200));
+}
+
 TEST_CASE("copy executor: retries restart a fresh staging session", "[executor]")
 {
 	QTemporaryDir tempDir;
@@ -502,6 +570,105 @@ TEST_CASE("copy executor: retries restart a fresh staging session", "[executor]"
 		CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed); // No re-resolution without a proven collision
 		CHECK(stagingFileCount(base) == 0);
 	}
+}
+
+TEST_CASE("copy executor: a staging preparation failure names the stage that failed", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/a.bin", patternedContents(4000));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	CFaultHookScope hooks;
+	FailedAction expectedAction = FailedAction::PreserveFileMetadata;
+	FileErrorCategory expectedCategory = FileErrorCategory::PermissionDenied;
+	SECTION("source metadata capture")
+	{
+		hooks.forceNativeError(Point::StagedCopy_CaptureMetadata_Native, accessDeniedCode);
+	}
+	SECTION("preallocation exhausting the volume")
+	{
+		hooks.forceNativeError(Point::StagedCopy_PreallocateStaging_Native, diskFullCode);
+		expectedAction = FailedAction::PrepareStagingFile;
+		expectedCategory = FileErrorCategory::NotEnoughSpace;
+	}
+
+	OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
+	const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.skippedItems == 1);
+	CHECK(summary.warningCount == 0); // Both exits clean up their own staging, if any exists yet
+	REQUIRE(script.seenRequests.size() == 1);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+	REQUIRE(script.seenRequests[0].issue.failure.has_value());
+	CHECK(script.seenRequests[0].issue.failure->action == expectedAction);
+	CHECK(script.seenRequests[0].issue.failure->filesystemError.category == expectedCategory);
+	CHECK(entryAbsent(base % "/dest/a.bin"));
+	CHECK(stagingFileCount(base % "/dest") == 0);
+}
+
+TEST_CASE("copy executor: a commit-stage failure leaves the old destination in place", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	const QByteArray oldContents{ "OLD DESTINATION" };
+	writeTestFile(base % "/a.bin", patternedContents(4000));
+	writeTestFile(base % "/dest.bin", oldContents);
+
+	CFaultHookScope hooks;
+	FailedAction expectedAction = FailedAction::WriteDestination;
+	SECTION("flush") { hooks.forceNativeError(Point::StagedCopy_FlushStaging_Native, ioFailureCode); }
+	SECTION("metadata application")
+	{
+		hooks.forceNativeError(Point::StagedCopy_ApplyMetadata_Native, accessDeniedCode);
+		expectedAction = FailedAction::PreserveFileMetadata;
+	}
+	SECTION("pre-publication close") { hooks.forceNativeError(Point::StagedCopy_CloseStaging_Native, ioFailureCode); }
+
+	OperationScript script{ .decisions = { act(DecisionAction::Replace), act(DecisionAction::Skip) } };
+	const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/dest.bin");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.skippedItems == 1);
+	REQUIRE(script.seenRequests.size() == 2);
+	CHECK(script.seenRequests[0].issue.kind == IssueKind::FileReplacement);
+	CHECK(script.seenRequests[1].issue.kind == IssueKind::ActionFailed); // The authorization does not answer the failure
+	REQUIRE(script.seenRequests[1].issue.failure.has_value());
+	CHECK(script.seenRequests[1].issue.failure->action == expectedAction);
+	CHECK(readFileContents(base % "/dest.bin") == oldContents);
+	CHECK(stagingFileCount(base) == 0);
+	// An authorized replacement is one of the two cases the durability contract flushes for.
+	CHECK(hooks.arrivalCount(Point::StagedCopy_FlushStaging_Native) == 1);
+}
+
+TEST_CASE("copy executor: a retry after a commit-stage failure leaves no staging behind", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	const QByteArray contents = patternedContents(4000);
+	writeTestFile(base % "/a.bin", contents);
+	writeTestFile(base % "/dest.bin", QByteArray{ "OLD" });
+
+	// The failure point is past the whole transfer, so the abandoned attempt holds a fully staged file.
+	CFaultHookScope hooks;
+	hooks.forceNativeError(Point::StagedCopy_CloseStaging_Native, ioFailureCode);
+
+	OperationScript script{ .decisions = { act(DecisionAction::Replace), act(DecisionAction::Retry) } };
+	const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/dest.bin");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	CHECK(readFileContents(base % "/dest.bin") == contents);
+	CHECK(hooks.arrivalCount(Point::StagedCopy_CreateStaging_Native) == 2); // A genuinely new session
+	CHECK(stagingFileCount(base) == 0);
+	CHECK(script.seenRequests.size() == 2); // The retry did not re-ask for replacement authorization
 }
 
 #ifdef _WIN32
@@ -608,6 +775,67 @@ TEST_CASE("copy executor: a collision appearing at publication re-enters resolut
 	REQUIRE(script.seenRequests.size() == 1); // No ActionFailed: the fresh collision re-resolves silently
 	CHECK(script.seenRequests[0].issue.kind == IssueKind::FileReplacement);
 	CHECK(readFileContents(base % "/copied.bin") == contents); // Published over the raced file
+}
+
+TEST_CASE("copy executor: a source resized mid-transfer is copied at its captured size", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	const QByteArray contents = patternedContents(10'000);
+	writeTestFile(base % "/a.bin", contents);
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	// The size the copy works to is captured at the start of the file, so the mutation has to land after
+	// the transfer is underway: the checkpoint between two chunks is that point, and no source mapping is
+	// live there.
+	bool sourceResized = false;
+	OperationScript script;
+
+	SECTION("growth past the captured size is not transferred")
+	{
+		script.onCheckpoint = [&] {
+			if (sourceResized || stagingFileCount(base % "/dest") == 0)
+				return;
+			QFile source{ base % "/a.bin" };
+			REQUIRE(source.open(QFile::Append));
+			REQUIRE(source.write(QByteArray(5000, 'X')) == 5000);
+			sourceResized = true;
+		};
+
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::IntoDirectory, base % "/dest", 256);
+
+		CHECK(sourceResized);
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.completedItems == 1);
+		CHECK(summary.transferredBytes == 10'000);
+		CHECK(script.seenRequests.empty());
+		CHECK(readFileContents(base % "/dest/a.bin") == contents); // The appended tail is outside this copy
+	}
+
+	SECTION("truncation below the captured size fails the chunk that falls off the end")
+	{
+		script.decisions = { act(DecisionAction::Skip) };
+		script.onCheckpoint = [&] {
+			if (sourceResized || stagingFileCount(base % "/dest") == 0)
+				return;
+			REQUIRE(QFile{ base % "/a.bin" }.resize(2000));
+			sourceResized = true;
+		};
+
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::IntoDirectory, base % "/dest", 256);
+
+		CHECK(sourceResized);
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.skippedItems == 1);
+		REQUIRE(script.seenRequests.size() == 1);
+		CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+		REQUIRE(script.seenRequests[0].issue.failure.has_value());
+		CHECK(script.seenRequests[0].issue.failure->action == FailedAction::ReadSource);
+		CHECK(entryAbsent(base % "/dest/a.bin")); // Nothing partial is ever published
+		CHECK(stagingFileCount(base % "/dest") == 0);
+	}
 }
 
 #ifdef _WIN32

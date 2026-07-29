@@ -166,6 +166,47 @@ TEST_CASE("staged copy: the destination entry appears only at publication", "[st
 	CHECK(stagingFileCount(base) == 0);
 }
 
+TEST_CASE("staged copy: the source size is fixed at begin", "[stagedcopy]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	const QByteArray contents = patternedContents(10'000);
+	writeTestFile(base % "/source.bin", contents);
+
+	auto session = CStagedFileCopy::begin(ep(base % "/source.bin"), ep(base % "/dest.bin"));
+	REQUIRE(session.has_value());
+	REQUIRE(session->writeNext(4096).has_value());
+
+	SECTION("a source that grows afterwards contributes nothing past the captured size")
+	{
+		{
+			QFile source{ base % "/source.bin" };
+			REQUIRE(source.open(QFile::Append));
+			REQUIRE(source.write(QByteArray(5000, 'X')) == 5000);
+		}
+
+		stageAll(*session, 4096);
+		REQUIRE(session->commit(ReplacementMode::RequireAbsent, CommitDurability::NoFlush).has_value());
+		CHECK(readFileContents(base % "/dest.bin") == contents);
+	}
+
+	SECTION("a source truncated afterwards fails the first chunk that falls off the end")
+	{
+		REQUIRE(QFile{ base % "/source.bin" }.resize(2000)); // Below the transferred offset: the next chunk cannot map
+
+		const auto chunk = session->writeNext(4096);
+		REQUIRE(!chunk.has_value());
+		CHECK(chunk.error().action == FailedAction::ReadSource);
+
+		REQUIRE(session->abort().has_value());
+		CHECK(entryAbsent(base % "/dest.bin"));
+	}
+
+	CHECK(stagingFileCount(base) == 0);
+}
+
 TEST_CASE("staged copy: unique staging creation retries on a name collision", "[stagedcopy]")
 {
 	QTemporaryDir tempDir;
