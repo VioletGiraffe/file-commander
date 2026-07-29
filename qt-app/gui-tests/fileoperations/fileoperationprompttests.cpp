@@ -596,10 +596,7 @@ TEST_CASE("prompt: entry info rendering", "[fileoperationprompt]")
 		CFileOperationPrompt prompt{ makeRequest(IssueKind::ActionFailed, snapshot("unknown", OperationEntryKind::Unknown),
 			{}, ioFailure(FailedAction::InspectSource)), PromptOperation::Copy };
 		const QString details = prompt.findChild<QLabel*>(QStringLiteral("lblSourceDetails"))->text();
-		CHECK(details.contains(QStringLiteral("entry")));
-		CHECK(details.contains(QStringLiteral("unknown")));
-		CHECK(!details.contains(QStringLiteral("file")));
-		CHECK(!details.contains(QStringLiteral("folder")));
+		CHECK(details == QStringLiteral("filesystem entry of unknown type"));
 	}
 
 	SECTION("destination block absent when the issue has no destination")
