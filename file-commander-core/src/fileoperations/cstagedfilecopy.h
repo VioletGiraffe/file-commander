@@ -7,18 +7,25 @@
 #include <expected>
 #include <optional>
 
+struct StagedCopyBeginFailure
+{
+	FailureDetails primaryFailure;
+	std::optional<FailureDetails> cleanupFailure;
+};
+
 // One staged copy of one regular file, or of a materialized file link's target: an exclusively created,
 // hidden temporary sibling of the destination receives the data and the required source metadata, then
 // atomically becomes the destination entry. Move-only; a session that was neither committed nor aborted
-// cleans up best-effort in the destructor. Reports FailureDetails only - the executor owns paths in
-// diagnostics, prompts, retry, progress, and the durability choice.
+// cleans up best-effort in the destructor. The executor owns paths in diagnostics, prompts, retry, progress,
+// and the durability choice.
 class CStagedFileCopy
 {
 public:
 	// Opens the source (following a link - the opened target then supplies both bytes and metadata),
 	// captures required metadata from that handle, exclusively creates the staging sibling, fixes its
-	// logical size, and best-effort preallocates. On failure, no filesystem state is left behind.
-	[[nodiscard]] static std::expected<CStagedFileCopy, FailureDetails> begin(CEntryPath source, CEntryPath destination);
+	// logical size, and best-effort preallocates. If cleanup after a preparation failure also fails, both
+	// failures are returned so policy remains based on the primary one and cleanup is reported separately.
+	[[nodiscard]] static std::expected<CStagedFileCopy, StagedCopyBeginFailure> begin(CEntryPath source, CEntryPath destination);
 
 	CStagedFileCopy(CStagedFileCopy&& other) noexcept;
 	CStagedFileCopy(const CStagedFileCopy&) = delete;
@@ -42,7 +49,8 @@ private:
 	CStagedFileCopy(CEntryPath destination, CEntryPath stagingPath, thin_io::file sourceFile, thin_io::file stagingFile,
 					const thin_io::entry_times& sourceTimes, thin_io::file_permissions sourcePermissions, uint64_t sourceSize) noexcept;
 
-	[[nodiscard]] std::optional<NativeErrorCode> removeStagingFile();
+	[[nodiscard]] static std::optional<NativeErrorCode> discardStagingFile(thin_io::file& stagingFile, const CEntryPath& stagingPath);
+	[[nodiscard]] static std::optional<NativeErrorCode> removeStagingFile(const CEntryPath& stagingPath);
 
 	enum class State
 	{

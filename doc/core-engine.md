@@ -96,7 +96,9 @@ Important behavioral boundaries:
 3. Staged copy publishes by rename only after data and required metadata are ready. A final cancellation checkpoint
    separates completed staging from commit; once commit begins, publication and any owned-source cleanup are not
    interruptible. Failure or cancellation before publication preserves the old destination. Durability flush is
-   required where publication/cleanup destroys the only other copy, not for an ordinary fresh copy.
+   required where publication/cleanup destroys the only other copy, not for an ordinary fresh copy. If preparation
+   and staging cleanup both fail, operation policy follows the preparation failure and cleanup is reported separately
+   as a warning.
 4. Delete and same-filesystem move operate on link entries. Copy and copy-based move materialize link targets;
    directory-link cycles normally terminate by native filesystem identity. When a filesystem exposes no stable
    identity, materialization still traverses the link and the fixed depth/node limits terminate any cycle before

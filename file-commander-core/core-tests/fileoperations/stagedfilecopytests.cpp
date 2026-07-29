@@ -71,6 +71,12 @@ std::expected<void, FailureDetails> copyFile(const QString& source, const QStrin
 	return session->commit(replacement, durability);
 }
 
+void removeLeftoverStagingFiles(const QString& directory)
+{
+	for (const QString& leftover : QDir{ directory }.entryList({ QStringLiteral(".file-commander-copy-*") }, QDir::Files | QDir::Hidden | QDir::System))
+		QFile::remove(directory % '/' % leftover);
+}
+
 #ifdef _WIN32
 DWORD entryAttributes(const QString& path)
 {
@@ -198,9 +204,9 @@ TEST_CASE("staged copy: the old destination is preserved through every pre-publi
 
 		const auto session = CStagedFileCopy::begin(ep(base % "/source.bin"), ep(base % "/dest.bin"));
 		REQUIRE(!session.has_value());
-		CHECK(session.error().action == FailedAction::PrepareStagingFile);
-		CHECK(session.error().filesystemError.category == FileErrorCategory::PermissionDenied);
-		CHECK(session.error().filesystemError.nativeCode == accessDeniedCode);
+		CHECK(session.error().primaryFailure.action == FailedAction::PrepareStagingFile);
+		CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::PermissionDenied);
+		CHECK(session.error().primaryFailure.filesystemError.nativeCode == accessDeniedCode);
 	}
 
 	SECTION("resize failure")
@@ -210,8 +216,9 @@ TEST_CASE("staged copy: the old destination is preserved through every pre-publi
 
 		const auto session = CStagedFileCopy::begin(ep(base % "/source.bin"), ep(base % "/dest.bin"));
 		REQUIRE(!session.has_value());
-		CHECK(session.error().action == FailedAction::PrepareStagingFile);
-		CHECK(session.error().filesystemError.category == FileErrorCategory::NotEnoughSpace);
+		CHECK(session.error().primaryFailure.action == FailedAction::PrepareStagingFile);
+		CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::NotEnoughSpace);
+		CHECK(!session.error().cleanupFailure.has_value());
 	}
 
 	SECTION("write failure")
@@ -297,8 +304,8 @@ TEST_CASE("staged copy: begin failures leave nothing behind", "[stagedcopy]")
 	{
 		const auto session = CStagedFileCopy::begin(ep(base % "/no-such-file.bin"), ep(base % "/dest.bin"));
 		REQUIRE(!session.has_value());
-		CHECK(session.error().action == FailedAction::ReadSource);
-		CHECK(session.error().filesystemError.category == FileErrorCategory::NotFound);
+		CHECK(session.error().primaryFailure.action == FailedAction::ReadSource);
+		CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::NotFound);
 	}
 
 #ifndef _WIN32
@@ -326,8 +333,8 @@ TEST_CASE("staged copy: begin failures leave nothing behind", "[stagedcopy]")
 		blockingOpenFailsafe.requestCancellation();
 		blockingOpenFailsafe.join();
 		REQUIRE(!session.has_value());
-		CHECK(session.error().action == FailedAction::ReadSource);
-		CHECK(session.error().filesystemError.category == FileErrorCategory::Unsupported);
+		CHECK(session.error().primaryFailure.action == FailedAction::ReadSource);
+		CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::Unsupported);
 	}
 #endif
 
@@ -340,12 +347,36 @@ TEST_CASE("staged copy: begin failures leave nothing behind", "[stagedcopy]")
 
 		const auto session = CStagedFileCopy::begin(ep(base % "/source.bin"), ep(base % "/dest.bin"));
 		REQUIRE(!session.has_value());
-		CHECK(session.error().action == FailedAction::PreserveFileMetadata);
-		CHECK(session.error().filesystemError.category == FileErrorCategory::PermissionDenied);
+		CHECK(session.error().primaryFailure.action == FailedAction::PreserveFileMetadata);
+		CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::PermissionDenied);
 	}
 
 	CHECK(entryAbsent(base % "/dest.bin"));
 	CHECK(stagingFileCount(base) == 0);
+}
+
+TEST_CASE("staged copy: begin reports a failed staging cleanup separately", "[stagedcopy]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	writeTestFile(base % "/source.bin", patternedContents(1000));
+
+	CFaultHookScope scope;
+	scope.forceNativeError(Point::StagedCopy_ResizeStaging_Native, diskFullCode);
+	scope.forceNativeError(Point::StagedCopy_RemoveStaging_Native, ioFailureCode);
+
+	const auto session = CStagedFileCopy::begin(ep(base % "/source.bin"), ep(base % "/dest.bin"));
+	REQUIRE(!session.has_value());
+	CHECK(session.error().primaryFailure.action == FailedAction::PrepareStagingFile);
+	CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::NotEnoughSpace);
+	REQUIRE(session.error().cleanupFailure.has_value());
+	CHECK(session.error().cleanupFailure->action == FailedAction::CleanupStaging);
+	CHECK(session.error().cleanupFailure->filesystemError.category == FileErrorCategory::IoFailure);
+	CHECK(stagingFileCount(base) == 1);
+
+	removeLeftoverStagingFiles(base);
 }
 
 TEST_CASE("staged copy: late destination appearance vs authorized replacement", "[stagedcopy]")
@@ -492,8 +523,8 @@ TEST_CASE("staged copy: a file-link source materializes the followed target with
 
 		const auto session = CStagedFileCopy::begin(ep(base % "/broken-link.bin"), ep(base % "/dest.bin"));
 		REQUIRE(!session.has_value());
-		CHECK(session.error().action == FailedAction::ReadSource);
-		CHECK(session.error().filesystemError.category == FileErrorCategory::NotFound);
+		CHECK(session.error().primaryFailure.action == FailedAction::ReadSource);
+		CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::NotFound);
 		CHECK(entryAbsent(base % "/dest.bin"));
 	}
 
@@ -584,8 +615,8 @@ TEST_CASE("staged copy: unsupported preallocation is best-effort, real exhaustio
 
 		const auto session = CStagedFileCopy::begin(ep(base % "/source.bin"), ep(base % "/dest.bin"));
 		REQUIRE(!session.has_value());
-		CHECK(session.error().action == FailedAction::PrepareStagingFile);
-		CHECK(session.error().filesystemError.category == FileErrorCategory::NotEnoughSpace);
+		CHECK(session.error().primaryFailure.action == FailedAction::PrepareStagingFile);
+		CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::NotEnoughSpace);
 		CHECK(stagingFileCount(base) == 0);
 	}
 
@@ -668,8 +699,7 @@ TEST_CASE("staged copy: explicit abort removes staging and touches nothing else"
 
 		// The report is truthful: the staging file really is still there; clean it up manually
 		CHECK(stagingFileCount(base) == 1);
-		for (const QString& leftover : QDir{ base }.entryList({ QStringLiteral(".file-commander-copy-*") }, QDir::Files | QDir::Hidden | QDir::System))
-			QFile::remove(base % '/' % leftover);
+		removeLeftoverStagingFiles(base);
 	}
 
 	SECTION("a permission-denied removal is remediated by restoring writability")

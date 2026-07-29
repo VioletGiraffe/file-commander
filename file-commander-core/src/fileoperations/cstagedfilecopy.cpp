@@ -25,9 +25,24 @@ using OperationTestHooks::Point;
 namespace
 {
 
+FailureDetails makeFailure(const FailedAction action, const NativeErrorCode code)
+{
+	return FailureDetails{ action, makeFileSystemError(code) };
+}
+
 std::unexpected<FailureDetails> fail(const FailedAction action, const NativeErrorCode code)
 {
-	return std::unexpected{ FailureDetails{ action, makeFileSystemError(code) } };
+	return std::unexpected{ makeFailure(action, code) };
+}
+
+std::unexpected<StagedCopyBeginFailure> failBegin(const FailedAction action, const NativeErrorCode code)
+{
+	return std::unexpected{ StagedCopyBeginFailure{ makeFailure(action, code), {} } };
+}
+
+std::unexpected<StagedCopyBeginFailure> failBegin(FailureDetails failure)
+{
+	return std::unexpected{ StagedCopyBeginFailure{ mv(failure), {} } };
 }
 
 // Preallocation is an optimization, so a filesystem that cannot service it must not fail the copy.
@@ -44,7 +59,7 @@ bool isUnsupportedPreallocationError(const NativeErrorCode code) noexcept
 
 } // namespace
 
-std::expected<CStagedFileCopy, FailureDetails> CStagedFileCopy::begin(CEntryPath source, CEntryPath destination)
+std::expected<CStagedFileCopy, StagedCopyBeginFailure> CStagedFileCopy::begin(CEntryPath source, CEntryPath destination)
 {
 	assert_debug_only(!destination.isRoot());
 
@@ -52,17 +67,17 @@ std::expected<CStagedFileCopy, FailureDetails> CStagedFileCopy::begin(CEntryPath
 	{
 		const auto sourceNative = thinIoPath(source);
 		if (!sourceFile.open(nativeCStr(sourceNative), thin_io::file::access_mode::Read)) [[unlikely]]
-			return fail(FailedAction::ReadSource, captureNativeError());
+			return failBegin(FailedAction::ReadSource, captureNativeError());
 	}
 
 #ifndef _WIN32
 	const auto sourceIsRegularFile = sourceFile.is_regular_file();
 	if (!sourceIsRegularFile) [[unlikely]]
-		return fail(FailedAction::ReadSource, captureNativeError());
+		return failBegin(FailedAction::ReadSource, captureNativeError());
 	if (!*sourceIsRegularFile) [[unlikely]]
 	{
-		return std::unexpected{ FailureDetails{ FailedAction::ReadSource,
-			CFileSystemError{ FileErrorCategory::Unsupported, 0, QStringLiteral("The opened source is not a regular file") } } };
+		return failBegin(FailureDetails{ FailedAction::ReadSource,
+			CFileSystemError{ FileErrorCategory::Unsupported, 0, QStringLiteral("The opened source is not a regular file") } });
 	}
 #endif
 
@@ -71,24 +86,24 @@ std::expected<CStagedFileCopy, FailureDetails> CStagedFileCopy::begin(CEntryPath
 	thin_io::entry_times sourceTimes;
 	thin_io::file_permissions sourcePermissions;
 	if (const auto forcedError = fireHook(Point::StagedCopy_CaptureMetadata_Native))
-		return fail(FailedAction::PreserveFileMetadata, *forcedError);
+		return failBegin(FailedAction::PreserveFileMetadata, *forcedError);
 
 	if (const auto times = sourceFile.times(); times) [[likely]]
 		sourceTimes = *times;
 	else
-		return fail(FailedAction::PreserveFileMetadata, captureNativeError());
+		return failBegin(FailedAction::PreserveFileMetadata, captureNativeError());
 	sourceTimes.last_access.reset(); // Never transferred: reading the source for this copy already changed it
 
 	if (const auto permissions = sourceFile.permissions(); permissions) [[likely]]
 		sourcePermissions = *permissions;
 	else
-		return fail(FailedAction::PreserveFileMetadata, captureNativeError());
+		return failBegin(FailedAction::PreserveFileMetadata, captureNativeError());
 
 	uint64_t sourceSize = 0;
 	if (const auto size = sourceFile.size(); size) [[likely]]
 		sourceSize = *size;
 	else
-		return fail(FailedAction::ReadSource, captureNativeError());
+		return failBegin(FailedAction::ReadSource, captureNativeError());
 
 	// The exclusive create is the collision check; a (vanishingly unlikely) name collision just means
 	// another attempt with a fresh unique name.
@@ -115,11 +130,11 @@ std::expected<CStagedFileCopy, FailureDetails> CStagedFileCopy::begin(CEntryPath
 		}
 
 		if (classifyNativeError(errorCode) != FileErrorCategory::AlreadyExists)
-			return fail(FailedAction::PrepareStagingFile, errorCode);
+			return failBegin(FailedAction::PrepareStagingFile, errorCode);
 	}
 	if (!stagingPath) [[unlikely]]
-		return std::unexpected{ FailureDetails{ FailedAction::PrepareStagingFile,
-			CFileSystemError{ FileErrorCategory::AlreadyExists, 0, QStringLiteral("Could not create a unique temporary file next to the destination") } } };
+		return failBegin(FailureDetails{ FailedAction::PrepareStagingFile,
+			CFileSystemError{ FileErrorCategory::AlreadyExists, 0, QStringLiteral("Could not create a unique temporary file next to the destination") } });
 
 #ifdef _WIN32
 	// Cosmetic, so best-effort: hides the in-progress temporary from destination listings. POSIX gets the
@@ -128,10 +143,10 @@ std::expected<CStagedFileCopy, FailureDetails> CStagedFileCopy::begin(CEntryPath
 #endif
 
 	const auto failAndDiscardStaging = [&](const FailedAction action, const NativeErrorCode code) {
-		(void)stagingFile.close();
-		const auto stagingNative = thinIoPath(*stagingPath);
-		(void)thin_io::file::delete_file(nativeCStr(stagingNative));
-		return fail(action, code);
+		StagedCopyBeginFailure failure{ makeFailure(action, code), {} };
+		if (const auto cleanupErrorCode = discardStagingFile(stagingFile, *stagingPath))
+			failure.cleanupFailure = makeFailure(FailedAction::CleanupStaging, *cleanupErrorCode);
+		return std::unexpected{ mv(failure) };
 	};
 
 	// The final logical size first, then best-effort physical reservation, so storage exhaustion surfaces
@@ -279,23 +294,28 @@ std::expected<void, FailureDetails> CStagedFileCopy::abort()
 
 	(void)_sourceFile.close(); // A read-side close failure puts no data at risk
 
-	std::optional<NativeErrorCode> cleanupErrorCode;
-	if (_stagingFile.is_open() && !_stagingFile.close()) [[unlikely]]
-		cleanupErrorCode = captureNativeError();
-
-	if (const auto removalErrorCode = removeStagingFile()) [[unlikely]]
-		cleanupErrorCode = *removalErrorCode; // Staging data left behind outweighs a close failure in the report
-
-	if (cleanupErrorCode) [[unlikely]]
+	if (const auto cleanupErrorCode = discardStagingFile(_stagingFile, _stagingPath)) [[unlikely]]
 		return fail(FailedAction::CleanupStaging, *cleanupErrorCode);
 	return {};
 }
 
+std::optional<NativeErrorCode> CStagedFileCopy::discardStagingFile(thin_io::file& stagingFile, const CEntryPath& stagingPath)
+{
+	std::optional<NativeErrorCode> cleanupErrorCode;
+	if (stagingFile.is_open() && !stagingFile.close()) [[unlikely]]
+		cleanupErrorCode = captureNativeError();
+
+	if (const auto removalErrorCode = removeStagingFile(stagingPath)) [[unlikely]]
+		cleanupErrorCode = *removalErrorCode; // Staging data left behind outweighs a close failure in the report
+
+	return cleanupErrorCode;
+}
+
 // nullopt on success. commit() may already have made the staging file read-only (copied from a read-only
 // source), which fails Windows deletion with PermissionDenied - remediated and retried once.
-std::optional<NativeErrorCode> CStagedFileCopy::removeStagingFile()
+std::optional<NativeErrorCode> CStagedFileCopy::removeStagingFile(const CEntryPath& stagingPath)
 {
-	const auto stagingNative = thinIoPath(_stagingPath);
+	const auto stagingNative = thinIoPath(stagingPath);
 
 	NativeErrorCode errorCode;
 	if (const auto forcedError = fireHook(Point::StagedCopy_RemoveStaging_Native))
@@ -307,7 +327,7 @@ std::optional<NativeErrorCode> CStagedFileCopy::removeStagingFile()
 
 	if (classifyNativeError(errorCode) == FileErrorCategory::PermissionDenied)
 	{
-		const EntrySnapshot stagingEntry{ _stagingPath, OperationEntryKind::RegularFile, 0 };
+		const EntrySnapshot stagingEntry{ stagingPath, OperationEntryKind::RegularFile, 0 };
 		if (CFileSystemMutator::setEntryWritable(stagingEntry, true).has_value() && thin_io::file::delete_file(nativeCStr(stagingNative)))
 			return {};
 	}

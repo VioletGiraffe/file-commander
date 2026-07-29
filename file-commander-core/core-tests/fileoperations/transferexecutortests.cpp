@@ -757,7 +757,18 @@ TEST_CASE("copy executor: a failed staging cleanup is a warning, not a failure",
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
 	CFaultHookScope hooks;
-	hooks.forceNativeError(Point::StagedCopy_WriteStaging_Native, ioFailureCode);
+	FailedAction expectedPrimaryAction = FailedAction::WriteDestination;
+	FileErrorCategory expectedPrimaryCategory = FileErrorCategory::IoFailure;
+	SECTION("after staging begins")
+	{
+		hooks.forceNativeError(Point::StagedCopy_WriteStaging_Native, ioFailureCode);
+	}
+	SECTION("while staging begins")
+	{
+		hooks.forceNativeError(Point::StagedCopy_ResizeStaging_Native, accessDeniedCode);
+		expectedPrimaryAction = FailedAction::PrepareStagingFile;
+		expectedPrimaryCategory = FileErrorCategory::PermissionDenied;
+	}
 	// Not a PermissionDenied-class code: that one the cleanup remediates (make writable, retry) and succeeds.
 	hooks.forceNativeError(Point::StagedCopy_RemoveStaging_Native, ioFailureCode);
 
@@ -771,8 +782,11 @@ TEST_CASE("copy executor: a failed staging cleanup is a warning, not a failure",
 	REQUIRE(summary.representativeWarnings.size() == 1);
 	CHECK(summary.representativeWarnings[0].failure.action == FailedAction::CleanupStaging);
 
-	REQUIRE(script.seenRequests.size() == 1); // Only the write failure asked; the cleanup failure never does
+	REQUIRE(script.seenRequests.size() == 1); // Only the primary failure asked; the cleanup failure never does
 	CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+	REQUIRE(script.seenRequests[0].issue.failure.has_value());
+	CHECK(script.seenRequests[0].issue.failure->action == expectedPrimaryAction);
+	CHECK(script.seenRequests[0].issue.failure->filesystemError.category == expectedPrimaryCategory);
 	CHECK(stagingFileCount(base % "/dest") == 1); // The staging file the failed cleanup left behind
 }
 

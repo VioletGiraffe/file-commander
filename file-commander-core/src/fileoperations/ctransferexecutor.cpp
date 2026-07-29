@@ -745,7 +745,12 @@ std::optional<NodeOutcome> CTransferExecutor::stagedFileTransferWithPolicy(const
 
 		auto session = CStagedFileCopy::begin(source.path, destination);
 		if (!session)
-			failure = mv(session.error());
+		{
+			auto beginFailure = mv(session.error());
+			failure = mv(beginFailure.primaryFailure);
+			if (beginFailure.cleanupFailure)
+				_context.recordWarning(OperationDiagnostic{ mv(*beginFailure.cleanupFailure), source, {} });
+		}
 		else
 		{
 			bool transferFailed = false;
