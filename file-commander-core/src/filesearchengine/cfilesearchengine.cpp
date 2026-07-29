@@ -15,6 +15,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QRegularExpression>
+#include <QStringView>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -24,28 +25,32 @@ RESTORE_COMPILER_WARNINGS
 #include <semaphore>
 #include <thread>
 
-[[nodiscard]] static QString queryToRegex(const QString& query, bool startToEnd)
+// The name filter language: literal text, '*' for any run of characters, '?' for exactly one. A leading '^' or a
+// trailing '$' anchors that end of the match to the name's; an end left unanchored matches anywhere.
+[[nodiscard]] static QString nameFilterToRegex(QStringView filter)
 {
-	// Escape the dots
-	QString regExString = QString{ query }.replace('.', QLatin1StringView{ "\\." });
+	const bool anchorStart = filter.startsWith('^');
+	if (anchorStart)
+		filter = filter.sliced(1);
 
-	const bool nameQueryHasWildcards = query.contains('*') || query.contains('?');
-	if (nameQueryHasWildcards)
-	{
-		regExString.replace('?', '.').replace('*', ".*");
-		//regExString.prepend("\\A").append("\\z");
-	}
+	const bool anchorEnd = filter.endsWith('$');
+	if (anchorEnd)
+		filter.chop(1);
 
-	if (startToEnd)
-	{
-		if (!regExString.startsWith('^'))
-			regExString.prepend('^');
+	// Escaping everything and restoring only our own two wildcards is what keeps '.', '+' and brackets literal.
+	// Every '*' in the escaped text is preceded by the backslash that escaped it, so neither replacement can match
+	// across two escape sequences.
+	QString pattern = QRegularExpression::escape(filter);
+	pattern.replace(QLatin1StringView{ "\\*" }, QLatin1StringView{ ".*" });
+	pattern.replace(QLatin1StringView{ "\\?" }, QLatin1StringView{ "." });
 
-		if (!regExString.endsWith('$'))
-			regExString.append('$');
-	}
+	// \A and \z rather than ^ and $: '$' also matches immediately before a trailing newline, which a POSIX name may end with.
+	if (anchorStart)
+		pattern.prepend(QLatin1StringView{ "\\A" });
+	if (anchorEnd)
+		pattern.append(QLatin1StringView{ "\\z" });
 
-	return regExString;
+	return pattern;
 }
 
 #ifndef __ARM_ARCH_ISA_A64
@@ -197,7 +202,7 @@ bool CFileSearchEngine::search(
 		return true;
 	}
 
-	if (filters.isEmpty() || where.empty())
+	if (where.empty())
 		return false;
 
 	// The previous search reported completion before its thread finished unwinding, and start() requires a joined thread
@@ -239,35 +244,37 @@ void CFileSearchEngine::searchThread(
 	CTimeElapsed timer;
 	timer.start();
 
-	const bool noFileNameFilter = (filters.isEmpty() || filters.front() == '*');
+	// The filters are alternatives, so one that matches every name makes name matching redundant altogether.
+	const bool noFileNameFilter = filters.isEmpty() || std::ranges::any_of(filters, [](const QString& filter) { return filter == '*'; });
 
 	std::vector<QRegularExpression> filterExpressions;
 	if (!noFileNameFilter)
 	{
-		for (const QString& filterString : filters)
-		{
-			auto& queryRegExp = filterExpressions.emplace_back();
-			queryRegExp.setPattern(queryToRegex(filterString, true));
-			assert_r(queryRegExp.isValid());
+		// Our wildcards stand for any character, including the newline a POSIX name may contain.
+		QRegularExpression::PatternOptions patternOptions = QRegularExpression::DotMatchesEverythingOption;
+		if (!subjectCaseSensitive)
+			patternOptions |= QRegularExpression::CaseInsensitiveOption;
 
-			if (!subjectCaseSensitive)
-				queryRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-		}
+		filterExpressions.reserve(filters.size());
+		for (const QString& filterString : filters)
+			filterExpressions.emplace_back(nameFilterToRegex(filterString), patternOptions);
 	}
 
 	const bool searchByContents = !contentsToFind.isEmpty();
-	if (!contentsCaseSensitive)
-		contentsIsRegex = true; // Can't search for the raw memory pattern if it's case-insensitive (TODO: you can, but not with the built-in functions)
+	// memfind can only look for the byte sequence as given, so case folding and word boundaries both need the regex
+	// engine. (TODO: a case-insensitive memory search is possible, just not with the built-in functions.)
+	const bool useRegexEngine = contentsIsRegex || !contentsCaseSensitive || contentsWholeWords;
 
 	QRegularExpression fileContentsRegExp;
 	QByteArray fileContentsPlainText;
 	if (searchByContents)
 	{
-		if (contentsIsRegex)
+		if (useRegexEngine)
 		{
-			QString pattern = queryToRegex(contentsToFind, false);
+			QString pattern = contentsIsRegex ? contentsToFind : QRegularExpression::escape(contentsToFind);
+			// The group keeps both boundaries applied to the whole pattern - without it, alternation would bind first.
 			if (contentsWholeWords)
-				pattern.prepend("\\b").append("\\b");
+				pattern.prepend(QLatin1StringView{ "\\b(?:" }).append(QLatin1StringView{ ")\\b" });
 
 			fileContentsRegExp.setPattern(pattern);
 

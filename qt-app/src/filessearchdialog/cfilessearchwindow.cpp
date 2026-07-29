@@ -155,14 +155,14 @@ void CFilesSearchWindow::search()
 
 	QStringList filters = filtersString.split(';', Qt::SkipEmptyParts);
 
-	if (ui->cbNamePartialMatch->isChecked())
+	// Partial match is the engine's own language, where an unanchored filter matches anywhere in the name. Anchoring
+	// both ends turns it into a whole-name match, and demotes any '^' or '$' the user typed to a literal character.
+	if (!ui->cbNamePartialMatch->isChecked())
 	{
 		for (QString& what : filters)
 		{
-			if (!what.startsWith('*'))
-				what.prepend('*');
-			if (!what.endsWith('*'))
-				what.append('*');
+			if (what != '*') // Already matches any name, and anchoring it would cost the engine its no-filter shortcut
+				what.prepend('^').append('$');
 		}
 	}
 
@@ -182,7 +182,11 @@ void CFilesSearchWindow::search()
 
 		QString title = filtersString;
 		if (!withText.isEmpty())
-			title += '/' + withText;
+		{
+			if (!title.isEmpty()) // The name field may be left empty to search by contents alone
+				title += '/';
+			title += withText;
+		}
 		title += ' ' + tr("search results");
 		setWindowTitle(title);
 	}

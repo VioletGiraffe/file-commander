@@ -36,6 +36,19 @@ TEST_CASE("Search - a file has to pass both the name filter and the content filt
 	CHECK_FALSE(result.matched(wrongContents));
 }
 
+TEST_CASE("Search - contents alone are a complete query, with no name filter at all", "[search][contents]")
+{
+	TempTree tree;
+	const QString hit = tree.makeFile(QSL("hit.dat"), "needle");
+	const QString miss = tree.makeFile(QSL("miss.dat"), "haystack");
+
+	const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = {},
+		.contents = QSL("needle"), .contentsCaseSensitive = true });
+
+	CHECK(result.matched(hit));
+	CHECK_FALSE(result.matched(miss));
+}
+
 TEST_CASE("Search - a content search never reports a directory", "[search][contents]")
 {
 	TempTree tree;
@@ -104,9 +117,7 @@ TEST_CASE("Search - a regex match straddling a scan window boundary is found", "
 	CHECK(runSearch({ .roots = { tree.path() }, .contents = QSL("needle") }).matched(file));
 }
 
-// Segment-B finding: the \b wrapping only happens on the regex path, and only case-insensitivity routes a search
-// there, so a case-sensitive whole-word search runs as a plain substring search.
-TEST_CASE("Search - whole-word matching excludes text inside a longer word", "[search][contents][!shouldfail]")
+TEST_CASE("Search - whole-word matching excludes text inside a longer word", "[search][contents]")
 {
 	TempTree tree;
 	const QString insideAWord = tree.makeFile(QSL("inside.txt"), "concatenate");
@@ -119,9 +130,7 @@ TEST_CASE("Search - whole-word matching excludes text inside a longer word", "[s
 	CHECK(result.matched(standalone));
 }
 
-// Segment-B finding: a user-supplied regex is passed through the wildcard translator, which rewrites its '?' and
-// re-escapes its dots. Drop [!shouldfail] once the regex path takes the pattern as written.
-TEST_CASE("Search - a content regex is used as written", "[search][contents][!shouldfail]")
+TEST_CASE("Search - a content regex is used as written", "[search][contents]")
 {
 	TempTree tree;
 	const QString optionalLetter = tree.makeFile(QSL("optional.txt"), "the color red");
@@ -131,15 +140,14 @@ TEST_CASE("Search - a content regex is used as written", "[search][contents][!sh
 	const SearchResult optionalSearch = runSearch({ .roots = { tree.path() },
 		.contents = QSL("colou?r"), .contentsCaseSensitive = true, .contentsIsRegex = true });
 	CHECK(optionalSearch.matched(optionalLetter));
-	CHECK_FALSE(optionalSearch.matched(wildcardDecoy)); // '?' becomes '.' today, so this is what matches instead
+	CHECK_FALSE(optionalSearch.matched(wildcardDecoy)); // What would match if '?' were translated as a wildcard
 
 	CHECK(runSearch({ .roots = { tree.path() },
 		.contents = QSL("[0-9]\\.[0-9]"), .contentsCaseSensitive = true, .contentsIsRegex = true }).matched(escapedDot));
 }
 
-// Segment-B finding: a case-insensitive plain-text search is silently rerouted through the regex path, where the
-// characters the user typed take on regex meaning.
-TEST_CASE("Search - plain text is matched literally even when case-insensitive", "[search][contents][!shouldfail]")
+// Case-insensitivity routes a plain-text query through the regex engine, where it has to survive as literal text.
+TEST_CASE("Search - plain text is matched literally even when case-insensitive", "[search][contents]")
 {
 	TempTree tree;
 	const QString literal = tree.makeFile(QSL("literal.txt"), "a*b");

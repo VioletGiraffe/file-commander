@@ -26,6 +26,7 @@ public:
 	};
 
 	bool searchInProgress() const;
+	// An empty filter list matches any name, and an empty contentsToFind leaves the contents unexamined; only "where" is required.
 	[[nodiscard]] bool search(
 		const QStringList& filters, bool subjectCaseSensitive,
 		const QStringList& where,

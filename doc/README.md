@@ -31,6 +31,7 @@ plugin interface, but the core discovers and loads them at runtime rather than l
 | One tab's directory state | `file-commander-core/src/cpanel.{h,cpp}` |
 | Filesystem entry wrapper | `file-commander-core/src/cfilesystemobject.{h,cpp}` |
 | Copy, move, permanent delete | `file-commander-core/src/fileoperations/` and `fileoperations.pri` |
+| File and content search | `file-commander-core/src/filesearchengine/`, `qt-app/src/filessearchdialog/` |
 | Main window and command routing | `qt-app/src/cmainwindow.{h,cpp,ui}` |
 | Panel UI and file-list MVC | `qt-app/src/panel/` |
 | Native plugin API and loader | `file-commander-core/src/plugininterface/`, `pluginengine/` |
@@ -61,6 +62,7 @@ repositories.
 - [threading.md](threading.md): executors, queueing, lifetime rules, and concurrency review checklist.
 - [qt-ui.md](qt-ui.md): UI ownership and the model/view boundaries.
 - [tabs.md](tabs.md): the tab feature where core, UI, notifications, and persistence meet.
+- [search.md](search.md): the name-filter and content query language the dialog and the engine share.
 - [plugins.md](plugins.md): native plugin ABI, proxy, loader, quick-view ownership, and WCX status.
 - [persistence.md](persistence.md): settings ownership and session restoration.
 - [build-ci-deps.md](build-ci-deps.md): build/test entry points and dependency roles.

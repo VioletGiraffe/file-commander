@@ -1,26 +1,11 @@
 #include "searchenginetesthelpers.h"
 
-TEST_CASE("Search - a query with nothing to look for, or nowhere to look, is refused", "[search][engine]")
+TEST_CASE("Search - a query with nowhere to look is refused", "[search][engine]")
 {
-	TempTree tree;
 	SearchRunner runner;
 
-	SECTION("no name filter")
-	{
-		CHECK_FALSE(runner.start({ .roots = { tree.path() }, .nameFilters = {} }));
-	}
-
-	SECTION("no root")
-	{
-		CHECK_FALSE(runner.start({ .roots = {}, .nameFilters = { QSL("*.txt") } }));
-	}
-
-	SECTION("contents to find, but still no name filter")
-	{
-		// The engine requires a name filter regardless of what else the query asks for. This is what makes the
-		// search dialog do nothing at all when only the contents field is filled in.
-		CHECK_FALSE(runner.start({ .roots = { tree.path() }, .nameFilters = {}, .contents = QSL("needle") }));
-	}
+	// The roots are the one part of a query with no sensible default; everything else may be left out.
+	CHECK_FALSE(runner.start({ .roots = {}, .nameFilters = { QSL("*.txt") } }));
 }
 
 TEST_CASE("Search - a content regex that does not compile ends the search instead of running it", "[search][engine]")

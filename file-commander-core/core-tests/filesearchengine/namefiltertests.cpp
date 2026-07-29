@@ -1,6 +1,6 @@
 #include "searchenginetesthelpers.h"
 
-TEST_CASE("Search - a name filter matches the whole name, not a substring of it", "[search][names]")
+TEST_CASE("Search - an unanchored name filter matches anywhere in the name", "[search][names]")
 {
 	TempTree tree;
 	const QString exact = tree.makeFile(QSL("notes.txt"));
@@ -10,9 +10,51 @@ TEST_CASE("Search - a name filter matches the whole name, not a substring of it"
 	const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("notes.txt") } });
 
 	CHECK(result.matched(exact));
-	// Anchored at both ends: wrapping a query in '*' for a partial match is the dialog's job, not the engine's.
-	CHECK_FALSE(result.matched(longerName));
+	CHECK(result.matched(longerName));
 	CHECK_FALSE(result.matched(otherExtension));
+}
+
+TEST_CASE("Search - '^' and '$' anchor the filter to the ends of the name", "[search][names]")
+{
+	TempTree tree;
+	const QString exact = tree.makeFile(QSL("notes.txt"));
+	const QString prefixed = tree.makeFile(QSL("mynotes.txt"));
+	const QString suffixed = tree.makeFile(QSL("notes.txt.bak"));
+
+	SECTION("'^' pins the start")
+	{
+		const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("^notes.txt") } });
+		CHECK(result.matched(exact));
+		CHECK(result.matched(suffixed));
+		CHECK_FALSE(result.matched(prefixed));
+	}
+
+	SECTION("'$' pins the end")
+	{
+		const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("notes.txt$") } });
+		CHECK(result.matched(exact));
+		CHECK(result.matched(prefixed));
+		CHECK_FALSE(result.matched(suffixed));
+	}
+
+	SECTION("both together make it a whole-name match")
+	{
+		const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("^notes.txt$") } });
+		CHECK(result.matched(exact));
+		CHECK_FALSE(result.matched(prefixed));
+		CHECK_FALSE(result.matched(suffixed));
+	}
+}
+
+TEST_CASE("Search - '^' and '$' are literal characters away from the ends", "[search][names]")
+{
+	TempTree tree;
+	const QString leadingCaret = tree.makeFile(QSL("^weird.txt"));
+	const QString dollarInside = tree.makeFile(QSL("a$b.txt"));
+
+	// A leading '*' takes the caret out of anchor position, which is what leaves it to be matched literally.
+	CHECK(runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("*^weird") } }).matched(leadingCaret));
+	CHECK(runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("a$b") } }).matched(dollarInside));
 }
 
 TEST_CASE("Search - '*' and '?' are the wildcards", "[search][names]")
@@ -50,6 +92,33 @@ TEST_CASE("Search - every filter in the list contributes its matches", "[search]
 	CHECK(result.matched(text));
 	CHECK(result.matched(document));
 	CHECK_FALSE(result.matched(image));
+}
+
+TEST_CASE("Search - a filter matching every name makes the rest of the list redundant", "[search][names]")
+{
+	TempTree tree;
+	const QString text = tree.makeFile(QSL("a.txt"));
+	const QString image = tree.makeFile(QSL("b.png"));
+
+	// '*' is an alternative like any other, so it decides the outcome wherever in the list it sits.
+	const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = { QSL("*.txt"), QSL("*") } });
+
+	CHECK(result.matched(text));
+	CHECK(result.matched(image));
+}
+
+TEST_CASE("Search - an empty filter list matches any name", "[search][names]")
+{
+	TempTree tree;
+	const QString file = tree.makeFile(QSL("a.txt"));
+	const QString directory = tree.makeDir(QSL("sub"));
+
+	const SearchResult result = runSearch({ .roots = { tree.path() }, .nameFilters = {} });
+
+	CHECK(result.status == CFileSearchEngine::SearchFinished);
+	CHECK(result.matched(file));
+	CHECK(result.matched(directory));
+	CHECK(result.matched(tree.path())); // The root is traversed as well, and nothing excludes it
 }
 
 TEST_CASE("Search - name case sensitivity follows the flag", "[search][names]")
@@ -97,15 +166,13 @@ TEST_CASE("Search - a name search reports directories as well as files", "[searc
 	CHECK(result.matched(file));
 }
 
-// Segment-B finding: queryToRegex() escapes only '.', so every other regex metacharacter in a file name is
-// interpreted instead of matched. Drop [!shouldfail] once name filters are translated as wildcards.
-TEST_CASE("Search - regex metacharacters in a name filter are matched literally", "[search][names][!shouldfail]")
+TEST_CASE("Search - regex metacharacters in a name filter are matched literally", "[search][names]")
 {
 	TempTree tree;
 	const QString parentheses = tree.makeFile(QSL("report (final).doc"));
 	const QString brackets = tree.makeFile(QSL("notes[1].txt"));
 	const QString plus = tree.makeFile(QSL("a+b.log"));
-	// The names those filters match today instead of the ones above.
+	// The names those filters would match if their metacharacters reached the regex engine as syntax.
 	const QString bracketDecoy = tree.makeFile(QSL("notes1.txt"));
 	const QString plusDecoy = tree.makeFile(QSL("aaab.log"));
 
@@ -120,9 +187,7 @@ TEST_CASE("Search - regex metacharacters in a name filter are matched literally"
 	CHECK_FALSE(plusSearch.matched(plusDecoy));
 }
 
-// Segment-B finding: an unbalanced bracket yields an invalid QRegularExpression, which assert_r only logs. The
-// search then runs a pattern that can never match and reports success with nothing found.
-TEST_CASE("Search - a name filter that would be an invalid regex still finds its file", "[search][names][!shouldfail]")
+TEST_CASE("Search - a name filter that would be an invalid regex still finds its file", "[search][names]")
 {
 	TempTree tree;
 	const QString file = tree.makeFile(QSL("a[1.txt"));
