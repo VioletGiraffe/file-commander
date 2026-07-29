@@ -69,7 +69,13 @@ std::expected<TransferRequest, RequestValidationError> makeTransferRequest(
 	if (intent == DestinationIntent::ExactEntry && destination->isRoot())
 		return std::unexpected{ RequestValidationError::InvalidPath };
 
-	return TransferRequest{ kind, mv(*sources), DestinationSpec{ intent, mv(*destination) } };
+	TransferRequest request{ kind, mv(*sources), DestinationSpec{ intent, mv(*destination) } };
+	for (const RootTransferIntent& root : rootTransferIntents(request))
+	{
+		if (root.proposedDestination.isStrictDescendantOf(root.source))
+			return std::unexpected{ RequestValidationError::DestinationInsideSource };
+	}
+	return mv(request);
 }
 
 std::expected<PermanentDeleteRequest, RequestValidationError> makePermanentDeleteRequest(const QStringList& rawSourcePaths)

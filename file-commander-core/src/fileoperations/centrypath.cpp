@@ -76,6 +76,22 @@ QString CEntryPath::name() const
 	return _path.mid(_path.lastIndexOf(QLatin1Char('/')) + 1);
 }
 
+bool CEntryPath::isStrictDescendantOf(const CEntryPath& ancestor) const
+{
+	if (isRoot())
+		return false;
+
+	CEntryPath candidate = parent();
+	for (;;)
+	{
+		if (candidate == ancestor)
+			return true;
+		if (candidate.isRoot())
+			return false;
+		candidate = candidate.parent();
+	}
+}
+
 bool CEntryPath::operator==(const CEntryPath& other) const noexcept
 {
 	return _path.compare(other._path, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0;

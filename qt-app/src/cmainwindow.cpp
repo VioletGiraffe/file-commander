@@ -318,6 +318,8 @@ static QString requestValidationErrorText(const RequestValidationError error)
 		return CMainWindow::tr("A drive root cannot be copied, moved, or deleted.");
 	case RequestValidationError::ExactEntryRequiresSingleSource:
 		return CMainWindow::tr("An exact destination entry can only be chosen for a single source.");
+	case RequestValidationError::DestinationInsideSource:
+		return CMainWindow::tr("The destination cannot be inside a selected source.");
 	}
 	return {};
 }

@@ -6,6 +6,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QStringBuilder>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
@@ -187,6 +188,15 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 		const auto request = makeUiTransferRequest(TransferKind::Copy, { root }, base % "/existingDir");
 		REQUIRE(!request.has_value());
 		CHECK(request.error() == RequestValidationError::RootSource);
+	}
+
+	SECTION("a destination inside a selected source is rejected before launch")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/source"));
+		const auto request = makeUiTransferRequest(TransferKind::Move, { base % "/source" }, base % "/source/child");
+		REQUIRE(!request.has_value());
+		CHECK(request.error() == RequestValidationError::DestinationInsideSource);
+		CHECK(!QFileInfo::exists(base % "/source/child"));
 	}
 }
 

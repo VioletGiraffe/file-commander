@@ -134,6 +134,10 @@ Important behavioral boundaries:
     At the current 64-bit layouts, two million `SourceNode` objects alone occupy roughly 168-183 MiB; path strings,
     child-vector spare capacity, and transient directory listings are additional, so this is a fail-safe ceiling,
     not a promised memory budget.
+11. Request validation rejects a proposed root destination that is lexically inside that source. This prevents
+    recursive copy and permanently failing same-tree move requests before scanning or filesystem mutation. The
+    comparison is component-aware and follows the platform spelling policy; aliases through directory links remain
+    outside this lexical rule.
 
 ### Accepted corner cases
 

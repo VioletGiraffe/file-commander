@@ -181,12 +181,13 @@ enum class RequestValidationError
 	NoSources, // Also the result of a selection reduced to nothing by the synthetic-parent filter
 	InvalidPath,
 	RootSource, // A filesystem root is never a valid source: it cannot be named at a destination nor deleted
-	ExactEntryRequiresSingleSource
+	ExactEntryRequiresSingleSource,
+	DestinationInsideSource // The derived root destination is a strict lexical descendant of that source
 };
 
 // The only entry points for raw UI/drag-and-drop path text. Parse every path (never trimmed - a trailing
-// space belongs to the name), filter the synthetic parent ([..]) entries once, and enforce the source-count
-// rules. The UI has already chosen the intent; no filesystem inspection happens here.
+// space belongs to the name), filter the synthetic parent ([..]) entries once, and enforce source-count and
+// non-recursive-destination rules. The UI has already chosen the intent; no filesystem inspection happens here.
 [[nodiscard]] std::expected<TransferRequest, RequestValidationError> makeTransferRequest(
 	TransferKind kind, const QStringList& rawSourcePaths, DestinationIntent intent, const QString& rawDestinationPath);
 [[nodiscard]] std::expected<PermanentDeleteRequest, RequestValidationError> makePermanentDeleteRequest(const QStringList& rawSourcePaths);

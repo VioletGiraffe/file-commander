@@ -20,6 +20,7 @@ public:
 	[[nodiscard]] CEntryPath child(const QString& name) const; // name: non-empty, no NUL/separators, not "." or ".."
 	[[nodiscard]] QString name() const; // Last component; for a root, its full spelling
 	[[nodiscard]] bool isRoot() const;
+	[[nodiscard]] bool isStrictDescendantOf(const CEntryPath& ancestor) const;
 
 	// Spelling comparison under the platform case policy; filesystem identity comparison is a separate operation.
 	[[nodiscard]] bool operator==(const CEntryPath& other) const noexcept;

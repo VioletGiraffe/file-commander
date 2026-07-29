@@ -193,6 +193,30 @@ TEST_CASE("request factory: source filtering and validation", "[requests]")
 		CHECK(request.error() == RequestValidationError::InvalidPath);
 	}
 
+	SECTION("an exact destination inside its source is rejected for copy and move")
+	{
+		for (const TransferKind kind : { TransferKind::Copy, TransferKind::Move })
+		{
+			const auto request = makeTransferRequest(kind, { abstractPath("src") }, DestinationIntent::ExactEntry, abstractPath("src/sub/copied"));
+			REQUIRE(!request.has_value());
+			CHECK(request.error() == RequestValidationError::DestinationInsideSource);
+		}
+	}
+
+	SECTION("an into-directory destination inside one selected source is rejected")
+	{
+		const auto request = makeTransferRequest(TransferKind::Copy, { abstractPath("outside"), abstractPath("src") },
+			DestinationIntent::IntoDirectory, abstractPath("src/sub"));
+		REQUIRE(!request.has_value());
+		CHECK(request.error() == RequestValidationError::DestinationInsideSource);
+	}
+
+	SECTION("same and component-prefix destinations are not descendants")
+	{
+		CHECK(makeTransferRequest(TransferKind::Copy, { abstractPath("src") }, DestinationIntent::ExactEntry, abstractPath("src")).has_value());
+		CHECK(makeTransferRequest(TransferKind::Move, { abstractPath("src") }, DestinationIntent::ExactEntry, abstractPath("src-other/copied")).has_value());
+	}
+
 	SECTION("delete request applies the same source rules")
 	{
 		CHECK(makePermanentDeleteRequest({}).error() == RequestValidationError::NoSources);
