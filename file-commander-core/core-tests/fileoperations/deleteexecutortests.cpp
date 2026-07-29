@@ -629,9 +629,13 @@ TEST_CASE("delete executor: parent preservation after skipped content", "[delete
 	const auto summary = runDelete(script, { base % "/root" });
 
 	CHECK(summary.status == CompletionStatus::Completed);
-	CHECK(summary.completedItems == 1); // Only removed.bin; the preserved directories are not counted anywhere
+	CHECK(summary.completedItems == 1); // Only removed.bin; retained ancestors have no summary disposition
 	CHECK(summary.skippedItems == 1);
 	CHECK(summary.failedItems == 0);
+	REQUIRE(!script.progress.empty());
+	REQUIRE(script.progress.back().itemsTotal.has_value());
+	CHECK(*script.progress.back().itemsTotal == 4);
+	CHECK(script.progress.back().itemsProcessed == 4);
 	CHECK(entryAbsent(base % "/root/removed.bin"));
 	CHECK(!entryAbsent(base % "/root/sub/kept.bin"));
 	CHECK(!entryAbsent(base % "/root/sub"));
@@ -661,6 +665,10 @@ TEST_CASE("delete executor: depth-3 partial propagation preserves every ancestor
 	CHECK(summary.completedItems == 1); // Only sibling.bin
 	CHECK(summary.skippedItems == 1);
 	CHECK(summary.failedItems == 0);
+	REQUIRE(!script.progress.empty());
+	REQUIRE(script.progress.back().itemsTotal.has_value());
+	CHECK(*script.progress.back().itemsTotal == 5);
+	CHECK(script.progress.back().itemsProcessed == 5);
 
 	// The skip makes leaf Partial, and Partial must climb the whole chain: every ancestor is retained.
 	CHECK(entryAbsent(base % "/root/mid/sibling.bin"));

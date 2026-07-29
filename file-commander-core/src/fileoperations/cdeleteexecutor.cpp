@@ -137,9 +137,17 @@ NodeOutcome CDeleteExecutor::deleteNode(const SourceNode& node)
 			break;
 	}
 
-	// Skipped/incomplete content remains below (or cancellation won): preserve this directory.
+	// Skipped/incomplete content remains below (or cancellation won): preserve this directory. A
+	// non-cancelled ancestor is resolved progress, but has no independent summary disposition.
 	if (aggregate != NodeOutcome::Completed)
+	{
+		if (aggregate != NodeOutcome::Cancelled)
+		{
+			_context.progress().advanceWithoutTransfer(0, 1);
+			_context.publishProgressSnapshot();
+		}
 		return aggregate;
+	}
 
 	return removeEntryWithPolicy(node.entry);
 }

@@ -528,6 +528,10 @@ TEST_CASE("move executor: links and borrowed content in the fallback", "[moveexe
 
 		CHECK(summary.status == CompletionStatus::Completed);
 		CHECK(summary.skippedItems == 1);
+		REQUIRE(!script.progress.empty());
+		REQUIRE(script.progress.back().itemsTotal.has_value());
+		CHECK(*script.progress.back().itemsTotal == 4);
+		CHECK(script.progress.back().itemsProcessed == 4);
 		CHECK(readFileContents(base % "/dest/src/moved.bin") == patternedContents(100));
 		CHECK(entryAbsent(base % "/src/moved.bin"));
 		CHECK(!entryAbsent(base % "/src/sub")); // The skipped link's ancestors are preserved
@@ -878,6 +882,10 @@ TEST_CASE("move executor: an already-satisfied child blocks owned-directory clea
 	CHECK(summary.skippedItems == 0);
 	CHECK(summary.failedItems == 0);
 	CHECK(summary.transferredBytes == 900);
+	REQUIRE(!script.progress.empty());
+	REQUIRE(script.progress.back().itemsTotal.has_value());
+	CHECK(*script.progress.back().itemsTotal == 3);
+	CHECK(script.progress.back().itemsProcessed == 3);
 
 	// The already-satisfied child keeps its source entry, which blocks the owned directory's cleanup.
 	CHECK(!entryAbsent(base % "/src"));

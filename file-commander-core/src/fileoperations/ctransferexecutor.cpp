@@ -580,7 +580,12 @@ NodeOutcome CTransferExecutor::moveDirectoryContents(const SourceNode& node, con
 
 	// An AlreadySatisfied child keeps its source entry in place, so it blocks cleanup exactly like a skip.
 	if (!allChildrenCompleted)
+	{
+		// The owned directory was resolved and deliberately retained, but was neither moved nor independently skipped.
+		_context.progress().advanceWithoutTransfer(0, 1);
+		_context.publishProgressSnapshot();
 		return aggregate == NodeOutcome::Completed ? NodeOutcome::Partial : aggregate;
+	}
 
 	// Committed cleanup of the emptied source directory (or the directory-link entry); timestamps are
 	// finalized above, and no cancellation checkpoint separates them from this removal.

@@ -178,6 +178,15 @@ each write, correct handling of unrelated signals, and a separate Windows mechan
 POSIX implementation signals instead of reporting the buffer fault is accepted. If this is reproduced on a supported
 platform, replace mapping with a reusable `pread()` buffer rather than adding signal recovery.
 
+Summary counters intentionally do not partition every node in a scanned manifest. When delete or owned move retains
+an ancestor directory because a descendant was skipped or otherwise remains at the source, that ancestor advances
+item progress so a non-cancelled traversal that resolves every manifest node reaches its exact total, but it enters
+no summary bucket. It was
+neither completed nor independently skipped or failed; counting it as skipped would make one user decision multiply
+with directory depth. `CompletionStatus::Completed` means the executor finished while honoring the user's decisions,
+not that every initially requested filesystem effect occurred. The originating `skippedItems` or other outcome counter
+describes the omission. Cancellation still leaves unvisited nodes unresolved and need not reach the progress total.
+
 Inline rename (`inlinerename.{h,cpp}`) is a separate synchronous command with its own replacement matrix, reusing
 the name, inspection, identity, and native rename primitives. Test-only deterministic errors/barriers are isolated
 in `operationtesthooks.{h,cpp}` and compile out without `FILE_OPERATIONS_TEST_HOOKS`.

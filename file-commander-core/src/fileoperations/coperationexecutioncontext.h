@@ -27,7 +27,8 @@ public:
 
 	void fileTransferAdvanced(uint64_t bytes) noexcept;
 	void itemCompleted() noexcept;
-	// Skipped or already-satisfied work: advances the processed totals without entering the speed basis.
+	// Skipped, already-satisfied, or structurally retained work: advances the processed totals without
+	// entering the speed basis.
 	void advanceWithoutTransfer(uint64_t bytes, size_t items) noexcept;
 
 	void waitStarted() noexcept;
