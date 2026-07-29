@@ -151,6 +151,15 @@ Important behavioral boundaries:
     recursive copy and permanently failing same-tree move requests before scanning or filesystem mutation. The
     comparison is component-aware and follows the platform spelling policy; aliases through directory links remain
     outside this lexical rule.
+12. Native error classification is intentionally conservative. The context-free classifier maps only codes whose
+    meaning is sufficiently stable across the supported platforms; unknown codes remain `IoFailure` and enter the
+    ordinary retry/skip/cancel policy. A primitive may refine a code locally only when its validated arguments, fresh
+    filesystem state, or reproduced platform behavior establish the narrower meaning. For example, rename owns its
+    destination-type collision refinements, while `EINVAL` means an unsupported optional mechanism only at call sites
+    where invalid arguments have already been excluded. Do not broaden the global mapping from documentation or
+    speculation about what another filesystem might return. A new platform-specific mapping requires an observed
+    failure, enough local context to make the interpretation safe, and focused regression coverage; an unobserved
+    alternative errno is not by itself a defect.
 
 ### Accepted corner cases
 
