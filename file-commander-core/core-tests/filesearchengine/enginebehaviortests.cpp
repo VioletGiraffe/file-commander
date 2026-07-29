@@ -1,5 +1,7 @@
 #include "searchenginetesthelpers.h"
 
+#include <semaphore>
+
 TEST_CASE("Search - a query with nowhere to look is refused", "[search][engine]")
 {
 	SearchRunner runner;
@@ -8,7 +10,7 @@ TEST_CASE("Search - a query with nowhere to look is refused", "[search][engine]"
 	CHECK_FALSE(runner.start({ .roots = {}, .nameFilters = { QSL("*.txt") } }));
 }
 
-TEST_CASE("Search - a content regex that does not compile ends the search instead of running it", "[search][engine]")
+TEST_CASE("Search - a content regex that does not compile is reported as such, not as a cancellation", "[search][engine]")
 {
 	TempTree tree;
 	tree.makeFile(QSL("f.txt"), "anything at all");
@@ -16,10 +18,30 @@ TEST_CASE("Search - a content regex that does not compile ends the search instea
 	const SearchResult result = runSearch({ .roots = { tree.path() },
 		.contents = QSL("["), .contentsCaseSensitive = true, .contentsIsRegex = true });
 
-	CHECK(result.status == CFileSearchEngine::SearchCancelled);
+	// A status of its own is what lets the dialog say why nothing was found, rather than "search aborted".
+	CHECK(result.status == CFileSearchEngine::SearchInvalidPattern);
 	CHECK(result.count() == 0);
 	CHECK(result.itemsScanned == 0);
 	CHECK(result.finishedNotifications == 1);
+}
+
+TEST_CASE("Search - a second search is refused while one is already running", "[search][engine]")
+{
+	TempTree tree;
+	tree.makeFile(QSL("a.txt"));
+
+	SearchRunner runner;
+	// Holding the search on the first item it reports is what makes the second attempt land while the first is
+	// definitely still running, rather than racing its completion.
+	std::binary_semaphore mayProceed{ 0 };
+	runner.setItemScannedHook([&mayProceed] { mayProceed.acquire(); });
+
+	REQUIRE(runner.start({ .roots = { tree.path() } }));
+	CHECK_FALSE(runner.start({ .roots = { tree.path() } })); // Refused outright: it must not stop the running one
+	CHECK(runner.searchInProgress());
+
+	mayProceed.release();
+	CHECK(runner.finish().status == CFileSearchEngine::SearchFinished);
 }
 
 TEST_CASE("Search - every traversed entry is counted, directories included", "[search][engine]")
@@ -33,6 +55,18 @@ TEST_CASE("Search - every traversed entry is counted, directories included", "[s
 	CHECK(result.itemsScanned == 4); // The root, its two entries (a.txt and sub), and sub's one entry
 	CHECK(result.status == CFileSearchEngine::SearchFinished);
 	CHECK(result.finishedNotifications == 1);
+}
+
+TEST_CASE("Search - nothing in a tree without links is flagged as reached through one", "[search][engine]")
+{
+	TempTree tree;
+	tree.makeFile(QSL("a.txt"));
+	tree.makeFile(QSL("sub/b.txt"));
+
+	const SearchResult result = runSearch({ .roots = { tree.path() } });
+
+	REQUIRE(result.count() > 0); // Otherwise the check below passes for the wrong reason
+	CHECK(result.linkReachedMatches == 0);
 }
 
 TEST_CASE("Search - cancelling stops the traversal and reports the search as cancelled", "[search][engine]")

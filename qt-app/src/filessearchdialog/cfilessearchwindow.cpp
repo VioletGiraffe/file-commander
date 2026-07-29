@@ -14,6 +14,7 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QClipboard>
 #include <QFileDialog>
+#include <QFont>
 #include <QLineEdit>
 #include <QMessageBox>
 RESTORE_COMPILER_WARNINGS
@@ -104,11 +105,11 @@ void CFilesSearchWindow::itemScanned(const QString& currentItem)
 	);
 }
 
-void CFilesSearchWindow::matchFound(const QString& path)
+void CFilesSearchWindow::matchFound(const QString& path, bool reachedThroughLink)
 {
 	QMetaObject::invokeMethod(this, [=, this] {
 			_matches.push_back(path);
-			addResultToUi(path);
+			addResultToUi(path, reachedThroughLink);
 		},
 		Qt::QueuedConnection
 	);
@@ -118,6 +119,14 @@ void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, 
 {
 	QMetaObject::invokeMethod(this, [=, this]{
 			ui->btnSearch->setText(tr("Start"));
+
+			if (status == CFileSearchEngine::SearchInvalidPattern)
+			{
+				// No traversal happened, so the scan statistics below would all read zero
+				ui->progressLabel->setText(tr("The contents pattern is not a valid regular expression"));
+				return;
+			}
+
 			QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
 			if (!_matches.empty())
 				message = message % ", " % tr("%1 items found").arg(_matches.size());
@@ -192,7 +201,7 @@ void CFilesSearchWindow::search()
 	}
 }
 
-void CFilesSearchWindow::addResultToUi(const QString& path)
+void CFilesSearchWindow::addResultToUi(const QString& path, bool reachedThroughLink)
 {
 	ui->resultsList->setUpdatesEnabled(false);
 
@@ -211,6 +220,18 @@ void CFilesSearchWindow::addResultToUi(const QString& path)
 	item->setText(name);
 	item->setIcon(CIconProvider::iconForFilesystemObject(object, true));
 	item->setData(Qt::UserRole, path);
+
+	if (reachedThroughLink)
+	{
+		// The same file can also be listed under its direct path; marking this one keeps the pair from reading as
+		// a duplicate the search shouldn't have produced.
+		item->setToolTip(tr("Found by following a directory link"));
+		// The item's own font is still the default one until it joins the list, so italicize the list's font instead
+		QFont font = ui->resultsList->font();
+		font.setItalic(true);
+		item->setFont(font);
+	}
+
 	ui->resultsList->addItem(item);
 
 	ui->resultsList->setUpdatesEnabled(true);
@@ -259,7 +280,7 @@ void CFilesSearchWindow::loadResults()
 	while (stream.readLineInto(&line))
 	{
 		_matches.push_back(line);
-		addResultToUi(line);
+		addResultToUi(line, false); // The saved file is a plain list of paths, with no record of how each was reached
 	}
 }
 

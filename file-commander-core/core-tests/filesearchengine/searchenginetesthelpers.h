@@ -110,6 +110,7 @@ struct SearchResult
 	CFileSearchEngine::SearchStatus status = CFileSearchEngine::SearchFinished;
 	uint64_t itemsScanned = 0;
 	size_t finishedNotifications = 0; // Exactly one per accepted search
+	size_t linkReachedMatches = 0; // Of the matches above, how many the engine flagged as found through a directory link
 
 	[[nodiscard]] bool matched(const QString& path) const
 	{
@@ -137,10 +138,12 @@ public:
 			_itemScannedHook();
 	}
 
-	void matchFound(const QString& path) override
+	void matchFound(const QString& path, bool reachedThroughLink) override
 	{
 		std::lock_guard lock{ _mutex };
 		_matches.push_back(path);
+		if (reachedThroughLink)
+			++_linkReachedMatches;
 	}
 
 	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t /*msElapsed*/) override
@@ -154,7 +157,7 @@ public:
 	[[nodiscard]] SearchResult collect() const
 	{
 		std::lock_guard lock{ _mutex };
-		return SearchResult{ _matches, _status, _itemsScanned, _finishedNotifications };
+		return SearchResult{ _matches, _status, _itemsScanned, _finishedNotifications, _linkReachedMatches };
 	}
 
 	void clear()
@@ -164,6 +167,7 @@ public:
 		_status = CFileSearchEngine::SearchFinished;
 		_itemsScanned = 0;
 		_finishedNotifications = 0;
+		_linkReachedMatches = 0;
 	}
 
 private:
@@ -172,6 +176,7 @@ private:
 	CFileSearchEngine::SearchStatus _status = CFileSearchEngine::SearchFinished;
 	uint64_t _itemsScanned = 0;
 	size_t _finishedNotifications = 0;
+	size_t _linkReachedMatches = 0;
 	std::function<void()> _itemScannedHook;
 };
 

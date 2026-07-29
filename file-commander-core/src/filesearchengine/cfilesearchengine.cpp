@@ -196,13 +196,7 @@ bool CFileSearchEngine::search(
 	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
 	FileSearchListener* listener)
 {
-	if (searchInProgress())
-	{
-		stopSearching();
-		return true;
-	}
-
-	if (where.empty())
+	if (searchInProgress() || where.empty())
 		return false;
 
 	// The previous search reported completion before its thread finished unwinding, and start() requires a joined thread
@@ -283,7 +277,7 @@ void CFileSearchEngine::searchThread(
 
 			if (!fileContentsRegExp.isValid())
 			{
-				notifySearchFinished(listener, SearchCancelled, 0, 0);
+				notifySearchFinished(listener, SearchInvalidPattern, 0, 0);
 				return;
 			}
 		}
@@ -298,7 +292,7 @@ void CFileSearchEngine::searchThread(
 	for (const QString& pathToLookIn : where)
 	{
 		scanDirectory(CFileSystemObject(pathToLookIn),
-			[&](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
+			[&](const CFileSystemObject& item, bool reachedThroughLink) {
 				if (cancellationRequested)
 					return;
 
@@ -346,18 +340,18 @@ void CFileSearchEngine::searchThread(
 					if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, cancellationRequested))
 						return;
 
-					contentSearchPool->enqueue([path{item.fullAbsolutePath()}, &contentSearchContext] {
+					contentSearchPool->enqueue([path{item.fullAbsolutePath()}, reachedThroughLink, &contentSearchContext] {
 						EXEC_ON_SCOPE_EXIT([&contentSearchContext] { contentSearchContext.availableTaskSlots->release(); });
 						if (*contentSearchContext.cancellationRequested)
 							return;
 
 						if (fileContentsMatches(path, *contentSearchContext.regex, *contentSearchContext.plainText, *contentSearchContext.cancellationRequested) &&
 							!*contentSearchContext.cancellationRequested)
-							contentSearchContext.listener->matchFound(path);
+							contentSearchContext.listener->matchFound(path, reachedThroughLink);
 					});
 				}
 				else
-					listener->matchFound(item.fullAbsolutePath());
+					listener->matchFound(item.fullAbsolutePath(), reachedThroughLink);
 
 			}, cancellationRequested);
 	}

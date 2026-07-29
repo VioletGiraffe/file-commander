@@ -51,5 +51,13 @@ Note the asymmetry with the name field: a contents query has no wildcards, in ei
 and "Whole words" apply to both. Whole-word matching is unreliable for a query whose first or last character is
 punctuation, since a word boundary there demands a word character on the outside of it.
 
-An invalid regex ends the search at once, and the dialog has no way to report why. A contents query also
-restricts results to files: directories are never reported for one.
+`^` and `$` in a contents regex do anchor to the start and end of the file, but they also match at regular
+intervals inside it, so an anchored query over-reports: every file it should find, plus some it should not.
+There is no way to anchor to a line.
+
+Contents are matched as UTF-8, so only text stored as UTF-8 or ASCII can be found. A query will not match the
+same text held in UTF-16 or in a legacy code page, and the search reports completion either way - there is no
+indication that a file's encoding put its contents out of reach. This is a known and accepted limitation.
+
+An invalid regex ends the search before any traversal and is reported as such, distinctly from a cancellation.
+A contents query also restricts results to files: directories are never reported for one.

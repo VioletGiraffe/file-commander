@@ -22,13 +22,13 @@ public:
 	~CFilesSearchWindow() override;
 
 	void itemScanned(const QString& currentItem) override;
-	void matchFound(const QString& path) override;
+	void matchFound(const QString& path, bool reachedThroughLink) override;
 	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed) override;
 
 private:
 	void search();
 
-	void addResultToUi(const QString& path);
+	void addResultToUi(const QString& path, bool reachedThroughLink);
 
 	void saveResults();
 	void loadResults();
