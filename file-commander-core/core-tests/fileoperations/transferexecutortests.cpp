@@ -421,6 +421,53 @@ TEST_CASE("copy executor: retries restart a fresh staging session", "[executor]"
 		CHECK(hooks.arrivalCount(Point::StagedCopy_CreateStaging_Native) == 2); // A genuinely new session
 	}
 
+	SECTION("retry after a later-chunk disk-full failure discards partial staging and progress")
+	{
+		constexpr uint64_t chunkSize = 256;
+
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::StagedCopy_WriteStaging_Native, diskFullCode, 1, 1);
+
+		bool observedCleanupBeforeDecision = false;
+		OperationScript script{ .decisions = { act(DecisionAction::Retry) } };
+		script.onDecisionRequest = [&](const DecisionRequest& request) {
+			CHECK(request.issue.kind == IssueKind::ActionFailed);
+			REQUIRE(request.issue.failure.has_value());
+			CHECK(request.issue.failure->action == FailedAction::WriteDestination);
+			CHECK(request.issue.failure->filesystemError.category == FileErrorCategory::NotEnoughSpace);
+			CHECK(entryAbsent(base % "/copied.bin"));
+			CHECK(stagingFileCount(base) == 0);
+			observedCleanupBeforeDecision = true;
+		};
+
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/copied.bin", chunkSize);
+
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.completedItems == 1);
+		CHECK(readFileContents(base % "/copied.bin") == contents);
+		CHECK(stagingFileCount(base) == 0);
+		CHECK(observedCleanupBeforeDecision);
+		CHECK(script.seenRequests.size() == 1);
+		CHECK(hooks.forcedErrorConsumed(Point::StagedCopy_WriteStaging_Native));
+		CHECK(hooks.arrivalCount(Point::StagedCopy_CreateStaging_Native) == 2);
+
+		uint64_t discardedAttemptBytes = 0;
+		bool sawRetryFromZero = false;
+		for (const ProgressSnapshot& snapshot : script.progress)
+		{
+			CHECK(snapshot.bytesProcessed <= static_cast<uint64_t>(contents.size()));
+			if (snapshot.phase != OperationPhase::Working || !snapshot.currentEntry.has_value())
+				continue;
+			if (!sawRetryFromZero && snapshot.currentEntryBytesProcessed > discardedAttemptBytes)
+				discardedAttemptBytes = snapshot.currentEntryBytesProcessed;
+			else if (discardedAttemptBytes > 0 && snapshot.currentEntryBytesProcessed == 0)
+				sawRetryFromZero = true;
+		}
+		CHECK(discardedAttemptBytes > 0);
+		CHECK(sawRetryFromZero);
+		CHECK(summary.transferredBytes == static_cast<uint64_t>(contents.size()) + discardedAttemptBytes);
+	}
+
 	SECTION("replacement authorization does not answer a later publication failure")
 	{
 		writeTestFile(base % "/taken.bin", QByteArray{ "OLD" });
