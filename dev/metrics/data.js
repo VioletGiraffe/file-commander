@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785363698517,
+  "lastUpdate": 1785367521676,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -11842,6 +11842,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 719,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 382,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c9ad27830ae70457bfe5116bdd3fb7ff3bba523b",
+          "message": "Search: invalid content regex reported;  search() only ever starts a search; Link-reached matches marked",
+          "timestamp": "2026-07-30T02:19:28+03:00",
+          "tree_id": "91b373e568c95888e89110968ddbac7da2fe23eb",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c9ad27830ae70457bfe5116bdd3fb7ff3bba523b"
+        },
+        "date": 1785367518734,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16993,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 10895,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1332.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 719.5,
             "unit": "KB"
           },
           {
