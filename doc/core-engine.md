@@ -185,6 +185,15 @@ can be replaced. Failing every fresh publication on those filesystems is not an 
 Hard-link-plus-unlink emulation is intentionally rejected: it is type- and filesystem-dependent, does not cover
 directories, and introduces additional partial/crash states for disproportionate complexity.
 
+Staged publication does not synchronize the destination directory after renaming the staging entry. File Commander
+therefore relies on the filesystem and kernel's normal namespace persistence: a successful publication, and in
+particular a copy-based move whose source is subsequently removed, is not a transaction guaranteed to survive sudden
+power loss. A directory synchronization barrier per published file would inhibit normal write batching, add latency
+and storage traffic, and still would not provide a simple equivalent guarantee on every supported platform. The
+existing pre-publication data flush is a narrower conservative policy used only when publication or cleanup destroys
+the other copy; it prevents File Commander from deliberately proceeding while the new contents remain buffered, but
+does not imply a broader crash-durability contract and may be reevaluated independently.
+
 Staged copy maps each source chunk and passes that mapping directly as the input buffer to the native destination
 write; File Commander never dereferences the mapping itself. Supported kernels are expected to turn a fault while
 copying that user buffer into a failed or partial write, which the operation already handles. Installing a process-wide
