@@ -199,6 +199,8 @@ neither completed nor independently skipped or failed; counting it as skipped wo
 with directory depth. `CompletionStatus::Completed` means the executor finished while honoring the user's decisions,
 not that every initially requested filesystem effect occurred. The originating `skippedItems` or other outcome counter
 describes the omission. Cancellation still leaves unvisited nodes unresolved and need not reach the progress total.
+Permanent delete consequently has no terminal `Failed` route: each removal problem resolves as Retry, Skip, or
+Cancel; Skip contributes to `skippedItems`, while Cancel stops the operation.
 
 Inline rename (`inlinerename.{h,cpp}`) is a separate synchronous command with its own replacement matrix, reusing
 the name, inspection, identity, and native rename primitives. Test-only deterministic errors/barriers are isolated

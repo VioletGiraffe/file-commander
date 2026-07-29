@@ -14,22 +14,14 @@ OperationSummary CDeleteExecutor::run(const PermanentDeleteRequest& request)
 {
 	_rootsWithUnresolvedTotals = request.sources.size();
 
-	bool anyCancelled = false;
-	bool anyFailed = false;
 	for (const CEntryPath& source : request.sources)
 	{
 		const NodeOutcome outcome = deleteRoot(source);
 		if (outcome == NodeOutcome::Cancelled)
-		{
-			anyCancelled = true;
-			break; // Cancellation stops further traversal; remaining roots stay untouched
-		}
-		anyFailed = anyFailed || outcome == NodeOutcome::Failed;
+			return _context.makeSummary(CompletionStatus::Cancelled); // Remaining roots stay untouched
+		assert_debug_only(outcome != NodeOutcome::Failed);
 	}
-
-	const CompletionStatus status = anyCancelled ? CompletionStatus::Cancelled
-		: anyFailed ? CompletionStatus::Failed : CompletionStatus::Completed;
-	return _context.makeSummary(status);
+	return _context.makeSummary(CompletionStatus::Completed);
 }
 
 std::variant<EntrySnapshot, NodeOutcome> CDeleteExecutor::inspectSourceRoot(const CEntryPath& source)

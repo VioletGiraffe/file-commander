@@ -442,7 +442,11 @@ TEST_CASE("delete executor: remediation and removal failures", "[deleteexecutor]
 		script.decisions = { act(DecisionAction::Skip) };
 		const auto summary = runDelete(script, { filePath });
 
+		CHECK(summary.status == CompletionStatus::Completed);
 		CHECK(summary.skippedItems == 1);
+		CHECK(summary.failedItems == 0);
+		CHECK(summary.representativeFailures.empty());
+		CHECK(!entryAbsent(filePath));
 		REQUIRE(script.seenRequests.size() == 1);
 		CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
 		REQUIRE(script.seenRequests[0].issue.failure.has_value());
