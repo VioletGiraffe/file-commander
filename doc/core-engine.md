@@ -81,6 +81,8 @@ CFileOperationJob                 worker, pause/cancel/decision handshake, event
 `fileoperationtypes.h` defines requests, issues/decisions, progress, and summaries. `centrypath.h` owns raw path
 parsing; `newnamecheck.h` owns validation of names proposed by users. The UI chooses `DestinationIntent` once when
 constructing the request; lower layers must not reinterpret it from source count, spelling, or destination state.
+`OperationEntryKind::Unknown` is reserved for failure diagnostics where inspection established no kind; it never
+enters traversal, collision resolution, or mutation.
 
 Important behavioral boundaries:
 

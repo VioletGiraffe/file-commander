@@ -591,6 +591,17 @@ TEST_CASE("prompt: wording", "[fileoperationprompt]")
 
 TEST_CASE("prompt: entry info rendering", "[fileoperationprompt]")
 {
+	SECTION("a failed inspection does not invent a source type")
+	{
+		CFileOperationPrompt prompt{ makeRequest(IssueKind::ActionFailed, snapshot("unknown", OperationEntryKind::Unknown),
+			{}, ioFailure(FailedAction::InspectSource)), PromptOperation::Copy };
+		const QString details = prompt.findChild<QLabel*>(QStringLiteral("lblSourceDetails"))->text();
+		CHECK(details.contains(QStringLiteral("entry")));
+		CHECK(details.contains(QStringLiteral("unknown")));
+		CHECK(!details.contains(QStringLiteral("file")));
+		CHECK(!details.contains(QStringLiteral("folder")));
+	}
+
 	SECTION("destination block absent when the issue has no destination")
 	{
 		CFileOperationPrompt prompt{ makeRequest(IssueKind::ActionFailed, snapshot("src.bin", OperationEntryKind::RegularFile),

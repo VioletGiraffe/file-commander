@@ -133,6 +133,22 @@ TEST_CASE("delete executor: absent and vanished entries", "[deleteexecutor]")
 		CHECK(script.seenRequests.empty());
 	}
 
+	SECTION("a failed root inspection reports an unknown entry kind")
+	{
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::InspectEntry_Native, accessDeniedCode);
+		script.decisions = { act(DecisionAction::Skip) };
+
+		const auto summary = runDelete(script, { base % "/uninspectable" });
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(summary.skippedItems == 1);
+		REQUIRE(script.seenRequests.size() == 1);
+		CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+		CHECK(script.seenRequests[0].issue.source.kind == OperationEntryKind::Unknown);
+		REQUIRE(script.seenRequests[0].issue.failure.has_value());
+		CHECK(script.seenRequests[0].issue.failure->action == FailedAction::InspectSource);
+	}
+
 	SECTION("a root vanishing between inspection and its scan is already satisfied")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/root"));

@@ -806,6 +806,7 @@ TEST_CASE("copy executor: a missing source root prompts and skips", "[executor]"
 
 	REQUIRE(script.seenRequests.size() == 1);
 	CHECK(script.seenRequests[0].issue.kind == IssueKind::ActionFailed);
+	CHECK(script.seenRequests[0].issue.source.kind == OperationEntryKind::Unknown);
 	REQUIRE(script.seenRequests[0].issue.failure.has_value());
 	CHECK(script.seenRequests[0].issue.failure->action == FailedAction::InspectSource);
 	CHECK(script.seenRequests[0].issue.failure->filesystemError.category == FileErrorCategory::NotFound);

@@ -63,7 +63,7 @@ std::variant<EntrySnapshot, NodeOutcome> CTransferExecutor::inspectSourceRoot(co
 			: mv(inspected.error());
 
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed,
-			EntrySnapshot{ source, OperationEntryKind::RegularFile, 0 }, {}, FailureDetails{ FailedAction::InspectSource, mv(error) } });
+			EntrySnapshot{ source, OperationEntryKind::Unknown, 0 }, {}, FailureDetails{ FailedAction::InspectSource, mv(error) } });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)

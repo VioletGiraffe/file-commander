@@ -74,7 +74,8 @@ enum class OperationEntryKind : uint8_t
 	Directory,
 	FileLink, // Link entry whose target is a regular file, is broken, or cannot be inspected
 	DirectoryLink,
-	Other // FIFO/socket/device etc., or a link to one - never streamed as a regular file
+	Other, // FIFO/socket/device etc., or a link to one - never streamed as a regular file
+	Unknown // Diagnostic snapshots only: inspection failed before the kind could be established
 };
 
 struct EntrySnapshot

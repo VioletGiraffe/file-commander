@@ -42,6 +42,7 @@ QString fileOperationEntryKindNoun(const OperationEntryKind kind)
 	case FileLink: return QObject::tr("link to a file");
 	case DirectoryLink: return QObject::tr("link to a folder");
 	case Other: return QObject::tr("special entry");
+	case Unknown: return QObject::tr("filesystem entry of unknown type");
 	}
 	return {};
 }
