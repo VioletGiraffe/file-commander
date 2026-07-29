@@ -45,10 +45,11 @@ using SourceTreeResult = std::variant<SourceNode, OperationDiagnostic, ScanCance
 
 // Builds the manifest for one root whose fresh snapshot the caller already holds. Publishes Scanning
 // progress through the context - the current root's discovered count with all totals absent - and honors
-// its cancellation checkpoints. Directory-link cycles normally terminate via filesystem identities held for the
-// active recursion branch only; when identities are unavailable, the fixed traversal limits provide the fallback.
-// No identity is stored in the result. Trees deeper than 300 levels or requiring more than 2,000,000 visited nodes
-// fail before a manifest is returned.
+// its cancellation checkpoints. Directory-link cycles normally terminate via entry-plus-mounted-view identities
+// held for the active recursion branch only. This lets a Linux bind-mounted view of the same directory be traversed
+// once when its descendant mount topology may differ; returning to the same view terminates the cycle. When stable
+// entry identity is unavailable, the fixed traversal limits provide the fallback. No identity is stored in the
+// result. Trees deeper than 300 levels or requiring more than 2,000,000 visited nodes fail before a manifest is returned.
 [[nodiscard]] SourceTreeResult buildSourceTree(COperationExecutionContext& context, EntrySnapshot root, SourceTreeBuildMode mode);
 
 #ifdef FILE_OPERATIONS_TEST_HOOKS

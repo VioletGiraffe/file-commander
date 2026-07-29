@@ -46,6 +46,16 @@ CFileSystemError unsupportedEntryError(const char* what)
 	return { FileErrorCategory::Unsupported, 0, QLatin1String(what) };
 }
 
+std::expected<thin_io::entry_metadata, CFileSystemError> readIdentityMetadata(
+	const CEntryPath& path, const thin_io::link_behavior linkBehavior)
+{
+	const auto native = thinIoPath(path);
+	auto metadata = thin_io::get_entry_metadata(nativeCStr(native), linkBehavior);
+	if (!metadata)
+		return std::unexpected(makeFileSystemError(metadata.error().native_code));
+	return std::move(*metadata);
+}
+
 #ifdef _WIN32
 
 // A path prepared for one of this module's own Win32 calls exactly as thin_io prepares the ones it makes itself,
@@ -332,10 +342,9 @@ std::expected<std::optional<EntrySnapshot>, CFileSystemError> inspectEntry(const
 
 std::expected<std::optional<thin_io::entry_identity>, CFileSystemError> readEntryIdentity(const CEntryPath& path, const thin_io::link_behavior linkBehavior)
 {
-	const auto native = thinIoPath(path);
-	const auto metadata = thin_io::get_entry_metadata(nativeCStr(native), linkBehavior);
+	auto metadata = readIdentityMetadata(path, linkBehavior);
 	if (!metadata)
-		return std::unexpected(makeFileSystemError(metadata.error().native_code));
+		return std::unexpected(std::move(metadata.error()));
 
 	return metadata->identity;
 }
@@ -362,6 +371,24 @@ std::expected<SameEntryVerdict, CFileSystemError> checkSameEntry(const CEntryPat
 		return SameEntryVerdict::Unknown;
 
 	return **identityA == **identityB ? SameEntryVerdict::Same : SameEntryVerdict::Different;
+}
+
+std::expected<std::optional<DirectoryTraversalIdentity>, CFileSystemError> readDirectoryTraversalIdentity(
+	const CEntryPath& path, const thin_io::link_behavior linkBehavior)
+{
+	auto metadata = readIdentityMetadata(path, linkBehavior);
+	if (!metadata)
+		return std::unexpected(std::move(metadata.error()));
+	if (!metadata->identity)
+		return std::optional<DirectoryTraversalIdentity>{};
+
+	// thin_io reports a distinct mount ID where the OS exposes one (notably STATX_MNT_ID on Linux). Falling back
+	// to the object's filesystem preserves the former object-only cycle detection on older kernels, other POSIX
+	// systems, and Windows, without making mount-view identity a prerequisite for safe bounded traversal.
+	return DirectoryTraversalIdentity{
+		.entry = *metadata->identity,
+		.mount = metadata->mount_id.value_or(metadata->identity->filesystem)
+	};
 }
 
 std::expected<bool, CFileSystemError> isEntryWritableNoFollow(const EntrySnapshot& entry)

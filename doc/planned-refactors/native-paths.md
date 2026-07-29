@@ -127,8 +127,10 @@ node means that child vanished and the parent scan continues. The selected root 
 operation-level handling. The builder uses explicit `Node`, `ChildVanished`, and `BuildStopped` internal results;
 cancellation, failure, and benign disappearance do not share an empty optional.
 
-Each recursive frame restores `activeBranchIdentities` to its incoming depth on scope exit. Recovery from a
-vanished child therefore cannot leave stale cycle-detection state in the continuing parent scan.
+Each recursive frame restores `activeBranchTraversalIdentities` to its incoming depth on scope exit. These keys
+combine the underlying entry with its mounted view so bind-mounted namespace views remain distinct during cycle
+detection. Recovery from a vanished child therefore cannot leave stale cycle-detection state in the continuing
+parent scan.
 
 ### 3. Native paths inside the operation engine
 

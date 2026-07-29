@@ -32,7 +32,12 @@ struct BuildState
 	const SourceTreeBuildMode mode;
 	const SourceTreeBuildLimits limits;
 	size_t discoveredCount = 0;
-	std::vector<thin_io::entry_identity> activeBranchIdentities; // Directories on the current recursion path (materializing mode only)
+	// Materializing copy/copy-based-move scans are the only mode that follows directory links and populates this
+	// cycle history. Only the current DFS branch matters. Pairing entry and mount identities lets a link reach the
+	// same underlying Linux inode through another bind-mounted view, whose descendant mounts may differ, exactly once;
+	// reaching the same entry through the same view is a genuine cycle. Keeping these keys off SourceNode also avoids
+	// any per-manifest-node storage cost.
+	std::vector<DirectoryTraversalIdentity> activeBranchTraversalIdentities;
 
 	// Why buildNode() returned BuildStopped; exactly one is set on termination.
 	std::optional<OperationDiagnostic> failure;
@@ -161,13 +166,13 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 		return BuildStopped{};
 	}
 
-	const size_t activeIdentityCountOnEntry = state.activeBranchIdentities.size();
-	// A frame owns every branch identity added beneath it. Restore the incoming depth on every exit,
+	const size_t activeIdentityCountOnEntry = state.activeBranchTraversalIdentities.size();
+	// A frame owns every branch traversal identity added beneath it. Restore the incoming depth on every exit,
 	// including cancellation, failure, and a recoverable child disappearance.
 	EXEC_ON_SCOPE_EXIT([&state, activeIdentityCountOnEntry] {
-		assert_debug_only(state.activeBranchIdentities.size() >= activeIdentityCountOnEntry);
-		while (state.activeBranchIdentities.size() > activeIdentityCountOnEntry)
-			state.activeBranchIdentities.pop_back();
+		assert_debug_only(state.activeBranchTraversalIdentities.size() >= activeIdentityCountOnEntry);
+		while (state.activeBranchTraversalIdentities.size() > activeIdentityCountOnEntry)
+			state.activeBranchTraversalIdentities.pop_back();
 	});
 
 	++state.discoveredCount;
@@ -181,49 +186,54 @@ BuildNodeResult buildNode(BuildState& state, EntrySnapshot entry, const SourceOw
 		descend = true;
 		if (state.mode == SourceTreeBuildMode::MaterializingTransfer)
 		{
-			// The active-branch identity is what makes this directory recognizable as a deeper link's cycle target.
-			const auto identity = readEntryIdentity(node.entry.path, thin_io::link_behavior::follow);
-			if (!identity)
+			// Register every real directory on the active branch before scanning its children. A deeper directory
+			// link can then recognize a return to this exact mounted view and stop before listing it again.
+			const auto traversalIdentity = readDirectoryTraversalIdentity(node.entry.path, thin_io::link_behavior::follow);
+			if (!traversalIdentity)
 			{
 				// A vanished directory is reported by the listing below; anything else aborts the build.
-				if (identity.error().category != FileErrorCategory::NotFound)
+				if (traversalIdentity.error().category != FileErrorCategory::NotFound)
 				{
-					failBuild(state, node.entry, identity.error());
+					failBuild(state, node.entry, traversalIdentity.error());
 					return BuildStopped{};
 				}
 			}
-			else if (*identity)
-				state.activeBranchIdentities.push_back(**identity);
-			// Without an identity this directory cannot participate in early cycle detection; the fixed
-			// traversal limits remain the fallback.
+			else if (*traversalIdentity)
+				state.activeBranchTraversalIdentities.push_back(**traversalIdentity);
+			// Without stable object identity this directory cannot participate in early cycle detection. The fixed
+			// traversal limits still bound the scan; absence of the finer mount component alone uses object identity.
 		}
 	}
 	else if (node.entry.kind == OperationEntryKind::DirectoryLink && state.mode == SourceTreeBuildMode::MaterializingTransfer)
 	{
-		auto targetIdentity = readEntryIdentity(node.entry.path, thin_io::link_behavior::follow);
+		auto targetTraversalIdentity = readDirectoryTraversalIdentity(node.entry.path, thin_io::link_behavior::follow);
 #ifdef FILE_OPERATIONS_TEST_HOOKS
-		if (targetIdentity && state.limits.directoryLinkIdentityMode == DirectoryLinkIdentityModeForTesting::Unavailable)
-			targetIdentity = std::optional<thin_io::entry_identity>{};
+		if (targetTraversalIdentity && state.limits.directoryLinkIdentityMode == DirectoryLinkIdentityModeForTesting::Unavailable)
+			targetTraversalIdentity = std::optional<DirectoryTraversalIdentity>{};
 #endif
-		if (!targetIdentity)
+		if (!targetTraversalIdentity)
 		{
 			// A broken link stays a leaf entry. Any other failure aborts the build: silently materializing
 			// nothing from an unreadable target would make the copy falsely look complete.
-			if (targetIdentity.error().category != FileErrorCategory::NotFound)
+			if (targetTraversalIdentity.error().category != FileErrorCategory::NotFound)
 			{
-				failBuild(state, node.entry, targetIdentity.error());
+				failBuild(state, node.entry, targetTraversalIdentity.error());
 				return BuildStopped{};
 			}
 		}
-		else if (*targetIdentity)
+		else if (*targetTraversalIdentity)
 		{
-			if (std::find(state.activeBranchIdentities.begin(), state.activeBranchIdentities.end(), **targetIdentity) == state.activeBranchIdentities.end())
+			// The same object reached through another mounted view is intentionally not a match: on Linux a bind
+			// mount can expose different descendant mounts, so that namespace view has content still worth scanning.
+			// Once that view itself appears again on the active branch, the complete key matches and terminates it.
+			if (std::find(state.activeBranchTraversalIdentities.begin(), state.activeBranchTraversalIdentities.end(), **targetTraversalIdentity)
+				== state.activeBranchTraversalIdentities.end())
 			{
 				descend = true;
-				state.activeBranchIdentities.push_back(**targetIdentity);
+				state.activeBranchTraversalIdentities.push_back(**targetTraversalIdentity);
 			}
-			// A target already on the recursion path stays a leaf: traversing it again could only
-			// duplicate content or recurse forever.
+			// A target already on the recursion path through the same mounted view stays a leaf: traversing it
+			// again could only duplicate that view's content or recurse forever.
 		}
 		else
 		{
@@ -307,7 +317,7 @@ SourceTreeResult buildSourceTreeWithLimits(COperationExecutionContext& context, 
 {
 	BuildState state{ .context = context, .mode = mode, .limits = limits };
 	auto result = buildNode(state, mv(root), SourceOwnership::Owned, NodePosition::Root, 1);
-	assert_debug_only(state.activeBranchIdentities.empty());
+	assert_debug_only(state.activeBranchTraversalIdentities.empty());
 	if (auto* tree = std::get_if<SourceNode>(&result))
 		return mv(*tree);
 

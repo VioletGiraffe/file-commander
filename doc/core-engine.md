@@ -110,11 +110,14 @@ Important behavioral boundaries:
    and staging cleanup both fail, operation policy follows the preparation failure and cleanup is reported separately
    as a warning.
 4. Delete and same-filesystem move operate on link entries. Copy and copy-based move materialize link targets;
-   directory-link cycles normally terminate by native filesystem identity. When a filesystem exposes no stable
+   directory-link cycles normally terminate by an active-branch traversal identity combining the underlying entry
+   with its mounted view. This distinction lets Linux traverse the same inode once through each bind-mounted view,
+   whose descendant mount topology may differ, while a return to the same view terminates the cycle. Platforms
+   without a distinct mount-view identity retain object-only detection. When a filesystem exposes no stable entry
    identity, materialization still traverses the link and the fixed depth/node limits terminate any cycle before
    execution. Content reached through a directory link is borrowed and is never removed by move cleanup. Transfer
-   same-entry checks do not follow links: a link and its target are distinct entries, while hard-link aliases remain
-   the same entry.
+   same-entry checks remain object-based and do not follow links: a link and its target are distinct entries, while
+   hard-link aliases remain the same entry.
 5. Writability remediation applies only to confirmed, non-link regular files. Generic access denied is
    `PermissionDenied`, not `ReadOnly`. On POSIX, a file's own write permission does not govern `unlink()` or
    `rename()`; the preflight is nevertheless an intentional confirmation policy for write-protected source

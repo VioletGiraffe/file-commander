@@ -21,13 +21,34 @@
 // FileLink entry; a link to a non-regular non-directory target is Other.
 [[nodiscard]] std::expected<std::optional<EntrySnapshot>, CFileSystemError> inspectEntry(const CEntryPath& path);
 
-// Fresh filesystem identity for same-object decisions and link-cycle detection.
+// Fresh filesystem identity for same-object decisions. This deliberately identifies the underlying entry,
+// independent of the mounted namespace view through which it was reached.
 // nullopt = this filesystem does not expose a stable identity.
 [[nodiscard]] std::expected<std::optional<thin_io::entry_identity>, CFileSystemError> readEntryIdentity(const CEntryPath& path, thin_io::link_behavior linkBehavior);
 
 // Same-object check over fresh identities; Unknown when either side's identity is unavailable.
 // An entry absent on either side is Different.
 [[nodiscard]] std::expected<SameEntryVerdict, CFileSystemError> checkSameEntry(const CEntryPath& a, const CEntryPath& b, thin_io::link_behavior linkBehavior);
+
+// Key used only while detecting directory-link cycles in a materializing copy or copy-based-move manifest. Permanent
+// delete never follows links, and a successful wholesale rename never builds this traversal state. Object identity
+// alone is insufficient here: on Linux, two bind mounts can expose the same device/inode through different mounted
+// views, whose descendant mount topology may differ. The mount component lets the scanner traverse each such view
+// once, while still recognizing a return to the same directory through the same view as a cycle. Windows and POSIX
+// fallbacks use the containing volume/filesystem as the mount component when no finer view identity is available.
+// Do not use this type for same-entry decisions; aliases of one object are still the same entry there.
+struct DirectoryTraversalIdentity
+{
+	thin_io::entry_identity entry;
+	thin_io::mount_identity mount;
+
+	[[nodiscard]] bool operator==(const DirectoryTraversalIdentity&) const noexcept = default;
+};
+
+// Fresh traversal identity for a directory or followed directory link. nullopt means that the filesystem does not
+// expose stable entry identity, in which case traversal remains bounded by the manifest depth and node-count limits.
+[[nodiscard]] std::expected<std::optional<DirectoryTraversalIdentity>, CFileSystemError> readDirectoryTraversalIdentity(
+	const CEntryPath& path, thin_io::link_behavior linkBehavior);
 
 // Fresh preflight/reactive writability of a non-link regular file. POSIX evaluates traditional permission
 // classes against the effective UID, effective GID, and supplementary groups; Windows evaluates the read-only
