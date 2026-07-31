@@ -48,7 +48,10 @@ protected:
 
 private:
 	// The view is an affine map from source pixels to viewport device pixels: devicePos = _offset + sourcePos * _scale.
-	[[nodiscard]] qreal fitScale(const QSize& viewportLogicalSize) const noexcept; // scale that fits the whole image
+	[[nodiscard]] QSizeF viewportDeviceSize() const noexcept;
+	[[nodiscard]] QSizeF scaledImageSize() const noexcept;                         // on-screen size of the whole image, device px
+	[[nodiscard]] QRect visibleSourceRect() const noexcept;                        // source pixels the viewport shows, outset to whole pixels
+	[[nodiscard]] qreal fitScale(const QSizeF& viewportDevicePx) const noexcept;   // scale that fits the whole image
 	[[nodiscard]] qreal minScale() const noexcept;                                 // most zoomed-out scale allowed
 	[[nodiscard]] QPointF centeredOffset() const noexcept;                         // offset that centers the image at _scale
 	[[nodiscard]] bool isPannable() const noexcept;                                // image larger than the viewport on some axis
