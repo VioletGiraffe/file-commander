@@ -228,15 +228,16 @@ QRect CImageViewerWidget::visibleSourceRect() const noexcept
 	return QRect{ x0, y0, x1 - x0, y1 - y0 };
 }
 
-qreal CImageViewerWidget::fitScale(const QSizeF& viewportDevicePx) const noexcept
+qreal CImageViewerWidget::fitScale() const noexcept
 {
-	return std::min(viewportDevicePx.width() / _sourceImage.width(), viewportDevicePx.height() / _sourceImage.height());
+	const QSizeF viewport = viewportDeviceSize();
+	return std::min(viewport.width() / _sourceImage.width(), viewport.height() / _sourceImage.height());
 }
 
 qreal CImageViewerWidget::minScale() const noexcept
 {
 	// Zoom out until the whole image fits, but never below 1:1 so a small image can still be shown at native size.
-	return std::min(fitScale(viewportDeviceSize()), 1.0);
+	return std::min(fitScale(), 1.0);
 }
 
 QPointF CImageViewerWidget::centeredOffset() const noexcept
@@ -247,6 +248,7 @@ QPointF CImageViewerWidget::centeredOffset() const noexcept
 bool CImageViewerWidget::isPannable() const noexcept
 {
 	const QSizeF image = scaledImageSize(), viewport = viewportDeviceSize();
+	// paintEvent snaps the blit to whole device pixels, so an overflow of half a pixel or less cannot move anything.
 	return image.width() > viewport.width() + 0.5 || image.height() > viewport.height() + 0.5;
 }
 
@@ -257,9 +259,16 @@ void CImageViewerWidget::clampOffset() noexcept
 	_offset.setY(clampAxis(_offset.y(), image.height(), viewport.height()));
 }
 
+void CImageViewerWidget::setScale(qreal scale) noexcept
+{
+	_scale = scale;
+	// Exact comparison: a scale that fits always comes from this same expression, either directly or through the minScale() clamp.
+	_fitToWindow = _scale == fitScale();
+}
+
 void CImageViewerWidget::resetToFit() noexcept
 {
-	_scale = fitScale(viewportDeviceSize());
+	setScale(fitScale());
 	_offset = centeredOffset();
 	_viewInitialized = true;
 }
@@ -278,7 +287,7 @@ void CImageViewerWidget::zoomToActualPixels() noexcept
 	if (_sourceImage.isNull() || size().isEmpty())
 		return;
 
-	_scale = 1.0; // 1:1 == one source pixel per one device pixel; always within [minScale(), kMaxScale].
+	setScale(1.0); // 1:1 == one source pixel per one device pixel; always within [minScale(), kMaxScale].
 	_offset = centeredOffset();
 	_viewInitialized = true;
 	update();
@@ -350,30 +359,29 @@ void CImageViewerWidget::resizeEvent(QResizeEvent* e)
 	if (_sourceImage.isNull() || !_viewInitialized || !e->oldSize().isValid() || size().isEmpty())
 		return;
 
-	const QSizeF oldViewport = QSizeF{ e->oldSize() } * devicePixelRatioF();
-
 	// A view that showed the whole image keeps fitting it; a zoomed-in view keeps its scale and the source point at the viewport center.
-	if (_scale <= fitScale(oldViewport) * (1.0 + 1e-3))
+	if (_fitToWindow)
 	{
 		resetToFit();
 		return;
 	}
 
+	const QSizeF oldViewport = QSizeF{ e->oldSize() } * devicePixelRatioF();
 	const QPointF centerSource = (centerOf(oldViewport) - _offset) / _scale;
 
-	_scale = std::clamp(_scale, minScale(), kMaxScale);
+	setScale(std::clamp(_scale, minScale(), kMaxScale));
 	_offset = centerOf(viewportDeviceSize()) - centerSource * _scale;
 	clampOffset();
 }
 
 void CImageViewerWidget::wheelEvent(QWheelEvent* e)
 {
-	if (_sourceImage.isNull() || !_viewInitialized || size().isEmpty() || !e->modifiers().testFlag(Qt::ControlModifier))
-		return;
-
 	const int delta = e->angleDelta().y();
-	if (delta == 0)
+	if (_sourceImage.isNull() || !_viewInitialized || size().isEmpty() || delta == 0 || !e->modifiers().testFlag(Qt::ControlModifier))
+	{
+		QWidget::wheelEvent(e);
 		return;
+	}
 
 	const QPointF cursorDevice = e->position() * devicePixelRatioF();
 	const qreal newScale = std::clamp(_scale * std::pow(1.0015, (qreal)delta), minScale(), kMaxScale);
@@ -382,7 +390,7 @@ void CImageViewerWidget::wheelEvent(QWheelEvent* e)
 	{
 		// Keep the source pixel under the cursor pinned in place as the scale changes.
 		_offset = cursorDevice - (cursorDevice - _offset) * (newScale / _scale);
-		_scale = newScale;
+		setScale(newScale);
 		clampOffset();
 		update();
 	}

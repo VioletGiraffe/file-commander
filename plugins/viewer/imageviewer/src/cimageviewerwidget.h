@@ -51,11 +51,12 @@ private:
 	[[nodiscard]] QSizeF viewportDeviceSize() const noexcept;
 	[[nodiscard]] QSizeF scaledImageSize() const noexcept;                         // on-screen size of the whole image, device px
 	[[nodiscard]] QRect visibleSourceRect() const noexcept;                        // source pixels the viewport shows, outset to whole pixels
-	[[nodiscard]] qreal fitScale(const QSizeF& viewportDevicePx) const noexcept;   // scale that fits the whole image
+	[[nodiscard]] qreal fitScale() const noexcept;                                 // scale that fits the whole image
 	[[nodiscard]] qreal minScale() const noexcept;                                 // most zoomed-out scale allowed
 	[[nodiscard]] QPointF centeredOffset() const noexcept;                         // offset that centers the image at _scale
 	[[nodiscard]] bool isPannable() const noexcept;                                // image larger than the viewport on some axis
 	void clampOffset() noexcept;                                                   // per-axis: center if smaller, keep inside if larger
+	void setScale(qreal scale) noexcept;                                           // the only writer of _scale and _fitToWindow
 	void resetToFit() noexcept;
 
 private:
@@ -69,6 +70,7 @@ private:
 	qreal _scale = 1.0;    // device px per source px; 1.0 == 1:1 (native resolution)
 	QPointF _offset;       // device-px position of source (0,0) within the viewport
 	bool _viewInitialized = false;
+	bool _fitToWindow = true; // _scale still fits the whole image, so a resize refits rather than preserving the zoom
 
 	QPointF _panStartOffset;
 	QPointF _panStartMouseDevice;
