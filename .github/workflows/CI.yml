@@ -155,9 +155,10 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         export QT_DEBUG_PLUGINS=1
-        sudo apt update -y; sudo apt install -qq gcc-12 g++-12 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libfuse2
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 50
+        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test  # jammy ships nothing newer than gcc-12
+        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libfuse2
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version
         export PATH=$QT_ROOT_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
@@ -342,9 +343,10 @@ jobs:
     - name: Linux - install build & deploy dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt update -y; sudo apt install -qq gcc-12 g++-12 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libfuse2
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 50
+        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test  # jammy ships nothing newer than gcc-12
+        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libfuse2
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
         chmod a+x linuxdeployqt-7-x86_64.AppImage
