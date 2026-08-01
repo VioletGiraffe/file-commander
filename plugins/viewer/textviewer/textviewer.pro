@@ -42,7 +42,8 @@ LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -lqtutils -ltext_encoding_dete
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 
 win*{
-	QMAKE_CXXFLAGS += /MP /Zi /wd4251 /JMC
+	QMAKE_CXXFLAGS += /MP /Zi /wd4251
+	Debug:QMAKE_CXXFLAGS += /JMC
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
