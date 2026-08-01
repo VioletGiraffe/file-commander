@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785611234106,
+  "lastUpdate": 1785615535944,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -12236,6 +12236,75 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/c1af3f584624af94ee8436c5f048c0958833869e"
         },
         "date": 1785611231496,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16994,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11291,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1274,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 699,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 383,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c5e4b824ad5ad1cc35bdc4351606044548c9ed7f",
+          "message": "CI fix: bounded make -j with count",
+          "timestamp": "2026-08-01T23:13:49+03:00",
+          "tree_id": "c940a4942a3604b4185b284b900fc713b59fe5d8",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c5e4b824ad5ad1cc35bdc4351606044548c9ed7f"
+        },
+        "date": 1785615533060,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
