@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785585034650,
+  "lastUpdate": 1785609164460,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -12064,6 +12064,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 40.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "8d6caaa1e3f3fdc9a5abec0f25b692ed0965c5f7",
+          "message": "No /JMC in release",
+          "timestamp": "2026-08-01T21:26:45+03:00",
+          "tree_id": "7f7a8b0a60bee40dea0cf57f4d81a1ac966e5e8e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/8d6caaa1e3f3fdc9a5abec0f25b692ed0965c5f7"
+        },
+        "date": 1785609161825,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16994,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11291,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1274,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 699,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 383,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34,
             "unit": "KB"
           },
           {
