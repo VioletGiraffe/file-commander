@@ -3,7 +3,7 @@
 
 #include "qtcore_helpers/qstring_helpers.hpp"
 
-#include "system/ctimeelapsed.h"
+#include "timing/ctimeelapsed.h"
 #include "compiler/compiler_warnings_control.h"
 
 #define CATCH_CONFIG_RUNNER
