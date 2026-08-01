@@ -133,10 +133,13 @@ bool CImageViewerWidget::displayImage(const QString& imagePath)
 		return false;
 	}
 
-	if (img.format() == QImage::Format_Indexed8 || img.format() == QImage::Format_Grayscale16 || img.format() == QImage::Format_RGBA64 || img.format() == QImage::Format_RGBX64)
+	if (const auto format = img.format(); format == QImage::Format_Indexed8 || format == QImage::Format_Grayscale16 || format == QImage::Format_RGBA64 || format == QImage::Format_RGBX64)
 	{
 		img.convertTo(img.hasAlphaChannel() ? QImage::Format_ARGB32 : QImage::Format_RGB32);
+		qInfo() << "Converted image format from" << format << "to" << img.format();
 	}
+
+	qInfo().nospace() << "Loaded image " << imagePath << " as file format " << _currentImageFormat << ", image format " << img.format() << ", " << img.width() << 'x' << img.height();
 
 	_currentImageFileSize = reader.device()->size();
 	return displayImage(img);
