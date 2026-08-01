@@ -30,6 +30,7 @@ RESTORE_COMPILER_WARNINGS
 #include <ShlObj.h>
 #include <windowsx.h>
 #include <shellapi.h>
+#include <wrl/client.h>
 #endif
 
 static std::pair<QString /* exe path */, QString /* args */> parseCommandAndArguments(const QString& cmdLine)
@@ -169,20 +170,14 @@ bool OsShell::runExecutable(const QString & command, const QString & parameters,
 #endif
 
 #ifdef _WIN32
+using Microsoft::WRL::ComPtr;
+
 class CItemIdListReleaser {
 public:
 	explicit CItemIdListReleaser(ITEMIDLIST * idList) : _idList(idList) {}
 	~CItemIdListReleaser() { if (_idList) CoTaskMemFree(_idList); }
 private:
 	ITEMIDLIST * _idList;
-};
-
-class CComInterfaceReleaser {
-public:
-	explicit CComInterfaceReleaser(IUnknown * i) : _i(i) {}
-	~CComInterfaceReleaser() { if (_i) _i->Release(); }
-private:
-	IUnknown * _i;
 };
 
 class CItemIdArrayReleaser {
@@ -198,7 +193,7 @@ private:
 	const std::vector<ITEMIDLIST*>& _array;
 };
 
-static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, IContextMenu*& imenu);
+static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, ComPtr<IContextMenu>& imenu);
 
 // Pos must be global
 
@@ -206,12 +201,10 @@ bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& ob
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	IContextMenu * imenu = nullptr;
+	ComPtr<IContextMenu> imenu;
 	HMENU hMenu = nullptr;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
-
-	CComInterfaceReleaser menuReleaser(imenu);
 
 	const int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, reinterpret_cast<HWND>(parentWindow), nullptr);
 	if (iCmd > 0)
@@ -234,12 +227,10 @@ bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, v
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	IContextMenu * imenu = nullptr;
+	ComPtr<IContextMenu> imenu;
 	HMENU hMenu = nullptr;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
-
-	CComInterfaceReleaser menuReleaser(imenu);
 
 	CMINVOKECOMMANDINFO info;
 	::memset(&info, 0, sizeof(info));
@@ -258,12 +249,10 @@ bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, vo
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	IContextMenu * imenu = nullptr;
+	ComPtr<IContextMenu> imenu;
 	HMENU hMenu = nullptr;
 	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
-
-	CComInterfaceReleaser menuReleaser(imenu);
 
 	CMINVOKECOMMANDINFO info;
 	::memset(&info, 0, sizeof(info));
@@ -282,12 +271,10 @@ bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * 
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
-	IContextMenu * imenu = nullptr;
+	ComPtr<IContextMenu> imenu;
 	HMENU hMenu = nullptr;
 	if (!prepareContextMenuForObjects(std::vector<std::wstring>{std::move(destFolder)}, parentWindow, hMenu, imenu) || !hMenu || !imenu)
 		return false;
-
-	CComInterfaceReleaser menuReleaser(imenu);
 
 	CMINVOKECOMMANDINFO info;
 	::memset(&info, 0, sizeof(info));
@@ -315,16 +302,15 @@ std::wstring OsShell::toolTip(std::wstring itemPath)
 	CItemIdListReleaser idReleaser (id);
 
 	LPCITEMIDLIST child = nullptr;
-	IShellFolder * ifolder = nullptr;
-	result = SHBindToParent(id, IID_IShellFolder, reinterpret_cast<void**>(&ifolder), &child);
+	ComPtr<IShellFolder> ifolder;
+	result = SHBindToParent(id, IID_IShellFolder, reinterpret_cast<void**>(ifolder.GetAddressOf()), &child);
 	if (!SUCCEEDED(result) || !child)
 		return tipString;
 
-	IQueryInfo* iQueryInfo = nullptr;
-	if (SUCCEEDED(ifolder->GetUIObjectOf(nullptr, 1, &child, IID_IQueryInfo, nullptr, reinterpret_cast<void**>(&iQueryInfo))) && iQueryInfo)
+	ComPtr<IQueryInfo> iQueryInfo;
+	if (SUCCEEDED(ifolder->GetUIObjectOf(nullptr, 1, &child, IID_IQueryInfo, nullptr, reinterpret_cast<void**>(iQueryInfo.GetAddressOf()))) && iQueryInfo)
 	{
 		LPWSTR lpszTip = nullptr;
-		CComInterfaceReleaser releaser (iQueryInfo);
 		if (SUCCEEDED(iQueryInfo->GetInfoTip(0, &lpszTip)) && lpszTip)
 		{
 			tipString = lpszTip;
@@ -362,8 +348,8 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 		assert_r(idLists.back());
 	}
 
-	IShellItemArray * iArray = nullptr;
-	HRESULT result = SHCreateShellItemArrayFromIDLists((UINT)idLists.size(), (PCIDLIST_ABSOLUTE_ARRAY)idLists.data(), &iArray);
+	ComPtr<IShellItemArray> iArray;
+	HRESULT result = SHCreateShellItemArrayFromIDLists((UINT)idLists.size(), (PCIDLIST_ABSOLUTE_ARRAY)idLists.data(), iArray.GetAddressOf());
 
 	if (!SUCCEEDED(result) || !iArray)
 	{
@@ -371,15 +357,15 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 		return false;
 	}
 
-	IFileOperation * iOperation = nullptr;
-	result = CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_ALL, IID_IFileOperation, reinterpret_cast<void**>(&iOperation));
+	ComPtr<IFileOperation> iOperation;
+	result = CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_ALL, IID_IFileOperation, reinterpret_cast<void**>(iOperation.GetAddressOf()));
 	if (!SUCCEEDED(result) || !iOperation)
 	{
 		qInfo() << "CoCreateInstance(CLSID_FileOperation, 0, CLSCTX_ALL, IID_IFileOperation, (void**)&iOperation) failed";
 		return false;
 	}
 
-	result = iOperation->DeleteItems(iArray);
+	result = iOperation->DeleteItems(iArray.Get());
 	if (!SUCCEEDED(result))
 	{
 		qInfo() << "DeleteItems failed";
@@ -414,8 +400,6 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 			result = S_OK;
 	}
 
-	iOperation->Release();
-	iArray->Release();
 	return SUCCEEDED(result);
 }
 
@@ -427,18 +411,18 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 	if (!SUCCEEDED(SHGetFolderLocation(nullptr, CSIDL_BITBUCKET, nullptr, 0, &idlist)))
 		return false;
 
-	IShellFolder * iFolder = nullptr;
+	CItemIdListReleaser idlistReleaser(idlist); // 'list' below points into it, so it must outlive the menu setup
+
+	ComPtr<IShellFolder> iFolder;
 	LPCITEMIDLIST list = nullptr;
-	HRESULT result = SHBindToParent(idlist, IID_IShellFolder, reinterpret_cast<void**>(&iFolder), &list);
+	HRESULT result = SHBindToParent(idlist, IID_IShellFolder, reinterpret_cast<void**>(iFolder.GetAddressOf()), &list);
 	if (!SUCCEEDED(result) || !list || !iFolder)
 		return false;
 
-	IContextMenu * imenu = nullptr;
-	result = iFolder->GetUIObjectOf(reinterpret_cast<HWND>(parentWindow), 1u, &list, IID_IContextMenu, nullptr, reinterpret_cast<void**>(&imenu));
-	CoTaskMemFree(idlist);
+	ComPtr<IContextMenu> imenu;
+	result = iFolder->GetUIObjectOf(reinterpret_cast<HWND>(parentWindow), 1u, &list, IID_IContextMenu, nullptr, reinterpret_cast<void**>(imenu.GetAddressOf()));
 	if (!SUCCEEDED(result) || !imenu)
 		return false;
-	CComInterfaceReleaser menuReleaser(imenu);
 
 	HMENU hMenu = CreatePopupMenu();
 	if (!hMenu)
@@ -464,7 +448,7 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 	return true;
 }
 
-static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * parentWindow, HMENU& hmenu, IContextMenu*& imenu)
+static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * parentWindow, HMENU& hmenu, ComPtr<IContextMenu>& imenu)
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
@@ -473,7 +457,7 @@ static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void
 
 	std::vector<ITEMIDLIST*> ids;
 	std::vector<LPCITEMIDLIST> relativeIds;
-	IShellFolder * ifolder = nullptr;
+	ComPtr<IShellFolder> ifolder;
 	for (size_t i = 0, nItems = objects.size(); i < nItems; ++i)
 	{
 		auto& item = objects[i];
@@ -488,14 +472,11 @@ static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void
 		}
 
 		relativeIds.emplace_back(nullptr);
-		result = SHBindToParent(ids.back(), IID_IShellFolder, reinterpret_cast<void**>(&ifolder), &relativeIds.back());
+		result = SHBindToParent(ids.back(), IID_IShellFolder, reinterpret_cast<void**>(ifolder.ReleaseAndGetAddressOf()), &relativeIds.back());
 		if (!SUCCEEDED(result) || !relativeIds.back())
 			relativeIds.pop_back();
-		else if (i < nItems - 1 && ifolder)
-		{
-			ifolder->Release();
-			ifolder = nullptr;
-		}
+		else if (i < nItems - 1)
+			ifolder.Reset();
 	}
 
 	CItemIdArrayReleaser arrayReleaser(ids);
@@ -504,14 +485,13 @@ static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void
 	assert_and_return_message_r(ifolder, "Error getting ifolder", false);
 	assert_and_return_message_r(!relativeIds.empty(), "RelativeIds is empty", false);
 
-	imenu = nullptr;
 	const HRESULT result = ifolder->GetUIObjectOf(
 		reinterpret_cast<HWND>(parentWindow),
 		(UINT)relativeIds.size(),
 		reinterpret_cast<const ITEMIDLIST **>(relativeIds.data()),
 		IID_IContextMenu,
 		nullptr,
-		reinterpret_cast<void**>(&imenu)
+		reinterpret_cast<void**>(imenu.ReleaseAndGetAddressOf())
 	);
 
 	if (!SUCCEEDED(result) || !imenu)
