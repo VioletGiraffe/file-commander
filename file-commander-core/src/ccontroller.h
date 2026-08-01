@@ -190,7 +190,9 @@ private:
 private:
 	static CController * _instance;
 	CFavoriteLocations   _favoriteLocations;
-	// Shared worker pool for all panel tabs. Declared before _panels so it outlives the CPanels that post tasks to it.
+	// All panel tabs' file list enumeration and dir size calculation. Sized to the core count: that work parallelises
+	// across tabs. Every task carries its CPanel's _taskTag, so ~CPanel retires its own without waiting for other tabs.
+	// Declared before _panels so it outlives the CPanels that post tasks to it.
 	// Its position relative to _uiQueue is not load-bearing the way _workerThreadPool's is: panel tasks marshal to the
 	// UI thread through each CPanel's own _uiThreadQueue, never the controller's _uiQueue.
 	CWorkerThreadPool    _panelWorkerPool;
@@ -209,5 +211,8 @@ private:
 
 	// Declared before the worker pool so it outlives every controller task that can enqueue UI work.
 	CExecutionQueue   _uiQueue;
-	CWorkerThreadPool _workerThreadPool; // The thread used to execute tasks out of the UI thread
+	// General core tasks (execOnWorkerThread): the long, uninterruptible native shell calls that run their own modal UI.
+	// Kept out of _panelWorkerPool so one of them cannot stall file list refresh for as long as it blocks.
+	// Untagged - nothing retires by owner, so a task here must not capture anything shorter-lived than the controller.
+	CWorkerThreadPool _workerThreadPool;
 };
