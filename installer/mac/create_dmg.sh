@@ -23,56 +23,17 @@ echo "${MYSELF}: creating DMG"
 cd bin/release/x64
 
 DMG="${VOL}.dmg"
-TMP_DMG="tmp_$$_${DMG}"
+STAGE="dmg-staging"
 
-# create temporary image
-hdiutil create "${TMP_DMG}" -ov -fs "HFS+" -volname "${VOL}" -size 200m
-hdiutil attach "${TMP_DMG}"
+rm -rf "${STAGE}"
+mkdir "${STAGE}"
+cp -R "./${APPDIR}" "${STAGE}/"
+ln -s /Applications "${STAGE}/"
 
-cp -R ./${APPDIR} /Volumes/${VOL}/
-ln -s /Applications /Volumes/${VOL}/
+# -srcfolder populates via a private nobrowse mount - no volume appears under /Volumes for Spotlight to grab and pin.
+hdiutil create "${DMG}" -ov -volname "${VOL}" -fs "HFS+" -format UDZO -srcfolder "${STAGE}"
 
-hdiutil detach "/Volumes/${VOL}"
-hdiutil resize "${TMP_DMG}" -size min
-sleep 5
-hdiutil attach "${TMP_DMG}"
-sleep 2
-
-# echo '
-# tell application "Finder"
-#   tell disk "'${VOL}'"
-#     open
-#     tell container window
-#       set current view to icon view
-#       set toolbar visible to false
-#       set statusbar visible to false
-#       set the bounds to {400, 100, 899, 356}
-#       set statusbar visible to false
-#     end tell
-
-#     set opts to the icon view options of container window
-#     tell opts
-#       set icon size to 72
-#       set arrangement to not arranged
-#     end tell
-
-#     delay 5
-#     set position of item "Applications" of container window to {400, 90}
-#     set position of item "'${APPDIR}'" of container window to {100, 90}
-#     delay 5
-#   end tell
-# end tell
-# ' | osascript
-
-sleep 2
-hdiutil detach "/Volumes/${VOL}"
-sleep 5
-diskutil unmount "/Volumes/${VOL}" || true
-
-#convert to compressed image, delete temp image
-rm -f "$DMG"
-hdiutil convert "${TMP_DMG}" -format UDZO -o "${DMG}"
-rm -f "${TMP_DMG}"
+rm -rf "${STAGE}"
 mv "${DMG}" ../../../
 
 echo "${MYSELF}: ready for distribution: ${DMG}"
