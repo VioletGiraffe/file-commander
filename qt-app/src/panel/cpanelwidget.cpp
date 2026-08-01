@@ -17,7 +17,7 @@
 #include "widgets/clineedit.h"
 #include "widgets/layouts/cflowlayout.h"
 
-#include "system/ctimeelapsed.h"
+#include "timing/ctimeelapsed.h"
 #include "detail/hashmap_helpers.h"
 
 #include <3rdparty/ankerl/unordered_dense.h>

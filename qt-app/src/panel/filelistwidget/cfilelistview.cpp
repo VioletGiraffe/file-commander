@@ -5,7 +5,7 @@
 
 #include "assert/advanced_assert.h"
 #include "math/math.hpp"
-#include "system/ctimeelapsed.h"
+#include "timing/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

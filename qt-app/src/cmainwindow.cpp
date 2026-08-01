@@ -25,7 +25,7 @@
 #include "widgets/widgetutils.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
-#include "system/ctimeelapsed.h"
+#include "timing/ctimeelapsed.h"
 #include "tools/CFileStatsWindow.h"
 #include "tools/cfoldercomparisonwindow.h"
 #include "logger/cloggerinmemory.h"

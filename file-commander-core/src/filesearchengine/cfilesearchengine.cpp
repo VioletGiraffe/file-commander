@@ -1,6 +1,6 @@
 #include "cfilesearchengine.h"
 #include "cfilesystemobject.h"
-#include "system/ctimeelapsed.h"
+#include "timing/ctimeelapsed.h"
 #include "directoryscanner.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
