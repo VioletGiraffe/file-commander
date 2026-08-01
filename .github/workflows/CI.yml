@@ -165,7 +165,7 @@ jobs:
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
-        make -j
+        make -j$(nproc)
         # Linux: building AppImage
         cp ./qt-app/resources/icon.png ./bin/release/x64/
         cp ./installer/linux/file_commander.desktop ./bin/release/x64/
@@ -414,7 +414,7 @@ jobs:
       run: |
         cd file-commander-core/core-tests
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
-        make -j
+        make -j4
         cd ../../
         for f in $(find bin/release/x64/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
 
@@ -445,7 +445,7 @@ jobs:
       run: |
         cd file-commander-core/core-tests
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
-        make -j
+        make -j$(nproc)
         cd ../../
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
