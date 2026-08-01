@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785534245813,
+  "lastUpdate": 1785585034650,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -11985,6 +11985,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 382,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "a0359321f15ffca106b92ab776c09d91caf00bb4",
+          "message": "Microsoft::WRL::ComPtr for cleaner COM lifetime management; COM leaks fixed",
+          "timestamp": "2026-08-01T14:45:47+03:00",
+          "tree_id": "f5c9f58a1ac261ab33fb3eeb2a054d6325607bce",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/a0359321f15ffca106b92ab776c09d91caf00bb4"
+        },
+        "date": 1785585031683,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16994,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11085,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1334,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 720.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 382.5,
             "unit": "KB"
           },
           {
