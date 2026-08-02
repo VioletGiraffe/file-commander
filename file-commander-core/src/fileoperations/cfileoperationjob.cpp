@@ -5,6 +5,7 @@
 
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
+#include "utility/on_scope_exit.hpp"
 
 #include <algorithm>
 
@@ -124,16 +125,20 @@ void CFileOperationJob::runOperation(const std::atomic<bool>& cancellationReques
 		[this](const ProgressSnapshot& snapshot) { enqueueProgress(snapshot); }
 	};
 
-	OperationSummary summary = std::visit([&]<typename Request>(const Request& request) {
+	// The job is not finished until a summary is queued, and an executor that throws must not cost the dialog its completion.
+	OperationSummary summary{ .status = CompletionStatus::Failed };
+	EXEC_ON_SCOPE_EXIT([this, &summary] {
+		std::lock_guard lock{ _mutex };
+		_events.emplace_back(mv(summary)); // The summary precedes the status flip: Finished implies it is queued
+		_finished = true;
+	});
+
+	summary = std::visit([&]<typename Request>(const Request& request) {
 		if constexpr (std::is_same_v<Request, TransferRequest>)
 			return CTransferExecutor{ context, _transferChunkSize }.run(request);
 		else
 			return CDeleteExecutor{ context }.run(request);
 	}, _request);
-
-	std::lock_guard lock{ _mutex };
-	_events.emplace_back(mv(summary)); // The summary precedes the status flip: Finished implies it is queued
-	_finished = true;
 }
 
 bool CFileOperationJob::workerCheckpoint(const std::atomic<bool>& cancellationRequested)
