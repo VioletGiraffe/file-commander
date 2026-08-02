@@ -73,6 +73,10 @@ CFileOperationDialog::CFileOperationDialog(FileOperationRequest request, std::fu
 {
 	ui->setupUi(this);
 
+	// Blocks the main window while the operation is in the foreground; switchToBackground() lifts it.
+	// Must stay WindowModal: other operations' dialogs are siblings, and ApplicationModal would freeze them too.
+	setWindowModality(Qt::WindowModal);
+
 #ifdef _WIN32
 	// An owned top-level window gets no taskbar button of its own, and the progress indicator below only ever
 	// activates for a window that has a button, so we're requesting it. Must precede the first show - that is when the button is created.
@@ -340,18 +344,26 @@ void CFileOperationDialog::switchToBackground()
 	ui->_fileProgressText->hide();
 	ui->_btnBackground->hide();
 
-	if (!_backgroundAnchorProvider)
-	{
-		_isInBackgroundMode = true;
-		return;
-	}
-
 	// Queued: hiding the detail widgets only posts a deferred LayoutRequest, so an adjustSize() in this
 	// stack would measure the not-yet-relaid-out size.
 	QMetaObject::invokeMethod(this, [this] {
+		// Qt admits and releases modal windows as they are shown and hidden, so releasing the main window means
+		// recycling this one. The resize and the move ride along while it is hidden, keeping it to one transition.
+		hide();
+		setWindowModality(Qt::NonModal);
+
 		adjustSize(); // Shrink to fit now that the per-file detail widgets are hidden
-		const QPoint anchor = _backgroundAnchorProvider(); // Bottom-left corner
-		move(anchor.x(), anchor.y() - height());
+		if (_backgroundAnchorProvider)
+		{
+			const QPoint anchor = _backgroundAnchorProvider(); // Bottom-left corner
+			move(anchor.x(), anchor.y() - height());
+		}
+
+		show();
+		// Hands the keyboard back; as a child window this dialog stays visible above the main window regardless.
+		if (QWidget* const owner = parentWidget())
+			owner->activateWindow();
+
 		_isInBackgroundMode = true;
 	}, Qt::QueuedConnection);
 }
