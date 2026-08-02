@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785675217349,
+  "lastUpdate": 1785682654127,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -12606,6 +12606,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 383.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c96faa729bb45f20c030b141a912954d4561225c",
+          "message": "CFileOperationDialog modality and window focus fixed",
+          "timestamp": "2026-08-02T17:51:43+03:00",
+          "tree_id": "2b7990eec2bead069d741eb78a7a0d58e6b383b0",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c96faa729bb45f20c030b141a912954d4561225c"
+        },
+        "date": 1785682650699,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17011,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11351,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1276.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 700.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 384,
             "unit": "KB"
           },
           {
