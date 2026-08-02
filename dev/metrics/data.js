@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785682654127,
+  "lastUpdate": 1785688611124,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -12675,6 +12675,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 384,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "a2f6780b28388c76b60dd1bb29b562041f6b654a",
+          "message": "Using nativeOwnerWinId() for interacting with the native windows: shell operations no longer force random widgets to become native",
+          "timestamp": "2026-08-02T19:30:37+03:00",
+          "tree_id": "ad6ed9924359731684f70136686048f582ea5b40",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/a2f6780b28388c76b60dd1bb29b562041f6b654a"
+        },
+        "date": 1785688608081,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17012,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11358,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1276.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 701,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 383.5,
             "unit": "KB"
           },
           {
