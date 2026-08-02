@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785688611124,
+  "lastUpdate": 1785692179404,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -12744,6 +12744,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 383.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "1b566d33608c58d86dd0a0a113bf2655df08f8cb",
+          "message": "Windows: shell operation handling improved and fixed; no more limit of 2 simultaneously running explorer file operation jobs",
+          "timestamp": "2026-08-02T20:31:41+03:00",
+          "tree_id": "ee481cd0015133564ef22cc1a1388a7df04c2f23",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/1b566d33608c58d86dd0a0a113bf2655df08f8cb"
+        },
+        "date": 1785692176997,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17062,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11358,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1277.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 701,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 384.5,
             "unit": "KB"
           },
           {
