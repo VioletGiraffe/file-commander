@@ -52,10 +52,12 @@ is not an identity because duplicate tabs may show the same folder.
 - `CVolumeEnumerator::_mutexForDrives` is recursive because synchronous enumeration can re-enter a getter.
 - The polling watcher's baseline is written by its poll thread and by the panel worker's synchronous
   `captureBaselineState()`, always under the watcher mutex and tagged with a path generation.
-- `CShellOperationRunner` is owned by `main()`, which joins every operation between `exec()` returning and the main
-  window's destruction. That ordering is what keeps the window - whose handle those operations gave the shell as
-  their dialog owner - alive for their whole duration.
-  Its thread list is touched only on the UI thread, by `run()` and by the queued reaping, so it needs no lock.
+- `CShellOperationRunner` is owned by `main()`, which waits for every operation between `exec()` returning and the
+  main window's destruction. That ordering keeps the window - whose handle those operations gave the shell as their
+  dialog owner - alive for their whole duration. The wait dispatches events rather than blocking: an operation still
+  needs the UI thread after its own UI is gone, and both cross-thread window ownership and clipboard marshaling
+  travel by window message, so a join there deadlocks.
+  Its thread list is touched only on the UI thread, by `run()`, the wait, and the queued reaping, so it needs no lock.
 
 Declaration order that encodes lifetime is documented beside the relevant members. Preserve or update those
 comments when changing ownership.

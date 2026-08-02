@@ -23,12 +23,12 @@ public:
 	// back itself with a queued invocation targeting an object whose death should cancel the report.
 	void run(std::function<void()> operation);
 
-	// Joins everything still running. Idempotent, and the destructor calls it, but the join belongs wherever the
-	// window that owns the operations' shell dialogs is still alive - by the destructor it may not be.
+	// Returns once everything still running has finished, dispatching events meanwhile. Call it from a point
+	// where pumping the message loop is safe, and while the window owning the operations' shell dialogs is alive.
 	void waitForPendingOperations();
 
 private:
-	// UI thread only - run() and the queued reaping both happen there, which is what keeps this lock-free.
+	// UI thread only - run(), the wait, and the queued reaping all happen there, which is what keeps this lock-free.
 	// std::list: entries are addressed by iterator, and CInterruptableThread is neither copyable nor movable.
 	std::list<CInterruptableThread> _operations;
 };

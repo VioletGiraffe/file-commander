@@ -12,7 +12,9 @@ RESTORE_COMPILER_WARNINGS
 
 CShellOperationRunner::~CShellOperationRunner()
 {
-	waitForPendingOperations(); // Backstop; main() joins earlier, while the main window is still up
+	// Last resort: a bare join hangs an operation that still needs this thread, hence the obligation to call
+	// waitForPendingOperations() earlier, while a message loop can still run.
+	_operations.clear();
 }
 
 void CShellOperationRunner::run(std::function<void()> operation)
@@ -35,8 +37,11 @@ void CShellOperationRunner::run(std::function<void()> operation)
 
 void CShellOperationRunner::waitForPendingOperations()
 {
-	_operations.clear(); // Each entry's destructor joins its thread
+	assert_debug_only(QThread::currentThread() == thread());
 
-	// The threads posted their reaping invocations on the way out, and those name entries that no longer exist.
-	QCoreApplication::removePostedEvents(this);
+	// Not a join: an operation is not done with this thread once its own UI is gone. Its shell dialogs are owned
+	// by a window living here, and a paste marshals every clipboard IDataObject call into this thread's COM
+	// apartment - both travel by window message, so blocking here instead of dispatching would deadlock it.
+	while (!_operations.empty())
+		QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
 }
