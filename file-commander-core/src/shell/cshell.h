@@ -20,8 +20,7 @@ namespace OsShell
 	std::wstring toolTip(std::wstring itemPath);
 
 #if defined _WIN32 || defined __APPLE__
-	// Only implemented where the OS shell provides deletion; elsewhere deletion goes through the internal job
-	// (see deletionBackendFor). doc/TODO.md tracks extending trash support to the other platforms.
+	// Only implemented where the OS shell provides deletion; elsewhere deletion goes through the internal job (see deletionBackendFor)
 	bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
 #endif
 

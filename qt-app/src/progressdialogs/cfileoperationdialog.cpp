@@ -18,6 +18,10 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 namespace
 {
 
@@ -68,6 +72,14 @@ CFileOperationDialog::CFileOperationDialog(FileOperationRequest request, std::fu
 	_job(mv(request), transferChunkSize)
 {
 	ui->setupUi(this);
+
+#ifdef _WIN32
+	// An owned top-level window gets no taskbar button of its own, and the progress indicator below only ever
+	// activates for a window that has a button, so we're requesting it. Must precede the first show - that is when the button is created.
+	const HWND thisWindow = reinterpret_cast<HWND>(winId());
+	::SetWindowLongPtrW(thisWindow, GWL_EXSTYLE, ::GetWindowLongPtrW(thisWindow, GWL_EXSTYLE) | WS_EX_APPWINDOW);
+#endif
+
 	ui->_overallProgress->linkToWidgetstaskbarButton(this);
 
 	ui->_lblCurrentFile->clear();
