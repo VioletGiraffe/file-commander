@@ -545,7 +545,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 			paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
 
 #ifdef _WIN32
-		auto* windowHandle = reinterpret_cast<void*>(winId());
+		auto* windowHandle = WidgetUtils::nativeOwnerWinId(this);
 #else
 		void* windowHandle = nullptr;
 #endif
@@ -712,7 +712,7 @@ void CMainWindow::editFile()
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 {
 	const QPoint globalPos = ui->btnDelete->mapToGlobal(pos) * ui->btnDelete->devicePixelRatioF(); // These coordinates ar egoing directly into the system API so need to account for scaling that Qt tries to abstract away.
-	OsShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), reinterpret_cast<void*>(winId()));
+	OsShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), WidgetUtils::nativeOwnerWinId(this));
 }
 
 void CMainWindow::toggleQuickView()

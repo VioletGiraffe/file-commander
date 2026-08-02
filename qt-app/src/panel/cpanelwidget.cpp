@@ -16,6 +16,7 @@
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "widgets/clineedit.h"
 #include "widgets/layouts/cflowlayout.h"
+#include "widgets/widgetutils.h"
 
 #include "timing/ctimeelapsed.h"
 #include "detail/hashmap_helpers.h"
@@ -665,7 +666,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 	}
 
 	pos *= ui->_list->devicePixelRatioF();
-	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), reinterpret_cast<void*>(winId()));
+	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), WidgetUtils::nativeOwnerWinId(this));
 }
 
 void CPanelWidget::showContextMenuForDisk(QPoint pos)
@@ -680,7 +681,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 	const auto volumeInfo = _controller->volumeInfoById(diskId);
 	assert_and_return_r(volumeInfo, );
 	std::vector<std::wstring> diskPath(1, volumeInfo->rootObjectInfo.fullAbsolutePath().toStdWString());
-	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), reinterpret_cast<HWND>(winId()));
+	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), WidgetUtils::nativeOwnerWinId(this));
 #else
 	Q_UNUSED(pos);
 #endif
@@ -990,7 +991,7 @@ void CPanelWidget::copySelectionToClipboard() const
 	for (auto hash: hashes)
 		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
-	OsShell::copyObjectsToClipboard(paths, reinterpret_cast<void*>(winId()));
+	OsShell::copyObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(this));
 #endif
 }
 
@@ -1024,7 +1025,7 @@ void CPanelWidget::cutSelectionToClipboard() const
 	for (auto hash: hashes)
 		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
 
-	OsShell::cutObjectsToClipboard(paths, reinterpret_cast<void*>(winId()));
+	OsShell::cutObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(this));
 #endif
 }
 
@@ -1046,7 +1047,7 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 	}
 #else
-	auto* hwnd = reinterpret_cast<void*>(winId());
+	auto* hwnd = WidgetUtils::nativeOwnerWinId(this);
 	const auto currentDirWString = currentDirPathNative().toStdWString();
 	_controller->execOnWorkerThread([hwnd, currentDirWString]() {
 		OsShell::pasteFilesAndFoldersFromClipboard(currentDirWString, hwnd);
