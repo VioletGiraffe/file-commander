@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785618948668,
+  "lastUpdate": 1785675217349,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -12537,6 +12537,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 383,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "3426a51d2d5fa86a9d2ff6139a4f1216bb433b42",
+          "message": "Windows: taskbar button progress for file operations fixed",
+          "timestamp": "2026-08-02T15:47:13+03:00",
+          "tree_id": "8ed790af354878b6db24b49502fe1ec3854c7d69",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/3426a51d2d5fa86a9d2ff6139a4f1216bb433b42"
+        },
+        "date": 1785675213593,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17003,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11338,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1274.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 699,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 383.5,
             "unit": "KB"
           },
           {
