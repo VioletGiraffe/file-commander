@@ -19,6 +19,7 @@ class QStandardItem;
 class CFileListModel;
 class CFileListSortFilterProxyModel;
 class CFileListFilterDialog;
+class CShellOperationRunner;
 struct InlineRenameResult;
 
 
@@ -34,7 +35,7 @@ public:
 	explicit CPanelWidget(QWidget *parent = nullptr) noexcept;
 	~CPanelWidget() noexcept  override;
 
-	void init(CController* controller);
+	void init(CController* controller, CShellOperationRunner& shellOperations);
 
 	void setFocusToFileList();
 
@@ -161,6 +162,7 @@ private:
 	QString                         _currentVolumePath;
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;
+	CShellOperationRunner         * _shellOperations = nullptr;
 	// The active tab's triplet (also held in _tabs[_activeTab]); kept as members so the rest of the widget stays tab-agnostic.
 	QItemSelectionModel           * _selectionModel = nullptr;
 	CFileListModel                * _model = nullptr;

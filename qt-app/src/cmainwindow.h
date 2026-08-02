@@ -20,6 +20,7 @@ namespace Ui {
 
 class CPanelWidget;
 class CFileOperationDialog;
+class CShellOperationRunner;
 enum class TransferKind; // fileoperations/fileoperationtypes.h
 class QShortcut;
 class QStackedWidget;
@@ -30,7 +31,8 @@ class CMainWindow final : public QMainWindow,
 		private PanelContentsChangedListener
 {
 public:
-	explicit CMainWindow(QWidget* parent = nullptr) noexcept;
+	// shellOperations must outlive the window: the shell dialogs it starts are owned by this window's handle.
+	explicit CMainWindow(CShellOperationRunner& shellOperations, QWidget* parent = nullptr) noexcept;
 	~CMainWindow() noexcept;
 	[[nodiscard]] static CMainWindow* get();
 
@@ -153,6 +155,7 @@ private:
 	QTimer* _historyAutosaveTimer = nullptr; // Periodically persists the visited-folders history so an abrupt exit doesn't lose it
 
 	std::unique_ptr<CController> _controller;
+	CShellOperationRunner& _shellOperations;
 	CPanelWidget* _currentFileList = nullptr;
 	CPanelWidget* _otherFileList = nullptr;
 	CPanelDisplayController _leftPanelDisplayController, _rightPanelDisplayController;

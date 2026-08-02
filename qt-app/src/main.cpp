@@ -1,4 +1,5 @@
 #include "cmainwindow.h"
+#include "cshelloperationrunner.h"
 #include "settings.h"
 #include "settings/csettings.h"
 #include "system/win_utils.hpp"
@@ -117,12 +118,17 @@ int main(int argc, char *argv[])
 	if (const auto styleSheet = CSettings{}.value(KEY_INTERFACE_STYLE_SHEET).toString(); !styleSheet.isEmpty())
 		qApp->setStyleSheet(styleSheet);
 
-	CMainWindow w;
+	CShellOperationRunner shellOperations;
+
+	CMainWindow w{ shellOperations };
 	w.updateInterface();
 
 	if (app.arguments().contains("--test-launch"))
 		QTimer::singleShot(5000, [] { qApp->quit(); });
 
-	return app.exec();
+	const int exitCode = app.exec();
+	// Must precede ~CMainWindow: the shell dialogs these operations put up are owned by its native window.
+	shellOperations.waitForPendingOperations();
+	return exitCode;
 }
 

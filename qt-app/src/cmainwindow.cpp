@@ -1,4 +1,5 @@
 #include "cmainwindow.h"
+#include "cshelloperationrunner.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
 #include "progressdialogs/cfileoperationdialog.h"
 #include "progressdialogs/fileoperationlaunch.h"
@@ -89,9 +90,10 @@ void showDeleteItemsError()
 }
 #endif
 
-CMainWindow::CMainWindow(QWidget *parent) noexcept :
+CMainWindow::CMainWindow(CShellOperationRunner& shellOperations, QWidget *parent) noexcept :
 	QMainWindow(parent),
-	ui(new Ui::CMainWindow)
+	ui(new Ui::CMainWindow),
+	_shellOperations(shellOperations)
 {
 	assert_r(!_instance);
 	_instance = this;
@@ -550,10 +552,9 @@ void CMainWindow::performDeletion(const bool toTrash)
 		void* windowHandle = nullptr;
 #endif
 		const bool moveToTrash = backend == DeletionBackend::NativeTrash;
-		auto* controller = _controller.get();
-		controller->execOnWorkerThread([controller, paths = std::move(paths), moveToTrash, windowHandle]() {
+		_shellOperations.run([this, paths = std::move(paths), moveToTrash, windowHandle]() {
 			if (!OsShell::deleteItems(paths, moveToTrash, windowHandle))
-				controller->execOnUiThread(showDeleteItemsError);
+				QMetaObject::invokeMethod(this, showDeleteItemsError, Qt::QueuedConnection);
 		});
 		return;
 	}
@@ -1014,8 +1015,8 @@ void CMainWindow::updatePathBarAndWindowTitle(Panel p)
 void CMainWindow::initCore()
 {
 	_controller = std::make_unique<CController>();
-	ui->leftPanel->init(_controller.get());
-	ui->rightPanel->init(_controller.get());
+	ui->leftPanel->init(_controller.get(), _shellOperations);
+	ui->rightPanel->init(_controller.get(), _shellOperations);
 
 	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt());
 

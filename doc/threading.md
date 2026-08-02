@@ -9,8 +9,8 @@ return through `CExecutionQueue`, listener callbacks, or typed operation events.
 | Owner | Mechanism | Work |
 |-------|-----------|------|
 | `CController` | shared `CWorkerThreadPool _panelWorkerPool` (1-4 workers) | All `CPanel` tasks across both sides and every tab. |
-| `CController` | `CWorkerThreadPool _workerThreadPool` (2 workers) | General core tasks. |
-| `CController` | `CExecutionQueue _uiQueue` | General callbacks marshaled to the UI thread. |
+| `CController` | `CExecutionQueue _uiQueue` | Plugin UI-thread calls, and deferring work past a held panel lock. |
+| `CShellOperationRunner` | one `CInterruptableThread` per operation | Blocking OS shell calls (delete, clipboard paste). |
 | each `CPanel` | `CExecutionQueue _uiThreadQueue` | Panel results and observer delivery on the UI thread. |
 | each `CFileOperationJob` | `CInterruptableThread` | One copy/move/delete request around synchronous executors. |
 | `CFileSearchEngine` | `CInterruptableThread`; bounded pool for content search | Search traversal and file-content matching. |
@@ -52,8 +52,10 @@ is not an identity because duplicate tabs may show the same folder.
 - `CVolumeEnumerator::_mutexForDrives` is recursive because synchronous enumeration can re-enter a getter.
 - The polling watcher's baseline is written by its poll thread and by the panel worker's synchronous
   `captureBaselineState()`, always under the watcher mutex and tagged with a path generation.
-- `CController::_uiQueue` must outlive the general worker pool that produces work for it. The destructor explicitly
-  stops those workers before member teardown.
+- `CShellOperationRunner` is owned by `main()`, which joins every operation between `exec()` returning and the main
+  window's destruction. That ordering is what keeps the window - whose handle those operations gave the shell as
+  their dialog owner - alive for their whole duration.
+  Its thread list is touched only on the UI thread, by `run()` and by the queued reaping, so it needs no lock.
 
 Declaration order that encodes lifetime is documented beside the relevant members. Preserve or update those
 comments when changing ownership.

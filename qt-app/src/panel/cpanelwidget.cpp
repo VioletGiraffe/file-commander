@@ -2,6 +2,7 @@
 #include "filelistwidget/cfilelistfilterdialog.h"
 #include "filelistwidget/model/cfilelistmodel.h"
 #include "shell/cshell.h"
+#include "cshelloperationrunner.h"
 #include "columns.h"
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
 #include "pluginengine/cpluginengine.h"
@@ -130,10 +131,11 @@ CPanelWidget::~CPanelWidget() noexcept
 	delete ui;
 }
 
-void CPanelWidget::init(CController* controller)
+void CPanelWidget::init(CController* controller, CShellOperationRunner& shellOperations)
 {
 	assert_debug_only(controller);
 	_controller = controller;
+	_shellOperations = &shellOperations;
 }
 
 void CPanelWidget::setFocusToFileList()
@@ -1049,7 +1051,7 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 #else
 	auto* hwnd = WidgetUtils::nativeOwnerWinId(this);
 	const auto currentDirWString = currentDirPathNative().toStdWString();
-	_controller->execOnWorkerThread([hwnd, currentDirWString]() {
+	_shellOperations->run([hwnd, currentDirWString]() {
 		OsShell::pasteFilesAndFoldersFromClipboard(currentDirWString, hwnd);
 	});
 #endif

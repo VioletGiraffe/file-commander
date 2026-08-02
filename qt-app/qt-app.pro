@@ -56,6 +56,7 @@ INCLUDEPATH += \
 SOURCES += \
 	src/main.cpp \
 	src/cmainwindow.cpp \
+	src/cshelloperationrunner.cpp \
 	src/panel/cpanelwidget.cpp \
 	src/progressdialogs/cfileoperationprompt.cpp \
 	src/progressdialogs/cfileoperationdialog.cpp \
@@ -81,6 +82,7 @@ SOURCES += \
 
 HEADERS += \
 	src/cmainwindow.h \
+	src/cshelloperationrunner.h \
 	src/panel/cpanelwidget.h \
 	src/progressdialogs/cfileoperationprompt.h \
 	src/progressdialogs/cfileoperationdialog.h \

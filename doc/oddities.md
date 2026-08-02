@@ -14,9 +14,6 @@ Nothing here is known to break the app at runtime except where stated.
   `_panelWorkerPool` may still hold its tasks. Safety depends entirely on `_taskTag` + `pool.retire(_taskTag)`
   in `~CPanel`. Any new async work added in `CPanel` must be tagged, or it can outlive the panel and touch
   freed memory. See [threading.md](threading.md).
-- **`_workerThreadPool` vs `_panelWorkerPool`.** The controller has both a general pool and the shared panel
-  pool. Confirm nothing posts panel-lifetime-coupled work to the general pool (which has no retire-by-tag
-  discipline tied to panels).
 
 ## Looks alarming, is actually fine (don't re-investigate)
 
