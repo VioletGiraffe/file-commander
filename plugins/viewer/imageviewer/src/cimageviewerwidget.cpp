@@ -183,7 +183,6 @@ QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 			for (const auto& s : sizes)
 			{
 				QImage scaledImage(s.width(), s.height(), _sourceImage.format());
-				scaledImage.fill(Qt::green);
 
 				const auto srcView = createView<true>(_sourceImage);
 				auto dstView = createView<false>(scaledImage);
