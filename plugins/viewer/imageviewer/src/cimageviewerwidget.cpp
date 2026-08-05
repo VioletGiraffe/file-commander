@@ -90,7 +90,9 @@ inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 		view.bytesPerChannel = 2;
 		break;
 	default:
-		throw std::runtime_error{ "Unsupported QImage format" };
+		view.data = nullptr;
+		view.width = view.height = 0;
+		return view;
 	}
 
 	if (format == QImage::Format_RGB32)
@@ -177,21 +179,19 @@ QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 {
 	QIcon result;
 
-	try {
-		if (!_sourceImage.isNull())
+	if (!_sourceImage.isNull())
+	{
+		for (const auto& s : sizes)
 		{
-			for (const auto& s : sizes)
-			{
-				QImage scaledImage(s.width(), s.height(), _sourceImage.format());
+			QImage scaledImage(s.width(), s.height(), _sourceImage.format());
 
-				const auto srcView = createView<true>(_sourceImage);
-				auto dstView = createView<false>(scaledImage);
-				ImageProcessing::resize(dstView, srcView);
+			const auto srcView = createView<true>(_sourceImage);
+			auto dstView = createView<false>(scaledImage);
+			ImageProcessing::resize(dstView, srcView);
 
-				result.addPixmap(QPixmap::fromImage(scaledImage));
-			}
+			result.addPixmap(QPixmap::fromImage(scaledImage));
 		}
-	} catch (...) {}
+	}
 
 	return result;
 }
@@ -336,12 +336,14 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	{
 		_cacheKey = newCacheKey;
 
-		try {
-			const auto srcView = createView<true>(_sourceImage);
-			auto dstView = createView<false>(_displayImage);
+		const auto srcView = createView<true>(_sourceImage);
+		auto dstView = createView<false>(_displayImage);
+		if (srcView.data && dstView.data)
+		{
 			ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
 		}
-		catch (...) {
+		else // Fallback for unsupported formats only
+		{
 			_displayImage = _sourceImage.copy(sourceRect).scaled(bufferPx, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
 			_displayImage.setDevicePixelRatio(dpr);
 		}
