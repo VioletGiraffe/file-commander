@@ -18,6 +18,8 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <math.h>
 
+static constexpr qreal kMaxScale = 40.0; // device px per source px; the maximum magnification.
+
 namespace
 {
 	// Position of one axis of the image within the viewport, in device pixels: center it when it is smaller than the
@@ -46,66 +48,64 @@ namespace
 		};
 	}
 
-	constexpr qreal kMaxScale = 40.0; // device px per source px; the maximum magnification.
-}
-
-template <bool ConstView>
-inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
-{
-	ImageProcessing::ImageView<ConstView> view;
-	view.width = static_cast<uint64_t>(qi.width());
-	view.height = static_cast<uint64_t>(qi.height());
-
-	const auto format = qi.format();
-
-	switch (format)
+	template <bool ConstView>
+	inline ImageProcessing::ImageView<ConstView> createView(const QImage& qi)
 	{
-	case QImage::Format_Grayscale8: [[fallthrough]];
-	case QImage::Format_Indexed8:
-		view.channels = 1;
-		view.bytesPerChannel = 1;
-		break;
-	case QImage::Format_Grayscale16:
-		view.channels = 1;
-		view.bytesPerChannel = 2;
-		break;
-	case QImage::Format_RGB888: [[fallthrough]];
-	case QImage::Format_RGB32:
-		view.channels = 3;
-		view.bytesPerChannel = 1;
-		break;
-	case QImage::Format_ARGB32: [[fallthrough]];
-	case QImage::Format_ARGB32_Premultiplied: [[fallthrough]];
-	case QImage::Format_RGBA8888: [[fallthrough]];
-	case QImage::Format_RGBA8888_Premultiplied:
-		view.channels = 4;
-		view.bytesPerChannel = 1;
-		break;
-	case QImage::Format_RGBA64:
-		view.channels = 4;
-		view.bytesPerChannel = 2;
-		break;
-	case QImage::Format_RGBX64:
-		view.channels = 3;
-		view.bytesPerChannel = 2;
-		break;
-	default:
-		view.data = nullptr;
-		view.width = view.height = 0;
+		ImageProcessing::ImageView<ConstView> view;
+		view.width = static_cast<uint64_t>(qi.width());
+		view.height = static_cast<uint64_t>(qi.height());
+
+		const auto format = qi.format();
+
+		switch (format)
+		{
+		case QImage::Format_Grayscale8: [[fallthrough]];
+		case QImage::Format_Indexed8:
+			view.channels = 1;
+			view.bytesPerChannel = 1;
+			break;
+		case QImage::Format_Grayscale16:
+			view.channels = 1;
+			view.bytesPerChannel = 2;
+			break;
+		case QImage::Format_RGB888: [[fallthrough]];
+		case QImage::Format_RGB32:
+			view.channels = 3;
+			view.bytesPerChannel = 1;
+			break;
+		case QImage::Format_ARGB32: [[fallthrough]];
+		case QImage::Format_ARGB32_Premultiplied: [[fallthrough]];
+		case QImage::Format_RGBA8888: [[fallthrough]];
+		case QImage::Format_RGBA8888_Premultiplied:
+			view.channels = 4;
+			view.bytesPerChannel = 1;
+			break;
+		case QImage::Format_RGBA64:
+			view.channels = 4;
+			view.bytesPerChannel = 2;
+			break;
+		case QImage::Format_RGBX64:
+			view.channels = 3;
+			view.bytesPerChannel = 2;
+			break;
+		default:
+			view.data = nullptr;
+			view.width = view.height = 0;
+			return view;
+		}
+
+		if (format == QImage::Format_RGB32)
+			view.pixelStrideBytes = 4;
+		else
+			view.pixelStrideBytes = view.channels * view.bytesPerChannel;
+
+		view.bytesPerLine = static_cast<size_t>(qi.bytesPerLine());
+		view.data = const_cast<uchar*>(qi.bits());
+
+		assert_r(view.bytesPerLine >= view.width * view.pixelStrideBytes);
+
 		return view;
 	}
-
-	if (format == QImage::Format_RGB32)
-		view.pixelStrideBytes = 4;
-	else
-		view.pixelStrideBytes = view.channels * view.bytesPerChannel;
-
-	view.bytesPerLine = static_cast<size_t>(qi.bytesPerLine());
-	view.data = const_cast<uchar*>(qi.bits());
-
-	assert_r(view.bytesPerLine >= view.width * view.pixelStrideBytes);
-
-	return view;
 }
 
 bool CImageViewerWidget::displayImage(const QImage& image)
@@ -177,20 +177,25 @@ QSize CImageViewerWidget::sizeHint() const
 
 QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 {
+	if (_sourceImage.isNull())
+		return QIcon{};
+
+	static const auto resizeImage = [](const QImage& src, const QSize& targetSize) -> QImage {
+		const auto srcView = createView<true>(src);
+		if (!srcView.data)
+			return src.scaled(targetSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+		QImage dst(targetSize, src.format());
+		auto dstView = createView<false>(dst);
+
+		ImageProcessing::resize(dstView, srcView);
+	};
+
 	QIcon result;
-
-	if (!_sourceImage.isNull())
+	for (const auto& s : sizes)
 	{
-		for (const auto& s : sizes)
-		{
-			QImage scaledImage(s.width(), s.height(), _sourceImage.format());
-
-			const auto srcView = createView<true>(_sourceImage);
-			auto dstView = createView<false>(scaledImage);
-			ImageProcessing::resize(dstView, srcView);
-
-			result.addPixmap(QPixmap::fromImage(scaledImage));
-		}
+		QImage scaledImage = resizeImage(_sourceImage, s);
+		result.addPixmap(QPixmap::fromImage(scaledImage));
 	}
 
 	return result;
@@ -331,7 +336,7 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 	const qreal dpr = devicePixelRatioF();
 	_displayImage.setDevicePixelRatio(dpr);
 
-	const size_t newCacheKey = qHash(sourceRect) ^ qHash(bufferPx);
+	const size_t newCacheKey = qHashMulti(4 /* true random number, chosen by a fair dice throw */, sourceRect, bufferPx);
 	if (newCacheKey != _cacheKey)
 	{
 		_cacheKey = newCacheKey;
