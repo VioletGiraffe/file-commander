@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785693783681,
+  "lastUpdate": 1785962601032,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -12867,6 +12867,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (libs)",
             "value": 11358,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1277.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 701,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 384.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "6e2e57cb85017e6ce81a0e5e12b8cd5243545562",
+          "message": "image-processing updated (image viewer speedup)",
+          "timestamp": "2026-08-05T23:37:34+03:00",
+          "tree_id": "17ea5fcb1033be1e231635cac57b4b408ed0daac",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/6e2e57cb85017e6ce81a0e5e12b8cd5243545562"
+        },
+        "date": 1785962596189,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17062,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11507,
             "unit": "LOC"
           },
           {
