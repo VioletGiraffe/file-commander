@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785962601032,
+  "lastUpdate": 1785962991978,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -12931,6 +12931,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (app)",
             "value": 17062,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11507,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1277.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 701,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 384.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "177725e09c0362494c091bc138597d26c1881f85",
+          "message": "try/catch removed",
+          "timestamp": "2026-08-05T23:44:07+03:00",
+          "tree_id": "0540268d7e448afe0b4e1bbe224b2c2caaebe85b",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/177725e09c0362494c091bc138597d26c1881f85"
+        },
+        "date": 1785962988908,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17064,
             "unit": "LOC"
           },
           {
