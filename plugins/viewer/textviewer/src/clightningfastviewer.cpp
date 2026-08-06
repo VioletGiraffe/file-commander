@@ -798,7 +798,7 @@ void CLightningFastViewerWidget::wrapTextIfNeeded()
 	}
 
 	// Word wrapping enabled
-	const size_t hashKey = qHash(viewport()->width()) ^ qHash(_charWidth);
+	const size_t hashKey = qHashMulti(viewport()->width(), _charWidth);
 	if (hashKey == _wordWrapParamsHash)
 		return;
 
