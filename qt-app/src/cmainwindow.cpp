@@ -66,6 +66,7 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #endif
 
+#include <algorithm>
 #include <memory>
 
 // Main window settings keys
@@ -368,27 +369,30 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 QPoint CMainWindow::nextBackgroundDialogPosition(const QSize dialogFrameSize) const
 {
 	const QRect availableArea = screen()->availableGeometry();
+	const int areaRight = availableArea.x() + availableArea.width();
+	const int areaBottom = availableArea.y() + availableArea.height();
 
-	for (auto it = _activeFileOperationDialogs.rbegin(); it != _activeFileOperationDialogs.rend(); ++it)
+	// A row is a band of this dialog's own height, so a taller neighbour straddling two bands blocks both.
+	for (int rowTop = availableArea.y(); rowTop + dialogFrameSize.height() <= areaBottom; rowTop += dialogFrameSize.height())
 	{
-		CFileOperationDialog* dialog = *it;
-		if (!dialog->isInBackgroundMode())
-			continue;
+		const QRect row{ availableArea.x(), rowTop, availableArea.width(), dialogFrameSize.height() };
 
-		const QRect precedingDialogFrame = dialog->frameGeometry();
-		const QPoint nextInRow{ precedingDialogFrame.x() + precedingDialogFrame.width(), precedingDialogFrame.y() };
-		if (availableArea.contains(QRect{ nextInRow, dialogFrameSize }))
-			return nextInRow;
+		int x = availableArea.x();
+		for (const CFileOperationDialog* dialog : _activeFileOperationDialogs)
+		{
+			if (!dialog->isInBackgroundMode())
+				continue;
 
-		// Row full: open the next one below it. Once the screen is exhausted too, restart from the corner.
-		const QPoint nextRow{ availableArea.left(), precedingDialogFrame.y() + precedingDialogFrame.height() };
-		if (availableArea.contains(QRect{ nextRow, dialogFrameSize }))
-			return nextRow;
+			const QRect frame = dialog->frameGeometry();
+			if (frame.intersects(row))
+				x = std::max(x, frame.x() + frame.width());
+		}
 
-		break;
+		if (x + dialogFrameSize.width() <= areaRight)
+			return { x, rowTop };
 	}
 
-	return availableArea.topLeft();
+	return availableArea.topLeft(); // Every row is full: stack over the oldest
 }
 
 void CMainWindow::closeEvent(QCloseEvent *e)
