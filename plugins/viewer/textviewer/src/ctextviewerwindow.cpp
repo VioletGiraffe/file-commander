@@ -151,6 +151,8 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 {
 	QFileInfo fi(file);
 	setWindowTitle(fi.fileName() + " [" + fi.path() + "]");
+	// Only has effect on macOS , must be after set. Gives the title bar a document proxy icon (the only icon this window can have)
+	setWindowFilePath(file);
 
 	_sourceFilePath = file;
 

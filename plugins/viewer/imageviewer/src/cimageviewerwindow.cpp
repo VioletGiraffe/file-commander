@@ -65,6 +65,8 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
 	QFileInfo fi(imagePath);
 	setWindowTitle(fi.fileName() + " [" + fi.absolutePath() + "]");
+	// Only has effect on macOS , must be after set. Gives the title bar a document proxy icon (the only icon this window can have)
+	setWindowFilePath(imagePath);
 
 	QTimer::singleShot(100, this, [this](){
 		setWindowIcon(ui->_imageViewerWidget->imageIcon());
