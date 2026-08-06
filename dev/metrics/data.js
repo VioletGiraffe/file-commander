@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785962991978,
+  "lastUpdate": 1786052122024,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -13030,6 +13030,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "a637ef68b8e575249f4d3c2674956e32a0d32898",
+          "message": "CI: building with Qt 6.10",
+          "timestamp": "2026-08-06T21:15:27+03:00",
+          "tree_id": "248a63cadde528a957709440e0750c6d7826bb62",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/a637ef68b8e575249f4d3c2674956e32a0d32898"
+        },
+        "date": 1786052119949,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17064,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 11622,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1282.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 704,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 386,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 22.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 34.5,
             "unit": "KB"
           },
           {
