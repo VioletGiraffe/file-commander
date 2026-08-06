@@ -9,8 +9,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
-#include <vector>
-
 class CImageViewerWidget final : public QWidget
 {
 	Q_OBJECT
@@ -26,7 +24,8 @@ public:
 
 	[[nodiscard]] QSize sizeHint() const override;
 
-	[[nodiscard]] QIcon imageIcon(const std::vector<QSize>& sizes) const;
+	// Scales the source on demand, at the exact size the consumer asks for.
+	[[nodiscard]] QIcon imageIcon() const;
 
 	void copyToClipboard() noexcept;
 	void copyDisplayedToClipboard() noexcept;

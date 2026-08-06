@@ -66,10 +66,8 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 	QFileInfo fi(imagePath);
 	setWindowTitle(fi.fileName() + " [" + fi.absolutePath() + "]");
 
-	// TODO: thread
 	QTimer::singleShot(100, this, [this](){
-		QIcon icon = ui->_imageViewerWidget->imageIcon({ {16, 16}, {32, 32}, {256, 256} });
-		setWindowIcon(icon);
+		setWindowIcon(ui->_imageViewerWidget->imageIcon());
 	});
 
 	return true;

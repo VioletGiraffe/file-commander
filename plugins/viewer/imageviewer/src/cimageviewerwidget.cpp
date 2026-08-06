@@ -1,5 +1,6 @@
 #include "cimageviewerwidget.h"
 #include "resize/cimageresizer.h"
+#include "utils/ciconengineqimage.h"
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -175,7 +176,7 @@ QSize CImageViewerWidget::sizeHint() const
 	};
 }
 
-QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
+QIcon CImageViewerWidget::imageIcon() const
 {
 	if (_sourceImage.isNull())
 		return QIcon{};
@@ -189,16 +190,11 @@ QIcon CImageViewerWidget::imageIcon(const std::vector<QSize>& sizes) const
 		auto dstView = createView<false>(dst);
 
 		ImageProcessing::resize(dstView, srcView);
+
+		return dst;
 	};
 
-	QIcon result;
-	for (const auto& s : sizes)
-	{
-		QImage scaledImage = resizeImage(_sourceImage, s);
-		result.addPixmap(QPixmap::fromImage(scaledImage));
-	}
-
-	return result;
+	return QIcon{ new CIconEngineQImage{_sourceImage, resizeImage} };
 }
 
 void CImageViewerWidget::copyToClipboard() noexcept
