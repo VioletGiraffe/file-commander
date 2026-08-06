@@ -97,7 +97,7 @@ jobs:
       if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.9.*'
+        version: '6.10.*'
         target: desktop
         arch: 'win64_msvc2022_64'
         archives: 'qtbase icu qtsvg'
@@ -108,7 +108,7 @@ jobs:
       if: "startsWith(matrix.os, 'ubuntu')"
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.9.*'
+        version: '6.10.*'
         target: desktop
         arch: 'linux_gcc_64'
         archives: 'qtbase icu qtsvg'
@@ -120,7 +120,7 @@ jobs:
       if: "startsWith(matrix.os, 'macos')"
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.9.*'
+        version: '6.10.*'
         target: desktop
         arch: 'clang_64'
         archives: 'qtbase icu qtsvg'
@@ -306,7 +306,7 @@ jobs:
       if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.9.*'
+        version: '6.10.*'
         target: desktop
         arch: 'win64_msvc2022_64'
         archives: 'qtbase icu qtsvg'
@@ -317,7 +317,7 @@ jobs:
       if: "startsWith(matrix.os, 'ubuntu')"
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.9.*'
+        version: '6.10.*'
         target: desktop
         arch: 'linux_gcc_64'
         archives: 'qtbase icu qtsvg'
@@ -329,7 +329,7 @@ jobs:
       if: "startsWith(matrix.os, 'macos')"
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.9.*'
+        version: '6.10.*'
         target: desktop
         arch: 'clang_64'
         archives: 'qtbase icu qtsvg'
