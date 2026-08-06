@@ -359,31 +359,36 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 		return false;
 	}
 
-	auto* dialog = new CFileOperationDialog(std::move(*request), [this] { return nextBackgroundDialogPosition(); }, this);
+	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
 	registerFileOperationDialog(dialog);
 	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 	return true;
 }
 
-QPoint CMainWindow::nextBackgroundDialogPosition() const
+QPoint CMainWindow::nextBackgroundDialogPosition(const QSize dialogFrameSize) const
 {
+	const QRect availableArea = screen()->availableGeometry();
+
 	for (auto it = _activeFileOperationDialogs.rbegin(); it != _activeFileOperationDialogs.rend(); ++it)
 	{
 		CFileOperationDialog* dialog = *it;
 		if (!dialog->isInBackgroundMode())
 			continue;
 
-		const QRect dialogGeometry = dialog->frameGeometry();
-		// Check if the dialog fits on screen
-		const QRect screenGeometry = screen()->availableGeometry();
-		const QPoint bottomRight = QPoint{ dialogGeometry.right(), frameGeometry().top() };
-		if (screenGeometry.contains(bottomRight.x() + dialogGeometry.width(), bottomRight.y() - dialogGeometry.height()))
-			return bottomRight;
-		else // No space left
-			return frameGeometry().topLeft() + QPoint{ 20, 20 };
+		const QRect precedingDialogFrame = dialog->frameGeometry();
+		const QPoint nextInRow{ precedingDialogFrame.x() + precedingDialogFrame.width(), precedingDialogFrame.y() };
+		if (availableArea.contains(QRect{ nextInRow, dialogFrameSize }))
+			return nextInRow;
+
+		// Row full: open the next one below it. Once the screen is exhausted too, restart from the corner.
+		const QPoint nextRow{ availableArea.left(), precedingDialogFrame.y() + precedingDialogFrame.height() };
+		if (availableArea.contains(QRect{ nextRow, dialogFrameSize }))
+			return nextRow;
+
+		break;
 	}
 
-	return frameGeometry().topLeft();
+	return availableArea.topLeft();
 }
 
 void CMainWindow::closeEvent(QCloseEvent *e)
@@ -576,7 +581,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 		return;
 	}
 
-	auto* dialog = new CFileOperationDialog(std::move(*request), [this] { return nextBackgroundDialogPosition(); }, this);
+	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
 	registerFileOperationDialog(dialog);
 	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 }

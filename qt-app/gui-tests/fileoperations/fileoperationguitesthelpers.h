@@ -80,7 +80,7 @@ class ScriptedDialog final : public CFileOperationDialog
 {
 public:
 	// Test dialogs are stack-owned and inspected after completion, so they never self-dispose.
-	ScriptedDialog(FileOperationRequest request, std::function<QPoint()> backgroundAnchorProvider,
+	ScriptedDialog(FileOperationRequest request, std::function<QPoint(QSize)> backgroundAnchorProvider,
 		QWidget* parent = nullptr, uint64_t transferChunkSize = 8 * 1024 * 1024)
 		: CFileOperationDialog(std::move(request), std::move(backgroundAnchorProvider), parent, transferChunkSize)
 	{

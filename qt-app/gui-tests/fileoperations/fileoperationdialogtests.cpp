@@ -257,7 +257,7 @@ TEST_CASE("dialog: background mode repositions to the injected anchor", "[fileop
 	writeFile(base % "/src.bin", blob(500));
 
 	const QPoint anchor{ 640, 480 };
-	ScriptedDialog dialog{ copyInto(base % "/src.bin", base), [anchor] { return anchor; } };
+	ScriptedDialog dialog{ copyInto(base % "/src.bin", base), [anchor](QSize) { return anchor; } };
 	dialog.show();
 
 	CHECK(!dialog.isInBackgroundMode());
@@ -265,8 +265,7 @@ TEST_CASE("dialog: background mode repositions to the injected anchor", "[fileop
 
 	// The reposition is posted through a queued call; let it run.
 	REQUIRE(pumpUntil([&dialog] { return dialog.isInBackgroundMode(); }, 2s));
-	CHECK(dialog.x() == anchor.x());
-	CHECK(dialog.y() + dialog.height() == anchor.y()); // The anchor is the bottom-left corner
+	CHECK(dialog.frameGeometry().topLeft() == anchor);
 	CHECK(dialog.findChild<QPushButton*>(QStringLiteral("_btnBackground"))->isHidden());
 }
 

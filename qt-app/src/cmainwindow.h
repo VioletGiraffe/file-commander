@@ -48,8 +48,8 @@ public:
 	// the panel selection and edited destination into a typed request and drives one CFileOperationDialog.
 	bool launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory);
 
-	// Bottom left point
-	QPoint nextBackgroundDialogPosition() const;
+	// Returns the position that a new dialog should move() to (top left)
+	[[nodiscard]] QPoint nextBackgroundDialogPosition(QSize dialogFrameSize) const;
 
 protected:
 	void closeEvent(QCloseEvent * e) override;

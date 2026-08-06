@@ -5,6 +5,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QPoint>
+#include <QSize>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
@@ -27,9 +28,9 @@ class QTimer;
 class CFileOperationDialog : public QWidget, private CFileOperationListener
 {
 public:
-	// backgroundAnchorProvider returns the bottom-left corner the next backgrounded dialog should occupy;
-	// empty is allowed (background mode then keeps the current position).
-	CFileOperationDialog(FileOperationRequest request, std::function<QPoint()> backgroundAnchorProvider,
+	// backgroundAnchorProvider maps this dialog's frame size to the frame top-left it should occupy in background
+	// mode; empty is allowed (background mode then keeps the current position).
+	CFileOperationDialog(FileOperationRequest request, std::function<QPoint(QSize)> backgroundAnchorProvider,
 		QWidget* parent = nullptr, uint64_t transferChunkSize = 8 * 1024 * 1024);
 	~CFileOperationDialog() override;
 
@@ -97,7 +98,7 @@ private:
 	// Declared before _job: their initializers read the request that _job's initializer then moves from.
 	const PromptOperation _operation;
 	const PrimaryProgressUnit _primaryUnit;
-	const std::function<QPoint()> _backgroundAnchorProvider;
+	const std::function<QPoint(QSize)> _backgroundAnchorProvider;
 
 	CFileOperationJob _job;
 

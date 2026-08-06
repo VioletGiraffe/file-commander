@@ -62,7 +62,7 @@ QString speedText(const uint64_t primaryUnitsPerSecond, const PrimaryProgressUni
 
 } // namespace
 
-CFileOperationDialog::CFileOperationDialog(FileOperationRequest request, std::function<QPoint()> backgroundAnchorProvider,
+CFileOperationDialog::CFileOperationDialog(FileOperationRequest request, std::function<QPoint(QSize)> backgroundAnchorProvider,
 	QWidget* parent, const uint64_t transferChunkSize) :
 	QWidget(parent, Qt::Window),
 	ui(new Ui::CFileOperationDialog),
@@ -354,10 +354,7 @@ void CFileOperationDialog::switchToBackground()
 
 		adjustSize(); // Shrink to fit now that the per-file detail widgets are hidden
 		if (_backgroundAnchorProvider)
-		{
-			const QPoint anchor = _backgroundAnchorProvider(); // Bottom-left corner
-			move(anchor.x(), anchor.y() - height());
-		}
+			move(_backgroundAnchorProvider(frameGeometry().size()));
 
 		show();
 		// Hands the keyboard back; as a child window this dialog stays visible above the main window regardless.
