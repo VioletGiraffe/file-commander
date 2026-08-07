@@ -11,7 +11,7 @@
 
 - Start with `doc/README.md`, then read the documents relevant to the change. The documentation is an architecture map, not a substitute for checking the current code.
 - Writing code in any area: `doc/coding-style.md` for this repo's authoring preferences, including the mandatory review pass for anything touching concurrency.
-- Core, filesystem, file operations, or concurrency: `doc/core-engine.md`, `doc/threading.md`, and `doc/oddities.md`.
+- Core, filesystem, file operations, or concurrency: `doc/core-engine.md` and `doc/threading.md`.
 - GUI or tabs: `doc/qt-ui.md` and `doc/tabs.md`.
 - Settings or session restoration: `doc/persistence.md`.
 - Plugins: `doc/plugins.md`.

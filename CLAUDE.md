@@ -4,7 +4,7 @@ The user spent a lot of time and effort to keep the comments high value and low 
 
 The rest of this repo's authoring preferences — C++/Qt specifics, the mandatory concurrency review pass, the tests' scripting rule — live in [doc/coding-style.md](doc/coding-style.md). Read it before writing code here.
 
-The docs (`docs/*.md`) are for 3 things:
+The docs (`doc/*.md`) are for 3 things:
   * to establish the high level architecture overview;
   * to help you navigate the code;
   * to store knowledge difficult (or impossible) to derive from brief read of the code.

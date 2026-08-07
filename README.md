@@ -1,37 +1,31 @@
-# FILE COMMANDER
+# File Commander
 
-   Cross-platform Total Commander-like orthodox (dual-panel) file manager for Windows, Mac,  Linux and FreeBSD with support for plugins. The goal of the project is to provide consistent user experience across all the major desktop systems. 
+File Commander is a cross-platform orthodox dual-panel file manager with plugin support. Windows is the primary
+target; macOS and Linux are supported, while FreeBSD is best-effort where the Linux implementation works unchanged.
 
 [![CI](https://github.com/VioletGiraffe/file-commander/actions/workflows/CI.yml/badge.svg)](https://github.com/VioletGiraffe/file-commander/actions/workflows/CI.yml)
 
-[![CodeFactor](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/badge/master)](https://www.codefactor.io/repository/github/violetgiraffe/file-commander/overview/master)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/190add40753b46edbaa1327068263263)](https://www.codacy.com/gh/VioletGiraffe/file-commander/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=VioletGiraffe/file-commander&amp;utm_campaign=Badge_Grade)
-
 ![Windows screenshot](https://github.com/VioletGiraffe/file-commander/blob/gh-pages/screenshots/Windows/screenshot.png?raw=true)
 
-### Download for Windows
+## Download for Windows
 
-*<a href="https://github.com/VioletGiraffe/file-commander/releases/latest">Get the latest release</a>*    
-Windows Vista and later systems are supported, x64 only (but older releases supported x86). Windows XP is not supported.
+[Get the latest release](https://github.com/VioletGiraffe/file-commander/releases/latest). Current Windows builds
+are x64.
 
-### Known Issues
-For the list of known issues, refer to the project issues on Github, sort by the "bug" label. Or just use <a href="https://github.com/VioletGiraffe/file-commander/labels/bug">this link</a>.
+## Issues
 
-### Reporting an issue
-<a href="https://github.com/VioletGiraffe/file-commander/issues/new">Create an issue</a> on the project's page on Github.
+See [known bugs](https://github.com/VioletGiraffe/file-commander/labels/bug) or
+[report an issue](https://github.com/VioletGiraffe/file-commander/issues/new).
 
-### Contributing
+## Building
 
-***Cloning the repository***
+The repository uses submodules. After cloning, run `update_repository.bat` on Windows or `update_repository.sh` on
+Linux/macOS. The same script updates the main repository and its submodules later.
 
-   The main git repository has submodules, so you need to execute the `update_repository` script (available as .bat for Windows and .sh for Linux / Mac) after cloning file-commander to clone the nested repositories. Subsequently, you can use the same `update_repository` script at any time to pull incoming changes to the main repo, as well as to all the subrepos, thus updating everything to the latest revision.
+Requirements: a C++23-capable compiler and Qt 6.8 or newer.
 
-***Building***
+- Windows: Visual Studio 2022 or later. Run `qmake -tp vc -r` to generate the solution.
+- Linux: run Qt 6's `qmake -r`, then `make`.
+- macOS: open the project in Qt Creator, or run `qmake -r -spec macx-xcode` for an Xcode project.
 
-* A compiler with C++20 support is required.
-* Build with Qt 6.8 or newer.
-* Windows: you can build using either Qt Creator or Visual Studio for IDE. Visual Studio 2022 or later is required (v143 toolset or newer). Run `qmake -tp vc -r` to generate the solution for Visual Studio. I have not tried building with MinGW, but it should work as long as you enable C++20 support.
-* Linux: `cd` to directory with project, run `qmake -r` to generate Makefile and build via `make -j$(nproc)`. Make sure it's qmake from Qt 6 installation and not Qt5 (usually `qmake6 -r` works to ensure that).
-* Mac OS X: You can use either Qt Creator (simply open the project in it) or Xcode (run `qmake -r -spec macx-xcode` and open the Xcode project that has been generated). Or you can build from command line with `qmake -r` followed by `make -j$(sysctl -n hw.ncpu)`.
-
-See the Github workflow .yml file for reference on building the project.
+The [CI workflow](.github/workflows/CI.yml) is the reference for supported build and test commands.
