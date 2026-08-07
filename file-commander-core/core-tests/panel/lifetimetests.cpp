@@ -4,7 +4,7 @@ TEST_CASE("CPanel - destroying a panel retires the listing it had queued", "[pan
 {
 	TempTree tree;
 
-	CWorkerThreadPool pool{ 1, "Panel test pool" };
+	CThreadPool pool{ 1, "Panel test pool" };
 	WorkerGate gate{ pool };
 	RecordingListener listener;
 
@@ -28,7 +28,7 @@ TEST_CASE("CPanel - retiring one panel leaves another panel's work alone", "[pan
 	TempTree tree;
 	const QString sub = tree.makeDir(QStringLiteral("sub"));
 
-	CWorkerThreadPool pool{ 1, "Panel test pool" };
+	CThreadPool pool{ 1, "Panel test pool" };
 	WorkerGate gate{ pool };
 	RecordingListener listener;
 	CPanel survivor{ Panel::RightPanel, pool, 2 };

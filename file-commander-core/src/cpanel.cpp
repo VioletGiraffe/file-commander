@@ -22,7 +22,7 @@ enum {
 	ItemDiscoveryProgressNotificationTag
 };
 
-CPanel::CPanel(Panel position, CWorkerThreadPool& workerThreadPool, qulonglong id) :
+CPanel::CPanel(Panel position, CThreadPool& workerThreadPool, qulonglong id) :
 	_panelPosition(position),
 	_id(id),
 	// The panel's own address is a unique, non-zero pool tag. Reuse-safe: ~CPanel retires all of this tag's tasks

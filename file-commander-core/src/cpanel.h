@@ -4,7 +4,7 @@
 #include "cfilesystemobject.h"
 #include "detail/hashmap_helpers.h"
 #include "historylist/chistorylist.h"
-#include "threading/cworkerthread.h"
+#include "threading/cthreadpool.h"
 #include "threading/cexecutionqueue.h"
 #include "fileoperationresultcode.h"
 #include "utility/callback_caller.hpp"
@@ -80,7 +80,7 @@ public:
 	void addCurrentItemChangedListener(CurrentItemChangedListener * listener);
 	void addCurrentPathChangedListener(CurrentPathChangedListener * listener);
 
-	explicit CPanel(Panel position, CWorkerThreadPool& workerThreadPool, qulonglong id);
+	explicit CPanel(Panel position, CThreadPool& workerThreadPool, qulonglong id);
 	~CPanel();
 
 	[[nodiscard]] qulonglong id() const noexcept; // Stable per-tab identifier; never changes for this CPanel's lifetime
@@ -179,7 +179,7 @@ private:
 	const uint64_t                             _taskTag; // Unique per panel; tags this panel's tasks in the shared pool so they can be retired when the panel is destroyed
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 
-	CWorkerThreadPool&                         _workerThreadPool; // Shared pool owned by CController; this panel's tasks carry _taskTag
+	CThreadPool&                               _workerThreadPool; // Shared pool owned by CController; this panel's tasks carry _taskTag
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
 	// Signals this panel's background scans to bail out. Currently set only during destruction, so retiring

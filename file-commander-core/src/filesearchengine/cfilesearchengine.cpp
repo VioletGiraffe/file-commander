@@ -9,7 +9,7 @@
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
 #include "threading/thread_helpers.h"
-#include "threading/cworkerthread.h"
+#include "threading/cthreadpool.h"
 #include "utility/on_scope_exit.hpp"
 #include "utility_functions/memory_functions.h"
 
@@ -287,7 +287,7 @@ void CFileSearchEngine::searchThread(
 
 	ContentSearchContext contentSearchContext{ listener, &fileContentsRegExp, &fileContentsPlainText, &cancellationRequested };
 	std::unique_ptr<std::counting_semaphore<>> availableContentTaskSlots;
-	std::unique_ptr<CWorkerThreadPool> contentSearchPool;
+	std::unique_ptr<CThreadPool> contentSearchPool;
 
 	for (const QString& pathToLookIn : where)
 	{
@@ -334,7 +334,7 @@ void CFileSearchEngine::searchThread(
 						const uint32_t contentWorkerCount = std::clamp(std::thread::hardware_concurrency(), 1u, maximumContentWorkers);
 						availableContentTaskSlots = std::make_unique<std::counting_semaphore<>>(contentWorkerCount * 2);
 						contentSearchContext.availableTaskSlots = availableContentTaskSlots.get();
-						contentSearchPool = std::make_unique<CWorkerThreadPool>(contentWorkerCount, "File search by contents thread pool");
+						contentSearchPool = std::make_unique<CThreadPool>(contentWorkerCount, "File search by contents thread pool");
 					}
 
 					if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, cancellationRequested))

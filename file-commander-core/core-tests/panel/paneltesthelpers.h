@@ -193,7 +193,7 @@ private:
 class WorkerGate
 {
 public:
-	explicit WorkerGate(CWorkerThreadPool& pool) noexcept : _pool{ pool } {}
+	explicit WorkerGate(CThreadPool& pool) noexcept : _pool{ pool } {}
 
 	~WorkerGate()
 	{
@@ -252,7 +252,7 @@ private:
 	}
 
 private:
-	CWorkerThreadPool& _pool;
+	CThreadPool& _pool;
 	std::mutex _mutex;
 	std::condition_variable _condition;
 	bool _closed = false;
@@ -274,7 +274,7 @@ public:
 	[[nodiscard]] CPanel& panel() { return _panel; }
 	[[nodiscard]] RecordingListener& listener() { return _listener; }
 	[[nodiscard]] WorkerGate& worker() { return _gate; }
-	[[nodiscard]] CWorkerThreadPool& pool() { return _pool; }
+	[[nodiscard]] CThreadPool& pool() { return _pool; }
 
 	// One UI-queue drain, exactly what the application's 10 ms timer does.
 	void tick() { _panel.uiThreadTimerTick(); }
@@ -321,7 +321,7 @@ public:
 private:
 	// Declaration order is load-bearing. Destruction runs bottom-up: the panel retires its own pool tasks first,
 	// then the gate releases the worker it may have parked, and only then does the pool join its threads.
-	CWorkerThreadPool _pool{ 1, "Panel test pool" };
+	CThreadPool _pool{ 1, "Panel test pool" };
 	WorkerGate _gate{ _pool };
 	RecordingListener _listener;
 	CPanel _panel;

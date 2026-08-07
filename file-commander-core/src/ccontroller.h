@@ -187,7 +187,7 @@ private:
 	// All panel tabs' file list enumeration and dir size calculation. Sized to the core count: that work parallelises
 	// across tabs. Every task carries its CPanel's _taskTag, so ~CPanel retires its own without waiting for other tabs.
 	// Declared before _panels so it outlives the CPanels that post tasks to it.
-	CWorkerThreadPool    _panelWorkerPool;
+	CThreadPool             _panelWorkerPool;
 	std::array<TabList, 2> _panels;
 	qulonglong             _nextTabId = 1; // 0 is reserved as "no tab"/invalid
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
