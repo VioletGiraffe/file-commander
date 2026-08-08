@@ -51,6 +51,8 @@ CController::~CController()
 {
 	assert_r(_panels[(size_t)Panel::LeftPanel].tabs.empty());
 	assert_r(_panels[(size_t)Panel::RightPanel].tabs.empty());
+
+	_instance = nullptr;
 }
 
 CController& CController::get()
@@ -86,8 +88,6 @@ void CController::shutdown()
 	for (auto& listeners : _currentItemChangedListeners)
 		listeners.clear();
 	_volumesChangedListeners.clear();
-
-	_instance = nullptr;
 }
 
 void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedListener *listener)
@@ -703,6 +703,7 @@ const CPanel &CController::panel(Panel p) const
 	case Panel::RightPanel:
 	{
 		const TabList& tabList = _panels[(size_t)p];
+		assert_r(!tabList.tabs.empty());
 		return *tabList.tabs[tabList.activeTab];
 	}
 	default:
@@ -719,6 +720,7 @@ CPanel& CController::panel(Panel p)
 	case Panel::RightPanel:
 	{
 		TabList& tabList = _panels[(size_t)p];
+		assert_r(!tabList.tabs.empty());
 		return *tabList.tabs[tabList.activeTab];
 	}
 	default:

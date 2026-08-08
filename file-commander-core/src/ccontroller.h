@@ -115,6 +115,7 @@ public:
 	}
 
 // Getters
+	// A side always has at least one tab, so these are valid until shutdown() destroys them all.
 	[[nodiscard]] const CPanel& panel(Panel p) const;
 	[[nodiscard]] CPanel& panel(Panel p);
 	[[nodiscard]] const CPanel& otherPanel(Panel p) const;
