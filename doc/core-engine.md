@@ -15,14 +15,17 @@ CController
  `- plugin proxy and WCX host
 ```
 
-`CController::panel(side)` returns the active tab. Tabs own their `CPanel` and have stable IDs independent of
-display position. Side listeners are attached to existing and newly created tabs. See [tabs.md](tabs.md) for the
-cross-layer contract.
+Until shutdown, `CController::panel(side)` returns the active tab. Tabs own their `CPanel` and have stable IDs
+independent of display position. Side listeners are attached to existing and newly created tabs. See
+[tabs.md](tabs.md) for the cross-layer contract.
 
 `main()` owns the controller and calls `CController::shutdown()` after the event loop and native shell operations
 finish, while UI and plugin objects still exist. Shutdown saves state, stops asynchronous producers, releases
 callbacks, and destroys all tabs. The destructor asserts the empty-tab postcondition instead of initiating a second
 shutdown.
+
+`CController::get()` remains bound until destruction, so late shutdown access still reaches a valid controller
+object. Panel-dependent APIs are valid only before `shutdown()` destroys the tabs.
 
 Panels share the controller's panel worker pool. Every task that captures a panel carries that panel's task tag;
 destruction retires the tag before panel storage disappears. The pool's declaration order makes it outlive all

@@ -46,7 +46,7 @@ public:
 // Notifications from UI
 	void uiThreadTimerTick();
 	// Persists both sides' history + visited-locations logs. Driven periodically by the UI (autosave) in addition to
-	// the destructor, so a session that ends without unwinding (kill, power loss, debugger stop) doesn't lose the log.
+	// shutdown(), so a session that ends without unwinding (kill, power loss, debugger stop) doesn't lose the log.
 	void saveHistory();
 
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
@@ -164,7 +164,7 @@ private:
 	};
 	// Creates a CPanel for side p, wires its listeners, appends it as a new tab and returns it. Does NOT set a path.
 	CPanel& createTab(Panel p);
-	// Attaches all of side p's recorded contents/cursor listeners (plus the plugin engine) to a freshly created tab.
+	// Attaches all of side p's recorded contents/cursor listeners to a freshly created tab.
 	void attachListenersToTab(Panel p, CPanel& tab);
 	// Deactivates the currently active tab and activates tabId. Shared by addTab and setActiveTab; callers are
 	// responsible for skipping the call when tabId is already the active tab.

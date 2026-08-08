@@ -40,8 +40,8 @@ plugin interface, but the core discovers and loads them at runtime rather than l
 
 ## Invariants to carry into code reading
 
-1. Each side always owns at least one tab; a tab owns a `CPanel`. `CController::panel(side)` returns the active
-   tab, while tab IDs remain stable across reordering.
+1. Until controller shutdown, each side owns at least one tab; a tab owns a `CPanel`.
+   `CController::panel(side)` returns the active tab, while tab IDs remain stable across reordering.
 2. Each UI tab owns a model/proxy/selection triplet, but those models resolve data through the active `CPanel`.
    Only the active tab's triplet may be queried or attached to the shared view.
 3. Filesystem items are keyed throughout the core, UI, selection state, and plugin API by their deterministic

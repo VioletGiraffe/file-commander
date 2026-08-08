@@ -5,12 +5,14 @@ Tabs cross core ownership, UI model/view state, notifications, worker lifetime, 
 
 ## Identity and ownership
 
-Each side owns one or more `CPanel` tabs and an active position. Stable nonzero tab IDs survive vector growth and
-reordering; positions do not. Core calls and notifications identify tabs by ID, and the tab bar stores that ID as
-tab data. Resolve positions immediately before acting because another operation may have changed the ordering.
+Until controller shutdown, each side owns one or more `CPanel` tabs and an active position. Stable nonzero tab IDs
+survive vector growth and reordering; positions do not. Core calls and notifications identify tabs by ID, and the
+tab bar stores that ID as tab data. Resolve positions immediately before acting because another operation may have
+changed the ordering.
 
-Side-wide listeners and the plugin engine attach to every tab. Visible consumers filter notifications against the
-active tab ID; folder path is not an identity because duplicate tabs may show the same location.
+Side-wide listeners attach to every tab. The controller publishes only the active tab to the plugin proxy. Visible
+consumers filter notifications against the active tab ID; folder path is not an identity because duplicate tabs may
+show the same location.
 
 ## UI invariant
 
