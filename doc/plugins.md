@@ -20,6 +20,10 @@ There are two unrelated mechanisms:
 Each native library exports `createPlugin()`. The engine then supplies the proxy; `proxySet()` is the hook for
 proxy-dependent initialization. The interface headers are authoritative for the ABI.
 
+`main()` owns the plugin engine between the main window and controller in the destruction order. The engine owns
+plugin instances and their library modules; each instance is destroyed before its module is unloaded. The
+controller owns the proxy, so it remains valid through plugin destruction.
+
 Plugin windows use `CFileCommanderViewerPlugin::WindowPtr`, a unique pointer whose deleter is instantiated in the
 plugin module. Keep that type across the boundary so allocation and deletion occur in the same dynamic library.
 Full viewer windows opt into deletion on close; quick view retains the `WindowPtr` in `CPanelDisplayController`.
@@ -27,12 +31,13 @@ Full viewer windows opt into deletion on close; quick view retains the `WindowPt
 ## Proxy and tab visibility
 
 `CPluginProxy` exposes visible-panel snapshots, current/other-panel queries, UI-thread dispatch, and menu
-registration. Plugins do not receive `CController` directly.
+registration. Plugins do not receive `CController` or `CPluginEngine` directly.
 
-The plugin engine is attached to every tab but publishes only a side's active tab. It ignores
-`onPanelContentsInvalidated`, retaining the last consistent folder/list pair until committed contents arrive; an
-intermediate update would otherwise pair a new folder path with an empty list. Selection/current-item/focus updates
-come from the UI for the visible triplets.
+The controller publishes only a side's active tab into the proxy. It ignores `onPanelContentsInvalidated`, retaining
+the last consistent folder/list pair until committed contents arrive; an intermediate update would otherwise pair
+a new folder path with an empty list. Selection/current-item/focus updates come from the UI for the visible
+triplets. Controller shutdown disables proxy callbacks and destroys queued plugin callables while their modules are
+still loaded.
 
 ## Discovery and viewer selection
 

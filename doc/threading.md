@@ -45,6 +45,10 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 Structural lifetime constraints belong beside the relevant member declarations; preserve those comments when
 changing declaration order.
 
+Application shutdown is an explicit quiescence boundary. `main()` calls `CController::shutdown()` while the main
+window and plugin modules are still alive. The controller disables proxy callbacks, stops and joins its producers,
+discards queued UI work, then destroys the panels; ordinary destruction only verifies that this happened.
+
 ## File-operation handshake
 
 `CFileOperationJob` owns one worker and a mutex/condition-variable state machine for pause, cancellation, decisions,

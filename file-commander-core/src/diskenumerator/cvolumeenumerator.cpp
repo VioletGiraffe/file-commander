@@ -61,6 +61,14 @@ void CVolumeEnumerator::startEnumeratorThread()
 	}, 4000);
 }
 
+void CVolumeEnumerator::shutdown()
+{
+	_timer->stop();
+	_enumeratorThread.terminate();
+	_notificationsQueue.clear();
+	_observers.clear();
+}
+
 // Refresh the list of available volumes
 void CVolumeEnumerator::enumerateVolumes(bool async)
 {

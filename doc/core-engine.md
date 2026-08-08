@@ -19,6 +19,11 @@ CController
 display position. Side listeners are attached to existing and newly created tabs. See [tabs.md](tabs.md) for the
 cross-layer contract.
 
+`main()` owns the controller and calls `CController::shutdown()` after the event loop and native shell operations
+finish, while UI and plugin objects still exist. Shutdown saves state, stops asynchronous producers, releases
+callbacks, and destroys all tabs. The destructor asserts the empty-tab postcondition instead of initiating a second
+shutdown.
+
 Panels share the controller's panel worker pool. Every task that captures a panel carries that panel's task tag;
 destruction retires the tag before panel storage disappears. The pool's declaration order makes it outlive all
 panels. Inactive tabs release their filesystem watcher and refresh when reactivated.

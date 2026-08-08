@@ -11,11 +11,20 @@ CPluginProxy::CPluginProxy(std::function<void(std::function<void()>)> execOnUiTh
 
 void CPluginProxy::setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation)
 {
+	std::lock_guard lock(_callbackMutex);
 	_createToolMenuEntryImplementation = implementation;
+}
+
+void CPluginProxy::shutdown()
+{
+	std::lock_guard lock(_callbackMutex);
+	_createToolMenuEntryImplementation = {};
+	_execOnUiThreadImplementation = {};
 }
 
 void CPluginProxy::createToolMenuEntries(const std::vector<MenuTree>& menuTrees)
 {
+	std::lock_guard lock(_callbackMutex);
 	if (_createToolMenuEntryImplementation)
 		_createToolMenuEntryImplementation(menuTrees);
 }
@@ -124,5 +133,7 @@ QString CPluginProxy::currentItemPath() const
 
 void CPluginProxy::execOnUiThread(const std::function<void()>& code)
 {
-	_execOnUiThreadImplementation(code);
+	std::lock_guard lock(_callbackMutex);
+	if (_execOnUiThreadImplementation)
+		_execOnUiThreadImplementation(code);
 }

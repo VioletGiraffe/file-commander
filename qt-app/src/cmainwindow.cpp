@@ -91,9 +91,11 @@ void showDeleteItemsError()
 }
 #endif
 
-CMainWindow::CMainWindow(CShellOperationRunner& shellOperations, QWidget *parent) noexcept :
+CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, CShellOperationRunner& shellOperations, QWidget *parent) noexcept :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
+	_controller(&controller),
+	_pluginEngine(pluginEngine),
 	_shellOperations(shellOperations)
 {
 	assert_r(!_instance);
@@ -143,9 +145,9 @@ CMainWindow::~CMainWindow() noexcept
 	_uiThreadTimer->disconnect();
 	_historyAutosaveTimer->disconnect();
 
-	// Destroy the controller (which deterministically stops its worker threads) before the UI, so no background
-	// task can be running while the widgets are torn down.
-	_controller.reset();
+	// endQuickView() re-parents the viewer's central widget back into its own window, so `ui` must still be alive.
+	_leftPanelDisplayController.endQuickView();
+	_rightPanelDisplayController.endQuickView();
 
 	_instance = nullptr;
 	delete ui;
@@ -472,7 +474,6 @@ void CMainWindow::currentPanelChanged(const Panel panel)
 	_controller->activePanelChanged(_currentFileList->panelPosition());
 	CSettings().setValue(KEY_LAST_ACTIVE_PANEL, (int)_currentFileList->panelPosition());
 	ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPathNative());
-	CPluginEngine::get().currentPanelChanged(_currentFileList->panelPosition());
 	_commandLineCompleter.setModel(_currentFileList->sortModel());
 }
 
@@ -662,12 +663,12 @@ void CMainWindow::invertSelection()
 // Other UI commands
 void CMainWindow::viewFile()
 {
-	CPluginEngine::get().viewCurrentFile();
+	_pluginEngine.viewCurrentFile();
 }
 
 void CMainWindow::viewFileInTextViewer()
 {
-	CPluginEngine::get().viewCurrentFileInTextViewer();
+	_pluginEngine.viewCurrentFileInTextViewer();
 }
 
 void CMainWindow::editFile()
@@ -939,7 +940,7 @@ void CMainWindow::checkForUpdates()
 
 void CMainWindow::about()
 {
-	CAboutDialog(this).exec();
+	CAboutDialog(this, _pluginEngine.activePluginNames()).exec();
 }
 
 void CMainWindow::reportBug()
@@ -1023,9 +1024,8 @@ void CMainWindow::updatePathBarAndWindowTitle(Panel p)
 
 void CMainWindow::initCore()
 {
-	_controller = std::make_unique<CController>();
-	ui->leftPanel->init(_controller.get(), _shellOperations);
-	ui->rightPanel->init(_controller.get(), _shellOperations);
+	ui->leftPanel->init(_controller, _shellOperations);
+	ui->rightPanel->init(_controller, _shellOperations);
 
 	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt());
 
@@ -1033,7 +1033,7 @@ void CMainWindow::initCore()
 
 	_controller->pluginProxy().setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(ui->menuCommands, menuEntries); });
 	// Need to load the plugins only after the menu creator has been set
-	_controller->loadPlugins();
+	_pluginEngine.loadPlugins();
 
 	_currentFileList = ui->leftPanel;
 	_otherFileList = ui->rightPanel;
@@ -1130,7 +1130,7 @@ bool CMainWindow::fileListReturnPressed()
 
 void CMainWindow::quickViewCurrentFile()
 {
-	otherPanelDisplayController().startQuickView(CPluginEngine::get().createViewerWindowForCurrentFile());
+	otherPanelDisplayController().startQuickView(_pluginEngine.createViewerWindowForCurrentFile());
 }
 
 void CMainWindow::registerFileOperationDialog(CFileOperationDialog* dialog)

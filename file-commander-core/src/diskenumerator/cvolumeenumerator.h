@@ -21,6 +21,7 @@ public:
 	CVolumeEnumerator();
 
 	void startEnumeratorThread();
+	void shutdown();
 
 	// Volumes list observer interface
 	class IVolumeListObserver

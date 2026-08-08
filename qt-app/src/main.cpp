@@ -1,5 +1,7 @@
 #include "cmainwindow.h"
+#include "ccontroller.h"
 #include "cshelloperationrunner.h"
+#include "pluginengine/cpluginengine.h"
 #include "settings.h"
 #include "settings/csettings.h"
 #include "system/win_utils.hpp"
@@ -119,8 +121,10 @@ int main(int argc, char *argv[])
 		qApp->setStyleSheet(styleSheet);
 
 	CShellOperationRunner shellOperations;
+	CController controller;
+	CPluginEngine pluginEngine{controller.pluginProxy()};
 
-	CMainWindow w{ shellOperations };
+	CMainWindow w{controller, pluginEngine, shellOperations};
 	w.updateInterface();
 
 	if (app.arguments().contains("--test-launch"))
@@ -129,6 +133,6 @@ int main(int argc, char *argv[])
 	const int exitCode = app.exec();
 	// Must precede ~CMainWindow: the shell dialogs these operations put up are owned by its native window.
 	shellOperations.waitForPendingOperations();
+	controller.shutdown();
 	return exitCode;
 }
-

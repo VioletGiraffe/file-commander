@@ -1,35 +1,24 @@
 #pragma once
 
-#include "cpanel.h"
 #include "plugininterface/cfilecommanderviewerplugin.h"
 
 #include <memory>
 #include <vector>
 
-enum PanelPosition : int;
 class QLibrary;
+class CPluginProxy;
 
-class CPluginEngine final : public PanelContentsChangedListener
+class CPluginEngine final
 {
 public:
-	CPluginEngine();
-	~CPluginEngine() override;
+	explicit CPluginEngine(CPluginProxy& proxy) noexcept;
+	~CPluginEngine();
 
 	CPluginEngine& operator=(const CPluginEngine& other) = delete;
 	CPluginEngine(const CPluginEngine& other) = delete;
 
-	static CPluginEngine& get();
-
 	void loadPlugins();
-	std::vector<QString> activePluginNames();
-
-	// CPanel observers
-	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
-	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
-
-	void selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes);
-	void currentItemChanged(Panel p, qulonglong currentItemHash);
-	void currentPanelChanged(Panel p);
+	std::vector<QString> activePluginNames() const;
 
 // Operations
 	void viewCurrentFile();
@@ -37,13 +26,18 @@ public:
 	CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> createViewerWindowForCurrentFile();
 
 private:
-	static PanelPosition pluginPanelEnumFromCorePanelEnum(Panel p);
-
 	// An empty requiredCategory matches any viewer (auto-detect by file type, with the text viewer as fallback); a non-empty one restricts to viewers of that category().
 	CFileCommanderViewerPlugin* viewerForCurrentFile(const QString& requiredCategory);
 
 	static void showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> window);
 
 private:
-	std::vector<std::pair<std::unique_ptr<CFileCommanderPlugin>, std::unique_ptr<QLibrary>>> _plugins;
+	struct LoadedPlugin
+	{
+		std::unique_ptr<QLibrary> module; // declared before instance so that they are destroyed in the correct (reverse) order
+		std::unique_ptr<CFileCommanderPlugin> instance;
+	};
+
+	CPluginProxy& _proxy; // Controller-owned; main's declaration order keeps it alive through plugin destruction
+	std::vector<LoadedPlugin> _plugins;
 };

@@ -1,7 +1,7 @@
 #include "cpluginengine.h"
-#include "ccontroller.h"
 #include "plugininterface/cfilecommanderviewerplugin.h"
 #include "plugininterface/cpluginproxy.h"
+#include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -11,14 +11,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QMimeDatabase>
 RESTORE_COMPILER_WARNINGS
 
-CPluginEngine::CPluginEngine() = default;
+CPluginEngine::CPluginEngine(CPluginProxy& proxy) noexcept : _proxy(proxy) {}
 CPluginEngine::~CPluginEngine() = default;
-
-CPluginEngine& CPluginEngine::get()
-{
-	static CPluginEngine engine;
-	return engine;
-}
 
 void CPluginEngine::loadPlugins()
 {
@@ -47,59 +41,24 @@ void CPluginEngine::loadPlugins()
 			CFileCommanderPlugin * plugin = createFunc();
 			if (plugin)
 			{
-				plugin->setProxy(&CController::get().pluginProxy());
+				plugin->setProxy(&_proxy);
 				qInfo().noquote() << QStringLiteral("Loaded plugin \"%1\" (%2)").arg(plugin->name(), absolutePath);
-				_plugins.emplace_back(std::unique_ptr<CFileCommanderPlugin>(plugin), std::move(pluginModule));
+				_plugins.push_back({std::move(pluginModule), std::unique_ptr<CFileCommanderPlugin>(plugin)});
 			}
 		}
 	}
 }
 
-std::vector<QString> CPluginEngine::activePluginNames()
+std::vector<QString> CPluginEngine::activePluginNames() const
 {
 	std::vector<QString> names;
 	for (const auto& plugin: _plugins)
 	{
-		assert_r(plugin.first.get());
-		names.push_back(plugin.first->name());
+		assert_r(plugin.instance);
+		names.push_back(plugin.instance->name());
 	}
 
 	return names;
-}
-
-void CPluginEngine::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/)
-{
-	CController& controller = CController::get();
-	if (tabId != controller.activeTabId(p))
-		return; // The plugin API exposes the panel the user is looking at, so background tabs aren't published
-
-	auto& proxy = controller.pluginProxy();
-	// TODO: copying all the data on every refresh, do we need this??
-	proxy.panelContentsChanged(pluginPanelEnumFromCorePanelEnum(p), controller.panel(p).currentDirPathPosix(), controller.panel(p).list());
-}
-
-void CPluginEngine::onPanelContentsInvalidated(Panel /*p*/, qulonglong /*tabId*/)
-{
-	// Plugins keep the last path + contents pair they were given until the new listing arrives. Publishing the
-	// intermediate state would pair the new path with an empty list, i.e. show them a folder that isn't empty as one that is.
-}
-
-void CPluginEngine::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)
-{
-	auto& proxy = CController::get().pluginProxy();
-	proxy.selectionChanged(pluginPanelEnumFromCorePanelEnum(p), selectedItemsHashes);
-}
-
-void CPluginEngine::currentItemChanged(Panel p, qulonglong currentItemHash)
-{
-	auto& proxy = CController::get().pluginProxy();
-	proxy.currentItemChanged(pluginPanelEnumFromCorePanelEnum(p), currentItemHash);
-}
-
-void CPluginEngine::currentPanelChanged(Panel p)
-{
-	auto& proxy = CController::get().pluginProxy();
-	proxy.currentPanelChanged(pluginPanelEnumFromCorePanelEnum(p));
 }
 
 void CPluginEngine::viewCurrentFile()
@@ -114,7 +73,7 @@ void CPluginEngine::viewCurrentFileInTextViewer()
 	if (!viewer)
 		return;
 
-	showViewerWindow(viewer->viewFile(CController::get().pluginProxy().currentItemPath()));
+	showViewerWindow(viewer->viewFile(_proxy.currentItemPath()));
 }
 
 void CPluginEngine::showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> window)
@@ -135,18 +94,12 @@ CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CPluginEngine::createViewer
 	if (!viewer)
 		return {};
 
-	return viewer->viewFile(CController::get().pluginProxy().currentItemPath());
-}
-
-PanelPosition CPluginEngine::pluginPanelEnumFromCorePanelEnum(Panel p)
-{
-	assert_r(p != Panel::UnknownPanel);
-	return p == Panel::LeftPanel ? PluginLeftPanel : PluginRightPanel;
+	return viewer->viewFile(_proxy.currentItemPath());
 }
 
 CFileCommanderViewerPlugin* CPluginEngine::viewerForCurrentFile(const QString& requiredCategory)
 {
-	const QString currentFile = CController::get().pluginProxy().currentItemPath();
+	const QString currentFile = _proxy.currentItemPath();
 	if (currentFile.isEmpty())
 		return nullptr;
 
@@ -158,10 +111,10 @@ CFileCommanderViewerPlugin* CPluginEngine::viewerForCurrentFile(const QString& r
 	CFileCommanderViewerPlugin* textFallback = nullptr;
 	for(auto& plugin: _plugins)
 	{
-		if (plugin.first->type() != CFileCommanderPlugin::Viewer)
+		if (plugin.instance->type() != CFileCommanderPlugin::Viewer)
 			continue;
 
-		auto* viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.first.get());
+		auto* viewer = static_cast<CFileCommanderViewerPlugin*>(plugin.instance.get());
 		assert_r(viewer);
 		if (!viewer)
 			continue;

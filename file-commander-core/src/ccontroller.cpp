@@ -2,7 +2,6 @@
 #include "settings/csettings.h"
 #include "settings.h"
 #include "shell/cshell.h"
-#include "pluginengine/cpluginengine.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "iconprovider/ciconprovider.h"
@@ -28,6 +27,7 @@ CController* CController::_instance = nullptr;
 CController::CController() :
 	_favoriteLocations{KEY_FAVORITES},
 	_panelWorkerPool{ std::clamp(std::thread::hardware_concurrency(), 1u, 4u), "Panel file list pool" },
+	_workerPool{ std::max(std::thread::hardware_concurrency(), 1u), "CController pool" },
 	_pluginProxy{[this](const std::function<void()>& code) {execOnUiThread(code);}}
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
@@ -49,13 +49,8 @@ CController::CController() :
 
 CController::~CController()
 {
-	// Capture the final state (notably each tab's cursor position, which pure cursor moves don't otherwise persist).
-	// The tabs are our own members, so they're still valid here.
-	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
-		savePanelState(p);
-	saveHistory();
-
-	_instance = nullptr;
+	assert_r(_panels[(size_t)Panel::LeftPanel].tabs.empty());
+	assert_r(_panels[(size_t)Panel::RightPanel].tabs.empty());
 }
 
 CController& CController::get()
@@ -64,9 +59,35 @@ CController& CController::get()
 	return *_instance;
 }
 
-void CController::loadPlugins()
+void CController::shutdown()
 {
-	CPluginEngine::get().loadPlugins();
+	assert_r(!_panels[(size_t)Panel::LeftPanel].tabs.empty());
+	assert_r(!_panels[(size_t)Panel::RightPanel].tabs.empty());
+
+	// Capture the final state (notably each tab's cursor position, which pure cursor moves don't otherwise persist)
+	// before stopping and destroying the panels.
+	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+		savePanelState(p);
+	saveHistory();
+
+	_pluginProxy.shutdown();
+	_volumeEnumerator.shutdown();
+
+	// CPanel destruction raises its abort flag before retiring the panel's tagged work, so an in-flight recursive
+	// scan exits promptly. The shared pool must remain alive until every panel has completed that handshake.
+	for (auto& tabList : _panels)
+		tabList.tabs.clear();
+	_panelWorkerPool.finishAllThreads(false);
+	_workerPool.finishAllThreads(false);
+	_uiQueue.clear();
+
+	for (auto& listeners : _panelContentsListeners)
+		listeners.clear();
+	for (auto& listeners : _currentItemChangedListeners)
+		listeners.clear();
+	_volumesChangedListeners.clear();
+
+	_instance = nullptr;
 }
 
 void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedListener *listener)
@@ -122,7 +143,6 @@ CPanel& CController::createTab(Panel p)
 
 void CController::attachListenersToTab(Panel p, CPanel& tab)
 {
-	tab.addPanelContentsChangedListener(&CPluginEngine::get());
 	tab.addPanelContentsChangedListener(this); // The controller listens to persist tab state on navigation (deduped)
 	tab.addCurrentPathChangedListener(this);   // ...and to append to the side's visited-locations log on a real path change
 	for (auto* listener : _panelContentsListeners[(size_t)p])
@@ -391,10 +411,18 @@ void CController::saveHistoryList(Panel p)
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_VISITED_LOCATIONS : KEY_RPANEL_VISITED_LOCATIONS, QStringList(visitedDeque.cbegin(), visitedDeque.cend()));
 }
 
-// Every tab is persisted, so this deliberately doesn't filter by tabId.
-void CController::onPanelContentsChanged(Panel p, qulonglong /*tabId*/, FileListRefreshCause /*operation*/)
+void CController::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/)
 {
+	// Every tab is persisted, so this deliberately happens before the active-tab filter below.
 	savePanelState(p);
+
+	if (tabId != activeTabId(p))
+		return; // The plugin API exposes the tab the user is looking at, not background tabs
+
+	// Keep the last committed folder/list pair until another committed listing arrives. The invalidation callback
+	// deliberately leaves this snapshot alone so plugins never see a new folder paired with an empty intermediate list.
+	// TODO: copying all the data on every refresh, do we need this??
+	_pluginProxy.panelContentsChanged(pluginPanelPosition(p), panel(p).currentDirPathPosix(), panel(p).list());
 }
 
 void CController::onPanelContentsInvalidated(Panel /*p*/, qulonglong /*tabId*/)
@@ -493,6 +521,12 @@ void CController::settingsChanged()
 void CController::activePanelChanged(Panel p)
 {
 	_activePanel = p;
+	_pluginProxy.currentPanelChanged(pluginPanelPosition(p));
+}
+
+void CController::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)
+{
+	_pluginProxy.selectionChanged(pluginPanelPosition(p), selectedItemsHashes);
 }
 
 // Navigates specified panel up the directory tree
@@ -651,7 +685,7 @@ void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 void CController::setCurrentItemHashForCurrentFolder(Panel p, qulonglong newCurrentItemHash, const bool notifyUi)
 {
 	panel(p).setCurrentItemHashForFolder(panel(p).currentDirPathPosix(), newCurrentItemHash, notifyUi);
-	CPluginEngine::get().currentItemChanged(p, newCurrentItemHash);
+	_pluginProxy.currentItemChanged(pluginPanelPosition(p), newCurrentItemHash);
 }
 
 void CController::copyCurrentItemPathToClipboard()
@@ -718,6 +752,11 @@ Panel CController::otherPanelPosition(Panel p)
 	}
 }
 
+PanelPosition CController::pluginPanelPosition(Panel p)
+{
+	assert_r(p != Panel::UnknownPanel);
+	return p == Panel::LeftPanel ? PluginLeftPanel : PluginRightPanel;
+}
 
 Panel CController::activePanelPosition() const
 {

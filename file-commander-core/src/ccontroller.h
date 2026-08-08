@@ -32,10 +32,12 @@ public:
 	};
 
 	CController();
-	~CController(); // Saves the panel state (incl. cursor positions) on graceful shutdown
+	~CController();
 	[[nodiscard]] static CController& get();
 
-	void loadPlugins();
+	// Stops every producer and releases callbacks while their owners are still alive. Must be called exactly once
+	// before destruction; the empty tab lists are the postcondition checked by ~CController.
+	void shutdown();
 
 	void setPanelContentsChangedListener(Panel p, PanelContentsChangedListener * listener);
 	void setCurrentItemChangedListener(Panel p, CurrentItemChangedListener * listener);
@@ -76,6 +78,8 @@ public:
 	void settingsChanged();
 	// Focus is set to a panel
 	void activePanelChanged(Panel p);
+	// Visible selection is UI-owned; mirror it into the plugin-facing panel snapshot.
+	void selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes);
 
 // Operations
 	// Navigates specified panel up the directory tree
@@ -171,6 +175,7 @@ private:
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
 	void savePanelState(Panel p);    // Writes side p's tab paths + active index + the active tab's path (deduplicated)
 	void saveHistoryList(Panel p);   // Writes side p's active-tab back/forward history + visited-locations log; see saveHistory()
+	[[nodiscard]] static PanelPosition pluginPanelPosition(Panel p);
 
 	// PanelContentsChangedListener: the controller listens to its own tabs only to persist on navigation.
 	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
@@ -188,6 +193,8 @@ private:
 	// across tabs. Every task carries its CPanel's _taskTag, so ~CPanel retires its own without waiting for other tabs.
 	// Declared before _panels so it outlives the CPanels that post tasks to it.
 	CThreadPool             _panelWorkerPool;
+	// General-purpose pool, full hardware capacity, do not use for tasks whose lifetime depends on CPanel
+	CThreadPool             _workerPool;
 	std::array<TabList, 2> _panels;
 	qulonglong             _nextTabId = 1; // 0 is reserved as "no tab"/invalid
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.

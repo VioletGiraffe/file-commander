@@ -11,7 +11,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
 
-#include <memory>
 #include <vector>
 
 namespace Ui {
@@ -20,6 +19,7 @@ namespace Ui {
 
 class CPanelWidget;
 class CFileOperationDialog;
+class CPluginEngine;
 class CShellOperationRunner;
 enum class TransferKind; // fileoperations/fileoperationtypes.h
 class QShortcut;
@@ -31,8 +31,7 @@ class CMainWindow final : public QMainWindow,
 		private PanelContentsChangedListener
 {
 public:
-	// shellOperations must outlive the window: the shell dialogs it starts are owned by this window's handle.
-	explicit CMainWindow(CShellOperationRunner& shellOperations, QWidget* parent = nullptr) noexcept;
+	explicit CMainWindow(CController& controller, CPluginEngine& pluginEngine, CShellOperationRunner& shellOperations, QWidget* parent = nullptr) noexcept;
 	~CMainWindow() noexcept;
 	[[nodiscard]] static CMainWindow* get();
 
@@ -154,7 +153,8 @@ private:
 	QTimer* _uiThreadTimer = nullptr;
 	QTimer* _historyAutosaveTimer = nullptr; // Periodically persists the visited-folders history so an abrupt exit doesn't lose it
 
-	std::unique_ptr<CController> _controller;
+	CController* const _controller;
+	CPluginEngine& _pluginEngine;
 	CShellOperationRunner& _shellOperations;
 	CPanelWidget* _currentFileList = nullptr;
 	CPanelWidget* _otherFileList = nullptr;
@@ -170,4 +170,3 @@ private:
 	struct ShiftCaption { QPushButton* button; QString normal; QString shifted; };
 	std::vector<ShiftCaption> _shiftCaptions;
 };
-

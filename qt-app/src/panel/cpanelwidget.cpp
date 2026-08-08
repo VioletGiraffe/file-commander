@@ -5,7 +5,6 @@
 #include "cshelloperationrunner.h"
 #include "columns.h"
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
-#include "pluginengine/cpluginengine.h"
 #include "../favoritelocationseditor/cfavoritelocationseditor.h"
 #include "iconprovider/ciconprovider.h"
 #include "filesystemhelperfunctions.h"
@@ -748,7 +747,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 	updateInfoLabel(selection);
 
 	// Notify the controller of the new selection
-	CPluginEngine::get().selectionChanged(_panelPosition, selection);
+	_controller->selectionChanged(_panelPosition, selection);
 }
 
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
