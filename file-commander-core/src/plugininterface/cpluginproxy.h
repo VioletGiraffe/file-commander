@@ -73,11 +73,12 @@ public:
 private:
 	void shutdown();
 
+private:
+	std::array<PanelState, 2> _panelState;
+	PanelPosition             _currentPanel = PluginUnknownPanel;
 	// Held through callback invocation so shutdown cannot return while a plugin is still dispatching into an owner
 	// whose queue or UI is about to be destroyed.
 	std::mutex _callbackMutex;
 	CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;
-	std::array<PanelState, 2> _panelState;
 	std::function<void(std::function<void()>)> _execOnUiThreadImplementation;
-	PanelPosition                       _currentPanel = PluginUnknownPanel;
 };
