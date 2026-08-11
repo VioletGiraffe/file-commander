@@ -12,11 +12,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
-CImageViewerWindow::CImageViewerWindow(QWidget* parent) noexcept :
+CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noexcept :
 	CPluginWindow(parent),
 	ui(new Ui::CImageViewerWindow)
 {
 	ui->setupUi(this);
+	ui->_imageViewerWidget->setPluginProxy(proxy);
 	_imageInfoLabel = new QLabel(this);
 	statusBar()->addWidget(_imageInfoLabel);
 	_viewingAtLabel = new QLabel(this);
@@ -68,7 +69,7 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 	// Only has effect on macOS , must be after set. Gives the title bar a document proxy icon (the only icon this window can have)
 	setWindowFilePath(imagePath);
 
-	QTimer::singleShot(100, this, [this](){
+	QTimer::singleShot(3000, this, [this](){
 		setWindowIcon(ui->_imageViewerWidget->imageIcon());
 	});
 

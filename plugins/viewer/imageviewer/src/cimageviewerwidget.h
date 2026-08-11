@@ -1,6 +1,7 @@
 #pragma once
 
 #include "compiler/compiler_warnings_control.h"
+#include "resize/cimageresizer.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QIcon>
@@ -8,6 +9,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QSize>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
+
+class CPluginProxy;
 
 class CImageViewerWidget final : public QWidget
 {
@@ -17,6 +20,7 @@ public:
 	using QWidget::QWidget;
 
 public:
+	void setPluginProxy(CPluginProxy& proxy) noexcept;
 	bool displayImage(const QImage& image);
 	bool displayImage(const QString& imagePath);
 	[[nodiscard]] const QImage& sourceImage() const noexcept { return _sourceImage; }
@@ -59,6 +63,9 @@ private:
 	void resetToFit() noexcept;
 
 private:
+	// Set by the owning plugin window before the widget is used; plugin windows are destroyed before their proxy.
+	CPluginProxy* _pluginProxy = nullptr;
+	ImageProcessing::ParallelForFn _parallelFor;
 	QImage _sourceImage;
 	QImage _displayImage;
 	size_t _cacheKey = 0;

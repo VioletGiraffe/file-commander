@@ -3,6 +3,7 @@
 #include "plugininterface/cpluginwindow.h"
 
 class QLabel;
+class CPluginProxy;
 
 namespace Ui {
 class CImageViewerWindow;
@@ -11,7 +12,7 @@ class CImageViewerWindow;
 class CImageViewerWindow final : public CPluginWindow
 {
 public:
-	explicit CImageViewerWindow(QWidget* parent = nullptr) noexcept;
+	explicit CImageViewerWindow(CPluginProxy& proxy, QWidget* parent = nullptr) noexcept;
 	~CImageViewerWindow() noexcept override;
 
 	bool displayImage(const QString& imagePath);

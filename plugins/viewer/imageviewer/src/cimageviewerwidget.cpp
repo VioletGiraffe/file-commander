@@ -2,6 +2,8 @@
 #include "resize/cimageresizer.h"
 #include "utils/ciconengineqimage.h"
 #include "assert/advanced_assert.h"
+#include "plugininterface/cpluginproxy.h"
+#include "timing/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -109,6 +111,15 @@ namespace
 	}
 }
 
+void CImageViewerWidget::setPluginProxy(CPluginProxy& proxy) noexcept
+{
+	assert_r(!_pluginProxy);
+	_pluginProxy = &proxy;
+	_parallelFor = [proxy = &proxy](size_t count, const std::function<void(size_t)>& body) {
+		proxy->parallelFor(count, body);
+	};
+}
+
 bool CImageViewerWidget::displayImage(const QImage& image)
 {
 	_sourceImage = image;
@@ -181,7 +192,8 @@ QIcon CImageViewerWidget::imageIcon() const
 	if (_sourceImage.isNull())
 		return QIcon{};
 
-	static const auto resizeImage = [](const QImage& src, const QSize& targetSize) -> QImage {
+	// Copied intentionally: probably not necessary, but the lambda is stored in the icon engine and might outlive this widget
+	const auto resizeImage = [parallelFor = _parallelFor](const QImage& src, const QSize& targetSize) -> QImage {
 		const auto srcView = createView<true>(src);
 		if (!srcView.data)
 			return src.scaled(targetSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
@@ -189,7 +201,7 @@ QIcon CImageViewerWidget::imageIcon() const
 		QImage dst(targetSize, src.format());
 		auto dstView = createView<false>(dst);
 
-		ImageProcessing::resize(dstView, srcView);
+		ImageProcessing::resize(dstView, srcView, {}, parallelFor);
 
 		return dst;
 	};
@@ -341,7 +353,9 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		auto dstView = createView<false>(_displayImage);
 		if (srcView.data && dstView.data)
 		{
-			ImageProcessing::resize(dstView, srcView, toRect(sourceRect));
+			CTimeElapsed timer(true);
+			ImageProcessing::resize(dstView, srcView, toRect(sourceRect), _parallelFor);
+			qInfo() << timer.msElapsed();
 		}
 		else // Fallback for unsupported formats only
 		{
