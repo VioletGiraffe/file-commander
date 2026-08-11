@@ -6,6 +6,7 @@
 
 #include "dialogs/csimpleprogressdialog.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QHeaderView>
 #include <QLabel>
@@ -14,6 +15,7 @@
 #include <QShortcut>
 #include <QTreeWidget>
 #include <QVBoxLayout>
+RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
 #include <thread>

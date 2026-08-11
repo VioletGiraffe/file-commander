@@ -1,8 +1,11 @@
 #pragma once
 
+#include "compiler/compiler_warnings_control.h"
 #include "filecomparator/foldercomparison.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
+RESTORE_COMPILER_WARNINGS
 
 #include <optional>
 
