@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 
 	CShellOperationRunner shellOperations;
 	CController controller;
-	CPluginEngine pluginEngine{controller.pluginProxy()};
+	CPluginEngine pluginEngine{controller};
 
 	CMainWindow w{controller, pluginEngine, shellOperations};
 	w.updateInterface();

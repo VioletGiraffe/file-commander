@@ -1,32 +1,62 @@
 #include "cpluginproxy.h"
-#include "assert/advanced_assert.h"
+#include "ccontroller.h"
 
 #include <utility>
 
-CPluginProxy::CPluginProxy(std::function<void(std::function<void()>)> execOnUiThreadImplementation) :
-	_execOnUiThreadImplementation(std::move(execOnUiThreadImplementation))
+// The proxy is the boundary between the plugin and core panel vocabularies, so the translation lives here.
+namespace {
+[[nodiscard]] Panel corePanel(PanelPosition p) noexcept
 {
-	assert_r(_execOnUiThreadImplementation);
+	switch (p)
+	{
+	case PluginLeftPanel:
+		return Panel::LeftPanel;
+	case PluginRightPanel:
+		return Panel::RightPanel;
+	default:
+		return Panel::UnknownPanel;
+	}
 }
 
-void CPluginProxy::setToolMenuEntryCreatorImplementation(const CreateToolMenuEntryImplementationType& implementation)
+[[nodiscard]] PanelPosition pluginPanel(Panel p) noexcept
 {
-	std::lock_guard lock(_callbackMutex);
-	_createToolMenuEntryImplementation = implementation;
+	switch (p)
+	{
+	case Panel::LeftPanel:
+		return PluginLeftPanel;
+	case Panel::RightPanel:
+		return PluginRightPanel;
+	default:
+		return PluginUnknownPanel;
+	}
+}
 }
 
-void CPluginProxy::shutdown()
+CPluginProxy::CPluginProxy(CController& controller) noexcept : _controller(controller)
 {
-	std::lock_guard lock(_callbackMutex);
-	_createToolMenuEntryImplementation = {};
-	_execOnUiThreadImplementation = {};
+}
+
+CPluginProxy::~CPluginProxy()
+{
+	unsubscribeFromPanelContents();
+	_controller.threadPool().retire(taskTag());
+}
+
+void CPluginProxy::subscribeToPanelContents(PanelContentsListener listener)
+{
+	_controller.subscribeToPanelContents(this, [listener = std::move(listener)](Panel p, const QString& folder, const FileListHashMap& contents) {
+		listener(pluginPanel(p), folder, contents);
+	});
+}
+
+void CPluginProxy::unsubscribeFromPanelContents()
+{
+	_controller.unsubscribeFromPanelContents(this);
 }
 
 void CPluginProxy::createToolMenuEntries(const std::vector<MenuTree>& menuTrees)
 {
-	std::lock_guard lock(_callbackMutex);
-	if (_createToolMenuEntryImplementation)
-		_createToolMenuEntryImplementation(menuTrees);
+	_controller.createToolMenuEntries(menuTrees);
 }
 
 void CPluginProxy::createToolMenuEntries(const MenuTree& menuTree)
@@ -34,70 +64,34 @@ void CPluginProxy::createToolMenuEntries(const MenuTree& menuTree)
 	createToolMenuEntries(std::vector<MenuTree>(1, menuTree));
 }
 
-void CPluginProxy::panelContentsChanged(PanelPosition panel, const QString &folder, const FileListHashMap& contents)
-{
-	PanelState& state = _panelState[panel];
-
-	state.panelContents = contents;
-	state.currentFolder = folder;
-}
-
-void CPluginProxy::selectionChanged(PanelPosition panel, const std::vector<qulonglong/*hash*/>& selectedItemsHashes)
-{
-	PanelState& state = _panelState[panel];
-	state.selectedItemsHashes = selectedItemsHashes;
-}
-
-void CPluginProxy::currentItemChanged(PanelPosition panel, qulonglong currentItemHash)
-{
-	PanelState& state = _panelState[panel];
-	state.currentItemHash = currentItemHash;
-}
-
-void CPluginProxy::currentPanelChanged(PanelPosition panel)
-{
-	_currentPanel = panel;
-}
-
 PanelPosition CPluginProxy::currentPanel() const
 {
-	return _currentPanel;
+	if (_controller.hasShutDown())
+		return PluginUnknownPanel;
+
+	return pluginPanel(_controller.activePanelPosition());
 }
 
 PanelPosition CPluginProxy::otherPanel() const
 {
-	assert_and_return_r(_currentPanel != PluginUnknownPanel, PluginUnknownPanel);
-
-	return _currentPanel == PluginLeftPanel ? PluginRightPanel : PluginLeftPanel;
-}
-
-PanelState& CPluginProxy::panelState(const PanelPosition panel)
-{
-	static PanelState empty;
-	if (panel == PluginUnknownPanel) [[unlikely]]
+	switch (currentPanel())
 	{
-		assert_unconditional_r("Unknown panel");
-		empty = PanelState();
-		return empty;
+	case PluginLeftPanel:
+		return PluginRightPanel;
+	case PluginRightPanel:
+		return PluginLeftPanel;
+	default:
+		return PluginUnknownPanel;
 	}
-
-	return _panelState[panel];
-}
-
-const PanelState & CPluginProxy::panelState(const PanelPosition panel) const
-{
-	static const PanelState empty;
-	if (panel == PluginUnknownPanel) [[unlikely]]
-		return empty;
-
-	return _panelState[panel];
 }
 
 QString CPluginProxy::currentFolderPathForPanel(const PanelPosition panel) const
 {
-	assert_and_return_r(panel != PluginUnknownPanel, QString());
+	const Panel p = corePanel(panel);
+	if (_controller.hasShutDown() || p == Panel::UnknownPanel)
+		return {};
 
-	return _panelState[panel].currentFolder;
+	return _controller.panel(p).currentDirPathPosix();
 }
 
 QString CPluginProxy::currentItemPathForPanel(const PanelPosition panel) const
@@ -105,23 +99,26 @@ QString CPluginProxy::currentItemPathForPanel(const PanelPosition panel) const
 	return currentItemForPanel(panel).fullAbsolutePath();
 }
 
-const CFileSystemObject& CPluginProxy::currentItemForPanel(const PanelPosition panel) const
+CFileSystemObject CPluginProxy::currentItemForPanel(const PanelPosition panel) const
 {
-	static const CFileSystemObject dummy;
+	const Panel p = corePanel(panel);
+	if (_controller.hasShutDown() || p == Panel::UnknownPanel)
+		return {};
 
-	const PanelState& state = panelState(panel);
-	if (state.currentItemHash != 0)
-	{
-		auto fileSystemObject = state.panelContents.find(state.currentItemHash);
-		assert_and_return_r(fileSystemObject != state.panelContents.end(), dummy);
-
-		return fileSystemObject->second;
-	}
-	else
-		return dummy;
+	const CPanel& activeTab = _controller.panel(p);
+	return activeTab.itemByHash(activeTab.currentItemHashForFolder(activeTab.currentDirPathPosix()));
 }
 
-const CFileSystemObject& CPluginProxy::currentItem() const
+std::vector<qulonglong> CPluginProxy::selectedItemsForPanel(const PanelPosition panel) const
+{
+	const Panel p = corePanel(panel);
+	if (_controller.hasShutDown() || p == Panel::UnknownPanel)
+		return {};
+
+	return _controller.selectedItemsHashes(p);
+}
+
+CFileSystemObject CPluginProxy::currentItem() const
 {
 	return currentItemForPanel(currentPanel());
 }
@@ -133,7 +130,24 @@ QString CPluginProxy::currentItemPath() const
 
 void CPluginProxy::execOnUiThread(const std::function<void()>& code)
 {
-	std::lock_guard lock(_callbackMutex);
-	if (_execOnUiThreadImplementation)
-		_execOnUiThreadImplementation(code);
+	if (_controller.hasShutDown())
+		return; // Nothing drains the UI queue any more
+
+	_controller.execOnUiThread(code);
+}
+
+void CPluginProxy::enqueue(std::function<void()> task)
+{
+	_controller.threadPool().enqueue(std::move(task), taskTag());
+}
+
+void CPluginProxy::parallelFor(size_t count, const std::function<void(size_t)>& fn)
+{
+	_controller.threadPool().parallelFor(count, fn);
+}
+
+uint64_t CPluginProxy::taskTag() const noexcept
+{
+	// Reuse-safe: ~CPluginProxy retires this tag before the address can be recycled by another proxy.
+	return reinterpret_cast<uint64_t>(this);
 }

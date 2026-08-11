@@ -1,4 +1,5 @@
 #include "cpluginengine.h"
+#include "ccontroller.h"
 #include "plugininterface/cfilecommanderviewerplugin.h"
 #include "plugininterface/cpluginproxy.h"
 #include "assert/advanced_assert.h"
@@ -11,8 +12,20 @@ DISABLE_COMPILER_WARNINGS
 #include <QMimeDatabase>
 RESTORE_COMPILER_WARNINGS
 
-CPluginEngine::CPluginEngine(CPluginProxy& proxy) noexcept : _proxy(proxy) {}
+CPluginEngine::CPluginEngine(CController& controller) noexcept : _controller(controller) {}
 CPluginEngine::~CPluginEngine() = default;
+
+CPluginEngine::LoadedPlugin::LoadedPlugin(std::unique_ptr<QLibrary> module_, std::unique_ptr<CPluginProxy> proxy_,
+	std::unique_ptr<CFileCommanderPlugin> instance_) noexcept :
+	module(std::move(module_)), proxy(std::move(proxy_)), instance(std::move(instance_))
+{
+}
+
+CPluginEngine::LoadedPlugin::~LoadedPlugin()
+{
+	proxy.reset();
+	instance.reset();
+}
 
 void CPluginEngine::loadPlugins()
 {
@@ -38,12 +51,13 @@ void CPluginEngine::loadPlugins()
 		auto createFunc = reinterpret_cast<decltype(createPlugin)*>(pluginModule->resolve("createPlugin"));
 		if (createFunc)
 		{
-			CFileCommanderPlugin * plugin = createFunc();
+			auto plugin = std::unique_ptr<CFileCommanderPlugin>{createFunc()};
 			if (plugin)
 			{
-				plugin->setProxy(&_proxy);
+				auto proxy = std::make_unique<CPluginProxy>(_controller);
+				plugin->setProxy(proxy.get()); // Runs the plugin's proxySet(), so the proxy must be complete by now
 				qInfo().noquote() << QStringLiteral("Loaded plugin \"%1\" (%2)").arg(plugin->name(), absolutePath);
-				_plugins.push_back({std::move(pluginModule), std::unique_ptr<CFileCommanderPlugin>(plugin)});
+				_plugins.emplace_back(std::move(pluginModule), std::move(proxy), std::move(plugin));
 			}
 		}
 	}
@@ -73,7 +87,7 @@ void CPluginEngine::viewCurrentFileInTextViewer()
 	if (!viewer)
 		return;
 
-	showViewerWindow(viewer->viewFile(_proxy.currentItemPath()));
+	showViewerWindow(viewer->viewFile(currentItemPath()));
 }
 
 void CPluginEngine::showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> window)
@@ -94,12 +108,17 @@ CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CPluginEngine::createViewer
 	if (!viewer)
 		return {};
 
-	return viewer->viewFile(_proxy.currentItemPath());
+	return viewer->viewFile(currentItemPath());
+}
+
+QString CPluginEngine::currentItemPath() const
+{
+	return _controller.currentItem().fullAbsolutePath();
 }
 
 CFileCommanderViewerPlugin* CPluginEngine::viewerForCurrentFile(const QString& requiredCategory)
 {
-	const QString currentFile = _proxy.currentItemPath();
+	const QString currentFile = currentItemPath();
 	if (currentFile.isEmpty())
 		return nullptr;
 

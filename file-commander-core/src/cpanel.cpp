@@ -405,6 +405,15 @@ FileListHashMap CPanel::list() const
 	return _items;
 }
 
+void CPanel::readCommittedContents(const std::function<void(const QString&, const FileListHashMap&)>& fn) const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return;
+
+	fn(_currentDirObject.fullAbsolutePath(), _items);
+}
+
 bool CPanel::itemHashExists(const qulonglong hash) const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);

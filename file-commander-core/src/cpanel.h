@@ -20,6 +20,7 @@ using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #include <3rdparty/ankerl/unordered_dense.h>
 
 #include <atomic>
+#include <functional>
 #include <stdint.h>
 #include <mutex>
 #include <utility>
@@ -119,6 +120,9 @@ public:
 	void refreshFileList(FileListRefreshCause operation);
 	// Returns the current list of objects on this panel
 	[[nodiscard]] FileListHashMap list() const;
+	// Invokes fn(folder, contents) under the list lock, or not at all if no committed listing belongs to the
+	// current view. Avoids copying the list; fn holds up this panel's refreshes, so it must be short.
+	void readCommittedContents(const std::function<void(const QString& folder, const FileListHashMap& contents)>& fn) const;
 
 	[[nodiscard]] bool itemHashExists(qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;

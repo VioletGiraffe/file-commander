@@ -12,6 +12,8 @@
 #endif
 
 #include <array>
+#include <atomic>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -38,6 +40,19 @@ public:
 	// Stops every producer and releases callbacks while their owners are still alive. Must be called exactly once
 	// before destruction; the empty tab lists are the postcondition checked by ~CController.
 	void shutdown();
+	// Plugins outlive shutdown(), so their proxies ask this before forwarding anything that needs live panels or UI.
+	[[nodiscard]] bool hasShutDown() const noexcept;
+
+	// The UI installs the menu builder; plugins reach it through their proxy. Both are main thread only.
+	void setToolMenuEntryCreatorImplementation(const CPluginProxy::CreateToolMenuEntryImplementationType& implementation);
+	void createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuTrees);
+
+	// Plugin-facing feed of the active tab's committed listing, handed out by reference under the panel's lock.
+	// Subscribing delivers what's already committed, so a subscriber to an idle panel isn't left waiting for an
+	// event that will never come. Main thread only; the subscriber pointer is an identity token for unsubscribing.
+	using PanelContentsSubscriber = std::function<void(Panel p, const QString& folder, const FileListHashMap& contents)>;
+	void subscribeToPanelContents(const CPluginProxy* subscriber, PanelContentsSubscriber callback);
+	void unsubscribeFromPanelContents(const CPluginProxy* subscriber);
 
 	void setPanelContentsChangedListener(Panel p, PanelContentsChangedListener * listener);
 	void setCurrentItemChangedListener(Panel p, CurrentItemChangedListener * listener);
@@ -114,6 +129,10 @@ public:
 		_uiQueue.enqueue(std::forward<Functor>(f), tag);
 	}
 
+	// Shared general-purpose pool. A caller whose lifetime is shorter than the controller's must tag its tasks
+	// and retire the tag before it dies.
+	[[nodiscard]] CThreadPool& threadPool();
+
 // Getters
 	// A side always has at least one tab, so these are valid until shutdown() destroys them all.
 	[[nodiscard]] const CPanel& panel(Panel p) const;
@@ -129,7 +148,8 @@ public:
 	// survives tab close/open). Powers the path navigator's quick-revisit dropdown.
 	[[nodiscard]] const CHistoryList<QString>& visitedLocations(Panel p) const;
 
-	[[nodiscard]] CPluginProxy& pluginProxy();
+	// Mirror of the UI's selection, for the plugin API; the UI remains its owner.
+	[[nodiscard]] std::vector<qulonglong> selectedItemsHashes(Panel p) const;
 
 	[[nodiscard]] bool itemHashExists(Panel p, qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
@@ -176,7 +196,8 @@ private:
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
 	void savePanelState(Panel p);    // Writes side p's tab paths + active index + the active tab's path (deduplicated)
 	void saveHistoryList(Panel p);   // Writes side p's active-tab back/forward history + visited-locations log; see saveHistory()
-	[[nodiscard]] static PanelPosition pluginPanelPosition(Panel p);
+	// Hands side p's committed listing to every subscriber, or to none if the panel has no listing for its current view.
+	void publishPanelContents(Panel p);
 
 	// PanelContentsChangedListener: the controller listens to its own tabs only to persist on navigation.
 	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
@@ -194,7 +215,8 @@ private:
 	// across tabs. Every task carries its CPanel's _taskTag, so ~CPanel retires its own without waiting for other tabs.
 	// Declared before _panels so it outlives the CPanels that post tasks to it.
 	CThreadPool             _panelWorkerPool;
-	// General-purpose pool, full hardware capacity, do not use for tasks whose lifetime depends on CPanel
+	// General-purpose pool, do not use for tasks whose lifetime depends on CPanel.
+	// Stopped in ~CController, not shutdown(), so its users can still run and retire tasks while they're alive.
 	CThreadPool             _workerPool;
 	std::array<TabList, 2> _panels;
 	qulonglong             _nextTabId = 1; // 0 is reserved as "no tab"/invalid
@@ -203,11 +225,21 @@ private:
 	std::array<std::vector<CurrentItemChangedListener*>, 2> _currentItemChangedListeners;
 	std::array<QString, 2> _lastSavedTabSignature; // Dedup key for savePanelState (avoids rewriting settings on every watcher refresh)
 	std::array<CHistoryList<QString>, 2> _visitedLocations; // Per-side, tab-independent visited-folders log; see visitedLocations()
-	CPluginProxy         _pluginProxy;
+	// TODO: pushed in by the UI because the selection lives there; it should be pulled like everything else once
+	// the core owns the selection.
+	std::array<std::vector<qulonglong>, 2> _selectedItemsHashes; // See selectedItemsHashes()
+	CPluginProxy::CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;
+	struct PanelContentsSubscription {
+		const CPluginProxy* subscriber;
+		PanelContentsSubscriber callback;
+	};
+	std::vector<PanelContentsSubscription> _panelContentsSubscriptions;
 	CWcxPluginHost       _wcxHost;
 	CVolumeEnumerator    _volumeEnumerator;
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;
 	Panel                _activePanel = Panel::UnknownPanel;
+	// Read from plugin threads, so atomic; see hasShutDown().
+	std::atomic_bool     _shutDown{false};
 
 	CExecutionQueue   _uiQueue;
 };

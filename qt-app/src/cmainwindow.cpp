@@ -1031,7 +1031,7 @@ void CMainWindow::initCore()
 
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 
-	_controller->pluginProxy().setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(ui->menuCommands, menuEntries); });
+	_controller->setToolMenuEntryCreatorImplementation([this](const std::vector<CPluginProxy::MenuTree>& menuEntries) {createToolMenuEntries(ui->menuCommands, menuEntries); });
 	// Need to load the plugins only after the menu creator has been set
 	_pluginEngine.loadPlugins();
 

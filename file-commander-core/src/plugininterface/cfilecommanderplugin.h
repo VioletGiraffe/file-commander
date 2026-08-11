@@ -32,5 +32,7 @@ protected:
 	virtual void proxySet();
 
 protected:
+	// The engine destroys the proxy before the plugin so it can retire plugin-bound work while this instance is
+	// still alive. Derived destructors must not access this pointer.
 	CPluginProxy * _proxy = nullptr;
 };

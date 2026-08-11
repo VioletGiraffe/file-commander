@@ -5,6 +5,7 @@
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "iconprovider/ciconprovider.h"
+#include "threading/thread_helpers.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
 
@@ -15,6 +16,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDesktopServices>
 #include <QDir>
 #include <QMessageBox>
+#include <QThread>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
@@ -24,11 +26,17 @@ RESTORE_COMPILER_WARNINGS
 
 CController* CController::_instance = nullptr;
 
+namespace {
+	inline uint32_t optimalCpuCount() {
+		const auto cpu = CpuCount::get();
+		return std::max(cpu.performanceCoreCount(), cpu.efficiencyCoreCount());
+	}
+}
+
 CController::CController() :
 	_favoriteLocations{KEY_FAVORITES},
 	_panelWorkerPool{ std::clamp(std::thread::hardware_concurrency(), 1u, 4u), "Panel file list pool" },
-	_workerPool{ std::max(std::thread::hardware_concurrency(), 1u), "CController pool" },
-	_pluginProxy{[this](const std::function<void()>& code) {execOnUiThread(code);}}
+	_workerPool{ optimalCpuCount(), "Application pool"}
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
 	_instance = this;
@@ -52,6 +60,8 @@ CController::~CController()
 	assert_r(_panels[(size_t)Panel::LeftPanel].tabs.empty());
 	assert_r(_panels[(size_t)Panel::RightPanel].tabs.empty());
 
+	_workerPool.finishAllThreads(false);
+
 	_instance = nullptr;
 }
 
@@ -66,13 +76,14 @@ void CController::shutdown()
 	assert_r(!_panels[(size_t)Panel::LeftPanel].tabs.empty());
 	assert_r(!_panels[(size_t)Panel::RightPanel].tabs.empty());
 
+	_shutDown = true; // Plugin proxies stop forwarding from here on
+
 	// Capture the final state (notably each tab's cursor position, which pure cursor moves don't otherwise persist)
 	// before stopping and destroying the panels.
 	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
 		savePanelState(p);
 	saveHistory();
 
-	_pluginProxy.shutdown();
 	_volumeEnumerator.shutdown();
 
 	// CPanel destruction raises its abort flag before retiring the panel's tagged work, so an in-flight recursive
@@ -80,7 +91,6 @@ void CController::shutdown()
 	for (auto& tabList : _panels)
 		tabList.tabs.clear();
 	_panelWorkerPool.finishAllThreads(false);
-	_workerPool.finishAllThreads(false);
 	_uiQueue.clear();
 
 	for (auto& listeners : _panelContentsListeners)
@@ -88,6 +98,61 @@ void CController::shutdown()
 	for (auto& listeners : _currentItemChangedListeners)
 		listeners.clear();
 	_volumesChangedListeners.clear();
+	_createToolMenuEntryImplementation = {};
+	_panelContentsSubscriptions.clear();
+}
+
+bool CController::hasShutDown() const noexcept
+{
+	return _shutDown;
+}
+
+void CController::setToolMenuEntryCreatorImplementation(const CPluginProxy::CreateToolMenuEntryImplementationType& implementation)
+{
+	assert_r(QThread::currentThread() == qApp->thread());
+	_createToolMenuEntryImplementation = implementation;
+}
+
+void CController::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuTrees)
+{
+	assert_r(QThread::currentThread() == qApp->thread());
+	if (_createToolMenuEntryImplementation)
+		_createToolMenuEntryImplementation(menuTrees);
+}
+
+void CController::subscribeToPanelContents(const CPluginProxy* subscriber, PanelContentsSubscriber callback)
+{
+	assert_r(QThread::currentThread() == qApp->thread());
+	assert_r(std::find_if(_panelContentsSubscriptions.begin(), _panelContentsSubscriptions.end(),
+		[subscriber](const auto& subscription) { return subscription.subscriber == subscriber; }) == _panelContentsSubscriptions.end());
+
+	if (_shutDown)
+		return; // The panels are gone, and nothing will ever be published again
+
+	_panelContentsSubscriptions.emplace_back(PanelContentsSubscription{ subscriber, std::move(callback) });
+	const PanelContentsSubscriber initialDeliveryCallback = _panelContentsSubscriptions.back().callback;
+
+	// Initial delivery is one stable batch: subscription changes made by the callback apply afterwards.
+	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+	{
+		panel(p).readCommittedContents([&initialDeliveryCallback, p](const QString& folder, const FileListHashMap& contents) {
+			initialDeliveryCallback(p, folder, contents);
+		});
+	}
+}
+
+void CController::unsubscribeFromPanelContents(const CPluginProxy* subscriber)
+{
+	std::erase_if(_panelContentsSubscriptions, [subscriber](const auto& subscription) { return subscription.subscriber == subscriber; });
+}
+
+void CController::publishPanelContents(Panel p)
+{
+	const auto subscriptions = _panelContentsSubscriptions;
+	panel(p).readCommittedContents([&subscriptions, p](const QString& folder, const FileListHashMap& contents) {
+		for (const auto& subscription : subscriptions)
+			subscription.callback(p, folder, contents);
+	});
 }
 
 void CController::setPanelContentsChangedListener(Panel p, PanelContentsChangedListener *listener)
@@ -413,16 +478,12 @@ void CController::saveHistoryList(Panel p)
 
 void CController::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/)
 {
-	// Every tab is persisted, so this deliberately happens before the active-tab filter below.
-	savePanelState(p);
+	savePanelState(p); // Every tab is persisted, so this deliberately doesn't filter by tabId
 
-	if (tabId != activeTabId(p))
-		return; // The plugin API exposes the tab the user is looking at, not background tabs
+	if (_panelContentsSubscriptions.empty() || tabId != activeTabId(p))
+		return; // Plugins are shown the tab the user is looking at, not background tabs
 
-	// Keep the last committed folder/list pair until another committed listing arrives. The invalidation callback
-	// deliberately leaves this snapshot alone so plugins never see a new folder paired with an empty intermediate list.
-	// TODO: copying all the data on every refresh, do we need this??
-	_pluginProxy.panelContentsChanged(pluginPanelPosition(p), panel(p).currentDirPathPosix(), panel(p).list());
+	publishPanelContents(p);
 }
 
 void CController::onPanelContentsInvalidated(Panel /*p*/, qulonglong /*tabId*/)
@@ -521,12 +582,11 @@ void CController::settingsChanged()
 void CController::activePanelChanged(Panel p)
 {
 	_activePanel = p;
-	_pluginProxy.currentPanelChanged(pluginPanelPosition(p));
 }
 
 void CController::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)
 {
-	_pluginProxy.selectionChanged(pluginPanelPosition(p), selectedItemsHashes);
+	_selectedItemsHashes[(size_t)p] = selectedItemsHashes;
 }
 
 // Navigates specified panel up the directory tree
@@ -685,7 +745,6 @@ void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 void CController::setCurrentItemHashForCurrentFolder(Panel p, qulonglong newCurrentItemHash, const bool notifyUi)
 {
 	panel(p).setCurrentItemHashForFolder(panel(p).currentDirPathPosix(), newCurrentItemHash, notifyUi);
-	_pluginProxy.currentItemChanged(pluginPanelPosition(p), newCurrentItemHash);
 }
 
 void CController::copyCurrentItemPathToClipboard()
@@ -754,12 +813,6 @@ Panel CController::otherPanelPosition(Panel p)
 	}
 }
 
-PanelPosition CController::pluginPanelPosition(Panel p)
-{
-	assert_r(p != Panel::UnknownPanel);
-	return p == Panel::LeftPanel ? PluginLeftPanel : PluginRightPanel;
-}
-
 Panel CController::activePanelPosition() const
 {
 	assert_r(_activePanel == Panel::RightPanel || _activePanel == Panel::LeftPanel);
@@ -781,9 +834,14 @@ const CHistoryList<QString>& CController::visitedLocations(Panel p) const
 	return _visitedLocations[(size_t)p];
 }
 
-CPluginProxy &CController::pluginProxy()
+CThreadPool& CController::threadPool()
 {
-	return _pluginProxy;
+	return _workerPool;
+}
+
+std::vector<qulonglong> CController::selectedItemsHashes(Panel p) const
+{
+	return _selectedItemsHashes[(size_t)p];
 }
 
 bool CController::itemHashExists(Panel p, qulonglong hash) const
