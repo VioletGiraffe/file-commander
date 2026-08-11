@@ -30,7 +30,11 @@ CController* CController::_instance = nullptr;
 namespace {
 	inline uint32_t optimalCpuCount() {
 		const auto cpu = CpuCount::get();
-		return std::max(cpu.performanceCoreCount(), cpu.efficiencyCoreCount());
+		uint32_t optimalCores = std::max(cpu.performanceCoreCount(), cpu.efficiencyCoreCount());
+		if (optimalCores > 1 && optimalCores == cpu.logicalProcessorCount())
+			optimalCores -= 1; // Leave one core free for the UI thread and other system tasks
+
+		return optimalCores;
 	}
 }
 
@@ -54,6 +58,9 @@ CController::CController() :
 	_volumeEnumerator.startEnumeratorThread();
 
 	_wcxHost.setWcxSearchPath(QApplication::applicationDirPath());
+
+	const auto cpu = CpuCount::get();
+	qInfo().nospace() << "CPU cores: " << cpu.performanceCoreCount() << "P+" << cpu.efficiencyCoreCount() << "E, " << cpu.logicalProcessorCount() << " logical, worker pool: " << _workerPool.maxWorkersCount();
 }
 
 CController::~CController()
