@@ -288,6 +288,7 @@ void CPanel::setCurrentItemHashForFolder(const QString& dir, qulonglong currentI
 #if defined _WIN32
 	assert_r(!dir.contains('\\'));
 #endif
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	_currentItemHashForFolder[folderKey(dir)] = currentItemHash;
 
 	if (notifyUi)
@@ -306,8 +307,23 @@ qulonglong CPanel::currentItemHashForFolder(const QString &dir) const
 #if defined _WIN32
 	assert_r(!dir.contains('\\'));
 #endif
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	const auto it = _currentItemHashForFolder.find(folderKey(dir));
 	return it == _currentItemHashForFolder.end() ? 0 : it->second;
+}
+
+CFileSystemObject CPanel::currentItem() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return {};
+
+	const auto currentHash = _currentItemHashForFolder.find(folderKey(_currentDirObject.fullAbsolutePath()));
+	if (currentHash == _currentItemHashForFolder.end())
+		return {};
+
+	const auto item = _items.find(currentHash->second);
+	return item != _items.end() ? item->second : CFileSystemObject{};
 }
 
 // Enumerates objects in the current directory

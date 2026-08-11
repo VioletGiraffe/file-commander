@@ -24,8 +24,9 @@ timer drains controller and panel execution queues.
 
 After the application event loop and native shell operations finish, `main()` explicitly shuts down the controller
 while the window and plugin modules remain alive. Stack declaration order then destroys the window, plugin engine,
-controller, shell runner, and application in that order. This releases plugin-defined windows before their modules
-and keeps the controller-owned plugin proxy alive through plugin destruction.
+controller, shell runner, and application in that order. This releases plugin-defined windows before their modules.
+During engine teardown, each plugin's proxy retires its tagged work before the plugin instance is destroyed and its
+module is unloaded; the controller remains alive throughout that sequence.
 
 ## Panel widget and file-list MVC
 

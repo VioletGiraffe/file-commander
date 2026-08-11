@@ -115,6 +115,7 @@ public:
 	void setCurrentItemHashForFolder(const QString& dir, qulonglong currentItemHash, bool notifyUi = true);
 	// Returns hash of an item that was the last selected in the specified dir
 	[[nodiscard]] qulonglong currentItemHashForFolder(const QString& dir) const;
+	[[nodiscard]] CFileSystemObject currentItem() const;
 
 	// Enumerates objects in the current directory
 	void refreshFileList(FileListRefreshCause operation);
@@ -173,7 +174,7 @@ private:
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;
 	CHistoryList<QString>                      _history;
-	// UI thread only, hence unguarded. If ever something needs to access it from a different thread, add a mutex and lock it in the accessors.
+	// Protected by _fileListAndCurrentDirMutex so the plugin-facing current-item snapshot is coherent with the list.
 	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _currentItemHashForFolder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CurrentItemChangedListener> _currentItemChangedListeners;

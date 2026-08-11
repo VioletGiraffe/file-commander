@@ -21,8 +21,9 @@ Each native library exports `createPlugin()`. The engine then supplies the proxy
 proxy-dependent initialization. The interface headers are authoritative for the ABI.
 
 `main()` owns the plugin engine between the main window and controller in the destruction order. The engine owns
-plugin instances and their library modules; each instance is destroyed before its module is unloaded. The
-controller owns the proxy, so it remains valid through plugin destruction.
+each plugin's instance, proxy, and library module. Teardown destroys the proxy first so its tagged background work
+is retired while the plugin instance and module are still alive, then destroys the instance and unloads the module.
+Plugin destructors must not use their proxy.
 
 Plugin windows use `CFileCommanderViewerPlugin::WindowPtr`, a unique pointer whose deleter is instantiated in the
 plugin module. Keep that type across the boundary so allocation and deletion occur in the same dynamic library.
@@ -30,14 +31,18 @@ Full viewer windows opt into deletion on close; quick view retains the `WindowPt
 
 ## Proxy and tab visibility
 
-`CPluginProxy` exposes visible-panel snapshots, current/other-panel queries, UI-thread dispatch, and menu
-registration. Plugins do not receive `CController` or `CPluginEngine` directly.
+`CPluginProxy` exposes committed active-tab contents subscriptions, current/other-panel queries, UI-thread dispatch,
+tagged work on the shared application pool, and menu registration. Plugins do not receive `CController` or
+`CPluginEngine` directly.
 
-The controller publishes only a side's active tab into the proxy. It ignores `onPanelContentsInvalidated`, retaining
-the last consistent folder/list pair until committed contents arrive; an intermediate update would otherwise pair
-a new folder path with an empty list. Selection/current-item/focus updates come from the UI for the visible
-triplets. Controller shutdown disables proxy callbacks and destroys queued plugin callables while their modules are
-still loaded.
+The controller publishes only a side's active tab and never publishes `onPanelContentsInvalidated`; subscribers
+therefore receive a matching folder/list pair only after contents commit. Selection, current-item, and focus state
+come from the visible UI triplets. A controller-owned access gate serializes shutdown with proxy queries and UI
+dispatch; once their backing state has been removed, those methods return empty or no-op internally.
+
+Panel-content delivery does not copy the file-list map. A subscriber borrows the committed `FileListHashMap` by
+reference while that panel's list mutex is held; the reference is valid only for the callback, and panel publication
+cannot proceed until it returns. Copy only the data that must outlive the callback and keep the callback short.
 
 ## Discovery and viewer selection
 

@@ -12,10 +12,10 @@
 #endif
 
 #include <array>
-#include <atomic>
 #include <functional>
 #include <memory>
 #include <optional>
+#include <shared_mutex>
 #include <utility>
 #include <vector>
 
@@ -37,11 +37,9 @@ public:
 	~CController();
 	[[nodiscard]] static CController& get();
 
-	// Stops every producer and releases callbacks while their owners are still alive. Must be called exactly once
-	// before destruction; the empty tab lists are the postcondition checked by ~CController.
+	// Closes plugin access to panels and UI dispatch, stops panel/volume producers, and releases callbacks while their
+	// owners are still alive. Must be called exactly once; the empty tab lists are checked by ~CController.
 	void shutdown();
-	// Plugins outlive shutdown(), so their proxies ask this before forwarding anything that needs live panels or UI.
-	[[nodiscard]] bool hasShutDown() const noexcept;
 
 	// The UI installs the menu builder; plugins reach it through their proxy. Both are main thread only.
 	void setToolMenuEntryCreatorImplementation(const CPluginProxy::CreateToolMenuEntryImplementationType& implementation);
@@ -126,6 +124,11 @@ public:
 	template <typename Functor>
 	void execOnUiThread(Functor&& f, int tag = -1)
 	{
+		std::shared_lock lock(_pluginAccessMutex);
+		// Both sides are created and destroyed together; either one is sufficient as the controller-lifetime sentinel.
+		if (_panels[(size_t)Panel::LeftPanel].tabs.empty())
+			return;
+
 		_uiQueue.enqueue(std::forward<Functor>(f), tag);
 	}
 
@@ -150,6 +153,8 @@ public:
 
 	// Mirror of the UI's selection, for the plugin API; the UI remains its owner.
 	[[nodiscard]] std::vector<qulonglong> selectedItemsHashes(Panel p) const;
+	[[nodiscard]] QString currentFolderPath(Panel p) const;
+	[[nodiscard]] CFileSystemObject currentItem(Panel p) const;
 
 	[[nodiscard]] bool itemHashExists(Panel p, qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
@@ -226,7 +231,7 @@ private:
 	std::array<QString, 2> _lastSavedTabSignature; // Dedup key for savePanelState (avoids rewriting settings on every watcher refresh)
 	std::array<CHistoryList<QString>, 2> _visitedLocations; // Per-side, tab-independent visited-folders log; see visitedLocations()
 	// TODO: pushed in by the UI because the selection lives there; it should be pulled like everything else once
-	// the core owns the selection.
+	// the core owns the selection. Protected by _pluginAccessMutex because plugins may query it from worker threads.
 	std::array<std::vector<qulonglong>, 2> _selectedItemsHashes; // See selectedItemsHashes()
 	CPluginProxy::CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;
 	struct PanelContentsSubscription {
@@ -237,9 +242,10 @@ private:
 	CWcxPluginHost       _wcxHost;
 	CVolumeEnumerator    _volumeEnumerator;
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;
-	Panel                _activePanel = Panel::UnknownPanel;
-	// Read from plugin threads, so atomic; see hasShutDown().
-	std::atomic_bool     _shutDown{false};
+	Panel                _activePanel = Panel::UnknownPanel; // Protected by _pluginAccessMutex
+	// Plugin-facing panel queries and UI dispatch hold a shared lock. Tab/state mutations and shutdown() hold the
+	// exclusive lock; shutdown establishes the empty-panel/unknown-active-panel postconditions before releasing it.
+	mutable std::shared_mutex _pluginAccessMutex;
 
 	CExecutionQueue   _uiQueue;
 };

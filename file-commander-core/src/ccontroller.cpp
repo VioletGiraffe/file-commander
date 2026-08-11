@@ -22,6 +22,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
+#include <mutex>
 #include <thread>
 
 CController* CController::_instance = nullptr;
@@ -73,10 +74,10 @@ CController& CController::get()
 
 void CController::shutdown()
 {
+	assert_r(QThread::currentThread() == qApp->thread());
+	std::unique_lock lock(_pluginAccessMutex);
 	assert_r(!_panels[(size_t)Panel::LeftPanel].tabs.empty());
 	assert_r(!_panels[(size_t)Panel::RightPanel].tabs.empty());
-
-	_shutDown = true; // Plugin proxies stop forwarding from here on
 
 	// Capture the final state (notably each tab's cursor position, which pure cursor moves don't otherwise persist)
 	// before stopping and destroying the panels.
@@ -91,20 +92,24 @@ void CController::shutdown()
 	for (auto& tabList : _panels)
 		tabList.tabs.clear();
 	_panelWorkerPool.finishAllThreads(false);
-	_uiQueue.clear();
+	_activePanel = Panel::UnknownPanel;
+	for (auto& selection : _selectedItemsHashes)
+		selection.clear();
 
 	for (auto& listeners : _panelContentsListeners)
 		listeners.clear();
 	for (auto& listeners : _currentItemChangedListeners)
 		listeners.clear();
 	_volumesChangedListeners.clear();
-	_createToolMenuEntryImplementation = {};
-	_panelContentsSubscriptions.clear();
-}
+	// Move external callables out while access is exclusive, then destroy them after releasing the gate: capture
+	// destructors are external code and must be free to re-enter the controller without deadlocking.
+	CPluginProxy::CreateToolMenuEntryImplementationType retiredMenuImplementation;
+	retiredMenuImplementation.swap(_createToolMenuEntryImplementation);
+	std::vector<PanelContentsSubscription> retiredPanelSubscriptions;
+	retiredPanelSubscriptions.swap(_panelContentsSubscriptions);
 
-bool CController::hasShutDown() const noexcept
-{
-	return _shutDown;
+	lock.unlock();
+	_uiQueue.clear();
 }
 
 void CController::setToolMenuEntryCreatorImplementation(const CPluginProxy::CreateToolMenuEntryImplementationType& implementation)
@@ -116,8 +121,15 @@ void CController::setToolMenuEntryCreatorImplementation(const CPluginProxy::Crea
 void CController::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuTrees)
 {
 	assert_r(QThread::currentThread() == qApp->thread());
-	if (_createToolMenuEntryImplementation)
-		_createToolMenuEntryImplementation(menuTrees);
+
+	CPluginProxy::CreateToolMenuEntryImplementationType implementation;
+	{
+		std::shared_lock lock(_pluginAccessMutex);
+		implementation = _createToolMenuEntryImplementation;
+	}
+
+	if (implementation)
+		implementation(menuTrees);
 }
 
 void CController::subscribeToPanelContents(const CPluginProxy* subscriber, PanelContentsSubscriber callback)
@@ -126,10 +138,14 @@ void CController::subscribeToPanelContents(const CPluginProxy* subscriber, Panel
 	assert_r(std::find_if(_panelContentsSubscriptions.begin(), _panelContentsSubscriptions.end(),
 		[subscriber](const auto& subscription) { return subscription.subscriber == subscriber; }) == _panelContentsSubscriptions.end());
 
-	if (_shutDown)
-		return; // The panels are gone, and nothing will ever be published again
+	{
+		std::shared_lock lock(_pluginAccessMutex);
+		if (_panels[(size_t)Panel::LeftPanel].tabs.empty() || _panels[(size_t)Panel::RightPanel].tabs.empty())
+			return; // The panels are gone, and nothing will ever be published again
 
-	_panelContentsSubscriptions.emplace_back(PanelContentsSubscription{ subscriber, std::move(callback) });
+		_panelContentsSubscriptions.emplace_back(PanelContentsSubscription{ subscriber, std::move(callback) });
+	}
+
 	const PanelContentsSubscriber initialDeliveryCallback = _panelContentsSubscriptions.back().callback;
 
 	// Initial delivery is one stable batch: subscription changes made by the callback apply afterwards.
@@ -218,6 +234,10 @@ void CController::attachListenersToTab(Panel p, CPanel& tab)
 
 qulonglong CController::addTab(Panel p, const QString& path, bool activate)
 {
+	std::unique_lock lock(_pluginAccessMutex);
+	if (_panels[(size_t)p].tabs.empty())
+		return 0;
+
 	CPanel& tab = createTab(p);
 	tab.setPath(path, refreshCauseOther); // Fires onCurrentPathChanged -> logs the new tab's path to the visited-locations list
 	const qulonglong newId = tab.id();
@@ -233,7 +253,11 @@ qulonglong CController::addTab(Panel p, const QString& path, bool activate)
 
 void CController::closeTab(Panel p, qulonglong tabId)
 {
+	std::unique_lock lock(_pluginAccessMutex);
 	auto& tabList = _panels[(size_t)p];
+	if (tabList.tabs.empty())
+		return;
+
 	if (tabList.tabs.size() == 1)
 		return; // A panel always keeps at least one tab
 
@@ -259,7 +283,11 @@ void CController::closeTab(Panel p, qulonglong tabId)
 
 void CController::setActiveTab(Panel p, qulonglong tabId)
 {
+	std::unique_lock lock(_pluginAccessMutex);
 	auto& tabList = _panels[(size_t)p];
+	if (tabList.tabs.empty())
+		return;
+
 	if (tabList.tabs[tabList.activeTab]->id() == tabId)
 		return;
 
@@ -280,7 +308,11 @@ void CController::switchActiveTab(Panel p, qulonglong tabId)
 
 void CController::moveTabPosition(Panel p, qulonglong tabId, size_t newPosition)
 {
+	std::unique_lock lock(_pluginAccessMutex);
 	auto& tabList = _panels[(size_t)p];
+	if (tabList.tabs.empty())
+		return;
+
 	const auto idx = tabIndexById(p, tabId);
 	assert_and_return_r(idx.has_value(), );
 	assert_and_return_r(newPosition < tabList.tabs.size(), );
@@ -517,7 +549,7 @@ void CController::warnIfVisitedLocationDropped(Panel p, const QString& newPath, 
 	// We run inside setPath with the panel mutex held, so a modal here would deadlock against queued panel work
 	// draining on the UI thread - surface it via the UI queue, which runs it after setPath has released the lock.
 	const size_t actualSize = visited.size();
-	execOnUiThread([p, newPath, sizeBefore, permissibleSize, actualSize] {
+	_uiQueue.enqueue([p, newPath, sizeBefore, permissibleSize, actualSize] {
 		const QString panelSide = p == Panel::LeftPanel ? QSL("left") : QSL("right");
 		QMessageBox::critical(nullptr, QSL("Visited-locations history tripwire"),
 			QSL("An entry was unexpectedly dropped from the %1 panel's visited-folders history while adding:\n%2\n\n"
@@ -581,11 +613,20 @@ void CController::settingsChanged()
 
 void CController::activePanelChanged(Panel p)
 {
+	assert_and_return_r(p == Panel::LeftPanel || p == Panel::RightPanel, );
+	std::unique_lock lock(_pluginAccessMutex);
+	if (_panels[(size_t)p].tabs.empty())
+		return;
+
 	_activePanel = p;
 }
 
 void CController::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)
 {
+	std::unique_lock lock(_pluginAccessMutex);
+	if (_panels[(size_t)p].tabs.empty())
+		return;
+
 	_selectedItemsHashes[(size_t)p] = selectedItemsHashes;
 }
 
@@ -815,7 +856,7 @@ Panel CController::otherPanelPosition(Panel p)
 
 Panel CController::activePanelPosition() const
 {
-	assert_r(_activePanel == Panel::RightPanel || _activePanel == Panel::LeftPanel);
+	std::shared_lock lock(_pluginAccessMutex);
 	return _activePanel;
 }
 
@@ -841,7 +882,35 @@ CThreadPool& CController::threadPool()
 
 std::vector<qulonglong> CController::selectedItemsHashes(Panel p) const
 {
+	if (p == Panel::UnknownPanel)
+		return {};
+
+	std::shared_lock lock(_pluginAccessMutex);
 	return _selectedItemsHashes[(size_t)p];
+}
+
+QString CController::currentFolderPath(Panel p) const
+{
+	if (p == Panel::UnknownPanel)
+		return {};
+
+	std::shared_lock lock(_pluginAccessMutex);
+	if (_panels[(size_t)p].tabs.empty())
+		return {};
+
+	return panel(p).currentDirPathPosix();
+}
+
+CFileSystemObject CController::currentItem(Panel p) const
+{
+	if (p == Panel::UnknownPanel)
+		return {};
+
+	std::shared_lock lock(_pluginAccessMutex);
+	if (_panels[(size_t)p].tabs.empty())
+		return {};
+
+	return panel(p).currentItem();
 }
 
 bool CController::itemHashExists(Panel p, qulonglong hash) const
@@ -913,7 +982,11 @@ qulonglong CController::currentItemHash()
 
 CFileSystemObject CController::currentItem()
 {
-	return activePanel().itemByHash(currentItemHash());
+	std::shared_lock lock(_pluginAccessMutex);
+	if (_activePanel == Panel::UnknownPanel)
+		return {};
+
+	return panel(_activePanel).currentItem();
 }
 
 void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept

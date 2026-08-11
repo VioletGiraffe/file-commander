@@ -10,9 +10,9 @@ CController
  |- two tab lists
  |    `- one CPanel per tab
  |- shared panel worker pool
- |- general worker pool and UI execution queue
+ |- shared application worker pool and UI execution queue
  |- volumes and favorites
- `- plugin proxy and WCX host
+ `- plugin subscriptions/access gate and WCX host
 ```
 
 Until shutdown, `CController::panel(side)` returns the active tab. Tabs own their `CPanel` and have stable IDs
@@ -20,12 +20,14 @@ independent of display position. Side listeners are attached to existing and new
 [tabs.md](tabs.md) for the cross-layer contract.
 
 `main()` owns the controller and calls `CController::shutdown()` after the event loop and native shell operations
-finish, while UI and plugin objects still exist. Shutdown saves state, stops asynchronous producers, releases
-callbacks, and destroys all tabs. The destructor asserts the empty-tab postcondition instead of initiating a second
-shutdown.
+finish, while UI and plugin objects still exist. Shutdown saves state, stops the volume and panel producers, destroys
+all tabs, discards queued UI work, and releases callbacks. The shared application pool remains alive so each plugin
+proxy can retire its tagged work during plugin-engine destruction; the controller destructor then stops the pool and
+asserts the empty-tab postcondition instead of initiating a second shutdown.
 
 `CController::get()` remains bound until destruction, so late shutdown access still reaches a valid controller
-object. Panel-dependent APIs are valid only before `shutdown()` destroys the tabs.
+object. APIs returning raw panel references are valid only before `shutdown()` destroys the tabs. Plugin-facing
+value queries and UI dispatch serialize with teardown and return empty or no-op once their required state is gone.
 
 Panels share the controller's panel worker pool. Every task that captures a panel carries that panel's task tag;
 destruction retires the tag before panel storage disappears. The pool's declaration order makes it outlive all

@@ -66,9 +66,6 @@ void CPluginProxy::createToolMenuEntries(const MenuTree& menuTree)
 
 PanelPosition CPluginProxy::currentPanel() const
 {
-	if (_controller.hasShutDown())
-		return PluginUnknownPanel;
-
 	return pluginPanel(_controller.activePanelPosition());
 }
 
@@ -87,11 +84,7 @@ PanelPosition CPluginProxy::otherPanel() const
 
 QString CPluginProxy::currentFolderPathForPanel(const PanelPosition panel) const
 {
-	const Panel p = corePanel(panel);
-	if (_controller.hasShutDown() || p == Panel::UnknownPanel)
-		return {};
-
-	return _controller.panel(p).currentDirPathPosix();
+	return _controller.currentFolderPath(corePanel(panel));
 }
 
 QString CPluginProxy::currentItemPathForPanel(const PanelPosition panel) const
@@ -101,38 +94,26 @@ QString CPluginProxy::currentItemPathForPanel(const PanelPosition panel) const
 
 CFileSystemObject CPluginProxy::currentItemForPanel(const PanelPosition panel) const
 {
-	const Panel p = corePanel(panel);
-	if (_controller.hasShutDown() || p == Panel::UnknownPanel)
-		return {};
-
-	const CPanel& activeTab = _controller.panel(p);
-	return activeTab.itemByHash(activeTab.currentItemHashForFolder(activeTab.currentDirPathPosix()));
+	return _controller.currentItem(corePanel(panel));
 }
 
 std::vector<qulonglong> CPluginProxy::selectedItemsForPanel(const PanelPosition panel) const
 {
-	const Panel p = corePanel(panel);
-	if (_controller.hasShutDown() || p == Panel::UnknownPanel)
-		return {};
-
-	return _controller.selectedItemsHashes(p);
+	return _controller.selectedItemsHashes(corePanel(panel));
 }
 
 CFileSystemObject CPluginProxy::currentItem() const
 {
-	return currentItemForPanel(currentPanel());
+	return _controller.currentItem();
 }
 
 QString CPluginProxy::currentItemPath() const
 {
-	return currentItemPathForPanel(currentPanel());
+	return currentItem().fullAbsolutePath();
 }
 
 void CPluginProxy::execOnUiThread(const std::function<void()>& code)
 {
-	if (_controller.hasShutDown())
-		return; // Nothing drains the UI queue any more
-
 	_controller.execOnUiThread(code);
 }
 

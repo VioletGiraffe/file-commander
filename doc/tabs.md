@@ -10,9 +10,9 @@ survive vector growth and reordering; positions do not. Core calls and notificat
 tab bar stores that ID as tab data. Resolve positions immediately before acting because another operation may have
 changed the ordering.
 
-Side-wide listeners attach to every tab. The controller publishes only the active tab to the plugin proxy. Visible
-consumers filter notifications against the active tab ID; folder path is not an identity because duplicate tabs may
-show the same location.
+Side-wide listeners attach to every tab. The controller publishes only the active tab to each subscribed plugin
+proxy. Visible consumers filter notifications against the active tab ID; folder path is not an identity because
+duplicate tabs may show the same location.
 
 ## UI invariant
 

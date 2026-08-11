@@ -9,6 +9,7 @@ through execution queues, listener callbacks, or typed operation events. Threadi
 | Owner | Mechanism | Work |
 |-------|-----------|------|
 | `CController` | shared panel worker pool | All `CPanel` tasks across sides and tabs |
+| `CController` | shared application worker pool | Plugin background work and other controller-lifetime tasks |
 | `CController` | UI execution queue | Plugin UI dispatch and work deferred past panel locks |
 | each `CPanel` | UI execution queue | Panel result publication and observer delivery |
 | each `CFileOperationJob` | interruptible thread | One copy, move, or delete request |
@@ -33,8 +34,17 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 
 ## Lock and teardown boundaries
 
-- `CPanel::_fileListAndCurrentDirMutex` protects directory/list state. Do not enter the polling watcher's mutex while
-  holding it.
+- `CPanel::_fileListAndCurrentDirMutex` protects directory/list state and the per-folder current-item map. Do not
+  enter the polling watcher's mutex while holding it.
+- `CController::_pluginAccessMutex` protects active-tab structure, visible active-panel/selection state, and the
+  panel/UI lifetime gate. Plugin-facing panel queries and UI enqueue hold it shared; tab/state mutations hold it
+  exclusively.
+  Shutdown holds it exclusively through panel teardown and establishes the empty-panel/unknown-active-panel
+  postconditions before releasing it; later plugin calls derive their no-op result from the state they need.
+- Panel-content subscribers run while the recursive panel mutex is held and may re-enter proxy queries on that
+  thread. The controller gate must remain shared for queries: another plugin thread may already hold it while waiting
+  for the panel mutex, so replacing it with `mutex` or `recursive_mutex` would create a cross-thread lock inversion.
+  Do not invoke plugin callbacks while holding the controller gate exclusively.
 - The polling watcher's baseline and path generation are protected by the watcher mutex across both poll-thread and
   panel-worker access.
 - `CVolumeEnumerator` deliberately uses a recursive mutex because synchronous enumeration can re-enter getters.
@@ -46,8 +56,10 @@ Structural lifetime constraints belong beside the relevant member declarations; 
 changing declaration order.
 
 Application shutdown is an explicit quiescence boundary. `main()` calls `CController::shutdown()` while the main
-window and plugin modules are still alive. The controller disables proxy callbacks, stops and joins its producers,
-discards queued UI work, then destroys the panels; ordinary destruction only verifies that this happened.
+window and plugin modules are still alive. The controller takes the plugin-access gate exclusively, saves final
+state, stops the volume enumerator, destroys the panels and retires their work, and establishes the empty state before
+releasing the gate and discarding queued UI work. The shared application pool stops later in the controller
+destructor, after plugin proxies have retired their tagged work.
 
 ## File-operation handshake
 
