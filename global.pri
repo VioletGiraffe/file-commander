@@ -9,6 +9,8 @@ mac* | linux* | freebsd {
 
 mac*{
 	exists(/usr/local/bin/ccache):CONFIG += ccache
+
+	QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.3
 }
 
 linux*{
