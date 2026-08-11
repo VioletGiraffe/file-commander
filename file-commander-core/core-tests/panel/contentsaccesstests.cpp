@@ -19,6 +19,7 @@ TEST_CASE("CPanel - itemPathsByHashes keeps its result aligned with the request"
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 
 	const std::vector<qulonglong> hashes{ hashOf(file), 1 /* in no listing */, hashOf(sub) };
@@ -56,6 +57,7 @@ TEST_CASE("CPanel - hidden entries follow the setting", "[panel][contents]")
 		const ShowHiddenFilesSetting setting{ false };
 		PanelHarness h;
 		REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+		h.panel().setActive(true);
 		h.settle();
 
 		CHECK(h.panel().itemHashExists(hashOf(visible)));
@@ -66,6 +68,7 @@ TEST_CASE("CPanel - hidden entries follow the setting", "[panel][contents]")
 		const ShowHiddenFilesSetting setting{ true };
 		PanelHarness h;
 		REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+		h.panel().setActive(true);
 		h.settle();
 
 		CHECK(h.panel().itemHashExists(hashOf(visible)));
@@ -77,6 +80,7 @@ TEST_CASE("CPanel - the filesystem root has no self-referential parent row", "[p
 {
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(QDir::rootPath(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 
 	// The root's parent is itself, so a [..] row there would be an item that navigates nowhere.
@@ -93,6 +97,7 @@ TEST_CASE("CPanel - displayDirSize fills in the size of a listed folder", "[pane
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	// A folder's size is not part of a listing; it is filled in on demand.
 	REQUIRE(h.panel().itemByHash(hashOf(sub)).size() == 0);

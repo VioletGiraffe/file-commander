@@ -252,7 +252,7 @@ qulonglong CController::addTab(Panel p, const QString& path, bool activate)
 	if (activate)
 		switchActiveTab(p, newId);
 	else
-		tab.setActive(false); // Not the active tab: release the watch handle setPath() just armed
+		tab.setActive(false);
 
 	savePanelState(p);
 	return newId;
@@ -430,7 +430,7 @@ void CController::restorePanelState(Panel p)
 		CPanel& tab = createTab(p);
 		if (i == activeIndex)
 			tab.restoreHistory(history);
-		// Seed the cursor before setPath: the resulting refresh reads it back to position the cursor.
+		// Seed the cursor before the folder is listed: the listing reads it back to position the cursor.
 		if (i < tabCurrentItems.size())
 		{
 			if (const qulonglong currentItemHash = tabCurrentItems[i].toULongLong(); currentItemHash != 0)
@@ -443,11 +443,9 @@ void CController::restorePanelState(Panel p)
 	}
 	tabList.activeTab = (size_t)activeIndex;
 	tabList.tabs[tabList.activeTab]->setPath(tabPaths[activeIndex], refreshCauseOther);
-
-	// createTab() + setPath() armed each tab's watcher; release it on every inactive tab.
-	for (size_t i = 0; i < tabList.tabs.size(); ++i)
-		if (i != tabList.activeTab)
-			tabList.tabs[i]->setActive(false);
+	// The restored tabs are all inactive so far, so this is the only folder listed at startup; the rest are listed
+	// when they're first activated.
+	tabList.tabs[tabList.activeTab]->setActive(true);
 }
 
 void CController::savePanelState(Panel p)

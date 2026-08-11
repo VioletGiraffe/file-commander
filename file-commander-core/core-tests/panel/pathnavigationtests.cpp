@@ -24,6 +24,7 @@ TEST_CASE("CPanel - setPath lists an existing folder", "[panel][path]")
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
@@ -43,6 +44,7 @@ TEST_CASE("CPanel - setPath to a file lands on its parent folder", "[panel][path
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(file, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
@@ -54,6 +56,7 @@ TEST_CASE("CPanel - setPath to a path that does not exist lands on the closest f
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path() + QStringLiteral("/no/such/place"), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
@@ -72,6 +75,7 @@ TEST_CASE("CPanel - a wholly inaccessible path leaves the panel where it was", "
 	TempTree tree;
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -96,6 +100,7 @@ TEST_CASE("CPanel - a folder that vanishes before its listing runs falls back to
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -124,6 +129,7 @@ TEST_CASE("CPanel - a trailing separator does not make a folder a different loca
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 
 	const size_t historySize = h.panel().history().size();
@@ -142,6 +148,7 @@ TEST_CASE("CPanel - navigating up from the root only refreshes", "[panel][path]"
 	PanelHarness h;
 	const QString root = QDir::rootPath();
 	REQUIRE(h.panel().setPath(root, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 

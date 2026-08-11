@@ -13,6 +13,7 @@ TEST_CASE("CPanel - destroying a panel retires the listing it had queued", "[pan
 		CPanel panel{ Panel::LeftPanel, pool, 7 };
 		panel.addPanelContentsChangedListener(&listener);
 		REQUIRE(panel.setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+		panel.setActive(true);
 	} // Retires the queued listing rather than waiting for the parked worker to get to it
 
 	gate.open();
@@ -38,7 +39,9 @@ TEST_CASE("CPanel - retiring one panel leaves another panel's work alone", "[pan
 	{
 		CPanel doomed{ Panel::LeftPanel, pool, 1 };
 		REQUIRE(doomed.setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+		doomed.setActive(true);
 		REQUIRE(survivor.setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+		survivor.setActive(true);
 	}
 
 	gate.open();
@@ -49,6 +52,28 @@ TEST_CASE("CPanel - retiring one panel leaves another panel's work alone", "[pan
 	CHECK(survivor.itemHashExists(hashOf(sub)));
 }
 
+TEST_CASE("CPanel - an inactive panel records where it points without listing it", "[panel][watcher]")
+{
+	TempTree tree;
+	const QString file = tree.makeFile(QStringLiteral("a.txt"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.settle();
+
+	// This is how a tab restored from settings sits until the user switches to it: pointed at its folder, but
+	// costing nothing to keep there.
+	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
+	CHECK(h.panel().list().empty());
+	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 0);
+
+	h.panel().setActive(true);
+	h.settle();
+
+	CHECK(h.panel().itemHashExists(hashOf(file)));
+	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 1);
+}
+
 TEST_CASE("CPanel - reactivating a panel picks up what changed while it was inactive", "[panel][watcher]")
 {
 	TempTree tree;
@@ -56,6 +81,7 @@ TEST_CASE("CPanel - reactivating a panel picks up what changed while it was inac
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 
 	// An inactive tab gives up its watch handle, so nothing detects this one.
@@ -77,6 +103,7 @@ TEST_CASE("CPanel - a change on disk refreshes the folder in view", "[panel][wat
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 

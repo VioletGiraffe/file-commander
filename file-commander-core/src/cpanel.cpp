@@ -60,16 +60,27 @@ void CPanel::setActive(bool active)
 		QString currentPath;
 		{
 			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			_active = true;
 			displayMode = _currentDisplayMode;
 			currentPath = _currentDirObject.fullAbsolutePath();
 		}
+
+		// setPath comes first: there is nothing to watch or list until the tab has been pointed at a folder.
+		assert_debug_only(!currentPath.isEmpty());
 
 		// Flattened mode has no watcher because a single-directory watcher cannot represent its recursive contents.
 		_watcher.setPathToWatch(displayMode == NormalMode ? currentPath : QString{});
 		refreshFileList(refreshCauseOther);
 	}
 	else
+	{
+		{
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			_active = false;
+		}
+
 		_watcher.setPathToWatch({}); // Release the OS watch handle while inactive
+	}
 }
 
 CPanel::FileListUpdateRequest CPanel::beginFileListUpdateLocked(CurrentDisplayMode displayMode)
@@ -78,7 +89,8 @@ CPanel::FileListUpdateRequest CPanel::beginFileListUpdateLocked(CurrentDisplayMo
 	FileListUpdateRequest request{ ++_fileListGeneration, _currentDirObject.fullAbsolutePath(), displayMode };
 	// The committed list now belongs to a view we've left, and the accessors hide it from here on, so the UI has to
 	// be told to stop displaying it. Not a refresh: there are no contents to report until this update completes.
-	if (!fileListBelongsToCurrentViewLocked())
+	// Nothing displays an inactive tab, and no listing would follow to lift the invalidation anyway.
+	if (_active && !fileListBelongsToCurrentViewLocked())
 		enqueueContentsInvalidatedNotificationLocked(request.generation);
 
 	return request;
@@ -155,7 +167,9 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (pathSet && oldPathObject.fullAbsolutePath() != newPath)
 		_currentPathChangedListeners.invokeCallback(&CurrentPathChangedListener::onCurrentPathChanged, _panelPosition, newPath);
 
-	if (_watcher.setPathToWatch(newPath) == false)
+	// An inactive tab neither watches nor lists its folder; setActive does both when the tab becomes the displayed one.
+	const bool active = _active;
+	if (active && _watcher.setPathToWatch(newPath) == false)
 		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
 
 	// Use the previous view's committed list to remember the selected child when navigating down.
@@ -170,7 +184,9 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	const auto request = beginFileListUpdateLocked(NormalMode);
 	locker.unlock();
 
-	enqueueFileListUpdate(request, pathSet ? operation : refreshCauseOther);
+	if (active)
+		enqueueFileListUpdate(request, pathSet ? operation : refreshCauseOther);
+
 	return pathSet ? FileOperationResultCode::Ok : FileOperationResultCode::DirNotAccessible;
 }
 

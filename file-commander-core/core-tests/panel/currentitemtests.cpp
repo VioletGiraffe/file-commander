@@ -7,6 +7,7 @@ TEST_CASE("CPanel - entering a folder makes it the current item of the one left 
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -25,6 +26,7 @@ TEST_CASE("CPanel - stepping out of a folder makes it the current item of the pa
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -45,6 +47,7 @@ TEST_CASE("CPanel - the remembered current item survives a listing that has not 
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -71,6 +74,7 @@ TEST_CASE("CPanel - entering a folder records nothing when the folder left behin
 	PanelHarness h;
 	h.worker().close();
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	// Straight on into the subfolder, with the parent's listing still unbuilt.
 	REQUIRE(h.panel().setPath(sub, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
 	h.worker().open();
@@ -87,6 +91,7 @@ TEST_CASE("CPanel - setCurrentItemHashForFolder notifies through the queue, neve
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -135,6 +140,7 @@ TEST_CASE("CPanel - goToItem opens the containing folder with the item as its cu
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -155,6 +161,7 @@ TEST_CASE("CPanel - goToItem on something that is gone changes nothing", "[panel
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 

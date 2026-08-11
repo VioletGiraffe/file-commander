@@ -562,10 +562,16 @@ void CPanelWidget::updateTabText(int index)
 QString CPanelWidget::tabToolTipText(int index) const
 {
 	const CPanel& tab = _controller->tabById(_panelPosition, tabIdAt(index));
-	const FolderContentsSummary contents = summarizeFolderContents(tab.list());
 
-	return tab.currentDirPathNative() % '\n' %
-		tr("%1 folders, %2 files (%3)").arg(contents.numFolders).arg(contents.numFiles).arg(fileSizeToString(contents.size));
+	// A tab that has never been activated has no listing, so there are no stats to show until it's been visited.
+	QString stats;
+	tab.readCommittedContents([&stats](const QString&, const FileListHashMap& items) {
+		const FolderContentsSummary contents = summarizeFolderContents(items);
+		stats = tr("%1 folders, %2 files (%3)").arg(contents.numFolders).arg(contents.numFiles).arg(fileSizeToString(contents.size));
+	});
+
+	const QString path = tab.currentDirPathNative();
+	return stats.isEmpty() ? path : path % '\n' % stats;
 }
 
 qulonglong CPanelWidget::tabIdAt(int index) const
@@ -1292,7 +1298,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	}
 	else if (object == ui->_tabBar && e->type() == QEvent::ToolTip)
 	{
-		// Composed on demand rather than set via setTabToolTip so that the stats are never stale
+		// Composed on demand rather than set via setTabToolTip: the active tab's folder changes under it
 		const auto* helpEvent = static_cast<QHelpEvent*>(e);
 		const int index = ui->_tabBar->tabAt(helpEvent->pos());
 		if (index >= 0)

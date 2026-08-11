@@ -23,8 +23,9 @@ triplet and restores its sort and header state; background notifications cannot 
 ## Lifetime and persistence
 
 Panels share a worker pool. Every panel task is tagged, and closing a tab retires its tag before destroying panel
-state. Only active tabs hold filesystem watches; activation re-arms the watch and refreshes changes missed while
-inactive.
+state. Only active tabs hold filesystem watches and list their folders: `setPath` on an inactive tab records where it
+points and nothing more, so a tab restored from settings is listed the first time it is activated. Activation arms
+the watch and lists the folder, which is also how a tab picks up changes made while it was inactive.
 
 `CController` persists paths, active position, and cursor hashes, including migration from legacy single-path
 settings. UI column state and the process-local recently closed stack remain in `CPanelWidget`. See

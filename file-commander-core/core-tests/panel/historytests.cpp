@@ -8,6 +8,7 @@ TEST_CASE("CPanel - back and forward walk the folders that were visited", "[pane
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	REQUIRE(h.panel().setPath(a, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
 	h.settle();
@@ -43,6 +44,7 @@ TEST_CASE("CPanel - going back skips a folder that no longer exists", "[panel][h
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	REQUIRE(h.panel().setPath(a, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
 	h.settle();
@@ -63,6 +65,7 @@ TEST_CASE("CPanel - navigating up records the folder left behind", "[panel][hist
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -83,6 +86,7 @@ TEST_CASE("CPanel - leaving flattened mode returns to the same folder", "[panel]
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 
 	h.panel().showAllFilesFromCurrentFolderAndBelow();
@@ -108,6 +112,7 @@ TEST_CASE("CPanel - restored history is navigable", "[panel][history]")
 	REQUIRE(h.panel().history().size() == 2);
 
 	REQUIRE(h.panel().setPath(b, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	// Already the latest entry, so nothing is appended to it.
 	CHECK(h.panel().history().size() == 2);
@@ -124,6 +129,7 @@ TEST_CASE("CPanel - the path-changed notification tracks the folder, not the his
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	REQUIRE(h.panel().setPath(a, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
 	h.settle();

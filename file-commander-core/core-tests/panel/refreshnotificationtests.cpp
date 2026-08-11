@@ -8,6 +8,7 @@ TEST_CASE("CPanel - a listing that outlives the drain blanks the view first", "[
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -41,6 +42,7 @@ TEST_CASE("CPanel - a listing that completes within the drain never blanks the v
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -65,6 +67,7 @@ TEST_CASE("CPanel - a superseded file list update is discarded", "[panel][notifi
 	PanelHarness h;
 	h.worker().close();
 	REQUIRE(h.panel().setPath(first, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.tick();
 	REQUIRE(h.panel().setPath(second, refreshCauseOther) == FileOperationResultCode::Ok);
 	h.worker().open();
@@ -84,6 +87,7 @@ TEST_CASE("CPanel - refreshing the folder in view does not blank it", "[panel][n
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -110,6 +114,7 @@ TEST_CASE("CPanel - flattened mode lists the files of the whole subtree", "[pane
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	h.settle();
 	h.listener().clear();
 
@@ -152,7 +157,9 @@ TEST_CASE("CPanel - a drain only ever delivers the notifications of its own tab"
 	other.addPanelContentsChangedListener(&shared);
 
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
 	REQUIRE(other.setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+	other.setActive(true);
 	h.worker().waitUntilWorkComplete();
 
 	h.tick();
