@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786437724447,
+  "lastUpdate": 1786454206390,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -13306,6 +13306,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 34.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f98704d3573d78338e7f2872c627832961343a25",
+          "message": "Plugin proxy refactor, CController post-shutdown safety",
+          "timestamp": "2026-08-11T15:06:50+03:00",
+          "tree_id": "5738650933724f98c3b8ad9b97c25dccb22fbf32",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f98704d3573d78338e7f2872c627832961343a25"
+        },
+        "date": 1786454202216,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17251,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 13183,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1296,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 714.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 388,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35,
             "unit": "KB"
           },
           {
