@@ -117,13 +117,14 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	const auto oldPathObject = _currentDirObject;
 	const auto oldDisplayMode = _currentDisplayMode;
 
+	CFileSystemObject resolvedDir;
 	bool pathSet = false;
 	for (auto&& candidatePath: pathHierarchy(path))
 	{
 		if (pathIsAccessible(candidatePath))
 		{
-			_currentDirObject.setPath(candidatePath);
-			if (_currentDirObject.isDir())
+			resolvedDir.setPath(candidatePath);
+			if (resolvedDir.isDir())
 			{
 				pathSet = true;
 				break;
@@ -134,24 +135,32 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	if (!pathSet)
 	{
 		if (pathIsAccessible(oldPathObject.fullAbsolutePath()))
-			_currentDirObject.setPath(oldPathObject.fullAbsolutePath());
+			resolvedDir.setPath(oldPathObject.fullAbsolutePath());
 		else
 		{
+			const auto& navigationHistory = history();
 			QString pathToSet;
-			for (auto it = history().rbegin() + ((ptrdiff_t)history().size() - 1 - (ptrdiff_t)history().currentIndex()); it != history().rend(); ++it)
+			if (!navigationHistory.empty())
 			{
-				if (pathIsAccessible(*it))
+				// rbegin() is the newest entry; step forward to the cursor, then keep walking towards the oldest.
+				const size_t cursorDistanceFromNewest = navigationHistory.size() - 1 - navigationHistory.currentIndex();
+				for (auto it = navigationHistory.rbegin() + (ptrdiff_t)cursorDistanceFromNewest; it != navigationHistory.rend(); ++it)
 				{
-					pathToSet = *it;
-					break;
+					if (pathIsAccessible(*it))
+					{
+						pathToSet = *it;
+						break;
+					}
 				}
 			}
 
 			if (pathToSet.isEmpty())
 				pathToSet = QDir::homePath();
-			_currentDirObject.setPath(pathToSet);
+			resolvedDir.setPath(pathToSet);
 		}
 	}
+
+	_currentDirObject = std::move(resolvedDir);
 
 	const QString newPath = _currentDirObject.fullAbsolutePath();
 

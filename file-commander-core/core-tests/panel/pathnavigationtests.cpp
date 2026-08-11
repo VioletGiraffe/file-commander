@@ -93,6 +93,27 @@ TEST_CASE("CPanel - a wholly inaccessible path leaves the panel where it was", "
 #endif
 }
 
+TEST_CASE("CPanel - an inaccessible path with nowhere to fall back to lands on the home folder", "[panel][path]")
+{
+#ifdef _WIN32
+	const QString unusableRoot = unusedDriveRoot();
+	if (unusableRoot.isEmpty())
+	{
+		WARN("Every drive letter is in use, skipping");
+		return;
+	}
+
+	// A restored tab starts with no history and nowhere it came from, which is the state a saved path on a drive
+	// that is no longer connected is resolved against.
+	PanelHarness h;
+	CHECK(h.panel().setPath(unusableRoot + QStringLiteral("nowhere"), refreshCauseOther) == FileOperationResultCode::DirNotAccessible);
+
+	CHECK(h.panel().currentDirPathPosix() == QDir::homePath() + '/');
+#else
+	WARN("Every path hierarchy ends at an accessible root on this platform, skipping");
+#endif
+}
+
 TEST_CASE("CPanel - a folder that vanishes before its listing runs falls back to the parent", "[panel][path]")
 {
 	TempTree tree;
