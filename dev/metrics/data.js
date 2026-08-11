@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786470100293,
+  "lastUpdate": 1786479544518,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -13577,6 +13577,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 23,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e8288aaaea431d2ca2a347faf2f9db50fc5d2768",
+          "message": "Tabs start inactive, and inactive tabs don't enumerate the disk",
+          "timestamp": "2026-08-11T23:12:36+03:00",
+          "tree_id": "545871db635a7ee7ecfa67669a1848a05f973523",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e8288aaaea431d2ca2a347faf2f9db50fc5d2768"
+        },
+        "date": 1786479540038,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17293,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 13183,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1297.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 715,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 388.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23.5,
             "unit": "KB"
           },
           {
