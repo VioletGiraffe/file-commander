@@ -29,7 +29,7 @@ RESTORE_COMPILER_WARNINGS
 
 // The chunk size the engine reads a file's contents in. Content tests place their needles relative to it, so it
 // has to stay in step with the engine's own constant.
-inline constexpr qsizetype contentScanWindowSize = 4 * 1024;
+inline constexpr qsizetype contentScanWindowSize = 64 * 1024;
 
 // A throwaway directory tree. Paths come back POSIX-separated, matching what the engine reports.
 class TempTree
