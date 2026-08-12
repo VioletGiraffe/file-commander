@@ -272,8 +272,13 @@ void CFileSearchEngine::searchThread(
 
 			fileContentsRegExp.setPattern(pattern);
 
+			// \w and \b are ASCII-only without Unicode properties, which would make any non-ASCII letter a word
+			// separator. The name filters need no such option: nothing can put \w or \b into one of their patterns.
+			QRegularExpression::PatternOptions patternOptions = QRegularExpression::UseUnicodePropertiesOption;
 			if (!contentsCaseSensitive)
-				fileContentsRegExp.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+				patternOptions |= QRegularExpression::CaseInsensitiveOption;
+
+			fileContentsRegExp.setPatternOptions(patternOptions);
 
 			if (!fileContentsRegExp.isValid())
 			{

@@ -21,13 +21,14 @@ suffix matching.
 
 ## Contents
 
-With Regex enabled, the query is PCRE as typed; otherwise it is literal text. Content search has no wildcard
-dialect. Case-sensitive and whole-word options apply to both modes.
+With Regex enabled, the query is PCRE as typed, with Unicode properties on: `\w`, `\d` and `\b` are not limited to
+ASCII. Otherwise it is literal text. Content search has no wildcard dialect. Case-sensitive and whole-word options
+apply to both modes.
 
 Content is currently decoded as UTF-8, so equivalent text in UTF-16 or legacy encodings is not found. Whole-word
-matching is unreliable when the query begins or ends with punctuation or a non-ASCII letter, and a chunk boundary
-reads as a word boundary. `^` and `$` in content regexes also match at internal chunk boundaries, so file-wide
-anchoring can over-report; line anchoring is unavailable.
+matching is unreliable when the query begins or ends with punctuation, and a chunk boundary reads as a word
+boundary. `^` and `$` in content regexes also match at internal chunk boundaries, so file-wide anchoring can
+over-report; line anchoring is unavailable.
 
 An invalid regex stops before traversal and is reported separately from cancellation. A content query returns files
 only, never directories.

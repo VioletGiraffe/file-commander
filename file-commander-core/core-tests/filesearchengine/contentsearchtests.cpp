@@ -175,9 +175,7 @@ TEST_CASE("Search - whole-word matching treats a scan window edge as a word boun
 	CHECK(result.matched(splitWord)); // The very same word, reported only because "concat" ends the window
 }
 
-// '\b' and '\w' are ASCII-only unless the pattern carries UseUnicodePropertiesOption, which nothing sets. A
-// non-ASCII letter therefore reads as a non-word character, in both directions.
-TEST_CASE("Search - whole-word matching is Unicode-aware", "[search][contents][!shouldfail]")
+TEST_CASE("Search - whole-word matching is Unicode-aware", "[search][contents]")
 {
 	TempTree tree;
 	const QString insideAWord = tree.makeFile(QSL("inside.txt"), "na" + iDiaeresisUtf8 + "ve");
@@ -188,6 +186,19 @@ TEST_CASE("Search - whole-word matching is Unicode-aware", "[search][contents][!
 
 	CHECK(runSearch({ .roots = { tree.path() }, .contents = QString::fromUtf8("caf" + eAcuteUtf8),
 		.contentsCaseSensitive = true, .contentsWholeWords = true }).matched(standalone));
+}
+
+// Unicode properties apply to the whole content pattern, so a user's own \w and \W carry them too. That reach
+// beyond the whole-word wrapper is deliberate: the option cannot sensibly depend on an unrelated checkbox.
+TEST_CASE("Search - a content regex counts a non-ASCII letter as a word character", "[search][contents]")
+{
+	TempTree tree;
+	const QString accented = tree.makeFile(QSL("accented.txt"), "caf" + eAcuteUtf8);
+
+	CHECK(runSearch({ .roots = { tree.path() },
+		.contents = QSL("f\\w"), .contentsCaseSensitive = true, .contentsIsRegex = true }).matched(accented));
+	CHECK_FALSE(runSearch({ .roots = { tree.path() },
+		.contents = QSL("f\\W"), .contentsCaseSensitive = true, .contentsIsRegex = true }).matched(accented));
 }
 
 TEST_CASE("Search - a content regex is used as written", "[search][contents]")
