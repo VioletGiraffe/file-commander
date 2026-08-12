@@ -175,6 +175,26 @@ TEST_CASE("Search - whole-word matching treats a scan window edge as a word boun
 	CHECK(result.matched(splitWord)); // The very same word, reported only because "concat" ends the window
 }
 
+// The two edges are separate assertions, so a query carrying punctuation on one of them says nothing about the other.
+TEST_CASE("Search - whole-word matching handles a query whose own edges are punctuation", "[search][contents]")
+{
+	TempTree tree;
+	const QString leadingDelimited = tree.makeFile(QSL("leading.txt"), "edit .gitignore first");
+	const QString leadingEmbedded = tree.makeFile(QSL("leading-embedded.txt"), "x.gitignore");
+	const QString trailingDelimited = tree.makeFile(QSL("trailing.txt"), "see foo. next");
+	const QString trailingEmbedded = tree.makeFile(QSL("trailing-embedded.txt"), "foo.x");
+
+	const SearchResult leadingPunctuation = runSearch({ .roots = { tree.path() },
+		.contents = QSL(".gitignore"), .contentsCaseSensitive = true, .contentsWholeWords = true });
+	CHECK(leadingPunctuation.matched(leadingDelimited));
+	CHECK_FALSE(leadingPunctuation.matched(leadingEmbedded));
+
+	const SearchResult trailingPunctuation = runSearch({ .roots = { tree.path() },
+		.contents = QSL("foo."), .contentsCaseSensitive = true, .contentsWholeWords = true });
+	CHECK(trailingPunctuation.matched(trailingDelimited));
+	CHECK_FALSE(trailingPunctuation.matched(trailingEmbedded));
+}
+
 TEST_CASE("Search - whole-word matching is Unicode-aware", "[search][contents]")
 {
 	TempTree tree;

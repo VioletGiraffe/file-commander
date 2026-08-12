@@ -266,9 +266,11 @@ void CFileSearchEngine::searchThread(
 		if (useRegexEngine)
 		{
 			QString pattern = contentsIsRegex ? contentsToFind : QRegularExpression::escape(contentsToFind);
-			// The group keeps both boundaries applied to the whole pattern - without it, alternation would bind first.
+			// \b asserts a word/non-word transition, so a query whose own edge is punctuation would demand a word
+			// character just outside the match; these lookarounds only require the absence of one. The group keeps
+			// both applied to the whole pattern - without it, alternation would bind first.
 			if (contentsWholeWords)
-				pattern.prepend(QLatin1StringView{ "\\b(?:" }).append(QLatin1StringView{ ")\\b" });
+				pattern.prepend(QLatin1StringView{ "(?<!\\w)(?:" }).append(QLatin1StringView{ ")(?!\\w)" });
 
 			fileContentsRegExp.setPattern(pattern);
 
