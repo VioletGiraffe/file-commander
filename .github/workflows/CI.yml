@@ -379,12 +379,24 @@ jobs:
         # The action above leaves ImDisk in System32, so a second RAM disk is one command. S: has to be a
         # volume genuinely distinct from R: - that is the whole point of the cross-volume tests.
         imdisk -a -s 128M -m S: -p "/FS:NTFS /Q /Y"
+        # R: is created by the third-party action; format it here so its filesystem is ours to state rather than
+        # to inherit. Wipes the disk, which is only safe while the action's copy-workspace input is false.
+        Format-Volume -DriveLetter R -FileSystem NTFS -NewFileSystemLabel RAMDISK -Confirm:$false -Force | Out-Null
+        # imdisk delegates -p to format.com and does not report its failure, so assert the end state on both disks:
+        # anything but NTFS silently drops the reparse-point coverage that needs it.
+        foreach ($letter in 'R', 'S') {
+          $filesystem = (Get-Volume -DriveLetter $letter).FileSystem
+          if ($filesystem -ne 'NTFS') { throw "${letter}: is $filesystem, expected NTFS" }
+        }
         New-Item -Path R:\Temp -ItemType Directory -Force
         New-Item -Path S:\Temp -ItemType Directory -Force
         echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
         echo "TMP=R:\\Temp"  >> $env:GITHUB_ENV
         echo "TMPDIR=R:\\Temp" >> $env:GITHUB_ENV
         echo "FILE_COMMANDER_TEST_SECOND_VOLUME=S:\\Temp" >> $env:GITHUB_ENV
+        # The runner is elevated, so symlink creation is available; setting this turns a failure to create one
+        # into a test failure instead of a skip.
+        echo "FILE_COMMANDER_TEST_SYMLINKS=1" >> $env:GITHUB_ENV
 
     - name: Running tests - Windows
       if: startsWith(matrix.os, 'windows')

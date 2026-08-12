@@ -253,6 +253,25 @@ inline bool readOnlySemanticsUnavailable()
 	return false;
 }
 
+// Windows grants symlink creation only to an elevated process or one running under Developer Mode, so the
+// coverage that needs a real reparse point cannot be unconditional. CI promises the capability by setting
+// FILE_COMMANDER_TEST_SYMLINKS: there a failure means a misconfigured runner, not a reason to drop the coverage.
+inline bool symlinkCreationUnavailable(const QString& writableDirectory)
+{
+	const QString probe = writableDirectory % "/fc-symlink-probe";
+	if (createFileSymlink(writableDirectory % "/fc-symlink-probe-target", probe))
+	{
+		REQUIRE(QFile::remove(probe));
+		return false;
+	}
+
+	if (qEnvironmentVariableIsSet("FILE_COMMANDER_TEST_SYMLINKS"))
+		FAIL("FILE_COMMANDER_TEST_SYMLINKS is set, but a symbolic link could not be created");
+
+	WARN("Symbolic links cannot be created here: symlink sections skipped");
+	return true;
+}
+
 inline int64_t entryLastWriteSeconds(const QString& path)
 {
 	const auto times = getEntryTimes(path);

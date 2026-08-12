@@ -90,6 +90,79 @@ TEST_CASE("inspectEntry: file link, broken link, link to non-regular target", "[
 }
 #endif
 
+#ifdef _WIN32
+// QFile::link() writes a .lnk shortcut on Windows rather than a reparse point, which is what guards the symlink
+// cases above off. These cover the symlink reparse tag - what a plain "mklink" produces, and a different tag from
+// the junction createDirectoryLink() makes.
+TEST_CASE("inspectEntry: an NTFS symlink is classified by its target, not by its tag", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
+
+	writeTestFile(base % "/target.bin", QByteArray(4000, 'T'));
+	REQUIRE(createFileSymlink(base % "/target.bin", base % "/filelink"));
+	const auto fileLinkSnapshot = snapshotOf(base % "/filelink");
+	CHECK(fileLinkSnapshot.kind == OperationEntryKind::FileLink);
+	CHECK(fileLinkSnapshot.size == 4000); // Followed-target size
+
+	REQUIRE(QDir{}.mkpath(base % "/targetdir"));
+	REQUIRE(createDirectorySymlink(base % "/targetdir", base % "/dirsymlink"));
+	const auto dirLinkSnapshot = snapshotOf(base % "/dirsymlink");
+	CHECK(dirLinkSnapshot.kind == OperationEntryKind::DirectoryLink); // The junction's kind, reached through the other tag
+	CHECK(dirLinkSnapshot.size == 0);
+}
+
+TEST_CASE("inspectEntry: a broken NTFS symlink keeps the kind its own entry carries", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
+
+	REQUIRE(createFileSymlink(base % "/no_such_target.bin", base % "/brokenfilelink"));
+	const auto brokenFileLink = snapshotOf(base % "/brokenfilelink");
+	CHECK(brokenFileLink.kind == OperationEntryKind::FileLink);
+	CHECK(brokenFileLink.size == 0);
+
+	// A dangling directory symlink is still a directory entry, which is what decides that removing it takes the
+	// directory primitive rather than the file one.
+	REQUIRE(QDir{}.mkpath(base % "/targetdir"));
+	REQUIRE(createDirectorySymlink(base % "/targetdir", base % "/brokendirlink"));
+	REQUIRE(QDir{}.rmdir(base % "/targetdir"));
+	CHECK(snapshotOf(base % "/brokendirlink").kind == OperationEntryKind::DirectoryLink);
+}
+
+TEST_CASE("removeEntry: NTFS symlinks are unlinked as entries, targets untouched", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
+
+	writeTestFile(base % "/target.bin", QByteArray(10, 't'));
+	REQUIRE(createFileSymlink(base % "/target.bin", base % "/filelink"));
+	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/filelink")).has_value());
+	CHECK(entryAbsent(base % "/filelink"));
+	CHECK(readFileContents(base % "/target.bin") == QByteArray(10, 't'));
+
+	REQUIRE(QDir{}.mkpath(base % "/targetdir"));
+	writeTestFile(base % "/targetdir/inner.bin", QByteArray(10, 'i'));
+	REQUIRE(createDirectorySymlink(base % "/targetdir", base % "/dirsymlink"));
+	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/dirsymlink")).has_value());
+	CHECK(entryAbsent(base % "/dirsymlink"));
+	CHECK(readFileContents(base % "/targetdir/inner.bin") == QByteArray(10, 'i'));
+
+	REQUIRE(createDirectorySymlink(base % "/gone", base % "/brokendirlink"));
+	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/brokendirlink")).has_value());
+	CHECK(entryAbsent(base % "/brokendirlink"));
+}
+#endif
+
 TEST_CASE("inspectEntry: a forced native failure classifies; a forced not-found reads as absent", "[mutator]")
 {
 	QTemporaryDir tempDir;

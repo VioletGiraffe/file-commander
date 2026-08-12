@@ -36,3 +36,38 @@ inline bool createDirectoryLink(const QString& targetPath, const QString& linkPa
 	return QFile::link(targetPath, linkPath);
 #endif
 }
+
+#ifdef _WIN32
+// The two symlink flavors differ only in the directory flag. ALLOW_UNPRIVILEGED_CREATE is what lets the call
+// succeed in Developer Mode; without it only an elevated process may create a symlink at all.
+inline bool createWindowsSymlink(const QString& targetPath, const QString& linkPath, const DWORD kindFlag)
+{
+	const QString nativeLink = QDir::toNativeSeparators(linkPath);
+	const QString nativeTarget = QDir::toNativeSeparators(targetPath);
+	return CreateSymbolicLinkW(reinterpret_cast<const WCHAR*>(nativeLink.utf16()), reinterpret_cast<const WCHAR*>(nativeTarget.utf16()),
+		kindFlag | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE) != 0;
+}
+#endif
+
+// A symbolic link to a file. On Windows this is an IO_REPARSE_TAG_SYMLINK reparse point, which QFile::link()
+// cannot produce - there it writes a .lnk shortcut instead. Creation is privileged on Windows and may fail
+// for that reason alone; symlinkCreationUnavailable() is how tests decide what to do about it.
+inline bool createFileSymlink(const QString& targetPath, const QString& linkPath)
+{
+#ifdef _WIN32
+	return createWindowsSymlink(targetPath, linkPath, 0);
+#else
+	return QFile::link(targetPath, linkPath);
+#endif
+}
+
+// A symbolic link to a directory. On Windows this carries a different reparse tag than the junction
+// createDirectoryLink() makes, so the two are not interchangeable as test inputs; on POSIX they are one thing.
+inline bool createDirectorySymlink(const QString& targetPath, const QString& linkPath)
+{
+#ifdef _WIN32
+	return createWindowsSymlink(targetPath, linkPath, SYMBOLIC_LINK_FLAG_DIRECTORY);
+#else
+	return QFile::link(targetPath, linkPath);
+#endif
+}
