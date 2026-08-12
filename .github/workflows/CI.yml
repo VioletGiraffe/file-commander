@@ -381,11 +381,13 @@ jobs:
         imdisk -a -s 128M -m S: -p "/FS:NTFS /Q /Y"
         # R: is created by the third-party action; format it here so its filesystem is ours to state rather than
         # to inherit. Wipes the disk, which is only safe while the action's copy-workspace input is false.
-        Format-Volume -DriveLetter R -FileSystem NTFS -NewFileSystemLabel RAMDISK -Confirm:$false -Force | Out-Null
+        # format.com, not Format-Volume: ImDisk volumes are absent from the Storage provider the cmdlets query.
+        format.com R: /FS:NTFS /Q /Y /V:RAMDISK
         # imdisk delegates -p to format.com and does not report its failure, so assert the end state on both disks:
-        # anything but NTFS silently drops the reparse-point coverage that needs it.
+        # anything but NTFS silently drops the reparse-point coverage that needs it. DriveInfo asks the filesystem
+        # directly, for the same reason format.com is used above.
         foreach ($letter in 'R', 'S') {
-          $filesystem = (Get-Volume -DriveLetter $letter).FileSystem
+          $filesystem = [System.IO.DriveInfo]::new("${letter}:").DriveFormat
           if ($filesystem -ne 'NTFS') { throw "${letter}: is $filesystem, expected NTFS" }
         }
         New-Item -Path R:\Temp -ItemType Directory -Force
