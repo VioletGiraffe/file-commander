@@ -1,5 +1,10 @@
 #include "searchenginetesthelpers.h"
 
+// U+00E9 and U+00EF as UTF-8, spelled in bytes: these tests turn on which side of a scan window boundary each
+// individual byte lands on, so the encoding must be the test's own statement and not the source file's.
+static const QByteArray eAcuteUtf8("\xC3\xA9", 2);
+static const QByteArray iDiaeresisUtf8("\xC3\xAF", 2);
+
 TEST_CASE("Search - plain content matching finds the text and nothing else", "[search][contents]")
 {
 	TempTree tree;
@@ -117,6 +122,28 @@ TEST_CASE("Search - a regex match straddling a scan window boundary is found", "
 	CHECK(runSearch({ .roots = { tree.path() }, .contents = QSL("needle") }).matched(file));
 }
 
+// The regex engine is handed one scan window at a time and is told nothing about where the file begins or ends,
+// so file-wide anchoring over-reports - the behavior doc/search.md describes.
+TEST_CASE("Search - ^ and $ anchor to the scan window, not to the file", "[search][contents]")
+{
+	TempTree tree;
+	const QByteArray needle = "NEEDLE";
+	const qsizetype fileSize = contentScanWindowSize * 2;
+	const QString atSecondWindowStart = tree.makeFileWithNeedleAt(QSL("second-window.txt"), needle, contentScanWindowSize, fileSize);
+	const QString atFirstWindowEnd = tree.makeFileWithNeedleAt(QSL("first-window.txt"), needle, contentScanWindowSize - needle.size(), fileSize);
+	const QString midWindow = tree.makeFileWithNeedleAt(QSL("mid-window.txt"), needle, 100, fileSize);
+
+	const SearchResult anchoredToStart = runSearch({ .roots = { tree.path() },
+		.contents = QSL("^NEEDLE"), .contentsCaseSensitive = true, .contentsIsRegex = true });
+	CHECK(anchoredToStart.matched(atSecondWindowStart)); // Nowhere near the start of the file
+	CHECK_FALSE(anchoredToStart.matched(midWindow)); // '^' does still anchor - just to the window
+
+	const SearchResult anchoredToEnd = runSearch({ .roots = { tree.path() },
+		.contents = QSL("NEEDLE$"), .contentsCaseSensitive = true, .contentsIsRegex = true });
+	CHECK(anchoredToEnd.matched(atFirstWindowEnd));
+	CHECK_FALSE(anchoredToEnd.matched(midWindow));
+}
+
 TEST_CASE("Search - whole-word matching excludes text inside a longer word", "[search][contents]")
 {
 	TempTree tree;
@@ -128,6 +155,39 @@ TEST_CASE("Search - whole-word matching excludes text inside a longer word", "[s
 
 	CHECK_FALSE(result.matched(insideAWord));
 	CHECK(result.matched(standalone));
+}
+
+// The same window-edge effect as the anchors above: the '\b' the whole-word option adds sees where the window
+// stops, not where the word does. Space padding is what puts a real boundary before the word.
+TEST_CASE("Search - whole-word matching treats a scan window edge as a word boundary", "[search][contents]")
+{
+	TempTree tree;
+	const QByteArray word = "concatenate";
+	const QByteArray queryPart = "concat"; // Positioned below to end exactly at the window edge
+	const qsizetype fileSize = contentScanWindowSize * 2;
+	const QString splitWord = tree.makeFileWithNeedleAt(QSL("split.txt"), word, contentScanWindowSize - queryPart.size(), fileSize, ' ');
+	const QString wholeWord = tree.makeFileWithNeedleAt(QSL("whole.txt"), word, 100, fileSize, ' ');
+
+	const SearchResult result = runSearch({ .roots = { tree.path() },
+		.contents = QString::fromUtf8(queryPart), .contentsCaseSensitive = true, .contentsWholeWords = true });
+
+	CHECK_FALSE(result.matched(wholeWord)); // Inside a longer word
+	CHECK(result.matched(splitWord)); // The very same word, reported only because "concat" ends the window
+}
+
+// '\b' and '\w' are ASCII-only unless the pattern carries UseUnicodePropertiesOption, which nothing sets. A
+// non-ASCII letter therefore reads as a non-word character, in both directions.
+TEST_CASE("Search - whole-word matching is Unicode-aware", "[search][contents][!shouldfail]")
+{
+	TempTree tree;
+	const QString insideAWord = tree.makeFile(QSL("inside.txt"), "na" + iDiaeresisUtf8 + "ve");
+	const QString standalone = tree.makeFile(QSL("standalone.txt"), "caf" + eAcuteUtf8 + " au lait");
+
+	CHECK_FALSE(runSearch({ .roots = { tree.path() }, .contents = QSL("na"),
+		.contentsCaseSensitive = true, .contentsWholeWords = true }).matched(insideAWord));
+
+	CHECK(runSearch({ .roots = { tree.path() }, .contents = QString::fromUtf8("caf" + eAcuteUtf8),
+		.contentsCaseSensitive = true, .contentsWholeWords = true }).matched(standalone));
 }
 
 TEST_CASE("Search - a content regex is used as written", "[search][contents]")
@@ -157,4 +217,44 @@ TEST_CASE("Search - plain text is matched literally even when case-insensitive",
 
 	CHECK(result.matched(literal));
 	CHECK_FALSE(result.matched(wildcardDecoy));
+}
+
+TEST_CASE("Search - non-ASCII text is found on both match paths", "[search][contents]")
+{
+	TempTree tree;
+	const QString file = tree.makeFile(QSL("accented.txt"), "caf" + eAcuteUtf8 + " au lait");
+	const QString needle = QString::fromUtf8("caf" + eAcuteUtf8);
+
+	CHECK(runSearch({ .roots = { tree.path() }, .contents = needle, .contentsCaseSensitive = true }).matched(file)); // memfind
+
+	// Case-insensitivity routes the same query through the regex engine, where the non-ASCII letter has to come
+	// out of QRegularExpression::escape() as a valid pattern rather than as a broken escape.
+	const SearchResult viaRegex = runSearch({ .roots = { tree.path() }, .contents = needle });
+	CHECK(viaRegex.status == CFileSearchEngine::SearchFinished);
+	CHECK(viaRegex.matched(file));
+}
+
+TEST_CASE("Search - a character split across a scan window boundary does not hide the text after it", "[search][contents]")
+{
+	TempTree tree;
+	const QByteArray needle = "NEEDLE";
+	QByteArray contents(contentScanWindowSize * 2, TempTree::paddingByte);
+	contents.replace(contentScanWindowSize - 1, eAcuteUtf8.size(), eAcuteUtf8); // One byte in each window
+	contents.replace(contentScanWindowSize + 8, needle.size(), needle); // Wholly inside the second window
+	const QString file = tree.makeFile(QSL("split-char.txt"), contents);
+
+	// Both halves decode to a replacement character, but the decoder resynchronizes at the next lead byte, so
+	// what the window loses is that one character and not everything after it.
+	CHECK(runSearch({ .roots = { tree.path() }, .contents = QSL("needle") }).matched(file));
+}
+
+// The straddle cases above split ASCII text between two windows; this one splits a single character, so an
+// overlapping-window fix has to hand the decoder whole characters and not merely more bytes.
+TEST_CASE("Search - non-ASCII text straddling a scan window boundary is found", "[search][contents][!shouldfail]")
+{
+	TempTree tree;
+	const QByteArray cafe = "caf" + eAcuteUtf8;
+	const QString file = tree.makeFileWithNeedleAt(QSL("straddle-char.txt"), cafe, contentScanWindowSize - 4, contentScanWindowSize * 2);
+
+	CHECK(runSearch({ .roots = { tree.path() }, .contents = QString::fromUtf8(cafe) }).matched(file));
 }

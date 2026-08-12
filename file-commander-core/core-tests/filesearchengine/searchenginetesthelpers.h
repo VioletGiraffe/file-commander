@@ -65,13 +65,15 @@ public:
 
 	// A file of exactly totalSize bytes whose only occurrence of needle begins at needleOffset. Padding is one
 	// repeated character the needle may not contain, so no second, accidental occurrence exists anywhere.
-	QString makeFileWithNeedleAt(const QString& relative, const QByteArray& needle, qsizetype needleOffset, qsizetype totalSize)
+	// Whether the padding is itself a word character decides what the whole-word option sees around the needle.
+	QString makeFileWithNeedleAt(const QString& relative, const QByteArray& needle, qsizetype needleOffset, qsizetype totalSize,
+		const char padding = paddingByte)
 	{
 		REQUIRE(needleOffset >= 0);
 		REQUIRE(needleOffset + needle.size() <= totalSize);
-		REQUIRE(!needle.contains(paddingByte));
+		REQUIRE(!needle.contains(padding));
 
-		QByteArray contents(totalSize, paddingByte);
+		QByteArray contents(totalSize, padding);
 		contents.replace(needleOffset, needle.size(), needle);
 		return makeFile(relative, contents);
 	}
