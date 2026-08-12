@@ -585,15 +585,14 @@ TEST_CASE("delete executor: links and special entries are unlinked without targe
 		CHECK(script.seenRequests.empty());
 	}
 
-#ifndef _WIN32
 	SECTION("a file symlink to a read-only target: no preflight, target untouched")
 	{
-		if (readOnlySemanticsUnavailable())
+		if (readOnlySemanticsUnavailable() || symlinkCreationUnavailable(base))
 			return;
 
 		writeTestFile(base % "/target.bin", patternedContents(100));
 		setFileReadOnly(base % "/target.bin", true);
-		REQUIRE(QFile::link(base % "/target.bin", base % "/link.bin"));
+		REQUIRE(createFileSymlink(base % "/target.bin", base % "/link.bin"));
 
 		const auto summary = runDelete(script, { base % "/link.bin" });
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -607,7 +606,10 @@ TEST_CASE("delete executor: links and special entries are unlinked without targe
 
 	SECTION("a broken file symlink")
 	{
-		REQUIRE(QFile::link(base % "/no-such-target.bin", base % "/broken.bin"));
+		if (symlinkCreationUnavailable(base))
+			return;
+
+		REQUIRE(createFileSymlink(base % "/no-such-target.bin", base % "/broken.bin"));
 
 		const auto summary = runDelete(script, { base % "/broken.bin" });
 		CHECK(summary.status == CompletionStatus::Completed);
@@ -615,6 +617,7 @@ TEST_CASE("delete executor: links and special entries are unlinked without targe
 		CHECK(entryAbsent(base % "/broken.bin"));
 	}
 
+#ifndef _WIN32
 	SECTION("a FIFO is unlinked without a prompt")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/root"));
@@ -700,15 +703,16 @@ TEST_CASE("delete executor: depth-3 partial propagation preserves every ancestor
 	setFileReadOnly(base % "/root/mid/leaf/file.bin", false);
 }
 
-#ifndef _WIN32
 TEST_CASE("delete executor: a read-only failure on a file link stays ActionFailed", "[deleteexecutor][link][readonly]")
 {
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
 
 	writeTestFile(base % "/target.bin", patternedContents(60));
-	REQUIRE(QFile::link(base % "/target.bin", base % "/thelink"));
+	REQUIRE(createFileSymlink(base % "/target.bin", base % "/thelink"));
 
 	// A ReadOnly-classified removal failure is only reinterpreted as the read-only policy question for a
 	// regular file; a link entry is never remediated, so the failure stays a plain ActionFailed.
@@ -728,7 +732,6 @@ TEST_CASE("delete executor: a read-only failure on a file link stays ActionFaile
 	CHECK(entryAbsent(base % "/thelink"));
 	CHECK(readFileContents(base % "/target.bin") == patternedContents(60)); // The target was never touched
 }
-#endif
 
 TEST_CASE("delete executor: cancellation checkpoints", "[deleteexecutor]")
 {
