@@ -313,6 +313,71 @@ TEST_CASE("move executor: a same-filesystem directory-link root renames as the l
 	CHECK(readFileContents(base % "/dest/thelink/x.bin") == patternedContents(300)); // Still resolves through the link
 }
 
+// A wholesale rename carries link entries untouched: where a link points afterwards is decided by how its own
+// target was spelled, and nothing rewrites it to preserve what it used to resolve to.
+TEST_CASE("move executor: a same-filesystem rename relocates link entries without rewriting their targets", "[moveexecutor][link]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
+
+	REQUIRE(QDir{}.mkpath(base % "/src"));
+	writeTestFile(base % "/src/inside.bin", patternedContents(300));
+	writeTestFile(base % "/outside.bin", patternedContents(400));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	OperationScript script;
+
+	SECTION("a relative target inside the moved tree travels with it")
+	{
+		REQUIRE(createFileSymlink(QStringLiteral("inside.bin"), base % "/src/rel.bin"));
+
+		CHECK(runMove(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest").status == CompletionStatus::Completed);
+
+		CHECK(snapshotOf(base % "/dest/src/rel.bin").kind == OperationEntryKind::FileLink);
+		CHECK(readFileContents(base % "/dest/src/rel.bin") == patternedContents(300)); // Now dest/src/inside.bin
+	}
+
+	SECTION("a relative target outside the moved tree resolves against the new parent")
+	{
+		REQUIRE(createFileSymlink(QStringLiteral("../outside.bin"), base % "/src/rel.bin"));
+
+		CHECK(runMove(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest").status == CompletionStatus::Completed);
+
+		// "../outside.bin" now names dest/outside.bin, which does not exist: a link that resolved before the
+		// move does not have to resolve after it.
+		const auto moved = snapshotOf(base % "/dest/src/rel.bin");
+		CHECK(moved.kind == OperationEntryKind::FileLink);
+		CHECK(moved.size == 0); // No followed target to take a size from
+		CHECK(readFileContents(base % "/outside.bin") == patternedContents(400)); // What it used to name is untouched
+	}
+
+	SECTION("an absolute target keeps naming what it named")
+	{
+		REQUIRE(createFileSymlink(base % "/outside.bin", base % "/src/abs.bin"));
+
+		CHECK(runMove(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest").status == CompletionStatus::Completed);
+
+		CHECK(snapshotOf(base % "/dest/src/abs.bin").kind == OperationEntryKind::FileLink);
+		CHECK(readFileContents(base % "/dest/src/abs.bin") == patternedContents(400));
+	}
+
+	SECTION("a relative directory symlink follows the tree where an absolute directory link cannot")
+	{
+		REQUIRE(QDir{}.mkpath(base % "/src/inner"));
+		writeTestFile(base % "/src/inner/deep.bin", patternedContents(500));
+		REQUIRE(createDirectorySymlink(QStringLiteral("inner"), base % "/src/rel-dir"));
+		REQUIRE(createDirectoryLink(base % "/src/inner", base % "/src/abs-dir")); // A junction on Windows, absolute by construction
+
+		CHECK(runMove(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest").status == CompletionStatus::Completed);
+
+		CHECK(readFileContents(base % "/dest/src/rel-dir/deep.bin") == patternedContents(500)); // Reached dest/src/inner
+		CHECK(entryAbsent(base % "/dest/src/abs-dir/deep.bin")); // Still names the source path the tree left behind
+	}
+}
+
 TEST_CASE("move executor: cross-device fallback", "[moveexecutor]")
 {
 	QTemporaryDir tempDir;
@@ -513,6 +578,30 @@ TEST_CASE("move executor: links and borrowed content in the fallback", "[moveexe
 		CHECK(readFileContents(base % "/target.bin") == patternedContents(900));
 		CHECK(readFileContents(base % "/dest/src/link.bin") == patternedContents(900));
 		CHECK(!QFileInfo{ base % "/dest/src/link.bin" }.isSymbolicLink());
+	}
+
+	SECTION("a relative file symlink materializes the target it resolved to at the source")
+	{
+		if (symlinkCreationUnavailable(base))
+			return;
+
+		writeTestFile(base % "/target.bin", patternedContents(700));
+		REQUIRE(QDir{}.mkpath(base % "/src"));
+		REQUIRE(createFileSymlink(QStringLiteral("../target.bin"), base % "/src/rel.bin"));
+		REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::RenameEntry_Native, crossDeviceCode);
+
+		const auto summary = runMove(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
+		CHECK(summary.status == CompletionStatus::Completed);
+
+		// "../target.bin" names nothing from dest/src: what lands there is real content because the link was
+		// resolved where it lived, not where it landed.
+		CHECK(snapshotOf(base % "/dest/src/rel.bin").kind == OperationEntryKind::RegularFile);
+		CHECK(readFileContents(base % "/dest/src/rel.bin") == patternedContents(700));
+		CHECK(entryAbsent(base % "/src"));
+		CHECK(readFileContents(base % "/target.bin") == patternedContents(700));
 	}
 
 	SECTION("a broken link cannot materialize: skipping it retains it and its ancestors")
