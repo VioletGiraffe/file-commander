@@ -881,8 +881,47 @@ TEST_CASE("copy executor: a directory raced into a Replace destination re-enters
 }
 #endif
 
+TEST_CASE("copy executor: links materialize", "[executor][link]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
+
+	REQUIRE(QDir{}.mkpath(base % "/src"));
+	writeTestFile(base % "/src/real.bin", patternedContents(400));
+	writeTestFile(base % "/linktarget.bin", patternedContents(800));
+	REQUIRE(createFileSymlink(base % "/linktarget.bin", base % "/src/filelink.bin"));
+	REQUIRE(QDir{}.mkpath(base % "/dirtarget"));
+	writeTestFile(base % "/dirtarget/inside.bin", patternedContents(900));
+	REQUIRE(createDirectoryLink(base % "/dirtarget", base % "/src/dirlink"));
+#ifdef _WIN32
+	// A listed child is classified from the reparse tag the directory listing carries, not from a separate
+	// inspection, and the junction above cannot reach the symlink tag through that path.
+	REQUIRE(createDirectorySymlink(base % "/dirtarget", base % "/src/dirsymlink"));
+#endif
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+
+	OperationScript script;
+	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(script.seenRequests.empty());
+
+	CHECK(readFileContents(base % "/dest/src/real.bin") == patternedContents(400));
+	CHECK(readFileContents(base % "/dest/src/filelink.bin") == patternedContents(800)); // Materialized target content
+	CHECK(!QFileInfo{ base % "/dest/src/filelink.bin" }.isSymLink());
+	CHECK(readFileContents(base % "/dest/src/dirlink/inside.bin") == patternedContents(900)); // Materialized directory
+	CHECK(!QFileInfo{ base % "/dest/src/dirlink" }.isSymLink());
+#ifdef _WIN32
+	CHECK(readFileContents(base % "/dest/src/dirsymlink/inside.bin") == patternedContents(900));
+	CHECK(!QFileInfo{ base % "/dest/src/dirsymlink" }.isSymLink());
+#endif
+}
+
 #ifndef _WIN32
-TEST_CASE("copy executor: Other entries are skippable, links materialize", "[executor][link]")
+TEST_CASE("copy executor: an Other entry is skippable", "[executor]")
 {
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
@@ -891,26 +930,17 @@ TEST_CASE("copy executor: Other entries are skippable, links materialize", "[exe
 	REQUIRE(QDir{}.mkpath(base % "/src"));
 	writeTestFile(base % "/src/real.bin", patternedContents(400));
 	REQUIRE(::mkfifo(QFile::encodeName(base % "/src/pipe").constData(), 0644) == 0);
-	writeTestFile(base % "/linktarget.bin", patternedContents(800));
-	REQUIRE(QFile::link(base % "/linktarget.bin", base % "/src/filelink.bin"));
-	REQUIRE(QDir{}.mkpath(base % "/dirtarget"));
-	writeTestFile(base % "/dirtarget/inside.bin", patternedContents(900));
-	REQUIRE(createDirectoryLink(base % "/dirtarget", base % "/src/dirlink"));
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
-	OperationScript script{ .decisions = { act(DecisionAction::Skip) } }; // For the FIFO
+	OperationScript script{ .decisions = { act(DecisionAction::Skip) } };
 	const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/dest");
 
 	CHECK(summary.status == CompletionStatus::Completed);
-	CHECK(summary.skippedItems == 1); // The FIFO
+	CHECK(summary.skippedItems == 1);
 	REQUIRE(script.seenRequests.size() == 1);
 	CHECK(script.seenRequests[0].issue.kind == IssueKind::UnsupportedEntry);
 
 	CHECK(readFileContents(base % "/dest/src/real.bin") == patternedContents(400));
-	CHECK(readFileContents(base % "/dest/src/filelink.bin") == patternedContents(800)); // Materialized target content
-	CHECK(!QFileInfo{ base % "/dest/src/filelink.bin" }.isSymLink());
-	CHECK(readFileContents(base % "/dest/src/dirlink/inside.bin") == patternedContents(900)); // Materialized directory
-	CHECK(!QFileInfo{ base % "/dest/src/dirlink" }.isSymLink());
 	CHECK(!QFileInfo{ base % "/dest/src/pipe" }.exists());
 }
 #endif

@@ -708,10 +708,12 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 #endif
 	}
 
-#ifndef _WIN32
 	SECTION("a file symlink to the source is a file-like collision, not the same entry")
 	{
-		REQUIRE(QFile::link(base % "/source.bin", base % "/filelink.bin"));
+		if (symlinkCreationUnavailable(base))
+			return;
+
+		REQUIRE(createFileSymlink(base % "/source.bin", base % "/filelink.bin"));
 
 		ScriptedDecisions decisions{ .script = { act(DecisionAction::Replace) } };
 		auto context = scriptedContext(decisions);
@@ -724,8 +726,11 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 
 	SECTION("a file symlink source is distinct from its target")
 	{
+		if (symlinkCreationUnavailable(base))
+			return;
+
 		writeTestFile(base % "/target.bin", QByteArray{ "T" });
-		REQUIRE(QFile::link(base % "/target.bin", base % "/linksource.bin"));
+		REQUIRE(createFileSymlink(base % "/target.bin", base % "/linksource.bin"));
 		const EntrySnapshot linkSource = snapshotOf(base % "/linksource.bin");
 		REQUIRE(linkSource.kind == OperationEntryKind::FileLink);
 
@@ -741,8 +746,11 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 
 	SECTION("a file symlink source resolves like a file")
 	{
+		if (symlinkCreationUnavailable(base))
+			return;
+
 		writeTestFile(base % "/target.bin", QByteArray{ "T" });
-		REQUIRE(QFile::link(base % "/target.bin", base % "/linksource.bin"));
+		REQUIRE(createFileSymlink(base % "/target.bin", base % "/linksource.bin"));
 		const EntrySnapshot linkSource = snapshotOf(base % "/linksource.bin");
 		REQUIRE(linkSource.kind == OperationEntryKind::FileLink);
 
@@ -755,7 +763,6 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 		CHECK(use->replacement == ReplacementMode::RequireAbsent);
 		CHECK(decisions.seenRequests.empty());
 	}
-#endif
 }
 
 TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resolver]")
@@ -887,11 +894,13 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 			resolveDirectoryDestination(overriddenContext, source, ep(base % "/taken.bin"), TransferNodePosition::SelectedRoot)));
 	}
 
-#ifndef _WIN32
 	SECTION("a file symlink destination is a type mismatch as a FileLink, never followed")
 	{
+		if (symlinkCreationUnavailable(base))
+			return;
+
 		writeTestFile(base % "/target.bin", QByteArray{ "T" });
-		REQUIRE(QFile::link(base % "/target.bin", base % "/filelink.bin"));
+		REQUIRE(createFileSymlink(base % "/target.bin", base % "/filelink.bin"));
 
 		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip) } };
 		auto context = scriptedContext(decisions);
@@ -903,7 +912,6 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 		CHECK(decisions.seenRequests[0].issue.kind == IssueKind::TypeMismatch);
 		CHECK(decisions.seenRequests[0].issue.destination->kind == OperationEntryKind::FileLink);
 	}
-#endif
 
 	SECTION("a directory link to the source is a type mismatch, not the same entry")
 	{

@@ -494,12 +494,14 @@ TEST_CASE("move executor: links and borrowed content in the fallback", "[moveexe
 		CHECK(script.seenRequests.empty());
 	}
 
-#ifndef _WIN32
 	SECTION("a file symlink materializes its target content; the link entry is removed, the target is not")
 	{
+		if (symlinkCreationUnavailable(base))
+			return;
+
 		writeTestFile(base % "/target.bin", patternedContents(900));
 		REQUIRE(QDir{}.mkpath(base % "/src"));
-		REQUIRE(QFile::link(base % "/target.bin", base % "/src/link.bin"));
+		REQUIRE(createFileSymlink(base % "/target.bin", base % "/src/link.bin"));
 		REQUIRE(QDir{}.mkpath(base % "/dest"));
 
 		CFaultHookScope hooks;
@@ -515,8 +517,11 @@ TEST_CASE("move executor: links and borrowed content in the fallback", "[moveexe
 
 	SECTION("a broken link cannot materialize: skipping it retains it and its ancestors")
 	{
+		if (symlinkCreationUnavailable(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/src/sub"));
-		REQUIRE(QFile::link(base % "/src/sub/no-such-target", base % "/src/sub/broken"));
+		REQUIRE(createFileSymlink(base % "/src/sub/no-such-target", base % "/src/sub/broken"));
 		writeTestFile(base % "/src/moved.bin", patternedContents(100));
 		REQUIRE(QDir{}.mkpath(base % "/dest"));
 
@@ -537,7 +542,6 @@ TEST_CASE("move executor: links and borrowed content in the fallback", "[moveexe
 		CHECK(!entryAbsent(base % "/src/sub")); // The skipped link's ancestors are preserved
 		CHECK(!entryAbsent(base % "/src"));
 	}
-#endif
 
 	SECTION("a cycle-terminated directory link becomes an empty real directory")
 	{
@@ -1069,7 +1073,6 @@ TEST_CASE("move executor: directory timestamps in the fallback", "[moveexecutor]
 	}
 }
 
-#ifndef _WIN32
 TEST_CASE("move executor: a file link skips the read-only preflight", "[moveexecutor][link][readonly]")
 {
 	if (readOnlySemanticsUnavailable())
@@ -1078,10 +1081,12 @@ TEST_CASE("move executor: a file link skips the read-only preflight", "[moveexec
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
 
 	writeTestFile(base % "/target.bin", patternedContents(300));
 	setFileReadOnly(base % "/target.bin", true);
-	REQUIRE(QFile::link(base % "/target.bin", base % "/link.bin"));
+	REQUIRE(createFileSymlink(base % "/target.bin", base % "/link.bin"));
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
 	CFaultHookScope hooks;
@@ -1098,9 +1103,11 @@ TEST_CASE("move executor: a file link skips the read-only preflight", "[moveexec
 	CHECK(readFileContents(base % "/dest/link.bin") == patternedContents(300)); // ...as materialized target content
 	CHECK(!QFileInfo{ base % "/target.bin" }.isWritable()); // The target file is untouched, still read-only
 
+	// Restore writability so the temporary directory can be cleaned up. The materialized copy inherited the
+	// target's read-only state along with the rest of its metadata.
 	setFileReadOnly(base % "/target.bin", false);
+	setFileReadOnly(base % "/dest/link.bin", false);
 }
-#endif
 
 TEST_CASE("move executor: a committed-cleanup failure on a directory entry is item-only ActionFailed", "[moveexecutor]")
 {
