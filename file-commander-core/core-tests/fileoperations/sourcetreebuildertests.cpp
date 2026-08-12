@@ -348,6 +348,43 @@ TEST_CASE("source tree: file links per build mode", "[sourcetree][link]")
 }
 #endif
 
+#ifdef _WIN32
+// The byte totals a link contributes are what the progress bar is scaled against, so they are worth pinning on
+// the reparse tag Windows actually uses for a file link - the junction cases above cannot reach it.
+TEST_CASE("source tree: file symlinks per build mode", "[sourcetree][link]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
+
+	REQUIRE(QDir{}.mkpath(base % "/root"));
+	writeTestFile(base % "/target.bin", QByteArray(7000, 't'));
+	REQUIRE(createFileSymlink(base % "/target.bin", base % "/root/filelink.bin"));
+
+	SECTION("materializing transfer carries the followed target size")
+	{
+		const SourceNode tree = buildTree(base % "/root", SourceTreeBuildMode::MaterializingTransfer);
+		const SourceNode* link = childNamed(tree, QStringLiteral("filelink.bin"));
+		REQUIRE(link != nullptr);
+		CHECK(link->entry.kind == OperationEntryKind::FileLink);
+		CHECK(link->entry.size == 7000);
+		CHECK(tree.subtreeBytes == 7000);
+	}
+
+	SECTION("permanent delete sees only the link entry")
+	{
+		const SourceNode tree = buildTree(base % "/root", SourceTreeBuildMode::PermanentDelete);
+		const SourceNode* link = childNamed(tree, QStringLiteral("filelink.bin"));
+		REQUIRE(link != nullptr);
+		CHECK(link->entry.kind == OperationEntryKind::FileLink);
+		CHECK(link->entry.size == 0);
+		CHECK(tree.subtreeBytes == 0);
+	}
+}
+#endif
+
 TEST_CASE("source tree: broken links remain leaf entries", "[sourcetree][link]")
 {
 	QTemporaryDir tempDir;

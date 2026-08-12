@@ -573,6 +573,53 @@ TEST_CASE("staged copy: a file-link source materializes the followed target with
 }
 #endif
 
+#ifdef _WIN32
+TEST_CASE("staged copy: a file-symlink source materializes the followed target with the target's metadata", "[stagedcopy][metadata][link]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+	if (symlinkCreationUnavailable(base))
+		return;
+
+	SECTION("healthy link")
+	{
+		const QByteArray targetContents = patternedContents(4000);
+		writeTestFile(base % "/target.bin", targetContents);
+		// Set on the target and nowhere else: a copy carrying either one proves metadata capture followed the link.
+		setEntryAttributes(base % "/target.bin", FILE_ATTRIBUTE_HIDDEN);
+		REQUIRE(setEntryTimes(base % "/target.bin", { .creation = {}, .last_access = {}, .last_write = thin_io::timestamp{ .seconds = 1'500'000'000 } }));
+		REQUIRE(createFileSymlink(base % "/target.bin", base % "/link.bin"));
+
+		REQUIRE(copyFile(base % "/link.bin", base % "/dest.bin").has_value());
+
+		CHECK(snapshotOf(base % "/dest.bin").kind == OperationEntryKind::RegularFile); // Materialized, not a link copy
+		CHECK(readFileContents(base % "/dest.bin") == targetContents);
+		CHECK((entryAttributes(base % "/dest.bin") & FILE_ATTRIBUTE_HIDDEN) != 0);
+		const auto destinationTimes = getEntryTimes(base % "/dest.bin");
+		REQUIRE(destinationTimes.has_value());
+		CHECK(destinationTimes->last_write->seconds == 1'500'000'000);
+
+		// The link is still a link, and the target still holds what it held
+		CHECK(snapshotOf(base % "/link.bin").kind == OperationEntryKind::FileLink);
+		CHECK(readFileContents(base % "/target.bin") == targetContents);
+	}
+
+	SECTION("broken link fails as an ordinary source-read failure")
+	{
+		REQUIRE(createFileSymlink(base % "/gone.bin", base % "/broken-link.bin"));
+
+		const auto session = CStagedFileCopy::begin(ep(base % "/broken-link.bin"), ep(base % "/dest.bin"));
+		REQUIRE(!session.has_value());
+		CHECK(session.error().primaryFailure.action == FailedAction::ReadSource);
+		CHECK(session.error().primaryFailure.filesystemError.category == FileErrorCategory::NotFound);
+		CHECK(entryAbsent(base % "/dest.bin"));
+	}
+
+	CHECK(stagingFileCount(base) == 0);
+}
+#endif
+
 //
 // Destination link and alias entries
 //
