@@ -100,10 +100,9 @@ TEST_CASE("Search - text is found wherever it sits within a scan window", "[sear
 	CHECK(result.matched(startingOnBoundary));
 }
 
-// Segment-B finding: fileContentsMatches() scans disjoint 4 KiB windows, so text spanning the boundary between
-// two of them is in neither. Drop [!shouldfail] once consecutive windows overlap.
-// The two match paths need separate fixes, hence separate cases.
-TEST_CASE("Search - plain text straddling a scan window boundary is found", "[search][contents][!shouldfail]")
+// The byte-matching path overlaps its windows by one byte less than the pattern, so no placement of a fixed-length
+// needle can fall between two of them.
+TEST_CASE("Search - plain text straddling a scan window boundary is found", "[search][contents]")
 {
 	TempTree tree;
 	const QByteArray needle = "NEEDLE";
@@ -112,6 +111,8 @@ TEST_CASE("Search - plain text straddling a scan window boundary is found", "[se
 	CHECK(runSearch({ .roots = { tree.path() }, .contents = QSL("NEEDLE"), .contentsCaseSensitive = true }).matched(file));
 }
 
+// The regex path cannot do the same - a match has no bounded length, so no overlap would contain every one - and
+// text spanning two of its disjoint windows is in neither. Drop [!shouldfail] if that ever changes.
 TEST_CASE("Search - a regex match straddling a scan window boundary is found", "[search][contents][!shouldfail]")
 {
 	TempTree tree;
@@ -279,8 +280,8 @@ TEST_CASE("Search - a character split across a scan window boundary does not hid
 	CHECK(runSearch({ .roots = { tree.path() }, .contents = QSL("needle") }).matched(file));
 }
 
-// The straddle cases above split ASCII text between two windows; this one splits a single character, so an
-// overlapping-window fix has to hand the decoder whole characters and not merely more bytes.
+// The regex straddle case above splits ASCII text between two windows; this one splits a single character, so
+// whatever fixes that path has to hand the decoder whole characters and not merely more bytes.
 TEST_CASE("Search - non-ASCII text straddling a scan window boundary is found", "[search][contents][!shouldfail]")
 {
 	TempTree tree;

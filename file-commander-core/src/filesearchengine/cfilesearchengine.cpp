@@ -92,6 +92,9 @@ inline void replace_null(std::byte* array, size_t size)
 }
 #endif
 
+// How much of a file one pass examines, and the size of the regex path's decode buffer.
+static constexpr uint64_t contentScanWindowSize = 64 * 1024;
+
 [[nodiscard]] static bool fileContentsMatches(const QString& path, const QRegularExpression& regex, const QByteArray& memoryPattern, const std::atomic_bool& cancellationRequested)
 {
 	if (cancellationRequested)
@@ -122,36 +125,50 @@ inline void replace_null(std::byte* array, size_t size)
 		return false;
 	}
 
-	for (uint64_t offset = 0; offset < fileSize; )
+	if (useRawMemoryPattern) // Match the bytes directly - fast
+	{
+		// Searched in place: nothing here decodes or rewrites, so a window costs only the cancellation check it
+		// permits. Consecutive windows overlap by one byte less than the pattern, leaving no gap an occurrence
+		// could fall into; a window stays at least twice the pattern so the step cannot collapse toward 1.
+		const uint64_t patternSize = (uint64_t)memoryPattern.size();
+		const uint64_t windowSize = std::max(contentScanWindowSize, 2 * patternSize);
+
+		for (uint64_t offset = 0; offset < fileSize; offset += windowSize - patternSize + 1)
+		{
+			if (cancellationRequested)
+				return false;
+
+			const auto searchLength = std::min(fileSize - offset, windowSize);
+			if (memfind(mappedFile + offset, searchLength, memoryPattern.constData(), memoryPattern.size()) != nullptr)
+				return true;
+
+			if (offset + searchLength == fileSize)
+				break; // Reached the end; stepping back by the overlap would only re-scan this window's tail
+		}
+
+		return false;
+	}
+
+	// Match using regex - slow(er). These windows cannot overlap: a regex match has no bounded length, so there
+	// is no amount of overlap that would contain every one. A match spanning two windows is in neither.
+	for (uint64_t offset = 0; offset < fileSize; offset += contentScanWindowSize)
 	{
 		if (cancellationRequested)
 			return false;
 
-		static constexpr uint64_t maxLineLength = 64 * 1024;
+		const auto maxSearchLength = std::min(fileSize - offset, contentScanWindowSize);
 
-		const auto maxSearchLength = std::min(fileSize - offset, maxLineLength);
-		const auto lineStart = mappedFile + offset;
-		offset += maxSearchLength;
+		alignas(128) std::byte buffer[contentScanWindowSize];
+		static_assert(sizeof(buffer) % 16 == 0);
 
-		if (!useRawMemoryPattern) // Match using regex - slow(er)
-		{
-			alignas(128) std::byte buffer[maxLineLength];
-			static_assert(sizeof(buffer) % 16 == 0);
+		::memcpy(buffer, mappedFile + offset, maxSearchLength);
+		// Remove nulls from the contents so that QString ingests all data
+		replace_null(buffer, maxSearchLength);
 
-			::memcpy(buffer, lineStart, maxSearchLength);
-			// Remove nulls from the contents so that QString ingests all data
-			replace_null(buffer, maxSearchLength);
-
-			const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
-			assert(!line.isEmpty());
-			if (regex.match(line).hasMatch())
-				return true;
-		}
-		else // Match the string directly - fast
-		{
-			if (memfind(lineStart, maxSearchLength, memoryPattern.constData(), memoryPattern.size()) != nullptr)
-				return true;
-		}
+		const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
+		assert(!line.isEmpty());
+		if (regex.match(line).hasMatch())
+			return true;
 	}
 
 	return false;
