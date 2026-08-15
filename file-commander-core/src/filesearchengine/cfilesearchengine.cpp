@@ -136,7 +136,7 @@ enum class ContentMatch
 	if (!mappedFile) [[unlikely]]
 	{
 		assert_debug_only(mappedFile);
-		return ContentMatch::Inconclusive;
+		return ContentMatch::No;
 	}
 
 	if (useRawMemoryPattern) // Match the bytes directly - fast
@@ -181,7 +181,8 @@ enum class ContentMatch
 		replace_null(buffer, maxSearchLength);
 
 		const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
-		assert(!line.isEmpty());
+		if (line.isEmpty()) // Can happen for non-empty short files - all null, or data that's not a valid utf-8 sequence
+			return ContentMatch::No;
 
 		const QRegularExpressionMatch match = regex.match(line);
 		if (match.hasMatch())
