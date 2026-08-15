@@ -181,8 +181,9 @@ enum class ContentMatch
 		replace_null(buffer, maxSearchLength);
 
 		const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
-		if (line.isEmpty()) // Can happen if data is not a valid utf-8 sequence
-			return ContentMatch::No;
+		// fromUtf8 strips a leading BOM, so a window that is nothing but BOM marker decodes to empty string. Malformed bytes cannot cause this: those decode to replacement characters.
+		if (line.isEmpty())
+			continue;
 
 		const QRegularExpressionMatch match = regex.match(line);
 		if (match.hasMatch())

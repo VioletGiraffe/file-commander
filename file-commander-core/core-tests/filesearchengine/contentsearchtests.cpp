@@ -9,6 +9,7 @@
 // individual byte lands on, so the encoding must be the test's own statement and not the source file's.
 static const QByteArray eAcuteUtf8("\xC3\xA9", 2);
 static const QByteArray iDiaeresisUtf8("\xC3\xAF", 2);
+static const QByteArray utf8Bom("\xEF\xBB\xBF", 3);
 
 TEST_CASE("Search - plain content matching finds the text and nothing else", "[search][contents]")
 {
@@ -316,6 +317,22 @@ TEST_CASE("Search - non-ASCII text is found on both match paths", "[search][cont
 	const SearchResult viaRegex = runSearch({ .roots = { tree.path() }, .contents = needle });
 	CHECK(viaRegex.status == CFileSearchEngine::SearchFinished);
 	CHECK(viaRegex.matched(file));
+}
+
+// QString::fromUtf8 strips a leading BOM before decoding anything, which makes these three bytes the only input
+// that can leave a scan window with no text in it at all - malformed bytes decode to replacement characters.
+TEST_CASE("Search - a UTF-8 BOM is not searchable content", "[search][contents]")
+{
+	TempTree tree;
+	const QString bomOnly = tree.makeFile(QSL("bom-only.bin"), utf8Bom);
+	const QString bomThenText = tree.makeFile(QSL("bom-then-text.txt"), utf8Bom + "needle");
+
+	// Case-insensitivity routes both through the regex path, the one that decodes
+	const SearchResult result = runSearch({ .roots = { tree.path() }, .contents = QSL("needle") });
+
+	CHECK(result.matched(bomThenText)); // The BOM goes, what follows it does not
+	CHECK_FALSE(result.matched(bomOnly));
+	CHECK(result.inconclusiveItems == 0); // Nothing to search is not the same as something that could not be searched
 }
 
 TEST_CASE("Search - a character split across a scan window boundary does not hide the text after it", "[search][contents]")
