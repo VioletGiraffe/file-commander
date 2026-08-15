@@ -291,7 +291,7 @@
      </layout>
     </item>
     <item>
-     <widget class="QLabel" name="progressLabel">
+     <widget class="CLabelElided" name="progressLabel">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
         <horstretch>0</horstretch>
@@ -327,6 +327,11 @@
    <class>CHistoryComboBox</class>
    <extends>QComboBox</extends>
    <header>widgets/chistorycombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CLabelElided</class>
+   <extends>QLabel</extends>
+   <header>widgets/clabelelided.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>

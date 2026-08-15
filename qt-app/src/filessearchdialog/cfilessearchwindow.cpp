@@ -99,7 +99,7 @@ CFilesSearchWindow::~CFilesSearchWindow()
 void CFilesSearchWindow::itemScanned(const QString& currentItem)
 {
 	QMetaObject::invokeMethod(this, [=, this] {
-			ui->progressLabel->setText(currentItem);
+			setProgressText(currentItem, Qt::ElideMiddle);
 		},
 		Qt::QueuedConnection
 	);
@@ -123,7 +123,7 @@ void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, 
 			if (status == CFileSearchEngine::SearchInvalidPattern)
 			{
 				// No traversal happened, so the scan statistics below would all read zero
-				ui->progressLabel->setText(tr("The contents pattern is not a valid regular expression"));
+				setProgressText(tr("The contents pattern is not a valid regular expression"), Qt::ElideRight);
 				return;
 			}
 
@@ -143,7 +143,7 @@ void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, 
 				message = message % ", " % tr("search speed: %1 items/sec").arg(itemsPerSecond);
 			}
 
-			ui->progressLabel->setText(message);
+			setProgressText(message, Qt::ElideRight);
 
 			ui->resultsList->setFocus();
 			if (ui->resultsList->count() > 0)
@@ -151,6 +151,13 @@ void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, 
 		},
 		Qt::QueuedConnection
 	);
+}
+
+// This label alternates between scanned paths and status sentences, which want different ends of the text kept
+void CFilesSearchWindow::setProgressText(const QString& text, const Qt::TextElideMode elideMode)
+{
+	ui->progressLabel->setElideMode(elideMode);
+	ui->progressLabel->setText(text);
 }
 
 void CFilesSearchWindow::search()

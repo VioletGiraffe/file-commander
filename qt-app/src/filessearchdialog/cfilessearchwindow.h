@@ -28,6 +28,7 @@ public:
 private:
 	void search();
 
+	void setProgressText(const QString& text, Qt::TextElideMode elideMode);
 	void addResultToUi(const QString& path, bool reachedThroughLink);
 
 	void saveResults();

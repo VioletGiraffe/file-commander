@@ -67,13 +67,7 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,1">
       <item>
-       <widget class="QLabel" name="fullPath">
-        <property name="minimumSize">
-         <size>
-          <width>1</width>
-          <height>0</height>
-         </size>
-        </property>
+       <widget class="CLabelElided" name="fullPath">
         <property name="mouseTracking">
          <bool>false</bool>
         </property>
@@ -93,7 +87,7 @@
        <widget class="CHistoryComboBox" name="_commandLine">
         <property name="minimumSize">
          <size>
-          <width>1</width>
+          <width>200</width>
           <height>0</height>
          </size>
         </property>
@@ -554,6 +548,11 @@
    <class>CHistoryComboBox</class>
    <extends>QComboBox</extends>
    <header>widgets/chistorycombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CLabelElided</class>
+   <extends>QLabel</extends>
+   <header>widgets/clabelelided.h</header>
   </customwidget>
   <customwidget>
    <class>CPanelWidget</class>
