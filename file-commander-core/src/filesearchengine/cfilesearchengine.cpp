@@ -181,7 +181,7 @@ enum class ContentMatch
 		replace_null(buffer, maxSearchLength);
 
 		const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
-		if (line.isEmpty()) // Can happen for non-empty short files - all null, or data that's not a valid utf-8 sequence
+		if (line.isEmpty()) // Can happen if data is not a valid utf-8 sequence
 			return ContentMatch::No;
 
 		const QRegularExpressionMatch match = regex.match(line);
