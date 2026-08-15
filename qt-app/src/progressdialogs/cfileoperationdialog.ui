@@ -62,7 +62,7 @@
       </widget>
      </item>
      <item>
-      <widget class="CLabelMidElision" name="_lblCurrentFile">
+      <widget class="CLabelElided" name="_lblCurrentFile">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -164,9 +164,9 @@
    <header location="global">taskbarprogress/cprogressbartaskbar.h</header>
   </customwidget>
   <customwidget>
-   <class>CLabelMidElision</class>
+   <class>CLabelElided</class>
    <extends>QLabel</extends>
-   <header>widgets/clabelmidelision.h</header>
+   <header>widgets/clabelelided.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
