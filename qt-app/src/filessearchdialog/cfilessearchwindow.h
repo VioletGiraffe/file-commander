@@ -23,7 +23,7 @@ public:
 
 	void itemScanned(const QString& currentItem) override;
 	void matchFound(const QString& path, bool reachedThroughLink) override;
-	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed) override;
+	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed) override;
 
 private:
 	void search();

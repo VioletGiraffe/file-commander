@@ -95,24 +95,32 @@ inline void replace_null(std::byte* array, size_t size)
 // How much of a file one pass examines, and the size of the regex path's decode buffer.
 static constexpr uint64_t contentScanWindowSize = 64 * 1024;
 
-[[nodiscard]] static bool fileContentsMatches(const QString& path, const QRegularExpression& regex, const QByteArray& memoryPattern, const std::atomic_bool& cancellationRequested)
+enum class ContentMatch
+{
+	No,
+	Yes,
+	// The regex engine hit one of its limits and stopped without deciding. Reporting this as No would be a guess.
+	Inconclusive
+};
+
+[[nodiscard]] static ContentMatch fileContentsMatches(const QString& path, const QRegularExpression& regex, const QByteArray& memoryPattern, const std::atomic_bool& cancellationRequested)
 {
 	if (cancellationRequested)
-		return false;
+		return ContentMatch::No;
 
 	thin_io::file file;
 	if (!file.open(path.toUtf8().constData(), thin_io::file::access_mode::Read)) [[unlikely]]
-		return false;
+		return ContentMatch::No;
 
 	const bool useRawMemoryPattern = !memoryPattern.isEmpty();
 
 	const uint64_t fileSize = file.size().value_or(0);
 	if (useRawMemoryPattern && fileSize < (uint64_t)memoryPattern.size()) [[unlikely]]
-		return false;
+		return ContentMatch::No;
 	if (fileSize == 0) [[unlikely]]
-		return false;
+		return ContentMatch::No;
 	if (cancellationRequested)
-		return false;
+		return ContentMatch::No;
 
 	static constexpr auto toBytePtr = [](const void* ptr) -> const std::byte* {
 		return reinterpret_cast<const std::byte*>(ptr);
@@ -122,7 +130,7 @@ static constexpr uint64_t contentScanWindowSize = 64 * 1024;
 	if (!mappedFile) [[unlikely]]
 	{
 		assert_debug_only(mappedFile);
-		return false;
+		return ContentMatch::No;
 	}
 
 	if (useRawMemoryPattern) // Match the bytes directly - fast
@@ -136,25 +144,26 @@ static constexpr uint64_t contentScanWindowSize = 64 * 1024;
 		for (uint64_t offset = 0; offset < fileSize; offset += windowSize - patternSize + 1)
 		{
 			if (cancellationRequested)
-				return false;
+				return ContentMatch::No;
 
 			const auto searchLength = std::min(fileSize - offset, windowSize);
 			if (memfind(mappedFile + offset, searchLength, memoryPattern.constData(), memoryPattern.size()) != nullptr)
-				return true;
+				return ContentMatch::Yes;
 
 			if (offset + searchLength == fileSize)
 				break; // Reached the end; stepping back by the overlap would only re-scan this window's tail
 		}
 
-		return false;
+		return ContentMatch::No;
 	}
 
 	// Match using regex - slow(er). These windows cannot overlap: a regex match has no bounded length, so there
 	// is no amount of overlap that would contain every one. A match spanning two windows is in neither.
+	bool anyWindowInconclusive = false;
 	for (uint64_t offset = 0; offset < fileSize; offset += contentScanWindowSize)
 	{
 		if (cancellationRequested)
-			return false;
+			return ContentMatch::No;
 
 		const auto maxSearchLength = std::min(fileSize - offset, contentScanWindowSize);
 
@@ -167,11 +176,15 @@ static constexpr uint64_t contentScanWindowSize = 64 * 1024;
 
 		const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
 		assert(!line.isEmpty());
-		if (regex.match(line).hasMatch())
-			return true;
+
+		const QRegularExpressionMatch match = regex.match(line);
+		if (match.hasMatch())
+			return ContentMatch::Yes; // A later window deciding beats an earlier one giving up
+		if (!match.isValid())
+			anyWindowInconclusive = true; // Ran out of backtracking budget; "no match" here would be a guess
 	}
 
-	return false;
+	return anyWindowInconclusive ? ContentMatch::Inconclusive : ContentMatch::No;
 }
 
 namespace
@@ -183,6 +196,8 @@ struct ContentSearchContext
 	const QByteArray* plainText;
 	const std::atomic_bool* cancellationRequested;
 	std::counting_semaphore<>* availableTaskSlots = nullptr;
+	// Written by the pool's threads, read once they have all been joined
+	std::atomic<uint64_t> inconclusiveItems{ 0 };
 };
 
 [[nodiscard]] static bool acquireContentTaskSlotUnlessCancelled(std::counting_semaphore<>& availableTaskSlots, const std::atomic_bool& cancellationRequested)
@@ -237,10 +252,10 @@ void CFileSearchEngine::waitForSearchToFinish()
 	_workerThread.join();
 }
 
-void CFileSearchEngine::notifySearchFinished(FileSearchListener* listener, SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed)
+void CFileSearchEngine::notifySearchFinished(FileSearchListener* listener, SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed)
 {
 	_searchInProgress = false;
-	listener->searchFinished(status, itemsScanned, msElapsed);
+	listener->searchFinished(status, itemsScanned, inconclusiveItems, msElapsed);
 }
 
 void CFileSearchEngine::searchThread(
@@ -301,7 +316,7 @@ void CFileSearchEngine::searchThread(
 
 			if (!fileContentsRegExp.isValid())
 			{
-				notifySearchFinished(listener, SearchInvalidPattern, 0, 0);
+				notifySearchFinished(listener, SearchInvalidPattern, 0, 0, 0);
 				return;
 			}
 		}
@@ -369,9 +384,15 @@ void CFileSearchEngine::searchThread(
 						if (*contentSearchContext.cancellationRequested)
 							return;
 
-						if (fileContentsMatches(path, *contentSearchContext.regex, *contentSearchContext.plainText, *contentSearchContext.cancellationRequested) &&
-							!*contentSearchContext.cancellationRequested)
+						const ContentMatch contentMatch = fileContentsMatches(path, *contentSearchContext.regex,
+							*contentSearchContext.plainText, *contentSearchContext.cancellationRequested);
+						if (*contentSearchContext.cancellationRequested)
+							return;
+
+						if (contentMatch == ContentMatch::Yes)
 							contentSearchContext.listener->matchFound(path, reachedThroughLink);
+						else if (contentMatch == ContentMatch::Inconclusive)
+							contentSearchContext.inconclusiveItems.fetch_add(1, std::memory_order_relaxed);
 					});
 				}
 				else
@@ -386,6 +407,8 @@ void CFileSearchEngine::searchThread(
 		contentSearchPool->finishAllThreads(true);
 	}
 
+	// Every content task has been joined by now, so the count is final
 	const auto elapsedMs = timer.elapsed();
-	notifySearchFinished(listener, cancellationRequested ? SearchCancelled : SearchFinished, itemCounter, elapsedMs);
+	notifySearchFinished(listener, cancellationRequested ? SearchCancelled : SearchFinished, itemCounter,
+		contentSearchContext.inconclusiveItems.load(std::memory_order_relaxed), elapsedMs);
 }

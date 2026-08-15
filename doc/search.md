@@ -29,5 +29,6 @@ Content is currently decoded as UTF-8, so equivalent text in UTF-16 or legacy en
 boundary reads as a word boundary for whole-word matching, and `^` and `$` in content regexes also match at
 internal chunk boundaries, so file-wide anchoring can over-report; line anchoring is unavailable.
 
-An invalid regex stops before traversal and is reported separately from cancellation. A content query returns files
-only, never directories.
+An invalid regex stops before traversal and is reported separately from cancellation. A file whose contents exhaust
+the regex engine's backtracking budget is counted as inconclusive rather than reported as a non-match. A content
+query returns files only, never directories.

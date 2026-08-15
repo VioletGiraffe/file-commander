@@ -222,6 +222,24 @@ TEST_CASE("Search - a content regex counts a non-ASCII letter as a word characte
 		.contents = QSL("f\\W"), .contentsCaseSensitive = true, .contentsIsRegex = true }).matched(accented));
 }
 
+// A pattern the engine abandons has not established that the file is clean, and reporting it as a plain
+// non-match would present incomplete results as complete.
+TEST_CASE("Search - a file the regex engine gives up on is counted, not called a non-match", "[search][contents]")
+{
+	TempTree tree;
+	const QString file = tree.makeFile(QSL("backtracking.txt"), QByteArray(4096, 'a'));
+
+	// Catastrophic backtracking: the alternation leaves exponentially many ways to split the run of 'a', none of
+	// which reach the trailing class. It has to be a class and not a literal - a single required code unit absent
+	// from the subject is one PCRE2 looks for up front, answering "no match" without backtracking at all.
+	const SearchResult result = runSearch({ .roots = { tree.path() },
+		.contents = QSL("(a|aa)+[bc]"), .contentsCaseSensitive = true, .contentsIsRegex = true });
+
+	CHECK(result.status == CFileSearchEngine::SearchFinished); // The search itself is fine; one file was not decided
+	CHECK(result.inconclusiveItems == 1);
+	CHECK_FALSE(result.matched(file));
+}
+
 TEST_CASE("Search - a content regex is used as written", "[search][contents]")
 {
 	TempTree tree;

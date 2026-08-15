@@ -115,7 +115,7 @@ void CFilesSearchWindow::matchFound(const QString& path, bool reachedThroughLink
 	);
 }
 
-void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed)
+void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed)
 {
 	QMetaObject::invokeMethod(this, [=, this]{
 			ui->btnSearch->setText(tr("Start"));
@@ -130,6 +130,10 @@ void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, 
 			QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
 			if (!_matches.empty())
 				message = message % ", " % tr("%1 items found").arg(_matches.size());
+
+			// Neither matches nor known non-matches, so saying nothing would present the results as complete
+			if (inconclusiveItems > 0)
+				message = message % ", " % tr("%1 items could not be fully examined").arg(inconclusiveItems);
 
 			message = message % ": " % tr("%1 items scanned in %2 sec").arg(itemsScanned).arg((double)msElapsed * 1e-3, 0, 'f', 1);
 

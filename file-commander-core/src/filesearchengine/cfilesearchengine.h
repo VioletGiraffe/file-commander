@@ -25,7 +25,10 @@ public:
 		// reachedThroughLink: the item was found by traversing a directory link, so the same file may also be
 		// reported under its direct path if that one is within the search roots as well.
 		virtual void matchFound(const QString& path, bool reachedThroughLink) = 0;
-		virtual void searchFinished(SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed) = 0;
+		// inconclusiveItems: files whose contents the regex engine abandoned before deciding (it has limits on how
+		// much backtracking a match may cost). They are not matches, but neither are they known not to be, so a
+		// non-zero count means the results are incomplete. Orthogonal to status: a cancelled search can have them too.
+		virtual void searchFinished(SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed) = 0;
 	};
 
 	bool searchInProgress() const;
@@ -49,7 +52,7 @@ private:
 		FileSearchListener* listener, const std::atomic<bool>& cancellationRequested) noexcept;
 
 	// Clears the in-progress state before notifying, so the listener never sees "finished" while the engine still reports a search
-	void notifySearchFinished(FileSearchListener* listener, SearchStatus status, uint64_t itemsScanned, uint64_t msElapsed);
+	void notifySearchFinished(FileSearchListener* listener, SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed);
 
 private:
 	CInterruptableThread _workerThread{ "File search thread" };

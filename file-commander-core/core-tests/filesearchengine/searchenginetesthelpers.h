@@ -111,6 +111,7 @@ struct SearchResult
 	std::vector<QString> matches;
 	CFileSearchEngine::SearchStatus status = CFileSearchEngine::SearchFinished;
 	uint64_t itemsScanned = 0;
+	uint64_t inconclusiveItems = 0; // Files the regex engine abandoned before deciding
 	size_t finishedNotifications = 0; // Exactly one per accepted search
 	size_t linkReachedMatches = 0; // Of the matches above, how many the engine flagged as found through a directory link
 
@@ -148,18 +149,19 @@ public:
 			++_linkReachedMatches;
 	}
 
-	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t /*msElapsed*/) override
+	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t /*msElapsed*/) override
 	{
 		std::lock_guard lock{ _mutex };
 		_status = status;
 		_itemsScanned = itemsScanned;
+		_inconclusiveItems = inconclusiveItems;
 		++_finishedNotifications;
 	}
 
 	[[nodiscard]] SearchResult collect() const
 	{
 		std::lock_guard lock{ _mutex };
-		return SearchResult{ _matches, _status, _itemsScanned, _finishedNotifications, _linkReachedMatches };
+		return SearchResult{ _matches, _status, _itemsScanned, _inconclusiveItems, _finishedNotifications, _linkReachedMatches };
 	}
 
 	void clear()
@@ -168,6 +170,7 @@ public:
 		_matches.clear();
 		_status = CFileSearchEngine::SearchFinished;
 		_itemsScanned = 0;
+		_inconclusiveItems = 0;
 		_finishedNotifications = 0;
 		_linkReachedMatches = 0;
 	}
@@ -177,6 +180,7 @@ private:
 	std::vector<QString> _matches;
 	CFileSearchEngine::SearchStatus _status = CFileSearchEngine::SearchFinished;
 	uint64_t _itemsScanned = 0;
+	uint64_t _inconclusiveItems = 0;
 	size_t _finishedNotifications = 0;
 	size_t _linkReachedMatches = 0;
 	std::function<void()> _itemScannedHook;
