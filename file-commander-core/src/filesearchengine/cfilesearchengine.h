@@ -25,9 +25,10 @@ public:
 		// reachedThroughLink: the item was found by traversing a directory link, so the same file may also be
 		// reported under its direct path if that one is within the search roots as well.
 		virtual void matchFound(const QString& path, bool reachedThroughLink) = 0;
-		// inconclusiveItems: files whose contents the regex engine abandoned before deciding (it has limits on how
-		// much backtracking a match may cost). They are not matches, but neither are they known not to be, so a
-		// non-zero count means the results are incomplete. Orthogonal to status: a cancelled search can have them too.
+		// inconclusiveItems: files whose contents could not be decided - unreadable, or the regex engine gave up on
+		// them (it limits how much backtracking one match may cost). They are not matches, but neither are they
+		// known not to be, so a non-zero count means the results are incomplete. Only a content query can produce
+		// them. Orthogonal to status: a cancelled search can have them too.
 		virtual void searchFinished(SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed) = 0;
 	};
 

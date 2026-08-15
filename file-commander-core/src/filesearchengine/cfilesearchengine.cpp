@@ -99,7 +99,8 @@ enum class ContentMatch
 {
 	No,
 	Yes,
-	// The regex engine hit one of its limits and stopped without deciding. Reporting this as No would be a guess.
+	// Undecided: the file could not be read, or the regex engine hit one of its limits and gave up part way.
+	// Reporting either as No would be a guess.
 	Inconclusive
 };
 
@@ -110,11 +111,16 @@ enum class ContentMatch
 
 	thin_io::file file;
 	if (!file.open(path.toUtf8().constData(), thin_io::file::access_mode::Read)) [[unlikely]]
-		return ContentMatch::No;
+		return ContentMatch::Inconclusive; // Locked, forbidden, or gone: its contents are simply unknown
 
 	const bool useRawMemoryPattern = !memoryPattern.isEmpty();
 
-	const uint64_t fileSize = file.size().value_or(0);
+	// Distinguished from an empty file: value_or(0) here would report a file of unknown size as one known to hold nothing.
+	const auto querySize = file.size();
+	if (!querySize) [[unlikely]]
+		return ContentMatch::Inconclusive;
+
+	const uint64_t fileSize = *querySize;
 	if (useRawMemoryPattern && fileSize < (uint64_t)memoryPattern.size()) [[unlikely]]
 		return ContentMatch::No;
 	if (fileSize == 0) [[unlikely]]
@@ -130,7 +136,7 @@ enum class ContentMatch
 	if (!mappedFile) [[unlikely]]
 	{
 		assert_debug_only(mappedFile);
-		return ContentMatch::No;
+		return ContentMatch::Inconclusive;
 	}
 
 	if (useRawMemoryPattern) // Match the bytes directly - fast

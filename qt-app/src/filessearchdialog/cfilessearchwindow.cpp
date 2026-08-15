@@ -133,7 +133,7 @@ void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, 
 
 			// Neither matches nor known non-matches, so saying nothing would present the results as complete
 			if (inconclusiveItems > 0)
-				message = message % ", " % tr("%1 items could not be fully examined").arg(inconclusiveItems);
+				message = message % ", " % tr("%1 items could not be searched").arg(inconclusiveItems);
 
 			message = message % ": " % tr("%1 items scanned in %2 sec").arg(itemsScanned).arg((double)msElapsed * 1e-3, 0, 'f', 1);
 

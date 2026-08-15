@@ -111,7 +111,7 @@ struct SearchResult
 	std::vector<QString> matches;
 	CFileSearchEngine::SearchStatus status = CFileSearchEngine::SearchFinished;
 	uint64_t itemsScanned = 0;
-	uint64_t inconclusiveItems = 0; // Files the regex engine abandoned before deciding
+	uint64_t inconclusiveItems = 0; // Files whose contents could not be decided: unreadable, or the match was abandoned
 	size_t finishedNotifications = 0; // Exactly one per accepted search
 	size_t linkReachedMatches = 0; // Of the matches above, how many the engine flagged as found through a directory link
 

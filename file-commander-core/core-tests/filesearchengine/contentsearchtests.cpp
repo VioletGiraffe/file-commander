@@ -1,5 +1,10 @@
 #include "searchenginetesthelpers.h"
 
+#ifndef _WIN32
+#include <sys/stat.h> // chmod
+#include <unistd.h> // geteuid
+#endif
+
 // U+00E9 and U+00EF as UTF-8, spelled in bytes: these tests turn on which side of a scan window boundary each
 // individual byte lands on, so the encoding must be the test's own statement and not the source file's.
 static const QByteArray eAcuteUtf8("\xC3\xA9", 2);
@@ -72,7 +77,10 @@ TEST_CASE("Search - a file with nothing to match in it is never reported", "[sea
 	tree.makeFile(QSL("empty.txt"));
 	tree.makeFile(QSL("shorter-than-the-needle.txt"), "ab");
 
-	CHECK(runSearch({ .roots = { tree.path() }, .contents = QSL("needle"), .contentsCaseSensitive = true }).count() == 0);
+	const SearchResult result = runSearch({ .roots = { tree.path() }, .contents = QSL("needle"), .contentsCaseSensitive = true });
+
+	CHECK(result.count() == 0);
+	CHECK(result.inconclusiveItems == 0); // Known not to contain it, as against a file whose contents are unknown
 }
 
 TEST_CASE("Search - NUL bytes do not hide the text around them", "[search][contents]")
@@ -239,6 +247,32 @@ TEST_CASE("Search - a file the regex engine gives up on is counted, not called a
 	CHECK(result.inconclusiveItems == 1);
 	CHECK_FALSE(result.matched(file));
 }
+
+#ifndef _WIN32
+// The Windows counterpart needs a deny-read DACL - the read-only attribute does not stop a file being opened for
+// reading - so it is tracked with the other Windows permission coverage rather than written here.
+TEST_CASE("Search - a file that cannot be read is counted, not called a non-match", "[search][contents]")
+{
+	if (::geteuid() == 0)
+	{
+		WARN("Running as root: file permissions do not apply, skipping");
+		return;
+	}
+
+	TempTree tree;
+	const QString readable = tree.makeFile(QSL("readable.txt"), "needle");
+	const QString unreadable = tree.makeFile(QSL("unreadable.txt"), "needle");
+	REQUIRE(::chmod(QFile::encodeName(unreadable).constData(), 0) == 0);
+
+	const SearchResult result = runSearch({ .roots = { tree.path() }, .contents = QSL("needle"), .contentsCaseSensitive = true });
+
+	CHECK(result.matched(readable));
+	CHECK_FALSE(result.matched(unreadable)); // Its contents are unknown, so it is not claimed as a match either
+	CHECK(result.inconclusiveItems == 1);
+
+	REQUIRE(::chmod(QFile::encodeName(unreadable).constData(), 0600) == 0); // So the temporary directory can be removed
+}
+#endif
 
 TEST_CASE("Search - a content regex is used as written", "[search][contents]")
 {
