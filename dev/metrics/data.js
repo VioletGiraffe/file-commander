@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786580450889,
+  "lastUpdate": 1786807402740,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -14257,6 +14257,75 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 715.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 388.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 35,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f6be8b6fdceb5a45d70491a9f0ed6f7cc1ba922d",
+          "message": "Contents search: refinement to previous commit - only BOM-only-file can be non empty but decode to empty string",
+          "timestamp": "2026-08-15T18:16:12+03:00",
+          "tree_id": "e706b63d2cadee8d4b91311d78fa9b5557aec9c4",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f6be8b6fdceb5a45d70491a9f0ed6f7cc1ba922d"
+        },
+        "date": 1786807400248,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17331,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 13183,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1298.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 716,
             "unit": "KB"
           },
           {
