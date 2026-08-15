@@ -136,7 +136,7 @@ enum class ContentMatch
 	if (!mappedFile) [[unlikely]]
 	{
 		assert_debug_only(mappedFile);
-		return ContentMatch::No;
+		return ContentMatch::Inconclusive;
 	}
 
 	if (useRawMemoryPattern) // Match the bytes directly - fast
