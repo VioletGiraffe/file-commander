@@ -1,7 +1,7 @@
 # Threading and concurrency
 
 Qt's main thread owns the UI. Filesystem enumeration, operations, search, and polling run elsewhere and return
-through execution queues, listener callbacks, or typed operation events. Threading primitives live in the
+through execution queues, queued Qt invocations, listener callbacks, or typed operation events. Threading primitives live in the
 `cpputils` submodule; read their headers before relying on exact queue or pool semantics.
 
 ## Execution map
@@ -17,9 +17,19 @@ through execution queues, listener callbacks, or typed operation events. Threadi
 | `CFileSearchEngine` | interruptible thread plus bounded pool | Traversal and content matching |
 | volume enumerator and polling watcher | periodic threads | Device and directory change polling |
 | Windows watcher | native handle plus Qt event filter | Directory change notification |
+| file comparison plugin | worker thread with abort flag | One two-file content comparison |
+| `runFolderComparison` | worker thread per run | Tree scan and compare while the UI waits in the modal progress dialog |
+| `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
+| `OsShell::executeShellCommand` | detached thread | One blocking shell command; nothing waits for it |
 
 `CMainWindow` periodically drains every tab's panel queue and the controller UI queue. Tagged queue entries can
 replace older pending entries with the same tag; work queued during a drain waits for the next tick.
+
+The comparison tools and the search window report back through queued Qt invocations targeting a UI object whose
+destruction cancels delivery; each owner still aborts and joins its worker before that object dies.
+`calculateStatsFor` runs its scan team on whatever thread calls it: the Statistics command blocks the UI thread
+for the whole scan, and panel dir-size tasks call it from pool workers under the panel's abort flag, so
+concurrent dir-size tasks each spawn their own team.
 
 ## Panel lifetime and publication
 
