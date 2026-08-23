@@ -62,11 +62,6 @@ int main(int argc, char *argv[])
 
 	QImageReader::setAllocationLimit(2048); // raise Qt's 256 MB decode cap; 67 MP at 3x8 bits already exceeds it
 
-	const QString appName = "File Commander";
-	const QString orgName = "GitHubSoft";
-	CSettings::setApplicationName(appName);
-	CSettings::setOrganizationName(orgName);
-
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	qInfo().nospace() << "Built with Qt " << QT_VERSION_STR << ", running with Qt " << qVersion();
@@ -79,6 +74,9 @@ int main(int argc, char *argv[])
 	QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
 	QApplication app(argc, argv);
+
+	QApplication::setApplicationName("File Commander");
+	QApplication::setOrganizationName("GitHubSoft");
 
 	// Init style and color scheme, if specified
 	{
@@ -93,9 +91,6 @@ int main(int argc, char *argv[])
 		if (!styleName.isEmpty())
 			QApplication::setStyle(styleName);
 	}
-
-	app.setApplicationName(appName);
-	app.setOrganizationName(orgName);
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0) && defined(_WIN32)
 	if (auto* styleHints = app.styleHints(); styleHints && styleHints->colorScheme() == Qt::ColorScheme::Dark)

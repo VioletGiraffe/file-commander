@@ -878,7 +878,7 @@ void CMainWindow::openSettingsDialog()
 	settings.addSettingsPage(new CSettingsPageOperations(&settings));
 	settings.addSettingsPage(new CSettingsPageEdit(&settings));
 	settings.addSettingsPage(new CSettingsPageOther(&settings));
-	connect(&settings, &CSettingsDialog::settingsChanged, this, &CMainWindow::settingsChanged);
+	connect(std::addressof(CSettingsNotifier::instance()), &CSettingsNotifier::settingsChanged, this, &CMainWindow::settingsChanged);
 
 	settings.adjustSize();
 
