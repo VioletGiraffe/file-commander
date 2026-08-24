@@ -54,7 +54,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 {
 	setupUi(this);
 
-	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this, false));
+	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this, CPersistenceEnabler::Delayed{ false }));
 
 	CR() = connect(actionOpen, &QAction::triggered, this, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);
