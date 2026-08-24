@@ -125,8 +125,14 @@ static bool isSubstituted(QChar ch)
 
 QFont CLightningFastViewerWidget::preferredFixedFont()
 {
-	// QFontDatabase's fixed font is Courier New on Windows, which covers neither the stand-in glyphs nor much else. Only the family is chosen here; the size resolves from the parent as usual.
-	static const char* const preferredFamilies[] = { "Cascadia Mono", "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", "Liberation Mono" };
+	// The system fixed font is a poor default for a data view - Courier New on Windows, covering neither the stand-in glyphs nor much else. Only the family is chosen here; the size resolves from the parent as usual.
+#if defined _WIN32
+	static const char* const preferredFamilies[] = { "Cascadia Mono", "Consolas" };
+#elif defined __APPLE__
+	static const char* const preferredFamilies[] = { "SF Mono", "Menlo", "Monaco" };
+#else
+	static const char* const preferredFamilies[] = { "DejaVu Sans Mono", "Noto Sans Mono", "Liberation Mono" };
+#endif
 
 	for (const char* const family : preferredFamilies)
 	{
