@@ -548,7 +548,7 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 	const QColor selectedColor = pal.highlightedText().color();
 
 	const qsizetype lineBytes = qMin(static_cast<qsizetype>(_bytesPerLine), _data.size() - offset);
-	const char* const data = _data.constData(); // QByteArray::operator[] is the detaching overload here
+	const char* const dataPtr = _data.constData(); // QByteArray::operator[] is the detaching overload here
 
 	painter.setPen(pal.color(QPalette::Disabled, QPalette::Text));
 	painter.drawText(Layout::LEFT_MARGIN_PIXELS - hScroll, baseline, QStringLiteral("%1:").arg(offset, _nDigits, 10, QChar('0')));
@@ -577,7 +577,7 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 	const auto paintColumn = [&](auto&& columnX, auto&& appendByte) {
 		for (qsizetype i = 0; i < lineBytes; ++i)
 		{
-			const uint8_t byte = static_cast<uint8_t>(data[offset + i]);
+			const uint8_t byte = static_cast<uint8_t>(dataPtr[offset + i]);
 			const bool selected = isSelected(offset + i);
 			const QColor color = selected ? selectedColor : colors.forByte(byte);
 
@@ -1054,9 +1054,6 @@ void CLightningFastViewerWidget::updateFontMetrics()
 
 void CLightningFastViewerWidget::buildGlyphTables()
 {
-	QFontInfo fi{ font() };
-	qInfo() << fi.family() << "fixed pitch:" << fi.fixedPitch() << "point size:" << fi.pointSize();
-
 	// A glyph the font lacks arrives from a fallback font at its own advance. Text mode draws each stand-in on its own column origin, so anything that
 	// fits the cell is safe there; the hex columns batch glyphs into one drawText, where each advances the next, so only an exact fit stays on the grid.
 	const auto usable = [this](char16_t code, bool exactWidthRequired) {
