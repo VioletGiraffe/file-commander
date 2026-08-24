@@ -1,6 +1,4 @@
 #include "clightningfastviewer.h"
-#include "timing/ctimeelapsed.h"
-#include "utility/on_scope_exit.hpp"
 #include "assert/advanced_assert.h"
 
 #include <QApplication>
@@ -8,13 +6,15 @@
 #include <QEvent>
 #include <QFontInfo>
 #include <QFontMetrics>
-#include <QHash>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QRegularExpression>
 #include <QScrollBar>
 #include <QtMath>
+
+#include <algorithm>
+#include <limits>
 
 static constexpr char hexChars[] = "0123456789ABCDEF";
 
@@ -28,6 +28,28 @@ namespace Layout {
 	// but we get the space on the left by default due to it being included with every byte via HEX_CHARS_PER_BYTE
 	static constexpr int LEFT_MARGIN_PIXELS = 2;
 	static constexpr int TEXT_HORIZONTAL_MARGIN_CHARS = 2;
+
+	// Line width used when word wrap is off: never reached, and constant, so resizing cannot invalidate the index.
+	static constexpr qsizetype NO_WRAP_COLUMNS = std::numeric_limits<qsizetype>::max();
+}
+
+// Stand-in for a character that has no printable glyph of its own.
+static QChar displayCharForNonPrintable([[maybe_unused]] QChar ch)
+{
+	return QChar('.');
+}
+
+// True for characters that must be painted as a stand-in: no glyph, or a glyph that shows nothing.
+static bool isSubstituted(QChar ch)
+{
+	const char16_t code = ch.unicode();
+	if (code < 0x20 || code == 0x7F || (code >= 0x80 && code <= 0x9F))
+		return true;
+	if (code == 0xA0 || code == 0xAD) // No-break space and soft hyphen: nominally printable, invisible in practice
+		return true;
+
+	const auto category = ch.category();
+	return category == QChar::Other_Format || category == QChar::Separator_Line || category == QChar::Separator_Paragraph;
 }
 
 CLightningFastViewerWidget::CLightningFastViewerWidget(QWidget* parent)
@@ -45,44 +67,57 @@ void CLightningFastViewerWidget::setData(const QByteArray& bytes)
 {
 	_mode = HEX;
 	_data = bytes;
-
 	_text.clear();
-	_selection = Selection();
-	clearWrappingData();
 
-	if (_initialized) // The initial wrapping on first show is handled in resizeEvent, but for subsequent text changes it is needed here
-		wrapTextIfNeeded();
-
-	updateScrollBarsAndHexLayout();
-	viewport()->update();
+	contentChanged();
 }
 
 void CLightningFastViewerWidget::setText(const QString& text)
 {
 	_mode = TEXT;
 	_text = text;
-
 	_data.clear();
-	_selection = Selection();
-	clearWrappingData();
 
-	if (_initialized) // The initial wrapping on first show is handled in resizeEvent, but for subsequent text changes it is needed here
-		wrapTextIfNeeded();
-
-	updateScrollBarsAndHexLayout();
-	viewport()->update();
+	contentChanged();
 }
 
 void CLightningFastViewerWidget::setWordWrap(bool enabled)
 {
-	if (_wordWrap != enabled)
-	{
-		_wordWrap = enabled;
-		clearWrappingData();
-		wrapTextIfNeeded();
-		updateScrollBarsAndHexLayout();
-		viewport()->update();
-	}
+	if (_wordWrap == enabled)
+		return;
+
+	_wordWrap = enabled;
+	rebuildLineIndexIfNeeded();
+	updateLayoutAndScrollBars();
+	viewport()->update();
+}
+
+void CLightningFastViewerWidget::setTabWidth(int columns)
+{
+	const int tabWidth = qMax(1, columns);
+	if (_tabWidth == tabWidth)
+		return;
+
+	_tabWidth = tabWidth;
+	_wrappedForMaxColumns = -1;
+	rebuildLineIndexIfNeeded();
+	updateLayoutAndScrollBars();
+	viewport()->update();
+}
+
+void CLightningFastViewerWidget::contentChanged()
+{
+	_selection = Selection();
+	_lineOffsets.clear();
+	_maxLineColumns = 0;
+	_wrappedForMaxColumns = -1;
+
+	verticalScrollBar()->setValue(0);
+	horizontalScrollBar()->setValue(0);
+
+	rebuildLineIndexIfNeeded();
+	updateLayoutAndScrollBars();
+	viewport()->update();
 }
 
 void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
@@ -115,24 +150,21 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 void CLightningFastViewerWidget::resizeEvent(QResizeEvent* event)
 {
 	QAbstractScrollArea::resizeEvent(event);
-	_initialized = true;
-	wrapTextIfNeeded();
-	updateScrollBarsAndHexLayout();
+	_geometrySettled = true;
+	rebuildLineIndexIfNeeded();
+	updateLayoutAndScrollBars();
 }
 
 bool CLightningFastViewerWidget::event(QEvent* event)
 {
-	switch (const auto type = event->type(); type)
+	switch (event->type())
 	{
 	case QEvent::FontChange:
 	{
 		updateFontMetrics();
-		if (_initialized) // This will already be handled in resizeEvent on first show, but in case of subsequent font changes we need to re-wrap and update
-		{
-			wrapTextIfNeeded();
-			updateScrollBarsAndHexLayout();
-			viewport()->update();
-		}
+		rebuildLineIndexIfNeeded();
+		updateLayoutAndScrollBars();
+		viewport()->update();
 		break;
 	}
 	case QEvent::Show:
@@ -273,7 +305,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 			{
 				// Try to maintain column position
 				const qsizetype colInLine = cursorPos - _lineOffsets[currentLine];
-				newPos = qMin(_lineOffsets[currentLine - 1] + colInLine, _lineOffsets[currentLine - 1] + _lineLengths[currentLine - 1] - 1);
+				newPos = qMin(_lineOffsets[currentLine - 1] + colInLine, _lineOffsets[currentLine] - 1);
 			}
 		}
 		break;
@@ -286,11 +318,11 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		{
 			// Find next line
 			const qsizetype currentLine = findLineContainingOffset(cursorPos);
-			if (currentLine >= 0 && currentLine < static_cast<qsizetype>(_lineOffsets.size()) - 1)
+			if (currentLine >= 0 && currentLine + 1 < totalLines())
 			{
 				// Try to maintain column position
 				const qsizetype colInLine = cursorPos - _lineOffsets[currentLine];
-				newPos = qMin(_lineOffsets[currentLine + 1] + colInLine, _lineOffsets[currentLine + 1] + _lineLengths[currentLine + 1] - 1);
+				newPos = qMin(_lineOffsets[currentLine + 1] + colInLine, _lineOffsets[currentLine + 2] - 1);
 			}
 		}
 		break;
@@ -335,7 +367,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 			const qsizetype currentLine = findLineContainingOffset(cursorPos);
 			if (currentLine >= 0)
 			{
-				newPos = qMin(maxOffset, _lineOffsets[currentLine] + _lineLengths[currentLine] - 1);
+				newPos = qMin(maxOffset, _lineOffsets[currentLine + 1] - 1);
 			}
 		}
 		break;
@@ -370,7 +402,7 @@ qsizetype CLightningFastViewerWidget::totalLines() const
 	}
 	else
 	{
-		return static_cast<qsizetype>(_lineOffsets.size());
+		return _lineOffsets.empty() ? 0 : static_cast<qsizetype>(_lineOffsets.size()) - 1; // The last entry is the end sentinel
 	}
 }
 
@@ -495,80 +527,113 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 
 void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineIndex, int y, const QFontMetrics& fm)
 {
-	if (lineIndex < 0 || lineIndex >= static_cast<qsizetype>(_lineOffsets.size()))
-		return;
-
-	const int hScroll = horizontalScrollBar()->value();
-
 	const qsizetype lineStart = _lineOffsets[lineIndex];
-	const qsizetype lineLen = _lineLengths[lineIndex];
-	QString lineText = _text.mid(lineStart, lineLen);
+	const qsizetype lineEnd = _lineOffsets[lineIndex + 1];
+	const qsizetype textLength = _text.size();
 
-	// Draw the line character by character to handle selection
-	int x = Layout::LEFT_MARGIN_PIXELS - hScroll;
-	for (qsizetype i = 0; i < lineText.length(); ++i)
+	const int baseline = y + fm.ascent();
+	const int originX = Layout::LEFT_MARGIN_PIXELS - horizontalScrollBar()->value();
+
+	const QColor normalColor = palette().color(QPalette::Text);
+	const QColor selectedColor = palette().highlightedText().color();
+
+	qsizetype column = 0;
+	qsizetype runStart = -1; // Offset where the pending run of literal ASCII begins; -1 when there is no pending run
+	qsizetype runColumn = 0;
+	bool runSelected = false;
+
+	const auto highlight = [&](qsizetype fromColumn, qsizetype toColumn) {
+		painter.fillRect(originX + int(fromColumn) * _charWidth, y, int(toColumn - fromColumn) * _charWidth, _lineHeight, palette().highlight());
+	};
+
+	const auto drawChars = [&](const QChar* chars, qsizetype count, qsizetype atColumn, bool selected) {
+		_paintScratch.resize(count);
+		std::copy_n(chars, count, _paintScratch.data());
+		painter.setPen(selected ? selectedColor : normalColor);
+		painter.drawText(originX + int(atColumn) * _charWidth, baseline, _paintScratch);
+	};
+
+	const auto flushRun = [&] {
+		if (runStart < 0)
+			return;
+
+		if (runSelected)
+			highlight(runColumn, column);
+
+		drawChars(_text.constData() + runStart, column - runColumn, runColumn, runSelected);
+		runStart = -1;
+	};
+
+	const int viewportWidth = viewport()->width();
+
+	for (qsizetype offset = lineStart; offset < lineEnd; ++offset)
 	{
-		qsizetype charOffset = lineStart + i;
+		if (originX + int(column) * _charWidth >= viewportWidth) // Columns only grow, so nothing past here is visible
+			break;
 
-		if (isSelected(charOffset))
+		const QChar ch = _text[offset];
+		const int columns = columnsForChar(ch, offset + 1 < textLength ? _text[offset + 1] : QChar(), column);
+		if (columns == 0)
+			continue;
+
+		const bool selected = isSelected(offset);
+
+		// Literal ASCII accumulates into a run: one drawText for the whole stretch instead of one per character
+		if (const char16_t code = ch.unicode(); code >= 0x20 && code < 0x7F)
 		{
-			const int charWidth = fm.horizontalAdvance(lineText[i]);
-			QRect selRect(x, y, charWidth, _lineHeight);
-			painter.fillRect(selRect, palette().highlight());
-			painter.setPen(palette().highlightedText().color());
-		}
-		else
-		{
-			painter.setPen(palette().color(QPalette::Text));
+			if (runStart >= 0 && selected != runSelected)
+				flushRun();
+
+			if (runStart < 0)
+			{
+				runStart = offset;
+				runColumn = column;
+				runSelected = selected;
+			}
+
+			++column;
+			continue;
 		}
 
-		painter.drawText(x, y + fm.ascent(), lineText[i]);
-		x += fm.horizontalAdvance(lineText[i]);
+		flushRun();
+
+		if (selected)
+			highlight(column, column + columns);
+
+		if (ch != QChar('\t')) // A tab paints nothing, it only advances to its stop
+		{
+			if (isSubstituted(ch))
+			{
+				const QChar substitute = displayCharForNonPrintable(ch);
+				drawChars(&substitute, 1, column, selected);
+			}
+			else
+				drawChars(_text.constData() + offset, ch.isHighSurrogate() && offset + 1 < textLength ? 2 : 1, column, selected);
+		}
+
+		column += columns;
 	}
+
+	flushRun();
 }
 
-void CLightningFastViewerWidget::updateScrollBarsAndHexLayout()
+void CLightningFastViewerWidget::updateLayoutAndScrollBars()
 {
 	if (_mode == HEX)
 		calculateHexLayout();
 
 	const int visibleLines = viewport()->height() / _lineHeight;
-	verticalScrollBar()->setRange(0, qMax(0, totalLines() - visibleLines));
+	verticalScrollBar()->setRange(0, static_cast<int>(qMax<qsizetype>(0, totalLines() - visibleLines)));
 	verticalScrollBar()->setPageStep(visibleLines);
 	verticalScrollBar()->setSingleStep(1);
 
-	// Horizontal scrollbar
-	if (_mode == HEX)
-	{
-		const int totalWidth = _asciiStart + _charWidth * _bytesPerLine;
-		horizontalScrollBar()->setRange(0, qMax(0, totalWidth - viewport()->width()));
-	}
-	else
-	{
-		// In text mode, estimate max line width based on character count
-		// For monospace fonts, this is much faster than measuring each line
-		qsizetype maxChars = 0;
-		for (size_t i = 0; i < _lineOffsets.size(); ++i)
-		{
-			const qsizetype lineChars = _lineLengths[i];
+	const qsizetype contentWidth = (_mode == HEX)
+		? _asciiStart + _charWidth * _bytesPerLine
+		: (_maxLineColumns + Layout::TEXT_HORIZONTAL_MARGIN_CHARS) * _charWidth;
 
-			// Quick scan for tabs in this line to adjust estimate
-			qsizetype tabCount = 0;
-			for (qsizetype j = _lineOffsets[i], end = j + lineChars; j < end; ++j)
-			{
-				if (_text[j] == '\t') [[unlikely]]
-					++tabCount;
-			}
-
-			// Estimate: each tab expands based on measured _tabWidthInChars
-			const qsizetype estimatedChars = lineChars + (tabCount * (_tabWidthInChars - 1));
-			maxChars = qMax(maxChars, estimatedChars);
-		}
-
-		const qsizetype maxWidth = maxChars * _charWidth;
-		horizontalScrollBar()->setRange(0, qMax(0, maxWidth - viewport()->width() + _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS));
-	}
+	horizontalScrollBar()->setRange(0, static_cast<int>(qMax<qsizetype>(0, contentWidth - viewport()->width())));
 	horizontalScrollBar()->setPageStep(viewport()->width());
+	horizontalScrollBar()->setSingleStep(_charWidth);
 }
 
 CLightningFastViewerWidget::Region CLightningFastViewerWidget::regionAtPos(const QPoint& pos) const
@@ -630,31 +695,29 @@ qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos) const
 
 qsizetype CLightningFastViewerWidget::textPosToOffset(const QPoint& pos) const
 {
-	if (_text.isEmpty() || _lineOffsets.empty())
+	const qsizetype line = pos.y() / _lineHeight + verticalScrollBar()->value();
+	if (line < 0 || line >= totalLines())
 		return -1;
 
-	int line = (pos.y() / _lineHeight) + verticalScrollBar()->value();
-	if (line < 0 || line >= static_cast<int>(_lineOffsets.size()))
-		return -1;
-
-	int x = pos.x() + horizontalScrollBar()->value();
 	const qsizetype lineStart = _lineOffsets[line];
-	const qsizetype lineLen = _lineLengths[line];
-	const QString lineText = _text.mid(lineStart, lineLen);
+	const qsizetype lineEnd = _lineOffsets[line + 1];
+	const qsizetype textLength = _text.size();
+	const qsizetype targetColumn = qMax<qsizetype>(0, (pos.x() + horizontalScrollBar()->value() - Layout::LEFT_MARGIN_PIXELS) / _charWidth);
 
-	// Find character at position
-	int currentX = Layout::LEFT_MARGIN_PIXELS;
-
-	for (qsizetype i = 0; i < lineText.length(); ++i)
+	qsizetype column = 0;
+	for (qsizetype offset = lineStart; offset < lineEnd; ++offset)
 	{
-		int charWidth = _fontMetrics.horizontalAdvance(lineText[i]);
-		if (x < currentX + charWidth / 2)
-			return lineStart + i;
-		currentX += charWidth;
+		const int columns = columnsForChar(_text[offset], offset + 1 < textLength ? _text[offset + 1] : QChar(), column);
+		if (columns == 0)
+			continue;
+
+		if (targetColumn < column + columns)
+			return offset;
+
+		column += columns;
 	}
 
-	// Clicked past end of line
-	return qMin((qsizetype)(lineStart + lineLen - 1), (qsizetype)(_text.size() - 1));
+	return lineEnd - 1; // Clicked past the end of the line
 }
 
 void CLightningFastViewerWidget::ensureVisible(qsizetype offset)
@@ -759,145 +822,125 @@ bool CLightningFastViewerWidget::isSelected(qsizetype offset) const
 		offset <= _selection.selEnd();
 }
 
-void CLightningFastViewerWidget::wrapTextIfNeeded()
+int CLightningFastViewerWidget::columnsForChar(QChar ch, QChar next, qsizetype column) const
 {
-	if (_mode != TEXT)
-		return;
-	else if (_text.isEmpty())
-		return;
+	const char16_t code = ch.unicode();
+	if (code >= 0x20 && code < 0x7F) [[likely]]
+		return 1;
 
-	CTimeElapsed timer(true);
-	EXEC_ON_SCOPE_EXIT([&] {
-		const auto elapsed = timer.elapsed();
-		if (elapsed > 2)
-			qInfo() << "wrap text:" << timer.elapsed();
-		});
-
-	if (!_wordWrap && _lineOffsets.empty())
+	switch (code)
 	{
-		clearWrappingData();
-
-		// No wrapping - split on newlines only
-		qsizetype start = 0;
-		qsizetype newlinePos;
-
-		while ((newlinePos = _text.indexOf('\n', start)) != -1)
-		{
-			_lineOffsets.push_back(start);
-			_lineLengths.push_back(newlinePos - start + 1); // Include the newline
-			start = newlinePos + 1;
-		}
-
-		// Last line (or entire text if no newlines)
-		if (start < _text.length())
-		{
-			_lineOffsets.push_back(start);
-			_lineLengths.push_back(_text.length() - start);
-		}
-		return;
+	case u'\n':
+		return 0;
+	case u'\r':
+		return next == u'\n' ? 0 : 1; // A CR before LF is part of the line terminator, a lone CR is content
+	case u'\t':
+		return static_cast<int>(_tabWidth - column % _tabWidth);
+	default:
+		break;
 	}
 
-	// Word wrapping enabled
-	const size_t hashKey = qHashMulti(viewport()->width(), _charWidth);
-	if (hashKey == _wordWrapParamsHash)
+	if (code < 0x20 || code == 0x7F)
+		return 1; // Painted as a stand-in glyph
+
+	return columnsForNonAsciiChar(ch);
+}
+
+int CLightningFastViewerWidget::columnsForNonAsciiChar(QChar ch) const
+{
+	if (ch.isLowSurrogate())
+		return 0; // The pair occupies the columns claimed by its high surrogate
+	if (ch.isHighSurrogate())
+		return 2; // Measuring would require the whole pair; non-BMP characters are double width in practice
+
+	if (_charColumns.empty())
+		_charColumns.resize(0x10000, 0);
+
+	uint8_t& columns = _charColumns[ch.unicode()];
+	if (columns == 0)
+	{
+		columns = isSubstituted(ch)
+			? uint8_t{ 1 }
+			: static_cast<uint8_t>(qBound(1, (_fontMetrics.horizontalAdvance(ch) + _charWidth / 2) / _charWidth, 255));
+	}
+
+	return columns;
+}
+
+void CLightningFastViewerWidget::rebuildLineIndexIfNeeded()
+{
+	if (_mode != TEXT || !_geometrySettled)
 		return;
 
-	clearWrappingData();
-	_wordWrapParamsHash = hashKey;
+	const qsizetype maxColumns = _wordWrap
+		? qMax<qsizetype>(1, (viewport()->width() - _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS) / _charWidth)
+		: Layout::NO_WRAP_COLUMNS;
 
-	const int maxCharsPerLine = (viewport()->width() - _charWidth * Layout::TEXT_HORIZONTAL_MARGIN_CHARS) / _charWidth;
-	if (maxCharsPerLine <= 0)
-		return; // Guard against too small viewport
+	if (maxColumns == _wrappedForMaxColumns)
+		return;
 
-	qsizetype currentLineStart = 0;
-	qsizetype currentCharCount = 0; // Character count in current line
-	qsizetype lastBreakPos = -1; // Last position where we could break
-	qsizetype lastBreakCharCount = 0; // Character count at last break position
+	_wrappedForMaxColumns = maxColumns;
+	_lineOffsets.clear();
+	_maxLineColumns = 0;
 
-	for (qsizetype i = 0, n = _text.length(); i < n; ++i)
+	const qsizetype textLength = _text.length();
+	if (textLength == 0)
+		return;
+
+	qsizetype lineStart = 0;
+	qsizetype column = 0;           // Columns occupied by the current line so far
+	qsizetype breakPos = -1;        // Last position the current line may be broken after; -1 when there is none
+	qsizetype columnsBeforeBreak = 0; // Excludes the break character itself, which is whitespace hanging past the margin
+
+	_lineOffsets.push_back(0);
+
+	const auto endLine = [&](qsizetype endedLineColumns, qsizetype nextLineStart) {
+		_maxLineColumns = qMax(_maxLineColumns, endedLineColumns);
+		_lineOffsets.push_back(nextLineStart);
+		lineStart = nextLineStart;
+		column = 0;
+		breakPos = -1;
+	};
+
+	const QChar* const chars = _text.constData(); // QString::operator[] is the detaching overload here, and setText leaves _text shared
+
+	for (qsizetype i = 0; i < textLength; ++i)
 	{
-		const QChar ch = _text[i];
+		const QChar ch = chars[i];
+		const int columns = columnsForChar(ch, i + 1 < textLength ? chars[i + 1] : QChar(), column);
+		column += columns;
 
-		// Handle explicit newlines
-		if (ch == '\n')
+		if (ch == u'\n')
 		{
-			_lineOffsets.push_back(currentLineStart);
-			_lineLengths.push_back(i - currentLineStart + 1);
-			currentLineStart = i + 1;
-			currentCharCount = 0;
-			lastBreakPos = -1;
-			lastBreakCharCount = 0;
+			endLine(column, i + 1);
 			continue;
 		}
 
-		// Calculate character width in monospace units
-		qsizetype charWidth = 1; // Default for most characters
-		if (ch == '\t')
+		if (ch == u' ' || ch == u'\t')
 		{
-			// Tab width: advance to next multiple of _tabWidthInChars
-			qsizetype nextTabStop = ((currentCharCount / _tabWidthInChars) + 1) * _tabWidthInChars;
-			charWidth = nextTabStop - currentCharCount;
-		}
-		else if (ch.unicode() < 32 || ch.category() == QChar::Other_Control)
-		{
-			// Control characters take 0 width
-			charWidth = 0;
+			breakPos = i;
+			columnsBeforeBreak = column - columns;
 		}
 
-		currentCharCount += charWidth;
-
-		// Mark break opportunities (spaces)
-		if (ch.isSpace() && ch != '\t')
+		if (column > maxColumns && i > lineStart)
 		{
-			lastBreakPos = i;
-			lastBreakCharCount = currentCharCount;
-		}
-
-		// Line is too long
-		if (currentCharCount > maxCharsPerLine && i > currentLineStart)
-		{
-			qsizetype breakPos = -1;
-
-			// Try to break at last space
-			if (lastBreakPos > currentLineStart)
+			// Both branches rewind: a tab's width depends on the column it starts at, so the carried-over text is measured again against the new line
+			if (breakPos > lineStart)
 			{
-				breakPos = lastBreakPos;
-				_lineOffsets.push_back(currentLineStart);
-				_lineLengths.push_back(breakPos - currentLineStart);
-
-				// Start new line after the space and use the already tracked count
-				currentLineStart = breakPos + 1;
-				currentCharCount -= lastBreakCharCount;
+				i = breakPos; // Must precede endLine, which clears breakPos
+				endLine(columnsBeforeBreak, i + 1); // The character broken after stays on the line it ends
 			}
 			else
 			{
-				// No space found, break at current position
-				breakPos = i;
-				_lineOffsets.push_back(currentLineStart);
-				_lineLengths.push_back(breakPos - currentLineStart);
-
-				currentLineStart = breakPos;
-				currentCharCount = charWidth;
+				endLine(column - columns, i);
+				--i;
 			}
-
-			lastBreakPos = -1;
-			lastBreakCharCount = 0;
 		}
 	}
 
-	// Last line
-	if (currentLineStart < _text.length())
-	{
-		_lineOffsets.push_back(currentLineStart);
-		_lineLengths.push_back(_text.length() - currentLineStart);
-	}
-}
-
-void CLightningFastViewerWidget::clearWrappingData()
-{
-	_lineOffsets.clear();
-	_lineLengths.clear();
-	_wordWrapParamsHash = 0;
+	_maxLineColumns = qMax(_maxLineColumns, column);
+	if (_lineOffsets.back() != textLength)
+		_lineOffsets.push_back(textLength);
 }
 
 void CLightningFastViewerWidget::updateFontMetrics()
@@ -905,24 +948,20 @@ void CLightningFastViewerWidget::updateFontMetrics()
 	_fontMetrics = QFontMetrics(font());
 	_lineHeight = _fontMetrics.height();
 	_charWidth = _fontMetrics.horizontalAdvance('0');
+	assert_r(_lineHeight > 0 && _charWidth > 0);
 
-	// Empirically measure tab width
-	const int widthWithTab = _fontMetrics.horizontalAdvance("X\tY");
-	const int widthWithoutTab = _fontMetrics.horizontalAdvance("XY");
-	const int tabWidth = widthWithTab - widthWithoutTab;
-	_tabWidthInChars = qMax(1, tabWidth / _charWidth); // Ensure at least 1
+	_charColumns.clear();
+	_wrappedForMaxColumns = -1; // Measured column counts, and the wrap width itself, follow the font
 }
 
 qsizetype CLightningFastViewerWidget::findLineContainingOffset(qsizetype offset) const
 {
-	for (size_t i = 0; i < _lineOffsets.size(); ++i)
-	{
-		if (_lineOffsets[i] <= offset && offset < _lineOffsets[i] + _lineLengths[i])
-		{
-			return static_cast<qsizetype>(i);
-		}
-	}
-	return -1;
+	if (offset < 0 || offset >= _text.size())
+		return -1;
+
+	// The trailing sentinel guarantees a hit for any offset within the text
+	const auto line = std::upper_bound(_lineOffsets.begin(), _lineOffsets.end(), offset);
+	return line - _lineOffsets.begin() - 1;
 }
 
 void CLightningFastViewerWidget::moveCursor(QTextCursor::MoveOperation operation, QTextCursor::MoveMode mode)
