@@ -493,8 +493,9 @@ void CTextViewerWindow::setMode(Mode mode)
 	// Scales the widget's own font so a line of it stands as tall as a line of the UI font. The family is the widget's to choose.
 	static const auto setFontSize = [](QWidget& w) {
 		QFont font = w.font();
-		const QFontMetrics fm{ font };
-		const qreal sizeRatio = fm.height() > 0 ? ((qreal)QFontMetrics { qApp->font() }.height() / (qreal)fm.height()) : 1.0;
+		const int appFontH = QFontMetrics{ qApp->font() }.boundingRect(QChar{ 'M' }).height();
+		const int newFontH = QFontMetrics{ font }        .boundingRect(QChar{ 'M' }).height();
+		const qreal sizeRatio = newFontH > 0 ? ((qreal)appFontH / (qreal)newFontH) : 1.0;
 		font.setPointSizeF(font.pointSizeF() * sizeRatio);
 		w.setFont(font);
 	};
