@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QEvent>
+#include <QFontDatabase>
 #include <QFontInfo>
 #include <QFontMetrics>
 #include <QKeyEvent>
@@ -33,10 +34,80 @@ namespace Layout {
 	static constexpr qsizetype NO_WRAP_COLUMNS = std::numeric_limits<qsizetype>::max();
 }
 
-// Stand-in for a character that has no printable glyph of its own.
-static QChar displayCharForNonPrintable([[maybe_unused]] QChar ch)
+// The CP437 glyphs for the C0 controls, as a DOS-era dump showed them. Code points rather than literal glyphs: the sources are ASCII-only and MSVC is not passed /utf-8.
+// Slot 0 is ours, not CP437's: CP437 draws NUL as a blank, which would be indistinguishable from a space.
+static constexpr char16_t cp437ControlGlyphs[0x20] = {
+	0x2205, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022, // empty set, smilies, card suits, bullet
+	0x25D8, 0x25CB, 0x25D9, 0x2642, 0x2640, 0x266A, 0x266B, 0x263C, // circles, gender signs, notes, sun
+	0x25BA, 0x25C4, 0x2195, 0x203C, 0x00B6, 0x00A7, 0x25AC, 0x21A8, // triangles, arrows, pilcrow, section, bar
+	0x2191, 0x2193, 0x2192, 0x2190, 0x221F, 0x2194, 0x25B2, 0x25BC  // arrows, right angle, triangles
+};
+
+static constexpr char16_t cp437DeleteGlyph = 0x2302;   // house
+
+// The CP437 glyphs for 0x80 to 0xFF, indexed by byte minus 0x80. The last slot is ours: CP437 puts a no-break space there, which would read as a blank.
+static constexpr char16_t cp437HighGlyphs[0x80] = {
+	0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7, 0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5, // 0x80
+	0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9, 0x00FF, 0x00D6, 0x00DC, 0x00A2, 0x00A3, 0x00A5, 0x20A7, 0x0192, // 0x90
+	0x00E1, 0x00ED, 0x00F3, 0x00FA, 0x00F1, 0x00D1, 0x00AA, 0x00BA, 0x00BF, 0x2310, 0x00AC, 0x00BD, 0x00BC, 0x00A1, 0x00AB, 0x00BB, // 0xA0
+	0x2591, 0x2592, 0x2593, 0x2502, 0x2524, 0x2561, 0x2562, 0x2556, 0x2555, 0x2563, 0x2551, 0x2557, 0x255D, 0x255C, 0x255B, 0x2510, // 0xB0, shading and box drawing
+	0x2514, 0x2534, 0x252C, 0x251C, 0x2500, 0x253C, 0x255E, 0x255F, 0x255A, 0x2554, 0x2569, 0x2566, 0x2560, 0x2550, 0x256C, 0x2567, // 0xC0
+	0x2568, 0x2564, 0x2565, 0x2559, 0x2558, 0x2552, 0x2553, 0x256B, 0x256A, 0x2518, 0x250C, 0x2588, 0x2584, 0x258C, 0x2590, 0x2580, // 0xD0
+	0x03B1, 0x00DF, 0x0393, 0x03C0, 0x03A3, 0x03C3, 0x00B5, 0x03C4, 0x03A6, 0x0398, 0x03A9, 0x03B4, 0x221E, 0x03C6, 0x03B5, 0x2229, // 0xE0, Greek and math
+	0x2261, 0x00B1, 0x2265, 0x2264, 0x2320, 0x2321, 0x00F7, 0x2248, 0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x25A9  // 0xF0
+};
+static constexpr char16_t openBoxGlyph = 0x2423;       // marks a no-break space
+static constexpr char16_t invisibleMarkerGlyph = 0x25AF; // white vertical rectangle
+static constexpr char16_t fallbackGlyph = '.';
+
+namespace {
+
+// Byte classes carry their own colours: QPalette has no categorical colour set to borrow, and the hues have to hold up on either background.
+struct ByteColors
 {
-	return QChar('.');
+	QColor null;
+	QColor whitespace;
+	QColor printable;
+	QColor control;
+	QColor nonAscii;
+	QColor filler;
+
+	[[nodiscard]] const QColor& forByte(uint8_t byte) const
+	{
+		if (byte == 0x00)
+			return null;
+		if (byte == 0xFF)
+			return filler;
+		if (byte == 0x20 || (byte >= 0x09 && byte <= 0x0D))
+			return whitespace;
+		if (byte < 0x20 || byte == 0x7F)
+			return control;
+		if (byte >= 0x80)
+			return nonAscii;
+
+		return printable;
+	}
+};
+
+ByteColors byteColors(const QPalette& palette)
+{
+	const bool darkBackground = palette.color(QPalette::Base).lightness() < 128;
+
+	return {
+		.null = palette.color(QPalette::Disabled, QPalette::Text),
+		.whitespace = darkBackground ? QColor(0x7F, 0xD0, 0x7F) : QColor(0x18, 0x78, 0x18),
+		.printable = palette.color(QPalette::Text),
+		.control = darkBackground ? QColor(0x6F, 0xD0, 0xD0) : QColor(0x10, 0x68, 0x68),
+		.nonAscii = darkBackground ? QColor(0xD8, 0xB0, 0x60) : QColor(0x8A, 0x5A, 0x00),
+		.filler = darkBackground ? QColor(0xD0, 0x80, 0xC0) : QColor(0x9A, 0x0F, 0x7A)
+	};
+}
+
+} // namespace
+
+inline constexpr bool isPrintableAscii(char16_t code)
+{
+	return code >= 0x20 && code < 0x7F;
 }
 
 // True for characters that must be painted as a stand-in: no glyph, or a glyph that shows nothing.
@@ -52,15 +123,35 @@ static bool isSubstituted(QChar ch)
 	return category == QChar::Other_Format || category == QChar::Separator_Line || category == QChar::Separator_Paragraph;
 }
 
+QFont CLightningFastViewerWidget::preferredFixedFont()
+{
+	// QFontDatabase's fixed font is Courier New on Windows, which covers neither the stand-in glyphs nor much else. Only the family is chosen here; the size resolves from the parent as usual.
+	static const char* const preferredFamilies[] = { "Cascadia Mono", "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", "Liberation Mono" };
+
+	for (const char* const family : preferredFamilies)
+	{
+		const QString familyName = QString::fromLatin1(family);
+		const QFont candidate{ familyName };
+		const QFontInfo info{ candidate };
+
+		// QFont substitutes silently for a family that is not installed, and QFontInfo reports what was actually resolved
+		if (info.family().compare(familyName, Qt::CaseInsensitive) == 0 && info.fixedPitch())
+			return candidate;
+	}
+
+	return QFontDatabase::systemFont(QFontDatabase::FixedFont);
+}
+
 CLightningFastViewerWidget::CLightningFastViewerWidget(QWidget* parent)
 	: QAbstractScrollArea(parent), _fontMetrics(font())
 {
+	setFont(preferredFixedFont());
+
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 	setFocusPolicy(Qt::StrongFocus);
 	setMouseTracking(true);
 	viewport()->setMouseTracking(true);
-	updateFontMetrics();
 }
 
 void CLightningFastViewerWidget::setData(const QByteArray& bytes)
@@ -171,6 +262,7 @@ bool CLightningFastViewerWidget::event(QEvent* event)
 	{
 		QFontInfo fi{ font() };
 		assert_r(fi.fixedPitch());
+		assert_r(_invisibleMarker != QChar{});
 		break;
 	}
 	default:
@@ -449,80 +541,80 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 	if (offset >= _data.size())
 		return;
 
-	// Account for horizontal scrolling
 	const int hScroll = horizontalScrollBar()->value();
-
-	// Draw offset
-	const QString offsetStr = QStringLiteral("%1:").arg(offset, _nDigits, 10, QChar('0'));
-
-	painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
-	painter.drawText(Layout::LEFT_MARGIN_PIXELS - hScroll, y + fm.ascent(), offsetStr);
-
-	painter.setPen(palette().color(QPalette::Text));
+	const int baseline = y + fm.ascent();
+	const QPalette& pal = palette();
+	const ByteColors colors = byteColors(pal);
+	const QColor selectedColor = pal.highlightedText().color();
 
 	const qsizetype lineBytes = qMin(static_cast<qsizetype>(_bytesPerLine), _data.size() - offset);
+	const char* const data = _data.constData(); // QByteArray::operator[] is the detaching overload here
 
-	QString hexByteString;
-	hexByteString.resize(2);
+	painter.setPen(pal.color(QPalette::Disabled, QPalette::Text));
+	painter.drawText(Layout::LEFT_MARGIN_PIXELS - hScroll, baseline, QStringLiteral("%1:").arg(offset, _nDigits, 10, QChar('0')));
+	painter.drawText(_asciiStart - _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS - hScroll, baseline, QStringLiteral("|"));
 
-	const QPen highlightPen(palette().highlightedText().color());
-	const QPen normalPen(palette().color(QPalette::Text));
+	// Both columns paint in runs of one colour, so a stretch of same-class bytes costs one drawText rather than one per byte.
+	int runX = 0;
+	QColor runColor;
+	bool runSelected = false;
 
-	int x = _hexStart;
-	for (qsizetype i = 0; i < lineBytes; ++i)
-	{
-		const qsizetype byteOffset = offset + i;
+	_paintScratch.resize(0);
 
-		if (isSelected(byteOffset))
+	const auto flushRun = [&] {
+		if (_paintScratch.isEmpty())
+			return;
+
+		if (runSelected)
+			painter.fillRect(runX - hScroll, y, static_cast<int>(_paintScratch.size()) * _charWidth, _lineHeight, pal.highlight());
+
+		painter.setPen(runColor);
+		painter.drawText(runX - hScroll, baseline, _paintScratch);
+		_paintScratch.resize(0);
+	};
+
+	// columnX gives the x of the byte that opens a run; appendByte adds the byte's own characters, and any spacing that precedes them within a run.
+	const auto paintColumn = [&](auto&& columnX, auto&& appendByte) {
+		for (qsizetype i = 0; i < lineBytes; ++i)
 		{
-			QRect selRect(x - hScroll, y, _charWidth * 2, _lineHeight);
-			painter.fillRect(selRect, palette().highlight());
-			painter.setPen(highlightPen);
-		}
-		else
-		{
-			painter.setPen(normalPen);
-		}
+			const uint8_t byte = static_cast<uint8_t>(data[offset + i]);
+			const bool selected = isSelected(offset + i);
+			const QColor color = selected ? selectedColor : colors.forByte(byte);
 
-		const uint8_t byte = static_cast<uint8_t>(_data[offset + i]);
-		hexByteString[0] = hexChars[byte >> 4];
-		hexByteString[1] = hexChars[byte & 0x0F];
+			if (!_paintScratch.isEmpty() && (color != runColor || selected != runSelected))
+				flushRun();
 
-		painter.drawText(x - hScroll, y + fm.ascent(), hexByteString);
-		x += _charWidth * Layout::HEX_CHARS_PER_BYTE;
+			if (_paintScratch.isEmpty())
+			{
+				runX = columnX(i);
+				runColor = color;
+				runSelected = selected;
+			}
 
-		if ((i % 8) == 7)
-		{
-			x += _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE;
-		}
-	}
-
-	// Draw separator
-	painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
-	painter.drawText(_asciiStart - _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS - hScroll, y + fm.ascent(), QChar('|'));
-
-	// Draw ASCII
-	x = _asciiStart;
-	for (qsizetype i = 0; i < lineBytes; ++i)
-	{
-		const unsigned char byte = static_cast<unsigned char>(_data[offset + i]);
-		qsizetype byteOffset = offset + i;
-
-		if (isSelected(byteOffset))
-		{
-			QRect selRect(x - hScroll, y, _charWidth, _lineHeight);
-			painter.fillRect(selRect, palette().highlight());
-			painter.setPen(highlightPen);
-		}
-		else
-		{
-			painter.setPen(normalPen);
+			appendByte(i, byte);
 		}
 
-		const QChar ch = (byte >= 32 && byte <= 126) ? QChar(byte) : QChar('.');
-		painter.drawText(x - hScroll, y + fm.ascent(), ch);
-		x += _charWidth;
-	}
+		flushRun();
+	};
+
+	// The gap after every eighth byte goes into the run as a second space, so one run can span it
+	paintColumn(
+		[this](qsizetype i) { return _hexStart + static_cast<int>(i * Layout::HEX_CHARS_PER_BYTE + i / 8) * _charWidth; },
+		[this](qsizetype i, uint8_t byte) {
+			if (!_paintScratch.isEmpty())
+			{
+				if ((i % 8) == 0)
+					_paintScratch += QChar(' ');
+				_paintScratch += QChar(' ');
+			}
+
+			_paintScratch += QChar(hexChars[byte >> 4]);
+			_paintScratch += QChar(hexChars[byte & 0x0F]);
+		});
+
+	paintColumn(
+		[this](qsizetype i) { return _asciiStart + static_cast<int>(i) * _charWidth; },
+		[this](qsizetype, uint8_t byte) { _paintScratch += _hexGlyphs[byte]; });
 }
 
 void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineIndex, int y, const QFontMetrics& fm)
@@ -530,6 +622,7 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineI
 	const qsizetype lineStart = _lineOffsets[lineIndex];
 	const qsizetype lineEnd = _lineOffsets[lineIndex + 1];
 	const qsizetype textLength = _text.size();
+	const QChar* const chars = _text.constData(); // QString::operator[] is the detaching overload here
 
 	const int baseline = y + fm.ascent();
 	const int originX = Layout::LEFT_MARGIN_PIXELS - horizontalScrollBar()->value();
@@ -560,7 +653,7 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineI
 		if (runSelected)
 			highlight(runColumn, column);
 
-		drawChars(_text.constData() + runStart, column - runColumn, runColumn, runSelected);
+		drawChars(chars + runStart, column - runColumn, runColumn, runSelected);
 		runStart = -1;
 	};
 
@@ -571,15 +664,15 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineI
 		if (originX + int(column) * _charWidth >= viewportWidth) // Columns only grow, so nothing past here is visible
 			break;
 
-		const QChar ch = _text[offset];
-		const int columns = columnsForChar(ch, offset + 1 < textLength ? _text[offset + 1] : QChar(), column);
+		const QChar ch = chars[offset];
+		const int columns = columnsForChar(ch, offset + 1 < textLength ? chars[offset + 1] : QChar(), column);
 		if (columns == 0)
 			continue;
 
 		const bool selected = isSelected(offset);
 
 		// Literal ASCII accumulates into a run: one drawText for the whole stretch instead of one per character
-		if (const char16_t code = ch.unicode(); code >= 0x20 && code < 0x7F)
+		if (isPrintableAscii(ch.unicode()))
 		{
 			if (runStart >= 0 && selected != runSelected)
 				flushRun();
@@ -604,17 +697,21 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineI
 		{
 			if (isSubstituted(ch))
 			{
-				const QChar substitute = displayCharForNonPrintable(ch);
+				const QChar substitute = nonPrintableGlyph(ch);
 				drawChars(&substitute, 1, column, selected);
 			}
 			else
-				drawChars(_text.constData() + offset, ch.isHighSurrogate() && offset + 1 < textLength ? 2 : 1, column, selected);
+				drawChars(chars + offset, ch.isHighSurrogate() && offset + 1 < textLength ? 2 : 1, column, selected);
 		}
 
 		column += columns;
 	}
 
 	flushRun();
+
+	// A selected line terminator has no columns of its own, so a selection spanning lines would otherwise break at every line end
+	if (chars[lineEnd - 1] == u'\n' && isSelected(lineEnd - 1))
+		highlight(column, column + 1);
 }
 
 void CLightningFastViewerWidget::updateLayoutAndScrollBars()
@@ -825,7 +922,7 @@ bool CLightningFastViewerWidget::isSelected(qsizetype offset) const
 int CLightningFastViewerWidget::columnsForChar(QChar ch, QChar next, qsizetype column) const
 {
 	const char16_t code = ch.unicode();
-	if (code >= 0x20 && code < 0x7F) [[likely]]
+	if (isPrintableAscii(code)) [[likely]]
 		return 1;
 
 	switch (code)
@@ -950,8 +1047,51 @@ void CLightningFastViewerWidget::updateFontMetrics()
 	_charWidth = _fontMetrics.horizontalAdvance('0');
 	assert_r(_lineHeight > 0 && _charWidth > 0);
 
+	buildGlyphTables();
 	_charColumns.clear();
 	_wrappedForMaxColumns = -1; // Measured column counts, and the wrap width itself, follow the font
+}
+
+void CLightningFastViewerWidget::buildGlyphTables()
+{
+	QFontInfo fi{ font() };
+	qInfo() << fi.family() << "fixed pitch:" << fi.fixedPitch() << "point size:" << fi.pointSize();
+
+	// A glyph the font lacks arrives from a fallback font at its own advance. Text mode draws each stand-in on its own column origin, so anything that
+	// fits the cell is safe there; the hex columns batch glyphs into one drawText, where each advances the next, so only an exact fit stays on the grid.
+	const auto usable = [this](char16_t code, bool exactWidthRequired) {
+		const QChar glyph(code);
+		const bool inFont = _fontMetrics.inFont(glyph);
+		const int advance = _fontMetrics.horizontalAdvance(glyph);
+		const bool fits = exactWidthRequired ? advance == _charWidth : (advance > 0 && advance <= _charWidth);
+		return inFont && fits ? glyph : QChar(fallbackGlyph);
+	};
+
+	_invisibleMarker = usable(invisibleMarkerGlyph, false);
+
+	_nonPrintableGlyphs.fill(_invisibleMarker); // Covers the C1 controls, the soft hyphen, and every printable slot, which is never read
+	for (char16_t code = 0; code < 0x20; ++code)
+		_nonPrintableGlyphs[code] = usable(cp437ControlGlyphs[code], false);
+	_nonPrintableGlyphs[0x7F] = usable(cp437DeleteGlyph, false);
+	_nonPrintableGlyphs[0xA0] = usable(openBoxGlyph, false);
+
+	for (char16_t byte = 0; byte < 256; ++byte)
+	{
+		if (isPrintableAscii(byte))
+			_hexGlyphs[byte] = QChar(byte);
+		else if (byte < 0x20)
+			_hexGlyphs[byte] = usable(cp437ControlGlyphs[byte], true);
+		else if (byte == 0x7F)
+			_hexGlyphs[byte] = usable(cp437DeleteGlyph, true);
+		else
+			_hexGlyphs[byte] = usable(cp437HighGlyphs[byte - 0x80], true);
+	}
+}
+
+QChar CLightningFastViewerWidget::nonPrintableGlyph(QChar ch) const
+{
+	const char16_t code = ch.unicode();
+	return code < 0x100 ? _nonPrintableGlyphs[code] : _invisibleMarker;
 }
 
 qsizetype CLightningFastViewerWidget::findLineContainingOffset(qsizetype offset) const

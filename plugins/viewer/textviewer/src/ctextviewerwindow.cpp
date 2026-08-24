@@ -19,7 +19,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QFontDatabase>
 #include <QFontMetrics>
 #include <QLabel>
 #include <QMessageBox>
@@ -491,12 +490,13 @@ void CTextViewerWindow::setupFindDialog()
 
 void CTextViewerWindow::setMode(Mode mode)
 {
-	static const auto setFixedFont = [](QWidget& w) {
-		QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-		QFontMetrics fm{ fixedFont };
-		const qreal sizeReatio = fm.height() > 0 ? ((qreal)QFontMetrics { qApp->font() }.height() / (qreal)fm.height()) : 1.0;
-		fixedFont.setPointSizeF(fixedFont.pointSizeF() * sizeReatio);
-		w.setFont(fixedFont);
+	// Scales the widget's own font so a line of it stands as tall as a line of the UI font. The family is the widget's to choose.
+	static const auto setFontSize = [](QWidget& w) {
+		QFont font = w.font();
+		const QFontMetrics fm{ font };
+		const qreal sizeRatio = fm.height() > 0 ? ((qreal)QFontMetrics { qApp->font() }.height() / (qreal)fm.height()) : 1.0;
+		font.setPointSizeF(font.pointSizeF() * sizeRatio);
+		w.setFont(font);
 	};
 
 	_currentMode = mode;
@@ -506,12 +506,15 @@ void CTextViewerWindow::setMode(Mode mode)
 		if (!_textView)
 		{
 			_textView = std::make_unique<CTextEditWithImageSupport>(this);
+			// Both the tab stop distance below and the wrap width depend on the font, so it goes on first
+			_textView->setFont(CLightningFastViewerWidget::preferredFixedFont());
+			setFontSize(*_textView);
+
 			_textView->setReadOnly(true);
 			_textView->setUndoRedoEnabled(false);
 			_textView->setTabStopDistance(static_cast<qreal>(4 * _textView->fontMetrics().horizontalAdvance(' ')));
 			_textView->setAcceptRichText(true);
 
-			setFixedFont(*_textView);
 			setCentralWidget(_textView.get());
 		}
 
@@ -526,7 +529,7 @@ void CTextViewerWindow::setMode(Mode mode)
 		if (!_lightningViewer)
 		{
 			_lightningViewer = std::make_unique<CLightningFastViewerWidget>(this);
-			setFixedFont(*_lightningViewer);
+			setFontSize(*_lightningViewer);
 			setCentralWidget(_lightningViewer.get());
 		}
 

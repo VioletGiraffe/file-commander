@@ -7,6 +7,7 @@
 #include <QTextCursor>
 #include <QTextDocument>
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -16,6 +17,9 @@ public:
 	enum Mode { HEX, TEXT };
 
 	explicit CLightningFastViewerWidget(QWidget* parent = nullptr);
+
+	// The family this widget sets on itself, exposed so sibling views can match it. A font set by the caller afterwards still wins.
+	[[nodiscard]] static QFont preferredFixedFont();
 
 	void setData(const QByteArray& bytes);
 	void setText(const QString& text);
@@ -83,6 +87,8 @@ private:
 	// Columns occupied by ch starting at the given column. 'next' is the following character, which resolves CR-LF and surrogate pairs.
 	[[nodiscard]] int columnsForChar(QChar ch, QChar next, qsizetype column) const;
 	[[nodiscard]] int columnsForNonAsciiChar(QChar ch) const;
+	[[nodiscard]] QChar nonPrintableGlyph(QChar ch) const;
+	void buildGlyphTables();
 
 	void rebuildLineIndexIfNeeded();
 	[[nodiscard]] qsizetype findLineContainingOffset(qsizetype offset) const;
@@ -108,7 +114,12 @@ private:
 	int _tabWidth = 4;
 	// Columns per BMP code point, memoized. Empty until the first non-ASCII character, cleared on font change.
 	mutable std::vector<uint8_t> _charColumns;
-	QString _paintScratch; // Reused by drawTextLine: QPainter::drawText has no QStringView overload
+	QString _paintScratch; // Reused by both painters: QPainter::drawText has no QStringView overload. Emptied with resize(0), which keeps the buffer.
+
+	// Stand-in glyphs, rebuilt per font: every entry is known to exist in it and to measure exactly one column.
+	std::array<QChar, 256> _nonPrintableGlyphs; // Text mode, indexed by code point
+	std::array<QChar, 256> _hexGlyphs;          // Hex mode ASCII column, indexed by byte
+	QChar _invisibleMarker;                     // Text mode, for the non-printables above U+00FF
 	QFontMetrics _fontMetrics;
 	Selection _selection;
 	bool _geometrySettled = false; // The line index needs the real viewport width, which only exists after the first resize
