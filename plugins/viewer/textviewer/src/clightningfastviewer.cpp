@@ -930,40 +930,56 @@ void CLightningFastViewerWidget::moveCursor(QTextCursor::MoveOperation operation
 	const qsizetype dataSize = (_mode == HEX) ? _data.size() : _text.size();
 	const qsizetype targetOffset = (operation == QTextCursor::Start) ? 0 : qMax(qsizetype(0), dataSize - 1);
 
+	// The inclusive end cannot express an empty selection, so collapsing means clearing: a search then starts at the target, not past it.
 	if (mode == QTextCursor::MoveAnchor)
-		_selection.start = targetOffset;
-	_selection.end = targetOffset;
-	_selection.region = REGION_ASCII;
+		_selection = Selection();
+	else
+	{
+		if (!_selection.isValid())
+			_selection.start = targetOffset;
+		_selection.end = targetOffset;
+		_selection.region = REGION_ASCII;
+	}
 
 	ensureVisible(targetOffset);
 	viewport()->update();
 }
 
-// Generic search helper: handles wrap-around and whole-word filtering.
+// Finds the match nearest to 'from' in the given direction that satisfies the whole-word constraint.
 // Matcher signature: (qsizetype from, bool backward) -> pair<qsizetype /*pos*/, qsizetype /*len*/>
-// Returns {-1, 0} when no match is found.
+// A negative 'from' means nothing is left to search: QString::lastIndexOf reads it as "start at the end".
+// Returns {-1, 0} when there is no such match.
 template <typename Matcher>
-static std::pair<qsizetype, qsizetype> searchWithWrapAround(
-	const QString& haystack, qsizetype currentPos, bool backward, bool wholeWords, Matcher matcher)
+static std::pair<qsizetype, qsizetype> searchWholeWordFiltered(
+	const QString& haystack, qsizetype from, bool backward, bool wholeWords, Matcher matcher)
 {
-	auto isWholeWord = [&](qsizetype pos, qsizetype len) {
+	const auto isWholeWord = [&](qsizetype pos, qsizetype len) {
 		const bool left = (pos == 0) || !haystack[pos - 1].isLetterOrNumber();
 		const bool right = (pos + len >= haystack.size()) || !haystack[pos + len].isLetterOrNumber();
 		return left && right;
 	};
 
-	auto searchFrom = [&](qsizetype from) -> std::pair<qsizetype, qsizetype> {
-		qsizetype pos = from;
-		while (true)
-		{
-			auto [matchPos, matchLen] = matcher(pos, backward);
-			if (matchPos < 0 || !wholeWords || isWholeWord(matchPos, matchLen))
-				return { matchPos, matchLen };
-			pos = backward ? matchPos - 1 : matchPos + 1;
-		}
-	};
+	while (from >= 0)
+	{
+		const auto [matchPos, matchLen] = matcher(from, backward);
+		if (matchPos < 0)
+			break;
 
-	return searchFrom(backward ? currentPos - 1 : currentPos + 1);
+		if (!wholeWords || isWholeWord(matchPos, matchLen))
+			return { matchPos, matchLen };
+
+		from = backward ? matchPos - 1 : matchPos + 1;
+	}
+
+	return { -1, 0 };
+}
+
+qsizetype CLightningFastViewerWidget::searchStartOffset(bool backward, qsizetype haystackSize) const
+{
+	if (!_selection.isValid())
+		return backward ? haystackSize - 1 : 0;
+
+	return backward ? _selection.selStart() - 1 : _selection.selEnd() + 1;
 }
 
 bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFlags options)
@@ -984,8 +1000,7 @@ bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFla
 		return { pos, exp.size() };
 	};
 
-	const qsizetype currentPos = _selection.isValid() ? _selection.selStart() : 0;
-	const auto [matchPos, matchLen] = searchWithWrapAround(haystack, currentPos, backward, wholeWords, matcher);
+	const auto [matchPos, matchLen] = searchWholeWordFiltered(haystack, searchStartOffset(backward, haystack.size()), backward, wholeWords, matcher);
 	if (matchPos < 0)
 		return false;
 
@@ -1038,8 +1053,7 @@ bool CLightningFastViewerWidget::find(const QRegularExpression& exp, QTextDocume
 		}
 	};
 
-	const qsizetype currentPos = _selection.isValid() ? _selection.selStart() : 0;
-	const auto [matchPos, matchLen] = searchWithWrapAround(haystack, currentPos, backward, wholeWords, matcher);
+	const auto [matchPos, matchLen] = searchWholeWordFiltered(haystack, searchStartOffset(backward, haystack.size()), backward, wholeWords, matcher);
 	if (matchPos < 0)
 		return false;
 

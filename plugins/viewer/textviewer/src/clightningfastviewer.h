@@ -57,6 +57,7 @@ private:
 	void selectAll();
 	[[nodiscard]] bool isSelected(qsizetype offset) const;
 	void updateFontMetrics();
+	[[nodiscard]] qsizetype searchStartOffset(bool backward, qsizetype haystackSize) const;
 
 	// Hex mode methods
 	void calculateHexLayout();
