@@ -211,6 +211,7 @@ void CLightningFastViewerWidget::contentChanged()
 
 	// Keyboard navigation never sets a region, so copying has to find a usable one from the start
 	_selection = Selection{ .region = (_mode == HEX) ? REGION_HEX : REGION_ASCII };
+	_hexSearchText.clear();
 	_lineOffsets.clear();
 	_maxLineColumns = 0;
 	_wrappedForMaxColumns = -1;
@@ -1211,33 +1212,124 @@ void CLightningFastViewerWidget::moveCursor(QTextCursor::MoveOperation operation
 	viewport()->update();
 }
 
-// Finds the match nearest to 'from' in the given direction that satisfies the whole-word constraint.
-// Matcher signature: (qsizetype from, bool backward) -> pair<qsizetype /*pos*/, qsizetype /*len*/>
-// A negative 'from' means nothing is left to search: QString::lastIndexOf reads it as "start at the end".
-// Returns {-1, 0} when there is no such match.
-template <typename Matcher>
-static std::pair<qsizetype, qsizetype> searchWholeWordFiltered(
-	const QString& haystack, qsizetype from, bool backward, bool wholeWords, Matcher matcher)
+// Both ASCII and Latin-1 upper-case letters fold by the same bit, so this matches what QString case-insensitive comparison does over Latin-1
+static constexpr char foldByte(char c)
 {
-	const auto isWholeWord = [&](qsizetype pos, qsizetype len) {
-		const bool left = (pos == 0) || !haystack[pos - 1].isLetterOrNumber();
-		const bool right = (pos + len >= haystack.size()) || !haystack[pos + len].isLetterOrNumber();
-		return left && right;
+	const uint8_t byte = static_cast<uint8_t>(c);
+	const bool isUpper = (byte >= 'A' && byte <= 'Z') || (byte >= 0xC0 && byte <= 0xDE && byte != 0xD7);
+	return isUpper ? static_cast<char>(byte + 0x20) : c;
+}
+
+static bool isWordCharAt(const QString& haystack, qsizetype at)
+{
+	return haystack[at].isLetterOrNumber();
+}
+
+// Bytes are classified as ASCII: a hex view carries no encoding, so counting 0xC0 to 0xFF as letters would be a guess
+static bool isWordCharAt(const QByteArray& haystack, qsizetype at)
+{
+	const uint8_t byte = static_cast<uint8_t>(haystack[at]);
+	return (byte >= '0' && byte <= '9') || (byte >= 'A' && byte <= 'Z') || (byte >= 'a' && byte <= 'z');
+}
+
+// True when nothing word-like abuts the match on either side
+template <typename Haystack>
+static bool isWholeWordMatch(const Haystack& haystack, qsizetype pos, qsizetype len)
+{
+	return (pos == 0 || !isWordCharAt(haystack, pos - 1))
+		&& (pos + len >= haystack.size() || !isWordCharAt(haystack, pos + len));
+}
+
+static qsizetype indexOfIn(const QString& haystack, const QString& needle, qsizetype from, bool backward, Qt::CaseSensitivity cs)
+{
+	return backward ? haystack.lastIndexOf(needle, from, cs) : haystack.indexOf(needle, from, cs);
+}
+
+// QByteArray offers no case-insensitive search, so that case is scanned here
+static qsizetype indexOfIn(const QByteArray& haystack, const QByteArray& needle, qsizetype from, bool backward, Qt::CaseSensitivity cs)
+{
+	if (cs == Qt::CaseSensitive)
+		return backward ? haystack.lastIndexOf(needle, from) : haystack.indexOf(needle, from);
+
+	const char* const data = haystack.constData();
+	const char* const pattern = needle.constData();
+	const qsizetype lastStart = haystack.size() - needle.size();
+
+	const auto matchesAt = [&](qsizetype at) {
+		for (qsizetype i = 0; i < needle.size(); ++i)
+		{
+			if (foldByte(data[at + i]) != foldByte(pattern[i]))
+				return false;
+		}
+
+		return true;
 	};
 
+	if (backward)
+	{
+		for (qsizetype at = qMin(from, lastStart); at >= 0; --at)
+		{
+			if (matchesAt(at))
+				return at;
+		}
+	}
+	else
+	{
+		for (qsizetype at = from; at <= lastStart; ++at)
+		{
+			if (matchesAt(at))
+				return at;
+		}
+	}
+
+	return -1;
+}
+
+// Nearest match to 'from' in the given direction that 'accept' allows, stepping one position past each rejected match.
+// A negative 'from' means nothing is left to search: lastIndexOf would read it as "start at the end".
+// Returns {-1, 0} when no match is accepted.
+template <typename Haystack, typename Needle, typename Accept>
+static std::pair<qsizetype, qsizetype> acceptedLiteralMatch(
+	const Haystack& haystack, const Needle& needle, qsizetype from, bool backward, Qt::CaseSensitivity cs, Accept accept)
+{
 	while (from >= 0)
 	{
-		const auto [matchPos, matchLen] = matcher(from, backward);
+		const qsizetype matchPos = indexOfIn(haystack, needle, from, backward, cs);
 		if (matchPos < 0)
 			break;
 
-		if (!wholeWords || isWholeWord(matchPos, matchLen))
-			return { matchPos, matchLen };
+		if (accept(matchPos, needle.size()))
+			return { matchPos, needle.size() };
 
 		from = backward ? matchPos - 1 : matchPos + 1;
 	}
 
 	return { -1, 0 };
+}
+
+// Accepted match nearest to 'from' in the given direction. QRegularExpression cannot search backwards, so both directions
+// scan forward once, and 'accept' is applied inside that scan because a rejected match must not cost another one.
+template <typename Accept>
+static std::pair<qsizetype, qsizetype> acceptedRegexMatch(
+	const QRegularExpression& rx, const QString& haystack, qsizetype from, bool backward, Accept accept)
+{
+	std::pair<qsizetype, qsizetype> found{ -1, 0 };
+
+	for (auto it = rx.globalMatch(haystack, backward ? 0 : from); it.hasNext(); )
+	{
+		const QRegularExpressionMatch match = it.next();
+		if (backward && match.capturedStart() > from)
+			break;
+
+		if (!accept(match.capturedStart(), match.capturedLength()))
+			continue;
+
+		found = { match.capturedStart(), match.capturedLength() };
+		if (!backward)
+			break;
+	}
+
+	return found;
 }
 
 qsizetype CLightningFastViewerWidget::searchStartOffset(bool backward, qsizetype haystackSize) const
@@ -1251,6 +1343,18 @@ qsizetype CLightningFastViewerWidget::searchStartOffset(bool backward, qsizetype
 	return backward ? _selection.first() - 1 : _selection.last() + 1;
 }
 
+const QString& CLightningFastViewerWidget::regexHaystack()
+{
+	if (_mode == TEXT)
+		return _text;
+
+	// Only a regex search needs the bytes as text, and it needs them all at once; literal search runs on _data itself
+	if (_hexSearchText.isEmpty())
+		_hexSearchText = QString::fromLatin1(_data);
+
+	return _hexSearchText;
+}
+
 bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFlags options)
 {
 	if (exp.isEmpty())
@@ -1260,16 +1364,17 @@ bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFla
 	const bool wholeWords = options & QTextDocument::FindWholeWords;
 	const Qt::CaseSensitivity cs = (options & QTextDocument::FindCaseSensitively) ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
-	const QString& haystack = (_mode == TEXT) ? _text : QString::fromLatin1(_data);
-	if (haystack.isEmpty())
-		return false;
-
-	auto matcher = [&](qsizetype from, bool bwd) -> std::pair<qsizetype, qsizetype> {
-		const qsizetype pos = bwd ? haystack.lastIndexOf(exp, from, cs) : haystack.indexOf(exp, from, cs);
-		return { pos, exp.size() };
+	const auto search = [&](const auto& haystack, const auto& needle) {
+		const auto accept = [&](qsizetype pos, qsizetype len) { return !wholeWords || isWholeWordMatch(haystack, pos, len); };
+		return acceptedLiteralMatch(haystack, needle, searchStartOffset(backward, haystack.size()), backward, cs, accept);
 	};
 
-	const auto [matchPos, matchLen] = searchWholeWordFiltered(haystack, searchStartOffset(backward, haystack.size()), backward, wholeWords, matcher);
+	// No byte can hold a character above U+00FF, and toLatin1 would fold one to '?' and match those bytes instead
+	if (_mode == HEX && std::any_of(exp.cbegin(), exp.cend(), [](QChar ch) { return ch.unicode() > 0xFF; }))
+		return false;
+
+	// Hex mode searches the bytes themselves: converting the needle is free, converting the file would cost two bytes per byte on every call
+	const auto [matchPos, matchLen] = (_mode == TEXT) ? search(_text, exp) : search(_data, exp.toLatin1());
 	if (matchPos < 0)
 		return false;
 
@@ -1294,33 +1399,14 @@ bool CLightningFastViewerWidget::find(const QRegularExpression& exp, QTextDocume
 	else
 		rx.setPatternOptions(rx.patternOptions() | QRegularExpression::CaseInsensitiveOption);
 
-	const QString& haystack = (_mode == TEXT) ? _text : QString::fromLatin1(_data);
-	if (haystack.isEmpty())
-		return false;
+	const QString& haystack = regexHaystack();
 
-	auto matcher = [&](qsizetype from, bool bwd) -> std::pair<qsizetype, qsizetype> {
-		if (!bwd)
-		{
-			const QRegularExpressionMatch m = rx.match(haystack, from);
-			return m.hasMatch() ? std::pair{ m.capturedStart(), m.capturedLength() } : std::pair{ qsizetype(-1), qsizetype(0) };
-		}
-		else
-		{
-			// Qt has no lastIndexOf for regex; iterate forward and keep the rightmost match <= from
-			std::pair<qsizetype, qsizetype> last{ -1, 0 };
-			for (auto it = rx.globalMatch(haystack); it.hasNext(); )
-			{
-				const QRegularExpressionMatch m = it.next();
-				if (m.capturedStart() <= from)
-					last = { m.capturedStart(), m.capturedLength() };
-				else
-					break;
-			}
-			return last;
-		}
+	// An empty match has nothing to show and nothing to step over, so a pattern that allows one would return the same position forever
+	const auto accept = [&](qsizetype pos, qsizetype len) {
+		return len > 0 && (!wholeWords || isWholeWordMatch(haystack, pos, len));
 	};
 
-	const auto [matchPos, matchLen] = searchWholeWordFiltered(haystack, searchStartOffset(backward, haystack.size()), backward, wholeWords, matcher);
+	const auto [matchPos, matchLen] = acceptedRegexMatch(rx, haystack, searchStartOffset(backward, haystack.size()), backward, accept);
 	if (matchPos < 0)
 		return false;
 

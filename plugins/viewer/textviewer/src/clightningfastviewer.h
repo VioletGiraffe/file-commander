@@ -73,7 +73,7 @@ private:
 			desiredColumn = keepColumn;
 		}
 
-		// A zero length places the cursor without selecting: an empty regex match must not select the character before it
+		// A zero length places the cursor without selecting
 		void selectRange(qsizetype from, qsizetype length, Region inRegion)
 		{
 			region = inRegion;
@@ -98,6 +98,8 @@ private:
 	void updateFontMetrics();
 	void contentChanged();
 	[[nodiscard]] qsizetype searchStartOffset(bool backward, qsizetype haystackSize) const;
+	// The text a regex search runs over. In hex mode the bytes are converted once and kept until the content changes.
+	[[nodiscard]] const QString& regexHaystack();
 
 	// Hex mode methods
 	void calculateHexLayout();
@@ -139,6 +141,7 @@ private:
 
 	// Hex mode data
 	QByteArray _data;
+	QString _hexSearchText; // Latin-1 view of _data, built on demand by regexHaystack()
 	qsizetype _bytesPerLine = 16;
 
 	// Text mode data
