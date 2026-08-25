@@ -206,7 +206,8 @@ void CLightningFastViewerWidget::setTabWidth(int columns)
 
 void CLightningFastViewerWidget::contentChanged()
 {
-	_selection = Selection();
+	// Keyboard navigation never sets a region, so copying has to find a usable one from the start
+	_selection = Selection{ .region = (_mode == HEX) ? REGION_HEX : REGION_ASCII };
 	_lineOffsets.clear();
 	_maxLineColumns = 0;
 	_wrappedForMaxColumns = -1;
@@ -284,11 +285,11 @@ void CLightningFastViewerWidget::mousePressEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos()) : textPosToOffset(event->pos());
+		const qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos()) : textPosToOffset(event->pos());
 		if (offset >= 0)
 		{
-			_selection.start = _selection.end = offset;
-			_selection.region = (_mode == HEX) ? regionAtPos(event->pos()) : REGION_ASCII;
+			// A click selects the cell, and anchors the drag that may follow
+			_selection.selectRange(offset, 1, (_mode == HEX) ? regionAtPos(event->pos()) : REGION_ASCII);
 			viewport()->update();
 		}
 	}
@@ -298,12 +299,12 @@ void CLightningFastViewerWidget::mouseMoveEvent(QMouseEvent* event)
 {
 	updateCursorShape(event->pos());
 
-	if (event->buttons() & Qt::LeftButton && _selection.start >= 0)
+	if (event->buttons() & Qt::LeftButton && _selection.hasSelection())
 	{
-		qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos()) : textPosToOffset(event->pos());
-		if (offset >= 0 && offset != _selection.end)
+		const qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos()) : textPosToOffset(event->pos());
+		if (offset >= 0 && offset != _selection.cursor)
 		{
-			_selection.end = offset;
+			_selection.extendTo(offset);
 			viewport()->update();
 
 			// Auto-scroll when dragging near edges
@@ -327,36 +328,31 @@ void CLightningFastViewerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 		if (_mode == HEX)
 		{
 			// Select the entire line on double-click
-			qsizetype offset = hexPosToOffset(event->pos());
+			const qsizetype offset = hexPosToOffset(event->pos());
 			if (offset >= 0 && offset < _data.size())
 			{
-				qsizetype lineStart = (offset / _bytesPerLine) * _bytesPerLine;
-				qsizetype lineEnd = qMin((qsizetype)_data.size() - 1, lineStart + _bytesPerLine - 1);
-				_selection.start = lineStart;
-				_selection.end = lineEnd;
-				_selection.region = regionAtPos(event->pos());
+				const qsizetype lineStart = (offset / _bytesPerLine) * _bytesPerLine;
+				_selection.selectRange(lineStart, qMin(_bytesPerLine, _data.size() - lineStart), regionAtPos(event->pos()));
 				viewport()->update();
 			}
 		}
 		else
 		{
 			// Select word in text mode
-			qsizetype offset = textPosToOffset(event->pos());
+			const qsizetype offset = textPosToOffset(event->pos());
 			if (offset >= 0 && offset < _text.size())
 			{
 				const QChar* const chars = _text.constData(); // QString::operator[] is the detaching overload here
 
 				qsizetype start = offset;
-				qsizetype end = offset;
+				qsizetype end = offset + 1;
 
 				while (start > 0 && chars[start - 1].isLetterOrNumber())
 					--start;
-				while (end < _text.size() - 1 && chars[end + 1].isLetterOrNumber())
+				while (end < _text.size() && chars[end].isLetterOrNumber())
 					++end;
 
-				_selection.start = start;
-				_selection.end = end;
-				_selection.region = REGION_ASCII;
+				_selection.selectRange(start, end - start, REGION_ASCII);
 				viewport()->update();
 			}
 		}
@@ -388,7 +384,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		return;
 	}
 
-	qsizetype cursorPos = _selection.end >= 0 ? _selection.end : 0;
+	const qsizetype cursorPos = _selection.hasCursor() ? _selection.cursor : 0;
 	qsizetype newPos = cursorPos;
 
 	switch (event->key())
@@ -486,14 +482,10 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 	if (newPos != cursorPos)
 	{
 		if (shiftPressed)
-		{
-			if (_selection.start < 0) _selection.start = cursorPos;
-			_selection.end = newPos;
-		}
+			_selection.extendTo(newPos);
 		else
-		{
-			_selection.start = _selection.end = newPos;
-		}
+			_selection.placeCursor(newPos);
+
 		ensureVisible(newPos);
 		viewport()->update();
 	}
@@ -861,74 +853,66 @@ void CLightningFastViewerWidget::ensureVisible(qsizetype offset)
 
 void CLightningFastViewerWidget::copySelection()
 {
-	if (!_selection.isValid())
+	if (!_selection.hasSelection())
 		return;
 
-	const qsizetype start = _selection.selStart();
-	const qsizetype end = _selection.selEnd();
+	const qsizetype start = _selection.first();
+	const qsizetype count = _selection.count();
 
 	if (_mode == TEXT)
 	{
-		QApplication::clipboard()->setText(_text.mid(start, end - start + 1));
+		QApplication::clipboard()->setText(_text.mid(start, count));
 		return;
 	}
 
-	const qsizetype lastByte = qMin(end, _data.size() - 1);
-	const qsizetype byteCount = lastByte - start + 1;
 	const char* const bytes = _data.constData(); // QByteArray::operator[] is the detaching overload here
 
 	if (_selection.region == REGION_HEX)
 	{
 		QString hexStr;
-		hexStr.reserve(byteCount * Layout::HEX_CHARS_PER_BYTE);
-		for (qsizetype i = start; i <= lastByte; ++i)
+		hexStr.reserve(count * Layout::HEX_CHARS_PER_BYTE);
+		for (qsizetype i = 0; i < count; ++i)
 		{
-			const uint8_t byte = static_cast<uint8_t>(bytes[i]);
+			const uint8_t byte = static_cast<uint8_t>(bytes[start + i]);
+			if (i > 0)
+				hexStr += ' ';
 			hexStr += QChar(hexChars[byte >> 4]);
 			hexStr += QChar(hexChars[byte & 0x0F]);
-			if (i < lastByte)
-				hexStr += ' ';
 		}
 		QApplication::clipboard()->setText(hexStr);
 	}
-	else if (_selection.region == REGION_ASCII)
+	else
 	{
+		assert_r(_selection.region == REGION_ASCII); // contentChanged seeds a byte column, and nothing sets it back to REGION_NONE
+
 		QString asciiStr;
-		asciiStr.reserve(byteCount);
-		for (qsizetype i = start; i <= lastByte; ++i)
+		asciiStr.reserve(count);
+		for (qsizetype i = 0; i < count; ++i)
 		{
-			const uint8_t byte = static_cast<uint8_t>(bytes[i]);
+			const uint8_t byte = static_cast<uint8_t>(bytes[start + i]);
 			asciiStr += isPrintableAscii(byte) ? QChar(byte) : QChar('.');
 		}
 		QApplication::clipboard()->setText(asciiStr);
-	}
-	else
-	{
-		QApplication::clipboard()->setText(QString::fromLatin1(_data.mid(start, byteCount).toHex(' ')));
 	}
 }
 
 void CLightningFastViewerWidget::selectAll()
 {
-	if (_mode == HEX && _data.isEmpty())
-		return;
-	if (_mode == TEXT && _text.isEmpty())
+	const qsizetype size = (_mode == HEX) ? _data.size() : _text.size();
+	if (size == 0)
 		return;
 
-	_selection.start = 0;
-	if (_mode == HEX)
-		_selection.end = _data.size() - 1;
-	else
-		_selection.end = _text.size() - 1;
-	_selection.region = (_mode == HEX) ? REGION_HEX : REGION_ASCII;
+	_selection.selectRange(0, size, (_mode == HEX) ? REGION_HEX : REGION_ASCII);
 	viewport()->update();
 }
 
 bool CLightningFastViewerWidget::isSelected(qsizetype offset) const
 {
-	return _selection.isValid() &&
-		offset >= _selection.selStart() &&
-		offset <= _selection.selEnd();
+	// The cursor cell paints as a block: there is no caret
+	if (!_selection.hasSelection())
+		return offset == _selection.cursor;
+
+	return offset >= _selection.first() && offset <= _selection.last();
 }
 
 int CLightningFastViewerWidget::columnsForChar(QChar ch, QChar next, qsizetype column) const
@@ -1118,16 +1102,10 @@ void CLightningFastViewerWidget::moveCursor(QTextCursor::MoveOperation operation
 	const qsizetype dataSize = (_mode == HEX) ? _data.size() : _text.size();
 	const qsizetype targetOffset = (operation == QTextCursor::Start) ? 0 : qMax(qsizetype(0), dataSize - 1);
 
-	// The inclusive end cannot express an empty selection, so collapsing means clearing: a search then starts at the target, not past it.
 	if (mode == QTextCursor::MoveAnchor)
-		_selection = Selection();
+		_selection.placeCursor(targetOffset);
 	else
-	{
-		if (!_selection.isValid())
-			_selection.start = targetOffset;
-		_selection.end = targetOffset;
-		_selection.region = REGION_ASCII;
-	}
+		_selection.extendTo(targetOffset);
 
 	ensureVisible(targetOffset);
 	viewport()->update();
@@ -1164,10 +1142,13 @@ static std::pair<qsizetype, qsizetype> searchWholeWordFiltered(
 
 qsizetype CLightningFastViewerWidget::searchStartOffset(bool backward, qsizetype haystackSize) const
 {
-	if (!_selection.isValid())
+	if (!_selection.hasCursor())
 		return backward ? haystackSize - 1 : 0;
 
-	return backward ? _selection.selStart() - 1 : _selection.selEnd() + 1;
+	if (!_selection.hasSelection())
+		return _selection.cursor; // Nothing was matched yet, so the cursor's own position is still a candidate
+
+	return backward ? _selection.first() - 1 : _selection.last() + 1;
 }
 
 bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFlags options)
@@ -1192,9 +1173,7 @@ bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFla
 	if (matchPos < 0)
 		return false;
 
-	_selection.start = matchPos;
-	_selection.end = matchPos + matchLen - 1;
-	_selection.region = REGION_ASCII;
+	_selection.selectRange(matchPos, matchLen, REGION_ASCII);
 	ensureVisible(matchPos);
 	viewport()->update();
 	return true;
@@ -1245,9 +1224,7 @@ bool CLightningFastViewerWidget::find(const QRegularExpression& exp, QTextDocume
 	if (matchPos < 0)
 		return false;
 
-	_selection.start = matchPos;
-	_selection.end = matchPos + matchLen - 1;
-	_selection.region = REGION_ASCII;
+	_selection.selectRange(matchPos, matchLen, REGION_ASCII);
 	ensureVisible(matchPos);
 	viewport()->update();
 	return true;
@@ -1255,7 +1232,7 @@ bool CLightningFastViewerWidget::find(const QRegularExpression& exp, QTextDocume
 
 int CLightningFastViewerWidget::selectionStart() const
 {
-	return _selection.isValid() ? (int)_selection.selStart() : -1;
+	return _selection.hasSelection() ? (int)_selection.first() : -1;
 }
 
 void CLightningFastViewerWidget::updateCursorShape(const QPoint& pos)

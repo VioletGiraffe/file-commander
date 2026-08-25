@@ -44,15 +44,37 @@ protected:
 private:
 	enum Region { REGION_OFFSET, REGION_HEX, REGION_ASCII, REGION_NONE };
 
+	// Both ends are character (TEXT) or byte (HEX) indices. Without an anchor there is no selection, only a cursor.
 	struct Selection
 	{
-		qsizetype start = -1;
-		qsizetype end = -1;
+		qsizetype cursor = -1; // Moving end, and the cell the cursor block paints on; -1 until placed
+		qsizetype anchor = -1; // Fixed end; -1 when nothing is selected
 		Region region = REGION_NONE;
 
-		[[nodiscard]] inline bool isValid() const { return start >= 0 && end >= 0; }
-		[[nodiscard]] inline qsizetype selStart() const { return qMin(start, end); }
-		[[nodiscard]] inline qsizetype selEnd() const { return qMax(start, end); }
+		[[nodiscard]] bool hasCursor() const { return cursor >= 0; }
+		[[nodiscard]] bool hasSelection() const { return anchor >= 0; }
+
+		// The three below are only meaningful while hasSelection()
+		[[nodiscard]] qsizetype first() const { return qMin(anchor, cursor); }
+		[[nodiscard]] qsizetype last() const { return qMax(anchor, cursor); } // Inclusive
+		[[nodiscard]] qsizetype count() const { return last() - first() + 1; }
+
+		void placeCursor(qsizetype offset) { cursor = offset; anchor = -1; }
+
+		void extendTo(qsizetype offset)
+		{
+			if (!hasSelection())
+				anchor = cursor >= 0 ? cursor : 0; // Extending from an unplaced cursor starts at the beginning
+			cursor = offset;
+		}
+
+		// A zero length places the cursor without selecting: an empty regex match must not select the character before it
+		void selectRange(qsizetype from, qsizetype length, Region inRegion)
+		{
+			region = inRegion;
+			anchor = length > 0 ? from : -1;
+			cursor = length > 0 ? from + length - 1 : from;
+		}
 	};
 
 	// Common methods
