@@ -1,8 +1,8 @@
 #include "ctextviewerwindow.h"
 #include "ctexteditwithimagesupport.h"
 #include "cfinddialog.h"
-#include "clightningfastviewer.h"
 
+#include "widgets/clightningfastviewer.h"
 #include "widgets/cpersistentwindow.h"
 #include "qtcore_helpers/qt_helpers.hpp"
 

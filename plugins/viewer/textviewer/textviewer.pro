@@ -84,14 +84,12 @@ INCLUDEPATH += \
 	$$PWD/src/
 
 HEADERS += \
-	src/clightningfastviewer.h \
 	src/ctexteditwithimagesupport.h \
 	src/ctextviewerplugin.h \
 	src/ctextviewerwindow.h \
 	src/cfinddialog.h
 
 SOURCES += \
-	src/clightningfastviewer.cpp \
 	src/ctexteditwithimagesupport.cpp \
 	src/ctextviewerplugin.cpp \
 	src/ctextviewerwindow.cpp \
