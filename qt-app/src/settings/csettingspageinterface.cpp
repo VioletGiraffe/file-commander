@@ -1,13 +1,13 @@
 #include "csettingspageinterface.h"
 
 #include "settings.h"
-#include "settings/csettings.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_csettingspageinterface.h"
 
 #include <QButtonGroup>
 #include <QFontDialog>
+#include <QSettings>
 #include <QStringBuilder>
 #include <QStyleFactory>
 #include <QStyleHints>
@@ -26,7 +26,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 	ui->setupUi(this);
 	_fontDialog->resize(_fontDialog->sizeHint().width(), _fontDialog->sizeHint().height() * 3/2);
 
-	CSettings s;
+	QSettings s;
 
 	QFont font;
 	if (font.fromString(s.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
@@ -98,7 +98,7 @@ CSettingsPageInterface::~CSettingsPageInterface()
 
 void CSettingsPageInterface::acceptSettings()
 {
-	CSettings s;
+	QSettings s;
 	s.setValue(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, ui->_cbRespectLastCursorPos->isChecked());
 	s.setValue(KEY_INTERFACE_FILE_LIST_FONT, _fontDialog->currentFont().toString());
 	s.setValue(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, ui->_cbDecoratedFolderIcons->isChecked());

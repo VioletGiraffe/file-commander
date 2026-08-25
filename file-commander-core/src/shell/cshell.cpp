@@ -2,7 +2,6 @@
 
 #include "filesystemhelperfunctions.h"
 #include "settings.h"
-#include "settings/csettings.h"
 #include "system/win_utils.hpp"
 
 #include "assert/advanced_assert.h"
@@ -96,7 +95,7 @@ static QString defaultShellExecutableCommand()
 
 std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 {
-	//const QString shell = CSettings{}.value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShellExecutableCommand()).toString();
+	//const QString shell = QSettings{}.value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShellExecutableCommand()).toString();
 	auto shell = defaultShellExecutableCommand();
 	return parseCommandAndArguments(shell);
 }

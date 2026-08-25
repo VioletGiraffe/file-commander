@@ -1,5 +1,4 @@
 #include "ccontroller.h"
-#include "settings/csettings.h"
 #include "settings.h"
 #include "shell/cshell.h"
 #include "filesystemhelperfunctions.h"
@@ -16,6 +15,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDesktopServices>
 #include <QDir>
 #include <QMessageBox>
+#include <QSettings>
 #include <QThread>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
@@ -399,7 +399,7 @@ const CPanel& CController::tabById(Panel p, qulonglong tabId) const
 void CController::restorePanelState(Panel p)
 {
 	const size_t side = (size_t)p;
-	CSettings s;
+	QSettings s;
 
 	QStringList tabPaths = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS).toStringList();
 	if (tabPaths.isEmpty())
@@ -482,7 +482,7 @@ void CController::savePanelState(Panel p)
 
 	_lastSavedTabSignature[side] = signature;
 
-	CSettings s;
+	QSettings s;
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS, tabPaths);
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS, tabCurrentItems);
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, activeIndex);
@@ -504,7 +504,7 @@ void CController::saveHistoryList(Panel p)
 	if (tabList.tabs.empty())
 		return;
 
-	CSettings s;
+	QSettings s;
 	const CPanel& activeTab = *tabList.tabs[tabList.activeTab];
 	const auto& historyDeque = activeTab.history().list();
 	s.setValue(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R, QStringList(historyDeque.cbegin(), historyDeque.cend()));
@@ -605,7 +605,7 @@ std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVo
 	else
 	{
 		// Otherwise navigate to the last known path for this volume, or its root if no path was recorded previously
-		const QString lastPathForDrive = CSettings{}.value(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), drivePath).toString();
+		const QString lastPathForDrive = QSettings{}.value(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), drivePath).toString();
 		return {setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok, drivePath};
 	}
 }
@@ -1024,5 +1024,5 @@ void CController::saveDirectoryForCurrentVolume(Panel p)
 		return;
 
 	const QString drivePath = currentVolume->rootObjectInfo.fullAbsolutePath();
-	CSettings().setValue(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), panel(p).currentDirPathPosix());
+	QSettings().setValue(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), panel(p).currentDirPathPosix());
 }

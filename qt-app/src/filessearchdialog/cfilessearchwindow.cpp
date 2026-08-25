@@ -2,7 +2,6 @@
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
 #include "../cmainwindow.h"
-#include "settings/csettings.h"
 #include "filesystemhelperfunctions.h"
 #include "iconprovider/ciconprovider.h"
 
@@ -17,6 +16,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFont>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
 #define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
@@ -57,7 +57,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 	}
 	ui->searchRoot->setCurrentText(toNativeSeparators(pathsToSearchIn));
 
-	CSettings s;
+	QSettings s;
 	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
 	ui->cbNamePartialMatch->setChecked(s.value(SETTINGS_NAME_PARTIAL_MATCH, true).toBool());
 	ui->cbContentsCaseSensitive->setChecked(s.value(SETTINGS_CONTENTS_CASE_SENSITIVE, false).toBool());
@@ -87,7 +87,7 @@ CFilesSearchWindow::~CFilesSearchWindow()
 	_engine.stopSearching();
 	_engine.waitForSearchToFinish();
 
-	CSettings s;
+	QSettings s;
 	s.setValue(SETTINGS_NAME_CASE_SENSITIVE, ui->cbNameCaseSensitive->isChecked());
 	s.setValue(SETTINGS_NAME_PARTIAL_MATCH, ui->cbNamePartialMatch->isChecked());
 	s.setValue(SETTINGS_CONTENTS_CASE_SENSITIVE, ui->cbContentsCaseSensitive->isChecked());

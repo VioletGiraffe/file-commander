@@ -7,7 +7,6 @@
 #include "cpanel.h"
 #include "cfilesystemobject.h"
 #include "settings.h"
-#include "settings/csettings.h"
 
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a path in a failure report
 
@@ -16,6 +15,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
+#include <QSettings>
 #include <QStringBuilder>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
@@ -95,14 +95,14 @@ class ShowHiddenFilesSetting
 {
 public:
 	explicit ShowHiddenFilesSetting(bool show) :
-		_previousValue{ CSettings{}.value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool() }
+		_previousValue{ QSettings{}.value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool() }
 	{
-		CSettings{}.setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, show);
+		QSettings{}.setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, show);
 	}
 
 	~ShowHiddenFilesSetting()
 	{
-		CSettings{}.setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, _previousValue);
+		QSettings{}.setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, _previousValue);
 	}
 
 	ShowHiddenFilesSetting(const ShowHiddenFilesSetting&) = delete;

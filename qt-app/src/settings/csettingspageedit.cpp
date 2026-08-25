@@ -1,9 +1,9 @@
 #include "csettingspageedit.h"
 #include "ui_csettingspageedit.h"
 #include "settings.h"
-#include "settings/csettings.h"
 
 #include <QFileDialog>
+#include <QSettings>
 
 
 CSettingsPageEdit::CSettingsPageEdit(QWidget *parent) :
@@ -13,7 +13,7 @@ CSettingsPageEdit::CSettingsPageEdit(QWidget *parent) :
 	ui->setupUi(this);
 	connect(ui->_btnEditorBrowse, &QPushButton::clicked, this, &CSettingsPageEdit::browseForEditor);
 
-	ui->_editorNameLine->setText(CSettings().value(KEY_EDITOR_PATH).toString());
+	ui->_editorNameLine->setText(QSettings().value(KEY_EDITOR_PATH).toString());
 }
 
 CSettingsPageEdit::~CSettingsPageEdit()
@@ -23,7 +23,7 @@ CSettingsPageEdit::~CSettingsPageEdit()
 
 void CSettingsPageEdit::acceptSettings()
 {
-	CSettings().setValue(KEY_EDITOR_PATH, ui->_editorNameLine->text());
+	QSettings().setValue(KEY_EDITOR_PATH, ui->_editorNameLine->text());
 }
 
 void CSettingsPageEdit::browseForEditor()

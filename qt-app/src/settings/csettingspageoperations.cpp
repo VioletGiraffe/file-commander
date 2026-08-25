@@ -1,14 +1,17 @@
 #include "csettingspageoperations.h"
 #include "ui_csettingspageoperations.h"
-#include "settings/csettings.h"
 #include "settings.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QSettings>
+RESTORE_COMPILER_WARNINGS
 
 CSettingsPageOperations::CSettingsPageOperations(QWidget *parent) :
 	CSettingsPage(parent),
 	ui(new Ui::CSettingsPageOperations)
 {
 	ui->setupUi(this);
-	CSettings s;
+	QSettings s;
 	ui->_cbPromptForCopyOrMove->setChecked(s.value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool());
 }
 
@@ -19,6 +22,6 @@ CSettingsPageOperations::~CSettingsPageOperations()
 
 void CSettingsPageOperations::acceptSettings()
 {
-	CSettings s;
+	QSettings s;
 	s.setValue(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, ui->_cbPromptForCopyOrMove->isChecked());
 }

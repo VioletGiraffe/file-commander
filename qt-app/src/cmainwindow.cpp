@@ -7,7 +7,6 @@
 #include "fileoperations/fileoperationtypes.h"
 #include "fileoperations/newnamecheck.h"
 #include "settings.h"
-#include "settings/csettings.h"
 #include "shell/cshell.h"
 #include "settingsui/csettingsdialog.h"
 #include "settings/csettingspageinterface.h"
@@ -53,6 +52,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QProcess>
 #include <QPushButton>
 #include <QScreen>
+#include <QSettings>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QTimer>
@@ -129,7 +129,7 @@ CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, C
 	initCore();
 
 	// Check for updates
-	CSettings s;
+	QSettings s;
 	if (s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool() &&
 		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000LL * 3600LL * 24LL)
 	{
@@ -160,7 +160,7 @@ CMainWindow *CMainWindow::get()
 
 void CMainWindow::updateInterface()
 {
-	CSettings s;
+	QSettings s;
 	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
 	ui->leftPanel->restorePanelGeometry(s.value(KEY_LPANEL_GEOMETRY).toByteArray());
 	ui->leftPanel->restorePanelState(s.value(KEY_LPANEL_STATE).toByteArray());
@@ -268,7 +268,7 @@ void CMainWindow::initActions()
 		_controller->openTerminal(_currentFileList->currentDirPathNative(), true);
 	});
 
-	ui->action_Show_hidden_files->setChecked(CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
+	ui->action_Show_hidden_files->setChecked(QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
 #ifndef _WIN32
 	ui->action_Show_hidden_files->setShortcut(QKeySequence{ QSL("Alt+H") }); // This is a common shortcut for Linux file managers
 #else
@@ -349,7 +349,7 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 		.arg(sources.size()).arg(sources.size() > 1 ? tr("files") : tr("file"));
 
 	CFileOperationConfirmationPrompt prompt(caption, label, toNativeSeparators(prefill), this);
-	if (CSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
+	if (QSettings().value(KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION, true).toBool())
 	{
 		if (prompt.exec() != QDialog::Accepted)
 			return false;
@@ -401,7 +401,7 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 {
 	if (e->type() == QCloseEvent::Close)
 	{
-		CSettings s;
+		QSettings s;
 		s.setValue(KEY_SPLITTER_SIZES, ui->splitter->saveState());
 		s.setValue(KEY_LPANEL_GEOMETRY, ui->leftPanel->savePanelGeometry());
 		s.setValue(KEY_RPANEL_GEOMETRY, ui->rightPanel->savePanelGeometry());
@@ -472,7 +472,7 @@ void CMainWindow::currentPanelChanged(const Panel panel)
 	}
 
 	_controller->activePanelChanged(_currentFileList->panelPosition());
-	CSettings().setValue(KEY_LAST_ACTIVE_PANEL, (int)_currentFileList->panelPosition());
+	QSettings().setValue(KEY_LAST_ACTIVE_PANEL, (int)_currentFileList->panelPosition());
 	ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPathNative());
 	_commandLineCompleter.setModel(_currentFileList->sortModel());
 }
@@ -679,7 +679,7 @@ void CMainWindow::editFile()
 	const QString defaultEditor;
 #endif
 
-	QString editorPath = CSettings().value(KEY_EDITOR_PATH, defaultEditor).toString();
+	QString editorPath = QSettings().value(KEY_EDITOR_PATH, defaultEditor).toString();
 	if (FileSystemHelpers::resolvePath(editorPath).isEmpty())
 	{
 		if (QMessageBox::question(this, tr("Editor not configured"), tr("No editor program has been configured (or the specified path doesn't exist). Do you want to specify the editor now?")) == QMessageBox::Yes)
@@ -693,7 +693,7 @@ void CMainWindow::editFile()
 			if (editorPath.isEmpty())
 				return;
 
-			CSettings().setValue(KEY_EDITOR_PATH, editorPath);
+			QSettings().setValue(KEY_EDITOR_PATH, editorPath);
 		}
 		else
 			return;
@@ -703,7 +703,7 @@ void CMainWindow::editFile()
 	if (!currentFile.isEmpty())
 	{
 #ifdef __APPLE__
-		QString program = CSettings().value(KEY_EDITOR_PATH).toString();
+		QString program = QSettings().value(KEY_EDITOR_PATH).toString();
 		bool started = false;
 		if (program.endsWith(".app"))
 			started = QProcess::startDetached("open", QStringList{"-a", program, currentFile});
@@ -786,7 +786,7 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 		return false;
 
 	OsShell::executeShellCommand(commandLineText, _currentFileList->currentDirPathNative());
-	QMetaObject::invokeMethod(this, [this]() { CSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }, Qt::QueuedConnection); // Saving the list AFTER the combobox actually accepts the newly added item
+	QMetaObject::invokeMethod(this, [this]() { QSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }, Qt::QueuedConnection); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
 	return true;
@@ -860,7 +860,7 @@ void CMainWindow::findFiles()
 
 void CMainWindow::showHiddenFiles()
 {
-	CSettings().setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, ui->action_Show_hidden_files->isChecked());
+	QSettings().setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, ui->action_Show_hidden_files->isChecked());
 	_controller->refreshPanelContents(Panel::LeftPanel);
 	_controller->refreshPanelContents(Panel::RightPanel);
 }
@@ -934,7 +934,7 @@ void CMainWindow::compareFolders()
 
 void CMainWindow::checkForUpdates()
 {
-	CSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
+	QSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
 	CUpdaterDialog(this, REPO_NAME, VERSION_STRING).exec();
 }
 
@@ -983,7 +983,7 @@ void CMainWindow::settingsChanged()
 	ui->leftPanel->onSettingsChanged();
 	ui->rightPanel->onSettingsChanged();
 
-	qApp->setStyleSheet(CSettings().value(KEY_INTERFACE_STYLE_SHEET).toString());
+	qApp->setStyleSheet(QSettings().value(KEY_INTERFACE_STYLE_SHEET).toString());
 }
 
 void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)
@@ -1027,7 +1027,7 @@ void CMainWindow::initCore()
 	ui->leftPanel->init(_controller, _shellOperations);
 	ui->rightPanel->init(_controller, _shellOperations);
 
-	_controller->activePanelChanged((Panel)CSettings().value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt());
+	_controller->activePanelChanged((Panel)QSettings().value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt());
 
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
 

@@ -3,7 +3,6 @@
 #include "cshelloperationrunner.h"
 #include "pluginengine/cpluginengine.h"
 #include "settings.h"
-#include "settings/csettings.h"
 #include "system/win_utils.hpp"
 #include "logger/cloggerinmemory.h"
 
@@ -12,6 +11,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QFontDatabase>
 #include <QImageReader>
+#include <QSettings>
 #include <QStyleHints>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
 	// Init style and color scheme, if specified
 	{
-		CSettings s;
+		QSettings s;
 #if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
 		const int colorScheme = s.value(KEY_INTERFACE_COLOR_SCHEME, -1).toInt();
 		if (colorScheme != -1)
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 		QApplication::setFont(font);
 	}
 
-	if (const auto styleSheet = CSettings{}.value(KEY_INTERFACE_STYLE_SHEET).toString(); !styleSheet.isEmpty())
+	if (const auto styleSheet = QSettings{}.value(KEY_INTERFACE_STYLE_SHEET).toString(); !styleSheet.isEmpty())
 		qApp->setStyleSheet(styleSheet);
 
 	CShellOperationRunner shellOperations;

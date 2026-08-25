@@ -11,7 +11,6 @@
 #include "fileoperationresultcode.h"
 #include "fileoperations/inlinerename.h"
 #include "progressdialogs/progressdialoghelpers.h"
-#include "settings/csettings.h"
 #include "settings.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "widgets/clineedit.h"
@@ -39,6 +38,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QSettings>
 #include <QShortcut>
 #include <QTabBar>
 #include <QToolTip>
@@ -593,7 +593,7 @@ void CPanelWidget::fillFromList(FileListRefreshCause operation)
 
 	// Setting the cursor position as appropriate. Stepping up is not a special case here: setPath() has already
 	// recorded the folder we came from as the current item for the folder we arrived at.
-	if (operation != refreshCauseForwardNavigation || CSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
+	if (operation != refreshCauseForwardNavigation || QSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
 		const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPathPosix());
 		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo, true);
@@ -1434,7 +1434,7 @@ void CPanelWidget::copySelectedItemsPathsToClipboard() const
 void CPanelWidget::onSettingsChanged()
 {
 	QFont font;
-	if (font.fromString(CSettings{}.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
+	if (font.fromString(QSettings{}.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
 		ui->_list->setFont(font);
 }
 

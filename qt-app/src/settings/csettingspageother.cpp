@@ -2,9 +2,12 @@
 #include "ui_csettingspageother.h"
 
 #include "settings.h"
-#include "settings/csettings.h"
 #include "ccontroller.h"
 #include "shell/cshell.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QSettings>
+RESTORE_COMPILER_WARNINGS
 
 CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 	CSettingsPage(parent),
@@ -12,7 +15,7 @@ CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	CSettings s;
+	QSettings s;
 
 	const auto shellCommandAndArgs = OsShell::shellExecutable();
 	QString shellCommandLine = shellCommandAndArgs.first;
@@ -30,7 +33,7 @@ CSettingsPageOther::~CSettingsPageOther()
 
 void CSettingsPageOther::acceptSettings()
 {
-	CSettings s;
+	QSettings s;
 	s.setValue(KEY_OTHER_SHELL_COMMAND_NAME, ui->_shellCommandName->text());
 	s.setValue(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, ui->_cbCheckForUpdatesAutomatically->isChecked());
 }

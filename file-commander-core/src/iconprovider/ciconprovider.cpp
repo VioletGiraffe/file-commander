@@ -1,11 +1,11 @@
 #include "ciconprovider.h"
 #include "ciconproviderimpl.h"
 
-#include "settings/csettings.h"
 #include "settings.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QIcon>
+#include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
 // guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
@@ -29,7 +29,7 @@ void CIconProvider::onSettingsChanged()
 	if (!_provider)
 		return;
 
-	const bool showOverlayIcons = CSettings{}.value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
+	const bool showOverlayIcons = QSettings{}.value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool();
 	_provider->setShowOverlayIcons(showOverlayIcons);
 }
 

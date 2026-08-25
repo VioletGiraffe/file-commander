@@ -1,5 +1,4 @@
 #include "cpanel.h"
-#include "settings/csettings.h"
 #include "settings.h"
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
@@ -11,6 +10,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QDir>
+#include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm> // std::min
@@ -373,7 +373,7 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 		}
 
 		FileListHashMap items;
-		const bool showHiddenFiles = CSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+		const bool showHiddenFiles = QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 
 		if (request.displayMode == AllObjectsMode)
 		{

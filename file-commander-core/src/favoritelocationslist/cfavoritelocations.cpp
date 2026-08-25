@@ -2,10 +2,13 @@
 #include "settings.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
-#include "settings/csettings.h"
 
 #include "assert/advanced_assert.h"
 #include "utility/memory_cast.hpp"
+
+DISABLE_COMPILER_WARNINGS
+#include <QSettings>
+RESTORE_COMPILER_WARNINGS
 
 #include <stack>
 #include <functional>
@@ -63,7 +66,7 @@ std::vector<CLocationsCollection>& CFavoriteLocations::locations()
 
 void CFavoriteLocations::load()
 {
-	const QByteArray data = CSettings().value(_settingsKey).toByteArray();
+	const QByteArray data = QSettings().value(_settingsKey).toByteArray();
 	if (data.isEmpty())
 		return;
 
@@ -128,5 +131,5 @@ void CFavoriteLocations::save()
 	QByteArray data;
 	for (const CLocationsCollection& item : _items)
 		serialize(data, item, NoMarker);
-	CSettings().setValue(KEY_FAVORITES, data);
+	QSettings().setValue(KEY_FAVORITES, data);
 }

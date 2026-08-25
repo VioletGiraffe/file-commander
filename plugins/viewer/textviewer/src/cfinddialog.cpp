@@ -1,12 +1,12 @@
 #include "cfinddialog.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
-#include "settings/csettings.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfinddialog.h"
 
 #include <QLineEdit>
+#include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
 #define SETTINGS_SEARCH_EXPRESSION_LIST QSL("Expressions")
@@ -35,7 +35,7 @@ CFindDialog::CFindDialog(QWidget *parent, QString settingsRootCategory) :
 
 	if (!_settingsRootCategory.isEmpty())
 	{
-		CSettings s;
+		QSettings s;
 		ui->_cbSearchBackwards->setChecked(s.value(_settingsRootCategory + SETTINGS_BACKWARDS).toBool());
 		ui->_cbCaseSensitive->setChecked(s.value(_settingsRootCategory + SETTINGS_CASE_SENSITIVE).toBool());
 		ui->_cbRegex->setChecked(s.value(_settingsRootCategory + SETTINGS_REGEX).toBool());
@@ -86,7 +86,7 @@ void CFindDialog::showEvent(QShowEvent * e)
 	ui->_searchText->lineEdit()->setFocus();
 
 	if (!_settingsRootCategory.isEmpty())
-		restoreGeometry(CSettings().value(_settingsRootCategory + SETTINGS_GEOMETRY).toByteArray());
+		restoreGeometry(QSettings().value(_settingsRootCategory + SETTINGS_GEOMETRY).toByteArray());
 
 	QDialog::showEvent(e);
 }
@@ -94,14 +94,14 @@ void CFindDialog::showEvent(QShowEvent * e)
 void CFindDialog::closeEvent(QCloseEvent * e)
 {
 	if (!_settingsRootCategory.isEmpty())
-		CSettings().setValue(_settingsRootCategory + SETTINGS_GEOMETRY, saveGeometry());
+		QSettings().setValue(_settingsRootCategory + SETTINGS_GEOMETRY, saveGeometry());
 
 	QDialog::closeEvent(e);
 }
 
 void CFindDialog::saveSearchSettings() const
 {
-	CSettings s;
+	QSettings s;
 	s.setValue(_settingsRootCategory + SETTINGS_BACKWARDS, searchBackwards());
 	s.setValue(_settingsRootCategory + SETTINGS_CASE_SENSITIVE, caseSensitive());
 	s.setValue(_settingsRootCategory + SETTINGS_REGEX, regex());
