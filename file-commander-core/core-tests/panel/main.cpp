@@ -1,7 +1,5 @@
 #define CATCH_CONFIG_RUNNER
 
-#include "settings/csettings.h"
-
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -33,10 +31,10 @@ int main(int argc, char* argv[])
 	// An ini file of our own: the panel reads KEY_INTERFACE_SHOW_HIDDEN_FILES on every listing, and that must
 	// neither come from nor land in the user's real File Commander settings.
 	QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, QDir::tempPath() % QStringLiteral("/file-commander-panel-test-settings"));
-	CSettings::setFormat(QSettings::IniFormat);
-	CSettings::setOrganizationName(QStringLiteral("file-commander-tests"));
-	CSettings::setApplicationName(QStringLiteral("panel_test"));
-	CSettings{}.clear();
+	QSettings::setDefaultFormat(QSettings::IniFormat);
+	QCoreApplication::setOrganizationName(QStringLiteral("file-commander-tests"));
+	QCoreApplication::setApplicationName(QStringLiteral("panel_test"));
+	QSettings{}.clear();
 
 	return Catch::Session().run(argc, argv);
 }
