@@ -36,8 +36,10 @@ protected:
 	void resizeEvent(QResizeEvent* event) override;
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
+	void mouseReleaseEvent(QMouseEvent* event) override;
 	void mouseDoubleClickEvent(QMouseEvent* event) override;
 	void keyPressEvent(QKeyEvent* event) override;
+	void timerEvent(QTimerEvent* event) override;
 	bool event(QEvent* event) override;
 	void updateCursorShape(const QPoint& pos);
 
@@ -89,6 +91,10 @@ private:
 	void copySelection();
 	void selectAll();
 	[[nodiscard]] bool isSelected(qsizetype offset) const;
+	void extendSelectionToDragPos();
+	void autoScroll();
+	void stopAutoScroll();
+	void endDrag();
 	void updateFontMetrics();
 	void contentChanged();
 	[[nodiscard]] qsizetype searchStartOffset(bool backward, qsizetype haystackSize) const;
@@ -105,7 +111,8 @@ private:
 	[[nodiscard]] LineLayout calculateHexLineLayout(int bytesPerLine, int nDigits) const;
 	void drawHexLine(QPainter& painter, qsizetype offset, int y, const QFontMetrics& fm);
 	[[nodiscard]] Region regionAtPos(const QPoint& pos) const;
-	[[nodiscard]] qsizetype hexPosToOffset(const QPoint& pos) const;
+	// Byte at pos read within the given column, so a drag stays in the column it started in. An x outside that column clamps to the line's first or last byte.
+	[[nodiscard]] qsizetype hexPosToOffset(const QPoint& pos, Region region) const;
 
 	// Text mode methods
 	void drawTextLine(QPainter& painter, qsizetype lineIndex, int y, const QFontMetrics& fm);
@@ -156,6 +163,9 @@ private:
 	QChar _invisibleMarker;                     // Text mode, for the non-printables above U+00FF
 	QFontMetrics _fontMetrics;
 	Selection _selection;
+	QPoint _dragPos;          // Last position of a drag in progress, in viewport coordinates
+	int _autoScrollTimer = 0; // startTimer id while a drag is past a viewport edge; 0 otherwise
+	bool _dragging = false;   // Set only by a press that landed on content, so a drag cannot resume an older selection
 	bool _geometrySettled = false; // The line index needs the real viewport width, which only exists after the first resize
 
 	// Hex layout positions (calculated in calculateHexLayout)

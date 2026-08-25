@@ -17,6 +17,7 @@
 #include <limits>
 
 static constexpr char hexChars[] = "0123456789ABCDEF";
+static constexpr int autoScrollIntervalMs = 50;
 
 namespace Layout {
 	// Layout constants
@@ -206,6 +207,8 @@ void CLightningFastViewerWidget::setTabWidth(int columns)
 
 void CLightningFastViewerWidget::contentChanged()
 {
+	endDrag(); // The selection a drag was building goes away with the content
+
 	// Keyboard navigation never sets a region, so copying has to find a usable one from the start
 	_selection = Selection{ .region = (_mode == HEX) ? REGION_HEX : REGION_ASCII };
 	_lineOffsets.clear();
@@ -283,11 +286,14 @@ void CLightningFastViewerWidget::mousePressEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		const qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos()) : textPosToOffset(event->pos());
+		const Region region = (_mode == HEX) ? regionAtPos(event->pos()) : REGION_ASCII;
+		const qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos(), region) : textPosToOffset(event->pos());
 		if (offset >= 0)
 		{
 			// A click selects the cell, and anchors the drag that may follow
-			_selection.selectRange(offset, 1, (_mode == HEX) ? regionAtPos(event->pos()) : REGION_ASCII);
+			_selection.selectRange(offset, 1, region);
+			_dragPos = event->pos();
+			_dragging = true;
 			viewport()->update();
 		}
 	}
@@ -297,26 +303,98 @@ void CLightningFastViewerWidget::mouseMoveEvent(QMouseEvent* event)
 {
 	updateCursorShape(event->pos());
 
-	if (event->buttons() & Qt::LeftButton && _selection.hasSelection())
-	{
-		const qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos()) : textPosToOffset(event->pos());
-		if (offset >= 0 && offset != _selection.cursor)
-		{
-			_selection.extendTo(offset);
-			viewport()->update();
+	if (!_dragging)
+		return;
 
-			// Auto-scroll when dragging near edges
-			QRect viewRect = viewport()->rect();
-			if (event->pos().y() < 0)
-			{
-				verticalScrollBar()->setValue(verticalScrollBar()->value() - 1);
-			}
-			else if (event->pos().y() > viewRect.height())
-			{
-				verticalScrollBar()->setValue(verticalScrollBar()->value() + 1);
-			}
-		}
+	if (!(event->buttons() & Qt::LeftButton)) // The grab can end without a release event, e.g. when a modal dialog opens over the drag
+	{
+		endDrag();
+		return;
 	}
+
+	_dragPos = event->pos();
+	extendSelectionToDragPos();
+
+	// A stationary pointer produces no further move events, so scrolling past an edge has to come from a timer
+	if (viewport()->rect().contains(_dragPos))
+		stopAutoScroll();
+	else if (_autoScrollTimer == 0)
+		_autoScrollTimer = startTimer(autoScrollIntervalMs);
+}
+
+void CLightningFastViewerWidget::mouseReleaseEvent(QMouseEvent* event)
+{
+	if (event->button() == Qt::LeftButton)
+		endDrag();
+}
+
+void CLightningFastViewerWidget::timerEvent(QTimerEvent* event)
+{
+	if (event->timerId() != _autoScrollTimer)
+	{
+		QAbstractScrollArea::timerEvent(event);
+		return;
+	}
+
+	// A stationary pointer sends no move event, so a grab lost without a release would scroll on unchecked
+	if (!(QApplication::mouseButtons() & Qt::LeftButton))
+	{
+		endDrag();
+		return;
+	}
+
+	autoScroll();
+	extendSelectionToDragPos();
+}
+
+void CLightningFastViewerWidget::extendSelectionToDragPos()
+{
+	// The hit test needs a position inside the viewport: clamping is what makes a drag past an edge reach the row or column at that edge
+	const QRect rect = viewport()->rect();
+	const QPoint pos{ qBound(rect.left(), _dragPos.x(), rect.right()), qBound(rect.top(), _dragPos.y(), rect.bottom()) };
+
+	const qsizetype offset = (_mode == HEX) ? hexPosToOffset(pos, _selection.region) : textPosToOffset(pos);
+	if (offset < 0 || offset == _selection.cursor)
+		return;
+
+	_selection.extendTo(offset);
+	viewport()->update();
+}
+
+// Cells to scroll per tick: none while pos is within [min, max], one just outside it, more the further out, never more than a page
+static int autoScrollCells(int pos, int min, int max, int cellSize, int cellsPerPage)
+{
+	if (pos < min)
+		return -qMin(1 + (min - pos) / cellSize, cellsPerPage);
+	if (pos > max)
+		return qMin(1 + (pos - max) / cellSize, cellsPerPage);
+
+	return 0;
+}
+
+void CLightningFastViewerWidget::autoScroll()
+{
+	const QRect rect = viewport()->rect();
+
+	verticalScrollBar()->setValue(verticalScrollBar()->value()
+		+ autoScrollCells(_dragPos.y(), rect.top(), rect.bottom(), _lineHeight, visibleLines()));
+	horizontalScrollBar()->setValue(horizontalScrollBar()->value()
+		+ autoScrollCells(_dragPos.x(), rect.left(), rect.right(), _charWidth, rect.width() / _charWidth) * _charWidth);
+}
+
+void CLightningFastViewerWidget::stopAutoScroll()
+{
+	if (_autoScrollTimer == 0)
+		return;
+
+	killTimer(_autoScrollTimer);
+	_autoScrollTimer = 0;
+}
+
+void CLightningFastViewerWidget::endDrag()
+{
+	_dragging = false;
+	stopAutoScroll();
 }
 
 void CLightningFastViewerWidget::mouseDoubleClickEvent(QMouseEvent* event)
@@ -326,11 +404,14 @@ void CLightningFastViewerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 		if (_mode == HEX)
 		{
 			// Select the entire line on double-click
-			const qsizetype offset = hexPosToOffset(event->pos());
+			const Region region = regionAtPos(event->pos());
+			const qsizetype offset = hexPosToOffset(event->pos(), region);
 			if (offset >= 0 && offset < _data.size())
 			{
 				const qsizetype lineStart = (offset / _bytesPerLine) * _bytesPerLine;
-				_selection.selectRange(lineStart, qMin(_bytesPerLine, _data.size() - lineStart), regionAtPos(event->pos()));
+				_selection.selectRange(lineStart, qMin(_bytesPerLine, _data.size() - lineStart), region);
+				_dragPos = event->pos();
+				_dragging = true;
 				viewport()->update();
 			}
 		}
@@ -351,6 +432,8 @@ void CLightningFastViewerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 					++end;
 
 				_selection.selectRange(start, end - start, REGION_ASCII);
+				_dragPos = event->pos();
+				_dragging = true;
 				viewport()->update();
 			}
 		}
@@ -742,7 +825,7 @@ CLightningFastViewerWidget::Region CLightningFastViewerWidget::regionAtPos(const
 	return REGION_NONE;
 }
 
-qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos) const
+qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos, Region region) const
 {
 	if (_data.isEmpty())
 		return -1;
@@ -752,7 +835,6 @@ qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos) const
 		return -1;
 
 	const int x = pos.x() + horizontalScrollBar()->value();
-	Region region = regionAtPos(pos);
 
 	qsizetype lineOffset = line * _bytesPerLine;
 	qsizetype byteInLine = 0;
