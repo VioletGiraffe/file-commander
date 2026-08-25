@@ -28,6 +28,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 #include <QStyleHints>
 #include <QTextCodec>
+#include <QTextCursor>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -401,7 +402,12 @@ void CTextViewerWindow::find()
 	if (_textView)
 		_textView->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
 	else if (_lightningViewer)
-		_lightningViewer->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
+	{
+		if (_findDialog->searchBackwards())
+			_lightningViewer->moveToEnd();
+		else
+			_lightningViewer->moveToStart();
+	}
 
 	findNext();
 }
@@ -422,7 +428,7 @@ void CTextViewerWindow::findNext()
 	if (_findDialog->wholeWords())
 		flags |= QTextDocument::FindWholeWords;
 
-	int initialPosition = 0;
+	qsizetype initialPosition = 0;
 	if (_textView)
 		initialPosition = _textView->textCursor().isNull() ? -1 : _textView->textCursor().position();
 	else

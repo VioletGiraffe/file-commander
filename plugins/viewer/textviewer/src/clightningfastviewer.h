@@ -4,7 +4,6 @@
 #include <QByteArray>
 #include <QFontMetrics>
 #include <QRegularExpression>
-#include <QTextCursor>
 #include <QTextDocument>
 
 #include <array>
@@ -14,8 +13,6 @@
 class CLightningFastViewerWidget final : public QAbstractScrollArea
 {
 public:
-	enum Mode { HEX, TEXT };
-
 	explicit CLightningFastViewerWidget(QWidget* parent = nullptr);
 
 	// The family this widget sets on itself, exposed so sibling views can match it. A font set by the caller afterwards still wins.
@@ -28,8 +25,10 @@ public:
 
 	bool find(const QString& exp, QTextDocument::FindFlags options = {});
 	bool find(const QRegularExpression& exp, QTextDocument::FindFlags options = {});
-	void moveCursor(QTextCursor::MoveOperation operation, QTextCursor::MoveMode mode = QTextCursor::MoveAnchor);
-	int selectionStart() const;
+	void moveToStart();
+	void moveToEnd();
+	// Start of the selection, or -1 when nothing is selected
+	[[nodiscard]] qsizetype selectionStart() const;
 
 protected:
 	void paintEvent(QPaintEvent*) override;
@@ -41,18 +40,19 @@ protected:
 	void keyPressEvent(QKeyEvent* event) override;
 	void timerEvent(QTimerEvent* event) override;
 	bool event(QEvent* event) override;
-	void updateCursorShape(const QPoint& pos);
+	void contextMenuEvent(QContextMenuEvent* event) override;
 
 private:
-	enum Region { REGION_OFFSET, REGION_HEX, REGION_ASCII, REGION_NONE };
+	enum class Mode { Hex, Text };
+	enum class Region { Offset, Hex, Ascii, None };
 
-	// Both ends are character (TEXT) or byte (HEX) indices. Without an anchor there is no selection, only a cursor.
+	// Both ends are character indices in text mode and byte indices in hex mode. Without an anchor there is no selection, only a cursor.
 	struct Selection
 	{
 		qsizetype cursor = -1; // Moving end, and the cell the cursor block paints on; -1 until placed
 		qsizetype anchor = -1; // Fixed end; -1 when nothing is selected
 		qsizetype desiredColumn = -1; // Display column vertical movement returns to; every other cursor change drops it
-		Region region = REGION_NONE;
+		Region region = Region::None;
 
 		[[nodiscard]] bool hasCursor() const { return cursor >= 0; }
 		[[nodiscard]] bool hasSelection() const { return anchor >= 0; }
@@ -88,13 +88,16 @@ private:
 	[[nodiscard]] int visibleLines() const;
 	void updateLayoutAndScrollBars();
 	void ensureVisible(qsizetype offset);
-	void copySelection();
+	// Renders the selected bytes as the given column shows them. Text mode has only its own text, so it ignores the format.
+	void copySelection(Region format);
 	void selectAll();
 	[[nodiscard]] bool isSelected(qsizetype offset) const;
 	void extendSelectionToDragPos();
 	void autoScroll();
 	void stopAutoScroll();
 	void endDrag();
+	void updateCursorShape(const QPoint& pos);
+	void moveCursorTo(qsizetype offset);
 	void updateFontMetrics();
 	void contentChanged();
 	[[nodiscard]] qsizetype searchStartOffset(bool backward, qsizetype haystackSize) const;
@@ -108,18 +111,17 @@ private:
 
 	struct LineLayout {
 		int hexStart = 0;
-		int hexWidth = 0;
 		int asciiStart = 0;
-		int asciiWidth = 0;
+		int totalWidth = 0;
 	};
-	[[nodiscard]] LineLayout calculateHexLineLayout(int bytesPerLine, int nDigits) const;
-	void drawHexLine(QPainter& painter, qsizetype offset, int y, const QFontMetrics& fm);
+	[[nodiscard]] LineLayout calculateHexLineLayout(int bytesPerLine) const;
+	void drawHexLine(QPainter& painter, qsizetype offset, int y);
 	[[nodiscard]] Region regionAtPos(const QPoint& pos) const;
 	// Byte at pos read within the given column, so a drag stays in the column it started in. An x outside that column clamps to the line's first or last byte.
 	[[nodiscard]] qsizetype hexPosToOffset(const QPoint& pos, Region region) const;
 
 	// Text mode methods
-	void drawTextLine(QPainter& painter, qsizetype lineIndex, int y, const QFontMetrics& fm);
+	void drawTextLine(QPainter& painter, qsizetype lineIndex, int y);
 	[[nodiscard]] qsizetype textPosToOffset(const QPoint& pos) const;
 
 	// Offset in the line whose columns cover targetColumn, or the line's last offset when the column is past its end
@@ -139,7 +141,7 @@ private:
 	[[nodiscard]] qsizetype findLineContainingOffset(qsizetype offset) const;
 
 private:
-	Mode _mode = HEX;
+	Mode _mode = Mode::Hex;
 
 	// Hex mode data
 	QByteArray _data;
@@ -174,7 +176,7 @@ private:
 	bool _dragging = false;   // Set only by a press that landed on content, so a drag cannot resume an older selection
 	bool _geometrySettled = false; // The line index needs the real viewport width, which only exists after the first resize
 
-	// Hex layout positions (calculated in calculateHexLayout)
+	// Hex layout positions
 	int _hexStart = 0;
 	int _asciiStart = 0;
 	int _nDigits = 0; // Cached number of digits for offset display

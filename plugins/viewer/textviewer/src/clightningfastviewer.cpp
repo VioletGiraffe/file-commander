@@ -8,6 +8,7 @@
 #include <QFontInfo>
 #include <QFontMetrics>
 #include <QKeyEvent>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QRegularExpression>
@@ -20,7 +21,6 @@ static constexpr char hexChars[] = "0123456789ABCDEF";
 static constexpr int autoScrollIntervalMs = 50;
 
 namespace Layout {
-	// Layout constants
 	static constexpr int MIN_OFFSET_DIGITS = 4;
 	static constexpr int OFFSET_SUFFIX_CHARS = 2; // ": "
 	static constexpr int HEX_CHARS_PER_BYTE = 3; // "XX "
@@ -165,7 +165,7 @@ CLightningFastViewerWidget::CLightningFastViewerWidget(QWidget* parent)
 
 void CLightningFastViewerWidget::setData(const QByteArray& bytes)
 {
-	_mode = HEX;
+	_mode = Mode::Hex;
 	_data = bytes;
 	_text.clear();
 
@@ -174,7 +174,7 @@ void CLightningFastViewerWidget::setData(const QByteArray& bytes)
 
 void CLightningFastViewerWidget::setText(const QString& text)
 {
-	_mode = TEXT;
+	_mode = Mode::Text;
 	_text = text;
 	_data.clear();
 
@@ -210,7 +210,7 @@ void CLightningFastViewerWidget::contentChanged()
 	endDrag(); // The selection a drag was building goes away with the content
 
 	// Keyboard navigation never sets a region, so copying has to find a usable one from the start
-	_selection = Selection{ .region = (_mode == HEX) ? REGION_HEX : REGION_ASCII };
+	_selection = Selection{ .region = (_mode == Mode::Hex) ? Region::Hex : Region::Ascii };
 	_hexSearchText.clear();
 	_foldedData.clear();
 	_lineOffsets.clear();
@@ -233,18 +233,17 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 	const qsizetype firstLine = verticalScrollBar()->value();
 	const qsizetype lastLine = qMin(firstLine + visibleLines() + 2, totalLines());
 
-	// Draw lines based on mode
 	int y = 0;
 	for (qsizetype line = firstLine; line < lastLine; ++line)
 	{
-		if (_mode == HEX)
+		if (_mode == Mode::Hex)
 		{
 			const qsizetype offset = line * _bytesPerLine;
-			drawHexLine(painter, offset, y, _fontMetrics);
+			drawHexLine(painter, offset, y);
 		}
 		else
 		{
-			drawTextLine(painter, line, y, _fontMetrics);
+			drawTextLine(painter, line, y);
 		}
 		y += _lineHeight;
 	}
@@ -272,9 +271,7 @@ bool CLightningFastViewerWidget::event(QEvent* event)
 	}
 	case QEvent::Show:
 	{
-		QFontInfo fi{ font() };
-		assert_r(fi.fixedPitch());
-		assert_r(_invisibleMarker != QChar{});
+		assert_r(QFontInfo{ font() }.fixedPitch());
 		break;
 	}
 	default:
@@ -288,8 +285,8 @@ void CLightningFastViewerWidget::mousePressEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		const Region region = (_mode == HEX) ? regionAtPos(event->pos()) : REGION_ASCII;
-		const qsizetype offset = (_mode == HEX) ? hexPosToOffset(event->pos(), region) : textPosToOffset(event->pos());
+		const Region region = (_mode == Mode::Hex) ? regionAtPos(event->pos()) : Region::Ascii;
+		const qsizetype offset = (_mode == Mode::Hex) ? hexPosToOffset(event->pos(), region) : textPosToOffset(event->pos());
 		if (offset >= 0)
 		{
 			// A click selects the cell, and anchors the drag that may follow
@@ -330,6 +327,29 @@ void CLightningFastViewerWidget::mouseReleaseEvent(QMouseEvent* event)
 		endDrag();
 }
 
+void CLightningFastViewerWidget::contextMenuEvent(QContextMenuEvent* event)
+{
+	QMenu menu(this);
+
+	const auto addCopyAction = [&](const QString& text, Region format) {
+		menu.addAction(text, this, [this, format] { copySelection(format); })->setEnabled(_selection.hasSelection());
+	};
+
+	// Both columns show the same bytes, so either rendering is worth offering whichever one the selection was made in
+	if (_mode == Mode::Hex)
+	{
+		addCopyAction(tr("Copy as hex"), Region::Hex);
+		addCopyAction(tr("Copy as text"), Region::Ascii);
+	}
+	else
+		addCopyAction(tr("Copy"), Region::Ascii);
+
+	menu.addSeparator();
+	menu.addAction(tr("Select all"), this, [this] { selectAll(); });
+
+	menu.exec(event->globalPos());
+}
+
 void CLightningFastViewerWidget::timerEvent(QTimerEvent* event)
 {
 	if (event->timerId() != _autoScrollTimer)
@@ -355,7 +375,7 @@ void CLightningFastViewerWidget::extendSelectionToDragPos()
 	const QRect rect = viewport()->rect();
 	const QPoint pos{ qBound(rect.left(), _dragPos.x(), rect.right()), qBound(rect.top(), _dragPos.y(), rect.bottom()) };
 
-	const qsizetype offset = (_mode == HEX) ? hexPosToOffset(pos, _selection.region) : textPosToOffset(pos);
+	const qsizetype offset = (_mode == Mode::Hex) ? hexPosToOffset(pos, _selection.region) : textPosToOffset(pos);
 	if (offset < 0 || offset == _selection.cursor)
 		return;
 
@@ -403,9 +423,8 @@ void CLightningFastViewerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
-		if (_mode == HEX)
+		if (_mode == Mode::Hex)
 		{
-			// Select the entire line on double-click
 			const Region region = regionAtPos(event->pos());
 			const qsizetype offset = hexPosToOffset(event->pos(), region);
 			if (offset >= 0 && offset < _data.size())
@@ -419,7 +438,6 @@ void CLightningFastViewerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 		}
 		else
 		{
-			// Select word in text mode
 			const qsizetype offset = textPosToOffset(event->pos());
 			if (offset >= 0 && offset < _text.size())
 			{
@@ -433,7 +451,7 @@ void CLightningFastViewerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 				while (end < _text.size() && chars[end].isLetterOrNumber())
 					++end;
 
-				_selection.selectRange(start, end - start, REGION_ASCII);
+				_selection.selectRange(start, end - start, Region::Ascii);
 				_dragPos = event->pos();
 				_dragging = true;
 				viewport()->update();
@@ -449,7 +467,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 
 	if (ctrlPressed && event->key() == Qt::Key_C)
 	{
-		copySelection();
+		copySelection(_selection.region);
 		return;
 	}
 
@@ -459,8 +477,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		return;
 	}
 
-	// Navigation
-	const qsizetype maxOffset = (_mode == HEX) ? _data.size() - 1 : _text.size() - 1;
+	const qsizetype maxOffset = (_mode == Mode::Hex) ? _data.size() - 1 : _text.size() - 1;
 	if (maxOffset < 0) // Empty content
 	{
 		QAbstractScrollArea::keyPressEvent(event);
@@ -473,7 +490,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 
 	// Vertical movement follows the display column: a tab or a wide character makes it differ from the offset within the line
 	const auto verticalMove = [&](qsizetype lineDelta) {
-		if (_mode == HEX)
+		if (_mode == Mode::Hex)
 			return qBound(qsizetype(0), cursorPos + lineDelta * _bytesPerLine, maxOffset);
 
 		stickyColumn = _selection.desiredColumn;
@@ -505,7 +522,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		{
 			newPos = 0;
 		}
-		else if (_mode == HEX)
+		else if (_mode == Mode::Hex)
 		{
 			newPos = (cursorPos / _bytesPerLine) * _bytesPerLine;
 		}
@@ -524,7 +541,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 		{
 			newPos = maxOffset;
 		}
-		else if (_mode == HEX)
+		else if (_mode == Mode::Hex)
 		{
 			qsizetype lineStart = (cursorPos / _bytesPerLine) * _bytesPerLine;
 			newPos = qMin(maxOffset, lineStart + _bytesPerLine - 1);
@@ -558,7 +575,7 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 
 qsizetype CLightningFastViewerWidget::totalLines() const
 {
-	if (_mode == HEX)
+	if (_mode == Mode::Hex)
 	{
 		if (_data.isEmpty())
 			return 0;
@@ -587,14 +604,12 @@ void CLightningFastViewerWidget::calculateHexLayout()
 	const int viewportWidth = viewport()->width();
 	// The minimum stands even when it overflows the viewport: the horizontal scroll bar covers the excess
 	int optimalBytesPerLine = 4;
-	LineLayout optimalLayout = calculateHexLineLayout(optimalBytesPerLine, _nDigits);
+	LineLayout optimalLayout = calculateHexLineLayout(optimalBytesPerLine);
 
-	// Try increasingly larger values (multiples of 4) until we exceed viewport width
 	for (int candidate = 4; candidate <= 128; candidate += 4)
 	{
-		const auto layout = calculateHexLineLayout(candidate, _nDigits);
-		const int lineWidth = layout.asciiStart + layout.asciiWidth;
-		if (lineWidth >= viewportWidth)
+		const auto layout = calculateHexLineLayout(candidate);
+		if (layout.totalWidth >= viewportWidth)
 			break;
 
 		optimalBytesPerLine = candidate;
@@ -606,25 +621,25 @@ void CLightningFastViewerWidget::calculateHexLayout()
 	_asciiStart = optimalLayout.asciiStart;
 }
 
-CLightningFastViewerWidget::LineLayout CLightningFastViewerWidget::calculateHexLineLayout(int bytesPerLine, int nDigits) const
+CLightningFastViewerWidget::LineLayout CLightningFastViewerWidget::calculateHexLineLayout(int bytesPerLine) const
 {
-	LineLayout layout;
+	const int hexWidth = (bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE * ((bytesPerLine - 1) / Layout::HEX_BYTES_PER_GROUP)) * _charWidth;
 
-	layout.hexStart = Layout::LEFT_MARGIN_PIXELS + (nDigits + Layout::OFFSET_SUFFIX_CHARS) * _charWidth;
-	layout.hexWidth = (bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE * ((bytesPerLine - 1) / Layout::HEX_BYTES_PER_GROUP)) * _charWidth;
-	layout.asciiStart = layout.hexStart + layout.hexWidth + Layout::HEX_ASCII_SEPARATOR_CHARS * _charWidth;
-	layout.asciiWidth = bytesPerLine * _charWidth;
+	LineLayout layout;
+	layout.hexStart = Layout::LEFT_MARGIN_PIXELS + (_nDigits + Layout::OFFSET_SUFFIX_CHARS) * _charWidth;
+	layout.asciiStart = layout.hexStart + hexWidth + Layout::HEX_ASCII_SEPARATOR_CHARS * _charWidth;
+	layout.totalWidth = layout.asciiStart + bytesPerLine * _charWidth;
 
 	return layout;
 }
 
-void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset, int y, const QFontMetrics& fm)
+void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset, int y)
 {
 	if (offset >= _data.size())
 		return;
 
 	const int hScroll = horizontalScrollBar()->value();
-	const int baseline = y + fm.ascent();
+	const int baseline = y + _fontMetrics.ascent();
 	const QPalette& pal = palette();
 	const ByteColors colors = byteColors(pal);
 	const QColor selectedColor = pal.highlightedText().color();
@@ -699,14 +714,14 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 		[this](qsizetype, uint8_t byte) { _paintScratch += _hexGlyphs[byte]; });
 }
 
-void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineIndex, int y, const QFontMetrics& fm)
+void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineIndex, int y)
 {
 	const qsizetype lineStart = _lineOffsets[lineIndex];
 	const qsizetype lineEnd = _lineOffsets[lineIndex + 1];
 	const qsizetype textLength = _text.size();
 	const QChar* const chars = _text.constData(); // QString::operator[] is the detaching overload here
 
-	const int baseline = y + fm.ascent();
+	const int baseline = y + _fontMetrics.ascent();
 	const int originX = Layout::LEFT_MARGIN_PIXELS - horizontalScrollBar()->value();
 
 	const QColor normalColor = palette().color(QPalette::Text);
@@ -798,14 +813,14 @@ void CLightningFastViewerWidget::drawTextLine(QPainter& painter, qsizetype lineI
 
 void CLightningFastViewerWidget::updateLayoutAndScrollBars()
 {
-	if (_mode == HEX)
+	if (_mode == Mode::Hex)
 		calculateHexLayout();
 
 	verticalScrollBar()->setRange(0, static_cast<int>(qMax<qsizetype>(0, totalLines() - visibleLines())));
 	verticalScrollBar()->setPageStep(visibleLines());
 	verticalScrollBar()->setSingleStep(1);
 
-	const qsizetype contentWidth = (_mode == HEX)
+	const qsizetype contentWidth = (_mode == Mode::Hex)
 		? _asciiStart + _charWidth * _bytesPerLine
 		: (_maxLineColumns + Layout::TEXT_HORIZONTAL_MARGIN_CHARS) * _charWidth;
 
@@ -819,12 +834,12 @@ CLightningFastViewerWidget::Region CLightningFastViewerWidget::regionAtPos(const
 	int x = pos.x() + horizontalScrollBar()->value();
 
 	if (x < _hexStart)
-		return REGION_OFFSET;
+		return Region::Offset;
 	if (x < _asciiStart - _charWidth * Layout::HEX_ASCII_SEPARATOR_CHARS)
-		return REGION_HEX;
+		return Region::Hex;
 	if (x >= _asciiStart)
-		return REGION_ASCII;
-	return REGION_NONE;
+		return Region::Ascii;
+	return Region::None;
 }
 
 qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos, Region region) const
@@ -841,7 +856,7 @@ qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos, Region r
 	qsizetype lineOffset = line * _bytesPerLine;
 	qsizetype byteInLine = 0;
 
-	if (region == REGION_HEX)
+	if (region == Region::Hex)
 	{
 		// Inverse of the column formula in drawHexLine
 		// The gap following a group counts inside that group's span: a click on it clamps to the group's last byte
@@ -850,7 +865,7 @@ qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos, Region r
 		const int byteInGroup = qMin((cell - group * Layout::HEX_GROUP_CHARS) / Layout::HEX_CHARS_PER_BYTE, Layout::HEX_BYTES_PER_GROUP - 1);
 		byteInLine = qBound(0, group * Layout::HEX_BYTES_PER_GROUP + byteInGroup, _bytesPerLine - 1);
 	}
-	else if (region == REGION_ASCII)
+	else if (region == Region::Ascii)
 	{
 		byteInLine = qBound(0, (x - _asciiStart) / _charWidth, _bytesPerLine - 1);
 	}
@@ -924,13 +939,12 @@ void CLightningFastViewerWidget::ensureVisible(qsizetype offset)
 {
 	qsizetype line = 0;
 
-	if (_mode == HEX)
+	if (_mode == Mode::Hex)
 	{
 		line = offset / _bytesPerLine;
 	}
 	else
 	{
-		// Find which line contains this offset
 		line = findLineContainingOffset(offset);
 		if (line < 0)
 			return;
@@ -938,11 +952,11 @@ void CLightningFastViewerWidget::ensureVisible(qsizetype offset)
 
 	const int firstVisibleLine = verticalScrollBar()->value();
 	if (line < firstVisibleLine)
-		verticalScrollBar()->setValue(line);
+		verticalScrollBar()->setValue(static_cast<int>(line));
 	else if (line >= firstVisibleLine + visibleLines())
-		verticalScrollBar()->setValue(line - visibleLines() + 1);
+		verticalScrollBar()->setValue(static_cast<int>(line - visibleLines() + 1));
 
-	if (_mode == HEX)
+	if (_mode == Mode::Hex)
 		return; // The hex layout is fitted to the viewport width, so there is nothing to scroll to horizontally
 
 	const int x = Layout::LEFT_MARGIN_PIXELS + static_cast<int>(columnOfOffset(line, offset)) * _charWidth;
@@ -953,7 +967,7 @@ void CLightningFastViewerWidget::ensureVisible(qsizetype offset)
 		horizontalScrollBar()->setValue(x + _charWidth - viewport()->width());
 }
 
-void CLightningFastViewerWidget::copySelection()
+void CLightningFastViewerWidget::copySelection(Region format)
 {
 	if (!_selection.hasSelection())
 		return;
@@ -961,7 +975,7 @@ void CLightningFastViewerWidget::copySelection()
 	const qsizetype start = _selection.first();
 	const qsizetype count = _selection.count();
 
-	if (_mode == TEXT)
+	if (_mode == Mode::Text)
 	{
 		QApplication::clipboard()->setText(_text.mid(start, count));
 		return;
@@ -969,7 +983,7 @@ void CLightningFastViewerWidget::copySelection()
 
 	const char* const bytes = _data.constData(); // QByteArray::operator[] is the detaching overload here
 
-	if (_selection.region == REGION_HEX)
+	if (format == Region::Hex)
 	{
 		QString hexStr;
 		hexStr.reserve(count * Layout::HEX_CHARS_PER_BYTE);
@@ -985,7 +999,7 @@ void CLightningFastViewerWidget::copySelection()
 	}
 	else
 	{
-		assert_r(_selection.region == REGION_ASCII); // contentChanged seeds a byte column, and nothing sets it back to REGION_NONE
+		assert_r(format == Region::Ascii); // The menu offers only the two byte columns, and Ctrl+C passes the seeded region
 
 		QString asciiStr;
 		asciiStr.reserve(count);
@@ -1000,11 +1014,11 @@ void CLightningFastViewerWidget::copySelection()
 
 void CLightningFastViewerWidget::selectAll()
 {
-	const qsizetype size = (_mode == HEX) ? _data.size() : _text.size();
+	const qsizetype size = (_mode == Mode::Hex) ? _data.size() : _text.size();
 	if (size == 0)
 		return;
 
-	_selection.selectRange(0, size, (_mode == HEX) ? REGION_HEX : REGION_ASCII);
+	_selection.selectRange(0, size, (_mode == Mode::Hex) ? Region::Hex : Region::Ascii);
 	viewport()->update();
 }
 
@@ -1064,7 +1078,7 @@ int CLightningFastViewerWidget::columnsForNonAsciiChar(QChar ch) const
 
 void CLightningFastViewerWidget::rebuildLineIndexIfNeeded()
 {
-	if (_mode != TEXT || !_geometrySettled)
+	if (_mode != Mode::Text || !_geometrySettled)
 		return;
 
 	const qsizetype maxColumns = _wordWrap
@@ -1199,17 +1213,21 @@ qsizetype CLightningFastViewerWidget::findLineContainingOffset(qsizetype offset)
 	return line - _lineOffsets.begin() - 1;
 }
 
-void CLightningFastViewerWidget::moveCursor(QTextCursor::MoveOperation operation, QTextCursor::MoveMode mode)
+void CLightningFastViewerWidget::moveToStart()
 {
-	const qsizetype dataSize = (_mode == HEX) ? _data.size() : _text.size();
-	const qsizetype targetOffset = (operation == QTextCursor::Start) ? 0 : qMax(qsizetype(0), dataSize - 1);
+	moveCursorTo(0);
+}
 
-	if (mode == QTextCursor::MoveAnchor)
-		_selection.placeCursor(targetOffset);
-	else
-		_selection.extendTo(targetOffset);
+void CLightningFastViewerWidget::moveToEnd()
+{
+	const qsizetype size = (_mode == Mode::Hex) ? _data.size() : _text.size();
+	moveCursorTo(qMax(qsizetype(0), size - 1));
+}
 
-	ensureVisible(targetOffset);
+void CLightningFastViewerWidget::moveCursorTo(qsizetype offset)
+{
+	_selection.placeCursor(offset);
+	ensureVisible(offset);
 	viewport()->update();
 }
 
@@ -1323,7 +1341,7 @@ qsizetype CLightningFastViewerWidget::searchStartOffset(bool backward, qsizetype
 
 const QString& CLightningFastViewerWidget::regexHaystack()
 {
-	if (_mode == TEXT)
+	if (_mode == Mode::Text)
 		return _text;
 
 	// Only a regex search needs the bytes as text, and it needs them all at once; literal search runs on _data itself
@@ -1356,7 +1374,7 @@ bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFla
 	};
 
 	// No byte can hold a character above U+00FF, and toLatin1 would fold one to '?' and match those bytes instead
-	if (_mode == HEX && std::any_of(exp.cbegin(), exp.cend(), [](QChar ch) { return ch.unicode() > 0xFF; }))
+	if (_mode == Mode::Hex && std::any_of(exp.cbegin(), exp.cend(), [](QChar ch) { return ch.unicode() > 0xFF; }))
 		return false;
 
 	// Hex mode searches the bytes themselves: converting the needle is free, converting the file would cost two bytes per byte on every call
@@ -1368,11 +1386,11 @@ bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFla
 			: search(foldedData(), foldedBytes(exp.toLatin1()), Qt::CaseSensitive);
 	};
 
-	const auto [matchPos, matchLen] = (_mode == TEXT) ? search(_text, exp, cs) : searchBytes();
+	const auto [matchPos, matchLen] = (_mode == Mode::Text) ? search(_text, exp, cs) : searchBytes();
 	if (matchPos < 0)
 		return false;
 
-	_selection.selectRange(matchPos, matchLen, REGION_ASCII);
+	_selection.selectRange(matchPos, matchLen, Region::Ascii);
 	ensureVisible(matchPos);
 	viewport()->update();
 	return true;
@@ -1386,7 +1404,6 @@ bool CLightningFastViewerWidget::find(const QRegularExpression& exp, QTextDocume
 	const bool backward = options & QTextDocument::FindBackward;
 	const bool wholeWords = options & QTextDocument::FindWholeWords;
 
-	// Enforce the case-sensitivity flag by overriding it in the regex
 	QRegularExpression rx = exp;
 	if (options & QTextDocument::FindCaseSensitively)
 		rx.setPatternOptions(rx.patternOptions() & ~QRegularExpression::CaseInsensitiveOption);
@@ -1404,27 +1421,27 @@ bool CLightningFastViewerWidget::find(const QRegularExpression& exp, QTextDocume
 	if (matchPos < 0)
 		return false;
 
-	_selection.selectRange(matchPos, matchLen, REGION_ASCII);
+	_selection.selectRange(matchPos, matchLen, Region::Ascii);
 	ensureVisible(matchPos);
 	viewport()->update();
 	return true;
 }
 
-int CLightningFastViewerWidget::selectionStart() const
+qsizetype CLightningFastViewerWidget::selectionStart() const
 {
-	return _selection.hasSelection() ? (int)_selection.first() : -1;
+	return _selection.hasSelection() ? _selection.first() : -1;
 }
 
 void CLightningFastViewerWidget::updateCursorShape(const QPoint& pos)
 {
 	bool overText = false;
 
-	if (_mode == HEX)
+	if (_mode == Mode::Hex)
 	{
 		Region region = regionAtPos(pos);
-		overText = (region == REGION_HEX || region == REGION_ASCII);
+		overText = (region == Region::Hex || region == Region::Ascii);
 	}
-	else // TEXT mode
+	else
 	{
 		qsizetype offset = textPosToOffset(pos);
 		overText = (offset >= 0);
