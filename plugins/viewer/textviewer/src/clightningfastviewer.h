@@ -49,6 +49,7 @@ private:
 	{
 		qsizetype cursor = -1; // Moving end, and the cell the cursor block paints on; -1 until placed
 		qsizetype anchor = -1; // Fixed end; -1 when nothing is selected
+		qsizetype desiredColumn = -1; // Display column vertical movement returns to; every other cursor change drops it
 		Region region = REGION_NONE;
 
 		[[nodiscard]] bool hasCursor() const { return cursor >= 0; }
@@ -59,13 +60,15 @@ private:
 		[[nodiscard]] qsizetype last() const { return qMax(anchor, cursor); } // Inclusive
 		[[nodiscard]] qsizetype count() const { return last() - first() + 1; }
 
-		void placeCursor(qsizetype offset) { cursor = offset; anchor = -1; }
+		// keepColumn defaults to dropping the sticky column: only a caller that moved the cursor vertically passes one on
+		void placeCursor(qsizetype offset, qsizetype keepColumn = -1) { cursor = offset; anchor = -1; desiredColumn = keepColumn; }
 
-		void extendTo(qsizetype offset)
+		void extendTo(qsizetype offset, qsizetype keepColumn = -1)
 		{
 			if (!hasSelection())
 				anchor = cursor >= 0 ? cursor : 0; // Extending from an unplaced cursor starts at the beginning
 			cursor = offset;
+			desiredColumn = keepColumn;
 		}
 
 		// A zero length places the cursor without selecting: an empty regex match must not select the character before it
@@ -74,11 +77,13 @@ private:
 			region = inRegion;
 			anchor = length > 0 ? from : -1;
 			cursor = length > 0 ? from + length - 1 : from;
+			desiredColumn = -1;
 		}
 	};
 
 	// Common methods
 	[[nodiscard]] qsizetype totalLines() const;
+	[[nodiscard]] int visibleLines() const;
 	void updateLayoutAndScrollBars();
 	void ensureVisible(qsizetype offset);
 	void copySelection();
@@ -105,6 +110,13 @@ private:
 	// Text mode methods
 	void drawTextLine(QPainter& painter, qsizetype lineIndex, int y, const QFontMetrics& fm);
 	[[nodiscard]] qsizetype textPosToOffset(const QPoint& pos) const;
+
+	// Offset in the line whose columns cover targetColumn, or the line's last offset when the column is past its end
+	[[nodiscard]] qsizetype offsetAtColumn(qsizetype line, qsizetype targetColumn) const;
+	// Display column at which 'offset' starts. 'line' must be the one containing it.
+	[[nodiscard]] qsizetype columnOfOffset(qsizetype line, qsizetype offset) const;
+	// Offset lineDelta lines away from the one holding fromOffset, at 'column'. Derives 'column' from fromOffset when it is negative on entry.
+	[[nodiscard]] qsizetype offsetLinesAway(qsizetype fromOffset, qsizetype lineDelta, qsizetype& column) const;
 
 	// Columns occupied by ch starting at the given column. 'next' is the following character, which resolves CR-LF and surrogate pairs.
 	[[nodiscard]] int columnsForChar(QChar ch, QChar next, qsizetype column) const;

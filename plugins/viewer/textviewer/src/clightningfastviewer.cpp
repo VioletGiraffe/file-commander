@@ -225,10 +225,8 @@ void CLightningFastViewerWidget::paintEvent(QPaintEvent*)
 	QPainter painter(viewport());
 	painter.setFont(font());
 
-	// Calculate which lines are visible
 	const qsizetype firstLine = verticalScrollBar()->value();
-	const qsizetype visibleLines = viewport()->height() / _lineHeight + 2;
-	const qsizetype lastLine = qMin(firstLine + visibleLines, totalLines());
+	const qsizetype lastLine = qMin(firstLine + visibleLines() + 2, totalLines());
 
 	// Draw lines based on mode
 	int y = 0;
@@ -386,54 +384,36 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 
 	const qsizetype cursorPos = _selection.hasCursor() ? _selection.cursor : 0;
 	qsizetype newPos = cursorPos;
+	qsizetype stickyColumn = -1; // Only a vertical move sets this, carrying the cursor's column to the line it lands on
+
+	// Vertical movement follows the display column: a tab or a wide character makes it differ from the offset within the line
+	const auto verticalMove = [&](qsizetype lineDelta) {
+		if (_mode == HEX)
+			return qBound(qsizetype(0), cursorPos + lineDelta * _bytesPerLine, maxOffset);
+
+		stickyColumn = _selection.desiredColumn;
+		return offsetLinesAway(cursorPos, lineDelta, stickyColumn);
+	};
 
 	switch (event->key())
 	{
 	case Qt::Key_Left:
-		newPos = qMax(0LL, cursorPos - 1);
+		newPos = qMax(qsizetype(0), cursorPos - 1);
 		break;
 	case Qt::Key_Right:
 		newPos = qMin(maxOffset, cursorPos + 1);
 		break;
 	case Qt::Key_Up:
-		if (_mode == HEX)
-		{
-			newPos = qMax(0LL, cursorPos - _bytesPerLine);
-		}
-		else
-		{
-			// Find previous line
-			const qsizetype currentLine = findLineContainingOffset(cursorPos);
-			if (currentLine > 0)
-			{
-				// Try to maintain column position
-				const qsizetype colInLine = cursorPos - _lineOffsets[currentLine];
-				newPos = qMin(_lineOffsets[currentLine - 1] + colInLine, _lineOffsets[currentLine] - 1);
-			}
-		}
+		newPos = verticalMove(-1);
 		break;
 	case Qt::Key_Down:
-		if (_mode == HEX)
-		{
-			newPos = qMin(maxOffset, cursorPos + _bytesPerLine);
-		}
-		else
-		{
-			// Find next line
-			const qsizetype currentLine = findLineContainingOffset(cursorPos);
-			if (currentLine >= 0 && currentLine + 1 < totalLines())
-			{
-				// Try to maintain column position
-				const qsizetype colInLine = cursorPos - _lineOffsets[currentLine];
-				newPos = qMin(_lineOffsets[currentLine + 1] + colInLine, _lineOffsets[currentLine + 2] - 1);
-			}
-		}
+		newPos = verticalMove(1);
 		break;
 	case Qt::Key_PageUp:
-		newPos = qMax(0LL, cursorPos - _bytesPerLine * (viewport()->height() / _lineHeight));
+		newPos = verticalMove(-visibleLines());
 		break;
 	case Qt::Key_PageDown:
-		newPos = qMin(maxOffset, cursorPos + _bytesPerLine * (viewport()->height() / _lineHeight));
+		newPos = verticalMove(visibleLines());
 		break;
 	case Qt::Key_Home:
 		if (ctrlPressed)
@@ -482,9 +462,9 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 	if (newPos != cursorPos)
 	{
 		if (shiftPressed)
-			_selection.extendTo(newPos);
+			_selection.extendTo(newPos, stickyColumn);
 		else
-			_selection.placeCursor(newPos);
+			_selection.placeCursor(newPos, stickyColumn);
 
 		ensureVisible(newPos);
 		viewport()->update();
@@ -503,6 +483,11 @@ qsizetype CLightningFastViewerWidget::totalLines() const
 	{
 		return _lineOffsets.empty() ? 0 : static_cast<qsizetype>(_lineOffsets.size()) - 1; // The last entry is the end sentinel
 	}
+}
+
+int CLightningFastViewerWidget::visibleLines() const
+{
+	return viewport()->height() / _lineHeight;
 }
 
 void CLightningFastViewerWidget::calculateHexLayout()
@@ -731,9 +716,8 @@ void CLightningFastViewerWidget::updateLayoutAndScrollBars()
 	if (_mode == HEX)
 		calculateHexLayout();
 
-	const int visibleLines = viewport()->height() / _lineHeight;
-	verticalScrollBar()->setRange(0, static_cast<int>(qMax<qsizetype>(0, totalLines() - visibleLines)));
-	verticalScrollBar()->setPageStep(visibleLines);
+	verticalScrollBar()->setRange(0, static_cast<int>(qMax<qsizetype>(0, totalLines() - visibleLines())));
+	verticalScrollBar()->setPageStep(visibleLines());
 	verticalScrollBar()->setSingleStep(1);
 
 	const qsizetype contentWidth = (_mode == HEX)
@@ -801,15 +785,20 @@ qsizetype CLightningFastViewerWidget::textPosToOffset(const QPoint& pos) const
 	if (line < 0 || line >= totalLines())
 		return -1;
 
+	return offsetAtColumn(line, qMax<qsizetype>(0, (pos.x() + horizontalScrollBar()->value() - Layout::LEFT_MARGIN_PIXELS) / _charWidth));
+}
+
+qsizetype CLightningFastViewerWidget::offsetAtColumn(qsizetype line, qsizetype targetColumn) const
+{
 	const qsizetype lineStart = _lineOffsets[line];
 	const qsizetype lineEnd = _lineOffsets[line + 1];
 	const qsizetype textLength = _text.size();
-	const qsizetype targetColumn = qMax<qsizetype>(0, (pos.x() + horizontalScrollBar()->value() - Layout::LEFT_MARGIN_PIXELS) / _charWidth);
+	const QChar* const chars = _text.constData();
 
 	qsizetype column = 0;
 	for (qsizetype offset = lineStart; offset < lineEnd; ++offset)
 	{
-		const int columns = columnsForChar(_text[offset], offset + 1 < textLength ? _text[offset + 1] : QChar(), column);
+		const int columns = columnsForChar(chars[offset], offset + 1 < textLength ? chars[offset + 1] : QChar(), column);
 		if (columns == 0)
 			continue;
 
@@ -819,7 +808,32 @@ qsizetype CLightningFastViewerWidget::textPosToOffset(const QPoint& pos) const
 		column += columns;
 	}
 
-	return lineEnd - 1; // Clicked past the end of the line
+	return lineEnd - 1;
+}
+
+qsizetype CLightningFastViewerWidget::columnOfOffset(qsizetype line, qsizetype offset) const
+{
+	const qsizetype textLength = _text.size();
+	const QChar* const chars = _text.constData();
+
+	qsizetype column = 0;
+	for (qsizetype i = _lineOffsets[line]; i < offset; ++i)
+		column += columnsForChar(chars[i], i + 1 < textLength ? chars[i + 1] : QChar(), column);
+
+	return column;
+}
+
+qsizetype CLightningFastViewerWidget::offsetLinesAway(qsizetype fromOffset, qsizetype lineDelta, qsizetype& column) const
+{
+	const qsizetype currentLine = findLineContainingOffset(fromOffset);
+	if (currentLine < 0)
+		return fromOffset;
+
+	if (column < 0)
+		column = columnOfOffset(currentLine, fromOffset);
+
+	const qsizetype targetLine = qBound(qsizetype(0), currentLine + lineDelta, totalLines() - 1);
+	return targetLine == currentLine ? fromOffset : offsetAtColumn(targetLine, column);
 }
 
 void CLightningFastViewerWidget::ensureVisible(qsizetype offset)
@@ -838,17 +852,21 @@ void CLightningFastViewerWidget::ensureVisible(qsizetype offset)
 			return;
 	}
 
-	const int firstVisible = verticalScrollBar()->value();
-	const int visibleLines = viewport()->height() / _lineHeight;
-
-	if (line < firstVisible)
-	{
+	const int firstVisibleLine = verticalScrollBar()->value();
+	if (line < firstVisibleLine)
 		verticalScrollBar()->setValue(line);
-	}
-	else if (line >= firstVisible + visibleLines)
-	{
-		verticalScrollBar()->setValue(line - visibleLines + 1);
-	}
+	else if (line >= firstVisibleLine + visibleLines())
+		verticalScrollBar()->setValue(line - visibleLines() + 1);
+
+	if (_mode == HEX)
+		return; // The hex layout is fitted to the viewport width, so there is nothing to scroll to horizontally
+
+	const int x = Layout::LEFT_MARGIN_PIXELS + static_cast<int>(columnOfOffset(line, offset)) * _charWidth;
+	const int firstVisibleX = horizontalScrollBar()->value();
+	if (x < firstVisibleX)
+		horizontalScrollBar()->setValue(x);
+	else if (x + _charWidth > firstVisibleX + viewport()->width())
+		horizontalScrollBar()->setValue(x + _charWidth - viewport()->width());
 }
 
 void CLightningFastViewerWidget::copySelection()
