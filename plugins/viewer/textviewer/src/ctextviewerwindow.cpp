@@ -15,8 +15,8 @@ DISABLE_COMPILER_WARNINGS
 #include "3rdparty/diegoiast/qutepart-cpp/theme.h"
 
 #include <QAbstractScrollArea>
-#include <QApplication>
 #include <QActionGroup>
+#include <QApplication>
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileInfo>

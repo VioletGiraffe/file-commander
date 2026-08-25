@@ -7,6 +7,7 @@
 
 #include "3rdparty/magic_enum/magic_enum.hpp"
 
+DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QHeaderView>
 #include <QLabel>
@@ -14,6 +15,7 @@
 #include <QShortcut>
 #include <QTreeWidget>
 #include <QVBoxLayout>
+RESTORE_COMPILER_WARNINGS
 
 namespace columns {
 	enum Columns {

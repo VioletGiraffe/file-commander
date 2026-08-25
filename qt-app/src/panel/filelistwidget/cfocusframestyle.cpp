@@ -1,8 +1,10 @@
 #include "cfocusframestyle.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QPainter>
 #include <QPen>
 #include <QStyleOptionViewItem>
+RESTORE_COMPILER_WARNINGS
 
 void CFocusFrameStyle::drawPrimitive(PrimitiveElement element, const QStyleOption * option, QPainter * painter, const QWidget * widget) const
 {

@@ -2,8 +2,10 @@
 #include "ui_csettingspageedit.h"
 #include "settings.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QSettings>
+RESTORE_COMPILER_WARNINGS
 
 
 CSettingsPageEdit::CSettingsPageEdit(QWidget *parent) :

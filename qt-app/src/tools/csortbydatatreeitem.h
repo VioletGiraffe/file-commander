@@ -2,7 +2,9 @@
 
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QTreeWidget>
+RESTORE_COMPILER_WARNINGS
 
 // Orders a column by the unsigned number stashed in its Qt::UserRole where there is one, so that sizes and timestamps
 // sort by value instead of by their formatted text, and by natural text order everywhere else.

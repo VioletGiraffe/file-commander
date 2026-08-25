@@ -86,8 +86,7 @@ public:
 
 	[[nodiscard]] qulonglong id() const noexcept; // Stable per-tab identifier; never changes for this CPanel's lifetime
 
-	// Seeds the navigation history when restoring a tab from saved settings. The controller owns persistence now,
-	// so CPanel no longer reads or writes QSettings itself.
+	// Seeds the navigation history when restoring a tab from saved settings.
 	void restoreHistory(const std::vector<QString>& history);
 	// Activates/deactivates this tab. An inactive tab holds no filesystem watch handle and doesn't list its folder at
 	// all; activating arms the watch and lists the folder, which is also how it picks up what changed while inactive.

@@ -2,9 +2,11 @@
 #include "filesystemhelperfunctions.h" // toNativeSeparators
 #include "link_helpers.hpp"
 
+DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
 #include <QTemporaryDir>
+RESTORE_COMPILER_WARNINGS
 
 #define CATCH_CONFIG_MAIN
 #include "3rdparty/catch2/catch.hpp"

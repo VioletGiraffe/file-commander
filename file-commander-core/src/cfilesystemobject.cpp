@@ -6,6 +6,8 @@
 #include "lang/type_traits_fast.hpp"
 
 
+DISABLE_COMPILER_WARNINGS
+
 #ifdef CFILESYSTEMOBJECT_TEST
 #define QFileInfo QFileInfo_Test
 #define QDir QDir_Test
@@ -15,7 +17,6 @@
 #include <QDir>
 #endif
 
-DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 
 #include <QDebug>

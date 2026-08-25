@@ -1,7 +1,9 @@
 #pragma once
 #include "ui/CProxyStyle.h"
 
+DISABLE_COMPILER_WARNINGS
 #include <QStyleOption>
+RESTORE_COMPILER_WARNINGS
 
 class CFocusFrameStyle : public CProxyStyle
 {
