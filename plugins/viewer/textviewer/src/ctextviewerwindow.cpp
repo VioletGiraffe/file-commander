@@ -14,6 +14,7 @@ DISABLE_COMPILER_WARNINGS
 #include "3rdparty/diegoiast/qutepart-cpp/hl/syntax_highlighter.h"
 #include "3rdparty/diegoiast/qutepart-cpp/theme.h"
 
+#include <QAbstractScrollArea>
 #include <QApplication>
 #include <QActionGroup>
 #include <QDebug>
@@ -24,6 +25,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QMimeDatabase>
 #include <QRegularExpression>
+#include <QScrollBar>
 #include <QShortcut>
 #include <QStringBuilder>
 #include <QStyleHints>
@@ -73,31 +75,11 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	});
 	CR() = connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext);
 
-	CR() = connect(actionAuto_detect_encoding, &QAction::triggered, this, [this]{
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asDetectedAutomatically(*textData, _currentMode == Mode::Lightning);
-	});
-	CR() = connect(actionASCII_Windows_1252, &QAction::triggered, this, [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asAscii(*textData, _currentMode == Mode::Lightning);
-	});
-	CR() = connect(actionSystemLocale, &QAction::triggered, this, [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asSystemDefault(*textData, _currentMode == Mode::Lightning);
-	});
-	connect(actionUTF_8, &QAction::triggered, this, [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asUtf8(*textData, _currentMode == Mode::Lightning);
-	});
-	CR() = connect(actionUTF_16, &QAction::triggered, this, [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asUtf16(*textData, _currentMode == Mode::Lightning);
-	});
+	CR() = connect(actionAuto_detect_encoding, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asDetectedAutomatically); });
+	CR() = connect(actionASCII_Windows_1252, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asAscii); });
+	CR() = connect(actionSystemLocale, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asSystemDefault); });
+	CR() = connect(actionUTF_8, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf8); });
+	CR() = connect(actionUTF_16, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf16); });
 	CR() = connect(actionHTML, &QAction::triggered, this, [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
@@ -360,6 +342,23 @@ bool CTextViewerWindow::asHexFast(const QByteArray& fileData)
 	return true;
 }
 
+void CTextViewerWindow::redecodeCurrentFile(bool (CTextViewerWindow::*decoder)(const QByteArray&, bool))
+{
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData)
+		return;
+
+	// Null when the initial load failed: _sourceFilePath is set before the file is read, so an action can arrive with no viewer built
+	QAbstractScrollArea* const viewer = activeViewer();
+	const int scrollPosition = viewer ? viewer->verticalScrollBar()->value() : 0;
+
+	// The decoder is handed the mode already in effect, so it cannot replace the viewer the position came from
+	(this->*decoder)(*textData, _currentMode == Mode::Lightning);
+
+	if (viewer)
+		viewer->verticalScrollBar()->setValue(scrollPosition);
+}
+
 std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
 {
 	QByteArray textData;
@@ -492,6 +491,14 @@ void CTextViewerWindow::setupFindDialog()
 	_findDialog = new CFindDialog(this, QStringLiteral("Plugins/TextViewer/Find/"));
 	CR() = connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find);
 	CR() = connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext);
+}
+
+QAbstractScrollArea* CTextViewerWindow::activeViewer() const
+{
+	if (_textView)
+		return _textView.get();
+
+	return _lightningViewer.get();
 }
 
 void CTextViewerWindow::setMode(Mode mode)

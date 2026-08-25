@@ -12,6 +12,7 @@ class CTextEditWithImageSupport;
 class CLightningFastViewerWidget;
 class CFindDialog;
 
+class QAbstractScrollArea;
 class QLabel;
 
 namespace Qutepart {
@@ -39,6 +40,9 @@ private:
 
 	bool asHexFast(const QByteArray& fileData);
 
+	// Re-runs one of the text decoders above over the file already open, keeping the scroll position: the same content, read differently
+	void redecodeCurrentFile(bool (CTextViewerWindow::*decoder)(const QByteArray&, bool));
+
 	[[nodiscard]] std::optional<QByteArray> readFileAndReportErrors() const;
 	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeText(const QByteArray& textData);
 	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeUnicodeText(const QByteArray& textData);
@@ -57,6 +61,8 @@ private:
 private:
 	enum class Mode {Lightning, Full};
 	void setMode(Mode mode);
+	// The viewer the current mode has instantiated; null until the first load
+	[[nodiscard]] QAbstractScrollArea* activeViewer() const;
 
 	void setTextAndApplyHighlighter(const QString& text);
 	void resetHighlighter();
