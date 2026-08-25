@@ -12,7 +12,6 @@
 #include <QPainter>
 #include <QRegularExpression>
 #include <QScrollBar>
-#include <QtMath>
 
 #include <algorithm>
 #include <limits>
@@ -24,7 +23,9 @@ namespace Layout {
 	static constexpr int MIN_OFFSET_DIGITS = 4;
 	static constexpr int OFFSET_SUFFIX_CHARS = 2; // ": "
 	static constexpr int HEX_CHARS_PER_BYTE = 3; // "XX "
-	static constexpr int HEX_MIDDLE_EXTRA_SPACE = 1; // Extra space after each 8 bytes
+	static constexpr int HEX_BYTES_PER_GROUP = 8;
+	static constexpr int HEX_MIDDLE_EXTRA_SPACE = 1; // Extra space after each group
+	static constexpr int HEX_GROUP_CHARS = HEX_BYTES_PER_GROUP * HEX_CHARS_PER_BYTE + HEX_MIDDLE_EXTRA_SPACE;
 	static constexpr int HEX_ASCII_SEPARATOR_CHARS = 2; // The separator is technically " | ",
 	// but we get the space on the left by default due to it being included with every byte via HEX_CHARS_PER_BYTE
 	static constexpr int LEFT_MARGIN_PIXELS = 2;
@@ -152,6 +153,7 @@ CLightningFastViewerWidget::CLightningFastViewerWidget(QWidget* parent)
 	: QAbstractScrollArea(parent), _fontMetrics(font())
 {
 	setFont(preferredFixedFont());
+	updateFontMetrics(); // Not redundant with the FontChange handler: setFont skips the event when the font already equals the new one
 
 	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 	setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
@@ -342,13 +344,14 @@ void CLightningFastViewerWidget::mouseDoubleClickEvent(QMouseEvent* event)
 			qsizetype offset = textPosToOffset(event->pos());
 			if (offset >= 0 && offset < _text.size())
 			{
-				// Find word boundaries
+				const QChar* const chars = _text.constData(); // QString::operator[] is the detaching overload here
+
 				qsizetype start = offset;
 				qsizetype end = offset;
 
-				while (start > 0 && _text[start - 1].isLetterOrNumber())
+				while (start > 0 && chars[start - 1].isLetterOrNumber())
 					--start;
-				while (end < _text.size() - 1 && _text[end + 1].isLetterOrNumber())
+				while (end < _text.size() - 1 && chars[end + 1].isLetterOrNumber())
 					++end;
 
 				_selection.start = start;
@@ -379,6 +382,12 @@ void CLightningFastViewerWidget::keyPressEvent(QKeyEvent* event)
 
 	// Navigation
 	const qsizetype maxOffset = (_mode == HEX) ? _data.size() - 1 : _text.size() - 1;
+	if (maxOffset < 0) // Empty content
+	{
+		QAbstractScrollArea::keyPressEvent(event);
+		return;
+	}
+
 	qsizetype cursorPos = _selection.end >= 0 ? _selection.end : 0;
 	qsizetype newPos = cursorPos;
 
@@ -506,12 +515,17 @@ qsizetype CLightningFastViewerWidget::totalLines() const
 
 void CLightningFastViewerWidget::calculateHexLayout()
 {
-	_nDigits = static_cast<int>(qCeil(::log10(static_cast<double>(_data.size() + 1))));
-	_nDigits = qMax(Layout::MIN_OFFSET_DIGITS, _nDigits);
+	// Sized for the last byte's offset rather than the last line's: _bytesPerLine is derived from this count
+	int digits = 1;
+	for (qsizetype largestOffset = _data.size() - 1; largestOffset >= 10; largestOffset /= 10)
+		++digits;
+
+	_nDigits = qMax(Layout::MIN_OFFSET_DIGITS, digits);
 
 	const int viewportWidth = viewport()->width();
-	int optimalBytesPerLine = 4; // Minimum
-	LineLayout optimalLayout;
+	// The minimum stands even when it overflows the viewport: the horizontal scroll bar covers the excess
+	int optimalBytesPerLine = 4;
+	LineLayout optimalLayout = calculateHexLineLayout(optimalBytesPerLine, _nDigits);
 
 	// Try increasingly larger values (multiples of 4) until we exceed viewport width
 	for (int candidate = 4; candidate <= 128; candidate += 4)
@@ -535,7 +549,7 @@ CLightningFastViewerWidget::LineLayout CLightningFastViewerWidget::calculateHexL
 	LineLayout layout;
 
 	layout.hexStart = Layout::LEFT_MARGIN_PIXELS + (nDigits + Layout::OFFSET_SUFFIX_CHARS) * _charWidth;
-	layout.hexWidth = (bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE * ((bytesPerLine - 1) / 8)) * _charWidth;
+	layout.hexWidth = (bytesPerLine * Layout::HEX_CHARS_PER_BYTE + Layout::HEX_MIDDLE_EXTRA_SPACE * ((bytesPerLine - 1) / Layout::HEX_BYTES_PER_GROUP)) * _charWidth;
 	layout.asciiStart = layout.hexStart + layout.hexWidth + Layout::HEX_ASCII_SEPARATOR_CHARS * _charWidth;
 	layout.asciiWidth = bytesPerLine * _charWidth;
 
@@ -603,13 +617,13 @@ void CLightningFastViewerWidget::drawHexLine(QPainter& painter, qsizetype offset
 		flushRun();
 	};
 
-	// The gap after every eighth byte goes into the run as a second space, so one run can span it
+	// The gap between groups goes into the run as a second space, so one run can span it
 	paintColumn(
-		[this](qsizetype i) { return _hexStart + static_cast<int>(i * Layout::HEX_CHARS_PER_BYTE + i / 8) * _charWidth; },
+		[this](qsizetype i) { return _hexStart + static_cast<int>(i * Layout::HEX_CHARS_PER_BYTE + i / Layout::HEX_BYTES_PER_GROUP) * _charWidth; },
 		[this](qsizetype i, uint8_t byte) {
 			if (!_paintScratch.isEmpty())
 			{
-				if ((i % 8) == 0)
+				if ((i % Layout::HEX_BYTES_PER_GROUP) == 0)
 					_paintScratch += QChar(' ');
 				_paintScratch += QChar(' ');
 			}
@@ -765,31 +779,24 @@ qsizetype CLightningFastViewerWidget::hexPosToOffset(const QPoint& pos) const
 	Region region = regionAtPos(pos);
 
 	qsizetype lineOffset = line * _bytesPerLine;
-	int byteInLine = 0;
+	qsizetype byteInLine = 0;
 
 	if (region == REGION_HEX)
 	{
-		int relX = x - _hexStart;
-		byteInLine = relX / (_charWidth * Layout::HEX_CHARS_PER_BYTE);
-
-		// Account for extra space every 8 bytes
-		if (byteInLine > 8)
-		{
-			relX -= _charWidth * Layout::HEX_MIDDLE_EXTRA_SPACE * ((byteInLine - 1) / 8);
-			byteInLine = relX / (_charWidth * Layout::HEX_CHARS_PER_BYTE);
-		}
-
-		byteInLine = qBound(0, byteInLine, _bytesPerLine - 1);
+		// Inverse of the column formula in drawHexLine
+		// The gap following a group counts inside that group's span: a click on it clamps to the group's last byte
+		const int cell = (x - _hexStart) / _charWidth;
+		const int group = cell / Layout::HEX_GROUP_CHARS;
+		const int byteInGroup = qMin((cell - group * Layout::HEX_GROUP_CHARS) / Layout::HEX_CHARS_PER_BYTE, Layout::HEX_BYTES_PER_GROUP - 1);
+		byteInLine = qBound(0, group * Layout::HEX_BYTES_PER_GROUP + byteInGroup, _bytesPerLine - 1);
 	}
 	else if (region == REGION_ASCII)
 	{
-		const int relX = x - _asciiStart;
-		byteInLine = relX / _charWidth;
-		byteInLine = qBound(0, byteInLine, _bytesPerLine - 1);
+		byteInLine = qBound(0, (x - _asciiStart) / _charWidth, _bytesPerLine - 1);
 	}
 	else
 	{
-		return -1; // Fix #5: Invalid region
+		return -1;
 	}
 
 	qsizetype offset = lineOffset + byteInLine;
@@ -857,53 +864,52 @@ void CLightningFastViewerWidget::copySelection()
 	if (!_selection.isValid())
 		return;
 
-	qsizetype start = _selection.selStart();
-	qsizetype end = _selection.selEnd();
+	const qsizetype start = _selection.selStart();
+	const qsizetype end = _selection.selEnd();
 
 	if (_mode == TEXT)
 	{
-		// Copy selected text
-		QString selected = _text.mid(start, end - start + 1);
-		QApplication::clipboard()->setText(selected);
+		QApplication::clipboard()->setText(_text.mid(start, end - start + 1));
 		return;
 	}
 
-	// Hex mode
+	const qsizetype lastByte = qMin(end, _data.size() - 1);
+	const qsizetype byteCount = lastByte - start + 1;
+	const char* const bytes = _data.constData(); // QByteArray::operator[] is the detaching overload here
+
 	if (_selection.region == REGION_HEX)
 	{
-		// Copy as hex string
 		QString hexStr;
-		for (qsizetype i = start; i <= end && i < _data.size(); ++i)
+		hexStr.reserve(byteCount * Layout::HEX_CHARS_PER_BYTE);
+		for (qsizetype i = start; i <= lastByte; ++i)
 		{
-			const unsigned char byte = static_cast<unsigned char>(_data[i]);
+			const uint8_t byte = static_cast<uint8_t>(bytes[i]);
 			hexStr += QChar(hexChars[byte >> 4]);
 			hexStr += QChar(hexChars[byte & 0x0F]);
-			if (i < end) hexStr += ' ';
+			if (i < lastByte)
+				hexStr += ' ';
 		}
 		QApplication::clipboard()->setText(hexStr);
 	}
 	else if (_selection.region == REGION_ASCII)
 	{
-		// Copy as ASCII
 		QString asciiStr;
-		for (qsizetype i = start; i <= end && i < _data.size(); ++i)
+		asciiStr.reserve(byteCount);
+		for (qsizetype i = start; i <= lastByte; ++i)
 		{
-			const unsigned char byte = static_cast<unsigned char>(_data[i]);
-			asciiStr += (byte >= 32 && byte <= 126) ? QChar(byte) : QChar('.');
+			const uint8_t byte = static_cast<uint8_t>(bytes[i]);
+			asciiStr += isPrintableAscii(byte) ? QChar(byte) : QChar('.');
 		}
 		QApplication::clipboard()->setText(asciiStr);
 	}
 	else
 	{
-		// Copy raw bytes
-		QByteArray selected = _data.mid(start, end - start + 1);
-		QApplication::clipboard()->setText(QString::fromLatin1(selected.toHex(' ')));
+		QApplication::clipboard()->setText(QString::fromLatin1(_data.mid(start, byteCount).toHex(' ')));
 	}
 }
 
 void CLightningFastViewerWidget::selectAll()
 {
-	// Fix #4: Guard against empty data
 	if (_mode == HEX && _data.isEmpty())
 		return;
 	if (_mode == TEXT && _text.isEmpty())
