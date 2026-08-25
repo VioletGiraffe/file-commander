@@ -212,6 +212,7 @@ void CLightningFastViewerWidget::contentChanged()
 	// Keyboard navigation never sets a region, so copying has to find a usable one from the start
 	_selection = Selection{ .region = (_mode == HEX) ? REGION_HEX : REGION_ASCII };
 	_hexSearchText.clear();
+	_foldedData.clear();
 	_lineOffsets.clear();
 	_maxLineColumns = 0;
 	_wrappedForMaxColumns = -1;
@@ -1220,6 +1221,16 @@ static constexpr char foldByte(char c)
 	return isUpper ? static_cast<char>(byte + 0x20) : c;
 }
 
+// Folded copy of the same length, so a match offset in it is a match offset in the original
+static QByteArray foldedBytes(const QByteArray& bytes)
+{
+	QByteArray folded;
+	folded.resize(bytes.size());
+	std::transform(bytes.cbegin(), bytes.cend(), folded.begin(), foldByte);
+
+	return folded;
+}
+
 static bool isWordCharAt(const QString& haystack, qsizetype at)
 {
 	return haystack[at].isLetterOrNumber();
@@ -1245,44 +1256,11 @@ static qsizetype indexOfIn(const QString& haystack, const QString& needle, qsize
 	return backward ? haystack.lastIndexOf(needle, from, cs) : haystack.indexOf(needle, from, cs);
 }
 
-// QByteArray offers no case-insensitive search, so that case is scanned here
+// Only the exact bytes: QByteArray has no case-insensitive search, so a caller wanting one folds both sides first
 static qsizetype indexOfIn(const QByteArray& haystack, const QByteArray& needle, qsizetype from, bool backward, Qt::CaseSensitivity cs)
 {
-	if (cs == Qt::CaseSensitive)
-		return backward ? haystack.lastIndexOf(needle, from) : haystack.indexOf(needle, from);
-
-	const char* const data = haystack.constData();
-	const char* const pattern = needle.constData();
-	const qsizetype lastStart = haystack.size() - needle.size();
-
-	const auto matchesAt = [&](qsizetype at) {
-		for (qsizetype i = 0; i < needle.size(); ++i)
-		{
-			if (foldByte(data[at + i]) != foldByte(pattern[i]))
-				return false;
-		}
-
-		return true;
-	};
-
-	if (backward)
-	{
-		for (qsizetype at = qMin(from, lastStart); at >= 0; --at)
-		{
-			if (matchesAt(at))
-				return at;
-		}
-	}
-	else
-	{
-		for (qsizetype at = from; at <= lastStart; ++at)
-		{
-			if (matchesAt(at))
-				return at;
-		}
-	}
-
-	return -1;
+	assert_r(cs == Qt::CaseSensitive);
+	return backward ? haystack.lastIndexOf(needle, from) : haystack.indexOf(needle, from);
 }
 
 // Nearest match to 'from' in the given direction that 'accept' allows, stepping one position past each rejected match.
@@ -1355,6 +1333,14 @@ const QString& CLightningFastViewerWidget::regexHaystack()
 	return _hexSearchText;
 }
 
+const QByteArray& CLightningFastViewerWidget::foldedData()
+{
+	if (_foldedData.isEmpty())
+		_foldedData = foldedBytes(_data);
+
+	return _foldedData;
+}
+
 bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFlags options)
 {
 	if (exp.isEmpty())
@@ -1364,9 +1350,9 @@ bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFla
 	const bool wholeWords = options & QTextDocument::FindWholeWords;
 	const Qt::CaseSensitivity cs = (options & QTextDocument::FindCaseSensitively) ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
-	const auto search = [&](const auto& haystack, const auto& needle) {
+	const auto search = [&](const auto& haystack, const auto& needle, Qt::CaseSensitivity sensitivity) {
 		const auto accept = [&](qsizetype pos, qsizetype len) { return !wholeWords || isWholeWordMatch(haystack, pos, len); };
-		return acceptedLiteralMatch(haystack, needle, searchStartOffset(backward, haystack.size()), backward, cs, accept);
+		return acceptedLiteralMatch(haystack, needle, searchStartOffset(backward, haystack.size()), backward, sensitivity, accept);
 	};
 
 	// No byte can hold a character above U+00FF, and toLatin1 would fold one to '?' and match those bytes instead
@@ -1374,7 +1360,15 @@ bool CLightningFastViewerWidget::find(const QString& exp, QTextDocument::FindFla
 		return false;
 
 	// Hex mode searches the bytes themselves: converting the needle is free, converting the file would cost two bytes per byte on every call
-	const auto [matchPos, matchLen] = (_mode == TEXT) ? search(_text, exp) : search(_data, exp.toLatin1());
+	// Folding both sides puts a case-insensitive search on QByteArray's exact search
+	// Folding is per byte, so offsets and the ASCII word classification both survive it
+	const auto searchBytes = [&] {
+		return cs == Qt::CaseSensitive
+			? search(_data, exp.toLatin1(), Qt::CaseSensitive)
+			: search(foldedData(), foldedBytes(exp.toLatin1()), Qt::CaseSensitive);
+	};
+
+	const auto [matchPos, matchLen] = (_mode == TEXT) ? search(_text, exp, cs) : searchBytes();
 	if (matchPos < 0)
 		return false;
 

@@ -100,6 +100,8 @@ private:
 	[[nodiscard]] qsizetype searchStartOffset(bool backward, qsizetype haystackSize) const;
 	// The text a regex search runs over. In hex mode the bytes are converted once and kept until the content changes.
 	[[nodiscard]] const QString& regexHaystack();
+	// _data with every byte case-folded, converted once and kept until the content changes
+	[[nodiscard]] const QByteArray& foldedData();
 
 	// Hex mode methods
 	void calculateHexLayout();
@@ -141,7 +143,8 @@ private:
 
 	// Hex mode data
 	QByteArray _data;
-	QString _hexSearchText; // Latin-1 view of _data, built on demand by regexHaystack()
+	QString _hexSearchText;    // Latin-1 view of _data, built on demand by regexHaystack()
+	QByteArray _foldedData;    // Case-folded _data, built on demand by foldedData()
 	qsizetype _bytesPerLine = 16;
 
 	// Text mode data
