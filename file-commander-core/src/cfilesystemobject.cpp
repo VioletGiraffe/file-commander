@@ -5,6 +5,8 @@
 #include "assert/advanced_assert.h"
 #include "lang/type_traits_fast.hpp"
 
+#include "qtcore_helpers/qdatetime_helpers.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 
@@ -16,8 +18,6 @@ DISABLE_COMPILER_WARNINGS
 #else
 #include <QDir>
 #endif
-
-#include "qtcore_helpers/qdatetime_helpers.hpp"
 
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS

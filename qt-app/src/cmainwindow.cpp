@@ -31,11 +31,11 @@
 #include "logger/cloggerinmemory.h"
 #include "version.h"
 
-DISABLE_COMPILER_WARNINGS
-#include "ui_cmainwindow.h"
-
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
+
+DISABLE_COMPILER_WARNINGS
+#include "ui_cmainwindow.h"
 
 #include <QCloseEvent>
 #include <QDesktopServices>
