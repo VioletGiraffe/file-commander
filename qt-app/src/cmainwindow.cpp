@@ -70,8 +70,6 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 
 // Main window settings keys
-#define KEY_RPANEL_GEOMETRY   QSL("Ui/RPanel/Geometry")
-#define KEY_LPANEL_GEOMETRY   QSL("Ui/LPanel/Geometry")
 #define KEY_SPLITTER_SIZES    QSL("Ui/Splitter")
 #define KEY_LAST_ACTIVE_PANEL QSL("Ui/LastActivePanel")
 
@@ -160,8 +158,6 @@ void CMainWindow::updateInterface()
 {
 	QSettings s;
 	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
-	ui->leftPanel->restorePanelGeometry(s.value(KEY_LPANEL_GEOMETRY).toByteArray());
-	ui->rightPanel->restorePanelGeometry(s.value(KEY_RPANEL_GEOMETRY).toByteArray());
 
 	ui->_commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
 	ui->_commandLine->lineEdit()->clear();
@@ -399,8 +395,6 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	{
 		QSettings s;
 		s.setValue(KEY_SPLITTER_SIZES, ui->splitter->saveState());
-		s.setValue(KEY_LPANEL_GEOMETRY, ui->leftPanel->savePanelGeometry());
-		s.setValue(KEY_RPANEL_GEOMETRY, ui->rightPanel->savePanelGeometry());
 
 		// Every tab's sort and columns; the panels own that store.
 		ui->leftPanel->saveTabViewStates();

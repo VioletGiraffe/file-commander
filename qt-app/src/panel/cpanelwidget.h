@@ -43,9 +43,6 @@ public:
 	// Persists every tab's sort and column layout. Called at shutdown: nothing else writes this store.
 	void saveTabViewStates() const;
 
-	[[nodiscard]] QByteArray savePanelGeometry() const;
-	bool restorePanelGeometry(const QByteArray& state);
-
 	[[nodiscard]] QString currentDirPathNative() const;
 
 	[[nodiscard]] Panel panelPosition() const;

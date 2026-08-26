@@ -53,9 +53,11 @@ RESTORE_COMPILER_WARNINGS
 // Per-tab column layout and sort, keyed by the controller's tab ids; see saveTabViewStates().
 #define KEY_LPANEL_TAB_VIEW_STATES QSL("Ui/LPanel/TabViewStates")
 #define KEY_RPANEL_TAB_VIEW_STATES QSL("Ui/RPanel/TabViewStates")
-// Superseded by the keys above, which store this per tab instead of one blob per side. Read once, then removed.
+// Dead settings that saveTabViewStates() clears out; see there for why each one is dead.
 #define KEY_LPANEL_LEGACY_HEADER_STATE QSL("Ui/LPanel/State")
 #define KEY_RPANEL_LEGACY_HEADER_STATE QSL("Ui/RPanel/State")
+#define KEY_LPANEL_LEGACY_GEOMETRY QSL("Ui/LPanel/Geometry")
+#define KEY_RPANEL_LEGACY_GEOMETRY QSL("Ui/RPanel/Geometry")
 
 struct FolderContentsSummary {
 	uint64_t numFiles = 0;
@@ -164,7 +166,10 @@ void CPanelWidget::saveTabViewStates() const
 
 	QSettings s;
 	s.setValue(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_TAB_VIEW_STATES : KEY_RPANEL_TAB_VIEW_STATES, records);
-	s.remove(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE);
+	s.remove(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE); // Replaced by the store above
+
+	// QTreeView lays out its own header, so restoring this into it never had an effect.
+	s.remove(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_GEOMETRY : KEY_RPANEL_LEGACY_GEOMETRY);
 }
 
 std::vector<std::pair<qulonglong, CPanelWidget::TabViewState>> CPanelWidget::loadTabViewStates() const
@@ -219,16 +224,6 @@ CPanelWidget::TabViewState CPanelWidget::viewStateFromLegacyHeaderBlob() const
 CPanelWidget::TabViewState CPanelWidget::currentTabViewState() const
 {
 	return { _sortModel->sortColumn(), _sortModel->sortOrder(), ui->_list->header()->saveState() };
-}
-
-QByteArray CPanelWidget::savePanelGeometry() const
-{
-	return ui->_list->header()->saveGeometry();
-}
-
-bool CPanelWidget::restorePanelGeometry(const QByteArray& state)
-{
-	return ui->_list->header()->restoreGeometry(state);
 }
 
 QString CPanelWidget::currentDirPathNative() const
