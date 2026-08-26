@@ -3,7 +3,6 @@
 #include "utils/ciconengineqimage.h"
 #include "assert/advanced_assert.h"
 #include "plugininterface/cpluginproxy.h"
-#include "timing/ctimeelapsed.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
@@ -353,9 +352,7 @@ void CImageViewerWidget::paintEvent(QPaintEvent*)
 		auto dstView = createView<false>(_displayImage);
 		if (srcView.data && dstView.data)
 		{
-			CTimeElapsed timer(true);
 			ImageProcessing::resize(dstView, srcView, toRect(sourceRect), _parallelFor);
-			qInfo() << timer.msElapsed();
 		}
 		else // Fallback for unsupported formats only
 		{

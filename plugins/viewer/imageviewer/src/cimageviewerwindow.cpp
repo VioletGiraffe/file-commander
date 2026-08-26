@@ -48,8 +48,7 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 		_viewingAtLabel->setText(tr("Viewing at %1x%2 (%3% / %4x)").arg(size.width()).arg(size.height()).arg(qRound(magnification * 100.0)).arg(magnification, 0, 'f', 2));
 	});
 
-	auto* escScut = new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
-	connect(this, &QAction::destroyed, escScut, &QShortcut::deleteLater);
+	new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 }
 
 CImageViewerWindow::~CImageViewerWindow() noexcept

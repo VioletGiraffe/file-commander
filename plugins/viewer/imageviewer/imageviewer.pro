@@ -37,7 +37,6 @@ INCLUDEPATH += \
 	../../../cpputils \
 	../../../cpp-template-utils \
 	../../../image-processing \
-	../../../3rdparty \
 	$$PWD/src/
 
 DEFINES += PLUGIN_MODULE
