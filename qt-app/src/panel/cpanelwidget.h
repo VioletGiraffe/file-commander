@@ -146,7 +146,7 @@ private:
 	// Wires a model / sort-proxy / selection-model trio into an already-emplaced tab (not shown yet). The tab's sort
 	// is independent from every other tab's from here on, so viewState only seeds it; see activateTab.
 	void populateTriplet(PanelTab& tab, const TabViewState& viewState);
-	[[nodiscard]] TabViewState currentTabViewState() const;      // The active tab's live state, for a new tab to start from
+	[[nodiscard]] TabViewState viewStateOfTab(int index) const;  // What tab 'index' looks like right now
 	[[nodiscard]] std::vector<std::pair<qulonglong, TabViewState>> loadTabViewStates() const; // Persisted state by tab id; empty when nothing is stored
 	[[nodiscard]] TabViewState viewStateFromLegacyHeaderBlob() const; // Migration: settings that predate the per-tab store held one blob per side
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
@@ -159,7 +159,9 @@ private:
 	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
 	void updateTabText(int index);
 	[[nodiscard]] QString tabToolTipText(int index) const; // Tab's full path + folder contents stats, composed on hover
-	void openPathInNewTab(const QString& path, bool activate = true); // Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab in the background
+	// Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab
+	// in the background. viewState is the new tab's appearance: the active tab's, except when duplicating another tab.
+	void openPathInNewTab(const QString& path, bool activate, const TabViewState& viewState);
 	void tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate); // Opens the item in a new tab if it's a folder ([..] opens the parent)
 	void duplicateTab(int index);       // Tab context menu: opens a new tab showing the same path as tab 'index'
 	void closeAllOtherTabs(int index);  // Tab context menu: closes every tab except 'index'

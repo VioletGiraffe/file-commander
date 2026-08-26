@@ -156,12 +156,10 @@ void CPanelWidget::saveTabViewStates() const
 	QStringList records;
 	for (int i = 0; i < (int)_tabs.size(); ++i)
 	{
-		const PanelTab& tab = _tabs[(size_t)i];
-		// A tab's stored copy is only refreshed when switching away from it, so for the active one the live header is newer.
-		const QByteArray headerState = i == _activeTab ? ui->_list->header()->saveState() : tab.headerState;
+		const TabViewState state = viewStateOfTab(i);
 		// Every field is decimal digits or base64, neither of which can contain the separator, so no escaping is needed.
-		records.push_back(QString::number(tabIdAt(i)) + '|' + QString::number(tab.sortModel->sortColumn()) + '|'
-			+ QString::number((int)tab.sortModel->sortOrder()) + '|' + QString::fromLatin1(headerState.toBase64()));
+		records.push_back(QString::number(tabIdAt(i)) + '|' + QString::number(state.sortColumn) + '|'
+			+ QString::number((int)state.sortOrder) + '|' + QString::fromLatin1(state.headerState.toBase64()));
 	}
 
 	QSettings s;
@@ -221,9 +219,12 @@ CPanelWidget::TabViewState CPanelWidget::viewStateFromLegacyHeaderBlob() const
 	return state;
 }
 
-CPanelWidget::TabViewState CPanelWidget::currentTabViewState() const
+CPanelWidget::TabViewState CPanelWidget::viewStateOfTab(int index) const
 {
-	return { _sortModel->sortColumn(), _sortModel->sortOrder(), ui->_list->header()->saveState() };
+	const PanelTab& tab = _tabs[(size_t)index];
+	// A tab's stored header copy is only refreshed when switching away from it, so for the active one the live header is newer.
+	return { tab.sortModel->sortColumn(), tab.sortModel->sortOrder(),
+		index == _activeTab ? ui->_list->header()->saveState() : tab.headerState };
 }
 
 QString CPanelWidget::currentDirPathNative() const
@@ -362,7 +363,7 @@ void CPanelWidget::activateTab(int index)
 
 void CPanelWidget::createNewTab()
 {
-	openPathInNewTab(_controller->panel(_panelPosition).currentDirPathPosix());
+	openPathInNewTab(_controller->panel(_panelPosition).currentDirPathPosix(), /*activate=*/true, viewStateOfTab(_activeTab));
 }
 
 void CPanelWidget::openCurrentItemInNewTab()
@@ -386,15 +387,16 @@ void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool a
 	if (!item.isDir())
 		return;
 
-	openPathInNewTab(item.fullAbsolutePath(), activate); // For [..] this opens the parent folder ('..' is cleaned out of the path by QFileInfo)
+	// For [..] this opens the parent folder ('..' is cleaned out of the path by QFileInfo)
+	openPathInNewTab(item.fullAbsolutePath(), activate, viewStateOfTab(_activeTab));
 }
 
-void CPanelWidget::openPathInNewTab(const QString& path, bool activate)
+void CPanelWidget::openPathInNewTab(const QString& path, bool activate, const TabViewState& viewState)
 {
 	const qulonglong id = _controller->addTab(_panelPosition, path, activate);
 
 	PanelTab& tab = _tabs.emplace_back();
-	populateTriplet(tab, currentTabViewState());
+	populateTriplet(tab, viewState);
 
 	int index = 0;
 	{
@@ -431,7 +433,8 @@ void CPanelWidget::reopenLastClosedTab()
 
 	const QString path = _recentlyClosedTabsPaths.back();
 	_recentlyClosedTabsPaths.pop_back();
-	openPathInNewTab(path);
+	// The closed tab's own appearance went with it, so the new tab looks like the one on screen.
+	openPathInNewTab(path, /*activate=*/true, viewStateOfTab(_activeTab));
 }
 
 void CPanelWidget::switchToNextTab()
@@ -581,7 +584,7 @@ void CPanelWidget::showContextMenuForTab(QPoint pos)
 void CPanelWidget::duplicateTab(int index)
 {
 	// Browser-style background tab, like middle-click: don't switch away from what's currently showing.
-	openPathInNewTab(_controller->tabPath(_panelPosition, tabIdAt(index)), /*activate=*/false);
+	openPathInNewTab(_controller->tabPath(_panelPosition, tabIdAt(index)), /*activate=*/false, viewStateOfTab(index));
 }
 
 void CPanelWidget::closeAllOtherTabs(int index)
