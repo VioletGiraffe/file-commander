@@ -6,9 +6,10 @@ Tabs cross core ownership, UI model/view state, notifications, worker lifetime, 
 ## Identity and ownership
 
 Until controller shutdown, each side owns one or more `CPanel` tabs and an active position. Stable nonzero tab IDs
-survive vector growth and reordering; positions do not. Core calls and notifications identify tabs by ID, and the
-tab bar stores that ID as tab data. Resolve positions immediately before acting because another operation may have
-changed the ordering.
+survive vector growth and reordering; positions do not. They also survive restarts and are never reused, so an id
+names one tab for good and persisted state can be keyed by it. Core calls and notifications identify tabs by ID, and
+the tab bar stores that ID as tab data. Resolve positions immediately before acting because another operation may
+have changed the ordering.
 
 Side-wide listeners attach to every tab. The controller publishes only the active tab to each subscribed plugin
 proxy. Visible consumers filter notifications against the active tab ID; folder path is not an identity because
@@ -27,8 +28,9 @@ state. Only active tabs hold filesystem watches and list their folders: `setPath
 points and nothing more, so a tab restored from settings is listed the first time it is activated. Activation arms
 the watch and lists the folder, which is also how a tab picks up changes made while it was inactive.
 
-`CController` persists paths, active position, and cursor hashes, including migration from legacy single-path
-settings. UI column state and the process-local recently closed stack remain in `CPanelWidget`. See
+`CController` persists one entry per tab -- id, path, cursor hash -- plus the active position and the id counter,
+including migration from legacy single-path settings. `CPanelWidget` persists each tab's sort and column layout
+against those ids; the recently closed stack is process-local and is not persisted at all. See
 [persistence.md](persistence.md) for save timing and history scope.
 
 When changing tab creation, activation, close, or reorder, verify stable-ID mapping, core/UI ordering, active-model

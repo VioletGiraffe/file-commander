@@ -70,8 +70,6 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 
 // Main window settings keys
-#define KEY_RPANEL_STATE      QSL("Ui/RPanel/State")
-#define KEY_LPANEL_STATE      QSL("Ui/LPanel/State")
 #define KEY_RPANEL_GEOMETRY   QSL("Ui/RPanel/Geometry")
 #define KEY_LPANEL_GEOMETRY   QSL("Ui/LPanel/Geometry")
 #define KEY_SPLITTER_SIZES    QSL("Ui/Splitter")
@@ -163,9 +161,7 @@ void CMainWindow::updateInterface()
 	QSettings s;
 	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
 	ui->leftPanel->restorePanelGeometry(s.value(KEY_LPANEL_GEOMETRY).toByteArray());
-	ui->leftPanel->restorePanelState(s.value(KEY_LPANEL_STATE).toByteArray());
 	ui->rightPanel->restorePanelGeometry(s.value(KEY_RPANEL_GEOMETRY).toByteArray());
-	ui->rightPanel->restorePanelState(s.value(KEY_RPANEL_STATE).toByteArray());
 
 	ui->_commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
 	ui->_commandLine->lineEdit()->clear();
@@ -405,8 +401,10 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 		s.setValue(KEY_SPLITTER_SIZES, ui->splitter->saveState());
 		s.setValue(KEY_LPANEL_GEOMETRY, ui->leftPanel->savePanelGeometry());
 		s.setValue(KEY_RPANEL_GEOMETRY, ui->rightPanel->savePanelGeometry());
-		s.setValue(KEY_LPANEL_STATE, ui->leftPanel->savePanelState());
-		s.setValue(KEY_RPANEL_STATE, ui->rightPanel->savePanelState());
+
+		// Every tab's sort and columns; the panels own that store.
+		ui->leftPanel->saveTabViewStates();
+		ui->rightPanel->saveTabViewStates();
 
 		// Close all other top-level windows (incl. the plugins), otherwise the app won't exit.
 		for (QWindow* w : QApplication::topLevelWindows())

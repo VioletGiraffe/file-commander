@@ -187,8 +187,9 @@ private:
 		std::vector<std::unique_ptr<CPanel>> tabs;
 		size_t activeTab = 0;
 	};
-	// Creates a CPanel for side p, wires its listeners, appends it as a new tab and returns it. Does NOT set a path.
-	CPanel& createTab(Panel p);
+	// Creates a CPanel for side p with the given id, wires its listeners, appends it as a new tab and returns it.
+	// Does NOT set a path. The id must be one no other tab has ever had; see KEY_NEXT_TAB_ID.
+	CPanel& createTab(Panel p, qulonglong id);
 	// Attaches all of side p's recorded contents/cursor listeners to a freshly created tab.
 	void attachListenersToTab(Panel p, CPanel& tab);
 	// Deactivates the currently active tab and activates tabId. Shared by addTab and setActiveTab; callers are
@@ -199,7 +200,7 @@ private:
 
 	// Persistence (centralized here; CPanel no longer touches settings).
 	void restorePanelState(Panel p); // Rebuilds side p's tabs from settings (with migration from the legacy single-path keys)
-	void savePanelState(Panel p);    // Writes side p's tab paths + active index + the active tab's path (deduplicated)
+	void savePanelState(Panel p);    // Writes side p's tab records + active index + the active tab's path (deduplicated)
 	void saveHistoryList(Panel p);   // Writes side p's active-tab back/forward history + visited-locations log; see saveHistory()
 	// Hands side p's committed listing to every subscriber, or to none if the panel has no listing for its current view.
 	void publishPanelContents(Panel p);

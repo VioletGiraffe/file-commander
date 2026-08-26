@@ -11,15 +11,23 @@
 #define KEY_LAST_PATH_FOR_DRIVE_L QSL("Internal/Core/LPanel/LastPathForDrive%1")
 #define KEY_LAST_PATH_FOR_DRIVE_R QSL("Internal/Core/RPanel/LastPathForDrive%1")
 
-// Per-panel tabs: the list of tab paths and the index of the active tab. (v1 persists only the active tab's
-// history, under KEY_HISTORY_* below; the active tab's path is also mirrored to KEY_*PANEL_PATH for back-compat.)
+// Per-panel tabs: one list entry per tab, "<id>:<cursorHash>:<path>". Both numbers are decimal, the path is
+// everything past the second colon; an entry without that numeric prefix is a pre-id record and is read as a bare
+// path. One entry holds a whole tab, so no termination can pair an id with another tab's path.
+// The cursor hash is a deterministic function of the item's path, so it survives restarts; 0 means "no cursor".
+// (v1 persists only the active tab's history, under KEY_HISTORY_* below; the active tab's path is also mirrored
+// to KEY_*PANEL_PATH for back-compat.)
 #define KEY_LPANEL_TABS QSL("Internal/Core/LPanel/Tabs")
 #define KEY_RPANEL_TABS QSL("Internal/Core/RPanel/Tabs")
 #define KEY_LPANEL_ACTIVE_TAB QSL("Internal/Core/LPanel/ActiveTab")
 #define KEY_RPANEL_ACTIVE_TAB QSL("Internal/Core/RPanel/ActiveTab")
 
-// Per-tab cursor (current item) position, stored as a list of item hashes parallel to KEY_*PANEL_TABS.
-// The hash is a deterministic function of the item's path, so it survives restarts; a missing/stale entry falls back to the first item.
+// Tab ids are handed out from here and never reused: the UI keys its per-tab column state by id, and a reused id
+// would attach one tab's columns to another. Must not be recomputed from the ids of the tabs that came back - a
+// closed tab's id would be handed out again.
+#define KEY_NEXT_TAB_ID QSL("Internal/Core/NextTabId")
+
+// Superseded by the cursor hash inside each KEY_*PANEL_TABS entry: read once to migrate, then removed at shutdown.
 #define KEY_LPANEL_TAB_CURSORS QSL("Internal/Core/LPanel/TabCursors")
 #define KEY_RPANEL_TAB_CURSORS QSL("Internal/Core/RPanel/TabCursors")
 

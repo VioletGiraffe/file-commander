@@ -108,8 +108,6 @@ void CFileListView::modelAboutToBeReset()
 		{
 			header()->resizeSection(i, Math::round<int>((float)header()->width() * RelativeColumnSize[i]));
 		}
-
-		sortByColumn(ExtColumn, Qt::AscendingOrder);
 	}
 }
 

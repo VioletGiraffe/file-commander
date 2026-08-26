@@ -28,6 +28,34 @@ RESTORE_COMPILER_WARNINGS
 CController* CController::_instance = nullptr;
 
 namespace {
+	// One persisted tab, as stored in a single KEY_*PANEL_TABS list entry.
+	struct PersistedTab {
+		qulonglong id = 0; // 0 when the entry predates ids: the caller assigns a fresh one
+		qulonglong cursorHash = 0;
+		QString path;
+	};
+
+	[[nodiscard]] QString encodeTabRecord(qulonglong id, qulonglong cursorHash, const QString& path) {
+		return QString::number(id) + ':' + QString::number(cursorHash) + ':' + path;
+	}
+
+	// A stored path is always absolute, so it cannot imitate the "<digits>:<digits>:" prefix: on Windows the drive
+	// is a letter, elsewhere the path starts with '/'. Anything that fails to match is therefore a pre-id record.
+	[[nodiscard]] PersistedTab parseTabRecord(const QString& record) {
+		const qsizetype idEnd = record.indexOf(':');
+		const qsizetype cursorEnd = idEnd > 0 ? record.indexOf(':', idEnd + 1) : -1;
+		if (cursorEnd <= idEnd)
+			return { 0, 0, record };
+
+		bool idParsed = false, cursorParsed = false;
+		const qulonglong id = QStringView{ record }.left(idEnd).toULongLong(&idParsed);
+		const qulonglong cursorHash = QStringView{ record }.sliced(idEnd + 1, cursorEnd - idEnd - 1).toULongLong(&cursorParsed);
+		if (!idParsed || !cursorParsed || id == 0)
+			return { 0, 0, record };
+
+		return { id, cursorHash, record.sliced(cursorEnd + 1) };
+	}
+
 	inline uint32_t optimalCpuCount() {
 		const auto cpu = CpuCount::get();
 		uint32_t optimalCores = std::max(cpu.performanceCoreCount(), cpu.efficiencyCoreCount());
@@ -91,6 +119,15 @@ void CController::shutdown()
 	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
 		savePanelState(p);
 	saveHistory();
+
+	// One-time cleanup: the cursor hashes now live inside the tab records savePanelState just wrote. Removing a key
+	// that isn't there still dirties the settings, so check first - this runs on every exit for the rest of time.
+	QSettings legacyCursorKeys;
+	for (const QString& key : { KEY_LPANEL_TAB_CURSORS, KEY_RPANEL_TAB_CURSORS })
+	{
+		if (legacyCursorKeys.contains(key))
+			legacyCursorKeys.remove(key);
+	}
 
 	_volumeEnumerator.shutdown();
 
@@ -221,10 +258,10 @@ void CController::refreshPanelContents(Panel p)
 	panel(p).refreshFileList(refreshCauseOther);
 }
 
-CPanel& CController::createTab(Panel p)
+CPanel& CController::createTab(Panel p, qulonglong id)
 {
 	auto& tabList = _panels[(size_t)p];
-	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _panelWorkerPool, _nextTabId++));
+	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _panelWorkerPool, id));
 	attachListenersToTab(p, tab);
 	return tab;
 }
@@ -245,7 +282,7 @@ qulonglong CController::addTab(Panel p, const QString& path, bool activate)
 	if (_panels[(size_t)p].tabs.empty())
 		return 0;
 
-	CPanel& tab = createTab(p);
+	CPanel& tab = createTab(p, _nextTabId++);
 	tab.setPath(path, refreshCauseOther); // Fires onCurrentPathChanged -> logs the new tab's path to the visited-locations list
 	const qulonglong newId = tab.id();
 
@@ -401,19 +438,41 @@ void CController::restorePanelState(Panel p)
 	const size_t side = (size_t)p;
 	QSettings s;
 
-	QStringList tabPaths = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS).toStringList();
-	if (tabPaths.isEmpty())
+	QStringList tabRecords = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS).toStringList();
+	if (tabRecords.isEmpty())
 	{
 		// Migration from the pre-tabs single-path setting (also the first-run default): one tab at the legacy location.
-		tabPaths.push_back(s.value(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString());
+		tabRecords.push_back(s.value(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, QDir::homePath()).toString());
 	}
 
 	int activeIndex = s.value(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, 0).toInt();
-	if (activeIndex < 0 || activeIndex >= tabPaths.size())
+	if (activeIndex < 0 || activeIndex >= tabRecords.size())
 		activeIndex = 0;
 
-	// Current item per tab, parallel to tabPaths. Absent for tabs migrated from the pre-tabs settings.
-	const QStringList tabCurrentItems = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS).toStringList();
+	// Cursor hashes of pre-id records only, positionally parallel to the tab list they were written with.
+	const QStringList legacyCursors = s.value(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS).toStringList();
+
+	std::vector<PersistedTab> persistedTabs;
+	persistedTabs.reserve((size_t)tabRecords.size());
+	qulonglong highestPersistedId = 0;
+	for (int i = 0; i < tabRecords.size(); ++i)
+	{
+		PersistedTab tab = parseTabRecord(tabRecords[i]);
+		if (tab.id == 0 && i < legacyCursors.size())
+			tab.cursorHash = legacyCursors[i].toULongLong();
+
+		highestPersistedId = std::max(highestPersistedId, tab.id);
+		persistedTabs.push_back(std::move(tab));
+	}
+
+	// Both sides draw ids from this one counter, so never lower it. highestPersistedId covers a counter lost to an
+	// abrupt exit.
+	_nextTabId = std::max({ _nextTabId, s.value(KEY_NEXT_TAB_ID, 1).toULongLong(), highestPersistedId + 1 });
+	for (PersistedTab& tab : persistedTabs)
+	{
+		if (tab.id == 0)
+			tab.id = _nextTabId++;
+	}
 
 	// v1 restores only the active tab's history (saved under the legacy key).
 	const QStringList historyList = s.value(p == Panel::LeftPanel ? KEY_HISTORY_L : KEY_HISTORY_R).toStringList();
@@ -425,24 +484,22 @@ void CController::restorePanelState(Panel p)
 	_visitedLocations[side].addLatest(std::vector<QString>(visitedList.cbegin(), visitedList.cend()));
 
 	auto& tabList = _panels[side];
-	for (int i = 0; i < tabPaths.size(); ++i)
+	for (int i = 0; i < (int)persistedTabs.size(); ++i)
 	{
-		CPanel& tab = createTab(p);
+		const PersistedTab& persisted = persistedTabs[(size_t)i];
+		CPanel& tab = createTab(p, persisted.id);
 		if (i == activeIndex)
 			tab.restoreHistory(history);
 		// Seed the cursor before the folder is listed: the listing reads it back to position the cursor.
-		if (i < tabCurrentItems.size())
-		{
-			if (const qulonglong currentItemHash = tabCurrentItems[i].toULongLong(); currentItemHash != 0)
-				tab.setCurrentItemHashForFolder(tabPaths[i], currentItemHash, false);
-		}
+		if (persisted.cursorHash != 0)
+			tab.setCurrentItemHashForFolder(persisted.path, persisted.cursorHash, false);
 		// The active tab's setPath is deferred below so it's always the most-recently-visited entry in the
 		// side-wide visited-locations list on restore, regardless of tab order.
 		if (i != activeIndex)
-			tab.setPath(tabPaths[i], refreshCauseOther);
+			tab.setPath(persisted.path, refreshCauseOther);
 	}
 	tabList.activeTab = (size_t)activeIndex;
-	tabList.tabs[tabList.activeTab]->setPath(tabPaths[activeIndex], refreshCauseOther);
+	tabList.tabs[tabList.activeTab]->setPath(persistedTabs[(size_t)activeIndex].path, refreshCauseOther);
 	// The restored tabs are all inactive so far, so this is the only folder listed at startup; the rest are listed
 	// when they're first activated.
 	tabList.tabs[tabList.activeTab]->setActive(true);
@@ -455,26 +512,21 @@ void CController::savePanelState(Panel p)
 	if (tabList.tabs.empty())
 		return;
 
-	QStringList tabPaths, tabCurrentItems;
+	QStringList tabRecords;
 	for (const auto& tab : tabList.tabs)
 	{
-		tabPaths.push_back(tab->currentDirPathPosix());
-		tabCurrentItems.push_back(QString::number(tab->currentItemHashForFolder(tab->currentDirPathPosix())));
+		const QString path = tab->currentDirPathPosix();
+		tabRecords.push_back(encodeTabRecord(tab->id(), tab->currentItemHashForFolder(path), path));
 	}
 	const int activeIndex = (int)tabList.activeTab;
 
 	// Dedup: contents-changed also fires on watcher refreshes, where nothing relevant to persistence changed.
-	// The current-item hashes are part of the signature so a cursor move (e.g. captured at shutdown) isn't swallowed.
+	// The records carry the current-item hashes, so a cursor move (e.g. captured at shutdown) isn't swallowed.
 	QString signature = QString::number(activeIndex);
-	for (const QString& path : tabPaths)
+	for (const QString& record : tabRecords)
 	{
 		signature += QChar('\n');
-		signature += path;
-	}
-	for (const QString& currentItem : tabCurrentItems)
-	{
-		signature += QChar('\n');
-		signature += currentItem;
+		signature += record;
 	}
 
 	if (signature == _lastSavedTabSignature[side])
@@ -483,12 +535,12 @@ void CController::savePanelState(Panel p)
 	_lastSavedTabSignature[side] = signature;
 
 	QSettings s;
-	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS, tabPaths);
-	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TAB_CURSORS : KEY_RPANEL_TAB_CURSORS, tabCurrentItems);
+	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS, tabRecords);
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, activeIndex);
+	s.setValue(KEY_NEXT_TAB_ID, _nextTabId);
 
 	// Mirror the active tab's path to the legacy key (back-compat + crash recovery).
-	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, tabPaths[activeIndex]);
+	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, tabList.tabs[tabList.activeTab]->currentDirPathPosix());
 }
 
 void CController::saveHistory()

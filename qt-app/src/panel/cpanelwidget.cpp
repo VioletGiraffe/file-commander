@@ -50,6 +50,13 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <unordered_set>
 
+// Per-tab column layout and sort, keyed by the controller's tab ids; see saveTabViewStates().
+#define KEY_LPANEL_TAB_VIEW_STATES QSL("Ui/LPanel/TabViewStates")
+#define KEY_RPANEL_TAB_VIEW_STATES QSL("Ui/RPanel/TabViewStates")
+// Superseded by the keys above, which store this per tab instead of one blob per side. Read once, then removed.
+#define KEY_LPANEL_LEGACY_HEADER_STATE QSL("Ui/LPanel/State")
+#define KEY_RPANEL_LEGACY_HEADER_STATE QSL("Ui/RPanel/State")
+
 struct FolderContentsSummary {
 	uint64_t numFiles = 0;
 	uint64_t numFolders = 0;
@@ -142,28 +149,76 @@ void CPanelWidget::setFocusToFileList()
 	ui->_list->setFocus();
 }
 
-QByteArray CPanelWidget::savePanelState() const
+void CPanelWidget::saveTabViewStates() const
 {
-	return ui->_list->header()->saveState();
+	QStringList records;
+	for (int i = 0; i < (int)_tabs.size(); ++i)
+	{
+		const PanelTab& tab = _tabs[(size_t)i];
+		// A tab's stored copy is only refreshed when switching away from it, so for the active one the live header is newer.
+		const QByteArray headerState = i == _activeTab ? ui->_list->header()->saveState() : tab.headerState;
+		// Every field is decimal digits or base64, neither of which can contain the separator, so no escaping is needed.
+		records.push_back(QString::number(tabIdAt(i)) + '|' + QString::number(tab.sortModel->sortColumn()) + '|'
+			+ QString::number((int)tab.sortModel->sortOrder()) + '|' + QString::fromLatin1(headerState.toBase64()));
+	}
+
+	QSettings s;
+	s.setValue(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_TAB_VIEW_STATES : KEY_RPANEL_TAB_VIEW_STATES, records);
+	s.remove(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE);
 }
 
-bool CPanelWidget::restorePanelState(const QByteArray& state)
+std::vector<std::pair<qulonglong, CPanelWidget::TabViewState>> CPanelWidget::loadTabViewStates() const
 {
-	if (!state.isEmpty())
+	const QStringList records = QSettings{}.value(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_TAB_VIEW_STATES : KEY_RPANEL_TAB_VIEW_STATES).toStringList();
+
+	std::vector<std::pair<qulonglong, TabViewState>> states;
+	states.reserve((size_t)records.size());
+	for (const QString& record : records)
 	{
-		ui->_list->setHeaderAdjustmentRequired(false);
-		const bool ok = ui->_list->header()->restoreState(state);
-		// Mirror the persisted blob into the startup-active tab's own storage, otherwise switching away
-		// from and back to it (before ever resizing anything) would revert to its stale, pre-restore seed.
-		if (_activeTab >= 0 && _activeTab < (int)_tabs.size())
-			_tabs[(size_t)_activeTab].headerState = state;
-		return ok;
+		const QStringList fields = record.split('|');
+		if (fields.size() != 4)
+			continue; // Written by another version of this format
+
+		bool idParsed = false, columnParsed = false;
+		const qulonglong tabId = fields[0].toULongLong(&idParsed);
+		const int sortColumn = fields[1].toInt(&columnParsed);
+		if (!idParsed || !columnParsed || sortColumn < 0 || sortColumn >= NumberOfColumns)
+			continue;
+
+		TabViewState state;
+		state.sortColumn = sortColumn;
+		state.sortOrder = fields[2].toInt() == (int)Qt::DescendingOrder ? Qt::DescendingOrder : Qt::AscendingOrder;
+		state.headerState = QByteArray::fromBase64(fields[3].toLatin1());
+		states.emplace_back(tabId, std::move(state));
 	}
-	else
+
+	return states;
+}
+
+CPanelWidget::TabViewState CPanelWidget::viewStateFromLegacyHeaderBlob() const
+{
+	TabViewState state;
+	state.headerState = QSettings{}.value(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE).toByteArray();
+	if (state.headerState.isEmpty())
+		return state;
+
+	// The blob's sort indicator is the only record of how the side was sorted; a detached header decodes it
+	// without disturbing the live one.
+	QHeaderView legacyHeader{ Qt::Horizontal };
+	const bool restored = legacyHeader.restoreState(state.headerState);
+	const int sortColumn = legacyHeader.sortIndicatorSection();
+	if (restored && sortColumn >= 0 && sortColumn < NumberOfColumns)
 	{
-		ui->_list->setHeaderAdjustmentRequired(true);
-		return false;
+		state.sortColumn = sortColumn;
+		state.sortOrder = legacyHeader.sortIndicatorOrder();
 	}
+
+	return state;
+}
+
+CPanelWidget::TabViewState CPanelWidget::currentTabViewState() const
+{
+	return { _sortModel->sortColumn(), _sortModel->sortOrder(), ui->_list->header()->saveState() };
 }
 
 QByteArray CPanelWidget::savePanelGeometry() const
@@ -212,13 +267,22 @@ void CPanelWidget::initPanel(Panel p)
 	// Mirror however many tabs CController restored for this side (usually one, but persisted multi-tab state may have more).
 	const std::vector<qulonglong> ids = _controller->tabIds(p);
 	const qulonglong activeId = _controller->activeTabId(p);
+
+	const std::vector<std::pair<qulonglong, TabViewState>> storedViewStates = loadTabViewStates();
+	// Tabs with nothing stored for them fall back to the legacy side-wide blob while it's still there, to defaults after.
+	const TabViewState fallbackViewState = storedViewStates.empty() ? viewStateFromLegacyHeaderBlob() : TabViewState{};
+	const auto viewStateForTab = [&](qulonglong tabId) {
+		const auto stored = std::find_if(storedViewStates.cbegin(), storedViewStates.cend(), [tabId](const auto& state) { return state.first == tabId; });
+		return stored != storedViewStates.cend() ? stored->second : fallbackViewState;
+	};
+
 	int activeIndex = 0;
 	{
 		const QSignalBlocker block(ui->_tabBar);
 		for (const qulonglong id : ids)
 		{
 			PanelTab& tab = _tabs.emplace_back();
-			populateTriplet(tab);
+			populateTriplet(tab, viewStateForTab(id));
 
 			const int index = ui->_tabBar->addTab(QString());
 			ui->_tabBar->setTabData(index, id);
@@ -229,6 +293,8 @@ void CPanelWidget::initPanel(Panel p)
 	}
 	for (int i = 0; i < (int)_tabs.size(); ++i)
 		updateTabText(i);
+	// Nothing stored for the tab about to be shown means a first run: the columns have never been sized.
+	ui->_list->setHeaderAdjustmentRequired(_tabs[(size_t)activeIndex].headerState.isEmpty());
 	activateTab(activeIndex);
 	updateTabBarVisibility();
 
@@ -237,7 +303,7 @@ void CPanelWidget::initPanel(Panel p)
 	_controller->setCurrentItemChangedListener(p, this);
 }
 
-void CPanelWidget::populateTriplet(PanelTab& tab)
+void CPanelWidget::populateTriplet(PanelTab& tab, const TabViewState& viewState)
 {
 	tab.model = new(std::nothrow) CFileListModel(_panelPosition, this);
 	assert_r(connect(tab.model, &CFileListModel::itemEdited, this, &CPanelWidget::renameItem));
@@ -252,16 +318,8 @@ void CPanelWidget::populateTriplet(PanelTab& tab)
 		ui->_list->scrollTo(ui->_list->currentIndex());
 	}));
 
-	// A new tab starts sorted like the tab it was opened from (or Name/Ascending for the very first tab); from this point on each tab's sort is independent (see activateTab).
-	if (_sortModel)
-		tab.sortModel->sort(_sortModel->sortColumn(), _sortModel->sortOrder());
-	else
-		tab.sortModel->sort(NameColumn, Qt::AscendingOrder);
-
-	// Header state only can stored the view has a model; during initPanel it doesn't yet (0 sections), and saving that
-	// would later desync the 4-section header in activateTab. Leave it empty -> activateTab skips restoreState.
-	if (ui->_list->header()->count() == NumberOfColumns)
-		tab.headerState = ui->_list->header()->saveState();
+	tab.sortModel->sort(viewState.sortColumn, viewState.sortOrder);
+	tab.headerState = viewState.headerState;
 
 	// Each tab owns its selection model (parented to the widget, not the view) so it survives the view->setModel() swaps.
 	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.sortModel, this);
@@ -341,7 +399,7 @@ void CPanelWidget::openPathInNewTab(const QString& path, bool activate)
 	const qulonglong id = _controller->addTab(_panelPosition, path, activate);
 
 	PanelTab& tab = _tabs.emplace_back();
-	populateTriplet(tab);
+	populateTriplet(tab, currentTabViewState());
 
 	int index = 0;
 	{

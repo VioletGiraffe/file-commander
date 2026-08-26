@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ccontroller.h"
+#include "columns.h"
 #include "filelistwidget/cfilelistview.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -39,8 +40,8 @@ public:
 
 	void setFocusToFileList();
 
-	[[nodiscard]] QByteArray savePanelState() const;
-	bool restorePanelState(const QByteArray& state);
+	// Persists every tab's sort and column layout. Called at shutdown: nothing else writes this store.
+	void saveTabViewStates() const;
 
 	[[nodiscard]] QByteArray savePanelGeometry() const;
 	bool restorePanelGeometry(const QByteArray& state);
@@ -139,7 +140,18 @@ private:
 		QItemSelectionModel* selectionModel = nullptr;
 		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - sortModel owns the sort)
 	};
-	void populateTriplet(PanelTab& tab);            // Wires a model / sort-proxy / selection-model trio into an already-emplaced tab (not shown yet)
+	// A tab's persisted appearance. The defaults are what a tab gets with nothing stored for it.
+	struct TabViewState {
+		int sortColumn = ExtColumn;
+		Qt::SortOrder sortOrder = Qt::AscendingOrder;
+		QByteArray headerState;
+	};
+	// Wires a model / sort-proxy / selection-model trio into an already-emplaced tab (not shown yet). The tab's sort
+	// is independent from every other tab's from here on, so viewState only seeds it; see activateTab.
+	void populateTriplet(PanelTab& tab, const TabViewState& viewState);
+	[[nodiscard]] TabViewState currentTabViewState() const;      // The active tab's live state, for a new tab to start from
+	[[nodiscard]] std::vector<std::pair<qulonglong, TabViewState>> loadTabViewStates() const; // Persisted state by tab id; empty when nothing is stored
+	[[nodiscard]] TabViewState viewStateFromLegacyHeaderBlob() const; // Migration: settings that predate the per-tab store held one blob per side
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
 	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
 	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, restoring its own column widths and sort
