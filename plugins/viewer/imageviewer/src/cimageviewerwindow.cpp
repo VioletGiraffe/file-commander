@@ -32,7 +32,7 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	});
 
 	ui->_imageViewerWidget->setInfoStripHint(tr("Press %1 to hide").arg(ui->actionShowImageInfo->shortcut().toString(QKeySequence::NativeText)));
-	connect(ui->actionShowImageInfo, &QAction::toggled, ui->_imageViewerWidget, &CImageViewerWidget::setInfoStripVisible);
+	connect(ui->actionShowImageInfo, &QAction::toggled, ui->_imageViewerWidget, &CImageViewerWidget::setOverlayVisible);
 
 	connect(ui->actionOpen, &QAction::triggered, this, [this] {
 		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg *.jpe);; TIFF (*.tif *.tiff);; PNG (*.png)");
