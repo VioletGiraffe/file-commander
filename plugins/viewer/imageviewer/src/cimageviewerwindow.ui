@@ -68,12 +68,13 @@
     </property>
     <addaction name="actionFitToScreen"/>
     <addaction name="actionZoom1to1"/>
+    <addaction name="separator"/>
+    <addaction name="actionShowImageInfo"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_Edit"/>
    <addaction name="menuView"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
    <property name="text">
     <string>&amp;Open...</string>
@@ -130,6 +131,20 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+1</string>
+   </property>
+  </action>
+  <action name="actionShowImageInfo">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show image &amp;info</string>
+   </property>
+   <property name="shortcut">
+    <string>I</string>
    </property>
   </action>
  </widget>

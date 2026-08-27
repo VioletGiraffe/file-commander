@@ -2,7 +2,6 @@
 
 #include "plugininterface/cpluginwindow.h"
 
-class QLabel;
 class CPluginProxy;
 
 namespace Ui {
@@ -23,6 +22,4 @@ private:
 private:
 	QString _currentImagePath;
 	Ui::CImageViewerWindow *ui;
-	QLabel * _imageInfoLabel;
-	QLabel * _viewingAtLabel;
 };

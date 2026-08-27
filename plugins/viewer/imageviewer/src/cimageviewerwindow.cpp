@@ -9,7 +9,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QImageWriter>
-#include <QLabel>
 #include <QMessageBox>
 #include <QShortcut>
 #include <QTimer>
@@ -31,10 +30,9 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 		if (!ImageProcessing::resize(dest, source, srcRect, parallelFor))
 			CImageViewerWidget::smoothScale(dest, source, srcRect);
 	});
-	_imageInfoLabel = new QLabel(this);
-	statusBar()->addWidget(_imageInfoLabel);
-	_viewingAtLabel = new QLabel(this);
-	statusBar()->addWidget(_viewingAtLabel);
+
+	ui->_imageViewerWidget->setInfoStripHint(tr("Press %1 to hide").arg(ui->actionShowImageInfo->shortcut().toString(QKeySequence::NativeText)));
+	connect(ui->actionShowImageInfo, &QAction::toggled, ui->_imageViewerWidget, &CImageViewerWidget::setInfoStripVisible);
 
 	connect(ui->actionOpen, &QAction::triggered, this, [this] {
 		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg *.jpe);; TIFF (*.tif *.tiff);; PNG (*.png)");
@@ -57,10 +55,6 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	connect(ui->actionFitToScreen, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::fitToWindow);
 	connect(ui->actionZoom1to1, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::zoomToActualPixels);
 
-	connect(ui->_imageViewerWidget, &CImageViewerWidget::displayedSizeChanged, this, [this](QSize size, qreal magnification) {
-		_viewingAtLabel->setText(tr("Viewing at %1x%2 (%3% / %4x)").arg(size.width()).arg(size.height()).arg(qRound(magnification * 100.0)).arg(magnification, 0, 'f', 2));
-	});
-
 	new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 }
 
@@ -78,7 +72,6 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 		return false;
 	}
 
-	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
 	QFileInfo fi(imagePath);
 	setWindowTitle(fi.fileName() + " [" + fi.absolutePath() + "]");
 	// Only has effect on macOS , must be after set. Gives the title bar a document proxy icon (the only icon this window can have)

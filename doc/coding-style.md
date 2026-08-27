@@ -13,6 +13,13 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
 
 - There is `mv(x)` macro (`cpp-template-utils/lang/utils.hpp`) for spots dense with moves, e.g. a constructor call moving many arguments where `mv` keeps it on one line. But default to `std::move(x)` — the idiomatic shape any reader understands. Don't convert existing code either way in passing.
 
+- **No signals in the class, no `Q_OBJECT` in it.** A receiver needs no meta-object: `connect` asserts the
+  macro only on the class that owns the *signal*, and a PMF slot is called directly. `Q_OBJECT` is still
+  required for `Q_PROPERTY` / `Q_ENUM`, `qobject_cast` and `findChild<T*>`, string-based `connect` and
+  `QMetaObject::invokeMethod`, and QSS type selectors — without it `metaObject()->className()` reports the
+  nearest base, so `MyWidget { ... }` in a stylesheet stops matching. Translation context falls back to that
+  base class too; that alone is not a reason to add the macro.
+
 - A QStringBuilder expression must not be a ternary operand unless both branches have the same shape:
   `cond ? a % b : a % c % d` fails on clang — two unrelated `QStringBuilder<...>` instantiations with no
   common type — even though MSVC accepts it. Build the string imperatively, or wrap each branch in
