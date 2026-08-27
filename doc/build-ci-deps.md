@@ -30,10 +30,10 @@ CI workflow for their contracts. Headless GUI tests may use `QT_QPA_PLATFORM=off
 
 | Submodule | Role |
 |-----------|------|
-| **qtutils** | Qt settings, widgets/dialog helpers, history, natural sorting, and string helpers. |
+| **qtutils** | Qt settings, widgets/dialog helpers, history, natural sorting, and string helpers, plus `CImageViewerWidget`, the pan/zoom image view behind the image-viewer plugin. |
 | **cpputils** | Assertions, threading/execution queues, compiler helpers, and general C++ utilities. |
 | **cpp-template-utils** | Header-only template/metaprogramming + container algorithms + preprocessor helpers. |
 | **thin_io** | Cross-platform native file I/O and metadata used by core filesystem and operation code. |
 | **text-encoding-detector** | Detects text encoding of bytes -> QString. Backs the text-viewer plugin. |
-| **image-processing** | Image processing library used by the image-viewer plugin. |
+| **image-processing** | Image processing library used by the image-viewer plugin. Qt-free itself; Qt consumers include its header-only `resize/qimage_resize.h` bridge. |
 | **github-releases-autoupdater** | Update check + download for GitHub-release-distributed builds (Windows-installer focused). |
