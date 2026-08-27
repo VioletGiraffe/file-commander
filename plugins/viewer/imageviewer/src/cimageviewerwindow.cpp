@@ -1,6 +1,9 @@
 #include "cimageviewerwindow.h"
+#include "plugininterface/cpluginproxy.h"
+#include "widgets/cimageviewerwidget.h"
 
 DISABLE_COMPILER_WARNINGS
+#include "resize/qimage_resize.h"
 #include "ui_cimageviewerwindow.h"
 
 #include <QFileDialog>
@@ -12,12 +15,22 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
+#include <functional>
+#include <utility>
+
 CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noexcept :
 	CPluginWindow(parent),
 	ui(new Ui::CImageViewerWindow)
 {
 	ui->setupUi(this);
-	ui->_imageViewerWidget->setPluginProxy(proxy);
+	// The proxy outlives every plugin window, so the captured pointer stays valid in copies of the scaler that outlive this window.
+	ImageProcessing::ParallelForFn parallelFor = [proxy = &proxy](size_t count, const std::function<void(size_t)>& body) {
+		proxy->parallelFor(count, body);
+	};
+	ui->_imageViewerWidget->setImageScaler([parallelFor = std::move(parallelFor)](QImage& dest, const QImage& source, const QRect& srcRect) {
+		if (!ImageProcessing::resize(dest, source, srcRect, parallelFor))
+			CImageViewerWidget::smoothScale(dest, source, srcRect);
+	});
 	_imageInfoLabel = new QLabel(this);
 	statusBar()->addWidget(_imageInfoLabel);
 	_viewingAtLabel = new QLabel(this);
@@ -60,7 +73,10 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 {
 	_currentImagePath = imagePath;
 	if (!ui->_imageViewerWidget->displayImage(imagePath))
+	{
+		QMessageBox::warning(this, tr("Failed to load the image"), tr("Failed to load the image %1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
 		return false;
+	}
 
 	_imageInfoLabel->setText(ui->_imageViewerWidget->imageInfoString());
 	QFileInfo fi(imagePath);

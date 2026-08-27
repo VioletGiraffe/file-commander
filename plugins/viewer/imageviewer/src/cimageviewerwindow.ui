@@ -137,7 +137,7 @@
   <customwidget>
    <class>CImageViewerWidget</class>
    <extends>QWidget</extends>
-   <header>cimageviewerwidget.h</header>
+   <header>widgets/cimageviewerwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

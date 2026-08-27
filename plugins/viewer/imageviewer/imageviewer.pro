@@ -66,12 +66,10 @@ linux*|mac*|freebsd{
 
 HEADERS += \
 	src/cimageviewerplugin.h \
-	src/cimageviewerwidget.h \
 	src/cimageviewerwindow.h
 
 SOURCES += \
 	src/cimageviewerplugin.cpp \
-	src/cimageviewerwidget.cpp \
 	src/cimageviewerwindow.cpp
 
 win32*:!*msvc2012:*msvc* {
