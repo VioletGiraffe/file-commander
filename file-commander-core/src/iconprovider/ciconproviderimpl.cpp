@@ -12,13 +12,6 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-DISABLE_COMPILER_WARNINGS
-#include <ObjIdl.h> // Required prior to including <QtWinExtras>
-#include <QtWinExtras>
-RESTORE_COMPILER_WARNINGS
-#endif
-
 #include <Windows.h>
 #include <shellapi.h>
 
@@ -33,12 +26,7 @@ static QImage imageFromShellFileInfo(const DWORD_PTR shGetFileInfoResult, const 
 	if (shGetFileInfoResult == 0 || info.hIcon == nullptr)
 		return {};
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 	QImage image = QImage::fromHICON(info.hIcon);
-#else
-	// Qt 5 has no HICON-to-QImage conversion, so it goes through a pixmap and is therefore GUI-thread-only.
-	QImage image = QtWin::fromHICON(info.hIcon).toImage();
-#endif
 	DestroyIcon(info.hIcon);
 	return image;
 }
@@ -62,11 +50,11 @@ QImage CIconProviderImpl::genericIconImage(const QString& extension, const bool 
 	return imageFromShellFileInfo(result, info);
 }
 
-QImage CIconProviderImpl::preciseIconImage(const CFileSystemObject& object) const noexcept
+QImage CIconProviderImpl::preciseIconImage(const QString& fullAbsolutePath) const noexcept
 {
 	// Without SHGFI_USEFILEATTRIBUTES the shell reads the object itself and dwFileAttributes is ignored.
 	const UINT flags = iconRetrievalFlags(_showOverlayIcons);
-	const QString path = toNativeSeparators(object.fullAbsolutePath()); // SHGetFileInfoW does not accept UNC paths!
+	const QString path = toNativeSeparators(fullAbsolutePath); // SHGetFileInfoW does not accept UNC paths!
 
 	SHFILEINFOW info;
 	const auto result = SHGetFileInfoW(reinterpret_cast<const wchar_t*>(path.utf16()), 0, &info, sizeof(info), flags);

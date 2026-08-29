@@ -16,13 +16,14 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | `CShellOperationRunner` | interruptible thread per operation | Blocking native shell calls |
 | `CFileSearchEngine` | interruptible thread plus bounded pool | Traversal and content matching |
 | volume enumerator and polling watcher | periodic threads | Device and directory change polling |
+| `CIconProvider` | one COM apartment thread plus UI execution queue | Shell icon retrieval for the file list |
 | Windows watcher | native handle plus Qt event filter | Directory change notification |
 | file comparison plugin | worker thread with abort flag | One two-file content comparison |
 | `runFolderComparison` | worker thread per run | Tree scan and compare while the UI waits in the modal progress dialog |
 | `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
 | `OsShell::executeShellCommand` | detached thread | One blocking shell command; nothing waits for it |
 
-`CMainWindow` periodically drains every tab's panel queue and the controller UI queue. Tagged queue entries can
+`CMainWindow` periodically drains every tab's panel queue, the icon provider's queue, and the controller UI queue. Tagged queue entries can
 replace older pending entries with the same tag; work queued during a drain waits for the next tick.
 
 The comparison tools and the search window report back through queued Qt invocations targeting a UI object whose
@@ -60,6 +61,10 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 - The polling watcher's baseline and path generation are protected by the watcher mutex across both poll-thread and
   panel-worker access.
 - `CVolumeEnumerator` deliberately uses a recursive mutex because synchronous enumeration can re-enter getters.
+- The icon retrieval thread enters an apartment once and idles in a COM-aware wait, never a condition variable: shell
+  icon handlers are COM objects and the apartment must stay serviceable between queries. It produces `QImage`, never
+  `QPixmap` or `QIcon`, which the UI thread builds on delivery. Requests carry a generation so a settings change
+  retires whatever was already in flight under the previous overlay setting.
 - `CFileSearchEngine` retains a raw listener; its owner must wait for the search to finish before destruction.
 - `CShellOperationRunner` is owned outside the main window and drains UI events while waiting at shutdown. This
   preserves the native owner window and avoids deadlocking shell work that still marshals through the UI thread.
@@ -69,7 +74,8 @@ changing declaration order.
 
 Application shutdown is an explicit quiescence boundary. `main()` calls `CController::shutdown()` while the main
 window and plugin modules are still alive. The controller takes the plugin-access gate exclusively, saves final
-state, stops the volume enumerator, destroys the panels and retires their work, and establishes the empty state before
+state, stops the volume enumerator and the icon retrieval thread, destroys the panels and retires their work, and
+establishes the empty state before
 releasing the gate and discarding queued UI work. The shared application pool stops later in the controller
 destructor, after plugin proxies have retired their tagged work.
 

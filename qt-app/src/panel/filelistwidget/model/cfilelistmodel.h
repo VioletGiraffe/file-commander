@@ -1,6 +1,9 @@
 #pragma once
 
 #include "cpanel.h"
+#include "detail/hashmap_helpers.h"
+
+#include <3rdparty/ankerl/unordered_dense.h>
 
 DISABLE_COMPILER_WARNINGS
 #include <QAbstractItemModel>
@@ -22,6 +25,8 @@ public:
 	// Sets the position (left or right) of a panel that this model represents
 	[[nodiscard]] Panel panelPosition() const;
 	void onPanelContentsChanged(std::vector<qulonglong> itemHashes);
+	// Repaints the rows whose precise icon has just been retrieved. Hashes belonging to another folder are ignored.
+	void onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes);
 
 	[[nodiscard]] QModelIndex index(int row, int column, const QModelIndex& parent) const override;
 	[[nodiscard]] QModelIndex parent(const QModelIndex& child) const override;
@@ -47,6 +52,9 @@ signals:
 
 private:
 	std::vector<qulonglong> _itemHashes;
+	// The row of each hash in _itemHashes, rebuilt along with it. Turns an icon notification into a model index
+	// without scanning the whole list per icon.
+	ankerl::unordered_dense::map<qulonglong, int, IdentityHash> _rowByItemHash;
 
 	CController& _controller;
 	const Panel _panel = Panel::UnknownPanel;

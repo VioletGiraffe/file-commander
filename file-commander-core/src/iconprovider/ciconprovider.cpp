@@ -7,11 +7,11 @@
 #include "settings.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QImage>
 #include <QPixmap>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
+#include <string>
 #include <utility>
 
 // A flat cap with a wholesale flush: telling the entries worth keeping from the rest would cost more than
@@ -19,6 +19,17 @@ RESTORE_COMPILER_WARNINGS
 static constexpr size_t maxCachedObjects = 32768;
 
 #ifdef _WIN32
+
+#include "system/win_utils.hpp"
+#include "threading/thread_helpers.h"
+
+#include <Windows.h>
+
+enum { DeliverIconsTag };
+
+// Deep enough to hold several screens of backlog, shallow enough that a query stuck on an unreachable path isn't
+// holding up much. Anything dropped is asked for again the next time its row is painted.
+static constexpr size_t maxPendingRequests = 512;
 
 // Hashes the pixels, not the QImage: two icons that look alike must land on one cache entry. Row by row, because a
 // scanline can carry padding that was never initialized.
@@ -45,9 +56,24 @@ static constexpr size_t maxCachedObjects = 32768;
 CIconProvider::CIconProvider() : _provider{std::make_unique<CIconProviderImpl>()}
 {
 	settingsChanged();
+
+#ifdef _WIN32
+	_wakeEvent = ::CreateEventW(nullptr, FALSE /* auto-reset */, FALSE, nullptr);
+	assert_r(_wakeEvent);
+	if (_wakeEvent)
+		_retrievalThread = std::thread{ [this] { iconRetrievalThreadFunc(); } };
+#endif
 }
 
-CIconProvider::~CIconProvider() = default;
+CIconProvider::~CIconProvider()
+{
+	shutdown();
+
+#ifdef _WIN32
+	if (_wakeEvent)
+		::CloseHandle(_wakeEvent);
+#endif
+}
 
 QIcon CIconProvider::genericIconForExtension(const CFileSystemObject& object)
 {
@@ -90,8 +116,9 @@ QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
 	if (!object.isValid())
 		return {};
 
-	const uint64_t objectHash = object.hash();
-	if (QIcon cached = cachedPreciseIcon(objectHash, object); !cached.isNull())
+	const qulonglong objectHash = object.hash();
+	const time_t modificationTime = object.modificationTime();
+	if (QIcon cached = cachedPreciseIcon(objectHash, modificationTime); !cached.isNull())
 		return cached;
 
 	FetchedIcon fetched = fetchPreciseIcon(object);
@@ -99,8 +126,40 @@ QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
 		return {};
 
 	QIcon icon = fetched.icon;
-	cachePreciseIcon(objectHash, object, std::move(fetched));
+	cachePreciseIcon(objectHash, modificationTime, std::move(fetched));
 	return icon;
+}
+
+QIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
+{
+	if (!object.isValid())
+		return {};
+
+#ifdef _WIN32
+	const qulonglong objectHash = object.hash();
+	if (QIcon cached = cachedPreciseIcon(objectHash, object.modificationTime()); !cached.isNull())
+		return cached;
+
+	requestPreciseIcon(object, objectHash);
+	return genericIconForExtension(object);
+#else
+	return preciseIconBlocking(object);
+#endif
+}
+
+void CIconProvider::addIconsReadyListener(IconsReadyListener* listener)
+{
+	_iconsReadyListeners.addSubscriber(listener);
+}
+
+void CIconProvider::removeIconsReadyListener(IconsReadyListener* listener)
+{
+	_iconsReadyListeners.removeSubscriber(listener);
+}
+
+void CIconProvider::uiThreadTimerTick()
+{
+	_uiThreadQueue.exec();
 }
 
 void CIconProvider::settingsChanged()
@@ -111,12 +170,38 @@ void CIconProvider::settingsChanged()
 	_iconByContentHash.clear();
 	_genericIconByExtension.clear();
 	_genericFolderIcon.reset();
+
+#ifdef _WIN32
+	++_requestGeneration;
+	_requestedObjects.clear();
+
+	std::lock_guard locker{ _queueMutex };
+	_pendingRequests.clear();
+	_retrievedIcons.clear();
+#endif
+}
+
+void CIconProvider::shutdown()
+{
+#ifdef _WIN32
+	if (!_retrievalThread.joinable())
+		return;
+
+	_stopRequested = true;
+	::SetEvent(_wakeEvent);
+	// Waits out at most one query in flight, which an unreachable path can hold for as long as the shell's timeout.
+	_retrievalThread.join();
+
+	// After the join, so nothing can enqueue past it. CController::shutdown() destroys the panels right after
+	// calling this, and a delivery that ran afterwards would repaint rows whose panel is gone.
+	_uiThreadQueue.clear();
+#endif
 }
 
 CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const CFileSystemObject& object) const
 {
 #ifdef _WIN32
-	const QImage image = _provider->preciseIconImage(object);
+	const QImage image = _provider->preciseIconImage(object.fullAbsolutePath());
 	if (image.isNull())
 		return {};
 
@@ -134,10 +219,10 @@ CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const CFileSystemObje
 #endif
 }
 
-QIcon CIconProvider::cachedPreciseIcon(const uint64_t objectHash, const CFileSystemObject& object) const
+QIcon CIconProvider::cachedPreciseIcon(const qulonglong objectHash, const time_t modificationTime) const
 {
 	const auto cached = _cachedIconByObjectHash.find(objectHash);
-	if (cached == _cachedIconByObjectHash.end() || cached->second.modificationTime != object.modificationTime())
+	if (cached == _cachedIconByObjectHash.end() || cached->second.modificationTime != modificationTime)
 		return {};
 
 	const auto icon = _iconByContentHash.find(cached->second.contentHash);
@@ -145,7 +230,7 @@ QIcon CIconProvider::cachedPreciseIcon(const uint64_t objectHash, const CFileSys
 	return icon->second;
 }
 
-void CIconProvider::cachePreciseIcon(const uint64_t objectHash, const CFileSystemObject& object, FetchedIcon&& fetched)
+void CIconProvider::cachePreciseIcon(const qulonglong objectHash, const time_t modificationTime, FetchedIcon&& fetched)
 {
 	if (_cachedIconByObjectHash.size() >= maxCachedObjects) [[unlikely]]
 	{
@@ -154,6 +239,125 @@ void CIconProvider::cachePreciseIcon(const uint64_t objectHash, const CFileSyste
 		_iconByContentHash.clear();
 	}
 
-	_cachedIconByObjectHash.insert_or_assign(objectHash, CachedIcon{ fetched.contentHash, object.modificationTime() });
+	_cachedIconByObjectHash.insert_or_assign(objectHash, CachedIcon{ fetched.contentHash, modificationTime });
 	_iconByContentHash.try_emplace(fetched.contentHash, std::move(fetched.icon));
 }
+
+#ifdef _WIN32
+
+void CIconProvider::requestPreciseIcon(const CFileSystemObject& object, const qulonglong objectHash)
+{
+	if (!_requestedObjects.insert(objectHash).second)
+		return; // Already queued or in flight; repainting the row must not queue it again
+
+	{
+		std::lock_guard locker{ _queueMutex };
+		_pendingRequests.push_back(IconRequest{ object.fullAbsolutePath(), objectHash, object.modificationTime(), _requestGeneration });
+		if (_pendingRequests.size() > maxPendingRequests)
+		{
+			// The oldest request is the one a scroll has most likely carried off screen already.
+			_requestedObjects.erase(_pendingRequests.front().objectHash);
+			_pendingRequests.pop_front();
+		}
+	}
+
+	::SetEvent(_wakeEvent);
+}
+
+std::optional<CIconProvider::IconRequest> CIconProvider::takeNextRequest()
+{
+	std::lock_guard locker{ _queueMutex };
+	if (_pendingRequests.empty())
+		return {};
+
+	// Newest first: those are the rows on screen now, and a fast scroll's leftovers age out at the other end
+	// instead of being served.
+	IconRequest request = std::move(_pendingRequests.back());
+	_pendingRequests.pop_back();
+	return request;
+}
+
+void CIconProvider::waitForWork()
+{
+	DWORD signaledIndex = 0;
+	// Not a condition variable: a COM call marshalled into this apartment while the thread idles has to be
+	// serviced, and only a COM-aware wait does that. Flags 0 - dispatch what COM requires, nothing more.
+	const HRESULT waitResult = ::CoWaitForMultipleHandles(0, INFINITE, 1, &_wakeEvent, &signaledIndex);
+	if (FAILED(waitResult)) [[unlikely]]
+	{
+		// Retrying a wait that cannot succeed would spin a core. The thread gives up instead, and every icon comes
+		// from genericIconForExtension from here on.
+		assert_unconditional_r("CoWaitForMultipleHandles failed, stopping background icon retrieval");
+		_stopRequested = true;
+	}
+}
+
+void CIconProvider::iconRetrievalThreadFunc()
+{
+	setThreadName("Icon retrieval thread");
+	// One apartment for the thread's lifetime: shell icon handlers are COM objects, and entering the apartment per
+	// query would unload and reload their DLLs between icons.
+	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
+
+	while (!_stopRequested)
+	{
+		const std::optional<IconRequest> request = takeNextRequest();
+		if (!request)
+		{
+			waitForWork();
+			continue;
+		}
+
+		// Contained as the pool and the execution queue contain theirs: allocating an image can throw, and an
+		// escape from a thread function terminates the process over one icon. The object stays in
+		// _requestedObjects, so it keeps its generic icon until the next settings change.
+		try
+		{
+			QImage image = _provider->preciseIconImage(request->path);
+			const uint64_t contentHash = image.isNull() ? 0 : imageContentHash(image);
+
+			{
+				std::lock_guard locker{ _queueMutex };
+				_retrievedIcons.push_back(RetrievedIcon{ std::move(image), request->objectHash, request->modificationTime, contentHash, request->generation });
+			}
+		}
+		catch (const std::exception& e)
+		{
+			assert_unconditional_r(std::string{ "Exception retrieving an icon: " } + e.what());
+			continue;
+		}
+
+		// Tagged: a burst of retrievals between two UI ticks collapses into a single delivery.
+		_uiThreadQueue.enqueue([this] { deliverRetrievedIcons(); }, DeliverIconsTag);
+	}
+}
+
+void CIconProvider::deliverRetrievedIcons()
+{
+	std::vector<RetrievedIcon> retrieved;
+	{
+		std::lock_guard locker{ _queueMutex };
+		retrieved.swap(_retrievedIcons);
+	}
+
+	std::vector<qulonglong> updatedObjects;
+	updatedObjects.reserve(retrieved.size());
+
+	for (RetrievedIcon& retrievedIcon : retrieved)
+	{
+		// Cleared only here, so an object whose retrieval failed is asked for again the next time its row is painted.
+		_requestedObjects.erase(retrievedIcon.objectHash);
+		if (retrievedIcon.image.isNull() || retrievedIcon.generation != _requestGeneration)
+			continue;
+
+		// Stored against the modification time the request carried, not the object's current one: if the object
+		// changed in the meantime, the next lookup finds the mismatch and asks again.
+		cachePreciseIcon(retrievedIcon.objectHash, retrievedIcon.modificationTime, FetchedIcon{ iconFromImage(retrievedIcon.image), retrievedIcon.contentHash });
+		updatedObjects.push_back(retrievedIcon.objectHash);
+	}
+
+	if (!updatedObjects.empty())
+		_iconsReadyListeners.invokeCallback(&IconsReadyListener::onPreciseIconsAvailable, updatedObjects);
+}
+
+#endif

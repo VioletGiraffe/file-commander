@@ -130,6 +130,7 @@ void CController::shutdown()
 	}
 
 	_volumeEnumerator.shutdown();
+	_iconProvider.shutdown();
 
 	// CPanel destruction raises its abort flag before retiring the panel's tagged work, so an in-flight recursive
 	// scan exits promptly. The shared pool must remain alive until every panel has completed that handshake.
@@ -249,6 +250,7 @@ void CController::uiThreadTimerTick()
 			tab->uiThreadTimerTick();
 	}
 
+	_iconProvider.uiThreadTimerTick();
 	_uiQueue.exec(CExecutionQueue::execAll);
 }
 

@@ -28,7 +28,8 @@ class CPanelWidget final : public QWidget,
 					 private CController::IVolumeListObserver,
 					 public PanelContentsChangedListener,
 					 private FileListReturnPressOrDoubleClickObserver,
-					 public CurrentItemChangedListener
+					 public CurrentItemChangedListener,
+					 public IconsReadyListener
 {
 	Q_OBJECT
 
@@ -62,6 +63,7 @@ public:
 	// CPanel observers
 	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
+	void onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes) override;
 
 	[[nodiscard]] CFileListView* fileListView() const;
 	[[nodiscard]] QAbstractItemModel* model() const;

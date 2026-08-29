@@ -70,7 +70,26 @@ void CFileListModel::onPanelContentsChanged(std::vector<qulonglong> itemHashes)
 {
 	emit beginResetModel();
 	_itemHashes = std::move(itemHashes);
+
+	_rowByItemHash.clear();
+	_rowByItemHash.reserve(_itemHashes.size());
+	for (int row = 0, numRows = (int)_itemHashes.size(); row < numRows; ++row)
+		_rowByItemHash.emplace(_itemHashes[row], row);
+
 	emit endResetModel();
+}
+
+void CFileListModel::onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes)
+{
+	for (const qulonglong objectHash : objectHashes)
+	{
+		const auto row = _rowByItemHash.find(objectHash);
+		if (row == _rowByItemHash.end())
+			continue;
+
+		const QModelIndex itemIndex = index(row->second, NameColumn, {});
+		emit dataChanged(itemIndex, itemIndex, {Qt::DecorationRole});
+	}
 }
 
 QModelIndex CFileListModel::index(int row, int column, const QModelIndex& parent) const
@@ -120,7 +139,7 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 		return ::itemData(item, index.column());
 	case Qt::DecorationRole:
 		if (index.column() == NameColumn && !item.isCdUp())
-			return _controller.iconProvider().preciseIconBlocking(item);
+			return _controller.iconProvider().bestAvailableIconFor(item);
 		else
 			return {};
 	default:

@@ -8,6 +8,8 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 #endif
 
+#include <atomic>
+
 class CFileSystemObject;
 class QIcon;
 class QImage;
@@ -22,12 +24,13 @@ public:
 	[[nodiscard]] QImage genericIconImage(const QString& extension, bool isDir) const noexcept;
 	// The object's own icon, which .exe, .ico and .lnk derive from their contents. Accesses the disk.
 	// Requires the calling thread to be in a COM apartment.
-	[[nodiscard]] QImage preciseIconImage(const CFileSystemObject& object) const noexcept;
+	[[nodiscard]] QImage preciseIconImage(const QString& fullAbsolutePath) const noexcept;
 
+	// Safe to call while the retrieval thread is running: it reads the flag once per query.
 	void setShowOverlayIcons(bool show) noexcept;
 
 private:
-	bool _showOverlayIcons = false;
+	std::atomic<bool> _showOverlayIcons{ false };
 };
 
 #else
