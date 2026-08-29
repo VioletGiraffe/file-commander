@@ -26,7 +26,9 @@ RESTORE_COMPILER_WARNINGS
 #include <sys/stat.h> // chflags, UF_HIDDEN
 #endif
 
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <chrono>

@@ -9,7 +9,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <crtdbg.h>

@@ -3,6 +3,8 @@
 
 #include "progressdialogs/fileoperationlaunch.h"
 
+#include "compiler/compiler_warnings_control.h"
+
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
@@ -11,7 +13,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 namespace
 {

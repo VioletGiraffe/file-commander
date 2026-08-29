@@ -7,6 +7,8 @@
 
 #include "fileoperations/operationtesthooks.h"
 
+#include "compiler/compiler_warnings_control.h"
+
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
 #include <QDir>
@@ -23,7 +25,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <Windows.h> // ERROR_* codes

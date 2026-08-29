@@ -8,6 +8,8 @@
 #include "fileoperations/centrypath.h"
 #include "fileoperations/fileoperationtypes.h"
 
+#include "compiler/compiler_warnings_control.h"
+
 DISABLE_COMPILER_WARNINGS
 #include <QByteArray>
 #include <QCoreApplication>
@@ -17,7 +19,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 #include <chrono>
 #include <functional>

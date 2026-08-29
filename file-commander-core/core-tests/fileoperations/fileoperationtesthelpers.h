@@ -29,7 +29,9 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <string>
 
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 // Settable via the --std-seed command-line option; see main.cpp.
 extern uint32_t g_randomSeed;

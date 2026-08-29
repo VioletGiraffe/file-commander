@@ -2,6 +2,8 @@
 #include "filesystemhelperfunctions.h" // toNativeSeparators
 #include "link_helpers.hpp"
 
+#include "compiler/compiler_warnings_control.h"
+
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
@@ -9,7 +11,9 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #define CATCH_CONFIG_MAIN
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 {

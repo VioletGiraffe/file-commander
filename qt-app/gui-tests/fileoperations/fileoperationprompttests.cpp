@@ -3,6 +3,8 @@
 
 #include "progressdialogs/cfileoperationprompt.h"
 
+#include "compiler/compiler_warnings_control.h"
+
 DISABLE_COMPILER_WARNINGS
 #include <QCheckBox>
 #include <QLabel>
@@ -14,7 +16,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 

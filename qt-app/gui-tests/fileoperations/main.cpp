@@ -1,9 +1,11 @@
+#include "compiler/compiler_warnings_control.h"
+
 #define CATCH_CONFIG_RUNNER
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 #include "fileoperations/operationtesthooks.h"
-
-#include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

@@ -19,7 +19,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
+DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
+RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
