@@ -15,6 +15,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>File Commander build metrics</title>
 
+  <!-- Site root is two levels up; a leading-slash path would resolve above the project-page prefix. -->
+  <link rel="icon" type="image/webp" href="../../icon.webp">
+
   <script>
     // Resolve the theme before first paint to avoid a flash of the wrong background.
     (function () {
@@ -93,8 +96,7 @@
     // gets its own single-line chart.
     const GROUPS = [
       { title: 'Binary size by section', unit: 'KB', wide: true, match: n => n.startsWith('Section '), strip: n => n.replace(/^Section /, '') },
-      { title: 'Lines of code', unit: 'LOC', match: n => n === 'Lines of code (app)' || n === 'Lines of code (libs)', strip: n => n.replace(/^Lines of code \(|\)$/g, '') },
-      { title: 'Binary size', unit: 'KB', match: n => n === 'FileCommander.exe size' || n.startsWith('plugin_'), strip: n => n.replace(/ size$/, '') },
+      { title: 'Plugin size', unit: 'KB', match: n => n.startsWith('plugin_'), strip: n => n.replace(/ size$/, '') },
     ];
 
     const data = window.BENCHMARK_DATA;
@@ -129,7 +131,7 @@
     });
 
     // Build chart specs: one per group, plus a solo chart for every series no group claimed.
-    // `order` is the position of the chart's first series in the data, which is the order CI emits them in.
+    // `order` is the position of the chart's first series in the data; a full-width chart ends the grid row, so it sorts last.
     const used = new Set();
     const groupSpecs = [];
     for (const g of GROUPS) {
@@ -146,7 +148,7 @@
       heading: n, unit: unitByName[n], wide: false, combined: false, order: seriesNames.indexOf(n),
       datasets: [{ label: n, data: valuesFor(n), color: PALETTE[i % PALETTE.length] }],
     }));
-    const specs = soloSpecs.concat(groupSpecs).sort((a, b) => a.order - b.order);
+    const specs = soloSpecs.concat(groupSpecs).sort((a, b) => (a.wide - b.wide) || (a.order - b.order));
 
     const themeVars = () => {
       const cs = getComputedStyle(document.documentElement);
