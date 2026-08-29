@@ -64,6 +64,7 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <Windows.h>
+#include <ShlObj.h>
 #endif
 
 #include <algorithm>
@@ -74,6 +75,10 @@ RESTORE_COMPILER_WARNINGS
 #define KEY_LAST_ACTIVE_PANEL QSL("Ui/LastActivePanel")
 
 CMainWindow * CMainWindow::_instance = nullptr;
+
+#ifdef _WIN32
+static constexpr UINT ShellAssociationsChangedMessage = WM_APP + 1;
+#endif
 
 #if defined _WIN32 || defined __APPLE__
 // Only the native-shell deletion path reports through this; that path is not compiled elsewhere.
@@ -138,6 +143,11 @@ CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, C
 
 CMainWindow::~CMainWindow() noexcept
 {
+#ifdef _WIN32
+	if (_shellNotificationId != 0)
+		::SHChangeNotifyDeregister(_shellNotificationId);
+#endif
+
 	_uiThreadTimer->disconnect();
 	_historyAutosaveTimer->disconnect();
 
@@ -418,6 +428,35 @@ void CMainWindow::changeEvent(QEvent *e)
 
 	QMainWindow::changeEvent(e);
 }
+
+#ifdef _WIN32
+
+void CMainWindow::showEvent(QShowEvent *e)
+{
+	QMainWindow::showEvent(e);
+
+	if (_shellNotificationId != 0)
+		return;
+
+	// Null pidl with fRecursive: SHCNE_ASSOCCHANGED is global, not tied to a folder.
+	SHChangeNotifyEntry entry{};
+	entry.fRecursive = TRUE;
+
+	// Not SHCNRF_NewDelivery: it delivers the payload in shared memory the receiver must lock and release, and
+	// nothing here reads the payload.
+	_shellNotificationId = ::SHChangeNotifyRegister(reinterpret_cast<HWND>(winId()), SHCNRF_ShellLevel, SHCNE_ASSOCCHANGED, ShellAssociationsChangedMessage, 1, &entry);
+	assert_r(_shellNotificationId != 0);
+}
+
+bool CMainWindow::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
+{
+	if (static_cast<MSG*>(message)->message == ShellAssociationsChangedMessage)
+		_controller->fileAssociationsChanged();
+
+	return QMainWindow::nativeEvent(eventType, message, result);
+}
+
+#endif
 
 bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 {

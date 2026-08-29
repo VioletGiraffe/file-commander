@@ -64,7 +64,7 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 - The icon retrieval thread enters an apartment once and idles in a COM-aware wait, never a condition variable: shell
   icon handlers are COM objects and the apartment must stay serviceable between queries. It produces `QImage`, never
   `QPixmap` or `QIcon`, which the UI thread builds on delivery. Requests carry a generation, so dropping the caches
-  (overlay setting, display scale, system theme) also retires whatever was already in flight.
+  also retires whatever was already in flight.
 - `CFileSearchEngine` retains a raw listener; its owner must wait for the search to finish before destruction.
 - `CShellOperationRunner` is owned outside the main window and drains UI events while waiting at shutdown. This
   preserves the native owner window and avoids deadlocking shell work that still marshals through the UI thread.

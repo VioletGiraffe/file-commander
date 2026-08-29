@@ -675,6 +675,11 @@ void CController::themeChanged()
 	_iconProvider.invalidateCache();
 }
 
+void CController::fileAssociationsChanged()
+{
+	_iconProvider.invalidateCache();
+}
+
 void CController::activePanelChanged(Panel p)
 {
 	assert_and_return_r(p == Panel::LeftPanel || p == Panel::RightPanel, );

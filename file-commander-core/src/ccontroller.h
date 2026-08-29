@@ -92,6 +92,8 @@ public:
 	void settingsChanged();
 	// The system theme has changed, which the shell draws its icons for
 	void themeChanged();
+	// The file type associations have changed, so the shell now answers with different icons
+	void fileAssociationsChanged();
 	// Focus is set to a panel
 	void activePanelChanged(Panel p);
 	// Visible selection is UI-owned; mirror it into the plugin-facing panel snapshot.

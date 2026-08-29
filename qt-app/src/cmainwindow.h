@@ -53,6 +53,11 @@ public:
 protected:
 	void closeEvent(QCloseEvent * e) override;
 	void changeEvent(QEvent * e) override;
+#ifdef _WIN32
+	// Registers for, and then receives, the shell's file-association-change notification.
+	void showEvent(QShowEvent * e) override;
+	bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
+#endif
 	bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
@@ -170,4 +175,9 @@ private:
 	// Bottom command buttons whose caption reflects the Shift-modified action while Shift is held
 	struct ShiftCaption { QPushButton* button; QString normal; QString shifted; };
 	std::vector<ShiftCaption> _shiftCaptions;
+
+#ifdef _WIN32
+	// SHChangeNotifyRegister's cookie, 0 until the first show: registering needs the native window.
+	unsigned long _shellNotificationId = 0;
+#endif
 };
