@@ -273,7 +273,12 @@ bool CFileSystemObject::isHidden() const
 	return _fileInfo.isHidden();
 }
 
-QString CFileSystemObject::fullAbsolutePath() const
+const QString& CFileSystemObject::fullAbsolutePath() const &
+{
+	return _properties.fullPath;
+}
+
+QString CFileSystemObject::fullAbsolutePath() const &&
 {
 	return _properties.fullPath;
 }
@@ -384,18 +389,33 @@ void CFileSystemObject::setDirSize(uint64_t size)
 }
 
 // File name without suffix, or folder name. Same as QFileInfo::completeBaseName.
-QString CFileSystemObject::name() const
+const QString& CFileSystemObject::name() const &
+{
+	return _properties.completeBaseName;
+}
+
+QString CFileSystemObject::name() const &&
 {
 	return _properties.completeBaseName;
 }
 
 // Filename + suffix for files, same as name() for folders
-QString CFileSystemObject::fullName() const
+const QString& CFileSystemObject::fullName() const &
 {
 	return _properties.fullName;
 }
 
-QString CFileSystemObject::extension() const
+QString CFileSystemObject::fullName() const &&
+{
+	return _properties.fullName;
+}
+
+const QString& CFileSystemObject::extension() const &
+{
+	return _properties.extension;
+}
+
+QString CFileSystemObject::extension() const &&
 {
 	return _properties.extension;
 }

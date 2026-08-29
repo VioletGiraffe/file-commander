@@ -84,7 +84,10 @@ public:
 	[[nodiscard]] bool isWriteable() const;
 	[[nodiscard]] bool isHidden() const;
 
-	[[nodiscard]] QString fullAbsolutePath() const;
+	// Stored strings return by reference, computed ones (parentDirPath, symLinkTarget) by value.
+	// The && overloads return a copy: a reference taken from a temporary object would dangle.
+	[[nodiscard]] const QString& fullAbsolutePath() const &;
+	[[nodiscard]] QString fullAbsolutePath() const &&;
 	[[nodiscard]] QString parentDirPath() const;
 	[[nodiscard]] uint64_t size() const;
 	[[nodiscard]] uint64_t hash() const;
@@ -102,10 +105,13 @@ public:
 	void setDirSize(uint64_t size);
 
 	// File name without suffix, or folder name. Same as QFileInfo::completeBaseName.
-	[[nodiscard]] QString name() const;
+	[[nodiscard]] const QString& name() const &;
+	[[nodiscard]] QString name() const &&;
 	// Filename + suffix for files, same as name() for folders
-	[[nodiscard]] QString fullName() const;
-	[[nodiscard]] QString extension() const;
+	[[nodiscard]] const QString& fullName() const &;
+	[[nodiscard]] QString fullName() const &&;
+	[[nodiscard]] const QString& extension() const &;
+	[[nodiscard]] QString extension() const &&;
 
 private:
 	CFileSystemObjectProperties _properties;

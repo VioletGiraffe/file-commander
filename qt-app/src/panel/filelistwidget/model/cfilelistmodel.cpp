@@ -27,7 +27,7 @@ inline QVariant itemData(const CFileSystemObject& item, int column)
 		if (props.type == Directory)
 			return QString("[" % (item.isCdUp() ? QLatin1String("..") : props.fullName) % "]");
 		else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
-			return item.extension().prepend('.');
+			return QString("." % props.extension);
 		else
 			return props.completeBaseName;
 
