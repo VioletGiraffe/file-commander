@@ -3,6 +3,7 @@
 #include "fileoperationresultcode.h"
 #include "cpanel.h"
 #include "diskenumerator/cvolumeenumerator.h"
+#include "iconprovider/ciconprovider.h"
 #include "plugininterface/cpluginproxy.h"
 #include "favoritelocationslist/cfavoritelocations.h"
 #ifdef _WIN32
@@ -136,6 +137,9 @@ public:
 	// and retire the tag before it dies.
 	[[nodiscard]] CThreadPool& threadPool();
 
+	// Caches its answers, so ask it per query rather than holding on to an icon.
+	[[nodiscard]] CIconProvider& iconProvider();
+
 // Getters
 	// A side always has at least one tab, so these are valid until shutdown() destroys them all.
 	[[nodiscard]] const CPanel& panel(Panel p) const;
@@ -242,6 +246,7 @@ private:
 	std::vector<PanelContentsSubscription> _panelContentsSubscriptions;
 	CWcxPluginHost       _wcxHost;
 	CVolumeEnumerator    _volumeEnumerator;
+	CIconProvider        _iconProvider;
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;
 	Panel                _activePanel = Panel::UnknownPanel; // Protected by _pluginAccessMutex
 	// Plugin-facing panel queries and UI dispatch hold a shared lock. Tab/state mutations and shutdown() hold the

@@ -229,7 +229,7 @@ void CFilesSearchWindow::addResultToUi(const QString& path, bool reachedThroughL
 
 	auto* item = new QListWidgetItem;
 	item->setText(name);
-	item->setIcon(CIconProvider::iconForFilesystemObject(object, true));
+	item->setIcon(CController::get().iconProvider().genericIconForExtension(object));
 	item->setData(Qt::UserRole, path);
 
 	if (reachedThroughLink)

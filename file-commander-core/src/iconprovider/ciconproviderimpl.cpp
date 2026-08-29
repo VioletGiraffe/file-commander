@@ -1,11 +1,13 @@
 #include "ciconproviderimpl.h"
 #include "cfilesystemobject.h"
+#include "filesystemhelperfunctions.h"
 
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
-#include <QDebug>
 #include <QIcon>
+#include <QImage>
+#include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
@@ -20,76 +22,55 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #include <shellapi.h>
 
-inline wchar_t* appendToString(wchar_t* buffer, const wchar_t* what, size_t whatLengthInCharacters = 0)
+static UINT iconRetrievalFlags(const bool showOverlayIcons) noexcept
 {
-	if (whatLengthInCharacters == 0)
-		whatLengthInCharacters = wcslen(what);
-
-	memcpy(buffer, what, whatLengthInCharacters * sizeof(wchar_t));
-	auto* end = buffer + whatLengthInCharacters;
-	*end = 0; // null-terminator;
-	return end;
+	return SHGFI_ICON | SHGFI_SMALLICON | (showOverlayIcons ? SHGFI_ADDOVERLAYS : 0);
 }
 
-inline wchar_t* appendToString(wchar_t* buffer, const QString& what)
+// Converts the icon SHGetFileInfoW produced and releases it. Empty if the call failed or yielded no icon.
+static QImage imageFromShellFileInfo(const DWORD_PTR shGetFileInfoResult, const SHFILEINFOW& info) noexcept
 {
-	const auto written = what.toWCharArray(buffer);
-	auto* end = buffer + written;
-	*end = 0; // null-terminator;
-	return end;
-}
-
-QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object, const bool guessIconByFileExtension) const noexcept
-{
-	SHFILEINFOW info;
-	const UINT flags = SHGFI_ICON | SHGFI_SMALLICON | (_showOverlayIcons ? SHGFI_ADDOVERLAYS : 0) | (guessIconByFileExtension ? SHGFI_USEFILEATTRIBUTES : 0);
-
-	DWORD_PTR result = 0;
-
-	if (!guessIconByFileExtension)
-	{
-		WCHAR pathStringBuffer[32768];
-		// This function does not accept UNC paths!
-		const auto length = object.fullAbsolutePath().toWCharArray(pathStringBuffer);
-		pathStringBuffer[length] = 0;
-
-		std::replace(pathStringBuffer, pathStringBuffer + length, L'/', L'\\');
-
-		if (object.isDir())
-			result = SHGetFileInfoW(pathStringBuffer, FILE_ATTRIBUTE_DIRECTORY, &info, sizeof(info), flags);
-		else
-			result = SHGetFileInfoW(pathStringBuffer, FILE_ATTRIBUTE_NORMAL, &info, sizeof(info), flags);
-	}
-	else // Fast method that can't handle special icons for certain specific files (rather than certain file types)
-	{
-		if (object.isDir())
-			result = SHGetFileInfoW(L"a", FILE_ATTRIBUTE_DIRECTORY, &info, sizeof(info), flags);
-		else
-		{
-			WCHAR nameBuffer[32768];
-			auto* itemName = appendToString(nameBuffer, L".", 1);
-			QString extension = object.extension();
-			if (extension.isEmpty())
-				extension = "1"; // Empty extension yields a special "system" icon
-
-			appendToString(itemName, extension);
-
-			result = SHGetFileInfoW(nameBuffer, FILE_ATTRIBUTE_NORMAL, &info, sizeof(info), flags);
-		}
-	}
-
-	if (result == 0 || info.hIcon == nullptr)
-	{
+	if (shGetFileInfoResult == 0 || info.hIcon == nullptr)
 		return {};
-	}
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-	QIcon icon = QPixmap::fromImage(QImage::fromHICON(info.hIcon));
+	QImage image = QImage::fromHICON(info.hIcon);
 #else
-	QIcon icon = QtWin::fromHICON(info.hIcon);
+	// Qt 5 has no HICON-to-QImage conversion, so it goes through a pixmap and is therefore GUI-thread-only.
+	QImage image = QtWin::fromHICON(info.hIcon).toImage();
 #endif
 	DestroyIcon(info.hIcon);
-	return icon;
+	return image;
+}
+
+QImage CIconProviderImpl::genericIconImage(const QString& extension, const bool isDir) const noexcept
+{
+	// SHGFI_USEFILEATTRIBUTES makes the shell answer from the name and the attributes alone, without a disk access,
+	// so the name below need not exist.
+	const UINT flags = iconRetrievalFlags(_showOverlayIcons) | SHGFI_USEFILEATTRIBUTES;
+
+	SHFILEINFOW info;
+	if (isDir)
+	{
+		const auto result = SHGetFileInfoW(L"a", FILE_ATTRIBUTE_DIRECTORY, &info, sizeof(info), flags);
+		return imageFromShellFileInfo(result, info);
+	}
+
+	// An empty extension yields a special "system" icon, so it is replaced rather than queried as a bare dot.
+	const QString name = '.' % (extension.isEmpty() ? QStringLiteral("1") : extension);
+	const auto result = SHGetFileInfoW(reinterpret_cast<const wchar_t*>(name.utf16()), FILE_ATTRIBUTE_NORMAL, &info, sizeof(info), flags);
+	return imageFromShellFileInfo(result, info);
+}
+
+QImage CIconProviderImpl::preciseIconImage(const CFileSystemObject& object) const noexcept
+{
+	// Without SHGFI_USEFILEATTRIBUTES the shell reads the object itself and dwFileAttributes is ignored.
+	const UINT flags = iconRetrievalFlags(_showOverlayIcons);
+	const QString path = toNativeSeparators(object.fullAbsolutePath()); // SHGetFileInfoW does not accept UNC paths!
+
+	SHFILEINFOW info;
+	const auto result = SHGetFileInfoW(reinterpret_cast<const wchar_t*>(path.utf16()), 0, &info, sizeof(info), flags);
+	return imageFromShellFileInfo(result, info);
 }
 
 void CIconProviderImpl::setShowOverlayIcons(const bool show) noexcept
@@ -99,7 +80,7 @@ void CIconProviderImpl::setShowOverlayIcons(const bool show) noexcept
 
 #else // ! _WIN32
 
-QIcon CIconProviderImpl::iconFor(const CFileSystemObject &object, const bool /*guessIconByFileExtension*/) noexcept
+QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object) noexcept
 {
 #ifndef CFILESYSTEMOBJECT_TEST // TODO: Remove this ugly hack
 	return _provider.icon(object.qFileInfo());

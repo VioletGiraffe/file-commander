@@ -10,14 +10,20 @@ RESTORE_COMPILER_WARNINGS
 
 class CFileSystemObject;
 class QIcon;
+class QImage;
+class QString;
 
 #ifdef _WIN32
 
 class CIconProviderImpl
 {
 public:
-	// guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
-	[[nodiscard]] QIcon iconFor(const CFileSystemObject& object, bool guessIconByFileExtension) const noexcept;
+	// The icon the shell associates with the extension alone, or with folders when isDir. Never accesses the disk.
+	[[nodiscard]] QImage genericIconImage(const QString& extension, bool isDir) const noexcept;
+	// The object's own icon, which .exe, .ico and .lnk derive from their contents. Accesses the disk.
+	// Requires the calling thread to be in a COM apartment.
+	[[nodiscard]] QImage preciseIconImage(const CFileSystemObject& object) const noexcept;
+
 	void setShowOverlayIcons(bool show) noexcept;
 
 private:
@@ -29,8 +35,11 @@ private:
 class CIconProviderImpl
 {
 public:
-	// guessIconByFileExtension is a less precise method, but much faster since it doesn't access the disk
-	[[nodiscard]] QIcon iconFor(const CFileSystemObject& object, bool guessIconByFileExtension) noexcept;
+	// QFileIconProvider draws no distinction between an object's own icon and its type's, so this serves both.
+	// The returned icon keeps its several resolutions, which is why this layer hands back a QIcon rather than
+	// the single flattened image the Windows shell produces.
+	[[nodiscard]] QIcon iconFor(const CFileSystemObject& object) noexcept;
+
 	void setShowOverlayIcons(bool show) noexcept;
 
 private:
@@ -38,4 +47,3 @@ private:
 };
 
 #endif
-

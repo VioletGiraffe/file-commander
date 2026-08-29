@@ -120,7 +120,7 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 		return ::itemData(item, index.column());
 	case Qt::DecorationRole:
 		if (index.column() == NameColumn && !item.isCdUp())
-			return CIconProvider::iconForFilesystemObject(item, false);
+			return _controller.iconProvider().preciseIconBlocking(item);
 		else
 			return {};
 	default:

@@ -665,7 +665,7 @@ std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVo
 // Porgram settings have changed
 void CController::settingsChanged()
 {
-	CIconProvider::settingsChanged();
+	_iconProvider.settingsChanged();
 }
 
 void CController::activePanelChanged(Panel p)
@@ -935,6 +935,11 @@ const CHistoryList<QString>& CController::visitedLocations(Panel p) const
 CThreadPool& CController::threadPool()
 {
 	return _workerPool;
+}
+
+CIconProvider& CController::iconProvider()
+{
+	return _iconProvider;
 }
 
 std::vector<qulonglong> CController::selectedItemsHashes(Panel p) const
