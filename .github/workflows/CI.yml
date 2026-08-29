@@ -199,8 +199,10 @@ jobs:
         $sections = $sections | Sort-Object KB -Descending
         $sections | Format-Table Name, KB -AutoSize
 
-        # Metrics history tracks only the main executable.
         "EXE_KB=$([math]::Round($exe.Length / 1KB, 2))" >> $env:GITHUB_ENV
+        "IMAGEVIEWER_KB=$([math]::Round((Get-Item 'bin\release\plugin_imageviewer.dll').Length / 1KB, 2))" >> $env:GITHUB_ENV
+        "TEXTVIEWER_KB=$([math]::Round((Get-Item 'bin\release\plugin_textviewer.dll').Length / 1KB, 2))" >> $env:GITHUB_ENV
+        # Per-section charts cover the main executable only.
         "SECTIONS_JSON=$($sections | ConvertTo-Json -Compress -AsArray)" >> $env:GITHUB_ENV
 
     # Record LOC, exe size + per-section sizes to the gh-pages history and regenerate the chart.
@@ -210,9 +212,11 @@ jobs:
       shell: pwsh
       run: |
         $data = @(
-          @{ name = 'Lines of code (app)';    unit = 'LOC'; value = [int]$env:LOC_APP  }
-          @{ name = 'Lines of code (libs)';   unit = 'LOC'; value = [int]$env:LOC_LIBS }
-          @{ name = 'FileCommander.exe size'; unit = 'KB';  value = [double]$env:EXE_KB }
+          @{ name = 'Lines of code (app)';         unit = 'LOC'; value = [int]$env:LOC_APP  }
+          @{ name = 'Lines of code (libs)';        unit = 'LOC'; value = [int]$env:LOC_LIBS }
+          @{ name = 'FileCommander.exe size';      unit = 'KB';  value = [double]$env:EXE_KB }
+          @{ name = 'plugin_imageviewer.dll size'; unit = 'KB';  value = [double]$env:IMAGEVIEWER_KB }
+          @{ name = 'plugin_textviewer.dll size';  unit = 'KB';  value = [double]$env:TEXTVIEWER_KB }
         )
 
         # FileCommander.exe's PE sections, measured by the earlier size step. Each becomes its own chart; .msvcjmc is skipped.
