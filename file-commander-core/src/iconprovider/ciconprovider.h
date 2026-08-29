@@ -11,6 +11,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QIcon>
 #include <QImage>
+#include <QObject>
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
@@ -38,7 +39,7 @@ struct IconsReadyListener {
 // Answers icon queries for filesystem objects and caches the answers. Owned by CController; every public method
 // belongs to the UI thread. A query that fails is never cached, so a null return always means "no icon", never
 // "no icon yet". Only Windows retrieves in the background; the QFileIconProvider path elsewhere stays on the UI thread.
-class CIconProvider
+class CIconProvider final : public QObject
 {
 public:
 	CIconProvider();
@@ -62,7 +63,8 @@ public:
 	// Moves retrieved icons into the cache and notifies the listeners. Driven by CController's UI thread tick.
 	void uiThreadTimerTick();
 
-	// Re-reads the overlay setting and drops every cached icon, which the setting changes.
+	// Re-reads the overlay setting and drops every cached icon, which the setting changes. Display-scale changes
+	// are noticed without being told - see watchForAppearanceChanges.
 	void settingsChanged();
 
 	// Stops the retrieval thread; the destructor also calls it. Queries keep working afterwards, they just stop
@@ -79,6 +81,10 @@ private:
 		QIcon icon;
 		uint64_t contentHash = 0;
 	};
+
+	// Drops every cached icon and retires what is in flight. For anything that changes what the shell would answer.
+	void invalidateCache();
+	void watchForAppearanceChanges();
 
 	[[nodiscard]] FetchedIcon fetchPreciseIcon(const CFileSystemObject& object) const;
 	// Null unless the object has an entry that modificationTime still matches.
@@ -131,8 +137,8 @@ private:
 	// UI thread only. An object stays here from the moment it is queued until its result is delivered, so that
 	// repainting a row that is still waiting doesn't queue it a second time.
 	ankerl::unordered_dense::set<qulonglong, IdentityHash> _requestedObjects;
-	// UI thread only; stamped into every request. A settings change bumps it, retiring whatever was already in
-	// flight under the previous overlay setting.
+	// UI thread only; stamped into every request. Bumped whenever the caches are dropped, retiring whatever was
+	// already in flight under the conditions that no longer hold.
 	uint64_t _requestGeneration = 0;
 
 	using HANDLE = void*;

@@ -7,7 +7,10 @@
 #include "settings.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QCoreApplication>
+#include <QGuiApplication>
 #include <QPixmap>
+#include <QScreen>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
@@ -56,6 +59,7 @@ static constexpr size_t maxPendingRequests = 512;
 CIconProvider::CIconProvider() : _provider{std::make_unique<CIconProviderImpl>()}
 {
 	settingsChanged();
+	watchForAppearanceChanges();
 
 #ifdef _WIN32
 	_wakeEvent = ::CreateEventW(nullptr, FALSE /* auto-reset */, FALSE, nullptr);
@@ -165,7 +169,11 @@ void CIconProvider::uiThreadTimerTick()
 void CIconProvider::settingsChanged()
 {
 	_provider->setShowOverlayIcons(QSettings{}.value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool());
+	invalidateCache();
+}
 
+void CIconProvider::invalidateCache()
+{
 	_cachedIconByObjectHash.clear();
 	_iconByContentHash.clear();
 	_genericIconByExtension.clear();
@@ -179,6 +187,29 @@ void CIconProvider::settingsChanged()
 	_pendingRequests.clear();
 	_retrievedIcons.clear();
 #endif
+}
+
+void CIconProvider::watchForAppearanceChanges()
+{
+	// There are no screens to watch under a plain QCoreApplication, which the core tests run on.
+	auto* application = qobject_cast<QGuiApplication*>(QCoreApplication::instance());
+	if (!application)
+		return;
+
+	// The shell sizes its icons from the system small-icon metric, which follows the display scale, so a scale
+	// change leaves every cached pixmap the wrong size. Watching all the screens rather than working out which one
+	// the panels are on costs a needless refetch when an unrelated monitor is rescaled.
+	const auto dropOnScaleChange = [this](QScreen* screen) {
+		connect(screen, &QScreen::logicalDotsPerInchChanged, this, [this] { invalidateCache(); });
+	};
+
+	for (QScreen* screen : QGuiApplication::screens())
+		dropOnScaleChange(screen);
+
+	connect(application, &QGuiApplication::screenAdded, this, dropOnScaleChange);
+	// The metric follows the primary screen, so it changes when a different screen becomes primary even though no
+	// screen's own scale did.
+	connect(application, &QGuiApplication::primaryScreenChanged, this, [this] { invalidateCache(); });
 }
 
 void CIconProvider::shutdown()
