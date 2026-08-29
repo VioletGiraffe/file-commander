@@ -2,7 +2,7 @@
 <!--
   Custom viewer for the metrics collected by benchmark-action/github-action-benchmark.
   It replaces the default page the action generates. Drop it in next to data.js on the
-  gh-pages branch (dev/bench/index.html); the action never overwrites an existing
+  gh-pages branch (dev/metrics/index.html); the action never overwrites an existing
   index.html, so this file survives every future run.
 
   Data contract: data.js defines window.BENCHMARK_DATA = { lastUpdate, repoUrl, entries }.
@@ -18,14 +18,16 @@
   <script>
     // Resolve the theme before first paint to avoid a flash of the wrong background.
     (function () {
-      var t = localStorage.getItem('theme');
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}   // Throws where site data is blocked.
       if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       document.documentElement.dataset.theme = t;
     })();
   </script>
 
   <style>
-    html[data-theme="light"] {
+    /* Light is the base palette, so the page stays styled even when the theme script cannot run. */
+    :root {
       color-scheme: light;
       --bg:#ffffff; --card:#f6f8fa; --text:#1f2328; --muted:#59636e; --border:#d1d9e0; --accent:#0969da;
       --grid:rgba(27,31,36,0.09);
@@ -55,16 +57,13 @@
     #themeToggle:hover { border-color: var(--accent); }
     main {
       padding: 24px; display: grid; gap: 24px;
-      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
     }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 16px 10px; }
     .card h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
     .card .canvas-wrap { position: relative; height: 300px; }
     .card.wide { grid-column: 1 / -1; }
     .card.wide .canvas-wrap { height: 380px; }
-    footer { color: var(--muted); font-size: 12px; padding: 16px 24px; border-top: 1px solid var(--border); }
-    footer a { color: var(--accent); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
     .empty { padding: 40px 24px; color: var(--muted); }
   </style>
 </head>
@@ -80,7 +79,10 @@
   <main id="charts"></main>
 
   <script src="data.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <!-- integrity pins the 4.4.1 bytes: anything else the CDN serves is blocked, and the guard below reports it. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"
+          integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG"
+          crossorigin="anonymous"></script>
   <script>
   (function () {
     // Distinct, dark- and light-legible line colors (Tableau 10-ish), cycled as needed.
@@ -88,13 +90,19 @@
                      '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#86bcb6', '#d37295', '#bab0ac'];
 
     // Combined charts: every series matched by `match` is drawn on one chart. Anything unmatched
-    // gets its own single-line chart. To also merge the two LOC series, add another group here.
+    // gets its own single-line chart.
     const GROUPS = [
       { title: 'Binary size by section', unit: 'KB', wide: true, match: n => n.startsWith('Section '), strip: n => n.replace(/^Section /, '') },
+      { title: 'Lines of code', unit: 'LOC', match: n => n === 'Lines of code (app)' || n === 'Lines of code (libs)', strip: n => n.replace(/^Lines of code \(|\)$/g, '') },
+      { title: 'Binary size', unit: 'KB', match: n => n === 'FileCommander.exe size' || n.startsWith('plugin_'), strip: n => n.replace(/ size$/, '') },
     ];
 
     const data = window.BENCHMARK_DATA;
     const charts_el = document.getElementById('charts');
+    if (typeof Chart === 'undefined') {
+      charts_el.innerHTML = '<div class="empty">Chart.js did not load: the CDN is unreachable, or what it served no longer matches the integrity hash on the script tag.</div>';
+      return;
+    }
     if (!data || !data.entries || !Object.keys(data.entries).length) {
       charts_el.innerHTML = '<div class="empty">No benchmark data found. This page expects data.js (window.BENCHMARK_DATA) alongside it.</div>';
       return;
@@ -120,7 +128,8 @@
       return b ? b.value : null;
     });
 
-    // Build chart specs: grouped (combined) charts, then solo charts for the remainder.
+    // Build chart specs: one per group, plus a solo chart for every series no group claimed.
+    // `order` is the position of the chart's first series in the data, which is the order CI emits them in.
     const used = new Set();
     const groupSpecs = [];
     for (const g of GROUPS) {
@@ -128,15 +137,16 @@
       if (!names.length) continue;
       names.forEach(n => used.add(n));
       groupSpecs.push({
-        title: g.title, unit: g.unit, wide: !!g.wide, combined: true,
+        heading: g.title + ' (' + g.unit + ')', unit: g.unit, wide: !!g.wide, combined: true, order: seriesNames.indexOf(names[0]),
         datasets: names.map((n, i) => ({ label: g.strip ? g.strip(n) : n, data: valuesFor(n), color: PALETTE[i % PALETTE.length] })),
       });
     }
+    // A solo heading is the series name as CI wrote it, unit and all; only the generic group titles need one appended.
     const soloSpecs = seriesNames.filter(n => !used.has(n)).map((n, i) => ({
-      title: n, unit: unitByName[n], wide: false, combined: false,
+      heading: n, unit: unitByName[n], wide: false, combined: false, order: seriesNames.indexOf(n),
       datasets: [{ label: n, data: valuesFor(n), color: PALETTE[i % PALETTE.length] }],
     }));
-    const specs = soloSpecs.concat(groupSpecs);
+    const specs = soloSpecs.concat(groupSpecs).sort((a, b) => a.order - b.order);
 
     const themeVars = () => {
       const cs = getComputedStyle(document.documentElement);
@@ -156,7 +166,7 @@
         const card = document.createElement('div');
         card.className = 'card' + (spec.wide ? ' wide' : '');
         const h = document.createElement('h2');
-        h.textContent = spec.unit ? spec.title + ' (' + spec.unit + ')' : spec.title;
+        h.textContent = spec.heading;
         const wrap = document.createElement('div');
         wrap.className = 'canvas-wrap';
         const canvas = document.createElement('canvas');
@@ -181,7 +191,7 @@
             onClick: (evt, els) => {
               if (els.length) {
                 const c = commits[els[0].index];
-                if (c && c.url) window.open(c.url, '_blank');
+                if (c && c.url) window.open(c.url, '_blank', 'noopener');
               }
             },
             plugins: {
@@ -204,7 +214,8 @@
               },
             },
             scales: {
-              x: { grid: { color: t.grid }, ticks: { color: t.text, maxRotation: 0, autoSkip: true } },
+              // maxRotation 0 keeps dates horizontal, so the spacing between them comes from skipping more, not from tilting.
+              x: { grid: { color: t.grid }, ticks: { color: t.text, maxRotation: 0, autoSkip: true, autoSkipPadding: 12 } },
               y: {
                 grid: { color: t.grid }, ticks: { color: t.text },
                 title: { display: !!spec.unit, text: spec.unit, color: t.text },
@@ -229,7 +240,7 @@
     btn.addEventListener('click', () => {
       const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
       document.documentElement.dataset.theme = next;
-      localStorage.setItem('theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) {}
       syncBtn();
       render();
     });
