@@ -411,6 +411,14 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	QMainWindow::closeEvent(e);
 }
 
+void CMainWindow::changeEvent(QEvent *e)
+{
+	if (e->type() == QEvent::ThemeChange)
+		_controller->themeChanged();
+
+	QMainWindow::changeEvent(e);
+}
+
 bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 {
 	if (watched == ui->_commandLine && event->type() == QEvent::KeyPress)

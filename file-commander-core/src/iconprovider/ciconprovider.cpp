@@ -151,14 +151,14 @@ QIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
 #endif
 }
 
-void CIconProvider::addIconsReadyListener(IconsReadyListener* listener)
+void CIconProvider::addIconsChangedListener(IconsChangedListener* listener)
 {
-	_iconsReadyListeners.addSubscriber(listener);
+	_iconsChangedListeners.addSubscriber(listener);
 }
 
-void CIconProvider::removeIconsReadyListener(IconsReadyListener* listener)
+void CIconProvider::removeIconsChangedListener(IconsChangedListener* listener)
 {
-	_iconsReadyListeners.removeSubscriber(listener);
+	_iconsChangedListeners.removeSubscriber(listener);
 }
 
 void CIconProvider::uiThreadTimerTick()
@@ -183,10 +183,14 @@ void CIconProvider::invalidateCache()
 	++_requestGeneration;
 	_requestedObjects.clear();
 
-	std::lock_guard locker{ _queueMutex };
-	_pendingRequests.clear();
-	_retrievedIcons.clear();
+	{
+		std::lock_guard locker{ _queueMutex };
+		_pendingRequests.clear();
+		_retrievedIcons.clear();
+	}
 #endif
+
+	_iconsChangedListeners.invokeCallback(&IconsChangedListener::onAllIconsInvalidated);
 }
 
 void CIconProvider::watchForAppearanceChanges()
@@ -388,7 +392,7 @@ void CIconProvider::deliverRetrievedIcons()
 	}
 
 	if (!updatedObjects.empty())
-		_iconsReadyListeners.invokeCallback(&IconsReadyListener::onPreciseIconsAvailable, updatedObjects);
+		_iconsChangedListeners.invokeCallback(&IconsChangedListener::onPreciseIconsAvailable, updatedObjects);
 }
 
 #endif

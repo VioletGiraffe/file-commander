@@ -52,6 +52,7 @@ public:
 
 protected:
 	void closeEvent(QCloseEvent * e) override;
+	void changeEvent(QEvent * e) override;
 	bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:

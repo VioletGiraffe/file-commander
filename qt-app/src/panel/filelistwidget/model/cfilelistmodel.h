@@ -27,6 +27,8 @@ public:
 	void onPanelContentsChanged(std::vector<qulonglong> itemHashes);
 	// Repaints the rows whose precise icon has just been retrieved. Hashes belonging to another folder are ignored.
 	void onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes);
+	// Repaints every icon after the provider dropped its cache.
+	void onAllIconsInvalidated();
 
 	[[nodiscard]] QModelIndex index(int row, int column, const QModelIndex& parent) const override;
 	[[nodiscard]] QModelIndex parent(const QModelIndex& child) const override;

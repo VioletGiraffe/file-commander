@@ -28,12 +28,14 @@ RESTORE_COMPILER_WARNINGS
 class CFileSystemObject;
 class CIconProviderImpl;
 
-struct IconsReadyListener {
-	virtual ~IconsReadyListener() = default;
+struct IconsChangedListener {
+	virtual ~IconsChangedListener() = default;
 
 	// Objects whose precise icon has just entered the cache. Every listener hears about all of them, including the
 	// ones it doesn't display.
 	virtual void onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes) = 0;
+	// Every icon handed out so far is stale, so everything on screen has to be repainted.
+	virtual void onAllIconsInvalidated() = 0;
 };
 
 // Answers icon queries for filesystem objects and caches the answers. Owned by CController; every public method
@@ -57,8 +59,8 @@ public:
 	// precise one; listeners hear when that arrives. Never accesses the disk, so this is the one for the file list.
 	[[nodiscard]] QIcon bestAvailableIconFor(const CFileSystemObject& object);
 
-	void addIconsReadyListener(IconsReadyListener* listener);
-	void removeIconsReadyListener(IconsReadyListener* listener);
+	void addIconsChangedListener(IconsChangedListener* listener);
+	void removeIconsChangedListener(IconsChangedListener* listener);
 
 	// Moves retrieved icons into the cache and notifies the listeners. Driven by CController's UI thread tick.
 	void uiThreadTimerTick();
@@ -66,6 +68,10 @@ public:
 	// Re-reads the overlay setting and drops every cached icon, which the setting changes. Display-scale changes
 	// are noticed without being told - see watchForAppearanceChanges.
 	void settingsChanged();
+
+	// Drops every cached icon, retires what is in flight, and has the listeners repaint. For anything that changes
+	// what the shell would answer and that this class cannot observe itself, such as the system theme.
+	void invalidateCache();
 
 	// Stops the retrieval thread; the destructor also calls it. Queries keep working afterwards, they just stop
 	// being answered in the background.
@@ -82,8 +88,6 @@ private:
 		uint64_t contentHash = 0;
 	};
 
-	// Drops every cached icon and retires what is in flight. For anything that changes what the shell would answer.
-	void invalidateCache();
 	void watchForAppearanceChanges();
 
 	[[nodiscard]] FetchedIcon fetchPreciseIcon(const CFileSystemObject& object) const;
@@ -124,8 +128,9 @@ private:
 	ankerl::unordered_dense::segmented_map<QString, QIcon, QStringHash> _genericIconByExtension;
 	std::optional<QIcon> _genericFolderIcon;
 
-	// Never fires off Windows: there, bestAvailableIconFor has the precise icon by the time it returns.
-	CallbackCaller<IconsReadyListener> _iconsReadyListeners;
+	// onPreciseIconsAvailable never fires off Windows: there, bestAvailableIconFor has the precise icon by the
+	// time it returns.
+	CallbackCaller<IconsChangedListener> _iconsChangedListeners;
 	CExecutionQueue _uiThreadQueue;
 
 #ifdef _WIN32

@@ -137,7 +137,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 CPanelWidget::~CPanelWidget() noexcept
 {
 	if (_controller)
-		_controller->iconProvider().removeIconsReadyListener(this);
+		_controller->iconProvider().removeIconsChangedListener(this);
 
 	delete ui;
 }
@@ -148,7 +148,7 @@ void CPanelWidget::init(CController* controller, CShellOperationRunner& shellOpe
 	_controller = controller;
 	_shellOperations = &shellOperations;
 
-	_controller->iconProvider().addIconsReadyListener(this);
+	_controller->iconProvider().addIconsChangedListener(this);
 }
 
 void CPanelWidget::setFocusToFileList()
@@ -1402,11 +1402,17 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	updateTabText(_activeTab);
 }
 
-// Only the tab on screen can repaint, so the models of this side's other tabs are not offered the icons.
+// Only the tab on screen can repaint; switching to another re-attaches the shared view, which refetches every row.
 void CPanelWidget::onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes)
 {
 	if (_model)
 		_model->onPreciseIconsAvailable(objectHashes);
+}
+
+void CPanelWidget::onAllIconsInvalidated()
+{
+	if (_model)
+		_model->onAllIconsInvalidated();
 }
 
 // Every tab of this side notifies us, but only one of them is on screen.

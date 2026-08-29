@@ -90,6 +90,8 @@ public:
 	std::pair<bool /*success*/, QString/*volume root path*/> switchToVolume(Panel p, uint64_t id);
 	// Program settings have changed
 	void settingsChanged();
+	// The system theme has changed, which the shell draws its icons for
+	void themeChanged();
 	// Focus is set to a panel
 	void activePanelChanged(Panel p);
 	// Visible selection is UI-owned; mirror it into the plugin-facing panel snapshot.

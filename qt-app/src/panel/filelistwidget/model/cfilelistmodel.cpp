@@ -92,6 +92,14 @@ void CFileListModel::onPreciseIconsAvailable(const std::vector<qulonglong>& obje
 	}
 }
 
+void CFileListModel::onAllIconsInvalidated()
+{
+	if (_itemHashes.empty())
+		return;
+
+	emit dataChanged(index(0, NameColumn, {}), index((int)_itemHashes.size() - 1, NameColumn, {}), {Qt::DecorationRole});
+}
+
 QModelIndex CFileListModel::index(int row, int column, const QModelIndex& parent) const
 {
 	if (!hasIndex(row, column, parent)) [[unlikely]] // is it?
