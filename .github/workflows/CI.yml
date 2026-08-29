@@ -428,7 +428,7 @@ jobs:
       run: |
         cd file-commander-core/core-tests
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
-        make -j4
+        make -j$(sysctl -n hw.ncpu)
         cd ../../
         for f in $(find bin/release/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
 
