@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788009627899,
+  "lastUpdate": 1788010494435,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -15755,6 +15755,75 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/583ebacae484a32b416c6548438382623f396bd2"
         },
         "date": 1788009624787,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16045,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 15906,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1314.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 726.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 393,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e1974852ca9f6762236ccdd9ba82e782f0cfa722",
+          "message": "catch.hpp needs DISABLE_COMPILER_WARNINGS; missing #include compiler_warnings_control.h added",
+          "timestamp": "2026-08-29T16:28:28+03:00",
+          "tree_id": "8d69102db0cfe6263baf1815e3071fa2ebef0834",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e1974852ca9f6762236ccdd9ba82e782f0cfa722"
+        },
+        "date": 1788010490493,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
