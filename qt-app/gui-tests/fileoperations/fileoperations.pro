@@ -5,17 +5,15 @@ CONFIG += console
 include(../../../file-commander-core/config.pri)
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
-DESTDIR_NOARCH  = ../../../bin/$${OUTPUT_DIR_NOARCH}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
-LIBS += -L$${DESTDIR} -lqtutils
-LIBS += -L$${DESTDIR_NOARCH} -lcpputils
+LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }
 
 INCLUDEPATH += \

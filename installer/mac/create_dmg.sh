@@ -16,11 +16,11 @@ ${QTPATH}/bin/qmake -spec macx-clang -r -config release CONFIG+=release "DEFINES
 make -j4
 
 echo "${MYSELF}: deploying Qt frameworks"
-${QTPATH}/bin/macdeployqt bin/release/x64/${APPDIR}
+${QTPATH}/bin/macdeployqt bin/release/${APPDIR}
 
 echo "${MYSELF}: creating DMG"
 
-cd bin/release/x64
+cd bin/release
 
 DMG="${VOL}.dmg"
 STAGE="dmg-staging"

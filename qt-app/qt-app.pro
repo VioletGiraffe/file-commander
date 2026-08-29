@@ -17,24 +17,10 @@ CONFIG += strict_c++
 
 include(../global.pri)
 
-contains(QT_ARCH, x86_64) {
-	ARCHITECTURE = x64
-} else {
-	ARCHITECTURE = x86
-}
-
-Release{
-	OUTPUT_DIR=release/$${ARCHITECTURE}
-	OUTPUT_DIR_NOARCH=release
-}
-
-Debug{
-	OUTPUT_DIR=debug/$${ARCHITECTURE}
-	OUTPUT_DIR_NOARCH=debug
-}
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
 
 DESTDIR = ../bin/$${OUTPUT_DIR}
-DESTDIR_NOARCH = ../bin/$${OUTPUT_DIR_NOARCH}
 OBJECTS_DIR = ../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
@@ -127,8 +113,7 @@ FORMS += \
 
 DEFINES += _SCL_SECURE_NO_WARNINGS
 
-LIBS += -L$${DESTDIR} -lcore
-LIBS += -L$${DESTDIR_NOARCH} -lautoupdater -lqtutils -lcpputils -lthin_io
+LIBS += -L$${DESTDIR} -lcore -lautoupdater -lqtutils -lcpputils -lthin_io
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32
@@ -170,8 +155,7 @@ win32*:!*msvc2012:*msvc* {
 
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libautoupdater.a $${DESTDIR_NOARCH}/libthin_io.a $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a
+	PRE_TARGETDEPS += $${DESTDIR}/libautoupdater.a $${DESTDIR}/libthin_io.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libcore.a
 }
 
 RESOURCES += \

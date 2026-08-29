@@ -5,14 +5,13 @@ TARGET = fso_test_high_level
 include(../../config.pri)
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
-DESTDIR_NOARCH  = ../../../bin/$${OUTPUT_DIR_NOARCH}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libcpputils.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
@@ -20,7 +19,7 @@ INCLUDEPATH += \
 	$${PWD}/ \
 	../test-utils/src/ # link_helpers.hpp is header-only, so no test_utils link dependency
 
-LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lqtutils -lcpputils
+LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \

@@ -8,24 +8,11 @@ CONFIG += strict_c++
 
 include(../global.pri)
 
-contains(QT_ARCH, x86_64) {
-	ARCHITECTURE = x64
-} else {
-	ARCHITECTURE = x86
-}
-
-Release{
-	OUTPUT_DIR=release/$${ARCHITECTURE}
-	OUTPUT_DIR_NOARCH=release
-}
-
-Debug{
-	OUTPUT_DIR=debug/$${ARCHITECTURE}
-	OUTPUT_DIR_NOARCH=debug
-}
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
 
 # This is so that all the tests link to the library automatically; harmless to anyone who doesn't use the libraries
-LIBS += -L$${PWD}/bin/$${OUTPUT_DIR_NOARCH} -lthin_io
+LIBS += -L$${PWD}/bin/$${OUTPUT_DIR} -lthin_io
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /wd4251

@@ -27,8 +27,8 @@ popd
 msbuild ../../file-commander.sln /t:Build /p:Configuration=Release;Platform="x64";PlatformToolset=v143
 if not %errorlevel% == 0 goto build_fail
 
-xcopy /R /Y ..\..\bin\release\x64\FileCommander.exe binaries\64\
-xcopy /R /Y ..\..\bin\release\x64\plugin_*.dll binaries\64\
+xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\64\
+xcopy /R /Y ..\..\bin\release\plugin_*.dll binaries\64\
 xcopy /R /Y "3rdparty binaries"\64\* binaries\64\
 
 SETLOCAL

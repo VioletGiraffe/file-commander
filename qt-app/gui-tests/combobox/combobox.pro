@@ -4,12 +4,6 @@ QT = core gui widgets
 
 include(../../../global.pri)
 
-contains(QT_ARCH, x86_64) {
-	ARCHITECTURE = x64
-} else {
-	ARCHITECTURE = x86
-}
-
 android {
 	Release:OUTPUT_DIR=android/release
 	Debug:OUTPUT_DIR=android/debug
@@ -19,12 +13,9 @@ android {
 	Debug:OUTPUT_DIR=ios/debug
 
 } else {
-	Release:OUTPUT_DIR=release/$${ARCHITECTURE}
-	Debug:OUTPUT_DIR=debug/$${ARCHITECTURE}
+	Release:OUTPUT_DIR=release
+	Debug:OUTPUT_DIR=debug
 }
-
-Release:OUTPUT_DIR_NOARCH=release
-Debug:OUTPUT_DIR_NOARCH=debug
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
@@ -32,8 +23,7 @@ MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
-# cpputils and qtutils are built into the arch-less bin directory, same as for the fileoperations gui-test.
-LIBS += -L$${DESTDIR} -L../../../bin/$${OUTPUT_DIR_NOARCH} -lcpputils -lqtutils
+LIBS += -L$${DESTDIR} -lcpputils -lqtutils
 
 INCLUDEPATH += \
 	$$PWD/src/ \

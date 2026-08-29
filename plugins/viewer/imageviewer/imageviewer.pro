@@ -7,24 +7,10 @@ CONFIG += strict_c++
 
 include(../../../global.pri)
 
-contains(QT_ARCH, x86_64) {
-	ARCHITECTURE = x64
-} else {
-	ARCHITECTURE = x86
-}
-
-Release{
-	OUTPUT_DIR=release/$${ARCHITECTURE}
-	OUTPUT_DIR_NOARCH=release
-}
-
-Debug{
-	OUTPUT_DIR=debug/$${ARCHITECTURE}
-	OUTPUT_DIR_NOARCH=debug
-}
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
 
 DESTDIR = ../../../bin/$${OUTPUT_DIR}
-DESTDIR_NOARCH = ../../../bin/$${OUTPUT_DIR_NOARCH}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
@@ -41,7 +27,7 @@ INCLUDEPATH += \
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -limage-processing -lqtutils -lcpputils -lthin_io
+LIBS += -L$${DESTDIR} -lcore -limage-processing -lqtutils -lcpputils -lthin_io
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /wd4251
@@ -80,6 +66,5 @@ FORMS += \
 	src/cimageviewerwindow.ui
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libimage-processing.a
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libthin_io.a
+	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libimage-processing.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
 }

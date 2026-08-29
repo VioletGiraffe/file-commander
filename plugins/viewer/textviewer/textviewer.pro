@@ -12,24 +12,10 @@ CONFIG -= flat
 include(../../../global.pri)
 include(3rdparty/diegoiast/qutepart-cpp/syntaxhighlighter.pri)
 
-contains(QT_ARCH, x86_64) {
-	ARCHITECTURE = x64
-} else {
-	ARCHITECTURE = x86
-}
-
-Release{
-	OUTPUT_DIR=release/$${ARCHITECTURE}
-	OUTPUT_DIR_NOARCH=release
-}
-
-Debug{
-	OUTPUT_DIR=debug/$${ARCHITECTURE}
-	OUTPUT_DIR_NOARCH=debug
-}
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
 
 DESTDIR = ../../../bin/$${OUTPUT_DIR}
-DESTDIR_NOARCH = ../../../bin/$${OUTPUT_DIR_NOARCH}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
@@ -37,7 +23,7 @@ RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
+LIBS += -L$${DESTDIR} -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
 
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 
@@ -68,8 +54,7 @@ win32*:!*msvc2012:*msvc* {
 }
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a
-	PRE_TARGETDEPS += $${DESTDIR_NOARCH}/libcpputils.a $${DESTDIR_NOARCH}/libqtutils.a $${DESTDIR_NOARCH}/libthin_io.a
+	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
 }
 
 INCLUDEPATH += \

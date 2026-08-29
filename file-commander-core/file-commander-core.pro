@@ -4,13 +4,12 @@ TARGET   = core
 include(config.pri)
 
 DESTDIR = ../bin/$${OUTPUT_DIR}
-DESTDIR_NOARCH = ../bin/$${OUTPUT_DIR_NOARCH}
 OBJECTS_DIR = ../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
-LIBS += -L$${DESTDIR} -L$${DESTDIR_NOARCH} -lcpputils -lqtutils
+LIBS += -L$${DESTDIR} -lcpputils -lqtutils
 
 HEADERS += \
 	src/cfilesystemobject.h \

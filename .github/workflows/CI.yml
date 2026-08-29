@@ -140,8 +140,8 @@ jobs:
         cd installer\windows\
         create_installer.bat
         cd ..\..
-        xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\x64\
-        xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\x64\
+        xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\
+        xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\
 
     - name: Mac
       if: startsWith(matrix.os, 'macos')
@@ -167,11 +167,11 @@ jobs:
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -j$(nproc)
         # Linux: building AppImage
-        cp ./qt-app/resources/icon.png ./bin/release/x64/
-        cp ./installer/linux/file_commander.desktop ./bin/release/x64/
+        cp ./qt-app/resources/icon.png ./bin/release/
+        cp ./installer/linux/file_commander.desktop ./bin/release/
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${QT_ROOT_DIR}/lib/
         sudo ldconfig
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QT_ROOT_DIR/bin/qmake -extra-plugins=platforms/,iconengines/,imageformats/,tls/,networkinformation/,platformthemes/,wayland-decoration-client/,wayland-graphics-integration-client/,wayland-shell-integration -executable=./bin/release/x64/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/x64/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/x64/libplugin_textviewer.so.1.0.0
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QT_ROOT_DIR/bin/qmake -extra-plugins=platforms/,iconengines/,imageformats/,tls/,networkinformation/,platformthemes/,wayland-decoration-client/,wayland-graphics-integration-client/,wayland-shell-integration -executable=./bin/release/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/libplugin_textviewer.so.1.0.0
         ls -Ac
         mv ./File_Commander*.AppImage ./FileCommander.AppImage
 
@@ -180,8 +180,8 @@ jobs:
       shell: powershell
       run: |
         # Sizes of our own binaries (app + every plugin); the Qt/MSVC runtime DLLs xcopied into bin/ are excluded by name.
-        $exe = Get-Item "bin\release\x64\FileCommander.exe"
-        foreach ($b in @($exe) + (Get-ChildItem "bin\release\x64\plugin_*.dll")) {
+        $exe = Get-Item "bin\release\FileCommander.exe"
+        foreach ($b in @($exe) + (Get-ChildItem "bin\release\plugin_*.dll")) {
           "{0,10:N2} KB  {1}" -f ($b.Length / 1KB), $b.Name
         }
         # Metrics history tracks only the main executable.
@@ -203,7 +203,7 @@ jobs:
         # dumpbin is on PATH via the earlier MSVC dev-cmd step. Each section becomes its own chart; .msvcjmc is skipped.
         $name = $null
         $sections = @()
-        foreach ($line in (dumpbin /headers bin\release\x64\FileCommander.exe)) {
+        foreach ($line in (dumpbin /headers bin\release\FileCommander.exe)) {
           if     ($line -match '^\s+(\S+) name$')                                 { $name = $Matches[1] }
           elseif ($line -match '^\s+([0-9A-Fa-f]+) size of raw data$' -and $name) {
             $sections += [pscustomobject]@{ Name = $name; KB = [math]::Round([Convert]::ToInt64($Matches[1], 16) / 1KB, 2) }
@@ -236,7 +236,7 @@ jobs:
     - name: Binary sizes - Mac
       if: startsWith(matrix.os, 'macos')
       run: |
-        cd bin/release/x64
+        cd bin/release
         for f in FileCommander.app/Contents/MacOS/FileCommander libplugin_*.dylib; do
           [ -f "$f" ] && [ ! -L "$f" ] || continue
           awk -v b="$(wc -c < "$f")" -v n="$f" 'BEGIN { printf "%10.2f KB  %s\n", b/1024, n }'
@@ -245,7 +245,7 @@ jobs:
     - name: Binary sizes - Linux
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        cd bin/release/x64
+        cd bin/release
         for f in FileCommander libplugin_*.so.*; do
           [ -f "$f" ] && [ ! -L "$f" ] || continue
           awk -v b="$(wc -c < "$f")" -v n="$f" 'BEGIN { printf "%10.2f KB  %s\n", b/1024, n }'
@@ -253,17 +253,17 @@ jobs:
 
     - name: Test launch
       if: startsWith(matrix.os, 'macos')
-      run: ./bin/release/x64/FileCommander.app/Contents/MacOS/FileCommander --test-launch
+      run: ./bin/release/FileCommander.app/Contents/MacOS/FileCommander --test-launch
 
     - name: Test launch
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        xvfb-run --auto-servernum ./bin/release/x64/FileCommander --test-launch
+        xvfb-run --auto-servernum ./bin/release/FileCommander --test-launch
 
     - name: Test launch
       if: startsWith(matrix.os, 'windows')
       run: |
-        .\bin\release\x64\FileCommander.exe --test-launch
+        .\bin\release\FileCommander.exe --test-launch
 
     - name: Archive DMG
       if: success() && startsWith(matrix.os, 'macos')
@@ -407,21 +407,21 @@ jobs:
         # Fail the step on the first test executable that exits with a nonzero code (default pwsh behavior only propagates the last command's exit code)
         $PSNativeCommandUseErrorActionPreference = $true
         $ErrorActionPreference = 'Stop'
-        .\bin\release\x64\fso_test.exe
-        .\bin\release\x64\fso_test_high_level.exe
-        .\bin\release\x64\panel_test.exe
-        .\bin\release\x64\filesearchengine_test.exe
+        .\bin\release\fso_test.exe
+        .\bin\release\fso_test_high_level.exe
+        .\bin\release\panel_test.exe
+        .\bin\release\filesearchengine_test.exe
         $N=20
         For ($i=1; $i -le $N; $i++) {
           Write-Output "Iteration $i/$N"
           $randomSeed = Get-Date -UFormat %s
-          & .\bin\release\x64\fileoperations_test.exe --std-seed $randomSeed;
+          & .\bin\release\fileoperations_test.exe --std-seed $randomSeed;
         }
 
         $randomSeed = Get-Date -UFormat %s
-        & .\bin\release\x64\filecomparator_test.exe --std-seed $randomSeed;
+        & .\bin\release\filecomparator_test.exe --std-seed $randomSeed;
 
-        & .\bin\release\x64\fileoperations_gui_test.exe
+        & .\bin\release\fileoperations_gui_test.exe
 
     - name: Building tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -430,7 +430,7 @@ jobs:
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -j4
         cd ../../
-        for f in $(find bin/release/x64/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
+        for f in $(find bin/release/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
 
     - name: Case-sensitive second volume for filesystem tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -446,13 +446,13 @@ jobs:
     - name: Running tests - Mac
       if: startsWith(matrix.os, 'macos')
       run: |
-        set -e; ./bin/release/x64/fso_test.app/Contents/MacOS/fso_test
-        set -e; ./bin/release/x64/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
-        set -e; ./bin/release/x64/panel_test.app/Contents/MacOS/panel_test
-        set -e; ./bin/release/x64/filesearchengine_test.app/Contents/MacOS/filesearchengine_test
-        set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/x64/fileoperations_test.app/Contents/MacOS/fileoperations_test --std-seed $(date +%s); sleep 1; done
-        set -e; ./bin/release/x64/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
-        set -e; ./bin/release/x64/fileoperations_gui_test.app/Contents/MacOS/fileoperations_gui_test
+        set -e; ./bin/release/fso_test.app/Contents/MacOS/fso_test
+        set -e; ./bin/release/fso_test_high_level.app/Contents/MacOS/fso_test_high_level
+        set -e; ./bin/release/panel_test.app/Contents/MacOS/panel_test
+        set -e; ./bin/release/filesearchengine_test.app/Contents/MacOS/filesearchengine_test
+        set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/fileoperations_test.app/Contents/MacOS/fileoperations_test --std-seed $(date +%s); sleep 1; done
+        set -e; ./bin/release/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
+        set -e; ./bin/release/fileoperations_gui_test.app/Contents/MacOS/fileoperations_gui_test
 
     - name: Building tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -461,13 +461,13 @@ jobs:
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -j$(nproc)
         cd ../../
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/panel_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filesearchengine_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fileoperations_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/x64/fileoperations_gui_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/fso_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/fso_test_high_level -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/panel_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/filesearchengine_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/fileoperations_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/fileoperations_gui_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
 
     - name: Second volume for cross-volume tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -483,13 +483,13 @@ jobs:
     - name: Running tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        set -e; ./bin/release/x64/fso_test
-        set -e; ./bin/release/x64/fso_test_high_level
-        set -e; ./bin/release/x64/panel_test
-        set -e; ./bin/release/x64/filesearchengine_test
-        set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/x64/fileoperations_test --std-seed $(date +%s); sleep 1; done
-        set -e; ./bin/release/x64/filecomparator_test --std-seed $(date +%s)
-        set -e; QT_QPA_PLATFORM=offscreen ./bin/release/x64/fileoperations_gui_test
+        set -e; ./bin/release/fso_test
+        set -e; ./bin/release/fso_test_high_level
+        set -e; ./bin/release/panel_test
+        set -e; ./bin/release/filesearchengine_test
+        set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/fileoperations_test --std-seed $(date +%s); sleep 1; done
+        set -e; ./bin/release/filecomparator_test --std-seed $(date +%s)
+        set -e; QT_QPA_PLATFORM=offscreen ./bin/release/fileoperations_gui_test
 
   create-release:
     needs: [build, test]
