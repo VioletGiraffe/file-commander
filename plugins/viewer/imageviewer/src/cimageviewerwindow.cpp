@@ -198,7 +198,12 @@ void CImageViewerWindow::saveImageAs()
 	else if (suffix == "tif" || suffix == "tiff")
 		writer.setCompression(1); // Any non-zero value selects LZW for TIFF (lossless); the default would be uncompressed.
 	else if (isJpeg)
-		writer.setQuality(85);
+	{
+		if (image.size().width() * image.size().height() < 500 * 500)
+			writer.setQuality(96);
+		else
+			writer.setQuality(85);
+	}
 
 	if (!writer.write(image))
 	{
