@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788092676820,
+  "lastUpdate": 1788094157729,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -16466,6 +16466,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "plugin_imageviewer.dll size",
             "value": 201.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2852.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 746,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 397,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "eac9b6c595637316bbc788602a4c72ab7ef5b3d5",
+          "message": "Quick view: image viewer has context menu",
+          "timestamp": "2026-08-30T15:42:52+03:00",
+          "tree_id": "2f9bfab980570f87c090ff39e0a4a8f4dc80ba23",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/eac9b6c595637316bbc788602a4c72ab7ef5b3d5"
+        },
+        "date": 1788094154287,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16526,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 15928,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1340,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 202.5,
             "unit": "KB"
           },
           {
