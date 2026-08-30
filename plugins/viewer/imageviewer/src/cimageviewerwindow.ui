@@ -70,6 +70,9 @@
     <addaction name="actionZoom1to1"/>
     <addaction name="separator"/>
     <addaction name="actionShowImageInfo"/>
+    <addaction name="separator"/>
+    <addaction name="actionSmoothUpscaling"/>
+    <addaction name="actionPixelPreservingUpscaling"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_Edit"/>
@@ -145,6 +148,25 @@
    </property>
    <property name="shortcut">
     <string>I</string>
+   </property>
+  </action>
+  <action name="actionSmoothUpscaling">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Smooth upscaling</string>
+   </property>
+  </action>
+  <action name="actionPixelPreservingUpscaling">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Pixel-preserving upscaling</string>
    </property>
   </action>
  </widget>

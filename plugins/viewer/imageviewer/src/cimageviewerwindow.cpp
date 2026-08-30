@@ -1,21 +1,26 @@
 #include "cimageviewerwindow.h"
 #include "plugininterface/cpluginproxy.h"
+#include "qtcore_helpers/qstring_helpers.hpp"
 #include "widgets/cimageviewerwidget.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "resize/qimage_resize.h"
 #include "ui_cimageviewerwindow.h"
 
+#include <QActionGroup>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QImageWriter>
 #include <QMessageBox>
+#include <QSettings>
 #include <QShortcut>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 #include <utility>
+
+#define SETTINGS_PIXEL_PRESERVING_UPSCALING QSL("Plugins/ImageViewer/PixelPreservingUpscaling")
 
 CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noexcept :
 	CPluginWindow(parent),
@@ -28,11 +33,36 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	};
 	ui->_imageViewerWidget->setImageScaler([parallelFor = std::move(parallelFor)](QImage& dest, const QImage& source, const QRect& srcRect) {
 		if (!ImageProcessing::resize(dest, source, srcRect, parallelFor))
-			CImageViewerWidget::smoothScale(dest, source, srcRect);
+			CImageViewerWidget::smoothScaleQt(dest, source, srcRect);
 	});
 
 	ui->_imageViewerWidget->setInfoStripHint(tr("Press %1 to hide").arg(ui->actionShowImageInfo->shortcut().toString(QKeySequence::NativeText)));
 	connect(ui->actionShowImageInfo, &QAction::toggled, ui->_imageViewerWidget, &CImageViewerWidget::setOverlayVisible);
+
+	// Built here rather than in the .ui: Qt Designer offers no way to create an action group.
+	auto* upscalingModeGroup = new QActionGroup(this);
+	upscalingModeGroup->addAction(ui->actionSmoothUpscaling);
+	upscalingModeGroup->addAction(ui->actionPixelPreservingUpscaling);
+
+	const bool pixelPreservingUpscaling = QSettings{}.value(SETTINGS_PIXEL_PRESERVING_UPSCALING, false).toBool();
+	(pixelPreservingUpscaling ? ui->actionPixelPreservingUpscaling : ui->actionSmoothUpscaling)->setChecked(true);
+	ui->_imageViewerWidget->setNearestNeighborUpscaling(pixelPreservingUpscaling);
+	// Only this action is connected: the group unchecks it whenever the smooth one is picked.
+	connect(ui->actionPixelPreservingUpscaling, &QAction::toggled, this, [this](bool enabled) {
+		ui->_imageViewerWidget->setNearestNeighborUpscaling(enabled);
+		QSettings{}.setValue(SETTINGS_PIXEL_PRESERVING_UPSCALING, enabled);
+	});
+
+	// Checking the other action is what switches modes: unchecking the current one would leave the group with no selection.
+	const QKeySequence upscalingModeToggleKey{ QStringLiteral("P") };
+	new QShortcut(upscalingModeToggleKey, this, this, [this] {
+		(ui->actionPixelPreservingUpscaling->isChecked() ? ui->actionSmoothUpscaling : ui->actionPixelPreservingUpscaling)->setChecked(true);
+	});
+
+	// A menu draws the text after a tab in its shortcut column. The key switches between the two actions,
+	// so neither can own it as its own shortcut, and both advertise it this way instead.
+	for (QAction* action : { ui->actionSmoothUpscaling, ui->actionPixelPreservingUpscaling })
+		action->setText(action->text() + '\t' + upscalingModeToggleKey.toString(QKeySequence::NativeText));
 
 	connect(ui->actionOpen, &QAction::triggered, this, [this] {
 		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg *.jpe);; TIFF (*.tif *.tiff);; PNG (*.png)");
