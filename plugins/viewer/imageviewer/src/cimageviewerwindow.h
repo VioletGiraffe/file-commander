@@ -16,10 +16,13 @@ public:
 
 	bool displayImage(const QString& imagePath);
 
+	void configureForQuickView() override;
+
 private:
 	void saveImageAs();
 
 private:
 	QString _currentImagePath;
+	bool _quickViewMode = false;
 	Ui::CImageViewerWindow *ui;
 };

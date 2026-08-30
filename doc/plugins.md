@@ -28,6 +28,8 @@ Plugin destructors must not use their proxy.
 Plugin windows use `CFileCommanderViewerPlugin::WindowPtr`, a unique pointer whose deleter is instantiated in the
 plugin module. Keep that type across the boundary so allocation and deletion occur in the same dynamic library.
 Full viewer windows opt into deletion on close; quick view retains the `WindowPtr` in `CPanelDisplayController`.
+A window embedded as quick view is never shown, so its menus and shortcuts are unreachable; `configureForQuickView()`
+is the hook for adapting to that.
 
 ## Proxy and tab visibility
 

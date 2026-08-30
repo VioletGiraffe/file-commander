@@ -50,7 +50,8 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	// Only this action is connected: the group unchecks it whenever the smooth one is picked.
 	connect(ui->actionPixelPreservingUpscaling, &QAction::toggled, this, [this](bool enabled) {
 		ui->_imageViewerWidget->setNearestNeighborUpscaling(enabled);
-		QSettings{}.setValue(SETTINGS_PIXEL_PRESERVING_UPSCALING, enabled);
+		if (!_quickViewMode) // Quick view forces the mode, so it must not overwrite the stored preference.
+			QSettings{}.setValue(SETTINGS_PIXEL_PRESERVING_UPSCALING, enabled);
 	});
 
 	// Checking the other action is what switches modes: unchecking the current one would leave the group with no selection.
@@ -112,6 +113,12 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 	});
 
 	return true;
+}
+
+void CImageViewerWindow::configureForQuickView()
+{
+	_quickViewMode = true; // Must precede the check: the toggle handler reads it to skip the settings write.
+	ui->actionPixelPreservingUpscaling->setChecked(true);
 }
 
 void CImageViewerWindow::saveImageAs()

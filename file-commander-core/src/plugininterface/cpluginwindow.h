@@ -14,4 +14,7 @@ public:
 
 	[[nodiscard]] bool autoDeleteOnClose() const;
 	void setAutoDeleteOnClose(bool autoDelete);
+
+	// Called before the central widget is embedded into a file panel; the window itself is never shown.
+	virtual void configureForQuickView() {}
 };

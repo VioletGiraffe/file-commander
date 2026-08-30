@@ -53,6 +53,7 @@ void CPanelDisplayController::startQuickView(CFileCommanderViewerPlugin::WindowP
 	// Sanity check
 	assert_and_return_r(_panelStackedWidget && _panelStackedWidget->count() == 1, );
 	_quickViewWindow->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+	_quickViewWindow->configureForQuickView();
 	_panelStackedWidget->addWidget(_quickViewWindow->centralWidget());
 	_panelStackedWidget->setCurrentIndex(1);
 }
