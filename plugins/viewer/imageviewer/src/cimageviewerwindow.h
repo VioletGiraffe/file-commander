@@ -19,6 +19,8 @@ public:
 	void configureForQuickView() override;
 
 private:
+	// In quick view this window is never shown; only the widget knows the window that actually displays it.
+	[[nodiscard]] QWidget* dialogParent() const;
 	void saveImageAs();
 
 private:

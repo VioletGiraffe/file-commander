@@ -68,7 +68,7 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 
 	connect(ui->actionOpen, &QAction::triggered, this, [this] {
 		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg *.jpe);; TIFF (*.tif *.tiff);; PNG (*.png)");
-		const QString fileName = QFileDialog::getOpenFileName(this, QString(), QString(), filtersString);
+		const QString fileName = QFileDialog::getOpenFileName(dialogParent(), QString(), QString(), filtersString);
 		if (!fileName.isEmpty())
 			displayImage(fileName);
 	});
@@ -100,7 +100,7 @@ bool CImageViewerWindow::displayImage(const QString& imagePath)
 	_currentImagePath = imagePath;
 	if (!ui->_imageViewerWidget->displayImage(imagePath))
 	{
-		QMessageBox::warning(this, tr("Failed to load the image"), tr("Failed to load the image %1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
+		QMessageBox::warning(dialogParent(), tr("Failed to load the image"), tr("Failed to load the image %1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
 		return false;
 	}
 
@@ -149,6 +149,11 @@ void CImageViewerWindow::configureForQuickView()
 	ui->_imageViewerWidget->setInfoStripHint(tr("Right-click for options"));
 }
 
+QWidget* CImageViewerWindow::dialogParent() const
+{
+	return ui->_imageViewerWidget->window();
+}
+
 void CImageViewerWindow::saveImageAs()
 {
 	const QImage& image = ui->_imageViewerWidget->sourceImage();
@@ -165,7 +170,7 @@ void CImageViewerWindow::saveImageAs()
 	const QString suggestedPath = sourceInfo.absolutePath() + '/' + sourceInfo.completeBaseName();
 
 	QString selectedFilter = pngFilter;
-	QString fileName = QFileDialog::getSaveFileName(this, tr("Save image as"), suggestedPath,
+	QString fileName = QFileDialog::getSaveFileName(dialogParent(), tr("Save image as"), suggestedPath,
 		pngFilter + ";;" + jpegFilter + ";;" + tiffFilter, &selectedFilter);
 	if (fileName.isEmpty())
 		return;
@@ -180,7 +185,7 @@ void CImageViewerWindow::saveImageAs()
 	const bool isJpeg = suffix == "jpg" || suffix == "jpeg" || suffix == "jpe";
 	if (isJpeg && image.hasAlphaChannel())
 	{
-		const auto answer = QMessageBox::warning(this, tr("Transparency will be lost"),
+		const auto answer = QMessageBox::warning(dialogParent(), tr("Transparency will be lost"),
 			tr("This image has transparency, which the JPEG format cannot store. The transparency will be discarded, so formerly transparent areas will become opaque and may show unexpected colors.\n\nSave as JPEG anyway?"),
 			QMessageBox::Save | QMessageBox::Cancel, QMessageBox::Cancel);
 		if (answer != QMessageBox::Save)
@@ -197,7 +202,7 @@ void CImageViewerWindow::saveImageAs()
 
 	if (!writer.write(image))
 	{
-		QMessageBox::warning(this, tr("Failed to save the image"),
+		QMessageBox::warning(dialogParent(), tr("Failed to save the image"),
 			tr("Failed to save the image to \"%1\":\n\n%2").arg(fileName, writer.errorString()));
 	}
 }
