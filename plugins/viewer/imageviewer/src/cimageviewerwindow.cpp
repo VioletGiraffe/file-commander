@@ -7,6 +7,7 @@ DISABLE_COMPILER_WARNINGS
 #include "resize/qimage_resize.h"
 #include "ui_cimageviewerwindow.h"
 
+#include <QAction>
 #include <QActionGroup>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -119,6 +120,33 @@ void CImageViewerWindow::configureForQuickView()
 {
 	_quickViewMode = true; // Must precede the check: the toggle handler reads it to skip the settings write.
 	ui->actionPixelPreservingUpscaling->setChecked(true);
+
+	// The menu bar stays with this window, which is never shown, so the canvas offers the applicable actions instead.
+	// The upscaling mode is not among them: quick view forces it, and every window here is built anew for each file.
+	QAction* const contextMenuActions[] = {
+		ui->actionFitToScreen, ui->actionZoom1to1,
+		nullptr, // Separator
+		ui->actionShowImageInfo,
+		nullptr,
+		ui->action_Copy_to_clipboard, ui->action_Copy_to_clipboard_as_displayed, ui->actionSaveAs
+	};
+
+	for (QAction* action : contextMenuActions)
+	{
+		if (!action)
+		{
+			action = new QAction(this);
+			action->setSeparator(true);
+		}
+		// Adding an action to a visible widget puts its shortcut up against the main window's own. Ctrl+0 is the only one free there.
+		else if (action != ui->actionFitToScreen)
+			action->setShortcut({});
+
+		ui->_imageViewerWidget->addAction(action);
+	}
+
+	ui->_imageViewerWidget->setContextMenuPolicy(Qt::ActionsContextMenu);
+	ui->_imageViewerWidget->setInfoStripHint(tr("Right-click for options"));
 }
 
 void CImageViewerWindow::saveImageAs()
