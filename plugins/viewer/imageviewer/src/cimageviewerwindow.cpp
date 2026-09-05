@@ -164,10 +164,10 @@ void CImageViewerWindow::saveImageAs()
 	const QString jpegFilter = tr("JPEG image (*.jpg *.jpeg)");
 	const QString tiffFilter = tr("TIFF image (*.tif *.tiff)");
 
-	// Suggest the source's folder and base name but no extension, so the chosen filter picks the output
-	// format instead of a stale extension carried over from the source silently overriding it.
+	// The suggested name must carry an extension: the native Windows dialog leaves the name box empty without one.
+	// It matches the initially selected filter below, and the dialog rewrites it whenever the filter changes.
 	const QFileInfo sourceInfo(_currentImagePath);
-	const QString suggestedPath = sourceInfo.absolutePath() + '/' + sourceInfo.completeBaseName();
+	const QString suggestedPath = sourceInfo.absolutePath() + '/' + sourceInfo.completeBaseName() + ".png";
 
 	QString selectedFilter = pngFilter;
 	QString fileName = QFileDialog::getSaveFileName(dialogParent(), tr("Save image as"), suggestedPath,
