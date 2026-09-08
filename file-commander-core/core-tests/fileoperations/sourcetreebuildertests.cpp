@@ -1,7 +1,7 @@
 // WP4: the immutable hierarchical source manifest - shapes and totals, operation-specific link handling,
 // ownership, cycle termination, scanning progress, and cancellation.
 
-#include "fileoperations/csourcetreebuilder.h"
+#include "fileoperations/sourcetreebuilder.h"
 #include "fileoperations/coperationexecutioncontext.h"
 #include "fileoperations/operationtesthooks.h"
 

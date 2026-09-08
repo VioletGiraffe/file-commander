@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cdestinationresolver.h"
-#include "csourcetreebuilder.h"
+#include "destinationresolver.h"
+#include "sourcetreebuilder.h"
 
 class COperationExecutionContext;
 class CStagedFileCopy;

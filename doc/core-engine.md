@@ -74,8 +74,8 @@ The module separates synchronous policy and filesystem mechanics from its thread
 CFileOperationJob
   `- CTransferExecutor or CDeleteExecutor
        |- COperationExecutionContext
-       |- destination resolution: resolveFileDestination(), resolveDirectoryDestination() in cdestinationresolver.h
-       |- source manifest scan: buildSourceTree() in csourcetreebuilder.h
+       |- destination resolution: resolveFileDestination(), resolveDirectoryDestination() in destinationresolver.h
+       |- source manifest scan: buildSourceTree() in sourcetreebuilder.h
        |- CStagedFileCopy
        `- CFileSystemMutator
 ```

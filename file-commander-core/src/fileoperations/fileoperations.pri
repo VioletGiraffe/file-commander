@@ -9,8 +9,8 @@ HEADERS += \
 	$$PWD/thiniobridge.h \
 	$$PWD/cfilesystemmutator.h \
 	$$PWD/cstagedfilecopy.h \
-	$$PWD/cdestinationresolver.h \
-	$$PWD/csourcetreebuilder.h \
+	$$PWD/destinationresolver.h \
+	$$PWD/sourcetreebuilder.h \
 	$$PWD/coperationexecutioncontext.h \
 	$$PWD/ctransferexecutor.h \
 	$$PWD/cdeleteexecutor.h \
@@ -24,8 +24,8 @@ SOURCES += \
 	$$PWD/fileoperationtypes.cpp \
 	$$PWD/cfilesystemmutator.cpp \
 	$$PWD/cstagedfilecopy.cpp \
-	$$PWD/cdestinationresolver.cpp \
-	$$PWD/csourcetreebuilder.cpp \
+	$$PWD/destinationresolver.cpp \
+	$$PWD/sourcetreebuilder.cpp \
 	$$PWD/coperationexecutioncontext.cpp \
 	$$PWD/ctransferexecutor.cpp \
 	$$PWD/cdeleteexecutor.cpp \

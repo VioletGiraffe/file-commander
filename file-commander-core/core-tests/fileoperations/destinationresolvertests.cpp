@@ -1,7 +1,7 @@
 // WP3: typed requests and factories, the six-row normative decision table, remembered decisions in the
 // execution context, and the destination resolver's complete collision matrix.
 
-#include "fileoperations/cdestinationresolver.h"
+#include "fileoperations/destinationresolver.h"
 #include "fileoperations/coperationexecutioncontext.h"
 #include "fileoperations/operationtesthooks.h"
 

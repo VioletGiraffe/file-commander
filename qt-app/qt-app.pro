@@ -36,8 +36,7 @@ INCLUDEPATH += \
 	../cpputils \
 	../cpp-template-utils \
 	../github-releases-autoupdater/src \
-	../thin_io/src \
-	../3rdparty
+	../thin_io/src
 
 SOURCES += \
 	src/main.cpp \

@@ -52,5 +52,4 @@ INCLUDEPATH += \
 	../qtutils \
 	../cpputils \
 	../cpp-template-utils \
-	../thin_io/src \
-	../3rdparty
+	../thin_io/src

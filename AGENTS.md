@@ -15,9 +15,11 @@
 - Listener callbacks or the navigation path from a command to the refreshed list: `doc/notifications.md`.
 - GUI or tabs: `doc/qt-ui.md` and `doc/tabs.md`.
 - Settings or session restoration: `doc/persistence.md`.
+- The search dialog's name-filter and content query language: `doc/search.md`.
 - Plugins: `doc/plugins.md`.
 - Build, tests, CI, or dependencies: `doc/build-ci-deps.md`.
 - Installer, version, vendor, license, or other release identity: `doc/release-metadata-audit.md`.
+- Reviewing code: `doc/code-review-plan.md`. Backlog: `doc/TODO.md`. Native-path work: `doc/planned-refactors/native-paths.md`.
 - Do not build or compile the project; the user performs build verification.
 
 ## Invariants to preserve

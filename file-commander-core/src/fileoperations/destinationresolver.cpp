@@ -1,4 +1,4 @@
-#include "cdestinationresolver.h"
+#include "destinationresolver.h"
 #include "cfilesystemmutator.h"
 #include "coperationexecutioncontext.h"
 #include "newnamecheck.h"

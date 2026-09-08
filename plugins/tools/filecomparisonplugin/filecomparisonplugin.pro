@@ -55,7 +55,6 @@ INCLUDEPATH += \
 	../../../qtutils \
 	../../../cpputils \
 	../../../cpp-template-utils \
-	../../../3rdparty \
 	$$PWD/src
 
 HEADERS += \
