@@ -8,6 +8,10 @@ Qt 6.8+ with a C++23-capable compiler. Windows builds are x64 with MSVC 2022/v14
 
 Everything that links `core` also links `thin_io`, because core filesystem helpers and file operations call it.
 
+Every project outputs to `bin/{debug,release}`: the executable, the static libraries, and the plugin libraries. A
+dev build therefore already has the plugins beside the executable, where the plugin loader looks. `build/` holds
+intermediates.
+
 ## CI
 
 `.github/workflows/CI.yml` is the source of truth for the current matrix, tool versions, packaging, smoke test,
@@ -15,8 +19,10 @@ test invocation, and release workflow.
 
 ## Tests
 
-`file-commander-core/core-tests/core-tests.pro` builds the automated suite, including the file-operation GUI tests.
-`qt-app/gui-tests/combobox/` is a manual harness. The project files are authoritative for the current test set.
+`file-commander-core/core-tests/core-tests.pro` builds the automated suite. The file-operation GUI tests are part of
+it but live with the UI sources in `qt-app/gui-tests/fileoperations/`. `core-tests/test-utils/` holds the shared
+helpers: temporary folder generation, random data, link creation, Qt/Catch2 glue. `qt-app/gui-tests/combobox/` is a
+manual harness. The project files are authoritative for the current test set.
 
 `fileoperations_test` and `filecomparator_test` accept `--std-seed <seed>`. Cross-volume and case-sensitive-volume
 coverage use `FILE_COMMANDER_TEST_SECOND_VOLUME` and `FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME`; see the tests and

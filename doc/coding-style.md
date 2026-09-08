@@ -1,7 +1,7 @@
 # Coding style
 
 Authoring preferences for new code in this repo. Process doc, not architecture — for what the codebase
-*is*, including its naming and notification conventions, see [README.md](README.md).
+*is*, see [README.md](README.md); for how core state changes reach listeners, [notifications.md](notifications.md).
 
 Keep comments terse, and challenge whether the code can carry the meaning instead. Do this every single time when writing a comment.
 

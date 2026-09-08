@@ -12,6 +12,7 @@ owners. Filesystem and panel access goes through `CController`.
 | Panel tabs and visible-side state | `src/panel/cpanelwidget.{h,cpp,ui}` |
 | File-list view/model/proxy/delegate | `src/panel/filelistwidget/` |
 | Quick view | `src/panel/cpaneldisplaycontroller.{h,cpp}` |
+| Blocking shell operations: native delete, clipboard paste | `src/cshelloperationrunner.{h,cpp}` |
 | File-operation UI | `src/progressdialogs/` |
 | Search, tools, and settings | `src/filessearchdialog/`, `src/tools/`, `src/settings/` |
 
@@ -35,6 +36,9 @@ model, and saved header state; the widget's unqualified model pointers alias the
 
 The tab bar, UI vector, and core tab list remain position-aligned, but cross-layer calls use the stable ID stored in
 tab data. Positions must be resolved again immediately before close or reorder operations.
+
+The widget and the main window implement the core listener interfaces; which callbacks each handles and on which
+thread they arrive is in [notifications.md](notifications.md).
 
 Both list models resolve items through the active controller panel. Therefore only the active triplet may be
 queried or attached to the view, tab activation swaps the entire triplet and its view state, and background-tab

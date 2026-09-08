@@ -12,6 +12,7 @@ CController
  |- shared panel worker pool
  |- shared application worker pool and UI execution queue
  |- volumes and favorites
+ |- icon provider, with its own retrieval thread and UI execution queue
  `- plugin subscriptions/access gate and WCX host
 ```
 
@@ -44,7 +45,8 @@ An asynchronous operation that can replace a panel list must:
 Accessors hide a retained list as soon as it no longer describes the current view. Invalidation means only that the
 old list is no longer displayable; cursor, selection, persistence, and plugin state update only after a committed
 contents notification. Screen-facing listeners filter all notifications by stable tab ID. See
-[threading.md](threading.md) before changing this path.
+[threading.md](threading.md) before changing this path; [notifications.md](notifications.md) traces one navigation
+through it.
 
 ## Filesystem objects and paths
 
@@ -72,8 +74,8 @@ The module separates synchronous policy and filesystem mechanics from its thread
 CFileOperationJob
   `- CTransferExecutor or CDeleteExecutor
        |- COperationExecutionContext
-       |- CDestinationResolver
-       |- CSourceTreeBuilder
+       |- destination resolution: resolveFileDestination(), resolveDirectoryDestination() in cdestinationresolver.h
+       |- source manifest scan: buildSourceTree() in csourcetreebuilder.h
        |- CStagedFileCopy
        `- CFileSystemMutator
 ```
@@ -109,11 +111,12 @@ primitives. Test-only fault injection lives in `operationtesthooks` and compiles
 
 ## Traversal and watchers
 
-`scanDirectory()` is shared by flattened display, search, and folder comparison. It can follow directory links and
-breaks cycles with resolved native identity rather than path text. File operations and statistics use separate
-traversals.
+`scanDirectory()` (`src/directoryscanner.h`) is shared by flattened display, search, and folder comparison. It can
+follow directory links and breaks cycles with resolved native identity rather than path text. File operations and
+statistics use separate traversals.
 
-Windows panels use native change notifications; other platforms compare periodic directory snapshots. A path
+Windows panels use native change notifications; other platforms compare periodic directory snapshots
+(`src/filesystemwatcher/`, implementation selected by the `FileSystemWatcher` alias in `cpanel.h`). A path
 generation rejects obsolete polling results. Flattened recursive display and inactive tabs do not hold a
 single-directory watch.
 

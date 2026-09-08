@@ -24,7 +24,9 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | `OsShell::executeShellCommand` | detached thread | One blocking shell command; nothing waits for it |
 
 `CMainWindow` periodically drains every tab's panel queue, the icon provider's queue, and the controller UI queue. Tagged queue entries can
-replace older pending entries with the same tag; work queued during a drain waits for the next tick.
+replace older pending entries with the same tag; work queued during a drain waits for the next tick. The volume
+enumerator drains its own notification queue on its own timer. Which listener each queue feeds is in
+[notifications.md](notifications.md).
 
 The comparison tools and the search window report back through queued Qt invocations targeting a UI object whose
 destruction cancels delivery; each owner still aborts and joins its worker before that object dies.

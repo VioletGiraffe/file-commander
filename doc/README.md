@@ -23,6 +23,19 @@ The UI reaches panels and filesystem objects through `CController`. Native plugi
 plugin interface, but the core discovers and loads them at runtime rather than linking them. See the top-level
 `file-commander.pro` for the current project graph and each project's `.pro`/`.pri` files for its sources.
 
+Every project builds into `bin/{debug,release}`; see [build-ci-deps.md](build-ci-deps.md). `installer/` holds the
+per-platform packaging and `extras/win/natvis` the debugger visualizers.
+
+## Vocabulary
+
+| Term | Meaning | In code |
+|------|---------|---------|
+| side | the left or right half of the window | `Panel` enum value |
+| tab | one directory view on a side, owning its directory, history, and list | `CPanel` |
+| panel | either of the above depending on context; `CController::panel(side)` returns the side's active tab | `Panel`, `CPanel` |
+| panel widget | one side's entire UI, hosting the shared file-list view | `CPanelWidget` |
+| triplet | one tab's model, sort/filter proxy, and selection model in the panel widget | `CPanelWidget::PanelTab` |
+
 ## Source map
 
 | Area | Start here |
@@ -30,13 +43,17 @@ plugin interface, but the core discovers and loads them at runtime rather than l
 | Core facade and tabs | `file-commander-core/src/ccontroller.{h,cpp}` |
 | One tab's directory state | `file-commander-core/src/cpanel.{h,cpp}` |
 | Filesystem entry wrapper | `file-commander-core/src/cfilesystemobject.{h,cpp}` |
+| Directory listing type (`FileListHashMap`) | `file-commander-core/src/detail/file_list_hashmap.h` |
+| Recursive traversal (`scanDirectory`) | `file-commander-core/src/directoryscanner.{h,cpp}` |
+| Directory change watchers | `file-commander-core/src/filesystemwatcher/` |
 | Copy, move, permanent delete | `file-commander-core/src/fileoperations/` and `fileoperations.pri` |
 | File and content search | `file-commander-core/src/filesearchengine/`, `qt-app/src/filessearchdialog/` |
 | Main window and command routing | `qt-app/src/cmainwindow.{h,cpp,ui}` |
 | Panel UI and file-list MVC | `qt-app/src/panel/` |
+| Blocking shell operations | `qt-app/src/cshelloperationrunner.{h,cpp}` |
 | Native plugin API and loader | `file-commander-core/src/plugininterface/`, `pluginengine/` |
 | Shipped plugins | `plugins/viewer/`, `plugins/tools/` |
-| Build and test graph | `file-commander.pro`, `file-commander-core/core-tests/core-tests.pro` |
+| Build and test graph | `file-commander.pro`, `file-commander-core/core-tests/core-tests.pro`, `qt-app/gui-tests/` |
 
 ## Invariants to carry into code reading
 
@@ -56,6 +73,8 @@ plugin interface, but the core discovers and loads them at runtime rather than l
 
 - [core-engine.md](core-engine.md): core ownership, panel/list invariants, filesystem and operation sharp edges.
 - [threading.md](threading.md): executors, queueing, lifetime rules, and concurrency review checklist.
+- [notifications.md](notifications.md): the listener interfaces, their delivery threads, and the path from a
+  navigation command to the refreshed list.
 - [qt-ui.md](qt-ui.md): UI ownership and the model/view boundaries.
 - [tabs.md](tabs.md): the tab feature where core, UI, notifications, and persistence meet.
 - [search.md](search.md): the name-filter and content query language the dialog and the engine share.

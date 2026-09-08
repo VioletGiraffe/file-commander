@@ -1,7 +1,8 @@
 # Persistence and settings
 
 `CSettings` wraps `QSettings`; the application and organization names set in `main.cpp` determine the platform
-store. Core keys live in `file-commander-core/include/settings.h`.
+store. Core keys live in `file-commander-core/include/settings.h`; UI keys are file-local defines at the top of the
+`.cpp` that owns them (`cmainwindow.cpp`, `cpanelwidget.cpp`).
 
 ## Ownership
 
@@ -10,7 +11,8 @@ store. Core keys live in `file-commander-core/include/settings.h`.
 - one entry per tab holding its id, path and cursor hash;
 - the active position, and the counter tab ids are drawn from;
 - the active tab's back/forward history;
-- the side-wide visited-location log.
+- the side-wide visited-location log;
+- the last directory visited on each volume, per side, which `switchToVolume` returns to.
 
 Legacy single-path settings migrate to one tab. Tab state is saved after committed panel updates and at shutdown,
 with duplicate signatures suppressed so watcher refreshes do not rewrite unchanged settings. History is saved
