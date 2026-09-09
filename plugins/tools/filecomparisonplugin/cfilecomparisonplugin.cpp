@@ -23,6 +23,7 @@ CFileCommanderPlugin* createPlugin()
 CFileComparisonPlugin::CFileComparisonPlugin() noexcept :
 	_progressDialog(std::make_unique<CSimpleProgressDialog>())
 {
+	_progressDialog->setWindowTitle(QObject::tr("Comparing files"));
 	_progressDialog->setLabelText(QObject::tr("Comparing the selected files..."));
 	QObject::connect(qApp, &QCoreApplication::aboutToQuit, _progressDialog.get(), [this]() {
 		_comparator.abortComparison();
