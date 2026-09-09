@@ -77,16 +77,17 @@ void CPluginEngine::loadPlugins()
 	}
 }
 
-std::vector<QString> CPluginEngine::activePluginNames() const
+std::vector<CPluginEngine::PluginInfo> CPluginEngine::activePluginInfo() const
 {
-	std::vector<QString> names;
+	std::vector<PluginInfo> info;
+	info.reserve(_plugins.size());
 	for (const auto& plugin: _plugins)
 	{
 		assert_r(plugin.instance);
-		names.push_back(plugin.instance->name());
+		info.push_back({ plugin.instance->name(), plugin.instance->description(), plugin.instance->type() });
 	}
 
-	return names;
+	return info;
 }
 
 void CPluginEngine::viewCurrentFile()

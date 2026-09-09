@@ -979,7 +979,7 @@ void CMainWindow::checkForUpdates()
 
 void CMainWindow::about()
 {
-	showAboutDialog(this, _pluginEngine.activePluginNames());
+	showAboutDialog(this, _pluginEngine.activePluginInfo());
 }
 
 void CMainWindow::reportBug()

@@ -1,6 +1,11 @@
 #pragma once
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
+#include "compiler/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QString>
+RESTORE_COMPILER_WARNINGS
 
 #include <memory>
 #include <vector>
@@ -18,8 +23,15 @@ public:
 	CPluginEngine& operator=(const CPluginEngine& other) = delete;
 	CPluginEngine(const CPluginEngine& other) = delete;
 
+	struct PluginInfo
+	{
+		QString name;
+		QString description; // Empty unless the plugin overrides CFileCommanderPlugin::description()
+		CFileCommanderPlugin::PluginType type;
+	};
+
 	void loadPlugins();
-	std::vector<QString> activePluginNames() const;
+	[[nodiscard]] std::vector<PluginInfo> activePluginInfo() const;
 
 // Operations
 	void viewCurrentFile();

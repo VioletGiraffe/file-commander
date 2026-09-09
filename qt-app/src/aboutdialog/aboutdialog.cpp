@@ -3,6 +3,8 @@
 
 #include "aboutdialog/caboutdialog.h"
 
+#include "3rdparty/magic_enum/magic_enum.hpp"
+
 DISABLE_COMPILER_WARNINGS
 #include <QAbstractItemView>
 #include <QFontMetrics>
@@ -11,6 +13,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QObject>
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
+
+#include <string_view>
 
 namespace {
 
@@ -30,6 +34,12 @@ constexpr struct {
 	{ "Font",                         "Roboto Mono by googlefonts",  "https://github.com/googlefonts/RobotoMono" }
 };
 
+QString pluginTypeName(CFileCommanderPlugin::PluginType type)
+{
+	const std::string_view name = magic_enum::enum_name(type);
+	return QString::fromLatin1(name.data(), static_cast<qsizetype>(name.size()));
+}
+
 QString acknowledgementsText()
 {
 	QString text = "3rdparty acknowledgements:";
@@ -41,7 +51,7 @@ QString acknowledgementsText()
 
 }
 
-void showAboutDialog(QWidget* parent, const std::vector<QString>& activePluginNames)
+void showAboutDialog(QWidget* parent, const std::vector<CPluginEngine::PluginInfo>& activePlugins)
 {
 	CAboutDialog dialog(VERSION_STRING, parent, "2013");
 
@@ -61,8 +71,14 @@ void showAboutDialog(QWidget* parent, const std::vector<QString>& activePluginNa
 	constexpr int MIN_PLUGIN_ROWS = 5;
 	plugins->setMinimumHeight(MIN_PLUGIN_ROWS * rowHeight + 2 * plugins->frameWidth());
 
-	for (const QString& plugin: activePluginNames)
-		plugins->addItem(plugin);
+	for (const CPluginEngine::PluginInfo& plugin: activePlugins)
+	{
+		QString item = plugin.name + " (" + pluginTypeName(plugin.type) + ")";
+		if (!plugin.description.isEmpty())
+			item += " - " + plugin.description;
+
+		plugins->addItem(item);
+	}
 
 	QVBoxLayout& layout = dialog.customContentLayout();
 	layout.addSpacing(20);
