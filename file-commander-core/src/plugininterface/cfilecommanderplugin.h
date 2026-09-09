@@ -2,14 +2,22 @@
 
 #include "plugin_export.h"
 
+#include <cstdint>
+
 class CFileCommanderPlugin;
 class CPluginProxy;
 
 class QString;
 
-// A plugin dynamic library must implement this function as follows:
-// return new CFileCommanderPluginSubclass();
+// Bump on every change to the interfaces in this directory: the engine skips a plugin reporting a different value.
+inline constexpr uint32_t PLUGIN_INTERFACE_VERSION = 1;
+
+// A plugin dynamic library must implement both of these:
+//   pluginInterfaceVersion - return PLUGIN_INTERFACE_VERSION;
+//   createPlugin - return new CFileCommanderPluginSubclass();
 extern "C" {
+	// Resolved and checked before createPlugin is called: a virtual call through a mismatched vtable is undefined.
+	PLUGIN_EXPORT uint32_t pluginInterfaceVersion();
 	PLUGIN_EXPORT CFileCommanderPlugin * createPlugin();
 }
 

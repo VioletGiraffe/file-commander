@@ -10,6 +10,11 @@ RESTORE_COMPILER_WARNINGS
 
 #include <memory>
 
+uint32_t pluginInterfaceVersion()
+{
+	return PLUGIN_INTERFACE_VERSION;
+}
+
 CFileCommanderPlugin* createPlugin()
 {
 	return new CFileComparisonPlugin;

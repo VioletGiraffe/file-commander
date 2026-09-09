@@ -42,6 +42,11 @@ QString CImageViewerPlugin::category() const
 }
 
 
+uint32_t pluginInterfaceVersion()
+{
+	return PLUGIN_INTERFACE_VERSION;
+}
+
 CFileCommanderPlugin* createPlugin()
 {
 	return new CImageViewerPlugin;

@@ -48,6 +48,20 @@ void CPluginEngine::loadPlugins()
 
 		const auto absolutePath = path.absoluteFilePath();
 		auto pluginModule = std::make_unique<QLibrary>(absolutePath);
+
+		const auto interfaceVersionFunc = reinterpret_cast<decltype(pluginInterfaceVersion)*>(pluginModule->resolve("pluginInterfaceVersion"));
+		if (!interfaceVersionFunc)
+		{
+			qWarning().noquote() << QStringLiteral("Skipping %1: exports no pluginInterfaceVersion, so it predates the version check").arg(absolutePath);
+			continue;
+		}
+
+		if (const uint32_t pluginVersion = interfaceVersionFunc(); pluginVersion != PLUGIN_INTERFACE_VERSION)
+		{
+			qWarning().noquote() << QStringLiteral("Skipping %1: plugin interface version %2, this build requires %3").arg(absolutePath).arg(pluginVersion).arg(PLUGIN_INTERFACE_VERSION);
+			continue;
+		}
+
 		auto createFunc = reinterpret_cast<decltype(createPlugin)*>(pluginModule->resolve("createPlugin"));
 		if (createFunc)
 		{

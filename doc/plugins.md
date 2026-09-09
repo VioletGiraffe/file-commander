@@ -17,8 +17,12 @@ There are two unrelated mechanisms:
 | Quick-view host | `qt-app/src/panel/cpaneldisplaycontroller.*` |
 | Commands-menu materialization | `qt-app/src/cmainwindow.*` |
 
-Each native library exports `createPlugin()`. The engine then supplies the proxy; `proxySet()` is the hook for
-proxy-dependent initialization. The interface headers are authoritative for the ABI.
+Each native library exports `pluginInterfaceVersion()` and `createPlugin()`. The engine resolves and checks the
+version before calling the factory, and skips the library on mismatch or absence: the returned object's virtuals are
+dispatched through the caller's vtable layout, so a stale plugin is undefined behaviour rather than a clean failure.
+Bump `PLUGIN_INTERFACE_VERSION` in `cfilecommanderplugin.h` whenever these interfaces change. The engine then
+supplies the proxy; `proxySet()` is the hook for proxy-dependent initialization. The interface headers are
+authoritative for the ABI.
 
 `main()` owns the plugin engine between the main window and controller in the destruction order. The engine owns
 each plugin's instance, proxy, and library module. Teardown destroys the proxy first so its tagged background work

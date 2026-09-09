@@ -8,6 +8,11 @@ DISABLE_COMPILER_WARNINGS
 #include <QMimeType>
 RESTORE_COMPILER_WARNINGS
 
+uint32_t pluginInterfaceVersion()
+{
+	return PLUGIN_INTERFACE_VERSION;
+}
+
 CFileCommanderPlugin * createPlugin()
 {
 	DISABLE_COMPILER_WARNINGS
