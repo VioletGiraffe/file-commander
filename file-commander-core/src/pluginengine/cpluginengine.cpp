@@ -62,18 +62,24 @@ void CPluginEngine::loadPlugins()
 			continue;
 		}
 
-		auto createFunc = reinterpret_cast<decltype(createPlugin)*>(pluginModule->resolve("createPlugin"));
-		if (createFunc)
+		const auto createFunc = reinterpret_cast<decltype(createPlugin)*>(pluginModule->resolve("createPlugin"));
+		if (!createFunc)
 		{
-			auto plugin = std::unique_ptr<CFileCommanderPlugin>{createFunc()};
-			if (plugin)
-			{
-				auto proxy = std::make_unique<CPluginProxy>(_controller);
-				plugin->setProxy(proxy.get()); // Runs the plugin's proxySet(), so the proxy must be complete by now
-				qInfo().noquote() << QStringLiteral("Loaded plugin \"%1\" (%2)").arg(plugin->name(), absolutePath);
-				_plugins.emplace_back(std::move(pluginModule), std::move(proxy), std::move(plugin));
-			}
+			qWarning().noquote() << QStringLiteral("Skipping %1: exports no createPlugin").arg(absolutePath);
+			continue;
 		}
+
+		auto plugin = std::unique_ptr<CFileCommanderPlugin>{createFunc()};
+		if (!plugin)
+		{
+			qWarning().noquote() << QStringLiteral("Skipping %1: createPlugin returned nothing").arg(absolutePath);
+			continue;
+		}
+
+		auto proxy = std::make_unique<CPluginProxy>(_controller);
+		plugin->setProxy(proxy.get()); // Runs the plugin's proxySet(), so the proxy must be complete by now
+		qInfo().noquote() << QStringLiteral("Loaded plugin \"%1\" (%2)").arg(plugin->name(), absolutePath);
+		_plugins.emplace_back(std::move(pluginModule), std::move(proxy), std::move(plugin));
 	}
 }
 
