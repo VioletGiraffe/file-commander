@@ -59,7 +59,7 @@ SOURCES += \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
 	src/panel/filelistwidget/cfilelistfilterdialog.cpp \
 	src/filessearchdialog/cfilessearchwindow.cpp \
-	src/aboutdialog/caboutdialog.cpp \
+	src/aboutdialog/aboutdialog.cpp \
 	src/progressdialogs/progressdialoghelpers.cpp \
 	src/panel/cpaneldisplaycontroller.cpp \
 	src/tools/CFileStatsWindow.cpp \
@@ -90,7 +90,7 @@ HEADERS += \
 	src/tools/cfoldercomparisonwindow.h \
 	src/tools/csortbydatatreeitem.h \
 	src/version.h \
-	src/aboutdialog/caboutdialog.h \
+	src/aboutdialog/aboutdialog.h \
 	src/progressdialogs/progressdialoghelpers.h \
 	src/panel/cpaneldisplaycontroller.h
 
@@ -106,8 +106,7 @@ FORMS += \
 	src/settings/csettingspageoperations.ui \
 	src/favoritelocationseditor/cfavoritelocationseditor.ui \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
-	src/filessearchdialog/cfilessearchwindow.ui \
-	src/aboutdialog/caboutdialog.ui
+	src/filessearchdialog/cfilessearchwindow.ui
 
 
 DEFINES += _SCL_SECURE_NO_WARNINGS

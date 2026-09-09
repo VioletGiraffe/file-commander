@@ -20,7 +20,7 @@
 #include "filesystemhelperfunctions.h"
 #include "filessearchdialog/cfilessearchwindow.h"
 #include "updaterUI/cupdaterdialog.h"
-#include "aboutdialog/caboutdialog.h"
+#include "aboutdialog/aboutdialog.h"
 #include "widgets/cpersistentwindow.h"
 #include "widgets/widgetutils.h"
 #include "filesystemhelpers/filestatistics.h"
@@ -979,7 +979,7 @@ void CMainWindow::checkForUpdates()
 
 void CMainWindow::about()
 {
-	CAboutDialog(this, _pluginEngine.activePluginNames()).exec();
+	showAboutDialog(this, _pluginEngine.activePluginNames());
 }
 
 void CMainWindow::reportBug()
