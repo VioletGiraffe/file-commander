@@ -1,6 +1,6 @@
 #include "cfilecommanderviewerplugin.h"
 
-CFileCommanderPlugin::PluginType CFileCommanderViewerPlugin::type()
+CFileCommanderPlugin::PluginType CFileCommanderViewerPlugin::type() const
 {
 	return Viewer;
 }

@@ -37,5 +37,5 @@ public:
 	// A free-form classification (see ViewerCategory) used to order viewer selection; the text viewer's category marks it as the omnivorous fallback.
 	[[nodiscard]] virtual QString category() const = 0;
 
-	PluginType type() override;
+	[[nodiscard]] PluginType type() const override;
 };

@@ -5,5 +5,5 @@
 class CFileCommanderToolPlugin : public CFileCommanderPlugin
 {
 public:
-	[[nodiscard]] PluginType type() override;
+	[[nodiscard]] PluginType type() const override;
 };

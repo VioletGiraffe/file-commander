@@ -30,7 +30,7 @@ public:
 	CFileCommanderPlugin() noexcept;
 	virtual ~CFileCommanderPlugin() noexcept = default;
 
-	[[nodiscard]] virtual PluginType type() = 0;
+	[[nodiscard]] virtual PluginType type() const = 0;
 	[[nodiscard]] virtual QString name() const = 0;
 	// Optional, empty by default: shown after the name wherever plugins are listed.
 	[[nodiscard]] virtual QString description() const;
