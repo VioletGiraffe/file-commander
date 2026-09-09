@@ -33,7 +33,6 @@ public slots:
 
 protected:
 	void showEvent(QShowEvent * e) override;
-	void closeEvent(QCloseEvent * e) override;
 
 private:
 	void saveSearchSettings() const;

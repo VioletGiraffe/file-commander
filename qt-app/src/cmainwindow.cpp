@@ -22,7 +22,7 @@
 #include "filessearchdialog/cfilessearchwindow.h"
 #include "updaterUI/cupdaterdialog.h"
 #include "aboutdialog/aboutdialog.h"
-#include "widgets/cpersistentwindow.h"
+#include "widgets/cpersistenceenabler.h"
 #include "widgets/widgetutils.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
@@ -104,7 +104,7 @@ CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, C
 	_rightPanelDisplayController.setPanelStackedWidget(ui->rightWidget);
 	_rightPanelDisplayController.setPanelWidget(ui->rightPanel);
 
-	installEventFilter(new CPersistenceEnabler(QSL("UI/MainWindow"), this));
+	enablePersistence(this, QSL("UI/MainWindow"));
 
 	QSplitterHandle * handle = ui->splitter->handle(1);
 	handle->setContextMenuPolicy(Qt::CustomContextMenu);

@@ -3,7 +3,7 @@
 #include "cfinddialog.h"
 
 #include "widgets/clightningfastviewer.h"
-#include "widgets/cpersistentwindow.h"
+#include "widgets/cpersistenceenabler.h"
 #include "qtcore_helpers/qt_helpers.hpp"
 
 #include "assert/advanced_assert.h"
@@ -56,7 +56,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 {
 	setupUi(this);
 
-	installEventFilter(new CPersistenceEnabler(QStringLiteral("Plugins/TextViewer/Window"), this, CPersistenceEnabler::Delayed{ false }));
+	enablePersistence(this, QStringLiteral("Plugins/TextViewer/Window"), CPersistenceEnabler::Delayed{ false });
 
 	CR() = connect(actionOpen, &QAction::triggered, this, [this]() {
 		const QString fileName = QFileDialog::getOpenFileName(this);

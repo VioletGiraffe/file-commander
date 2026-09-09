@@ -1,6 +1,7 @@
 #include "cfinddialog.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
+#include "widgets/cpersistenceenabler.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfinddialog.h"
@@ -14,8 +15,6 @@ RESTORE_COMPILER_WARNINGS
 #define SETTINGS_BACKWARDS              QSL("SearchBackwards")
 #define SETTINGS_CASE_SENSITIVE         QSL("CaseSensitive")
 #define SETTINGS_WHOLE_WORDS            QSL("WholeWords")
-
-#define SETTINGS_GEOMETRY               QSL("Geometry")
 
 CFindDialog::CFindDialog(QWidget *parent, QString settingsRootCategory) :
 	QDialog(parent),
@@ -35,6 +34,9 @@ CFindDialog::CFindDialog(QWidget *parent, QString settingsRootCategory) :
 
 	if (!_settingsRootCategory.isEmpty())
 	{
+		// No default size: it would open this small dialog at half the screen when nothing is stored yet
+		enablePersistence(this, _settingsRootCategory, CPersistenceEnabler::Delayed{ true }, CPersistenceEnabler::SetDefaultSize{ false });
+
 		QSettings s;
 		ui->_cbSearchBackwards->setChecked(s.value(_settingsRootCategory + SETTINGS_BACKWARDS).toBool());
 		ui->_cbCaseSensitive->setChecked(s.value(_settingsRootCategory + SETTINGS_CASE_SENSITIVE).toBool());
@@ -85,18 +87,7 @@ void CFindDialog::showEvent(QShowEvent * e)
 	ui->_searchText->lineEdit()->selectAll();
 	ui->_searchText->lineEdit()->setFocus();
 
-	if (!_settingsRootCategory.isEmpty())
-		restoreGeometry(QSettings().value(_settingsRootCategory + SETTINGS_GEOMETRY).toByteArray());
-
 	QDialog::showEvent(e);
-}
-
-void CFindDialog::closeEvent(QCloseEvent * e)
-{
-	if (!_settingsRootCategory.isEmpty())
-		QSettings().setValue(_settingsRootCategory + SETTINGS_GEOMETRY, saveGeometry());
-
-	QDialog::closeEvent(e);
 }
 
 void CFindDialog::saveSearchSettings() const

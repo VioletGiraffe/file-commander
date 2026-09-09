@@ -6,7 +6,7 @@
 #include "iconprovider/ciconprovider.h"
 
 #include "qtcore_helpers/qstring_helpers.hpp"
-#include "widgets/cpersistentwindow.h"
+#include "widgets/cpersistenceenabler.h"
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
@@ -35,7 +35,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	setAttribute(Qt::WA_DeleteOnClose, true);
 
-	installEventFilter(new CPersistenceEnabler(QSL("UI/FileSearchWindow"), this));
+	enablePersistence(this, QSL("UI/FileSearchWindow"));
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
