@@ -1,6 +1,6 @@
 #pragma once
 
-#include "settingsui/csettingspage.h"
+#include "appdialogs/csettingspage.h"
 
 namespace Ui {
 class CSettingsPageEdit;

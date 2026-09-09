@@ -1,6 +1,6 @@
 #pragma once
 
-#include "settingsui/csettingspage.h"
+#include "appdialogs/csettingspage.h"
 
 #include <memory>
 

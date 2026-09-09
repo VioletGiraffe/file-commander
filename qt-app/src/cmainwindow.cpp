@@ -8,7 +8,8 @@
 #include "fileoperations/newnamecheck.h"
 #include "settings.h"
 #include "shell/cshell.h"
-#include "settingsui/csettingsdialog.h"
+#include "appdialogs/csettingsdialog.h"
+#include "appdialogs/reportbugdialog.h"
 #include "settings/csettingspageinterface.h"
 #include "settings/csettingspageoperations.h"
 #include "settings/csettingspageedit.h"
@@ -38,17 +39,12 @@ DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
 
 #include <QCloseEvent>
-#include <QDesktopServices>
 #include <QDialog>
-#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFileIconProvider>
-#include <QFontDatabase>
 #include <QInputDialog>
-#include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QPlainTextEdit>
 #include <QProcess>
 #include <QPushButton>
 #include <QScreen>
@@ -57,7 +53,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <QUrl>
-#include <QVBoxLayout>
 #include <QWidgetList>
 #include <QWindow>
 RESTORE_COMPILER_WARNINGS
@@ -919,8 +914,6 @@ void CMainWindow::openSettingsDialog()
 	settings.addSettingsPage(new CSettingsPageOther(&settings));
 	connect(std::addressof(CSettingsNotifier::instance()), &CSettingsNotifier::settingsChanged, this, &CMainWindow::settingsChanged);
 
-	settings.adjustSize();
-
 	settings.exec();
 }
 
@@ -984,36 +977,7 @@ void CMainWindow::about()
 
 void CMainWindow::reportBug()
 {
-	QDialog dialog(this);
-	dialog.setWindowTitle(tr("Report a bug"));
-	dialog.resize(750, 520);
-
-	auto* layout = new QVBoxLayout(&dialog);
-
-	auto* instructions = new QLabel(tr("Please describe the problem on the issue tracker. The application log below may help - "
-		"select and copy any relevant lines into your report."), &dialog);
-	instructions->setWordWrap(true);
-	layout->addWidget(instructions);
-
-	auto* logView = new QPlainTextEdit(&dialog);
-	logView->setReadOnly(true);
-	logView->setLineWrapMode(QPlainTextEdit::NoWrap);
-	logView->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-	logView->setPlainText(loggerInstance<CLoggerInMemory>().contents().join('\n'));
-	logView->moveCursor(QTextCursor::End); // Reveal the most recent entries
-	layout->addWidget(logView, 1);
-
-	auto* buttons = new QDialogButtonBox(&dialog);
-	auto* openTracker = buttons->addButton(tr("Open issue tracker"), QDialogButtonBox::ActionRole);
-	buttons->addButton(QDialogButtonBox::Close);
-	layout->addWidget(buttons);
-
-	connect(openTracker, &QPushButton::clicked, &dialog, []{
-		QDesktopServices::openUrl(QUrl("https://github.com/" + REPO_NAME + "/issues/new"));
-	});
-	connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-
-	dialog.exec();
+	ReportBugDialog::show(this, loggerInstance<CLoggerInMemory>(), QUrl("https://github.com/" + REPO_NAME + "/issues/new"));
 }
 
 void CMainWindow::settingsChanged()

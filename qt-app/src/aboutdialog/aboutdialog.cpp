@@ -1,7 +1,7 @@
 #include "aboutdialog.h"
 #include "../version.h"
 
-#include "aboutdialog/caboutdialog.h"
+#include "appdialogs/caboutdialog.h"
 
 #include "3rdparty/magic_enum/magic_enum.hpp"
 
