@@ -36,6 +36,13 @@ RESTORE_COMPILER_WARNINGS
 #include <type_traits>
 #include <utility>
 
+// A NUL byte alone does not mean binary: decode() reads BOM-less UTF-16 and UTF-32 out of NUL-carrying input and
+// declines the rest, running detection on neither
+[[nodiscard]] inline bool isBinaryContent(const QByteArray& data)
+{
+	return isBinary(data) && CTextEncodingDetector::decode(data).text.isEmpty();
+}
+
 inline bool isNonAscii(char16_t c)
 {
 	if (c >= 32 && c <= 126)
@@ -146,8 +153,9 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 		if (!textData)
 			return false;
 
-		const auto dataSize = textData->size();
-		const bool useFastMode = dataSize > 1'000'000;
+		// Latin-1 in the fast viewer for both: every byte maps to a character, and the highlighter is far too slow here.
+		// Size first: a large file goes to the fast viewer whatever it holds, and must not pay for isBinaryContent().
+		const bool useFastMode = textData->size() > 1'000'000 || isBinaryContent(*textData);
 		if (useFastMode)
 			return asAscii(*textData, useFastMode);
 
