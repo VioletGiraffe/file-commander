@@ -56,7 +56,7 @@ struct CTextEditWithImageSupport::Downloader final : QObject {
 QVariant CTextEditWithImageSupport::loadResource(int type, const QUrl& name)
 {
 	if (name.isLocalFile())
-		return CTextEditWithLineNumbers::loadResource(type, name);
+		return QTextEdit::loadResource(type, name);
 
 	if (!_downloader)
 		_downloader = new Downloader{ this };

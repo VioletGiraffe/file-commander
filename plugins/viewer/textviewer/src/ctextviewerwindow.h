@@ -2,18 +2,26 @@
 
 #include "plugininterface/cpluginwindow.h"
 #include "ctextencodingdetector.h"
+#include "compiler/compiler_warnings_control.h"
 
 #include "ui_ctextviewerwindow.h"
 
+DISABLE_COMPILER_WARNINGS
+#include <QTextDocument>
+RESTORE_COMPILER_WARNINGS
+
+#include <functional>
 #include <memory>
 #include <optional>
 
+class CPlainTextEditWithLineNumbers;
 class CTextEditWithImageSupport;
 class CLightningFastViewerWidget;
 class CFindDialog;
 
 class QAbstractScrollArea;
 class QLabel;
+class QRegularExpression;
 
 namespace Qutepart {
 	class Theme;
@@ -59,10 +67,25 @@ private:
 	void setupFindDialog();
 
 private:
-	enum class Mode {Lightning, Full};
+	// Source and Rich are separate widgets: rendering HTML and Markdown needs QTextEdit, and plain text is far cheaper without it
+	enum class Mode {Lightning, Source, Rich};
 	void setMode(Mode mode);
-	// The viewer the current mode has instantiated; null until the first load
-	[[nodiscard]] QAbstractScrollArea* activeViewer() const;
+
+	// What the window needs of whichever viewer is live. The three share no base below QAbstractScrollArea,
+	// so the calls are bound per viewer rather than dispatched.
+	struct ViewerOps
+	{
+		QAbstractScrollArea* widget = nullptr; // Null until the first load, and then the only member worth testing
+
+		std::function<bool (const QString&, QTextDocument::FindFlags)> findText;
+		std::function<bool (const QRegularExpression&, QTextDocument::FindFlags)> findRegex;
+		std::function<void ()> moveToStart;
+		std::function<void ()> moveToEnd;
+		std::function<qsizetype ()> cursorPosition; // -1 where the viewer has no cursor yet
+		std::function<void (bool)> setWordWrap;
+	};
+
+	[[nodiscard]] ViewerOps viewer() const;
 
 	void setTextAndApplyHighlighter(const QString& text);
 	void resetHighlighter();
@@ -73,7 +96,8 @@ private:
 	QString _sourceFilePath;
 	QString _mimeType;
 
-	std::unique_ptr<CTextEditWithImageSupport> _textView;
+	std::unique_ptr<CPlainTextEditWithLineNumbers> _sourceView;
+	std::unique_ptr<CTextEditWithImageSupport> _richView;
 	CFindDialog* _findDialog = nullptr;
 	QLabel* _encodingLabel = nullptr;
 	QLabel* _contentTypeLabel = nullptr;
@@ -84,5 +108,5 @@ private:
 
 	std::unique_ptr<CLightningFastViewerWidget> _lightningViewer;
 
-	Mode _currentMode = Mode::Full;
+	Mode _currentMode = Mode::Source;
 };

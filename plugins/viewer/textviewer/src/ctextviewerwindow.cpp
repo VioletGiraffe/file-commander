@@ -3,11 +3,9 @@
 #include "cfinddialog.h"
 
 #include "widgets/clightningfastviewer.h"
+#include "widgets/cplaintexteditwithlinenumbers.h"
 #include "widgets/cpersistenceenabler.h"
 #include "qtcore_helpers/qt_helpers.hpp"
-
-#include "assert/advanced_assert.h"
-
 
 DISABLE_COMPILER_WARNINGS
 #include "3rdparty/diegoiast/qutepart-cpp/hl_factory.h"
@@ -182,7 +180,7 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 		}
 		else
 		{
-			setMode(Mode::Full);
+			setMode(Mode::Source);
 			setTextAndApplyHighlighter(result->text);
 		}
 
@@ -219,7 +217,7 @@ bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFast
 	}
 	else
 	{
-		setMode(Mode::Full);
+		setMode(Mode::Source);
 		setTextAndApplyHighlighter(text);
 	}
 
@@ -239,7 +237,7 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 	}
 	else
 	{
-		setMode(Mode::Full);
+		setMode(Mode::Source);
 		setTextAndApplyHighlighter(text);
 	}
 
@@ -274,7 +272,7 @@ bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 	}
 	else
 	{
-		setMode(Mode::Full);
+		setMode(Mode::Source);
 		setTextAndApplyHighlighter(text);
 	}
 
@@ -297,7 +295,7 @@ bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 	}
 	else
 	{
-		setMode(Mode::Full);
+		setMode(Mode::Source);
 		setTextAndApplyHighlighter(text);
 	}
 
@@ -312,9 +310,8 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 	if (!result || (result->text.isEmpty() && !fileData.isEmpty()))
 		return false;
 
-	resetHighlighter();
-	setMode(Mode::Full);
-	_textView->setHtml(result->text);
+	setMode(Mode::Rich);
+	_richView->setHtml(result->text);
 	actionHTML->setChecked(true);
 	return true;
 }
@@ -325,10 +322,9 @@ bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 	if (!result)
 		return false;
 
-	resetHighlighter();
 	encodingChanged(result->encoding, result->language);
-	setMode(Mode::Full);
-	_textView->setMarkdown(result->text);
+	setMode(Mode::Rich);
+	_richView->setMarkdown(result->text);
 	actionMarkdown->setChecked(true);
 	return true;
 }
@@ -349,14 +345,15 @@ void CTextViewerWindow::redecodeCurrentFile(bool (CTextViewerWindow::*decoder)(c
 		return;
 
 	// Null when the initial load failed: _sourceFilePath is set before the file is read, so an action can arrive with no viewer built
-	QAbstractScrollArea* const viewer = activeViewer();
-	const int scrollPosition = viewer ? viewer->verticalScrollBar()->value() : 0;
+	QAbstractScrollArea* const scrollArea = viewer().widget;
+	const int scrollPosition = scrollArea ? scrollArea->verticalScrollBar()->value() : 0;
 
-	// The decoder is handed the mode already in effect, so it cannot replace the viewer the position came from
+	const Mode modeBefore = _currentMode;
 	(this->*decoder)(*textData, _currentMode == Mode::Lightning);
 
-	if (viewer)
-		viewer->verticalScrollBar()->setValue(scrollPosition);
+	// A decoder can move Rich to Source, which destroys scrollArea; and each viewer scrolls in units of its own
+	if (scrollArea && _currentMode == modeBefore)
+		scrollArea->verticalScrollBar()->setValue(scrollPosition);
 }
 
 std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
@@ -398,15 +395,15 @@ std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeUnico
 void CTextViewerWindow::find()
 {
 	setupFindDialog();
-	if (_textView)
-		_textView->moveCursor(_findDialog->searchBackwards() ? QTextCursor::End : QTextCursor::Start);
-	else if (_lightningViewer)
-	{
-		if (_findDialog->searchBackwards())
-			_lightningViewer->moveToEnd();
-		else
-			_lightningViewer->moveToStart();
-	}
+
+	const ViewerOps v = viewer();
+	if (!v.widget)
+		return;
+
+	if (_findDialog->searchBackwards())
+		v.moveToEnd();
+	else
+		v.moveToStart();
 
 	findNext();
 }
@@ -419,6 +416,10 @@ void CTextViewerWindow::findNext()
 	if (expression.isEmpty())
 		return;
 
+	const ViewerOps v = viewer();
+	if (!v.widget)
+		return;
+
 	QTextDocument::FindFlags flags {};
 	if (_findDialog->caseSensitive())
 		flags |= QTextDocument::FindCaseSensitively;
@@ -427,21 +428,9 @@ void CTextViewerWindow::findNext()
 	if (_findDialog->wholeWords())
 		flags |= QTextDocument::FindWholeWords;
 
-	qsizetype initialPosition = 0;
-	if (_textView)
-		initialPosition = _textView->textCursor().isNull() ? -1 : _textView->textCursor().position();
-	else
-		initialPosition = _lightningViewer->selectionStart();
+	const qsizetype initialPosition = v.cursorPosition();
 
-	const auto run_search = [this](auto&& expression, auto&& flags) -> bool {
-		return _textView ? _textView->find(expression, flags) : _lightningViewer->find(expression, flags);
-	};
-
-	bool found = false;
-	if (_findDialog->regex())
-		found = run_search(QRegularExpression(_findDialog->searchExpression()), flags);
-	else
-		found = run_search(_findDialog->searchExpression(), flags);
+	const bool found = _findDialog->regex() ? v.findRegex(QRegularExpression{ expression }, flags) : v.findText(expression, flags);
 
 	if (!found && (initialPosition == -1 || initialPosition == 0))
 		QMessageBox::information(this, tr("Not found"), tr("Expression \"%1\" not found").arg(expression));
@@ -477,10 +466,8 @@ void CTextViewerWindow::encodingChanged(const QString& encoding, const QString& 
 
 void CTextViewerWindow::setLineWrap(bool wrap)
 {
-	if (_textView)
-		_textView->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
-	if (_lightningViewer)
-		_lightningViewer->setWordWrap(wrap);
+	if (const ViewerOps v = viewer(); v.widget)
+		v.setWordWrap(wrap);
 }
 
 void CTextViewerWindow::setupFindDialog()
@@ -493,53 +480,106 @@ void CTextViewerWindow::setupFindDialog()
 	CR() = connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext);
 }
 
-QAbstractScrollArea* CTextViewerWindow::activeViewer() const
+CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
 {
-	if (_textView)
-		return _textView.get();
+	// One binding serves both document views: same calls, no base class that declares them
+	const auto documentViewOps = [](auto* view) -> ViewerOps {
+		return {
+			view,
+			[view](const QString& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags); },
+			[view](const QRegularExpression& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags); },
+			[view] { view->moveCursor(QTextCursor::Start); },
+			[view] { view->moveCursor(QTextCursor::End); },
+			[view] { return view->textCursor().isNull() ? qsizetype{ -1 } : (qsizetype)view->textCursor().position(); },
+			[view](bool wrap) { view->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap); }
+		};
+	};
 
-	return _lightningViewer.get();
+	if (_sourceView)
+		return documentViewOps(_sourceView.get());
+
+	if (_richView)
+		return documentViewOps(_richView.get());
+
+	if (auto* const view = _lightningViewer.get())
+	{
+		return {
+			view,
+			[view](const QString& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags); },
+			[view](const QRegularExpression& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags); },
+			[view] { view->moveToStart(); },
+			[view] { view->moveToEnd(); },
+			[view] { return view->selectionStart(); },
+			[view](bool wrap) { view->setWordWrap(wrap); }
+		};
+	}
+
+	return {};
+}
+
+// Scales the widget's own font so a line of it stands as tall as a line of the UI font. The family is the widget's to choose.
+static void setFontSize(QWidget& w)
+{
+	QFont font = w.font();
+	const int appFontH = QFontMetrics{ qApp->font() }.boundingRect(QChar{ 'M' }).height();
+	const int newFontH = QFontMetrics{ font }        .boundingRect(QChar{ 'M' }).height();
+	const qreal sizeRatio = newFontH > 0 ? ((qreal)appFontH / (qreal)newFontH) : 1.0;
+	font.setPointSizeF(font.pointSizeF() * sizeRatio);
+	w.setFont(font);
+}
+
+// A template because the source and rich views answer these calls without sharing a base that declares them
+template <typename DocumentView>
+static void initDocumentView(DocumentView& view)
+{
+	// Both the tab stop distance below and the wrap width depend on the font, so it goes on first
+	view.setFont(CLightningFastViewerWidget::preferredFixedFont());
+	setFontSize(view);
+
+	view.setReadOnly(true);
+	view.setUndoRedoEnabled(false);
+	view.setTabStopDistance(static_cast<qreal>(4 * view.fontMetrics().horizontalAdvance(' ')));
 }
 
 void CTextViewerWindow::setMode(Mode mode)
 {
-	// Scales the widget's own font so a line of it stands as tall as a line of the UI font. The family is the widget's to choose.
-	static const auto setFontSize = [](QWidget& w) {
-		QFont font = w.font();
-		const int appFontH = QFontMetrics{ qApp->font() }.boundingRect(QChar{ 'M' }).height();
-		const int newFontH = QFontMetrics{ font }        .boundingRect(QChar{ 'M' }).height();
-		const qreal sizeRatio = newFontH > 0 ? ((qreal)appFontH / (qreal)newFontH) : 1.0;
-		font.setPointSizeF(font.pointSizeF() * sizeRatio);
-		w.setFont(font);
-	};
-
 	_currentMode = mode;
-	if (mode == Mode::Full)
+
+	if (mode != Mode::Source)
 	{
-		_lightningViewer.reset();
-		if (!_textView)
-		{
-			_textView = std::make_unique<CTextEditWithImageSupport>(this);
-			// Both the tab stop distance below and the wrap width depend on the font, so it goes on first
-			_textView->setFont(CLightningFastViewerWidget::preferredFixedFont());
-			setFontSize(*_textView);
-
-			_textView->setReadOnly(true);
-			_textView->setUndoRedoEnabled(false);
-			_textView->setTabStopDistance(static_cast<qreal>(4 * _textView->fontMetrics().horizontalAdvance(' ')));
-			_textView->setAcceptRichText(true);
-
-			setCentralWidget(_textView.get());
-		}
-
-		_infoLabel->setVisible(false);
+		resetHighlighter(); // Holds the source view's document, so it goes before that view is destroyed
+		_sourceView.reset();
+		updateContentTypeLabel(); // Names the highlighter's language while there is one, the MIME type otherwise
 	}
-	else
-	{
-		resetHighlighter();
-		_textView.reset();
-		updateContentTypeLabel();
 
+	if (mode != Mode::Rich)
+		_richView.reset();
+
+	if (mode != Mode::Lightning)
+		_lightningViewer.reset();
+
+	switch (mode)
+	{
+	case Mode::Source:
+		if (!_sourceView)
+		{
+			_sourceView = std::make_unique<CPlainTextEditWithLineNumbers>(this);
+			initDocumentView(*_sourceView);
+			setCentralWidget(_sourceView.get());
+		}
+		break;
+
+	case Mode::Rich:
+		if (!_richView)
+		{
+			_richView = std::make_unique<CTextEditWithImageSupport>(this);
+			initDocumentView(*_richView);
+			_richView->setAcceptRichText(true);
+			setCentralWidget(_richView.get());
+		}
+		break;
+
+	case Mode::Lightning:
 		if (!_lightningViewer)
 		{
 			_lightningViewer = std::make_unique<CLightningFastViewerWidget>(this);
@@ -548,8 +588,10 @@ void CTextViewerWindow::setMode(Mode mode)
 		}
 
 		_infoLabel->setText(tr("FAST MODE! Encoding detection didn't run, you can trigger it manually"));
-		_infoLabel->setVisible(true);
+		break;
 	}
+
+	_infoLabel->setVisible(mode == Mode::Lightning);
 
 	// Apply line wrap setting
 	setLineWrap(actionLine_wrap->isChecked());
@@ -563,7 +605,7 @@ void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 		qInfo() << "Language detected:" << langId;
 
 		resetHighlighter();
-		_highlighter = static_cast<Qutepart::SyntaxHighlighter*>(Qutepart::makeHighlighter(_textView->document(), langId));
+		_highlighter = static_cast<Qutepart::SyntaxHighlighter*>(Qutepart::makeHighlighter(_sourceView->document(), langId));
 		if (_highlighter)
 		{
 			_theme = std::make_unique<Qutepart::Theme>();
@@ -574,7 +616,7 @@ void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 	}
 
 	updateContentTypeLabel();
-	_textView->setPlainText(text);
+	_sourceView->setPlainText(text);
 }
 
 void CTextViewerWindow::resetHighlighter()

@@ -1,12 +1,18 @@
 #pragma once
-#include "widgets/ctexteditwithlinenumbers.h"
+#include "compiler/compiler_warnings_control.h"
 
-class CTextEditWithImageSupport final : public CTextEditWithLineNumbers
+DISABLE_COMPILER_WARNINGS
+#include <QTextEdit>
+#include <QUrl>
+#include <QVariant>
+RESTORE_COMPILER_WARNINGS
+
+class CTextEditWithImageSupport final : public QTextEdit
 {
 	struct Downloader;
 
 public:
-	using CTextEditWithLineNumbers::CTextEditWithLineNumbers;
+	using QTextEdit::QTextEdit;
 
 protected:
 	QVariant loadResource(int type, const QUrl &name) override;
