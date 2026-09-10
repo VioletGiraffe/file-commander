@@ -32,7 +32,9 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <optional>
 #include <type_traits>
+#include <utility>
 
 inline bool isNonAscii(char16_t c)
 {
@@ -249,6 +251,10 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 
 bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 {
+	// A NUL byte is valid UTF-8, so the decoder accepts binary: decode() guards this the same way before probing
+	if (isBinary(fileData))
+		return false;
+
 	QString text;
 	if (const CTextEncodingDetector::DecodedText decodedText = CTextEncodingDetector::decodeUtfBom(fileData); !decodedText.encoding.isEmpty())
 	{
@@ -259,10 +265,11 @@ bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 	}
 	else
 	{
-		if (!isUtf8(fileData))
+		auto utf8Text = decodeUtf8(fileData);
+		if (!utf8Text)
 			return false;
 
-		text = QString::fromUtf8(fileData);
+		text = std::move(*utf8Text);
 	}
 
 	if (useFastMode)
@@ -389,7 +396,7 @@ std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeUnico
 	if (const CTextEncodingDetector::DecodedText decodedText = CTextEncodingDetector::decodeUtfBom(textData); !decodedText.encoding.isEmpty())
 		return decodedText;
 
-	return CTextEncodingDetector::DecodedText{QString::fromUtf8(textData), "UTF-8", {}};
+	return CTextEncodingDetector::DecodedText{QString::fromUtf8(textData), "UTF-8", {}, 0.0};
 }
 
 void CTextViewerWindow::find()
