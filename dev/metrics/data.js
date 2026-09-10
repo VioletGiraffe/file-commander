@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788986109223,
+  "lastUpdate": 1789034637792,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -17212,6 +17212,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .reloc",
             "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "d183fd43405e61590ad043806a505dde043d2f3e",
+          "message": "CTextViewerWindow rework: text viewer with line numbers is now QplainTxtEdit based; fixes/improvements for the rich text mode",
+          "timestamp": "2026-09-10T12:56:52+03:00",
+          "tree_id": "e4d1bcb6358fcea64fd2e77ffc26265b9f26d7e2",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/d183fd43405e61590ad043806a505dde043d2f3e"
+        },
+        "date": 1789034633760,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 16644,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 16609,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1350.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2871.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 751,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 402,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10,
             "unit": "KB"
           }
         ]
