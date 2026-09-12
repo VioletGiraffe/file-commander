@@ -3,6 +3,7 @@
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QRgb>
 #include <QString>
 #include <QTimer>
 #include <QWidget>
@@ -43,8 +44,8 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
-	// Starts on a new line, formatted apart from the command's own output
-	void appendFinishLine(const QString& text);
+	// Starts on a new line, in italics and in `hue` adjusted to the palette
+	void appendFinishLine(const QString& text, QRgb hue);
 	void setFinishedStatus(const QString& status, bool succeeded);
 	void markUserInteraction();
 	// Restarts the full countdown whenever the pane becomes reusable, and stops it when it no longer is

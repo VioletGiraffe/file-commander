@@ -1,9 +1,11 @@
 #include "ccommandoutputpane.h"
 
 #include "progressdialogs/progressdialoghelpers.h"
+#include "theme/colorutils.h"
 #include "widgets/clabelelided.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QColor>
 #include <QEnterEvent>
 #include <QFontDatabase>
 #include <QHBoxLayout>
@@ -23,6 +25,10 @@ namespace {
 
 constexpr int AUTO_CLOSE_SECONDS = 10;
 constexpr int MAX_OUTPUT_LINES = 5000;
+
+constexpr QRgb SUCCEEDED_HUE = 0x2EA043;
+constexpr QRgb TERMINATED_HUE = 0xE0A800;
+constexpr QRgb FAILED_HUE = 0xE5534B;
 
 // NTSTATUS codes, such as a crash inside the shell on Windows, have the high bit set and are documented in hex
 QString exitCodeText(int exitCode)
@@ -162,18 +168,18 @@ void CCommandOutputPane::markFinished(int exitCode, bool normalExit, int64_t run
 	const QString runTime = runTimeText(runMilliseconds);
 	if (_stopRequested)
 	{
-		appendFinishLine(tr("Process terminated after %1").arg(runTime));
+		appendFinishLine(tr("Process terminated after %1").arg(runTime), TERMINATED_HUE);
 		setFinishedStatus(tr("Stopped"), true);
 	}
 	else if (!normalExit)
 	{
-		appendFinishLine(tr("Process crashed after %1").arg(runTime));
+		appendFinishLine(tr("Process crashed after %1").arg(runTime), FAILED_HUE);
 		setFinishedStatus(tr("Crashed"), false);
 	}
 	else
 	{
 		const QString code = exitCodeText(exitCode);
-		appendFinishLine(tr("Process finished with exit code %1 after %2").arg(code, runTime));
+		appendFinishLine(tr("Process finished with exit code %1 after %2").arg(code, runTime), exitCode == 0 ? SUCCEEDED_HUE : FAILED_HUE);
 		if (exitCode != 0)
 			setFinishedStatus(tr("Exit code %1").arg(code), false);
 		else
@@ -183,7 +189,7 @@ void CCommandOutputPane::markFinished(int exitCode, bool normalExit, int64_t run
 
 void CCommandOutputPane::markFailedToStart(const QString& reason)
 {
-	appendFinishLine(tr("Process failed to start: %1").arg(reason));
+	appendFinishLine(tr("Process failed to start: %1").arg(reason), FAILED_HUE);
 	setFinishedStatus(tr("Failed to start"), false);
 }
 
@@ -206,7 +212,7 @@ void CCommandOutputPane::leaveEvent(QEvent* event)
 	updateCountdown();
 }
 
-void CCommandOutputPane::appendFinishLine(const QString& text)
+void CCommandOutputPane::appendFinishLine(const QString& text, QRgb hue)
 {
 	QTextCursor cursor{ _output->document() };
 	cursor.movePosition(QTextCursor::End);
@@ -214,7 +220,8 @@ void CCommandOutputPane::appendFinishLine(const QString& text)
 		cursor.insertBlock();
 
 	QTextCharFormat format;
-	format.setForeground(palette().color(QPalette::PlaceholderText));
+	// Mixing toward the text colour darkens the hue on a light background and lightens it on a dark one
+	format.setForeground(ColorUtils::mix(QColor::fromRgb(hue), _output->palette().color(QPalette::Text), 0.35f));
 	format.setFontItalic(true);
 	cursor.insertText(text, format);
 }
