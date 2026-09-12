@@ -28,18 +28,9 @@
      <number>2</number>
     </property>
     <item>
-     <widget class="QSplitter" name="splitter">
-      <property name="frameShape">
-       <enum>QFrame::NoFrame</enum>
-      </property>
-      <property name="lineWidth">
-       <number>2</number>
-      </property>
-      <property name="midLineWidth">
-       <number>2</number>
-      </property>
+     <widget class="QSplitter" name="verticalSplitter">
       <property name="orientation">
-       <enum>Qt::Horizontal</enum>
+       <enum>Qt::Vertical</enum>
       </property>
       <property name="opaqueResize">
        <bool>false</bool>
@@ -50,18 +41,48 @@
       <property name="childrenCollapsible">
        <bool>false</bool>
       </property>
-      <widget class="QStackedWidget" name="leftWidget">
-       <property name="focusPolicy">
-        <enum>Qt::NoFocus</enum>
+      <widget class="QSplitter" name="splitter">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>1</verstretch>
+        </sizepolicy>
        </property>
-       <widget class="CPanelWidget" name="leftPanel"/>
-      </widget>
-      <widget class="QStackedWidget" name="rightWidget">
-       <property name="focusPolicy">
-        <enum>Qt::NoFocus</enum>
+       <property name="frameShape">
+        <enum>QFrame::NoFrame</enum>
        </property>
-       <widget class="CPanelWidget" name="rightPanel"/>
+       <property name="lineWidth">
+        <number>2</number>
+       </property>
+       <property name="midLineWidth">
+        <number>2</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="opaqueResize">
+        <bool>false</bool>
+       </property>
+       <property name="handleWidth">
+        <number>2</number>
+       </property>
+       <property name="childrenCollapsible">
+        <bool>false</bool>
+       </property>
+       <widget class="QStackedWidget" name="leftWidget">
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <widget class="CPanelWidget" name="leftPanel"/>
+       </widget>
+       <widget class="QStackedWidget" name="rightWidget">
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <widget class="CPanelWidget" name="rightPanel"/>
+       </widget>
       </widget>
+      <widget class="CCommandOutputArea" name="commandOutputArea"/>
      </widget>
     </item>
     <item>
@@ -544,6 +565,11 @@
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>CCommandOutputArea</class>
+   <extends>QSplitter</extends>
+   <header>commandoutput/ccommandoutputarea.h</header>
+  </customwidget>
   <customwidget>
    <class>CHistoryComboBox</class>
    <extends>QComboBox</extends>

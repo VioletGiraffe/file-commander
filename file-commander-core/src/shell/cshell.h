@@ -1,10 +1,16 @@
 #pragma once
 
+#include "compiler/compiler_warnings_control.h"
+
+DISABLE_COMPILER_WARNINGS
+#include <QString>
+RESTORE_COMPILER_WARNINGS
+
+#include <expected>
+#include <optional>
 #include <string>
 #include <vector>
 #include <utility>
-
-class QString;
 
 namespace OsShell
 {
@@ -26,7 +32,21 @@ namespace OsShell
 
 	bool recycleBinContextMenu(int xPos, int yPos, void * parentWindow);
 
-	void executeShellCommand(const QString& command, const QString& workingDir);
+	struct ProgramInvocation
+	{
+		QString programPath;
+		QString arguments; // As typed: the program parses its own command line
+	};
+
+	enum class GuiProgramCheckError
+	{
+		ExecutableTypeUnknown, // SHGetFileInfo reports nothing: a non-executable file, or the query failed
+		UnsupportedPlatform    // Nothing marks a program as GUI
+	};
+
+	// The program and arguments when `commandLine` is only a GUI program and its arguments, so it can launch without the shell.
+	// Empty when the line needs the shell or names no GUI program.
+	[[nodiscard]] std::expected<std::optional<ProgramInvocation>, GuiProgramCheckError> guiProgramInvocation(const QString& commandLine, const QString& workingDir);
 
 	bool runExecutable(const QString& command, const QString& arguments, const QString& workingDir);
 

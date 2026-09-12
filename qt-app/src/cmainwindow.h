@@ -96,6 +96,8 @@ private:
 // Command line
 	// true if command was executed
 	bool executeCommand(const QString& commandLineText);
+	// Prompts, then terminates the running commands. False when the user cancels exiting.
+	[[nodiscard]] bool terminateRunningCommandsForExit();
 	void selectPreviousCommandInTheCommandLine();
 	void clearCommandLineAndRestoreFocus();
 	void pasteCurrentFileName();

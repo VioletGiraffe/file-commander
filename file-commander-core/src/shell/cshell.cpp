@@ -10,7 +10,9 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QProcess>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
@@ -98,26 +100,75 @@ std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 	return parseCommandAndArguments(shell);
 }
 
-// The command goes through a shell so that redirection, pipes, chaining and built-ins work.
-void OsShell::executeShellCommand(const QString& command, const QString& workingDir)
-{
-	QProcess process;
-
 #ifdef _WIN32
-	// cmd does not support a UNC current directory: pushd applies the working dir instead of setWorkingDirectory, and maps a temporary drive letter for UNC.
-	// /s: cmd strips only the outermost quotes and takes the rest verbatim, so the working dir can be quoted.
-	process.setProgram(QStringLiteral("cmd.exe"));
-	process.setNativeArguments(QStringLiteral("/s /c \"pushd \"") % workingDir % QStringLiteral("\" && ") % command % '\"');
-#else
-	process.setProgram(QStringLiteral("/bin/sh"));
-	process.setArguments({ QStringLiteral("-c"), command });
-	process.setWorkingDirectory(workingDir);
-#endif
+// Resolves `program` in cmd's search order: the working dir, then PATH, each directory trying the PATHEXT extensions when
+// the name has none. Empty when nothing matches.
+static QString resolvedProgramPath(const QString& program, const QString& workingDir)
+{
+	QStringList directories{ workingDir };
+	if (!program.contains('\\') && !program.contains('/'))
+		directories += qEnvironmentVariable("PATH").split(';', Qt::SkipEmptyParts);
 
-	// Qt sets CREATE_NO_WINDOW when the parent has no console, so no console window appears on Windows.
-	if (!process.startDetached())
-		qInfo().noquote() << "Failed to launch the command" << command << "in" << workingDir;
+	const QStringList extensions = QFileInfo{ program }.suffix().isEmpty()
+		? qEnvironmentVariable("PATHEXT", QStringLiteral(".COM;.EXE;.BAT;.CMD")).split(';', Qt::SkipEmptyParts)
+		: QStringList{ QString{} };
+
+	for (const QString& directory : directories)
+	{
+		for (const QString& extension : extensions)
+		{
+			if (const QFileInfo candidate{ QDir{ directory }.absoluteFilePath(program + extension) }; candidate.isFile())
+				return candidate.absoluteFilePath();
+		}
+	}
+
+	return {};
 }
+
+std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramCheckError> OsShell::guiProgramInvocation(const QString& commandLine, const QString& workingDir)
+{
+	// Variable expansion, redirection, pipes, chaining and grouping all need cmd; % expands even inside quotes
+	bool inQuotes = false;
+	for (const QChar c : commandLine)
+	{
+		if (c == '"')
+			inQuotes = !inQuotes;
+		else if (c == '%' || (!inQuotes && QStringView{ u"&|<>^()" }.contains(c)))
+			return std::nullopt;
+	}
+
+	// The program ends at its closing quote, or at the first space when unquoted
+	const QString line = commandLine.trimmed();
+	const bool quoted = line.startsWith('"');
+	const qsizetype programEnd = quoted ? line.indexOf('"', 1) : line.indexOf(' ');
+	if (quoted && programEnd < 0)
+		return std::nullopt;
+
+	const QString program = quoted ? line.mid(1, programEnd - 1) : line.left(programEnd);
+	if (program.isEmpty())
+		return std::nullopt;
+
+	// Not found also covers cmd built-ins
+	QString programPath = resolvedProgramPath(program, workingDir);
+	if (programPath.isEmpty())
+		return std::nullopt;
+
+	// 0 for a non-executable file or a failed query; otherwise the high word is the Windows version a GUI program targets, 0 for a console program or batch file
+	const DWORD_PTR exeType = ::SHGetFileInfoW(reinterpret_cast<const wchar_t*>(toNativeSeparators(programPath).utf16()), 0, nullptr, 0, SHGFI_EXETYPE);
+	if (exeType == 0)
+		return std::unexpected{ GuiProgramCheckError::ExecutableTypeUnknown };
+	if (HIWORD(exeType) == 0)
+		return std::nullopt;
+
+	return ProgramInvocation{ .programPath = std::move(programPath), .arguments = programEnd < 0 ? QString{} : line.mid(programEnd + 1).trimmed() };
+}
+#else
+// sh returns at once for a program started with & or through open.
+std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramCheckError> OsShell::guiProgramInvocation(const QString& /*commandLine*/, const QString& /*workingDir*/)
+{
+	return std::unexpected{ GuiProgramCheckError::UnsupportedPlatform };
+}
+#endif
 
 #ifdef _WIN32
 

@@ -22,6 +22,7 @@ HEADERS += \
 	src/filesystemwatcher/cfilesystemwatchertimerbased.h \
 	src/iconprovider/ciconprovider.h \
 	src/shell/cshell.h \
+	src/shell/cshellcommand.h \
 	include/settings.h \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/filesystemhelperfunctions.h \
@@ -46,6 +47,7 @@ SOURCES += \
 	src/iconprovider/ciconprovider.cpp \
 	src/iconprovider/ciconproviderimpl.cpp \
 	src/shell/cshell.cpp \
+	src/shell/cshellcommand.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/filesearchengine/cfilesearchengine.cpp \
 	src/directoryscanner.cpp \

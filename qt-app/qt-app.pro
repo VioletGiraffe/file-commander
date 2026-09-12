@@ -42,6 +42,8 @@ SOURCES += \
 	src/main.cpp \
 	src/cmainwindow.cpp \
 	src/cshelloperationrunner.cpp \
+	src/commandoutput/ccommandoutputarea.cpp \
+	src/commandoutput/ccommandoutputpane.cpp \
 	src/panel/cpanelwidget.cpp \
 	src/progressdialogs/cfileoperationprompt.cpp \
 	src/progressdialogs/cfileoperationdialog.cpp \
@@ -68,6 +70,8 @@ SOURCES += \
 HEADERS += \
 	src/cmainwindow.h \
 	src/cshelloperationrunner.h \
+	src/commandoutput/ccommandoutputarea.h \
+	src/commandoutput/ccommandoutputpane.h \
 	src/panel/cpanelwidget.h \
 	src/progressdialogs/cfileoperationprompt.h \
 	src/progressdialogs/cfileoperationdialog.h \

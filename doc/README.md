@@ -50,6 +50,7 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 | Main window and command routing | `qt-app/src/cmainwindow.{h,cpp,ui}` |
 | Panel UI and file-list MVC | `qt-app/src/panel/` |
 | Blocking shell operations | `qt-app/src/cshelloperationrunner.{h,cpp}` |
+| Process launching and command output | `file-commander-core/src/shell/`, `qt-app/src/commandoutput/` |
 | Native plugin API and loader | `file-commander-core/src/plugininterface/`, `pluginengine/` |
 | Shipped plugins | `plugins/viewer/`, `plugins/tools/` |
 | Build and test graph | `file-commander.pro`, `file-commander-core/core-tests/core-tests.pro`, `qt-app/gui-tests/` |
@@ -78,6 +79,8 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 - [tabs.md](tabs.md): the tab feature where core, UI, notifications, and persistence meet.
 - [search.md](search.md): the name-filter and content query language the dialog and the engine share.
 - [plugins.md](plugins.md): native plugin ABI, proxy, loader, quick-view ownership, and WCX status.
+- [process-launching.md](process-launching.md): every way the app starts a process, the command line's shell and
+  output panes, and exiting with commands running.
 - [persistence.md](persistence.md): settings ownership and session restoration.
 - [build-ci-deps.md](build-ci-deps.md): build/test entry points and dependency roles.
 - [coding-style.md](coding-style.md): authoring rules.

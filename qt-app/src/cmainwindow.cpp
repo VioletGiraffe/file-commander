@@ -1,5 +1,6 @@
 #include "cmainwindow.h"
 #include "cshelloperationrunner.h"
+#include "commandoutput/ccommandoutputarea.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
 #include "progressdialogs/cfileoperationdialog.h"
 #include "progressdialogs/fileoperationlaunch.h"
@@ -10,6 +11,7 @@
 #include "shell/cshell.h"
 #include "appdialogs/csettingsdialog.h"
 #include "appdialogs/reportbugdialog.h"
+#include "dialogs/messagedialog.h"
 #include "settings/csettingspageinterface.h"
 #include "settings/csettingspageoperations.h"
 #include "settings/csettingspageedit.h"
@@ -64,6 +66,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 
 // Main window settings keys
 #define KEY_SPLITTER_SIZES    QSL("Ui/Splitter")
@@ -396,6 +399,13 @@ QPoint CMainWindow::nextBackgroundDialogPosition(const QSize dialogFrameSize) co
 
 void CMainWindow::closeEvent(QCloseEvent *e)
 {
+	// Before the other top-level windows close: a cancelled exit must leave them open
+	if (!terminateRunningCommandsForExit())
+	{
+		e->ignore();
+		return;
+	}
+
 	if (e->type() == QCloseEvent::Close)
 	{
 		QSettings s;
@@ -414,6 +424,22 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 	}
 
 	QMainWindow::closeEvent(e);
+}
+
+bool CMainWindow::terminateRunningCommandsForExit()
+{
+	const QStringList runningCommands = ui->commandOutputArea->runningCommands();
+	if (runningCommands.empty())
+		return true;
+
+	const auto choice = MessageDialog::question(this, tr("Commands still running"),
+		tr("Exiting terminates these commands and every program they started."),
+		{ tr("Terminate") }, 0, true, QMessageBox::Warning, runningCommands.join('\n'));
+	if (!choice)
+		return false;
+
+	ui->commandOutputArea->terminateRunningCommands();
+	return true;
 }
 
 void CMainWindow::changeEvent(QEvent *e)
@@ -819,7 +845,12 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 	if (!_currentFileList || commandLineText.isEmpty())
 		return false;
 
-	OsShell::executeShellCommand(commandLineText, _currentFileList->currentDirPathNative());
+	const QString workingDir = _currentFileList->currentDirPathNative();
+	// A GUI program run through the shell would hold a pane open for its whole life; a failed check falls back to the shell
+	if (const auto guiProgram = OsShell::guiProgramInvocation(commandLineText, workingDir).value_or(std::nullopt))
+		OsShell::runExecutable(guiProgram->programPath, guiProgram->arguments, workingDir);
+	else
+		ui->commandOutputArea->run(commandLineText, workingDir);
 	QMetaObject::invokeMethod(this, [this]() { QSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }, Qt::QueuedConnection); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
