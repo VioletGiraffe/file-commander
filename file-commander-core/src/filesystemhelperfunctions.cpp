@@ -58,28 +58,44 @@ QString toPosixSeparators(QString path)
 
 QString withoutTrailingSeparator(QString path)
 {
-	if (path.endsWith('/') && !QDir{ path }.isRoot())
+	if ((path.endsWith('/') || path.endsWith(nativeSeparator())) && !QDir{ path }.isRoot())
 		path.chop(1);
 
 	return path;
 }
 
-QString escapedPath(QString path)
+// Unicode letters and digits are never special to a shell, so paths in any script stay unquoted.
+static bool isSafeUnquoted(const QChar c) noexcept
 {
-	if (!path.contains(' '))
+	if (c.isLetterOrNumber())
+		return true;
+
+	switch (c.unicode())
+	{
+	case '.': case '_': case '-': case '+': case '@': case '/':
+#ifdef _WIN32
+	case '\\': case ':':
+#endif
+		return true;
+	default:
+		return false;
+	}
+}
+
+QString shellQuotedPath(QString path)
+{
+	path = withoutTrailingSeparator(std::move(path));
+
+	if (std::all_of(path.begin(), path.end(), isSafeUnquoted))
 		return path;
 
 #ifdef _WIN32
-	static constexpr char quoteCharacter = '\"';
+	assert_and_return_r(!path.contains('\"'), path); // Illegal in a Windows path, so the caller quoted this already
+	return '\"' % path % '\"';
 #else
-	static constexpr char quoteCharacter = '\'';
+	path.replace('\'', QSL("'\\''")); // Single quotes protect every other character; a single quote must be closed out, escaped, then reopened
+	return '\'' % path % '\'';
 #endif
-
-	assert_debug_only(!path.endsWith(nativeSeparator()));
-	assert_and_return_r(!path.startsWith(quoteCharacter), path); // Already escaped!
-	path.reserve(path.size() + 2);
-	path.prepend(quoteCharacter).append(quoteCharacter);
-	return path;
 }
 
 QString fileSizeToString(uint64_t size, const char maxUnit, const QString& spacer, int significantPlaces)

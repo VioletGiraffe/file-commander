@@ -1493,7 +1493,7 @@ void CPanelWidget::copySelectedItemsPathsToClipboard() const
 	{
 		const CFileSystemObject item = _controller->itemByHash(_panelPosition, hashBySortModelIndex(index));
 		if (!item.isCdUp())
-			paths += escapedPath(toNativeSeparators(item.fullAbsolutePath())) + '\n';
+			paths += shellQuotedPath(toNativeSeparators(item.fullAbsolutePath())) + '\n';
 	}
 
 	if (!paths.isEmpty())

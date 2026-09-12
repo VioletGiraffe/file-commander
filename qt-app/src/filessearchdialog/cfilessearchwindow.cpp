@@ -304,5 +304,5 @@ void CFilesSearchWindow::showContextMenu(const QPoint& pos)
 	const QAction *selectedAction = menu.exec(ui->resultsList->mapToGlobal(pos));
 
 	if (selectedAction == copyAction)
-		QApplication::clipboard()->setText(escapedPath(toNativeSeparators(clickedItem->data(Qt::UserRole).toString())));
+		QApplication::clipboard()->setText(shellQuotedPath(toNativeSeparators(clickedItem->data(Qt::UserRole).toString())));
 }

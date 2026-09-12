@@ -793,8 +793,8 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 void CController::openTerminal(const QString &folder, bool admin)
 {
 #if defined __APPLE__
-	// Regular escaping with "\ " doesn't work here, need to use single quaotes
-	const auto script = QString(R"(osascript -e "tell application \"Terminal\" to do script \"cd %1\"")").arg(escapedPath(folder));
+	// Regular escaping with "\ " doesn't work here, need to use single quotes
+	const auto script = QString(R"(osascript -e "tell application \"Terminal\" to do script \"cd %1\"")").arg(shellQuotedPath(folder));
 	system(script.toUtf8().constData());
 	Q_UNUSED(admin);
 #elif defined __linux__ || defined __FreeBSD__ || defined _WIN32
@@ -802,10 +802,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 	{
 		auto [terminalProgram, args] = OsShell::shellExecutable();
 		static constexpr auto* dirTemplate = "%dir%";
-		args.replace(
-			dirTemplate,
-			escapedPath(!folder.endsWith(nativeSeparator()) ? folder : QString{folder}.remove(folder.size() - 1, 1))
-		);
+		args.replace(dirTemplate, shellQuotedPath(folder));
 
 		const bool started = OsShell::runExecutable(terminalProgram, args, folder);
 		assert_r(started);
@@ -819,13 +816,10 @@ void CController::openTerminal(const QString &folder, bool admin)
 		if (terminalProgram.contains(QSL("powershell"), Qt::CaseInsensitive))
 			arguments = QSL("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
 		else if (terminalProgram.toLower() == QSL("cmd") || terminalProgram.toLower() == QSL("cmd.exe"))
-			arguments = QSL("/k \"cd /d %1 \"").arg(toNativeSeparators(folder));
+			arguments = QSL("/k \"cd /d %1\"").arg(shellQuotedPath(toNativeSeparators(folder)));
 
 		static constexpr auto* dirTemplate = "%dir%";
-		terminalProgramArgs.second.replace(
-			dirTemplate,
-			escapedPath(!folder.endsWith(nativeSeparator()) ? folder : QString{ folder }.remove(folder.size() - 1, 1))
-		);
+		terminalProgramArgs.second.replace(dirTemplate, shellQuotedPath(folder));
 
 		if (!arguments.isEmpty() && !terminalProgramArgs.second.isEmpty())
 			arguments += ' ';
@@ -861,7 +855,7 @@ void CController::copyCurrentItemPathToClipboard()
 {
 	const auto item = currentItem();
 	if (item.isValid())
-		QApplication::clipboard()->setText(escapedPath(toNativeSeparators(item.fullAbsolutePath())));
+		QApplication::clipboard()->setText(shellQuotedPath(toNativeSeparators(item.fullAbsolutePath())));
 }
 
 const CPanel &CController::panel(Panel p) const

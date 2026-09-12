@@ -50,9 +50,13 @@ class CFileSystemObject;
 // CFileSystemObject normalizes a directory's path to always end with a slash; native APIs are less accommodating,
 // CreateFileW especially, once the \\?\ prefix has turned path normalization off. Strip it before handing a path to
 // one. A root keeps its slash: "C:" names the drive's current directory rather than its root.
+// Either separator is accepted.
 [[nodiscard]] QString withoutTrailingSeparator(QString path);
 
-[[nodiscard]] QString escapedPath(QString path);
+// Quotes only where a shell would otherwise misread the path, so an ordinary one comes back bare and stays readable when pasted.
+// The trailing separator is stripped: inside the quotes it would read as an escaped quote.
+// A %VAR% still expands on Windows: cmd does that inside double quotes too, out of reach of quoting.
+[[nodiscard]] QString shellQuotedPath(QString path);
 
 [[nodiscard]] QString fileSizeToString(uint64_t size, char maxUnit = '\0', const QString& spacer = {}, int significantPlaces = 4);
 

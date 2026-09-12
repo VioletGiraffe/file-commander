@@ -136,6 +136,11 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 
 CTextViewerWindow::~CTextViewerWindow() = default;
 
+// The syntax highlighter is what this limits: past it the Lightning viewer shows plain text instead
+constexpr qsizetype maxSizeForSyntaxHighlighting = 1'000'000;
+// detect() samples 256 KB whatever the input size, but the winning codec still decodes the whole file
+constexpr qsizetype maxSizeForEncodingDetection = 25'000'000;
+
 bool CTextViewerWindow::loadTextFile(const QString& file)
 {
 	QFileInfo fi(file);
@@ -153,17 +158,20 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 		if (!textData)
 			return false;
 
-		// Latin-1 in the fast viewer for both: every byte maps to a character, and the highlighter is far too slow here.
-		// Size first: a large file goes to the fast viewer whatever it holds, and must not pay for isBinaryContent().
-		const bool useFastMode = textData->size() > 1'000'000 || isBinaryContent(*textData);
-		if (useFastMode)
-			return asAscii(*textData, useFastMode);
+		const qsizetype dataSize = textData->size();
+
+		// Binary content, and anything too large to decode, go to the fast viewer as Latin-1: every byte maps to a
+		// character. Size first: isBinaryContent() decodes, so it must not see a file this branch already rejects.
+		if (dataSize > maxSizeForEncodingDetection || isBinaryContent(*textData))
+			return asAscii(*textData, true);
+
+		const bool useFastMode = dataSize > maxSizeForSyntaxHighlighting;
 
 		if (!useFastMode && (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive)))
 			return asHtml(*textData);
 		else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive) && !useFastMode)
 			return asMarkdown(*textData);
-		else if (!useFastMode && (_mimeType.contains("text") || _mimeType.isEmpty() || _mimeType.contains("octet-stream")))
+		else if (_mimeType.contains("text") || _mimeType.isEmpty() || _mimeType.contains("octet-stream"))
 			return asDetectedAutomatically(*textData, useFastMode);
 		else if (asUtf8(*textData, useFastMode))
 			return true;
