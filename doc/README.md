@@ -5,9 +5,8 @@ local code read. Source remains authoritative for APIs and current feature lists
 
 ## Project shape
 
-File Commander is a cross-platform orthodox dual-panel file manager. Windows is the primary target; macOS and
-Linux are supported, and FreeBSD is best-effort where the Linux implementation works unchanged. The project uses
-C++23, Qt 6.8+, and qmake.
+File Commander is a cross-platform orthodox dual-panel file manager for Windows, macOS, and Linux; FreeBSD is
+best-effort where the Linux implementation works unchanged. The project uses C++23, Qt 6.8+, and qmake.
 
 ```
 qt-app/                  Qt Widgets executable
