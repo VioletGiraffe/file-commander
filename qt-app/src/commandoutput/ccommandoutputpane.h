@@ -60,4 +60,5 @@ private:
 	bool _succeeded = false;
 	bool _userInteracted = false; // A selection or a scroll since attach()
 	bool _hovered = false;
+	bool _followTail = true; // The view is at the last line and stays there as the range changes
 };

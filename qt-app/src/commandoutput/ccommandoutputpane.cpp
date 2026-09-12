@@ -79,8 +79,18 @@ CCommandOutputPane::CCommandOutputPane(QWidget* parent) :
 			onCloseRequested();
 	});
 
-	// actionTriggered comes from the user only, never from the tail-following in appendOutput()
-	connect(_output->verticalScrollBar(), &QScrollBar::actionTriggered, this, &CCommandOutputPane::markUserInteraction);
+	QScrollBar* verticalScrollBar = _output->verticalScrollBar();
+	// The range changes with new output and with the viewport height
+	connect(verticalScrollBar, &QScrollBar::rangeChanged, this, [this, verticalScrollBar](int /*min*/, int max) {
+		if (_followTail)
+			verticalScrollBar->setValue(max);
+	});
+	connect(verticalScrollBar, &QScrollBar::valueChanged, this, [this, verticalScrollBar](int value) {
+		_followTail = value == verticalScrollBar->maximum();
+	});
+
+	// actionTriggered comes from the user only, never from tail-following
+	connect(verticalScrollBar, &QScrollBar::actionTriggered, this, &CCommandOutputPane::markUserInteraction);
 	connect(_output->horizontalScrollBar(), &QScrollBar::actionTriggered, this, &CCommandOutputPane::markUserInteraction);
 	connect(_output, &QPlainTextEdit::selectionChanged, this, [this] {
 		if (_output->textCursor().hasSelection())
@@ -97,6 +107,7 @@ void CCommandOutputPane::attach(const QString& command)
 
 	_commandLabel->setText(command);
 	_statusLabel->setText(tr("Running"));
+	_followTail = true;
 	_output->clear();
 	_pinButton->setChecked(false);
 	_closeButton->setEnabled(false);
@@ -105,16 +116,10 @@ void CCommandOutputPane::attach(const QString& command)
 
 void CCommandOutputPane::appendOutput(const QString& text)
 {
-	QScrollBar* scrollBar = _output->verticalScrollBar();
-	const bool followTail = scrollBar->value() == scrollBar->maximum();
-
 	QTextCursor cursor{ _output->document() };
 	cursor.movePosition(QTextCursor::End);
 	// A carriage return has no glyph: a CRLF becomes a line break, and lines a progress meter rewrote with CR run together
 	cursor.insertText(QString{ text }.remove('\r'));
-
-	if (followTail)
-		scrollBar->setValue(scrollBar->maximum());
 }
 
 void CCommandOutputPane::markFinished(int exitCode, bool normalExit)
