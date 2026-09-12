@@ -16,9 +16,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
-#include <thread>
 
-#include <cstdlib> // std::system
 #include <string.h> // memset
 
 #ifdef _WIN32
@@ -100,22 +98,25 @@ std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 	return parseCommandAndArguments(shell);
 }
 
+// The command goes through a shell so that redirection, pipes, chaining and built-ins work.
 void OsShell::executeShellCommand(const QString& command, const QString& workingDir)
 {
-	std::thread([command, workingDir] {
-	#ifdef _WIN32
-		WCHAR commandString[32768] = { 0 };
-		const auto len = (QStringLiteral("pushd ") + workingDir + " && " + command).toWCharArray(commandString);
-		//const auto len = QString{"cmd /c \"%1\""}.arg(command).toWCharArray(commandString);
-		assert_and_return_r(static_cast<size_t>(len) < std::size(commandString), );
-		::_wsystem(commandString);
-	#else
-		const QString commandLine = "cd " % escapedPath(workingDir) % " && " % command;
-		const int result = std::system(commandLine.toUtf8().constData());
-		if (result != 0)
-			qInfo().noquote() << "The command failed with code " << result << '\n' << commandLine;
-	#endif
-	}).detach();
+	QProcess process;
+
+#ifdef _WIN32
+	// cmd does not support a UNC current directory: pushd applies the working dir instead of setWorkingDirectory, and maps a temporary drive letter for UNC.
+	// /s: cmd strips only the outermost quotes and takes the rest verbatim, so the working dir can be quoted.
+	process.setProgram(QStringLiteral("cmd.exe"));
+	process.setNativeArguments(QStringLiteral("/s /c \"pushd \"") % workingDir % QStringLiteral("\" && ") % command % '\"');
+#else
+	process.setProgram(QStringLiteral("/bin/sh"));
+	process.setArguments({ QStringLiteral("-c"), command });
+	process.setWorkingDirectory(workingDir);
+#endif
+
+	// Qt sets CREATE_NO_WINDOW when the parent has no console, so no console window appears on Windows.
+	if (!process.startDetached())
+		qInfo().noquote() << "Failed to launch the command" << command << "in" << workingDir;
 }
 
 #ifdef _WIN32

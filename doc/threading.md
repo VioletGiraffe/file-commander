@@ -21,7 +21,6 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | file comparison plugin | worker thread with abort flag | One two-file content comparison |
 | `runFolderComparison` | worker thread per run | Tree scan and compare while the UI waits in the modal progress dialog |
 | `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
-| `OsShell::executeShellCommand` | detached thread | One blocking shell command; nothing waits for it |
 
 `CMainWindow` periodically drains every tab's panel queue, the icon provider's queue, and the controller UI queue. Tagged queue entries can
 replace older pending entries with the same tag; work queued during a drain waits for the next tick. The volume
