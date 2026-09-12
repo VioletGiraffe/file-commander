@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789241209584,
+  "lastUpdate": 1789254020155,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -17365,6 +17365,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 24,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "a64e3aa8e8d5fac21220293b8a352d95e7ba5f99",
+          "message": "Comand output: scrolling to the end fixed",
+          "timestamp": "2026-09-13T01:53:45+03:00",
+          "tree_id": "065bceb02ce3a88b05e94b18605c0dcc5649ea8a",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/a64e3aa8e8d5fac21220293b8a352d95e7ba5f99"
+        },
+        "date": 1789254017240,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17261,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 16785,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1383.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2103.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 772,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 412,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25,
             "unit": "KB"
           },
           {
