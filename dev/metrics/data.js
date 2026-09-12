@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789254020155,
+  "lastUpdate": 1789254715289,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -17449,6 +17449,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .reloc",
             "value": 10,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "bafd3d943407cb52de3862776a17a88ba192513d",
+          "message": "Stopping running commands implemented",
+          "timestamp": "2026-09-13T02:05:29+03:00",
+          "tree_id": "0ebceb0b08a6a37739932ef5cb182ef9e024e8cf",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/bafd3d943407cb52de3862776a17a88ba192513d"
+        },
+        "date": 1789254711668,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17301,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 16785,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1386.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2103.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 773.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 412.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
             "unit": "KB"
           }
         ]
