@@ -5,6 +5,7 @@
 #include "assert/advanced_assert.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QElapsedTimer>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
@@ -24,6 +25,7 @@ struct CCommandOutputArea::RunningCommand
 	CShellCommand shell;
 	CCommandOutputPane* pane = nullptr; // Null until the command prints or outlives CLAIM_DELAY_MS
 	QTimer claimTimer;
+	QElapsedTimer runTime; // Since launch: the pane is claimed later, or reused
 };
 
 CCommandOutputArea::CCommandOutputArea(QWidget* parent) :
@@ -48,7 +50,7 @@ void CCommandOutputArea::run(const QString& command, const QString& workingDir)
 	runningCommand.shell.onFinished = [this, &runningCommand](int exitCode, bool normalExit) {
 		runningCommand.claimTimer.stop();
 		if (runningCommand.pane)
-			runningCommand.pane->markFinished(exitCode, normalExit);
+			runningCommand.pane->markFinished(exitCode, normalExit, runningCommand.runTime.elapsed());
 
 		// The shell's finished signal is still being delivered, and removing the command destroys its sender
 		QMetaObject::invokeMethod(this, [this, finishedCommand = &runningCommand] { removeCommand(finishedCommand); }, Qt::QueuedConnection);
@@ -60,14 +62,15 @@ void CCommandOutputArea::run(const QString& command, const QString& workingDir)
 			showOutputPaneFor(runningCommand);
 	});
 
-	if (!runningCommand.shell.start())
+	if (const auto started = runningCommand.shell.start(); !started)
 	{
 		showOutputPaneFor(runningCommand);
-		runningCommand.pane->markFailedToStart();
+		runningCommand.pane->markFailedToStart(started.error());
 		removeCommand(&runningCommand);
 		return;
 	}
 
+	runningCommand.runTime.start();
 	runningCommand.claimTimer.start(CLAIM_DELAY_MS);
 }
 

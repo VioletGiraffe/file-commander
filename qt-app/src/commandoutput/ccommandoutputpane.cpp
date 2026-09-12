@@ -1,5 +1,6 @@
 #include "ccommandoutputpane.h"
 
+#include "progressdialogs/progressdialoghelpers.h"
 #include "widgets/clabelelided.h"
 
 DISABLE_COMPILER_WARNINGS
@@ -7,8 +8,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPalette>
 #include <QPlainTextEdit>
 #include <QScrollBar>
+#include <QStringBuilder>
+#include <QTextBlock>
+#include <QTextCharFormat>
 #include <QTextCursor>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -18,6 +23,20 @@ namespace {
 
 constexpr int AUTO_CLOSE_SECONDS = 10;
 constexpr int MAX_OUTPUT_LINES = 5000;
+
+// NTSTATUS codes, such as a crash inside the shell on Windows, have the high bit set and are documented in hex
+QString exitCodeText(int exitCode)
+{
+	return exitCode < 0 ? QStringLiteral("0x") % QString::number(static_cast<uint32_t>(exitCode), 16).toUpper() : QString::number(exitCode);
+}
+
+QString runTimeText(int64_t milliseconds)
+{
+	if (milliseconds < 60'000)
+		return QObject::tr("%1 seconds").arg(static_cast<double>(milliseconds) / 1000.0, 0, 'f', 1);
+
+	return secondsToTimeIntervalString(static_cast<uint32_t>(milliseconds / 1000));
+}
 
 }
 
@@ -138,20 +157,33 @@ void CCommandOutputPane::appendOutput(const QString& text)
 	cursor.insertText(QString{ text }.remove('\r'));
 }
 
-void CCommandOutputPane::markFinished(int exitCode, bool normalExit)
+void CCommandOutputPane::markFinished(int exitCode, bool normalExit, int64_t runMilliseconds)
 {
+	const QString runTime = runTimeText(runMilliseconds);
 	if (_stopRequested)
+	{
+		appendFinishLine(tr("Process terminated after %1").arg(runTime));
 		setFinishedStatus(tr("Stopped"), true);
+	}
 	else if (!normalExit)
+	{
+		appendFinishLine(tr("Process crashed after %1").arg(runTime));
 		setFinishedStatus(tr("Crashed"), false);
-	else if (exitCode != 0)
-		setFinishedStatus(tr("Exit code %1").arg(exitCode), false);
+	}
 	else
-		setFinishedStatus(tr("Done"), true);
+	{
+		const QString code = exitCodeText(exitCode);
+		appendFinishLine(tr("Process finished with exit code %1 after %2").arg(code, runTime));
+		if (exitCode != 0)
+			setFinishedStatus(tr("Exit code %1").arg(code), false);
+		else
+			setFinishedStatus(tr("Done"), true);
+	}
 }
 
-void CCommandOutputPane::markFailedToStart()
+void CCommandOutputPane::markFailedToStart(const QString& reason)
 {
+	appendFinishLine(tr("Process failed to start: %1").arg(reason));
 	setFinishedStatus(tr("Failed to start"), false);
 }
 
@@ -172,6 +204,19 @@ void CCommandOutputPane::leaveEvent(QEvent* event)
 	QWidget::leaveEvent(event);
 	_hovered = false;
 	updateCountdown();
+}
+
+void CCommandOutputPane::appendFinishLine(const QString& text)
+{
+	QTextCursor cursor{ _output->document() };
+	cursor.movePosition(QTextCursor::End);
+	if (!cursor.block().text().isEmpty())
+		cursor.insertBlock();
+
+	QTextCharFormat format;
+	format.setForeground(palette().color(QPalette::PlaceholderText));
+	format.setFontItalic(true);
+	cursor.insertText(text, format);
 }
 
 void CCommandOutputPane::setFinishedStatus(const QString& status, bool succeeded)

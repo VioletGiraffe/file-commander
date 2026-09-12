@@ -73,6 +73,7 @@ The switch is one-way: a UTF-8 tool that follows legacy output within one comman
 | Reuse | A new command takes over a pane exactly when that pane may close on its own | One rule: output kept for any reason is never recycled |
 | Auto-close | A finished pane counts down and closes | |
 | Kept open | A failure, a pin, a selection or a scroll cancels the countdown; hovering pauses it | The output is being read, or needs reading |
+| Finish line | The output ends with how the command ended: exit code, termination, crash or start failure, and its run time. Exit codes with the high bit set (NTSTATUS) print in hex | The header status is too narrow for the details, and does not survive copying |
 | Stop button | Shown while the command runs; ends its process tree. A stopped pane closes and is reused like a successful one | |
 | Close button | Enabled once the command has finished | A running command's pane is never closed or reused, so its output always has a pane |
 | Focus | A pane never takes focus when shown; it accepts focus on click, for selection and copy | Commands keep coming from the command line |

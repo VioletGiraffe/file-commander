@@ -55,36 +55,32 @@ CShellCommand::~CShellCommand()
 #endif
 }
 
-bool CShellCommand::start()
+std::expected<void, QString> CShellCommand::start()
 {
 	assert_debug_only(!isRunning());
+
+	const auto failure = [this](const QString& reason) {
+		qInfo().noquote() << "Failed to start the command" << _command << "in" << _workingDir << ':' << reason;
+		return std::unexpected{ reason };
+	};
 
 #ifdef _WIN32
 	// No JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: a program the command started with `start` must outlive this object
 	_job = ::CreateJobObjectW(nullptr, nullptr);
 	if (!_job)
-	{
-		qInfo() << "CreateJobObjectW failed:" << QString::fromStdString(ErrorStringFromLastError());
-		return false;
-	}
+		return failure(QStringLiteral("CreateJobObjectW failed: ") % QString::fromStdString(ErrorStringFromLastError()));
 
 	SIZE_T attributeListSize = 0;
 	::InitializeProcThreadAttributeList(nullptr, 1, 0, &attributeListSize);
 	std::vector<std::byte> attributeListStorage(attributeListSize);
 	const auto attributeList = static_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(static_cast<void*>(attributeListStorage.data()));
 	if (!::InitializeProcThreadAttributeList(attributeList, 1, 0, &attributeListSize))
-	{
-		qInfo() << "InitializeProcThreadAttributeList failed:" << QString::fromStdString(ErrorStringFromLastError());
-		return false;
-	}
+		return failure(QStringLiteral("InitializeProcThreadAttributeList failed: ") % QString::fromStdString(ErrorStringFromLastError()));
 	EXEC_ON_SCOPE_EXIT([attributeList] { ::DeleteProcThreadAttributeList(attributeList); });
 
 	// Joined at creation: a job assigned after start misses whatever the shell launches first
 	if (!::UpdateProcThreadAttribute(attributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &_job, sizeof(HANDLE), nullptr, nullptr))
-	{
-		qInfo() << "UpdateProcThreadAttribute failed:" << QString::fromStdString(ErrorStringFromLastError());
-		return false;
-	}
+		return failure(QStringLiteral("UpdateProcThreadAttribute failed: ") % QString::fromStdString(ErrorStringFromLastError()));
 
 	STARTUPINFOEXW startupInfo{};
 	_process.setCreateProcessArgumentsModifier([&](QProcess::CreateProcessArguments* arguments) {
@@ -111,11 +107,10 @@ bool CShellCommand::start()
 
 	// Qt passes CREATE_NO_WINDOW when the parent has no console, so no console window appears on Windows
 	_process.start();
-	if (_process.waitForStarted())
-		return true;
+	if (!_process.waitForStarted())
+		return failure(_process.errorString());
 
-	qInfo().noquote() << "Failed to start the command" << _command << "in" << _workingDir << ':' << _process.errorString();
-	return false;
+	return {};
 }
 
 void CShellCommand::terminateTree()

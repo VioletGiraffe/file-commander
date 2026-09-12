@@ -9,6 +9,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringDecoder>
 RESTORE_COMPILER_WARNINGS
 
+#include <expected>
 #include <functional>
 
 // One command line run through the platform shell, stdout and stderr merged; see doc/process-launching.md.
@@ -29,7 +30,8 @@ public:
 	// Once, after the shell exits. Never called when start() fails.
 	std::function<void(int exitCode, bool normalExit)> onFinished;
 
-	[[nodiscard]] bool start();
+	// The error is the reason, readable by the user
+	[[nodiscard]] std::expected<void, QString> start();
 	// Ends the shell and everything it launched. No-op once the shell has exited.
 	void terminateTree();
 	// terminateTree with SIGKILL on POSIX, where terminateTree sends SIGTERM; identical on Windows

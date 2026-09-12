@@ -8,6 +8,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
+#include <cstdint>
 #include <functional>
 
 class CLabelElided;
@@ -32,8 +33,8 @@ public:
 	// Clears the pane for `command`, which is running
 	void attach(const QString& command);
 	void appendOutput(const QString& text);
-	void markFinished(int exitCode, bool normalExit);
-	void markFailedToStart();
+	void markFinished(int exitCode, bool normalExit, int64_t runMilliseconds);
+	void markFailedToStart(const QString& reason);
 
 	[[nodiscard]] bool isReusable() const;
 
@@ -42,6 +43,8 @@ protected:
 	void leaveEvent(QEvent* event) override;
 
 private:
+	// Starts on a new line, formatted apart from the command's own output
+	void appendFinishLine(const QString& text);
 	void setFinishedStatus(const QString& status, bool succeeded);
 	void markUserInteraction();
 	// Restarts the full countdown whenever the pane becomes reusable, and stops it when it no longer is
