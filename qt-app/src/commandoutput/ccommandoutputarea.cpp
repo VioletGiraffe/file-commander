@@ -103,6 +103,16 @@ CCommandOutputPane* CCommandOutputArea::createPane()
 {
 	auto* pane = new CCommandOutputPane(this);
 	pane->onCloseRequested = [this, pane] { closePane(pane); };
+	pane->onStopRequested = [this, pane](bool force) {
+		// A finished command awaiting removal may still point at this pane
+		const auto command = std::find_if(_commands.cbegin(), _commands.cend(), [pane](const auto& entry) { return entry->pane == pane && entry->shell.isRunning(); });
+		assert_and_return_r(command != _commands.cend(), );
+
+		if (force)
+			(*command)->shell.killTree();
+		else
+			(*command)->shell.terminateTree();
+	};
 	addWidget(pane);
 	_panes.push_back(pane);
 	return pane;

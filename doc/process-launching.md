@@ -73,6 +73,7 @@ The switch is one-way: a UTF-8 tool that follows legacy output within one comman
 | Reuse | A new command takes over a pane exactly when that pane may close on its own | One rule: output kept for any reason is never recycled |
 | Auto-close | A finished pane counts down and closes | |
 | Kept open | A failure, a pin, a selection or a scroll cancels the countdown; hovering pauses it | The output is being read, or needs reading |
+| Stop button | Shown while the command runs; ends its process tree. A stopped pane closes and is reused like a successful one | |
 | Close button | Enabled once the command has finished | A running command's pane is never closed or reused, so its output always has a pane |
 | Focus | A pane never takes focus when shown; it accepts focus on click, for selection and copy | Commands keep coming from the command line |
 | View | Follows the tail unless scrolled up; no line wrapping; line count capped; carriage returns dropped | Console layout survives; a chatty command cannot grow the app without limit |
@@ -83,8 +84,9 @@ The switch is one-way: a UTF-8 tool that follows legacy output within one comman
 
 - Windows: a job object per command, joined at process creation through `PROC_THREAD_ATTRIBUTE_JOB_LIST` in
   `QProcess::setCreateProcessArgumentsModifier`. A job assigned after start misses whatever the shell launches first.
-- POSIX: `setpgid` in `QProcess::setChildProcessModifier`, and `SIGTERM` to the group. A process that ignores
-  `SIGTERM`, or starts its own session, survives.
+- POSIX: `setpgid` in `QProcess::setChildProcessModifier`, and `SIGTERM` to the group: processes get to clean up. A
+  process that ignores `SIGTERM` survives exit; a second click on Stop sends `SIGKILL`. A process that starts its own
+  session escapes both.
 - The job has no `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`: a program the command started with `start` outlives the pane
   and the app, like a program started with `&` on POSIX. The cost: a crash of the app leaves the commands running.
 - Terminating a command whose shell has exited does nothing: its job may still hold programs started with `start`.
@@ -102,7 +104,6 @@ Exit is blocked while any command runs:
 
 ## Not implemented
 
-- Cancelling one command: terminating its tree is the exit mechanism applied to a single pane.
 - A graceful Ctrl+C. Windows needs an `AttachConsole` and `GenerateConsoleCtrlEvent` sequence (a process attaches to
   one console at a time, which fights parallel panes), a helper process, or a pseudoconsole; POSIX needs `SIGINT` to
   the group.

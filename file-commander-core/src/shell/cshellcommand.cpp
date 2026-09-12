@@ -132,6 +132,19 @@ void CShellCommand::terminateTree()
 #endif
 }
 
+void CShellCommand::killTree()
+{
+#ifdef _WIN32
+	terminateTree();
+#else
+	// processId() is 0 once the shell has exited, and kill() reads pid 0 as this app's own process group
+	if (!isRunning())
+		return;
+
+	::kill(-static_cast<pid_t>(_process.processId()), SIGKILL);
+#endif
+}
+
 bool CShellCommand::isRunning() const
 {
 	return _process.state() != QProcess::NotRunning;

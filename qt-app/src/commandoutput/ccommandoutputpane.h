@@ -16,8 +16,8 @@ class QLabel;
 class QPlainTextEdit;
 class QToolButton;
 
-// One command's output under a header with the command, its status, and pin and close buttons.
-// A pane is reusable exactly when it may close on its own: finished, succeeded, unpinned, and not interacted with.
+// One command's output under a header with the command, its status, and stop, pin and close buttons.
+// A pane is reusable exactly when it may close on its own: finished, succeeded or stopped, unpinned, and not interacted with.
 // Hovering pauses the countdown; a selection or a scroll cancels it until another command is attached.
 class CCommandOutputPane final : public QWidget
 {
@@ -26,6 +26,8 @@ public:
 
 	// When the countdown ends or the close button is clicked, which it can be only once the command has finished
 	std::function<void()> onCloseRequested;
+	// When the stop button is clicked, which it can be only while the command runs; `force` on clicks after the first
+	std::function<void(bool force)> onStopRequested;
 
 	// Clears the pane for `command`, which is running
 	void attach(const QString& command);
@@ -48,6 +50,7 @@ private:
 
 	CLabelElided* _commandLabel;
 	QLabel* _statusLabel;
+	QToolButton* _stopButton;
 	QToolButton* _pinButton;
 	QToolButton* _closeButton;
 	QPlainTextEdit* _output;
@@ -59,6 +62,7 @@ private:
 	bool _finished = false;
 	bool _succeeded = false;
 	bool _userInteracted = false; // A selection or a scroll since attach()
+	bool _stopRequested = false;
 	bool _hovered = false;
 	bool _followTail = true; // The view is at the last line and stays there as the range changes
 };

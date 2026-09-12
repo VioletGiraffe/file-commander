@@ -25,11 +25,15 @@ CCommandOutputPane::CCommandOutputPane(QWidget* parent) :
 	QWidget(parent),
 	_commandLabel{ new CLabelElided(this) },
 	_statusLabel{ new QLabel(this) },
+	_stopButton{ new QToolButton(this) },
 	_pinButton{ new QToolButton(this) },
 	_closeButton{ new QToolButton(this) },
 	_output{ new QPlainTextEdit(this) }
 {
 	_commandLabel->setElideMode(Qt::ElideRight);
+
+	_stopButton->setText(QStringLiteral("■"));
+	_stopButton->setFocusPolicy(Qt::NoFocus);
 
 	_pinButton->setCheckable(true);
 	_pinButton->setText(QStringLiteral("📌"));
@@ -51,6 +55,7 @@ CCommandOutputPane::CCommandOutputPane(QWidget* parent) :
 	header->setContentsMargins(0, 0, 0, 0);
 	header->addWidget(_commandLabel, 1);
 	header->addWidget(_statusLabel);
+	header->addWidget(_stopButton);
 	header->addWidget(_pinButton);
 	header->addWidget(_closeButton);
 
@@ -73,6 +78,14 @@ CCommandOutputPane::CCommandOutputPane(QWidget* parent) :
 			onCloseRequested();
 	});
 
+	connect(_stopButton, &QToolButton::clicked, this, [this] {
+		const bool force = _stopRequested;
+		_stopRequested = true;
+		_statusLabel->setText(tr("Stopping"));
+		_stopButton->setToolTip(tr("Force stop"));
+		if (onStopRequested)
+			onStopRequested(force);
+	});
 	connect(_pinButton, &QToolButton::toggled, this, &CCommandOutputPane::updateCountdown);
 	connect(_closeButton, &QToolButton::clicked, this, [this] {
 		if (onCloseRequested)
@@ -103,10 +116,13 @@ void CCommandOutputPane::attach(const QString& command)
 	_finished = false;
 	_succeeded = false;
 	_userInteracted = false;
+	_stopRequested = false;
 	_finishedStatus.clear();
 
 	_commandLabel->setText(command);
 	_statusLabel->setText(tr("Running"));
+	_stopButton->setToolTip(tr("Stop"));
+	_stopButton->show();
 	_followTail = true;
 	_output->clear();
 	_pinButton->setChecked(false);
@@ -124,7 +140,9 @@ void CCommandOutputPane::appendOutput(const QString& text)
 
 void CCommandOutputPane::markFinished(int exitCode, bool normalExit)
 {
-	if (!normalExit)
+	if (_stopRequested)
+		setFinishedStatus(tr("Stopped"), true);
+	else if (!normalExit)
 		setFinishedStatus(tr("Crashed"), false);
 	else if (exitCode != 0)
 		setFinishedStatus(tr("Exit code %1").arg(exitCode), false);
@@ -161,6 +179,7 @@ void CCommandOutputPane::setFinishedStatus(const QString& status, bool succeeded
 	_finished = true;
 	_succeeded = succeeded;
 	_finishedStatus = status;
+	_stopButton->hide();
 	_closeButton->setEnabled(true);
 	updateCountdown();
 }

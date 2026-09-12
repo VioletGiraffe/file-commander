@@ -32,6 +32,8 @@ public:
 	[[nodiscard]] bool start();
 	// Ends the shell and everything it launched. No-op once the shell has exited.
 	void terminateTree();
+	// terminateTree with SIGKILL on POSIX, where terminateTree sends SIGTERM; identical on Windows
+	void killTree();
 
 	[[nodiscard]] bool isRunning() const;
 	[[nodiscard]] const QString& command() const;
