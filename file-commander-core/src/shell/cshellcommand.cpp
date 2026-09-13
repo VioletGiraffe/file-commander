@@ -105,6 +105,9 @@ std::expected<void, QString> CShellCommand::start()
 	_process.setChildProcessModifier([] { ::setpgid(0, 0); });
 #endif
 
+	// A prompt reads end of input and continues or fails: nothing ever writes to the command
+	_process.setStandardInputFile(QProcess::nullDevice());
+
 	// Qt passes CREATE_NO_WINDOW when the parent has no console, so no console window appears on Windows
 	_process.start();
 	if (!_process.waitForStarted())

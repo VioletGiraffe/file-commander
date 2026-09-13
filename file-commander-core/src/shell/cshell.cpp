@@ -101,11 +101,13 @@ std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 }
 
 #ifdef _WIN32
-// Resolves `program` in cmd's search order: the working dir, then PATH, each directory trying the PATHEXT extensions when
-// the name has none. Empty when nothing matches.
+// Resolves `program` in cmd's search order: the working dir unless NoDefaultCurrentDirectoryInExePath excludes it, then PATH,
+// each directory trying the PATHEXT extensions when the name has none. Empty when nothing matches.
 static QString resolvedProgramPath(const QString& program, const QString& workingDir)
 {
-	QStringList directories{ workingDir };
+	QStringList directories;
+	if (::NeedCurrentDirectoryForExePathW(reinterpret_cast<const wchar_t*>(program.utf16())))
+		directories += workingDir;
 	if (!program.contains('\\') && !program.contains('/'))
 		directories += qEnvironmentVariable("PATH").split(';', Qt::SkipEmptyParts);
 
