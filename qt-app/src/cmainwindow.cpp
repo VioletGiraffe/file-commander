@@ -345,7 +345,7 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 	if (sources.empty() || destinationDirectory.isEmpty())
 		return false;
 
-	// Fix for #91
+	// Raised before the prompt: a drop from another application leaves this window in the background (#91)
 	raise();
 	activateWindow();
 
