@@ -1,24 +1,31 @@
 #include "cpanelwidget.h"
+
+#include "columns.h"
 #include "filelistwidget/cfilelistfilterdialog.h"
 #include "filelistwidget/model/cfilelistmodel.h"
-#include "shell/cshell.h"
-#include "cshelloperationrunner.h"
-#include "columns.h"
 #include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
-#include "../favoritelocationseditor/cfavoritelocationseditor.h"
+
+#include "cshelloperationrunner.h"
+#include "progressdialogs/progressdialoghelpers.h"
+
+#include "favoritelocationseditor/cfavoritelocationseditor.h"
+
+#include "settings.h"
+#include "shell/cshell.h"
 #include "iconprovider/ciconprovider.h"
-#include "filesystemhelperfunctions.h"
 #include "fileoperationresultcode.h"
 #include "fileoperations/inlinerename.h"
-#include "progressdialogs/progressdialoghelpers.h"
-#include "settings.h"
+#include "filesystemhelperfunctions.h"
+#include "detail/hashmap_helpers.h"
+
+
+// Submodule includes
 #include "qtcore_helpers/qdatetime_helpers.hpp"
+#include "timing/ctimeelapsed.h"
 #include "widgets/clineedit.h"
 #include "widgets/layouts/cflowlayout.h"
 #include "widgets/widgetutils.h"
 
-#include "timing/ctimeelapsed.h"
-#include "detail/hashmap_helpers.h"
 
 #include <3rdparty/ankerl/unordered_dense.h>
 

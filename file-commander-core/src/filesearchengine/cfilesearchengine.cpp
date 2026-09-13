@@ -1,17 +1,20 @@
 #include "cfilesearchengine.h"
+
 #include "cfilesystemobject.h"
-#include "timing/ctimeelapsed.h"
 #include "directoryscanner.h"
 
-#include "qtcore_helpers/qstring_helpers.hpp"
-#include "file.hpp"
 
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
-#include "threading/thread_helpers.h"
+#include "file.hpp"
+#include "qtcore_helpers/qstring_helpers.hpp"
 #include "threading/cthreadpool.h"
+#include "threading/thread_helpers.h"
+#include "timing/ctimeelapsed.h"
 #include "utility/on_scope_exit.hpp"
 #include "utility_functions/memory_functions.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QRegularExpression>
