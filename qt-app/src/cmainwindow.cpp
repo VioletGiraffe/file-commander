@@ -178,7 +178,7 @@ void CMainWindow::updateInterface()
 	QSettings s;
 	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
 
-	ui->_commandLine->addItems(s.value(KEY_LAST_COMMANDS_EXECUTED).toStringList());
+	ui->_commandLine->enableAutoSave(KEY_LAST_COMMANDS_EXECUTED);
 	ui->_commandLine->lineEdit()->clear();
 
 	show();
@@ -861,7 +861,6 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 		OsShell::runExecutable(guiProgram->programPath, guiProgram->arguments, workingDir);
 	else
 		ui->commandOutputArea->run(commandLineText, workingDir);
-	QMetaObject::invokeMethod(this, [this]() { QSettings().setValue(KEY_LAST_COMMANDS_EXECUTED, ui->_commandLine->items()); }, Qt::QueuedConnection); // Saving the list AFTER the combobox actually accepts the newly added item
 	clearCommandLineAndRestoreFocus();
 
 	return true;
@@ -1169,7 +1168,12 @@ CPanelDisplayController& CMainWindow::otherPanelDisplayController()
 
 bool CMainWindow::fileListReturnPressed()
 {
-	return _currentFileList ? executeCommand(ui->_commandLine->currentText()) : false;
+	if (!_currentFileList)
+		return false;
+
+	// Not activated through the command line, so its history is recorded here
+	ui->_commandLine->moveCurrentTextToTopOfHistory();
+	return executeCommand(ui->_commandLine->currentText());
 }
 
 void CMainWindow::quickViewCurrentFile()

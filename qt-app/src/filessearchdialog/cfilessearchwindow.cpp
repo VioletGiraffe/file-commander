@@ -51,7 +51,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	ui->nameToFind->enableAutoSave(SETTINGS_NAME_TO_FIND);
 	ui->fileContentsToFind->enableAutoSave(SETTINGS_CONTENTS_TO_FIND);
-	ui->fileContentsToFind->setSaveCurrentText(true);
+	ui->fileContentsToFind->lineEdit()->clear(); // A prefilled pattern would silently restrict the search to files containing it
 	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
 
 	QString pathsToSearchIn;
@@ -206,6 +206,10 @@ void CFilesSearchWindow::search()
 		this /* listener */)
 	)
 	{
+		ui->nameToFind->moveCurrentTextToTopOfHistory();
+		ui->fileContentsToFind->moveCurrentTextToTopOfHistory();
+		ui->searchRoot->moveCurrentTextToTopOfHistory();
+
 		ui->btnSearch->setText(tr("Stop"));
 		ui->resultsList->clear();
 
