@@ -83,9 +83,10 @@ private:
 		// Both wrap around at either end
 		std::function<FindResult (const QString&, QTextDocument::FindFlags)> findText;
 		std::function<FindResult (const QRegularExpression&, QTextDocument::FindFlags)> findRegex;
-		// Both count the matches a forward find steps through, until the deadline
-		std::function<MatchCount (const QString&, QTextDocument::FindFlags, QDeadlineTimer)> countText;
-		std::function<MatchCount (const QRegularExpression&, QTextDocument::FindFlags, QDeadlineTimer)> countRegex;
+		// Both count the matches a forward find steps through, until the deadline; 'highlight' paints them until clearHighlights
+		std::function<MatchCount (const QString&, QTextDocument::FindFlags, QDeadlineTimer, bool highlight)> countText;
+		std::function<MatchCount (const QRegularExpression&, QTextDocument::FindFlags, QDeadlineTimer, bool highlight)> countRegex;
+		std::function<void ()> clearHighlights;
 		std::function<void (bool)> setWordWrap;
 	};
 
