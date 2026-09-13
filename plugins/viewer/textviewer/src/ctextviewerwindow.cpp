@@ -136,8 +136,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	_lineWrapAction->setCheckable(true);
 	_lineWrapAction->setChecked(true); // Wrap by default
 
-	auto* escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
-	CR() = connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater);
+	new QShortcut{ QKeySequence{ Qt::Key_Escape }, this, this, [this] { close(); } };
 
 	_encodingLabel = new QLabel(this);
 	_contentTypeLabel = new QLabel(this);
