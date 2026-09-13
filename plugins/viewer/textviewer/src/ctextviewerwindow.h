@@ -6,6 +6,7 @@
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "ctextencodingdetector.h"
+#include "widgets/findresult.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -79,8 +80,8 @@ private:
 		QAbstractScrollArea* widget = nullptr; // Null until the first load, and then the only member worth testing
 
 		// Both wrap around at either end
-		std::function<bool (const QString&, QTextDocument::FindFlags)> findText;
-		std::function<bool (const QRegularExpression&, QTextDocument::FindFlags)> findRegex;
+		std::function<FindResult (const QString&, QTextDocument::FindFlags)> findText;
+		std::function<FindResult (const QRegularExpression&, QTextDocument::FindFlags)> findRegex;
 		std::function<void (bool)> setWordWrap;
 	};
 

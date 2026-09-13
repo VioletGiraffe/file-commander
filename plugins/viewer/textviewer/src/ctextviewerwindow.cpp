@@ -84,8 +84,8 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	setCentralWidget(central);
 
 	_findBar = new CFindBar{
-		[this](const QString& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget && v.findText(pattern, flags); },
-		[this](const QRegularExpression& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget && v.findRegex(pattern, flags); },
+		[this](const QString& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget ? v.findText(pattern, flags) : FindResult::NotFound; },
+		[this](const QRegularExpression& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget ? v.findRegex(pattern, flags) : FindResult::NotFound; },
 		CFindBar::Keys{ .find = QStringLiteral("Ctrl+F"), .findNext = QStringLiteral("F3"), .findPrevious = QStringLiteral("Shift+F3") },
 		QStringLiteral("Plugins/TextViewer/Find")
 	};
@@ -484,7 +484,7 @@ CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
 		// A miss on both passes leaves the cursor and the scroll as they were
 		const auto findWrappingAround = [view](const auto& expression, QTextDocument::FindFlags flags) {
 			if (view->find(expression, flags))
-				return true;
+				return FindResult::Found;
 
 			const QTextCursor cursor = view->textCursor();
 			const int horizontalScroll = view->horizontalScrollBar()->value();
@@ -492,12 +492,12 @@ CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
 
 			view->moveCursor(flags.testFlag(QTextDocument::FindBackward) ? QTextCursor::End : QTextCursor::Start);
 			if (view->find(expression, flags))
-				return true;
+				return FindResult::FoundAfterWrapAround;
 
 			view->setTextCursor(cursor);
 			view->horizontalScrollBar()->setValue(horizontalScroll);
 			view->verticalScrollBar()->setValue(verticalScroll);
-			return false;
+			return FindResult::NotFound;
 		};
 
 		return {
