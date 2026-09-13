@@ -19,7 +19,6 @@ RESTORE_COMPILER_WARNINGS
 #include <optional>
 
 class CPlainTextEditWithLineNumbers;
-class CTextEditWithImageSupport;
 class CLightningFastViewerWidget;
 class CFindBar;
 
@@ -28,6 +27,7 @@ class QAction;
 class QActionGroup;
 class QLabel;
 class QRegularExpression;
+class QTextEdit;
 class QVBoxLayout;
 
 namespace Qutepart {
@@ -106,7 +106,7 @@ private:
 	QString _mimeType;
 
 	std::unique_ptr<CPlainTextEditWithLineNumbers> _sourceView;
-	std::unique_ptr<CTextEditWithImageSupport> _richView;
+	std::unique_ptr<QTextEdit> _richView;
 	QVBoxLayout* _centralLayout = nullptr; // The live viewer above _findBar
 	CFindBar* _findBar = nullptr;
 	QLabel* _encodingLabel = nullptr;

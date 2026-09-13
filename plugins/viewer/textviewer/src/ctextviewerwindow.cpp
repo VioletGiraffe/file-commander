@@ -1,7 +1,5 @@
 #include "ctextviewerwindow.h"
 
-#include "ctexteditwithimagesupport.h"
-
 
 // Submodule includes
 #include "qtcore_helpers/qt_helpers.hpp"
@@ -660,7 +658,7 @@ void CTextViewerWindow::setMode(Mode mode)
 	case Mode::Rich:
 		if (!_richView)
 		{
-			_richView = std::make_unique<CTextEditWithImageSupport>(this);
+			_richView = std::make_unique<QTextEdit>(this);
 			initDocumentView(*_richView);
 			_richView->setAcceptRichText(true);
 			_centralLayout->insertWidget(0, _richView.get(), 1);
