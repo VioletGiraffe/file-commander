@@ -65,6 +65,7 @@ INCLUDEPATH += \
 	../../../cpp-template-utils \
 	../../../cpp-template-utils/3rdparty \ #stupid boost
 	../../../text-encoding-detector/text-encoding-detector/src \
+	$$PWD \
 	$$PWD/src/
 
 HEADERS += \

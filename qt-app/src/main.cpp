@@ -3,6 +3,7 @@
 #include "cshelloperationrunner.h"
 #include "pluginengine/cpluginengine.h"
 #include "settings.h"
+#include "assert/advanced_assert.h"
 #include "system/win_utils.hpp"
 #include "logger/cloggerinmemory.h"
 

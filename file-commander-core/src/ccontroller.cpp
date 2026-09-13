@@ -6,6 +6,7 @@
 #include "iconprovider/ciconprovider.h"
 #include "threading/thread_helpers.h"
 
+#include "assert/advanced_assert.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 
 DISABLE_COMPILER_WARNINGS

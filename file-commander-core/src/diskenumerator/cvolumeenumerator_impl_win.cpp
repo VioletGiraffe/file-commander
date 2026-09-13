@@ -11,19 +11,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
-static inline QString parseVolumePathFromPathsList(WCHAR* paths)
-{
-	QString qstring;
-	for (auto* string = paths; string[0] != L'\0'; string += wcslen(string) + 1)
-	{
-		qstring = QString::fromWCharArray(string);
-		if (qstring.contains(':'))
-			return qstring;
-	}
-
-	return qstring;
-}
-
 static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 {
 	if (!FileSystemHelpers::pathIsAccessible(driveLetter))

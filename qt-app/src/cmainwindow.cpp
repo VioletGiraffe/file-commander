@@ -37,6 +37,7 @@
 #include "appdialogs/csettingsdialog.h"
 #include "appdialogs/csettingsnotifier.h"
 #include "appdialogs/reportbugdialog.h"
+#include "assert/advanced_assert.h"
 #include "dialogs/messagedialog.h"
 #include "logger/cloggerinmemory.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"

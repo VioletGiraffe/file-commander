@@ -3,6 +3,7 @@
 #include "ccontroller.h"
 #include "../../columns.h"
 
+#include "assert/advanced_assert.h"
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 DISABLE_COMPILER_WARNINGS

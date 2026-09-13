@@ -42,6 +42,9 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
   - `assert_and_return_r(cond, value)` to also return `value`; leave `value` empty in a `void` function.
   - `assert_debug_only(cond)` in hot code: debug only, no logging.
 
+- **File-private functions and classes in a `.cpp`:** `static` or an anonymous namespace. `inline` alone keeps external
+  linkage: a same-named definition in another translation unit is a silent ODR violation. `static inline` is fine as an inlining hint.
+
 ## Concurrency
 
 Any change touching threading or concurrency carries a mandatory dedicated review pass, separate from
