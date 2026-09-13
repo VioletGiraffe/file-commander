@@ -1,11 +1,11 @@
 #include "ctextviewerwindow.h"
 
-#include "cfinddialog.h"
 #include "ctexteditwithimagesupport.h"
 
 
 // Submodule includes
 #include "qtcore_helpers/qt_helpers.hpp"
+#include "widgets/cfindbar.h"
 #include "widgets/clightningfastviewer.h"
 #include "widgets/cpersistenceenabler.h"
 #include "widgets/cplaintexteditwithlinenumbers.h"
@@ -39,6 +39,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStyleHints>
 #include <QTextCodec>
 #include <QTextCursor>
+#include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -76,6 +77,20 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 
 	enablePersistence(this, QStringLiteral("Plugins/TextViewer/Window"), CPersistenceEnabler::Delayed{ false });
 
+	auto* const central = new QWidget{ this };
+	_centralLayout = new QVBoxLayout{ central };
+	_centralLayout->setContentsMargins(0, 0, 0, 0);
+	_centralLayout->setSpacing(0);
+	setCentralWidget(central);
+
+	_findBar = new CFindBar{
+		[this](const QString& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget && v.findText(pattern, flags); },
+		[this](const QRegularExpression& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget && v.findRegex(pattern, flags); },
+		CFindBar::Keys{ .find = QStringLiteral("Ctrl+F"), .findNext = QStringLiteral("F3"), .findPrevious = QStringLiteral("Shift+F3") },
+		QStringLiteral("Plugins/TextViewer/Find")
+	};
+	_centralLayout->addWidget(_findBar);
+
 	const auto addMenuAction = [this](QMenu* menu, const QString& text, const QString& shortcut, auto onTriggered) {
 		QAction* const action = menu->addAction(text);
 		action->setShortcut(QKeySequence{ shortcut });
@@ -93,12 +108,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	fileMenu->addSeparator();
 	addMenuAction(fileMenu, tr("Close"), {}, &QWidget::close);
 
-	QMenu* const editMenu = menuBar()->addMenu(tr("&Edit"));
-	addMenuAction(editMenu, tr("Find..."), "Ctrl+F", [this] {
-		setupFindDialog();
-		_findDialog->exec();
-	});
-	addMenuAction(editMenu, tr("Find next"), "F3", &CTextViewerWindow::findNext);
+	menuBar()->addMenu(tr("&Edit"))->addActions(_findBar->findActions());
 
 	QMenu* const viewMenu = menuBar()->addMenu(tr("&View"));
 	addMenuAction(viewMenu, tr("Auto &detect encoding"), "1", [this] { redecodeCurrentFile(&CTextViewerWindow::asDetectedAutomatically); });
@@ -438,55 +448,6 @@ std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeUnico
 	return CTextEncodingDetector::DecodedText{QString::fromUtf8(textData), "UTF-8", {}, 0.0};
 }
 
-void CTextViewerWindow::find()
-{
-	setupFindDialog();
-
-	const ViewerOps v = viewer();
-	if (!v.widget)
-		return;
-
-	if (_findDialog->searchBackwards())
-		v.moveToEnd();
-	else
-		v.moveToStart();
-
-	findNext();
-}
-
-void CTextViewerWindow::findNext()
-{
-	setupFindDialog();
-
-	const QString expression = _findDialog->searchExpression();
-	if (expression.isEmpty())
-		return;
-
-	const ViewerOps v = viewer();
-	if (!v.widget)
-		return;
-
-	QTextDocument::FindFlags flags {};
-	if (_findDialog->caseSensitive())
-		flags |= QTextDocument::FindCaseSensitively;
-	if (_findDialog->searchBackwards())
-		flags |= QTextDocument::FindBackward;
-	if (_findDialog->wholeWords())
-		flags |= QTextDocument::FindWholeWords;
-
-	const qsizetype initialPosition = v.cursorPosition();
-
-	const bool found = _findDialog->regex() ? v.findRegex(QRegularExpression{ expression }, flags) : v.findText(expression, flags);
-
-	if (!found && (initialPosition == -1 || initialPosition == 0))
-		QMessageBox::information(this, tr("Not found"), tr("Expression \"%1\" not found").arg(expression));
-	else if (!found && initialPosition > 0)
-	{
-		if (QMessageBox::question(this, tr("Not found"), _findDialog->searchBackwards() ? tr("Beginning of file reached, do you want to restart search from the end?") : tr("End of file reached, do you want to restart search from the top?")) == QMessageBox::Yes)
-			find();
-	}
-}
-
 bool CTextViewerWindow::readSource(QByteArray& textData) const
 {
 	QFile file(_sourceFilePath);
@@ -516,27 +477,33 @@ void CTextViewerWindow::setLineWrap(bool wrap)
 		v.setWordWrap(wrap);
 }
 
-void CTextViewerWindow::setupFindDialog()
-{
-	if (_findDialog)
-		return;
-
-	_findDialog = new CFindDialog(this, QStringLiteral("Plugins/TextViewer/Find/"));
-	CR() = connect(_findDialog, &CFindDialog::find, this, &CTextViewerWindow::find);
-	CR() = connect(_findDialog, &CFindDialog::findNext, this, &CTextViewerWindow::findNext);
-}
-
 CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
 {
 	// One binding serves both document views: same calls, no base class that declares them
 	const auto documentViewOps = [](auto* view) -> ViewerOps {
+		// A miss on both passes leaves the cursor and the scroll as they were
+		const auto findWrappingAround = [view](const auto& expression, QTextDocument::FindFlags flags) {
+			if (view->find(expression, flags))
+				return true;
+
+			const QTextCursor cursor = view->textCursor();
+			const int horizontalScroll = view->horizontalScrollBar()->value();
+			const int verticalScroll = view->verticalScrollBar()->value();
+
+			view->moveCursor(flags.testFlag(QTextDocument::FindBackward) ? QTextCursor::End : QTextCursor::Start);
+			if (view->find(expression, flags))
+				return true;
+
+			view->setTextCursor(cursor);
+			view->horizontalScrollBar()->setValue(horizontalScroll);
+			view->verticalScrollBar()->setValue(verticalScroll);
+			return false;
+		};
+
 		return {
 			view,
-			[view](const QString& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags); },
-			[view](const QRegularExpression& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags); },
-			[view] { view->moveCursor(QTextCursor::Start); },
-			[view] { view->moveCursor(QTextCursor::End); },
-			[view] { return view->textCursor().isNull() ? qsizetype{ -1 } : (qsizetype)view->textCursor().position(); },
+			findWrappingAround,
+			findWrappingAround,
 			[view](bool wrap) { view->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap); }
 		};
 	};
@@ -549,13 +516,11 @@ CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
 
 	if (auto* const view = _lightningViewer.get())
 	{
+		const auto findWrappingAround = [view](const auto& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags, /*wrapAround=*/true); };
 		return {
 			view,
-			[view](const QString& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags); },
-			[view](const QRegularExpression& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags); },
-			[view] { view->moveToStart(); },
-			[view] { view->moveToEnd(); },
-			[view] { return view->selectionStart(); },
+			findWrappingAround,
+			findWrappingAround,
 			[view](bool wrap) { view->setWordWrap(wrap); }
 		};
 	}
@@ -611,7 +576,7 @@ void CTextViewerWindow::setMode(Mode mode)
 		{
 			_sourceView = std::make_unique<CPlainTextEditWithLineNumbers>(this);
 			initDocumentView(*_sourceView);
-			setCentralWidget(_sourceView.get());
+			_centralLayout->insertWidget(0, _sourceView.get(), 1);
 		}
 		break;
 
@@ -621,7 +586,7 @@ void CTextViewerWindow::setMode(Mode mode)
 			_richView = std::make_unique<CTextEditWithImageSupport>(this);
 			initDocumentView(*_richView);
 			_richView->setAcceptRichText(true);
-			setCentralWidget(_richView.get());
+			_centralLayout->insertWidget(0, _richView.get(), 1);
 		}
 		break;
 
@@ -630,7 +595,7 @@ void CTextViewerWindow::setMode(Mode mode)
 		{
 			_lightningViewer = std::make_unique<CLightningFastViewerWidget>(this);
 			setFontSize(*_lightningViewer);
-			setCentralWidget(_lightningViewer.get());
+			_centralLayout->insertWidget(0, _lightningViewer.get(), 1);
 		}
 
 		_infoLabel->setText(tr("FAST MODE! Encoding detection didn't run, you can trigger it manually"));

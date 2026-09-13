@@ -19,13 +19,14 @@ RESTORE_COMPILER_WARNINGS
 class CPlainTextEditWithLineNumbers;
 class CTextEditWithImageSupport;
 class CLightningFastViewerWidget;
-class CFindDialog;
+class CFindBar;
 
 class QAbstractScrollArea;
 class QAction;
 class QActionGroup;
 class QLabel;
 class QRegularExpression;
+class QVBoxLayout;
 
 namespace Qutepart {
 	class Theme;
@@ -60,16 +61,11 @@ private:
 	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeText(const QByteArray& textData);
 	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeUnicodeText(const QByteArray& textData);
 
-	void find();
-	void findNext();
-
 	[[nodiscard]] bool readSource(QByteArray& data) const;
 
 	void encodingChanged(const QString& encoding, const QString& language = QString());
 
 	void setLineWrap(bool wrap);
-
-	void setupFindDialog();
 
 private:
 	// Source and Rich are separate widgets: rendering HTML and Markdown needs QTextEdit, and plain text is far cheaper without it
@@ -82,11 +78,9 @@ private:
 	{
 		QAbstractScrollArea* widget = nullptr; // Null until the first load, and then the only member worth testing
 
+		// Both wrap around at either end
 		std::function<bool (const QString&, QTextDocument::FindFlags)> findText;
 		std::function<bool (const QRegularExpression&, QTextDocument::FindFlags)> findRegex;
-		std::function<void ()> moveToStart;
-		std::function<void ()> moveToEnd;
-		std::function<qsizetype ()> cursorPosition; // -1 where the viewer has no cursor yet
 		std::function<void (bool)> setWordWrap;
 	};
 
@@ -107,7 +101,8 @@ private:
 
 	std::unique_ptr<CPlainTextEditWithLineNumbers> _sourceView;
 	std::unique_ptr<CTextEditWithImageSupport> _richView;
-	CFindDialog* _findDialog = nullptr;
+	QVBoxLayout* _centralLayout = nullptr; // The live viewer above _findBar
+	CFindBar* _findBar = nullptr;
 	QLabel* _encodingLabel = nullptr;
 	QLabel* _contentTypeLabel = nullptr;
 	QLabel* _infoLabel = nullptr;

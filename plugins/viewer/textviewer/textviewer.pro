@@ -71,17 +71,12 @@ INCLUDEPATH += \
 HEADERS += \
 	src/ctexteditwithimagesupport.h \
 	src/ctextviewerplugin.h \
-	src/ctextviewerwindow.h \
-	src/cfinddialog.h
+	src/ctextviewerwindow.h
 
 SOURCES += \
 	src/ctexteditwithimagesupport.cpp \
 	src/ctextviewerplugin.cpp \
-	src/ctextviewerwindow.cpp \
-	src/cfinddialog.cpp
-
-FORMS += \
-	src/cfinddialog.ui
+	src/ctextviewerwindow.cpp
 
 RESOURCES += \
 	src/icons.qrc
