@@ -187,7 +187,7 @@ void CFileSystemObject::refreshInfo()
 
 	_properties.size = _properties.type == File ? static_cast<uint64_t>(_fileInfo.size()) : 0ULL;
 
-	assert(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
+	assert_debug_only(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
 }
 
 void CFileSystemObject::setPath(const QString& path)
@@ -287,7 +287,7 @@ QString CFileSystemObject::parentDirPath() const
 {
 	const auto parentFoler = parentForAbsolutePath(_properties.fullPath);
 
-	assert(parentFoler.endsWith('/') || parentFoler.isEmpty());
+	assert_debug_only(parentFoler.endsWith('/') || parentFoler.isEmpty());
 	return parentFoler;
 }
 

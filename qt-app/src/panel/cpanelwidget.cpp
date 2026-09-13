@@ -20,6 +20,7 @@
 
 
 // Submodule includes
+#include "assert/advanced_assert.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "timing/ctimeelapsed.h"
 #include "widgets/clineedit.h"
@@ -1550,7 +1551,7 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 bool CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
 {
 	const QString currentDirPath = currentDirPathNative();
-	assert(currentDirPath.endsWith(nativeSeparator()));
+	assert_r(currentDirPath.endsWith(nativeSeparator()));
 
 	const QString imagePathTemplate = currentDirPath + (lossyCompression ? "%1.jpg" : "%1.png");
 	QString imagePath = imagePathTemplate.arg("clipboard");

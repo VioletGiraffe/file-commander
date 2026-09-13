@@ -37,6 +37,11 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
 
   One blank line after 1; two blank lines after 2 and after 3.
 
+- **Assertions:** use the `assert/advanced_assert.h` macros, not `assert`; they log failures in release builds too.
+  - `assert_r(cond)` by default: logs, asserts in debug, continues.
+  - `assert_and_return_r(cond, value)` to also return `value`; leave `value` empty in a `void` function.
+  - `assert_debug_only(cond)` in hot code: debug only, no logging.
+
 ## Concurrency
 
 Any change touching threading or concurrency carries a mandatory dedicated review pass, separate from
