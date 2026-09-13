@@ -223,7 +223,6 @@ void CMainWindow::initButtons()
 	new QShortcut(QKeySequence(QSL("Shift+Delete")), this, this, &CMainWindow::deleteFilesIrrevocably, Qt::WidgetWithChildrenShortcut);
 
 	// Command line
-	ui->_commandLine->setSelectPreviousItemShortcut(QKeySequence(QSL("Ctrl+E")));
 	new QShortcut(QKeySequence(QSL("Ctrl+E")), this, this, &CMainWindow::selectPreviousCommandInTheCommandLine, Qt::WidgetWithChildrenShortcut);
 
 	// Buttons whose caption reflects their Shift-modified action while Shift is held (mirrors the Shift+F* shortcuts above). The normal captions come from the .ui.
