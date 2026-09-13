@@ -13,7 +13,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStyleHints>
 RESTORE_COMPILER_WARNINGS
 
-inline QString describeFont(const QFont& font)
+static inline QString describeFont(const QFont& font)
 {
 	return font.family() % ", " % QString::number(font.pointSize()) % ", " % font.styleName();
 }

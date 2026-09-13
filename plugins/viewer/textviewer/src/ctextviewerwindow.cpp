@@ -42,19 +42,19 @@ RESTORE_COMPILER_WARNINGS
 
 // A NUL byte alone does not mean binary: decode() reads BOM-less UTF-16 and UTF-32 out of NUL-carrying input and
 // declines the rest, running detection on neither
-[[nodiscard]] inline bool isBinaryContent(const QByteArray& data)
+[[nodiscard]] static inline bool isBinaryContent(const QByteArray& data)
 {
 	return isBinary(data) && CTextEncodingDetector::decode(data).text.isEmpty();
 }
 
-inline bool isNonAscii(char16_t c)
+static inline bool isNonAscii(char16_t c)
 {
 	if (c >= 32 && c <= 126)
 		return false;
 	return c != '\n' && c != '\r' && c != '\t';
 }
 
-inline qsizetype countNonAsciiChars(const QString& text)
+static inline qsizetype countNonAsciiChars(const QString& text)
 {
 	return (qsizetype)std::count_if(text.begin(), text.end(), [](QChar c) {
 		const auto code = c.unicode();

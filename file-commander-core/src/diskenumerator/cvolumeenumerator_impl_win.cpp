@@ -11,7 +11,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
-inline QString parseVolumePathFromPathsList(WCHAR* paths)
+static inline QString parseVolumePathFromPathsList(WCHAR* paths)
 {
 	QString qstring;
 	for (auto* string = paths; string[0] != L'\0'; string += wcslen(string) + 1)

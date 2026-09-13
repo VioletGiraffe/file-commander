@@ -34,7 +34,7 @@ void CFileListSortFilterProxyModel::sort(int column, Qt::SortOrder order)
 	emit sorted();
 }
 
-inline bool isFileOrBundle(const CFileSystemObject& item)
+static inline bool isFileOrBundle(const CFileSystemObject& item)
 {
 	return item.isFile() || item.isBundle();
 }

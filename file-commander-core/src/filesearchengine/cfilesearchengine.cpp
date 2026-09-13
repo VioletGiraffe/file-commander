@@ -61,7 +61,7 @@ RESTORE_COMPILER_WARNINGS
 #include <smmintrin.h>  // SSE4.1
 
 // The array's length is a multiple of 16, so the final vector may overshoot size while staying inside the array.
-inline void replace_null(std::byte* array, size_t size) noexcept
+static inline void replace_null(std::byte* array, size_t size) noexcept
 {
 	const __m128i old_sse = _mm_set1_epi8(0);
 	const __m128i new_sse = _mm_set1_epi8(' ');
@@ -80,7 +80,7 @@ inline void replace_null(std::byte* array, size_t size) noexcept
 #include <arm_neon.h>
 
 // The array's length is a multiple of 16, so the final vector may overshoot size while staying inside the array.
-inline void replace_null(std::byte* array, size_t size)
+static inline void replace_null(std::byte* array, size_t size)
 {
 	uint8x16_t old_neon = vdupq_n_u8(0);  // Duplicate old_value across all 16 bytes in the vector
 	uint8x16_t new_neon = vdupq_n_u8(' ');  // Duplicate new_value across all 16 bytes in the vector
