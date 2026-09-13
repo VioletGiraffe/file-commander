@@ -5,6 +5,7 @@
 
 // Submodule includes
 #include "qtcore_helpers/qt_helpers.hpp"
+#include "theme/colorutils.h"
 #include "widgets/cfindbar.h"
 #include "widgets/clightningfastviewer.h"
 #include "widgets/cpersistenceenabler.h"
@@ -33,6 +34,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeDatabase>
+#include <QPalette>
 #include <QRegularExpression>
 #include <QScrollBar>
 #include <QShortcut>
@@ -525,8 +527,12 @@ CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
 			flags.setFlag(QTextDocument::FindBackward, false);
 			const QTextCursor selection = view->textCursor();
 
+			const QColor highlightFill = ColorUtils::searchMatchFill(view->palette(), ColorUtils::SearchMatch::Other);
+			const QColor paletteText = view->palette().color(QPalette::Text);
 			QTextCharFormat highlightFormat;
-			highlightFormat.setBackground(QColor{ 255, 210, 0, 80 });
+			highlightFormat.setBackground(highlightFill);
+			if (const QColor text = ColorUtils::readableTextOn(highlightFill, paletteText); text != paletteText)
+				highlightFormat.setForeground(text); // Otherwise the syntax colours stay
 			QList<QTextEdit::ExtraSelection> highlights;
 
 			MatchCount count;
