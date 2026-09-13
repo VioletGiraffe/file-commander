@@ -108,14 +108,13 @@ Exit is blocked while any command runs:
 
 ## Not implemented
 
-- A graceful Ctrl+C; see below.
+- A graceful Ctrl+C: deferred for its complexity, and untested on Linux and macOS; see below.
 - A pseudoconsole (ConPTY): line buffering, colour, interactive prompts and Ctrl+C, at the cost of a terminal emulator.
 - Dismissing the exit prompt when the last command finishes while it is open; an "Exit when finished" option.
 
 ### Graceful Ctrl+C: tested findings
 
-POSIX needs `SIGINT` to the group, which is what a terminal's Ctrl+C sends. On Windows, tested with scripts outside the
-app:
+Tested on Windows with scripts outside the app:
 
 - Each command has its own hidden console: Qt passes `CREATE_NO_WINDOW` for an app without a console, and never
   `CREATE_NEW_PROCESS_GROUP`, which would disable Ctrl+C. An event sent to one console reaches only that command.
@@ -125,6 +124,19 @@ app:
 - The sequence must run in a short-lived helper process, never in the app: the ignore flag from
   `SetConsoleCtrlHandler(NULL, TRUE)` is inherited, so every command started afterwards ignores Ctrl+C. With a handler
   routine instead of the flag, the sending process (a .NET test process; cause not found) hung inside the sequence.
-- Ctrl+C ends the running program, not the command line: after it, `a & b` goes on to run `b`.
-- A batch file then prompts "Terminate batch job (Y/N)?" on stdin. With stdin an open pipe the prompt waits forever;
-  with stdin closed it reads end of input and the batch continues.
+- Ctrl+C ends the running program, not the command line: after it, `a & b` goes on to run `b`. `&&` stops: the
+  interrupted program exits with a failure code.
+- A batch file then prompts "Terminate batch job (Y/N)?" on stdin. At end of input the batch continues; with an open
+  pipe the prompt waits forever.
+- Freezing the shell stops the whole command line. With every cmd thread suspended before the event, the program
+  still handles Ctrl+C, and cmd never starts the next command.
+- The job can be terminated once `GetConsoleProcessList`, called in the helper, lists only the shell and the helper.
+- Not covered by the freeze: a nested interpreter inside the command (`cmd /c`, `pwsh -c`), which is not frozen; a
+  program that ignores Ctrl+C, which needs a timeout before the kill.
+
+Not tested on POSIX:
+
+- The counterpart: `SIGSTOP` to the shell, `SIGINT` to the group, `SIGKILL` once the other group members exit.
+  Listing a group's members differs per platform.
+- Without the freeze, `bash` (`/bin/sh` on macOS) runs the next command when the program catches `SIGINT` and exits
+  normally; `dash` receives the signal and dies.
