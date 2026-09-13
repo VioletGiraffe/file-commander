@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789313078557,
+  "lastUpdate": 1789315097366,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -17913,6 +17913,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2c001b73c9a2abbf5427b83c85d0a9b082397393",
+          "message": "CTextViewerWindow: .ui removed, defined in code now",
+          "timestamp": "2026-09-13T18:51:38+03:00",
+          "tree_id": "6ef76db63ce2f4b8bb1d6d02d146153c69bc496e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2c001b73c9a2abbf5427b83c85d0a9b082397393"
+        },
+        "date": 1789315093351,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17373,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 16930,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1394.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2090,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 778.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 415,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39,
             "unit": "KB"
           },
           {
