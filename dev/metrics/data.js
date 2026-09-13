@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789307018121,
+  "lastUpdate": 1789310988441,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -17745,6 +17745,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 414.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "5542630a79400abfb399c886e1ac56b9cd4e9728",
+          "message": "canDropMimeData() override removed: unnecessary in modern Qt, and it had a bug",
+          "timestamp": "2026-09-13T17:43:03+03:00",
+          "tree_id": "1bb5bacc035662c357d082056f14c071dd74d61f",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/5542630a79400abfb399c886e1ac56b9cd4e9728"
+        },
+        "date": 1789310985538,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17343,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 16783,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1393.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2103.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 778,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 415,
             "unit": "KB"
           },
           {
