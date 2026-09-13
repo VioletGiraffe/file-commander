@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789315097366,
+  "lastUpdate": 1789315759903,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -17972,6 +17972,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "plugin_textviewer.dll size",
             "value": 2090,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 778.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 415,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2f5a8e9e83b59861e2c2ae3a800f443fe189e07b",
+          "message": "CTextViewerWindow: duplicated code extracted; on failure to switch mode restore the previous menu checkbox state",
+          "timestamp": "2026-09-13T19:02:32+03:00",
+          "tree_id": "66c31bb7725733b986f7fbfa6811b2cb2df47693",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2f5a8e9e83b59861e2c2ae3a800f443fe189e07b"
+        },
+        "date": 1789315756732,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17391,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 16930,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1394.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2090.5,
             "unit": "KB"
           },
           {
