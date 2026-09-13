@@ -30,10 +30,10 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
   2. This repo's headers, grouped by subsystem, one blank line between groups.
   3. `// Submodule includes`, then submodule headers sorted alphabetically by path, no grouping.
   4. Everything else, in this order, one blank line between blocks:
-     1. Third-party `<...>` headers, even when vendored in a submodule.
-     2. Qt, with the generated `ui_*.h` first, inside `DISABLE_COMPILER_WARNINGS` / `RESTORE_COMPILER_WARNINGS`.
+     1. Third-party `<...>` headers, even when vendored.
+     2. Qt, with the generated `ui_*.h` first. One `DISABLE_COMPILER_WARNINGS` / `RESTORE_COMPILER_WARNINGS` pair wraps Qt and any third-party headers that warn.
      3. Platform headers under their `#ifdef`.
-     4. Standard library.
+     4. Standard library, sorted alphabetically.
 
   One blank line after 1; two blank lines after 2 and after 3.
 

@@ -1,16 +1,20 @@
 #include "ctextviewerwindow.h"
-#include "ctexteditwithimagesupport.h"
-#include "cfinddialog.h"
 
-#include "widgets/clightningfastviewer.h"
-#include "widgets/cplaintexteditwithlinenumbers.h"
-#include "widgets/cpersistenceenabler.h"
+#include "cfinddialog.h"
+#include "ctexteditwithimagesupport.h"
+
+
+// Submodule includes
 #include "qtcore_helpers/qt_helpers.hpp"
+#include "widgets/clightningfastviewer.h"
+#include "widgets/cpersistenceenabler.h"
+#include "widgets/cplaintexteditwithlinenumbers.h"
+
 
 DISABLE_COMPILER_WARNINGS
-#include "3rdparty/diegoiast/qutepart-cpp/hl_factory.h"
-#include "3rdparty/diegoiast/qutepart-cpp/hl/syntax_highlighter.h"
-#include "3rdparty/diegoiast/qutepart-cpp/theme.h"
+#include <3rdparty/diegoiast/qutepart-cpp/hl/syntax_highlighter.h>
+#include <3rdparty/diegoiast/qutepart-cpp/hl_factory.h>
+#include <3rdparty/diegoiast/qutepart-cpp/theme.h>
 
 #include <QAbstractScrollArea>
 #include <QActionGroup>

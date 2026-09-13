@@ -1,14 +1,19 @@
 #include "cfilelistmodel.h"
-#include "shell/cshell.h"
+
+#include "panel/columns.h"
+#include "cmainwindow.h"
+
 #include "ccontroller.h"
-#include "filesystemhelperfunctions.h"
+#include "shell/cshell.h"
 #include "iconprovider/ciconprovider.h"
-#include "../../../cmainwindow.h"
 #include "fileoperations/fileoperationtypes.h"
-#include "../../columns.h"
+#include "filesystemhelperfunctions.h"
+
+
+// Submodule includes
+#include "assert/advanced_assert.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 
-#include "assert/advanced_assert.h"
 
 #include <3rdparty/ankerl/unordered_dense.h>
 

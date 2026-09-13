@@ -1,13 +1,17 @@
 #pragma once
 
-#include "detail/file_list_hashmap.h"
 #include "cfilesystemobject.h"
-#include "detail/hashmap_helpers.h"
-#include "historylist/chistorylist.h"
-#include "threading/cthreadpool.h"
-#include "threading/cexecutionqueue.h"
 #include "fileoperationresultcode.h"
+#include "detail/file_list_hashmap.h"
+#include "detail/hashmap_helpers.h"
+
+
+// Submodule includes
+#include "historylist/chistorylist.h"
+#include "threading/cexecutionqueue.h"
+#include "threading/cthreadpool.h"
 #include "utility/callback_caller.hpp"
+
 
 #ifdef _WIN32
 #include "filesystemwatcher/cfilesystemwatcherwindows.h"
@@ -21,8 +25,8 @@ using FileSystemWatcher = CFileSystemWatcherTimerBased;
 
 #include <atomic>
 #include <functional>
-#include <stdint.h>
 #include <mutex>
+#include <stdint.h>
 #include <utility>
 #include <vector>
 
