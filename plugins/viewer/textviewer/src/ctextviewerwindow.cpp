@@ -43,6 +43,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QTextCodec>
 #include <QTextCursor>
 #include <QTextEdit>
+#include <QUrl>
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
@@ -371,6 +372,8 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 		return false;
 
 	setMode(Mode::Rich);
+	// Relative image paths resolve against the document URL
+	_richView->document()->setMetaInformation(QTextDocument::DocumentUrl, QUrl::fromLocalFile(_sourceFilePath).toString());
 	_richView->setHtml(result->text);
 	setViewAsAction(_htmlAction);
 	return true;
@@ -384,6 +387,7 @@ bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 
 	encodingChanged(result->encoding, result->language);
 	setMode(Mode::Rich);
+	_richView->document()->setMetaInformation(QTextDocument::DocumentUrl, QUrl::fromLocalFile(_sourceFilePath).toString());
 	_richView->setMarkdown(result->text);
 	setViewAsAction(_markdownAction);
 	return true;
