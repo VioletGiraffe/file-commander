@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789256906397,
+  "lastUpdate": 1789295009103,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -17587,6 +17587,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 414,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "ce1289e85c2bd4e8c6be32693dd773cfe944d761",
+          "message": "Command line: prompts no longer hang; GUI program lookup honours NoDefaultCurrentDirectoryInExePath\n\n- A command that read stdin (pause, set /p, choice, a del * confirmation) waited forever:\n  stdin was an open pipe nobody wrote to. stdin is now the null device, so prompts see end of input.\n- The GUI program bypass always searched the working directory, even with\n  NoDefaultCurrentDirectoryInExePath set, where cmd skips it. A GUI program found only there was launched\n  directly instead of going to cmd, which would report it as not found.\n  The lookup now asks NeedCurrentDirectoryForExePathW.",
+          "timestamp": "2026-09-13T13:17:04+03:00",
+          "tree_id": "955e81795eafc759af7a48bdf66d258b3c2790ad",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/ce1289e85c2bd4e8c6be32693dd773cfe944d761"
+        },
+        "date": 1789295005995,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17349,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 16785,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1392.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2103.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 777.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 414.5,
             "unit": "KB"
           },
           {
