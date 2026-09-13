@@ -103,11 +103,11 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	QMenu* const viewMenu = menuBar()->addMenu(tr("&View"));
 	addMenuAction(viewMenu, tr("Auto &detect encoding"), "1", [this] { redecodeCurrentFile(&CTextViewerWindow::asDetectedAutomatically); });
 
-	auto* const viewAsGroup = new QActionGroup{ this };
+	_viewAsGroup = new QActionGroup{ this };
 	const auto addViewAsAction = [&](const QString& text, const QString& shortcut, auto onTriggered) {
 		QAction* const action = addMenuAction(viewMenu, text, shortcut, onTriggered);
 		action->setCheckable(true);
-		viewAsGroup->addAction(action);
+		_viewAsGroup->addAction(action);
 		return action;
 	};
 
@@ -115,21 +115,9 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	_systemLocaleAction = addViewAsAction(tr("&System locale"), "3", [this] { redecodeCurrentFile(&CTextViewerWindow::asSystemDefault); });
 	_utf8Action = addViewAsAction(tr("UTF-&8"), "4", [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf8); });
 	_utf16Action = addViewAsAction(tr("UTF-1&6"), "5", [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf16); });
-	_hexAction = addViewAsAction(tr("&Hex"), "6", [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asHexFast(*textData);
-	});
-	_htmlAction = addViewAsAction(tr("H&TML"), "7", [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asHtml(*textData);
-	});
-	_markdownAction = addViewAsAction(tr("&Markdown"), "8", [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asMarkdown(*textData);
-	});
+	_hexAction = addViewAsAction(tr("&Hex"), "6", [this] { renderCurrentFile(&CTextViewerWindow::asHexFast); });
+	_htmlAction = addViewAsAction(tr("H&TML"), "7", [this] { renderCurrentFile(&CTextViewerWindow::asHtml); });
+	_markdownAction = addViewAsAction(tr("&Markdown"), "8", [this] { renderCurrentFile(&CTextViewerWindow::asMarkdown); });
 
 	viewMenu->addSeparator();
 	_lineWrapAction = addMenuAction(viewMenu, tr("&Line wrap"), "Shift+W", &CTextViewerWindow::setLineWrap);
@@ -224,13 +212,13 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 		encodingChanged(result->encoding, result->language);
 		// Guess which matching encoding could be marked as selected in the menu
 		if (result->encoding.compare("utf-8", Qt::CaseInsensitive) == 0)
-			_utf8Action->setChecked(true);
+			setViewAsAction(_utf8Action);
 		else if (result->encoding.startsWith(QStringLiteral("UTF-16"), Qt::CaseInsensitive))
-			_utf16Action->setChecked(true);
+			setViewAsAction(_utf16Action);
 		else if (result->encoding.contains("1251") || result->encoding.contains("1252"))
-			_asciiAction->setChecked(true);
+			setViewAsAction(_asciiAction);
 		else if (const auto systemCodecName = QTextCodec::codecForLocale()->name(); result->encoding.compare(systemCodecName, Qt::CaseInsensitive) == 0)
-			_systemLocaleAction->setChecked(true);
+			setViewAsAction(_systemLocaleAction);
 		return true;
 	}
 
@@ -259,7 +247,7 @@ bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFast
 	}
 
 	encodingChanged(codec->name());
-	_systemLocaleAction->setChecked(true);
+	setViewAsAction(_systemLocaleAction);
 
 	return true;
 }
@@ -279,7 +267,7 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 	}
 
 	encodingChanged("ASCII");
-	_asciiAction->setChecked(true);
+	setViewAsAction(_asciiAction);
 
 	return true;
 }
@@ -319,7 +307,7 @@ bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 	}
 
 	encodingChanged("UTF-8");
-	_utf8Action->setChecked(true);
+	setViewAsAction(_utf8Action);
 
 	return true;
 }
@@ -341,7 +329,7 @@ bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 		setTextAndApplyHighlighter(text);
 	}
 
-	_utf16Action->setChecked(true);
+	setViewAsAction(_utf16Action);
 
 	return true;
 }
@@ -354,7 +342,7 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 
 	setMode(Mode::Rich);
 	_richView->setHtml(result->text);
-	_htmlAction->setChecked(true);
+	setViewAsAction(_htmlAction);
 	return true;
 }
 
@@ -367,7 +355,7 @@ bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 	encodingChanged(result->encoding, result->language);
 	setMode(Mode::Rich);
 	_richView->setMarkdown(result->text);
-	_markdownAction->setChecked(true);
+	setViewAsAction(_markdownAction);
 	return true;
 }
 
@@ -376,7 +364,7 @@ bool CTextViewerWindow::asHexFast(const QByteArray& fileData)
 	setMode(Mode::Lightning);
 	_lightningViewer->setData(fileData);
 	encodingChanged(tr("none - viewing raw data"));
-	_hexAction->setChecked(true);
+	setViewAsAction(_hexAction);
 	return true;
 }
 
@@ -384,18 +372,32 @@ void CTextViewerWindow::redecodeCurrentFile(bool (CTextViewerWindow::*decoder)(c
 {
 	const std::optional<QByteArray> textData = readFileAndReportErrors();
 	if (!textData)
+	{
+		updateViewAsCheck();
 		return;
+	}
 
 	// Null when the initial load failed: _sourceFilePath is set before the file is read, so an action can arrive with no viewer built
 	QAbstractScrollArea* const scrollArea = viewer().widget;
 	const int scrollPosition = scrollArea ? scrollArea->verticalScrollBar()->value() : 0;
 
 	const Mode modeBefore = _currentMode;
-	(this->*decoder)(*textData, _currentMode == Mode::Lightning);
+	if (!(this->*decoder)(*textData, _currentMode == Mode::Lightning))
+	{
+		updateViewAsCheck();
+		return;
+	}
 
 	// A decoder can move Rich to Source, which destroys scrollArea; and each viewer scrolls in units of its own
 	if (scrollArea && _currentMode == modeBefore)
 		scrollArea->verticalScrollBar()->setValue(scrollPosition);
+}
+
+void CTextViewerWindow::renderCurrentFile(bool (CTextViewerWindow::*renderer)(const QByteArray&))
+{
+	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	if (!textData || !(this->*renderer)(*textData))
+		updateViewAsCheck();
 }
 
 std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
@@ -679,4 +681,18 @@ void CTextViewerWindow::updateContentTypeLabel()
 		format = _mimeType;
 
 	_contentTypeLabel->setText(tr("Content format: ") + format);
+}
+
+void CTextViewerWindow::setViewAsAction(QAction* action)
+{
+	_viewAsAction = action;
+	updateViewAsCheck();
+}
+
+void CTextViewerWindow::updateViewAsCheck()
+{
+	if (_viewAsAction)
+		_viewAsAction->setChecked(true);
+	else if (QAction* const checkedAction = _viewAsGroup->checkedAction())
+		checkedAction->setChecked(false);
 }

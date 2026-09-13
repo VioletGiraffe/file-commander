@@ -23,6 +23,7 @@ class CFindDialog;
 
 class QAbstractScrollArea;
 class QAction;
+class QActionGroup;
 class QLabel;
 class QRegularExpression;
 
@@ -53,6 +54,7 @@ private:
 
 	// Re-runs one of the text decoders above over the file already open, keeping the scroll position: the same content, read differently
 	void redecodeCurrentFile(bool (CTextViewerWindow::*decoder)(const QByteArray&, bool));
+	void renderCurrentFile(bool (CTextViewerWindow::*renderer)(const QByteArray&));
 
 	[[nodiscard]] std::optional<QByteArray> readFileAndReportErrors() const;
 	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeText(const QByteArray& textData);
@@ -95,6 +97,10 @@ private:
 
 	void updateContentTypeLabel();
 
+	void setViewAsAction(QAction* action);
+	// Qt checks a clicked View menu entry before its handler runs, so a handler that fails must call this
+	void updateViewAsCheck();
+
 private:
 	QString _sourceFilePath;
 	QString _mimeType;
@@ -106,6 +112,8 @@ private:
 	QLabel* _contentTypeLabel = nullptr;
 	QLabel* _infoLabel = nullptr;
 
+	QActionGroup* _viewAsGroup = nullptr;
+	QAction* _viewAsAction = nullptr; // The _viewAsGroup entry matching the displayed content
 	QAction* _asciiAction = nullptr;
 	QAction* _systemLocaleAction = nullptr;
 	QAction* _utf8Action = nullptr;
