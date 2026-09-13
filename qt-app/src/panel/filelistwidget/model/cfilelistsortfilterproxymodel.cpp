@@ -23,12 +23,6 @@ void CFileListSortFilterProxyModel::setPanelPosition(Panel p)
 	_panel = p;
 }
 
-bool CFileListSortFilterProxyModel::canDropMimeData(const QMimeData * data, Qt::DropAction action, int row, int column, const QModelIndex & parent) const
-{
-	QModelIndex srcIndex = mapToSource(index(row, column));
-	return sourceModel()->canDropMimeData(data, action, srcIndex.row(), srcIndex.column(), parent);
-}
-
 void CFileListSortFilterProxyModel::sort(int column, Qt::SortOrder order)
 {
 	QSortFilterProxyModel::sort(column, order);

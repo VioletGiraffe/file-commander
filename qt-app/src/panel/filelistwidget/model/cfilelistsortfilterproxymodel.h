@@ -17,9 +17,6 @@ public:
 	// Sets the position (left or right) of a panel that this model represents
 	void setPanelPosition(Panel p);
 
-// Drag and drop
-	bool canDropMimeData(const QMimeData * data, Qt::DropAction action, int row, int column, const QModelIndex & parent) const override;
-
 	void sort(int column, Qt::SortOrder order) override;
 
 	// The topmost row holding a file (folders always sort above files), or -1 if there are no files
