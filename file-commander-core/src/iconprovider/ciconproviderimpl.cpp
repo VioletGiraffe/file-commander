@@ -1,8 +1,12 @@
 #include "ciconproviderimpl.h"
+
 #include "cfilesystemobject.h"
 #include "filesystemhelperfunctions.h"
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QIcon>

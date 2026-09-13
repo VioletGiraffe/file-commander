@@ -1,7 +1,11 @@
 #pragma once
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
+
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>

@@ -3,10 +3,13 @@
 
 #include "fileoperations/newnamecheck.h"
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
+
 DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
+#include <3rdparty/catch2/catch.hpp>
 RESTORE_COMPILER_WARNINGS
 
 TEST_CASE("checkNewEntryName: text that is not one name", "[newnamecheck]")

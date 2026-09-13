@@ -1,17 +1,20 @@
 #include "cfavoritelocations.h"
+
 #include "settings.h"
 
-#include "qtcore_helpers/qstring_helpers.hpp"
 
+// Submodule includes
 #include "assert/advanced_assert.h"
+#include "qtcore_helpers/qstring_helpers.hpp"
 #include "utility/memory_cast.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
-#include <stack>
 #include <functional>
+#include <stack>
 
 enum Marker {NoMarker, NextLevel, LevelEnded};
 

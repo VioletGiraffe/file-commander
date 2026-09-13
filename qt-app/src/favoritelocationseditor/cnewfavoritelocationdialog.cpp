@@ -1,5 +1,12 @@
 #include "cnewfavoritelocationdialog.h"
+
+// Submodule includes
+#include "compiler/compiler_warnings_control.h"
+
+
+DISABLE_COMPILER_WARNINGS
 #include "ui_cnewfavoritelocationdialog.h"
+RESTORE_COMPILER_WARNINGS
 
 CNewFavoriteLocationDialog::CNewFavoriteLocationDialog(QWidget *parent, bool subcategory) :
 	QDialog(parent),

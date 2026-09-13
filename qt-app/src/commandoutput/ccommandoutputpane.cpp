@@ -1,8 +1,12 @@
 #include "ccommandoutputpane.h"
 
 #include "progressdialogs/progressdialoghelpers.h"
+
+
+// Submodule includes
 #include "theme/colorutils.h"
 #include "widgets/clabelelided.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QColor>

@@ -1,11 +1,15 @@
 #include "cfileoperationjob.h"
+
 #include "cdeleteexecutor.h"
 #include "coperationexecutioncontext.h"
 #include "ctransferexecutor.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
 #include "utility/on_scope_exit.hpp"
+
 
 #include <algorithm>
 

@@ -10,9 +10,14 @@
 
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a path in a failure report
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
+
 DISABLE_COMPILER_WARNINGS
+#include <3rdparty/catch2/catch.hpp>
+
 #include <QDir>
 #include <QFile>
 #include <QSettings>
@@ -25,10 +30,6 @@ RESTORE_COMPILER_WARNINGS
 #elif defined __APPLE__
 #include <sys/stat.h> // chflags, UF_HIDDEN
 #endif
-
-DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
-RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <chrono>

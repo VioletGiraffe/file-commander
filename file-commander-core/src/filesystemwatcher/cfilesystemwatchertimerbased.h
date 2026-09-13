@@ -1,14 +1,18 @@
-#include "threading/cperiodicexecutionthread.h"
+#pragma once
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "threading/cperiodicexecutionthread.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
-#include <stdint.h>
 #include <mutex>
 #include <set>
+#include <stdint.h>
 
 struct FileSystemInfoWrapper
 {

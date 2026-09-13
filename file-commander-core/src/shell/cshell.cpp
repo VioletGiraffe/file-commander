@@ -2,11 +2,14 @@
 
 #include "filesystemhelperfunctions.h"
 #include "settings.h"
-#include "system/win_utils.hpp"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
+#include "system/win_utils.hpp"
 #include "utility/on_scope_exit.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
@@ -18,7 +21,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
-
 #include <string.h> // memset
 
 #ifdef _WIN32

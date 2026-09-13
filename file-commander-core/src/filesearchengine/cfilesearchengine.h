@@ -1,8 +1,13 @@
 #pragma once
 
+// Submodule includes
+#include "compiler/compiler_warnings_control.h"
 #include "threading/cinterruptablethread.h"
 
+
+DISABLE_COMPILER_WARNINGS
 #include <qcontainerfwd.h>
+RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
 #include <stdint.h>

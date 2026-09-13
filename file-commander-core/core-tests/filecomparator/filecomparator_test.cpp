@@ -1,17 +1,17 @@
 #include "filecomparator/filecontentcomparison.h"
 #include "crandomdatagenerator.h"
 
-#include "qtcore_helpers/qstring_helpers.hpp"
 
-#include "timing/ctimeelapsed.h"
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "qtcore_helpers/qstring_helpers.hpp"
+#include "timing/ctimeelapsed.h"
+
 
 #define CATCH_CONFIG_RUNNER
 DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
-RESTORE_COMPILER_WARNINGS
+#include <3rdparty/catch2/catch.hpp>
 
-DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 

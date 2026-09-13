@@ -1,5 +1,7 @@
 #pragma once
+
 #include "cfilesystemobject.h"
+
 
 #include <atomic>
 #include <stdint.h>

@@ -2,6 +2,7 @@
 
 #include "fileoperationtypes.h"
 
+
 #include <expected>
 
 // Category of a captured native error code. Context-free; primitives that know more (e.g. rename's

@@ -3,9 +3,14 @@
 
 #include "progressdialogs/cfileoperationprompt.h"
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
+
 DISABLE_COMPILER_WARNINGS
+#include <3rdparty/catch2/catch.hpp>
+
 #include <QCheckBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -14,10 +19,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QSet>
 #include <QStringBuilder>
 #include <QTimer>
-RESTORE_COMPILER_WARNINGS
-
-DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>

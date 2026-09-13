@@ -1,8 +1,11 @@
 #include "csettingspageoperations.h"
-#include "ui_csettingspageoperations.h"
+
 #include "settings.h"
 
+
 DISABLE_COMPILER_WARNINGS
+#include "ui_csettingspageoperations.h"
+
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 

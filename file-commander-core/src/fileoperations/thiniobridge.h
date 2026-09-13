@@ -6,10 +6,12 @@
 
 #include "centrypath.h"
 
+
+// Submodule includes
+#include "assert/advanced_assert.h"
 #include "filesystem_error.hpp" // thin_io
 #include "filesystem_types.hpp" // thin_io: native_string
 
-#include "assert/advanced_assert.h"
 
 #include <optional>
 

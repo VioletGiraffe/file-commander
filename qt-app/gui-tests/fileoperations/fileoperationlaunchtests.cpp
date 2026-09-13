@@ -3,18 +3,19 @@
 
 #include "progressdialogs/fileoperationlaunch.h"
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
+
 DISABLE_COMPILER_WARNINGS
+#include <3rdparty/catch2/catch.hpp>
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QStringBuilder>
 #include <QTemporaryDir>
-RESTORE_COMPILER_WARNINGS
-
-DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
 RESTORE_COMPILER_WARNINGS
 
 namespace

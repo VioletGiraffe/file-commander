@@ -1,8 +1,12 @@
 #include "centrypath.h"
+
 #include "filesystemhelperfunctions.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>

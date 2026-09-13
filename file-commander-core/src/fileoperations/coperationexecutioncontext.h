@@ -2,7 +2,8 @@
 
 #include "fileoperationtypes.h"
 
-#include "3rdparty/magic_enum/magic_enum.hpp"
+
+#include <3rdparty/magic_enum/magic_enum.hpp>
 
 #include <array>
 #include <chrono>

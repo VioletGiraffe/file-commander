@@ -1,7 +1,11 @@
 #pragma once
 
-#include "compiler/compiler_warnings_control.h"
 #include "filesearchengine/cfilesearchengine.h"
+
+
+// Submodule includes
+#include "compiler/compiler_warnings_control.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>

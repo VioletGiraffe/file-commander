@@ -1,10 +1,15 @@
 #include "cimageviewerwindow.h"
+
 #include "plugininterface/cpluginproxy.h"
+
+
+// Submodule includes
 #include "qtcore_helpers/qstring_helpers.hpp"
+#include "resize/qimage_resize.h"
 #include "widgets/cimageviewerwidget.h"
 
+
 DISABLE_COMPILER_WARNINGS
-#include "resize/qimage_resize.h"
 #include "ui_cimageviewerwindow.h"
 
 #include <QAction>

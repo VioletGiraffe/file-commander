@@ -2,6 +2,7 @@
 
 #include "fileoperations/fileoperationtypes.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS

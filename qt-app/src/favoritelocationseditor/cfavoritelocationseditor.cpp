@@ -1,4 +1,5 @@
 #include "cfavoritelocationseditor.h"
+
 #include "cnewfavoritelocationdialog.h"
 #include "ccontroller.h"
 

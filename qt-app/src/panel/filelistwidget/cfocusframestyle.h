@@ -1,5 +1,8 @@
 #pragma once
+
+// Submodule includes
 #include "ui/CProxyStyle.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QStyleOption>

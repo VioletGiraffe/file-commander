@@ -1,10 +1,12 @@
 #include "cfilesystemobject.h"
+
 #include "filesystemhelperfunctions.h"
 #include "detail/hashmap_helpers.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/type_traits_fast.hpp"
-
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 
 
@@ -22,9 +24,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
 
-#include <assert.h>
-#include <errno.h>
-
 #if defined __linux__ || defined __APPLE__ || defined __FreeBSD__
 #include <unistd.h>
 #include <sys/stat.h>
@@ -34,6 +33,9 @@ RESTORE_COMPILER_WARNINGS
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
+
+#include <assert.h>
+#include <errno.h>
 
 static QString expandEnvironmentVariables(const QString& string)
 {

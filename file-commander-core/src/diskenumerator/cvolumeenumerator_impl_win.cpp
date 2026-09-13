@@ -1,15 +1,18 @@
 #include "cvolumeenumerator.h"
-#include "../filesystemhelpers/filesystemhelpers.hpp"
+#include "filesystemhelpers/filesystemhelpers.hpp"
+
+
+// Submodule includes
 #include "system/win_utils.hpp"
+#include "timing/ctimeelapsed.h"
 #include "utility/on_scope_exit.hpp"
 
-#include "timing/ctimeelapsed.h"
-
-#include <Windows.h>
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 RESTORE_COMPILER_WARNINGS
+
+#include <Windows.h>
 
 static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 {

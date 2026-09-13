@@ -1,11 +1,15 @@
 #include "cfilelistview.h"
-#include "../columns.h"
+
+#include "panel/columns.h"
 #include "delegate/cfilelistitemdelegate.h"
 #include "cfocusframestyle.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "math/math.hpp"
 #include "timing/ctimeelapsed.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

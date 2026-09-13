@@ -2,6 +2,7 @@
 
 #include "plugin_export.h"
 
+
 #include <cstdint>
 
 class CFileCommanderPlugin;

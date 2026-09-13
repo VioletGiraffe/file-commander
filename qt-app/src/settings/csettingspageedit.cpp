@@ -1,8 +1,11 @@
 #include "csettingspageedit.h"
-#include "ui_csettingspageedit.h"
+
 #include "settings.h"
 
+
 DISABLE_COMPILER_WARNINGS
+#include "ui_csettingspageedit.h"
+
 #include <QFileDialog>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS

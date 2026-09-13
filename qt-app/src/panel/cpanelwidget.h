@@ -1,8 +1,10 @@
 #pragma once
 
-#include "ccontroller.h"
 #include "columns.h"
 #include "filelistwidget/cfilelistview.h"
+
+#include "ccontroller.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QItemSelection>

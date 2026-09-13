@@ -1,11 +1,16 @@
 #include "cmainwindow.h"
-#include "ccontroller.h"
 #include "cshelloperationrunner.h"
-#include "pluginengine/cpluginengine.h"
+
 #include "settings.h"
+#include "ccontroller.h"
+#include "pluginengine/cpluginengine.h"
+
+
+// Submodule includes
 #include "assert/advanced_assert.h"
-#include "system/win_utils.hpp"
 #include "logger/cloggerinmemory.h"
+#include "system/win_utils.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

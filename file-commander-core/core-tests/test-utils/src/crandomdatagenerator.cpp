@@ -1,11 +1,15 @@
 #include "crandomdatagenerator.h"
+
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
-#include <stdint.h>
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
+
+#include <stdint.h>
 
 void CRandomDataGenerator::setSeed(uint32_t seed)
 {

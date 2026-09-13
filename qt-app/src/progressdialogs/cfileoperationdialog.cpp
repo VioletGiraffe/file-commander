@@ -1,13 +1,17 @@
 #include "cfileoperationdialog.h"
+
 #include "cfileoperationprompt.h"
-#include "filesystemhelperfunctions.h"
 #include "progressdialoghelpers.h"
 
+#include "filesystemhelperfunctions.h"
+
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
 #include "math/math.hpp"
-
 #include "qtcore_helpers/qstring_helpers.hpp" // QSL
+
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfileoperationdialog.h"

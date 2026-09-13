@@ -1,6 +1,9 @@
 #pragma once
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "hash/wheathash.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>

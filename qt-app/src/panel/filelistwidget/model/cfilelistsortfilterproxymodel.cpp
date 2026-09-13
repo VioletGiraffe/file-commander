@@ -1,10 +1,15 @@
 #include "cfilelistsortfilterproxymodel.h"
-#include "cfilelistmodel.h"
-#include "ccontroller.h"
-#include "../../columns.h"
 
+#include "cfilelistmodel.h"
+#include "panel/columns.h"
+
+#include "ccontroller.h"
+
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>

@@ -1,6 +1,8 @@
 #pragma once
+
 #include "cfilesystemobject.h"
 #include "detail/file_list_hashmap.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QIcon>

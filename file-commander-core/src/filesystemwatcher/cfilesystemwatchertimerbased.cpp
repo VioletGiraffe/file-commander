@@ -1,7 +1,10 @@
 #include "cfilesystemwatchertimerbased.h"
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
 #include "container/set_operations.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>

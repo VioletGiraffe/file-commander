@@ -1,11 +1,15 @@
 #include "sourcetreebuilder.h"
+
 #include "cfilesystemmutator.h"
 #include "coperationexecutioncontext.h"
 #include "thiniobridge.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
 #include "utility/on_scope_exit.hpp"
+
 
 #include <algorithm>
 

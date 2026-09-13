@@ -1,7 +1,9 @@
 #pragma once
-#include "compiler/compiler_warnings_control.h"
 
+// Submodule includes
+#include "compiler/compiler_warnings_control.h"
 #include "filesystem_types.hpp" // thin_io: entry_identity
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>

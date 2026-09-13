@@ -10,6 +10,7 @@
 
 #include "fileoperationtesthelpers.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS

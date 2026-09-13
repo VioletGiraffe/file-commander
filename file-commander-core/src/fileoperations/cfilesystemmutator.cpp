@@ -1,8 +1,12 @@
 #include "cfilesystemmutator.h"
+
 #include "operationtesthooks.h"
 #include "thiniobridge.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>

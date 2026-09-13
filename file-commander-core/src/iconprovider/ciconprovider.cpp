@@ -1,10 +1,14 @@
 #include "ciconprovider.h"
+
 #include "ciconproviderimpl.h"
 #include "cfilesystemobject.h"
+#include "settings.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "hash/wheathash.hpp"
-#include "settings.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>

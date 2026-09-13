@@ -1,5 +1,7 @@
 #include "newnamecheck.h"
+
 #include "centrypath.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringList>

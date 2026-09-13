@@ -3,6 +3,7 @@
 #include "fileoperations/fileoperationtypes.h"
 #include "fileoperations/newnamecheck.h"
 
+
 #include <stdint.h>
 
 class QString;

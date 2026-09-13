@@ -1,14 +1,16 @@
 #include "filesystemhelperfunctions.h"
+
 #include "cfilesystemobject.h"
 
+
+// Submodule includes
+#include "assert/advanced_assert.h"
+#include "container/std_container_helpers.hpp"
+#include "fs.hpp" // thin_io
+#include "lang/type_traits_fast.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "std_helpers/qt_container_helpers.hpp"
 
-#include "assert/advanced_assert.h"
-#include "container/std_container_helpers.hpp"
-#include "lang/type_traits_fast.hpp"
-
-#include "fs.hpp" // thin_io
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>

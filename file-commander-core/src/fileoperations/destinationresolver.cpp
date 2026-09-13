@@ -1,8 +1,11 @@
 #include "destinationresolver.h"
+
 #include "cfilesystemmutator.h"
 #include "coperationexecutioncontext.h"
 #include "newnamecheck.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
 

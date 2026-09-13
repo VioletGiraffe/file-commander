@@ -2,6 +2,7 @@
 
 #include "cpanel.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QSortFilterProxyModel>
 RESTORE_COMPILER_WARNINGS

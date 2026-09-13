@@ -1,7 +1,9 @@
 #pragma once
 
 #include "cfileoperationprompt.h" // PromptOperation
+
 #include "fileoperations/cfileoperationjob.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QPoint>

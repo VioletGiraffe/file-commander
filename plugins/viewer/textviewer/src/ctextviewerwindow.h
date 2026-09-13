@@ -1,12 +1,16 @@
 #pragma once
 
 #include "plugininterface/cpluginwindow.h"
-#include "ctextencodingdetector.h"
-#include "compiler/compiler_warnings_control.h"
 
-#include "ui_ctextviewerwindow.h"
+
+// Submodule includes
+#include "compiler/compiler_warnings_control.h"
+#include "ctextencodingdetector.h"
+
 
 DISABLE_COMPILER_WARNINGS
+#include "ui_ctextviewerwindow.h"
+
 #include <QTextDocument>
 RESTORE_COMPILER_WARNINGS
 

@@ -1,11 +1,16 @@
 #include "cpanel.h"
+
 #include "settings.h"
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
-#include "assert/advanced_assert.h"
-#include "std_helpers/qt_container_helpers.hpp"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
+
+
+// Submodule includes
+#include "assert/advanced_assert.h"
+#include "std_helpers/qt_container_helpers.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>

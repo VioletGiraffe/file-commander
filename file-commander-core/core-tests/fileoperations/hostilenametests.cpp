@@ -13,9 +13,10 @@
 
 #include "fileoperationtesthelpers.h"
 
-#include "3rdparty/magic_enum/magic_enum.hpp"
 
 DISABLE_COMPILER_WARNINGS
+#include <3rdparty/magic_enum/magic_enum.hpp>
+
 #include <QDir>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS

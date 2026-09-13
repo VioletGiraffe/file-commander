@@ -2,7 +2,9 @@
 
 // Creation of the platform's link types, for tests that need a real link on disk.
 
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>

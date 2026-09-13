@@ -3,6 +3,7 @@
 #include "cfilecommanderplugin.h"
 #include "cpluginwindow.h"
 
+
 #include <memory>
 
 class QMimeType;

@@ -1,9 +1,13 @@
 #include "aboutdialog.h"
-#include "../version.h"
 
+#include "version.h"
+
+
+// Submodule includes
 #include "appdialogs/caboutdialog.h"
 
-#include "3rdparty/magic_enum/magic_enum.hpp"
+
+#include <3rdparty/magic_enum/magic_enum.hpp>
 
 DISABLE_COMPILER_WARNINGS
 #include <QAbstractItemView>

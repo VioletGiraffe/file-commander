@@ -1,20 +1,23 @@
 #define CATCH_CONFIG_RUNNER
 
-#include "fileoperationtesthelpers.h"
-
 #include "fileoperations/operationtesthooks.h"
+
+#include "fileoperationtesthelpers.h"
 
 // test_utils
 #include "crandomdatagenerator.h"
 #include "qt_helpers.hpp"
 
+
+// Submodule includes
 #include "lang/type_traits_fast.hpp"
 
-#include <random>
 
 #ifdef _WIN32
 #include <crtdbg.h>
 #endif
+
+#include <random>
 
 uint32_t g_randomSeed = []{
 	std::random_device rd;

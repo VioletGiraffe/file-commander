@@ -7,13 +7,19 @@
 #include "fileoperations/coperationexecutioncontext.h"
 #include "fileoperations/ctransferexecutor.h"
 #include "fileoperations/cdeleteexecutor.h"
+
 #include "filecomparator/foldercomparison.h"
 
 #include "link_helpers.hpp"
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
+
 DISABLE_COMPILER_WARNINGS
+#include <3rdparty/catch2/catch.hpp>
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -28,10 +34,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <stdint.h>
 #include <string>
-
-DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
-RESTORE_COMPILER_WARNINGS
 
 // Settable via the --std-seed command-line option; see main.cpp.
 extern uint32_t g_randomSeed;

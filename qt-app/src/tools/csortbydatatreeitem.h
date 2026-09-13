@@ -1,6 +1,8 @@
 #pragma once
 
+// Submodule includes
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QTreeWidget>

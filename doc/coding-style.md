@@ -36,6 +36,7 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
      4. Standard library, sorted alphabetically.
 
   One blank line after 1; two blank lines after 2 and after 3.
+  A conditional block holding repo or submodule includes stays where it is; order the rest around it.
 
 - **Assertions:** use the `assert/advanced_assert.h` macros, not `assert`; they log failures in release builds too.
   - `assert_r(cond)` by default: logs, asserts in debug, continues.

@@ -11,6 +11,7 @@
 #include "progressdialogs/fileoperationlaunch.h"
 #include "fileoperations/operationtesthooks.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFileInfo>

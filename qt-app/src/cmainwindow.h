@@ -1,10 +1,12 @@
 #pragma once
 
-#include "cfilesystemobject.h"
-#include "ccontroller.h"
 #include "panel/filelistwidget/cfilelistview.h"
 #include "panel/cpaneldisplaycontroller.h"
+
+#include "cfilesystemobject.h"
+#include "ccontroller.h"
 #include "cpanel.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QCompleter>

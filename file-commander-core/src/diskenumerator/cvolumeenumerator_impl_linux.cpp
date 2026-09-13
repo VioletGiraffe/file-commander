@@ -1,6 +1,7 @@
 #include "cvolumeenumerator.h"
 #include "volumeinfohelper.hpp"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 RESTORE_COMPILER_WARNINGS

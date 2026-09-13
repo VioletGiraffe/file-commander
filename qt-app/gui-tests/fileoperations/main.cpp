@@ -1,13 +1,14 @@
+#include "fileoperations/operationtesthooks.h"
+
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
+
 
 #define CATCH_CONFIG_RUNNER
 DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
-RESTORE_COMPILER_WARNINGS
+#include <3rdparty/catch2/catch.hpp>
 
-#include "fileoperations/operationtesthooks.h"
-
-DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 RESTORE_COMPILER_WARNINGS
 

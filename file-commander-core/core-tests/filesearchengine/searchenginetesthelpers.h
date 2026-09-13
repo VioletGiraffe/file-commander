@@ -6,21 +6,22 @@
 
 #include "filesearchengine/cfilesearchengine.h"
 
-#include "qtcore_helpers/qstring_helpers.hpp"
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a path in a failure report
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "qtcore_helpers/qstring_helpers.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
+#include <3rdparty/catch2/catch.hpp>
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QStringBuilder>
 #include <QTemporaryDir>
-RESTORE_COMPILER_WARNINGS
-
-DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>

@@ -2,6 +2,7 @@
 
 #include "favoritelocationslist/cfavoritelocations.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QDialog>
 RESTORE_COMPILER_WARNINGS

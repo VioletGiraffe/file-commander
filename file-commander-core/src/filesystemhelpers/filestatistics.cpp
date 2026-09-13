@@ -1,6 +1,8 @@
 #include "filestatistics.h"
-#include "../cfilesystemobject.h"
-#include "../filesystemhelperfunctions.h"
+
+#include "cfilesystemobject.h"
+#include "filesystemhelperfunctions.h"
+
 
 #include <3rdparty/ankerl/unordered_dense.h>
 

@@ -2,6 +2,7 @@
 
 #include "settings.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include "ui_csettingspageinterface.h"
 

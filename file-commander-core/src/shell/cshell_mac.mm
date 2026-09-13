@@ -1,13 +1,20 @@
 #include "cshell.h"
-#include "assert/advanced_assert.h"
 
+
+// Submodule includes
+#include "assert/advanced_assert.h"
+#include "compiler/compiler_warnings_control.h"
+
+
+DISABLE_COMPILER_WARNINGS
 #include <QDebug>
+RESTORE_COMPILER_WARNINGS
 
 #import <Foundation/Foundation.h>
 #import <AppKit/NSWorkspace.h>
+#include <sys/syslimits.h>
 
 #include <stdint.h>
-#include <sys/syslimits.h>
 
 NSString* wstring2nsstring(const std::wstring& str)
 {

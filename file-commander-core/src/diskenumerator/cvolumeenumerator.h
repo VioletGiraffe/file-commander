@@ -1,8 +1,12 @@
 #pragma once
 
 #include "volumeinfo.hpp"
+
+
+// Submodule includes
 #include "threading/cexecutionqueue.h"
 #include "threading/cperiodicexecutionthread.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <qobject.h>

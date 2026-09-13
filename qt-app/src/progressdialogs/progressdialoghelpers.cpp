@@ -1,5 +1,8 @@
 #include "progressdialoghelpers.h"
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>

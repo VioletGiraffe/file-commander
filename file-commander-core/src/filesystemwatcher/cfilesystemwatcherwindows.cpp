@@ -1,9 +1,13 @@
 #include "cfilesystemwatcherwindows.h"
+
 #include "filesystemhelperfunctions.h" // withoutTrailingSeparator
+
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
-
 #include "windows_path_win.hpp" // thin_io
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>

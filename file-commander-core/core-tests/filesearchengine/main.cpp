@@ -1,13 +1,14 @@
 #define CATCH_CONFIG_RUNNER
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
-DISABLE_COMPILER_WARNINGS
-#include <QCoreApplication>
-RESTORE_COMPILER_WARNINGS
 
 DISABLE_COMPILER_WARNINGS
-#include "3rdparty/catch2/catch.hpp"
+#include <3rdparty/catch2/catch.hpp>
+
+#include <QCoreApplication>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32

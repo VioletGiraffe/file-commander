@@ -1,5 +1,8 @@
 #include "cvolumeenumerator.h"
+
+// Submodule includes
 #include "assert/advanced_assert.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QTimer>

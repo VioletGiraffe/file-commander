@@ -1,11 +1,13 @@
 #include "csettingspageother.h"
-#include "ui_csettingspageother.h"
 
 #include "settings.h"
 #include "ccontroller.h"
 #include "shell/cshell.h"
 
+
 DISABLE_COMPILER_WARNINGS
+#include "ui_csettingspageother.h"
+
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 

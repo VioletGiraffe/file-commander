@@ -1,7 +1,9 @@
 #include "cfinddialog.h"
 
+// Submodule includes
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "widgets/cpersistenceenabler.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfinddialog.h"

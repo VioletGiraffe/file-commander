@@ -1,5 +1,7 @@
 #include "cfilecomparisonplugin.h"
+
 #include "plugininterface/cpluginproxy.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

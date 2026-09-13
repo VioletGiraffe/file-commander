@@ -1,11 +1,17 @@
 #include "CFileStatsWindow.h"
+
 #include "csortbydatatreeitem.h"
+
 #include "ccontroller.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelperfunctions.h"
+
+
+// Submodule includes
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 
-#include "3rdparty/magic_enum/magic_enum.hpp"
+
+#include <3rdparty/magic_enum/magic_enum.hpp>
 
 DISABLE_COMPILER_WARNINGS
 #include <QDateTime>

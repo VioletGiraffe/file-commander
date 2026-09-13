@@ -10,6 +10,7 @@
 // test_utils
 #include "ctestfoldergenerator.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS

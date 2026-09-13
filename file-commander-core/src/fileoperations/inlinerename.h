@@ -3,6 +3,7 @@
 #include "fileoperationtypes.h"
 #include "newnamecheck.h"
 
+
 #include <optional>
 
 enum class InlineRenameStatus

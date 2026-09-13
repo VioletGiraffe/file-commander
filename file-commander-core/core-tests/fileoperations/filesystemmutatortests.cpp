@@ -6,6 +6,7 @@
 
 #include "fileoperationtesthelpers.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 #include <QTemporaryDir>

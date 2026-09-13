@@ -2,6 +2,7 @@
 
 #include "fileoperations/fileoperationtypes.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QDialog>
 RESTORE_COMPILER_WARNINGS

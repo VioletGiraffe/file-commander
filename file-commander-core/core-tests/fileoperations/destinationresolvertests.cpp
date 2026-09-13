@@ -7,16 +7,17 @@
 
 #include "fileoperationtesthelpers.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
-#include <algorithm>
-
 #ifndef _WIN32
 #include <errno.h>
 #endif
+
+#include <algorithm>
 
 using OperationTestHooks::CFaultHookScope;
 using OperationTestHooks::Point;

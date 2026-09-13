@@ -2,7 +2,11 @@
 
 #include "plugininterface/cfilecommandertoolplugin.h"
 #include "filecomparator/cfilecomparator.h"
+
+
+// Submodule includes
 #include "dialogs/csimpleprogressdialog.h"
+
 
 #include <memory>
 

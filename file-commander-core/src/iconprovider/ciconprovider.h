@@ -2,9 +2,12 @@
 
 #include "detail/hashmap_helpers.h"
 
+
+// Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "threading/cexecutionqueue.h"
 #include "utility/callback_caller.hpp"
+
 
 #include <3rdparty/ankerl/unordered_dense.h>
 

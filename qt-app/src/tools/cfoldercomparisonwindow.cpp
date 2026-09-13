@@ -1,10 +1,15 @@
 #include "cfoldercomparisonwindow.h"
+
 #include "csortbydatatreeitem.h"
+
 #include "ccontroller.h"
 #include "cpanel.h"
 #include "filesystemhelperfunctions.h"
 
+
+// Submodule includes
 #include "dialogs/csimpleprogressdialog.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>

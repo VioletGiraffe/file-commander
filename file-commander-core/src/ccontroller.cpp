@@ -1,13 +1,17 @@
 #include "ccontroller.h"
+
 #include "settings.h"
 #include "shell/cshell.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "iconprovider/ciconprovider.h"
-#include "threading/thread_helpers.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
+#include "threading/thread_helpers.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

@@ -1,5 +1,7 @@
 #include "cimageviewerplugin.h"
+
 #include "cimageviewerwindow.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>

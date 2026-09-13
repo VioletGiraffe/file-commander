@@ -3,6 +3,7 @@
 #include "cfilesystemobject.h"
 #include "filesystemhelperfunctions.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 RESTORE_COMPILER_WARNINGS

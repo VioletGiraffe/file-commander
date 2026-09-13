@@ -8,7 +8,9 @@
 // or block at a barrier until the test has changed filesystem state and releases it.
 // Without the define, fireHook() is an empty inline stub and the checks compile out of production code.
 
+// Submodule includes
 #include "filesystem_error.hpp" // thin_io
+
 
 #include <optional>
 #include <stdint.h>

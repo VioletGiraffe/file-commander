@@ -1,7 +1,10 @@
 #include "cfileoperationprompt.h"
+
+#include "progressdialoghelpers.h"
+
 #include "fileoperations/newnamecheck.h"
 #include "filesystemhelperfunctions.h"
-#include "progressdialoghelpers.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfileoperationprompt.h"

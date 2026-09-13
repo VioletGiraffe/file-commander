@@ -1,7 +1,9 @@
 #include "cshelloperationrunner.h"
 
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "utility/on_scope_exit.hpp"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>

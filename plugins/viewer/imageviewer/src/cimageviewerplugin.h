@@ -2,6 +2,7 @@
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
 
+
 DISABLE_COMPILER_WARNINGS
 #include <QImage>
 RESTORE_COMPILER_WARNINGS

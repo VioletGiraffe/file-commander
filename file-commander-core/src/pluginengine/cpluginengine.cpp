@@ -1,8 +1,13 @@
 #include "cpluginengine.h"
+
 #include "ccontroller.h"
 #include "plugininterface/cfilecommanderviewerplugin.h"
 #include "plugininterface/cpluginproxy.h"
+
+
+// Submodule includes
 #include "assert/advanced_assert.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>

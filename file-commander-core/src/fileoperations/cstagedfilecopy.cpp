@@ -1,10 +1,14 @@
 #include "cstagedfilecopy.h"
+
 #include "cfilesystemmutator.h"
 #include "operationtesthooks.h"
 #include "thiniobridge.h"
 
+
+// Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>

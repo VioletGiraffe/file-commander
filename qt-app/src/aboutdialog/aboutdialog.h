@@ -2,6 +2,7 @@
 
 #include "pluginengine/cpluginengine.h"
 
+
 #include <vector>
 
 class QWidget;

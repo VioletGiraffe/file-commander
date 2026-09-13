@@ -1,8 +1,13 @@
 #include "ctextviewerplugin.h"
+
 #include "ctextviewerwindow.h"
-#include "compiler/compiler_warnings_control.h"
 #include "cfilesystemobject.h"
+
+
+// Submodule includes
+#include "compiler/compiler_warnings_control.h"
 #include "widgets/widgetutils.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QMimeType>
