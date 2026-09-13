@@ -219,6 +219,8 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 			setViewAsAction(_asciiAction);
 		else if (const auto systemCodecName = QTextCodec::codecForLocale()->name(); result->encoding.compare(systemCodecName, Qt::CaseInsensitive) == 0)
 			setViewAsAction(_systemLocaleAction);
+		else
+			setViewAsAction(nullptr);
 		return true;
 	}
 
