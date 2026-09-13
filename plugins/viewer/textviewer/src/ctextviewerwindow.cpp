@@ -17,18 +17,24 @@ DISABLE_COMPILER_WARNINGS
 #include <3rdparty/diegoiast/qutepart-cpp/theme.h>
 
 #include <QAbstractScrollArea>
+#include <QAction>
 #include <QActionGroup>
 #include <QApplication>
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFontMetrics>
+#include <QIcon>
+#include <QKeySequence>
 #include <QLabel>
+#include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeDatabase>
 #include <QRegularExpression>
 #include <QScrollBar>
 #include <QShortcut>
+#include <QStatusBar>
 #include <QStringBuilder>
 #include <QStyleHints>
 #include <QTextCodec>
@@ -65,60 +71,70 @@ static inline qsizetype countNonAsciiChars(const QString& text)
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	CPluginWindow(parent)
 {
-	setupUi(this);
+	setWindowTitle(tr("Text viewer"));
+	setWindowIcon(QIcon{ QStringLiteral(":/main_icon") });
 
 	enablePersistence(this, QStringLiteral("Plugins/TextViewer/Window"), CPersistenceEnabler::Delayed{ false });
 
-	CR() = connect(actionOpen, &QAction::triggered, this, [this]() {
+	const auto addMenuAction = [this](QMenu* menu, const QString& text, const QString& shortcut, auto onTriggered) {
+		QAction* const action = menu->addAction(text);
+		action->setShortcut(QKeySequence{ shortcut });
+		CR() = connect(action, &QAction::triggered, this, onTriggered);
+		return action;
+	};
+
+	QMenu* const fileMenu = menuBar()->addMenu(tr("&File"));
+	addMenuAction(fileMenu, tr("Open..."), "Ctrl+O", [this] {
 		const QString fileName = QFileDialog::getOpenFileName(this);
 		if (!fileName.isEmpty())
 			loadTextFile(fileName);
 	});
+	addMenuAction(fileMenu, tr("Reload"), "F5", [this] { loadTextFile(_sourceFilePath); });
+	fileMenu->addSeparator();
+	addMenuAction(fileMenu, tr("Close"), {}, &QWidget::close);
 
-	CR() = connect(actionReload, &QAction::triggered, this, [this]() {
-		loadTextFile(_sourceFilePath);
-	});
-	CR() = connect(actionClose, &QAction::triggered, this, &QDialog::close);
-
-	CR() = connect(actionFind, &QAction::triggered, this, [this]() {
+	QMenu* const editMenu = menuBar()->addMenu(tr("&Edit"));
+	addMenuAction(editMenu, tr("Find..."), "Ctrl+F", [this] {
 		setupFindDialog();
 		_findDialog->exec();
 	});
-	CR() = connect(actionFind_next, &QAction::triggered, this, &CTextViewerWindow::findNext);
+	addMenuAction(editMenu, tr("Find next"), "F3", &CTextViewerWindow::findNext);
 
-	CR() = connect(actionAuto_detect_encoding, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asDetectedAutomatically); });
-	CR() = connect(actionASCII_Windows_1252, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asAscii); });
-	CR() = connect(actionSystemLocale, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asSystemDefault); });
-	CR() = connect(actionUTF_8, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf8); });
-	CR() = connect(actionUTF_16, &QAction::triggered, this, [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf16); });
-	CR() = connect(actionHTML, &QAction::triggered, this, [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asHtml(*textData);
-	});
-	CR() = connect(actionMarkdown, &QAction::triggered, this, [this] {
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (textData)
-			asMarkdown(*textData);
-	});
-	CR() = connect(actionHex, &QAction::triggered, this, [this] {
+	QMenu* const viewMenu = menuBar()->addMenu(tr("&View"));
+	addMenuAction(viewMenu, tr("Auto &detect encoding"), "1", [this] { redecodeCurrentFile(&CTextViewerWindow::asDetectedAutomatically); });
+
+	auto* const viewAsGroup = new QActionGroup{ this };
+	const auto addViewAsAction = [&](const QString& text, const QString& shortcut, auto onTriggered) {
+		QAction* const action = addMenuAction(viewMenu, text, shortcut, onTriggered);
+		action->setCheckable(true);
+		viewAsGroup->addAction(action);
+		return action;
+	};
+
+	_asciiAction = addViewAsAction(tr("&ASCII"), "2", [this] { redecodeCurrentFile(&CTextViewerWindow::asAscii); });
+	_systemLocaleAction = addViewAsAction(tr("&System locale"), "3", [this] { redecodeCurrentFile(&CTextViewerWindow::asSystemDefault); });
+	_utf8Action = addViewAsAction(tr("UTF-&8"), "4", [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf8); });
+	_utf16Action = addViewAsAction(tr("UTF-1&6"), "5", [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf16); });
+	_hexAction = addViewAsAction(tr("&Hex"), "6", [this] {
 		const std::optional<QByteArray> textData = readFileAndReportErrors();
 		if (textData)
 			asHexFast(*textData);
 	});
+	_htmlAction = addViewAsAction(tr("H&TML"), "7", [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asHtml(*textData);
+	});
+	_markdownAction = addViewAsAction(tr("&Markdown"), "8", [this] {
+		const std::optional<QByteArray> textData = readFileAndReportErrors();
+		if (textData)
+			asMarkdown(*textData);
+	});
 
-	QActionGroup * group = new QActionGroup(this);
-	group->setExclusive(true);
-	group->addAction(actionASCII_Windows_1252);
-	group->addAction(actionSystemLocale);
-	group->addAction(actionUTF_8);
-	group->addAction(actionUTF_16);
-	group->addAction(actionHTML);
-	group->addAction(actionMarkdown);
-	group->addAction(actionHex);
-
-	CR() = connect(actionLine_wrap, &QAction::triggered, this, &CTextViewerWindow::setLineWrap);
-	actionLine_wrap->setChecked(true); // Wrap by default
+	viewMenu->addSeparator();
+	_lineWrapAction = addMenuAction(viewMenu, tr("&Line wrap"), "Shift+W", &CTextViewerWindow::setLineWrap);
+	_lineWrapAction->setCheckable(true);
+	_lineWrapAction->setChecked(true); // Wrap by default
 
 	auto* escScut = new QShortcut(QKeySequence("Esc"), this, SLOT(close()));
 	CR() = connect(this, &QObject::destroyed, escScut, &QShortcut::deleteLater);
@@ -130,7 +146,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	_contentTypeLabel->setContentsMargins(4, 0, 4, 0);
 	_infoLabel->setContentsMargins(4, 0, 4, 0);
 
-	auto* status = Ui::CTextViewerWindow::statusBar;
+	auto* status = statusBar();
 	status->addWidget(_encodingLabel);
 	status->addWidget(_contentTypeLabel);
 	status->addWidget(_infoLabel);
@@ -209,13 +225,13 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 		encodingChanged(result->encoding, result->language);
 		// Guess which matching encoding could be marked as selected in the menu
 		if (result->encoding.compare("utf-8", Qt::CaseInsensitive) == 0)
-			actionUTF_8->setChecked(true);
+			_utf8Action->setChecked(true);
 		else if (result->encoding.startsWith(QStringLiteral("UTF-16"), Qt::CaseInsensitive))
-			actionUTF_16->setChecked(true);
+			_utf16Action->setChecked(true);
 		else if (result->encoding.contains("1251") || result->encoding.contains("1252"))
-			actionASCII_Windows_1252->setChecked(true);
+			_asciiAction->setChecked(true);
 		else if (const auto systemCodecName = QTextCodec::codecForLocale()->name(); result->encoding.compare(systemCodecName, Qt::CaseInsensitive) == 0)
-			actionSystemLocale->setChecked(true);
+			_systemLocaleAction->setChecked(true);
 		return true;
 	}
 
@@ -244,7 +260,7 @@ bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFast
 	}
 
 	encodingChanged(codec->name());
-	actionSystemLocale->setChecked(true);
+	_systemLocaleAction->setChecked(true);
 
 	return true;
 }
@@ -264,7 +280,7 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 	}
 
 	encodingChanged("ASCII");
-	actionASCII_Windows_1252->setChecked(true);
+	_asciiAction->setChecked(true);
 
 	return true;
 }
@@ -304,7 +320,7 @@ bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 	}
 
 	encodingChanged("UTF-8");
-	actionUTF_8->setChecked(true);
+	_utf8Action->setChecked(true);
 
 	return true;
 }
@@ -326,7 +342,7 @@ bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 		setTextAndApplyHighlighter(text);
 	}
 
-	actionUTF_16->setChecked(true);
+	_utf16Action->setChecked(true);
 
 	return true;
 }
@@ -339,7 +355,7 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 
 	setMode(Mode::Rich);
 	_richView->setHtml(result->text);
-	actionHTML->setChecked(true);
+	_htmlAction->setChecked(true);
 	return true;
 }
 
@@ -352,7 +368,7 @@ bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 	encodingChanged(result->encoding, result->language);
 	setMode(Mode::Rich);
 	_richView->setMarkdown(result->text);
-	actionMarkdown->setChecked(true);
+	_markdownAction->setChecked(true);
 	return true;
 }
 
@@ -361,7 +377,7 @@ bool CTextViewerWindow::asHexFast(const QByteArray& fileData)
 	setMode(Mode::Lightning);
 	_lightningViewer->setData(fileData);
 	encodingChanged(tr("none - viewing raw data"));
-	actionHex->setChecked(true);
+	_hexAction->setChecked(true);
 	return true;
 }
 
@@ -621,7 +637,7 @@ void CTextViewerWindow::setMode(Mode mode)
 	_infoLabel->setVisible(mode == Mode::Lightning);
 
 	// Apply line wrap setting
-	setLineWrap(actionLine_wrap->isChecked());
+	setLineWrap(_lineWrapAction->isChecked());
 }
 
 void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)

@@ -9,8 +9,6 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include "ui_ctextviewerwindow.h"
-
 #include <QTextDocument>
 RESTORE_COMPILER_WARNINGS
 
@@ -24,6 +22,7 @@ class CLightningFastViewerWidget;
 class CFindDialog;
 
 class QAbstractScrollArea;
+class QAction;
 class QLabel;
 class QRegularExpression;
 
@@ -33,7 +32,7 @@ namespace Qutepart {
 	QString chooseLanguageXmlFileName(const QString& mimeType, const QString& languageName, const QString& sourceFilePath, const QString& firstLine);
 }
 
-class CTextViewerWindow final : public CPluginWindow, private Ui::CTextViewerWindow
+class CTextViewerWindow final : public CPluginWindow
 {
 public:
 	explicit CTextViewerWindow(QWidget* parent = nullptr) noexcept;
@@ -106,6 +105,15 @@ private:
 	QLabel* _encodingLabel = nullptr;
 	QLabel* _contentTypeLabel = nullptr;
 	QLabel* _infoLabel = nullptr;
+
+	QAction* _asciiAction = nullptr;
+	QAction* _systemLocaleAction = nullptr;
+	QAction* _utf8Action = nullptr;
+	QAction* _utf16Action = nullptr;
+	QAction* _hexAction = nullptr;
+	QAction* _htmlAction = nullptr;
+	QAction* _markdownAction = nullptr;
+	QAction* _lineWrapAction = nullptr;
 
 	Qutepart::SyntaxHighlighter* _highlighter = nullptr;
 	std::unique_ptr<Qutepart::Theme> _theme;

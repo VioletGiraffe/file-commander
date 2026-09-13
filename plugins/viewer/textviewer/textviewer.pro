@@ -81,7 +81,6 @@ SOURCES += \
 	src/cfinddialog.cpp
 
 FORMS += \
-	src/ctextviewerwindow.ui \
 	src/cfinddialog.ui
 
 RESOURCES += \
