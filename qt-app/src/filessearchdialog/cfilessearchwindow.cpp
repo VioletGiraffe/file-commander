@@ -1,12 +1,18 @@
 #include "cfilessearchwindow.h"
-#include "cfilesystemobject.h"
-#include "ccontroller.h"
-#include "../cmainwindow.h"
-#include "filesystemhelperfunctions.h"
-#include "iconprovider/ciconprovider.h"
 
+#include "cmainwindow.h"
+
+#include "ccontroller.h"
+#include "iconprovider/ciconprovider.h"
+#include "cfilesystemobject.h"
+#include "filesystemhelperfunctions.h"
+
+
+// Submodule includes
+#include "assert/advanced_assert.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "widgets/cpersistenceenabler.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
@@ -71,7 +77,10 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item) {
 		CController::get().activePanel().goToItem(CFileSystemObject(item->data(Qt::UserRole).toString()));
-		CMainWindow::get()->activateWindow();
+
+		auto* mainWindow = CMainWindow::get();
+		assert_and_return_r(mainWindow, );
+		mainWindow->activateWindow();
 	});
 	connect(ui->resultsList, &QListWidget::customContextMenuRequested, this, &CFilesSearchWindow::showContextMenu);
 

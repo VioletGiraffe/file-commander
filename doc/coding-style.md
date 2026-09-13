@@ -31,7 +31,7 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
   3. `// Submodule includes`, then submodule headers sorted alphabetically by path, no grouping.
   4. Everything else, in this order, one blank line between blocks:
      1. Third-party `<...>` headers, even when vendored.
-     2. Qt, with the generated `ui_*.h` first. One `DISABLE_COMPILER_WARNINGS` / `RESTORE_COMPILER_WARNINGS` pair wraps Qt and any third-party headers that warn.
+     2. Qt, with the generated `ui_*.h` first, then sorted alphabetically. One `DISABLE_COMPILER_WARNINGS` / `RESTORE_COMPILER_WARNINGS` pair wraps Qt and any third-party headers that warn.
      3. Platform headers under their `#ifdef`.
      4. Standard library, sorted alphabetically.
 

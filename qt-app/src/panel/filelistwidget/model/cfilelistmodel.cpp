@@ -241,10 +241,13 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 	if (objects.empty())
 		return false;
 
+	auto* mainWindow = CMainWindow::get();
+	assert_and_return_r(mainWindow, false);
+
 	if (action == Qt::CopyAction)
-		return CMainWindow::get()->launchFileTransfer(TransferKind::Copy, std::move(objects), dest.fullAbsolutePath());
+		return mainWindow->launchFileTransfer(TransferKind::Copy, std::move(objects), dest.fullAbsolutePath());
 	else if (action == Qt::MoveAction)
-		return CMainWindow::get()->launchFileTransfer(TransferKind::Move, std::move(objects), dest.fullAbsolutePath());
+		return mainWindow->launchFileTransfer(TransferKind::Move, std::move(objects), dest.fullAbsolutePath());
 	else
 		return false;
 }
