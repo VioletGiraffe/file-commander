@@ -1107,21 +1107,20 @@ void CPanelWidget::cutSelectionToClipboard() const
 
 void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 {
-	QClipboard * clipBoard = QApplication::clipboard();
+	const QMimeData* clipboardData = QApplication::clipboard()->mimeData();
+	if (!clipboardData)
+		return;
+
 	// If the clipboard contains an image (not a file), paste it into a file
-	if (clipBoard && clipBoard->mimeData()->hasImage())
+	if (clipboardData->hasImage())
 	{
-		QImage image = qvariant_cast<QImage>(clipBoard->mimeData()->imageData());
+		QImage image = qvariant_cast<QImage>(clipboardData->imageData());
 		assert_r(pasteImage(image, specialPaste));
 		return;
 	}
 
 #ifndef _WIN32
-	if (clipBoard)
-	{
-		const QMimeData * data = clipBoard->mimeData();
-		_model->dropMimeData(clipBoard->mimeData(), (data && data->property("cut").toBool()) ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
-	}
+	_model->dropMimeData(clipboardData, clipboardData->property("cut").toBool() ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
 #else
 	auto* hwnd = WidgetUtils::nativeOwnerWinId(this);
 	const auto currentDirWString = currentDirPathNative().toStdWString();
@@ -1553,12 +1552,11 @@ bool CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
 	const QString currentDirPath = currentDirPathNative();
 	assert_r(currentDirPath.endsWith(nativeSeparator()));
 
-	const QString imagePathTemplate = currentDirPath + (lossyCompression ? "%1.jpg" : "%1.png");
-	QString imagePath = imagePathTemplate.arg("clipboard");
+	// Concatenated, not QString::arg: a %N inside the directory path would be substituted
+	const QString extension = lossyCompression ? QSL(".jpg") : QSL(".png");
+	QString imagePath = currentDirPath + QSL("clipboard") + extension;
 	for (int i = 1; QFile::exists(imagePath); ++i)
-	{
-		imagePath = imagePathTemplate.arg("clipboard_" + QString::number(i));
-	}
+		imagePath = currentDirPath + QSL("clipboard_") + QString::number(i) + extension;
 
 	QImageWriter writer(imagePath, lossyCompression ? "jpg" : "png");
 	if (lossyCompression)

@@ -22,7 +22,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
-inline QVariant itemData(const CFileSystemObject& item, int column)
+#include <algorithm>
+
+static inline QVariant itemData(const CFileSystemObject& item, int column)
 {
 	const auto& props = item.properties();
 
@@ -213,7 +215,8 @@ QVariant CFileListModel::headerData(int section, Qt::Orientation orientation, in
 
 bool CFileListModel::canDropMimeData(const QMimeData * data, Qt::DropAction /*action*/, int /*row*/, int /*column*/, const QModelIndex & /*parent*/) const
 {
-	return data->hasUrls();
+	const QList<QUrl> urls = data->urls();
+	return std::any_of(urls.cbegin(), urls.cend(), [](const QUrl& url) { return url.isLocalFile(); });
 }
 
 QStringList CFileListModel::mimeTypes() const
@@ -225,21 +228,22 @@ bool CFileListModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 {
 	if (action == Qt::IgnoreAction)
 		return true;
-	else if (!data->hasUrls())
+
+	const QList<QUrl> urls = data->urls();
+	std::vector<CFileSystemObject> objects;
+	for (const QUrl& url : urls)
+	{
+		if (url.isLocalFile())
+			objects.emplace_back(url.toLocalFile());
+	}
+
+	if (objects.empty())
 		return false;
 
 	CFileSystemObject dest = parent.isValid() ? _controller.itemByHash(_panel, itemHash(parent)) : CFileSystemObject(_controller.panel(_panel).currentDirPathNative());
 	if (dest.isFile())
 		dest = CFileSystemObject(dest.parentDirPath());
 	assert_and_return_r(dest.exists() && dest.isDir(), false);
-
-	const QList<QUrl> urls = data->urls();
-	std::vector<CFileSystemObject> objects;
-	for(const QUrl& url: urls)
-		objects.emplace_back(url.toLocalFile());
-
-	if (objects.empty())
-		return false;
 
 	auto* mainWindow = CMainWindow::get();
 	assert_and_return_r(mainWindow, false);
