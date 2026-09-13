@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789327826790,
+  "lastUpdate": 1789328109070,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -18762,6 +18762,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "plugin_textviewer.dll size",
             "value": 2106,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 777,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 414,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2c08321142e380a6904dedb7fe1059b74265fe3e",
+          "message": "Text viewer: missing QTextDocument::DocumentUrl directory added, so it could load local files",
+          "timestamp": "2026-09-13T22:28:27+03:00",
+          "tree_id": "a1e823a901226f85718f3effd5d963fa149fa915",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2c08321142e380a6904dedb7fe1059b74265fe3e"
+        },
+        "date": 1789328106212,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17258,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 17285,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1391.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2106.5,
             "unit": "KB"
           },
           {
