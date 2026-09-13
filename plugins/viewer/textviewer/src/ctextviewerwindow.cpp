@@ -21,6 +21,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QActionGroup>
 #include <QApplication>
 #include <QDebug>
+#include <QDeadlineTimer>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFontMetrics>
@@ -84,8 +85,18 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	setCentralWidget(central);
 
 	_findBar = new CFindBar{
-		[this](const QString& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget ? v.findText(pattern, flags) : FindResult::NotFound; },
-		[this](const QRegularExpression& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget ? v.findRegex(pattern, flags) : FindResult::NotFound; },
+		CFindBar::HostFunctions{
+			.findText = [this](const QString& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget ? v.findText(pattern, flags) : FindResult::NotFound; },
+			.findRegex = [this](const QRegularExpression& pattern, QTextDocument::FindFlags flags) { const ViewerOps v = viewer(); return v.widget ? v.findRegex(pattern, flags) : FindResult::NotFound; },
+			.countText = [this](const QString& pattern, QTextDocument::FindFlags flags, QDeadlineTimer deadline) {
+				const ViewerOps v = viewer();
+				return v.widget ? v.countText(pattern, flags, deadline) : MatchCount{};
+			},
+			.countRegex = [this](const QRegularExpression& pattern, QTextDocument::FindFlags flags, QDeadlineTimer deadline) {
+				const ViewerOps v = viewer();
+				return v.widget ? v.countRegex(pattern, flags, deadline) : MatchCount{};
+			},
+		},
 		CFindBar::Keys{ .find = QStringLiteral("Ctrl+F"), .findNext = QStringLiteral("F3"), .findPrevious = QStringLiteral("Shift+F3") },
 		QStringLiteral("Plugins/TextViewer/Find")
 	};
@@ -500,10 +511,42 @@ CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
 			return FindResult::NotFound;
 		};
 
+		// Searches the document, not the view: the view's cursor and scroll stay as they are
+		const auto countMatches = [view](const auto& expression, QTextDocument::FindFlags flags, QDeadlineTimer deadline) {
+			flags.setFlag(QTextDocument::FindBackward, false);
+			const QTextCursor selection = view->textCursor();
+
+			MatchCount count;
+			for (int from = 0;;)
+			{
+				const QTextCursor match = view->document()->find(expression, from, flags);
+				if (match.isNull())
+				{
+					count.complete = true;
+					break;
+				}
+
+				if (match.hasSelection())
+				{
+					++count.total;
+					if (selection.hasSelection() && match.selectionStart() == selection.selectionStart())
+						count.number = count.total;
+				}
+
+				from = match.selectionEnd() + (match.hasSelection() ? 0 : 1); // An empty regex match is found again where it ends
+				if (deadline.hasExpired())
+					break;
+			}
+
+			return count;
+		};
+
 		return {
 			view,
 			findWrappingAround,
 			findWrappingAround,
+			countMatches,
+			countMatches,
 			[view](bool wrap) { view->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap); }
 		};
 	};
@@ -517,10 +560,16 @@ CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
 	if (auto* const view = _lightningViewer.get())
 	{
 		const auto findWrappingAround = [view](const auto& expression, QTextDocument::FindFlags flags) { return view->find(expression, flags, /*wrapAround=*/true); };
+		const auto countMatches = [view](const auto& expression, QTextDocument::FindFlags flags, QDeadlineTimer deadline) {
+			return view->countMatches(expression, flags, deadline);
+		};
+
 		return {
 			view,
 			findWrappingAround,
 			findWrappingAround,
+			countMatches,
+			countMatches,
 			[view](bool wrap) { view->setWordWrap(wrap); }
 		};
 	}
@@ -555,6 +604,9 @@ static void initDocumentView(DocumentView& view)
 void CTextViewerWindow::setMode(Mode mode)
 {
 	_currentMode = mode;
+
+	// Every content change passes through here
+	_findBar->clearStatus();
 
 	if (mode != Mode::Source)
 	{
