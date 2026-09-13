@@ -27,7 +27,8 @@ be listed as running when the app exits, and be killed by Terminate.
 `OsShell::guiProgramInvocation` lets a line launch directly when all of these hold:
 
 - No shell syntax: `%` anywhere, or `& | < > ^ ( )` outside quotes, sends the line to the shell.
-- The program resolves in cmd's search order: the working directory, then `PATH`, trying the `PATHEXT` extensions.
+- The program resolves in cmd's search order: the working directory unless `NoDefaultCurrentDirectoryInExePath` is
+  set, then `PATH`, trying the `PATHEXT` extensions.
 - `SHGetFileInfo(SHGFI_EXETYPE)` reports a GUI executable.
 
 A check that cannot decide also sends the line to the shell. The arguments are passed on as typed: the program parses its
@@ -41,6 +42,8 @@ own command line. POSIX has no equivalent: `sh` returns at once for `open` and f
   temporary drive letter. `&&` keeps the command from running when the folder is gone.
 - `/s` strips only the outermost quotes, so the directory can be quoted and a folder name may contain `&`.
 - Qt passes `CREATE_NO_WINDOW` whenever the parent has no console, so no console window appears.
+- stdin is the null device: a prompt reads end of input and continues (`pause`, `set /p`) or fails (`choice`), and
+  `del *` deletes nothing.
 
 ### Output
 
@@ -105,8 +108,23 @@ Exit is blocked while any command runs:
 
 ## Not implemented
 
-- A graceful Ctrl+C. Windows needs an `AttachConsole` and `GenerateConsoleCtrlEvent` sequence (a process attaches to
-  one console at a time, which fights parallel panes), a helper process, or a pseudoconsole; POSIX needs `SIGINT` to
-  the group.
+- A graceful Ctrl+C; see below.
 - A pseudoconsole (ConPTY): line buffering, colour, interactive prompts and Ctrl+C, at the cost of a terminal emulator.
 - Dismissing the exit prompt when the last command finishes while it is open; an "Exit when finished" option.
+
+### Graceful Ctrl+C: tested findings
+
+POSIX needs `SIGINT` to the group, which is what a terminal's Ctrl+C sends. On Windows, tested with scripts outside the
+app:
+
+- Each command has its own hidden console: Qt passes `CREATE_NO_WINDOW` for an app without a console, and never
+  `CREATE_NEW_PROCESS_GROUP`, which would disable Ctrl+C. An event sent to one console reaches only that command.
+- The working sequence: `FreeConsole`, `AttachConsole(shell pid)`, `SetConsoleCtrlHandler(NULL, TRUE)`,
+  `GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)`. `ping -t` prints its statistics and cmd exits with `0xC000013A`
+  (`STATUS_CONTROL_C_EXIT`).
+- The sequence must run in a short-lived helper process, never in the app: the ignore flag from
+  `SetConsoleCtrlHandler(NULL, TRUE)` is inherited, so every command started afterwards ignores Ctrl+C. With a handler
+  routine instead of the flag, the sending process (a .NET test process; cause not found) hung inside the sequence.
+- Ctrl+C ends the running program, not the command line: after it, `a & b` goes on to run `b`.
+- A batch file then prompts "Terminate batch job (Y/N)?" on stdin. With stdin an open pipe the prompt waits forever;
+  with stdin closed it reads end of input and the batch continues.
