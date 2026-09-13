@@ -25,6 +25,18 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
   common type — even though MSVC accepts it. Build the string imperatively, or wrap each branch in
   `QString{...}`.
 
+- **Include order** in a source file, from most specific to most general:
+  1. The file's own header.
+  2. This repo's headers, grouped by subsystem, one blank line between groups.
+  3. `// Submodule includes`, then submodule headers sorted alphabetically by path, no grouping.
+  4. Everything else, in this order, one blank line between blocks:
+     1. Third-party `<...>` headers, even when vendored in a submodule.
+     2. Qt, with the generated `ui_*.h` first, inside `DISABLE_COMPILER_WARNINGS` / `RESTORE_COMPILER_WARNINGS`.
+     3. Platform headers under their `#ifdef`.
+     4. Standard library.
+
+  One blank line after 1; two blank lines after 2 and after 3.
+
 ## Concurrency
 
 Any change touching threading or concurrency carries a mandatory dedicated review pass, separate from
