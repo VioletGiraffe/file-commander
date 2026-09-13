@@ -285,10 +285,10 @@ QString CFileSystemObject::fullAbsolutePath() const &&
 
 QString CFileSystemObject::parentDirPath() const
 {
-	const auto parentFoler = parentForAbsolutePath(_properties.fullPath);
+	const auto parentFolder = parentForAbsolutePath(_properties.fullPath);
 
-	assert_debug_only(parentFoler.endsWith('/') || parentFoler.isEmpty());
-	return parentFoler;
+	assert_debug_only(parentFolder.endsWith('/') || parentFolder.isEmpty());
+	return parentFolder;
 }
 
 uint64_t CFileSystemObject::size() const
