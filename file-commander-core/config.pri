@@ -42,7 +42,7 @@ mac* | linux* | freebsd {
 
 # cfilesearchengine.cpp uses SSE4.1 intrinsics, and gcc refuses to inline them without this. It belongs here
 # rather than with the core library target because the test targets compile that source directly too.
-!win*:!contains(QT_ARCH, arm.*): QMAKE_CXXFLAGS += -msse4.1
+linux*|freebsd:!contains(QT_ARCH, arm.*): QMAKE_CXXFLAGS += -msse4.1
 
 DEFINES += PLUGIN_MODULE
 
