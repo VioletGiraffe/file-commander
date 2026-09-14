@@ -44,7 +44,7 @@ win*{
 }
 
 linux*|mac*|freebsd{
-	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
+	QMAKE_CXXFLAGS_WARN_ON *= -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG

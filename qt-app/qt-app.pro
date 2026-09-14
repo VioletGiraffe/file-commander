@@ -145,7 +145,7 @@ linux*|mac*|freebsd{
 	HEADERS += src/panel/filelistwidget/cfocusframestyle.h
 	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
 
-	QMAKE_CXXFLAGS_WARN_ON = -Wall
+	QMAKE_CXXFLAGS_WARN_ON *= -Wall
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG

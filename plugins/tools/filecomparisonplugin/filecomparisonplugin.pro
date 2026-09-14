@@ -35,7 +35,7 @@ win*{
 linux*|mac*|freebsd{
 	QMAKE_CXXFLAGS += -pedantic-errors
 	QMAKE_CFLAGS += -pedantic-errors
-	QMAKE_CXXFLAGS_WARN_ON = -Wall
+	QMAKE_CXXFLAGS_WARN_ON *= -Wall
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG
