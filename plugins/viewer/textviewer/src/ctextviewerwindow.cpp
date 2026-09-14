@@ -229,8 +229,8 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 			setViewAsAction(_utf8Action);
 		else if (result->encoding.startsWith(QStringLiteral("UTF-16"), Qt::CaseInsensitive))
 			setViewAsAction(_utf16Action);
-		else if (result->encoding.contains("1251") || result->encoding.contains("1252"))
-			setViewAsAction(_asciiAction);
+		else if (result->encoding.compare(QStringLiteral("ISO-8859-1"), Qt::CaseInsensitive) == 0)
+			setViewAsAction(_asciiAction); // The ASCII action decodes as Latin-1
 		else if (const auto systemCodecName = QTextCodec::codecForLocale()->name(); result->encoding.compare(systemCodecName, Qt::CaseInsensitive) == 0)
 			setViewAsAction(_systemLocaleAction);
 		else
