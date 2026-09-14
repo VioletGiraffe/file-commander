@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789389268239,
+  "lastUpdate": 1789390110351,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -19379,6 +19379,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (libs)",
             "value": 18065,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1393,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2105.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 778.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 414,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "bdbe16a662268e3724e5b70066550cd51773e366",
+          "message": "Unused  -Wno-weak-vtables removed; includes cleanup in cpputils",
+          "timestamp": "2026-09-14T15:43:50+03:00",
+          "tree_id": "dde40f28b11ac9254d2ae41659c66e43d7cbe872",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/bdbe16a662268e3724e5b70066550cd51773e366"
+        },
+        "date": 1789390106839,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17264,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18053,
             "unit": "LOC"
           },
           {
