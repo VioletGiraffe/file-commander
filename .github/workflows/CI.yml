@@ -280,6 +280,7 @@ jobs:
       with:
         name: FileCommander.dmg
         path: FileCommander.dmg
+        if-no-files-found: error
 
     - name: Archive AppImage
       if: success() && startsWith(matrix.os, 'ubuntu')
@@ -287,6 +288,7 @@ jobs:
       with:
         name: FileCommander.AppImage
         path: FileCommander.AppImage
+        if-no-files-found: error
 
     - name: Archive Installer
       if: success() && startsWith(matrix.os, 'windows')
@@ -294,6 +296,7 @@ jobs:
       with:
         name: FileCommander.exe
         path: installer/windows/FileCommander.exe
+        if-no-files-found: error
 
   test:
     name: Build & run tests on ${{ matrix.os }}

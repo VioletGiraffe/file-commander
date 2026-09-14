@@ -10,6 +10,8 @@ APPDIR="FileCommander.app"
 
 QTPATH=$1
 
+ROOT_DIR="$(pwd)"
+
 rm -rf bin
 echo "${MYSELF}: Building the app"
 ${QTPATH}/bin/qmake -spec macx-clang -r -config release CONFIG+=release
@@ -34,6 +36,6 @@ ln -s /Applications "${STAGE}/"
 hdiutil create "${DMG}" -ov -volname "${VOL}" -fs "HFS+" -format UDZO -srcfolder "${STAGE}"
 
 rm -rf "${STAGE}"
-mv "${DMG}" ../../../
+mv "${DMG}" "${ROOT_DIR}/"
 
 echo "${MYSELF}: ready for distribution: ${DMG}"
