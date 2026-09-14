@@ -5,7 +5,7 @@ TARGET = qutepart
 QT = core gui widgets
 
 # A target of its own so that warn_off covers only the vendored sources: qmake has no per-file flags
-CONFIG += strict_c++ warn_off
+CONFIG += warn_off
 CONFIG -= flat
 
 include(../../../../global.pri)
@@ -25,5 +25,4 @@ win*{
 	QMAKE_CXXFLAGS += /MP /Zi /FS
 	Debug:QMAKE_CXXFLAGS += /JMC
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 }

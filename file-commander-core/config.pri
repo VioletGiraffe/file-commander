@@ -4,7 +4,6 @@ lessThan(QT_MAJOR_VERSION, 6) {
 }
 
 CONFIG += staticlib
-CONFIG += strict_c++
 
 include(../global.pri)
 
@@ -19,12 +18,11 @@ win*{
 	Debug:QMAKE_CXXFLAGS += /JMC
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = -W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX _SCL_SECURE_NO_WARNINGS
+	DEFINES += _SCL_SECURE_NO_WARNINGS
 
 	QMAKE_LFLAGS += /DEBUG:FASTLINK
 
 	Debug:QMAKE_LFLAGS += /INCREMENTAL
-	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF
 
 	*msvc* {
 		QMAKE_CXXFLAGS += /FS
@@ -32,12 +30,7 @@ win*{
 }
 
 mac* | linux* | freebsd {
-	QMAKE_CFLAGS   += -pedantic-errors -std=c99
-	QMAKE_CXXFLAGS += -pedantic-errors
-	QMAKE_CXXFLAGS_WARN_ON *= -Wall
-
-	Release:DEFINES += NDEBUG=1
-	Debug:DEFINES += _DEBUG
+	QMAKE_CFLAGS += -std=c99
 }
 
 # cfilesearchengine.cpp uses SSE4.1 intrinsics, and gcc refuses to inline them without this. It belongs here

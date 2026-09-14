@@ -13,8 +13,6 @@ lessThan(QT_MAJOR_VERSION, 6) {
 	win*:QT += winextras
 }
 
-CONFIG += strict_c++
-
 include(../global.pri)
 
 Release:OUTPUT_DIR=release
@@ -123,12 +121,10 @@ win*{
 	Debug:QMAKE_CXXFLAGS += /JMC
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = /W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 
 	!*msvc2013*:QMAKE_LFLAGS += /DEBUG:FASTLINK
 
 	Debug:QMAKE_LFLAGS += /INCREMENTAL
-	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF
 
 	RC_FILE = resources/file_commander.rc
 }
@@ -144,11 +140,6 @@ mac*{
 linux*|mac*|freebsd{
 	HEADERS += src/panel/filelistwidget/cfocusframestyle.h
 	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
-
-	QMAKE_CXXFLAGS_WARN_ON *= -Wall
-
-	Release:DEFINES += NDEBUG=1
-	Debug:DEFINES += _DEBUG
 }
 
 win32*:!*msvc2012:*msvc* {

@@ -6,7 +6,6 @@ greaterThan(QT_MAJOR_VERSION, 5) {
 	QT += core5compat
 }
 
-CONFIG += strict_c++
 CONFIG -= flat
 
 include(../../../global.pri)
@@ -31,12 +30,10 @@ win*{
 	Debug:QMAKE_CXXFLAGS += /JMC
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = -W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 
 	QMAKE_LFLAGS += /DEBUG:FASTLINK
 
 	Debug:QMAKE_LFLAGS += /INCREMENTAL
-	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF
 }
 
 win32*:!*msvc2012:*msvc* {

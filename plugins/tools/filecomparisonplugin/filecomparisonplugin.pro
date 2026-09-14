@@ -2,7 +2,6 @@ TEMPLATE = lib
 TARGET   = plugin_filecomparison
 
 QT = core gui widgets
-CONFIG += strict_c++
 
 include(../../../global.pri)
 
@@ -24,21 +23,10 @@ win*{
 	Debug:QMAKE_CXXFLAGS += /JMC
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = -W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 
 	!*msvc2013*:QMAKE_LFLAGS += /DEBUG:FASTLINK
 
 	Debug:QMAKE_LFLAGS += /INCREMENTAL
-	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF
-}
-
-linux*|mac*|freebsd{
-	QMAKE_CXXFLAGS += -pedantic-errors
-	QMAKE_CFLAGS += -pedantic-errors
-	QMAKE_CXXFLAGS_WARN_ON *= -Wall
-
-	Release:DEFINES += NDEBUG=1
-	Debug:DEFINES += _DEBUG
 }
 
 win32*:!*msvc2012:*msvc* {
