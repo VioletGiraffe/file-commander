@@ -27,9 +27,7 @@ win*{
 	}
 }
 
-mac* | linux* | freebsd {
-	QMAKE_CFLAGS += -std=c99
-}
+mac* | linux* | freebsd: CONFIG += strict_c c99
 
 # cfilesearchengine.cpp uses SSE4.1 intrinsics, and gcc refuses to inline them without this. It belongs here
 # rather than with the core library target because the test targets compile that source directly too.
