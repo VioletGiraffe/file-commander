@@ -31,7 +31,7 @@ jobs:
       tests_relevant: ${{ steps.filter.outputs.tests_relevant == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Detect test-relevant changes
       uses: dorny/paths-filter@v4
@@ -58,7 +58,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -307,7 +307,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -510,7 +510,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0 # required to access full history and tags
         fetch-tags: true
