@@ -4,7 +4,6 @@ lessThan(QT_MAJOR_VERSION, 6) {
 }
 
 CONFIG += staticlib
-CONFIG += strict_c++
 
 include(../global.pri)
 
@@ -14,31 +13,7 @@ Debug:OUTPUT_DIR=debug
 # This is so that all the tests link to the library automatically; harmless to anyone who doesn't use the libraries
 LIBS += -L$${PWD}/bin/$${OUTPUT_DIR} -lthin_io
 
-win*{
-	QMAKE_CXXFLAGS += /MP /Zi /wd4251
-	Debug:QMAKE_CXXFLAGS += /JMC
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-	QMAKE_CXXFLAGS_WARN_ON = -W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX _SCL_SECURE_NO_WARNINGS
-
-	QMAKE_LFLAGS += /DEBUG:FASTLINK
-
-	Debug:QMAKE_LFLAGS += /INCREMENTAL
-	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF
-
-	*msvc* {
-		QMAKE_CXXFLAGS += /FS
-	}
-}
-
-mac* | linux* | freebsd {
-	QMAKE_CFLAGS   += -pedantic-errors -std=c99
-	QMAKE_CXXFLAGS += -pedantic-errors
-	QMAKE_CXXFLAGS_WARN_ON *= -Wall
-
-	Release:DEFINES += NDEBUG=1
-	Debug:DEFINES += _DEBUG
-}
+mac* | linux* | freebsd: CONFIG += strict_c c99
 
 # cfilesearchengine.cpp uses SSE4.1 intrinsics, and gcc refuses to inline them without this. It belongs here
 # rather than with the core library target because the test targets compile that source directly too.

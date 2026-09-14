@@ -3,8 +3,9 @@
 ## Build system: qmake
 
 `file-commander.pro` is the authoritative project graph; each project `.pro` and included `.pri` file lists its
-sources and platform branches. `global.pri` selects C++23 and shared optimization flags. The supported floor is
-Qt 6.8+ with a C++23-capable compiler. Windows builds are x64 with MSVC 2022/v143.
+sources and platform branches. `global.pri` holds all shared compiler configuration; project files add only
+project-specific flags. The supported floor is Qt 6.8+ with a C++23-capable compiler. Windows builds are x64 with
+MSVC 2022/v143.
 
 Everything that links `core` also links `thin_io`, because core filesystem helpers and file operations call it.
 
@@ -21,8 +22,8 @@ test invocation, and release workflow.
 
 `file-commander-core/core-tests/core-tests.pro` builds the automated suite. The file-operation GUI tests are part of
 it but live with the UI sources in `qt-app/gui-tests/fileoperations/`. `core-tests/test-utils/` holds the shared
-helpers: temporary folder generation, random data, link creation, Qt/Catch2 glue. `qt-app/gui-tests/combobox/` is a
-manual harness. The project files are authoritative for the current test set.
+helpers: temporary folder generation, random data, link creation, Qt/Catch2 glue. The project files are authoritative
+for the current test set.
 
 `fileoperations_test` and `filecomparator_test` accept `--std-seed <seed>`. Cross-volume and case-sensitive-volume
 coverage use `FILE_COMMANDER_TEST_SECOND_VOLUME` and `FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME`; see the tests and

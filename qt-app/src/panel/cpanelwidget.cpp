@@ -57,6 +57,7 @@ RESTORE_COMPILER_WARNINGS
 #include <assert.h>
 #include <functional>
 #include <unordered_set>
+#include <utility>
 
 // Per-tab column layout and sort, keyed by the controller's tab ids; see saveTabViewStates().
 #define KEY_LPANEL_TAB_VIEW_STATES QSL("Ui/LPanel/TabViewStates")
@@ -803,7 +804,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 	const QString cdUpPath = CFileSystemObject(currentDirPathNative()).parentDirPath();
 	for (auto&& indexRange: selected)
 	{
-		auto indexList = indexRange.indexes();
+		const auto indexList = indexRange.indexes();
 		for (const auto& index: indexList)
 		{
 			const auto hash = hashBySortModelIndex(index);
@@ -1055,10 +1056,12 @@ void CPanelWidget::copySelectionToClipboard() const
 	QClipboard * clipBoard = QApplication::clipboard();
 	if (clipBoard)
 	{
-		QMimeData * data = _model->mimeData(mappedIndexes);
-		if (data)
-			data->setProperty("cut", false);
-		clipBoard->setMimeData(data);
+		QMimeData * mime = _model->mimeData(mappedIndexes);
+		if (mime)
+		{
+			mime->setProperty("cut", false);
+			clipBoard->setMimeData(mime);
+		}
 	}
 #else
 	const auto hashes = selectedItemsHashes();
@@ -1089,10 +1092,12 @@ void CPanelWidget::cutSelectionToClipboard() const
 	QClipboard * clipBoard = QApplication::clipboard();
 	if (clipBoard)
 	{
-		QMimeData * data = _model->mimeData(mappedIndexes);
-		if (data)
-			data->setProperty("cut", true);
-		clipBoard->setMimeData(data);
+		QMimeData * mime = _model->mimeData(mappedIndexes);
+		if (mime)
+		{
+			mime->setProperty("cut", true);
+			clipBoard->setMimeData(mime);
+		}
 	}
 #else
 	std::vector<std::wstring> paths;
@@ -1445,7 +1450,7 @@ QSortFilterProxyModel *CPanelWidget::sortModel() const
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
 {
-	auto selection = _selectionModel->selectedRows();
+	const auto selection = _selectionModel->selectedRows();
 	std::vector<qulonglong> result;
 
 	if (!selection.empty())
@@ -1496,7 +1501,7 @@ void CPanelWidget::copySelectedItemsPathsToClipboard() const
 	std::sort(selection.begin(), selection.end(), [](const QModelIndex& l, const QModelIndex& r) { return l.row() < r.row(); });
 
 	QString paths;
-	for (const auto& index : selection)
+	for (const auto& index : std::as_const(selection))
 	{
 		const CFileSystemObject item = _controller->itemByHash(_panelPosition, hashBySortModelIndex(index));
 		if (!item.isCdUp())

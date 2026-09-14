@@ -38,6 +38,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QShortcut>
 #include <QStatusBar>
 #include <QStringBuilder>
+#include <QStringDecoder>
 #include <QStyleHints>
 #include <QTextCharFormat>
 #include <QTextCodec>
@@ -49,7 +50,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <optional>
-#include <type_traits>
 #include <utility>
 
 // A NUL byte alone does not mean binary: decode() reads BOM-less UTF-16 and UTF-32 out of NUL-carrying input and
@@ -346,9 +346,8 @@ bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 {
 	encodingChanged("UTF-16");
-	static_assert (std::is_trivially_copyable_v<QChar>);
 	
-	const QString text = QString::fromUtf16(reinterpret_cast<const char16_t*>(fileData.constData()), fileData.size() / 2);
+	const QString text = QStringDecoder{ QStringDecoder::Utf16 }(fileData);
 	if (useFastMode)
 	{
 		setMode(Mode::Lightning);

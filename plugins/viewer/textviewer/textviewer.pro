@@ -6,11 +6,9 @@ greaterThan(QT_MAJOR_VERSION, 5) {
 	QT += core5compat
 }
 
-CONFIG += strict_c++
 CONFIG -= flat
 
 include(../../../global.pri)
-include(3rdparty/diegoiast/qutepart-cpp/syntaxhighlighter.pri)
 
 Release:OUTPUT_DIR=release
 Debug:OUTPUT_DIR=debug
@@ -23,38 +21,12 @@ RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L$${DESTDIR} -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
+LIBS += -L$${DESTDIR} -lqutepart -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
 
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 
-win*{
-	QMAKE_CXXFLAGS += /MP /Zi /wd4251
-	Debug:QMAKE_CXXFLAGS += /JMC
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-	QMAKE_CXXFLAGS_WARN_ON = -W4
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
-
-	!*msvc2013*:QMAKE_LFLAGS += /DEBUG:FASTLINK
-
-	Debug:QMAKE_LFLAGS += /INCREMENTAL
-	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF
-}
-
-linux*|mac*|freebsd{
-	QMAKE_CXXFLAGS += -pedantic-errors
-	QMAKE_CFLAGS += -pedantic-errors
-	QMAKE_CXXFLAGS_WARN_ON *= -Wall
-
-	Release:DEFINES += NDEBUG=1
-	Debug:DEFINES += _DEBUG
-}
-
-win32*:!*msvc2012:*msvc* {
-	QMAKE_CXXFLAGS += /FS
-}
-
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqutepart.a $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
 }
 
 INCLUDEPATH += \
@@ -66,6 +38,7 @@ INCLUDEPATH += \
 	../../../cpp-template-utils/3rdparty \ #stupid boost
 	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD \
+	$$PWD/3rdparty/diegoiast/qutepart-cpp \
 	$$PWD/src/
 
 HEADERS += \

@@ -26,7 +26,7 @@ namespace
 #endif
 
 // Length of the root prefix of a normalized path: "/" -> 1, "C:/" -> 3, "//server/share..." -> through the share name.
-qsizetype rootLength(const QString& path)
+qsizetype rootLength([[maybe_unused]] const QString& path)
 {
 #ifdef _WIN32
 	if (path.startsWith(QLatin1String("//")))

@@ -6,6 +6,11 @@ QT = core
 
 include(../../config.pri)
 
+# global.pri's LTO removed: only tests with benchmarks use LTO
+# MSVC keeps /GL: the tests linking this library link with LTCG
+QMAKE_CFLAGS   -= -flto=auto -ffat-lto-objects -flto=thin
+QMAKE_CXXFLAGS -= -flto=auto -ffat-lto-objects -flto=thin
+
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}

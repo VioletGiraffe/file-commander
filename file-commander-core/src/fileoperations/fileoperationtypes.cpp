@@ -76,7 +76,7 @@ std::expected<TransferRequest, RequestValidationError> makeTransferRequest(
 		if (root.proposedDestination.isStrictDescendantOf(root.source))
 			return std::unexpected{ RequestValidationError::DestinationInsideSource };
 	}
-	return mv(request);
+	return request;
 }
 
 std::expected<PermanentDeleteRequest, RequestValidationError> makePermanentDeleteRequest(const QStringList& rawSourcePaths)
