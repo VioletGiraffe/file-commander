@@ -10,7 +10,6 @@ CONFIG += strict_c++
 CONFIG -= flat
 
 include(../../../global.pri)
-include(3rdparty/diegoiast/qutepart-cpp/syntaxhighlighter.pri)
 
 Release:OUTPUT_DIR=release
 Debug:OUTPUT_DIR=debug
@@ -23,7 +22,7 @@ RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L$${DESTDIR} -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
+LIBS += -L$${DESTDIR} -lqutepart -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
 
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 
@@ -45,7 +44,7 @@ win32*:!*msvc2012:*msvc* {
 }
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqutepart.a $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
 }
 
 INCLUDEPATH += \
@@ -57,6 +56,7 @@ INCLUDEPATH += \
 	../../../cpp-template-utils/3rdparty \ #stupid boost
 	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD \
+	$$PWD/3rdparty/diegoiast/qutepart-cpp \
 	$$PWD/src/
 
 HEADERS += \
