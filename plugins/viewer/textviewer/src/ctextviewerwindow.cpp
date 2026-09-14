@@ -48,7 +48,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
-#include <algorithm>
 #include <optional>
 #include <utility>
 
@@ -57,21 +56,6 @@ RESTORE_COMPILER_WARNINGS
 [[nodiscard]] static inline bool isBinaryContent(const QByteArray& data)
 {
 	return isBinary(data) && CTextEncodingDetector::decode(data).text.isEmpty();
-}
-
-static inline bool isNonAscii(char16_t c)
-{
-	if (c >= 32 && c <= 126)
-		return false;
-	return c != '\n' && c != '\r' && c != '\t';
-}
-
-static inline qsizetype countNonAsciiChars(const QString& text)
-{
-	return (qsizetype)std::count_if(text.begin(), text.end(), [](QChar c) {
-		const auto code = c.unicode();
-		return isNonAscii(code);
-	});
 }
 
 CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
@@ -688,7 +672,7 @@ void CTextViewerWindow::setMode(Mode mode)
 
 void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 {
-	if (const auto size = text.size(); size < maxSizeForSyntaxHighlighting && countNonAsciiChars(text) < size / 10)
+	if (text.size() < maxSizeForSyntaxHighlighting)
 	{
 		const QString langId = Qutepart::chooseLanguageXmlFileName(_mimeType, QString(), _sourceFilePath, text.left(100));
 		qInfo() << "Language detected:" << langId;
