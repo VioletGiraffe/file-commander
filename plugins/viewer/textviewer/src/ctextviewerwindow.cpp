@@ -11,9 +11,9 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/diegoiast/qutepart-cpp/hl/syntax_highlighter.h>
-#include <3rdparty/diegoiast/qutepart-cpp/hl_factory.h>
-#include <3rdparty/diegoiast/qutepart-cpp/theme.h>
+#include <3rdparty/diegoiast/qutepart-cpp/include/qutepart/theme.h>
+#include <3rdparty/diegoiast/qutepart-cpp/src/hl/syntax_highlighter.h>
+#include <3rdparty/diegoiast/qutepart-cpp/src/hl_factory.h>
 
 #include <QAbstractScrollArea>
 #include <QAction>
@@ -173,7 +173,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 CTextViewerWindow::~CTextViewerWindow() = default;
 
 // The syntax highlighter is what this limits: past it the Lightning viewer shows plain text instead
-constexpr qsizetype maxSizeForSyntaxHighlighting = 1'000'000;
+constexpr qsizetype maxSizeForSyntaxHighlighting = 3'000'000; // 3 MB of .c code = 800 ms on Core i5-12500
 // detect() samples 256 KB whatever the input size, but the winning codec still decodes the whole file
 constexpr qsizetype maxSizeForEncodingDetection = 25'000'000;
 
@@ -688,7 +688,7 @@ void CTextViewerWindow::setMode(Mode mode)
 
 void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 {
-	if (const auto size = text.size(); size < 1'000'000 && countNonAsciiChars(text) < size / 10)
+	if (const auto size = text.size(); size < maxSizeForSyntaxHighlighting && countNonAsciiChars(text) < size / 10)
 	{
 		const QString langId = Qutepart::chooseLanguageXmlFileName(_mimeType, QString(), _sourceFilePath, text.left(100));
 		qInfo() << "Language detected:" << langId;
@@ -705,6 +705,7 @@ void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 	}
 
 	updateContentTypeLabel();
+
 	_sourceView->setPlainText(text);
 }
 

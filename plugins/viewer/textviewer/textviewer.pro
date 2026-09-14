@@ -38,7 +38,7 @@ INCLUDEPATH += \
 	../../../cpp-template-utils/3rdparty \ #stupid boost
 	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD \
-	$$PWD/3rdparty/diegoiast/qutepart-cpp \
+	$$PWD/3rdparty/diegoiast/qutepart-cpp/src \
 	$$PWD/src/
 
 HEADERS += \
