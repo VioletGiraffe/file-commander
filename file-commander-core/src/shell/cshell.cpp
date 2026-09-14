@@ -34,7 +34,9 @@ RESTORE_COMPILER_WARNINGS
 #include <wrl/client.h>
 #endif
 
-static std::pair<QString /* exe path */, QString /* args */> parseCommandAndArguments(const QString& cmdLine)
+namespace {
+
+std::pair<QString /* exe path */, QString /* args */> parseCommandAndArguments(const QString& cmdLine)
 {
 	QStringList argsList = QProcess::splitCommand(cmdLine);
 	assert_and_return_r(!argsList.empty(), {});
@@ -56,7 +58,7 @@ static std::pair<QString /* exe path */, QString /* args */> parseCommandAndArgu
 	return { std::move(cmd), std::move(argsString) };
 }
 
-static QString defaultShellExecutableCommand()
+QString defaultShellExecutableCommand()
 {
 #ifdef _WIN32
 	static constexpr const char* knownTerminals[][2]{
@@ -79,8 +81,8 @@ static QString defaultShellExecutableCommand()
 		{ "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal", nullptr },
 	};
 #else
-	#pragma message("unknown platform")
-	static constexpr const char* knownTerminals[][2] {
+#pragma message("unknown platform")
+	static constexpr const char* knownTerminals[][2]{
 		{ "", nullptr }
 	};
 #endif
@@ -94,6 +96,8 @@ static QString defaultShellExecutableCommand()
 
 	return {};
 }
+
+} // namespace
 
 std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 {
@@ -227,26 +231,30 @@ bool OsShell::runExecutable(const QString & command, const QString & parameters,
 #ifdef _WIN32
 using Microsoft::WRL::ComPtr;
 
+namespace {
+
 class CItemIdListReleaser {
 public:
-	explicit CItemIdListReleaser(ITEMIDLIST * idList) : _idList(idList) {}
+	explicit CItemIdListReleaser(PIDLIST_ABSOLUTE idList) : _idList(idList) {}
 	~CItemIdListReleaser() { if (_idList) CoTaskMemFree(_idList); }
 private:
-	ITEMIDLIST * _idList;
+	PIDLIST_ABSOLUTE _idList;
 };
 
 class CItemIdArrayReleaser {
 public:
-	explicit CItemIdArrayReleaser(const std::vector<ITEMIDLIST*>& idArray) : _array(idArray) {}
+	explicit CItemIdArrayReleaser(const std::vector<PIDLIST_ABSOLUTE>& idArray) : _array(idArray) {}
 	~CItemIdArrayReleaser() {
-		for (ITEMIDLIST* item: _array)
+		for (PIDLIST_ABSOLUTE item : _array)
 			CoTaskMemFree(item);
 	}
 
 	CItemIdArrayReleaser& operator=(const CItemIdArrayReleaser&) = delete;
 private:
-	const std::vector<ITEMIDLIST*>& _array;
+	const std::vector<PIDLIST_ABSOLUTE>& _array;
 };
+
+} // namespace
 
 static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, ComPtr<IContextMenu>& imenu);
 
@@ -350,13 +358,13 @@ std::wstring OsShell::toolTip(std::wstring itemPath)
 
 	std::replace(itemPath.begin(), itemPath.end(), '/', '\\');
 	std::wstring tipString;
-	ITEMIDLIST * id = nullptr;
+	PIDLIST_ABSOLUTE id = nullptr;
 	HRESULT result = SHParseDisplayName(itemPath.c_str(), nullptr, &id, 0, nullptr);
 	if (!SUCCEEDED(result) || !id)
 		return tipString;
 	CItemIdListReleaser idReleaser (id);
 
-	LPCITEMIDLIST child = nullptr;
+	PCIDLIST_ABSOLUTE child = nullptr;
 	ComPtr<IShellFolder> ifolder;
 	result = SHBindToParent(id, IID_IShellFolder, reinterpret_cast<void**>(ifolder.GetAddressOf()), &child);
 	if (!SUCCEEDED(result) || !child)
@@ -382,7 +390,7 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
 	assert_r(parentWindow);
-	std::vector<LPITEMIDLIST> idLists;
+	std::vector<PIDLIST_ABSOLUTE> idLists;
 
 	EXEC_ON_SCOPE_EXIT([&idLists] {
 		for (auto& pid : idLists)
@@ -393,7 +401,7 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 
 	for (const auto& path: items)
 	{
-		LPITEMIDLIST idl = ILCreateFromPathW(path.c_str());
+		PIDLIST_ABSOLUTE idl = ILCreateFromPathW(path.c_str());
 		if (!idl)
 		{
 			qInfo() << "ILCreateFromPathW" << "failed for path" << QString::fromStdWString(path);
@@ -469,7 +477,7 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 	CItemIdListReleaser idlistReleaser(idlist); // 'list' below points into it, so it must outlive the menu setup
 
 	ComPtr<IShellFolder> iFolder;
-	LPCITEMIDLIST list = nullptr;
+	PCIDLIST_ABSOLUTE list = nullptr;
 	HRESULT result = SHBindToParent(idlist, IID_IShellFolder, reinterpret_cast<void**>(iFolder.GetAddressOf()), &list);
 	if (!SUCCEEDED(result) || !list || !iFolder)
 		return false;
@@ -510,8 +518,8 @@ static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void
 	if (objects.empty())
 		return false;
 
-	std::vector<ITEMIDLIST*> ids;
-	std::vector<LPCITEMIDLIST> relativeIds;
+	std::vector<PIDLIST_ABSOLUTE> ids;
+	std::vector<PCIDLIST_ABSOLUTE> relativeIds;
 	ComPtr<IShellFolder> ifolder;
 	for (size_t i = 0, nItems = objects.size(); i < nItems; ++i)
 	{
