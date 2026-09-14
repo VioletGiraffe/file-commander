@@ -1,3 +1,5 @@
+# Every warning option goes in QMAKE_CFLAGS_WARN_ON / QMAKE_CXXFLAGS_WARN_ON so that CONFIG += warn_off can drop those variables
+
 CONFIG -= c++17
 CONFIG -= c++2a
 CONFIG += strict_c++ c++2b
