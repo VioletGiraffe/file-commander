@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789399731760,
+  "lastUpdate": 1789401190363,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -19843,6 +19843,85 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/9807a0e61b8ebccc5701d4432f3d2649ea8854c8"
         },
         "date": 1789399728401,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17269,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18076,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1392.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2106,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 778,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 414,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "125e36d24fed9b1b2fc31e782ad04e5a8b70bbe3",
+          "message": "Windows flags cleaned up; LTO for tests that have benchmarks",
+          "timestamp": "2026-09-14T18:48:02+03:00",
+          "tree_id": "1e7d81205729187c5e23cc68b9a59db5c28ae67e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/125e36d24fed9b1b2fc31e782ad04e5a8b70bbe3"
+        },
+        "date": 1789401187326,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
