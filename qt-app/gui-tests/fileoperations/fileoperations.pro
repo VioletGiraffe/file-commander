@@ -4,6 +4,12 @@ CONFIG += console
 
 include(../../../file-commander-core/config.pri)
 
+# global.pri's LTO removed: only tests with benchmarks use LTO
+# MSVC keeps /GL and /LTCG: linking the /GL-built qtutils, cpputils and thin_io forces LTCG
+QMAKE_CFLAGS   -= -flto=auto -ffat-lto-objects -flto=thin
+QMAKE_CXXFLAGS -= -flto=auto -ffat-lto-objects -flto=thin
+QMAKE_LFLAGS   -= -flto=auto -flto=thin
+
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
