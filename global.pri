@@ -36,3 +36,30 @@ mac*:Release {
 	QMAKE_CFLAGS   += -flto=thin
 	QMAKE_LFLAGS   += -flto=thin
 }
+
+linux*|mac*|freebsd{
+	QMAKE_CXXFLAGS += -std=c++2b
+	QMAKE_CXXFLAGS += -pedantic-errors
+	QMAKE_CFLAGS += -pedantic-errors
+
+	QMAKE_CXXFLAGS_WARN_ON *= -Wall -Wextra -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-qual -Wdouble-promotion
+	QMAKE_CXXFLAGS_WARN_ON *= -Wformat=2 -Wextra-semi -Wzero-as-null-pointer-constant -Wfloat-equal -Wredundant-decls -Wvla
+
+	QMAKE_CXXFLAGS *= -Werror=return-type -Werror=uninitialized -Werror=delete-non-virtual-dtor -Werror=address
+	QMAKE_CXXFLAGS *= -Werror=sizeof-pointer-div -Werror=sizeof-pointer-memaccess
+
+	contains(QMAKE_COMPILER, clang) {
+		QMAKE_CXXFLAGS_WARN_ON *= -Wshadow-all -Wcast-align -Wcomma -Wconditional-uninitialized -Wheader-hygiene -Wloop-analysis -Wextra-semi-stmt -Wunreachable-code-aggressive
+		QMAKE_CXXFLAGS_WARN_ON *= -Wshorten-64-to-32 -Wmissing-prototypes -Wmissing-variable-declarations -Wno-weak-vtables
+		QMAKE_CXXFLAGS *= -Werror=return-stack-address -Werror=infinite-recursion
+	} else {
+		QMAKE_CXXFLAGS_WARN_ON *= -Wshadow -Wcast-align=strict -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference
+		QMAKE_CXXFLAGS_WARN_ON *= -Wsuggest-override -Wnoexcept -Wmissing-declarations
+		QMAKE_CXXFLAGS *= -Werror=return-local-addr -Werror=memset-transposed-args -Werror=nonnull-compare -Werror=mismatched-new-delete -Werror=infinite-recursion
+		QMAKE_CXXFLAGS *= -Wcatch-value=3 -Werror=catch-value # -Werror=catch-value on its own would only enable level 1
+	}
+
+	Release:DEFINES += NDEBUG=1
+	Debug:DEFINES += _DEBUG
+}
+
