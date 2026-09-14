@@ -28,6 +28,9 @@ RESTORE_COMPILER_WARNINGS
 #include <semaphore>
 #include <thread>
 
+// The loadu/storeu intrinsics take unaligned memory through __m128i pointers
+DISABLE_CLANG_GCC_WARNING("-Wcast-align")
+
 // The name filter language: literal text, '*' for any run of characters, '?' for exactly one. A leading '^' or a
 // trailing '$' anchors that end of the match to the name's; an end left unanchored matches anywhere.
 [[nodiscard]] static QString nameFilterToRegex(QStringView filter)
@@ -68,10 +71,10 @@ static inline void replace_null(std::byte* array, size_t size) noexcept
 
 	for (size_t i = 0; i < size; i += 16)
 	{
-		__m128i data = _mm_loadu_si128(reinterpret_cast<__m128i*>(array + i));  // Load 16 bytes
-		__m128i mask = _mm_cmpeq_epi8(data, old_sse);           // Compare with old_value
-		__m128i result = _mm_blendv_epi8(data, new_sse, mask);  // Blend new_value where mask is true
-		_mm_storeu_si128(reinterpret_cast<__m128i*>(array + i), result); // Store the result back
+		__m128i data = _mm_loadu_si128(reinterpret_cast<__m128i*>(array + i));
+		__m128i mask = _mm_cmpeq_epi8(data, old_sse);
+		__m128i result = _mm_blendv_epi8(data, new_sse, mask);
+		_mm_storeu_si128(reinterpret_cast<__m128i*>(array + i), result);
 	}
 }
 
@@ -82,15 +85,15 @@ static inline void replace_null(std::byte* array, size_t size) noexcept
 // The array's length is a multiple of 16, so the final vector may overshoot size while staying inside the array.
 static inline void replace_null(std::byte* array, size_t size)
 {
-	uint8x16_t old_neon = vdupq_n_u8(0);  // Duplicate old_value across all 16 bytes in the vector
-	uint8x16_t new_neon = vdupq_n_u8(' ');  // Duplicate new_value across all 16 bytes in the vector
+	uint8x16_t old_neon = vdupq_n_u8(0);
+	uint8x16_t new_neon = vdupq_n_u8(' ');
 
 	for (size_t i = 0; i < size; i += 16)
 	{
-		uint8x16_t data = vld1q_u8(reinterpret_cast<const uint8_t*>(&array[i]));           // Load 16 bytes
-		uint8x16_t mask = vceqq_u8(data, old_neon);      // Compare with old_value
-		uint8x16_t result = vbslq_u8(mask, new_neon, data);  // Select new_value where mask is true, else original value
-		vst1q_u8(reinterpret_cast<uint8_t*>(&array[i]), result);                     // Store the result back
+		uint8x16_t data = vld1q_u8(reinterpret_cast<const uint8_t*>(&array[i]));
+		uint8x16_t mask = vceqq_u8(data, old_neon);
+		uint8x16_t result = vbslq_u8(mask, new_neon, data);
+		vst1q_u8(reinterpret_cast<uint8_t*>(&array[i]), result);
 	}
 }
 #endif
