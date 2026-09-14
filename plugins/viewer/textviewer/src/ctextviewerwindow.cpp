@@ -50,6 +50,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <new>
 #include <optional>
+#include <string_view>
 #include <utility>
 
 // A NUL byte alone does not mean binary: decode() reads BOM-less UTF-16 and UTF-32 out of NUL-carrying input and
@@ -331,8 +332,14 @@ bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 {
 	encodingChanged("UTF-16");
-	
-	const QString text = QStringDecoder{ QStringDecoder::Utf16 }(fileData);
+
+	// Byte order: a BOM first, then the NUL layout, as decode() detects it; the host's without either
+	QStringDecoder::Encoding byteOrder = QStringDecoder::Utf16;
+	const bool hasBom = fileData.startsWith("\xFF\xFE") || fileData.startsWith("\xFE\xFF");
+	if (const char* const wideEncoding = hasBom ? nullptr : CTextEncodingDetector::wideEncodingFromNulLayout(fileData))
+		byteOrder = std::string_view{ wideEncoding }.ends_with("BE") ? QStringDecoder::Utf16BE : QStringDecoder::Utf16LE;
+
+	const QString text = QStringDecoder{ byteOrder }(fileData);
 	if (useFastMode)
 	{
 		setMode(Mode::Lightning);
@@ -673,7 +680,7 @@ void CTextViewerWindow::setMode(Mode mode)
 
 void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 {
-	if (text.size() < maxSizeForSyntaxHighlighting)
+	if (text.size() <= maxSizeForSyntaxHighlighting)
 	{
 		const QString langId = Qutepart::chooseLanguageXmlFileName(_mimeType, QString(), _sourceFilePath, text.left(100));
 		qInfo() << "Language detected:" << langId;
