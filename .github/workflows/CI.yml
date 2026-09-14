@@ -519,17 +519,17 @@ jobs:
         fetch-tags: true
 
     - name: Download EXE
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: FileCommander.exe
         path: .
     - name: Download DMG
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: FileCommander.dmg
         path: .
     - name: Download AppImage
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: FileCommander.AppImage
         path: .
