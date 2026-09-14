@@ -4,9 +4,9 @@
 #include "detail/hashmap_helpers.h"
 
 
+DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
-DISABLE_COMPILER_WARNINGS
 #include <QAbstractItemModel>
 RESTORE_COMPILER_WARNINGS
 

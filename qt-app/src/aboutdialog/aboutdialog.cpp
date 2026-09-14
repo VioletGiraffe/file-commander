@@ -7,9 +7,9 @@
 #include "appdialogs/caboutdialog.h"
 
 
+DISABLE_COMPILER_WARNINGS
 #include <3rdparty/magic_enum/magic_enum.hpp>
 
-DISABLE_COMPILER_WARNINGS
 #include <QAbstractItemView>
 #include <QFontMetrics>
 #include <QLabel>

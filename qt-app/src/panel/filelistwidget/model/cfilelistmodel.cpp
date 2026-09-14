@@ -15,9 +15,9 @@
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 
 
+DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
-DISABLE_COMPILER_WARNINGS
 #include <QMimeData>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS

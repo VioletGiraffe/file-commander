@@ -28,9 +28,9 @@
 #include "widgets/widgetutils.h"
 
 
+DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
-DISABLE_COMPILER_WARNINGS
 #include "ui_cpanelwidget.h"
 
 #include <QClipboard>

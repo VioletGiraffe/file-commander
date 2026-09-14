@@ -7,6 +7,7 @@
 
 
 // Submodule includes
+#include "compiler/compiler_warnings_control.h"
 #include "historylist/chistorylist.h"
 #include "threading/cexecutionqueue.h"
 #include "threading/cthreadpool.h"
@@ -21,7 +22,9 @@ using FileSystemWatcher = CFileSystemWatcherWindows;
 using FileSystemWatcher = CFileSystemWatcherTimerBased;
 #endif
 
+DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
+RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
 #include <functional>

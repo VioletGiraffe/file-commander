@@ -4,9 +4,9 @@
 #include "filesystemhelperfunctions.h"
 
 
+DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
-DISABLE_COMPILER_WARNINGS
 #include <QDir>
 RESTORE_COMPILER_WARNINGS
 

@@ -3,7 +3,13 @@
 #include "fileoperationtypes.h"
 
 
+// Submodule includes
+#include "compiler/compiler_warnings_control.h"
+
+
+DISABLE_COMPILER_WARNINGS
 #include <3rdparty/magic_enum/magic_enum.hpp>
+RESTORE_COMPILER_WARNINGS
 
 #include <array>
 #include <chrono>

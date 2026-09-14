@@ -9,9 +9,9 @@
 #include "utility/callback_caller.hpp"
 
 
+DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
-DISABLE_COMPILER_WARNINGS
 #include <QIcon>
 #include <QImage>
 #include <QObject>
