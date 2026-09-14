@@ -110,20 +110,10 @@ FORMS += \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
 	src/filessearchdialog/cfilessearchwindow.ui
 
-
-DEFINES += _SCL_SECURE_NO_WARNINGS
-
 LIBS += -L$${DESTDIR} -lcore -lautoupdater -lqtutils -lcpputils -lthin_io
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32
-	QMAKE_CXXFLAGS += /MP /Zi /wd4251
-	Debug:QMAKE_CXXFLAGS += /JMC
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-	QMAKE_CXXFLAGS_WARN_ON = /W4
-
-	Debug:QMAKE_LFLAGS += /INCREMENTAL
-
 	RC_FILE = resources/file_commander.rc
 }
 
@@ -139,11 +129,6 @@ linux*|mac*|freebsd{
 	HEADERS += src/panel/filelistwidget/cfocusframestyle.h
 	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
 }
-
-win32*:*msvc* {
-	QMAKE_CXXFLAGS += /FS
-}
-
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libautoupdater.a $${DESTDIR}/libthin_io.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libcore.a

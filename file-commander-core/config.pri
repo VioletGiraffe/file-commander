@@ -13,20 +13,6 @@ Debug:OUTPUT_DIR=debug
 # This is so that all the tests link to the library automatically; harmless to anyone who doesn't use the libraries
 LIBS += -L$${PWD}/bin/$${OUTPUT_DIR} -lthin_io
 
-win*{
-	QMAKE_CXXFLAGS += /MP /Zi /wd4251
-	Debug:QMAKE_CXXFLAGS += /JMC
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-	QMAKE_CXXFLAGS_WARN_ON = -W4
-	DEFINES += _SCL_SECURE_NO_WARNINGS
-
-	Debug:QMAKE_LFLAGS += /INCREMENTAL
-
-	*msvc* {
-		QMAKE_CXXFLAGS += /FS
-	}
-}
-
 mac* | linux* | freebsd: CONFIG += strict_c c99
 
 # cfilesearchengine.cpp uses SSE4.1 intrinsics, and gcc refuses to inline them without this. It belongs here

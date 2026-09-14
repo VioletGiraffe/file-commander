@@ -27,14 +27,6 @@ DEFINES += PLUGIN_MODULE
 
 LIBS += -L$${DESTDIR} -lcore -limage-processing -lqtutils -lcpputils -lthin_io
 
-win*{
-	QMAKE_CXXFLAGS += /MP /Zi /wd4251
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-	QMAKE_CXXFLAGS_WARN_ON = -W4
-
-	Debug:QMAKE_LFLAGS += /INCREMENTAL
-}
-
 HEADERS += \
 	src/cimageviewerplugin.h \
 	src/cimageviewerwindow.h
@@ -42,10 +34,6 @@ HEADERS += \
 SOURCES += \
 	src/cimageviewerplugin.cpp \
 	src/cimageviewerwindow.cpp
-
-win32*:*msvc* {
-	QMAKE_CXXFLAGS += /FS
-}
 
 FORMS += \
 	src/cimageviewerwindow.ui

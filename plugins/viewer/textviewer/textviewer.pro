@@ -25,19 +25,6 @@ LIBS += -L$${DESTDIR} -lqutepart -lcore -lqtutils -ltext_encoding_detector -lcpp
 
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 
-win*{
-	QMAKE_CXXFLAGS += /MP /Zi /wd4251
-	Debug:QMAKE_CXXFLAGS += /JMC
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-	QMAKE_CXXFLAGS_WARN_ON = -W4
-
-	Debug:QMAKE_LFLAGS += /INCREMENTAL
-}
-
-win32*:*msvc* {
-	QMAKE_CXXFLAGS += /FS
-}
-
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libqutepart.a $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
 }

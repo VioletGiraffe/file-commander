@@ -3,8 +3,9 @@
 ## Build system: qmake
 
 `file-commander.pro` is the authoritative project graph; each project `.pro` and included `.pri` file lists its
-sources and platform branches. `global.pri` selects C++23 and shared optimization flags. The supported floor is
-Qt 6.8+ with a C++23-capable compiler. Windows builds are x64 with MSVC 2022/v143.
+sources and platform branches. `global.pri` holds all shared compiler configuration; project files add only
+project-specific flags. The supported floor is Qt 6.8+ with a C++23-capable compiler. Windows builds are x64 with
+MSVC 2022/v143.
 
 Everything that links `core` also links `thin_io`, because core filesystem helpers and file operations call it.
 

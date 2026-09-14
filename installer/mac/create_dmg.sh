@@ -12,7 +12,7 @@ QTPATH=$1
 
 rm -rf bin
 echo "${MYSELF}: Building the app"
-${QTPATH}/bin/qmake -spec macx-clang -r -config release CONFIG+=release "DEFINES+=NDEBUG"
+${QTPATH}/bin/qmake -spec macx-clang -r -config release CONFIG+=release
 make -j$(sysctl -n hw.ncpu)
 
 echo "${MYSELF}: deploying Qt frameworks"

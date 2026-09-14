@@ -20,9 +20,3 @@ MOC_DIR     = ../../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
-
-win*{
-	QMAKE_CXXFLAGS += /MP /Zi /FS
-	Debug:QMAKE_CXXFLAGS += /JMC
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-}

@@ -18,19 +18,6 @@ LIBS += -L$${DESTDIR} -lcore -lqtutils -lcpputils -lthin_io
 
 DEFINES += PLUGIN_MODULE
 
-win*{
-	QMAKE_CXXFLAGS += /MP /Zi /wd4251
-	Debug:QMAKE_CXXFLAGS += /JMC
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
-	QMAKE_CXXFLAGS_WARN_ON = -W4
-
-	Debug:QMAKE_LFLAGS += /INCREMENTAL
-}
-
-win32*:*msvc* {
-	QMAKE_CXXFLAGS += /FS
-}
-
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libthin_io.a
 }

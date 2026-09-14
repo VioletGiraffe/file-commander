@@ -7,10 +7,17 @@ mac* | linux* | freebsd {
 	CONFIG(debug, debug|release):CONFIG *= Debug
 }
 
+Release:DEFINES += NDEBUG=1
+Debug:DEFINES += _DEBUG
+
 mac*{
-	exists(/usr/local/bin/ccache):CONFIG += ccache
+	exists(/usr/local/bin/ccache)|exists(/opt/homebrew/bin/ccache):CONFIG += ccache
 
 	QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.3
+
+	contains(QMAKE_HOST.arch, arm64)|contains(QMAKE_APPLE_DEVICE_ARCHS, arm64) {
+		QMAKE_CXXFLAGS += -include arm_acle.h
+	}
 }
 
 linux*{
@@ -18,9 +25,13 @@ linux*{
 }
 
 win*{
-	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
-	QMAKE_CXXFLAGS += /utf-8
+	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX _SCL_SECURE_NO_WARNINGS
+	QMAKE_CXXFLAGS += /MP /Zi /FS /utf-8 /wd4251
+	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
+	QMAKE_CXXFLAGS_WARN_ON = /W4
 	QMAKE_LFLAGS += /DEBUG
+
+	Debug:QMAKE_CXXFLAGS += /JMC
 
 	Release:QMAKE_CXXFLAGS += /GL
 	Release:QMAKE_LFLAGS += /OPT:REF /OPT:ICF /TIME /LTCG:INCREMENTAL
@@ -60,8 +71,5 @@ linux*|mac*|freebsd{
 		QMAKE_CXXFLAGS *= -Werror=return-local-addr -Werror=memset-transposed-args -Werror=nonnull-compare -Werror=mismatched-new-delete -Werror=infinite-recursion
 		QMAKE_CXXFLAGS *= -Wcatch-value=3 -Werror=catch-value # -Werror=catch-value on its own would only enable level 1
 	}
-
-	Release:DEFINES += NDEBUG=1
-	Debug:DEFINES += _DEBUG
 }
 
