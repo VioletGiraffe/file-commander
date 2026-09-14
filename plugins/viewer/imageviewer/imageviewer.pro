@@ -32,8 +32,6 @@ win*{
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = -W4
 
-	!*msvc2013*:QMAKE_LFLAGS += /DEBUG:FASTLINK
-
 	Debug:QMAKE_LFLAGS += /INCREMENTAL
 }
 
@@ -45,7 +43,7 @@ SOURCES += \
 	src/cimageviewerplugin.cpp \
 	src/cimageviewerwindow.cpp
 
-win32*:!*msvc2012:*msvc* {
+win32*:*msvc* {
 	QMAKE_CXXFLAGS += /FS
 }
 
