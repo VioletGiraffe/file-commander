@@ -20,3 +20,6 @@
 [submodule "thin_io"]
 	path = thin_io
 	url = https://github.com/VioletGiraffe/thin_io
+[submodule "code-editor"]
+	path = code-editor
+	url = https://github.com/VioletGiraffe/code-editor
