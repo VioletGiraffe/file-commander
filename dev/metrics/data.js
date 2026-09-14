@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789387026560,
+  "lastUpdate": 1789389268239,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -19320,6 +19320,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 777,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 414,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "31b370d5eecd053055c86f09baeea19cdc5a38cd",
+          "message": "qtutils: unused qxt removed from the repo",
+          "timestamp": "2026-09-14T15:27:18+03:00",
+          "tree_id": "9ff3167a89da8350ad9ac51cf621658c4bc482df",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/31b370d5eecd053055c86f09baeea19cdc5a38cd"
+        },
+        "date": 1789389265338,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17264,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18065,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1393,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2105.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 778.5,
             "unit": "KB"
           },
           {
