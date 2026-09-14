@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789406109091,
+  "lastUpdate": 1789408404560,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -20243,6 +20243,85 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (app)",
             "value": 17269,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18076,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1392.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 202.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2106,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 778,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 414,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "01cfe475ab3ab41ecfd8fd4b4f2d7a133c2d6baf",
+          "message": "Windows warning fixed; anonymous namespace for the local helpers",
+          "timestamp": "2026-09-14T20:46:16+03:00",
+          "tree_id": "b1fe7b0caabfb2de561c6d8caea7a699ea35e6c9",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/01cfe475ab3ab41ecfd8fd4b4f2d7a133c2d6baf"
+        },
+        "date": 1789408399718,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17273,
             "unit": "LOC"
           },
           {
