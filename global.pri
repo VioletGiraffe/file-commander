@@ -29,6 +29,12 @@ win*{
 	QMAKE_CXXFLAGS += /MP /Zi /FS /utf-8 /wd4251
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	QMAKE_CXXFLAGS_WARN_ON = /W4
+	QMAKE_CXXFLAGS += /we4715 /we4716 # not all control paths return a value / must return a value
+	QMAKE_CXXFLAGS += /we4172         # returning address of local variable or temporary
+	QMAKE_CXXFLAGS += /we4700         # uninitialized local variable used
+	QMAKE_CXXFLAGS += /we4477         # printf format string does not match the argument
+	QMAKE_CXXFLAGS += /we4551         # function call missing argument list
+	QMAKE_CXXFLAGS += /we4552 /we4553 # operator has no effect; did you intend '='?
 	QMAKE_LFLAGS += /DEBUG
 
 	Debug:QMAKE_CXXFLAGS += /JMC
