@@ -54,7 +54,7 @@ linux*|mac*|freebsd{
 		QMAKE_CXXFLAGS *= -Werror=return-stack-address -Werror=infinite-recursion
 	} else {
 		QMAKE_CXXFLAGS_WARN_ON *= -Wshadow -Wcast-align=strict -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference
-		QMAKE_CXXFLAGS_WARN_ON *= -Wsuggest-override -Wnoexcept -Wmissing-declarations -Wmismatched-tags -Wunused-const-variable=1
+		QMAKE_CXXFLAGS_WARN_ON *= -Wsuggest-override -Wmissing-declarations -Wmismatched-tags -Wunused-const-variable=1
 		QMAKE_CXXFLAGS *= -Werror=return-local-addr -Werror=memset-transposed-args -Werror=nonnull-compare -Werror=mismatched-new-delete -Werror=infinite-recursion
 		QMAKE_CXXFLAGS *= -Wcatch-value=3 -Werror=catch-value # -Werror=catch-value on its own would only enable level 1
 	}
