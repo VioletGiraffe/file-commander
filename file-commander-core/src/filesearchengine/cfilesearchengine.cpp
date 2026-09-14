@@ -83,7 +83,7 @@ static inline void replace_null(std::byte* array, size_t size) noexcept
 #include <arm_neon.h>
 
 // The array's length is a multiple of 16, so the final vector may overshoot size while staying inside the array.
-static inline void replace_null(std::byte* array, size_t size)
+static inline void replace_null(std::byte* array, size_t size) noexcept
 {
 	uint8x16_t old_neon = vdupq_n_u8(0);
 	uint8x16_t new_neon = vdupq_n_u8(' ');
