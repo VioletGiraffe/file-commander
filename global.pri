@@ -49,7 +49,7 @@ linux*|mac*|freebsd{
 
 	contains(QMAKE_COMPILER, clang) {
 		QMAKE_CXXFLAGS_WARN_ON *= -Wshadow-all -Wcast-align -Wcomma -Wconditional-uninitialized -Wheader-hygiene -Wloop-analysis -Wextra-semi-stmt -Wunreachable-code-aggressive
-		QMAKE_CXXFLAGS_WARN_ON *= -Wshorten-64-to-32 -Wmissing-prototypes -Wmissing-variable-declarations -Wno-weak-vtables
+		QMAKE_CXXFLAGS_WARN_ON *= -Wshorten-64-to-32 -Wmissing-prototypes -Wmissing-variable-declarations
 		QMAKE_CXXFLAGS_WARN_ON *= -Wimplicit-fallthrough -Wsuggest-override
 		QMAKE_CXXFLAGS *= -Werror=return-stack-address -Werror=infinite-recursion
 	} else {
