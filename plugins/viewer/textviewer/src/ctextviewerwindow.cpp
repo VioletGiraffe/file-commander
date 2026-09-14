@@ -48,6 +48,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
+#include <new>
 #include <optional>
 #include <utility>
 
