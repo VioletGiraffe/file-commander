@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789598028877,
+  "lastUpdate": 1789600971870,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -20930,6 +20930,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 38.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2ea4c384bf4a67785bb41887006d0b6b17edcd30",
+          "message": "CSV viewer: comment detection heuristic adjusted",
+          "timestamp": "2026-09-17T02:16:19+03:00",
+          "tree_id": "11145e2ca13027b2d799a338b1c9cbe13939a8cd",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2ea4c384bf4a67785bb41887006d0b6b17edcd30"
+        },
+        "date": 1789600967405,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17934,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18075,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1392.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2126.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 350.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 777,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 414.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39,
             "unit": "KB"
           },
           {
