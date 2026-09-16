@@ -209,30 +209,30 @@ bool CTextViewerWindow::loadTextFile(const QString& file)
 
 bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool useFastMode)
 {
-	const auto result = decodeText(fileData);
-	if (result && !result->text.isEmpty())
+	const auto result = CTextEncodingDetector::decodeWithLocaleFallback(fileData);
+	if (!result.text.isEmpty())
 	{
 		if (useFastMode)
 		{
 			// Use the fast plain text mode
 			setMode(Mode::Lightning);
-			_lightningViewer->setText(result->text);
+			_lightningViewer->setText(result.text);
 		}
 		else
 		{
 			setMode(Mode::Source);
-			setTextAndApplyHighlighter(result->text);
+			setTextAndApplyHighlighter(result.text);
 		}
 
-		encodingChanged(result->encoding, result->language);
+		encodingChanged(result.encoding, result.language);
 		// Guess which matching encoding could be marked as selected in the menu
-		if (result->encoding.compare("utf-8", Qt::CaseInsensitive) == 0)
+		if (result.encoding.compare("utf-8", Qt::CaseInsensitive) == 0)
 			setViewAsAction(_utf8Action);
-		else if (result->encoding.startsWith(QStringLiteral("UTF-16"), Qt::CaseInsensitive))
+		else if (result.encoding.startsWith(QStringLiteral("UTF-16"), Qt::CaseInsensitive))
 			setViewAsAction(_utf16Action);
-		else if (result->encoding.compare(QStringLiteral("ISO-8859-1"), Qt::CaseInsensitive) == 0)
+		else if (result.encoding.compare(QStringLiteral("ISO-8859-1"), Qt::CaseInsensitive) == 0)
 			setViewAsAction(_asciiAction); // The ASCII action decodes as Latin-1
-		else if (const auto systemCodecName = QTextCodec::codecForLocale()->name(); result->encoding.compare(systemCodecName, Qt::CaseInsensitive) == 0)
+		else if (const auto systemCodecName = QTextCodec::codecForLocale()->name(); result.encoding.compare(systemCodecName, Qt::CaseInsensitive) == 0)
 			setViewAsAction(_systemLocaleAction);
 		else
 			setViewAsAction(nullptr);
@@ -358,14 +358,14 @@ bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 
 bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 {
-	const auto result = decodeText(fileData);
-	if (!result || (result->text.isEmpty() && !fileData.isEmpty()))
+	const auto result = CTextEncodingDetector::decodeWithLocaleFallback(fileData);
+	if (result.text.isEmpty() && !fileData.isEmpty())
 		return false;
 
 	setMode(Mode::Rich);
 	// Relative image paths resolve against the document URL
 	_richView->document()->setMetaInformation(QTextDocument::DocumentUrl, QUrl::fromLocalFile(_sourceFilePath).toString());
-	_richView->setHtml(result->text);
+	_richView->setHtml(result.text);
 	setViewAsAction(_htmlAction);
 	return true;
 }
@@ -435,22 +435,6 @@ std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
 	}
 
 	return std::optional{ std::move(textData) };
-}
-
-std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeText(const QByteArray& textData)
-{
-	auto result = CTextEncodingDetector::decode(textData);
-	if (!result.encoding.isEmpty() || !result.text.isEmpty())
-		return result;
-
-	QTextCodec *codec = QTextCodec::codecForLocale();
-	if (!codec)
-		return {};
-
-	result.encoding = codec->name();
-	result.language = {};
-	result.text = codec->toUnicode(textData);
-	return result;
 }
 
 std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeUnicodeText(const QByteArray& textData)
