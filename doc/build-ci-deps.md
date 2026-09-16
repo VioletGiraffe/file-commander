@@ -21,7 +21,8 @@ test invocation, and release workflow.
 ## Tests
 
 `file-commander-core/core-tests/core-tests.pro` builds the automated suite. The file-operation GUI tests are part of
-it but live with the UI sources in `qt-app/gui-tests/fileoperations/`. `core-tests/test-utils/` holds the shared
+it but live with the UI sources in `qt-app/gui-tests/fileoperations/`; the CSV viewer's parser and model tests likewise
+live in `plugins/viewer/csvviewer/tests/`. `core-tests/test-utils/` holds the shared
 helpers: temporary folder generation, random data, link creation, Qt/Catch2 glue. The project files are authoritative
 for the current test set.
 

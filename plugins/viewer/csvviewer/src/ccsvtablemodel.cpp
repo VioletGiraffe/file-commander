@@ -5,14 +5,19 @@
 
 
 #include <algorithm>
+#include <cmath>
 #include <numeric>
+#include <optional>
 #include <utility>
 
-static bool isNumber(QStringView text) noexcept
+// Empty for NaN: it is unordered, so a sort comparator must never see it as a number
+static std::optional<double> toNumber(QStringView text) noexcept
 {
 	bool ok = false;
-	(void)text.toDouble(&ok);
-	return ok;
+	const double number = text.toDouble(&ok);
+	if (!ok || std::isnan(number))
+		return {};
+	return number;
 }
 
 CCsvTableModel::CCsvTableModel(QObject* parent) :
@@ -53,7 +58,7 @@ bool CCsvTableModel::firstRowLooksLikeHeader() const
 			const QStringView text = _table.cell(row, column);
 			if (text.isEmpty())
 				continue;
-			if (!isNumber(text))
+			if (!toNumber(text))
 				return false;
 			hasNumbers = true;
 		}
@@ -64,7 +69,7 @@ bool CCsvTableModel::firstRowLooksLikeHeader() const
 	for (size_t column = 0; column < _table.columnCount; ++column)
 	{
 		const QStringView text = _table.cell(0, column);
-		if (text.isEmpty() || isNumber(text))
+		if (text.isEmpty() || toNumber(text))
 			return false;
 
 		hasNumericColumn = hasNumericColumn || columnIsNumeric(column);
@@ -98,7 +103,7 @@ QVariant CCsvTableModel::data(const QModelIndex& index, int role) const
 		return {};
 	}
 	case Qt::TextAlignmentRole:
-		if (isNumber(cellText(index.row(), index.column())))
+		if (toNumber(cellText(index.row(), index.column())))
 			return (Qt::AlignRight | Qt::AlignVCenter).toInt();
 		return {};
 	default:
@@ -136,25 +141,17 @@ void CCsvTableModel::sort(int column, Qt::SortOrder order)
 		const auto sortColumn = static_cast<size_t>(column);
 
 		// Parsed once per row: the comparator runs n*log(n) times
-		struct Key {
-			double number;
-			bool isNumber;
-		};
-		std::vector<Key> keyByTableRow(_table.rowCount());
-		for (size_t row = 0; row < keyByTableRow.size(); ++row)
-		{
-			bool ok = false;
-			const double number = _table.cell(row, sortColumn).toDouble(&ok);
-			keyByTableRow[row] = { number, ok };
-		}
+		std::vector<std::optional<double>> numberByTableRow(_table.rowCount());
+		for (size_t row = 0; row < numberByTableRow.size(); ++row)
+			numberByTableRow[row] = toNumber(_table.cell(row, sortColumn));
 
 		const auto lessThan = [&](size_t a, size_t b) {
-			const Key& keyA = keyByTableRow[a];
-			const Key& keyB = keyByTableRow[b];
-			if (keyA.isNumber && keyB.isNumber)
-				return keyA.number < keyB.number;
-			if (keyA.isNumber != keyB.isNumber)
-				return keyA.isNumber;
+			const std::optional<double>& numberA = numberByTableRow[a];
+			const std::optional<double>& numberB = numberByTableRow[b];
+			if (numberA && numberB)
+				return *numberA < *numberB;
+			if (numberA.has_value() != numberB.has_value())
+				return numberA.has_value();
 			return _table.cell(a, sortColumn).compare(_table.cell(b, sortColumn), Qt::CaseInsensitive) < 0;
 		};
 

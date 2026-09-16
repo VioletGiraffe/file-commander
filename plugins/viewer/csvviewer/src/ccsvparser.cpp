@@ -126,6 +126,7 @@ CsvTable parseCsv(QString text, QChar delimiter, bool skipCommentLines)
 			continue;
 		}
 
+		const QChar* const rowBegin = rp;
 		const size_t rowStart = table.cells.size();
 		table.rowStarts.push_back(rowStart);
 
@@ -170,10 +171,11 @@ CsvTable parseCsv(QString text, QChar delimiter, bool skipCommentLines)
 				break;
 		}
 
+		// Blank means nothing consumed: a line holding only "" is a row with one empty value
+		const bool isBlankLine = rp == rowBegin;
 		skipLineBreak();
 
-		// A blank line parses as one empty cell
-		if (table.cells.size() == rowStart + 1 && table.cells.back().length == 0)
+		if (isBlankLine)
 		{
 			table.cells.pop_back();
 			table.rowStarts.pop_back();
