@@ -18,8 +18,10 @@ DISABLE_COMPILER_WARNINGS
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPalette>
 #include <QShortcut>
 #include <QStatusBar>
+#include <QStyledItemDelegate>
 #include <QTableView>
 RESTORE_COMPILER_WARNINGS
 
@@ -50,6 +52,32 @@ QString delimiterName(QChar delimiter)
 	return QString{ delimiter };
 }
 
+class CCommentRowDelegate final : public QStyledItemDelegate
+{
+public:
+	using QStyledItemDelegate::QStyledItemDelegate;
+
+	// Zero width: a comment spans the row, so its length must not widen the first column
+	[[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
+	{
+		QSize hint = QStyledItemDelegate::sizeHint(option, index);
+		if (index.data(CCsvTableModel::CommentRowRole).toBool())
+			hint.setWidth(0);
+		return hint;
+	}
+
+protected:
+	void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
+	{
+		QStyledItemDelegate::initStyleOption(option, index);
+		if (!index.data(CCsvTableModel::CommentRowRole).toBool())
+			return;
+
+		option->font.setItalic(true);
+		option->palette.setColor(QPalette::Text, option->palette.color(QPalette::PlaceholderText));
+	}
+};
+
 } // namespace
 
 CCsvViewerWindow::CCsvViewerWindow(QWidget* parent) noexcept :
@@ -59,6 +87,9 @@ CCsvViewerWindow::CCsvViewerWindow(QWidget* parent) noexcept :
 {
 	setCentralWidget(_tableView);
 	_tableView->setModel(_model);
+	_tableView->setItemDelegate(new CCommentRowDelegate(_tableView));
+	// Spans keep their row numbers through a reset; every change that moves a comment row is a reset
+	connect(_model, &QAbstractItemModel::modelReset, this, &CCsvViewerWindow::spanCommentRows);
 	_tableView->setWordWrap(false);
 	_tableView->setAlternatingRowColors(true);
 	_tableView->horizontalHeader()->setMaximumSectionSize(fontMetrics().averageCharWidth() * 100);
@@ -77,8 +108,8 @@ CCsvViewerWindow::CCsvViewerWindow(QWidget* parent) noexcept :
 	QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
 	_firstRowIsHeaderAction = viewMenu->addAction(tr("First row is &header"), this, [this](bool checked) { _model->setFirstRowIsHeader(checked); });
 	_firstRowIsHeaderAction->setCheckable(true);
-	_skipCommentLinesAction = viewMenu->addAction(tr("Skip &comment lines (#)"), this, [this] { reload(); });
-	_skipCommentLinesAction->setCheckable(true);
+	_commentLinesAction = viewMenu->addAction(tr("Show # lines as &comments"), this, [this] { reload(); });
+	_commentLinesAction->setCheckable(true);
 
 	QMenu* delimiterMenu = viewMenu->addMenu(tr("&Delimiter"));
 	_delimiterMenuAction = delimiterMenu->menuAction();
@@ -117,7 +148,7 @@ void CCsvViewerWindow::configureForQuickView()
 	// The menu bar stays with this window, which is never shown, so the table offers the applicable actions instead.
 	// None carries a shortcut, so none competes with the main window's.
 	_tableView->addAction(_firstRowIsHeaderAction);
-	_tableView->addAction(_skipCommentLinesAction);
+	_tableView->addAction(_commentLinesAction);
 	_tableView->addAction(_delimiterMenuAction);
 	_tableView->setContextMenuPolicy(Qt::ActionsContextMenu);
 }
@@ -134,8 +165,8 @@ bool CCsvViewerWindow::reload(CommentLines commentLines)
 	auto decoded = CTextEncodingDetector::decodeWithLocaleFallback(file.readAll());
 
 	if (commentLines == CommentLines::Detect)
-		_skipCommentLinesAction->setChecked(csvHasCommentLines(decoded.text));
-	const bool skipCommentLines = _skipCommentLinesAction->isChecked();
+		_commentLinesAction->setChecked(csvHasCommentLines(decoded.text));
+	const bool recognizeCommentLines = _commentLinesAction->isChecked();
 
 	QChar delimiter;
 	if (const QString chosenDelimiter = _delimiterGroup->checkedAction()->data().toString(); !chosenDelimiter.isEmpty())
@@ -143,9 +174,9 @@ bool CCsvViewerWindow::reload(CommentLines commentLines)
 	else if (_filePath.endsWith(QStringLiteral(".tsv"), Qt::CaseInsensitive))
 		delimiter = u'\t';
 	else
-		delimiter = detectCsvDelimiter(decoded.text, skipCommentLines);
+		delimiter = detectCsvDelimiter(decoded.text, recognizeCommentLines);
 
-	_model->setTable(parseCsv(std::move(decoded.text), delimiter, skipCommentLines));
+	_model->setTable(parseCsv(std::move(decoded.text), delimiter, recognizeCommentLines));
 
 	const bool firstRowIsHeader = _model->firstRowLooksLikeHeader();
 	_model->setFirstRowIsHeader(firstRowIsHeader);
@@ -155,12 +186,27 @@ bool CCsvViewerWindow::reload(CommentLines commentLines)
 	_tableView->resizeColumnsToContents(); // Samples resizeContentsPrecision() rows, not the whole table
 
 	const CsvTable& table = _model->table();
-	QString status = tr("%L1 rows, %L2 columns").arg(table.rowCount()).arg(table.columnCount);
-	if (table.commentLineCount > 0)
-		status += tr(", %L1 comment lines skipped").arg(table.commentLineCount);
+	QString status = tr("%L1 rows, %L2 columns").arg(table.rowCount() - table.commentRowCount).arg(table.columnCount);
+	if (table.commentRowCount > 0)
+		status += tr(", %L1 comment lines").arg(table.commentRowCount);
 	status += tr(" | %1 | delimiter: %2").arg(decoded.encoding, delimiterName(delimiter));
 	statusBar()->showMessage(status);
 	return true;
+}
+
+void CCsvViewerWindow::spanCommentRows()
+{
+	_tableView->clearSpans();
+
+	const int columnCount = _model->columnCount();
+	if (columnCount < 2) // Qt rejects a single-cell span
+		return;
+
+	for (int row = 0, rowCount = _model->rowCount(); row < rowCount; ++row)
+	{
+		if (_model->isCommentRow(row))
+			_tableView->setSpan(row, 0, 1, columnCount);
+	}
 }
 
 QWidget* CCsvViewerWindow::dialogParent() const

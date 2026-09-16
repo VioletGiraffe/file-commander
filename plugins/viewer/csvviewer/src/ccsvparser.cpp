@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <map>
 #include <utility>
 
 QStringView CsvTable::cell(size_t row, size_t column) const noexcept
@@ -31,13 +32,17 @@ static void forEachNonBlankLine(QStringView text, Fn&& onLine)
 
 bool csvHasCommentLines(QStringView text)
 {
-	size_t commentLines = 0, dataLines = 0;
+	const QChar delimiter = detectCsvDelimiter(text, true);
+
+	size_t dataLines = 0;
 	bool commentsAreLeadingBlock = true;
 	bool dataContainsHash = false;
+	std::vector<qsizetype> delimiterCountByCommentLine;
+	std::map<qsizetype, size_t> dataLinesByDelimiterCount;
 	forEachNonBlankLine(text, [&](QStringView line) {
 		if (line.startsWith(commentPrefix))
 		{
-			++commentLines;
+			delimiterCountByCommentLine.push_back(line.count(delimiter));
 			if (dataLines > 0)
 				commentsAreLeadingBlock = false;
 		}
@@ -47,12 +52,24 @@ bool csvHasCommentLines(QStringView text)
 			return false;
 		}
 		else
+		{
 			++dataLines;
+			++dataLinesByDelimiterCount[line.count(delimiter)];
+		}
 
 		return true;
 	});
 
-	return !dataContainsHash && commentLines > 0 && dataLines > 0 && (commentsAreLeadingBlock || commentLines * 10 <= dataLines);
+	const size_t commentLines = delimiterCountByCommentLine.size();
+	if (dataContainsHash || commentLines == 0 || dataLines == 0)
+		return false;
+
+	if (commentsAreLeadingBlock || commentLines * 10 <= dataLines)
+		return true;
+
+	const qsizetype dataDelimiterCount = std::ranges::max_element(dataLinesByDelimiterCount, {}, &std::pair<const qsizetype, size_t>::second)->first;
+	const auto misshapenComments = std::ranges::count_if(delimiterCountByCommentLine, [dataDelimiterCount](qsizetype count) { return count != dataDelimiterCount; });
+	return static_cast<size_t>(misshapenComments) * 2 > commentLines;
 }
 
 QChar detectCsvDelimiter(QStringView text, bool skipCommentLines)
@@ -98,7 +115,7 @@ QChar detectCsvDelimiter(QStringView text, bool skipCommentLines)
 	return stats[best].total > 0 ? QChar{ candidates[best] } : QChar{ u',' };
 }
 
-CsvTable parseCsv(QString text, QChar delimiter, bool skipCommentLines)
+CsvTable parseCsv(QString text, QChar delimiter, bool recognizeCommentLines)
 {
 	static constexpr QChar quote = u'"', cr = u'\r', lf = u'\n';
 
@@ -118,17 +135,23 @@ CsvTable parseCsv(QString text, QChar delimiter, bool skipCommentLines)
 
 	while (rp < end)
 	{
-		if (skipCommentLines && *rp == commentPrefix)
+		if (recognizeCommentLines && *rp == commentPrefix)
 		{
-			rp = std::find_if(rp, end, [](QChar c) { return c == cr || c == lf; });
+			QChar* const lineEnd = std::find_if(rp, end, [](QChar c) { return c == cr || c == lf; });
+			table.rowStarts.push_back(table.cells.size());
+			table.cells.push_back({ rp - begin, lineEnd - rp });
+			table.isCommentRow.push_back(true);
+			++table.commentRowCount;
+
+			rp = lineEnd;
 			skipLineBreak();
-			++table.commentLineCount;
 			continue;
 		}
 
 		const QChar* const rowBegin = rp;
 		const size_t rowStart = table.cells.size();
 		table.rowStarts.push_back(rowStart);
+		table.isCommentRow.push_back(false);
 
 		for (;;)
 		{
@@ -179,6 +202,7 @@ CsvTable parseCsv(QString text, QChar delimiter, bool skipCommentLines)
 		{
 			table.cells.pop_back();
 			table.rowStarts.pop_back();
+			table.isCommentRow.pop_back();
 		}
 		else
 			table.columnCount = std::max(table.columnCount, table.cells.size() - rowStart);

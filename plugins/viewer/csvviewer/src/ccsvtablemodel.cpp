@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numeric>
 #include <optional>
 #include <utility>
 
@@ -29,6 +28,17 @@ void CCsvTableModel::setTable(CsvTable table)
 {
 	beginResetModel();
 	_table = std::move(table);
+
+	_firstDataTableRow.reset();
+	for (size_t row = 0; row < _table.rowCount(); ++row)
+	{
+		if (!_table.isCommentRow[row])
+		{
+			_firstDataTableRow = row;
+			break;
+		}
+	}
+
 	resetRowOrder();
 	endResetModel();
 }
@@ -46,14 +56,22 @@ void CCsvTableModel::setFirstRowIsHeader(bool isHeader)
 
 bool CCsvTableModel::firstRowLooksLikeHeader() const
 {
-	if (_table.rowCount() < 2)
+	if (!_firstDataTableRow)
 		return false;
 
-	constexpr size_t sampleRows = 100;
-	const size_t sampleEnd = std::min(_table.rowCount(), 1 + sampleRows);
+	const size_t headerRow = *_firstDataTableRow;
+
+	constexpr size_t maxSampleRows = 100;
+	std::vector<size_t> sampleRows;
+	for (size_t row = headerRow + 1; row < _table.rowCount() && sampleRows.size() < maxSampleRows; ++row)
+	{
+		if (!_table.isCommentRow[row])
+			sampleRows.push_back(row);
+	}
+
 	const auto columnIsNumeric = [&](size_t column) {
 		bool hasNumbers = false;
-		for (size_t row = 1; row < sampleEnd; ++row)
+		for (size_t row : sampleRows)
 		{
 			const QStringView text = _table.cell(row, column);
 			if (text.isEmpty())
@@ -68,7 +86,7 @@ bool CCsvTableModel::firstRowLooksLikeHeader() const
 	bool hasNumericColumn = false;
 	for (size_t column = 0; column < _table.columnCount; ++column)
 	{
-		const QStringView text = _table.cell(0, column);
+		const QStringView text = _table.cell(headerRow, column);
 		if (text.isEmpty() || toNumber(text))
 			return false;
 
@@ -76,6 +94,11 @@ bool CCsvTableModel::firstRowLooksLikeHeader() const
 	}
 
 	return hasNumericColumn;
+}
+
+bool CCsvTableModel::isCommentRow(int row) const noexcept
+{
+	return _table.isCommentRow[_tableRowByModelRow[static_cast<size_t>(row)]];
 }
 
 int CCsvTableModel::rowCount(const QModelIndex& parent) const
@@ -106,6 +129,8 @@ QVariant CCsvTableModel::data(const QModelIndex& index, int role) const
 		if (toNumber(cellText(index.row(), index.column())))
 			return (Qt::AlignRight | Qt::AlignVCenter).toInt();
 		return {};
+	case CommentRowRole:
+		return isCommentRow(index.row());
 	default:
 		return {};
 	}
@@ -117,7 +142,10 @@ QVariant CCsvTableModel::headerData(int section, Qt::Orientation orientation, in
 		return {};
 
 	if (orientation == Qt::Horizontal)
-		return _firstRowIsHeader ? QVariant{ _table.cell(0, static_cast<size_t>(section)).toString() } : QVariant{ section + 1 };
+	{
+		const std::optional<size_t> headerRow = headerTableRow();
+		return headerRow ? QVariant{ _table.cell(*headerRow, static_cast<size_t>(section)).toString() } : QVariant{ section + 1 };
+	}
 
 	// The row's position in the file, 1-based like a spreadsheet: stays meaningful after sorting
 	return static_cast<qulonglong>(_tableRowByModelRow[static_cast<size_t>(section)] + 1);
@@ -127,6 +155,15 @@ void CCsvTableModel::sort(int column, Qt::SortOrder order)
 {
 	assert_and_return_r(column >= -1 && column < columnCount(), );
 
+	// Entering or leaving a sort hides or shows the comment rows: a row count change, which a layout change cannot carry
+	if (_table.commentRowCount > 0 && (column >= 0) != _isSorted)
+	{
+		beginResetModel();
+		arrangeRows(column, order);
+		endResetModel();
+		return;
+	}
+
 	emit layoutAboutToBeChanged({}, QAbstractItemModel::VerticalSortHint);
 
 	const QModelIndexList persistentIndexes = persistentIndexList();
@@ -134,32 +171,7 @@ void CCsvTableModel::sort(int column, Qt::SortOrder order)
 	if (!persistentIndexes.isEmpty())
 		previousOrder = _tableRowByModelRow;
 
-	if (column < 0)
-		resetRowOrder();
-	else
-	{
-		const auto sortColumn = static_cast<size_t>(column);
-
-		// Parsed once per row: the comparator runs n*log(n) times
-		std::vector<std::optional<double>> numberByTableRow(_table.rowCount());
-		for (size_t row = 0; row < numberByTableRow.size(); ++row)
-			numberByTableRow[row] = toNumber(_table.cell(row, sortColumn));
-
-		const auto lessThan = [&](size_t a, size_t b) {
-			const std::optional<double>& numberA = numberByTableRow[a];
-			const std::optional<double>& numberB = numberByTableRow[b];
-			if (numberA && numberB)
-				return *numberA < *numberB;
-			if (numberA.has_value() != numberB.has_value())
-				return numberA.has_value();
-			return _table.cell(a, sortColumn).compare(_table.cell(b, sortColumn), Qt::CaseInsensitive) < 0;
-		};
-
-		if (order == Qt::AscendingOrder)
-			std::stable_sort(_tableRowByModelRow.begin(), _tableRowByModelRow.end(), lessThan);
-		else
-			std::stable_sort(_tableRowByModelRow.begin(), _tableRowByModelRow.end(), [&lessThan](size_t a, size_t b) { return lessThan(b, a); });
-	}
+	arrangeRows(column, order);
 
 	if (!persistentIndexes.isEmpty())
 	{
@@ -183,9 +195,56 @@ QStringView CCsvTableModel::cellText(int row, int column) const noexcept
 	return _table.cell(_tableRowByModelRow[static_cast<size_t>(row)], static_cast<size_t>(column));
 }
 
+std::optional<size_t> CCsvTableModel::headerTableRow() const noexcept
+{
+	return _firstRowIsHeader ? _firstDataTableRow : std::nullopt;
+}
+
+void CCsvTableModel::arrangeRows(int column, Qt::SortOrder order)
+{
+	if (column < 0)
+	{
+		resetRowOrder();
+		return;
+	}
+
+	if (!_isSorted)
+		std::erase_if(_tableRowByModelRow, [this](size_t row) { return _table.isCommentRow[row]; });
+	_isSorted = true;
+
+	const auto sortColumn = static_cast<size_t>(column);
+
+	// Parsed once per row: the comparator runs n*log(n) times
+	std::vector<std::optional<double>> numberByTableRow(_table.rowCount());
+	for (size_t row : _tableRowByModelRow)
+		numberByTableRow[row] = toNumber(_table.cell(row, sortColumn));
+
+	const auto lessThan = [&](size_t a, size_t b) {
+		const std::optional<double>& numberA = numberByTableRow[a];
+		const std::optional<double>& numberB = numberByTableRow[b];
+		if (numberA && numberB)
+			return *numberA < *numberB;
+		if (numberA.has_value() != numberB.has_value())
+			return numberA.has_value();
+		return _table.cell(a, sortColumn).compare(_table.cell(b, sortColumn), Qt::CaseInsensitive) < 0;
+	};
+
+	if (order == Qt::AscendingOrder)
+		std::stable_sort(_tableRowByModelRow.begin(), _tableRowByModelRow.end(), lessThan);
+	else
+		std::stable_sort(_tableRowByModelRow.begin(), _tableRowByModelRow.end(), [&lessThan](size_t a, size_t b) { return lessThan(b, a); });
+}
+
 void CCsvTableModel::resetRowOrder()
 {
-	const size_t firstDataRow = _firstRowIsHeader && _table.rowCount() > 0 ? 1 : 0;
-	_tableRowByModelRow.resize(_table.rowCount() - firstDataRow);
-	std::iota(_tableRowByModelRow.begin(), _tableRowByModelRow.end(), firstDataRow);
+	_isSorted = false;
+
+	const std::optional<size_t> headerRow = headerTableRow();
+	_tableRowByModelRow.clear();
+	_tableRowByModelRow.reserve(_table.rowCount());
+	for (size_t row = 0; row < _table.rowCount(); ++row)
+	{
+		if (row != headerRow)
+			_tableRowByModelRow.push_back(row);
+	}
 }

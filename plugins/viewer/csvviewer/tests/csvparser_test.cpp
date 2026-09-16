@@ -14,9 +14,9 @@ RESTORE_COMPILER_WARNINGS
 
 using Rows = std::vector<std::vector<std::string>>;
 
-static CsvTable parse(const std::string& text, QChar delimiter = u',', bool skipCommentLines = false)
+static CsvTable parse(const std::string& text, QChar delimiter = u',', bool recognizeCommentLines = false)
 {
-	return parseCsv(QString::fromStdString(text), delimiter, skipCommentLines);
+	return parseCsv(QString::fromStdString(text), delimiter, recognizeCommentLines);
 }
 
 // Each row's own cells, not padded to columnCount: ragged rows stay visible
@@ -145,26 +145,28 @@ TEST_CASE("parseCsv: only the chosen delimiter splits", "[csv][parser]")
 
 TEST_CASE("parseCsv: comment lines", "[csv][parser][comments]")
 {
-	SECTION("Skipped lines do not form rows or widen the table")
+	SECTION("A comment is one row holding its whole line; it does not widen the table")
 	{
 		const CsvTable table = parse("#c1\na,b\n# c2, with, delimiters\nc,d\n#last", u',', true);
-		CHECK(rowsOf(table) == Rows{ { "a", "b" }, { "c", "d" } });
-		CHECK(table.commentLineCount == 3);
+		CHECK(rowsOf(table) == Rows{ { "#c1" }, { "a", "b" }, { "# c2, with, delimiters" }, { "c", "d" }, { "#last" } });
+		CHECK(table.isCommentRow == std::vector<bool>{ true, false, true, false, true });
+		CHECK(table.commentRowCount == 3);
 		CHECK(table.columnCount == 2);
 	}
 
-	SECTION("Every line break style ends a comment")
+	SECTION("Every line break style ends a comment, and none is part of its text")
 	{
 		const CsvTable table = parse("#crlf\r\na\r\n#lf\nb\n#cr\rc", u',', true);
-		CHECK(rowsOf(table) == Rows{ { "a" }, { "b" }, { "c" } });
-		CHECK(table.commentLineCount == 3);
+		CHECK(rowsOf(table) == Rows{ { "#crlf" }, { "a" }, { "#lf" }, { "b" }, { "#cr" }, { "c" } });
+		CHECK(table.commentRowCount == 3);
 	}
 
-	SECTION("Not skipped when disabled")
+	SECTION("Plain data when not recognized")
 	{
 		const CsvTable table = parse("#x,y", u',', false);
 		CHECK(rowsOf(table) == Rows{ { "#x", "y" } });
-		CHECK(table.commentLineCount == 0);
+		CHECK(table.isCommentRow == std::vector<bool>{ false });
+		CHECK(table.commentRowCount == 0);
 	}
 
 	SECTION("Only a # as the first character of a row starts a comment")
@@ -172,28 +174,35 @@ TEST_CASE("parseCsv: comment lines", "[csv][parser][comments]")
 		CHECK(rowsOf(parse("a,#b", u',', true)) == Rows{ { "a", "#b" } });
 		CHECK(rowsOf(parse(" #b", u',', true)) == Rows{ { " #b" } });
 		CHECK(rowsOf(parse("\"#a\",b", u',', true)) == Rows{ { "#a", "b" } });
+		CHECK(parse("a,#b\n #b\n\"#a\",b", u',', true).commentRowCount == 0);
 	}
 
 	SECTION("A quote in a comment does not open a field")
 	{
 		const CsvTable table = parse("# say \"hi\na,b", u',', true);
-		CHECK(rowsOf(table) == Rows{ { "a", "b" } });
-		CHECK(table.commentLineCount == 1);
+		CHECK(rowsOf(table) == Rows{ { "# say \"hi" }, { "a", "b" } });
+		CHECK(table.commentRowCount == 1);
 	}
 
 	SECTION("A # line inside a quoted field is data")
 	{
 		const CsvTable table = parse("\"x\n#y\",z\n#c", u',', true);
-		CHECK(rowsOf(table) == Rows{ { "x\n#y", "z" } });
-		CHECK(table.commentLineCount == 1);
+		CHECK(rowsOf(table) == Rows{ { "x\n#y", "z" }, { "#c" } });
+		CHECK(table.isCommentRow == std::vector<bool>{ false, true });
 	}
 
-	SECTION("A file of only comments and blank lines")
+	SECTION("Blank lines between comments are still skipped")
 	{
-		const CsvTable table = parse("#\n\n#,,,\r\n", u',', true);
-		CHECK(table.rowCount() == 0);
+		const CsvTable table = parse("#\n\n#,,,\r\n\r\n", u',', true);
+		CHECK(rowsOf(table) == Rows{ { "#" }, { "#,,," } });
+		CHECK(table.isCommentRow == std::vector<bool>{ true, true });
 		CHECK(table.columnCount == 0);
-		CHECK(table.commentLineCount == 2);
+	}
+
+	SECTION("Escapes before a comment do not shift its text")
+	{
+		const CsvTable table = parse("\"a\"\"b\"\n#note\n\"c\"\"\"", u',', true);
+		CHECK(rowsOf(table) == Rows{ { "a\"b" }, { "#note" }, { "c\"" } });
 	}
 }
 
@@ -302,8 +311,37 @@ TEST_CASE("csvHasCommentLines", "[csv][comments]")
 
 	SECTION("A trailing block is scattered, not leading")
 	{
-		CHECK_FALSE(hasCommentLines("x,y\n#end"));
-		CHECK(hasCommentLines(repeated("x,y\n", 10) + "#end"));
+		CHECK_FALSE(hasCommentLines("x\n#end"));
+		CHECK(hasCommentLines(repeated("x\n", 10) + "#end"));
+	}
+
+	SECTION("Comments shaped unlike the data, however many")
+	{
+		// Section markers after a column header row, over a tenth of the data lines
+		const std::string text = "experiment,lcn,size\n"
+			"# volume I:: cluster 4096 B, 244055039 clusters\n"
+			"# experiment grid\n"
+			+ repeated("move,1,2\n", 3)
+			+ "# experiment small\r\n"
+			+ repeated("move,3,4\r\n", 2);
+		CHECK(hasCommentLines(text));
+	}
+
+	SECTION("A # column shaped like the data stays data")
+	{
+		CHECK_FALSE(hasCommentLines("id,color\n" + repeated("#ff0000,red\nx,blue\n", 5)));
+	}
+
+	SECTION("More than half of the # lines must be misshapen")
+	{
+		CHECK_FALSE(hasCommentLines("a,b\n#x,y\n#p\n" + repeated("c,d\n", 3)));
+		CHECK(hasCommentLines("a,b\n#x,y\n#p\n#q\n" + repeated("c,d\n", 3)));
+	}
+
+	SECTION("The data shape is the most common one, not the first")
+	{
+		CHECK(hasCommentLines("a\n" + repeated("b,c\n", 5) + "#x\n" + repeated("d,e\n", 3)));
+		CHECK_FALSE(hasCommentLines("a\n" + repeated("b,c\n", 5) + "#x,y\n" + repeated("d,e\n", 3)));
 	}
 
 	SECTION("Leading block plus scattered comments: the ratio applies to all of them")

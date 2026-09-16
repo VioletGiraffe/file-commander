@@ -8,6 +8,7 @@
 DISABLE_COMPILER_WARNINGS
 #include "3rdparty/catch2/catch.hpp"
 
+#include <QObject>
 #include <QPersistentModelIndex>
 RESTORE_COMPILER_WARNINGS
 
@@ -16,9 +17,9 @@ RESTORE_COMPILER_WARNINGS
 
 using Strings = std::vector<std::string>;
 
-static CsvTable parse(const std::string& text)
+static CsvTable parse(const std::string& text, bool recognizeCommentLines = false)
 {
-	return parseCsv(QString::fromStdString(text), u',', false);
+	return parseCsv(QString::fromStdString(text), u',', recognizeCommentLines);
 }
 
 static std::string displayText(const CCsvTableModel& model, int row, int column)
@@ -47,10 +48,21 @@ static Strings verticalHeadersOf(const CCsvTableModel& model)
 	return headers;
 }
 
-static bool looksLikeHeader(const std::string& text)
+static std::vector<int> commentRowsOf(const CCsvTableModel& model)
+{
+	std::vector<int> rows;
+	for (int row = 0; row < model.rowCount(); ++row)
+	{
+		if (model.isCommentRow(row))
+			rows.push_back(row);
+	}
+	return rows;
+}
+
+static bool looksLikeHeader(const std::string& text, bool recognizeCommentLines = false)
 {
 	CCsvTableModel model;
-	model.setTable(parse(text));
+	model.setTable(parse(text, recognizeCommentLines));
 	return model.firstRowLooksLikeHeader();
 }
 
@@ -269,4 +281,115 @@ TEST_CASE("CCsvTableModel: numbers are right-aligned", "[csv][model]")
 	CHECK_FALSE(alignment(1).isValid());
 	CHECK_FALSE(alignment(2).isValid());
 	CHECK_FALSE(alignment(3).isValid());
+}
+
+TEST_CASE("CCsvTableModel: comment rows", "[csv][model][comments]")
+{
+	CCsvTableModel model;
+
+	SECTION("In file order, the text in the first column")
+	{
+		model.setTable(parse("#top\na,1\n#mid\nb,2", true));
+		CHECK(model.rowCount() == 4);
+		CHECK(model.columnCount() == 2);
+		CHECK(commentRowsOf(model) == std::vector<int>{ 0, 2 });
+		CHECK(model.index(0, 0).data(CCsvTableModel::CommentRowRole).toBool());
+		CHECK_FALSE(model.index(1, 0).data(CCsvTableModel::CommentRowRole).toBool());
+		CHECK(displayText(model, 0, 0) == "#top");
+		CHECK(displayText(model, 0, 1).empty());
+		CHECK(verticalHeadersOf(model) == Strings{ "1", "2", "3", "4" });
+	}
+
+	SECTION("The header is the first non-comment row")
+	{
+		CHECK(looksLikeHeader("# meta\n# more\nname,age\nbob,30", true));
+
+		model.setTable(parse("# meta\n# more\nname,age\nbob,30", true));
+		model.setFirstRowIsHeader(true);
+		CHECK(horizontalHeaderOf(model, 0) == "name");
+		CHECK(columnOf(model, 0) == Strings{ "# meta", "# more", "bob" });
+		CHECK(commentRowsOf(model) == std::vector<int>{ 0, 1 });
+		CHECK(verticalHeadersOf(model) == Strings{ "1", "2", "4" });
+	}
+
+	SECTION("Header detection samples data rows only")
+	{
+		CHECK(looksLikeHeader("name,score\n#note\nbob,7", true));
+		// The 100th data row is the 150th row below the header
+		CHECK_FALSE(looksLikeHeader("name,score\n" + repeated("x,1\n", 99) + repeated("#c\n", 50) + "x,oops\n", true));
+	}
+
+	SECTION("Nothing but comments")
+	{
+		model.setTable(parse("#a\n#b", true));
+		CHECK_FALSE(model.firstRowLooksLikeHeader());
+		model.setFirstRowIsHeader(true);
+		CHECK(commentRowsOf(model) == std::vector<int>{ 0, 1 });
+	}
+
+	SECTION("Sorting hides them, clearing the sort restores them")
+	{
+		model.setTable(parse("#top\n3\n#mid\n1\n2", true));
+
+		model.sort(0, Qt::AscendingOrder);
+		CHECK(columnOf(model, 0) == Strings{ "1", "2", "3" });
+		CHECK(commentRowsOf(model).empty());
+		CHECK(verticalHeadersOf(model) == Strings{ "4", "5", "2" });
+
+		model.sort(0, Qt::DescendingOrder);
+		CHECK(columnOf(model, 0) == Strings{ "3", "2", "1" });
+
+		model.sort(-1, Qt::AscendingOrder);
+		CHECK(columnOf(model, 0) == Strings{ "#top", "3", "#mid", "1", "2" });
+		CHECK(commentRowsOf(model) == std::vector<int>{ 0, 2 });
+		CHECK(verticalHeadersOf(model) == Strings{ "1", "2", "3", "4", "5" });
+	}
+
+	SECTION("Changing the header row while sorted restores them")
+	{
+		model.setTable(parse("#c\nval\n3\n1", true));
+		model.setFirstRowIsHeader(true);
+		model.sort(0, Qt::AscendingOrder);
+		CHECK(columnOf(model, 0) == Strings{ "1", "3" });
+
+		model.setFirstRowIsHeader(false);
+		CHECK(columnOf(model, 0) == Strings{ "#c", "val", "3", "1" });
+		CHECK(commentRowsOf(model) == std::vector<int>{ 0 });
+	}
+
+	SECTION("Only entering or leaving a sort resets the model, and only when there are comment rows")
+	{
+		int resets = 0;
+		QObject::connect(&model, &QAbstractItemModel::modelReset, [&resets] { ++resets; });
+
+		model.setTable(parse("#c\n3\n1", true));
+		resets = 0;
+		model.sort(0, Qt::AscendingOrder);
+		CHECK(resets == 1);
+		model.sort(0, Qt::DescendingOrder);
+		CHECK(resets == 1);
+		model.sort(-1, Qt::AscendingOrder);
+		CHECK(resets == 2);
+		model.sort(-1, Qt::AscendingOrder);
+		CHECK(resets == 2);
+
+		model.setTable(parse("3\n1", true));
+		resets = 0;
+		model.sort(0, Qt::AscendingOrder);
+		model.sort(-1, Qt::AscendingOrder);
+		CHECK(resets == 0);
+	}
+
+	SECTION("Persistent indexes follow their rows when re-sorting while sorted")
+	{
+		model.setTable(parse("#c\n3,x\n1,y\n2,z", true));
+		model.sort(0, Qt::AscendingOrder);
+
+		const QPersistentModelIndex xCell{ model.index(2, 1) };
+		REQUIRE(xCell.data().toString().toStdString() == "x");
+
+		model.sort(0, Qt::DescendingOrder);
+		CHECK(xCell.row() == 0);
+		CHECK(xCell.data().toString().toStdString() == "x");
+	}
 }

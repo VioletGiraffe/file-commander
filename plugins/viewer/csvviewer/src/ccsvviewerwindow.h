@@ -22,6 +22,7 @@ private:
 
 	// Re-reads the file: the parser unescapes the text in place, so a delimiter change cannot re-parse what is loaded
 	bool reload(CommentLines commentLines = CommentLines::AsChecked);
+	void spanCommentRows();
 	// In quick view this window is never shown; only the widget knows the window that actually displays it.
 	[[nodiscard]] QWidget* dialogParent() const;
 
@@ -30,7 +31,7 @@ private:
 	QTableView* _tableView = nullptr;
 	CCsvTableModel* _model = nullptr;
 	QAction* _firstRowIsHeaderAction = nullptr;
-	QAction* _skipCommentLinesAction = nullptr;
+	QAction* _commentLinesAction = nullptr;
 	QAction* _delimiterMenuAction = nullptr;
 	QActionGroup* _delimiterGroup = nullptr; // An action's data is its delimiter; empty for auto-detection
 };
