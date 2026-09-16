@@ -18,14 +18,12 @@ QStringView CsvTable::cell(size_t row, size_t column) const noexcept
 template <typename Fn>
 static void forEachNonBlankLine(QStringView text, Fn&& onLine)
 {
-	for (qsizetype lineStart = 0; lineStart < text.size();)
+	// CRLF splits into a line and a blank one, which is skipped
+	for (auto lineStart = text.begin(); lineStart < text.end();)
 	{
-		qsizetype lineEnd = text.indexOf(u'\n', lineStart);
-		if (lineEnd < 0)
-			lineEnd = text.size();
-
-		const QStringView line = text.mid(lineStart, lineEnd - lineStart);
-		lineStart = lineEnd + 1;
+		const auto lineEnd = std::find_if(lineStart, text.end(), [](QChar c) { return c == u'\r' || c == u'\n'; });
+		const QStringView line{ lineStart, lineEnd };
+		lineStart = lineEnd == text.end() ? lineEnd : lineEnd + 1;
 		if (!line.trimmed().isEmpty() && !onLine(line))
 			return;
 	}

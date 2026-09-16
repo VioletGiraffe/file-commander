@@ -22,7 +22,8 @@ public:
 	void setTable(CsvTable table);
 	// The first table row becomes the horizontal header instead of a data row; also drops the current sort
 	void setFirstRowIsHeader(bool isHeader);
-	// Row 0 has cells, and every one is non-empty and non-numeric
+	// Row 0 cells are all non-empty text, and some column below it holds only numbers (empty cells aside).
+	// An all-text table has no header: nothing tells a header from data.
 	[[nodiscard]] bool firstRowLooksLikeHeader() const;
 	[[nodiscard]] const CsvTable& table() const noexcept { return _table; }
 

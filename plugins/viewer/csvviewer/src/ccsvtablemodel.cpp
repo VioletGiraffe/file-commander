@@ -41,17 +41,36 @@ void CCsvTableModel::setFirstRowIsHeader(bool isHeader)
 
 bool CCsvTableModel::firstRowLooksLikeHeader() const
 {
-	if (_table.rowCount() == 0)
+	if (_table.rowCount() < 2)
 		return false;
 
+	constexpr size_t sampleRows = 100;
+	const size_t sampleEnd = std::min(_table.rowCount(), 1 + sampleRows);
+	const auto columnIsNumeric = [&](size_t column) {
+		bool hasNumbers = false;
+		for (size_t row = 1; row < sampleEnd; ++row)
+		{
+			const QStringView text = _table.cell(row, column);
+			if (text.isEmpty())
+				continue;
+			if (!isNumber(text))
+				return false;
+			hasNumbers = true;
+		}
+		return hasNumbers;
+	};
+
+	bool hasNumericColumn = false;
 	for (size_t column = 0; column < _table.columnCount; ++column)
 	{
 		const QStringView text = _table.cell(0, column);
 		if (text.isEmpty() || isNumber(text))
 			return false;
+
+		hasNumericColumn = hasNumericColumn || columnIsNumeric(column);
 	}
 
-	return true;
+	return hasNumericColumn;
 }
 
 int CCsvTableModel::rowCount(const QModelIndex& parent) const
