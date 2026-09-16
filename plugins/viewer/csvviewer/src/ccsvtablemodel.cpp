@@ -11,7 +11,7 @@
 static bool isNumber(QStringView text) noexcept
 {
 	bool ok = false;
-	text.toDouble(&ok);
+	(void)text.toDouble(&ok);
 	return ok;
 }
 

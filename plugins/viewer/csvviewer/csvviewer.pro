@@ -20,6 +20,7 @@ INCLUDEPATH += \
 	../../../qtutils \
 	../../../cpputils \
 	../../../cpp-template-utils \
+	../../../cpp-template-utils/3rdparty \
 	../../../text-encoding-detector/text-encoding-detector/src \
 	$$PWD/src/
 
