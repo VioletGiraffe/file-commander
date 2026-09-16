@@ -53,7 +53,7 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 | Process launching and command output | `file-commander-core/src/shell/`, `qt-app/src/commandoutput/` |
 | Native plugin API and loader | `file-commander-core/src/plugininterface/`, `pluginengine/` |
 | Shipped plugins | `plugins/viewer/`, `plugins/tools/` |
-| Build and test graph | `file-commander.pro`, `file-commander-core/core-tests/core-tests.pro`, `qt-app/gui-tests/` |
+| Build and test graph | `file-commander.pro`, `file-commander-core/core-tests/core-tests.pro`, `qt-app/gui-tests/`, `plugins/viewer/csvviewer/tests/` |
 
 ## Invariants to carry into code reading
 
