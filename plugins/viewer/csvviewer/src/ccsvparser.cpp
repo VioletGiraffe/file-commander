@@ -14,7 +14,50 @@ QStringView CsvTable::cell(size_t row, size_t column) const noexcept
 	return QStringView{ text }.mid(c.offset, c.length);
 }
 
-QChar detectCsvDelimiter(QStringView text)
+// Calls onLine(QStringView line) for each non-blank line, until it returns false
+template <typename Fn>
+static void forEachNonBlankLine(QStringView text, Fn&& onLine)
+{
+	for (qsizetype lineStart = 0; lineStart < text.size();)
+	{
+		qsizetype lineEnd = text.indexOf(u'\n', lineStart);
+		if (lineEnd < 0)
+			lineEnd = text.size();
+
+		const QStringView line = text.mid(lineStart, lineEnd - lineStart);
+		lineStart = lineEnd + 1;
+		if (!line.trimmed().isEmpty() && !onLine(line))
+			return;
+	}
+}
+
+bool csvHasCommentLines(QStringView text)
+{
+	size_t commentLines = 0, dataLines = 0;
+	bool commentsAreLeadingBlock = true;
+	bool dataContainsHash = false;
+	forEachNonBlankLine(text, [&](QStringView line) {
+		if (line.startsWith(commentPrefix))
+		{
+			++commentLines;
+			if (dataLines > 0)
+				commentsAreLeadingBlock = false;
+		}
+		else if (line.contains(commentPrefix))
+		{
+			dataContainsHash = true;
+			return false;
+		}
+		else
+			++dataLines;
+
+		return true;
+	});
+
+	return !dataContainsHash && commentLines > 0 && dataLines > 0 && (commentsAreLeadingBlock || commentLines * 10 <= dataLines);
+}
+
+QChar detectCsvDelimiter(QStringView text, bool skipCommentLines)
 {
 	static constexpr std::array candidates{ u',', u';', u'\t', u'|' };
 	constexpr int sampleLines = 20;
@@ -27,16 +70,9 @@ QChar detectCsvDelimiter(QStringView text)
 	std::array<Stats, candidates.size()> stats{};
 
 	int lines = 0;
-	for (qsizetype lineStart = 0; lineStart < text.size() && lines < sampleLines;)
-	{
-		qsizetype lineEnd = text.indexOf(u'\n', lineStart);
-		if (lineEnd < 0)
-			lineEnd = text.size();
-
-		const QStringView line = text.mid(lineStart, lineEnd - lineStart);
-		lineStart = lineEnd + 1;
-		if (line.trimmed().isEmpty())
-			continue;
+	forEachNonBlankLine(text, [&](QStringView line) {
+		if (skipCommentLines && line.startsWith(commentPrefix))
+			return true;
 
 		++lines;
 		for (size_t i = 0; i < candidates.size(); ++i)
@@ -49,7 +85,9 @@ QChar detectCsvDelimiter(QStringView text)
 				s.consistent = false;
 			s.total += count;
 		}
-	}
+
+		return lines < sampleLines;
+	});
 
 	const auto rank = [&stats](size_t index) { return std::pair{ stats[index].total > 0 && stats[index].consistent, stats[index].total }; };
 	size_t best = 0;
@@ -62,9 +100,9 @@ QChar detectCsvDelimiter(QStringView text)
 	return stats[best].total > 0 ? QChar{ candidates[best] } : QChar{ u',' };
 }
 
-CsvTable parseCsv(QString text, QChar delimiter)
+CsvTable parseCsv(QString text, QChar delimiter, bool skipCommentLines)
 {
-	constexpr QChar quote = u'"', cr = u'\r', lf = u'\n';
+	static constexpr QChar quote = u'"', cr = u'\r', lf = u'\n';
 
 	CsvTable table;
 	table.text = std::move(text);
@@ -72,8 +110,24 @@ CsvTable parseCsv(QString text, QChar delimiter)
 	QChar* const end = begin + table.text.size();
 
 	QChar* rp = begin; // read cursor
+	// CRLF, LF, lone CR, or the end of input
+	const auto skipLineBreak = [&rp, end] {
+		if (rp < end && *rp == cr)
+			++rp;
+		if (rp < end && *rp == lf)
+			++rp;
+	};
+
 	while (rp < end)
 	{
+		if (skipCommentLines && *rp == commentPrefix)
+		{
+			rp = std::find_if(rp, end, [](QChar c) { return c == cr || c == lf; });
+			skipLineBreak();
+			++table.commentLineCount;
+			continue;
+		}
+
 		const size_t rowStart = table.cells.size();
 		table.rowStarts.push_back(rowStart);
 
@@ -118,11 +172,7 @@ CsvTable parseCsv(QString text, QChar delimiter)
 				break;
 		}
 
-		// CRLF, LF, lone CR, or the end of input
-		if (rp < end && *rp == cr)
-			++rp;
-		if (rp < end && *rp == lf)
-			++rp;
+		skipLineBreak();
 
 		// A blank line parses as one empty cell
 		if (table.cells.size() == rowStart + 1 && table.cells.back().length == 0)

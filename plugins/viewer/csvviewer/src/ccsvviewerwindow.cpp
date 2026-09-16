@@ -77,6 +77,8 @@ CCsvViewerWindow::CCsvViewerWindow(QWidget* parent) noexcept :
 	QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
 	_firstRowIsHeaderAction = viewMenu->addAction(tr("First row is &header"), this, [this](bool checked) { _model->setFirstRowIsHeader(checked); });
 	_firstRowIsHeaderAction->setCheckable(true);
+	_skipCommentLinesAction = viewMenu->addAction(tr("Skip &comment lines (#)"), this, [this] { reload(); });
+	_skipCommentLinesAction->setCheckable(true);
 
 	QMenu* delimiterMenu = viewMenu->addMenu(tr("&Delimiter"));
 	_delimiterMenuAction = delimiterMenu->menuAction();
@@ -107,19 +109,20 @@ bool CCsvViewerWindow::loadFile(const QString& filePath)
 	setWindowTitle(fi.fileName() + " [" + fi.absolutePath() + "]");
 	setWindowFilePath(filePath); // macOS only: the title bar's document proxy icon
 
-	return reload();
+	return reload(CommentLines::Detect);
 }
 
 void CCsvViewerWindow::configureForQuickView()
 {
 	// The menu bar stays with this window, which is never shown, so the table offers the applicable actions instead.
-	// Neither carries a shortcut, so none competes with the main window's.
+	// None carries a shortcut, so none competes with the main window's.
 	_tableView->addAction(_firstRowIsHeaderAction);
+	_tableView->addAction(_skipCommentLinesAction);
 	_tableView->addAction(_delimiterMenuAction);
 	_tableView->setContextMenuPolicy(Qt::ActionsContextMenu);
 }
 
-bool CCsvViewerWindow::reload()
+bool CCsvViewerWindow::reload(CommentLines commentLines)
 {
 	QFile file(_filePath);
 	if (!file.open(QIODevice::ReadOnly))
@@ -130,15 +133,19 @@ bool CCsvViewerWindow::reload()
 
 	auto decoded = CTextEncodingDetector::decodeWithLocaleFallback(file.readAll());
 
+	if (commentLines == CommentLines::Detect)
+		_skipCommentLinesAction->setChecked(csvHasCommentLines(decoded.text));
+	const bool skipCommentLines = _skipCommentLinesAction->isChecked();
+
 	QChar delimiter;
 	if (const QString chosenDelimiter = _delimiterGroup->checkedAction()->data().toString(); !chosenDelimiter.isEmpty())
 		delimiter = chosenDelimiter.front();
 	else if (_filePath.endsWith(QStringLiteral(".tsv"), Qt::CaseInsensitive))
 		delimiter = u'\t';
 	else
-		delimiter = detectCsvDelimiter(decoded.text);
+		delimiter = detectCsvDelimiter(decoded.text, skipCommentLines);
 
-	_model->setTable(parseCsv(std::move(decoded.text), delimiter));
+	_model->setTable(parseCsv(std::move(decoded.text), delimiter, skipCommentLines));
 
 	const bool firstRowIsHeader = _model->firstRowLooksLikeHeader();
 	_model->setFirstRowIsHeader(firstRowIsHeader);
@@ -148,7 +155,11 @@ bool CCsvViewerWindow::reload()
 	_tableView->resizeColumnsToContents(); // Samples resizeContentsPrecision() rows, not the whole table
 
 	const CsvTable& table = _model->table();
-	statusBar()->showMessage(tr("%L1 rows, %L2 columns | %3 | delimiter: %4").arg(table.rowCount()).arg(table.columnCount).arg(decoded.encoding, delimiterName(delimiter)));
+	QString status = tr("%L1 rows, %L2 columns").arg(table.rowCount()).arg(table.columnCount);
+	if (table.commentLineCount > 0)
+		status += tr(", %L1 comment lines skipped").arg(table.commentLineCount);
+	status += tr(" | %1 | delimiter: %2").arg(decoded.encoding, delimiterName(delimiter));
+	statusBar()->showMessage(status);
 	return true;
 }
 
