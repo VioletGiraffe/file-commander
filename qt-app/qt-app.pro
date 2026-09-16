@@ -9,9 +9,6 @@ VERSION = $$replace(VERSION_DEF_LINE, [^0-9.], )
 isEmpty(VERSION): error("Failed to parse VERSION_STRING out of src/version.h")
 
 QT = core gui widgets network
-lessThan(QT_MAJOR_VERSION, 6) {
-	win*:QT += winextras
-}
 
 include(../global.pri)
 

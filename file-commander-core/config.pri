@@ -1,7 +1,4 @@
 QT = core widgets gui #gui is required for QFileIconProvider and plugininterface
-lessThan(QT_MAJOR_VERSION, 6) {
-	win*:QT += winextras
-}
 
 CONFIG += staticlib
 

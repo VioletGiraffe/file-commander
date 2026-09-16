@@ -1,10 +1,7 @@
 TEMPLATE = lib
 TARGET   = plugin_textviewer
 
-QT = core gui widgets
-greaterThan(QT_MAJOR_VERSION, 5) {
-	QT += core5compat
-}
+QT = core gui widgets core5compat
 
 CONFIG -= flat
 
