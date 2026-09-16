@@ -78,26 +78,26 @@ TEST_CASE("parseCsv: empty fields", "[csv][parser]")
 	CHECK(parse(",").columnCount == 2);
 	CHECK(rowsOf(parse("a,")) == Rows{ { "a", "" } });
 	CHECK(rowsOf(parse("a,\nb")) == Rows{ { "a", "" }, { "b" } });
-	CHECK(rowsOf(parse(R"("","")")) == Rows{ { "", "" } });
+	CHECK(rowsOf(parse("\"\",\"\"")) == Rows{ { "", "" } });
 
 	// A quoted empty field is a value, unlike a blank line: the only way to write an empty single-column row
-	CHECK(rowsOf(parse(R"("")")) == Rows{ { "" } });
+	CHECK(rowsOf(parse("\"\"")) == Rows{ { "" } });
 	CHECK(rowsOf(parse("a\n\"\"\nb")) == Rows{ { "a" }, { "" }, { "b" } });
 	CHECK(rowsOf(parse("\"\"\r\n\"\"\r\n")) == Rows{ { "" }, { "" } });
 }
 
 TEST_CASE("parseCsv: quoted fields", "[csv][parser]")
 {
-	CHECK(rowsOf(parse(R"("a,b",c)")) == Rows{ { "a,b", "c" } });
+	CHECK(rowsOf(parse("\"a,b\",c")) == Rows{ { "a,b", "c" } });
 	CHECK(rowsOf(parse("\"line1\nline2\",x\ny")) == Rows{ { "line1\nline2", "x" }, { "y" } });
 	CHECK(rowsOf(parse("\"crlf\r\ninside\"")) == Rows{ { "crlf\r\ninside" } });
 	CHECK(rowsOf(parse("\"lone cr\rinside\"")) == Rows{ { "lone cr\rinside" } });
 
-	CHECK(rowsOf(parse(R"("a""b")")) == Rows{ { "a\"b" } });
-	CHECK(rowsOf(parse(R"("""")")) == Rows{ { "\"" } });
-	CHECK(rowsOf(parse(R"("""""")")) == Rows{ { "\"\"" } });
-	CHECK(rowsOf(parse(R"("a""","""b")")) == Rows{ { "a\"", "\"b" } });
-	CHECK(rowsOf(parse(R"(""",""",x)")) == Rows{ { "\",\"", "x" } });
+	CHECK(rowsOf(parse("\"a\"\"b\"")) == Rows{ { "a\"b" } });
+	CHECK(rowsOf(parse("\"\"\"\"")) == Rows{ { "\"" } });
+	CHECK(rowsOf(parse("\"\"\"\"\"\"")) == Rows{ { "\"\"" } });
+	CHECK(rowsOf(parse("\"a\"\"\",\"\"\"b\"")) == Rows{ { "a\"", "\"b" } });
+	CHECK(rowsOf(parse("\"\"\",\"\"\",x")) == Rows{ { "\",\"", "x" } });
 }
 
 TEST_CASE("parseCsv: in-place unescaping keeps later cells intact", "[csv][parser]")
@@ -110,14 +110,14 @@ TEST_CASE("parseCsv: in-place unescaping keeps later cells intact", "[csv][parse
 TEST_CASE("parseCsv: malformed quoting keeps the text", "[csv][parser]")
 {
 	// A quote inside an unquoted field is a literal character
-	CHECK(rowsOf(parse(R"(ab"c,d)")) == Rows{ { "ab\"c", "d" } });
+	CHECK(rowsOf(parse("ab\"c,d")) == Rows{ { "ab\"c", "d" } });
 	// A quote only opens a field as its very first character
-	CHECK(rowsOf(parse(R"( "a,b")")) == Rows{ { " \"a", "b\"" } });
+	CHECK(rowsOf(parse(" \"a,b\"")) == Rows{ { " \"a", "b\"" } });
 
 	// Text after the closing quote is appended
-	CHECK(rowsOf(parse(R"("ab"cd,e)")) == Rows{ { "abcd", "e" } });
-	CHECK(rowsOf(parse(R"("ab" ,c)")) == Rows{ { "ab ", "c" } });
-	CHECK(rowsOf(parse(R"("a""" ,b)")) == Rows{ { "a\" ", "b" } });
+	CHECK(rowsOf(parse("\"ab\"cd,e")) == Rows{ { "abcd", "e" } });
+	CHECK(rowsOf(parse("\"ab\" ,c")) == Rows{ { "ab ", "c" } });
+	CHECK(rowsOf(parse("\"a\"\"\" ,b")) == Rows{ { "a\" ", "b" } });
 
 	// An unterminated quote runs to the end of input, delimiters and line breaks included
 	const CsvTable unterminated = parse("\"unterminated,x\ny,z");
