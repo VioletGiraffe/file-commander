@@ -36,7 +36,7 @@ public:
 	[[nodiscard]] int columnCount(const QModelIndex& parent = {}) const override;
 	[[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
 	[[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
-	// Numbers ascend before text; column -1 restores file order, comment rows included
+	// Numbers ascend before text, empty cells last either way; column -1 restores file order, comment rows included
 	void sort(int column, Qt::SortOrder order) override;
 
 private:

@@ -258,6 +258,17 @@ TEST_CASE("detectCsvDelimiter", "[csv][delimiter]")
 		CHECK(delimiterOf("a;b,c,d,e\rf;g\rh;i") == ';');
 	}
 
+	SECTION("Delimiters inside quoted fields do not count")
+	{
+		// Counted, the commas would tie with the semicolons and win the tie
+		CHECK(delimiterOf("\"a,b\";c\n\"d,e\";f") == ';');
+	}
+
+	SECTION("A line break inside a quoted field does not end the line")
+	{
+		CHECK(delimiterOf("a;\"x,\n,y\"\nb;c") == ';');
+	}
+
 	SECTION("Comment lines are ignored only when skipped")
 	{
 		const std::string text = "# a, b, c, d\na;b\nc;d";
@@ -336,6 +347,17 @@ TEST_CASE("csvHasCommentLines", "[csv][comments]")
 	{
 		CHECK_FALSE(hasCommentLines("a,b\n#x,y\n#p\n" + repeated("c,d\n", 3)));
 		CHECK(hasCommentLines("a,b\n#x,y\n#p\n#q\n" + repeated("c,d\n", 3)));
+	}
+
+	SECTION("The shape counts delimiters outside quoted fields only")
+	{
+		// Counting the quoted commas would give the data the comment line's shape
+		CHECK(hasCommentLines("a,b\n# x, y\n" + repeated("\"p,q\",r\n", 5)));
+	}
+
+	SECTION("A # line inside a quoted field is data, not a comment")
+	{
+		CHECK_FALSE(hasCommentLines(repeated("a,b\n", 20) + "\"x\n#y\",z\n"));
 	}
 
 	SECTION("The data shape is the most common one, not the first")

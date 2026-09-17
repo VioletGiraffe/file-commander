@@ -229,10 +229,16 @@ void CCsvTableModel::arrangeRows(int column, Qt::SortOrder order)
 		return _table.cell(a, sortColumn).compare(_table.cell(b, sortColumn), Qt::CaseInsensitive) < 0;
 	};
 
-	if (order == Qt::AscendingOrder)
-		std::stable_sort(_tableRowByModelRow.begin(), _tableRowByModelRow.end(), lessThan);
-	else
-		std::stable_sort(_tableRowByModelRow.begin(), _tableRowByModelRow.end(), [&lessThan](size_t a, size_t b) { return lessThan(b, a); });
+	// Empty cells sort last whichever way the rest goes, as in a spreadsheet: they are absent values, not small ones
+	const auto compare = [&](size_t a, size_t b) {
+		const bool emptyA = _table.cell(a, sortColumn).isEmpty(), emptyB = _table.cell(b, sortColumn).isEmpty();
+		if (emptyA || emptyB)
+			return !emptyA && emptyB;
+
+		return order == Qt::AscendingOrder ? lessThan(a, b) : lessThan(b, a);
+	};
+
+	std::stable_sort(_tableRowByModelRow.begin(), _tableRowByModelRow.end(), compare);
 }
 
 void CCsvTableModel::resetRowOrder()

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <map>
+#include <span>
 #include <utility>
 
 QStringView CsvTable::cell(size_t row, size_t column) const noexcept
@@ -15,34 +16,96 @@ QStringView CsvTable::cell(size_t row, size_t column) const noexcept
 	return QStringView{ text }.mid(c.offset, c.length);
 }
 
-// Calls onLine(QStringView line) for each non-blank line, until it returns false
+// The characters a field may end at, so that a quote right after one opens a quoted field. Only for scanning text
+// whose delimiter is not known yet; everything else passes the delimiter alone.
+static constexpr std::array<QChar, 4> delimiterCandidates{ u',', u';', u'\t', u'|' };
+
+// Calls onChar(qsizetype index, QChar c) for each character outside a quoted field, until it returns false.
+// As in parseCsv, a quote opens a field only where a field can start, and "" inside one is an escape.
 template <typename Fn>
-static void forEachNonBlankLine(QStringView text, Fn&& onLine)
+static void forEachCharOutsideQuotes(QStringView text, std::span<const QChar> separators, Fn&& onChar)
 {
-	// CRLF splits into a line and a blank one, which is skipped
-	for (auto lineStart = text.begin(); lineStart < text.end();)
+	bool atFieldStart = true;
+	for (qsizetype i = 0; i < text.size(); ++i)
 	{
-		const auto lineEnd = std::find_if(lineStart, text.end(), [](QChar c) { return c == u'\r' || c == u'\n'; });
-		const QStringView line{ lineStart, lineEnd };
-		lineStart = lineEnd == text.end() ? lineEnd : lineEnd + 1;
-		if (!line.trimmed().isEmpty() && !onLine(line))
+		const QChar c = text[i];
+		if (atFieldStart && c == u'"')
+		{
+			for (++i; i < text.size(); ++i)
+			{
+				if (text[i] != u'"')
+					continue;
+				if (i + 1 < text.size() && text[i + 1] == u'"')
+					++i; // The escape, whose second quote must not close the field
+				else
+					break;
+			}
+
+			atFieldStart = false;
+			continue;
+		}
+
+		if (!onChar(i, c))
 			return;
+
+		atFieldStart = c == u'\r' || c == u'\n' || std::ranges::find(separators, c) != separators.end();
+	}
+}
+
+// Occurrences of ch that are not inside a quoted field
+[[nodiscard]] static qsizetype countOutsideQuotes(QStringView text, QChar ch, std::span<const QChar> separators)
+{
+	qsizetype count = 0;
+	forEachCharOutsideQuotes(text, separators, [&count, ch](qsizetype, QChar c) {
+		if (c == ch)
+			++count;
+		return true;
+	});
+
+	return count;
+}
+
+// Calls onLine(QStringView line) for each non-blank line, until it returns false. A line break inside a quoted
+// field belongs to the field, as in parseCsv, so such a line carries its own breaks.
+template <typename Fn>
+static void forEachNonBlankLine(QStringView text, std::span<const QChar> separators, Fn&& onLine)
+{
+	qsizetype lineStart = 0;
+	bool wantMore = true;
+	// CRLF ends a line and opens a blank one, which is skipped
+	forEachCharOutsideQuotes(text, separators, [&](qsizetype index, QChar c) {
+		if (c != u'\r' && c != u'\n')
+			return true;
+
+		const QStringView line = text.sliced(lineStart, index - lineStart);
+		lineStart = index + 1;
+		if (!line.trimmed().isEmpty())
+			wantMore = onLine(line);
+		return wantMore;
+	});
+
+	if (wantMore && lineStart < text.size())
+	{
+		const QStringView lastLine = text.sliced(lineStart);
+		if (!lastLine.trimmed().isEmpty())
+			onLine(lastLine);
 	}
 }
 
 bool csvHasCommentLines(QStringView text)
 {
 	const QChar delimiter = detectCsvDelimiter(text, true);
+	const std::span<const QChar> separators{ &delimiter, 1 };
 
 	size_t dataLines = 0;
 	bool commentsAreLeadingBlock = true;
 	bool dataContainsHash = false;
 	std::vector<qsizetype> delimiterCountByCommentLine;
 	std::map<qsizetype, size_t> dataLinesByDelimiterCount;
-	forEachNonBlankLine(text, [&](QStringView line) {
+	forEachNonBlankLine(text, separators, [&](QStringView line) {
 		if (line.startsWith(commentPrefix))
 		{
-			delimiterCountByCommentLine.push_back(line.count(delimiter));
+			delimiterCountByCommentLine.push_back(countOutsideQuotes(line, delimiter, separators));
 			if (dataLines > 0)
 				commentsAreLeadingBlock = false;
 		}
@@ -54,7 +117,7 @@ bool csvHasCommentLines(QStringView text)
 		else
 		{
 			++dataLines;
-			++dataLinesByDelimiterCount[line.count(delimiter)];
+			++dataLinesByDelimiterCount[countOutsideQuotes(line, delimiter, separators)];
 		}
 
 		return true;
@@ -74,7 +137,7 @@ bool csvHasCommentLines(QStringView text)
 
 QChar detectCsvDelimiter(QStringView text, bool skipCommentLines)
 {
-	static constexpr std::array candidates{ u',', u';', u'\t', u'|' };
+	static constexpr auto& candidates = delimiterCandidates;
 	constexpr int sampleLines = 20;
 
 	struct Stats {
@@ -85,14 +148,14 @@ QChar detectCsvDelimiter(QStringView text, bool skipCommentLines)
 	std::array<Stats, candidates.size()> stats{};
 
 	int lines = 0;
-	forEachNonBlankLine(text, [&](QStringView line) {
+	forEachNonBlankLine(text, candidates, [&](QStringView line) {
 		if (skipCommentLines && line.startsWith(commentPrefix))
 			return true;
 
 		++lines;
 		for (size_t i = 0; i < candidates.size(); ++i)
 		{
-			const int count = static_cast<int>(std::count(line.begin(), line.end(), QChar{ candidates[i] }));
+			const int count = static_cast<int>(countOutsideQuotes(line, candidates[i], candidates));
 			Stats& s = stats[i];
 			if (s.firstLineCount < 0)
 				s.firstLineCount = count;

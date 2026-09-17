@@ -40,9 +40,11 @@ inline constexpr QChar commentPrefix = u'#';
 //   - they are a leading block
 //   - they are at most a tenth as many as the other lines
 //   - most of them have a delimiter count other than the one most common among the other lines
+// Quoted fields are honoured throughout: their line breaks do not end a line and their delimiters do not count.
 [[nodiscard]] bool csvHasCommentLines(QStringView text);
 
 // The candidate with the same count on every one of the first lines wins; among several, the most frequent. Comma if none appears at all.
+// Occurrences inside quoted fields do not count.
 [[nodiscard]] QChar detectCsvDelimiter(QStringView text, bool skipCommentLines);
 
 // RFC 4180: quoted fields may hold the delimiter, line breaks and "" for a quote. Both CRLF and LF end a row; blank lines are skipped.

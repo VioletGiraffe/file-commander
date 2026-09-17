@@ -202,6 +202,22 @@ TEST_CASE("CCsvTableModel: sorting", "[csv][model][sort]")
 		CHECK(columnOf(model, 1) == Strings{ "e", "f", "b", "d", "a", "c" });
 	}
 
+	SECTION("Empty cells sort last in both directions")
+	{
+		model.setTable(parse("3,x\n,y\nb,z\n1,w"));
+		model.sort(0, Qt::AscendingOrder);
+		CHECK(columnOf(model, 0) == Strings{ "1", "3", "b", "" });
+		model.sort(0, Qt::DescendingOrder);
+		CHECK(columnOf(model, 0) == Strings{ "b", "3", "1", "" });
+	}
+
+	SECTION("Empty cells keep file order among themselves")
+	{
+		model.setTable(parse("a,1\n,2\n,3"));
+		model.sort(0, Qt::DescendingOrder);
+		CHECK(columnOf(model, 1) == Strings{ "1", "2", "3" });
+	}
+
 	SECTION("Row numbers follow the rows; column -1 restores file order")
 	{
 		model.setTable(parse("3\n1\n2"));
