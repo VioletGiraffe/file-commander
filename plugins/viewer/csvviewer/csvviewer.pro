@@ -29,12 +29,14 @@ DEFINES += PLUGIN_MODULE
 LIBS += -L$${DESTDIR} -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
 
 HEADERS += \
+	src/ccsvcommentlistmodel.h \
 	src/ccsvparser.h \
 	src/ccsvtablemodel.h \
 	src/ccsvviewerplugin.h \
 	src/ccsvviewerwindow.h
 
 SOURCES += \
+	src/ccsvcommentlistmodel.cpp \
 	src/ccsvparser.cpp \
 	src/ccsvtablemodel.cpp \
 	src/ccsvviewerplugin.cpp \

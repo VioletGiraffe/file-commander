@@ -34,11 +34,14 @@ mac*|linux*|freebsd{
 
 SOURCES += \
 	main.cpp \
+	csvcommentlistmodel_test.cpp \
 	csvparser_test.cpp \
 	csvtablemodel_test.cpp \
+	../src/ccsvcommentlistmodel.cpp \
 	../src/ccsvparser.cpp \
 	../src/ccsvtablemodel.cpp
 
 HEADERS += \
+	../src/ccsvcommentlistmodel.h \
 	../src/ccsvparser.h \
 	../src/ccsvtablemodel.h
