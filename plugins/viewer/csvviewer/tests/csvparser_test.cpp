@@ -351,8 +351,10 @@ TEST_CASE("csvHasCommentLines", "[csv][comments]")
 
 	SECTION("The shape counts delimiters outside quoted fields only")
 	{
-		// Counting the quoted commas would give the data the comment line's shape
-		CHECK(hasCommentLines("a,b\n# x, y\n" + repeated("\"p,q\",r\n", 5)));
+		// Counting the quoted commas too would make the data two columns wide and the comment misshapen
+		CHECK_FALSE(hasCommentLines("a,b\n# x, y\n" + repeated("\"p,q\",r\n", 5)));
+		// And here it would give the comment the data's shape
+		CHECK(hasCommentLines("a,b\n# x, y, z\n" + repeated("p,\"q,r\"\n", 5)));
 	}
 
 	SECTION("A # line inside a quoted field is data, not a comment")
