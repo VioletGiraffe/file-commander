@@ -37,7 +37,8 @@ namespace OsShell
 	struct ProgramInvocation
 	{
 		QString programPath;
-		QString arguments; // As typed: the program parses its own command line
+		QString arguments; // A raw string: the program parses its own command line
+		QString workingDir; // Empty: the app's current directory
 	};
 
 	enum class GuiProgramCheckError
@@ -48,8 +49,10 @@ namespace OsShell
 
 	// The program and arguments when `commandLine` is only a GUI program and its arguments, so it can launch without the shell.
 	// Empty when the line needs the shell or names no GUI program.
+	// A bare cmd, without arguments, also qualifies: it gets its own console window.
 	[[nodiscard]] std::expected<std::optional<ProgramInvocation>, GuiProgramCheckError> guiProgramInvocation(const QString& commandLine, const QString& workingDir);
 
+	// An empty `workingDir` keeps the app's current directory
 	bool runExecutable(const QString& command, const QString& arguments, const QString& workingDir);
 
 #ifdef _WIN32

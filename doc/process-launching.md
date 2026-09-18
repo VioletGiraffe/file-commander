@@ -31,6 +31,9 @@ be listed as running when the app exits, and be killed by Terminate.
   set, then `PATH`, trying the `PATHEXT` extensions.
 - `SHGetFileInfo(SHGFI_EXETYPE)` reports a GUI executable.
 
+The exception is `cmd` without arguments: it launches directly into its own console window. Through the shell it would
+read the null stdin and exit at once. In a UNC folder it starts in the app's directory and runs `pushd` into the folder.
+
 A check that cannot decide also sends the line to the shell. The arguments are passed on as typed: the program parses its
 own command line. POSIX has no equivalent: `sh` returns at once for `open` and for `&`, and nothing marks a program as GUI.
 

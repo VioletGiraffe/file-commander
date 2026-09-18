@@ -161,6 +161,17 @@ std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramChec
 	if (programPath.isEmpty())
 		return std::nullopt;
 
+	QString arguments = programEnd < 0 ? QString{} : line.mid(programEnd + 1).trimmed();
+	// A bare cmd is interactive: through the shell it reads the null stdin and exits at once
+	if (arguments.isEmpty() && QFileInfo{ programPath }.fileName().compare(QStringLiteral("cmd.exe"), Qt::CaseInsensitive) == 0)
+	{
+		// cmd does not support a UNC current directory: pushd maps a temporary drive letter for it
+		if (const QString nativeWorkingDir = toNativeSeparators(workingDir); nativeWorkingDir.startsWith(QStringLiteral("\\\\")))
+			return ProgramInvocation{ .programPath = std::move(programPath), .arguments = QStringLiteral("/k pushd \"") % nativeWorkingDir % '"', .workingDir = {} };
+
+		return ProgramInvocation{ .programPath = std::move(programPath), .arguments = {}, .workingDir = workingDir };
+	}
+
 	// 0 for a non-executable file or a failed query; otherwise the high word is the Windows version a GUI program targets, 0 for a console program or batch file
 	const DWORD_PTR exeType = ::SHGetFileInfoW(reinterpret_cast<const wchar_t*>(toNativeSeparators(programPath).utf16()), 0, nullptr, 0, SHGFI_EXETYPE);
 	if (exeType == 0)
@@ -168,7 +179,7 @@ std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramChec
 	if (HIWORD(exeType) == 0)
 		return std::nullopt;
 
-	return ProgramInvocation{ .programPath = std::move(programPath), .arguments = programEnd < 0 ? QString{} : line.mid(programEnd + 1).trimmed() };
+	return ProgramInvocation{ .programPath = std::move(programPath), .arguments = std::move(arguments), .workingDir = workingDir };
 }
 #else
 // sh returns at once for a program started with & or through open.
@@ -203,7 +214,7 @@ bool OsShell::runExe(const QString& command, const QString& arguments, const QSt
 	shExecInfo.lpVerb = asAdmin ? L"runas" : L"open";
 	shExecInfo.lpFile = commandNative.c_str();
 	shExecInfo.lpParameters = arguments.isEmpty() ? nullptr : reinterpret_cast<const WCHAR*>(arguments.utf16());
-	shExecInfo.lpDirectory = reinterpret_cast<const WCHAR*>(workingDirNative.utf16());
+	shExecInfo.lpDirectory = workingDirNative.isEmpty() ? nullptr : reinterpret_cast<const WCHAR*>(workingDirNative.utf16());
 	shExecInfo.nShow = SW_SHOWNORMAL;
 	shExecInfo.hInstApp = nullptr;
 
