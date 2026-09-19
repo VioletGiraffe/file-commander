@@ -799,7 +799,7 @@ void CMainWindow::editFile()
 
 void CMainWindow::openTerminalInCurrentFolder(bool admin)
 {
-	if (const auto opened = _controller->openTerminal(_currentFileList->currentDirPathNative(), admin); !opened)
+	if (const auto opened = OsShell::openTerminal(_currentFileList->currentDirPathNative(), admin); !opened)
 		showLaunchError(this, tr("Failed to open a terminal"), opened.error());
 }
 

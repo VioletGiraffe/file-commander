@@ -36,32 +36,6 @@ RESTORE_COMPILER_WARNINGS
 #include <wrl/client.h>
 #endif
 
-namespace {
-
-std::pair<QString /* exe path */, QString /* args */> parseCommandAndArguments(const QString& cmdLine)
-{
-	QStringList argsList = QProcess::splitCommand(cmdLine);
-	assert_and_return_r(!argsList.empty(), {});
-	QString cmd = std::move(argsList.front());
-	argsList.pop_front();
-
-	QString argsString;
-	for (auto&& str : argsList)
-	{
-		if (!argsString.isEmpty())
-			argsString += ' ';
-
-		if (str.contains(' '))
-			argsString += ('\"' % str % '\"');
-		else
-			argsString += str;
-	}
-
-	return { std::move(cmd), std::move(argsString) };
-}
-
-} // namespace
-
 QString OsShell::defaultTerminalCommand()
 {
 #ifdef __APPLE__
@@ -104,11 +78,6 @@ QString OsShell::terminalCommand()
 {
 	const QString configuredCommand = QSettings{}.value(KEY_OTHER_TERMINAL_COMMAND).toString();
 	return !configuredCommand.isEmpty() ? configuredCommand : defaultTerminalCommand();
-}
-
-std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
-{
-	return parseCommandAndArguments(terminalCommand());
 }
 
 #ifdef _WIN32
@@ -283,22 +252,90 @@ std::expected<void, QString> OsShell::runExe(const QString& command, const QStri
 	return {};
 }
 #else
-std::expected<void, QString> OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
+static std::expected<void, QString> startDetached(const QString& program, QStringList arguments, const QString& workingDir)
 {
-	std::optional<QStringList> argumentList = splitShellWords(arguments);
-	if (!argumentList)
-		return std::unexpected{ QStringLiteral("Unfinished quote or escape in the arguments: %1").arg(arguments) };
-
 	QProcess process;
-	process.setProgram(command);
-	process.setArguments(std::move(*argumentList));
+	process.setProgram(program);
+	process.setArguments(std::move(arguments));
 	process.setWorkingDirectory(workingDir);
 	if (!process.startDetached())
 		return std::unexpected{ process.errorString() };
 
 	return {};
 }
+
+std::expected<void, QString> OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
+{
+	std::optional<QStringList> argumentList = splitShellWords(arguments);
+	if (!argumentList)
+		return std::unexpected{ QStringLiteral("Unfinished quote or escape in the arguments: %1").arg(arguments) };
+
+	return startDetached(command, std::move(*argumentList), workingDir);
+}
 #endif
+
+std::expected<void, QString> OsShell::openTerminal(const QString& folder, [[maybe_unused]] const bool admin)
+{
+#ifdef __APPLE__
+	// open only hands the request to Launch Services, so waiting for it is brief
+	QProcess openProcess;
+	openProcess.start(QStringLiteral("open"), { QStringLiteral("-a"), terminalCommand(), folder });
+	if (!openProcess.waitForFinished())
+		return std::unexpected{ openProcess.errorString() };
+
+	if (openProcess.exitStatus() != QProcess::NormalExit || openProcess.exitCode() != 0)
+	{
+		const QString errorOutput = QString::fromLocal8Bit(openProcess.readAllStandardError()).trimmed();
+		return std::unexpected{ !errorOutput.isEmpty() ? errorOutput : QStringLiteral("open failed with exit code %1").arg(openProcess.exitCode()) };
+	}
+
+	return {};
+#else
+	QString commandLine = terminalCommand().trimmed();
+	if (commandLine.isEmpty())
+		return std::unexpected{ QStringLiteral("No terminal found: set one in Settings → Other") };
+
+	commandLine.replace(QStringLiteral("{dir}"), shellQuotedPath(folder));
+
+#ifdef _WIN32
+	const auto leading = leadingProgram(commandLine);
+	if (!leading)
+		return std::unexpected{ QStringLiteral("Unfinished quote in the terminal command: %1").arg(commandLine) };
+
+	QString arguments = leading->end < 0 ? QString{} : commandLine.mid(leading->end + 1).trimmed();
+
+	// Not every shell starts in its working folder, so the shell command changes it
+	const QString nativeFolder = toNativeSeparators(folder);
+	const QString programName = QFileInfo{ leading->program }.completeBaseName().toLower();
+	QString changeFolderArguments;
+	if (programName == QStringLiteral("pwsh") || programName == QStringLiteral("powershell"))
+	{
+		// PowerShell expands $ and ` inside double quotes; -Path treats [ ] as wildcards
+		QString singleQuotedFolder = nativeFolder;
+		singleQuotedFolder.replace('\'', QStringLiteral("''"));
+		changeFolderArguments = QStringLiteral("-NoExit -Command \"Set-Location -LiteralPath '%1'\"").arg(singleQuotedFolder);
+	}
+	else if (programName == QStringLiteral("cmd"))
+		changeFolderArguments = QStringLiteral("/k \"pushd %1\"").arg(shellQuotedPath(nativeFolder)); // cd refuses a UNC path
+
+	if (!arguments.isEmpty() && !changeFolderArguments.isEmpty())
+		arguments += ' ';
+	arguments += changeFolderArguments;
+
+	return runExe(leading->program, arguments, folder, admin);
+#else
+	if (admin)
+		return std::unexpected{ QStringLiteral("An administrator terminal is not supported on this platform") };
+
+	std::optional<QStringList> words = splitShellWords(commandLine);
+	if (!words)
+		return std::unexpected{ QStringLiteral("Unfinished quote or escape in the terminal command: %1").arg(commandLine) };
+
+	const QString program = words->takeFirst();
+	return startDetached(program, std::move(*words), folder);
+#endif
+#endif
+}
 
 #ifdef _WIN32
 using Microsoft::WRL::ComPtr;

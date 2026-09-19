@@ -37,7 +37,7 @@
       <item>
        <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>Leave empty for the default shown. {dir} on the command line stands for the folder to open.</string>
+         <string>Leave empty for the default shown. PowerShell and cmd open in the folder automatically; for other terminals, {dir} on the command line stands for the folder, already quoted.</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>

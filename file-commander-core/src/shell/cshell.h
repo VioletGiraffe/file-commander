@@ -11,7 +11,6 @@ RESTORE_COMPILER_WARNINGS
 #include <expected>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace OsShell
@@ -21,8 +20,10 @@ namespace OsShell
 	[[nodiscard]] QString defaultTerminalCommand();
 	// The terminal from the settings; defaultTerminalCommand when none is set
 	[[nodiscard]] QString terminalCommand();
-	// terminalCommand split into the program and its arguments
-	std::pair<QString /* exe path */, QString /* args */> shellExecutable();
+
+	// Opens terminalCommand in `folder`. `admin` elevates on Windows, fails on Linux and FreeBSD, and is ignored on macOS.
+	// The error is the reason for the failure, never empty.
+	[[nodiscard]] std::expected<void, QString> openTerminal(const QString& folder, bool admin);
 
 	// Pos must be global
 	bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow);

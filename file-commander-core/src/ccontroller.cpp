@@ -19,9 +19,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
-#include <QFileInfo>
 #include <QMessageBox>
-#include <QProcess>
 #include <QSettings>
 #include <QThread>
 #include <QUrl>
@@ -798,58 +796,6 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 	}
 
 	return FileOperationResultCode::Fail;
-}
-
-std::expected<void, QString> CController::openTerminal(const QString &folder, bool admin)
-{
-#if defined __APPLE__
-	Q_UNUSED(admin);
-	// open only hands the request to Launch Services, so waiting for it is brief
-	QProcess openProcess;
-	openProcess.start(QSL("open"), { QSL("-a"), OsShell::terminalCommand(), folder });
-	if (!openProcess.waitForFinished())
-		return std::unexpected{ openProcess.errorString() };
-
-	if (openProcess.exitStatus() != QProcess::NormalExit || openProcess.exitCode() != 0)
-	{
-		const QString errorOutput = QString::fromLocal8Bit(openProcess.readAllStandardError()).trimmed();
-		return std::unexpected{ !errorOutput.isEmpty() ? errorOutput : QSL("open failed with exit code %1").arg(openProcess.exitCode()) };
-	}
-
-	return {};
-#elif defined __linux__ || defined __FreeBSD__ || defined _WIN32
-	auto [terminalProgram, arguments] = OsShell::shellExecutable();
-	arguments.replace(QSL("{dir}"), shellQuotedPath(folder));
-
-#ifdef _WIN32
-	// Not every shell starts in its working folder, so the shell command changes it
-	const QString nativeFolder = toNativeSeparators(folder);
-	const QString programName = QFileInfo{ terminalProgram }.completeBaseName().toLower();
-	QString changeFolderArguments;
-	if (programName == QSL("pwsh") || programName == QSL("powershell"))
-	{
-		// PowerShell expands $ and ` inside double quotes; -Path treats [ ] as wildcards
-		QString singleQuotedFolder = nativeFolder;
-		singleQuotedFolder.replace('\'', QSL("''"));
-		changeFolderArguments = QSL("-NoExit -Command \"Set-Location -LiteralPath '%1'\"").arg(singleQuotedFolder);
-	}
-	else if (programName == QSL("cmd"))
-		changeFolderArguments = QSL("/k \"pushd %1\"").arg(shellQuotedPath(nativeFolder)); // cd refuses a UNC path
-
-	if (!arguments.isEmpty() && !changeFolderArguments.isEmpty())
-		arguments += ' ';
-	arguments += changeFolderArguments;
-
-	return OsShell::runExe(terminalProgram, arguments, folder, admin);
-#else
-	if (admin)
-		return std::unexpected{ QSL("An administrator terminal is not supported on this platform") };
-
-	return OsShell::runExecutable(terminalProgram, arguments, folder);
-#endif
-#else
-#error unknown platform
-#endif
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification

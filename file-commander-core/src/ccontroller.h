@@ -14,7 +14,6 @@
 
 
 #include <array>
-#include <expected>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -119,8 +118,6 @@ public:
 	FileOperationResultCode createFolder(const QString& parentFolder, const QString& name);
 	// Creates a file with a specified name at the specified parent folder
 	FileOperationResultCode createFile(const QString& parentFolder, const QString& name);
-	// Opens a terminal window in the specified folder. The error is the reason for the failure, never empty.
-	std::expected<void, QString> openTerminal(const QString & folder, bool admin = false);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
 	// Flattens the current directory and displays all its child files on one level
