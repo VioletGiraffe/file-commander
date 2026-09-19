@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789815480208,
+  "lastUpdate": 1789819368873,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -21508,6 +21508,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 424.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "4bcc8a4535ec606956268b7562b7c8f2ddf944ef",
+          "message": "Terminal command setting takes effect again; empty means auto-detect\n\n- New key Other/Shell/TerminalCommand (old one ignored): empty = detected default\n- OsShell::defaultTerminalCommand / terminalCommand; shellExecutable uses the setting\n- Settings page: detected default shown as placeholder, only typed text is saved\n- macOS: setting is an app name, opened with open -a (default Terminal)\n- Folder placeholder %dir% renamed to {dir}, matching the Programs menu",
+          "timestamp": "2026-09-19T14:55:35+03:00",
+          "tree_id": "380fc004511db0e06612890aaf66f9aef5e9c367",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/4bcc8a4535ec606956268b7562b7c8f2ddf944ef"
+        },
+        "date": 1789819364835,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19101,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18077,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1440,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2126.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 812.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 425,
             "unit": "KB"
           },
           {
