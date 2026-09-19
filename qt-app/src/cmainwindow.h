@@ -98,6 +98,8 @@ private:
 // Command line
 	// true if command was executed
 	bool executeCommand(const QString& commandLineText);
+	// Launches a GUI program directly, anything else through the shell with an output pane
+	void runCommandLine(const QString& commandLine, const QString& workingDir);
 	// Prompts, then terminates the running commands. False when the user cancels exiting.
 	[[nodiscard]] bool terminateRunningCommandsForExit();
 	void selectPreviousCommandInTheCommandLine();

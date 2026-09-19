@@ -855,15 +855,19 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 	if (!_currentFileList || commandLineText.isEmpty())
 		return false;
 
-	const QString workingDir = _currentFileList->currentDirPathNative();
-	// A GUI program run through the shell would hold a pane open for its whole life; a failed check falls back to the shell
-	if (const auto guiProgram = OsShell::guiProgramInvocation(commandLineText, workingDir).value_or(std::nullopt))
-		OsShell::runExecutable(guiProgram->programPath, guiProgram->arguments, guiProgram->workingDir);
-	else
-		ui->commandOutputArea->run(commandLineText, workingDir);
+	runCommandLine(commandLineText, _currentFileList->currentDirPathNative());
 	clearCommandLineAndRestoreFocus();
 
 	return true;
+}
+
+void CMainWindow::runCommandLine(const QString& commandLine, const QString& workingDir)
+{
+	// A GUI program run through the shell would hold a pane open for its whole life; a failed check falls back to the shell
+	if (const auto guiProgram = OsShell::guiProgramInvocation(commandLine, workingDir).value_or(std::nullopt))
+		OsShell::runExecutable(guiProgram->programPath, guiProgram->arguments, guiProgram->workingDir);
+	else
+		ui->commandOutputArea->run(commandLine, workingDir);
 }
 
 void CMainWindow::selectPreviousCommandInTheCommandLine()
