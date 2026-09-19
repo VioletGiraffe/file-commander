@@ -677,7 +677,7 @@ void CMainWindow::createFolder()
 	dialog.setLabelText(tr("Enter the name for the new directory"));
 	dialog.setTextValue(currentItemName);
 
-	const QString dirName = dialog.exec() == QDialog::Accepted ? dialog.textValue() : QString();// QInputDialog::getText(this, tr("New folder"), tr("Enter the name for the new directory"), QLineEdit::Normal, currentItemName);
+	const QString dirName = dialog.exec() == QDialog::Accepted ? dialog.textValue() : QString();
 	if (dirName.isEmpty())
 		return;
 
@@ -781,8 +781,6 @@ void CMainWindow::editFile()
 			started = QProcess::startDetached("open", QStringList{"-a", program, currentFile});
 		else
 			started = QProcess::startDetached(program, QStringList{currentFile});
-
-		//const bool started = std::system((QString("open -a \"") +  + "\" --args \"" + currentFile + "\"").toUtf8().constData()) == 0;
 #else
 		const bool started = QProcess::startDetached(editorPath, {currentFile});
 #endif
@@ -893,30 +891,19 @@ void CMainWindow::clearCommandLineAndRestoreFocus()
 	_currentFileList->setFocusToFileList();
 }
 
-void CMainWindow::pasteCurrentFileName()
+void CMainWindow::appendCurrentItemToCommandLine(bool fullPath)
 {
-	if (_currentFileList && _currentFileList->currentItemHash() != 0)
-	{
-		QString textToAdd = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullName();
-		if (textToAdd.contains(' '))
-			textToAdd = '\"' % textToAdd % '\"';
+	if (!_currentFileList || _currentFileList->currentItemHash() == 0)
+		return;
 
-		const QString newText = ui->_commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->_commandLine->lineEdit()->text() % ' ' % textToAdd);
-		ui->_commandLine->lineEdit()->setText(newText);
-	}
-}
+	const CFileSystemObject item = _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash());
+	QLineEdit* lineEdit = ui->_commandLine->lineEdit();
+	QString text = lineEdit->text();
+	if (!text.isEmpty())
+		text += ' ';
 
-void CMainWindow::pasteCurrentFilePath()
-{
-	if (_currentFileList && _currentFileList->currentItemHash() != 0)
-	{
-		QString textToAdd = toNativeSeparators(_controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath());
-		if (textToAdd.contains(' '))
-			textToAdd = '\"' % textToAdd % '\"';
-
-		const QString newText = ui->_commandLine->lineEdit()->text().isEmpty() ? textToAdd : (ui->_commandLine->lineEdit()->text() % ' ' % textToAdd);
-		ui->_commandLine->lineEdit()->setText(newText);
-	}
+	text += shellQuotedPath(fullPath ? toNativeSeparators(item.fullAbsolutePath()) : item.fullName());
+	lineEdit->setText(text);
 }
 
 void CMainWindow::refresh()
@@ -1096,10 +1083,10 @@ void CMainWindow::initCore()
 	_currentFileList = ui->leftPanel;
 	_otherFileList = ui->rightPanel;
 
-	connect(ui->leftPanel->fileListView(), &CFileListView::ctrlEnterPressed, this, &CMainWindow::pasteCurrentFileName);
-	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlEnterPressed, this, &CMainWindow::pasteCurrentFileName);
-	connect(ui->leftPanel->fileListView(), &CFileListView::ctrlShiftEnterPressed, this, &CMainWindow::pasteCurrentFilePath);
-	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlShiftEnterPressed, this, &CMainWindow::pasteCurrentFilePath);
+	connect(ui->leftPanel->fileListView(), &CFileListView::ctrlEnterPressed, this, [this] { appendCurrentItemToCommandLine(false); });
+	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlEnterPressed, this, [this] { appendCurrentItemToCommandLine(false); });
+	connect(ui->leftPanel->fileListView(), &CFileListView::ctrlShiftEnterPressed, this, [this] { appendCurrentItemToCommandLine(true); });
+	connect(ui->rightPanel->fileListView(), &CFileListView::ctrlShiftEnterPressed, this, [this] { appendCurrentItemToCommandLine(true); });
 
 	connect(ui->leftPanel, &CPanelWidget::currentItemChangedSignal, this, &CMainWindow::currentItemChanged);
 	connect(ui->rightPanel, &CPanelWidget::currentItemChangedSignal, this, &CMainWindow::currentItemChanged);

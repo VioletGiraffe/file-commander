@@ -105,8 +105,7 @@ private:
 	[[nodiscard]] bool terminateRunningCommandsForExit();
 	void selectPreviousCommandInTheCommandLine();
 	void clearCommandLineAndRestoreFocus();
-	void pasteCurrentFileName();
-	void pasteCurrentFilePath();
+	void appendCurrentItemToCommandLine(bool fullPath);
 
 // Main menu
 	void refresh();
