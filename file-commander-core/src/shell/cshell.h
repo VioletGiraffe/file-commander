@@ -23,7 +23,7 @@ namespace OsShell
 
 	// Opens terminalCommand in `folder`. `admin` elevates on Windows, fails on Linux and FreeBSD, and is ignored on macOS.
 	// The error is the reason for the failure, never empty.
-	[[nodiscard]] std::expected<void, QString> openTerminal(const QString& folder, bool admin);
+	[[nodiscard]] std::expected<void, QString> openTerminal(QString folder, bool admin);
 
 	// Pos must be global
 	bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow);

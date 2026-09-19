@@ -114,7 +114,7 @@ FORMS += \
 LIBS += -L$${DESTDIR} -lcore -lautoupdater -lqtutils -lcpputils -lthin_io
 
 win*{
-	LIBS += -lole32 -lShell32 -lUser32
+	LIBS += -lole32 -lShell32 -lUser32 -lMpr
 	RC_FILE = resources/file_commander.rc
 }
 

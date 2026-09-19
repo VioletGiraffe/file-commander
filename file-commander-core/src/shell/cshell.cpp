@@ -24,6 +24,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <string.h> // memset
+#include <vector>
 
 #ifdef _WIN32
 #include "windows_path_win.hpp" // thin_io
@@ -33,6 +34,7 @@ RESTORE_COMPILER_WARNINGS
 #include <ShlObj.h>
 #include <windowsx.h>
 #include <shellapi.h>
+#include <winnetwk.h>
 #include <wrl/client.h>
 #endif
 
@@ -210,6 +212,28 @@ static QString launchErrorText(const DWORD errorCode)
 	return !message.isEmpty() ? message : QStringLiteral("Error code %1").arg(errorCode);
 }
 
+// `path` with its mapped drive letter replaced by the network path behind it; unchanged when not on a mapped drive
+static QString withMappedDriveAsNetworkPath(const QString& path)
+{
+	if (path.size() < 2 || path[1] != ':')
+		return path;
+
+	const std::wstring drive = path.left(2).toStdWString();
+	std::vector<wchar_t> networkPath(MAX_PATH);
+	auto length = static_cast<DWORD>(networkPath.size());
+	DWORD result = ::WNetGetConnectionW(drive.c_str(), networkPath.data(), &length);
+	if (result == ERROR_MORE_DATA)
+	{
+		networkPath.resize(length);
+		result = ::WNetGetConnectionW(drive.c_str(), networkPath.data(), &length);
+	}
+
+	if (result != NO_ERROR)
+		return path;
+
+	return QString::fromWCharArray(networkPath.data()) + path.mid(2);
+}
+
 std::expected<void, QString> OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
 {
 	return runExe(command, arguments, workingDir, false);
@@ -274,13 +298,13 @@ std::expected<void, QString> OsShell::runExecutable(const QString& command, cons
 }
 #endif
 
-std::expected<void, QString> OsShell::openTerminal(const QString& folder, [[maybe_unused]] const bool admin)
+std::expected<void, QString> OsShell::openTerminal(QString folder, [[maybe_unused]] const bool admin)
 {
 #ifdef __APPLE__
-	// open only hands the request to Launch Services, so waiting for it is brief
+	// open only hands the request to Launch Services: a longer wait means it hangs
 	QProcess openProcess;
 	openProcess.start(QStringLiteral("open"), { QStringLiteral("-a"), terminalCommand(), folder });
-	if (!openProcess.waitForFinished())
+	if (!openProcess.waitForFinished(5000))
 		return std::unexpected{ openProcess.errorString() };
 
 	if (openProcess.exitStatus() != QProcess::NormalExit || openProcess.exitCode() != 0)
@@ -294,6 +318,12 @@ std::expected<void, QString> OsShell::openTerminal(const QString& folder, [[mayb
 	QString commandLine = terminalCommand().trimmed();
 	if (commandLine.isEmpty())
 		return std::unexpected{ QStringLiteral("No terminal found: set one in Settings → Other") };
+
+#ifdef _WIN32
+	// An elevated process does not see the user's mapped drive letters
+	if (admin)
+		folder = withMappedDriveAsNetworkPath(folder);
+#endif
 
 	commandLine.replace(QStringLiteral("{dir}"), shellQuotedPath(folder));
 
