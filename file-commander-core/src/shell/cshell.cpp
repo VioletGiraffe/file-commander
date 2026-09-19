@@ -74,14 +74,13 @@ QString OsShell::defaultTerminalCommand()
 		{ "powershell.exe", nullptr }, // Classic powershell
 		{ "cmd.exe", nullptr }
 	};
-#elif defined __linux__
+#elif defined __linux__ || defined __FreeBSD__
 	static constexpr const char* knownTerminals[][2]{
-		{ "/usr/bin/konsole", nullptr }, // KDE
-		{ "/usr/bin/gnome-terminal", nullptr }, // Gnome
-		{ "/usr/bin/pantheon-terminal", nullptr }, // Pantheon (Elementary OS)
-		{ "/usr/bin/qterminal", nullptr }, // QTerminal under linux
-		{ "/usr/local/bin/qterminal", nullptr }, // QTerminal under freebsd
-		{ "/usr/bin/lxterminal", "--working-directory={dir}" }
+		{ "konsole", nullptr }, // KDE
+		{ "gnome-terminal", nullptr }, // Gnome
+		{ "pantheon-terminal", nullptr }, // Pantheon (Elementary OS)
+		{ "qterminal", nullptr },
+		{ "lxterminal", "--working-directory={dir}" }
 	};
 #else
 #pragma message("unknown platform")
@@ -93,7 +92,7 @@ QString OsShell::defaultTerminalCommand()
 	for (const auto& candidate : knownTerminals)
 	{
 		const QString qstring = candidate[0];
-		if (QFile::exists(qstring) || OsShell::isInPath(qstring))
+		if (OsShell::isInPath(qstring))
 			return candidate[1] ? (qstring + ' ' + candidate[1]) : qstring;
 	}
 
