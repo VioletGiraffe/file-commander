@@ -27,6 +27,10 @@ DEFINES += PLUGIN_MODULE
 
 LIBS += -L$${DESTDIR} -lcore -limage-processing -lqtutils -lcpputils -lthin_io
 
+win*{
+	LIBS += -lMpr
+}
+
 HEADERS += \
 	src/cimageviewerplugin.h \
 	src/cimageviewerwindow.h

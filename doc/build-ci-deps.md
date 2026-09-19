@@ -9,6 +9,9 @@ MSVC 2022/v143.
 
 Everything that links `core` also links `thin_io`, because core filesystem helpers and file operations call it.
 
+The core libraries are static, so each consumer lists their link dependencies itself: a new dependency of a core
+library must also be added to the plugin `.pro` files that link that library, not only to `qt-app`.
+
 Every project outputs to `bin/{debug,release}`: the executable, the static libraries, and the plugin libraries. A
 dev build therefore already has the plugins beside the executable, where the plugin loader looks. `build/` holds
 intermediates.

@@ -16,6 +16,10 @@ RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -lcore -lqtutils -lcpputils -lthin_io
 
+win*{
+	LIBS += -lMpr
+}
+
 DEFINES += PLUGIN_MODULE
 
 mac*|linux*|freebsd{
