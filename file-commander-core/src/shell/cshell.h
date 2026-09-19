@@ -56,6 +56,7 @@ namespace OsShell
 	// An empty `workingDir` stands for the app's current directory.
 	[[nodiscard]] QString commandLineProgramPath(const QString& commandLine, const QString& workingDir);
 
+	// `arguments` is quoted for the platform's shell: passed as is on Windows, split by sh's rules elsewhere.
 	// An empty `workingDir` keeps the app's current directory.
 	// The error is the reason for the failure, never empty; a cancelled elevation prompt is not a failure.
 	[[nodiscard]] std::expected<void, QString> runExecutable(const QString& command, const QString& arguments, const QString& workingDir);

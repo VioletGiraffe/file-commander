@@ -22,6 +22,7 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <cmath>
 #include <stdint.h>
+#include <utility>
 
 std::optional<thin_io::entry_identity> resolvedObjectId(const QString& path)
 {
@@ -99,6 +100,76 @@ QString shellQuotedPath(QString path)
 	return '\'' % path % '\'';
 #endif
 }
+
+#ifndef _WIN32
+std::optional<QStringList> splitShellWords(const QString& text)
+{
+	QStringList words;
+	QString word;
+	bool inWord = false; // Set by a quote too: '' is an empty word
+	enum class Quote { None, Single, Double } quote = Quote::None;
+
+	for (qsizetype i = 0; i < text.size(); ++i)
+	{
+		const QChar c = text[i];
+		if (quote == Quote::Single)
+		{
+			if (c == '\'')
+				quote = Quote::None;
+			else
+				word += c;
+		}
+		else if (c == '\\')
+		{
+			if (++i == text.size())
+				return std::nullopt;
+
+			const QChar escaped = text[i];
+			if (escaped == '\n')
+				continue; // Line continuation
+
+			// Inside double quotes a backslash escapes only these, and is literal before anything else
+			static constexpr QStringView escapableInDoubleQuotes = u"$`\"\\";
+			if (quote == Quote::Double && !escapableInDoubleQuotes.contains(escaped))
+				word += '\\';
+
+			word += escaped;
+			inWord = true;
+		}
+		else if (quote == Quote::Double)
+		{
+			if (c == '\"')
+				quote = Quote::None;
+			else
+				word += c;
+		}
+		else if (c == '\'' || c == '\"')
+		{
+			quote = c == '\'' ? Quote::Single : Quote::Double;
+			inWord = true;
+		}
+		else if (c == ' ' || c == '\t' || c == '\n')
+		{
+			if (inWord)
+				words.push_back(std::exchange(word, {}));
+			inWord = false;
+		}
+		else
+		{
+			word += c;
+			inWord = true;
+		}
+	}
+
+	if (quote != Quote::None)
+		return std::nullopt;
+
+	if (inWord)
+		words.push_back(std::move(word));
+
+	return words;
+}
+#endif
 
 QString fileSizeToString(uint64_t size, const char maxUnit, const QString& spacer, int significantPlaces)
 {

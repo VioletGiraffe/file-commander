@@ -279,11 +279,15 @@ std::expected<void, QString> OsShell::runExe(const QString& command, const QStri
 	return {};
 }
 #else
-std::expected<void, QString> OsShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
+std::expected<void, QString> OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
 {
+	std::optional<QStringList> argumentList = splitShellWords(arguments);
+	if (!argumentList)
+		return std::unexpected{ QStringLiteral("Unfinished quote or escape in the arguments: %1").arg(arguments) };
+
 	QProcess process;
 	process.setProgram(command);
-	process.setArguments({ parameters });
+	process.setArguments(std::move(*argumentList));
 	process.setWorkingDirectory(workingDir);
 	if (!process.startDetached())
 		return std::unexpected{ process.errorString() };

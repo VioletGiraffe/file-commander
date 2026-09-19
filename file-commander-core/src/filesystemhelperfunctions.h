@@ -7,6 +7,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <optional>
@@ -59,6 +60,12 @@ class CFileSystemObject;
 // The trailing separator is stripped: inside the quotes it would read as an escaped quote.
 // A %VAR% still expands on Windows: cmd does that inside double quotes too, out of reach of quoting.
 [[nodiscard]] QString shellQuotedPath(QString path);
+
+#ifndef _WIN32
+// Splits text into words by sh's quoting and escaping rules, with no expansion: undoes shellQuotedPath.
+// Empty when a quote or an escape is left unfinished.
+[[nodiscard]] std::optional<QStringList> splitShellWords(const QString& text);
+#endif
 
 [[nodiscard]] QString fileSizeToString(uint64_t size, char maxUnit = '\0', const QString& spacer = {}, int significantPlaces = 4);
 

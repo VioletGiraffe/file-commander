@@ -428,6 +428,7 @@ jobs:
         .\bin\release\panel_test.exe
         .\bin\release\filesearchengine_test.exe
         .\bin\release\userprograms_test.exe
+        .\bin\release\filesystemhelpers_test.exe
         $N=20
         For ($i=1; $i -le $N; $i++) {
           Write-Output "Iteration $i/$N"
@@ -469,6 +470,7 @@ jobs:
         set -e; ./bin/release/panel_test.app/Contents/MacOS/panel_test
         set -e; ./bin/release/filesearchengine_test.app/Contents/MacOS/filesearchengine_test
         set -e; ./bin/release/userprograms_test.app/Contents/MacOS/userprograms_test
+        set -e; ./bin/release/filesystemhelpers_test.app/Contents/MacOS/filesystemhelpers_test
         set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/fileoperations_test.app/Contents/MacOS/fileoperations_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/filecomparator_test.app/Contents/MacOS/filecomparator_test --std-seed $(date +%s)
         set -e; ./bin/release/fileoperations_gui_test.app/Contents/MacOS/fileoperations_gui_test
@@ -486,6 +488,7 @@ jobs:
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/panel_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/filesearchengine_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/userprograms_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
+        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/filesystemhelpers_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/fileoperations_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/filecomparator_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
         ./linuxdeployqt-7-x86_64.AppImage ./bin/release/fileoperations_gui_test -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
@@ -510,6 +513,7 @@ jobs:
         set -e; ./bin/release/panel_test
         set -e; ./bin/release/filesearchengine_test
         set -e; ./bin/release/userprograms_test
+        set -e; ./bin/release/filesystemhelpers_test
         set -e; for i in `seq 1 20`; do echo "Iteration $i"; ./bin/release/fileoperations_test --std-seed $(date +%s); sleep 1; done
         set -e; ./bin/release/filecomparator_test --std-seed $(date +%s)
         set -e; QT_QPA_PLATFORM=offscreen ./bin/release/fileoperations_gui_test
