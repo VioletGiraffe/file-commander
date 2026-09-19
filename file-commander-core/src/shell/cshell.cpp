@@ -191,19 +191,25 @@ std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramChec
 
 #ifdef _WIN32
 
-bool OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
+static QString launchErrorText(const DWORD errorCode)
+{
+	const QString message = QString::fromStdString(ErrorStringFromErrorCode(errorCode));
+	return !message.isEmpty() ? message : QStringLiteral("Error code %1").arg(errorCode);
+}
+
+std::expected<void, QString> OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
 {
 	return runExe(command, arguments, workingDir, false);
 }
 
-bool OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
+std::expected<void, QString> OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
 {
 	const QString workingDirNative = toNativeSeparators(workingDir);
 	// The extended-length form: ShellExecuteExW accepts it, and without it MAX_PATH caps what can be launched.
 	// A bare program name is left alone, so resolution through PATH still works.
 	const thin_io::windows_path_buffer commandNative{ reinterpret_cast<const wchar_t*>(command.utf16()) };
 	if (!commandNative)
-		return false;
+		return std::unexpected{ launchErrorText(commandNative.error_code()) };
 
 	SHELLEXECUTEINFOW shExecInfo;
 	::memset(&shExecInfo, 0, sizeof(shExecInfo));
@@ -220,22 +226,29 @@ bool OsShell::runExe(const QString& command, const QString& arguments, const QSt
 
 	if (ShellExecuteExW(&shExecInfo) == 0)
 	{
-		if (GetLastError() != ERROR_CANCELLED) // Operation canceled by the user
+		if (const DWORD error = ::GetLastError(); error != ERROR_CANCELLED) // Operation canceled by the user
 		{
-			const QString errorString = QString::fromStdString(ErrorStringFromLastError());
+			QString errorText = launchErrorText(error);
 			qInfo() << "ShellExecuteExW failed when trying to run" << QString::fromWCharArray(commandNative.c_str()) << "in" << workingDirNative;
-			qInfo() << errorString;
+			qInfo() << errorText;
 
-			return false;
+			return std::unexpected{ std::move(errorText) };
 		}
 	}
 
-	return true;
+	return {};
 }
 #else
-bool OsShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
+std::expected<void, QString> OsShell::runExecutable(const QString & command, const QString & parameters, const QString & workingDir)
 {
-	return QProcess::startDetached(command, QStringList() << parameters, workingDir);
+	QProcess process;
+	process.setProgram(command);
+	process.setArguments({ parameters });
+	process.setWorkingDirectory(workingDir);
+	if (!process.startDetached())
+		return std::unexpected{ process.errorString() };
+
+	return {};
 }
 #endif
 

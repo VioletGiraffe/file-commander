@@ -622,32 +622,35 @@ void CController::warnIfVisitedLocationDropped(Panel p, const QString& newPath, 
 	});
 }
 
-// Indicates that an item was activated and appropriate action should be taken. Returns error message, if any
-FileOperationResultCode CController::itemActivated(qulonglong itemHash, Panel p)
+CController::ItemActivationResult CController::itemActivated(qulonglong itemHash, Panel p)
 {
 	const auto item = panel(p).itemByHash(itemHash);
 	if (item.isBundle())
 	{
 		// macOS bundle: launch it as an application
-		return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+		return { QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail };
 	}
 	else if (item.isDir())
 	{
 		// Attempting to enter this dir
-		const FileOperationResultCode result = setPath(p, item.fullAbsolutePath(), item.isCdUp() ? refreshCauseCdUp : refreshCauseForwardNavigation);
-		return result;
+		return { setPath(p, item.fullAbsolutePath(), item.isCdUp() ? refreshCauseCdUp : refreshCauseForwardNavigation) };
 	}
 	else if (item.isFile())
 	{
 		if (item.isExecutable())
+		{
 			// Attempting to launch this exe from the current directory
-			return OsShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+			if (auto launched = OsShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()); !launched)
+				return { FileOperationResultCode::Fail, std::move(launched.error()) };
+
+			return { FileOperationResultCode::Ok };
+		}
 		else
 			// It's probably not a binary file, try opening with openUrl
-			return QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail;
+			return { QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail };
 	}
 
-	return FileOperationResultCode::Fail;
+	return { FileOperationResultCode::Fail };
 }
 
 // A current volume has been switched
@@ -795,13 +798,16 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 	return FileOperationResultCode::Fail;
 }
 
-void CController::openTerminal(const QString &folder, bool admin)
+std::expected<void, QString> CController::openTerminal(const QString &folder, bool admin)
 {
 #if defined __APPLE__
 	// Regular escaping with "\ " doesn't work here, need to use single quotes
 	const auto script = QString(R"(osascript -e "tell application \"Terminal\" to do script \"cd %1\"")").arg(shellQuotedPath(folder));
-	system(script.toUtf8().constData());
 	Q_UNUSED(admin);
+	if (const int status = system(script.toUtf8().constData()); status != 0)
+		return std::unexpected{ QSL("osascript failed with status %1").arg(status) };
+
+	return {};
 #elif defined __linux__ || defined __FreeBSD__ || defined _WIN32
 	if (!admin)
 	{
@@ -809,8 +815,7 @@ void CController::openTerminal(const QString &folder, bool admin)
 		static constexpr auto* dirTemplate = "%dir%";
 		args.replace(dirTemplate, shellQuotedPath(folder));
 
-		const bool started = OsShell::runExecutable(terminalProgram, args, folder);
-		assert_r(started);
+		return OsShell::runExecutable(terminalProgram, args, folder);
 	}
 	else
 	{
@@ -830,7 +835,9 @@ void CController::openTerminal(const QString &folder, bool admin)
 			arguments += ' ';
 		arguments.prepend(terminalProgramArgs.second);
 
-		assert_r(OsShell::runExe(terminalProgram, arguments, folder, true));
+		return OsShell::runExe(terminalProgram, arguments, folder, true);
+#else
+		return std::unexpected{ QSL("An administrator terminal is not supported on this platform") };
 #endif
 	}
 #else

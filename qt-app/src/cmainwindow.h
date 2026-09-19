@@ -84,6 +84,7 @@ private:
 	void viewFile();
 	void viewFileInTextViewer();
 	void editFile();
+	void openTerminalInCurrentFolder(bool admin);
 	void showRecycleBInContextMenu(QPoint pos);
 	// Swaps the bottom command buttons' captions between their normal and Shift-modified variants
 	void setShiftCaptions(bool shifted);

@@ -101,6 +101,13 @@ void showDeleteItemsError()
 }
 #endif
 
+static void showLaunchError(QWidget* parent, const QString& message, const QString& reason)
+{
+	QMessageBox box{ QMessageBox::Critical, CMainWindow::tr("Error"), message, QMessageBox::Ok, parent };
+	box.setInformativeText(reason);
+	box.exec();
+}
+
 CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, CShellOperationRunner& shellOperations, QWidget *parent) noexcept :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
@@ -270,13 +277,8 @@ void CMainWindow::initActions()
 	ui->actionGo_forward->setText(ui->actionGo_forward->text() + QSL("\tAlt+Right, Shift+Wheel Down"));
 	ui->actionClose_Tab->setText(ui->actionClose_Tab->text() + QSL("\tCtrl+W, MMB"));
 
-	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, [this]() {
-		_controller->openTerminal(_currentFileList->currentDirPathNative());
-	});
-
-	connect(ui->actionOpen_Admin_console_here, &QAction::triggered, this, [this]() {
-		_controller->openTerminal(_currentFileList->currentDirPathNative(), true);
-	});
+	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, [this] { openTerminalInCurrentFolder(false); });
+	connect(ui->actionOpen_Admin_console_here, &QAction::triggered, this, [this] { openTerminalInCurrentFolder(true); });
 
 	ui->action_Show_hidden_files->setChecked(QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
 #ifndef _WIN32
@@ -503,14 +505,14 @@ bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
-	const auto result = _controller->itemHashExists(panel->panelPosition(), hash) ? _controller->itemActivated(hash, panel->panelPosition()) : FileOperationResultCode::ObjectDoesntExist;
-	switch (result)
+	const auto result = _controller->itemHashExists(panel->panelPosition(), hash) ? _controller->itemActivated(hash, panel->panelPosition()) : CController::ItemActivationResult{ FileOperationResultCode::ObjectDoesntExist };
+	switch (result.code)
 	{
 	case FileOperationResultCode::ObjectDoesntExist:
 		QMessageBox(QMessageBox::Warning, tr("Error"), tr("The file doesn't exist.")).exec();
 		break;
 	case FileOperationResultCode::Fail:
-		QMessageBox(QMessageBox::Critical, tr("Error"), tr("Failed to launch %1").arg(_controller->itemByHash(panel->panelPosition(), hash).fullAbsolutePath())).exec();
+		showLaunchError(this, tr("Failed to launch %1").arg(toNativeSeparators(_controller->itemByHash(panel->panelPosition(), hash).fullAbsolutePath())), result.errorText);
 		break;
 	case FileOperationResultCode::DirNotAccessible:
 		QMessageBox(QMessageBox::Critical, tr("No access"), tr("This item is not accessible.")).exec();
@@ -790,6 +792,12 @@ void CMainWindow::editFile()
 	}
 }
 
+void CMainWindow::openTerminalInCurrentFolder(bool admin)
+{
+	if (const auto opened = _controller->openTerminal(_currentFileList->currentDirPathNative(), admin); !opened)
+		showLaunchError(this, tr("Failed to open a terminal"), opened.error());
+}
+
 void CMainWindow::showRecycleBInContextMenu(QPoint pos)
 {
 	const QPoint globalPos = ui->btnDelete->mapToGlobal(pos) * ui->btnDelete->devicePixelRatioF(); // These coordinates ar egoing directly into the system API so need to account for scaling that Qt tries to abstract away.
@@ -865,7 +873,10 @@ void CMainWindow::runCommandLine(const QString& commandLine, const QString& work
 {
 	// A GUI program run through the shell would hold a pane open for its whole life; a failed check falls back to the shell
 	if (const auto guiProgram = OsShell::guiProgramInvocation(commandLine, workingDir).value_or(std::nullopt))
-		OsShell::runExecutable(guiProgram->programPath, guiProgram->arguments, guiProgram->workingDir);
+	{
+		if (const auto launched = OsShell::runExecutable(guiProgram->programPath, guiProgram->arguments, guiProgram->workingDir); !launched)
+			showLaunchError(this, tr("Failed to launch %1").arg(toNativeSeparators(guiProgram->programPath)), launched.error());
+	}
 	else
 		ui->commandOutputArea->run(commandLine, workingDir);
 }

@@ -14,6 +14,7 @@
 
 
 #include <array>
+#include <expected>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -85,8 +86,13 @@ public:
 	[[nodiscard]] QString tabPath(Panel p, qulonglong tabId) const;
 	[[nodiscard]] QString tabName(Panel p, qulonglong tabId) const; // The tab's folder name, for the tab label
 	[[nodiscard]] const CPanel& tabById(Panel p, qulonglong tabId) const; // For read-only queries against non-active tabs (their lists are as of when they were last active)
-	// Indicates that an item was activated and appropriate action should be taken.  Returns error message, if any
-	FileOperationResultCode itemActivated(qulonglong itemHash, Panel p);
+	struct ItemActivationResult
+	{
+		FileOperationResultCode code;
+		QString errorText; // The reason for a failure, when known
+	};
+	// Enters a folder, launches an executable, or opens a file with its associated program
+	ItemActivationResult itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched
 	std::pair<bool /*success*/, QString/*volume root path*/> switchToVolume(Panel p, uint64_t id);
 	// Program settings have changed
@@ -113,8 +119,8 @@ public:
 	FileOperationResultCode createFolder(const QString& parentFolder, const QString& name);
 	// Creates a file with a specified name at the specified parent folder
 	FileOperationResultCode createFile(const QString& parentFolder, const QString& name);
-	// Opens a terminal window in the specified folder
-	void openTerminal(const QString & folder, bool admin = false);
+	// Opens a terminal window in the specified folder. The error is the reason for the failure, never empty.
+	std::expected<void, QString> openTerminal(const QString & folder, bool admin = false);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
 	// Flattens the current directory and displays all its child files on one level

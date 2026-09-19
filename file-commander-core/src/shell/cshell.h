@@ -52,11 +52,12 @@ namespace OsShell
 	// A bare cmd, without arguments, also qualifies: it gets its own console window.
 	[[nodiscard]] std::expected<std::optional<ProgramInvocation>, GuiProgramCheckError> guiProgramInvocation(const QString& commandLine, const QString& workingDir);
 
-	// An empty `workingDir` keeps the app's current directory
-	bool runExecutable(const QString& command, const QString& arguments, const QString& workingDir);
+	// An empty `workingDir` keeps the app's current directory.
+	// The error is the reason for the failure, never empty; a cancelled elevation prompt is not a failure.
+	[[nodiscard]] std::expected<void, QString> runExecutable(const QString& command, const QString& arguments, const QString& workingDir);
 
 #ifdef _WIN32
-	bool runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin = false);
+	[[nodiscard]] std::expected<void, QString> runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin = false);
 #endif
 
 	bool isInPath(const QString& fileName);
