@@ -806,7 +806,7 @@ std::expected<void, QString> CController::openTerminal(const QString &folder, bo
 	Q_UNUSED(admin);
 	// open only hands the request to Launch Services, so waiting for it is brief
 	QProcess openProcess;
-	openProcess.start(QSL("open"), { QSL("-a"), QSL("Terminal"), folder });
+	openProcess.start(QSL("open"), { QSL("-a"), OsShell::terminalCommand(), folder });
 	if (!openProcess.waitForFinished())
 		return std::unexpected{ openProcess.errorString() };
 
@@ -819,7 +819,7 @@ std::expected<void, QString> CController::openTerminal(const QString &folder, bo
 	return {};
 #elif defined __linux__ || defined __FreeBSD__ || defined _WIN32
 	auto [terminalProgram, arguments] = OsShell::shellExecutable();
-	arguments.replace(QSL("%dir%"), shellQuotedPath(folder));
+	arguments.replace(QSL("{dir}"), shellQuotedPath(folder));
 	if (!admin)
 		return OsShell::runExecutable(terminalProgram, arguments, folder);
 

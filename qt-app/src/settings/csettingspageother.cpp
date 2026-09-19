@@ -19,12 +19,12 @@ CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 
 	QSettings s;
 
-	const auto shellCommandAndArgs = OsShell::shellExecutable();
-	QString shellCommandLine = shellCommandAndArgs.first;
-	if (!shellCommandAndArgs.second.isEmpty())
-		(shellCommandLine += ' ') += shellCommandAndArgs.second;
-
-	ui->_shellCommandName->setText(s.value(KEY_OTHER_SHELL_COMMAND_NAME, shellCommandLine).toString());
+	ui->_shellCommandName->setPlaceholderText(OsShell::defaultTerminalCommand());
+	ui->_shellCommandName->setText(s.value(KEY_OTHER_TERMINAL_COMMAND).toString());
+#ifdef __APPLE__
+	ui->label->setText(tr("Terminal application"));
+	ui->label_2->setText(tr("Leave empty for the default shown, or enter the name of another terminal application, such as iTerm."));
+#endif
 	ui->_cbCheckForUpdatesAutomatically->setChecked(s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool());
 }
 
@@ -36,6 +36,6 @@ CSettingsPageOther::~CSettingsPageOther()
 void CSettingsPageOther::acceptSettings()
 {
 	QSettings s;
-	s.setValue(KEY_OTHER_SHELL_COMMAND_NAME, ui->_shellCommandName->text());
+	s.setValue(KEY_OTHER_TERMINAL_COMMAND, ui->_shellCommandName->text().trimmed());
 	s.setValue(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, ui->_cbCheckForUpdatesAutomatically->isChecked());
 }

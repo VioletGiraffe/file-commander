@@ -75,5 +75,5 @@
 #define KEY_EDITOR_PATH QSL("Edit/EditorProgramPath")
 
 // Other
-#define KEY_OTHER_SHELL_COMMAND_NAME QSL("Other/Shell/ShellCommandName")
+#define KEY_OTHER_TERMINAL_COMMAND QSL("Other/Shell/TerminalCommand") // Empty: OsShell::defaultTerminalCommand
 #define KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY QSL("Other/UpdateChecking/CheckAutomatically")

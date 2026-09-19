@@ -17,6 +17,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
@@ -59,11 +60,16 @@ std::pair<QString /* exe path */, QString /* args */> parseCommandAndArguments(c
 	return { std::move(cmd), std::move(argsString) };
 }
 
-QString defaultShellExecutableCommand()
+} // namespace
+
+QString OsShell::defaultTerminalCommand()
 {
+#ifdef __APPLE__
+	return QStringLiteral("Terminal");
+#else
 #ifdef _WIN32
 	static constexpr const char* knownTerminals[][2]{
-		{ "wt.exe", "-d %dir%" }, // Windows Terminal
+		{ "wt.exe", "-d {dir}" }, // Windows Terminal
 		{ "pwsh.exe", nullptr }, // New powershell?
 		{ "powershell.exe", nullptr }, // Classic powershell
 		{ "cmd.exe", nullptr }
@@ -75,11 +81,7 @@ QString defaultShellExecutableCommand()
 		{ "/usr/bin/pantheon-terminal", nullptr }, // Pantheon (Elementary OS)
 		{ "/usr/bin/qterminal", nullptr }, // QTerminal under linux
 		{ "/usr/local/bin/qterminal", nullptr }, // QTerminal under freebsd
-		{ "/usr/bin/lxterminal", "--working-directory=%dir%" }
-	};
-#elif defined __APPLE__
-	static constexpr const char* knownTerminals[][2]{
-		{ "/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal", nullptr },
+		{ "/usr/bin/lxterminal", "--working-directory={dir}" }
 	};
 #else
 #pragma message("unknown platform")
@@ -96,15 +98,18 @@ QString defaultShellExecutableCommand()
 	}
 
 	return {};
+#endif
 }
 
-} // namespace
+QString OsShell::terminalCommand()
+{
+	const QString configuredCommand = QSettings{}.value(KEY_OTHER_TERMINAL_COMMAND).toString();
+	return !configuredCommand.isEmpty() ? configuredCommand : defaultTerminalCommand();
+}
 
 std::pair<QString /* exe path */, QString /* args */> OsShell::shellExecutable()
 {
-	//const QString shell = QSettings{}.value(KEY_OTHER_SHELL_COMMAND_NAME, defaultShellExecutableCommand()).toString();
-	auto shell = defaultShellExecutableCommand();
-	return parseCommandAndArguments(shell);
+	return parseCommandAndArguments(terminalCommand());
 }
 
 #ifdef _WIN32

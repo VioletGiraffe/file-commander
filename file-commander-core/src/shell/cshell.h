@@ -16,6 +16,12 @@ RESTORE_COMPILER_WARNINGS
 
 namespace OsShell
 {
+	// The first installed terminal the app knows of; an application name on macOS, a command line elsewhere.
+	// {dir} in the command line stands for the folder to open.
+	[[nodiscard]] QString defaultTerminalCommand();
+	// The terminal from the settings; defaultTerminalCommand when none is set
+	[[nodiscard]] QString terminalCommand();
+	// terminalCommand split into the program and its arguments
 	std::pair<QString /* exe path */, QString /* args */> shellExecutable();
 
 	// Pos must be global
