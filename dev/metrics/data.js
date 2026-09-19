@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789819681228,
+  "lastUpdate": 1789821025274,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -21691,6 +21691,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 25.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "0d032e9926e5af25b9c3059f82aa7ebcd2ade3b3",
+          "message": "Terminal launch moved to OsShell::openTerminal; command split once per platform\n\n- {dir} filled in on the raw command, then split: leadingProgram on Windows, splitShellWords elsewhere\n- Clear error when no terminal is configured or detected\n- CController::openTerminal, shellExecutable, parseCommandAndArguments removed\n- Settings note: PowerShell and cmd open in the folder automatically; {dir} is for other terminals",
+          "timestamp": "2026-09-19T15:24:26+03:00",
+          "tree_id": "44f3bac695623a07fa851ab878f0d82dd96e586f",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/0d032e9926e5af25b9c3059f82aa7ebcd2ade3b3"
+        },
+        "date": 1789821020192,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19082,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18077,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1440.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 203,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2126.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 812.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 425,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26,
             "unit": "KB"
           },
           {
