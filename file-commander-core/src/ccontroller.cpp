@@ -820,11 +820,9 @@ std::expected<void, QString> CController::openTerminal(const QString &folder, bo
 #elif defined __linux__ || defined __FreeBSD__ || defined _WIN32
 	auto [terminalProgram, arguments] = OsShell::shellExecutable();
 	arguments.replace(QSL("{dir}"), shellQuotedPath(folder));
-	if (!admin)
-		return OsShell::runExecutable(terminalProgram, arguments, folder);
 
 #ifdef _WIN32
-	// An elevated shell may ignore its working folder and start in System32, so the shell command changes it
+	// Not every shell starts in its working folder, so the shell command changes it
 	const QString nativeFolder = toNativeSeparators(folder);
 	const QString programName = QFileInfo{ terminalProgram }.completeBaseName().toLower();
 	QString changeFolderArguments;
@@ -842,9 +840,12 @@ std::expected<void, QString> CController::openTerminal(const QString &folder, bo
 		arguments += ' ';
 	arguments += changeFolderArguments;
 
-	return OsShell::runExe(terminalProgram, arguments, folder, true);
+	return OsShell::runExe(terminalProgram, arguments, folder, admin);
 #else
-	return std::unexpected{ QSL("An administrator terminal is not supported on this platform") };
+	if (admin)
+		return std::unexpected{ QSL("An administrator terminal is not supported on this platform") };
+
+	return OsShell::runExecutable(terminalProgram, arguments, folder);
 #endif
 #else
 #error unknown platform

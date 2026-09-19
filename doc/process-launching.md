@@ -15,8 +15,9 @@ happens to running commands when the app exits.
 | Programs menu | `CMainWindow::runUserProgram` | Placeholders expanded, then the command line's path through `CMainWindow::runCommandLine` |
 
 Paths embedded in a shell command line go through `shellQuotedPath`: it quotes only where cmd or sh would misread the
-path, so the same call serves the clipboard. A `%VAR%` in a path still expands under cmd, even quoted. The elevated
-PowerShell terminal launch quotes for PowerShell instead.
+path, so the same call serves the clipboard. A `%VAR%` in a path still expands under cmd, even quoted. The terminal
+launch on Windows changes to the folder with a PowerShell or cmd command, quoted for that shell: the working folder
+alone does not reliably reach the shell.
 
 ## Programs menu
 
