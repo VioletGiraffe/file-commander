@@ -262,6 +262,12 @@
     <addaction name="separator"/>
     <addaction name="actionCompare_folders"/>
    </widget>
+   <widget class="QMenu" name="menuPrograms">
+    <property name="title">
+     <string>&amp;Programs</string>
+    </property>
+    <addaction name="actionConfigure_programs"/>
+   </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
      <string>&amp;Options</string>
@@ -316,6 +322,7 @@
    <addaction name="menuTabs"/>
    <addaction name="menu_View"/>
    <addaction name="menuCommands"/>
+   <addaction name="menuPrograms"/>
    <addaction name="menuOptions"/>
    <addaction name="menu_Help"/>
   </widget>
@@ -378,6 +385,11 @@
   <action name="actionCompare_folders">
    <property name="text">
     <string>Compare folders by contents</string>
+   </property>
+  </action>
+  <action name="actionConfigure_programs">
+   <property name="text">
+    <string>&amp;Configure...</string>
    </property>
   </action>
   <action name="actionQuick_view">

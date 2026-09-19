@@ -23,7 +23,29 @@ RESTORE_COMPILER_WARNINGS
 #include <csignal>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include <limits>
 #endif
+
+#ifdef _WIN32
+// The line cmd executes. cmd does not support a UNC current directory: pushd applies the working dir instead of
+// setWorkingDirectory, and maps a temporary drive letter for UNC.
+static QString cmdLine(const QString& workingDir, const QString& command)
+{
+	return QStringLiteral("pushd \"") % workingDir % QStringLiteral("\" && ") % command;
+}
+#endif
+
+qsizetype CShellCommand::maxCommandLength(const QString& workingDir)
+{
+#ifdef _WIN32
+	static constexpr qsizetype cmdLineLimit = 8191;
+	return cmdLineLimit - cmdLine(workingDir, {}).size();
+#else
+	// Not limited here: an over-long command fails to start, and start() reports the reason
+	return std::numeric_limits<qsizetype>::max();
+#endif
+}
 
 CShellCommand::CShellCommand(QString command, QString workingDir) :
 	_command{ std::move(command) },
@@ -94,11 +116,9 @@ std::expected<void, QString> CShellCommand::start()
 	});
 	EXEC_ON_SCOPE_EXIT([this] { _process.setCreateProcessArgumentsModifier({}); }); // The modifier captures locals
 
-	// cmd does not support a UNC current directory: pushd applies the working dir instead of setWorkingDirectory, and maps a
-	// temporary drive letter for UNC.
 	// /s: cmd strips only the outermost quotes and takes the rest verbatim, so the working dir can be quoted.
 	_process.setProgram(QStringLiteral("cmd.exe"));
-	_process.setNativeArguments(QStringLiteral("/s /c \"pushd \"") % _workingDir % QStringLiteral("\" && ") % _command % '\"');
+	_process.setNativeArguments(QStringLiteral("/s /c \"") % cmdLine(_workingDir, _command) % '\"');
 #else
 	_process.setProgram(QStringLiteral("/bin/sh"));
 	_process.setArguments({ QStringLiteral("-c"), _command });

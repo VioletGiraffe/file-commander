@@ -25,6 +25,7 @@ HEADERS += \
 	src/shell/cshellcommand.h \
 	include/settings.h \
 	src/favoritelocationslist/cfavoritelocations.h \
+	src/userprograms/userprograms.h \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \
 	src/filesearchengine/cfilesearchengine.h \
@@ -49,6 +50,7 @@ SOURCES += \
 	src/shell/cshell.cpp \
 	src/shell/cshellcommand.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
+	src/userprograms/userprograms.cpp \
 	src/filesearchengine/cfilesearchengine.cpp \
 	src/directoryscanner.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \

@@ -12,10 +12,22 @@ happens to running commands when the app exits.
 | Edit (F4) | `CMainWindow::editFile` | `QProcess::startDetached` with the configured editor; `open -a` on macOS |
 | Open terminal | `CController::openTerminal` | `OsShell::shellExecutable` picks the terminal; elevated through `OsShell::runExe` on Windows |
 | Command line | `CMainWindow::executeCommand` | `OsShell::runExecutable` for a GUI program (`OsShell::guiProgramInvocation`), else `CCommandOutputArea::run` |
+| Programs menu | `CMainWindow::runUserProgram` | Placeholders expanded, then the command line's path through `CMainWindow::runCommandLine` |
 
 Paths embedded in a shell command line go through `shellQuotedPath`: it quotes only where cmd or sh would misread the
 path, so the same call serves the clipboard. A `%VAR%` in a path still expands under cmd, even quoted. The terminal
 launch's PowerShell and `osascript` branches need other quoting dialects; see [TODO.md](TODO.md).
+
+## Programs menu
+
+User-defined command-line templates: `file-commander-core/src/userprograms` holds the model, storage and placeholder
+expansion; `CUserProgramsDialog` edits them.
+
+- The position in the list is the hotkey: the first 12 entries get Ctrl+Shift+F1 to F12.
+- Placeholders expand in one pass, each value quoted by `shellQuotedPath`. A placeholder without a value, such as
+  `{file}` with the cursor on `..`, stops the launch.
+- On Windows the expanded line must fit cmd's 8191-character limit, `CShellCommand::maxCommandLength`. The check also
+  applies to a GUI program, which bypasses cmd and could take more.
 
 ## Command line
 

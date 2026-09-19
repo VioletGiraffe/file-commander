@@ -54,6 +54,8 @@ SOURCES += \
 	src/settings/csettingspageoperations.cpp \
 	src/favoritelocationseditor/cfavoritelocationseditor.cpp \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
+	src/programseditor/cuserprogramsdialog.cpp \
+	src/programseditor/userprogramsui.cpp \
 	src/panel/filelistwidget/cfilelistfilterdialog.cpp \
 	src/filessearchdialog/cfilessearchwindow.cpp \
 	src/aboutdialog/aboutdialog.cpp \
@@ -83,6 +85,8 @@ HEADERS += \
 	src/settings/csettingspageoperations.h \
 	src/favoritelocationseditor/cfavoritelocationseditor.h \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.h \
+	src/programseditor/cuserprogramsdialog.h \
+	src/programseditor/userprogramsui.h \
 	src/panel/filelistwidget/cfilelistfilterdialog.h \
 	src/filessearchdialog/cfilessearchwindow.h \
 	src/tools/CFileStatsWindow.h \

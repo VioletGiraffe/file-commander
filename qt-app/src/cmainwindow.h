@@ -6,6 +6,7 @@
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
 #include "cpanel.h"
+#include "userprograms/userprograms.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -107,6 +108,12 @@ private:
 	void clearCommandLineAndRestoreFocus();
 	void appendCurrentItemToCommandLine(bool fullPath);
 
+// Programs menu
+	void rebuildProgramsMenu();
+	void configureUserPrograms();
+	void runUserProgram(const UserProgram& program);
+	[[nodiscard]] PlaceholderValues placeholderValues() const;
+
 // Main menu
 	void refresh();
 	void findFiles();
@@ -177,6 +184,8 @@ private:
 	enum { NormalWindow, MaximizedWindow } _windowStateBeforeFullscreen = NormalWindow;
 
 	std::vector<CFileOperationDialog*> _activeFileOperationDialogs;
+
+	std::vector<UserProgram> _userPrograms; // In Programs menu order
 
 	// Bottom command buttons whose caption reflects the Shift-modified action while Shift is held
 	struct ShiftCaption { QPushButton* button; QString normal; QString shifted; };

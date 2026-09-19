@@ -17,6 +17,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
+#include <QStandardPaths>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
@@ -133,6 +134,37 @@ static QString resolvedProgramPath(const QString& program, const QString& workin
 	return {};
 }
 
+namespace {
+
+struct LeadingProgram
+{
+	QString program;
+	qsizetype end; // The closing quote or the space after the program; -1 when the program ends the line
+};
+
+}
+
+// The program ends at its closing quote, or at the first space when unquoted. Requires a trimmed `line`.
+static std::optional<LeadingProgram> leadingProgram(const QString& line)
+{
+	const bool quoted = line.startsWith('"');
+	const qsizetype programEnd = quoted ? line.indexOf('"', 1) : line.indexOf(' ');
+	if (quoted && programEnd < 0)
+		return std::nullopt;
+
+	QString program = quoted ? line.mid(1, programEnd - 1) : line.left(programEnd);
+	if (program.isEmpty())
+		return std::nullopt;
+
+	return LeadingProgram{ .program = std::move(program), .end = programEnd };
+}
+
+QString OsShell::commandLineProgramPath(const QString& commandLine, const QString& workingDir)
+{
+	const auto leading = leadingProgram(commandLine.trimmed());
+	return leading ? resolvedProgramPath(leading->program, workingDir) : QString{};
+}
+
 std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramCheckError> OsShell::guiProgramInvocation(const QString& commandLine, const QString& workingDir)
 {
 	// Variable expansion, redirection, pipes, chaining and grouping all need cmd; % expands even inside quotes
@@ -145,23 +177,17 @@ std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramChec
 			return std::nullopt;
 	}
 
-	// The program ends at its closing quote, or at the first space when unquoted
 	const QString line = commandLine.trimmed();
-	const bool quoted = line.startsWith('"');
-	const qsizetype programEnd = quoted ? line.indexOf('"', 1) : line.indexOf(' ');
-	if (quoted && programEnd < 0)
-		return std::nullopt;
-
-	const QString program = quoted ? line.mid(1, programEnd - 1) : line.left(programEnd);
-	if (program.isEmpty())
+	const auto leading = leadingProgram(line);
+	if (!leading)
 		return std::nullopt;
 
 	// Not found also covers cmd built-ins
-	QString programPath = resolvedProgramPath(program, workingDir);
+	QString programPath = resolvedProgramPath(leading->program, workingDir);
 	if (programPath.isEmpty())
 		return std::nullopt;
 
-	QString arguments = programEnd < 0 ? QString{} : line.mid(programEnd + 1).trimmed();
+	QString arguments = leading->end < 0 ? QString{} : line.mid(leading->end + 1).trimmed();
 	// A bare cmd is interactive: through the shell it reads the null stdin and exits at once
 	if (arguments.isEmpty() && QFileInfo{ programPath }.fileName().compare(QStringLiteral("cmd.exe"), Qt::CaseInsensitive) == 0)
 	{
@@ -182,6 +208,20 @@ std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramChec
 	return ProgramInvocation{ .programPath = std::move(programPath), .arguments = std::move(arguments), .workingDir = workingDir };
 }
 #else
+QString OsShell::commandLineProgramPath(const QString& commandLine, const QString& workingDir)
+{
+	const QStringList words = QProcess::splitCommand(commandLine);
+	if (words.empty())
+		return {};
+
+	const QString& program = words.front();
+	if (!program.contains('/'))
+		return QStandardPaths::findExecutable(program);
+
+	const QFileInfo file{ QDir{ workingDir }.absoluteFilePath(program) };
+	return file.isFile() && file.isExecutable() ? file.absoluteFilePath() : QString{};
+}
+
 // sh returns at once for a program started with & or through open.
 std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramCheckError> OsShell::guiProgramInvocation(const QString& /*commandLine*/, const QString& /*workingDir*/)
 {

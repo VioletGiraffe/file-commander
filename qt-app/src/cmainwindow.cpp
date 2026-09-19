@@ -13,6 +13,8 @@
 #include "commandoutput/ccommandoutputarea.h"
 
 #include "filessearchdialog/cfilessearchwindow.h"
+#include "programseditor/cuserprogramsdialog.h"
+#include "programseditor/userprogramsui.h"
 #include "tools/CFileStatsWindow.h"
 #include "tools/cfoldercomparisonwindow.h"
 #include "settings/csettingspageedit.h"
@@ -26,6 +28,7 @@
 #include "settings.h"
 #include "pluginengine/cpluginengine.h"
 #include "shell/cshell.h"
+#include "shell/cshellcommand.h"
 #include "fileoperations/fileoperationtypes.h"
 #include "fileoperations/newnamecheck.h"
 #include "filesystemhelperfunctions.h"
@@ -276,6 +279,10 @@ void CMainWindow::initActions()
 	ui->actionGo_back->setText(ui->actionGo_back->text() + QSL("\tAlt+Left, Shift+Wheel Up"));
 	ui->actionGo_forward->setText(ui->actionGo_forward->text() + QSL("\tAlt+Right, Shift+Wheel Down"));
 	ui->actionClose_Tab->setText(ui->actionClose_Tab->text() + QSL("\tCtrl+W, MMB"));
+
+	connect(ui->actionConfigure_programs, &QAction::triggered, this, &CMainWindow::configureUserPrograms);
+	_userPrograms = loadUserPrograms();
+	rebuildProgramsMenu();
 
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, [this] { openTerminalInCurrentFolder(false); });
 	connect(ui->actionOpen_Admin_console_here, &QAction::triggered, this, [this] { openTerminalInCurrentFolder(true); });
@@ -904,6 +911,97 @@ void CMainWindow::appendCurrentItemToCommandLine(bool fullPath)
 
 	text += shellQuotedPath(fullPath ? toNativeSeparators(item.fullAbsolutePath()) : item.fullName());
 	lineEdit->setText(text);
+}
+
+void CMainWindow::rebuildProgramsMenu()
+{
+	ui->menuPrograms->clear(); // Deletes the actions the menu owns; actionConfigure_programs belongs to the window
+	for (size_t i = 0; i < _userPrograms.size(); ++i)
+	{
+		const UserProgram& program = _userPrograms[i];
+		QString text = program.name;
+		text.replace('&', QStringLiteral("&&")); // Not a mnemonic marker
+
+		QAction* action = ui->menuPrograms->addAction(userProgramIcon(program), text);
+		action->setShortcut(userProgramShortcut(i));
+		connect(action, &QAction::triggered, this, [this, i] { runUserProgram(_userPrograms[i]); });
+	}
+
+	if (!_userPrograms.empty())
+		ui->menuPrograms->addSeparator();
+	ui->menuPrograms->addAction(ui->actionConfigure_programs);
+}
+
+void CMainWindow::configureUserPrograms()
+{
+	if (!_currentFileList || !_otherFileList)
+		return;
+
+	CUserProgramsDialog dialog{ _userPrograms, placeholderValues(), [this](const UserProgram& program) { runUserProgram(program); }, this };
+	if (dialog.exec() != QDialog::Accepted)
+		return;
+
+	_userPrograms = dialog.programs();
+	saveUserPrograms(_userPrograms);
+	rebuildProgramsMenu();
+}
+
+void CMainWindow::runUserProgram(const UserProgram& program)
+{
+	if (!_currentFileList || !_otherFileList)
+		return;
+
+	const QString errorTitle = tr("Cannot run %1").arg(program.name);
+	const PlaceholderValues values = placeholderValues();
+	auto commandLine = expandPlaceholders(program.commandLine, values);
+	if (!commandLine)
+	{
+		QMessageBox::warning(this, errorTitle, placeholderErrorText(commandLine.error()));
+		return;
+	}
+
+	if (program.editBeforeRunning)
+	{
+		QInputDialog dialog{ this };
+		dialog.setWindowTitle(program.name);
+		dialog.setLabelText(tr("Command line:"));
+		dialog.setTextValue(*commandLine);
+		dialog.setMinimumWidth(dialog.fontMetrics().averageCharWidth() * 100);
+		if (dialog.exec() != QDialog::Accepted || dialog.textValue().trimmed().isEmpty())
+			return;
+
+		*commandLine = dialog.textValue();
+	}
+
+	const QString workingDir = workingDirFor(program, values);
+	if (const qsizetype maxLength = CShellCommand::maxCommandLength(workingDir); commandLine->size() > maxLength)
+	{
+		QMessageBox::warning(this, errorTitle, commandLineTooLongText(commandLine->size(), maxLength));
+		return;
+	}
+
+	runCommandLine(*commandLine, workingDir);
+}
+
+PlaceholderValues CMainWindow::placeholderValues() const
+{
+	const auto cursorItemPath = [this](const CPanelWidget* panel) {
+		const CFileSystemObject item = _controller->itemByHash(panel->panelPosition(), panel->currentItemHash());
+		return item.isCdUp() ? QString{} : item.fullAbsolutePath();
+	};
+
+	PlaceholderValues values{
+		.currentDir = _currentFileList->currentDirPathNative(),
+		.currentItem = cursorItemPath(_currentFileList),
+		.selection = {},
+		.otherDir = _otherFileList->currentDirPathNative(),
+		.otherItem = cursorItemPath(_otherFileList),
+	};
+
+	for (const CFileSystemObject& item : _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()))
+		values.selection.push_back(item.fullAbsolutePath());
+
+	return values;
 }
 
 void CMainWindow::refresh()

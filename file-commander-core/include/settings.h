@@ -52,6 +52,9 @@
 
 #define KEY_INTERFACE_SHOW_HIDDEN_FILES QSL("Interface/View/ShowHiddenFiles")
 
+// A QSettings array of the Programs menu entries
+#define KEY_USER_PROGRAMS QSL("Programs")
+
 /////////////////////////////////////////////////
 // Options accessible via Settings interface
 /////////////////////////////////////////////////

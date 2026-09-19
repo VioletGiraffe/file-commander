@@ -27,6 +27,9 @@ public:
 	CShellCommand(const CShellCommand&) = delete;
 	CShellCommand& operator=(const CShellCommand&) = delete;
 
+	// The longest `command` the shell runs in `workingDir`
+	[[nodiscard]] static qsizetype maxCommandLength(const QString& workingDir);
+
 	// Decoded output in the pieces it arrives in, which need not end at a line break
 	std::function<void(const QString& text)> onOutput;
 	// Once, after the shell exits. Never called when start() fails.
