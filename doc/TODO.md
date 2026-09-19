@@ -29,15 +29,3 @@ item there.
 
 Considered and rejected (not worth the complexity at this app's scale) - do not revisit unprompted:
 cooperative task-cancellation on tab close.
-
-## Known defects
-
-Reproducible and understood, but not scheduled.
-
-- **The elevated PowerShell terminal launch quotes the folder in the wrong dialect.** `CController::openTerminal`
-  wraps it in cmd-style double quotes inside the nested `-command` string. PowerShell expands `$` there, so a path
-  such as `C:\$Recycle.Bin` breaks. It needs single quotes, doubled for the nesting; `shellQuotedPath` emits
-  neither.
-- **The macOS terminal launch is unprotected at the outer shell level.** `CController::openTerminal` nests an
-  AppleScript string literal inside a double-quoted shell word handed to `system()`. `shellQuotedPath` covers the
-  inner level only, leaving `$` and backticks in the folder path to the outer shell.

@@ -19,7 +19,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFileInfo>
 #include <QMessageBox>
+#include <QProcess>
 #include <QSettings>
 #include <QThread>
 #include <QUrl>
@@ -801,45 +803,49 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 std::expected<void, QString> CController::openTerminal(const QString &folder, bool admin)
 {
 #if defined __APPLE__
-	// Regular escaping with "\ " doesn't work here, need to use single quotes
-	const auto script = QString(R"(osascript -e "tell application \"Terminal\" to do script \"cd %1\"")").arg(shellQuotedPath(folder));
 	Q_UNUSED(admin);
-	if (const int status = system(script.toUtf8().constData()); status != 0)
-		return std::unexpected{ QSL("osascript failed with status %1").arg(status) };
+	// open only hands the request to Launch Services, so waiting for it is brief
+	QProcess openProcess;
+	openProcess.start(QSL("open"), { QSL("-a"), QSL("Terminal"), folder });
+	if (!openProcess.waitForFinished())
+		return std::unexpected{ openProcess.errorString() };
+
+	if (openProcess.exitStatus() != QProcess::NormalExit || openProcess.exitCode() != 0)
+	{
+		const QString errorOutput = QString::fromLocal8Bit(openProcess.readAllStandardError()).trimmed();
+		return std::unexpected{ !errorOutput.isEmpty() ? errorOutput : QSL("open failed with exit code %1").arg(openProcess.exitCode()) };
+	}
 
 	return {};
 #elif defined __linux__ || defined __FreeBSD__ || defined _WIN32
+	auto [terminalProgram, arguments] = OsShell::shellExecutable();
+	arguments.replace(QSL("%dir%"), shellQuotedPath(folder));
 	if (!admin)
-	{
-		auto [terminalProgram, args] = OsShell::shellExecutable();
-		static constexpr auto* dirTemplate = "%dir%";
-		args.replace(dirTemplate, shellQuotedPath(folder));
+		return OsShell::runExecutable(terminalProgram, arguments, folder);
 
-		return OsShell::runExecutable(terminalProgram, args, folder);
-	}
-	else
-	{
 #ifdef _WIN32
-		auto terminalProgramArgs = OsShell::shellExecutable();
-		const QString& terminalProgram = terminalProgramArgs.first;
-		QString arguments;
-		if (terminalProgram.contains(QSL("powershell"), Qt::CaseInsensitive))
-			arguments = QSL("-noexit -command \"cd \"\"%1\"\" \"").arg(toNativeSeparators(folder));
-		else if (terminalProgram.toLower() == QSL("cmd") || terminalProgram.toLower() == QSL("cmd.exe"))
-			arguments = QSL("/k \"cd /d %1\"").arg(shellQuotedPath(toNativeSeparators(folder)));
-
-		static constexpr auto* dirTemplate = "%dir%";
-		terminalProgramArgs.second.replace(dirTemplate, shellQuotedPath(folder));
-
-		if (!arguments.isEmpty() && !terminalProgramArgs.second.isEmpty())
-			arguments += ' ';
-		arguments.prepend(terminalProgramArgs.second);
-
-		return OsShell::runExe(terminalProgram, arguments, folder, true);
-#else
-		return std::unexpected{ QSL("An administrator terminal is not supported on this platform") };
-#endif
+	// An elevated shell may ignore its working folder and start in System32, so the shell command changes it
+	const QString nativeFolder = toNativeSeparators(folder);
+	const QString programName = QFileInfo{ terminalProgram }.completeBaseName().toLower();
+	QString changeFolderArguments;
+	if (programName == QSL("pwsh") || programName == QSL("powershell"))
+	{
+		// PowerShell expands $ and ` inside double quotes; -Path treats [ ] as wildcards
+		QString singleQuotedFolder = nativeFolder;
+		singleQuotedFolder.replace('\'', QSL("''"));
+		changeFolderArguments = QSL("-NoExit -Command \"Set-Location -LiteralPath '%1'\"").arg(singleQuotedFolder);
 	}
+	else if (programName == QSL("cmd"))
+		changeFolderArguments = QSL("/k \"pushd %1\"").arg(shellQuotedPath(nativeFolder)); // cd refuses a UNC path
+
+	if (!arguments.isEmpty() && !changeFolderArguments.isEmpty())
+		arguments += ' ';
+	arguments += changeFolderArguments;
+
+	return OsShell::runExe(terminalProgram, arguments, folder, true);
+#else
+	return std::unexpected{ QSL("An administrator terminal is not supported on this platform") };
+#endif
 #else
 #error unknown platform
 #endif

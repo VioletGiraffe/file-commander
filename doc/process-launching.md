@@ -10,13 +10,13 @@ happens to running commands when the app exits.
 | Activating an executable in a panel | `CController::itemActivated` | `OsShell::runExecutable`: `ShellExecuteExW` on Windows, `QProcess::startDetached` elsewhere |
 | Activating any other file | `CController::itemActivated` | `QDesktopServices::openUrl`, the OS file association |
 | Edit (F4) | `CMainWindow::editFile` | `QProcess::startDetached` with the configured editor; `open -a` on macOS |
-| Open terminal | `CController::openTerminal` | `OsShell::shellExecutable` picks the terminal; elevated through `OsShell::runExe` on Windows |
+| Open terminal | `CController::openTerminal` | `OsShell::shellExecutable` picks the terminal; elevated through `OsShell::runExe` on Windows; `open -a Terminal` on macOS |
 | Command line | `CMainWindow::executeCommand` | `OsShell::runExecutable` for a GUI program (`OsShell::guiProgramInvocation`), else `CCommandOutputArea::run` |
 | Programs menu | `CMainWindow::runUserProgram` | Placeholders expanded, then the command line's path through `CMainWindow::runCommandLine` |
 
 Paths embedded in a shell command line go through `shellQuotedPath`: it quotes only where cmd or sh would misread the
-path, so the same call serves the clipboard. A `%VAR%` in a path still expands under cmd, even quoted. The terminal
-launch's PowerShell and `osascript` branches need other quoting dialects; see [TODO.md](TODO.md).
+path, so the same call serves the clipboard. A `%VAR%` in a path still expands under cmd, even quoted. The elevated
+PowerShell terminal launch quotes for PowerShell instead.
 
 ## Programs menu
 
