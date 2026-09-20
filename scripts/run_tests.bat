@@ -18,10 +18,8 @@ set "TESTS=fso_test fso_test_high_level panel_test filesearchengine_test userpro
 set "SCRIPT_DIR=%~dp0"
 
 set "CONFIG=release"
-set "MSBUILD_CONFIG=Release"
 if /i "%~1"=="debug" (
 	set "CONFIG=debug"
-	set "MSBUILD_CONFIG=Debug"
 	shift
 )
 
@@ -66,7 +64,7 @@ where cl >nul 2>nul || call :vcvars || exit /b 2
 pushd "%SCRIPT_DIR%..\file-commander-core\core-tests" || exit /b 2
 "%QT_ROOT_DIR%\bin\qmake.exe" -tp vc -r || goto :fail
 :: msbuild, not nmake: it also rebuilds what the compiler command line changed for, such as the Qt include paths
-msbuild /t:Build /nologo /m /v:minimal /p:Configuration=%MSBUILD_CONFIG%;PlatformToolset=v143 core-tests.sln || goto :fail
+msbuild /t:Build /nologo /m /v:minimal /p:Configuration=%CONFIG%;PlatformToolset=v143 core-tests.sln || goto :fail
 popd
 :after_build
 if not defined RUN exit /b 0

@@ -29,8 +29,8 @@ which writes about a thousand files of up to 3 MB each. Every other case in both
 mostly in the comparator tests; the file-operation ones are quick unless a second volume is provisioned for the
 cross-volume cases.
 
-The scripts take the Qt kit from `QT_ROOT_DIR`, then from a git-ignored `local-env.bat`/`local-env.sh` beside them,
-then from the default installation location.
+The scripts take the Qt kit from `QT_ROOT_DIR`, or from a git-ignored `local-env.bat`/`local-env.sh` beside them;
+the shell script also falls back to a `qmake` already on PATH.
 
 ## Kinds
 
