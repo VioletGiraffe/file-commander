@@ -443,6 +443,8 @@ jobs:
         diskutil erasevolume HFSX fc-second "$disk"
         echo "FILE_COMMANDER_TEST_SECOND_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
         echo "FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
+        # Symlink creation needs no privileges here, so a failure to create one is a test failure, not a skip
+        echo "FILE_COMMANDER_TEST_SYMLINKS=1" >> $GITHUB_ENV
 
     - name: Running tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -458,16 +460,19 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: ./scripts/run_tests.sh build
 
-    - name: Second volume for cross-volume tests - Linux
+    - name: Case-sensitive second volume for filesystem tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         set -e
         # /tmp shares the root filesystem here, so a separate tmpfs mount is what makes a rename into the
-        # destination genuinely report EXDEV.
+        # destination genuinely report EXDEV. tmpfs is case-sensitive, so it serves the rename tests too.
         sudo mkdir -p /mnt/fc-second
         sudo mount -t tmpfs -o size=128M tmpfs /mnt/fc-second
         sudo chown "$(id -u):$(id -g)" /mnt/fc-second
         echo "FILE_COMMANDER_TEST_SECOND_VOLUME=/mnt/fc-second" >> $GITHUB_ENV
+        echo "FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME=/mnt/fc-second" >> $GITHUB_ENV
+        # Symlink creation needs no privileges here, so a failure to create one is a test failure, not a skip
+        echo "FILE_COMMANDER_TEST_SYMLINKS=1" >> $GITHUB_ENV
 
     - name: Running tests - Linux
       if: startsWith(matrix.os, 'ubuntu')

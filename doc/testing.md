@@ -50,7 +50,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | Integration tests on the real filesystem, in generated temporary trees | file operations, comparison, panels, search |
 | Randomized runs, reproducible by `--std-seed <seed>` | `fileoperations_test`, `filecomparator_test` |
 | Fault injection through `operationtesthooks`, compiled out of production builds | file operations |
-| Environment-gated coverage: skipped unless the variable is set | cross-volume, case-sensitive volume, symlinks (`FILE_COMMANDER_TEST_*`) |
+| Coverage needing a filesystem capability: skipped where absent, required where its `FILE_COMMANDER_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
 | Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts |
 | Launch smoke test: the release binary with `--test-launch` | CI build job, every platform |
 
@@ -70,8 +70,8 @@ the shell script also falls back to a `qmake` already on PATH.
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
 
 No suite covers process launching, volume enumeration, favorites, settings, the UI outside file operations, or any
-plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, and `thin_io` submodules have their own
-suites, which this project neither builds nor runs.
+plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`, `image-processing` and
+`text-encoding-detector` submodules have their own suites, which this project neither builds nor runs.
 
 ## CI
 
