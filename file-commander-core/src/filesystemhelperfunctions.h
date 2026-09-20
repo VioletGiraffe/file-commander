@@ -14,8 +14,6 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <vector>
 
-class CFileSystemObject;
-
 // Unique identity of the filesystem entry the path resolves to (links are followed).
 // Empty both when the path cannot be resolved (e. g. a broken link) and when the filesystem exposes no stable
 // identity, so two empty results are never the same entry.
@@ -71,8 +69,4 @@ class CFileSystemObject;
 
 [[nodiscard]] std::vector<QString> pathComponents(const QString& path);
 
-// Returns true if this object is a child of parent, either direct or indirect
 [[nodiscard]] QString longestCommonRootPath(const QString& pathA, const QString& pathB);
-
-// Returns true if this object is a child of parent, either direct or indirect
-[[nodiscard]] QString longestCommonRootPath(const CFileSystemObject& object1, const CFileSystemObject& object2);

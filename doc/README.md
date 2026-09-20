@@ -54,7 +54,8 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 | Programs menu | `file-commander-core/src/userprograms/`, `qt-app/src/programseditor/` |
 | Native plugin API and loader | `file-commander-core/src/plugininterface/`, `pluginengine/` |
 | Shipped plugins | `plugins/viewer/`, `plugins/tools/` |
-| Build and test graph | `file-commander.pro`, `file-commander-core/core-tests/core-tests.pro`, `qt-app/gui-tests/`, `plugins/viewer/csvviewer/tests/` |
+| Build graph | `file-commander.pro`; see [build-ci-deps.md](build-ci-deps.md) |
+| Tests | `file-commander-core/core-tests/core-tests.pro`; see [testing.md](testing.md) |
 
 ## Invariants to carry into code reading
 
@@ -83,7 +84,8 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 - [process-launching.md](process-launching.md): every way the app starts a process, the command line's shell and
   output panes, and exiting with commands running.
 - [persistence.md](persistence.md): settings ownership and session restoration.
-- [build-ci-deps.md](build-ci-deps.md): build/test entry points and dependency roles.
+- [build-ci-deps.md](build-ci-deps.md): build entry points, CI, and dependency roles.
+- [testing.md](testing.md): test suites, what kinds of tests exist, and which components they cover.
 - [coding-style.md](coding-style.md): authoring rules.
 - [TODO.md](TODO.md), [code-review-plan.md](code-review-plan.md), and
   [release-metadata-audit.md](release-metadata-audit.md): process and deferred-work documents.

@@ -1,7 +1,5 @@
 #include "filesystemhelperfunctions.h"
 
-#include "cfilesystemobject.h"
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -310,7 +308,6 @@ std::vector<QString> pathComponents(const QString &path)
 	return to_vector(std::move(components));
 }
 
-// Returns true if this object is a child of parent, either direct or indirect
 QString longestCommonRootPath(const QString &pathA, const QString &pathB)
 {
 	if (pathA.compare(pathB, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0)
@@ -340,27 +337,4 @@ QString longestCommonRootPath(const QString &pathA, const QString &pathB)
 	}
 
 	return result;
-}
-
-// Returns true if this object is a child of parent, either direct or indirect
-QString longestCommonRootPath(const CFileSystemObject &object1, const CFileSystemObject &object2)
-{
-	if (!object1.isValid() || !object2.isValid())
-		return {};
-
-	{
-		auto longestCommonRoot = longestCommonRootPath(object1.fullAbsolutePath(), object2.fullAbsolutePath());
-		if (!longestCommonRoot.isEmpty())
-			return longestCommonRoot;
-	}
-
-	if (!object1.isSymLink() && !object2.isSymLink())
-		return {};
-
-	const auto resolvedLink1 = object1.isSymLink() ? object1.symLinkTarget() : object1.fullAbsolutePath();
-	const auto resolvedLink2 = object2.isSymLink() ? object2.symLinkTarget() : object2.fullAbsolutePath();
-
-	assert_and_return_r(!resolvedLink1.isEmpty() && !resolvedLink2.isEmpty(), {});
-	auto longestCommonRootResolved = longestCommonRootPath(resolvedLink1, resolvedLink2);
-	return longestCommonRootResolved;
 }

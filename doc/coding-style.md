@@ -60,6 +60,8 @@ supported macOS toolchain.
 
 ## Tests
 
+Suite layout and coverage: [testing.md](testing.md).
+
 Do not interpolate Catch2 test names into filesystem paths. Test titles may contain characters illegal in
 filenames on some platforms, such as `:` on Windows. Use a fixed `QTemporaryDir` template, or sanitize the title
 explicitly when retaining it provides real diagnostic value.
