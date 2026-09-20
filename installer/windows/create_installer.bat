@@ -8,19 +8,19 @@ RMDIR /S /Q binaries\
 
 SETLOCAL
 
-if exist "%ProgramW6432%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-    call "%ProgramW6432%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
-) else (
-    if exist "%ProgramW6432%\Microsoft Visual Studio\2022\Preview\VC\Auxiliary\Build\vcvarsall.bat" (
-        call "%ProgramW6432%\Microsoft Visual Studio\2022\Preview\VC\Auxiliary\Build\vcvarsall.bat" amd64
-    ) else (
-        call "%ProgramW6432%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
-    )
+:: qmake probes cl for the compiler version, so the MSVC environment is needed although MSBuild locates the toolset itself
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+for /f "usebackq delims=" %%p in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSPATH=%%p"
+if not defined VSPATH (
+    echo No Visual Studio with the C++ toolset was found.
+    goto build_fail
 )
+call "%VSPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64
 
 :: X64
 pushd ..\..\
-del .qmake.stash
+:: A kept .qmake.stash pins the toolchain probed when it was written; qmake writes one per subproject build directory
+del /s /q .qmake.stash >nul 2>nul
 %QTDIR64%\bin\qmake.exe -tp vc -r
 popd
 
