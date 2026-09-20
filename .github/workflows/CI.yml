@@ -358,16 +358,14 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Linux - install build & deploy dependencies
+    - name: Linux - install build dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test  # jammy ships nothing newer than gcc-12
-        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libfuse2
+        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*'
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version
-        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
-        chmod a+x linuxdeployqt-7-x86_64.AppImage
 
     - name: Building tests - Windows
       if: startsWith(matrix.os, 'windows')
@@ -433,10 +431,7 @@ jobs:
 
     - name: Building tests - Mac
       if: startsWith(matrix.os, 'macos')
-      run: |
-        set -e
-        ./scripts/run_tests.sh build
-        for f in $(find bin/release/ -name *.app); do $QT_ROOT_DIR/bin/macdeployqt $f; done
+      run: ./scripts/run_tests.sh build
 
     - name: Case-sensitive second volume for filesystem tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -461,14 +456,7 @@ jobs:
 
     - name: Building tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        set -e
-        ./scripts/run_tests.sh build
-        # Every executable there is a test: this job builds no application, and the libraries are static
-        for exe in ./bin/release/*; do
-          [ -f "$exe" ] && [ -x "$exe" ] || continue
-          ./linuxdeployqt-7-x86_64.AppImage "$exe" -unsupported-allow-new-glibc -bundle-non-qt-libs -extra-plugins=platforms/
-        done
+      run: ./scripts/run_tests.sh build
 
     - name: Second volume for cross-volume tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
