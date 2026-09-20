@@ -32,6 +32,7 @@ win*{
 }
 
 HEADERS += \
+	src/cimageinfodialog.h \
 	src/cimageviewerplugin.h \
 	src/cimageviewerwindow.h
 

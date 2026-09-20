@@ -51,6 +51,8 @@
     <addaction name="actionOpen"/>
     <addaction name="actionReload"/>
     <addaction name="separator"/>
+    <addaction name="actionImageInfo"/>
+    <addaction name="separator"/>
     <addaction name="actionSaveAs"/>
     <addaction name="separator"/>
     <addaction name="actionClose"/>
@@ -71,7 +73,7 @@
     <addaction name="separator"/>
     <addaction name="actionPauseAnimation"/>
     <addaction name="separator"/>
-    <addaction name="actionShowImageInfo"/>
+    <addaction name="actionShowInfoStrip"/>
     <addaction name="separator"/>
     <addaction name="actionSmoothUpscaling"/>
     <addaction name="actionPixelPreservingUpscaling"/>
@@ -94,6 +96,14 @@
    </property>
    <property name="shortcut">
     <string>F5</string>
+   </property>
+  </action>
+  <action name="actionImageInfo">
+   <property name="text">
+    <string>Image &amp;info...</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Return</string>
    </property>
   </action>
   <action name="actionSaveAs">
@@ -138,7 +148,7 @@
     <string>Ctrl+1</string>
    </property>
   </action>
-  <action name="actionShowImageInfo">
+  <action name="actionShowInfoStrip">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -146,7 +156,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Show image &amp;info</string>
+    <string>Show the &amp;info strip</string>
    </property>
    <property name="shortcut">
     <string>I</string>

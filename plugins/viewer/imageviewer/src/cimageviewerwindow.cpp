@@ -1,4 +1,5 @@
 #include "cimageviewerwindow.h"
+#include "cimageinfodialog.h"
 
 #include "plugininterface/cpluginproxy.h"
 
@@ -42,8 +43,8 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 			CImageViewerWidget::smoothScaleQt(dest, source, srcRect);
 	});
 
-	ui->_imageViewerWidget->setInfoStripHint(tr("Press %1 to hide").arg(ui->actionShowImageInfo->shortcut().toString(QKeySequence::NativeText)));
-	connect(ui->actionShowImageInfo, &QAction::toggled, ui->_imageViewerWidget, &CImageViewerWidget::setOverlayVisible);
+	ui->_imageViewerWidget->setInfoStripHint(tr("Press %1 to hide").arg(ui->actionShowInfoStrip->shortcut().toString(QKeySequence::NativeText)));
+	connect(ui->actionShowInfoStrip, &QAction::toggled, ui->_imageViewerWidget, &CImageViewerWidget::setOverlayVisible);
 
 	// Built here rather than in the .ui: Qt Designer offers no way to create an action group.
 	auto* upscalingModeGroup = new QActionGroup(this);
@@ -83,6 +84,8 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	});
 
 	connect(ui->actionSaveAs, &QAction::triggered, this, &CImageViewerWindow::saveImageAs);
+
+	connect(ui->actionImageInfo, &QAction::triggered, this, &CImageViewerWindow::showImageInfo);
 
 	connect(ui->actionClose, &QAction::triggered, this, &QMainWindow::close);
 
@@ -132,7 +135,7 @@ void CImageViewerWindow::configureForQuickView()
 	QAction* const contextMenuActions[] = {
 		ui->actionFitToScreen, ui->actionZoom1to1,
 		nullptr, // Separator
-		ui->actionShowImageInfo,
+		ui->actionShowInfoStrip, ui->actionImageInfo,
 		nullptr,
 		ui->action_Copy_to_clipboard, ui->action_Copy_to_clipboard_as_displayed, ui->actionSaveAs
 	};
@@ -158,6 +161,12 @@ void CImageViewerWindow::configureForQuickView()
 QWidget* CImageViewerWindow::dialogParent() const
 {
 	return ui->_imageViewerWidget->window();
+}
+
+void CImageViewerWindow::showImageInfo()
+{
+	CImageInfoDialog dialog{ _currentImagePath, ui->_imageViewerWidget->sourceImage(), dialogParent() };
+	dialog.exec();
 }
 
 void CImageViewerWindow::saveImageAs()
