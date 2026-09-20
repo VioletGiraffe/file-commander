@@ -77,5 +77,3 @@ plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io
 
 CI runs the test job only when a changed file matches the `changes` job's path filter in `CI.yml`. A new test, or a
 source it compiles, outside the filtered paths needs its path added there, or changing it never triggers the tests.
-Each platform's steps in `CI.yml` name every test executable (on Linux, the deployment step too), so a new suite
-must be added to each of them.
