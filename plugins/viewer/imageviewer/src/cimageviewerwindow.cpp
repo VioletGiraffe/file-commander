@@ -79,7 +79,7 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	});
 
 	connect(ui->actionReload, &QAction::triggered, this, [this] {
-		displayImage(_currentImagePath);
+		displayImage(_currentImagePath, false); // Same file: the current zoom and pan still apply
 	});
 
 	connect(ui->actionSaveAs, &QAction::triggered, this, &CImageViewerWindow::saveImageAs);
@@ -100,10 +100,10 @@ CImageViewerWindow::~CImageViewerWindow() noexcept
 	delete ui;
 }
 
-bool CImageViewerWindow::displayImage(const QString& imagePath)
+bool CImageViewerWindow::displayImage(const QString& imagePath, bool resetViewParameters)
 {
 	_currentImagePath = imagePath;
-	if (!ui->_imageViewerWidget->displayImage(imagePath))
+	if (!ui->_imageViewerWidget->displayImage(imagePath, resetViewParameters))
 	{
 		QMessageBox::warning(dialogParent(), tr("Failed to load the image"), tr("Failed to load the image %1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
 		return false;
@@ -161,7 +161,8 @@ QWidget* CImageViewerWindow::dialogParent() const
 
 void CImageViewerWindow::saveImageAs()
 {
-	const QImage& image = ui->_imageViewerWidget->sourceImage();
+	// Copied: the dialogs below run an event loop, and this must stay the image the user chose to save.
+	const QImage image = ui->_imageViewerWidget->sourceImage();
 	if (image.isNull())
 		return;
 

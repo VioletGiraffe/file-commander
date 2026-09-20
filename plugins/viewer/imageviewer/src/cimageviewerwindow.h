@@ -14,7 +14,7 @@ public:
 	explicit CImageViewerWindow(CPluginProxy& proxy, QWidget* parent = nullptr) noexcept;
 	~CImageViewerWindow() noexcept override;
 
-	bool displayImage(const QString& imagePath);
+	bool displayImage(const QString& imagePath, bool resetViewParameters = true);
 
 	void configureForQuickView() override;
 
