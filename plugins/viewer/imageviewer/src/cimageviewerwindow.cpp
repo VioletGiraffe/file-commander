@@ -18,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QImageWriter>
+#include <QMenu>
 #include <QMessageBox>
 #include <QSettings>
 #include <QShortcut>
@@ -95,6 +96,10 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	connect(ui->actionFitToScreen, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::fitToWindow);
 	connect(ui->actionZoom1to1, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::zoomToActualPixels);
 	connect(ui->actionPauseAnimation, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::togglePause);
+	// Resolved here rather than on load: an animation also ends on its own, and this is the only place the item is seen.
+	connect(ui->menuView, &QMenu::aboutToShow, this, [this] {
+		ui->actionPauseAnimation->setEnabled(ui->_imageViewerWidget->isAnimated());
+	});
 
 	new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 }
