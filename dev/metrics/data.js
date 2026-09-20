@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789939162250,
+  "lastUpdate": 1789942371986,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -22600,6 +22600,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 420.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2ef69c5d5ca5d507945e34e44d9c696e4ec0e8c2",
+          "message": "qutils updated - CImageViewerWidget improved",
+          "timestamp": "2026-09-21T01:07:24+03:00",
+          "tree_id": "973c09626ad47e445284072366f6c6c32f81502d",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2ef69c5d5ca5d507945e34e44d9c696e4ec0e8c2"
+        },
+        "date": 1789942369191,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19287,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18272,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1421.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 237.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2122.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 798.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 421,
             "unit": "KB"
           },
           {
