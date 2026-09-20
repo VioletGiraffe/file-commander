@@ -1,6 +1,7 @@
 QT = core widgets gui #gui is required for QFileIconProvider and plugininterface
 
-CONFIG += staticlib
+# Don't override app targets with staticlib, only actual libraries
+contains(TEMPLATE, ".*lib"): CONFIG += staticlib
 
 include(../global.pri)
 

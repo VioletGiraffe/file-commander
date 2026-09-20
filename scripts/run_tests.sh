@@ -81,15 +81,6 @@ if [ "$(uname -s)" = Linux ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY
 	export QT_QPA_PLATFORM
 fi
 
-# macOS binaries carry only @executable_path/../Frameworks, so the kit they were built against is named here;
-# a Linux binary has an rpath to it, and run_tests.ps1 puts it on PATH. Frameworks and plain dylibs are looked
-# up through separate variables.
-if [ "$(uname -s)" = Darwin ] && [ -n "${QT_ROOT_DIR:-}" ]; then
-	DYLD_FRAMEWORK_PATH="${QT_ROOT_DIR}/lib"
-	DYLD_LIBRARY_PATH="${QT_ROOT_DIR}/lib"
-	export DYLD_FRAMEWORK_PATH DYLD_LIBRARY_PATH
-fi
-
 failed=""
 ran=""
 for test in ${TESTS}; do
