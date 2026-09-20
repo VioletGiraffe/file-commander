@@ -58,10 +58,15 @@ if not "%~1"=="" (
 call "%SCRIPT_DIR%qt_kit.bat" || exit /b 2
 
 if not defined BUILD goto :after_build
+:: qmake probes cl for the MSVC version, so the environment is needed although MSBuild locates the toolset itself.
+:: .qmake.stash caches that probe: an existing build tree hides a missing environment, a fresh checkout fails.
 set "VSINSTALLER=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer"
 where cl >nul 2>nul || call :vcvars || exit /b 2
 
 pushd "%SCRIPT_DIR%..\file-commander-core\core-tests" || exit /b 2
+:: A kept .qmake.stash pins the toolchain probed when it was written, so every run probes the current one instead.
+:: One is written per subproject build directory, and qmake also searches upward, so the sweep covers the repository.
+for /f "usebackq delims=" %%s in (`dir /s /b /a-d "%SCRIPT_DIR%..\.qmake.stash" 2^>nul`) do del /q "%%s"
 "%QT_ROOT_DIR%\bin\qmake.exe" -tp vc -r || goto :fail
 :: msbuild, not nmake: it also rebuilds what the compiler command line changed for, such as the Qt include paths
 msbuild /t:Build /nologo /m /v:minimal /p:Configuration=%CONFIG%;PlatformToolset=v143 core-tests.sln || goto :fail

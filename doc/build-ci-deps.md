@@ -7,6 +7,11 @@ sources and platform branches. `global.pri` holds all shared compiler configurat
 project-specific flags. The supported floor is Qt 6.8+ with a C++23-capable compiler. Windows builds are x64 with
 MSVC 2022/v143.
 
+qmake caches its compiler probe in `.qmake.stash`, one per subproject build directory, and also finds one by
+searching upward. A stash written under a different toolchain pins that toolchain's version and include and library
+paths, so the test scripts delete every one under the repository before each qmake run; do the same by hand when
+building outside them after a compiler upgrade.
+
 Everything that links `core` also links `thin_io`, because core filesystem helpers and file operations call it.
 
 The core libraries are static, so each consumer lists their link dependencies itself: a new dependency of a core

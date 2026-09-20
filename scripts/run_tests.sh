@@ -66,6 +66,9 @@ fi
 
 if [ -n "${BUILD}" ]; then
 	cd "${SCRIPT_DIR}/../file-commander-core/core-tests" || exit 2
+	# A kept .qmake.stash pins the toolchain probed when it was written, so every run probes the current one instead.
+	# One is written per subproject build directory, and qmake also searches upward, so the sweep covers the repository.
+	find "${SCRIPT_DIR}/.." -name .qmake.stash -delete
 	"${QMAKE}" -r CONFIG+="${CONFIG}" || exit 1
 	make -j"$(getconf _NPROCESSORS_ONLN)" || exit 1
 fi
