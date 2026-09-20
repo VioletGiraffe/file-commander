@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789933876997,
+  "lastUpdate": 1789937424813,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -22412,6 +22412,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "plugin_imageviewer.dll size",
             "value": 234.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2122.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 798,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 420.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "568ab21be6c49ff0b5ba0967f363b8571a10cd82",
+          "message": "Image viewer: timing stability for animated images (GIF/WEBP) improved",
+          "timestamp": "2026-09-20T23:45:39+03:00",
+          "tree_id": "690af823b0a6acf4a4b04983f134024632d4dff4",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/568ab21be6c49ff0b5ba0967f363b8571a10cd82"
+        },
+        "date": 1789937422034,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19280,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18215,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1420.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 235.5,
             "unit": "KB"
           },
           {
