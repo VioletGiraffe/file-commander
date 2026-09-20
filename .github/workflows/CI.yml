@@ -44,7 +44,11 @@ jobs:
             - 'qt-app/src/**'          # compiled by the gui-tests target (typed prompt, dialog, launch routing)
             - 'qt-app/gui-tests/**'
             - 'plugins/viewer/csvviewer/**'
-            - 'thin_io/**'
+            # The submodules the suites link: a bump changes the gitlink path itself, never files under it
+            - 'cpputils'
+            - 'cpp-template-utils'
+            - 'qtutils'
+            - 'thin_io'
             - 'scripts/**'
             - '.github/workflows/CI.yml'
             - 'global.pri'
