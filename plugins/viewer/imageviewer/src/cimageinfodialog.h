@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFileInfo>
+#include <QFontMetrics>
 #include <QFormLayout>
 #include <QFrame>
 #include <QGroupBox>
@@ -183,8 +184,11 @@ inline CImageInfoDialog::CImageInfoDialog(const QString& imagePath, const QImage
 			arg(image.bitPlaneCount() / compressedBitsPerPixel, 0, 'f', 1).arg(image.bitPlaneCount()));
 	}
 
-	// Wrapped: a path has no length limit, and an unwrapped label's full width becomes the dialog's.
-	addRow(fileForm, tr("Path"), imagePath)->setWordWrap(true);
+	QLabel* pathLabel = addRow(fileForm, tr("Path"), imagePath);
+	// Wrapped: a deep path breaks after each separator.
+	// Capped: QLabel never breaks inside one component, whose width would otherwise be the dialog's minimum.
+	pathLabel->setWordWrap(true);
+	pathLabel->setMaximumWidth(fontMetrics().horizontalAdvance(u'x') * 80); // The width QTextDocument wraps to
 
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	layout->addLayout(fileForm);
