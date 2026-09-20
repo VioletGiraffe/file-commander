@@ -206,6 +206,11 @@ inline CImageInfoDialog::CImageInfoDialog(const QString& imagePath, const QImage
 		// The delays Qt reports, which are what actually plays: it clamps anything under 20 ms up to 100 ms.
 		addRow(animationForm, tr("Average rate"), tr("%1 FPS").arg(frameCount * 1000.0 / totalMs, 0, 'f', 1));
 
+		// Reported, not honored: the viewer always loops forever.
+		const int loopCount = QImageReader(imagePath).loopCount();
+		const QString loops = loopCount < 0 ? tr("forever") : (loopCount == 0 ? tr("once") : tr("%1 times").arg(loopCount));
+		addRow(animationForm, tr("Loops"), loops);
+
 		if (runs.size() == 1)
 			addRow(animationForm, tr("Frame delay"), tr("%1 ms").arg(runs.front().delayMs));
 		else
