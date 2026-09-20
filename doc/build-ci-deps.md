@@ -5,9 +5,9 @@
 `file-commander.pro` is the authoritative project graph; each project `.pro` and included `.pri` file lists its
 sources and platform branches. `global.pri` holds all shared compiler configuration; project files add only
 project-specific flags. The supported floor is Qt 6.8+ with a C++23-capable compiler. Windows builds are x64 with
-MSVC 2022/v143. The test scripts and CI select that Visual Studio explicitly rather than the newest installed:
-qmake gates compiler flags and the toolset it writes into the projects on the `cl` it probes, so the probe has to
-match the `PlatformToolset` the build uses.
+the newest MSVC installed: qmake gates the compiler flags and the `PlatformToolset` it writes into the projects on
+the `cl` it probes, and the build takes the toolset from there. Pinning an older toolset therefore also means
+putting a matching `cl` in front of the probe.
 
 qmake caches its compiler probe in `.qmake.stash`, one per subproject build directory, and also finds one by
 searching upward. A stash written under a different toolchain pins that toolchain's version and include and library

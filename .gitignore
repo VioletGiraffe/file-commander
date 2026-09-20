@@ -8,8 +8,7 @@ installer/windows/binaries/
 /WCX/
 
 set_qt_paths.bat
-scripts/local-env.bat
-scripts/local-env.sh
+scripts/local-env.*
 *.exe
 
 # User-specific files

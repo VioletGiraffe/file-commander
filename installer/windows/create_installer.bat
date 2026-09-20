@@ -24,7 +24,7 @@ del .qmake.stash
 %QTDIR64%\bin\qmake.exe -tp vc -r
 popd
 
-msbuild ../../file-commander.sln /t:Build /p:Configuration=Release;Platform="x64";PlatformToolset=v143
+msbuild ../../file-commander.sln /t:Build /p:Configuration=Release;Platform="x64"
 if not %errorlevel% == 0 goto build_fail
 
 xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\64\

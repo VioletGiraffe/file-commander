@@ -106,12 +106,13 @@ for test in ${TESTS}; do
 
 	echo
 	echo "===== ${test}"
+	# --warn NoTests: a filter that matches nothing exits 0 otherwise, so a broken one would pass silently
 	if [ $# -gt 0 ]; then
-		"${exe}" "$@" || failed="${failed} ${test}"
+		"${exe}" "$@" --warn NoTests || failed="${failed} ${test}"
 	elif [ -n "${default_args}" ]; then
-		"${exe}" "${default_args}" || failed="${failed} ${test}"
+		"${exe}" "${default_args}" --warn NoTests || failed="${failed} ${test}"
 	else
-		"${exe}" || failed="${failed} ${test}"
+		"${exe}" --warn NoTests || failed="${failed} ${test}"
 	fi
 done
 

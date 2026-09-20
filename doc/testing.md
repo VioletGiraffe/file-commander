@@ -16,12 +16,22 @@ glue.
 ## Running them
 
 `scripts/run_tests.bat` and `scripts/run_tests.sh` build `core-tests` and run every executable, then report which
-suites failed. Both take the same optional arguments, in this order: `debug`, `build` or `nobuild`, `all`, and a
-suite name followed by arguments for that one executable, such as a Catch2 test spec.
+suites failed. The Windows logic lives in `run_tests.ps1`, which the batch file starts; it takes named parameters,
+while the shell script takes the same options as positional keywords, in the order listed here:
 
-CI drives the same scripts: it builds with `build`, deploys the Qt libraries beside the executables, then runs with
-`nobuild`. Its seeded repeat runs use the suite form, `nobuild all fileoperations_test --std-seed <seed>`, so each
-platform's executable path stays in the script.
+| | Windows | macOS, Linux |
+|---|---|---|
+| Debug configuration | `-Configuration debug` | `debug` |
+| Build without running, run without building | `-BuildOnly`, `-NoBuild` | `build`, `nobuild` |
+| Include the slow cases | `-All` | `all` |
+| One suite, plus arguments for it | `-Suite panel "[panel][history]"` | `panel "[panel][history]"` |
+
+Every suite and its default filter live in one table at the top of each script. Each suite runs with Catch2's
+`--warn NoTests`, so a filter that matches nothing fails instead of reporting success.
+
+CI drives the same scripts: it builds with `-BuildOnly`/`build`, deploys the Qt libraries beside the executables,
+then runs with `-NoBuild`/`nobuild`. Its seeded repeat runs select one suite, so each platform's executable path
+stays in the script.
 
 Without `all`, the tests that work on generated data are excluded: `[executor]` and `[deleteexecutor]` in
 `fileoperations_test`, which build trees of thousands of files, and `[CFileComparator]` in `filecomparator_test`,

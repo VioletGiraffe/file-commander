@@ -133,10 +133,6 @@ jobs:
     - name: Setup MSVC Developer Command Prompt
       if: startsWith(matrix.os, 'windows')
       uses: ilammy/msvc-dev-cmd@v1
-      with:
-        # qmake gates the compiler flags and the toolset it writes into the projects on the cl it probes, so this
-        # pins the same Visual Studio the v143 PlatformToolset selects
-        vsversion: 2022
 
     - name: Windows - building main installer
       if: startsWith(matrix.os, 'windows')
@@ -360,10 +356,6 @@ jobs:
     - name: Setup MSVC Developer Command Prompt
       if: startsWith(matrix.os, 'windows')
       uses: ilammy/msvc-dev-cmd@v1
-      with:
-        # qmake gates the compiler flags and the toolset it writes into the projects on the cl it probes, so this
-        # pins the same Visual Studio the v143 PlatformToolset selects
-        vsversion: 2022
 
     - name: Linux - install build & deploy dependencies
       if: startsWith(matrix.os, 'ubuntu')
@@ -380,7 +372,7 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
-      run: scripts\run_tests.bat build
+      run: scripts\run_tests.bat -BuildOnly
 
     - name: Setup RAM Disk
       if: startsWith(matrix.os, 'windows')
@@ -429,14 +421,14 @@ jobs:
         $PSNativeCommandUseErrorActionPreference = $true
         $ErrorActionPreference = 'Stop'
         # Every suite, minus the slow generated-data tests that the seeded runs below cover
-        .\scripts\run_tests.bat nobuild
+        .\scripts\run_tests.bat -NoBuild
         $N=20
         For ($i=1; $i -le $N; $i++) {
           Write-Output "Iteration $i/$N"
-          .\scripts\run_tests.bat nobuild all fileoperations_test --std-seed (Get-Random)
+          .\scripts\run_tests.bat -NoBuild -All -Suite fileoperations_test --std-seed (Get-Random)
         }
 
-        .\scripts\run_tests.bat nobuild all filecomparator_test --std-seed (Get-Random)
+        .\scripts\run_tests.bat -NoBuild -All -Suite filecomparator_test --std-seed (Get-Random)
 
     - name: Building tests - Mac
       if: startsWith(matrix.os, 'macos')
