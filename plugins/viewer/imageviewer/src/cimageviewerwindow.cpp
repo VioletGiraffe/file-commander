@@ -91,6 +91,7 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 
 	connect(ui->actionFitToScreen, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::fitToWindow);
 	connect(ui->actionZoom1to1, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::zoomToActualPixels);
+	connect(ui->actionPauseAnimation, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::togglePause);
 
 	new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 }

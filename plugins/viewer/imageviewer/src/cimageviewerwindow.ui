@@ -69,6 +69,8 @@
     <addaction name="actionFitToScreen"/>
     <addaction name="actionZoom1to1"/>
     <addaction name="separator"/>
+    <addaction name="actionPauseAnimation"/>
+    <addaction name="separator"/>
     <addaction name="actionShowImageInfo"/>
     <addaction name="separator"/>
     <addaction name="actionSmoothUpscaling"/>
@@ -148,6 +150,14 @@
    </property>
    <property name="shortcut">
     <string>I</string>
+   </property>
+  </action>
+  <action name="actionPauseAnimation">
+   <property name="text">
+    <string>Pause/resume &amp;animation</string>
+   </property>
+   <property name="shortcut">
+    <string>Space</string>
    </property>
   </action>
   <action name="actionSmoothUpscaling">
