@@ -133,6 +133,10 @@ jobs:
     - name: Setup MSVC Developer Command Prompt
       if: startsWith(matrix.os, 'windows')
       uses: ilammy/msvc-dev-cmd@v1
+      with:
+        # qmake gates the compiler flags and the toolset it writes into the projects on the cl it probes, so this
+        # pins the same Visual Studio the v143 PlatformToolset selects
+        vsversion: 2022
 
     - name: Windows - building main installer
       if: startsWith(matrix.os, 'windows')
@@ -356,6 +360,10 @@ jobs:
     - name: Setup MSVC Developer Command Prompt
       if: startsWith(matrix.os, 'windows')
       uses: ilammy/msvc-dev-cmd@v1
+      with:
+        # qmake gates the compiler flags and the toolset it writes into the projects on the cl it probes, so this
+        # pins the same Visual Studio the v143 PlatformToolset selects
+        vsversion: 2022
 
     - name: Linux - install build & deploy dependencies
       if: startsWith(matrix.os, 'ubuntu')

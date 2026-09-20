@@ -114,9 +114,12 @@ popd
 exit /b 1
 
 :vcvars
-for /f "usebackq delims=" %%p in (`"%VSINSTALLER%\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSPATH=%%p"
+:: Visual Studio 2022, not the newest install: qmake gates the compiler flags and the toolset it writes into the
+:: projects on the cl it probes here, so it has to be the same cl that PlatformToolset above selects.
+:: The range is escaped because cmd would otherwise read the comma and the parenthesis as its own.
+for /f "usebackq delims=" %%p in (`"%VSINSTALLER%\vswhere.exe" -version [17.0^,18.0^) -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSPATH=%%p"
 if not defined VSPATH (
-	echo No Visual Studio with the C++ toolset was found.
+	echo No Visual Studio 2022 with the C++ toolset was found.
 	exit /b 1
 )
 :: vcvars64.bat itself calls a bare vswhere.exe, which it expects on PATH
