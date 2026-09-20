@@ -7,7 +7,8 @@ setlocal enabledelayedexpansion
 :: already on PATH, as it is on CI.
 :: Arguments, all optional, in this order:
 ::   debug           build and run the debug configuration
-::   all             also run the file-operation tests that generate large trees, skipped by default
+::   build           only build; nobuild only runs what is already built, for a CI job that deploys in between
+::   all             also run the slow tests that generate large files and trees, skipped by default
 ::   <suite> [args]  run only the suite whose executable name contains <suite>; the arguments after it go to
 ::                   that executable, e.g. a Catch2 test spec or --std-seed
 
@@ -24,8 +25,18 @@ if /i "%~1"=="debug" (
 	shift
 )
 
-:: Minutes of real file I/O, against thousands of generated files; CI runs them, a local edit-run cycle should
-:: not have to. The rest of both suites is fast and still runs.
+set "BUILD=1"
+set "RUN=1"
+if /i "%~1"=="build" (
+	set "RUN="
+	shift
+) else if /i "%~1"=="nobuild" (
+	set "BUILD="
+	shift
+)
+
+:: Skipped by default: these generate trees of thousands of files and gigabytes of data, and CI runs them
+:: repeatedly with fresh seeds. Every other case in both suites still runs.
 set "DEFAULT_ARGS_fileoperations_test=~[executor]~[deleteexecutor]"
 set "DEFAULT_ARGS_filecomparator_test=~[CFileComparator]"
 if /i "%~1"=="all" (
@@ -45,8 +56,10 @@ if not "%~1"=="" (
 	goto :collect_args
 )
 
+:: Also for a run: the test executables need the Qt DLLs on PATH
 call "%SCRIPT_DIR%qt_kit.bat" || exit /b 2
 
+if not defined BUILD goto :after_build
 set "VSINSTALLER=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer"
 where cl >nul 2>nul || call :vcvars || exit /b 2
 
@@ -55,6 +68,8 @@ pushd "%SCRIPT_DIR%..\file-commander-core\core-tests" || exit /b 2
 :: msbuild, not nmake: it also rebuilds what the compiler command line changed for, such as the Qt include paths
 msbuild /t:Build /nologo /m /v:minimal /p:Configuration=%MSBUILD_CONFIG%;PlatformToolset=v143 core-tests.sln || goto :fail
 popd
+:after_build
+if not defined RUN exit /b 0
 
 set "BIN=%SCRIPT_DIR%..\bin\%CONFIG%"
 set "FAILED="

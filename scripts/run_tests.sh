@@ -7,7 +7,8 @@
 # installation location ~/Qt/<version>/{macos,gcc_64}; a qmake6 or qmake already on PATH (a distribution's Qt).
 # Arguments, all optional, in this order:
 #   debug           build and run the debug configuration
-#   all             also run the file-operation tests that generate large trees, skipped by default
+#   build           only build; nobuild only runs what is already built, for a CI job that deploys in between
+#   all             also run the slow tests that generate large files and trees, skipped by default
 #   <suite> [args]  run only the suite whose executable name contains <suite>; the arguments after it go to
 #                   that executable, e.g. a Catch2 test spec or --std-seed
 
@@ -23,8 +24,18 @@ if [ "${1:-}" = debug ]; then
 	shift
 fi
 
-# Minutes of real file I/O, against thousands of generated files; CI runs them, a local edit-run cycle should
-# not have to. The rest of both suites is fast and still runs.
+BUILD=1
+RUN=1
+if [ "${1:-}" = build ]; then
+	RUN=""
+	shift
+elif [ "${1:-}" = nobuild ]; then
+	BUILD=""
+	shift
+fi
+
+# Skipped by default: these generate trees of thousands of files and gigabytes of data, and CI runs them
+# repeatedly with fresh seeds. Every other case in both suites still runs.
 FILEOPERATIONS_ARGS="~[executor]~[deleteexecutor]"
 FILECOMPARATOR_ARGS="~[CFileComparator]"
 if [ "${1:-}" = all ]; then
@@ -61,12 +72,15 @@ else
 	exit 2
 fi
 
-cd "${SCRIPT_DIR}/../file-commander-core/core-tests" || exit 2
-"${QMAKE}" -r CONFIG+="${CONFIG}" || exit 1
-make -j"$(getconf _NPROCESSORS_ONLN)" || exit 1
+if [ -n "${BUILD}" ]; then
+	cd "${SCRIPT_DIR}/../file-commander-core/core-tests" || exit 2
+	"${QMAKE}" -r CONFIG+="${CONFIG}" || exit 1
+	make -j"$(getconf _NPROCESSORS_ONLN)" || exit 1
+fi
+[ -n "${RUN}" ] || exit 0
 
 BIN="${SCRIPT_DIR}/../bin/${CONFIG}"
-# A Linux run without a display server still has the widget tests to run
+# The widget tests need the offscreen platform where there is no display server
 if [ "$(uname -s)" = Linux ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
 	QT_QPA_PLATFORM=offscreen
 	export QT_QPA_PLATFORM

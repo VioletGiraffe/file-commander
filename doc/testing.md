@@ -16,12 +16,18 @@ glue.
 ## Running them
 
 `scripts/run_tests.bat` and `scripts/run_tests.sh` build `core-tests` and run every executable, then report which
-suites failed. Both take the same optional arguments, in this order: `debug`, `all`, and a suite name followed by
-arguments for that one executable, such as a Catch2 test spec.
+suites failed. Both take the same optional arguments, in this order: `debug`, `build` or `nobuild`, `all`, and a
+suite name followed by arguments for that one executable, such as a Catch2 test spec.
 
-Without `all`, the tests that spend minutes on real file I/O are excluded: `[executor]` and `[deleteexecutor]` in
-`fileoperations_test`, which generate large trees, and `[CFileComparator]` in `filecomparator_test`, which writes
-about a thousand files of up to 3 MB. Every other case in both suites still runs.
+CI drives the same scripts: it builds with `build`, deploys the Qt libraries beside the executables, then runs with
+`nobuild`. Its seeded repeat runs use the suite form, `nobuild all fileoperations_test --std-seed <seed>`, so each
+platform's executable path stays in the script.
+
+Without `all`, the tests that work on generated data are excluded: `[executor]` and `[deleteexecutor]` in
+`fileoperations_test`, which build trees of thousands of files, and `[CFileComparator]` in `filecomparator_test`,
+which writes about a thousand files of up to 3 MB each. Every other case in both suites still runs. The cost is
+mostly in the comparator tests; the file-operation ones are quick unless a second volume is provisioned for the
+cross-volume cases.
 
 The scripts take the Qt kit from `QT_ROOT_DIR`, then from a git-ignored `local-env.bat`/`local-env.sh` beside them,
 then from the default installation location.
