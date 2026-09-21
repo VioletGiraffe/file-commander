@@ -115,3 +115,35 @@ TEST_CASE("CPanel - displayDirSize fills in the size of a listed folder", "[pane
 	h.settle();
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 0);
 }
+
+TEST_CASE("CPanel - a calculated folder size lasts as long as its folder", "[panel][contents]")
+{
+	TempTree tree;
+	const QString sub = tree.makeDir(QStringLiteral("sub"));
+	tree.makeFile(QStringLiteral("sub/data.bin"), QByteArray(1024, 'x'));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+
+	h.panel().displayDirSize(hashOf(sub));
+	h.settle();
+	REQUIRE(h.panel().itemByHash(hashOf(sub)).size() >= 1024);
+
+	// A refresh lists the folder anew, without the size.
+	h.panel().refreshFileList(refreshCauseOther);
+	h.settle();
+	CHECK(h.panel().itemByHash(hashOf(sub)).size() >= 1024);
+
+	// A folder recreated under the same name is a different folder.
+	REQUIRE(QDir{ sub }.removeRecursively());
+	h.panel().refreshFileList(refreshCauseOther);
+	h.settle();
+	REQUIRE_FALSE(h.panel().itemHashExists(hashOf(sub)));
+
+	tree.makeDir(QStringLiteral("sub"));
+	h.panel().refreshFileList(refreshCauseOther);
+	h.settle();
+	CHECK(h.panel().itemByHash(hashOf(sub)).size() == 0);
+}

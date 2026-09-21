@@ -836,6 +836,11 @@ void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIn
 	const qulonglong hash = hashBySortModelIndex(current);
 	_controller->setCurrentItemHashForCurrentFolder(_panelPosition, hash, false);
 
+	// Every refill re-places the cursor, usually on the same item
+	if (hash == _lastSignalledCurrentItemHash)
+		return;
+
+	_lastSignalledCurrentItemHash = hash;
 	emit currentItemChangedSignal(_panelPosition, hash);
 }
 
@@ -1151,8 +1156,6 @@ void CPanelWidget::fillHistory()
 	if (visited.empty())
 		return;
 
-	ui->_pathNavigator->clear();
-
 	static const auto ensureTrailingSlash = [](const QString& path) {
 		return path.endsWith('/') ? path : path + '/';
 	};
@@ -1186,6 +1189,11 @@ void CPanelWidget::fillHistory()
 		currentDirRow = 0;
 	}
 
+	// An unchanged list is left alone: a rebuild discards the text being typed and resets an open popup
+	if (currentDirRow == ui->_pathNavigator->currentIndex() && items == ui->_pathNavigator->items())
+		return;
+
+	ui->_pathNavigator->clear();
 	ui->_pathNavigator->addItems(items);
 	ui->_pathNavigator->setCurrentIndex((int)currentDirRow);
 }

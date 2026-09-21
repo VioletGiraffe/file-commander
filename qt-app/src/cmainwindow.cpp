@@ -823,9 +823,10 @@ void CMainWindow::filterItemsByName()
 		panel->showFilterEditor();
 }
 
-void CMainWindow::currentItemChanged(Panel /*p*/, qulonglong /*itemHash*/)
+void CMainWindow::currentItemChanged(Panel p, qulonglong /*itemHash*/)
 {
-	if (otherPanelDisplayController().quickViewActive())
+	// The quick view shows the current panel's item
+	if (_currentFileList && p == _currentFileList->panelPosition() && otherPanelDisplayController().quickViewActive())
 		quickViewCurrentFile();
 }
 

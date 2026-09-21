@@ -186,5 +186,6 @@ private:
 	std::vector<PanelTab>           _tabs;
 	std::vector<QString>            _recentlyClosedTabsPaths; // LIFO for reopenLastClosedTab()
 	int                             _activeTab = -1;
+	qulonglong                      _lastSignalledCurrentItemHash = 0;
 	Panel                           _panelPosition = Panel::UnknownPanel;
 };

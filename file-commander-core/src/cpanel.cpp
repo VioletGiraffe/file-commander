@@ -422,6 +422,15 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	if (!fileListUpdateIsCurrentLocked(request))
 		return;
 
+	std::erase_if(_calculatedDirSizes, [&items](const auto& calculated) {
+		const auto item = items.find(calculated.first);
+		if (item == items.end() || !item->second.isDir())
+			return true;
+
+		item->second.setDirSize(calculated.second);
+		return false;
+	});
+
 	_items.swap(items);
 	_itemsSourcePath = request.path;
 	_itemsSourceDisplayMode = request.displayMode;
@@ -546,6 +555,7 @@ void CPanel::displayDirSize(qulonglong dirHash)
 				return;
 
 			it->second.setDirSize(stats.occupiedSpace);
+			_calculatedDirSizes[dirHash] = stats.occupiedSpace;
 			enqueueContentsChangedNotificationLocked(refreshCauseOther, _fileListGeneration);
 		}
 	}, _taskTag);

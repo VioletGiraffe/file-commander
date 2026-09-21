@@ -176,6 +176,8 @@ private:
 	CFileSystemObject                          _currentDirObject;
 	FileSystemWatcher                          _watcher;
 	FileListHashMap                            _items;
+	// Folder sizes calculated on request, re-applied to every listing that still has the folder. Protected by _fileListAndCurrentDirMutex.
+	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, IdentityHash> _calculatedDirSizes;
 	QString                                    _itemsSourcePath;
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;
