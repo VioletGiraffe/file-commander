@@ -96,9 +96,13 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	connect(ui->actionFitToScreen, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::fitToWindow);
 	connect(ui->actionZoom1to1, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::zoomToActualPixels);
 	connect(ui->actionPauseAnimation, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::togglePause);
-	// Resolved here rather than on load: an animation also ends on its own, and this is the only place the item is seen.
+	connect(ui->actionPreviousFrame, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::stepToPreviousFrame);
+	connect(ui->actionNextFrame, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::stepToNextFrame);
+	// Resolved here rather than on load: an animation also ends on its own, and this is the only place the items are seen.
 	connect(ui->menuView, &QMenu::aboutToShow, this, [this] {
-		ui->actionPauseAnimation->setEnabled(ui->_imageViewerWidget->isAnimated());
+		const bool animated = ui->_imageViewerWidget->isAnimated();
+		for (QAction* action : { ui->actionPauseAnimation, ui->actionPreviousFrame, ui->actionNextFrame })
+			action->setEnabled(animated);
 	});
 
 	new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));

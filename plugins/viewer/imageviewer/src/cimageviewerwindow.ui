@@ -72,6 +72,8 @@
     <addaction name="actionZoom1to1"/>
     <addaction name="separator"/>
     <addaction name="actionPauseAnimation"/>
+    <addaction name="actionPreviousFrame"/>
+    <addaction name="actionNextFrame"/>
     <addaction name="separator"/>
     <addaction name="actionShowInfoStrip"/>
     <addaction name="separator"/>
@@ -168,6 +170,22 @@
    </property>
    <property name="shortcut">
     <string>Space</string>
+   </property>
+  </action>
+  <action name="actionPreviousFrame">
+   <property name="text">
+    <string>Pre&amp;vious frame</string>
+   </property>
+   <property name="shortcut">
+    <string>Left</string>
+   </property>
+  </action>
+  <action name="actionNextFrame">
+   <property name="text">
+    <string>&amp;Next frame</string>
+   </property>
+   <property name="shortcut">
+    <string>Right</string>
    </property>
   </action>
   <action name="actionSmoothUpscaling">
