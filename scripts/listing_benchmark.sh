@@ -17,6 +17,8 @@ set -u
 
 VARIANTS="${VARIANTS:-qt qt-unsorted thinio panel}"
 IMAGE_SIZE=512M
+# The benchmark folders hold 111k entries: mkfs.ext4's default inode ratio gives this image 32k inodes
+IMAGE_INODES=131072
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -105,7 +107,7 @@ cold)
 	if [ ! -f "${IMAGE}" ]; then
 		mkdir -p "$(dirname "${IMAGE}")" || exit 1
 		truncate -s "${IMAGE_SIZE}" "${IMAGE}" || exit 1
-		mkfs.ext4 -q "${IMAGE}" || exit 1
+		mkfs.ext4 -q -N "${IMAGE_INODES}" "${IMAGE}" || exit 1
 	fi
 
 	mount -o loop "${IMAGE}" "${MOUNT_POINT}" || exit 1
