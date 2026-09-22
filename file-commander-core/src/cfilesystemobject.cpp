@@ -193,17 +193,7 @@ void CFileSystemObject::loadPropertiesFromFileInfo()
 
 void CFileSystemObject::setPath(const QString& path)
 {
-	if (path.isEmpty())
-	{
-		*this = CFileSystemObject();
-		return;
-	}
-
-	_rootFileSystemId = uint64_max;
-
-	_fileInfo.setFile(expandEnvironmentVariables(path));
-
-	loadPropertiesFromFileInfo();
+	*this = path.isEmpty() ? CFileSystemObject{} : CFileSystemObject{ path };
 }
 
 bool CFileSystemObject::operator==(const CFileSystemObject& other) const

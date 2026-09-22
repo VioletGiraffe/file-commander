@@ -115,6 +115,7 @@ public:
 	[[nodiscard]] QString extension() const &&;
 
 private:
+	// Only called by the constructors: properties the path does not need keep their defaults
 	// Uses the metadata _fileInfo has cached: a QFileInfo from a directory listing already holds it
 	void loadPropertiesFromFileInfo();
 
