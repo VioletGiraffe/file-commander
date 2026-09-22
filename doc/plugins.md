@@ -43,7 +43,7 @@ tagged work on the shared application pool, and menu registration. Plugins do no
 
 The controller publishes only a side's active tab and never publishes `onPanelContentsInvalidated`; subscribers
 therefore receive a matching folder/list pair only after contents commit. Selection, current-item, and focus state
-come from the visible UI triplets. A controller-owned access gate serializes shutdown with proxy queries and UI
+come from the tabs on screen. A controller-owned access gate serializes shutdown with proxy queries and UI
 dispatch; once their backing state has been removed, those methods return empty or no-op internally.
 
 Panel-content delivery does not copy the file-list map. A subscriber borrows the committed `FileListHashMap` by

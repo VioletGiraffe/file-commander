@@ -2,8 +2,6 @@
 
 #include "panel/filelistwidget/model/cfilelistmodel.h"
 
-#include "ccontroller.h"
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -14,7 +12,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QPlainTextEdit>
-#include <QSortFilterProxyModel>
 #include <QTextEdit>
 RESTORE_COMPILER_WARNINGS
 
@@ -26,14 +23,10 @@ void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & 
 	assert_r(lineEditor);
 	assert_and_return_r(index.isValid(), );
 
-	auto* sortModel = dynamic_cast<const QSortFilterProxyModel*>(index.model());
-	assert_and_return_message_r(sortModel, "Something has changed in the model hierarchy", );
-	auto* model = dynamic_cast<const CFileListModel*>(sortModel->sourceModel());
+	auto* model = dynamic_cast<const CFileListModel*>(index.model());
 	assert_and_return_message_r(model, "Something has changed in the model hierarchy", );
-	auto hash = model->itemHash(sortModel->mapToSource(index));
-	const auto item = CController::get().itemByHash(model->panelPosition(), hash);
 
-	if (item.isValid() && item.isFile())
+	if (model->rowAt(index).type == File)
 	{
 		const QString itemName = lineEditor->text();
 		const auto dot = static_cast<int>(itemName.lastIndexOf('.'));

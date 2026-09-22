@@ -3,8 +3,8 @@
 #include "columns.h"
 #include "filelistwidget/cfilelistfilterdialog.h"
 #include "filelistwidget/model/cfilelistmodel.h"
-#include "filelistwidget/model/cfilelistsortfilterproxymodel.h"
 
+#include "cmainwindow.h"
 #include "cshelloperationrunner.h"
 #include "progressdialogs/progressdialoghelpers.h"
 
@@ -14,9 +14,9 @@
 #include "shell/cshell.h"
 #include "iconprovider/ciconprovider.h"
 #include "fileoperationresultcode.h"
+#include "fileoperations/fileoperationtypes.h"
 #include "fileoperations/inlinerename.h"
 #include "filesystemhelperfunctions.h"
-#include "detail/hashmap_helpers.h"
 
 
 // Submodule includes
@@ -29,8 +29,6 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/ankerl/unordered_dense.h>
-
 #include "ui_cpanelwidget.h"
 
 #include <QClipboard>
@@ -50,6 +48,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QShortcut>
 #include <QTabBar>
 #include <QToolTip>
+#include <QUrl>
 #include <QWheelEvent>
 RESTORE_COMPILER_WARNINGS
 
@@ -67,12 +66,6 @@ RESTORE_COMPILER_WARNINGS
 #define KEY_RPANEL_LEGACY_HEADER_STATE QSL("Ui/RPanel/State")
 #define KEY_LPANEL_LEGACY_GEOMETRY QSL("Ui/LPanel/Geometry")
 #define KEY_RPANEL_LEGACY_GEOMETRY QSL("Ui/RPanel/Geometry")
-
-struct FolderContentsSummary {
-	uint64_t numFiles = 0;
-	uint64_t numFolders = 0;
-	uint64_t size = 0; // Only counts files' sizes, folder sizes are unknown without explicit calculation
-};
 
 static FolderContentsSummary summarizeFolderContents(const FileListHashMap& items)
 {
@@ -237,7 +230,7 @@ CPanelWidget::TabViewState CPanelWidget::viewStateOfTab(int index) const
 {
 	const PanelTab& tab = _tabs[(size_t)index];
 	// A tab's stored header copy is only refreshed when switching away from it, so for the active one the live header is newer.
-	return { tab.sortModel->sortColumn(), tab.sortModel->sortOrder(),
+	return { tab.model->sortColumn(), tab.model->sortOrder(),
 		index == _activeTab ? ui->_list->header()->saveState() : tab.headerState };
 }
 
@@ -292,7 +285,7 @@ void CPanelWidget::initPanel(Panel p)
 		for (const qulonglong id : ids)
 		{
 			PanelTab& tab = _tabs.emplace_back();
-			populateTriplet(tab, viewStateForTab(id));
+			populateTabModels(tab, viewStateForTab(id));
 
 			const int index = ui->_tabBar->addTab(QString());
 			ui->_tabBar->setTabData(index, id);
@@ -313,26 +306,23 @@ void CPanelWidget::initPanel(Panel p)
 	_controller->setCurrentItemChangedListener(p, this);
 }
 
-void CPanelWidget::populateTriplet(PanelTab& tab, const TabViewState& viewState)
+void CPanelWidget::populateTabModels(PanelTab& tab, const TabViewState& viewState)
 {
-	tab.model = new(std::nothrow) CFileListModel(_panelPosition, this);
+	tab.model = new(std::nothrow) CFileListModel(&_controller->iconProvider(), this);
+	tab.model->setDropHandler([this](const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath) {
+		return dropUrls(urls, action, destinationPath);
+	});
 	assert_r(connect(tab.model, &CFileListModel::itemEdited, this, &CPanelWidget::renameItem));
-
-	tab.sortModel = new(std::nothrow) CFileListSortFilterProxyModel(this);
-	tab.sortModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
-	tab.sortModel->setFilterRole(FullNameRole);
-	tab.sortModel->setPanelPosition(_panelPosition);
-	tab.sortModel->setSourceModel(tab.model);
-	assert_r(connect(tab.sortModel, &QSortFilterProxyModel::modelAboutToBeReset, ui->_list, &CFileListView::modelAboutToBeReset));
-	assert_r(connect(tab.sortModel, &CFileListSortFilterProxyModel::sorted, ui->_list, [this](){
+	assert_r(connect(tab.model, &QAbstractItemModel::modelAboutToBeReset, ui->_list, &CFileListView::modelAboutToBeReset));
+	assert_r(connect(tab.model, &CFileListModel::sorted, ui->_list, [this](){
 		ui->_list->scrollTo(ui->_list->currentIndex());
 	}));
 
-	tab.sortModel->sort(viewState.sortColumn, viewState.sortOrder);
+	tab.model->sort(viewState.sortColumn, viewState.sortOrder);
 	tab.headerState = viewState.headerState;
 
 	// Each tab owns its selection model (parented to the widget, not the view) so it survives the view->setModel() swaps.
-	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.sortModel, this);
+	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.model, this);
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
 }
@@ -343,7 +333,6 @@ void CPanelWidget::activateTab(int index)
 	_activeTab = index;
 	PanelTab& tab = _tabs[(size_t)index];
 	_model = tab.model;
-	_sortModel = tab.sortModel;
 	_selectionModel = tab.selectionModel;
 
 	// QTreeView::setModel(), with sortingEnabled on, unconditionally re-sorts whatever model it's just been
@@ -354,10 +343,10 @@ void CPanelWidget::activateTab(int index)
 	QHeaderView* header = ui->_list->header();
 	{
 		const QSignalBlocker blocker(header);
-		header->setSortIndicator(_sortModel->sortColumn(), _sortModel->sortOrder());
+		header->setSortIndicator(_model->sortColumn(), _model->sortOrder());
 	}
 
-	ui->_list->setModel(_sortModel); // re-sorts _sortModel by the indicator set above -- already its own sort, so this is a no-op
+	ui->_list->setModel(_model); // re-sorts _model by the indicator set above -- already its own sort, so this is a no-op
 	ui->_list->setSelectionModel(_selectionModel);
 
 	// Restore THIS tab's own column widths/order/visibility (captured by onTabBarCurrentChanged /
@@ -368,7 +357,7 @@ void CPanelWidget::activateTab(int index)
 	{
 		const QSignalBlocker blocker(header);
 		header->restoreState(tab.headerState);
-		header->setSortIndicator(_sortModel->sortColumn(), _sortModel->sortOrder());
+		header->setSortIndicator(_model->sortColumn(), _model->sortOrder());
 	}
 
 	// Show the now-active panel's contents immediately (the CPanel may also refresh asynchronously on activation).
@@ -385,24 +374,23 @@ void CPanelWidget::openCurrentItemInNewTab()
 	tryOpenItemInNewTab(_selectionModel->currentIndex(), /*activate=*/true);
 }
 
-void CPanelWidget::onItemMiddleClicked(const QModelIndex& sortModelIndex)
+void CPanelWidget::onItemMiddleClicked(const QModelIndex& index)
 {
 	// Middle-click opens a background tab (browser-style): don't switch the current panel away from what it's showing.
-	tryOpenItemInNewTab(sortModelIndex, /*activate=*/false);
+	tryOpenItemInNewTab(index, /*activate=*/false);
 }
 
-void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate)
+void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& index, bool activate)
 {
-	const qulonglong hash = hashBySortModelIndex(sortModelIndex);
-	if (hash == 0)
+	if (!index.isValid())
 		return;
 
-	const CFileSystemObject item = _controller->itemByHash(_panelPosition, hash);
-	if (!item.isDir())
+	const FileListRow& row = _model->rowAt(index);
+	if (!row.isDir())
 		return;
 
 	// For [..] this opens the parent folder ('..' is cleaned out of the path by QFileInfo)
-	openPathInNewTab(item.fullAbsolutePath(), activate, viewStateOfTab(_activeTab));
+	openPathInNewTab(row.fullPath, activate, viewStateOfTab(_activeTab));
 }
 
 void CPanelWidget::openPathInNewTab(const QString& path, bool activate, const TabViewState& viewState)
@@ -410,7 +398,7 @@ void CPanelWidget::openPathInNewTab(const QString& path, bool activate, const Ta
 	const qulonglong id = _controller->addTab(_panelPosition, path, activate);
 
 	PanelTab& tab = _tabs.emplace_back();
-	populateTriplet(tab, viewState);
+	populateTabModels(tab, viewState);
 
 	int index = 0;
 	{
@@ -525,7 +513,7 @@ void CPanelWidget::closeTabById(qulonglong id)
 	_controller->closeTab(_panelPosition, id);
 	const qulonglong activeId = _controller->activeTabId(_panelPosition); // post-removal active tab
 
-	// Detach the view from the closing triplet (via activateTab below) BEFORE deleting it.
+	// Detach the view from the closing tab's models (via activateTab below) BEFORE deleting them.
 	const PanelTab closing = _tabs[(size_t)index];
 	_tabs.erase(_tabs.begin() + index);
 	int controllerActiveIndex = 0;
@@ -548,7 +536,6 @@ void CPanelWidget::closeTabById(qulonglong id)
 	activateTab(controllerActiveIndex);
 
 	delete closing.selectionModel;
-	delete closing.sortModel;
 	delete closing.model;
 }
 
@@ -657,20 +644,32 @@ void CPanelWidget::fillFromList(FileListRefreshCause operation)
 
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
 
-	_model->onPanelContentsChanged(_controller->panel(_panelPosition).itemHashes());
+	std::vector<FileListRow> rows;
+	_controller->panel(_panelPosition).readCommittedContents([&rows](const QString& /*folder*/, const FileListHashMap& items) {
+		rows.reserve(items.size());
+		for (const auto& item : items)
+			rows.push_back(FileListRow::fromObject(item.second));
+	});
+	_model->setRows(std::move(rows));
 
-	auto indexUnderCursor = _sortModel->index(0, 0);
+	auto indexUnderCursor = _model->index(0, 0);
 
 	// Setting the cursor position as appropriate. Stepping up is not a special case here: setPath() has already
 	// recorded the folder we came from as the current item for the folder we arrived at.
 	if (operation != refreshCauseForwardNavigation || QSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
 	{
 		const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPathPosix());
-		const QModelIndex itemIndexToSetCursorTo = indexByHash(itemHashToSetCursorTo, true);
+		const QModelIndex itemIndexToSetCursorTo = _model->indexByHash(itemHashToSetCursorTo);
 		if (itemIndexToSetCursorTo.isValid())
 			indexUnderCursor = itemIndexToSetCursorTo;
-		else if (previousCurrentIndex.isValid() && operation != refreshCauseCdUp && operation != refreshCauseForwardNavigation)
-			indexUnderCursor = _sortModel->index(std::min(previousCurrentIndex.row(), _sortModel->rowCount() - 1), 0);
+		else
+		{
+			if (itemHashToSetCursorTo != 0)
+				qInfo() << "Failed to find hash" << itemHashToSetCursorTo << "in" << currentDirPathNative();
+
+			if (previousCurrentIndex.isValid() && operation != refreshCauseCdUp && operation != refreshCauseForwardNavigation)
+				indexUnderCursor = _model->index(std::min(previousCurrentIndex.row(), _model->rowCount() - 1), 0);
+		}
 	}
 
 	ui->_list->moveCursorToItem(indexUnderCursor);
@@ -685,26 +684,27 @@ void CPanelWidget::fillFromList(FileListRefreshCause operation)
 
 void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 {
-	const auto previousSelection = selectedItemsHashes(true);
-	// Mapping hash -> full path, so that a hash collision against a different, unrelated file that appears after the refresh can't cause it to be silently re-selected in place of the item the user actually had selected.
-	ankerl::unordered_dense::segmented_map<qulonglong, QString, IdentityHash> selectedItemsHashes;
-	for (const auto selectedItemHash: previousSelection)
-		selectedItemsHashes[selectedItemHash] = _controller->itemByHash(_panelPosition, selectedItemHash).fullAbsolutePath();
+	// Hash and full path: a hash collision against an unrelated file that appears after the refresh can't then be silently re-selected in place of the item the user actually had selected.
+	std::vector<std::pair<qulonglong, QString>> previousSelection;
+	for (const QModelIndex& selectedIndex : _selectionModel->selectedRows())
+	{
+		const FileListRow& row = _model->rowAt(selectedIndex);
+		if (!row.isCdUp)
+			previousSelection.emplace_back(row.hash, row.fullPath);
+	}
 
 	fillFromList(operation);
 
 	// Restoring previous selection
-	if (!selectedItemsHashes.empty())
+	if (!previousSelection.empty())
 	{
 		CTimeElapsed timer(true);
 		QItemSelection selection;
-		for (int row = 0, numRows = _sortModel->rowCount(); row < numRows; ++row)
+		for (const auto& [hash, path] : previousSelection)
 		{
-			const QModelIndex idx = _sortModel->index(row, 0);
-			const qulonglong hash = hashBySortModelIndex(idx);
-			const auto it = selectedItemsHashes.find(hash);
-			if (it != selectedItemsHashes.end() && _controller->itemByHash(_panelPosition, hash).fullAbsolutePath() == it->second)
-				selection.select(idx, idx);
+			const QModelIndex index = _model->indexByHash(hash);
+			if (index.isValid() && _model->rowAt(index).fullPath == path)
+				selection.select(index, index);
 		}
 
 		timer.start();
@@ -737,7 +737,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 			else if (!selection.empty())
 			{
 				// This is a cdup element ([..]), and we should remove selection from it
-				_selectionModel->select(indexByHash(selection[i]), QItemSelectionModel::Clear | QItemSelectionModel::Rows);
+				_selectionModel->select(_model->indexByHash(selection[i]), QItemSelectionModel::Clear | QItemSelectionModel::Rows);
 			}
 		}
 	}
@@ -770,7 +770,7 @@ void CPanelWidget::onSpacePressed()
 	if (itemIndex.isValid())
 	{
 		_selectionModel->select(itemIndex, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
-		_controller->displayDirSize(_panelPosition, hashBySortModelIndex(itemIndex));
+		_controller->displayDirSize(_panelPosition, _model->itemHash(itemIndex));
 	}
 }
 
@@ -800,19 +800,13 @@ void CPanelWidget::driveButtonClicked()
 void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemSelection& /*deselected*/)
 {
 	// This doesn't let the user select the [..] item
-
-	const QString cdUpPath = CFileSystemObject(currentDirPathNative()).parentDirPath();
-	for (auto&& indexRange: selected)
+	for (const QItemSelectionRange& range : selected)
 	{
-		const auto indexList = indexRange.indexes();
-		for (const auto& index: indexList)
+		for (int row = range.top(); row <= range.bottom(); ++row)
 		{
-			const auto hash = hashBySortModelIndex(index);
-			if (_controller->itemByHash(_panelPosition, hash).fullAbsolutePath() == cdUpPath)
+			if (_model->rowAt(row).isCdUp)
 			{
-				auto cdUpIndex = indexByHash(hash);
-				assert_r(cdUpIndex.isValid());
-				_selectionModel->select(cdUpIndex, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
+				_selectionModel->select(_model->index(row, 0), QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
 				break;
 			}
 		}
@@ -833,7 +827,7 @@ void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIn
 	if (!current.isValid())
 		return;
 
-	const qulonglong hash = hashBySortModelIndex(current);
+	const qulonglong hash = _model->itemHash(current);
 	_controller->setCurrentItemHashForCurrentFolder(_panelPosition, hash, false);
 
 	// Every refill re-places the cursor, usually on the same item
@@ -856,7 +850,7 @@ void CPanelWidget::onCurrentItemChanged(Panel p, qulonglong tabId, const QString
 	if (_controller->panel(_panelPosition).currentDirObject().fullAbsolutePath() != folder)
 		return;
 
-	const auto newCurrentIndex = indexByHash(currentItemHash);
+	const auto newCurrentIndex = _model->indexByHash(currentItemHash);
 	if(newCurrentIndex.isValid())
 		_selectionModel->setCurrentIndex(newCurrentIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
 }
@@ -1032,13 +1026,13 @@ void CPanelWidget::showFilterEditor()
 
 void CPanelWidget::filterTextEdited(const QString& filterText)
 {
-	if (_sortModel->rowCount() < 1000)
-		_sortModel->setFilterWildcard(filterText);
+	if (_model->rowCount() < 1000)
+		_model->setNameFilter(filterText);
 }
 
 void CPanelWidget::filterTextConfirmed(const QString& filterText)
 {
-	_sortModel->setFilterWildcard(filterText);
+	_model->setNameFilter(filterText);
 	raise();
 	ui->_list->setFocus();
 }
@@ -1046,22 +1040,18 @@ void CPanelWidget::filterTextConfirmed(const QString& filterText)
 void CPanelWidget::copySelectionToClipboard() const
 {
 #ifndef _WIN32
-	const QModelIndexList selection(_selectionModel->selectedRows());
-	QModelIndexList mappedIndexes;
-	for (const auto& index: selection)
-		mappedIndexes.push_back(_sortModel->mapToSource(index));
-
-	if (mappedIndexes.empty())
+	QModelIndexList indexes = _selectionModel->selectedRows();
+	if (indexes.empty())
 	{
 		auto currentIndex = _selectionModel->currentIndex();
 		if (currentIndex.isValid())
-			mappedIndexes.push_back(_sortModel->mapToSource(currentIndex));
+			indexes.push_back(currentIndex);
 	}
 
 	QClipboard * clipBoard = QApplication::clipboard();
 	if (clipBoard)
 	{
-		QMimeData * mime = _model->mimeData(mappedIndexes);
+		QMimeData * mime = _model->mimeData(indexes);
 		if (mime)
 		{
 			mime->setProperty("cut", false);
@@ -1082,22 +1072,18 @@ void CPanelWidget::copySelectionToClipboard() const
 void CPanelWidget::cutSelectionToClipboard() const
 {
 #ifndef _WIN32
-	const QModelIndexList selection(_selectionModel->selectedRows());
-	QModelIndexList mappedIndexes;
-	for (const auto& index: selection)
-		mappedIndexes.push_back(_sortModel->mapToSource(index));
-
-	if (mappedIndexes.empty())
+	QModelIndexList indexes = _selectionModel->selectedRows();
+	if (indexes.empty())
 	{
 		auto currentIndex = _selectionModel->currentIndex();
 		if (currentIndex.isValid())
-			mappedIndexes.push_back(_sortModel->mapToSource(currentIndex));
+			indexes.push_back(currentIndex);
 	}
 
 	QClipboard * clipBoard = QApplication::clipboard();
 	if (clipBoard)
 	{
-		QMimeData * mime = _model->mimeData(mappedIndexes);
+		QMimeData * mime = _model->mimeData(indexes);
 		if (mime)
 		{
 			mime->setProperty("cut", true);
@@ -1130,7 +1116,7 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 	}
 
 #ifndef _WIN32
-	_model->dropMimeData(clipboardData, clipboardData->property("cut").toBool() ? Qt::MoveAction : Qt::CopyAction, 0, 0, QModelIndex());
+	dropUrls(clipboardData->urls(), clipboardData->property("cut").toBool() ? Qt::MoveAction : Qt::CopyAction, {});
 #else
 	auto* hwnd = WidgetUtils::nativeOwnerWinId(this);
 	const auto currentDirWString = currentDirPathNative().toStdWString();
@@ -1200,7 +1186,7 @@ void CPanelWidget::fillHistory()
 
 void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 {
-	const FolderContentsSummary total = summarizeFolderContents(_controller->panel(_panelPosition).list());
+	const FolderContentsSummary& total = _model->contentsSummary();
 
 	uint64_t numFilesSelected = 0;
 	uint64_t numFoldersSelected = 0;
@@ -1208,16 +1194,20 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 
 	for (const auto selectedItem: selection)
 	{
-		const CFileSystemObject object = _controller->itemByHash(_panelPosition, selectedItem);
-		if (object.isCdUp())
+		const QModelIndex index = _model->indexByHash(selectedItem);
+		if (!index.isValid())
 			continue;
 
-		if (object.isFile())
+		const FileListRow& row = _model->rowAt(index);
+		if (row.isCdUp)
+			continue;
+
+		if (row.type == File)
 			++numFilesSelected;
-		else if (object.isDir())
+		else if (row.isDir())
 			++numFoldersSelected;
 
-		sizeSelected += object.size();
+		sizeSelected += row.size;
 	}
 
 	ui->_infoLabel->setText(tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(total.numFiles).
@@ -1228,9 +1218,7 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
 {
 	assert_and_return_r(item.isValid(), false);
-	const QModelIndex source = _sortModel->mapToSource(item);
-	const qulonglong hash = _model->itemHash(source);
-	emit itemActivated(hash, this);
+	emit itemActivated(_model->itemHash(item), this);
 	return true; // Consuming the event
 }
 
@@ -1303,33 +1291,32 @@ void CPanelWidget::currentVolumeChanged(Panel p) noexcept
 	updateCurrentVolumeButtonAndInfoLabel();
 }
 
-qulonglong CPanelWidget::hashBySortModelIndex(const QModelIndex &index) const
+bool CPanelWidget::dropUrls(const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath)
 {
-	if (!index.isValid())
-		return 0;
-
-	const auto sourceIndex = _sortModel->mapToSource(index);
-	const auto hash =_model->itemHash(sourceIndex); // Could only be 0 if some kind of desync occurred between the UI view and the internal data of the model
-	assert_debug_only(hash != 0);
-	return hash;
-}
-
-QModelIndex CPanelWidget::indexByHash(const qulonglong hash, bool logFailures) const
-{
-	if (hash == 0)
-		return {};
-
-	for(int row = 0, numRows = _sortModel->rowCount(); row < numRows; ++row)
+	std::vector<CFileSystemObject> objects;
+	for (const QUrl& url : urls)
 	{
-		const auto index = _sortModel->index(row, 0);
-		if (hashBySortModelIndex(index) == hash)
-			return index;
+		if (url.isLocalFile())
+			objects.emplace_back(url.toLocalFile());
 	}
 
-	if (logFailures)
-		qInfo() << "Failed to find hash" << hash << "in" << currentDirPathNative();
+	if (objects.empty())
+		return false;
 
-	return {};
+	CFileSystemObject destination{ destinationPath.isEmpty() ? currentDirPathNative() : destinationPath };
+	if (destination.isFile())
+		destination = CFileSystemObject(destination.parentDirPath());
+	assert_and_return_r(destination.exists() && destination.isDir(), false);
+
+	auto* mainWindow = CMainWindow::get();
+	assert_and_return_r(mainWindow, false);
+
+	if (action == Qt::CopyAction)
+		return mainWindow->launchFileTransfer(TransferKind::Copy, std::move(objects), destination.fullAbsolutePath());
+	else if (action == Qt::MoveAction)
+		return mainWindow->launchFileTransfer(TransferKind::Move, std::move(objects), destination.fullAbsolutePath());
+	else
+		return false;
 }
 
 bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
@@ -1350,6 +1337,22 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 				_controller->navigateForward(_panelPosition);
 			return true;
 		}
+	}
+	else if (object == ui->_list->viewport() && e->type() == QEvent::ToolTip)
+	{
+		// Not the model's ToolTipRole: the model stays independent of the OS shell
+		const auto* helpEvent = static_cast<QHelpEvent*>(e);
+		const QModelIndex index = ui->_list->indexAt(helpEvent->pos());
+		if (!index.isValid())
+		{
+			QToolTip::hideText();
+			return true;
+		}
+
+		const FileListRow& row = _model->rowAt(index);
+		const QString toolTip = row.fullName % "\n\n" % QString::fromStdWString(OsShell::toolTip(row.fullPath.toStdWString()));
+		QToolTip::showText(helpEvent->globalPos(), toolTip, ui->_list->viewport(), ui->_list->visualRect(index));
+		return true;
 	}
 	else if (object == ui->_list->viewport() && e->type() == QEvent::MouseButtonPress)
 	{
@@ -1417,7 +1420,7 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 
 	// Display only - see PanelContentsChangedListener. The tab is already at the new folder, so its name is shown
 	// right away instead of lagging behind for however long the listing takes.
-	_model->onPanelContentsChanged({});
+	_model->setRows({});
 	updateInfoLabel({});
 	updateTabText(_activeTab);
 }
@@ -1451,11 +1454,6 @@ QAbstractItemModel * CPanelWidget::model() const
 	return _model;
 }
 
-QSortFilterProxyModel *CPanelWidget::sortModel() const
-{
-	return _sortModel;
-}
-
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
 {
 	const auto selection = _selectionModel->selectedRows();
@@ -1466,9 +1464,9 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 		result.reserve(selection.size());
 		for (const auto& selectedItem: selection)
 		{
-			const qulonglong hash = hashBySortModelIndex(selectedItem);
-			if (!_controller->itemByHash(_panelPosition, hash).isCdUp())
-				result.push_back(hash);
+			const FileListRow& row = _model->rowAt(selectedItem);
+			if (!row.isCdUp)
+				result.push_back(row.hash);
 		}
 	}
 	else if (!onlyHighlightedItems)
@@ -1476,9 +1474,9 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 		auto currentIndex = _selectionModel->currentIndex();
 		if (currentIndex.isValid())
 		{
-			const auto hash = hashBySortModelIndex(currentIndex);
-			if (!_controller->itemByHash(_panelPosition, hash).isCdUp())
-				result.push_back(hash);
+			const FileListRow& row = _model->rowAt(currentIndex);
+			if (!row.isCdUp)
+				result.push_back(row.hash);
 		}
 	}
 
@@ -1487,8 +1485,7 @@ std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedIt
 
 qulonglong CPanelWidget::currentItemHash() const
 {
-	const QModelIndex currentIndex = _selectionModel->currentIndex();
-	return hashBySortModelIndex(currentIndex);
+	return _model->itemHash(_selectionModel->currentIndex());
 }
 
 void CPanelWidget::invertSelection()
@@ -1498,9 +1495,9 @@ void CPanelWidget::invertSelection()
 
 void CPanelWidget::moveCursorToFirstFile()
 {
-	const int row = _sortModel->firstFileRow();
+	const int row = _model->firstFileRow();
 	if (row >= 0)
-		ui->_list->moveCursorToItem(_sortModel->index(row, 0));
+		ui->_list->moveCursorToItem(_model->index(row, 0));
 }
 
 void CPanelWidget::copySelectedItemsPathsToClipboard() const
@@ -1511,9 +1508,9 @@ void CPanelWidget::copySelectedItemsPathsToClipboard() const
 	QString paths;
 	for (const auto& index : std::as_const(selection))
 	{
-		const CFileSystemObject item = _controller->itemByHash(_panelPosition, hashBySortModelIndex(index));
-		if (!item.isCdUp())
-			paths += shellQuotedPath(toNativeSeparators(item.fullAbsolutePath())) + '\n';
+		const FileListRow& row = _model->rowAt(index);
+		if (!row.isCdUp)
+			paths += shellQuotedPath(toNativeSeparators(row.fullPath)) + '\n';
 	}
 
 	if (!paths.isEmpty())

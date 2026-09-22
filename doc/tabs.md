@@ -17,9 +17,9 @@ duplicate tabs may show the same location.
 
 ## UI invariant
 
-`CPanelWidget` has one shared view and one model/proxy/selection triplet per tab. The models resolve data through
-`CController::panel(side)`, so only the active triplet may be queried or attached. Activation swaps the complete
-triplet and restores its sort and header state; background notifications cannot touch it.
+`CPanelWidget` has one shared view and one model and selection model per tab. A model holds a copy of its rows,
+refilled only while its tab is on screen. Activation swaps the models and restores their sort and header state;
+background notifications cannot touch them.
 
 ## Lifetime and persistence
 

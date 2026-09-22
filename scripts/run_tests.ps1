@@ -39,6 +39,7 @@ $suites = [ordered]@{
 	'fileoperations_test'     = @('~[executor]~[deleteexecutor]')
 	'filecomparator_test'     = @('~[CFileComparator]')
 	'fileoperations_gui_test' = @()
+	'filelist_test'           = @()
 	'csvviewer_test'          = @()
 }
 

@@ -16,11 +16,10 @@ class CPanelWidget;
 }
 
 class QItemSelectionModel;
-class QSortFilterProxyModel;
 class QStandardItem;
+class QUrl;
 
 class CFileListModel;
-class CFileListSortFilterProxyModel;
 class CFileListFilterDialog;
 class CShellOperationRunner;
 struct InlineRenameResult;
@@ -51,7 +50,7 @@ public:
 	[[nodiscard]] Panel panelPosition() const;
 	void initPanel(Panel p);
 
-	// Tabs (this side). The QTabBar and the per-tab model triplets (_tabs) are kept position-aligned with each
+	// Tabs (this side). The QTabBar and the per-tab models (_tabs) are kept position-aligned with each
 	// other; CController's tabs are addressed by tab ID, recovered from a QTabBar position via tabIdAt().
 	void createNewTab();          // New tab showing the current folder, switched to
 	void closeCurrentTab();       // Closes the active tab (no-op when it's the only one)
@@ -70,7 +69,6 @@ public:
 
 	[[nodiscard]] CFileListView* fileListView() const;
 	[[nodiscard]] QAbstractItemModel* model() const;
-	[[nodiscard]] QSortFilterProxyModel* sortModel() const;
 
 // Selection
 	[[nodiscard]] std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
@@ -110,7 +108,7 @@ private slots:
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard(bool specialPaste = false);
 	void pathFromHistoryActivated(QString path);
-	void onItemMiddleClicked(const QModelIndex& sortModelIndex); // Middle-click: opens the folder in a new tab (no-op if it's not a folder)
+	void onItemMiddleClicked(const QModelIndex& index); // Middle-click: opens the folder in a new tab (no-op if it's not a folder)
 
 private:
 	void fillFromList(FileListRefreshCause operation);
@@ -125,8 +123,8 @@ private:
 	void onCurrentItemChanged(Panel p, qulonglong tabId, const QString& folder, qulonglong currentItemHash) override;
 
 // Internal methods
-	[[nodiscard]] qulonglong hashBySortModelIndex(const QModelIndex& index) const;
-	[[nodiscard]] QModelIndex indexByHash(qulonglong hash, bool logFailures = false) const;
+	// Copies or moves the local files among urls; an empty destinationPath means the current folder
+	bool dropUrls(const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath);
 
 	void updateCurrentVolumeButtonAndInfoLabel();
 
@@ -138,9 +136,8 @@ private:
 // Tab helpers (UI side; _tabs is position-aligned with the QTabBar; CController is addressed by tab ID, see tabIdAt())
 	struct PanelTab {
 		CFileListModel* model = nullptr;
-		CFileListSortFilterProxyModel* sortModel = nullptr;
 		QItemSelectionModel* selectionModel = nullptr;
-		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - sortModel owns the sort)
+		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - the model owns the sort)
 	};
 	// A tab's persisted appearance. The defaults are what a tab gets with nothing stored for it.
 	struct TabViewState {
@@ -148,15 +145,15 @@ private:
 		Qt::SortOrder sortOrder = Qt::AscendingOrder;
 		QByteArray headerState;
 	};
-	// Wires a model / sort-proxy / selection-model trio into an already-emplaced tab (not shown yet). The tab's sort
+	// Wires a model and its selection model into an already-emplaced tab (not shown yet). The tab's sort
 	// is independent from every other tab's from here on, so viewState only seeds it; see activateTab.
-	void populateTriplet(PanelTab& tab, const TabViewState& viewState);
+	void populateTabModels(PanelTab& tab, const TabViewState& viewState);
 	[[nodiscard]] TabViewState viewStateOfTab(int index) const;  // What tab 'index' looks like right now
 	[[nodiscard]] std::vector<std::pair<qulonglong, TabViewState>> loadTabViewStates() const; // Persisted state by tab id; empty when nothing is stored
 	[[nodiscard]] TabViewState viewStateFromLegacyHeaderBlob() const; // Migration: settings that predate the per-tab store held one blob per side
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
 	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
-	void activateTab(int index);                   // Points the shared view at tab 'index's triplet, restoring its own column widths and sort
+	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths and sort
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);
 	void onTabBarTabMoved(int from, int to);        // Drag-reorder: mirrors the QTabBar's move into _tabs and CController
@@ -167,7 +164,7 @@ private:
 	// Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab
 	// in the background. viewState is the new tab's appearance: the active tab's, except when duplicating another tab.
 	void openPathInNewTab(const QString& path, bool activate, const TabViewState& viewState);
-	void tryOpenItemInNewTab(const QModelIndex& sortModelIndex, bool activate); // Opens the item in a new tab if it's a folder ([..] opens the parent)
+	void tryOpenItemInNewTab(const QModelIndex& index, bool activate); // Opens the item in a new tab if it's a folder ([..] opens the parent)
 	void duplicateTab(int index);       // Tab context menu: opens a new tab showing the same path as tab 'index'
 	void closeAllOtherTabs(int index);  // Tab context menu: closes every tab except 'index'
 	void switchToTabByPosition(int position); // Ctrl+1..9: jumps to the tab at this position (no-op if it doesn't exist)
@@ -179,10 +176,9 @@ private:
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;
 	CShellOperationRunner         * _shellOperations = nullptr;
-	// The active tab's triplet (also held in _tabs[_activeTab]); kept as members so the rest of the widget stays tab-agnostic.
+	// The active tab's models (also held in _tabs[_activeTab]); kept as members so the rest of the widget stays tab-agnostic.
 	QItemSelectionModel           * _selectionModel = nullptr;
 	CFileListModel                * _model = nullptr;
-	CFileListSortFilterProxyModel * _sortModel = nullptr;
 	std::vector<PanelTab>           _tabs;
 	std::vector<QString>            _recentlyClosedTabsPaths; // LIFO for reopenLastClosedTab()
 	int                             _activeTab = -1;

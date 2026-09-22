@@ -553,7 +553,7 @@ void CMainWindow::currentPanelChanged(const Panel panel)
 	_controller->activePanelChanged(_currentFileList->panelPosition());
 	QSettings().setValue(KEY_LAST_ACTIVE_PANEL, (int)_currentFileList->panelPosition());
 	ui->fullPath->setText(_controller->panel(_currentFileList->panelPosition()).currentDirPathNative());
-	_commandLineCompleter.setModel(_currentFileList->sortModel());
+	_commandLineCompleter.setModel(_currentFileList->model());
 }
 
 void CMainWindow::uiThreadTimerTick()

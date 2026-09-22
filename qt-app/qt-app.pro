@@ -45,7 +45,6 @@ SOURCES += \
 	src/progressdialogs/fileoperationlaunch.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
-	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.cpp \
 	src/settings/csettingspageinterface.cpp \
 	src/settings/csettingspageedit.cpp \
 	src/settings/csettingspageother.cpp \
@@ -76,7 +75,6 @@ HEADERS += \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
 	src/panel/filelistwidget/cfilelistview.h \
-	src/panel/filelistwidget/model/cfilelistsortfilterproxymodel.h \
 	src/settings/csettingspageinterface.h \
 	src/settings/csettingspageedit.h \
 	src/settings/csettingspageother.h \

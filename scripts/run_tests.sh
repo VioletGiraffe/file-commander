@@ -14,7 +14,7 @@
 
 set -u
 
-TESTS="fso_test fso_test_high_level panel_test filesearchengine_test userprograms_test filesystemhelpers_test fileoperations_test filecomparator_test fileoperations_gui_test csvviewer_test"
+TESTS="fso_test fso_test_high_level panel_test filesearchengine_test userprograms_test filesystemhelpers_test fileoperations_test filecomparator_test fileoperations_gui_test filelist_test csvviewer_test"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

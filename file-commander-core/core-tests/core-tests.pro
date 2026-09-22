@@ -8,6 +8,10 @@ SUBDIRS += gui-fileoperations
 gui-fileoperations.subdir = ../../qt-app/gui-tests/fileoperations
 gui-fileoperations.depends = qtutils cpputils thin_io
 
+SUBDIRS += gui-filelist
+gui-filelist.subdir = ../../qt-app/gui-tests/filelist
+gui-filelist.depends = qtutils cpputils thin_io
+
 SUBDIRS += csvviewer
 csvviewer.subdir = ../../plugins/viewer/csvviewer/tests
 csvviewer.depends = cpputils

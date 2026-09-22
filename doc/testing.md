@@ -4,10 +4,11 @@ The project files are authoritative for the current test set; this is the map. E
 
 ## Layout
 
-`file-commander-core/core-tests/core-tests.pro` builds every suite, including the two that live next to the code they
+`file-commander-core/core-tests/core-tests.pro` builds every suite, including the ones that live next to the code they
 test:
 
 - `qt-app/gui-tests/fileoperations/`: the file-operation UI.
+- `qt-app/gui-tests/filelist/`: the file-list model.
 - `plugins/viewer/csvviewer/tests/`: the CSV viewer.
 
 `core-tests/test-utils/` holds the shared helpers: temporary folder generation, random data, link creation, Qt/Catch2
@@ -67,11 +68,13 @@ the shell script also falls back to a `qmake` already on PATH.
 | `filesystemhelpers_test` | Path quoting and shell word splitting |
 | `userprograms_test` | Programs-menu placeholder expansion |
 | `fileoperations_gui_test` | File-operation UI from `qt-app/src`: dialogs, prompts, launch routing |
+| `filelist_test` | File-list model from `qt-app/src`: sorting, filtering, lookups, and Qt's model contract, on rows built in memory |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
 
-No suite covers process launching, volume enumeration, favorites, settings, the UI outside file operations, or any
-plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`, `image-processing` and
-`text-encoding-detector` submodules have their own suites, which this project neither builds nor runs.
+No suite covers process launching, volume enumeration, favorites, settings, the UI outside file operations and the
+file-list model, or any plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`,
+`image-processing` and `text-encoding-detector` submodules have their own suites, which this project neither builds
+nor runs.
 
 ## Listing benchmark
 
