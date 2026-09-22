@@ -22,6 +22,7 @@ DISABLE_COMPILER_WARNINGS
 #endif
 
 #include <QDebug>
+#include <QTimeZone>
 RESTORE_COMPILER_WARNINGS
 
 #if defined __linux__ || defined __APPLE__ || defined __FreeBSD__
@@ -36,6 +37,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <assert.h>
 #include <errno.h>
+#include <utility>
 
 static QString expandEnvironmentVariables(const QString& string)
 {
@@ -86,6 +88,18 @@ CFileSystemObject::CFileSystemObject(const QString& path) : _fileInfo(expandEnvi
 
 CFileSystemObject::CFileSystemObject(const QDir& dir) : CFileSystemObject(QString(dir.absolutePath()))
 {
+}
+
+// Empty objects, default-constructed or not, all hash to 0: simpler for the callers
+static uint64_t pathHash(const QString& fullPath)
+{
+	return fullPath.isEmpty() ? 0 : QStringHash{}(fullPath);
+}
+
+CFileSystemObject::CFileSystemObject(CFileSystemObjectProperties properties) : _properties(std::move(properties))
+{
+	assert_r(_properties.type != Directory || _properties.fullPath.endsWith('/'));
+	_properties.hash = pathHash(_properties.fullPath);
 }
 
 static QString parentForAbsolutePath(QString absolutePath)
@@ -148,10 +162,7 @@ void CFileSystemObject::loadPropertiesFromFileInfo()
 		qInfo() << _properties.fullPath << " is neither a file nor a dir";
 #endif
 
-	if (const auto pathLength = static_cast<uint64_t>(_properties.fullPath.size()); pathLength != 0)
-		_properties.hash = QStringHash{}(_properties.fullPath);
-	else
-		_properties.hash = 0; // Workaround: it's much simpler if all empty objects, both default-constructed and not, have a hash of 0
+	_properties.hash = pathHash(_properties.fullPath);
 
 	if (_properties.type == File)
 	{
@@ -187,6 +198,9 @@ void CFileSystemObject::loadPropertiesFromFileInfo()
 		return;
 
 	_properties.size = _properties.type == File ? static_cast<uint64_t>(_fileInfo.size()) : 0ULL;
+	// An invalid time converts to 0
+	_properties.creationTime = toTime_t(_fileInfo.birthTime(QTimeZone::UTC));
+	_properties.modificationTime = toTime_t(_fileInfo.lastModified(QTimeZone::UTC));
 
 	assert_debug_only(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
 }
@@ -359,18 +373,12 @@ QString CFileSystemObject::symLinkTarget() const
 
 time_t CFileSystemObject::creationTime() const
 {
-	if (_creationDate == invalid_time) [[unlikely]]
-		_creationDate = toTime_t(_fileInfo.birthTime().toLocalTime());
-
-	return _creationDate;
+	return _properties.creationTime;
 }
 
 time_t CFileSystemObject::modificationTime() const
 {
-	if (_modificationDate == invalid_time) [[unlikely]]
-		_modificationDate = toTime_t(_fileInfo.lastModified().toLocalTime());
-
-	return _modificationDate;
+	return _properties.modificationTime;
 }
 
 // A hack to store the size of a directory after it's calculated

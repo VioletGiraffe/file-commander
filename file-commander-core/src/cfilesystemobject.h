@@ -20,6 +20,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <stdint.h>
+#include <time.h>
 #include <vector>
 
 class QDir;
@@ -33,6 +34,9 @@ enum FileSystemObjectType { UnknownType, Directory, File, Bundle };
 struct CFileSystemObjectProperties {
 	uint64_t size = 0;
 	uint64_t hash = 0;
+	// Seconds since the epoch; 0 when unknown, e.g. a creation time the filesystem does not record
+	time_t creationTime = 0;
+	time_t modificationTime = 0;
 	QString completeBaseName;
 	QString extension;
 	QString fullName;
@@ -54,6 +58,10 @@ public:
 	explicit CFileSystemObject(const QString& path);
 
 	explicit CFileSystemObject(const QDir& dir);
+
+	// For tests: builds the object in memory, deriving the hash from fullPath
+	// Accessors backed by QFileInfo report its defaults
+	explicit CFileSystemObject(CFileSystemObjectProperties properties);
 
 	template <typename T, typename U>
 	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)std::forward<QStringBuilder<T, U>>(stringBuilder)) {}
@@ -121,10 +129,6 @@ private:
 
 private:
 	CFileSystemObjectProperties _properties;
-
-	static constexpr auto invalid_time = std::numeric_limits<time_t>::max();
-	mutable time_t _creationDate = invalid_time;
-	mutable time_t _modificationDate = invalid_time;
 	QFileInfo                   _fileInfo;
 	// Lazily resolved device id of the containing filesystem; identifies which volume the object is on
 	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();

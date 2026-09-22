@@ -12,9 +12,12 @@
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/catch2/catch.hpp>
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
+#include <QTimeZone>
 RESTORE_COMPILER_WARNINGS
 
 TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
@@ -217,5 +220,80 @@ TEST_CASE("A filesystem root is its own path and has no parent", "[CFileSystemOb
 	// The drive letter is canonically uppercase, so either spelling hashes to the same object.
 	CHECK(CFileSystemObject{ QStringLiteral("c:/") } == CFileSystemObject{ QStringLiteral("C:/") });
 #endif
+}
+
+TEST_CASE("File times are read once, when the object is built", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString filePath = tempDir.path() + "/file.txt";
+	const QString folderPath = tempDir.path() + "/folder";
+	REQUIRE(QDir{}.mkpath(folderPath));
+
+	const auto setModificationTime = [&filePath](const QDateTime& time) {
+		QFile file{ filePath };
+		return file.open(QFile::Append) && file.setFileTime(time, QFileDevice::FileModificationTime);
+	};
+
+	const QDateTime firstTime{ QDate{ 2001, 2, 3 }, QTime{ 4, 5, 6 }, QTimeZone::UTC };
+	const QDateTime secondTime{ QDate{ 2011, 12, 13 }, QTime{ 14, 15, 16 }, QTimeZone::UTC };
+	REQUIRE(setModificationTime(firstTime));
+
+	const CFileSystemObject fileObject{ filePath };
+	CHECK(fileObject.modificationTime() == firstTime.toSecsSinceEpoch());
+	CHECK(fileObject.creationTime() == QFileInfo{ filePath }.birthTime(QTimeZone::UTC).toSecsSinceEpoch()); // 0 where the filesystem has none
+
+	REQUIRE(setModificationTime(secondTime));
+	CHECK(fileObject.modificationTime() == firstTime.toSecsSinceEpoch());
+	CHECK(CFileSystemObject{ filePath }.modificationTime() == secondTime.toSecsSinceEpoch());
+
+	// A listing's entries, where POSIX has read nothing beyond the name and type
+	const QFileInfoList entries = QDir{ tempDir.path() }.entryInfoList({ "folder" }, QDir::Dirs | QDir::NoDotAndDotDot);
+	REQUIRE(entries.size() == 1);
+	const CFileSystemObject listedFolder{ entries.front() };
+	REQUIRE(listedFolder.isDir());
+	CHECK(listedFolder.modificationTime() == QFileInfo{ folderPath }.lastModified(QTimeZone::UTC).toSecsSinceEpoch());
+}
+
+TEST_CASE("An object built from its properties reports them", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+
+	CFileSystemObjectProperties fileProperties;
+	fileProperties.fullPath = tempDir.path() + "/report.final.txt"; // Never created
+	fileProperties.fullName = "report.final.txt";
+	fileProperties.completeBaseName = "report.final";
+	fileProperties.extension = "txt";
+	fileProperties.type = File;
+	fileProperties.exists = true;
+	fileProperties.size = 12345u;
+	fileProperties.creationTime = 100;
+	fileProperties.modificationTime = 200;
+	fileProperties.hash = 1; // Replaced by the path's hash
+
+	const CFileSystemObject file{ fileProperties };
+	CHECK(file.isFile());
+	CHECK(file.exists());
+	CHECK(file.fullAbsolutePath() == fileProperties.fullPath);
+	CHECK(file.fullName() == "report.final.txt");
+	CHECK(file.name() == "report.final");
+	CHECK(file.extension() == "txt");
+	CHECK(file.size() == 12345u);
+	CHECK(file.creationTime() == 100);
+	CHECK(file.modificationTime() == 200);
+	CHECK(file.hash() == CFileSystemObject{ fileProperties.fullPath }.hash());
+
+	CFileSystemObjectProperties folderProperties;
+	folderProperties.fullPath = tempDir.path() + "/folder/";
+	folderProperties.fullName = "folder";
+	folderProperties.completeBaseName = "folder";
+	folderProperties.type = Directory;
+	folderProperties.exists = true;
+
+	const CFileSystemObject folder{ folderProperties };
+	CHECK(folder.isDir());
+	CHECK(folder.hash() == CFileSystemObject{ folderProperties.fullPath }.hash());
+	CHECK(CFileSystemObject{ CFileSystemObjectProperties{} }.hash() == 0u);
 }
 

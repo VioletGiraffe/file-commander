@@ -8,6 +8,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDateTime>
 #include <QFile>
 #include <QString>
+#include <QTimeZone>
 RESTORE_COMPILER_WARNINGS
 
 #include <map>
@@ -70,10 +71,10 @@ public:
 
 	QDateTime _created;
 	[[nodiscard]] QDateTime created() const {return _created;}
-	[[nodiscard]] QDateTime birthTime() const {return _created;}
+	[[nodiscard]] QDateTime birthTime(const QTimeZone& timeZone) const {return _created.toTimeZone(timeZone);}
 
 	QDateTime _lastModified;
-	[[nodiscard]] QDateTime lastModified() const {return _lastModified;}
+	[[nodiscard]] QDateTime lastModified(const QTimeZone& timeZone) const {return _lastModified.toTimeZone(timeZone);}
 
 	qint64 _size = 0;
 	[[nodiscard]] qint64 size() const {return	_size;}
