@@ -85,6 +85,8 @@ public:
 signals:
 	void itemActivated(qulonglong hash, CPanelWidget * panel);
 	void currentItemChangedSignal(Panel p, qulonglong itemHash);
+	// model() returns the newly active tab's model from here on
+	void activeTabChanged();
 
 protected:
 	bool eventFilter(QObject * object , QEvent * e) override;

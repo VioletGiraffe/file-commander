@@ -1193,6 +1193,13 @@ void CMainWindow::initCore()
 	connect(ui->leftPanel, &CPanelWidget::itemActivated, this, &CMainWindow::itemActivated);
 	connect(ui->rightPanel, &CPanelWidget::itemActivated, this, &CMainWindow::itemActivated);
 
+	const auto updateCompleterModel = [this] {
+		if (_currentFileList)
+			_commandLineCompleter.setModel(_currentFileList->model());
+	};
+	connect(ui->leftPanel, &CPanelWidget::activeTabChanged, this, updateCompleterModel);
+	connect(ui->rightPanel, &CPanelWidget::activeTabChanged, this, updateCompleterModel);
+
 	ui->leftPanel->fileListView()->addEventObserver(this);
 	ui->rightPanel->fileListView()->addEventObserver(this);
 

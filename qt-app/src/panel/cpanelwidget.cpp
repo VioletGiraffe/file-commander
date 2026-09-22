@@ -362,6 +362,8 @@ void CPanelWidget::activateTab(int index)
 
 	// Show the now-active panel's contents immediately (the CPanel may also refresh asynchronously on activation).
 	fillFromPanel(refreshCauseOther);
+
+	emit activeTabChanged();
 }
 
 void CPanelWidget::createNewTab()
@@ -727,19 +729,8 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 		paths.push_back(_controller->panel(_panelPosition).currentDirPathNative().toStdWString());
 	else
 	{
-		for (size_t i = 0; i < selection.size(); ++i)
-		{
-			if (!_controller->itemByHash(_panelPosition, selection[i]).isCdUp() || selection.size() == 1)
-			{
-				QString selectedItemPath = _controller->itemPath(_panelPosition, selection[i]);
-				paths.push_back(selectedItemPath.toStdWString());
-			}
-			else if (!selection.empty())
-			{
-				// This is a cdup element ([..]), and we should remove selection from it
-				_selectionModel->select(_model->indexByHash(selection[i]), QItemSelectionModel::Clear | QItemSelectionModel::Rows);
-			}
-		}
+		for (const qulonglong hash : selection)
+			paths.push_back(_controller->itemPath(_panelPosition, hash).toStdWString());
 	}
 
 	pos *= ui->_list->devicePixelRatioF();
