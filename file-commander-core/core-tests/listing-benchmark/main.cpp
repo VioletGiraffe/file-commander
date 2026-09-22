@@ -25,6 +25,10 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <Windows.h>
+#elif defined(__linux__)
+#include <malloc.h>
+#include <sched.h>
+#include <sys/resource.h>
 #endif
 
 #include <algorithm>
@@ -234,26 +238,67 @@ static void pinToPerformanceCore()
 	::SetThreadInformation(::GetCurrentThread(), ThreadPowerThrottling, &throttling, sizeof(throttling));
 
 	printf("Pinned to CPU %u\n", (unsigned)chosen->CpuSet.LogicalProcessorIndex);
+#elif defined(__linux__)
+	cpu_set_t allowed;
+	CPU_ZERO(&allowed);
+	if (::sched_getaffinity(0, sizeof(allowed), &allowed) != 0)
+	{
+		printf("Not pinned: no affinity mask\n");
+		return;
+	}
+
+	// The highest allowed CPU. Uniform cores make it as good as any; a hybrid x86 machine, where sysfs does not
+	// expose which cores are the fast ones, needs taskset instead.
+	int chosen = -1;
+	for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu)
+	{
+		if (CPU_ISSET(cpu, &allowed))
+			chosen = cpu;
+	}
+
+	cpu_set_t single;
+	CPU_ZERO(&single);
+	if (chosen >= 0)
+		CPU_SET(chosen, &single);
+
+	if (chosen < 0 || ::sched_setaffinity(0, sizeof(single), &single) != 0)
+	{
+		printf("Not pinned: no usable CPU\n");
+		return;
+	}
+
+	// Fails without privileges, and only matters when something else wants the core
+	(void)::setpriority(PRIO_PROCESS, 0, -19);
+
+	printf("Pinned to CPU %d\n", chosen);
 #endif
 }
 
-#ifdef _WIN32
-// Allocated blocks only: freed ones the heap keeps committed, such as the listing's temporaries, are not counted.
-// The CRT allocates from the process heap.
+// Allocated blocks only: freed ones the allocator keeps, such as the listing's temporaries, are not counted.
+// Negative where the allocator does not report it.
 [[nodiscard]] static int64_t heapBytesAllocated()
 {
+#ifdef _WIN32
+	// The CRT allocates from the process heap
 	HEAP_SUMMARY summary{};
 	summary.cb = sizeof(summary);
 	if (!::HeapSummary(::GetProcessHeap(), 0, &summary))
 		return 0;
 
 	return (int64_t)summary.cbAllocated;
-}
+#elif defined(__GLIBC__) && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33))
+	// The main arena only, and this thread is the only one allocating
+	return (int64_t)::mallinfo2().uordblks;
+#else
+	return -1;
 #endif
+}
 
 static void reportPanelListingMemory(const std::vector<Folder>& folders)
 {
-#ifdef _WIN32
+	if (heapBytesAllocated() < 0)
+		return;
+
 	for (const Folder& folder : folders)
 	{
 		const int64_t before = heapBytesAllocated();
@@ -261,9 +306,6 @@ static void reportPanelListingMemory(const std::vector<Folder>& folders)
 		const int64_t held = heapBytesAllocated() - before;
 		printf("%s: the panel listing holds %.0f bytes per entry\n", qUtf8Printable(folder.path), items.empty() ? 0.0 : (double)held / (double)items.size());
 	}
-#else
-	(void)folders;
-#endif
 }
 
 static void measureWarm(const Folder& folder, const std::vector<const Variant*>& variants, const size_t warmupRounds, const size_t timedRounds, CsvLog& csv, const QString& label)

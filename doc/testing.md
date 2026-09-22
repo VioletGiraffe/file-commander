@@ -88,8 +88,11 @@ with LTO, as the application is built; the test scripts never run it. `--help` l
 - Warm: the variants alternate after untimed rounds; on Windows the panel listing's memory per entry is reported too.
   Any folder can be timed by passing it to the executable directly.
 - Cold: `-Samples N` remounts the VHDX before every single listing, which discards the volume's cache.
+- `scripts/listing_benchmark.sh` is the Linux counterpart, taking positional keywords: `generate` and `warm` need no
+  privileges, `cold <image> <samples>` creates an ext4 image and mounts it afresh for every listing, as root. Its loop
+  device uses direct I/O, since unmounting does not drop the page cache holding the image file itself.
 - Confirm cold numbers are cold before trusting them: the first listing after a remount must read from the disk
-  (Resource Monitor, Disk tab), and a folder must list slower from an HDD than from an SSD.
+  (Resource Monitor's Disk tab, `iostat`), and a folder must list slower from an HDD than from an SSD.
 - The drive's own cache survives a remount, so some cold samples are partly served from it. The script shuffles the
   order every round, so these hits land on random variants.
 - Entry counts differ by design: `thinio` lists no `[..]`. A `panel` count below `qt` means entries the panel dropped.
