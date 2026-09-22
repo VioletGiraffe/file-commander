@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Runs listing_benchmark. Cold samples unmount an ext4 image between listings, which discards that filesystem's
+# Runs listing_benchmark. Cold samples remount an ext4 image before every listing, which discards that filesystem's
 # cache and leaves the rest of the machine warm; they need root, warm runs do not.
 # What to verify before trusting the numbers: doc/testing.md, "Listing benchmark".
 # The Qt kit is resolved the way run_tests.sh resolves it: QT_ROOT_DIR, then a git-ignored local-env.sh beside this
@@ -10,12 +10,12 @@
 #   [debug] warm <folder> [args...]           times every entries-* folder under <folder>
 #   [debug] cold <image> <samples> [args...]  creates <image> if missing, generates the folders on it, then takes
 #                                             <samples> cold samples of every folder and variant; needs root
-# Arguments after the command reach the benchmark, e.g. --runs 30; a repeated option takes its last value, so they
-# win. VARIANTS holds the variants a cold run times one at a time, each in its own process.
+#   remount <image> <mount point>             remounts <image> read-only at <mount point>: the benchmark runs this
+#                                             before every cold listing
+# Arguments after the command reach the benchmark, e.g. --variants qt,panel or --runs 30.
 
 set -u
 
-VARIANTS="${VARIANTS:-qt qt-unsorted thinio panel}"
 IMAGE_SIZE=512M
 # The benchmark folders hold 111k entries: mkfs.ext4's default inode ratio gives this image 32k inodes
 IMAGE_INODES=131072
@@ -37,6 +37,38 @@ fi
 COMMAND="${1:-}"
 [ $# -gt 0 ] && shift
 
+# Finds the loop devices by image: every remount is a separate run of this script
+release_image()
+{
+	mountpoint -q "${MOUNT_POINT}" && umount "${MOUNT_POINT}"
+	for device in $(losetup --noheadings --output NAME --associated "${IMAGE}"); do
+		losetup --detach "${device}"
+	done
+}
+
+# Direct I/O: the loop device otherwise reads the image through the page cache, which unmounting does not drop
+# Arguments: ro or rw
+mount_image()
+{
+	if [ "$1" = ro ]; then
+		device="$(losetup --find --show --direct-io=on --read-only "${IMAGE}")" || exit 1
+	else
+		device="$(losetup --find --show --direct-io=on "${IMAGE}")" || exit 1
+	fi
+	mount -o "$1" "${device}" "${MOUNT_POINT}" || exit 1
+}
+
+if [ "${COMMAND}" = remount ]; then
+	IMAGE="${1:-}"
+	MOUNT_POINT="${2:-}"
+	{ [ -n "${IMAGE}" ] && [ -n "${MOUNT_POINT}" ]; } || fail 'Usage: listing_benchmark.sh remount <image> <mount point>'
+
+	release_image
+	mount_image ro
+	echo "${MOUNT_POINT}"
+	exit 0
+fi
+
 BENCHMARK="${SCRIPT_DIR}/../bin/${CONFIG}/listing_benchmark"
 [ -x "${BENCHMARK}" ] || fail "${BENCHMARK} is not built: run_tests.sh build builds it."
 
@@ -46,8 +78,6 @@ if [ -n "${QT_ROOT_DIR:-}" ]; then
 	LD_LIBRARY_PATH="${QT_ROOT_DIR}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 	export LD_LIBRARY_PATH
 fi
-
-CSV_DIR="$(dirname "${BENCHMARK}")"
 
 case "${COMMAND}" in
 generate)
@@ -70,8 +100,7 @@ warm)
 		set -- "$@" "${folder}"
 	done
 
-	"${BENCHMARK}" --label "$(basename "${FOLDER}")" --csv "${CSV_DIR}/listing_benchmark_warm.csv" "$@" || exit 1
-	echo "Results appended to ${CSV_DIR}/listing_benchmark_warm.csv"
+	"${BENCHMARK}" "$@" || exit 1
 	;;
 
 cold)
@@ -81,28 +110,11 @@ cold)
 	shift 2
 
 	[ "$(id -u)" = 0 ] || fail 'Cold samples need root: mounting and unmounting the image is privileged.'
-	command -v shuf >/dev/null 2>&1 || fail 'shuf is needed to shuffle the job order; it comes with coreutils.'
 	command -v mkfs.ext4 >/dev/null 2>&1 || fail 'mkfs.ext4 is needed to create the image; it comes with e2fsprogs.'
 
 	MOUNT_POINT="$(mktemp -d)"
-	LOOP_DEVICE=""
-
-	release_image()
-	{
-		mountpoint -q "${MOUNT_POINT}" && umount "${MOUNT_POINT}"
-		[ -n "${LOOP_DEVICE}" ] && losetup -d "${LOOP_DEVICE}"
-		LOOP_DEVICE=""
-	}
-
 	trap 'release_image; rmdir "${MOUNT_POINT}" 2>/dev/null; exit 1' INT TERM
 	trap 'release_image; rmdir "${MOUNT_POINT}" 2>/dev/null' EXIT
-
-	# Direct I/O: the loop device otherwise reads the image through the page cache, which unmounting does not drop
-	mount_image_readonly()
-	{
-		LOOP_DEVICE="$(losetup --find --show --read-only --direct-io=on "${IMAGE}")" || exit 1
-		mount -o ro "${LOOP_DEVICE}" "${MOUNT_POINT}" || exit 1
-	}
 
 	if [ ! -f "${IMAGE}" ]; then
 		mkdir -p "$(dirname "${IMAGE}")" || exit 1
@@ -110,34 +122,18 @@ cold)
 		mkfs.ext4 -q -N "${IMAGE_INODES}" "${IMAGE}" || exit 1
 	fi
 
-	mount -o loop "${IMAGE}" "${MOUNT_POINT}" || exit 1
+	mount_image rw
 	# Folders that already exist are kept, so an interrupted run can simply be repeated
 	"${BENCHMARK}" --generate "${MOUNT_POINT}" || exit 1
 
-	JOBS=""
+	# The folder names go last: the benchmark takes them as positional arguments, relative to the mount point
 	for folder in "${MOUNT_POINT}"/entries-*; do
 		[ -d "${folder}" ] || fail "${IMAGE} has no benchmark folders."
-		for variant in ${VARIANTS}; do
-			JOBS="${JOBS} $(basename "${folder}"):${variant}"
-		done
+		set -- "$@" "$(basename "${folder}")"
 	done
 	release_image
 
-	COLD_CSV="${CSV_DIR}/listing_benchmark_cold.csv"
-	LABEL="$(basename "${IMAGE}")"
-	sample=1
-	while [ "${sample}" -le "${SAMPLES}" ]; do
-		echo "Sample ${sample} of ${SAMPLES}"
-		# Each round is shuffled: the drive's own cache survives the remount, and must not favour the same jobs every time
-		for job in $(printf '%s\n' ${JOBS} | shuf); do
-			mount_image_readonly
-			"${BENCHMARK}" --once --variants "${job#*:}" --label "${LABEL}" --csv "${COLD_CSV}" "$@" "${MOUNT_POINT}/${job%:*}" || exit 1
-			release_image
-		done
-		sample=$((sample + 1))
-	done
-
-	echo "Results appended to ${COLD_CSV}"
+	"${BENCHMARK}" --cold "${SAMPLES}" --remount="${SCRIPT_DIR}/listing_benchmark.sh" --remount=remount --remount="${IMAGE}" --remount="${MOUNT_POINT}" "$@" || exit 1
 	;;
 
 *)

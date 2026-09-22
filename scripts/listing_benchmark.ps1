@@ -17,18 +17,13 @@ param(
 	# Cold samples per disk, folder and variant
 	[int]$Samples = 0,
 
-	[string[]]$Variant = @('qt', 'qt-unsorted', 'thinio', 'panel'),
-
-	# Tags the CSV rows, e.g. with the build being measured; the VHDX file name is appended
-	[string]$Label = '',
-
-	# Defaults to listing_benchmark_warm.csv or listing_benchmark_cold.csv beside the benchmark executable
-	[string]$Csv = '',
+	# Remounts the one VHDX read-only and prints its root: the benchmark runs this before every cold listing
+	[switch]$Remount,
 
 	[ValidateSet('release', 'debug')]
 	[string]$Configuration = 'release',
 
-	# Passed to the benchmark by -Warm, e.g. --runs 30: a repeated option takes its last value, so these win
+	# Passed on to the benchmark, e.g. --variants qt,panel or --runs 30
 	[Parameter(ValueFromRemainingArguments)]
 	[string[]]$BenchmarkArguments = @()
 )
@@ -43,29 +38,11 @@ function Fail([string]$message)
 
 $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Fail 'Run this from an elevated prompt.' }
-if (-not $Setup -and -not $Warm -and $Samples -le 0) { Fail 'Nothing to do: pass -Setup, -Warm, -Samples N, or a combination.' }
-if ($BenchmarkArguments -and -not $Warm) { Fail "Only -Warm passes arguments on to the benchmark: $($BenchmarkArguments -join ' ')" }
-
-$repositoryRoot = Split-Path $PSScriptRoot -Parent
-
-# The benchmark needs the Qt DLLs; the kit is found the way run_tests.ps1 finds it
-if (-not $env:QT_ROOT_DIR)
-{
-	$localEnvironment = Join-Path $PSScriptRoot 'local-env.ps1'
-	if (Test-Path $localEnvironment) { . $localEnvironment }
-}
-if (-not $env:QT_ROOT_DIR) { Fail 'QT_ROOT_DIR is not set: set it to the Qt kit directory, or set it in a git-ignored local-env.ps1 beside this script.' }
-$env:PATH = (Join-Path $env:QT_ROOT_DIR 'bin') + ';' + $env:PATH
-
-$benchmark = Join-Path $repositoryRoot "bin\$Configuration\listing_benchmark.exe"
-if (-not (Test-Path $benchmark)) { Fail "$benchmark is not built: run_tests.bat -BuildOnly builds it." }
-$warmCsv = if ($Csv) { $Csv } else { Join-Path (Split-Path $benchmark -Parent) 'listing_benchmark_warm.csv' }
-$coldCsv = if ($Csv) { $Csv } else { Join-Path (Split-Path $benchmark -Parent) 'listing_benchmark_cold.csv' }
+if (-not $Remount -and -not $Setup -and -not $Warm -and $Samples -le 0) { Fail 'Nothing to do: pass -Setup, -Warm, -Samples N, or a combination.' }
 
 # powershell -File passes "a,b" as one string, not as an array
 # diskpart and the Storage cmdlets both need absolute paths
 $VhdxPath = @($VhdxPath -split ',' | ForEach-Object Trim | Where-Object { $_ } | ForEach-Object { $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($_) })
-$Variant = @($Variant -split ',' | ForEach-Object Trim | Where-Object { $_ })
 
 # The letter can change from one mount to the next, and appears shortly after the mount returns
 function Get-VolumeRoot([string]$vhdx)
@@ -98,13 +75,6 @@ function Get-BenchmarkFolderNames([string]$vhdx, [string]$root)
 	return $names
 }
 
-function Get-RowLabel([string]$vhdx)
-{
-	$leaf = Split-Path $vhdx -Leaf
-	if ($Label) { return "$Label/$leaf" }
-	return $leaf
-}
-
 function New-BenchmarkVhdx([string]$vhdx)
 {
 	New-Item -ItemType Directory -Force -Path (Split-Path $vhdx -Parent) | Out-Null
@@ -125,6 +95,30 @@ function New-BenchmarkVhdx([string]$vhdx)
 	}
 	finally { Remove-Item $diskpartScript }
 }
+
+if ($Remount)
+{
+	if ($VhdxPath.Count -ne 1) { Fail '-Remount takes one VHDX.' }
+
+	# Dismounting discards everything cached for the volume; read-only, so that the listing writes nothing back
+	Dismount-Vhdx $VhdxPath[0]
+	Mount-Vhdx $VhdxPath[0] 'ReadOnly'
+	exit 0
+}
+
+$repositoryRoot = Split-Path $PSScriptRoot -Parent
+
+# The benchmark needs the Qt DLLs; the kit is found the way run_tests.ps1 finds it
+if (-not $env:QT_ROOT_DIR)
+{
+	$localEnvironment = Join-Path $PSScriptRoot 'local-env.ps1'
+	if (Test-Path $localEnvironment) { . $localEnvironment }
+}
+if (-not $env:QT_ROOT_DIR) { Fail 'QT_ROOT_DIR is not set: set it to the Qt kit directory, or set it in a git-ignored local-env.ps1 beside this script.' }
+$env:PATH = (Join-Path $env:QT_ROOT_DIR 'bin') + ';' + $env:PATH
+
+$benchmark = Join-Path $repositoryRoot "bin\$Configuration\listing_benchmark.exe"
+if (-not (Test-Path $benchmark)) { Fail "$benchmark is not built: run_tests.bat -BuildOnly builds it." }
 
 if ($Setup)
 {
@@ -157,49 +151,34 @@ if ($Warm)
 {
 	foreach ($vhdx in $VhdxPath)
 	{
+		Write-Host "Warm: $vhdx"
 		$root = Mount-Vhdx $vhdx 'ReadOnly'
 		$folders = @(Get-BenchmarkFolderNames $vhdx $root | ForEach-Object { Join-Path $root $_ })
 
-		& $benchmark --variants ($Variant -join ',') --label (Get-RowLabel $vhdx) --csv $warmCsv @BenchmarkArguments @folders
+		& $benchmark @BenchmarkArguments @folders
 		if ($LASTEXITCODE -ne 0) { Fail "The benchmark failed on $vhdx" }
 
 		Dismount-Vhdx $vhdx
 	}
-
-	Write-Host "Results appended to $warmCsv"
 }
 
 if ($Samples -gt 0)
 {
-	# Read once up front: listing a volume root between the samples would warm it
-	$jobs = @()
+	# The same PowerShell runs the remounts
+	$shell = (Get-Process -Id $PID).Path
+	$remountCommand = @($shell, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath, '-Remount', '-VhdxPath')
+
 	foreach ($vhdx in $VhdxPath)
 	{
+		Write-Host "Cold: $vhdx"
 		$root = Mount-Vhdx $vhdx 'ReadOnly'
 		$folders = @(Get-BenchmarkFolderNames $vhdx $root)
+
+		# One --remount per argument: Windows PowerShell mangles the embedded quotes a single command line would need
+		$remountArguments = @($remountCommand + $vhdx | ForEach-Object { "--remount=$_" })
+		& $benchmark --cold $Samples @remountArguments @BenchmarkArguments @folders
+		if ($LASTEXITCODE -ne 0) { Fail "The benchmark failed on $vhdx" }
+
 		Dismount-Vhdx $vhdx
-
-		foreach ($folder in $folders)
-		{
-			foreach ($name in $Variant) { $jobs += [pscustomobject]@{ Vhdx = $vhdx; Folder = $folder; Variant = $name } }
-		}
 	}
-
-	for ($sample = 1; $sample -le $Samples; ++$sample)
-	{
-		Write-Host "Sample $sample of $Samples"
-		# Each round is shuffled: the drive's own cache survives the remount, and must not favour the same jobs every time
-		foreach ($job in ($jobs | Get-Random -Count $jobs.Count))
-		{
-			# Dismounting discards everything cached for the volume; read-only, so that the listing writes nothing back
-			Dismount-Vhdx $job.Vhdx
-			$root = Mount-Vhdx $job.Vhdx 'ReadOnly'
-
-			& $benchmark --once --variants $job.Variant --label (Get-RowLabel $job.Vhdx) --csv $coldCsv (Join-Path $root $job.Folder)
-			if ($LASTEXITCODE -ne 0) { Fail "The benchmark failed on $($job.Folder) in $($job.Vhdx)" }
-		}
-	}
-
-	foreach ($vhdx in $VhdxPath) { Dismount-Vhdx $vhdx }
-	Write-Host "Results appended to $coldCsv"
 }

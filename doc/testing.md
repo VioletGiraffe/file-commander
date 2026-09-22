@@ -83,18 +83,19 @@ with LTO, as the application is built; the test scripts never run it. `--help` l
   does not affect a listing.
 - `scripts/listing_benchmark.ps1` owns the VHDX volumes the timings run on, and needs an elevated prompt; start it
   through `powershell -ExecutionPolicy Bypass -File`. `-Setup` creates a fixed 512 MB VHDX per disk and generates the
-  folders on it. `-Warm` and `-Samples N` mount it read-only and time every folder on it, `-Warm` passing its trailing
-  arguments on to the executable.
-- Warm: the variants alternate after untimed rounds; on Windows the panel listing's memory per entry is reported too.
-  Any folder can be timed by passing it to the executable directly.
-- Cold: `-Samples N` remounts the VHDX before every single listing, which discards the volume's cache.
+  folders on it. `-Warm` and `-Samples N` mount it read-only and time every folder on it, passing trailing arguments on
+  to the executable.
+- Warm: the variants alternate after untimed rounds; the panel listing's memory per entry is reported too, where the
+  allocator exposes it. Any folder can be timed by passing it to the executable directly.
+- Cold: the executable's `--cold` runs a remount command before every single listing, which discards the volume's
+  cache. Each script supplies its own (`-Remount`, `remount`).
 - `scripts/listing_benchmark.sh` is the Linux counterpart, taking positional keywords: `generate` and `warm` need no
   privileges, `cold <image> <samples>` creates an ext4 image and mounts it afresh for every listing, as root. Its loop
   device uses direct I/O, since unmounting does not drop the page cache holding the image file itself.
 - Confirm cold numbers are cold before trusting them: the first listing after a remount must read from the disk
   (Resource Monitor's Disk tab, `iostat`), and a folder must list slower from an HDD than from an SSD.
-- The drive's own cache survives a remount, so some cold samples are partly served from it. The script shuffles the
-  order every round, so these hits land on random variants.
+- The drive's own cache survives a remount, so some cold samples are partly served from it. The executable shuffles
+  the order every round, so these hits land on random variants.
 - Entry counts differ by design: `thinio` lists no `[..]`. A `panel` count below `qt` means entries the panel dropped.
 
 ## CI

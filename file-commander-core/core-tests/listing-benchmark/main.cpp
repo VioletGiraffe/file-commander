@@ -20,7 +20,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFile>
 #include <QFileInfo>
 #include <QHash> // std::hash<QString>
-#include <QStringBuilder>
+#include <QProcess>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
@@ -33,7 +33,9 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <iterator>
+#include <numeric>
 #include <random>
 #include <stdint.h>
 #include <stdio.h>
@@ -162,43 +164,6 @@ static std::vector<const Variant*> selectedVariants(const QString& names)
 	return variants;
 }
 
-// One row per timed listing, appended, so runs of different builds and disks compare from one file.
-class CsvLog
-{
-public:
-	explicit CsvLog(const QString& path) : _file{ path }
-	{
-		if (path.isEmpty())
-			return;
-
-		if (!_file.open(QFile::WriteOnly | QFile::Append))
-			fail("Cannot open " + path);
-
-		if (_file.size() == 0)
-			_file.write("label,folder,variant,mode,run,entries,microseconds\n");
-	}
-
-	void write(const QString& label, const Folder& folder, const Variant& variant, const char* mode, const int run, const Sample& sample)
-	{
-		if (!_file.isOpen())
-			return;
-
-		const QString row = quoted(label) % ',' % quoted(folder.path) % ',' % QLatin1StringView{ variant.name } % ',' % QLatin1StringView{ mode } % ','
-			% QString::number(run) % ',' % QString::number(sample.entries) % ',' % QString::number(sample.microseconds, 'f', 1) % '\n';
-		_file.write(row.toUtf8());
-		_file.flush();
-	}
-
-private:
-	[[nodiscard]] static QString quoted(QString field)
-	{
-		return '"' + field.replace('"', QLatin1StringView{ "\"\"" }) + '"';
-	}
-
-private:
-	QFile _file;
-};
-
 // A performance core at full clock: an efficiency core or power throttling would make the runs incomparable.
 static void pinToPerformanceCore()
 {
@@ -308,7 +273,33 @@ static void reportPanelListingMemory(const std::vector<Folder>& folders)
 	}
 }
 
-static void measureWarm(const Folder& folder, const std::vector<const Variant*>& variants, const size_t warmupRounds, const size_t timedRounds, CsvLog& csv, const QString& label)
+// us/entry is from the median; cv is the coefficient of variation of the times
+static void printReport(const QString& title, const std::vector<const Variant*>& variants, const std::vector<std::vector<Sample>>& samplesByVariant)
+{
+	printf("%s\n  %-12s %9s %10s %10s %9s %6s\n", qUtf8Printable(title), "variant", "entries", "min ms", "median ms", "us/entry", "cv %");
+	for (size_t index = 0; index < variants.size(); ++index)
+	{
+		std::vector<double> times;
+		for (const Sample& sample : samplesByVariant[index])
+			times.push_back(sample.microseconds);
+
+		std::sort(times.begin(), times.end());
+		const size_t middle = times.size() / 2;
+		const double median = times.size() % 2 != 0 ? times[middle] : (times[middle - 1] + times[middle]) / 2;
+
+		const double mean = std::accumulate(times.begin(), times.end(), 0.0) / (double)times.size();
+		double squaredDeviations = 0;
+		for (const double time : times)
+			squaredDeviations += (time - mean) * (time - mean);
+		const double deviation = times.size() > 1 ? std::sqrt(squaredDeviations / (double)(times.size() - 1)) : 0.0;
+
+		const size_t entries = samplesByVariant[index].back().entries;
+		printf("  %-12s %9zu %10.3f %10.3f %9.3f %6.1f\n", variants[index]->name, entries, times.front() / 1000, median / 1000,
+			entries != 0 ? median / (double)entries : 0.0, mean != 0 ? 100 * deviation / mean : 0.0);
+	}
+}
+
+static void measureWarm(const Folder& folder, const std::vector<const Variant*>& variants, const size_t warmupRounds, const size_t timedRounds)
 {
 	for (size_t round = 0; round < warmupRounds; ++round)
 	{
@@ -323,36 +314,71 @@ static void measureWarm(const Folder& folder, const std::vector<const Variant*>&
 		for (size_t i = 0; i < variants.size(); ++i)
 		{
 			const size_t index = (i + round) % variants.size();
-			const Sample sample = variants[index]->list(folder);
-			samples[index].push_back(sample);
-			csv.write(label, folder, *variants[index], "warm", (int)round, sample);
+			samples[index].push_back(variants[index]->list(folder));
 		}
 	}
 
-	printf("%s\n  %-12s %9s %10s %10s %9s\n", qUtf8Printable(folder.path), "variant", "entries", "min ms", "median ms", "us/entry");
-	for (size_t index = 0; index < variants.size(); ++index)
-	{
-		std::vector<double> times;
-		for (const Sample& sample : samples[index])
-			times.push_back(sample.microseconds);
-
-		std::sort(times.begin(), times.end());
-		const size_t middle = times.size() / 2;
-		const double median = times.size() % 2 != 0 ? times[middle] : (times[middle - 1] + times[middle]) / 2;
-		const size_t entries = samples[index].back().entries;
-		printf("  %-12s %9zu %10.3f %10.3f %9.3f\n", variants[index]->name, entries, times.front() / 1000, median / 1000, entries != 0 ? times.front() / (double)entries : 0.0);
-	}
+	printReport(folder.path, variants, samples);
 }
 
-// Only the first listing after the caller cleared the cache is cold, so a cold sample selects one variant.
-static void measureOnce(const Folder& folder, const std::vector<const Variant*>& variants, CsvLog& csv, const QString& label)
+// Returns the volume root: the last line the command prints
+[[nodiscard]] static QString remountVolume(const QStringList& command)
 {
+	QProcess process;
+	process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+	process.start(command.front(), command.mid(1));
+	if (!process.waitForFinished(-1) || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+		fail("The remount command failed: " + command.join(' '));
+
+	const QStringList lines = QString::fromLocal8Bit(process.readAllStandardOutput()).split('\n', Qt::SkipEmptyParts);
+	if (lines.isEmpty())
+		fail("The remount command printed no volume root: " + command.join(' '));
+
+	return lines.back().trimmed();
+}
+
+// Every listing follows a remount, which discards the volume's cache.
+// The folders are relative to the volume root.
+static void measureCold(const QStringList& folderNames, const std::vector<const Variant*>& variants, const size_t rounds, const QStringList& remountCommand)
+{
+	// First-use initialization must not land on a sample: each variant lists a folder off the volume once
+	const Folder unrelatedFolder = folderToList(QCoreApplication::applicationDirPath());
 	for (const Variant* variant : variants)
+		(void)variant->list(unrelatedFolder);
+
+	struct Job
 	{
-		const Sample sample = variant->list(folder);
-		csv.write(label, folder, *variant, "once", 0, sample);
-		printf("%s %s: %zu entries, %.3f ms\n", qUtf8Printable(folder.path), variant->name, sample.entries, sample.microseconds / 1000);
+		size_t folder;
+		size_t variant;
+	};
+
+	std::vector<Job> jobs;
+	for (size_t folder = 0; folder < (size_t)folderNames.size(); ++folder)
+	{
+		for (size_t variant = 0; variant < variants.size(); ++variant)
+			jobs.push_back({ folder, variant });
 	}
+
+	std::vector<std::vector<std::vector<Sample>>> samples((size_t)folderNames.size(), std::vector<std::vector<Sample>>(variants.size()));
+	std::mt19937 random{ std::random_device{}() };
+	for (size_t round = 1; round <= rounds; ++round)
+	{
+		printf("Round %zu of %zu\n", round, rounds);
+		// The drive's own cache survives a remount: a fixed order would favour the same jobs every round
+		std::shuffle(jobs.begin(), jobs.end(), random);
+		for (const Job& job : jobs)
+		{
+			const Folder folder = folderToList(QDir{ remountVolume(remountCommand) }.filePath(folderNames[(qsizetype)job.folder]));
+			const Sample sample = variants[job.variant]->list(folder);
+			samples[job.folder][job.variant].push_back(sample);
+			printf("  %s %s: %zu entries, %.3f ms\n", qUtf8Printable(folderNames[(qsizetype)job.folder]), variants[job.variant]->name, sample.entries, sample.microseconds / 1000);
+			// Into a pipe, stdout is fully buffered, and a cold run takes minutes
+			fflush(stdout);
+		}
+	}
+
+	for (size_t folder = 0; folder < (size_t)folderNames.size(); ++folder)
+		printReport(folderNames[(qsizetype)folder], variants, samples[folder]);
 }
 
 // Names are unique case-insensitively, as NTFS requires
@@ -521,10 +547,11 @@ int main(int argc, char* argv[])
 	const QCommandLineOption variantsOption{ "variants", "The listings to time, of qt, qt-unsorted, thinio and panel.", "names", "qt,qt-unsorted,thinio,panel" };
 	const QCommandLineOption warmupOption{ "warmup", "Untimed rounds before the timed ones.", "count", "2" };
 	const QCommandLineOption runsOption{ "runs", "Timed rounds.", "count", "15" };
-	const QCommandLineOption onceOption{ "once", "Only one timed listing per variant: a cold-cache sample, the cache cleared by the caller." };
-	const QCommandLineOption csvOption{ "csv", "Append every timed listing to this CSV file.", "file" };
-	const QCommandLineOption labelOption{ "label", "Tags this run's CSV rows.", "text" };
-	parser.addOptions({ generateOption, entriesOption, seedOption, variantsOption, warmupOption, runsOption, onceOption, csvOption, labelOption });
+	const QCommandLineOption coldOption{ "cold", "Take <rounds> cold samples of every folder and variant, shuffled each round, instead of timing warm.", "rounds" };
+	const QCommandLineOption remountOption{ "remount",
+		"With --cold, the command run before every listing, one --remount per argument, the program first. It must remount the volume "
+		"and print its root as the last line; the folders are relative to that root.", "argument" };
+	parser.addOptions({ generateOption, entriesOption, seedOption, variantsOption, warmupOption, runsOption, coldOption, remountOption });
 	parser.process(app);
 
 	if (parser.isSet(generateOption))
@@ -537,30 +564,30 @@ int main(int argc, char* argv[])
 	if (arguments.isEmpty())
 		parser.showHelp(EXIT_FAILURE);
 
+	const std::vector<const Variant*> variants = selectedVariants(parser.value(variantsOption));
+
+	if (parser.isSet(coldOption) != parser.isSet(remountOption))
+		fail("--cold and --remount go together");
+
+	if (parser.isSet(coldOption))
+	{
+		const size_t rounds = countOption(parser, coldOption, 1);
+		pinToPerformanceCore();
+		measureCold(arguments, variants, rounds, parser.values(remountOption));
+		return EXIT_SUCCESS;
+	}
+
 	std::vector<Folder> folders;
 	for (const QString& argument : arguments)
 		folders.push_back(folderToList(argument));
 
-	const std::vector<const Variant*> variants = selectedVariants(parser.value(variantsOption));
-	CsvLog csv{ parser.value(csvOption) };
-	const QString label = parser.value(labelOption);
-
-	pinToPerformanceCore();
-
-	if (parser.isSet(onceOption))
-	{
-		for (const Folder& folder : folders)
-			measureOnce(folder, variants, csv, label);
-
-		return EXIT_SUCCESS;
-	}
-
 	const size_t warmupRounds = countOption(parser, warmupOption, 0);
 	const size_t timedRounds = countOption(parser, runsOption, 1);
 
+	pinToPerformanceCore();
 	reportPanelListingMemory(folders);
 	for (const Folder& folder : folders)
-		measureWarm(folder, variants, warmupRounds, timedRounds, csv, label);
+		measureWarm(folder, variants, warmupRounds, timedRounds);
 
 	return EXIT_SUCCESS;
 }
