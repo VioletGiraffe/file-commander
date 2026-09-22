@@ -81,7 +81,7 @@ static Folder folderToList(const QString& argument)
 struct Sample
 {
 	size_t entries = 0;
-	double microseconds = 0;
+	double microseconds = 0.0;
 };
 
 [[nodiscard]] static double microsecondsBetween(const Clock::time_point start, const Clock::time_point end)
@@ -285,17 +285,17 @@ static void printReport(const QString& title, const std::vector<const Variant*>&
 
 		std::sort(times.begin(), times.end());
 		const size_t middle = times.size() / 2;
-		const double median = times.size() % 2 != 0 ? times[middle] : (times[middle - 1] + times[middle]) / 2;
+		const double median = times.size() % 2 != 0 ? times[middle] : (times[middle - 1] + times[middle]) / 2.0;
 
 		const double mean = std::accumulate(times.begin(), times.end(), 0.0) / (double)times.size();
-		double squaredDeviations = 0;
+		double squaredDeviations = 0.0;
 		for (const double time : times)
 			squaredDeviations += (time - mean) * (time - mean);
 		const double deviation = times.size() > 1 ? std::sqrt(squaredDeviations / (double)(times.size() - 1)) : 0.0;
 
 		const size_t entries = samplesByVariant[index].back().entries;
-		printf("  %-12s %9zu %10.3f %10.3f %9.3f %6.1f\n", variants[index]->name, entries, times.front() / 1000, median / 1000,
-			entries != 0 ? median / (double)entries : 0.0, mean != 0 ? 100 * deviation / mean : 0.0);
+		printf("  %-12s %9zu %10.3f %10.3f %9.3f %6.1f\n", variants[index]->name, entries, times.front() / 1000.0, median / 1000.0,
+			entries != 0 ? median / (double)entries : 0.0, mean > 0.0 ? 100.0 * deviation / mean : 0.0);
 	}
 }
 
@@ -371,7 +371,7 @@ static void measureCold(const QStringList& folderNames, const std::vector<const 
 			const Folder folder = folderToList(QDir{ remountVolume(remountCommand) }.filePath(folderNames[(qsizetype)job.folder]));
 			const Sample sample = variants[job.variant]->list(folder);
 			samples[job.folder][job.variant].push_back(sample);
-			printf("  %s %s: %zu entries, %.3f ms\n", qUtf8Printable(folderNames[(qsizetype)job.folder]), variants[job.variant]->name, sample.entries, sample.microseconds / 1000);
+			printf("  %s %s: %zu entries, %.3f ms\n", qUtf8Printable(folderNames[(qsizetype)job.folder]), variants[job.variant]->name, sample.entries, sample.microseconds / 1000.0);
 			// Into a pipe, stdout is fully buffered, and a cold run takes minutes
 			fflush(stdout);
 		}
