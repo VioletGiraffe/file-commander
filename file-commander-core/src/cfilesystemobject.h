@@ -29,6 +29,10 @@ class QDir;
 // E. g. C:/Users/user/Documents/ -> {C:/Users/user/Documents/, C:/Users/user/, C:/Users/, C:/}
 std::vector<QString> pathHierarchy(const QString& path); // Keeping this function here because it's covered by a CFileSystemObject test and needs the QFileInfo_Test include
 
+// CFileSystemObject::hash() of the object with this fullAbsolutePath()
+// An empty path hashes to 0, so every empty object does: simpler for the callers
+[[nodiscard]] uint64_t pathHash(const QString& fullAbsolutePath);
+
 enum FileSystemObjectType { UnknownType, Directory, File, Bundle };
 
 struct CFileSystemObjectProperties {

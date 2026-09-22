@@ -83,17 +83,17 @@ CIconProvider::~CIconProvider()
 #endif
 }
 
-QIcon CIconProvider::genericIconForExtension(const CFileSystemObject& object)
+QIcon CIconProvider::genericIconForExtension([[maybe_unused]] const QString& extension, [[maybe_unused]] const bool isDir,
+	[[maybe_unused]] const QString& fullAbsolutePath, [[maybe_unused]] const time_t modificationTime)
 {
-	if (!object.isValid())
-		return {};
-
-#ifdef _WIN32
-	if (object.isDir())
+#ifdef __APPLE__
+	return preciseIconBlocking(fullAbsolutePath, modificationTime);
+#else
+	if (isDir)
 	{
 		if (!_genericFolderIcon)
 		{
-			QIcon icon = iconFromImage(_provider->genericIconImage({}, true));
+			QIcon icon = fetchGenericIcon({}, true);
 			if (icon.isNull())
 				return {};
 
@@ -103,33 +103,27 @@ QIcon CIconProvider::genericIconForExtension(const CFileSystemObject& object)
 		return *_genericFolderIcon;
 	}
 
-	QString extension = object.extension();
 	if (const auto it = _genericIconByExtension.find(extension); it != _genericIconByExtension.end())
 		return it->second;
 
-	QIcon icon = iconFromImage(_provider->genericIconImage(extension, false));
+	QIcon icon = fetchGenericIcon(extension, false);
 	if (icon.isNull())
 		return {};
 
-	return _genericIconByExtension.emplace(std::move(extension), std::move(icon)).first->second;
-#else
-	// QFileIconProvider answers both questions the same way, so this shares the other cache rather than filling a
-	// second one with the same icons.
-	return preciseIconBlocking(object);
+	return _genericIconByExtension.emplace(extension, std::move(icon)).first->second;
 #endif
 }
 
-QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
+QIcon CIconProvider::preciseIconBlocking(const QString& fullAbsolutePath, const time_t modificationTime)
 {
-	if (!object.isValid())
+	if (fullAbsolutePath.isEmpty())
 		return {};
 
-	const qulonglong objectHash = object.hash();
-	const time_t modificationTime = object.modificationTime();
+	const qulonglong objectHash = pathHash(fullAbsolutePath);
 	if (QIcon cached = cachedPreciseIcon(objectHash, modificationTime); !cached.isNull())
 		return cached;
 
-	FetchedIcon fetched = fetchPreciseIcon(object);
+	FetchedIcon fetched = fetchPreciseIcon(fullAbsolutePath);
 	if (fetched.icon.isNull())
 		return {};
 
@@ -138,20 +132,21 @@ QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
 	return icon;
 }
 
-QIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
+QIcon CIconProvider::bestAvailableIconFor([[maybe_unused]] const QString& extension, [[maybe_unused]] const bool isDir,
+	const QString& fullAbsolutePath, const time_t modificationTime)
 {
-	if (!object.isValid())
+#ifdef _WIN32
+	if (fullAbsolutePath.isEmpty())
 		return {};
 
-#ifdef _WIN32
-	const qulonglong objectHash = object.hash();
-	if (QIcon cached = cachedPreciseIcon(objectHash, object.modificationTime()); !cached.isNull())
+	const qulonglong objectHash = pathHash(fullAbsolutePath);
+	if (QIcon cached = cachedPreciseIcon(objectHash, modificationTime); !cached.isNull())
 		return cached;
 
-	requestPreciseIcon(object, objectHash);
-	return genericIconForExtension(object);
+	requestPreciseIcon(fullAbsolutePath, modificationTime, objectHash);
+	return genericIconForExtension(extension, isDir, fullAbsolutePath, modificationTime);
 #else
-	return preciseIconBlocking(object);
+	return preciseIconBlocking(fullAbsolutePath, modificationTime);
 #endif
 }
 
@@ -237,10 +232,21 @@ void CIconProvider::shutdown()
 #endif
 }
 
-CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const CFileSystemObject& object) const
+#ifndef __APPLE__
+QIcon CIconProvider::fetchGenericIcon(const QString& extension, const bool isDir) const
 {
 #ifdef _WIN32
-	const QImage image = _provider->preciseIconImage(object.fullAbsolutePath());
+	return iconFromImage(_provider->genericIconImage(extension, isDir));
+#else
+	return _provider->genericIcon(extension, isDir);
+#endif
+}
+#endif
+
+CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const QString& fullAbsolutePath) const
+{
+#ifdef _WIN32
+	const QImage image = _provider->preciseIconImage(fullAbsolutePath);
 	if (image.isNull())
 		return {};
 
@@ -249,7 +255,7 @@ CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const CFileSystemObje
 	// Nothing to hash the contents of: QFileIconProvider returns an icon of several resolutions rather than one
 	// bitmap, and flattening it to hash it would give up the per-DPI choice among them. Icons that look alike are
 	// therefore stored separately here, and only the entry cap bounds that.
-	QIcon icon = _provider->iconFor(object);
+	QIcon icon = _provider->iconFor(fullAbsolutePath);
 	if (icon.isNull())
 		return {};
 
@@ -284,14 +290,14 @@ void CIconProvider::cachePreciseIcon(const qulonglong objectHash, const time_t m
 
 #ifdef _WIN32
 
-void CIconProvider::requestPreciseIcon(const CFileSystemObject& object, const qulonglong objectHash)
+void CIconProvider::requestPreciseIcon(const QString& fullAbsolutePath, const time_t modificationTime, const qulonglong objectHash)
 {
 	if (!_requestedObjects.insert(objectHash).second)
 		return; // Already queued or in flight; repainting the row must not queue it again
 
 	{
 		std::lock_guard locker{ _queueMutex };
-		_pendingRequests.push_back(IconRequest{ object.fullAbsolutePath(), objectHash, object.modificationTime(), _requestGeneration });
+		_pendingRequests.push_back(IconRequest{ fullAbsolutePath, objectHash, modificationTime, _requestGeneration });
 		if (_pendingRequests.size() > maxPendingRequests)
 		{
 			// The oldest request is the one a scroll has most likely carried off screen already.

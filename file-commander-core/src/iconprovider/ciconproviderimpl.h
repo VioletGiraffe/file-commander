@@ -10,7 +10,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
 
-class CFileSystemObject;
 class QIcon;
 class QImage;
 class QString;
@@ -38,10 +37,14 @@ private:
 class CIconProviderImpl
 {
 public:
-	// QFileIconProvider draws no distinction between an object's own icon and its type's, so this serves both.
+	// The object's own icon. Accesses the disk.
 	// The returned icon keeps its several resolutions, which is why this layer hands back a QIcon rather than
 	// the single flattened image the Windows shell produces.
-	[[nodiscard]] QIcon iconFor(const CFileSystemObject& object) noexcept;
+	[[nodiscard]] QIcon iconFor(const QString& fullAbsolutePath) noexcept;
+#ifndef __APPLE__
+	// The icon theme's icon for the extension's MIME type, or the folder icon when isDir. Never accesses the disk.
+	[[nodiscard]] QIcon genericIcon(const QString& extension, bool isDir) const noexcept;
+#endif
 
 	void setShowOverlayIcons(bool show) noexcept;
 

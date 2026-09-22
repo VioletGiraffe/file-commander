@@ -1,6 +1,5 @@
 #include "ciconproviderimpl.h"
 
-#include "cfilesystemobject.h"
 #include "filesystemhelperfunctions.h"
 
 
@@ -9,8 +8,10 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QFileInfo>
 #include <QIcon>
 #include <QImage>
+#include <QMimeDatabase>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
@@ -72,14 +73,29 @@ void CIconProviderImpl::setShowOverlayIcons(const bool show) noexcept
 
 #else // ! _WIN32
 
-QIcon CIconProviderImpl::iconFor(const CFileSystemObject& object) noexcept
+QIcon CIconProviderImpl::iconFor(const QString& fullAbsolutePath) noexcept
 {
-#ifndef CFILESYSTEMOBJECT_TEST // TODO: Remove this ugly hack
-	return _provider.icon(object.qFileInfo());
-#else
-	return {};
-#endif
+	return _provider.icon(QFileInfo{ fullAbsolutePath });
 }
+
+#ifndef __APPLE__
+QIcon CIconProviderImpl::genericIcon(const QString& extension, const bool isDir) const noexcept
+{
+	if (isDir)
+		return _provider.icon(QAbstractFileIconProvider::Folder);
+
+	// Matched by the name alone: the file is not read
+	const QList<QMimeType> types = QMimeDatabase{}.mimeTypesForFileName(QStringLiteral("a.") + extension);
+	if (!types.isEmpty())
+	{
+		const QMimeType& type = types.front();
+		if (QIcon icon = QIcon::fromTheme(type.iconName(), QIcon::fromTheme(type.genericIconName())); !icon.isNull())
+			return icon;
+	}
+
+	return _provider.icon(QAbstractFileIconProvider::File);
+}
+#endif
 
 void CIconProviderImpl::setShowOverlayIcons(const bool show) noexcept
 {

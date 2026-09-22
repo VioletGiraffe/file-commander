@@ -28,7 +28,6 @@ RESTORE_COMPILER_WARNINGS
 #include <time.h>
 #include <vector>
 
-class CFileSystemObject;
 class CIconProviderImpl;
 
 struct IconsChangedListener {
@@ -53,14 +52,16 @@ public:
 	CIconProvider(const CIconProvider&) = delete;
 	CIconProvider& operator=(const CIconProvider&) = delete;
 
-	// The icon of the object's type. Never accesses the disk.
-	[[nodiscard]] QIcon genericIconForExtension(const CFileSystemObject& object);
+	// The icon of the extension's type, or of folders when isDir. Never accesses the disk.
+	// macOS: returns preciseIconBlocking(fullAbsolutePath, modificationTime) instead: Qt offers no icon by type there.
+	[[nodiscard]] QIcon genericIconForExtension(const QString& extension, bool isDir, const QString& fullAbsolutePath, time_t modificationTime);
 	// The object's own icon, which .exe, .ico and .lnk derive from their contents. Accesses the disk on a cache
 	// miss, so only for callers that ask about a handful of objects at a time.
-	[[nodiscard]] QIcon preciseIconBlocking(const CFileSystemObject& object);
-	// The object's own icon if it is already cached, otherwise its type's icon and a background request for the
-	// precise one; listeners hear when that arrives. Never accesses the disk, so this is the one for the file list.
-	[[nodiscard]] QIcon bestAvailableIconFor(const CFileSystemObject& object);
+	[[nodiscard]] QIcon preciseIconBlocking(const QString& fullAbsolutePath, time_t modificationTime);
+	// The icon for the file list. Windows: the object's own icon if it is already cached, otherwise its type's icon and
+	// a background request for the precise one; listeners hear when that arrives. Never accesses the disk.
+	// Elsewhere: returns preciseIconBlocking(fullAbsolutePath, modificationTime).
+	[[nodiscard]] QIcon bestAvailableIconFor(const QString& extension, bool isDir, const QString& fullAbsolutePath, time_t modificationTime);
 
 	void addIconsChangedListener(IconsChangedListener* listener);
 	void removeIconsChangedListener(IconsChangedListener* listener);
@@ -93,7 +94,10 @@ private:
 
 	void watchForAppearanceChanges();
 
-	[[nodiscard]] FetchedIcon fetchPreciseIcon(const CFileSystemObject& object) const;
+#ifndef __APPLE__
+	[[nodiscard]] QIcon fetchGenericIcon(const QString& extension, bool isDir) const;
+#endif
+	[[nodiscard]] FetchedIcon fetchPreciseIcon(const QString& fullAbsolutePath) const;
 	// Null unless the object has an entry that modificationTime still matches.
 	[[nodiscard]] QIcon cachedPreciseIcon(qulonglong objectHash, time_t modificationTime) const;
 	void cachePreciseIcon(qulonglong objectHash, time_t modificationTime, FetchedIcon&& fetched);
@@ -114,7 +118,7 @@ private:
 		uint64_t generation = 0;
 	};
 
-	void requestPreciseIcon(const CFileSystemObject& object, qulonglong objectHash);
+	void requestPreciseIcon(const QString& fullAbsolutePath, time_t modificationTime, qulonglong objectHash);
 	void iconRetrievalThreadFunc();
 	[[nodiscard]] std::optional<IconRequest> takeNextRequest();
 	// Blocks until there is work or shutdown, servicing the apartment meanwhile.
@@ -123,8 +127,8 @@ private:
 #endif
 
 private:
-	// Keyed on CFileSystemObject::hash(), the hash of the full path, so an entry is only ever reused for the path it
-	// was made for. The indirection through the content hash lets a folder of same-type files share one stored icon.
+	// Keyed on pathHash() of the full path, so an entry is only ever reused for the path it was made for.
+	// The indirection through the content hash lets a folder of same-type files share one stored icon.
 	ankerl::unordered_dense::map<qulonglong, CachedIcon, IdentityHash> _cachedIconByObjectHash;
 	ankerl::unordered_dense::segmented_map<uint64_t, QIcon, IdentityHash> _iconByContentHash;
 

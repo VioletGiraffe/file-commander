@@ -90,10 +90,9 @@ CFileSystemObject::CFileSystemObject(const QDir& dir) : CFileSystemObject(QStrin
 {
 }
 
-// Empty objects, default-constructed or not, all hash to 0: simpler for the callers
-static uint64_t pathHash(const QString& fullPath)
+uint64_t pathHash(const QString& fullAbsolutePath)
 {
-	return fullPath.isEmpty() ? 0 : QStringHash{}(fullPath);
+	return fullAbsolutePath.isEmpty() ? 0 : QStringHash{}(fullAbsolutePath);
 }
 
 CFileSystemObject::CFileSystemObject(CFileSystemObjectProperties properties) : _properties(std::move(properties))

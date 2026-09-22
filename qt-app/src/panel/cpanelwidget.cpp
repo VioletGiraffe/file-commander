@@ -1280,7 +1280,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 			auto* diskButton = new(std::nothrow) QPushButton;
 			diskButton->setFocusPolicy(Qt::NoFocus);
 			diskButton->setCheckable(true);
-			diskButton->setIcon(_controller->iconProvider().preciseIconBlocking(volume.rootObjectInfo));
+			diskButton->setIcon(_controller->iconProvider().preciseIconBlocking(volume.rootObjectInfo.fullAbsolutePath(), volume.rootObjectInfo.modificationTime()));
 			diskButton->setText(name);
 			diskButton->setFixedWidth(QFontMetrics{ diskButton->font() }.horizontalAdvance(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 			diskButton->setProperty("id", (qulonglong)volume.id());
