@@ -91,7 +91,7 @@ void CFileSystemWatcherTimerBased::onCheckForChanges()
 std::set<FileSystemInfoWrapper> CFileSystemWatcherTimerBased::snapshotDirectory(const QString& path)
 {
 	std::set<FileSystemInfoWrapper> snapshot;
-	for (auto&& info : QDir{ path }.entryInfoList(QDir::Dirs | QDir::Files | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot))
+	for (auto&& info : QDir{ path }.entryInfoList(QDir::Dirs | QDir::Files | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot, QDir::Unsorted))
 		snapshot.emplace(std::move(info));
 
 	return snapshot;

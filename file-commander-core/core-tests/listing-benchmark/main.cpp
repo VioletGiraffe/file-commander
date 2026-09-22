@@ -94,16 +94,7 @@ struct Sample
 // The filters of listDirectoryForPanel
 static constexpr QDir::Filters PanelListingFilters = QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System;
 
-// Sorted by name, as a QDir sorts by default
 static Sample listWithQt(const Folder& folder)
-{
-	const auto start = Clock::now();
-	const QFileInfoList entries = QDir{ folder.path }.entryInfoList(PanelListingFilters);
-	const auto end = Clock::now();
-	return { (size_t)entries.size(), microsecondsBetween(start, end) };
-}
-
-static Sample listWithQtUnsorted(const Folder& folder)
 {
 	const auto start = Clock::now();
 	const QFileInfoList entries = QDir{ folder.path }.entryInfoList(PanelListingFilters, QDir::Unsorted);
@@ -139,7 +130,6 @@ struct Variant
 
 static constexpr Variant AllVariants[]{
 	{ "qt", &listWithQt },
-	{ "qt-unsorted", &listWithQtUnsorted },
 	{ "thinio", &listWithThinIo },
 	{ "panel", &listForPanel },
 };
@@ -544,7 +534,7 @@ int main(int argc, char* argv[])
 	const QCommandLineOption generateOption{ "generate", "Create the benchmark folders under <root> instead of measuring.", "root" };
 	const QCommandLineOption entriesOption{ "entries", "The sizes of the folders --generate creates.", "counts", "1000,10000,100000" };
 	const QCommandLineOption seedOption{ "seed", "The seed of the generated names.", "number", "1" };
-	const QCommandLineOption variantsOption{ "variants", "The listings to time, of qt, qt-unsorted, thinio and panel.", "names", "qt,qt-unsorted,thinio,panel" };
+	const QCommandLineOption variantsOption{ "variants", "The listings to time, of qt, thinio and panel.", "names", "qt,thinio,panel" };
 	const QCommandLineOption warmupOption{ "warmup", "Untimed rounds before the timed ones.", "count", "2" };
 	const QCommandLineOption runsOption{ "runs", "Timed rounds.", "count", "15" };
 	const QCommandLineOption coldOption{ "cold", "Take <rounds> cold samples of every folder and variant, shuffled each round, instead of timing warm.", "rounds" };

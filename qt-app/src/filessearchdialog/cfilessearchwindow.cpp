@@ -11,6 +11,7 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
+#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 #include "widgets/cpersistenceenabler.h"
 
 
@@ -21,6 +22,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileDialog>
 #include <QFont>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QMessageBox>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
@@ -32,6 +34,16 @@ RESTORE_COMPILER_WARNINGS
 #define SETTINGS_CONTENTS_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveContents")
 #define SETTINGS_CONTENTS_IS_REGEX       QSL("FileSearchDialog/Ui/ContentsIsRegex")
 #define SETTINGS_ROOT_FOLDER             QSL("FileSearchDialog/Ui/RootFolder")
+
+// Sorts by path, in the panel's natural order: the engine reports matches in no particular order
+class CSearchResultItem final : public QListWidgetItem
+{
+public:
+	bool operator<(const QListWidgetItem& other) const override
+	{
+		return NaturalSort::lessThan(data(Qt::UserRole).toString(), other.data(Qt::UserRole).toString());
+	}
+};
 
 CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent) :
 	QMainWindow(parent),
@@ -75,6 +87,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 	connect(ui->btnSaveResults, &QPushButton::clicked, this, &CFilesSearchWindow::saveResults);
 	connect(ui->btnLoadResults, &QPushButton::clicked, this, &CFilesSearchWindow::loadResults);
 
+	ui->resultsList->setSortingEnabled(true);
 	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item) {
 		CController::get().activePanel().goToItem(CFileSystemObject(item->data(Qt::UserRole).toString()));
 
@@ -240,7 +253,7 @@ void CFilesSearchWindow::addResultToUi(const QString& path, bool reachedThroughL
 		name.prepend('[').append(']');
 	}
 
-	auto* item = new QListWidgetItem;
+	auto* item = new CSearchResultItem;
 	item->setText(name);
 	item->setIcon(CController::get().iconProvider().genericIconForExtension(object));
 	item->setData(Qt::UserRole, path);

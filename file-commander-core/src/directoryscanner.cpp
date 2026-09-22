@@ -51,7 +51,7 @@ static void scanDirectoryRecursive(const CFileSystemObject& root,
 
 	dirsBeingScanned.push_back(root.fullAbsolutePath());
 
-	const auto list = QDir{root.fullAbsolutePath()}.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoDotAndDotDot | QDir::System);
+	const auto list = QDir{root.fullAbsolutePath()}.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoDotAndDotDot | QDir::System, QDir::Unsorted);
 	for (const auto& entry : list)
 	{
 		if (abort)
@@ -75,7 +75,7 @@ void scanDirectory(const CFileSystemObject& root,
 FileListHashMap listDirectoryForPanel(const QString& dirPath, const bool showHiddenFiles)
 {
 	FileListHashMap items;
-	const QFileInfoList directoryEntries = QDir{dirPath}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+	const QFileInfoList directoryEntries = QDir{dirPath}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System, QDir::Unsorted);
 	for (const QFileInfo& directoryEntry : directoryEntries)
 	{
 #ifndef _WIN32

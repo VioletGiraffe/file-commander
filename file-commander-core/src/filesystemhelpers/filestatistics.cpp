@@ -108,7 +108,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 					dirsToScan.pop_back();
 				}
 
-				const auto entries = QDir{dir}.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoDotAndDotDot | QDir::System);
+				const auto entries = QDir{dir}.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoDotAndDotDot | QDir::System, QDir::Unsorted);
 
 				std::vector<QString> newDirs;
 				for (const auto& entry : entries)
