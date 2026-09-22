@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790107450885,
+  "lastUpdate": 1790108022551,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -23104,6 +23104,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 421,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 39.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e8535a605e20f725f622e7c7858e4443f2b08b5f",
+          "message": "Calling QDir::entryInfoList with QDir::Unsorted (free performance); CFilesSearchWindow sorts for itself",
+          "timestamp": "2026-09-22T23:07:31+03:00",
+          "tree_id": "27d29f54b7be70a718aaa58c46748879b5d6fdd8",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e8535a605e20f725f622e7c7858e4443f2b08b5f"
+        },
+        "date": 1790108017766,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19330,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18336,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1424.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 240,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2122.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 801,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 421.5,
             "unit": "KB"
           },
           {
