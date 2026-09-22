@@ -6,8 +6,10 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
+#include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
 
+#include <utility>
 #include <vector>
 
 static void scanDirectoryRecursive(const CFileSystemObject& root,
@@ -68,4 +70,28 @@ void scanDirectory(const CFileSystemObject& root,
 {
 	std::vector<QString> dirsBeingScanned;
 	scanDirectoryRecursive(root, observer, abort, followDirLinks, false, dirsBeingScanned);
+}
+
+FileListHashMap listDirectoryForPanel(const QString& dirPath, const bool showHiddenFiles)
+{
+	FileListHashMap items;
+	const QFileInfoList directoryEntries = QDir{dirPath}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
+	for (const QFileInfo& directoryEntry : directoryEntries)
+	{
+#ifndef _WIN32
+		// The root's ".." entry is itself (/.. == /); skip it so the root listing has no self-referential parent row.
+		// Only the filesystem root yields this exact path. (Windows roots don't produce it.)
+		if (directoryEntry.absoluteFilePath() == QLatin1String("/.."))
+			continue;
+#endif
+
+		CFileSystemObject object(directoryEntry);
+		if ((!object.isFile() && !object.isDir()) || !object.exists() || (!showHiddenFiles && object.isHidden()))
+			continue; // Could be a socket
+
+		const qulonglong hash = object.hash();
+		items[hash] = std::move(object);
+	}
+
+	return items;
 }

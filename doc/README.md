@@ -43,7 +43,7 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 | One tab's directory state | `file-commander-core/src/cpanel.{h,cpp}` |
 | Filesystem entry wrapper | `file-commander-core/src/cfilesystemobject.{h,cpp}` |
 | Directory listing type (`FileListHashMap`) | `file-commander-core/src/detail/file_list_hashmap.h` |
-| Recursive traversal (`scanDirectory`) | `file-commander-core/src/directoryscanner.{h,cpp}` |
+| Panel folder listing and recursive traversal (`listDirectoryForPanel`, `scanDirectory`) | `file-commander-core/src/directoryscanner.{h,cpp}` |
 | Directory change watchers | `file-commander-core/src/filesystemwatcher/` |
 | Copy, move, permanent delete | `file-commander-core/src/fileoperations/` and `fileoperations.pri` |
 | File and content search | `file-commander-core/src/filesearchengine/`, `qt-app/src/filessearchdialog/` |

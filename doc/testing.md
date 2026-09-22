@@ -73,6 +73,27 @@ No suite covers process launching, volume enumeration, favorites, settings, the 
 plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`, `image-processing` and
 `text-encoding-detector` submodules have their own suites, which this project neither builds nor runs.
 
+## Listing benchmark
+
+`listing_benchmark` times listing one folder four ways: `QDir` as the panel calls it (sorted by name), `QDir`
+unsorted, `thin_io::list_directory`, and `listDirectoryForPanel`, the panel's own listing. `core-tests.pro` builds it
+with LTO, as the application is built; the test scripts never run it. `--help` lists the options.
+
+- `--generate <root>` creates flat folders of 1k, 10k and 100k entries once, to be reused. The files are empty: content
+  does not affect a listing.
+- `scripts/listing_benchmark.ps1` owns the VHDX volumes the timings run on, and needs an elevated prompt; start it
+  through `powershell -ExecutionPolicy Bypass -File`. `-Setup` creates a fixed 512 MB VHDX per disk and generates the
+  folders on it. `-Warm` and `-Samples N` mount it read-only and time every folder on it, `-Warm` passing its trailing
+  arguments on to the executable.
+- Warm: the variants alternate after untimed rounds; on Windows the panel listing's memory per entry is reported too.
+  Any folder can be timed by passing it to the executable directly.
+- Cold: `-Samples N` remounts the VHDX before every single listing, which discards the volume's cache.
+- Confirm cold numbers are cold before trusting them: the first listing after a remount must read from the disk
+  (Resource Monitor, Disk tab), and a folder must list slower from an HDD than from an SSD.
+- The drive's own cache survives a remount, so some cold samples are partly served from it. The script shuffles the
+  order every round, so these hits land on random variants.
+- Entry counts differ by design: `thinio` lists no `[..]`. A `panel` count below `qt` means entries the panel dropped.
+
 ## CI
 
 CI runs the test job only when a changed file matches the `changes` job's path filter in `CI.yml`. A new test, or a

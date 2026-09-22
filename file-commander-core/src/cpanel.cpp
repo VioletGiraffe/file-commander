@@ -393,23 +393,7 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 			// (why: see captureBaselineState). Skipped for AllObjectsMode - flattened mode disarms the watcher.
 			_watcher.captureBaselineState();
 
-			const QFileInfoList directoryEntries = QDir{request.path}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System);
-			for (const QFileInfo& directoryEntry : directoryEntries)
-			{
-#ifndef _WIN32
-				// The root's ".." entry is itself (/.. == /); skip it so the root listing has no self-referential parent row.
-				// Only the filesystem root yields this exact path. (Windows roots don't produce it.)
-				if (directoryEntry.absoluteFilePath() == QLatin1String("/.."))
-					continue;
-#endif
-
-				CFileSystemObject object(directoryEntry);
-				if ((!object.isFile() && !object.isDir()) || !object.exists() || (!showHiddenFiles && object.isHidden()))
-					continue; // Could be a socket
-
-				const qulonglong hash = object.hash();
-				items[hash] = std::move(object);
-			}
+			items = listDirectoryForPanel(request.path, showHiddenFiles);
 		}
 
 		publishFileListIfCurrent(request, std::move(items), operation);
