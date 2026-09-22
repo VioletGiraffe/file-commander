@@ -86,6 +86,8 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 - [persistence.md](persistence.md): settings ownership and session restoration.
 - [build-ci-deps.md](build-ci-deps.md): build entry points, CI, and dependency roles.
 - [testing.md](testing.md): test suites, what kinds of tests exist, and which components they cover.
+- [listing-performance.md](listing-performance.md): measured folder-listing costs per machine, and where the panel's
+  listing time goes.
 - [coding-style.md](coding-style.md): authoring rules.
 - [TODO.md](TODO.md), [code-review-plan.md](code-review-plan.md), and
   [release-metadata-audit.md](release-metadata-audit.md): process and deferred-work documents.
