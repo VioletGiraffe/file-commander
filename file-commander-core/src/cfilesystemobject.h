@@ -65,7 +65,6 @@ public:
 
 	CFileSystemObject& operator=(const QString& path);
 
-	void refreshInfo();
 	void setPath(const QString& path);
 
 	[[nodiscard]] bool operator==(const CFileSystemObject& other) const;
@@ -114,6 +113,10 @@ public:
 	[[nodiscard]] QString fullName() const &&;
 	[[nodiscard]] const QString& extension() const &;
 	[[nodiscard]] QString extension() const &&;
+
+private:
+	// Uses the metadata _fileInfo has cached: a QFileInfo from a directory listing already holds it
+	void loadPropertiesFromFileInfo();
 
 private:
 	CFileSystemObjectProperties _properties;

@@ -89,7 +89,6 @@ public:
 
 	bool _isJunction = false;
 	[[nodiscard]] bool isJunction() const { return _isJunction; }
-	void refresh() {}
 
 	QString _symLinkTarget;
 	[[nodiscard]] QString symLinkTarget() const { return _symLinkTarget; }

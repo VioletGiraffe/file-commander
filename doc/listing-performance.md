@@ -83,9 +83,9 @@ Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsort
 | Per-entry metadata reads | `panel` cold - `panel` warm - directory reads | 23.9 | 24.7 |
 | Total | `panel` cold | 35.5 | 42.0 |
 
-- Windows: the enumeration already returns size, times and attributes. The metadata reads come from
-  `CFileSystemObject` querying each entry again, so they are avoidable.
-- Linux: `readdir` returns only name and type, so one `stat` per entry is needed for size and times.
+- Windows, up to e8535a60: the metadata reads come from `CFileSystemObject` querying each entry again, although the
+  enumeration already returns size, times and attributes. Later commits use the enumeration's data.
+- Linux: `readdir` returns only name and type, so each file needs one `stat` for its size; a folder needs none.
 - The panel holds about 2 KB per entry on Windows. Its warm cost doubles at 100k there, and stays flat on the Pi.
 
 ## Measured costs
@@ -111,6 +111,5 @@ Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsort
 
 ## Open questions
 
-- Whether the panel calls `stat` once or twice per entry on Linux.
 - Whether issuing the `stat` calls in inode order shortens the cold metadata reads on ext4: `readdir` returns names
   in hash order.

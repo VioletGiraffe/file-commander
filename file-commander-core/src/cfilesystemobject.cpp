@@ -76,12 +76,12 @@ static QString expandEnvironmentVariables(const QString& string)
 
 CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
 {
-	refreshInfo();
+	loadPropertiesFromFileInfo();
 }
 
 CFileSystemObject::CFileSystemObject(const QString& path) : _fileInfo(expandEnvironmentVariables(path))
 {
-	refreshInfo();
+	loadPropertiesFromFileInfo();
 }
 
 CFileSystemObject::CFileSystemObject(const QDir& dir) : CFileSystemObject(QString(dir.absolutePath()))
@@ -107,9 +107,8 @@ CFileSystemObject& CFileSystemObject::operator=(const QString& path)
 	return *this;
 }
 
-void CFileSystemObject::refreshInfo()
+void CFileSystemObject::loadPropertiesFromFileInfo()
 {
-	_fileInfo.refresh();
 	_properties.isLink = _fileInfo.isSymbolicLink() || _fileInfo.isJunction();
 	// A link exists as an object even when its target is gone (exists() follows the link)
 	_properties.exists = _properties.isLink || _fileInfo.exists();
@@ -204,7 +203,7 @@ void CFileSystemObject::setPath(const QString& path)
 
 	_fileInfo.setFile(expandEnvironmentVariables(path));
 
-	refreshInfo();
+	loadPropertiesFromFileInfo();
 }
 
 bool CFileSystemObject::operator==(const CFileSystemObject& other) const
