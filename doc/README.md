@@ -40,7 +40,7 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 |------|------------|
 | Core facade and tabs | `file-commander-core/src/ccontroller.{h,cpp}` |
 | One tab's directory state | `file-commander-core/src/cpanel.{h,cpp}` |
-| Filesystem entry wrapper | `file-commander-core/src/cfilesystemobject.{h,cpp}` |
+| Filesystem entry value (`CFileSystemObject`) | `file-commander-core/src/cfilesystemobject.{h,cpp}` |
 | Directory listing type (`FileListHashMap`) | `file-commander-core/src/detail/file_list_hashmap.h` |
 | Panel folder listing and recursive traversal (`listDirectoryForPanel`, `scanDirectory`) | `file-commander-core/src/directoryscanner.{h,cpp}` |
 | Directory change watchers | `file-commander-core/src/filesystemwatcher/` |

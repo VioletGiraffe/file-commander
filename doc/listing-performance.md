@@ -31,7 +31,7 @@ Variants:
   data. A thin_io entry also carries times, permissions and a link target.
 - Commit 505d2ea5, thin_io c0762bf: a smaller thin_io entry, with the link target in a `heap_optional` and times as
   plain timestamps, zero for unset. Only the `thinio` row: nothing else changed since 17f7be81.
-- thin_io f9b2043, with the main-repo commit that pins it: `CFileSystemObject` is a plain value, and
+- Commit 06fe0adb, thin_io f9b2043: `CFileSystemObject` is a plain value, and
   `listDirectoryForPanel` builds it from thin_io's `full` listing, with no `QDir` or `QFileInfo`.
 
 | Cold, SSD | 1k | 10k | 100k |
@@ -39,28 +39,28 @@ Variants:
 | `qt` sorted, 93a59545 | 2.14 | 1.81 | 2.11 |
 | `qt`, 93a59545 | 1.98 | 1.36 | 1.66 |
 | `qt`, 17f7be81 | 1.90 | 1.45 | 2.20 |
-| `qt`, thin_io f9b2043 | 1.81 | 1.48 | 2.18 |
+| `qt`, 06fe0adb | 1.81 | 1.48 | 2.18 |
 | `thinio`, 93a59545 | 1.32 | 0.90 | 1.22 |
 | `thinio`, 17f7be81 | 1.56 | 1.15 | 1.87 |
-| `thinio`, thin_io f9b2043 | 1.41 | 1.10 | 1.81 |
-| `thiniofull`, thin_io f9b2043 | 1.74 | 1.14 | 1.87 |
+| `thinio`, 06fe0adb | 1.41 | 1.10 | 1.81 |
+| `thiniofull`, 06fe0adb | 1.74 | 1.14 | 1.87 |
 | `panel` sorted, 93a59545 | 36.9 | 34.9 | 35.5 |
 | `panel`, 17f7be81 | 3.00 | 2.64 | 3.25 |
-| `panel`, thin_io f9b2043 | 2.25 | 1.43 | 2.15 |
+| `panel`, 06fe0adb | 2.25 | 1.43 | 2.15 |
 
 | Cold, HDD | 1k | 10k | 100k |
 |---|---|---|---|
 | `qt` sorted, 93a59545 | 2.99 | 3.00 | 4.26 |
 | `qt`, 93a59545 | 2.68 | 3.84 | 4.36 |
 | `qt`, 17f7be81 | 2.58 | 4.41 | 3.90 |
-| `qt`, thin_io f9b2043 | 2.53 | 2.52 | 3.13 |
+| `qt`, 06fe0adb | 2.53 | 2.52 | 3.13 |
 | `thinio`, 93a59545 | 2.40 | 2.03 | 3.67 |
 | `thinio`, 17f7be81 | 2.28 | 2.10 | 3.43 |
-| `thinio`, thin_io f9b2043 | 2.26 | 2.07 | 3.00 |
-| `thiniofull`, thin_io f9b2043 | 3.27 | 5.27 | 3.84 |
+| `thinio`, 06fe0adb | 2.26 | 2.07 | 3.00 |
+| `thiniofull`, 06fe0adb | 3.27 | 5.27 | 3.84 |
 | `panel` sorted, 93a59545 | 125 | 97.4 | 112 |
 | `panel`, 17f7be81 | 3.82 | 3.71 | 4.83 |
-| `panel`, thin_io f9b2043 | 8.75 | 2.58 | 3.74 |
+| `panel`, 06fe0adb | 8.75 | 2.58 | 3.74 |
 
 Warm on the HDD volume agrees with the SSD within 10%.
 
@@ -69,15 +69,15 @@ Warm on the HDD volume agrees with the SSD within 10%.
 | `qt` sorted, 93a59545 | 0.92 | 1.01 | 1.16 |
 | `qt`, 93a59545 | 0.66 | 0.67 | 0.72 |
 | `qt`, 17f7be81 | 0.69 | 0.73 | 0.69 |
-| `qt`, thin_io f9b2043 | 0.69 | 0.69 | 0.70 |
+| `qt`, 06fe0adb | 0.69 | 0.69 | 0.70 |
 | `thinio`, 93a59545 | 0.26 | 0.25 | 0.25 |
 | `thinio`, 17f7be81 | 0.42 | 0.44 | 0.39 |
 | `thinio`, 505d2ea5 | 0.33 | 0.33 | 0.32 |
-| `thinio`, thin_io f9b2043 | 0.29 | 0.31 | 0.30 |
-| `thiniofull`, thin_io f9b2043 | 0.31 | 0.30 | 0.30 |
+| `thinio`, 06fe0adb | 0.29 | 0.31 | 0.30 |
+| `thiniofull`, 06fe0adb | 0.31 | 0.30 | 0.30 |
 | `panel` sorted, 93a59545 | 4.81 | 4.92 | 10.6 |
 | `panel`, 17f7be81 | 1.78 | 1.87 | 1.75 |
-| `panel`, thin_io f9b2043 | 0.66 | 0.65 | 0.65 |
+| `panel`, 06fe0adb | 0.66 | 0.65 | 0.65 |
 
 ## Raspberry Pi 4
 
@@ -112,15 +112,15 @@ the Windows section's 17f7be81 and 505d2ea5 changes.
 
 100k entries, cold. The Pi e8535a60 column takes warm `qt` and `thinio` from 5e83b087: the same code.
 
-The panel builds on `QDir` up to 543530cc, and on `thiniofull` from thin_io f9b2043.
+The panel builds on `QDir` up to 543530cc, and on `thiniofull` from 06fe0adb.
 
-| Part | Derived as | Windows SSD, 93a59545 | Windows SSD, 17f7be81 | Windows SSD, thin_io f9b2043 | Pi, e8535a60 | Pi, 543530cc |
+| Part | Derived as | Windows SSD, 93a59545 | Windows SSD, 17f7be81 | Windows SSD, 06fe0adb | Pi, e8535a60 | Pi, 543530cc |
 |---|---|---|---|---|---|---|
-| Enumeration, CPU | `thinio` warm; on thin_io, `thiniofull` warm | 0.25 | 0.39 | 0.30 | 1.01 | 1.15 |
+| Enumeration, CPU | `thinio` warm; from 06fe0adb, `thiniofull` warm | 0.25 | 0.39 | 0.30 | 1.01 | 1.15 |
 | `QFileInfo` list, CPU | `qt` warm - `thinio` warm | 0.46 | 0.30 | none | 1.52 | 1.34 |
 | Name sort, CPU | `qt` sorted warm - `qt` warm | 0.44 | none | none | none | none |
 | Panel's own CPU | `panel` warm - the warm listing it builds on: `qt` sorted, `qt` or `thiniofull` | 9.47 | 1.06 | 0.35 | 10.6 | 8.70 |
-| Directory reads | `qt` cold - `qt` warm; on thin_io, the same for `thiniofull` | 0.94 | 1.51 | 1.56 | 4.21 | 4.28 |
+| Directory reads | `qt` cold - `qt` warm; from 06fe0adb, the same for `thiniofull` | 0.94 | 1.51 | 1.56 | 4.21 | 4.28 |
 | Per-entry metadata reads | `panel` cold - `panel` warm - directory reads | 23.9 | none | none | 24.7 | 24.9 |
 | Total | `panel` cold | 35.5 | 3.25 | 2.15 | 42.0 | 40.4 |
 
@@ -132,10 +132,10 @@ The panel builds on `QDir` up to 543530cc, and on `thiniofull` from thin_io f9b2
   row is understated by as much. A basic POSIX listing fills only the name and type, but builds the larger entry.
 - Linux: `readdir` returns only name and type, so each file needs one `stat` for its size; a folder needs none. The
   panel's own CPU on the Pi includes that `stat` warm.
-- Windows, thin_io f9b2043: the panel's own CPU is building the `CFileSystemObject`s and the hash map. `full` detail
+- Windows, 06fe0adb: the panel's own CPU is building the `CFileSystemObject`s and the hash map. `full` detail
   costs about as much as `basic`: it adds a query per link only.
 - At 93a59545 the panel held about 2 KB per entry on Windows, and its warm cost doubled at 100k. At 17f7be81 it held
-  1.1 KB per entry, and 370 bytes at thin_io f9b2043; from 17f7be81 on, the warm cost is flat, as on the Pi.
+  1.1 KB per entry, and 370 bytes at 06fe0adb; from 17f7be81 on, the warm cost is flat, as on the Pi.
 
 ## Measured costs
 

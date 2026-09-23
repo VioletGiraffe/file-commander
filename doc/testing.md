@@ -82,8 +82,8 @@ nor runs. After a `thin_io` change, run `thin_io/scripts/run_tests.bat` (or `.sh
 ## Listing benchmark
 
 `listing_benchmark` times listing one folder four ways: `QDir` with the panel's filters, `thin_io::list_directory`
-with basic and with full detail, and `listDirectoryForPanel`, the panel's own listing. `core-tests.pro` builds it with LTO, as the application is built;
-the test scripts never run it. `--help` lists the options. The results: [listing-performance.md](listing-performance.md).
+with basic and with full detail, and `listDirectoryForPanel`, the panel's own listing. `core-tests.pro` builds it with
+LTO, as the application is built; the test scripts never run it. `--help` lists the options. The results: [listing-performance.md](listing-performance.md).
 
 - `--generate <root>` creates flat folders of 1k, 10k and 100k entries once, to be reused. The files are empty: content
   does not affect a listing.
