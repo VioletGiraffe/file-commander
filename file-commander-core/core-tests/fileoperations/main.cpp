@@ -1,4 +1,5 @@
-#define CATCH_CONFIG_RUNNER
+#define NO_TEST_MAIN
+#include "3rdparty/catch2/test_main.hpp" // First: compiles catch.hpp with the runner
 
 #include "fileoperations/operationtesthooks.h"
 
@@ -12,10 +13,6 @@
 // Submodule includes
 #include "lang/type_traits_fast.hpp"
 
-
-#ifdef _WIN32
-#include <crtdbg.h>
-#endif
 
 #include <random>
 
@@ -39,28 +36,14 @@ int main(int argc, char* argv[])
 	// Now pass the new composite back to Catch so it uses that
 	session.cli(cli);
 
-	// Let Catch (using Clara) parse the command line
-	const int returnCode = session.applyCommandLine(argc, argv);
-	if (returnCode != 0) // Indicates a command line error
-		return returnCode;
-
-#if defined _WIN32 && defined _DEBUG
-	// Some tests deliberately exercise recoverable-assert failure paths (e.g. submitDecision rejecting an
-	// illegal action); the CRT assert must report to stderr instead of opening an interactive dialog.
-	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
-	_CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
-#endif
-
 	// A hook violation is a test-logic error; make it fail the test that caused it rather than only logging to stderr.
 	OperationTestHooks::CFaultHookScope::setViolationReporter([](const std::string& message) {
 		FAIL_CHECK("Operation test hook violation: " << message);
 	});
 
-	{
+	return runCatchSession(session, argc, argv, [] {
 		CRandomDataGenerator randomGenerator;
 		randomGenerator.setSeed(g_randomSeed);
 		Logger() << "RNG consistency check: seed = " << g_randomSeed << ", first RN = " << randomGenerator.randomNumber<uint32_t>(0u, uint32_max);
-	}
-
-	return session.run();
+	});
 }

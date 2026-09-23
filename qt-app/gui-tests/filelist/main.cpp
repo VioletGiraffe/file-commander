@@ -1,11 +1,12 @@
+#define NO_TEST_MAIN
+#include "3rdparty/catch2/test_main.hpp" // First: compiles catch.hpp with the runner
+
+
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
 
-#define CATCH_CONFIG_RUNNER
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/catch2/catch.hpp>
-
 #include <QApplication>
 RESTORE_COMPILER_WARNINGS
 
@@ -21,8 +22,5 @@ int main(int argc, char* argv[])
 
 	Catch::Session session;
 	session.cli(session.cli() | Catch::clara::Opt(g_randomSeed, "std::random seed")["--std-seed"]("std::random seed"));
-	if (const int returnCode = session.applyCommandLine(argc, argv); returnCode != 0)
-		return returnCode;
-
-	return session.run();
+	return runCatchSession(session, argc, argv);
 }

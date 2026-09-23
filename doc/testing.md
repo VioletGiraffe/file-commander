@@ -64,7 +64,7 @@ the shell script also falls back to a `qmake` already on PATH.
 |------------|-----------|
 | `fileoperations_test` | File-operation engine: copy, move, delete, staged copy, destination and name resolution, cross-volume, hostile names |
 | `filecomparator_test` | File and folder comparison |
-| `fso_test` | `CFileSystemObject` from an empty path |
+| `fso_test` | `CFileSystemObject`'s rules on entries built in memory: name split, type, hidden, executable, links, `[..]` |
 | `fso_test_high_level` | `CFileSystemObject` on the real filesystem: path semantics, name split, hidden and executable entries, links; the panel listing and its `[..]` |
 | `panel_test` | `CPanel`: navigation, history, current item, content access, refresh notifications, lifetime |
 | `filesearchengine_test` | Search engine: name filters, content search, engine behavior |

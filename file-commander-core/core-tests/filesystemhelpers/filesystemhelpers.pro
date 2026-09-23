@@ -27,6 +27,7 @@ INCLUDEPATH += \
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 
 SOURCES += \
+	main.cpp \
 	filesystemhelperstests.cpp \
 	../../src/filesystemhelperfunctions.cpp
 

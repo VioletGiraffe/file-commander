@@ -24,7 +24,8 @@ RCC_DIR     = ../../../../build/$${OUTPUT_DIR}/$${TARGET}
 INCLUDEPATH += \
 	../src \
 	../../../../cpputils \
-	../../../../cpp-template-utils
+	../../../../cpp-template-utils \
+	../../../../qtutils # Header-only use: catch_qt.hpp
 
 LIBS += -L$${DESTDIR} -lcpputils
 

@@ -5,9 +5,8 @@
 #include "compiler/compiler_warnings_control.h"
 
 
-#define CATCH_CONFIG_MAIN
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/catch2/catch.hpp>
+#include "qtcore_helpers/catch_qt.hpp" // qtutils
 
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS

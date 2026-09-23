@@ -1,3 +1,6 @@
+#define NO_TEST_MAIN
+#include "3rdparty/catch2/test_main.hpp" // First: compiles catch.hpp with the runner
+
 #include "filecomparator/filecontentcomparison.h"
 #include "crandomdatagenerator.h"
 
@@ -8,9 +11,8 @@
 #include "timing/ctimeelapsed.h"
 
 
-#define CATCH_CONFIG_RUNNER
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/catch2/catch.hpp>
+#include "qtcore_helpers/catch_qt.hpp" // qtutils
 
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
@@ -136,10 +138,5 @@ int main(int argc, char* argv[])
 						  // Now pass the new composite back to Catch so it uses that
 	session.cli(cli);
 
-	// Let Catch (using Clara) parse the command line
-	const int returnCode = session.applyCommandLine(argc, argv);
-	if (returnCode != 0) // Indicates a command line error
-		return returnCode;
-
-	return session.run();
+	return runCatchSession(session, argc, argv);
 }

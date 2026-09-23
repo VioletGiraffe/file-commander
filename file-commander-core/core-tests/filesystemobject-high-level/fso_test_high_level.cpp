@@ -10,9 +10,8 @@
 #include "file.hpp" // thin_io
 
 
-#define CATCH_CONFIG_MAIN
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/catch2/catch.hpp>
+#include "qtcore_helpers/catch_qt.hpp" // qtutils
 
 #include <QDateTime>
 #include <QDir>

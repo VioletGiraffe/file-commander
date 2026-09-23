@@ -10,7 +10,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/catch2/catch.hpp>
+#include "qtcore_helpers/catch_qt.hpp" // qtutils
 
 #include <QItemSelectionModel>
 #include <QLocale>

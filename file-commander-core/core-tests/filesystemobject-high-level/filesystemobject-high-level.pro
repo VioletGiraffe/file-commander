@@ -29,6 +29,7 @@ LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \
+	main.cpp \
 	fso_test_high_level.cpp \
 	../../src/cfilesystemobject.cpp \
 	../../src/directoryscanner.cpp

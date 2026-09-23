@@ -1,4 +1,5 @@
-#define CATCH_CONFIG_RUNNER
+#define NO_TEST_MAIN
+#include "3rdparty/catch2/test_main.hpp" // First: compiles catch.hpp with the runner
 
 
 // Submodule includes
@@ -6,8 +7,6 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/catch2/catch.hpp>
-
 #include <QCoreApplication>
 #include <QDir>
 #include <QSettings>
@@ -23,5 +22,5 @@ int main(int argc, char* argv[])
 	QCoreApplication::setApplicationName(QStringLiteral("userprograms_test"));
 	QSettings{}.clear();
 
-	return Catch::Session().run(argc, argv);
+	return runCatchSession(argc, argv);
 }

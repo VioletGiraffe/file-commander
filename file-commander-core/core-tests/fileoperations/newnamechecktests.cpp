@@ -9,7 +9,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include <3rdparty/catch2/catch.hpp>
+#include "qtcore_helpers/catch_qt.hpp" // qtutils
 RESTORE_COMPILER_WARNINGS
 
 TEST_CASE("checkNewEntryName: text that is not one name", "[newnamecheck]")

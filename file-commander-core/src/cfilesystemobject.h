@@ -59,7 +59,7 @@ public:
 	// A listed child of parentPath, which ends with a separator
 	CFileSystemObject(const QString& parentPath, const thin_io::directory_entry& entry);
 
-	// For tests: builds the object in memory, deriving the hash from fullPath
+	// Builds the object in memory, deriving the hash from fullPath
 	explicit CFileSystemObject(CFileSystemObjectProperties properties);
 
 	// The [..] entry of dirPath's listing: the parent folder. Empty for a root.
