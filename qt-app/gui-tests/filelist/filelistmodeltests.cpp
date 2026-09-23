@@ -13,11 +13,13 @@ DISABLE_COMPILER_WARNINGS
 #include <3rdparty/catch2/catch.hpp>
 
 #include <QItemSelectionModel>
+#include <QLocale>
 #include <QMimeData>
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <memory>
+#include <thread>
 #include <vector>
 
 TEST_CASE("Rows sort [..] first, then folders, then files, in either direction", "[filelist][sort]")
@@ -75,6 +77,23 @@ TEST_CASE("Each column sorts by its own key", "[filelist][sort]")
 		model.sort(DateColumn, Qt::AscendingOrder);
 		CHECK(displayedNames(model) == QStringList{ "old", "mid", "new" });
 	}
+}
+
+TEST_CASE("Numbers in names sort by value in the C locale too", "[filelist][sort]")
+{
+	const QLocale previousLocale;
+	QLocale::setDefault(QLocale::c());
+
+	// The collators are built once per thread, so only a new thread builds them under the C locale
+	QStringList names;
+	std::thread{ [&names] {
+		CFileListModel model{ nullptr };
+		model.setRows({ makeRow(File, "file10"), makeRow(File, "file2"), makeRow(File, "file1") });
+		names = displayedNames(model);
+	} }.join();
+
+	QLocale::setDefault(previousLocale);
+	CHECK(names == QStringList{ "file1", "file2", "file10" });
 }
 
 TEST_CASE("A dotfile displays its whole name and no extension", "[filelist]")
