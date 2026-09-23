@@ -82,7 +82,7 @@ Warm on the HDD volume agrees with the SSD within 10%.
 ## Raspberry Pi 4
 
 Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsorted. Commit 543530cc, thin_io de61aff:
-the Windows section's 17f7be81 and 505d2ea5 changes.
+the Windows section's 17f7be81 and 505d2ea5 changes. Commit 06fe0adb, thin_io f9b2043: the Windows section's 06fe0adb change.
 
 | Cold, SD card | 1k | 10k | 100k |
 |---|---|---|---|
@@ -90,23 +90,31 @@ the Windows section's 17f7be81 and 505d2ea5 changes.
 | `qt`, 5e83b087 | 15.1 | 7.88 | 6.78 |
 | `qt`, e8535a60 | 12.6 | 8.86 | 6.74 |
 | `qt`, 543530cc | 14.6 | 8.30 | 6.77 |
+| `qt`, 06fe0adb | 10.9 | 8.49 | 6.83 |
 | `thinio`, 5e83b087 | 7.17 | 6.65 | 5.22 |
 | `thinio`, e8535a60 | 6.74 | 6.30 | 5.12 |
 | `thinio`, 543530cc | 12.3 | 6.97 | 5.26 |
+| `thinio`, 06fe0adb | 8.11 | 6.76 | 5.40 |
+| `thiniofull`, 06fe0adb | 30.6 | 29.0 | 29.0 |
 | `panel` sorted, 5e83b087 | 48.7 | 45.5 | 48.3 |
 | `panel`, e8535a60 | 47.9 | 42.0 | 42.0 |
 | `panel`, 543530cc | 44.6 | 40.2 | 40.4 |
+| `panel`, 06fe0adb | 36.6 | 30.0 | 30.3 |
 
 | Warm | 1k | 10k | 100k |
 |---|---|---|---|
 | `qt` sorted, 5e83b087 | 4.71 | 5.96 | 7.65 |
 | `qt`, 5e83b087 | 2.37 | 2.54 | 2.53 |
 | `qt`, 543530cc | 2.77 | 2.50 | 2.49 |
+| `qt`, 06fe0adb | 2.50 | 2.52 | 2.53 |
 | `thinio`, 5e83b087 | 0.99 | 1.03 | 1.01 |
 | `thinio`, 543530cc | 0.94 | 1.21 | 1.15 |
+| `thinio`, 06fe0adb | 1.11 | 1.25 | 1.19 |
+| `thiniofull`, 06fe0adb | 3.58 | 3.64 | 3.42 |
 | `panel` sorted, 5e83b087 | 14.4 | 16.8 | 18.6 |
 | `panel`, e8535a60 | 12.5 | 13.1 | 13.1 |
 | `panel`, 543530cc | 10.9 | 11.2 | 11.2 |
+| `panel`, 06fe0adb | 4.76 | 4.93 | 4.77 |
 
 ## Where the panel's time goes
 
@@ -114,15 +122,15 @@ the Windows section's 17f7be81 and 505d2ea5 changes.
 
 The panel builds on `QDir` up to 543530cc, and on `thiniofull` from 06fe0adb.
 
-| Part | Derived as | Windows SSD, 93a59545 | Windows SSD, 17f7be81 | Windows SSD, 06fe0adb | Pi, e8535a60 | Pi, 543530cc |
-|---|---|---|---|---|---|---|
-| Enumeration, CPU | `thinio` warm; from 06fe0adb, `thiniofull` warm | 0.25 | 0.39 | 0.30 | 1.01 | 1.15 |
-| `QFileInfo` list, CPU | `qt` warm - `thinio` warm | 0.46 | 0.30 | none | 1.52 | 1.34 |
-| Name sort, CPU | `qt` sorted warm - `qt` warm | 0.44 | none | none | none | none |
-| Panel's own CPU | `panel` warm - the warm listing it builds on: `qt` sorted, `qt` or `thiniofull` | 9.47 | 1.06 | 0.35 | 10.6 | 8.70 |
-| Directory reads | `qt` cold - `qt` warm; from 06fe0adb, the same for `thiniofull` | 0.94 | 1.51 | 1.56 | 4.21 | 4.28 |
-| Per-entry metadata reads | `panel` cold - `panel` warm - directory reads | 23.9 | none | none | 24.7 | 24.9 |
-| Total | `panel` cold | 35.5 | 3.25 | 2.15 | 42.0 | 40.4 |
+| Part | Derived as | Windows SSD, 93a59545 | Windows SSD, 17f7be81 | Windows SSD, 06fe0adb | Pi, e8535a60 | Pi, 543530cc | Pi, 06fe0adb |
+|---|---|---|---|---|---|---|---|
+| Enumeration, CPU | `thinio` warm; from 06fe0adb, `thiniofull` warm | 0.25 | 0.39 | 0.30 | 1.01 | 1.15 | 3.42 |
+| `QFileInfo` list, CPU | `qt` warm - `thinio` warm | 0.46 | 0.30 | none | 1.52 | 1.34 | none |
+| Name sort, CPU | `qt` sorted warm - `qt` warm | 0.44 | none | none | none | none | none |
+| Panel's own CPU | `panel` warm - the warm listing it builds on: `qt` sorted, `qt` or `thiniofull` | 9.47 | 1.06 | 0.35 | 10.6 | 8.70 | 1.35 |
+| Directory reads | `qt` cold - `qt` warm; from 06fe0adb, the same for `thiniofull` on Windows, `thinio` on the Pi | 0.94 | 1.51 | 1.56 | 4.21 | 4.28 | 4.21 |
+| Per-entry metadata reads | `panel` cold - `panel` warm - directory reads | 23.9 | none | none | 24.7 | 24.9 | 21.4 |
+| Total | `panel` cold | 35.5 | 3.25 | 2.15 | 42.0 | 40.4 | 30.3 |
 
 - Windows, 93a59545: the metadata reads come from `CFileSystemObject` querying each entry again, although the
   enumeration already returns size, times and attributes. At 17f7be81 it uses the enumeration's data.
@@ -130,8 +138,11 @@ The panel builds on `QDir` up to 543530cc, and on `thiniofull` from 06fe0adb.
   target. The `QFileInfo` row, derived from it, is understated by as much. At 505d2ea5 the difference is 0.07.
 - On the Pi, thin_io de61aff costs 0.14-0.18 more warm than c07090e at 10k and 100k, and the Pi 543530cc `QFileInfo`
   row is understated by as much. A basic POSIX listing fills only the name and type, but builds the larger entry.
-- Linux: `readdir` returns only name and type, so each file needs one `stat` for its size; a folder needs none. The
-  panel's own CPU on the Pi includes that `stat` warm.
+- Linux: `readdir` returns only name and type.
+  - Up to 543530cc the panel stats each file for its size, and a folder not at all. Its own CPU on the Pi includes that
+    `stat` warm.
+  - From 06fe0adb thin_io's `full` listing stats every entry. `thiniofull` cold therefore includes the per-entry metadata
+    reads, and warm it costs 2.2-2.5 more than `thinio`.
 - Windows, 06fe0adb: the panel's own CPU is building the `CFileSystemObject`s and the hash map. `full` detail
   costs about as much as `basic`: it adds a query per link only.
 - At 93a59545 the panel held about 2 KB per entry on Windows, and its warm cost doubled at 100k. At 17f7be81 it held
@@ -157,7 +168,7 @@ The panel builds on `QDir` up to 543530cc, and on `thiniofull` from 06fe0adb.
 - Windows SSD: repeated cold runs agree within 2-4%. A/B comparisons belong here, within one session: `qt` at 100k
   moved by +33% between the 93a59545 and 17f7be81 sessions with its code unchanged.
 - Windows HDD: per-cell CV 5-110%, and cell medians moved by -27% to +91% between two runs. Only large effects show.
-- Pi SD card: CV 1-12% at 10k and 100k; up to 50% at 1k, where fixed per-folder costs dominate. Cold `qt` at
+- Pi SD card: CV 1-20% at 10k and 100k; up to 50% at 1k, where fixed per-folder costs dominate. Cold `qt` at
   543530cc reached 120% at 1k and 133% at 10k, with medians in line with e8535a60.
 
 ## Open questions
