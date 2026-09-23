@@ -320,7 +320,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14, windows-latest]
+        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-14, windows-latest]
 
     steps:
     - name: Checkout
@@ -346,7 +346,7 @@ jobs:
       with:
         version: '6.10.*'
         target: desktop
-        arch: 'linux_gcc_64'
+        arch: ${{ runner.arch == 'ARM64' && 'linux_gcc_arm64' || 'linux_gcc_64' }}
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
         cache: 'true'
