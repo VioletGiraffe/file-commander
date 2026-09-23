@@ -77,7 +77,7 @@ the shell script also falls back to a `qmake` already on PATH.
 No suite covers process launching, volume enumeration, favorites, settings, the UI outside file operations and the
 file list, or any plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`,
 `image-processing` and `text-encoding-detector` submodules have their own suites, which this project neither builds
-nor runs.
+nor runs. After a `thin_io` change, run `thin_io/scripts/run_tests.bat` (or `.sh`) as well.
 
 ## Listing benchmark
 

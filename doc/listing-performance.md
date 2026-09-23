@@ -28,8 +28,8 @@ Variants:
   queries every entry again.
 - Commit 17f7be81, thin_io f573124: `listDirectoryForPanel` lists unsorted and builds objects from the enumeration's
   data. A thin_io entry also carries times, permissions and a link target.
-- thin_io f573124 plus a smaller entry: the link target in a `heap_optional`, and times as plain timestamps, zero for
-  unset. Only the `thinio` row; everything else as at 17f7be81.
+- Commit 505d2ea5, thin_io c0762bf: a smaller thin_io entry, with the link target in a `heap_optional` and times as
+  plain timestamps, zero for unset. Only the `thinio` row: nothing else changed since 17f7be81.
 
 | Cold, SSD | 1k | 10k | 100k |
 |---|---|---|---|
@@ -60,7 +60,7 @@ Warm on the HDD volume agrees with the SSD within 10%.
 | `qt`, 17f7be81 | 0.69 | 0.73 | 0.69 |
 | `thinio`, 93a59545 | 0.26 | 0.25 | 0.25 |
 | `thinio`, 17f7be81 | 0.42 | 0.44 | 0.39 |
-| `thinio`, smaller entry | 0.33 | 0.33 | 0.32 |
+| `thinio`, 505d2ea5 | 0.33 | 0.33 | 0.32 |
 | `panel` sorted, 93a59545 | 4.81 | 4.92 | 10.6 |
 | `panel`, 17f7be81 | 1.78 | 1.87 | 1.75 |
 
@@ -103,7 +103,7 @@ Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsort
 - Windows, 93a59545: the metadata reads come from `CFileSystemObject` querying each entry again, although the
   enumeration already returns size, times and attributes. At 17f7be81 it uses the enumeration's data.
 - thin_io f573124 costs 0.14 more per entry warm than at 93a59545: its entries carry times, permissions and a link
-  target. The `QFileInfo` row, derived from it, is understated by as much. The smaller entry costs 0.07 more.
+  target. The `QFileInfo` row, derived from it, is understated by as much. At 505d2ea5 the difference is 0.07.
 - Linux: `readdir` returns only name and type, so each file needs one `stat` for its size; a folder needs none.
 - At 93a59545 the panel held about 2 KB per entry on Windows, and its warm cost doubled at 100k. At 17f7be81 it holds
   1.1 KB per entry, and the warm cost is flat, as on the Pi.
