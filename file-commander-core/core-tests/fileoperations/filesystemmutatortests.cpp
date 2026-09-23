@@ -1095,22 +1095,22 @@ TEST_CASE("directory times: read, apply, and follow a directory link on read", "
 	CHECK(readBack->lastWrite.seconds == 1'500'000'000);
 	if constexpr (thin_io::creation_time_settable)
 	{
-		REQUIRE(readBack->creation.has_value());
-		CHECK(readBack->creation->seconds == 1'400'000'000);
+		REQUIRE(readBack->creation.is_set());
+		CHECK(readBack->creation.seconds == 1'400'000'000);
 	}
 	else
-		CHECK(!readBack->creation.has_value()); // Not settable on this platform, so not captured either
+		CHECK(!readBack->creation.is_set()); // Not settable on this platform, so not captured either
 
 	REQUIRE(QDir{}.mkpath(base % "/destination"));
 	REQUIRE(CFileSystemMutator::applyDirectoryTimes(ep(base % "/destination"), *readBack).has_value());
 	const auto appliedTimes = getEntryTimes(base % "/destination");
 	REQUIRE(appliedTimes.has_value());
-	REQUIRE(appliedTimes->last_write.has_value());
-	CHECK(appliedTimes->last_write->seconds == 1'500'000'000);
+	REQUIRE(appliedTimes->last_write.is_set());
+	CHECK(appliedTimes->last_write.seconds == 1'500'000'000);
 	if constexpr (thin_io::creation_time_settable)
 	{
-		REQUIRE(appliedTimes->creation.has_value());
-		CHECK(appliedTimes->creation->seconds == 1'400'000'000);
+		REQUIRE(appliedTimes->creation.is_set());
+		CHECK(appliedTimes->creation.seconds == 1'400'000'000);
 	}
 
 	// The purpose-specific read follows a directory link to the target it materializes

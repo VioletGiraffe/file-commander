@@ -130,7 +130,7 @@ enum class DirectoryCreationOutcome
 // time only where the platform can set it. Access time is deliberately absent.
 struct CopyableDirectoryTimes
 {
-	std::optional<thin_io::timestamp> creation;
+	thin_io::timestamp creation; // Unset where the platform cannot set it
 	thin_io::timestamp lastWrite;
 };
 

@@ -280,6 +280,6 @@ inline int64_t entryLastWriteSeconds(const QString& path)
 {
 	const auto times = getEntryTimes(path);
 	REQUIRE(times.has_value());
-	REQUIRE(times->last_write.has_value());
-	return times->last_write->seconds;
+	REQUIRE(times->last_write.is_set());
+	return times->last_write.seconds;
 }

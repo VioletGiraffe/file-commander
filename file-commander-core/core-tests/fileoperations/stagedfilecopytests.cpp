@@ -480,12 +480,12 @@ TEST_CASE("staged copy: transfers permissions and every settable timestamp", "[s
 
 	const auto destinationTimes = getEntryTimes(base % "/dest.bin");
 	REQUIRE(destinationTimes.has_value());
-	REQUIRE(destinationTimes->last_write.has_value());
-	CHECK(destinationTimes->last_write->seconds == 1'600'000'000);
+	REQUIRE(destinationTimes->last_write.is_set());
+	CHECK(destinationTimes->last_write.seconds == 1'600'000'000);
 	if constexpr (thin_io::creation_time_settable)
 	{
-		REQUIRE(destinationTimes->creation.has_value());
-		CHECK(destinationTimes->creation->seconds == 1'400'000'000);
+		REQUIRE(destinationTimes->creation.is_set());
+		CHECK(destinationTimes->creation.seconds == 1'400'000'000);
 	}
 
 #ifndef _WIN32
@@ -551,7 +551,7 @@ TEST_CASE("staged copy: a file-link source materializes the followed target with
 		CHECK(entryPermissionMode(base % "/dest.bin") == 0640u);
 		const auto destinationTimes = getEntryTimes(base % "/dest.bin");
 		REQUIRE(destinationTimes.has_value());
-		CHECK(destinationTimes->last_write->seconds == 1'500'000'000);
+		CHECK(destinationTimes->last_write.seconds == 1'500'000'000);
 
 		// The link and its target are untouched
 		CHECK(snapshotOf(base % "/link.bin").kind == OperationEntryKind::FileLink);
@@ -599,7 +599,7 @@ TEST_CASE("staged copy: a file-symlink source materializes the followed target w
 		CHECK((entryAttributes(base % "/dest.bin") & FILE_ATTRIBUTE_HIDDEN) != 0);
 		const auto destinationTimes = getEntryTimes(base % "/dest.bin");
 		REQUIRE(destinationTimes.has_value());
-		CHECK(destinationTimes->last_write->seconds == 1'500'000'000);
+		CHECK(destinationTimes->last_write.seconds == 1'500'000'000);
 
 		// The link is still a link, and the target still holds what it held
 		CHECK(snapshotOf(base % "/link.bin").kind == OperationEntryKind::FileLink);

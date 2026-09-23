@@ -448,10 +448,10 @@ std::expected<CopyableDirectoryTimes, CFileSystemError> readCopyableDirectoryTim
 	if (!times)
 		return std::unexpected(makeFileSystemError(captureNativeError()));
 
-	if (!times->last_write) [[unlikely]]
+	if (!times->last_write.is_set()) [[unlikely]]
 		return std::unexpected(CFileSystemError{ FileErrorCategory::IoFailure, 0, QStringLiteral("The filesystem does not report a last-write time") });
 
-	CopyableDirectoryTimes result{ .creation = {}, .lastWrite = *times->last_write };
+	CopyableDirectoryTimes result{ .creation = {}, .lastWrite = times->last_write };
 	if constexpr (thin_io::creation_time_settable)
 		result.creation = times->creation;
 	return result;

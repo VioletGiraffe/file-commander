@@ -96,7 +96,7 @@ std::expected<CStagedFileCopy, StagedCopyBeginFailure> CStagedFileCopy::begin(CE
 		sourceTimes = *times;
 	else
 		return failBegin(FailedAction::PreserveFileMetadata, captureNativeError());
-	sourceTimes.last_access.reset(); // Never transferred: reading the source for this copy already changed it
+	sourceTimes.last_access = {}; // Never transferred: reading the source for this copy already changed it
 
 	if (const auto permissions = sourceFile.permissions(); permissions) [[likely]]
 		sourcePermissions = *permissions;

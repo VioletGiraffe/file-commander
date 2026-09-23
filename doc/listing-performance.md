@@ -18,34 +18,51 @@ names the commit it was measured at: re-measure after changing the listing code.
 Variants:
 
 - `qt`: `QDir::entryInfoList` with the panel's filters, unsorted.
-- `qt` sorted: the same with `QDir`'s default name sort.
+- `qt` sorted: the same with `QDir`'s default name sort. Older tables only.
 - `thinio`: `thin_io::list_directory`.
 - `panel`: `listDirectoryForPanel`, the panel's own listing.
 
 ## Windows
 
-Commit 93a59545: thin_io uses `FIND_FIRST_EX_LARGE_FETCH`; `listDirectoryForPanel` still sorts.
+- Commit 93a59545: thin_io uses `FIND_FIRST_EX_LARGE_FETCH`; `listDirectoryForPanel` sorts, and `CFileSystemObject`
+  queries every entry again.
+- Commit 17f7be81, thin_io f573124: `listDirectoryForPanel` lists unsorted and builds objects from the enumeration's
+  data. A thin_io entry also carries times, permissions and a link target.
+- thin_io f573124 plus a smaller entry: the link target in a `heap_optional`, and times as plain timestamps, zero for
+  unset. Only the `thinio` row; everything else as at 17f7be81.
 
 | Cold, SSD | 1k | 10k | 100k |
 |---|---|---|---|
-| `qt` sorted | 2.14 | 1.81 | 2.11 |
-| `qt` | 1.98 | 1.36 | 1.66 |
-| `thinio` | 1.32 | 0.90 | 1.22 |
-| `panel` sorted | 36.9 | 34.9 | 35.5 |
+| `qt` sorted, 93a59545 | 2.14 | 1.81 | 2.11 |
+| `qt`, 93a59545 | 1.98 | 1.36 | 1.66 |
+| `qt`, 17f7be81 | 1.90 | 1.45 | 2.20 |
+| `thinio`, 93a59545 | 1.32 | 0.90 | 1.22 |
+| `thinio`, 17f7be81 | 1.56 | 1.15 | 1.87 |
+| `panel` sorted, 93a59545 | 36.9 | 34.9 | 35.5 |
+| `panel`, 17f7be81 | 3.00 | 2.64 | 3.25 |
 
 | Cold, HDD | 1k | 10k | 100k |
 |---|---|---|---|
-| `qt` sorted | 2.99 | 3.00 | 4.26 |
-| `qt` | 2.68 | 3.84 | 4.36 |
-| `thinio` | 2.40 | 2.03 | 3.67 |
-| `panel` sorted | 125 | 97.4 | 112 |
+| `qt` sorted, 93a59545 | 2.99 | 3.00 | 4.26 |
+| `qt`, 93a59545 | 2.68 | 3.84 | 4.36 |
+| `qt`, 17f7be81 | 2.58 | 4.41 | 3.90 |
+| `thinio`, 93a59545 | 2.40 | 2.03 | 3.67 |
+| `thinio`, 17f7be81 | 2.28 | 2.10 | 3.43 |
+| `panel` sorted, 93a59545 | 125 | 97.4 | 112 |
+| `panel`, 17f7be81 | 3.82 | 3.71 | 4.83 |
+
+Warm on the HDD volume agrees with the SSD within 10%.
 
 | Warm, SSD | 1k | 10k | 100k |
 |---|---|---|---|
-| `qt` sorted | 0.92 | 1.01 | 1.16 |
-| `qt` | 0.66 | 0.67 | 0.72 |
-| `thinio` | 0.26 | 0.25 | 0.25 |
-| `panel` sorted | 4.81 | 4.92 | 10.6 |
+| `qt` sorted, 93a59545 | 0.92 | 1.01 | 1.16 |
+| `qt`, 93a59545 | 0.66 | 0.67 | 0.72 |
+| `qt`, 17f7be81 | 0.69 | 0.73 | 0.69 |
+| `thinio`, 93a59545 | 0.26 | 0.25 | 0.25 |
+| `thinio`, 17f7be81 | 0.42 | 0.44 | 0.39 |
+| `thinio`, smaller entry | 0.33 | 0.33 | 0.32 |
+| `panel` sorted, 93a59545 | 4.81 | 4.92 | 10.6 |
+| `panel`, 17f7be81 | 1.78 | 1.87 | 1.75 |
 
 ## Raspberry Pi 4
 
@@ -73,20 +90,23 @@ Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsort
 
 100k entries, cold. Pi rows combine both commits: `qt` and `thinio` are the same code in both.
 
-| Part | Derived as | Windows SSD, 93a59545 | Pi, e8535a60 |
-|---|---|---|---|
-| Enumeration, CPU | `thinio` warm | 0.25 | 1.01 |
-| `QFileInfo` list, CPU | `qt` warm - `thinio` warm | 0.46 | 1.52 |
-| Name sort, CPU | `qt` sorted warm - `qt` warm | 0.44 | none |
-| Panel's own CPU | `panel` warm - `qt` sorted warm (Pi: - `qt` warm) | 9.47 | 10.6 |
-| Directory reads | `qt` cold - `qt` warm | 0.94 | 4.21 |
-| Per-entry metadata reads | `panel` cold - `panel` warm - directory reads | 23.9 | 24.7 |
-| Total | `panel` cold | 35.5 | 42.0 |
+| Part | Derived as | Windows SSD, 93a59545 | Windows SSD, 17f7be81 | Pi, e8535a60 |
+|---|---|---|---|---|
+| Enumeration, CPU | `thinio` warm | 0.25 | 0.39 | 1.01 |
+| `QFileInfo` list, CPU | `qt` warm - `thinio` warm | 0.46 | 0.30 | 1.52 |
+| Name sort, CPU | `qt` sorted warm - `qt` warm | 0.44 | none | none |
+| Panel's own CPU | `panel` warm - `qt` sorted warm (unsorted: - `qt` warm) | 9.47 | 1.06 | 10.6 |
+| Directory reads | `qt` cold - `qt` warm | 0.94 | 1.51 | 4.21 |
+| Per-entry metadata reads | `panel` cold - `panel` warm - directory reads | 23.9 | none | 24.7 |
+| Total | `panel` cold | 35.5 | 3.25 | 42.0 |
 
-- Windows, up to e8535a60: the metadata reads come from `CFileSystemObject` querying each entry again, although the
-  enumeration already returns size, times and attributes. Later commits use the enumeration's data.
+- Windows, 93a59545: the metadata reads come from `CFileSystemObject` querying each entry again, although the
+  enumeration already returns size, times and attributes. At 17f7be81 it uses the enumeration's data.
+- thin_io f573124 costs 0.14 more per entry warm than at 93a59545: its entries carry times, permissions and a link
+  target. The `QFileInfo` row, derived from it, is understated by as much. The smaller entry costs 0.07 more.
 - Linux: `readdir` returns only name and type, so each file needs one `stat` for its size; a folder needs none.
-- The panel holds about 2 KB per entry on Windows. Its warm cost doubles at 100k there, and stays flat on the Pi.
+- At 93a59545 the panel held about 2 KB per entry on Windows, and its warm cost doubled at 100k. At 17f7be81 it holds
+  1.1 KB per entry, and the warm cost is flat, as on the Pi.
 
 ## Measured costs
 
@@ -105,7 +125,8 @@ Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsort
 
 ## Noise
 
-- Windows SSD: repeated cold runs agree within 2-4%. A/B comparisons belong here.
+- Windows SSD: repeated cold runs agree within 2-4%. A/B comparisons belong here, within one session: `qt` at 100k
+  moved by +33% between the 93a59545 and 17f7be81 sessions with its code unchanged.
 - Windows HDD: per-cell CV 5-54%, and cell medians moved by -27% to +91% between two runs. Only large effects show.
 - Pi SD card: CV 1-10% at 10k and 100k; up to 50% at 1k, where fixed per-folder costs dominate.
 
