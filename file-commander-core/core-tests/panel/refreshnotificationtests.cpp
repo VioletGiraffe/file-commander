@@ -105,6 +105,29 @@ TEST_CASE("CPanel - refreshing the folder in view does not blank it", "[panel][n
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 1);
 }
 
+TEST_CASE("CPanel - every navigation gets a new navigationId, a refresh keeps it", "[panel][notifications]")
+{
+	TempTree tree;
+	tree.makeFile(QStringLiteral("a.txt"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	const uint64_t listed = h.panel().navigationId();
+
+	h.panel().refreshFileList(refreshCauseOther);
+	h.settle();
+	CHECK(h.panel().navigationId() == listed);
+
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	const uint64_t reentered = h.panel().navigationId();
+	CHECK(reentered != listed);
+
+	h.panel().showAllFilesFromCurrentFolderAndBelow();
+	CHECK(h.panel().navigationId() != reentered);
+}
+
 TEST_CASE("CPanel - flattened mode lists the files of the whole subtree", "[panel][notifications]")
 {
 	TempTree tree;

@@ -130,6 +130,9 @@ public:
 	// Invokes fn(folder, contents) under the list lock, or not at all if no committed listing belongs to the
 	// current view. Avoids copying the list; fn holds up this panel's refreshes, so it must be short.
 	void readCommittedContents(const std::function<void(const QString& folder, const FileListHashMap& contents)>& fn) const;
+	// Advances on every setPath() and showAllFilesFromCurrentFolderAndBelow(), even to the folder already in view; a refresh keeps it.
+	// Changes only on the UI thread.
+	[[nodiscard]] uint64_t navigationId() const;
 
 	[[nodiscard]] bool itemHashExists(qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;
@@ -181,6 +184,7 @@ private:
 	QString                                    _itemsSourcePath;
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;
+	uint64_t                                   _navigationId = 0;
 	CHistoryList<QString>                      _history;
 	// Protected by _fileListAndCurrentDirMutex so the plugin-facing current-item snapshot is coherent with the list.
 	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _currentItemHashForFolder;

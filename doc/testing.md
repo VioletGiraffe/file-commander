@@ -40,6 +40,9 @@ which writes about a thousand files of up to 3 MB each. Every other case in both
 mostly in the comparator tests; the file-operation ones are quick unless a second volume is provisioned for the
 cross-volume cases.
 
+`filelist_test`'s `[timing]` case runs only when named: it prints what an in-place model update costs against a reset,
+which is where the model's reset threshold comes from.
+
 The scripts take the Qt kit from `QT_ROOT_DIR`, or from a git-ignored `local-env.ps1`/`local-env.sh` beside them;
 the shell script also falls back to a `qmake` already on PATH.
 
@@ -49,10 +52,10 @@ the shell script also falls back to a `qmake` already on PATH.
 |------|-------|
 | Unit tests of pure logic | parsers, path handling, placeholder expansion, name filters |
 | Integration tests on the real filesystem, in generated temporary trees | file operations, comparison, panels, search |
-| Randomized runs, reproducible by `--std-seed <seed>` | `fileoperations_test`, `filecomparator_test` |
+| Randomized runs, reproducible by `--std-seed <seed>` | `fileoperations_test`, `filecomparator_test`, `filelist_test` |
 | Fault injection through `operationtesthooks`, compiled out of production builds | file operations |
 | Coverage needing a filesystem capability: skipped where absent, required where its `FILE_COMMANDER_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
-| Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts |
+| Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts, the file list view |
 | Launch smoke test: the release binary with `--test-launch` | CI build job, every platform |
 
 ## Coverage by component
@@ -68,11 +71,11 @@ the shell script also falls back to a `qmake` already on PATH.
 | `filesystemhelpers_test` | Path quoting and shell word splitting |
 | `userprograms_test` | Programs-menu placeholder expansion |
 | `fileoperations_gui_test` | File-operation UI from `qt-app/src`: dialogs, prompts, launch routing |
-| `filelist_test` | File-list model from `qt-app/src`: sorting, filtering, lookups, and Qt's model contract, on rows built in memory |
+| `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's sorting, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
 
 No suite covers process launching, volume enumeration, favorites, settings, the UI outside file operations and the
-file-list model, or any plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`,
+file list, or any plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`,
 `image-processing` and `text-encoding-detector` submodules have their own suites, which this project neither builds
 nor runs.
 

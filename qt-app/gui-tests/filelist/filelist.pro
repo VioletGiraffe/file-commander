@@ -37,7 +37,12 @@ INCLUDEPATH += ../../../file-commander-core/core-tests/test-utils/src/
 SOURCES += \
 	main.cpp \
 	filelistmodeltests.cpp \
+	filelistupdatetests.cpp \
+	../../src/panel/filelistwidget/cfilelistview.cpp \
+	../../src/panel/filelistwidget/cfocusframestyle.cpp \
+	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
 	../../src/panel/filelistwidget/model/cfilelistmodel.cpp \
+	../../../file-commander-core/core-tests/test-utils/src/crandomdatagenerator.cpp \
 	../../../file-commander-core/core-tests/test-utils/src/qt_helpers.cpp
 
 # The model's CIconProvider and fileSizeToString calls pull in the CFileSystemObject tree, as in the core fso tests.
@@ -48,6 +53,10 @@ SOURCES += \
 	../../../file-commander-core/src/iconprovider/ciconproviderimpl.cpp
 
 HEADERS += \
+	filelisttesthelpers.h \
+	../../src/panel/filelistwidget/cfilelistview.h \
+	../../src/panel/filelistwidget/cfocusframestyle.h \
+	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
 	../../src/panel/filelistwidget/model/cfilelistmodel.h \
 	../../../file-commander-core/src/cfilesystemobject.h \
 	../../../file-commander-core/src/iconprovider/ciconprovider.h \

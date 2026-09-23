@@ -70,6 +70,9 @@ public:
 
 	// Resets the model
 	void setRows(std::vector<FileListRow> rows);
+	// Removes, inserts, moves and changes single rows until the rows match 'rows', so every persistent index (selection, cursor, an open editor)
+	// stays on its row. Returns false if it reset the model instead: past a number of changes, one reset is cheaper.
+	bool updateRows(std::vector<FileListRow> rows);
 	// Hides the rows whose full name does not match; the wildcard is unanchored and case-insensitive. Empty shows every row.
 	void setNameFilter(const QString& wildcard);
 
@@ -114,8 +117,12 @@ signals:
 
 private:
 	[[nodiscard]] bool rowLessThan(const FileListRow& l, const FileListRow& r) const;
+	[[nodiscard]] bool passesNameFilter(const FileListRow& row) const;
 	[[nodiscard]] std::vector<uint32_t> displayedRowsInOrder() const;
-	void updateRowByHash();
+	// Where 'row' sorts among the displayed rows other than 'displayRow', as the destination of moving displayRow
+	[[nodiscard]] int moveDestination(const FileListRow& row, int displayRow) const;
+	void rebuildDisplayRowByHash() const;
+	void updateContentsSummary();
 	// Re-filters and re-sorts; every persistent index (selection, cursor, editor) follows its row or is dropped with it
 	void relayout(QAbstractItemModel::LayoutChangeHint hint);
 
@@ -123,7 +130,9 @@ private:
 	std::vector<FileListRow> _rows;
 	// Indices into _rows: the rows the filter lets through, in display order
 	std::vector<uint32_t> _displayedRows;
-	ankerl::unordered_dense::map<qulonglong, int, IdentityHash> _displayRowByHash;
+	// Rebuilt by the first lookup after _displayedRows changes: updateRows() changes it once per single-row change
+	mutable ankerl::unordered_dense::map<qulonglong, int, IdentityHash> _displayRowByHash;
+	mutable bool _displayRowByHashIsStale = false;
 	FolderContentsSummary _contentsSummary;
 	QRegularExpression _nameFilter;
 	DropHandler _dropHandler;

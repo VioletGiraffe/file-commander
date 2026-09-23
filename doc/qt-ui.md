@@ -47,6 +47,10 @@ and a background tab's model keeps its last rows until activation refills it. Ta
 the view state. The Qt-specific activation ordering belongs in `CPanelWidget::activateTab()`, not here. See
 [tabs.md](tabs.md).
 
+Within one navigation (`CPanel::navigationId()`), a refill updates the model row by row: the selection, the cursor, an
+open rename editor and the rows on screen stay put. A navigation, even to the folder in view, resets the model, as does
+a refill changing too many rows for an update to pay off; the widget then places the cursor and restores the selection.
+
 `CFileListView` owns orthodox selection and keyboard/mouse behavior. The model holds a copy of the rows it displays,
 sorts and filters them, and depends on neither the controller nor the OS shell; delegates own painting. Drag/drop
 uses the same operation launch boundary as commands.

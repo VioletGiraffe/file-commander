@@ -16,15 +16,15 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 // Item rename handling
-void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & index) const
+QWidget* CFileListItemDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
+	QWidget* editor = QStyledItemDelegate::createEditor(parent, option, index);
 	QStyledItemDelegate::setEditorData(editor, index);
 	auto* lineEditor = dynamic_cast<QLineEdit*>(editor);
-	assert_r(lineEditor);
-	assert_and_return_r(index.isValid(), );
+	assert_and_return_r(lineEditor && index.isValid(), editor);
 
 	auto* model = dynamic_cast<const CFileListModel*>(index.model());
-	assert_and_return_message_r(model, "Something has changed in the model hierarchy", );
+	assert_and_return_message_r(model, "Something has changed in the model hierarchy", editor);
 
 	if (model->rowAt(index).type == File)
 	{
@@ -37,6 +37,12 @@ void CFileListItemDelegate::setEditorData(QWidget * editor, const QModelIndex & 
 			}, Qt::QueuedConnection);
 		}
 	}
+
+	return editor;
+}
+
+void CFileListItemDelegate::setEditorData(QWidget* /*editor*/, const QModelIndex& /*index*/) const
+{
 }
 
 void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const

@@ -8,9 +8,11 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QPersistentModelIndex>
 #include <QTreeView>
 RESTORE_COMPILER_WARNINGS
 
+#include <utility>
 #include <vector>
 
 // Qt signals/slots system doesn't apply here because there should be a list of observers, and the signal shall not go further once it's been consumed by a listener
@@ -55,6 +57,15 @@ public:
 
 	[[nodiscard]] bool editingInProgress() const;
 
+	struct ScrollPosition
+	{
+		// The rows on screen, top to bottom, with the viewport y of each
+		std::vector<std::pair<QPersistentModelIndex, int>> visibleRows;
+	};
+	[[nodiscard]] ScrollPosition scrollPosition() const;
+	// Scrolls the first of the rows that is still in the model back to where it was on screen. A model reset leaves none.
+	void restoreScrollPosition(const ScrollPosition& position);
+
 signals:
 	void contextMenuRequested(QPoint pos);
 	void ctrlEnterPressed();
@@ -92,7 +103,7 @@ private:
 private:
 	std::vector<FileListViewEventObserver*> _eventObservers;
 
-	QModelIndex                         _currentItemBeforeMouseClick;
+	QPersistentModelIndex               _currentItemBeforeMouseClick;
 
 	enum Panel                          _panelPosition = Panel::UnknownPanel;
 	bool                                _bHeaderAdjustmentRequired = true;

@@ -362,6 +362,8 @@ void CPanelWidget::activateTab(int index)
 
 	// Show the now-active panel's contents immediately (the CPanel may also refresh asynchronously on activation).
 	fillFromPanel(refreshCauseOther);
+	// setModel() left another tab's scroll position, which a refresh keeps
+	ui->_list->scrollTo(ui->_list->currentIndex());
 
 	emit activeTabChanged();
 }
@@ -638,43 +640,72 @@ qulonglong CPanelWidget::tabIdAt(int index) const
 	return ui->_tabBar->tabData(index).toULongLong();
 }
 
-void CPanelWidget::fillFromList(FileListRefreshCause operation)
+bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 {
 	CTimeElapsed timer{ true };
 
 	disconnect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
+	const qulonglong previousCurrentHash = _model->itemHash(previousCurrentIndex);
 
+	const CPanel& panel = _controller->panel(_panelPosition);
 	std::vector<FileListRow> rows;
-	_controller->panel(_panelPosition).readCommittedContents([&rows](const QString& /*folder*/, const FileListHashMap& items) {
+	bool listed = false;
+	panel.readCommittedContents([&rows, &listed](const QString& /*folder*/, const FileListHashMap& items) {
+		listed = true;
 		rows.reserve(items.size());
 		for (const auto& item : items)
 			rows.push_back(FileListRow::fromObject(item.second));
 	});
-	_model->setRows(std::move(rows));
 
-	auto indexUnderCursor = _model->index(0, 0);
+	PanelTab& tab = _tabs[(size_t)_activeTab];
+	const std::optional<uint64_t> navigationId = listed ? std::optional{ panel.navigationId() } : std::nullopt;
+	// A refresh keeps the scroll position, the cursor, the selection and an open editor; a navigation starts over
+	const bool refresh = navigationId && navigationId == tab.navigationId;
+	tab.navigationId = navigationId;
 
-	// Setting the cursor position as appropriate. Stepping up is not a special case here: setPath() has already
-	// recorded the folder we came from as the current item for the folder we arrived at.
-	if (operation != refreshCauseForwardNavigation || QSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
+	bool modelReset = true;
+	if (refresh)
 	{
-		const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPathPosix());
-		const QModelIndex itemIndexToSetCursorTo = _model->indexByHash(itemHashToSetCursorTo);
-		if (itemIndexToSetCursorTo.isValid())
-			indexUnderCursor = itemIndexToSetCursorTo;
-		else
-		{
-			if (itemHashToSetCursorTo != 0)
-				qInfo() << "Failed to find hash" << itemHashToSetCursorTo << "in" << currentDirPathNative();
-
-			if (previousCurrentIndex.isValid() && operation != refreshCauseCdUp && operation != refreshCauseForwardNavigation)
-				indexUnderCursor = _model->index(std::min(previousCurrentIndex.row(), _model->rowCount() - 1), 0);
-		}
+		const CFileListView::ScrollPosition scrollPosition = ui->_list->scrollPosition();
+		modelReset = !_model->updateRows(std::move(rows));
+		ui->_list->restoreScrollPosition(scrollPosition);
 	}
+	else
+		_model->setRows(std::move(rows));
 
-	ui->_list->moveCursorToItem(indexUnderCursor);
+	if (!modelReset)
+	{
+		// The cursor follows its item; when the item is gone, it stays on the item's row
+		const QModelIndex currentIndex = _selectionModel->currentIndex();
+		if (!currentIndex.isValid() || _model->itemHash(currentIndex) != previousCurrentHash)
+			ui->_list->moveCursorToItem(_model->index(std::min(std::max(previousCurrentIndex.row(), 0), _model->rowCount() - 1), 0));
+	}
+	else
+	{
+		auto indexUnderCursor = _model->index(0, 0);
+
+		// Setting the cursor position as appropriate. Stepping up is not a special case here: setPath() has already
+		// recorded the folder we came from as the current item for the folder we arrived at.
+		if (operation != refreshCauseForwardNavigation || QSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
+		{
+			const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, panel.currentDirPathPosix());
+			const QModelIndex itemIndexToSetCursorTo = _model->indexByHash(itemHashToSetCursorTo);
+			if (itemIndexToSetCursorTo.isValid())
+				indexUnderCursor = itemIndexToSetCursorTo;
+			else
+			{
+				if (itemHashToSetCursorTo != 0)
+					qInfo() << "Failed to find hash" << itemHashToSetCursorTo << "in" << currentDirPathNative();
+
+				if (previousCurrentIndex.isValid() && operation != refreshCauseCdUp && operation != refreshCauseForwardNavigation)
+					indexUnderCursor = _model->index(std::min(previousCurrentIndex.row(), _model->rowCount() - 1), 0);
+			}
+		}
+
+		ui->_list->moveCursorToItem(indexUnderCursor);
+	}
 
 	assert_r(connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
 	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
@@ -682,6 +713,8 @@ void CPanelWidget::fillFromList(FileListRefreshCause operation)
 
 	if (_model->rowCount() > 1000)
 		qInfo() << __FUNCTION__ << "Procesing" << _model->rowCount() << "items took" << timer.elapsed() << "ms";
+
+	return modelReset;
 }
 
 void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
@@ -695,10 +728,8 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 			previousSelection.emplace_back(row.hash, row.fullPath);
 	}
 
-	fillFromList(operation);
-
-	// Restoring previous selection
-	if (!previousSelection.empty())
+	// Without a reset, the selection stays on its rows
+	if (fillFromList(operation) && !previousSelection.empty())
 	{
 		CTimeElapsed timer(true);
 		QItemSelection selection;
@@ -1412,6 +1443,7 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	// Display only - see PanelContentsChangedListener. The tab is already at the new folder, so its name is shown
 	// right away instead of lagging behind for however long the listing takes.
 	_model->setRows({});
+	_tabs[(size_t)_activeTab].navigationId.reset();
 	updateInfoLabel({});
 	updateTabText(_activeTab);
 }

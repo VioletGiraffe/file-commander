@@ -1,3 +1,5 @@
+#include "filelisttesthelpers.h"
+
 #include "panel/filelistwidget/model/cfilelistmodel.h"
 
 #include "qt_helpers.hpp"
@@ -10,7 +12,6 @@
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/catch2/catch.hpp>
 
-#include <QAbstractItemModelTester>
 #include <QItemSelectionModel>
 #include <QMimeData>
 #include <QStringList>
@@ -18,46 +19,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <memory>
 #include <vector>
-
-static FileListRow makeRow(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
-{
-	FileListRow row;
-	row.type = type;
-	row.name = name;
-	row.extension = extension;
-	row.fullName = extension.isEmpty() ? name : name + '.' + extension;
-	row.fullPath = QStringLiteral("/folder/") + row.fullName + (type == Directory ? QStringLiteral("/") : QString{});
-	row.hash = pathHash(row.fullPath);
-	row.size = size;
-	row.modificationTime = modificationTime;
-	return row;
-}
-
-static FileListRow makeCdUpRow()
-{
-	FileListRow row;
-	row.type = Directory;
-	row.fullName = QStringLiteral("..");
-	row.fullPath = QStringLiteral("/");
-	row.hash = pathHash(row.fullPath);
-	row.isCdUp = true;
-	return row;
-}
-
-static QStringList displayedNames(const CFileListModel& model)
-{
-	QStringList names;
-	for (int row = 0; row < model.rowCount(); ++row)
-		names.push_back(model.rowAt(row).fullName);
-	return names;
-}
-
-// Checks every change against Qt's model contract; a violation aborts the run
-struct TestedModel
-{
-	CFileListModel model{ nullptr };
-	QAbstractItemModelTester tester{ &model, QAbstractItemModelTester::FailureReportingMode::Fatal };
-};
 
 TEST_CASE("Rows sort [..] first, then folders, then files, in either direction", "[filelist][sort]")
 {

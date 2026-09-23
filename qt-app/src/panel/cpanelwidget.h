@@ -11,6 +11,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
+#include <optional>
+#include <stdint.h>
+
 namespace Ui {
 class CPanelWidget;
 }
@@ -113,7 +116,8 @@ private slots:
 	void onItemMiddleClicked(const QModelIndex& index); // Middle-click: opens the folder in a new tab (no-op if it's not a folder)
 
 private:
-	void fillFromList(FileListRefreshCause operation);
+	// Returns true if it reset the model
+	bool fillFromList(FileListRefreshCause operation);
 	void fillFromPanel(FileListRefreshCause operation);
 	void fillHistory();
 	void updateInfoLabel(const std::vector<qulonglong>& selection);
@@ -140,6 +144,7 @@ private:
 		CFileListModel* model = nullptr;
 		QItemSelectionModel* selectionModel = nullptr;
 		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - the model owns the sort)
+		std::optional<uint64_t> navigationId; // CPanel::navigationId() of the listing in the model; empty while it holds none
 	};
 	// A tab's persisted appearance. The defaults are what a tab gets with nothing stored for it.
 	struct TabViewState {

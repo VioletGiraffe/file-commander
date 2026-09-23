@@ -18,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QScrollBar>
 #include <QStyleHints>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
@@ -118,6 +119,42 @@ void CFileListView::modelAboutToBeReset()
 bool CFileListView::editingInProgress() const
 {
 	return (state() & QAbstractItemView::EditingState) != 0;
+}
+
+CFileListView::ScrollPosition CFileListView::scrollPosition() const
+{
+	ScrollPosition position;
+	const int viewportHeight = viewport()->height();
+	for (QModelIndex row = indexAt({ 0, 0 }); row.isValid(); row = indexBelow(row))
+	{
+		const int y = visualRect(row).top();
+		if (y >= viewportHeight)
+			break;
+
+		position.visibleRows.emplace_back(row, y);
+	}
+
+	return position;
+}
+
+void CFileListView::restoreScrollPosition(const ScrollPosition& position)
+{
+	executeDelayedItemsLayout(); // Updates the scroll bar's range to the rows changed since
+
+	for (size_t i = 0, numRows = position.visibleRows.size(); i < numRows; ++i)
+	{
+		const auto& [row, y] = position.visibleRows[i];
+		if (!row.isValid())
+			continue;
+
+		QScrollBar* scrollBar = verticalScrollBar();
+		if (verticalScrollMode() == ScrollPerItem)
+			scrollBar->setValue(row.row() - (int)i); // The value is the topmost row, which was i rows above this one
+		else
+			scrollBar->setValue(scrollBar->value() + visualRect(row).top() - y);
+
+		return;
+	}
 }
 
 // For managing selection and cursor

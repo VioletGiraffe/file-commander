@@ -195,6 +195,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 		// Navigating upwards: the folder we're leaving becomes the current item of the one we're entering
 		setCurrentItemHashForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, oldPathObject.hash() /* where we were */, false);
 
+	++_navigationId;
 	const auto request = beginFileListUpdateLocked(NormalMode);
 	locker.unlock();
 
@@ -259,6 +260,7 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	FileListUpdateRequest request;
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		++_navigationId;
 		request = beginFileListUpdateLocked(AllObjectsMode);
 	}
 
@@ -451,6 +453,12 @@ void CPanel::readCommittedContents(const std::function<void(const QString&, cons
 		return;
 
 	fn(_currentDirObject.fullAbsolutePath(), _items);
+}
+
+uint64_t CPanel::navigationId() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	return _navigationId;
 }
 
 bool CPanel::itemHashExists(const qulonglong hash) const
