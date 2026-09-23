@@ -57,7 +57,7 @@ void CFileComparisonPlugin::compareSelectedFiles()
 	}
 
 	const auto& otherItem = _proxy->currentItemForPanel(_proxy->otherPanel());
-	const auto fileName = currentItem.fullName();
+	const QString fileName = currentItem.fullName().toString();
 	const QString otherFilePath = otherItem.isFile() ? otherItem.fullAbsolutePath() : _proxy->currentFolderPathForPanel(_proxy->otherPanel()) + "/" + fileName;
 
 	const QString filePathA = currentItem.fullAbsolutePath();
