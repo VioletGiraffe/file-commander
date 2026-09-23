@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790171952071,
+  "lastUpdate": 1790176082588,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -24166,6 +24166,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (libs)",
             "value": 18664,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1449.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 240,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 826,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 419.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "06f6921ec7c5c19cffb1b9ac9d4ef9c65ee9f9db",
+          "message": "Tests use qtutils for its QString StringMaker declarations; all catch2 tests and benchamrks go through test_main.hpp",
+          "timestamp": "2026-09-23T18:00:43+03:00",
+          "tree_id": "0f19973f557914849923f49cd90dfffe5a81e710",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/06f6921ec7c5c19cffb1b9ac9d4ef9c65ee9f9db"
+        },
+        "date": 1790176079255,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19652,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18711,
             "unit": "LOC"
           },
           {
