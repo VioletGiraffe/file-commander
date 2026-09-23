@@ -60,7 +60,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-14, windows-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14, windows-latest]
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: 1 # The runners have no FUSE
 
     steps:
     - name: Checkout
@@ -161,31 +163,35 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test  # jammy ships nothing newer than gcc-12
-        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libfuse2
+        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*'
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -j$(nproc)
 
-    # linuxdeployqt 7 has no aarch64 build
     - name: Linux - building AppImage
-      if: startsWith(matrix.os, 'ubuntu') && runner.arch != 'ARM64'
+      if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        export QT_DEBUG_PLUGINS=1
-        export PATH=$QT_ROOT_DIR/bin/:$PATH
-        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
-        chmod a+x linuxdeployqt-7-x86_64.AppImage
-        unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-        cp ./qt-app/resources/icon.png ./bin/release/
-        cp ./installer/linux/file_commander.desktop ./bin/release/
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${QT_ROOT_DIR}/lib/
-        sudo ldconfig
-        ./linuxdeployqt-7-x86_64.AppImage ./bin/release/FileCommander -appimage -unsupported-allow-new-glibc -bundle-non-qt-libs -qmake=$QT_ROOT_DIR/bin/qmake -extra-plugins=platforms/,iconengines/,imageformats/,tls/,networkinformation/,platformthemes/,wayland-decoration-client/,wayland-graphics-integration-client/,wayland-shell-integration -executable=./bin/release/libplugin_filecomparison.so.1.0.0 -executable=./bin/release/libplugin_imageviewer.so.1.0.0 -executable=./bin/release/libplugin_textviewer.so.1.0.0 -executable=./bin/release/libplugin_csvviewer.so.1.0.0
-        ls -Ac
-        mv ./File_Commander*.AppImage ./FileCommander.AppImage
+        arch=$(uname -m)
+        for tool in linuxdeploy linuxdeploy-plugin-qt linuxdeploy-plugin-appimage; do
+          wget -nv "https://github.com/linuxdeploy/$tool/releases/download/continuous/$tool-$arch.AppImage"
+          chmod a+x "$tool-$arch.AppImage"
+        done
+        # CPluginEngine looks for the plugins in the executable's directory
+        mkdir -p AppDir/usr/bin
+        cp ./bin/release/libplugin_*.so.1.0.0 AppDir/usr/bin/
+        export QMAKE=$QT_ROOT_DIR/bin/qmake
+        # Modules the app does not link: svg for the SVG icon engine, waylandcompositor for the Wayland client plugins
+        export EXTRA_QT_MODULES='svg;waylandcompositor'
+        export EXTRA_PLATFORM_PLUGINS=$(find "$QT_ROOT_DIR/plugins/platforms" -name 'libqwayland*.so' -printf '%f;')
+        export DEPLOY_PLATFORM_THEMES=1
+        # The x86_64 file is the release asset
+        if [ "$arch" = x86_64 ]; then export LDAI_OUTPUT=FileCommander.AppImage; else export LDAI_OUTPUT=FileCommander-$arch.AppImage; fi
+        ./linuxdeploy-$arch.AppImage --appdir AppDir --executable ./bin/release/FileCommander --deploy-deps-only AppDir/usr/bin \
+          --desktop-file ./installer/linux/file_commander.desktop --icon-file ./qt-app/resources/icon.png --plugin qt --output appimage
+        echo "APPIMAGE_FILE=$LDAI_OUTPUT" >> "$GITHUB_ENV"
 
     - name: Binary sizes - Windows
       if: startsWith(matrix.os, 'windows')
@@ -281,7 +287,9 @@ jobs:
     - name: Test launch
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        xvfb-run --auto-servernum ./bin/release/FileCommander --test-launch
+        # The Qt install's paths would hide libraries and plugins missing from the AppImage
+        unset LD_LIBRARY_PATH QT_PLUGIN_PATH
+        xvfb-run --auto-servernum "./$APPIMAGE_FILE" --test-launch
 
     - name: Test launch
       if: startsWith(matrix.os, 'windows')
@@ -297,11 +305,11 @@ jobs:
         if-no-files-found: error
 
     - name: Archive AppImage
-      if: success() && startsWith(matrix.os, 'ubuntu') && runner.arch != 'ARM64'
+      if: success() && startsWith(matrix.os, 'ubuntu')
       uses: actions/upload-artifact@v7
       with:
-        name: FileCommander.AppImage
-        path: FileCommander.AppImage
+        name: ${{ env.APPIMAGE_FILE }}
+        path: ${{ env.APPIMAGE_FILE }}
         if-no-files-found: error
 
     - name: Archive Installer
@@ -320,7 +328,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-14, windows-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14, windows-latest]
 
     steps:
     - name: Checkout
@@ -370,7 +378,6 @@ jobs:
     - name: Linux - install build dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test  # jammy ships nothing newer than gcc-12
         sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*'
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
