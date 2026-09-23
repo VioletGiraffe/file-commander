@@ -2,6 +2,8 @@
 
 #include "panel/filelistwidget/model/cfilelistmodel.h"
 
+#include "cfilesystemobject.h"
+
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
@@ -15,36 +17,42 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <time.h>
 
-inline FileListRow makeRow(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
+// An entry of /folder/; a test that changes it before listing keeps the properties, the others use makeRow()
+inline CFileSystemObjectProperties rowProperties(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
 {
-	FileListRow row;
-	row.type = type;
-	row.name = name;
-	row.extension = extension;
-	row.fullName = extension.isEmpty() ? name : name + '.' + extension;
-	row.fullPath = QStringLiteral("/folder/") + row.fullName + (type == Directory ? QStringLiteral("/") : QString{});
-	row.hash = pathHash(row.fullPath);
-	row.size = size;
-	row.modificationTime = modificationTime;
-	return row;
+	CFileSystemObjectProperties properties;
+	properties.type = type;
+	const QString fullName = extension.isEmpty() ? name : name + '.' + extension;
+	properties.fullPath = QStringLiteral("/folder/") + fullName + (type == Directory ? QStringLiteral("/") : QString{});
+	properties.size = size;
+	properties.modificationTime = modificationTime;
+	return properties;
 }
 
-inline FileListRow makeCdUpRow()
+inline CFileSystemObject makeRow(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
 {
-	FileListRow row;
-	row.type = Directory;
-	row.fullName = QStringLiteral("..");
-	row.fullPath = QStringLiteral("/");
-	row.hash = pathHash(row.fullPath);
-	row.isCdUp = true;
-	return row;
+	return CFileSystemObject{ rowProperties(type, name, extension, size, modificationTime) };
+}
+
+inline CFileSystemObjectProperties cdUpRowProperties()
+{
+	CFileSystemObjectProperties properties;
+	properties.type = Directory;
+	properties.fullPath = QStringLiteral("/");
+	properties.isCdUp = true;
+	return properties;
+}
+
+inline CFileSystemObject makeCdUpRow()
+{
+	return CFileSystemObject{ cdUpRowProperties() };
 }
 
 inline QStringList displayedNames(const CFileListModel& model)
 {
 	QStringList names;
 	for (int row = 0; row < model.rowCount(); ++row)
-		names.push_back(model.rowAt(row).fullName);
+		names.push_back(model.rowAt(row).fullName().toString());
 	return names;
 }
 

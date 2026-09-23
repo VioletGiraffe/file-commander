@@ -967,7 +967,7 @@ std::vector<CFileSystemObject> CController::items(Panel p, const std::vector<qul
 
 QString CController::itemPath(Panel p, qulonglong hash) const
 {
-	return panel(p).itemByHash(hash).properties().fullPath;
+	return panel(p).itemByHash(hash).fullAbsolutePath();
 }
 
 std::vector<VolumeInfo> CController::volumes() const

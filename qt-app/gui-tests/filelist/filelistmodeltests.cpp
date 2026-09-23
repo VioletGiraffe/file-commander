@@ -47,11 +47,11 @@ TEST_CASE("Each column sorts by its own key", "[filelist][sort]")
 		CHECK(displayedNames(model) == QStringList{ "file1", "file2", "file10" });
 	}
 
-	SECTION("Extension, then name; a dotfile has none")
+	SECTION("Extension, then name; no extension sorts first")
 	{
-		model.setRows({ makeRow(File, "b", "txt"), makeRow(File, "c", "doc"), makeRow(File, ".bashrc"), makeRow(File, "a", "doc") });
+		model.setRows({ makeRow(File, "b", "txt"), makeRow(File, "c", "doc"), makeRow(File, "Makefile"), makeRow(File, "a", "doc") });
 		model.sort(ExtColumn, Qt::AscendingOrder);
-		CHECK(displayedNames(model) == QStringList{ ".bashrc", "a.doc", "c.doc", "b.txt" });
+		CHECK(displayedNames(model) == QStringList{ "Makefile", "a.doc", "c.doc", "b.txt" });
 	}
 
 	SECTION("Folders by name in the extension column")
@@ -96,6 +96,8 @@ TEST_CASE("Numbers in names sort by value in the C locale too", "[filelist][sort
 	CHECK(names == QStringList{ "file1", "file2", "file10" });
 }
 
+// Only Windows splits a leading dot off as an extension
+#ifdef _WIN32
 TEST_CASE("A file with nothing before its extension displays its full name", "[filelist]")
 {
 	TestedModel tested;
@@ -117,6 +119,7 @@ TEST_CASE("A file with nothing before its extension displays its full name", "[f
 	CHECK(model.data(notes.siblingAtColumn(ExtColumn), Qt::DisplayRole).toString() == "txt");
 	CHECK(model.data(unnamed, Qt::EditRole).toString() == ".jpg");
 }
+#endif
 
 TEST_CASE("The name filter hides the rows whose full name doesn't match", "[filelist][filter]")
 {
@@ -184,11 +187,11 @@ TEST_CASE("Rows are found by hash and by kind", "[filelist]")
 	model.setRows({ makeRow(File, "x", "txt", 7u), makeCdUpRow(), makeRow(Directory, "b", "", 100u), makeRow(Directory, "a"), makeRow(File, "y", "", 3u) });
 	model.sort(NameColumn, Qt::DescendingOrder);
 	CHECK(model.firstFileRow() == 3);
-	CHECK(model.rowAt(model.firstFileRow()).fullName == "y");
+	CHECK(model.rowAt(model.firstFileRow()).fullName() == "y");
 
 	const QModelIndex x = model.indexByHash(pathHash("/folder/x.txt"));
 	REQUIRE(x.isValid());
-	CHECK(model.rowAt(x).fullName == "x.txt");
+	CHECK(model.rowAt(x).fullName() == "x.txt");
 	CHECK(model.itemHash(x) == pathHash("/folder/x.txt"));
 	CHECK(!model.indexByHash(pathHash("/folder/missing")).isValid());
 	CHECK(model.itemHash(QModelIndex{}) == 0u);
@@ -202,28 +205,4 @@ TEST_CASE("Rows are found by hash and by kind", "[filelist]")
 	std::unique_ptr<QMimeData> mime{ model.mimeData({ x }) };
 	REQUIRE(mime->urls().size() == 1);
 	CHECK(mime->urls().front().toLocalFile() == "/folder/x.txt");
-}
-
-TEST_CASE("A row copies what it shows from its object", "[filelist]")
-{
-	CFileSystemObjectProperties properties;
-	properties.fullPath = QStringLiteral("/folder/report.final.txt");
-	properties.fullName = QStringLiteral("report.final.txt");
-	properties.completeBaseName = QStringLiteral("report.final");
-	properties.extension = QStringLiteral("txt");
-	properties.type = File;
-	properties.exists = true;
-	properties.size = 42u;
-	properties.modificationTime = 1000;
-
-	const FileListRow row = FileListRow::fromObject(CFileSystemObject{ properties });
-	CHECK(row.fullPath == properties.fullPath);
-	CHECK(row.fullName == properties.fullName);
-	CHECK(row.name == properties.completeBaseName);
-	CHECK(row.extension == properties.extension);
-	CHECK(row.hash == pathHash(properties.fullPath));
-	CHECK(row.size == 42u);
-	CHECK(row.modificationTime == 1000);
-	CHECK(row.type == File);
-	CHECK(!row.isCdUp);
 }

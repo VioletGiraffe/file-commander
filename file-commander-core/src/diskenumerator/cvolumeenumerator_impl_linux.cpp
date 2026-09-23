@@ -87,7 +87,7 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 
 			auto& info = volumes.emplace_back();
 			info.rootObjectInfo = isRoot ? mountPoint : mountPoint + '/';
-			info.volumeLabel = isRoot ? QStringLiteral("root") : info.rootObjectInfo.fullName();
+			info.volumeLabel = isRoot ? QStringLiteral("root") : info.rootObjectInfo.fullName().toString();
 			info.fileSystemName = fsType.toUpper();
 		}
 

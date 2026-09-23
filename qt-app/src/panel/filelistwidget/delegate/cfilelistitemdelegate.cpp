@@ -26,7 +26,7 @@ QWidget* CFileListItemDelegate::createEditor(QWidget* parent, const QStyleOption
 	auto* model = dynamic_cast<const CFileListModel*>(index.model());
 	assert_and_return_message_r(model, "Something has changed in the model hierarchy", editor);
 
-	if (model->rowAt(index).type == File)
+	if (model->rowAt(index).type() == File)
 	{
 		const QString itemName = lineEditor->text();
 		const auto dot = static_cast<int>(itemName.lastIndexOf('.'));

@@ -273,6 +273,9 @@ TEST_CASE("The [..] entry is the parent folder, and a root has none", "[CFileSys
 	const auto cdUp = CFileSystemObject::cdUpEntryOf(folder);
 	REQUIRE(cdUp);
 	CHECK(cdUp->isCdUp());
+	CHECK(cdUp->fullName() == "..");
+	CHECK(cdUp->name() == "..");
+	CHECK(cdUp->extension().isEmpty());
 	CHECK(cdUp->exists());
 	CHECK(cdUp->type() == Directory);
 	CHECK(cdUp->fullAbsolutePath() == parentPath());
@@ -290,9 +293,6 @@ TEST_CASE("An object built from its properties reports all of them", "[CFileSyst
 {
 	CFileSystemObjectProperties properties;
 	properties.fullPath = parentPath() + "tool.exe";
-	properties.fullName = "tool.exe";
-	properties.completeBaseName = "tool";
-	properties.extension = "exe";
 	properties.type = File;
 	properties.exists = true;
 	properties.isHidden = true;
@@ -300,6 +300,9 @@ TEST_CASE("An object built from its properties reports all of them", "[CFileSyst
 	properties.hash = 1; // Replaced by the path's hash
 
 	const CFileSystemObject object{ properties };
+	CHECK(object.fullName() == "tool.exe");
+	CHECK(object.name() == "tool");
+	CHECK(object.extension() == "exe");
 	CHECK(object.isHidden());
 	CHECK(object.isExecutable());
 	CHECK(object.hash() == pathHash(properties.fullPath));

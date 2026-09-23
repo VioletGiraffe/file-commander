@@ -248,6 +248,7 @@ TEST_CASE("A filesystem root is its own path and has no parent", "[CFileSystemOb
 	const CFileSystemObject root{ QDir::rootPath() };
 	REQUIRE(root.isDir());
 	CHECK(root.fullAbsolutePath().endsWith('/'));
+	CHECK(root.fullName().isEmpty());
 	CHECK(root.parentDirPath().isEmpty()); // What stops navigateUp() at the top of a volume
 	CHECK_FALSE(root.isHidden()); // A Windows drive root reports the hidden attribute
 
@@ -536,9 +537,6 @@ TEST_CASE("An object built from its properties reports them", "[CFileSystemObjec
 
 	CFileSystemObjectProperties fileProperties;
 	fileProperties.fullPath = tempDir.path() + "/report.final.txt"; // Never created
-	fileProperties.fullName = "report.final.txt";
-	fileProperties.completeBaseName = "report.final";
-	fileProperties.extension = "txt";
 	fileProperties.type = File;
 	fileProperties.exists = true;
 	fileProperties.size = 12345u;
@@ -560,8 +558,6 @@ TEST_CASE("An object built from its properties reports them", "[CFileSystemObjec
 
 	CFileSystemObjectProperties folderProperties;
 	folderProperties.fullPath = tempDir.path() + "/folder/";
-	folderProperties.fullName = "folder";
-	folderProperties.completeBaseName = "folder";
 	folderProperties.type = Directory;
 	folderProperties.exists = true;
 

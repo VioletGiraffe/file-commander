@@ -401,12 +401,12 @@ void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& index, bool activate)
 	if (!index.isValid())
 		return;
 
-	const FileListRow& row = _model->rowAt(index);
+	const CFileSystemObject& row = _model->rowAt(index);
 	if (!row.isDir())
 		return;
 
 	// For [..] this opens the parent folder ('..' is cleaned out of the path by QFileInfo)
-	openPathInNewTab(row.fullPath, activate, viewStateOfTab(_activeTab));
+	openPathInNewTab(row.fullAbsolutePath(), activate, viewStateOfTab(_activeTab));
 }
 
 void CPanelWidget::openPathInNewTab(const QString& path, bool activate, const TabViewState& viewState)
@@ -661,13 +661,13 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 	const qulonglong previousCurrentHash = _model->itemHash(previousCurrentIndex);
 
 	const CPanel& panel = _controller->panel(_panelPosition);
-	std::vector<FileListRow> rows;
+	std::vector<CFileSystemObject> rows;
 	bool listed = false;
 	panel.readCommittedContents([&rows, &listed](const QString& /*folder*/, const FileListHashMap& items) {
 		listed = true;
 		rows.reserve(items.size());
 		for (const auto& item : items)
-			rows.push_back(FileListRow::fromObject(item.second));
+			rows.push_back(item.second);
 	});
 
 	PanelTab& tab = _tabs[(size_t)_activeTab];
@@ -734,9 +734,9 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 	std::vector<std::pair<qulonglong, QString>> previousSelection;
 	for (const QModelIndex& selectedIndex : _selectionModel->selectedRows())
 	{
-		const FileListRow& row = _model->rowAt(selectedIndex);
-		if (!row.isCdUp)
-			previousSelection.emplace_back(row.hash, row.fullPath);
+		const CFileSystemObject& row = _model->rowAt(selectedIndex);
+		if (!row.isCdUp())
+			previousSelection.emplace_back(row.hash(), row.fullAbsolutePath());
 	}
 
 	// Without a reset, the selection stays on its rows
@@ -747,7 +747,7 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 		for (const auto& [hash, path] : previousSelection)
 		{
 			const QModelIndex index = _model->indexByHash(hash);
-			if (index.isValid() && _model->rowAt(index).fullPath == path)
+			if (index.isValid() && _model->rowAt(index).fullAbsolutePath() == path)
 				selection.select(index, index);
 		}
 
@@ -837,7 +837,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 	{
 		for (int row = range.top(); row <= range.bottom(); ++row)
 		{
-			if (_model->rowAt(row).isCdUp)
+			if (_model->rowAt(row).isCdUp())
 			{
 				_selectionModel->select(_model->index(row, 0), QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
 				break;
@@ -908,7 +908,7 @@ void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 
 	if (result.status != InlineRenameStatus::Renamed && result.status != InlineRenameStatus::NothingToDo)
 	{
-		reportFailedRename(result, item.fullName(), newName);
+		reportFailedRename(result, item.fullName().toString(), newName);
 		return;
 	}
 
@@ -1223,13 +1223,13 @@ void CPanelWidget::updateInfoLabel()
 
 	for (const QModelIndex& index : selectedItemIndexes())
 	{
-		const FileListRow& row = _model->rowAt(index);
-		if (row.type == File)
+		const CFileSystemObject& row = _model->rowAt(index);
+		if (row.type() == File)
 			++numFilesSelected;
 		else if (row.isDir())
 			++numFoldersSelected;
 
-		sizeSelected += row.size;
+		sizeSelected += row.size();
 	}
 
 	ui->_infoLabel->setText(tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(numFilesSelected).arg(total.numFiles).
@@ -1371,8 +1371,8 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 			return true;
 		}
 
-		const FileListRow& row = _model->rowAt(index);
-		const QString toolTip = row.fullName % "\n\n" % QString::fromStdWString(OsShell::toolTip(row.fullPath.toStdWString()));
+		const CFileSystemObject& row = _model->rowAt(index);
+		const QString toolTip = row.fullName() % "\n\n" % QString::fromStdWString(OsShell::toolTip(row.fullAbsolutePath().toStdWString()));
 		QToolTip::showText(helpEvent->globalPos(), toolTip, ui->_list->viewport(), ui->_list->visualRect(index));
 		return true;
 	}
@@ -1494,7 +1494,7 @@ QModelIndexList CPanelWidget::selectedItemIndexes(bool onlyHighlightedItems /* =
 	if (indexes.empty() && !onlyHighlightedItems && _selectionModel->currentIndex().isValid())
 		indexes.push_back(_selectionModel->currentIndex());
 
-	indexes.removeIf([this](const QModelIndex& index) { return _model->rowAt(index).isCdUp; });
+	indexes.removeIf([this](const QModelIndex& index) { return _model->rowAt(index).isCdUp(); });
 	return indexes;
 }
 
@@ -1523,9 +1523,9 @@ void CPanelWidget::copySelectedItemsPathsToClipboard() const
 	QString paths;
 	for (const auto& index : std::as_const(selection))
 	{
-		const FileListRow& row = _model->rowAt(index);
-		if (!row.isCdUp)
-			paths += shellQuotedPath(toNativeSeparators(row.fullPath)) + '\n';
+		const CFileSystemObject& row = _model->rowAt(index);
+		if (!row.isCdUp())
+			paths += shellQuotedPath(toNativeSeparators(row.fullAbsolutePath())) + '\n';
 	}
 
 	if (!paths.isEmpty())

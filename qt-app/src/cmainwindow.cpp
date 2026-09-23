@@ -676,7 +676,7 @@ void CMainWindow::createFolder()
 		return;
 
 	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
-	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
+	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName().toString() : QString();
 
 	QInputDialog dialog(this);
 	dialog.setWindowIcon(QFileIconProvider().icon(QFileIconProvider::Folder));
@@ -708,7 +708,7 @@ void CMainWindow::createFile()
 		return;
 
 	const auto currentItem = _currentFileList->currentItemHash() != 0 ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()) : CFileSystemObject();
-	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName() : QString();
+	const QString currentItemName = !currentItem.isCdUp() ? currentItem.fullName().toString() : QString();
 
 	QInputDialog dialog(this);
 	dialog.setWindowIcon(QFileIconProvider().icon(QFileIconProvider::File));
@@ -910,7 +910,7 @@ void CMainWindow::appendCurrentItemToCommandLine(bool fullPath)
 	if (!text.isEmpty())
 		text += ' ';
 
-	text += shellQuotedPath(fullPath ? toNativeSeparators(item.fullAbsolutePath()) : item.fullName());
+	text += shellQuotedPath(fullPath ? toNativeSeparators(item.fullAbsolutePath()) : item.fullName().toString());
 	lineEdit->setText(text);
 }
 

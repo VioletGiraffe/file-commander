@@ -17,33 +17,10 @@ RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 #include <stdint.h>
-#include <time.h>
 #include <vector>
 
 enum Role {
 	FullNameRole = Qt::UserRole+1
-};
-
-// One entry of the list: the fields it displays and sorts by, copied from its CFileSystemObject
-struct FileListRow
-{
-	[[nodiscard]] static FileListRow fromObject(const CFileSystemObject& object);
-
-	[[nodiscard]] bool isFileOrBundle() const noexcept { return type == File || type == Bundle; }
-	[[nodiscard]] bool isDir() const noexcept { return type == Directory || type == Bundle; }
-
-	// A file with nothing before its extension, like .jpg on Windows, displays and sorts by its full name
-	[[nodiscard]] const QString& displayName() const noexcept;
-
-	QString fullPath;
-	QString fullName; // Name and extension
-	QString name;
-	QString extension;
-	qulonglong hash = 0;
-	uint64_t size = 0;
-	time_t modificationTime = 0;
-	FileSystemObjectType type = UnknownType;
-	bool isCdUp = false;
 };
 
 struct FolderContentsSummary {
@@ -68,10 +45,10 @@ public:
 	void setDropHandler(DropHandler handler);
 
 	// Resets the model
-	void setRows(std::vector<FileListRow> rows);
+	void setRows(std::vector<CFileSystemObject> rows);
 	// Removes, inserts, moves and changes single rows until the rows match 'rows', so every persistent index (selection, cursor, an open editor)
 	// stays on its row. Returns false if it reset the model instead: past a number of changes, one reset is cheaper.
-	bool updateRows(std::vector<FileListRow> rows);
+	bool updateRows(std::vector<CFileSystemObject> rows);
 	// Hides the rows whose full name does not match; the wildcard is unanchored and case-insensitive. Empty shows every row.
 	void setNameFilter(const QString& wildcard);
 
@@ -79,8 +56,8 @@ public:
 	[[nodiscard]] int sortColumn() const noexcept;
 	[[nodiscard]] Qt::SortOrder sortOrder() const noexcept;
 
-	[[nodiscard]] const FileListRow& rowAt(int row) const;
-	[[nodiscard]] const FileListRow& rowAt(const QModelIndex& index) const;
+	[[nodiscard]] const CFileSystemObject& rowAt(int row) const;
+	[[nodiscard]] const CFileSystemObject& rowAt(const QModelIndex& index) const;
 	[[nodiscard]] qulonglong itemHash(const QModelIndex& index) const; // 0 for an invalid index
 	[[nodiscard]] QModelIndex indexByHash(qulonglong hash) const; // Invalid if no row has it, or the filter hides it
 	// The topmost row holding a file (folders always sort above files), or -1 if there are no files
@@ -115,18 +92,18 @@ signals:
 	void sorted();
 
 private:
-	[[nodiscard]] bool rowLessThan(const FileListRow& l, const FileListRow& r) const;
-	[[nodiscard]] bool passesNameFilter(const FileListRow& row) const;
+	[[nodiscard]] bool rowLessThan(const CFileSystemObject& l, const CFileSystemObject& r) const;
+	[[nodiscard]] bool passesNameFilter(const CFileSystemObject& row) const;
 	[[nodiscard]] std::vector<uint32_t> displayedRowsInOrder() const;
 	// Where 'row' sorts among the displayed rows other than 'displayRow', as the destination of moving displayRow
-	[[nodiscard]] int moveDestination(const FileListRow& row, int displayRow) const;
+	[[nodiscard]] int moveDestination(const CFileSystemObject& row, int displayRow) const;
 	void rebuildDisplayRowByHash() const;
 	void updateContentsSummary();
 	// Re-filters and re-sorts; every persistent index (selection, cursor, editor) follows its row or is dropped with it
 	void relayout(QAbstractItemModel::LayoutChangeHint hint);
 
 private:
-	std::vector<FileListRow> _rows;
+	std::vector<CFileSystemObject> _rows;
 	// Indices into _rows: the rows the filter lets through, in display order
 	std::vector<uint32_t> _displayedRows;
 	// Rebuilt by the first lookup after _displayedRows changes: updateRows() changes it once per single-row change

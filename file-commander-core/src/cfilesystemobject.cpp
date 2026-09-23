@@ -87,11 +87,10 @@ CFileSystemObject::CFileSystemObject(const QString& path)
 
 	const QString expandedPath = expandEnvironmentVariables(path);
 	QString absolutePath = normalizedAbsolutePath(expandedPath);
-	QString fullName = absolutePath.mid(absolutePath.lastIndexOf('/') + 1);
 
 	if (const auto entry = getDirectoryEntry(absolutePath))
 	{
-		loadProperties(std::move(absolutePath), std::move(fullName), *entry);
+		loadProperties(std::move(absolutePath), *entry);
 		// Explorer and Qt ignore the hidden attribute a drive root reports
 		if (entry->name.empty())
 			_properties.isHidden = false;
@@ -101,25 +100,22 @@ CFileSystemObject::CFileSystemObject(const QString& path)
 
 	// Nothing to inspect: the spelling is the only classification
 	_properties.fullPath = std::move(absolutePath);
-	_properties.fullName = std::move(fullName);
 	if (expandedPath.endsWith('/') || expandedPath.endsWith(nativeSeparator()))
 	{
 		_properties.type = Directory;
-		_properties.completeBaseName = _properties.fullName;
 		if (!_properties.fullPath.endsWith('/'))
 			_properties.fullPath.append('/');
 	}
 
 	_properties.hash = pathHash(_properties.fullPath);
+	locateNameAndExtension();
 }
 
 CFileSystemObject::CFileSystemObject(const QString& parentPath, const thin_io::directory_entry& entry)
 {
 	assert_debug_only(parentPath.endsWith('/'));
 
-	QString fullName = nativeNameToQString(entry.name);
-	QString fullPath = parentPath % fullName;
-	loadProperties(std::move(fullPath), std::move(fullName), entry);
+	loadProperties(parentPath % nativeNameToQString(entry.name), entry);
 }
 
 uint64_t pathHash(const QString& fullAbsolutePath)
@@ -131,6 +127,7 @@ CFileSystemObject::CFileSystemObject(CFileSystemObjectProperties properties) : _
 {
 	assert_r(_properties.type != Directory || _properties.fullPath.endsWith('/'));
 	_properties.hash = pathHash(_properties.fullPath);
+	locateNameAndExtension();
 }
 
 static QString parentForAbsolutePath(QString absolutePath)
@@ -159,9 +156,9 @@ std::optional<CFileSystemObject> CFileSystemObject::cdUpEntryOf(const QString& d
 
 	CFileSystemObjectProperties properties;
 	properties.fullPath = parentForAbsolutePath(dirPath);
-	properties.fullName = properties.completeBaseName = QStringLiteral("..");
 	properties.type = Directory;
 	properties.exists = true;
+	properties.isCdUp = true;
 	return CFileSystemObject{ std::move(properties) };
 }
 
@@ -175,22 +172,33 @@ static constexpr qsizetype FirstExtensionDotIndex =
 	1;
 #endif
 
-// A trailing dot starts no extension
-static void splitFileName(CFileSystemObjectProperties& properties)
+// A directory's trailing separator is not part of its name
+[[nodiscard]] static qsizetype nameEndIn(const QString& fullPath) noexcept
 {
-	const qsizetype lastDot = properties.fullName.lastIndexOf('.');
-	if (lastDot < FirstExtensionDotIndex || lastDot == properties.fullName.size() - 1)
-	{
-		properties.completeBaseName = properties.fullName;
-		return;
-	}
+	return fullPath.endsWith('/') ? fullPath.size() - 1 : fullPath.size();
+}
 
-	properties.completeBaseName = properties.fullName.left(lastDot);
-	properties.extension = properties.fullName.mid(lastDot + 1);
+void CFileSystemObject::locateNameAndExtension()
+{
+	const QStringView fullPath{ _properties.fullPath };
+	const qsizetype nameEnd = nameEndIn(_properties.fullPath);
+	const qsizetype lastSlash = fullPath.first(nameEnd).lastIndexOf('/');
+	// No separator before the name's end: a root, which has no name
+	const qsizetype nameStart = lastSlash < 0 ? nameEnd : lastSlash + 1;
+	_nameStart = static_cast<uint32_t>(nameStart);
+	_extensionDot = static_cast<uint32_t>(nameEnd);
+	if (_properties.type == Directory)
+		return;
+
+	const QStringView fullName = fullPath.sliced(nameStart, nameEnd - nameStart);
+	const qsizetype lastDot = fullName.lastIndexOf('.');
+	// A trailing dot starts no extension
+	if (lastDot >= FirstExtensionDotIndex && lastDot != fullName.size() - 1)
+		_extensionDot = static_cast<uint32_t>(nameStart + lastDot);
 }
 
 #ifdef _WIN32
-[[nodiscard]] static bool hasExecutableExtension(const QString& extension)
+[[nodiscard]] static bool hasExecutableExtension(const QStringView extension)
 {
 	static constexpr QLatin1StringView ExecutableExtensions[]{ QLatin1StringView{ "exe" }, QLatin1StringView{ "com" }, QLatin1StringView{ "bat" }, QLatin1StringView{ "cmd" } };
 	return std::any_of(std::begin(ExecutableExtensions), std::end(ExecutableExtensions), [&extension](const QLatin1StringView executableExtension) {
@@ -199,7 +207,7 @@ static void splitFileName(CFileSystemObjectProperties& properties)
 }
 #endif
 
-void CFileSystemObject::loadProperties(QString fullPath, QString fullName, const thin_io::directory_entry& entry)
+void CFileSystemObject::loadProperties(QString fullPath, const thin_io::directory_entry& entry)
 {
 	_properties.isLink = isLinkEntry(entry.attributes);
 	_properties.exists = true;
@@ -231,11 +239,7 @@ void CFileSystemObject::loadProperties(QString fullPath, QString fullName, const
 
 	_properties.fullPath = std::move(fullPath);
 	_properties.hash = pathHash(_properties.fullPath);
-	_properties.fullName = std::move(fullName);
-	if (_properties.type == Directory)
-		_properties.completeBaseName = _properties.fullName;
-	else
-		splitFileName(_properties);
+	locateNameAndExtension();
 
 	_properties.size = _properties.type == File ? described.logical_size.value_or(0) : 0;
 	_properties.creationTime = static_cast<time_t>(described.times.creation.seconds);
@@ -243,9 +247,9 @@ void CFileSystemObject::loadProperties(QString fullPath, QString fullName, const
 
 #ifdef _WIN32
 	_properties.isHidden = entry.attributes.hidden;
-	_properties.isExecutable = _properties.type == File && hasExecutableExtension(_properties.extension);
+	_properties.isExecutable = _properties.type == File && hasExecutableExtension(extension());
 #else
-	_properties.isHidden = entry.attributes.hidden || _properties.fullName.startsWith('.');
+	_properties.isHidden = entry.attributes.hidden || fullName().startsWith('.');
 	// A broken link's own mode grants nothing
 	const bool isBrokenLink = _properties.isLink && !linkTarget;
 	_properties.isExecutable = !isBrokenLink && described.permissions && (described.permissions->mode & 0111) != 0;
@@ -274,11 +278,6 @@ bool CFileSystemObject::exists() const
 	return _properties.exists;
 }
 
-const CFileSystemObjectProperties& CFileSystemObject::properties() const
-{
-	return _properties;
-}
-
 FileSystemObjectType CFileSystemObject::type() const
 {
 	return _properties.type;
@@ -301,7 +300,7 @@ bool CFileSystemObject::isBundle() const
 
 bool CFileSystemObject::isCdUp() const
 {
-	return _properties.fullName == QLatin1StringView("..", 2);
+	return _properties.isCdUp;
 }
 
 bool CFileSystemObject::isExecutable() const
@@ -408,35 +407,45 @@ void CFileSystemObject::setDirSize(uint64_t size)
 	_properties.size = size;
 }
 
-const QString& CFileSystemObject::name() const &
+QStringView CFileSystemObject::name() const &
 {
-	return _properties.completeBaseName;
+	if (_properties.isCdUp)
+		return u"..";
+
+	return QStringView{ _properties.fullPath }.sliced(_nameStart, _extensionDot - _nameStart);
 }
 
 QString CFileSystemObject::name() const &&
 {
-	return _properties.completeBaseName;
+	return name().toString();
 }
 
 // Filename + suffix for files, same as name() for folders
-const QString& CFileSystemObject::fullName() const &
+QStringView CFileSystemObject::fullName() const &
 {
-	return _properties.fullName;
+	if (_properties.isCdUp)
+		return u"..";
+
+	return QStringView{ _properties.fullPath }.sliced(_nameStart, nameEndIn(_properties.fullPath) - _nameStart);
 }
 
 QString CFileSystemObject::fullName() const &&
 {
-	return _properties.fullName;
+	return fullName().toString();
 }
 
-const QString& CFileSystemObject::extension() const &
+QStringView CFileSystemObject::extension() const &
 {
-	return _properties.extension;
+	const qsizetype nameEnd = nameEndIn(_properties.fullPath);
+	if (_extensionDot >= nameEnd)
+		return {};
+
+	return QStringView{ _properties.fullPath }.sliced(_extensionDot + 1, nameEnd - _extensionDot - 1);
 }
 
 QString CFileSystemObject::extension() const &&
 {
-	return _properties.extension;
+	return extension().toString();
 }
 
 // Return the list of consecutive full paths leading from the specified target to its root.

@@ -90,7 +90,7 @@ void CFileStatsWindow::fillFileList(const FileStatistics& stats)
 	for (const CFileSystemObject& file : stats.largestFiles)
 	{
 		auto* item = new CSortByDataTreeItem;
-		item->setText(columns::Name, file.fullName());
+		item->setText(columns::Name, file.fullName().toString());
 		item->setData(columns::Name, Qt::UserRole, file.fullAbsolutePath());
 
 		item->setText(columns::Size, fileSizeToString(file.size()));

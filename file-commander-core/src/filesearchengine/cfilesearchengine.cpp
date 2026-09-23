@@ -365,7 +365,7 @@ void CFileSearchEngine::searchThread(
 				{
 					for (const auto& regexp : filterExpressions)
 					{
-						if (regexp.match(item.fullName()).hasMatch())
+						if (regexp.matchView(item.fullName()).hasMatch())
 						{
 							nameMatches = true;
 							break;

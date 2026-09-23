@@ -21,53 +21,43 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <utility>
 
-FileListRow FileListRow::fromObject(const CFileSystemObject& object)
+[[nodiscard]] static bool isFileOrBundle(const CFileSystemObject& row) noexcept
 {
-	const CFileSystemObjectProperties& properties = object.properties();
-
-	FileListRow row;
-	row.fullPath = properties.fullPath;
-	row.fullName = properties.fullName;
-	row.name = properties.completeBaseName;
-	row.extension = properties.extension;
-	row.hash = properties.hash;
-	row.size = properties.size;
-	row.modificationTime = properties.modificationTime;
-	row.type = properties.type;
-	row.isCdUp = object.isCdUp();
-	return row;
+	return row.isFile() || row.isBundle();
 }
 
-const QString& FileListRow::displayName() const noexcept
+// A file with nothing before its extension, like .jpg on Windows, displays and sorts by its full name
+[[nodiscard]] static QStringView displayName(const CFileSystemObject& row) noexcept
 {
-	return name.isEmpty() && isFileOrBundle() ? fullName : name;
+	const QStringView name = row.name();
+	return name.isEmpty() && isFileOrBundle(row) ? row.fullName() : name;
 }
 
-static QVariant displayText(const FileListRow& row, int column)
+static QVariant displayText(const CFileSystemObject& row, int column)
 {
 	switch (column)
 	{
 	case NameColumn:
-		if (row.type == Directory)
-			return QString("[" % (row.isCdUp ? QLatin1String("..") : row.fullName) % "]");
+		if (row.type() == Directory)
+			return QString("[" % row.fullName() % "]");
 		else
-			return row.displayName();
+			return displayName(row).toString();
 
 	case ExtColumn:
-		if (!row.isCdUp && !row.extension.isEmpty())
-			return row.extension;
+		if (const QStringView extension = row.extension(); !extension.isEmpty())
+			return extension.toString();
 		else
 			return {};
 
 	case SizeColumn:
-		if (row.size > 0 || row.type == File)
-			return fileSizeToString(row.size);
+		if (row.size() > 0 || row.type() == File)
+			return fileSizeToString(row.size());
 		else
 			return {};
 
 	case DateColumn:
-		if (!row.isCdUp) [[likely]]
-			return fromTime_t(row.modificationTime).toString("dd.MM.yyyy hh:mm:ss");
+		if (!row.isCdUp()) [[likely]]
+			return fromTime_t(row.modificationTime()).toString("dd.MM.yyyy hh:mm:ss");
 		else
 			return {};
 
@@ -83,24 +73,24 @@ template <typename T>
 }
 
 // Ascending order by the column alone
-static int compareByColumn(const FileListRow& l, const FileListRow& r, int column)
+static int compareByColumn(const CFileSystemObject& l, const CFileSystemObject& r, int column)
 {
 	switch (column)
 	{
 	case NameColumn:
-		return NaturalSort::compare(l.displayName(), r.displayName());
+		return NaturalSort::compare(displayName(l), displayName(r));
 	case ExtColumn:
 		// Folders by name, files by extension, then name
-		if (l.isFileOrBundle())
+		if (isFileOrBundle(l))
 		{
-			if (const int byExtension = NaturalSort::compare(l.extension, r.extension); byExtension != 0)
+			if (const int byExtension = NaturalSort::compare(l.extension(), r.extension()); byExtension != 0)
 				return byExtension;
 		}
-		return NaturalSort::compare(l.displayName(), r.displayName());
+		return NaturalSort::compare(displayName(l), displayName(r));
 	case SizeColumn:
-		return compareValues(l.size, r.size);
+		return compareValues(l.size(), r.size());
 	case DateColumn:
-		return compareValues(l.modificationTime, r.modificationTime);
+		return compareValues(l.modificationTime(), r.modificationTime());
 	default:
 		assert_unconditional_r("Unhandled sort column");
 		return 0;
@@ -124,7 +114,7 @@ void CFileListModel::setDropHandler(DropHandler handler)
 	_dropHandler = std::move(handler);
 }
 
-void CFileListModel::setRows(std::vector<FileListRow> rows)
+void CFileListModel::setRows(std::vector<CFileSystemObject> rows)
 {
 	beginResetModel();
 
@@ -136,14 +126,14 @@ void CFileListModel::setRows(std::vector<FileListRow> rows)
 	endResetModel();
 }
 
-bool CFileListModel::updateRows(std::vector<FileListRow> rows)
+bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 {
 	const auto oldRowCount = (uint32_t)_rows.size();
 
 	ankerl::unordered_dense::map<qulonglong, uint32_t, IdentityHash> oldRowByHash;
 	oldRowByHash.reserve(oldRowCount);
 	for (uint32_t i = 0; i < oldRowCount; ++i)
-		oldRowByHash.emplace(_rows[i].hash, i);
+		oldRowByHash.emplace(_rows[i].hash(), i);
 
 	std::vector<int> displayRowOfOldRow(oldRowCount, -1);
 	for (int displayRow = 0, numDisplayed = (int)_displayedRows.size(); displayRow < numDisplayed; ++displayRow)
@@ -157,10 +147,10 @@ bool CFileListModel::updateRows(std::vector<FileListRow> rows)
 	size_t numDisplayedChanges = 0;
 	for (uint32_t i = 0, numRows = (uint32_t)rows.size(); i < numRows; ++i)
 	{
-		const FileListRow& row = rows[i];
-		const auto old = oldRowByHash.find(row.hash);
+		const CFileSystemObject& row = rows[i];
+		const auto old = oldRowByHash.find(row.hash());
 		// A hash collision is a different item
-		if (old == oldRowByHash.end() || _rows[old->second].fullPath != row.fullPath || _rows[old->second].isCdUp != row.isCdUp)
+		if (old == oldRowByHash.end() || _rows[old->second].fullAbsolutePath() != row.fullAbsolutePath() || _rows[old->second].isCdUp() != row.isCdUp())
 		{
 			addedRows.push_back(i);
 			numDisplayedChanges += passesNameFilter(row) ? 1 : 0;
@@ -168,8 +158,8 @@ bool CFileListModel::updateRows(std::vector<FileListRow> rows)
 		}
 
 		oldRowKept[old->second] = true;
-		const FileListRow& oldRow = _rows[old->second];
-		if (oldRow.size != row.size || oldRow.modificationTime != row.modificationTime || oldRow.type != row.type)
+		const CFileSystemObject& oldRow = _rows[old->second];
+		if (oldRow.size() != row.size() || oldRow.modificationTime() != row.modificationTime() || oldRow.type() != row.type())
 		{
 			changedRows.emplace_back(old->second, i);
 			numDisplayedChanges += displayRowOfOldRow[old->second] >= 0 ? 1 : 0;
@@ -187,7 +177,7 @@ bool CFileListModel::updateRows(std::vector<FileListRow> rows)
 
 	for (const auto& [oldRowIndex, newRowIndex] : changedRows)
 	{
-		FileListRow& newRow = rows[newRowIndex];
+		CFileSystemObject& newRow = rows[newRowIndex];
 		int displayRow = displayRowOfOldRow[oldRowIndex];
 		if (displayRow < 0)
 		{
@@ -257,7 +247,7 @@ bool CFileListModel::updateRows(std::vector<FileListRow> rows)
 
 	for (size_t runBegin = 0, numInserted = insertedRows.size(); runBegin < numInserted;)
 	{
-		const FileListRow& firstInRun = _rows[insertedRows[runBegin]];
+		const CFileSystemObject& firstInRun = _rows[insertedRows[runBegin]];
 		const auto position = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [&](uint32_t rowIndex) {
 			return rowLessThan(_rows[rowIndex], firstInRun);
 		});
@@ -333,13 +323,13 @@ Qt::SortOrder CFileListModel::sortOrder() const noexcept
 	return _sortOrder;
 }
 
-const FileListRow& CFileListModel::rowAt(int row) const
+const CFileSystemObject& CFileListModel::rowAt(int row) const
 {
 	assert_debug_only(row >= 0 && row < (int)_displayedRows.size());
 	return _rows[_displayedRows[(size_t)row]];
 }
 
-const FileListRow& CFileListModel::rowAt(const QModelIndex& index) const
+const CFileSystemObject& CFileListModel::rowAt(const QModelIndex& index) const
 {
 	assert_debug_only(index.isValid());
 	return rowAt(index.row());
@@ -347,7 +337,7 @@ const FileListRow& CFileListModel::rowAt(const QModelIndex& index) const
 
 qulonglong CFileListModel::itemHash(const QModelIndex& index) const
 {
-	return index.isValid() ? rowAt(index.row()).hash : 0;
+	return index.isValid() ? rowAt(index.row()).hash() : 0;
 }
 
 QModelIndex CFileListModel::indexByHash(qulonglong hash) const
@@ -362,7 +352,7 @@ QModelIndex CFileListModel::indexByHash(qulonglong hash) const
 int CFileListModel::firstFileRow() const
 {
 	const auto firstFile = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [this](uint32_t rowIndex) {
-		return !_rows[rowIndex].isFileOrBundle();
+		return !isFileOrBundle(_rows[rowIndex]);
 	});
 
 	return firstFile != _displayedRows.cend() ? (int)(firstFile - _displayedRows.cbegin()) : -1;
@@ -425,18 +415,18 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 	if (!index.isValid())
 		return {};
 
-	const FileListRow& row = rowAt(index.row());
+	const CFileSystemObject& row = rowAt(index.row());
 
 	switch (role)
 	{
 	case Qt::EditRole: [[fallthrough]];
 	case FullNameRole:
-		return row.fullName;
+		return row.fullName().toString();
 	case Qt::DisplayRole:
 		return displayText(row, index.column());
 	case Qt::DecorationRole:
-		if (_iconProvider && index.column() == NameColumn && !row.isCdUp)
-			return _iconProvider->bestAvailableIconFor(row.extension, row.isDir(), row.fullPath, row.modificationTime);
+		if (_iconProvider && index.column() == NameColumn && !row.isCdUp())
+			return _iconProvider->bestAvailableIconFor(row.extension().toString(), row.isDir(), row.fullAbsolutePath(), row.modificationTime());
 		else
 			return {};
 	default:
@@ -458,7 +448,7 @@ Qt::ItemFlags CFileListModel::flags(const QModelIndex& index) const
 		return Qt::ItemIsDropEnabled;
 
 	static constexpr Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsDropEnabled;
-	if (rowAt(index.row()).isCdUp)
+	if (rowAt(index.row()).isCdUp())
 		return flags;
 	else [[likely]]
 		return flags | Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled;
@@ -504,7 +494,7 @@ bool CFileListModel::dropMimeData(const QMimeData* data, Qt::DropAction action, 
 	if (!_dropHandler)
 		return false;
 
-	return _dropHandler(data->urls(), action, parent.isValid() ? rowAt(parent.row()).fullPath : QString{});
+	return _dropHandler(data->urls(), action, parent.isValid() ? rowAt(parent.row()).fullAbsolutePath() : QString{});
 }
 
 QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
@@ -516,7 +506,7 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 	{
 		if (idx.isValid() && !rows.contains(idx.row()))
 		{
-			const QString& path = rowAt(idx.row()).fullPath;
+			const QString& path = rowAt(idx.row()).fullAbsolutePath();
 			if (!path.isEmpty())
 			{
 				rows.insert(idx.row());
@@ -529,24 +519,24 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 	return mime;
 }
 
-bool CFileListModel::rowLessThan(const FileListRow& l, const FileListRow& r) const
+bool CFileListModel::rowLessThan(const CFileSystemObject& l, const CFileSystemObject& r) const
 {
 	// [..] first, then folders, then files, in either direction
-	if (l.isCdUp != r.isCdUp)
-		return l.isCdUp;
-	if (l.isFileOrBundle() != r.isFileOrBundle())
-		return r.isFileOrBundle();
+	if (l.isCdUp() != r.isCdUp())
+		return l.isCdUp();
+	if (isFileOrBundle(l) != isFileOrBundle(r))
+		return isFileOrBundle(r);
 
 	int result = compareByColumn(l, r, _sortColumn);
 	if (result == 0)
-		result = NaturalSort::compare(l.fullPath, r.fullPath); // Unique, so the order is total
+		result = NaturalSort::compare(l.fullAbsolutePath(), r.fullAbsolutePath()); // Unique, so the order is total
 
 	return _sortOrder == Qt::AscendingOrder ? result < 0 : result > 0;
 }
 
-bool CFileListModel::passesNameFilter(const FileListRow& row) const
+bool CFileListModel::passesNameFilter(const CFileSystemObject& row) const
 {
-	return _nameFilter.pattern().isEmpty() || row.fullName.contains(_nameFilter);
+	return _nameFilter.pattern().isEmpty() || row.fullName().contains(_nameFilter);
 }
 
 std::vector<uint32_t> CFileListModel::displayedRowsInOrder() const
@@ -566,7 +556,7 @@ std::vector<uint32_t> CFileListModel::displayedRowsInOrder() const
 	return displayedRows;
 }
 
-int CFileListModel::moveDestination(const FileListRow& row, int displayRow) const
+int CFileListModel::moveDestination(const CFileSystemObject& row, int displayRow) const
 {
 	const auto sortsAboveRow = [&](uint32_t rowIndex) { return rowLessThan(_rows[rowIndex], row); };
 	const auto first = _displayedRows.cbegin(), moved = first + displayRow;
@@ -581,7 +571,7 @@ void CFileListModel::rebuildDisplayRowByHash() const
 	_displayRowByHash.clear();
 	_displayRowByHash.reserve(_displayedRows.size());
 	for (int row = 0, numRows = (int)_displayedRows.size(); row < numRows; ++row)
-		_displayRowByHash.emplace(_rows[_displayedRows[(size_t)row]].hash, row);
+		_displayRowByHash.emplace(_rows[_displayedRows[(size_t)row]].hash(), row);
 
 	_displayRowByHashIsStale = false;
 }
@@ -589,17 +579,17 @@ void CFileListModel::rebuildDisplayRowByHash() const
 void CFileListModel::updateContentsSummary()
 {
 	_contentsSummary = {};
-	for (const FileListRow& row : _rows)
+	for (const CFileSystemObject& row : _rows)
 	{
-		if (row.isCdUp)
+		if (row.isCdUp())
 			continue;
 
-		if (row.type == File)
+		if (row.type() == File)
 			++_contentsSummary.numFiles;
 		else if (row.isDir())
 			++_contentsSummary.numFolders;
 
-		_contentsSummary.size += row.size;
+		_contentsSummary.size += row.size();
 	}
 }
 

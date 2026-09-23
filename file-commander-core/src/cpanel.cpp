@@ -303,7 +303,7 @@ QString CPanel::currentDirPathPosix() const
 QString CPanel::currentDirName() const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	const QString name = _currentDirObject.fullName();
+	const QString name = _currentDirObject.fullName().toString();
 	return !name.isEmpty() ? name : _currentDirObject.fullAbsolutePath();
 }
 
