@@ -79,6 +79,7 @@ linux*|mac*|freebsd{
 		QMAKE_CXXFLAGS_WARN_ON *= -Wsuggest-override -Wmissing-declarations -Wmismatched-tags -Wunused-const-variable=1
 		QMAKE_CXXFLAGS_WARN_ON *= -Werror=return-local-addr -Werror=memset-transposed-args -Werror=nonnull-compare -Werror=mismatched-new-delete -Werror=infinite-recursion
 		QMAKE_CXXFLAGS_WARN_ON *= -Wcatch-value=3 -Werror=catch-value # -Werror=catch-value on its own would only enable level 1
+		QMAKE_CXXFLAGS_WARN_ON *= -Wno-maybe-uninitialized # False positives on std::optional and std::expected
 	}
 }
 
