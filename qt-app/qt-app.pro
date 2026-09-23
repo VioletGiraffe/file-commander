@@ -145,9 +145,9 @@ linux*|freebsd{
 	target.path = $${PREFIX}/bin
 
 	desktop.path = $${PREFIX}/share/applications/
-	desktop.files += file_commander.desktop
+	desktop.files += ../installer/linux/file_commander.desktop
 	icon256.path = $${PREFIX}/share/icons/hicolor/256x256/apps
-	icon256.files += resources\icon.png
+	icon256.files += resources/file_commander.png
 
 	INSTALLS += icon256
 	INSTALLS += desktop

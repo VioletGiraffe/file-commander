@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=File Commander
-Comment=Dual-panel file manager for Linux
-Exec=FileCommander
-Icon=icon
-Terminal=false
-Categories=Office;
