@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790176082588,
+  "lastUpdate": 1790180116040,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -24280,6 +24280,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 419.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "527c253ce4edbacee8d38839f05df8ff9f81c2e3",
+          "message": "CFileSystemObject optimization: storing indices to slice the full path and return QStringView instead of storing basename/extension as separate string",
+          "timestamp": "2026-09-23T19:07:51+03:00",
+          "tree_id": "cd1cfd6e50740fe7ddb9a03984e775b6ff0dd154",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/527c253ce4edbacee8d38839f05df8ff9f81c2e3"
+        },
+        "date": 1790180110334,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19630,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18712,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1448,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 240,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 824,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 420,
             "unit": "KB"
           },
           {
