@@ -164,8 +164,8 @@ jobs:
         export EXTRA_QT_MODULES='svg;waylandcompositor'
         export EXTRA_PLATFORM_PLUGINS=$(find "$QT_ROOT_DIR/plugins/platforms" -name 'libqwayland*.so' -printf '%f;')
         export DEPLOY_PLATFORM_THEMES=1
-        # The x86_64 file is the release asset
-        if [ "$arch" = x86_64 ]; then export LDAI_OUTPUT=FileCommander.AppImage; else export LDAI_OUTPUT=FileCommander-$arch.AppImage; fi
+        # Older updaters take the first .AppImage in GitHub's name-sorted asset list: the x86_64 name must sort first
+        if [ "$arch" = x86_64 ]; then export LDAI_OUTPUT=FileCommander.AppImage; else export LDAI_OUTPUT=FileCommander.arm64.AppImage; fi
         ./linuxdeploy-$arch.AppImage --appdir AppDir --executable ./bin/release/FileCommander --deploy-deps-only AppDir/usr/bin \
           --desktop-file ./installer/linux/file_commander.desktop --icon-file ./qt-app/resources/file_commander.png --plugin qt --output appimage
         echo "APPIMAGE_FILE=$LDAI_OUTPUT" >> "$GITHUB_ENV"
@@ -485,6 +485,11 @@ jobs:
       with:
         name: FileCommander.AppImage
         path: .
+    - name: Download ARM64 AppImage
+      uses: actions/download-artifact@v8
+      with:
+        name: FileCommander.arm64.AppImage
+        path: .
 
     - name: Generate changelog (commits between previous tag and this tag)
       id: changelog
@@ -540,6 +545,7 @@ jobs:
           FileCommander.exe
           FileCommander.dmg
           FileCommander.AppImage
+          FileCommander.arm64.AppImage
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: ${{ github.ref }}
         name: ${{ github.ref_name }}
