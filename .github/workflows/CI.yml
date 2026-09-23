@@ -101,37 +101,14 @@ jobs:
         "Libs C/C++ code: $loc LOC"
         "LOC_LIBS=$loc" >> $env:GITHUB_ENV
 
+    # The action's default arch per runner: win64_msvc2022_64, linux_gcc_64 / linux_gcc_arm64, clang_64
     - name: Install Qt
-      if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.11.*'
+        # Qt 6.11's Windows repository layout needs an aqtinstall newer than its latest release (3.3.0)
         aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
         target: desktop
-        arch: 'win64_msvc2022_64'
-        archives: 'qtbase icu qtsvg'
-        modules: 'qt5compat qtimageformats'
-        cache: 'true'
-
-    - name: Install Qt
-      if: "startsWith(matrix.os, 'ubuntu')"
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: '6.10.*'
-        target: desktop
-        arch: ${{ runner.arch == 'ARM64' && 'linux_gcc_arm64' || 'linux_gcc_64' }}
-        archives: 'qtbase icu qtsvg'
-        modules: 'qt5compat qtimageformats'
-        cache: 'true'
-
-
-    - name: Install Qt
-      if: "startsWith(matrix.os, 'macos')"
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: '6.10.*'
-        target: desktop
-        arch: 'clang_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
         cache: 'true'
@@ -190,7 +167,7 @@ jobs:
         # The x86_64 file is the release asset
         if [ "$arch" = x86_64 ]; then export LDAI_OUTPUT=FileCommander.AppImage; else export LDAI_OUTPUT=FileCommander-$arch.AppImage; fi
         ./linuxdeploy-$arch.AppImage --appdir AppDir --executable ./bin/release/FileCommander --deploy-deps-only AppDir/usr/bin \
-          --desktop-file ./installer/linux/file_commander.desktop --icon-file ./qt-app/resources/icon.png --plugin qt --output appimage
+          --desktop-file ./installer/linux/file_commander.desktop --icon-file ./qt-app/resources/file_commander.png --plugin qt --output appimage
         echo "APPIMAGE_FILE=$LDAI_OUTPUT" >> "$GITHUB_ENV"
 
     - name: Binary sizes - Windows
@@ -336,37 +313,14 @@ jobs:
       with:
         submodules: recursive
 
+    # The action's default arch per runner: win64_msvc2022_64, linux_gcc_64 / linux_gcc_arm64, clang_64
     - name: Install Qt
-      if: "startsWith(matrix.os, 'windows')"
       uses: jurplel/install-qt-action@v4
       with:
         version: '6.11.*'
+        # Qt 6.11's Windows repository layout needs an aqtinstall newer than its latest release (3.3.0)
         aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
         target: desktop
-        arch: 'win64_msvc2022_64'
-        archives: 'qtbase icu qtsvg'
-        modules: 'qt5compat qtimageformats'
-        cache: 'true'
-
-    - name: Install Qt
-      if: "startsWith(matrix.os, 'ubuntu')"
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: '6.10.*'
-        target: desktop
-        arch: ${{ runner.arch == 'ARM64' && 'linux_gcc_arm64' || 'linux_gcc_64' }}
-        archives: 'qtbase icu qtsvg'
-        modules: 'qt5compat qtimageformats'
-        cache: 'true'
-
-
-    - name: Install Qt
-      if: "startsWith(matrix.os, 'macos')"
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: '6.10.*'
-        target: desktop
-        arch: 'clang_64'
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
         cache: 'true'
