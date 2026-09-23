@@ -60,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14, windows-latest]
+        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-14, windows-latest]
 
     steps:
     - name: Checkout
@@ -117,7 +117,7 @@ jobs:
       with:
         version: '6.10.*'
         target: desktop
-        arch: 'linux_gcc_64'
+        arch: ${{ runner.arch == 'ARM64' && 'linux_gcc_arm64' || 'linux_gcc_64' }}
         archives: 'qtbase icu qtsvg'
         modules: 'qt5compat qtimageformats'
         cache: 'true'
@@ -157,23 +157,28 @@ jobs:
         clang --version
         ./installer/mac/create_dmg.sh $QT_ROOT_DIR
 
-    - name: Linux
+    - name: Linux - build
       if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        export QT_DEBUG_PLUGINS=1
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test  # jammy ships nothing newer than gcc-12
         sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libfuse2
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version
+        $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
+        make -j$(nproc)
+
+    # linuxdeployqt 7 has no aarch64 build
+    - name: Linux - building AppImage
+      if: startsWith(matrix.os, 'ubuntu') && runner.arch != 'ARM64'
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        export QT_DEBUG_PLUGINS=1
         export PATH=$QT_ROOT_DIR/bin/:$PATH
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-        $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
-        make -j$(nproc)
-        # Linux: building AppImage
         cp ./qt-app/resources/icon.png ./bin/release/
         cp ./installer/linux/file_commander.desktop ./bin/release/
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${QT_ROOT_DIR}/lib/
@@ -292,7 +297,7 @@ jobs:
         if-no-files-found: error
 
     - name: Archive AppImage
-      if: success() && startsWith(matrix.os, 'ubuntu')
+      if: success() && startsWith(matrix.os, 'ubuntu') && runner.arch != 'ARM64'
       uses: actions/upload-artifact@v7
       with:
         name: FileCommander.AppImage
