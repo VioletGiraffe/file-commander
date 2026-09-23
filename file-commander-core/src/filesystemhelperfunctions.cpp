@@ -17,26 +17,63 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <stdint.h>
 #include <utility>
 
+#ifdef _WIN32
+[[nodiscard]] static std::wstring nativePath(const QString& path)
+{
+	return path.toStdWString();
+}
+#else
+[[nodiscard]] static QByteArray nativePath(const QString& path)
+{
+	return QFile::encodeName(path);
+}
+#endif
+
 std::optional<thin_io::entry_identity> resolvedObjectId(const QString& path)
 {
 	// thin_io prefixes with \\?\, which turns off the normalization that would otherwise absorb a trailing separator.
-	const QString entryPath = withoutTrailingSeparator(path);
-
-#ifdef _WIN32
-	const auto metadata = thin_io::get_entry_metadata(entryPath.toStdWString().c_str(), thin_io::link_behavior::follow);
-#else
-	const auto metadata = thin_io::get_entry_metadata(QFile::encodeName(entryPath).constData(), thin_io::link_behavior::follow);
-#endif
-
+	const auto metadata = thin_io::get_entry_metadata(nativePath(withoutTrailingSeparator(path)).data(), thin_io::link_behavior::follow);
 	if (!metadata)
 		return {};
 
 	return metadata->identity;
+}
+
+thin_io::filesystem_result<std::vector<thin_io::directory_entry>> listDirectoryWithDetails(const QString& dirPath)
+{
+	return thin_io::list_directory(nativePath(dirPath).data(), thin_io::listing_detail::full);
+}
+
+thin_io::filesystem_result<thin_io::directory_entry> getDirectoryEntry(const QString& path)
+{
+	return thin_io::get_directory_entry(nativePath(path).data());
+}
+
+QString nativeNameToQString(const thin_io::native_string& name)
+{
+#ifdef _WIN32
+	return QString::fromStdWString(name);
+#else
+	return QFile::decodeName(QByteArray::fromRawData(name.data(), static_cast<qsizetype>(name.size())));
+#endif
+}
+
+bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept
+{
+#ifdef _WIN32
+	return attributes.is_link && IsReparseTagNameSurrogate(attributes.reparse_tag);
+#else
+	return attributes.is_link;
+#endif
 }
 
 QString toNativeSeparators(QString path)

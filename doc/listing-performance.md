@@ -19,7 +19,8 @@ Variants:
 
 - `qt`: `QDir::entryInfoList` with the panel's filters, unsorted.
 - `qt` sorted: the same with `QDir`'s default name sort. Older tables only.
-- `thinio`: `thin_io::list_directory`.
+- `thinio`: `thin_io::list_directory` with basic detail.
+- `thiniofull`: the same with full detail, which `listDirectoryForPanel` builds on. Newer tables only.
 - `panel`: `listDirectoryForPanel`, the panel's own listing.
 
 ## Windows
@@ -30,26 +31,36 @@ Variants:
   data. A thin_io entry also carries times, permissions and a link target.
 - Commit 505d2ea5, thin_io c0762bf: a smaller thin_io entry, with the link target in a `heap_optional` and times as
   plain timestamps, zero for unset. Only the `thinio` row: nothing else changed since 17f7be81.
+- thin_io f9b2043, with the main-repo commit that pins it: `CFileSystemObject` is a plain value, and
+  `listDirectoryForPanel` builds it from thin_io's `full` listing, with no `QDir` or `QFileInfo`.
 
 | Cold, SSD | 1k | 10k | 100k |
 |---|---|---|---|
 | `qt` sorted, 93a59545 | 2.14 | 1.81 | 2.11 |
 | `qt`, 93a59545 | 1.98 | 1.36 | 1.66 |
 | `qt`, 17f7be81 | 1.90 | 1.45 | 2.20 |
+| `qt`, thin_io f9b2043 | 1.81 | 1.48 | 2.18 |
 | `thinio`, 93a59545 | 1.32 | 0.90 | 1.22 |
 | `thinio`, 17f7be81 | 1.56 | 1.15 | 1.87 |
+| `thinio`, thin_io f9b2043 | 1.41 | 1.10 | 1.81 |
+| `thiniofull`, thin_io f9b2043 | 1.74 | 1.14 | 1.87 |
 | `panel` sorted, 93a59545 | 36.9 | 34.9 | 35.5 |
 | `panel`, 17f7be81 | 3.00 | 2.64 | 3.25 |
+| `panel`, thin_io f9b2043 | 2.25 | 1.43 | 2.15 |
 
 | Cold, HDD | 1k | 10k | 100k |
 |---|---|---|---|
 | `qt` sorted, 93a59545 | 2.99 | 3.00 | 4.26 |
 | `qt`, 93a59545 | 2.68 | 3.84 | 4.36 |
 | `qt`, 17f7be81 | 2.58 | 4.41 | 3.90 |
+| `qt`, thin_io f9b2043 | 2.53 | 2.52 | 3.13 |
 | `thinio`, 93a59545 | 2.40 | 2.03 | 3.67 |
 | `thinio`, 17f7be81 | 2.28 | 2.10 | 3.43 |
+| `thinio`, thin_io f9b2043 | 2.26 | 2.07 | 3.00 |
+| `thiniofull`, thin_io f9b2043 | 3.27 | 5.27 | 3.84 |
 | `panel` sorted, 93a59545 | 125 | 97.4 | 112 |
 | `panel`, 17f7be81 | 3.82 | 3.71 | 4.83 |
+| `panel`, thin_io f9b2043 | 8.75 | 2.58 | 3.74 |
 
 Warm on the HDD volume agrees with the SSD within 10%.
 
@@ -58,55 +69,73 @@ Warm on the HDD volume agrees with the SSD within 10%.
 | `qt` sorted, 93a59545 | 0.92 | 1.01 | 1.16 |
 | `qt`, 93a59545 | 0.66 | 0.67 | 0.72 |
 | `qt`, 17f7be81 | 0.69 | 0.73 | 0.69 |
+| `qt`, thin_io f9b2043 | 0.69 | 0.69 | 0.70 |
 | `thinio`, 93a59545 | 0.26 | 0.25 | 0.25 |
 | `thinio`, 17f7be81 | 0.42 | 0.44 | 0.39 |
 | `thinio`, 505d2ea5 | 0.33 | 0.33 | 0.32 |
+| `thinio`, thin_io f9b2043 | 0.29 | 0.31 | 0.30 |
+| `thiniofull`, thin_io f9b2043 | 0.31 | 0.30 | 0.30 |
 | `panel` sorted, 93a59545 | 4.81 | 4.92 | 10.6 |
 | `panel`, 17f7be81 | 1.78 | 1.87 | 1.75 |
+| `panel`, thin_io f9b2043 | 0.66 | 0.65 | 0.65 |
 
 ## Raspberry Pi 4
 
-Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsorted.
+Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsorted. Commit 543530cc, thin_io de61aff:
+the Windows section's 17f7be81 and 505d2ea5 changes.
 
 | Cold, SD card | 1k | 10k | 100k |
 |---|---|---|---|
 | `qt` sorted, 5e83b087 | 16.7 | 11.6 | 11.8 |
 | `qt`, 5e83b087 | 15.1 | 7.88 | 6.78 |
 | `qt`, e8535a60 | 12.6 | 8.86 | 6.74 |
+| `qt`, 543530cc | 14.6 | 8.30 | 6.77 |
 | `thinio`, 5e83b087 | 7.17 | 6.65 | 5.22 |
 | `thinio`, e8535a60 | 6.74 | 6.30 | 5.12 |
+| `thinio`, 543530cc | 12.3 | 6.97 | 5.26 |
 | `panel` sorted, 5e83b087 | 48.7 | 45.5 | 48.3 |
 | `panel`, e8535a60 | 47.9 | 42.0 | 42.0 |
+| `panel`, 543530cc | 44.6 | 40.2 | 40.4 |
 
 | Warm | 1k | 10k | 100k |
 |---|---|---|---|
 | `qt` sorted, 5e83b087 | 4.71 | 5.96 | 7.65 |
 | `qt`, 5e83b087 | 2.37 | 2.54 | 2.53 |
+| `qt`, 543530cc | 2.77 | 2.50 | 2.49 |
 | `thinio`, 5e83b087 | 0.99 | 1.03 | 1.01 |
+| `thinio`, 543530cc | 0.94 | 1.21 | 1.15 |
 | `panel` sorted, 5e83b087 | 14.4 | 16.8 | 18.6 |
 | `panel`, e8535a60 | 12.5 | 13.1 | 13.1 |
+| `panel`, 543530cc | 10.9 | 11.2 | 11.2 |
 
 ## Where the panel's time goes
 
-100k entries, cold. Pi rows combine both commits: `qt` and `thinio` are the same code in both.
+100k entries, cold. The Pi e8535a60 column takes warm `qt` and `thinio` from 5e83b087: the same code.
 
-| Part | Derived as | Windows SSD, 93a59545 | Windows SSD, 17f7be81 | Pi, e8535a60 |
-|---|---|---|---|---|
-| Enumeration, CPU | `thinio` warm | 0.25 | 0.39 | 1.01 |
-| `QFileInfo` list, CPU | `qt` warm - `thinio` warm | 0.46 | 0.30 | 1.52 |
-| Name sort, CPU | `qt` sorted warm - `qt` warm | 0.44 | none | none |
-| Panel's own CPU | `panel` warm - `qt` sorted warm (unsorted: - `qt` warm) | 9.47 | 1.06 | 10.6 |
-| Directory reads | `qt` cold - `qt` warm | 0.94 | 1.51 | 4.21 |
-| Per-entry metadata reads | `panel` cold - `panel` warm - directory reads | 23.9 | none | 24.7 |
-| Total | `panel` cold | 35.5 | 3.25 | 42.0 |
+The panel builds on `QDir` up to 543530cc, and on `thiniofull` from thin_io f9b2043.
+
+| Part | Derived as | Windows SSD, 93a59545 | Windows SSD, 17f7be81 | Windows SSD, thin_io f9b2043 | Pi, e8535a60 | Pi, 543530cc |
+|---|---|---|---|---|---|---|
+| Enumeration, CPU | `thinio` warm; on thin_io, `thiniofull` warm | 0.25 | 0.39 | 0.30 | 1.01 | 1.15 |
+| `QFileInfo` list, CPU | `qt` warm - `thinio` warm | 0.46 | 0.30 | none | 1.52 | 1.34 |
+| Name sort, CPU | `qt` sorted warm - `qt` warm | 0.44 | none | none | none | none |
+| Panel's own CPU | `panel` warm - the warm listing it builds on: `qt` sorted, `qt` or `thiniofull` | 9.47 | 1.06 | 0.35 | 10.6 | 8.70 |
+| Directory reads | `qt` cold - `qt` warm; on thin_io, the same for `thiniofull` | 0.94 | 1.51 | 1.56 | 4.21 | 4.28 |
+| Per-entry metadata reads | `panel` cold - `panel` warm - directory reads | 23.9 | none | none | 24.7 | 24.9 |
+| Total | `panel` cold | 35.5 | 3.25 | 2.15 | 42.0 | 40.4 |
 
 - Windows, 93a59545: the metadata reads come from `CFileSystemObject` querying each entry again, although the
   enumeration already returns size, times and attributes. At 17f7be81 it uses the enumeration's data.
 - thin_io f573124 costs 0.14 more per entry warm than at 93a59545: its entries carry times, permissions and a link
   target. The `QFileInfo` row, derived from it, is understated by as much. At 505d2ea5 the difference is 0.07.
-- Linux: `readdir` returns only name and type, so each file needs one `stat` for its size; a folder needs none.
-- At 93a59545 the panel held about 2 KB per entry on Windows, and its warm cost doubled at 100k. At 17f7be81 it holds
-  1.1 KB per entry, and the warm cost is flat, as on the Pi.
+- On the Pi, thin_io de61aff costs 0.14-0.18 more warm than c07090e at 10k and 100k, and the Pi 543530cc `QFileInfo`
+  row is understated by as much. A basic POSIX listing fills only the name and type, but builds the larger entry.
+- Linux: `readdir` returns only name and type, so each file needs one `stat` for its size; a folder needs none. The
+  panel's own CPU on the Pi includes that `stat` warm.
+- Windows, thin_io f9b2043: the panel's own CPU is building the `CFileSystemObject`s and the hash map. `full` detail
+  costs about as much as `basic`: it adds a query per link only.
+- At 93a59545 the panel held about 2 KB per entry on Windows, and its warm cost doubled at 100k. At 17f7be81 it held
+  1.1 KB per entry, and 370 bytes at thin_io f9b2043; from 17f7be81 on, the warm cost is flat, as on the Pi.
 
 ## Measured costs
 
@@ -127,8 +156,9 @@ Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsort
 
 - Windows SSD: repeated cold runs agree within 2-4%. A/B comparisons belong here, within one session: `qt` at 100k
   moved by +33% between the 93a59545 and 17f7be81 sessions with its code unchanged.
-- Windows HDD: per-cell CV 5-54%, and cell medians moved by -27% to +91% between two runs. Only large effects show.
-- Pi SD card: CV 1-10% at 10k and 100k; up to 50% at 1k, where fixed per-folder costs dominate.
+- Windows HDD: per-cell CV 5-110%, and cell medians moved by -27% to +91% between two runs. Only large effects show.
+- Pi SD card: CV 1-12% at 10k and 100k; up to 50% at 1k, where fixed per-folder costs dominate. Cold `qt` at
+  543530cc reached 120% at 1k and 133% at 10k, with medians in line with e8535a60.
 
 ## Open questions
 

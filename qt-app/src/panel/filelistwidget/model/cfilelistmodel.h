@@ -32,9 +32,8 @@ struct FileListRow
 	[[nodiscard]] bool isFileOrBundle() const noexcept { return type == File || type == Bundle; }
 	[[nodiscard]] bool isDir() const noexcept { return type == Directory || type == Bundle; }
 
-	// A file with nothing before its extension, like .bashrc, displays and sorts as its full name with no extension
+	// A file with nothing before its extension, like .jpg on Windows, displays and sorts by its full name
 	[[nodiscard]] const QString& displayName() const noexcept;
-	[[nodiscard]] const QString& displayExtension() const noexcept;
 
 	QString fullPath;
 	QString fullName; // Name and extension

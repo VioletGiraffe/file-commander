@@ -5,29 +5,21 @@
 
 
 DISABLE_COMPILER_WARNINGS
-
-#ifdef CFILESYSTEMOBJECT_TEST
-#define QFileInfo QFileInfo_Test
-#define QDir QDir_Test
-
-#include <QFileInfo_Test>
-#else
-#include <QFileInfo>
-#endif
-
 #include <QString>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
+#include <limits>
+#include <optional>
 #include <stdint.h>
 #include <time.h>
 #include <vector>
 
-class QDir;
+namespace thin_io { struct directory_entry; }
 
 // Return the list of consecutive full paths leading from the specified target to its root.
 // E. g. C:/Users/user/Documents/ -> {C:/Users/user/Documents/, C:/Users/user/, C:/Users/, C:/}
-std::vector<QString> pathHierarchy(const QString& path); // Keeping this function here because it's covered by a CFileSystemObject test and needs the QFileInfo_Test include
+std::vector<QString> pathHierarchy(const QString& path);
 
 // CFileSystemObject::hash() of the object with this fullAbsolutePath()
 // An empty path hashes to 0, so every empty object does: simpler for the callers
@@ -49,6 +41,10 @@ struct CFileSystemObjectProperties {
 	bool exists = false;
 	// Symlink or junction; a Windows .lnk shortcut is not a link but a regular file
 	bool isLink = false;
+	// Windows: the hidden attribute, except on a drive root. POSIX: a leading dot, or UF_HIDDEN where the platform has it.
+	bool isHidden = false;
+	// POSIX: any execute permission bit. Windows: an .exe, .com, .bat or .cmd file.
+	bool isExecutable = false;
 };
 
 class CFileSystemObject
@@ -58,14 +54,16 @@ public:
 	CFileSystemObject(CFileSystemObject&&) noexcept = default;
 	CFileSystemObject(const CFileSystemObject&) = default;
 
-	explicit CFileSystemObject(const QFileInfo & fileInfo);
+	// Expands environment variables and resolves a relative path against the current directory
 	explicit CFileSystemObject(const QString& path);
-
-	explicit CFileSystemObject(const QDir& dir);
+	// A listed child of parentPath, which ends with a separator
+	CFileSystemObject(const QString& parentPath, const thin_io::directory_entry& entry);
 
 	// For tests: builds the object in memory, deriving the hash from fullPath
-	// Accessors backed by QFileInfo report its defaults
 	explicit CFileSystemObject(CFileSystemObjectProperties properties);
+
+	// The [..] entry of dirPath's listing: the parent folder. Empty for a root.
+	[[nodiscard]] static std::optional<CFileSystemObject> cdUpEntryOf(const QString& dirPath);
 
 	template <typename T, typename U>
 	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)std::forward<QStringBuilder<T, U>>(stringBuilder)) {}
@@ -92,24 +90,17 @@ public:
 	[[nodiscard]] bool isBundle() const;
 	[[nodiscard]] bool isCdUp() const; // returns true if it's ".." item
 	[[nodiscard]] bool isExecutable() const;
-	[[nodiscard]] bool isReadable() const;
-	// Apparently, it will return false for non-existing files
-	[[nodiscard]] bool isWriteable() const;
 	[[nodiscard]] bool isHidden() const;
 
-	// Stored strings return by reference, computed ones (parentDirPath, symLinkTarget) by value.
+	// Stored strings return by reference, computed ones (parentDirPath) by value.
 	// The && overloads return a copy: a reference taken from a temporary object would dangle.
 	[[nodiscard]] const QString& fullAbsolutePath() const &;
 	[[nodiscard]] QString fullAbsolutePath() const &&;
 	[[nodiscard]] QString parentDirPath() const;
 	[[nodiscard]] uint64_t size() const;
 	[[nodiscard]] uint64_t hash() const;
-	[[nodiscard]] const QFileInfo& qFileInfo() const;
 	[[nodiscard]] uint64_t rootFileSystemId() const;
-	// Symlink or junction, unlike isSymLink(), which also matches .lnk shortcuts on Windows
 	[[nodiscard]] bool isLink() const;
-	[[nodiscard]] bool isSymLink() const;
-	[[nodiscard]] QString symLinkTarget() const;
 
 	[[nodiscard]] time_t creationTime() const;
 	[[nodiscard]] time_t modificationTime() const;
@@ -117,7 +108,7 @@ public:
 	// A hack to store the size of a directory after it's calculated
 	void setDirSize(uint64_t size);
 
-	// File name without suffix, or folder name. Same as QFileInfo::completeBaseName.
+	// File name without its extension, or folder name
 	[[nodiscard]] const QString& name() const &;
 	[[nodiscard]] QString name() const &&;
 	// Filename + suffix for files, same as name() for folders
@@ -127,16 +118,11 @@ public:
 	[[nodiscard]] QString extension() const &&;
 
 private:
-	// Only called by the constructors: properties the path does not need keep their defaults
-	// Uses the metadata _fileInfo has cached: a QFileInfo from a directory listing already holds it
-	void loadPropertiesFromFileInfo();
+	// Only called by the constructors, on a default-constructed object. Appends the separator to a directory's fullPath.
+	void loadProperties(QString fullPath, QString fullName, const thin_io::directory_entry& entry);
 
 private:
 	CFileSystemObjectProperties _properties;
-	QFileInfo                   _fileInfo;
 	// Lazily resolved device id of the containing filesystem; identifies which volume the object is on
 	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 };
-
-#undef QFileInfo
-#undef QDir

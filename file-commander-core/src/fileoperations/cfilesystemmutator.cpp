@@ -3,6 +3,8 @@
 #include "operationtesthooks.h"
 #include "thiniobridge.h"
 
+#include "filesystemhelperfunctions.h" // isLinkEntry
+
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -27,15 +29,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <utility>
 #include <vector>
-
-bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept
-{
-#ifdef _WIN32
-	return attributes.is_link && IsReparseTagNameSurrogate(attributes.reparse_tag);
-#else
-	return attributes.is_link;
-#endif
-}
 
 namespace
 {

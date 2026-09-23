@@ -1,5 +1,8 @@
 #include "cfilesystemwatchertimerbased.h"
 
+#include "filesystemhelperfunctions.h"
+
+
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
@@ -7,31 +10,8 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QDir>
+#include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
-
-FileSystemInfoWrapper::FileSystemInfoWrapper(QFileInfo&& fullInfo) noexcept :
-	_info{std::move(fullInfo)},
-	_itemName(_info.fileName())
-{}
-
-bool FileSystemInfoWrapper::operator<(const FileSystemInfoWrapper& other) const noexcept
-{
-	return _itemName < other._itemName;
-}
-
-bool FileSystemInfoWrapper::operator==(const FileSystemInfoWrapper& other) const noexcept
-{
-	return _itemName == other._itemName && size() == other.size();
-}
-
-qint64 FileSystemInfoWrapper::size() const noexcept
-{
-	if (_size == -1)
-		_size = _info.size();
-
-	return _size;
-}
 
 CFileSystemWatcherTimerBased::CFileSystemWatcherTimerBased()
 {
@@ -88,16 +68,23 @@ void CFileSystemWatcherTimerBased::onCheckForChanges()
 
 // Baseline and poll scans must use identical filters, else every poll diffs against a differently-built
 // baseline and reports phantom changes. Sharing this call guarantees it.
-std::set<FileSystemInfoWrapper> CFileSystemWatcherTimerBased::snapshotDirectory(const QString& path)
+std::set<SnapshotEntry> CFileSystemWatcherTimerBased::snapshotDirectory(const QString& path)
 {
-	std::set<FileSystemInfoWrapper> snapshot;
-	for (auto&& info : QDir{ path }.entryInfoList(QDir::Dirs | QDir::Files | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot, QDir::Unsorted))
-		snapshot.emplace(std::move(info));
+	std::set<SnapshotEntry> snapshot;
+	auto entries = listDirectoryWithDetails(path);
+	if (!entries)
+		return snapshot;
+
+	for (auto& entry : *entries)
+	{
+		const thin_io::entry_status& described = entry.link_target ? *entry.link_target : entry;
+		snapshot.insert({ std::move(entry.name), described.logical_size.value_or(0) });
+	}
 
 	return snapshot;
 }
 
-void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(std::set<FileSystemInfoWrapper>&& newState, uint64_t pathGeneration)
+void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(std::set<SnapshotEntry>&& newState, uint64_t pathGeneration)
 {
 	std::lock_guard locker{ _mutex };
 	if (_pathToWatch.isEmpty() || pathGeneration != _pathGeneration)

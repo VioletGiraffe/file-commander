@@ -24,6 +24,7 @@ void scanDirectory(const CFileSystemObject& root,
 	const std::atomic<bool>& abort = std::atomic<bool>{false},
 	bool followDirLinks = true);
 
-// The immediate children of dirPath as a panel lists them: the [..] entry included except at the filesystem root, entries that
-// are neither files nor directories (sockets) skipped.
+// The immediate children of dirPath, which ends with a separator, as a panel lists them: entries that are neither files
+// nor directories (sockets) skipped, and the [..] entry added except at a root, whatever showHiddenFiles says.
+// Empty when dirPath cannot be listed.
 [[nodiscard]] FileListHashMap listDirectoryForPanel(const QString& dirPath, bool showHiddenFiles);

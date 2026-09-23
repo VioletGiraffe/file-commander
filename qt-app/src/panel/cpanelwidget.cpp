@@ -34,6 +34,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QClipboard>
 #include <QCompleter>
 #include <QDebug>
+#include <QFile>
 #include <QHeaderView>
 #include <QHelpEvent>
 #include <QImageWriter>

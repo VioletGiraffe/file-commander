@@ -2,11 +2,12 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "filesystem_types.hpp" // thin_io
 #include "threading/cperiodicexecutionthread.h"
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QFileInfo>
+#include <QString>
 RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
@@ -14,20 +15,14 @@ RESTORE_COMPILER_WARNINGS
 #include <set>
 #include <stdint.h>
 
-struct FileSystemInfoWrapper
+// One child of the watched folder: ordered by name, equal when the size matches too
+struct SnapshotEntry
 {
-	QFileInfo _info;
+	thin_io::native_string name;
+	uint64_t size = 0; // A link's target's
 
-	explicit FileSystemInfoWrapper(QFileInfo&& fullInfo) noexcept;
-
-	[[nodiscard]] bool operator<(const FileSystemInfoWrapper& other) const noexcept;
-	[[nodiscard]] bool operator==(const FileSystemInfoWrapper& other) const noexcept;
-
-	[[nodiscard]] qint64 size() const noexcept;
-
-private:
-	QString _itemName;
-	mutable qint64 _size = -1;
+	[[nodiscard]] bool operator<(const SnapshotEntry& other) const noexcept { return name < other.name; }
+	[[nodiscard]] bool operator==(const SnapshotEntry& other) const noexcept { return name == other.name && size == other.size; }
 };
 
 class CFileSystemWatcherTimerBased
@@ -51,13 +46,13 @@ public:
 
 private:
 	void onCheckForChanges();
-	[[nodiscard]] static std::set<FileSystemInfoWrapper> snapshotDirectory(const QString& path);
-	void processChangesAndNotifySubscribers(std::set<FileSystemInfoWrapper>&& newState, uint64_t pathGeneration);
+	[[nodiscard]] static std::set<SnapshotEntry> snapshotDirectory(const QString& path);
+	void processChangesAndNotifySubscribers(std::set<SnapshotEntry>&& newState, uint64_t pathGeneration);
 
 private:
 	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CFileSystemWatcher thread" };
 	// Written by the poll thread and by captureBaselineState() (panel worker thread); all access under _mutex.
-	std::set<FileSystemInfoWrapper> _previousState;
+	std::set<SnapshotEntry> _previousState;
 	uint64_t _previousStateGeneration = 0;
 
 	std::recursive_mutex _mutex;

@@ -4,6 +4,8 @@
 #include "coperationexecutioncontext.h"
 #include "thiniobridge.h"
 
+#include "filesystemhelperfunctions.h" // isLinkEntry
+
 
 // Submodule includes
 #include "assert/advanced_assert.h"

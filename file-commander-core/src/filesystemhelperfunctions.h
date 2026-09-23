@@ -2,7 +2,8 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
-#include "filesystem_types.hpp" // thin_io: entry_identity
+#include "filesystem_error.hpp" // thin_io
+#include "filesystem_types.hpp" // thin_io
 
 
 DISABLE_COMPILER_WARNINGS
@@ -18,6 +19,16 @@ RESTORE_COMPILER_WARNINGS
 // Empty both when the path cannot be resolved (e. g. a broken link) and when the filesystem exposes no stable
 // identity, so two empty results are never the same entry.
 [[nodiscard]] std::optional<thin_io::entry_identity> resolvedObjectId(const QString& path);
+
+// thin_io::list_directory() with listing_detail::full
+[[nodiscard]] thin_io::filesystem_result<std::vector<thin_io::directory_entry>> listDirectoryWithDetails(const QString& dirPath);
+[[nodiscard]] thin_io::filesystem_result<thin_io::directory_entry> getDirectoryEntry(const QString& path);
+// Lossy for a POSIX name that is not valid in the locale's encoding
+[[nodiscard]] QString nativeNameToQString(const thin_io::native_string& name);
+
+// True for POSIX symlinks, and on Windows only for name-surrogate reparse points (symlinks, junctions): other reparse
+// entries (OneDrive placeholders and the like) are ordinary files/directories.
+[[nodiscard]] bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept;
 
 [[nodiscard]] consteval char nativeSeparator() noexcept
 {

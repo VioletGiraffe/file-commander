@@ -31,10 +31,8 @@ SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \
 	fso_test_high_level.cpp \
 	../../src/cfilesystemobject.cpp \
-	../../src/iconprovider/ciconprovider.cpp \
-	../../src/iconprovider/ciconproviderimpl.cpp
+	../../src/directoryscanner.cpp
 
 HEADERS += \
 	../../src/cfilesystemobject.h \
-	../../src/iconprovider/ciconprovider.h \
-	../../src/iconprovider/ciconproviderimpl.h
+	../../src/directoryscanner.h

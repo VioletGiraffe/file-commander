@@ -49,7 +49,7 @@ TEST_CASE("Each column sorts by its own key", "[filelist][sort]")
 
 	SECTION("Extension, then name; a dotfile has none")
 	{
-		model.setRows({ makeRow(File, "b", "txt"), makeRow(File, "c", "doc"), makeRow(File, "", "bashrc"), makeRow(File, "a", "doc") });
+		model.setRows({ makeRow(File, "b", "txt"), makeRow(File, "c", "doc"), makeRow(File, ".bashrc"), makeRow(File, "a", "doc") });
 		model.sort(ExtColumn, Qt::AscendingOrder);
 		CHECK(displayedNames(model) == QStringList{ ".bashrc", "a.doc", "c.doc", "b.txt" });
 	}
@@ -96,26 +96,26 @@ TEST_CASE("Numbers in names sort by value in the C locale too", "[filelist][sort
 	CHECK(names == QStringList{ "file1", "file2", "file10" });
 }
 
-TEST_CASE("A dotfile displays its whole name and no extension", "[filelist]")
+TEST_CASE("A file with nothing before its extension displays its full name", "[filelist]")
 {
 	TestedModel tested;
 	CFileListModel& model = tested.model;
-	model.setRows({ makeRow(File, "", "bashrc"), makeRow(File, "notes", "txt"), makeRow(Directory, "folder") });
+	model.setRows({ makeRow(File, "", "jpg"), makeRow(File, "notes", "txt"), makeRow(Directory, "folder") });
 	model.sort(NameColumn, Qt::AscendingOrder);
 
 	const QModelIndex folder = model.indexByHash(pathHash("/folder/folder/"));
-	const QModelIndex dotfile = model.indexByHash(pathHash("/folder/.bashrc"));
+	const QModelIndex unnamed = model.indexByHash(pathHash("/folder/.jpg"));
 	const QModelIndex notes = model.indexByHash(pathHash("/folder/notes.txt"));
 	REQUIRE(folder.isValid());
-	REQUIRE(dotfile.isValid());
+	REQUIRE(unnamed.isValid());
 	REQUIRE(notes.isValid());
 
 	CHECK(model.data(folder.siblingAtColumn(NameColumn), Qt::DisplayRole).toString() == "[folder]");
-	CHECK(model.data(dotfile.siblingAtColumn(NameColumn), Qt::DisplayRole).toString() == ".bashrc");
-	CHECK(!model.data(dotfile.siblingAtColumn(ExtColumn), Qt::DisplayRole).isValid());
+	CHECK(model.data(unnamed.siblingAtColumn(NameColumn), Qt::DisplayRole).toString() == ".jpg");
+	CHECK(model.data(unnamed.siblingAtColumn(ExtColumn), Qt::DisplayRole).toString() == "jpg");
 	CHECK(model.data(notes.siblingAtColumn(NameColumn), Qt::DisplayRole).toString() == "notes");
 	CHECK(model.data(notes.siblingAtColumn(ExtColumn), Qt::DisplayRole).toString() == "txt");
-	CHECK(model.data(dotfile, Qt::EditRole).toString() == ".bashrc");
+	CHECK(model.data(unnamed, Qt::EditRole).toString() == ".jpg");
 }
 
 TEST_CASE("The name filter hides the rows whose full name doesn't match", "[filelist][filter]")

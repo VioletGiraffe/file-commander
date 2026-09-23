@@ -91,7 +91,7 @@ struct Sample
 
 // Every variant reads the clock before its listing is destroyed: freeing the listing is not measured.
 
-// The filters of listDirectoryForPanel
+// What the panel lists: [..] and hidden entries included
 static constexpr QDir::Filters PanelListingFilters = QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System;
 
 static Sample listWithQt(const Folder& folder)
@@ -103,10 +103,10 @@ static Sample listWithQt(const Folder& folder)
 }
 
 // Lists no [..] entry, which the other variants include
-static Sample listWithThinIo(const Folder& folder)
+static Sample listWithThinIo(const Folder& folder, const thin_io::listing_detail detail)
 {
 	const auto start = Clock::now();
-	const auto entries = thin_io::list_directory(folder.nativePath.data());
+	const auto entries = thin_io::list_directory(folder.nativePath.data(), detail);
 	const auto end = Clock::now();
 	if (!entries)
 		fail("thin_io::list_directory failed on " + folder.path + ": " + QString::fromStdString(thin_io::format_filesystem_error(entries.error())));
@@ -130,7 +130,9 @@ struct Variant
 
 static constexpr Variant AllVariants[]{
 	{ "qt", &listWithQt },
-	{ "thinio", &listWithThinIo },
+	{ "thinio", [](const Folder& folder) { return listWithThinIo(folder, thin_io::listing_detail::basic); } },
+	// What the panel listing is built on
+	{ "thiniofull", [](const Folder& folder) { return listWithThinIo(folder, thin_io::listing_detail::full); } },
 	{ "panel", &listForPanel },
 };
 
@@ -534,7 +536,7 @@ int main(int argc, char* argv[])
 	const QCommandLineOption generateOption{ "generate", "Create the benchmark folders under <root> instead of measuring.", "root" };
 	const QCommandLineOption entriesOption{ "entries", "The sizes of the folders --generate creates.", "counts", "1000,10000,100000" };
 	const QCommandLineOption seedOption{ "seed", "The seed of the generated names.", "number", "1" };
-	const QCommandLineOption variantsOption{ "variants", "The listings to time, of qt, thinio and panel.", "names", "qt,thinio,panel" };
+	const QCommandLineOption variantsOption{ "variants", "The listings to time, of qt, thinio, thiniofull and panel.", "names", "qt,thinio,thiniofull,panel" };
 	const QCommandLineOption warmupOption{ "warmup", "Untimed rounds before the timed ones.", "count", "2" };
 	const QCommandLineOption runsOption{ "runs", "Timed rounds.", "count", "15" };
 	const QCommandLineOption coldOption{ "cold", "Take <rounds> cold samples of every folder and variant, shuffled each round, instead of timing warm.", "rounds" };

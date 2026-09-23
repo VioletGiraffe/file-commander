@@ -7,22 +7,12 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/type_traits_fast.hpp"
-#include "qtcore_helpers/qdatetime_helpers.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
-
-#ifdef CFILESYSTEMOBJECT_TEST
-#define QFileInfo QFileInfo_Test
-#define QDir QDir_Test
-
-#include <QDir_Test>
-#else
-#include <QDir>
-#endif
-
 #include <QDebug>
-#include <QTimeZone>
+#include <QDir>
+#include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
 
 #if defined __linux__ || defined __APPLE__ || defined __FreeBSD__
@@ -35,6 +25,7 @@ RESTORE_COMPILER_WARNINGS
 #pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
 
+#include <algorithm>
 #include <assert.h>
 #include <errno.h>
 #include <utility>
@@ -76,18 +67,59 @@ static QString expandEnvironmentVariables(const QString& string)
 }
 
 
-CFileSystemObject::CFileSystemObject(const QFileInfo& fileInfo) : _fileInfo(fileInfo)
+// '/'-separated, without "." and ".." components or duplicate separators; a trailing separator only on a root.
+// Not QFileInfo::absoluteFilePath(): on Windows it strips trailing dots and spaces from names.
+static QString normalizedAbsolutePath(const QString& path)
 {
-	loadPropertiesFromFileInfo();
+	QString absolutePath = QDir::cleanPath(QDir{}.absoluteFilePath(path));
+#ifdef _WIN32
+	// Either spelling of the drive letter must hash to the same object
+	if (absolutePath.size() >= 2 && absolutePath[1] == ':')
+		absolutePath[0] = absolutePath[0].toUpper();
+#endif
+	return absolutePath;
 }
 
-CFileSystemObject::CFileSystemObject(const QString& path) : _fileInfo(expandEnvironmentVariables(path))
+CFileSystemObject::CFileSystemObject(const QString& path)
 {
-	loadPropertiesFromFileInfo();
+	if (path.isEmpty())
+		return;
+
+	const QString expandedPath = expandEnvironmentVariables(path);
+	QString absolutePath = normalizedAbsolutePath(expandedPath);
+	QString fullName = absolutePath.mid(absolutePath.lastIndexOf('/') + 1);
+
+	if (const auto entry = getDirectoryEntry(absolutePath))
+	{
+		loadProperties(std::move(absolutePath), std::move(fullName), *entry);
+		// Explorer and Qt ignore the hidden attribute a drive root reports
+		if (entry->name.empty())
+			_properties.isHidden = false;
+
+		return;
+	}
+
+	// Nothing to inspect: the spelling is the only classification
+	_properties.fullPath = std::move(absolutePath);
+	_properties.fullName = std::move(fullName);
+	if (expandedPath.endsWith('/') || expandedPath.endsWith(nativeSeparator()))
+	{
+		_properties.type = Directory;
+		_properties.completeBaseName = _properties.fullName;
+		if (!_properties.fullPath.endsWith('/'))
+			_properties.fullPath.append('/');
+	}
+
+	_properties.hash = pathHash(_properties.fullPath);
 }
 
-CFileSystemObject::CFileSystemObject(const QDir& dir) : CFileSystemObject(QString(dir.absolutePath()))
+CFileSystemObject::CFileSystemObject(const QString& parentPath, const thin_io::directory_entry& entry)
 {
+	assert_debug_only(parentPath.endsWith('/'));
+
+	QString fullName = nativeNameToQString(entry.name);
+	QString fullPath = parentPath % fullName;
+	loadProperties(std::move(fullPath), std::move(fullName), entry);
 }
 
 uint64_t pathHash(const QString& fullAbsolutePath)
@@ -107,7 +139,7 @@ static QString parentForAbsolutePath(QString absolutePath)
 		absolutePath.chop(1);
 
 	const auto lastSlash = absolutePath.lastIndexOf('/');
-	if (lastSlash <= 0)
+	if (lastSlash < 0)
 		return {};
 
 	absolutePath.truncate(lastSlash + 1); // Keep the slash as it signifies a directory rather than a file.
@@ -120,88 +152,104 @@ CFileSystemObject& CFileSystemObject::operator=(const QString& path)
 	return *this;
 }
 
-void CFileSystemObject::loadPropertiesFromFileInfo()
+std::optional<CFileSystemObject> CFileSystemObject::cdUpEntryOf(const QString& dirPath)
 {
-	_properties.isLink = _fileInfo.isSymbolicLink() || _fileInfo.isJunction();
-	// A link exists as an object even when its target is gone (exists() follows the link)
-	_properties.exists = _properties.isLink || _fileInfo.exists();
+	if (QDir{ dirPath }.isRoot())
+		return {};
 
-	_properties.fullPath = _fileInfo.absoluteFilePath();
+	CFileSystemObjectProperties properties;
+	properties.fullPath = parentForAbsolutePath(dirPath);
+	properties.fullName = properties.completeBaseName = QStringLiteral("..");
+	properties.type = Directory;
+	properties.exists = true;
+	return CFileSystemObject{ std::move(properties) };
+}
 
-	// QFileInfo::isShortcut() is quite a heavy call on Windows - disabled temporarily for better performance enumerating large folders
-	// Time to first update for C:\Windows\WinSxS\ goes from 1900 to 3900 ms
-
-	//if (_fileInfo.isShortcut()) // This is Windows-specific, place under #ifdef?
-	//{
-	//	_properties.exists = true;
-	//	_properties.type = File;
-	//}
-	//else
-	if (_fileInfo.isFile())
-		_properties.type = File;
-	else if (_fileInfo.isDir())
-	{
-		// Normalization - very important for hash calculation and equality checking
-		// C:/1/ must be equal to C:/1
-		if (!_properties.fullPath.endsWith('/'))
-			_properties.fullPath.append('/');
-
-#ifdef __APPLE__
-		_properties.type = _fileInfo.isBundle() ? Bundle : Directory;
-#else
-		_properties.type = Directory;
-#endif
-	}
-	else if (!_properties.exists && _properties.fullPath.endsWith('/'))
-		_properties.type = Directory;
-	else if (_properties.isLink)
-		_properties.type = File; // Broken link: show it as an item and let delete unlink it
+// The first position where a dot can start an extension.
+// POSIX: a leading dot belongs to the name, so .bashrc has no extension.
+// Windows: .jpg is a JPG file with an empty name, as Windows software treats it.
+static constexpr qsizetype FirstExtensionDotIndex =
 #ifdef _WIN32
-	else if (_properties.exists)
-		qInfo() << _properties.fullPath << " is neither a file nor a dir";
+	0;
+#else
+	1;
 #endif
 
-	_properties.hash = pathHash(_properties.fullPath);
-
-	if (_properties.type == File)
+// A trailing dot starts no extension
+static void splitFileName(CFileSystemObjectProperties& properties)
+{
+	const qsizetype lastDot = properties.fullName.lastIndexOf('.');
+	if (lastDot < FirstExtensionDotIndex || lastDot == properties.fullName.size() - 1)
 	{
-		_properties.extension = _fileInfo.suffix();
-		_properties.completeBaseName = _fileInfo.completeBaseName();
-	}
-	else if (_properties.type == Directory)
-	{
-		_properties.completeBaseName = _fileInfo.baseName();
-		const QString suffix = _fileInfo.completeSuffix();
-		if (!suffix.isEmpty())
-			_properties.completeBaseName = _properties.completeBaseName % '.' % suffix;
-
-		// Ugly temporary bug fix for #141
-		if (_properties.completeBaseName.isEmpty() && _properties.fullPath.endsWith('/'))
-		{
-			const QFileInfo tmpInfo = QFileInfo(_properties.fullPath.left(_properties.fullPath.length() - 1));
-			_properties.completeBaseName = tmpInfo.baseName();
-			const QString sfx = tmpInfo.completeSuffix();
-			if (!sfx.isEmpty())
-				_properties.completeBaseName = _properties.completeBaseName % '.' % sfx;
-		}
-	}
-	else if (_properties.type == Bundle)
-	{
-		_properties.extension = _fileInfo.suffix();
-		_properties.completeBaseName = _fileInfo.completeBaseName();
-	}
-
-	_properties.fullName = _properties.type == Directory ? _properties.completeBaseName : _fileInfo.fileName();
-
-	if (!_properties.exists)
+		properties.completeBaseName = properties.fullName;
 		return;
+	}
 
-	_properties.size = _properties.type == File ? static_cast<uint64_t>(_fileInfo.size()) : 0ULL;
-	// An invalid time converts to 0
-	_properties.creationTime = toTime_t(_fileInfo.birthTime(QTimeZone::UTC));
-	_properties.modificationTime = toTime_t(_fileInfo.lastModified(QTimeZone::UTC));
+	properties.completeBaseName = properties.fullName.left(lastDot);
+	properties.extension = properties.fullName.mid(lastDot + 1);
+}
 
-	assert_debug_only(_properties.type != Directory || _properties.fullPath.isEmpty() || _properties.fullPath.endsWith('/'));
+#ifdef _WIN32
+[[nodiscard]] static bool hasExecutableExtension(const QString& extension)
+{
+	static constexpr QLatin1StringView ExecutableExtensions[]{ QLatin1StringView{ "exe" }, QLatin1StringView{ "com" }, QLatin1StringView{ "bat" }, QLatin1StringView{ "cmd" } };
+	return std::any_of(std::begin(ExecutableExtensions), std::end(ExecutableExtensions), [&extension](const QLatin1StringView executableExtension) {
+		return extension.compare(executableExtension, Qt::CaseInsensitive) == 0;
+	});
+}
+#endif
+
+void CFileSystemObject::loadProperties(QString fullPath, QString fullName, const thin_io::directory_entry& entry)
+{
+	_properties.isLink = isLinkEntry(entry.attributes);
+	_properties.exists = true;
+
+	// The target of a live link, otherwise the entry itself: a broken link keeps its own kind and times
+	const thin_io::entry_status* const linkTarget = _properties.isLink && entry.link_target ? &*entry.link_target : nullptr;
+	const thin_io::entry_status& described = linkTarget ? *linkTarget : entry;
+
+	switch (described.attributes.kind)
+	{
+	case thin_io::entry_kind::directory:
+		_properties.type = Directory;
+#ifdef __APPLE__
+		if (QFileInfo{ fullPath }.isBundle())
+			_properties.type = Bundle;
+#endif
+		// "dir" and "dir/" must hash the same
+		if (!fullPath.endsWith('/'))
+			fullPath.append('/');
+		break;
+	case thin_io::entry_kind::regular_file:
+		_properties.type = File;
+		break;
+	default:
+		// A link to anything else, or a broken POSIX link, is shown as a file so delete can unlink it
+		_properties.type = _properties.isLink ? File : UnknownType;
+		break;
+	}
+
+	_properties.fullPath = std::move(fullPath);
+	_properties.hash = pathHash(_properties.fullPath);
+	_properties.fullName = std::move(fullName);
+	if (_properties.type == Directory)
+		_properties.completeBaseName = _properties.fullName;
+	else
+		splitFileName(_properties);
+
+	_properties.size = _properties.type == File ? described.logical_size.value_or(0) : 0;
+	_properties.creationTime = static_cast<time_t>(described.times.creation.seconds);
+	_properties.modificationTime = static_cast<time_t>(described.times.last_write.seconds);
+
+#ifdef _WIN32
+	_properties.isHidden = entry.attributes.hidden;
+	_properties.isExecutable = _properties.type == File && hasExecutableExtension(_properties.extension);
+#else
+	_properties.isHidden = entry.attributes.hidden || _properties.fullName.startsWith('.');
+	// A broken link's own mode grants nothing
+	const bool isBrokenLink = _properties.isLink && !linkTarget;
+	_properties.isExecutable = !isBrokenLink && described.permissions && (described.permissions->mode & 0111) != 0;
+#endif
 }
 
 void CFileSystemObject::setPath(const QString& path)
@@ -258,23 +306,12 @@ bool CFileSystemObject::isCdUp() const
 
 bool CFileSystemObject::isExecutable() const
 {
-	return _fileInfo.permission(QFile::ExeUser) || _fileInfo.permission(QFile::ExeOwner) || _fileInfo.permission(QFile::ExeGroup) || _fileInfo.permission(QFile::ExeOther);
-}
-
-bool CFileSystemObject::isReadable() const
-{
-	return _fileInfo.isReadable();
-}
-
-// Apparently, it will return false for non-existing files
-bool CFileSystemObject::isWriteable() const
-{
-	return _fileInfo.isWritable();
+	return _properties.isExecutable;
 }
 
 bool CFileSystemObject::isHidden() const
 {
-	return _fileInfo.isHidden();
+	return _properties.isHidden;
 }
 
 const QString& CFileSystemObject::fullAbsolutePath() const &
@@ -303,11 +340,6 @@ uint64_t CFileSystemObject::size() const
 uint64_t CFileSystemObject::hash() const
 {
 	return _properties.hash;
-}
-
-const QFileInfo& CFileSystemObject::qFileInfo() const
-{
-	return _fileInfo;
 }
 
 uint64_t CFileSystemObject::rootFileSystemId() const
@@ -360,16 +392,6 @@ bool CFileSystemObject::isLink() const
 	return _properties.isLink;
 }
 
-bool CFileSystemObject::isSymLink() const
-{
-	return _fileInfo.isSymLink();
-}
-
-QString CFileSystemObject::symLinkTarget() const
-{
-	return _fileInfo.symLinkTarget();
-}
-
 time_t CFileSystemObject::creationTime() const
 {
 	return _properties.creationTime;
@@ -386,7 +408,6 @@ void CFileSystemObject::setDirSize(uint64_t size)
 	_properties.size = size;
 }
 
-// File name without suffix, or folder name. Same as QFileInfo::completeBaseName.
 const QString& CFileSystemObject::name() const &
 {
 	return _properties.completeBaseName;

@@ -12,9 +12,9 @@ DISABLE_COMPILER_WARNINGS
 #include <3rdparty/catch2/catch.hpp>
 RESTORE_COMPILER_WARNINGS
 
-TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
+TEST_CASE("An object from an empty path is empty", "[CFileSystemObject]")
 {
-	CFileSystemObject fso{ QFileInfo_Test{} };
+	const CFileSystemObject fso{ QString{} };
 
 	SECTION_WITH_AUTO_NAME {
 		CHECK(fso == CFileSystemObject{});
@@ -61,15 +61,7 @@ TEST_CASE("Empty CFileSystemObject test", "[CFileSystemObject]")
 	}
 
 	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.isReadable() == false);
-	}
-
-	SECTION_WITH_AUTO_NAME {
 		CHECK(fso.isValid() == false);
-	}
-
-	SECTION_WITH_AUTO_NAME {
-		CHECK(fso.isWriteable() == false);
 	}
 
 	SECTION_WITH_AUTO_NAME {

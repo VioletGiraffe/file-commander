@@ -6,8 +6,6 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
-
-#include <QDir>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -69,9 +67,9 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 		{
 			++rootStats.folders; // scanDirectory() elsewhere in the codebase counts the root dir itself; stay consistent with that
 			if (!rootItem.isLink())
-				dirsToScan.push_back(path);
+				dirsToScan.push_back(rootItem.fullAbsolutePath());
 			else if (const auto targetId = resolvedObjectId(path); targetId && queuedLinkTargets.insert(*targetId).second)
-				dirsToScan.push_back(path);
+				dirsToScan.push_back(rootItem.fullAbsolutePath());
 		}
 		else if (rootItem.isFile())
 		{
@@ -108,25 +106,26 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 					dirsToScan.pop_back();
 				}
 
-				const auto entries = QDir{dir}.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoDotAndDotDot | QDir::System, QDir::Unsorted);
-
 				std::vector<QString> newDirs;
-				for (const auto& entry : entries)
+				if (const auto entries = listDirectoryWithDetails(dir))
 				{
-					const CFileSystemObject item(entry);
-					if (item.isFile())
-						mergeFileIntoStats(stats, item);
-					else if (item.isDir())
+					for (const auto& entry : *entries)
 					{
-						++stats.folders;
-						if (!item.isLink())
-							newDirs.push_back(item.fullAbsolutePath());
-						// An unresolvable id means a broken link - not traversable
-						else if (const auto targetId = resolvedObjectId(item.fullAbsolutePath()); targetId)
+						const CFileSystemObject item{ dir, entry };
+						if (item.isFile())
+							mergeFileIntoStats(stats, item);
+						else if (item.isDir())
 						{
-							std::lock_guard locker(queueMutex);
-							if (queuedLinkTargets.insert(*targetId).second)
+							++stats.folders;
+							if (!item.isLink())
 								newDirs.push_back(item.fullAbsolutePath());
+							// An unresolvable id means a broken link - not traversable
+							else if (const auto targetId = resolvedObjectId(item.fullAbsolutePath()); targetId)
+							{
+								std::lock_guard locker(queueMutex);
+								if (queuedLinkTargets.insert(*targetId).second)
+									newDirs.push_back(item.fullAbsolutePath());
+							}
 						}
 					}
 				}

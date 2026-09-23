@@ -4,11 +4,6 @@
 #include "filesystemhelperfunctions.h"
 
 
-DISABLE_COMPILER_WARNINGS
-#include <QDir>
-#include <QFileInfo>
-RESTORE_COMPILER_WARNINGS
-
 #include <utility>
 #include <vector>
 
@@ -51,13 +46,15 @@ static void scanDirectoryRecursive(const CFileSystemObject& root,
 
 	dirsBeingScanned.push_back(root.fullAbsolutePath());
 
-	const auto list = QDir{root.fullAbsolutePath()}.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoDotAndDotDot | QDir::System, QDir::Unsorted);
-	for (const auto& entry : list)
+	if (const auto entries = listDirectoryWithDetails(root.fullAbsolutePath()))
 	{
-		if (abort)
-			break;
+		for (const auto& entry : *entries)
+		{
+			if (abort)
+				break;
 
-		scanDirectoryRecursive(CFileSystemObject(entry), observer, abort, followDirLinks, reachedThroughLink || traversingLink, dirsBeingScanned);
+			scanDirectoryRecursive(CFileSystemObject{ root.fullAbsolutePath(), entry }, observer, abort, followDirLinks, reachedThroughLink || traversingLink, dirsBeingScanned);
+		}
 	}
 
 	dirsBeingScanned.pop_back();
@@ -75,22 +72,24 @@ void scanDirectory(const CFileSystemObject& root,
 FileListHashMap listDirectoryForPanel(const QString& dirPath, const bool showHiddenFiles)
 {
 	FileListHashMap items;
-	const QFileInfoList directoryEntries = QDir{dirPath}.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDot | QDir::Hidden | QDir::System, QDir::Unsorted);
-	for (const QFileInfo& directoryEntry : directoryEntries)
-	{
-#ifndef _WIN32
-		// The root's ".." entry is itself (/.. == /); skip it so the root listing has no self-referential parent row.
-		// Only the filesystem root yields this exact path. (Windows roots don't produce it.)
-		if (directoryEntry.absoluteFilePath() == QLatin1String("/.."))
-			continue;
-#endif
+	const auto entries = listDirectoryWithDetails(dirPath);
+	if (!entries)
+		return items;
 
-		CFileSystemObject object(directoryEntry);
-		if ((!object.isFile() && !object.isDir()) || !object.exists() || (!showHiddenFiles && object.isHidden()))
+	for (const auto& entry : *entries)
+	{
+		CFileSystemObject object{ dirPath, entry };
+		if ((!object.isFile() && !object.isDir()) || (!showHiddenFiles && object.isHidden()))
 			continue; // Could be a socket
 
 		const qulonglong hash = object.hash();
 		items[hash] = std::move(object);
+	}
+
+	if (auto cdUp = CFileSystemObject::cdUpEntryOf(dirPath))
+	{
+		const qulonglong hash = cdUp->hash();
+		items[hash] = std::move(*cdUp);
 	}
 
 	return items;

@@ -64,8 +64,8 @@ the shell script also falls back to a `qmake` already on PATH.
 |------------|-----------|
 | `fileoperations_test` | File-operation engine: copy, move, delete, staged copy, destination and name resolution, cross-volume, hostile names |
 | `filecomparator_test` | File and folder comparison |
-| `fso_test` | `CFileSystemObject`, and the `QDir`/`QFileInfo` behaviors the core relies on |
-| `fso_test_high_level` | `CFileSystemObject` path semantics: hierarchy, trailing separators, normalization |
+| `fso_test` | `CFileSystemObject` from an empty path |
+| `fso_test_high_level` | `CFileSystemObject` on the real filesystem: path semantics, name split, hidden and executable entries, links; the panel listing and its `[..]` |
 | `panel_test` | `CPanel`: navigation, history, current item, content access, refresh notifications, lifetime |
 | `filesearchengine_test` | Search engine: name filters, content search, engine behavior |
 | `filesystemhelpers_test` | Path quoting and shell word splitting |
@@ -81,8 +81,8 @@ nor runs. After a `thin_io` change, run `thin_io/scripts/run_tests.bat` (or `.sh
 
 ## Listing benchmark
 
-`listing_benchmark` times listing one folder three ways: `QDir` as the panel calls it, `thin_io::list_directory`, and
-`listDirectoryForPanel`, the panel's own listing. `core-tests.pro` builds it with LTO, as the application is built;
+`listing_benchmark` times listing one folder four ways: `QDir` with the panel's filters, `thin_io::list_directory`
+with basic and with full detail, and `listDirectoryForPanel`, the panel's own listing. `core-tests.pro` builds it with LTO, as the application is built;
 the test scripts never run it. `--help` lists the options. The results: [listing-performance.md](listing-performance.md).
 
 - `--generate <root>` creates flat folders of 1k, 10k and 100k entries once, to be reused. The files are empty: content
@@ -102,7 +102,8 @@ the test scripts never run it. `--help` lists the options. The results: [listing
   (Resource Monitor's Disk tab, `iostat`), and a folder must list slower from an HDD than from an SSD.
 - The drive's own cache survives a remount, so some cold samples are partly served from it. The executable shuffles
   the order every round, so these hits land on random variants.
-- Entry counts differ by design: `thinio` lists no `[..]`. A `panel` count below `qt` means entries the panel dropped.
+- Entry counts differ by design: `thinio` and `thiniofull` list no `[..]`. A `panel` count below `qt` means entries
+  the panel dropped.
 
 ## CI
 

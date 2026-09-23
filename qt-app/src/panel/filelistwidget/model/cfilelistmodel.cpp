@@ -43,12 +43,6 @@ const QString& FileListRow::displayName() const noexcept
 	return name.isEmpty() && isFileOrBundle() ? fullName : name;
 }
 
-const QString& FileListRow::displayExtension() const noexcept
-{
-	static const QString none;
-	return name.isEmpty() ? none : extension;
-}
-
 static QVariant displayText(const FileListRow& row, int column)
 {
 	switch (column)
@@ -60,8 +54,8 @@ static QVariant displayText(const FileListRow& row, int column)
 			return row.displayName();
 
 	case ExtColumn:
-		if (!row.isCdUp && !row.displayExtension().isEmpty())
-			return row.displayExtension();
+		if (!row.isCdUp && !row.extension.isEmpty())
+			return row.extension;
 		else
 			return {};
 
@@ -99,7 +93,7 @@ static int compareByColumn(const FileListRow& l, const FileListRow& r, int colum
 		// Folders by name, files by extension, then name
 		if (l.isFileOrBundle())
 		{
-			if (const int byExtension = NaturalSort::compare(l.displayExtension(), r.displayExtension()); byExtension != 0)
+			if (const int byExtension = NaturalSort::compare(l.extension, r.extension); byExtension != 0)
 				return byExtension;
 		}
 		return NaturalSort::compare(l.displayName(), r.displayName());

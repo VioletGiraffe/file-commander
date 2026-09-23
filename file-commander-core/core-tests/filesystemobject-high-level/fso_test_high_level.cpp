@@ -1,4 +1,5 @@
 #include "cfilesystemobject.h"
+#include "directoryscanner.h"
 #include "filesystemhelperfunctions.h" // toNativeSeparators
 
 #include "link_helpers.hpp"
@@ -6,6 +7,7 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "file.hpp" // thin_io
 
 
 #define CATCH_CONFIG_MAIN
@@ -19,6 +21,42 @@ DISABLE_COMPILER_WARNINGS
 #include <QTemporaryDir>
 #include <QTimeZone>
 RESTORE_COMPILER_WARNINGS
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#endif
+
+#include <algorithm>
+
+[[nodiscard]] static const CFileSystemObject* findByFullName(const FileListHashMap& items, const QString& fullName)
+{
+	const auto found = std::find_if(items.begin(), items.end(), [&fullName](const auto& item) { return item.second.fullName() == fullName; });
+	return found == items.end() ? nullptr : &found->second;
+}
+
+// Win32 path parsing strips trailing dots and spaces; thin_io keeps them in an absolute path
+[[nodiscard]] static bool createFileVerbatim(const QString& path)
+{
+	thin_io::file file;
+#ifdef _WIN32
+	return file.open(reinterpret_cast<const wchar_t*>(path.utf16()), thin_io::file::access_mode::Write, thin_io::file::open_disposition::CreateNew);
+#else
+	return file.open(QFile::encodeName(path).constData(), thin_io::file::access_mode::Write, thin_io::file::open_disposition::CreateNew);
+#endif
+}
+
+[[nodiscard]] static bool deleteFileVerbatim(const QString& path)
+{
+#ifdef _WIN32
+	return thin_io::file::delete_file(reinterpret_cast<const wchar_t*>(path.utf16()));
+#else
+	return thin_io::file::delete_file(QFile::encodeName(path).constData());
+#endif
+}
 
 TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 {
@@ -154,7 +192,6 @@ TEST_CASE("Path normalization precedes the trailing separator", "[CFileSystemObj
 	CHECK(CFileSystemObject{ QDir::toNativeSeparators(folder) }.fullAbsolutePath() == folder + "/");
 }
 
-// Qt reports a dotted directory name as though its last component were an extension, so the name is reassembled.
 TEST_CASE("A dotted directory name is reported whole", "[CFileSystemObject]")
 {
 	QTemporaryDir tempDir;
@@ -169,10 +206,8 @@ TEST_CASE("A dotted directory name is reported whole", "[CFileSystemObject]")
 	}
 }
 
-// Qt's isDir() follows a directory link and cannot be told not to, so a live link is classified - and
-// separator-normalized - as the directory it points at. A dead one stays a listed, deletable entry either way, but its
-// classification diverges: a Windows junction carries the directory attribute on the link entry itself, so it remains a
-// Directory with nothing left to point at, while on POSIX there is nothing to follow and it falls back to File.
+// A live link is classified - and separator-normalized - as the directory it points at.
+// A dead one stays a deletable entry classified by its own kind: a Windows junction is a directory entry, a POSIX symlink is not.
 TEST_CASE("A directory link is a directory until its target is gone", "[CFileSystemObject]")
 {
 	QTemporaryDir tempDir;
@@ -215,6 +250,7 @@ TEST_CASE("A filesystem root is its own path and has no parent", "[CFileSystemOb
 	REQUIRE(root.isDir());
 	CHECK(root.fullAbsolutePath().endsWith('/'));
 	CHECK(root.parentDirPath().isEmpty()); // What stops navigateUp() at the top of a volume
+	CHECK_FALSE(root.isHidden()); // A Windows drive root reports the hidden attribute
 
 #ifdef _WIN32
 	// The drive letter is canonically uppercase, so either spelling hashes to the same object.
@@ -247,13 +283,252 @@ TEST_CASE("File times are read once, when the object is built", "[CFileSystemObj
 	CHECK(fileObject.modificationTime() == firstTime.toSecsSinceEpoch());
 	CHECK(CFileSystemObject{ filePath }.modificationTime() == secondTime.toSecsSinceEpoch());
 
-	// A listing's entries, where POSIX has read nothing beyond the name and type
-	const QFileInfoList entries = QDir{ tempDir.path() }.entryInfoList({ "folder" }, QDir::Dirs | QDir::NoDotAndDotDot);
-	REQUIRE(entries.size() == 1);
-	const CFileSystemObject listedFolder{ entries.front() };
-	REQUIRE(listedFolder.isDir());
-	CHECK(listedFolder.modificationTime() == QFileInfo{ folderPath }.lastModified(QTimeZone::UTC).toSecsSinceEpoch());
+	const FileListHashMap listed = listDirectoryForPanel(tempDir.path() + '/', true);
+	const CFileSystemObject* listedFolder = findByFullName(listed, "folder");
+	const CFileSystemObject* listedFile = findByFullName(listed, "file.txt");
+	REQUIRE(listedFolder);
+	REQUIRE(listedFile);
+	REQUIRE(listedFolder->isDir());
+	CHECK(listedFolder->modificationTime() == QFileInfo{ folderPath }.lastModified(QTimeZone::UTC).toSecsSinceEpoch());
+	CHECK(listedFile->modificationTime() == secondTime.toSecsSinceEpoch());
+	CHECK(listedFile->creationTime() == fileObject.creationTime());
 }
+
+// Navigation and cursor restore key on the [..] entry's hash
+TEST_CASE("The panel listing's [..] entry is the parent folder", "[CFileSystemObject][listing]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + "/folder/";
+	REQUIRE(QDir{}.mkpath(folder));
+
+	for (const bool showHiddenFiles : { true, false }) // On POSIX, ".." looks hidden
+	{
+		const FileListHashMap items = listDirectoryForPanel(folder, showHiddenFiles);
+		const CFileSystemObject* cdUp = findByFullName(items, "..");
+		REQUIRE(cdUp);
+		CHECK(cdUp->isCdUp());
+		CHECK(cdUp->fullAbsolutePath() == tempDir.path() + "/");
+		CHECK(cdUp->hash() == CFileSystemObject{ tempDir.path() }.hash());
+		CHECK(cdUp->type() == Directory);
+	}
+
+	CHECK_FALSE(findByFullName(listDirectoryForPanel(QDir::rootPath(), true), ".."));
+}
+
+TEST_CASE("A folder directly under a root has the root as its parent", "[CFileSystemObject]")
+{
+	CFileSystemObjectProperties properties;
+	properties.fullPath = QDir::rootPath() + "folder/";
+	properties.type = Directory;
+	CHECK(CFileSystemObject{ properties }.parentDirPath() == QDir::rootPath());
+}
+
+TEST_CASE("Names ending in a dot or a space are kept verbatim", "[CFileSystemObject][listing]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + '/';
+	const QString dotted = folder + "name.";
+	const QString spaced = folder + "name ";
+	REQUIRE(createFileVerbatim(dotted));
+	REQUIRE(createFileVerbatim(spaced));
+
+	const FileListHashMap items = listDirectoryForPanel(folder, true);
+	for (const QString& path : { dotted, spaced })
+	{
+		const CFileSystemObject object{ path };
+		REQUIRE(object.isFile());
+		CHECK(object.fullAbsolutePath() == path);
+		CHECK(items.contains(object.hash()));
+	}
+
+	// A trailing dot starts no extension
+	CHECK(CFileSystemObject{ dotted }.name() == "name.");
+	CHECK(CFileSystemObject{ dotted }.extension().isEmpty());
+
+	// QTemporaryDir deletes through Win32 path parsing, which cannot address these
+	CHECK(deleteFileVerbatim(dotted));
+	CHECK(deleteFileVerbatim(spaced));
+}
+
+TEST_CASE("A file's extension follows its last dot, except a leading one on POSIX", "[CFileSystemObject][listing]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + '/';
+	REQUIRE(createFileVerbatim(folder + ".jpg"));
+	REQUIRE(createFileVerbatim(folder + "archive.tar.gz"));
+
+	const FileListHashMap items = listDirectoryForPanel(folder, true);
+	const CFileSystemObject dotfileFromPath{ folder + ".jpg" };
+	for (const CFileSystemObject* dotfile : { findByFullName(items, ".jpg"), &dotfileFromPath })
+	{
+		REQUIRE(dotfile);
+#ifdef _WIN32
+		CHECK(dotfile->name().isEmpty());
+		CHECK(dotfile->extension() == "jpg");
+#else
+		CHECK(dotfile->name() == ".jpg");
+		CHECK(dotfile->extension().isEmpty());
+#endif
+	}
+
+	const CFileSystemObject* archive = findByFullName(items, "archive.tar.gz");
+	REQUIRE(archive);
+	CHECK(archive->name() == "archive.tar");
+	CHECK(archive->extension() == "gz");
+}
+
+TEST_CASE("Hidden entries follow the platform's rule", "[CFileSystemObject][listing]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + '/';
+	const QString visible = folder + "visible.txt";
+#ifdef _WIN32
+	const QString hidden = folder + "hidden.txt";
+#else
+	const QString hidden = folder + ".hidden.txt";
+#endif
+	REQUIRE(createFileVerbatim(visible));
+	REQUIRE(createFileVerbatim(hidden));
+#ifdef _WIN32
+	REQUIRE(::SetFileAttributesW(reinterpret_cast<const wchar_t*>(hidden.utf16()), FILE_ATTRIBUTE_HIDDEN) != FALSE);
+#endif
+
+	CHECK(CFileSystemObject{ hidden }.isHidden());
+	CHECK_FALSE(CFileSystemObject{ visible }.isHidden());
+
+	const FileListHashMap withoutHidden = listDirectoryForPanel(folder, false);
+	CHECK(findByFullName(withoutHidden, "visible.txt"));
+	CHECK_FALSE(findByFullName(withoutHidden, CFileSystemObject{ hidden }.fullName()));
+
+	const FileListHashMap withHidden = listDirectoryForPanel(folder, true);
+	const CFileSystemObject* listedHidden = findByFullName(withHidden, CFileSystemObject{ hidden }.fullName());
+	REQUIRE(listedHidden);
+	CHECK(listedHidden->isHidden());
+}
+
+TEST_CASE("Executable files follow the platform's rule", "[CFileSystemObject][listing]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + '/';
+#ifdef _WIN32
+	const QStringList executables{ "tool.EXE", "script.cmd" };
+#else
+	const QStringList executables{ "tool" };
+#endif
+	for (const QString& name : executables)
+	{
+		REQUIRE(createFileVerbatim(folder + name));
+#ifndef _WIN32
+		REQUIRE(QFile::setPermissions(folder + name, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+#endif
+	}
+	REQUIRE(createFileVerbatim(folder + "notes.txt"));
+
+	const FileListHashMap items = listDirectoryForPanel(folder, true);
+	for (const QString& name : executables)
+	{
+		CHECK(CFileSystemObject{ folder + name }.isExecutable());
+		REQUIRE(findByFullName(items, name));
+		CHECK(findByFullName(items, name)->isExecutable());
+	}
+
+	CHECK_FALSE(CFileSystemObject{ folder + "notes.txt" }.isExecutable());
+	REQUIRE(findByFullName(items, "notes.txt"));
+	CHECK_FALSE(findByFullName(items, "notes.txt")->isExecutable());
+}
+
+TEST_CASE("A listed link is described by its target until the target is gone", "[CFileSystemObject][listing]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + '/';
+	const QString targetFolder = folder + "target";
+	const QString targetFile = folder + "target.bin";
+	REQUIRE(QDir{}.mkpath(targetFolder));
+	{
+		QFile file{ targetFile };
+		REQUIRE(file.open(QFile::WriteOnly));
+		REQUIRE(file.write("12345") == 5);
+	}
+	REQUIRE(createDirectoryLink(targetFolder, folder + "folder-link"));
+	// A symlink needs elevation or Developer Mode on Windows
+	const bool fileLinkCreated = createFileSymlink(targetFile, folder + "file-link");
+
+	{
+		const FileListHashMap items = listDirectoryForPanel(folder, true);
+		const CFileSystemObject* folderLink = findByFullName(items, "folder-link");
+		REQUIRE(folderLink);
+		CHECK(folderLink->isLink());
+		CHECK(folderLink->type() == Directory);
+		CHECK(folderLink->fullAbsolutePath() == folder + "folder-link/");
+
+		if (fileLinkCreated)
+		{
+			const CFileSystemObject* fileLink = findByFullName(items, "file-link");
+			REQUIRE(fileLink);
+			CHECK(fileLink->isLink());
+			CHECK(fileLink->type() == File);
+			CHECK(fileLink->size() == 5);
+		}
+		else
+			WARN("No file symlink: the process may not create one");
+	}
+
+	REQUIRE(QDir{ targetFolder }.removeRecursively());
+	REQUIRE(QFile::remove(targetFile));
+
+	const FileListHashMap items = listDirectoryForPanel(folder, true);
+	const CFileSystemObject* brokenFolderLink = findByFullName(items, "folder-link");
+	REQUIRE(brokenFolderLink);
+	CHECK(brokenFolderLink->isLink());
+	CHECK(brokenFolderLink->exists());
+#ifdef _WIN32
+	CHECK(brokenFolderLink->type() == Directory); // A junction is a directory entry itself
+#else
+	CHECK(brokenFolderLink->type() == File);
+#endif
+
+	if (fileLinkCreated)
+	{
+		const CFileSystemObject* brokenFileLink = findByFullName(items, "file-link");
+		REQUIRE(brokenFileLink);
+		CHECK(brokenFileLink->isLink());
+		CHECK(brokenFileLink->type() == File);
+		CHECK(brokenFileLink->size() == 0);
+	}
+}
+
+#ifndef _WIN32
+TEST_CASE("A socket is left out of the panel listing", "[CFileSystemObject][listing]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString folder = tempDir.path() + '/';
+	const QByteArray socketPath = QFile::encodeName(folder + "socket");
+
+	sockaddr_un address{};
+	address.sun_family = AF_UNIX;
+	REQUIRE(static_cast<size_t>(socketPath.size()) < sizeof(address.sun_path));
+	std::copy(socketPath.begin(), socketPath.end(), address.sun_path);
+
+	const int socketFd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+	REQUIRE(socketFd >= 0);
+	const bool bound = ::bind(socketFd, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == 0;
+	::close(socketFd);
+	REQUIRE(bound);
+
+	const CFileSystemObject socketObject{ folder + "socket" };
+	CHECK(socketObject.exists());
+	CHECK_FALSE(socketObject.isFile());
+	CHECK_FALSE(socketObject.isDir());
+	CHECK_FALSE(findByFullName(listDirectoryForPanel(folder, true), "socket"));
+}
+#endif
 
 TEST_CASE("An object built from its properties reports them", "[CFileSystemObject]")
 {

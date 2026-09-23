@@ -50,15 +50,19 @@ through it.
 
 ## Filesystem objects and paths
 
-`CFileSystemObject` wraps `QFileInfo` for panel and navigation use. Its deterministic normalized-path hash is the
-application key used by panels, UI models, selection, and plugins; it is not native filesystem identity.
+`CFileSystemObject` is a value describing one entry for panel and navigation use, read through thin_io once, at
+construction: from a path, or from a listing's `directory_entry`. The listings (`listDirectoryForPanel`,
+`scanDirectory`, the statistics scan, the polling watcher) enumerate with `listing_detail::full`. Its deterministic
+normalized-path hash is the application key used by panels, UI models, selection, and plugins; it is not native
+filesystem identity.
 
 Links are entries distinct from their targets:
 
-- `isLink()` includes POSIX symlinks and Windows name-surrogate links or junctions, but not `.lnk` shortcuts.
-- Qt's file/directory classification follows the target, so ownership-sensitive operations must consult the link
-  flag separately.
-- Broken links still exist as listable and removable entries.
+- `isLink()` uses the operation engine's `isLinkEntry()`: POSIX symlinks and Windows name-surrogate links or junctions,
+  not `.lnk` shortcuts.
+- The file/directory classification, size and times follow the target, so ownership-sensitive operations must consult
+  the link flag separately.
+- Broken links still exist as listable and removable entries, classified by the link's own kind.
 - Windows reparse points without the name-surrogate bit remain ordinary entries.
 
 The file-operation engine uses `CEntryPath`: an absolute `/`-separated path without a trailing separator except at

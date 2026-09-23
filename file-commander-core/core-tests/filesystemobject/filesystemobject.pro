@@ -21,27 +21,13 @@ mac*|linux*|freebsd{
 }
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
-INCLUDEPATH += \
-	$${PWD}/
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \
 	fso_test.cpp \
-	../../src/cfilesystemobject.cpp \
-	../../src/iconprovider/ciconprovider.cpp \
-	../../src/iconprovider/ciconproviderimpl.cpp \
-	qfileinfo_test.cpp \
-	qdir_test.cpp
+	../../src/cfilesystemobject.cpp
 
 HEADERS += \
-	../../src/cfilesystemobject.h \
-	../../src/iconprovider/ciconprovider.h \
-	../../src/iconprovider/ciconproviderimpl.h \
-	QFileInfo_Test \
-	QDir_Test \
-	qdir_test.h \
-	qfileinfo_test.h
-
-DEFINES += CFILESYSTEMOBJECT_TEST
+	../../src/cfilesystemobject.h
