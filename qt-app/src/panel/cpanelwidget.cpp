@@ -834,12 +834,8 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 		}
 	}
 
-	const auto selection = selectedItemsHashes();
-	// Updating the selection summary label
-	updateInfoLabel(selection);
-
-	// Notify the controller of the new selection
-	_controller->selectionChanged(_panelPosition, selection);
+	updateInfoLabel();
+	_controller->selectionChanged(_panelPosition, selectedItemsHashes());
 }
 
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
@@ -1206,7 +1202,7 @@ void CPanelWidget::fillHistory()
 	ui->_pathNavigator->setCurrentIndex((int)currentDirRow);
 }
 
-void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
+void CPanelWidget::updateInfoLabel()
 {
 	const FolderContentsSummary& total = _model->contentsSummary();
 
@@ -1214,16 +1210,9 @@ void CPanelWidget::updateInfoLabel(const std::vector<qulonglong>& selection)
 	uint64_t numFoldersSelected = 0;
 	uint64_t sizeSelected = 0;
 
-	for (const auto selectedItem: selection)
+	for (const QModelIndex& index : selectedItemIndexes())
 	{
-		const QModelIndex index = _model->indexByHash(selectedItem);
-		if (!index.isValid())
-			continue;
-
 		const FileListRow& row = _model->rowAt(index);
-		if (row.isCdUp)
-			continue;
-
 		if (row.type == File)
 			++numFilesSelected;
 		else if (row.isDir())
@@ -1444,7 +1433,7 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	// right away instead of lagging behind for however long the listing takes.
 	_model->setRows({});
 	_tabs[(size_t)_activeTab].navigationId.reset();
-	updateInfoLabel({});
+	updateInfoLabel();
 	updateTabText(_activeTab);
 }
 
@@ -1479,31 +1468,23 @@ QAbstractItemModel * CPanelWidget::model() const
 
 std::vector<qulonglong> CPanelWidget::selectedItemsHashes(bool onlyHighlightedItems /* = false */) const
 {
-	const auto selection = _selectionModel->selectedRows();
+	const QModelIndexList indexes = selectedItemIndexes(onlyHighlightedItems);
 	std::vector<qulonglong> result;
-
-	if (!selection.empty())
-	{
-		result.reserve(selection.size());
-		for (const auto& selectedItem: selection)
-		{
-			const FileListRow& row = _model->rowAt(selectedItem);
-			if (!row.isCdUp)
-				result.push_back(row.hash);
-		}
-	}
-	else if (!onlyHighlightedItems)
-	{
-		auto currentIndex = _selectionModel->currentIndex();
-		if (currentIndex.isValid())
-		{
-			const FileListRow& row = _model->rowAt(currentIndex);
-			if (!row.isCdUp)
-				result.push_back(row.hash);
-		}
-	}
+	result.reserve((size_t)indexes.size());
+	for (const QModelIndex& index : indexes)
+		result.push_back(_model->itemHash(index));
 
 	return result;
+}
+
+QModelIndexList CPanelWidget::selectedItemIndexes(bool onlyHighlightedItems /* = false */) const
+{
+	QModelIndexList indexes = _selectionModel->selectedRows();
+	if (indexes.empty() && !onlyHighlightedItems && _selectionModel->currentIndex().isValid())
+		indexes.push_back(_selectionModel->currentIndex());
+
+	indexes.removeIf([this](const QModelIndex& index) { return _model->rowAt(index).isCdUp; });
+	return indexes;
 }
 
 qulonglong CPanelWidget::currentItemHash() const

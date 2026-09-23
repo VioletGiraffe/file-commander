@@ -120,7 +120,9 @@ private:
 	bool fillFromList(FileListRefreshCause operation);
 	void fillFromPanel(FileListRefreshCause operation);
 	void fillHistory();
-	void updateInfoLabel(const std::vector<qulonglong>& selection);
+	void updateInfoLabel();
+	// The selected rows, or with none selected and onlyHighlightedItems false, the row under the cursor; never [..]
+	[[nodiscard]] QModelIndexList selectedItemIndexes(bool onlyHighlightedItems = false) const;
 
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
