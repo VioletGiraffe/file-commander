@@ -33,6 +33,8 @@ Variants:
   plain timestamps, zero for unset. Only the `thinio` row: nothing else changed since 17f7be81.
 - Commit 06fe0adb, thin_io f9b2043: `CFileSystemObject` is a plain value, and
   `listDirectoryForPanel` builds it from thin_io's `full` listing, with no `QDir` or `QFileInfo`.
+- Commit 527c253c: `CFileSystemObject` stores one string, its path, and the positions of the name and extension in it.
+  Only the warm `panel` row: nothing else changed since 06fe0adb.
 
 | Cold, SSD | 1k | 10k | 100k |
 |---|---|---|---|
@@ -78,11 +80,13 @@ Warm on the HDD volume agrees with the SSD within 10%.
 | `panel` sorted, 93a59545 | 4.81 | 4.92 | 10.6 |
 | `panel`, 17f7be81 | 1.78 | 1.87 | 1.75 |
 | `panel`, 06fe0adb | 0.66 | 0.65 | 0.65 |
+| `panel`, 527c253c | 0.58 | 0.54 | 0.55 |
 
 ## Raspberry Pi 4
 
 Commit 5e83b087: `listDirectoryForPanel` sorts. Commit e8535a60: it lists unsorted. Commit 543530cc, thin_io de61aff:
 the Windows section's 17f7be81 and 505d2ea5 changes. Commit 06fe0adb, thin_io f9b2043: the Windows section's 06fe0adb change.
+Commit 527c253c: the Windows section's 527c253c change, warm only.
 
 | Cold, SD card | 1k | 10k | 100k |
 |---|---|---|---|
@@ -115,6 +119,7 @@ the Windows section's 17f7be81 and 505d2ea5 changes. Commit 06fe0adb, thin_io f9
 | `panel`, e8535a60 | 12.5 | 13.1 | 13.1 |
 | `panel`, 543530cc | 10.9 | 11.2 | 11.2 |
 | `panel`, 06fe0adb | 4.76 | 4.93 | 4.77 |
+| `panel`, 527c253c | 4.66 | 4.72 | 4.55 |
 
 ## Where the panel's time goes
 
@@ -145,8 +150,11 @@ The panel builds on `QDir` up to 543530cc, and on `thiniofull` from 06fe0adb.
     reads, and warm it costs 2.2-2.5 more than `thinio`.
 - Windows, 06fe0adb: the panel's own CPU is building the `CFileSystemObject`s and the hash map. `full` detail
   costs about as much as `basic`: it adds a query per link only.
+- 527c253c, measured warm only: the panel's own CPU at 100k falls to 0.26 on Windows and 1.12 on the Pi, against
+  `thiniofull` warm from the same session.
 - At 93a59545 the panel held about 2 KB per entry on Windows, and its warm cost doubled at 100k. At 17f7be81 it held
-  1.1 KB per entry, and 370 bytes at 06fe0adb; from 17f7be81 on, the warm cost is flat, as on the Pi.
+  1.1 KB per entry, 370 bytes at 06fe0adb and 191 at 527c253c; the Pi, 446 and 229. From 17f7be81 on, the warm cost
+  is flat, as on the Pi.
 
 ## Measured costs
 
