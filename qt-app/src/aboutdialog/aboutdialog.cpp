@@ -28,7 +28,6 @@ constexpr struct {
 	const char* url;
 } ACKNOWLEDGEMENTS[] = {
 	{ "Syntax highlighter",           "Qutepart by diegoiast",       "https://github.com/diegoiast/qutepart-cpp" },
-	{ "Markdown parser",              "maddy by progsource",         "https://github.com/progsource/maddy" },
 	{ "Hash map",                     "unordered_dense by martinus", "https://github.com/martinus/unordered_dense" },
 	{ "Hash map",                     "Boost.Unordered by boostorg", "https://github.com/boostorg/unordered" },
 	{ "Move-only function wrapper",   "function2 by Naios",          "https://github.com/Naios/function2" },
