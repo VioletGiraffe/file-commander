@@ -263,7 +263,7 @@ TEST_CASE("The rows on screen stay in place through an update", "[filelist][upda
 
 		const CFileListView::ScrollPosition position = view.scrollPosition();
 		REQUIRE(model.updateRows(rowsOf(listing)));
-		view.restoreScrollPosition(position);
+		REQUIRE(view.restoreScrollPosition(position));
 
 		CHECK(yOf("/folder/f150.txt") == y150);
 	}
@@ -274,9 +274,29 @@ TEST_CASE("The rows on screen stay in place through an update", "[filelist][upda
 
 		const CFileListView::ScrollPosition position = view.scrollPosition();
 		REQUIRE(model.updateRows(rowsOf(listing)));
-		view.restoreScrollPosition(position);
+		REQUIRE(view.restoreScrollPosition(position));
 
 		CHECK(yOf("/folder/f151.txt") == y151);
+	}
+
+	SECTION("A reset leaves no row to restore")
+	{
+		const CFileListView::ScrollPosition position = view.scrollPosition();
+		model.setRows(rowsOf(listing));
+		CHECK_FALSE(view.restoreScrollPosition(position));
+	}
+
+	SECTION("The position survives the view showing another model in between, as on a tab switch")
+	{
+		const CFileListView::ScrollPosition position = view.scrollPosition();
+		CFileListModel otherModel{ nullptr };
+		otherModel.setRows(rowsOf(listing));
+		view.setModel(&otherModel);
+		view.scrollToTop();
+		view.setModel(&model);
+
+		REQUIRE(view.restoreScrollPosition(position));
+		CHECK(yOf("/folder/f150.txt") == y150);
 	}
 }
 

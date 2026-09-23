@@ -147,6 +147,7 @@ private:
 		QItemSelectionModel* selectionModel = nullptr;
 		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - the model owns the sort)
 		std::optional<uint64_t> navigationId; // CPanel::navigationId() of the listing in the model; empty while it holds none
+		CFileListView::ScrollPosition scrollPosition; // Saved while the tab is in the background
 	};
 	// A tab's persisted appearance. The defaults are what a tab gets with nothing stored for it.
 	struct TabViewState {
@@ -162,7 +163,8 @@ private:
 	[[nodiscard]] TabViewState viewStateFromLegacyHeaderBlob() const; // Migration: settings that predate the per-tab store held one blob per side
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
 	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
-	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths and sort
+	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths, sort and scroll position
+	void saveActiveTabViewState();                 // Stores what activateTab() restores, before the view shows another tab
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);
 	void onTabBarTabMoved(int from, int to);        // Drag-reorder: mirrors the QTabBar's move into _tabs and CController

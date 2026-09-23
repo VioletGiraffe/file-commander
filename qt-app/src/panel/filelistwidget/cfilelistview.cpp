@@ -137,7 +137,7 @@ CFileListView::ScrollPosition CFileListView::scrollPosition() const
 	return position;
 }
 
-void CFileListView::restoreScrollPosition(const ScrollPosition& position)
+bool CFileListView::restoreScrollPosition(const ScrollPosition& position)
 {
 	executeDelayedItemsLayout(); // Updates the scroll bar's range to the rows changed since
 
@@ -153,8 +153,10 @@ void CFileListView::restoreScrollPosition(const ScrollPosition& position)
 		else
 			scrollBar->setValue(scrollBar->value() + visualRect(row).top() - y);
 
-		return;
+		return true;
 	}
+
+	return false;
 }
 
 // For managing selection and cursor

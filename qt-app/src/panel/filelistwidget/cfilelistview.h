@@ -63,8 +63,8 @@ public:
 		std::vector<std::pair<QPersistentModelIndex, int>> visibleRows;
 	};
 	[[nodiscard]] ScrollPosition scrollPosition() const;
-	// Scrolls the first of the rows that is still in the model back to where it was on screen. A model reset leaves none.
-	void restoreScrollPosition(const ScrollPosition& position);
+	// Scrolls the first of the rows that is still in the model back to where it was on screen. False if none is: a model reset leaves none.
+	bool restoreScrollPosition(const ScrollPosition& position);
 
 signals:
 	void contextMenuRequested(QPoint pos);

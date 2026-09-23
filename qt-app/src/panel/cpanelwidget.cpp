@@ -363,9 +363,20 @@ void CPanelWidget::activateTab(int index)
 	// Show the now-active panel's contents immediately (the CPanel may also refresh asynchronously on activation).
 	fillFromPanel(refreshCauseOther);
 	// setModel() left another tab's scroll position, which a refresh keeps
-	ui->_list->scrollTo(ui->_list->currentIndex());
+	if (!ui->_list->restoreScrollPosition(std::exchange(tab.scrollPosition, {})))
+		ui->_list->scrollTo(ui->_list->currentIndex());
 
 	emit activeTabChanged();
+}
+
+void CPanelWidget::saveActiveTabViewState()
+{
+	if (_activeTab < 0 || _activeTab >= (int)_tabs.size())
+		return;
+
+	PanelTab& tab = _tabs[(size_t)_activeTab];
+	tab.headerState = ui->_list->header()->saveState();
+	tab.scrollPosition = ui->_list->scrollPosition();
 }
 
 void CPanelWidget::createNewTab()
@@ -469,10 +480,9 @@ void CPanelWidget::onTabBarCurrentChanged(int index)
 	if (index < 0 || index >= (int)_tabs.size())
 		return;
 
-	// Snapshot the tab we're switching away from so its column layout survives the swap; activateTab()
+	// Snapshot the tab we're switching away from so its view state survives the swap; activateTab()
 	// below restores the new tab's own snapshot.
-	if (_activeTab >= 0 && _activeTab < (int)_tabs.size())
-		_tabs[(size_t)_activeTab].headerState = ui->_list->header()->saveState();
+	saveActiveTabViewState();
 
 	_controller->setActiveTab(_panelPosition, tabIdAt(index));
 	activateTab(index);
@@ -509,8 +519,8 @@ void CPanelWidget::closeTabById(qulonglong id)
 	// over a live, not-yet-captured resize. Capture before the erase, while _activeTab still indexes the
 	// correct (unshifted) slot. Closing the active tab itself (index == _activeTab) needs no capture, since
 	// that tab is about to be destroyed anyway.
-	if (index != _activeTab && _activeTab >= 0 && _activeTab < (int)_tabs.size())
-		_tabs[(size_t)_activeTab].headerState = ui->_list->header()->saveState();
+	if (index != _activeTab)
+		saveActiveTabViewState();
 
 	_recentlyClosedTabsPaths.push_back(_controller->tabPath(_panelPosition, id));
 
