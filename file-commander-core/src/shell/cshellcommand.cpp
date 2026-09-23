@@ -36,7 +36,7 @@ static QString cmdLine(const QString& workingDir, const QString& command)
 }
 #endif
 
-qsizetype CShellCommand::maxCommandLength(const QString& workingDir)
+qsizetype CShellCommand::maxCommandLength([[maybe_unused]] const QString& workingDir)
 {
 #ifdef _WIN32
 	static constexpr qsizetype cmdLineLimit = 8191;
