@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790180116040,
+  "lastUpdate": 1790185801983,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -24324,6 +24324,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/527c253ce4edbacee8d38839f05df8ff9f81c2e3"
         },
         "date": 1790180110334,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19630,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18712,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1448,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 240,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 824,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 420,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c2fa273d3ba2c95e1a2a78149bb41852dca6ef77",
+          "message": "Qt 6.8 build fixed",
+          "timestamp": "2026-09-23T20:43:10+03:00",
+          "tree_id": "58ccb2a0098e646825c88fd7c7a4c0a7e91b07e7",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c2fa273d3ba2c95e1a2a78149bb41852dca6ef77"
+        },
+        "date": 1790185795713,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
