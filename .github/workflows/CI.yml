@@ -105,7 +105,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.11.*'
+        version: '6.11.2'
         # Qt 6.11's Windows repository layout needs an aqtinstall newer than its latest release (3.3.0)
         aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
         target: desktop
