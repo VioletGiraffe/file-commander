@@ -2,17 +2,15 @@
 
 #include "plugininterface/cpluginwindow.h"
 
+class CImageViewerWidget;
 class CPluginProxy;
 
-namespace Ui {
-class CImageViewerWindow;
-}
+class QAction;
 
 class CImageViewerWindow final : public CPluginWindow
 {
 public:
 	explicit CImageViewerWindow(CPluginProxy& proxy, QWidget* parent = nullptr) noexcept;
-	~CImageViewerWindow() noexcept override;
 
 	bool displayImage(const QString& imagePath, bool resetViewParameters = true);
 
@@ -27,5 +25,14 @@ private:
 private:
 	QString _currentImagePath;
 	bool _quickViewMode = false;
-	Ui::CImageViewerWindow *ui;
+
+	CImageViewerWidget* _imageViewerWidget = nullptr;
+	QAction* _imageInfoAction = nullptr;
+	QAction* _saveAsAction = nullptr;
+	QAction* _copyAction = nullptr;
+	QAction* _copyAsDisplayedAction = nullptr;
+	QAction* _fitToScreenAction = nullptr;
+	QAction* _zoom1to1Action = nullptr;
+	QAction* _showInfoStripAction = nullptr;
+	QAction* _pixelPreservingUpscalingAction = nullptr;
 };

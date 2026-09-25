@@ -22,12 +22,7 @@ bool CImageViewerPlugin::canViewFile(const QString& fileName, const QMimeType& t
 CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CImageViewerPlugin::viewFile(const QString& fileName)
 {
 	auto window = WindowPtr<CImageViewerWindow>::create(*_proxy);
-
-	if (window->displayImage(fileName))
-	{
-		window->adjustSize();
-	}
-	else
+	if (!window->displayImage(fileName))
 		window.reset();
 
 	return window;

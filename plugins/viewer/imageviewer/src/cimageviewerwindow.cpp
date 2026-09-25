@@ -11,14 +11,14 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include "ui_cimageviewerwindow.h"
-
 #include <QAction>
 #include <QActionGroup>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QImageWriter>
+#include <QKeySequence>
 #include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QSettings>
 #include <QShortcut>
@@ -32,91 +32,99 @@ RESTORE_COMPILER_WARNINGS
 
 CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noexcept :
 	CPluginWindow(parent),
-	ui(new Ui::CImageViewerWindow)
+	_imageViewerWidget(new CImageViewerWidget(this))
 {
-	ui->setupUi(this);
+	setCentralWidget(_imageViewerWidget);
+
 	// The proxy outlives every plugin window, so the captured pointer stays valid in copies of the scaler that outlive this window.
 	ImageProcessing::ParallelForFn parallelFor = [proxy = &proxy](size_t count, const std::function<void(size_t)>& body) {
 		proxy->parallelFor(count, body);
 	};
-	ui->_imageViewerWidget->setImageScaler([parallelFor = std::move(parallelFor)](QImage& dest, const QImage& source, const QRect& srcRect) {
+	_imageViewerWidget->setImageScaler([parallelFor = std::move(parallelFor)](QImage& dest, const QImage& source, const QRect& srcRect) {
 		if (!ImageProcessing::resize(dest, source, srcRect, parallelFor))
 			CImageViewerWidget::smoothScaleQt(dest, source, srcRect);
 	});
 
-	ui->_imageViewerWidget->setInfoStripHint(tr("Press %1 to hide").arg(ui->actionShowInfoStrip->shortcut().toString(QKeySequence::NativeText)));
-	connect(ui->actionShowInfoStrip, &QAction::toggled, ui->_imageViewerWidget, &CImageViewerWidget::setOverlayVisible);
+	QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
+	fileMenu->addAction(tr("&Open..."), QKeySequence{ Qt::CTRL | Qt::Key_O }, this, [this] {
+		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg *.jpe);; TIFF (*.tif *.tiff);; PNG (*.png)");
+		const QString fileName = QFileDialog::getOpenFileName(dialogParent(), QString(), QString(), filtersString);
+		if (!fileName.isEmpty())
+			displayImage(fileName);
+	});
+	fileMenu->addAction(tr("&Reload"), QKeySequence{ Qt::Key_F5 }, this, [this] {
+		displayImage(_currentImagePath, false); // Same file: the current zoom and pan still apply
+	});
+	fileMenu->addSeparator();
+	_imageInfoAction = fileMenu->addAction(tr("Image &info..."), QKeySequence{ Qt::ALT | Qt::Key_Return }, this, &CImageViewerWindow::showImageInfo);
+	fileMenu->addSeparator();
+	_saveAsAction = fileMenu->addAction(tr("Save &As..."), QKeySequence{ Qt::CTRL | Qt::SHIFT | Qt::Key_S }, this, &CImageViewerWindow::saveImageAs);
+	fileMenu->addSeparator();
+	fileMenu->addAction(tr("&Close"), this, &QWidget::close);
 
-	// Built here rather than in the .ui: Qt Designer offers no way to create an action group.
+	QMenu* editMenu = menuBar()->addMenu(tr("&Edit"));
+	_copyAction = editMenu->addAction(tr("&Copy to clipboard"), QKeySequence{ Qt::CTRL | Qt::Key_C }, _imageViewerWidget, &CImageViewerWidget::copyToClipboard);
+	_copyAsDisplayedAction = editMenu->addAction(tr("Copy to clipboard as displa&yed"), _imageViewerWidget, &CImageViewerWidget::copyDisplayedToClipboard);
+
+	QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
+	_fitToScreenAction = viewMenu->addAction(tr("&Fit to screen"), QKeySequence{ Qt::CTRL | Qt::Key_0 }, _imageViewerWidget, &CImageViewerWidget::fitToWindow);
+	_zoom1to1Action = viewMenu->addAction(tr("&Zoom 1:1"), QKeySequence{ Qt::CTRL | Qt::Key_1 }, _imageViewerWidget, &CImageViewerWidget::zoomToActualPixels);
+	viewMenu->addSeparator();
+	QAction* pauseAnimationAction = viewMenu->addAction(tr("Pause/resume &animation"), QKeySequence{ Qt::Key_Space }, _imageViewerWidget, &CImageViewerWidget::togglePause);
+	QAction* previousFrameAction = viewMenu->addAction(tr("Pre&vious frame"), QKeySequence{ Qt::Key_Left }, _imageViewerWidget, &CImageViewerWidget::stepToPreviousFrame);
+	QAction* nextFrameAction = viewMenu->addAction(tr("&Next frame"), QKeySequence{ Qt::Key_Right }, _imageViewerWidget, &CImageViewerWidget::stepToNextFrame);
+	// Resolved here rather than on load: an animation also ends on its own, and this is the only place the items are seen.
+	connect(viewMenu, &QMenu::aboutToShow, this, [this, pauseAnimationAction, previousFrameAction, nextFrameAction] {
+		const bool animated = _imageViewerWidget->isAnimated();
+		for (QAction* action : { pauseAnimationAction, previousFrameAction, nextFrameAction })
+			action->setEnabled(animated);
+	});
+	viewMenu->addSeparator();
+
+	_showInfoStripAction = viewMenu->addAction(tr("Show the &info strip"), QKeySequence{ Qt::Key_I });
+	_showInfoStripAction->setCheckable(true);
+	_showInfoStripAction->setChecked(true);
+	_imageViewerWidget->setInfoStripHint(tr("Press %1 to hide").arg(_showInfoStripAction->shortcut().toString(QKeySequence::NativeText)));
+	connect(_showInfoStripAction, &QAction::toggled, _imageViewerWidget, &CImageViewerWidget::setOverlayVisible);
+	viewMenu->addSeparator();
+
+	QAction* smoothUpscalingAction = viewMenu->addAction(tr("&Smooth upscaling"));
+	_pixelPreservingUpscalingAction = viewMenu->addAction(tr("&Pixel-preserving upscaling"));
 	auto* upscalingModeGroup = new QActionGroup(this);
-	upscalingModeGroup->addAction(ui->actionSmoothUpscaling);
-	upscalingModeGroup->addAction(ui->actionPixelPreservingUpscaling);
+	for (QAction* action : { smoothUpscalingAction, _pixelPreservingUpscalingAction })
+	{
+		action->setCheckable(true);
+		upscalingModeGroup->addAction(action);
+	}
 
 	const bool pixelPreservingUpscaling = QSettings{}.value(SETTINGS_PIXEL_PRESERVING_UPSCALING, false).toBool();
-	(pixelPreservingUpscaling ? ui->actionPixelPreservingUpscaling : ui->actionSmoothUpscaling)->setChecked(true);
-	ui->_imageViewerWidget->setNearestNeighborUpscaling(pixelPreservingUpscaling);
+	(pixelPreservingUpscaling ? _pixelPreservingUpscalingAction : smoothUpscalingAction)->setChecked(true);
+	_imageViewerWidget->setNearestNeighborUpscaling(pixelPreservingUpscaling);
 	// Only this action is connected: the group unchecks it whenever the smooth one is picked.
-	connect(ui->actionPixelPreservingUpscaling, &QAction::toggled, this, [this](bool enabled) {
-		ui->_imageViewerWidget->setNearestNeighborUpscaling(enabled);
+	connect(_pixelPreservingUpscalingAction, &QAction::toggled, this, [this](bool enabled) {
+		_imageViewerWidget->setNearestNeighborUpscaling(enabled);
 		if (!_quickViewMode) // Quick view forces the mode, so it must not overwrite the stored preference.
 			QSettings{}.setValue(SETTINGS_PIXEL_PRESERVING_UPSCALING, enabled);
 	});
 
 	// Checking the other action is what switches modes: unchecking the current one would leave the group with no selection.
 	const QKeySequence upscalingModeToggleKey{ QStringLiteral("P") };
-	new QShortcut(upscalingModeToggleKey, this, this, [this] {
-		(ui->actionPixelPreservingUpscaling->isChecked() ? ui->actionSmoothUpscaling : ui->actionPixelPreservingUpscaling)->setChecked(true);
+	new QShortcut(upscalingModeToggleKey, this, this, [this, smoothUpscalingAction] {
+		(_pixelPreservingUpscalingAction->isChecked() ? smoothUpscalingAction : _pixelPreservingUpscalingAction)->setChecked(true);
 	});
 
 	// A menu draws the text after a tab in its shortcut column. The key switches between the two actions,
 	// so neither can own it as its own shortcut, and both advertise it this way instead.
-	for (QAction* action : { ui->actionSmoothUpscaling, ui->actionPixelPreservingUpscaling })
+	for (QAction* action : { smoothUpscalingAction, _pixelPreservingUpscalingAction })
 		action->setText(action->text() + '\t' + upscalingModeToggleKey.toString(QKeySequence::NativeText));
 
-	connect(ui->actionOpen, &QAction::triggered, this, [this] {
-		const QString filtersString = tr("All files (*.*);; GIF (*.gif);; JPEG (*.jpg *.jpeg *.jpe);; TIFF (*.tif *.tiff);; PNG (*.png)");
-		const QString fileName = QFileDialog::getOpenFileName(dialogParent(), QString(), QString(), filtersString);
-		if (!fileName.isEmpty())
-			displayImage(fileName);
-	});
-
-	connect(ui->actionReload, &QAction::triggered, this, [this] {
-		displayImage(_currentImagePath, false); // Same file: the current zoom and pan still apply
-	});
-
-	connect(ui->actionSaveAs, &QAction::triggered, this, &CImageViewerWindow::saveImageAs);
-
-	connect(ui->actionImageInfo, &QAction::triggered, this, &CImageViewerWindow::showImageInfo);
-
-	connect(ui->actionClose, &QAction::triggered, this, &QMainWindow::close);
-
-	connect(ui->action_Copy_to_clipboard, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::copyToClipboard);
-	connect(ui->action_Copy_to_clipboard_as_displayed, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::copyDisplayedToClipboard);
-
-	connect(ui->actionFitToScreen, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::fitToWindow);
-	connect(ui->actionZoom1to1, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::zoomToActualPixels);
-	connect(ui->actionPauseAnimation, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::togglePause);
-	connect(ui->actionPreviousFrame, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::stepToPreviousFrame);
-	connect(ui->actionNextFrame, &QAction::triggered, ui->_imageViewerWidget, &CImageViewerWidget::stepToNextFrame);
-	// Resolved here rather than on load: an animation also ends on its own, and this is the only place the items are seen.
-	connect(ui->menuView, &QMenu::aboutToShow, this, [this] {
-		const bool animated = ui->_imageViewerWidget->isAnimated();
-		for (QAction* action : { ui->actionPauseAnimation, ui->actionPreviousFrame, ui->actionNextFrame })
-			action->setEnabled(animated);
-	});
-
 	new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
-}
-
-CImageViewerWindow::~CImageViewerWindow() noexcept
-{
-	delete ui;
 }
 
 bool CImageViewerWindow::displayImage(const QString& imagePath, bool resetViewParameters)
 {
 	_currentImagePath = imagePath;
-	if (!ui->_imageViewerWidget->displayImage(imagePath, resetViewParameters))
+	if (!_imageViewerWidget->displayImage(imagePath, resetViewParameters))
 	{
 		QMessageBox::warning(dialogParent(), tr("Failed to load the image"), tr("Failed to load the image %1\n\nIt is inaccessible, doesn't exist or is not a supported image file.").arg(imagePath));
 		return false;
@@ -128,7 +136,7 @@ bool CImageViewerWindow::displayImage(const QString& imagePath, bool resetViewPa
 	setWindowFilePath(imagePath);
 
 	QTimer::singleShot(3000, this, [this](){
-		setWindowIcon(ui->_imageViewerWidget->imageIcon());
+		setWindowIcon(_imageViewerWidget->imageIcon());
 	});
 
 	return true;
@@ -137,16 +145,16 @@ bool CImageViewerWindow::displayImage(const QString& imagePath, bool resetViewPa
 void CImageViewerWindow::configureForQuickView()
 {
 	_quickViewMode = true; // Must precede the check: the toggle handler reads it to skip the settings write.
-	ui->actionPixelPreservingUpscaling->setChecked(true);
+	_pixelPreservingUpscalingAction->setChecked(true);
 
 	// The menu bar stays with this window, which is never shown, so the canvas offers the applicable actions instead.
 	// The upscaling mode is not among them: quick view forces it, and every window here is built anew for each file.
 	QAction* const contextMenuActions[] = {
-		ui->actionFitToScreen, ui->actionZoom1to1,
+		_fitToScreenAction, _zoom1to1Action,
 		nullptr, // Separator
-		ui->actionShowInfoStrip, ui->actionImageInfo,
+		_showInfoStripAction, _imageInfoAction,
 		nullptr,
-		ui->action_Copy_to_clipboard, ui->action_Copy_to_clipboard_as_displayed, ui->actionSaveAs
+		_copyAction, _copyAsDisplayedAction, _saveAsAction
 	};
 
 	for (QAction* action : contextMenuActions)
@@ -157,31 +165,31 @@ void CImageViewerWindow::configureForQuickView()
 			action->setSeparator(true);
 		}
 		// Adding an action to a visible widget puts its shortcut up against the main window's own. Ctrl+0 is the only one free there.
-		else if (action != ui->actionFitToScreen)
+		else if (action != _fitToScreenAction)
 			action->setShortcut({});
 
-		ui->_imageViewerWidget->addAction(action);
+		_imageViewerWidget->addAction(action);
 	}
 
-	ui->_imageViewerWidget->setContextMenuPolicy(Qt::ActionsContextMenu);
-	ui->_imageViewerWidget->setInfoStripHint(tr("Right-click for options"));
+	_imageViewerWidget->setContextMenuPolicy(Qt::ActionsContextMenu);
+	_imageViewerWidget->setInfoStripHint(tr("Right-click for options"));
 }
 
 QWidget* CImageViewerWindow::dialogParent() const
 {
-	return ui->_imageViewerWidget->window();
+	return _imageViewerWidget->window();
 }
 
 void CImageViewerWindow::showImageInfo()
 {
-	CImageInfoDialog dialog{ _currentImagePath, ui->_imageViewerWidget->sourceImage(), dialogParent() };
+	CImageInfoDialog dialog{ _currentImagePath, _imageViewerWidget->sourceImage(), dialogParent() };
 	dialog.exec();
 }
 
 void CImageViewerWindow::saveImageAs()
 {
 	// Copied: the dialogs below run an event loop, and this must stay the image the user chose to save.
-	const QImage image = ui->_imageViewerWidget->sourceImage();
+	const QImage image = _imageViewerWidget->sourceImage();
 	if (image.isNull())
 		return;
 

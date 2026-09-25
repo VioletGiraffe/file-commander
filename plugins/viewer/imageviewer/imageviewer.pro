@@ -40,9 +40,6 @@ SOURCES += \
 	src/cimageviewerplugin.cpp \
 	src/cimageviewerwindow.cpp
 
-FORMS += \
-	src/cimageviewerwindow.ui
-
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libimage-processing.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
 }
