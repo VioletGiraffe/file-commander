@@ -463,6 +463,7 @@ TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
 // Mixed case, digits and an empty name exercise the collator's case, numeric and empty-string rules
 TEST_CASE("NaturalSort::compare orders the same by key as by string", "[filelist][collator]")
 {
+	INFO("Random seed: " << g_randomSeed);
 	CRandomDataGenerator random;
 	random.setSeed(g_randomSeed);
 
@@ -484,7 +485,15 @@ TEST_CASE("NaturalSort::compare orders the same by key as by string", "[filelist
 	std::vector<uint32_t> byKey = byCompare;
 	std::stable_sort(byCompare.begin(), byCompare.end(), [&names](uint32_t l, uint32_t r) { return NaturalSort::compare(names[l], names[r]) < 0; });
 	std::stable_sort(byKey.begin(), byKey.end(), [&](uint32_t l, uint32_t r) { return NaturalSort::compare(keys[l], keys[r]) < 0; });
-	CHECK(byKey == byCompare);
+
+	const auto [byKeyIt, byCompareIt] = std::mismatch(byKey.cbegin(), byKey.cend(), byCompare.cbegin());
+	if (byKeyIt != byKey.cend())
+	{
+		const uint32_t l = *byKeyIt, r = *byCompareIt;
+		INFO("First difference at " << byKeyIt - byKey.cbegin() << ": \"" << names[l].toStdString() << "\" by key, \"" << names[r].toStdString() << "\" by string");
+		INFO("Comparing the first to the second: " << NaturalSort::compare(names[l], names[r]) << " by string, " << NaturalSort::compare(keys[l], keys[r]) << " by key");
+		FAIL_CHECK("The two orders differ");
+	}
 }
 
 // The model's name sort without the model: indices into names, the ones containing 'A' and then all of them, repeatedly
