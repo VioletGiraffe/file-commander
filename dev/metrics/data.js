@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790348476244,
+  "lastUpdate": 1790419025431,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -25036,6 +25036,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 398,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 36.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 18.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "cdaa4491fb55679f74d6754916e2313509cdcb35",
+          "message": "Timing measyrement + logging",
+          "timestamp": "2026-09-26T13:30:14+03:00",
+          "tree_id": "9099ab1cfa98f17574f59126fc211a0b7eff5c47",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/cdaa4491fb55679f74d6754916e2313509cdcb35"
+        },
+        "date": 1790419021415,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19660,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18970,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1339,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 234.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 750,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 398.5,
             "unit": "KB"
           },
           {
