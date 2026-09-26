@@ -423,7 +423,7 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 		return displayText(row, index.column());
 	case Qt::DecorationRole:
 		if (_iconProvider && index.column() == NameColumn && !row.isCdUp())
-			return _iconProvider->bestAvailableIconFor(row.extension().toString(), row.isDir(), row.fullAbsolutePath(), row.modificationTime());
+			return _iconProvider->bestAvailableIconFor(row);
 		else
 			return {};
 	default:

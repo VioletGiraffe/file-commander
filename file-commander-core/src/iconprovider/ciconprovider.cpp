@@ -83,13 +83,12 @@ CIconProvider::~CIconProvider()
 #endif
 }
 
-QIcon CIconProvider::genericIconForExtension([[maybe_unused]] const QString& extension, [[maybe_unused]] const bool isDir,
-	[[maybe_unused]] const QString& fullAbsolutePath, [[maybe_unused]] const time_t modificationTime)
+QIcon CIconProvider::genericIconFor(const CFileSystemObject& object)
 {
 #ifdef __APPLE__
-	return preciseIconBlocking(fullAbsolutePath, modificationTime);
+	return preciseIconBlocking(object);
 #else
-	if (isDir)
+	if (object.isDir())
 	{
 		if (!_genericFolderIcon)
 		{
@@ -103,24 +102,26 @@ QIcon CIconProvider::genericIconForExtension([[maybe_unused]] const QString& ext
 		return *_genericFolderIcon;
 	}
 
+	const QStringView extension = object.extension();
 	if (const auto it = _genericIconByExtension.find(extension); it != _genericIconByExtension.end())
 		return it->second;
 
-	QIcon icon = fetchGenericIcon(extension, false);
+	QString extensionString = extension.toString();
+	QIcon icon = fetchGenericIcon(extensionString, false);
 	if (icon.isNull())
 		return {};
 
-	return _genericIconByExtension.emplace(extension, std::move(icon)).first->second;
+	return _genericIconByExtension.emplace(std::move(extensionString), std::move(icon)).first->second;
 #endif
 }
 
-QIcon CIconProvider::preciseIconBlocking(const QString& fullAbsolutePath, const time_t modificationTime)
+QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
 {
+	const QString& fullAbsolutePath = object.fullAbsolutePath();
 	if (fullAbsolutePath.isEmpty())
 		return {};
 
-	const qulonglong objectHash = pathHash(fullAbsolutePath);
-	if (QIcon cached = cachedPreciseIcon(objectHash, modificationTime); !cached.isNull())
+	if (QIcon cached = cachedPreciseIcon(object.hash(), object.modificationTime()); !cached.isNull())
 		return cached;
 
 	FetchedIcon fetched = fetchPreciseIcon(fullAbsolutePath);
@@ -128,25 +129,23 @@ QIcon CIconProvider::preciseIconBlocking(const QString& fullAbsolutePath, const 
 		return {};
 
 	QIcon icon = fetched.icon;
-	cachePreciseIcon(objectHash, modificationTime, std::move(fetched));
+	cachePreciseIcon(object.hash(), object.modificationTime(), std::move(fetched));
 	return icon;
 }
 
-QIcon CIconProvider::bestAvailableIconFor([[maybe_unused]] const QString& extension, [[maybe_unused]] const bool isDir,
-	const QString& fullAbsolutePath, const time_t modificationTime)
+QIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
 {
 #ifdef _WIN32
-	if (fullAbsolutePath.isEmpty())
+	if (object.fullAbsolutePath().isEmpty())
 		return {};
 
-	const qulonglong objectHash = pathHash(fullAbsolutePath);
-	if (QIcon cached = cachedPreciseIcon(objectHash, modificationTime); !cached.isNull())
+	if (QIcon cached = cachedPreciseIcon(object.hash(), object.modificationTime()); !cached.isNull())
 		return cached;
 
-	requestPreciseIcon(fullAbsolutePath, modificationTime, objectHash);
-	return genericIconForExtension(extension, isDir, fullAbsolutePath, modificationTime);
+	requestPreciseIcon(object.fullAbsolutePath(), object.modificationTime(), object.hash());
+	return genericIconFor(object);
 #else
-	return preciseIconBlocking(fullAbsolutePath, modificationTime);
+	return preciseIconBlocking(object);
 #endif
 }
 
@@ -331,7 +330,7 @@ void CIconProvider::waitForWork()
 	if (FAILED(waitResult)) [[unlikely]]
 	{
 		// Retrying a wait that cannot succeed would spin a core. The thread gives up instead, and every icon comes
-		// from genericIconForExtension from here on.
+		// from genericIconFor from here on.
 		assert_unconditional_r("CoWaitForMultipleHandles failed, stopping background icon retrieval");
 		_stopRequested = true;
 	}

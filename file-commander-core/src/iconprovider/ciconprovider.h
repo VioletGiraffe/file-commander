@@ -20,6 +20,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -28,6 +29,7 @@ RESTORE_COMPILER_WARNINGS
 #include <time.h>
 #include <vector>
 
+class CFileSystemObject;
 class CIconProviderImpl;
 
 struct IconsChangedListener {
@@ -52,16 +54,16 @@ public:
 	CIconProvider(const CIconProvider&) = delete;
 	CIconProvider& operator=(const CIconProvider&) = delete;
 
-	// The icon of the extension's type, or of folders when isDir. Never accesses the disk.
-	// macOS: returns preciseIconBlocking(fullAbsolutePath, modificationTime) instead: Qt offers no icon by type there.
-	[[nodiscard]] QIcon genericIconForExtension(const QString& extension, bool isDir, const QString& fullAbsolutePath, time_t modificationTime);
+	// The icon of the object's type: its extension's, or the folder icon for a folder. Never accesses the disk.
+	// macOS: returns preciseIconBlocking(object) instead: Qt offers no icon by type there.
+	[[nodiscard]] QIcon genericIconFor(const CFileSystemObject& object);
 	// The object's own icon, which .exe, .ico and .lnk derive from their contents. Accesses the disk on a cache
 	// miss, so only for callers that ask about a handful of objects at a time.
-	[[nodiscard]] QIcon preciseIconBlocking(const QString& fullAbsolutePath, time_t modificationTime);
+	[[nodiscard]] QIcon preciseIconBlocking(const CFileSystemObject& object);
 	// The icon for the file list. Windows: the object's own icon if it is already cached, otherwise its type's icon and
 	// a background request for the precise one; listeners hear when that arrives. Never accesses the disk.
-	// Elsewhere: returns preciseIconBlocking(fullAbsolutePath, modificationTime).
-	[[nodiscard]] QIcon bestAvailableIconFor(const QString& extension, bool isDir, const QString& fullAbsolutePath, time_t modificationTime);
+	// Elsewhere: returns preciseIconBlocking(object).
+	[[nodiscard]] QIcon bestAvailableIconFor(const CFileSystemObject& object);
 
 	void addIconsChangedListener(IconsChangedListener* listener);
 	void removeIconsChangedListener(IconsChangedListener* listener);
@@ -132,7 +134,7 @@ private:
 	ankerl::unordered_dense::map<qulonglong, CachedIcon, IdentityHash> _cachedIconByObjectHash;
 	ankerl::unordered_dense::segmented_map<uint64_t, QIcon, IdentityHash> _iconByContentHash;
 
-	ankerl::unordered_dense::segmented_map<QString, QIcon, QStringHash> _genericIconByExtension;
+	ankerl::unordered_dense::segmented_map<QString, QIcon, QStringHash, std::equal_to<>> _genericIconByExtension;
 	std::optional<QIcon> _genericFolderIcon;
 
 	// onPreciseIconsAvailable never fires off Windows: there, bestAvailableIconFor has the precise icon by the
