@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790419025431,
+  "lastUpdate": 1790424140567,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -25130,6 +25130,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 36.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 18.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "86be4e315698e8630ef12ce958e81646092fd2b3",
+          "message": "CFileListModel: using QCollatorSortKey for big performance saving on sorting large lists",
+          "timestamp": "2026-09-26T14:55:00+03:00",
+          "tree_id": "cb9fab6cad743c6ee82a913c63c88e109391bf48",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/86be4e315698e8630ef12ce958e81646092fd2b3"
+        },
+        "date": 1790424136636,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19679,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18976,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1345,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 234.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 754.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 399.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37,
             "unit": "KB"
           },
           {
