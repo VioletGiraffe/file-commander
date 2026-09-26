@@ -141,7 +141,8 @@ private:
 	// The message for every inline-rename outcome in which the entry was not renamed.
 	void reportFailedRename(const InlineRenameResult& result, const QString& oldName, const QString& newName);
 
-	[[nodiscard]] bool pasteImage(const QImage& image, bool lossyCompression);
+	// Saves the image as a new file in the current folder; tells the user if that fails
+	void pasteImage(const QImage& image, bool lossyCompression);
 
 // Tab helpers (UI side; _tabs is position-aligned with the QTabBar; CController is addressed by tab ID, see tabIdAt())
 	struct PanelTab {

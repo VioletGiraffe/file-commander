@@ -1110,7 +1110,7 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 	if (clipboardData->hasImage())
 	{
 		QImage image = qvariant_cast<QImage>(clipboardData->imageData());
-		assert_r(pasteImage(image, specialPaste));
+		pasteImage(image, specialPaste);
 		return;
 	}
 
@@ -1542,7 +1542,7 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 	}
 }
 
-bool CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
+void CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
 {
 	const QString currentDirPath = currentDirPathNative();
 	assert_r(currentDirPath.endsWith(nativeSeparator()));
@@ -1559,5 +1559,12 @@ bool CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
 	else
 		writer.setCompression(100); // Maximum zlib compression level for PNG; lossless, so there's no quality trade-off.
 
-	return writer.write(image);
+	if (writer.write(image))
+		return;
+
+	// A failed write can leave a partial file under the name that was free.
+	// The writer holds its file open until destroyed: Windows cannot remove an open file.
+	writer.device()->close();
+	QFile::remove(imagePath);
+	QMessageBox::critical(this, tr("Failed to paste the image"), tr("Failed to save the image as %1: %2").arg(imagePath, writer.errorString()));
 }
