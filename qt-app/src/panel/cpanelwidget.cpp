@@ -1057,7 +1057,9 @@ void CPanelWidget::showFilterEditor()
 
 void CPanelWidget::filterTextEdited(const QString& filterText)
 {
-	if (_model->rowCount() < 1000)
+	// A large folder is too slow to filter on every keystroke; filterTextConfirmed filters it once
+	const FolderContentsSummary& contents = _model->contentsSummary();
+	if (contents.numFiles + contents.numFolders < 1000)
 		_model->setNameFilter(filterText);
 }
 
