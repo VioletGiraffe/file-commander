@@ -99,7 +99,6 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
-	void selectRegion(const QModelIndex& start, const QModelIndex& end);
 	void moveCursorToNextItem(bool invertSelection = false);
 	void moveCursorToPreviousItem(bool invertSelection = false);
 	void pgUp(bool invertSelection = false);

@@ -397,31 +397,6 @@ void CFileListView::paintEvent(QPaintEvent* event)
 		qInfo() << "Displaying" << model()->rowCount() << "items took" << elapsedMs << "ms";
 }
 
-void CFileListView::selectRegion(const QModelIndex &start, const QModelIndex &end)
-{
-	bool itemBelongsToSelection = false;
-	assert_r(selectionModel());
-	for (int i = 0; i < model()->rowCount(); ++i)
-	{
-		// Start item found - beginning selection
-		QModelIndex currentItem = model()->index(i, 0);
-		if (!itemBelongsToSelection && (currentItem == start || currentItem == end))
-		{
-			itemBelongsToSelection = true;
-			selectionModel()->select(currentItem, QItemSelectionModel::Select | QItemSelectionModel::Rows);
-		}
-		else if (itemBelongsToSelection && (currentItem == start || currentItem == end))
-		{
-			// End item found - finishing selection
-			selectionModel()->select(currentItem, QItemSelectionModel::Select | QItemSelectionModel::Rows);
-			return;
-		}
-
-		if (itemBelongsToSelection)
-			selectionModel()->select(currentItem, QItemSelectionModel::Select | QItemSelectionModel::Rows);
-	}
-}
-
 void CFileListView::moveCursorToNextItem(bool invertSelection)
 {
 	if (model()->rowCount() <= 0)
