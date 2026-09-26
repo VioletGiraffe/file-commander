@@ -552,9 +552,15 @@ bool CFileListModel::rowLessThan(uint32_t l, uint32_t r) const
 	if (isFileOrBundle(left) != isFileOrBundle(right))
 		return isFileOrBundle(right);
 
+	// Ties go by name and extension, then by the exact path: unique, so the order is total.
+	// Not the collator for the path: it can call two different strings equal.
 	int result = compareByColumn(l, r);
 	if (result == 0)
-		result = NaturalSort::compare(left.fullAbsolutePath(), right.fullAbsolutePath()); // Unique, so the order is total
+		result = NaturalSort::compare(_nameSortKeys[l], _nameSortKeys[r]);
+	if (result == 0)
+		result = NaturalSort::compare(_extensionSortKeys[l], _extensionSortKeys[r]);
+	if (result == 0)
+		result = left.fullAbsolutePath().compare(right.fullAbsolutePath());
 
 	return _sortOrder == Qt::AscendingOrder ? result < 0 : result > 0;
 }

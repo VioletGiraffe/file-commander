@@ -368,12 +368,12 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 }
 
 // One filter change per keystroke, typing and then erasing. Size sorts by integer, Name and Ext by the collator.
+// "dirs" is folders sorted by size: all of size 0, so every comparison is a tie.
 TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
 {
 	CRandomDataGenerator random;
 	random.setSeed(g_randomSeed);
 
-	static constexpr const char* columnNames[NumberOfColumns] = { "name", "ext", "size", "date" };
 	const std::vector<QString> keystrokes{ "a", "ab", "abc", "ab", "a", "" };
 	const auto msSince = [](std::chrono::steady_clock::time_point start) {
 		return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
@@ -382,20 +382,31 @@ TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
 	std::printf("%8s %6s %8s %8s %12s %12s\n", "rows", "sort", "filter", "shown", "model, ms", "+ view, ms");
 	for (const int numRows : { 1'000, 10'000, 100'000 })
 	{
-		std::vector<CFileSystemObject> rows;
-		rows.reserve((size_t)numRows);
+		std::vector<CFileSystemObject> files, folders;
+		files.reserve((size_t)numRows);
+		folders.reserve((size_t)numRows);
 		for (int i = 0; i < numRows; ++i)
-			rows.emplace_back(rowProperties(File, random.randomString(12), random.randomString(3), random.randomNumber<uint64_t>(0u, 1'000'000u)));
-
-		for (const int column : { SizeColumn, NameColumn, ExtColumn })
 		{
+			files.emplace_back(rowProperties(File, random.randomString(12), random.randomString(3), random.randomNumber<uint64_t>(0u, 1'000'000u)));
+			folders.emplace_back(rowProperties(Directory, random.randomString(12)));
+		}
+
+		struct Configuration {
+			const char* name;
+			int column;
+			const std::vector<CFileSystemObject>& rows;
+		};
+		for (const Configuration& configuration : { Configuration{ "size", SizeColumn, files }, Configuration{ "name", NameColumn, files },
+			Configuration{ "ext", ExtColumn, files }, Configuration{ "dirs", SizeColumn, folders } })
+		{
+			const int column = configuration.column;
 			CFileListModel model{ nullptr };
 			model.sort(column, Qt::AscendingOrder);
-			model.setRows(rows);
+			model.setRows(configuration.rows);
 
 			CFileListModel viewedModel{ nullptr };
 			viewedModel.sort(column, Qt::AscendingOrder);
-			viewedModel.setRows(rows);
+			viewedModel.setRows(configuration.rows);
 			QTreeView view;
 			view.resize(800, 600);
 			view.setUniformRowHeights(true);
@@ -415,7 +426,7 @@ TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
 				const double viewMs = msSince(start);
 
 				REQUIRE(viewedModel.rowCount() == model.rowCount());
-				std::printf("%8d %6s %8s %8d %12.1f %12.1f\n", numRows, columnNames[column], filter.isEmpty() ? "(none)" : qUtf8Printable(filter), model.rowCount(), modelMs, viewMs);
+				std::printf("%8d %6s %8s %8d %12.1f %12.1f\n", numRows, configuration.name, filter.isEmpty() ? "(none)" : qUtf8Printable(filter), model.rowCount(), modelMs, viewMs);
 			}
 		}
 	}

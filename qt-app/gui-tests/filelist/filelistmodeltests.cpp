@@ -61,14 +61,21 @@ TEST_CASE("Each column sorts by its own key", "[filelist][sort]")
 		CHECK(displayedNames(model) == QStringList{ "a", "b", "z.doc" });
 	}
 
-	SECTION("Size; equal sizes by path")
+	SECTION("Size; equal sizes by name, then extension")
 	{
-		model.setRows({ makeRow(File, "big", "", 30u), makeRow(File, "b", "", 5u), makeRow(File, "small", "", 10u), makeRow(File, "a", "", 5u) });
+		model.setRows({ makeRow(File, "big", "", 30u), makeRow(File, "file10", "", 5u), makeRow(File, "small", "", 10u), makeRow(File, "file9", "txt", 5u), makeRow(File, "file9", "", 5u) });
 		model.sort(SizeColumn, Qt::AscendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "a", "b", "small", "big" });
+		CHECK(displayedNames(model) == QStringList{ "file9", "file9.txt", "file10", "small", "big" });
 
 		model.sort(SizeColumn, Qt::DescendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "big", "small", "b", "a" });
+		CHECK(displayedNames(model) == QStringList{ "big", "small", "file10", "file9.txt", "file9" });
+	}
+
+	SECTION("Folders of equal size by name")
+	{
+		model.setRows({ makeRow(Directory, "b10"), makeRow(Directory, "a"), makeRow(Directory, "b9") });
+		model.sort(SizeColumn, Qt::AscendingOrder);
+		CHECK(displayedNames(model) == QStringList{ "a", "b9", "b10" });
 	}
 
 	SECTION("Modification time")
