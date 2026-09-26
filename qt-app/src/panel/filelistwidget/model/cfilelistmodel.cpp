@@ -78,10 +78,10 @@ template <typename T>
 }
 
 
-// updateRows() resets once the displayed rows it would change exceed both
-// A third: from there on, one reset of 100 000 rows is cheaper, per the timing case in the filelist suite
-static constexpr size_t MinChangesForReset = 1000;
-static constexpr size_t ReciprocalRowShareForReset = 3;
+// updateRows() resets past this many changed displayed rows: from there on a reset is cheaper, per the timing case in the filelist suite.
+// A count, not a share of the rows: an update's cost per change grows with the row count as a reset's does.
+// At the high end of the measured break-evens: an update keeps the scroll position and an open editor, a reset does not.
+static constexpr size_t MaxChangesForUpdate = 5000;
 
 CFileListModel::CFileListModel(CIconProvider* iconProvider, QObject* parent) :
 	QAbstractItemModel(parent),
@@ -158,7 +158,7 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 	for (uint32_t i = 0; i < oldRowCount; ++i)
 		numDisplayedChanges += !oldRowKept[i] && displayRowOfOldRow[i] >= 0 ? 1 : 0;
 
-	if (numDisplayedChanges > std::max(MinChangesForReset, _displayedRows.size() / ReciprocalRowShareForReset))
+	if (numDisplayedChanges > MaxChangesForUpdate)
 	{
 		setRows(std::move(rows));
 		return false;

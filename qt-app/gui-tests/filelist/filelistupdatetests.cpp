@@ -103,22 +103,36 @@ TEST_CASE("An update changes single rows, and selection and cursor stay on their
 	CHECK(model.contentsSummary().size == 12);
 }
 
-TEST_CASE("An update that would change most rows resets instead", "[filelist][update]")
+// Replacing every row changes each twice: one removal, one addition
+TEST_CASE("An update past a number of changes resets instead, whatever the share of rows", "[filelist][update]")
 {
 	TestedModel tested;
 	CFileListModel& model = tested.model;
-	std::vector<CFileSystemObject> rows;
-	for (int i = 0; i < 1500; ++i)
-		rows.push_back(makeRow(File, QStringLiteral("old%1").arg(i), "txt"));
-	model.setRows(rows);
 
-	rows.clear();
-	for (int i = 0; i < 1500; ++i)
-		rows.push_back(makeRow(File, QStringLiteral("new%1").arg(i), "txt"));
+	const auto replaceAllRows = [&model](int numRows) {
+		std::vector<CFileSystemObject> rows;
+		for (int i = 0; i < numRows; ++i)
+			rows.push_back(makeRow(File, QStringLiteral("old%1").arg(i), "txt"));
+		model.setRows(rows);
 
-	CHECK_FALSE(model.updateRows(rows));
-	CHECK(model.rowCount() == 1500);
+		rows.clear();
+		for (int i = 0; i < numRows; ++i)
+			rows.push_back(makeRow(File, QStringLiteral("new%1").arg(i), "txt"));
+		return model.updateRows(rows);
+	};
+
+	SECTION("2000 changes: an update")
+	{
+		CHECK(replaceAllRows(1000));
+	}
+
+	SECTION("6000 changes: a reset")
+	{
+		CHECK_FALSE(replaceAllRows(3000));
+	}
+
 	CHECK(model.indexByHash(pathHash("/folder/new0.txt")).isValid());
+	CHECK_FALSE(model.indexByHash(pathHash("/folder/old0.txt")).isValid());
 }
 
 TEST_CASE("Random updates keep the rows, their order and the persistent indexes right", "[filelist][update]")
@@ -314,7 +328,8 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 	CRandomDataGenerator random;
 	random.setSeed(g_randomSeed);
 
-	std::printf("%8s %8s %12s %12s\n", "rows", "changes", "update, ms", "reset, ms");
+	static constexpr const char* columnNames[NumberOfColumns] = { "name", "ext", "size", "date" };
+	std::printf("%8s %8s %6s %12s %12s\n", "rows", "changes", "sort", "update, ms", "reset, ms");
 	for (const int numRows : { 1'000, 10'000, 100'000 })
 	{
 		std::vector<CFileSystemObjectProperties> baseListing;
@@ -323,9 +338,8 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 			baseListing.push_back(rowProperties(File, QStringLiteral("file%1").arg(i), random.randomString(3), random.randomNumber<uint64_t>(0u, 1'000'000u)));
 		const std::vector<CFileSystemObject> baseRows(baseListing.cbegin(), baseListing.cend());
 
-		for (const int numChanges : { 30, numRows / 100, numRows / 10, numRows / 4, numRows / 2, numRows })
+		for (const int numChanges : { 30, numRows / 100, numRows / 20, numRows / 10, numRows * 3 / 20, numRows / 4, numRows / 2, numRows * 3 / 4, numRows })
 		{
-
 			// A third each removed, added and resized, at random positions
 			std::set<size_t> removedRows;
 			while (removedRows.size() < (size_t)numChanges / 3)
@@ -344,9 +358,9 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 				changedListing[random.randomNumber<size_t>(0, changedListing.size() - 1)].size = random.randomNumber<uint64_t>(0u, 1'000'000u);
 			const std::vector<CFileSystemObject> changedRows(changedListing.cbegin(), changedListing.cend());
 
-			const auto timeMs = [&](const auto& apply) {
+			const auto timeMs = [&](int column, const auto& apply) {
 				CFileListModel model{ nullptr };
-				model.sort(ExtColumn, Qt::AscendingOrder);
+				model.sort(column, Qt::AscendingOrder);
 				model.setRows(baseRows);
 				QTreeView view;
 				view.setUniformRowHeights(true);
@@ -360,9 +374,12 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 				return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 			};
 
-			const double updateMs = timeMs([](CFileListModel& model, std::vector<CFileSystemObject> rows) { (void)model.updateRows(std::move(rows)); });
-			const double resetMs = timeMs([](CFileListModel& model, std::vector<CFileSystemObject> rows) { model.setRows(std::move(rows)); });
-			std::printf("%8d %8d %12.1f %12.1f\n", numRows, numChanges, updateMs, resetMs);
+			for (const int column : { SizeColumn, NameColumn, ExtColumn })
+			{
+				const double updateMs = timeMs(column, [](CFileListModel& model, std::vector<CFileSystemObject> rows) { (void)model.updateRows(std::move(rows)); });
+				const double resetMs = timeMs(column, [](CFileListModel& model, std::vector<CFileSystemObject> rows) { model.setRows(std::move(rows)); });
+				std::printf("%8d %8d %6s %12.1f %12.1f\n", numRows, numChanges, columnNames[column], updateMs, resetMs);
+			}
 		}
 	}
 }
