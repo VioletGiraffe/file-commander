@@ -133,6 +133,8 @@ private:
 // Internal methods
 	// Copies or moves the local files among urls; an empty destinationPath means the current folder
 	bool dropUrls(const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath);
+	// The items of selectedItemIndexes(); cut: a paste moves them instead of copying
+	void putSelectionOnClipboard(bool cut) const;
 
 	void updateCurrentVolumeButtonAndInfoLabel();
 

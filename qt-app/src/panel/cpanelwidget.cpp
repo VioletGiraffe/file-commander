@@ -1069,65 +1069,34 @@ void CPanelWidget::filterTextConfirmed(const QString& filterText)
 
 void CPanelWidget::copySelectionToClipboard() const
 {
-#ifndef _WIN32
-	QModelIndexList indexes = _selectionModel->selectedRows();
-	if (indexes.empty())
-	{
-		auto currentIndex = _selectionModel->currentIndex();
-		if (currentIndex.isValid())
-			indexes.push_back(currentIndex);
-	}
-
-	QClipboard * clipBoard = QApplication::clipboard();
-	if (clipBoard)
-	{
-		QMimeData * mime = _model->mimeData(indexes);
-		if (mime)
-		{
-			mime->setProperty("cut", false);
-			clipBoard->setMimeData(mime);
-		}
-	}
-#else
-	const auto hashes = selectedItemsHashes();
-	std::vector<std::wstring> paths;
-	paths.reserve(hashes.size());
-	for (auto hash: hashes)
-		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
-
-	OsShell::copyObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(this));
-#endif
+	putSelectionOnClipboard(false);
 }
 
 void CPanelWidget::cutSelectionToClipboard() const
 {
-#ifndef _WIN32
-	QModelIndexList indexes = _selectionModel->selectedRows();
-	if (indexes.empty())
-	{
-		auto currentIndex = _selectionModel->currentIndex();
-		if (currentIndex.isValid())
-			indexes.push_back(currentIndex);
-	}
+	putSelectionOnClipboard(true);
+}
 
-	QClipboard * clipBoard = QApplication::clipboard();
-	if (clipBoard)
-	{
-		QMimeData * mime = _model->mimeData(indexes);
-		if (mime)
-		{
-			mime->setProperty("cut", true);
-			clipBoard->setMimeData(mime);
-		}
-	}
+void CPanelWidget::putSelectionOnClipboard(bool cut) const
+{
+	const QModelIndexList indexes = selectedItemIndexes();
+	if (indexes.empty())
+		return; // Leaves the clipboard as it was
+
+#ifndef _WIN32
+	QMimeData* mime = _model->mimeData(indexes);
+	mime->setProperty("cut", cut);
+	QApplication::clipboard()->setMimeData(mime);
 #else
 	std::vector<std::wstring> paths;
-	auto hashes = selectedItemsHashes();
-	paths.reserve(hashes.size());
-	for (auto hash: hashes)
-		paths.emplace_back(_controller->itemByHash(_panelPosition, hash).fullAbsolutePath().toStdWString());
+	paths.reserve((size_t)indexes.size());
+	for (const QModelIndex& index : indexes)
+		paths.push_back(_model->rowAt(index).fullAbsolutePath().toStdWString());
 
-	OsShell::cutObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(this));
+	if (cut)
+		OsShell::cutObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(this));
+	else
+		OsShell::copyObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(this));
 #endif
 }
 
