@@ -741,7 +741,6 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 	// Without a reset, the selection stays on its rows
 	if (modelReset && !previousSelection.empty())
 	{
-		CTimeElapsed timer(true);
 		QItemSelection selection;
 		for (const auto& [hash, path] : previousSelection)
 		{
@@ -750,7 +749,7 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 				selection.select(index, index);
 		}
 
-		timer.start();
+		CTimeElapsed timer{ true };
 		if (!selection.empty())
 			_selectionModel->select(selection, QItemSelectionModel::Rows | QItemSelectionModel::Select);
 
