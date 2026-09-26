@@ -9,6 +9,7 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -19,10 +20,16 @@ DISABLE_COMPILER_WARNINGS
 #include <QTreeView>
 RESTORE_COMPILER_WARNINGS
 
+#ifdef _WIN32
+#include <Windows.h>
+#include <psapi.h>
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <iterator>
 #include <map>
+#include <numeric>
 #include <set>
 #include <stdint.h>
 #include <stdio.h>
@@ -356,6 +363,187 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 			const double updateMs = timeMs([](CFileListModel& model, std::vector<CFileSystemObject> rows) { (void)model.updateRows(std::move(rows)); });
 			const double resetMs = timeMs([](CFileListModel& model, std::vector<CFileSystemObject> rows) { model.setRows(std::move(rows)); });
 			std::printf("%8d %8d %12.1f %12.1f\n", numRows, numChanges, updateMs, resetMs);
+		}
+	}
+}
+
+// One filter change per keystroke, typing and then erasing. Size sorts by integer, Name and Ext by the collator.
+TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
+{
+	CRandomDataGenerator random;
+	random.setSeed(g_randomSeed);
+
+	static constexpr const char* columnNames[NumberOfColumns] = { "name", "ext", "size", "date" };
+	const std::vector<QString> keystrokes{ "a", "ab", "abc", "ab", "a", "" };
+	const auto msSince = [](std::chrono::steady_clock::time_point start) {
+		return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+	};
+
+	std::printf("%8s %6s %8s %8s %12s %12s\n", "rows", "sort", "filter", "shown", "model, ms", "+ view, ms");
+	for (const int numRows : { 1'000, 10'000, 100'000 })
+	{
+		std::vector<CFileSystemObject> rows;
+		rows.reserve((size_t)numRows);
+		for (int i = 0; i < numRows; ++i)
+			rows.emplace_back(rowProperties(File, random.randomString(12), random.randomString(3), random.randomNumber<uint64_t>(0u, 1'000'000u)));
+
+		for (const int column : { SizeColumn, NameColumn, ExtColumn })
+		{
+			CFileListModel model{ nullptr };
+			model.sort(column, Qt::AscendingOrder);
+			model.setRows(rows);
+
+			CFileListModel viewedModel{ nullptr };
+			viewedModel.sort(column, Qt::AscendingOrder);
+			viewedModel.setRows(rows);
+			QTreeView view;
+			view.resize(800, 600);
+			view.setUniformRowHeights(true);
+			view.setModel(&viewedModel);
+			view.setCurrentIndex(viewedModel.index(0, 0)); // A cursor, as in a panel: a persistent index to remap
+			(void)view.indexAt({ 0, 0 }); // Lays the rows out
+
+			for (const QString& filter : keystrokes)
+			{
+				auto start = std::chrono::steady_clock::now();
+				model.setNameFilter(filter);
+				const double modelMs = msSince(start);
+
+				start = std::chrono::steady_clock::now();
+				viewedModel.setNameFilter(filter);
+				(void)view.indexAt({ 0, 0 });
+				const double viewMs = msSince(start);
+
+				REQUIRE(viewedModel.rowCount() == model.rowCount());
+				std::printf("%8d %6s %8s %8d %12.1f %12.1f\n", numRows, columnNames[column], filter.isEmpty() ? "(none)" : qUtf8Printable(filter), model.rowCount(), modelMs, viewMs);
+			}
+		}
+	}
+}
+
+// Zero where not measured
+[[nodiscard]] static size_t processPrivateBytes()
+{
+#ifdef _WIN32
+	PROCESS_MEMORY_COUNTERS_EX counters{};
+	if (::GetProcessMemoryInfo(::GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&counters), sizeof(counters)))
+		return counters.PrivateUsage;
+#endif
+	return 0;
+}
+
+// Mixed case and digits exercise the collator's case and numeric rules
+TEST_CASE("Collation keys order as NaturalSort::compare does", "[filelist][collator]")
+{
+	CRandomDataGenerator random;
+	random.setSeed(g_randomSeed);
+
+	std::vector<QString> names;
+	for (int i = 0; i < 10'000; ++i)
+	{
+		const QString name = random.randomString(2) + QString::number(random.randomNumber<int>(0, 2000)) + random.randomString(2);
+		names.push_back(i % 2 == 0 ? name : name.toLower());
+	}
+	names.emplace_back();
+
+	std::vector<QCollatorSortKey> keys;
+	for (const QString& name : names)
+		keys.push_back(NaturalSort::sortKey(name));
+
+	// Stable, so names that compare equal keep one order in both
+	std::vector<uint32_t> byCompare(names.size());
+	std::iota(byCompare.begin(), byCompare.end(), 0u);
+	std::vector<uint32_t> byKey = byCompare;
+	std::stable_sort(byCompare.begin(), byCompare.end(), [&names](uint32_t l, uint32_t r) { return NaturalSort::compare(names[l], names[r]) < 0; });
+	std::stable_sort(byKey.begin(), byKey.end(), [&keys](uint32_t l, uint32_t r) { return keys[l].compare(keys[r]) < 0; });
+	CHECK(byKey == byCompare);
+}
+
+// The model's name sort without the model: indices into names, the ones containing 'A' and then all of them, repeatedly
+TEST_CASE("Timings of a collator sort", "[.][filelist][collator][timing]")
+{
+	CRandomDataGenerator random;
+	random.setSeed(g_randomSeed);
+
+	// 12 characters as a typical name, 3 as an extension, 255 as the longest name a file system allows
+	{
+		std::vector<QString> stems, extensions, names255;
+		for (int i = 0; i < 100'000; ++i)
+		{
+			stems.push_back(random.randomString(12));
+			extensions.push_back(random.randomString(3));
+			names255.push_back(random.randomString(255));
+		}
+
+		// Every set of keys stays alive: a freed set's memory would be reused by the next one and hide its growth
+		std::vector<std::vector<QCollatorSortKey>> keySets;
+		keySets.reserve(3);
+		for (const auto* strings : { &stems, &extensions, &names255 })
+		{
+			const size_t before = processPrivateBytes();
+			std::vector<QCollatorSortKey>& keys = keySets.emplace_back();
+			keys.reserve(strings->size());
+			const auto start = std::chrono::steady_clock::now();
+			for (const QString& s : *strings)
+				keys.push_back(NaturalSort::sortKey(s));
+			const double buildMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+			const double bytesPerKey = (double)(processPrivateBytes() - before) / (double)keys.size();
+			std::printf("%zu keys of %lld-character strings: %.1f ms to build, %.0f bytes each\n", keys.size(), (long long)strings->front().size(), buildMs, bytesPerKey);
+		}
+
+		// The model's memory besides the rows it is given: sort keys, shared by extension, and the display order
+		std::vector<CFileSystemObject> rows;
+		rows.reserve(stems.size());
+		for (size_t i = 0; i < stems.size(); ++i)
+			rows.emplace_back(rowProperties(File, stems[i], extensions[i % 20]));
+
+		CFileListModel model{ nullptr };
+		model.sort(ExtColumn, Qt::AscendingOrder);
+		const size_t before = processPrivateBytes();
+		const auto start = std::chrono::steady_clock::now();
+		model.setRows(std::move(rows));
+		const double setRowsMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+		const double bytesPerRow = (double)(processPrivateBytes() - before) / (double)model.rowCount();
+		std::printf("A model of %d rows with 20 extensions, sorted by extension: %.1f ms to set, %.0f bytes per row besides the rows\n", model.rowCount(), setRowsMs, bytesPerRow);
+	}
+
+	std::printf("%8s %6s %8s %10s %10s\n", "names", "round", "sorted", "sort, ms", "by key, ms");
+	for (const int numNames : { 10'000, 100'000 })
+	{
+		std::vector<QString> names;
+		names.reserve((size_t)numNames);
+		for (int i = 0; i < numNames; ++i)
+			names.push_back(random.randomString(12) + '.' + random.randomString(3));
+
+		std::vector<uint32_t> all(names.size()), withA;
+		for (uint32_t i = 0; i < (uint32_t)names.size(); ++i)
+		{
+			all[i] = i;
+			if (names[i].contains('A'))
+				withA.push_back(i);
+		}
+
+		std::vector<QCollatorSortKey> keys;
+		keys.reserve(names.size());
+		for (const QString& name : names)
+			keys.push_back(NaturalSort::sortKey(name));
+
+		for (int round = 1; round <= 4; ++round)
+		{
+			for (const std::vector<uint32_t>* indices : { &withA, &all })
+			{
+				std::vector<uint32_t> sorted = *indices;
+				auto start = std::chrono::steady_clock::now();
+				std::sort(sorted.begin(), sorted.end(), [&names](uint32_t l, uint32_t r) { return NaturalSort::compare(names[l], names[r]) < 0; });
+				const double sortMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+
+				std::vector<uint32_t> sortedByKey = *indices;
+				start = std::chrono::steady_clock::now();
+				std::sort(sortedByKey.begin(), sortedByKey.end(), [&keys](uint32_t l, uint32_t r) { return keys[l].compare(keys[r]) < 0; });
+				const double sortByKeyMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+
+				std::printf("%8d %6d %8zu %10.1f %10.1f\n", numNames, round, sorted.size(), sortMs, sortByKeyMs);
+			}
 		}
 	}
 }

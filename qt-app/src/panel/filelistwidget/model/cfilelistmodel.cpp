@@ -72,30 +72,11 @@ template <typename T>
 	return l < r ? -1 : (r < l ? 1 : 0);
 }
 
-// Ascending order by the column alone
-static int compareByColumn(const CFileSystemObject& l, const CFileSystemObject& r, int column)
+[[nodiscard]] static QCollatorSortKey nameSortKey(const CFileSystemObject& row)
 {
-	switch (column)
-	{
-	case NameColumn:
-		return NaturalSort::compare(displayName(l), displayName(r));
-	case ExtColumn:
-		// Folders by name, files by extension, then name
-		if (isFileOrBundle(l))
-		{
-			if (const int byExtension = NaturalSort::compare(l.extension(), r.extension()); byExtension != 0)
-				return byExtension;
-		}
-		return NaturalSort::compare(displayName(l), displayName(r));
-	case SizeColumn:
-		return compareValues(l.size(), r.size());
-	case DateColumn:
-		return compareValues(l.modificationTime(), r.modificationTime());
-	default:
-		assert_unconditional_r("Unhandled sort column");
-		return 0;
-	}
+	return NaturalSort::sortKey(displayName(row).toString());
 }
+
 
 // updateRows() resets once the displayed rows it would change exceed both
 // A third: from there on, one reset of 100 000 rows is cheaper, per the timing case in the filelist suite
@@ -119,6 +100,14 @@ void CFileListModel::setRows(std::vector<CFileSystemObject> rows)
 	beginResetModel();
 
 	_rows = std::move(rows);
+	_nameSortKeys.clear();
+	_extensionSortKeys.clear();
+	_sortKeyByExtension.clear();
+	_nameSortKeys.reserve(_rows.size());
+	_extensionSortKeys.reserve(_rows.size());
+	for (const CFileSystemObject& row : _rows)
+		appendSortKeys(row);
+
 	updateContentsSummary();
 	_displayedRows = displayedRowsInOrder();
 	_displayRowByHashIsStale = true;
@@ -177,16 +166,17 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 
 	for (const auto& [oldRowIndex, newRowIndex] : changedRows)
 	{
-		CFileSystemObject& newRow = rows[newRowIndex];
+		// A type change can change the name and extension the row sorts by
+		_rows[oldRowIndex] = std::move(rows[newRowIndex]);
+		_nameSortKeys[oldRowIndex] = nameSortKey(_rows[oldRowIndex]);
+		_extensionSortKeys[oldRowIndex] = extensionSortKey(_rows[oldRowIndex]);
+
 		int displayRow = displayRowOfOldRow[oldRowIndex];
 		if (displayRow < 0)
-		{
-			_rows[oldRowIndex] = std::move(newRow);
 			continue;
-		}
 
 		// A move, unlike a removal and an insertion, keeps the row's selection and open editor
-		const int destination = moveDestination(newRow, displayRow);
+		const int destination = moveDestination(oldRowIndex, displayRow);
 		if (destination != displayRow && destination != displayRow + 1)
 		{
 			const auto first = _displayedRows.begin();
@@ -204,7 +194,6 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 			displayRow = displayRowOfOldRow[oldRowIndex];
 		}
 
-		_rows[oldRowIndex] = std::move(newRow);
 		emit dataChanged(index(displayRow, 0), index(displayRow, NumberOfColumns - 1));
 	}
 
@@ -238,23 +227,24 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 		if (passesNameFilter(rows[addedRow]))
 			insertedRows.push_back((uint32_t)_rows.size());
 
+		appendSortKeys(rows[addedRow]);
 		_rows.push_back(std::move(rows[addedRow]));
 	}
 
 	std::sort(insertedRows.begin(), insertedRows.end(), [this](uint32_t l, uint32_t r) {
-		return rowLessThan(_rows[l], _rows[r]);
+		return rowLessThan(l, r);
 	});
 
 	for (size_t runBegin = 0, numInserted = insertedRows.size(); runBegin < numInserted;)
 	{
-		const CFileSystemObject& firstInRun = _rows[insertedRows[runBegin]];
+		const uint32_t firstInRun = insertedRows[runBegin];
 		const auto position = std::partition_point(_displayedRows.cbegin(), _displayedRows.cend(), [&](uint32_t rowIndex) {
-			return rowLessThan(_rows[rowIndex], firstInRun);
+			return rowLessThan(rowIndex, firstInRun);
 		});
 
 		// The run takes in every next row that also sorts above the row at position
 		size_t runEnd = runBegin + 1;
-		while (runEnd < numInserted && (position == _displayedRows.cend() || rowLessThan(_rows[insertedRows[runEnd]], _rows[*position])))
+		while (runEnd < numInserted && (position == _displayedRows.cend() || rowLessThan(insertedRows[runEnd], *position)))
 			++runEnd;
 
 		const auto firstRow = (int)(position - _displayedRows.cbegin());
@@ -276,11 +266,18 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 
 		compactedIndex[i] = numKept;
 		if (numKept != i)
+		{
 			_rows[numKept] = std::move(_rows[i]);
+			_nameSortKeys[numKept] = std::move(_nameSortKeys[i]);
+			_extensionSortKeys[numKept] = std::move(_extensionSortKeys[i]);
+		}
 		++numKept;
 	}
 
 	_rows.resize(numKept);
+	// Not resize(): the keys have no default constructor
+	_nameSortKeys.erase(_nameSortKeys.begin() + numKept, _nameSortKeys.end());
+	_extensionSortKeys.erase(_extensionSortKeys.begin() + numKept, _extensionSortKeys.end());
 	for (uint32_t& rowIndex : _displayedRows)
 		rowIndex = compactedIndex[rowIndex];
 
@@ -519,17 +516,45 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 	return mime;
 }
 
-bool CFileListModel::rowLessThan(const CFileSystemObject& l, const CFileSystemObject& r) const
+// Ascending order by the sort column alone
+int CFileListModel::compareByColumn(uint32_t l, uint32_t r) const
 {
-	// [..] first, then folders, then files, in either direction
-	if (l.isCdUp() != r.isCdUp())
-		return l.isCdUp();
-	if (isFileOrBundle(l) != isFileOrBundle(r))
-		return isFileOrBundle(r);
+	switch (_sortColumn)
+	{
+	case NameColumn:
+		return _nameSortKeys[l].compare(_nameSortKeys[r]);
+	case ExtColumn:
+		// Folders by name, files by extension, then name
+		if (isFileOrBundle(_rows[l]))
+		{
+			if (const int byExtension = _extensionSortKeys[l].compare(_extensionSortKeys[r]); byExtension != 0)
+				return byExtension;
+		}
+		return _nameSortKeys[l].compare(_nameSortKeys[r]);
+	case SizeColumn:
+		return compareValues(_rows[l].size(), _rows[r].size());
+	case DateColumn:
+		return compareValues(_rows[l].modificationTime(), _rows[r].modificationTime());
+	default:
+		assert_unconditional_r("Unhandled sort column");
+		return 0;
+	}
+}
 
-	int result = compareByColumn(l, r, _sortColumn);
+bool CFileListModel::rowLessThan(uint32_t l, uint32_t r) const
+{
+	const CFileSystemObject& left = _rows[l];
+	const CFileSystemObject& right = _rows[r];
+
+	// [..] first, then folders, then files, in either direction
+	if (left.isCdUp() != right.isCdUp())
+		return left.isCdUp();
+	if (isFileOrBundle(left) != isFileOrBundle(right))
+		return isFileOrBundle(right);
+
+	int result = compareByColumn(l, r);
 	if (result == 0)
-		result = NaturalSort::compare(l.fullAbsolutePath(), r.fullAbsolutePath()); // Unique, so the order is total
+		result = NaturalSort::compare(left.fullAbsolutePath(), right.fullAbsolutePath()); // Unique, so the order is total
 
 	return _sortOrder == Qt::AscendingOrder ? result < 0 : result > 0;
 }
@@ -550,20 +575,37 @@ std::vector<uint32_t> CFileListModel::displayedRowsInOrder() const
 	}
 
 	std::sort(displayedRows.begin(), displayedRows.end(), [this](uint32_t l, uint32_t r) {
-		return rowLessThan(_rows[l], _rows[r]);
+		return rowLessThan(l, r);
 	});
 
 	return displayedRows;
 }
 
-int CFileListModel::moveDestination(const CFileSystemObject& row, int displayRow) const
+int CFileListModel::moveDestination(uint32_t rowIndex, int displayRow) const
 {
-	const auto sortsAboveRow = [&](uint32_t rowIndex) { return rowLessThan(_rows[rowIndex], row); };
+	const auto sortsAboveRow = [&](uint32_t otherRowIndex) { return rowLessThan(otherRowIndex, rowIndex); };
 	const auto first = _displayedRows.cbegin(), moved = first + displayRow;
 	if (const auto above = std::partition_point(first, moved, sortsAboveRow); above != moved)
 		return (int)(above - first);
 
 	return (int)(std::partition_point(moved + 1, _displayedRows.cend(), sortsAboveRow) - first);
+}
+
+QCollatorSortKey CFileListModel::extensionSortKey(const CFileSystemObject& row)
+{
+	const QStringView extension = row.extension();
+	if (const auto cached = _sortKeyByExtension.find(extension); cached != _sortKeyByExtension.end())
+		return cached->second;
+
+	QString extensionString = extension.toString();
+	QCollatorSortKey key = NaturalSort::sortKey(extensionString);
+	return _sortKeyByExtension.emplace(std::move(extensionString), std::move(key)).first->second;
+}
+
+void CFileListModel::appendSortKeys(const CFileSystemObject& row)
+{
+	_nameSortKeys.push_back(nameSortKey(row));
+	_extensionSortKeys.push_back(extensionSortKey(row));
 }
 
 void CFileListModel::rebuildDisplayRowByHash() const

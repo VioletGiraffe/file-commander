@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
 #include <QAbstractItemModel>
+#include <QCollatorSortKey>
 #include <QList>
 #include <QRegularExpression>
 #include <QUrl>
@@ -92,11 +93,16 @@ signals:
 	void sorted();
 
 private:
-	[[nodiscard]] bool rowLessThan(const CFileSystemObject& l, const CFileSystemObject& r) const;
+	// Arguments are indices into _rows
+	[[nodiscard]] int compareByColumn(uint32_t l, uint32_t r) const;
+	[[nodiscard]] bool rowLessThan(uint32_t l, uint32_t r) const;
 	[[nodiscard]] bool passesNameFilter(const CFileSystemObject& row) const;
 	[[nodiscard]] std::vector<uint32_t> displayedRowsInOrder() const;
-	// Where 'row' sorts among the displayed rows other than 'displayRow', as the destination of moving displayRow
-	[[nodiscard]] int moveDestination(const CFileSystemObject& row, int displayRow) const;
+	// Where _rows[rowIndex] sorts among the displayed rows other than 'displayRow', as the destination of moving displayRow
+	[[nodiscard]] int moveDestination(uint32_t rowIndex, int displayRow) const;
+	// Rows with the same extension share one key
+	[[nodiscard]] QCollatorSortKey extensionSortKey(const CFileSystemObject& row);
+	void appendSortKeys(const CFileSystemObject& row);
 	void rebuildDisplayRowByHash() const;
 	void updateContentsSummary();
 	// Re-filters and re-sorts; every persistent index (selection, cursor, editor) follows its row or is dropped with it
@@ -104,6 +110,11 @@ private:
 
 private:
 	std::vector<CFileSystemObject> _rows;
+	// Parallel to _rows: collation keys of each row's display name and extension
+	std::vector<QCollatorSortKey> _nameSortKeys;
+	std::vector<QCollatorSortKey> _extensionSortKeys;
+	// Every extension seen since the last setRows()
+	ankerl::unordered_dense::map<QString, QCollatorSortKey, QStringHash, std::equal_to<>> _sortKeyByExtension;
 	// Indices into _rows: the rows the filter lets through, in display order
 	std::vector<uint32_t> _displayedRows;
 	// Rebuilt by the first lookup after _displayedRows changes: updateRows() changes it once per single-row change

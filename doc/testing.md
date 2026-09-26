@@ -40,8 +40,11 @@ which writes about a thousand files of up to 3 MB each. Every other case in both
 mostly in the comparator tests; the file-operation ones are quick unless a second volume is provisioned for the
 cross-volume cases.
 
-`filelist_test`'s `[timing]` case runs only when named: it prints what an in-place model update costs against a reset,
-which is where the model's reset threshold comes from.
+`filelist_test`'s `[timing]` cases run only when named. They print:
+
+- what an in-place model update costs against a reset, which is where the model's reset threshold comes from;
+- what one name filter change costs, with and without a view;
+- what the collator's sort costs by string and by sort key, and the memory of the keys and of a model beyond its rows.
 
 The scripts take the Qt kit from `QT_ROOT_DIR`, or from a git-ignored `local-env.ps1`/`local-env.sh` beside them;
 the shell script also falls back to a `qmake` already on PATH.

@@ -7,6 +7,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>
+#include <QStringView>
 RESTORE_COMPILER_WARNINGS
 
 struct IdentityHash {
@@ -23,9 +24,11 @@ struct IdentityHashExtraMixing {
 	}
 };
 
+// Transparent: with std::equal_to<> as the map's equality, a QString key can be found by a QStringView
 struct QStringHash {
 	using is_avalanching = void;
-	[[nodiscard]] inline size_t operator()(const QString& s) const noexcept {
+	using is_transparent = void;
+	[[nodiscard]] inline size_t operator()(QStringView s) const noexcept {
 		return ::wheathash64(s.constData(), s.size() * sizeof(QChar));
 	}
 };
