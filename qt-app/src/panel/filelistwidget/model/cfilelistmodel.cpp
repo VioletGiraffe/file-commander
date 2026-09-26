@@ -522,15 +522,15 @@ int CFileListModel::compareByColumn(uint32_t l, uint32_t r) const
 	switch (_sortColumn)
 	{
 	case NameColumn:
-		return _nameSortKeys[l].compare(_nameSortKeys[r]);
+		return NaturalSort::compare(_nameSortKeys[l], _nameSortKeys[r]);
 	case ExtColumn:
 		// Folders by name, files by extension, then name
 		if (isFileOrBundle(_rows[l]))
 		{
-			if (const int byExtension = _extensionSortKeys[l].compare(_extensionSortKeys[r]); byExtension != 0)
+			if (const int byExtension = NaturalSort::compare(_extensionSortKeys[l], _extensionSortKeys[r]); byExtension != 0)
 				return byExtension;
 		}
-		return _nameSortKeys[l].compare(_nameSortKeys[r]);
+		return NaturalSort::compare(_nameSortKeys[l], _nameSortKeys[r]);
 	case SizeColumn:
 		return compareValues(_rows[l].size(), _rows[r].size());
 	case DateColumn:

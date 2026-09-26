@@ -432,8 +432,8 @@ TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
 	return 0;
 }
 
-// Mixed case and digits exercise the collator's case and numeric rules
-TEST_CASE("Collation keys order as NaturalSort::compare does", "[filelist][collator]")
+// Mixed case, digits and an empty name exercise the collator's case, numeric and empty-string rules
+TEST_CASE("NaturalSort::compare orders the same by key as by string", "[filelist][collator]")
 {
 	CRandomDataGenerator random;
 	random.setSeed(g_randomSeed);
@@ -455,7 +455,7 @@ TEST_CASE("Collation keys order as NaturalSort::compare does", "[filelist][colla
 	std::iota(byCompare.begin(), byCompare.end(), 0u);
 	std::vector<uint32_t> byKey = byCompare;
 	std::stable_sort(byCompare.begin(), byCompare.end(), [&names](uint32_t l, uint32_t r) { return NaturalSort::compare(names[l], names[r]) < 0; });
-	std::stable_sort(byKey.begin(), byKey.end(), [&keys](uint32_t l, uint32_t r) { return keys[l].compare(keys[r]) < 0; });
+	std::stable_sort(byKey.begin(), byKey.end(), [&](uint32_t l, uint32_t r) { return NaturalSort::compare(keys[l], keys[r]) < 0; });
 	CHECK(byKey == byCompare);
 }
 
@@ -539,7 +539,7 @@ TEST_CASE("Timings of a collator sort", "[.][filelist][collator][timing]")
 
 				std::vector<uint32_t> sortedByKey = *indices;
 				start = std::chrono::steady_clock::now();
-				std::sort(sortedByKey.begin(), sortedByKey.end(), [&keys](uint32_t l, uint32_t r) { return keys[l].compare(keys[r]) < 0; });
+				std::sort(sortedByKey.begin(), sortedByKey.end(), [&](uint32_t l, uint32_t r) { return NaturalSort::compare(keys[l], keys[r]) < 0; });
 				const double sortByKeyMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 
 				std::printf("%8d %6d %8zu %10.1f %10.1f\n", numNames, round, sorted.size(), sortMs, sortByKeyMs);
