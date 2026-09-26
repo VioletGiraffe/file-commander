@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790427807428,
+  "lastUpdate": 1790431687168,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -25367,6 +25367,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 755,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 399.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 18.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "56566911adfbb79ff9edaf705875c46931a5d021",
+          "message": "CFileListModel: sorting tie-break fixed (performance improvement when tie occurs - no longer falls back to collating full path)",
+          "timestamp": "2026-09-26T17:01:00+03:00",
+          "tree_id": "6a955ae36a6199e96ea3551783195102fd61d18a",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/56566911adfbb79ff9edaf705875c46931a5d021"
+        },
+        "date": 1790431683173,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19656,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 18995,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1344.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 234.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 754,
             "unit": "KB"
           },
           {
