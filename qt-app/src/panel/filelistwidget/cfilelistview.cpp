@@ -8,7 +8,6 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "math/math.hpp"
-#include "timing/ctimeelapsed.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -24,6 +23,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <array>
+#include <utility>
 
 CFileListView::CFileListView(QWidget *parent) :
 	QTreeView(parent)
@@ -157,6 +157,11 @@ bool CFileListView::restoreScrollPosition(const ScrollPosition& position)
 	}
 
 	return false;
+}
+
+void CFileListView::logTimeToNextPaint(std::chrono::steady_clock::time_point start)
+{
+	_timeToNextPaintStart = start;
 }
 
 // For managing selection and cursor
@@ -353,9 +358,6 @@ bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigg
 
 bool CFileListView::eventFilter(QObject* target, QEvent* event)
 {
-	static CTimeElapsed g_timer{ true };
-	static bool firstUpdate{ true };
-
 	QHeaderView * headerView = header();
 	if (target == headerView && event && event->type() == QEvent::Resize && headerView->count() == NumberOfColumns)
 	{
@@ -378,16 +380,21 @@ bool CFileListView::eventFilter(QObject* target, QEvent* event)
 		for (int i = 0; i < headerView->count(); ++i)
 			headerView->resizeSection(i, Math::round<int>(newHeaderWidth * relativeColumnSizes[i]));
 	}
-	else if (event->type() == QEvent::Paint && model() && model()->rowCount() > 1000)
-	{
-		if (firstUpdate)
-		{
-			firstUpdate = false;
-			qInfo() << "Time to first update:" << g_timer.elapsed();
-		}
-	}
 
 	return QTreeView::eventFilter(target, event);
+}
+
+void CFileListView::paintEvent(QPaintEvent* event)
+{
+	QTreeView::paintEvent(event);
+
+	if (!_timeToNextPaintStart)
+		return;
+
+	const auto start = *std::exchange(_timeToNextPaintStart, std::nullopt);
+	const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+	if (elapsedMs >= 100)
+		qInfo() << "Displaying" << model()->rowCount() << "items took" << elapsedMs << "ms";
 }
 
 void CFileListView::selectRegion(const QModelIndex &start, const QModelIndex &end)

@@ -55,6 +55,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <assert.h>
+#include <chrono>
 #include <functional>
 #include <unordered_set>
 #include <utility>
@@ -653,8 +654,6 @@ qulonglong CPanelWidget::tabIdAt(int index) const
 
 bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 {
-	CTimeElapsed timer{ true };
-
 	disconnect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
 
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
@@ -722,14 +721,13 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
 	selectionChanged(QItemSelection(), QItemSelection());
 
-	if (_model->rowCount() > 1000)
-		qInfo() << __FUNCTION__ << "Procesing" << _model->rowCount() << "items took" << timer.elapsed() << "ms";
-
 	return modelReset;
 }
 
 void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 {
+	const auto fillStart = std::chrono::steady_clock::now();
+
 	// Hash and full path: a hash collision against an unrelated file that appears after the refresh can't then be silently re-selected in place of the item the user actually had selected.
 	std::vector<std::pair<qulonglong, QString>> previousSelection;
 	for (const QModelIndex& selectedIndex : _selectionModel->selectedRows())
@@ -739,8 +737,9 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 			previousSelection.emplace_back(row.hash(), row.fullAbsolutePath());
 	}
 
+	const bool modelReset = fillFromList(operation);
 	// Without a reset, the selection stays on its rows
-	if (fillFromList(operation) && !previousSelection.empty())
+	if (modelReset && !previousSelection.empty())
 	{
 		CTimeElapsed timer(true);
 		QItemSelection selection;
@@ -761,6 +760,10 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 
 	fillHistory();
 	updateCurrentVolumeButtonAndInfoLabel();
+
+	// Only a reset is sure to repaint the list
+	if (modelReset)
+		ui->_list->logTimeToNextPaint(fillStart);
 }
 
 void CPanelWidget::showContextMenuForItems(QPoint pos)

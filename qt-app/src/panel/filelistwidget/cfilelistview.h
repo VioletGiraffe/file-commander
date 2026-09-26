@@ -12,6 +12,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QTreeView>
 RESTORE_COMPILER_WARNINGS
 
+#include <chrono>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -66,6 +68,9 @@ public:
 	// Scrolls the first of the rows that is still in the model back to where it was on screen. False if none is: a model reset leaves none.
 	bool restoreScrollPosition(const ScrollPosition& position);
 
+	// Logs the time from start to the end of the next paint if it reaches 100 ms
+	void logTimeToNextPaint(std::chrono::steady_clock::time_point start);
+
 signals:
 	void contextMenuRequested(QPoint pos);
 	void ctrlEnterPressed();
@@ -91,6 +96,8 @@ protected:
 
 	bool eventFilter(QObject* target, QEvent* event) override;
 
+	void paintEvent(QPaintEvent* event) override;
+
 private:
 	void selectRegion(const QModelIndex& start, const QModelIndex& end);
 	void moveCursorToNextItem(bool invertSelection = false);
@@ -104,6 +111,7 @@ private:
 	std::vector<FileListViewEventObserver*> _eventObservers;
 
 	QPersistentModelIndex               _currentItemBeforeMouseClick;
+	std::optional<std::chrono::steady_clock::time_point> _timeToNextPaintStart;
 
 	enum Panel                          _panelPosition = Panel::UnknownPanel;
 	bool                                _bHeaderAdjustmentRequired = true;

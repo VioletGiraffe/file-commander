@@ -10,6 +10,7 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "std_helpers/qt_container_helpers.hpp"
+#include "timing/ctimeelapsed.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -373,6 +374,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation)
 {
 	_workerThreadPool.enqueue([this, request = std::move(request), operation]() {
+		CTimeElapsed timer{ true };
 		if (!pathIsAccessible(request.path))
 		{
 			execOnUiThread([this, request]() { recoverFromInaccessiblePathIfCurrent(request); });
@@ -397,6 +399,9 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 
 			items = listDirectoryForPanel(request.path, showHiddenFiles);
 		}
+
+		if (const auto elapsedMs = timer.elapsed(); elapsedMs >= 100)
+			qInfo() << "Listing" << request.path << "took" << elapsedMs << "ms for" << items.size() << "items";
 
 		publishFileListIfCurrent(request, std::move(items), operation);
 	}, _taskTag);
