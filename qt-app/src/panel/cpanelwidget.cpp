@@ -788,7 +788,7 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 	if (!button)
 		return;
 
-	pos = button->mapToGlobal(pos) * button->devicePixelRatioF(); // These coordinates ar egoing directly into the system API so need to account for scaling that Qt tries to abstract away.
+	pos = button->mapToGlobal(pos) * button->devicePixelRatioF(); // These coordinates are going directly into the system API so need to account for scaling that Qt tries to abstract away.
 	const uint64_t diskId = button->property("id").toULongLong();
 	const auto volumeInfo = _controller->volumeInfoById(diskId);
 	assert_and_return_r(volumeInfo, );
@@ -1001,7 +1001,7 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 				}
 				else if (std::find_if(locations.cbegin(), locations.cend(), [&name](const CLocationsCollection& entry){return entry.displayName == name;}) != locations.cend())
 				{
-					QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("And item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
+					QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("An item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
 					return;
 				}
 

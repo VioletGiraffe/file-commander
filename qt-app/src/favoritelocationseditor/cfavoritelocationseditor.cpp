@@ -128,7 +128,7 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 			}
 			else if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
 			{
-				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("And item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
+				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("An item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
 				return;
 			}
 
@@ -151,7 +151,7 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 			std::vector<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
 			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
 			{
-				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("And item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
+				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("An item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
 				return;
 			}
 
