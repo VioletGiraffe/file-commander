@@ -76,6 +76,7 @@ FileListHashMap listDirectoryForPanel(const QString& dirPath, const bool showHid
 	if (!entries)
 		return items;
 
+	items.reserve(entries->size() + 1); // + 1: [..]
 	for (const auto& entry : *entries)
 	{
 		CFileSystemObject object{ dirPath, entry };
@@ -83,13 +84,13 @@ FileListHashMap listDirectoryForPanel(const QString& dirPath, const bool showHid
 			continue; // Could be a socket
 
 		const qulonglong hash = object.hash();
-		items[hash] = std::move(object);
+		items.try_emplace(hash, std::move(object));
 	}
 
 	if (auto cdUp = CFileSystemObject::cdUpEntryOf(dirPath))
 	{
 		const qulonglong hash = cdUp->hash();
-		items[hash] = std::move(*cdUp);
+		items.try_emplace(hash, std::move(*cdUp));
 	}
 
 	return items;

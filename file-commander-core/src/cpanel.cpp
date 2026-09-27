@@ -388,7 +388,7 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 		{
 			scanDirectory(CFileSystemObject(request.path), [&items, showHiddenFiles](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
 				if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
-					items[item.hash()] = item;
+					items.try_emplace(item.hash(), item);
 			}, _abortBackgroundTasks);
 		}
 		else
