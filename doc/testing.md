@@ -108,6 +108,18 @@ LTO, as the application is built; the test scripts never run it. `--help` lists 
 - Entry counts differ by design: `thinio` and `thiniofull` list no `[..]`. A `panel` count below `qt` means entries
   the panel dropped.
 
+## File list map benchmark
+
+`filelist_hashmap_benchmark` times candidate containers for `FileListHashMap` on the work one listing does to it; the
+source's header lists the phases. Entries are built in memory, so no folders are needed. It is built like
+`listing_benchmark` and never run by the test scripts; `--help` lists the options.
+
+- Every sample covers at least 256k entries, batching small maps. Candidates run in a new shuffled order every round.
+- Heap figures count the container's own allocations only: the path strings are shared by every candidate.
+- One thread runs everything, whereas the application copies the values on the UI thread after a worker built the map.
+  Small maps are therefore warmer in cache here than in the application.
+- The default sizes up to 1M entries need about 0.5 GB of memory.
+
 ## CI
 
 CI runs the test job only when a changed file matches the `changes` job's path filter in `CI.yml`. A new test, or a

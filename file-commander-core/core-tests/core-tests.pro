@@ -16,8 +16,8 @@ SUBDIRS += csvviewer
 csvviewer.subdir = ../../plugins/viewer/csvviewer/tests
 csvviewer.depends = cpputils
 
-# Built with the suites so it cannot rot, but never run by the test scripts: see doc/testing.md, "Listing benchmark".
-SUBDIRS += listing-benchmark
+# Built with the suites so they cannot rot, but never run by the test scripts: see doc/testing.md, "Listing benchmark" and "File list map benchmark".
+SUBDIRS += listing-benchmark filelist-hashmap-benchmark
 
 cpp-template-utils.subdir = ../../cpp-template-utils
 cpputils.subdir = ../../cpputils
@@ -38,3 +38,4 @@ filesearchengine.depends = cpputils test-utils thin_io
 userprograms.depends = qtutils thin_io
 filesystemhelpers.depends = qtutils thin_io
 listing-benchmark.depends = qtutils thin_io
+filelist-hashmap-benchmark.depends = qtutils thin_io

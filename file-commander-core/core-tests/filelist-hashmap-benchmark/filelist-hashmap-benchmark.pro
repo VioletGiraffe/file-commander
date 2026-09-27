@@ -1,10 +1,10 @@
 TEMPLATE = app
 CONFIG += console
-TARGET = listing_benchmark
+TARGET = filelist_hashmap_benchmark
 
 include(../../config.pri)
 
-# Keeps global.pri's LTO: the listing is measured as the application builds it
+# Keeps global.pri's LTO: the containers are measured as the application builds them
 
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
@@ -18,7 +18,7 @@ mac*|linux*|freebsd{
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 INCLUDEPATH += \
-	$${PWD}/ \
+	../../../cpp-template-utils/3rdparty \
 	../test-utils/src/ # Only header-only helpers are used, so no test_utils link dependency
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
@@ -26,9 +26,8 @@ LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \
 	main.cpp \
-	../../src/cfilesystemobject.cpp \
-	../../src/directoryscanner.cpp
+	../../src/cfilesystemobject.cpp
 
 HEADERS += \
 	../../src/cfilesystemobject.h \
-	../../src/directoryscanner.h
+	../../src/detail/file_list_hashmap.h
