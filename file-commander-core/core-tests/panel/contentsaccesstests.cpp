@@ -7,7 +7,6 @@ TEST_CASE("CPanel - a panel with no committed listing exposes nothing", "[panel]
 	CHECK_FALSE(hasCommittedContents(h.panel()));
 	CHECK_FALSE(h.panel().itemHashExists(1));
 	CHECK_FALSE(h.panel().itemByHash(1).isValid());
-	CHECK(h.panel().itemPathByHash(1).isEmpty());
 }
 
 TEST_CASE("CPanel - itemsByHashes returns the requested items the current listing holds", "[panel][contents]")

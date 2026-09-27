@@ -512,7 +512,7 @@ bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
-	const auto result = _controller->itemHashExists(panel->panelPosition(), hash) ? _controller->itemActivated(hash, panel->panelPosition()) : CController::ItemActivationResult{ FileOperationResultCode::ObjectDoesntExist };
+	const auto result = _controller->itemActivated(hash, panel->panelPosition());
 	switch (result.code)
 	{
 	case FileOperationResultCode::ObjectDoesntExist:
@@ -1016,15 +1016,11 @@ void CMainWindow::findFiles()
 	if (!_currentFileList)
 		return;
 
-	auto selectedHashes = _currentFileList->selectedItemsHashes(true);
 	std::vector<QString> selectedPaths;
-	if (!selectedHashes.empty())
-	{
-		selectedPaths.reserve(selectedHashes.size());
-		for (const auto hash : selectedHashes)
-			selectedPaths.push_back(_controller->activePanel().itemByHash(hash).fullAbsolutePath());
-	}
-	else
+	for (const CFileSystemObject& item : _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes(true)))
+		selectedPaths.push_back(item.fullAbsolutePath());
+
+	if (selectedPaths.empty())
 		selectedPaths.push_back(_currentFileList->currentDirPathNative());
 
 

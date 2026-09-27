@@ -168,10 +168,8 @@ public:
 	[[nodiscard]] QString currentFolderPath(Panel p) const;
 	[[nodiscard]] CFileSystemObject currentItem(Panel p) const;
 
-	[[nodiscard]] bool itemHashExists(Panel p, qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
 	[[nodiscard]] std::vector<CFileSystemObject> items(Panel p, const std::vector<qulonglong> &hashes) const;
-	[[nodiscard]] QString itemPath(Panel p, qulonglong hash) const;
 
 
 	[[nodiscard]] std::vector<VolumeInfo> volumes() const;

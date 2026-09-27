@@ -135,7 +135,6 @@ public:
 
 	[[nodiscard]] bool itemHashExists(qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;
-	[[nodiscard]] QString itemPathByHash(qulonglong hash) const;
 	// Resolves all hashes against one listing: empty if none belongs to the current view; skips hashes not in it
 	[[nodiscard]] std::vector<CFileSystemObject> itemsByHashes(const std::vector<qulonglong>& hashes) const;
 

@@ -773,8 +773,12 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 		paths.push_back(_controller->panel(_panelPosition).currentDirPathNative().toStdWString());
 	else
 	{
-		for (const qulonglong hash : selection)
-			paths.push_back(_controller->itemPath(_panelPosition, hash).toStdWString());
+		for (const CFileSystemObject& item : _controller->items(_panelPosition, selection))
+			paths.push_back(item.fullAbsolutePath().toStdWString());
+
+		// Never falls back to the folder's menu: its commands would act on the folder
+		if (paths.empty())
+			return;
 	}
 
 	pos *= ui->_list->devicePixelRatioF();

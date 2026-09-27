@@ -30,9 +30,9 @@ TEST_CASE("CPanel - setPath lists an existing folder", "[panel][path]")
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
 	CHECK(h.panel().itemHashExists(hashOf(subDir)));
 	CHECK(h.panel().itemHashExists(hashOf(file)));
-	CHECK(h.panel().itemPathByHash(hashOf(file)) == file);
+	CHECK(h.panel().itemByHash(hashOf(file)).fullAbsolutePath() == file);
 	// A directory's path always ends with a separator, which is what makes its hash independent of the spelling.
-	CHECK(h.panel().itemPathByHash(hashOf(subDir)) == subDir + '/');
+	CHECK(h.panel().itemByHash(hashOf(subDir)).fullAbsolutePath() == subDir + '/');
 	// The two entries plus the [..] row, which QDir::NoDot keeps.
 	CHECK(committedItemCount(h.panel()) == 3);
 }

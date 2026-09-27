@@ -472,16 +472,6 @@ CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 	return it != _items.end() ? it->second : CFileSystemObject();
 }
 
-QString CPanel::itemPathByHash(qulonglong hash) const
-{
-	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	if (!fileListBelongsToCurrentViewLocked())
-		return {};
-
-	const auto it = _items.find(hash);
-	return it != _items.end() ? it->second.fullAbsolutePath() : QString();
-}
-
 std::vector<CFileSystemObject> CPanel::itemsByHashes(const std::vector<qulonglong>& hashes) const
 {
 	std::vector<CFileSystemObject> items;

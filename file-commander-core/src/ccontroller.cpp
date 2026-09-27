@@ -625,6 +625,9 @@ void CController::warnIfVisitedLocationDropped(Panel p, const QString& newPath, 
 CController::ItemActivationResult CController::itemActivated(qulonglong itemHash, Panel p)
 {
 	const auto item = panel(p).itemByHash(itemHash);
+	if (!item.isValid())
+		return { FileOperationResultCode::ObjectDoesntExist };
+
 	if (item.isBundle())
 	{
 		// macOS bundle: launch it as an application
@@ -946,11 +949,6 @@ CFileSystemObject CController::currentItem(Panel p) const
 	return panel(p).currentItem();
 }
 
-bool CController::itemHashExists(Panel p, qulonglong hash) const
-{
-	return panel(p).itemHashExists(hash);
-}
-
 CFileSystemObject CController::itemByHash( Panel p, qulonglong hash ) const
 {
 	return panel(p).itemByHash(hash);
@@ -959,11 +957,6 @@ CFileSystemObject CController::itemByHash( Panel p, qulonglong hash ) const
 std::vector<CFileSystemObject> CController::items(Panel p, const std::vector<qulonglong>& hashes) const
 {
 	return panel(p).itemsByHashes(hashes);
-}
-
-QString CController::itemPath(Panel p, qulonglong hash) const
-{
-	return panel(p).itemByHash(hash).fullAbsolutePath();
 }
 
 std::vector<VolumeInfo> CController::volumes() const
