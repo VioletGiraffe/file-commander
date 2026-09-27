@@ -79,6 +79,13 @@ private:
 	return CFileSystemObject{ path }.hash();
 }
 
+[[nodiscard]] inline bool hasCommittedContents(const CPanel& panel)
+{
+	bool offered = false;
+	panel.readCommittedContents([&offered](const QString&, const FileListHashMap&) { offered = true; });
+	return offered;
+}
+
 // Windows takes the hidden attribute; Linux/FreeBSD honor a leading dot; macOS honors neither for Qt's
 // isHidden() (it reads the filesystem UF_HIDDEN flag), so set that explicitly there.
 inline bool setFileHidden(const QString& path)

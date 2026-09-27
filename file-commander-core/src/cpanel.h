@@ -125,10 +125,8 @@ public:
 
 	// Enumerates objects in the current directory
 	void refreshFileList(FileListRefreshCause operation);
-	// Returns the current list of objects on this panel
-	[[nodiscard]] FileListHashMap list() const;
 	// Invokes fn(folder, contents) under the list lock, or not at all if no committed listing belongs to the
-	// current view. Avoids copying the list; fn holds up this panel's refreshes, so it must be short.
+	// current view. fn holds up this panel's refreshes, so it must be short.
 	void readCommittedContents(const std::function<void(const QString& folder, const FileListHashMap& contents)>& fn) const;
 	// Advances on every setPath() and showAllFilesFromCurrentFolderAndBelow(), even to the folder already in view; a refresh keeps it.
 	// Changes only on the UI thread.

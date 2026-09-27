@@ -64,7 +64,7 @@ TEST_CASE("CPanel - an inactive panel records where it points without listing it
 	// This is how a tab restored from settings sits until the user switches to it: pointed at its folder, but
 	// costing nothing to keep there.
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
-	CHECK(h.panel().list().empty());
+	CHECK_FALSE(hasCommittedContents(h.panel()));
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 0);
 
 	h.panel().setActive(true);

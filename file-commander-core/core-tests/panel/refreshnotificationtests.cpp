@@ -23,7 +23,7 @@ TEST_CASE("CPanel - a listing that outlives the drain blanks the view first", "[
 	CHECK(invalidated.tabId == h.panel().id());
 
 	// The committed list describes the folder we left, so the accessors stop returning it the moment we leave.
-	CHECK(h.panel().list().empty());
+	CHECK_FALSE(hasCommittedContents(h.panel()));
 	CHECK(h.panel().itemHashes().empty());
 	CHECK_FALSE(h.panel().itemHashExists(hashOf(sub)));
 

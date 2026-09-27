@@ -4,7 +4,7 @@ TEST_CASE("CPanel - a panel with no committed listing exposes nothing", "[panel]
 {
 	PanelHarness h;
 
-	CHECK(h.panel().list().empty());
+	CHECK_FALSE(hasCommittedContents(h.panel()));
 	CHECK(h.panel().itemHashes().empty());
 	CHECK_FALSE(h.panel().itemHashExists(1));
 	CHECK_FALSE(h.panel().itemByHash(1).isValid());

@@ -109,7 +109,7 @@ bool CPanel::fileListUpdateIsCurrentLocked(const FileListUpdateRequest& request)
 
 bool CPanel::fileListBelongsToCurrentViewLocked() const
 {
-	return _itemsSourcePath == _currentDirObject.fullAbsolutePath() && _itemsSourceDisplayMode == _currentDisplayMode;
+	return !_itemsSourcePath.isEmpty() && _itemsSourcePath == _currentDirObject.fullAbsolutePath() && _itemsSourceDisplayMode == _currentDisplayMode;
 }
 
 FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCause operation)
@@ -439,16 +439,6 @@ void CPanel::recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& r
 	// Deliberately the path we just found inaccessible: setPath finds the closest accessible folder to land on
 	// instead. This is not a user-requested navigation, so refreshCauseOther.
 	setPath(request.path, refreshCauseOther);
-}
-
-// Returns the current list of objects on this panel
-FileListHashMap CPanel::list() const
-{
-	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	if (!fileListBelongsToCurrentViewLocked())
-		return {};
-
-	return _items;
 }
 
 void CPanel::readCommittedContents(const std::function<void(const QString&, const FileListHashMap&)>& fn) const
