@@ -87,6 +87,8 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 - [testing.md](testing.md): test suites, what kinds of tests exist, and which components they cover.
 - [listing-performance.md](listing-performance.md): measured folder-listing costs per machine, and where the panel's
   listing time goes.
+- [filelist-map-performance.md](filelist-map-performance.md): measured costs of the candidate containers for the file
+  list map, and why it is `segmented_map`.
 - [coding-style.md](coding-style.md): authoring rules.
 - [TODO.md](TODO.md), [code-review-plan.md](code-review-plan.md), and
   [release-metadata-audit.md](release-metadata-audit.md): process and deferred-work documents.
