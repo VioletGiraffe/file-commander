@@ -1063,8 +1063,11 @@ void CMainWindow::calculateStatistics()
 	if (!_currentFileList)
 		return;
 
-	const auto hashes = _currentFileList->selectedItemsHashes();
-	const auto paths = _controller->panel(_currentFileList->panelPosition()).itemPathsByHashes(hashes);
+	const auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
+	std::vector<QString> paths;
+	paths.reserve(items.size());
+	for (const CFileSystemObject& item : items)
+		paths.push_back(item.fullAbsolutePath());
 
 	CTimeElapsed timer{ true };
 	const FileStatistics stats = calculateStatsFor(paths);

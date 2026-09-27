@@ -482,25 +482,22 @@ QString CPanel::itemPathByHash(qulonglong hash) const
 	return it != _items.end() ? it->second.fullAbsolutePath() : QString();
 }
 
-std::vector<QString> CPanel::itemPathsByHashes(const std::vector<qulonglong>& hashes) const
+std::vector<CFileSystemObject> CPanel::itemsByHashes(const std::vector<qulonglong>& hashes) const
 {
-	std::vector<QString> paths;
-	paths.reserve(hashes.size());
+	std::vector<CFileSystemObject> items;
 
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	if (!fileListBelongsToCurrentViewLocked())
-		return std::vector<QString>(hashes.size());
+		return items;
 
-	for (const auto hash : hashes)
+	items.reserve(hashes.size());
+	for (const qulonglong hash : hashes)
 	{
-		const auto it = _items.find(hash);
-		if (it != _items.end())
-			paths.push_back(it->second.fullAbsolutePath());
-		else
-			paths.push_back({});
+		if (const auto it = _items.find(hash); it != _items.end())
+			items.push_back(it->second);
 	}
 
-	return paths;
+	return items;
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification

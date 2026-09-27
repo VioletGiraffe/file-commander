@@ -958,11 +958,7 @@ CFileSystemObject CController::itemByHash( Panel p, qulonglong hash ) const
 
 std::vector<CFileSystemObject> CController::items(Panel p, const std::vector<qulonglong>& hashes) const
 {
-	std::vector<CFileSystemObject> objects;
-	objects.reserve(hashes.size());
-
-	std::for_each(hashes.begin(), hashes.end(), [&objects, p, this] (qulonglong hash) {objects.push_back(itemByHash(p, hash));});
-	return objects;
+	return panel(p).itemsByHashes(hashes);
 }
 
 QString CController::itemPath(Panel p, qulonglong hash) const

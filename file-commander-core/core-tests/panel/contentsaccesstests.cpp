@@ -10,7 +10,7 @@ TEST_CASE("CPanel - a panel with no committed listing exposes nothing", "[panel]
 	CHECK(h.panel().itemPathByHash(1).isEmpty());
 }
 
-TEST_CASE("CPanel - itemPathsByHashes keeps its result aligned with the request", "[panel][contents]")
+TEST_CASE("CPanel - itemsByHashes returns the requested items the current listing holds", "[panel][contents]")
 {
 	TempTree tree;
 	const QString file = tree.makeFile(QStringLiteral("a.txt"));
@@ -23,19 +23,16 @@ TEST_CASE("CPanel - itemPathsByHashes keeps its result aligned with the request"
 
 	const std::vector<qulonglong> hashes{ hashOf(file), 1 /* in no listing */, hashOf(sub) };
 
-	auto paths = h.panel().itemPathsByHashes(hashes);
-	REQUIRE(paths.size() == hashes.size());
-	CHECK(paths[0] == file);
-	CHECK(paths[1].isEmpty());
-	CHECK(paths[2] == sub + '/');
+	const auto items = h.panel().itemsByHashes(hashes);
+	REQUIRE(items.size() == 2);
+	CHECK(items[0].fullAbsolutePath() == file);
+	CHECK(items[1].fullAbsolutePath() == sub + '/');
 
-	// Between folders nothing resolves, but the caller still gets one entry per hash it asked about.
+	// Between folders no listing belongs to the view.
 	h.worker().close();
 	REQUIRE(h.panel().setPath(sub, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
 
-	paths = h.panel().itemPathsByHashes(hashes);
-	REQUIRE(paths.size() == hashes.size());
-	CHECK(std::all_of(paths.begin(), paths.end(), [](const QString& path) { return path.isEmpty(); }));
+	CHECK(h.panel().itemsByHashes(hashes).empty());
 }
 
 TEST_CASE("CPanel - hidden entries follow the setting", "[panel][contents]")
