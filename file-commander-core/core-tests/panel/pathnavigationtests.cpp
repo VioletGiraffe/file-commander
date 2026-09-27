@@ -34,7 +34,7 @@ TEST_CASE("CPanel - setPath lists an existing folder", "[panel][path]")
 	// A directory's path always ends with a separator, which is what makes its hash independent of the spelling.
 	CHECK(h.panel().itemPathByHash(hashOf(subDir)) == subDir + '/');
 	// The two entries plus the [..] row, which QDir::NoDot keeps.
-	CHECK(h.panel().itemHashes().size() == 3);
+	CHECK(committedItemCount(h.panel()) == 3);
 }
 
 TEST_CASE("CPanel - setPath to a file lands on its parent folder", "[panel][path]")

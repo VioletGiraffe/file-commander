@@ -5,7 +5,6 @@ TEST_CASE("CPanel - a panel with no committed listing exposes nothing", "[panel]
 	PanelHarness h;
 
 	CHECK_FALSE(hasCommittedContents(h.panel()));
-	CHECK(h.panel().itemHashes().empty());
 	CHECK_FALSE(h.panel().itemHashExists(1));
 	CHECK_FALSE(h.panel().itemByHash(1).isValid());
 	CHECK(h.panel().itemPathByHash(1).isEmpty());
@@ -84,8 +83,11 @@ TEST_CASE("CPanel - the filesystem root has no self-referential parent row", "[p
 	h.settle();
 
 	// The root's parent is itself, so a [..] row there would be an item that navigates nowhere.
-	for (const qulonglong hash : h.panel().itemHashes())
-		CHECK_FALSE(h.panel().itemPathByHash(hash).contains(QStringLiteral("..")));
+	REQUIRE(hasCommittedContents(h.panel()));
+	h.panel().readCommittedContents([](const QString&, const FileListHashMap& contents) {
+		for (const auto& [hash, item] : contents)
+			CHECK_FALSE(item.isCdUp());
+	});
 }
 
 TEST_CASE("CPanel - displayDirSize fills in the size of a listed folder", "[panel][contents]")

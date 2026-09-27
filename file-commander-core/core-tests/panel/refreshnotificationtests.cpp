@@ -24,7 +24,6 @@ TEST_CASE("CPanel - a listing that outlives the drain blanks the view first", "[
 
 	// The committed list describes the folder we left, so the accessors stop returning it the moment we leave.
 	CHECK_FALSE(hasCommittedContents(h.panel()));
-	CHECK(h.panel().itemHashes().empty());
 	CHECK_FALSE(h.panel().itemHashExists(hashOf(sub)));
 
 	h.worker().open();
@@ -155,7 +154,7 @@ TEST_CASE("CPanel - flattened mode lists the files of the whole subtree", "[pane
 	CHECK(h.panel().itemHashExists(hashOf(deep)));
 	// Files only, and no [..] row.
 	CHECK_FALSE(h.panel().itemHashExists(hashOf(nested)));
-	CHECK(h.panel().itemHashes().size() == 2);
+	CHECK(committedItemCount(h.panel()) == 2);
 
 	h.panel().navigateUp();
 	h.settle();

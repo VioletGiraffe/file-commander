@@ -503,22 +503,6 @@ std::vector<QString> CPanel::itemPathsByHashes(const std::vector<qulonglong>& ha
 	return paths;
 }
 
-std::vector<qulonglong> CPanel::itemHashes() const
-{
-	std::vector<qulonglong> hashes;
-
-	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	if (!fileListBelongsToCurrentViewLocked())
-		return hashes;
-
-	hashes.reserve(_items.size());
-
-	for (const auto& pair : _items)
-		hashes.push_back(pair.first);
-
-	return hashes;
-}
-
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 void CPanel::displayDirSize(qulonglong dirHash)
 {

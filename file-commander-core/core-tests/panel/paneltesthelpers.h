@@ -86,6 +86,13 @@ private:
 	return offered;
 }
 
+[[nodiscard]] inline size_t committedItemCount(const CPanel& panel)
+{
+	size_t count = 0;
+	panel.readCommittedContents([&count](const QString&, const FileListHashMap& contents) { count = contents.size(); });
+	return count;
+}
+
 // Windows takes the hidden attribute; Linux/FreeBSD honor a leading dot; macOS honors neither for Qt's
 // isHidden() (it reads the filesystem UF_HIDDEN flag), so set that explicitly there.
 inline bool setFileHidden(const QString& path)

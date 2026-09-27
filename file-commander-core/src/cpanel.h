@@ -138,8 +138,6 @@ public:
 	[[nodiscard]] QString itemPathByHash(qulonglong hash) const;
 	[[nodiscard]] std::vector<QString> itemPathsByHashes(const std::vector<qulonglong>& hashes) const;
 
-	[[nodiscard]] std::vector<qulonglong> itemHashes() const;
-
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);
 
