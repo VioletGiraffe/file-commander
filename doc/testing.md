@@ -12,7 +12,8 @@ test:
 - `plugins/viewer/csvviewer/tests/`: the CSV viewer.
 
 `core-tests/test-utils/` holds the shared helpers: temporary folder generation, random data, link creation, Qt/Catch2
-glue.
+glue. Every suite links `catch2_runner` (`cpp-template-utils/3rdparty/catch2/`), Catch2's implementation compiled once
+for all of them.
 
 ## Running them
 

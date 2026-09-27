@@ -1,8 +1,5 @@
-#define NO_TEST_MAIN
-#include "3rdparty/catch2/test_main.hpp" // First: compiles catch.hpp with the runner
-
-
 // Submodule includes
+#include "3rdparty/catch2/catch_runner.h"
 #include "compiler/compiler_warnings_control.h"
 
 

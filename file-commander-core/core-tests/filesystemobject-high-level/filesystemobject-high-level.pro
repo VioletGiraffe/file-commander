@@ -26,6 +26,7 @@ INCLUDEPATH += \
 	../test-utils/src/ # link_helpers.hpp is header-only, so no test_utils link dependency
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
+include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \

@@ -27,6 +27,7 @@ INCLUDEPATH += \
 	../test-utils/src/
 
 LIBS += -L$${DESTDIR} -lcpputils -lqtutils -ltest_utils
+include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
 SOURCES += \
 	filecomparator_test.cpp \

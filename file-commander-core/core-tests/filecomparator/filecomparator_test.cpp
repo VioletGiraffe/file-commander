@@ -1,11 +1,9 @@
-#define NO_TEST_MAIN
-#include "3rdparty/catch2/test_main.hpp" // First: compiles catch.hpp with the runner
-
 #include "filecomparator/filecontentcomparison.h"
 #include "crandomdatagenerator.h"
 
 
 // Submodule includes
+#include "3rdparty/catch2/catch_runner.h"
 #include "compiler/compiler_warnings_control.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "timing/ctimeelapsed.h"
@@ -125,18 +123,5 @@ TEST_CASE("CFileComparator differing files tests", "[CFileComparator]")
 
 int main(int argc, char* argv[])
 {
-	Catch::Session session; // There must be exactly one instance
-
-							// Build a new parser on top of Catch's
-	using namespace Catch::clara;
-	auto cli
-		= session.cli() // Get Catch's composite command line parser
-		| Opt(g_randomSeed, "std::random seed") // bind variable to a new option, with a hint string
-		["--std-seed"]        // the option names it will respond to
-	("std::random seed"); // description string for the help output
-
-						  // Now pass the new composite back to Catch so it uses that
-	session.cli(cli);
-
-	return runCatchSession(session, argc, argv);
+	return runCatchSession(argc, argv, { .randomSeed = &g_randomSeed });
 }

@@ -63,8 +63,9 @@ supported macOS toolchain.
 Suite layout and coverage: [testing.md](testing.md).
 
 A test source includes `qtcore_helpers/catch_qt.hpp` (qtutils), never `catch.hpp` directly: it adds the Qt printers,
-and every source must see the same ones. A test binary's `main()` comes from `3rdparty/catch2/test_main.hpp`,
-included first in its source; with `NO_TEST_MAIN` for a hand-written `main()`, which calls `runCatchSession()`.
+and every source must see the same ones. A test binary links `catch2_runner`, Catch2's implementation compiled once
+(`3rdparty/catch2/catch2.pri`, cpp-template-utils), and defines `main()` around `runCatchSession()` from `catch_runner.h`.
+It never includes `test_main.hpp`, which compiles the implementation a second time.
 
 Do not interpolate Catch2 test names into filesystem paths. Test titles may contain characters illegal in
 filenames on some platforms, such as `:` on Windows. Use a fixed `QTemporaryDir` template, or sanitize the title

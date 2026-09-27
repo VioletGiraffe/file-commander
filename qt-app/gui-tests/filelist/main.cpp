@@ -1,8 +1,5 @@
-#define NO_TEST_MAIN
-#include "3rdparty/catch2/test_main.hpp" // First: compiles catch.hpp with the runner
-
-
 // Submodule includes
+#include "3rdparty/catch2/catch_runner.h"
 #include "compiler/compiler_warnings_control.h"
 
 
@@ -20,7 +17,5 @@ int main(int argc, char* argv[])
 	// A headless caller selects the offscreen platform through QT_QPA_PLATFORM (the CI Linux run line does).
 	QApplication app{ argc, argv };
 
-	Catch::Session session;
-	session.cli(session.cli() | Catch::clara::Opt(g_randomSeed, "std::random seed")["--std-seed"]("std::random seed"));
-	return runCatchSession(session, argc, argv);
+	return runCatchSession(argc, argv, { .randomSeed = &g_randomSeed });
 }

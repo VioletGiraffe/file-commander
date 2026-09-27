@@ -23,6 +23,7 @@ mac*|linux*|freebsd{
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
+include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \

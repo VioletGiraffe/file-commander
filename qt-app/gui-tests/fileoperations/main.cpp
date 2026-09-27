@@ -1,14 +1,14 @@
-#define NO_TEST_MAIN
-#include "3rdparty/catch2/test_main.hpp" // First: compiles catch.hpp with the runner
-
 #include "fileoperations/operationtesthooks.h"
 
 
 // Submodule includes
+#include "3rdparty/catch2/catch_runner.h"
 #include "compiler/compiler_warnings_control.h"
 
 
 DISABLE_COMPILER_WARNINGS
+#include "qtcore_helpers/catch_qt.hpp" // qtutils
+
 #include <QApplication>
 RESTORE_COMPILER_WARNINGS
 

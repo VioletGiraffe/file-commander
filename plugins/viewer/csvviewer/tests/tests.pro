@@ -28,6 +28,7 @@ INCLUDEPATH += \
 	../../../../qtutils # Header-only use: catch_qt.hpp
 
 LIBS += -L$${DESTDIR} -lcpputils
+include(../../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libcpputils.a

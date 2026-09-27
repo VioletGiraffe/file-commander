@@ -17,6 +17,7 @@ UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -lqtutils -ltest_utils -lcpputils
+include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
