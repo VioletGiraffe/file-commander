@@ -1,7 +1,6 @@
 #pragma once
 
 // Helpers shared by all file-operation test .cpp files.
-// Includes catch.hpp: the runner TU must #define CATCH_CONFIG_RUNNER before including this header.
 
 #include "fileoperations/cfilesystemmutator.h"
 #include "fileoperations/coperationexecutioncontext.h"

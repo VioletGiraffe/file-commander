@@ -2,7 +2,6 @@
 
 // Shared by every CFileSearchEngine test: a throwaway tree to search in, a listener that collects what the engine
 // reports, and a runner that turns one query into one result.
-// Includes catch.hpp: the runner TU must #define CATCH_CONFIG_RUNNER before including this header.
 
 #include "filesearchengine/cfilesearchengine.h"
 

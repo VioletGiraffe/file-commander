@@ -2,7 +2,6 @@
 
 // Helpers shared by all CPanel test files: a throwaway directory tree, an event-recording listener, and a panel
 // wired to a worker pool the test can step.
-// Includes catch.hpp: the runner TU must #define CATCH_CONFIG_RUNNER before including this header.
 
 #include "cpanel.h"
 #include "cfilesystemobject.h"
