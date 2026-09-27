@@ -346,10 +346,12 @@ template <typename Map>
 
 struct Candidate
 {
+	// FileListHashMap as listDirectoryForPanel uses it
+	[[nodiscard]] bool isCurrent() const noexcept { return isFileListHashMap && reserve; }
+
 	const char* name;
 	bool reserve;
-	// FileListHashMap as listDirectoryForPanel uses it: with reserve
-	bool isCurrent;
+	bool isFileListHashMap;
 	PhaseNs (*timeSample)(const Workload&, bool reserve);
 	HeapCounts (*measureHeapUse)(const Workload&, bool reserve);
 };
@@ -358,7 +360,7 @@ template <typename Map>
 void addCandidate(std::vector<Candidate>& candidates, const char* name)
 {
 	for (const bool reserve : { false, true })
-		candidates.push_back({ name, reserve, Map::isFileListHashMap && reserve, &timeSample<Map>, &measureHeapUse<Map> });
+		candidates.push_back({ name, reserve, Map::isFileListHashMap, &timeSample<Map>, &measureHeapUse<Map> });
 }
 
 [[nodiscard]] std::vector<Candidate> allCandidates()
@@ -389,7 +391,24 @@ void addCandidate(std::vector<Candidate>& candidates, const char* name)
 	return percentile(std::move(values), 0.5);
 }
 
-void benchmarkFolderSize(size_t entryCount, size_t sampleCount, const std::vector<Candidate>& candidates)
+struct Result
+{
+	const Candidate* candidate;
+	PhaseNs median;
+	double total;
+	double totalIqrPercent;
+	HeapCounts heap;
+};
+
+struct FolderSizeResults
+{
+	size_t entryCount;
+	size_t batch;
+	// Fastest total first
+	std::vector<Result> results;
+};
+
+[[nodiscard]] FolderSizeResults benchmarkFolderSize(size_t entryCount, size_t sampleCount, const std::vector<Candidate>& candidates)
 {
 	const Workload workload = makeWorkload(entryCount);
 
@@ -409,17 +428,7 @@ void benchmarkFolderSize(size_t entryCount, size_t sampleCount, const std::vecto
 		}
 	}
 
-	struct Row
-	{
-		const Candidate* candidate;
-		PhaseNs median;
-		double total;
-		double totalIqrPercent;
-		HeapCounts heap;
-	};
-
-	std::vector<Row> rows;
-	std::optional<double> currentTotal;
+	FolderSizeResults folderSize{ entryCount, workload.batch, {} };
 	for (size_t i = 0; i < candidates.size(); ++i)
 	{
 		std::vector<double> totals;
@@ -430,28 +439,97 @@ void benchmarkFolderSize(size_t entryCount, size_t sampleCount, const std::vecto
 			.copy = medianOf(samples[i], &PhaseNs::copy), .lookup = medianOf(samples[i], &PhaseNs::lookup) };
 		const double total = percentile(totals, 0.5);
 		const double totalIqrPercent = (percentile(totals, 0.75) - percentile(totals, 0.25)) / total * 100.0;
-		rows.push_back({ &candidates[i], median, total, totalIqrPercent, candidates[i].measureHeapUse(workload, candidates[i].reserve) });
-		if (candidates[i].isCurrent)
-			currentTotal = total;
+		folderSize.results.push_back({ &candidates[i], median, total, totalIqrPercent, candidates[i].measureHeapUse(workload, candidates[i].reserve) });
 	}
 
-	std::ranges::sort(rows, {}, &Row::total);
+	std::ranges::sort(folderSize.results, {}, &Result::total);
+	return folderSize;
+}
 
-	printf("\n%zu entries: %zu maps per sample, %zu samples\n", entryCount, workload.batch, sampleCount);
+void printTable(const FolderSizeResults& folderSize, size_t sampleCount)
+{
+	const auto current = std::ranges::find_if(folderSize.results, [](const Result& result) { return result.candidate->isCurrent(); });
+
+	printf("\n%zu entries: %zu maps per sample, %zu samples\n", folderSize.entryCount, folderSize.batch, sampleCount);
 	printf("%-32s %-7s %8s %8s %8s %8s %6s %8s %8s %8s %8s %7s\n", "Container", "Reserve", "Build", "Destroy", "Copy", "Total", "IQR", "vs now", "Lookup", "Heap", "Peak", "Allocs");
-	for (const Row& row : rows)
+	for (const Result& result : folderSize.results)
 	{
 		char name[64];
-		snprintf(name, sizeof(name), "%s%s", row.candidate->name, row.candidate->isCurrent ? " (now)" : "");
+		snprintf(name, sizeof(name), "%s%s", result.candidate->name, result.candidate->isCurrent() ? " (now)" : "");
 
 		char versusCurrent[16] = "-";
-		if (currentTotal)
-			snprintf(versusCurrent, sizeof(versusCurrent), "%+.1f%%", (row.total / *currentTotal - 1.0) * 100.0);
+		if (current != folderSize.results.end())
+			snprintf(versusCurrent, sizeof(versusCurrent), "%+.1f%%", (result.total / current->total - 1.0) * 100.0);
 
-		printf("%-32s %-7s %8.2f %8.2f %8.2f %8.2f %5.1f%% %8s %8.2f %8.1f %8.1f %7llu\n", name, row.candidate->reserve ? "yes" : "no",
-			row.median.build, row.median.destroy, row.median.copy, row.total, row.totalIqrPercent, versusCurrent, row.median.lookup,
-			(double)row.heap.liveBytes / (double)entryCount, (double)row.heap.peakBytes / (double)entryCount, (unsigned long long)row.heap.allocations);
+		const double entryCount = (double)folderSize.entryCount;
+		printf("%-32s %-7s %8.2f %8.2f %8.2f %8.2f %5.1f%% %8s %8.2f %8.1f %8.1f %7llu\n", name, result.candidate->reserve ? "yes" : "no",
+			result.median.build, result.median.destroy, result.median.copy, result.total, result.totalIqrPercent, versusCurrent, result.median.lookup,
+			(double)result.heap.liveBytes / entryCount, (double)result.heap.peakBytes / entryCount, (unsigned long long)result.heap.allocations);
 	}
+}
+
+// A gap no wider than either side's IQR does not rank the two
+[[nodiscard]] bool withinNoise(const Result& a, const Result& b)
+{
+	return std::abs(b.total / a.total - 1.0) * 100.0 <= std::max(a.totalIqrPercent, b.totalIqrPercent);
+}
+
+[[nodiscard]] const Result& resultOf(const FolderSizeResults& folderSize, const Candidate& candidate)
+{
+	return *std::ranges::find_if(folderSize.results, [&candidate](const Result& result) { return result.candidate == &candidate; });
+}
+
+// The baseline is FileListHashMap in the same mode
+void printSummaryTable(const std::vector<FolderSizeResults>& allResults, const std::vector<Candidate>& candidates, bool reserve)
+{
+	const auto baseline = std::ranges::find_if(candidates, [reserve](const Candidate& candidate) { return candidate.isFileListHashMap && candidate.reserve == reserve; });
+	assert_and_return_r(baseline != candidates.end(), );
+
+	printf("\n%-32s", reserve ? "With reserve" : "Without reserve");
+	for (const FolderSizeResults& folderSize : allResults)
+		printf(" %16zu", folderSize.entryCount);
+
+	printf("\n");
+	for (const Candidate& candidate : candidates)
+	{
+		if (candidate.reserve != reserve)
+			continue;
+
+		char name[64];
+		snprintf(name, sizeof(name), "%s%s", candidate.name, &candidate == &*baseline ? " (now)" : "");
+		printf("%-32s", name);
+		for (const FolderSizeResults& folderSize : allResults)
+		{
+			const Result& result = resultOf(folderSize, candidate);
+			const Result& baselineResult = resultOf(folderSize, *baseline);
+
+			char cell[32];
+			if (&result == &baselineResult)
+				snprintf(cell, sizeof(cell), "%.1f", result.total);
+			else
+			{
+				snprintf(cell, sizeof(cell), "%.1f (%+.0f%%%s)", result.total, (result.total / baselineResult.total - 1.0) * 100.0,
+					withinNoise(result, baselineResult) ? "~" : "");
+			}
+
+			printf(" %16s", cell);
+		}
+
+		printf("\n");
+	}
+}
+
+void printSummary(const std::vector<FolderSizeResults>& allResults, const std::vector<Candidate>& candidates)
+{
+	if (std::ranges::none_of(candidates, &Candidate::isFileListHashMap))
+	{
+		printf("\nNo summary: FileListHashMap is not among the candidates\n");
+		return;
+	}
+
+	printf("\nSummary: total ns per entry; in brackets, against the (now) row; ~: within IQR\n");
+	printSummaryTable(allResults, candidates, true);
+	printSummaryTable(allResults, candidates, false);
 }
 
 }
@@ -501,9 +579,14 @@ int main(int argc, char* argv[])
 	printf("Heap, Peak: bytes per entry the container holds after the build, and at most during it. Allocs: per map built.\n");
 
 	const std::vector<Candidate> candidates = allCandidates();
+	std::vector<FolderSizeResults> allResults;
 	for (const size_t entryCount : entryCounts)
-		benchmarkFolderSize(entryCount, sampleCount, candidates);
+	{
+		allResults.push_back(benchmarkFolderSize(entryCount, sampleCount, candidates));
+		printTable(allResults.back(), sampleCount);
+	}
 
+	printSummary(allResults, candidates);
 	printf("\nChecksum %llu\n", (unsigned long long)checksum);
 	return 0;
 }

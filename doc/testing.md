@@ -112,7 +112,8 @@ LTO, as the application is built; the test scripts never run it. `--help` lists 
 
 `filelist_hashmap_benchmark` times candidate containers for `FileListHashMap` on the work one listing does to it; the
 source's header lists the phases. Entries are built in memory, so no folders are needed. It is built like
-`listing_benchmark` and never run by the test scripts; `--help` lists the options.
+`listing_benchmark` and never run by the test scripts; `--help` lists the options. A summary follows: every
+candidate's total at every size, against `FileListHashMap`, with and without `reserve`.
 
 - Every sample covers at least 256k entries, batching small maps. Candidates run in a new shuffled order every round.
 - Heap figures count the container's own allocations only: the path strings are shared by every candidate.
