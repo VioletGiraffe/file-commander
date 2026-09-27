@@ -3,7 +3,12 @@
 #include "panel/columns.h"
 
 #include "cfilesystemobject.h"
-#include "detail/hashmap_helpers.h"
+
+
+// Submodule includes
+#include "compiler/compiler_warnings_control.h"
+#include "hash/hash_functors.hpp"
+#include "qtcore_helpers/qstring_hash.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -118,7 +123,7 @@ private:
 	// Indices into _rows: the rows the filter lets through, in display order
 	std::vector<uint32_t> _displayedRows;
 	// Rebuilt by the first lookup after _displayedRows changes: updateRows() changes it once per single-row change
-	mutable ankerl::unordered_dense::map<qulonglong, int, IdentityHash> _displayRowByHash;
+	mutable ankerl::unordered_dense::map<qulonglong, int, identity_hash> _displayRowByHash;
 	mutable bool _displayRowByHashIsStale = false;
 	FolderContentsSummary _contentsSummary;
 	QRegularExpression _nameFilter;

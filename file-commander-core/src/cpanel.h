@@ -3,12 +3,13 @@
 #include "cfilesystemobject.h"
 #include "fileoperationresultcode.h"
 #include "detail/file_list_hashmap.h"
-#include "detail/hashmap_helpers.h"
 
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "hash/hash_functors.hpp"
 #include "historylist/chistorylist.h"
+#include "qtcore_helpers/qstring_hash.hpp"
 #include "threading/cexecutionqueue.h"
 #include "threading/cthreadpool.h"
 #include "utility/callback_caller.hpp"
@@ -178,7 +179,7 @@ private:
 	FileSystemWatcher                          _watcher;
 	FileListHashMap                            _items;
 	// Folder sizes calculated on request, re-applied to every listing that still has the folder. Protected by _fileListAndCurrentDirMutex.
-	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, IdentityHash> _calculatedDirSizes;
+	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, identity_hash> _calculatedDirSizes;
 	QString                                    _itemsSourcePath;
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;

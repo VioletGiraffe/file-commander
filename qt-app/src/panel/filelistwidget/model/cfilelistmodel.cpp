@@ -119,7 +119,7 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 {
 	const auto oldRowCount = (uint32_t)_rows.size();
 
-	ankerl::unordered_dense::map<qulonglong, uint32_t, IdentityHash> oldRowByHash;
+	ankerl::unordered_dense::map<qulonglong, uint32_t, identity_hash> oldRowByHash;
 	oldRowByHash.reserve(oldRowCount);
 	for (uint32_t i = 0; i < oldRowCount; ++i)
 		oldRowByHash.emplace(_rows[i].hash(), i);

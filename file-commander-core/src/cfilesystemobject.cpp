@@ -1,12 +1,12 @@
 #include "cfilesystemobject.h"
 
 #include "filesystemhelperfunctions.h"
-#include "detail/hashmap_helpers.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "lang/type_traits_fast.hpp"
+#include "qtcore_helpers/qstring_hash.hpp"
 
 
 DISABLE_COMPILER_WARNINGS

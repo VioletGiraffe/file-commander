@@ -1,10 +1,9 @@
 #pragma once
 
-#include "detail/hashmap_helpers.h"
-
-
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "hash/hash_functors.hpp"
+#include "qtcore_helpers/qstring_hash.hpp"
 #include "threading/cexecutionqueue.h"
 #include "utility/callback_caller.hpp"
 
@@ -131,8 +130,8 @@ private:
 private:
 	// Keyed on pathHash() of the full path, so an entry is only ever reused for the path it was made for.
 	// The indirection through the content hash lets a folder of same-type files share one stored icon.
-	ankerl::unordered_dense::map<qulonglong, CachedIcon, IdentityHash> _cachedIconByObjectHash;
-	ankerl::unordered_dense::segmented_map<uint64_t, QIcon, IdentityHash> _iconByContentHash;
+	ankerl::unordered_dense::map<qulonglong, CachedIcon, identity_hash> _cachedIconByObjectHash;
+	ankerl::unordered_dense::segmented_map<uint64_t, QIcon, identity_hash> _iconByContentHash;
 
 	ankerl::unordered_dense::segmented_map<QString, QIcon, QStringHash, std::equal_to<>> _genericIconByExtension;
 	std::optional<QIcon> _genericFolderIcon;
@@ -150,7 +149,7 @@ private:
 
 	// UI thread only. An object stays here from the moment it is queued until its result is delivered, so that
 	// repainting a row that is still waiting doesn't queue it a second time.
-	ankerl::unordered_dense::set<qulonglong, IdentityHash> _requestedObjects;
+	ankerl::unordered_dense::set<qulonglong, identity_hash> _requestedObjects;
 	// UI thread only; stamped into every request. Bumped whenever the caches are dropped, retiring whatever was
 	// already in flight under the conditions that no longer hold.
 	uint64_t _requestGeneration = 0;

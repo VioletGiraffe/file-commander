@@ -16,6 +16,7 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
+#include "hash/hash_functors.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -141,7 +142,7 @@ struct QHashKey
 	uint64_t value;
 };
 
-// The identity, as IdentityHash: the key is a path hash already
+// The identity, as identity_hash: the key is a path hash already
 [[nodiscard]] size_t qHash(QHashKey key, size_t /*seed*/) noexcept
 {
 	return (size_t)key.value;
@@ -366,11 +367,11 @@ void addCandidate(std::vector<Candidate>& candidates, const char* name)
 [[nodiscard]] std::vector<Candidate> allCandidates()
 {
 	std::vector<Candidate> candidates;
-	addCandidate<StdInterfaceMap<ankerl::unordered_dense::segmented_map<qulonglong, CFileSystemObject, IdentityHash>>>(candidates, "ankerl segmented_map");
-	addCandidate<StdInterfaceMap<ankerl::unordered_dense::map<qulonglong, CFileSystemObject, IdentityHash>>>(candidates, "ankerl map");
-	addCandidate<StdInterfaceMap<boost::unordered_flat_map<qulonglong, CFileSystemObject, IdentityHash>>>(candidates, "boost unordered_flat_map");
-	addCandidate<StdInterfaceMap<boost::unordered_node_map<qulonglong, CFileSystemObject, IdentityHash>>>(candidates, "boost unordered_node_map");
-	addCandidate<StdInterfaceMap<std::unordered_map<qulonglong, CFileSystemObject, IdentityHash>>>(candidates, "std::unordered_map");
+	addCandidate<StdInterfaceMap<ankerl::unordered_dense::segmented_map<qulonglong, CFileSystemObject, identity_hash>>>(candidates, "ankerl segmented_map");
+	addCandidate<StdInterfaceMap<ankerl::unordered_dense::map<qulonglong, CFileSystemObject, identity_hash>>>(candidates, "ankerl map");
+	addCandidate<StdInterfaceMap<boost::unordered_flat_map<qulonglong, CFileSystemObject, identity_hash>>>(candidates, "boost unordered_flat_map");
+	addCandidate<StdInterfaceMap<boost::unordered_node_map<qulonglong, CFileSystemObject, identity_hash>>>(candidates, "boost unordered_node_map");
+	addCandidate<StdInterfaceMap<std::unordered_map<qulonglong, CFileSystemObject, identity_hash>>>(candidates, "std::unordered_map");
 	addCandidate<QHashMap>(candidates, "QHash");
 	return candidates;
 }
