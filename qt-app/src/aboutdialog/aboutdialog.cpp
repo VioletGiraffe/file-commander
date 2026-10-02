@@ -31,7 +31,6 @@ constexpr struct {
 	{ "Hash map",                     "unordered_dense by martinus", "https://github.com/martinus/unordered_dense" },
 	{ "Hash map",                     "Boost.Unordered by boostorg", "https://github.com/boostorg/unordered" },
 	{ "Move-only function wrapper",   "function2 by Naios",          "https://github.com/Naios/function2" },
-	{ "SIMD portability",             "SIMDe by simd-everywhere",    "https://github.com/simd-everywhere/simde" },
 	{ "Unit testing framework",       "Catch2 by catchorg",          "https://github.com/catchorg/Catch2" },
 	{ "Compile-time enum reflection", "magic_enum by Neargye",       "https://github.com/Neargye/magic_enum" },
 	{ "Font",                         "Roboto Mono by googlefonts",  "https://github.com/googlefonts/RobotoMono" }
