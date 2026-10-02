@@ -25,6 +25,10 @@ CSettingsPageOther::CSettingsPageOther(QWidget *parent) :
 	ui->label->setText(tr("Terminal application"));
 	ui->label_2->setText(tr("Leave empty for the default shown, or enter the name of another terminal application, such as iTerm."));
 #endif
+#ifndef _WIN32
+	// Windows has no "Run in a terminal" setting
+	ui->label_2->setText(ui->label_2->text() + ' ' + tr("The Programs menu uses it for entries set to run in a terminal."));
+#endif
 	ui->_cbCheckForUpdatesAutomatically->setChecked(s.value(KEY_OTHER_CHECK_FOR_UPDATES_AUTOMATICALLY, true).toBool());
 }
 
