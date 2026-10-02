@@ -42,8 +42,8 @@ Windows:
 Linux and macOS, where nothing marks a program as GUI, so each program has a "Run in a terminal" setting:
 
 - Set: the line goes into a script in the temp folder, which the terminal of "Open terminal" runs: after `-e` on
-  Linux (`--` for gnome-terminal), through `open -a` on macOS. A single path survives every terminal's way of parsing a
-  command. The script deletes itself, then changes to the working folder: not every terminal passes its own on.
+  Linux, except for the terminals `startTerminal` lists, and through `open -a` on macOS. A single path survives every
+  terminal's way of parsing a command. The script deletes itself, then changes to the working folder: not every terminal passes its own on.
 - Not set: `sh -c`, detached. sh's own errors, such as a program not found, go unreported.
 
 ## Command line

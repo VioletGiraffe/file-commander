@@ -52,12 +52,22 @@ QString OsShell::defaultTerminalCommand()
 		{ "cmd.exe", nullptr }
 	};
 #elif defined __linux__ || defined __FreeBSD__
+	// The user's choice, by convention
+	if (const QString terminal = qEnvironmentVariable("TERMINAL"); !terminal.isEmpty())
+		return terminal;
+
 	static constexpr const char* knownTerminals[][2]{
+		{ "x-terminal-emulator", nullptr }, // The system's choice on Debian and its derivatives
 		{ "konsole", nullptr }, // KDE
 		{ "gnome-terminal", nullptr }, // Gnome
-		{ "pantheon-terminal", nullptr }, // Pantheon (Elementary OS)
+		{ "io.elementary.terminal", nullptr }, // Pantheon (Elementary OS)
+		{ "pantheon-terminal", nullptr }, // io.elementary.terminal's former name
+		{ "xfce4-terminal", nullptr }, // Xfce
 		{ "qterminal", nullptr },
-		{ "lxterminal", "--working-directory={dir}" }
+		{ "lxterminal", "--working-directory={dir}" },
+		{ "kitty", nullptr },
+		{ "alacritty", nullptr },
+		{ "xterm", nullptr }
 	};
 #else
 #pragma message("unknown platform")
@@ -379,9 +389,19 @@ static std::expected<void, QString> startTerminal(QString folder, [[maybe_unused
 		return std::unexpected{ QStringLiteral("Unfinished quote or escape in the terminal command: %1").arg(commandLine) };
 
 	const QString program = words->takeFirst();
-	// -e is the xterm convention; gnome-terminal deprecated it in favor of --
 	if (!script.isEmpty())
-		*words << (QFileInfo{ program }.fileName() == QStringLiteral("gnome-terminal") ? QStringLiteral("--") : QStringLiteral("-e")) << script;
+	{
+		// -e is the xterm convention, and what Debian requires of x-terminal-emulator
+		// gnome-terminal deprecated -e in favor of --
+		// kitty takes the program right after its own options
+		const QString terminal = QFileInfo{ program }.fileName();
+		if (terminal == QStringLiteral("gnome-terminal"))
+			*words << QStringLiteral("--");
+		else if (terminal != QStringLiteral("kitty"))
+			*words << QStringLiteral("-e");
+
+		*words << script;
+	}
 
 	return startDetached(program, std::move(*words), folder);
 #endif
