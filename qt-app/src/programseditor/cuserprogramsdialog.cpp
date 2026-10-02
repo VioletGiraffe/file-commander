@@ -42,31 +42,22 @@ RESTORE_COMPILER_WARNINGS
 namespace {
 
 enum Column { ProgramColumn, HotkeyColumn };
-enum Role { CommandLineRole = Qt::UserRole, WorkingDirRole, CustomWorkingDirRole, EditBeforeRunningRole, RunInTerminalRole, KeepTerminalOpenRole };
+// Every row of the list. Must never be cloned: QTreeWidgetItem::clone() copies the base alone.
+struct ProgramItem final : QTreeWidgetItem
+{
+	UserProgram program;
+};
 
 UserProgram programFromItem(const QTreeWidgetItem* item)
 {
-	return {
-		.name = item->text(ProgramColumn),
-		.commandLine = item->data(ProgramColumn, CommandLineRole).toString(),
-		.workingDir = static_cast<UserProgram::WorkingDir>(item->data(ProgramColumn, WorkingDirRole).toInt()),
-		.customWorkingDir = item->data(ProgramColumn, CustomWorkingDirRole).toString(),
-		.editBeforeRunning = item->data(ProgramColumn, EditBeforeRunningRole).toBool(),
-		.runInTerminal = item->data(ProgramColumn, RunInTerminalRole).toBool(),
-		.keepTerminalOpen = item->data(ProgramColumn, KeepTerminalOpenRole).toBool(),
-	};
+	return static_cast<const ProgramItem*>(item)->program;
 }
 
 // Not the icon: it needs a search through PATH
 void storeProgramInItem(QTreeWidgetItem* item, const UserProgram& program)
 {
+	static_cast<ProgramItem*>(item)->program = program;
 	item->setText(ProgramColumn, program.name);
-	item->setData(ProgramColumn, CommandLineRole, program.commandLine);
-	item->setData(ProgramColumn, WorkingDirRole, static_cast<int>(program.workingDir));
-	item->setData(ProgramColumn, CustomWorkingDirRole, program.customWorkingDir);
-	item->setData(ProgramColumn, EditBeforeRunningRole, program.editBeforeRunning);
-	item->setData(ProgramColumn, RunInTerminalRole, program.runInTerminal);
-	item->setData(ProgramColumn, KeepTerminalOpenRole, program.keepTerminalOpen);
 }
 
 QString newProgramName()
@@ -367,7 +358,7 @@ QWidget* CUserProgramsDialog::createDetailsPane()
 
 QTreeWidgetItem* CUserProgramsDialog::insertProgram(const UserProgram& program, const int row)
 {
-	auto* item = new QTreeWidgetItem;
+	auto* item = new ProgramItem;
 	// Not drop-enabled: a drop onto a row would nest the dragged one under it
 	item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsDragEnabled);
 	storeProgramInItem(item, program);
