@@ -15,6 +15,9 @@ test:
 glue. Every suite links `catch2_runner` (`cpp-template-utils/3rdparty/catch2/`), Catch2's implementation compiled once
 for all of them.
 
+Each suite compiles the sources it tests itself, listed in its `.pro`; neither the core library nor the application is
+built. A passing run says nothing about a source no suite lists, most of `qt-app/src` for one: it is not even compiled.
+
 ## Running them
 
 `scripts/run_tests.bat` and `scripts/run_tests.sh` build `core-tests` and run every executable, then report which
@@ -74,11 +77,12 @@ the shell script also falls back to a `qmake` already on PATH.
 | `filesearchengine_test` | Search engine: name filters, content search, engine behavior |
 | `filesystemhelpers_test` | Path quoting and shell word splitting |
 | `userprograms_test` | Programs-menu placeholder expansion |
+| `shell_test` | `CShellCommand` on real commands: output, exit code, working folder, escape sequences, termination. Which command lines launch without the shell (Windows); the detached launch's command lookup (Linux, macOS) |
 | `fileoperations_gui_test` | File-operation UI from `qt-app/src`: dialogs, prompts, launch routing |
 | `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's sorting, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
 
-No suite covers process launching, volume enumeration, favorites, settings, the UI outside file operations and the
+No suite covers a launch that opens a window (programs, terminals), volume enumeration, favorites, settings, the UI outside file operations and the
 file list, or any plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`,
 `image-processing` and `text-encoding-detector` submodules have their own suites, which this project neither builds
 nor runs. After a `thin_io` change, run `thin_io/scripts/run_tests.bat` (or `.sh`) as well.

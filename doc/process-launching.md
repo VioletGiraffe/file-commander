@@ -27,8 +27,9 @@ expansion; `CUserProgramsDialog` edits them.
 - The position in the list is the hotkey: the first 12 entries get Ctrl+Shift+F1 to F12.
 - Placeholders expand in one pass, each value quoted by `shellQuotedPath`. A placeholder without a value, such as
   `{file}` with the cursor on `..`, stops the launch.
-- On Windows the expanded line must fit cmd's 8191-character limit, `CShellCommand::maxCommandLength`. The check also
-  applies to a line launched directly, which bypasses cmd and could take more.
+- On Windows the expanded line must fit cmd's 8191-character limit, `CShellCommand::maxCommandLength`. The limit covers
+  cmd's whole command line: its own path, `/s /c` and the `pushd` included. The check also applies to a line launched
+  directly, which bypasses cmd and could take more.
 
 A program runs in a window of its own, never in an output pane: a console program gets a real console, with cursor
 control and keyboard input. Nothing launched this way is tracked: no Stop button, no exit prompt, and it outlives the app.

@@ -27,7 +27,7 @@ public:
 	CShellCommand(const CShellCommand&) = delete;
 	CShellCommand& operator=(const CShellCommand&) = delete;
 
-	// The longest `command` the shell runs in `workingDir`
+	// The longest `command` sure to fit the shell's limit in `workingDir`
 	[[nodiscard]] static qsizetype maxCommandLength(const QString& workingDir);
 
 #ifdef _WIN32

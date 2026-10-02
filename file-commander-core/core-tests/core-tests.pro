@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
 
-SUBDIRS = fileoperations filesystemobject filesystemobject-high-level filecomparator panel filesearchengine userprograms filesystemhelpers
+SUBDIRS = fileoperations filesystemobject filesystemobject-high-level filecomparator panel filesearchengine userprograms filesystemhelpers shell
 SUBDIRS += qtutils cpputils cpp-template-utils catch2-runner test-utils thin_io
 
 # The automated GUI-component tests live with the UI sources but build and run with the test suite.
@@ -38,5 +38,6 @@ panel.depends = cpputils test-utils thin_io catch2-runner
 filesearchengine.depends = cpputils test-utils thin_io catch2-runner
 userprograms.depends = qtutils thin_io catch2-runner
 filesystemhelpers.depends = qtutils thin_io catch2-runner
+shell.depends = qtutils thin_io catch2-runner
 listing-benchmark.depends = qtutils thin_io
 filelist-hashmap-benchmark.depends = qtutils thin_io

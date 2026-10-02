@@ -57,8 +57,9 @@ std::expected<void, QString> CShellCommand::startInOwnConsole(const QString& com
 qsizetype CShellCommand::maxCommandLength([[maybe_unused]] const QString& workingDir)
 {
 #ifdef _WIN32
+	// The limit covers cmd's whole command line. MAX_PATH is reserved for cmd's own path: ShellExecuteExW writes it out in full.
 	static constexpr qsizetype cmdLineLimit = 8191;
-	return cmdLineLimit - cmdLine(workingDir, {}).size();
+	return cmdLineLimit - MAX_PATH - cmdArguments(workingDir, {}, false).size();
 #else
 	// Not limited here: an over-long command fails to start, and start() reports the reason
 	return std::numeric_limits<qsizetype>::max();
