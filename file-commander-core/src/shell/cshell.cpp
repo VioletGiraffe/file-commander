@@ -415,11 +415,15 @@ std::expected<void, QString> OsShell::openTerminal(QString folder, const bool ad
 
 #ifndef _WIN32
 // A script in the temp folder that deletes itself, then runs `commandLine` in `workingDir`. Returns its path.
-static std::expected<QString, QString> createLauncherScript(const QString& commandLine, const QString& workingDir)
+// `keepOpen`: the script ends in the user's shell.
+static std::expected<QString, QString> createLauncherScript(const QString& commandLine, const QString& workingDir, const bool keepOpen)
 {
 	// .command: the extension macOS terminals run
 	QTemporaryFile script{ QDir::tempPath() % QStringLiteral("/file-commander-XXXXXX.command") };
-	const QString text = QStringLiteral("#!/bin/sh\nrm -- \"$0\"\ncd -- ") % shellQuotedPath(workingDir) % QStringLiteral(" || exit\n") % commandLine % '\n';
+	QString text = QStringLiteral("#!/bin/sh\nrm -- \"$0\"\ncd -- ") % shellQuotedPath(workingDir) % QStringLiteral(" || exit\n") % commandLine % '\n';
+	if (keepOpen)
+		text += QStringLiteral("exec \"${SHELL:-/bin/sh}\"\n");
+
 	if (!script.open() || script.write(text.toLocal8Bit()) < 0 || !script.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner))
 		return std::unexpected{ script.errorString() };
 
@@ -427,9 +431,9 @@ static std::expected<QString, QString> createLauncherScript(const QString& comma
 	return script.fileName();
 }
 
-std::expected<void, QString> OsShell::runCommandLineInTerminal(const QString& commandLine, const QString& workingDir)
+std::expected<void, QString> OsShell::runCommandLineInTerminal(const QString& commandLine, const QString& workingDir, const bool keepOpen)
 {
-	const auto script = createLauncherScript(commandLine, workingDir);
+	const auto script = createLauncherScript(commandLine, workingDir, keepOpen);
 	if (!script)
 		return std::unexpected{ script.error() };
 

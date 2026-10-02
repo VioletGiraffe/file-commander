@@ -32,8 +32,9 @@ public:
 
 #ifdef _WIN32
 	// Runs `command` through the shell in a console window of its own. Not tracked: no output, no job object.
+	// `keepOpen`: the shell stays at a prompt once the command finishes.
 	// The error is the reason, readable by the user
-	[[nodiscard]] static std::expected<void, QString> startInOwnConsole(const QString& command, const QString& workingDir);
+	[[nodiscard]] static std::expected<void, QString> startInOwnConsole(const QString& command, const QString& workingDir, bool keepOpen);
 #endif
 
 	// Decoded output in the pieces it arrives in, which need not end at a line break

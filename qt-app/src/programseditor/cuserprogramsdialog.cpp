@@ -42,7 +42,7 @@ RESTORE_COMPILER_WARNINGS
 namespace {
 
 enum Column { ProgramColumn, HotkeyColumn };
-enum Role { CommandLineRole = Qt::UserRole, WorkingDirRole, CustomWorkingDirRole, EditBeforeRunningRole, RunInTerminalRole };
+enum Role { CommandLineRole = Qt::UserRole, WorkingDirRole, CustomWorkingDirRole, EditBeforeRunningRole, RunInTerminalRole, KeepTerminalOpenRole };
 
 UserProgram programFromItem(const QTreeWidgetItem* item)
 {
@@ -53,6 +53,7 @@ UserProgram programFromItem(const QTreeWidgetItem* item)
 		.customWorkingDir = item->data(ProgramColumn, CustomWorkingDirRole).toString(),
 		.editBeforeRunning = item->data(ProgramColumn, EditBeforeRunningRole).toBool(),
 		.runInTerminal = item->data(ProgramColumn, RunInTerminalRole).toBool(),
+		.keepTerminalOpen = item->data(ProgramColumn, KeepTerminalOpenRole).toBool(),
 	};
 }
 
@@ -65,6 +66,7 @@ void storeProgramInItem(QTreeWidgetItem* item, const UserProgram& program)
 	item->setData(ProgramColumn, CustomWorkingDirRole, program.customWorkingDir);
 	item->setData(ProgramColumn, EditBeforeRunningRole, program.editBeforeRunning);
 	item->setData(ProgramColumn, RunInTerminalRole, program.runInTerminal);
+	item->setData(ProgramColumn, KeepTerminalOpenRole, program.keepTerminalOpen);
 }
 
 QString newProgramName()
@@ -323,6 +325,10 @@ QWidget* CUserProgramsDialog::createDetailsPane()
 	_runInTerminal->setToolTip(tr("For a program without a window of its own"));
 	connect(_runInTerminal, &QCheckBox::toggled, this, &CUserProgramsDialog::storeDetails);
 
+	_keepTerminalOpen = new QCheckBox{ tr("&Keep the terminal open when the program exits") };
+	_keepTerminalOpen->setToolTip(tr("A shell prompt stays in the window"));
+	connect(_keepTerminalOpen, &QCheckBox::toggled, this, &CUserProgramsDialog::storeDetails);
+
 	_hotkey = new QLabel;
 
 	_btnTestRun = new QPushButton{ tr("&Test run") };
@@ -353,6 +359,7 @@ QWidget* CUserProgramsDialog::createDetailsPane()
 #ifdef _WIN32
 	layout->setRowVisible(_runInTerminal, false); // Windows detects a console program
 #endif
+	layout->addRow(QString{}, _keepTerminalOpen);
 	layout->addRow(tr("Hotkey:"), _hotkey);
 	layout->addRow(QString{}, testRunLayout);
 	return _details;
@@ -415,6 +422,7 @@ void CUserProgramsDialog::showDetails(QTreeWidgetItem* item)
 	_customWorkingDir->setText(program.customWorkingDir);
 	_editBeforeRunning->setChecked(program.editBeforeRunning);
 	_runInTerminal->setChecked(program.runInTerminal);
+	_keepTerminalOpen->setChecked(program.keepTerminalOpen);
 	_showingDetails = false;
 
 	_details->setEnabled(item != nullptr);
@@ -431,6 +439,7 @@ UserProgram CUserProgramsDialog::programInDetails() const
 		.customWorkingDir = _customWorkingDir->text(),
 		.editBeforeRunning = _editBeforeRunning->isChecked(),
 		.runInTerminal = _runInTerminal->isChecked(),
+		.keepTerminalOpen = _keepTerminalOpen->isChecked(),
 	};
 }
 
@@ -517,6 +526,9 @@ void CUserProgramsDialog::updateEnabledState()
 	const bool customWorkingDir = _workingDir->currentData().toInt() == static_cast<int>(UserProgram::WorkingDir::Custom);
 	_customWorkingDir->setEnabled(customWorkingDir);
 	_btnBrowseWorkingDir->setEnabled(customWorkingDir);
+#ifndef _WIN32
+	_keepTerminalOpen->setEnabled(_runInTerminal->isChecked());
+#endif
 }
 
 void CUserProgramsDialog::browseForProgram()

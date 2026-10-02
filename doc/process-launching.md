@@ -38,12 +38,15 @@ Windows:
 - A line without shell syntax whose program resolves launches directly, GUI or not: `ShellExecuteExW` gives a console
   program a new console, and opens a shortcut or a document through its association.
 - Any other line, and a batch file, runs through `cmd /c` in a visible console that closes when the line finishes.
+- "Keep the terminal open" makes that `cmd /k`, and sends everything but a GUI program through it: a console program
+  launched directly closes its console on exit. A shortcut or a document then leaves a console window behind.
 
 Linux and macOS, where nothing marks a program as GUI, so each program has a "Run in a terminal" setting:
 
 - Set: the line goes into a script in the temp folder, which the terminal of "Open terminal" runs: after `-e` on
   Linux, except for the terminals `startTerminal` lists, and through `open -a` on macOS. A single path survives every
   terminal's way of parsing a command. The script deletes itself, then changes to the working folder: not every terminal passes its own on.
+  "Keep the terminal open" ends the script in the user's `$SHELL`.
 - Not set: `sh -c`, detached. sh's own errors, such as a program not found, go unreported.
 
 ## Command line
@@ -143,7 +146,6 @@ Exit is blocked while any command runs:
 - A graceful Ctrl+C: deferred for its complexity, and untested on Linux and macOS; see below.
 - A pseudoconsole (ConPTY): line buffering, colour, interactive prompts and Ctrl+C, at the cost of a terminal emulator.
 - Dismissing the exit prompt when the last command finishes while it is open; an "Exit when finished" option.
-- Programs menu: keeping the console open after the program exits.
 
 ### Graceful Ctrl+C: tested findings
 

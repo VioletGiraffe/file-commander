@@ -27,8 +27,8 @@ namespace OsShell
 
 #ifndef _WIN32
 	// Both run `commandLine` through sh in `workingDir`, untracked. The error is the reason for the failure, never empty.
-	// In a new window of terminalCommand
-	[[nodiscard]] std::expected<void, QString> runCommandLineInTerminal(const QString& commandLine, const QString& workingDir);
+	// In a new window of terminalCommand. `keepOpen`: the user's shell takes over once the line finishes.
+	[[nodiscard]] std::expected<void, QString> runCommandLineInTerminal(const QString& commandLine, const QString& workingDir, bool keepOpen);
 	// Without a window: sh's own errors, such as a program not found, are not reported
 	[[nodiscard]] std::expected<void, QString> runCommandLineDetached(const QString& commandLine, const QString& workingDir);
 #endif

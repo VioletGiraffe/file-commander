@@ -110,6 +110,7 @@ std::vector<UserProgram> loadUserPrograms()
 		program.customWorkingDir = settings.value(QStringLiteral("customWorkingDir")).toString();
 		program.editBeforeRunning = settings.value(QStringLiteral("editBeforeRunning")).toBool();
 		program.runInTerminal = settings.value(QStringLiteral("runInTerminal")).toBool();
+		program.keepTerminalOpen = settings.value(QStringLiteral("keepTerminalOpen")).toBool();
 
 		const QString workingDir = settings.value(QStringLiteral("workingDir")).toString();
 		const auto* match = std::find_if(std::begin(workingDirSettingValues), std::end(workingDirSettingValues), [&](const WorkingDirSettingValue& entry) { return entry.value == workingDir; });
@@ -135,6 +136,7 @@ void saveUserPrograms(const std::vector<UserProgram>& programs)
 		settings.setValue(QStringLiteral("customWorkingDir"), program.customWorkingDir);
 		settings.setValue(QStringLiteral("editBeforeRunning"), program.editBeforeRunning);
 		settings.setValue(QStringLiteral("runInTerminal"), program.runInTerminal);
+		settings.setValue(QStringLiteral("keepTerminalOpen"), program.keepTerminalOpen);
 
 		const auto* match = std::find_if(std::begin(workingDirSettingValues), std::end(workingDirSettingValues), [&](const WorkingDirSettingValue& entry) { return entry.workingDir == program.workingDir; });
 		assert_r(match != std::end(workingDirSettingValues));

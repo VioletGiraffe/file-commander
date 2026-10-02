@@ -39,16 +39,17 @@ static QString cmdLine(const QString& workingDir, const QString& command)
 }
 
 // /s: cmd strips only the outermost quotes and takes the rest verbatim, so the working dir can be quoted.
-static QString cmdArguments(const QString& workingDir, const QString& command)
+// /k instead of /c: cmd stays at a prompt once the command finishes.
+static QString cmdArguments(const QString& workingDir, const QString& command, const bool keepOpen)
 {
-	return QStringLiteral("/s /c \"") % cmdLine(workingDir, command) % '\"';
+	return (keepOpen ? QStringLiteral("/s /k \"") : QStringLiteral("/s /c \"")) % cmdLine(workingDir, command) % '\"';
 }
 
-std::expected<void, QString> CShellCommand::startInOwnConsole(const QString& command, const QString& workingDir)
+std::expected<void, QString> CShellCommand::startInOwnConsole(const QString& command, const QString& workingDir, const bool keepOpen)
 {
 	// ShellExecuteExW gives a console program a new console.
 	// No working dir for cmd itself: pushd applies it.
-	return OsShell::runExecutable(QStringLiteral("cmd.exe"), cmdArguments(workingDir, command), {});
+	return OsShell::runExecutable(QStringLiteral("cmd.exe"), cmdArguments(workingDir, command, keepOpen), {});
 }
 #endif
 
@@ -133,7 +134,7 @@ std::expected<void, QString> CShellCommand::start()
 	EXEC_ON_SCOPE_EXIT([this] { _process.setCreateProcessArgumentsModifier({}); }); // The modifier captures locals
 
 	_process.setProgram(QStringLiteral("cmd.exe"));
-	_process.setNativeArguments(cmdArguments(_workingDir, _command));
+	_process.setNativeArguments(cmdArguments(_workingDir, _command, false));
 #else
 	_process.setProgram(QStringLiteral("/bin/sh"));
 	_process.setArguments({ QStringLiteral("-c"), _command });

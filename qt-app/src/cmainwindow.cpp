@@ -985,12 +985,14 @@ void CMainWindow::runUserProgram(const UserProgram& program)
 	}
 
 #ifdef _WIN32
-	if (const auto invocation = OsShell::directInvocation(*commandLine, workingDir))
+	// A console program launched directly closes its console on exit: keeping it open takes the shell
+	const auto invocation = program.keepTerminalOpen ? OsShell::guiProgramInvocation(*commandLine, workingDir) : OsShell::directInvocation(*commandLine, workingDir);
+	if (invocation)
 		launchProgram(this, *invocation);
-	else if (const auto started = CShellCommand::startInOwnConsole(*commandLine, workingDir); !started)
+	else if (const auto started = CShellCommand::startInOwnConsole(*commandLine, workingDir, program.keepTerminalOpen); !started)
 		showLaunchError(this, errorTitle, started.error());
 #else
-	const auto started = program.runInTerminal ? OsShell::runCommandLineInTerminal(*commandLine, workingDir) : OsShell::runCommandLineDetached(*commandLine, workingDir);
+	const auto started = program.runInTerminal ? OsShell::runCommandLineInTerminal(*commandLine, workingDir, program.keepTerminalOpen) : OsShell::runCommandLineDetached(*commandLine, workingDir);
 	if (!started)
 		showLaunchError(this, errorTitle, started.error());
 #endif
