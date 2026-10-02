@@ -37,7 +37,7 @@ public:
 	[[nodiscard]] static std::expected<void, QString> startInOwnConsole(const QString& command, const QString& workingDir, bool keepOpen);
 #endif
 
-	// Decoded output in the pieces it arrives in, which need not end at a line break
+	// Decoded output without terminal escape sequences, in the pieces it arrives in, which need not end at a line break
 	std::function<void(const QString& text)> onOutput;
 	// Once, after the shell exits. Never called when start() fails.
 	std::function<void(int exitCode, bool normalExit)> onFinished;
@@ -58,6 +58,8 @@ private:
 #ifdef _WIN32
 	[[nodiscard]] QString decodedFromOemCodePage(const QByteArray& bytes);
 #endif
+	// A sequence may continue in the next call
+	[[nodiscard]] QString withoutEscapeSequences(const QString& text);
 
 	const QString _command;
 	const QString _workingDir;
@@ -65,6 +67,9 @@ private:
 
 	QStringDecoder _utf8Decoder{ QStringDecoder::Utf8 };
 	bool _legacyEncoding = false; // Set by the first invalid UTF-8 sequence, for the rest of the output
+
+	enum class EscapeState { None, Escape, Csi, Intermediate, String };
+	EscapeState _escapeState = EscapeState::None; // The part of an escape sequence the output so far ends in
 #ifdef _WIN32
 	QByteArray _pendingOemLeadByte; // A double-byte character's lead byte that ended the previous chunk
 	void* _job = nullptr; // HANDLE, null until start()

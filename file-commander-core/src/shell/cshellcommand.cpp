@@ -10,6 +10,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QStringBuilder>
+#include <QStringView>
 RESTORE_COMPILER_WARNINGS
 
 #include <utility>
@@ -193,9 +194,65 @@ const QString& CShellCommand::command() const
 
 void CShellCommand::forwardOutput()
 {
-	const QString text = decodedOutput(_process.readAllStandardOutput());
+	const QString text = withoutEscapeSequences(decodedOutput(_process.readAllStandardOutput()));
 	if (onOutput && !text.isEmpty())
 		onOutput(text);
+}
+
+QString CShellCommand::withoutEscapeSequences(const QString& text)
+{
+	static constexpr char16_t escape = 0x1B;
+	static constexpr char16_t bell = 0x07;
+
+	QString plainText;
+	plainText.reserve(text.size());
+	for (const QChar character : text)
+	{
+		const char16_t c = character.unicode();
+		switch (_escapeState)
+		{
+		case EscapeState::None:
+			if (c == escape)
+				_escapeState = EscapeState::Escape;
+			else
+				plainText += character;
+			break;
+		case EscapeState::Escape:
+			if (c == u'[')
+				_escapeState = EscapeState::Csi;
+			else if (QStringView{ u"]P_^X" }.contains(character)) // OSC, DCS, APC, PM, SOS
+				_escapeState = EscapeState::String;
+			else if (c >= 0x20 && c <= 0x2F)
+				_escapeState = EscapeState::Intermediate;
+			else
+				_escapeState = EscapeState::None; // A two-character sequence
+			break;
+		case EscapeState::Csi:
+			// Ends with the first character past its parameters and intermediates
+			if (c < 0x20 || c > 0x3F)
+				_escapeState = EscapeState::None;
+			break;
+		case EscapeState::Intermediate:
+			if (c < 0x20 || c > 0x2F)
+				_escapeState = EscapeState::None;
+			break;
+		case EscapeState::String:
+			// Ends with BEL or ESC \, which the Escape state consumes.
+			// A line break ends it too: an introducer in binary output would hide everything after it.
+			if (c == escape)
+				_escapeState = EscapeState::Escape;
+			else if (c == bell)
+				_escapeState = EscapeState::None;
+			else if (c == u'\n')
+			{
+				_escapeState = EscapeState::None;
+				plainText += character;
+			}
+			break;
+		}
+	}
+
+	return plainText;
 }
 
 // UTF-8 until the first invalid sequence, then the shell's legacy encoding for the rest of the output

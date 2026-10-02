@@ -100,6 +100,9 @@ Rejected for Windows:
 
 The switch is one-way: a UTF-8 tool that follows legacy output within one command line shows garbled.
 
+Terminal escape sequences are removed from the output: the pane shows plain text and cannot honour cursor movement.
+Colours are not rendered either: most programs emit none into a pipe.
+
 ## Output panes
 
 `CCommandOutputArea` sits below the panels and holds one `CCommandOutputPane` per running command, side by side.
