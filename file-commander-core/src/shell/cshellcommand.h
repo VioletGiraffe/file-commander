@@ -30,6 +30,12 @@ public:
 	// The longest `command` the shell runs in `workingDir`
 	[[nodiscard]] static qsizetype maxCommandLength(const QString& workingDir);
 
+#ifdef _WIN32
+	// Runs `command` through the shell in a console window of its own. Not tracked: no output, no job object.
+	// The error is the reason, readable by the user
+	[[nodiscard]] static std::expected<void, QString> startInOwnConsole(const QString& command, const QString& workingDir);
+#endif
+
 	// Decoded output in the pieces it arrives in, which need not end at a line break
 	std::function<void(const QString& text)> onOutput;
 	// Once, after the shell exits. Never called when start() fails.

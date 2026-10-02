@@ -1,5 +1,8 @@
 #include "cshellcommand.h"
 
+#include "cshell.h"
+
+
 // Submodule includes
 #include "assert/advanced_assert.h"
 
@@ -33,6 +36,19 @@ RESTORE_COMPILER_WARNINGS
 static QString cmdLine(const QString& workingDir, const QString& command)
 {
 	return QStringLiteral("pushd \"") % workingDir % QStringLiteral("\" && ") % command;
+}
+
+// /s: cmd strips only the outermost quotes and takes the rest verbatim, so the working dir can be quoted.
+static QString cmdArguments(const QString& workingDir, const QString& command)
+{
+	return QStringLiteral("/s /c \"") % cmdLine(workingDir, command) % '\"';
+}
+
+std::expected<void, QString> CShellCommand::startInOwnConsole(const QString& command, const QString& workingDir)
+{
+	// ShellExecuteExW gives a console program a new console.
+	// No working dir for cmd itself: pushd applies it.
+	return OsShell::runExecutable(QStringLiteral("cmd.exe"), cmdArguments(workingDir, command), {});
 }
 #endif
 
@@ -116,9 +132,8 @@ std::expected<void, QString> CShellCommand::start()
 	});
 	EXEC_ON_SCOPE_EXIT([this] { _process.setCreateProcessArgumentsModifier({}); }); // The modifier captures locals
 
-	// /s: cmd strips only the outermost quotes and takes the rest verbatim, so the working dir can be quoted.
 	_process.setProgram(QStringLiteral("cmd.exe"));
-	_process.setNativeArguments(QStringLiteral("/s /c \"") % cmdLine(_workingDir, _command) % '\"');
+	_process.setNativeArguments(cmdArguments(_workingDir, _command));
 #else
 	_process.setProgram(QStringLiteral("/bin/sh"));
 	_process.setArguments({ QStringLiteral("-c"), _command });

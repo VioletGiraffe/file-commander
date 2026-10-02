@@ -48,16 +48,17 @@ namespace OsShell
 		QString workingDir; // Empty: the app's current directory
 	};
 
-	enum class GuiProgramCheckError
-	{
-		ExecutableTypeUnknown, // SHGetFileInfo reports nothing: a non-executable file, or the query failed
-		UnsupportedPlatform    // Nothing marks a program as GUI
-	};
-
 	// The program and arguments when `commandLine` is only a GUI program and its arguments, so it can launch without the shell.
 	// Empty when the line needs the shell or names no GUI program.
+	// Always empty off Windows: nothing marks a program as GUI.
 	// A bare cmd, without arguments, also qualifies: it gets its own console window.
-	[[nodiscard]] std::expected<std::optional<ProgramInvocation>, GuiProgramCheckError> guiProgramInvocation(const QString& commandLine, const QString& workingDir);
+	[[nodiscard]] std::optional<ProgramInvocation> guiProgramInvocation(const QString& commandLine, const QString& workingDir);
+
+#ifdef _WIN32
+	// guiProgramInvocation extended to any file the shell finds: a console program, a shortcut, a document.
+	// Empty for a batch file: cmd runs it.
+	[[nodiscard]] std::optional<ProgramInvocation> directInvocation(const QString& commandLine, const QString& workingDir);
+#endif
 
 	// The executable `commandLine` starts, found where the shell looks for it. Empty when not found, and for a shell built-in.
 	// An empty `workingDir` stands for the app's current directory.

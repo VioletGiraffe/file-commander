@@ -111,6 +111,12 @@ static void showLaunchError(QWidget* parent, const QString& message, const QStri
 	box.exec();
 }
 
+static void launchProgram(QWidget* parent, const OsShell::ProgramInvocation& program)
+{
+	if (const auto launched = OsShell::runExecutable(program.programPath, program.arguments, program.workingDir); !launched)
+		showLaunchError(parent, CMainWindow::tr("Failed to launch %1").arg(toNativeSeparators(program.programPath)), launched.error());
+}
+
 CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, CShellOperationRunner& shellOperations, QWidget *parent) noexcept :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
@@ -878,11 +884,8 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 void CMainWindow::runCommandLine(const QString& commandLine, const QString& workingDir)
 {
 	// A GUI program run through the shell would hold a pane open for its whole life; a failed check falls back to the shell
-	if (const auto guiProgram = OsShell::guiProgramInvocation(commandLine, workingDir).value_or(std::nullopt))
-	{
-		if (const auto launched = OsShell::runExecutable(guiProgram->programPath, guiProgram->arguments, guiProgram->workingDir); !launched)
-			showLaunchError(this, tr("Failed to launch %1").arg(toNativeSeparators(guiProgram->programPath)), launched.error());
-	}
+	if (const auto guiProgram = OsShell::guiProgramInvocation(commandLine, workingDir))
+		launchProgram(this, *guiProgram);
 	else
 		ui->commandOutputArea->run(commandLine, workingDir);
 }
@@ -981,7 +984,14 @@ void CMainWindow::runUserProgram(const UserProgram& program)
 		return;
 	}
 
+#ifdef _WIN32
+	if (const auto invocation = OsShell::directInvocation(*commandLine, workingDir))
+		launchProgram(this, *invocation);
+	else if (const auto started = CShellCommand::startInOwnConsole(*commandLine, workingDir); !started)
+		showLaunchError(this, errorTitle, started.error());
+#else
 	runCommandLine(*commandLine, workingDir);
+#endif
 }
 
 PlaceholderValues CMainWindow::placeholderValues() const

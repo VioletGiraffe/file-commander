@@ -140,7 +140,8 @@ QString OsShell::commandLineProgramPath(const QString& commandLine, const QStrin
 	return leading ? resolvedProgramPath(leading->program, workingDir) : QString{};
 }
 
-std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramCheckError> OsShell::guiProgramInvocation(const QString& commandLine, const QString& workingDir)
+// The invocation of a line that launches without cmd: no shell syntax, and a program found in cmd's search order
+static std::optional<OsShell::ProgramInvocation> invocationWithoutShell(const QString& commandLine, const QString& workingDir, const bool guiProgramsOnly)
 {
 	// Variable expansion, redirection, pipes, chaining and grouping all need cmd; % expands even inside quotes
 	bool inQuotes = false;
@@ -168,19 +169,33 @@ std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramChec
 	{
 		// cmd does not support a UNC current directory: pushd maps a temporary drive letter for it
 		if (const QString nativeWorkingDir = toNativeSeparators(workingDir); nativeWorkingDir.startsWith(QStringLiteral("\\\\")))
-			return ProgramInvocation{ .programPath = std::move(programPath), .arguments = QStringLiteral("/k pushd \"") % nativeWorkingDir % '"', .workingDir = {} };
+			return OsShell::ProgramInvocation{ .programPath = std::move(programPath), .arguments = QStringLiteral("/k pushd \"") % nativeWorkingDir % '"', .workingDir = {} };
 
-		return ProgramInvocation{ .programPath = std::move(programPath), .arguments = {}, .workingDir = workingDir };
+		return OsShell::ProgramInvocation{ .programPath = std::move(programPath), .arguments = {}, .workingDir = workingDir };
 	}
 
-	// 0 for a non-executable file or a failed query; otherwise the high word is the Windows version a GUI program targets, 0 for a console program or batch file
-	const DWORD_PTR exeType = ::SHGetFileInfoW(reinterpret_cast<const wchar_t*>(toNativeSeparators(programPath).utf16()), 0, nullptr, 0, SHGFI_EXETYPE);
-	if (exeType == 0)
-		return std::unexpected{ GuiProgramCheckError::ExecutableTypeUnknown };
-	if (HIWORD(exeType) == 0)
+	if (guiProgramsOnly)
+	{
+		// The high word is the Windows version a GUI program targets: 0 for a console program, a batch file, a non-executable file and a failed query
+		const DWORD_PTR exeType = ::SHGetFileInfoW(reinterpret_cast<const wchar_t*>(toNativeSeparators(programPath).utf16()), 0, nullptr, 0, SHGFI_EXETYPE);
+		if (HIWORD(exeType) == 0)
+			return std::nullopt;
+	}
+	// A batch file goes through the shell: cmd runs it, and takes a UNC working dir only through pushd
+	else if (const QString extension = QFileInfo{ programPath }.suffix().toLower(); extension == QStringLiteral("bat") || extension == QStringLiteral("cmd"))
 		return std::nullopt;
 
-	return ProgramInvocation{ .programPath = std::move(programPath), .arguments = std::move(arguments), .workingDir = workingDir };
+	return OsShell::ProgramInvocation{ .programPath = std::move(programPath), .arguments = std::move(arguments), .workingDir = workingDir };
+}
+
+std::optional<OsShell::ProgramInvocation> OsShell::guiProgramInvocation(const QString& commandLine, const QString& workingDir)
+{
+	return invocationWithoutShell(commandLine, workingDir, true);
+}
+
+std::optional<OsShell::ProgramInvocation> OsShell::directInvocation(const QString& commandLine, const QString& workingDir)
+{
+	return invocationWithoutShell(commandLine, workingDir, false);
 }
 #else
 QString OsShell::commandLineProgramPath(const QString& commandLine, const QString& workingDir)
@@ -198,9 +213,9 @@ QString OsShell::commandLineProgramPath(const QString& commandLine, const QStrin
 }
 
 // sh returns at once for a program started with & or through open.
-std::expected<std::optional<OsShell::ProgramInvocation>, OsShell::GuiProgramCheckError> OsShell::guiProgramInvocation(const QString& /*commandLine*/, const QString& /*workingDir*/)
+std::optional<OsShell::ProgramInvocation> OsShell::guiProgramInvocation(const QString& /*commandLine*/, const QString& /*workingDir*/)
 {
-	return std::unexpected{ GuiProgramCheckError::UnsupportedPlatform };
+	return std::nullopt;
 }
 #endif
 

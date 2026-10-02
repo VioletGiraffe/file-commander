@@ -11,7 +11,7 @@ RESTORE_COMPILER_WARNINGS
 #include <expected>
 #include <vector>
 
-// An entry of the Programs menu: a command line run the way the command line runs it
+// An entry of the Programs menu; doc/process-launching.md covers how it launches
 struct UserProgram
 {
 	enum class WorkingDir { CurrentPanel, OtherPanel, Custom };
