@@ -20,6 +20,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 #include <QStandardPaths>
 #include <QStringBuilder>
+#include <QTemporaryFile>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -313,12 +314,13 @@ std::expected<void, QString> OsShell::runExecutable(const QString& command, cons
 }
 #endif
 
-std::expected<void, QString> OsShell::openTerminal(QString folder, [[maybe_unused]] const bool admin)
+// Opens terminalCommand in `folder`. A non-empty `script` is the program the terminal runs; never passed on Windows.
+static std::expected<void, QString> startTerminal(QString folder, [[maybe_unused]] const bool admin, [[maybe_unused]] const QString& script)
 {
 #ifdef __APPLE__
 	// open only hands the request to Launch Services: a longer wait means it hangs
 	QProcess openProcess;
-	openProcess.start(QStringLiteral("open"), { QStringLiteral("-a"), terminalCommand(), folder });
+	openProcess.start(QStringLiteral("open"), { QStringLiteral("-a"), OsShell::terminalCommand(), script.isEmpty() ? folder : script });
 	if (!openProcess.waitForFinished(5000))
 		return std::unexpected{ openProcess.errorString() };
 
@@ -330,7 +332,7 @@ std::expected<void, QString> OsShell::openTerminal(QString folder, [[maybe_unuse
 
 	return {};
 #else
-	QString commandLine = terminalCommand().trimmed();
+	QString commandLine = OsShell::terminalCommand().trimmed();
 	if (commandLine.isEmpty())
 		return std::unexpected{ QStringLiteral("No terminal found: set one in Settings → Other") };
 
@@ -367,7 +369,7 @@ std::expected<void, QString> OsShell::openTerminal(QString folder, [[maybe_unuse
 		arguments += ' ';
 	arguments += changeFolderArguments;
 
-	return runExe(leading->program, arguments, folder, admin);
+	return OsShell::runExe(leading->program, arguments, folder, admin);
 #else
 	if (admin)
 		return std::unexpected{ QStringLiteral("An administrator terminal is not supported on this platform") };
@@ -377,10 +379,53 @@ std::expected<void, QString> OsShell::openTerminal(QString folder, [[maybe_unuse
 		return std::unexpected{ QStringLiteral("Unfinished quote or escape in the terminal command: %1").arg(commandLine) };
 
 	const QString program = words->takeFirst();
+	// -e is the xterm convention; gnome-terminal deprecated it in favor of --
+	if (!script.isEmpty())
+		*words << (QFileInfo{ program }.fileName() == QStringLiteral("gnome-terminal") ? QStringLiteral("--") : QStringLiteral("-e")) << script;
+
 	return startDetached(program, std::move(*words), folder);
 #endif
 #endif
 }
+
+std::expected<void, QString> OsShell::openTerminal(QString folder, const bool admin)
+{
+	return startTerminal(std::move(folder), admin, {});
+}
+
+#ifndef _WIN32
+// A script in the temp folder that deletes itself, then runs `commandLine` in `workingDir`. Returns its path.
+static std::expected<QString, QString> createLauncherScript(const QString& commandLine, const QString& workingDir)
+{
+	// .command: the extension macOS terminals run
+	QTemporaryFile script{ QDir::tempPath() % QStringLiteral("/file-commander-XXXXXX.command") };
+	const QString text = QStringLiteral("#!/bin/sh\nrm -- \"$0\"\ncd -- ") % shellQuotedPath(workingDir) % QStringLiteral(" || exit\n") % commandLine % '\n';
+	if (!script.open() || script.write(text.toLocal8Bit()) < 0 || !script.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner))
+		return std::unexpected{ script.errorString() };
+
+	script.setAutoRemove(false);
+	return script.fileName();
+}
+
+std::expected<void, QString> OsShell::runCommandLineInTerminal(const QString& commandLine, const QString& workingDir)
+{
+	const auto script = createLauncherScript(commandLine, workingDir);
+	if (!script)
+		return std::unexpected{ script.error() };
+
+	auto started = startTerminal(workingDir, false, *script);
+	// The script deletes itself only once the terminal runs it
+	if (!started)
+		QFile::remove(*script);
+
+	return started;
+}
+
+std::expected<void, QString> OsShell::runCommandLineDetached(const QString& commandLine, const QString& workingDir)
+{
+	return startDetached(QStringLiteral("/bin/sh"), { QStringLiteral("-c"), commandLine }, workingDir);
+}
+#endif
 
 #ifdef _WIN32
 using Microsoft::WRL::ComPtr;

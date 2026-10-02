@@ -990,7 +990,9 @@ void CMainWindow::runUserProgram(const UserProgram& program)
 	else if (const auto started = CShellCommand::startInOwnConsole(*commandLine, workingDir); !started)
 		showLaunchError(this, errorTitle, started.error());
 #else
-	runCommandLine(*commandLine, workingDir);
+	const auto started = program.runInTerminal ? OsShell::runCommandLineInTerminal(*commandLine, workingDir) : OsShell::runCommandLineDetached(*commandLine, workingDir);
+	if (!started)
+		showLaunchError(this, errorTitle, started.error());
 #endif
 }
 

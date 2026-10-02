@@ -102,7 +102,7 @@ TEST_CASE("A placeholder without a value fails the expansion", "[userprograms]")
 
 TEST_CASE("The working folder follows the program's setting", "[userprograms]")
 {
-	UserProgram program{ .name = {}, .commandLine = QStringLiteral("x"), .workingDir = UserProgram::WorkingDir::CurrentPanel, .customWorkingDir = QStringLiteral("/custom"), .editBeforeRunning = false };
+	UserProgram program{ .name = {}, .commandLine = QStringLiteral("x"), .workingDir = UserProgram::WorkingDir::CurrentPanel, .customWorkingDir = QStringLiteral("/custom"), .editBeforeRunning = false, .runInTerminal = false };
 	CHECK(workingDirFor(program, panelState()) == toNativeSeparators(QStringLiteral("/work/")));
 
 	program.workingDir = UserProgram::WorkingDir::OtherPanel;
@@ -115,9 +115,9 @@ TEST_CASE("The working folder follows the program's setting", "[userprograms]")
 TEST_CASE("Programs survive a save and load", "[userprograms]")
 {
 	const std::vector<UserProgram> programs{
-		{ .name = QStringLiteral("Diff"), .commandLine = QStringLiteral("diff {file} {otherfile}"), .workingDir = UserProgram::WorkingDir::OtherPanel, .customWorkingDir = {}, .editBeforeRunning = true },
-		{ .name = QStringLiteral("Build"), .commandLine = QStringLiteral("make"), .workingDir = UserProgram::WorkingDir::Custom, .customWorkingDir = QStringLiteral("/src"), .editBeforeRunning = false },
-		{ .name = QStringLiteral("Notes"), .commandLine = QStringLiteral("notepad"), .workingDir = UserProgram::WorkingDir::CurrentPanel, .customWorkingDir = {}, .editBeforeRunning = false },
+		{ .name = QStringLiteral("Diff"), .commandLine = QStringLiteral("diff {file} {otherfile}"), .workingDir = UserProgram::WorkingDir::OtherPanel, .customWorkingDir = {}, .editBeforeRunning = true, .runInTerminal = false },
+		{ .name = QStringLiteral("Build"), .commandLine = QStringLiteral("make"), .workingDir = UserProgram::WorkingDir::Custom, .customWorkingDir = QStringLiteral("/src"), .editBeforeRunning = false, .runInTerminal = true },
+		{ .name = QStringLiteral("Notes"), .commandLine = QStringLiteral("notepad"), .workingDir = UserProgram::WorkingDir::CurrentPanel, .customWorkingDir = {}, .editBeforeRunning = false, .runInTerminal = false },
 	};
 
 	saveUserPrograms(programs);

@@ -25,6 +25,14 @@ namespace OsShell
 	// The error is the reason for the failure, never empty.
 	[[nodiscard]] std::expected<void, QString> openTerminal(QString folder, bool admin);
 
+#ifndef _WIN32
+	// Both run `commandLine` through sh in `workingDir`, untracked. The error is the reason for the failure, never empty.
+	// In a new window of terminalCommand
+	[[nodiscard]] std::expected<void, QString> runCommandLineInTerminal(const QString& commandLine, const QString& workingDir);
+	// Without a window: sh's own errors, such as a program not found, are not reported
+	[[nodiscard]] std::expected<void, QString> runCommandLineDetached(const QString& commandLine, const QString& workingDir);
+#endif
+
 	// Pos must be global
 	bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow);
 

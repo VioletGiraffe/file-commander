@@ -21,6 +21,7 @@ struct UserProgram
 	WorkingDir workingDir = WorkingDir::CurrentPanel;
 	QString customWorkingDir; // Only used with WorkingDir::Custom
 	bool editBeforeRunning = false;
+	bool runInTerminal = false; // Only used on Linux and macOS
 
 	bool operator==(const UserProgram&) const = default;
 };

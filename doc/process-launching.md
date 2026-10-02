@@ -12,7 +12,7 @@ happens to running commands when the app exits.
 | Edit (F4) | `CMainWindow::editFile` | `QProcess::startDetached` with the configured editor; `open -a` on macOS |
 | Open terminal | `OsShell::openTerminal` | `OsShell::terminalCommand`: the configured terminal, else a detected one; elevated through `OsShell::runExe` on Windows; `open -a` on macOS |
 | Command line | `CMainWindow::executeCommand` | `OsShell::runExecutable` for a GUI program (`OsShell::guiProgramInvocation`), else `CCommandOutputArea::run` |
-| Programs menu | `CMainWindow::runUserProgram` | Placeholders expanded. Windows: `OsShell::runExecutable` for a line `OsShell::directInvocation` accepts, else `CShellCommand::startInOwnConsole`. Elsewhere: the command line's path through `CMainWindow::runCommandLine` |
+| Programs menu | `CMainWindow::runUserProgram` | Placeholders expanded. Windows: `OsShell::runExecutable` for a line `OsShell::directInvocation` accepts, else `CShellCommand::startInOwnConsole`. Elsewhere: `OsShell::runCommandLineInTerminal` or `OsShell::runCommandLineDetached` |
 
 Paths embedded in a shell command line go through `shellQuotedPath`: it quotes only where cmd or sh would misread the
 path, so the same call serves the clipboard. A `%VAR%` in a path still expands under cmd, even quoted. The terminal
@@ -30,15 +30,21 @@ expansion; `CUserProgramsDialog` edits them.
 - On Windows the expanded line must fit cmd's 8191-character limit, `CShellCommand::maxCommandLength`. The check also
   applies to a line launched directly, which bypasses cmd and could take more.
 
-On Windows a program runs in a window of its own, never in an output pane: a console program gets a real console, with
-cursor control and keyboard input.
+A program runs in a window of its own, never in an output pane: a console program gets a real console, with cursor
+control and keyboard input. Nothing launched this way is tracked: no Stop button, no exit prompt, and it outlives the app.
+
+Windows:
 
 - A line without shell syntax whose program resolves launches directly, GUI or not: `ShellExecuteExW` gives a console
   program a new console, and opens a shortcut or a document through its association.
 - Any other line, and a batch file, runs through `cmd /c` in a visible console that closes when the line finishes.
-- Nothing launched this way is tracked: no Stop button, no exit prompt, and it outlives the app.
 
-Linux and macOS run the line as the command line does.
+Linux and macOS, where nothing marks a program as GUI, so each program has a "Run in a terminal" setting:
+
+- Set: the line goes into a script in the temp folder, which the terminal of "Open terminal" runs: after `-e` on
+  Linux (`--` for gnome-terminal), through `open -a` on macOS. A single path survives every terminal's way of parsing a
+  command. The script deletes itself, then changes to the working folder: not every terminal passes its own on.
+- Not set: `sh -c`, detached. sh's own errors, such as a program not found, go unreported.
 
 ## Command line
 
@@ -137,7 +143,7 @@ Exit is blocked while any command runs:
 - A graceful Ctrl+C: deferred for its complexity, and untested on Linux and macOS; see below.
 - A pseudoconsole (ConPTY): line buffering, colour, interactive prompts and Ctrl+C, at the cost of a terminal emulator.
 - Dismissing the exit prompt when the last command finishes while it is open; an "Exit when finished" option.
-- Programs menu: a terminal window on Linux and macOS; keeping the console open after the program exits.
+- Programs menu: keeping the console open after the program exits.
 
 ### Graceful Ctrl+C: tested findings
 

@@ -84,6 +84,7 @@ private:
 	QLineEdit* _customWorkingDir = nullptr;
 	QToolButton* _btnBrowseWorkingDir = nullptr;
 	QCheckBox* _editBeforeRunning = nullptr;
+	QCheckBox* _runInTerminal = nullptr;
 	QLabel* _hotkey = nullptr;
 	QPushButton* _btnTestRun = nullptr;
 };
