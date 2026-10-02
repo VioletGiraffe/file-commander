@@ -60,6 +60,9 @@ QString OsShell::defaultTerminalCommand()
 		{ "x-terminal-emulator", nullptr }, // The system's choice on Debian and its derivatives
 		{ "konsole", nullptr }, // KDE
 		{ "gnome-terminal", nullptr }, // Gnome
+		// Without --new-window, ptyxis only raises its existing window
+		{ "ptyxis", "--new-window --working-directory={dir}" }, // Gnome
+		{ "kgx", "--working-directory={dir}" }, // Gnome Console
 		{ "io.elementary.terminal", nullptr }, // Pantheon (Elementary OS)
 		{ "pantheon-terminal", nullptr }, // io.elementary.terminal's former name
 		{ "xfce4-terminal", nullptr }, // Xfce
@@ -392,10 +395,10 @@ static std::expected<void, QString> startTerminal(QString folder, [[maybe_unused
 	if (!script.isEmpty())
 	{
 		// -e is the xterm convention, and what Debian requires of x-terminal-emulator
-		// gnome-terminal deprecated -e in favor of --
+		// gnome-terminal deprecated -e in favor of --, and ptyxis has no -e
 		// kitty takes the program right after its own options
 		const QString terminal = QFileInfo{ program }.fileName();
-		if (terminal == QStringLiteral("gnome-terminal"))
+		if (terminal == QStringLiteral("gnome-terminal") || terminal == QStringLiteral("ptyxis"))
 			*words << QStringLiteral("--");
 		else if (terminal != QStringLiteral("kitty"))
 			*words << QStringLiteral("-e");
