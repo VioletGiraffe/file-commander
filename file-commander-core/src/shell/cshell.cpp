@@ -448,8 +448,23 @@ std::expected<void, QString> OsShell::runCommandLineInTerminal(const QString& co
 	return started;
 }
 
+// True when sh, run in `workingDir`, cannot find `command`. False when the lookup itself fails: the launch reports that.
+static bool isUnknownToSh(const QString& command, const QString& workingDir)
+{
+	QProcess lookup;
+	lookup.setWorkingDirectory(workingDir);
+	lookup.start(QStringLiteral("/bin/sh"), { QStringLiteral("-c"), QStringLiteral("command -v -- \"$1\""), QStringLiteral("sh"), command });
+	return lookup.waitForFinished(5000) && lookup.exitStatus() == QProcess::NormalExit && lookup.exitCode() != 0;
+}
+
 std::expected<void, QString> OsShell::runCommandLineDetached(const QString& commandLine, const QString& workingDir)
 {
+	// sh's own error message reaches nobody once detached, so the leading word is looked up first.
+	// Only a word sh takes literally can be: shellQuotedPath leaves exactly those unchanged.
+	const QString command = commandLine.simplified().section(' ', 0, 0);
+	if (shellQuotedPath(command) == command && isUnknownToSh(command, workingDir))
+		return std::unexpected{ QStringLiteral("Command not found or not executable: %1").arg(command) };
+
 	return startDetached(QStringLiteral("/bin/sh"), { QStringLiteral("-c"), commandLine }, workingDir);
 }
 #endif

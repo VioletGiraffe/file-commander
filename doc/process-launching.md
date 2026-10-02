@@ -47,7 +47,8 @@ Linux and macOS, where nothing marks a program as GUI, so each program has a "Ru
   Linux, except for the terminals `startTerminal` lists, and through `open -a` on macOS. A single path survives every
   terminal's way of parsing a command. The script deletes itself, then changes to the working folder: not every terminal passes its own on.
   "Keep the terminal open" ends the script in the user's `$SHELL`.
-- Not set: `sh -c`, detached. sh's own errors, such as a program not found, go unreported.
+- Not set: `sh -c`, detached. sh's error messages reach nobody, so the line's leading word is looked up first with
+  `command -v`, provided sh takes it literally: no quotes, expansions or assignments. Errors past that go unreported.
 
 ## Command line
 
