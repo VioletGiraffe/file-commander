@@ -674,6 +674,8 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 	// A refresh keeps the scroll position, the cursor, the selection and an open editor; a navigation starts over
 	const bool refresh = navigationId && navigationId == tab.navigationId;
 	tab.navigationId = navigationId;
+	if (!refresh)
+		tab.cursorTargetHash = 0;
 
 	bool modelReset = true;
 	if (refresh)
@@ -685,7 +687,9 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 	else
 		_model->setRows(std::move(rows));
 
-	if (!modelReset)
+	if (const QModelIndex cursorTarget = takeListedCursorTarget(); cursorTarget.isValid())
+		ui->_list->moveCursorToItem(cursorTarget);
+	else if (!modelReset)
 	{
 		// The cursor follows its item; when the item is gone, it stays on the item's row
 		const QModelIndex currentIndex = _selectionModel->currentIndex();
@@ -718,10 +722,23 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 	}
 
 	assert_r(connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
-	currentItemChanged(_selectionModel->currentIndex(), QModelIndex());
+	recordCurrentItem(_selectionModel->currentIndex());
 	selectionChanged(QItemSelection(), QItemSelection());
 
 	return modelReset;
+}
+
+QModelIndex CPanelWidget::takeListedCursorTarget()
+{
+	qulonglong& targetHash = _tabs[(size_t)_activeTab].cursorTargetHash;
+	if (targetHash == 0)
+		return {};
+
+	const QModelIndex target = _model->indexByHash(targetHash);
+	if (target.isValid())
+		targetHash = 0;
+
+	return target;
 }
 
 void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
@@ -857,6 +874,13 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
+	// Not connected during a refill: any other cursor move overrides the target
+	_tabs[(size_t)_activeTab].cursorTargetHash = 0;
+	recordCurrentItem(current);
+}
+
+void CPanelWidget::recordCurrentItem(const QModelIndex& current)
+{
 	// An invalid index means the view has no contents to put the cursor on, not that the user moved it off every item.
 	// Recording it would erase the folder's remembered current item, including the one a pending navigation just set.
 	if (!current.isValid())
@@ -885,9 +909,10 @@ void CPanelWidget::onCurrentItemChanged(Panel p, qulonglong tabId, const QString
 	if (_controller->panel(_panelPosition).currentDirObject().fullAbsolutePath() != folder)
 		return;
 
-	const auto newCurrentIndex = _model->indexByHash(currentItemHash);
-	if(newCurrentIndex.isValid())
-		_selectionModel->setCurrentIndex(newCurrentIndex, QItemSelectionModel::Current | QItemSelectionModel::Rows);
+	// The item is often not listed yet: fillFromList() then places the cursor once it is
+	_tabs[(size_t)_activeTab].cursorTargetHash = currentItemHash;
+	if (const QModelIndex cursorTarget = takeListedCursorTarget(); cursorTarget.isValid())
+		ui->_list->moveCursorToItem(cursorTarget);
 }
 
 void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
@@ -1418,6 +1443,7 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	// right away instead of lagging behind for however long the listing takes.
 	_model->setRows({});
 	_tabs[(size_t)_activeTab].navigationId.reset();
+	_tabs[(size_t)_activeTab].cursorTargetHash = 0;
 	updateInfoLabel();
 	updateTabText(_activeTab);
 }

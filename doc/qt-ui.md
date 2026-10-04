@@ -50,6 +50,8 @@ the view state. The Qt-specific activation ordering belongs in `CPanelWidget::ac
 Within one navigation (`CPanel::navigationId()`), a refill updates the model row by row: the selection, the cursor, an
 open rename editor and the rows on screen stay put. A navigation, even to the folder in view, resets the model, as does
 a refill changing too many rows for an update to pay off; the widget then places the cursor and restores the selection.
+A cursor item the core designates (a created or renamed entry) is usually not listed yet: the tab holds it as a target
+until a refill lists it, a navigation starts, or the cursor is moved.
 
 `CFileListView` owns orthodox selection and keyboard/mouse behavior. The model holds a copy of the rows it displays,
 sorts and filters them, and depends on neither the controller nor the OS shell; delegates own painting. Drag/drop

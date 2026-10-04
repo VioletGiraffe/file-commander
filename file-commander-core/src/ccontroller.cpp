@@ -751,32 +751,23 @@ FileOperationResultCode CController::createFolder(const QString &parentFolder, c
 	if (!parentDir.exists())
 		return FileOperationResultCode::Fail;
 
-	const auto currentItemHash = currentItemHashForFolder(_activePanel, parentDir.absolutePath());
+	if (parentDir.exists(name))
+		return FileOperationResultCode::TargetAlreadyExists;
+
+	if (!parentDir.mkpath(name))
+		return FileOperationResultCode::Fail;
 
 	// Comparing with CFileSystemObject{parentFolder} instead of parentDir to avoid potential slash direction and trailing slash issues for paths coming from different APIs
 	if (CFileSystemObject{parentFolder}.fullAbsolutePath() == activePanel().currentDirObject().fullAbsolutePath())
 	{
 		const auto slashPosition = name.indexOf('/');
-		// The trailing slash is required in order for the hash to match the hash of the item once it will be created: existing folders always have a trailing hash
+		// The trailing slash is required for the hash to match the listed item's: folders always have a trailing slash
 		const QString newItemPath = parentDir.absolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
-		// This is required for the UI to know to set the cursor at the new folder.
-		// It must be done before calling mkpath, or #133 will occur due to asynchronous file list refresh between mkpath and the current item selection logic (it gets overwritten from CPanelWidget::fillFromList).
-		const auto newHash = CFileSystemObject(newItemPath).hash();
-		qInfo() << "New folder hash:" << newHash;
-		setCurrentItemHashForCurrentFolder(activePanelPosition(), newHash, false);
+		// This is required for the UI to know to set the cursor at the new folder
+		setCurrentItemHashForCurrentFolder(activePanelPosition(), CFileSystemObject(newItemPath).hash());
 	}
 
-	if (parentDir.exists(name))
-		return FileOperationResultCode::TargetAlreadyExists;
-
-	if (!parentDir.mkpath(name))
-	{
-		// Restore the previous current item in case of failure
-		setCurrentItemHashForCurrentFolder(activePanelPosition(), currentItemHash);
-		return FileOperationResultCode::Fail;
-	}
-	else
-		return FileOperationResultCode::Ok;
+	return FileOperationResultCode::Ok;
 }
 
 FileOperationResultCode CController::createFile(const QString &parentFolder, const QString &name)

@@ -119,6 +119,10 @@ private:
 	// Returns true if it reset the model
 	bool fillFromList(FileListRefreshCause operation);
 	void fillFromPanel(FileListRefreshCause operation);
+	// The active tab's cursor target once the model lists it, consuming the target; invalid until then
+	[[nodiscard]] QModelIndex takeListedCursorTarget();
+	// Stores the cursor's item in the core and signals a change of it
+	void recordCurrentItem(const QModelIndex& current);
 	void fillHistory();
 	void updateInfoLabel();
 	// The selected rows, or with none selected and onlyHighlightedItems false, the row under the cursor; never [..]
@@ -150,6 +154,7 @@ private:
 		QItemSelectionModel* selectionModel = nullptr;
 		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - the model owns the sort)
 		std::optional<uint64_t> navigationId; // CPanel::navigationId() of the listing in the model; empty while it holds none
+		qulonglong cursorTargetHash = 0; // The item the core designated for the cursor, kept until a listing has it; 0 for none
 		CFileListView::ScrollPosition scrollPosition; // Saved while the tab is in the background
 	};
 	// A tab's persisted appearance. The defaults are what a tab gets with nothing stored for it.
