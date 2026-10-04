@@ -41,7 +41,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 			updateFontInfoLabel();
 	});
 
-	ui->_cbRespectLastCursorPos->setChecked(s.value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, false).toBool());
+	ui->_cbRespectLastCursorPos->setChecked(s.value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, INTERFACE_RESPECT_LAST_CURSOR_POS_DEFAULT).toBool());
 	ui->_cbDecoratedFolderIcons->setChecked(s.value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool());
 
 	ui->_styleSheetEdit->setPlainText(s.value(KEY_INTERFACE_STYLE_SHEET).toString());

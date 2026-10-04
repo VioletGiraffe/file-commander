@@ -698,7 +698,7 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 
 		// Setting the cursor position as appropriate. Stepping up is not a special case here: setPath() has already
 		// recorded the folder we came from as the current item for the folder we arrived at.
-		if (operation != refreshCauseForwardNavigation || QSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS).toBool())
+		if (operation != refreshCauseForwardNavigation || QSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, INTERFACE_RESPECT_LAST_CURSOR_POS_DEFAULT).toBool())
 		{
 			const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, panel.currentDirPathPosix());
 			const QModelIndex itemIndexToSetCursorTo = _model->indexByHash(itemHashToSetCursorTo);
