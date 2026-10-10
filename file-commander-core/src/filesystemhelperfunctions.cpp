@@ -17,10 +17,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
-
 #include <algorithm>
 #include <cmath>
 #include <stdint.h>
@@ -64,15 +60,6 @@ QString nativeNameToQString(const thin_io::native_string& name)
 	return QString::fromStdWString(name);
 #else
 	return QFile::decodeName(QByteArray::fromRawData(name.data(), static_cast<qsizetype>(name.size())));
-#endif
-}
-
-bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept
-{
-#ifdef _WIN32
-	return attributes.is_link && IsReparseTagNameSurrogate(attributes.reparse_tag);
-#else
-	return attributes.is_link;
 #endif
 }
 

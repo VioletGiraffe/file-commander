@@ -3,8 +3,6 @@
 #include "operationtesthooks.h"
 #include "thiniobridge.h"
 
-#include "filesystemhelperfunctions.h" // isLinkEntry
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -304,7 +302,7 @@ std::expected<std::optional<EntrySnapshot>, CFileSystemError> inspectEntry(const
 		return std::unexpected(makeFileSystemError(code));
 	}
 
-	if (isLinkEntry(metadata->attributes))
+	if (metadata->attributes.is_link)
 	{
 		const auto target = thin_io::get_entry_metadata(nativeCStr(native), thin_io::link_behavior::follow);
 		if (!target)

@@ -244,21 +244,6 @@ TEST_CASE("A broken link keeps its own kind and grants nothing", "[CFileSystemOb
 #endif
 }
 
-#ifdef _WIN32
-TEST_CASE("A reparse point that is not a name surrogate is a plain entry", "[CFileSystemObject]")
-{
-	thin_io::directory_entry compressed = fileNamed("compressed.dll");
-	compressed.attributes.is_link = true;
-	compressed.attributes.reparse_tag = IO_REPARSE_TAG_WOF;
-	compressed.logical_size = 10;
-
-	const CFileSystemObject file = listed(compressed);
-	CHECK_FALSE(file.isLink());
-	CHECK(file.type() == File);
-	CHECK(file.size() == 10u);
-}
-#endif
-
 TEST_CASE("An entry that is neither a file nor a directory is of unknown type", "[CFileSystemObject]")
 {
 	const CFileSystemObject socket = listed(entryNamed("socket", statusOf(thin_io::entry_kind::other)));

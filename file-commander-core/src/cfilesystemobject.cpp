@@ -209,7 +209,7 @@ void CFileSystemObject::locateNameAndExtension()
 
 void CFileSystemObject::loadProperties(QString fullPath, const thin_io::directory_entry& entry)
 {
-	_properties.isLink = isLinkEntry(entry.attributes);
+	_properties.isLink = entry.attributes.is_link;
 	_properties.exists = true;
 
 	// The target of a live link, otherwise the entry itself: a broken link keeps its own kind and times

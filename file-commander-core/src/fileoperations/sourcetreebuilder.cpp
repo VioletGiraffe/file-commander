@@ -4,8 +4,6 @@
 #include "coperationexecutioncontext.h"
 #include "thiniobridge.h"
 
-#include "filesystemhelperfunctions.h" // isLinkEntry
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -102,7 +100,7 @@ CFileSystemError sourceTreeNodeLimitError()
 // vanished between the listing and its inspection - a race, the child is simply not part of the tree.
 std::optional<EntrySnapshot> classifyChild(BuildState& state, CEntryPath childPath, const thin_io::directory_entry& listed)
 {
-	if (isLinkEntry(listed.attributes))
+	if (listed.attributes.is_link)
 	{
 		if (state.mode == SourceTreeBuildMode::PermanentDelete)
 		{

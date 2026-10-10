@@ -26,10 +26,6 @@ RESTORE_COMPILER_WARNINGS
 // Lossy for a POSIX name that is not valid in the locale's encoding
 [[nodiscard]] QString nativeNameToQString(const thin_io::native_string& name);
 
-// True for POSIX symlinks, and on Windows only for name-surrogate reparse points (symlinks, junctions): other reparse
-// entries (OneDrive placeholders and the like) are ordinary files/directories.
-[[nodiscard]] bool isLinkEntry(const thin_io::entry_attributes& attributes) noexcept;
-
 [[nodiscard]] consteval char nativeSeparator() noexcept
 {
 #ifdef _WIN32

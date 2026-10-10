@@ -58,12 +58,12 @@ filesystem identity.
 
 Links are entries distinct from their targets:
 
-- `isLink()` uses the operation engine's `isLinkEntry()`: POSIX symlinks and Windows name-surrogate links or junctions,
+- `isLink()` is thin_io's `is_link`: POSIX symlinks and Windows name-surrogate reparse points (symlinks, junctions),
   not `.lnk` shortcuts.
 - The file/directory classification, size and times follow the target, so ownership-sensitive operations must consult
   the link flag separately.
 - Broken links still exist as listable and removable entries, classified by the link's own kind.
-- Windows reparse points without the name-surrogate bit remain ordinary entries.
+- Other Windows reparse points, such as cloud placeholders, are ordinary entries.
 
 The file-operation engine uses `CEntryPath`: an absolute `/`-separated path without a trailing separator except at
 roots. Keep conversions at the type's boundaries. The parser rejects embedded NUL and user-supplied Win32 namespace
