@@ -106,7 +106,7 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 		const auto sys_info = volumeInfoForPath(info.rootObjectInfo.fullAbsolutePath());
 		info.volumeSize = sys_info.f_bsize * sys_info.f_blocks;
 		info.freeSize = sys_info.f_bsize * sys_info.f_bavail;
-		// TODO: pathIsAccessible()?
+		// TODO: canListDirectory()?
 		info.isReady = true;
 	}
 

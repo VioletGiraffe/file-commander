@@ -151,7 +151,6 @@ private:
 		CurrentDisplayMode displayMode;
 	};
 
-	[[nodiscard]] bool pathIsAccessible(const QString& path) const;
 	[[nodiscard]] FileListUpdateRequest beginFileListUpdateLocked(CurrentDisplayMode displayMode);
 	[[nodiscard]] bool fileListUpdateIsCurrentLocked(const FileListUpdateRequest& request) const;
 	[[nodiscard]] bool fileListBelongsToCurrentViewLocked() const;

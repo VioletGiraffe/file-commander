@@ -20,6 +20,8 @@ RESTORE_COMPILER_WARNINGS
 // identity, so two empty results are never the same entry.
 [[nodiscard]] std::optional<thin_io::entry_identity> resolvedObjectId(const QString& path);
 
+// True for a directory the process may enumerate
+[[nodiscard]] bool canListDirectory(const QString& dirPath);
 // thin_io::list_directory() with listing_detail::full
 [[nodiscard]] thin_io::filesystem_result<std::vector<thin_io::directory_entry>> listDirectoryWithDetails(const QString& dirPath);
 [[nodiscard]] thin_io::filesystem_result<thin_io::directory_entry> getDirectoryEntry(const QString& path);

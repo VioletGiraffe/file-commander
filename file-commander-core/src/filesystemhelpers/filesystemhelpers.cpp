@@ -11,12 +11,9 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
-#include "windows_path_win.hpp" // thin_io
-
 #include <Windows.h>
 #else
 #include <stdlib.h>
-#include <unistd.h> // access()
 #endif
 
 // If the command exists, returns its path: either the argument as is if exists (absolute, or in the working dir),
@@ -53,41 +50,4 @@ QString FileSystemHelpers::resolvePath(const QString &command)
 	}
 
 	return {};
-}
-
-bool FileSystemHelpers::pathIsAccessible(const QString& path)
-{
-#ifdef _WIN32
-	// thin_io does the whole native preparation: separator conversion, normalization, the extended-length prefix in
-	// both its drive and \\?\UNC\ forms, and the length limit. Appending reports a failed preparation too, and a path
-	// thin_io refuses is one FindFirstFileExW could not have opened either.
-	thin_io::windows_path_buffer searchMask{ reinterpret_cast<const wchar_t*>(path.utf16()) };
-	if (!searchMask.append_directory_search_pattern())
-		return false;
-
-	WIN32_FIND_DATAW fileData;
-	const HANDLE hFind = ::FindFirstFileExW(searchMask.c_str(), FindExInfoBasic, &fileData, FindExSearchNameMatch, nullptr, 0);
-	if (hFind == INVALID_HANDLE_VALUE)
-	{
-		const auto err = GetLastError();
-
-		// ERROR_FILE_NOT_FOUND (2) means "no files in the specified folder", ERROR_PATH_NOT_FOUND (3) - "no such folder"
-		return err == ERROR_FILE_NOT_FOUND ? true : false;
-	}
-
-	::FindClose(hFind);
-	return true;
-#else // not _WIN32
-	return ::access(path.toLocal8Bit().constData(), R_OK) == 0;
-
-	// Alternative method:
-
-	//DIR* dir = opendir(path.data());
-
-	//if (dir == nullptr)
-	//	return false;
-
-	//closedir(dir);
-	//return true;
-#endif
 }

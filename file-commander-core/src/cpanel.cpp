@@ -4,7 +4,6 @@
 #include "filesystemhelperfunctions.h"
 #include "directoryscanner.h"
 #include "filesystemhelpers/filestatistics.h"
-#include "filesystemhelpers/filesystemhelpers.hpp"
 
 
 // Submodule includes
@@ -127,7 +126,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	bool pathSet = false;
 	for (auto&& candidatePath: pathHierarchy(path))
 	{
-		if (pathIsAccessible(candidatePath))
+		if (canListDirectory(candidatePath))
 		{
 			resolvedDir.setPath(candidatePath);
 			if (resolvedDir.isDir())
@@ -140,7 +139,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	if (!pathSet)
 	{
-		if (pathIsAccessible(oldPathObject.fullAbsolutePath()))
+		if (canListDirectory(oldPathObject.fullAbsolutePath()))
 			resolvedDir.setPath(oldPathObject.fullAbsolutePath());
 		else
 		{
@@ -152,7 +151,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 				const size_t cursorDistanceFromNewest = navigationHistory.size() - 1 - navigationHistory.currentIndex();
 				for (auto it = navigationHistory.rbegin() + (ptrdiff_t)cursorDistanceFromNewest; it != navigationHistory.rend(); ++it)
 				{
-					if (pathIsAccessible(*it))
+					if (canListDirectory(*it))
 					{
 						pathToSet = *it;
 						break;
@@ -232,7 +231,7 @@ bool CPanel::navigateBack()
 	while (!_history.isAtBeginning())
 	{
 		const QString path = _history.navigateBack();
-		if (pathIsAccessible(path))
+		if (canListDirectory(path))
 		{
 			return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
 		}
@@ -375,7 +374,7 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 {
 	_workerThreadPool.enqueue([this, request = std::move(request), operation]() {
 		CTimeElapsed timer{ true };
-		if (!pathIsAccessible(request.path))
+		if (!canListDirectory(request.path))
 		{
 			execOnUiThread([this, request]() { recoverFromInaccessiblePathIfCurrent(request); });
 			return;
@@ -572,11 +571,6 @@ void CPanel::addCurrentItemChangedListener(CurrentItemChangedListener * listener
 void CPanel::addCurrentPathChangedListener(CurrentPathChangedListener * listener)
 {
 	_currentPathChangedListeners.addSubscriber(listener);
-}
-
-bool CPanel::pathIsAccessible(const QString& path) const
-{
-	return FileSystemHelpers::pathIsAccessible(path);
 }
 
 void CPanel::refreshIfWatcherDetectedChanges()

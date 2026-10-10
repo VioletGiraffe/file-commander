@@ -44,6 +44,11 @@ std::optional<thin_io::entry_identity> resolvedObjectId(const QString& path)
 	return metadata->identity;
 }
 
+bool canListDirectory(const QString& dirPath)
+{
+	return thin_io::can_list_directory(nativePath(dirPath).data()).has_value();
+}
+
 thin_io::filesystem_result<std::vector<thin_io::directory_entry>> listDirectoryWithDetails(const QString& dirPath)
 {
 	return thin_io::list_directory(nativePath(dirPath).data(), thin_io::listing_detail::full);

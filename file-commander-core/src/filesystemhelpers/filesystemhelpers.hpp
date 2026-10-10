@@ -10,6 +10,4 @@ namespace FileSystemHelpers
 	// Can properly ignore the command's arguments, if any were supplied.
 	[[nodiscard]] QString resolvePath(const QString& command);
 
-	[[nodiscard]] bool pathIsAccessible(const QString& path);
-
 } // namespace FileSystemHelpers

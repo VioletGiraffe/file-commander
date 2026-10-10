@@ -1,5 +1,5 @@
 #include "cvolumeenumerator.h"
-#include "filesystemhelpers/filesystemhelpers.hpp"
+#include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
@@ -16,7 +16,7 @@ RESTORE_COMPILER_WARNINGS
 
 static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 {
-	if (!FileSystemHelpers::pathIsAccessible(driveLetter))
+	if (!canListDirectory(driveLetter))
 		return {};
 
 	WCHAR volumeName[256], filesystemName[256];
