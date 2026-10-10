@@ -143,6 +143,48 @@ TEST_CASE("CPanel - a folder that vanishes before its listing runs falls back to
 	CHECK(contentsChanged.cause == refreshCauseOther);
 }
 
+TEST_CASE("CPanel - refreshing a folder that has vanished falls back to the parent", "[panel][path]")
+{
+	TempTree tree;
+	const QString doomed = tree.makeDir(QStringLiteral("doomed"));
+	tree.makeFile(QStringLiteral("doomed/a.txt"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(doomed, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	REQUIRE(h.panel().currentDirPathPosix() == doomed + '/');
+	h.listener().clear();
+
+	REQUIRE(QDir{ doomed }.removeRecursively());
+	h.panel().refreshFileList(refreshCauseOther);
+	h.settle();
+
+	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
+	CHECK(h.listener().count(PanelEvent::CurrentPathChanged) == 1);
+	CHECK(h.listener().last(PanelEvent::ContentsChanged).cause == refreshCauseOther);
+}
+
+TEST_CASE("CPanel - flattened mode over a tree with no files lists nothing and stays in the folder", "[panel][path]")
+{
+	TempTree tree;
+	tree.makeDir(QStringLiteral("a/b"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	h.listener().clear();
+
+	h.panel().showAllFilesFromCurrentFolderAndBelow();
+	h.settle();
+
+	// An empty result is also what a folder that cannot be listed yields; recovery would relist it in the normal mode.
+	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
+	CHECK(committedItemCount(h.panel()) == 0);
+	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 1);
+}
+
 TEST_CASE("CPanel - a trailing separator does not make a folder a different location", "[panel][path]")
 {
 	TempTree tree;
