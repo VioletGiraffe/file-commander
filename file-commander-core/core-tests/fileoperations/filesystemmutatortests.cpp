@@ -1073,6 +1073,36 @@ TEST_CASE("writability primitives reject link and directory entries and never fo
 #endif
 }
 
+#ifdef _WIN32
+TEST_CASE("writability primitives treat a reparse point that is not a link as a regular file", "[mutator]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString filePath = tempDir.path() % "/placeholder.bin";
+	writeTestFile(filePath, QByteArray(10, 'p'));
+	if (!setNonLinkReparsePoint(filePath))
+	{
+		WARN("Setting a third-party reparse point is unavailable; non-link reparse assertion skipped");
+		return;
+	}
+
+	const EntrySnapshot snapshot = snapshotOf(filePath);
+	REQUIRE(snapshot.kind == OperationEntryKind::RegularFile);
+
+	REQUIRE(CFileSystemMutator::setEntryWritable(snapshot, false).has_value());
+	const auto readOnly = isEntryWritableNoFollow(snapshot);
+	REQUIRE(readOnly.has_value());
+	CHECK_FALSE(*readOnly);
+
+	REQUIRE(CFileSystemMutator::setEntryWritable(snapshot, true).has_value());
+	const auto writable = isEntryWritableNoFollow(snapshot);
+	REQUIRE(writable.has_value());
+	CHECK(*writable);
+
+	REQUIRE(QFile::remove(filePath));
+}
+#endif
+
 //
 // Directory timestamps
 //

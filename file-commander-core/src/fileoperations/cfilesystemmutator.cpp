@@ -79,17 +79,17 @@ std::optional<NativeErrorCode> moveFileError(const wchar_t* source, const wchar_
 	return captureNativeError();
 }
 
-std::optional<NativeErrorCode> setFileAttributesError(const wchar_t* path, const DWORD attributes)
+#endif
+
+std::optional<NativeErrorCode> setPermissionsNoFollowError(const NativePathString& path, const thin_io::file_permissions permissions)
 {
 	if (const auto forcedError = OperationTestHooks::fireHook(OperationTestHooks::Point::SetEntryWritable_Native))
 		return *forcedError;
 
-	if (::SetFileAttributesW(path, attributes) != 0)
-		return {};
-	return captureNativeError();
+	if (const auto result = thin_io::set_permissions(nativeCStr(path), permissions, thin_io::link_behavior::do_not_follow); !result)
+		return result.error().native_code;
+	return {};
 }
-
-#endif
 
 // Rename knows more than the context-free classifier: these codes mean "the destination exists in a form
 // the requested rename cannot replace", which must re-enter destination resolution.
@@ -391,18 +391,15 @@ std::expected<bool, CFileSystemError> isEntryWritableNoFollow(const EntrySnapsho
 	assert_debug_only(entry.kind == OperationEntryKind::RegularFile);
 
 #ifdef _WIN32
-	const Win32Path nativePath{ entry.path };
-	if (!nativePath) [[unlikely]]
-		return std::unexpected(makeFileSystemError(nativePath.error()));
+	const auto native = thinIoPath(entry.path);
+	const auto status = thin_io::get_entry_status(nativeCStr(native), thin_io::link_behavior::do_not_follow);
+	if (!status)
+		return std::unexpected(makeFileSystemError(status.error().native_code));
 
-	const DWORD attributes = ::GetFileAttributesW(nativePath.c_str()); // Reports the entry itself, links are not followed
-	if (attributes == INVALID_FILE_ATTRIBUTES)
-		return std::unexpected(makeFileSystemError(captureNativeError()));
-
-	if ((attributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)) != 0)
+	if (status->attributes.is_link || status->attributes.kind != thin_io::entry_kind::regular_file)
 		return std::unexpected(unsupportedEntryError("Writability query is only valid for a non-link regular file"));
 
-	return (attributes & FILE_ATTRIBUTE_READONLY) == 0;
+	return !status->permissions->read_only;
 #else
 	const auto native = thinIoPath(entry.path);
 	struct stat entryStat;
@@ -472,24 +469,25 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 	// Refine only from fresh no-follow attributes; ordinary permission failures remain permission failures.
 	if (replacement == ReplacementMode::ReplaceExistingFile && *moveError == ERROR_ACCESS_DENIED)
 	{
-		const DWORD destinationAttributes = ::GetFileAttributesW(destinationNative.c_str());
-		if (destinationAttributes != INVALID_FILE_ATTRIBUTES && (destinationAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+		const auto destinationForThinIo = thinIoPath(destination);
+		const auto destinationStatus = thin_io::get_entry_status(nativeCStr(destinationForThinIo), thin_io::link_behavior::do_not_follow);
+		if (destinationStatus && destinationStatus->attributes.kind == thin_io::entry_kind::directory)
 			return std::unexpected(makeError(FileErrorCategory::AlreadyExists, *moveError));
 
-		const bool readOnlyRegularFile = destinationAttributes != INVALID_FILE_ATTRIBUTES
-			&& (destinationAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) == 0
-			&& (destinationAttributes & FILE_ATTRIBUTE_READONLY) != 0;
+		const bool readOnlyRegularFile = destinationStatus && !destinationStatus->attributes.is_link && destinationStatus->permissions->read_only;
 		if (readOnlyRegularFile)
 		{
-			if (const auto attributeError = setFileAttributesError(
-				destinationNative.c_str(), destinationAttributes & ~static_cast<DWORD>(FILE_ATTRIBUTE_READONLY)))
+			const thin_io::file_permissions originalPermissions = *destinationStatus->permissions;
+			thin_io::file_permissions writablePermissions = originalPermissions;
+			writablePermissions.read_only = false;
+			if (const auto attributeError = setPermissionsNoFollowError(destinationForThinIo, writablePermissions))
 				return std::unexpected(makeFileSystemError(*attributeError));
 
 			moveError = moveFileError(sourceNative.c_str(), destinationNative.c_str(), flags);
 			if (!moveError)
 				return {};
 
-			if (const auto restorationError = setFileAttributesError(destinationNative.c_str(), destinationAttributes))
+			if (const auto restorationError = setPermissionsNoFollowError(destinationForThinIo, originalPermissions))
 			{
 				const CFileSystemError replacementFailure = renameErrorFromNative(*moveError);
 				const CFileSystemError restorationFailure = makeFileSystemError(*restorationError);
@@ -502,8 +500,8 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 			// after the read-only file was inspected.
 			if (*moveError == ERROR_ACCESS_DENIED)
 			{
-				const DWORD freshAttributes = ::GetFileAttributesW(destinationNative.c_str());
-				if (freshAttributes != INVALID_FILE_ATTRIBUTES && (freshAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+				const auto freshStatus = thin_io::get_entry_status(nativeCStr(destinationForThinIo), thin_io::link_behavior::do_not_follow);
+				if (freshStatus && freshStatus->attributes.kind == thin_io::entry_kind::directory)
 					return std::unexpected(makeError(FileErrorCategory::AlreadyExists, *moveError));
 			}
 		}
@@ -520,8 +518,8 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 	{
 		// POSIX rename() silently replaces an empty destination directory when the source is one, and
 		// directory replacement is never authorized. Windows enforces this natively; here it must be rejected.
-		struct stat destinationStat;
-		if (::lstat(nativeCStr(destinationNative), &destinationStat) == 0 && S_ISDIR(destinationStat.st_mode))
+		const auto destinationStatus = thin_io::get_entry_status(nativeCStr(destinationNative), thin_io::link_behavior::do_not_follow);
+		if (destinationStatus && destinationStatus->attributes.kind == thin_io::entry_kind::directory)
 			return std::unexpected(makeError(FileErrorCategory::AlreadyExists, EISDIR));
 
 		if (const auto forcedError = fireHook(Point::RenameEntry_Native))
@@ -695,50 +693,25 @@ std::expected<void, CFileSystemError> CFileSystemMutator::setEntryWritable(const
 {
 	assert_debug_only(entry.kind == OperationEntryKind::RegularFile);
 
-#ifdef _WIN32
-	const Win32Path nativePath{ entry.path };
-	if (!nativePath) [[unlikely]]
-		return std::unexpected(makeFileSystemError(nativePath.error()));
+	const auto native = thinIoPath(entry.path);
+	const auto status = thin_io::get_entry_status(nativeCStr(native), thin_io::link_behavior::do_not_follow);
+	if (!status)
+		return std::unexpected(makeFileSystemError(status.error().native_code));
 
-	const DWORD attributes = ::GetFileAttributesW(nativePath.c_str());
-	if (attributes == INVALID_FILE_ATTRIBUTES)
-		return std::unexpected(makeFileSystemError(captureNativeError()));
-
-	if ((attributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)) != 0)
+	if (status->attributes.is_link || status->attributes.kind != thin_io::entry_kind::regular_file)
 		return std::unexpected(unsupportedEntryError("Writability change is only valid for a non-link regular file"));
 
-	const DWORD newAttributes = writable ? attributes & ~static_cast<DWORD>(FILE_ATTRIBUTE_READONLY) : attributes | FILE_ATTRIBUTE_READONLY;
-	if (newAttributes == attributes)
+	thin_io::file_permissions permissions = *status->permissions;
+#ifdef _WIN32
+	permissions.read_only = !writable;
+#else
+	permissions.mode = writable ? permissions.mode | S_IWUSR : permissions.mode & ~static_cast<uint32_t>(S_IWUSR | S_IWGRP | S_IWOTH);
+#endif
+	if (permissions == *status->permissions)
 		return {};
 
-	if (const auto error = setFileAttributesError(nativePath.c_str(), newAttributes))
+	if (const auto error = setPermissionsNoFollowError(native, permissions))
 		return std::unexpected(makeFileSystemError(*error));
 
 	return {};
-#else
-	using OperationTestHooks::fireHook, OperationTestHooks::Point;
-
-	const auto native = thinIoPath(entry.path);
-
-	// lstat first: chmod() follows links, and a link (or anything but a regular file) must never be remediated.
-	// The remaining lstat-chmod window is accepted; callers re-inspect freshly around every remediation decision.
-	struct stat entryStat;
-	if (::lstat(nativeCStr(native), &entryStat) != 0)
-		return std::unexpected(makeFileSystemError(captureNativeError()));
-
-	if (!S_ISREG(entryStat.st_mode))
-		return std::unexpected(unsupportedEntryError("Writability change is only valid for a non-link regular file"));
-
-	const mode_t newMode = writable ? entryStat.st_mode | S_IWUSR : entryStat.st_mode & ~static_cast<mode_t>(S_IWUSR | S_IWGRP | S_IWOTH);
-	if (newMode == entryStat.st_mode)
-		return {};
-
-	if (const auto forcedError = fireHook(Point::SetEntryWritable_Native))
-		return std::unexpected(makeFileSystemError(*forcedError));
-
-	if (::chmod(nativeCStr(native), newMode) != 0)
-		return std::unexpected(makeFileSystemError(captureNativeError()));
-
-	return {};
-#endif
 }

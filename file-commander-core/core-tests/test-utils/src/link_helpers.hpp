@@ -14,6 +14,7 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <Windows.h>
+#include <winioctl.h>
 #else
 #include <unistd.h>
 #endif
@@ -81,3 +82,26 @@ inline bool createDirectorySymlink(const QString& targetPath, const QString& lin
 	return createPosixSymlink(targetPath, linkPath);
 #endif
 }
+
+#ifdef _WIN32
+// Makes an existing file a reparse point that is not a link, as a cloud placeholder is: a third-party tag
+// without the name-surrogate bit. A non-Microsoft tag requires the GUID buffer layout.
+inline bool setNonLinkReparsePoint(const QString& filePath)
+{
+	const QString nativePath = QDir::toNativeSeparators(filePath);
+	const HANDLE handle = CreateFileW(reinterpret_cast<const WCHAR*>(nativePath.utf16()), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING,
+		FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+	if (handle == INVALID_HANDLE_VALUE)
+		return false;
+
+	REPARSE_GUID_DATA_BUFFER reparse{};
+	reparse.ReparseTag = 0x00007A11;
+	reparse.ReparseDataLength = 1;
+	reparse.ReparseGuid = { 0x6f1c3a52, 0x1d4e, 0x4b8a, { 0x9c, 0x31, 0x2e, 0x7d, 0x5a, 0x40, 0x8b, 0x16 } };
+	DWORD ignored = 0;
+	const bool set = DeviceIoControl(handle, FSCTL_SET_REPARSE_POINT, &reparse, REPARSE_GUID_DATA_BUFFER_HEADER_SIZE + reparse.ReparseDataLength,
+		nullptr, 0, &ignored, nullptr) != 0;
+	CloseHandle(handle);
+	return set;
+}
+#endif
