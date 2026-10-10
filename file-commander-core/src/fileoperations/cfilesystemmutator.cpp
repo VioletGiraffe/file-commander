@@ -14,13 +14,9 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
-#include "windows_path_win.hpp" // thin_io
-
 #include <Windows.h>
 #else
 #include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
@@ -51,35 +47,16 @@ std::expected<thin_io::entry_metadata, CFileSystemError> readIdentityMetadata(
 	return std::move(*metadata);
 }
 
-#ifdef _WIN32
-
-// A path prepared for one of this module's own Win32 calls exactly as thin_io prepares the ones it makes itself,
-// so the same entry is addressed either way: the extended-length prefix in both its drive and \\?\UNC\ forms, and
-// a reported error where a fixed-size buffer used to truncate. Holds the buffer inline - construct it in place.
-class Win32Path
+std::optional<NativeErrorCode> renameError(const NativePathString& source, const NativePathString& destination,
+	const thin_io::existing_destination ifDestinationExists, const OperationTestHooks::Point hookPoint)
 {
-public:
-	explicit Win32Path(const CEntryPath& path) : _buffer{ reinterpret_cast<const wchar_t*>(nativePathValue(path).utf16()) } {}
-
-	[[nodiscard]] inline explicit operator bool() const noexcept { return static_cast<bool>(_buffer); }
-	[[nodiscard]] inline const wchar_t* c_str() const noexcept { return _buffer.c_str(); }
-	[[nodiscard]] inline NativeErrorCode error() const noexcept { return static_cast<NativeErrorCode>(_buffer.error_code()); }
-
-private:
-	thin_io::windows_path_buffer _buffer;
-};
-
-std::optional<NativeErrorCode> moveFileError(const wchar_t* source, const wchar_t* destination, const DWORD flags)
-{
-	if (const auto forcedError = OperationTestHooks::fireHook(OperationTestHooks::Point::RenameEntry_Native))
+	if (const auto forcedError = OperationTestHooks::fireHook(hookPoint))
 		return *forcedError;
 
-	if (::MoveFileExW(source, destination, flags) != 0)
-		return {};
-	return captureNativeError();
+	if (const auto result = thin_io::rename_entry(nativeCStr(source), nativeCStr(destination), ifDestinationExists); !result)
+		return result.error().native_code;
+	return {};
 }
-
-#endif
 
 std::optional<NativeErrorCode> setPermissionsNoFollowError(const NativePathString& path, const thin_io::file_permissions permissions)
 {
@@ -136,24 +113,6 @@ bool isExclusiveRenameUnsupported(const NativeErrorCode code) noexcept
 		;
 }
 
-std::optional<NativeErrorCode> exclusiveRenameError(const NativePathString& source, const NativePathString& destination,
-	const OperationTestHooks::Point hookPoint)
-{
-	if (const auto forcedError = OperationTestHooks::fireHook(hookPoint))
-		return *forcedError;
-
-#if defined __linux__
-	if (::renameat2(AT_FDCWD, nativeCStr(source), AT_FDCWD, nativeCStr(destination), RENAME_NOREPLACE) == 0)
-		return {};
-#elif defined __APPLE__
-	if (::renamex_np(nativeCStr(source), nativeCStr(destination), RENAME_EXCL) == 0)
-		return {};
-#else
-	return ENOSYS;
-#endif
-	return captureNativeError();
-}
-
 CFileSystemError exclusiveRenameFailure(const NativeErrorCode code)
 {
 	if (isExclusiveRenameUnsupported(code))
@@ -182,7 +141,8 @@ std::expected<void, CFileSystemError> renameCaseOnlyThroughTemporary(const CEntr
 		CEntryPath candidate = source.parent().child(
 			QStringLiteral(".file-commander-rename-") % QUuid::createUuid().toString(QUuid::WithoutBraces) % QStringLiteral(".tmp"));
 		auto candidateNative = thinIoPath(candidate);
-		const auto moveError = exclusiveRenameError(sourceNative, candidateNative, OperationTestHooks::Point::CaseRespell_MoveToTemporary_Native);
+		const auto moveError = renameError(sourceNative, candidateNative, thin_io::existing_destination::fail,
+			OperationTestHooks::Point::CaseRespell_MoveToTemporary_Native);
 		if (!moveError)
 		{
 			temporaryPath = std::move(candidate);
@@ -200,12 +160,12 @@ std::expected<void, CFileSystemError> renameCaseOnlyThroughTemporary(const CEntr
 			QStringLiteral("Could not reserve a unique temporary name for the case respelling") });
 	}
 
-	const auto publicationError = exclusiveRenameError(temporaryNative, destinationNative,
+	const auto publicationError = renameError(temporaryNative, destinationNative, thin_io::existing_destination::fail,
 		OperationTestHooks::Point::CaseRespell_PublishTemporary_Native);
 	if (!publicationError)
 		return {};
 
-	const auto rollbackError = exclusiveRenameError(temporaryNative, sourceNative,
+	const auto rollbackError = renameError(temporaryNative, sourceNative, thin_io::existing_destination::fail,
 		OperationTestHooks::Point::CaseRespell_RestoreSource_Native);
 	if (rollbackError)
 		return std::unexpected(caseRespellRollbackFailure(*temporaryPath, *publicationError, *rollbackError));
@@ -447,21 +407,21 @@ std::expected<CopyableDirectoryTimes, CFileSystemError> readCopyableDirectoryTim
 
 std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEntryPath& source, const CEntryPath& destination, const ReplacementMode replacement)
 {
+	using OperationTestHooks::Point;
+
+	const auto sourceNative = thinIoPath(source);
+	const auto destinationNative = thinIoPath(destination);
+
 #ifdef _WIN32
-	const Win32Path sourceNative{ source }, destinationNative{ destination };
-	if (!sourceNative) [[unlikely]]
-		return std::unexpected(makeFileSystemError(sourceNative.error()));
-	if (!destinationNative) [[unlikely]]
-		return std::unexpected(makeFileSystemError(destinationNative.error()));
-
-	// Flag 0 is the native exclusive mechanism; no unsupported-degradation path exists on Windows. It has a
-	// same-file exemption: a destination that is another name for the source file does not count as occupied.
-	// That is what permits case-only renames - and it also lets a rename onto a hardlink alias succeed by
-	// removing the source name (accepted divergence, see the design plan's same-object note: POSIX exclusive
+	// existing_destination::fail is the native exclusive mechanism; no unsupported-degradation path exists on
+	// Windows. It has a same-file exemption: a destination that is another name for the source file does not count
+	// as occupied. That is what permits case-only renames - and it also lets a rename onto a hardlink alias succeed
+	// by removing the source name (accepted divergence, see the design plan's same-object note: POSIX exclusive
 	// rename refuses same-inode destinations).
-	const DWORD flags = replacement == ReplacementMode::ReplaceExistingFile ? MOVEFILE_REPLACE_EXISTING : 0;
+	const auto ifDestinationExists = replacement == ReplacementMode::ReplaceExistingFile
+		? thin_io::existing_destination::replace : thin_io::existing_destination::fail;
 
-	auto moveError = moveFileError(sourceNative.c_str(), destinationNative.c_str(), flags);
+	auto moveError = renameError(sourceNative, destinationNative, ifDestinationExists, Point::RenameEntry_Native);
 	if (!moveError)
 		return {};
 
@@ -469,8 +429,7 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 	// Refine only from fresh no-follow attributes; ordinary permission failures remain permission failures.
 	if (replacement == ReplacementMode::ReplaceExistingFile && *moveError == ERROR_ACCESS_DENIED)
 	{
-		const auto destinationForThinIo = thinIoPath(destination);
-		const auto destinationStatus = thin_io::get_entry_status(nativeCStr(destinationForThinIo), thin_io::link_behavior::do_not_follow);
+		const auto destinationStatus = thin_io::get_entry_status(nativeCStr(destinationNative), thin_io::link_behavior::do_not_follow);
 		if (destinationStatus && destinationStatus->attributes.kind == thin_io::entry_kind::directory)
 			return std::unexpected(makeError(FileErrorCategory::AlreadyExists, *moveError));
 
@@ -480,14 +439,14 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 			const thin_io::file_permissions originalPermissions = *destinationStatus->permissions;
 			thin_io::file_permissions writablePermissions = originalPermissions;
 			writablePermissions.read_only = false;
-			if (const auto attributeError = setPermissionsNoFollowError(destinationForThinIo, writablePermissions))
+			if (const auto attributeError = setPermissionsNoFollowError(destinationNative, writablePermissions))
 				return std::unexpected(makeFileSystemError(*attributeError));
 
-			moveError = moveFileError(sourceNative.c_str(), destinationNative.c_str(), flags);
+			moveError = renameError(sourceNative, destinationNative, ifDestinationExists, Point::RenameEntry_Native);
 			if (!moveError)
 				return {};
 
-			if (const auto restorationError = setPermissionsNoFollowError(destinationForThinIo, originalPermissions))
+			if (const auto restorationError = setPermissionsNoFollowError(destinationNative, originalPermissions))
 			{
 				const CFileSystemError replacementFailure = renameErrorFromNative(*moveError);
 				const CFileSystemError restorationFailure = makeFileSystemError(*restorationError);
@@ -500,7 +459,7 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 			// after the read-only file was inspected.
 			if (*moveError == ERROR_ACCESS_DENIED)
 			{
-				const auto freshStatus = thin_io::get_entry_status(nativeCStr(destinationForThinIo), thin_io::link_behavior::do_not_follow);
+				const auto freshStatus = thin_io::get_entry_status(nativeCStr(destinationNative), thin_io::link_behavior::do_not_follow);
 				if (freshStatus && freshStatus->attributes.kind == thin_io::entry_kind::directory)
 					return std::unexpected(makeError(FileErrorCategory::AlreadyExists, *moveError));
 			}
@@ -509,11 +468,6 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 
 	return std::unexpected(renameErrorFromNative(*moveError));
 #else
-	using OperationTestHooks::fireHook, OperationTestHooks::Point;
-
-	const auto sourceNative = thinIoPath(source);
-	const auto destinationNative = thinIoPath(destination);
-
 	if (replacement == ReplacementMode::ReplaceExistingFile)
 	{
 		// POSIX rename() silently replaces an empty destination directory when the source is one, and
@@ -522,17 +476,14 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 		if (destinationStatus && destinationStatus->attributes.kind == thin_io::entry_kind::directory)
 			return std::unexpected(makeError(FileErrorCategory::AlreadyExists, EISDIR));
 
-		if (const auto forcedError = fireHook(Point::RenameEntry_Native))
-			return std::unexpected(renameErrorFromNative(*forcedError));
+		if (const auto replaceError = renameError(sourceNative, destinationNative, thin_io::existing_destination::replace, Point::RenameEntry_Native))
+			return std::unexpected(renameErrorFromNative(*replaceError));
 
-		if (::rename(nativeCStr(sourceNative), nativeCStr(destinationNative)) == 0)
-			return {};
-
-		return std::unexpected(renameErrorFromNative(captureNativeError()));
+		return {};
 	}
 
 	// RequireAbsent starts with the native exclusive mechanism.
-	const auto exclusiveError = exclusiveRenameError(sourceNative, destinationNative, Point::RenameEntry_Native);
+	const auto exclusiveError = renameError(sourceNative, destinationNative, thin_io::existing_destination::fail, Point::RenameEntry_Native);
 	if (!exclusiveError)
 		return {};
 	const NativeErrorCode errorCode = *exclusiveError;
@@ -547,10 +498,11 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 		if (classifyNativeError(destinationMetadata.error().native_code) != FileErrorCategory::NotFound)
 			return std::unexpected(makeFileSystemError(destinationMetadata.error().native_code));
 
-		if (::rename(nativeCStr(sourceNative), nativeCStr(destinationNative)) == 0)
-			return {};
+		const auto renamed = thin_io::rename_entry(nativeCStr(sourceNative), nativeCStr(destinationNative), thin_io::existing_destination::replace);
+		if (!renamed)
+			return std::unexpected(renameErrorFromNative(renamed.error().native_code));
 
-		return std::unexpected(renameErrorFromNative(captureNativeError()));
+		return {};
 	}
 
 	// An exclusive case-respell can collide with the source entry itself on a case-insensitive filesystem.
@@ -596,23 +548,12 @@ bool createOneDirectory(const CEntryPath& path, NativeErrorCode& errorCode, cons
 		}
 	}
 
-#ifdef _WIN32
-	const Win32Path nativePath{ path };
-	if (!nativePath) [[unlikely]]
-	{
-		errorCode = nativePath.error();
-		return false;
-	}
-
-	if (::CreateDirectoryW(nativePath.c_str(), nullptr) != 0)
-		return true;
-#else
 	const auto native = thinIoPath(path);
-	if (::mkdir(nativeCStr(native), 0777) == 0)
+	const auto created = thin_io::create_directory(nativeCStr(native));
+	if (created)
 		return true;
-#endif
 
-	errorCode = captureNativeError();
+	errorCode = created.error().native_code;
 	return false;
 }
 
