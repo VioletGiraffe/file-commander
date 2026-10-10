@@ -70,7 +70,7 @@ public:
 	static std::expected<void, CFileSystemError> renameEntry(const CEntryPath& source, const CEntryPath& destination, ReplacementMode replacement);
 
 	// Removes the entry itself: links are unlinked, never followed; a directory must be empty.
-	static std::expected<void, CFileSystemError> removeEntry(const EntrySnapshot& entry);
+	static std::expected<void, CFileSystemError> removeEntry(const CEntryPath& path);
 
 	// Creates the directory and any missing parents. A freshly confirmed entry at the final path returns
 	// FinalEntryAlreadyExisted so destination resolution remains the one owner of entry-kind collision policy.

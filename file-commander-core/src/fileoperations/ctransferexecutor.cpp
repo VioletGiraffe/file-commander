@@ -665,7 +665,7 @@ NodeOutcome CTransferExecutor::removePublishedSourceWithPolicy(const EntrySnapsh
 			applyWritableAuthorization = false; // Applied; a removal retry must not redo it
 		}
 
-		auto removed = CFileSystemMutator::removeEntry(entry);
+		auto removed = CFileSystemMutator::removeEntry(entry.path);
 		if (removed)
 			break;
 

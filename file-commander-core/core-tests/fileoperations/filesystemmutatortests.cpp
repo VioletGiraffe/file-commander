@@ -147,19 +147,19 @@ TEST_CASE("removeEntry: NTFS symlinks are unlinked as entries, targets untouched
 
 	writeTestFile(base % "/target.bin", QByteArray(10, 't'));
 	REQUIRE(createFileSymlink(base % "/target.bin", base % "/filelink"));
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/filelink")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/filelink")).has_value());
 	CHECK(entryAbsent(base % "/filelink"));
 	CHECK(readFileContents(base % "/target.bin") == QByteArray(10, 't'));
 
 	REQUIRE(QDir{}.mkpath(base % "/targetdir"));
 	writeTestFile(base % "/targetdir/inner.bin", QByteArray(10, 'i'));
 	REQUIRE(createDirectorySymlink(base % "/targetdir", base % "/dirsymlink"));
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/dirsymlink")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/dirsymlink")).has_value());
 	CHECK(entryAbsent(base % "/dirsymlink"));
 	CHECK(readFileContents(base % "/targetdir/inner.bin") == QByteArray(10, 'i'));
 
 	REQUIRE(createDirectorySymlink(base % "/gone", base % "/brokendirlink"));
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/brokendirlink")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/brokendirlink")).has_value());
 	CHECK(entryAbsent(base % "/brokendirlink"));
 }
 #endif
@@ -853,16 +853,16 @@ TEST_CASE("removeEntry: file, empty directory, non-empty directory", "[mutator]"
 	const QString base = tempDir.path();
 
 	writeTestFile(base % "/file.bin", QByteArray(10, 'f'));
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/file.bin")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/file.bin")).has_value());
 	CHECK(entryAbsent(base % "/file.bin"));
 
 	REQUIRE(QDir{}.mkpath(base % "/emptydir"));
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/emptydir")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/emptydir")).has_value());
 	CHECK(entryAbsent(base % "/emptydir"));
 
 	REQUIRE(QDir{}.mkpath(base % "/nonempty"));
 	writeTestFile(base % "/nonempty/inner.bin", QByteArray(10, 'i'));
-	CHECK(!CFileSystemMutator::removeEntry(snapshotOf(base % "/nonempty")).has_value());
+	CHECK(!CFileSystemMutator::removeEntry(ep(base % "/nonempty")).has_value());
 	CHECK(readFileContents(base % "/nonempty/inner.bin") == QByteArray(10, 'i'));
 }
 
@@ -876,7 +876,7 @@ TEST_CASE("removeEntry: directory link is unlinked without touching the target",
 	writeTestFile(base % "/target/inner.bin", QByteArray(10, 'i'));
 	REQUIRE(createDirectoryLink(base % "/target", base % "/dirlink"));
 
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/dirlink")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/dirlink")).has_value());
 	CHECK(entryAbsent(base % "/dirlink"));
 	CHECK(readFileContents(base % "/target/inner.bin") == QByteArray(10, 'i'));
 }
@@ -891,7 +891,7 @@ TEST_CASE("removeEntry: broken directory link", "[mutator]")
 	REQUIRE(createDirectoryLink(base % "/target", base % "/dirlink"));
 	REQUIRE(QDir{}.rmdir(base % "/target"));
 
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/dirlink")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/dirlink")).has_value());
 	CHECK(entryAbsent(base % "/dirlink"));
 }
 
@@ -904,16 +904,16 @@ TEST_CASE("removeEntry: file link, broken link, and FIFO are unlinked as entries
 
 	writeTestFile(base % "/target.bin", QByteArray(10, 't'));
 	REQUIRE(QFile::link(base % "/target.bin", base % "/link"));
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/link")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/link")).has_value());
 	CHECK(entryAbsent(base % "/link"));
 	CHECK(readFileContents(base % "/target.bin") == QByteArray(10, 't')); // Target untouched
 
 	REQUIRE(QFile::link(base % "/no_such", base % "/broken"));
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/broken")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/broken")).has_value());
 	CHECK(entryAbsent(base % "/broken"));
 
 	REQUIRE(::mkfifo(QFile::encodeName(base % "/fifo").constData(), 0700) == 0);
-	REQUIRE(CFileSystemMutator::removeEntry(snapshotOf(base % "/fifo")).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/fifo")).has_value());
 	CHECK(entryAbsent(base % "/fifo"));
 }
 #endif
@@ -932,7 +932,7 @@ TEST_CASE("removeEntry: forced fault classifies and mutates nothing", "[mutator]
 #else
 	scope.forceNativeError(Point::RemoveEntry_Native, EACCES);
 #endif
-	const auto result = CFileSystemMutator::removeEntry(snapshotOf(base % "/file.bin"));
+	const auto result = CFileSystemMutator::removeEntry(ep(base % "/file.bin"));
 	REQUIRE(!result.has_value());
 	CHECK(result.error().category == FileErrorCategory::PermissionDenied);
 	CHECK(!entryAbsent(base % "/file.bin"));
@@ -1014,7 +1014,7 @@ TEST_CASE("removeEntry: a read-only file fails with PermissionDenied, not ReadOn
 	const auto snapshot = snapshotOf(filePath);
 	REQUIRE(CFileSystemMutator::setEntryWritable(snapshot, false).has_value());
 
-	const auto result = CFileSystemMutator::removeEntry(snapshot);
+	const auto result = CFileSystemMutator::removeEntry(snapshot.path);
 	REQUIRE(!result.has_value());
 	CHECK(result.error().category == FileErrorCategory::PermissionDenied);
 
@@ -1031,7 +1031,7 @@ TEST_CASE("removeEntry: a read-only file is removable on POSIX", "[mutator]")
 
 	const auto snapshot = snapshotOf(filePath);
 	REQUIRE(CFileSystemMutator::setEntryWritable(snapshot, false).has_value());
-	REQUIRE(CFileSystemMutator::removeEntry(snapshot).has_value());
+	REQUIRE(CFileSystemMutator::removeEntry(snapshot.path).has_value());
 	CHECK(entryAbsent(filePath));
 }
 #endif

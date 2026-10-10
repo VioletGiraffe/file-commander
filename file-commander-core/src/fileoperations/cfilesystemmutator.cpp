@@ -567,35 +567,18 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 #endif
 }
 
-std::expected<void, CFileSystemError> CFileSystemMutator::removeEntry(const EntrySnapshot& entry)
+std::expected<void, CFileSystemError> CFileSystemMutator::removeEntry(const CEntryPath& path)
 {
 	using OperationTestHooks::fireHook, OperationTestHooks::Point;
 
 	if (const auto forcedError = fireHook(Point::RemoveEntry_Native))
 		return std::unexpected(makeFileSystemError(*forcedError));
 
-#ifdef _WIN32
-	const Win32Path nativePath{ entry.path };
-	if (!nativePath) [[unlikely]]
-		return std::unexpected(makeFileSystemError(nativePath.error()));
+	const auto native = thinIoPath(path);
+	if (const auto removed = thin_io::remove_entry(nativeCStr(native)); !removed)
+		return std::unexpected(makeFileSystemError(removed.error().native_code));
 
-	// Directory entries - real or links (junctions, directory symlinks) - are removed with RemoveDirectory,
-	// which deletes the entry without following it; everything else, including file symlinks, with DeleteFile.
-	const bool isDirectoryEntry = entry.kind == OperationEntryKind::Directory || entry.kind == OperationEntryKind::DirectoryLink;
-	if ((isDirectoryEntry ? ::RemoveDirectoryW(nativePath.c_str()) : ::DeleteFileW(nativePath.c_str())) != 0)
-		return {};
-
-	return std::unexpected(makeFileSystemError(captureNativeError()));
-#else
-	const auto native = thinIoPath(entry.path);
-
-	// Only a real directory takes rmdir; a directory symlink is itself a link entry and must be unlink()ed -
-	// rmdir would refuse it, and nothing here may ever address the target.
-	if ((entry.kind == OperationEntryKind::Directory ? ::rmdir(nativeCStr(native)) : ::unlink(nativeCStr(native))) == 0)
-		return {};
-
-	return std::unexpected(makeFileSystemError(captureNativeError()));
-#endif
+	return {};
 }
 
 namespace
