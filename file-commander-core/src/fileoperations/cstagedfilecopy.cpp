@@ -7,6 +7,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "fs.hpp" // thin_io
 #include "lang/utils.hpp" // mv()
 
 
@@ -324,15 +325,15 @@ std::optional<NativeErrorCode> CStagedFileCopy::removeStagingFile(const CEntryPa
 	NativeErrorCode errorCode;
 	if (const auto forcedError = fireHook(Point::StagedCopy_RemoveStaging_Native))
 		errorCode = *forcedError;
-	else if (thin_io::file::delete_file(nativeCStr(stagingNative)))
+	else if (const auto removed = thin_io::remove_entry(nativeCStr(stagingNative)))
 		return {};
 	else
-		errorCode = captureNativeError();
+		errorCode = removed.error().native_code;
 
 	if (classifyNativeError(errorCode) == FileErrorCategory::PermissionDenied)
 	{
 		const EntrySnapshot stagingEntry{ stagingPath, OperationEntryKind::RegularFile, 0 };
-		if (CFileSystemMutator::setEntryWritable(stagingEntry, true).has_value() && thin_io::file::delete_file(nativeCStr(stagingNative)))
+		if (CFileSystemMutator::setEntryWritable(stagingEntry, true).has_value() && thin_io::remove_entry(nativeCStr(stagingNative)))
 			return {};
 	}
 

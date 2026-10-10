@@ -8,6 +8,7 @@
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "file.hpp" // thin_io
+#include "fs.hpp" // thin_io
 
 
 DISABLE_COMPILER_WARNINGS
@@ -51,9 +52,9 @@ RESTORE_COMPILER_WARNINGS
 [[nodiscard]] static bool deleteFileVerbatim(const QString& path)
 {
 #ifdef _WIN32
-	return thin_io::file::delete_file(reinterpret_cast<const wchar_t*>(path.utf16()));
+	return thin_io::remove_entry(reinterpret_cast<const wchar_t*>(path.utf16())).has_value();
 #else
-	return thin_io::file::delete_file(QFile::encodeName(path).constData());
+	return thin_io::remove_entry(QFile::encodeName(path).constData()).has_value();
 #endif
 }
 
