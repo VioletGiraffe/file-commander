@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791634831213,
+  "lastUpdate": 1791635881480,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -27131,6 +27131,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 759,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 400,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "13467ea2d4bc09c1e4f1db7d7f7105670a7970cb",
+          "message": "CFileSystemMutator::removeEntry uses thin_io::remove_entry and takes a path",
+          "timestamp": "2026-10-10T15:30:44+03:00",
+          "tree_id": "8e634f293255d8a2fa27519cb4c76636737e872a",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/13467ea2d4bc09c1e4f1db7d7f7105670a7970cb"
+        },
+        "date": 1791635878454,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19750,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 20358,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1351.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 384.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 759.5,
             "unit": "KB"
           },
           {
