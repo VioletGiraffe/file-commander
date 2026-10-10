@@ -374,12 +374,6 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 {
 	_workerThreadPool.enqueue([this, request = std::move(request), operation]() {
 		CTimeElapsed timer{ true };
-		if (!canListDirectory(request.path))
-		{
-			execOnUiThread([this, request]() { recoverFromInaccessiblePathIfCurrent(request); });
-			return;
-		}
-
 		FileListHashMap items;
 		const bool showHiddenFiles = QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 
@@ -397,6 +391,13 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 			_watcher.captureBaselineState();
 
 			items = listDirectoryForPanel(request.path, showHiddenFiles);
+		}
+
+		// A folder that cannot be listed yields no items in either mode; so does an empty root or a tree with no files.
+		if (items.empty() && !canListDirectory(request.path))
+		{
+			execOnUiThread([this, request]() { recoverFromInaccessiblePathIfCurrent(request); });
+			return;
 		}
 
 		if (const auto elapsedMs = timer.elapsed(); elapsedMs >= 100)
