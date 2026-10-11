@@ -66,7 +66,7 @@ enum class FailedAction
 struct FailureDetails
 {
 	FailedAction action;
-	CEntryPath path; // The entry the action was applied to
+	CEntryPath path; // The entry the action was applied to; the destination for RenameEntry
 	CFileSystemError filesystemError;
 };
 

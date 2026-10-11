@@ -19,7 +19,7 @@ InlineRenameResult performRename(const CEntryPath& source, const CEntryPath& des
 	if (result)
 		return { .status = InlineRenameStatus::Renamed };
 
-	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, source, result.error() } };
+	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, destination, result.error() } };
 }
 
 InlineRenameResult performCaseRespellOrRecognizeAlias(const CEntryPath& source, const CEntryPath& destination)
@@ -41,7 +41,7 @@ InlineRenameResult performCaseRespellOrRecognizeAlias(const CEntryPath& source, 
 			return { .status = InlineRenameStatus::NothingToDo };
 	}
 
-	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, source, std::move(error) } };
+	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, destination, std::move(error) } };
 }
 
 } // namespace

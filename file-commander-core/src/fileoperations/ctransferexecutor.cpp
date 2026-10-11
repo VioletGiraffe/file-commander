@@ -610,7 +610,7 @@ std::variant<NodeOutcome, CTransferExecutor::RenameBlock> CTransferExecutor::ren
 			return RenameBlock::DestinationOccupied;
 
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, source, {},
-			FailureDetails{ FailedAction::RenameEntry, source.path, mv(error) } });
+			FailureDetails{ FailedAction::RenameEntry, destination, mv(error) } });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)
