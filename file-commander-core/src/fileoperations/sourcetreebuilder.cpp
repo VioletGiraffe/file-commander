@@ -69,7 +69,7 @@ void publishScanProgress(BuildState& state, const CEntryPath& currentEntry)
 
 void failBuild(BuildState& state, EntrySnapshot failedEntry, CFileSystemError error)
 {
-	state.failure = OperationDiagnostic{ FailureDetails{ FailedAction::InspectSource, mv(error) }, mv(failedEntry), {} };
+	state.failure = OperationDiagnostic{ FailureDetails{ FailedAction::InspectSource, failedEntry.path, mv(error) }, mv(failedEntry), {} };
 }
 
 bool buildCancelledAtCheckpoint(BuildState& state)

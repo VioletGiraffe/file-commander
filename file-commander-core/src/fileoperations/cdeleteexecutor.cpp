@@ -43,7 +43,7 @@ std::variant<EntrySnapshot, NodeOutcome> CDeleteExecutor::inspectSourceRoot(cons
 		}
 
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed,
-			EntrySnapshot{ source, OperationEntryKind::Unknown, 0 }, {}, FailureDetails{ FailedAction::InspectSource, mv(inspected.error()) } });
+			EntrySnapshot{ source, OperationEntryKind::Unknown, 0 }, {}, FailureDetails{ FailedAction::InspectSource, source, mv(inspected.error()) } });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)
@@ -186,7 +186,7 @@ NodeOutcome CDeleteExecutor::removeEntryWithPolicy(const EntrySnapshot& entry)
 			if (const auto madeWritable = CFileSystemMutator::setEntryWritable(entry, true); !madeWritable)
 			{
 				const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, entry, {},
-					FailureDetails{ FailedAction::MakeWritable, madeWritable.error() } });
+					FailureDetails{ FailedAction::MakeWritable, entry.path, madeWritable.error() } });
 				if (!decision || decision->action == DecisionAction::Cancel)
 					return NodeOutcome::Cancelled;
 				if (decision->action == DecisionAction::Skip)
@@ -226,7 +226,7 @@ NodeOutcome CDeleteExecutor::removeEntryWithPolicy(const EntrySnapshot& entry)
 			if (const auto writable = isEntryWritableNoFollow(entry); writable && !*writable)
 			{
 				const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ReadOnlySourceRemoval, entry, {},
-					FailureDetails{ FailedAction::RemoveEntry, mv(error) } });
+					FailureDetails{ FailedAction::RemoveEntry, entry.path, mv(error) } });
 				if (!decision || decision->action == DecisionAction::Cancel)
 					return NodeOutcome::Cancelled;
 				if (decision->action == DecisionAction::Skip)
@@ -240,7 +240,7 @@ NodeOutcome CDeleteExecutor::removeEntryWithPolicy(const EntrySnapshot& entry)
 		}
 
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, entry, {},
-			FailureDetails{ FailedAction::RemoveEntry, mv(error) } });
+			FailureDetails{ FailedAction::RemoveEntry, entry.path, mv(error) } });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)

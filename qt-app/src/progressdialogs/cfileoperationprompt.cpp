@@ -218,9 +218,13 @@ void CFileOperationPrompt::setupAuxiliaryTexts()
 	{
 		// For ActionFailed the headline already names the attempted action; other kinds carry a raced
 		// failure and present it in full.
-		ui->lblFailure->setText(issue.kind == IssueKind::ActionFailed
+		QString failureText = issue.kind == IssueKind::ActionFailed
 			? tr("Reason: %1").arg(fileSystemErrorText(issue.failure->filesystemError))
-			: tr("%1 failed: %2").arg(fileOperationFailedActionText(issue.failure->action), fileSystemErrorText(issue.failure->filesystemError)));
+			: tr("%1 failed: %2").arg(fileOperationFailedActionText(issue.failure->action), fileSystemErrorText(issue.failure->filesystemError));
+		// The source is already on display.
+		if (issue.failure->path != issue.source.path)
+			failureText += QLatin1Char('\n') % tr("Affected entry: %1").arg(QDir::toNativeSeparators(issue.failure->path.value()));
+		ui->lblFailure->setText(failureText);
 	}
 	else
 		ui->lblFailure->hide();

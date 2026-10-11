@@ -19,8 +19,7 @@ struct StagedCopyBeginFailure
 // One staged copy of one regular file, or of a materialized file link's target: an exclusively created,
 // hidden temporary sibling of the destination receives the data and the required source metadata, then
 // atomically becomes the destination entry. Move-only; a session that was neither committed nor aborted
-// cleans up best-effort in the destructor. The executor owns paths in diagnostics, prompts, retry, progress,
-// and the durability choice.
+// cleans up best-effort in the destructor. The executor owns prompts, retry, progress, and the durability choice.
 class CStagedFileCopy
 {
 public:
@@ -49,7 +48,7 @@ public:
 	[[nodiscard]] std::expected<void, FailureDetails> abort();
 
 private:
-	CStagedFileCopy(CEntryPath destination, CEntryPath stagingPath, thin_io::file sourceFile, thin_io::file stagingFile,
+	CStagedFileCopy(CEntryPath source, CEntryPath destination, CEntryPath stagingPath, thin_io::file sourceFile, thin_io::file stagingFile,
 					const thin_io::entry_times& sourceTimes, thin_io::file_permissions sourcePermissions, uint64_t sourceSize) noexcept;
 
 	[[nodiscard]] static std::optional<NativeErrorCode> discardStagingFile(thin_io::file& stagingFile, const CEntryPath& stagingPath);
@@ -64,6 +63,7 @@ private:
 		MovedFrom
 	};
 
+	CEntryPath _sourcePath;
 	CEntryPath _destinationPath;
 	CEntryPath _stagingPath;
 	thin_io::file _sourceFile;

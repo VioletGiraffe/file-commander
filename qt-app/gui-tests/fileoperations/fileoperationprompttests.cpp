@@ -12,6 +12,7 @@ DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/catch_qt.hpp" // qtutils
 
 #include <QCheckBox>
+#include <QDir>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -49,9 +50,9 @@ DecisionRequest makeRequest(const IssueKind kind, EntrySnapshot source, std::opt
 		allowedActionsFor(kind), scopeAllowed };
 }
 
-FailureDetails ioFailure(const FailedAction action, const QString& diagnostic = QStringLiteral("mock diagnostic"))
+FailureDetails ioFailure(const FailedAction action, const QString& diagnostic = QStringLiteral("mock diagnostic"), const char* failedEntryName = "src.bin")
 {
-	return FailureDetails{ action, CFileSystemError{ FileErrorCategory::IoFailure, 5, diagnostic } };
+	return FailureDetails{ action, snapshot(failedEntryName, OperationEntryKind::Unknown).path, CFileSystemError{ FileErrorCategory::IoFailure, 5, diagnostic } };
 }
 
 // A renderable request for any kind: exactly the destination and failure that kind carries.
@@ -491,6 +492,18 @@ TEST_CASE("prompt: wording", "[fileoperationprompt]")
 			{}, ioFailure(FailedAction::WriteDestination, QStringLiteral("mock diagnostic"))), PromptOperation::Copy };
 		const QString failureText = prompt.findChild<QLabel*>(QStringLiteral("lblFailure"))->text();
 		CHECK(failureText.contains(QStringLiteral("mock diagnostic")));
+	}
+
+	SECTION("the failure names the affected entry only when it is not the source")
+	{
+		const auto failureTextFor = [](const char* failedEntryName) {
+			CFileOperationPrompt prompt{ makeRequest(IssueKind::ActionFailed, snapshot("src.bin", OperationEntryKind::RegularFile),
+				{}, ioFailure(FailedAction::InspectDestination, QStringLiteral("mock diagnostic"), failedEntryName)), PromptOperation::Copy };
+			return prompt.findChild<QLabel*>(QStringLiteral("lblFailure"))->text();
+		};
+
+		CHECK(failureTextFor("destination-folder").contains(QDir::toNativeSeparators(testPath("destination-folder"))));
+		CHECK(!failureTextFor("src.bin").contains(QStringLiteral("src.bin")));
 	}
 
 	SECTION("read-only removal is labeled by its actual consequence; no force-remove exists")

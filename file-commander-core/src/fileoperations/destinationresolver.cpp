@@ -47,10 +47,11 @@ std::variant<CEntryPath, DecisionAction> promptForCollision(COperationExecutionC
 }
 
 // Retry/Skip/Cancel for a resolution-time inspection failure; nullopt = Retry.
-std::optional<DestinationChoice> resolveInspectionFailure(COperationExecutionContext& context, const EntrySnapshot& source, CFileSystemError error)
+std::optional<DestinationChoice> resolveInspectionFailure(COperationExecutionContext& context, const EntrySnapshot& source,
+	const CEntryPath& destination, CFileSystemError error)
 {
 	const auto decision = context.resolveDecision(
-		OperationIssue{ IssueKind::ActionFailed, source, {}, FailureDetails{ FailedAction::InspectDestination, mv(error) } });
+		OperationIssue{ IssueKind::ActionFailed, source, {}, FailureDetails{ FailedAction::InspectDestination, destination, mv(error) } });
 	if (!decision || decision->action == DecisionAction::Cancel)
 		return DestinationChoice{ CancelOperation{} };
 	if (decision->action == DecisionAction::Skip)
@@ -71,7 +72,7 @@ DestinationChoice resolveFileDestination(COperationExecutionContext& context, co
 		const auto destination = inspectEntry(proposed);
 		if (!destination) [[unlikely]]
 		{
-			if (auto verdict = resolveInspectionFailure(context, source, destination.error()))
+			if (auto verdict = resolveInspectionFailure(context, source, proposed, destination.error()))
 				return mv(*verdict);
 			continue;
 		}
@@ -82,7 +83,7 @@ DestinationChoice resolveFileDestination(COperationExecutionContext& context, co
 		const auto sameEntry = checkSameEntry(source.path, proposed, thin_io::link_behavior::do_not_follow);
 		if (!sameEntry) [[unlikely]]
 		{
-			if (auto verdict = resolveInspectionFailure(context, source, sameEntry.error()))
+			if (auto verdict = resolveInspectionFailure(context, source, proposed, sameEntry.error()))
 				return mv(*verdict);
 			continue;
 		}
@@ -125,7 +126,7 @@ DestinationChoice resolveDirectoryDestination(COperationExecutionContext& contex
 		const auto destination = inspectEntry(proposed);
 		if (!destination) [[unlikely]]
 		{
-			if (auto verdict = resolveInspectionFailure(context, source, destination.error()))
+			if (auto verdict = resolveInspectionFailure(context, source, proposed, destination.error()))
 				return mv(*verdict);
 			continue;
 		}
@@ -136,7 +137,7 @@ DestinationChoice resolveDirectoryDestination(COperationExecutionContext& contex
 		const auto sameEntry = checkSameEntry(source.path, proposed, thin_io::link_behavior::do_not_follow);
 		if (!sameEntry) [[unlikely]]
 		{
-			if (auto verdict = resolveInspectionFailure(context, source, sameEntry.error()))
+			if (auto verdict = resolveInspectionFailure(context, source, proposed, sameEntry.error()))
 				return mv(*verdict);
 			continue;
 		}

@@ -433,17 +433,20 @@ TEST_CASE("dialog: completion text summarizes the outcome", "[fileoperationdialo
 	SECTION("representative failures are listed with the affected entry and reason")
 	{
 #ifdef _WIN32
-		const CEntryPath failedEntry = entryPath(QStringLiteral("C:/somewhere/stuck.bin"));
+		const CEntryPath source = entryPath(QStringLiteral("C:/somewhere/source.bin"));
+		const CEntryPath failedEntry = entryPath(QStringLiteral("C:/elsewhere/stuck.tmp"));
 #else
-		const CEntryPath failedEntry = entryPath(QStringLiteral("/somewhere/stuck.bin"));
+		const CEntryPath source = entryPath(QStringLiteral("/somewhere/source.bin"));
+		const CEntryPath failedEntry = entryPath(QStringLiteral("/elsewhere/stuck.tmp"));
 #endif
 		OperationSummary summary{ .status = CompletionStatus::Failed, .failedItems = 1 };
 		summary.representativeFailures.push_back(OperationDiagnostic{
-			FailureDetails{ FailedAction::RemovePublishedMoveSource, CFileSystemError{ FileErrorCategory::PermissionDenied, 5, {} } },
-			EntrySnapshot{ failedEntry, OperationEntryKind::RegularFile, 0 }, {} });
+			FailureDetails{ FailedAction::CleanupStaging, failedEntry, CFileSystemError{ FileErrorCategory::PermissionDenied, 5, {} } },
+			EntrySnapshot{ source, OperationEntryKind::RegularFile, 0 }, {} });
 
 		const QString text = CFileOperationDialog::composeSummaryText(summary, PromptOperation::Move);
-		CHECK(text.contains(QStringLiteral("stuck.bin")));
+		CHECK(text.contains(QStringLiteral("stuck.tmp")));
+		CHECK(!text.contains(QStringLiteral("source.bin")));
 		CHECK(text.contains(QStringLiteral("access denied")));
 	}
 
@@ -456,7 +459,7 @@ TEST_CASE("dialog: completion text summarizes the outcome", "[fileoperationdialo
 #endif
 		OperationSummary summary{ .status = CompletionStatus::Completed, .completedItems = 3, .warningCount = 1 };
 		summary.representativeWarnings.push_back(OperationDiagnostic{
-			FailureDetails{ FailedAction::PreserveDirectoryTimestamps, CFileSystemError{ FileErrorCategory::PermissionDenied, 5, {} } },
+			FailureDetails{ FailedAction::PreserveDirectoryTimestamps, warnedEntry, CFileSystemError{ FileErrorCategory::PermissionDenied, 5, {} } },
 			EntrySnapshot{ warnedEntry, OperationEntryKind::Directory, 0 }, {} });
 
 		const QString text = CFileOperationDialog::composeSummaryText(summary, PromptOperation::Copy);

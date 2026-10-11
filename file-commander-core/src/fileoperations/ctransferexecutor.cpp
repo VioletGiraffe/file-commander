@@ -66,7 +66,7 @@ std::variant<EntrySnapshot, NodeOutcome> CTransferExecutor::inspectSourceRoot(co
 			: mv(inspected.error());
 
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed,
-			EntrySnapshot{ source, OperationEntryKind::Unknown, 0 }, {}, FailureDetails{ FailedAction::InspectSource, mv(error) } });
+			EntrySnapshot{ source, OperationEntryKind::Unknown, 0 }, {}, FailureDetails{ FailedAction::InspectSource, source, mv(error) } });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)
@@ -135,7 +135,7 @@ std::optional<NodeOutcome> CTransferExecutor::ensureDestinationParentExistsWithP
 		auto parentEntry = inspectEntry(parent);
 		if (!parentEntry)
 		{
-			failure = FailureDetails{ FailedAction::InspectDestination, mv(parentEntry.error()) };
+			failure = FailureDetails{ FailedAction::InspectDestination, parent, mv(parentEntry.error()) };
 		}
 		else if (parentEntry->has_value())
 		{
@@ -143,7 +143,7 @@ std::optional<NodeOutcome> CTransferExecutor::ensureDestinationParentExistsWithP
 			if (kind == OperationEntryKind::Directory || kind == OperationEntryKind::DirectoryLink)
 				return std::nullopt;
 
-			failure = FailureDetails{ FailedAction::CreateDestinationDirectory, CFileSystemError{ FileErrorCategory::AlreadyExists, 0,
+			failure = FailureDetails{ FailedAction::CreateDestinationDirectory, parent, CFileSystemError{ FileErrorCategory::AlreadyExists, 0,
 				QStringLiteral("The destination parent is not a directory") } };
 		}
 		else
@@ -157,7 +157,7 @@ std::optional<NodeOutcome> CTransferExecutor::ensureDestinationParentExistsWithP
 				assert_debug_only(*created == DirectoryCreationOutcome::FinalEntryAlreadyExisted);
 				continue; // An entry raced into the final parent: inspect its kind freshly.
 			}
-			failure = FailureDetails{ FailedAction::CreateDestinationDirectory, mv(created.error()) };
+			failure = FailureDetails{ FailedAction::CreateDestinationDirectory, parent, mv(created.error()) };
 		}
 
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, source, {}, mv(*failure) });
@@ -303,7 +303,7 @@ NodeOutcome CTransferExecutor::runDirectoryNode(const SourceNode& node, const Tr
 		}
 
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, node.entry,
-			{}, FailureDetails{ FailedAction::CreateDestinationDirectory, created.error() } });
+			{}, FailureDetails{ FailedAction::CreateDestinationDirectory, use.path, created.error() } });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)
@@ -329,7 +329,7 @@ NodeOutcome CTransferExecutor::copyDirectoryContents(const SourceNode& node, con
 		if (captured)
 			copyableTimes = *captured;
 		else
-			recordTimestampWarning(node.entry, destination, mv(captured.error()));
+			recordTimestampWarning(node.entry, destination, node.entry.path, mv(captured.error()));
 	}
 
 	NodeOutcome aggregate = NodeOutcome::Completed;
@@ -346,7 +346,7 @@ NodeOutcome CTransferExecutor::copyDirectoryContents(const SourceNode& node, con
 	if (operationCreated && copyableTimes && aggregate != NodeOutcome::Cancelled)
 	{
 		if (const auto applied = CFileSystemMutator::applyDirectoryTimes(destination, *copyableTimes); !applied)
-			recordTimestampWarning(node.entry, destination, applied.error());
+			recordTimestampWarning(node.entry, destination, destination, applied.error());
 	}
 
 	return aggregate;
@@ -557,7 +557,7 @@ NodeOutcome CTransferExecutor::moveDirectoryContents(const SourceNode& node, con
 		if (captured)
 			copyableTimes = *captured;
 		else
-			recordTimestampWarning(node.entry, destination, mv(captured.error()));
+			recordTimestampWarning(node.entry, destination, node.entry.path, mv(captured.error()));
 	}
 
 	NodeOutcome aggregate = NodeOutcome::Completed;
@@ -574,7 +574,7 @@ NodeOutcome CTransferExecutor::moveDirectoryContents(const SourceNode& node, con
 	if (operationCreated && copyableTimes && aggregate != NodeOutcome::Cancelled)
 	{
 		if (const auto applied = CFileSystemMutator::applyDirectoryTimes(destination, *copyableTimes); !applied)
-			recordTimestampWarning(node.entry, destination, applied.error());
+			recordTimestampWarning(node.entry, destination, destination, applied.error());
 	}
 
 	if (!owned || aggregate == NodeOutcome::Cancelled)
@@ -610,7 +610,7 @@ std::variant<NodeOutcome, CTransferExecutor::RenameBlock> CTransferExecutor::ren
 			return RenameBlock::DestinationOccupied;
 
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, source, {},
-			FailureDetails{ FailedAction::RenameEntry, mv(error) } });
+			FailureDetails{ FailedAction::RenameEntry, source.path, mv(error) } });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)
@@ -651,7 +651,7 @@ NodeOutcome CTransferExecutor::removePublishedSourceWithPolicy(const EntrySnapsh
 		{
 			if (const auto madeWritable = CFileSystemMutator::setEntryWritable(entry, true); !madeWritable)
 			{
-				FailureDetails failure{ FailedAction::MakeWritable, madeWritable.error() };
+				FailureDetails failure{ FailedAction::MakeWritable, entry.path, madeWritable.error() };
 				const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, entry,
 					destinationSnapshotFor(entry, destination), failure }, false);
 				if (!decision || decision->action == DecisionAction::Cancel)
@@ -678,7 +678,7 @@ NodeOutcome CTransferExecutor::removePublishedSourceWithPolicy(const EntrySnapsh
 		{
 			if (const auto writable = isEntryWritableNoFollow(entry); writable && !*writable)
 			{
-				FailureDetails failure{ FailedAction::RemovePublishedMoveSource, mv(error) };
+				FailureDetails failure{ FailedAction::RemovePublishedMoveSource, entry.path, mv(error) };
 				const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ReadOnlySourceRemoval, entry,
 					destinationSnapshotFor(entry, destination), failure }, false);
 				if (!decision || decision->action == DecisionAction::Cancel)
@@ -693,7 +693,7 @@ NodeOutcome CTransferExecutor::removePublishedSourceWithPolicy(const EntrySnapsh
 			}
 		}
 
-		FailureDetails failure{ FailedAction::RemovePublishedMoveSource, mv(error) };
+		FailureDetails failure{ FailedAction::RemovePublishedMoveSource, entry.path, mv(error) };
 		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, entry,
 			destinationSnapshotFor(entry, destination), failure }, false);
 		if (!decision || decision->action == DecisionAction::Cancel)
@@ -741,7 +741,7 @@ std::optional<NodeOutcome> CTransferExecutor::stagedFileTransferWithPolicy(const
 		_context.progress().setCurrentEntry(source.path, source.size);
 		_context.publishProgressSnapshot();
 
-		FailureDetails failure{};
+		std::optional<FailureDetails> failure;
 		bool sessionCompleted = false;
 		bool freshCollisionAtPublication = false;
 
@@ -806,8 +806,8 @@ std::optional<NodeOutcome> CTransferExecutor::stagedFileTransferWithPolicy(const
 				abortStagedSession(*session, source);
 				// A publication-time AlreadyExists may re-enter resolution, but only when fresh inspection
 				// proves the new collision really exists (nothing was published either way).
-				if (failure.action == FailedAction::PublishDestination
-					&& failure.filesystemError.category == FileErrorCategory::AlreadyExists)
+				if (failure->action == FailedAction::PublishDestination
+					&& failure->filesystemError.category == FileErrorCategory::AlreadyExists)
 				{
 					if (const auto fresh = inspectEntry(destination); fresh && fresh->has_value())
 						freshCollisionAtPublication = true;
@@ -832,7 +832,7 @@ std::optional<NodeOutcome> CTransferExecutor::stagedFileTransferWithPolicy(const
 		if (freshCollisionAtPublication)
 			return {};
 
-		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, source, {}, mv(failure) });
+		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, source, {}, mv(*failure) });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)
@@ -853,9 +853,9 @@ void CTransferExecutor::abortStagedSession(CStagedFileCopy& session, const Entry
 		_context.recordWarning(OperationDiagnostic{ mv(aborted.error()), source, {} });
 }
 
-void CTransferExecutor::recordTimestampWarning(const EntrySnapshot& source, const CEntryPath& destination, CFileSystemError error)
+void CTransferExecutor::recordTimestampWarning(const EntrySnapshot& source, const CEntryPath& destination, const CEntryPath& failedPath, CFileSystemError error)
 {
-	_context.recordWarning(OperationDiagnostic{ FailureDetails{ FailedAction::PreserveDirectoryTimestamps, mv(error) },
+	_context.recordWarning(OperationDiagnostic{ FailureDetails{ FailedAction::PreserveDirectoryTimestamps, failedPath, mv(error) },
 		source, EntrySnapshot{ destination, OperationEntryKind::Directory, 0 } });
 }
 

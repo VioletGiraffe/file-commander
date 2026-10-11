@@ -120,6 +120,7 @@ TEST_CASE("copy executor: files, trees, and multiple roots", "[executor]")
 		REQUIRE(script.seenRequests.size() == 1);
 		REQUIRE(script.seenRequests[0].issue.failure.has_value());
 		CHECK(script.seenRequests[0].issue.failure->action == FailedAction::InspectDestination);
+		CHECK(script.seenRequests[0].issue.failure->path == ep(base));
 	}
 
 	SECTION("empty and multi-chunk files")

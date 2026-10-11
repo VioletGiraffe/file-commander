@@ -19,7 +19,7 @@ InlineRenameResult performRename(const CEntryPath& source, const CEntryPath& des
 	if (result)
 		return { .status = InlineRenameStatus::Renamed };
 
-	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, result.error() } };
+	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, source, result.error() } };
 }
 
 InlineRenameResult performCaseRespellOrRecognizeAlias(const CEntryPath& source, const CEntryPath& destination)
@@ -36,12 +36,12 @@ InlineRenameResult performCaseRespellOrRecognizeAlias(const CEntryPath& source, 
 		const auto stillSameEntry = checkSameEntry(source, destination, thin_io::link_behavior::do_not_follow);
 		if (!stillSameEntry)
 			return { .status = InlineRenameStatus::Failed,
-				.failure = FailureDetails{ FailedAction::InspectDestination, stillSameEntry.error() } };
+				.failure = FailureDetails{ FailedAction::InspectDestination, destination, stillSameEntry.error() } };
 		if (*stillSameEntry == SameEntryVerdict::Same)
 			return { .status = InlineRenameStatus::NothingToDo };
 	}
 
-	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, std::move(error) } };
+	return { .status = InlineRenameStatus::Failed, .failure = FailureDetails{ FailedAction::RenameEntry, source, std::move(error) } };
 }
 
 } // namespace
@@ -63,7 +63,7 @@ InlineRenameResult inlineRename(const CEntryPath& source, const QString& newName
 
 	const auto destinationInspect = inspectEntry(destination);
 	if (!destinationInspect)
-		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectDestination, destinationInspect.error() } };
+		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectDestination, destination, destinationInspect.error() } };
 
 	// Absent destination: a straight exclusive rename. This is also the case-only path on a case-sensitive
 	// filesystem, where the new-case spelling genuinely names no existing entry.
@@ -76,7 +76,7 @@ InlineRenameResult inlineRename(const CEntryPath& source, const QString& newName
 	// aliasing the same file under a genuinely different name is already satisfied.
 	const auto sameEntry = checkSameEntry(source, destination, thin_io::link_behavior::do_not_follow);
 	if (!sameEntry)
-		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectSource, sameEntry.error() } };
+		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectSource, source, sameEntry.error() } };
 	if (*sameEntry == SameEntryVerdict::Same)
 	{
 		if (newName.compare(source.name(), Qt::CaseInsensitive) == 0)
@@ -87,9 +87,9 @@ InlineRenameResult inlineRename(const CEntryPath& source, const QString& newName
 	// A distinct existing destination: the source's kind decides between replacement and rejection.
 	const auto sourceInspect = inspectEntry(source);
 	if (!sourceInspect)
-		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectSource, sourceInspect.error() } };
+		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectSource, source, sourceInspect.error() } };
 	if (!sourceInspect->has_value())
-		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectSource, CFileSystemError{ FileErrorCategory::NotFound, 0, {} } } };
+		return { .status = Failed, .failure = FailureDetails{ FailedAction::InspectSource, source, CFileSystemError{ FileErrorCategory::NotFound, 0, {} } } };
 
 	using enum OperationEntryKind;
 	const OperationEntryKind sourceKind = (*sourceInspect)->kind;

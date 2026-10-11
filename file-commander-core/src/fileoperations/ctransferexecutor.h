@@ -60,7 +60,7 @@ private:
 		ReplacementMode replacement, PublishedSourceAction sourceAction, bool makeWritableAuthorized);
 
 	void abortStagedSession(CStagedFileCopy& session, const EntrySnapshot& source);
-	void recordTimestampWarning(const EntrySnapshot& source, const CEntryPath& destination, CFileSystemError error);
+	void recordTimestampWarning(const EntrySnapshot& source, const CEntryPath& destination, const CEntryPath& failedPath, CFileSystemError error);
 
 	void accountSkippedSubtree(const SourceNode& node);
 	void accountAlreadySatisfiedSubtree(const SourceNode& node);

@@ -349,10 +349,12 @@ TEST_CASE("remembered decisions: storage, replay, and isolation", "[decisions]")
 
 	SECTION("one remembered ActionFailed Skip spans different failed actions")
 	{
-		const OperationIssue writeFailure{ IssueKind::ActionFailed, fakeSnapshot(OperationEntryKind::RegularFile, "src/a.bin"), {},
-			FailureDetails{ FailedAction::WriteDestination, CFileSystemError{ FileErrorCategory::IoFailure, 0, QStringLiteral("io") } } };
-		const OperationIssue removeFailure{ IssueKind::ActionFailed, fakeSnapshot(OperationEntryKind::RegularFile, "src/b.bin"), {},
-			FailureDetails{ FailedAction::RemoveEntry, CFileSystemError{ FileErrorCategory::PermissionDenied, 0, QStringLiteral("denied") } } };
+		const EntrySnapshot sourceA = fakeSnapshot(OperationEntryKind::RegularFile, "src/a.bin");
+		const EntrySnapshot sourceB = fakeSnapshot(OperationEntryKind::RegularFile, "src/b.bin");
+		const OperationIssue writeFailure{ IssueKind::ActionFailed, sourceA, {},
+			FailureDetails{ FailedAction::WriteDestination, sourceA.path, CFileSystemError{ FileErrorCategory::IoFailure, 0, QStringLiteral("io") } } };
+		const OperationIssue removeFailure{ IssueKind::ActionFailed, sourceB, {},
+			FailureDetails{ FailedAction::RemoveEntry, sourceB.path, CFileSystemError{ FileErrorCategory::PermissionDenied, 0, QStringLiteral("denied") } } };
 
 		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip, DecisionScope::RemainingMatchingIssues) } };
 		auto context = scriptedContext(decisions);
@@ -464,9 +466,9 @@ TEST_CASE("execution context: summary accumulation is bounded", "[decisions]")
 	ScriptedDecisions decisions;
 	auto context = scriptedContext(decisions);
 
+	const EntrySnapshot source = fakeSnapshot(OperationEntryKind::RegularFile, "src/a.bin");
 	const OperationDiagnostic diagnostic{
-		FailureDetails{ FailedAction::CleanupStaging, CFileSystemError{ FileErrorCategory::IoFailure, 0, QStringLiteral("w") } },
-		fakeSnapshot(OperationEntryKind::RegularFile, "src/a.bin"), {} };
+		FailureDetails{ FailedAction::CleanupStaging, source.path, CFileSystemError{ FileErrorCategory::IoFailure, 0, QStringLiteral("w") } }, source, {} };
 
 	for (int i = 0; i < 20; ++i)
 		context.recordWarning(diagnostic);

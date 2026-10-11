@@ -101,7 +101,7 @@ QString fileOperationDiagnosticText(const OperationDiagnostic& diagnostic)
 	// The path goes last because the summary label elides these lines in the middle: the file name survives there.
 	return fileOperationFailedActionText(diagnostic.failure.action) % QLatin1String(" - ")
 		% fileSystemErrorText(diagnostic.failure.filesystemError) % QLatin1String(": ")
-		% QDir::toNativeSeparators(diagnostic.source.path.value());
+		% QDir::toNativeSeparators(diagnostic.failure.path.value());
 }
 
 QString newNameRejectionText(const NameRejection rejection)
