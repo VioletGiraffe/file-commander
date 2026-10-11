@@ -408,18 +408,17 @@ jobs:
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
-        # Everything runs but what these filesystems cannot do: tests that need a link skip themselves, and
-        # [case-only-rename] is a known defect there (doc/core-engine.md). The comparator's generated data does
-        # not fit these disks.
+        # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
+        # comparator's generated data does not fit these disks.
         foreach ($letter in 'T', 'U') {
           Write-Output "===== Temporary folders on ${letter}:"
           $env:TEMP = "${letter}:\Temp"
           $env:TMP = "${letter}:\Temp"
           $env:TMPDIR = "${letter}:\Temp"
           # Both volumes always run; the step fails at the end
-          .\scripts\run_tests.bat -NoBuild -Without '[case-only-rename]'
+          .\scripts\run_tests.bat -NoBuild
           if ($LASTEXITCODE -ne 0) { $failed = $true }
-          .\scripts\run_tests.bat -NoBuild -All -Suite fileoperations_test -Without '[case-only-rename]' --std-seed (Get-Random)
+          .\scripts\run_tests.bat -NoBuild -All -Suite fileoperations_test --std-seed (Get-Random)
           if ($LASTEXITCODE -ne 0) { $failed = $true }
         }
         if ($failed) { exit 1 }

@@ -113,18 +113,46 @@ bool isExclusiveRenameUnsupported(const NativeErrorCode code) noexcept
 		;
 }
 
-CFileSystemError exclusiveRenameFailure(const NativeErrorCode code)
+constexpr NativeErrorCode entryExistsCode = EEXIST;
+#else
+constexpr NativeErrorCode entryExistsCode = ERROR_ALREADY_EXISTS;
+#endif
+
+bool differOnlyByCase(const CEntryPath& a, const CEntryPath& b)
 {
-	if (isExclusiveRenameUnsupported(code))
-		return makeError(FileErrorCategory::Unsupported, code);
-	return renameErrorFromNative(code);
+	return a.value() != b.value() && a.value().compare(b.value(), Qt::CaseInsensitive) == 0;
+}
+
+// Renames only when the destination is absent. Every Windows filesystem has the exclusive rename.
+// Where a POSIX filesystem has none, the failed exclusive call is the probe (never cached): a fresh no-follow
+// recheck, then a plain rename. That leaves the recheck-rename instant unprotected, on such filesystems only.
+std::optional<NativeErrorCode> renameRequiringAbsentDestination(const NativePathString& source, const NativePathString& destination,
+	const OperationTestHooks::Point hookPoint)
+{
+	const auto exclusiveError = renameError(source, destination, thin_io::existing_destination::fail, hookPoint);
+#ifdef _WIN32
+	return exclusiveError;
+#else
+	if (!exclusiveError || !isExclusiveRenameUnsupported(*exclusiveError))
+		return exclusiveError;
+
+	const auto destinationMetadata = thin_io::get_entry_metadata(nativeCStr(destination), thin_io::link_behavior::do_not_follow);
+	if (destinationMetadata)
+		return entryExistsCode;
+	if (classifyNativeError(destinationMetadata.error().native_code) != FileErrorCategory::NotFound)
+		return destinationMetadata.error().native_code;
+
+	if (const auto renamed = thin_io::rename_entry(nativeCStr(source), nativeCStr(destination), thin_io::existing_destination::replace); !renamed)
+		return renamed.error().native_code;
+	return {};
+#endif
 }
 
 CFileSystemError caseRespellRollbackFailure(const CEntryPath& temporaryPath, const NativeErrorCode publicationCode,
 	const NativeErrorCode rollbackCode)
 {
-	const CFileSystemError publicationError = exclusiveRenameFailure(publicationCode);
-	const CFileSystemError rollbackError = exclusiveRenameFailure(rollbackCode);
+	const CFileSystemError publicationError = renameErrorFromNative(publicationCode);
+	const CFileSystemError rollbackError = renameErrorFromNative(rollbackCode);
 	return { FileErrorCategory::IoFailure, rollbackCode,
 		QStringLiteral("The requested case respelling failed (%1), and the source could not be restored (%2). The source remains at: %3")
 			.arg(publicationError.diagnostic, rollbackError.diagnostic, temporaryPath.value()) };
@@ -141,7 +169,7 @@ std::expected<void, CFileSystemError> renameCaseOnlyThroughTemporary(const CEntr
 		CEntryPath candidate = source.parent().child(
 			QStringLiteral(".file-commander-rename-") % QUuid::createUuid().toString(QUuid::WithoutBraces) % QStringLiteral(".tmp"));
 		auto candidateNative = thinIoPath(candidate);
-		const auto moveError = renameError(sourceNative, candidateNative, thin_io::existing_destination::fail,
+		const auto moveError = renameRequiringAbsentDestination(sourceNative, candidateNative,
 			OperationTestHooks::Point::CaseRespell_MoveToTemporary_Native);
 		if (!moveError)
 		{
@@ -149,28 +177,36 @@ std::expected<void, CFileSystemError> renameCaseOnlyThroughTemporary(const CEntr
 			temporaryNative = std::move(candidateNative);
 			break;
 		}
-		CFileSystemError moveFailure = exclusiveRenameFailure(*moveError);
+		CFileSystemError moveFailure = renameErrorFromNative(*moveError);
 		if (moveFailure.category != FileErrorCategory::AlreadyExists)
 			return std::unexpected(std::move(moveFailure));
 	}
 
 	if (!temporaryPath)
 	{
-		return std::unexpected(CFileSystemError{ FileErrorCategory::IoFailure, EEXIST,
+		return std::unexpected(CFileSystemError{ FileErrorCategory::IoFailure, entryExistsCode,
 			QStringLiteral("Could not reserve a unique temporary name for the case respelling") });
 	}
 
-	const auto publicationError = renameError(temporaryNative, destinationNative, thin_io::existing_destination::fail,
+	const auto publicationError = renameRequiringAbsentDestination(temporaryNative, destinationNative,
 		OperationTestHooks::Point::CaseRespell_PublishTemporary_Native);
 	if (!publicationError)
 		return {};
 
-	const auto rollbackError = renameError(temporaryNative, sourceNative, thin_io::existing_destination::fail,
+	const auto rollbackError = renameRequiringAbsentDestination(temporaryNative, sourceNative,
 		OperationTestHooks::Point::CaseRespell_RestoreSource_Native);
 	if (rollbackError)
 		return std::unexpected(caseRespellRollbackFailure(*temporaryPath, *publicationError, *rollbackError));
 
-	return std::unexpected(exclusiveRenameFailure(*publicationError));
+	return std::unexpected(renameErrorFromNative(*publicationError));
+}
+
+#ifdef _WIN32
+// False when the name cannot be read.
+bool storedNameDiffers(const NativePathString& path, const QString& expectedName)
+{
+	const auto entry = thin_io::get_directory_entry(nativeCStr(path));
+	return entry && entry->name != expectedName.toStdWString();
 }
 #endif
 
@@ -423,7 +459,12 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 
 	auto moveError = renameError(sourceNative, destinationNative, ifDestinationExists, Point::RenameEntry_Native);
 	if (!moveError)
+	{
+		// FAT and exFAT report a case-only rename as done and keep the old spelling.
+		if (differOnlyByCase(source, destination) && storedNameDiffers(destinationNative, destination.name()))
+			return renameCaseOnlyThroughTemporary(source, sourceNative, destinationNative);
 		return {};
+	}
 
 	// ERROR_ACCESS_DENIED is also how MoveFileExW reports an unreplaceable directory-bearing destination.
 	// Refine only from fresh no-follow attributes; ordinary permission failures remain permission failures.
@@ -483,35 +524,15 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 		return {};
 	}
 
-	// RequireAbsent starts with the native exclusive mechanism.
-	const auto exclusiveError = renameError(sourceNative, destinationNative, thin_io::existing_destination::fail, Point::RenameEntry_Native);
-	if (!exclusiveError)
+	const auto renameFailure = renameRequiringAbsentDestination(sourceNative, destinationNative, Point::RenameEntry_Native);
+	if (!renameFailure)
 		return {};
-	const NativeErrorCode errorCode = *exclusiveError;
+	const NativeErrorCode errorCode = *renameFailure;
 
-	if (isExclusiveRenameUnsupported(errorCode))
-	{
-		// The failed exclusive call is the probe (never cached): fresh no-follow recheck, then plain rename.
-		// This shrinks the unprotected window to the recheck-rename instant, on such filesystems only.
-		const auto destinationMetadata = thin_io::get_entry_metadata(nativeCStr(destinationNative), thin_io::link_behavior::do_not_follow);
-		if (destinationMetadata)
-			return std::unexpected(makeError(FileErrorCategory::AlreadyExists, EEXIST));
-		if (classifyNativeError(destinationMetadata.error().native_code) != FileErrorCategory::NotFound)
-			return std::unexpected(makeFileSystemError(destinationMetadata.error().native_code));
-
-		const auto renamed = thin_io::rename_entry(nativeCStr(sourceNative), nativeCStr(destinationNative), thin_io::existing_destination::replace);
-		if (!renamed)
-			return std::unexpected(renameErrorFromNative(renamed.error().native_code));
-
-		return {};
-	}
-
-	// An exclusive case-respell can collide with the source entry itself on a case-insensitive filesystem.
+	// A case-respell can collide with the source entry itself on a case-insensitive filesystem.
 	// Moving through a unique sibling distinguishes that from a real case-sensitive collision without guessing
 	// volume semantics: the requested spelling becomes free only when both spellings were one directory entry.
-	if (classifyNativeError(errorCode) == FileErrorCategory::AlreadyExists
-		&& source.value().compare(destination.value(), Qt::CaseInsensitive) == 0
-		&& source.value() != destination.value())
+	if (classifyNativeError(errorCode) == FileErrorCategory::AlreadyExists && differOnlyByCase(source, destination))
 	{
 		return renameCaseOnlyThroughTemporary(source, sourceNative, destinationNative);
 	}

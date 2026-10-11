@@ -22,9 +22,6 @@ param(
 	# Run only the suites whose executable name contains this
 	[string]$Suite,
 
-	# A tag whose cases every suite leaves out, e.g. '[case-only-rename]' with TEMP on FAT32 or exFAT
-	[string]$Without,
-
 	# Arguments for the selected suite, e.g. a Catch2 test spec or --std-seed
 	[Parameter(ValueFromRemainingArguments)]
 	[string[]]$SuiteArguments
@@ -128,8 +125,6 @@ foreach ($name in $suites.Keys)
 	# Typed: a one-element array unrolls to a string on its way out of the if, and splatting a string passes its
 	# characters one argument each.
 	[string[]]$arguments = if ($SuiteArguments) { $SuiteArguments } elseif ($All) { @() } else { $suites[$name] }
-	# Catch2 combines separate specs with AND, so this narrows whatever filter is already there
-	if ($Without) { $arguments += "~$Without" }
 	Write-Host "`n===== $name"
 	# --warn NoTests: a filter that matches nothing exits 0 otherwise, so a broken one would pass silently
 	& $executable @arguments --warn NoTests

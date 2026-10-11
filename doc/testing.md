@@ -30,8 +30,6 @@ while the shell script takes the same options as positional keywords, in the ord
 | Build without running, run without building | `-BuildOnly`, `-NoBuild` | `build`, `nobuild` |
 | Include the slow cases | `-All` | `all` |
 | One suite, plus arguments for it | `-Suite panel "[panel][history]"` | `panel "[panel][history]"` |
-| Leave a tag's cases out of every suite | `-Without "[tag]"` | `without "[tag]"`, before `all` |
-
 Every suite and its default filter live in one table at the top of each script. Each suite runs with Catch2's
 `--warn NoTests`, so a filter that matches nothing fails instead of reporting success.
 
@@ -47,10 +45,8 @@ cross-volume cases.
 
 To run on FAT32 or exFAT, point `TEMP` and `TMP` at the volume: every test works in a `QTemporaryDir`.
 
-- Tests that need a hard link or a directory link skip themselves there (`filesystemHasNoLinks()`).
-- The `[case-only-rename]` cases fail there on Windows by a known defect (see [core-engine.md](core-engine.md)).
-  They are the only exclusion: `-Without '[case-only-rename]'` (`without '[case-only-rename]'`) leaves a tag's
-  cases out of every suite, on top of whatever filter the run already has.
+Tests that need what those filesystems lack skip themselves there: links everywhere, and on POSIX also FIFOs,
+sockets and permission bits (`filesystemHasNoLinks()`, `filesystemIsFatFamily()`).
 
 CI runs every suite this way on an exFAT and a FAT32 volume, on each platform.
 
