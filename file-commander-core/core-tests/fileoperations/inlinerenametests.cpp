@@ -78,7 +78,7 @@ TEST_CASE("inline rename: no-op and straight rename", "[inlinerename]")
 	}
 }
 
-TEST_CASE("inline rename: a case-only change is performed", "[inlinerename]")
+TEST_CASE("inline rename: a case-only change is performed", "[inlinerename][case-only-rename]")
 {
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
@@ -100,6 +100,10 @@ TEST_CASE("inline rename: renaming onto a hardlink alias of the file is nothing 
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 	writeTestFile(base % "/file.bin", patternedContents(200));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(base % "/file.bin", base % "/alias.bin"));
 
 	// The destination is a genuinely different name for the same inode (not a case respell): already satisfied.
@@ -122,6 +126,10 @@ TEST_CASE("inline rename: a case-equivalent hardlink alias is not mistaken for a
 		WARN("The test volume is case-insensitive: distinct case-equivalent hard-link names cannot be created");
 		return;
 	}
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(base % "/file.bin", base % "/FILE.BIN"));
 
 	const auto result = inlineRename(ep(base % "/file.bin"), QStringLiteral("FILE.BIN"), false);
@@ -199,6 +207,10 @@ TEST_CASE("inline rename: a directory-link destination is rejected like a folder
 	const QString base = tempDir.path();
 	writeTestFile(base % "/src.bin", patternedContents(300));
 	REQUIRE(QDir{}.mkpath(base % "/realTarget"));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/realTarget", base % "/aLink"));
 
 	// Inline rename cannot atomically replace a directory link (Windows refuses it), so it is rejected.
@@ -214,6 +226,10 @@ TEST_CASE("inline rename: a directory-like source rejects an occupied destinatio
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 	REQUIRE(QDir{}.mkpath(base % "/realTarget"));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/realTarget", base % "/dirLink"));
 	writeTestFile(base % "/occupied.bin", patternedContents(30));
 
@@ -229,6 +245,10 @@ TEST_CASE("inline rename: a directory link renames to an absent name as the link
 	const QString base = tempDir.path();
 	REQUIRE(QDir{}.mkpath(base % "/realTarget"));
 	writeTestFile(base % "/realTarget/x.bin", patternedContents(50));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/realTarget", base % "/aLink"));
 
 	const auto result = inlineRename(ep(base % "/aLink"), QStringLiteral("renamedLink"), false);

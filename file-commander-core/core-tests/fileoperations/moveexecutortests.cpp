@@ -42,6 +42,26 @@ constexpr NativeErrorCode readOnlyCode = EROFS;
 
 } // namespace
 
+TEST_CASE("move executor: a case-only respell is a real rename, not a silent same-object no-op", "[moveexecutor][case-only-rename]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	OperationScript script;
+	writeTestFile(base % "/case.bin", patternedContents(100));
+
+	const auto summary = runMove(script, { base % "/case.bin" }, DestinationIntent::ExactEntry, base % "/CASE.BIN");
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	CHECK(script.seenRequests.empty());
+	CHECK(summary.alreadySatisfiedItems == 0);
+
+	const QStringList names = QDir{ base }.entryList({ QStringLiteral("*.BIN"), QStringLiteral("*.bin") }, QDir::Files);
+	CHECK(names.contains(QStringLiteral("CASE.BIN")));
+	CHECK(!names.contains(QStringLiteral("case.bin")));
+}
+
 TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 {
 	QTemporaryDir tempDir;
@@ -132,21 +152,6 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 		CHECK(readFileContents(base % "/moved.bin") == patternedContents(500));
 	}
 
-	SECTION("a case-only respell is a real rename, not a silent same-object no-op")
-	{
-		writeTestFile(base % "/case.bin", patternedContents(100));
-
-		const auto summary = runMove(script, { base % "/case.bin" }, DestinationIntent::ExactEntry, base % "/CASE.BIN");
-		CHECK(summary.status == CompletionStatus::Completed);
-		CHECK(summary.completedItems == 1);
-		CHECK(script.seenRequests.empty());
-		CHECK(summary.alreadySatisfiedItems == 0);
-
-		const QStringList names = QDir{ base }.entryList({ QStringLiteral("*.BIN"), QStringLiteral("*.bin") }, QDir::Files);
-		CHECK(names.contains(QStringLiteral("CASE.BIN")));
-		CHECK(!names.contains(QStringLiteral("case.bin")));
-	}
-
 	SECTION("same-filesystem file replacement is one atomic rename")
 	{
 		writeTestFile(base % "/src.bin", patternedContents(700));
@@ -184,6 +189,9 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 
 	SECTION("moving onto a hardlink alias of the source")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		writeTestFile(base % "/same.bin", patternedContents(100));
 		REQUIRE(createHardLink(base % "/same.bin", base % "/alias.bin"));
 
@@ -293,6 +301,10 @@ TEST_CASE("move executor: a same-filesystem directory-link root renames as the l
 
 	REQUIRE(QDir{}.mkpath(base % "/target"));
 	writeTestFile(base % "/target/x.bin", patternedContents(300));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/target", base % "/thelink"));
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
@@ -367,6 +379,9 @@ TEST_CASE("move executor: a same-filesystem rename relocates link entries withou
 
 	SECTION("a relative directory symlink follows the tree where an absolute directory link cannot")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/src/inner"));
 		writeTestFile(base % "/src/inner/deep.bin", patternedContents(500));
 		REQUIRE(createDirectorySymlink(QStringLiteral("inner"), base % "/src/rel-dir"));
@@ -542,6 +557,9 @@ TEST_CASE("move executor: links and borrowed content in the fallback", "[moveexe
 
 	SECTION("a directory link materializes its target; the link entry is removed, the target is not")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/target"));
 		writeTestFile(base % "/target/t.bin", patternedContents(800));
 		REQUIRE(QDir{}.mkpath(base % "/src"));
@@ -635,6 +653,9 @@ TEST_CASE("move executor: links and borrowed content in the fallback", "[moveexe
 
 	SECTION("a cycle-terminated directory link becomes an empty real directory")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/src/sub"));
 		writeTestFile(base % "/src/f.bin", patternedContents(100));
 		REQUIRE(createDirectoryLink(base % "/src", base % "/src/sub/uplink"));
@@ -960,6 +981,10 @@ TEST_CASE("move executor: an already-satisfied child blocks owned-directory clea
 	writeTestFile(base % "/src/b.bin", patternedContents(900));
 	// The merge target already holds a hardlink alias of a.bin: that child's desired end state already holds.
 	REQUIRE(QDir{}.mkpath(base % "/dest/src"));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(base % "/src/a.bin", base % "/dest/src/a.bin"));
 
 	CFaultHookScope hooks;

@@ -365,15 +365,18 @@ jobs:
         # to inherit. Wipes the disk, which is only safe while the action's copy-workspace input is false.
         # format.com, not Format-Volume: ImDisk volumes are absent from the Storage provider the cmdlets query.
         format.com R: /FS:NTFS /Q /Y /V:RAMDISK
-        # imdisk delegates -p to format.com and does not report its failure, so assert the end state on both disks:
-        # anything but NTFS silently drops the reparse-point coverage that needs it. DriveInfo asks the filesystem
-        # directly, for the same reason format.com is used above.
-        foreach ($letter in 'R', 'S') {
+        # The volumes of the exFAT and FAT32 test run
+        imdisk -a -s 256M -m T: -p "/FS:exFAT /Q /Y"
+        imdisk -a -s 256M -m U: -p "/FS:FAT32 /Q /Y"
+        # imdisk delegates -p to format.com and does not report its failure, so assert the end state on every disk:
+        # anything but NTFS on R: and S: silently drops the reparse-point coverage that needs it. DriveInfo asks the
+        # filesystem directly, for the same reason format.com is used above.
+        $expected = [ordered]@{ R = 'NTFS'; S = 'NTFS'; T = 'exFAT'; U = 'FAT32' }
+        foreach ($letter in $expected.Keys) {
           $filesystem = [System.IO.DriveInfo]::new("${letter}:").DriveFormat
-          if ($filesystem -ne 'NTFS') { throw "${letter}: is $filesystem, expected NTFS" }
+          if ($filesystem -ne $expected[$letter]) { throw "${letter}: is $filesystem, expected $($expected[$letter])" }
+          New-Item -Path "${letter}:\Temp" -ItemType Directory -Force
         }
-        New-Item -Path R:\Temp -ItemType Directory -Force
-        New-Item -Path S:\Temp -ItemType Directory -Force
         echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
         echo "TMP=R:\\Temp"  >> $env:GITHUB_ENV
         echo "TMPDIR=R:\\Temp" >> $env:GITHUB_ENV
@@ -398,6 +401,24 @@ jobs:
         }
 
         .\scripts\run_tests.bat -NoBuild -All -Suite filecomparator_test --std-seed (Get-Random)
+
+    - name: Running tests on exFAT and FAT32 - Windows
+      if: startsWith(matrix.os, 'windows')
+      shell: pwsh
+      run: |
+        $PSNativeCommandUseErrorActionPreference = $true
+        $ErrorActionPreference = 'Stop'
+        # Everything runs but what these filesystems cannot do: tests that need a link skip themselves, and
+        # [case-only-rename] is a known defect there (doc/core-engine.md). The comparator's generated data does
+        # not fit these disks.
+        foreach ($letter in 'T', 'U') {
+          Write-Output "===== Temporary folders on ${letter}:"
+          $env:TEMP = "${letter}:\Temp"
+          $env:TMP = "${letter}:\Temp"
+          $env:TMPDIR = "${letter}:\Temp"
+          .\scripts\run_tests.bat -NoBuild -Without '[case-only-rename]'
+          .\scripts\run_tests.bat -NoBuild -All -Suite fileoperations_test -Without '[case-only-rename]' --std-seed (Get-Random)
+        }
 
     - name: Building tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -425,6 +446,22 @@ jobs:
         # A seed of the current second needs the sleep to differ between iterations
         for i in `seq 1 20`; do echo "Iteration $i"; ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s); sleep 1; done
         ./scripts/run_tests.sh nobuild all filecomparator_test --std-seed $(date +%s)
+
+    - name: Running tests on exFAT and FAT32 - Mac
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        set -e
+        exfat=$(hdiutil attach -nomount ram://524288 | awk '{print $1}')  # 512-byte sectors: 256 MB
+        diskutil erasevolume ExFAT FCEXFAT "$exfat"
+        fat32=$(hdiutil attach -nomount ram://524288 | awk '{print $1}')
+        diskutil erasevolume "MS-DOS FAT32" FCFAT32 "$fat32"
+        # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
+        # comparator's generated data does not fit these disks.
+        for volume in /Volumes/FCEXFAT /Volumes/FCFAT32; do
+          echo "===== Temporary folders on $volume"
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s)
+        done
 
     - name: Building tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -454,6 +491,30 @@ jobs:
         # A seed of the current second needs the sleep to differ between iterations
         for i in `seq 1 20`; do echo "Iteration $i"; ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s); sleep 1; done
         ./scripts/run_tests.sh nobuild all filecomparator_test --std-seed $(date +%s)
+
+    - name: Running tests on exFAT and FAT32 - Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        set -e
+        # The runner's kernel image ships without the exfat driver; it is in the extra modules package.
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends exfatprogs dosfstools "linux-modules-extra-$(uname -r)"
+        sudo modprobe exfat
+        truncate -s 256M "$RUNNER_TEMP/exfat.img" "$RUNNER_TEMP/fat32.img"
+        mkfs.exfat "$RUNNER_TEMP/exfat.img"
+        mkfs.vfat -F 32 "$RUNNER_TEMP/fat32.img"
+        sudo mkdir -p /mnt/fc-exfat /mnt/fc-fat32
+        # The type is explicit so that a kernel without the driver fails here, not through a FUSE fallback.
+        # uid and gid: these filesystems store no owner, and the tests run unprivileged.
+        sudo mount -t exfat -o "loop,uid=$(id -u),gid=$(id -g)" "$RUNNER_TEMP/exfat.img" /mnt/fc-exfat
+        sudo mount -t vfat -o "loop,uid=$(id -u),gid=$(id -g)" "$RUNNER_TEMP/fat32.img" /mnt/fc-fat32
+        # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
+        # comparator's generated data does not fit these disks.
+        for volume in /mnt/fc-exfat /mnt/fc-fat32; do
+          echo "===== Temporary folders on $volume"
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s)
+        done
 
   create-release:
     needs: [build, test]

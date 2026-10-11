@@ -202,6 +202,10 @@ TEST_CASE("source tree: the node limit bounds repeated directory-link traversal"
 	const QString rootPath = tempDir.path() % "/root";
 	REQUIRE(QDir{}.mkpath(rootPath % "/dirA"));
 	REQUIRE(QDir{}.mkpath(rootPath % "/dirB"));
+
+	if (linksUnsupportedByFilesystem(rootPath))
+		return;
+
 	REQUIRE(createDirectoryLink(rootPath % "/dirB", rootPath % "/dirA/linkToB"));
 	REQUIRE(createDirectoryLink(rootPath % "/dirA", rootPath % "/dirB/linkToA"));
 
@@ -233,6 +237,10 @@ TEST_CASE("source tree: directory links per build mode", "[sourcetree][link]")
 	REQUIRE(QDir{}.mkpath(base % "/target/nested"));
 	writeTestFile(base % "/target/t.bin", QByteArray(4000, 't'));
 	writeTestFile(base % "/target/nested/n.bin", QByteArray(500, 'n'));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/target", base % "/root/dirlink"));
 
 	SECTION("permanent delete never follows: the link is a leaf")
@@ -286,6 +294,9 @@ TEST_CASE("source tree: identity-less directory links materialize under the trav
 
 	SECTION("an acyclic link still contributes its content")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/root"));
 		REQUIRE(QDir{}.mkpath(base % "/target/nested"));
 		writeTestFile(base % "/target/nested/file.bin", QByteArray(400, 'f'));
@@ -306,6 +317,9 @@ TEST_CASE("source tree: identity-less directory links materialize under the trav
 
 	SECTION("a cycle aborts the complete manifest at the depth limit")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/root/sub"));
 		REQUIRE(createDirectoryLink(base % "/root", base % "/root/sub/uplink"));
 
@@ -397,6 +411,10 @@ TEST_CASE("source tree: broken links remain leaf entries", "[sourcetree][link]")
 
 	REQUIRE(QDir{}.mkpath(base % "/root"));
 	REQUIRE(QDir{}.mkpath(base % "/target"));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/target", base % "/root/brokenlink"));
 	REQUIRE(QDir{}.rmdir(base % "/target"));
 
@@ -424,6 +442,10 @@ TEST_CASE("source tree: an entry vanishing between listing and classification is
 	writeTestFile(base % "/root/a.bin", QByteArray(100, 'a'));
 	writeTestFile(base % "/root/b.bin", QByteArray(200, 'b'));
 	REQUIRE(QDir{}.mkpath(base % "/target"));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/target", base % "/root/thelink"));
 
 	const auto rootSnapshot = snapshotOf(base % "/root"); // Taken before the scope: only the link child's classification inspects
@@ -555,6 +577,9 @@ TEST_CASE("source tree: link cycles terminate by identity", "[sourcetree][link]"
 
 	SECTION("a link to its own ancestor becomes a leaf")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/root/sub"));
 		writeTestFile(base % "/root/a.bin", QByteArray(100, 'a'));
 		REQUIRE(createDirectoryLink(base % "/root", base % "/root/sub/uplink"));
@@ -572,6 +597,9 @@ TEST_CASE("source tree: link cycles terminate by identity", "[sourcetree][link]"
 
 	SECTION("mutual links terminate after one lap per side")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/root/dirA"));
 		REQUIRE(QDir{}.mkpath(base % "/root/dirB"));
 		REQUIRE(createDirectoryLink(base % "/root/dirB", base % "/root/dirA/linkToB"));

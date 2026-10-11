@@ -547,6 +547,9 @@ TEST_CASE("delete executor: links and special entries are unlinked without targe
 
 	SECTION("a directory link inside a tree: the link goes, the target stays")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/target"));
 		writeTestFile(base % "/target/t.bin", patternedContents(100));
 		REQUIRE(QDir{}.mkpath(base % "/root/sub"));
@@ -562,6 +565,9 @@ TEST_CASE("delete executor: links and special entries are unlinked without targe
 
 	SECTION("a directory link as the root")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/target"));
 		writeTestFile(base % "/target/t.bin", patternedContents(100));
 		REQUIRE(createDirectoryLink(base % "/target", base % "/dirlink"));
@@ -575,6 +581,9 @@ TEST_CASE("delete executor: links and special entries are unlinked without targe
 
 	SECTION("a broken directory link")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/target"));
 		REQUIRE(createDirectoryLink(base % "/target", base % "/brokenlink"));
 		REQUIRE(QDir{}.rmdir(base % "/target"));

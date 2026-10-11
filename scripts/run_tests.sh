@@ -8,7 +8,8 @@
 # Arguments, all optional, in this order:
 #   debug           build and run the debug configuration
 #   build           only build; nobuild only runs what is already built, for a CI job that deploys in between
-#   all             also run the slow tests that generate large files and trees, skipped by default
+#   without <tag>   every suite leaves out the cases with this tag, e.g. '[case-only-rename]'
+#   all            also run the slow tests that generate large files and trees, skipped by default
 #   <suite> [args]  run only the suite whose executable name contains <suite>; the arguments after it go to
 #                   that executable, e.g. a Catch2 test spec or --std-seed
 
@@ -32,6 +33,16 @@ if [ "${1:-}" = build ]; then
 elif [ "${1:-}" = nobuild ]; then
 	BUILD=""
 	shift
+fi
+
+WITHOUT=""
+if [ "${1:-}" = without ]; then
+	if [ $# -lt 2 ]; then
+		echo "\"without\" needs a tag." >&2
+		exit 2
+	fi
+	WITHOUT="~$2"
+	shift 2
 fi
 
 # Skipped by default: these generate trees of thousands of files and gigabytes of data, and CI runs them
@@ -107,12 +118,13 @@ for test in ${TESTS}; do
 	echo
 	echo "===== ${test}"
 	# --warn NoTests: a filter that matches nothing exits 0 otherwise, so a broken one would pass silently
+	# Catch2 combines separate specs with AND, so WITHOUT narrows whatever filter is already there
 	if [ $# -gt 0 ]; then
-		"${exe}" "$@" --warn NoTests || failed="${failed} ${test}"
+		"${exe}" "$@" ${WITHOUT:+"${WITHOUT}"} --warn NoTests || failed="${failed} ${test}"
 	elif [ -n "${default_args}" ]; then
-		"${exe}" "${default_args}" --warn NoTests || failed="${failed} ${test}"
+		"${exe}" "${default_args}" ${WITHOUT:+"${WITHOUT}"} --warn NoTests || failed="${failed} ${test}"
 	else
-		"${exe}" --warn NoTests || failed="${failed} ${test}"
+		"${exe}" ${WITHOUT:+"${WITHOUT}"} --warn NoTests || failed="${failed} ${test}"
 	fi
 done
 

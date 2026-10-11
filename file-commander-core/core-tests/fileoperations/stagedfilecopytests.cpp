@@ -14,6 +14,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 #include <QTemporaryDir>
+#include <QUuid>
 RESTORE_COMPILER_WARNINGS
 
 #ifndef _WIN32
@@ -475,10 +476,13 @@ TEST_CASE("staged copy: transfers permissions and every settable timestamp", "[s
 	REQUIRE(::chmod(QFile::encodeName(base % "/source.bin").constData(), 0754) == 0);
 #endif
 
-	REQUIRE(copyFile(base % "/source.bin", base % "/dest.bin").has_value());
-	CHECK(readFileContents(base % "/dest.bin") == contents);
+	// A name no test has deleted recently: FAT32 gives a file renamed to a recently deleted name that name's
+	// creation time, even when the deleted file was in another, since removed directory.
+	const QString destination = base % "/dest-" % QUuid::createUuid().toString(QUuid::WithoutBraces) % ".bin";
+	REQUIRE(copyFile(base % "/source.bin", destination).has_value());
+	CHECK(readFileContents(destination) == contents);
 
-	const auto destinationTimes = getEntryTimes(base % "/dest.bin");
+	const auto destinationTimes = getEntryTimes(destination);
 	REQUIRE(destinationTimes.has_value());
 	REQUIRE(destinationTimes->last_write.is_set());
 	CHECK(destinationTimes->last_write.seconds == 1'600'000'000);
@@ -489,7 +493,7 @@ TEST_CASE("staged copy: transfers permissions and every settable timestamp", "[s
 	}
 
 #ifndef _WIN32
-	CHECK(entryPermissionMode(base % "/dest.bin") == 0754u);
+	CHECK(entryPermissionMode(destination) == 0754u);
 #endif
 }
 
@@ -633,6 +637,10 @@ TEST_CASE("staged copy: replacing a hard-link alias replaces only that pathname"
 
 	const QByteArray aliasContents{ "ALIASED DATA" };
 	writeTestFile(base % "/original.bin", aliasContents);
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(base % "/original.bin", base % "/alias.bin"));
 
 	const QByteArray newContents = patternedContents(3000);

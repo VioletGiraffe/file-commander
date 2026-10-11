@@ -52,6 +52,10 @@ TEST_CASE("inspectEntry: directory link, broken directory link", "[mutator]")
 
 	REQUIRE(QDir{}.mkpath(base % "/target"));
 	const QString linkPath = base % "/dirlink";
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/target", linkPath));
 	CHECK(snapshotOf(linkPath).kind == OperationEntryKind::DirectoryLink);
 
@@ -71,6 +75,9 @@ TEST_CASE("inspectEntry: file link, broken link, link to non-regular target", "[
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
 
 	const QString targetPath = base % "/target.bin";
 	writeTestFile(targetPath, QByteArray(4000, 'T'));
@@ -211,6 +218,10 @@ TEST_CASE("checkSameEntry: hard-link aliases, distinct files, absent entries", "
 	const QString filePath = base % "/file.bin";
 	writeTestFile(filePath, QByteArray(100, 'a'));
 	const QString aliasPath = base % "/alias.bin";
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(filePath, aliasPath));
 
 	const auto sameVerdict = checkSameEntry(ep(filePath), ep(aliasPath), thin_io::link_behavior::do_not_follow);
@@ -378,6 +389,10 @@ TEST_CASE("renameEntry: replacing a hard-link pathname does not change the other
 	const QByteArray oldContents(1000, 'o');
 	const QByteArray newContents(1000, 'n');
 	writeTestFile(base % "/original.bin", oldContents);
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(base % "/original.bin", base % "/alias.bin"));
 	writeTestFile(base % "/src.bin", newContents);
 
@@ -394,6 +409,10 @@ TEST_CASE("renameEntry: require-absent onto a hardlink alias of the source diver
 
 	const QByteArray contents(1000, 'h');
 	writeTestFile(base % "/file.bin", contents);
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(base % "/file.bin", base % "/alias.bin"));
 
 	const auto result = CFileSystemMutator::renameEntry(ep(base % "/file.bin"), ep(base % "/alias.bin"), ReplacementMode::RequireAbsent);
@@ -457,13 +476,16 @@ TEST_CASE("renameEntry: directory rename and directory-link rename", "[mutator]"
 	REQUIRE(CFileSystemMutator::renameEntry(ep(base % "/dir"), ep(base % "/renamed_dir"), ReplacementMode::RequireAbsent).has_value());
 	CHECK(readFileContents(base % "/renamed_dir/inner.bin") == QByteArray(100, 'i'));
 
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/renamed_dir", base % "/dirlink"));
 	REQUIRE(CFileSystemMutator::renameEntry(ep(base % "/dirlink"), ep(base % "/moved_dirlink"), ReplacementMode::RequireAbsent).has_value());
 	CHECK(snapshotOf(base % "/moved_dirlink").kind == OperationEntryKind::DirectoryLink);
 	CHECK(readFileContents(base % "/renamed_dir/inner.bin") == QByteArray(100, 'i')); // Target untouched
 }
 
-TEST_CASE("renameEntry: case-only rename", "[mutator]")
+TEST_CASE("renameEntry: case-only rename", "[mutator][case-only-rename]")
 {
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
@@ -546,6 +568,10 @@ TEST_CASE("renameEntry: case-equivalent hard-link aliases remain distinct names"
 		WARN("The test volume is case-insensitive: distinct case-equivalent hard-link names cannot be created");
 		return;
 	}
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(base % "/case.txt", base % "/CASE.txt"));
 
 	const auto result = CFileSystemMutator::renameEntry(
@@ -640,6 +666,10 @@ TEST_CASE("renameEntry: Windows refines access denied for directory-bearing repl
 	writeTestFile(base % "/file.bin", QByteArray(10, 'f'));
 	REQUIRE(QDir{}.mkpath(base % "/directory"));
 	REQUIRE(QDir{}.mkpath(base % "/link-target"));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/link-target", base % "/dirlink"));
 
 	SECTION("real directory")
@@ -874,6 +904,10 @@ TEST_CASE("removeEntry: directory link is unlinked without touching the target",
 
 	REQUIRE(QDir{}.mkpath(base % "/target"));
 	writeTestFile(base % "/target/inner.bin", QByteArray(10, 'i'));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/target", base % "/dirlink"));
 
 	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/dirlink")).has_value());
@@ -888,6 +922,10 @@ TEST_CASE("removeEntry: broken directory link", "[mutator]")
 	const QString base = tempDir.path();
 
 	REQUIRE(QDir{}.mkpath(base % "/target"));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/target", base % "/dirlink"));
 	REQUIRE(QDir{}.rmdir(base % "/target"));
 
@@ -1042,6 +1080,9 @@ TEST_CASE("writability primitives reject link and directory entries and never fo
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 #ifndef _WIN32
 	const QString targetPath = base % "/target.bin";
 	writeTestFile(targetPath, QByteArray(10, 't'));
@@ -1143,6 +1184,9 @@ TEST_CASE("directory times: read, apply, and follow a directory link on read", "
 		CHECK(appliedTimes->creation.seconds == 1'400'000'000);
 	}
 
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	// The purpose-specific read follows a directory link to the target it materializes
 	REQUIRE(createDirectoryLink(base % "/source", base % "/dirlink"));
 	const auto throughLink = readCopyableDirectoryTimes(ep(base % "/dirlink"));
@@ -1206,6 +1250,9 @@ TEST_CASE("createDirectories: creation, deep chain, and pre-existing outcomes", 
 	const auto repeated = CFileSystemMutator::createDirectories(ep(base % "/a/b/c/d"));
 	REQUIRE(repeated.has_value());
 	CHECK(*repeated == DirectoryCreationOutcome::FinalEntryAlreadyExisted);
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
 
 	// A directory link is a proven collision too; destination resolution decides what that means.
 	REQUIRE(createDirectoryLink(base % "/newdir", base % "/dirlink"));

@@ -215,6 +215,12 @@ TEST_CASE("A directory link is a directory until its target is gone", "[CFileSys
 	const QString target = tempDir.path() + "/target";
 	const QString link = tempDir.path() + "/link";
 	REQUIRE(QDir{}.mkpath(target));
+	if (filesystemHasNoLinks(tempDir.path()))
+	{
+		WARN("This filesystem has no links: test skipped");
+		return;
+	}
+
 	REQUIRE(createDirectoryLink(target, link));
 
 	{
@@ -456,6 +462,12 @@ TEST_CASE("A listed link is described by its target until the target is gone", "
 		REQUIRE(file.open(QFile::WriteOnly));
 		REQUIRE(file.write("12345") == 5);
 	}
+	if (filesystemHasNoLinks(tempDir.path()))
+	{
+		WARN("This filesystem has no links: test skipped");
+		return;
+	}
+
 	REQUIRE(createDirectoryLink(targetFolder, folder + "folder-link"));
 	// A symlink needs elevation or Developer Mode on Windows
 	const bool fileLinkCreated = createFileSymlink(targetFile, folder + "file-link");

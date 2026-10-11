@@ -256,11 +256,24 @@ inline bool readOnlySemanticsUnavailable()
 	return false;
 }
 
+inline bool linksUnsupportedByFilesystem(const QString& existingDirectory)
+{
+	if (!filesystemHasNoLinks(existingDirectory))
+		return false;
+
+	WARN("This filesystem has no links: link sections skipped");
+	return true;
+}
+
 // Windows grants symlink creation only to an elevated process or one running under Developer Mode, so the
 // coverage that needs a real reparse point cannot be unconditional. CI promises the capability by setting
 // FILE_COMMANDER_TEST_SYMLINKS: there a failure means a misconfigured runner, not a reason to drop the coverage.
+// The promise covers filesystems that have links.
 inline bool symlinkCreationUnavailable(const QString& writableDirectory)
 {
+	if (linksUnsupportedByFilesystem(writableDirectory))
+		return true;
+
 	const QString probe = writableDirectory % "/fc-symlink-probe";
 	if (createFileSymlink(writableDirectory % "/fc-symlink-probe-target", probe))
 	{

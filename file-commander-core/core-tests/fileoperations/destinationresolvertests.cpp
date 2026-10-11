@@ -528,6 +528,9 @@ TEST_CASE("file resolver: absent, same object, and file collisions", "[resolver]
 
 	SECTION("a hard-link alias of the source is the same object")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(createHardLink(base % "/source.bin", base % "/alias.bin"));
 
 		ScriptedDecisions decisions;
@@ -648,6 +651,9 @@ TEST_CASE("file resolver: the rename loop", "[resolver]")
 
 	SECTION("rename onto the source's own alias is already satisfied")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(createHardLink(base % "/source.bin", base % "/alias.bin"));
 
 		ScriptedDecisions decisions{ .script = { renameTo(QStringLiteral("alias.bin")) } };
@@ -682,6 +688,9 @@ TEST_CASE("file resolver: destination links are entries", "[resolver][link]")
 
 	SECTION("a directory link destination follows native atomic-replacement capability")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/link-target"));
 		REQUIRE(createDirectoryLink(base % "/link-target", base % "/dirlink"));
 
@@ -918,6 +927,9 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 
 	SECTION("a directory link to the source is a type mismatch, not the same entry")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(createDirectoryLink(base % "/srcdir", base % "/dirlink"));
 
 		ScriptedDecisions decisions{ .script = { act(DecisionAction::Skip) } };
@@ -933,6 +945,9 @@ TEST_CASE("directory resolver: absent, merge positions, and mismatches", "[resol
 
 	SECTION("a directory link source is distinct from its target")
 	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/link-target"));
 		REQUIRE(createDirectoryLink(base % "/link-target", base % "/dirlink"));
 		const EntrySnapshot linkSource = snapshotOf(base % "/dirlink");

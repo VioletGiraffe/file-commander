@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
 #include <QProcess>
+#include <QStorageInfo>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
@@ -18,6 +19,28 @@ RESTORE_COMPILER_WARNINGS
 #else
 #include <unistd.h>
 #endif
+
+// True on a filesystem that declares neither hard links nor reparse points, such as FAT and exFAT.
+// Never probes by creating a link: a failed creation on a filesystem that has links must still fail its test.
+inline bool filesystemHasNoLinks(const QString& existingDirectory)
+{
+#ifdef _WIN32
+	// By handle: QStorageInfo and GetVolumePathNameW do not resolve a RAM disk the mount manager does not know.
+	const QString nativeDirectory = QDir::toNativeSeparators(existingDirectory);
+	const HANDLE directory = CreateFileW(reinterpret_cast<const WCHAR*>(nativeDirectory.utf16()), 0,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	if (directory == INVALID_HANDLE_VALUE)
+		return false;
+
+	DWORD filesystemFlags = 0;
+	const bool queried = GetVolumeInformationByHandleW(directory, nullptr, 0, nullptr, nullptr, &filesystemFlags, nullptr, 0) != 0;
+	CloseHandle(directory);
+	return queried && (filesystemFlags & (FILE_SUPPORTS_HARD_LINKS | FILE_SUPPORTS_REPARSE_POINTS)) == 0;
+#else
+	const QByteArray type = QStorageInfo{ existingDirectory }.fileSystemType().toLower();
+	return type == "vfat" || type == "msdos" || type == "exfat";
+#endif
+}
 
 inline bool createHardLink(const QString& existingPath, const QString& linkPath)
 {

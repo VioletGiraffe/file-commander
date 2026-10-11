@@ -363,6 +363,10 @@ TEST_CASE("copy executor: same-object roots are silently already satisfied", "[e
 
 	const QByteArray contents = patternedContents(500);
 	writeTestFile(base % "/a.bin", contents);
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createHardLink(base % "/a.bin", base % "/alias.bin"));
 
 	OperationScript script;
@@ -914,6 +918,10 @@ TEST_CASE("copy executor: links materialize", "[executor][link]")
 	REQUIRE(createFileSymlink(base % "/linktarget.bin", base % "/src/filelink.bin"));
 	REQUIRE(QDir{}.mkpath(base % "/dirtarget"));
 	writeTestFile(base % "/dirtarget/inside.bin", patternedContents(900));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/dirtarget", base % "/src/dirlink"));
 #ifdef _WIN32
 	// A listed child is classified from the reparse tag the directory listing carries, not from a separate
@@ -972,6 +980,10 @@ TEST_CASE("copy executor: a cycle-terminated directory link materializes as an e
 
 	REQUIRE(QDir{}.mkpath(base % "/src/sub"));
 	writeTestFile(base % "/src/a.bin", patternedContents(100));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(createDirectoryLink(base % "/src", base % "/src/sub/uplink"));
 	REQUIRE(QDir{}.mkpath(base % "/dest"));
 
