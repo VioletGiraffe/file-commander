@@ -38,7 +38,7 @@ public:
 	// Transfers at most maxBytes more source bytes into the staging file; see CopyChunkResult.
 	[[nodiscard]] std::expected<CopyChunkResult, FailureDetails> writeNext(uint64_t maxBytes);
 
-	// Flushes per the durability policy, applies the captured metadata to the staging file, closes
+	// Flushes per the durability policy, applies the captured metadata through the staging handle, closes
 	// it, and publishes the staging file as the destination entry. The publishing rename is the last
 	// action, so the only two outcomes are failure-before-publication and successful publication.
 	[[nodiscard]] std::expected<void, FailureDetails> commit(ReplacementMode replacement, CommitDurability durability);

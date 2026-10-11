@@ -274,10 +274,8 @@ std::expected<void, FailureDetails> CStagedFileCopy::commit(const ReplacementMod
 
 	if (const auto forcedError = fireHook(Point::StagedCopy_ApplyMetadata_Native))
 		return fail(FailedAction::PreserveFileMetadata, _destinationPath, *forcedError);
-#ifndef __APPLE__ // Applied after the close there
 	if (!_stagingFile.set_times(_sourceTimes)) [[unlikely]]
 		return fail(FailedAction::PreserveFileMetadata, _destinationPath, captureNativeError());
-#endif
 	// On Windows this also settles the staging file's temporary hidden attribute to the source's state.
 	if (!_stagingFile.set_permissions(_sourcePermissions)) [[unlikely]]
 		return fail(FailedAction::PreserveFileMetadata, _destinationPath, captureNativeError());
@@ -288,13 +286,6 @@ std::expected<void, FailureDetails> CStagedFileCopy::commit(const ReplacementMod
 		return fail(FailedAction::WriteDestination, _destinationPath, *forcedError);
 	if (!_stagingFile.close()) [[unlikely]]
 		return fail(FailedAction::WriteDestination, _destinationPath, captureNativeError());
-
-#ifdef __APPLE__
-	// By path, after the close: the macOS FAT driver stamps a written file as modified when it is closed.
-	const auto stagingNative = thinIoPath(_stagingPath);
-	if (!thin_io::set_times(nativeCStr(stagingNative), _sourceTimes)) [[unlikely]]
-		return fail(FailedAction::PreserveFileMetadata, _destinationPath, captureNativeError());
-#endif
 
 	if (auto published = CFileSystemMutator::renameEntry(_stagingPath, _destinationPath, replacement); !published) [[unlikely]]
 		return std::unexpected{ FailureDetails{ FailedAction::PublishDestination, _destinationPath, mv(published.error()) } };

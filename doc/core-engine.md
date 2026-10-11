@@ -122,6 +122,8 @@ Known defects:
 - On FAT32, a copied file can keep the creation time of a file recently deleted under the same name. Windows
   filesystem tunnelling applies it when the staged copy is renamed to its final name, and on FAT32 it also matches a
   name deleted in another, since removed directory.
+- On macOS, a file copied to FAT32 gets the current modification time: the driver restamps a written file after the
+  source's time was applied. Only flushing every file before applying it would prevent that.
 
 Inline rename is a separate synchronous command that reuses name, inspection, identity, and native rename
 primitives. Test-only fault injection lives in `operationtesthooks` and compiles out of production builds.
