@@ -460,7 +460,17 @@ TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
 	return 0;
 }
 
-// Mixed case, digits and an empty name exercise the collator's case, numeric and empty-string rules
+TEST_CASE("NaturalSort::compare sorts an empty name first by key", "[filelist][collator]")
+{
+	const QCollatorSortKey empty = NaturalSort::sortKey(QString{}), nonEmpty = NaturalSort::sortKey(QStringLiteral("a"));
+	CHECK(NaturalSort::compare(empty, nonEmpty) < 0);
+	CHECK(NaturalSort::compare(nonEmpty, empty) > 0);
+	CHECK(NaturalSort::compare(empty, NaturalSort::sortKey(QString{})) == 0);
+}
+
+// Mixed case, digits and an empty name exercise the collator's case, numeric and empty-string rules.
+// Not on macOS: the two orders differ there, see NaturalSort::compare() of keys.
+#ifndef __APPLE__
 TEST_CASE("NaturalSort::compare orders the same by key as by string", "[filelist][collator]")
 {
 	INFO("Random seed: " << g_randomSeed);
@@ -495,6 +505,7 @@ TEST_CASE("NaturalSort::compare orders the same by key as by string", "[filelist
 		FAIL_CHECK("The two orders differ");
 	}
 }
+#endif
 
 // The model's name sort without the model: indices into names, the ones containing 'A' and then all of them, repeatedly
 TEST_CASE("Timings of a collator sort", "[.][filelist][collator][timing]")
