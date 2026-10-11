@@ -131,11 +131,11 @@ std::optional<NodeOutcome> CTransferExecutor::ensureDestinationParentExistsWithP
 		if (!_context.checkpoint())
 			return NodeOutcome::Cancelled;
 
-		std::optional<CFileSystemError> failure;
+		std::optional<FailureDetails> failure;
 		auto parentEntry = inspectEntry(parent);
 		if (!parentEntry)
 		{
-			failure = mv(parentEntry.error());
+			failure = FailureDetails{ FailedAction::InspectDestination, mv(parentEntry.error()) };
 		}
 		else if (parentEntry->has_value())
 		{
@@ -143,8 +143,8 @@ std::optional<NodeOutcome> CTransferExecutor::ensureDestinationParentExistsWithP
 			if (kind == OperationEntryKind::Directory || kind == OperationEntryKind::DirectoryLink)
 				return std::nullopt;
 
-			failure = CFileSystemError{ FileErrorCategory::AlreadyExists, 0,
-				QStringLiteral("The destination parent is not a directory") };
+			failure = FailureDetails{ FailedAction::CreateDestinationDirectory, CFileSystemError{ FileErrorCategory::AlreadyExists, 0,
+				QStringLiteral("The destination parent is not a directory") } };
 		}
 		else
 		{
@@ -157,11 +157,10 @@ std::optional<NodeOutcome> CTransferExecutor::ensureDestinationParentExistsWithP
 				assert_debug_only(*created == DirectoryCreationOutcome::FinalEntryAlreadyExisted);
 				continue; // An entry raced into the final parent: inspect its kind freshly.
 			}
-			failure = mv(created.error());
+			failure = FailureDetails{ FailedAction::CreateDestinationDirectory, mv(created.error()) };
 		}
 
-		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, source,
-			{}, FailureDetails{ FailedAction::CreateDestinationDirectory, mv(*failure) } });
+		const auto decision = _context.resolveDecision(OperationIssue{ IssueKind::ActionFailed, source, {}, mv(*failure) });
 		if (!decision || decision->action == DecisionAction::Cancel)
 			return NodeOutcome::Cancelled;
 		if (decision->action == DecisionAction::Skip)

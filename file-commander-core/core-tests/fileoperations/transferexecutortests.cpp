@@ -105,6 +105,23 @@ TEST_CASE("copy executor: files, trees, and multiple roots", "[executor]")
 		CHECK(script.seenRequests[0].issue.failure->action == FailedAction::CreateDestinationDirectory);
 	}
 
+	SECTION("an uninspectable destination parent is an inspection failure, retryable")
+	{
+		const QByteArray contents = patternedContents(100);
+		writeTestFile(base % "/a.bin", contents);
+
+		CFaultHookScope hooks;
+		hooks.forceNativeError(Point::InspectEntry_Native, accessDeniedCode, 1, 1); // The first inspection is the source root's
+
+		OperationScript script{ .decisions = { act(DecisionAction::Retry) } };
+		const auto summary = runCopy(script, { base % "/a.bin" }, DestinationIntent::ExactEntry, base % "/copied.bin");
+		CHECK(summary.status == CompletionStatus::Completed);
+		CHECK(readFileContents(base % "/copied.bin") == contents);
+		REQUIRE(script.seenRequests.size() == 1);
+		REQUIRE(script.seenRequests[0].issue.failure.has_value());
+		CHECK(script.seenRequests[0].issue.failure->action == FailedAction::InspectDestination);
+	}
+
 	SECTION("empty and multi-chunk files")
 	{
 		writeTestFile(base % "/empty.bin", {});
