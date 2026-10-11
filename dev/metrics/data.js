@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791637956736,
+  "lastUpdate": 1791716405844,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -27635,6 +27635,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 760,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 400,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "20c3312fa94a1df4f0ff71797323947ea91b2501",
+          "message": "Copy/move: a failed inspection of the destination parent is reported as such, not as a folder creation failure; thin_io updated: exFAT metadata fix",
+          "timestamp": "2026-10-11T13:54:05+03:00",
+          "tree_id": "f3009e6aa2af7bb764732812e0c23538cb5b36b2",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/20c3312fa94a1df4f0ff71797323947ea91b2501"
+        },
+        "date": 1791716402451,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19682,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 20519,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1352.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 384.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 760.5,
             "unit": "KB"
           },
           {
