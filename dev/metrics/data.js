@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791741119025,
+  "lastUpdate": 1791742660791,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -27941,6 +27941,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (app)",
             "value": 19707,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 20533,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1357,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 384.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 764,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 401,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "78799e88963e58ff2cc2e3c85ee3473d32d47568",
+          "message": "macOS: fixing the ineffective modification time applicaition on FAT32 (must set after closing the file, otherwise the OS refreshes it, overwriting what we wrote)",
+          "timestamp": "2026-10-11T21:12:07+03:00",
+          "tree_id": "3eacd06565689edc0c8f8495eb6c3dd06e18a095",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/78799e88963e58ff2cc2e3c85ee3473d32d47568"
+        },
+        "date": 1791742657936,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19714,
             "unit": "LOC"
           },
           {
