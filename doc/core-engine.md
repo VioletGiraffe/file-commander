@@ -110,6 +110,10 @@ Exclusive publication degrades to a check followed by rename when the filesystem
 primitive. This preserves compatibility but admits a narrow external race. Publication also relies on normal
 filesystem namespace persistence rather than promising power-loss transactional durability.
 
+Known defect: same-entry detection (`checkSameEntry`) compares a volume serial number plus a file ID. Two volumes
+cloned from one image share both, so an entry and its counterpart on the other volume compare as one entry. A copy
+or move between them reports such an item as already satisfied and transfers nothing.
+
 Inline rename is a separate synchronous command that reuses name, inspection, identity, and native rename
 primitives. Test-only fault injection lives in `operationtesthooks` and compiles out of production builds.
 
