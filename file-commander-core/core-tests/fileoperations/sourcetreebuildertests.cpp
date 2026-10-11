@@ -340,6 +340,9 @@ TEST_CASE("source tree: file links per build mode", "[sourcetree][link]")
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(QDir{}.mkpath(base % "/root"));
 	writeTestFile(base % "/target.bin", QByteArray(7000, 't'));
 	REQUIRE(QFile::link(base % "/target.bin", base % "/root/filelink.bin"));
@@ -540,6 +543,12 @@ TEST_CASE("source tree: a non-round-tripping POSIX name aborts the manifest befo
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+	if (filesystemIsFatFamily(base))
+	{
+		WARN("This filesystem stores names as Unicode, not as bytes: test skipped");
+		return;
+	}
+
 	REQUIRE(QDir{}.mkpath(base % "/root"));
 
 	const QChar replacementCharacter{ QChar::ReplacementCharacter };
@@ -689,6 +698,9 @@ TEST_CASE("source tree: an unreadable directory fails the build with the failing
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+
+	if (permissionBitsUnsupportedByFilesystem(base))
+		return;
 
 	REQUIRE(QDir{}.mkpath(base % "/root/locked"));
 	writeTestFile(base % "/root/locked/hidden.bin", QByteArray(10, 'x'));

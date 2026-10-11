@@ -630,6 +630,9 @@ TEST_CASE("delete executor: links and special entries are unlinked without targe
 #ifndef _WIN32
 	SECTION("a FIFO is unlinked without a prompt")
 	{
+		if (specialFilesUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/root"));
 		REQUIRE(::mkfifo(QFile::encodeName(base % "/root/fifo").constData(), 0600) == 0);
 

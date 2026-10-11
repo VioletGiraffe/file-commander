@@ -250,6 +250,9 @@ TEST_CASE("checkSameEntry: link behavior decides whether a symlink aliases its t
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	const QString targetPath = base % "/target.bin";
 	writeTestFile(targetPath, QByteArray(100, 'a'));
 	const QString linkPath = base % "/link";
@@ -437,6 +440,9 @@ TEST_CASE("renameEntry: replacing a symlink pathname does not change its target"
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	const QByteArray targetContents(1000, 't');
 	const QByteArray newContents(1000, 'n');
 	writeTestFile(base % "/target.bin", targetContents);
@@ -454,6 +460,9 @@ TEST_CASE("renameEntry: a symlink source is renamed as the link entry", "[mutato
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
 
 	writeTestFile(base % "/target.bin", QByteArray(100, 't'));
 	REQUIRE(QFile::link(base % "/target.bin", base % "/link"));
@@ -940,6 +949,9 @@ TEST_CASE("removeEntry: file link, broken link, and FIFO are unlinked as entries
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
 	writeTestFile(base % "/target.bin", QByteArray(10, 't'));
 	REQUIRE(QFile::link(base % "/target.bin", base % "/link"));
 	REQUIRE(CFileSystemMutator::removeEntry(ep(base % "/link")).has_value());
@@ -985,6 +997,10 @@ TEST_CASE("setEntryWritable and isEntryWritableNoFollow: fresh state round trip"
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+
+	if (permissionBitsUnsupportedByFilesystem(base))
+		return;
+
 	const QString filePath = base % "/file.bin";
 	writeTestFile(filePath, QByteArray(10, 'f'));
 

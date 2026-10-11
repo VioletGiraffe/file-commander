@@ -354,6 +354,9 @@ TEST_CASE("staged copy: begin failures leave nothing behind", "[stagedcopy]")
 #ifndef _WIN32
 	SECTION("FIFO source")
 	{
+		if (specialFilesUnsupportedByFilesystem(base))
+			return;
+
 		const QByteArray fifoPath = QFile::encodeName(base % "/source-fifo");
 		REQUIRE(::mkfifo(fifoPath.constData(), 0600) == 0);
 
@@ -493,7 +496,8 @@ TEST_CASE("staged copy: transfers permissions and every settable timestamp", "[s
 	}
 
 #ifndef _WIN32
-	CHECK(entryPermissionMode(destination) == 0754u);
+	if (!filesystemIsFatFamily(base)) // No permission bits there
+		CHECK(entryPermissionMode(destination) == 0754u);
 #endif
 }
 
@@ -539,6 +543,9 @@ TEST_CASE("staged copy: a file-link source materializes the followed target with
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
 
 	SECTION("healthy link")
 	{
@@ -658,6 +665,9 @@ TEST_CASE("staged copy: replacing a symlink destination replaces the link entry,
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
 
 	const QByteArray targetContents{ "LINK TARGET" };
 	writeTestFile(base % "/target.bin", targetContents);

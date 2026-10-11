@@ -336,6 +336,14 @@ TEST_CASE("Names ending in a dot or a space are kept verbatim", "[CFileSystemObj
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString folder = tempDir.path() + '/';
+#ifdef __linux__
+	// The Linux drivers strip them; macOS and Windows keep them through the same calls.
+	if (filesystemIsFatFamily(folder))
+	{
+		WARN("This filesystem does not keep a name's trailing dot or space here: test skipped");
+		return;
+	}
+#endif
 	const QString dotted = folder + "name.";
 	const QString spaced = folder + "name ";
 	REQUIRE(createFileVerbatim(dotted));
@@ -425,6 +433,12 @@ TEST_CASE("Executable files follow the platform's rule", "[CFileSystemObject][li
 #ifdef _WIN32
 	const QStringList executables{ "tool.EXE", "script.cmd" };
 #else
+	if (filesystemIsFatFamily(folder))
+	{
+		WARN("This filesystem has no permission bits, so every file is executable: test skipped");
+		return;
+	}
+
 	const QStringList executables{ "tool" };
 #endif
 	for (const QString& name : executables)
@@ -522,6 +536,12 @@ TEST_CASE("A socket is left out of the panel listing", "[CFileSystemObject][list
 	QTemporaryDir tempDir;
 	REQUIRE(tempDir.isValid());
 	const QString folder = tempDir.path() + '/';
+	if (filesystemIsFatFamily(folder))
+	{
+		WARN("This filesystem has no sockets: test skipped");
+		return;
+	}
+
 	const QByteArray socketPath = QFile::encodeName(folder + "socket");
 
 	sockaddr_un address{};

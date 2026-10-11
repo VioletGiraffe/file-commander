@@ -244,12 +244,18 @@ inline void setFileReadOnly(const QString& path, const bool readOnly)
 }
 
 // On POSIX, permission bits do not restrict root: the read-only remediation flows can never trigger.
+// Nor can they where the tests' temporary directories are on a filesystem without permission bits.
 inline bool readOnlySemanticsUnavailable()
 {
 #ifndef _WIN32
 	if (::geteuid() == 0)
 	{
 		WARN("Running as root: file permissions do not apply, read-only sections skipped");
+		return true;
+	}
+	if (filesystemIsFatFamily(QDir::tempPath()))
+	{
+		WARN("The temporary directory's filesystem has no permission bits: read-only sections skipped");
 		return true;
 	}
 #endif
@@ -263,6 +269,32 @@ inline bool linksUnsupportedByFilesystem(const QString& existingDirectory)
 
 	WARN("This filesystem has no links: link sections skipped");
 	return true;
+}
+
+// FIFOs and sockets. Always false on Windows, which has neither as a filesystem entry.
+inline bool specialFilesUnsupportedByFilesystem([[maybe_unused]] const QString& existingDirectory)
+{
+#ifndef _WIN32
+	if (filesystemIsFatFamily(existingDirectory))
+	{
+		WARN("This filesystem has no FIFOs or sockets: section skipped");
+		return true;
+	}
+#endif
+	return false;
+}
+
+// POSIX permission bits. Always false on Windows, whose attributes exist on every filesystem.
+inline bool permissionBitsUnsupportedByFilesystem([[maybe_unused]] const QString& existingDirectory)
+{
+#ifndef _WIN32
+	if (filesystemIsFatFamily(existingDirectory))
+	{
+		WARN("This filesystem has no permission bits: section skipped");
+		return true;
+	}
+#endif
+	return false;
 }
 
 // Windows grants symlink creation only to an elevated process or one running under Developer Mode, so the

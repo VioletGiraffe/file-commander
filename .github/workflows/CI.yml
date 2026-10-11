@@ -404,9 +404,9 @@ jobs:
 
     - name: Running tests on exFAT and FAT32 - Windows
       if: startsWith(matrix.os, 'windows')
+      timeout-minutes: 20
       shell: pwsh
       run: |
-        $PSNativeCommandUseErrorActionPreference = $true
         $ErrorActionPreference = 'Stop'
         # Everything runs but what these filesystems cannot do: tests that need a link skip themselves, and
         # [case-only-rename] is a known defect there (doc/core-engine.md). The comparator's generated data does
@@ -416,9 +416,13 @@ jobs:
           $env:TEMP = "${letter}:\Temp"
           $env:TMP = "${letter}:\Temp"
           $env:TMPDIR = "${letter}:\Temp"
+          # Both volumes always run; the step fails at the end
           .\scripts\run_tests.bat -NoBuild -Without '[case-only-rename]'
+          if ($LASTEXITCODE -ne 0) { $failed = $true }
           .\scripts\run_tests.bat -NoBuild -All -Suite fileoperations_test -Without '[case-only-rename]' --std-seed (Get-Random)
+          if ($LASTEXITCODE -ne 0) { $failed = $true }
         }
+        if ($failed) { exit 1 }
 
     - name: Building tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -449,6 +453,7 @@ jobs:
 
     - name: Running tests on exFAT and FAT32 - Mac
       if: startsWith(matrix.os, 'macos')
+      timeout-minutes: 20
       run: |
         set -e
         exfat=$(hdiutil attach -nomount ram://524288 | awk '{print $1}')  # 512-byte sectors: 256 MB
@@ -457,11 +462,14 @@ jobs:
         diskutil erasevolume "MS-DOS FAT32" FCFAT32 "$fat32"
         # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
         # comparator's generated data does not fit these disks.
+        # Both volumes always run; the step fails at the end
+        failed=0
         for volume in /Volumes/FCEXFAT /Volumes/FCFAT32; do
           echo "===== Temporary folders on $volume"
-          TMPDIR="$volume" ./scripts/run_tests.sh nobuild
-          TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s)
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild || failed=1
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s) || failed=1
         done
+        exit $failed
 
     - name: Building tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
@@ -494,6 +502,7 @@ jobs:
 
     - name: Running tests on exFAT and FAT32 - Linux
       if: startsWith(matrix.os, 'ubuntu')
+      timeout-minutes: 20
       run: |
         set -e
         # The runner's kernel image ships without the exfat driver; it is in the extra modules package.
@@ -510,11 +519,14 @@ jobs:
         sudo mount -t vfat -o "loop,uid=$(id -u),gid=$(id -g)" "$RUNNER_TEMP/fat32.img" /mnt/fc-fat32
         # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
         # comparator's generated data does not fit these disks.
+        # Both volumes always run; the step fails at the end
+        failed=0
         for volume in /mnt/fc-exfat /mnt/fc-fat32; do
           echo "===== Temporary folders on $volume"
-          TMPDIR="$volume" ./scripts/run_tests.sh nobuild
-          TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s)
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild || failed=1
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s) || failed=1
         done
+        exit $failed
 
   create-release:
     needs: [build, test]

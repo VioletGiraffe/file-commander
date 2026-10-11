@@ -1,5 +1,7 @@
 #include "searchenginetesthelpers.h"
 
+#include "link_helpers.hpp"
+
 #ifndef _WIN32
 #include <sys/stat.h> // chmod
 #include <unistd.h> // geteuid
@@ -261,6 +263,12 @@ TEST_CASE("Search - a file that cannot be read is counted, not called a non-matc
 	}
 
 	TempTree tree;
+	if (filesystemIsFatFamily(tree.path()))
+	{
+		WARN("This filesystem has no permission bits: test skipped");
+		return;
+	}
+
 	const QString readable = tree.makeFile(QSL("readable.txt"), "needle");
 	const QString unreadable = tree.makeFile(QSL("unreadable.txt"), "needle");
 	REQUIRE(::chmod(QFile::encodeName(unreadable).constData(), 0) == 0);

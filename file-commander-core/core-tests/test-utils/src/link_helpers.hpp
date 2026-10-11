@@ -20,6 +20,16 @@ RESTORE_COMPILER_WARNINGS
 #include <unistd.h>
 #endif
 
+#ifndef _WIN32
+// FAT and exFAT hold only files and directories, without permission bits: no links, FIFOs or sockets, and nothing
+// can be made read-only, unreadable or non-executable. Windows keeps its attributes on every filesystem.
+inline bool filesystemIsFatFamily(const QString& existingDirectory)
+{
+	const QByteArray type = QStorageInfo{ existingDirectory }.fileSystemType().toLower();
+	return type == "vfat" || type == "msdos" || type == "exfat";
+}
+#endif
+
 // True on a filesystem that declares neither hard links nor reparse points, such as FAT and exFAT.
 // Never probes by creating a link: a failed creation on a filesystem that has links must still fail its test.
 inline bool filesystemHasNoLinks(const QString& existingDirectory)
@@ -37,8 +47,7 @@ inline bool filesystemHasNoLinks(const QString& existingDirectory)
 	CloseHandle(directory);
 	return queried && (filesystemFlags & (FILE_SUPPORTS_HARD_LINKS | FILE_SUPPORTS_REPARSE_POINTS)) == 0;
 #else
-	const QByteArray type = QStorageInfo{ existingDirectory }.fileSystemType().toLower();
-	return type == "vfat" || type == "msdos" || type == "exfat";
+	return filesystemIsFatFamily(existingDirectory);
 #endif
 }
 

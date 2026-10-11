@@ -954,6 +954,9 @@ TEST_CASE("copy executor: an Other entry is skippable", "[executor]")
 	REQUIRE(tempDir.isValid());
 	const QString base = tempDir.path();
 
+	if (specialFilesUnsupportedByFilesystem(base))
+		return;
+
 	REQUIRE(QDir{}.mkpath(base % "/src"));
 	writeTestFile(base % "/src/real.bin", patternedContents(400));
 	REQUIRE(::mkfifo(QFile::encodeName(base % "/src/pipe").constData(), 0644) == 0);

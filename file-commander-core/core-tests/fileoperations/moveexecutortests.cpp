@@ -217,6 +217,9 @@ TEST_CASE("move executor: same-filesystem renames", "[moveexecutor]")
 #ifndef _WIN32
 	SECTION("an Other entry renames on the same filesystem")
 	{
+		if (specialFilesUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(::mkfifo(QFile::encodeName(base % "/fifo").constData(), 0600) == 0);
 
 		const auto summary = runMove(script, { base % "/fifo" }, DestinationIntent::ExactEntry, base % "/fifo-moved");
@@ -675,6 +678,9 @@ TEST_CASE("move executor: links and borrowed content in the fallback", "[moveexe
 #ifndef _WIN32
 	SECTION("an Other entry in the fallback is unsupported: skipping retains it and its ancestors")
 	{
+		if (specialFilesUnsupportedByFilesystem(base))
+			return;
+
 		REQUIRE(QDir{}.mkpath(base % "/src"));
 		REQUIRE(::mkfifo(QFile::encodeName(base % "/src/fifo").constData(), 0600) == 0);
 		writeTestFile(base % "/src/moved.bin", patternedContents(100));
