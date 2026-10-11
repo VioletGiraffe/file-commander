@@ -149,8 +149,10 @@ TEST_CASE("Random updates keep the rows, their order and the persistent indexes 
 	const auto addRandomRow = [&] {
 		const bool folder = random.randomNumber(0, 3) == 0;
 		// Few names, sizes and times, so rows often tie on the sort key
-		const CFileSystemObjectProperties row = rowProperties(folder ? Directory : File, random.randomString(2), folder ? QString{} : random.randomString(1),
-			random.randomNumber<uint64_t>(0u, 3u), random.randomNumber<time_t>(0, 3));
+		const QString name = random.randomString(2), extension = folder ? QString{} : random.randomString(1);
+		const uint64_t size = random.randomNumber<uint64_t>(0u, 3u);
+		const time_t modificationTime = random.randomNumber<time_t>(0, 3);
+		const CFileSystemObjectProperties row = rowProperties(folder ? Directory : File, name, extension, size, modificationTime);
 		listing[row.fullPath] = row;
 	};
 	const auto randomListedRow = [&] {
@@ -335,7 +337,10 @@ TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]
 		std::vector<CFileSystemObjectProperties> baseListing;
 		baseListing.reserve((size_t)numRows);
 		for (int i = 0; i < numRows; ++i)
-			baseListing.push_back(rowProperties(File, QStringLiteral("file%1").arg(i), random.randomString(3), random.randomNumber<uint64_t>(0u, 1'000'000u)));
+		{
+			const QString extension = random.randomString(3);
+			baseListing.push_back(rowProperties(File, QStringLiteral("file%1").arg(i), extension, random.randomNumber<uint64_t>(0u, 1'000'000u)));
+		}
 		const std::vector<CFileSystemObject> baseRows(baseListing.cbegin(), baseListing.cend());
 
 		for (const int numChanges : { 30, numRows / 100, numRows / 20, numRows / 10, numRows * 3 / 20, numRows / 4, numRows / 2, numRows * 3 / 4, numRows })
@@ -404,7 +409,8 @@ TEST_CASE("Timings of a name filter change", "[.][filelist][filter][timing]")
 		folders.reserve((size_t)numRows);
 		for (int i = 0; i < numRows; ++i)
 		{
-			files.emplace_back(rowProperties(File, random.randomString(12), random.randomString(3), random.randomNumber<uint64_t>(0u, 1'000'000u)));
+			const QString name = random.randomString(12), extension = random.randomString(3);
+			files.emplace_back(rowProperties(File, name, extension, random.randomNumber<uint64_t>(0u, 1'000'000u)));
 			folders.emplace_back(rowProperties(Directory, random.randomString(12)));
 		}
 
@@ -480,7 +486,8 @@ TEST_CASE("NaturalSort::compare orders the same by key as by string", "[filelist
 	std::vector<QString> names;
 	for (int i = 0; i < 10'000; ++i)
 	{
-		const QString name = random.randomString(2) + QString::number(random.randomNumber<int>(0, 2000)) + random.randomString(2);
+		const QString prefix = random.randomString(2), number = QString::number(random.randomNumber<int>(0, 2000));
+		const QString name = prefix + number + random.randomString(2);
 		names.push_back(i % 2 == 0 ? name : name.toLower());
 	}
 	names.emplace_back();
@@ -561,7 +568,10 @@ TEST_CASE("Timings of a collator sort", "[.][filelist][collator][timing]")
 		std::vector<QString> names;
 		names.reserve((size_t)numNames);
 		for (int i = 0; i < numNames; ++i)
-			names.push_back(random.randomString(12) + '.' + random.randomString(3));
+		{
+			const QString stem = random.randomString(12);
+			names.push_back(stem + '.' + random.randomString(3));
+		}
 
 		std::vector<uint32_t> all(names.size()), withA;
 		for (uint32_t i = 0; i < (uint32_t)names.size(); ++i)

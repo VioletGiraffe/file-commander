@@ -9,6 +9,7 @@ class QString;
 
 // Test data that a seed reproduces exactly, on any platform and any standard library. That rules out
 // std::uniform_int_distribution, whose mapping from the engine's output is unspecified, so the ranging is done here.
+// Draws within one expression must be sequenced: operands and function arguments evaluate in the compiler's order.
 class CRandomDataGenerator
 {
 public:
