@@ -427,7 +427,8 @@ std::expected<void, CFileSystemError> CFileSystemMutator::renameEntry(const CEnt
 
 	// ERROR_ACCESS_DENIED is also how MoveFileExW reports an unreplaceable directory-bearing destination.
 	// Refine only from fresh no-follow attributes; ordinary permission failures remain permission failures.
-	if (replacement == ReplacementMode::ReplaceExistingFile && *moveError == ERROR_ACCESS_DENIED)
+	// FAT and exFAT report a read-only destination as ERROR_ALREADY_EXISTS.
+	if (replacement == ReplacementMode::ReplaceExistingFile && (*moveError == ERROR_ACCESS_DENIED || *moveError == ERROR_ALREADY_EXISTS))
 	{
 		const auto destinationStatus = thin_io::get_entry_status(nativeCStr(destinationNative), thin_io::link_behavior::do_not_follow);
 		if (destinationStatus && destinationStatus->attributes.kind == thin_io::entry_kind::directory)

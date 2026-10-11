@@ -115,9 +115,12 @@ Known defects:
 - Same-entry detection (`checkSameEntry`) compares a volume serial number plus a file ID. Two volumes cloned from one
   image share both, so an entry and its counterpart on the other volume compare as one entry. A copy or move between
   them reports such an item as already satisfied and transfers nothing.
-- A case-only rename on exFAT reports success and leaves the name unchanged. The driver treats it as a no-op in
+- A case-only rename on FAT32 and exFAT reports success and leaves the name unchanged. The driver treats it as a no-op in
   `MoveFileExW` and `FileRenameInfo`, and does not implement `FileRenameInfoEx`; only a rename through a temporary
   name changes the spelling.
+- On FAT32, a copied file can keep the creation time of a file recently deleted under the same name. Windows
+  filesystem tunnelling applies it when the staged copy is renamed to its final name, and on FAT32 it also matches a
+  name deleted in another, since removed directory.
 
 Inline rename is a separate synchronous command that reuses name, inspection, identity, and native rename
 primitives. Test-only fault injection lives in `operationtesthooks` and compiles out of production builds.
