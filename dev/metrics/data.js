@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791729810181,
+  "lastUpdate": 1791737220896,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -27768,6 +27768,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/652b75f7d38cff67356ff6e5add5dc4dfb9d6074"
         },
         "date": 1791729806846,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19690,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 20531,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1356.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 384.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 764,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 400.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "5c14b6d4f79318f2d16768fa6aea1126d9bff0ac",
+          "message": "CI: tests run on FAT32 and exFAT, on every platform",
+          "timestamp": "2026-10-11T19:41:19+03:00",
+          "tree_id": "19f0b342b5664e289a217f582a80873d32508705",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/5c14b6d4f79318f2d16768fa6aea1126d9bff0ac"
+        },
+        "date": 1791737218292,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
