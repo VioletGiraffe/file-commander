@@ -10,7 +10,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringView>
 RESTORE_COMPILER_WARNINGS
 
-#include <limits>
 #include <optional>
 #include <stdint.h>
 #include <time.h>
@@ -99,7 +98,6 @@ public:
 	[[nodiscard]] QString parentDirPath() const;
 	[[nodiscard]] uint64_t size() const;
 	[[nodiscard]] uint64_t hash() const;
-	[[nodiscard]] uint64_t rootFileSystemId() const;
 	[[nodiscard]] bool isLink() const;
 
 	[[nodiscard]] time_t creationTime() const;
@@ -130,6 +128,4 @@ private:
 	// The dot before the extension; the name's end when there is no extension
 	uint32_t                    _extensionDot = 0;
 	CFileSystemObjectProperties _properties;
-	// Lazily resolved device id of the containing filesystem; identifies which volume the object is on
-	mutable uint64_t            _rootFileSystemId = std::numeric_limits<uint64_t>::max();
 };

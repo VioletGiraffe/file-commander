@@ -25,9 +25,16 @@ DISABLE_COMPILER_WARNINGS
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
+#ifndef _WIN32
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#endif
+
 #include <algorithm>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <thread>
 
 CController* CController::_instance = nullptr;
@@ -961,15 +968,84 @@ std::optional<VolumeInfo> CController::currentVolumeInfo(Panel p) const
 	return volumeInfoForObject(currentDirectoryObject);
 }
 
+#ifndef _WIN32
+// Device ID of the filesystem holding the path. Empty when it cannot be queried.
+static std::optional<uint64_t> deviceIdForPath(const QString& fullPath)
+{
+	// stat() only succeeds on an existing path. If this path doesn't exist yet (e.g. a copy/move destination that will be
+	// created), walk up to the nearest existing ancestor: the path will be created on that same device / filesystem.
+	QByteArray path = fullPath.toUtf8();
+	struct stat info;
+	while (!path.isEmpty())
+	{
+		if (stat(path.constData(), &info) == 0)
+		{
+			return static_cast<uint64_t>(info.st_dev);
+		}
+
+		if (errno != ENOENT)
+		{
+			qInfo() << __FUNCTION__ << "Failed to query device ID for" << fullPath << strerror(errno);
+			break;
+		}
+
+		if (path == "/")
+			break; // Reached the filesystem root and even it doesn't stat - give up
+
+		const auto lastSlash = path.lastIndexOf('/');
+		if (lastSlash < 0)
+			break; // No parent component left (shouldn't happen for an absolute path)
+
+		path.truncate(lastSlash == 0 ? 1 : lastSlash); // Keep the leading '/' when the parent is the root itself
+	}
+
+	return {};
+}
+#endif
+
 std::optional<VolumeInfo> CController::volumeInfoForObject(const CFileSystemObject &object) const noexcept
 {
 	const auto volumes = _volumeEnumerator.volumes();
-	const auto infoIt = std::find_if(cbegin_to_end(volumes), [&object](const VolumeInfo& item) {return item.rootObjectInfo.rootFileSystemId() == object.rootFileSystemId();});
+	const QString path = object.fullAbsolutePath();
+#ifdef _WIN32
+	// By spelling: a substituted drive shares its volume's identity, and reading an identity opens the drive.
+	const auto infoIt = std::find_if(cbegin_to_end(volumes), [&path](const VolumeInfo& item) {
+		const QString root = item.rootObjectInfo.fullAbsolutePath();
+		return !root.isEmpty() && path.startsWith(root, Qt::CaseInsensitive);
+	});
 
-	if (infoIt != volumes.cend())
-		return *infoIt;
-	else
+	if (infoIt == volumes.cend())
 		return {};
+
+	return *infoIt;
+#else
+	// By device: a path reached through a link into another mount belongs to that mount's volume.
+	const auto device = deviceIdForPath(path);
+	if (!device)
+		return {};
+
+	// Volumes can share a device, as the "home" shortcut does with the root: the deepest one holding the path wins.
+	const VolumeInfo* match = nullptr;
+	qsizetype matchedRootLength = -1;
+	for (const VolumeInfo& item : volumes)
+	{
+		const QString root = item.rootObjectInfo.fullAbsolutePath();
+		if (deviceIdForPath(root) != device)
+			continue;
+
+		const qsizetype rootLength = path.startsWith(root) ? root.length() : 0;
+		if (rootLength > matchedRootLength)
+		{
+			match = &item;
+			matchedRootLength = rootLength;
+		}
+	}
+
+	if (!match)
+		return {};
+
+	return *match;
+#endif
 }
 
 std::optional<VolumeInfo> CController::volumeInfoById(uint64_t id) const

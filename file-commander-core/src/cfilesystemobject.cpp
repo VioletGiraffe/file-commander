@@ -6,29 +6,23 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "directoryscan/thinioqstring.h"
-#include "lang/type_traits_fast.hpp"
 #include "qtcore_helpers/qstring_hash.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QDebug>
 #include <QDir>
 #include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
 
 #if defined __linux__ || defined __APPLE__ || defined __FreeBSD__
 #include <unistd.h>
-#include <sys/stat.h>
 #include <wordexp.h>
 #elif defined _WIN32
 #include <Windows.h>
-#include <Shlwapi.h>
-#pragma comment(lib, "Shlwapi.lib") // This lib would have to be added not just to the top level application, but every plugin as well, so using #pragma instead
 #endif
 
 #include <algorithm>
 #include <assert.h>
-#include <errno.h>
 #include <utility>
 
 static QString expandEnvironmentVariables(const QString& string)
@@ -340,51 +334,6 @@ uint64_t CFileSystemObject::size() const
 uint64_t CFileSystemObject::hash() const
 {
 	return _properties.hash;
-}
-
-uint64_t CFileSystemObject::rootFileSystemId() const
-{
-	if (_rootFileSystemId == uint64_max)
-	{
-#ifdef _WIN32
-		WCHAR drivePath[32768];
-		const auto pathLength = _properties.fullPath.toWCharArray(drivePath);
-		drivePath[pathLength] = 0;
-		const auto driveNumber = PathGetDriveNumberW(drivePath);
-		if (driveNumber != -1)
-			_rootFileSystemId = static_cast<uint64_t>(driveNumber);
-#else
-		// stat() only succeeds on an existing path. If this path doesn't exist yet (e.g. a copy/move destination that will be
-		// created), walk up to the nearest existing ancestor: the path will be created on that same device / filesystem.
-		QByteArray path = _properties.fullPath.toUtf8();
-		struct stat info;
-		while (!path.isEmpty())
-		{
-			if (stat(path.constData(), &info) == 0)
-			{
-				_rootFileSystemId = static_cast<uint64_t>(info.st_dev);
-				break;
-			}
-
-			if (errno != ENOENT)
-			{
-				qInfo() << __FUNCTION__ << "Failed to query device ID for" << _properties.fullPath << strerror(errno);
-				break;
-			}
-
-			if (path == "/")
-				break; // Reached the filesystem root and even it doesn't stat - give up
-
-			const auto lastSlash = path.lastIndexOf('/');
-			if (lastSlash < 0)
-				break; // No parent component left (shouldn't happen for an absolute path)
-
-			path.truncate(lastSlash == 0 ? 1 : lastSlash); // Keep the leading '/' when the parent is the root itself
-		}
-#endif
-	}
-
-	return _rootFileSystemId;
 }
 
 bool CFileSystemObject::isLink() const
