@@ -1,7 +1,5 @@
 #include "centrypath.h"
 
-#include "filesystemhelperfunctions.h"
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -94,11 +92,6 @@ bool CEntryPath::isStrictDescendantOf(const CEntryPath& ancestor) const
 			return false;
 		candidate = candidate.parent();
 	}
-}
-
-bool CEntryPath::operator==(const CEntryPath& other) const noexcept
-{
-	return _path.compare(other._path, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0;
 }
 
 std::optional<CEntryPath> parseOperationPath(QString path)

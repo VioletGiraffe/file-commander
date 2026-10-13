@@ -3,6 +3,13 @@
 #include "destinationresolver.h"
 #include "sourcetreebuilder.h"
 
+
+// Submodule includes
+#include "filesystem_types.hpp" // thin_io: entry_identity
+
+
+#include <vector>
+
 class COperationExecutionContext;
 class CStagedFileCopy;
 
@@ -43,6 +50,10 @@ private:
 	// Totals and summary accounting for a root that ended before its manifest was built; the root entry
 	// itself is the only known item.
 	[[nodiscard]] NodeOutcome finishUnscannedRoot(NodeOutcome outcome);
+
+	// True, with the terminal failure recorded, when the destination lies inside the directory root itself.
+	// Decided by filesystem identity: spelling cannot see aliases or the volume's case rules.
+	[[nodiscard]] bool refuseDestinationInsideSource(const EntrySnapshot& root, const CEntryPath& proposedDestination);
 
 	// Silently creates an absent destination-parent chain. nullopt means the parent is usable; an outcome
 	// means its inspection/creation failure was resolved as Skip or Cancel through the ordinary ActionFailed policy.
@@ -117,6 +128,7 @@ private:
 	const uint64_t _transferChunkSize;
 
 	TransferKind _requestKind = TransferKind::Copy;
+	std::vector<thin_io::entry_identity> _destinationAncestorIdentities;
 	size_t _rootsWithUnresolvedTotals = 0;
 	uint64_t _knownTotalBytes = 0;
 	size_t _knownTotalItems = 0;

@@ -24,8 +24,8 @@ public:
 	[[nodiscard]] bool isRoot() const;
 	[[nodiscard]] bool isStrictDescendantOf(const CEntryPath& ancestor) const;
 
-	// Spelling comparison under the platform case policy; filesystem identity comparison is a separate operation.
-	[[nodiscard]] bool operator==(const CEntryPath& other) const noexcept;
+	// Exact spelling: a filesystem's case and normalization rules are not knowable from text. Same-entry decisions use checkSameEntry().
+	[[nodiscard]] bool operator==(const CEntryPath& other) const noexcept = default;
 
 private:
 	explicit CEntryPath(QString normalizedPath) noexcept;

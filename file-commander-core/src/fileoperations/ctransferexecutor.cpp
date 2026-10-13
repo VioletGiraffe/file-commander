@@ -9,6 +9,9 @@
 #include "assert/advanced_assert.h"
 #include "lang/utils.hpp" // mv()
 
+
+#include <algorithm>
+
 namespace
 {
 
@@ -17,6 +20,21 @@ EntrySnapshot destinationSnapshotFor(const EntrySnapshot& source, const CEntryPa
 {
 	const bool directoryLike = source.kind == OperationEntryKind::Directory || source.kind == OperationEntryKind::DirectoryLink;
 	return EntrySnapshot{ destination, directoryLike ? OperationEntryKind::Directory : OperationEntryKind::RegularFile, source.size };
+}
+
+// Identities of the existing directories that will contain every root's destination, each followed as a native path follows it.
+std::vector<thin_io::entry_identity> destinationAncestorIdentities(const DestinationSpec& destination)
+{
+	std::vector<thin_io::entry_identity> identities;
+	CEntryPath ancestor = destination.intent == DestinationIntent::IntoDirectory ? destination.path : destination.path.parent();
+	for (;;)
+	{
+		if (const auto identity = readEntryIdentity(ancestor, thin_io::link_behavior::follow); identity && *identity)
+			identities.push_back(**identity);
+		if (ancestor.isRoot())
+			return identities;
+		ancestor = ancestor.parent();
+	}
 }
 
 } // namespace
@@ -31,6 +49,7 @@ CTransferExecutor::CTransferExecutor(COperationExecutionContext& context, const 
 OperationSummary CTransferExecutor::run(const TransferRequest& request)
 {
 	_requestKind = request.kind;
+	_destinationAncestorIdentities = destinationAncestorIdentities(request.destination);
 
 	const auto intents = rootTransferIntents(request);
 	_rootsWithUnresolvedTotals = intents.size();
@@ -114,12 +133,28 @@ NodeOutcome CTransferExecutor::finishUnscannedRoot(const NodeOutcome outcome)
 		_context.addAlreadySatisfiedItems(1);
 		rootTotalsResolved(0, 0);
 		break;
-	default:
-		assert_debug_only(outcome == NodeOutcome::Cancelled);
+	default: // A Failed root has already recorded its terminal diagnostic
+		assert_debug_only(outcome == NodeOutcome::Cancelled || outcome == NodeOutcome::Failed);
 		rootTotalsResolved(0, 0);
 		break;
 	}
 	return outcome;
+}
+
+bool CTransferExecutor::refuseDestinationInsideSource(const EntrySnapshot& root, const CEntryPath& proposedDestination)
+{
+	assert_debug_only(root.kind == OperationEntryKind::Directory);
+
+	const auto identity = readEntryIdentity(root.path, thin_io::link_behavior::do_not_follow);
+	if (!identity || !*identity) // No identity, no proof
+		return false;
+	if (std::find(_destinationAncestorIdentities.begin(), _destinationAncestorIdentities.end(), **identity) == _destinationAncestorIdentities.end())
+		return false;
+
+	const FailedAction action = _requestKind == TransferKind::Move ? FailedAction::RenameEntry : FailedAction::CreateDestinationDirectory;
+	_context.recordFailure(OperationDiagnostic{ FailureDetails{ action, proposedDestination,
+		CFileSystemError{ FileErrorCategory::Unsupported, 0, QStringLiteral("The destination is inside the source") } }, root, {} });
+	return true;
 }
 
 std::optional<NodeOutcome> CTransferExecutor::ensureDestinationParentExistsWithPolicy(
@@ -198,6 +233,9 @@ NodeOutcome CTransferExecutor::copyRoot(const RootTransferIntent& intent)
 		rootTotalsResolved(leaf.subtreeBytes, 1);
 		return copyNode(leaf, intent.proposedDestination, TransferNodePosition::SelectedRoot);
 	}
+
+	if (root.kind == OperationEntryKind::Directory && refuseDestinationInsideSource(root, intent.proposedDestination))
+		return finishUnscannedRoot(NodeOutcome::Failed);
 
 	// Root-first resolution: a root skipped at its collision is never scanned.
 	DestinationChoice choice = resolveDirectoryDestination(_context, root, intent.proposedDestination, TransferNodePosition::SelectedRoot);
@@ -363,6 +401,10 @@ NodeOutcome CTransferExecutor::moveRoot(const RootTransferIntent& intent)
 	if (const auto* endedOutcome = std::get_if<NodeOutcome>(&rootEntry))
 		return finishUnscannedRoot(*endedOutcome);
 	EntrySnapshot& root = std::get<EntrySnapshot>(rootEntry);
+
+	// Before the parent chain is created: it would be created inside the source.
+	if (root.kind == OperationEntryKind::Directory && refuseDestinationInsideSource(root, intent.proposedDestination))
+		return finishUnscannedRoot(NodeOutcome::Failed);
 
 	if (const auto outcome = ensureDestinationParentExistsWithPolicy(root, intent.proposedDestination))
 		return finishUnscannedRoot(*outcome);

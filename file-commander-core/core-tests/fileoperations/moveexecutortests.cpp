@@ -329,6 +329,54 @@ TEST_CASE("move executor: a same-filesystem directory-link root renames as the l
 	CHECK(readFileContents(base % "/dest/thelink/x.bin") == patternedContents(300)); // Still resolves through the link
 }
 
+TEST_CASE("move executor: a destination inside its source directory is refused by identity", "[moveexecutor][link]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/src/sub"));
+	writeTestFile(base % "/src/x.bin", patternedContents(300));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
+	// Not a lexical descendant of the source, so request validation accepts it.
+	REQUIRE(createDirectoryLink(base % "/src", base % "/alias"));
+
+	OperationScript script;
+	const auto summary = runMove(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/alias/sub/new");
+
+	CHECK(summary.status == CompletionStatus::Failed);
+	CHECK(summary.failedItems == 1);
+	CHECK(script.seenRequests.empty());
+	CHECK(entryAbsent(base % "/src/sub/new")); // Refused before the destination parent chain is created
+	CHECK(readFileContents(base % "/src/x.bin") == patternedContents(300));
+}
+
+TEST_CASE("move executor: a directory link moves into its own target", "[moveexecutor][link]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/target"));
+
+	if (linksUnsupportedByFilesystem(base))
+		return;
+
+	REQUIRE(createDirectoryLink(base % "/target", base % "/thelink"));
+
+	OperationScript script;
+	const auto summary = runMove(script, { base % "/thelink" }, DestinationIntent::IntoDirectory, base % "/target");
+
+	CHECK(summary.status == CompletionStatus::Completed);
+	CHECK(summary.completedItems == 1);
+	CHECK(entryAbsent(base % "/thelink"));
+	const QFileInfo movedInfo{ base % "/target/thelink" };
+	CHECK((movedInfo.isSymLink() || movedInfo.isJunction()));
+}
+
 // A wholesale rename carries link entries untouched: where a link points afterwards is decided by how its own
 // target was spelled, and nothing rewrites it to preserve what it used to resolve to.
 TEST_CASE("move executor: a same-filesystem rename relocates link entries without rewriting their targets", "[moveexecutor][link]")

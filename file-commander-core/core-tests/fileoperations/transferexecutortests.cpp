@@ -379,6 +379,56 @@ TEST_CASE("copy executor: same-object roots are silently already satisfied", "[e
 	CHECK(readFileContents(base % "/alias.bin") == contents);
 }
 
+TEST_CASE("copy executor: a destination inside its source directory is refused by identity", "[executor]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	REQUIRE(QDir{}.mkpath(base % "/src/sub"));
+	writeTestFile(base % "/src/x.bin", patternedContents(300));
+	writeTestFile(base % "/other.bin", patternedContents(200));
+
+	// Neither spelling below is a lexical descendant of the source, so request validation accepts both.
+	SECTION("through a directory link aliasing the source; the other root still copies")
+	{
+		if (linksUnsupportedByFilesystem(base))
+			return;
+
+		REQUIRE(createDirectoryLink(base % "/src", base % "/alias"));
+
+		OperationScript script;
+		const auto summary = runCopy(script, { base % "/src", base % "/other.bin" }, DestinationIntent::IntoDirectory, base % "/alias/sub");
+
+		CHECK(summary.status == CompletionStatus::Failed);
+		CHECK(summary.failedItems == 1);
+		REQUIRE(summary.representativeFailures.size() == 1);
+		CHECK(summary.representativeFailures.front().failure.filesystemError.category == FileErrorCategory::Unsupported);
+		CHECK(script.seenRequests.empty());
+		CHECK(entryAbsent(base % "/src/sub/src"));
+
+		CHECK(summary.completedItems == 1);
+		CHECK(readFileContents(base % "/src/sub/other.bin") == patternedContents(200));
+	}
+
+	SECTION("through a case-variant spelling")
+	{
+		if (!QFileInfo::exists(base % "/SRC"))
+		{
+			WARN("The test volume is case-sensitive: a case-variant spelling addresses no entry");
+			return;
+		}
+
+		OperationScript script;
+		const auto summary = runCopy(script, { base % "/src" }, DestinationIntent::IntoDirectory, base % "/SRC/sub");
+
+		CHECK(summary.status == CompletionStatus::Failed);
+		CHECK(summary.failedItems == 1);
+		CHECK(script.seenRequests.empty());
+		CHECK(entryAbsent(base % "/src/sub/src"));
+	}
+}
+
 TEST_CASE("outcome aggregation follows the exact precedence", "[executor]")
 {
 	using enum NodeOutcome;

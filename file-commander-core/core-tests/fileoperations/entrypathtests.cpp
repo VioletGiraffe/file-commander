@@ -123,9 +123,10 @@ TEST_CASE("CEntryPath: Windows root and hierarchy laws", "[entrypath]")
 	CHECK(uncRoot.child(QStringLiteral("x")).parent() == uncRoot);
 }
 
-TEST_CASE("CEntryPath: case-insensitive spelling comparison", "[entrypath]")
+TEST_CASE("CEntryPath: comparison is exact spelling", "[entrypath]")
 {
-	CHECK(parsed(QStringLiteral("C:/Foo/Bar")) == parsed(QStringLiteral("C:/foo/bar")));
+	CHECK(!(parsed(QStringLiteral("C:/Foo/Bar")) == parsed(QStringLiteral("C:/foo/bar"))));
+	CHECK(parsed(QStringLiteral("c:/Foo")) == parsed(QStringLiteral("C:/Foo"))); // The parser normalizes the drive letter
 	CHECK(!(parsed(QStringLiteral("C:/foo")) == parsed(QStringLiteral("C:/bar"))));
 }
 
@@ -162,13 +163,9 @@ TEST_CASE("CEntryPath: POSIX root and hierarchy laws", "[entrypath]")
 	CHECK(root.child(QStringLiteral("x")).parent() == root);
 }
 
-TEST_CASE("CEntryPath: spelling comparison follows platform case policy", "[entrypath]")
+TEST_CASE("CEntryPath: comparison is exact spelling", "[entrypath]")
 {
-#ifdef __APPLE__
-	CHECK(parsed(QStringLiteral("/Foo/Bar")) == parsed(QStringLiteral("/foo/bar")));
-#else
 	CHECK(!(parsed(QStringLiteral("/Foo/Bar")) == parsed(QStringLiteral("/foo/bar"))));
-#endif
 	CHECK(!(parsed(QStringLiteral("/foo")) == parsed(QStringLiteral("/bar"))));
 }
 
