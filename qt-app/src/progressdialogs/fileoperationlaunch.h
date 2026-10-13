@@ -1,6 +1,7 @@
 #pragma once
 
 // Submodule includes
+#include "compiler/compiler_warnings_control.h"
 #include "fileoperations/fileoperationtypes.h"
 
 
