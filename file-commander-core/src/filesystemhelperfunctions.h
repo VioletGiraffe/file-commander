@@ -37,22 +37,6 @@ RESTORE_COMPILER_WARNINGS
 #endif
 }
 
-[[nodiscard]] consteval bool caseSensitiveFilesystem() noexcept
-{
-#if defined _WIN32
-	return false;
-#elif defined __APPLE__
-	return false;
-#elif defined __linux__
-	return true;
-#elif defined __FreeBSD__
-	return true;
-#else
-#error "Unknown operating system"
-	return true;
-#endif
-}
-
 [[nodiscard]] QString toNativeSeparators(QString path);
 
 [[nodiscard]] QString toPosixSeparators(QString path);
@@ -75,7 +59,3 @@ RESTORE_COMPILER_WARNINGS
 #endif
 
 [[nodiscard]] QString fileSizeToString(uint64_t size, char maxUnit = '\0', const QString& spacer = {}, int significantPlaces = 4);
-
-[[nodiscard]] std::vector<QString> pathComponents(const QString& path);
-
-[[nodiscard]] QString longestCommonRootPath(const QString& pathA, const QString& pathB);

@@ -3,11 +3,9 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
-#include "container/std_container_helpers.hpp"
 #include "fs.hpp" // thin_io
 #include "lang/type_traits_fast.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
-#include "std_helpers/qt_container_helpers.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -311,58 +309,6 @@ QString fileSizeToString(uint64_t size, const char maxUnit, const QString& space
 	else
 	{
 		result = QStringLiteral("%1 %2").arg(numeric, QString::fromLatin1(chosen->label));
-	}
-
-	return result;
-}
-
-std::vector<QString> pathComponents(const QString &path)
-{
-#ifndef _WIN32
-	assert_debug_only(!path.contains("//"));
-#else
-	// This could be a network path
-	assert_debug_only(!path.contains('\\') && path.lastIndexOf(QSL("//")) <= 0);
-#endif // !_WIN32
-	auto components = path.split('/', Qt::KeepEmptyParts);
-	if (components.empty())
-		return { path };
-
-	if (components.front().isEmpty())
-		components.front() = '/';
-
-	if (components.back().isEmpty())
-		components.pop_back();
-
-	return to_vector(std::move(components));
-}
-
-QString longestCommonRootPath(const QString &pathA, const QString &pathB)
-{
-	if (pathA.compare(pathB, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0)
-		return pathA; // Full match
-
-	const auto hierarchyA = pathComponents(pathA);
-	const auto hierarchyB = pathComponents(pathB);
-
-	const auto mismatch = std::mismatch(cbegin_to_end(hierarchyA), cbegin_to_end(hierarchyB), [](const QString& left, const QString& right){
-		return left.compare(right, caseSensitiveFilesystem() ? Qt::CaseSensitive : Qt::CaseInsensitive) == 0;
-	});
-
-	if (mismatch.first == hierarchyA.cbegin() || mismatch.second == hierarchyB.cbegin())
-		return {}; // No common prefix
-
-	// Sanity check
-	assert_debug_only(std::distance(mismatch.first, hierarchyA.cbegin()) == std::distance(mismatch.second, hierarchyB.cbegin()) && std::distance(mismatch.first, hierarchyA.cbegin()) <= pathA.size());
-
-	QString result;
-	for (auto it = hierarchyA.cbegin(); it != mismatch.first; ++it)
-	{
-		result += *it;
-		if (*it != '/')
-			result += '/';
-		else
-			assert_debug_only(it->endsWith('/'));
 	}
 
 	return result;
