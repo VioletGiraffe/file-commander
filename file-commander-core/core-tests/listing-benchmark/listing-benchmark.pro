@@ -19,16 +19,18 @@ mac*|linux*|freebsd{
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 INCLUDEPATH += \
 	$${PWD}/ \
-	../test-utils/src/ # Only header-only helpers are used, so no test_utils link dependency
+	../../../file-operations/test-utils/src/ # Only header-only helpers are used, so no test_utils link dependency
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
+
+include(../../../file-operations/directoryscan/directoryscan.pri)
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \
 	main.cpp \
 	../../src/cfilesystemobject.cpp \
-	../../src/directoryscanner.cpp
+	../../src/panellisting.cpp
 
 HEADERS += \
 	../../src/cfilesystemobject.h \
-	../../src/directoryscanner.h
+	../../src/panellisting.h

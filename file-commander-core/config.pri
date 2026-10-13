@@ -25,4 +25,5 @@ INCLUDEPATH += \
 	../qtutils \
 	../cpputils \
 	../cpp-template-utils \
-	../thin_io/src
+	../thin_io/src \
+	../file-operations

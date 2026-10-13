@@ -25,7 +25,8 @@ mac*|linux*|freebsd{
 
 INCLUDEPATH += \
 	../../src/ \
-	../../../file-commander-core/src/
+	../../../file-commander-core/src/ \
+	../../../file-operations/tests/fileoperationsui/ # fileoperationguitesthelpers.h
 
 # config.pri's INCLUDEPATH entries are relative to file-commander-core; rebase them for this project's location.
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../../file-commander-core/$${included_item}
@@ -33,39 +34,15 @@ for (included_item, INCLUDEPATH): INCLUDEPATH += ../../../file-commander-core/$$
 # The dialog drives a real job to exact points, so the module is compiled from source with its fault hooks
 # active - the same arrangement the core file-operation test project uses.
 DEFINES += FILE_OPERATIONS_TEST_HOOKS
-include(../../../file-commander-core/src/fileoperations/fileoperations.pri)
+include(../../../file-operations/fileoperations/fileoperations.pri)
+include(../../../file-operations/fileoperationsui/fileoperationsui.pri)
 
 SOURCES += \
 	main.cpp \
-	fileoperationprompttests.cpp \
-	fileoperationdialogtests.cpp \
 	fileoperationlaunchtests.cpp \
 	fileoperationroutingtests.cpp \
-	../../src/progressdialogs/cfileoperationprompt.cpp \
-	../../src/progressdialogs/cfileoperationdialog.cpp \
-	../../src/progressdialogs/fileoperationlaunch.cpp \
-	../../src/progressdialogs/progressdialoghelpers.cpp
-
-# fileSizeToString lives in filesystemhelperfunctions.cpp, whose other functions reach into CFileSystemObject;
-# object-file granularity means the whole CFileSystemObject tree must be compiled in (as the core test does).
-SOURCES += \
-	../../../file-commander-core/src/filesystemhelperfunctions.cpp \
-	../../../file-commander-core/src/cfilesystemobject.cpp \
-	../../../file-commander-core/src/iconprovider/ciconprovider.cpp \
-	../../../file-commander-core/src/iconprovider/ciconproviderimpl.cpp \
-	../../../file-commander-core/src/directoryscanner.cpp
+	../../src/progressdialogs/fileoperationlaunch.cpp
 
 HEADERS += \
-	fileoperationguitesthelpers.h \
-	../../src/progressdialogs/cfileoperationprompt.h \
-	../../src/progressdialogs/cfileoperationdialog.h \
-	../../src/progressdialogs/fileoperationlaunch.h \
-	../../src/progressdialogs/progressdialoghelpers.h \
-	../../../file-commander-core/src/cfilesystemobject.h \
-	../../../file-commander-core/src/iconprovider/ciconprovider.h \
-	../../../file-commander-core/src/iconprovider/ciconproviderimpl.h \
-	../../../file-commander-core/src/directoryscanner.h
-
-FORMS += \
-	../../src/progressdialogs/cfileoperationprompt.ui \
-	../../src/progressdialogs/cfileoperationdialog.ui
+	../../../file-operations/tests/fileoperationsui/fileoperationguitesthelpers.h \
+	../../src/progressdialogs/fileoperationlaunch.h

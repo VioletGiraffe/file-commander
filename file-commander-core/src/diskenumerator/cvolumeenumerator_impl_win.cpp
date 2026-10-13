@@ -1,8 +1,8 @@
 #include "cvolumeenumerator.h"
-#include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
+#include "directoryscan/thinioqstring.h"
 #include "system/win_utils.hpp"
 #include "timing/ctimeelapsed.h"
 #include "utility/on_scope_exit.hpp"

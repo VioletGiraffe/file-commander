@@ -23,3 +23,6 @@
 [submodule "code-editor"]
 	path = code-editor
 	url = https://github.com/VioletGiraffe/code-editor
+[submodule "file-operations"]
+	path = file-operations
+	url = https://github.com/VioletGiraffe/file-operations

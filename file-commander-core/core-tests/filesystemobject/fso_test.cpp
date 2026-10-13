@@ -1,6 +1,6 @@
 #include "cfilesystemobject.h"
 
-#include "../test-utils/src/catch2_utils.hpp"
+#include "catch2_utils.hpp"
 
 
 // Submodule includes

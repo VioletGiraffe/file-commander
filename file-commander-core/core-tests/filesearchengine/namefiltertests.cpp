@@ -118,7 +118,7 @@ TEST_CASE("Search - an empty filter list matches any name", "[search][names]")
 	CHECK(result.status == CFileSearchEngine::SearchFinished);
 	CHECK(result.matched(file));
 	CHECK(result.matched(directory));
-	CHECK(result.matched(tree.path())); // The root is traversed as well, and nothing excludes it
+	CHECK_FALSE(result.matched(tree.path())); // The root is where the search runs, never a result
 }
 
 TEST_CASE("Search - name case sensitivity follows the flag", "[search][names]")

@@ -28,13 +28,11 @@ HEADERS += \
 	src/filesystemhelperfunctions.h \
 	src/iconprovider/ciconproviderimpl.h \
 	src/filesearchengine/cfilesearchengine.h \
-	src/directoryscanner.h \
+	src/panellisting.h \
 	src/diskenumerator/volumeinfo.hpp \
 	src/diskenumerator/cvolumeenumerator.h \
 	src/diskenumerator/volumeinfohelper.hpp \
 	src/filecomparator/cfilecomparator.h \
-	src/filecomparator/filecontentcomparison.h \
-	src/filecomparator/foldercomparison.h \
 	src/filesystemhelpers/filesystemhelpers.hpp
 
 SOURCES += \
@@ -51,11 +49,9 @@ SOURCES += \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/userprograms/userprograms.cpp \
 	src/filesearchengine/cfilesearchengine.cpp \
-	src/directoryscanner.cpp \
+	src/panellisting.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
 	src/filecomparator/cfilecomparator.cpp \
-	src/filecomparator/filecontentcomparison.cpp \
-	src/filecomparator/foldercomparison.cpp \
 	src/filesystemhelpers/filesystemhelpers.cpp
 
 win*{
@@ -85,6 +81,8 @@ freebsd{
 		src/diskenumerator/cvolumeenumerator_impl_freebsd.cpp
 }
 
-include(src/fileoperations/fileoperations.pri)
+include(../file-operations/fileoperations/fileoperations.pri)
+include(../file-operations/directoryscan/directoryscan.pri)
+include(../file-operations/foldercomparison/foldercomparison.pri)
 include(src/pluginengine/pluginengine.pri)
 include(src/plugininterface/plugininterface.pri)

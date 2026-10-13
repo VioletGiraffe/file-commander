@@ -23,18 +23,20 @@ mac*|linux*|freebsd{
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 INCLUDEPATH += \
 	$${PWD}/ \
-	../test-utils/src/ # link_helpers.hpp is header-only, so no test_utils link dependency
+	../../../file-operations/test-utils/src/ # link_helpers.hpp is header-only, so no test_utils link dependency
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
+
+include(../../../file-operations/directoryscan/directoryscan.pri)
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \
 	main.cpp \
 	fso_test_high_level.cpp \
 	../../src/cfilesystemobject.cpp \
-	../../src/directoryscanner.cpp
+	../../src/panellisting.cpp
 
 HEADERS += \
 	../../src/cfilesystemobject.h \
-	../../src/directoryscanner.h
+	../../src/panellisting.h

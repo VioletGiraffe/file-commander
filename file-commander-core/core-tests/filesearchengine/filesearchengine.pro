@@ -24,10 +24,12 @@ for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 
 INCLUDEPATH += \
 	../../src/ \
-	../test-utils/src/
+	../../../file-operations/test-utils/src/
 
 LIBS += -L$${DESTDIR} -lcpputils -lqtutils -ltest_utils
 include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
+
+include(../../../file-operations/directoryscan/directoryscan.pri)
 
 SOURCES += \
 	main.cpp \
@@ -36,11 +38,9 @@ SOURCES += \
 	enginebehaviortests.cpp \
 	../../src/filesearchengine/cfilesearchengine.cpp \
 	../../src/cfilesystemobject.cpp \
-	../../src/filesystemhelperfunctions.cpp \
-	../../src/directoryscanner.cpp
+	../../src/filesystemhelperfunctions.cpp
 
 HEADERS += \
 	searchenginetesthelpers.h \
 	../../src/filesearchengine/cfilesearchengine.h \
-	../../src/cfilesystemobject.h \
-	../../src/directoryscanner.h
+	../../src/cfilesystemobject.h

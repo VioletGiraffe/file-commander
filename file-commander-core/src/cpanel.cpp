@@ -2,12 +2,14 @@
 
 #include "settings.h"
 #include "filesystemhelperfunctions.h"
-#include "directoryscanner.h"
+#include "panellisting.h"
 #include "filesystemhelpers/filestatistics.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "directoryscan/directoryscanner.h"
+#include "directoryscan/thinioqstring.h"
 #include "std_helpers/qt_container_helpers.hpp"
 #include "timing/ctimeelapsed.h"
 
@@ -379,10 +381,12 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 
 		if (request.displayMode == AllObjectsMode)
 		{
-			scanDirectory(CFileSystemObject(request.path), [&items, showHiddenFiles](const CFileSystemObject& item, bool /*reachedThroughLink*/) {
-				if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
-					items.try_emplace(item.hash(), item);
-			}, _abortBackgroundTasks);
+			scanDirectory(CFileSystemObject(request.path).fullAbsolutePath(),
+				[&items, showHiddenFiles](const QString& parentPath, const thin_io::directory_entry& entry, bool /*reachedThroughLink*/) {
+					CFileSystemObject item{ parentPath, entry };
+					if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
+						items.try_emplace(item.hash(), std::move(item));
+				}, _abortBackgroundTasks);
 		}
 		else
 		{

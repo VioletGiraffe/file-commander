@@ -400,7 +400,7 @@ jobs:
           .\scripts\run_tests.bat -NoBuild -All -Suite fileoperations_test --std-seed (Get-Random)
         }
 
-        .\scripts\run_tests.bat -NoBuild -All -Suite filecomparator_test --std-seed (Get-Random)
+        .\scripts\run_tests.bat -NoBuild -All -Suite foldercomparison_test --std-seed (Get-Random)
 
     - name: Running tests on exFAT and FAT32 - Windows
       if: startsWith(matrix.os, 'windows')
@@ -448,7 +448,7 @@ jobs:
         ./scripts/run_tests.sh nobuild
         # A seed of the current second needs the sleep to differ between iterations
         for i in `seq 1 20`; do echo "Iteration $i"; ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s); sleep 1; done
-        ./scripts/run_tests.sh nobuild all filecomparator_test --std-seed $(date +%s)
+        ./scripts/run_tests.sh nobuild all foldercomparison_test --std-seed $(date +%s)
 
     - name: Running tests on exFAT and FAT32 - Mac
       if: startsWith(matrix.os, 'macos')
@@ -497,7 +497,7 @@ jobs:
         ./scripts/run_tests.sh nobuild
         # A seed of the current second needs the sleep to differ between iterations
         for i in `seq 1 20`; do echo "Iteration $i"; ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s); sleep 1; done
-        ./scripts/run_tests.sh nobuild all filecomparator_test --std-seed $(date +%s)
+        ./scripts/run_tests.sh nobuild all foldercomparison_test --std-seed $(date +%s)
 
     - name: Running tests on exFAT and FAT32 - Linux
       if: startsWith(matrix.os, 'ubuntu')

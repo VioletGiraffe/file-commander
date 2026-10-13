@@ -1,12 +1,11 @@
 #include "cfilesystemwatchertimerbased.h"
 
-#include "filesystemhelperfunctions.h"
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
 #include "container/set_operations.hpp"
+#include "directoryscan/thinioqstring.h"
 
 
 DISABLE_COMPILER_WARNINGS

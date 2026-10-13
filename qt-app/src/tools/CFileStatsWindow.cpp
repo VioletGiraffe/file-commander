@@ -4,11 +4,11 @@
 
 #include "ccontroller.h"
 #include "filesystemhelpers/filestatistics.h"
-#include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
 #include "qtcore_helpers/qdatetime_helpers.hpp"
+#include "utils/displayformatting.h"
 
 
 DISABLE_COMPILER_WARNINGS

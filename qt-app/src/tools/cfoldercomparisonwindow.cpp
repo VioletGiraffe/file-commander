@@ -4,11 +4,11 @@
 
 #include "ccontroller.h"
 #include "cpanel.h"
-#include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
 #include "dialogs/csimpleprogressdialog.h"
+#include "utils/displayformatting.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -45,10 +45,9 @@ QString statusText(const EntryDifference status)
 	return {};
 }
 
-// Directories carry no size worth showing, and neither does the side an entry is missing from.
-QString sizeText(const FileSystemObjectType type, const uint64_t size)
+QString sizeText(const std::optional<uint64_t> size)
 {
-	return type == File ? fileSizeToString(size) : QString{};
+	return size ? fileSizeToString(*size) : QString{};
 }
 
 } // namespace
@@ -120,10 +119,10 @@ CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const FolderCo
 		item->setText(columns::Name, entry.relativePath);
 		item->setText(columns::Status, statusText(entry.status));
 
-		item->setText(columns::LeftSize, sizeText(entry.leftType, entry.leftSize));
-		item->setData(columns::LeftSize, Qt::UserRole, (qulonglong)entry.leftSize);
-		item->setText(columns::RightSize, sizeText(entry.rightType, entry.rightSize));
-		item->setData(columns::RightSize, Qt::UserRole, (qulonglong)entry.rightSize);
+		item->setText(columns::LeftSize, sizeText(entry.leftSize));
+		item->setData(columns::LeftSize, Qt::UserRole, (qulonglong)entry.leftSize.value_or(0));
+		item->setText(columns::RightSize, sizeText(entry.rightSize));
+		item->setData(columns::RightSize, Qt::UserRole, (qulonglong)entry.rightSize.value_or(0));
 
 		// Activating an entry reveals it in whichever panel actually holds it.
 		const bool onTheRightOnly = entry.status == EntryDifference::OnlyInRight;

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "filecomparator/foldercomparison.h"
-
-
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "foldercomparison/foldercomparison.h"
 
 
 DISABLE_COMPILER_WARNINGS

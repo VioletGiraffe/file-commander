@@ -70,67 +70,15 @@ roots. Keep conversions at the type's boundaries. The parser rejects embedded NU
 prefixes; native-path prefixing belongs to the native bridge. See
 [planned-refactors/native-paths.md](planned-refactors/native-paths.md) for the remaining POSIX filename limitation.
 
-## File operations (`src/fileoperations/`)
+## File operations
 
-The module separates synchronous policy and filesystem mechanics from its threaded UI wrapper:
-
-```text
-CFileOperationJob
-  `- CTransferExecutor or CDeleteExecutor
-       |- COperationExecutionContext
-       |- destination resolution: resolveFileDestination(), resolveDirectoryDestination() in destinationresolver.h
-       |- source manifest scan: buildSourceTree() in sourcetreebuilder.h
-       |- CStagedFileCopy
-       `- CFileSystemMutator
-```
-
-`fileoperationtypes.h` defines requests, issues, decisions, progress, and summaries. `centrypath.h` owns operation
-paths; `newnamecheck.h` validates user-proposed names. The UI chooses `DestinationIntent` once when building a
-request; lower layers do not reinterpret it.
-
-Important boundaries:
-
-1. Executors are synchronous. `CFileOperationJob` is the cross-thread owner and the sole pause, cancel, decision,
-   and event-queue boundary.
-2. Move attempts native rename first. Only a classified cross-device result selects staged copy and owned-source
-   cleanup.
-3. Staged copy publishes by rename after contents and required metadata are ready. Cancellation is honored before
-   publication; publication and committed source cleanup are not interruptible.
-4. Delete and same-filesystem move act on link entries. Copy materializes link targets, detects active traversal
-   cycles, and never removes content merely borrowed through a directory link.
-5. Manifest scanning builds the complete operation-specific tree before aggregate totals become available. Fixed
-   depth and node limits bound hostile or cyclic inputs.
-6. Native error classification is conservative. Narrow a platform error only when the operation's local context
-   proves the meaning; unknown errors remain ordinary I/O failures.
-7. Namespace decisions are path-bound. External processes can replace a source or destination between inspection,
-   authorization, and mutation; eliminating that limitation would require stable identities plus handle-bound or
-   conditional native operations, not another path recheck.
-
-Exclusive publication degrades to a check followed by rename when the filesystem lacks an exclusive-rename
-primitive. This preserves compatibility but admits a narrow external race. Publication also relies on normal
-filesystem namespace persistence rather than promising power-loss transactional durability.
-
-A case-only rename goes through a temporary sibling name where the filesystem cannot do it in one step: where the
-new spelling collides with the entry itself (POSIX), or where the rename reports success and keeps the old spelling
-(FAT32 and exFAT on Windows). That path is two renames with a rollback, not one atomic operation.
-
-Known defects:
-
-- Same-entry detection (`checkSameEntry`) compares a volume serial number plus a file ID. Two volumes cloned from one
-  image share both, so an entry and its counterpart on the other volume compare as one entry. A copy or move between
-  them reports such an item as already satisfied and transfers nothing.
-- On FAT32, a copied file can keep the creation time of a file recently deleted under the same name. Windows
-  filesystem tunnelling applies it when the staged copy is renamed to its final name, and on FAT32 it also matches a
-  name deleted in another, since removed directory.
-- On macOS, a file copied to FAT32 gets the current modification time: the driver restamps a written file after the
-  source's time was applied. Only flushing every file before applying it would prevent that.
-
-Inline rename is a separate synchronous command that reuses name, inspection, identity, and native rename
-primitives. Test-only fault injection lives in `operationtesthooks` and compiles out of production builds.
+Copy, move, permanent delete, inline rename, directory scanning and folder comparison live in the
+`file-operations` submodule; its `README.md` holds their design notes. The core library compiles its sources
+through their `.pri` manifests.
 
 ## Traversal and watchers
 
-`scanDirectory()` (`src/directoryscanner.h`) is shared by flattened display, search, and folder comparison. It can
+`scanDirectory()` (`file-operations/directoryscan/`) is shared by flattened display, search, and folder comparison. It can
 follow directory links and breaks cycles with resolved native identity rather than path text. File operations and
 statistics use separate traversals.
 
@@ -145,8 +93,8 @@ single-directory watch.
 |------|---------------------|
 | Volumes | `diskenumerator/`; periodic enumeration with UI-queued delivery |
 | Search | `filesearchengine/`; cancellable traversal with a bounded content-search pool |
-| Comparison | `filecomparator/`; synchronous primitives plus a threaded single-file wrapper |
+| Comparison | `filecomparator/`; a threaded single-file wrapper over `file-operations/foldercomparison/` |
 | Shell integration | `shell/`; platform clipboard, context menus, launching, and native deletion |
 | Favorites | `favoritelocationslist/`; nested locations persisted under a supplied settings key |
 | Icons | `iconprovider/`; extension guessing is the disk-free fast path |
-| Statistics/helpers | `filesystemhelpers/`, `filesystemhelperfunctions`; traversal and native identity utilities |
+| Statistics/helpers | `filesystemhelpers/`, `filesystemhelperfunctions`; statistics traversal, separators and shell quoting |

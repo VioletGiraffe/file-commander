@@ -33,7 +33,9 @@ INCLUDEPATH += \
 # config.pri's INCLUDEPATH entries are relative to file-commander-core; rebase them for this project's location.
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../../file-commander-core/$${included_item}
 
-INCLUDEPATH += ../../../file-commander-core/core-tests/test-utils/src/
+INCLUDEPATH += ../../../file-operations/test-utils/src/
+
+include(../../../file-operations/directoryscan/directoryscan.pri)
 
 SOURCES += \
 	main.cpp \
@@ -43,10 +45,10 @@ SOURCES += \
 	../../src/panel/filelistwidget/cfocusframestyle.cpp \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
 	../../src/panel/filelistwidget/model/cfilelistmodel.cpp \
-	../../../file-commander-core/core-tests/test-utils/src/crandomdatagenerator.cpp \
-	../../../file-commander-core/core-tests/test-utils/src/qt_helpers.cpp
+	../../../file-operations/test-utils/src/crandomdatagenerator.cpp \
+	../../../file-operations/test-utils/src/qt_helpers.cpp
 
-# The model's CIconProvider and fileSizeToString calls pull in the CFileSystemObject tree, as in the core fso tests.
+# The model's CIconProvider calls pull in the CFileSystemObject tree, as in the core fso tests.
 SOURCES += \
 	../../../file-commander-core/src/filesystemhelperfunctions.cpp \
 	../../../file-commander-core/src/cfilesystemobject.cpp \

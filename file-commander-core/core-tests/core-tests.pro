@@ -1,7 +1,13 @@
 TEMPLATE = subdirs
 
-SUBDIRS = fileoperations filesystemobject filesystemobject-high-level filecomparator panel filesearchengine userprograms filesystemhelpers shell
+SUBDIRS = fileoperations fileoperationsui foldercomparison filesystemobject filesystemobject-high-level panel filesearchengine userprograms filesystemhelpers shell
 SUBDIRS += qtutils cpputils cpp-template-utils catch2-runner test-utils thin_io
+
+# The file-operation suites live with their module.
+fileoperations.subdir = ../../file-operations/tests/fileoperations
+fileoperationsui.subdir = ../../file-operations/tests/fileoperationsui
+foldercomparison.subdir = ../../file-operations/tests/foldercomparison
+test-utils.subdir = ../../file-operations/test-utils
 
 # The automated GUI-component tests live with the UI sources but build and run with the test suite.
 SUBDIRS += gui-fileoperations
@@ -33,7 +39,8 @@ test-utils.depends = qtutils
 fileoperations.depends = test-utils thin_io catch2-runner
 filesystemobject.depends = qtutils thin_io catch2-runner
 filesystemobject-high-level.depends = qtutils thin_io catch2-runner
-filecomparator.depends = cpputils test-utils thin_io catch2-runner
+fileoperationsui.depends = qtutils cpputils thin_io catch2-runner
+foldercomparison.depends = cpputils test-utils thin_io catch2-runner
 panel.depends = cpputils test-utils thin_io catch2-runner
 filesearchengine.depends = cpputils test-utils thin_io catch2-runner
 userprograms.depends = qtutils thin_io catch2-runner

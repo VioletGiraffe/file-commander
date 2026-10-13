@@ -14,7 +14,7 @@
 
 set -u
 
-TESTS="fso_test fso_test_high_level panel_test filesearchengine_test userprograms_test filesystemhelpers_test shell_test fileoperations_test filecomparator_test fileoperations_gui_test filelist_test csvviewer_test"
+TESTS="fso_test fso_test_high_level panel_test filesearchengine_test userprograms_test filesystemhelpers_test shell_test fileoperations_test foldercomparison_test fileoperationsui_test fileoperations_gui_test filelist_test csvviewer_test"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -101,7 +101,7 @@ for test in ${TESTS}; do
 	default_args=""
 	case "${test}" in
 		fileoperations_test) default_args="${FILEOPERATIONS_ARGS}" ;;
-		filecomparator_test) default_args="${FILECOMPARATOR_ARGS}" ;;
+		foldercomparison_test) default_args="${FILECOMPARATOR_ARGS}" ;;
 	esac
 
 	echo

@@ -29,6 +29,8 @@ include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
 win*: LIBS += -lole32 -lShell32 -lUser32 -lMpr
 
+include(../../../file-operations/directoryscan/directoryscan.pri)
+
 SOURCES += \
 	main.cpp \
 	shelltests.cpp \

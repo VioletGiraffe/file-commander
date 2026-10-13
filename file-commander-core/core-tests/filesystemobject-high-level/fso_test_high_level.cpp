@@ -1,5 +1,5 @@
 #include "cfilesystemobject.h"
-#include "directoryscanner.h"
+#include "panellisting.h"
 #include "filesystemhelperfunctions.h" // toNativeSeparators
 
 #include "link_helpers.hpp"

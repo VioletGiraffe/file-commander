@@ -1,10 +1,9 @@
 #include "ccommandoutputpane.h"
 
-#include "progressdialogs/progressdialoghelpers.h"
-
 
 // Submodule includes
 #include "theme/colorutils.h"
+#include "utils/displayformatting.h"
 #include "widgets/clabelelided.h"
 
 

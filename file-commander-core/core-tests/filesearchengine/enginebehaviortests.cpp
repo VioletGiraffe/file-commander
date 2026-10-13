@@ -52,7 +52,7 @@ TEST_CASE("Search - every traversed entry is counted, directories included", "[s
 
 	const SearchResult result = runSearch({ .roots = { tree.path() } });
 
-	CHECK(result.itemsScanned == 4); // The root, its two entries (a.txt and sub), and sub's one entry
+	CHECK(result.itemsScanned == 3); // The root's two entries (a.txt and sub), and sub's one entry; the root itself is not an item
 	CHECK(result.status == CFileSearchEngine::SearchFinished);
 	CHECK(result.finishedNotifications == 1);
 }

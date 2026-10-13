@@ -5,6 +5,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "directoryscan/thinioqstring.h"
 #include "lang/type_traits_fast.hpp"
 #include "qtcore_helpers/qstring_hash.hpp"
 

@@ -6,7 +6,6 @@
 
 #include "cmainwindow.h"
 #include "cshelloperationrunner.h"
-#include "progressdialogs/progressdialoghelpers.h"
 
 #include "favoritelocationseditor/cfavoritelocationseditor.h"
 
@@ -14,15 +13,17 @@
 #include "shell/cshell.h"
 #include "iconprovider/ciconprovider.h"
 #include "fileoperationresultcode.h"
-#include "fileoperations/fileoperationtypes.h"
-#include "fileoperations/inlinerename.h"
 #include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "fileoperations/fileoperationtypes.h"
+#include "fileoperations/inlinerename.h"
+#include "fileoperationsui/fileoperationtexts.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "timing/ctimeelapsed.h"
+#include "utils/displayformatting.h"
 #include "widgets/clineedit.h"
 #include "widgets/layouts/cflowlayout.h"
 #include "widgets/widgetutils.h"

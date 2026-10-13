@@ -27,6 +27,8 @@ INCLUDEPATH += \
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
+include(../../../file-operations/directoryscan/directoryscan.pri)
+
 SOURCES += \
 	main.cpp \
 	filesystemhelperstests.cpp \

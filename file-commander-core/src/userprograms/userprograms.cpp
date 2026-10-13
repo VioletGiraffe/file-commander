@@ -6,6 +6,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "directoryscan/thinioqstring.h"
 
 
 DISABLE_COMPILER_WARNINGS

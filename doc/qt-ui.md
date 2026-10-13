@@ -15,7 +15,7 @@ owners. Filesystem and panel access goes through `CController`.
 | Blocking shell operations: native delete, clipboard paste | `src/cshelloperationrunner.{h,cpp}` |
 | Command-line output panes | `src/commandoutput/`; see [process-launching.md](process-launching.md) |
 | Programs menu editor | `src/programseditor/`; see [process-launching.md](process-launching.md) |
-| File-operation UI | `src/progressdialogs/` |
+| File-operation UI | `src/progressdialogs/` (launch, confirmation); the dialogs are in `file-operations/fileoperationsui/` |
 | Search, tools, and settings | `src/filessearchdialog/`, `src/tools/`, `src/settings/` |
 
 ## Main window

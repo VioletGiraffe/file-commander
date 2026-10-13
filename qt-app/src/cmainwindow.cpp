@@ -6,9 +6,7 @@
 
 #include "cshelloperationrunner.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
-#include "progressdialogs/cfileoperationdialog.h"
 #include "progressdialogs/fileoperationlaunch.h"
-#include "progressdialogs/progressdialoghelpers.h"
 
 #include "commandoutput/ccommandoutputarea.h"
 
@@ -29,8 +27,6 @@
 #include "pluginengine/cpluginengine.h"
 #include "shell/cshell.h"
 #include "shell/cshellcommand.h"
-#include "fileoperations/fileoperationtypes.h"
-#include "fileoperations/newnamecheck.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
@@ -42,6 +38,10 @@
 #include "appdialogs/reportbugdialog.h"
 #include "assert/advanced_assert.h"
 #include "dialogs/messagedialog.h"
+#include "fileoperations/fileoperationtypes.h"
+#include "fileoperations/newnamecheck.h"
+#include "fileoperationsui/cfileoperationdialog.h"
+#include "fileoperationsui/fileoperationtexts.h"
 #include "logger/cloggerinmemory.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"

@@ -25,9 +25,11 @@ mac*|linux*|freebsd{
 
 INCLUDEPATH += \
 	../../src/ \
-	../test-utils/src/
+	../../../file-operations/test-utils/src/
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
+
+include(../../../file-operations/directoryscan/directoryscan.pri)
 
 SOURCES += \
 	main.cpp \
@@ -40,7 +42,7 @@ SOURCES += \
 	../../src/cpanel.cpp \
 	../../src/cfilesystemobject.cpp \
 	../../src/filesystemhelperfunctions.cpp \
-	../../src/directoryscanner.cpp \
+	../../src/panellisting.cpp \
 	../../src/filesystemhelpers/filesystemhelpers.cpp \
 	../../src/filesystemhelpers/filestatistics.cpp \
 	../../src/filesystemwatcher/cfilesystemwatchertimerbased.cpp \

@@ -3,68 +3,17 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
-#include "fs.hpp" // thin_io
-#include "lang/type_traits_fast.hpp"
+#include "directoryscan/thinioqstring.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QDir>
-#include <QFile>
 #include <QString>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
-#include <cmath>
-#include <stdint.h>
 #include <utility>
-
-#ifdef _WIN32
-[[nodiscard]] static std::wstring nativePath(const QString& path)
-{
-	return path.toStdWString();
-}
-#else
-[[nodiscard]] static QByteArray nativePath(const QString& path)
-{
-	return QFile::encodeName(path);
-}
-#endif
-
-std::optional<thin_io::entry_identity> resolvedObjectId(const QString& path)
-{
-	// thin_io prefixes with \\?\, which turns off the normalization that would otherwise absorb a trailing separator.
-	const auto metadata = thin_io::get_entry_metadata(nativePath(withoutTrailingSeparator(path)).data(), thin_io::link_behavior::follow);
-	if (!metadata)
-		return {};
-
-	return metadata->identity;
-}
-
-bool canListDirectory(const QString& dirPath)
-{
-	return thin_io::can_list_directory(nativePath(dirPath).data()).has_value();
-}
-
-thin_io::filesystem_result<std::vector<thin_io::directory_entry>> listDirectoryWithDetails(const QString& dirPath)
-{
-	return thin_io::list_directory(nativePath(dirPath).data(), thin_io::listing_detail::full);
-}
-
-thin_io::filesystem_result<thin_io::directory_entry> getDirectoryEntry(const QString& path)
-{
-	return thin_io::get_directory_entry(nativePath(path).data());
-}
-
-QString nativeNameToQString(const thin_io::native_string& name)
-{
-#ifdef _WIN32
-	return QString::fromStdWString(name);
-#else
-	return QFile::decodeName(QByteArray::fromRawData(name.data(), static_cast<qsizetype>(name.size())));
-#endif
-}
 
 QString toNativeSeparators(QString path)
 {
@@ -82,14 +31,6 @@ QString toPosixSeparators(QString path)
 #else
 	return path; // A backslash is an ordinary character in a name here, not a separator to convert
 #endif
-}
-
-QString withoutTrailingSeparator(QString path)
-{
-	if ((path.endsWith('/') || path.endsWith(nativeSeparator())) && !QDir{ path }.isRoot())
-		path.chop(1);
-
-	return path;
 }
 
 // Unicode letters and digits are never special to a shell, so paths in any script stay unquoted.
@@ -195,121 +136,3 @@ std::optional<QStringList> splitShellWords(const QString& text)
 	return words;
 }
 #endif
-
-QString fileSizeToString(uint64_t size, const char maxUnit, const QString& spacer, int significantPlaces)
-{
-	static constexpr uint64_t KB = 1024ULL;
-	static constexpr uint64_t MB = 1024ULL * KB;
-	static constexpr uint64_t GB = 1024ULL * MB;
-	static constexpr uint64_t TB = 1024ULL * GB;
-	static constexpr uint64_t PB = 1024ULL * TB;
-	static constexpr uint64_t EB = 1024ULL * PB;
-
-	struct Unit { uint64_t threshold; const char* label; };
-	static constexpr Unit units[]{
-		{ EB, "EiB" },
-		{ PB, "PiB" },
-		{ TB, "TiB" },
-		{ GB, "GiB" },
-		{ MB, "MiB" },
-		{ KB, "KiB" },
-		{ 0ULL, "B" }
-	};
-
-	const char maxUnitUpper = static_cast<char>(std::toupper(static_cast<unsigned char>(maxUnit)));
-
-	const uint64_t maxUnitSize = [maxUnitUpper]() -> uint64_t {
-		if (maxUnitUpper == 'B')
-			return 0ULL; // bytes-only sentinel
-		for (const auto& u : units) {
-			if (u.label[0] == maxUnitUpper)
-				return u.threshold;
-		}
-		return uint64_max;
-	}();
-
-	// First pass: try to satisfy significantPlaces (if non-zero)
-	const Unit* chosen = nullptr;
-	if (significantPlaces > 0)
-	{
-		// iterate from smallest to largest unit
-		for (int i = std::size(units) - 1; i >= 0; --i)
-		{
-			const auto& u = units[i];
-
-			if (maxUnitSize < u.threshold)
-				continue;
-
-			if (u.threshold != 0ULL)
-			{
-				if (size < u.threshold)
-					continue;
-			}
-
-			const uint64_t whole = (u.threshold == 0ULL) ? size : (size / u.threshold);
-
-			int digits = 1;
-			for (uint64_t tmp = whole; tmp >= 10; tmp /= 10, ++digits) {}
-
-			if (digits <= significantPlaces)
-			{
-				chosen = &u;
-				break; // smallest unit that fits
-			}
-		}
-	}
-
-	// Fallback: only use the unit threshold if none was chosen above (or significantPlaces == 0)
-	if (!chosen)
-	{
-		for (const auto& u : units)
-		{
-			if (maxUnitSize < u.threshold)
-				continue;
-			if (u.threshold == 0ULL || size >= u.threshold)
-			{
-				chosen = &u;
-				break;
-			}
-		}
-	}
-
-	// Safety: if still not chosen (shouldn't happen), use bytes
-	if (!chosen)
-	{
-		chosen = &units[6]; // bytes entry
-	}
-
-	// Build numeric string separately so we can insert the spacer into the whole part only
-	QString numeric;
-	if (chosen->threshold == 0ULL)
-	{
-		numeric = QString::number(size);
-	}
-	else
-	{
-		double n = static_cast<double>(size) / static_cast<double>(chosen->threshold);
-		numeric = QString::number(n, 'f', 1);
-	}
-
-	// Insert thousands spacer into whole part only
-	if (!spacer.isEmpty())
-	{
-		const qsizetype dotPos = numeric.indexOf('.');
-		const qsizetype wholeLen = (dotPos == -1) ? numeric.size() : dotPos;
-		for (qsizetype pos = wholeLen - 3; pos > 0; pos -= 3)
-			numeric.insert(pos, spacer);
-	}
-
-	QString result;
-	if (chosen->threshold == 0ULL)
-	{
-		result = QStringLiteral("%1 B").arg(numeric);
-	}
-	else
-	{
-		result = QStringLiteral("%1 %2").arg(numeric, QString::fromLatin1(chosen->label));
-	}
-
-	return result;
-}

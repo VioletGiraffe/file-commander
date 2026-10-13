@@ -2,7 +2,7 @@
 // How to run it, warm and cold: doc/testing.md, "Listing benchmark".
 
 #include "cfilesystemobject.h"
-#include "directoryscanner.h"
+#include "panellisting.h"
 
 #include "cpu_pinning.hpp"
 #include "link_helpers.hpp"

@@ -1,7 +1,10 @@
 #include "filestatistics.h"
 
 #include "cfilesystemobject.h"
-#include "filesystemhelperfunctions.h"
+
+
+// Submodule includes
+#include "directoryscan/thinioqstring.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -65,7 +68,7 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 		const CFileSystemObject rootItem(path);
 		if (rootItem.isDir())
 		{
-			++rootStats.folders; // scanDirectory() elsewhere in the codebase counts the root dir itself; stay consistent with that
+			++rootStats.folders; // The root itself counts
 			if (!rootItem.isLink())
 				dirsToScan.push_back(rootItem.fullAbsolutePath());
 			else if (const auto targetId = resolvedObjectId(path); targetId && queuedLinkTargets.insert(*targetId).second)

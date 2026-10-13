@@ -1,12 +1,12 @@
 #include "cfilelistmodel.h"
 
 #include "iconprovider/ciconprovider.h"
-#include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
+#include "utils/displayformatting.h"
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 

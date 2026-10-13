@@ -31,7 +31,8 @@ INCLUDEPATH += \
 	../cpputils \
 	../cpp-template-utils \
 	../github-releases-autoupdater/src \
-	../thin_io/src
+	../thin_io/src \
+	../file-operations
 
 SOURCES += \
 	src/main.cpp \
@@ -40,8 +41,6 @@ SOURCES += \
 	src/commandoutput/ccommandoutputarea.cpp \
 	src/commandoutput/ccommandoutputpane.cpp \
 	src/panel/cpanelwidget.cpp \
-	src/progressdialogs/cfileoperationprompt.cpp \
-	src/progressdialogs/cfileoperationdialog.cpp \
 	src/progressdialogs/fileoperationlaunch.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
@@ -58,7 +57,6 @@ SOURCES += \
 	src/panel/filelistwidget/cfilelistfilterdialog.cpp \
 	src/filessearchdialog/cfilessearchwindow.cpp \
 	src/aboutdialog/aboutdialog.cpp \
-	src/progressdialogs/progressdialoghelpers.cpp \
 	src/panel/cpaneldisplaycontroller.cpp \
 	src/tools/CFileStatsWindow.cpp \
 	src/tools/cfoldercomparisonwindow.cpp
@@ -69,8 +67,6 @@ HEADERS += \
 	src/commandoutput/ccommandoutputarea.h \
 	src/commandoutput/ccommandoutputpane.h \
 	src/panel/cpanelwidget.h \
-	src/progressdialogs/cfileoperationprompt.h \
-	src/progressdialogs/cfileoperationdialog.h \
 	src/progressdialogs/fileoperationlaunch.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
@@ -92,14 +88,11 @@ HEADERS += \
 	src/tools/csortbydatatreeitem.h \
 	src/version.h \
 	src/aboutdialog/aboutdialog.h \
-	src/progressdialogs/progressdialoghelpers.h \
 	src/panel/cpaneldisplaycontroller.h
 
 FORMS += \
 	src/cmainwindow.ui \
 	src/panel/cpanelwidget.ui \
-	src/progressdialogs/cfileoperationprompt.ui \
-	src/progressdialogs/cfileoperationdialog.ui \
 	src/settings/csettingspageinterface.ui \
 	src/settings/csettingspageedit.ui \
 	src/settings/csettingspageother.ui \
@@ -108,6 +101,8 @@ FORMS += \
 	src/favoritelocationseditor/cfavoritelocationseditor.ui \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
 	src/filessearchdialog/cfilessearchwindow.ui
+
+include(../file-operations/fileoperationsui/fileoperationsui.pri)
 
 LIBS += -L$${DESTDIR} -lcore -lautoupdater -lqtutils -lcpputils -lthin_io
 

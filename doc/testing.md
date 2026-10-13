@@ -7,11 +7,12 @@ The project files are authoritative for the current test set; this is the map. E
 `file-commander-core/core-tests/core-tests.pro` builds every suite, including the ones that live next to the code they
 test:
 
-- `qt-app/gui-tests/fileoperations/`: the file-operation UI.
+- `file-operations/tests/`: the file-operation engine, its dialogs, and folder comparison.
+- `qt-app/gui-tests/fileoperations/`: launching file operations from the UI.
 - `qt-app/gui-tests/filelist/`: the file-list model.
 - `plugins/viewer/csvviewer/tests/`: the CSV viewer.
 
-`core-tests/test-utils/` holds the shared helpers: temporary folder generation, random data, link creation, Qt/Catch2
+`file-operations/test-utils/` holds the shared helpers: temporary folder generation, random data, link creation, Qt/Catch2
 glue. Every suite links `catch2_runner` (`cpp-template-utils/3rdparty/catch2/`), Catch2's implementation compiled once
 for all of them.
 
@@ -38,7 +39,7 @@ environment-gated tests need, then runs with `-NoBuild`/`nobuild`. Its seeded re
 each platform's executable path stays in the script.
 
 Without `all`, the tests that work on generated data are excluded: `[executor]` and `[deleteexecutor]` in
-`fileoperations_test`, which build trees of thousands of files, and `[CFileComparator]` in `filecomparator_test`,
+`fileoperations_test`, which build trees of thousands of files, and `[CFileComparator]` in `foldercomparison_test`,
 which writes about a thousand files of up to 3 MB each. Every other case in both suites still runs. The cost is
 mostly in the comparator tests; the file-operation ones are quick unless a second volume is provisioned for the
 cross-volume cases.
@@ -65,7 +66,7 @@ the shell script also falls back to a `qmake` already on PATH.
 |------|-------|
 | Unit tests of pure logic | parsers, path handling, placeholder expansion, name filters |
 | Integration tests on the real filesystem, in generated temporary trees | file operations, comparison, panels, search |
-| Randomized runs, reproducible by `--std-seed <seed>` | `fileoperations_test`, `filecomparator_test`, `filelist_test` |
+| Randomized runs, reproducible by `--std-seed <seed>` | `fileoperations_test`, `foldercomparison_test`, `filelist_test` |
 | Fault injection through `operationtesthooks`, compiled out of production builds | file operations |
 | Coverage needing a filesystem capability: skipped where absent, required where its `FILE_COMMANDER_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
 | Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts, the file list view |
@@ -76,7 +77,8 @@ the shell script also falls back to a `qmake` already on PATH.
 | Executable | Component |
 |------------|-----------|
 | `fileoperations_test` | File-operation engine: copy, move, delete, staged copy, destination and name resolution, cross-volume, hostile names |
-| `filecomparator_test` | File and folder comparison |
+| `foldercomparison_test` | File content and folder comparison |
+| `fileoperationsui_test` | File-operation dialog and decision prompt |
 | `fso_test` | `CFileSystemObject`'s rules on entries built in memory: name split, type, hidden, executable, links, `[..]` |
 | `fso_test_high_level` | `CFileSystemObject` on the real filesystem: path semantics, name split, hidden and executable entries, links; the panel listing and its `[..]` |
 | `panel_test` | `CPanel`: navigation, history, current item, content access, refresh notifications, lifetime |
@@ -84,7 +86,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | `filesystemhelpers_test` | Path quoting and shell word splitting |
 | `userprograms_test` | Programs-menu placeholder expansion |
 | `shell_test` | `CShellCommand` on real commands: output, exit code, working folder, escape sequences, termination. Which command lines launch without the shell (Windows); the detached launch's command lookup (Linux, macOS) |
-| `fileoperations_gui_test` | File-operation UI from `qt-app/src`: dialogs, prompts, launch routing |
+| `fileoperations_gui_test` | File-operation launch from `qt-app/src`: destination intent, routing to the dialog or the native shell |
 | `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's sorting, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
 

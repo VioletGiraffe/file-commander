@@ -1,11 +1,10 @@
 #include "cfilesystemwatcherwindows.h"
 
-#include "filesystemhelperfunctions.h" // withoutTrailingSeparator
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
+#include "directoryscan/thinioqstring.h" // withoutTrailingSeparator
 #include "windows_path_win.hpp" // thin_io
 
 

@@ -7,7 +7,7 @@ diff-driven review, select the affected areas and always apply the cross-cutting
 
 | Order | Area | Primary sources | Main risks |
 |-------|------|-----------------|------------|
-| 1 | File operations | `file-commander-core/src/fileoperations/` | Data loss, link handling, staged publication, cancellation and cleanup |
+| 1 | File operations | `file-operations/fileoperations/` | Data loss, link handling, staged publication, cancellation and cleanup |
 | 2 | Concurrency and panel lifetime | `ccontroller`, `cpanel`, watchers, search, operation jobs | Untagged work, stale publication, teardown races, queue ordering |
 | 3 | Controller, tabs, and persistence | `ccontroller`, `cpanel`, `CPanelWidget` | Stable-ID mapping, last-tab invariant, active-tab state, save/restore alignment |
 | 4 | File-list UI | `qt-app/src/panel/` | Active-model invariant, selection, drag/drop destinations, rename and sorting |

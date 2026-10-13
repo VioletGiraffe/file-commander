@@ -1,12 +1,12 @@
 #include "cfilesearchengine.h"
 
 #include "cfilesystemobject.h"
-#include "directoryscanner.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
+#include "directoryscan/directoryscanner.h"
 #include "file.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "threading/cthreadpool.h"
@@ -344,10 +344,12 @@ void CFileSearchEngine::searchThread(
 
 	for (const QString& pathToLookIn : where)
 	{
-		scanDirectory(CFileSystemObject(pathToLookIn),
-			[&](const CFileSystemObject& item, bool reachedThroughLink) {
+		scanDirectory(CFileSystemObject(pathToLookIn).fullAbsolutePath(),
+			[&](const QString& parentPath, const thin_io::directory_entry& entry, bool reachedThroughLink) {
 				if (cancellationRequested)
 					return;
+
+				const CFileSystemObject item{ parentPath, entry };
 
 				if (itemCounter % 128 == 0)
 				{
