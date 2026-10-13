@@ -83,7 +83,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | `fso_test_high_level` | `CFileSystemObject` on the real filesystem: path semantics, name split, hidden and executable entries, links; the panel listing and its `[..]` |
 | `panel_test` | `CPanel`: navigation, history, current item, content access, refresh notifications, lifetime |
 | `filesearchengine_test` | Search engine: name filters, content search, engine behavior |
-| `filesystemhelpers_test` | Path quoting and shell word splitting |
+| `filesystemhelpers_test` | Path quoting, shell word splitting, device lookup for a path |
 | `userprograms_test` | Programs-menu placeholder expansion |
 | `shell_test` | `CShellCommand` on real commands: output, exit code, working folder, escape sequences, termination. Which command lines launch without the shell (Windows); the detached launch's command lookup (Linux, macOS) |
 | `fileoperations_gui_test` | File-operation launch from `qt-app/src`: destination intent, routing to the dialog or the native shell |

@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <optional>
+#include <stdint.h>
 
 [[nodiscard]] consteval char nativeSeparator() noexcept
 {
@@ -33,4 +34,7 @@ RESTORE_COMPILER_WARNINGS
 // Splits text into words by sh's quoting and escaping rules, with no expansion: undoes shellQuotedPath.
 // Empty when a quote or an escape is left unfinished.
 [[nodiscard]] std::optional<QStringList> splitShellWords(const QString& text);
+
+// Device ID of the filesystem holding the path, or of its nearest existing ancestor. Empty when it cannot be queried.
+[[nodiscard]] std::optional<uint64_t> deviceIdForPath(const QString& fullPath);
 #endif

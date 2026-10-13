@@ -9,6 +9,7 @@ DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/catch_qt.hpp" // qtutils
 
 #include <QStringBuilder>
+#include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
 TEST_CASE("shellQuotedPath leaves an ordinary path bare", "[shellQuotedPath]")
@@ -78,5 +79,15 @@ TEST_CASE("splitShellWords undoes shellQuotedPath", "[splitShellWords][shellQuot
 
 	CHECK(splitShellWords(shellQuotedPath(path)) == QStringList{ path });
 	CHECK(splitShellWords(QStringLiteral("--dir=") % shellQuotedPath(path) % QStringLiteral(" next")) == QStringList{ QStringLiteral("--dir=") + path, QStringLiteral("next") });
+}
+
+TEST_CASE("deviceIdForPath resolves a path that does not exist yet through its nearest existing ancestor", "[deviceIdForPath]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+
+	const auto existingDirDevice = deviceIdForPath(tempDir.path());
+	REQUIRE(existingDirDevice.has_value());
+	CHECK(deviceIdForPath(tempDir.path() + "/does_not_exist/child.txt") == existingDirDevice);
 }
 #endif

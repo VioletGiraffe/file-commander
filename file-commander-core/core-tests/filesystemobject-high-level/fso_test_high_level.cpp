@@ -104,22 +104,6 @@ TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 #endif
 }
 
-TEST_CASE("rootFileSystemId for a non-existent path", "[CFileSystemObject]")
-{
-	QTemporaryDir tempDir;
-	REQUIRE(tempDir.isValid());
-
-	const CFileSystemObject existingDir{ tempDir.path() };
-	REQUIRE(existingDir.exists());
-
-	const CFileSystemObject nonExistentChild{ tempDir.path() + "/does_not_exist/child.txt" };
-	REQUIRE(!nonExistentChild.exists());
-
-	// Regression: rootFileSystemId() used to read uninitialized memory for a non-existent path and return a garbage
-	// device ID. It must resolve to the device of the nearest existing ancestor.
-	CHECK(existingDir.rootFileSystemId() == nonExistentChild.rootFileSystemId());
-}
-
 // The trailing separator on a directory's path is load-bearing: it is what makes "dir" and "dir/" hash and compare
 // equal, it is how a non-existent path gets classified at all, and parentDirPath() preserves it.
 TEST_CASE("A directory's path always ends with a separator", "[CFileSystemObject]")

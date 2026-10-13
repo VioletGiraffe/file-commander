@@ -8,9 +8,17 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QByteArray>
+#include <QDebug>
 #include <QString>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
+
+#ifndef _WIN32
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#endif
 
 #include <algorithm>
 #include <utility>
@@ -134,5 +142,37 @@ std::optional<QStringList> splitShellWords(const QString& text)
 		words.push_back(std::move(word));
 
 	return words;
+}
+
+std::optional<uint64_t> deviceIdForPath(const QString& fullPath)
+{
+	// stat() only succeeds on an existing path. If this path doesn't exist yet (e.g. a copy/move destination that will be
+	// created), walk up to the nearest existing ancestor: the path will be created on that same device / filesystem.
+	QByteArray path = fullPath.toUtf8();
+	struct stat info;
+	while (!path.isEmpty())
+	{
+		if (stat(path.constData(), &info) == 0)
+		{
+			return static_cast<uint64_t>(info.st_dev);
+		}
+
+		if (errno != ENOENT)
+		{
+			qInfo() << __FUNCTION__ << "Failed to query device ID for" << fullPath << strerror(errno);
+			break;
+		}
+
+		if (path == "/")
+			break; // Reached the filesystem root and even it doesn't stat - give up
+
+		const auto lastSlash = path.lastIndexOf('/');
+		if (lastSlash < 0)
+			break; // No parent component left (shouldn't happen for an absolute path)
+
+		path.truncate(lastSlash == 0 ? 1 : lastSlash); // Keep the leading '/' when the parent is the root itself
+	}
+
+	return {};
 }
 #endif
