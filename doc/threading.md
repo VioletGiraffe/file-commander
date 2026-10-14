@@ -83,13 +83,7 @@ destructor, after plugin proxies have retired their tagged work.
 
 ## File-operation handshake
 
-`CFileOperationJob` owns one worker and a mutex/condition-variable state machine for pause, cancellation, decisions,
-and the event queue. The worker emits progress, decision requests, and one summary; the UI drains and dispatches
-them after releasing the mutex because presenting a decision can enter a nested event loop.
-
-Progress may coalesce, while decisions and the final summary preserve ordering. State mutations used by wait
-predicates occur under the same mutex before notification. Cancellation releases every wait and invalidates an
-undrained decision. Job destruction cancels, wakes, and joins; owning UI objects must outlive that sequence.
+`CFileOperationJob`'s threading is described in `file-operations/doc/architecture.md`.
 
 ## Mandatory review after concurrency changes
 

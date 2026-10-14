@@ -380,10 +380,10 @@ jobs:
         echo "TEMP=R:\\Temp" >> $env:GITHUB_ENV
         echo "TMP=R:\\Temp"  >> $env:GITHUB_ENV
         echo "TMPDIR=R:\\Temp" >> $env:GITHUB_ENV
-        echo "FILE_COMMANDER_TEST_SECOND_VOLUME=S:\\Temp" >> $env:GITHUB_ENV
+        echo "FILE_OPERATIONS_TEST_SECOND_VOLUME=S:\\Temp" >> $env:GITHUB_ENV
         # The runner is elevated, so symlink creation is available; setting this turns a failure to create one
         # into a test failure instead of a skip.
-        echo "FILE_COMMANDER_TEST_SYMLINKS=1" >> $env:GITHUB_ENV
+        echo "FILE_OPERATIONS_TEST_SYMLINKS=1" >> $env:GITHUB_ENV
 
     - name: Running tests - Windows
       if: startsWith(matrix.os, 'windows')
@@ -435,10 +435,10 @@ jobs:
         # rename tests a case-sensitive volume without provisioning and attaching another disk.
         disk=$(hdiutil attach -nomount ram://262144 | awk '{print $1}')  # 512-byte sectors: 128 MB
         diskutil erasevolume HFSX fc-second "$disk"
-        echo "FILE_COMMANDER_TEST_SECOND_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
-        echo "FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
+        echo "FILE_OPERATIONS_TEST_SECOND_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
+        echo "FILE_OPERATIONS_TEST_CASE_SENSITIVE_VOLUME=/Volumes/fc-second" >> $GITHUB_ENV
         # Symlink creation needs no privileges here, so a failure to create one is a test failure, not a skip
-        echo "FILE_COMMANDER_TEST_SYMLINKS=1" >> $GITHUB_ENV
+        echo "FILE_OPERATIONS_TEST_SYMLINKS=1" >> $GITHUB_ENV
 
     - name: Running tests - Mac
       if: startsWith(matrix.os, 'macos')
@@ -483,10 +483,10 @@ jobs:
         sudo mkdir -p /mnt/fc-second
         sudo mount -t tmpfs -o size=128M tmpfs /mnt/fc-second
         sudo chown "$(id -u):$(id -g)" /mnt/fc-second
-        echo "FILE_COMMANDER_TEST_SECOND_VOLUME=/mnt/fc-second" >> $GITHUB_ENV
-        echo "FILE_COMMANDER_TEST_CASE_SENSITIVE_VOLUME=/mnt/fc-second" >> $GITHUB_ENV
+        echo "FILE_OPERATIONS_TEST_SECOND_VOLUME=/mnt/fc-second" >> $GITHUB_ENV
+        echo "FILE_OPERATIONS_TEST_CASE_SENSITIVE_VOLUME=/mnt/fc-second" >> $GITHUB_ENV
         # Symlink creation needs no privileges here, so a failure to create one is a test failure, not a skip
-        echo "FILE_COMMANDER_TEST_SYMLINKS=1" >> $GITHUB_ENV
+        echo "FILE_OPERATIONS_TEST_SYMLINKS=1" >> $GITHUB_ENV
 
     - name: Running tests - Linux
       if: startsWith(matrix.os, 'ubuntu')

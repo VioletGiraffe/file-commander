@@ -38,11 +38,7 @@ CI drives the same scripts: it builds with `-BuildOnly`/`build`, provisions the 
 environment-gated tests need, then runs with `-NoBuild`/`nobuild`. Its seeded repeat runs select one suite, so
 each platform's executable path stays in the script.
 
-Without `all`, the tests that work on generated data are excluded: `[executor]` and `[deleteexecutor]` in
-`fileoperations_test`, which build trees of thousands of files, and `[CFileComparator]` in `foldercomparison_test`,
-which writes about a thousand files of up to 3 MB each. Every other case in both suites still runs. The cost is
-mostly in the comparator tests; the file-operation ones are quick unless a second volume is provisioned for the
-cross-volume cases.
+Without `all`, the slow generated-data cases are excluded; `file-operations/doc/testing.md` lists them.
 
 To run on FAT32 or exFAT, point `TEMP` and `TMP` at the volume: every test works in a `QTemporaryDir`.
 
@@ -68,7 +64,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | Integration tests on the real filesystem, in generated temporary trees | file operations, comparison, panels, search |
 | Randomized runs, reproducible by `--std-seed <seed>` | `fileoperations_test`, `foldercomparison_test`, `filelist_test` |
 | Fault injection through `operationtesthooks`, compiled out of production builds | file operations |
-| Coverage needing a filesystem capability: skipped where absent, required where its `FILE_COMMANDER_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
+| Coverage needing a filesystem capability: skipped where absent, required where its `FILE_OPERATIONS_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
 | Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts, the file list view |
 | Launch smoke test: the release binary with `--test-launch` | CI build job, every platform |
 

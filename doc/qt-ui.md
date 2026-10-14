@@ -63,10 +63,7 @@ uses the same operation launch boundary as commands.
 chooses the deletion backend. It decides `DestinationIntent` before path parsing, because a trailing separator is
 user intent even when the directory does not yet exist.
 
-`CFileOperationDialog` owns one `CFileOperationJob`, drains typed events, presents only the decisions offered by the
-core, and formats the outcome. It may remain hidden for quick success, appear for a decision or background
-operation, and keep a completed summary visible only when it needs attention. Closing an active dialog suppresses
-later display but does not weaken job/listener lifetime requirements.
+The dialogs it opens are described in `file-operations/doc/architecture.md`.
 
 ## Quick view and plugins
 

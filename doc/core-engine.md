@@ -65,15 +65,10 @@ Links are entries distinct from their targets:
 - Broken links still exist as listable and removable entries, classified by the link's own kind.
 - Other Windows reparse points, such as cloud placeholders, are ordinary entries.
 
-The file-operation engine uses `CEntryPath`: an absolute `/`-separated path without a trailing separator except at
-roots. Keep conversions at the type's boundaries. The parser rejects embedded NUL and user-supplied Win32 namespace
-prefixes; native-path prefixing belongs to the native bridge. See
-[planned-refactors/native-paths.md](planned-refactors/native-paths.md) for the remaining POSIX filename limitation.
-
 ## File operations
 
 Copy, move, permanent delete, inline rename, directory scanning and folder comparison live in the
-`file-operations` submodule; its `README.md` holds their design notes. The core library compiles its sources
+`file-operations` submodule; its `doc/architecture.md` holds their design notes. The core library compiles its sources
 through their `.pri` manifests.
 
 ## Traversal and watchers
