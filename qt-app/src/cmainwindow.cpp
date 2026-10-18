@@ -336,24 +336,6 @@ void CMainWindow::tabKeyPressed()
 	_otherFileList->setFocusToFileList();
 }
 
-static QString requestValidationErrorText(const RequestValidationError error)
-{
-	switch (error)
-	{
-	case RequestValidationError::NoSources:
-		return CMainWindow::tr("No valid items are selected for the operation.");
-	case RequestValidationError::InvalidPath:
-		return CMainWindow::tr("The source or destination path is not a valid absolute path.");
-	case RequestValidationError::RootSource:
-		return CMainWindow::tr("A drive root cannot be copied, moved, or deleted.");
-	case RequestValidationError::ExactEntryRequiresSingleSource:
-		return CMainWindow::tr("An exact destination entry can only be chosen for a single source.");
-	case RequestValidationError::DestinationInsideSource:
-		return CMainWindow::tr("The destination cannot be inside a selected source.");
-	}
-	return {};
-}
-
 bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory)
 {
 	if (sources.empty() || destinationDirectory.isEmpty())
