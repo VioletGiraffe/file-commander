@@ -38,6 +38,7 @@ win*{
 	QMAKE_CXXFLAGS_WARN_ON += /we4477         # printf format string does not match the argument
 	QMAKE_CXXFLAGS_WARN_ON += /we4551         # function call missing argument list
 	QMAKE_CXXFLAGS_WARN_ON += /we4552 /we4553 # operator has no effect; did you intend '='?
+	QMAKE_CXXFLAGS_WARN_ON += /we4211         # nonstandard extension used: redefined extern to static
 	QMAKE_LFLAGS += /DEBUG
 
 	Debug:QMAKE_CXXFLAGS += /JMC
