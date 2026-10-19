@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792345281381,
+  "lastUpdate": 1792417828056,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -28979,6 +28979,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 766.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 402,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "90b2b15a6a188be5e76b3a09a64d08275baf31c2",
+          "message": "Tabs: column widths fit window resizes made while another tab was active; column layout stored as width shares, not Qt header blobs\n\nAn older build skips the new per-tab records and falls back to the default column layout and sort.",
+          "timestamp": "2026-10-19T16:02:03+03:00",
+          "tree_id": "75bde2885cd46c2abca1f8a05454d1bff76bd7cd",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/90b2b15a6a188be5e76b3a09a64d08275baf31c2"
+        },
+        "date": 1792417816370,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14613,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 28379,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1362.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2021,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 768.5,
             "unit": "KB"
           },
           {
