@@ -116,7 +116,8 @@ mac*{
 
 	LIBS += -framework AppKit
 
-		QMAKE_POST_LINK = cp -f -p $$OUT_PWD/$$DESTDIR/*.dylib $$OUT_PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
+	# One real file per plugin, named like its install name: under any other name, macdeployqt looks for the plugin in /usr/lib
+	QMAKE_POST_LINK = cp -f -p $$OUT_PWD/$$DESTDIR/libplugin_*.1.dylib $$OUT_PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
 }
 
 linux*|mac*|freebsd{

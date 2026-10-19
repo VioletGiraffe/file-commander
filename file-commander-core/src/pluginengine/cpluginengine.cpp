@@ -39,7 +39,7 @@ void CPluginEngine::loadPlugins()
 #elif defined __linux__ || defined __FreeBSD__
 	const QString pluginExtension = QStringLiteral(".so");
 #elif defined __APPLE__
-	const QString pluginExtension = QStringLiteral(".1.0.0.dylib");
+	const QString pluginExtension = QStringLiteral(".1.dylib"); // The name qt-app.pro copies plugins into the bundle under
 #else
 #error
 #endif
