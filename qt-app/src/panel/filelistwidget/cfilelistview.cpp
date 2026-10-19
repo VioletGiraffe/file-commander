@@ -12,10 +12,10 @@
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QDebug>
-#include <QDragMoveEvent>
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QResizeEvent>
 #include <QScopedValueRollback>
 #include <QScrollBar>
 #include <QStyleHints>
@@ -67,13 +67,6 @@ CFileListView::CFileListView(QWidget *parent) :
 void CFileListView::addEventObserver(FileListViewEventObserver* observer)
 {
 	_eventObservers.push_back(observer);
-}
-
-// Sets the position (left or right) of a panel that this model represents
-void CFileListView::setPanelPosition(enum Panel p)
-{
-	assert_r(_panelPosition == Panel::UnknownPanel); // Doesn't make sense to call this method more than once
-	_panelPosition = p;
 }
 
 std::optional<CFileListView::ColumnLayout> CFileListView::columnLayoutOf(const QHeaderView& header)
@@ -388,12 +381,8 @@ bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigg
 bool CFileListView::eventFilter(QObject* target, QEvent* event)
 {
 	QHeaderView * headerView = header();
-	if (target == headerView && event && event->type() == QEvent::Resize && headerView->count() == NumberOfColumns)
-	{
-		auto* resizeEvent = dynamic_cast<QResizeEvent*>(event);
-		assert_and_return_r(resizeEvent, QTreeView::eventFilter(target, event));
-		fitColumnsToWidth(resizeEvent->size().width());
-	}
+	if (target == headerView && event->type() == QEvent::Resize && headerView->count() == NumberOfColumns)
+		fitColumnsToWidth(static_cast<QResizeEvent*>(event)->size().width());
 
 	return QTreeView::eventFilter(target, event);
 }

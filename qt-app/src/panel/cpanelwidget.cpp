@@ -56,7 +56,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <array>
-#include <assert.h>
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -308,7 +307,6 @@ void CPanelWidget::initPanel(Panel p)
 
 	ui->_list->installEventFilter(this);
 	ui->_list->viewport()->installEventFilter(this);
-	ui->_list->setPanelPosition(p);
 
 	ui->_tabBar->installEventFilter(this); // For closing tabs on middle click
 	ui->_tabBar->setExpanding(false);
@@ -392,18 +390,15 @@ void CPanelWidget::activateTab(int index)
 	_model = tab.model;
 	_selectionModel = tab.selectionModel;
 
-	// QTreeView::setModel(), with sortingEnabled on, unconditionally re-sorts whatever model it's just been
-	// given using the header's CURRENT sort indicator -- a direct internal call made from inside setModel()
-	// itself, not a signal, so a QSignalBlocker placed around/after the setModel() call can't stop it. Point
-	// the indicator at the tab we're switching TO (its own remembered sort column/order) *before* the swap,
-	// with signals blocked here so this step doesn't itself resort the OLD, still-attached model.
+	// setModel() sorts the new model by the header's sort indicator (a direct call, not a signal): the indicator must hold this tab's sort first.
+	// Signals blocked: the indicator change would re-sort the model still attached.
 	QHeaderView* header = ui->_list->header();
 	{
 		const QSignalBlocker blocker(header);
 		header->setSortIndicator(_model->sortColumn(), _model->sortOrder());
 	}
 
-	ui->_list->setModel(_model); // re-sorts _model by the indicator set above -- already its own sort, so this is a no-op
+	ui->_list->setModel(_model);
 	ui->_list->setSelectionModel(_selectionModel);
 	ui->_list->applyColumnLayout(tab.columnLayout);
 
@@ -472,7 +467,7 @@ void CPanelWidget::openPathInNewTab(const QString& path, bool activate, const Ta
 	updateTabBarVisibility();
 
 	if (activate)
-		ui->_tabBar->setCurrentIndex(index); // fires currentChanged -> onTabBarCurrentChanged -> activateTab (controller side is already active, addTab(activate=true) did that)
+		ui->_tabBar->setCurrentIndex(index); // Activates through onTabBarCurrentChanged()
 }
 
 void CPanelWidget::closeCurrentTab()
@@ -527,8 +522,6 @@ void CPanelWidget::onTabBarCurrentChanged(int index)
 	if (index < 0 || index >= (int)_tabs.size())
 		return;
 
-	// Snapshot the tab we're switching away from so its view state survives the swap; activateTab()
-	// below restores the new tab's own snapshot.
 	saveActiveTabViewState();
 
 	_controller->setActiveTab(_panelPosition, tabIdAt(index));
@@ -547,8 +540,6 @@ void CPanelWidget::closeTabById(qulonglong id)
 	if (_tabs.size() <= 1)
 		return;
 
-	// Resolve id's CURRENT position fresh, right before acting on it: callers (e.g. closeAllOtherTabs) may
-	// close several tabs in a row, and each earlier close shifts the positions of every tab after it.
 	int index = -1;
 	for (int i = 0; i < ui->_tabBar->count(); ++i)
 	{
@@ -561,11 +552,8 @@ void CPanelWidget::closeTabById(qulonglong id)
 	if (index < 0)
 		return;
 
-	// activateTab() runs unconditionally below, even when we're closing some OTHER tab and the active one
-	// just shifts index -- without this, it would reapply the active tab's possibly-stale stored layout
-	// over a live, not-yet-captured resize. Capture before the erase, while _activeTab still indexes the
-	// correct (unshifted) slot. Closing the active tab itself (index == _activeTab) needs no capture, since
-	// that tab is about to be destroyed anyway.
+	// activateTab() below restores the active tab's stored view state, so an active tab that stays open must store its live one first.
+	// Before the erase: _activeTab still indexes that tab.
 	if (index != _activeTab)
 		saveActiveTabViewState();
 
@@ -574,15 +562,14 @@ void CPanelWidget::closeTabById(qulonglong id)
 	_controller->closeTab(_panelPosition, id);
 	const qulonglong activeId = _controller->activeTabId(_panelPosition); // post-removal active tab
 
-	// Detach the view from the closing tab's models (via activateTab below) BEFORE deleting them.
+	// The closing tab's models are deleted only once activateTab() below has detached the view from them
 	const PanelTab closing = _tabs[(size_t)index];
 	_tabs.erase(_tabs.begin() + index);
 	int controllerActiveIndex = 0;
 	{
 		const QSignalBlocker block(ui->_tabBar);
 		ui->_tabBar->removeTab(index);
-		// Removing 'index' shifted every later tab's position; find wherever the active tab landed by id
-		// rather than assuming any particular arithmetic on 'index'.
+		// The removal shifted the positions after it, so the active tab is found by id
 		for (int i = 0; i < ui->_tabBar->count(); ++i)
 		{
 			if (tabIdAt(i) == activeId)
@@ -605,8 +592,7 @@ void CPanelWidget::onTabBarTabMoved(int from, int to)
 	if (from == to)
 		return;
 
-	// By the time this signal fires, the QTabBar (and the per-tab data carrying its tab ID) has already moved
-	// the tab internally -- mirror the same reorder into _tabs, which has no notion of its own beyond position.
+	// The QTabBar has already moved the tab and its tab data: _tabs mirrors the move to stay position-aligned
 	PanelTab movedTab = std::move(_tabs[(size_t)from]);
 	_tabs.erase(_tabs.begin() + from);
 	_tabs.insert(_tabs.begin() + to, std::move(movedTab));
@@ -614,9 +600,9 @@ void CPanelWidget::onTabBarTabMoved(int from, int to)
 	if (_activeTab == from)
 		_activeTab = to;
 	else if (from < _activeTab && to >= _activeTab)
-		--_activeTab; // the active tab shifted left to fill the gap the move left behind
+		--_activeTab; // Shifted left into the gap
 	else if (from > _activeTab && to <= _activeTab)
-		++_activeTab; // the active tab shifted right to make room for the incoming tab
+		++_activeTab; // Shifted right to make room
 
 	_controller->moveTabPosition(_panelPosition, tabIdAt(to), (size_t)to);
 }
@@ -1394,8 +1380,8 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	}
 	else if(object == ui->_list->viewport() && e->type() == QEvent::Wheel)
 	{
-		auto* wEvent = static_cast<QWheelEvent*>(e);
-		if (wEvent && wEvent->modifiers() == Qt::ShiftModifier)
+		const auto* wEvent = static_cast<QWheelEvent*>(e);
+		if (wEvent->modifiers() == Qt::ShiftModifier)
 		{
 			if (wEvent->angleDelta().y() > 0)
 				_controller->navigateBack(_panelPosition);

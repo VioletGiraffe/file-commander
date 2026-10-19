@@ -2,8 +2,6 @@
 
 #include "panel/columns.h"
 
-#include "cpanel.h"
-
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
@@ -40,7 +38,6 @@ struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
 class QMouseEvent;
 class QFocusEvent;
 class QHeaderView;
-class CController;
 class CFileListView final : public QTreeView
 {
 	Q_OBJECT
@@ -48,9 +45,6 @@ class CFileListView final : public QTreeView
 public:
 	explicit CFileListView(QWidget *parent = nullptr);
 	void addEventObserver(FileListViewEventObserver* observer);
-
-	// Sets the position (left or right) of a panel that this model represents
-	void setPanelPosition(enum Panel p);
 
 	// Column widths and order, independent of the view's width
 	struct ColumnLayout
@@ -132,7 +126,6 @@ private:
 	std::optional<std::chrono::steady_clock::time_point> _timeToNextPaintStart;
 	ColumnLayout                        _columnLayout; // The section sizes are fitted to it; only the user's header edits update it from them
 
-	enum Panel                          _panelPosition = Panel::UnknownPanel;
 	bool                                _applyingColumnLayout = false; // Keeps storeColumnLayoutFromHeader() from recording this view's own changes
 	QPoint                              _singleMouseClickPos;
 	bool                                _singleMouseClickValid = false;
