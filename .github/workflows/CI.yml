@@ -136,14 +136,18 @@ jobs:
         clang --version
         ./installer/mac/create_dmg.sh $QT_ROOT_DIR
 
-    - name: Linux - build
+    - name: Linux - install build dependencies
       if: startsWith(matrix.os, 'ubuntu')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*'
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version
+
+    - name: Linux - build
+      if: startsWith(matrix.os, 'ubuntu')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -s -j$(nproc) SHELL="$PWD/scripts/quiet_make_shell.sh"
 
