@@ -612,10 +612,9 @@ void CMainWindow::performDeletion(const bool toTrash)
 	if (items.empty())
 		return;
 
-	// OsShell::deleteItems only exists on Windows and macOS; elsewhere deletionBackendFor always selects InternalJob,
-	// so the native-shell branch must not be compiled at all.
-#if defined _WIN32 || defined __APPLE__
 	const DeletionBackend backend = deletionBackendFor(toTrash);
+	// OsShell::deleteItems only exists on Windows and macOS
+#if defined _WIN32 || defined __APPLE__
 	if (backend == DeletionBackend::NativeTrash || backend == DeletionBackend::NativeShellPermanent)
 	{
 		std::vector<std::wstring> paths;
@@ -635,6 +634,8 @@ void CMainWindow::performDeletion(const bool toTrash)
 		});
 		return;
 	}
+#else
+	assert_r(backend == DeletionBackend::InternalJob);
 #endif
 
 	// InternalJob: the custom permanent-delete engine. Deletion here is irreversible, so confirm first.
