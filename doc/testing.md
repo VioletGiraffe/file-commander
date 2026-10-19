@@ -66,7 +66,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | Fault injection through `operationtesthooks`, compiled out of production builds | file operations |
 | Coverage needing a filesystem capability: skipped where absent, required where its `FILE_OPERATIONS_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
 | Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts, the file list view |
-| Launch smoke test: the release binary with `--test-launch` | CI build job, every platform |
+| Launch smoke test: the release binary with `--test-launch=N`, failing unless the N plugins the build produced all load | CI build job, every platform |
 
 ## Coverage by component
 

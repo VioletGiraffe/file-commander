@@ -18,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFontDatabase>
 #include <QImageReader>
 #include <QSettings>
+#include <QStringList>
 #include <QStyleHints>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
@@ -28,6 +29,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <cstdio>
 #include <cstdlib>
+#include <optional>
 #include <string_view>
 
 namespace {
@@ -55,6 +57,35 @@ void appMessageHandler(QtMsgType type, const QMessageLogContext& context, const 
 
 	if (type == QtFatalMsg)
 		abort(); // Installing a handler suppresses Qt's own abort-on-fatal; keep the process terminating as before.
+}
+
+// Exit code of a --test-launch[=N] run, empty if not one: N is the plugin count the build produced.
+std::optional<int> testLaunchExitCode(const QStringList& arguments, size_t loadedPluginCount)
+{
+	const QString countPrefix = "--test-launch=";
+	for (const QString& argument : arguments)
+	{
+		if (argument == "--test-launch")
+			return 0;
+		if (!argument.startsWith(countPrefix))
+			continue;
+
+		bool countValid = false;
+		const uint expectedPluginCount = argument.sliced(countPrefix.size()).toUInt(&countValid);
+		if (!countValid)
+		{
+			qCritical().noquote() << "Invalid argument" << argument;
+			return 1;
+		}
+		if (expectedPluginCount != loadedPluginCount)
+		{
+			qCritical().nospace() << "Test launch: " << loadedPluginCount << " plugins loaded, expected " << expectedPluginCount;
+			return 1;
+		}
+		return 0;
+	}
+
+	return std::nullopt;
 }
 }
 
@@ -128,8 +159,8 @@ int main(int argc, char *argv[])
 	CMainWindow w{controller, pluginEngine, shellOperations};
 	w.updateInterface();
 
-	if (app.arguments().contains("--test-launch"))
-		QTimer::singleShot(5000, [] { qApp->quit(); });
+	if (const auto testLaunchResult = testLaunchExitCode(app.arguments(), pluginEngine.activePluginInfo().size()))
+		QTimer::singleShot(5000, [code = *testLaunchResult] { qApp->exit(code); });
 
 	const int exitCode = app.exec();
 	// Must precede ~CMainWindow: the shell dialogs these operations put up are owned by its native window.

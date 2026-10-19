@@ -259,19 +259,29 @@ jobs:
 
     - name: Test launch
       if: startsWith(matrix.os, 'macos')
-      run: ./bin/release/FileCommander.app/Contents/MacOS/FileCommander --test-launch
+      run: |
+        # The Qt install's paths would hide Qt plugins missing from the bundle
+        unset QT_PLUGIN_PATH QML2_IMPORT_PATH
+        # Shows that frameworks resolve into the bundle, not into the Qt install
+        otool -l bin/release/FileCommander.app/Contents/MacOS/FileCommander | grep -A2 LC_RPATH
+        plugins=$(find bin/release -maxdepth 1 -name 'libplugin_*' -type f | wc -l | tr -d ' ')
+        ./bin/release/FileCommander.app/Contents/MacOS/FileCommander --test-launch=$plugins
 
     - name: Test launch
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         # The Qt install's paths would hide libraries and plugins missing from the AppImage
         unset LD_LIBRARY_PATH QT_PLUGIN_PATH
-        xvfb-run --auto-servernum "./$APPIMAGE_FILE" --test-launch
+        plugins=$(find bin/release -maxdepth 1 -name 'libplugin_*' -type f | wc -l)
+        xvfb-run --auto-servernum "./$APPIMAGE_FILE" --test-launch=$plugins
 
     - name: Test launch
       if: startsWith(matrix.os, 'windows')
       run: |
-        .\bin\release\FileCommander.exe --test-launch
+        $plugins = (Get-ChildItem bin\release\plugin_*.dll).Count
+        # A GUI-subsystem exe: -Wait and -PassThru make its exit code reach the step
+        $app = Start-Process .\bin\release\FileCommander.exe -ArgumentList "--test-launch=$plugins" -Wait -PassThru
+        exit $app.ExitCode
 
     - name: Archive DMG
       if: success() && startsWith(matrix.os, 'macos')
