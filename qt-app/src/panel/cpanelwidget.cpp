@@ -60,6 +60,7 @@ RESTORE_COMPILER_WARNINGS
 #include <cmath>
 #include <functional>
 #include <optional>
+#include <type_traits>
 #include <unordered_set>
 #include <utility>
 
@@ -97,7 +98,12 @@ static QString commaSeparated(const std::array<T, NumberOfColumns>& values)
 {
 	QStringList items;
 	for (const T value : values)
-		items.push_back(QString::number(value));
+	{
+		if constexpr (std::is_floating_point_v<T>)
+			items.push_back(QString::number(static_cast<double>(value)));
+		else
+			items.push_back(QString::number(value));
+	}
 
 	return items.join(',');
 }
@@ -833,7 +839,7 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), WidgetUtils::nativeOwnerWinId(this));
 }
 
-void CPanelWidget::showContextMenuForDisk(QPoint pos)
+void CPanelWidget::showContextMenuForDisk([[maybe_unused]] QPoint pos)
 {
 #ifdef _WIN32
 	const auto* button = dynamic_cast<const QPushButton*>(sender());
@@ -846,8 +852,6 @@ void CPanelWidget::showContextMenuForDisk(QPoint pos)
 	assert_and_return_r(volumeInfo, );
 	std::vector<std::wstring> diskPath(1, volumeInfo->rootObjectInfo.fullAbsolutePath().toStdWString());
 	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), WidgetUtils::nativeOwnerWinId(this));
-#else
-	Q_UNUSED(pos);
 #endif
 }
 

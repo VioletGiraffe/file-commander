@@ -16,7 +16,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <stdint.h>
 
-NSString* wstring2nsstring(const std::wstring& str)
+static NSString* wstring2nsstring(const std::wstring& str)
 {
 	if (!str.empty())
 	{

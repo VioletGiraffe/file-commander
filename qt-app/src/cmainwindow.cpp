@@ -233,7 +233,7 @@ void CMainWindow::initButtons()
 	new QShortcut(QKeySequence(QSL("F8")),     this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Delete")), this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
 #ifdef __APPLE__
-	new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Backspace), this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
+	new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Backspace), this, this, &CMainWindow::deleteFiles, Qt::WidgetWithChildrenShortcut);
 #endif
 	new QShortcut(QKeySequence(QSL("Shift+F8")), this, this, &CMainWindow::deleteFilesIrrevocably, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Shift+Delete")), this, this, &CMainWindow::deleteFilesIrrevocably, Qt::WidgetWithChildrenShortcut);

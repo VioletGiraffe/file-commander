@@ -17,6 +17,11 @@ mac*{
 
 	QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.3
 
+	# Qt frameworks as system headers: moc output includes them outside DISABLE_COMPILER_WARNINGS
+	QMAKE_CXXFLAGS += -iframework $$[QT_INSTALL_LIBS]
+
+	QMAKE_LFLAGS_SHLIB -= -single_module # ld warns it is obsolete
+
 	# Qt 6.9 headers use ARM ACLE intrinsics without including arm_acle.h
 	contains(QMAKE_HOST.arch, arm64)|contains(QMAKE_APPLE_DEVICE_ARCHS, arm64) {
 		QMAKE_CXXFLAGS += -include arm_acle.h
@@ -72,6 +77,7 @@ linux*|mac*|freebsd{
 
 	contains(QMAKE_COMPILER, clang) {
 		QMAKE_CXXFLAGS_WARN_ON *= -Wshadow-all -Wcast-align -Wcomma -Wconditional-uninitialized -Wheader-hygiene -Wloop-analysis -Wextra-semi-stmt -Wunreachable-code-aggressive
+		QMAKE_CXXFLAGS_WARN_ON *= -Wno-shadow-uncaptured-local # flags every [x = std::move(x)] init-capture
 		QMAKE_CXXFLAGS_WARN_ON *= -Wshorten-64-to-32 -Wmissing-prototypes -Wmissing-variable-declarations
 		QMAKE_CXXFLAGS_WARN_ON *= -Wimplicit-fallthrough -Wsuggest-override
 		QMAKE_CXXFLAGS_WARN_ON *= -Werror=return-stack-address -Werror=infinite-recursion
