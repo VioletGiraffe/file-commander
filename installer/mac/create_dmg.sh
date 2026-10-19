@@ -17,7 +17,7 @@ ROOT_DIR="$(pwd)"
 rm -rf bin
 echo "${MYSELF}: Building the app"
 ${QTPATH}/bin/qmake -spec macx-clang -r -config release CONFIG+=release
-make -j$(sysctl -n hw.ncpu)
+make -s -j$(sysctl -n hw.ncpu) SHELL="${ROOT_DIR}/scripts/quiet_make_shell.sh"
 
 echo "${MYSELF}: deploying Qt frameworks"
 # macdeployqt exits 0 even when it deploys nothing: its ERROR lines count as a failure too

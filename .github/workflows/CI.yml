@@ -145,7 +145,7 @@ jobs:
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
-        make -j$(nproc)
+        make -s -j$(nproc) SHELL="$PWD/scripts/quiet_make_shell.sh"
 
     - name: Linux - building AppImage
       if: startsWith(matrix.os, 'ubuntu')
