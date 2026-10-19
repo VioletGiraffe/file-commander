@@ -21,4 +21,6 @@ public:
 
 	// Called before the central widget is embedded into a file panel; the window itself is never shown.
 	virtual void configureForQuickView() {}
+	// Releases any handle on the viewed file, keeping its content displayed: called before the host deletes, moves or renames it.
+	virtual void closeFile() {}
 };

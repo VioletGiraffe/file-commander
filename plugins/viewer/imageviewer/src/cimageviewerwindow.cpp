@@ -175,6 +175,11 @@ void CImageViewerWindow::configureForQuickView()
 	_imageViewerWidget->setInfoStripHint(tr("Right-click for options"));
 }
 
+void CImageViewerWindow::closeFile()
+{
+	_imageViewerWidget->closeFile();
+}
+
 QWidget* CImageViewerWindow::dialogParent() const
 {
 	return _imageViewerWidget->window();

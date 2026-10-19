@@ -49,6 +49,8 @@ public:
 	// The transfer launch path (F5/F6, menu/toolbar, and drag-and-drop) over the operation engine: it converts
 	// the panel selection and edited destination into a typed request and drives one CFileOperationDialog.
 	bool launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory);
+	// Must precede deleting, moving or renaming these paths: a quick view may hold one of them open.
+	void closeQuickViewedFileIfWithin(const QStringList& paths);
 
 	// Returns the position that a new dialog should move() to (top left)
 	[[nodiscard]] QPoint nextBackgroundDialogPosition(QSize dialogFrameSize) const;

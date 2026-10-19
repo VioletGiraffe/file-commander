@@ -12,6 +12,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QStackedWidget>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
+
 void CPanelDisplayController::setPanelStackedWidget(QStackedWidget* widget)
 {
 	_panelStackedWidget = widget;
@@ -41,7 +43,7 @@ CPanelWidget* CPanelDisplayController::panelWidget() const
 	return _panelWidget;
 }
 
-void CPanelDisplayController::startQuickView(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow>&& viewerWindow)
+void CPanelDisplayController::startQuickView(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow>&& viewerWindow, QString filePath)
 {
 	if (!viewerWindow)
 		return;
@@ -53,6 +55,7 @@ void CPanelDisplayController::startQuickView(CFileCommanderViewerPlugin::WindowP
 		endQuickView();
 
 	_quickViewWindow = std::move(viewerWindow);
+	_quickViewFilePath = std::move(filePath);
 	_quickViewActive = _quickViewWindow ? true : false;
 	// Sanity check
 	assert_and_return_r(_panelStackedWidget && _panelStackedWidget->count() == 1, );
@@ -80,9 +83,23 @@ void CPanelDisplayController::endQuickView()
 
 	_quickViewActive = false;
 	_quickViewWindow.reset();
+	_quickViewFilePath.clear();
 }
 
 bool CPanelDisplayController::quickViewActive() const
 {
 	return _quickViewActive;
+}
+
+void CPanelDisplayController::closeQuickViewedFileIfWithin(const QStringList& paths)
+{
+	if (!_quickViewActive)
+		return;
+
+	// A folder's path ends with a separator
+	const bool affected = std::any_of(paths.cbegin(), paths.cend(), [this](const QString& path) {
+		return _quickViewFilePath == path || (path.endsWith('/') && _quickViewFilePath.startsWith(path));
+	});
+	if (affected)
+		_quickViewWindow->closeFile();
 }

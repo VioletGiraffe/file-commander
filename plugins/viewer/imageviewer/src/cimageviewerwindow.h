@@ -15,6 +15,7 @@ public:
 	bool displayImage(const QString& imagePath, bool resetViewParameters = true);
 
 	void configureForQuickView() override;
+	void closeFile() override;
 
 private:
 	// In quick view this window is never shown; only the widget knows the window that actually displays it.

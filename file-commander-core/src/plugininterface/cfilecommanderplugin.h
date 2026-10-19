@@ -11,7 +11,7 @@ class CPluginProxy;
 class QString;
 
 // Bump on every change to the interfaces in this directory: the engine skips a plugin reporting a different value.
-inline constexpr uint32_t PLUGIN_INTERFACE_VERSION = 1;
+inline constexpr uint32_t PLUGIN_INTERFACE_VERSION = 2;
 
 // A plugin dynamic library must implement both of these:
 //   pluginInterfaceVersion - return PLUGIN_INTERFACE_VERSION;

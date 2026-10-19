@@ -369,10 +369,20 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 		return false;
 	}
 
+	if (kind == TransferKind::Move)
+		closeQuickViewedFileIfWithin(sourcePaths);
+
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
 	registerFileOperationDialog(dialog);
 	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 	return true;
+}
+
+void CMainWindow::closeQuickViewedFileIfWithin(const QStringList& paths)
+{
+	// Quick view stays on its side when the active panel switches, so either side may host it
+	_leftPanelDisplayController.closeQuickViewedFileIfWithin(paths);
+	_rightPanelDisplayController.closeQuickViewedFileIfWithin(paths);
 }
 
 QPoint CMainWindow::nextBackgroundDialogPosition(const QSize dialogFrameSize) const
@@ -612,6 +622,11 @@ void CMainWindow::performDeletion(const bool toTrash)
 	if (items.empty())
 		return;
 
+	QStringList sourcePaths;
+	sourcePaths.reserve(static_cast<qsizetype>(items.size()));
+	for (const auto& item : items)
+		sourcePaths.push_back(item.fullAbsolutePath());
+
 	const DeletionBackend backend = deletionBackendFor(toTrash);
 	// OsShell::deleteItems only exists on Windows and macOS
 #if defined _WIN32 || defined __APPLE__
@@ -619,8 +634,11 @@ void CMainWindow::performDeletion(const bool toTrash)
 	{
 		std::vector<std::wstring> paths;
 		paths.reserve(items.size());
-		for (const auto& item : items)
-			paths.emplace_back(toNativeSeparators(item.fullAbsolutePath()).toStdWString());
+		for (const QString& path : sourcePaths)
+			paths.emplace_back(toNativeSeparators(path).toStdWString());
+
+		// Precedes the shell's confirmation: that runs on a worker thread
+		closeQuickViewedFileIfWithin(sourcePaths);
 
 #ifdef _WIN32
 		auto* windowHandle = WidgetUtils::nativeOwnerWinId(this);
@@ -642,17 +660,14 @@ void CMainWindow::performDeletion(const bool toTrash)
 	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 		return;
 
-	QStringList sourcePaths;
-	sourcePaths.reserve(static_cast<qsizetype>(items.size()));
-	for (const auto& item : items)
-		sourcePaths.push_back(item.fullAbsolutePath());
-
 	auto request = makePermanentDeleteRequest(sourcePaths);
 	if (!request)
 	{
 		QMessageBox::warning(this, tr("Operation cannot start"), requestValidationErrorText(request.error()));
 		return;
 	}
+
+	closeQuickViewedFileIfWithin(sourcePaths);
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
 	registerFileOperationDialog(dialog);
@@ -1289,7 +1304,7 @@ bool CMainWindow::fileListReturnPressed()
 
 void CMainWindow::quickViewCurrentFile()
 {
-	otherPanelDisplayController().startQuickView(_pluginEngine.createViewerWindowForCurrentFile());
+	otherPanelDisplayController().startQuickView(_pluginEngine.createViewerWindowForCurrentFile(), _controller->currentItem().fullAbsolutePath());
 }
 
 void CMainWindow::registerFileOperationDialog(CFileOperationDialog* dialog)

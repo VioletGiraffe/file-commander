@@ -960,6 +960,10 @@ void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 	if (!source)
 		return; // A real panel item always has a valid absolute path
 
+	auto* mainWindow = CMainWindow::get();
+	assert_and_return_r(mainWindow, );
+	mainWindow->closeQuickViewedFileIfWithin({ item.fullAbsolutePath() });
+
 	auto result = inlineRename(*source, newName, false);
 	if (result.status == InlineRenameStatus::ReplacementRequired)
 	{
