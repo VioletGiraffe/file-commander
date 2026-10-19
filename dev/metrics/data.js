@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792422615297,
+  "lastUpdate": 1792422843271,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -29196,6 +29196,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/f8de442be02355420b608cd6ef828a0c39a851cc"
         },
         "date": 1792422612081,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14625,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 28379,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1363,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2021,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 768.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 402.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "241f5306b5b7e18e732be8c2c833a74189199b9d",
+          "message": "macOS bundling: x64 slices stripped from the universal Qt binaries in the bundle, which is then re-signed ad-hoc; packaging fails when macdeployqt reports an error",
+          "timestamp": "2026-10-19T18:06:24+03:00",
+          "tree_id": "90047fbfeb2390240c3e972488947476d9f0dc7c",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/241f5306b5b7e18e732be8c2c833a74189199b9d"
+        },
+        "date": 1792422831907,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
