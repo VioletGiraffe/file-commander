@@ -33,7 +33,14 @@ cp -R "./${APPDIR}" "${STAGE}/"
 ln -s /Applications "${STAGE}/"
 
 # -srcfolder populates via a private nobrowse mount - no volume appears under /Volumes for Spotlight to grab and pin.
-hdiutil create "${DMG}" -ov -volname "${VOL}" -fs "HFS+" -format UDZO -srcfolder "${STAGE}"
+# Retried: on CI runners hdiutil still fails intermittently with "Resource busy".
+ATTEMPT=1
+until hdiutil create "${DMG}" -ov -volname "${VOL}" -fs "HFS+" -format UDZO -srcfolder "${STAGE}"; do
+	[ ${ATTEMPT} -lt 3 ] || exit 1
+	ATTEMPT=$((ATTEMPT + 1))
+	echo "${MYSELF}: hdiutil failed, retrying (attempt ${ATTEMPT})"
+	sleep 10
+done
 
 rm -rf "${STAGE}"
 mv "${DMG}" "${ROOT_DIR}/"
