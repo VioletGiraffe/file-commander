@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792424484779,
+  "lastUpdate": 1792425116951,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -29448,6 +29448,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/e53697d99ca24229db702549e6398248fc4d884e"
         },
         "date": 1792424481331,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14629,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 28379,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1362.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2021,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 768.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 402,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e1d78584659cd9ea867319d84fad3d25b38ef78c",
+          "message": "Mac/Linux Build output trimmed, 'make' runs through scripts/quiet_make_shell.sh, a clean compile prints only its file name, a command that warns or fails prints in full with its output",
+          "timestamp": "2026-10-19T18:43:50+03:00",
+          "tree_id": "d7e458293387f8705b5c38a9fca93f148b67145f",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e1d78584659cd9ea867319d84fad3d25b38ef78c"
+        },
+        "date": 1792425113785,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
