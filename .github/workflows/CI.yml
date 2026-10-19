@@ -131,7 +131,6 @@ jobs:
 
     - name: Mac
       if: startsWith(matrix.os, 'macos')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         clang --version
         ./installer/mac/create_dmg.sh $QT_ROOT_DIR
@@ -146,14 +145,12 @@ jobs:
 
     - name: Linux - build
       if: startsWith(matrix.os, 'ubuntu')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
         make -s -j$(nproc) SHELL="$PWD/scripts/quiet_make_shell.sh"
 
     - name: Linux - building AppImage
       if: startsWith(matrix.os, 'ubuntu')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         arch=$(uname -m)
         for tool in linuxdeploy linuxdeploy-plugin-qt linuxdeploy-plugin-appimage; do
@@ -353,7 +350,6 @@ jobs:
 
     - name: Building tests - Windows
       if: startsWith(matrix.os, 'windows')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
       run: scripts\run_tests.bat -BuildOnly
 
