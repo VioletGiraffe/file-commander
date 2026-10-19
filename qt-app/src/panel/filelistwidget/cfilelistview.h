@@ -1,5 +1,7 @@
 #pragma once
 
+#include "panel/columns.h"
+
 #include "cpanel.h"
 
 
@@ -12,6 +14,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QTreeView>
 RESTORE_COMPILER_WARNINGS
 
+#include <array>
 #include <chrono>
 #include <optional>
 #include <utility>
@@ -36,6 +39,7 @@ struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
 
 class QMouseEvent;
 class QFocusEvent;
+class QHeaderView;
 class CController;
 class CFileListView final : public QTreeView
 {
@@ -48,7 +52,17 @@ public:
 	// Sets the position (left or right) of a panel that this model represents
 	void setPanelPosition(enum Panel p);
 
-	void setHeaderAdjustmentRequired(bool required);
+	// Column widths and order, independent of the view's width
+	struct ColumnLayout
+	{
+		std::array<float, NumberOfColumns> widthShares = { 0.52f, 0.135f, 0.143f, 0.2f }; // By logical column; need not sum to 1
+		std::array<int, NumberOfColumns> visualOrder = { NameColumn, ExtColumn, SizeColumn, DateColumn }; // The logical column at each visual position
+	};
+	// Empty unless the header has every column and a non-zero total width
+	[[nodiscard]] static std::optional<ColumnLayout> columnLayoutOf(const QHeaderView& header);
+	[[nodiscard]] const ColumnLayout& columnLayout() const;
+	// Requires a model: the header has no sections before. The column widths follow the header's width from here on.
+	void applyColumnLayout(const ColumnLayout& layout);
 
 	// Preserves item's selection state
 	void moveCursorToItem(const QModelIndex &index, bool invertSelection = false);
@@ -106,14 +120,20 @@ private:
 
 	[[nodiscard]] int numRowsVisible() const;
 
+	// Sets the section sizes from _columnLayout's shares, summing to width
+	void fitColumnsToWidth(int width);
+	// Records a resize or move the user made in the header
+	void storeColumnLayoutFromHeader();
+
 private:
 	std::vector<FileListViewEventObserver*> _eventObservers;
 
 	QPersistentModelIndex               _currentItemBeforeMouseClick;
 	std::optional<std::chrono::steady_clock::time_point> _timeToNextPaintStart;
+	ColumnLayout                        _columnLayout; // The section sizes are fitted to it; only the user's header edits update it from them
 
 	enum Panel                          _panelPosition = Panel::UnknownPanel;
-	bool                                _bHeaderAdjustmentRequired = true;
+	bool                                _applyingColumnLayout = false; // Keeps storeColumnLayoutFromHeader() from recording this view's own changes
 	QPoint                              _singleMouseClickPos;
 	bool                                _singleMouseClickValid = false;
 	bool                                _shiftPressedItemSelected = false;

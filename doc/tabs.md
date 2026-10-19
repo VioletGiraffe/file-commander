@@ -18,7 +18,7 @@ duplicate tabs may show the same location.
 ## UI invariant
 
 `CPanelWidget` has one shared view and one model and selection model per tab. A model holds a copy of its rows,
-refilled only while its tab is on screen. Activation swaps the models and restores their sort and header state;
+refilled only while its tab is on screen. Activation swaps the models and restores their sort and column layout;
 background notifications cannot touch them.
 
 ## Lifetime and persistence

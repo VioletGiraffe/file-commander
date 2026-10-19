@@ -1,6 +1,5 @@
 #include "cfilelistview.h"
 
-#include "panel/columns.h"
 #include "delegate/cfilelistitemdelegate.h"
 #include "cfocusframestyle.h"
 
@@ -17,12 +16,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QScopedValueRollback>
 #include <QScrollBar>
 #include <QStyleHints>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
-#include <array>
 #include <utility>
 
 CFileListView::CFileListView(QWidget *parent) :
@@ -45,6 +44,8 @@ CFileListView::CFileListView(QWidget *parent) :
 	assert_r(headerView);
 
 	headerView->installEventFilter(this);
+	assert_r(connect(headerView, &QHeaderView::sectionResized, this, &CFileListView::storeColumnLayoutFromHeader));
+	assert_r(connect(headerView, &QHeaderView::sectionMoved, this, &CFileListView::storeColumnLayoutFromHeader));
 
 	// TODO: QProxyStyle?
 #ifdef _WIN32
@@ -75,6 +76,45 @@ void CFileListView::setPanelPosition(enum Panel p)
 	_panelPosition = p;
 }
 
+std::optional<CFileListView::ColumnLayout> CFileListView::columnLayoutOf(const QHeaderView& header)
+{
+	if (header.count() != NumberOfColumns)
+		return {};
+
+	float totalWidth = 0.0f;
+	for (int column = 0; column < NumberOfColumns; ++column)
+		totalWidth += (float)header.sectionSize(column);
+	if (totalWidth <= 0.0f)
+		return {};
+
+	ColumnLayout layout;
+	for (int column = 0; column < NumberOfColumns; ++column)
+		layout.widthShares[(size_t)column] = (float)header.sectionSize(column) / totalWidth;
+	for (int visual = 0; visual < NumberOfColumns; ++visual)
+		layout.visualOrder[(size_t)visual] = header.logicalIndex(visual);
+
+	return layout;
+}
+
+const CFileListView::ColumnLayout& CFileListView::columnLayout() const
+{
+	return _columnLayout;
+}
+
+void CFileListView::applyColumnLayout(const ColumnLayout& layout)
+{
+	QHeaderView* headerView = header();
+	assert_and_return_r(headerView->count() == NumberOfColumns, );
+
+	_columnLayout = layout;
+
+	const QScopedValueRollback guard{ _applyingColumnLayout, true };
+	for (int visual = 0; visual < NumberOfColumns; ++visual)
+		headerView->moveSection(headerView->visualIndex(layout.visualOrder[(size_t)visual]), visual);
+
+	fitColumnsToWidth(headerView->width());
+}
+
 // Preserves item's selection state
 void CFileListView::moveCursorToItem(const QModelIndex& index, bool invertSelection)
 {
@@ -103,17 +143,6 @@ void CFileListView::modelAboutToBeReset()
 {
 	_currentItemBeforeMouseClick = QModelIndex();
 	_singleMouseClickValid = false;
-
-	if (_bHeaderAdjustmentRequired) [[unlikely]]
-	{
-		_bHeaderAdjustmentRequired = false;
-		static constexpr float RelativeColumnSize[NumberOfColumns] = { 0.52f, 0.135f, 0.143f, 0.2f }; // Relative sizes of columns: Name, Ext, Size, Date
-		assert_and_return_r(model()->columnCount() == NumberOfColumns, );
-		for (int i = 0; i < NumberOfColumns; ++i)
-		{
-			header()->resizeSection(i, Math::round<int>((float)header()->width() * RelativeColumnSize[i]));
-		}
-	}
 }
 
 bool CFileListView::editingInProgress() const
@@ -363,22 +392,7 @@ bool CFileListView::eventFilter(QObject* target, QEvent* event)
 	{
 		auto* resizeEvent = dynamic_cast<QResizeEvent*>(event);
 		assert_and_return_r(resizeEvent, QTreeView::eventFilter(target, event));
-		float oldHeaderWidth = 0.0f;
-		for (int i = 0; i < headerView->count(); ++i)
-			oldHeaderWidth += (float)headerView->sectionSize(i);
-
-		const auto newHeaderWidth = (float)resizeEvent->size().width();
-		if (oldHeaderWidth <= 0.0f || newHeaderWidth <= 0.0f || ::fabs(oldHeaderWidth - newHeaderWidth) < 0.1f)
-			return QTreeView::eventFilter(target, event);
-
-		std::array<float, NumberOfColumns> relativeColumnSizes;
-		relativeColumnSizes.fill(0.0f);
-
-		for (int i = 0; i <NumberOfColumns; ++i)
-			relativeColumnSizes[i] = (float)headerView->sectionSize(i) / oldHeaderWidth;
-
-		for (int i = 0; i < headerView->count(); ++i)
-			headerView->resizeSection(i, Math::round<int>(newHeaderWidth * relativeColumnSizes[i]));
+		fitColumnsToWidth(resizeEvent->size().width());
 	}
 
 	return QTreeView::eventFilter(target, event);
@@ -462,7 +476,32 @@ int CFileListView::numRowsVisible() const
 	return bottomIndex.isValid() ? bottomIndex.row() - topIndex.row() : model()->rowCount() - topIndex.row();
 }
 
-void CFileListView::setHeaderAdjustmentRequired(bool required)
+void CFileListView::fitColumnsToWidth(int width)
 {
-	_bHeaderAdjustmentRequired = required;
+	float totalShare = 0.0f;
+	for (const float share : _columnLayout.widthShares)
+		totalShare += share;
+	if (width <= 0 || totalShare <= 0.0f)
+		return;
+
+	const QScopedValueRollback guard{ _applyingColumnLayout, true };
+	// Rounding the running total, not each size: the sizes then always sum to width
+	float runningShare = 0.0f;
+	int previousEdge = 0;
+	for (int column = 0; column < NumberOfColumns; ++column)
+	{
+		runningShare += _columnLayout.widthShares[(size_t)column];
+		const int edge = Math::round<int>((float)width * runningShare / totalShare);
+		header()->resizeSection(column, edge - previousEdge);
+		previousEdge = edge;
+	}
+}
+
+void CFileListView::storeColumnLayoutFromHeader()
+{
+	if (_applyingColumnLayout)
+		return;
+
+	if (const auto layout = columnLayoutOf(*header()))
+		_columnLayout = *layout;
 }

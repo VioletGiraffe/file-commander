@@ -152,7 +152,7 @@ private:
 	struct PanelTab {
 		CFileListModel* model = nullptr;
 		QItemSelectionModel* selectionModel = nullptr;
-		QByteArray headerState; // This tab's own column widths/order/visibility (sort indicator bits in here are ignored - the model owns the sort)
+		CFileListView::ColumnLayout columnLayout; // Saved while the tab is in the background
 		std::optional<uint64_t> navigationId; // CPanel::navigationId() of the listing in the model; empty while it holds none
 		qulonglong cursorTargetHash = 0; // The item the core designated for the cursor, kept until a listing has it; 0 for none
 		CFileListView::ScrollPosition scrollPosition; // Saved while the tab is in the background
@@ -161,14 +161,15 @@ private:
 	struct TabViewState {
 		int sortColumn = ExtColumn;
 		Qt::SortOrder sortOrder = Qt::AscendingOrder;
-		QByteArray headerState;
+		CFileListView::ColumnLayout columnLayout;
 	};
 	// Wires a model and its selection model into an already-emplaced tab (not shown yet). The tab's sort
 	// is independent from every other tab's from here on, so viewState only seeds it; see activateTab.
 	void populateTabModels(PanelTab& tab, const TabViewState& viewState);
 	[[nodiscard]] TabViewState viewStateOfTab(int index) const;  // What tab 'index' looks like right now
 	[[nodiscard]] std::vector<std::pair<qulonglong, TabViewState>> loadTabViewStates() const; // Persisted state by tab id; empty when nothing is stored
-	[[nodiscard]] TabViewState viewStateFromLegacyHeaderBlob() const; // Migration: settings that predate the per-tab store held one blob per side
+	// Migration: older settings held QHeaderView::saveState() blobs, first one per side, then one per tab. Defaults for an unreadable blob.
+	[[nodiscard]] static TabViewState viewStateFromHeaderBlob(const QByteArray& blob);
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
 	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
 	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths, sort and scroll position

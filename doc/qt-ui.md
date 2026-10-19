@@ -34,7 +34,7 @@ module is unloaded; the controller remains alive throughout that sequence.
 ## Panel widget and file-list MVC
 
 Each side has one shared `CFileListView`. Every tab owns a `PanelTab` with its model, selection model, and saved
-header state; the widget's unqualified model pointers alias the active tab's.
+column layout; the widget's unqualified model pointers alias the active tab's.
 
 The tab bar, UI vector, and core tab list remain position-aligned, but cross-layer calls use the stable ID stored in
 tab data. Positions must be resolved again immediately before close or reorder operations.
