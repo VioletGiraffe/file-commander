@@ -25,7 +25,6 @@ private:
 
 private:
 	QString _currentImagePath;
-	bool _quickViewMode = false;
 
 	CImageViewerWidget* _imageViewerWidget = nullptr;
 	QAction* _imageInfoAction = nullptr;
@@ -35,5 +34,4 @@ private:
 	QAction* _fitToScreenAction = nullptr;
 	QAction* _zoom1to1Action = nullptr;
 	QAction* _showInfoStripAction = nullptr;
-	QAction* _pixelPreservingUpscalingAction = nullptr;
 };

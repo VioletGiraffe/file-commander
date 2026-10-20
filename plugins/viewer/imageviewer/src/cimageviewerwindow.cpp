@@ -5,14 +5,12 @@
 
 
 // Submodule includes
-#include "qtcore_helpers/qstring_helpers.hpp"
 #include "resize/qimage_resize.h"
 #include "widgets/cimageviewerwidget.h"
 
 
 DISABLE_COMPILER_WARNINGS
 #include <QAction>
-#include <QActionGroup>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QImageWriter>
@@ -20,15 +18,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
-#include <QSettings>
 #include <QShortcut>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 #include <utility>
-
-#define SETTINGS_PIXEL_PRESERVING_UPSCALING QSL("Plugins/ImageViewer/PixelPreservingUpscaling")
 
 CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noexcept :
 	CPluginWindow(parent),
@@ -87,37 +82,6 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	_showInfoStripAction->setChecked(true);
 	_imageViewerWidget->setInfoStripHint(tr("Press %1 to hide").arg(_showInfoStripAction->shortcut().toString(QKeySequence::NativeText)));
 	connect(_showInfoStripAction, &QAction::toggled, _imageViewerWidget, &CImageViewerWidget::setOverlayVisible);
-	viewMenu->addSeparator();
-
-	QAction* smoothUpscalingAction = viewMenu->addAction(tr("&Smooth upscaling"));
-	_pixelPreservingUpscalingAction = viewMenu->addAction(tr("&Pixel-preserving upscaling"));
-	auto* upscalingModeGroup = new QActionGroup(this);
-	for (QAction* action : { smoothUpscalingAction, _pixelPreservingUpscalingAction })
-	{
-		action->setCheckable(true);
-		upscalingModeGroup->addAction(action);
-	}
-
-	const bool pixelPreservingUpscaling = QSettings{}.value(SETTINGS_PIXEL_PRESERVING_UPSCALING, false).toBool();
-	(pixelPreservingUpscaling ? _pixelPreservingUpscalingAction : smoothUpscalingAction)->setChecked(true);
-	_imageViewerWidget->setNearestNeighborUpscaling(pixelPreservingUpscaling);
-	// Only this action is connected: the group unchecks it whenever the smooth one is picked.
-	connect(_pixelPreservingUpscalingAction, &QAction::toggled, this, [this](bool enabled) {
-		_imageViewerWidget->setNearestNeighborUpscaling(enabled);
-		if (!_quickViewMode) // Quick view forces the mode, so it must not overwrite the stored preference.
-			QSettings{}.setValue(SETTINGS_PIXEL_PRESERVING_UPSCALING, enabled);
-	});
-
-	// Checking the other action is what switches modes: unchecking the current one would leave the group with no selection.
-	const QKeySequence upscalingModeToggleKey{ QStringLiteral("P") };
-	new QShortcut(upscalingModeToggleKey, this, this, [this, smoothUpscalingAction] {
-		(_pixelPreservingUpscalingAction->isChecked() ? smoothUpscalingAction : _pixelPreservingUpscalingAction)->setChecked(true);
-	});
-
-	// A menu draws the text after a tab in its shortcut column. The key switches between the two actions,
-	// so neither can own it as its own shortcut, and both advertise it this way instead.
-	for (QAction* action : { smoothUpscalingAction, _pixelPreservingUpscalingAction })
-		action->setText(action->text() + '\t' + upscalingModeToggleKey.toString(QKeySequence::NativeText));
 
 	new QShortcut(QKeySequence(QStringLiteral("Esc")), this, SLOT(close()));
 }
@@ -145,11 +109,7 @@ bool CImageViewerWindow::displayImage(const QString& imagePath, bool resetViewPa
 
 void CImageViewerWindow::configureForQuickView()
 {
-	_quickViewMode = true; // Must precede the check: the toggle handler reads it to skip the settings write.
-	_pixelPreservingUpscalingAction->setChecked(true);
-
 	// The menu bar stays with this window, which is never shown, so the canvas offers the applicable actions instead.
-	// The upscaling mode is not among them: quick view forces it, and every window here is built anew for each file.
 	QAction* const contextMenuActions[] = {
 		_fitToScreenAction, _zoom1to1Action,
 		nullptr, // Separator
