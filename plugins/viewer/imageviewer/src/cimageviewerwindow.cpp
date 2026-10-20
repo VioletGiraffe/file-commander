@@ -40,9 +40,10 @@ CImageViewerWindow::CImageViewerWindow(CPluginProxy& proxy, QWidget* parent) noe
 	ImageProcessing::ParallelForFn parallelFor = [proxy = &proxy](size_t count, const std::function<void(size_t)>& body) {
 		proxy->parallelFor(count, body);
 	};
-	_imageViewerWidget->setImageScaler([parallelFor = std::move(parallelFor)](QImage& dest, const QImage& source, const QRect& srcRect) {
-		if (!ImageProcessing::resize(dest, source, srcRect, parallelFor))
-			CImageViewerWidget::smoothScaleQt(dest, source, srcRect);
+	_imageViewerWidget->setImageScaler([parallelFor = std::move(parallelFor)](QImage& dest, const QImage& source, const QRect& srcRect, Qt::TransformationMode mode) {
+		const auto kernel = mode == Qt::FastTransformation ? ImageProcessing::ResizeKernel::NearestNeighbor : ImageProcessing::ResizeKernel::Auto;
+		if (!ImageProcessing::resize(dest, source, srcRect, parallelFor, kernel))
+			CImageViewerWidget::scaleWithQt(dest, source, srcRect, mode);
 	});
 
 	QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
