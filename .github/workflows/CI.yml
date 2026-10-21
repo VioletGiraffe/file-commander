@@ -514,23 +514,36 @@ jobs:
       timeout-minutes: 20
       run: |
         set -e
-        # The runner's kernel image ships without the exfat driver; it is in the extra modules package.
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends exfatprogs dosfstools "linux-modules-extra-$(uname -r)"
-        sudo modprobe exfat
-        truncate -s 256M "$RUNNER_TEMP/exfat.img" "$RUNNER_TEMP/fat32.img"
-        mkfs.exfat "$RUNNER_TEMP/exfat.img"
-        mkfs.vfat -F 32 "$RUNNER_TEMP/fat32.img"
-        sudo mkdir -p /mnt/fc-exfat /mnt/fc-fat32
-        # The type is explicit so that a kernel without the driver fails here, not through a FUSE fallback.
         # uid and gid: these filesystems store no owner, and the tests run unprivileged.
-        sudo mount -t exfat -o "loop,uid=$(id -u),gid=$(id -g)" "$RUNNER_TEMP/exfat.img" /mnt/fc-exfat
-        sudo mount -t vfat -o "loop,uid=$(id -u),gid=$(id -g)" "$RUNNER_TEMP/fat32.img" /mnt/fc-fat32
+        mount_options="loop,uid=$(id -u),gid=$(id -g)"
+        volumes=
+        # The runner's kernel image ships without the exfat driver; it is in the extra modules package.
+        # A new runner kernel can precede its extra modules package in the archive: exFAT is skipped until it lands.
+        extra_modules="linux-modules-extra-$(uname -r)"
+        if apt-cache show "$extra_modules" > /dev/null 2>&1; then
+          sudo apt-get install -y --no-install-recommends exfatprogs "$extra_modules"
+          sudo modprobe exfat
+          truncate -s 256M "$RUNNER_TEMP/exfat.img"
+          mkfs.exfat "$RUNNER_TEMP/exfat.img"
+          sudo mkdir -p /mnt/fc-exfat
+          # The type is explicit so that a kernel without the driver fails here, not through a FUSE fallback.
+          sudo mount -t exfat -o "$mount_options" "$RUNNER_TEMP/exfat.img" /mnt/fc-exfat
+          volumes=/mnt/fc-exfat
+        else
+          echo "::warning title=exFAT tests skipped::$extra_modules is not in the package archive"
+        fi
+        sudo apt-get install -y --no-install-recommends dosfstools
+        truncate -s 256M "$RUNNER_TEMP/fat32.img"
+        mkfs.vfat -F 32 "$RUNNER_TEMP/fat32.img"
+        sudo mkdir -p /mnt/fc-fat32
+        sudo mount -t vfat -o "$mount_options" "$RUNNER_TEMP/fat32.img" /mnt/fc-fat32
+        volumes="$volumes /mnt/fc-fat32"
         # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
         # comparator's generated data does not fit these disks.
-        # Both volumes always run; the step fails at the end
+        # Every volume runs; the step fails at the end
         failed=0
-        for volume in /mnt/fc-exfat /mnt/fc-fat32; do
+        for volume in $volumes; do
           echo "===== Temporary folders on $volume"
           TMPDIR="$volume" ./scripts/run_tests.sh nobuild || failed=1
           TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s) || failed=1
