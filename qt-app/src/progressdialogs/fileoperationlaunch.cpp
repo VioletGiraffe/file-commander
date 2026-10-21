@@ -1,9 +1,13 @@
 #include "fileoperationlaunch.h"
 
-DISABLE_COMPILER_WARNINGS
-#include <QDir>
-#include <QFileInfo>
-RESTORE_COMPILER_WARNINGS
+// Submodule includes
+#include "directoryscan/directoryscanner.h"
+#include "directoryscan/thinioqstring.h"
+#include "fileoperations/centrypath.h"
+#include "paths/pathsyntax.h"
+
+
+#include <optional>
 
 namespace
 {
@@ -19,6 +23,24 @@ bool hasTrailingPathSeparator(const QString& path)
 #endif
 }
 
+// Links followed. Empty when there is no readable entry, and for a path that is not absolute.
+std::optional<thin_io::entry_kind> followedEntryKind(const QString& path)
+{
+	if (absoluteRootLength(path) == 0)
+		return {};
+
+	const auto entry = getDirectoryEntry(withoutTrailingSeparator(path));
+	if (!entry)
+		return {};
+
+	return followedStatus(*entry).attributes.kind;
+}
+
+bool isFile(const QString& path)
+{
+	return followedEntryKind(path) == thin_io::entry_kind::regular_file;
+}
+
 } // namespace
 
 DestinationIntent transferDestinationIntent(const QStringList& rawSourcePaths, const QString& destinationText)
@@ -30,20 +52,25 @@ DestinationIntent transferDestinationIntent(const QStringList& rawSourcePaths, c
 	if (hasTrailingPathSeparator(destinationText))
 		return IntoDirectory;
 
-	// A single non-file source (a directory, a link, a special entry) always maps into the destination.
-	if (!QFileInfo{ rawSourcePaths.front() }.isFile())
+	// A single source that is not a file, links followed, always maps into the destination.
+	if (!isFile(rawSourcePaths.front()))
 		return IntoDirectory;
 
 	// A single file: the edited destination is the exact target unless it already names a directory.
-	return QFileInfo{ destinationText }.isDir() ? IntoDirectory : ExactEntry;
+	return followedEntryKind(destinationText) == thin_io::entry_kind::directory ? IntoDirectory : ExactEntry;
 }
 
 QString prefillTransferDestination(const TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationDirectory)
 {
-	if (kind == TransferKind::Copy && rawSourcePaths.size() == 1 && QFileInfo{ rawSourcePaths.front() }.isFile())
-		return QDir{ destinationDirectory }.filePath(QFileInfo{ rawSourcePaths.front() }.fileName());
+	if (kind != TransferKind::Copy || rawSourcePaths.size() != 1 || !isFile(rawSourcePaths.front()))
+		return destinationDirectory;
 
-	return destinationDirectory;
+	const auto source = parseOperationPath(rawSourcePaths.front());
+	const auto destination = parseOperationPath(destinationDirectory);
+	if (!source || !destination)
+		return destinationDirectory;
+
+	return destination->child(source->name()).value();
 }
 
 std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(

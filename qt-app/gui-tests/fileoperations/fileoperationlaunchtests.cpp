@@ -81,6 +81,14 @@ TEST_CASE("launch: destination-intent heuristic", "[fileoperationlaunch]")
 	{
 		CHECK(transferDestinationIntent({ base % "/a.txt" }, base % "/b.txt") == ExactEntry);
 	}
+
+#ifdef _WIN32
+	SECTION("a trailing dot is part of the destination name")
+	{
+		// Win32 path normalization would read "existingDir." as "existingDir"
+		CHECK(transferDestinationIntent({ base % "/a.txt" }, base % "/existingDir.") == ExactEntry);
+	}
+#endif
 }
 
 TEST_CASE("launch: confirmation-field prefill", "[fileoperationlaunch]")
