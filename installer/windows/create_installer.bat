@@ -29,7 +29,6 @@ if not %errorlevel% == 0 goto build_fail
 
 xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\64\
 xcopy /R /Y ..\..\bin\release\plugin_*.dll binaries\64\
-xcopy /R /Y "3rdparty binaries"\64\* binaries\64\
 
 SETLOCAL
 SET PATH=%QTDIR64%\bin\

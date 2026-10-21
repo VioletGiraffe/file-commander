@@ -9,7 +9,7 @@ AppId=FileCommander
 AppVerName=File Commander
 AppVersion={#AppVersion}
 AppPublisher=VioletGiraffe
-DefaultDirName={pf}\File Commander
+DefaultDirName={autopf}\File Commander
 DefaultGroupName=File Commander
 AllowNoIcons=true
 OutputDir=.
@@ -24,7 +24,8 @@ UninstallDisplayIcon={app}\FileCommander.exe
 AppCopyright=VioletGiraffe
 ShowTasksTreeLines=yes
 
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 
 SolidCompression=true
 LZMANumBlockThreads=4

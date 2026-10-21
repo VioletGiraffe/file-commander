@@ -17,8 +17,6 @@ Do not change the Qt organization name without migrating settings. Do not change
 
 ## Installer requirements
 
-- Restrict the Windows installer to x64-compatible systems and install in 64-bit mode.
-- Use the current automatic Program Files constant.
 - Ship the Apache-2.0 `LICENSE` and any future `NOTICE` file with binary distributions.
 
 The installer project is authoritative for packaging details; `main.cpp`, `version.h`, and `qt-app.pro` are the
