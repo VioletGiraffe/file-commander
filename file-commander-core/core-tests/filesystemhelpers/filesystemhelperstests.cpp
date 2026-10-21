@@ -146,7 +146,7 @@ TEST_CASE("resolveUserPath: the home folder and environment variables expand", "
 	const QString home = normalizedAbsolutePath(qEnvironmentVariable("HOME"));
 	REQUIRE_FALSE(home.isEmpty());
 	CHECK(resolveUserPath(QStringLiteral("~"), QStringLiteral("/")) == home);
-	CHECK(resolveUserPath(QStringLiteral("~/x"), QStringLiteral("/")) == home % QStringLiteral("/x"));
+	CHECK(resolveUserPath(QStringLiteral("~/x"), QStringLiteral("/")) == QString{ home % QStringLiteral("/x") });
 	CHECK(resolveUserPath(QStringLiteral("~x"), QStringLiteral("/base")) == QStringLiteral("/base/~x"));
 
 	qputenv("FC_RESOLVE_TEST_DIR", "/tmp/t");
