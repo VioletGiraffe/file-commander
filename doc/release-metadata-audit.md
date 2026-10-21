@@ -3,23 +3,17 @@
 ## Current identity
 
 The application is `File Commander`; current Windows binaries are `FileCommander.exe`; the license is Apache-2.0.
-Historical vendor identifiers differ across settings (`GitHubSoft`), executable metadata (`GithubSoft`), and public
-installer/copyright fields (`VioletGiraffe`).
+The vendor is `VioletGiraffe` in executable metadata and the installer; settings keep the historical `GitHubSoft`.
 
 Do not change the Qt organization name without migrating settings. Do not change the existing Inno Setup
 `AppId=FileCommander`; either change would orphan existing user state or installed-product identity.
 
 ## Version ownership
 
-`VERSION_STRING` in `qt-app/src/version.h` is the live version consumed by the application and updater.
-`qt-app.pro` extracts it during qmake so Windows executable metadata can share the value. Editing the header requires
-rerunning qmake locally; clean CI builds already do so.
-
-The remaining single-sourcing work is to:
-
-1. Let qmake generate Windows version resources while retaining the application icon through `RC_ICONS`.
-2. Set consistent `QMAKE_TARGET_*` identity fields.
-3. Have the Windows installer read the built executable version and expose it as `AppVersion`.
+`VERSION_STRING` in `qt-app/src/version.h` is the single source of the version:
+- The application and updater use it directly.
+- `qt-app.pro` extracts it during qmake; qmake generates the Windows version resource from it. Editing the header requires rerunning qmake locally; clean CI builds already do so.
+- The Windows installer reads it from the built executable as `AppVersion`.
 
 ## Installer requirements
 

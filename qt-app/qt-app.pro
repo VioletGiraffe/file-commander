@@ -108,7 +108,12 @@ LIBS += -L$${DESTDIR} -lcore -lautoupdater -lqtutils -lcpputils -lthin_io
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32 -lMpr
-	RC_FILE = resources/file_commander.rc
+
+	RC_ICONS = resources/icon.ico
+	QMAKE_TARGET_COMPANY = VioletGiraffe
+	QMAKE_TARGET_PRODUCT = File Commander
+	QMAKE_TARGET_DESCRIPTION = Dual-panel file manager
+	QMAKE_TARGET_COPYRIGHT = Copyright (c) 2013 VioletGiraffe
 }
 
 mac*{
