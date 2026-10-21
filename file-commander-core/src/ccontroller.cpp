@@ -9,6 +9,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "fileoperations/cfilesystemmutator.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "threading/thread_helpers.h"
 
@@ -21,6 +22,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStringBuilder>
+#include <QStringList>
 #include <QThread>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
@@ -748,49 +751,49 @@ FileOperationResultCode CController::setPath(Panel p, const QString &path, FileL
 
 FileOperationResultCode CController::createFolder(const QString &parentFolder, const QString &name)
 {
-	QDir parentDir(parentFolder);
-	if (!parentDir.exists())
+	const auto parent = parseOperationPath(parentFolder);
+	assert_and_return_r(parent, FileOperationResultCode::Fail);
+
+	// The parent must still exist: createDirectories() would recreate it
+	const auto parentEntry = inspectEntry(*parent);
+	if (!parentEntry || !parentEntry->has_value()
+		|| ((*parentEntry)->kind != OperationEntryKind::Directory && (*parentEntry)->kind != OperationEntryKind::DirectoryLink))
 		return FileOperationResultCode::Fail;
 
-	if (parentDir.exists(name))
+	const QStringList components = name.split('/', Qt::SkipEmptyParts);
+	assert_and_return_r(!components.empty(), FileOperationResultCode::Fail);
+
+	CEntryPath path = *parent;
+	for (const QString& component : components)
+		path = path.child(component);
+
+	const auto outcome = CFileSystemMutator::createDirectories(path);
+	if (!outcome)
+		return FileOperationResultCode::Fail;
+	if (*outcome == DirectoryCreationOutcome::FinalEntryAlreadyExisted)
 		return FileOperationResultCode::TargetAlreadyExists;
 
-	if (!parentDir.mkpath(name))
-		return FileOperationResultCode::Fail;
-
-	// Comparing with CFileSystemObject{parentFolder} instead of parentDir to avoid potential slash direction and trailing slash issues for paths coming from different APIs
-	if (CFileSystemObject{parentFolder}.fullAbsolutePath() == activePanel().currentDirObject().fullAbsolutePath())
-	{
-		const auto slashPosition = name.indexOf('/');
-		// The trailing slash is required for the hash to match the listed item's: folders always have a trailing slash
-		const QString newItemPath = parentDir.absolutePath() % '/' % (slashPosition > 0 ? name.left(slashPosition) : name) % '/';
-		// This is required for the UI to know to set the cursor at the new folder
-		setCurrentItemHashForCurrentFolder(activePanelPosition(), CFileSystemObject(newItemPath).hash());
-	}
+	// The UI places the cursor on the listed folder, the chain's first; a folder's hash includes the trailing separator
+	if (parent == parseOperationPath(activePanel().currentDirPathPosix()))
+		setCurrentItemHashForCurrentFolder(activePanelPosition(), pathHash(parent->child(components.front()).value() % '/'));
 
 	return FileOperationResultCode::Ok;
 }
 
 FileOperationResultCode CController::createFile(const QString &parentFolder, const QString &name)
 {
-	CFileSystemObject parentDir(parentFolder);
-	if (!parentDir.exists() || !parentDir.isDir())
-		return FileOperationResultCode::Fail;
+	const auto parent = parseOperationPath(parentFolder);
+	assert_and_return_r(parent, FileOperationResultCode::Fail);
 
-	const QString newFilePath = parentDir.fullAbsolutePath() % '/' % name;
-	if (QFile::exists(newFilePath))
-		return FileOperationResultCode::TargetAlreadyExists;
+	const CEntryPath path = parent->child(name);
+	if (const auto created = CFileSystemMutator::createEmptyFile(path); !created)
+		return created.error().category == FileErrorCategory::AlreadyExists ? FileOperationResultCode::TargetAlreadyExists : FileOperationResultCode::Fail;
 
-	if (QFile(newFilePath).open(QFile::WriteOnly))
-	{
-		if (parentDir.fullAbsolutePath() == activePanel().currentDirPathPosix())
-			// This is required for the UI to know to set the cursor at the new file
-			setCurrentItemHashForCurrentFolder(activePanelPosition(), CFileSystemObject(newFilePath).hash());
+	// The UI places the cursor on the new file
+	if (parent == parseOperationPath(activePanel().currentDirPathPosix()))
+		setCurrentItemHashForCurrentFolder(activePanelPosition(), pathHash(path.value()));
 
-		return FileOperationResultCode::Ok;
-	}
-
-	return FileOperationResultCode::Fail;
+	return FileOperationResultCode::Ok;
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
