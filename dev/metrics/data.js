@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792608263669,
+  "lastUpdate": 1792608582816,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -30659,6 +30659,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 772,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 403,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f7f395b3bc0711acfc5cf177d163a50c4b1758b8",
+          "message": "The copy/move destination field resolves typed paths as the address bar does: relative to the destination folder, variables expanded, \"E:\" as the drive root",
+          "timestamp": "2026-10-21T21:41:56+03:00",
+          "tree_id": "faa99d6637e1fb8a149933e98a474fe32f62e369",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f7f395b3bc0711acfc5cf177d163a50c4b1758b8"
+        },
+        "date": 1792608579348,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14711,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 28816,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1367.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2057.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2135.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 772.5,
             "unit": "KB"
           },
           {
