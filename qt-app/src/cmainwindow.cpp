@@ -362,7 +362,7 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 			return false;
 	}
 
-	auto request = makeUiTransferRequest(kind, sourcePaths, toPosixSeparators(prompt.text()));
+	auto request = makeUiTransferRequest(kind, sourcePaths, prompt.text(), destinationDirectory);
 	if (!request)
 	{
 		QMessageBox::warning(this, tr("Operation cannot start"), requestValidationErrorText(request.error()));

@@ -1,5 +1,8 @@
 #include "fileoperationlaunch.h"
 
+#include "filesystemhelperfunctions.h"
+
+
 // Submodule includes
 #include "directoryscan/directoryscanner.h"
 #include "directoryscan/thinioqstring.h"
@@ -74,10 +77,15 @@ QString prefillTransferDestination(const TransferKind kind, const QStringList& r
 }
 
 std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
-	const TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText)
+	const TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText, const QString& destinationFolder)
 {
-	const DestinationIntent intent = transferDestinationIntent(rawSourcePaths, destinationText);
-	return makeTransferRequest(kind, rawSourcePaths, intent, destinationText);
+	QString destination = resolveUserPath(destinationText, destinationFolder);
+	// Resolution drops a trailing separator, and the intent heuristic reads one as "into this folder"
+	if (!destination.isEmpty() && hasTrailingPathSeparator(destinationText) && !destination.endsWith(QLatin1Char('/')))
+		destination += QLatin1Char('/');
+
+	const DestinationIntent intent = transferDestinationIntent(rawSourcePaths, destination);
+	return makeTransferRequest(kind, rawSourcePaths, intent, destination);
 }
 
 DeletionBackend deletionBackendFor(const bool toTrash)

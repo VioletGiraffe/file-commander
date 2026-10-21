@@ -20,7 +20,7 @@ core.file = ../file-commander-core.pro
 # The automated GUI-component tests live with the UI sources but build and run with the test suite.
 SUBDIRS += gui-fileoperations
 gui-fileoperations.subdir = ../../qt-app/gui-tests/fileoperations
-gui-fileoperations.depends = fileoperations-testhooks-lib fileoperationsui-lib qtutils cpputils thin_io catch2-runner
+gui-fileoperations.depends = core fileoperations-testhooks-lib fileoperationsui-lib qtutils cpputils thin_io catch2-runner
 
 SUBDIRS += gui-filelist
 gui-filelist.subdir = ../../qt-app/gui-tests/filelist

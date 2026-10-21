@@ -26,8 +26,9 @@ RESTORE_COMPILER_WARNINGS
 [[nodiscard]] QString prefillTransferDestination(TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationDirectory);
 
 // Builds the trusted request from the raw UI selection and the edited destination, choosing the intent once.
+// The destination is typed path text, resolved against destinationFolder: see resolveUserPath().
 [[nodiscard]] std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
-	TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText);
+	TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText, const QString& destinationFolder);
 
 // Which backend performs a deletion. Selection is compile-time per platform and preserves current routing;
 // only the InternalJob case flows through the custom PermanentDeleteRequest / job / dialog.

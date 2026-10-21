@@ -6,6 +6,7 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "paths/pathsyntax.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -136,7 +137,7 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 
 	SECTION("a file into an existing directory becomes an IntoDirectory request")
 	{
-		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, base % "/existingDir");
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, base % "/existingDir", base);
 		REQUIRE(request.has_value());
 		CHECK(request->kind == TransferKind::Copy);
 		CHECK(request->destination.intent == DestinationIntent::IntoDirectory);
@@ -145,7 +146,7 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 
 	SECTION("a file to an absent name becomes an ExactEntry request")
 	{
-		const auto request = makeUiTransferRequest(TransferKind::Move, { base % "/a.txt" }, base % "/moved.txt");
+		const auto request = makeUiTransferRequest(TransferKind::Move, { base % "/a.txt" }, base % "/moved.txt", base);
 		REQUIRE(request.has_value());
 		CHECK(request->destination.intent == DestinationIntent::ExactEntry);
 	}
@@ -153,7 +154,7 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 	SECTION("a trailing separator preserves IntoDirectory intent through request parsing")
 	{
 		const QString destination = base % "/new/deep/";
-		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, destination);
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, destination, base);
 		REQUIRE(request.has_value());
 		CHECK(request->destination.intent == DestinationIntent::IntoDirectory);
 
@@ -164,7 +165,7 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 
 	SECTION("multiple sources are always IntoDirectory, never ExactEntry")
 	{
-		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt", base % "/b.txt" }, base % "/existingDir");
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt", base % "/b.txt" }, base % "/existingDir", base);
 		REQUIRE(request.has_value());
 		CHECK(request->destination.intent == DestinationIntent::IntoDirectory);
 		CHECK(request->sources.size() == 2);
@@ -172,21 +173,21 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 
 	SECTION("the synthetic parent entry is filtered before request creation")
 	{
-		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt", QStringLiteral("..") }, base % "/existingDir");
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt", QStringLiteral("..") }, base % "/existingDir", base);
 		REQUIRE(request.has_value());
 		CHECK(request->sources.size() == 1); // Only a.txt survives
 	}
 
 	SECTION("a selection reduced to nothing fails before request creation")
 	{
-		const auto request = makeUiTransferRequest(TransferKind::Copy, { QStringLiteral("..") }, base % "/existingDir");
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { QStringLiteral("..") }, base % "/existingDir", base);
 		REQUIRE(!request.has_value());
 		CHECK(request.error() == RequestValidationError::NoSources);
 	}
 
 	SECTION("a relative source path is rejected")
 	{
-		const auto request = makeUiTransferRequest(TransferKind::Copy, { QStringLiteral("relative/path.txt") }, base % "/existingDir");
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { QStringLiteral("relative/path.txt") }, base % "/existingDir", base);
 		REQUIRE(!request.has_value());
 		CHECK(request.error() == RequestValidationError::InvalidPath);
 	}
@@ -198,7 +199,7 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 #else
 		const QString root = QStringLiteral("/");
 #endif
-		const auto request = makeUiTransferRequest(TransferKind::Copy, { root }, base % "/existingDir");
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { root }, base % "/existingDir", base);
 		REQUIRE(!request.has_value());
 		CHECK(request.error() == RequestValidationError::RootSource);
 	}
@@ -206,10 +207,78 @@ TEST_CASE("launch: request construction chooses the intent once", "[fileoperatio
 	SECTION("a destination inside a selected source is rejected before launch")
 	{
 		REQUIRE(QDir{}.mkpath(base % "/source"));
-		const auto request = makeUiTransferRequest(TransferKind::Move, { base % "/source" }, base % "/source/child");
+		const auto request = makeUiTransferRequest(TransferKind::Move, { base % "/source" }, base % "/source/child", base);
 		REQUIRE(!request.has_value());
 		CHECK(request.error() == RequestValidationError::DestinationInsideSource);
 		CHECK(!QFileInfo::exists(base % "/source/child"));
+	}
+}
+
+TEST_CASE("launch: the destination is typed path text", "[fileoperationlaunch]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString base = tempDir.path();
+
+	makeFile(base % "/a.txt");
+	REQUIRE(QDir{}.mkpath(base % "/existingDir"));
+	REQUIRE(QDir{}.mkpath(base % "/dest"));
+	const QString destinationFolder = base % "/dest";
+
+	SECTION("a relative destination resolves against the destination folder")
+	{
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, QStringLiteral("../renamed.txt"), destinationFolder);
+		REQUIRE(request.has_value());
+		CHECK(request->destination.intent == DestinationIntent::ExactEntry);
+		CHECK(request->destination.path.value() == normalizedAbsolutePath(QString{ base % "/renamed.txt" }));
+	}
+
+	SECTION("a relative existing directory is a directory target")
+	{
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, QStringLiteral("../existingDir"), destinationFolder);
+		REQUIRE(request.has_value());
+		CHECK(request->destination.intent == DestinationIntent::IntoDirectory);
+	}
+
+	SECTION("a typed trailing separator still means into the folder")
+	{
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, QStringLiteral("new/"), destinationFolder);
+		REQUIRE(request.has_value());
+		CHECK(request->destination.intent == DestinationIntent::IntoDirectory);
+		CHECK(request->destination.path.value() == normalizedAbsolutePath(QString{ destinationFolder % "/new" }));
+	}
+
+	SECTION("an environment variable expands")
+	{
+		qputenv("FC_LAUNCH_TEST_DIR", base.toUtf8());
+#ifdef _WIN32
+		const QString text = QStringLiteral("%FC_LAUNCH_TEST_DIR%/existingDir");
+#else
+		const QString text = QStringLiteral("$FC_LAUNCH_TEST_DIR/existingDir");
+#endif
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, text, destinationFolder);
+		qunsetenv("FC_LAUNCH_TEST_DIR");
+		REQUIRE(request.has_value());
+		CHECK(request->destination.intent == DestinationIntent::IntoDirectory);
+		CHECK(request->destination.path.value() == normalizedAbsolutePath(QString{ base % "/existingDir" }));
+	}
+
+#ifdef _WIN32
+	SECTION("a drive letter alone is that drive's root")
+	{
+		const QString drive = base.left(2);
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, drive, destinationFolder);
+		REQUIRE(request.has_value());
+		CHECK(request->destination.intent == DestinationIntent::IntoDirectory);
+		CHECK(request->destination.path.value() == QString{ drive.toUpper() % '/' });
+	}
+#endif
+
+	SECTION("text that resolves to nothing is rejected")
+	{
+		const auto request = makeUiTransferRequest(TransferKind::Copy, { base % "/a.txt" }, QString{}, destinationFolder);
+		REQUIRE_FALSE(request.has_value());
+		CHECK(request.error() == RequestValidationError::InvalidPath);
 	}
 }
 

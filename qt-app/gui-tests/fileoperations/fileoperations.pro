@@ -31,6 +31,7 @@ INCLUDEPATH += \
 # The dialog drives a real job to exact points, so the engine comes with its fault hooks active.
 DEFINES += FILE_OPERATIONS_TEST_HOOKS
 include(../../../file-operations/libraries/fileoperationsui.pri)
+include(../../../file-commander-core/core.pri) # resolveUserPath()
 
 SOURCES += \
 	main.cpp \

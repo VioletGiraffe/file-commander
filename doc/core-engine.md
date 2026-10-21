@@ -57,8 +57,9 @@ normalized-path hash is the application key used by panels, UI models, selection
 filesystem identity.
 
 Path text grammar (roots, lexical normalization) is `file-operations/paths/pathsyntax.h`; Qt's path functions are not
-used for it. A `CFileSystemObject` path must be absolute. Typed text (the address bar, search roots, favorites) goes
-through `resolveUserPath()` first, which expands environment variables and resolves against the panel's folder.
+used for it. A `CFileSystemObject` path must be absolute. Typed text (the address bar, search roots, favorites, the
+copy/move destination) goes through `resolveUserPath()` first, which expands environment variables and resolves against
+the panel's folder.
 
 Links are entries distinct from their targets:
 

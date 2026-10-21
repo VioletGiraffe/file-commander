@@ -107,7 +107,8 @@ struct RoutingResult
 RoutingResult driveTransfer(const TransferKind kind, const QStringList& sourcePaths, const QString& destinationText,
 	std::vector<Decision> decisions = {}, const uint64_t chunkSize = 8ull * 1024 * 1024)
 {
-	auto request = makeUiTransferRequest(kind, sourcePaths, destinationText);
+	// The destination text is absolute here, so the folder it would resolve against plays no part
+	auto request = makeUiTransferRequest(kind, sourcePaths, destinationText, QDir::rootPath());
 	REQUIRE(request.has_value());
 
 	ScriptedDialog dialog{ std::move(*request), {}, nullptr, chunkSize };
@@ -273,7 +274,7 @@ TEST_CASE("routing gate: cancelling a routed copy at a barrier ends it before pu
 	sandbox.makeFile("src.bin", 4000);
 	sandbox.makeDir("dest");
 
-	auto request = makeUiTransferRequest(TransferKind::Copy, { sandbox.path("src.bin") }, sandbox.path("dest"));
+	auto request = makeUiTransferRequest(TransferKind::Copy, { sandbox.path("src.bin") }, sandbox.path("dest"), QDir::rootPath());
 	REQUIRE(request.has_value());
 
 	// Barrier-driven lifecycle through the launch boundary; pause/resume is covered by the dialog suite.
@@ -300,8 +301,8 @@ TEST_CASE("routing gate: two routed operations run concurrently to completion", 
 	sandbox.makeDir("destA");
 	sandbox.makeDir("destB");
 
-	auto requestA = makeUiTransferRequest(TransferKind::Copy, { sandbox.path("a.bin") }, sandbox.path("destA"));
-	auto requestB = makeUiTransferRequest(TransferKind::Copy, { sandbox.path("b.bin") }, sandbox.path("destB"));
+	auto requestA = makeUiTransferRequest(TransferKind::Copy, { sandbox.path("a.bin") }, sandbox.path("destA"), QDir::rootPath());
+	auto requestB = makeUiTransferRequest(TransferKind::Copy, { sandbox.path("b.bin") }, sandbox.path("destB"), QDir::rootPath());
 	REQUIRE(requestA.has_value());
 	REQUIRE(requestB.has_value());
 
@@ -335,6 +336,6 @@ TEST_CASE("routing gate: an invalid source path is rejected before any job is cr
 	const QString destDir = sandbox.makeDir("dest");
 
 	// A relative external path cannot become a trusted request; the handler reports the error and starts no job.
-	const auto request = makeUiTransferRequest(TransferKind::Copy, { QStringLiteral("relative/only.bin") }, destDir);
+	const auto request = makeUiTransferRequest(TransferKind::Copy, { QStringLiteral("relative/only.bin") }, destDir, QDir::rootPath());
 	CHECK(!request.has_value());
 }
