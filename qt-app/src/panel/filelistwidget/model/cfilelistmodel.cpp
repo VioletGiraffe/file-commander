@@ -287,12 +287,17 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 
 void CFileListModel::setNameFilter(const QString& wildcard)
 {
-	const QString pattern = wildcard.isEmpty() ? QString{} : QRegularExpression::wildcardToRegularExpression(wildcard, QRegularExpression::UnanchoredWildcardConversion);
-	if (pattern == _nameFilter.pattern())
+	if (wildcard == _nameFilterWildcard)
 		return;
 
-	_nameFilter.setPattern(pattern);
+	_nameFilterWildcard = wildcard;
+	_nameFilter.setPattern(wildcard.isEmpty() ? QString{} : QRegularExpression::wildcardToRegularExpression(wildcard, QRegularExpression::UnanchoredWildcardConversion));
 	relayout(QAbstractItemModel::NoLayoutChangeHint);
+}
+
+const QString& CFileListModel::nameFilter() const noexcept
+{
+	return _nameFilterWildcard;
 }
 
 void CFileListModel::sort(int column, Qt::SortOrder order)

@@ -19,7 +19,8 @@ duplicate tabs may show the same location.
 
 `CPanelWidget` has one shared view and one model and selection model per tab. A model holds a copy of its rows,
 refilled only while its tab is on screen. Activation swaps the models and restores their sort and column layout;
-background notifications cannot touch them.
+background notifications cannot touch them. The name filter is held by the model, so it is per tab; the side's one
+filter box is shown whenever the active tab is filtered.
 
 ## Lifetime and persistence
 

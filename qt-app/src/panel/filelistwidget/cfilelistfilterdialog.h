@@ -20,7 +20,11 @@ class CFileListFilterDialog final : public QLineEdit
 public:
 	explicit CFileListFilterDialog(QWidget *parent);
 
-	void showAt(const QPoint& bottomLeft);
+	// Shows the box over the bottom of its parent, focused, with the text selected
+	void showForEditing();
+
+	// The Esc shortcut is enabled only while shown; hiding passes the focus to the parent
+	void setVisible(bool visible) override;
 
 signals:
 	void filterTextEdited(QString text);

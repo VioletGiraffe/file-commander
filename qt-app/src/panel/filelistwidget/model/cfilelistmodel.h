@@ -57,6 +57,7 @@ public:
 	bool updateRows(std::vector<CFileSystemObject> rows);
 	// Hides the rows whose full name does not match; the wildcard is unanchored and case-insensitive. Empty shows every row.
 	void setNameFilter(const QString& wildcard);
+	[[nodiscard]] const QString& nameFilter() const noexcept; // The wildcard, as passed to setNameFilter()
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 	[[nodiscard]] int sortColumn() const noexcept;
@@ -126,6 +127,7 @@ private:
 	mutable ankerl::unordered_dense::map<qulonglong, int, identity_hash> _displayRowByHash;
 	mutable bool _displayRowByHashIsStale = false;
 	FolderContentsSummary _contentsSummary;
+	QString _nameFilterWildcard;
 	QRegularExpression _nameFilter;
 	DropHandler _dropHandler;
 	CIconProvider* const _iconProvider;

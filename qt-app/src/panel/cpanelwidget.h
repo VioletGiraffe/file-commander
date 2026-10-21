@@ -172,7 +172,7 @@ private:
 	[[nodiscard]] static TabViewState viewStateFromHeaderBlob(const QByteArray& blob);
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
 	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
-	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths, sort and scroll position
+	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths, sort, scroll position and filter box
 	void saveActiveTabViewState();                 // Stores what activateTab() restores, before the view shows another tab
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);

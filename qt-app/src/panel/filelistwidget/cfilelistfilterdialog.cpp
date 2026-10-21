@@ -14,27 +14,37 @@ CFileListFilterDialog::CFileListFilterDialog(QWidget *parent) :
 	QLineEdit(parent)
 {
 	_escShortcut = new QShortcut(QKeySequence("Esc"), parent, this, [this] {
-			_escShortcut->setEnabled(false);
 			setVisible(false);
 			emit filterTextConfirmed(QString{});
 		}
 	, Qt::WidgetWithChildrenShortcut);
 
-	_escShortcut->setEnabled(false);
 	setVisible(false);
 
 	assert_r(connect(this, &QLineEdit::textEdited, this, &CFileListFilterDialog::filterTextEdited));
 }
 
-void CFileListFilterDialog::showAt(const QPoint & bottomLeft)
+void CFileListFilterDialog::showForEditing()
 {
 	setVisible(true);
-	move(bottomLeft.x(), bottomLeft.y() - height());
-
-	_escShortcut->setEnabled(true);
-	raise();
 	setFocus();
 	selectAll();
+}
+
+void CFileListFilterDialog::setVisible(bool visible)
+{
+	// Hiding the focus widget would move the focus to the next one in the tab chain
+	if (!visible && hasFocus())
+		parentWidget()->setFocus();
+
+	QLineEdit::setVisible(visible);
+	_escShortcut->setEnabled(visible);
+	if (visible)
+	{
+		// Positioned after showing: the first show resizes the box to its size hint
+		move(0, parentWidget()->height() - height());
+		raise();
+	}
 }
 
 void CFileListFilterDialog::keyPressEvent(QKeyEvent* event)

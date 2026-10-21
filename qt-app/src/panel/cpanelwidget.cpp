@@ -408,6 +408,13 @@ void CPanelWidget::activateTab(int index)
 	ui->_list->setSelectionModel(_selectionModel);
 	ui->_list->applyColumnLayout(tab.columnLayout);
 
+	// The filter box is shared by the tabs: it shows only while this tab has a filter.
+	// Without one, the box keeps its last text for showFilterEditor() to offer again.
+	const QString& nameFilter = _model->nameFilter();
+	if (!nameFilter.isEmpty())
+		_filterDialog->setText(nameFilter);
+	_filterDialog->setVisible(!nameFilter.isEmpty());
+
 	// Show the now-active panel's contents immediately (the CPanel may also refresh asynchronously on activation).
 	fillFromPanel(refreshCauseOther);
 	// setModel() left another tab's scroll position, which a refresh keeps
@@ -1119,7 +1126,7 @@ void CPanelWidget::fileListViewKeyPressed(const QString& /*keyText*/, int key, Q
 
 void CPanelWidget::showFilterEditor()
 {
-	_filterDialog->showAt(QPoint{ 0, ui->_list->height() });
+	_filterDialog->showForEditing();
 	filterTextEdited(_filterDialog->text());
 }
 
@@ -1131,7 +1138,6 @@ void CPanelWidget::filterTextEdited(const QString& filterText)
 void CPanelWidget::filterTextConfirmed(const QString& filterText)
 {
 	_model->setNameFilter(filterText);
-	raise();
 	ui->_list->setFocus();
 }
 
