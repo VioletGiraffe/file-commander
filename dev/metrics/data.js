@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792604879784,
+  "lastUpdate": 1792607073594,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -30496,6 +30496,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 402.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "12b90412c6d0470fb66c9610f2792c35769d38cf",
+          "message": "Typed paths go through resolveUserPath: \"E:\" opens the drive root, relative input resolves against the panel's folder; CFileSystemObject takes absolute paths only; file-operations updated",
+          "timestamp": "2026-10-21T21:14:15+03:00",
+          "tree_id": "141e003b7712df3bfb0a73a3e574b6cc1473ed50",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/12b90412c6d0470fb66c9610f2792c35769d38cf"
+        },
+        "date": 1792607069776,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14686,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 28796,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1366,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2057.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2135.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 771,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 403,
             "unit": "KB"
           },
           {
