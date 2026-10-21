@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792535985556,
+  "lastUpdate": 1792589102169,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -29868,6 +29868,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/5e60ff1840aa726c789ce703787900738f6eb8c5"
         },
         "date": 1792535982271,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14640,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 28733,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1364.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2057.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 770,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 402.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "8b76686d0473a698f8dc7eaf813727ca90acae35",
+          "message": "CI: Linux exFAT tests are skipped with a warning while the runner kernel's linux-modules-extra package is missing from the archive",
+          "timestamp": "2026-10-21T16:04:58+03:00",
+          "tree_id": "928bfb78df9c6021fa4cee45a09bc5304d84ac7e",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/8b76686d0473a698f8dc7eaf813727ca90acae35"
+        },
+        "date": 1792589097046,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
