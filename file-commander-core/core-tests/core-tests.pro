@@ -9,14 +9,19 @@ fileoperationsui.subdir = ../../file-operations/tests/fileoperationsui
 foldercomparison.subdir = ../../file-operations/tests/foldercomparison
 test-utils.subdir = ../../file-operations/test-utils
 
+SUBDIRS += fileoperations-lib fileoperations-testhooks-lib fileoperationsui-lib
+fileoperations-lib.subdir = ../../file-operations/libraries/fileoperations
+fileoperations-testhooks-lib.subdir = ../../file-operations/libraries/fileoperations-testhooks
+fileoperationsui-lib.subdir = ../../file-operations/libraries/fileoperationsui
+
 # The automated GUI-component tests live with the UI sources but build and run with the test suite.
 SUBDIRS += gui-fileoperations
 gui-fileoperations.subdir = ../../qt-app/gui-tests/fileoperations
-gui-fileoperations.depends = qtutils cpputils thin_io catch2-runner
+gui-fileoperations.depends = fileoperations-testhooks-lib fileoperationsui-lib qtutils cpputils thin_io catch2-runner
 
 SUBDIRS += gui-filelist
 gui-filelist.subdir = ../../qt-app/gui-tests/filelist
-gui-filelist.depends = qtutils cpputils thin_io catch2-runner
+gui-filelist.depends = fileoperations-lib qtutils cpputils thin_io catch2-runner
 
 SUBDIRS += csvviewer
 csvviewer.subdir = ../../plugins/viewer/csvviewer/tests
@@ -35,16 +40,16 @@ qtutils.depends = cpputils
 
 test-utils.depends = qtutils
 
-# Every one of these compiles filesystemhelperfunctions.cpp or the file-operation module, both of which call thin_io.
-fileoperations.depends = test-utils thin_io catch2-runner
-filesystemobject.depends = qtutils thin_io catch2-runner
-filesystemobject-high-level.depends = qtutils thin_io catch2-runner
-fileoperationsui.depends = qtutils cpputils thin_io catch2-runner
-foldercomparison.depends = cpputils test-utils thin_io catch2-runner
-panel.depends = cpputils test-utils thin_io catch2-runner
-filesearchengine.depends = cpputils test-utils thin_io catch2-runner
-userprograms.depends = qtutils thin_io catch2-runner
-filesystemhelpers.depends = qtutils thin_io catch2-runner
-shell.depends = qtutils thin_io catch2-runner
-listing-benchmark.depends = qtutils thin_io
-filelist-hashmap-benchmark.depends = qtutils thin_io
+# Every one of these links a file-operation library, and thin_io with it.
+fileoperations.depends = fileoperations-testhooks-lib test-utils thin_io catch2-runner
+filesystemobject.depends = fileoperations-lib qtutils thin_io catch2-runner
+filesystemobject-high-level.depends = fileoperations-lib qtutils thin_io catch2-runner
+fileoperationsui.depends = fileoperations-testhooks-lib fileoperationsui-lib qtutils cpputils thin_io catch2-runner
+foldercomparison.depends = fileoperations-lib cpputils test-utils thin_io catch2-runner
+panel.depends = fileoperations-lib cpputils test-utils thin_io catch2-runner
+filesearchengine.depends = fileoperations-lib cpputils test-utils thin_io catch2-runner
+userprograms.depends = fileoperations-lib qtutils thin_io catch2-runner
+filesystemhelpers.depends = fileoperations-lib qtutils thin_io catch2-runner
+shell.depends = fileoperations-lib qtutils thin_io catch2-runner
+listing-benchmark.depends = fileoperations-lib qtutils thin_io
+filelist-hashmap-benchmark.depends = fileoperations-lib qtutils thin_io

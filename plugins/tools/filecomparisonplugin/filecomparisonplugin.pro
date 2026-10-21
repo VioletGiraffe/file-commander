@@ -15,6 +15,7 @@ UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -lcore -lqtutils -lcpputils -lthin_io
+include(../../../file-operations/libraries/fileoperations.pri)
 
 win*{
 	LIBS += -lMpr

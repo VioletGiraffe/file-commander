@@ -14,7 +14,9 @@ searching upward. A stash written under a different toolchain pins that toolchai
 paths, so the test scripts delete every one under the repository before each qmake run; do the same by hand when
 building outside them after a compiler upgrade.
 
-Everything that links `core` also links `thin_io`, because core filesystem helpers and file operations call it.
+Everything that links `core` also links `fileoperations` and `thin_io`: core calls into both. `fileoperations` comes
+through `file-operations/libraries/fileoperations.pri`, which adds its own dependencies; it must follow the `LIBS` of
+whatever links against it, since GNU ld resolves static libraries in command-line order.
 
 The core libraries are static, so each consumer lists their link dependencies itself: a new dependency of a core
 library must also be added to the plugin `.pro` files that link that library, not only to `qt-app`.

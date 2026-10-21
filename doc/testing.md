@@ -16,8 +16,9 @@ test:
 glue. Every suite links `catch2_runner` (`cpp-template-utils/3rdparty/catch2/`), Catch2's implementation compiled once
 for all of them.
 
-Each suite compiles the sources it tests itself, listed in its `.pro`; neither the core library nor the application is
-built. A passing run says nothing about a source no suite lists, most of `qt-app/src` for one: it is not even compiled.
+Each suite compiles the core and application sources it tests itself, listed in its `.pro`, and links the
+file-operations libraries; neither the core library nor the application is built. A passing run says nothing about a
+source no suite lists, most of `qt-app/src` for one: it is not even compiled.
 
 ## Running them
 

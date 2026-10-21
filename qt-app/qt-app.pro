@@ -102,9 +102,8 @@ FORMS += \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
 	src/filessearchdialog/cfilessearchwindow.ui
 
-include(../file-operations/fileoperationsui/fileoperationsui.pri)
-
 LIBS += -L$${DESTDIR} -lcore -lautoupdater -lqtutils -lcpputils -lthin_io
+include(../file-operations/libraries/fileoperationsui.pri)
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32 -lMpr

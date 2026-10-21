@@ -26,6 +26,7 @@ INCLUDEPATH += \
 DEFINES += PLUGIN_MODULE
 
 LIBS += -L$${DESTDIR} -lcore -limage-processing -lqtutils -lcpputils -lthin_io
+include(../../../file-operations/libraries/fileoperations.pri)
 
 win*{
 	LIBS += -lMpr

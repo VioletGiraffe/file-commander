@@ -27,7 +27,7 @@ INCLUDEPATH += ../../../file-operations/test-utils/src/ # catch2_utils.hpp is he
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
-include(../../../file-operations/directoryscan/directoryscan.pri)
+include(../../../file-operations/libraries/fileoperations.pri)
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \

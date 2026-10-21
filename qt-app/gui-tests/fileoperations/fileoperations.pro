@@ -31,11 +31,9 @@ INCLUDEPATH += \
 # config.pri's INCLUDEPATH entries are relative to file-commander-core; rebase them for this project's location.
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../../file-commander-core/$${included_item}
 
-# The dialog drives a real job to exact points, so the module is compiled from source with its fault hooks
-# active - the same arrangement the core file-operation test project uses.
+# The dialog drives a real job to exact points, so the engine comes with its fault hooks active.
 DEFINES += FILE_OPERATIONS_TEST_HOOKS
-include(../../../file-operations/fileoperations/fileoperations.pri)
-include(../../../file-operations/fileoperationsui/fileoperationsui.pri)
+include(../../../file-operations/libraries/fileoperationsui.pri)
 
 SOURCES += \
 	main.cpp \

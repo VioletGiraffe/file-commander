@@ -35,7 +35,7 @@ for (included_item, INCLUDEPATH): INCLUDEPATH += ../../../file-commander-core/$$
 
 INCLUDEPATH += ../../../file-operations/test-utils/src/
 
-include(../../../file-operations/directoryscan/directoryscan.pri)
+include(../../../file-operations/libraries/fileoperations.pri)
 
 SOURCES += \
 	main.cpp \

@@ -29,7 +29,7 @@ INCLUDEPATH += \
 
 for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 
-include(../../../file-operations/directoryscan/directoryscan.pri)
+include(../../../file-operations/libraries/fileoperations.pri)
 
 SOURCES += \
 	main.cpp \

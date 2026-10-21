@@ -23,7 +23,7 @@ INCLUDEPATH += \
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 
-include(../../../file-operations/directoryscan/directoryscan.pri)
+include(../../../file-operations/libraries/fileoperations.pri)
 
 SOURCES += \
 	../../src/filesystemhelperfunctions.cpp \
