@@ -4,6 +4,7 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "directoryscan/thinioqstring.h"
+#include "paths/pathsyntax.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 
 
@@ -12,15 +13,21 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QString>
 #include <QStringBuilder>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <Windows.h>
+#else
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <wordexp.h>
 #endif
 
 #include <algorithm>
+#include <iterator>
 #include <utility>
 
 QString toNativeSeparators(QString path)
@@ -39,6 +46,82 @@ QString toPosixSeparators(QString path)
 #else
 	return path; // A backslash is an ordinary character in a name here, not a separator to convert
 #endif
+}
+
+static QString expandEnvironmentVariables(const QString& string)
+{
+#ifdef _WIN32
+	if (!string.contains('%'))
+		return string;
+
+	WCHAR source[16384 + 1];
+	WCHAR result[16384 + 1];
+
+	static_assert (sizeof(WCHAR) == 2);
+	const auto length = string.toWCharArray(source);
+	source[length] = 0;
+	if (const auto resultLength = ExpandEnvironmentStringsW(source, result, static_cast<DWORD>(std::size(result))); resultLength > 0)
+		return toPosixSeparators(QString::fromWCharArray(result, (int)resultLength - 1));
+	else
+		return string;
+#else
+	QString result = string;
+	if (result == '~' || result.startsWith(QSL("~/")))
+		result.replace(0, 1, QString::fromUtf8(getenv("HOME")));
+
+	if (result.contains('$'))
+	{
+		wordexp_t words{};
+		// WRDE_NOCMD: a command substitution in the text fails the expansion instead of running
+		// WRDE_UNDEF: an undefined variable fails it too and leaves the text as typed, matching Windows
+		const int status = wordexp(result.toUtf8().constData(), &words, WRDE_NOCMD | WRDE_UNDEF);
+		if (status == 0)
+		{
+			QStringList expandedWords;
+			for (size_t i = 0; i < words.we_wordc; ++i)
+				expandedWords.push_back(QString::fromUtf8(words.we_wordv[i]));
+
+			// Field splitting cut the text at its blanks: a run of blanks comes back as one space
+			result = expandedWords.join(' ');
+		}
+
+		// Only these two results leave memory to free
+		if (status == 0 || status == WRDE_NOSPACE)
+			wordfree(&words);
+	}
+
+	return result;
+#endif
+}
+
+QString resolveUserPath(const QString& text, const QString& baseDir)
+{
+	assert_r(absoluteRootLength(baseDir) > 0);
+
+	QString path = expandEnvironmentVariables(text);
+	if (path.isEmpty())
+		return {};
+
+#ifdef _WIN32
+	path.replace('\\', '/');
+	const char16_t driveLetter = path[0].toUpper().unicode();
+	if (path.size() >= 2 && driveLetter >= u'A' && driveLetter <= u'Z' && path[1] == ':' && (path.size() == 2 || path[2] != '/'))
+		path.insert(2, '/'); // Not the drive's process-wide current directory
+	else if (path.startsWith(QSL("//")) && absoluteRootLength(path) == 0)
+		return {};
+	else if (path.startsWith('/') && !path.startsWith(QSL("//")))
+	{
+		QStringView baseRoot = QStringView{ baseDir }.first(absoluteRootLength(baseDir));
+		if (baseRoot.endsWith('/'))
+			baseRoot.chop(1);
+		path.prepend(baseRoot);
+	}
+#endif
+
+	if (absoluteRootLength(path) == 0)
+		path = baseDir % '/' % path;
+
+	return normalizedAbsolutePath(path);
 }
 
 // Unicode letters and digits are never special to a shell, so paths in any script stay unquoted.

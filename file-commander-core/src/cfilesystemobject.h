@@ -19,6 +19,7 @@ namespace thin_io { struct directory_entry; }
 
 // Return the list of consecutive full paths leading from the specified target to its root.
 // E. g. C:/Users/user/Documents/ -> {C:/Users/user/Documents/, C:/Users/user/, C:/Users/, C:/}
+// Empty for a path that is not absolute.
 std::vector<QString> pathHierarchy(const QString& path);
 
 // CFileSystemObject::hash() of the object with this fullAbsolutePath()
@@ -54,7 +55,7 @@ public:
 	CFileSystemObject(CFileSystemObject&&) noexcept = default;
 	CFileSystemObject(const CFileSystemObject&) = default;
 
-	// Expands environment variables and resolves a relative path against the current directory
+	// Either separator on Windows. A path that is not absolute makes an empty object: see resolveUserPath() for typed text.
 	explicit CFileSystemObject(const QString& path);
 	// A listed child of parentPath, which ends with a separator
 	CFileSystemObject(const QString& parentPath, const thin_io::directory_entry& entry);

@@ -18,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QStringBuilder>
 #include <QTemporaryDir>
 #include <QTimeZone>
 RESTORE_COMPILER_WARNINGS
@@ -61,23 +62,15 @@ RESTORE_COMPILER_WARNINGS
 TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 {
 	CHECK(::pathHierarchy( {} ).empty());
+	CHECK(::pathHierarchy(".").empty());
+	CHECK(::pathHierarchy("..").empty());
 
-	{
-		const auto hierarchy = ::pathHierarchy(".");
-		CHECK((hierarchy.size() == 1 && hierarchy.front() == "."));
-	}
-
-	{
-		const auto hierarchy = ::pathHierarchy("..");
-		CHECK((hierarchy.size() == 1 && hierarchy.front() == ".."));
-	}
-
+#ifndef _WIN32
 	{
 		const auto hierarchy = ::pathHierarchy("/");
 		CHECK((hierarchy.size() == 1 && hierarchy.front() == "/"));
 	}
 
-#ifndef _WIN32
 	{
 		const auto hierarchy = ::pathHierarchy("/Users/admin/Downloads/1.txt");
 		const std::vector<QString> reference{"/Users/admin/Downloads/1.txt", "/Users/admin/Downloads/", "/Users/admin/", "/Users/", "/"};
@@ -90,15 +83,18 @@ TEST_CASE("::pathHierarchy tests", "[CFileSystemObject]")
 		CHECK(hierarchy == reference);
 	}
 
-	{
-		const auto hierarchy = ::pathHierarchy("R:");
-		const std::vector<QString> reference{ "R:" };
-		CHECK(hierarchy == reference);
-	}
+	CHECK(::pathHierarchy("R:").empty()); // Drive-relative
+	CHECK(::pathHierarchy("/").empty()); // Rooted without a drive
 
 	{
 		const auto hierarchy = ::pathHierarchy("R:/");
 		const std::vector<QString> reference{ "R:/" };
+		CHECK(hierarchy == reference);
+	}
+
+	{
+		const auto hierarchy = ::pathHierarchy("//server/share/dir/");
+		const std::vector<QString> reference{ "//server/share/dir/", "//server/share/" };
 		CHECK(hierarchy == reference);
 	}
 #endif
@@ -247,6 +243,24 @@ TEST_CASE("A filesystem root is its own path and has no parent", "[CFileSystemOb
 	// The drive letter is canonically uppercase, so either spelling hashes to the same object.
 	CHECK(CFileSystemObject{ QStringLiteral("c:/") } == CFileSystemObject{ QStringLiteral("C:/") });
 #endif
+}
+
+TEST_CASE("A path that is not absolute makes an empty object", "[CFileSystemObject]")
+{
+	CHECK_FALSE(CFileSystemObject{ QStringLiteral("relative/dir") }.isValid());
+	CHECK_FALSE(CFileSystemObject{ QStringLiteral("..") }.isValid());
+#ifdef _WIN32
+	CHECK_FALSE(CFileSystemObject{ QStringLiteral("C:") }.isValid()); // Drive-relative
+	CHECK_FALSE(CFileSystemObject{ QStringLiteral("/rootless") }.isValid());
+#endif
+}
+
+TEST_CASE("A path is taken verbatim, variables unexpanded", "[CFileSystemObject]")
+{
+	QTemporaryDir tempDir;
+	REQUIRE(tempDir.isValid());
+	const QString name = QStringLiteral("%PATH% $HOME");
+	CHECK(CFileSystemObject{ tempDir.path() % '/' % name }.fullName() == name);
 }
 
 TEST_CASE("File times are read once, when the object is built", "[CFileSystemObject]")

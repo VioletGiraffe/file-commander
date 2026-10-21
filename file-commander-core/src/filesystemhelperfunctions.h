@@ -25,6 +25,12 @@ RESTORE_COMPILER_WARNINGS
 
 [[nodiscard]] QString toPosixSeparators(QString path);
 
+// Typed path text made absolute: environment variables expanded, then the text resolved against baseDir, an absolute folder.
+// An undefined variable stays as typed; on POSIX no variable in the text is expanded then.
+// Windows: a drive letter without a separator ("E:", "E:dir") means that drive's root; "/dir" starts at baseDir's root.
+// "." and ".." are resolved lexically. Empty when the expanded text is, and on Windows for a UNC spelling without a share.
+[[nodiscard]] QString resolveUserPath(const QString& text, const QString& baseDir);
+
 // Quotes only where a shell would otherwise misread the path, so an ordinary one comes back bare and stays readable when pasted.
 // The trailing separator is stripped: inside the quotes it would read as an escaped quote.
 // A %VAR% still expands on Windows: cmd does that inside double quotes too, out of reach of quoting.

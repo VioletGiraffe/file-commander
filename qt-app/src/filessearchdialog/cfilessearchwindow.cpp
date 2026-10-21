@@ -27,6 +27,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
+#include <utility>
+
 #define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
 #define SETTINGS_NAME_CASE_SENSITIVE     QSL("FileSearchDialog/Ui/CaseSensitiveName")
 #define SETTINGS_NAME_PARTIAL_MATCH      QSL("FileSearchDialog/Ui/NamePartialMatch")
@@ -208,10 +210,18 @@ void CFilesSearchWindow::search()
 		}
 	}
 
+	const QString baseDir = CController::get().activePanel().currentDirPathPosix();
+	QStringList roots;
+	for (const QString& root : ui->searchRoot->currentText().split(QSL("; ")))
+	{
+		if (QString resolvedRoot = resolveUserPath(root, baseDir); !resolvedRoot.isEmpty())
+			roots.push_back(std::move(resolvedRoot));
+	}
+
 	if (_engine.search(
 		filters,
 		ui->cbNameCaseSensitive->isChecked(),
-		ui->searchRoot->currentText().split(QSL("; ")),
+		roots,
 		withText,
 		ui->cbContentsCaseSensitive->isChecked(),
 		ui->cbContentsWholeWords->isChecked(),

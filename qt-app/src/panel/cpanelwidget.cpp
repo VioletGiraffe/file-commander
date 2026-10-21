@@ -1041,7 +1041,9 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 			if (item.subLocations.empty() && !item.absolutePath.isEmpty())
 			{
 				QAction * action = parentMenu->addAction(item.displayName);
-				const QString& path = toPosixSeparators(item.absolutePath);
+				// Typed into the favorites editor: may be relative or hold variables
+				const QString path = resolveUserPath(item.absolutePath, _controller->panel(_panelPosition).currentDirPathPosix());
+				action->setEnabled(!path.isEmpty());
 				if (CFileSystemObject(path) == CFileSystemObject(currentDirPathNative()))
 				{
 					action->setCheckable(true);
@@ -1203,9 +1205,12 @@ void CPanelWidget::pathFromHistoryActivated(QString path)
 {
 	path.remove('\"');
 
-	const CFileSystemObject processedPath(path); // Needed for expanding environment variables in the path
+	const QString resolvedPath = resolveUserPath(path, _controller->panel(_panelPosition).currentDirPathPosix());
 	ui->_list->setFocus();
-	if (_controller->setPath(_panelPosition, processedPath.fullAbsolutePath(), refreshCauseOther) == FileOperationResultCode::DirNotAccessible)
+	if (resolvedPath.isEmpty())
+		return;
+
+	if (_controller->setPath(_panelPosition, resolvedPath, refreshCauseOther) == FileOperationResultCode::DirNotAccessible)
 		QMessageBox::information(this, tr("Failed to set the path"), tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(path));
 }
 

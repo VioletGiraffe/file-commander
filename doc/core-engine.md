@@ -56,6 +56,10 @@ construction: from a path, or from a listing's `directory_entry`. The listings (
 normalized-path hash is the application key used by panels, UI models, selection, and plugins; it is not native
 filesystem identity.
 
+Path text grammar (roots, lexical normalization) is `file-operations/paths/pathsyntax.h`; Qt's path functions are not
+used for it. A `CFileSystemObject` path must be absolute. Typed text (the address bar, search roots, favorites) goes
+through `resolveUserPath()` first, which expands environment variables and resolves against the panel's folder.
+
 Links are entries distinct from their targets:
 
 - `isLink()` is thin_io's `is_link`: POSIX symlinks and Windows name-surrogate reparse points (symlinks, junctions),

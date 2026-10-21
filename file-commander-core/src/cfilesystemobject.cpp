@@ -6,82 +6,23 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "directoryscan/thinioqstring.h"
+#include "paths/pathsyntax.h"
 #include "qtcore_helpers/qstring_hash.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QDir>
 #include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
-
-#if defined __linux__ || defined __APPLE__ || defined __FreeBSD__
-#include <unistd.h>
-#include <wordexp.h>
-#elif defined _WIN32
-#include <Windows.h>
-#endif
 
 #include <algorithm>
 #include <assert.h>
 #include <utility>
 
-static QString expandEnvironmentVariables(const QString& string)
-{
-#ifdef _WIN32
-	if (!string.contains('%'))
-		return string;
-
-	WCHAR source[16384 + 1];
-	WCHAR result[16384 + 1];
-
-	static_assert (sizeof(WCHAR) == 2);
-	const auto length = string.toWCharArray(source);
-	source[length] = 0;
-	if (const auto resultLength = ExpandEnvironmentStringsW(source, result, static_cast<DWORD>(std::size(result))); resultLength > 0)
-		return toPosixSeparators(QString::fromWCharArray(result, (int)resultLength - 1));
-	else
-		return string;
-#else
-	QString result = string;
-	if (result.startsWith('~'))
-		result.replace(0, 1, getenv("HOME"));
-
-	if (result.contains('$'))
-	{
-		wordexp_t p;
-		wordexp(result.toUtf8().constData(), &p, 0);
-		const auto w = p.we_wordv;
-		if (p.we_wordc > 0)
-			result = w[0];
-
-		wordfree(&p);
-	}
-
-	return result;
-#endif
-}
-
-
-// '/'-separated, without "." and ".." components or duplicate separators; a trailing separator only on a root.
-// Not QFileInfo::absoluteFilePath(): on Windows it strips trailing dots and spaces from names.
-static QString normalizedAbsolutePath(const QString& path)
-{
-	QString absolutePath = QDir::cleanPath(QDir{}.absoluteFilePath(path));
-#ifdef _WIN32
-	// Either spelling of the drive letter must hash to the same object
-	if (absolutePath.size() >= 2 && absolutePath[1] == ':')
-		absolutePath[0] = absolutePath[0].toUpper();
-#endif
-	return absolutePath;
-}
-
 CFileSystemObject::CFileSystemObject(const QString& path)
 {
-	if (path.isEmpty())
+	QString absolutePath = normalizedAbsolutePath(path);
+	if (absolutePath.isEmpty())
 		return;
-
-	const QString expandedPath = expandEnvironmentVariables(path);
-	QString absolutePath = normalizedAbsolutePath(expandedPath);
 
 	if (const auto entry = getDirectoryEntry(absolutePath))
 	{
@@ -95,7 +36,7 @@ CFileSystemObject::CFileSystemObject(const QString& path)
 
 	// Nothing to inspect: the spelling is the only classification
 	_properties.fullPath = std::move(absolutePath);
-	if (expandedPath.endsWith('/') || expandedPath.endsWith(nativeSeparator()))
+	if (path.endsWith('/') || path.endsWith(nativeSeparator()))
 	{
 		_properties.type = Directory;
 		if (!_properties.fullPath.endsWith('/'))
@@ -146,7 +87,7 @@ CFileSystemObject& CFileSystemObject::operator=(const QString& path)
 
 std::optional<CFileSystemObject> CFileSystemObject::cdUpEntryOf(const QString& dirPath)
 {
-	if (QDir{ dirPath }.isRoot())
+	if (isRootPath(dirPath))
 		return {};
 
 	CFileSystemObjectProperties properties;
@@ -407,19 +348,16 @@ std::vector<QString> pathHierarchy(const QString& path)
 #endif
 	assert_r(!path.contains(QStringLiteral("//")) || !QStringView{ path }.right(path.length() - 2).contains(QLatin1String("//")));
 
-	if (path.isEmpty())
+	const qsizetype rootLength = absoluteRootLength(path);
+	if (rootLength == 0)
 		return {};
-	else if (path == '/')
-		return { path };
 
-	QString pathItem = path.endsWith('/') ? path.left(path.length() - 1) : path;
 	std::vector<QString> result{ path };
-	while ((pathItem = QFileInfo(pathItem).absolutePath()).length() < result.back().length())
+	// The separator before the first component is the root's own, so the last parent is the root with its separator
+	for (qsizetype end = path.endsWith('/') ? path.size() - 1 : path.size(); end > rootLength;)
 	{
-		if (pathItem.endsWith('/'))
-			result.emplace_back(pathItem);
-		else
-			result.emplace_back(pathItem + '/');
+		end = path.lastIndexOf('/', end - 1);
+		result.push_back(path.left(end + 1));
 	}
 
 	return result;
