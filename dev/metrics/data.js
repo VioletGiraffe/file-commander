@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792600258532,
+  "lastUpdate": 1792604653143,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -30288,6 +30288,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/c89a1ff30d2aa4f458a48404afec31ed7122614b"
         },
         "date": 1792600253695,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14657,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 28752,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1364.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2057.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2134,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 770,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 402.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "7f499f01bf8013b04ae623a46c721460adf16d77",
+          "message": "file-operations linked as static libraries instead of compiling its sources into each consumer; file-operations updated",
+          "timestamp": "2026-10-21T20:33:50+03:00",
+          "tree_id": "79272596a4d750fbf62900f3127f667985cbb3dc",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/7f499f01bf8013b04ae623a46c721460adf16d77"
+        },
+        "date": 1792604631615,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
