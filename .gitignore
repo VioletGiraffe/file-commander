@@ -22,6 +22,7 @@ ClassDiagram.cd
 Makefile
 Makefile.*
 .qmake.stash
+*_resource.rc
 
 *.sln
 *.vcxproj*
