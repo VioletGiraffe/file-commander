@@ -20,19 +20,14 @@ mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }
 
-for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 INCLUDEPATH += \
 	../../src/
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
-include(../../../file-operations/libraries/fileoperations.pri)
+include(../../core.pri)
 
 SOURCES += \
 	main.cpp \
-	filesystemhelperstests.cpp \
-	../../src/filesystemhelperfunctions.cpp
-
-HEADERS += \
-	../../src/filesystemhelperfunctions.h
+	filesystemhelperstests.cpp

@@ -18,18 +18,16 @@ RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L$${DESTDIR} -lqutepart -lcore -lqtutils -ltext_encoding_detector -lcpputils -lthin_io
-include(../../../file-operations/libraries/fileoperations.pri)
+LIBS += -L$${DESTDIR} -lqutepart -lqtutils -ltext_encoding_detector -lcpputils
+include(../../../file-commander-core/core.pri)
 
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libqutepart.a $${DESTDIR}/libcore.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqutepart.a $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a
 }
 
 INCLUDEPATH += \
-	../../../file-commander-core/src \
-	../../../file-commander-core/include \
 	../../../qtutils \
 	../../../cpputils \
 	../../../cpp-template-utils \

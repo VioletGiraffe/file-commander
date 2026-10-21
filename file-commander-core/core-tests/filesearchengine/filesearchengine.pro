@@ -20,8 +20,6 @@ mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libtest_utils.a
 }
 
-for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
-
 INCLUDEPATH += \
 	../../src/ \
 	../../../file-operations/test-utils/src/
@@ -29,18 +27,13 @@ INCLUDEPATH += \
 LIBS += -L$${DESTDIR} -lcpputils -lqtutils -ltest_utils
 include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
-include(../../../file-operations/libraries/fileoperations.pri)
+include(../../core.pri)
 
 SOURCES += \
 	main.cpp \
 	namefiltertests.cpp \
 	contentsearchtests.cpp \
-	enginebehaviortests.cpp \
-	../../src/filesearchengine/cfilesearchengine.cpp \
-	../../src/cfilesystemobject.cpp \
-	../../src/filesystemhelperfunctions.cpp
+	enginebehaviortests.cpp
 
 HEADERS += \
-	searchenginetesthelpers.h \
-	../../src/filesearchengine/cfilesearchengine.h \
-	../../src/cfilesystemobject.h
+	searchenginetesthelpers.h

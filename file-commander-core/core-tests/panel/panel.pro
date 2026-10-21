@@ -27,9 +27,7 @@ INCLUDEPATH += \
 	../../src/ \
 	../../../file-operations/test-utils/src/
 
-for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
-
-include(../../../file-operations/libraries/fileoperations.pri)
+include(../../core.pri)
 
 SOURCES += \
 	main.cpp \
@@ -38,28 +36,7 @@ SOURCES += \
 	currentitemtests.cpp \
 	historytests.cpp \
 	contentsaccesstests.cpp \
-	lifetimetests.cpp \
-	../../src/cpanel.cpp \
-	../../src/cfilesystemobject.cpp \
-	../../src/filesystemhelperfunctions.cpp \
-	../../src/panellisting.cpp \
-	../../src/filesystemhelpers/filesystemhelpers.cpp \
-	../../src/filesystemhelpers/filestatistics.cpp \
-	../../src/filesystemwatcher/cfilesystemwatchertimerbased.cpp \
-	../../src/iconprovider/ciconprovider.cpp \
-	../../src/iconprovider/ciconproviderimpl.cpp
+	lifetimetests.cpp
 
 HEADERS += \
-	paneltesthelpers.h \
-	../../src/cpanel.h \
-	../../src/cfilesystemobject.h \
-	../../src/filesystemhelpers/filesystemhelpers.hpp \
-	../../src/filesystemhelpers/filestatistics.h \
-	../../src/filesystemwatcher/cfilesystemwatchertimerbased.h \
-	../../src/iconprovider/ciconprovider.h \
-	../../src/iconprovider/ciconproviderimpl.h
-
-win*{
-	SOURCES += ../../src/filesystemwatcher/cfilesystemwatcherwindows.cpp
-	HEADERS += ../../src/filesystemwatcher/cfilesystemwatcherwindows.h
-}
+	paneltesthelpers.h

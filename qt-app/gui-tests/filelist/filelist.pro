@@ -30,12 +30,9 @@ INCLUDEPATH += \
 	../../src/ \
 	../../../file-commander-core/src/
 
-# config.pri's INCLUDEPATH entries are relative to file-commander-core; rebase them for this project's location.
-for (included_item, INCLUDEPATH): INCLUDEPATH += ../../../file-commander-core/$${included_item}
-
 INCLUDEPATH += ../../../file-operations/test-utils/src/
 
-include(../../../file-operations/libraries/fileoperations.pri)
+include(../../../file-commander-core/core.pri)
 
 SOURCES += \
 	main.cpp \
@@ -48,19 +45,9 @@ SOURCES += \
 	../../../file-operations/test-utils/src/crandomdatagenerator.cpp \
 	../../../file-operations/test-utils/src/qt_helpers.cpp
 
-# The model's CIconProvider calls pull in the CFileSystemObject tree, as in the core fso tests.
-SOURCES += \
-	../../../file-commander-core/src/filesystemhelperfunctions.cpp \
-	../../../file-commander-core/src/cfilesystemobject.cpp \
-	../../../file-commander-core/src/iconprovider/ciconprovider.cpp \
-	../../../file-commander-core/src/iconprovider/ciconproviderimpl.cpp
-
 HEADERS += \
 	filelisttesthelpers.h \
 	../../src/panel/filelistwidget/cfilelistview.h \
 	../../src/panel/filelistwidget/cfocusframestyle.h \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
-	../../src/panel/filelistwidget/model/cfilelistmodel.h \
-	../../../file-commander-core/src/cfilesystemobject.h \
-	../../../file-commander-core/src/iconprovider/ciconprovider.h \
-	../../../file-commander-core/src/iconprovider/ciconproviderimpl.h
+	../../src/panel/filelistwidget/model/cfilelistmodel.h

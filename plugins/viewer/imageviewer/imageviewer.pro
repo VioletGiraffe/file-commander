@@ -15,8 +15,6 @@ UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 INCLUDEPATH += \
-	../../../file-commander-core/src \
-	../../../file-commander-core/include \
 	../../../qtutils \
 	../../../cpputils \
 	../../../cpp-template-utils \
@@ -25,12 +23,8 @@ INCLUDEPATH += \
 
 DEFINES += PLUGIN_MODULE
 
-LIBS += -L$${DESTDIR} -lcore -limage-processing -lqtutils -lcpputils -lthin_io
-include(../../../file-operations/libraries/fileoperations.pri)
-
-win*{
-	LIBS += -lMpr
-}
+LIBS += -L$${DESTDIR} -limage-processing -lqtutils -lcpputils
+include(../../../file-commander-core/core.pri)
 
 HEADERS += \
 	src/cimageinfodialog.h \
@@ -42,5 +36,5 @@ SOURCES += \
 	src/cimageviewerwindow.cpp
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libimage-processing.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libthin_io.a
+	PRE_TARGETDEPS += $${DESTDIR}/libimage-processing.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a
 }

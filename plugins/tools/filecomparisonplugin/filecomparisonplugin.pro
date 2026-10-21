@@ -14,26 +14,19 @@ MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
-LIBS += -L$${DESTDIR} -lcore -lqtutils -lcpputils -lthin_io
-include(../../../file-operations/libraries/fileoperations.pri)
-
-win*{
-	LIBS += -lMpr
-}
+LIBS += -L$${DESTDIR} -lqtutils -lcpputils
+include(../../../file-commander-core/core.pri)
 
 DEFINES += PLUGIN_MODULE
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libcore.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libthin_io.a
+	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }
 
 INCLUDEPATH += \
-	../../../file-commander-core/src \
-	../../../file-commander-core/include \
 	../../../qtutils \
 	../../../cpputils \
 	../../../cpp-template-utils \
-	../../../file-operations \
 	$$PWD/src
 
 HEADERS += \

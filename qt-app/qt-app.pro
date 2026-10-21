@@ -25,14 +25,10 @@ QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 
 INCLUDEPATH += \
 	$$PWD/src/ \
-	../file-commander-core/src \
-	../file-commander-core/include \
 	../qtutils \
 	../cpputils \
 	../cpp-template-utils \
-	../github-releases-autoupdater/src \
-	../thin_io/src \
-	../file-operations
+	../github-releases-autoupdater/src
 
 SOURCES += \
 	src/main.cpp \
@@ -102,8 +98,9 @@ FORMS += \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.ui \
 	src/filessearchdialog/cfilessearchwindow.ui
 
-LIBS += -L$${DESTDIR} -lcore -lautoupdater -lqtutils -lcpputils -lthin_io
+LIBS += -L$${DESTDIR} -lautoupdater -lqtutils -lcpputils
 include(../file-operations/libraries/fileoperationsui.pri)
+include(../file-commander-core/core.pri)
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32 -lMpr
@@ -130,7 +127,7 @@ linux*|mac*|freebsd{
 }
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $${DESTDIR}/libautoupdater.a $${DESTDIR}/libthin_io.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a $${DESTDIR}/libcore.a
+	PRE_TARGETDEPS += $${DESTDIR}/libautoupdater.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a
 }
 
 RESOURCES += \

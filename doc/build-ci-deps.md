@@ -14,12 +14,12 @@ searching upward. A stash written under a different toolchain pins that toolchai
 paths, so the test scripts delete every one under the repository before each qmake run; do the same by hand when
 building outside them after a compiler upgrade.
 
-Everything that links `core` also links `fileoperations` and `thin_io`: core calls into both. `fileoperations` comes
-through `file-operations/libraries/fileoperations.pri`, which adds its own dependencies; it must follow the `LIBS` of
-whatever links against it, since GNU ld resolves static libraries in command-line order.
+The libraries are static. Core and the file-operation libraries reach their consumers through manifests that add the
+library, its link dependencies and their include paths: `file-commander-core/core.pri`, and
+`file-operations/libraries/fileoperations.pri` / `fileoperationsui.pri`. A new link dependency goes into the manifest.
+The other libraries' dependencies are listed by each consumer.
 
-The core libraries are static, so each consumer lists their link dependencies itself: a new dependency of a core
-library must also be added to the plugin `.pro` files that link that library, not only to `qt-app`.
+A manifest must follow the `LIBS` of whatever links against it: GNU ld resolves static libraries in command-line order.
 
 Every project outputs to `bin/{debug,release}`: the executable, the static libraries, and the plugin libraries. A
 dev build therefore already has the plugins beside the executable, where the plugin loader looks. `build/` holds

@@ -20,25 +20,14 @@ mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
 }
 
-for (included_item, INCLUDEPATH): INCLUDEPATH += ../../$${included_item}
 INCLUDEPATH += \
 	../../src/
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
 include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
-win*: LIBS += -lole32 -lShell32 -lUser32 -lMpr
-
-include(../../../file-operations/libraries/fileoperations.pri)
+include(../../core.pri)
 
 SOURCES += \
 	main.cpp \
-	shelltests.cpp \
-	../../src/shell/cshell.cpp \
-	../../src/shell/cshellcommand.cpp \
-	../../src/filesystemhelperfunctions.cpp
-
-HEADERS += \
-	../../src/shell/cshell.h \
-	../../src/shell/cshellcommand.h \
-	../../src/filesystemhelperfunctions.h
+	shelltests.cpp

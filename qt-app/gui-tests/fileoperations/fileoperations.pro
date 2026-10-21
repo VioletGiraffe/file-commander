@@ -28,9 +28,6 @@ INCLUDEPATH += \
 	../../../file-commander-core/src/ \
 	../../../file-operations/tests/fileoperationsui/ # fileoperationguitesthelpers.h
 
-# config.pri's INCLUDEPATH entries are relative to file-commander-core; rebase them for this project's location.
-for (included_item, INCLUDEPATH): INCLUDEPATH += ../../../file-commander-core/$${included_item}
-
 # The dialog drives a real job to exact points, so the engine comes with its fault hooks active.
 DEFINES += FILE_OPERATIONS_TEST_HOOKS
 include(../../../file-operations/libraries/fileoperationsui.pri)
