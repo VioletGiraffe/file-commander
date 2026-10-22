@@ -8,7 +8,7 @@ public:
 	CImageViewerPlugin() = default;
 
 	[[nodiscard]] bool canViewFile(const QString& fileName, const QMimeType& type) const override;
-	WindowPtr<CPluginWindow> viewFile(const QString& fileName) override;
+	[[nodiscard]] std::unique_ptr<CFileViewer> createViewer() override;
 	[[nodiscard]] QString name() const override;
 	[[nodiscard]] QString category() const override;
 };

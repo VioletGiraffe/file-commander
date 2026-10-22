@@ -1,6 +1,7 @@
 #include "cpaneldisplaycontroller.h"
 
 #include "cpanelwidget.h"
+#include "plugininterface/cfileviewer.h"
 
 
 // Submodule includes
@@ -11,8 +12,6 @@
 DISABLE_COMPILER_WARNINGS
 #include <QStackedWidget>
 RESTORE_COMPILER_WARNINGS
-
-#include <algorithm>
 
 void CPanelDisplayController::setPanelStackedWidget(QStackedWidget* widget)
 {
@@ -31,11 +30,11 @@ void CPanelDisplayController::setPanelWidget(CPanelWidget* panelWidget)
 	_panelWidget = panelWidget;
 
 	_panelStackedWidget->insertWidget(0, panelWidget);
-	if (!_quickViewActive)
+	if (!quickViewActive())
 		_panelStackedWidget->setCurrentIndex(0);
 
 	// Sanity check
-	assert_r((!_quickViewActive && _panelStackedWidget->count() == 1) || (_quickViewActive && _panelStackedWidget->count() == 2));
+	assert_r(_panelStackedWidget->count() == (quickViewActive() ? 2 : 1));
 }
 
 CPanelWidget* CPanelDisplayController::panelWidget() const
@@ -43,63 +42,33 @@ CPanelWidget* CPanelDisplayController::panelWidget() const
 	return _panelWidget;
 }
 
-void CPanelDisplayController::startQuickView(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow>&& viewerWindow, QString filePath)
+void CPanelDisplayController::showQuickView(CFileCommanderViewerPlugin& plugin, const QString& filePath)
 {
-	if (!viewerWindow)
-		return;
-
-	// Sanity check
-	assert_r((!_quickViewActive && !_quickViewWindow) || (quickViewActive() && _quickViewWindow));
-
-	if (_quickViewActive)
+	if (_quickViewPlugin != &plugin)
+	{
 		endQuickView();
 
-	_quickViewWindow = std::move(viewerWindow);
-	_quickViewFilePath = std::move(filePath);
-	_quickViewActive = _quickViewWindow ? true : false;
-	// Sanity check
-	assert_and_return_r(_panelStackedWidget && _panelStackedWidget->count() == 1, );
-	_quickViewWindow->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-	_quickViewWindow->configureForQuickView();
-	_panelStackedWidget->addWidget(_quickViewWindow->centralWidget());
-	_panelStackedWidget->setCurrentIndex(1);
+		assert_and_return_r(_panelStackedWidget && _panelStackedWidget->count() == 1, );
+		_quickViewer = plugin.createViewer().release(); // The stacked widget owns it from here
+		_quickViewer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored); // Keeps the panel's size hint independent of the content
+		_panelStackedWidget->addWidget(_quickViewer);
+		_panelStackedWidget->setCurrentIndex(1);
+		_quickViewPlugin = &plugin;
+	}
+
+	_quickViewer->loadFile(filePath);
+	_quickViewFilePath = filePath;
 }
 
 void CPanelDisplayController::endQuickView()
 {
-	// Sanity check
-	assert_r((!_quickViewActive && !_quickViewWindow) || (quickViewActive() && _quickViewWindow));
-
-	if (!_quickViewActive)
+	if (!quickViewActive())
 		return;
 
-	// Sanity check
 	assert_and_return_r(_panelStackedWidget && _panelStackedWidget->count() == 2, );
-	QWidget* contentWidget = _panelStackedWidget->widget(1);
-	_panelStackedWidget->removeWidget(contentWidget);
-	// QStackedWidget::removeWidget() doesn't restore the widget's parent, so it's left dangling as a child of
-	// _panelStackedWidget. Re-parent it back to the window it came from so the window's destructor can delete it normally.
-	contentWidget->setParent(_quickViewWindow.get());
-
-	_quickViewActive = false;
-	_quickViewWindow.reset();
+	delete _quickViewer; // The stacked widget drops a deleted child
+	_quickViewer = nullptr;
+	_quickViewPlugin = nullptr;
 	_quickViewFilePath.clear();
-}
-
-bool CPanelDisplayController::quickViewActive() const
-{
-	return _quickViewActive;
-}
-
-void CPanelDisplayController::closeQuickViewedFileIfWithin(const QStringList& paths)
-{
-	if (!_quickViewActive)
-		return;
-
-	// A folder's path ends with a separator
-	const bool affected = std::any_of(paths.cbegin(), paths.cend(), [this](const QString& path) {
-		return _quickViewFilePath == path || (path.endsWith('/') && _quickViewFilePath.startsWith(path));
-	});
-	if (affected)
-		_quickViewWindow->closeFile();
+	_panelStackedWidget->setCurrentIndex(0);
 }

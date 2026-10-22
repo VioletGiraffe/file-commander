@@ -39,11 +39,11 @@ INCLUDEPATH += \
 
 HEADERS += \
 	src/ctextviewerplugin.h \
-	src/ctextviewerwindow.h
+	src/ctextviewer.h
 
 SOURCES += \
 	src/ctextviewerplugin.cpp \
-	src/ctextviewerwindow.cpp
+	src/ctextviewer.cpp
 
 RESOURCES += \
 	src/icons.qrc

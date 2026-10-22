@@ -1,4 +1,4 @@
-#include "ctextviewerwindow.h"
+#include "ctextviewer.h"
 
 
 // Submodule includes
@@ -6,7 +6,6 @@
 #include "theme/colorutils.h"
 #include "widgets/cfindbar.h"
 #include "widgets/clightningfastviewer.h"
-#include "widgets/cpersistenceenabler.h"
 #include "widgets/cplaintexteditwithlinenumbers.h"
 
 
@@ -22,20 +21,16 @@ DISABLE_COMPILER_WARNINGS
 #include <QColor>
 #include <QDebug>
 #include <QDeadlineTimer>
-#include <QFileDialog>
-#include <QFileInfo>
+#include <QFile>
 #include <QFontMetrics>
 #include <QIcon>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
-#include <QMenuBar>
-#include <QMessageBox>
 #include <QMimeDatabase>
 #include <QPalette>
 #include <QRegularExpression>
 #include <QScrollBar>
-#include <QShortcut>
 #include <QStatusBar>
 #include <QStringBuilder>
 #include <QStringDecoder>
@@ -60,19 +55,18 @@ RESTORE_COMPILER_WARNINGS
 	return isBinary(data) && CTextEncodingDetector::decode(data).text.isEmpty();
 }
 
-CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
-	CPluginWindow(parent)
+[[nodiscard]] static QString unreadableFileMessage(const QString& path)
 {
-	setWindowTitle(tr("Text viewer"));
-	setWindowIcon(QIcon{ QStringLiteral(":/main_icon") });
+	return CTextViewer::tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(path);
+}
 
-	enablePersistence(this, QStringLiteral("Plugins/TextViewer/Window"), CPersistenceEnabler::Delayed{ false });
+CTextViewer::CTextViewer() noexcept
+{
+	setWindowIcon(QIcon{ QStringLiteral(":/main_icon") }); // A hosting window follows it
 
-	auto* const central = new QWidget{ this };
-	_centralLayout = new QVBoxLayout{ central };
-	_centralLayout->setContentsMargins(0, 0, 0, 0);
-	_centralLayout->setSpacing(0);
-	setCentralWidget(central);
+	_layout = new QVBoxLayout{ this };
+	_layout->setContentsMargins(0, 0, 0, 0);
+	_layout->setSpacing(0);
 
 	_findBar = new CFindBar{
 		CFindBar::HostFunctions{
@@ -94,7 +88,7 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 		CFindBar::Keys{ .find = QStringLiteral("Ctrl+F"), .findNext = QStringLiteral("F3"), .findPrevious = QStringLiteral("Shift+F3") },
 		QStringLiteral("Plugins/TextViewer/Find")
 	};
-	_centralLayout->addWidget(_findBar);
+	_layout->addWidget(_findBar);
 
 	const auto addMenuAction = [this](QMenu* menu, const QString& text, const QString& shortcut, auto onTriggered) {
 		QAction* const action = menu->addAction(text);
@@ -103,20 +97,12 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 		return action;
 	};
 
-	QMenu* const fileMenu = menuBar()->addMenu(tr("&File"));
-	addMenuAction(fileMenu, tr("Open..."), "Ctrl+O", [this] {
-		const QString fileName = QFileDialog::getOpenFileName(this);
-		if (!fileName.isEmpty())
-			loadTextFile(fileName);
-	});
-	addMenuAction(fileMenu, tr("Reload"), "F5", [this] { loadTextFile(_sourceFilePath); });
-	fileMenu->addSeparator();
-	addMenuAction(fileMenu, tr("Close"), {}, &QWidget::close);
+	auto* const editMenu = new QMenu{ tr("&Edit"), this };
+	editMenu->addActions(_findBar->findActions());
+	addMenu(editMenu);
 
-	menuBar()->addMenu(tr("&Edit"))->addActions(_findBar->findActions());
-
-	QMenu* const viewMenu = menuBar()->addMenu(tr("&View"));
-	addMenuAction(viewMenu, tr("Auto &detect encoding"), "1", [this] { redecodeCurrentFile(&CTextViewerWindow::asDetectedAutomatically); });
+	auto* const viewMenu = new QMenu{ tr("&View"), this };
+	addMenuAction(viewMenu, tr("Auto &detect encoding"), "1", [this] { redecodeCurrentFile(&CTextViewer::asDetectedAutomatically); });
 
 	_viewAsGroup = new QActionGroup{ this };
 	const auto addViewAsAction = [&](const QString& text, const QString& shortcut, auto onTriggered) {
@@ -126,20 +112,19 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 		return action;
 	};
 
-	_asciiAction = addViewAsAction(tr("&ASCII"), "2", [this] { redecodeCurrentFile(&CTextViewerWindow::asAscii); });
-	_systemLocaleAction = addViewAsAction(tr("&System locale"), "3", [this] { redecodeCurrentFile(&CTextViewerWindow::asSystemDefault); });
-	_utf8Action = addViewAsAction(tr("UTF-&8"), "4", [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf8); });
-	_utf16Action = addViewAsAction(tr("UTF-1&6"), "5", [this] { redecodeCurrentFile(&CTextViewerWindow::asUtf16); });
-	_hexAction = addViewAsAction(tr("&Hex"), "6", [this] { renderCurrentFile(&CTextViewerWindow::asHexFast); });
-	_htmlAction = addViewAsAction(tr("H&TML"), "7", [this] { renderCurrentFile(&CTextViewerWindow::asHtml); });
-	_markdownAction = addViewAsAction(tr("&Markdown"), "8", [this] { renderCurrentFile(&CTextViewerWindow::asMarkdown); });
+	_asciiAction = addViewAsAction(tr("&ASCII"), "2", [this] { redecodeCurrentFile(&CTextViewer::asAscii); });
+	_systemLocaleAction = addViewAsAction(tr("&System locale"), "3", [this] { redecodeCurrentFile(&CTextViewer::asSystemDefault); });
+	_utf8Action = addViewAsAction(tr("UTF-&8"), "4", [this] { redecodeCurrentFile(&CTextViewer::asUtf8); });
+	_utf16Action = addViewAsAction(tr("UTF-1&6"), "5", [this] { redecodeCurrentFile(&CTextViewer::asUtf16); });
+	_hexAction = addViewAsAction(tr("&Hex"), "6", [this] { renderCurrentFile(&CTextViewer::asHexFast); });
+	_htmlAction = addViewAsAction(tr("H&TML"), "7", [this] { renderCurrentFile(&CTextViewer::asHtml); });
+	_markdownAction = addViewAsAction(tr("&Markdown"), "8", [this] { renderCurrentFile(&CTextViewer::asMarkdown); });
 
 	viewMenu->addSeparator();
-	_lineWrapAction = addMenuAction(viewMenu, tr("&Line wrap"), "Shift+W", &CTextViewerWindow::setLineWrap);
+	_lineWrapAction = addMenuAction(viewMenu, tr("&Line wrap"), "Shift+W", &CTextViewer::setLineWrap);
 	_lineWrapAction->setCheckable(true);
 	_lineWrapAction->setChecked(true); // Wrap by default
-
-	new QShortcut{ QKeySequence{ Qt::Key_Escape }, this, this, [this] { close(); } };
+	addMenu(viewMenu);
 
 	_encodingLabel = new QLabel(this);
 	_contentTypeLabel = new QLabel(this);
@@ -148,66 +133,63 @@ CTextViewerWindow::CTextViewerWindow(QWidget* parent) noexcept :
 	_contentTypeLabel->setContentsMargins(4, 0, 4, 0);
 	_infoLabel->setContentsMargins(4, 0, 4, 0);
 
-	auto* status = statusBar();
+	auto* status = new QStatusBar{ this };
+	status->setSizeGripEnabled(false);
 	status->addWidget(_encodingLabel);
 	status->addWidget(_contentTypeLabel);
 	status->addWidget(_infoLabel);
+	_layout->addWidget(status);
 
 	_infoLabel->setVisible(false);
 }
 
-CTextViewerWindow::~CTextViewerWindow() = default;
+CTextViewer::~CTextViewer() = default;
 
 // The syntax highlighter is what this limits: past it the Lightning viewer shows plain text instead
 constexpr qsizetype maxSizeForSyntaxHighlighting = 3'000'000; // 3 MB of .c code = 800 ms on Core i5-12500
 // detect() samples 256 KB whatever the input size, but the winning codec still decodes the whole file
 constexpr qsizetype maxSizeForEncodingDetection = 25'000'000;
 
-bool CTextViewerWindow::loadTextFile(const QString& file)
+QString CTextViewer::tryLoadFile(const QString& path)
 {
-	QFileInfo fi(file);
-	setWindowTitle(fi.fileName() + " [" + fi.path() + "]");
-	// Only has effect on macOS , must be after set. Gives the title bar a document proxy icon (the only icon this window can have)
-	setWindowFilePath(file);
-
-	_sourceFilePath = file;
-
+	_sourceFilePath = path;
 	_mimeType = QMimeDatabase().mimeTypeForFile(_sourceFilePath, QMimeDatabase::MatchContent).name();
 
 	try
 	{
-		const std::optional<QByteArray> textData = readFileAndReportErrors();
-		if (!textData)
-			return false;
+		QByteArray textData;
+		if (!readSource(textData))
+			return unreadableFileMessage(path);
 
-		const qsizetype dataSize = textData->size();
+		const auto decode = [&]() -> bool {
+			const qsizetype dataSize = textData.size();
 
-		// Binary content, and anything too large to decode, go to the fast viewer as Latin-1: every byte maps to a
-		// character. Size first: isBinaryContent() decodes, so it must not see a file this branch already rejects.
-		if (dataSize > maxSizeForEncodingDetection || isBinaryContent(*textData))
-			return asAscii(*textData, true);
+			// Binary content, and anything too large to decode, go to the fast viewer as Latin-1: every byte maps to a
+			// character. Size first: isBinaryContent() decodes, so it must not see a file this branch already rejects.
+			if (dataSize > maxSizeForEncodingDetection || isBinaryContent(textData))
+				return asAscii(textData, true);
 
-		const bool useFastMode = dataSize > maxSizeForSyntaxHighlighting;
+			const bool useFastMode = dataSize > maxSizeForSyntaxHighlighting;
 
-		if (!useFastMode && (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive)))
-			return asHtml(*textData);
-		else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive) && !useFastMode)
-			return asMarkdown(*textData);
-		else if (_mimeType.contains("text") || _mimeType.isEmpty() || _mimeType.contains("octet-stream"))
-			return asDetectedAutomatically(*textData, useFastMode);
-		else if (asUtf8(*textData, useFastMode))
-			return true;
-		else
-			return asAscii(*textData, useFastMode);
+			if (!useFastMode && (_sourceFilePath.endsWith(QStringLiteral(".htm"), Qt::CaseInsensitive) || _sourceFilePath.endsWith(QStringLiteral(".html"), Qt::CaseInsensitive)))
+				return asHtml(textData);
+			else if (_sourceFilePath.endsWith(".md", Qt::CaseInsensitive) && !useFastMode)
+				return asMarkdown(textData);
+			else if (_mimeType.contains("text") || _mimeType.isEmpty() || _mimeType.contains("octet-stream"))
+				return asDetectedAutomatically(textData, useFastMode);
+			else
+				return asUtf8(textData, useFastMode) || asAscii(textData, useFastMode);
+		};
+
+		return decode() ? QString{} : tr("Failed to decode the file\n\n%1").arg(path);
 	}
 	catch (const std::bad_alloc&)
 	{
-		QMessageBox::warning(this, tr("File is too large"), tr("The file is too large to handle."));
-		return false;
+		return tr("The file is too large to handle.");
 	}
 }
 
-bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool useFastMode)
+bool CTextViewer::asDetectedAutomatically(const QByteArray& fileData, bool useFastMode)
 {
 	const auto result = CTextEncodingDetector::decodeWithLocaleFallback(fileData);
 	if (!result.text.isEmpty())
@@ -245,7 +227,7 @@ bool CTextViewerWindow::asDetectedAutomatically(const QByteArray& fileData, bool
 		return asAscii(fileData, useFastMode);
 }
 
-bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFastMode)
+bool CTextViewer::asSystemDefault(const QByteArray& fileData, bool useFastMode)
 {
 	QTextCodec * codec = QTextCodec::codecForLocale();
 	if (!codec)
@@ -269,7 +251,7 @@ bool CTextViewerWindow::asSystemDefault(const QByteArray& fileData, bool useFast
 	return true;
 }
 
-bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
+bool CTextViewer::asAscii(const QByteArray& fileData, bool useFastMode)
 {
 	const QString text = QString::fromLatin1(fileData);
 	if (useFastMode)
@@ -289,7 +271,7 @@ bool CTextViewerWindow::asAscii(const QByteArray& fileData, bool useFastMode)
 	return true;
 }
 
-bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
+bool CTextViewer::asUtf8(const QByteArray& fileData, bool useFastMode)
 {
 	// A NUL byte is valid UTF-8, so the decoder accepts binary: decode() guards this the same way before probing
 	if (isBinary(fileData))
@@ -329,7 +311,7 @@ bool CTextViewerWindow::asUtf8(const QByteArray& fileData, bool useFastMode)
 	return true;
 }
 
-bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
+bool CTextViewer::asUtf16(const QByteArray& fileData, bool useFastMode)
 {
 	encodingChanged("UTF-16");
 
@@ -356,7 +338,7 @@ bool CTextViewerWindow::asUtf16(const QByteArray& fileData, bool useFastMode)
 	return true;
 }
 
-bool CTextViewerWindow::asHtml(const QByteArray& fileData)
+bool CTextViewer::asHtml(const QByteArray& fileData)
 {
 	const auto result = CTextEncodingDetector::decodeWithLocaleFallback(fileData);
 	if (result.text.isEmpty() && !fileData.isEmpty())
@@ -370,7 +352,7 @@ bool CTextViewerWindow::asHtml(const QByteArray& fileData)
 	return true;
 }
 
-bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
+bool CTextViewer::asMarkdown(const QByteArray& fileData)
 {
 	const auto result = decodeUnicodeText(fileData);
 	if (!result)
@@ -384,7 +366,7 @@ bool CTextViewerWindow::asMarkdown(const QByteArray& fileData)
 	return true;
 }
 
-bool CTextViewerWindow::asHexFast(const QByteArray& fileData)
+bool CTextViewer::asHexFast(const QByteArray& fileData)
 {
 	setMode(Mode::Lightning);
 	_lightningViewer->setData(fileData);
@@ -393,9 +375,9 @@ bool CTextViewerWindow::asHexFast(const QByteArray& fileData)
 	return true;
 }
 
-void CTextViewerWindow::redecodeCurrentFile(bool (CTextViewerWindow::*decoder)(const QByteArray&, bool))
+void CTextViewer::redecodeCurrentFile(bool (CTextViewer::*decoder)(const QByteArray&, bool))
 {
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	const std::optional<QByteArray> textData = readSourceOrShowError();
 	if (!textData)
 	{
 		updateViewAsCheck();
@@ -413,31 +395,34 @@ void CTextViewerWindow::redecodeCurrentFile(bool (CTextViewerWindow::*decoder)(c
 		return;
 	}
 
+	hideLoadError();
 	// A decoder can move Rich to Source, which destroys scrollArea; and each viewer scrolls in units of its own
 	if (scrollArea && _currentMode == modeBefore)
 		scrollArea->verticalScrollBar()->setValue(scrollPosition);
 }
 
-void CTextViewerWindow::renderCurrentFile(bool (CTextViewerWindow::*renderer)(const QByteArray&))
+void CTextViewer::renderCurrentFile(bool (CTextViewer::*renderer)(const QByteArray&))
 {
-	const std::optional<QByteArray> textData = readFileAndReportErrors();
+	const std::optional<QByteArray> textData = readSourceOrShowError();
 	if (!textData || !(this->*renderer)(*textData))
 		updateViewAsCheck();
+	else
+		hideLoadError();
 }
 
-std::optional<QByteArray> CTextViewerWindow::readFileAndReportErrors() const
+std::optional<QByteArray> CTextViewer::readSourceOrShowError()
 {
 	QByteArray textData;
 	if (!readSource(textData))
 	{
-		QMessageBox::warning(parentWidget(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\nIt is inaccessible or doesn't exist.").arg(_sourceFilePath));
+		showLoadError(unreadableFileMessage(_sourceFilePath));
 		return {};
 	}
 
 	return std::optional{ std::move(textData) };
 }
 
-std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeUnicodeText(const QByteArray& textData)
+std::optional<CTextEncodingDetector::DecodedText> CTextViewer::decodeUnicodeText(const QByteArray& textData)
 {
 	if (const CTextEncodingDetector::DecodedText decodedText = CTextEncodingDetector::decodeUtfBom(textData); !decodedText.encoding.isEmpty())
 		return decodedText;
@@ -445,7 +430,7 @@ std::optional<CTextEncodingDetector::DecodedText> CTextViewerWindow::decodeUnico
 	return CTextEncodingDetector::DecodedText{QString::fromUtf8(textData), "UTF-8", {}, 0.0};
 }
 
-bool CTextViewerWindow::readSource(QByteArray& textData) const
+bool CTextViewer::readSource(QByteArray& textData) const
 {
 	QFile file(_sourceFilePath);
 	if (file.exists() && file.open(QIODevice::ReadOnly))
@@ -457,7 +442,7 @@ bool CTextViewerWindow::readSource(QByteArray& textData) const
 		return false;
 }
 
-void CTextViewerWindow::encodingChanged(const QString& encoding, const QString& language)
+void CTextViewer::encodingChanged(const QString& encoding, const QString& language)
 {
 	QString message;
 	if (!encoding.isEmpty())
@@ -468,13 +453,13 @@ void CTextViewerWindow::encodingChanged(const QString& encoding, const QString& 
 	_encodingLabel->setText(message);
 }
 
-void CTextViewerWindow::setLineWrap(bool wrap)
+void CTextViewer::setLineWrap(bool wrap)
 {
 	if (const ViewerOps v = viewer(); v.widget)
 		v.setWordWrap(wrap);
 }
 
-CTextViewerWindow::ViewerOps CTextViewerWindow::viewer() const
+CTextViewer::ViewerOps CTextViewer::viewer() const
 {
 	// One binding serves both document views: same calls, no base class that declares them
 	const auto documentViewOps = [](auto* view) -> ViewerOps {
@@ -603,7 +588,7 @@ static void initDocumentView(DocumentView& view)
 	view.setTabStopDistance(static_cast<qreal>(4 * view.fontMetrics().horizontalAdvance(' ')));
 }
 
-void CTextViewerWindow::setMode(Mode mode)
+void CTextViewer::setMode(Mode mode)
 {
 	_currentMode = mode;
 
@@ -630,7 +615,7 @@ void CTextViewerWindow::setMode(Mode mode)
 		{
 			_sourceView = std::make_unique<CPlainTextEditWithLineNumbers>(this);
 			initDocumentView(*_sourceView);
-			_centralLayout->insertWidget(0, _sourceView.get(), 1);
+			_layout->insertWidget(0, _sourceView.get(), 1);
 		}
 		break;
 
@@ -640,7 +625,7 @@ void CTextViewerWindow::setMode(Mode mode)
 			_richView = std::make_unique<QTextEdit>(this);
 			initDocumentView(*_richView);
 			_richView->setAcceptRichText(true);
-			_centralLayout->insertWidget(0, _richView.get(), 1);
+			_layout->insertWidget(0, _richView.get(), 1);
 		}
 		break;
 
@@ -649,7 +634,7 @@ void CTextViewerWindow::setMode(Mode mode)
 		{
 			_lightningViewer = std::make_unique<CLightningFastViewerWidget>(this);
 			setFontSize(*_lightningViewer);
-			_centralLayout->insertWidget(0, _lightningViewer.get(), 1);
+			_layout->insertWidget(0, _lightningViewer.get(), 1);
 		}
 
 		_infoLabel->setText(tr("FAST MODE! Encoding detection didn't run, you can trigger it manually"));
@@ -662,7 +647,7 @@ void CTextViewerWindow::setMode(Mode mode)
 	setLineWrap(_lineWrapAction->isChecked());
 }
 
-void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
+void CTextViewer::setTextAndApplyHighlighter(const QString& text)
 {
 	if (text.size() <= maxSizeForSyntaxHighlighting)
 	{
@@ -685,7 +670,7 @@ void CTextViewerWindow::setTextAndApplyHighlighter(const QString& text)
 	_sourceView->setPlainText(text);
 }
 
-void CTextViewerWindow::resetHighlighter()
+void CTextViewer::resetHighlighter()
 {
 	if (!_highlighter)
 		return;
@@ -696,7 +681,7 @@ void CTextViewerWindow::resetHighlighter()
 	_theme.reset();
 }
 
-void CTextViewerWindow::updateContentTypeLabel()
+void CTextViewer::updateContentTypeLabel()
 {
 	QString format = _highlighter ? _highlighter->languageName() : QString{};
 	if (format.isEmpty())
@@ -705,13 +690,13 @@ void CTextViewerWindow::updateContentTypeLabel()
 	_contentTypeLabel->setText(tr("Content format: ") + format);
 }
 
-void CTextViewerWindow::setViewAsAction(QAction* action)
+void CTextViewer::setViewAsAction(QAction* action)
 {
 	_viewAsAction = action;
 	updateViewAsCheck();
 }
 
-void CTextViewerWindow::updateViewAsCheck()
+void CTextViewer::updateViewAsCheck()
 {
 	if (_viewAsAction)
 		_viewAsAction->setChecked(true);

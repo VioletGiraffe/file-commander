@@ -12,9 +12,9 @@ There are two unrelated mechanisms:
 |---------|--------|
 | ABI and base interfaces | `file-commander-core/src/plugininterface/cfilecommanderplugin.*`, `cfilecommanderviewerplugin.*`, `cfilecommandertoolplugin.*` |
 | Plugin-to-application facade | `file-commander-core/src/plugininterface/cpluginproxy.*` |
-| Window ownership | `file-commander-core/src/plugininterface/cpluginwindow.*` |
+| Viewer widget contract | `file-commander-core/src/plugininterface/cfileviewer.*` |
 | Discovery and viewer selection | `file-commander-core/src/pluginengine/cpluginengine.*` |
-| Quick-view host | `qt-app/src/panel/cpaneldisplaycontroller.*` |
+| Viewer frames: quick view, F3 window | `qt-app/src/panel/cpaneldisplaycontroller.*`, `qt-app/src/viewerwindow/` |
 | Commands-menu materialization | `qt-app/src/cmainwindow.*` |
 
 Each native library exports `pluginInterfaceVersion()` and `createPlugin()`. The engine resolves and checks the
@@ -26,15 +26,21 @@ authoritative for the ABI.
 
 `main()` owns the plugin engine between the main window and controller in the destruction order. The engine owns
 each plugin's instance, proxy, and library module. Teardown destroys the proxy first so its tagged background work
-is retired while the plugin instance and module are still alive, then destroys the instance and unloads the module.
-Plugin destructors must not use their proxy.
+is retired while the plugin instance and module are still alive, then destroys the instance. Modules stay mapped
+until the process exits. Plugin destructors must not use their proxy.
 
-Plugin windows use `CFileCommanderViewerPlugin::WindowPtr`, a unique pointer whose deleter is instantiated in the
-plugin module. Keep that type across the boundary so allocation and deletion occur in the same dynamic library.
-Full viewer windows opt into deletion on close; quick view retains the `WindowPtr` in `CPanelDisplayController`.
-A window embedded as quick view is never shown, so its menus and shortcuts are unreachable; `configureForQuickView()`
-is the hook for adapting to that. `closeFile()` precedes deleting, moving or renaming the quick-viewed file or a folder
-holding it; a viewer that keeps its file open releases it there.
+## Viewers
+
+A viewer plugin creates `CFileViewer` widgets; the app owns them through Qt parenting and frames them itself, in a
+window (F3) or in a file panel (quick view). The widget never learns which, so:
+
+- `loadFile()` is repeatable: quick view loads file after file into the same widget, keeping the user's view settings.
+  A failed load shows the error inside the widget; no viewer puts up a dialog for it.
+- Menus come from `addMenu()`, which also scopes every shortcut to the widget. The hosting window shows them in its
+  menu bar; the base class offers them as the context menu in both frames.
+- Dialogs are parented to the widget, and window decoration goes on it too: the F3 frame follows `windowIconChanged`.
+- `closeFile()` precedes deleting, moving or renaming the viewed file or a folder holding it; a viewer that keeps its
+  file open releases it there.
 
 ## Proxy and tab visibility
 

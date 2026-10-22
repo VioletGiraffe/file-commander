@@ -969,7 +969,7 @@ void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 
 	auto* mainWindow = CMainWindow::get();
 	assert_and_return_r(mainWindow, );
-	mainWindow->closeQuickViewedFileIfWithin({ item.fullAbsolutePath() });
+	mainWindow->closeViewedFilesWithin({ item.fullAbsolutePath() });
 
 	auto result = inlineRename(*source, newName, false);
 	if (result.status == InlineRenameStatus::ReplacementRequired)

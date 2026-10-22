@@ -1,6 +1,6 @@
 #include "ccsvviewerplugin.h"
 
-#include "ccsvviewerwindow.h"
+#include "ccsvviewer.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -19,13 +19,9 @@ bool CCsvViewerPlugin::canViewFile(const QString& fileName, const QMimeType& typ
 	return isCsv && fileInfo.isFile();
 }
 
-CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CCsvViewerPlugin::viewFile(const QString& fileName)
+std::unique_ptr<CFileViewer> CCsvViewerPlugin::createViewer()
 {
-	auto window = WindowPtr<CCsvViewerWindow>::create();
-	if (!window->loadFile(fileName))
-		window.reset();
-
-	return window;
+	return std::make_unique<CCsvViewer>();
 }
 
 QString CCsvViewerPlugin::name() const

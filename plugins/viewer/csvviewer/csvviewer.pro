@@ -32,14 +32,14 @@ HEADERS += \
 	src/ccsvparser.h \
 	src/ccsvtablemodel.h \
 	src/ccsvviewerplugin.h \
-	src/ccsvviewerwindow.h
+	src/ccsvviewer.h
 
 SOURCES += \
 	src/ccsvcommentlistmodel.cpp \
 	src/ccsvparser.cpp \
 	src/ccsvtablemodel.cpp \
 	src/ccsvviewerplugin.cpp \
-	src/ccsvviewerwindow.cpp
+	src/ccsvviewer.cpp
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libtext_encoding_detector.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a

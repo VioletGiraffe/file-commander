@@ -1,6 +1,5 @@
 #include "cpluginengine.h"
 
-#include "ccontroller.h"
 #include "plugininterface/cfilecommanderviewerplugin.h"
 #include "plugininterface/cpluginproxy.h"
 
@@ -101,60 +100,18 @@ std::vector<CPluginEngine::PluginInfo> CPluginEngine::activePluginInfo() const
 	return info;
 }
 
-void CPluginEngine::viewCurrentFile()
+CFileCommanderViewerPlugin* CPluginEngine::viewerForFile(const QString& path, const QString& requiredCategory) const
 {
-	showViewerWindow(createViewerWindowForCurrentFile());
-}
-
-void CPluginEngine::viewCurrentFileInTextViewer()
-{
-	// Unlike F3, restrict the candidates to text viewer plugin(s) instead of auto-detecting across all viewers; canViewFile still applies (so e. g. folders are rejected).
-	auto* viewer = viewerForCurrentFile(ViewerCategory::Text);
-	if (!viewer)
-		return;
-
-	showViewerWindow(viewer->viewFile(currentItemPath()));
-}
-
-void CPluginEngine::showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> window)
-{
-	auto* viewerWindow = window.release();
-	if (!viewerWindow)
-		return;
-
-	viewerWindow->setAutoDeleteOnClose(true);
-	viewerWindow->showNormal();
-	viewerWindow->activateWindow();
-	viewerWindow->raise();
-}
-
-CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CPluginEngine::createViewerWindowForCurrentFile()
-{
-	auto* viewer = viewerForCurrentFile({}); // Empty category: accept any viewer, i. e. auto-detect by file type
-	if (!viewer)
-		return {};
-
-	return viewer->viewFile(currentItemPath());
-}
-
-QString CPluginEngine::currentItemPath() const
-{
-	return _controller.currentItem().fullAbsolutePath();
-}
-
-CFileCommanderViewerPlugin* CPluginEngine::viewerForCurrentFile(const QString& requiredCategory)
-{
-	const QString currentFile = currentItemPath();
-	if (currentFile.isEmpty())
+	if (path.isEmpty())
 		return nullptr;
 
-	const auto type = QMimeDatabase().mimeTypeForFile(currentFile, QMimeDatabase::MatchContent);
-	qInfo() << "Selecting a viewer plugin for" << currentFile;
+	const auto type = QMimeDatabase().mimeTypeForFile(path, QMimeDatabase::MatchContent);
+	qInfo() << "Selecting a viewer plugin for" << path;
 	qInfo() << "File type:" << type.name() << ", aliases:" << type.aliases();
 
 	// The text viewer is omnivorous (its canViewFile accepts any file), so it must not shadow a specialized viewer: defer any text-category viewer and use it only if nothing more specific claims the file. This keeps selection independent of _plugins order.
 	CFileCommanderViewerPlugin* textFallback = nullptr;
-	for(auto& plugin: _plugins)
+	for (const auto& plugin : _plugins)
 	{
 		if (plugin.instance->type() != CFileCommanderPlugin::Viewer)
 			continue;
@@ -168,7 +125,7 @@ CFileCommanderViewerPlugin* CPluginEngine::viewerForCurrentFile(const QString& r
 		if (!requiredCategory.isEmpty() && category != requiredCategory)
 			continue;
 
-		if (!viewer->canViewFile(currentFile, type))
+		if (!viewer->canViewFile(path, type))
 			continue;
 
 		if (category == ViewerCategory::Text)

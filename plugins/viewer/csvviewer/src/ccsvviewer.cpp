@@ -1,4 +1,4 @@
-#include "ccsvviewerwindow.h"
+#include "ccsvviewer.h"
 
 #include "ccsvcommentlistmodel.h"
 #include "ccsvparser.h"
@@ -7,25 +7,21 @@
 
 // Submodule includes
 #include "ctextencodingdetector.h"
-#include "widgets/cpersistenceenabler.h"
 
 
 DISABLE_COMPILER_WARNINGS
 #include <QAction>
 #include <QActionGroup>
-#include <QDockWidget>
 #include <QFile>
-#include <QFileInfo>
 #include <QHeaderView>
 #include <QListView>
 #include <QMenu>
-#include <QMenuBar>
-#include <QMessageBox>
 #include <QPalette>
-#include <QShortcut>
+#include <QSplitter>
 #include <QStatusBar>
 #include <QStyledItemDelegate>
 #include <QTableView>
+#include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
 #include <utility>
@@ -49,7 +45,7 @@ QString delimiterName(QChar delimiter)
 	for (const DelimiterOption& option : delimiterOptions)
 	{
 		if (option.character == delimiter)
-			return CCsvViewerWindow::tr(option.name);
+			return CCsvViewer::tr(option.name);
 	}
 
 	return QString{ delimiter };
@@ -83,17 +79,30 @@ protected:
 
 } // namespace
 
-CCsvViewerWindow::CCsvViewerWindow(QWidget* parent) noexcept :
-	CPluginWindow(parent),
+CCsvViewer::CCsvViewer() noexcept :
 	_tableView(new QTableView(this)),
 	_model(new CCsvTableModel(this)),
-	_commentListModel(new CCsvCommentListModel(*_model, this))
+	_commentListModel(new CCsvCommentListModel(*_model, this)),
+	_commentList(new QListView(this)),
+	_statusBar(new QStatusBar(this))
 {
-	setCentralWidget(_tableView);
+	auto* splitter = new QSplitter(this);
+	splitter->addWidget(_tableView);
+	splitter->addWidget(_commentList);
+	splitter->setStretchFactor(0, 3);
+	splitter->setStretchFactor(1, 1);
+	_statusBar->setSizeGripEnabled(false);
+
+	auto* layout = new QVBoxLayout(this);
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->setSpacing(0);
+	layout->addWidget(splitter, 1);
+	layout->addWidget(_statusBar);
+
 	_tableView->setModel(_model);
 	_tableView->setItemDelegate(new CCommentRowDelegate(_tableView));
 	// Spans keep their row numbers through a reset; every change that moves a comment row is a reset
-	connect(_model, &QAbstractItemModel::modelReset, this, &CCsvViewerWindow::tableRowsChanged);
+	connect(_model, &QAbstractItemModel::modelReset, this, &CCsvViewer::tableRowsChanged);
 	_tableView->setWordWrap(false);
 	_tableView->setAlternatingRowColors(true);
 	_tableView->horizontalHeader()->setMaximumSectionSize(fontMetrics().averageCharWidth() * 100);
@@ -105,36 +114,29 @@ CCsvViewerWindow::CCsvViewerWindow(QWidget* parent) noexcept :
 	_tableView->horizontalHeader()->setSortIndicatorClearable(true);
 	_tableView->setSortingEnabled(true);
 
-	QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
-	fileMenu->addAction(tr("&Reload"), QKeySequence{ Qt::Key_F5 }, this, [this] { reload(); });
-	fileMenu->addAction(tr("&Close"), this, &QWidget::close);
-
-	QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
+	auto* viewMenu = new QMenu(tr("&View"), this);
 	_firstRowIsHeaderAction = viewMenu->addAction(tr("First row is &header"), this, [this](bool checked) { _model->setFirstRowIsHeader(checked); });
 	_firstRowIsHeaderAction->setCheckable(true);
 	_commentLinesAction = viewMenu->addAction(tr("Show # lines as &comments"), this, [this] { reload(); });
 	_commentLinesAction->setCheckable(true);
 
-	auto* commentList = new QListView(this);
-	commentList->setModel(_commentListModel);
-	commentList->setUniformItemSizes(true); // Millions of rows may be comments; measuring each one is not an option
-	commentList->setEditTriggers(QAbstractItemView::NoEditTriggers);
-	connect(commentList, &QAbstractItemView::clicked, this, [this](const QModelIndex& index) { goToRow(_commentListModel->tableRow(index.row())); });
-	connect(commentList, &QAbstractItemView::activated, this, [this](const QModelIndex& index) { goToRow(_commentListModel->tableRow(index.row())); });
+	_commentList->setModel(_commentListModel);
+	_commentList->setUniformItemSizes(true); // Millions of rows may be comments; measuring each one is not an option
+	_commentList->setEditTriggers(QAbstractItemView::NoEditTriggers);
+	_commentList->hide();
+	connect(_commentList, &QAbstractItemView::clicked, this, [this](const QModelIndex& index) { goToRow(_commentListModel->tableRow(index.row())); });
+	connect(_commentList, &QAbstractItemView::activated, this, [this](const QModelIndex& index) { goToRow(_commentListModel->tableRow(index.row())); });
 
-	_commentDock = new QDockWidget(tr("Comments"), this);
-	_commentDock->setObjectName(QStringLiteral("CommentList")); // Saved window state names its docks
-	_commentDock->setWidget(commentList);
-	addDockWidget(Qt::RightDockWidgetArea, _commentDock);
-	_commentDock->hide();
-	viewMenu->addAction(_commentDock->toggleViewAction());
+	_commentListAction = viewMenu->addAction(tr("Comment &list"));
+	_commentListAction->setCheckable(true);
+	connect(_commentListAction, &QAction::toggled, _commentList, &QWidget::setVisible);
+	connect(_commentListAction, &QAction::triggered, this, [this] { _commentListVisibilityChosen = true; }); // Not emitted for setChecked()
 
 	viewMenu->addSeparator();
 	_nextCommentAction = viewMenu->addAction(tr("&Next comment"), QKeySequence{ Qt::Key_F8 }, this, [this] { goToAdjacentComment(true); });
 	_previousCommentAction = viewMenu->addAction(tr("&Previous comment"), QKeySequence{ Qt::SHIFT | Qt::Key_F8 }, this, [this] { goToAdjacentComment(false); });
 
 	QMenu* delimiterMenu = viewMenu->addMenu(tr("&Delimiter"));
-	_delimiterMenuAction = delimiterMenu->menuAction();
 	_delimiterGroup = new QActionGroup(this);
 	const auto addDelimiterAction = [this, delimiterMenu](const QString& text, const QString& delimiter) {
 		QAction* action = delimiterMenu->addAction(text);
@@ -148,45 +150,20 @@ CCsvViewerWindow::CCsvViewerWindow(QWidget* parent) noexcept :
 	for (const DelimiterOption& option : delimiterOptions)
 		addDelimiterAction(tr(option.name), QString{ option.character });
 	connect(_delimiterGroup, &QActionGroup::triggered, this, [this] { reload(); });
-
-	new QShortcut(QKeySequence{ QStringLiteral("Esc") }, this, this, &QWidget::close);
-
-	enablePersistence(this, QStringLiteral("Plugins/CsvViewer/Window"), CPersistenceEnabler::Delayed{ false });
+	addMenu(viewMenu);
 }
 
-bool CCsvViewerWindow::loadFile(const QString& filePath)
+QString CCsvViewer::tryLoadFile(const QString& path)
 {
-	_filePath = filePath;
-
-	const QFileInfo fi(filePath);
-	setWindowTitle(fi.fileName() + " [" + fi.absolutePath() + "]");
-	setWindowFilePath(filePath); // macOS only: the title bar's document proxy icon
-
+	_filePath = path;
 	return reload(CommentLines::Detect);
 }
 
-void CCsvViewerWindow::configureForQuickView()
-{
-	// The menu bar stays with this window, which is never shown, so the table offers the applicable actions instead.
-	// The dock is left out: quick view embeds the central widget alone.
-	QAction* const contextMenuActions[] = { _firstRowIsHeaderAction, _commentLinesAction, _delimiterMenuAction, _nextCommentAction, _previousCommentAction };
-	for (QAction* action : contextMenuActions)
-	{
-		action->setShortcut({}); // Adding an action to a visible widget puts its shortcut up against the main window's own
-		_tableView->addAction(action);
-	}
-
-	_tableView->setContextMenuPolicy(Qt::ActionsContextMenu);
-}
-
-bool CCsvViewerWindow::reload(CommentLines commentLines)
+QString CCsvViewer::reload(CommentLines commentLines)
 {
 	QFile file(_filePath);
 	if (!file.open(QIODevice::ReadOnly))
-	{
-		QMessageBox::warning(dialogParent(), tr("Failed to read the file"), tr("Failed to load the file\n\n%1\n\n%2").arg(_filePath, file.errorString()));
-		return false;
-	}
+		return tr("Failed to load the file\n\n%1\n\n%2").arg(_filePath, file.errorString());
 
 	auto decoded = CTextEncodingDetector::decodeWithLocaleFallback(file.readAll());
 
@@ -216,25 +193,21 @@ bool CCsvViewerWindow::reload(CommentLines commentLines)
 	if (table.commentRowCount > 0)
 		status += tr(", %L1 comment lines").arg(table.commentRowCount);
 	status += tr(" | %1 | delimiter: %2").arg(decoded.encoding, delimiterName(delimiter));
-	statusBar()->showMessage(status);
-	return true;
+	_statusBar->showMessage(status);
+	return {};
 }
 
-void CCsvViewerWindow::tableRowsChanged()
+void CCsvViewer::tableRowsChanged()
 {
 	_commentListModel->refresh();
 
 	// Empty while the table is sorted, where there is nothing to navigate between
 	const bool hasComments = _commentListModel->rowCount() > 0;
 
-	// The file decides on its first load only; from there the dock is the user's to show and hide
-	if (!_commentDockVisibilityDecided)
-	{
-		_commentDockVisibilityDecided = true;
-		_commentDock->setVisible(hasComments);
-	}
+	if (!_commentListVisibilityChosen)
+		_commentListAction->setChecked(hasComments);
 
-	_commentDock->setEnabled(hasComments);
+	_commentList->setEnabled(hasComments);
 	_nextCommentAction->setEnabled(hasComments);
 	_previousCommentAction->setEnabled(hasComments);
 
@@ -250,23 +223,18 @@ void CCsvViewerWindow::tableRowsChanged()
 	}
 }
 
-void CCsvViewerWindow::goToRow(int row)
+void CCsvViewer::goToRow(int row)
 {
 	const QModelIndex target = _model->index(row, 0);
 	_tableView->setCurrentIndex(target);
 	_tableView->scrollTo(target, QAbstractItemView::PositionAtTop);
 }
 
-void CCsvViewerWindow::goToAdjacentComment(bool forward)
+void CCsvViewer::goToAdjacentComment(bool forward)
 {
 	// Before the first row, so that the first comment is the next one from a table nothing is selected in
 	const int currentRow = _tableView->currentIndex().isValid() ? _tableView->currentIndex().row() : -1;
 	const int target = forward ? _commentListModel->commentRowAfter(currentRow) : _commentListModel->commentRowBefore(currentRow);
 	if (target >= 0)
 		goToRow(target);
-}
-
-QWidget* CCsvViewerWindow::dialogParent() const
-{
-	return _tableView->window();
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "plugininterface/cpluginwindow.h"
+#include "plugininterface/cfileviewer.h"
 
 
 // Submodule includes
@@ -36,13 +36,14 @@ namespace Qutepart {
 	QString chooseLanguageXmlFileName(const QString& mimeType, const QString& languageName, const QString& sourceFilePath, const QString& firstLine);
 }
 
-class CTextViewerWindow final : public CPluginWindow
+class CTextViewer final : public CFileViewer
 {
 public:
-	explicit CTextViewerWindow(QWidget* parent = nullptr) noexcept;
-	~CTextViewerWindow() override;
+	CTextViewer() noexcept;
+	~CTextViewer() override;
 
-	bool loadTextFile(const QString& file);
+protected:
+	QString tryLoadFile(const QString& path) override;
 
 private:
 	bool asDetectedAutomatically(const QByteArray& fileData, bool useFastMode);
@@ -56,10 +57,10 @@ private:
 	bool asHexFast(const QByteArray& fileData);
 
 	// Re-runs one of the text decoders above over the file already open, keeping the scroll position: the same content, read differently
-	void redecodeCurrentFile(bool (CTextViewerWindow::*decoder)(const QByteArray&, bool));
-	void renderCurrentFile(bool (CTextViewerWindow::*renderer)(const QByteArray&));
+	void redecodeCurrentFile(bool (CTextViewer::*decoder)(const QByteArray&, bool));
+	void renderCurrentFile(bool (CTextViewer::*renderer)(const QByteArray&));
 
-	[[nodiscard]] std::optional<QByteArray> readFileAndReportErrors() const;
+	[[nodiscard]] std::optional<QByteArray> readSourceOrShowError();
 	[[nodiscard]] std::optional<CTextEncodingDetector::DecodedText> decodeUnicodeText(const QByteArray& textData);
 
 	[[nodiscard]] bool readSource(QByteArray& data) const;
@@ -106,7 +107,7 @@ private:
 
 	std::unique_ptr<CPlainTextEditWithLineNumbers> _sourceView;
 	std::unique_ptr<QTextEdit> _richView;
-	QVBoxLayout* _centralLayout = nullptr; // The live viewer above _findBar
+	QVBoxLayout* _layout = nullptr; // The live viewer above _findBar and the status bar
 	CFindBar* _findBar = nullptr;
 	QLabel* _encodingLabel = nullptr;
 	QLabel* _contentTypeLabel = nullptr;

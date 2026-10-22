@@ -37,18 +37,9 @@ public:
 	void loadPlugins();
 	[[nodiscard]] std::vector<PluginInfo> activePluginInfo() const;
 
-// Operations
-	void viewCurrentFile();
-	void viewCurrentFileInTextViewer();
-	CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> createViewerWindowForCurrentFile();
-
-private:
-	[[nodiscard]] QString currentItemPath() const;
-
+	// Null for an empty path and for a file no viewer accepts.
 	// An empty requiredCategory matches any viewer (auto-detect by file type, with the text viewer as fallback); a non-empty one restricts to viewers of that category().
-	CFileCommanderViewerPlugin* viewerForCurrentFile(const QString& requiredCategory);
-
-	static void showViewerWindow(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> window);
+	[[nodiscard]] CFileCommanderViewerPlugin* viewerForFile(const QString& path, const QString& requiredCategory = {}) const;
 
 private:
 	struct LoadedPlugin

@@ -12,6 +12,7 @@ owners. Filesystem and panel access goes through `CController`.
 | Panel tabs and visible-side state | `src/panel/cpanelwidget.{h,cpp,ui}` |
 | File-list view/model/delegate | `src/panel/filelistwidget/` |
 | Quick view | `src/panel/cpaneldisplaycontroller.{h,cpp}` |
+| Viewer windows (F3) | `src/viewerwindow/` |
 | Blocking shell operations: native delete, clipboard paste | `src/cshelloperationrunner.{h,cpp}` |
 | Command-line output panes | `src/commandoutput/`; see [process-launching.md](process-launching.md) |
 | Programs menu editor | `src/programseditor/`; see [process-launching.md](process-launching.md) |
@@ -27,9 +28,10 @@ timer drains controller and panel execution queues.
 
 After the application event loop and native shell operations finish, `main()` explicitly shuts down the controller
 while the window and plugin modules remain alive. Stack declaration order then destroys the window, plugin engine,
-controller, shell runner, and application in that order. This releases plugin-defined windows before their modules.
-During engine teardown, each plugin's proxy retires its tagged work before the plugin instance is destroyed and its
-module is unloaded; the controller remains alive throughout that sequence.
+controller, shell runner, and application in that order. The main window destroys the viewer windows still open, so
+no plugin-made widget outlives the engine.
+During engine teardown, each plugin's proxy retires its tagged work before the plugin instance is destroyed; the
+controller remains alive throughout that sequence.
 
 ## Panel widget and file-list MVC
 
@@ -65,7 +67,9 @@ user intent even when the directory does not yet exist.
 
 The dialogs it opens are described in `file-operations/doc/architecture.md`.
 
-## Quick view and plugins
+## Viewers
 
-`CPanelDisplayController` switches between the normal panel and a plugin window. It retains the plugin-defined
-custom-deleter pointer so destruction occurs in the module that allocated the window. See [plugins.md](plugins.md).
+A viewer plugin supplies a `CFileViewer` widget; the app supplies the frame around it. `CViewerWindow` is the F3 frame.
+`CPanelDisplayController` is the quick-view frame: it swaps the viewer into the other panel's stack and, while the
+cursor stays on files of the same viewer plugin, loads each file into the viewer already there. `CMainWindow` tracks
+both kinds of frame so `closeViewedFilesWithin()` reaches every open viewer. See [plugins.md](plugins.md).

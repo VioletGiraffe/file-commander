@@ -1,6 +1,6 @@
 #include "cimageviewerplugin.h"
 
-#include "cimageviewerwindow.h"
+#include "cimageviewer.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -19,13 +19,9 @@ bool CImageViewerPlugin::canViewFile(const QString& fileName, const QMimeType& t
 	return reader.canRead();
 }
 
-CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CImageViewerPlugin::viewFile(const QString& fileName)
+std::unique_ptr<CFileViewer> CImageViewerPlugin::createViewer()
 {
-	auto window = WindowPtr<CImageViewerWindow>::create(*_proxy);
-	if (!window->displayImage(fileName))
-		window.reset();
-
-	return window;
+	return std::make_unique<CImageViewer>(*_proxy);
 }
 
 QString CImageViewerPlugin::name() const

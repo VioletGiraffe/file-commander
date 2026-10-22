@@ -54,6 +54,7 @@ SOURCES += \
 	src/filessearchdialog/cfilessearchwindow.cpp \
 	src/aboutdialog/aboutdialog.cpp \
 	src/panel/cpaneldisplaycontroller.cpp \
+	src/viewerwindow/cviewerwindow.cpp \
 	src/tools/CFileStatsWindow.cpp \
 	src/tools/cfoldercomparisonwindow.cpp
 
@@ -84,7 +85,8 @@ HEADERS += \
 	src/tools/csortbydatatreeitem.h \
 	src/version.h \
 	src/aboutdialog/aboutdialog.h \
-	src/panel/cpaneldisplaycontroller.h
+	src/panel/cpaneldisplaycontroller.h \
+	src/viewerwindow/cviewerwindow.h
 
 FORMS += \
 	src/cmainwindow.ui \

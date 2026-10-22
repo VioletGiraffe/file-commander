@@ -9,10 +9,9 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>
-#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
-class CPluginWindow;
+class CFileViewer;
 class CPanelWidget;
 class QStackedWidget;
 
@@ -23,16 +22,18 @@ public:
 	void setPanelWidget(CPanelWidget* panelWidget);
 	[[nodiscard]] CPanelWidget* panelWidget() const;
 
-	void startQuickView(CFileCommanderViewerPlugin::WindowPtr<CPluginWindow>&& viewerWindow, QString filePath);
+	// Loads the file into the viewer in place when the same plugin made it, otherwise replaces the viewer
+	void showQuickView(CFileCommanderViewerPlugin& plugin, const QString& filePath);
 	void endQuickView();
-	[[nodiscard]] bool quickViewActive() const;
-	// Matches each path itself and, for a folder, everything under it.
-	void closeQuickViewedFileIfWithin(const QStringList& paths);
+	[[nodiscard]] bool quickViewActive() const { return _quickViewer != nullptr; }
+	// Null while quick view is off
+	[[nodiscard]] CFileViewer* quickViewer() const { return _quickViewer; }
+	[[nodiscard]] const QString& quickViewFilePath() const { return _quickViewFilePath; }
 
 private:
 	QStackedWidget* _panelStackedWidget = nullptr;
 	CPanelWidget* _panelWidget = nullptr;
-	CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> _quickViewWindow;
+	CFileCommanderViewerPlugin* _quickViewPlugin = nullptr; // The plugin that created _quickViewer
+	CFileViewer* _quickViewer = nullptr; // Owned by _panelStackedWidget
 	QString _quickViewFilePath;
-	bool _quickViewActive = false;
 };

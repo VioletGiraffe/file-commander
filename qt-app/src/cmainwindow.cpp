@@ -15,6 +15,7 @@
 #include "programseditor/userprogramsui.h"
 #include "tools/CFileStatsWindow.h"
 #include "tools/cfoldercomparisonwindow.h"
+#include "viewerwindow/cviewerwindow.h"
 #include "settings/csettingspageedit.h"
 #include "settings/csettingspageinterface.h"
 #include "settings/csettingspageoperations.h"
@@ -25,6 +26,7 @@
 
 #include "settings.h"
 #include "pluginengine/cpluginengine.h"
+#include "plugininterface/cfileviewer.h"
 #include "shell/cshell.h"
 #include "shell/cshellcommand.h"
 #include "filesystemhelperfunctions.h"
@@ -81,6 +83,7 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include <utility>
 
 // Main window settings keys
 #define KEY_SPLITTER_SIZES    QSL("Ui/Splitter")
@@ -176,9 +179,9 @@ CMainWindow::~CMainWindow() noexcept
 	_uiThreadTimer->disconnect();
 	_historyAutosaveTimer->disconnect();
 
-	// endQuickView() re-parents the viewer's central widget back into its own window, so `ui` must still be alive.
-	_leftPanelDisplayController.endQuickView();
-	_rightPanelDisplayController.endQuickView();
+	// Viewers are plugin code: they must not outlive the plugin engine, which main() destroys after this window
+	for (CViewerWindow* window : std::exchange(_viewerWindows, {}))
+		delete window;
 
 	_instance = nullptr;
 	delete ui;
@@ -370,7 +373,7 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 	}
 
 	if (kind == TransferKind::Move)
-		closeQuickViewedFileIfWithin(sourcePaths);
+		closeViewedFilesWithin(sourcePaths);
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
 	registerFileOperationDialog(dialog);
@@ -378,11 +381,27 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 	return true;
 }
 
-void CMainWindow::closeQuickViewedFileIfWithin(const QStringList& paths)
+void CMainWindow::closeViewedFilesWithin(const QStringList& paths)
 {
+	const auto affected = [&paths](const QString& filePath) {
+		// A folder's path ends with a separator
+		return std::any_of(paths.cbegin(), paths.cend(), [&filePath](const QString& path) {
+			return filePath == path || (path.endsWith('/') && filePath.startsWith(path));
+		});
+	};
+
 	// Quick view stays on its side when the active panel switches, so either side may host it
-	_leftPanelDisplayController.closeQuickViewedFileIfWithin(paths);
-	_rightPanelDisplayController.closeQuickViewedFileIfWithin(paths);
+	for (const CPanelDisplayController* controller : { &_leftPanelDisplayController, &_rightPanelDisplayController })
+	{
+		if (controller->quickViewActive() && affected(controller->quickViewFilePath()))
+			controller->quickViewer()->closeFile();
+	}
+
+	for (CViewerWindow* window : _viewerWindows)
+	{
+		if (affected(window->filePath()))
+			window->viewer().closeFile();
+	}
 }
 
 QPoint CMainWindow::nextBackgroundDialogPosition(const QSize dialogFrameSize) const
@@ -638,7 +657,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 			paths.emplace_back(toNativeSeparators(path).toStdWString());
 
 		// Precedes the shell's confirmation: that runs on a worker thread
-		closeQuickViewedFileIfWithin(sourcePaths);
+		closeViewedFilesWithin(sourcePaths);
 
 #ifdef _WIN32
 		auto* windowHandle = WidgetUtils::nativeOwnerWinId(this);
@@ -667,7 +686,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 		return;
 	}
 
-	closeQuickViewedFileIfWithin(sourcePaths);
+	closeViewedFilesWithin(sourcePaths);
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
 	registerFileOperationDialog(dialog);
@@ -746,12 +765,12 @@ void CMainWindow::invertSelection()
 // Other UI commands
 void CMainWindow::viewFile()
 {
-	_pluginEngine.viewCurrentFile();
+	openViewerWindow({});
 }
 
 void CMainWindow::viewFileInTextViewer()
 {
-	_pluginEngine.viewCurrentFileInTextViewer();
+	openViewerWindow(ViewerCategory::Text);
 }
 
 void CMainWindow::editFile()
@@ -782,7 +801,7 @@ void CMainWindow::editFile()
 			return;
 	}
 
-	const QString currentFile = _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath() : QString();
+	const QString currentFile = currentItemPath();
 	if (!currentFile.isEmpty())
 	{
 #ifdef __APPLE__
@@ -1302,9 +1321,34 @@ bool CMainWindow::fileListReturnPressed()
 	return executeCommand(ui->_commandLine->currentText());
 }
 
+QString CMainWindow::currentItemPath() const
+{
+	return _currentFileList ? _controller->itemByHash(_currentFileList->panelPosition(), _currentFileList->currentItemHash()).fullAbsolutePath() : QString{};
+}
+
+void CMainWindow::openViewerWindow(const QString& requiredCategory)
+{
+	const QString path = currentItemPath();
+	CFileCommanderViewerPlugin* plugin = _pluginEngine.viewerForFile(path, requiredCategory);
+	if (!plugin)
+		return;
+
+	auto* window = new CViewerWindow(plugin->createViewer(), plugin->category());
+	_viewerWindows.push_back(window);
+	connect(window, &QObject::destroyed, this, [this, window] { std::erase(_viewerWindows, window); });
+
+	window->loadFile(path);
+	window->showNormal();
+	window->activateWindow();
+	window->raise();
+}
+
 void CMainWindow::quickViewCurrentFile()
 {
-	otherPanelDisplayController().startQuickView(_pluginEngine.createViewerWindowForCurrentFile(), _controller->currentItem().fullAbsolutePath());
+	// No viewer for the item (a folder, say): the previous file stays on display
+	const QString path = currentItemPath();
+	if (CFileCommanderViewerPlugin* plugin = _pluginEngine.viewerForFile(path))
+		otherPanelDisplayController().showQuickView(*plugin, path);
 }
 
 void CMainWindow::registerFileOperationDialog(CFileOperationDialog* dialog)

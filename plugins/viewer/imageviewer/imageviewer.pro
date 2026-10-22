@@ -29,11 +29,11 @@ include(../../../file-commander-core/core.pri)
 HEADERS += \
 	src/cimageinfodialog.h \
 	src/cimageviewerplugin.h \
-	src/cimageviewerwindow.h
+	src/cimageviewer.h
 
 SOURCES += \
 	src/cimageviewerplugin.cpp \
-	src/cimageviewerwindow.cpp
+	src/cimageviewer.cpp
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libimage-processing.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a

@@ -24,6 +24,7 @@ class CPanelWidget;
 class CFileOperationDialog;
 class CPluginEngine;
 class CShellOperationRunner;
+class CViewerWindow;
 enum class TransferKind; // fileoperations/fileoperationtypes.h
 class QShortcut;
 class QStackedWidget;
@@ -49,8 +50,8 @@ public:
 	// The transfer launch path (F5/F6, menu/toolbar, and drag-and-drop) over the operation engine: it converts
 	// the panel selection and edited destination into a typed request and drives one CFileOperationDialog.
 	bool launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory);
-	// Must precede deleting, moving or renaming these paths: a quick view may hold one of them open.
-	void closeQuickViewedFileIfWithin(const QStringList& paths);
+	// Must precede deleting, moving or renaming these paths: a viewer may hold one of them open.
+	void closeViewedFilesWithin(const QStringList& paths);
 
 	// Returns the position that a new dialog should move() to (top left)
 	[[nodiscard]] QPoint nextBackgroundDialogPosition(QSize dialogFrameSize) const;
@@ -152,7 +153,10 @@ private:
 	// For command line handling
 	bool fileListReturnPressed() override;
 
-	// Quick view
+	// Viewers
+	[[nodiscard]] QString currentItemPath() const;
+	// An empty requiredCategory picks the viewer by file type, see CPluginEngine::viewerForFile
+	void openViewerWindow(const QString& requiredCategory);
 	void quickViewCurrentFile();
 
 	// Other
@@ -186,6 +190,7 @@ private:
 	enum { NormalWindow, MaximizedWindow } _windowStateBeforeFullscreen = NormalWindow;
 
 	std::vector<CFileOperationDialog*> _activeFileOperationDialogs;
+	std::vector<CViewerWindow*> _viewerWindows; // Each deletes itself on close; the rest die with this window
 
 	std::vector<UserProgram> _userPrograms; // In Programs menu order
 

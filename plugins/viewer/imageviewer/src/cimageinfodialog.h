@@ -1,6 +1,6 @@
 #pragma once
 
-// Private to cimageviewerwindow.cpp: nothing else includes this header, so everything in it has internal linkage.
+// Private to cimageviewer.cpp: nothing else includes this header, so everything in it has internal linkage.
 
 #include "compiler/compiler_warnings_control.h"
 #include "utils/scoped_cursor.h"

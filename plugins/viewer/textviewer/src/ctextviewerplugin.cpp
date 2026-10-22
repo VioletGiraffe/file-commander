@@ -1,12 +1,11 @@
 #include "ctextviewerplugin.h"
 
-#include "ctextviewerwindow.h"
+#include "ctextviewer.h"
 #include "cfilesystemobject.h"
 
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
-#include "widgets/widgetutils.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -34,17 +33,9 @@ bool CTextViewerPlugin::canViewFile(const QString& fileName, const QMimeType& /*
 	return CFileSystemObject(fileName).isFile();
 }
 
-CFileCommanderViewerPlugin::WindowPtr<CPluginWindow> CTextViewerPlugin::viewFile(const QString& fileName)
+std::unique_ptr<CFileViewer> CTextViewerPlugin::createViewer()
 {
-	QMainWindow * mainWindow = WidgetUtils::findTopLevelWindow();
-
-	auto window = WindowPtr<CTextViewerWindow>::create(mainWindow); // Temporary workaround for https://bugreports.qt.io/browse/QTBUG-61213
-	if (!window->loadTextFile(fileName))
-	{
-		window.reset();
-	}
-
-	return window;
+	return std::make_unique<CTextViewer>();
 }
 
 QString CTextViewerPlugin::name() const
