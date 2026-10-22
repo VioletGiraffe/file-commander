@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792705640216,
+  "lastUpdate": 1792706262209,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -31000,6 +31000,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 414.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 21,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "eb8b718a06787d77a6da5ba708f5a4ea32bf4b7f",
+          "message": "Viewer plugins supply a CFileViewer widget, not a window; quick view reloads into the same viewer while the plugin stays the same\n\nThe app frames the widget itself (CViewerWindow for F3, the panel stack for quick view), so the frame tracks every open viewer: closeFile() now reaches F3 windows too, and ~CMainWindow deletes them before the engine is destroyed instead of leaving them to ~QApplication after the proxies are gone.\nLoad errors show inside the viewer; no viewer puts up a dialog. Dead workarounds removed with the old window class",
+          "timestamp": "2026-10-23T00:49:13+03:00",
+          "tree_id": "d492d3c9762ad381191f172207abae7a6a920ec4",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/eb8b718a06787d77a6da5ba708f5a4ea32bf4b7f"
+        },
+        "date": 1792706254293,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14709,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 30142,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1431,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2059.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 817.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 416.5,
             "unit": "KB"
           },
           {
