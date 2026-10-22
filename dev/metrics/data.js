@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792608582816,
+  "lastUpdate": 1792665879349,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -30748,6 +30748,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 403,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 37.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 19,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 9.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "a19aa1270bf3fb4f7f00ff2b9e5c1796c4cbc43b",
+          "message": "file-operations updated: CI skips the Linux exFAT tests while the runner kernel's linux-modules-extra package is missing from the archive",
+          "timestamp": "2026-10-22T13:35:41+03:00",
+          "tree_id": "c505bf2c88b1f0707993ce4f81bdc2ecb23f4830",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/a19aa1270bf3fb4f7f00ff2b9e5c1796c4cbc43b"
+        },
+        "date": 1792665876640,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14711,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 29219,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1369,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2057.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2136.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 773,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 404,
             "unit": "KB"
           },
           {
