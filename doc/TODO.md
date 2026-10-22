@@ -29,3 +29,10 @@ item there.
 
 Considered and rejected (not worth the complexity at this app's scale) - do not revisit unprompted:
 cooperative task-cancellation on tab close.
+
+## File operations
+
+- Conflict planning inspects each item under a merged destination folder individually (one to three stats per
+  item, repeated at execution). One directory listing per merged folder would replace the per-item stats.
+- Automatic bulk renaming in the conflict plan (`name (2).ext`), also the natural answer for same-name roots
+  selected from a flattened view, which planning leaves to a live prompt today.
