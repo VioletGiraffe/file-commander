@@ -41,4 +41,5 @@ SOURCES += \
 
 HEADERS += \
 	../../../file-operations/tests/fileoperationsui/fileoperationguitesthelpers.h \
+	../../../file-operations/tests/scriptedplananswers.h \
 	../../src/progressdialogs/fileoperationlaunch.h

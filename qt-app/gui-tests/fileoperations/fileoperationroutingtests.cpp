@@ -99,6 +99,7 @@ private:
 struct RoutingResult
 {
 	OperationSummary summary;
+	int plansPresented = 0;
 	int decisionRequestsPresented = 0;
 };
 
@@ -115,7 +116,7 @@ RoutingResult driveTransfer(const TransferKind kind, const QStringList& sourcePa
 	dialog.scriptedDecisions = std::move(decisions);
 	dialog.start();
 	REQUIRE(pumpUntil([&dialog] { return dialog.result().has_value(); }));
-	return { *dialog.result(), dialog.decisionRequestsPresented };
+	return { *dialog.result(), dialog.plansPresented, dialog.decisionRequestsPresented };
 }
 
 // The delete counterpart: builds the permanent-delete request as performDeletion's InternalJob branch does.
@@ -128,7 +129,7 @@ RoutingResult driveDelete(const QStringList& sourcePaths, std::vector<Decision> 
 	dialog.scriptedDecisions = std::move(decisions);
 	dialog.start();
 	REQUIRE(pumpUntil([&dialog] { return dialog.result().has_value(); }));
-	return { *dialog.result(), dialog.decisionRequestsPresented };
+	return { *dialog.result(), dialog.plansPresented, dialog.decisionRequestsPresented };
 }
 
 } // namespace
@@ -225,11 +226,12 @@ TEST_CASE("routing gate: an exact-target copy onto an existing file replaces it 
 	sandbox.makeFile("src.bin", 700);
 	sandbox.makeFile("dest/old.bin", 40);
 
-	// The destination text is an existing file, so ExactEntry is chosen and the collision prompts FileReplacement.
+	// The destination text is an existing file, so ExactEntry is chosen and the collision is a FileReplacement row.
 	const auto result = driveTransfer(TransferKind::Copy, { sandbox.path("src.bin") }, sandbox.path("dest/old.bin"),
 		{ Decision{ DecisionAction::Replace, DecisionScope::ThisItem, {} } });
 	CHECK(result.summary.status == CompletionStatus::Completed);
-	CHECK(result.decisionRequestsPresented == 1);
+	CHECK(result.plansPresented == 1);
+	CHECK(result.decisionRequestsPresented == 0);
 	CHECK(readFile(sandbox.path("dest/old.bin")) == blob(700));
 }
 
@@ -250,7 +252,7 @@ TEST_CASE("routing gate: a file colliding with a directory is a type mismatch an
 	CHECK(QFile::exists(sandbox.path("src.bin")));
 }
 
-TEST_CASE("routing gate: a remembered replace decision covers later collisions without re-prompting", "[routing]")
+TEST_CASE("routing gate: one replace for all matching rows resolves every collision in one plan", "[routing]")
 {
 	RoutingSandbox sandbox;
 	sandbox.makeFile("a.bin", 111);
@@ -259,11 +261,11 @@ TEST_CASE("routing gate: a remembered replace decision covers later collisions w
 	sandbox.makeFile("dest/a.bin", 1);
 	sandbox.makeFile("dest/b.bin", 2);
 
-	// One Replace remembered for the remaining matching issues must resolve both collisions with a single prompt.
 	const auto result = driveTransfer(TransferKind::Copy, { sandbox.path("a.bin"), sandbox.path("b.bin") }, destDir,
 		{ Decision{ DecisionAction::Replace, DecisionScope::RemainingMatchingIssues, {} } });
 	CHECK(result.summary.status == CompletionStatus::Completed);
-	CHECK(result.decisionRequestsPresented == 1);
+	CHECK(result.plansPresented == 1);
+	CHECK(result.decisionRequestsPresented == 0);
 	CHECK(readFile(sandbox.path("dest/a.bin")) == blob(111));
 	CHECK(readFile(sandbox.path("dest/b.bin")) == blob(222));
 }
