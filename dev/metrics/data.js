@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792965518799,
+  "lastUpdate": 1792971414319,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -31583,6 +31583,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 828.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 420,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "12e5110a8ed21c45755f0e03b9df3a87216802d0",
+          "message": "qtutils updated: history combo boxes no longer activate on Enter twice, or on arrow keys and the wheel",
+          "timestamp": "2026-10-26T01:29:55+02:00",
+          "tree_id": "302fb62ce3fc6d41e9a4b61732b8f84edc7d4989",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/12e5110a8ed21c45755f0e03b9df3a87216802d0"
+        },
+        "date": 1792971410205,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14705,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 30550,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1449.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2059,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 829,
             "unit": "KB"
           },
           {
