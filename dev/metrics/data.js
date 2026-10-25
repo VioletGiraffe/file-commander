@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792952439111,
+  "lastUpdate": 1792965518799,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -31474,6 +31474,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (libs)",
             "value": 30504,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1449,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 2059,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 828.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 420,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 40.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 23.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "0e8d3029bada862579271abfd3dad70f233f8d9d",
+          "message": "History combo boxes record only accepted entries: commands when run, search fields when a search starts; the panel path navigator keeps only its controller-filled list",
+          "timestamp": "2026-10-25T23:51:09+02:00",
+          "tree_id": "3ecd8b82860166714a270f7d964ecaabfe156fe1",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/0e8d3029bada862579271abfd3dad70f233f8d9d"
+        },
+        "date": 1792965516013,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14705,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 30492,
             "unit": "LOC"
           },
           {
