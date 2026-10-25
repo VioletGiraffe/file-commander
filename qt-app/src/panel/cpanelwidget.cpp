@@ -154,7 +154,6 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	completer->setCompletionMode(QCompleter::PopupCompletion);
 	completer->setFilterMode(Qt::MatchContains);
 
-	ui->_pathNavigator->setHistoryMode(true);
 	ui->_pathNavigator->installEventFilter(this);
 	assert_r(connect(ui->_pathNavigator, &CHistoryComboBox::textActivated, this, &CPanelWidget::pathFromHistoryActivated));
 	assert_r(connect(ui->_pathNavigator, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated));

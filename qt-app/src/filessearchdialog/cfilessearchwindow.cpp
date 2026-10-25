@@ -59,14 +59,10 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
-	ui->nameToFind->setHistoryMode(true);
-	ui->fileContentsToFind->setHistoryMode(true);
-	ui->searchRoot->setHistoryMode(true);
-
-	ui->nameToFind->enableAutoSave(SETTINGS_NAME_TO_FIND);
-	ui->fileContentsToFind->enableAutoSave(SETTINGS_CONTENTS_TO_FIND);
+	ui->nameToFind->setSettingsKeyForHistoryPersistence(SETTINGS_NAME_TO_FIND);
+	ui->fileContentsToFind->setSettingsKeyForHistoryPersistence(SETTINGS_CONTENTS_TO_FIND);
 	ui->fileContentsToFind->lineEdit()->clear(); // A prefilled pattern would silently restrict the search to files containing it
-	ui->searchRoot->enableAutoSave(SETTINGS_ROOT_FOLDER);
+	ui->searchRoot->setSettingsKeyForHistoryPersistence(SETTINGS_ROOT_FOLDER);
 
 	QString pathsToSearchIn;
 	for (size_t i = 0; i < targets.size(); ++i)
@@ -229,9 +225,9 @@ void CFilesSearchWindow::search()
 		this /* listener */)
 	)
 	{
-		ui->nameToFind->moveCurrentTextToTopOfHistory();
-		ui->fileContentsToFind->moveCurrentTextToTopOfHistory();
-		ui->searchRoot->moveCurrentTextToTopOfHistory();
+		ui->nameToFind->addToHistory(ui->nameToFind->currentText());
+		ui->fileContentsToFind->addToHistory(ui->fileContentsToFind->currentText());
+		ui->searchRoot->addToHistory(ui->searchRoot->currentText());
 
 		ui->btnSearch->setText(tr("Stop"));
 		ui->resultsList->clear();

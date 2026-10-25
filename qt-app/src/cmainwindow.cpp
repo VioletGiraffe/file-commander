@@ -197,7 +197,7 @@ void CMainWindow::updateInterface()
 	QSettings s;
 	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
 
-	ui->_commandLine->enableAutoSave(KEY_LAST_COMMANDS_EXECUTED);
+	ui->_commandLine->setSettingsKeyForHistoryPersistence(KEY_LAST_COMMANDS_EXECUTED);
 	ui->_commandLine->lineEdit()->clear();
 
 	show();
@@ -892,6 +892,7 @@ bool CMainWindow::executeCommand(const QString& commandLineText)
 	if (!_currentFileList || commandLineText.isEmpty())
 		return false;
 
+	ui->_commandLine->addToHistory(commandLineText);
 	runCommandLine(commandLineText, _currentFileList->currentDirPathNative());
 	clearCommandLineAndRestoreFocus();
 
@@ -1316,8 +1317,6 @@ bool CMainWindow::fileListReturnPressed()
 	if (!_currentFileList)
 		return false;
 
-	// Not activated through the command line, so its history is recorded here
-	ui->_commandLine->moveCurrentTextToTopOfHistory();
 	return executeCommand(ui->_commandLine->currentText());
 }
 
