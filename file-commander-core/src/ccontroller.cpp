@@ -11,6 +11,7 @@
 #include "assert/advanced_assert.h"
 #include "fileoperations/cfilesystemmutator.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
+#include "system/cpuinfo.hpp"
 #include "threading/thread_helpers.h"
 
 
@@ -97,7 +98,7 @@ CController::CController() :
 	_wcxHost.setWcxSearchPath(QApplication::applicationDirPath());
 
 	const auto cpu = CpuCount::get();
-	qInfo().nospace() << "CPU cores: " << cpu.performanceCoreCount() << "P+" << cpu.efficiencyCoreCount() << "E, " << cpu.logicalProcessorCount() << " logical, worker pool: " << _workerPool.maxWorkersCount();
+	qInfo().nospace().noquote() << "CPU: " << QString::fromStdString(cpuModelName()) << ", cores: " << cpu.performanceCoreCount() << "P+" << cpu.efficiencyCoreCount() << "E, " << cpu.logicalProcessorCount() << " logical, worker pool: " << _workerPool.maxWorkersCount();
 }
 
 CController::~CController()

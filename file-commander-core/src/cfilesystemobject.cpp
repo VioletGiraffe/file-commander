@@ -8,6 +8,7 @@
 #include "directoryscan/thinioqstring.h"
 #include "paths/pathsyntax.h"
 #include "qtcore_helpers/qstring_hash.hpp"
+#include "qt_paths.hpp" // thin_io
 
 
 DISABLE_COMPILER_WARNINGS
@@ -51,7 +52,7 @@ CFileSystemObject::CFileSystemObject(const QString& parentPath, const thin_io::d
 {
 	assert_debug_only(parentPath.endsWith('/'));
 
-	loadProperties(parentPath % nativeNameToQString(entry.name), entry);
+	loadProperties(parentPath % thin_io::to_qstring(entry.name), entry);
 }
 
 uint64_t pathHash(const QString& fullAbsolutePath)
