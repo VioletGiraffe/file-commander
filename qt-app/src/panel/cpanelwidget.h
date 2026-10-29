@@ -95,8 +95,8 @@ protected:
 	bool eventFilter(QObject * object , QEvent * e) override;
 
 private slots:
-	void showContextMenuForItems(QPoint pos);
-	void showContextMenuForDisk(QPoint pos);
+	void showContextMenuForItems();
+	void showContextMenuForDisk();
 	void showContextMenuForTab(QPoint pos);
 	void onSpacePressed();
 	void invertCurrentItemSelection();

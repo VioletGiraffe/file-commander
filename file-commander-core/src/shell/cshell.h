@@ -33,8 +33,8 @@ namespace OsShell
 	[[nodiscard]] std::expected<void, QString> runCommandLineDetached(const QString& commandLine, const QString& workingDir);
 #endif
 
-	// Pos must be global
-	bool openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow);
+	// Opens at the mouse cursor; `objects` must all be in one folder
+	void openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow);
 
 	bool copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
 	bool cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow);
@@ -47,7 +47,8 @@ namespace OsShell
 	bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
 #endif
 
-	bool recycleBinContextMenu(int xPos, int yPos, void * parentWindow);
+	// Opens at the mouse cursor
+	bool recycleBinContextMenu(void * parentWindow);
 
 	struct ProgramInvocation
 	{

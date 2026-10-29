@@ -225,7 +225,7 @@ void CFileListView::mouseReleaseEvent(QMouseEvent *event)
 			clearSelection(); // clearing selection if there wasn't any item under cursor
 
 		// Calling a context menu
-		emit contextMenuRequested(QCursor::pos()); // Getting global screen coordinates
+		emit contextMenuRequested();
 	}
 	else if (event->button() == Qt::LeftButton)
 	{

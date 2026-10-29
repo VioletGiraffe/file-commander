@@ -826,10 +826,9 @@ void CMainWindow::openTerminalInCurrentFolder(bool admin)
 		showLaunchError(this, tr("Failed to open a terminal"), opened.error());
 }
 
-void CMainWindow::showRecycleBInContextMenu(QPoint pos)
+void CMainWindow::showRecycleBInContextMenu()
 {
-	const QPoint globalPos = ui->btnDelete->mapToGlobal(pos) * ui->btnDelete->devicePixelRatioF(); // These coordinates are going directly into the system API so need to account for scaling that Qt tries to abstract away.
-	OsShell::recycleBinContextMenu(globalPos.x(), globalPos.y(), WidgetUtils::nativeOwnerWinId(this));
+	OsShell::recycleBinContextMenu(WidgetUtils::nativeOwnerWinId(this));
 }
 
 void CMainWindow::toggleQuickView()

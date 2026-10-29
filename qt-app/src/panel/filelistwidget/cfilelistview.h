@@ -80,7 +80,7 @@ public:
 	void logTimeToNextPaint(std::chrono::steady_clock::time_point start);
 
 signals:
-	void contextMenuRequested(QPoint pos);
+	void contextMenuRequested();
 	void ctrlEnterPressed();
 	void ctrlShiftEnterPressed();
 	void itemMiddleClicked(const QModelIndex& index);

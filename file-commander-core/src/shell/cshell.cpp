@@ -24,10 +24,13 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <filesystem>
+#include <functional>
 #include <string.h> // memset
 #include <vector>
 
 #ifdef _WIN32
+#include "system/shellcontextmenu.hpp" // cpputils
 #include "windows_path_win.hpp" // thin_io
 
 #include <Windows.h>
@@ -482,115 +485,31 @@ private:
 	PIDLIST_ABSOLUTE _idList;
 };
 
-class CItemIdArrayReleaser {
-public:
-	explicit CItemIdArrayReleaser(const std::vector<PIDLIST_ABSOLUTE>& idArray) : _array(idArray) {}
-	~CItemIdArrayReleaser() {
-		for (PIDLIST_ABSOLUTE item : _array)
-			CoTaskMemFree(item);
-	}
-
-	CItemIdArrayReleaser& operator=(const CItemIdArrayReleaser&) = delete;
-private:
-	const std::vector<PIDLIST_ABSOLUTE>& _array;
-};
-
 } // namespace
 
-static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void* parentWindow, HMENU& hmenu, ComPtr<IContextMenu>& imenu);
-
-// Pos must be global
-
-bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, int xPos, int yPos, void * parentWindow)
+void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& objects, void * parentWindow)
 {
-	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
-
-	ComPtr<IContextMenu> imenu;
-	HMENU hMenu = nullptr;
-	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
-		return false;
-
-	const int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, reinterpret_cast<HWND>(parentWindow), nullptr);
-	if (iCmd > 0)
-	{
-		CMINVOKECOMMANDINFO info;
-		::memset(&info, 0, sizeof(info));
-		info.cbSize = sizeof(info);
-		info.hwnd = reinterpret_cast<HWND>(parentWindow);
-		info.lpVerb  = MAKEINTRESOURCEA(iCmd - 1);
-		info.nShow = SW_SHOWNORMAL;
-		imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
-	}
-
-	DestroyMenu(hMenu);
-
-	return true;
+	POINT cursor{};
+	::GetCursorPos(&cursor);
+	const RECT atCursor{ cursor.x, cursor.y, cursor.x, cursor.y };
+	const std::vector<std::filesystem::path> paths(objects.cbegin(), objects.cend());
+	if (const std::function<void()> runVerb = pickShellContextMenuVerb(paths, reinterpret_cast<HWND>(parentWindow), atCursor))
+		runVerb();
 }
 
 bool OsShell::copyObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
 {
-	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
-
-	ComPtr<IContextMenu> imenu;
-	HMENU hMenu = nullptr;
-	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
-		return false;
-
-	CMINVOKECOMMANDINFO info;
-	::memset(&info, 0, sizeof(info));
-	info.cbSize = sizeof(info);
-	info.hwnd = reinterpret_cast<HWND>(parentWindow);
-	info.lpVerb = "Copy";
-	info.nShow = SW_SHOWNORMAL;
-	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);
-
-	DestroyMenu(hMenu);
-
-	return SUCCEEDED(result);
+	return invokeShellVerb(std::vector<std::filesystem::path>(objects.cbegin(), objects.cend()), reinterpret_cast<HWND>(parentWindow), "Copy");
 }
 
 bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, void * parentWindow)
 {
-	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
-
-	ComPtr<IContextMenu> imenu;
-	HMENU hMenu = nullptr;
-	if (!prepareContextMenuForObjects(objects, parentWindow, hMenu, imenu) || !hMenu || !imenu)
-		return false;
-
-	CMINVOKECOMMANDINFO info;
-	::memset(&info, 0, sizeof(info));
-	info.cbSize = sizeof(info);
-	info.hwnd = reinterpret_cast<HWND>(parentWindow);
-	info.lpVerb = "Cut";
-	info.nShow = SW_SHOWNORMAL;
-	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO) &info);
-
-	DestroyMenu(hMenu);
-
-	return SUCCEEDED(result);
+	return invokeShellVerb(std::vector<std::filesystem::path>(objects.cbegin(), objects.cend()), reinterpret_cast<HWND>(parentWindow), "Cut");
 }
 
 bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * parentWindow)
 {
-	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
-
-	ComPtr<IContextMenu> imenu;
-	HMENU hMenu = nullptr;
-	if (!prepareContextMenuForObjects(std::vector<std::wstring>{std::move(destFolder)}, parentWindow, hMenu, imenu) || !hMenu || !imenu)
-		return false;
-
-	CMINVOKECOMMANDINFO info;
-	::memset(&info, 0, sizeof(info));
-	info.cbSize = sizeof(info);
-	info.hwnd = reinterpret_cast<HWND>(parentWindow);
-	info.lpVerb = "Paste";
-	info.nShow = SW_SHOWNORMAL;
-	const auto result = imenu->InvokeCommand((LPCMINVOKECOMMANDINFO) &info);
-
-	DestroyMenu(hMenu);
-
-	return SUCCEEDED(result);
+	return invokeShellVerb({ std::filesystem::path{ std::move(destFolder) } }, reinterpret_cast<HWND>(parentWindow), "Paste");
 }
 
 std::wstring OsShell::toolTip(std::wstring itemPath)
@@ -707,7 +626,7 @@ bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTra
 	return SUCCEEDED(result);
 }
 
-bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
+bool OsShell::recycleBinContextMenu(void *parentWindow)
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
 
@@ -733,7 +652,9 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 		return false;
 	if (SUCCEEDED(imenu->QueryContextMenu(hMenu, 0, 1, 0x7FFF, CMF_NORMAL)))
 	{
-		int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, xPos, yPos, reinterpret_cast<HWND>(parentWindow), nullptr);
+		POINT cursor{};
+		::GetCursorPos(&cursor);
+		int iCmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD, cursor.x, cursor.y, reinterpret_cast<HWND>(parentWindow), nullptr);
 		if (iCmd > 0)
 		{
 			CMINVOKECOMMANDINFOEX info;
@@ -752,66 +673,10 @@ bool OsShell::recycleBinContextMenu(int xPos, int yPos, void *parentWindow)
 	return true;
 }
 
-static bool prepareContextMenuForObjects(std::vector<std::wstring> objects, void * parentWindow, HMENU& hmenu, ComPtr<IContextMenu>& imenu)
-{
-	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);
-
-	if (objects.empty())
-		return false;
-
-	std::vector<PIDLIST_ABSOLUTE> ids;
-	std::vector<PCIDLIST_ABSOLUTE> relativeIds;
-	ComPtr<IShellFolder> ifolder;
-	for (size_t i = 0, nItems = objects.size(); i < nItems; ++i)
-	{
-		auto& item = objects[i];
-		std::replace(item.begin(), item.end(), '/', '\\');
-		//item.pop_back(); // TODO: ???
-		ids.emplace_back(nullptr);
-		HRESULT result = SHParseDisplayName(item.c_str(), nullptr, &ids.back(), 0, nullptr); // TODO: avoid c_str() somehow?
-		if (!SUCCEEDED(result) || !ids.back())
-		{
-			ids.pop_back();
-			continue;
-		}
-
-		relativeIds.emplace_back(nullptr);
-		result = SHBindToParent(ids.back(), IID_IShellFolder, reinterpret_cast<void**>(ifolder.ReleaseAndGetAddressOf()), &relativeIds.back());
-		if (!SUCCEEDED(result) || !relativeIds.back())
-			relativeIds.pop_back();
-		else if (i < nItems - 1)
-			ifolder.Reset();
-	}
-
-	CItemIdArrayReleaser arrayReleaser(ids);
-
-	assert_r(parentWindow);
-	assert_and_return_message_r(ifolder, "Error getting ifolder", false);
-	assert_and_return_message_r(!relativeIds.empty(), "RelativeIds is empty", false);
-
-	const HRESULT result = ifolder->GetUIObjectOf(
-		reinterpret_cast<HWND>(parentWindow),
-		(UINT)relativeIds.size(),
-		reinterpret_cast<const ITEMIDLIST **>(relativeIds.data()),
-		IID_IContextMenu,
-		nullptr,
-		reinterpret_cast<void**>(imenu.ReleaseAndGetAddressOf())
-	);
-
-	if (!SUCCEEDED(result) || !imenu)
-		return false;
-
-	hmenu = CreatePopupMenu();
-	if (!hmenu)
-		return false;
-	return (SUCCEEDED(imenu->QueryContextMenu(hmenu, 0, 1, 0x7FFF, CMF_NORMAL)));
-}
-
 #elif defined __linux__ || defined __FreeBSD__
 
-bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
+void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, void * /*parentWindow*/)
 {
-	return false;
 }
 
 std::wstring OsShell::toolTip(std::wstring /*itemPath*/)
@@ -819,16 +684,15 @@ std::wstring OsShell::toolTip(std::wstring /*itemPath*/)
 	return std::wstring();
 }
 
-bool OsShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
+bool OsShell::recycleBinContextMenu(void * /*parentWindow*/)
 {
 	return true;
 }
 
 #elif defined __APPLE__
 
-bool OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, int /*xPos*/, int /*yPos*/, void * /*parentWindow*/)
+void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, void * /*parentWindow*/)
 {
-	return false;
 }
 
 std::wstring OsShell::toolTip(std::wstring /*itemPath*/)
@@ -836,7 +700,7 @@ std::wstring OsShell::toolTip(std::wstring /*itemPath*/)
 	return std::wstring();
 }
 
-bool OsShell::recycleBinContextMenu(int /*xPos*/, int /*yPos*/, void */*parentWindow*/)
+bool OsShell::recycleBinContextMenu(void */*parentWindow*/)
 {
 	return true;
 }

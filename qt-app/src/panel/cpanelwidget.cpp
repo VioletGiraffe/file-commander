@@ -825,7 +825,7 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 		ui->_list->logTimeToNextPaint(fillStart);
 }
 
-void CPanelWidget::showContextMenuForItems(QPoint pos)
+void CPanelWidget::showContextMenuForItems()
 {
 	const auto selection = selectedItemsHashes(true);
 	std::vector<std::wstring> paths;
@@ -841,23 +841,21 @@ void CPanelWidget::showContextMenuForItems(QPoint pos)
 			return;
 	}
 
-	pos *= ui->_list->devicePixelRatioF();
-	OsShell::openShellContextMenuForObjects(paths, pos.x(), pos.y(), WidgetUtils::nativeOwnerWinId(this));
+	OsShell::openShellContextMenuForObjects(paths, WidgetUtils::nativeOwnerWinId(this));
 }
 
-void CPanelWidget::showContextMenuForDisk([[maybe_unused]] QPoint pos)
+void CPanelWidget::showContextMenuForDisk()
 {
 #ifdef _WIN32
 	const auto* button = dynamic_cast<const QPushButton*>(sender());
 	if (!button)
 		return;
 
-	pos = button->mapToGlobal(pos) * button->devicePixelRatioF(); // These coordinates are going directly into the system API so need to account for scaling that Qt tries to abstract away.
 	const uint64_t diskId = button->property("id").toULongLong();
 	const auto volumeInfo = _controller->volumeInfoById(diskId);
 	assert_and_return_r(volumeInfo, );
 	std::vector<std::wstring> diskPath(1, volumeInfo->rootObjectInfo.fullAbsolutePath().toStdWString());
-	OsShell::openShellContextMenuForObjects(diskPath, pos.x(), pos.y(), WidgetUtils::nativeOwnerWinId(this));
+	OsShell::openShellContextMenuForObjects(diskPath, WidgetUtils::nativeOwnerWinId(this));
 #endif
 }
 
@@ -1393,7 +1391,7 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 {
 	if (object == ui->_list && e->type() == QEvent::ContextMenu)
 	{
-		showContextMenuForItems(QCursor::pos()); // QCursor::pos() returns global pos
+		showContextMenuForItems();
 		return true;
 	}
 	else if(object == ui->_list->viewport() && e->type() == QEvent::Wheel)

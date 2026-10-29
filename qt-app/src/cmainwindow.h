@@ -89,7 +89,7 @@ private:
 	void viewFileInTextViewer();
 	void editFile();
 	void openTerminalInCurrentFolder(bool admin);
-	void showRecycleBInContextMenu(QPoint pos);
+	void showRecycleBInContextMenu();
 	// Swaps the bottom command buttons' captions between their normal and Shift-modified variants
 	void setShiftCaptions(bool shifted);
 	[[nodiscard]] static bool shiftKeyHeld();
