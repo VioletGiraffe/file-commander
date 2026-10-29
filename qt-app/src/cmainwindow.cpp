@@ -32,6 +32,7 @@
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
+#include "iconprovider/ciconprovider.h"
 
 
 // Submodule includes
@@ -92,7 +93,7 @@ RESTORE_COMPILER_WARNINGS
 CMainWindow * CMainWindow::_instance = nullptr;
 
 #ifdef _WIN32
-static constexpr UINT ShellAssociationsChangedMessage = WM_APP + 1;
+static constexpr UINT ShellChangeNotificationMessage = WM_APP + 1;
 #endif
 
 #if defined _WIN32 || defined __APPLE__
@@ -481,12 +482,32 @@ bool CMainWindow::terminateRunningCommandsForExit()
 void CMainWindow::changeEvent(QEvent *e)
 {
 	if (e->type() == QEvent::ThemeChange)
-		_controller->themeChanged();
+		_controller->iconProvider().invalidateCache();
 
 	QMainWindow::changeEvent(e);
 }
 
 #ifdef _WIN32
+
+static void handleShellChangeNotification(CIconProvider& iconProvider, const WPARAM wParam, const LPARAM lParam)
+{
+	PIDLIST_ABSOLUTE* pidls = nullptr;
+	LONG event = 0;
+	const HANDLE lock = ::SHChangeNotification_Lock(reinterpret_cast<HANDLE>(wParam), static_cast<DWORD>(lParam), &pidls, &event);
+	assert_and_return_r(lock, );
+
+	if (event == SHCNE_ASSOCCHANGED)
+		iconProvider.invalidateCache();
+	else if (pidls && pidls[0]) // The first PIDL is the item; only rename events, not registered here, fill the second
+	{
+		constexpr DWORD pathCapacity = 32768;
+		WCHAR path[pathCapacity];
+		if (::SHGetPathFromIDListEx(pidls[0], path, pathCapacity, GPFIDL_DEFAULT))
+			iconProvider.markIconStale(toPosixSeparators(QString::fromWCharArray(path)));
+	}
+
+	::SHChangeNotification_Unlock(lock);
+}
 
 void CMainWindow::showEvent(QShowEvent *e)
 {
@@ -495,20 +516,22 @@ void CMainWindow::showEvent(QShowEvent *e)
 	if (_shellNotificationId != 0)
 		return;
 
-	// Null pidl with fRecursive: SHCNE_ASSOCCHANGED is global, not tied to a folder.
+	// Null pidl with fRecursive: the whole namespace. An item update can concern any cached path.
 	SHChangeNotifyEntry entry{};
 	entry.fRecursive = TRUE;
 
-	// Not SHCNRF_NewDelivery: it delivers the payload in shared memory the receiver must lock and release, and
-	// nothing here reads the payload.
-	_shellNotificationId = ::SHChangeNotifyRegister(reinterpret_cast<HWND>(winId()), SHCNRF_ShellLevel, SHCNE_ASSOCCHANGED, ShellAssociationsChangedMessage, 1, &entry);
+	// UPDATEITEM is what overlay handlers send; UPDATEDIR and ATTRIBUTES cover a folder's own icon and attribute-driven overlays.
+	constexpr LONG events = SHCNE_ASSOCCHANGED | SHCNE_UPDATEITEM | SHCNE_UPDATEDIR | SHCNE_ATTRIBUTES;
+	// SHCNRF_NewDelivery: the PIDLs arrive in shared memory, mapped by SHChangeNotification_Lock. Without it they are
+	// pointers into the sender's process.
+	_shellNotificationId = ::SHChangeNotifyRegister(reinterpret_cast<HWND>(winId()), SHCNRF_ShellLevel | SHCNRF_NewDelivery, events, ShellChangeNotificationMessage, 1, &entry);
 	assert_r(_shellNotificationId != 0);
 }
 
 bool CMainWindow::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
 {
-	if (static_cast<MSG*>(message)->message == ShellAssociationsChangedMessage)
-		_controller->fileAssociationsChanged();
+	if (const MSG* msg = static_cast<const MSG*>(message); msg->message == ShellChangeNotificationMessage)
+		handleShellChangeNotification(_controller->iconProvider(), msg->wParam, msg->lParam);
 
 	return QMainWindow::nativeEvent(eventType, message, result);
 }

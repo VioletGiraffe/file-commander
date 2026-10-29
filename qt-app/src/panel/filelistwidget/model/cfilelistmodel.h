@@ -72,10 +72,10 @@ public:
 	// Totals over every row, the hidden ones included
 	[[nodiscard]] const FolderContentsSummary& contentsSummary() const noexcept;
 
-	// Repaints the rows whose precise icon has just been retrieved. Hashes of rows not shown are ignored.
-	void onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes);
+	// Repaints the rows whose icon changed. Hashes of rows not shown are ignored.
+	void onIconsChanged(const std::vector<qulonglong>& objectHashes);
 	// Repaints every icon after the provider dropped its cache.
-	void onAllIconsInvalidated();
+	void onAllIconsChanged();
 
 	[[nodiscard]] QModelIndex index(int row, int column, const QModelIndex& parent = {}) const override;
 	[[nodiscard]] QModelIndex parent(const QModelIndex& child) const override;

@@ -60,7 +60,7 @@ protected:
 	void closeEvent(QCloseEvent * e) override;
 	void changeEvent(QEvent * e) override;
 #ifdef _WIN32
-	// Registers for, and then receives, the shell's file-association-change notification.
+	// Registers for, and then receives, the shell change notifications the icon cache depends on.
 	void showEvent(QShowEvent * e) override;
 	bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override;
 #endif

@@ -264,10 +264,20 @@ void CController::uiThreadTimerTick()
 	_uiQueue.exec(CExecutionQueue::execAll);
 }
 
-// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
 void CController::refreshPanelContents(Panel p)
 {
-	panel(p).refreshFileList(refreshCauseOther);
+	CPanel& refreshedPanel = panel(p);
+
+	// markIconsStale runs after readCommittedContents returns: it calls the listeners, which must not run under the panel lock.
+	std::vector<QString> paths;
+	refreshedPanel.readCommittedContents([&paths](const QString& /*folder*/, const FileListHashMap& contents) {
+		paths.reserve(contents.size());
+		for (const auto& entry : contents)
+			paths.push_back(entry.second.fullAbsolutePath());
+	});
+	_iconProvider.markIconsStale(paths);
+
+	refreshedPanel.refreshFileList(refreshCauseOther);
 }
 
 CPanel& CController::createTab(Panel p, qulonglong id)
@@ -684,16 +694,6 @@ std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVo
 void CController::settingsChanged()
 {
 	_iconProvider.settingsChanged();
-}
-
-void CController::themeChanged()
-{
-	_iconProvider.invalidateCache();
-}
-
-void CController::fileAssociationsChanged()
-{
-	_iconProvider.invalidateCache();
 }
 
 void CController::activePanelChanged(Panel p)

@@ -64,7 +64,8 @@ public:
 	// shutdown(), so a session that ends without unwinding (kill, power loss, debugger stop) doesn't lose the log.
 	void saveHistory();
 
-	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI
+	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI.
+	// The icons are refetched too, for overlay changes the shell never reported.
 	void refreshPanelContents(Panel p);
 	// Tab management. A tab is an independent CPanel; panel(p) returns the active tab's CPanel for side p.
 	// Tabs are identified by tab ID, not by position: the underlying tab list may be reordered/resized freely
@@ -96,10 +97,6 @@ public:
 	std::pair<bool /*success*/, QString/*volume root path*/> switchToVolume(Panel p, uint64_t id);
 	// Program settings have changed
 	void settingsChanged();
-	// The system theme has changed, which the shell draws its icons for
-	void themeChanged();
-	// The file type associations have changed, so the shell now answers with different icons
-	void fileAssociationsChanged();
 	// Focus is set to a panel
 	void activePanelChanged(Panel p);
 	// Visible selection is UI-owned; mirror it into the plugin-facing panel snapshot.

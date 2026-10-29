@@ -16,6 +16,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QPixmap>
 #include <QScreen>
 #include <QSettings>
+#include <QVarLengthArray>
 RESTORE_COMPILER_WARNINGS
 
 #include <string>
@@ -24,6 +25,26 @@ RESTORE_COMPILER_WARNINGS
 // A flat cap with a wholesale flush: telling the entries worth keeping from the rest would cost more than
 // re-reading the few that get asked for again. 32k entries is well under a megabyte.
 static constexpr size_t maxCachedObjects = 32768;
+
+// The key a path's icon is cached under.
+// Windows: case-folded, and a folder's trailing separator dropped, so a path the shell reports matches the listing's.
+// Elsewhere: the plain path hash, the same as CFileSystemObject::hash().
+[[nodiscard]] static uint64_t iconCacheKey(QStringView fullAbsolutePath)
+{
+#ifdef _WIN32
+	if (fullAbsolutePath.endsWith(u'/'))
+		fullAbsolutePath.chop(1);
+
+	QVarLengthArray<char16_t, 512> folded;
+	folded.reserve(fullAbsolutePath.size());
+	for (const QChar c : fullAbsolutePath)
+		folded.push_back(c.toCaseFolded().unicode());
+
+	return QStringHash{}(QStringView{ folded.constData(), folded.size() });
+#else
+	return QStringHash{}(fullAbsolutePath);
+#endif
+}
 
 #ifdef _WIN32
 
@@ -121,29 +142,32 @@ QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
 	if (fullAbsolutePath.isEmpty())
 		return {};
 
-	if (QIcon cached = cachedPreciseIcon(object.hash(), object.modificationTime()); !cached.isNull())
-		return cached;
+	const uint64_t cacheKey = iconCacheKey(fullAbsolutePath);
+	if (CachedLookup cached = cachedPreciseIcon(cacheKey, object.modificationTime()); !cached.icon.isNull() && !cached.stale)
+		return cached.icon;
 
 	FetchedIcon fetched = fetchPreciseIcon(fullAbsolutePath);
 	if (fetched.icon.isNull())
 		return {};
 
 	QIcon icon = fetched.icon;
-	cachePreciseIcon(object.hash(), object.modificationTime(), std::move(fetched));
+	cachePreciseIcon(cacheKey, object.hash(), object.modificationTime(), std::move(fetched));
 	return icon;
 }
 
 QIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
 {
 #ifdef _WIN32
-	if (object.fullAbsolutePath().isEmpty())
+	const QString& fullAbsolutePath = object.fullAbsolutePath();
+	if (fullAbsolutePath.isEmpty())
 		return {};
 
-	if (QIcon cached = cachedPreciseIcon(object.hash(), object.modificationTime()); !cached.isNull())
-		return cached;
+	const uint64_t cacheKey = iconCacheKey(fullAbsolutePath);
+	CachedLookup cached = cachedPreciseIcon(cacheKey, object.modificationTime());
+	if (cached.icon.isNull() || cached.stale)
+		requestPreciseIcon(fullAbsolutePath, cacheKey, object.hash(), object.modificationTime());
 
-	requestPreciseIcon(object.fullAbsolutePath(), object.modificationTime(), object.hash());
-	return genericIconFor(object);
+	return cached.icon.isNull() ? genericIconFor(object) : cached.icon;
 #else
 	return preciseIconBlocking(object);
 #endif
@@ -172,14 +196,14 @@ void CIconProvider::settingsChanged()
 
 void CIconProvider::invalidateCache()
 {
-	_cachedIconByObjectHash.clear();
+	_cachedIconByPathKey.clear();
 	_iconByContentHash.clear();
 	_genericIconByExtension.clear();
 	_genericFolderIcon.reset();
 
 #ifdef _WIN32
 	++_requestGeneration;
-	_requestedObjects.clear();
+	_requestedKeys.clear();
 
 	{
 		std::lock_guard locker{ _queueMutex };
@@ -188,7 +212,24 @@ void CIconProvider::invalidateCache()
 	}
 #endif
 
-	_iconsChangedListeners.invokeCallback(&IconsChangedListener::onAllIconsInvalidated);
+	_iconsChangedListeners.invokeCallback(&IconsChangedListener::onAllIconsChanged);
+}
+
+void CIconProvider::markIconsStale(const std::span<const QString> fullAbsolutePaths)
+{
+	std::vector<qulonglong> changedObjects;
+	for (const QString& path : fullAbsolutePaths)
+	{
+		const auto cached = _cachedIconByPathKey.find(iconCacheKey(path));
+		if (cached == _cachedIconByPathKey.end() || cached->second.stale)
+			continue;
+
+		cached->second.stale = true;
+		changedObjects.push_back(cached->second.objectHash);
+	}
+
+	if (!changedObjects.empty())
+		_iconsChangedListeners.invokeCallback(&IconsChangedListener::onIconsChanged, changedObjects);
 }
 
 void CIconProvider::watchForAppearanceChanges()
@@ -263,44 +304,44 @@ CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const QString& fullAb
 #endif
 }
 
-QIcon CIconProvider::cachedPreciseIcon(const qulonglong objectHash, const time_t modificationTime) const
+CIconProvider::CachedLookup CIconProvider::cachedPreciseIcon(const uint64_t cacheKey, const time_t modificationTime) const
 {
-	const auto cached = _cachedIconByObjectHash.find(objectHash);
-	if (cached == _cachedIconByObjectHash.end() || cached->second.modificationTime != modificationTime)
+	const auto cached = _cachedIconByPathKey.find(cacheKey);
+	if (cached == _cachedIconByPathKey.end() || cached->second.modificationTime != modificationTime)
 		return {};
 
 	const auto icon = _iconByContentHash.find(cached->second.contentHash);
 	assert_and_return_r(icon != _iconByContentHash.end(), {}); // The two are only ever filled and cleared together
-	return icon->second;
+	return { icon->second, cached->second.stale };
 }
 
-void CIconProvider::cachePreciseIcon(const qulonglong objectHash, const time_t modificationTime, FetchedIcon&& fetched)
+void CIconProvider::cachePreciseIcon(const uint64_t cacheKey, const qulonglong objectHash, const time_t modificationTime, FetchedIcon&& fetched)
 {
-	if (_cachedIconByObjectHash.size() >= maxCachedObjects) [[unlikely]]
+	if (_cachedIconByPathKey.size() >= maxCachedObjects) [[unlikely]]
 	{
 		// Both, always: a stored icon is only reachable through the index that names its content hash.
-		_cachedIconByObjectHash.clear();
+		_cachedIconByPathKey.clear();
 		_iconByContentHash.clear();
 	}
 
-	_cachedIconByObjectHash.insert_or_assign(objectHash, CachedIcon{ fetched.contentHash, modificationTime });
+	_cachedIconByPathKey.insert_or_assign(cacheKey, CachedIcon{ fetched.contentHash, objectHash, modificationTime });
 	_iconByContentHash.try_emplace(fetched.contentHash, std::move(fetched.icon));
 }
 
 #ifdef _WIN32
 
-void CIconProvider::requestPreciseIcon(const QString& fullAbsolutePath, const time_t modificationTime, const qulonglong objectHash)
+void CIconProvider::requestPreciseIcon(const QString& fullAbsolutePath, const uint64_t cacheKey, const qulonglong objectHash, const time_t modificationTime)
 {
-	if (!_requestedObjects.insert(objectHash).second)
+	if (!_requestedKeys.insert(cacheKey).second)
 		return; // Already queued or in flight; repainting the row must not queue it again
 
 	{
 		std::lock_guard locker{ _queueMutex };
-		_pendingRequests.push_back(IconRequest{ fullAbsolutePath, objectHash, modificationTime, _requestGeneration });
+		_pendingRequests.push_back(IconRequest{ fullAbsolutePath, cacheKey, objectHash, modificationTime, _requestGeneration });
 		if (_pendingRequests.size() > maxPendingRequests)
 		{
 			// The oldest request is the one a scroll has most likely carried off screen already.
-			_requestedObjects.erase(_pendingRequests.front().objectHash);
+			_requestedKeys.erase(_pendingRequests.front().cacheKey);
 			_pendingRequests.pop_front();
 		}
 	}
@@ -353,8 +394,8 @@ void CIconProvider::iconRetrievalThreadFunc()
 		}
 
 		// Contained as the pool and the execution queue contain theirs: allocating an image can throw, and an
-		// escape from a thread function terminates the process over one icon. The object stays in
-		// _requestedObjects, so it keeps its generic icon until the next settings change.
+		// escape from a thread function terminates the process over one icon. The key stays in
+		// _requestedKeys, so the row keeps its generic icon until the next settings change.
 		try
 		{
 			QImage image = _provider->preciseIconImage(request->path);
@@ -362,7 +403,7 @@ void CIconProvider::iconRetrievalThreadFunc()
 
 			{
 				std::lock_guard locker{ _queueMutex };
-				_retrievedIcons.push_back(RetrievedIcon{ std::move(image), request->objectHash, request->modificationTime, contentHash, request->generation });
+				_retrievedIcons.push_back(RetrievedIcon{ std::move(image), request->cacheKey, request->objectHash, request->modificationTime, contentHash, request->generation });
 			}
 		}
 		catch (const std::exception& e)
@@ -390,18 +431,18 @@ void CIconProvider::deliverRetrievedIcons()
 	for (RetrievedIcon& retrievedIcon : retrieved)
 	{
 		// Cleared only here, so an object whose retrieval failed is asked for again the next time its row is painted.
-		_requestedObjects.erase(retrievedIcon.objectHash);
+		_requestedKeys.erase(retrievedIcon.cacheKey);
 		if (retrievedIcon.image.isNull() || retrievedIcon.generation != _requestGeneration)
 			continue;
 
 		// Stored against the modification time the request carried, not the object's current one: if the object
 		// changed in the meantime, the next lookup finds the mismatch and asks again.
-		cachePreciseIcon(retrievedIcon.objectHash, retrievedIcon.modificationTime, FetchedIcon{ iconFromImage(retrievedIcon.image), retrievedIcon.contentHash });
+		cachePreciseIcon(retrievedIcon.cacheKey, retrievedIcon.objectHash, retrievedIcon.modificationTime, FetchedIcon{ iconFromImage(retrievedIcon.image), retrievedIcon.contentHash });
 		updatedObjects.push_back(retrievedIcon.objectHash);
 	}
 
 	if (!updatedObjects.empty())
-		_iconsChangedListeners.invokeCallback(&IconsChangedListener::onPreciseIconsAvailable, updatedObjects);
+		_iconsChangedListeners.invokeCallback(&IconsChangedListener::onIconsChanged, updatedObjects);
 }
 
 #endif

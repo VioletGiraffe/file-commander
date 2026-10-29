@@ -67,8 +67,8 @@ public:
 	// CPanel observers
 	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
-	void onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes) override;
-	void onAllIconsInvalidated() override;
+	void onIconsChanged(const std::vector<qulonglong>& objectHashes) override;
+	void onAllIconsChanged() override;
 
 	[[nodiscard]] CFileListView* fileListView() const;
 	[[nodiscard]] QAbstractItemModel* model() const;

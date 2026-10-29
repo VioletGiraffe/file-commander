@@ -13,7 +13,7 @@ queue drain; [threading.md](threading.md) lists the queues and who drains them.
 | `CurrentItemChangedListener` (`cpanel.h`) | the core designates a tab's cursor item | deferred via the tab's UI queue | `CPanelWidget` |
 | `CurrentPathChangedListener` (`cpanel.h`) | a tab's directory changes; not on refresh | synchronous, inside `CPanel::setPath` on the caller's thread | `CController` (visited-locations log) |
 | `CController::IVolumeListObserver` (`ccontroller.h`) | the volume list or readiness changes; a side's current volume changes | volume list: deferred via the enumerator's own queue and timer; current volume: synchronous from the controller's navigation call | `CPanelWidget` |
-| `IconsChangedListener` (`iconprovider/ciconprovider.h`) | precise icons arrive; every icon is invalidated | deferred via the icon provider's queue | `CPanelWidget` |
+| `IconsChangedListener` (`iconprovider/ciconprovider.h`) | some icons changed: a precise icon arrived, or a cached one was marked stale (`onIconsChanged`); every icon is invalidated (`onAllIconsChanged`) | arrivals: deferred via the icon provider's queue; the rest: synchronous, on the main thread from the caller | `CPanelWidget` |
 | `CController::subscribeToPanelContents` | the active tab's list is committed | from the controller's own `onPanelContentsChanged`, so main thread, under the panel's list mutex; see [plugins.md](plugins.md) | plugin proxies |
 
 ## Navigation path

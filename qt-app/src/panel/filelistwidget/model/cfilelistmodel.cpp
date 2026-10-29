@@ -365,7 +365,7 @@ const FolderContentsSummary& CFileListModel::contentsSummary() const noexcept
 	return _contentsSummary;
 }
 
-void CFileListModel::onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes)
+void CFileListModel::onIconsChanged(const std::vector<qulonglong>& objectHashes)
 {
 	for (const qulonglong objectHash : objectHashes)
 	{
@@ -375,7 +375,7 @@ void CFileListModel::onPreciseIconsAvailable(const std::vector<qulonglong>& obje
 	}
 }
 
-void CFileListModel::onAllIconsInvalidated()
+void CFileListModel::onAllIconsChanged()
 {
 	if (_displayedRows.empty())
 		return;

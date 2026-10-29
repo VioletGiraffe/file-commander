@@ -1496,16 +1496,16 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 }
 
 // Only the tab on screen can repaint; switching to another re-attaches the shared view, which refetches every row.
-void CPanelWidget::onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes)
+void CPanelWidget::onIconsChanged(const std::vector<qulonglong>& objectHashes)
 {
 	if (_model)
-		_model->onPreciseIconsAvailable(objectHashes);
+		_model->onIconsChanged(objectHashes);
 }
 
-void CPanelWidget::onAllIconsInvalidated()
+void CPanelWidget::onAllIconsChanged()
 {
 	if (_model)
-		_model->onAllIconsInvalidated();
+		_model->onAllIconsChanged();
 }
 
 // Every tab of this side notifies us, but only one of them is on screen.

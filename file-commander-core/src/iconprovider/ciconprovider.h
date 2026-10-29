@@ -23,6 +23,7 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <stdint.h>
 #include <thread>
 #include <time.h>
@@ -34,11 +35,11 @@ class CIconProviderImpl;
 struct IconsChangedListener {
 	virtual ~IconsChangedListener() = default;
 
-	// Objects whose precise icon has just entered the cache. Every listener hears about all of them, including the
-	// ones it doesn't display.
-	virtual void onPreciseIconsAvailable(const std::vector<qulonglong>& objectHashes) = 0;
+	// Objects whose icon is no longer what the last query returned: repaint their rows. Every listener hears about
+	// all of them, including the ones it doesn't display.
+	virtual void onIconsChanged(const std::vector<qulonglong>& objectHashes) = 0;
 	// Every icon handed out so far is stale, so everything on screen has to be repainted.
-	virtual void onAllIconsInvalidated() = 0;
+	virtual void onAllIconsChanged() = 0;
 };
 
 // Answers icon queries for filesystem objects and caches the answers. Owned by CController; every public method
@@ -78,6 +79,12 @@ public:
 	// what the shell would answer and that this class cannot observe itself, such as the system theme.
 	void invalidateCache();
 
+	// Marks the paths' cached icons stale. A stale icon is still returned, and a fresh one is requested; listeners
+	// repaint the rows. For an item whose icon changed without its modification time, such as an overlay.
+	// Windows: case and a trailing separator are ignored, so a path from the shell matches the object's.
+	void markIconsStale(std::span<const QString> fullAbsolutePaths);
+	void markIconStale(const QString& fullAbsolutePath) { markIconsStale({ &fullAbsolutePath, 1 }); }
+
 	// Stops the retrieval thread; the destructor also calls it. Queries keep working afterwards, they just stop
 	// being answered in the background.
 	void shutdown();
@@ -85,12 +92,19 @@ public:
 private:
 	struct CachedIcon {
 		uint64_t contentHash;
+		qulonglong objectHash; // What onIconsChanged reports
 		time_t modificationTime; // The object's, as of retrieval. A newer one means the icon may have changed with it.
+		bool stale = false; // Still served; the next query also requests a fresh one
 	};
 
 	struct FetchedIcon {
 		QIcon icon;
 		uint64_t contentHash = 0;
+	};
+
+	struct CachedLookup {
+		QIcon icon; // Null on a miss
+		bool stale = false;
 	};
 
 	void watchForAppearanceChanges();
@@ -99,13 +113,14 @@ private:
 	[[nodiscard]] QIcon fetchGenericIcon(const QString& extension, bool isDir) const;
 #endif
 	[[nodiscard]] FetchedIcon fetchPreciseIcon(const QString& fullAbsolutePath) const;
-	// Null unless the object has an entry that modificationTime still matches.
-	[[nodiscard]] QIcon cachedPreciseIcon(qulonglong objectHash, time_t modificationTime) const;
-	void cachePreciseIcon(qulonglong objectHash, time_t modificationTime, FetchedIcon&& fetched);
+	// A miss unless the key has an entry that modificationTime still matches.
+	[[nodiscard]] CachedLookup cachedPreciseIcon(uint64_t cacheKey, time_t modificationTime) const;
+	void cachePreciseIcon(uint64_t cacheKey, qulonglong objectHash, time_t modificationTime, FetchedIcon&& fetched);
 
 #ifdef _WIN32
 	struct IconRequest {
 		QString path;
+		uint64_t cacheKey = 0;
 		qulonglong objectHash = 0;
 		time_t modificationTime = 0;
 		uint64_t generation = 0;
@@ -113,13 +128,14 @@ private:
 
 	struct RetrievedIcon {
 		QImage image;
+		uint64_t cacheKey = 0;
 		qulonglong objectHash = 0;
 		time_t modificationTime = 0;
 		uint64_t contentHash = 0;
 		uint64_t generation = 0;
 	};
 
-	void requestPreciseIcon(const QString& fullAbsolutePath, time_t modificationTime, qulonglong objectHash);
+	void requestPreciseIcon(const QString& fullAbsolutePath, uint64_t cacheKey, qulonglong objectHash, time_t modificationTime);
 	void iconRetrievalThreadFunc();
 	[[nodiscard]] std::optional<IconRequest> takeNextRequest();
 	// Blocks until there is work or shutdown, servicing the apartment meanwhile.
@@ -128,16 +144,14 @@ private:
 #endif
 
 private:
-	// Keyed on pathHash() of the full path, so an entry is only ever reused for the path it was made for.
+	// Keyed on iconCacheKey() of the full path, so an entry is only ever reused for the path it was made for.
 	// The indirection through the content hash lets a folder of same-type files share one stored icon.
-	ankerl::unordered_dense::map<qulonglong, CachedIcon, identity_hash> _cachedIconByObjectHash;
+	ankerl::unordered_dense::map<uint64_t, CachedIcon, identity_hash> _cachedIconByPathKey;
 	ankerl::unordered_dense::segmented_map<uint64_t, QIcon, identity_hash> _iconByContentHash;
 
 	ankerl::unordered_dense::segmented_map<QString, QIcon, QStringHash, std::equal_to<>> _genericIconByExtension;
 	std::optional<QIcon> _genericFolderIcon;
 
-	// onPreciseIconsAvailable never fires off Windows: there, bestAvailableIconFor has the precise icon by the
-	// time it returns.
 	CallbackCaller<IconsChangedListener> _iconsChangedListeners;
 	CExecutionQueue _uiThreadQueue;
 
@@ -147,9 +161,9 @@ private:
 	std::deque<IconRequest> _pendingRequests;
 	std::vector<RetrievedIcon> _retrievedIcons;
 
-	// UI thread only. An object stays here from the moment it is queued until its result is delivered, so that
+	// UI thread only. A key stays here from the moment it is queued until its result is delivered, so that
 	// repainting a row that is still waiting doesn't queue it a second time.
-	ankerl::unordered_dense::set<qulonglong, identity_hash> _requestedObjects;
+	ankerl::unordered_dense::set<uint64_t, identity_hash> _requestedKeys;
 	// UI thread only; stamped into every request. Bumped whenever the caches are dropped, retiring whatever was
 	// already in flight under the conditions that no longer hold.
 	uint64_t _requestGeneration = 0;
