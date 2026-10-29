@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793290488365,
+  "lastUpdate": 1793300603809,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -31939,6 +31939,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 24,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "0540858fd4c545d1bee9d951e8b9bb235e4f7104",
+          "message": "Icon cache: overlays refresh on shell item notifications and on F5, served stale until the fresh icon lands\n\nThe cache validated entries by modification time alone, and an overlay changes without one (TortoiseGit\nstatus, cloud sync state), so an overlay stayed wrong until a settings or theme change. The window now\nregisters for SHCNE_UPDATEITEM/UPDATEDIR/ATTRIBUTES as well and marks the item's entry stale; the row\nkeeps its icon while a background refetch replaces it. Cache keys are case-folded on Windows: the panel's\nfolder prefix carries whatever case was typed, the shell reports on-disk case.",
+          "timestamp": "2026-10-29T20:53:18+02:00",
+          "tree_id": "6b313a33153b6757cd2e0a10d93b90acd1d20aed",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/0540858fd4c545d1bee9d951e8b9bb235e4f7104"
+        },
+        "date": 1793300600293,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14659,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 32277,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1462,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3273.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 838,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 422,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
             "unit": "KB"
           },
           {
