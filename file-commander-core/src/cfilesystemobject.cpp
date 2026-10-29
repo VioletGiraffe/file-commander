@@ -7,8 +7,8 @@
 #include "assert/advanced_assert.h"
 #include "directoryscan/thinioqstring.h"
 #include "paths/pathsyntax.h"
-#include "qtcore_helpers/qstring_hash.hpp"
 #include "qt_paths.hpp" // thin_io
+#include "qtcore_helpers/qstring_hash.hpp"
 
 
 DISABLE_COMPILER_WARNINGS

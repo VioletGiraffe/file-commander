@@ -29,6 +29,11 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
   recognize them there, so an inner `"` ends the literal (error C3688) and an inner comma splits the argument.
   GCC and clang accept it. Use an escaped literal, or a variable declared outside the macro.
 
+- **Reading files where thin_io is available:** prefer `thin_io::buffered_reader` for small reads that are scattered or
+  step back (container metadata, headers, format probing): it serves them from bytes already read, where `QFile` refills
+  its 16 KB buffer on any backward seek. The window size is a constructor argument: pick one that fits the reads.
+  Reading straight through gains nothing from it, and neither does wrapping it for an API that takes a `QIODevice`.
+
 - **Include order** in a source file, from most specific to most general:
   1. The file's own header.
   2. This repo's headers, grouped by subsystem, one blank line between groups.
