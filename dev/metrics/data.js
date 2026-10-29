@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793283148894,
+  "lastUpdate": 1793290488365,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -31855,6 +31855,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 23.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2a7e35e4a8972088f226d605f69d47c20d1a7161",
+          "message": "Shell context menus through cpputils: Send to and Open with submenus filled in, menus opened at the cursor, in the right place on monitors with different scaling",
+          "timestamp": "2026-10-29T17:58:40+02:00",
+          "tree_id": "bcdd9b73bd518e0214458b6b5b8106c01f7b670a",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2a7e35e4a8972088f226d605f69d47c20d1a7161"
+        },
+        "date": 1793290484647,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14599,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 32277,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1458,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3273.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 835.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 421,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24,
             "unit": "KB"
           },
           {
