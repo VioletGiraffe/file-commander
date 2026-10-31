@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793300603809,
+  "lastUpdate": 1793465848765,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -32008,6 +32008,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 422,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "21e22dce887e6da56bb3e19e031bae6c3a2394a8",
+          "message": "cpp-template-utils, cpputils, file-operations, qtutils updated; the operation dialog title shows the overall percentage and the source and destination folders",
+          "timestamp": "2026-10-31T18:40:11+02:00",
+          "tree_id": "b77b78748a7fd65817b90dc751d09c6c0a02a5fd",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/21e22dce887e6da56bb3e19e031bae6c3a2394a8"
+        },
+        "date": 1793465845261,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14659,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 32796,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1466,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3279,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 841,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 423,
             "unit": "KB"
           },
           {
