@@ -41,6 +41,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QImageWriter>
 #include <QInputDialog>
 #include <QItemSelectionModel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
@@ -206,6 +207,13 @@ void CPanelWidget::init(CController* controller, CShellOperationRunner& shellOpe
 void CPanelWidget::setFocusToFileList()
 {
 	ui->_list->setFocus();
+}
+
+void CPanelWidget::focusPathNavigatorWithPathSelected()
+{
+	QLineEdit* const pathEditor = ui->_pathNavigator->lineEdit();
+	pathEditor->setFocus(Qt::ShortcutFocusReason);
+	pathEditor->selectAll(); // CLineEdit selects all only on gaining focus, and it may already have it
 }
 
 void CPanelWidget::saveTabViewStates() const

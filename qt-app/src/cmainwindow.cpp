@@ -284,6 +284,7 @@ void CMainWindow::initActions()
 	connect(ui->actionGo_forward, &QAction::triggered, this, [this]{ if (_currentFileList) _controller->navigateForward(_currentFileList->panelPosition()); });
 	connect(ui->actionGo_to_root, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->toRoot(); });
 	ui->actionGo_to_root->setShortcuts({ ui->actionGo_to_root->shortcut(), QKeySequence{ QSL("Ctrl+\\") } });
+	connect(ui->actionGo_to_address_bar, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->focusPathNavigatorWithPathSelected(); });
 
 	// QMenu renders the text after '\t' in the shortcut column instead of the real shortcut - used to also advertise mouse gestures
 	ui->actionGo_back->setText(ui->actionGo_back->text() + QSL("\tAlt+Left, Shift+Wheel Up"));

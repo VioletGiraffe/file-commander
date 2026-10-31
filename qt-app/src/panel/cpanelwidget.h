@@ -44,6 +44,7 @@ public:
 	void init(CController* controller, CShellOperationRunner& shellOperations);
 
 	void setFocusToFileList();
+	void focusPathNavigatorWithPathSelected();
 
 	// Persists every tab's sort and column layout. Called at shutdown: nothing else writes this store.
 	void saveTabViewStates() const;

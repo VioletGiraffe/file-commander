@@ -250,6 +250,7 @@
     <addaction name="actionGo_forward"/>
     <addaction name="actionGo_to_root"/>
     <addaction name="actionJump_to_first_file"/>
+    <addaction name="actionGo_to_address_bar"/>
     <addaction name="separator"/>
     <addaction name="actionOpen_Console_Here"/>
     <addaction name="actionOpen_Admin_console_here"/>
@@ -512,6 +513,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+/</string>
+   </property>
+  </action>
+  <action name="actionGo_to_address_bar">
+   <property name="text">
+    <string>Go to &amp;address bar</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+D</string>
    </property>
   </action>
   <action name="actionNew_Tab">
