@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793465848765,
+  "lastUpdate": 1793466328787,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -32087,6 +32087,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 841,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 423,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "5d1596fdb1d50f0cb97ed335ed466d2f9e92ad96",
+          "message": "file-operations updated: the operation dialog title shows an exact destination entry in full, and a paused job says so",
+          "timestamp": "2026-10-31T18:58:23+02:00",
+          "tree_id": "99c2c0a0542432ae03fab6a157927a0a4cb41d79",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/5d1596fdb1d50f0cb97ed335ed466d2f9e92ad96"
+        },
+        "date": 1793466326100,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14668,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 32803,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1467,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3279,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 842,
             "unit": "KB"
           },
           {
