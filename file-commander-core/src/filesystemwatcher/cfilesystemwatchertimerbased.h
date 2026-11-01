@@ -12,6 +12,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <stdint.h>
 
@@ -46,13 +47,14 @@ public:
 
 private:
 	void onCheckForChanges();
-	[[nodiscard]] static std::set<SnapshotEntry> snapshotDirectory(const QString& path);
-	void processChangesAndNotifySubscribers(std::set<SnapshotEntry>&& newState, uint64_t pathGeneration);
+	// nullopt when the folder can't be listed: deleting an empty folder must still differ from its baseline.
+	[[nodiscard]] static std::optional<std::set<SnapshotEntry>> snapshotDirectory(const QString& path);
+	void processChangesAndNotifySubscribers(std::optional<std::set<SnapshotEntry>>&& newState, uint64_t pathGeneration);
 
 private:
 	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CFileSystemWatcher thread" };
 	// Written by the poll thread and by captureBaselineState() (panel worker thread); all access under _mutex.
-	std::set<SnapshotEntry> _previousState;
+	std::optional<std::set<SnapshotEntry>> _previousState;
 	uint64_t _previousStateGeneration = 0;
 
 	std::recursive_mutex _mutex;

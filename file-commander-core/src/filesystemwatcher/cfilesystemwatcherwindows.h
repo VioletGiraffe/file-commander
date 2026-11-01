@@ -2,6 +2,7 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "filesystem_types.hpp" // thin_io
 
 
 DISABLE_COMPILER_WARNINGS
@@ -10,6 +11,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <mutex>
+#include <optional>
 
 using HANDLE = void*;
 
@@ -31,6 +33,7 @@ public:
 	bool changesDetected() noexcept;
 
 private:
+	bool armDirectoryWatch() noexcept;
 	void close() noexcept;
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -42,6 +45,10 @@ private:
 private:
 	std::mutex _mtx;
 	QString _watchedPath;
-	HANDLE _handle = nullptr;
+	HANDLE _directoryHandle = nullptr; // Changes inside the directory
+	// Directory renames, moves and deletions in the parent: the directory handle never reports its own rename or move.
+	HANDLE _parentHandle = nullptr;
+	// What _directoryHandle watches: a different identity at _watchedPath means the directory was replaced.
+	std::optional<thin_io::entry_identity> _directoryId;
 	bool _volumeRemoved = false;
 };

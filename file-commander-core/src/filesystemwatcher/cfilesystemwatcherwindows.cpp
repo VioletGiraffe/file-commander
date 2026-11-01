@@ -4,16 +4,20 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
-#include "directoryscan/thinioqstring.h" // withoutTrailingSeparator
+#include "directoryscan/thinioqstring.h" // resolvedObjectId, withoutTrailingSeparator
+#include "paths/pathsyntax.h"
 #include "windows_path_win.hpp" // thin_io
 
 
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
+#include <QFileInfo>
 RESTORE_COMPILER_WARNINGS
 
 #include <Windows.h>
 #include <Dbt.h>
+
+#include <utility>
 
 CFileSystemWatcherWindows::CFileSystemWatcherWindows() noexcept
 {
@@ -25,6 +29,40 @@ CFileSystemWatcherWindows::~CFileSystemWatcherWindows() noexcept
 	std::lock_guard lock{ _mtx };
 	QCoreApplication::instance()->removeNativeEventFilter(this);
 	close();
+}
+
+// Null on failure
+[[nodiscard]] static HANDLE openChangeNotification(const QString& directoryPath, const DWORD filter) noexcept
+{
+	// FindFirstChangeNotificationW fails on a trailing separator, which a drive root nonetheless requires.
+	const QString pathWithoutSeparator = withoutTrailingSeparator(directoryPath);
+	const thin_io::windows_path_buffer nativePath{ reinterpret_cast<const wchar_t*>(pathWithoutSeparator.utf16()) };
+	if (!nativePath)
+		return nullptr;
+
+	const HANDLE handle = ::FindFirstChangeNotificationW(nativePath.c_str(), FALSE, filter);
+	return handle != INVALID_HANDLE_VALUE ? handle : nullptr;
+}
+
+static void closeChangeNotification(HANDLE& handle) noexcept
+{
+	if (handle == nullptr)
+		return;
+
+	assert_r(::FindCloseChangeNotification(handle));
+	handle = nullptr;
+}
+
+// Re-arms a signaled handle. Closes it instead when re-arming fails, as it does once the watched directory is deleted.
+[[nodiscard]] static bool consumeChangeNotification(HANDLE& handle) noexcept
+{
+	if (handle == nullptr || ::WaitForSingleObject(handle, 0 /* no wait */) != WAIT_OBJECT_0)
+		return false;
+
+	if (!::FindNextChangeNotification(handle))
+		closeChangeNotification(handle);
+
+	return true;
 }
 
 bool CFileSystemWatcherWindows::setPathToWatch(const QString& path) noexcept
@@ -40,52 +78,49 @@ bool CFileSystemWatcherWindows::setPathToWatch(const QString& path) noexcept
 
 	assert_debug_only(!path.contains('\\'));
 
-	// FindFirstChangeNotificationW fails on a trailing separator, which a drive root nonetheless requires.
-	const QString directoryPath = withoutTrailingSeparator(path);
-	const thin_io::windows_path_buffer nativePath{ reinterpret_cast<const wchar_t*>(directoryPath.utf16()) };
-	if (!nativePath)
-		return false;
+	// Armed before the directory watch, so a replacement made in between still signals.
+	if (const QString directoryPath = withoutTrailingSeparator(path); !isRootPath(directoryPath))
+		_parentHandle = openChangeNotification(QFileInfo{ directoryPath }.path(), FILE_NOTIFY_CHANGE_DIR_NAME);
 
-	_handle = ::FindFirstChangeNotificationW(nativePath.c_str(), FALSE, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE);
-	if (_handle == INVALID_HANDLE_VALUE)
-	{
-		assert_debug_only(_handle);
-		_handle = nullptr;
-		return false;
-	}
-
-	assert_debug_only(_handle != nullptr);
-	return true;
+	return armDirectoryWatch();
 }
 
 bool CFileSystemWatcherWindows::changesDetected() noexcept
 {
 	std::lock_guard lock{ _mtx };
-	if (_handle == nullptr)
-		return false;
+	bool changed = std::exchange(_volumeRemoved, false);
+	if (consumeChangeNotification(_directoryHandle))
+		changed = true;
 
-	if (_volumeRemoved) [[unlikely]]
+	// The parent is re-armed before the identity check, so a replacement made after the check signals again.
+	if (consumeChangeNotification(_parentHandle))
 	{
-		_volumeRemoved = false;
-		return true;
+		// An unknown identity never matches: see resolvedObjectId.
+		if (const auto currentId = resolvedObjectId(_watchedPath); !currentId || currentId != _directoryId)
+		{
+			closeChangeNotification(_directoryHandle);
+			armDirectoryWatch();
+			changed = true;
+		}
 	}
 
-	const auto result = ::WaitForSingleObject(_handle, 0 /* no wait */);
-	if (result != WAIT_OBJECT_0)
-		return false; // Handle not signaled - no change detected
+	return changed;
+}
 
-	// Change detected - reset the handle
-	assert_r(::FindNextChangeNotification(_handle));
-	return true;
+// Requires _mtx
+bool CFileSystemWatcherWindows::armDirectoryWatch() noexcept
+{
+	// The identity is read before the handle is opened: a replacement in between then fails the next identity check.
+	_directoryId = resolvedObjectId(_watchedPath);
+	_directoryHandle = openChangeNotification(_watchedPath, FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE);
+	return _directoryHandle != nullptr;
 }
 
 void CFileSystemWatcherWindows::close() noexcept
 {
-	if (_handle != nullptr)
-	{
-		assert_r(::FindCloseChangeNotification(_handle));
-		_handle = nullptr;
-	}
+	closeChangeNotification(_directoryHandle);
+	closeChangeNotification(_parentHandle);
+	_directoryId.reset();
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)

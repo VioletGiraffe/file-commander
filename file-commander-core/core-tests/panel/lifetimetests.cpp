@@ -115,3 +115,57 @@ TEST_CASE("CPanel - a change on disk refreshes the folder in view", "[panel][wat
 	CHECK(h.pumpUntil([&h] { return h.listener().count(PanelEvent::ContentsChanged) >= 1; }));
 	CHECK(h.panel().itemHashExists(hashOf(added)));
 }
+
+// The next two tests keep the folder empty, so no change inside it can trigger the refresh.
+TEST_CASE("CPanel - renaming the folder in view moves the panel to its parent", "[panel][watcher]")
+{
+	TempTree tree;
+	const QString sub = tree.makeDir(QStringLiteral("sub"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+
+	REQUIRE(QDir{}.rename(sub, tree.path(QStringLiteral("renamed"))));
+
+	CHECK(h.pumpUntil([&h, &tree] { return h.panel().currentDirPathPosix() == tree.path() + '/'; }));
+}
+
+TEST_CASE("CPanel - deleting the folder in view moves the panel to its parent", "[panel][watcher]")
+{
+	TempTree tree;
+	const QString sub = tree.makeDir(QStringLiteral("sub"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+
+	REQUIRE(QDir{}.rmdir(sub));
+
+	CHECK(h.pumpUntil([&h, &tree] { return h.panel().currentDirPathPosix() == tree.path() + '/'; }));
+}
+
+TEST_CASE("CPanel - a folder in view replaced under the same name stays watched", "[panel][watcher]")
+{
+	TempTree tree;
+	const QString sub = tree.makeDir(QStringLiteral("sub"));
+	tree.makeFile(QStringLiteral("sub/old.txt"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+
+	// Replaced before the next tick, so the panel never sees the folder missing
+	REQUIRE(QDir{ sub }.removeRecursively());
+	tree.makeDir(QStringLiteral("sub"));
+	const QString replacementFile = tree.makeFile(QStringLiteral("sub/new.txt"));
+	CHECK(h.pumpUntil([&h, &replacementFile] { return h.panel().itemHashExists(hashOf(replacementFile)); }));
+
+	// Proves the watch moved to the replacement
+	const QString added = tree.makeFile(QStringLiteral("sub/added.txt"));
+	CHECK(h.pumpUntil([&h, &added] { return h.panel().itemHashExists(hashOf(added)); }));
+	CHECK(h.panel().currentDirPathPosix() == sub + '/');
+}

@@ -4,7 +4,6 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "compiler/compiler_warnings_control.h"
-#include "container/set_operations.hpp"
 #include "directoryscan/thinioqstring.h"
 
 
@@ -67,13 +66,13 @@ void CFileSystemWatcherTimerBased::onCheckForChanges()
 
 // Baseline and poll scans must use identical filters, else every poll diffs against a differently-built
 // baseline and reports phantom changes. Sharing this call guarantees it.
-std::set<SnapshotEntry> CFileSystemWatcherTimerBased::snapshotDirectory(const QString& path)
+std::optional<std::set<SnapshotEntry>> CFileSystemWatcherTimerBased::snapshotDirectory(const QString& path)
 {
-	std::set<SnapshotEntry> snapshot;
 	auto entries = listDirectoryWithDetails(path);
 	if (!entries)
-		return snapshot;
+		return {};
 
+	std::set<SnapshotEntry> snapshot;
 	for (auto& entry : *entries)
 	{
 		const thin_io::entry_status& described = entry.link_target ? *entry.link_target : entry;
@@ -83,14 +82,14 @@ std::set<SnapshotEntry> CFileSystemWatcherTimerBased::snapshotDirectory(const QS
 	return snapshot;
 }
 
-void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(std::set<SnapshotEntry>&& newState, uint64_t pathGeneration)
+void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(std::optional<std::set<SnapshotEntry>>&& newState, uint64_t pathGeneration)
 {
 	std::lock_guard locker{ _mutex };
 	if (_pathToWatch.isEmpty() || pathGeneration != _pathGeneration)
 		return;
 
 	// captureBaselineState() writes _previousState from another thread, so this comparison can't be hoisted out of the lock.
-	if (_previousStateGeneration == pathGeneration && !SetOperations::is_equal_sets(newState, _previousState))
+	if (_previousStateGeneration == pathGeneration && newState != _previousState)
 		_bChangeDetected = true;
 
 	_previousState.swap(newState);
