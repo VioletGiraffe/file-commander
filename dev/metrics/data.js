@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793466328787,
+  "lastUpdate": 1793570110419,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -32186,6 +32186,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 41,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c943b3d723f5d1725f63e6f7bd2b7eb50307b021",
+          "message": "UI drain timer: 33 ms instead of 10 ms, so Qt no longer runs it as a 1 ms-resolution multimedia timer on Windows",
+          "timestamp": "2026-11-01T23:38:51+02:00",
+          "tree_id": "dcdd8d92d7f13c388dd1f7fba5205f114628b859",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c943b3d723f5d1725f63e6f7bd2b7eb50307b021"
+        },
+        "date": 1793570107474,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14695,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 32803,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1468,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3279,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 842.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 423,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41.5,
             "unit": "KB"
           },
           {
