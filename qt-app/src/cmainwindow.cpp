@@ -1280,7 +1280,8 @@ void CMainWindow::initCore()
 	_controller->setPanelContentsChangedListener(Panel::RightPanel, this);
 
 	connect(_uiThreadTimer, &QTimer::timeout, this, &CMainWindow::uiThreadTimerTick);
-	_uiThreadTimer->start(10);
+	// Must stay above 20 ms: Qt on Windows runs a shorter coarse timer as a precise multimedia timer with 1 ms resolution.
+	_uiThreadTimer->start(33);
 
 	connect(_historyAutosaveTimer, &QTimer::timeout, this, [this] { _controller->saveHistory(); });
 	_historyAutosaveTimer->start(5 * 60 * 1000);

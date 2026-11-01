@@ -292,7 +292,7 @@ public:
 	[[nodiscard]] WorkerGate& worker() { return _gate; }
 	[[nodiscard]] CThreadPool& pool() { return _pool; }
 
-	// One UI-queue drain, exactly what the application's 10 ms timer does.
+	// One UI-queue drain, exactly what the application's timer does.
 	void tick() { _panel.uiThreadTimerTick(); }
 
 	// Lets the update in flight finish, then delivers its notification - never leaving both pending at once, so a
