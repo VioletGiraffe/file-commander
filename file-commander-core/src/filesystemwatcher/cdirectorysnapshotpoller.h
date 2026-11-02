@@ -43,7 +43,7 @@ private:
 	void processChangesAndNotifySubscribers(std::optional<thin_io::directory_snapshot>&& newState, uint64_t pathGeneration);
 
 private:
-	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CDirectorySnapshotPoller thread" };
+	CPeriodicExecutionThread _periodicThread{ 2000 /* period in ms*/, "CDirectorySnapshotPoller thread" };
 	bool _threadStarted = false; // Only setPathToWatch() touches it
 	// Written by the poll thread and by captureBaselineState() (panel worker thread); all access under _mutex.
 	std::optional<thin_io::directory_snapshot> _previousState;
