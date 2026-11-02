@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793578852800,
+  "lastUpdate": 1793582289508,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -32354,6 +32354,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 41.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c7a724faa0ab0b3519cd6026c9ea0fd0d725ddf5",
+          "message": "Panels watch their folder with thin_io::directory_watcher on every platform, and poll it as well only where notifications may never arrive; a panel whose volume goes away is refreshed when the drive list changes\n\nthin_io moves to e73c339: the macOS watcher backend and its readiness fixes.",
+          "timestamp": "2026-11-02T03:09:48+02:00",
+          "tree_id": "5b389f72960eac4bd5f900578984e06890c40f33",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c7a724faa0ab0b3519cd6026c9ea0fd0d725ddf5"
+        },
+        "date": 1793582286877,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14634,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34632,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1490,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3279,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 861,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 425.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
             "unit": "KB"
           },
           {
