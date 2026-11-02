@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793582289508,
+  "lastUpdate": 1793632597035,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -32423,6 +32423,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 861,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 425.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "dc59951cabea18ce91852e9e1acecba708bf5ec4",
+          "message": "Folders without dependable change notifications are polled every 2 s instead of 400 ms: on a network share each poll lists the whole folder over the network, and the share usually delivers notifications as well",
+          "timestamp": "2026-11-02T15:28:47+02:00",
+          "tree_id": "520898a97b0f5c4cdaf23b9ecfadcbe89131a477",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/dc59951cabea18ce91852e9e1acecba708bf5ec4"
+        },
+        "date": 1793632594021,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14666,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34632,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3279,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 862,
             "unit": "KB"
           },
           {
