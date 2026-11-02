@@ -20,7 +20,7 @@ RESTORE_COMPILER_WARNINGS
 class CDirectorySnapshotPoller
 {
 public:
-	CDirectorySnapshotPoller() = default;
+	explicit CDirectorySnapshotPoller(unsigned int periodMs = 2000);
 	~CDirectorySnapshotPoller();
 
 	CDirectorySnapshotPoller(const CDirectorySnapshotPoller&) = delete;
@@ -43,7 +43,7 @@ private:
 	void processChangesAndNotifySubscribers(std::optional<thin_io::directory_snapshot>&& newState, uint64_t pathGeneration);
 
 private:
-	CPeriodicExecutionThread _periodicThread{ 2000 /* period in ms*/, "CDirectorySnapshotPoller thread" };
+	CPeriodicExecutionThread _periodicThread;
 	bool _threadStarted = false; // Only setPathToWatch() touches it
 	// Written by the poll thread and by captureBaselineState() (panel worker thread); all access under _mutex.
 	std::optional<thin_io::directory_snapshot> _previousState;

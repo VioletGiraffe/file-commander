@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
 
-SUBDIRS = fileoperations fileoperationsui foldercomparison filesystemobject filesystemobject-high-level panel filesearchengine userprograms filesystemhelpers shell
+SUBDIRS = fileoperations fileoperationsui foldercomparison filesystemobject filesystemobject-high-level panel controller filesearchengine userprograms filesystemhelpers shell
 SUBDIRS += qtutils cpputils cpp-template-utils catch2-runner test-utils thin_io
 
 # The file-operation suites live with their module.
@@ -50,6 +50,7 @@ filesystemobject-high-level.depends = core fileoperations-lib qtutils thin_io ca
 fileoperationsui.depends = fileoperations-testhooks-lib fileoperationsui-lib qtutils cpputils thin_io catch2-runner
 foldercomparison.depends = fileoperations-lib cpputils test-utils thin_io catch2-runner
 panel.depends = core fileoperations-lib cpputils test-utils thin_io catch2-runner
+controller.depends = core fileoperations-lib cpputils test-utils thin_io catch2-runner
 filesearchengine.depends = core fileoperations-lib cpputils test-utils thin_io catch2-runner
 userprograms.depends = core fileoperations-lib qtutils thin_io catch2-runner
 filesystemhelpers.depends = core fileoperations-lib qtutils thin_io catch2-runner

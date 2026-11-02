@@ -1,11 +1,12 @@
 #pragma once
 
-// Helpers shared by all CPanel test files: a throwaway directory tree, an event-recording listener, and a panel
-// wired to a worker pool the test can step.
+// Helpers shared by all CPanel test files: a throwaway directory tree (temptree.h), an event-recording listener, and
+// a panel wired to a worker pool the test can step.
 
 #include "cpanel.h"
 #include "cfilesystemobject.h"
 #include "settings.h"
+#include "temptree.h"
 
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a path in a failure report
 
@@ -24,7 +25,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
 #include <QSettings>
 #include <QStringBuilder>
-#include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
@@ -40,41 +40,6 @@ RESTORE_COMPILER_WARNINGS
 #include <mutex>
 #include <thread>
 #include <vector>
-
-// A throwaway directory tree. Paths come back POSIX-separated and without a trailing slash - the spelling
-// CPanel::setPath expects, and the one it asserts on if a backslash ever creeps in.
-class TempTree
-{
-public:
-	TempTree()
-	{
-		REQUIRE(_dir.isValid());
-		REQUIRE(!_dir.path().contains('\\'));
-	}
-
-	[[nodiscard]] QString path() const { return _dir.path(); }
-	[[nodiscard]] QString path(const QString& relative) const { return _dir.path() % '/' % relative; }
-
-	// Both return the absolute path of what they made, so a test can name it once and refer to it by value.
-	QString makeDir(const QString& relative)
-	{
-		const QString absolute = path(relative);
-		REQUIRE(QDir{}.mkpath(absolute));
-		return absolute;
-	}
-
-	QString makeFile(const QString& relative, const QByteArray& contents = {})
-	{
-		const QString absolute = path(relative);
-		QFile file{ absolute };
-		REQUIRE(file.open(QFile::WriteOnly));
-		REQUIRE(file.write(contents) == contents.size());
-		return absolute;
-	}
-
-private:
-	QTemporaryDir _dir;
-};
 
 // Returns once the system has reported every change made so far in the temporary folder, which holds every TempTree:
 // a watch made afterwards receives none of them. On macOS, FSEvents can deliver a change made shortly before a watch to it.
@@ -105,11 +70,6 @@ inline void waitUntilChangesAreReported()
 
 	REQUIRE(QFile::remove(marker));
 	REQUIRE(reported);
-}
-
-[[nodiscard]] inline qulonglong hashOf(const QString& path)
-{
-	return CFileSystemObject{ path }.hash();
 }
 
 [[nodiscard]] inline bool hasCommittedContents(const CPanel& panel)

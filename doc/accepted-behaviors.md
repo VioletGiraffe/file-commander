@@ -56,3 +56,6 @@ invalidates the reason given.
 
 - `CLightningFastViewerWidget` (text viewer plugin) has no test target: its column, wrap and search arithmetic is
   verified by inspection.
+- `CVolumeEnumerator`'s notification tags, which keep an insignificant change from replacing a pending significant one,
+  have no test: a test needs a hook into its private notification path, which real device enumeration drives, to
+  cover a two-value enum.

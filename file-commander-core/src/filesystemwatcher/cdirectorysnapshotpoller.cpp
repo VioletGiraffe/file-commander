@@ -6,6 +6,11 @@
 
 #include <utility>
 
+CDirectorySnapshotPoller::CDirectorySnapshotPoller(unsigned int periodMs) :
+	_periodicThread{ periodMs, "CDirectorySnapshotPoller thread" }
+{
+}
+
 CDirectorySnapshotPoller::~CDirectorySnapshotPoller()
 {
 	_periodicThread.terminate();

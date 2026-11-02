@@ -25,6 +25,7 @@ mac*|linux*|freebsd{
 
 INCLUDEPATH += \
 	../../src/ \
+	../common/ \
 	../../../file-operations/test-utils/src/
 
 include(../../core.pri)
@@ -36,7 +37,9 @@ SOURCES += \
 	currentitemtests.cpp \
 	historytests.cpp \
 	contentsaccesstests.cpp \
-	lifetimetests.cpp
+	lifetimetests.cpp \
+	snapshotpollertests.cpp
 
 HEADERS += \
-	paneltesthelpers.h
+	paneltesthelpers.h \
+	../common/temptree.h
