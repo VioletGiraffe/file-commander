@@ -18,9 +18,9 @@ struct VolumeInfo
 	[[nodiscard]] ComparisonResult compare(const VolumeInfo& other) const noexcept {
 		if (rootObjectInfo.hash() != other.rootObjectInfo.hash())
 			return DifferentObject;
-		else if (isReady != other.isReady)
+		else if (isReady != other.isReady || volumeLabel != other.volumeLabel) // Outside Windows the label is the volume's displayed name
 			return SignificantChange;
-		else if (freeSize != other.freeSize || volumeSize != other.volumeSize || volumeLabel != other.volumeLabel || fileSystemName != other.fileSystemName)
+		else if (freeSize != other.freeSize || volumeSize != other.volumeSize || fileSystemName != other.fileSystemName)
 			return InsignificantChange;
 		else
 			return Equal;

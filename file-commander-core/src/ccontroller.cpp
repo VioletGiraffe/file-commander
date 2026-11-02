@@ -1066,17 +1066,17 @@ CFileSystemObject CController::currentItem()
 	return panel(_activePanel).currentItem();
 }
 
-void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept
+void CController::volumesChanged(bool significantChange) noexcept
 {
 	const auto drives = _volumeEnumerator.volumes();
 
 	for (auto& listener: _volumesChangedListeners)
 	{
-		listener->volumesChanged(drives, Panel::RightPanel, drivesListOrReadinessChanged);
-		listener->volumesChanged(drives, Panel::LeftPanel, drivesListOrReadinessChanged);
+		listener->volumesChanged(drives, Panel::RightPanel, significantChange);
+		listener->volumesChanged(drives, Panel::LeftPanel, significantChange);
 	}
 
-	if (!drivesListOrReadinessChanged)
+	if (!significantChange)
 		return;
 
 	// A panel's watch is released when its volume is locked for eject, before the volume goes away: a panel left without

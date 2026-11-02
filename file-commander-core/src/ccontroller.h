@@ -29,7 +29,7 @@ public:
 	{
 	public:
 		virtual ~IVolumeListObserver() = default;
-		virtual void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p, bool drivesListOrReadinessChanged) noexcept = 0;
+		virtual void volumesChanged(const std::vector<VolumeInfo>& drives, Panel p, bool significantChange) noexcept = 0;
 		// The panel's current directory moved, so its highlighted drive button may need to change. The volume
 		// list itself is unchanged; only side p's button selection and free-space label are refreshed.
 		virtual void currentVolumeChanged(Panel p) noexcept = 0;
@@ -187,7 +187,7 @@ public:
 	[[nodiscard]] CFileSystemObject currentItem();
 
 private:
-	void volumesChanged(bool drivesListOrReadinessChanged) noexcept override;
+	void volumesChanged(bool significantChange) noexcept override;
 	// Fired after a navigation changes side p's current directory, to refresh only its drive-button selection.
 	void notifyCurrentVolumeChanged(Panel p) noexcept;
 

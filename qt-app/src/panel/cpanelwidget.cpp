@@ -1298,7 +1298,7 @@ bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& 
 	return true; // Consuming the event
 }
 
-void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p, bool drivesListOrReadinessChanged) noexcept
+void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p, bool significantChange) noexcept
 {
 	if (p != _panelPosition)
 		return;
@@ -1316,7 +1316,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 		ui->_driveButtonsWidget->setLayout(flowLayout);
 	}
 
-	if (drivesListOrReadinessChanged)
+	if (significantChange)
 	{
 		// Clearing and deleting the previous buttons
 		QLayout* layout = ui->_driveButtonsWidget->layout();

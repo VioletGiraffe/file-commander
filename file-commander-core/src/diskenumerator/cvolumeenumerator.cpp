@@ -97,14 +97,14 @@ void CVolumeEnumerator::enumerateVolumes(bool async)
 }
 
 // Calls all the registered observers with the latest list of drives found
-void CVolumeEnumerator::notifyObservers(bool async, bool drivesListOrReadinessChanged) const
+void CVolumeEnumerator::notifyObservers(bool async, bool significantChange) const
 {
 	// This method is called from the worker thread
 	// Queuing the code to be executed on the thread where CVolumeEnumerator was created
 
-	_notificationsQueue.enqueue([this, drivesListOrReadinessChanged]() {
+	_notificationsQueue.enqueue([this, significantChange]() {
 		for (const auto& observer : _observers)
-			observer->volumesChanged(drivesListOrReadinessChanged);
+			observer->volumesChanged(significantChange);
 	}, 0); // Setting the tag to 0 will discard any previous queue items with the same tag that have not yet been processed
 
 	if (!async)

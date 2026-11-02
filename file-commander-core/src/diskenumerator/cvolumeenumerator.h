@@ -32,7 +32,7 @@ public:
 	{
 	public:
 		virtual ~IVolumeListObserver() = default;
-		virtual void volumesChanged(bool drivesListOrReadinessChanged /* Basically, distinguishes between significant and insignificant changes */) noexcept = 0;
+		virtual void volumesChanged(bool significantChange) noexcept = 0;
 	};
 
 	// Adds the observer
@@ -51,7 +51,7 @@ private:
 	void enumerateVolumes(bool async);
 
 	// Calls all the registered observers with the latest list of drives found
-	void notifyObservers(bool async, bool drivesListOrReadinessChanged /* Basically, distinguishes between significant and insignificant changes */) const;
+	void notifyObservers(bool async, bool significantChange) const;
 
 	[[nodiscard]] static std::vector<VolumeInfo> enumerateVolumesImpl();
 
