@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793646849577,
+  "lastUpdate": 1793647288395,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -32650,6 +32650,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (libs)",
             "value": 34694,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3279,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 862,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 425.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "06a3505754491e6107e6557254ce082dad2761e2",
+          "message": "Panel tests that count refreshes wait until the tree's earlier changes are reported before watching it: on macOS FSEvents can deliver such a change to a watch made just after it",
+          "timestamp": "2026-11-02T21:12:31+02:00",
+          "tree_id": "d5aab407437823a4df9a1b6413b5fddbfcb64915",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/06a3505754491e6107e6557254ce082dad2761e2"
+        },
+        "date": 1793647283222,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14646,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34684,
             "unit": "LOC"
           },
           {
