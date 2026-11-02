@@ -3,6 +3,8 @@
 Use this map to keep broad reviews tractable and to examine high-risk dependencies before their consumers. For a
 diff-driven review, select the affected areas and always apply the cross-cutting checklist.
 
+Behaviors listed in [accepted-behaviors.md](accepted-behaviors.md) are not reported again.
+
 ## Review areas
 
 | Order | Area | Primary sources | Main risks |

@@ -6,6 +6,10 @@ There are two unrelated mechanisms:
 2. Windows WCX archive modules are discovered by `CWcxPluginHost`; this is currently only a loader, not panel
    archive integration.
 
+Plugins are for format and backend variety (viewers, archives) and for read-only tools. Features that change files,
+such as copy, move and folder synchronization, are built into the core: as plugins they would make the file-operation
+engine a public API that must stay stable.
+
 ## Native plugin source map
 
 | Concern | Source |

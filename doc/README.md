@@ -93,5 +93,7 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 - [coding-style.md](coding-style.md): authoring rules.
 - [TODO.md](TODO.md), [code-review-plan.md](code-review-plan.md), and
   [release-metadata-audit.md](release-metadata-audit.md): process and deferred-work documents.
+- [accepted-behaviors.md](accepted-behaviors.md): known edge behaviors and gaps that were accepted; reviews do not
+  report them again.
 - [planned-refactors/native-paths.md](planned-refactors/native-paths.md): lossless native filesystem paths and
   arbitrary POSIX filename support.
