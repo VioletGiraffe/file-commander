@@ -87,8 +87,9 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
   its path; meanwhile the refresh the change triggers moves the panel to an accessible folder.
 - Where notifications cannot be set up or may never arrive (a remote volume), the folder is also polled with directory
   snapshots. A path generation rejects obsolete polling results.
-- The watch is released, and not re-armed, when its volume is locked for eject: the volume list change that follows the
-  removal refreshes the panel.
+- The watch is released when its volume is locked for eject, with no refresh and no re-arming: either would touch the
+  volume during the eject. The removal itself refreshes the panel: on Windows the main window's device-removal message,
+  elsewhere the volume list change.
 - Flattened recursive display and inactive tabs hold no watch.
 
 ## Other core areas

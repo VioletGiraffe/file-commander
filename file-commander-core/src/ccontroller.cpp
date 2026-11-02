@@ -280,6 +280,21 @@ void CController::refreshPanelContents(Panel p)
 	refreshedPanel.refreshFileList(refreshCauseOther);
 }
 
+#ifdef _WIN32
+void CController::refreshPanelsOnRemovedDrive(const QChar driveLetter)
+{
+	const QString driveRoot = driveLetter + QStringLiteral(":/");
+	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+	{
+		if (_panels[(size_t)p].tabs.empty()) // After shutdown
+			continue;
+
+		if (panel(p).currentDirPathPosix().startsWith(driveRoot, Qt::CaseInsensitive))
+			panel(p).refreshFileList(refreshCauseOther);
+	}
+}
+#endif
+
 CPanel& CController::createTab(Panel p, qulonglong id)
 {
 	auto& tabList = _panels[(size_t)p];

@@ -67,6 +67,11 @@ public:
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI.
 	// The icons are refetched too, for overlay changes the shell never reported.
 	void refreshPanelContents(Panel p);
+#ifdef _WIN32
+	// Refreshes each side's displayed panel that is on the drive just removed: the refresh moves it to an accessible folder.
+	// Its watch was released before the removal and reports nothing.
+	void refreshPanelsOnRemovedDrive(QChar driveLetter);
+#endif
 	// Tab management. A tab is an independent CPanel; panel(p) returns the active tab's CPanel for side p.
 	// Tabs are identified by tab ID, not by position: the underlying tab list may be reordered/resized freely
 	// without invalidating an id a caller is holding onto.

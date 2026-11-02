@@ -25,7 +25,7 @@ public:
 	void setPathToWatch(const QString& path);
 	// See CDirectorySnapshotPoller::captureBaselineState(); does nothing while the folder isn't polled.
 	void captureBaselineState();
-	// Whether anything changed since the last call.
+	// Whether anything changed since the last call. A watch released for an eject ends silently.
 	[[nodiscard]] bool changesDetected();
 
 private:

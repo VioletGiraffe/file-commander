@@ -65,8 +65,8 @@ bool CFileSystemWatcher::changesDetected()
 		// Meanwhile the caller's refresh finds the folder gone and moves on.
 		_rewatchPending = !polled;
 		break;
-	case thin_io::stop_reason::volume_released: // Watching again could hold the volume during an eject
-		break;
+	case thin_io::stop_reason::volume_released: // Neither watched again nor reported: either would touch the volume during an eject
+		return false;
 	case thin_io::stop_reason::failed:
 		pollInsteadOfNotifications(discarded->stop->error);
 		break;

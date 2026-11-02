@@ -78,6 +78,7 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <Windows.h>
+#include <Dbt.h>
 #include <ShlObj.h>
 #endif
 
@@ -529,10 +530,27 @@ void CMainWindow::showEvent(QShowEvent *e)
 	assert_r(_shellNotificationId != 0);
 }
 
+static void refreshPanelsOnRemovedDrives(CController& controller, const LPARAM lParam)
+{
+	const auto* const header = reinterpret_cast<const DEV_BROADCAST_HDR*>(lParam);
+	if (header == nullptr || header->dbch_devicetype != DBT_DEVTYP_VOLUME)
+		return;
+
+	const DWORD removedDrives = reinterpret_cast<const DEV_BROADCAST_VOLUME*>(header)->dbcv_unitmask; // Bit 0 is A:
+	for (int drive = 0; drive < 26; ++drive)
+	{
+		if ((removedDrives & (1u << drive)) != 0)
+			controller.refreshPanelsOnRemovedDrive(QChar{ 'A' + drive });
+	}
+}
+
 bool CMainWindow::nativeEvent(const QByteArray& eventType, void* message, qintptr* result)
 {
-	if (const MSG* msg = static_cast<const MSG*>(message); msg->message == ShellChangeNotificationMessage)
+	const MSG* msg = static_cast<const MSG*>(message);
+	if (msg->message == ShellChangeNotificationMessage)
 		handleShellChangeNotification(_controller->iconProvider(), msg->wParam, msg->lParam);
+	else if (msg->message == WM_DEVICECHANGE && msg->wParam == DBT_DEVICEREMOVECOMPLETE)
+		refreshPanelsOnRemovedDrives(*_controller, msg->lParam);
 
 	return QMainWindow::nativeEvent(eventType, message, result);
 }
