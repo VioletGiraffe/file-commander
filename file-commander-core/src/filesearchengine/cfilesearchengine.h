@@ -12,6 +12,7 @@ RESTORE_COMPILER_WARNINGS
 #include <atomic>
 #include <stdint.h>
 
+class CFileSystemObject;
 class QString;
 
 class CFileSearchEngine
@@ -29,7 +30,7 @@ public:
 		virtual void itemScanned(const QString& currentItem) = 0;
 		// reachedThroughLink: the item was found by traversing a directory link, so the same file may also be
 		// reported under its direct path if that one is within the search roots as well.
-		virtual void matchFound(const QString& path, bool reachedThroughLink) = 0;
+		virtual void matchFound(const CFileSystemObject& item, bool reachedThroughLink) = 0;
 		// inconclusiveItems: files whose contents could not be decided - unreadable, or the regex engine gave up on
 		// them (it limits how much backtracking one match may cost). They are not matches, but neither are they
 		// known not to be, so a non-zero count means the results are incomplete. Only a content query can produce

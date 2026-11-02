@@ -3,6 +3,7 @@
 // Shared by every CFileSearchEngine test: a throwaway tree to search in, a listener that collects what the engine
 // reports, and a runner that turns one query into one result.
 
+#include "cfilesystemobject.h"
 #include "filesearchengine/cfilesearchengine.h"
 
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a path in a failure report
@@ -143,10 +144,10 @@ public:
 			_itemScannedHook();
 	}
 
-	void matchFound(const QString& path, bool reachedThroughLink) override
+	void matchFound(const CFileSystemObject& item, bool reachedThroughLink) override
 	{
 		std::lock_guard lock{ _mutex };
-		_matches.push_back(path);
+		_matches.push_back(item.fullAbsolutePath());
 		if (reachedThroughLink)
 			++_linkReachedMatches;
 	}

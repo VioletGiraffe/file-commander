@@ -371,24 +371,24 @@ void CFileSearchEngine::searchThread(
 					if (!acquireContentTaskSlotUnlessCancelled(*contentSearchContext.availableTaskSlots, cancellationRequested))
 						return;
 
-					contentSearchPool->enqueue([path{item.fullAbsolutePath()}, reachedThroughLink, &contentSearchContext] {
+					contentSearchPool->enqueue([item, reachedThroughLink, &contentSearchContext] {
 						EXEC_ON_SCOPE_EXIT([&contentSearchContext] { contentSearchContext.availableTaskSlots->release(); });
 						if (*contentSearchContext.cancellationRequested)
 							return;
 
-						const ContentMatch contentMatch = fileContentsMatches(path, *contentSearchContext.regex,
+						const ContentMatch contentMatch = fileContentsMatches(item.fullAbsolutePath(), *contentSearchContext.regex,
 							*contentSearchContext.plainText, *contentSearchContext.cancellationRequested);
 						if (*contentSearchContext.cancellationRequested)
 							return;
 
 						if (contentMatch == ContentMatch::Yes)
-							contentSearchContext.listener->matchFound(path, reachedThroughLink);
+							contentSearchContext.listener->matchFound(item, reachedThroughLink);
 						else if (contentMatch == ContentMatch::Inconclusive)
 							contentSearchContext.inconclusiveItems.fetch_add(1, std::memory_order_relaxed);
 					});
 				}
 				else
-					listener->matchFound(item.fullAbsolutePath(), reachedThroughLink);
+					listener->matchFound(item, reachedThroughLink);
 
 			}, cancellationRequested);
 	}

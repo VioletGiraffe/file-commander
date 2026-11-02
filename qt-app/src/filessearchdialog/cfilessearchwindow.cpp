@@ -27,6 +27,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
+#include <iterator>
+#include <stddef.h>
 #include <utility>
 
 #define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
@@ -36,6 +39,14 @@ RESTORE_COMPILER_WARNINGS
 #define SETTINGS_CONTENTS_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveContents")
 #define SETTINGS_CONTENTS_IS_REGEX       QSL("FileSearchDialog/Ui/ContentsIsRegex")
 #define SETTINGS_ROOT_FOLDER             QSL("FileSearchDialog/Ui/RootFolder")
+
+// Results added to the list per event loop turn, so the window stays responsive while results arrive faster than it can add them
+#ifdef __APPLE__
+// genericIconFor fetches every row's icon from the system there: search results are rarely in its cache
+static constexpr size_t maxRowsPerTurn = 10;
+#else
+static constexpr size_t maxRowsPerTurn = 200;
+#endif
 
 // Sorts by path, in the panel's natural order: the engine reports matches in no particular order
 class CSearchResultItem final : public QListWidgetItem
@@ -119,60 +130,109 @@ CFilesSearchWindow::~CFilesSearchWindow()
 
 void CFilesSearchWindow::itemScanned(const QString& currentItem)
 {
-	QMetaObject::invokeMethod(this, [=, this] {
-			setProgressText(currentItem, Qt::ElideMiddle);
-		},
-		Qt::QueuedConnection
-	);
+	std::lock_guard lock{ _pendingResultsMutex };
+	_pendingResults.lastScannedItem = currentItem;
+	scheduleDisplayLocked();
 }
 
-void CFilesSearchWindow::matchFound(const QString& path, bool reachedThroughLink)
+void CFilesSearchWindow::matchFound(const CFileSystemObject& item, bool reachedThroughLink)
 {
-	QMetaObject::invokeMethod(this, [=, this] {
-			_matches.push_back(path);
-			addResultToUi(path, reachedThroughLink);
-		},
-		Qt::QueuedConnection
-	);
+	std::lock_guard lock{ _pendingResultsMutex };
+	_pendingResults.matches.push_back({ item, reachedThroughLink });
+	scheduleDisplayLocked();
 }
 
 void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed)
 {
-	QMetaObject::invokeMethod(this, [=, this]{
-			_searchActive = false;
-			ui->btnSearch->setText(tr("Start"));
+	std::lock_guard lock{ _pendingResultsMutex };
+	_pendingResults.completion = SearchCompletion{ status, itemsScanned, inconclusiveItems, msElapsed };
+	scheduleDisplayLocked();
+}
 
-			if (status == CFileSearchEngine::SearchInvalidPattern)
-			{
-				// No traversal happened, so the scan statistics below would all read zero
-				setProgressText(tr("The contents pattern is not a valid regular expression"), Qt::ElideRight);
-				return;
-			}
+void CFilesSearchWindow::scheduleDisplayLocked()
+{
+	if (std::exchange(_pendingResults.displayScheduled, true))
+		return;
 
-			QString message = (status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
-			if (!_matches.empty())
-				message = message % ", " % tr("%1 items found").arg(_matches.size());
+	QMetaObject::invokeMethod(this, &CFilesSearchWindow::displayPendingResults, Qt::QueuedConnection);
+}
 
-			// Neither matches nor known non-matches, so saying nothing would present the results as complete
-			if (inconclusiveItems > 0)
-				message = message % ", " % tr("%1 items could not be searched").arg(inconclusiveItems);
+void CFilesSearchWindow::displayPendingResults()
+{
+	std::vector<Match> matches;
+	QString lastScannedItem;
+	std::optional<SearchCompletion> completion;
+	bool moreMatchesPending = false;
+	{
+		std::lock_guard lock{ _pendingResultsMutex };
+		auto& pendingMatches = _pendingResults.matches;
+		const auto sliceEnd = pendingMatches.begin() + (ptrdiff_t)std::min(pendingMatches.size(), maxRowsPerTurn);
+		matches.assign(std::make_move_iterator(pendingMatches.begin()), std::make_move_iterator(sliceEnd));
+		pendingMatches.erase(pendingMatches.begin(), sliceEnd);
 
-			message = message % ": " % tr("%1 items scanned in %2 sec").arg(itemsScanned).arg((double)msElapsed * 1e-3, 0, 'f', 1);
+		lastScannedItem = std::exchange(_pendingResults.lastScannedItem, {});
+		moreMatchesPending = !pendingMatches.empty();
+		// While matches remain, this call stays scheduled and posts itself again below
+		if (!moreMatchesPending)
+		{
+			completion = std::exchange(_pendingResults.completion, std::nullopt);
+			_pendingResults.displayScheduled = false;
+		}
+	}
 
-			if (msElapsed > 0)
-			{
-				const uint64_t itemsPerSecond = itemsScanned * 1000ULL / msElapsed;
-				message = message % ", " % tr("search speed: %1 items/sec").arg(itemsPerSecond);
-			}
+	if (!lastScannedItem.isEmpty())
+		setProgressText(lastScannedItem, Qt::ElideMiddle);
 
-			setProgressText(message, Qt::ElideRight);
+	if (!matches.empty())
+	{
+		ui->resultsList->setUpdatesEnabled(false);
+		for (const Match& match : matches)
+		{
+			_matches.push_back(match.item.fullAbsolutePath());
+			addResultToUi(match.item, match.reachedThroughLink);
+		}
+		ui->resultsList->setUpdatesEnabled(true);
+	}
 
-			ui->resultsList->setFocus();
-			if (ui->resultsList->count() > 0)
-				ui->resultsList->item(0)->setSelected(true);
-		},
-		Qt::QueuedConnection
-	);
+	if (moreMatchesPending)
+		QMetaObject::invokeMethod(this, &CFilesSearchWindow::displayPendingResults, Qt::QueuedConnection);
+	else if (completion)
+		showSearchCompletion(*completion);
+}
+
+void CFilesSearchWindow::showSearchCompletion(const SearchCompletion& completion)
+{
+	_searchActive = false;
+	ui->btnSearch->setText(tr("Start"));
+
+	if (completion.status == CFileSearchEngine::SearchInvalidPattern)
+	{
+		// No traversal happened, so the scan statistics below would all read zero
+		setProgressText(tr("The contents pattern is not a valid regular expression"), Qt::ElideRight);
+		return;
+	}
+
+	QString message = (completion.status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
+	if (!_matches.empty())
+		message = message % ", " % tr("%1 items found").arg(_matches.size());
+
+	// Neither matches nor known non-matches, so saying nothing would present the results as complete
+	if (completion.inconclusiveItems > 0)
+		message = message % ", " % tr("%1 items could not be searched").arg(completion.inconclusiveItems);
+
+	message = message % ": " % tr("%1 items scanned in %2 sec").arg(completion.itemsScanned).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
+
+	if (completion.msElapsed > 0)
+	{
+		const uint64_t itemsPerSecond = completion.itemsScanned * 1000ULL / completion.msElapsed;
+		message = message % ", " % tr("search speed: %1 items/sec").arg(itemsPerSecond);
+	}
+
+	setProgressText(message, Qt::ElideRight);
+
+	ui->resultsList->setFocus();
+	if (ui->resultsList->count() > 0)
+		ui->resultsList->item(0)->setSelected(true);
 }
 
 // This label alternates between scanned paths and status sentences, which want different ends of the text kept
@@ -247,15 +307,11 @@ void CFilesSearchWindow::search()
 	}
 }
 
-void CFilesSearchWindow::addResultToUi(const QString& path, bool reachedThroughLink)
+void CFilesSearchWindow::addResultToUi(const CFileSystemObject& object, bool reachedThroughLink)
 {
-	ui->resultsList->setUpdatesEnabled(false);
-
-	const CFileSystemObject object{ path };
-	const bool isDir = object.isDir();
-
+	const QString& path = object.fullAbsolutePath();
 	QString name = toNativeSeparators(path);
-	if (isDir)
+	if (object.isDir())
 	{
 		if (name.endsWith(nativeSeparator()))
 			name.chop(1);
@@ -279,8 +335,6 @@ void CFilesSearchWindow::addResultToUi(const QString& path, bool reachedThroughL
 	}
 
 	ui->resultsList->addItem(item);
-
-	ui->resultsList->setUpdatesEnabled(true);
 }
 
 void CFilesSearchWindow::saveResults()
@@ -322,12 +376,14 @@ void CFilesSearchWindow::loadResults()
 	QTextStream stream{ &file };
 	stream.setEncoding(QStringConverter::Utf8);
 
+	ui->resultsList->setUpdatesEnabled(false);
 	QString line;
 	while (stream.readLineInto(&line))
 	{
 		_matches.push_back(line);
-		addResultToUi(line, false); // The saved file is a plain list of paths, with no record of how each was reached
+		addResultToUi(CFileSystemObject{ line }, false); // The saved file is a plain list of paths, with no record of how each was reached
 	}
+	ui->resultsList->setUpdatesEnabled(true);
 }
 
 void CFilesSearchWindow::showContextMenu(const QPoint& pos)
