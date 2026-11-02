@@ -116,6 +116,8 @@ public:
 	void navigateForward(Panel p);
 	// Sets the specified path, if possible. Otherwise reverts to the previously set path
 	FileOperationResultCode setPath(Panel p, const QString& path, FileListRefreshCause operation);
+	// Opens the item's folder with the cursor on the item
+	void goToItem(Panel p, const CFileSystemObject& item);
 	// Creates a folder with a specified name at the specified parent folder. The name may be a chain ("a/b/c").
 	FileOperationResultCode createFolder(const QString& parentFolder, const QString& name);
 	// Creates a file with a specified name at the specified parent folder

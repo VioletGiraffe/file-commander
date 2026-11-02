@@ -71,7 +71,7 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats
 
 	connect(_list, &QTreeWidget::itemActivated, this, [&controller, parent](QTreeWidgetItem* item) {
 		const QString path = item->data(columns::Name, Qt::UserRole).toString();
-		controller.activePanel().goToItem(CFileSystemObject{ path });
+		controller.goToItem(controller.activePanelPosition(), CFileSystemObject{ path });
 		parent->activateWindow();
 	});
 

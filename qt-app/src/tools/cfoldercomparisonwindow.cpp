@@ -141,7 +141,7 @@ CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const FolderCo
 	connect(list, &QTreeWidget::itemActivated, this, [&controller, parent](QTreeWidgetItem* item) {
 		const QString path = item->data(columns::Name, Qt::UserRole).toString();
 		const auto panel = static_cast<Panel>(item->data(columns::Name, Qt::UserRole + 1).toInt());
-		controller.panel(panel).goToItem(CFileSystemObject{ path });
+		controller.goToItem(panel, CFileSystemObject{ path });
 		parent->activateWindow();
 	});
 

@@ -87,7 +87,8 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWid
 
 	ui->resultsList->setSortingEnabled(true);
 	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item) {
-		CController::get().activePanel().goToItem(CFileSystemObject(item->data(Qt::UserRole).toString()));
+		CController& controller = CController::get();
+		controller.goToItem(controller.activePanelPosition(), CFileSystemObject(item->data(Qt::UserRole).toString()));
 
 		auto* mainWindow = CMainWindow::get();
 		assert_and_return_r(mainWindow, );

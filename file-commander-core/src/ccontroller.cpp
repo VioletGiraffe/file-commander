@@ -357,6 +357,7 @@ void CController::closeTab(Panel p, qulonglong tabId)
 		if (tabList.activeTab >= tabList.tabs.size())
 			tabList.activeTab = tabList.tabs.size() - 1;
 		tabList.tabs[tabList.activeTab]->setActive(true);
+		saveDirectoryForCurrentVolume(p);
 	}
 
 	savePanelState(p);
@@ -385,6 +386,7 @@ void CController::switchActiveTab(Panel p, qulonglong tabId)
 	tabList.tabs[tabList.activeTab]->setActive(false);
 	tabList.activeTab = *idx;
 	tabList.tabs[tabList.activeTab]->setActive(true);
+	saveDirectoryForCurrentVolume(p);
 }
 
 void CController::moveTabPosition(Panel p, qulonglong tabId, size_t newPosition)
@@ -773,6 +775,13 @@ FileOperationResultCode CController::setPath(Panel p, const QString &path, FileL
 	saveDirectoryForCurrentVolume(p);
 	notifyCurrentVolumeChanged(p);
 	return result;
+}
+
+void CController::goToItem(Panel p, const CFileSystemObject& item)
+{
+	panel(p).goToItem(item);
+	saveDirectoryForCurrentVolume(p);
+	notifyCurrentVolumeChanged(p);
 }
 
 FileOperationResultCode CController::createFolder(const QString &parentFolder, const QString &name)
