@@ -122,6 +122,7 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	CFileSystemObject resolvedDir;
 	bool pathSet = false;
+	bool resolvedDirAccessible = true;
 	for (auto&& candidatePath: pathHierarchy(path))
 	{
 		if (canListDirectory(candidatePath))
@@ -157,9 +158,17 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 				}
 			}
 
-			if (pathToSet.isEmpty())
+			if (pathToSet.isEmpty() && canListDirectory(QDir::homePath()))
 				pathToSet = QDir::homePath();
-			resolvedDir.setPath(pathToSet);
+
+			if (!pathToSet.isEmpty())
+				resolvedDir.setPath(pathToSet);
+			else
+			{
+				// No folder can be listed: the panel keeps its folder (the requested one if it had none) and shows it empty
+				resolvedDirAccessible = false;
+				resolvedDir = oldPathObject.fullAbsolutePath().isEmpty() ? CFileSystemObject{ path } : oldPathObject;
+			}
 		}
 	}
 
@@ -196,9 +205,12 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	++_navigationId;
 	const auto request = beginFileListUpdateLocked(NormalMode);
+	// Not listed: the listing would fail and recover by calling setPath, which would end up here again
+	if (!resolvedDirAccessible)
+		publishFileListIfCurrent(request, {}, refreshCauseOther);
 	locker.unlock();
 
-	if (active)
+	if (active && resolvedDirAccessible)
 		enqueueFileListUpdate(request, pathSet ? operation : refreshCauseOther);
 
 	return pathSet ? FileOperationResultCode::Ok : FileOperationResultCode::DirNotAccessible;
