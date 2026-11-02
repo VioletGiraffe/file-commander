@@ -1050,6 +1050,20 @@ void CController::volumesChanged(bool drivesListOrReadinessChanged) noexcept
 		listener->volumesChanged(drives, Panel::RightPanel, drivesListOrReadinessChanged);
 		listener->volumesChanged(drives, Panel::LeftPanel, drivesListOrReadinessChanged);
 	}
+
+	if (!drivesListOrReadinessChanged)
+		return;
+
+	// A panel's watch is released when its volume is locked for eject, before the volume goes away: a panel left without
+	// a ready volume is refreshed, which finds its folder gone and moves the panel to an accessible one.
+	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+	{
+		if (_panels[(size_t)p].tabs.empty()) // The first enumeration runs before the tabs are restored
+			continue;
+
+		if (const auto volume = currentVolumeInfo(p); !volume || !volume->isReady)
+			panel(p).refreshFileList(refreshCauseOther);
+	}
 }
 
 void CController::notifyCurrentVolumeChanged(Panel p) noexcept

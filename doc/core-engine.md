@@ -82,11 +82,14 @@ Copy, move, permanent delete, inline rename, directory scanning and folder compa
 follow directory links and breaks cycles with resolved native identity rather than path text. File operations and
 statistics use separate traversals.
 
-Windows panels use native change notifications on the folder and on its parent: the folder's own notification never
-reports the folder being renamed or moved. Other platforms compare periodic directory snapshots
-(`src/filesystemwatcher/`, implementation selected by the `FileSystemWatcher` alias in `cpanel.h`). A path
-generation rejects obsolete polling results. Flattened recursive display and inactive tabs do not hold a
-single-directory watch.
+Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatcher/`):
+- A replaced folder is watched again. A lost one (deleted, renamed or moved) is watched again once a folder is back at
+  its path; meanwhile the refresh the change triggers moves the panel to an accessible folder.
+- Where notifications cannot be set up or may never arrive (a remote volume), the folder is also polled with directory
+  snapshots. A path generation rejects obsolete polling results.
+- The watch is released, and not re-armed, when its volume is locked for eject: the volume list change that follows the
+  removal refreshes the panel.
+- Flattened recursive display and inactive tabs hold no watch.
 
 ## Other core areas
 

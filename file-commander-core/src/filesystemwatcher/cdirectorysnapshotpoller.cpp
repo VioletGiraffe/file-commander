@@ -1,32 +1,18 @@
-#include "cfilesystemwatchertimerbased.h"
+#include "cdirectorysnapshotpoller.h"
 
 
 // Submodule includes
-#include "assert/advanced_assert.h"
-#include "compiler/compiler_warnings_control.h"
-#include "directoryscan/thinioqstring.h"
+#include "qt_paths.hpp" // thin_io
 
+#include <utility>
 
-DISABLE_COMPILER_WARNINGS
-#include <QFileInfo>
-RESTORE_COMPILER_WARNINGS
-
-CFileSystemWatcherTimerBased::CFileSystemWatcherTimerBased()
-{
-	_periodicThread.start([this] {
-		onCheckForChanges();
-	}, 100 /* delay before start*/);
-}
-
-CFileSystemWatcherTimerBased::~CFileSystemWatcherTimerBased()
+CDirectorySnapshotPoller::~CDirectorySnapshotPoller()
 {
 	_periodicThread.terminate();
 }
 
-bool CFileSystemWatcherTimerBased::setPathToWatch(const QString& path)
+void CDirectorySnapshotPoller::setPathToWatch(const QString& path)
 {
-	assert_and_return_r(path.isEmpty() || QFileInfo(path).isDir(), false);
-
 	{
 		std::lock_guard locker{ _mutex };
 		_pathToWatch = path;
@@ -35,20 +21,27 @@ bool CFileSystemWatcherTimerBased::setPathToWatch(const QString& path)
 	}
 
 	if (path.isEmpty())
-		_periodicThread.pause(); // Nothing to watch: park the thread instead of letting it poll for no reason.
-	else
+	{
+		if (_threadStarted)
+			_periodicThread.pause(); // Nothing to watch: park the thread instead of letting it poll for no reason.
+	}
+	else if (std::exchange(_threadStarted, true))
 		_periodicThread.resume(); // No-op if it wasn't paused (e.g. just navigating within the already-active tab).
-
-	return true;
+	else
+	{
+		_periodicThread.start([this] {
+			onCheckForChanges();
+		}, 100 /* delay before start*/);
+	}
 }
 
-bool CFileSystemWatcherTimerBased::changesDetected() noexcept
+bool CDirectorySnapshotPoller::changesDetected() noexcept
 {
 	bool expected = true;
 	return _bChangeDetected.compare_exchange_strong(expected, false);
 }
 
-void CFileSystemWatcherTimerBased::onCheckForChanges()
+void CDirectorySnapshotPoller::onCheckForChanges()
 {
 	QString pathToWatch;
 	uint64_t pathGeneration;
@@ -64,25 +57,18 @@ void CFileSystemWatcherTimerBased::onCheckForChanges()
 	processChangesAndNotifySubscribers(snapshotDirectory(pathToWatch), pathGeneration);
 }
 
-// Baseline and poll scans must use identical filters, else every poll diffs against a differently-built
+// Baseline and poll scans must use the same listing_detail, else every poll diffs against a differently-built
 // baseline and reports phantom changes. Sharing this call guarantees it.
-std::optional<std::set<SnapshotEntry>> CFileSystemWatcherTimerBased::snapshotDirectory(const QString& path)
+std::optional<thin_io::directory_snapshot> CDirectorySnapshotPoller::snapshotDirectory(const QString& path)
 {
-	auto entries = listDirectoryWithDetails(path);
-	if (!entries)
+	auto snapshot = thin_io::directory_snapshot::take(thin_io::native_path(path).data(), thin_io::listing_detail::full);
+	if (!snapshot)
 		return {};
 
-	std::set<SnapshotEntry> snapshot;
-	for (auto& entry : *entries)
-	{
-		const thin_io::entry_status& described = entry.link_target ? *entry.link_target : entry;
-		snapshot.insert({ std::move(entry.name), described.logical_size.value_or(0) });
-	}
-
-	return snapshot;
+	return std::move(*snapshot);
 }
 
-void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(std::optional<std::set<SnapshotEntry>>&& newState, uint64_t pathGeneration)
+void CDirectorySnapshotPoller::processChangesAndNotifySubscribers(std::optional<thin_io::directory_snapshot>&& newState, uint64_t pathGeneration)
 {
 	std::lock_guard locker{ _mutex };
 	if (_pathToWatch.isEmpty() || pathGeneration != _pathGeneration)
@@ -96,7 +82,7 @@ void CFileSystemWatcherTimerBased::processChangesAndNotifySubscribers(std::optio
 	_previousStateGeneration = pathGeneration;
 }
 
-void CFileSystemWatcherTimerBased::captureBaselineState()
+void CDirectorySnapshotPoller::captureBaselineState()
 {
 	uint64_t pathGeneration;
 	QString pathToWatch;

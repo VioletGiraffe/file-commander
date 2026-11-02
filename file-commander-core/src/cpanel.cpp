@@ -185,8 +185,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	// An inactive tab neither watches nor lists its folder; setActive does both when the tab becomes the displayed one.
 	const bool active = _active;
-	if (active && _watcher.setPathToWatch(newPath) == false)
-		qInfo() << __FUNCTION__ << "Error setting path" << newPath << "to CFileSystemWatcher";
+	if (active)
+		_watcher.setPathToWatch(newPath);
 
 	// Use the previous view's committed list to remember the selected child when navigating down.
 	const auto newItemInPreviousFolder = _itemsSourcePath == oldPathObject.fullAbsolutePath() && _itemsSourceDisplayMode == oldDisplayMode ? _items.find(_currentDirObject.hash()) : _items.end();

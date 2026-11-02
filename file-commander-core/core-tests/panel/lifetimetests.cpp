@@ -125,9 +125,9 @@ TEST_CASE("CPanel - a change on disk refreshes the folder in view", "[panel][wat
 
 	const QString added = tree.makeFile(QStringLiteral("after.txt"));
 
-	// The only case in this suite that waits rather than steps: the watcher is a native change handle on Windows
-	// and a polling thread elsewhere, so when it reports is not ours to decide. Waiting on the notification rather
-	// than on the contents also orders the two - the listing is committed before it is announced.
+	// The only case in this suite that waits rather than steps: the watcher relies on the system's change notifications,
+	// so when it reports is not ours to decide. Waiting on the notification rather than on the contents also orders the
+	// two - the listing is committed before it is announced.
 	CHECK(h.pumpUntil([&h] { return h.listener().count(PanelEvent::ContentsChanged) >= 1; }));
 	CHECK(h.panel().itemHashExists(hashOf(added)));
 }

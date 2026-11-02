@@ -11,7 +11,7 @@ INCLUDEPATH += \
 LIBS += -L$$PWD/../bin/$${OUTPUT_DIR} -lcore -lqtutils
 
 win*: LIBS += -lole32 -lShell32 -lUser32 -lMpr
-mac*: LIBS += -framework AppKit
+mac*: LIBS += -framework AppKit -framework CoreServices # CoreServices: FSEvents, for thin_io::directory_watcher
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $$PWD/../bin/$${OUTPUT_DIR}/libcore.a $$PWD/../bin/$${OUTPUT_DIR}/libqtutils.a

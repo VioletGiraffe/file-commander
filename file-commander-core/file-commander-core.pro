@@ -21,7 +21,8 @@ HEADERS += \
 	src/fileoperationresultcode.h \
 	src/cpanel.h \
 	src/filesystemhelpers/filestatistics.h \
-	src/filesystemwatcher/cfilesystemwatchertimerbased.h \
+	src/filesystemwatcher/cdirectorysnapshotpoller.h \
+	src/filesystemwatcher/cfilesystemwatcher.h \
 	src/iconprovider/ciconprovider.h \
 	src/shell/cshell.h \
 	src/shell/cshellcommand.h \
@@ -44,7 +45,8 @@ SOURCES += \
 	src/cpanel.cpp \
 	src/filesystemhelperfunctions.cpp \
 	src/filesystemhelpers/filestatistics.cpp \
-	src/filesystemwatcher/cfilesystemwatchertimerbased.cpp \
+	src/filesystemwatcher/cdirectorysnapshotpoller.cpp \
+	src/filesystemwatcher/cfilesystemwatcher.cpp \
 	src/iconprovider/ciconprovider.cpp \
 	src/iconprovider/ciconproviderimpl.cpp \
 	src/shell/cshell.cpp \
@@ -58,12 +60,8 @@ SOURCES += \
 	src/filesystemhelpers/filesystemhelpers.cpp
 
 win*{
-	HEADERS += \
-		src/filesystemwatcher/cfilesystemwatcherwindows.h
-
 	SOURCES += \
-		src/diskenumerator/cvolumeenumerator_impl_win.cpp \
-		src/filesystemwatcher/cfilesystemwatcherwindows.cpp
+		src/diskenumerator/cvolumeenumerator_impl_win.cpp
 }
 
 mac*{

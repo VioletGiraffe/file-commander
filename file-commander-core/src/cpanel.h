@@ -3,6 +3,7 @@
 #include "cfilesystemobject.h"
 #include "fileoperationresultcode.h"
 #include "detail/file_list_hashmap.h"
+#include "filesystemwatcher/cfilesystemwatcher.h"
 
 
 // Submodule includes
@@ -14,14 +15,6 @@
 #include "threading/cthreadpool.h"
 #include "utility/callback_caller.hpp"
 
-
-#ifdef _WIN32
-#include "filesystemwatcher/cfilesystemwatcherwindows.h"
-using FileSystemWatcher = CFileSystemWatcherWindows;
-#else
-#include "filesystemwatcher/cfilesystemwatchertimerbased.h"
-using FileSystemWatcher = CFileSystemWatcherTimerBased;
-#endif
 
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
@@ -173,7 +166,7 @@ private:
 
 private:
 	CFileSystemObject                          _currentDirObject;
-	FileSystemWatcher                          _watcher;
+	CFileSystemWatcher                         _watcher;
 	FileListHashMap                            _items;
 	// Folder sizes calculated on request, re-applied to every listing that still has the folder. Protected by _fileListAndCurrentDirMutex.
 	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, identity_hash> _calculatedDirSizes;

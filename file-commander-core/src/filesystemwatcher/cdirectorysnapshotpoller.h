@@ -2,7 +2,7 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
-#include "filesystem_types.hpp" // thin_io
+#include "directory_snapshot.hpp" // thin_io
 #include "threading/cperiodicexecutionthread.h"
 
 
@@ -13,30 +13,21 @@ RESTORE_COMPILER_WARNINGS
 #include <atomic>
 #include <mutex>
 #include <optional>
-#include <set>
 #include <stdint.h>
 
-// One child of the watched folder: ordered by name, equal when the size matches too
-struct SnapshotEntry
-{
-	thin_io::native_string name;
-	uint64_t size = 0; // A link's target's
-
-	[[nodiscard]] bool operator<(const SnapshotEntry& other) const noexcept { return name < other.name; }
-	[[nodiscard]] bool operator==(const SnapshotEntry& other) const noexcept { return name == other.name && size == other.size; }
-};
-
-class CFileSystemWatcherTimerBased
+// Detects changes in one folder by comparing periodic snapshots, for folders where change notifications may never arrive.
+// The polling thread starts on the first path to watch.
+class CDirectorySnapshotPoller
 {
 public:
-	CFileSystemWatcherTimerBased();
-	~CFileSystemWatcherTimerBased();
+	CDirectorySnapshotPoller() = default;
+	~CDirectorySnapshotPoller();
 
-	CFileSystemWatcherTimerBased(const CFileSystemWatcherTimerBased&) = delete;
-	CFileSystemWatcherTimerBased& operator=(const CFileSystemWatcherTimerBased&) = delete;
+	CDirectorySnapshotPoller(const CDirectorySnapshotPoller&) = delete;
+	CDirectorySnapshotPoller& operator=(const CDirectorySnapshotPoller&) = delete;
 
-	// This method is thread-safe.
-	bool setPathToWatch(const QString &path);
+	// An empty path stops polling. Only called from one thread at a time.
+	void setPathToWatch(const QString &path);
 	// The poll loop takes its baseline up to a period after setPathToWatch, so a change made in that gap is
 	// absorbed into the baseline and never reported. Call this when you take your own snapshot of the folder, to
 	// pin the baseline to that moment instead. Scans synchronously on the calling thread.
@@ -48,13 +39,14 @@ public:
 private:
 	void onCheckForChanges();
 	// nullopt when the folder can't be listed: deleting an empty folder must still differ from its baseline.
-	[[nodiscard]] static std::optional<std::set<SnapshotEntry>> snapshotDirectory(const QString& path);
-	void processChangesAndNotifySubscribers(std::optional<std::set<SnapshotEntry>>&& newState, uint64_t pathGeneration);
+	[[nodiscard]] static std::optional<thin_io::directory_snapshot> snapshotDirectory(const QString& path);
+	void processChangesAndNotifySubscribers(std::optional<thin_io::directory_snapshot>&& newState, uint64_t pathGeneration);
 
 private:
-	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CFileSystemWatcher thread" };
+	CPeriodicExecutionThread _periodicThread{ 400 /* period in ms*/, "CDirectorySnapshotPoller thread" };
+	bool _threadStarted = false; // Only setPathToWatch() touches it
 	// Written by the poll thread and by captureBaselineState() (panel worker thread); all access under _mutex.
-	std::optional<std::set<SnapshotEntry>> _previousState;
+	std::optional<thin_io::directory_snapshot> _previousState;
 	uint64_t _previousStateGeneration = 0;
 
 	std::recursive_mutex _mutex;

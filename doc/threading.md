@@ -15,9 +15,9 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | each `CFileOperationJob` | interruptible thread | One copy, move, or delete request |
 | `CShellOperationRunner` | interruptible thread per operation | Blocking native shell calls |
 | `CFileSearchEngine` | interruptible thread plus bounded pool | Traversal and content matching |
-| volume enumerator and polling watcher | periodic threads | Device and directory change polling |
+| volume enumerator and snapshot poller | periodic threads | Device polling; directory polling where notifications may never arrive |
 | `CIconProvider` | one COM apartment thread plus UI execution queue | Shell icon retrieval for the file list |
-| Windows watcher | native handle plus Qt event filter | Directory change notification |
+| `CFileSystemWatcher` | `thin_io::directory_watcher`, read on the UI tick | Directory change notification; thin_io's own threads are in its README |
 | file comparison plugin | worker thread with abort flag | One two-file content comparison |
 | `runFolderComparison` | worker thread per run | Tree scan and compare while the UI waits in the modal progress dialog |
 | `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
@@ -60,7 +60,7 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
   thread. The controller gate must remain shared for queries: another plugin thread may already hold it while waiting
   for the panel mutex, so replacing it with `mutex` or `recursive_mutex` would create a cross-thread lock inversion.
   Do not invoke plugin callbacks while holding the controller gate exclusively.
-- The polling watcher's baseline and path generation are protected by the watcher mutex across both poll-thread and
+- The snapshot poller's baseline and path generation are protected by its mutex across both poll-thread and
   panel-worker access.
 - `CVolumeEnumerator` deliberately uses a recursive mutex because synchronous enumeration can re-enter getters.
 - The icon retrieval thread enters an apartment once and idles in a COM-aware wait, never a condition variable: shell
