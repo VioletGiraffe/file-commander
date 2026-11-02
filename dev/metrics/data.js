@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793661107147,
+  "lastUpdate": 1793661728131,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -33095,6 +33095,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 868.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 426.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "1107f1f5e5ece7efb3e19737a0e6f99abcac1c71",
+          "message": "Inactive tabs no longer read the disk: setPath records the path and activation checks and lists it, so startup no longer waits on unreachable folders of restored tabs\n\nThis also stops a background tab from leaving its stored folder when that folder is temporarily unreachable (a share asleep at startup): it used to be moved to an ancestor or the home folder, and the fallback was then saved over the stored path.",
+          "timestamp": "2026-11-03T01:05:52+02:00",
+          "tree_id": "f7a73f130b8fd2e821d8cc363616a9996df3b7d6",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/1107f1f5e5ece7efb3e19737a0e6f99abcac1c71"
+        },
+        "date": 1793661723812,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14867,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34739,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1500,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3280.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 869.5,
             "unit": "KB"
           },
           {
