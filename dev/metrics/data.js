@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793661728131,
+  "lastUpdate": 1793663131383,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -33149,6 +33149,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (app)",
             "value": 14867,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34739,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1500,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3280.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 869.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 426.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "76999bdee1a420945b7fb0ec629384e50fae60ee",
+          "message": "Accepted: plugins see a switched-to tab's contents only after its listing, and the watcher's failure and fallback paths have no tests",
+          "timestamp": "2026-11-03T01:35:10+02:00",
+          "tree_id": "1a577c3daa689b5ead23860adcfcc500ee51fb8a",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/76999bdee1a420945b7fb0ec629384e50fae60ee"
+        },
+        "date": 1793663128089,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14871,
             "unit": "LOC"
           },
           {
