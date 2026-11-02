@@ -10,13 +10,13 @@
 #include <algorithm>
 #include <utility>
 
-FileListHashMap listDirectoryForPanel(const QString& dirPath, const bool showHiddenFiles)
+std::optional<FileListHashMap> listDirectoryForPanel(const QString& dirPath, const bool showHiddenFiles)
 {
-	FileListHashMap items;
 	const auto entries = listDirectoryWithDetails(dirPath);
 	if (!entries)
-		return items;
+		return std::nullopt;
 
+	FileListHashMap items;
 	items.reserve(entries->size() + 1); // + 1: [..]
 	for (const auto& entry : *entries)
 	{
@@ -50,23 +50,28 @@ ListableFolderProbe::ListableFolderProbe(const std::atomic<bool>& cancelled, std
 
 bool ListableFolderProbe::isListable(const QString& folder)
 {
-	if (_cancelled)
-		return false;
-
-	const QString folderWithSeparator = withTrailingSeparator(folder);
-	if (std::ranges::any_of(_unlistableFolders, [&folderWithSeparator](const QString& unlistable) { return folderWithSeparator.startsWith(unlistable); }))
+	if (_cancelled || isUnderUnlistableFolder(folder))
 		return false;
 
 	if (_canList(folder))
 		return true;
 
+	addUnlistable(folder);
+	return false;
+}
+
+void ListableFolderProbe::addUnlistable(const QString& folder)
+{
+	if (isUnderUnlistableFolder(folder))
+		return;
+
 	// The folder to skip from now on is the topmost unlistable one on the way down from the root.
 	// Checked from the root down, so only that folder can wait out a timeout: the folders above it answer at once.
 	const std::vector<QString> hierarchy = pathHierarchy(folder); // The folder first, the root last
 	if (hierarchy.empty())
-		return false;
+		return;
 
-	QString topmostUnlistable = folderWithSeparator;
+	QString topmostUnlistable = withTrailingSeparator(folder);
 	for (size_t i = hierarchy.size() - 1; i > 0 && !_cancelled; --i)
 	{
 		if (!_canList(hierarchy[i]))
@@ -77,5 +82,10 @@ bool ListableFolderProbe::isListable(const QString& folder)
 	}
 
 	_unlistableFolders.push_back(std::move(topmostUnlistable));
-	return false;
+}
+
+bool ListableFolderProbe::isUnderUnlistableFolder(const QString& folder) const
+{
+	const QString folderWithSeparator = withTrailingSeparator(folder);
+	return std::ranges::any_of(_unlistableFolders, [&folderWithSeparator](const QString& unlistable) { return folderWithSeparator.startsWith(unlistable); });
 }

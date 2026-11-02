@@ -116,7 +116,7 @@ static Sample listWithThinIo(const Folder& folder, const thin_io::listing_detail
 static Sample listForPanel(const Folder& folder)
 {
 	const auto start = Clock::now();
-	const FileListHashMap items = listDirectoryForPanel(folder.path, true);
+	const FileListHashMap items = listDirectoryForPanel(folder.path, true).value();
 	const auto end = Clock::now();
 	return { items.size(), microsecondsBetween(start, end) };
 }
@@ -183,7 +183,7 @@ static void reportPanelListingMemory(const std::vector<Folder>& folders)
 	for (const Folder& folder : folders)
 	{
 		const int64_t before = heapBytesAllocated();
-		const FileListHashMap items = listDirectoryForPanel(folder.path, true);
+		const FileListHashMap items = listDirectoryForPanel(folder.path, true).value();
 		const int64_t held = heapBytesAllocated() - before;
 		printf("%s: the panel listing holds %.0f bytes per entry\n", qUtf8Printable(folder.path), items.empty() ? 0.0 : (double)held / (double)items.size());
 	}

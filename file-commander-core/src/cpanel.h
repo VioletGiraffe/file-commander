@@ -28,6 +28,8 @@ RESTORE_COMPILER_WARNINGS
 #include <utility>
 #include <vector>
 
+class ListableFolderProbe;
+
 enum class Panel
 {
 	LeftPanel,
@@ -153,8 +155,8 @@ private:
 	};
 
 	// The folder setPath(path) moves to: the first listable one of path and its ancestors, currentDir, history from its cursor
-	// back, and home. Checks the candidates on disk: recovery runs it on a worker.
-	[[nodiscard]] static FolderResolution resolveFolder(const QString& path, const CFileSystemObject& currentDir, const CHistoryList<QString>& history, const std::atomic<bool>& cancelled);
+	// back, and home. Checks the candidates on disk through probe: recovery runs it on a worker.
+	[[nodiscard]] static FolderResolution resolveFolder(const QString& path, const CFileSystemObject& currentDir, const CHistoryList<QString>& history, ListableFolderProbe& probe);
 	void moveToFolder(FolderResolution resolution, FileListRefreshCause operation);
 	// Runs on the worker that found request's folder inaccessible
 	void recoverFromInaccessibleFolder(const FileListUpdateRequest& request);

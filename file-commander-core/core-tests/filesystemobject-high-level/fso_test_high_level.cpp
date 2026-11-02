@@ -288,7 +288,7 @@ TEST_CASE("File times are read once, when the object is built", "[CFileSystemObj
 	CHECK(fileObject.modificationTime() == firstTime.toSecsSinceEpoch());
 	CHECK(CFileSystemObject{ filePath }.modificationTime() == secondTime.toSecsSinceEpoch());
 
-	const FileListHashMap listed = listDirectoryForPanel(tempDir.path() + '/', true);
+	const FileListHashMap listed = listDirectoryForPanel(tempDir.path() + '/', true).value();
 	const CFileSystemObject* listedFolder = findByFullName(listed, "folder");
 	const CFileSystemObject* listedFile = findByFullName(listed, "file.txt");
 	REQUIRE(listedFolder);
@@ -309,7 +309,7 @@ TEST_CASE("The panel listing's [..] entry is the parent folder", "[CFileSystemOb
 
 	for (const bool showHiddenFiles : { true, false }) // On POSIX, ".." looks hidden
 	{
-		const FileListHashMap items = listDirectoryForPanel(folder, showHiddenFiles);
+		const FileListHashMap items = listDirectoryForPanel(folder, showHiddenFiles).value();
 		const CFileSystemObject* cdUp = findByFullName(items, "..");
 		REQUIRE(cdUp);
 		CHECK(cdUp->isCdUp());
@@ -318,7 +318,7 @@ TEST_CASE("The panel listing's [..] entry is the parent folder", "[CFileSystemOb
 		CHECK(cdUp->type() == Directory);
 	}
 
-	CHECK_FALSE(findByFullName(listDirectoryForPanel(QDir::rootPath(), true), ".."));
+	CHECK_FALSE(findByFullName(listDirectoryForPanel(QDir::rootPath(), true).value(), ".."));
 }
 
 TEST_CASE("A folder directly under a root has the root as its parent", "[CFileSystemObject]")
@@ -347,7 +347,7 @@ TEST_CASE("Names ending in a dot or a space are kept verbatim", "[CFileSystemObj
 	REQUIRE(createFileVerbatim(dotted));
 	REQUIRE(createFileVerbatim(spaced));
 
-	const FileListHashMap items = listDirectoryForPanel(folder, true);
+	const FileListHashMap items = listDirectoryForPanel(folder, true).value();
 	for (const QString& path : { dotted, spaced })
 	{
 		const CFileSystemObject object{ path };
@@ -373,7 +373,7 @@ TEST_CASE("A file's extension follows its last dot, except a leading one on POSI
 	REQUIRE(createFileVerbatim(folder + ".jpg"));
 	REQUIRE(createFileVerbatim(folder + "archive.tar.gz"));
 
-	const FileListHashMap items = listDirectoryForPanel(folder, true);
+	const FileListHashMap items = listDirectoryForPanel(folder, true).value();
 	const CFileSystemObject dotfileFromPath{ folder + ".jpg" };
 	for (const CFileSystemObject* dotfile : { findByFullName(items, ".jpg"), &dotfileFromPath })
 	{
@@ -413,11 +413,11 @@ TEST_CASE("Hidden entries follow the platform's rule", "[CFileSystemObject][list
 	CHECK(CFileSystemObject{ hidden }.isHidden());
 	CHECK_FALSE(CFileSystemObject{ visible }.isHidden());
 
-	const FileListHashMap withoutHidden = listDirectoryForPanel(folder, false);
+	const FileListHashMap withoutHidden = listDirectoryForPanel(folder, false).value();
 	CHECK(findByFullName(withoutHidden, "visible.txt"));
 	CHECK_FALSE(findByFullName(withoutHidden, CFileSystemObject{ hidden }.fullName()));
 
-	const FileListHashMap withHidden = listDirectoryForPanel(folder, true);
+	const FileListHashMap withHidden = listDirectoryForPanel(folder, true).value();
 	const CFileSystemObject* listedHidden = findByFullName(withHidden, CFileSystemObject{ hidden }.fullName());
 	REQUIRE(listedHidden);
 	CHECK(listedHidden->isHidden());
@@ -448,7 +448,7 @@ TEST_CASE("Executable files follow the platform's rule", "[CFileSystemObject][li
 	}
 	REQUIRE(createFileVerbatim(folder + "notes.txt"));
 
-	const FileListHashMap items = listDirectoryForPanel(folder, true);
+	const FileListHashMap items = listDirectoryForPanel(folder, true).value();
 	for (const QString& name : executables)
 	{
 		CHECK(CFileSystemObject{ folder + name }.isExecutable());
@@ -485,7 +485,7 @@ TEST_CASE("A listed link is described by its target until the target is gone", "
 	const bool fileLinkCreated = createFileSymlink(targetFile, folder + "file-link");
 
 	{
-		const FileListHashMap items = listDirectoryForPanel(folder, true);
+		const FileListHashMap items = listDirectoryForPanel(folder, true).value();
 		const CFileSystemObject* folderLink = findByFullName(items, "folder-link");
 		REQUIRE(folderLink);
 		CHECK(folderLink->isLink());
@@ -507,7 +507,7 @@ TEST_CASE("A listed link is described by its target until the target is gone", "
 	REQUIRE(QDir{ targetFolder }.removeRecursively());
 	REQUIRE(QFile::remove(targetFile));
 
-	const FileListHashMap items = listDirectoryForPanel(folder, true);
+	const FileListHashMap items = listDirectoryForPanel(folder, true).value();
 	const CFileSystemObject* brokenFolderLink = findByFullName(items, "folder-link");
 	REQUIRE(brokenFolderLink);
 	CHECK(brokenFolderLink->isLink());
@@ -557,7 +557,7 @@ TEST_CASE("A socket is left out of the panel listing", "[CFileSystemObject][list
 	CHECK(socketObject.exists());
 	CHECK_FALSE(socketObject.isFile());
 	CHECK_FALSE(socketObject.isDir());
-	CHECK_FALSE(findByFullName(listDirectoryForPanel(folder, true), "socket"));
+	CHECK_FALSE(findByFullName(listDirectoryForPanel(folder, true).value(), "socket"));
 }
 #endif
 

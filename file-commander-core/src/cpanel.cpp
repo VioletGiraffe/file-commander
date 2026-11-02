@@ -20,6 +20,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <optional>
 
 
@@ -120,61 +121,43 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	// Resolved before taking the list mutex: a check on an unreachable share waits out a network timeout.
 	// The UI thread is the only writer of _history, so it reads it unlocked.
-	FolderResolution resolution = resolveFolder(path, currentDirObject(), _history, _abortBackgroundTasks);
+	ListableFolderProbe probe{ _abortBackgroundTasks };
+	FolderResolution resolution = resolveFolder(path, currentDirObject(), _history, probe);
 	const bool requestedPathSet = resolution.isRequestedPathOrAncestor;
 	moveToFolder(std::move(resolution), operation);
 	return requestedPathSet ? FileOperationResultCode::Ok : FileOperationResultCode::DirNotAccessible;
 }
 
-CPanel::FolderResolution CPanel::resolveFolder(const QString& path, const CFileSystemObject& currentDir, const CHistoryList<QString>& history, const std::atomic<bool>& cancelled)
+CPanel::FolderResolution CPanel::resolveFolder(const QString& path, const CFileSystemObject& currentDir, const CHistoryList<QString>& history, ListableFolderProbe& probe)
 {
-	ListableFolderProbe probe{ cancelled };
-	FolderResolution resolution;
-	for (const QString& candidatePath: pathHierarchy(path))
+	FolderResolution resolution{ .listable = true };
+	const auto landsOn = [&probe, &resolution](const QString& candidate) {
+		if (!probe.isListable(candidate))
+			return false;
+
+		resolution.folder.setPath(candidate);
+		return resolution.folder.isDir();
+	};
+
+	if (std::ranges::any_of(pathHierarchy(path), landsOn))
 	{
-		if (probe.isListable(candidatePath))
-		{
-			resolution.folder.setPath(candidatePath);
-			if (resolution.folder.isDir())
-			{
-				resolution.listable = true;
-				resolution.isRequestedPathOrAncestor = true;
-				return resolution;
-			}
-		}
+		resolution.isRequestedPathOrAncestor = true;
+		return resolution;
 	}
 
 	const QString& currentPath = currentDir.fullAbsolutePath();
-	if (!currentPath.isEmpty() && probe.isListable(currentPath))
-	{
-		resolution.folder.setPath(currentPath);
-		resolution.listable = true;
+	if (!currentPath.isEmpty() && landsOn(currentPath))
 		return resolution;
-	}
 
-	if (!history.empty())
-	{
-		// rbegin() is the newest entry; step forward to the cursor, then keep walking towards the oldest.
-		const size_t cursorDistanceFromNewest = history.size() - 1 - history.currentIndex();
-		for (auto it = history.rbegin() + (ptrdiff_t)cursorDistanceFromNewest; it != history.rend(); ++it)
-		{
-			if (probe.isListable(*it))
-			{
-				resolution.folder.setPath(*it);
-				resolution.listable = true;
-				return resolution;
-			}
-		}
-	}
-
-	if (probe.isListable(QDir::homePath()))
-	{
-		resolution.folder.setPath(QDir::homePath());
-		resolution.listable = true;
+	// rbegin() is the newest entry; step forward to the cursor, then keep walking towards the oldest.
+	if (!history.empty() && std::any_of(history.rbegin() + (ptrdiff_t)(history.size() - 1 - history.currentIndex()), history.rend(), landsOn))
 		return resolution;
-	}
+
+	if (landsOn(QDir::homePath()))
+		return resolution;
 
 	// No folder can be listed: the panel keeps its folder (the requested one if it had none) and shows it empty
+	resolution.listable = false;
 	resolution.folder = currentPath.isEmpty() ? CFileSystemObject{ path } : currentDir;
 	return resolution;
 }
@@ -410,6 +393,7 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 	_workerThreadPool.enqueue([this, request = std::move(request), operation]() {
 		CTimeElapsed timer{ true };
 		FileListHashMap items;
+		bool listed = true;
 		const bool showHiddenFiles = QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
 
 		if (request.displayMode == AllObjectsMode)
@@ -420,6 +404,9 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 					if (item.isFile() && item.exists() && (showHiddenFiles || !item.isHidden()))
 						items.try_emplace(item.hash(), std::move(item));
 				}, _abortBackgroundTasks);
+
+			// The scan reports no failure: an unlistable root yields no files, and so does a tree that has none
+			listed = !items.empty() || canListDirectory(request.path);
 		}
 		else
 		{
@@ -427,11 +414,13 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 			// (why: see captureBaselineState). Skipped for AllObjectsMode - flattened mode disarms the watcher.
 			_watcher.captureBaselineState();
 
-			items = listDirectoryForPanel(request.path, showHiddenFiles);
+			if (auto listing = listDirectoryForPanel(request.path, showHiddenFiles))
+				items = std::move(*listing);
+			else
+				listed = false;
 		}
 
-		// A folder that cannot be listed yields no items in either mode; so does an empty root or a tree with no files.
-		if (items.empty() && !canListDirectory(request.path))
+		if (!listed)
 		{
 			recoverFromInaccessibleFolder(request);
 			return;
@@ -467,19 +456,19 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 
 void CPanel::recoverFromInaccessibleFolder(const FileListUpdateRequest& request)
 {
-	std::optional<CHistoryList<QString>> history;
-	CFileSystemObject currentDir;
-	{
-		std::lock_guard locker(_fileListAndCurrentDirMutex);
-		if (!fileListUpdateIsCurrentLocked(request))
-			return;
+	std::unique_lock locker(_fileListAndCurrentDirMutex);
+	if (!fileListUpdateIsCurrentLocked(request))
+		return;
 
-		history.emplace(_history);
-		currentDir = _currentDirObject;
-	}
+	const CHistoryList<QString> history = _history;
+	const CFileSystemObject currentDir = _currentDirObject;
+	locker.unlock();
 
-	// Resolved as setPath(request.path) would, here rather than on the UI thread: each unreachable share costs a network timeout
-	FolderResolution resolution = resolveFolder(request.path, currentDir, *history, _abortBackgroundTasks);
+	// Resolved as setPath(request.path) would, here rather than on the UI thread: each unreachable share costs a network timeout.
+	// The failed listing already checked request.path.
+	ListableFolderProbe probe{ _abortBackgroundTasks };
+	probe.addUnlistable(request.path);
+	FolderResolution resolution = resolveFolder(request.path, currentDir, history, probe);
 	if (_abortBackgroundTasks)
 		return;
 

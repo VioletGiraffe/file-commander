@@ -290,3 +290,22 @@ TEST_CASE("ListableFolderProbe - a cancelled probe checks nothing", "[panel][pat
 	CHECK_FALSE(probe.isListable(QDir::rootPath()));
 	CHECK(checked.empty());
 }
+
+TEST_CASE("ListableFolderProbe - a folder whose listing failed is recorded without checking it again", "[panel][path]")
+{
+	const QString root = QDir::rootPath();
+	const QString unreachable = QString{ root % QStringLiteral("mnt/share/") };
+	std::vector<QString> checked;
+	const std::atomic<bool> cancelled{ false };
+	ListableFolderProbe probe{ cancelled, recordingFolderCheck(checked, unreachable) };
+
+	const QString failedFolder = QString{ unreachable % QStringLiteral("a/") };
+	probe.addUnlistable(failedFolder);
+	// Only its ancestors, from the root down to the first one that cannot be listed
+	CHECK(checked == std::vector<QString>{ root, QString{ root % QStringLiteral("mnt/") }, unreachable });
+
+	checked.clear();
+	CHECK_FALSE(probe.isListable(failedFolder));
+	CHECK_FALSE(probe.isListable(unreachable));
+	CHECK(checked.empty());
+}
