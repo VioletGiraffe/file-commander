@@ -16,7 +16,7 @@ RESTORE_COMPILER_WARNINGS
 #include <optional>
 
 // Detects changes among one folder's entries through the system's change notifications. Polls the folder instead, or
-// as well, where notifications cannot be set up or may never arrive (a remote volume).
+// as well, where notifications cannot be set up or may miss changes (thin_io::watch_coverage::partial).
 // setPathToWatch() and changesDetected() are only called from one thread at a time; captureBaselineState() from any.
 class CFileSystemWatcher
 {

@@ -85,8 +85,9 @@ statistics use separate traversals.
 Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatcher/`):
 - A replaced folder is watched again. A lost one (deleted, renamed or moved) is watched again once a folder is back at
   its path; meanwhile the refresh the change triggers moves the panel to an accessible folder.
-- Where notifications cannot be set up or may never arrive (a remote volume), the folder is also polled with directory
-  snapshots. A path generation rejects obsolete polling results.
+- Where notifications cannot be set up or may miss changes, the folder is polled with directory snapshots: on
+  Linux and macOS a network volume reports only this machine's changes. Windows network shares rely on notifications
+  alone, which their server sends for every client. A path generation rejects obsolete polling results.
 - The watch is released when its volume is locked for eject, with no refresh and no re-arming: either would touch the
   volume during the eject. The removal itself refreshes the panel: on Windows the main window's device-removal message,
   elsewhere the volume list change.

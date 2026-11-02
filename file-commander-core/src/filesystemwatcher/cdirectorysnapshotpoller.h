@@ -15,7 +15,7 @@ RESTORE_COMPILER_WARNINGS
 #include <optional>
 #include <stdint.h>
 
-// Detects changes in one folder by comparing periodic snapshots, for folders where change notifications may never arrive.
+// Detects changes in one folder by comparing periodic snapshots, for folders where change notifications may be incomplete.
 // The polling thread starts on the first path to watch.
 class CDirectorySnapshotPoller
 {

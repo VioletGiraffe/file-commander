@@ -15,7 +15,7 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | each `CFileOperationJob` | interruptible thread | One copy, move, or delete request |
 | `CShellOperationRunner` | interruptible thread per operation | Blocking native shell calls |
 | `CFileSearchEngine` | interruptible thread plus bounded pool | Traversal and content matching |
-| volume enumerator and snapshot poller | periodic threads | Device polling; directory polling where notifications may never arrive |
+| volume enumerator and snapshot poller | periodic threads | Device polling; directory polling where notifications may miss changes |
 | `CIconProvider` | one COM apartment thread plus UI execution queue | Shell icon retrieval for the file list |
 | `CFileSystemWatcher` | `thin_io::directory_watcher`, read on the UI tick | Directory change notification; thin_io's own threads are in its README |
 | file comparison plugin | worker thread with abort flag | One two-file content comparison |
