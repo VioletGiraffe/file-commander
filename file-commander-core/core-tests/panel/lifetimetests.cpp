@@ -1,5 +1,21 @@
 #include "paneltesthelpers.h"
 
+#ifdef _WIN32
+// FAT and exFAT, for one: there a deleted directory lingers until its last handle closes.
+static bool volumeLacksPosixDelete(const QString& directory)
+{
+	const QString nativeDirectory = QDir::toNativeSeparators(directory);
+	const HANDLE handle = ::CreateFileW(reinterpret_cast<const wchar_t*>(nativeDirectory.utf16()), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	REQUIRE(handle != INVALID_HANDLE_VALUE);
+	DWORD flags = 0;
+	const bool queried = ::GetVolumeInformationByHandleW(handle, nullptr, 0, nullptr, nullptr, &flags, nullptr, 0) != 0;
+	::CloseHandle(handle);
+	REQUIRE(queried);
+	return (flags & FILE_SUPPORTS_POSIX_UNLINK_RENAME) == 0;
+}
+#endif
+
 TEST_CASE("CPanel - destroying a panel retires the listing it had queued", "[panel][lifetime]")
 {
 	TempTree tree;
@@ -150,6 +166,15 @@ TEST_CASE("CPanel - deleting the folder in view moves the panel to its parent", 
 TEST_CASE("CPanel - a folder in view replaced under the same name stays watched", "[panel][watcher]")
 {
 	TempTree tree;
+#ifdef _WIN32
+	// The panel's watch holds the folder open, so the folder could not be recreated.
+	if (volumeLacksPosixDelete(tree.path()))
+	{
+		WARN("This filesystem keeps a deleted folder while a handle is open: test skipped");
+		return;
+	}
+#endif
+
 	const QString sub = tree.makeDir(QStringLiteral("sub"));
 	tree.makeFile(QStringLiteral("sub/old.txt"));
 
