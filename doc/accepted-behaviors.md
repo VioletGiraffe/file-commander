@@ -32,6 +32,10 @@ invalidates the reason given.
 
 - Closing a tab does not cancel its tasks cooperatively: not worth the complexity at this app's scale.
 - Every UI tab creates its models up front (`CPanelWidget::PanelTab`); creating them on first display was declined.
+- A tab remembers the cursor position in every folder it visits until it closes (`CPanel::_currentItemHashForFolder`):
+  one path and hash per folder, and a tab rarely visits thousands of distinct folders.
+- Only the active tab's history is saved, under one key per side, and the back/forward position is not saved: per-tab
+  history persistence is not planned.
 
 ## Locking
 
