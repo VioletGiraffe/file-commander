@@ -1272,12 +1272,14 @@ void CMainWindow::initCore()
 	connect(ui->leftPanel, &CPanelWidget::itemActivated, this, &CMainWindow::itemActivated);
 	connect(ui->rightPanel, &CPanelWidget::itemActivated, this, &CMainWindow::itemActivated);
 
-	const auto updateCompleterModel = [this] {
+	// The path bar and title are updated here too: switching to a tab whose listing is still current sends no contents notification
+	const auto onActiveTabChanged = [this](const Panel p) {
 		if (_currentFileList)
 			_commandLineCompleter.setModel(_currentFileList->model());
+		updatePathBarAndWindowTitle(p);
 	};
-	connect(ui->leftPanel, &CPanelWidget::activeTabChanged, this, updateCompleterModel);
-	connect(ui->rightPanel, &CPanelWidget::activeTabChanged, this, updateCompleterModel);
+	connect(ui->leftPanel, &CPanelWidget::activeTabChanged, this, [onActiveTabChanged] { onActiveTabChanged(Panel::LeftPanel); });
+	connect(ui->rightPanel, &CPanelWidget::activeTabChanged, this, [onActiveTabChanged] { onActiveTabChanged(Panel::RightPanel); });
 
 	ui->leftPanel->fileListView()->addEventObserver(this);
 	ui->rightPanel->fileListView()->addEventObserver(this);
