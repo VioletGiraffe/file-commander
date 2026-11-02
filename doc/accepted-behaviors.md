@@ -7,6 +7,9 @@ invalidates the reason given.
 
 - A filesystem driver that accepts a change watch but never delivers notifications leaves its folders without
   automatic refresh: no API reveals it, and the defect is the driver's. Handling is added only for a driver met in practice.
+- On macOS a new watch can report a change made shortly before it started, refreshing the panel once more: FSEvents
+  delivers such a change after the stream starts, and no API waits for it. Panel tests that count refreshes call
+  `TempTree::waitUntilChangesAreReported()` first.
 - A tab keeps its parked `CDirectorySnapshotPoller` thread from its first poll until the tab closes: only folders
   without dependable notifications are polled, so few tabs ever start one.
 

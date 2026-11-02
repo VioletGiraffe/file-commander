@@ -169,6 +169,7 @@ TEST_CASE("CPanel - flattened mode over a tree with no files lists nothing and s
 {
 	TempTree tree;
 	tree.makeDir(QStringLiteral("a/b"));
+	tree.waitUntilChangesAreReported();
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);

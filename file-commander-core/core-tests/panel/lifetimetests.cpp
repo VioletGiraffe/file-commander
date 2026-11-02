@@ -44,6 +44,7 @@ TEST_CASE("CPanel - retiring one panel leaves another panel's work alone", "[pan
 {
 	TempTree tree;
 	const QString sub = tree.makeDir(QStringLiteral("sub"));
+	tree.waitUntilChangesAreReported();
 
 	CThreadPool pool{ 1, "Panel test pool" };
 	WorkerGate gate{ pool };
@@ -72,6 +73,7 @@ TEST_CASE("CPanel - an inactive panel records where it points without listing it
 {
 	TempTree tree;
 	const QString file = tree.makeFile(QStringLiteral("a.txt"));
+	tree.waitUntilChangesAreReported();
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);

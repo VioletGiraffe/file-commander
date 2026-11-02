@@ -12,6 +12,8 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "directory_watcher.hpp" // thin_io
+#include "qt_paths.hpp" // thin_io
 
 
 DISABLE_COMPILER_WARNINGS
@@ -19,6 +21,7 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QSettings>
 #include <QStringBuilder>
 #include <QTemporaryDir>
@@ -67,6 +70,38 @@ public:
 		REQUIRE(file.open(QFile::WriteOnly));
 		REQUIRE(file.write(contents) == contents.size());
 		return absolute;
+	}
+
+	// Returns once the system has reported every change made in the tree so far: a watch made afterwards receives none of them.
+	// Required before a test counts refreshes: on macOS, FSEvents can deliver a change made shortly before a watch to it.
+	void waitUntilChangesAreReported() const
+	{
+		// The marker goes beside the tree: its removal inside the tree would be one more change to report
+		const QFileInfo treeInfo{ _dir.path() };
+		const QString parent = treeInfo.absolutePath();
+		const QString markerName = treeInfo.fileName() % QStringLiteral(".reported");
+		const QString marker = parent % '/' % markerName;
+
+		auto watcher = thin_io::directory_watcher::watch(thin_io::native_path(parent).data(), { .recursive = false });
+		REQUIRE(watcher);
+		REQUIRE(QFile{ marker }.open(QFile::WriteOnly));
+
+		bool reported = false;
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{ 10 };
+		while (!reported && std::chrono::steady_clock::now() < deadline)
+		{
+			const auto pending = watcher->wait_for_events(std::chrono::milliseconds{ 100 });
+			REQUIRE(pending);
+			if (!*pending)
+				continue;
+
+			const auto events = watcher->read_events();
+			REQUIRE(events);
+			reported = std::ranges::any_of(*events, [&markerName](const thin_io::watch_event& event) { return thin_io::to_qstring(event.path) == markerName; });
+		}
+
+		REQUIRE(QFile::remove(marker));
+		REQUIRE(reported);
 	}
 
 private:
