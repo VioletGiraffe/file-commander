@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793645303208,
+  "lastUpdate": 1793646849577,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -32561,6 +32561,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (app)",
             "value": 14666,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34694,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3279,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 862,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 425.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "25b8cf546d9328bc13d066eaaa0dc3d0fef09b10",
+          "message": "Regex content search decodes straight from the mapped file, without copying each window and replacing its NUL bytes with spaces: Qt 6 keeps a NUL as U+0000, so the copy and its SIMD code are gone, and a NUL no longer matches as a space",
+          "timestamp": "2026-11-02T21:01:13+02:00",
+          "tree_id": "04debc9bbda24b4d8c73a071c41755d7a5c30f3b",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/25b8cf546d9328bc13d066eaaa0dc3d0fef09b10"
+        },
+        "date": 1793646843825,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14646,
             "unit": "LOC"
           },
           {
