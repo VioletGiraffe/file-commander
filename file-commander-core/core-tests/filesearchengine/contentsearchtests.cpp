@@ -91,8 +91,9 @@ TEST_CASE("Search - NUL bytes do not hide the text around them", "[search][conte
 	TempTree tree;
 	const QString file = tree.makeFile(QSL("binary.dat"), QByteArray("head\0\0\0needle", 13));
 
-	// Case-insensitivity routes this through the regex path, the one that has to substitute the NULs out first.
+	// Case-insensitivity routes these through the regex path, the one that decodes
 	CHECK(runSearch({ .roots = { tree.path() }, .contents = QSL("needle") }).matched(file));
+	CHECK_FALSE(runSearch({ .roots = { tree.path() }, .contents = QSL("head   needle") }).matched(file)); // A NUL is not a space
 }
 
 TEST_CASE("Search - text is found wherever it sits within a scan window", "[search][contents]")

@@ -30,9 +30,6 @@ RESTORE_COMPILER_WARNINGS
 #include <semaphore>
 #include <thread>
 
-// The loadu/storeu intrinsics take unaligned memory through __m128i pointers
-DISABLE_CLANG_GCC_WARNING("-Wcast-align")
-
 // The name filter language: literal text, '*' for any run of characters, '?' for exactly one. A leading '^' or a
 // trailing '$' anchors that end of the match to the name's; an end left unanchored matches anywhere.
 [[nodiscard]] static QString nameFilterToRegex(QStringView filter)
@@ -60,45 +57,6 @@ DISABLE_CLANG_GCC_WARNING("-Wcast-align")
 
 	return pattern;
 }
-
-#ifndef __ARM_ARCH_ISA_A64
-
-#include <smmintrin.h>  // SSE4.1
-
-// The array's length is a multiple of 16, so the final vector may overshoot size while staying inside the array.
-static inline void replace_null(std::byte* array, size_t size) noexcept
-{
-	const __m128i old_sse = _mm_set1_epi8(0);
-	const __m128i new_sse = _mm_set1_epi8(' ');
-
-	for (size_t i = 0; i < size; i += 16)
-	{
-		__m128i data = _mm_loadu_si128(reinterpret_cast<__m128i*>(array + i));
-		__m128i mask = _mm_cmpeq_epi8(data, old_sse);
-		__m128i result = _mm_blendv_epi8(data, new_sse, mask);
-		_mm_storeu_si128(reinterpret_cast<__m128i*>(array + i), result);
-	}
-}
-
-#else // ARM64
-
-#include <arm_neon.h>
-
-// The array's length is a multiple of 16, so the final vector may overshoot size while staying inside the array.
-static inline void replace_null(std::byte* array, size_t size) noexcept
-{
-	uint8x16_t old_neon = vdupq_n_u8(0);
-	uint8x16_t new_neon = vdupq_n_u8(' ');
-
-	for (size_t i = 0; i < size; i += 16)
-	{
-		uint8x16_t data = vld1q_u8(reinterpret_cast<const uint8_t*>(&array[i]));
-		uint8x16_t mask = vceqq_u8(data, old_neon);
-		uint8x16_t result = vbslq_u8(mask, new_neon, data);
-		vst1q_u8(reinterpret_cast<uint8_t*>(&array[i]), result);
-	}
-}
-#endif
 
 // How much of a file one pass examines
 static constexpr uint64_t contentScanWindowSize = 1024 * 1024;
@@ -178,10 +136,11 @@ enum class ContentMatch
 	// - a match no longer than the margin that crosses the window's edge is found;
 	// - ^ and \A match only at the file's start, and lookbehinds see into the left margin;
 	// - a match counts only when it starts in the window, so one ending where the right margin is cut is longer than the margin.
-	const uint64_t subjectCapacity = std::min(fileSize, contentScanWindowSize + 2 * contentScanMarginSize);
-	// A multiple of 16: replace_null's final vector may overshoot the size it is given
-	const auto buffer = std::make_unique_for_overwrite<std::byte[]>((subjectCapacity + 15) / 16 * 16);
-	const auto* const subjectBytes = reinterpret_cast<const char*>(buffer.get());
+	// Decoded straight from the mapping: a NUL byte becomes U+0000, which the regex engine matches like any other character.
+	const auto* const fileBytes = reinterpret_cast<const char*>(mappedFile);
+	const auto bytesBetween = [fileBytes](const uint64_t from, const uint64_t to) {
+		return QByteArrayView{ fileBytes + from, (qsizetype)(to - from) };
+	};
 
 	bool anyWindowInconclusive = false;
 	for (uint64_t windowStart = 0; windowStart < fileSize; windowStart += contentScanWindowSize)
@@ -193,18 +152,14 @@ enum class ContentMatch
 		const uint64_t subjectStart = windowStart - std::min(windowStart, contentScanMarginSize);
 		const uint64_t subjectEnd = std::min(fileSize, windowEnd + contentScanMarginSize);
 
-		::memcpy(buffer.get(), mappedFile + subjectStart, subjectEnd - subjectStart);
-		// Remove nulls from the contents so that QString ingests all data
-		replace_null(buffer.get(), subjectEnd - subjectStart);
-
 		// One decoder for the three parts: a character split by an edge decodes whole, in the part holding its last byte.
 		// It skips a BOM only at the subject's start, which for the first window is the file's.
 		QStringDecoder decoder{ QStringDecoder::Utf8 };
-		QString subject = decoder(QByteArrayView{ subjectBytes, (qsizetype)(windowStart - subjectStart) });
+		QString subject = decoder(bytesBetween(subjectStart, windowStart));
 		const qsizetype windowBegin = subject.size();
-		subject += decoder(QByteArrayView{ subjectBytes + (windowStart - subjectStart), (qsizetype)(windowEnd - windowStart) });
+		subject += decoder(bytesBetween(windowStart, windowEnd));
 		const qsizetype windowFinish = subject.size();
-		subject += decoder(QByteArrayView{ subjectBytes + (windowEnd - subjectStart), (qsizetype)(subjectEnd - windowEnd) });
+		subject += decoder(bytesBetween(windowEnd, subjectEnd));
 		// Empty for a window holding only a BOM, or only the start of a character the file's end cuts off
 		if (windowBegin == windowFinish)
 			continue;

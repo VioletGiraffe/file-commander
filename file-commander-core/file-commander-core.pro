@@ -11,9 +11,6 @@ RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -lcpputils -lqtutils
 
-# cfilesearchengine.cpp uses SSE4.1 intrinsics, and gcc refuses to inline them without this
-linux*|freebsd:!contains(QT_ARCH, arm.*): QMAKE_CXXFLAGS += -msse4.1
-
 HEADERS += \
 	src/cfilesystemobject.h \
 	src/ccontroller.h \
