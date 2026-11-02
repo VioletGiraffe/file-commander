@@ -10,6 +10,9 @@ invalidates the reason given.
 - On macOS a new watch can report a change made shortly before it started, refreshing the panel once more: FSEvents
   delivers such a change after the stream starts, and no API waits for it. Panel tests wait for their trees' changes to
   be reported before a panel watches anything (`waitUntilChangesAreReported()` in `paneltesthelpers.h`).
+- A folder renamed away and replaced under its name keeps the watch on the old folder when the watch cannot follow the
+  folder's own name (Windows: an unreadable parent; Linux: an unreadable ancestor moved). Coverage is partial there, so
+  the poller follows the path: the panel stays correct, with polling latency, until it leaves the folder.
 - A tab keeps its parked `CDirectorySnapshotPoller` thread from its first poll until the tab closes: only folders
   without dependable notifications are polled, so few tabs ever start one.
 
