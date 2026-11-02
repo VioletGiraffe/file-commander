@@ -33,7 +33,6 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <mutex>
 #include <optional>
-#include <thread>
 
 CController* CController::_instance = nullptr;
 
@@ -78,7 +77,7 @@ namespace {
 
 CController::CController() :
 	_favoriteLocations{KEY_FAVORITES},
-	_panelWorkerPool{ std::clamp(std::thread::hardware_concurrency(), 1u, 4u), "Panel file list pool" },
+	_listingThreadPool{ 4, "Panel file list pool" },
 	_workerPool{ optimalCpuCount(), "Application pool"}
 {
 	assert_r(_instance == nullptr); // Only makes sense to create one controller
@@ -143,10 +142,10 @@ void CController::shutdown()
 	_iconProvider.shutdown();
 
 	// CPanel destruction raises its abort flag before retiring the panel's tagged work, so an in-flight recursive
-	// scan exits promptly. The shared pool must remain alive until every panel has completed that handshake.
+	// scan exits promptly. The shared pools must remain alive until every panel has completed that handshake.
 	for (auto& tabList : _panels)
 		tabList.tabs.clear();
-	_panelWorkerPool.finishAllThreads(false);
+	_listingThreadPool.finishAllThreads(false);
 	_activePanel = Panel::UnknownPanel;
 	for (auto& selection : _selectedItemsHashes)
 		selection.clear();
@@ -298,7 +297,7 @@ void CController::refreshPanelsOnRemovedDrive(const QChar driveLetter)
 CPanel& CController::createTab(Panel p, qulonglong id)
 {
 	auto& tabList = _panels[(size_t)p];
-	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _panelWorkerPool, id));
+	CPanel& tab = *tabList.tabs.emplace_back(std::make_unique<CPanel>(p, _listingThreadPool, _workerPool, id));
 	attachListenersToTab(p, tab);
 	return tab;
 }

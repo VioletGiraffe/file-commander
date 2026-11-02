@@ -9,7 +9,7 @@ The core is a static library whose UI-facing facade is `CController`. `file-comm
 CController
  |- two tab lists
  |    `- one CPanel per tab
- |- shared panel worker pool
+ |- shared panel listing pool
  |- shared application worker pool and UI execution queue
  |- volumes and favorites
  |- icon provider, with its own retrieval thread and UI execution queue
@@ -30,9 +30,11 @@ asserts the empty-tab postcondition instead of initiating a second shutdown.
 object. APIs returning raw panel references are valid only before `shutdown()` destroys the tabs. Plugin-facing
 value queries and UI dispatch serialize with teardown and return empty or no-op once their required state is gone.
 
-Panels share the controller's panel worker pool. Every task that captures a panel carries that panel's task tag;
-destruction retires the tag before panel storage disappears. The pool's declaration order makes it outlive all
-panels. Inactive tabs release their filesystem watcher and refresh when reactivated.
+Panels share the controller's two pools: file list updates run in the listing pool, which runs nothing else, so
+other work cannot delay them; folder size calculations run in the application pool. Every task that captures a
+panel carries that panel's task tag; destruction retires the tag in both pools before panel storage disappears. The
+pools' declaration order makes them outlive all panels. Inactive tabs release their filesystem watcher and refresh
+when reactivated.
 
 ## File-list publication
 

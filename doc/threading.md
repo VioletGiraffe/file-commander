@@ -8,8 +8,8 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 
 | Owner | Mechanism | Work |
 |-------|-----------|------|
-| `CController` | shared panel worker pool | All `CPanel` tasks across sides and tabs |
-| `CController` | shared application worker pool | Plugin background work and other controller-lifetime tasks |
+| `CController` | shared listing pool, fixed size | `CPanel` file list updates across sides and tabs, and nothing else |
+| `CController` | shared application worker pool | Plugin background work and `CPanel` folder size calculations |
 | `CController` | UI execution queue | Plugin UI dispatch and work deferred past panel locks |
 | each `CPanel` | UI execution queue | Panel result publication and observer delivery |
 | each `CFileOperationJob` | interruptible thread | One copy, move, or delete request |
@@ -37,8 +37,8 @@ concurrent dir-size tasks each spawn their own team.
 ## Panel lifetime and publication
 
 Every pool task that captures a `CPanel` carries its nonzero task tag. Panel destruction aborts its scan and retires
-the tag, removing queued work and waiting for already-started work from that panel without waiting for other tabs.
-Controller declaration order keeps the pool alive until all panels are gone.
+the tag in both pools, removing queued work and waiting for already-started work from that panel without waiting for
+other tabs. Controller declaration order keeps both pools alive until all panels are gone.
 
 Every asynchronous list replacement captures generation, path, and display mode, builds locally, and commits
 through `publishFileListIfCurrent()`. Invalidation only withdraws stale display data; committed notification is the

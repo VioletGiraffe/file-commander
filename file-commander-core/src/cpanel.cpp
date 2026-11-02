@@ -28,12 +28,13 @@ enum {
 	ContentsChangedNotificationTag
 };
 
-CPanel::CPanel(Panel position, CThreadPool& workerThreadPool, qulonglong id) :
+CPanel::CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& workerThreadPool, qulonglong id) :
 	_panelPosition(position),
 	_id(id),
 	// The panel's own address is a unique, non-zero pool tag. Reuse-safe: ~CPanel retires all of this tag's tasks
 	// before the address can be recycled by another CPanel, so a reused address never inherits stale tasks.
 	_taskTag(reinterpret_cast<uint64_t>(this)),
+	_listingThreadPool(listingThreadPool),
 	_workerThreadPool(workerThreadPool)
 {
 }
@@ -43,8 +44,9 @@ CPanel::~CPanel()
 	// Cut short any in-flight background scan first, so the wait below is prompt instead of blocking until a
 	// full recursive scan of the subtree completes.
 	_abortBackgroundTasks = true;
-	// Drop this panel's queued tasks from the shared pool and wait out any in-flight one,
+	// Drop this panel's queued tasks from the shared pools and wait out any in-flight one,
 	// so no task touches this panel's members after it's destroyed.
+	_listingThreadPool.retire(_taskTag);
 	_workerThreadPool.retire(_taskTag);
 }
 
@@ -390,7 +392,7 @@ void CPanel::refreshFileList(FileListRefreshCause operation)
 
 void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation)
 {
-	_workerThreadPool.enqueue([this, request = std::move(request), operation]() {
+	_listingThreadPool.enqueue([this, request = std::move(request), operation]() {
 		CTimeElapsed timer{ true };
 		FileListHashMap items;
 		bool listed = true;

@@ -85,7 +85,7 @@ public:
 	void addCurrentItemChangedListener(CurrentItemChangedListener * listener);
 	void addCurrentPathChangedListener(CurrentPathChangedListener * listener);
 
-	explicit CPanel(Panel position, CThreadPool& workerThreadPool, qulonglong id);
+	explicit CPanel(Panel position, CThreadPool& listingThreadPool, CThreadPool& workerThreadPool, qulonglong id);
 	~CPanel();
 
 	[[nodiscard]] qulonglong id() const noexcept; // Stable per-tab identifier; never changes for this CPanel's lifetime
@@ -202,11 +202,13 @@ private:
 	CallbackCaller<CurrentPathChangedListener> _currentPathChangedListeners;
 	const Panel                                _panelPosition;
 	const qulonglong                           _id; // Stable identity for this tab; assigned by CController. Distinct from _taskTag below.
-	const uint64_t                             _taskTag; // Unique per panel; tags this panel's tasks in the shared pool so they can be retired when the panel is destroyed
+	const uint64_t                             _taskTag; // Unique per panel; tags this panel's tasks in the shared pools so they can be retired when the panel is destroyed
 	CurrentDisplayMode                         _currentDisplayMode = NormalMode;
 	bool                                       _active = false;
 
-	CThreadPool&                               _workerThreadPool; // Shared pool owned by CController; this panel's tasks carry _taskTag
+	// Both pools are owned by CController and shared by all panels; this panel's tasks in either carry _taskTag
+	CThreadPool&                               _listingThreadPool; // File list updates only, so other work cannot delay a listing
+	CThreadPool&                               _workerThreadPool; // Folder size calculations
 	mutable CExecutionQueue                    _uiThreadQueue;
 	mutable std::recursive_mutex               _fileListAndCurrentDirMutex;
 	// Signals this panel's background scans to bail out. Currently set only during destruction, so retiring

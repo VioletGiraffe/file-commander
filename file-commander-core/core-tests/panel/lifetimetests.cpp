@@ -26,7 +26,7 @@ TEST_CASE("CPanel - destroying a panel retires the listing it had queued", "[pan
 
 	gate.close();
 	{
-		CPanel panel{ Panel::LeftPanel, pool, 7 };
+		CPanel panel{ Panel::LeftPanel, pool, pool, 7 };
 		panel.addPanelContentsChangedListener(&listener);
 		REQUIRE(panel.setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
 		panel.setActive(true);
@@ -49,12 +49,12 @@ TEST_CASE("CPanel - retiring one panel leaves another panel's work alone", "[pan
 	CThreadPool pool{ 1, "Panel test pool" };
 	WorkerGate gate{ pool };
 	RecordingListener listener;
-	CPanel survivor{ Panel::RightPanel, pool, 2 };
+	CPanel survivor{ Panel::RightPanel, pool, pool, 2 };
 	survivor.addPanelContentsChangedListener(&listener);
 
 	gate.close();
 	{
-		CPanel doomed{ Panel::LeftPanel, pool, 1 };
+		CPanel doomed{ Panel::LeftPanel, pool, pool, 1 };
 		REQUIRE(doomed.setPath(sub, refreshCauseOther) == FileOperationResultCode::Ok);
 		doomed.setActive(true);
 		REQUIRE(survivor.setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);

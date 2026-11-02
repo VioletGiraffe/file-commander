@@ -174,7 +174,7 @@ TEST_CASE("CPanel - a drain only ever delivers the notifications of its own tab"
 	PanelHarness h;
 	// A listener is attached to every tab of a side, so the only thing that tells the notifications apart is the
 	// id they carry.
-	CPanel other{ Panel::LeftPanel, h.pool(), 2 };
+	CPanel other{ Panel::LeftPanel, h.pool(), h.pool(), 2 };
 	h.panel().addPanelContentsChangedListener(&shared);
 	other.addPanelContentsChangedListener(&shared);
 

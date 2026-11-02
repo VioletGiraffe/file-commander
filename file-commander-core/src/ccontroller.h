@@ -231,11 +231,13 @@ private:
 private:
 	static CController * _instance;
 	CFavoriteLocations   _favoriteLocations;
-	// All panel tabs' file list enumeration and dir size calculation. Sized to the core count: that work parallelises
-	// across tabs. Every task carries its CPanel's _taskTag, so ~CPanel retires its own without waiting for other tabs.
-	// Declared before _panels so it outlives the CPanels that post tasks to it.
-	CThreadPool             _panelWorkerPool;
-	// General-purpose pool, do not use for tasks whose lifetime depends on CPanel.
+	// Both pools are declared before _panels so they outlive the CPanels that post tasks to them.
+	// A CPanel's tasks in either pool carry its _taskTag, so ~CPanel retires its own without waiting for other tabs.
+
+	// All panel tabs' file list enumeration, and nothing else, so other work cannot delay a listing.
+	// A fixed thread count: listing threads mostly wait on disk or network I/O, so the CPU core count is irrelevant.
+	CThreadPool             _listingThreadPool;
+	// General-purpose pool: plugin tasks and panel folder size calculations.
 	// Stopped in ~CController, not shutdown(), so its users can still run and retire tasks while they're alive.
 	CThreadPool             _workerPool;
 	std::array<TabList, 2> _panels;

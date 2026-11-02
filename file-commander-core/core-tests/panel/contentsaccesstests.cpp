@@ -114,6 +114,39 @@ TEST_CASE("CPanel - displayDirSize fills in the size of a listed folder", "[pane
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 0);
 }
 
+TEST_CASE("CPanel - a listing does not wait for a folder size calculation", "[panel][contents]")
+{
+	TempTree tree;
+	const QString sub = tree.makeDir(QStringLiteral("sub"));
+	const QString file = tree.makeFile(QStringLiteral("sub/a.txt"));
+	waitUntilChangesAreReported(); // No PanelHarness here to do it
+
+	// Destruction order as in PanelHarness: the panel retires its tasks before the gate releases the worker pool's thread
+	CThreadPool listingPool{ 1, "Panel test listing pool" };
+	CThreadPool workerPool{ 1, "Panel test worker pool" };
+	WorkerGate workerPoolGate{ workerPool };
+	CPanel panel{ Panel::LeftPanel, listingPool, workerPool, 1 };
+
+	// On a single lane the probe runs after the listing
+	const auto completeListing = [&listingPool, &panel] {
+		listingPool.enqueueWithFuture([] {}).wait();
+		panel.uiThreadTimerTick();
+	};
+
+	REQUIRE(panel.setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	panel.setActive(true);
+	completeListing();
+	REQUIRE(panel.itemHashExists(hashOf(sub)));
+
+	// The calculation queues behind the parked worker, so it is still pending through the listing below
+	workerPoolGate.close();
+	panel.displayDirSize(hashOf(sub));
+
+	REQUIRE(panel.setPath(sub, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
+	completeListing();
+	CHECK(panel.itemHashExists(hashOf(file)));
+}
+
 TEST_CASE("CPanel - a calculated folder size lasts as long as its folder", "[panel][contents]")
 {
 	TempTree tree;

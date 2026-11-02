@@ -310,12 +310,13 @@ private:
 };
 
 // One CPanel, the pool it works through, and a listener subscribed to everything it reports.
+// The panel takes the one pool as both its listing and its worker pool, so the gate steps all of its tasks.
 // Tests make their trees before the harness: its panel watches none of the changes that made them.
 class PanelHarness
 {
 public:
 	explicit PanelHarness(Panel position = Panel::LeftPanel, qulonglong tabId = 1) :
-		_panel{ position, _pool, tabId }
+		_panel{ position, _pool, _pool, tabId }
 	{
 		waitUntilChangesAreReported();
 		_panel.addPanelContentsChangedListener(&_listener);
