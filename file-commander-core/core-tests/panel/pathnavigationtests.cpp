@@ -1,4 +1,8 @@
 #include "paneltesthelpers.h"
+#include "panellisting.h"
+
+#include <atomic>
+#include <vector>
 
 #ifdef _WIN32
 // The only way to make every candidate in a path hierarchy inaccessible: elsewhere the hierarchy ends at "/",
@@ -224,4 +228,65 @@ TEST_CASE("CPanel - navigating up from the root only refreshes", "[panel][path]"
 	// Nothing was left behind, so there is nothing to stop displaying either.
 	CHECK(h.listener().count(PanelEvent::ContentsInvalidated) == 0);
 	CHECK(h.listener().count(PanelEvent::ContentsChanged) == 1);
+}
+
+// Records every folder checked; folders under unlistableFolder (which ends with a separator) cannot be listed
+[[nodiscard]] static std::function<bool(const QString&)> recordingFolderCheck(std::vector<QString>& checked, const QString& unlistableFolder)
+{
+	return [&checked, unlistableFolder](const QString& folder) {
+		checked.push_back(folder);
+		const QString folderWithSeparator = folder.endsWith('/') ? folder : folder + '/';
+		return !folderWithSeparator.startsWith(unlistableFolder);
+	};
+}
+
+TEST_CASE("ListableFolderProbe - folders under an unreachable one are skipped without a check", "[panel][path]")
+{
+	const QString root = QDir::rootPath();
+	const QString unreachable = QString{ root % QStringLiteral("mnt/share/") };
+	std::vector<QString> checked;
+	const std::atomic<bool> cancelled{ false };
+	ListableFolderProbe probe{ cancelled, recordingFolderCheck(checked, unreachable) };
+
+	const QString deepFolder = QString{ unreachable % QStringLiteral("a/b/") };
+	CHECK_FALSE(probe.isListable(deepFolder));
+	// The folder, then its ancestors from the root down, stopping at the first one that cannot be listed
+	CHECK(checked == std::vector<QString>{ deepFolder, root, QString{ root % QStringLiteral("mnt/") }, unreachable });
+
+	checked.clear();
+	CHECK_FALSE(probe.isListable(QString{ unreachable % QStringLiteral("c") }));
+	CHECK_FALSE(probe.isListable(unreachable));
+	CHECK(checked.empty());
+
+	// A sibling of the unreachable folder is checked as usual
+	CHECK(probe.isListable(QString{ root % QStringLiteral("mnt/other/") }));
+	CHECK(checked.size() == 1);
+}
+
+TEST_CASE("ListableFolderProbe - a folder that is gone from a reachable volume is skipped along with its subfolders", "[panel][path]")
+{
+	const QString root = QDir::rootPath();
+	const QString gone = QString{ root % QStringLiteral("data/gone/") };
+	std::vector<QString> checked;
+	const std::atomic<bool> cancelled{ false };
+	ListableFolderProbe probe{ cancelled, recordingFolderCheck(checked, gone) };
+
+	CHECK_FALSE(probe.isListable(gone));
+	// Every ancestor answered, so the folder itself is the one skipped from now on
+	CHECK(checked.size() == 3);
+
+	checked.clear();
+	CHECK_FALSE(probe.isListable(QString{ gone % QStringLiteral("sub/") }));
+	CHECK(checked.empty());
+	CHECK(probe.isListable(QString{ root % QStringLiteral("data/") }));
+}
+
+TEST_CASE("ListableFolderProbe - a cancelled probe checks nothing", "[panel][path]")
+{
+	std::vector<QString> checked;
+	const std::atomic<bool> cancelled{ true };
+	ListableFolderProbe probe{ cancelled, recordingFolderCheck(checked, {}) };
+
+	CHECK_FALSE(probe.isListable(QDir::rootPath()));
+	CHECK(checked.empty());
 }

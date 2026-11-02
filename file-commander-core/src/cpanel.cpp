@@ -20,6 +20,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
+#include <optional>
+
 
 enum {
 	ContentsChangedNotificationTag
@@ -52,6 +54,7 @@ qulonglong CPanel::id() const noexcept
 
 void CPanel::restoreHistory(const std::vector<QString>& history)
 {
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
 	_history.addLatest(history);
 }
 
@@ -115,64 +118,76 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	assert_r(!path.contains('\\'));
 #endif
 
+	// Resolved before taking the list mutex: a check on an unreachable share waits out a network timeout.
+	// The UI thread is the only writer of _history, so it reads it unlocked.
+	FolderResolution resolution = resolveFolder(path, currentDirObject(), _history, _abortBackgroundTasks);
+	const bool requestedPathSet = resolution.isRequestedPathOrAncestor;
+	moveToFolder(std::move(resolution), operation);
+	return requestedPathSet ? FileOperationResultCode::Ok : FileOperationResultCode::DirNotAccessible;
+}
+
+CPanel::FolderResolution CPanel::resolveFolder(const QString& path, const CFileSystemObject& currentDir, const CHistoryList<QString>& history, const std::atomic<bool>& cancelled)
+{
+	ListableFolderProbe probe{ cancelled };
+	FolderResolution resolution;
+	for (const QString& candidatePath: pathHierarchy(path))
+	{
+		if (probe.isListable(candidatePath))
+		{
+			resolution.folder.setPath(candidatePath);
+			if (resolution.folder.isDir())
+			{
+				resolution.listable = true;
+				resolution.isRequestedPathOrAncestor = true;
+				return resolution;
+			}
+		}
+	}
+
+	const QString& currentPath = currentDir.fullAbsolutePath();
+	if (!currentPath.isEmpty() && probe.isListable(currentPath))
+	{
+		resolution.folder.setPath(currentPath);
+		resolution.listable = true;
+		return resolution;
+	}
+
+	if (!history.empty())
+	{
+		// rbegin() is the newest entry; step forward to the cursor, then keep walking towards the oldest.
+		const size_t cursorDistanceFromNewest = history.size() - 1 - history.currentIndex();
+		for (auto it = history.rbegin() + (ptrdiff_t)cursorDistanceFromNewest; it != history.rend(); ++it)
+		{
+			if (probe.isListable(*it))
+			{
+				resolution.folder.setPath(*it);
+				resolution.listable = true;
+				return resolution;
+			}
+		}
+	}
+
+	if (probe.isListable(QDir::homePath()))
+	{
+		resolution.folder.setPath(QDir::homePath());
+		resolution.listable = true;
+		return resolution;
+	}
+
+	// No folder can be listed: the panel keeps its folder (the requested one if it had none) and shows it empty
+	resolution.folder = currentPath.isEmpty() ? CFileSystemObject{ path } : currentDir;
+	return resolution;
+}
+
+void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause operation)
+{
 	std::unique_lock locker(_fileListAndCurrentDirMutex);
 
 	const auto oldPathObject = _currentDirObject;
 	const auto oldDisplayMode = _currentDisplayMode;
+	const bool pathSet = resolution.isRequestedPathOrAncestor;
 
-	CFileSystemObject resolvedDir;
-	bool pathSet = false;
-	bool resolvedDirAccessible = true;
-	for (auto&& candidatePath: pathHierarchy(path))
-	{
-		if (canListDirectory(candidatePath))
-		{
-			resolvedDir.setPath(candidatePath);
-			if (resolvedDir.isDir())
-			{
-				pathSet = true;
-				break;
-			}
-		}
-	}
-
-	if (!pathSet)
-	{
-		if (canListDirectory(oldPathObject.fullAbsolutePath()))
-			resolvedDir.setPath(oldPathObject.fullAbsolutePath());
-		else
-		{
-			const auto& navigationHistory = history();
-			QString pathToSet;
-			if (!navigationHistory.empty())
-			{
-				// rbegin() is the newest entry; step forward to the cursor, then keep walking towards the oldest.
-				const size_t cursorDistanceFromNewest = navigationHistory.size() - 1 - navigationHistory.currentIndex();
-				for (auto it = navigationHistory.rbegin() + (ptrdiff_t)cursorDistanceFromNewest; it != navigationHistory.rend(); ++it)
-				{
-					if (canListDirectory(*it))
-					{
-						pathToSet = *it;
-						break;
-					}
-				}
-			}
-
-			if (pathToSet.isEmpty() && canListDirectory(QDir::homePath()))
-				pathToSet = QDir::homePath();
-
-			if (!pathToSet.isEmpty())
-				resolvedDir.setPath(pathToSet);
-			else
-			{
-				// No folder can be listed: the panel keeps its folder (the requested one if it had none) and shows it empty
-				resolvedDirAccessible = false;
-				resolvedDir = oldPathObject.fullAbsolutePath().isEmpty() ? CFileSystemObject{ path } : oldPathObject;
-			}
-		}
-	}
-
-	_currentDirObject = std::move(resolvedDir);
+	_currentDirObject = std::move(resolution.folder);
 
 	const QString newPath = _currentDirObject.fullAbsolutePath();
 
@@ -205,15 +220,13 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	++_navigationId;
 	const auto request = beginFileListUpdateLocked(NormalMode);
-	// Not listed: the listing would fail and recover by calling setPath, which would end up here again
-	if (!resolvedDirAccessible)
+	// Not listed: the listing would fail, and its recovery would find no folder either and end up here again
+	if (!resolution.listable)
 		publishFileListIfCurrent(request, {}, refreshCauseOther);
 	locker.unlock();
 
-	if (active && resolvedDirAccessible)
+	if (active && resolution.listable)
 		enqueueFileListUpdate(request, pathSet ? operation : refreshCauseOther);
-
-	return pathSet ? FileOperationResultCode::Ok : FileOperationResultCode::DirNotAccessible;
 }
 
 // Navigates up the directory tree
@@ -253,15 +266,19 @@ bool CPanel::navigateToNearestAccessibleHistoryEntry(const ptrdiff_t step)
 	if (_history.empty())
 		return false;
 
+	ListableFolderProbe probe{ _abortBackgroundTasks };
 	for (ptrdiff_t i = (ptrdiff_t)_history.currentIndex() + step; i >= 0 && i < (ptrdiff_t)_history.size(); i += step)
 	{
 		// The entry's own folder must be listable: setPath would land on the nearest accessible ancestor instead
 		const QString path = _history[(size_t)i];
-		if (!canListDirectory(path))
+		if (!probe.isListable(path))
 			continue;
 
 		// Moved first, so that setPath finds the path already current and doesn't add it to the history again
-		_history.setCurrentIndex((size_t)i);
+		{
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			_history.setCurrentIndex((size_t)i);
+		}
 		return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
 	}
 
@@ -416,7 +433,7 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 		// A folder that cannot be listed yields no items in either mode; so does an empty root or a tree with no files.
 		if (items.empty() && !canListDirectory(request.path))
 		{
-			execOnUiThread([this, request]() { recoverFromInaccessiblePathIfCurrent(request); });
+			recoverFromInaccessibleFolder(request);
 			return;
 		}
 
@@ -448,17 +465,34 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 	enqueueContentsChangedNotificationLocked(operation, request.generation);
 }
 
-void CPanel::recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request)
+void CPanel::recoverFromInaccessibleFolder(const FileListUpdateRequest& request)
 {
+	std::optional<CHistoryList<QString>> history;
+	CFileSystemObject currentDir;
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
 		if (!fileListUpdateIsCurrentLocked(request))
 			return;
+
+		history.emplace(_history);
+		currentDir = _currentDirObject;
 	}
 
-	// Deliberately the path we just found inaccessible: setPath finds the closest accessible folder to land on
-	// instead. This is not a user-requested navigation, so refreshCauseOther.
-	setPath(request.path, refreshCauseOther);
+	// Resolved as setPath(request.path) would, here rather than on the UI thread: each unreachable share costs a network timeout
+	FolderResolution resolution = resolveFolder(request.path, currentDir, *history, _abortBackgroundTasks);
+	if (_abortBackgroundTasks)
+		return;
+
+	execOnUiThread([this, request, resolution = std::move(resolution)]() {
+		{
+			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			if (!fileListUpdateIsCurrentLocked(request))
+				return;
+		}
+
+		// Not a user-requested navigation
+		moveToFolder(resolution, refreshCauseOther);
+	});
 }
 
 void CPanel::readCommittedContents(const std::function<void(const QString&, const FileListHashMap&)>& fn) const

@@ -145,6 +145,20 @@ private:
 		CurrentDisplayMode displayMode;
 	};
 
+	struct FolderResolution
+	{
+		CFileSystemObject folder;
+		bool listable = false; // False when no candidate is: folder is then the panel's own, or the requested one if it had none
+		bool isRequestedPathOrAncestor = false;
+	};
+
+	// The folder setPath(path) moves to: the first listable one of path and its ancestors, currentDir, history from its cursor
+	// back, and home. Checks the candidates on disk: recovery runs it on a worker.
+	[[nodiscard]] static FolderResolution resolveFolder(const QString& path, const CFileSystemObject& currentDir, const CHistoryList<QString>& history, const std::atomic<bool>& cancelled);
+	void moveToFolder(FolderResolution resolution, FileListRefreshCause operation);
+	// Runs on the worker that found request's folder inaccessible
+	void recoverFromInaccessibleFolder(const FileListUpdateRequest& request);
+
 	[[nodiscard]] FileListUpdateRequest beginFileListUpdateLocked(CurrentDisplayMode displayMode);
 	[[nodiscard]] bool fileListUpdateIsCurrentLocked(const FileListUpdateRequest& request) const;
 	[[nodiscard]] bool fileListBelongsToCurrentViewLocked() const;
@@ -154,7 +168,6 @@ private:
 
 	void enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation);
 	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation);
-	void recoverFromInaccessiblePathIfCurrent(const FileListUpdateRequest& request);
 	void sendContentsChangedNotification(FileListRefreshCause operation) const;
 	void enqueueContentsChangedNotificationLocked(FileListRefreshCause operation, uint64_t generation) const;
 	void enqueueContentsInvalidatedNotificationLocked(uint64_t generation) const;
@@ -178,6 +191,7 @@ private:
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;
 	uint64_t                                   _navigationId = 0;
+	// Written only on the UI thread, under _fileListAndCurrentDirMutex: recovery copies it on a worker
 	CHistoryList<QString>                      _history;
 	// Protected by _fileListAndCurrentDirMutex so the plugin-facing current-item snapshot is coherent with the list.
 	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _currentItemHashForFolder;

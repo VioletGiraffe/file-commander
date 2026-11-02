@@ -49,8 +49,9 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 
 - `CPanel::_fileListAndCurrentDirMutex` protects directory/list state and the per-folder current-item map. Panel
   worker tasks take their watcher baseline and enumerate the directory outside it; never widen a worker's critical
-  section to cover either. `setPath` does hold it across blocking calls (accessibility probe, arming the watcher),
-  so a slow volume there stalls panel queries as well as the UI.
+  section to cover either. `setPath` checks which folder to move to before taking it, and holds it while arming the
+  watcher, a blocking call. A listing that finds its folder inaccessible searches for another folder on its worker,
+  not on the UI thread.
 - `CController::_pluginAccessMutex` protects active-tab structure, visible active-panel/selection state, and the
   panel/UI lifetime gate. Plugin-facing panel queries and UI enqueue hold it shared; tab/state mutations hold it
   exclusively.
