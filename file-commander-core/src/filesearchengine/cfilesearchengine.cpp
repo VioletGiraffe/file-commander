@@ -28,6 +28,7 @@ RESTORE_COMPILER_WARNINGS
 #include <chrono>
 #include <memory>
 #include <semaphore>
+#include <stddef.h>
 #include <thread>
 
 // The name filter language: literal text, '*' for any run of characters, '?' for exactly one. A leading '^' or a
@@ -313,6 +314,7 @@ void CFileSearchEngine::searchThread(
 
 	ContentSearchContext contentSearchContext{ listener, &fileContentsRegExp, &fileContentsPlainText, &cancellationRequested };
 	std::unique_ptr<std::counting_semaphore<>> availableContentTaskSlots;
+	ptrdiff_t contentTaskSlotCount = 0;
 	std::unique_ptr<CThreadPool> contentSearchPool;
 
 	for (const QString& pathToLookIn : where)
@@ -360,7 +362,8 @@ void CFileSearchEngine::searchThread(
 					{
 						static constexpr uint32_t maximumContentWorkers = 8;
 						const uint32_t contentWorkerCount = std::clamp(std::thread::hardware_concurrency(), 1u, maximumContentWorkers);
-						availableContentTaskSlots = std::make_unique<std::counting_semaphore<>>(contentWorkerCount * 2);
+						contentTaskSlotCount = (ptrdiff_t)contentWorkerCount * 2;
+						availableContentTaskSlots = std::make_unique<std::counting_semaphore<>>(contentTaskSlotCount);
 						contentSearchContext.availableTaskSlots = availableContentTaskSlots.get();
 						contentSearchPool = std::make_unique<CThreadPool>(contentWorkerCount, "File search by contents thread pool");
 					}
@@ -392,8 +395,12 @@ void CFileSearchEngine::searchThread(
 
 	if (contentSearchPool)
 	{
-		// The queue is bounded and every task observes cancellation, so the same drain path is prompt on both normal and canceled exits.
-		contentSearchPool->finishAllThreads(true);
+		// Every task holds a slot until it ends, so holding all of them means no task is queued or running.
+		// finishAllThreads(true) would instead join the workers first and run the queued tail serially on this thread.
+		for (ptrdiff_t i = 0; i < contentTaskSlotCount; ++i)
+			availableContentTaskSlots->acquire();
+
+		contentSearchPool->finishAllThreads(false);
 	}
 
 	// Every content task has been joined by now, so the count is final
