@@ -95,7 +95,8 @@ public:
 	// Activates/deactivates this tab. An inactive tab holds no filesystem watch handle and doesn't list its folder at
 	// all; activating arms the watch and lists the folder, which is also how it picks up what changed while inactive.
 	void setActive(bool active);
-	// Sets the current directory. Lists it only if the tab is active - see setActive.
+	// Sets the current directory. An active tab lists it, landing on an accessible folder when it cannot be listed.
+	// An inactive tab records an absolute path without reading the disk and returns Ok: setActive lists it.
 	FileOperationResultCode setPath(const QString& path, FileListRefreshCause operation);
 	// Navigates up the directory tree
 	void navigateUp();

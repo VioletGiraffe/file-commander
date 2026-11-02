@@ -121,6 +121,23 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 	assert_r(!path.contains('\\'));
 #endif
 
+	bool active = false;
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		active = _active;
+	}
+
+	// An inactive tab records the folder without reading the disk: setActive lists it, and a failed listing moves the tab
+	// to an accessible folder. A path that is not absolute goes through the resolution below and lands on a fallback folder.
+	if (!active)
+	{
+		if (CFileSystemObject folder = CFileSystemObject::unverifiedDirectory(path); folder.isValid())
+		{
+			moveToFolder({ .folder = std::move(folder), .listable = true, .isRequestedPathOrAncestor = true }, operation);
+			return FileOperationResultCode::Ok;
+		}
+	}
+
 	// Resolved before taking the list mutex: a check on an unreachable share waits out a network timeout.
 	// The UI thread is the only writer of _history, so it reads it unlocked.
 	ListableFolderProbe probe{ _abortBackgroundTasks };

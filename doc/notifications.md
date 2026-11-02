@@ -23,11 +23,12 @@ activation take a fresh snapshot and continue from step 3.
 
 1. Main thread, `CController::setPath`: calls `CPanel::setPath`, then records the directory for the side's current
    volume and fires `currentVolumeChanged`.
-2. Main thread, `CPanel::setPath`: resolves the nearest accessible directory (the requested path's ancestors, then the
-   previous path, then history, then home), skipping candidates under a folder already found unlistable. Then, under
-   the list mutex, it updates back/forward history, fires `CurrentPathChangedListener`, arms the watcher if the tab is
-   active, records the cursor for the folder being left or entered, and takes the generation/path/mode snapshot. The
-   previous list is withdrawn here (`onPanelContentsInvalidated` is queued). An inactive tab stops at this step.
+2. Main thread, `CPanel::setPath`: an active tab resolves the nearest accessible directory (the requested path's
+   ancestors, then the previous path, then history, then home), skipping candidates under a folder already found
+   unlistable. An inactive tab takes the requested path as given, without reading the disk. Then, under the list
+   mutex, it updates back/forward history, fires `CurrentPathChangedListener`, arms the watcher if the tab is active,
+   records the cursor for the folder being left or entered, and takes the generation/path/mode snapshot. The previous
+   list is withdrawn here (`onPanelContentsInvalidated` is queued). An inactive tab stops at this step.
 3. Panel listing pool: enumerates the directory into worker-local storage. A directory that cannot be listed makes the
    worker resolve another one as in step 2, and the main thread then moves the panel there, from the mutex part of
    step 2 on.

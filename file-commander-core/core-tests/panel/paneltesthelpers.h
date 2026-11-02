@@ -341,7 +341,7 @@ public:
 	}
 
 	// Runs the pipeline to a standstill. More than one round is not padding: an inaccessible path makes the worker
-	// post a recovery that calls setPath from inside the tick, starting another update.
+	// post a recovery that moves the panel from inside the tick, starting another update.
 	void settle(int maxRounds = 8)
 	{
 		for (int round = 0; round < maxRounds; ++round)

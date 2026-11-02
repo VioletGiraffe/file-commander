@@ -85,7 +85,6 @@ CController::CController() :
 
 	_volumeEnumerator.addObserver(this);
 
-	// Volumes must be enumerated before restoring panel paths: setPath checks path accessibility against the volume list.
 	_volumeEnumerator.updateSynchronously();
 
 	// Rebuild each side's tabs from settings (migrating from the legacy single-path keys on first run).

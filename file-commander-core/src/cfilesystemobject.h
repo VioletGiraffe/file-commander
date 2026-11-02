@@ -65,6 +65,9 @@ public:
 
 	// The [..] entry of dirPath's listing: the parent folder. Empty for a root.
 	[[nodiscard]] static std::optional<CFileSystemObject> cdUpEntryOf(const QString& dirPath);
+	// A directory at path, from the path's spelling alone, without reading the disk: only the path, type, hash and names are set.
+	// Empty for a path that is not absolute.
+	[[nodiscard]] static CFileSystemObject unverifiedDirectory(const QString& path);
 
 	template <typename T, typename U>
 	explicit CFileSystemObject(QStringBuilder<T, U>&& stringBuilder) : CFileSystemObject((QString)std::forward<QStringBuilder<T, U>>(stringBuilder)) {}

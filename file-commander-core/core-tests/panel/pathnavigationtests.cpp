@@ -57,9 +57,14 @@ TEST_CASE("CPanel - setPath to a file lands on its parent folder", "[panel][path
 TEST_CASE("CPanel - setPath to a path that does not exist lands on the closest folder that does", "[panel][path]")
 {
 	TempTree tree;
+	const QString missing = tree.path() + QStringLiteral("/no/such/place");
 
 	PanelHarness h;
-	REQUIRE(h.panel().setPath(tree.path() + QStringLiteral("/no/such/place"), refreshCauseOther) == FileOperationResultCode::Ok);
+	REQUIRE(h.panel().setPath(missing, refreshCauseOther) == FileOperationResultCode::Ok);
+	// An inactive panel keeps the path it was given until it is activated: a background tab keeps a folder that is
+	// only unreachable for now, such as one on a share that is asleep at startup.
+	CHECK(h.panel().currentDirPathPosix() == missing + '/');
+
 	h.panel().setActive(true);
 	h.settle();
 
@@ -110,7 +115,9 @@ TEST_CASE("CPanel - an inaccessible path with nowhere to fall back to lands on t
 	// A restored tab starts with no history and nowhere it came from, which is the state a saved path on a drive
 	// that is no longer connected is resolved against.
 	PanelHarness h;
-	CHECK(h.panel().setPath(unusableRoot + QStringLiteral("nowhere"), refreshCauseOther) == FileOperationResultCode::DirNotAccessible);
+	REQUIRE(h.panel().setPath(unusableRoot + QStringLiteral("nowhere"), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
 
 	CHECK(h.panel().currentDirPathPosix() == QDir::homePath() + '/');
 #else
@@ -136,7 +143,7 @@ TEST_CASE("CPanel - a folder that vanishes before its listing runs falls back to
 	REQUIRE(QDir{ doomed }.removeRecursively());
 	h.worker().open();
 
-	// Recovery re-enters setPath from inside the tick, which starts another update; settle() runs both rounds.
+	// Recovery moves the panel from inside the tick, which starts another update; settle() runs both rounds.
 	h.settle();
 
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');

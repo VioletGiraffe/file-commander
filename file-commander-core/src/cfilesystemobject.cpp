@@ -99,6 +99,19 @@ std::optional<CFileSystemObject> CFileSystemObject::cdUpEntryOf(const QString& d
 	return CFileSystemObject{ std::move(properties) };
 }
 
+CFileSystemObject CFileSystemObject::unverifiedDirectory(const QString& path)
+{
+	CFileSystemObjectProperties properties;
+	properties.fullPath = normalizedAbsolutePath(path);
+	if (properties.fullPath.isEmpty())
+		return {};
+
+	if (!properties.fullPath.endsWith('/'))
+		properties.fullPath.append('/');
+	properties.type = Directory;
+	return CFileSystemObject{ std::move(properties) };
+}
+
 // The first position where a dot can start an extension.
 // POSIX: a leading dot belongs to the name, so .bashrc has no extension.
 // Windows: .jpg is a JPG file with an empty name, as Windows software treats it.
