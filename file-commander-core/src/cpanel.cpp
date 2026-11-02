@@ -223,29 +223,36 @@ bool CPanel::navigateBack()
 	if (_currentDisplayMode != NormalMode)
 		return setPath(currentDirPathPosix(), refreshCauseOther) == FileOperationResultCode::Ok;
 
-	if (_history.empty())
-		return false;
-	
-	while (!_history.isAtBeginning())
-	{
-		const QString path = _history.navigateBack();
-		if (canListDirectory(path))
-		{
-			return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
-		}
-	}
-
-	return false;
+	return navigateToNearestAccessibleHistoryEntry(-1);
 }
 
 // Go to the next location from history, if any
 bool CPanel::navigateForward()
 {
-	if (_currentDisplayMode != NormalMode || _history.empty() || _history.isAtEnd())
+	if (_currentDisplayMode != NormalMode)
 		return false;
 
-	const QString path = _history.navigateForward();
-	return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
+	return navigateToNearestAccessibleHistoryEntry(+1);
+}
+
+bool CPanel::navigateToNearestAccessibleHistoryEntry(const ptrdiff_t step)
+{
+	if (_history.empty())
+		return false;
+
+	for (ptrdiff_t i = (ptrdiff_t)_history.currentIndex() + step; i >= 0 && i < (ptrdiff_t)_history.size(); i += step)
+	{
+		// The entry's own folder must be listable: setPath would land on the nearest accessible ancestor instead
+		const QString path = _history[(size_t)i];
+		if (!canListDirectory(path))
+			continue;
+
+		// Moved first, so that setPath finds the path already current and doesn't add it to the history again
+		_history.setCurrentIndex((size_t)i);
+		return setPath(path, refreshCauseOther) == FileOperationResultCode::Ok;
+	}
+
+	return false;
 }
 
 const CHistoryList<QString>& CPanel::history() const

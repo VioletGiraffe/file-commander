@@ -58,6 +58,56 @@ TEST_CASE("CPanel - going back skips a folder that no longer exists", "[panel][h
 	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
 }
 
+TEST_CASE("CPanel - going forward skips a folder that no longer exists", "[panel][history]")
+{
+	TempTree tree;
+	const QString a = tree.makeDir(QStringLiteral("a"));
+	const QString b = tree.makeDir(QStringLiteral("b"));
+	const QString c = tree.makeDir(QStringLiteral("c"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(a, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	REQUIRE(h.panel().setPath(b, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.settle();
+	REQUIRE(h.panel().setPath(c, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.settle();
+	REQUIRE(h.panel().navigateBack());
+	h.settle();
+	REQUIRE(h.panel().navigateBack());
+	h.settle();
+
+	REQUIRE(QDir{ b }.removeRecursively());
+
+	// Not b's parent, which is still accessible: the next entry that still exists.
+	CHECK(h.panel().navigateForward());
+	h.settle();
+	CHECK(h.panel().currentDirPathPosix() == c + '/');
+	CHECK(h.panel().history().size() == 3);
+	CHECK(h.panel().history().isAtEnd());
+}
+
+TEST_CASE("CPanel - going back with no older folder left keeps the history where it was", "[panel][history]")
+{
+	TempTree tree;
+	const QString a = tree.makeDir(QStringLiteral("a"));
+	const QString b = tree.makeDir(QStringLiteral("b"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(a, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	REQUIRE(h.panel().setPath(b, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.settle();
+
+	REQUIRE(QDir{ a }.removeRecursively());
+
+	CHECK_FALSE(h.panel().navigateBack());
+	CHECK(h.panel().currentDirPathPosix() == b + '/');
+	CHECK(h.panel().history().currentIndex() == 1);
+}
+
 TEST_CASE("CPanel - navigating up records the folder left behind", "[panel][history]")
 {
 	TempTree tree;

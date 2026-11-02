@@ -23,6 +23,7 @@ RESTORE_COMPILER_WARNINGS
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <stddef.h>
 #include <stdint.h>
 #include <utility>
 #include <vector>
@@ -96,9 +97,9 @@ public:
 	FileOperationResultCode setPath(const QString& path, FileListRefreshCause operation);
 	// Navigates up the directory tree
 	void navigateUp();
-	// Go to the previous location from history
+	// Go to the previous location from history whose folder can be listed
 	bool navigateBack();
-	// Go to the next location from history, if any
+	// Go to the next location from history whose folder can be listed
 	bool navigateForward();
 	[[nodiscard]] const CHistoryList<QString>& history() const;
 	// Flattens the current directory and displays all its child files on one level
@@ -147,6 +148,9 @@ private:
 	[[nodiscard]] FileListUpdateRequest beginFileListUpdateLocked(CurrentDisplayMode displayMode);
 	[[nodiscard]] bool fileListUpdateIsCurrentLocked(const FileListUpdateRequest& request) const;
 	[[nodiscard]] bool fileListBelongsToCurrentViewLocked() const;
+
+	// step is -1 for back, +1 for forward. The history cursor stays where it was when no entry in that direction can be listed.
+	bool navigateToNearestAccessibleHistoryEntry(ptrdiff_t step);
 
 	void enqueueFileListUpdate(FileListUpdateRequest request, FileListRefreshCause operation);
 	void publishFileListIfCurrent(const FileListUpdateRequest& request, FileListHashMap&& items, FileListRefreshCause operation);
