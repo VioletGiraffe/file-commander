@@ -12,9 +12,9 @@ invalidates the reason given.
 
 ## Content search
 
-- A regex match spanning two scan windows is not found, and `^`/`$` anchor at window edges: a regex match has no
-  bounded length, so no window overlap can contain every match. The `[!shouldfail]` cases in `contentsearchtests.cpp`
-  pin the limitation. One subject per file and PCRE2 partial matching were considered and declined.
+- A regex match longer than the 4 KiB margin around each scan window is not found where it crosses the window's edge
+  (`fileContentsMatches`): a regex match has no bounded length, and a query that long is not a real use. One subject per
+  file and PCRE2 partial matching were considered and declined.
 
 ## Tabs
 

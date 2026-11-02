@@ -17,7 +17,9 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QByteArrayView>
 #include <QRegularExpression>
+#include <QStringDecoder>
 #include <QStringView>
 RESTORE_COMPILER_WARNINGS
 
@@ -98,8 +100,11 @@ static inline void replace_null(std::byte* array, size_t size) noexcept
 }
 #endif
 
-// How much of a file one pass examines, and the size of the regex path's decode buffer.
-static constexpr uint64_t contentScanWindowSize = 64 * 1024;
+// How much of a file one pass examines
+static constexpr uint64_t contentScanWindowSize = 1024 * 1024;
+// The regex path decodes this much context on either side of a window: a match crossing the window's edge is found
+// while it is no longer than this
+static constexpr uint64_t contentScanMarginSize = 4 * 1024;
 
 enum class ContentMatch
 {
@@ -169,30 +174,43 @@ enum class ContentMatch
 		return ContentMatch::No;
 	}
 
-	// Match using regex - slow(er). These windows cannot overlap: a regex match has no bounded length, so there
-	// is no amount of overlap that would contain every one. A match spanning two windows is in neither.
+	// Match using regex - slow(er). Each window is decoded with its margins, and matching starts at the window:
+	// - a match no longer than the margin that crosses the window's edge is found;
+	// - ^ and \A match only at the file's start, and lookbehinds see into the left margin;
+	// - a match counts only when it starts in the window, so one ending where the right margin is cut is longer than the margin.
+	const uint64_t subjectCapacity = std::min(fileSize, contentScanWindowSize + 2 * contentScanMarginSize);
+	// A multiple of 16: replace_null's final vector may overshoot the size it is given
+	const auto buffer = std::make_unique_for_overwrite<std::byte[]>((subjectCapacity + 15) / 16 * 16);
+	const auto* const subjectBytes = reinterpret_cast<const char*>(buffer.get());
+
 	bool anyWindowInconclusive = false;
-	for (uint64_t offset = 0; offset < fileSize; offset += contentScanWindowSize)
+	for (uint64_t windowStart = 0; windowStart < fileSize; windowStart += contentScanWindowSize)
 	{
 		if (cancellationRequested)
 			return ContentMatch::No;
 
-		const auto maxSearchLength = std::min(fileSize - offset, contentScanWindowSize);
+		const uint64_t windowEnd = std::min(fileSize, windowStart + contentScanWindowSize);
+		const uint64_t subjectStart = windowStart - std::min(windowStart, contentScanMarginSize);
+		const uint64_t subjectEnd = std::min(fileSize, windowEnd + contentScanMarginSize);
 
-		alignas(128) std::byte buffer[contentScanWindowSize];
-		static_assert(sizeof(buffer) % 16 == 0);
-
-		::memcpy(buffer, mappedFile + offset, maxSearchLength);
+		::memcpy(buffer.get(), mappedFile + subjectStart, subjectEnd - subjectStart);
 		// Remove nulls from the contents so that QString ingests all data
-		replace_null(buffer, maxSearchLength);
+		replace_null(buffer.get(), subjectEnd - subjectStart);
 
-		const QString line = QString::fromUtf8((const char*)buffer, maxSearchLength);
-		// fromUtf8 strips a leading BOM, so a window that is nothing but BOM marker decodes to empty string. Malformed bytes cannot cause this: those decode to replacement characters.
-		if (line.isEmpty())
+		// One decoder for the three parts: a character split by an edge decodes whole, in the part holding its last byte.
+		// It skips a BOM only at the subject's start, which for the first window is the file's.
+		QStringDecoder decoder{ QStringDecoder::Utf8 };
+		QString subject = decoder(QByteArrayView{ subjectBytes, (qsizetype)(windowStart - subjectStart) });
+		const qsizetype windowBegin = subject.size();
+		subject += decoder(QByteArrayView{ subjectBytes + (windowStart - subjectStart), (qsizetype)(windowEnd - windowStart) });
+		const qsizetype windowFinish = subject.size();
+		subject += decoder(QByteArrayView{ subjectBytes + (windowEnd - subjectStart), (qsizetype)(subjectEnd - windowEnd) });
+		// Empty for a window holding only a BOM, or only the start of a character the file's end cuts off
+		if (windowBegin == windowFinish)
 			continue;
 
-		const QRegularExpressionMatch match = regex.match(line);
-		if (match.hasMatch())
+		const QRegularExpressionMatch match = regex.match(subject, windowBegin);
+		if (match.hasMatch() && match.capturedStart() < windowFinish)
 			return ContentMatch::Yes; // A later window deciding beats an earlier one giving up
 		if (!match.isValid())
 			anyWindowInconclusive = true; // Ran out of backtracking budget; "no match" here would be a guess

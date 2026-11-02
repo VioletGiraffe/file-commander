@@ -25,9 +25,9 @@ With Regex enabled, the query is PCRE as typed, with Unicode properties on: `\w`
 ASCII. Otherwise it is literal text. Content search has no wildcard dialect. Case-sensitive and whole-word options
 apply to both modes.
 
-Content is currently decoded as UTF-8, so equivalent text in UTF-16 or legacy encodings is not found. A chunk
-boundary reads as a word boundary for whole-word matching, and `^` and `$` in content regexes also match at
-internal chunk boundaries, so file-wide anchoring can over-report; line anchoring is unavailable.
+Content is currently decoded as UTF-8, so equivalent text in UTF-16 or legacy encodings is not found. `^` and `$` in
+content regexes anchor to the file's start and end; line anchoring is unavailable. The regex engine reads a file in
+1 MiB blocks, each with 4 KiB of the text around it: a match longer than 4 KiB that crosses a block's edge is not found.
 
 An invalid regex stops before traversal and is reported separately from cancellation. A file that cannot be read, or
 whose contents exhaust the regex engine's backtracking budget, is counted as inconclusive rather than reported as a
