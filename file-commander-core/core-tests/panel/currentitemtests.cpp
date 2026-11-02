@@ -88,7 +88,6 @@ TEST_CASE("CPanel - setCurrentItemHashForFolder notifies through the queue, neve
 {
 	TempTree tree;
 	const QString file = tree.makeFile(QStringLiteral("a.txt"));
-	tree.waitUntilChangesAreReported();
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);

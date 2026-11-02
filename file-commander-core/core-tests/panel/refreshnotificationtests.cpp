@@ -5,7 +5,6 @@ TEST_CASE("CPanel - a listing that outlives the drain blanks the view first", "[
 	TempTree tree;
 	const QString sub = tree.makeDir(QStringLiteral("sub"));
 	const QString inner = tree.makeFile(QStringLiteral("sub/inner.txt"));
-	tree.waitUntilChangesAreReported();
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
@@ -39,7 +38,6 @@ TEST_CASE("CPanel - a listing that completes within the drain never blanks the v
 {
 	TempTree tree;
 	const QString sub = tree.makeDir(QStringLiteral("sub"));
-	tree.waitUntilChangesAreReported();
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
@@ -64,7 +62,6 @@ TEST_CASE("CPanel - a superseded file list update is discarded", "[panel][notifi
 	const QString firstFile = tree.makeFile(QStringLiteral("first/a.txt"));
 	const QString second = tree.makeDir(QStringLiteral("second"));
 	const QString secondFile = tree.makeFile(QStringLiteral("second/b.txt"));
-	tree.waitUntilChangesAreReported();
 
 	PanelHarness h;
 	h.worker().close();
@@ -86,7 +83,6 @@ TEST_CASE("CPanel - refreshing the folder in view does not blank it", "[panel][n
 {
 	TempTree tree;
 	const QString file = tree.makeFile(QStringLiteral("a.txt"));
-	tree.waitUntilChangesAreReported();
 
 	PanelHarness h;
 	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);

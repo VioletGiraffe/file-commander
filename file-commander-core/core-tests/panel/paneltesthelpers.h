@@ -72,41 +72,40 @@ public:
 		return absolute;
 	}
 
-	// Returns once the system has reported every change made in the tree so far: a watch made afterwards receives none of them.
-	// Required before a test counts refreshes: on macOS, FSEvents can deliver a change made shortly before a watch to it.
-	void waitUntilChangesAreReported() const
-	{
-		// The marker goes beside the tree: its removal inside the tree would be one more change to report
-		const QFileInfo treeInfo{ _dir.path() };
-		const QString parent = treeInfo.absolutePath();
-		const QString markerName = treeInfo.fileName() % QStringLiteral(".reported");
-		const QString marker = parent % '/' % markerName;
-
-		auto watcher = thin_io::directory_watcher::watch(thin_io::native_path(parent).data(), { .recursive = false });
-		REQUIRE(watcher);
-		REQUIRE(QFile{ marker }.open(QFile::WriteOnly));
-
-		bool reported = false;
-		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{ 10 };
-		while (!reported && std::chrono::steady_clock::now() < deadline)
-		{
-			const auto pending = watcher->wait_for_events(std::chrono::milliseconds{ 100 });
-			REQUIRE(pending);
-			if (!*pending)
-				continue;
-
-			const auto events = watcher->read_events();
-			REQUIRE(events);
-			reported = std::ranges::any_of(*events, [&markerName](const thin_io::watch_event& event) { return thin_io::to_qstring(event.path) == markerName; });
-		}
-
-		REQUIRE(QFile::remove(marker));
-		REQUIRE(reported);
-	}
-
 private:
 	QTemporaryDir _dir;
 };
+
+// Returns once the system has reported every change made so far in the temporary folder, which holds every TempTree:
+// a watch made afterwards receives none of them. On macOS, FSEvents can deliver a change made shortly before a watch to it.
+inline void waitUntilChangesAreReported()
+{
+	// The marker goes beside the trees: its removal inside one would be one more change to report
+	const QString folder = QDir::tempPath();
+	const QString markerName = QStringLiteral("file-commander-panel-test.reported");
+	const QString marker = folder % '/' % markerName;
+
+	auto watcher = thin_io::directory_watcher::watch(thin_io::native_path(folder).data(), { .recursive = false });
+	REQUIRE(watcher);
+	REQUIRE(QFile{ marker }.open(QFile::WriteOnly));
+
+	bool reported = false;
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{ 10 };
+	while (!reported && std::chrono::steady_clock::now() < deadline)
+	{
+		const auto pending = watcher->wait_for_events(std::chrono::milliseconds{ 100 });
+		REQUIRE(pending);
+		if (!*pending)
+			continue;
+
+		const auto events = watcher->read_events();
+		REQUIRE(events);
+		reported = std::ranges::any_of(*events, [&markerName](const thin_io::watch_event& event) { return thin_io::to_qstring(event.path) == markerName; });
+	}
+
+	REQUIRE(QFile::remove(marker));
+	REQUIRE(reported);
+}
 
 [[nodiscard]] inline qulonglong hashOf(const QString& path)
 {
@@ -311,12 +310,14 @@ private:
 };
 
 // One CPanel, the pool it works through, and a listener subscribed to everything it reports.
+// Tests make their trees before the harness: its panel watches none of the changes that made them.
 class PanelHarness
 {
 public:
 	explicit PanelHarness(Panel position = Panel::LeftPanel, qulonglong tabId = 1) :
 		_panel{ position, _pool, tabId }
 	{
+		waitUntilChangesAreReported();
 		_panel.addPanelContentsChangedListener(&_listener);
 		_panel.addCurrentItemChangedListener(&_listener);
 		_panel.addCurrentPathChangedListener(&_listener);
