@@ -241,7 +241,7 @@ private:
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
 	std::array<std::vector<CurrentItemChangedListener*>, 2> _currentItemChangedListeners;
-	std::array<QString, 2> _lastSavedTabSignature; // Dedup key for savePanelState (avoids rewriting settings on every watcher refresh)
+	std::array<QString, 2> _lastSavedTabSignature; // The last state savePanelState wrote successfully: avoids rewriting settings on every watcher refresh
 	std::array<CHistoryList<QString>, 2> _visitedLocations; // Per-side, tab-independent visited-folders log; see visitedLocations()
 	// TODO: pushed in by the UI because the selection lives there; it should be pulled like everything else once
 	// the core owns the selection. Protected by _pluginAccessMutex because plugins may query it from worker threads.

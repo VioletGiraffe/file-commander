@@ -569,8 +569,6 @@ void CController::savePanelState(Panel p)
 	if (signature == _lastSavedTabSignature[side])
 		return;
 
-	_lastSavedTabSignature[side] = signature;
-
 	QSettings s;
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS, tabRecords);
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, activeIndex);
@@ -578,6 +576,18 @@ void CController::savePanelState(Panel p)
 
 	// Mirror the active tab's path to the legacy key (back-compat + crash recovery).
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, tabList.tabs[tabList.activeTab]->currentDirPathPosix());
+
+	// status() reports this write only after sync().
+	// Only AccessError means the write failed: FormatError reports malformed entries read from an existing INI file.
+	s.sync();
+	if (s.status() == QSettings::AccessError)
+	{
+		// The signature stays unchanged, so the next call writes again
+		qWarning() << "Failed to save the tab state to" << s.fileName();
+		return;
+	}
+
+	_lastSavedTabSignature[side] = std::move(signature);
 }
 
 void CController::saveHistory()
