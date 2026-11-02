@@ -715,7 +715,7 @@ std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVo
 	}
 }
 
-// Porgram settings have changed
+// Program settings have changed
 void CController::settingsChanged()
 {
 	_iconProvider.settingsChanged();

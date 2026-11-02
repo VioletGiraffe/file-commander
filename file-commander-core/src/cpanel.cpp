@@ -20,13 +20,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
-#include <algorithm> // std::min
-#include <time.h>
-
 
 enum {
-	ContentsChangedNotificationTag,
-	ItemDiscoveryProgressNotificationTag
+	ContentsChangedNotificationTag
 };
 
 CPanel::CPanel(Panel position, CThreadPool& workerThreadPool, qulonglong id) :
