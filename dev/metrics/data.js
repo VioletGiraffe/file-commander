@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793570110419,
+  "lastUpdate": 1793578852800,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -32220,6 +32220,90 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/c943b3d723f5d1725f63e6f7bd2b7eb50307b021"
         },
         "date": 1793570107474,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14695,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 32803,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1468,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3279,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 842.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 423,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 41.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 24.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f1a8ce3753c91552d12d3d7efd1dc63e86d6c558",
+          "message": "Replaced-folder panel test skipped on Windows FAT and exFAT, where the watch's open handle keeps the deleted folder and blocks recreating it",
+          "timestamp": "2026-11-02T02:12:37+02:00",
+          "tree_id": "ea776e0eefc1a04aad142703b0c427315d65f508",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f1a8ce3753c91552d12d3d7efd1dc63e86d6c558"
+        },
+        "date": 1793578849407,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
