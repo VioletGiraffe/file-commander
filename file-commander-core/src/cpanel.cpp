@@ -176,7 +176,8 @@ FileOperationResultCode CPanel::setPath(const QString &path, FileListRefreshCaus
 
 	// Notify on an actual directory change. Keyed off the path changing, NOT off the history-add above: on
 	// back/forward the history cursor has already moved, so addLatest is skipped, but the current dir still changed.
-	if (pathSet && oldPathObject.fullAbsolutePath() != newPath)
+	// A fallback to history or home counts too: the panel moved even though the requested path couldn't be set.
+	if (oldPathObject.fullAbsolutePath() != newPath)
 		_currentPathChangedListeners.invokeCallback(&CurrentPathChangedListener::onCurrentPathChanged, _panelPosition, newPath);
 
 	// An inactive tab neither watches nor lists its folder; setActive does both when the tab becomes the displayed one.
