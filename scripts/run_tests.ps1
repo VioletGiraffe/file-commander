@@ -106,6 +106,10 @@ if (-not $NoBuild)
 
 if ($BuildOnly) { exit 0 }
 
+# The suites run on the offscreen platform: the widget suites would otherwise open windows on the desktop.
+# A QT_QPA_PLATFORM already set is kept.
+if (-not $env:QT_QPA_PLATFORM) { $env:QT_QPA_PLATFORM = 'offscreen' }
+
 $binaries = Join-Path $repositoryRoot "bin\$Configuration"
 $ran = @()
 $failed = @()

@@ -33,7 +33,8 @@ while the shell script takes the same options as positional keywords, in the ord
 | Include the slow cases | `-All` | `all` |
 | One suite, plus arguments for it | `-Suite panel "[panel][history]"` | `panel "[panel][history]"` |
 Every suite and its default filter live in one table at the top of each script. Each suite runs with Catch2's
-`--warn NoTests`, so a filter that matches nothing fails instead of reporting success.
+`--warn NoTests`, so a filter that matches nothing fails instead of reporting success. The widget suites run
+offscreen on Windows unless `QT_QPA_PLATFORM` is already set, and on Linux without a display server.
 
 CI drives the same scripts: it builds with `-BuildOnly`/`build`, provisions the RAM disks and second volumes the
 environment-gated tests need, then runs with `-NoBuild`/`nobuild`. Its seeded repeat runs select one suite, so
