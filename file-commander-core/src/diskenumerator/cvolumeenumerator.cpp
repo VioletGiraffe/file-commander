@@ -10,6 +10,12 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 
+// A notification replaces a pending one of the same significance only, so an insignificant change cannot discard a significant one
+enum {
+	SignificantChangeTag,
+	InsignificantChangeTag
+};
+
 CVolumeEnumerator::CVolumeEnumerator() : _enumeratorThread(_updateInterval, "CVolumeEnumerator thread")
 {
 	_timer = new QTimer{ this };
@@ -105,7 +111,7 @@ void CVolumeEnumerator::notifyObservers(bool async, bool significantChange) cons
 	_notificationsQueue.enqueue([this, significantChange]() {
 		for (const auto& observer : _observers)
 			observer->volumesChanged(significantChange);
-	}, 0); // Setting the tag to 0 will discard any previous queue items with the same tag that have not yet been processed
+	}, significantChange ? SignificantChangeTag : InsignificantChangeTag);
 
 	if (!async)
 		_notificationsQueue.exec();
