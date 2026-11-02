@@ -49,7 +49,7 @@ private:
 	std::optional<thin_io::directory_snapshot> _previousState;
 	uint64_t _previousStateGeneration = 0;
 
-	std::recursive_mutex _mutex;
+	std::mutex _mutex;
 	QString _pathToWatch;
 	uint64_t _pathGeneration = 0;
 
