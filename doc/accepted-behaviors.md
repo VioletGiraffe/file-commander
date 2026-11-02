@@ -36,6 +36,8 @@ invalidates the reason given.
   one path and hash per folder, and a tab rarely visits thousands of distinct folders.
 - Only the active tab's history is saved, under one key per side, and the back/forward position is not saved: per-tab
   history persistence is not planned.
+- After a tab switch, a plugin subscribed to panel contents keeps the previous tab's contents until the new tab's
+  listing completes: no plugin subscribes, and publishing on the switch must happen outside `_pluginAccessMutex`.
 
 ## Panel background work
 
@@ -59,3 +61,6 @@ invalidates the reason given.
 - `CVolumeEnumerator`'s notification tags, which keep an insignificant change from replacing a pending significant one,
   have no test: a test needs a hook into its private notification path, which real device enumeration drives, to
   cover a two-value enum.
+- `CFileSystemWatcher` has no test for a failing native watch, or for a folder switching from notifications to
+  polling: either needs a hook that injects thin_io failures or forces the watcher's private fallback.
+  `CDirectorySnapshotPoller` itself is tested.
