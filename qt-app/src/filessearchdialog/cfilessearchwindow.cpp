@@ -138,6 +138,7 @@ void CFilesSearchWindow::matchFound(const QString& path, bool reachedThroughLink
 void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed)
 {
 	QMetaObject::invokeMethod(this, [=, this]{
+			_searchActive = false;
 			ui->btnSearch->setText(tr("Start"));
 
 			if (status == CFileSearchEngine::SearchInvalidPattern)
@@ -182,7 +183,7 @@ void CFilesSearchWindow::setProgressText(const QString& text, const Qt::TextElid
 
 void CFilesSearchWindow::search()
 {
-	if (_engine.searchInProgress())
+	if (_searchActive)
 	{
 		_engine.stopSearching();
 		return;
@@ -225,6 +226,7 @@ void CFilesSearchWindow::search()
 		this /* listener */)
 	)
 	{
+		_searchActive = true;
 		ui->nameToFind->addToHistory(ui->nameToFind->currentText());
 		ui->fileContentsToFind->addToHistory(ui->fileContentsToFind->currentText());
 		ui->searchRoot->addToHistory(ui->searchRoot->currentText());

@@ -43,6 +43,8 @@ private:
 private:
 	CFileSearchEngine _engine;
 	std::vector<QString> _matches;
+	// Set from a started search until its queued searchFinished runs: the engine's own flag clears before the queued results arrive
+	bool _searchActive = false;
 
 	Ui::CFilesSearchWindow *ui = nullptr;
 };
