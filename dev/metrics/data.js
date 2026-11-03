@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793710758751,
+  "lastUpdate": 1793728658651,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -33490,6 +33490,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (libs)",
             "value": 34735,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1499,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3280.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 868.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 426.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "963932a79269cd746539b9dedc8459ded0377acc",
+          "message": "Progress dialog layout: each label sits beside its progress bar, the status line gets the full width, and finished jobs leave no blank rows",
+          "timestamp": "2026-11-03T19:46:41+02:00",
+          "tree_id": "f9ee62ecc537476781be4ad964316d0670c0c92b",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/963932a79269cd746539b9dedc8459ded0377acc"
+        },
+        "date": 1793728641861,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14898,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34739,
             "unit": "LOC"
           },
           {
