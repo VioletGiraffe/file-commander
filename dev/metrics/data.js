@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793663131383,
+  "lastUpdate": 1793706316493,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -33263,6 +33263,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 869.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 426.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f999bbe52e7c283f5ab25b56fb689a7f6bf49455",
+          "message": "Windows: file-type icons overwritten in place update without restarting via SHCNE_UPDATEIMAGE handling",
+          "timestamp": "2026-11-03T13:35:05+02:00",
+          "tree_id": "3c27152f93a8b415a9be5631e3ad250683682512",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f999bbe52e7c283f5ab25b56fb689a7f6bf49455"
+        },
+        "date": 1793706313241,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14898,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34739,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1500.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3280.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2132.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 870,
             "unit": "KB"
           },
           {
