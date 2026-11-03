@@ -47,6 +47,7 @@ jobs:
             # The submodules the suites link: a bump changes the gitlink path itself, never files under it
             - 'cpputils'
             - 'cpp-template-utils'
+            - 'file-operations'
             - 'qtutils'
             - 'thin_io'
             - 'scripts/**'
