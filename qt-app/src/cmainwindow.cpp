@@ -78,8 +78,12 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <Windows.h>
+#include <CommCtrl.h>
+#include <CommonControls.h>
 #include <Dbt.h>
+#include <shellapi.h>
 #include <ShlObj.h>
+#include <wrl/client.h>
 #endif
 
 #include <algorithm>
@@ -491,6 +495,35 @@ void CMainWindow::changeEvent(QEvent *e)
 
 #ifdef _WIN32
 
+// Reloads the icon named by a SHCNE_UPDATEIMAGE into this process's small system image list: the shell caches icons by
+// location, so an icon file overwritten in place keeps its old bitmap until then.
+// False when nothing was replaced, e.g. when this process has not loaded that icon.
+static bool reloadUpdatedShellIcon(const PCIDLIST_ABSOLUTE updateImageItem)
+{
+	const int imageIndex = ::SHHandleUpdateImage(updateImageItem);
+	if (imageIndex < 0)
+		return false;
+
+	// The small list only: CIconProviderImpl requests SHGFI_SMALLICON.
+	Microsoft::WRL::ComPtr<IImageList> imageList;
+	assert_and_return_r(SUCCEEDED(::SHGetImageList(SHIL_SMALL, IID_PPV_ARGS(&imageList))), false);
+
+	int iconSize = 0, iconHeight = 0;
+	assert_and_return_r(SUCCEEDED(imageList->GetIconSize(&iconSize, &iconHeight)), false);
+
+	// SHHandleUpdateImage has accepted the item as this struct.
+	const auto* update = reinterpret_cast<const SHChangeUpdateImageIDList*>(updateImageItem);
+	HICON icon = nullptr;
+	// Fails on a location that is not a file, or no longer exists.
+	if (FAILED(::SHDefExtractIconW(update->szName, update->iIconIndex, update->uFlags, &icon, nullptr, static_cast<UINT>(iconSize))) || !icon)
+		return false;
+
+	int replacedIndex = -1;
+	const bool replaced = SUCCEEDED(imageList->ReplaceIcon(imageIndex, icon, &replacedIndex));
+	::DestroyIcon(icon);
+	return replaced;
+}
+
 static void handleShellChangeNotification(CIconProvider& iconProvider, const WPARAM wParam, const LPARAM lParam)
 {
 	PIDLIST_ABSOLUTE* pidls = nullptr;
@@ -500,7 +533,13 @@ static void handleShellChangeNotification(CIconProvider& iconProvider, const WPA
 
 	if (event == SHCNE_ASSOCCHANGED)
 		iconProvider.invalidateCache();
-	else if (pidls && pidls[0]) // The first PIDL is the item; only rename events, not registered here, fill the second
+	else if (event == SHCNE_UPDATEIMAGE)
+	{
+		// The second PIDL carries the icon's location, the first is a placeholder
+		if (pidls && pidls[1] && reloadUpdatedShellIcon(pidls[1]))
+			iconProvider.invalidateCache();
+	}
+	else if (pidls && pidls[0]) // The first PIDL is the item; the remaining registered events leave the second empty
 	{
 		constexpr DWORD pathCapacity = 32768;
 		WCHAR path[pathCapacity];
@@ -523,7 +562,8 @@ void CMainWindow::showEvent(QShowEvent *e)
 	entry.fRecursive = TRUE;
 
 	// UPDATEITEM is what overlay handlers send; UPDATEDIR and ATTRIBUTES cover a folder's own icon and attribute-driven overlays.
-	constexpr LONG events = SHCNE_ASSOCCHANGED | SHCNE_UPDATEITEM | SHCNE_UPDATEDIR | SHCNE_ATTRIBUTES;
+	// UPDATEIMAGE is what SHUpdateImage sends for an icon file overwritten in place, e.g. by an installer.
+	constexpr LONG events = SHCNE_ASSOCCHANGED | SHCNE_UPDATEITEM | SHCNE_UPDATEDIR | SHCNE_ATTRIBUTES | SHCNE_UPDATEIMAGE;
 	// SHCNRF_NewDelivery: the PIDLs arrive in shared memory, mapped by SHChangeNotification_Lock. Without it they are
 	// pointers into the sender's process.
 	_shellNotificationId = ::SHChangeNotifyRegister(reinterpret_cast<HWND>(winId()), SHCNRF_ShellLevel | SHCNRF_NewDelivery, events, ShellChangeNotificationMessage, 1, &entry);
