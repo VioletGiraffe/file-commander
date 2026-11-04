@@ -33,6 +33,8 @@ CViewerWindow::CViewerWindow(std::unique_ptr<CFileViewer> viewer, const QString&
 	});
 	fileMenu->addAction(tr("&Reload"), QKeySequence{ Qt::Key_F5 }, this, [this] { _viewer->loadFile(_filePath); });
 	fileMenu->addSeparator();
+	fileMenu->addActions(_viewer->fileActions());
+	fileMenu->addSeparator(); // Collapses into the one above when the viewer has no file actions
 	fileMenu->addAction(tr("&Close"), this, &QWidget::close);
 
 	for (QMenu* menu : _viewer->menus())

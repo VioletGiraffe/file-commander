@@ -71,10 +71,8 @@ CImageViewer::CImageViewer(CPluginProxy& proxy) noexcept :
 	connect(showInfoStripAction, &QAction::toggled, _imageViewerWidget, &CImageViewerWidget::setOverlayVisible);
 	addMenu(viewMenu);
 
-	auto* imageMenu = new QMenu(tr("&Image"), this);
-	imageMenu->addAction(tr("Image &info..."), QKeySequence{ Qt::ALT | Qt::Key_Return }, this, &CImageViewer::showImageInfo);
-	imageMenu->addAction(tr("Save &As..."), QKeySequence{ Qt::CTRL | Qt::SHIFT | Qt::Key_S }, this, &CImageViewer::saveImageAs);
-	addMenu(imageMenu);
+	addFileAction(tr("Save &As..."), QKeySequence{ Qt::CTRL | Qt::SHIFT | Qt::Key_S }, this, &CImageViewer::saveImageAs);
+	addFileAction(tr("Image &info..."), QKeySequence{ Qt::ALT | Qt::Key_Return }, this, &CImageViewer::showImageInfo);
 }
 
 QString CImageViewer::tryLoadFile(const QString& path)

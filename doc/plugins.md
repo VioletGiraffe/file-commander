@@ -40,8 +40,9 @@ window (F3) or in a file panel (quick view). The widget never learns which, so:
 
 - `loadFile()` is repeatable: quick view loads file after file into the same widget, keeping the user's view settings.
   A failed load shows the error inside the widget; no viewer puts up a dialog for it.
-- Menus come from `addMenu()`, which also scopes every shortcut to the widget. The hosting window shows them in its
-  menu bar; the base class offers them as the context menu in both frames.
+- Menus come from `addMenu()`, actions for the File menu from `addFileAction()`; both scope every shortcut to the
+  widget. The hosting window shows the menus in its menu bar and the file actions in its File menu; the base class
+  offers both as the context menu in both frames.
 - Dialogs are parented to the widget, and window decoration goes on it too: the F3 frame follows `windowIconChanged`.
 - `closeFile()` precedes deleting, moving or renaming the viewed file or a folder holding it; a viewer that keeps its
   file open releases it there.

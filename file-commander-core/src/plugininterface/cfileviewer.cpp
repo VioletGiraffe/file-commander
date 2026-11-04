@@ -67,10 +67,12 @@ void CFileViewer::hideLoadError()
 
 void CFileViewer::contextMenuEvent(QContextMenuEvent* event)
 {
-	if (_menus.isEmpty())
+	if (_fileActions.isEmpty() && _menus.isEmpty())
 		return;
 
 	QMenu contextMenu;
+	contextMenu.addActions(_fileActions);
+	contextMenu.addSeparator(); // QMenu hides a leading or trailing separator
 	for (QMenu* menu : _menus)
 		contextMenu.addMenu(menu);
 
