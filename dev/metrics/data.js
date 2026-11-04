@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793728658651,
+  "lastUpdate": 1793803134258,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -33599,6 +33599,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 868.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 426.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "a77f2e91661d9be180b3da8f607f449ccb5ef5d4",
+          "message": "Viewers can contribute actions to the viewer window's File menu; the image viewer's Save As and Image info move there from the Image menu",
+          "timestamp": "2026-11-04T16:27:23+02:00",
+          "tree_id": "ce3c90971aaed7a644eb63a8a51365b62fa39c2c",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/a77f2e91661d9be180b3da8f607f449ccb5ef5d4"
+        },
+        "date": 1793803131289,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14937,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34739,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1499.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3281.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2133.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 869,
             "unit": "KB"
           },
           {
