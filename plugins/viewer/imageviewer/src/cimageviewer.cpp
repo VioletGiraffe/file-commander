@@ -17,11 +17,14 @@ DISABLE_COMPILER_WARNINGS
 #include <QKeySequence>
 #include <QMenu>
 #include <QMessageBox>
+#include <QStringList>
 #include <QTimer>
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <functional>
+#include <iterator>
 #include <utility>
 
 CImageViewer::CImageViewer(CPluginProxy& proxy) noexcept :
@@ -106,29 +109,51 @@ void CImageViewer::saveImageAs()
 	if (image.isNull())
 		return;
 
-	const QString pngFilter = tr("PNG image (*.png)");
-	const QString jpegFilter = tr("JPEG image (*.jpg *.jpeg)");
-	const QString tiffFilter = tr("TIFF image (*.tif *.tiff)");
+	struct SaveFormat
+	{
+		QString filter;
+		QString suffix;
+	};
+	const SaveFormat formats[]{
+		{ tr("PNG image (*.png)"), QStringLiteral("png") },
+		{ tr("JPEG image (*.jpg *.jpeg)"), QStringLiteral("jpg") },
+		{ tr("TIFF image (*.tif *.tiff)"), QStringLiteral("tif") },
+		{ tr("WebP image (*.webp)"), QStringLiteral("webp") },
+	};
+	const SaveFormat& defaultFormat = formats[0];
+
+	QStringList filters;
+	for (const SaveFormat& format : formats)
+		filters.push_back(format.filter);
 
 	// The suggested name must carry an extension: the native Windows dialog leaves the name box empty without one.
-	// It matches the initially selected filter below, and the dialog rewrites it whenever the filter changes.
+	// The dialog rewrites the extension whenever the filter changes.
 	const QFileInfo sourceInfo(_currentImagePath);
-	const QString suggestedPath = sourceInfo.absolutePath() + '/' + sourceInfo.completeBaseName() + ".png";
+	const QString suggestedPath = sourceInfo.absolutePath() + '/' + sourceInfo.completeBaseName() + '.' + defaultFormat.suffix;
 
-	QString selectedFilter = pngFilter;
-	QString fileName = QFileDialog::getSaveFileName(this, tr("Save image as"), suggestedPath,
-		pngFilter + ";;" + jpegFilter + ";;" + tiffFilter, &selectedFilter);
+	QString selectedFilter = defaultFormat.filter;
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save image as"), suggestedPath, filters.join(";;"), &selectedFilter);
 	if (fileName.isEmpty())
 		return;
 
 	QString suffix = QFileInfo(fileName).suffix().toLower();
 	if (suffix.isEmpty()) // The user typed no extension; take it from the chosen filter and append it.
 	{
-		suffix = selectedFilter == jpegFilter ? "jpg" : (selectedFilter == tiffFilter ? "tif" : "png");
+		const auto* selectedFormat = std::ranges::find(formats, selectedFilter, &SaveFormat::filter);
+		suffix = selectedFormat != std::end(formats) ? selectedFormat->suffix : defaultFormat.suffix;
 		fileName += '.' + suffix;
 	}
 
 	const bool isJpeg = suffix == "jpg" || suffix == "jpeg" || suffix == "jpe";
+	const bool isWebp = suffix == "webp";
+	static constexpr int webpMaxDimension = 16383; // WEBP_MAX_DIMENSION in libwebp
+	if (isWebp && std::max(image.width(), image.height()) > webpMaxDimension)
+	{
+		QMessageBox::warning(this, tr("Failed to save the image"),
+			tr("The WebP format cannot store images wider or taller than %1 pixels. This image is %2 × %3.").arg(webpMaxDimension).arg(image.width()).arg(image.height()));
+		return;
+	}
+
 	if (isJpeg && image.hasAlphaChannel())
 	{
 		const auto answer = QMessageBox::warning(this, tr("Transparency will be lost"),
@@ -143,12 +168,15 @@ void CImageViewer::saveImageAs()
 		writer.setCompression(100); // Qt maps this to the maximum zlib level for PNG (lossless).
 	else if (suffix == "tif" || suffix == "tiff")
 		writer.setCompression(1); // Any non-zero value selects LZW for TIFF (lossless); the default would be uncompressed.
-	else if (isJpeg)
+	else if (isJpeg || isWebp) // Qt writes lossless WebP only at quality 100
 	{
 		if (image.size().width() * image.size().height() < 500 * 500)
 			writer.setQuality(96);
 		else
 			writer.setQuality(85);
+
+		if (isJpeg)
+			writer.setOptimizedWrite(true); // Per-image Huffman tables: a smaller file with the same pixels
 	}
 
 	if (!writer.write(image))
