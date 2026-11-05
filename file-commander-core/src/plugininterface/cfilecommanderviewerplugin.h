@@ -13,7 +13,7 @@ namespace ViewerCategory {
 	inline constexpr auto Text = "textviewer";
 }
 
-class PLUGIN_EXPORT CFileCommanderViewerPlugin : public CFileCommanderPlugin
+class CFileCommanderViewerPlugin : public CFileCommanderPlugin
 {
 public:
 	[[nodiscard]] virtual bool canViewFile(const QString& fileName, const QMimeType& type) const = 0;

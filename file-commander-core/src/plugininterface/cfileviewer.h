@@ -1,8 +1,5 @@
 #pragma once
 
-#include "plugin_export.h"
-
-
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
@@ -21,7 +18,7 @@ class QMenu;
 
 // A viewer plugin's widget. The host embeds it in a file panel or in a window; the widget never learns which.
 // Focusable: its shortcuts fire while it or a child has focus. Never takes focus by itself: in a panel, the file list keeps it.
-class PLUGIN_EXPORT CFileViewer : public QWidget
+class CFileViewer : public QWidget
 {
 public:
 	explicit CFileViewer(QWidget* parent = nullptr) noexcept;

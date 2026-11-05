@@ -10,8 +10,6 @@ Debug:OUTPUT_DIR=debug
 
 mac* | linux* | freebsd: CONFIG += strict_c c99
 
-DEFINES += PLUGIN_MODULE
-
 INCLUDEPATH += \
 	$$PWD/src \
 	$$PWD/include \

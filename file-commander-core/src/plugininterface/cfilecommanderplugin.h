@@ -23,7 +23,7 @@ extern "C" {
 }
 
 
-class PLUGIN_EXPORT CFileCommanderPlugin
+class CFileCommanderPlugin
 {
 public:
 	enum PluginType {Viewer, Archive, Tool};
