@@ -56,6 +56,7 @@ SOURCES += \
 	src/panel/cpaneldisplaycontroller.cpp \
 	src/viewerwindow/cviewerwindow.cpp \
 	src/tools/CFileStatsWindow.cpp \
+	src/tools/cbatchrenamedialog.cpp \
 	src/tools/cfoldercomparisonwindow.cpp
 
 HEADERS += \
@@ -81,6 +82,7 @@ HEADERS += \
 	src/panel/filelistwidget/cfilelistfilterdialog.h \
 	src/filessearchdialog/cfilessearchwindow.h \
 	src/tools/CFileStatsWindow.h \
+	src/tools/cbatchrenamedialog.h \
 	src/tools/cfoldercomparisonwindow.h \
 	src/tools/csortbydatatreeitem.h \
 	src/version.h \

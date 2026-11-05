@@ -126,6 +126,7 @@ private:
 	void calculateStatistics();
 	void calculateEachFolderSize();
 	void compareFolders();
+	void batchRename();
 	void checkForUpdates();
 	void reportBug();
 	void about();

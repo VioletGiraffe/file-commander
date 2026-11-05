@@ -13,6 +13,7 @@
 #include "filessearchdialog/cfilessearchwindow.h"
 #include "programseditor/cuserprogramsdialog.h"
 #include "programseditor/userprogramsui.h"
+#include "tools/cbatchrenamedialog.h"
 #include "tools/CFileStatsWindow.h"
 #include "tools/cfoldercomparisonwindow.h"
 #include "viewerwindow/cviewerwindow.h"
@@ -316,6 +317,7 @@ void CMainWindow::initActions()
 	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateStatistics);
 	connect(ui->actionCalculate_each_folder_s_size, &QAction::triggered, this, &CMainWindow::calculateEachFolderSize);
 	connect(ui->actionCompare_folders, &QAction::triggered, this, &CMainWindow::compareFolders);
+	connect(ui->actionBatch_rename, &QAction::triggered, this, &CMainWindow::batchRename);
 	connect(ui->actionJump_to_first_file, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->moveCursorToFirstFile(); });
 	connect(ui->actionQuick_view, &QAction::triggered, this, &CMainWindow::toggleQuickView);
 	connect(ui->actionFilter_items, &QAction::triggered, this, &CMainWindow::filterItemsByName);
@@ -1222,6 +1224,19 @@ void CMainWindow::compareFolders()
 	comparisonWindow->setAttribute(Qt::WA_DeleteOnClose);
 	WidgetUtils::centerWidgetOnScreen(comparisonWindow, 0.7);
 	comparisonWindow->show();
+}
+
+void CMainWindow::batchRename()
+{
+	if (!_currentFileList)
+		return;
+
+	const auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
+	if (items.empty())
+		return;
+
+	CBatchRenameDialog dialog{ this, items };
+	dialog.exec();
 }
 
 void CMainWindow::checkForUpdates()

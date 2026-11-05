@@ -74,7 +74,7 @@ Links are entries distinct from their targets:
 
 ## File operations
 
-Copy, move, permanent delete, inline rename, directory scanning and folder comparison live in the
+Copy, move, permanent delete, inline and batch rename, directory scanning and folder comparison live in the
 `file-operations` submodule; its `doc/architecture.md` holds their design notes. They build as the static libraries
 `fileoperations` and `fileoperationsui`.
 
