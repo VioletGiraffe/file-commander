@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793803134258,
+  "lastUpdate": 1793913823778,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -33688,6 +33688,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 426.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 42.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "b6337057caba2272e8aa3822806e1ce46c4eb07e",
+          "message": "qtutils updated: the text viewer's find buttons no longer jump as the status changes, a wrap-around shows a fading notice over the text, and a pattern that is invalid or matches nothing turns the find field red",
+          "timestamp": "2026-11-05T23:13:14+02:00",
+          "tree_id": "dc36306d2ad56a0e8118f150d1fb9b8591df70e3",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/b6337057caba2272e8aa3822806e1ce46c4eb07e"
+        },
+        "date": 1793913819379,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 14937,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 34937,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1501.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3281.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2142,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 367,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 870.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 427,
             "unit": "KB"
           },
           {
