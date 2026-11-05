@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793917076067,
+  "lastUpdate": 1793918326303,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -33876,6 +33876,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .reloc",
             "value": 11,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "9c85f3421ab02f6ed2a96566aa488fab861c1022",
+          "message": "Only the plugin entry points are exported: every module links its own static copy of the plugin interface classes, so marking them dllimport only produced LNK4217 warnings",
+          "timestamp": "2026-11-06T00:20:18+02:00",
+          "tree_id": "4637eb16d3a60a121c15a3f3935f5b3976f420fe",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/9c85f3421ab02f6ed2a96566aa488fab861c1022"
+        },
+        "date": 1793918323231,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15373,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35147,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1547,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3277,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2139,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 902,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 439.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 44,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 25,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
             "unit": "KB"
           }
         ]
