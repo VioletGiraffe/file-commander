@@ -126,7 +126,7 @@ private:
 	void recordCurrentItem(const QModelIndex& current);
 	void fillHistory();
 	void updateInfoLabel();
-	// The selected rows, or with none selected and onlyHighlightedItems false, the row under the cursor; never [..]
+	// The selected rows in display order, or with none selected and onlyHighlightedItems false, the row under the cursor; never [..]
 	[[nodiscard]] QModelIndexList selectedItemIndexes(bool onlyHighlightedItems = false) const;
 
 // Callbacks

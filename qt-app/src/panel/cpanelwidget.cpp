@@ -1550,6 +1550,7 @@ QModelIndexList CPanelWidget::selectedItemIndexes(bool onlyHighlightedItems /* =
 		indexes.push_back(_selectionModel->currentIndex());
 
 	indexes.removeIf([this](const QModelIndex& index) { return _model->rowAt(index).isCdUp(); });
+	std::ranges::sort(indexes, {}, &QModelIndex::row);
 	return indexes;
 }
 
@@ -1572,16 +1573,9 @@ void CPanelWidget::moveCursorToFirstFile()
 
 void CPanelWidget::copySelectedItemsPathsToClipboard() const
 {
-	auto selection = _selectionModel->selectedRows();
-	std::sort(selection.begin(), selection.end(), [](const QModelIndex& l, const QModelIndex& r) { return l.row() < r.row(); });
-
 	QString paths;
-	for (const auto& index : std::as_const(selection))
-	{
-		const CFileSystemObject& row = _model->rowAt(index);
-		if (!row.isCdUp())
-			paths += shellQuotedPath(toNativeSeparators(row.fullAbsolutePath())) + '\n';
-	}
+	for (const QModelIndex& index : selectedItemIndexes(true))
+		paths += shellQuotedPath(toNativeSeparators(_model->rowAt(index).fullAbsolutePath())) + '\n';
 
 	if (!paths.isEmpty())
 	{
