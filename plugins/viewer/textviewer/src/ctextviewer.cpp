@@ -35,6 +35,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 #include <QStringDecoder>
 #include <QStyleHints>
+#include <QTextBlock>
 #include <QTextCharFormat>
 #include <QTextCodec>
 #include <QTextCursor>
@@ -43,6 +44,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <new>
 #include <optional>
 #include <string_view>
@@ -83,6 +85,13 @@ CTextViewer::CTextViewer() noexcept
 			.clearHighlights = [this] {
 				if (const ViewerOps v = viewer(); v.widget)
 					v.clearHighlights();
+			},
+			.listText = [this](const QString& pattern, QTextDocument::FindFlags flags, QDeadlineTimer deadline) { const ViewerOps v = viewer(); return v.widget ? v.listText(pattern, flags, deadline) : MatchList{}; },
+			.listRegex = [this](const QRegularExpression& pattern, QTextDocument::FindFlags flags, QDeadlineTimer deadline) { const ViewerOps v = viewer(); return v.widget ? v.listRegex(pattern, flags, deadline) : MatchList{}; },
+			.describeMatch = [this](MatchRange match, int64_t contextLength) { const ViewerOps v = viewer(); return v.widget ? v.describeMatch(match, contextLength) : MatchDescription{}; },
+			.selectMatch = [this](MatchRange match) {
+				if (const ViewerOps v = viewer(); v.widget)
+					v.selectMatch(match);
 			},
 		},
 		CFindBar::Keys{ .find = QStringLiteral("Ctrl+F"), .findNext = QStringLiteral("F3"), .findPrevious = QStringLiteral("Shift+F3") },
@@ -482,11 +491,28 @@ CTextViewer::ViewerOps CTextViewer::viewer() const
 			return FindResult::NotFound;
 		};
 
-		// Searches the document, not the view: the view's cursor and scroll stay as they are
-		const auto countMatches = [view](const auto& expression, QTextDocument::FindFlags flags, QDeadlineTimer deadline, bool highlight) {
+		// Calls onMatch for every non-empty match a forward find steps through, until the deadline; true when it reached the end.
+		// Searches the document, not the view: the view's cursor and scroll stay as they are.
+		const auto forEachMatch = [view](const auto& expression, QTextDocument::FindFlags flags, QDeadlineTimer deadline, const auto& onMatch) {
+			flags.setFlag(QTextDocument::FindBackward, false);
+			for (int from = 0;;)
+			{
+				const QTextCursor match = view->document()->find(expression, from, flags);
+				if (match.isNull())
+					return true;
+
+				if (match.hasSelection())
+					onMatch(match);
+
+				from = match.selectionEnd() + (match.hasSelection() ? 0 : 1); // An empty regex match is found again where it ends
+				if (deadline.hasExpired())
+					return false;
+			}
+		};
+
+		const auto countMatches = [view, forEachMatch](const auto& expression, QTextDocument::FindFlags flags, QDeadlineTimer deadline, bool highlight) {
 			constexpr qsizetype maxHighlightedMatches = 10'000; // QPlainTextEdit walks every extra selection for each block it paints
 
-			flags.setFlag(QTextDocument::FindBackward, false);
 			const QTextCursor selection = view->textCursor();
 
 			const QColor highlightFill = ColorUtils::searchMatchFill(view->palette(), ColorUtils::SearchMatch::Other);
@@ -498,31 +524,44 @@ CTextViewer::ViewerOps CTextViewer::viewer() const
 			QList<QTextEdit::ExtraSelection> highlights;
 
 			MatchCount count;
-			for (int from = 0;;)
-			{
-				const QTextCursor match = view->document()->find(expression, from, flags);
-				if (match.isNull())
-				{
-					count.complete = true;
-					break;
-				}
-
-				if (match.hasSelection())
-				{
-					++count.total;
-					if (selection.hasSelection() && match.selectionStart() == selection.selectionStart())
-						count.number = count.total;
-					if (highlight && highlights.size() < maxHighlightedMatches)
-						highlights.push_back({ match, highlightFormat });
-				}
-
-				from = match.selectionEnd() + (match.hasSelection() ? 0 : 1); // An empty regex match is found again where it ends
-				if (deadline.hasExpired())
-					break;
-			}
+			count.complete = forEachMatch(expression, flags, deadline, [&](const QTextCursor& match) {
+				++count.total;
+				if (selection.hasSelection() && match.selectionStart() == selection.selectionStart())
+					count.number = count.total;
+				if (highlight && highlights.size() < maxHighlightedMatches)
+					highlights.push_back({ match, highlightFormat });
+			});
 
 			view->setExtraSelections(highlights);
 			return count;
+		};
+
+		const auto listMatches = [forEachMatch](const auto& expression, QTextDocument::FindFlags flags, QDeadlineTimer deadline) {
+			MatchList list;
+			list.complete = forEachMatch(expression, flags, deadline, [&list](const QTextCursor& match) {
+				list.matches.push_back({ match.selectionStart(), match.selectionEnd() - match.selectionStart() });
+			});
+			return list;
+		};
+
+		// A match lies within one block: QTextDocument::find() does not match across blocks
+		const auto describeMatch = [view](MatchRange match, int64_t contextLength) {
+			const QTextBlock block = view->document()->findBlock(static_cast<int>(match.start));
+			const int64_t from = std::max<int64_t>(match.start - contextLength, block.position());
+			const int64_t to = std::min<int64_t>(match.start + match.length + contextLength, block.position() + block.length() - 1); // Without the block separator
+
+			QTextCursor excerpt{ view->document() };
+			excerpt.setPosition(static_cast<int>(from));
+			excerpt.setPosition(static_cast<int>(to), QTextCursor::KeepAnchor);
+			return MatchDescription{ tr("line %1").arg(block.blockNumber() + 1), excerpt.selectedText(), match.start - from, match.length };
+		};
+
+		const auto selectMatch = [view](MatchRange match) {
+			QTextCursor cursor{ view->document() };
+			cursor.setPosition(static_cast<int>(match.start));
+			cursor.setPosition(static_cast<int>(match.start + match.length), QTextCursor::KeepAnchor);
+			view->setTextCursor(cursor);
+			view->ensureCursorVisible();
 		};
 
 		return {
@@ -532,7 +571,11 @@ CTextViewer::ViewerOps CTextViewer::viewer() const
 			countMatches,
 			countMatches,
 			[view] { view->setExtraSelections({}); },
-			[view](bool wrap) { view->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap); }
+			[view](bool wrap) { view->setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap); },
+			listMatches,
+			listMatches,
+			describeMatch,
+			selectMatch
 		};
 	};
 
@@ -549,6 +592,7 @@ CTextViewer::ViewerOps CTextViewer::viewer() const
 			view->setCountedMatchesHighlighted(highlight);
 			return view->countMatches(expression, flags, deadline);
 		};
+		const auto listMatches = [view](const auto& expression, QTextDocument::FindFlags flags, QDeadlineTimer deadline) { return view->listMatches(expression, flags, deadline); };
 
 		return {
 			view,
@@ -557,7 +601,11 @@ CTextViewer::ViewerOps CTextViewer::viewer() const
 			countMatches,
 			countMatches,
 			[view] { view->setCountedMatchesHighlighted(false); },
-			[view](bool wrap) { view->setWordWrap(wrap); }
+			[view](bool wrap) { view->setWordWrap(wrap); },
+			listMatches,
+			listMatches,
+			[view](MatchRange match, int64_t contextLength) { return view->describeMatch(match, contextLength); },
+			[view](MatchRange match) { view->selectMatch(match); }
 		};
 	}
 

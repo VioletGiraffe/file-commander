@@ -88,6 +88,12 @@ private:
 		std::function<MatchCount (const QRegularExpression&, QTextDocument::FindFlags, QDeadlineTimer, bool highlight)> countRegex;
 		std::function<void ()> clearHighlights;
 		std::function<void (bool)> setWordWrap;
+		// Both list the matches a forward find steps through, until the deadline
+		std::function<MatchList (const QString&, QTextDocument::FindFlags, QDeadlineTimer)> listText;
+		std::function<MatchList (const QRegularExpression&, QTextDocument::FindFlags, QDeadlineTimer)> listRegex;
+		// The match's line number and an excerpt of its line, up to contextLength characters on either side
+		std::function<MatchDescription (MatchRange, int64_t contextLength)> describeMatch;
+		std::function<void (MatchRange)> selectMatch;
 	};
 
 	[[nodiscard]] ViewerOps viewer() const;
