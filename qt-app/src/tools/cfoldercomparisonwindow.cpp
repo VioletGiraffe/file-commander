@@ -9,6 +9,7 @@
 // Submodule includes
 #include "dialogs/csimpleprogressdialog.h"
 #include "utils/displayformatting.h"
+#include "widgets/cpersistenceenabler.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -102,6 +103,7 @@ CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const FolderCo
 	layout->addWidget(new QLabel{ summary });
 
 	auto* list = new QTreeWidget;
+	list->setObjectName(QStringLiteral("differencesList")); // Named for CPersistenceEnabler
 	layout->addWidget(list);
 
 	list->setHeaderLabels({ tr("Name"), tr("Status"), tr("Size on the left"), tr("Size on the right") });
@@ -151,4 +153,7 @@ CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const FolderCo
 	connect(btnClose, &QPushButton::clicked, this, &QMainWindow::close);
 
 	new QShortcut(QKeySequence{ "Esc" }, this, this, &QMainWindow::close);
+
+	// No default size: the caller sizes the window for when nothing is stored
+	enablePersistence(this, QStringLiteral("UI/FolderComparisonWindow"), CPersistenceEnabler::Delayed{ true }, CPersistenceEnabler::SetDefaultSize{ false });
 }
