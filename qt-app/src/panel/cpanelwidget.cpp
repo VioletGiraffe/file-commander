@@ -635,6 +635,7 @@ void CPanelWidget::showContextMenuForTab(QPoint pos)
 
 	QMenu menu;
 	QAction* duplicateTabAction = menu.addAction(tr("Duplicate tab"));
+	QAction* copyPathAction = menu.addAction(tr("Copy path to clipboard"));
 	QAction* closeTabAction = menu.addAction(tr("Close tab") + QSL("\tMMB")); // The part after '\t' renders in the shortcut column (display only)
 	closeTabAction->setEnabled(_tabs.size() > 1);
 	QAction* closeOthersAction = menu.addAction(tr("Close all other tabs"));
@@ -643,6 +644,8 @@ void CPanelWidget::showContextMenuForTab(QPoint pos)
 	const QAction* chosenAction = menu.exec(ui->_tabBar->mapToGlobal(pos));
 	if (chosenAction == duplicateTabAction)
 		duplicateTab(index);
+	else if (chosenAction == copyPathAction)
+		QApplication::clipboard()->setText(shellQuotedPath(_controller->tabById(_panelPosition, tabIdAt(index)).currentDirPathNative()));
 	else if (chosenAction == closeTabAction)
 		onTabBarCloseRequested(index);
 	else if (chosenAction == closeOthersAction)
