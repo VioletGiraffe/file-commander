@@ -1,64 +1,41 @@
 #include "cshell.h"
 
 
-// Submodule includes
-#include "assert/advanced_assert.h"
-#include "compiler/compiler_warnings_control.h"
-
-
-DISABLE_COMPILER_WARNINGS
-#include <QDebug>
-RESTORE_COMPILER_WARNINGS
-
 #import <Foundation/Foundation.h>
 #import <AppKit/NSWorkspace.h>
-#include <sys/syslimits.h>
 
-#include <stdint.h>
-
-static NSString* wstring2nsstring(const std::wstring& str)
+std::vector<OsShell::TrashFailure> OsShell::moveItemsToTrash(const QStringList& paths)
 {
-	if (!str.empty())
+	std::vector<TrashFailure> failures;
+	@autoreleasepool
 	{
-		assert_and_return_r(str.length() <= PATH_MAX, @"");
+		NSMutableArray<NSURL*>* urls = [NSMutableArray arrayWithCapacity:(NSUInteger)paths.size()];
+		for (const QString& path : paths)
+			[urls addObject:[NSURL fileURLWithPath:path.toNSString()]];
 
-		uint16_t utf16string[PATH_MAX + 1];
-		for (size_t i = 0, n = str.length(); i < n; ++i)
+		// Retained: the completion handler's arguments are not guaranteed to outlive it
+		__block NSDictionary<NSURL*, NSURL*>* trashedUrls = nil;
+		__block NSError* trashError = nil;
+		dispatch_semaphore_t done = dispatch_semaphore_create(0);
+		[[NSWorkspace sharedWorkspace] recycleURLs:urls completionHandler:^(NSDictionary<NSURL*, NSURL*>* newURLs, NSError* error) {
+			trashedUrls = [newURLs retain];
+			trashError = [error retain];
+			dispatch_semaphore_signal(done);
+		}];
+		dispatch_semaphore_wait(done, DISPATCH_TIME_FOREVER);
+		dispatch_release(done);
+
+		// One error describes the whole batch
+		const QString reason = trashError ? QString::fromNSString(trashError.localizedDescription) : QStringLiteral("Unknown error");
+		for (NSUInteger i = 0; i < urls.count; ++i)
 		{
-			assert_r(str[i] <= std::numeric_limits<uint16_t>::max());
-			utf16string[i] = static_cast<uint16_t>(str[i]);
+			if (trashedUrls[urls[i]] == nil)
+				failures.push_back({ .path = paths[(qsizetype)i], .reason = reason });
 		}
-		utf16string[str.length()] = 0; // null-terminator
 
-		return [NSString stringWithFormat:@"%S", const_cast<const uint16_t*>(utf16string)];
-	}
-	else
-		return @"";
-}
-
-bool OsShell::deleteItems(const std::vector<std::wstring>& items, bool moveToTrash, void* /*parentWindow*/)
-{
-	assert_and_return_message_r(moveToTrash, "This method can only move files to trash", false);
-
-	NSMutableArray<NSURL *> *files = [[NSMutableArray alloc] init];
-
-	@try {
-		for (auto &&path : items)
-		{
-			NSString *str = wstring2nsstring(path);
-			NSURL *url = [[NSURL alloc] initFileURLWithPath:str];
-			[files addObject:url];
-		}
-	}
-	@catch(NSException* e) {
-		qInfo() << QString::fromNSString(e.description);
-		return false;
+		[trashedUrls release];
+		[trashError release];
 	}
 
-	[[NSWorkspace sharedWorkspace] recycleURLs:files completionHandler:^(NSDictionary* /*newURLs*/, NSError *error) {
-		if (error != nil)
-			qInfo() << QString::fromNSString(error.localizedDescription);
-	}];
-
-	return true;
+	return failures;
 }

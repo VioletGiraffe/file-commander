@@ -30,7 +30,7 @@ class QShortcut;
 class QStackedWidget;
 class QPushButton;
 
-#if !defined _WIN32 && !defined __APPLE__
+#ifndef _WIN32
 namespace OsShell { struct TrashFailure; } // shell/cshell.h
 #endif
 
@@ -84,7 +84,7 @@ private:
 	void performDeletion(bool toTrash);
 	// The internal permanent-delete job. Irreversible: callers confirm first.
 	void startPermanentDeletion(const QStringList& paths);
-#if !defined _WIN32 && !defined __APPLE__
+#ifndef _WIN32
 	// Lists the items the trash refused and offers to delete them permanently
 	void offerPermanentDeletion(const std::vector<OsShell::TrashFailure>& failures);
 #endif

@@ -43,8 +43,8 @@ namespace OsShell
 
 	std::wstring toolTip(std::wstring itemPath);
 
-#if defined _WIN32 || defined __APPLE__
-	// Only implemented where the OS shell provides deletion; see deletionBackendFor for the other platforms
+#ifdef _WIN32
+	// Through the shell, which shows its own progress, prompts and errors
 	bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
 #else
 	struct TrashFailure
@@ -53,7 +53,8 @@ namespace OsShell
 		QString reason;
 	};
 
-	// Moves each item to the freedesktop.org trash, continuing past failures. Empty when every item was moved.
+	// Moves each item to the trash, continuing past failures. Empty when every item was moved.
+	// Never call it on the main thread: on macOS it waits for a completion that may be delivered there.
 	[[nodiscard]] std::vector<TrashFailure> moveItemsToTrash(const QStringList& paths);
 #endif
 

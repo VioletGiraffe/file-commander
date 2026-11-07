@@ -102,7 +102,7 @@ CMainWindow * CMainWindow::_instance = nullptr;
 static constexpr UINT ShellChangeNotificationMessage = WM_APP + 1;
 #endif
 
-#if defined _WIN32 || defined __APPLE__
+#ifdef _WIN32
 // Only the native-shell deletion path reports through this; that path is not compiled elsewhere.
 namespace
 {
@@ -741,17 +741,13 @@ void CMainWindow::performDeletion(const bool toTrash)
 	// Precedes the shell's confirmation, where there is one: that runs on a worker thread
 	closeViewedFilesWithin(sourcePaths);
 
-#if defined _WIN32 || defined __APPLE__
+#ifdef _WIN32
 	std::vector<std::wstring> paths;
 	paths.reserve(items.size());
 	for (const QString& path : sourcePaths)
 		paths.emplace_back(toNativeSeparators(path).toStdWString());
 
-#ifdef _WIN32
 	auto* windowHandle = WidgetUtils::nativeOwnerWinId(this);
-#else
-	void* windowHandle = nullptr;
-#endif
 	const bool moveToTrash = backend == DeletionBackend::NativeTrash;
 	_shellOperations.run([this, paths = std::move(paths), moveToTrash, windowHandle]() {
 		if (!OsShell::deleteItems(paths, moveToTrash, windowHandle))
@@ -782,7 +778,7 @@ void CMainWindow::startPermanentDeletion(const QStringList& paths)
 	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 }
 
-#if !defined _WIN32 && !defined __APPLE__
+#ifndef _WIN32
 void CMainWindow::offerPermanentDeletion(const std::vector<OsShell::TrashFailure>& failures)
 {
 	QStringList failedPaths, details;
