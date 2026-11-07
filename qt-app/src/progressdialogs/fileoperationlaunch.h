@@ -30,11 +30,10 @@ RESTORE_COMPILER_WARNINGS
 [[nodiscard]] std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
 	TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText, const QString& destinationFolder);
 
-// Which backend performs a deletion. Selection is compile-time per platform and preserves current routing;
-// only the InternalJob case flows through the custom PermanentDeleteRequest / job / dialog.
+// Which backend performs a deletion, fixed per platform at compile time.
 enum class DeletionBackend
 {
-	NativeTrash,          // Native shell trash (Windows, macOS)
+	NativeTrash,          // The shell's trash on Windows and macOS, the freedesktop.org trash elsewhere
 	NativeShellPermanent, // Native shell permanent deletion (Windows)
 	InternalJob           // The custom permanent-delete engine (everywhere the native shell is not used)
 };

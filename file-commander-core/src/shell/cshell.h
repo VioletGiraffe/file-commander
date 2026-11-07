@@ -6,6 +6,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <expected>
@@ -43,8 +44,17 @@ namespace OsShell
 	std::wstring toolTip(std::wstring itemPath);
 
 #if defined _WIN32 || defined __APPLE__
-	// Only implemented where the OS shell provides deletion; elsewhere deletion goes through the internal job (see deletionBackendFor)
+	// Only implemented where the OS shell provides deletion; see deletionBackendFor for the other platforms
 	bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
+#else
+	struct TrashFailure
+	{
+		QString path;
+		QString reason;
+	};
+
+	// Moves each item to the freedesktop.org trash, continuing past failures. Empty when every item was moved.
+	[[nodiscard]] std::vector<TrashFailure> moveItemsToTrash(const QStringList& paths);
 #endif
 
 	// Opens at the mouse cursor

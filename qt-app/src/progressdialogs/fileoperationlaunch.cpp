@@ -91,13 +91,7 @@ std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
 DeletionBackend deletionBackendFor(const bool toTrash)
 {
 	if (toTrash)
-	{
-#if defined _WIN32 || defined __APPLE__
 		return DeletionBackend::NativeTrash;
-#else
-		return DeletionBackend::InternalJob; // No native Linux trash yet; unifying that is a later product change
-#endif
-	}
 
 #ifdef _WIN32
 	return DeletionBackend::NativeShellPermanent;

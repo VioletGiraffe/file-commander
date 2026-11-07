@@ -3,11 +3,6 @@
 Approved-but-not-started work, consciously deferred items, and known defects. Current state only; done items get
 removed.
 
-## Trash support on Linux/FreeBSD
-
-Implement `OsShell::deleteItems` through `QFile::moveToTrash`. F8 currently performs permanent deletion on these
-platforms because only Windows and macOS have a native trash backend.
-
 ## QoL commands (approved)
 
 Chosen from a longer list; no other command from it is approved.

@@ -731,51 +731,74 @@ void CMainWindow::performDeletion(const bool toTrash)
 		sourcePaths.push_back(item.fullAbsolutePath());
 
 	const DeletionBackend backend = deletionBackendFor(toTrash);
-	// OsShell::deleteItems only exists on Windows and macOS
-#if defined _WIN32 || defined __APPLE__
-	if (backend == DeletionBackend::NativeTrash || backend == DeletionBackend::NativeShellPermanent)
+	if (backend == DeletionBackend::InternalJob)
 	{
-		std::vector<std::wstring> paths;
-		paths.reserve(items.size());
-		for (const QString& path : sourcePaths)
-			paths.emplace_back(toNativeSeparators(path).toStdWString());
-
-		// Precedes the shell's confirmation: that runs on a worker thread
-		closeViewedFilesWithin(sourcePaths);
-
-#ifdef _WIN32
-		auto* windowHandle = WidgetUtils::nativeOwnerWinId(this);
-#else
-		void* windowHandle = nullptr;
-#endif
-		const bool moveToTrash = backend == DeletionBackend::NativeTrash;
-		_shellOperations.run([this, paths = std::move(paths), moveToTrash, windowHandle]() {
-			if (!OsShell::deleteItems(paths, moveToTrash, windowHandle))
-				QMetaObject::invokeMethod(this, showDeleteItemsError, Qt::QueuedConnection);
-		});
+		if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+			startPermanentDeletion(sourcePaths);
 		return;
 	}
+
+	// Precedes the shell's confirmation, where there is one: that runs on a worker thread
+	closeViewedFilesWithin(sourcePaths);
+
+#if defined _WIN32 || defined __APPLE__
+	std::vector<std::wstring> paths;
+	paths.reserve(items.size());
+	for (const QString& path : sourcePaths)
+		paths.emplace_back(toNativeSeparators(path).toStdWString());
+
+#ifdef _WIN32
+	auto* windowHandle = WidgetUtils::nativeOwnerWinId(this);
 #else
-	assert_r(backend == DeletionBackend::InternalJob);
+	void* windowHandle = nullptr;
 #endif
+	const bool moveToTrash = backend == DeletionBackend::NativeTrash;
+	_shellOperations.run([this, paths = std::move(paths), moveToTrash, windowHandle]() {
+		if (!OsShell::deleteItems(paths, moveToTrash, windowHandle))
+			QMetaObject::invokeMethod(this, showDeleteItemsError, Qt::QueuedConnection);
+	});
+#else
+	assert_r(backend == DeletionBackend::NativeTrash);
+	_shellOperations.run([this, sourcePaths = std::move(sourcePaths)]() {
+		if (auto failures = OsShell::moveItemsToTrash(sourcePaths); !failures.empty())
+			QMetaObject::invokeMethod(this, [this, failures = std::move(failures)] { offerPermanentDeletion(failures); }, Qt::QueuedConnection);
+	});
+#endif
+}
 
-	// InternalJob: the custom permanent-delete engine. Deletion here is irreversible, so confirm first.
-	if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
-		return;
-
-	auto request = makePermanentDeleteRequest(sourcePaths);
+void CMainWindow::startPermanentDeletion(const QStringList& paths)
+{
+	auto request = makePermanentDeleteRequest(paths);
 	if (!request)
 	{
 		QMessageBox::warning(this, tr("Operation cannot start"), requestValidationErrorText(request.error()));
 		return;
 	}
 
-	closeViewedFilesWithin(sourcePaths);
+	closeViewedFilesWithin(paths);
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
 	registerFileOperationDialog(dialog);
 	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 }
+
+#if !defined _WIN32 && !defined __APPLE__
+void CMainWindow::offerPermanentDeletion(const std::vector<OsShell::TrashFailure>& failures)
+{
+	QStringList failedPaths, details;
+	for (const OsShell::TrashFailure& failure : failures)
+	{
+		failedPaths.push_back(failure.path);
+		details.push_back(failure.path % QStringLiteral(": ") % failure.reason);
+	}
+
+	const QString text = failures.size() == 1
+		? tr("This item could not be moved to the trash. Delete it permanently?")
+		: tr("%1 items could not be moved to the trash. Delete them permanently?").arg(failures.size());
+	if (MessageDialog::question(this, tr("Cannot move to trash"), text, { tr("Delete permanently") }, 0, true, QMessageBox::Warning, details.join('\n')))
+		startPermanentDeletion(failedPaths);
+}
+#endif
 
 void CMainWindow::createFolder()
 {

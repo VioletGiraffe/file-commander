@@ -119,7 +119,7 @@ RoutingResult driveTransfer(const TransferKind kind, const QStringList& sourcePa
 	return { *dialog.result(), dialog.plansPresented, dialog.decisionRequestsPresented };
 }
 
-// The delete counterpart: builds the permanent-delete request as performDeletion's InternalJob branch does.
+// The delete counterpart: builds the permanent-delete request as CMainWindow::startPermanentDeletion does.
 RoutingResult driveDelete(const QStringList& sourcePaths, std::vector<Decision> decisions = {})
 {
 	auto request = makePermanentDeleteRequest(sourcePaths);

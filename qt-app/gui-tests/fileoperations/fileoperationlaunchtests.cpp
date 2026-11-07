@@ -286,11 +286,7 @@ TEST_CASE("launch: deletion backend selection", "[fileoperationlaunch]")
 {
 	SECTION("trash")
 	{
-#if defined _WIN32 || defined __APPLE__
 		CHECK(deletionBackendFor(true) == DeletionBackend::NativeTrash);
-#else
-		CHECK(deletionBackendFor(true) == DeletionBackend::InternalJob);
-#endif
 	}
 
 	SECTION("permanent deletion")
