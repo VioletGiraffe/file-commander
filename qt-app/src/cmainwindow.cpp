@@ -93,7 +93,7 @@ RESTORE_COMPILER_WARNINGS
 #include <utility>
 
 // Main window settings keys
-#define KEY_SPLITTER_SIZES    QSL("Ui/Splitter")
+#define KEY_LEGACY_SPLITTER_STATE QSL("Ui/Splitter")
 #define KEY_LAST_ACTIVE_PANEL QSL("Ui/LastActivePanel")
 
 CMainWindow * CMainWindow::_instance = nullptr;
@@ -144,7 +144,8 @@ CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, C
 	_rightPanelDisplayController.setPanelStackedWidget(ui->rightWidget);
 	_rightPanelDisplayController.setPanelWidget(ui->rightPanel);
 
-	enablePersistence(this, QSL("UI/MainWindow"));
+	// Headers off: the panels persist column layout and sort per tab
+	enablePersistence(this, QSL("UI/MainWindow"), CPersistenceEnabler::Delayed{ true }, CPersistenceEnabler::SetDefaultSize{ true }, CPersistenceEnabler::PersistViewHeaders{ false });
 
 	QSplitterHandle * handle = ui->splitter->handle(1);
 	handle->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -201,8 +202,10 @@ CMainWindow *CMainWindow::get()
 
 void CMainWindow::updateInterface()
 {
+	// Migration: older settings held the splitter state under this key; CPersistenceEnabler persists it now, and its own entry wins on show
 	QSettings s;
-	ui->splitter->restoreState(s.value(KEY_SPLITTER_SIZES).toByteArray());
+	ui->splitter->restoreState(s.value(KEY_LEGACY_SPLITTER_STATE).toByteArray());
+	s.remove(KEY_LEGACY_SPLITTER_STATE);
 
 	ui->_commandLine->setSettingsKeyForHistoryPersistence(KEY_LAST_COMMANDS_EXECUTED);
 	ui->_commandLine->lineEdit()->clear();
@@ -453,9 +456,6 @@ void CMainWindow::closeEvent(QCloseEvent *e)
 
 	if (e->type() == QCloseEvent::Close)
 	{
-		QSettings s;
-		s.setValue(KEY_SPLITTER_SIZES, ui->splitter->saveState());
-
 		// Every tab's sort and columns; the panels own that store.
 		ui->leftPanel->saveTabViewStates();
 		ui->rightPanel->saveTabViewStates();
