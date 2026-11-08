@@ -8,13 +8,13 @@ INCLUDEPATH += \
 	$$PWD/include \
 	$$PWD/../qtutils
 
-LIBS += -L$$PWD/../bin/$${OUTPUT_DIR} -lcore -lqtutils
+LIBS += -L$$PWD/../bin/$${OUTPUT_DIR} -lcore
 
 win*: LIBS += -lole32 -lShell32 -lUser32 -lMpr
 mac*: LIBS += -framework AppKit -framework CoreServices # CoreServices: FSEvents, for thin_io::directory_watcher
 
 mac*|linux*|freebsd{
-	PRE_TARGETDEPS += $$PWD/../bin/$${OUTPUT_DIR}/libcore.a $$PWD/../bin/$${OUTPUT_DIR}/libqtutils.a
+	PRE_TARGETDEPS += $$PWD/../bin/$${OUTPUT_DIR}/libcore.a
 }
 
 include($$PWD/../file-operations/libraries/fileoperations.pri)

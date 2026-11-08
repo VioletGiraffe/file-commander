@@ -9,8 +9,6 @@ MOC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
-LIBS += -L$${DESTDIR} -lcpputils -lqtutils
-
 HEADERS += \
 	src/cfilesystemobject.h \
 	src/ccontroller.h \
