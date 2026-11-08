@@ -3,7 +3,6 @@
 #include "fileoperationresultcode.h"
 #include "cpanel.h"
 #include "diskenumerator/cvolumeenumerator.h"
-#include "iconprovider/ciconprovider.h"
 #include "plugininterface/cpluginproxy.h"
 #include "favoritelocationslist/cfavoritelocations.h"
 #ifdef _WIN32
@@ -65,7 +64,6 @@ public:
 	void saveHistory();
 
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI.
-	// The icons are refetched too, for overlay changes the shell never reported.
 	void refreshPanelContents(Panel p);
 #ifdef _WIN32
 	// Refreshes each side's displayed panel that is on the drive just removed: the refresh moves it to an accessible folder.
@@ -100,8 +98,6 @@ public:
 	ItemActivationResult itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched
 	std::pair<bool /*success*/, QString/*volume root path*/> switchToVolume(Panel p, uint64_t id);
-	// Program settings have changed
-	void settingsChanged();
 	// Focus is set to a panel
 	void activePanelChanged(Panel p);
 	// Visible selection is UI-owned; mirror it into the plugin-facing panel snapshot.
@@ -146,9 +142,6 @@ public:
 	// Shared general-purpose pool. A caller whose lifetime is shorter than the controller's must tag its tasks
 	// and retire the tag before it dies.
 	[[nodiscard]] CThreadPool& threadPool();
-
-	// Caches its answers, so ask it per query rather than holding on to an icon.
-	[[nodiscard]] CIconProvider& iconProvider();
 
 // Getters
 	// A side always has at least one tab, so these are valid until shutdown() destroys them all.
@@ -253,7 +246,6 @@ private:
 	std::vector<PanelContentsSubscription> _panelContentsSubscriptions;
 	CWcxPluginHost       _wcxHost;
 	CVolumeEnumerator    _volumeEnumerator;
-	CIconProvider        _iconProvider;
 	std::vector<IVolumeListObserver*> _volumesChangedListeners;
 	Panel                _activePanel = Panel::UnknownPanel; // Protected by _pluginAccessMutex
 	// Plugin-facing panel queries and UI dispatch hold a shared lock. Tab/state mutations and shutdown() hold the

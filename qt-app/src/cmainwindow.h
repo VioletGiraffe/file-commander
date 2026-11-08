@@ -22,6 +22,7 @@ namespace Ui {
 
 class CPanelWidget;
 class CFileOperationDialog;
+class CIconProvider;
 class CPluginEngine;
 class CShellOperationRunner;
 class CViewerWindow;
@@ -39,7 +40,7 @@ class CMainWindow final : public QMainWindow,
 		private PanelContentsChangedListener
 {
 public:
-	explicit CMainWindow(CController& controller, CPluginEngine& pluginEngine, CShellOperationRunner& shellOperations, QWidget* parent = nullptr) noexcept;
+	explicit CMainWindow(CController& controller, CPluginEngine& pluginEngine, CShellOperationRunner& shellOperations, CIconProvider& iconProvider, QWidget* parent = nullptr) noexcept;
 	~CMainWindow() noexcept;
 	[[nodiscard]] static CMainWindow* get();
 
@@ -192,6 +193,7 @@ private:
 	CController* const _controller;
 	CPluginEngine& _pluginEngine;
 	CShellOperationRunner& _shellOperations;
+	CIconProvider& _iconProvider;
 	CPanelWidget* _currentFileList = nullptr;
 	CPanelWidget* _otherFileList = nullptr;
 	CPanelDisplayController _leftPanelDisplayController, _rightPanelDisplayController;

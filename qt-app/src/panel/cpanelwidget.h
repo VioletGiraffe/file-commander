@@ -2,6 +2,7 @@
 
 #include "columns.h"
 #include "filelistwidget/cfilelistview.h"
+#include "iconprovider/ciconprovider.h"
 
 #include "ccontroller.h"
 
@@ -41,7 +42,7 @@ public:
 	explicit CPanelWidget(QWidget *parent = nullptr) noexcept;
 	~CPanelWidget() noexcept  override;
 
-	void init(CController* controller, CShellOperationRunner& shellOperations);
+	void init(CController* controller, CShellOperationRunner& shellOperations, CIconProvider& iconProvider);
 
 	void setFocusToFileList();
 	void focusPathNavigatorWithPathSelected();
@@ -197,6 +198,7 @@ private:
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;
 	CShellOperationRunner         * _shellOperations = nullptr;
+	CIconProvider                 * _iconProvider = nullptr;
 	// The active tab's models (also held in _tabs[_activeTab]); kept as members so the rest of the widget stays tab-agnostic.
 	QItemSelectionModel           * _selectionModel = nullptr;
 	CFileListModel                * _model = nullptr;

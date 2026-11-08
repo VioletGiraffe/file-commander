@@ -11,7 +11,6 @@
 
 #include "settings.h"
 #include "shell/cshell.h"
-#include "iconprovider/ciconprovider.h"
 #include "fileoperationresultcode.h"
 #include "filesystemhelperfunctions.h"
 
@@ -189,19 +188,20 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 
 CPanelWidget::~CPanelWidget() noexcept
 {
-	if (_controller)
-		_controller->iconProvider().removeIconsChangedListener(this);
+	if (_iconProvider)
+		_iconProvider->removeIconsChangedListener(this);
 
 	delete ui;
 }
 
-void CPanelWidget::init(CController* controller, CShellOperationRunner& shellOperations)
+void CPanelWidget::init(CController* controller, CShellOperationRunner& shellOperations, CIconProvider& iconProvider)
 {
 	assert_debug_only(controller);
 	_controller = controller;
 	_shellOperations = &shellOperations;
+	_iconProvider = &iconProvider;
 
-	_controller->iconProvider().addIconsChangedListener(this);
+	_iconProvider->addIconsChangedListener(this);
 }
 
 void CPanelWidget::setFocusToFileList()
@@ -376,7 +376,7 @@ void CPanelWidget::initPanel(Panel p)
 
 void CPanelWidget::populateTabModels(PanelTab& tab, const TabViewState& viewState)
 {
-	tab.model = new(std::nothrow) CFileListModel(&_controller->iconProvider(), this);
+	tab.model = new(std::nothrow) CFileListModel(_iconProvider, this);
 	tab.model->setDropHandler([this](const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath) {
 		return dropUrls(urls, action, destinationPath);
 	});
@@ -1347,7 +1347,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 			auto* diskButton = new(std::nothrow) QPushButton;
 			diskButton->setFocusPolicy(Qt::NoFocus);
 			diskButton->setCheckable(true);
-			diskButton->setIcon(_controller->iconProvider().preciseIconBlocking(volume.rootObjectInfo));
+			diskButton->setIcon(_iconProvider->preciseIconBlocking(volume.rootObjectInfo));
 			diskButton->setText(name);
 			diskButton->setFixedWidth(QFontMetrics{ diskButton->font() }.horizontalAdvance(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 			diskButton->setProperty("id", (qulonglong)volume.id());

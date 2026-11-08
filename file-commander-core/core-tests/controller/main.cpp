@@ -4,7 +4,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QApplication>
+#include <QCoreApplication>
 #include <QDir>
 #include <QSettings>
 #include <QStringBuilder>
@@ -13,8 +13,7 @@ RESTORE_COMPILER_WARNINGS
 int main(int argc, char* argv[])
 {
 	// CController asserts it runs on qApp's thread.
-	// A headless caller selects the offscreen platform through QT_QPA_PLATFORM (the CI Linux run line does).
-	QApplication app{ argc, argv };
+	QCoreApplication app{ argc, argv };
 
 	// An ini file of our own: the controller saves and restores its tabs there, never in the user's real File Commander settings
 	QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, QDir::tempPath() % QStringLiteral("/file-commander-controller-test-settings"));

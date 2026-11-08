@@ -12,7 +12,6 @@ CController
  |- shared panel listing pool
  |- shared application worker pool and UI execution queue
  |- volumes and favorites
- |- icon provider, with its own retrieval thread and UI execution queue
  `- plugin subscriptions/access gate and WCX host
 ```
 
@@ -104,5 +103,4 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
 | Comparison | `filecomparator/`; a threaded single-file wrapper over `file-operations/foldercomparison/` |
 | Shell integration | `shell/`; platform clipboard, context menus, launching, and native deletion |
 | Favorites | `favoritelocationslist/`; nested locations persisted under a supplied settings key |
-| Icons | `iconprovider/`; extension guessing is the disk-free fast path |
 | Statistics/helpers | `filesystemhelpers/`, `filesystemhelperfunctions`; statistics traversal, separators and shell quoting |

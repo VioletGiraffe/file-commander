@@ -18,18 +18,19 @@ owners. Filesystem and panel access goes through `CController`.
 | Programs menu editor | `src/programseditor/`; see [process-launching.md](process-launching.md) |
 | File-operation UI | `src/progressdialogs/` (launch, confirmation); the dialogs are in `file-operations/fileoperationsui/` |
 | Search, tools, and settings | `src/filessearchdialog/`, `src/tools/`, `src/settings/` |
+| File and volume icons | `src/iconprovider/`; extension guessing is the disk-free fast path |
 
 ## Main window
 
-`main()` owns `CController` and `CPluginEngine`; `CMainWindow` borrows both and owns the panel widgets and their
-display controllers. Its current/other panel pointers follow focus rather than fixed left/right position. It routes
-commands, converts UI state into core requests, owns the resulting dialogs, and materializes plugin menus. A UI
-timer drains controller and panel execution queues.
+`main()` owns `CController`, `CPluginEngine` and `CIconProvider`; `CMainWindow` borrows them and owns the panel
+widgets and their display controllers. Its current/other panel pointers follow focus rather than fixed left/right
+position. It routes commands, converts UI state into core requests, owns the resulting dialogs, and materializes plugin
+menus. A UI timer drains the controller, panel and icon provider execution queues.
 
 After the application event loop and native shell operations finish, `main()` explicitly shuts down the controller
-while the window and plugin modules remain alive. Stack declaration order then destroys the window, plugin engine,
-controller, shell runner, and application in that order. The main window destroys the viewer windows still open, so
-no plugin-made widget outlives the engine.
+while the window and plugin modules remain alive. Stack declaration order then destroys the window, icon provider,
+plugin engine, controller, shell runner, and application in that order. The main window destroys the viewer windows
+still open, so no plugin-made widget outlives the engine.
 During engine teardown, each plugin's proxy retires its tagged work before the plugin instance is destroyed; the
 controller remains alive throughout that sequence.
 

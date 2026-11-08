@@ -1,9 +1,9 @@
 #include "cfilessearchwindow.h"
 
 #include "cmainwindow.h"
+#include "iconprovider/ciconprovider.h"
 
 #include "ccontroller.h"
-#include "iconprovider/ciconprovider.h"
 #include "cfilesystemobject.h"
 #include "filesystemhelperfunctions.h"
 
@@ -58,8 +58,9 @@ public:
 	}
 };
 
-CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent) :
+CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, CIconProvider& iconProvider, QWidget* parent) :
 	QMainWindow(parent),
+	_iconProvider(iconProvider),
 	ui(new Ui::CFilesSearchWindow)
 {
 	ui->setupUi(this);
@@ -320,7 +321,7 @@ void CFilesSearchWindow::addResultToUi(const CFileSystemObject& object, bool rea
 
 	auto* item = new CSearchResultItem;
 	item->setText(name);
-	item->setIcon(CController::get().iconProvider().genericIconFor(object));
+	item->setIcon(_iconProvider.genericIconFor(object));
 	item->setData(Qt::UserRole, path);
 
 	if (reachedThroughLink)

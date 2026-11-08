@@ -5,6 +5,7 @@
 #include "panel/filelistwidget/cfilelistview.h"
 
 #include "cshelloperationrunner.h"
+#include "iconprovider/ciconprovider.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
 #include "progressdialogs/fileoperationlaunch.h"
 
@@ -33,7 +34,6 @@
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
-#include "iconprovider/ciconprovider.h"
 
 
 // Submodule includes
@@ -127,12 +127,13 @@ static void launchProgram(QWidget* parent, const OsShell::ProgramInvocation& pro
 		showLaunchError(parent, CMainWindow::tr("Failed to launch %1").arg(toNativeSeparators(program.programPath)), launched.error());
 }
 
-CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, CShellOperationRunner& shellOperations, QWidget *parent) noexcept :
+CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, CShellOperationRunner& shellOperations, CIconProvider& iconProvider, QWidget *parent) noexcept :
 	QMainWindow(parent),
 	ui(new Ui::CMainWindow),
 	_controller(&controller),
 	_pluginEngine(pluginEngine),
-	_shellOperations(shellOperations)
+	_shellOperations(shellOperations),
+	_iconProvider(iconProvider)
 {
 	assert_r(!_instance);
 	_instance = this;
@@ -490,7 +491,7 @@ bool CMainWindow::terminateRunningCommandsForExit()
 void CMainWindow::changeEvent(QEvent *e)
 {
 	if (e->type() == QEvent::ThemeChange)
-		_controller->iconProvider().invalidateCache();
+		_iconProvider.invalidateCache();
 
 	QMainWindow::changeEvent(e);
 }
@@ -590,7 +591,7 @@ bool CMainWindow::nativeEvent(const QByteArray& eventType, void* message, qintpt
 {
 	const MSG* msg = static_cast<const MSG*>(message);
 	if (msg->message == ShellChangeNotificationMessage)
-		handleShellChangeNotification(_controller->iconProvider(), msg->wParam, msg->lParam);
+		handleShellChangeNotification(_iconProvider, msg->wParam, msg->lParam);
 	else if (msg->message == WM_DEVICECHANGE && msg->wParam == DBT_DEVICEREMOVECOMPLETE)
 		refreshPanelsOnRemovedDrives(*_controller, msg->lParam);
 
@@ -661,6 +662,8 @@ void CMainWindow::uiThreadTimerTick()
 {
 	if (_controller)
 		_controller->uiThreadTimerTick();
+
+	_iconProvider.uiThreadTimerTick();
 }
 
 // Window title management (#143)
@@ -1141,8 +1144,22 @@ PlaceholderValues CMainWindow::placeholderValues() const
 
 void CMainWindow::refresh()
 {
-	if (_currentFileList)
-		_controller->refreshPanelContents(_currentFileList->panelPosition());
+	if (!_currentFileList)
+		return;
+
+	const Panel p = _currentFileList->panelPosition();
+
+	// The icons are refetched too, for overlay changes the shell never reported.
+	// markIconsStale runs after readCommittedContents returns: it calls the listeners, which must not run under the panel lock.
+	std::vector<QString> paths;
+	_controller->panel(p).readCommittedContents([&paths](const QString& /*folder*/, const FileListHashMap& contents) {
+		paths.reserve(contents.size());
+		for (const auto& entry : contents)
+			paths.push_back(entry.second.fullAbsolutePath());
+	});
+	_iconProvider.markIconsStale(paths);
+
+	_controller->refreshPanelContents(p);
 }
 
 void CMainWindow::findFiles()
@@ -1158,7 +1175,7 @@ void CMainWindow::findFiles()
 		selectedPaths.push_back(_currentFileList->currentDirPathNative());
 
 
-	auto* fileSearchUi = new CFilesSearchWindow(selectedPaths, nullptr);
+	auto* fileSearchUi = new CFilesSearchWindow(selectedPaths, _iconProvider, nullptr);
 	fileSearchUi->setAttribute(Qt::WA_DeleteOnClose);
 	fileSearchUi->show();
 }
@@ -1276,7 +1293,7 @@ void CMainWindow::reportBug()
 
 void CMainWindow::settingsChanged()
 {
-	_controller->settingsChanged();
+	_iconProvider.settingsChanged();
 	ui->leftPanel->onSettingsChanged();
 	ui->rightPanel->onSettingsChanged();
 
@@ -1321,8 +1338,8 @@ void CMainWindow::updatePathBarAndWindowTitle(Panel p)
 
 void CMainWindow::initCore()
 {
-	ui->leftPanel->init(_controller, _shellOperations);
-	ui->rightPanel->init(_controller, _shellOperations);
+	ui->leftPanel->init(_controller, _shellOperations, _iconProvider);
+	ui->rightPanel->init(_controller, _shellOperations, _iconProvider);
 
 	_controller->activePanelChanged((Panel)QSettings().value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt());
 

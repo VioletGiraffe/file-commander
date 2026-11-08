@@ -20,14 +20,12 @@ HEADERS += \
 	src/filesystemhelpers/filestatistics.h \
 	src/filesystemwatcher/cdirectorysnapshotpoller.h \
 	src/filesystemwatcher/cfilesystemwatcher.h \
-	src/iconprovider/ciconprovider.h \
 	src/shell/cshell.h \
 	src/shell/cshellcommand.h \
 	include/settings.h \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/userprograms/userprograms.h \
 	src/filesystemhelperfunctions.h \
-	src/iconprovider/ciconproviderimpl.h \
 	src/filesearchengine/cfilesearchengine.h \
 	src/panellisting.h \
 	src/diskenumerator/volumeinfo.hpp \
@@ -44,8 +42,6 @@ SOURCES += \
 	src/filesystemhelpers/filestatistics.cpp \
 	src/filesystemwatcher/cdirectorysnapshotpoller.cpp \
 	src/filesystemwatcher/cfilesystemwatcher.cpp \
-	src/iconprovider/ciconprovider.cpp \
-	src/iconprovider/ciconproviderimpl.cpp \
 	src/shell/cshell.cpp \
 	src/shell/cshellcommand.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \

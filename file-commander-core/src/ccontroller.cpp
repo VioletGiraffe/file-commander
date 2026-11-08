@@ -4,7 +4,6 @@
 #include "shell/cshell.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filestatistics.h"
-#include "iconprovider/ciconprovider.h"
 
 
 // Submodule includes
@@ -135,7 +134,6 @@ void CController::shutdown()
 	}
 
 	_volumeEnumerator.shutdown();
-	_iconProvider.shutdown();
 
 	// CPanel destruction raises its abort flag before retiring the panel's tagged work, so an in-flight recursive
 	// scan exits promptly. The shared pools must remain alive until every panel has completed that handshake.
@@ -255,24 +253,12 @@ void CController::uiThreadTimerTick()
 			tab->uiThreadTimerTick();
 	}
 
-	_iconProvider.uiThreadTimerTick();
 	_uiQueue.exec(CExecutionQueue::execAll);
 }
 
 void CController::refreshPanelContents(Panel p)
 {
-	CPanel& refreshedPanel = panel(p);
-
-	// markIconsStale runs after readCommittedContents returns: it calls the listeners, which must not run under the panel lock.
-	std::vector<QString> paths;
-	refreshedPanel.readCommittedContents([&paths](const QString& /*folder*/, const FileListHashMap& contents) {
-		paths.reserve(contents.size());
-		for (const auto& entry : contents)
-			paths.push_back(entry.second.fullAbsolutePath());
-	});
-	_iconProvider.markIconsStale(paths);
-
-	refreshedPanel.refreshFileList(refreshCauseOther);
+	panel(p).refreshFileList(refreshCauseOther);
 }
 
 #ifdef _WIN32
@@ -683,12 +669,6 @@ std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVo
 	}
 }
 
-// Program settings have changed
-void CController::settingsChanged()
-{
-	_iconProvider.settingsChanged();
-}
-
 void CController::activePanelChanged(Panel p)
 {
 	assert_and_return_r(p == Panel::LeftPanel || p == Panel::RightPanel, );
@@ -898,11 +878,6 @@ const CHistoryList<QString>& CController::visitedLocations(Panel p) const
 CThreadPool& CController::threadPool()
 {
 	return _workerPool;
-}
-
-CIconProvider& CController::iconProvider()
-{
-	return _iconProvider;
 }
 
 std::vector<qulonglong> CController::selectedItemsHashes(Panel p) const

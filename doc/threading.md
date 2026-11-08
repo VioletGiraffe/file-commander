@@ -77,9 +77,8 @@ changing declaration order.
 
 Application shutdown is an explicit quiescence boundary. `main()` calls `CController::shutdown()` while the main
 window and plugin modules are still alive. The controller takes the plugin-access gate exclusively, saves final
-state, stops the volume enumerator and the icon retrieval thread, destroys the panels and retires their work, and
-establishes the empty state before
-releasing the gate and discarding queued UI work. The shared application pool stops later in the controller
+state, stops the volume enumerator, destroys the panels and retires their work, and establishes the empty state
+before releasing the gate and discarding queued UI work. The shared application pool stops later in the controller
 destructor, after plugin proxies have retired their tagged work.
 
 ## File-operation handshake

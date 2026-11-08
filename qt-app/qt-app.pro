@@ -34,6 +34,8 @@ SOURCES += \
 	src/main.cpp \
 	src/cmainwindow.cpp \
 	src/cshelloperationrunner.cpp \
+	src/iconprovider/ciconprovider.cpp \
+	src/iconprovider/ciconproviderimpl.cpp \
 	src/commandoutput/ccommandoutputarea.cpp \
 	src/commandoutput/ccommandoutputpane.cpp \
 	src/panel/cpanelwidget.cpp \
@@ -62,6 +64,8 @@ SOURCES += \
 HEADERS += \
 	src/cmainwindow.h \
 	src/cshelloperationrunner.h \
+	src/iconprovider/ciconprovider.h \
+	src/iconprovider/ciconproviderimpl.h \
 	src/commandoutput/ccommandoutputarea.h \
 	src/commandoutput/ccommandoutputpane.h \
 	src/panel/cpanelwidget.h \

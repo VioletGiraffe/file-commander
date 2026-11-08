@@ -38,6 +38,8 @@ SOURCES += \
 	main.cpp \
 	filelistmodeltests.cpp \
 	filelistupdatetests.cpp \
+	../../src/iconprovider/ciconprovider.cpp \
+	../../src/iconprovider/ciconproviderimpl.cpp \
 	../../src/panel/filelistwidget/cfilelistview.cpp \
 	../../src/panel/filelistwidget/cfocusframestyle.cpp \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
@@ -47,6 +49,8 @@ SOURCES += \
 
 HEADERS += \
 	filelisttesthelpers.h \
+	../../src/iconprovider/ciconprovider.h \
+	../../src/iconprovider/ciconproviderimpl.h \
 	../../src/panel/filelistwidget/cfilelistview.h \
 	../../src/panel/filelistwidget/cfocusframestyle.h \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \

@@ -1,5 +1,6 @@
 #include "cmainwindow.h"
 #include "cshelloperationrunner.h"
+#include "iconprovider/ciconprovider.h"
 
 #include "settings.h"
 #include "ccontroller.h"
@@ -155,8 +156,10 @@ int main(int argc, char *argv[])
 	CShellOperationRunner shellOperations;
 	CController controller;
 	CPluginEngine pluginEngine{controller};
+	// Must outlive the window: its panel widgets unsubscribe from it when destroyed
+	CIconProvider iconProvider;
 
-	CMainWindow w{controller, pluginEngine, shellOperations};
+	CMainWindow w{controller, pluginEngine, shellOperations, iconProvider};
 	w.updateInterface();
 
 	if (const auto testLaunchResult = testLaunchExitCode(app.arguments(), pluginEngine.activePluginInfo().size()))

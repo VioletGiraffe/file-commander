@@ -42,9 +42,9 @@ struct IconsChangedListener {
 	virtual void onAllIconsChanged() = 0;
 };
 
-// Answers icon queries for filesystem objects and caches the answers. Owned by CController; every public method
-// belongs to the UI thread. A query that fails is never cached, so a null return always means "no icon", never
-// "no icon yet". Only Windows retrieves in the background; the QFileIconProvider path elsewhere stays on the UI thread.
+// Answers icon queries for filesystem objects and caches the answers. Every public method belongs to the UI thread.
+// A query that fails is never cached, so a null return always means "no icon", never "no icon yet".
+// Only Windows retrieves in the background; the QFileIconProvider path elsewhere stays on the UI thread.
 class CIconProvider final : public QObject
 {
 public:
@@ -68,7 +68,7 @@ public:
 	void addIconsChangedListener(IconsChangedListener* listener);
 	void removeIconsChangedListener(IconsChangedListener* listener);
 
-	// Moves retrieved icons into the cache and notifies the listeners. Driven by CController's UI thread tick.
+	// Moves retrieved icons into the cache and notifies the listeners. Driven by CMainWindow's UI thread timer.
 	void uiThreadTimerTick();
 
 	// Re-reads the overlay setting and drops every cached icon, which the setting changes. Display-scale changes
@@ -84,10 +84,6 @@ public:
 	// Windows: case and a trailing separator are ignored, so a path from the shell matches the object's.
 	void markIconsStale(std::span<const QString> fullAbsolutePaths);
 	void markIconStale(const QString& fullAbsolutePath) { markIconsStale({ &fullAbsolutePath, 1 }); }
-
-	// Stops the retrieval thread; the destructor also calls it. Queries keep working afterwards, they just stop
-	// being answered in the background.
-	void shutdown();
 
 private:
 	struct CachedIcon {

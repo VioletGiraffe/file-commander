@@ -24,10 +24,12 @@ class CFilesSearchWindow;
 
 class QLabel;
 
+class CIconProvider;
+
 class CFilesSearchWindow final : public QMainWindow, public CFileSearchEngine::FileSearchListener
 {
 public:
-	CFilesSearchWindow(const std::vector<QString>& targets, QWidget* parent);
+	CFilesSearchWindow(const std::vector<QString>& targets, CIconProvider& iconProvider, QWidget* parent);
 	~CFilesSearchWindow() override;
 
 	void itemScanned(const QString& currentItem) override;
@@ -72,6 +74,7 @@ private:
 	void showContextMenu(const QPoint &pos);
 
 private:
+	CIconProvider& _iconProvider;
 	CFileSearchEngine _engine;
 	std::vector<QString> _matches;
 	// Set from a started search until its completion is shown: the engine's own flag clears before its results are all shown

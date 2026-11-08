@@ -96,9 +96,15 @@ CIconProvider::CIconProvider() : _provider{std::make_unique<CIconProviderImpl>()
 
 CIconProvider::~CIconProvider()
 {
-	shutdown();
-
 #ifdef _WIN32
+	if (_retrievalThread.joinable())
+	{
+		_stopRequested = true;
+		::SetEvent(_wakeEvent);
+		// Waits out at most one query in flight, which an unreachable path can hold for as long as the shell's timeout.
+		_retrievalThread.join();
+	}
+
 	if (_wakeEvent)
 		::CloseHandle(_wakeEvent);
 #endif
@@ -234,10 +240,8 @@ void CIconProvider::markIconsStale(const std::span<const QString> fullAbsolutePa
 
 void CIconProvider::watchForAppearanceChanges()
 {
-	// There are no screens to watch under a plain QCoreApplication, which the core tests run on.
 	auto* application = qobject_cast<QGuiApplication*>(QCoreApplication::instance());
-	if (!application)
-		return;
+	assert_and_return_r(application, );
 
 	// The shell sizes its icons from the system small-icon metric, which follows the display scale, so a scale
 	// change leaves every cached pixmap the wrong size. Watching all the screens rather than working out which one
@@ -253,23 +257,6 @@ void CIconProvider::watchForAppearanceChanges()
 	// The metric follows the primary screen, so it changes when a different screen becomes primary even though no
 	// screen's own scale did.
 	connect(application, &QGuiApplication::primaryScreenChanged, this, [this] { invalidateCache(); });
-}
-
-void CIconProvider::shutdown()
-{
-#ifdef _WIN32
-	if (!_retrievalThread.joinable())
-		return;
-
-	_stopRequested = true;
-	::SetEvent(_wakeEvent);
-	// Waits out at most one query in flight, which an unreachable path can hold for as long as the shell's timeout.
-	_retrievalThread.join();
-
-	// After the join, so nothing can enqueue past it. CController::shutdown() destroys the panels right after
-	// calling this, and a delivery that ran afterwards would repaint rows whose panel is gone.
-	_uiThreadQueue.clear();
-#endif
 }
 
 #ifndef __APPLE__
