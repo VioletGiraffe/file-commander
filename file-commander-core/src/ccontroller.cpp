@@ -149,33 +149,11 @@ void CController::shutdown()
 	_volumesChangedListeners.clear();
 	// Move external callables out while access is exclusive, then destroy them after releasing the gate: capture
 	// destructors are external code and must be free to re-enter the controller without deadlocking.
-	CPluginProxy::CreateToolMenuEntryImplementationType retiredMenuImplementation;
-	retiredMenuImplementation.swap(_createToolMenuEntryImplementation);
 	std::vector<PanelContentsSubscription> retiredPanelSubscriptions;
 	retiredPanelSubscriptions.swap(_panelContentsSubscriptions);
 
 	lock.unlock();
 	_uiQueue.clear();
-}
-
-void CController::setToolMenuEntryCreatorImplementation(const CPluginProxy::CreateToolMenuEntryImplementationType& implementation)
-{
-	assert_r(QThread::currentThread() == qApp->thread());
-	_createToolMenuEntryImplementation = implementation;
-}
-
-void CController::createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuTrees)
-{
-	assert_r(QThread::currentThread() == qApp->thread());
-
-	CPluginProxy::CreateToolMenuEntryImplementationType implementation;
-	{
-		std::shared_lock lock(_pluginAccessMutex);
-		implementation = _createToolMenuEntryImplementation;
-	}
-
-	if (implementation)
-		implementation(menuTrees);
 }
 
 void CController::subscribeToPanelContents(const CPluginProxy* subscriber, PanelContentsSubscriber callback)

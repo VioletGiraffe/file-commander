@@ -3,7 +3,6 @@
 #include "fileoperationresultcode.h"
 #include "cpanel.h"
 #include "diskenumerator/cvolumeenumerator.h"
-#include "plugininterface/cpluginproxy.h"
 #include "favoritelocationslist/cfavoritelocations.h"
 #ifdef _WIN32
 #include "plugininterface/wcx/cwcxpluginhost.h"
@@ -19,6 +18,8 @@
 #include <shared_mutex>
 #include <utility>
 #include <vector>
+
+class CPluginProxy;
 
 class CController final : public CVolumeEnumerator::IVolumeListObserver, public PanelContentsChangedListener, public CurrentPathChangedListener
 {
@@ -41,10 +42,6 @@ public:
 	// Closes plugin access to panels and UI dispatch, stops panel/volume producers, and releases callbacks while their
 	// owners are still alive. Must be called exactly once; the empty tab lists are checked by ~CController.
 	void shutdown();
-
-	// The UI installs the menu builder; plugins reach it through their proxy. Both are main thread only.
-	void setToolMenuEntryCreatorImplementation(const CPluginProxy::CreateToolMenuEntryImplementationType& implementation);
-	void createToolMenuEntries(const std::vector<CPluginProxy::MenuTree>& menuTrees);
 
 	// Plugin-facing feed of the active tab's committed listing, handed out by reference under the panel's lock.
 	// Subscribing delivers what's already committed, so a subscriber to an idle panel isn't left waiting for an
@@ -239,7 +236,6 @@ private:
 	// TODO: pushed in by the UI because the selection lives there; it should be pulled like everything else once
 	// the core owns the selection. Protected by _pluginAccessMutex because plugins may query it from worker threads.
 	std::array<std::vector<qulonglong>, 2> _selectedItemsHashes; // See selectedItemsHashes()
-	CPluginProxy::CreateToolMenuEntryImplementationType _createToolMenuEntryImplementation;
 	struct PanelContentsSubscription {
 		const CPluginProxy* subscriber;
 		PanelContentsSubscriber callback;

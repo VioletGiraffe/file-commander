@@ -34,15 +34,13 @@ public:
 		std::vector<MenuTree> children;
 	};
 
-	using CreateToolMenuEntryImplementationType = std::function<void(const std::vector<CPluginProxy::MenuTree>&)>;
-
 	explicit CPluginProxy(CController& controller) noexcept;
 	~CPluginProxy();
 
 	CPluginProxy(const CPluginProxy&) = delete;
 	CPluginProxy& operator=(const CPluginProxy&) = delete;
 
-// UI access for plugins; every plugin is only supposed to call this method once. Main thread only.
+// Commands menu entries. Only calls from proxySet() take effect: the app builds the menu once all plugins have loaded.
 	void createToolMenuEntries(const std::vector<MenuTree>& menuTrees);
 	void createToolMenuEntries(const MenuTree& menuTree);
 
@@ -76,7 +74,10 @@ public:
 	void parallelFor(size_t count, const std::function<void(size_t)>& fn);
 
 private:
+	friend class CPluginEngine; // Reads _toolMenuEntries
+
 	[[nodiscard]] uint64_t taskTag() const noexcept;
 
 	CController& _controller;
+	std::vector<MenuTree> _toolMenuEntries;
 };

@@ -6,6 +6,7 @@
 #include "cfilesystemobject.h"
 #include "ccontroller.h"
 #include "cpanel.h"
+#include "plugininterface/cpluginproxy.h"
 #include "userprograms/userprograms.h"
 
 

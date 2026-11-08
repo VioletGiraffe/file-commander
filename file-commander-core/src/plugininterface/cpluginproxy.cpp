@@ -58,12 +58,13 @@ void CPluginProxy::unsubscribeFromPanelContents()
 
 void CPluginProxy::createToolMenuEntries(const std::vector<MenuTree>& menuTrees)
 {
-	_controller.createToolMenuEntries(menuTrees);
+	for (const auto& menuTree : menuTrees)
+		_toolMenuEntries.push_back(menuTree);
 }
 
 void CPluginProxy::createToolMenuEntries(const MenuTree& menuTree)
 {
-	createToolMenuEntries(std::vector<MenuTree>(1, menuTree));
+	_toolMenuEntries.push_back(menuTree);
 }
 
 PanelPosition CPluginProxy::currentPanel() const

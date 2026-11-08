@@ -100,6 +100,18 @@ std::vector<CPluginEngine::PluginInfo> CPluginEngine::activePluginInfo() const
 	return info;
 }
 
+std::vector<std::vector<CPluginProxy::MenuTree>> CPluginEngine::toolMenuEntries() const
+{
+	std::vector<std::vector<CPluginProxy::MenuTree>> entries;
+	for (const auto& plugin: _plugins)
+	{
+		if (!plugin.proxy->_toolMenuEntries.empty())
+			entries.push_back(plugin.proxy->_toolMenuEntries);
+	}
+
+	return entries;
+}
+
 CFileCommanderViewerPlugin* CPluginEngine::viewerForFile(const QString& path, const QString& requiredCategory) const
 {
 	if (path.isEmpty())

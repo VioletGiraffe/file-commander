@@ -1,6 +1,7 @@
 #pragma once
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
+#include "plugininterface/cpluginproxy.h"
 
 
 // Submodule includes
@@ -16,7 +17,6 @@ RESTORE_COMPILER_WARNINGS
 
 class QLibrary;
 class CController;
-class CPluginProxy;
 
 class CPluginEngine final
 {
@@ -36,6 +36,8 @@ public:
 
 	void loadPlugins();
 	[[nodiscard]] std::vector<PluginInfo> activePluginInfo() const;
+	// One list per plugin that registered Commands menu entries, in load order.
+	[[nodiscard]] std::vector<std::vector<CPluginProxy::MenuTree>> toolMenuEntries() const;
 
 	// Null for an empty path and for a file no viewer accepts.
 	// An empty requiredCategory matches any viewer (auto-detect by file type, with the text viewer as fallback); a non-empty one restricts to viewers of that category().
