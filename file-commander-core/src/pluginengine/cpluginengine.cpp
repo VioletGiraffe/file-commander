@@ -9,7 +9,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QApplication>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
 #include <QLibrary>
@@ -42,7 +42,7 @@ void CPluginEngine::loadPlugins()
 #else
 #error
 #endif
-	QDir fileCommanderDir(qApp->applicationDirPath());
+	QDir fileCommanderDir(QCoreApplication::applicationDirPath());
 
 	const auto pluginPaths(fileCommanderDir.entryInfoList(QStringList{"*plugin_*" + pluginExtension + "*"}, QDir::Files | QDir::NoDotAndDotDot));
 	for (const QFileInfo& path: pluginPaths)

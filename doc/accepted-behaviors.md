@@ -51,7 +51,7 @@ invalidates the reason given.
 ## Locking
 
 - `CPanel::setPath` holds the panel mutex while arming the watcher, a blocking call: see [threading.md](threading.md).
-- Path-change listeners run under the panel mutex: see `CController::warnIfVisitedLocationDropped`.
+- Path-change listeners run under the panel mutex: see `CurrentPathChangedListener`.
 - `CVolumeEnumerator` notifies its observers while holding `_mutexForDrives`: see the member's comment.
 
 ## Tests

@@ -1576,17 +1576,20 @@ void CPanelWidget::moveCursorToFirstFile()
 
 void CPanelWidget::copySelectedItemsPathsToClipboard() const
 {
+	QModelIndexList indexes = selectedItemIndexes(true);
+	// Nothing (or only [..]) selected: the item under the cursor, even [..]
+	if (indexes.empty() && _selectionModel->currentIndex().isValid())
+		indexes.push_back(_selectionModel->currentIndex());
+
+	if (indexes.empty())
+		return;
+
 	QString paths;
-	for (const QModelIndex& index : selectedItemIndexes(true))
+	for (const QModelIndex& index : indexes)
 		paths += shellQuotedPath(toNativeSeparators(_model->rowAt(index).fullAbsolutePath())) + '\n';
 
-	if (!paths.isEmpty())
-	{
-		paths.chop(1);
-		QApplication::clipboard()->setText(paths);
-	}
-	else // Nothing (or only [..]) selected
-		_controller->copyCurrentItemPathToClipboard();
+	paths.chop(1);
+	QApplication::clipboard()->setText(paths);
 }
 
 void CPanelWidget::onSettingsChanged()

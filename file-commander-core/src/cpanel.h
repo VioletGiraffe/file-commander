@@ -73,6 +73,7 @@ struct CurrentItemChangedListener {
 struct CurrentPathChangedListener {
 	virtual ~CurrentPathChangedListener() = default;
 
+	// Called from setPath with the panel's list mutex held
 	virtual void onCurrentPathChanged(Panel p, const QString& newPath) = 0;
 };
 

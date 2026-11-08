@@ -129,8 +129,6 @@ public:
 	// Designates a new current item (e. g. a folder is being renamed and we want to keep the cursor on it).
 	// Applies to whichever folder the given panel is currently showing.
 	void setCurrentItemHashForCurrentFolder(Panel panel, qulonglong newCurrentItemHash, bool notifyUi = true);
-	// Copies the full path of the currently selected item to clipboard
-	void copyCurrentItemPathToClipboard();
 
 // Threading
 	// Templated so a callable goes straight into the target queue's own type erasure instead of through a std::function first
@@ -224,9 +222,6 @@ private:
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
 	// CurrentPathChangedListener: appends to the side's visited-locations log whenever any tab's directory changes.
 	void onCurrentPathChanged(Panel p, const QString& newPath) override;
-	// Diagnostic tripwire: after the addLatest in onCurrentPathChanged, verifies no entry was silently dropped from
-	// the side's visited-locations log and fires a loud modal if one was. Needs the pre-add size and presence flag.
-	void warnIfVisitedLocationDropped(Panel p, const QString& newPath, size_t sizeBefore, bool wasAlreadyLogged);
 
 private:
 	static CController * _instance;

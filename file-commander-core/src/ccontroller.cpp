@@ -10,18 +10,15 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "fileoperations/cfilesystemmutator.h"
-#include "qtcore_helpers/qstring_helpers.hpp"
 #include "system/cpuinfo.hpp"
 #include "threading/thread_helpers.h"
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QApplication>
-#include <QClipboard>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
-#include <QMessageBox>
 #include <QSettings>
 #include <QStringBuilder>
 #include <QStringList>
@@ -93,7 +90,7 @@ CController::CController() :
 
 	_volumeEnumerator.startEnumeratorThread();
 
-	_wcxHost.setWcxSearchPath(QApplication::applicationDirPath());
+	_wcxHost.setWcxSearchPath(QCoreApplication::applicationDirPath());
 
 	const auto cpu = CpuCount::get();
 	qInfo().nospace().noquote() << "CPU: " << QString::fromStdString(cpuModelName()) << ", cores: " << cpu.performanceCoreCount() << "P+" << cpu.efficiencyCoreCount() << "E, " << cpu.logicalProcessorCount() << " logical, worker pool: " << _workerPool.maxWorkersCount();
@@ -630,36 +627,7 @@ void CController::onPanelContentsInvalidated(Panel /*p*/, qulonglong /*tabId*/)
 
 void CController::onCurrentPathChanged(Panel p, const QString& newPath)
 {
-	auto& visited = _visitedLocations[(size_t)p];
-
-	const size_t sizeBefore = visited.size();
-	const bool alreadyLogged = std::find(visited.begin(), visited.end(), newPath) != visited.end();
-
-	visited.addLatest(newPath);
-
-	warnIfVisitedLocationDropped(p, newPath, sizeBefore, alreadyLogged);
-}
-
-void CController::warnIfVisitedLocationDropped(Panel p, const QString& newPath, size_t sizeBefore, bool wasAlreadyLogged)
-{
-	// Tripwire for the "visited folders silently disappear" bug: addLatest must only append newPath (or move it to the
-	// newest slot when it was already logged), evicting a single oldest entry only once the maxSize ceiling is reached.
-	// Any other resulting size means an entry was dropped.
-	const auto& visited = _visitedLocations[(size_t)p];
-	const size_t permissibleSize = std::min(wasAlreadyLogged ? sizeBefore : sizeBefore + 1, visited.maxSize());
-	if (visited.size() == permissibleSize)
-		return;
-
-	// We run inside setPath with the panel mutex held, so a modal here would deadlock against queued panel work
-	// draining on the UI thread - surface it via the UI queue, which runs it after setPath has released the lock.
-	const size_t actualSize = visited.size();
-	_uiQueue.enqueue([p, newPath, sizeBefore, permissibleSize, actualSize] {
-		const QString panelSide = p == Panel::LeftPanel ? QSL("left") : QSL("right");
-		QMessageBox::critical(nullptr, QSL("Visited-locations history tripwire"),
-			QSL("An entry was unexpectedly dropped from the %1 panel's visited-folders history while adding:\n%2\n\n"
-				"Size before: %3, expected: %4, actual: %5.\n\nPlease note the steps that led here and report them.")
-				.arg(panelSide, newPath).arg(qulonglong(sizeBefore)).arg(qulonglong(permissibleSize)).arg(qulonglong(actualSize)));
-	});
+	_visitedLocations[(size_t)p].addLatest(newPath);
 }
 
 CController::ItemActivationResult CController::itemActivated(qulonglong itemHash, Panel p)
@@ -845,13 +813,6 @@ void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 void CController::setCurrentItemHashForCurrentFolder(Panel p, qulonglong newCurrentItemHash, const bool notifyUi)
 {
 	panel(p).setCurrentItemHashForFolder(panel(p).currentDirPathPosix(), newCurrentItemHash, notifyUi);
-}
-
-void CController::copyCurrentItemPathToClipboard()
-{
-	const auto item = currentItem();
-	if (item.isValid())
-		QApplication::clipboard()->setText(shellQuotedPath(toNativeSeparators(item.fullAbsolutePath())));
 }
 
 const CPanel &CController::panel(Panel p) const
