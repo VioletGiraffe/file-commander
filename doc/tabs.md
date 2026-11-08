@@ -31,8 +31,8 @@ time it is activated. Activation arms the watch and lists the folder, which is a
 while it was inactive.
 
 `CController` persists one entry per tab -- id, path, cursor hash -- plus the active position and the id counter,
-including migration from legacy single-path settings. `CPanelWidget` persists each tab's sort and column layout
-against those ids; the recently closed stack is process-local and is not persisted at all. See
+including migration from legacy single-path settings. Its stack of each side's recently closed tab folders is not
+persisted. `CPanelWidget` persists each tab's sort and column layout against those ids. See
 [persistence.md](persistence.md) for save timing and history scope.
 
 When changing tab creation, activation, close, or reorder, verify stable-ID mapping, core/UI ordering, active-model

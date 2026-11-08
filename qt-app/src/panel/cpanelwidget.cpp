@@ -507,11 +507,10 @@ void CPanelWidget::closeAllTabsExceptCurrent()
 
 void CPanelWidget::reopenLastClosedTab()
 {
-	if (_recentlyClosedTabsPaths.empty())
+	const QString path = _controller->takeLastClosedTabPath(_panelPosition);
+	if (path.isEmpty())
 		return;
 
-	const QString path = _recentlyClosedTabsPaths.back();
-	_recentlyClosedTabsPaths.pop_back();
 	// The closed tab's own appearance went with it, so the new tab looks like the one on screen.
 	openPathInNewTab(path, /*activate=*/true, viewStateOfTab(_activeTab));
 }
@@ -576,8 +575,6 @@ void CPanelWidget::closeTabById(qulonglong id)
 	// Before the erase: _activeTab still indexes that tab.
 	if (index != _activeTab)
 		saveActiveTabViewState();
-
-	_recentlyClosedTabsPaths.push_back(_controller->tabPath(_panelPosition, id));
 
 	_controller->closeTab(_panelPosition, id);
 	const qulonglong activeId = _controller->activeTabId(_panelPosition); // post-removal active tab

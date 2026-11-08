@@ -75,6 +75,8 @@ public:
 	qulonglong addTab(Panel p, const QString& path, bool activate = true);
 	// Closes the tab with id. Never removes the last tab (a panel always keeps >= 1 tab).
 	void closeTab(Panel p, qulonglong tabId);
+	// Removes and returns the folder of side p's most recently closed tab; empty when there is none.
+	[[nodiscard]] QString takeLastClosedTabPath(Panel p);
 	// Makes tabId the active tab for side p (deactivates the previously active tab, activates the new one).
 	void setActiveTab(Panel p, qulonglong tabId);
 	// Moves the tab with id to newPosition within side p's tab list (e. g. to mirror a drag-reorder in the UI).
@@ -228,6 +230,7 @@ private:
 	CThreadPool             _workerPool;
 	std::array<TabList, 2> _panels;
 	qulonglong             _nextTabId = 1; // 0 is reserved as "no tab"/invalid
+	std::array<std::vector<QString>, 2> _closedTabPaths; // Most recent last; see takeLastClosedTabPath()
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
 	std::array<std::vector<CurrentItemChangedListener*>, 2> _currentItemChangedListeners;

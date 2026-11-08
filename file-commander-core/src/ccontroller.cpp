@@ -303,6 +303,7 @@ void CController::closeTab(Panel p, qulonglong tabId)
 	assert_and_return_r(idx.has_value(), );
 	const bool wasActive = (*idx == tabList.activeTab);
 
+	_closedTabPaths[(size_t)p].push_back(tabList.tabs[*idx]->currentDirPathPosix());
 	tabList.tabs[*idx]->setActive(false); // Release its watch handle before destruction
 	tabList.tabs.erase(tabList.tabs.begin() + (ptrdiff_t)*idx);
 
@@ -318,6 +319,17 @@ void CController::closeTab(Panel p, qulonglong tabId)
 	}
 
 	savePanelState(p);
+}
+
+QString CController::takeLastClosedTabPath(Panel p)
+{
+	auto& closedTabPaths = _closedTabPaths[(size_t)p];
+	if (closedTabPaths.empty())
+		return {};
+
+	QString path = std::move(closedTabPaths.back());
+	closedTabPaths.pop_back();
+	return path;
 }
 
 void CController::setActiveTab(Panel p, qulonglong tabId)

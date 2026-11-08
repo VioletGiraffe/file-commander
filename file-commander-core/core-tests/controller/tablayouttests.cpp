@@ -87,3 +87,25 @@ TEST_CASE("CController - the last tab of a side cannot be closed", "[controller]
 
 	CHECK(session->tabIds(Panel::LeftPanel) == ids);
 }
+
+TEST_CASE("CController - closed tabs' folders come back most recent first, separately per side", "[controller][tabs]")
+{
+	clearSavedState();
+	TempTree tree;
+	ControllerSession session;
+
+	const qulonglong firstId = session->addTab(Panel::LeftPanel, tree.makeDir("first"), false);
+	const qulonglong secondId = session->addTab(Panel::LeftPanel, tree.makeDir("second"), false);
+	const QString firstPath = session->tabPath(Panel::LeftPanel, firstId);
+	const QString secondPath = session->tabPath(Panel::LeftPanel, secondId);
+	REQUIRE(firstPath != secondPath);
+
+	session->closeTab(Panel::LeftPanel, firstId);
+	session->closeTab(Panel::LeftPanel, secondId);
+	session->closeTab(Panel::LeftPanel, session->activeTabId(Panel::LeftPanel)); // The last tab stays open, so nothing is recorded
+
+	CHECK(session->takeLastClosedTabPath(Panel::RightPanel).isEmpty());
+	CHECK(session->takeLastClosedTabPath(Panel::LeftPanel) == secondPath);
+	CHECK(session->takeLastClosedTabPath(Panel::LeftPanel) == firstPath);
+	CHECK(session->takeLastClosedTabPath(Panel::LeftPanel).isEmpty());
+}
