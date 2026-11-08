@@ -59,6 +59,7 @@ DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
 
 #include <QCloseEvent>
+#include <QDesktopServices>
 #include <QDialog>
 #include <QFileDialog>
 #include <QFileIconProvider>
@@ -614,7 +615,18 @@ bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
-	const auto result = _controller->itemActivated(hash, panel->panelPosition());
+	auto result = _controller->itemActivated(hash, panel->panelPosition());
+	if (!result.pathToOpen.isEmpty())
+	{
+#ifdef _WIN32
+		if (auto opened = OsShell::openWithDefaultApplication(result.pathToOpen, reinterpret_cast<void*>(winId())); !opened)
+			result = { FileOperationResultCode::Fail, std::move(opened.error()) };
+#else
+		if (!QDesktopServices::openUrl(QUrl::fromLocalFile(result.pathToOpen)))
+			result.code = FileOperationResultCode::Fail; // Without a reason: QDesktopServices reports none
+#endif
+	}
+
 	switch (result.code)
 	{
 	case FileOperationResultCode::ObjectDoesntExist:

@@ -91,6 +91,14 @@ namespace OsShell
 
 #ifdef _WIN32
 	[[nodiscard]] std::expected<void, QString> runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin = false);
+
+	// Opens the file with its type's default verb, as Explorer's double-click does, with the file's folder as working folder.
+	// For a type with no program the shell asks which one to use.
+	// The error is the reason for the failure, never empty; cancelling a prompt the shell shows is not a failure.
+	[[nodiscard]] std::expected<void, QString> openWithDefaultApplication(const QString& path, void* parentWindow);
+#else
+	// Whether exec can start the file: a native binary, or a script starting with "#!". Reads the file's first bytes.
+	[[nodiscard]] bool isProgramFile(const QString& path);
 #endif
 
 	bool isInPath(const QString& fileName);

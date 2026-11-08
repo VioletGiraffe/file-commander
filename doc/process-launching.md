@@ -7,8 +7,8 @@ happens to running commands when the app exits.
 
 | Trigger | Start here | Mechanism |
 |---|---|---|
-| Activating an executable in a panel | `CController::itemActivated` | `OsShell::runExecutable`: `ShellExecuteExW` on Windows, `QProcess::startDetached` elsewhere |
-| Activating any other file | `CController::itemActivated` | `QDesktopServices::openUrl`, the OS file association |
+| Activating an executable in a panel | `CController::itemActivated` | `OsShell::runExecutable`: `ShellExecuteExW` on Windows, `QProcess::startDetached` elsewhere. Off Windows, an executable file must also start like a program: `OsShell::isProgramFile` |
+| Activating any other file | `CController::itemActivated` returns the path, `CMainWindow::itemActivated` opens it | The OS file association: `OsShell::openWithDefaultApplication` on Windows, `QDesktopServices::openUrl` elsewhere |
 | Edit (F4) | `CMainWindow::editFile` | `QProcess::startDetached` with the configured editor; `open -a` on macOS |
 | Open terminal | `OsShell::openTerminal` | `OsShell::terminalCommand`: the configured terminal, else a detected one; elevated through `OsShell::runExe` on Windows; `open -a` on macOS |
 | Command line | `CMainWindow::executeCommand` | `OsShell::runExecutable` for a GUI program (`OsShell::guiProgramInvocation`), else `CCommandOutputArea::run` |

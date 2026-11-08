@@ -93,8 +93,9 @@ public:
 	{
 		FileOperationResultCode code;
 		QString errorText; // The reason for a failure, when known
+		QString pathToOpen; // A document or an app bundle, for the UI to open with its default application; empty otherwise
 	};
-	// Enters a folder, launches an executable, or opens a file with its associated program
+	// Enters a folder or launches an executable; any other file is returned in pathToOpen
 	ItemActivationResult itemActivated(qulonglong itemHash, Panel p);
 	// A current volume has been switched
 	std::pair<bool /*success*/, QString/*volume root path*/> switchToVolume(Panel p, uint64_t id);

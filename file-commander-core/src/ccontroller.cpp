@@ -16,13 +16,11 @@
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
 #include <QDebug>
-#include <QDesktopServices>
 #include <QDir>
 #include <QSettings>
 #include <QStringBuilder>
 #include <QStringList>
 #include <QThread>
-#include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -622,11 +620,8 @@ CController::ItemActivationResult CController::itemActivated(qulonglong itemHash
 	if (!item.isValid())
 		return { FileOperationResultCode::ObjectDoesntExist };
 
-	if (item.isBundle())
-	{
-		// macOS bundle: launch it as an application
-		return { QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail };
-	}
+	if (item.isBundle()) // macOS app bundle: opening it launches the app
+		return { FileOperationResultCode::Ok, {}, item.fullAbsolutePath() };
 	else if (item.isDir())
 	{
 		// Attempting to enter this dir
@@ -634,17 +629,20 @@ CController::ItemActivationResult CController::itemActivated(qulonglong itemHash
 	}
 	else if (item.isFile())
 	{
-		if (item.isExecutable())
-		{
-			// Attempting to launch this exe from the current directory
-			if (auto launched = OsShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()); !launched)
-				return { FileOperationResultCode::Fail, std::move(launched.error()) };
+#ifdef _WIN32
+		const bool isProgram = item.isExecutable();
+#else
+		// Filesystems without permissions, such as FAT and NTFS mounts, usually mark every file executable
+		const bool isProgram = item.isExecutable() && OsShell::isProgramFile(item.fullAbsolutePath());
+#endif
+		if (!isProgram)
+			return { FileOperationResultCode::Ok, {}, item.fullAbsolutePath() };
 
-			return { FileOperationResultCode::Ok };
-		}
-		else
-			// It's probably not a binary file, try opening with openUrl
-			return { QDesktopServices::openUrl(QUrl::fromLocalFile(item.fullAbsolutePath())) ? FileOperationResultCode::Ok : FileOperationResultCode::Fail };
+		// Attempting to launch this exe from the current directory
+		if (auto launched = OsShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()); !launched)
+			return { FileOperationResultCode::Fail, std::move(launched.error()) };
+
+		return { FileOperationResultCode::Ok };
 	}
 
 	return { FileOperationResultCode::Fail };

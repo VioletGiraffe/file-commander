@@ -26,7 +26,9 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <filesystem>
 #include <functional>
+#include <iterator>
 #include <string.h> // memset
+#include <string_view>
 #include <vector>
 
 #ifdef _WIN32
@@ -266,28 +268,21 @@ static QString withMappedDriveAsNetworkPath(const QString& path)
 	return QString::fromWCharArray(networkPath.data()) + path.mid(2);
 }
 
-std::expected<void, QString> OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
-{
-	return runExe(command, arguments, workingDir, false);
-}
-
-std::expected<void, QString> OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
+// A null verb is the file type's default verb.
+// SEE_MASK_FLAG_NO_UI suppresses the shell's error message boxes, not its "Open with" prompt.
+// The error is the reason for the failure, never empty; cancelling a prompt the shell shows is not a failure.
+static std::expected<void, QString> shellExecute(const wchar_t* verb, const wchar_t* file, const QString& arguments, const QString& workingDir, HWND parentWindow)
 {
 	const QString workingDirNative = toNativeSeparators(workingDir);
-	// The extended-length form: ShellExecuteExW accepts it, and without it MAX_PATH caps what can be launched.
-	// A bare program name is left alone, so resolution through PATH still works.
-	const thin_io::windows_path_buffer commandNative{ reinterpret_cast<const wchar_t*>(command.utf16()) };
-	if (!commandNative)
-		return std::unexpected{ launchErrorText(commandNative.error_code()) };
 
 	SHELLEXECUTEINFOW shExecInfo;
 	::memset(&shExecInfo, 0, sizeof(shExecInfo));
 
 	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 	shExecInfo.fMask = SEE_MASK_FLAG_NO_UI;
-	shExecInfo.hwnd = nullptr;
-	shExecInfo.lpVerb = asAdmin ? L"runas" : L"open";
-	shExecInfo.lpFile = commandNative.c_str();
+	shExecInfo.hwnd = parentWindow;
+	shExecInfo.lpVerb = verb;
+	shExecInfo.lpFile = file;
 	shExecInfo.lpParameters = arguments.isEmpty() ? nullptr : reinterpret_cast<const WCHAR*>(arguments.utf16());
 	shExecInfo.lpDirectory = workingDirNative.isEmpty() ? nullptr : reinterpret_cast<const WCHAR*>(workingDirNative.utf16());
 	shExecInfo.nShow = SW_SHOWNORMAL;
@@ -298,7 +293,7 @@ std::expected<void, QString> OsShell::runExe(const QString& command, const QStri
 		if (const DWORD error = ::GetLastError(); error != ERROR_CANCELLED) // Operation canceled by the user
 		{
 			QString errorText = launchErrorText(error);
-			qInfo() << "ShellExecuteExW failed when trying to run" << QString::fromWCharArray(commandNative.c_str()) << "in" << workingDirNative;
+			qInfo() << "ShellExecuteExW failed when trying to run" << QString::fromWCharArray(file) << "in" << workingDirNative;
 			qInfo() << errorText;
 
 			return std::unexpected{ std::move(errorText) };
@@ -306,6 +301,42 @@ std::expected<void, QString> OsShell::runExe(const QString& command, const QStri
 	}
 
 	return {};
+}
+
+std::expected<void, QString> OsShell::runExecutable(const QString& command, const QString& arguments, const QString& workingDir)
+{
+	return runExe(command, arguments, workingDir, false);
+}
+
+std::expected<void, QString> OsShell::runExe(const QString& command, const QString& arguments, const QString& workingDir, bool asAdmin)
+{
+	// The extended-length form: ShellExecuteExW accepts it, and without it MAX_PATH caps what can be launched.
+	// A bare program name is left alone, so resolution through PATH still works.
+	const thin_io::windows_path_buffer commandNative{ reinterpret_cast<const wchar_t*>(command.utf16()) };
+	if (!commandNative)
+		return std::unexpected{ launchErrorText(commandNative.error_code()) };
+
+	return shellExecute(asAdmin ? L"runas" : L"open", commandNative.c_str(), arguments, workingDir, nullptr);
+}
+
+std::expected<void, QString> OsShell::openWithDefaultApplication(const QString& path, void* parentWindow)
+{
+	const QString nativePath = toNativeSeparators(path);
+	QString folder = QFileInfo{ path }.absolutePath();
+	// A process's current folder cannot be longer: the program starts in the app's own folder instead
+	if (folder.size() >= MAX_PATH - 1)
+		folder.clear();
+
+	const auto window = static_cast<HWND>(parentWindow);
+	// The program that opens the file receives this path, and not every program accepts the extended-length form
+	if (nativePath.size() < MAX_PATH)
+		return shellExecute(nullptr, reinterpret_cast<const wchar_t*>(nativePath.utf16()), {}, folder, window);
+
+	const thin_io::windows_path_buffer extendedPath{ reinterpret_cast<const wchar_t*>(nativePath.utf16()) };
+	if (!extendedPath)
+		return std::unexpected{ launchErrorText(extendedPath.error_code()) };
+
+	return shellExecute(nullptr, extendedPath.c_str(), {}, folder, window);
 }
 #else
 static std::expected<void, QString> startDetached(const QString& program, QStringList arguments, const QString& workingDir)
@@ -327,6 +358,33 @@ std::expected<void, QString> OsShell::runExecutable(const QString& command, cons
 		return std::unexpected{ QStringLiteral("Unfinished quote or escape in the arguments: %1").arg(arguments) };
 
 	return startDetached(command, std::move(*argumentList), workingDir);
+}
+
+bool OsShell::isProgramFile(const QString& path)
+{
+	// Exec decides for anything this does not read.
+	// Only a regular file is read: opening a FIFO blocks until it has a writer.
+	if (!QFileInfo{ path }.isFile())
+		return true;
+
+	QFile file{ path };
+	// A binary can be executable without being readable
+	if (!file.open(QIODevice::ReadOnly))
+		return true;
+
+	char start[4]{};
+	const qint64 bytesRead = file.read(start, sizeof(start));
+	const std::string_view magic{ start, bytesRead > 0 ? static_cast<size_t>(bytesRead) : 0 };
+	if (magic.starts_with("#!"))
+		return true;
+
+#ifdef __APPLE__
+	// Mach-O 64- and 32-bit, then universal 32- and 64-bit
+	static constexpr std::string_view machOMagics[]{ "\xCF\xFA\xED\xFE", "\xCE\xFA\xED\xFE", "\xCA\xFE\xBA\xBE", "\xCA\xFE\xBA\xBF" };
+	return std::ranges::find(machOMagics, magic) != std::ranges::end(machOMagics);
+#else
+	return magic == "\x7F" "ELF";
+#endif
 }
 #endif
 
