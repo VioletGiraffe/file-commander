@@ -397,23 +397,24 @@ CFileSystemObject CPanel::currentItemLocked() const
 		return {};
 
 	const auto item = _items.find(currentHash->second);
-	return item != _items.end() && _nameFilter.matches(item->second) ? item->second : CFileSystemObject{};
+	return item != _items.end() && _nameFilter.matches(item->second.fullName()) ? item->second : CFileSystemObject{};
 }
 
-void CPanel::setNameFilter(const QString& wildcard)
+void CPanel::setNameFilter(const QString& filterText)
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	_nameFilter.setWildcard(wildcard);
+	_nameFilterText = filterText;
+	_nameFilter = FileNameFilter{ splitNameFilterField(filterText), Qt::CaseInsensitive };
 	std::erase_if(_selectedItemHashes, [this](qulonglong hash) {
 		const auto item = _items.find(hash);
-		return item == _items.end() || !_nameFilter.matches(item->second);
+		return item == _items.end() || !_nameFilter.matches(item->second.fullName());
 	});
 }
 
 QString CPanel::nameFilter() const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	return _nameFilter.wildcard();
+	return _nameFilterText;
 }
 
 void CPanel::setSorting(FileListSortField field, Qt::SortOrder order)
@@ -437,7 +438,7 @@ Qt::SortOrder CPanel::sortOrder() const
 
 bool CPanel::isSelectableLocked(const CFileSystemObject& item) const
 {
-	return !item.isCdUp() && _nameFilter.matches(item);
+	return !item.isCdUp() && _nameFilter.matches(item.fullName());
 }
 
 void CPanel::setItemsSelected(const std::vector<qulonglong>& hashes, bool selected)

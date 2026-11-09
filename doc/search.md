@@ -19,6 +19,9 @@ match anywhere; with it disabled, both ends are anchored and typed `^` or `$` ar
 means "contains" in partial mode and exact equality otherwise, while `^abc` and `abc$` explicitly select prefix and
 suffix matching.
 
+The panel's filter box uses the same language, ignoring case, always in partial mode (`FileNameFilter`,
+`file-commander-core/src/filelist/`).
+
 ## Contents
 
 With Regex enabled, the query is PCRE as typed, with Unicode properties on: `\w`, `\d` and `\b` are not limited to

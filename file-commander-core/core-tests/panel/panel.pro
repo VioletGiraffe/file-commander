@@ -38,6 +38,7 @@ SOURCES += \
 	historytests.cpp \
 	contentsaccesstests.cpp \
 	selectiontests.cpp \
+	filelistrulestests.cpp \
 	lifetimetests.cpp \
 	snapshotpollertests.cpp
 

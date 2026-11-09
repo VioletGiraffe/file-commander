@@ -79,14 +79,14 @@ the shell script also falls back to a `qmake` already on PATH.
 | `fileoperationsui_test` | File-operation dialog and decision prompt |
 | `fso_test` | `CFileSystemObject`'s rules on entries built in memory: name split, type, hidden, executable, links, `[..]` |
 | `fso_test_high_level` | `CFileSystemObject` on the real filesystem: path semantics, name split, hidden and executable entries, links; the panel listing and its `[..]` |
-| `panel_test` | `CPanel`: navigation, history, current item, content access, refresh notifications, lifetime. `CDirectorySnapshotPoller` |
+| `panel_test` | `CPanel`: navigation, history, current item, content access, selection, refresh notifications, lifetime. The file list rules: sort order, display name, name filter language. `CDirectorySnapshotPoller` |
 | `controller_test` | `CController`'s tabs: saving and restoring them, tab ids, which tab is active after a move or a close |
 | `filesearchengine_test` | Search engine: name filters, content search, engine behavior |
 | `filesystemhelpers_test` | Path quoting, shell word splitting, device lookup for a path |
 | `userprograms_test` | Programs-menu placeholder expansion |
 | `shell_test` | `CShellCommand` on real commands: output, exit code, working folder, escape sequences, termination. Which command lines launch without the shell (Windows); the detached launch's command lookup (Linux, macOS) |
 | `fileoperations_gui_test` | File-operation launch from `qt-app/src`: destination intent, routing to the dialog or the native shell |
-| `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's sorting, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
+| `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's display, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
 
 No suite covers a launch that opens a window (programs, terminals), volume enumeration, favorites, settings other than the tabs', the UI outside file operations and the

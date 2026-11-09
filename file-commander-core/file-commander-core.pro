@@ -50,6 +50,7 @@ SOURCES += \
 	src/filesearchengine/cfilesearchengine.cpp \
 	src/panellisting.cpp \
 	src/filelist/filelistsorter.cpp \
+	src/filelist/filenamefilter.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
 	src/filecomparator/cfilecomparator.cpp \
 	src/filesystemhelpers/filesystemhelpers.cpp

@@ -139,8 +139,9 @@ public:
 	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;
 
 // View criteria: a front end shows the listing through them, and the selection and the command targets below obey them
-	// Hides the items whose full name doesn't match; empty shows every item. Deselects the items it hides.
-	void setNameFilter(const QString& wildcard);
+	// filterText: a filter field's text (see splitNameFilterField()), matched against full names ignoring case; empty shows every item.
+	// Deselects the items it hides.
+	void setNameFilter(const QString& filterText);
 	[[nodiscard]] QString nameFilter() const;
 	void setSorting(FileListSortField field, Qt::SortOrder order);
 	[[nodiscard]] FileListSortField sortField() const;
@@ -230,6 +231,7 @@ private:
 	// The selection and the view criteria are protected by _fileListAndCurrentDirMutex: plugins read the selection from
 	// worker threads, and committing a listing on a worker prunes it
 	ankerl::unordered_dense::set<qulonglong, identity_hash> _selectedItemHashes;
+	QString                                    _nameFilterText;
 	FileNameFilter                             _nameFilter;
 	FileListSortField                          _sortField = FileListSortField::Extension; // A new tab's sorting
 	Qt::SortOrder                              _sortOrder = Qt::AscendingOrder;

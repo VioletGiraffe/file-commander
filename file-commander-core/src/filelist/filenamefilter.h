@@ -1,8 +1,5 @@
 #pragma once
 
-#include "cfilesystemobject.h"
-
-
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
@@ -10,30 +7,28 @@
 DISABLE_COMPILER_WARNINGS
 #include <QRegularExpression>
 #include <QString>
+#include <QStringList>
+#include <QStringView>
+#include <Qt>
 RESTORE_COMPILER_WARNINGS
 
-// Matches full names against a Qt wildcard, unanchored and case-insensitive
+#include <vector>
+
+// A filter field holds the filters separated by ';'
+[[nodiscard]] QStringList splitNameFilterField(const QString& fieldText);
+
+// A name matches if any of the filters does.
+// The name filter language: literal text, '*' for any run of characters, '?' for exactly one. A leading '^' or a
+// trailing '$' anchors that end of the match to the name's; an end left unanchored matches anywhere.
 class FileNameFilter
 {
 public:
-	// Empty lets every row through
-	void setWildcard(const QString& wildcard)
-	{
-		_wildcard = wildcard;
-		_regex.setPattern(wildcard.isEmpty() ? QString{} : QRegularExpression::wildcardToRegularExpression(wildcard, QRegularExpression::UnanchoredWildcardConversion));
-	}
+	FileNameFilter() = default; // Matches every name
+	// With no filters, or with "*" among them, matches every name
+	FileNameFilter(const QStringList& filters, Qt::CaseSensitivity caseSensitivity);
 
-	[[nodiscard]] const QString& wildcard() const noexcept
-	{
-		return _wildcard;
-	}
-
-	[[nodiscard]] bool matches(const CFileSystemObject& row) const
-	{
-		return _wildcard.isEmpty() || row.fullName().contains(_regex);
-	}
+	[[nodiscard]] bool matches(QStringView name) const;
 
 private:
-	QString _wildcard;
-	QRegularExpression _regex{ QString{}, QRegularExpression::CaseInsensitiveOption };
+	std::vector<QRegularExpression> _filters; // Empty when it matches every name
 };

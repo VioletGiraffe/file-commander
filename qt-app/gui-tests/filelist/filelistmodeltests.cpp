@@ -13,95 +13,12 @@ DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/catch_qt.hpp" // qtutils
 
 #include <QItemSelectionModel>
-#include <QLocale>
 #include <QMimeData>
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <memory>
-#include <thread>
 #include <vector>
-
-TEST_CASE("Rows sort [..] first, then folders, then files, in either direction", "[filelist][sort]")
-{
-	TestedModel tested;
-	CFileListModel& model = tested.model;
-	model.setRows({ makeRow(File, "z", "txt"), makeRow(Directory, "b"), makeCdUpRow(), makeRow(File, "a", "txt"), makeRow(Directory, "a"), makeRow(File, "m", "doc") });
-
-	model.sort(NameColumn, Qt::AscendingOrder);
-	CHECK(displayedNames(model) == QStringList{ "..", "a", "b", "a.txt", "m.doc", "z.txt" });
-
-	model.sort(NameColumn, Qt::DescendingOrder);
-	CHECK(displayedNames(model) == QStringList{ "..", "b", "a", "z.txt", "m.doc", "a.txt" });
-}
-
-TEST_CASE("Each column sorts by its own key", "[filelist][sort]")
-{
-	TestedModel tested;
-	CFileListModel& model = tested.model;
-
-	SECTION("Name, numbers by value")
-	{
-		model.setRows({ makeRow(File, "file10"), makeRow(File, "file2"), makeRow(File, "file1") });
-		model.sort(NameColumn, Qt::AscendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "file1", "file2", "file10" });
-	}
-
-	SECTION("Extension, then name; no extension sorts first")
-	{
-		model.setRows({ makeRow(File, "b", "txt"), makeRow(File, "c", "doc"), makeRow(File, "Makefile"), makeRow(File, "a", "doc") });
-		model.sort(ExtColumn, Qt::AscendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "Makefile", "a.doc", "c.doc", "b.txt" });
-	}
-
-	SECTION("Folders by name in the extension column")
-	{
-		model.setRows({ makeRow(Directory, "b"), makeRow(Directory, "a"), makeRow(File, "z", "doc") });
-		model.sort(ExtColumn, Qt::AscendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "a", "b", "z.doc" });
-	}
-
-	SECTION("Size; equal sizes by name, then extension")
-	{
-		model.setRows({ makeRow(File, "big", "", 30u), makeRow(File, "file10", "", 5u), makeRow(File, "small", "", 10u), makeRow(File, "file9", "txt", 5u), makeRow(File, "file9", "", 5u) });
-		model.sort(SizeColumn, Qt::AscendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "file9", "file9.txt", "file10", "small", "big" });
-
-		model.sort(SizeColumn, Qt::DescendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "big", "small", "file10", "file9.txt", "file9" });
-	}
-
-	SECTION("Folders of equal size by name")
-	{
-		model.setRows({ makeRow(Directory, "b10"), makeRow(Directory, "a"), makeRow(Directory, "b9") });
-		model.sort(SizeColumn, Qt::AscendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "a", "b9", "b10" });
-	}
-
-	SECTION("Modification time")
-	{
-		model.setRows({ makeRow(File, "new", "", 0u, 300), makeRow(File, "old", "", 0u, 100), makeRow(File, "mid", "", 0u, 200) });
-		model.sort(DateColumn, Qt::AscendingOrder);
-		CHECK(displayedNames(model) == QStringList{ "old", "mid", "new" });
-	}
-}
-
-TEST_CASE("Numbers in names sort by value in the C locale too", "[filelist][sort]")
-{
-	const QLocale previousLocale;
-	QLocale::setDefault(QLocale::c());
-
-	// The collators are built once per thread, so only a new thread builds them under the C locale
-	QStringList names;
-	std::thread{ [&names] {
-		CFileListModel model{ nullptr };
-		model.setRows({ makeRow(File, "file10"), makeRow(File, "file2"), makeRow(File, "file1") });
-		names = displayedNames(model);
-	} }.join();
-
-	QLocale::setDefault(previousLocale);
-	CHECK(names == QStringList{ "file1", "file2", "file10" });
-}
 
 // Only Windows splits a leading dot off as an extension
 #ifdef _WIN32

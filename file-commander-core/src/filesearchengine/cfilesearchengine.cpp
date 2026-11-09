@@ -1,6 +1,7 @@
 #include "cfilesearchengine.h"
 
 #include "cfilesystemobject.h"
+#include "filelist/filenamefilter.h"
 
 
 // Submodule includes
@@ -30,34 +31,6 @@ RESTORE_COMPILER_WARNINGS
 #include <semaphore>
 #include <stddef.h>
 #include <thread>
-
-// The name filter language: literal text, '*' for any run of characters, '?' for exactly one. A leading '^' or a
-// trailing '$' anchors that end of the match to the name's; an end left unanchored matches anywhere.
-[[nodiscard]] static QString nameFilterToRegex(QStringView filter)
-{
-	const bool anchorStart = filter.startsWith('^');
-	if (anchorStart)
-		filter = filter.sliced(1);
-
-	const bool anchorEnd = filter.endsWith('$');
-	if (anchorEnd)
-		filter.chop(1);
-
-	// Escaping everything and restoring only our own two wildcards is what keeps '.', '+' and brackets literal.
-	// Every '*' in the escaped text is preceded by the backslash that escaped it, so neither replacement can match
-	// across two escape sequences.
-	QString pattern = QRegularExpression::escape(filter);
-	pattern.replace(QLatin1StringView{ "\\*" }, QLatin1StringView{ ".*" });
-	pattern.replace(QLatin1StringView{ "\\?" }, QLatin1StringView{ "." });
-
-	// \A and \z rather than ^ and $: '$' also matches immediately before a trailing newline, which a POSIX name may end with.
-	if (anchorStart)
-		pattern.prepend(QLatin1StringView{ "\\A" });
-	if (anchorEnd)
-		pattern.append(QLatin1StringView{ "\\z" });
-
-	return pattern;
-}
 
 // How much of a file one pass examines
 static constexpr uint64_t contentScanWindowSize = 1024 * 1024;
@@ -258,21 +231,7 @@ void CFileSearchEngine::searchThread(
 	CTimeElapsed timer;
 	timer.start();
 
-	// The filters are alternatives, so one that matches every name makes name matching redundant altogether.
-	const bool noFileNameFilter = filters.isEmpty() || std::ranges::any_of(filters, [](const QString& filter) { return filter == '*'; });
-
-	std::vector<QRegularExpression> filterExpressions;
-	if (!noFileNameFilter)
-	{
-		// Our wildcards stand for any character, including the newline a POSIX name may contain.
-		QRegularExpression::PatternOptions patternOptions = QRegularExpression::DotMatchesEverythingOption;
-		if (!subjectCaseSensitive)
-			patternOptions |= QRegularExpression::CaseInsensitiveOption;
-
-		filterExpressions.reserve(filters.size());
-		for (const QString& filterString : filters)
-			filterExpressions.emplace_back(nameFilterToRegex(filterString), patternOptions);
-	}
+	const FileNameFilter nameFilter{ filters, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive };
 
 	const bool searchByContents = !contentsToFind.isEmpty();
 	// memfind can only look for the byte sequence as given, so case folding and word boundaries both need the regex
@@ -337,20 +296,7 @@ void CFileSearchEngine::searchThread(
 				if (searchByContents && !item.isFile())
 					return;
 
-				bool nameMatches = noFileNameFilter;
-				if (!noFileNameFilter)
-				{
-					for (const auto& regexp : filterExpressions)
-					{
-						if (regexp.matchView(item.fullName()).hasMatch())
-						{
-							nameMatches = true;
-							break;
-						}
-					}
-				}
-
-				if (!nameMatches)
+				if (!nameFilter.matches(item.fullName()))
 					return;
 
 				if (searchByContents)

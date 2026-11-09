@@ -50,8 +50,8 @@ public:
 	// Removes, inserts, moves and changes single rows until the rows match 'rows', so every persistent index (selection, cursor, an open editor)
 	// stays on its row. Returns false if it reset the model instead: past a number of changes, one reset is cheaper.
 	bool updateRows(std::vector<CFileSystemObject> rows);
-	// Hides the rows whose full name does not match; the wildcard is unanchored and case-insensitive. Empty shows every row.
-	void setNameFilter(const QString& wildcard);
+	// filterText: a filter field's text (see splitNameFilterField()), matched against full names ignoring case. Empty shows every row.
+	void setNameFilter(const QString& filterText);
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 	[[nodiscard]] int sortColumn() const noexcept;
@@ -107,6 +107,7 @@ private:
 	std::vector<CFileSystemObject> _rows;
 	std::vector<FileListSortKeys> _sortKeys; // Parallel to _rows
 	FileListSorter _sorter; // Caches the key of every extension seen since the last setRows()
+	QString _nameFilterText;
 	FileNameFilter _nameFilter;
 	// Indices into _rows: the rows the filter lets through, in display order
 	std::vector<uint32_t> _displayedRows;

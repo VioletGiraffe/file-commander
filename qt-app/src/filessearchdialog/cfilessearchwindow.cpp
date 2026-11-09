@@ -5,6 +5,7 @@
 
 #include "ccontroller.h"
 #include "cfilesystemobject.h"
+#include "filelist/filenamefilter.h"
 #include "filesystemhelperfunctions.h"
 
 
@@ -256,7 +257,7 @@ void CFilesSearchWindow::search()
 	const QString filtersString = ui->nameToFind->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
-	QStringList filters = filtersString.split(';', Qt::SkipEmptyParts);
+	QStringList filters = splitNameFilterField(filtersString);
 
 	// Partial match is the engine's own language, where an unanchored filter matches anywhere in the name. Anchoring
 	// both ends turns it into a whole-name match, and demotes any '^' or '$' the user typed to a literal character.

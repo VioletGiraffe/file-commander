@@ -114,7 +114,7 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 		if (old == oldRowByHash.end() || _rows[old->second].fullAbsolutePath() != row.fullAbsolutePath() || _rows[old->second].isCdUp() != row.isCdUp())
 		{
 			addedRows.push_back(i);
-			numDisplayedChanges += _nameFilter.matches(row) ? 1 : 0;
+			numDisplayedChanges += _nameFilter.matches(row.fullName()) ? 1 : 0;
 			continue;
 		}
 
@@ -195,7 +195,7 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 	std::vector<uint32_t> insertedRows;
 	for (const uint32_t addedRow : addedRows)
 	{
-		if (_nameFilter.matches(rows[addedRow]))
+		if (_nameFilter.matches(rows[addedRow].fullName()))
 			insertedRows.push_back((uint32_t)_rows.size());
 
 		_sortKeys.push_back(_sorter.sortKeysFor(rows[addedRow]));
@@ -254,12 +254,13 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 	return true;
 }
 
-void CFileListModel::setNameFilter(const QString& wildcard)
+void CFileListModel::setNameFilter(const QString& filterText)
 {
-	if (wildcard == _nameFilter.wildcard())
+	if (filterText == _nameFilterText)
 		return;
 
-	_nameFilter.setWildcard(wildcard);
+	_nameFilterText = filterText;
+	_nameFilter = FileNameFilter{ splitNameFilterField(filterText), Qt::CaseInsensitive };
 	relayout(QAbstractItemModel::NoLayoutChangeHint);
 }
 
@@ -494,7 +495,7 @@ std::vector<uint32_t> CFileListModel::displayedRowsInOrder() const
 	displayedRows.reserve(_rows.size());
 	for (uint32_t i = 0, numRows = (uint32_t)_rows.size(); i < numRows; ++i)
 	{
-		if (_nameFilter.matches(_rows[i]))
+		if (_nameFilter.matches(_rows[i].fullName()))
 			displayedRows.push_back(i);
 	}
 
