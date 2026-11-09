@@ -7,6 +7,7 @@ TEST_CASE("CPanel - a panel with no committed listing exposes nothing", "[panel]
 	CHECK_FALSE(hasCommittedContents(h.panel()));
 	CHECK_FALSE(h.panel().itemHashExists(1));
 	CHECK_FALSE(h.panel().itemByHash(1).isValid());
+	CHECK(h.panel().visibleItems().empty());
 }
 
 TEST_CASE("CPanel - hidden entries follow the setting", "[panel][contents]")

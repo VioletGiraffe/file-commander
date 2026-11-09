@@ -11,6 +11,8 @@ RESTORE_COMPILER_WARNINGS
 
 class CController;
 class CTuiFileList;
+class CTuiFilterLine;
+class CTuiStatusLine;
 
 // One side: a window showing the active tab's folder
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener
@@ -26,12 +28,29 @@ public:
 
 private:
 	void fillFromPanel();
+	// Copies the core's selection into the list
+	void showCoreSelection();
+	void updateStatusLine();
+
 	void activateCurrentItem();
+	void toggleCurrentItemSelection();
+	// The same field again reverses the order
+	void sortBy(FileListSortField field);
+
+	void openFilterLine();
+	void applyFilter(const QString& filterText);
+	void closeFilterLine();
+	// The filter line, while shown, takes the row above the status line
+	void layOutViews();
+
 	void setTitle(const QString& text);
 	[[nodiscard]] bool isActiveTab(Panel p, qulonglong tabId) const;
 
 private:
 	CController& _controller;
 	const Panel _side;
-	CTuiFileList* _fileList; // Owned by this window
+	// Owned by this window
+	CTuiFileList* _fileList;
+	CTuiFilterLine* _filterLine;
+	CTuiStatusLine* _statusLine;
 };

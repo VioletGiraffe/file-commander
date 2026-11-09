@@ -146,6 +146,8 @@ public:
 	void setSorting(FileListSortField field, Qt::SortOrder order);
 	[[nodiscard]] FileListSortField sortField() const;
 	[[nodiscard]] Qt::SortOrder sortOrder() const;
+	// The items the name filter shows, in display order. Empty while the committed listing does not belong to the current view.
+	[[nodiscard]] std::vector<CFileSystemObject> visibleItems() const;
 
 // Selection: items of the committed listing, never [..] and never an item the name filter hides.
 // A new listing keeps the selected items it still has at the same path, so a navigation to another folder clears it.

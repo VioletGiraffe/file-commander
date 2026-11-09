@@ -30,7 +30,8 @@ asserts the empty-tab postcondition instead of initiating a second shutdown.
 object. APIs returning raw panel references are valid only before `shutdown()` destroys the tabs. Plugin-facing
 value queries and UI dispatch serialize with teardown and return empty or no-op once their required state is gone.
 
-Each `CPanel` holds its tab's sorting, name filter and selection; front ends show copies. The selection holds only
+Each `CPanel` holds its tab's sorting, name filter and selection; front ends show copies. `visibleItems()` returns the
+listing through the filter, in display order. The selection holds only
 items of the committed listing, never `[..]` and never an item the filter hides: a committed listing keeps the
 selected items it still has at the same path, and a filter change deselects what it hides. Commands take their
 targets from `selectedItems()` or `selectedItemsOrCurrentItem()`, in display order.

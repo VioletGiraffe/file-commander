@@ -4,15 +4,11 @@
 #define Uses_TEvent
 #define Uses_TGroup
 #define Uses_TKeys
-#define Uses_TPalette
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
-
-// Indexes into the owning TWindow's palette: its scroller's normal and selected text
-constexpr char tuiFileListPalette[] = "\x06\x07";
 
 CTuiFileList::CTuiFileList(const TRect& bounds, TScrollBar* verticalScrollBar) noexcept :
 	TView(bounds),
@@ -36,12 +32,24 @@ const CFileSystemObject* CTuiFileList::currentRow() const noexcept
 	return _rows.empty() ? nullptr : &_rows[(size_t)_cursorRow];
 }
 
+void CTuiFileList::setSelectedItems(const std::vector<qulonglong>& itemHashes)
+{
+	_selectedItemHashes.clear();
+	_selectedItemHashes.insert(itemHashes.begin(), itemHashes.end());
+	drawView();
+}
+
+bool CTuiFileList::isSelected(qulonglong itemHash) const noexcept
+{
+	return _selectedItemHashes.contains(itemHash);
+}
+
 void CTuiFileList::draw()
 {
 	static constexpr int sizeColumnWidth = 12;
+	// BIOS colours: the window palette has no entry for a selected item
+	static constexpr TColorAttr normalColor{ 0x1B }, selectedColor{ 0x1E }, cursorColor{ 0x30 }, selectedCursorColor{ 0x3E };
 
-	const TColorAttr normalColor = getColor(1);
-	const TColorAttr cursorColor = getColor(2);
 	const bool showCursor = (state & (sfSelected | sfActive)) == (sfSelected | sfActive);
 	const bool showSizeColumn = size.x > sizeColumnWidth + 4;
 	const int nameWidth = std::max(showSizeColumn ? size.x - sizeColumnWidth - 2 : size.x - 1, 0);
@@ -49,11 +57,13 @@ void CTuiFileList::draw()
 	for (int y = 0; y < size.y; ++y)
 	{
 		const int row = _topRow + y;
-		const TColorAttr color = showCursor && row == _cursorRow ? cursorColor : normalColor;
+		const bool isRow = row < (int)_rows.size();
+		const bool selected = isRow && isSelected(_rows[(size_t)row].hash());
+		const TColorAttr color = showCursor && row == _cursorRow ? (selected ? selectedCursorColor : cursorColor) : (selected ? selectedColor : normalColor);
 
 		TDrawBuffer line;
 		line.moveChar(0, ' ', color, (ushort)size.x);
-		if (row < (int)_rows.size())
+		if (isRow)
 		{
 			const CFileSystemObject& item = _rows[(size_t)row];
 			const QByteArray fileName = item.fullName().toUtf8();
@@ -61,7 +71,9 @@ void CTuiFileList::draw()
 
 			if (showSizeColumn)
 			{
-				const QByteArray sizeText = item.isCdUp() ? QByteArrayLiteral("<UP>") : item.isDir() ? QByteArrayLiteral("<DIR>") : QByteArray::number((qulonglong)item.size());
+				// A folder has a size once Space has calculated it
+				const QByteArray sizeText = item.isCdUp() ? QByteArrayLiteral("<UP>")
+					: item.isDir() && item.size() == 0 ? QByteArrayLiteral("<DIR>") : QByteArray::number((qulonglong)item.size());
 				line.moveStr((ushort)std::max(size.x - 1 - (int)sizeText.size(), 0), TStringView{ sizeText.constData(), (size_t)sizeText.size() }, color);
 			}
 		}
@@ -128,12 +140,6 @@ void CTuiFileList::setState(ushort aState, Boolean enable)
 	TView::setState(aState, enable);
 	if (aState & (sfSelected | sfActive))
 		drawView();
-}
-
-TPalette& CTuiFileList::getPalette() const
-{
-	static TPalette palette{ tuiFileListPalette, sizeof(tuiFileListPalette) - 1 };
-	return palette;
 }
 
 void CTuiFileList::moveCursorTo(int row)

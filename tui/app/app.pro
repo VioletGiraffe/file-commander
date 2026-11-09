@@ -1,6 +1,8 @@
 TEMPLATE = app
 TARGET   = FileCommanderTui
 
+QT = core
+
 CONFIG += console
 CONFIG -= app_bundle
 
@@ -38,6 +40,3 @@ linux*|freebsd {
 mac*: LIBS += -lncurses
 
 include(../../file-commander-core/core.pri)
-
-# core.pri adds gui and widgets for the plugin interface, which a terminal UI never uses
-QT -= gui widgets

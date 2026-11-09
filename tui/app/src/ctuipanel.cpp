@@ -3,29 +3,115 @@
 
 #include "ccontroller.h"
 
+#define Uses_TDrawBuffer
 #define Uses_TEvent
 #define Uses_TFrame
+#define Uses_TInputLine
 #define Uses_TKeys
 #define Uses_TScrollBar
+#define Uses_TView
 #define Uses_MsgBox
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
+#include <QDateTime>
+#include <QLocale>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <functional>
 
-namespace {
-// The parent entry first, then folders, then files; case-insensitive by name within each
-// Prototype only: the GUI's sort rules live in CFileListModel
-void sortRows(std::vector<CFileSystemObject>& rows)
+// Edits the panel's name filter
+class CTuiFilterLine final : public TInputLine
 {
-	const auto group = [](const CFileSystemObject& item) { return item.isCdUp() ? 0 : item.isDir() ? 1 : 2; };
-	std::ranges::sort(rows, [&group](const CFileSystemObject& l, const CFileSystemObject& r) {
-		if (const int lGroup = group(l), rGroup = group(r); lGroup != rGroup)
-			return lGroup < rGroup;
-		return l.fullName().compare(r.fullName(), Qt::CaseInsensitive) < 0;
-	});
-}
+public:
+	explicit CTuiFilterLine(const TRect& bounds) : TInputLine(bounds, 256)
+	{
+		growMode = gfGrowLoY | gfGrowHiX | gfGrowHiY;
+	}
+
+	std::function<void(const QString& text)> onEdited;
+	std::function<void()> onConfirmed; // Enter
+	std::function<void()> onCancelled; // Esc
+
+	[[nodiscard]] QString text() const { return QString::fromUtf8(data); }
+
+	void clear()
+	{
+		data[0] = EOS;
+		selectAll(False);
+	}
+
+	void handleEvent(TEvent& event) override
+	{
+		if (event.what == evKeyDown && (event.keyDown.keyCode == kbEnter || event.keyDown.keyCode == kbEsc))
+		{
+			event.keyDown.keyCode == kbEnter ? onConfirmed() : onCancelled();
+			clearEvent(event);
+			return;
+		}
+
+		const QByteArray textBefore{ data };
+		TInputLine::handleEvent(event);
+		if (textBefore != data)
+			onEdited(text());
+	}
+
+	// BIOS colours: the input line palette indexes a dialog's palette, which a window does not have
+	TColorAttr mapColor(uchar index) noexcept override
+	{
+		switch (index)
+		{
+		case 3: return 0x1F; // Selected text
+		case 4: return 0x3A; // Scroll arrows
+		default: return 0x30;
+		}
+	}
+};
+
+// One line of text under the file list, with a second part aligned to the right
+class CTuiStatusLine final : public TView
+{
+public:
+	explicit CTuiStatusLine(const TRect& bounds) noexcept : TView(bounds)
+	{
+		growMode = gfGrowLoY | gfGrowHiX | gfGrowHiY;
+	}
+
+	void setText(const QString& left, const QString& right)
+	{
+		_left = left.toUtf8();
+		_right = right.toUtf8();
+		drawView();
+	}
+
+	void draw() override
+	{
+		static constexpr TColorAttr color{ 0x17 };
+
+		const TStringView right{ _right.constData(), (size_t)_right.size() };
+		const int rightStart = std::max(size.x - 1 - strwidth(right), 0);
+
+		TDrawBuffer line;
+		line.moveChar(0, ' ', color, (ushort)size.x);
+		line.moveStr(1, TStringView{ _left.constData(), (size_t)_left.size() }, color, (ushort)std::max(rightStart - 2, 0));
+		line.moveStr((ushort)rightStart, right, color);
+		writeLine(0, 0, (short)size.x, 1, line);
+	}
+
+private:
+	QByteArray _left, _right;
+};
+
+[[nodiscard]] static QString sortFieldName(FileListSortField field)
+{
+	switch (field)
+	{
+	case FileListSortField::Name: return QStringLiteral("Name");
+	case FileListSortField::Extension: return QStringLiteral("Ext");
+	case FileListSortField::Size: return QStringLiteral("Size");
+	case FileListSortField::Date: return QStringLiteral("Date");
+	}
+	return {};
 }
 
 CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
@@ -37,13 +123,31 @@ CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
 	flags &= ~(wfMove | wfGrow | wfClose | wfZoom);
 	growMode = gfGrowAll | gfGrowRel;
 
-	TRect listBounds = getExtent();
-	listBounds.grow(-1, -1);
-	_fileList = new CTuiFileList(listBounds, standardScrollBar(sbVertical));
+	// layOutViews() sets the bounds
+	_fileList = new CTuiFileList({}, standardScrollBar(sbVertical));
 	_fileList->onCursorMoved = [this](const CFileSystemObject& row) {
 		_controller.setCurrentItemHashForCurrentFolder(_side, row.hash(), false);
+		updateStatusLine();
 	};
 	insert(_fileList);
+
+	_filterLine = new CTuiFilterLine({});
+	_filterLine->onEdited = [this](const QString& text) { applyFilter(text); };
+	_filterLine->onConfirmed = [this] {
+		if (_filterLine->text().isEmpty())
+			closeFilterLine();
+		else
+			_fileList->select();
+	};
+	_filterLine->onCancelled = [this] { closeFilterLine(); };
+	insert(_filterLine);
+	_filterLine->hide();
+
+	_statusLine = new CTuiStatusLine({});
+	insert(_statusLine);
+
+	layOutViews();
+	_fileList->select();
 
 	// Through the controller so it attaches to every tab of the side
 	_controller.setPanelContentsChangedListener(_side, this);
@@ -58,9 +162,31 @@ void CTuiPanel::handleEvent(TEvent& event)
 	{
 		switch (event.keyDown.keyCode)
 		{
-		case kbEnter: activateCurrentItem(); break;
-		case kbBack:  _controller.navigateUp(_side); break;
-		default: return;
+		case kbEnter:  activateCurrentItem(); break;
+		case kbBack:   _controller.navigateUp(_side); break;
+		case kbIns:
+			toggleCurrentItemSelection();
+			_fileList->moveCursorTo(_fileList->cursorRow() + 1);
+			break;
+		case kbCtrlF:  openFilterLine(); break;
+		case kbCtrlF3: sortBy(FileListSortField::Name); break;
+		case kbCtrlF4: sortBy(FileListSortField::Extension); break;
+		case kbCtrlF5: sortBy(FileListSortField::Date); break;
+		case kbCtrlF6: sortBy(FileListSortField::Size); break;
+		default:
+			if (event.keyDown.charScan.charCode == ' ')
+			{
+				toggleCurrentItemSelection();
+				if (const CFileSystemObject* row = _fileList->currentRow())
+					_controller.displayDirSize(_side, row->hash());
+			}
+			else if (event.keyDown.charScan.charCode == '*')
+			{
+				_controller.panel(_side).invertSelection();
+				showCoreSelection();
+			}
+			else
+				return;
 		}
 		clearEvent(event);
 	}
@@ -90,25 +216,51 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 		return;
 
 	_fileList->setRows({}, 0);
+	_fileList->setSelectedItems({});
+	updateStatusLine();
 	setTitle(_controller.panel(_side).currentDirPathNative());
 }
 
 void CTuiPanel::fillFromPanel()
 {
 	const CPanel& panel = _controller.panel(_side);
-	std::vector<CFileSystemObject> rows;
-	panel.readCommittedContents([&rows](const QString& /*folder*/, const FileListHashMap& contents) {
-		rows.reserve(contents.size());
-		for (const auto& item : contents)
-			rows.push_back(item.second);
-	});
-
-	sortRows(rows);
-	_fileList->setRows(std::move(rows), _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()));
+	// A cursor item the filter hides is replaced by the first row: the core's current item is always the row under the cursor
+	_fileList->setRows(panel.visibleItems(), _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()));
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
 
+	showCoreSelection();
 	setTitle(panel.currentDirPathNative());
+}
+
+void CTuiPanel::showCoreSelection()
+{
+	_fileList->setSelectedItems(_controller.panel(_side).selectedItemHashes());
+	updateStatusLine();
+}
+
+void CTuiPanel::updateStatusLine()
+{
+	const CPanel& panel = _controller.panel(_side);
+	const QString sorting = sortFieldName(panel.sortField()) + (panel.sortOrder() == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓"));
+	const QLocale locale;
+
+	if (const FolderContentsSummary selected = panel.selectionSummary(); selected.numFiles + selected.numFolders > 0)
+	{
+		_statusLine->setText(QStringLiteral("%1 files, %2 folders selected (%3)").arg(selected.numFiles).arg(selected.numFolders).arg(locale.formattedDataSize((qint64)selected.size)), sorting);
+		return;
+	}
+
+	const CFileSystemObject* row = _fileList->currentRow();
+	if (!row || row->isCdUp())
+	{
+		_statusLine->setText(row ? QStringLiteral("..") : QString{}, sorting);
+		return;
+	}
+
+	const QString sizeText = row->isDir() && row->size() == 0 ? QStringLiteral("<DIR>") : locale.formattedDataSize((qint64)row->size());
+	const QString modified = QDateTime::fromSecsSinceEpoch(row->modificationTime()).toString(QStringLiteral("dd.MM.yyyy hh:mm"));
+	_statusLine->setText(row->fullName().toString() + QStringLiteral("  ") + sizeText + QStringLiteral("  ") + modified, sorting);
 }
 
 void CTuiPanel::activateCurrentItem()
@@ -125,6 +277,66 @@ void CTuiPanel::activateCurrentItem()
 	}
 	else if (!result.pathToOpen.isEmpty())
 		messageBox("Opening documents is not supported yet", mfInformation | mfOKButton);
+}
+
+void CTuiPanel::toggleCurrentItemSelection()
+{
+	const CFileSystemObject* row = _fileList->currentRow();
+	if (!row)
+		return;
+
+	// The core refuses [..]
+	_controller.panel(_side).setItemsSelected({ row->hash() }, !_fileList->isSelected(row->hash()));
+	showCoreSelection();
+}
+
+void CTuiPanel::sortBy(FileListSortField field)
+{
+	const CPanel& panel = _controller.panel(_side);
+	const Qt::SortOrder order = panel.sortField() == field && panel.sortOrder() == Qt::AscendingOrder ? Qt::DescendingOrder : Qt::AscendingOrder;
+	_controller.setTabSorting(_side, _controller.activeTabId(_side), field, order);
+	fillFromPanel();
+}
+
+void CTuiPanel::openFilterLine()
+{
+	if (_filterLine->state & sfVisible)
+	{
+		_filterLine->select();
+		return;
+	}
+
+	_filterLine->show();
+	layOutViews();
+	_filterLine->select();
+}
+
+void CTuiPanel::applyFilter(const QString& filterText)
+{
+	// The core deselects what the filter hides
+	_controller.panel(_side).setNameFilter(filterText);
+	fillFromPanel();
+}
+
+void CTuiPanel::closeFilterLine()
+{
+	_filterLine->clear();
+	applyFilter({});
+	_filterLine->hide();
+	layOutViews();
+	_fileList->select();
+}
+
+void CTuiPanel::layOutViews()
+{
+	TRect interior = getExtent();
+	interior.grow(-1, -1);
+
+	const int statusRow = interior.b.y - 1;
+	const int filterRow = statusRow - 1;
+	_statusLine->changeBounds({ interior.a.x, statusRow, interior.b.x, statusRow + 1 });
+	_filterLine->changeBounds({ interior.a.x, filterRow, interior.b.x, statusRow });
+	_fileList->changeBounds({ interior.a.x, interior.a.y, interior.b.x, _filterLine->state & sfVisible ? filterRow : statusRow });
 }
 
 void CTuiPanel::setTitle(const QString& text)

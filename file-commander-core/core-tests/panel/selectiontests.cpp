@@ -24,6 +24,14 @@
 	return paths;
 }
 
+[[nodiscard]] static std::vector<QString> namesOf(const std::vector<CFileSystemObject>& items)
+{
+	std::vector<QString> names;
+	for (const CFileSystemObject& item : items)
+		names.push_back(item.fullName().toString());
+	return names;
+}
+
 [[nodiscard]] static std::vector<qulonglong> sorted(std::vector<qulonglong> hashes)
 {
 	std::ranges::sort(hashes);
@@ -121,6 +129,18 @@ TEST_CASE("CPanel - selected items come in display order", "[panel][selection][s
 
 	panel.setSorting(FileListSortField::Size, Qt::DescendingOrder);
 	CHECK(pathsOf(panel.selectedItems()) == std::vector<QString>{ f.sub + '/', f.b, f.a });
+}
+
+TEST_CASE("CPanel - the visible items are the ones the name filter shows, in display order", "[panel][filter][sort]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+
+	panel.setSorting(FileListSortField::Name, Qt::DescendingOrder);
+	CHECK(namesOf(panel.visibleItems()) == std::vector<QString>{ "..", "sub", "b.doc", "a.txt" });
+
+	panel.setNameFilter(QStringLiteral("*.txt;sub"));
+	CHECK(namesOf(panel.visibleItems()) == std::vector<QString>{ "sub", "a.txt" });
 }
 
 TEST_CASE("CPanel - inverting the selection skips [..] and hidden items", "[panel][selection]")

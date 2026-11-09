@@ -436,6 +436,30 @@ Qt::SortOrder CPanel::sortOrder() const
 	return _sortOrder;
 }
 
+std::vector<CFileSystemObject> CPanel::visibleItems() const
+{
+	std::vector<CFileSystemObject> items;
+	FileListSorter sorter;
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		if (!fileListBelongsToCurrentViewLocked())
+			return items;
+
+		items.reserve(_items.size());
+		for (const auto& [hash, item] : _items)
+		{
+			if (_nameFilter.matches(item.fullName()))
+				items.push_back(item);
+		}
+
+		sorter.setSorting(_sortField, _sortOrder);
+	}
+
+	// Outside the lock: collation keys take long for a large folder
+	sorter.sort(items);
+	return items;
+}
+
 bool CPanel::isSelectableLocked(const CFileSystemObject& item) const
 {
 	return !item.isCdUp() && _nameFilter.matches(item.fullName());
