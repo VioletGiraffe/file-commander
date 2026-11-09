@@ -747,20 +747,6 @@ bool OsShell::recycleBinContextMenu(void * /*parentWindow*/)
 	return true;
 }
 
-std::vector<OsShell::TrashFailure> OsShell::moveItemsToTrash(const QStringList& paths)
-{
-	std::vector<TrashFailure> failures;
-	for (const QString& path : paths)
-	{
-		// Without a folder's trailing separator: Qt records the path as given for restoring the item
-		QFile item{ path.size() > 1 && path.endsWith('/') ? path.chopped(1) : path };
-		if (!item.moveToTrash())
-			failures.push_back({ .path = path, .reason = item.errorString() });
-	}
-
-	return failures;
-}
-
 #elif defined __APPLE__
 
 void OsShell::openShellContextMenuForObjects(const std::vector<std::wstring>& /*objects*/, void * /*parentWindow*/)
@@ -780,6 +766,20 @@ bool OsShell::recycleBinContextMenu(void */*parentWindow*/)
 #else
 #error unsupported platform
 #endif
+
+std::vector<OsShell::TrashFailure> OsShell::moveItemsToTrashThroughQt(const QStringList& paths)
+{
+	std::vector<TrashFailure> failures;
+	for (const QString& path : paths)
+	{
+		// Without a folder's trailing separator: Qt records the path as given for restoring the item
+		QFile item{ path.size() > 1 && path.endsWith('/') ? path.chopped(1) : path };
+		if (!item.moveToTrash())
+			failures.push_back({ .path = path, .reason = item.errorString() });
+	}
+
+	return failures;
+}
 
 bool OsShell::isInPath(const QString& fileName)
 {

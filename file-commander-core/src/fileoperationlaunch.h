@@ -28,12 +28,20 @@ RESTORE_COMPILER_WARNINGS
 [[nodiscard]] std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
 	TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText, const QString& destinationFolder);
 
-// Which backend performs a deletion, fixed per platform at compile time.
+// Which backend performs a deletion
 enum class DeletionBackend
 {
-	NativeTrash,          // The shell's trash on Windows and macOS, the freedesktop.org trash elsewhere
+	NativeShellTrash,     // The desktop shell's trash: Windows Explorer's, with its own progress, prompts and errors, or macOS's
+	QtTrash,              // QFile::moveToTrash item by item: the freedesktop.org trash on Linux
 	NativeShellPermanent, // Native shell permanent deletion (Windows)
 	InternalJob           // The custom permanent-delete engine (everywhere the native shell is not used)
 };
 
-[[nodiscard]] DeletionBackend deletionBackendFor(bool toTrash);
+// Whether a front end hands deletions to the desktop shell
+enum class DesktopShellUse
+{
+	Allowed,
+	Never // A terminal UI, which may run over SSH
+};
+
+[[nodiscard]] DeletionBackend deletionBackendFor(bool toTrash, DesktopShellUse shellUse);

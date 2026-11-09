@@ -701,10 +701,13 @@ void CController::setTabSorting(Panel p, qulonglong tabId, FileListSortField fie
 	savePanelState(p);
 }
 
-void CController::deselectItems(Panel p, qulonglong tabId, const std::vector<qulonglong>& hashes)
+void CController::deselectCopiedItems(Panel p, qulonglong tabId, const std::vector<qulonglong>& sourceHashes, const OperationSummary& summary)
 {
+	if (summary.status != CompletionStatus::Completed || summary.failedItems != 0 || summary.skippedItems != 0)
+		return;
+
 	if (const auto index = tabIndexById(p, tabId))
-		_panels[(size_t)p].tabs[*index]->setItemsSelected(hashes, false);
+		_panels[(size_t)p].tabs[*index]->setItemsSelected(sourceHashes, false);
 }
 
 // Navigates specified panel up the directory tree
@@ -800,6 +803,23 @@ FileOperationResultCode CController::createFile(const QString &parentFolder, con
 void CController::displayDirSize(Panel p, qulonglong dirHash)
 {
 	panel(p).displayDirSize(dirHash);
+}
+
+void CController::moveToTrash(QStringList paths, const DeletionBackend backend, std::function<void(const std::vector<OsShell::TrashFailure>&)> onFailures)
+{
+	std::vector<OsShell::TrashFailure> (*trash)(const QStringList&) = nullptr;
+	if (backend == DeletionBackend::QtTrash)
+		trash = &OsShell::moveItemsToTrashThroughQt;
+#ifdef __APPLE__
+	else if (backend == DeletionBackend::NativeShellTrash)
+		trash = &OsShell::moveItemsToTrashThroughNSWorkspace;
+#endif
+	assert_and_return_r(trash, );
+
+	_workerPool.enqueue([this, trash, paths = std::move(paths), onFailures = std::move(onFailures)] {
+		if (std::vector<OsShell::TrashFailure> failures = trash(paths); !failures.empty())
+			execOnUiThread([onFailures, failures = std::move(failures)] { onFailures(failures); });
+	});
 }
 
 void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)

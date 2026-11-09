@@ -1,9 +1,11 @@
 #pragma once
 
+#include "fileoperationlaunch.h"
 #include "fileoperationresultcode.h"
 #include "cpanel.h"
 #include "diskenumerator/cvolumeenumerator.h"
 #include "favoritelocationslist/cfavoritelocations.h"
+#include "shell/cshell.h"
 #ifdef _WIN32
 #include "wcx/cwcxpluginhost.h"
 #else
@@ -102,8 +104,8 @@ public:
 	void activePanelChanged(Panel p);
 	// The tab's sorting is persisted with it
 	void setTabSorting(Panel p, qulonglong tabId, FileListSortField field, Qt::SortOrder order);
-	// No-op if the tab has been closed
-	void deselectItems(Panel p, qulonglong tabId, const std::vector<qulonglong>& hashes);
+	// Deselects a copy's sources only when it completed with nothing failed or skipped. No-op if the tab has been closed.
+	void deselectCopiedItems(Panel p, qulonglong tabId, const std::vector<qulonglong>& sourceHashes, const OperationSummary& summary);
 
 // Operations
 	// Navigates specified panel up the directory tree
@@ -122,6 +124,9 @@ public:
 	FileOperationResultCode createFile(const QString& parentFolder, const QString& name);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
+	// Moves the items to the trash on a worker thread. backend: QtTrash, or NativeShellTrash on macOS.
+	// onFailures runs on the UI thread with the items the trash refused; not when it refused none, or after shutdown().
+	void moveToTrash(QStringList paths, DeletionBackend backend, std::function<void(const std::vector<OsShell::TrashFailure>& failures)> onFailures);
 	// Flattens the current directory and displays all its child files on one level
 	void showAllFilesFromCurrentFolderAndBelow(Panel p);
 	// Designates a new current item (e. g. a folder is being renamed and we want to keep the cursor on it).

@@ -32,6 +32,7 @@ include(../../core.pri)
 
 SOURCES += \
 	main.cpp \
+	copyselectiontests.cpp \
 	persistencetests.cpp \
 	tablayouttests.cpp
 

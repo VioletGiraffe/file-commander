@@ -88,14 +88,22 @@ std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
 	return makeTransferRequest(kind, rawSourcePaths, intent, destination);
 }
 
-DeletionBackend deletionBackendFor(const bool toTrash)
+DeletionBackend deletionBackendFor(const bool toTrash, const DesktopShellUse shellUse)
 {
-	if (toTrash)
-		return DeletionBackend::NativeTrash;
-
-#ifdef _WIN32
-	return DeletionBackend::NativeShellPermanent;
+#if defined _WIN32 || defined __APPLE__
+	constexpr bool shellHasTrash = true;
 #else
-	return DeletionBackend::InternalJob;
+	constexpr bool shellHasTrash = false;
 #endif
+#ifdef _WIN32
+	constexpr bool shellDeletesPermanently = true;
+#else
+	constexpr bool shellDeletesPermanently = false;
+#endif
+
+	const bool shellAllowed = shellUse == DesktopShellUse::Allowed;
+	if (toTrash)
+		return shellHasTrash && shellAllowed ? DeletionBackend::NativeShellTrash : DeletionBackend::QtTrash;
+
+	return shellDeletesPermanently && shellAllowed ? DeletionBackend::NativeShellPermanent : DeletionBackend::InternalJob;
 }

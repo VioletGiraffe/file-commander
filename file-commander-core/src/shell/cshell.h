@@ -43,20 +43,22 @@ namespace OsShell
 
 	std::wstring toolTip(std::wstring itemPath);
 
-#ifdef _WIN32
-	// Through the shell, which shows its own progress, prompts and errors
-	bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
-#else
 	struct TrashFailure
 	{
 		QString path;
 		QString reason;
 	};
 
+#ifdef _WIN32
+	// Through the shell, which shows its own progress, prompts and errors
+	bool deleteItems(const std::vector<std::wstring>& items, bool moveToTrash = true, void *parentWindow = nullptr);
+#elif defined __APPLE__
 	// Moves each item to the trash, continuing past failures. Empty when every item was moved.
-	// Never call it on the main thread: on macOS it waits for a completion that may be delivered there.
-	[[nodiscard]] std::vector<TrashFailure> moveItemsToTrash(const QStringList& paths);
+	// Never call it on the main thread: it waits for a completion that may be delivered there.
+	[[nodiscard]] std::vector<TrashFailure> moveItemsToTrashThroughNSWorkspace(const QStringList& paths);
 #endif
+	// Shows no UI. Moves each item to the trash, continuing past failures. Empty when every item was moved.
+	[[nodiscard]] std::vector<TrashFailure> moveItemsToTrashThroughQt(const QStringList& paths);
 
 	// Opens at the mouse cursor
 	bool recycleBinContextMenu(void * parentWindow);

@@ -723,13 +723,10 @@ void CMainWindow::copySelectedFiles()
 	for (const CFileSystemObject& source : sources)
 		sourceHashes.push_back(source.hash());
 
-	// A successful copy deselects its sources; a move or a deletion removes them, which deselects them too
+	// Only a copy deselects explicitly: a move or a deletion removes its sources, which deselects them
 	launchFileTransfer(TransferKind::Copy, std::move(sources), _otherFileList->currentDirPathNative(),
 		[this, p, tabId = _controller->activeTabId(p), sourceHashes = std::move(sourceHashes)](const OperationSummary& summary) {
-			if (summary.status != CompletionStatus::Completed || summary.failedItems != 0 || summary.skippedItems != 0)
-				return;
-
-			_controller->deselectItems(p, tabId, sourceHashes);
+			_controller->deselectCopiedItems(p, tabId, sourceHashes, summary);
 			(p == Panel::LeftPanel ? ui->leftPanel : ui->rightPanel)->applyCoreSelection();
 		});
 }
@@ -764,7 +761,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 	for (const auto& item : items)
 		sourcePaths.push_back(item.fullAbsolutePath());
 
-	const DeletionBackend backend = deletionBackendFor(toTrash);
+	const DeletionBackend backend = deletionBackendFor(toTrash, DesktopShellUse::Allowed);
 	if (backend == DeletionBackend::InternalJob)
 	{
 		if (QMessageBox::question(this, tr("Are you sure?"), tr("Do you want to delete the selected files and folders completely?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
@@ -782,17 +779,13 @@ void CMainWindow::performDeletion(const bool toTrash)
 		paths.emplace_back(toNativeSeparators(path).toStdWString());
 
 	auto* windowHandle = WidgetUtils::nativeOwnerWinId(this);
-	const bool moveToTrash = backend == DeletionBackend::NativeTrash;
+	const bool moveToTrash = backend == DeletionBackend::NativeShellTrash;
 	_shellOperations.run([this, paths = std::move(paths), moveToTrash, windowHandle]() {
 		if (!OsShell::deleteItems(paths, moveToTrash, windowHandle))
 			QMetaObject::invokeMethod(this, showDeleteItemsError, Qt::QueuedConnection);
 	});
 #else
-	assert_r(backend == DeletionBackend::NativeTrash);
-	_shellOperations.run([this, sourcePaths = std::move(sourcePaths)]() {
-		if (auto failures = OsShell::moveItemsToTrash(sourcePaths); !failures.empty())
-			QMetaObject::invokeMethod(this, [this, failures = std::move(failures)] { offerPermanentDeletion(failures); }, Qt::QueuedConnection);
-	});
+	_controller->moveToTrash(std::move(sourcePaths), backend, [this](const std::vector<OsShell::TrashFailure>& failures) { offerPermanentDeletion(failures); });
 #endif
 }
 

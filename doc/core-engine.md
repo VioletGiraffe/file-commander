@@ -86,7 +86,9 @@ Copy, move, permanent delete, inline and batch rename, directory scanning and fo
 
 `fileoperationlaunch` turns a front end's selected paths and destination text into a typed request and chooses the
 deletion backend. It decides `DestinationIntent` before path parsing, because a trailing separator is user intent
-even when the directory does not yet exist.
+even when the directory does not yet exist. A front end that may run over SSH, the terminal UI, never deletes through
+the desktop shell: it trashes through Qt and deletes permanently with the internal job. `CController::moveToTrash`
+runs Qt's trash, or macOS's shell trash, off the UI thread and reports the items it refused.
 
 ## Traversal and watchers
 

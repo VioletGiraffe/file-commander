@@ -286,15 +286,21 @@ TEST_CASE("launch: deletion backend selection", "[fileoperationlaunch]")
 {
 	SECTION("trash")
 	{
-		CHECK(deletionBackendFor(true) == DeletionBackend::NativeTrash);
+#if defined _WIN32 || defined __APPLE__
+		CHECK(deletionBackendFor(true, DesktopShellUse::Allowed) == DeletionBackend::NativeShellTrash);
+#else
+		CHECK(deletionBackendFor(true, DesktopShellUse::Allowed) == DeletionBackend::QtTrash);
+#endif
+		CHECK(deletionBackendFor(true, DesktopShellUse::Never) == DeletionBackend::QtTrash);
 	}
 
 	SECTION("permanent deletion")
 	{
 #ifdef _WIN32
-		CHECK(deletionBackendFor(false) == DeletionBackend::NativeShellPermanent);
+		CHECK(deletionBackendFor(false, DesktopShellUse::Allowed) == DeletionBackend::NativeShellPermanent);
 #else
-		CHECK(deletionBackendFor(false) == DeletionBackend::InternalJob);
+		CHECK(deletionBackendFor(false, DesktopShellUse::Allowed) == DeletionBackend::InternalJob);
 #endif
+		CHECK(deletionBackendFor(false, DesktopShellUse::Never) == DeletionBackend::InternalJob);
 	}
 }

@@ -4,7 +4,7 @@
 #import <Foundation/Foundation.h>
 #import <AppKit/NSWorkspace.h>
 
-std::vector<OsShell::TrashFailure> OsShell::moveItemsToTrash(const QStringList& paths)
+std::vector<OsShell::TrashFailure> OsShell::moveItemsToTrashThroughNSWorkspace(const QStringList& paths)
 {
 	std::vector<TrashFailure> failures;
 	@autoreleasepool
