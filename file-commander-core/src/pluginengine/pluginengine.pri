@@ -1,7 +1,7 @@
 HEADERS += \
-	src/pluginengine/cpluginengine.h \
-	src/pluginengine/cpluginproxyimpl.h
+	$$PWD/cpluginengine.h \
+	$$PWD/cpluginproxyimpl.h
 
 SOURCES += \
-	src/pluginengine/cpluginengine.cpp \
-	src/pluginengine/cpluginproxyimpl.cpp
+	$$PWD/cpluginengine.cpp \
+	$$PWD/cpluginproxyimpl.cpp

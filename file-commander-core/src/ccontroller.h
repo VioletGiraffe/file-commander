@@ -5,9 +5,9 @@
 #include "diskenumerator/cvolumeenumerator.h"
 #include "favoritelocationslist/cfavoritelocations.h"
 #ifdef _WIN32
-#include "plugininterface/wcx/cwcxpluginhost.h"
+#include "wcx/cwcxpluginhost.h"
 #else
-#include "plugininterface/wcx/cwcxpluginhost_stub.h"
+#include "wcx/cwcxpluginhost_stub.h"
 #endif
 
 

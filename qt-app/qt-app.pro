@@ -106,7 +106,7 @@ FORMS += \
 
 LIBS += -L$${DESTDIR} -lautoupdater -lqtutils -lcpputils
 include(../file-operations/libraries/fileoperationsui.pri)
-include(../file-commander-core/core.pri)
+include(../file-commander-core/pluginapi.pri)
 
 win*{
 	LIBS += -lole32 -lShell32 -lUser32 -lMpr

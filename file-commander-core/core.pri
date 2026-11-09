@@ -1,7 +1,7 @@
 # Links the core library and its dependencies, fileoperations.pri included.
 # Must be included after the LIBS of anything that links against it: see file-operations/libraries/fileoperations.pri.
 
-QT *= core gui widgets
+QT *= core
 
 INCLUDEPATH += \
 	$$PWD/src \

@@ -34,6 +34,7 @@ HEADERS += \
 	src/diskenumerator/cvolumeenumerator.h \
 	src/diskenumerator/volumeinfohelper.hpp \
 	src/filecomparator/cfilecomparator.h \
+	src/wcx/cwcxpluginhost_stub.h \
 	src/filesystemhelpers/filesystemhelpers.hpp
 
 SOURCES += \
@@ -58,8 +59,13 @@ SOURCES += \
 	src/filesystemhelpers/filesystemhelpers.cpp
 
 win*{
+	HEADERS += \
+		src/wcx/cwcxpluginhost.h \
+		src/wcx/wcxhead.h
+
 	SOURCES += \
-		src/diskenumerator/cvolumeenumerator_impl_win.cpp
+		src/diskenumerator/cvolumeenumerator_impl_win.cpp \
+		src/wcx/cwcxpluginhost.cpp
 }
 
 mac*{
@@ -79,6 +85,3 @@ freebsd{
 	SOURCES += \
 		src/diskenumerator/cvolumeenumerator_impl_freebsd.cpp
 }
-
-include(src/pluginengine/pluginengine.pri)
-include(src/plugininterface/plugininterface.pri)

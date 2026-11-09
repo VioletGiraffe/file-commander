@@ -19,7 +19,7 @@ RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 DEFINES += PLUGIN_MODULE
 
 LIBS += -L$${DESTDIR} -lqutepart -lqtutils -ltext_encoding_detector -lcpputils
-include(../../../file-commander-core/core.pri)
+include(../../../file-commander-core/pluginapi.pri)
 
 QMAKE_RESOURCE_FLAGS += -threshold 10 -compress-algo best -compress 19
 

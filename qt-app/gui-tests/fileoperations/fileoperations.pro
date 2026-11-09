@@ -4,6 +4,8 @@ CONFIG += console
 
 include(../../../file-commander-core/config.pri)
 
+QT += widgets
+
 # global.pri's LTO removed: only tests with benchmarks use LTO
 # MSVC keeps /GL and /LTCG: linking the /GL-built qtutils, cpputils and thin_io forces LTCG
 QMAKE_CFLAGS   -= -flto=auto -ffat-lto-objects -flto=thin

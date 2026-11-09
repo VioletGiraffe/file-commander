@@ -15,7 +15,7 @@ UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 
 LIBS += -L$${DESTDIR} -lqtutils -lcpputils
-include(../../../file-commander-core/core.pri)
+include(../../../file-commander-core/pluginapi.pri)
 
 DEFINES += PLUGIN_MODULE
 

@@ -25,7 +25,7 @@ INCLUDEPATH += \
 DEFINES += PLUGIN_MODULE
 
 LIBS += -L$${DESTDIR} -lqtutils -ltext_encoding_detector -lcpputils
-include(../../../file-commander-core/core.pri)
+include(../../../file-commander-core/pluginapi.pri)
 
 HEADERS += \
 	src/ccsvcommentlistmodel.h \

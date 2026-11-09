@@ -14,10 +14,14 @@ searching upward. A stash written under a different toolchain pins that toolchai
 paths, so the test scripts delete every one under the repository before each qmake run; do the same by hand when
 building outside them after a compiler upgrade.
 
-The libraries are static. Core and the file-operation libraries reach their consumers through manifests that add the
-library, its link dependencies and their include paths: `file-commander-core/core.pri`, and
-`file-operations/libraries/fileoperations.pri` / `fileoperationsui.pri`. A new link dependency goes into the manifest.
-The other libraries' dependencies are listed by each consumer.
+The libraries are static. Core, the plugin API and the file-operation libraries reach their consumers through
+manifests that add the library, its link dependencies and their include paths: `file-commander-core/core.pri`,
+`file-commander-core/pluginapi.pri`, and `file-operations/libraries/fileoperations.pri` / `fileoperationsui.pri`. A
+new link dependency goes into the manifest. The other libraries' dependencies are listed by each consumer.
+
+The core builds with QtCore alone. The plugin interfaces and the plugin engine (`src/plugininterface/`,
+`src/pluginengine/`) need QtGui and QtWidgets, so they build as the separate `pluginapi` library
+(`file-commander-core/pluginapi/`), linked by the application and the plugins.
 
 A manifest must follow the `LIBS` of whatever links against it: GNU ld resolves static libraries in command-line order.
 

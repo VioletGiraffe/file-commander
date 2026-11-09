@@ -54,6 +54,8 @@ jobs:
             - '.github/workflows/CI.yml'
             - 'global.pri'
             - 'file-commander-core/config.pri'
+            - 'file-commander-core/core.pri'
+            - 'file-commander-core/file-commander-core.pro'
 
   build:
     name: Build app & installer on ${{ matrix.os }}

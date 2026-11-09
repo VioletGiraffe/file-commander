@@ -4,8 +4,8 @@ CONFIG += console
 
 include(../../../file-commander-core/config.pri)
 
-# QAbstractItemModelTester
-QT += testlib
+# testlib: QAbstractItemModelTester
+QT += widgets testlib
 
 # global.pri's LTO removed: only tests with benchmarks use LTO
 # MSVC keeps /GL and /LTCG: linking the /GL-built qtutils, cpputils and thin_io forces LTCG

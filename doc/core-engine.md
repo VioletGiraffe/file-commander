@@ -1,7 +1,8 @@
 # Core engine (`file-commander-core/`)
 
-The core is a static library whose UI-facing facade is `CController`. `file-commander-core.pro` and the included
-`.pri` files are authoritative for its contents.
+The core is a static library built with QtCore alone, whose UI-facing facade is `CController`.
+`file-commander-core.pro` is authoritative for its contents. The plugin interfaces and engine are a separate
+library: see [build-ci-deps.md](build-ci-deps.md).
 
 ## Ownership and panels
 

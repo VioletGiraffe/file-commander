@@ -24,7 +24,7 @@ INCLUDEPATH += \
 DEFINES += PLUGIN_MODULE
 
 LIBS += -L$${DESTDIR} -limage-processing -lqtutils -lcpputils
-include(../../../file-commander-core/core.pri)
+include(../../../file-commander-core/pluginapi.pri)
 
 HEADERS += \
 	src/cimageinfodialog.h \

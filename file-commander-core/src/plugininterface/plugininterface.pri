@@ -1,23 +1,13 @@
 HEADERS += \
-	$$PWD/wcx/cwcxpluginhost_stub.h \
-	src/plugininterface/cfilecommanderplugin.h \
-	src/plugininterface/cfilecommanderviewerplugin.h \
-	src/plugininterface/plugin_export.h \
-	src/plugininterface/cfileviewer.h \
-	src/plugininterface/cpluginproxy.h \
-	src/plugininterface/cfilecommandertoolplugin.h
+	$$PWD/cfilecommanderplugin.h \
+	$$PWD/cfilecommanderviewerplugin.h \
+	$$PWD/plugin_export.h \
+	$$PWD/cfileviewer.h \
+	$$PWD/cpluginproxy.h \
+	$$PWD/cfilecommandertoolplugin.h
 
 SOURCES += \
-	src/plugininterface/cfilecommanderplugin.cpp \
-	src/plugininterface/cfilecommanderviewerplugin.cpp \
-	src/plugininterface/cfileviewer.cpp \
-	src/plugininterface/cfilecommandertoolplugin.cpp
-
-win*{
-	HEADERS += \
-		$$PWD/wcx/cwcxpluginhost.h \
-		$$PWD/wcx/wcxhead.h \
-
-	SOURCES += \
-		$$PWD/wcx/cwcxpluginhost.cpp
-}
+	$$PWD/cfilecommanderplugin.cpp \
+	$$PWD/cfilecommanderviewerplugin.cpp \
+	$$PWD/cfileviewer.cpp \
+	$$PWD/cfilecommandertoolplugin.cpp

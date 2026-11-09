@@ -1,4 +1,4 @@
-QT = core widgets gui #gui and widgets are required for plugininterface
+QT = core
 
 # Don't override app targets with staticlib, only actual libraries
 contains(TEMPLATE, ".*lib"): CONFIG += staticlib

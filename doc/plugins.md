@@ -28,8 +28,8 @@ Bump `PLUGIN_INTERFACE_VERSION` in `cfilecommanderplugin.h` whenever these inter
 supplies the proxy; `proxySet()` is the hook for proxy-dependent initialization. The interface headers are
 authoritative for the ABI.
 
-Each plugin links its own copy of the core library, so a non-virtual call runs the caller's copy of the code on the
-other module's object. `CPluginProxy` is therefore purely virtual: a plugin reaches application state only through
+Each plugin links its own copy of the core and plugin API libraries, so a non-virtual call runs the caller's copy of
+the code on the other module's object. `CPluginProxy` is therefore purely virtual: a plugin reaches application state only through
 application code. The interfaces' layouts and the core types passed through them, such as `CFileSystemObject` and
 `FileListHashMap`, remain part of the ABI.
 
@@ -78,7 +78,8 @@ selection to that category. Preserve this ordering; plugin discovery order is no
 
 ## WCX status
 
-On Windows, `CWcxPluginHost` loads `*.wcx64` libraries and resolves a limited symbol subset. The non-Windows host is
+On Windows, `CWcxPluginHost` (`file-commander-core/src/wcx/`, part of the core) loads `*.wcx64` libraries and
+resolves a limited symbol subset. The non-Windows host is
 a stub. No code mounts WCX contents as a `CPanel` filesystem, so the loader does not imply archive browsing.
 
 Plugin `.pro` files are authoritative for sources, dependencies, output names, and platform branches.
