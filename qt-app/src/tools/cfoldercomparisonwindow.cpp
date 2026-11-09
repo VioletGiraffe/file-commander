@@ -8,7 +8,7 @@
 
 // Submodule includes
 #include "dialogs/csimpleprogressdialog.h"
-#include "utils/displayformatting.h"
+#include "qtcore_helpers/displayformatting.hpp"
 #include "widgets/cpersistenceenabler.h"
 
 

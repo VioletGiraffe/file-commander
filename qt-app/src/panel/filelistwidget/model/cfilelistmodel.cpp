@@ -5,8 +5,8 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "qtcore_helpers/displayformatting.hpp"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
-#include "utils/displayformatting.h"
 
 
 DISABLE_COMPILER_WARNINGS

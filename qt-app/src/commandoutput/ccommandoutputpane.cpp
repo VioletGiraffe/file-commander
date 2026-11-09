@@ -2,8 +2,8 @@
 
 
 // Submodule includes
+#include "qtcore_helpers/displayformatting.hpp"
 #include "theme/colorutils.h"
-#include "utils/displayformatting.h"
 #include "widgets/clabelelided.h"
 
 

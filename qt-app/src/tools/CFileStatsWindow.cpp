@@ -7,8 +7,8 @@
 
 
 // Submodule includes
+#include "qtcore_helpers/displayformatting.hpp"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
-#include "utils/displayformatting.h"
 
 
 DISABLE_COMPILER_WARNINGS
