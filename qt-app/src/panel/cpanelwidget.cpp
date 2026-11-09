@@ -17,9 +17,9 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "fileoperations/fileoperationtexts.h"
 #include "fileoperations/fileoperationtypes.h"
 #include "fileoperations/inlinerename.h"
-#include "fileoperationsui/fileoperationtexts.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "timing/ctimeelapsed.h"
 #include "utils/displayformatting.h"

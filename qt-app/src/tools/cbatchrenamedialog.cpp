@@ -5,8 +5,8 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "fileoperations/fileoperationtexts.h"
 #include "fileoperations/newnamecheck.h"
-#include "fileoperationsui/fileoperationtexts.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "widgets/chistorycombobox.h"
 #include "widgets/cpersistenceenabler.h"
