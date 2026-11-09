@@ -23,7 +23,8 @@ bool isPseudoFilesystem(const QString& fsType)
 		QStringLiteral("pstore"), QStringLiteral("efivarfs"), QStringLiteral("bpf"), QStringLiteral("autofs"),
 		QStringLiteral("mqueue"), QStringLiteral("debugfs"), QStringLiteral("tracefs"), QStringLiteral("configfs"),
 		QStringLiteral("fusectl"), QStringLiteral("hugetlbfs"), QStringLiteral("binfmt_misc"), QStringLiteral("ramfs"),
-		QStringLiteral("rpc_pipefs"), QStringLiteral("nsfs"), QStringLiteral("overlay"), QStringLiteral("squashfs")
+		QStringLiteral("rpc_pipefs"), QStringLiteral("nsfs"), QStringLiteral("overlay"), QStringLiteral("squashfs"),
+		QStringLiteral("fuse.portal") // The Flatpak document portal, /run/user/<uid>/doc; isKnownNetworkFilesystem() accepts any fuse.* type
 	};
 	return pseudoFsTypes.contains(fsType);
 }
