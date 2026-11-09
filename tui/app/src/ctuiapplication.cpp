@@ -66,9 +66,12 @@ TStatusLine* CTuiApplication::initStatusLine(TRect r)
 	r.a.y = r.b.y - 1;
 	return new TStatusLine(r,
 		*new TStatusDef(0, 0xFFFF) +
-			*new TStatusItem("~Tab~ Switch panel", kbNoKey, 0) +
+			*new TStatusItem("~Tab~ Panel", kbNoKey, 0) +
 			*new TStatusItem("~Enter~ Open", kbNoKey, 0) +
-			*new TStatusItem("~Backspace~ Up", kbNoKey, 0) +
+			*new TStatusItem("~F5~ Copy", kbF5, cmCopyItems) +
+			*new TStatusItem("~F6~ Move", kbF6, cmMoveItems) +
+			*new TStatusItem("~F8~ Delete", kbF8, cmDeleteItems) +
+			*new TStatusItem(nullptr, kbShiftF8, cmDeleteItemsPermanently) +
 			*new TStatusItem("~F10~ Menu", kbF10, cmMenu) +
 			*new TStatusItem("~Alt-X~ Exit", kbAltX, cmQuit)
 	);

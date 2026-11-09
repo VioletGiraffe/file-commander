@@ -1,5 +1,6 @@
 #include "ctuipanel.h"
 #include "ctuifilelist.h"
+#include "ctuifileoperations.h"
 
 #include "ccontroller.h"
 
@@ -190,9 +191,20 @@ void CTuiPanel::handleEvent(TEvent& event)
 		}
 		clearEvent(event);
 	}
-	else if (event.what == evCommand && event.message.command == cmActivateFileListItem)
+	else if (event.what == evCommand)
 	{
-		activateCurrentItem();
+		switch (event.message.command)
+		{
+		case cmActivateFileListItem: activateCurrentItem(); break;
+		case cmCopyItems:
+			transferSelectedItems(_controller, _side, TransferKind::Copy);
+			showCoreSelection(); // A copy deselects its sources
+			break;
+		case cmMoveItems: transferSelectedItems(_controller, _side, TransferKind::Move); break;
+		case cmDeleteItems: deleteSelectedItems(_controller, _side, true); break;
+		case cmDeleteItemsPermanently: deleteSelectedItems(_controller, _side, false); break;
+		default: return;
+		}
 		clearEvent(event);
 	}
 }

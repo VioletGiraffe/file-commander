@@ -23,11 +23,13 @@ SOURCES += \
 	src/main.cpp \
 	src/ctuiapplication.cpp \
 	src/ctuifilelist.cpp \
+	src/ctuifileoperations.cpp \
 	src/ctuipanel.cpp
 
 HEADERS += \
 	src/ctuiapplication.h \
 	src/ctuifilelist.h \
+	src/ctuifileoperations.h \
 	src/ctuipanel.h
 
 LIBS += -L$${DESTDIR} -ltvision

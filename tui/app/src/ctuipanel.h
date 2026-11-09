@@ -14,6 +14,9 @@ class CTuiFileList;
 class CTuiFilterLine;
 class CTuiStatusLine;
 
+// The application's status line turns keys into these; the focused panel carries them out
+inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 1003, cmDeleteItemsPermanently = 1004;
+
 // One side: a window showing the active tab's folder
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener
 {
