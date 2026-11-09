@@ -27,9 +27,16 @@ RESTORE_COMPILER_WARNINGS
 #include <filesystem>
 #include <functional>
 #include <iterator>
+#include <optional>
 #include <string.h> // memset
 #include <string_view>
 #include <vector>
+
+#if defined __linux__ || defined __FreeBSD__
+#include <errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 #ifdef _WIN32
 #include "system/shellcontextmenu.hpp" // cpputils
@@ -767,15 +774,46 @@ bool OsShell::recycleBinContextMenu(void */*parentWindow*/)
 #error unsupported platform
 #endif
 
+#if defined __linux__ || defined __FreeBSD__
+// Qt moves a file into the freedesktop.org trash by linking it there and unlinking the original, and reports success even when
+// that unlink fails: the item then stays in place, and the trash holds a second link to it.
+// Repeats the unlink, and removes the trash entry when it fails again. Returns the reason when the item stays in place.
+[[nodiscard]] static std::optional<QString> completeFreedesktopTrashMove(const QString& originalPath, const QString& pathInTrash)
+{
+	const QByteArray original = QFile::encodeName(originalPath), trashed = QFile::encodeName(pathInTrash);
+	struct stat originalStatus{}, trashedStatus{};
+	if (::lstat(original.constData(), &originalStatus) != 0 || ::lstat(trashed.constData(), &trashedStatus) != 0)
+		return {};
+	// Another entry at the original path appeared after the move
+	if (originalStatus.st_dev != trashedStatus.st_dev || originalStatus.st_ino != trashedStatus.st_ino)
+		return {};
+
+	if (::unlink(original.constData()) == 0)
+		return {};
+
+	const QString reason = qt_error_string(errno);
+	::unlink(trashed.constData());
+	// The trash spec pairs files/<name> with info/<name>.trashinfo
+	const QFileInfo trashedItem{ pathInTrash };
+	QFile::remove(QDir::cleanPath(trashedItem.absolutePath() + QStringLiteral("/../info/") + trashedItem.fileName() + QStringLiteral(".trashinfo")));
+	return reason;
+}
+#endif
+
 std::vector<OsShell::TrashFailure> OsShell::moveItemsToTrashThroughQt(const QStringList& paths)
 {
 	std::vector<TrashFailure> failures;
 	for (const QString& path : paths)
 	{
 		// Without a folder's trailing separator: Qt records the path as given for restoring the item
-		QFile item{ path.size() > 1 && path.endsWith('/') ? path.chopped(1) : path };
+		const QString itemPath = path.size() > 1 && path.endsWith('/') ? path.chopped(1) : path;
+		QFile item{ itemPath };
 		if (!item.moveToTrash())
 			failures.push_back({ .path = path, .reason = item.errorString() });
+#if defined __linux__ || defined __FreeBSD__
+		else if (const std::optional<QString> reason = completeFreedesktopTrashMove(itemPath, item.fileName())) // fileName() is now the path in the trash
+			failures.push_back({ .path = path, .reason = *reason });
+#endif
 	}
 
 	return failures;
