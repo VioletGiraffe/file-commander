@@ -10,6 +10,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <qobject.h>
+#include <QString>
 RESTORE_COMPILER_WARNINGS
 
 #include <mutex>
@@ -53,10 +54,13 @@ private:
 	// Calls all the registered observers with the latest list of drives found
 	void notifyObservers(bool async, bool significantChange) const;
 
-	[[nodiscard]] static std::vector<VolumeInfo> enumerateVolumesImpl();
+	// Leaves out the volumes it fails to query, and appends a message per failed query to failureMessages
+	[[nodiscard]] static std::vector<VolumeInfo> enumerateVolumesImpl(std::vector<QString>& failureMessages);
 
 private:
 	std::vector<VolumeInfo> _volumes;
+	// A failure is logged only when the previous enumeration did not report it
+	std::vector<QString> _lastFailureMessages; // Guarded by _mutexForDrives
 	mutable std::recursive_mutex _mutexForDrives; // Has to be recursive:
 	// enumerateVolumes() can be called synchronously through updateSynchronously(), and then drives() getter will fail to acquire the mutex unless it's recursive
 

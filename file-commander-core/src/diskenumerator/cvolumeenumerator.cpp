@@ -5,6 +5,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QDebug>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
@@ -81,9 +82,17 @@ void CVolumeEnumerator::shutdown()
 // Refresh the list of available volumes
 void CVolumeEnumerator::enumerateVolumes(bool async)
 {
-	auto newDrives = enumerateVolumesImpl();
+	std::vector<QString> failureMessages;
+	auto newDrives = enumerateVolumesImpl(failureMessages);
 
 	std::lock_guard lock{ _mutexForDrives };
+
+	for (const QString& message : failureMessages)
+	{
+		if (std::ranges::find(_lastFailureMessages, message) == _lastFailureMessages.end())
+			qInfo().noquote() << message;
+	}
+	_lastFailureMessages = std::move(failureMessages);
 
 	VolumeInfo::ComparisonResult levelOfChange = newDrives.size() != _volumes.size() ? VolumeInfo::DifferentObject : VolumeInfo::Equal;
 	if (levelOfChange == VolumeInfo::Equal)

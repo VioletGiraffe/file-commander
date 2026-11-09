@@ -39,7 +39,7 @@ bool isKnownNetworkFilesystem(const QString& fsType)
 
 }
 
-std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QString>& failureMessages)
 {
 	std::vector<VolumeInfo> volumes;
 
@@ -101,17 +101,22 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 		rootInfo.volumeLabel = "root";
 	}
 
-	for (auto& info: volumes)
+	std::vector<VolumeInfo> queriedVolumes;
+	queriedVolumes.reserve(volumes.size());
+	for (VolumeInfo& info: volumes)
 	{
-		const auto sys_info = volumeInfoForPath(info.rootObjectInfo.fullAbsolutePath());
-		info.volumeSize = sys_info.f_bsize * sys_info.f_blocks;
-		info.freeSize = sys_info.f_bsize * sys_info.f_bavail;
+		const auto sys_info = volumeInfoForPath(info.rootObjectInfo.fullAbsolutePath(), failureMessages);
+		if (!sys_info)
+			continue;
+
+		info.volumeSize = sys_info->f_bsize * sys_info->f_blocks;
+		info.freeSize = sys_info->f_bsize * sys_info->f_bavail;
 		// TODO: canListDirectory()?
 		info.isReady = true;
+
+		if (info.volumeSize != 0) // A 0-size volume is junk like vmblock-fuse
+			queriedVolumes.push_back(std::move(info));
 	}
 
-	// Remove all 0-size volumes, this should remove junk like vmblock-fuse
-	std::erase_if(volumes, [](const VolumeInfo& v) { return v.volumeSize == 0; });
-
-	return volumes;
+	return queriedVolumes;
 }

@@ -14,7 +14,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <Windows.h>
 
-static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
+static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter, std::vector<QString>& failureMessages)
 {
 	if (!canListDirectory(driveLetter))
 		return {};
@@ -24,8 +24,7 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 
 	if (error != 0 && error != ERROR_NOT_READY)
 	{
-		const auto text = QString::fromStdString(ErrorStringFromLastError());
-		qInfo() << "GetVolumeInformationW() returned error for" << driveLetter << text;
+		failureMessages.push_back(QStringLiteral("GetVolumeInformationW() failed for ") + driveLetter + QStringLiteral(": ") + QString::fromStdString(ErrorStringFromLastError()));
 		return {};
 	}
 
@@ -43,7 +42,7 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 			info.freeSize = freeSpace.QuadPart;
 		}
 		else
-			qInfo() << "GetDiskFreeSpaceExW() returned error:" << QString::fromStdString(ErrorStringFromLastError());
+			failureMessages.push_back(QStringLiteral("GetDiskFreeSpaceExW() failed for ") + driveLetter + QStringLiteral(": ") + QString::fromStdString(ErrorStringFromLastError()));
 	}
 
 	info.volumeLabel = QString::fromWCharArray(volumeName);
@@ -51,7 +50,7 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter)
 	return info;
 }
 
-std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
+std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QString>& failureMessages)
 {
 	std::vector<VolumeInfo> volumes;
 
@@ -61,7 +60,7 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 	DWORD drives = ::GetLogicalDrives();
 	if (drives == 0)
 	{
-		qInfo() << "GetLogicalDrives() returned an error:" << QString::fromStdString(ErrorStringFromLastError());
+		failureMessages.push_back(QStringLiteral("GetLogicalDrives() failed: ") + QString::fromStdString(ErrorStringFromLastError()));
 		return volumes;
 	}
 
@@ -71,7 +70,7 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl()
 			continue;
 
 		CTimeElapsed timer{ true };
-		auto volumeInfo = volumeInfoForDriveLetter(QString(driveLetter) + QStringLiteral(":\\"));
+		auto volumeInfo = volumeInfoForDriveLetter(QString(driveLetter) + QStringLiteral(":\\"), failureMessages);
 		const auto elapsedMs = timer.elapsed();
 		if (elapsedMs > 100)
 			qInfo() << "volumeInfoForDriveLetter for" << QString(driveLetter) + QStringLiteral(":\\") << "took" << elapsedMs << "ms";
