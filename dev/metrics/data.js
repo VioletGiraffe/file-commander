@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794181185912,
+  "lastUpdate": 1794227976708,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -34207,6 +34207,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 25,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "b994d4f972c11844016b1a02636a3cbb93d1527b",
+          "message": "MSVC release builds no longer risk reading garbage for the text and CSV viewers' constants inside by-reference lambdas: the constants are static constexpr",
+          "timestamp": "2026-11-09T14:25:11+02:00",
+          "tree_id": "b91a5085dfc5499d2245ad3628a1d0a74ffc878c",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/b994d4f972c11844016b1a02636a3cbb93d1527b"
+        },
+        "date": 1794227973492,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15507,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35537,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1569.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 917.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 443,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 27.5,
             "unit": "KB"
           },
           {
