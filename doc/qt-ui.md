@@ -67,10 +67,7 @@ core's selection back: Qt changes a selection silently on a layout change or a r
 
 ## File-operation UI
 
-`progressdialogs/fileoperationlaunch` converts selected paths and destination text into a typed core request and
-chooses the deletion backend. It decides `DestinationIntent` before path parsing, because a trailing separator is
-user intent even when the directory does not yet exist.
-
+The main window launches operations through the core's `fileoperationlaunch` (see [core-engine.md](core-engine.md)).
 The dialogs it opens are described in `file-operations/doc/architecture.md`.
 
 ## Viewers

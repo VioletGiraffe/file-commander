@@ -82,6 +82,10 @@ Copy, move, permanent delete, inline and batch rename, directory scanning and fo
 `file-operations` submodule; its `doc/architecture.md` holds their design notes. They build as the static libraries
 `fileoperations` and `fileoperationsui`.
 
+`fileoperationlaunch` turns a front end's selected paths and destination text into a typed request and chooses the
+deletion backend. It decides `DestinationIntent` before path parsing, because a trailing separator is user intent
+even when the directory does not yet exist.
+
 ## Traversal and watchers
 
 `scanDirectory()` (`file-operations/directoryscan/`) is shared by flattened display, search, and folder comparison. It can

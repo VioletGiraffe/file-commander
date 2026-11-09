@@ -7,7 +7,6 @@
 #include "cshelloperationrunner.h"
 #include "iconprovider/ciconprovider.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
-#include "progressdialogs/fileoperationlaunch.h"
 
 #include "commandoutput/ccommandoutputarea.h"
 
@@ -27,6 +26,7 @@
 #include "version.h"
 
 #include "settings.h"
+#include "fileoperationlaunch.h"
 #include "pluginengine/cpluginengine.h"
 #include "plugininterface/cfileviewer.h"
 #include "shell/cshell.h"

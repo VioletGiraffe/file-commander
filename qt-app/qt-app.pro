@@ -39,7 +39,6 @@ SOURCES += \
 	src/commandoutput/ccommandoutputarea.cpp \
 	src/commandoutput/ccommandoutputpane.cpp \
 	src/panel/cpanelwidget.cpp \
-	src/progressdialogs/fileoperationlaunch.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
 	src/settings/csettingspageinterface.cpp \
@@ -69,7 +68,6 @@ HEADERS += \
 	src/commandoutput/ccommandoutputarea.h \
 	src/commandoutput/ccommandoutputpane.h \
 	src/panel/cpanelwidget.h \
-	src/progressdialogs/fileoperationlaunch.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
 	src/panel/filelistwidget/cfilelistview.h \

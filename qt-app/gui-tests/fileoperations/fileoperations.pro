@@ -31,15 +31,12 @@ INCLUDEPATH += \
 # The dialog drives a real job to exact points, so the engine comes with its fault hooks active.
 DEFINES += FILE_OPERATIONS_TEST_HOOKS
 include(../../../file-operations/libraries/fileoperationsui.pri)
-include(../../../file-commander-core/core.pri) # resolveUserPath()
+include(../../../file-commander-core/core.pri) # fileoperationlaunch
 
 SOURCES += \
 	main.cpp \
-	fileoperationlaunchtests.cpp \
-	fileoperationroutingtests.cpp \
-	../../src/progressdialogs/fileoperationlaunch.cpp
+	fileoperationroutingtests.cpp
 
 HEADERS += \
 	../../../file-operations/tests/fileoperationsui/fileoperationguitesthelpers.h \
-	../../../file-operations/tests/scriptedplananswers.h \
-	../../src/progressdialogs/fileoperationlaunch.h
+	../../../file-operations/tests/scriptedplananswers.h

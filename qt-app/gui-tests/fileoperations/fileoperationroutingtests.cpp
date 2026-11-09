@@ -8,7 +8,7 @@
 
 #include "fileoperationguitesthelpers.h"
 
-#include "progressdialogs/fileoperationlaunch.h"
+#include "fileoperationlaunch.h"
 #include "fileoperations/operationtesthooks.h"
 
 

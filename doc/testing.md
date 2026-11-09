@@ -85,7 +85,8 @@ the shell script also falls back to a `qmake` already on PATH.
 | `filesystemhelpers_test` | Path quoting, shell word splitting, device lookup for a path |
 | `userprograms_test` | Programs-menu placeholder expansion |
 | `shell_test` | `CShellCommand` on real commands: output, exit code, working folder, escape sequences, termination. Which command lines launch without the shell (Windows); the detached launch's command lookup (Linux, macOS) |
-| `fileoperations_gui_test` | File-operation launch from `qt-app/src`: destination intent, routing to the dialog or the native shell |
+| `fileoperationlaunch_test` | File-operation launch: destination intent, the confirmation field's prefill, request construction, deletion backend |
+| `fileoperations_gui_test` | Launched operations routed to the dialog or the native shell, end to end |
 | `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's display, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
 

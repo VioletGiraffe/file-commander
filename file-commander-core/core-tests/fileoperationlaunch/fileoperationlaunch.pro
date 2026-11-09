@@ -1,0 +1,33 @@
+TEMPLATE = app
+CONFIG += console
+TARGET   = fileoperationlaunch_test
+
+include(../../config.pri)
+
+# global.pri's LTO removed: only tests with benchmarks use LTO
+# MSVC keeps /GL and /LTCG: linking the /GL-built qtutils, cpputils and thin_io forces LTCG
+QMAKE_CFLAGS   -= -flto=auto -ffat-lto-objects -flto=thin
+QMAKE_CXXFLAGS -= -flto=auto -ffat-lto-objects -flto=thin
+QMAKE_LFLAGS   -= -flto=auto -flto=thin
+
+DESTDIR  = ../../../bin/$${OUTPUT_DIR}
+OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
+MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
+UI_DIR      = ../../../build/$${OUTPUT_DIR}/$${TARGET}
+RCC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}
+
+mac*|linux*|freebsd{
+	PRE_TARGETDEPS += $${DESTDIR}/libqtutils.a $${DESTDIR}/libcpputils.a
+}
+
+INCLUDEPATH += \
+	../../src/
+
+LIBS += -L$${DESTDIR} -lqtutils -lcpputils
+include(../../../cpp-template-utils/3rdparty/catch2/catch2.pri)
+
+include(../../core.pri)
+
+SOURCES += \
+	main.cpp \
+	fileoperationlaunchtests.cpp

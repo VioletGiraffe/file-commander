@@ -11,21 +11,19 @@ RESTORE_COMPILER_WARNINGS
 
 #include <expected>
 
-// The UI-side launch boundary. It converts the panel's raw selection and the edited destination text into a
-// trusted core request, applying the preserved destination-intent heuristic exactly once - no resolver,
-// executor, or mutator ever re-derives intent. These are free functions, not a class: there is no launch
-// state to own, and keeping them separate from CMainWindow is what lets them be tested without an application.
+// The launch boundary: turns a front end's selected paths and edited destination text into a trusted request.
+// The destination intent is decided here, once: no resolver, executor or mutator derives it again.
 
-// The preserved heuristic: multiple sources, a destination with an explicit trailing platform separator, or a
-// single directory-like source map into the destination directory; otherwise a single file is an exact target
-// unless the edited destination already exists as a directory.
+// Multiple sources, a destination with an explicit trailing platform separator, or a single directory-like source
+// map into the destination directory; otherwise a single file is an exact target unless the edited destination
+// already exists as a directory.
 // Inspects the filesystem for the single-source kind and the destination kind.
 [[nodiscard]] DestinationIntent transferDestinationIntent(const QStringList& rawSourcePaths, const QString& destinationText);
 
 // The confirmation field's prefill: the exact target path for a one-file copy, the directory itself otherwise.
 [[nodiscard]] QString prefillTransferDestination(TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationDirectory);
 
-// Builds the trusted request from the raw UI selection and the edited destination, choosing the intent once.
+// Builds the trusted request from the selected paths and the edited destination, choosing the intent once.
 // The destination is typed path text, resolved against destinationFolder: see resolveUserPath().
 [[nodiscard]] std::expected<TransferRequest, RequestValidationError> makeUiTransferRequest(
 	TransferKind kind, const QStringList& rawSourcePaths, const QString& destinationText, const QString& destinationFolder);

@@ -26,6 +26,7 @@ HEADERS += \
 	src/filesystemhelperfunctions.h \
 	src/filesearchengine/cfilesearchengine.h \
 	src/panellisting.h \
+	src/fileoperationlaunch.h \
 	src/filelist/filelistsorter.h \
 	src/filelist/filenamefilter.h \
 	src/filelist/foldercontentssummary.h \
@@ -49,6 +50,7 @@ SOURCES += \
 	src/userprograms/userprograms.cpp \
 	src/filesearchengine/cfilesearchengine.cpp \
 	src/panellisting.cpp \
+	src/fileoperationlaunch.cpp \
 	src/filelist/filelistsorter.cpp \
 	src/filelist/filenamefilter.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \

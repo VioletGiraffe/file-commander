@@ -1,7 +1,7 @@
 // WP10C: the UI-side launch boundary - the preserved destination-intent heuristic, the confirmation-field
 // prefill, request construction and validation, and the platform deletion-backend selection.
 
-#include "progressdialogs/fileoperationlaunch.h"
+#include "fileoperationlaunch.h"
 
 
 // Submodule includes

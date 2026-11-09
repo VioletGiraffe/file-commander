@@ -38,6 +38,7 @@ $suites = [ordered]@{
 	'userprograms_test'       = @()
 	'filesystemhelpers_test'  = @()
 	'shell_test'              = @()
+	'fileoperationlaunch_test' = @()
 	'fileoperations_test'     = @('~[executor]~[deleteexecutor]')
 	'foldercomparison_test'   = @('~[CFileComparator]')
 	'fileoperationsui_test'   = @()
