@@ -7,7 +7,6 @@
 #include "assert/advanced_assert.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "utils/displayformatting.h"
-#include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -21,17 +20,9 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <utility>
 
-[[nodiscard]] static bool isFileOrBundle(const CFileSystemObject& row) noexcept
-{
-	return row.isFile() || row.isBundle();
-}
-
-// A file with nothing before its extension, like .jpg on Windows, displays and sorts by its full name
-[[nodiscard]] static QStringView displayName(const CFileSystemObject& row) noexcept
-{
-	const QStringView name = row.name();
-	return name.isEmpty() && isFileOrBundle(row) ? row.fullName() : name;
-}
+// sort() and sortColumn() cast between columns and sort fields
+static_assert((int)FileListSortField::Name == NameColumn && (int)FileListSortField::Extension == ExtColumn);
+static_assert((int)FileListSortField::Size == SizeColumn && (int)FileListSortField::Date == DateColumn);
 
 static QVariant displayText(const CFileSystemObject& row, int column)
 {
@@ -41,7 +32,7 @@ static QVariant displayText(const CFileSystemObject& row, int column)
 		if (row.type() == Directory)
 			return QString("[" % row.fullName() % "]");
 		else
-			return displayName(row).toString();
+			return fileListDisplayName(row).toString();
 
 	case ExtColumn:
 		if (const QStringView extension = row.extension(); !extension.isEmpty())
@@ -66,18 +57,6 @@ static QVariant displayText(const CFileSystemObject& row, int column)
 	}
 }
 
-template <typename T>
-[[nodiscard]] static int compareValues(const T& l, const T& r) noexcept
-{
-	return l < r ? -1 : (r < l ? 1 : 0);
-}
-
-[[nodiscard]] static QCollatorSortKey nameSortKey(const CFileSystemObject& row)
-{
-	return NaturalSort::sortKey(displayName(row).toString());
-}
-
-
 // updateRows() resets past this many changed displayed rows: from there on a reset is cheaper, per the timing case in the filelist suite.
 // A count, not a share of the rows: an update's cost per change grows with the row count as a reset's does.
 // At the high end of the measured break-evens: an update keeps the scroll position and an open editor, a reset does not.
@@ -87,7 +66,6 @@ CFileListModel::CFileListModel(CIconProvider* iconProvider, QObject* parent) :
 	QAbstractItemModel(parent),
 	_iconProvider(iconProvider)
 {
-	_nameFilter.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 }
 
 void CFileListModel::setDropHandler(DropHandler handler)
@@ -100,13 +78,11 @@ void CFileListModel::setRows(std::vector<CFileSystemObject> rows)
 	beginResetModel();
 
 	_rows = std::move(rows);
-	_nameSortKeys.clear();
-	_extensionSortKeys.clear();
-	_sortKeyByExtension.clear();
-	_nameSortKeys.reserve(_rows.size());
-	_extensionSortKeys.reserve(_rows.size());
+	_sortKeys.clear();
+	_sorter.clearExtensionKeyCache();
+	_sortKeys.reserve(_rows.size());
 	for (const CFileSystemObject& row : _rows)
-		appendSortKeys(row);
+		_sortKeys.push_back(_sorter.sortKeysFor(row));
 
 	updateContentsSummary();
 	_displayedRows = displayedRowsInOrder();
@@ -142,7 +118,7 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 		if (old == oldRowByHash.end() || _rows[old->second].fullAbsolutePath() != row.fullAbsolutePath() || _rows[old->second].isCdUp() != row.isCdUp())
 		{
 			addedRows.push_back(i);
-			numDisplayedChanges += passesNameFilter(row) ? 1 : 0;
+			numDisplayedChanges += _nameFilter.matches(row) ? 1 : 0;
 			continue;
 		}
 
@@ -168,8 +144,7 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 	{
 		// A type change can change the name and extension the row sorts by
 		_rows[oldRowIndex] = std::move(rows[newRowIndex]);
-		_nameSortKeys[oldRowIndex] = nameSortKey(_rows[oldRowIndex]);
-		_extensionSortKeys[oldRowIndex] = extensionSortKey(_rows[oldRowIndex]);
+		_sortKeys[oldRowIndex] = _sorter.sortKeysFor(_rows[oldRowIndex]);
 
 		int displayRow = displayRowOfOldRow[oldRowIndex];
 		if (displayRow < 0)
@@ -224,10 +199,10 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 	std::vector<uint32_t> insertedRows;
 	for (const uint32_t addedRow : addedRows)
 	{
-		if (passesNameFilter(rows[addedRow]))
+		if (_nameFilter.matches(rows[addedRow]))
 			insertedRows.push_back((uint32_t)_rows.size());
 
-		appendSortKeys(rows[addedRow]);
+		_sortKeys.push_back(_sorter.sortKeysFor(rows[addedRow]));
 		_rows.push_back(std::move(rows[addedRow]));
 	}
 
@@ -268,16 +243,14 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 		if (numKept != i)
 		{
 			_rows[numKept] = std::move(_rows[i]);
-			_nameSortKeys[numKept] = std::move(_nameSortKeys[i]);
-			_extensionSortKeys[numKept] = std::move(_extensionSortKeys[i]);
+			_sortKeys[numKept] = std::move(_sortKeys[i]);
 		}
 		++numKept;
 	}
 
 	_rows.resize(numKept);
 	// Not resize(): the keys have no default constructor
-	_nameSortKeys.erase(_nameSortKeys.begin() + numKept, _nameSortKeys.end());
-	_extensionSortKeys.erase(_extensionSortKeys.begin() + numKept, _extensionSortKeys.end());
+	_sortKeys.erase(_sortKeys.begin() + numKept, _sortKeys.end());
 	for (uint32_t& rowIndex : _displayedRows)
 		rowIndex = compactedIndex[rowIndex];
 
@@ -287,17 +260,16 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 
 void CFileListModel::setNameFilter(const QString& wildcard)
 {
-	if (wildcard == _nameFilterWildcard)
+	if (wildcard == _nameFilter.wildcard())
 		return;
 
-	_nameFilterWildcard = wildcard;
-	_nameFilter.setPattern(wildcard.isEmpty() ? QString{} : QRegularExpression::wildcardToRegularExpression(wildcard, QRegularExpression::UnanchoredWildcardConversion));
+	_nameFilter.setWildcard(wildcard);
 	relayout(QAbstractItemModel::NoLayoutChangeHint);
 }
 
 const QString& CFileListModel::nameFilter() const noexcept
 {
-	return _nameFilterWildcard;
+	return _nameFilter.wildcard();
 }
 
 void CFileListModel::sort(int column, Qt::SortOrder order)
@@ -305,10 +277,9 @@ void CFileListModel::sort(int column, Qt::SortOrder order)
 	assert_and_return_r(column < NumberOfColumns, );
 
 	// A negative column is QTreeView asking for no sort column: the rows keep their order
-	if (column >= 0 && (column != _sortColumn || order != _sortOrder))
+	if (column >= 0 && (column != sortColumn() || order != sortOrder()))
 	{
-		_sortColumn = column;
-		_sortOrder = order;
+		_sorter.setSorting(static_cast<FileListSortField>(column), order);
 		relayout(QAbstractItemModel::VerticalSortHint);
 	}
 
@@ -317,12 +288,12 @@ void CFileListModel::sort(int column, Qt::SortOrder order)
 
 int CFileListModel::sortColumn() const noexcept
 {
-	return _sortColumn;
+	return (int)_sorter.sortField();
 }
 
 Qt::SortOrder CFileListModel::sortOrder() const noexcept
 {
-	return _sortOrder;
+	return _sorter.sortOrder();
 }
 
 const CFileSystemObject& CFileListModel::rowAt(int row) const
@@ -521,58 +492,9 @@ QMimeData *CFileListModel::mimeData(const QModelIndexList & indexes) const
 	return mime;
 }
 
-// Ascending order by the sort column alone
-int CFileListModel::compareByColumn(uint32_t l, uint32_t r) const
-{
-	switch (_sortColumn)
-	{
-	case NameColumn:
-		return NaturalSort::compare(_nameSortKeys[l], _nameSortKeys[r]);
-	case ExtColumn:
-		// Folders by name, files by extension, then name
-		if (isFileOrBundle(_rows[l]))
-		{
-			if (const int byExtension = NaturalSort::compare(_extensionSortKeys[l], _extensionSortKeys[r]); byExtension != 0)
-				return byExtension;
-		}
-		return NaturalSort::compare(_nameSortKeys[l], _nameSortKeys[r]);
-	case SizeColumn:
-		return compareValues(_rows[l].size(), _rows[r].size());
-	case DateColumn:
-		return compareValues(_rows[l].modificationTime(), _rows[r].modificationTime());
-	default:
-		assert_unconditional_r("Unhandled sort column");
-		return 0;
-	}
-}
-
 bool CFileListModel::rowLessThan(uint32_t l, uint32_t r) const
 {
-	const CFileSystemObject& left = _rows[l];
-	const CFileSystemObject& right = _rows[r];
-
-	// [..] first, then folders, then files, in either direction
-	if (left.isCdUp() != right.isCdUp())
-		return left.isCdUp();
-	if (isFileOrBundle(left) != isFileOrBundle(right))
-		return isFileOrBundle(right);
-
-	// Ties go by name and extension, then by the exact path: unique, so the order is total.
-	// Not the collator for the path: it can call two different strings equal.
-	int result = compareByColumn(l, r);
-	if (result == 0)
-		result = NaturalSort::compare(_nameSortKeys[l], _nameSortKeys[r]);
-	if (result == 0)
-		result = NaturalSort::compare(_extensionSortKeys[l], _extensionSortKeys[r]);
-	if (result == 0)
-		result = left.fullAbsolutePath().compare(right.fullAbsolutePath());
-
-	return _sortOrder == Qt::AscendingOrder ? result < 0 : result > 0;
-}
-
-bool CFileListModel::passesNameFilter(const CFileSystemObject& row) const
-{
-	return _nameFilter.pattern().isEmpty() || row.fullName().contains(_nameFilter);
+	return _sorter.lessThan(_rows[l], _sortKeys[l], _rows[r], _sortKeys[r]);
 }
 
 std::vector<uint32_t> CFileListModel::displayedRowsInOrder() const
@@ -581,7 +503,7 @@ std::vector<uint32_t> CFileListModel::displayedRowsInOrder() const
 	displayedRows.reserve(_rows.size());
 	for (uint32_t i = 0, numRows = (uint32_t)_rows.size(); i < numRows; ++i)
 	{
-		if (passesNameFilter(_rows[i]))
+		if (_nameFilter.matches(_rows[i]))
 			displayedRows.push_back(i);
 	}
 
@@ -600,23 +522,6 @@ int CFileListModel::moveDestination(uint32_t rowIndex, int displayRow) const
 		return (int)(above - first);
 
 	return (int)(std::partition_point(moved + 1, _displayedRows.cend(), sortsAboveRow) - first);
-}
-
-QCollatorSortKey CFileListModel::extensionSortKey(const CFileSystemObject& row)
-{
-	const QStringView extension = row.extension();
-	if (const auto cached = _sortKeyByExtension.find(extension); cached != _sortKeyByExtension.end())
-		return cached->second;
-
-	QString extensionString = extension.toString();
-	QCollatorSortKey key = NaturalSort::sortKey(extensionString);
-	return _sortKeyByExtension.emplace(std::move(extensionString), std::move(key)).first->second;
-}
-
-void CFileListModel::appendSortKeys(const CFileSystemObject& row)
-{
-	_nameSortKeys.push_back(nameSortKey(row));
-	_extensionSortKeys.push_back(extensionSortKey(row));
 }
 
 void CFileListModel::rebuildDisplayRowByHash() const

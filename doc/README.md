@@ -43,6 +43,7 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 | Filesystem entry value (`CFileSystemObject`) | `file-commander-core/src/cfilesystemobject.{h,cpp}` |
 | Directory listing type (`FileListHashMap`) | `file-commander-core/src/detail/file_list_hashmap.h` |
 | Panel folder listing (`listDirectoryForPanel`) | `file-commander-core/src/panellisting.{h,cpp}` |
+| File list sort order and name filter | `file-commander-core/src/filelist/` |
 | Recursive traversal (`scanDirectory`) | `file-operations/directoryscan/` |
 | Directory change watchers | `file-commander-core/src/filesystemwatcher/` |
 | Copy, move, permanent delete | `file-operations/fileoperations/`, dialogs in `file-operations/fileoperationsui/` |

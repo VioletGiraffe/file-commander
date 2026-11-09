@@ -3,21 +3,21 @@
 #include "panel/columns.h"
 
 #include "cfilesystemobject.h"
+#include "filelist/filelistsorter.h"
+#include "filelist/filenamefilter.h"
 
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "hash/hash_functors.hpp"
-#include "qtcore_helpers/qstring_hash.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
 #include <QAbstractItemModel>
-#include <QCollatorSortKey>
 #include <QList>
-#include <QRegularExpression>
+#include <QString>
 #include <QUrl>
 RESTORE_COMPILER_WARNINGS
 
@@ -100,15 +100,10 @@ signals:
 
 private:
 	// Arguments are indices into _rows
-	[[nodiscard]] int compareByColumn(uint32_t l, uint32_t r) const;
 	[[nodiscard]] bool rowLessThan(uint32_t l, uint32_t r) const;
-	[[nodiscard]] bool passesNameFilter(const CFileSystemObject& row) const;
 	[[nodiscard]] std::vector<uint32_t> displayedRowsInOrder() const;
 	// Where _rows[rowIndex] sorts among the displayed rows other than 'displayRow', as the destination of moving displayRow
 	[[nodiscard]] int moveDestination(uint32_t rowIndex, int displayRow) const;
-	// Rows with the same extension share one key
-	[[nodiscard]] QCollatorSortKey extensionSortKey(const CFileSystemObject& row);
-	void appendSortKeys(const CFileSystemObject& row);
 	void rebuildDisplayRowByHash() const;
 	void updateContentsSummary();
 	// Re-filters and re-sorts; every persistent index (selection, cursor, editor) follows its row or is dropped with it
@@ -116,21 +111,15 @@ private:
 
 private:
 	std::vector<CFileSystemObject> _rows;
-	// Parallel to _rows: collation keys of each row's display name and extension
-	std::vector<QCollatorSortKey> _nameSortKeys;
-	std::vector<QCollatorSortKey> _extensionSortKeys;
-	// Every extension seen since the last setRows()
-	ankerl::unordered_dense::map<QString, QCollatorSortKey, QStringHash, std::equal_to<>> _sortKeyByExtension;
+	std::vector<FileListSortKeys> _sortKeys; // Parallel to _rows
+	FileListSorter _sorter; // Caches the key of every extension seen since the last setRows()
+	FileNameFilter _nameFilter;
 	// Indices into _rows: the rows the filter lets through, in display order
 	std::vector<uint32_t> _displayedRows;
 	// Rebuilt by the first lookup after _displayedRows changes: updateRows() changes it once per single-row change
 	mutable ankerl::unordered_dense::map<qulonglong, int, identity_hash> _displayRowByHash;
 	mutable bool _displayRowByHashIsStale = false;
 	FolderContentsSummary _contentsSummary;
-	QString _nameFilterWildcard;
-	QRegularExpression _nameFilter;
 	DropHandler _dropHandler;
 	CIconProvider* const _iconProvider;
-	int _sortColumn = NameColumn;
-	Qt::SortOrder _sortOrder = Qt::AscendingOrder;
 };

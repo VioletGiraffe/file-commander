@@ -57,8 +57,8 @@ A cursor item the core designates (a created or renamed entry) is usually not li
 until a refill lists it, a navigation starts, or the cursor is moved.
 
 `CFileListView` owns orthodox selection and keyboard/mouse behavior. The model holds a copy of the rows it displays,
-sorts and filters them, and depends on neither the controller nor the OS shell; delegates own painting. Drag/drop
-uses the same operation launch boundary as commands.
+sorts and filters them by the core's rules (`file-commander-core/src/filelist/`), and depends on neither the controller
+nor the OS shell; delegates own painting. Drag/drop uses the same operation launch boundary as commands.
 
 ## File-operation UI
 
