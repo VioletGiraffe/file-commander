@@ -15,7 +15,7 @@ engine a public API that must stay stable.
 | Concern | Source |
 |---------|--------|
 | ABI and base interfaces | `file-commander-core/src/plugininterface/cfilecommanderplugin.*`, `cfilecommanderviewerplugin.*`, `cfilecommandertoolplugin.*` |
-| Plugin-to-application facade | `file-commander-core/src/plugininterface/cpluginproxy.*` |
+| Plugin-to-application facade | `file-commander-core/src/plugininterface/cpluginproxy.h`, implemented by `file-commander-core/src/pluginengine/cpluginproxyimpl.*` |
 | Viewer widget contract | `file-commander-core/src/plugininterface/cfileviewer.*` |
 | Discovery and viewer selection | `file-commander-core/src/pluginengine/cpluginengine.*` |
 | Viewer frames: quick view, F3 window | `qt-app/src/panel/cpaneldisplaycontroller.*`, `qt-app/src/viewerwindow/` |
@@ -27,6 +27,11 @@ dispatched through the caller's vtable layout, so a stale plugin is undefined be
 Bump `PLUGIN_INTERFACE_VERSION` in `cfilecommanderplugin.h` whenever these interfaces change. The engine then
 supplies the proxy; `proxySet()` is the hook for proxy-dependent initialization. The interface headers are
 authoritative for the ABI.
+
+Each plugin links its own copy of the core library, so a non-virtual call runs the caller's copy of the code on the
+other module's object. `CPluginProxy` is therefore purely virtual: a plugin reaches application state only through
+application code. The interfaces' layouts and the core types passed through them, such as `CFileSystemObject` and
+`FileListHashMap`, remain part of the ABI.
 
 `main()` owns the plugin engine between the main window and controller in the destruction order. The engine owns
 each plugin's instance, proxy, and library module. Teardown destroys the proxy first so its tagged background work

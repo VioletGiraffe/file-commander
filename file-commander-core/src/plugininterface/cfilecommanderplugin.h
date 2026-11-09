@@ -10,8 +10,9 @@ class CPluginProxy;
 
 class QString;
 
-// Bump on every change to the interfaces in this directory: the engine skips a plugin reporting a different value.
-inline constexpr uint32_t PLUGIN_INTERFACE_VERSION = 5;
+// Bump on every change to the interfaces in this directory and to the core types they pass, such as CFileSystemObject and
+// FileListHashMap: the engine skips a plugin reporting a different value.
+inline constexpr uint32_t PLUGIN_INTERFACE_VERSION = 6;
 
 // A plugin dynamic library must implement both of these:
 //   pluginInterfaceVersion - return PLUGIN_INTERFACE_VERSION;

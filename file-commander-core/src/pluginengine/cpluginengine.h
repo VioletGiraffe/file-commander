@@ -17,6 +17,7 @@ RESTORE_COMPILER_WARNINGS
 
 class QLibrary;
 class CController;
+class CPluginProxyImpl;
 
 class CPluginEngine final
 {
@@ -46,14 +47,14 @@ public:
 private:
 	struct LoadedPlugin
 	{
-		LoadedPlugin(std::unique_ptr<QLibrary> module, std::unique_ptr<CPluginProxy> proxy,
+		LoadedPlugin(std::unique_ptr<QLibrary> module, std::unique_ptr<CPluginProxyImpl> proxy,
 			std::unique_ptr<CFileCommanderPlugin> instance) noexcept;
 		LoadedPlugin(LoadedPlugin&&) noexcept = default;
 		~LoadedPlugin();
 
 		// ~LoadedPlugin destroys the proxy first to retire its tasks while the instance and module are still alive.
 		std::unique_ptr<QLibrary> module;
-		std::unique_ptr<CPluginProxy> proxy;
+		std::unique_ptr<CPluginProxyImpl> proxy;
 		std::unique_ptr<CFileCommanderPlugin> instance;
 	};
 

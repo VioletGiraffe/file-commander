@@ -1,7 +1,7 @@
 #include "cpluginengine.h"
+#include "cpluginproxyimpl.h"
 
 #include "plugininterface/cfilecommanderviewerplugin.h"
-#include "plugininterface/cpluginproxy.h"
 
 
 // Submodule includes
@@ -19,7 +19,7 @@ RESTORE_COMPILER_WARNINGS
 CPluginEngine::CPluginEngine(CController& controller) noexcept : _controller(controller) {}
 CPluginEngine::~CPluginEngine() = default;
 
-CPluginEngine::LoadedPlugin::LoadedPlugin(std::unique_ptr<QLibrary> module_, std::unique_ptr<CPluginProxy> proxy_,
+CPluginEngine::LoadedPlugin::LoadedPlugin(std::unique_ptr<QLibrary> module_, std::unique_ptr<CPluginProxyImpl> proxy_,
 	std::unique_ptr<CFileCommanderPlugin> instance_) noexcept :
 	module(std::move(module_)), proxy(std::move(proxy_)), instance(std::move(instance_))
 {
@@ -80,7 +80,7 @@ void CPluginEngine::loadPlugins()
 			continue;
 		}
 
-		auto proxy = std::make_unique<CPluginProxy>(_controller);
+		auto proxy = std::make_unique<CPluginProxyImpl>(_controller);
 		plugin->setProxy(proxy.get()); // Runs the plugin's proxySet(), so the proxy must be complete by now
 		qInfo().noquote() << QStringLiteral("Loaded plugin \"%1\" (%2)").arg(plugin->name(), absolutePath);
 		_plugins.emplace_back(std::move(pluginModule), std::move(proxy), std::move(plugin));
@@ -105,8 +105,8 @@ std::vector<std::vector<CPluginProxy::MenuTree>> CPluginEngine::toolMenuEntries(
 	std::vector<std::vector<CPluginProxy::MenuTree>> entries;
 	for (const auto& plugin: _plugins)
 	{
-		if (!plugin.proxy->_toolMenuEntries.empty())
-			entries.push_back(plugin.proxy->_toolMenuEntries);
+		if (!plugin.proxy->toolMenuEntries().empty())
+			entries.push_back(plugin.proxy->toolMenuEntries());
 	}
 
 	return entries;

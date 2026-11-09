@@ -1,4 +1,4 @@
-#include "cpluginproxy.h"
+#include "cpluginproxyimpl.h"
 
 #include "ccontroller.h"
 
@@ -34,45 +34,50 @@ namespace {
 }
 }
 
-CPluginProxy::CPluginProxy(CController& controller) noexcept : _controller(controller)
+CPluginProxyImpl::CPluginProxyImpl(CController& controller) noexcept : _controller(controller)
 {
 }
 
-CPluginProxy::~CPluginProxy()
+CPluginProxyImpl::~CPluginProxyImpl()
 {
 	unsubscribeFromPanelContents();
 	_controller.threadPool().retire(taskTag());
 }
 
-void CPluginProxy::subscribeToPanelContents(PanelContentsListener listener)
+void CPluginProxyImpl::subscribeToPanelContents(PanelContentsListener listener)
 {
 	_controller.subscribeToPanelContents(this, [listener = std::move(listener)](Panel p, const QString& folder, const FileListHashMap& contents) {
 		listener(pluginPanel(p), folder, contents);
 	});
 }
 
-void CPluginProxy::unsubscribeFromPanelContents()
+void CPluginProxyImpl::unsubscribeFromPanelContents()
 {
 	_controller.unsubscribeFromPanelContents(this);
 }
 
-void CPluginProxy::createToolMenuEntries(const std::vector<MenuTree>& menuTrees)
+void CPluginProxyImpl::createToolMenuEntries(const std::vector<MenuTree>& menuTrees)
 {
 	for (const auto& menuTree : menuTrees)
 		_toolMenuEntries.push_back(menuTree);
 }
 
-void CPluginProxy::createToolMenuEntries(const MenuTree& menuTree)
+void CPluginProxyImpl::createToolMenuEntries(const MenuTree& menuTree)
 {
 	_toolMenuEntries.push_back(menuTree);
 }
 
-PanelPosition CPluginProxy::currentPanel() const
+const std::vector<CPluginProxy::MenuTree>& CPluginProxyImpl::toolMenuEntries() const noexcept
+{
+	return _toolMenuEntries;
+}
+
+PanelPosition CPluginProxyImpl::currentPanel() const
 {
 	return pluginPanel(_controller.activePanelPosition());
 }
 
-PanelPosition CPluginProxy::otherPanel() const
+PanelPosition CPluginProxyImpl::otherPanel() const
 {
 	switch (currentPanel())
 	{
@@ -85,53 +90,53 @@ PanelPosition CPluginProxy::otherPanel() const
 	}
 }
 
-QString CPluginProxy::currentFolderPathForPanel(const PanelPosition panel) const
+QString CPluginProxyImpl::currentFolderPathForPanel(const PanelPosition panel) const
 {
 	return _controller.currentFolderPath(corePanel(panel));
 }
 
-QString CPluginProxy::currentItemPathForPanel(const PanelPosition panel) const
+QString CPluginProxyImpl::currentItemPathForPanel(const PanelPosition panel) const
 {
 	return currentItemForPanel(panel).fullAbsolutePath();
 }
 
-CFileSystemObject CPluginProxy::currentItemForPanel(const PanelPosition panel) const
+CFileSystemObject CPluginProxyImpl::currentItemForPanel(const PanelPosition panel) const
 {
 	return _controller.currentItem(corePanel(panel));
 }
 
-std::vector<qulonglong> CPluginProxy::selectedItemsForPanel(const PanelPosition panel) const
+std::vector<qulonglong> CPluginProxyImpl::selectedItemsForPanel(const PanelPosition panel) const
 {
 	return _controller.selectedItemsHashes(corePanel(panel));
 }
 
-CFileSystemObject CPluginProxy::currentItem() const
+CFileSystemObject CPluginProxyImpl::currentItem() const
 {
 	return _controller.currentItem();
 }
 
-QString CPluginProxy::currentItemPath() const
+QString CPluginProxyImpl::currentItemPath() const
 {
 	return currentItem().fullAbsolutePath();
 }
 
-void CPluginProxy::execOnUiThread(const std::function<void()>& code)
+void CPluginProxyImpl::execOnUiThread(const std::function<void()>& code)
 {
 	_controller.execOnUiThread(code);
 }
 
-void CPluginProxy::enqueue(std::function<void()> task)
+void CPluginProxyImpl::enqueue(std::function<void()> task)
 {
 	_controller.threadPool().enqueue(std::move(task), taskTag());
 }
 
-void CPluginProxy::parallelFor(size_t count, const std::function<void(size_t)>& fn)
+void CPluginProxyImpl::parallelFor(size_t count, const std::function<void(size_t)>& fn)
 {
 	_controller.threadPool().parallelFor(count, fn);
 }
 
-uint64_t CPluginProxy::taskTag() const noexcept
+uint64_t CPluginProxyImpl::taskTag() const noexcept
 {
-	// Reuse-safe: ~CPluginProxy retires this tag before the address can be recycled by another proxy.
+	// Reuse-safe: ~CPluginProxyImpl retires this tag before the address can be recycled by another proxy.
 	return reinterpret_cast<uint64_t>(this);
 }

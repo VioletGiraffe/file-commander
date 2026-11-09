@@ -11,7 +11,6 @@ SOURCES += \
 	src/plugininterface/cfilecommanderplugin.cpp \
 	src/plugininterface/cfilecommanderviewerplugin.cpp \
 	src/plugininterface/cfileviewer.cpp \
-	src/plugininterface/cpluginproxy.cpp \
 	src/plugininterface/cfilecommandertoolplugin.cpp
 
 win*{
