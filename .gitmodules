@@ -26,3 +26,6 @@
 [submodule "file-operations"]
 	path = file-operations
 	url = https://github.com/VioletGiraffe/file-operations
+[submodule "tvision"]
+	path = tvision
+	url = https://github.com/magiblot/tvision.git
