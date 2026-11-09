@@ -20,10 +20,6 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <utility>
 
-// sort() and sortColumn() cast between columns and sort fields
-static_assert((int)FileListSortField::Name == NameColumn && (int)FileListSortField::Extension == ExtColumn);
-static_assert((int)FileListSortField::Size == SizeColumn && (int)FileListSortField::Date == DateColumn);
-
 static QVariant displayText(const CFileSystemObject& row, int column)
 {
 	switch (column)
@@ -267,11 +263,6 @@ void CFileListModel::setNameFilter(const QString& wildcard)
 	relayout(QAbstractItemModel::NoLayoutChangeHint);
 }
 
-const QString& CFileListModel::nameFilter() const noexcept
-{
-	return _nameFilter.wildcard();
-}
-
 void CFileListModel::sort(int column, Qt::SortOrder order)
 {
 	assert_and_return_r(column < NumberOfColumns, );
@@ -279,7 +270,7 @@ void CFileListModel::sort(int column, Qt::SortOrder order)
 	// A negative column is QTreeView asking for no sort column: the rows keep their order
 	if (column >= 0 && (column != sortColumn() || order != sortOrder()))
 	{
-		_sorter.setSorting(static_cast<FileListSortField>(column), order);
+		_sorter.setSorting(sortFieldOf(column), order);
 		relayout(QAbstractItemModel::VerticalSortHint);
 	}
 
@@ -288,7 +279,7 @@ void CFileListModel::sort(int column, Qt::SortOrder order)
 
 int CFileListModel::sortColumn() const noexcept
 {
-	return (int)_sorter.sortField();
+	return columnOf(_sorter.sortField());
 }
 
 Qt::SortOrder CFileListModel::sortOrder() const noexcept
@@ -538,17 +529,7 @@ void CFileListModel::updateContentsSummary()
 {
 	_contentsSummary = {};
 	for (const CFileSystemObject& row : _rows)
-	{
-		if (row.isCdUp())
-			continue;
-
-		if (row.type() == File)
-			++_contentsSummary.numFiles;
-		else if (row.isDir())
-			++_contentsSummary.numFolders;
-
-		_contentsSummary.size += row.size();
-	}
+		_contentsSummary.add(row);
 }
 
 void CFileListModel::relayout(QAbstractItemModel::LayoutChangeHint hint)

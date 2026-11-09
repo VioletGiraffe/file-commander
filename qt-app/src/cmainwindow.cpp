@@ -353,7 +353,8 @@ void CMainWindow::tabKeyPressed()
 	_otherFileList->setFocusToFileList();
 }
 
-bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory)
+bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory,
+	std::function<void(const OperationSummary&)> onCompletion)
 {
 	if (sources.empty() || destinationDirectory.isEmpty())
 		return false;
@@ -390,6 +391,7 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 		closeViewedFilesWithin(sourcePaths);
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
+	dialog->setCompletionHandler(std::move(onCompletion));
 	registerFileOperationDialog(dialog);
 	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 	return true;
@@ -711,14 +713,31 @@ void CMainWindow::splitterContextMenuRequested(QPoint pos)
 
 void CMainWindow::copySelectedFiles()
 {
-	if (_currentFileList && _otherFileList)
-		launchFileTransfer(TransferKind::Copy, _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDirPathNative());
+	if (!_currentFileList || !_otherFileList)
+		return;
+
+	const Panel p = _currentFileList->panelPosition();
+	std::vector<CFileSystemObject> sources = _controller->panel(p).selectedItemsOrCurrentItem();
+	std::vector<qulonglong> sourceHashes;
+	sourceHashes.reserve(sources.size());
+	for (const CFileSystemObject& source : sources)
+		sourceHashes.push_back(source.hash());
+
+	// A successful copy deselects its sources; a move or a deletion removes them, which deselects them too
+	launchFileTransfer(TransferKind::Copy, std::move(sources), _otherFileList->currentDirPathNative(),
+		[this, p, tabId = _controller->activeTabId(p), sourceHashes = std::move(sourceHashes)](const OperationSummary& summary) {
+			if (summary.status != CompletionStatus::Completed || summary.failedItems != 0 || summary.skippedItems != 0)
+				return;
+
+			_controller->deselectItems(p, tabId, sourceHashes);
+			(p == Panel::LeftPanel ? ui->leftPanel : ui->rightPanel)->applyCoreSelection();
+		});
 }
 
 void CMainWindow::moveSelectedFiles()
 {
 	if (_currentFileList && _otherFileList)
-		launchFileTransfer(TransferKind::Move, _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()), _otherFileList->currentDirPathNative());
+		launchFileTransfer(TransferKind::Move, _controller->panel(_currentFileList->panelPosition()).selectedItemsOrCurrentItem(), _otherFileList->currentDirPathNative());
 }
 
 void CMainWindow::deleteFiles()
@@ -736,7 +755,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 	if (!_currentFileList)
 		return;
 
-	auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
+	const auto items = _controller->panel(_currentFileList->panelPosition()).selectedItemsOrCurrentItem();
 	if (items.empty())
 		return;
 
@@ -1148,7 +1167,7 @@ PlaceholderValues CMainWindow::placeholderValues() const
 		.otherItem = cursorItemPath(_otherFileList),
 	};
 
-	for (const CFileSystemObject& item : _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes()))
+	for (const CFileSystemObject& item : _controller->panel(_currentFileList->panelPosition()).selectedItemsOrCurrentItem())
 		values.selection.push_back(item.fullAbsolutePath());
 
 	return values;
@@ -1180,7 +1199,7 @@ void CMainWindow::findFiles()
 		return;
 
 	std::vector<QString> selectedPaths;
-	for (const CFileSystemObject& item : _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes(true)))
+	for (const CFileSystemObject& item : _controller->panel(_currentFileList->panelPosition()).selectedItems())
 		selectedPaths.push_back(item.fullAbsolutePath());
 
 	if (selectedPaths.empty())
@@ -1222,7 +1241,7 @@ void CMainWindow::calculateStatistics()
 	if (!_currentFileList)
 		return;
 
-	const auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
+	const auto items = _controller->panel(_currentFileList->panelPosition()).selectedItemsOrCurrentItem();
 	std::vector<QString> paths;
 	paths.reserve(items.size());
 	for (const CFileSystemObject& item : items)
@@ -1279,7 +1298,7 @@ void CMainWindow::batchRename()
 	if (!_currentFileList)
 		return;
 
-	const auto items = _controller->items(_currentFileList->panelPosition(), _currentFileList->selectedItemsHashes());
+	const auto items = _controller->panel(_currentFileList->panelPosition()).selectedItemsOrCurrentItem();
 	if (items.empty())
 		return;
 

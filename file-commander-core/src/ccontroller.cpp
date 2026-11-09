@@ -36,27 +36,49 @@ namespace {
 		qulonglong id = 0; // 0 when the entry predates ids: the caller assigns a fresh one
 		qulonglong cursorHash = 0;
 		QString path;
+		std::optional<std::pair<FileListSortField, Qt::SortOrder>> sorting; // Absent from entries that predate it
 	};
 
-	[[nodiscard]] QString encodeTabRecord(qulonglong id, qulonglong cursorHash, const QString& path) {
-		return QString::number(id) + ':' + QString::number(cursorHash) + ':' + path;
+	[[nodiscard]] QString encodeTabRecord(qulonglong id, qulonglong cursorHash, FileListSortField sortField, Qt::SortOrder sortOrder, const QString& path) {
+		return QString::number(id) + ':' + QString::number(cursorHash) + ':' + QString::number((int)sortField) + ':' + QString::number((int)sortOrder) + ':' + path;
 	}
 
-	// A stored path is always absolute, so it cannot imitate the "<digits>:<digits>:" prefix: on Windows the drive
-	// is a letter, elsewhere the path starts with '/'. Anything that fails to match is therefore a pre-id record.
+	// The number between 'from' and the next ':' in 'record'; on success, advances 'from' past that ':'
+	[[nodiscard]] std::optional<qulonglong> takeNumericField(const QString& record, qsizetype& from) {
+		const qsizetype end = record.indexOf(':', from);
+		if (end <= from)
+			return std::nullopt;
+
+		bool parsed = false;
+		const qulonglong value = QStringView{ record }.sliced(from, end - from).toULongLong(&parsed);
+		if (!parsed)
+			return std::nullopt;
+
+		from = end + 1;
+		return value;
+	}
+
+	// A stored path is always absolute, so it cannot imitate a "<digits>:" field: on Windows the drive is a letter,
+	// elsewhere the path starts with '/'. A record without the id and cursor fields is therefore a pre-id record,
+	// and one without the two sorting fields after them predates those.
 	[[nodiscard]] PersistedTab parseTabRecord(const QString& record) {
-		const qsizetype idEnd = record.indexOf(':');
-		const qsizetype cursorEnd = idEnd > 0 ? record.indexOf(':', idEnd + 1) : -1;
-		if (cursorEnd <= idEnd)
-			return { 0, 0, record };
+		qsizetype position = 0;
+		const auto id = takeNumericField(record, position);
+		const auto cursorHash = id ? takeNumericField(record, position) : std::nullopt;
+		if (!cursorHash || *id == 0)
+			return { .path = record };
 
-		bool idParsed = false, cursorParsed = false;
-		const qulonglong id = QStringView{ record }.left(idEnd).toULongLong(&idParsed);
-		const qulonglong cursorHash = QStringView{ record }.sliced(idEnd + 1, cursorEnd - idEnd - 1).toULongLong(&cursorParsed);
-		if (!idParsed || !cursorParsed || id == 0)
-			return { 0, 0, record };
+		PersistedTab tab{ .id = *id, .cursorHash = *cursorHash };
+		const qsizetype sortingStart = position;
+		const auto sortField = takeNumericField(record, position);
+		const auto sortOrder = sortField ? takeNumericField(record, position) : std::nullopt;
+		if (sortOrder && *sortField <= (qulonglong)FileListSortField::Date && *sortOrder <= (qulonglong)Qt::DescendingOrder)
+			tab.sorting.emplace((FileListSortField)*sortField, (Qt::SortOrder)*sortOrder);
+		else
+			position = sortingStart;
 
-		return { id, cursorHash, record.sliced(cursorEnd + 1) };
+		tab.path = record.sliced(position);
+		return tab;
 	}
 
 	inline uint32_t optimalCpuCount() {
@@ -139,8 +161,6 @@ void CController::shutdown()
 		tabList.tabs.clear();
 	_listingThreadPool.finishAllThreads(false);
 	_activePanel = Panel::UnknownPanel;
-	for (auto& selection : _selectedItemsHashes)
-		selection.clear();
 
 	for (auto& listeners : _panelContentsListeners)
 		listeners.clear();
@@ -498,6 +518,8 @@ void CController::restorePanelState(Panel p)
 		CPanel& tab = createTab(p, persisted.id);
 		if (i == activeIndex)
 			tab.restoreHistory(history);
+		if (persisted.sorting)
+			tab.setSorting(persisted.sorting->first, persisted.sorting->second);
 		// Seed the cursor before the folder is listed: the listing reads it back to position the cursor.
 		if (persisted.cursorHash != 0)
 			tab.setCurrentItemHashForFolder(persisted.path, persisted.cursorHash, false);
@@ -524,7 +546,7 @@ void CController::savePanelState(Panel p)
 	for (const auto& tab : tabList.tabs)
 	{
 		const QString path = tab->currentDirPathPosix();
-		tabRecords.push_back(encodeTabRecord(tab->id(), tab->currentItemHashForFolder(path), path));
+		tabRecords.push_back(encodeTabRecord(tab->id(), tab->currentItemHashForFolder(path), tab->sortField(), tab->sortOrder(), path));
 	}
 	const int activeIndex = (int)tabList.activeTab;
 
@@ -667,13 +689,22 @@ void CController::activePanelChanged(Panel p)
 	_activePanel = p;
 }
 
-void CController::selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes)
+void CController::setTabSorting(Panel p, qulonglong tabId, FileListSortField field, Qt::SortOrder order)
 {
-	std::unique_lock lock(_pluginAccessMutex);
-	if (_panels[(size_t)p].tabs.empty())
+	const auto index = tabIndexById(p, tabId);
+	assert_and_return_r(index, );
+	CPanel& tab = *_panels[(size_t)p].tabs[*index];
+	if (tab.sortField() == field && tab.sortOrder() == order)
 		return;
 
-	_selectedItemsHashes[(size_t)p] = selectedItemsHashes;
+	tab.setSorting(field, order);
+	savePanelState(p);
+}
+
+void CController::deselectItems(Panel p, qulonglong tabId, const std::vector<qulonglong>& hashes)
+{
+	if (const auto index = tabIndexById(p, tabId))
+		_panels[(size_t)p].tabs[*index]->setItemsSelected(hashes, false);
 }
 
 // Navigates specified panel up the directory tree
@@ -874,7 +905,10 @@ std::vector<qulonglong> CController::selectedItemsHashes(Panel p) const
 		return {};
 
 	std::shared_lock lock(_pluginAccessMutex);
-	return _selectedItemsHashes[(size_t)p];
+	if (_panels[(size_t)p].tabs.empty())
+		return {};
+
+	return panel(p).selectedItemHashes();
 }
 
 QString CController::currentFolderPath(Panel p) const
@@ -904,11 +938,6 @@ CFileSystemObject CController::currentItem(Panel p) const
 CFileSystemObject CController::itemByHash( Panel p, qulonglong hash ) const
 {
 	return panel(p).itemByHash(hash);
-}
-
-std::vector<CFileSystemObject> CController::items(Panel p, const std::vector<qulonglong>& hashes) const
-{
-	return panel(p).itemsByHashes(hashes);
 }
 
 std::vector<VolumeInfo> CController::volumes() const

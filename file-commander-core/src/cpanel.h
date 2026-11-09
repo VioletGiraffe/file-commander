@@ -3,6 +3,9 @@
 #include "cfilesystemobject.h"
 #include "fileoperationresultcode.h"
 #include "detail/file_list_hashmap.h"
+#include "filelist/filelistsorter.h"
+#include "filelist/filenamefilter.h"
+#include "filelist/foldercontentssummary.h"
 #include "filesystemwatcher/cfilesystemwatcher.h"
 
 
@@ -120,6 +123,7 @@ public:
 	void setCurrentItemHashForFolder(const QString& dir, qulonglong currentItemHash, bool notifyUi = true);
 	// Returns hash of an item that was the last selected in the specified dir
 	[[nodiscard]] qulonglong currentItemHashForFolder(const QString& dir) const;
+	// Empty when the name filter hides it
 	[[nodiscard]] CFileSystemObject currentItem() const;
 
 	// Enumerates objects in the current directory
@@ -133,8 +137,28 @@ public:
 
 	[[nodiscard]] bool itemHashExists(qulonglong hash) const;
 	[[nodiscard]] CFileSystemObject itemByHash(qulonglong hash) const;
-	// Resolves all hashes against one listing: empty if none belongs to the current view; skips hashes not in it
-	[[nodiscard]] std::vector<CFileSystemObject> itemsByHashes(const std::vector<qulonglong>& hashes) const;
+
+// View criteria: a front end shows the listing through them, and the selection and the command targets below obey them
+	// Hides the items whose full name doesn't match; empty shows every item. Deselects the items it hides.
+	void setNameFilter(const QString& wildcard);
+	[[nodiscard]] QString nameFilter() const;
+	void setSorting(FileListSortField field, Qt::SortOrder order);
+	[[nodiscard]] FileListSortField sortField() const;
+	[[nodiscard]] Qt::SortOrder sortOrder() const;
+
+// Selection: items of the committed listing, never [..] and never an item the name filter hides.
+// A new listing keeps the selected items it still has at the same path, so a navigation to another folder clears it.
+	// Ignores the hashes it cannot select
+	void setItemsSelected(const std::vector<qulonglong>& hashes, bool selected);
+	// Toggles every item it can select
+	void invertSelection();
+	// Empty while the committed listing does not belong to the current view
+	[[nodiscard]] std::vector<qulonglong> selectedItemHashes() const;
+	// In display order
+	[[nodiscard]] std::vector<CFileSystemObject> selectedItems() const;
+	// selectedItems(), or with nothing selected the current item, unless that is [..] or hidden
+	[[nodiscard]] std::vector<CFileSystemObject> selectedItemsOrCurrentItem() const;
+	[[nodiscard]] FolderContentsSummary selectionSummary() const;
 
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);
@@ -162,6 +186,10 @@ private:
 	void moveToFolder(FolderResolution resolution, FileListRefreshCause operation);
 	// Runs on the worker that found request's folder inaccessible
 	void recoverFromInaccessibleFolder(const FileListUpdateRequest& request);
+
+	[[nodiscard]] CFileSystemObject currentItemLocked() const;
+	[[nodiscard]] bool isSelectableLocked(const CFileSystemObject& item) const;
+	[[nodiscard]] std::vector<CFileSystemObject> selectedItemsInDisplayOrder(bool orCurrentItem) const;
 
 	[[nodiscard]] FileListUpdateRequest beginFileListUpdateLocked(CurrentDisplayMode displayMode);
 	[[nodiscard]] bool fileListUpdateIsCurrentLocked(const FileListUpdateRequest& request) const;
@@ -199,6 +227,12 @@ private:
 	CHistoryList<QString>                      _history;
 	// Protected by _fileListAndCurrentDirMutex so the plugin-facing current-item snapshot is coherent with the list.
 	ankerl::unordered_dense::segmented_map<QString, qulonglong /*hash*/, QStringHash> _currentItemHashForFolder;
+	// The selection and the view criteria are protected by _fileListAndCurrentDirMutex: plugins read the selection from
+	// worker threads, and committing a listing on a worker prunes it
+	ankerl::unordered_dense::set<qulonglong, identity_hash> _selectedItemHashes;
+	FileNameFilter                             _nameFilter;
+	FileListSortField                          _sortField = FileListSortField::Extension; // A new tab's sorting
+	Qt::SortOrder                              _sortOrder = Qt::AscendingOrder;
 	CallbackCaller<PanelContentsChangedListener> _panelContentsChangedListeners;
 	CallbackCaller<CurrentItemChangedListener> _currentItemChangedListeners;
 	CallbackCaller<CurrentPathChangedListener> _currentPathChangedListeners;

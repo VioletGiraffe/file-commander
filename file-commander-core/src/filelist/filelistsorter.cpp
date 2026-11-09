@@ -6,6 +6,9 @@
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
 
 
+#include <algorithm>
+#include <numeric>
+#include <stdint.h>
 #include <utility>
 
 bool isFileOrBundle(const CFileSystemObject& row) noexcept
@@ -76,6 +79,27 @@ bool FileListSorter::lessThan(const CFileSystemObject& l, const FileListSortKeys
 		result = l.fullAbsolutePath().compare(r.fullAbsolutePath());
 
 	return _sortOrder == Qt::AscendingOrder ? result < 0 : result > 0;
+}
+
+void FileListSorter::sort(std::vector<CFileSystemObject>& rows)
+{
+	std::vector<FileListSortKeys> keys;
+	keys.reserve(rows.size());
+	for (const CFileSystemObject& row : rows)
+		keys.push_back(sortKeysFor(row));
+
+	std::vector<uint32_t> order(rows.size());
+	std::iota(order.begin(), order.end(), 0u);
+	std::ranges::sort(order, [&](uint32_t l, uint32_t r) {
+		return lessThan(rows[l], keys[l], rows[r], keys[r]);
+	});
+
+	std::vector<CFileSystemObject> sortedRows;
+	sortedRows.reserve(rows.size());
+	for (const uint32_t index : order)
+		sortedRows.push_back(std::move(rows[index]));
+
+	rows = std::move(sortedRows);
 }
 
 int FileListSorter::compareBySortField(const CFileSystemObject& l, const FileListSortKeys& lKeys, const CFileSystemObject& r, const FileListSortKeys& rKeys) const

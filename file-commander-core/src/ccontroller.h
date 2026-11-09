@@ -100,8 +100,10 @@ public:
 	std::pair<bool /*success*/, QString/*volume root path*/> switchToVolume(Panel p, uint64_t id);
 	// Focus is set to a panel
 	void activePanelChanged(Panel p);
-	// Visible selection is UI-owned; mirror it into the plugin-facing panel snapshot.
-	void selectionChanged(Panel p, const std::vector<qulonglong>& selectedItemsHashes);
+	// The tab's sorting is persisted with it
+	void setTabSorting(Panel p, qulonglong tabId, FileListSortField field, Qt::SortOrder order);
+	// No-op if the tab has been closed
+	void deselectItems(Panel p, qulonglong tabId, const std::vector<qulonglong>& hashes);
 
 // Operations
 	// Navigates specified panel up the directory tree
@@ -158,13 +160,12 @@ public:
 	// survives tab close/open). Powers the path navigator's quick-revisit dropdown.
 	[[nodiscard]] const CHistoryList<QString>& visitedLocations(Panel p) const;
 
-	// Mirror of the UI's selection, for the plugin API; the UI remains its owner.
+	// The active tab's selection; safe to call from a plugin's worker thread
 	[[nodiscard]] std::vector<qulonglong> selectedItemsHashes(Panel p) const;
 	[[nodiscard]] QString currentFolderPath(Panel p) const;
 	[[nodiscard]] CFileSystemObject currentItem(Panel p) const;
 
 	[[nodiscard]] CFileSystemObject itemByHash(Panel p, qulonglong hash) const;
-	[[nodiscard]] std::vector<CFileSystemObject> items(Panel p, const std::vector<qulonglong> &hashes) const;
 
 
 	[[nodiscard]] std::vector<VolumeInfo> volumes() const;
@@ -236,9 +237,6 @@ private:
 	std::array<std::vector<CurrentItemChangedListener*>, 2> _currentItemChangedListeners;
 	std::array<QString, 2> _lastSavedTabSignature; // The last state savePanelState wrote successfully: avoids rewriting settings on every watcher refresh
 	std::array<CHistoryList<QString>, 2> _visitedLocations; // Per-side, tab-independent visited-folders log; see visitedLocations()
-	// TODO: pushed in by the UI because the selection lives there; it should be pulled like everything else once
-	// the core owns the selection. Protected by _pluginAccessMutex because plugins may query it from worker threads.
-	std::array<std::vector<qulonglong>, 2> _selectedItemsHashes; // See selectedItemsHashes()
 	struct PanelContentsSubscription {
 		const CPluginProxy* subscriber;
 		PanelContentsSubscriber callback;

@@ -47,12 +47,14 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 
 ## Lock and teardown boundaries
 
-- `CPanel::_fileListAndCurrentDirMutex` protects directory/list state and the per-folder current-item map. Panel
+- `CPanel::_fileListAndCurrentDirMutex` protects directory/list state, the per-folder current-item map, and the
+  tab's selection, name filter and sorting: a commit on a worker prunes the selection, and plugins read it from
+  their threads. Panel
   worker tasks take their watcher baseline and enumerate the directory outside it; never widen a worker's critical
   section to cover either. `setPath` checks which folder to move to before taking it, and holds it while arming the
   watcher, a blocking call. A listing that finds its folder inaccessible searches for another folder on its worker,
   not on the UI thread.
-- `CController::_pluginAccessMutex` protects active-tab structure, visible active-panel/selection state, and the
+- `CController::_pluginAccessMutex` protects active-tab structure, the active-panel state, and the
   panel/UI lifetime gate. Plugin-facing panel queries and UI enqueue hold it shared; tab/state mutations hold it
   exclusively.
   Shutdown holds it exclusively through panel teardown and establishes the empty-panel/unknown-active-panel

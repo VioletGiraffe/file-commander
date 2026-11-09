@@ -75,8 +75,9 @@ public:
 	[[nodiscard]] CFileListView* fileListView() const;
 	[[nodiscard]] QAbstractItemModel* model() const;
 
-// Selection
-	[[nodiscard]] std::vector<qulonglong> selectedItemsHashes(bool onlyHighlightedItems = false) const;
+// Selection: the active tab's CPanel owns it, the view shows a copy
+	// Copies the selection from the core into the view
+	void applyCoreSelection();
 	[[nodiscard]] qulonglong currentItemHash() const;
 	void invertSelection();
 	void moveCursorToFirstFile(); // Scrolls past the folders (they always sort on top) and puts the cursor on the first file
@@ -127,8 +128,6 @@ private:
 	void recordCurrentItem(const QModelIndex& current);
 	void fillHistory();
 	void updateInfoLabel();
-	// The selected rows in display order, or with none selected and onlyHighlightedItems false, the row under the cursor; never [..]
-	[[nodiscard]] QModelIndexList selectedItemIndexes(bool onlyHighlightedItems = false) const;
 
 // Callbacks
 	bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item) override;
@@ -139,7 +138,7 @@ private:
 // Internal methods
 	// Copies or moves the local files among urls; an empty destinationPath means the current folder
 	bool dropUrls(const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath);
-	// The items of selectedItemIndexes(); cut: a paste moves them instead of copying
+	// The selected items, or the item under the cursor; cut: a paste moves them instead of copying
 	void putSelectionOnClipboard(bool cut) const;
 
 	void updateCurrentVolumeButtonAndInfoLabel();
@@ -161,14 +160,13 @@ private:
 	};
 	// A tab's persisted appearance. The defaults are what a tab gets with nothing stored for it.
 	struct TabViewState {
-		int sortColumn = ExtColumn;
-		Qt::SortOrder sortOrder = Qt::AscendingOrder;
 		CFileListView::ColumnLayout columnLayout;
+		// Only in settings written before the core stored each tab's sorting: initPanel() hands it to the core
+		std::optional<std::pair<FileListSortField, Qt::SortOrder>> legacySorting;
 	};
-	// Wires a model and its selection model into an already-emplaced tab (not shown yet). The tab's sort
-	// is independent from every other tab's from here on, so viewState only seeds it; see activateTab.
-	void populateTabModels(PanelTab& tab, const TabViewState& viewState);
-	[[nodiscard]] TabViewState viewStateOfTab(int index) const;  // What tab 'index' looks like right now
+	// Wires a model and its selection model into an already-emplaced tab (not shown yet), sorted as the core tab is
+	void populateTabModels(PanelTab& tab, qulonglong tabId, const CFileListView::ColumnLayout& columnLayout);
+	[[nodiscard]] CFileListView::ColumnLayout columnLayoutOfTab(int index) const; // What tab 'index' looks like right now
 	[[nodiscard]] std::vector<std::pair<qulonglong, TabViewState>> loadTabViewStates() const; // Persisted state by tab id; empty when nothing is stored
 	// Migration: older settings held QHeaderView::saveState() blobs, first one per side, then one per tab. Defaults for an unreadable blob.
 	[[nodiscard]] static TabViewState viewStateFromHeaderBlob(const QByteArray& blob);
@@ -184,8 +182,8 @@ private:
 	void updateTabText(int index);
 	[[nodiscard]] QString tabToolTipText(int index) const; // Tab's full path + folder contents stats, composed on hover
 	// Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab
-	// in the background. viewState is the new tab's appearance: the active tab's, except when duplicating another tab.
-	void openPathInNewTab(const QString& path, bool activate, const TabViewState& viewState);
+	// in the background. The new tab looks like tab sourceIndex: the active tab, except when duplicating another tab.
+	void openPathInNewTab(const QString& path, bool activate, int sourceIndex);
 	void tryOpenItemInNewTab(const QModelIndex& index, bool activate); // Opens the item in a new tab if it's a folder ([..] opens the parent)
 	void duplicateTab(int index);       // Tab context menu: opens a new tab showing the same path as tab 'index'
 	void closeAllOtherTabs(int index);  // Tab context menu: closes every tab except 'index'
@@ -205,5 +203,6 @@ private:
 	std::vector<PanelTab>           _tabs;
 	int                             _activeTab = -1;
 	qulonglong                      _lastSignalledCurrentItemHash = 0;
+	bool                            _applyingCoreSelection = false; // Stops selectionChanged() from pushing the copy back
 	Panel                           _panelPosition = Panel::UnknownPanel;
 };

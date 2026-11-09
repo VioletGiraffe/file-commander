@@ -18,9 +18,9 @@ duplicate tabs may show the same location.
 ## UI invariant
 
 `CPanelWidget` has one shared view and one model and selection model per tab. A model holds a copy of its rows,
-refilled only while its tab is on screen. Activation swaps the models and restores their sort and column layout;
-background notifications cannot touch them. The name filter is held by the model, so it is per tab; the side's one
-filter box is shown whenever the active tab is filtered.
+refilled only while its tab is on screen. Activation swaps the models and restores their column layout; background
+notifications cannot touch them. Each tab's `CPanel` holds its sorting, name filter and selection; the model and
+the selection model show copies. The side's one filter box is shown whenever the active tab is filtered.
 
 ## Lifetime and persistence
 
@@ -30,9 +30,9 @@ records the path as given, without reading the disk, so a tab restored from sett
 time it is activated. Activation arms the watch and lists the folder, which is also how a tab picks up changes made
 while it was inactive.
 
-`CController` persists one entry per tab -- id, path, cursor hash -- plus the active position and the id counter,
-including migration from legacy single-path settings. Its stack of each side's recently closed tab folders is not
-persisted. `CPanelWidget` persists each tab's sort and column layout against those ids. See
+`CController` persists one entry per tab -- id, path, cursor hash, sorting -- plus the active position and the id
+counter, including migration from legacy single-path settings. Its stack of each side's recently closed tab folders
+is not persisted. `CPanelWidget` persists each tab's column layout against those ids. See
 [persistence.md](persistence.md) for save timing and history scope.
 
 When changing tab creation, activation, close, or reorder, verify stable-ID mapping, core/UI ordering, active-model

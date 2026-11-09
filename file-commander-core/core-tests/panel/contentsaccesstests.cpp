@@ -9,31 +9,6 @@ TEST_CASE("CPanel - a panel with no committed listing exposes nothing", "[panel]
 	CHECK_FALSE(h.panel().itemByHash(1).isValid());
 }
 
-TEST_CASE("CPanel - itemsByHashes returns the requested items the current listing holds", "[panel][contents]")
-{
-	TempTree tree;
-	const QString file = tree.makeFile(QStringLiteral("a.txt"));
-	const QString sub = tree.makeDir(QStringLiteral("sub"));
-
-	PanelHarness h;
-	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
-	h.panel().setActive(true);
-	h.settle();
-
-	const std::vector<qulonglong> hashes{ hashOf(file), 1 /* in no listing */, hashOf(sub) };
-
-	const auto items = h.panel().itemsByHashes(hashes);
-	REQUIRE(items.size() == 2);
-	CHECK(items[0].fullAbsolutePath() == file);
-	CHECK(items[1].fullAbsolutePath() == sub + '/');
-
-	// Between folders no listing belongs to the view.
-	h.worker().close();
-	REQUIRE(h.panel().setPath(sub, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
-
-	CHECK(h.panel().itemsByHashes(hashes).empty());
-}
-
 TEST_CASE("CPanel - hidden entries follow the setting", "[panel][contents]")
 {
 	TempTree tree;

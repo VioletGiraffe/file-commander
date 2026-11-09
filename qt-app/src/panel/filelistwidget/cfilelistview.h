@@ -61,8 +61,6 @@ public:
 	// Preserves item's selection state
 	void moveCursorToItem(const QModelIndex &index, bool invertSelection = false);
 
-	void invertSelection();
-
 	void modelAboutToBeReset();
 
 	[[nodiscard]] bool editingInProgress() const;

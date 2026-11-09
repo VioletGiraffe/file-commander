@@ -63,7 +63,8 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 1. Until controller shutdown, each side owns at least one tab; a tab owns a `CPanel`.
    `CController::panel(side)` returns the active tab, while tab IDs remain stable across reordering.
 2. Each UI tab owns a model and a selection model (`CPanelWidget::PanelTab`). A model holds a copy of its rows,
-   refilled only while its tab is on screen; only the active tab's models are attached to the shared view.
+   refilled only while its tab is on screen; only the active tab's models are attached to the shared view. The tab's
+   sorting, name filter and selection belong to its `CPanel`; the models show copies.
 3. Filesystem items are keyed throughout the core, UI, selection state, and plugin API by their deterministic
    `qulonglong` path hash.
 4. Slow work returns to the UI through execution queues or typed events; see [threading.md](threading.md) before

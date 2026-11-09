@@ -1,0 +1,179 @@
+#include "paneltesthelpers.h"
+
+#include <algorithm>
+#include <vector>
+
+[[nodiscard]] static qulonglong cdUpHash(const CPanel& panel)
+{
+	qulonglong hash = 0;
+	panel.readCommittedContents([&hash](const QString&, const FileListHashMap& contents) {
+		for (const auto& [itemHash, item] : contents)
+		{
+			if (item.isCdUp())
+				hash = itemHash;
+		}
+	});
+	return hash;
+}
+
+[[nodiscard]] static std::vector<QString> pathsOf(const std::vector<CFileSystemObject>& items)
+{
+	std::vector<QString> paths;
+	for (const CFileSystemObject& item : items)
+		paths.push_back(item.fullAbsolutePath());
+	return paths;
+}
+
+[[nodiscard]] static std::vector<qulonglong> sorted(std::vector<qulonglong> hashes)
+{
+	std::ranges::sort(hashes);
+	return hashes;
+}
+
+// A listed panel showing tree's subfolder "folder": its listing has [..]
+struct ListedFolder
+{
+	TempTree tree;
+	const QString folder = tree.makeDir(QStringLiteral("folder"));
+	const QString a = tree.makeFile(QStringLiteral("folder/a.txt"), "1");
+	const QString b = tree.makeFile(QStringLiteral("folder/b.doc"), "22");
+	const QString sub = tree.makeDir(QStringLiteral("folder/sub"));
+	PanelHarness h;
+
+	ListedFolder()
+	{
+		REQUIRE(h.panel().setPath(folder, refreshCauseOther) == FileOperationResultCode::Ok);
+		h.panel().setActive(true);
+		h.settle();
+	}
+};
+
+TEST_CASE("CPanel - only listed items other than [..] can be selected", "[panel][selection]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+	const qulonglong cdUp = cdUpHash(panel);
+	REQUIRE(cdUp != 0);
+
+	panel.setItemsSelected({ hashOf(f.a), cdUp, 1 /* in no listing */, hashOf(f.sub) }, true);
+	CHECK(sorted(panel.selectedItemHashes()) == sorted({ hashOf(f.a), hashOf(f.sub) }));
+
+	panel.setItemsSelected({ hashOf(f.a) }, false);
+	CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.sub) });
+}
+
+TEST_CASE("CPanel - the name filter hides items from the selection and from the command targets", "[panel][selection][filter]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+	panel.setItemsSelected({ hashOf(f.a), hashOf(f.b) }, true);
+
+	panel.setNameFilter(QStringLiteral("*.txt"));
+	CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.a) });
+
+	// A hidden item cannot be selected
+	panel.setItemsSelected({ hashOf(f.b) }, true);
+	CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.a) });
+
+	// Showing it again does not select it again
+	panel.setNameFilter({});
+	CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.a) });
+
+	SECTION("A hidden current item is no command target")
+	{
+		panel.setItemsSelected({ hashOf(f.a) }, false);
+		panel.setCurrentItemHashForFolder(f.folder, hashOf(f.b), false);
+		CHECK(pathsOf(panel.selectedItemsOrCurrentItem()) == std::vector<QString>{ f.b });
+
+		panel.setNameFilter(QStringLiteral("*.txt"));
+		CHECK_FALSE(panel.currentItem().isValid());
+		CHECK(panel.selectedItemsOrCurrentItem().empty());
+	}
+}
+
+TEST_CASE("CPanel - the current item stands in for an empty selection, except [..]", "[panel][selection]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+
+	panel.setCurrentItemHashForFolder(f.folder, cdUpHash(panel), false);
+	CHECK(panel.selectedItemsOrCurrentItem().empty());
+	CHECK(panel.selectedItems().empty());
+
+	panel.setCurrentItemHashForFolder(f.folder, hashOf(f.a), false);
+	CHECK(pathsOf(panel.selectedItemsOrCurrentItem()) == std::vector<QString>{ f.a });
+	CHECK(panel.selectedItems().empty());
+
+	// A selection replaces the current item
+	panel.setItemsSelected({ hashOf(f.b) }, true);
+	CHECK(pathsOf(panel.selectedItemsOrCurrentItem()) == std::vector<QString>{ f.b });
+}
+
+TEST_CASE("CPanel - selected items come in display order", "[panel][selection][sort]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+	panel.setItemsSelected({ hashOf(f.b), hashOf(f.sub), hashOf(f.a) }, true);
+
+	// Folders first in either direction
+	panel.setSorting(FileListSortField::Name, Qt::AscendingOrder);
+	CHECK(pathsOf(panel.selectedItems()) == std::vector<QString>{ f.sub + '/', f.a, f.b });
+
+	panel.setSorting(FileListSortField::Size, Qt::DescendingOrder);
+	CHECK(pathsOf(panel.selectedItems()) == std::vector<QString>{ f.sub + '/', f.b, f.a });
+}
+
+TEST_CASE("CPanel - inverting the selection skips [..] and hidden items", "[panel][selection]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+	panel.setItemsSelected({ hashOf(f.a) }, true);
+	panel.setNameFilter(QStringLiteral("*.*"));
+
+	panel.invertSelection();
+	CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.b) });
+}
+
+TEST_CASE("CPanel - the selection summary counts files, folders and their size", "[panel][selection]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+	panel.setItemsSelected({ hashOf(f.a), hashOf(f.b), hashOf(f.sub) }, true);
+
+	const FolderContentsSummary summary = panel.selectionSummary();
+	CHECK(summary.numFiles == 2);
+	CHECK(summary.numFolders == 1);
+	CHECK(summary.size == 3);
+}
+
+TEST_CASE("CPanel - a refresh keeps the selected items it still lists", "[panel][selection]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+	panel.setItemsSelected({ hashOf(f.a), hashOf(f.b) }, true);
+
+	REQUIRE(QFile::remove(f.b));
+	panel.refreshFileList(refreshCauseOther);
+	f.h.settle();
+
+	CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.a) });
+}
+
+TEST_CASE("CPanel - navigating to another folder clears the selection", "[panel][selection]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+	panel.setItemsSelected({ hashOf(f.a) }, true);
+
+	// Nothing is selected while no listing belongs to the view
+	f.h.worker().close();
+	REQUIRE(panel.setPath(f.sub, refreshCauseForwardNavigation) == FileOperationResultCode::Ok);
+	CHECK(panel.selectedItemHashes().empty());
+	CHECK(panel.selectedItems().empty());
+	f.h.worker().open();
+	f.h.settle();
+
+	REQUIRE(panel.setPath(f.folder, refreshCauseCdUp) == FileOperationResultCode::Ok);
+	f.h.settle();
+	CHECK(panel.selectedItemHashes().empty());
+}

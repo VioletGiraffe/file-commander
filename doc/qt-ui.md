@@ -52,13 +52,18 @@ the view state. The Qt-specific activation ordering belongs in `CPanelWidget::ac
 
 Within one navigation (`CPanel::navigationId()`), a refill updates the model row by row: the selection, the cursor, an
 open rename editor and the rows on screen stay put. A navigation, even to the folder in view, resets the model, as does
-a refill changing too many rows for an update to pay off; the widget then places the cursor and restores the selection.
+a refill changing too many rows for an update to pay off; the widget then places the cursor.
 A cursor item the core designates (a created or renamed entry) is usually not listed yet: the tab holds it as a target
 until a refill lists it, a navigation starts, or the cursor is moved.
 
-`CFileListView` owns orthodox selection and keyboard/mouse behavior. The model holds a copy of the rows it displays,
-sorts and filters them by the core's rules (`file-commander-core/src/filelist/`), and depends on neither the controller
-nor the OS shell; delegates own painting. Drag/drop uses the same operation launch boundary as commands.
+`CFileListView` owns orthodox selection gestures and keyboard/mouse behavior. The model holds a copy of the rows it
+displays, sorts and filters them by the core's rules (`file-commander-core/src/filelist/`) with the tab's sorting and
+name filter, and depends on neither the controller nor the OS shell; delegates own painting. Drag/drop uses the same
+operation launch boundary as commands.
+
+The selection belongs to the tab's `CPanel`, and the selection model shows a copy. Gestures push their changes into
+the core from `selectionChanged`. After every refill and every change made through the core, the widget copies the
+core's selection back: Qt changes a selection silently on a layout change or a reset, so the copy never relies on it.
 
 ## File-operation UI
 

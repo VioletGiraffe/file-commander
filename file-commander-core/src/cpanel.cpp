@@ -384,6 +384,11 @@ qulonglong CPanel::currentItemHashForFolder(const QString &dir) const
 CFileSystemObject CPanel::currentItem() const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	return currentItemLocked();
+}
+
+CFileSystemObject CPanel::currentItemLocked() const
+{
 	if (!fileListBelongsToCurrentViewLocked())
 		return {};
 
@@ -392,7 +397,148 @@ CFileSystemObject CPanel::currentItem() const
 		return {};
 
 	const auto item = _items.find(currentHash->second);
-	return item != _items.end() ? item->second : CFileSystemObject{};
+	return item != _items.end() && _nameFilter.matches(item->second) ? item->second : CFileSystemObject{};
+}
+
+void CPanel::setNameFilter(const QString& wildcard)
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	_nameFilter.setWildcard(wildcard);
+	std::erase_if(_selectedItemHashes, [this](qulonglong hash) {
+		const auto item = _items.find(hash);
+		return item == _items.end() || !_nameFilter.matches(item->second);
+	});
+}
+
+QString CPanel::nameFilter() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	return _nameFilter.wildcard();
+}
+
+void CPanel::setSorting(FileListSortField field, Qt::SortOrder order)
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	_sortField = field;
+	_sortOrder = order;
+}
+
+FileListSortField CPanel::sortField() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	return _sortField;
+}
+
+Qt::SortOrder CPanel::sortOrder() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	return _sortOrder;
+}
+
+bool CPanel::isSelectableLocked(const CFileSystemObject& item) const
+{
+	return !item.isCdUp() && _nameFilter.matches(item);
+}
+
+void CPanel::setItemsSelected(const std::vector<qulonglong>& hashes, bool selected)
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!selected)
+	{
+		for (const qulonglong hash : hashes)
+			_selectedItemHashes.erase(hash);
+		return;
+	}
+
+	if (!fileListBelongsToCurrentViewLocked())
+		return;
+
+	for (const qulonglong hash : hashes)
+	{
+		if (const auto item = _items.find(hash); item != _items.end() && isSelectableLocked(item->second))
+			_selectedItemHashes.insert(hash);
+	}
+}
+
+void CPanel::invertSelection()
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return;
+
+	for (const auto& [hash, item] : _items)
+	{
+		if (isSelectableLocked(item) && _selectedItemHashes.erase(hash) == 0)
+			_selectedItemHashes.insert(hash);
+	}
+}
+
+std::vector<qulonglong> CPanel::selectedItemHashes() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return {};
+
+	return _selectedItemHashes.values();
+}
+
+std::vector<CFileSystemObject> CPanel::selectedItems() const
+{
+	return selectedItemsInDisplayOrder(false);
+}
+
+std::vector<CFileSystemObject> CPanel::selectedItemsOrCurrentItem() const
+{
+	return selectedItemsInDisplayOrder(true);
+}
+
+std::vector<CFileSystemObject> CPanel::selectedItemsInDisplayOrder(bool orCurrentItem) const
+{
+	std::vector<CFileSystemObject> items;
+	FileListSorter sorter;
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		if (!fileListBelongsToCurrentViewLocked())
+			return items;
+
+		items.reserve(_selectedItemHashes.size());
+		for (const qulonglong hash : _selectedItemHashes)
+		{
+			const auto item = _items.find(hash);
+			assert_and_return_r(item != _items.end(), {});
+			items.push_back(item->second);
+		}
+
+		if (items.empty() && orCurrentItem)
+		{
+			if (CFileSystemObject current = currentItemLocked(); current.isValid() && !current.isCdUp())
+				items.push_back(std::move(current));
+			return items;
+		}
+
+		sorter.setSorting(_sortField, _sortOrder);
+	}
+
+	// Outside the lock: collation keys take long for a large selection
+	sorter.sort(items);
+	return items;
+}
+
+FolderContentsSummary CPanel::selectionSummary() const
+{
+	FolderContentsSummary summary;
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return summary;
+
+	for (const qulonglong hash : _selectedItemHashes)
+	{
+		const auto item = _items.find(hash);
+		assert_and_return_r(item != _items.end(), summary);
+		summary.add(item->second);
+	}
+
+	return summary;
 }
 
 // Enumerates objects in the current directory
@@ -467,6 +613,13 @@ void CPanel::publishFileListIfCurrent(const FileListUpdateRequest& request, File
 		return false;
 	});
 
+	// The path check: a hash the new listing gives to another item is not the selected one
+	std::erase_if(_selectedItemHashes, [this, &items](qulonglong hash) {
+		const auto newItem = items.find(hash);
+		const auto oldItem = _items.find(hash);
+		return newItem == items.end() || oldItem == _items.end() || newItem->second.fullAbsolutePath() != oldItem->second.fullAbsolutePath();
+	});
+
 	_items.swap(items);
 	_itemsSourcePath = request.path;
 	_itemsSourceDisplayMode = request.displayMode;
@@ -532,24 +685,6 @@ CFileSystemObject CPanel::itemByHash(qulonglong hash) const
 
 	const auto it = _items.find(hash);
 	return it != _items.end() ? it->second : CFileSystemObject();
-}
-
-std::vector<CFileSystemObject> CPanel::itemsByHashes(const std::vector<qulonglong>& hashes) const
-{
-	std::vector<CFileSystemObject> items;
-
-	std::lock_guard locker(_fileListAndCurrentDirMutex);
-	if (!fileListBelongsToCurrentViewLocked())
-		return items;
-
-	items.reserve(hashes.size());
-	for (const qulonglong hash : hashes)
-	{
-		if (const auto it = _items.find(hash); it != _items.end())
-			items.push_back(it->second);
-	}
-
-	return items;
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification

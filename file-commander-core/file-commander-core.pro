@@ -28,6 +28,7 @@ HEADERS += \
 	src/panellisting.h \
 	src/filelist/filelistsorter.h \
 	src/filelist/filenamefilter.h \
+	src/filelist/foldercontentssummary.h \
 	src/diskenumerator/volumeinfo.hpp \
 	src/diskenumerator/cvolumeenumerator.h \
 	src/diskenumerator/volumeinfohelper.hpp \

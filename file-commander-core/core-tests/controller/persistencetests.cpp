@@ -97,30 +97,57 @@ TEST_CASE("CController - without the saved id counter, a new tab still gets an i
 	CHECK(session->addTab(Panel::LeftPanel, tree.path()) > std::ranges::max(restoredIds));
 }
 
-TEST_CASE("CController - saved tab records are read in both of their formats", "[controller][persistence]")
+TEST_CASE("CController - saved tab records are read in all of their formats", "[controller][persistence]")
 {
 	clearSavedState();
 	TempTree tree;
 	const QString folderA = tree.makeDir(QStringLiteral("a"));
 	const QString folderB = tree.makeDir(QStringLiteral("b"));
+	const QString folderC = tree.makeDir(QStringLiteral("c"));
 	const QString fileInA = tree.makeFile(QStringLiteral("a/a.txt"));
 
 	{
 		QSettings settings;
-		// "<id>:<cursor hash>:<path>", and a bare path from before tabs had ids
-		settings.setValue(KEY_LPANEL_TABS, QStringList{ QStringLiteral("7:%1:%2/").arg(hashOf(fileInA)).arg(folderA), folderB + '/' });
+		// "<id>:<cursor hash>:<path>" from before the sorting was saved, a bare path from before tabs had ids,
+		// and "<id>:<cursor hash>:<sort field>:<sort order>:<path>"
+		settings.setValue(KEY_LPANEL_TABS, QStringList{ QStringLiteral("7:%1:%2/").arg(hashOf(fileInA)).arg(folderA), folderB + '/',
+			QStringLiteral("9:0:%1:%2:%3/").arg((int)FileListSortField::Size).arg((int)Qt::DescendingOrder).arg(folderC) });
 		settings.setValue(KEY_LPANEL_ACTIVE_TAB, 1);
-		// A counter that fell behind the saved ids: the record without an id must still not get id 7
+		// A counter that fell behind the saved ids: the record without an id must still not get id 7 or 9
 		settings.setValue(KEY_NEXT_TAB_ID, 7);
 	}
 
 	ControllerSession session;
 	const std::vector<qulonglong> ids = session->tabIds(Panel::LeftPanel);
-	REQUIRE(ids.size() == 2);
+	REQUIRE(ids.size() == 3);
 	CHECK(ids[0] == 7u);
-	CHECK(ids[1] > 7u);
+	CHECK(ids[1] > 9u);
+	CHECK(ids[2] == 9u);
 	CHECK(session->activeTabId(Panel::LeftPanel) == ids[1]);
 	CHECK(session->tabPath(Panel::LeftPanel, ids[0]) == folderA + '/');
 	CHECK(session->tabPath(Panel::LeftPanel, ids[1]) == folderB + '/');
+	CHECK(session->tabPath(Panel::LeftPanel, ids[2]) == folderC + '/');
 	CHECK(session->tabById(Panel::LeftPanel, ids[0]).currentItemHashForFolder(folderA) == hashOf(fileInA));
+
+	CHECK(session->tabById(Panel::LeftPanel, ids[0]).sortField() == FileListSortField::Extension);
+	CHECK(session->tabById(Panel::LeftPanel, ids[0]).sortOrder() == Qt::AscendingOrder);
+	CHECK(session->tabById(Panel::LeftPanel, ids[2]).sortField() == FileListSortField::Size);
+	CHECK(session->tabById(Panel::LeftPanel, ids[2]).sortOrder() == Qt::DescendingOrder);
+}
+
+TEST_CASE("CController - a tab's sorting is restored with it", "[controller][persistence]")
+{
+	clearSavedState();
+	TempTree tree;
+
+	qulonglong tabId = 0;
+	{
+		ControllerSession session;
+		tabId = session->addTab(Panel::LeftPanel, tree.path());
+		session->setTabSorting(Panel::LeftPanel, tabId, FileListSortField::Date, Qt::DescendingOrder);
+	}
+
+	ControllerSession session;
+	CHECK(session->tabById(Panel::LeftPanel, tabId).sortField() == FileListSortField::Date);
+	CHECK(session->tabById(Panel::LeftPanel, tabId).sortOrder() == Qt::DescendingOrder);
 }

@@ -18,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
+#include <vector>
 
 [[nodiscard]] bool isFileOrBundle(const CFileSystemObject& row) noexcept;
 
@@ -46,6 +47,7 @@ public:
 
 	// Requires each row's keys from sortKeysFor()
 	[[nodiscard]] bool lessThan(const CFileSystemObject& l, const FileListSortKeys& lKeys, const CFileSystemObject& r, const FileListSortKeys& rKeys) const;
+	void sort(std::vector<CFileSystemObject>& rows);
 
 private:
 	// Ascending order by the sort field alone

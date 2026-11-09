@@ -5,6 +5,7 @@
 #include "cfilesystemobject.h"
 #include "filelist/filelistsorter.h"
 #include "filelist/filenamefilter.h"
+#include "filelist/foldercontentssummary.h"
 
 
 // Submodule includes
@@ -29,12 +30,6 @@ enum Role {
 	FullNameRole = Qt::UserRole+1
 };
 
-struct FolderContentsSummary {
-	uint64_t numFiles = 0;
-	uint64_t numFolders = 0;
-	uint64_t size = 0; // A folder counts only once its size has been calculated
-};
-
 class CIconProvider;
 
 // The file list of one tab: owns its rows, and sorts and filters them
@@ -57,7 +52,6 @@ public:
 	bool updateRows(std::vector<CFileSystemObject> rows);
 	// Hides the rows whose full name does not match; the wildcard is unanchored and case-insensitive. Empty shows every row.
 	void setNameFilter(const QString& wildcard);
-	[[nodiscard]] const QString& nameFilter() const noexcept; // The wildcard, as passed to setNameFilter()
 
 	void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 	[[nodiscard]] int sortColumn() const noexcept;

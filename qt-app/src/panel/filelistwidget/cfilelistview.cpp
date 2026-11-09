@@ -126,12 +126,6 @@ void CFileListView::moveCursorToItem(const QModelIndex& index, bool invertSelect
 	}
 }
 
-void CFileListView::invertSelection()
-{
-	QItemSelection allItems(model()->index(0, 0), model()->index(model()->rowCount() - 1, 0));
-	selectionModel()->select(allItems, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
-}
-
 void CFileListView::modelAboutToBeReset()
 {
 	_currentItemBeforeMouseClick = QModelIndex();

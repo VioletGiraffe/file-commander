@@ -35,7 +35,7 @@ activation take a fresh snapshot and continue from step 3.
 4. Worker, `publishFileListIfCurrent`: commits under the list mutex only if generation, path, and mode still match,
    then queues `onPanelContentsChanged`.
 5. Main thread, timer drain (`CMainWindow` -> `CController::uiThreadTimerTick`): the listeners run. `CPanelWidget`
-   refills the active tab's model from the panel and restores its selection, `CMainWindow` updates the path bar and
+   refills the active tab's model from the panel and copies the tab's selection into the view, `CMainWindow` updates the path bar and
    title, `CController` saves tab state, and plugin subscribers receive the committed list.
 
 The rules behind steps 2 and 4 are in [core-engine.md](core-engine.md), "File-list publication".

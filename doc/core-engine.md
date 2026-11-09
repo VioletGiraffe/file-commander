@@ -29,6 +29,11 @@ asserts the empty-tab postcondition instead of initiating a second shutdown.
 object. APIs returning raw panel references are valid only before `shutdown()` destroys the tabs. Plugin-facing
 value queries and UI dispatch serialize with teardown and return empty or no-op once their required state is gone.
 
+Each `CPanel` holds its tab's sorting, name filter and selection; front ends show copies. The selection holds only
+items of the committed listing, never `[..]` and never an item the filter hides: a committed listing keeps the
+selected items it still has at the same path, and a filter change deselects what it hides. Commands take their
+targets from `selectedItems()` or `selectedItemsOrCurrentItem()`, in display order.
+
 Panels share the controller's two pools: file list updates run in the listing pool, which runs nothing else, so
 other work cannot delay them; folder size calculations run in the application pool. Every task that captures a
 panel carries that panel's task tag; destruction retires the tag in both pools before panel storage disappears. The
@@ -99,7 +104,7 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
 | Area | Source and boundary |
 |------|---------------------|
 | Volumes | `diskenumerator/`; periodic enumeration with UI-queued delivery |
-| File list rules | `filelist/`; the display name, sort order and name filter of a panel's rows |
+| File list rules | `filelist/`; the display name, sort order, name filter and totals of a panel's rows |
 | Search | `filesearchengine/`; cancellable traversal with a bounded content-search pool |
 | Comparison | `filecomparator/`; a threaded single-file wrapper over `file-operations/foldercomparison/` |
 | Shell integration | `shell/`; platform clipboard, context menus, launching, and native deletion |

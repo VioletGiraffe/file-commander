@@ -15,6 +15,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
 
+#include <functional>
 #include <vector>
 
 namespace Ui {
@@ -28,6 +29,7 @@ class CPluginEngine;
 class CShellOperationRunner;
 class CViewerWindow;
 enum class TransferKind; // fileoperations/fileoperationtypes.h
+struct OperationSummary; // fileoperations/fileoperationtypes.h
 class QShortcut;
 class QStackedWidget;
 class QPushButton;
@@ -55,7 +57,9 @@ public:
 
 	// The transfer launch path (F5/F6, menu/toolbar, and drag-and-drop) over the operation engine: it converts
 	// the panel selection and edited destination into a typed request and drives one CFileOperationDialog.
-	bool launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory);
+	// onCompletion: called once the operation ends, if it started
+	bool launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory,
+		std::function<void(const OperationSummary&)> onCompletion = {});
 	// Must precede deleting, moving or renaming these paths: a viewer may hold one of them open.
 	void closeViewedFilesWithin(const QStringList& paths);
 

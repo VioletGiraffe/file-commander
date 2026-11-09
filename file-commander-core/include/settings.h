@@ -12,9 +12,10 @@
 #define KEY_LAST_PATH_FOR_DRIVE_L QSL("Internal/Core/LPanel/LastPathForDrive%1")
 #define KEY_LAST_PATH_FOR_DRIVE_R QSL("Internal/Core/RPanel/LastPathForDrive%1")
 
-// Per-panel tabs: one list entry per tab, "<id>:<cursorHash>:<path>". Both numbers are decimal, the path is
-// everything past the second colon; an entry without that numeric prefix is a pre-id record and is read as a bare
-// path. One entry holds a whole tab, so no termination can pair an id with another tab's path.
+// Per-panel tabs: one list entry per tab, "<id>:<cursorHash>:<sortField>:<sortOrder>:<path>". The numbers are decimal,
+// the path is everything past the last of them; an entry without the numeric prefix is a pre-id record and is read
+// as a bare path, and one without the sorting fields keeps the default sorting.
+// One entry holds a whole tab, so no termination can pair an id with another tab's path.
 // The cursor hash is a deterministic function of the item's path, so it survives restarts; 0 means "no cursor".
 // (v1 persists only the active tab's history, under KEY_HISTORY_* below; the active tab's path is also mirrored
 // to KEY_*PANEL_PATH for back-compat.)
