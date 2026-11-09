@@ -511,7 +511,7 @@ CTextViewer::ViewerOps CTextViewer::viewer() const
 		};
 
 		const auto countMatches = [view, forEachMatch](const auto& expression, QTextDocument::FindFlags flags, QDeadlineTimer deadline, bool highlight) {
-			constexpr qsizetype maxHighlightedMatches = 10'000; // QPlainTextEdit walks every extra selection for each block it paints
+			static constexpr qsizetype maxHighlightedMatches = 10'000; // QPlainTextEdit walks every extra selection for each block it paints
 
 			const QTextCursor selection = view->textCursor();
 

@@ -138,7 +138,7 @@ bool csvHasCommentLines(QStringView text)
 QChar detectCsvDelimiter(QStringView text, bool skipCommentLines)
 {
 	static constexpr auto& candidates = delimiterCandidates;
-	constexpr int sampleLines = 20;
+	static constexpr int sampleLines = 20;
 
 	struct Stats {
 		int firstLineCount = -1;
