@@ -19,11 +19,11 @@ CTuiFileList::CTuiFileList(const TRect& bounds, TScrollBar* verticalScrollBar) n
 	eventMask |= evBroadcast | evMouseWheel;
 }
 
-void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, qulonglong cursorItemHash)
+void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, qulonglong cursorItemHash, int fallbackRow)
 {
 	_rows = std::move(rows);
 	const auto cursorItem = std::ranges::find(_rows, cursorItemHash, &CFileSystemObject::hash);
-	_cursorRow = cursorItem != _rows.end() ? static_cast<int>(cursorItem - _rows.begin()) : 0;
+	_cursorRow = cursorItem != _rows.end() ? static_cast<int>(cursorItem - _rows.begin()) : std::clamp(fallbackRow, 0, std::max((int)_rows.size() - 1, 0));
 	scrollToCursor();
 }
 

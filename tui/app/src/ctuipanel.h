@@ -30,7 +30,7 @@ public:
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
 
 private:
-	void fillFromPanel();
+	void fillFromPanel(FileListRefreshCause cause = refreshCauseOther);
 	// Copies the core's selection into the list
 	void showCoreSelection();
 	void updateStatusLine();

@@ -147,9 +147,10 @@ struct DialogSpec
 	std::optional<size_t> defaultButton; // Takes Enter while the focus is on no other button
 	std::optional<size_t> focusedButton; // nullopt: the input line has the focus
 
-	std::optional<QString> inputText;  // Adds an input line holding this text
-	std::optional<size_t> inputButton; // Enter in the input line presses this button
-	QString checkBoxLabel;             // Adds a checkbox unless empty
+	std::optional<QString> inputText; // Adds an input line holding this text
+	// The button Enter in the input line presses, for the text in it; nullopt: none, Enter does nothing
+	std::function<std::optional<size_t>(const QString& inputText)> enterInInput;
+	QString checkBoxLabel; // Adds a checkbox unless empty
 	// Called before a button closes the dialog; false keeps the dialog open
 	std::function<bool(size_t button, const QString& inputText)> accepts;
 };
@@ -164,23 +165,24 @@ struct DialogAnswer
 class CTuiChoiceDialog final : public TDialog
 {
 public:
-	CTuiChoiceDialog(const TRect& bounds, const QString& title) :
+	CTuiChoiceDialog(const TRect& bounds, const QString& dialogTitle) :
 		TWindowInit(&TDialog::initFrame),
-		TDialog(bounds, stringView(title.toUtf8()))
+		TDialog(bounds, stringView(dialogTitle.toUtf8()))
 	{
 		options |= ofCentered;
 	}
 
 	TInputLine* inputLine = nullptr;
-	std::optional<ushort> inputCommand;
+	std::function<std::optional<size_t>(const QString& inputText)> enterInInput;
 	std::function<bool(ushort command)> accepts;
 
 	void handleEvent(TEvent& event) override
 	{
 		// Before the base class, which gives Enter to the default button
-		if (event.what == evKeyDown && event.keyDown.keyCode == kbEnter && inputCommand && (inputLine->state & sfFocused))
+		if (event.what == evKeyDown && event.keyDown.keyCode == kbEnter && enterInInput && (inputLine->state & sfFocused))
 		{
-			endModal(*inputCommand);
+			if (const std::optional<size_t> button = enterInInput(QString::fromUtf8(inputLine->data)))
+				endModal((ushort)(cmFirstChoice + *button));
 			clearEvent(event);
 			return;
 		}
@@ -284,8 +286,7 @@ public:
 		dialog->inputLine->selectAll(True);
 		dialog->insert(dialog->inputLine);
 		++y;
-		if (spec.inputButton)
-			dialog->inputCommand = (ushort)(cmFirstChoice + *spec.inputButton);
+		dialog->enterInInput = spec.enterInInput;
 	}
 
 	TCheckBoxes* checkBox = nullptr;
@@ -393,9 +394,11 @@ void showMessage(const QString& title, const QString& text)
 
 	for (const DecisionAction action : request.allowedActions)
 		prompt.buttons.push_back(fileOperationActionLabel(action, operation));
-	// Turbo Vision gives Enter to the focused button, so a kind without a default action starts on Skip, which changes nothing
 	const std::optional<DecisionAction> defaultAction = defaultActionFor(issue.kind);
-	prompt.defaultButton = prompt.focusedButton = indexOf(defaultAction.value_or(DecisionAction::Skip));
+	const std::optional<size_t> defaultButton = defaultAction ? indexOf(*defaultAction) : std::nullopt;
+	prompt.defaultButton = defaultButton;
+	// Turbo Vision gives Enter to the focused button, so a kind without a default action starts on Skip, which changes nothing
+	prompt.focusedButton = defaultButton ? defaultButton : indexOf(DecisionAction::Skip);
 
 	const std::optional<size_t> renameButton = indexOf(DecisionAction::Rename);
 	if (renameButton)
@@ -403,7 +406,11 @@ void showMessage(const QString& title, const QString& text)
 		prompt.lines.push_back({});
 		prompt.lines.push_back({ QStringLiteral("New name, for Rename:") });
 		prompt.inputText = sourceName;
-		prompt.inputButton = renameButton;
+		prompt.focusedButton.reset(); // The name field takes the focus
+		// A changed name is a rename, and Rename explains a name it cannot use; the unchanged name keeps the kind's default
+		prompt.enterInInput = [renameButton, defaultButton, &sourceName](const QString& newName) {
+			return newName != sourceName ? renameButton : defaultButton;
+		};
 		prompt.accepts = [renameButton, &sourceName](const size_t button, const QString& newName) {
 			if (button != *renameButton)
 				return true;
@@ -515,7 +522,7 @@ class CTuiProgressDialog final : public TDialog, private CFileOperationListener
 public:
 	explicit CTuiProgressDialog(FileOperationRequest request) :
 		TWindowInit(&TDialog::initFrame),
-		TDialog({ 0, 0, std::min(72, TProgram::deskTop->size.x - 2), 11 }, stringView(titleFor(request).toUtf8())),
+		TDialog({ 0, 0, dialogWidth(), 11 }, stringView(titleFor(request).toUtf8())),
 		_operation{ promptOperationFor(request) },
 		_unit{ primaryProgressUnitFor(request) },
 		_job{ std::move(request) }
@@ -576,11 +583,14 @@ public:
 	}
 
 private:
+	[[nodiscard]] static int dialogWidth() { return std::min(72, TProgram::deskTop->size.x - 2); }
+
 	[[nodiscard]] static QString titleFor(const FileOperationRequest& request)
 	{
 		const QString route = fileOperationRouteText(request);
 		const QString verb = fileOperationProgressVerb(promptOperationFor(request));
-		return route.isEmpty() ? verb : verb + u' ' + route;
+		// The frame cuts a title off at its width less 10 cells, and a space on each side keeps it off the frame
+		return elidedInTheMiddle(route.isEmpty() ? verb : verb + u' ' + route, dialogWidth() - 12);
 	}
 
 	void onProgress(const ProgressSnapshot& snapshot) override
@@ -775,7 +785,8 @@ void transferSelectedItems(CController& controller, const Panel sourcePanel, con
 	prompt.lines = { { QStringLiteral("%1 %2 to:").arg(operationName, itemsText(sources)), true } };
 	prompt.inputText = toNativeSeparators(prefillTransferDestination(kind, sourcePaths, destinationFolder));
 	prompt.buttons = { operationName, QStringLiteral("Cancel") };
-	prompt.defaultButton = prompt.inputButton = 0;
+	prompt.defaultButton = 0;
+	prompt.enterInInput = [](const QString&) { return std::optional<size_t>{ 0 }; };
 	const DialogAnswer answer = execDialog(prompt);
 	if (answer.button != size_t{ 0 })
 		return;

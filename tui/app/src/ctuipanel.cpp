@@ -216,10 +216,10 @@ void CTuiPanel::setState(ushort aState, Boolean enable)
 		_controller.activePanelChanged(_side);
 }
 
-void CTuiPanel::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause /*operation*/)
+void CTuiPanel::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation)
 {
 	if (isActiveTab(p, tabId))
-		fillFromPanel();
+		fillFromPanel(operation);
 }
 
 void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
@@ -227,17 +227,19 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	if (!isActiveTab(p, tabId))
 		return;
 
-	_fileList->setRows({}, 0);
+	_fileList->setRows({}, 0, 0);
 	_fileList->setSelectedItems({});
 	updateStatusLine();
 	setTitle(_controller.panel(_side).currentDirPathNative());
 }
 
-void CTuiPanel::fillFromPanel()
+void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 {
 	const CPanel& panel = _controller.panel(_side);
-	// A cursor item the filter hides is replaced by the first row: the core's current item is always the row under the cursor
-	_fileList->setRows(panel.visibleItems(), _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()));
+	// The cursor stays on its row when its item is gone or hidden by the filter, and starts on the first row of a folder just entered.
+	// The core's current item is always the row under the cursor.
+	const bool navigated = cause == refreshCauseForwardNavigation || cause == refreshCauseCdUp;
+	_fileList->setRows(panel.visibleItems(), _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
 

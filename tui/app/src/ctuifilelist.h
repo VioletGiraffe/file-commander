@@ -24,8 +24,8 @@ class CTuiFileList final : public TView
 public:
 	CTuiFileList(const TRect& bounds, TScrollBar* verticalScrollBar) noexcept;
 
-	// The cursor goes to the row whose hash is cursorItemHash, or to the first row
-	void setRows(std::vector<CFileSystemObject> rows, qulonglong cursorItemHash);
+	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it
+	void setRows(std::vector<CFileSystemObject> rows, qulonglong cursorItemHash, int fallbackRow);
 	[[nodiscard]] const CFileSystemObject* currentRow() const noexcept; // nullptr when there are no rows
 	[[nodiscard]] int cursorRow() const noexcept { return _cursorRow; }
 	// Clamps row to the list
