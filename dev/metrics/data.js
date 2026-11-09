@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794255734665,
+  "lastUpdate": 1794256975902,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -34355,6 +34355,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 928.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 444.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 28,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 11,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "5c05a2e1f8780c39037d0d33a0e5b6645bc4b531",
+          "message": "The core builds with QtCore alone: the plugin interfaces and the plugin engine are a separate pluginapi library, linked by the app and the plugins",
+          "timestamp": "2026-11-09T22:32:51+02:00",
+          "tree_id": "764300c497ddaccb374c1b246ea675c90cc3e3c5",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/5c05a2e1f8780c39037d0d33a0e5b6645bc4b531"
+        },
+        "date": 1794256973083,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15802,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35542,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1584.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 930,
             "unit": "KB"
           },
           {
