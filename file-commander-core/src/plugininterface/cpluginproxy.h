@@ -55,6 +55,7 @@ public:
 	[[nodiscard]] virtual QString currentFolderPathForPanel(PanelPosition panel) const = 0;
 	[[nodiscard]] virtual QString currentItemPathForPanel(PanelPosition panel) const = 0;
 	[[nodiscard]] virtual CFileSystemObject currentItemForPanel(PanelPosition panel) const = 0;
+	// Empty when nothing is selected: the item under the cursor comes from currentItemForPanel()
 	[[nodiscard]] virtual std::vector<qulonglong> selectedItemsForPanel(PanelPosition panel) const = 0;
 
 	[[nodiscard]] virtual CFileSystemObject currentItem() const = 0;

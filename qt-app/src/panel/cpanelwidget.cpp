@@ -916,7 +916,7 @@ void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemS
 	}
 
 	updateInfoLabel();
-	_controller->selectionChanged(_panelPosition, selectedItemsHashes());
+	_controller->selectionChanged(_panelPosition, selectedItemsHashes(true));
 }
 
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
