@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794227976708,
+  "lastUpdate": 1794255734665,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -34296,6 +34296,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .reloc",
             "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "52244ad0e68df0b7a1763d0646cbfdeda77c2a02",
+          "message": "The core owns each tab's selection, name filter and sorting: commands and plugins act only on visible selected items, and the sorting is saved with the tab\n\nA successful copy deselects the copied items.\nThe info label counts only the selection, no longer the item under the cursor when nothing is selected.",
+          "timestamp": "2026-11-09T22:07:52+02:00",
+          "tree_id": "9aa75e2ac80e6c89bd0999ae81f727c37488e702",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/52244ad0e68df0b7a1763d0646cbfdeda77c2a02"
+        },
+        "date": 1794255730005,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 15801,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35542,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1583,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 928.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 444.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 28,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 11,
             "unit": "KB"
           }
         ]
