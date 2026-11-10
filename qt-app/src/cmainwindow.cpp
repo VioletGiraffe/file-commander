@@ -58,13 +58,16 @@
 DISABLE_COMPILER_WARNINGS
 #include "ui_cmainwindow.h"
 
+#include <QCheckBox>
 #include <QCloseEvent>
 #include <QDesktopServices>
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFileIconProvider>
 #include <QInputDialog>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QProcess>
@@ -75,6 +78,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <QUrl>
+#include <QVBoxLayout>
 #include <QWidgetList>
 #include <QWindow>
 RESTORE_COMPILER_WARNINGS
@@ -329,6 +333,8 @@ void CMainWindow::initActions()
 	connect(ui->actionFilter_items, &QAction::triggered, this, &CMainWindow::filterItemsByName);
 
 	connect(ui->action_Invert_selection, &QAction::triggered, this, &CMainWindow::invertSelection);
+	connect(ui->action_Select_by_pattern, &QAction::triggered, this, [this] { selectItemsByPattern(true); });
+	connect(ui->action_Deselect_by_pattern, &QAction::triggered, this, [this] { selectItemsByPattern(false); });
 
 	connect(ui->actionFull_screen_mode, &QAction::toggled, this, &CMainWindow::toggleFullScreenMode);
 	connect(ui->actionTablet_mode, &QAction::toggled, this, &CMainWindow::toggleTabletMode);
@@ -877,6 +883,31 @@ void CMainWindow::invertSelection()
 {
 	if (_currentFileList)
 		_currentFileList->invertSelection();
+}
+
+void CMainWindow::selectItemsByPattern(const bool selected)
+{
+	if (!_currentFileList)
+		return;
+
+	QDialog dialog{ this };
+	dialog.setWindowTitle(selected ? tr("Select by pattern") : tr("Deselect by pattern"));
+	auto* pattern = new QLineEdit{ QStringLiteral("*") };
+	pattern->selectAll();
+	auto* filesOnly = new QCheckBox{ tr("&Files only") };
+	auto* buttons = new QDialogButtonBox{ QDialogButtonBox::Ok | QDialogButtonBox::Cancel };
+	buttons->button(QDialogButtonBox::Ok)->setText(selected ? tr("Select") : tr("Deselect"));
+	connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+	connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+	auto* layout = new QVBoxLayout{ &dialog };
+	layout->addWidget(new QLabel{ tr("Names matching (separate patterns with ;)") });
+	layout->addWidget(pattern);
+	layout->addWidget(filesOnly);
+	layout->addWidget(buttons);
+
+	if (dialog.exec() == QDialog::Accepted)
+		_currentFileList->setItemsSelectedByPattern(pattern->text(), selected, filesOnly->isChecked());
 }
 
 // Other UI commands

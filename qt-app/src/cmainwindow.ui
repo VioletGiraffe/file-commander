@@ -292,6 +292,8 @@
      <string>&amp;Selection</string>
     </property>
     <addaction name="action_Invert_selection"/>
+    <addaction name="action_Select_by_pattern"/>
+    <addaction name="action_Deselect_by_pattern"/>
    </widget>
    <widget class="QMenu" name="menuTabs">
     <property name="title">
@@ -414,6 +416,22 @@
    </property>
    <property name="shortcut">
     <string>*</string>
+   </property>
+  </action>
+  <action name="action_Select_by_pattern">
+   <property name="text">
+    <string>&amp;Select by pattern...</string>
+   </property>
+   <property name="shortcut">
+    <string>Num++</string>
+   </property>
+  </action>
+  <action name="action_Deselect_by_pattern">
+   <property name="text">
+    <string>&amp;Deselect by pattern...</string>
+   </property>
+   <property name="shortcut">
+    <string>Num+-</string>
    </property>
   </action>
   <action name="actionFull_screen_mode">

@@ -99,6 +99,8 @@ private:
 
 // Selection slots
 	void invertSelection();
+	// Asks for the pattern, prefilled with "*"
+	void selectItemsByPattern(bool selected);
 
 // Other UI commands
 	void viewFile();

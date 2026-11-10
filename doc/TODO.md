@@ -7,10 +7,9 @@ removed.
 
 Chosen from a longer list; no other command from it is approved.
 
-### Select / unselect group by mask + select by extension
+### Select by extension
 
-Follow Total Commander shortcuts: Num+ selects by mask, Num- unselects by mask, and Alt+Num+ selects the current
-item's extension. Reuse the existing wildcard filter semantics and omit the synthetic parent entry.
+Alt+Num+ selects the items with the current item's extension, as in Total Commander.
 
 ### Go to file location
 

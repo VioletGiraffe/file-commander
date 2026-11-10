@@ -1536,6 +1536,12 @@ void CPanelWidget::invertSelection()
 	applyCoreSelection();
 }
 
+void CPanelWidget::setItemsSelectedByPattern(const QString& patternText, const bool selected, const bool filesOnly)
+{
+	_controller->panel(_panelPosition).setItemsSelectedByPattern(patternText, selected, filesOnly);
+	applyCoreSelection();
+}
+
 void CPanelWidget::moveCursorToFirstFile()
 {
 	const int row = _model->firstFileRow();

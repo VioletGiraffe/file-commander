@@ -79,6 +79,7 @@ public:
 	void applyCoreSelection();
 	[[nodiscard]] qulonglong currentItemHash() const;
 	void invertSelection();
+	void setItemsSelectedByPattern(const QString& patternText, bool selected, bool filesOnly);
 	void moveCursorToFirstFile(); // Scrolls past the folders (they always sort on top) and puts the cursor on the first file
 	void toRoot();
 	void copySelectedItemsPathsToClipboard() const; // Paths of all the selected items, or of the item under cursor if there's no selection
