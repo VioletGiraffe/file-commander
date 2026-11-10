@@ -157,6 +157,9 @@ public:
 	void invertSelection();
 	// patternText: as setNameFilter's filterText. filesOnly leaves folders out; a bundle counts as a file.
 	void setItemsSelectedByPattern(const QString& patternText, bool selected, bool filesOnly);
+	// Adds the files whose extension equals the file itemHash's, ignoring case: without one, the files without one.
+	// A bundle counts as a file. Nothing when itemHash is no file.
+	void selectFilesWithExtensionOf(qulonglong itemHash);
 	// Empty while the committed listing does not belong to the current view
 	[[nodiscard]] std::vector<qulonglong> selectedItemHashes() const;
 	// In display order

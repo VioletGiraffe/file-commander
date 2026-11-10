@@ -190,6 +190,49 @@ TEST_CASE("CPanel - a pattern selects and deselects what it matches among the se
 	}
 }
 
+TEST_CASE("CPanel - selecting by extension adds the files with the given file's extension", "[panel][selection]")
+{
+	TempTree tree;
+	const QString folder = tree.makeDir(QStringLiteral("folder"));
+	const QString lowerTxt = tree.makeFile(QStringLiteral("folder/a.txt"), "1");
+	const QString upperTxt = tree.makeFile(QStringLiteral("folder/B.TXT"), "1");
+	const QString doc = tree.makeFile(QStringLiteral("folder/c.doc"), "1");
+	const QString makefile = tree.makeFile(QStringLiteral("folder/Makefile"), "1");
+	const QString readme = tree.makeFile(QStringLiteral("folder/README"), "1");
+	// A folder has no extension, whatever its name
+	const QString dottedFolder = tree.makeDir(QStringLiteral("folder/d.txt"));
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(folder, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	CPanel& panel = h.panel();
+
+	SECTION("Ignoring case, and never a folder")
+	{
+		panel.selectFilesWithExtensionOf(hashOf(lowerTxt));
+		CHECK(sorted(panel.selectedItemHashes()) == sorted({ hashOf(lowerTxt), hashOf(upperTxt) }));
+	}
+
+	SECTION("A file without an extension selects the files without one")
+	{
+		panel.selectFilesWithExtensionOf(hashOf(makefile));
+		CHECK(sorted(panel.selectedItemHashes()) == sorted({ hashOf(makefile), hashOf(readme) }));
+	}
+
+	SECTION("The selection grows")
+	{
+		panel.setItemsSelected({ hashOf(doc) }, true);
+		panel.selectFilesWithExtensionOf(hashOf(upperTxt));
+		CHECK(sorted(panel.selectedItemHashes()) == sorted({ hashOf(doc), hashOf(lowerTxt), hashOf(upperTxt) }));
+	}
+
+	SECTION("A folder selects nothing")
+	{
+		panel.selectFilesWithExtensionOf(hashOf(dottedFolder));
+		CHECK(panel.selectedItemHashes().empty());
+	}
+}
+
 TEST_CASE("CPanel - the selection summary counts files, folders and their size", "[panel][selection]")
 {
 	ListedFolder f;

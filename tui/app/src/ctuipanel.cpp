@@ -288,6 +288,14 @@ void CTuiPanel::handleEvent(TEvent& event)
 			}
 			else if (event.keyDown.charScan.charCode == '+' || event.keyDown.charScan.charCode == '-')
 				selectItemsByPattern(event.keyDown.charScan.charCode == '+');
+			else if (event.keyDown.charScan.charCode == '=')
+			{
+				if (const CFileSystemObject* row = _fileList->currentRow())
+				{
+					_controller.panel(_side).selectFilesWithExtensionOf(row->hash());
+					showCoreSelection();
+				}
+			}
 			else
 				return;
 		}

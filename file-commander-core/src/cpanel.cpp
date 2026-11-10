@@ -517,6 +517,24 @@ void CPanel::setItemsSelectedByPattern(const QString& patternText, const bool se
 	}
 }
 
+void CPanel::selectFilesWithExtensionOf(const qulonglong itemHash)
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return;
+
+	const auto sample = _items.find(itemHash);
+	if (sample == _items.end() || !isFileOrBundle(sample->second))
+		return;
+
+	const QStringView extension = sample->second.extension();
+	for (const auto& [hash, item] : _items)
+	{
+		if (isSelectableLocked(item) && isFileOrBundle(item) && item.extension().compare(extension, Qt::CaseInsensitive) == 0)
+			_selectedItemHashes.insert(hash);
+	}
+}
+
 std::vector<qulonglong> CPanel::selectedItemHashes() const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);
