@@ -24,6 +24,8 @@ public:
 	// Every row, numbered, for a test failure's report
 	[[nodiscard]] QString text() const;
 	[[nodiscard]] bool contains(QStringView text) const;
+	[[nodiscard]] int cursorRow() const noexcept { return _row; }
+	[[nodiscard]] int cursorColumn() const noexcept { return _column; }
 
 	// Answers to the program's cursor position queries, to be written back to it
 	[[nodiscard]] QByteArray takeReplies();

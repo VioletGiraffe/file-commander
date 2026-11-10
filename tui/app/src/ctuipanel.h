@@ -21,7 +21,7 @@ inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 
 	cmRefresh = 1015, cmToggleHiddenFiles = 1016, cmOpenFilterLine = 1017,
 	cmSortByName = 1018, cmSortByExtension = 1019, cmSortByDate = 1020, cmSortBySize = 1021,
 	cmToggleSelectionAndMoveDown = 1022, cmToggleSelectionAndCalculateSize = 1023, cmInvertSelection = 1024,
-	cmSelectByPattern = 1025, cmDeselectByPattern = 1026, cmSelectByExtension = 1027;
+	cmSelectByPattern = 1025, cmDeselectByPattern = 1026, cmSelectByExtension = 1027, cmOpenShell = 1028;
 
 // One side: a window showing the active tab's folder
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener

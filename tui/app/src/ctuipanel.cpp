@@ -178,6 +178,21 @@ static void editFile(const QString& filePath)
 		runCommandOnFile(command, filePath);
 }
 
+// The user's shell in the folder, until it exits
+static void runShell(const QString& folder)
+{
+#ifdef _WIN32
+	const char* const variable = "COMSPEC";
+	const QString fallback = QStringLiteral("cmd.exe");
+#else
+	const char* const variable = "SHELL";
+	const QString fallback = QStringLiteral("/bin/sh");
+#endif
+	const QString shell = qEnvironmentVariableIsEmpty(variable) ? fallback : qEnvironmentVariable(variable);
+	if (auto ran = CTuiApplication::runInTerminal(shell, {}, folder, false); !ran)
+		showMessage(QStringLiteral("Failed to start %1").arg(shell), ran.error());
+}
+
 // Opens the file with its default application where a desktop can show it, else in the pager
 static void openDocument(const QString& filePath)
 {
@@ -327,6 +342,7 @@ bool CTuiPanel::runCommand(const ushort command)
 		if (const QString pathLines = panel.selectedOrCurrentItemPathLines(); !pathLines.isEmpty())
 			CTuiApplication::copyToClipboard(pathLines);
 		break;
+	case cmOpenShell: runShell(panel.currentDirPathNative()); break;
 	case cmCopyItems:
 		transferSelectedItems(_controller, _side, TransferKind::Copy);
 		showCoreSelection(); // A copy deselects its sources

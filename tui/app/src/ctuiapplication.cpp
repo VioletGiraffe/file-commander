@@ -219,6 +219,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("Delete ~p~ermanently...", cmDeleteItemsPermanently, kbShiftF8, hcNoContext, "Shift-F8") +
 			newLine() +
 			*new TMenuItem("Copy pat~h~s", cmCopyPaths, kbAltC, hcNoContext, "Alt-C") +
+			*new TMenuItem("Open ~s~hell here", cmOpenShell, kbCtrlO, hcNoContext, "Ctrl-O") +
 			newLine() +
 			*new TMenuItem("E~x~it", cmQuit, kbAltX, hcNoContext, "Alt-X") +
 		*new TSubMenu("~S~election", kbAltS) +

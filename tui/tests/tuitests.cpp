@@ -127,15 +127,18 @@ void requireText(CTerminalSession& session, const QString& text)
 	requireScreen(session, [&text](const CTerminalScreen& screen) { return screen.contains(text); }, quoted(text));
 }
 
-// Types one character at a time, each once the previous one shows.
+// Types one character at a time, each once the previous one shows: as a change of the text, or of the cursor for a space at the end of a line.
 // Turbo Vision takes a burst of text keys for a paste (TEventQueue::getKeyOrPasteEvent), and an Enter sent right behind one is lost.
 void typeText(CTerminalSession& session, const QString& text)
 {
 	for (const QChar c : text)
 	{
-		const QString screenBefore = session.screen().text();
+		const CTerminalScreen& screen = session.screen();
+		const QString screenBefore = screen.text();
+		const int rowBefore = screen.cursorRow(), columnBefore = screen.cursorColumn();
 		session.send(QString{ c });
-		requireScreen(session, [&screenBefore](const CTerminalScreen& screen) { return screen.text() != screenBefore; }, QStringLiteral("\"%1\" to show").arg(c));
+		requireScreen(session, [&](const CTerminalScreen& now) { return now.text() != screenBefore || now.cursorRow() != rowBefore || now.cursorColumn() != columnBefore; },
+			QStringLiteral("\"%1\" to show").arg(c));
 	}
 }
 
@@ -480,6 +483,37 @@ TEST_CASE("Enter runs a program and keeps its output until Enter", "[tui]")
 	CHECK(session->screen().contains(QStringLiteral("output of the program")));
 	session->send(Keys::Enter);
 	requireText(*session, QStringLiteral("F2 Rename"));
+}
+
+TEST_CASE("Ctrl+O runs the shell in the panel's folder until it exits", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/a.txt"));
+#ifdef _WIN32
+	// The shell is COMSPEC, cmd.exe
+	auto session = startFcterm(sandbox, { { QStringLiteral("PROMPT"), QStringLiteral("shell-ready$G") } });
+	const QString printFolder = QStringLiteral("cd > folder.txt");
+#else
+	auto session = startFcterm(sandbox, { { QStringLiteral("SHELL"), QStringLiteral("/bin/sh") }, { QStringLiteral("PS1"), QStringLiteral("shell-ready>") } });
+	const QString printFolder = QStringLiteral("pwd > folder.txt");
+#endif
+	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
+
+	session->send(Keys::CtrlO);
+	requireText(*session, QStringLiteral("shell-ready>"));
+	typeText(*session, printFolder);
+	session->send(Keys::Enter);
+	const QString folderFile = sandbox.work(QStringLiteral("folder.txt"));
+	requireScreen(*session, [&](const CTerminalScreen&) { return QFileInfo{ folderFile }.size() > 0; }, QStringLiteral("the shell's folder written"));
+	typeText(*session, QStringLiteral("exit"));
+	session->send(Keys::Enter);
+	// fcterm redraws the whole screen when it takes the terminal back
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("shell-ready>")) && screen.contains(QStringLiteral("F2 Rename")); },
+		QStringLiteral("fcterm back"));
+
+	QFile folder{ folderFile };
+	REQUIRE(folder.open(QFile::ReadOnly));
+	CHECK(canonical(QString::fromLocal8Bit(folder.readAll()).trimmed()) == canonical(sandbox.work({})));
 }
 
 #ifndef _WIN32
