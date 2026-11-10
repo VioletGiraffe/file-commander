@@ -80,7 +80,8 @@ public:
 	// without invalidating an id a caller is holding onto.
 	// Creates a new tab for side p showing 'path' and returns its id. Active by default; pass activate=false
 	// to leave the currently active tab as is (e. g. for a background tab opened via middle-click).
-	qulonglong addTab(Panel p, const QString& path, bool activate = true);
+	// sortingSourceTabId: a tab of side p whose sorting the new tab takes; 0 for the default sorting.
+	qulonglong addTab(Panel p, const QString& path, bool activate = true, qulonglong sortingSourceTabId = 0);
 	// Closes the tab with id. Never removes the last tab (a panel always keeps >= 1 tab).
 	void closeTab(Panel p, qulonglong tabId);
 	// Removes and returns the folder of side p's most recently closed tab; empty when there is none.

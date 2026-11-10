@@ -489,13 +489,8 @@ void CPanelWidget::tryOpenItemInNewTab(const QModelIndex& index, bool activate)
 
 void CPanelWidget::openPathInNewTab(const QString& path, bool activate, int sourceIndex)
 {
-	const CPanel& sourceTab = _controller->tabById(_panelPosition, tabIdAt(sourceIndex));
-	const FileListSortField sortField = sourceTab.sortField();
-	const Qt::SortOrder sortOrder = sourceTab.sortOrder();
 	const CFileListView::ColumnLayout columnLayout = columnLayoutOfTab(sourceIndex);
-
-	const qulonglong id = _controller->addTab(_panelPosition, path, activate);
-	_controller->setTabSorting(_panelPosition, id, sortField, sortOrder);
+	const qulonglong id = _controller->addTab(_panelPosition, path, activate, tabIdAt(sourceIndex));
 
 	PanelTab& tab = _tabs.emplace_back();
 	populateTabModels(tab, id, columnLayout);

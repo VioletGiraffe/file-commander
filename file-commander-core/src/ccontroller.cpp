@@ -304,13 +304,24 @@ void CController::attachListenersToTab(Panel p, CPanel& tab)
 		tab.addCurrentItemChangedListener(listener);
 }
 
-qulonglong CController::addTab(Panel p, const QString& path, bool activate)
+qulonglong CController::addTab(Panel p, const QString& path, bool activate, qulonglong sortingSourceTabId)
 {
 	std::unique_lock lock(_pluginAccessMutex);
 	if (_panels[(size_t)p].tabs.empty())
 		return 0;
 
+	const CPanel* sortingSource = nullptr;
+	if (sortingSourceTabId != 0)
+	{
+		const auto sourceIndex = tabIndexById(p, sortingSourceTabId);
+		assert_r(sourceIndex.has_value());
+		if (sourceIndex)
+			sortingSource = _panels[(size_t)p].tabs[*sourceIndex].get(); // Owned through unique_ptr: createTab's vector growth keeps it valid
+	}
+
 	CPanel& tab = createTab(p, _nextTabId++);
+	if (sortingSource)
+		tab.setSorting(sortingSource->sortField(), sortingSource->sortOrder());
 	tab.setPath(path, refreshCauseOther); // Fires onCurrentPathChanged -> logs the new tab's path to the visited-locations list
 	const qulonglong newId = tab.id();
 

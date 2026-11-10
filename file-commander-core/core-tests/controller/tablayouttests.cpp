@@ -88,6 +88,29 @@ TEST_CASE("CController - the last tab of a side cannot be closed", "[controller]
 	CHECK(session->tabIds(Panel::LeftPanel) == ids);
 }
 
+TEST_CASE("CController - a new tab takes its sorting from the source tab, or the default without one", "[controller][tabs]")
+{
+	clearSavedState();
+	TempTree tree;
+	ControllerSession session;
+
+	const qulonglong sourceId = session->activeTabId(Panel::LeftPanel);
+	const CPanel& defaultTab = session->tabById(Panel::LeftPanel, sourceId);
+	const FileListSortField defaultField = defaultTab.sortField();
+	const Qt::SortOrder defaultOrder = defaultTab.sortOrder();
+	const FileListSortField otherField = defaultField == FileListSortField::Size ? FileListSortField::Date : FileListSortField::Size;
+	const Qt::SortOrder otherOrder = defaultOrder == Qt::AscendingOrder ? Qt::DescendingOrder : Qt::AscendingOrder;
+	session->setTabSorting(Panel::LeftPanel, sourceId, otherField, otherOrder);
+
+	const CPanel& copied = session->tabById(Panel::LeftPanel, session->addTab(Panel::LeftPanel, tree.path(), false, sourceId));
+	CHECK(copied.sortField() == otherField);
+	CHECK(copied.sortOrder() == otherOrder);
+
+	const CPanel& unsorted = session->tabById(Panel::LeftPanel, session->addTab(Panel::LeftPanel, tree.path(), false));
+	CHECK(unsorted.sortField() == defaultField);
+	CHECK(unsorted.sortOrder() == defaultOrder);
+}
+
 TEST_CASE("CController - closed tabs' folders come back most recent first, separately per side", "[controller][tabs]")
 {
 	clearSavedState();
