@@ -29,6 +29,8 @@ if not %errorlevel% == 0 goto build_fail
 
 xcopy /R /Y ..\..\bin\release\FileCommander.exe binaries\64\
 xcopy /R /Y ..\..\bin\release\plugin_*.dll binaries\64\
+:: The terminal UI links only QtCore, which the app's deployment below includes
+xcopy /R /Y ..\..\bin\release\fcterm.exe binaries\64\
 
 SETLOCAL
 SET PATH=%QTDIR64%\bin\

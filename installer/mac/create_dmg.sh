@@ -19,10 +19,14 @@ echo "${MYSELF}: Building the app"
 ${QTPATH}/bin/qmake -spec macx-clang -r -config release CONFIG+=release
 make -s -j$(sysctl -n hw.ncpu) SHELL="${ROOT_DIR}/scripts/quiet_make_shell.sh"
 
+# The terminal UI ships inside the bundle and uses its frameworks
+TERMINAL_EXECUTABLE="${BUNDLE}/Contents/MacOS/fcterm"
+mv bin/release/fcterm "${TERMINAL_EXECUTABLE}"
+
 echo "${MYSELF}: deploying Qt frameworks"
 # macdeployqt exits 0 even when it deploys nothing: its ERROR lines count as a failure too
 DEPLOY_STATUS=0
-DEPLOY_OUTPUT="$("${QTPATH}/bin/macdeployqt" "${BUNDLE}" 2>&1)" || DEPLOY_STATUS=$?
+DEPLOY_OUTPUT="$("${QTPATH}/bin/macdeployqt" "${BUNDLE}" "-executable=${TERMINAL_EXECUTABLE}" 2>&1)" || DEPLOY_STATUS=$?
 echo "${DEPLOY_OUTPUT}"
 if [ ${DEPLOY_STATUS} -ne 0 ] || echo "${DEPLOY_OUTPUT}" | grep -q "^ERROR"; then
 	echo "${MYSELF}: macdeployqt failed, refusing to package an undeployed bundle" >&2

@@ -174,7 +174,7 @@ CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, C
 		s.value(KEY_LAST_UPDATE_CHECK_TIMESTAMP, fromTime_t(1)).toDateTime().msecsTo(QDateTime::currentDateTime()) >= 1000LL * 3600LL * 24LL)
 	{
 		s.setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-		auto* dlg = new CUpdaterDialog(this, REPO_NAME, VERSION_STRING, true);
+		auto* dlg = new CUpdaterDialog(this, REPO_NAME, RELEASE_ASSET_NAME, VERSION_STRING, true);
 		connect(dlg, &QDialog::rejected, dlg, &QDialog::deleteLater);
 		connect(dlg, &QDialog::accepted, dlg, &QDialog::deleteLater);
 	}
@@ -1287,7 +1287,7 @@ void CMainWindow::batchRename()
 void CMainWindow::checkForUpdates()
 {
 	QSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
-	CUpdaterDialog(this, REPO_NAME, VERSION_STRING).exec();
+	CUpdaterDialog(this, REPO_NAME, RELEASE_ASSET_NAME, VERSION_STRING).exec();
 }
 
 void CMainWindow::about()

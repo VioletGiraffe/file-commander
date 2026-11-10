@@ -92,7 +92,7 @@ jobs:
         winget install --id AlDanial.Cloc --exact --silent --accept-package-agreements --accept-source-agreements
         "$env:LOCALAPPDATA\Microsoft\WinGet\Links" >> $env:GITHUB_PATH
 
-        $loc = (cloc --include-lang="C,C++,C/C++ Header" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,gui-tests,core-tests --json --quiet ./qt-app/ ./plugins/ ./file-commander-core/ | ConvertFrom-Json).SUM.code
+        $loc = (cloc --include-lang="C,C++,C/C++ Header" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,gui-tests,core-tests,tvision --json --quiet ./qt-app/ ./plugins/ ./file-commander-core/ ./tui/ | ConvertFrom-Json).SUM.code
         "App C/C++ code: $loc LOC"
         "LOC_APP=$loc" >> $env:GITHUB_ENV
 
@@ -100,7 +100,7 @@ jobs:
       if: "startsWith(matrix.os, 'windows')"
       shell: pwsh
       run: |
-        $loc = (cloc --include-lang="C,C++,C/C++ Header" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,qt-app,plugins,file-commander-core --json --quiet . | ConvertFrom-Json).SUM.code
+        $loc = (cloc --include-lang="C,C++,C/C++ Header" --strip-str-comments --exclude-dir=tests,bin,build,.git,3rdparty,trigramfrequencytables,qt-app,plugins,file-commander-core,tui,tvision --json --quiet . | ConvertFrom-Json).SUM.code
         "Libs C/C++ code: $loc LOC"
         "LOC_LIBS=$loc" >> $env:GITHUB_ENV
 
@@ -141,7 +141,7 @@ jobs:
     - name: Linux - install build dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*'
+        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libncurses-dev
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version
@@ -174,13 +174,24 @@ jobs:
           --desktop-file ./installer/linux/file_commander.desktop --icon-file ./qt-app/resources/file_commander.png --plugin qt --output appimage
         echo "APPIMAGE_FILE=$LDAI_OUTPUT" >> "$GITHUB_ENV"
 
+    # The terminal UI, with QtCore only: a server without a desktop has none of the GUI's libraries
+    - name: Linux - building the terminal UI AppImage
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        arch=$(uname -m)
+        export QMAKE=$QT_ROOT_DIR/bin/qmake
+        if [ "$arch" = x86_64 ]; then export LDAI_OUTPUT=fcterm.AppImage; else export LDAI_OUTPUT=fcterm.arm64.AppImage; fi
+        ./linuxdeploy-$arch.AppImage --appdir TerminalAppDir --executable ./bin/release/fcterm \
+          --desktop-file ./installer/linux/fcterm.desktop --icon-file ./qt-app/resources/file_commander.png --plugin qt --output appimage
+        echo "TERMINAL_APPIMAGE_FILE=$LDAI_OUTPUT" >> "$GITHUB_ENV"
+
     - name: Binary sizes - Windows
       if: startsWith(matrix.os, 'windows')
       shell: pwsh
       run: |
-        # Sizes of our own binaries (app + every plugin); the Qt/MSVC runtime DLLs xcopied into bin/ are excluded by name.
+        # Sizes of our own binaries (app, terminal UI, every plugin); the Qt/MSVC runtime DLLs xcopied into bin/ are excluded by name.
         $exe = Get-Item "bin\release\FileCommander.exe"
-        foreach ($b in @($exe) + (Get-ChildItem "bin\release\plugin_*.dll")) {
+        foreach ($b in @($exe, (Get-Item "bin\release\fcterm.exe")) + (Get-ChildItem "bin\release\plugin_*.dll")) {
           "{0,10:N2} KB  {1}" -f ($b.Length / 1KB), $b.Name
         }
 
@@ -242,12 +253,12 @@ jobs:
         comment-on-alert: false
         fail-on-alert: false
 
-    # Sizes of our own binaries (app + every plugin), excluding the Qt/system libs the deploy tools copy into bin/.
+    # Sizes of our own binaries (app, terminal UI, every plugin), excluding the Qt/system libs the deploy tools copy into bin/.
     - name: Binary sizes - Mac
       if: startsWith(matrix.os, 'macos')
       run: |
         cd bin/release
-        for f in FileCommander.app/Contents/MacOS/FileCommander libplugin_*.dylib; do
+        for f in FileCommander.app/Contents/MacOS/FileCommander FileCommander.app/Contents/MacOS/fcterm libplugin_*.dylib; do
           [ -f "$f" ] && [ ! -L "$f" ] || continue
           awk -v b="$(wc -c < "$f")" -v n="$f" 'BEGIN { printf "%10.2f KB  %s\n", b/1024, n }'
         done
@@ -256,7 +267,7 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         cd bin/release
-        for f in FileCommander libplugin_*.so.*; do
+        for f in FileCommander fcterm libplugin_*.so.*; do
           [ -f "$f" ] && [ ! -L "$f" ] || continue
           awk -v b="$(wc -c < "$f")" -v n="$f" 'BEGIN { printf "%10.2f KB  %s\n", b/1024, n }'
         done
@@ -268,6 +279,7 @@ jobs:
         unset QT_PLUGIN_PATH QML2_IMPORT_PATH
         # Shows that frameworks resolve into the bundle, not into the Qt install
         otool -l bin/release/FileCommander.app/Contents/MacOS/FileCommander | grep -A2 LC_RPATH
+        otool -l bin/release/FileCommander.app/Contents/MacOS/fcterm | grep -A2 LC_RPATH
         plugins=$(find bin/release -maxdepth 1 -name 'libplugin_*' -type f | wc -l | tr -d ' ')
         ./bin/release/FileCommander.app/Contents/MacOS/FileCommander --test-launch=$plugins
 
@@ -301,6 +313,14 @@ jobs:
       with:
         name: ${{ env.APPIMAGE_FILE }}
         path: ${{ env.APPIMAGE_FILE }}
+        if-no-files-found: error
+
+    - name: Archive the terminal UI AppImage
+      if: success() && startsWith(matrix.os, 'ubuntu')
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.TERMINAL_APPIMAGE_FILE }}
+        path: ${{ env.TERMINAL_APPIMAGE_FILE }}
         if-no-files-found: error
 
     - name: Archive Installer
@@ -588,6 +608,16 @@ jobs:
       with:
         name: FileCommander.arm64.AppImage
         path: .
+    - name: Download terminal UI AppImage
+      uses: actions/download-artifact@v8
+      with:
+        name: fcterm.AppImage
+        path: .
+    - name: Download ARM64 terminal UI AppImage
+      uses: actions/download-artifact@v8
+      with:
+        name: fcterm.arm64.AppImage
+        path: .
 
     - name: Generate changelog (commits between previous tag and this tag)
       id: changelog
@@ -644,6 +674,8 @@ jobs:
           FileCommander.dmg
           FileCommander.AppImage
           FileCommander.arm64.AppImage
+          fcterm.AppImage
+          fcterm.arm64.AppImage
         token: ${{ secrets.GITHUB_TOKEN }}
         tag_name: ${{ github.ref }}
         name: ${{ github.ref_name }}

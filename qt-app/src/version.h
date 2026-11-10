@@ -11,3 +11,4 @@ RESTORE_COMPILER_WARNINGS
 // The version define below is parsed by qt-app.pro at qmake time - keep it a plain one-line string literal
 #define VERSION_STRING "1.0.0"
 #define REPO_NAME QLatin1String("VioletGiraffe/file-commander")
+#define RELEASE_ASSET_NAME QLatin1String("FileCommander") // FileCommander.exe, FileCommander.dmg, FileCommander.arm64.AppImage

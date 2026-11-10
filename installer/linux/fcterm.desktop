@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=File Commander (terminal)
+Comment=Dual-panel file manager for the terminal
+Exec=fcterm
+Icon=file_commander
+Terminal=true
+Categories=System;FileManager;ConsoleOnly;

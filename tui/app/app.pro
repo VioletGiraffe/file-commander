@@ -1,5 +1,5 @@
 TEMPLATE = app
-TARGET   = FileCommanderTui
+TARGET   = fcterm
 
 QT = core
 
