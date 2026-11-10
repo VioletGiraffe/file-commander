@@ -19,10 +19,37 @@ DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
 RESTORE_COMPILER_WARNINGS
 
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
+namespace
+{
+// Turbo Vision enables win32-input-mode whenever it sets up the console.
+// In that mode Windows Terminal sends each key as a ~20-byte sequence, which SSH can deliver in two parts.
+// Turbo Vision waits only 10 ms for the rest of a sequence, then drops the key and inserts its bytes as text.
+// Not covered: the console set up again after SIGCONT, which bypasses resume().
+// Unix only: on Windows Turbo Vision reads console input records, not escape sequences.
+void disableWin32InputMode()
+{
+#ifndef _WIN32
+	static constexpr char disableSequence[] = "\x1B[?9001l";
+	const int tty = ::open("/dev/tty", O_WRONLY | O_CLOEXEC);
+	const int fd = tty >= 0 ? tty : STDOUT_FILENO; // The terminal Turbo Vision draws on
+	[[maybe_unused]] const auto written = ::write(fd, disableSequence, sizeof(disableSequence) - 1);
+	if (tty >= 0)
+		::close(tty);
+#endif
+}
+} // namespace
+
 CTuiApplication::CTuiApplication(CController& controller) :
 	TProgInit(&CTuiApplication::initStatusLine, &CTuiApplication::initMenuBar, &TApplication::initDeskTop),
 	_controller(controller)
 {
+	disableWin32InputMode();
+
 	const TRect desktopArea = deskTop->getExtent();
 	const short middle = (short)(desktopArea.b.x / 2);
 
@@ -50,6 +77,12 @@ void CTuiApplication::handleEvent(TEvent& event)
 	}
 
 	TApplication::handleEvent(event);
+}
+
+void CTuiApplication::resume()
+{
+	TApplication::resume();
+	disableWin32InputMode();
 }
 
 TMenuBar* CTuiApplication::initMenuBar(TRect r)

@@ -19,6 +19,7 @@ public:
 	// Delivers the core's queued work and Qt's events before every Turbo Vision event, so modal views get them too
 	void getEvent(TEvent& event) override;
 	void handleEvent(TEvent& event) override;
+	void resume() override;
 
 private:
 	static TMenuBar* initMenuBar(TRect r);
