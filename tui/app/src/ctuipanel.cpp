@@ -414,10 +414,9 @@ bool CTuiPanel::runCommand(const ushort command)
 		return true;
 	}
 
-	CPanel& panel = _controller.panel(_side); // The tab active before the command, which a tab command may close
 	switch (command)
 	{
-	case cmNewTab: openTab(panel.currentDirPathPosix()); break;
+	case cmNewTab: openTab(_controller.panel(_side).currentDirPathPosix()); break;
 	case cmOpenFolderInNewTab:
 		if (const CFileSystemObject* row = _fileList->currentRow(); row && row->isDir())
 			openTab(row->fullAbsolutePath()); // For [..], the parent folder
@@ -427,7 +426,7 @@ bool CTuiPanel::runCommand(const ushort command)
 			openTab(path);
 		break;
 	case cmDuplicateTab:
-		_controller.addTab(_side, panel.currentDirPathPosix(), false, _controller.activeTabId(_side));
+		_controller.addTab(_side, _controller.panel(_side).currentDirPathPosix(), false, _controller.activeTabId(_side));
 		updateTabStrip();
 		break;
 	case cmCloseTab:
@@ -466,7 +465,7 @@ bool CTuiPanel::runCommand(const ushort command)
 			_controller.displayDirSize(_side, row->hash());
 		break;
 	case cmInvertSelection:
-		panel.invertSelection();
+		_controller.panel(_side).invertSelection();
 		showCoreSelection();
 		break;
 	case cmSelectByPattern:
@@ -476,15 +475,15 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmSelectByExtension:
 		if (const CFileSystemObject* row = _fileList->currentRow())
 		{
-			panel.selectFilesWithExtensionOf(row->hash());
+			_controller.panel(_side).selectFilesWithExtensionOf(row->hash());
 			showCoreSelection();
 		}
 		break;
 	case cmCopyPaths:
-		if (const QString pathLines = panel.selectedOrCurrentItemPathLines(); !pathLines.isEmpty())
+		if (const QString pathLines = _controller.panel(_side).selectedOrCurrentItemPathLines(); !pathLines.isEmpty())
 			CTuiApplication::copyToClipboard(pathLines);
 		break;
-	case cmOpenShell: runShell(panel.currentDirPathNative()); break;
+	case cmOpenShell: runShell(_controller.panel(_side).currentDirPathNative()); break;
 	case cmCopyItems:
 		transferSelectedItems(_controller, _side, TransferKind::Copy);
 		showCoreSelection(); // A copy deselects its sources
