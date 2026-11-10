@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794336645747,
+  "lastUpdate": 1794349479781,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -34874,6 +34874,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 45,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "08b2fdc5f6f6d1cacb799d31b29cf2583e10ade0",
+          "message": "The Linux AppImages are about 9% smaller: packed with zstd level 19 and 1 MB squashfs blocks, through appimagetool directly, since linuxdeploy's AppImage plugin passes no mksquashfs options",
+          "timestamp": "2026-11-11T00:12:35+02:00",
+          "tree_id": "357c9d2158b6ffdda99210699403e6b03bb4efda",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/08b2fdc5f6f6d1cacb799d31b29cf2583e10ade0"
+        },
+        "date": 1794349476659,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 18109,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35754,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1592,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 938,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 445.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45.5,
             "unit": "KB"
           },
           {
