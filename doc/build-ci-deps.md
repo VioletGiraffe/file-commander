@@ -53,3 +53,4 @@ See [testing.md](testing.md): suite layout, kinds of tests, coverage by componen
 | **text-encoding-detector** | Detects text encoding of bytes -> QString. Backs the text-viewer plugin. |
 | **image-processing** | Image processing library used by the image-viewer plugin. Qt-free itself; Qt consumers include its header-only `resize/qimage_resize.h` bridge. |
 | **github-releases-autoupdater** | Update check + download for GitHub-release-distributed builds (Windows-installer focused). |
+| **tvision** | Turbo Vision, the terminal UI's framework. Built by `tui/tvision/tvision.pro`, not by its own CMake. |
