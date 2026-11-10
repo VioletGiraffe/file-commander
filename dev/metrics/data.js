@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794328042266,
+  "lastUpdate": 1794330512348,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -34612,6 +34612,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 443.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "0bbf203c4c0aee89978292da47ff08903c4eed07",
+          "message": "Fix a -Wshadow warning in CPanel::recoverFromInaccessibleFolder: the lambda's lock no longer reuses the enclosing function's name",
+          "timestamp": "2026-11-10T18:56:51+02:00",
+          "tree_id": "f81f8a2008cce78b3a6c4adc150cfb0d1093f938",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/0bbf203c4c0aee89978292da47ff08903c4eed07"
+        },
+        "date": 1794330509282,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17722,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35754,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1585,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 932.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 444.5,
             "unit": "KB"
           },
           {
