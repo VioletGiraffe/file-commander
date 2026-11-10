@@ -10,6 +10,8 @@
 
 #include "fileoperations/fileoperationtexts.h"
 
+#include "assert/advanced_assert.h"
+
 #define Uses_TDrawBuffer
 #define Uses_TEvent
 #define Uses_TFrame
@@ -49,10 +51,11 @@ public:
 
 	[[nodiscard]] QString text() const { return QString::fromUtf8(data); }
 
-	void clear()
+	void setText(const QString& text)
 	{
-		data[0] = EOS;
-		selectAll(False);
+		const QByteArray utf8 = text.toUtf8();
+		strnzcpy(data, TStringView{ utf8.constData(), (size_t)utf8.size() }, (size_t)maxLen + 1);
+		selectAll(True);
 	}
 
 	void handleEvent(TEvent& event) override
@@ -114,6 +117,105 @@ public:
 
 private:
 	QByteArray _left, _right;
+};
+
+// The side's tabs on one row, the active one highlighted. Scrolled to keep the active tab in view.
+class CTuiTabStrip final : public TView
+{
+public:
+	struct Tab
+	{
+		qulonglong id;
+		QString name;
+	};
+
+	explicit CTuiTabStrip(const TRect& bounds) noexcept : TView(bounds)
+	{
+		growMode = gfGrowHiX;
+	}
+
+	std::function<void(qulonglong tabId)> onTabClicked;
+
+	void setTabs(const std::vector<Tab>& tabs, qulonglong activeTabId)
+	{
+		_labels.clear();
+		_activeLabel.reset();
+		int x = 0;
+		for (const Tab& tab : tabs)
+		{
+			if (tab.id == activeTabId)
+				_activeLabel = _labels.size();
+
+			Label& label = _labels.emplace_back();
+			label.tabId = tab.id;
+			label.text = (u' ' + tab.name + u' ').toUtf8();
+			label.x = x;
+			label.width = strwidth(TStringView{ label.text.constData(), (size_t)label.text.size() });
+			x += label.width;
+		}
+		drawView();
+	}
+
+	void draw() override
+	{
+		// BIOS colours, as the status line and the file list cursor
+		static constexpr TColorAttr color{ 0x17 }, activeColor{ 0x30 };
+
+		const int offset = scrollOffset();
+		TDrawBuffer line;
+		line.moveChar(0, ' ', color, (ushort)size.x);
+		for (size_t i = 0; i < _labels.size(); ++i)
+		{
+			const Label& label = _labels[i];
+			const int start = label.x - offset;
+			if (start + label.width <= 0 || start >= size.x)
+				continue;
+
+			const int indent = std::max(start, 0);
+			line.moveStr((ushort)indent, TStringView{ label.text.constData(), (size_t)label.text.size() }, i == _activeLabel ? activeColor : color,
+				(ushort)(size.x - indent), (ushort)(indent - start));
+		}
+		writeLine(0, 0, (short)size.x, 1, line);
+	}
+
+	void handleEvent(TEvent& event) override
+	{
+		TView::handleEvent(event);
+		if (event.what != evMouseDown)
+			return;
+
+		const int x = makeLocal(event.mouse.where).x + scrollOffset();
+		for (const Label& label : _labels)
+		{
+			if (x >= label.x && x < label.x + label.width)
+			{
+				onTabClicked(label.tabId);
+				break;
+			}
+		}
+		clearEvent(event);
+	}
+
+private:
+	// Columns scrolled off on the left: none until the active label would end past the right edge
+	[[nodiscard]] int scrollOffset() const
+	{
+		if (!_activeLabel)
+			return 0;
+
+		const Label& active = _labels[*_activeLabel];
+		return std::clamp(active.x + active.width - size.x, 0, active.x);
+	}
+
+	struct Label
+	{
+		qulonglong tabId = 0;
+		QByteArray text;
+		int x = 0, width = 0;
+	};
+
+	std::vector<Label> _labels;
+	std::optional<size_t> _activeLabel;
 };
 
 [[nodiscard]] static QString sortFieldName(FileListSortField field)
@@ -258,6 +360,11 @@ CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
 	growMode = gfGrowAll | gfGrowRel;
 
 	// layOutViews() sets the bounds
+	_tabStrip = new CTuiTabStrip({});
+	_tabStrip->onTabClicked = [this](qulonglong tabId) { activateTab(tabId); };
+	insert(_tabStrip);
+	_tabStrip->hide();
+
 	_fileList = new CTuiFileList({}, standardScrollBar(sbVertical));
 	_fileList->onCursorMoved = [this](const CFileSystemObject& row) {
 		_controller.setCurrentItemHashForCurrentFolder(_side, row.hash(), false);
@@ -299,9 +406,44 @@ void CTuiPanel::handleEvent(TEvent& event)
 
 bool CTuiPanel::runCommand(const ushort command)
 {
-	CPanel& panel = _controller.panel(_side);
+	if (command >= cmActivateTab1 && command < cmActivateTab1 + tabPositionCommandCount)
+	{
+		const std::vector<qulonglong> tabIds = _controller.tabIds(_side);
+		if (const size_t position = command - cmActivateTab1; position < tabIds.size())
+			activateTab(tabIds[position]);
+		return true;
+	}
+
+	CPanel& panel = _controller.panel(_side); // The tab active before the command, which a tab command may close
 	switch (command)
 	{
+	case cmNewTab: openTab(panel.currentDirPathPosix()); break;
+	case cmOpenFolderInNewTab:
+		if (const CFileSystemObject* row = _fileList->currentRow(); row && row->isDir())
+			openTab(row->fullAbsolutePath()); // For [..], the parent folder
+		break;
+	case cmReopenClosedTab:
+		if (const QString path = _controller.takeLastClosedTabPath(_side); !path.isEmpty())
+			openTab(path);
+		break;
+	case cmDuplicateTab:
+		_controller.addTab(_side, panel.currentDirPathPosix(), false, _controller.activeTabId(_side));
+		updateTabStrip();
+		break;
+	case cmCloseTab:
+		_controller.closeTab(_side, _controller.activeTabId(_side));
+		showActiveTab();
+		break;
+	case cmCloseOtherTabs:
+		for (const qulonglong tabId : _controller.tabIds(_side))
+		{
+			if (tabId != _controller.activeTabId(_side))
+				_controller.closeTab(_side, tabId);
+		}
+		updateTabStrip();
+		break;
+	case cmNextTab: activateNeighbourTab(1); break;
+	case cmPreviousTab: activateNeighbourTab(-1); break;
 	case cmActivateFileListItem: activateCurrentItem(); break;
 	case cmGoUp: _controller.navigateUp(_side); break;
 	case cmGoBack: _controller.navigateBack(_side); break;
@@ -388,6 +530,7 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	_fileList->setSelectedItems({});
 	updateStatusLine();
 	setTitle(_controller.panel(_side).currentDirPathNative());
+	updateTabStrip();
 }
 
 void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
@@ -402,6 +545,7 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 
 	showCoreSelection();
 	setTitle(panel.currentDirPathNative());
+	updateTabStrip();
 }
 
 void CTuiPanel::showCoreSelection()
@@ -590,16 +734,51 @@ void CTuiPanel::sortBy(FileListSortField field)
 	fillFromPanel();
 }
 
+void CTuiPanel::openTab(const QString& path)
+{
+	_controller.addTab(_side, path, true, _controller.activeTabId(_side));
+	showActiveTab();
+}
+
+void CTuiPanel::activateTab(qulonglong tabId)
+{
+	_controller.setActiveTab(_side, tabId);
+	showActiveTab();
+}
+
+void CTuiPanel::activateNeighbourTab(int offset)
+{
+	const std::vector<qulonglong> tabIds = _controller.tabIds(_side);
+	const auto active = std::ranges::find(tabIds, _controller.activeTabId(_side));
+	assert_and_return_r(active != tabIds.end(), );
+
+	const auto count = (std::ptrdiff_t)tabIds.size();
+	activateTab(tabIds[(size_t)(((active - tabIds.begin()) + offset + count) % count)]);
+}
+
+void CTuiPanel::showActiveTab()
+{
+	const QString nameFilter = _controller.panel(_side).nameFilter();
+	_filterLine->setText(nameFilter);
+	setViewShown(_filterLine, !nameFilter.isEmpty());
+	_fileList->select();
+	fillFromPanel();
+}
+
+void CTuiPanel::updateTabStrip()
+{
+	std::vector<CTuiTabStrip::Tab> tabs;
+	for (const qulonglong tabId : _controller.tabIds(_side))
+		tabs.push_back({ tabId, _controller.tabName(_side, tabId) });
+
+	const bool shown = tabs.size() > 1;
+	_tabStrip->setTabs(tabs, _controller.activeTabId(_side));
+	setViewShown(_tabStrip, shown);
+}
+
 void CTuiPanel::openFilterLine()
 {
-	if (_filterLine->state & sfVisible)
-	{
-		_filterLine->select();
-		return;
-	}
-
-	_filterLine->show();
-	layOutViews();
+	setViewShown(_filterLine, true);
 	_filterLine->select();
 }
 
@@ -612,11 +791,19 @@ void CTuiPanel::applyFilter(const QString& filterText)
 
 void CTuiPanel::closeFilterLine()
 {
-	_filterLine->clear();
+	_filterLine->setText({});
 	applyFilter({});
-	_filterLine->hide();
-	layOutViews();
+	setViewShown(_filterLine, false);
 	_fileList->select();
+}
+
+void CTuiPanel::setViewShown(TView* view, bool shown)
+{
+	if (((view->state & sfVisible) != 0) == shown)
+		return;
+
+	shown ? view->show() : view->hide();
+	layOutViews();
 }
 
 void CTuiPanel::layOutViews()
@@ -624,11 +811,13 @@ void CTuiPanel::layOutViews()
 	TRect interior = getExtent();
 	interior.grow(-1, -1);
 
+	const int listTop = _tabStrip->state & sfVisible ? interior.a.y + 1 : interior.a.y;
 	const int statusRow = interior.b.y - 1;
 	const int filterRow = statusRow - 1;
+	_tabStrip->changeBounds({ interior.a.x, interior.a.y, interior.b.x, interior.a.y + 1 });
 	_statusLine->changeBounds({ interior.a.x, statusRow, interior.b.x, statusRow + 1 });
 	_filterLine->changeBounds({ interior.a.x, filterRow, interior.b.x, statusRow });
-	_fileList->changeBounds({ interior.a.x, interior.a.y, interior.b.x, _filterLine->state & sfVisible ? filterRow : statusRow });
+	_fileList->changeBounds({ interior.a.x, listTop, interior.b.x, _filterLine->state & sfVisible ? filterRow : statusRow });
 }
 
 void CTuiPanel::setTitle(const QString& text)

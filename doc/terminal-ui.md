@@ -25,7 +25,8 @@ dialog is open.
 
 ## Panels
 
-- Each side is a `CTuiPanel` showing the side's active tab. There are no tab commands.
+- Each side is a `CTuiPanel` showing the side's active tab. Switching tabs refills it from that tab's `CPanel`; a tab
+  strip shows while the side has more than one tab. [tabs.md](tabs.md) has the core's side.
 - The rows are a copy of `CPanel::visibleItems()`. Sorting, the name filter and the selection belong to the `CPanel`,
   as in the Qt UI; the list shows a copy of the selection, refreshed after every change made through the core.
 - `CTuiFileList` is a plain `TView`, not a `TListViewer`: that counts rows in `short`, and a folder can hold more.
@@ -36,7 +37,8 @@ dialog is open.
   bind the keys, and see them before the focused view does.
   - Exceptions: the panel binds the keys a text field uses, so that the filter line still receives them. The application
     binds Tab, which switches panels.
-  - The status line binds only F10. Its other items and the hint row are labels.
+  - The status line binds F10, which opens the menus, and Alt+1 to Alt+9, which share one menu item. Its other items
+    and the hint row are labels.
 - Copy, move and delete build their requests with the core's `fileoperationlaunch` and run on the same engine as the
   Qt app; [core-engine.md](core-engine.md) has the deletion backends. The progress dialog opens only for an operation
   that outlasts a short delay or asks a question. A trash that refuses items offers them for permanent deletion.

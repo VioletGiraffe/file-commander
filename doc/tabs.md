@@ -22,6 +22,9 @@ refilled only while its tab is on screen. Activation swaps the models and restor
 notifications cannot touch them. Each tab's `CPanel` holds its sorting, name filter and selection; the model and
 the selection model show copies. The side's one filter box is shown whenever the active tab is filtered.
 
+The terminal UI's `CTuiPanel` keeps no state per tab: switching refills its one list from the active tab's `CPanel`,
+and its filter line follows the same rule as the Qt filter box.
+
 ## Lifetime and persistence
 
 Panels share the controller's thread pools. Every panel task is tagged, and closing a tab retires its tag before

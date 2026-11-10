@@ -13,6 +13,7 @@ class CController;
 class CTuiFileList;
 class CTuiFilterLine;
 class CTuiStatusLine;
+class CTuiTabStrip;
 
 // The menus, the status line and the panel's own keys send these; the focused panel carries them out
 inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 1003, cmDeleteItemsPermanently = 1004,
@@ -21,7 +22,11 @@ inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 
 	cmRefresh = 1015, cmToggleHiddenFiles = 1016, cmOpenFilterLine = 1017,
 	cmSortByName = 1018, cmSortByExtension = 1019, cmSortByDate = 1020, cmSortBySize = 1021,
 	cmToggleSelectionAndMoveDown = 1022, cmToggleSelectionAndCalculateSize = 1023, cmInvertSelection = 1024,
-	cmSelectByPattern = 1025, cmDeselectByPattern = 1026, cmSelectByExtension = 1027, cmOpenShell = 1028;
+	cmSelectByPattern = 1025, cmDeselectByPattern = 1026, cmSelectByExtension = 1027, cmOpenShell = 1028,
+	cmNewTab = 1029, cmCloseTab = 1030, cmReopenClosedTab = 1031, cmDuplicateTab = 1032, cmCloseOtherTabs = 1033,
+	cmNextTab = 1034, cmPreviousTab = 1035, cmOpenFolderInNewTab = 1036;
+// cmActivateTab1 + n activates the tab at position n, for n up to 8
+inline constexpr ushort cmActivateTab1 = 1040, tabPositionCommandCount = 9;
 
 // One side: a window showing the active tab's folder
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener
@@ -63,10 +68,21 @@ private:
 	// The same field again reverses the order
 	void sortBy(FileListSortField field);
 
+	// Each new tab takes the active tab's sorting
+	void openTab(const QString& path);
+	void activateTab(qulonglong tabId);
+	// offset: 1 for the next tab, -1 for the previous, wrapping around
+	void activateNeighbourTab(int offset);
+	// The active tab's listing, selection, sorting and filter
+	void showActiveTab();
+	// The strip shows only while the side has more than one tab
+	void updateTabStrip();
+
 	void openFilterLine();
 	void applyFilter(const QString& filterText);
 	void closeFilterLine();
-	// The filter line, while shown, takes the row above the status line
+	void setViewShown(TView* view, bool shown);
+	// The tab strip, while shown, takes the first row; the filter line, the row above the status line
 	void layOutViews();
 
 	void setTitle(const QString& text);
@@ -76,6 +92,7 @@ private:
 	CController& _controller;
 	const Panel _side;
 	// Owned by this window
+	CTuiTabStrip* _tabStrip;
 	CTuiFileList* _fileList;
 	CTuiFilterLine* _filterLine;
 	CTuiStatusLine* _statusLine;

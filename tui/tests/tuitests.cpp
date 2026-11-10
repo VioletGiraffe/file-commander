@@ -438,6 +438,42 @@ TEST_CASE("F10 and Alt+letter open the menus, whose commands act on the focused 
 		QStringLiteral("every file selected"));
 }
 
+TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/a.txt"));
+	sandbox.createFile(QStringLiteral("other/b.txt"));
+	sandbox.createFile(QStringLiteral("other/c.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
+
+	static constexpr int tabStripRow = 2, filterRow = panelStatusRow - 1;
+	const auto tabStrip = [](const CTerminalScreen& screen) { return panelPart(screen.row(tabStripRow), Side::Left); };
+	const auto filterLine = [](const CTerminalScreen& screen) { return panelPart(screen.row(filterRow), Side::Left).trimmed(); };
+
+	session->send(Keys::CtrlT);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return tabStrip(screen).count(QStringLiteral(" work ")) == 2; }, QStringLiteral("two tabs"));
+	goTo(*session, sandbox.path(QStringLiteral("other")), QStringLiteral("b.txt"));
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return tabStrip(screen).contains(QStringLiteral(" work  other ")); }, QStringLiteral("the tabs named"));
+
+	session->send(Keys::CtrlF);
+	typeText(*session, QStringLiteral("b*"));
+	session->send(Keys::Enter);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !panelLists(screen, QStringLiteral("c.txt")); }, QStringLiteral("c.txt filtered out"));
+
+	session->send(Keys::CtrlPgUp);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("a.txt")) && filterLine(screen) != QStringLiteral("b*"); },
+		QStringLiteral("the first tab, unfiltered"));
+	session->send(Keys::Alt2);
+	requireScreen(*session, [&](const CTerminalScreen& screen) {
+		return panelLists(screen, QStringLiteral("b.txt")) && !panelLists(screen, QStringLiteral("c.txt")) && filterLine(screen) == QStringLiteral("b*");
+	}, QStringLiteral("the second tab with its filter"));
+
+	session->send(Keys::CtrlW);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("a.txt")) && !tabStrip(screen).contains(QStringLiteral(" other ")); },
+		QStringLiteral("the first tab alone"));
+}
+
 TEST_CASE("F3 opens the pager on the file, in its folder", "[tui]")
 {
 	const Sandbox sandbox;

@@ -228,6 +228,18 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("~D~eselect by pattern...", cmDeselectByPattern, kbNoKey, hcNoContext, "-") +
 			*new TMenuItem("Select by ~e~xtension", cmSelectByExtension, kbNoKey, hcNoContext, "=") +
 			*new TMenuItem("~I~nvert selection", cmInvertSelection, kbNoKey, hcNoContext, "*") +
+		*new TSubMenu("~T~abs", kbAltT) +
+			*new TMenuItem("~N~ew tab", cmNewTab, kbCtrlT, hcNoContext, "Ctrl-T") +
+			*new TMenuItem("~C~lose tab", cmCloseTab, kbCtrlW, hcNoContext, "Ctrl-W") +
+			*new TMenuItem("~R~eopen closed tab", cmReopenClosedTab, kbNoKey) +
+			*new TMenuItem("~D~uplicate tab", cmDuplicateTab, kbNoKey) +
+			*new TMenuItem("Close ~a~ll other tabs", cmCloseOtherTabs, kbNoKey) +
+			newLine() +
+			*new TMenuItem("Ne~x~t tab", cmNextTab, kbCtrlPgDn, hcNoContext, "Ctrl-PgDn") +
+			*new TMenuItem("~P~revious tab", cmPreviousTab, kbCtrlPgUp, hcNoContext, "Ctrl-PgUp") +
+			*new TMenuItem("~F~irst tab", cmActivateTab1, kbNoKey, hcNoContext, "Alt-1..9") +
+			newLine() +
+			*new TMenuItem("~O~pen folder in new tab", cmOpenFolderInNewTab, kbCtrlUp, hcNoContext, "Ctrl-Up") +
 		*new TSubMenu("~V~iew", kbAltV) +
 			*new TMenuItem("Toggle ~h~idden files", cmToggleHiddenFiles, kbCtrlS, hcNoContext, "Ctrl-S") +
 			*new TMenuItem("~F~ilter", cmOpenFilterLine, kbCtrlF, hcNoContext, "Ctrl-F") +
@@ -248,10 +260,12 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 	);
 }
 
-// The menus bind the keys shown here; the items respond to clicks only
+// The menus bind the keys shown here; the items respond to clicks only.
+// Binds F10, which opens the menus, and Alt+1 to Alt+9: a menu item binds only one key.
 TStatusLine* CTuiApplication::initStatusLine(TRect r)
 {
 	r.a.y = r.b.y - 1;
+	static_assert(tabPositionCommandCount == 9);
 	return new TStatusLine(r,
 		*new TStatusDef(0, 0xFFFF) +
 			*new TStatusItem("~F2~ Rename", kbNoKey, cmRenameItem) +
@@ -261,7 +275,16 @@ TStatusLine* CTuiApplication::initStatusLine(TRect r)
 			*new TStatusItem("~F6~ Move", kbNoKey, cmMoveItems) +
 			*new TStatusItem("~F7~ Folder", kbNoKey, cmCreateFolder) +
 			*new TStatusItem("~F8~ Delete", kbNoKey, cmDeleteItems) +
-			*new TStatusItem(nullptr, kbF10, cmMenu)
+			*new TStatusItem(nullptr, kbF10, cmMenu) +
+			*new TStatusItem(nullptr, kbAlt1, cmActivateTab1) +
+			*new TStatusItem(nullptr, kbAlt2, cmActivateTab1 + 1) +
+			*new TStatusItem(nullptr, kbAlt3, cmActivateTab1 + 2) +
+			*new TStatusItem(nullptr, kbAlt4, cmActivateTab1 + 3) +
+			*new TStatusItem(nullptr, kbAlt5, cmActivateTab1 + 4) +
+			*new TStatusItem(nullptr, kbAlt6, cmActivateTab1 + 5) +
+			*new TStatusItem(nullptr, kbAlt7, cmActivateTab1 + 6) +
+			*new TStatusItem(nullptr, kbAlt8, cmActivateTab1 + 7) +
+			*new TStatusItem(nullptr, kbAlt9, cmActivateTab1 + 8)
 	);
 }
 
