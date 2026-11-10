@@ -7,10 +7,6 @@ removed.
 
 Chosen from a longer list; no other command from it is approved.
 
-### Select by extension
-
-Alt+Num+ selects the items with the current item's extension, as in Total Commander.
-
 ### Go to file location
 
 In flattened show-all-files mode, add a command that opens the selected item's containing folder and selects the

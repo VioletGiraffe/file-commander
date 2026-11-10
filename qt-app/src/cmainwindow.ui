@@ -294,6 +294,7 @@
     <addaction name="action_Invert_selection"/>
     <addaction name="action_Select_by_pattern"/>
     <addaction name="action_Deselect_by_pattern"/>
+    <addaction name="action_Select_by_extension"/>
    </widget>
    <widget class="QMenu" name="menuTabs">
     <property name="title">
@@ -432,6 +433,14 @@
    </property>
    <property name="shortcut">
     <string>Num+-</string>
+   </property>
+  </action>
+  <action name="action_Select_by_extension">
+   <property name="text">
+    <string>Select files with the same &amp;extension</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Num++</string>
    </property>
   </action>
   <action name="actionFull_screen_mode">

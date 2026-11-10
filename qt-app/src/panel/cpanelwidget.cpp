@@ -1542,6 +1542,12 @@ void CPanelWidget::setItemsSelectedByPattern(const QString& patternText, const b
 	applyCoreSelection();
 }
 
+void CPanelWidget::selectFilesWithExtensionOfCurrentItem()
+{
+	_controller->panel(_panelPosition).selectFilesWithExtensionOf(currentItemHash());
+	applyCoreSelection();
+}
+
 void CPanelWidget::moveCursorToFirstFile()
 {
 	const int row = _model->firstFileRow();

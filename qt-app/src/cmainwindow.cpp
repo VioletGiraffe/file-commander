@@ -335,6 +335,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Invert_selection, &QAction::triggered, this, &CMainWindow::invertSelection);
 	connect(ui->action_Select_by_pattern, &QAction::triggered, this, [this] { selectItemsByPattern(true); });
 	connect(ui->action_Deselect_by_pattern, &QAction::triggered, this, [this] { selectItemsByPattern(false); });
+	connect(ui->action_Select_by_extension, &QAction::triggered, this, [this] { if (_currentFileList) _currentFileList->selectFilesWithExtensionOfCurrentItem(); });
 
 	connect(ui->actionFull_screen_mode, &QAction::toggled, this, &CMainWindow::toggleFullScreenMode);
 	connect(ui->actionTablet_mode, &QAction::toggled, this, &CMainWindow::toggleTabletMode);
