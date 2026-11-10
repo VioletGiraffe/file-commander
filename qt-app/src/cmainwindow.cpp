@@ -44,8 +44,8 @@
 #include "dialogs/messagedialog.h"
 #include "fileoperations/fileoperationtexts.h"
 #include "fileoperations/fileoperationtypes.h"
-#include "fileoperations/newnamecheck.h"
 #include "fileoperationsui/cfileoperationdialog.h"
+#include "fileoperationsui/usermessagebox.h"
 #include "logger/cloggerinmemory.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
@@ -841,18 +841,8 @@ void CMainWindow::createFolder()
 	if (dirName.isEmpty())
 		return;
 
-	// Per component: this command creates a whole chain, so "a/b/c" is legitimate input.
-	if (const NameRejection rejection = checkNewEntryPath(dirName); rejection != NameRejection::None)
-	{
-		QMessageBox::warning(this, tr("Cannot use this name"), newNameRejectionText(rejection));
-		return;
-	}
-
-	const auto result = _controller->createFolder(_currentFileList->currentDirPathNative(), toPosixSeparators(dirName));
-	if (result == FileOperationResultCode::TargetAlreadyExists)
-		QMessageBox::warning(this, tr("Item already exists"), tr("The folder %1 already exists.").arg(dirName));
-	else if (result != FileOperationResultCode::Ok)
-		QMessageBox::warning(this, tr("Failed to create item"), tr("Failed to create the folder %1").arg(dirName));
+	if (const auto message = _controller->createFolder(_currentFileList->panelPosition(), dirName))
+		showUserMessage(this, *message);
 }
 
 void CMainWindow::createFile()
@@ -873,17 +863,8 @@ void CMainWindow::createFile()
 	if (fileName.isEmpty())
 		return;
 
-	if (const NameRejection rejection = checkNewEntryName(fileName); rejection != NameRejection::None)
-	{
-		QMessageBox::warning(this, tr("Cannot use this name"), newNameRejectionText(rejection));
-		return;
-	}
-
-	const auto result = _controller->createFile(_currentFileList->currentDirPathNative(), fileName);
-	if (result == FileOperationResultCode::TargetAlreadyExists)
-		QMessageBox::warning(this, tr("Item already exists"), tr("The file %1 already exists.").arg(fileName));
-	else if (result != FileOperationResultCode::Ok)
-		QMessageBox::warning(this, tr("Failed to create item"), tr("Failed to create the file %1").arg(fileName));
+	if (const auto message = _controller->createFile(_currentFileList->panelPosition(), fileName))
+		showUserMessage(this, *message);
 }
 
 void CMainWindow::invertSelection()

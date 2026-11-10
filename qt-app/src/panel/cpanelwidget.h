@@ -26,7 +26,6 @@ class QUrl;
 class CFileListModel;
 class CFileListFilterDialog;
 class CShellOperationRunner;
-struct InlineRenameResult;
 
 
 class CPanelWidget final : public QWidget,
@@ -115,7 +114,7 @@ private slots:
 	void copySelectionToClipboard() const;
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard(bool specialPaste = false);
-	void pathFromHistoryActivated(QString path);
+	void pathFromHistoryActivated(const QString& path);
 	void onItemMiddleClicked(const QModelIndex& index); // Middle-click: opens the folder in a new tab (no-op if it's not a folder)
 
 private:
@@ -142,9 +141,6 @@ private:
 	void putSelectionOnClipboard(bool cut) const;
 
 	void updateCurrentVolumeButtonAndInfoLabel();
-
-	// The message for every inline-rename outcome in which the entry was not renamed.
-	void reportFailedRename(const InlineRenameResult& result, const QString& oldName, const QString& newName);
 
 	// Saves the image as a new file in the current folder; tells the user if that fails
 	void pasteImage(const QImage& image, bool lossyCompression);

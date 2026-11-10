@@ -8,7 +8,9 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
-#include "fileoperations/cfilesystemmutator.h"
+#include "fileoperations/centrypath.h"
+#include "fileoperations/entrycreation.h"
+#include "fileoperations/fileoperationtexts.h"
 #include "system/cpuinfo.hpp"
 #include "threading/thread_helpers.h"
 
@@ -660,23 +662,21 @@ CController::ItemActivationResult CController::itemActivated(qulonglong itemHash
 	return { FileOperationResultCode::Fail };
 }
 
-// A current volume has been switched
-std::pair<bool /*success*/, QString/*volume root path*/> CController::switchToVolume(Panel p, uint64_t id)
+std::optional<UserMessage> CController::switchToVolume(Panel p, uint64_t id)
 {
 	const QString drivePath = volumePathById(id);
 
+	QString path;
 	const auto currentVolume = currentVolumeInfo(otherPanelPosition(p));
-	// When switching to the same volume that is selected in the other panel, also navigate to the same directory that's currently selected
 	if (currentVolume && drivePath == currentVolume->rootObjectInfo.fullAbsolutePath())
-	{
-		return {setPath(p, otherPanel(p).currentDirPathPosix(), refreshCauseOther) == FileOperationResultCode::Ok, drivePath};
-	}
+		path = otherPanel(p).currentDirPathPosix();
 	else
-	{
-		// Otherwise navigate to the last known path for this volume, or its root if no path was recorded previously
-		const QString lastPathForDrive = QSettings{}.value(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), drivePath).toString();
-		return {setPath(p, toPosixSeparators(lastPathForDrive), refreshCauseOther) == FileOperationResultCode::Ok, drivePath};
-	}
+		path = toPosixSeparators(QSettings{}.value(p == Panel::LeftPanel ? QString{KEY_LAST_PATH_FOR_DRIVE_L}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())) : QString{KEY_LAST_PATH_FOR_DRIVE_R}.arg(QString::fromLatin1(drivePath.toUtf8().toHex())), drivePath).toString());
+
+	if (setPath(p, path, refreshCauseOther) == FileOperationResultCode::Ok)
+		return {};
+	return UserMessage{ MessageSeverity::Information, QObject::tr("Failed to switch volume"),
+		QObject::tr("The volume %1 is inaccessible (locked or doesn't exist).").arg(drivePath) };
 }
 
 void CController::activePanelChanged(Panel p)
@@ -752,51 +752,55 @@ void CController::goToItem(Panel p, const CFileSystemObject& item)
 	notifyCurrentVolumeChanged(p);
 }
 
-FileOperationResultCode CController::createFolder(const QString &parentFolder, const QString &name)
+std::optional<UserMessage> CController::goToTypedPath(Panel p, QString text)
 {
-	const auto parent = parseOperationPath(parentFolder);
-	assert_and_return_r(parent, FileOperationResultCode::Fail);
+	text.remove('"');
+	const QString path = resolveUserPath(text, panel(p).currentDirPathPosix());
+	if (path.isEmpty())
+		return {};
 
-	// The parent must still exist: createDirectories() would recreate it
-	const auto parentEntry = inspectEntry(*parent);
-	if (!parentEntry || !parentEntry->has_value()
-		|| ((*parentEntry)->kind != OperationEntryKind::Directory && (*parentEntry)->kind != OperationEntryKind::DirectoryLink))
-		return FileOperationResultCode::Fail;
-
-	const QStringList components = name.split('/', Qt::SkipEmptyParts);
-	assert_and_return_r(!components.empty(), FileOperationResultCode::Fail);
-
-	CEntryPath path = *parent;
-	for (const QString& component : components)
-		path = path.child(component);
-
-	const auto outcome = CFileSystemMutator::createDirectories(path);
-	if (!outcome)
-		return FileOperationResultCode::Fail;
-	if (*outcome == DirectoryCreationOutcome::FinalEntryAlreadyExisted)
-		return FileOperationResultCode::TargetAlreadyExists;
-
-	// The UI places the cursor on the listed folder, the chain's first; a folder's hash includes the trailing separator
-	if (parent == parseOperationPath(activePanel().currentDirPathPosix()))
-		setCurrentItemHashForCurrentFolder(activePanelPosition(), pathHash(parent->child(components.front()).value() % '/'));
-
-	return FileOperationResultCode::Ok;
+	if (setPath(p, path, refreshCauseOther) != FileOperationResultCode::DirNotAccessible)
+		return {};
+	return UserMessage{ MessageSeverity::Information, QObject::tr("Failed to set the path"),
+		QObject::tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(text) };
 }
 
-FileOperationResultCode CController::createFile(const QString &parentFolder, const QString &name)
+std::optional<UserMessage> CController::createFolder(Panel p, const QString& relativePath)
 {
-	const auto parent = parseOperationPath(parentFolder);
-	assert_and_return_r(parent, FileOperationResultCode::Fail);
+	const auto parent = parseOperationPath(panel(p).currentDirPathPosix());
+	assert_and_return_r(parent, std::nullopt);
 
-	const CEntryPath path = parent->child(name);
-	if (const auto created = CFileSystemMutator::createEmptyFile(path); !created)
-		return created.error().category == FileErrorCategory::AlreadyExists ? FileOperationResultCode::TargetAlreadyExists : FileOperationResultCode::Fail;
+	const EntryCreationResult result = createNewFolder(*parent, relativePath);
+	if (result.createdInParent)
+		setCurrentItemHashForCurrentFolder(p, CFileSystemObject{ result.createdInParent->value() }.hash());
+	return entryCreationMessage(result, relativePath);
+}
 
-	// The UI places the cursor on the new file
-	if (parent == parseOperationPath(activePanel().currentDirPathPosix()))
-		setCurrentItemHashForCurrentFolder(activePanelPosition(), pathHash(path.value()));
+std::optional<UserMessage> CController::createFile(Panel p, const QString& name)
+{
+	const auto parent = parseOperationPath(panel(p).currentDirPathPosix());
+	assert_and_return_r(parent, std::nullopt);
 
-	return FileOperationResultCode::Ok;
+	const EntryCreationResult result = createNewFile(*parent, name);
+	if (result.createdInParent)
+		setCurrentItemHashForCurrentFolder(p, CFileSystemObject{ result.createdInParent->value() }.hash());
+	return entryCreationMessage(result, name);
+}
+
+InlineRenameResult CController::renameItem(Panel p, qulonglong itemHash, const QString& newName, const bool replaceExistingFile)
+{
+	const CFileSystemObject item = itemByHash(p, itemHash);
+	if (item.isCdUp())
+		return { .status = InlineRenameStatus::NothingToDo };
+
+	const auto source = parseOperationPath(item.fullAbsolutePath());
+	assert_and_return_r(source, { .status = InlineRenameStatus::NothingToDo }); // A listed item has a valid absolute path
+
+	const InlineRenameResult result = inlineRename(*source, newName, replaceExistingFile);
+	// Only an accepted name gets here, so child()'s precondition holds
+	if (result.status == InlineRenameStatus::Renamed || result.status == InlineRenameStatus::NothingToDo)
+		setCurrentItemHashForCurrentFolder(p, CFileSystemObject{ source->parent().child(newName).value() }.hash());
+	return result;
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification

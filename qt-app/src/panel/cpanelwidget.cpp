@@ -20,6 +20,7 @@
 #include "fileoperations/fileoperationtexts.h"
 #include "fileoperations/fileoperationtypes.h"
 #include "fileoperations/inlinerename.h"
+#include "fileoperationsui/usermessagebox.h"
 #include "qtcore_helpers/displayformatting.hpp"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "timing/ctimeelapsed.h"
@@ -884,8 +885,8 @@ void CPanelWidget::driveButtonClicked()
 		return;
 
 	const auto id = sender()->property("id").toULongLong();
-	if (const auto result = _controller->switchToVolume(_panelPosition, id); !result.first)
-		QMessageBox::information(this, tr("Failed to switch volume"), tr("The volume %1 is inaccessible (locked or doesn't exist).").arg(result.second));
+	if (const auto message = _controller->switchToVolume(_panelPosition, id))
+		showUserMessage(this, *message);
 
 	ui->_list->setFocus();
 }
@@ -1006,66 +1007,23 @@ void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 	if (item.isCdUp())
 		return;
 
-	const auto source = parseOperationPath(item.fullAbsolutePath());
-	if (!source)
-		return; // A real panel item always has a valid absolute path
-
 	auto* mainWindow = CMainWindow::get();
 	assert_and_return_r(mainWindow, );
 	mainWindow->closeViewedFilesWithin({ item.fullAbsolutePath() });
 
-	auto result = inlineRename(*source, newName, false);
+	auto result = _controller->renameItem(_panelPosition, hash, newName, false);
 	if (result.status == InlineRenameStatus::ReplacementRequired)
 	{
 		// Fix for https://github.com/VioletGiraffe/file-commander/issues/123
-		if (QMessageBox::question(this, tr("Item already exists"),
-				tr("The file %1 already exists, do you want to overwrite it?").arg(newName),
-				QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) != QMessageBox::Yes)
+		const UserMessage question = inlineRenameReplacementQuestion(result, newName);
+		if (QMessageBox::question(this, question.title, question.text, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) != QMessageBox::Yes)
 			return;
 
-		result = inlineRename(*source, newName, true);
+		result = _controller->renameItem(_panelPosition, hash, newName, true);
 	}
 
-	if (result.status != InlineRenameStatus::Renamed && result.status != InlineRenameStatus::NothingToDo)
-	{
-		reportFailedRename(result, item.fullName().toString(), newName);
-		return;
-	}
-
-	// Move the cursor onto the renamed entry. Only an accepted name reaches this, so child()'s precondition holds.
-	const CEntryPath renamed = source->parent().child(newName);
-	_controller->setCurrentItemHashForCurrentFolder(_panelPosition, CFileSystemObject{ renamed.value() }.hash());
-}
-
-void CPanelWidget::reportFailedRename(const InlineRenameResult& result, const QString& oldName, const QString& newName)
-{
-	switch (result.status)
-	{
-	case InlineRenameStatus::Rejected:
-		QMessageBox::information(this, tr("Item already exists"),
-			tr("Cannot rename this %1 to \"%2\": a %3 with that name already exists.")
-				.arg(fileOperationEntryKindNoun(*result.sourceKind), newName, fileOperationEntryKindNoun(*result.destinationKind)));
-		break;
-
-	case InlineRenameStatus::RejectedInvalidName:
-		QMessageBox::warning(this, tr("Cannot use this name"), newNameRejectionText(result.nameRejection));
-		break;
-
-	case InlineRenameStatus::Failed:
-	{
-		QString message = tr("Failed to rename %1 to %2").arg(oldName, newName);
-		if (result.failure)
-			message.append(":\n" % fileSystemErrorText(result.failure->filesystemError) % '.');
-		QMessageBox::critical(this, tr("Renaming failed"), message);
-		break;
-	}
-
-	// ReplacementRequired is resolved by the caller before reporting: confirmed and retried, or declined and abandoned.
-	case InlineRenameStatus::Renamed:
-	case InlineRenameStatus::NothingToDo:
-	case InlineRenameStatus::ReplacementRequired:
-		break;
-	}
+	if (const auto message = inlineRenameMessage(result, item.fullName().toString(), newName))
+		showUserMessage(this, *message);
 }
 
 void CPanelWidget::toRoot()
@@ -1261,17 +1219,11 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 #endif
 }
 
-void CPanelWidget::pathFromHistoryActivated(QString path)
+void CPanelWidget::pathFromHistoryActivated(const QString& path)
 {
-	path.remove('\"');
-
-	const QString resolvedPath = resolveUserPath(path, _controller->panel(_panelPosition).currentDirPathPosix());
 	ui->_list->setFocus();
-	if (resolvedPath.isEmpty())
-		return;
-
-	if (_controller->setPath(_panelPosition, resolvedPath, refreshCauseOther) == FileOperationResultCode::DirNotAccessible)
-		QMessageBox::information(this, tr("Failed to set the path"), tr("The path %1 is inaccessible (locked or doesn't exist). Setting the closest accessible path instead.").arg(path));
+	if (const auto message = _controller->goToTypedPath(_panelPosition, path))
+		showUserMessage(this, *message);
 }
 
 void CPanelWidget::fillHistory()

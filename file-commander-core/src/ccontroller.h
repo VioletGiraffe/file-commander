@@ -12,6 +12,9 @@
 #include "wcx/cwcxpluginhost_stub.h"
 #endif
 
+#include "fileoperations/inlinerename.h"
+#include "fileoperations/usermessage.h"
+
 
 #include <array>
 #include <functional>
@@ -98,8 +101,9 @@ public:
 	};
 	// Enters a folder or launches an executable; any other file is returned in pathToOpen
 	ItemActivationResult itemActivated(qulonglong itemHash, Panel p);
-	// A current volume has been switched
-	std::pair<bool /*success*/, QString/*volume root path*/> switchToVolume(Panel p, uint64_t id);
+	// Shows the volume in side p: the other side's folder when it is on that volume, else the folder last visited there, else its root.
+	// Returns the message to show when the volume is inaccessible.
+	[[nodiscard]] std::optional<UserMessage> switchToVolume(Panel p, uint64_t id);
 	// Focus is set to a panel
 	void activePanelChanged(Panel p);
 	// The tab's sorting is persisted with it
@@ -118,10 +122,17 @@ public:
 	FileOperationResultCode setPath(Panel p, const QString& path, FileListRefreshCause operation);
 	// Opens the item's folder with the cursor on the item
 	void goToItem(Panel p, const CFileSystemObject& item);
-	// Creates a folder with a specified name at the specified parent folder. The name may be a chain ("a/b/c").
-	FileOperationResultCode createFolder(const QString& parentFolder, const QString& name);
-	// Creates a file with a specified name at the specified parent folder
-	FileOperationResultCode createFile(const QString& parentFolder, const QString& name);
+	// Goes to a path the user typed, resolved against side p's folder: see resolveUserPath(). Returns the message to show, if any.
+	[[nodiscard]] std::optional<UserMessage> goToTypedPath(Panel p, QString text);
+
+	// Create a folder or an empty file in side p's folder from the name the user typed, and put the cursor on the new entry.
+	// Return the message to show; nullopt when the entry was created.
+	// relativePath may be a chain ("a/b/c"): see createNewFolder().
+	[[nodiscard]] std::optional<UserMessage> createFolder(Panel p, const QString& relativePath);
+	[[nodiscard]] std::optional<UserMessage> createFile(Panel p, const QString& name);
+	// Renames an item of side p's folder, and puts the cursor on it. ReplacementRequired: confirm, then call again with replaceExistingFile.
+	// The message for the result: inlineRenameMessage().
+	[[nodiscard]] InlineRenameResult renameItem(Panel p, qulonglong itemHash, const QString& newName, bool replaceExistingFile);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
 	// Moves the items to the trash on a worker thread. backend: QtTrash, or NativeShellTrash on macOS.

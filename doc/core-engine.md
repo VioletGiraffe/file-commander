@@ -90,6 +90,11 @@ even when the directory does not yet exist. A front end that may run over SSH, t
 the desktop shell: it trashes through Qt and deletes permanently with the internal job. `CController::moveToTrash`
 runs Qt's trash, or macOS's shell trash, off the UI thread and reports the items it refused.
 
+The panel commands a front end runs on user input (new folder or file, rename, go to a typed path, switch volume) are
+`CController` methods. They check the input, act, and return the engine's `UserMessage` to show; creation and rename
+also put the cursor on the entry. The front end collects the input, shows the message, and asks rename's replacement
+question.
+
 ## Traversal and watchers
 
 `scanDirectory()` (`file-operations/directoryscan/`) is shared by flattened display, search, and folder comparison. It can
