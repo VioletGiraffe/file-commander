@@ -167,6 +167,9 @@ public:
 	// selectedItems(), or with nothing selected the current item, unless that is [..] or hidden
 	[[nodiscard]] std::vector<CFileSystemObject> selectedItemsOrCurrentItem() const;
 	[[nodiscard]] FolderContentsSummary selectionSummary() const;
+	// The selected items' paths, or with nothing selected the current item's, [..] included: shell-quoted, native, one per line.
+	// Empty when there is no current item either.
+	[[nodiscard]] QString selectedOrCurrentItemPathLines() const;
 
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(qulonglong dirHash);

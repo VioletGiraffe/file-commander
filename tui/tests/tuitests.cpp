@@ -143,7 +143,7 @@ void typeText(CTerminalSession& session, const QString& text)
 [[nodiscard]] std::unique_ptr<CTerminalSession> startFcterm(const Sandbox& sandbox, const std::map<QString, QString>& variables = {})
 {
 	QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
-	for (const char* variable : { "VISUAL", "EDITOR", "PAGER", "DISPLAY", "WAYLAND_DISPLAY", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME" })
+	for (const char* variable : { "VISUAL", "EDITOR", "PAGER", "DISPLAY", "WAYLAND_DISPLAY", "SSH_CONNECTION", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME" })
 		environment.remove(QString::fromLatin1(variable));
 	environment.insert(QStringLiteral("TERM"), QStringLiteral("xterm-256color"));
 #ifndef _WIN32
@@ -483,5 +483,36 @@ TEST_CASE("Enter on a document without a desktop opens the pager", "[tui]")
 	const Sandbox sandbox;
 	sandbox.createFile(QStringLiteral("work/document.md"));
 	requireRecordedLaunch(recordedLaunch(sandbox, "PAGER", QStringLiteral("document.md"), Keys::Enter), sandbox.work(QStringLiteral("document.md")));
+}
+
+TEST_CASE("Alt+C over SSH copies the paths through the terminal", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/a.txt"));
+	sandbox.createFile(QStringLiteral("work/with space.txt"));
+	auto session = startFcterm(sandbox, { { QStringLiteral("SSH_CONNECTION"), QStringLiteral("192.0.2.1 50000 192.0.2.2 22") } });
+	goTo(*session, sandbox.work({}), QStringLiteral("with space.txt"));
+	moveCursorTo(*session, QStringLiteral("a.txt"));
+
+	// One shell word per line: a path that needs quoting is in single quotes
+	const auto clipboardPaths = [&session] {
+		QStringList paths;
+		for (const QString& line : session->screen().clipboardText().split(u'\n'))
+			paths.push_back(canonical(line.startsWith(u'\'') && line.endsWith(u'\'') ? line.mid(1, line.size() - 2) : line));
+		return paths;
+	};
+
+	session->send(Keys::AltC);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.clipboardText().isEmpty(); }, QStringLiteral("the current item's path in the clipboard"));
+	CHECK(clipboardPaths() == QStringList{ canonical(sandbox.work(QStringLiteral("a.txt"))) });
+
+	session->send(Keys::Insert);
+	session->send(Keys::Insert);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("2 files, 0 folders selected")); },
+		QStringLiteral("both files selected"));
+	session->send(Keys::AltC);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return screen.clipboardText().contains(u'\n'); }, QStringLiteral("both paths in the clipboard"));
+	CHECK(session->screen().clipboardText().endsWith(u'\''));
+	CHECK(clipboardPaths() == QStringList{ canonical(sandbox.work(QStringLiteral("a.txt"))), canonical(sandbox.work(QStringLiteral("with space.txt"))) });
 }
 #endif

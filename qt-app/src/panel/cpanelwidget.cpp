@@ -1557,23 +1557,8 @@ void CPanelWidget::moveCursorToFirstFile()
 
 void CPanelWidget::copySelectedItemsPathsToClipboard() const
 {
-	const CPanel& panel = _controller->panel(_panelPosition);
-	std::vector<CFileSystemObject> items = panel.selectedItems();
-	// Nothing selected: the item under the cursor, even [..]
-	if (items.empty())
-	{
-		if (CFileSystemObject current = panel.currentItem(); current.isValid())
-			items.push_back(std::move(current));
-		else
-			return;
-	}
-
-	QString paths;
-	for (const CFileSystemObject& item : items)
-		paths += shellQuotedPath(toNativeSeparators(item.fullAbsolutePath())) + '\n';
-
-	paths.chop(1);
-	QApplication::clipboard()->setText(paths);
+	if (const QString pathLines = _controller->panel(_panelPosition).selectedOrCurrentItemPathLines(); !pathLines.isEmpty())
+		QApplication::clipboard()->setText(pathLines);
 }
 
 void CPanelWidget::onSettingsChanged()

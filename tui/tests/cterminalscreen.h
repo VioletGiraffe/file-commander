@@ -11,6 +11,7 @@ RESTORE_COMPILER_WARNINGS
 
 // The text a VT terminal shows after receiving a program's output. Colours and modes are ignored.
 // Covers the sequences Turbo Vision and ConPTY write: cursor movement, erasing, inserting and deleting, line feeds that scroll.
+// Keeps the clipboard writes too.
 class CTerminalScreen
 {
 public:
@@ -26,11 +27,14 @@ public:
 
 	// Answers to the program's cursor position queries, to be written back to it
 	[[nodiscard]] QByteArray takeReplies();
+	// The text of the last clipboard write (OSC 52)
+	[[nodiscard]] const QString& clipboardText() const noexcept { return _clipboardText; }
 
 private:
 	// The index after the sequence starting at `start`, or -1 when it is incomplete
 	[[nodiscard]] qsizetype escape(QStringView text, qsizetype start);
 	void csi(QStringView parameters, QChar final);
+	void osc(QStringView body);
 	void put(QChar c);
 	void lineFeed();
 	void reverseLineFeed();
@@ -46,4 +50,5 @@ private:
 	bool _wrapPending = false;
 	QString _incompleteSequence;
 	QByteArray _replies;
+	QString _clipboardText;
 };

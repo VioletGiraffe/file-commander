@@ -1,6 +1,7 @@
 #include "cterminalscreen.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QList>
 #include <QStringTokenizer>
 RESTORE_COMPILER_WARNINGS
 
@@ -74,6 +75,14 @@ QByteArray CTerminalScreen::takeReplies()
 	return std::exchange(_replies, {});
 }
 
+void CTerminalScreen::osc(QStringView body)
+{
+	// "52;<selection>;<base64 text>", where "?" for the text is a query
+	const QList<QStringView> fields = body.split(u';');
+	if (fields.size() == 3 && fields[0] == u"52" && fields[2] != u"?")
+		_clipboardText = QString::fromUtf8(QByteArray::fromBase64(fields[2].toLatin1()));
+}
+
 qsizetype CTerminalScreen::escape(QStringView text, qsizetype start)
 {
 	if (start + 1 >= text.size())
@@ -97,14 +106,19 @@ qsizetype CTerminalScreen::escape(QStringView text, qsizetype start)
 	{
 		for (qsizetype end = start + 2; end < text.size(); ++end)
 		{
-			if (text[end] == u'\a')
-				return end + 1;
+			qsizetype next = end + 1;
 			if (text[end] == u'\x1b')
 			{
 				if (end + 1 >= text.size())
 					return -1;
-				return text[end + 1] == u'\\' ? end + 2 : end;
+				next = text[end + 1] == u'\\' ? end + 2 : end;
 			}
+			else if (text[end] != u'\a')
+				continue;
+
+			if (kind == u']')
+				osc(text.sliced(start + 2, end - start - 2));
+			return next;
 		}
 		return -1;
 	}

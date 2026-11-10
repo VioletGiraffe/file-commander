@@ -5,6 +5,7 @@
 
 #include "compiler/compiler_warnings_control.h"
 
+#define Uses_TClipboard
 #define Uses_TDeskTop
 #define Uses_TEvent
 #define Uses_TKeys
@@ -16,6 +17,8 @@
 #define Uses_TSubMenu
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
+#include <QByteArray>
+#include <QByteArrayView>
 #include <QCoreApplication>
 #include <QProcess>
 RESTORE_COMPILER_WARNINGS
@@ -25,6 +28,7 @@ RESTORE_COMPILER_WARNINGS
 #ifdef _WIN32
 #include <Windows.h>
 #else
+#include <cerrno>
 #include <csignal>
 #include <fcntl.h>
 #include <unistd.h>
@@ -39,6 +43,25 @@ BOOL WINAPI ignoreInterrupt(DWORD controlType)
 }
 #endif
 
+#ifndef _WIN32
+// Writes past Turbo Vision's output buffer, to the terminal it draws on
+void writeToTerminal(QByteArrayView bytes)
+{
+	const int tty = ::open("/dev/tty", O_WRONLY | O_CLOEXEC);
+	const int fd = tty >= 0 ? tty : STDOUT_FILENO;
+	while (!bytes.isEmpty())
+	{
+		const ssize_t written = ::write(fd, bytes.data(), (size_t)bytes.size());
+		if (written > 0)
+			bytes = bytes.sliced(written);
+		else if (written == 0 || errno != EINTR)
+			break;
+	}
+	if (tty >= 0)
+		::close(tty);
+}
+#endif
+
 // Turbo Vision enables win32-input-mode whenever it sets up the console.
 // In that mode Windows Terminal sends each key as a ~20-byte sequence, which SSH can deliver in two parts.
 // Turbo Vision waits only 10 ms for the rest of a sequence, then drops the key and inserts its bytes as text.
@@ -47,12 +70,7 @@ BOOL WINAPI ignoreInterrupt(DWORD controlType)
 void disableWin32InputMode()
 {
 #ifndef _WIN32
-	static constexpr char disableSequence[] = "\x1B[?9001l";
-	const int tty = ::open("/dev/tty", O_WRONLY | O_CLOEXEC);
-	const int fd = tty >= 0 ? tty : STDOUT_FILENO; // The terminal Turbo Vision draws on
-	[[maybe_unused]] const auto written = ::write(fd, disableSequence, sizeof(disableSequence) - 1);
-	if (tty >= 0)
-		::close(tty);
+	writeToTerminal("\x1B[?9001l");
 #endif
 }
 } // namespace
@@ -163,6 +181,21 @@ std::expected<void, QString> CTuiApplication::runInTerminal(const QString& progr
 	if (!started)
 		return std::unexpected(process.errorString());
 	return {};
+}
+
+void CTuiApplication::copyToClipboard(const QString& text)
+{
+	const QByteArray utf8 = text.toUtf8();
+#ifndef _WIN32
+	// Turbo Vision tries the local clipboard tools first, which over SSH reach the remote machine's clipboard
+	if (!qEnvironmentVariableIsEmpty("SSH_CONNECTION"))
+	{
+		const QByteArray sequence = "\x1B]52;c;" + utf8.toBase64() + '\a';
+		writeToTerminal(sequence);
+		return;
+	}
+#endif
+	TClipboard::setText(TStringView{ utf8.constData(), (size_t)utf8.size() });
 }
 
 TMenuBar* CTuiApplication::initMenuBar(TRect r)

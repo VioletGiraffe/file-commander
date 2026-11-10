@@ -1,5 +1,7 @@
 #include "paneltesthelpers.h"
 
+#include "filesystemhelperfunctions.h"
+
 #include <algorithm>
 #include <vector>
 
@@ -230,6 +232,36 @@ TEST_CASE("CPanel - selecting by extension adds the files with the given file's 
 	{
 		panel.selectFilesWithExtensionOf(hashOf(dottedFolder));
 		CHECK(panel.selectedItemHashes().empty());
+	}
+}
+
+TEST_CASE("CPanel - the path lines hold the selected items, or the current item", "[panel][selection]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+	const auto pathLine = [](const QString& path) { return shellQuotedPath(toNativeSeparators(path)); };
+
+	SECTION("The selection, in display order, one path per line")
+	{
+		panel.setSorting(FileListSortField::Name, Qt::DescendingOrder);
+		panel.setItemsSelected({ hashOf(f.a), hashOf(f.b) }, true);
+		CHECK(panel.selectedOrCurrentItemPathLines() == pathLine(f.b) + u'\n' + pathLine(f.a));
+	}
+
+	SECTION("With nothing selected, the current item, even [..]")
+	{
+		panel.setCurrentItemHashForFolder(f.folder, hashOf(f.a), false);
+		CHECK(panel.selectedOrCurrentItemPathLines() == pathLine(f.a));
+
+		const qulonglong cdUp = cdUpHash(panel);
+		panel.setCurrentItemHashForFolder(f.folder, cdUp, false);
+		CHECK(panel.selectedOrCurrentItemPathLines() == pathLine(panel.itemByHash(cdUp).fullAbsolutePath()));
+	}
+
+	SECTION("Empty with no current item either")
+	{
+		panel.setCurrentItemHashForFolder(f.folder, 0, false);
+		CHECK(panel.selectedOrCurrentItemPathLines().isEmpty());
 	}
 }
 

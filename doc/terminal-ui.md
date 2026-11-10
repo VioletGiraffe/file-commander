@@ -39,6 +39,9 @@ dialog is open.
   Qt app; [core-engine.md](core-engine.md) has the deletion backends. The progress dialog opens only for an operation
   that outlasts a short delay or asks a question. A trash that refuses items offers them for permanent deletion.
 - Viewing, editing, opening a document and running a program: see [process-launching.md](process-launching.md).
+- `CTuiApplication::copyToClipboard` sends a copy over SSH to the terminal (OSC 52), to reach the clipboard of the
+  computer the user types on. Elsewhere Turbo Vision chooses, trying the local clipboard tools first. Neither path
+  reports whether the copy arrived.
 
 ## Settings and logging
 

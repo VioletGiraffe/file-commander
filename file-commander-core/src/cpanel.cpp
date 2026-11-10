@@ -603,6 +603,22 @@ FolderContentsSummary CPanel::selectionSummary() const
 	return summary;
 }
 
+QString CPanel::selectedOrCurrentItemPathLines() const
+{
+	std::vector<CFileSystemObject> items = selectedItems();
+	if (items.empty())
+	{
+		if (CFileSystemObject current = currentItem(); current.isValid())
+			items.push_back(std::move(current));
+	}
+
+	QString lines;
+	for (const CFileSystemObject& item : items)
+		lines += shellQuotedPath(toNativeSeparators(item.fullAbsolutePath())) + u'\n';
+	lines.chop(1);
+	return lines;
+}
+
 // Enumerates objects in the current directory
 void CPanel::refreshFileList(FileListRefreshCause operation)
 {

@@ -270,6 +270,10 @@ void CTuiPanel::handleEvent(TEvent& event)
 		case kbAltLeft:  _controller.navigateBack(_side); break;
 		case kbAltRight: _controller.navigateForward(_side); break;
 		case kbAltD:   goToTypedPath(); break;
+		case kbAltC:
+			if (const QString pathLines = _controller.panel(_side).selectedOrCurrentItemPathLines(); !pathLines.isEmpty())
+				CTuiApplication::copyToClipboard(pathLines);
+			break;
 		case kbCtrlF3: sortBy(FileListSortField::Name); break;
 		case kbCtrlF4: sortBy(FileListSortField::Extension); break;
 		case kbCtrlF5: sortBy(FileListSortField::Date); break;

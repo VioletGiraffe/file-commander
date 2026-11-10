@@ -31,6 +31,8 @@ public:
 	// Hands the terminal to the program until it exits. The error: the program did not start.
 	// waitForEnter: the program's output stays on screen until Enter is pressed
 	[[nodiscard]] static std::expected<void, QString> runInTerminal(const QString& program, const QStringList& arguments, const QString& workingDir, bool waitForEnter);
+	// The clipboard of the computer the user types on: over SSH the terminal's (OSC 52), otherwise Turbo Vision's choice
+	static void copyToClipboard(const QString& text);
 
 private:
 	static TMenuBar* initMenuBar(TRect r);
