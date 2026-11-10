@@ -12,6 +12,12 @@ target; macOS and Linux are supported, while FreeBSD is best-effort where the Li
 [Get the latest release](https://github.com/VioletGiraffe/file-commander/releases/latest). Current Windows builds
 are x64.
 
+## Terminal UI
+
+Every package includes `fcterm`, a terminal UI over the same core. Run it directly, or start File Commander with
+`--tui`. File Commander also switches to it by itself on Linux without a display and on macOS over SSH. On Linux,
+`fcterm.AppImage` is the terminal UI alone, for machines without a desktop.
+
 ## Issues
 
 See [known bugs](https://github.com/VioletGiraffe/file-commander/labels/bug) or

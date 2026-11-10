@@ -1,0 +1,23 @@
+#!/bin/sh
+# The AppImage's entry point: runs the terminal UI for --tui and when no display is set, the GUI otherwise.
+# The GUI executable cannot choose: it needs the system's X11 and GL libraries, which the AppImage leaves out, just to start.
+# The choice matches terminalUiRequested in qt-app/src/main.cpp.
+appdir=${APPDIR:-$(dirname "$(readlink -f "$0")")}
+
+terminal_ui=
+for argument; do
+	shift
+	if [ "$argument" = --tui ]; then terminal_ui=1; else set -- "$@" "$argument"; fi
+done
+# Before the hooks, so only the user's QT_QPA_PLATFORM counts: an explicit platform needs no display
+if [ -z "$QT_QPA_PLATFORM" ] && [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then terminal_ui=1; fi
+
+# The environment linuxdeploy's plugins set up
+for hook in "$appdir"/apprun-hooks/*.sh; do
+	[ -f "$hook" ] && . "$hook"
+done
+
+if [ -n "$terminal_ui" ]; then
+	exec "$appdir/usr/bin/fcterm" "$@"
+fi
+exec "$appdir/usr/bin/FileCommander" "$@"

@@ -172,7 +172,9 @@ jobs:
         export DEPLOY_PLATFORM_THEMES=1
         # Older updaters take the first .AppImage in GitHub's name-sorted asset list: the x86_64 name must sort first
         if [ "$arch" = x86_64 ]; then export LDAI_OUTPUT=FileCommander.AppImage; else export LDAI_OUTPUT=FileCommander.arm64.AppImage; fi
-        ./linuxdeploy-$arch.AppImage --appdir AppDir --executable ./bin/release/FileCommander --deploy-deps-only AppDir/usr/bin \
+        # The terminal UI too: AppRun starts it for --tui and where no display is set
+        ./linuxdeploy-$arch.AppImage --appdir AppDir --executable ./bin/release/FileCommander --executable ./bin/release/fcterm \
+          --deploy-deps-only AppDir/usr/bin --custom-apprun ./installer/linux/AppRun \
           --desktop-file ./installer/linux/file_commander.desktop --icon-file ./qt-app/resources/file_commander.png --plugin qt --output appimage
         echo "APPIMAGE_FILE=$LDAI_OUTPUT" >> "$GITHUB_ENV"
 
@@ -292,6 +294,9 @@ jobs:
         unset LD_LIBRARY_PATH QT_PLUGIN_PATH
         plugins=$(find bin/release -maxdepth 1 -name 'libplugin_*' -type f | wc -l)
         xvfb-run --auto-servernum "./$APPIMAGE_FILE" --test-launch=$plugins
+        # The terminal UI's help names --settings-dir: without a display, and with --tui under one
+        env -u DISPLAY -u WAYLAND_DISPLAY "./$APPIMAGE_FILE" --help | grep -- --settings-dir
+        xvfb-run --auto-servernum "./$APPIMAGE_FILE" --tui --help | grep -- --settings-dir
 
     - name: Test launch
       if: startsWith(matrix.os, 'windows')
