@@ -36,6 +36,9 @@ RESTORE_COMPILER_WARNINGS
 
 namespace
 {
+// Carried out by the application, not the focused panel
+constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101;
+
 #ifdef _WIN32
 BOOL WINAPI ignoreInterrupt(DWORD controlType)
 {
@@ -111,10 +114,10 @@ void CTuiApplication::handleEvent(TEvent& event)
 		return;
 	}
 
-	// Alt+F1 and Alt+F2 choose the volume of the left and the right panel, from either panel
-	if (event.what == evKeyDown && (event.keyDown.keyCode == kbAltF1 || event.keyDown.keyCode == kbAltF2))
+	// The volume of the left or the right panel, from either panel
+	if (event.what == evCommand && (event.message.command == cmChooseLeftPanelVolume || event.message.command == cmChooseRightPanelVolume))
 	{
-		CTuiPanel* panel = _panels[(size_t)(event.keyDown.keyCode == kbAltF1 ? Panel::LeftPanel : Panel::RightPanel)];
+		CTuiPanel* panel = _panels[(size_t)(event.message.command == cmChooseLeftPanelVolume ? Panel::LeftPanel : Panel::RightPanel)];
 		clearEvent(event);
 		panel->select();
 		panel->chooseVolume();
@@ -201,32 +204,67 @@ void CTuiApplication::copyToClipboard(const QString& text)
 TMenuBar* CTuiApplication::initMenuBar(TRect r)
 {
 	r.b.y = r.a.y + 1;
+	// Menu titles avoid the letters of the panel's Alt+letter keys: Alt plus a title's letter opens that menu.
+	// Keys a text field uses stay with the panel (see commandForPanelKey), so their menu items only show them.
 	return new TMenuBar(r,
 		*new TSubMenu("~F~ile", kbAltF) +
-			*new TMenuItem("E~x~it", cmQuit, kbAltX, hcNoContext, "Alt-X")
+			*new TMenuItem("~R~ename...", cmRenameItem, kbF2, hcNoContext, "F2") +
+			*new TMenuItem("~V~iew", cmViewFile, kbF3, hcNoContext, "F3") +
+			*new TMenuItem("~E~dit", cmEditFile, kbF4, hcNoContext, "F4") +
+			*new TMenuItem("~C~opy...", cmCopyItems, kbF5, hcNoContext, "F5") +
+			*new TMenuItem("~M~ove...", cmMoveItems, kbF6, hcNoContext, "F6") +
+			*new TMenuItem("New ~f~older...", cmCreateFolder, kbF7, hcNoContext, "F7") +
+			*new TMenuItem("New f~i~le...", cmCreateFile, kbShiftF7, hcNoContext, "Shift-F7") +
+			*new TMenuItem("~D~elete...", cmDeleteItems, kbF8, hcNoContext, "F8") +
+			*new TMenuItem("Delete ~p~ermanently...", cmDeleteItemsPermanently, kbShiftF8, hcNoContext, "Shift-F8") +
+			newLine() +
+			*new TMenuItem("Copy pat~h~s", cmCopyPaths, kbAltC, hcNoContext, "Alt-C") +
+			newLine() +
+			*new TMenuItem("E~x~it", cmQuit, kbAltX, hcNoContext, "Alt-X") +
+		*new TSubMenu("~S~election", kbAltS) +
+			*new TMenuItem("~T~oggle selection", cmToggleSelectionAndMoveDown, kbNoKey, hcNoContext, "Ins") +
+			*new TMenuItem("~S~elect by pattern...", cmSelectByPattern, kbNoKey, hcNoContext, "+") +
+			*new TMenuItem("~D~eselect by pattern...", cmDeselectByPattern, kbNoKey, hcNoContext, "-") +
+			*new TMenuItem("Select by ~e~xtension", cmSelectByExtension, kbNoKey, hcNoContext, "=") +
+			*new TMenuItem("~I~nvert selection", cmInvertSelection, kbNoKey, hcNoContext, "*") +
+		*new TSubMenu("~V~iew", kbAltV) +
+			*new TMenuItem("Toggle ~h~idden files", cmToggleHiddenFiles, kbCtrlS, hcNoContext, "Ctrl-S") +
+			*new TMenuItem("~F~ilter", cmOpenFilterLine, kbCtrlF, hcNoContext, "Ctrl-F") +
+			*new TMenuItem("~R~efresh", cmRefresh, kbCtrlR, hcNoContext, "Ctrl-R") +
+			newLine() +
+			*new TMenuItem("Sort by ~n~ame", cmSortByName, kbCtrlF3, hcNoContext, "Ctrl-F3") +
+			*new TMenuItem("Sort by ~e~xtension", cmSortByExtension, kbCtrlF4, hcNoContext, "Ctrl-F4") +
+			*new TMenuItem("Sort by ~d~ate", cmSortByDate, kbCtrlF5, hcNoContext, "Ctrl-F5") +
+			*new TMenuItem("Sort by ~s~ize", cmSortBySize, kbCtrlF6, hcNoContext, "Ctrl-F6") +
+		*new TSubMenu("~G~o", kbAltG) +
+			*new TMenuItem("~B~ack", cmGoBack, kbAltLeft, hcNoContext, "Alt-Left") +
+			*new TMenuItem("~F~orward", cmGoForward, kbAltRight, hcNoContext, "Alt-Right") +
+			*new TMenuItem("~U~p", cmGoUp, kbNoKey, hcNoContext, "Backspace") +
+			*new TMenuItem("~G~o to folder...", cmGoToFolder, kbAltD, hcNoContext, "Alt-D") +
+			newLine() +
+			*new TMenuItem("~L~eft panel volume...", cmChooseLeftPanelVolume, kbAltF1, hcNoContext, "Alt-F1") +
+			*new TMenuItem("~R~ight panel volume...", cmChooseRightPanelVolume, kbAltF2, hcNoContext, "Alt-F2")
 	);
 }
 
+// The menus bind the keys shown here; the items respond to clicks only
 TStatusLine* CTuiApplication::initStatusLine(TRect r)
 {
 	r.a.y = r.b.y - 1;
 	return new TStatusLine(r,
 		*new TStatusDef(0, 0xFFFF) +
-			*new TStatusItem("~F2~ Rename", kbF2, cmRenameItem) +
-			*new TStatusItem("~F3~ View", kbF3, cmViewFile) +
-			*new TStatusItem("~F4~ Edit", kbF4, cmEditFile) +
-			*new TStatusItem("~F5~ Copy", kbF5, cmCopyItems) +
-			*new TStatusItem("~F6~ Move", kbF6, cmMoveItems) +
-			*new TStatusItem("~F7~ Folder", kbF7, cmCreateFolder) +
-			*new TStatusItem(nullptr, kbShiftF7, cmCreateFile) +
-			*new TStatusItem("~F8~ Delete", kbF8, cmDeleteItems) +
-			*new TStatusItem(nullptr, kbShiftF8, cmDeleteItemsPermanently) +
-			*new TStatusItem(nullptr, kbF10, cmMenu) +
-			*new TStatusItem(nullptr, kbAltX, cmQuit)
+			*new TStatusItem("~F2~ Rename", kbNoKey, cmRenameItem) +
+			*new TStatusItem("~F3~ View", kbNoKey, cmViewFile) +
+			*new TStatusItem("~F4~ Edit", kbNoKey, cmEditFile) +
+			*new TStatusItem("~F5~ Copy", kbNoKey, cmCopyItems) +
+			*new TStatusItem("~F6~ Move", kbNoKey, cmMoveItems) +
+			*new TStatusItem("~F7~ Folder", kbNoKey, cmCreateFolder) +
+			*new TStatusItem("~F8~ Delete", kbNoKey, cmDeleteItems) +
+			*new TStatusItem(nullptr, kbF10, cmMenu)
 	);
 }
 
-// The row above the status line. Hints only: the status line binds every key.
+// The row above the status line. Hints only: it binds no keys.
 TStatusLine* CTuiApplication::initHintLine(TRect r)
 {
 	r.b.y--;

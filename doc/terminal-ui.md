@@ -32,9 +32,11 @@ dialog is open.
 
 ## Commands
 
-- Keys are bound in three places: the status line (the function keys, as commands for the focused panel),
-  `CTuiApplication::handleEvent` (keys that act across the panels) and `CTuiPanel::handleEvent`. The hint row above
-  the status line binds nothing.
+- Every panel action is a command, carried out in `CTuiPanel::runCommand`. The menus (`CTuiApplication::initMenuBar`)
+  bind the keys, and see them before the focused view does.
+  - Exceptions: the panel binds the keys a text field uses, so that the filter line still receives them. The application
+    binds Tab, which switches panels.
+  - The status line binds only F10. Its other items and the hint row are labels.
 - Copy, move and delete build their requests with the core's `fileoperationlaunch` and run on the same engine as the
   Qt app; [core-engine.md](core-engine.md) has the deletion backends. The progress dialog opens only for an operation
   that outlasts a short delay or asks a question. A trash that refuses items offers them for permanent deletion.

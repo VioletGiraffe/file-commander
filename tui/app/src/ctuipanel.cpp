@@ -210,6 +210,29 @@ static void openDocument(const QString& filePath)
 #endif
 }
 
+// The keys a text field uses, which the panel binds itself: the menus see keys before the focused view, so they would take these from the filter line.
+// 0 for any other key.
+[[nodiscard]] static ushort commandForPanelKey(const KeyDownEvent& key)
+{
+	switch (key.keyCode)
+	{
+	case kbEnter: return cmActivateFileListItem;
+	case kbBack: return cmGoUp;
+	case kbIns: return cmToggleSelectionAndMoveDown;
+	default: break;
+	}
+
+	switch (key.charScan.charCode)
+	{
+	case ' ': return cmToggleSelectionAndCalculateSize;
+	case '*': return cmInvertSelection;
+	case '+': return cmSelectByPattern;
+	case '-': return cmDeselectByPattern;
+	case '=': return cmSelectByExtension;
+	default: return 0;
+	}
+}
+
 CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
 	TWindowInit(&TWindow::initFrame),
 	TWindow(bounds, {}, wnNoNumber),
@@ -254,84 +277,77 @@ void CTuiPanel::handleEvent(TEvent& event)
 {
 	TWindow::handleEvent(event);
 
-	if (event.what == evKeyDown)
-	{
-		switch (event.keyDown.keyCode)
-		{
-		case kbEnter:  activateCurrentItem(); break;
-		case kbBack:   _controller.navigateUp(_side); break;
-		case kbIns:
-			toggleCurrentItemSelection();
-			_fileList->moveCursorTo(_fileList->cursorRow() + 1);
-			break;
-		case kbCtrlF:  openFilterLine(); break;
-		case kbCtrlR:  _controller.refreshPanelContents(_side); break;
-		case kbCtrlS:  _controller.setShowHiddenFiles(!_controller.showHiddenFiles()); break;
-		case kbAltLeft:  _controller.navigateBack(_side); break;
-		case kbAltRight: _controller.navigateForward(_side); break;
-		case kbAltD:   goToTypedPath(); break;
-		case kbAltC:
-			if (const QString pathLines = _controller.panel(_side).selectedOrCurrentItemPathLines(); !pathLines.isEmpty())
-				CTuiApplication::copyToClipboard(pathLines);
-			break;
-		case kbCtrlF3: sortBy(FileListSortField::Name); break;
-		case kbCtrlF4: sortBy(FileListSortField::Extension); break;
-		case kbCtrlF5: sortBy(FileListSortField::Date); break;
-		case kbCtrlF6: sortBy(FileListSortField::Size); break;
-		default:
-			if (event.keyDown.charScan.charCode == ' ')
-			{
-				toggleCurrentItemSelection();
-				if (const CFileSystemObject* row = _fileList->currentRow())
-					_controller.displayDirSize(_side, row->hash());
-			}
-			else if (event.keyDown.charScan.charCode == '*')
-			{
-				_controller.panel(_side).invertSelection();
-				showCoreSelection();
-			}
-			else if (event.keyDown.charScan.charCode == '+' || event.keyDown.charScan.charCode == '-')
-				selectItemsByPattern(event.keyDown.charScan.charCode == '+');
-			else if (event.keyDown.charScan.charCode == '=')
-			{
-				if (const CFileSystemObject* row = _fileList->currentRow())
-				{
-					_controller.panel(_side).selectFilesWithExtensionOf(row->hash());
-					showCoreSelection();
-				}
-			}
-			else
-				return;
-		}
+	const ushort command = event.what == evKeyDown ? commandForPanelKey(event.keyDown) : event.what == evCommand ? event.message.command : 0;
+	if (runCommand(command))
 		clearEvent(event);
-	}
-	else if (event.what == evCommand)
+}
+
+bool CTuiPanel::runCommand(const ushort command)
+{
+	CPanel& panel = _controller.panel(_side);
+	switch (command)
 	{
-		switch (event.message.command)
+	case cmActivateFileListItem: activateCurrentItem(); break;
+	case cmGoUp: _controller.navigateUp(_side); break;
+	case cmGoBack: _controller.navigateBack(_side); break;
+	case cmGoForward: _controller.navigateForward(_side); break;
+	case cmGoToFolder: goToTypedPath(); break;
+	case cmRefresh: _controller.refreshPanelContents(_side); break;
+	case cmToggleHiddenFiles: _controller.setShowHiddenFiles(!_controller.showHiddenFiles()); break;
+	case cmOpenFilterLine: openFilterLine(); break;
+	case cmSortByName: sortBy(FileListSortField::Name); break;
+	case cmSortByExtension: sortBy(FileListSortField::Extension); break;
+	case cmSortByDate: sortBy(FileListSortField::Date); break;
+	case cmSortBySize: sortBy(FileListSortField::Size); break;
+	case cmToggleSelectionAndMoveDown:
+		toggleCurrentItemSelection();
+		_fileList->moveCursorTo(_fileList->cursorRow() + 1);
+		break;
+	case cmToggleSelectionAndCalculateSize:
+		toggleCurrentItemSelection();
+		if (const CFileSystemObject* row = _fileList->currentRow())
+			_controller.displayDirSize(_side, row->hash());
+		break;
+	case cmInvertSelection:
+		panel.invertSelection();
+		showCoreSelection();
+		break;
+	case cmSelectByPattern:
+	case cmDeselectByPattern:
+		selectItemsByPattern(command == cmSelectByPattern);
+		break;
+	case cmSelectByExtension:
+		if (const CFileSystemObject* row = _fileList->currentRow())
 		{
-		case cmActivateFileListItem: activateCurrentItem(); break;
-		case cmCopyItems:
-			transferSelectedItems(_controller, _side, TransferKind::Copy);
-			showCoreSelection(); // A copy deselects its sources
-			break;
-		case cmMoveItems: transferSelectedItems(_controller, _side, TransferKind::Move); break;
-		case cmDeleteItems: deleteSelectedItems(_controller, _side, true); break;
-		case cmDeleteItemsPermanently: deleteSelectedItems(_controller, _side, false); break;
-		case cmRenameItem: renameCurrentItem(); break;
-		case cmCreateFolder: createFolder(); break;
-		case cmCreateFile: createFile(); break;
-		case cmViewFile:
-			if (const QString path = currentFilePath(); !path.isEmpty())
-				viewFile(path);
-			break;
-		case cmEditFile:
-			if (const QString path = currentFilePath(); !path.isEmpty())
-				editFile(path);
-			break;
-		default: return;
+			panel.selectFilesWithExtensionOf(row->hash());
+			showCoreSelection();
 		}
-		clearEvent(event);
+		break;
+	case cmCopyPaths:
+		if (const QString pathLines = panel.selectedOrCurrentItemPathLines(); !pathLines.isEmpty())
+			CTuiApplication::copyToClipboard(pathLines);
+		break;
+	case cmCopyItems:
+		transferSelectedItems(_controller, _side, TransferKind::Copy);
+		showCoreSelection(); // A copy deselects its sources
+		break;
+	case cmMoveItems: transferSelectedItems(_controller, _side, TransferKind::Move); break;
+	case cmDeleteItems: deleteSelectedItems(_controller, _side, true); break;
+	case cmDeleteItemsPermanently: deleteSelectedItems(_controller, _side, false); break;
+	case cmRenameItem: renameCurrentItem(); break;
+	case cmCreateFolder: createFolder(); break;
+	case cmCreateFile: createFile(); break;
+	case cmViewFile:
+		if (const QString path = currentFilePath(); !path.isEmpty())
+			viewFile(path);
+		break;
+	case cmEditFile:
+		if (const QString path = currentFilePath(); !path.isEmpty())
+			editFile(path);
+		break;
+	default: return false;
 	}
+	return true;
 }
 
 void CTuiPanel::setState(ushort aState, Boolean enable)

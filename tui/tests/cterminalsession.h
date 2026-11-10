@@ -17,8 +17,8 @@ RESTORE_COMPILER_WARNINGS
 // Keys as a VT terminal sends them
 namespace TerminalKeys {
 inline constexpr std::string_view Enter = "\r", Escape = "\x1b", Tab = "\t", Down = "\x1b[B", Home = "\x1b[H", Insert = "\x1b[2~",
-	F2 = "\x1bOQ", F3 = "\x1bOR", F4 = "\x1bOS", F5 = "\x1b[15~", F7 = "\x1b[18~", ShiftF7 = "\x1b[18;2~", ShiftF8 = "\x1b[19;2~",
-	AltC = "\x1b" "c", AltD = "\x1b" "d", AltF = "\x1b" "f", AltX = "\x1b" "x", CtrlC = "\x03", CtrlS = "\x13";
+	F2 = "\x1bOQ", F3 = "\x1bOR", F4 = "\x1bOS", F5 = "\x1b[15~", F7 = "\x1b[18~", F10 = "\x1b[21~", ShiftF7 = "\x1b[18;2~", ShiftF8 = "\x1b[19;2~",
+	AltC = "\x1b" "c", AltD = "\x1b" "d", AltF = "\x1b" "f", AltS = "\x1b" "s", AltX = "\x1b" "x", CtrlC = "\x03", CtrlS = "\x13";
 }
 
 // Runs a program in a pseudo-terminal, as a terminal window would, and keeps the screen it draws.

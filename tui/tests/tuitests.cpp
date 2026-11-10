@@ -414,6 +414,27 @@ TEST_CASE("= selects the files with the current file's extension", "[tui]")
 		QStringLiteral("the two .txt files selected"));
 }
 
+TEST_CASE("F10 and Alt+letter open the menus, whose commands act on the focused panel", "[tui]")
+{
+	const Sandbox sandbox;
+	for (const char* name : { "a.txt", "b.txt", "c.doc" })
+		sandbox.createFile(QStringLiteral("work/") + QString::fromLatin1(name));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("c.doc"));
+
+	session->send(Keys::F10);
+	session->send(Keys::Down);
+	requireText(*session, QStringLiteral("Copy paths"));
+	session->send(Keys::Escape);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Copy paths")); }, QStringLiteral("the File menu closed"));
+
+	session->send(Keys::AltS);
+	requireText(*session, QStringLiteral("Invert selection"));
+	session->send("i"sv);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("3 files, 0 folders selected")); },
+		QStringLiteral("every file selected"));
+}
+
 TEST_CASE("F3 opens the pager on the file, in its folder", "[tui]")
 {
 	const Sandbox sandbox;

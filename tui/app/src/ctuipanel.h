@@ -14,9 +14,14 @@ class CTuiFileList;
 class CTuiFilterLine;
 class CTuiStatusLine;
 
-// The application's status line turns keys into these; the focused panel carries them out
+// The menus, the status line and the panel's own keys send these; the focused panel carries them out
 inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 1003, cmDeleteItemsPermanently = 1004,
-	cmRenameItem = 1005, cmCreateFolder = 1006, cmCreateFile = 1007, cmViewFile = 1008, cmEditFile = 1009;
+	cmRenameItem = 1005, cmCreateFolder = 1006, cmCreateFile = 1007, cmViewFile = 1008, cmEditFile = 1009,
+	cmCopyPaths = 1010, cmGoUp = 1011, cmGoBack = 1012, cmGoForward = 1013, cmGoToFolder = 1014,
+	cmRefresh = 1015, cmToggleHiddenFiles = 1016, cmOpenFilterLine = 1017,
+	cmSortByName = 1018, cmSortByExtension = 1019, cmSortByDate = 1020, cmSortBySize = 1021,
+	cmToggleSelectionAndMoveDown = 1022, cmToggleSelectionAndCalculateSize = 1023, cmInvertSelection = 1024,
+	cmSelectByPattern = 1025, cmDeselectByPattern = 1026, cmSelectByExtension = 1027;
 
 // One side: a window showing the active tab's folder
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener
@@ -34,6 +39,9 @@ public:
 	void chooseVolume();
 
 private:
+	// False for a command the panel does not carry out
+	bool runCommand(ushort command);
+
 	void fillFromPanel(FileListRefreshCause cause = refreshCauseOther);
 	// Copies the core's selection into the list
 	void showCoreSelection();
