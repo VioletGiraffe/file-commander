@@ -422,6 +422,7 @@ jobs:
 
     - name: Running tests - Windows
       if: startsWith(matrix.os, 'windows')
+      timeout-minutes: 20
       shell: pwsh
       run: |
         # Fail the step on the first suite that exits with a nonzero code (default pwsh behavior only propagates the last command's exit code)
@@ -477,6 +478,7 @@ jobs:
 
     - name: Running tests - Mac
       if: startsWith(matrix.os, 'macos')
+      timeout-minutes: 20
       run: |
         set -e
         # Every suite, minus the slow generated-data tests that the seeded runs below cover
@@ -525,6 +527,7 @@ jobs:
 
     - name: Running tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
+      timeout-minutes: 20
       run: |
         set -e
         # Every suite, minus the slow generated-data tests that the seeded runs below cover.

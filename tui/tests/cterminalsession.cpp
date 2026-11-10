@@ -270,14 +270,15 @@ CTerminalSession::CTerminalSession(const Program& program, int rows, int columns
 
 CTerminalSession::~CTerminalSession()
 {
-	if (_pid > 0 && !hasExited())
-	{
+	const bool running = _pid > 0 && !hasExited();
+	if (running)
 		::kill(_pid, SIGKILL);
-		::waitpid(_pid, nullptr, 0);
-	}
-	// The hangup ends whatever the program left running on the terminal
+	// Closed before the wait: an exiting program may wait for its unread terminal output to drain.
+	// The hangup also ends whatever the program left running on the terminal.
 	if (_terminal >= 0)
 		::close(_terminal);
+	if (running)
+		::waitpid(_pid, nullptr, 0);
 }
 
 bool CTerminalSession::readOutput(std::chrono::milliseconds wait)
