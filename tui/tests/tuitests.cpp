@@ -209,11 +209,13 @@ void moveCursorTo(CTerminalSession& session, const QString& name)
 	return QString::fromUtf8(record.readAll()).split(u'\n', Qt::SkipEmptyParts);
 }
 
-// Opens `file` in the sandbox's work folder with `key`, through the stub set as `variable`, and returns the stub's record
-[[nodiscard]] QStringList recordedLaunch(const Sandbox& sandbox, const char* variable, const QString& file, std::string_view key)
+// Opens `file` in the sandbox's work folder with `key`, through the stub set as `variable`, and returns the stub's record.
+// otherVariables: more of fcterm's environment
+[[nodiscard]] QStringList recordedLaunch(const Sandbox& sandbox, const char* variable, const QString& file, std::string_view key, std::map<QString, QString> otherVariables = {})
 {
 	const QString recordPath = sandbox.path(QStringLiteral("record.txt"));
-	auto session = startFcterm(sandbox, { { QString::fromLatin1(variable), recordingCommand(recordPath) } });
+	otherVariables[QString::fromLatin1(variable)] = recordingCommand(recordPath);
+	auto session = startFcterm(sandbox, otherVariables);
 	goTo(*session, sandbox.work({}), file);
 	moveCursorTo(*session, file);
 	session->send(key);
@@ -482,7 +484,12 @@ TEST_CASE("Enter on a document without a desktop opens the pager", "[tui]")
 {
 	const Sandbox sandbox;
 	sandbox.createFile(QStringLiteral("work/document.md"));
-	requireRecordedLaunch(recordedLaunch(sandbox, "PAGER", QStringLiteral("document.md"), Keys::Enter), sandbox.work(QStringLiteral("document.md")));
+	std::map<QString, QString> noDesktop; // Linux: no display, which startFcterm already ensures
+#ifdef __APPLE__
+	// macOS: a remote session
+	noDesktop[QStringLiteral("SSH_CONNECTION")] = QStringLiteral("192.0.2.1 50000 192.0.2.2 22");
+#endif
+	requireRecordedLaunch(recordedLaunch(sandbox, "PAGER", QStringLiteral("document.md"), Keys::Enter, noDesktop), sandbox.work(QStringLiteral("document.md")));
 }
 
 TEST_CASE("Alt+C over SSH copies the paths through the terminal", "[tui]")
