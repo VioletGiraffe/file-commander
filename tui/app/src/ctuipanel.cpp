@@ -1,8 +1,12 @@
 #include "ctuipanel.h"
+#include "ctuidialogs.h"
 #include "ctuifilelist.h"
 #include "ctuifileoperations.h"
 
 #include "ccontroller.h"
+#include "filesystemhelperfunctions.h"
+
+#include "fileoperations/fileoperationtexts.h"
 
 #define Uses_TDrawBuffer
 #define Uses_TEvent
@@ -16,10 +20,13 @@ DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 #include <QDateTime>
 #include <QLocale>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
+#include <optional>
+#include <vector>
 
 // Edits the panel's name filter
 class CTuiFilterLine final : public TInputLine
@@ -170,6 +177,11 @@ void CTuiPanel::handleEvent(TEvent& event)
 			_fileList->moveCursorTo(_fileList->cursorRow() + 1);
 			break;
 		case kbCtrlF:  openFilterLine(); break;
+		case kbCtrlR:  _controller.refreshPanelContents(_side); break;
+		case kbCtrlS:  _controller.setShowHiddenFiles(!_controller.showHiddenFiles()); break;
+		case kbAltLeft:  _controller.navigateBack(_side); break;
+		case kbAltRight: _controller.navigateForward(_side); break;
+		case kbAltD:   goToTypedPath(); break;
 		case kbCtrlF3: sortBy(FileListSortField::Name); break;
 		case kbCtrlF4: sortBy(FileListSortField::Extension); break;
 		case kbCtrlF5: sortBy(FileListSortField::Date); break;
@@ -203,6 +215,9 @@ void CTuiPanel::handleEvent(TEvent& event)
 		case cmMoveItems: transferSelectedItems(_controller, _side, TransferKind::Move); break;
 		case cmDeleteItems: deleteSelectedItems(_controller, _side, true); break;
 		case cmDeleteItemsPermanently: deleteSelectedItems(_controller, _side, false); break;
+		case cmRenameItem: renameCurrentItem(); break;
+		case cmCreateFolder: createFolder(); break;
+		case cmCreateFile: createFile(); break;
 		default: return;
 		}
 		clearEvent(event);
@@ -302,6 +317,103 @@ void CTuiPanel::toggleCurrentItemSelection()
 	// The core refuses [..]
 	_controller.panel(_side).setItemsSelected({ row->hash() }, !_fileList->isSelected(row->hash()));
 	showCoreSelection();
+}
+
+void CTuiPanel::renameCurrentItem()
+{
+	const CFileSystemObject* row = _fileList->currentRow();
+	if (!row || row->isCdUp())
+		return;
+
+	// Copied: the list can refresh while the dialog is open
+	const qulonglong hash = row->hash();
+	const QString oldName = row->fullName().toString();
+	const std::optional<QString> newName = askForText(QStringLiteral("Rename"), { QStringLiteral("New name for \"%1\":").arg(oldName), true }, oldName, QStringLiteral("Rename"));
+	if (!newName)
+		return;
+
+	InlineRenameResult result = _controller.renameItem(_side, hash, *newName, false);
+	if (result.status == InlineRenameStatus::ReplacementRequired)
+	{
+		const UserMessage question = inlineRenameReplacementQuestion(result, *newName);
+		if (!confirmed(question.title, question.text, QStringLiteral("Replace")))
+			return;
+		result = _controller.renameItem(_side, hash, *newName, true);
+	}
+
+	if (const auto message = inlineRenameMessage(result, oldName, *newName))
+		showUserMessage(*message);
+}
+
+void CTuiPanel::createFolder()
+{
+	const std::optional<QString> folderName = askForText(QStringLiteral("New folder"), { QStringLiteral("Name of the new folder (a/b/c creates a chain):") },
+		currentItemName(), QStringLiteral("Create"));
+	if (!folderName)
+		return;
+
+	if (const auto message = _controller.createFolder(_side, *folderName))
+		showUserMessage(*message);
+}
+
+void CTuiPanel::createFile()
+{
+	const std::optional<QString> fileName = askForText(QStringLiteral("New file"), { QStringLiteral("Name of the new file:") }, currentItemName(), QStringLiteral("Create"));
+	if (!fileName)
+		return;
+
+	if (const auto message = _controller.createFile(_side, *fileName))
+		showUserMessage(*message);
+}
+
+void CTuiPanel::goToTypedPath()
+{
+	const std::optional<QString> path = askForText(QStringLiteral("Go to"), { QStringLiteral("Folder:") }, _controller.panel(_side).currentDirPathNative(), QStringLiteral("Go"));
+	if (!path)
+		return;
+
+	if (const auto message = _controller.goToTypedPath(_side, *path))
+		showUserMessage(*message);
+}
+
+void CTuiPanel::chooseVolume()
+{
+	std::vector<VolumeInfo> volumes = _controller.volumes();
+	std::erase_if(volumes, [](const VolumeInfo& volume) { return !volume.isReady || !volume.rootObjectInfo.isValid(); });
+	if (volumes.empty())
+		return;
+
+	qsizetype pathWidth = 0, labelWidth = 0;
+	for (const VolumeInfo& volume : volumes)
+	{
+		pathWidth = std::max(pathWidth, volume.rootObjectInfo.fullAbsolutePath().size());
+		labelWidth = std::max(labelWidth, volume.volumeLabel.size());
+	}
+
+	const QLocale locale;
+	const std::optional<VolumeInfo> currentVolume = _controller.currentVolumeInfo(_side);
+	QStringList rows;
+	size_t currentRow = 0;
+	for (const VolumeInfo& volume : volumes)
+	{
+		if (currentVolume && currentVolume->id() == volume.id())
+			currentRow = (size_t)rows.size();
+		rows.push_back(QStringLiteral("%1  %2  %3 free of %4").arg(toNativeSeparators(volume.rootObjectInfo.fullAbsolutePath()).leftJustified(pathWidth),
+			volume.volumeLabel.leftJustified(labelWidth), locale.formattedDataSize((qint64)volume.freeSize), locale.formattedDataSize((qint64)volume.volumeSize)));
+	}
+
+	const std::optional<size_t> chosen = chooseFromList(QStringLiteral("Volume"), rows, currentRow);
+	if (!chosen)
+		return;
+
+	if (const auto message = _controller.switchToVolume(_side, volumes[*chosen].id()))
+		showUserMessage(*message);
+}
+
+QString CTuiPanel::currentItemName() const
+{
+	const CFileSystemObject* row = _fileList->currentRow();
+	return row && !row->isCdUp() ? row->fullName().toString() : QString{};
 }
 
 void CTuiPanel::sortBy(FileListSortField field)

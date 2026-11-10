@@ -67,6 +67,9 @@ public:
 
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI.
 	void refreshPanelContents(Panel p);
+	// Whether the panels list hidden entries. Persisted; a change refreshes both sides.
+	[[nodiscard]] bool showHiddenFiles() const;
+	void setShowHiddenFiles(bool show);
 #ifdef _WIN32
 	// Refreshes each side's displayed panel that is on the drive just removed: the refresh moves it to an accessible folder.
 	// Its watch was released before the removal and reports nothing.

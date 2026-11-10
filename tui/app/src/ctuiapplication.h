@@ -7,7 +7,10 @@ DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 RESTORE_COMPILER_WARNINGS
 
+#include <array>
+
 class CController;
+class CTuiPanel;
 class TMenuBar;
 class TStatusLine;
 
@@ -27,4 +30,5 @@ private:
 
 private:
 	CController& _controller;
+	std::array<CTuiPanel*, 2> _panels; // Left and right, owned by the desktop
 };

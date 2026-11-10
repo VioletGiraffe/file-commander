@@ -259,6 +259,18 @@ void CController::refreshPanelContents(Panel p)
 	panel(p).refreshFileList(refreshCauseOther);
 }
 
+bool CController::showHiddenFiles() const
+{
+	return QSettings{}.value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
+}
+
+void CController::setShowHiddenFiles(const bool show)
+{
+	QSettings{}.setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, show);
+	refreshPanelContents(Panel::LeftPanel);
+	refreshPanelContents(Panel::RightPanel);
+}
+
 #ifdef _WIN32
 void CController::refreshPanelsOnRemovedDrive(const QChar driveLetter)
 {

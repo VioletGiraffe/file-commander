@@ -22,12 +22,14 @@ INCLUDEPATH += \
 SOURCES += \
 	src/main.cpp \
 	src/ctuiapplication.cpp \
+	src/ctuidialogs.cpp \
 	src/ctuifilelist.cpp \
 	src/ctuifileoperations.cpp \
 	src/ctuipanel.cpp
 
 HEADERS += \
 	src/ctuiapplication.h \
+	src/ctuidialogs.h \
 	src/ctuifilelist.h \
 	src/ctuifileoperations.h \
 	src/ctuipanel.h

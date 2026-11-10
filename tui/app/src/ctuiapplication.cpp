@@ -53,10 +53,13 @@ CTuiApplication::CTuiApplication(CController& controller) :
 	const TRect desktopArea = deskTop->getExtent();
 	const short middle = (short)(desktopArea.b.x / 2);
 
-	auto* leftPanel = new CTuiPanel({ 0, 0, middle, desktopArea.b.y }, _controller, Panel::LeftPanel);
-	deskTop->insert(leftPanel);
-	deskTop->insert(new CTuiPanel({ middle, 0, desktopArea.b.x, desktopArea.b.y }, _controller, Panel::RightPanel));
-	leftPanel->select();
+	_panels = {
+		new CTuiPanel({ 0, 0, middle, desktopArea.b.y }, _controller, Panel::LeftPanel),
+		new CTuiPanel({ middle, 0, desktopArea.b.x, desktopArea.b.y }, _controller, Panel::RightPanel)
+	};
+	for (CTuiPanel* panel : _panels)
+		deskTop->insert(panel);
+	_panels[(size_t)Panel::LeftPanel]->select();
 }
 
 void CTuiApplication::getEvent(TEvent& event)
@@ -73,6 +76,16 @@ void CTuiApplication::handleEvent(TEvent& event)
 	{
 		deskTop->selectNext(False);
 		clearEvent(event);
+		return;
+	}
+
+	// Alt+F1 and Alt+F2 choose the volume of the left and the right panel, from either panel
+	if (event.what == evKeyDown && (event.keyDown.keyCode == kbAltF1 || event.keyDown.keyCode == kbAltF2))
+	{
+		CTuiPanel* panel = _panels[(size_t)(event.keyDown.keyCode == kbAltF1 ? Panel::LeftPanel : Panel::RightPanel)];
+		clearEvent(event);
+		panel->select();
+		panel->chooseVolume();
 		return;
 	}
 
@@ -99,10 +112,11 @@ TStatusLine* CTuiApplication::initStatusLine(TRect r)
 	r.a.y = r.b.y - 1;
 	return new TStatusLine(r,
 		*new TStatusDef(0, 0xFFFF) +
-			*new TStatusItem("~Tab~ Panel", kbNoKey, 0) +
-			*new TStatusItem("~Enter~ Open", kbNoKey, 0) +
+			*new TStatusItem("~F2~ Rename", kbF2, cmRenameItem) +
 			*new TStatusItem("~F5~ Copy", kbF5, cmCopyItems) +
 			*new TStatusItem("~F6~ Move", kbF6, cmMoveItems) +
+			*new TStatusItem("~F7~ Folder", kbF7, cmCreateFolder) +
+			*new TStatusItem(nullptr, kbShiftF7, cmCreateFile) +
 			*new TStatusItem("~F8~ Delete", kbF8, cmDeleteItems) +
 			*new TStatusItem(nullptr, kbShiftF8, cmDeleteItemsPermanently) +
 			*new TStatusItem("~F10~ Menu", kbF10, cmMenu) +

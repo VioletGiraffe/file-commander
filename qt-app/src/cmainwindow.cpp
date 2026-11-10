@@ -309,7 +309,7 @@ void CMainWindow::initActions()
 	connect(ui->actionOpen_Console_Here, &QAction::triggered, this, [this] { openTerminalInCurrentFolder(false); });
 	connect(ui->actionOpen_Admin_console_here, &QAction::triggered, this, [this] { openTerminalInCurrentFolder(true); });
 
-	ui->action_Show_hidden_files->setChecked(QSettings().value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool());
+	ui->action_Show_hidden_files->setChecked(_controller->showHiddenFiles());
 #ifndef _WIN32
 	ui->action_Show_hidden_files->setShortcut(QKeySequence{ QSL("Alt+H") }); // This is a common shortcut for Linux file managers
 #else
@@ -1187,9 +1187,7 @@ void CMainWindow::findFiles()
 
 void CMainWindow::showHiddenFiles()
 {
-	QSettings().setValue(KEY_INTERFACE_SHOW_HIDDEN_FILES, ui->action_Show_hidden_files->isChecked());
-	_controller->refreshPanelContents(Panel::LeftPanel);
-	_controller->refreshPanelContents(Panel::RightPanel);
+	_controller->setShowHiddenFiles(ui->action_Show_hidden_files->isChecked());
 }
 
 void CMainWindow::showAllFilesFromCurrentFolderAndBelow()
