@@ -32,6 +32,9 @@ win*: DEFINES += _CRT_NONSTDC_NO_WARNINGS _CRT_SECURE_NO_WARNINGS _WIN32_WINNT=0
 	DEFINES += HAVE_NCURSES
 }
 
+# Supplies malloc.h, which only Windows and Linux have
+!win*:!linux*: INCLUDEPATH += $$TVISION/include/tvision/compat/malloc
+
 linux*|freebsd {
 	CONFIG += link_pkgconfig
 	PKGCONFIG += ncursesw
