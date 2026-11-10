@@ -311,7 +311,7 @@ bool confirmed(const QString& title, const QString& question, const QString& act
 	return execDialog(confirmation).button == size_t{ 0 };
 }
 
-std::optional<QString> askForText(const QString& title, const DialogLine& label, const QString& text, const QString& actionLabel)
+DialogSpec textPrompt(const QString& title, const DialogLine& label, const QString& text, const QString& actionLabel)
 {
 	DialogSpec prompt;
 	prompt.title = title;
@@ -320,7 +320,12 @@ std::optional<QString> askForText(const QString& title, const DialogLine& label,
 	prompt.buttons = { actionLabel, QStringLiteral("Cancel") };
 	prompt.defaultButton = 0;
 	prompt.enterInInput = [](const QString&) { return std::optional<size_t>{ 0 }; };
-	DialogAnswer answer = execDialog(prompt);
+	return prompt;
+}
+
+std::optional<QString> askForText(const QString& title, const DialogLine& label, const QString& text, const QString& actionLabel)
+{
+	DialogAnswer answer = execDialog(textPrompt(title, label, text, actionLabel));
 	if (answer.button != size_t{ 0 })
 		return std::nullopt;
 	return std::move(answer.inputText);

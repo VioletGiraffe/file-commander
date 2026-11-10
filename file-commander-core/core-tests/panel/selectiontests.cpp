@@ -154,6 +154,42 @@ TEST_CASE("CPanel - inverting the selection skips [..] and hidden items", "[pane
 	CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.b) });
 }
 
+TEST_CASE("CPanel - a pattern selects and deselects what it matches among the selectable items", "[panel][selection][filter]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+
+	SECTION("The name filter's language: ';' separates patterns, case is ignored, an unanchored end matches anywhere")
+	{
+		panel.setItemsSelectedByPattern(QStringLiteral("*.TXT;su"), true, false);
+		CHECK(sorted(panel.selectedItemHashes()) == sorted({ hashOf(f.a), hashOf(f.sub) }));
+	}
+
+	SECTION("Never [..] or an item the name filter hides")
+	{
+		panel.setNameFilter(QStringLiteral("*.txt;sub"));
+		panel.setItemsSelectedByPattern(QStringLiteral("*"), true, false);
+		CHECK(sorted(panel.selectedItemHashes()) == sorted({ hashOf(f.a), hashOf(f.sub) }));
+	}
+
+	SECTION("Files only leaves folders out, when selecting and when deselecting")
+	{
+		panel.setItemsSelectedByPattern(QStringLiteral("*"), true, true);
+		CHECK(sorted(panel.selectedItemHashes()) == sorted({ hashOf(f.a), hashOf(f.b) }));
+
+		panel.setItemsSelected({ hashOf(f.sub) }, true);
+		panel.setItemsSelectedByPattern(QStringLiteral("*"), false, true);
+		CHECK(panel.selectedItemHashes() == std::vector<qulonglong>{ hashOf(f.sub) });
+	}
+
+	SECTION("Deselecting keeps the items the pattern does not match")
+	{
+		panel.setItemsSelectedByPattern(QStringLiteral("*"), true, false);
+		panel.setItemsSelectedByPattern(QStringLiteral("*.doc"), false, false);
+		CHECK(sorted(panel.selectedItemHashes()) == sorted({ hashOf(f.a), hashOf(f.sub) }));
+	}
+}
+
 TEST_CASE("CPanel - the selection summary counts files, folders and their size", "[panel][selection]")
 {
 	ListedFolder f;

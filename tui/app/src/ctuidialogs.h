@@ -94,6 +94,8 @@ struct DialogAnswer
 void showMessage(const QString& title, const QString& text);
 void showUserMessage(const UserMessage& message);
 [[nodiscard]] bool confirmed(const QString& title, const QString& question, const QString& actionLabel, const QString& declineLabel = QStringLiteral("Cancel"));
+// A text input with the action button (0), which Enter in the input line presses, and Cancel
+[[nodiscard]] DialogSpec textPrompt(const QString& title, const DialogLine& label, const QString& text, const QString& actionLabel);
 // The edited text, which Enter or the action button accepts; nullopt: cancelled
 [[nodiscard]] std::optional<QString> askForText(const QString& title, const DialogLine& label, const QString& text, const QString& actionLabel);
 

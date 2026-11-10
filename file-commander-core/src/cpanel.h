@@ -155,6 +155,8 @@ public:
 	void setItemsSelected(const std::vector<qulonglong>& hashes, bool selected);
 	// Toggles every item it can select
 	void invertSelection();
+	// patternText: as setNameFilter's filterText. filesOnly leaves folders out; a bundle counts as a file.
+	void setItemsSelectedByPattern(const QString& patternText, bool selected, bool filesOnly);
 	// Empty while the committed listing does not belong to the current view
 	[[nodiscard]] std::vector<qulonglong> selectedItemHashes() const;
 	// In display order

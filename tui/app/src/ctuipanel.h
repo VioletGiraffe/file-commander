@@ -41,6 +41,8 @@ private:
 
 	void activateCurrentItem();
 	void toggleCurrentItemSelection();
+	// Asks for the pattern, prefilled with "*"
+	void selectItemsByPattern(bool selected);
 	void renameCurrentItem();
 	// Each asks for the name, prefilled with the current item's
 	void createFolder();

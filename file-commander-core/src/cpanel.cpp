@@ -498,6 +498,25 @@ void CPanel::invertSelection()
 	}
 }
 
+void CPanel::setItemsSelectedByPattern(const QString& patternText, const bool selected, const bool filesOnly)
+{
+	const FileNameFilter pattern{ splitNameFilterField(patternText), Qt::CaseInsensitive };
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return;
+
+	for (const auto& [hash, item] : _items)
+	{
+		if (!isSelectableLocked(item) || (filesOnly && !isFileOrBundle(item)) || !pattern.matches(item.fullName()))
+			continue;
+
+		if (selected)
+			_selectedItemHashes.insert(hash);
+		else
+			_selectedItemHashes.erase(hash);
+	}
+}
+
 std::vector<qulonglong> CPanel::selectedItemHashes() const
 {
 	std::lock_guard locker(_fileListAndCurrentDirMutex);

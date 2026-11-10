@@ -286,6 +286,8 @@ void CTuiPanel::handleEvent(TEvent& event)
 				_controller.panel(_side).invertSelection();
 				showCoreSelection();
 			}
+			else if (event.keyDown.charScan.charCode == '+' || event.keyDown.charScan.charCode == '-')
+				selectItemsByPattern(event.keyDown.charScan.charCode == '+');
 			else
 				return;
 		}
@@ -417,6 +419,19 @@ void CTuiPanel::toggleCurrentItemSelection()
 
 	// The core refuses [..]
 	_controller.panel(_side).setItemsSelected({ row->hash() }, !_fileList->isSelected(row->hash()));
+	showCoreSelection();
+}
+
+void CTuiPanel::selectItemsByPattern(const bool selected)
+{
+	const QString action = selected ? QStringLiteral("Select") : QStringLiteral("Deselect");
+	DialogSpec prompt = textPrompt(action, { QStringLiteral("Names matching (separate patterns with ;)") }, QStringLiteral("*"), action);
+	prompt.checkBoxLabel = QStringLiteral("~F~iles only");
+	const DialogAnswer answer = execDialog(prompt);
+	if (answer.button != size_t{ 0 })
+		return;
+
+	_controller.panel(_side).setItemsSelectedByPattern(answer.inputText, selected, answer.checked);
 	showCoreSelection();
 }
 

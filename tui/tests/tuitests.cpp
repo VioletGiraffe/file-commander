@@ -19,8 +19,10 @@ RESTORE_COMPILER_WARNINGS
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 
 using namespace std::chrono_literals;
+using namespace std::string_view_literals;
 namespace Keys = TerminalKeys;
 
 namespace {
@@ -356,6 +358,44 @@ TEST_CASE("Ctrl+S hides and shows hidden files", "[tui]")
 		QStringLiteral("the hidden file gone"));
 	session->send(Keys::CtrlS);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, hiddenName); }, QStringLiteral("the hidden file back"));
+}
+
+TEST_CASE("+ and - select and deselect by pattern", "[tui]")
+{
+	const Sandbox sandbox;
+	for (const char* name : { "a.txt", "b.txt", "c.doc" })
+		sandbox.createFile(QStringLiteral("work/") + QString::fromLatin1(name));
+	REQUIRE(QDir{ sandbox.work({}) }.mkdir(QStringLiteral("sub")));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("c.doc"));
+
+	const auto requireStatus = [&](const QString& status) {
+		requireScreen(*session, [&](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(status); }, quoted(status));
+	};
+	// The input line starts with "*", all of it selected, so the typed pattern replaces it
+	const auto applyPattern = [&](std::string_view key, const QString& pattern) {
+		session->send(key);
+		requireText(*session, QStringLiteral("Names matching"));
+		typeText(*session, pattern);
+		session->send(Keys::Enter);
+	};
+
+	applyPattern("+", QStringLiteral("?.txt"));
+	requireStatus(QStringLiteral("2 files, 0 folders selected"));
+	applyPattern("-", QStringLiteral("b*"));
+	requireStatus(QStringLiteral("1 files, 0 folders selected"));
+
+	session->send("+"sv);
+	requireText(*session, QStringLiteral("Files only"));
+	session->send(Keys::AltF);
+	requireText(*session, QStringLiteral("[X] Files only"));
+	session->send(Keys::Enter);
+	requireStatus(QStringLiteral("3 files, 0 folders selected"));
+
+	session->send("+"sv);
+	requireText(*session, QStringLiteral("Names matching"));
+	session->send(Keys::Enter);
+	requireStatus(QStringLiteral("3 files, 1 folders selected"));
 }
 
 TEST_CASE("F3 opens the pager on the file, in its folder", "[tui]")
