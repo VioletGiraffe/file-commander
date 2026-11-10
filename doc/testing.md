@@ -11,6 +11,7 @@ test:
 - `qt-app/gui-tests/fileoperations/`: launching file operations from the UI.
 - `qt-app/gui-tests/filelist/`: the file-list model.
 - `plugins/viewer/csvviewer/tests/`: the CSV viewer.
+- `tui/tests/`: the terminal UI. It drives the real `fcterm`, so `core-tests.pro` builds `fcterm` too.
 
 `file-operations/test-utils/` holds the shared helpers: temporary folder generation, random data, link creation, Qt/Catch2
 glue. Every suite links `catch2_runner` (`cpp-template-utils/3rdparty/catch2/`), Catch2's implementation compiled once
@@ -69,6 +70,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | Coverage needing a filesystem capability: skipped where absent, required where its `FILE_OPERATIONS_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
 | Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts, the file list view |
 | Launch smoke test: the release binary with `--test-launch=N`, failing unless the N plugins the build produced all load | CI build job, every platform |
+| End-to-end terminal UI tests: `fcterm` in a pseudo-terminal, given keys and read back as screen text | `tui_test` |
 
 ## Coverage by component
 
@@ -89,8 +91,14 @@ the shell script also falls back to a `qmake` already on PATH.
 | `fileoperations_gui_test` | Launched operations routed to the dialog or the native shell, end to end |
 | `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's display, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
+| `tui_test` | Terminal UI: the status rows, the file commands and their dialogs, hidden files, and handing the terminal to the pager, the editor and a program |
 
-No suite covers a launch that opens a window (programs, terminals), volume enumeration, favorites, settings other than the tabs', the UI outside file operations and the
+`tui_test` runs `fcterm` through `forkpty`, or ConPTY on Windows, with its settings in the test's temporary folder
+(`--settings-dir`) and, on Unix, `HOME` there too. The pager and the editor are the test executable itself, started with
+`--record <file>`: it writes its working folder and arguments to the file. With `--print-then-sleep <text>` it stands
+in for a long-running program. A test waits for what the screen shows, never for a fixed time.
+
+No suite covers a launch that opens a window (programs, terminals), volume enumeration, favorites, settings other than the tabs', the GUI outside file operations and the
 file list, or any plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`,
 `image-processing` and `text-encoding-detector` submodules have their own suites, which this project neither builds
 nor runs. After a `thin_io` change, run `thin_io/scripts/run_tests.bat` (or `.sh`) as well.

@@ -6,9 +6,11 @@
 #include "compiler/compiler_warnings_control.h"
 
 DISABLE_COMPILER_WARNINGS
+#include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QSettings>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
@@ -43,6 +45,17 @@ int main(int argc, char* argv[])
 	// Not the GUI's names: the controller saves its tabs in these settings, and must not overwrite the GUI's
 	QCoreApplication::setOrganizationName(QStringLiteral("GitHubSoft"));
 	QCoreApplication::setApplicationName(QStringLiteral("File Commander TUI"));
+
+	QCommandLineParser parser;
+	parser.addHelpOption();
+	const QCommandLineOption settingsDirOption{ QStringLiteral("settings-dir"), QStringLiteral("Keeps the settings in an INI file under <folder>."), QStringLiteral("folder") };
+	parser.addOption(settingsDirOption);
+	parser.process(app);
+	if (parser.isSet(settingsDirOption))
+	{
+		QSettings::setDefaultFormat(QSettings::IniFormat);
+		QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, parser.value(settingsDirOption));
+	}
 
 	QFile logFile{ QDir::tempPath() % QStringLiteral("/file-commander-tui.log") };
 	if (logFile.open(QFile::WriteOnly | QFile::Truncate))

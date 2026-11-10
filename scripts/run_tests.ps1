@@ -45,6 +45,7 @@ $suites = [ordered]@{
 	'fileoperations_gui_test' = @()
 	'filelist_test'           = @()
 	'csvviewer_test'          = @()
+	'tui_test'                = @()
 }
 
 function Fail-Environment([string]$message)

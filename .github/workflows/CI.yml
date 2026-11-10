@@ -44,7 +44,9 @@ jobs:
             - 'qt-app/src/**'          # compiled by the gui-tests target (typed prompt, dialog, launch routing)
             - 'qt-app/gui-tests/**'
             - 'plugins/viewer/csvviewer/**'
+            - 'tui/**'                 # the terminal UI suite builds and drives fcterm
             # The submodules the suites link: a bump changes the gitlink path itself, never files under it
+            - 'tvision'
             - 'cpputils'
             - 'cpp-template-utils'
             - 'file-operations'
@@ -366,7 +368,7 @@ jobs:
     - name: Linux - install build dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*'
+        sudo apt update -y; sudo apt install -qq gcc-14 g++-14 libglu1-mesa-dev libx11-xcb-dev '^libxcb*' '^libxkb*' libncurses-dev
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 50
         g++ --version

@@ -30,6 +30,14 @@ SUBDIRS += csvviewer
 csvviewer.subdir = ../../plugins/viewer/csvviewer/tests
 csvviewer.depends = cpputils catch2-runner
 
+# The terminal UI suite drives fcterm in a pseudo-terminal, so fcterm builds with the suites
+SUBDIRS += tvision fcterm tui
+tvision.subdir = ../../tui/tvision
+fcterm.subdir = ../../tui/app
+fcterm.depends = tvision core fileoperations-lib thin_io cpputils
+tui.subdir = ../../tui/tests
+tui.depends = fcterm catch2-runner
+
 # Built with the suites so they cannot rot, but never run by the test scripts: see doc/testing.md, "Listing benchmark" and "File list map benchmark".
 SUBDIRS += listing-benchmark filelist-hashmap-benchmark
 
