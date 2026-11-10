@@ -690,7 +690,7 @@ void CPanel::recoverFromInaccessibleFolder(const FileListUpdateRequest& request)
 
 	execOnUiThread([this, request, resolution = std::move(resolution)]() {
 		{
-			std::lock_guard locker(_fileListAndCurrentDirMutex);
+			std::lock_guard uiThreadLocker(_fileListAndCurrentDirMutex);
 			if (!fileListUpdateIsCurrentLocked(request))
 				return;
 		}
