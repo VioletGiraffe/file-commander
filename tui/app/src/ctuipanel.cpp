@@ -1,10 +1,12 @@
 #include "ctuipanel.h"
+#include "ctuiapplication.h"
 #include "ctuidialogs.h"
 #include "ctuifilelist.h"
 #include "ctuifileoperations.h"
 
 #include "ccontroller.h"
 #include "filesystemhelperfunctions.h"
+#include "shell/cshell.h"
 
 #include "fileoperations/fileoperationtexts.h"
 
@@ -19,12 +21,16 @@
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 #include <QDateTime>
+#include <QFileInfo>
 #include <QLocale>
+#include <QProcess>
+#include <QStandardPaths>
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
+#include <initializer_list>
 #include <optional>
 #include <vector>
 
@@ -120,6 +126,88 @@ private:
 	case FileListSortField::Date: return QStringLiteral("Date");
 	}
 	return {};
+}
+
+// The program and its arguments from the first of the environment variables that holds a command, else the first fallback program found.
+// Empty when there is none.
+[[nodiscard]] static QStringList commandFromEnvironment(std::initializer_list<const char*> variables, std::initializer_list<const char*> fallbackPrograms)
+{
+	for (const char* variable : variables)
+		if (QStringList command = QProcess::splitCommand(qEnvironmentVariable(variable)); !command.isEmpty())
+			return command;
+
+	for (const char* program : fallbackPrograms)
+		if (!QStandardPaths::findExecutable(QString::fromLatin1(program)).isEmpty())
+			return { QString::fromLatin1(program) };
+
+	return {};
+}
+
+// Runs the command with the file's path as its last argument, in the file's folder
+static void runCommandOnFile(QStringList command, const QString& filePath)
+{
+	const QString program = command.takeFirst();
+	command.push_back(toNativeSeparators(filePath));
+	if (auto ran = CTuiApplication::runInTerminal(program, command, QFileInfo(filePath).absolutePath(), false); !ran)
+		showMessage(QStringLiteral("Failed to start %1").arg(program), ran.error());
+}
+
+static void viewFile(const QString& filePath)
+{
+#ifdef _WIN32
+	const QStringList command = commandFromEnvironment({ "PAGER" }, { "more" });
+#else
+	const QStringList command = commandFromEnvironment({ "PAGER" }, { "less", "more" });
+#endif
+	if (command.isEmpty())
+		showMessage(QStringLiteral("No pager found"), QStringLiteral("Set the PAGER environment variable to a pager program."));
+	else
+		runCommandOnFile(command, filePath);
+}
+
+static void editFile(const QString& filePath)
+{
+#ifdef _WIN32
+	const QStringList command = commandFromEnvironment({ "VISUAL", "EDITOR" }, { "edit", "notepad" });
+#else
+	const QStringList command = commandFromEnvironment({ "VISUAL", "EDITOR" }, { "nano", "vi" });
+#endif
+	if (command.isEmpty())
+		showMessage(QStringLiteral("No editor found"), QStringLiteral("Set the VISUAL or EDITOR environment variable to an editor program."));
+	else
+		runCommandOnFile(command, filePath);
+}
+
+// Opens the file with its default application where a desktop can show it, else in the pager
+static void openDocument(const QString& filePath)
+{
+#ifdef _WIN32
+	if (auto opened = OsShell::openWithDefaultApplication(filePath, nullptr); !opened)
+		showMessage(QStringLiteral("Failed to open the file"), opened.error());
+#else
+#ifdef __APPLE__
+	const bool desktopShown = qEnvironmentVariableIsEmpty("SSH_CONNECTION"); // Over SSH the desktop is the Mac's, not the user's
+	const QString opener = QStringLiteral("open");
+#else
+	const bool desktopShown = !qEnvironmentVariableIsEmpty("DISPLAY") || !qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY");
+	const QString opener = QStringLiteral("xdg-open");
+#endif
+	if (!desktopShown)
+	{
+		viewFile(filePath);
+		return;
+	}
+
+	QProcess process;
+	process.setProgram(opener);
+	process.setArguments({ filePath });
+	// The opener and the application it starts would write over the panels
+	process.setStandardInputFile(QProcess::nullDevice());
+	process.setStandardOutputFile(QProcess::nullDevice());
+	process.setStandardErrorFile(QProcess::nullDevice());
+	if (!process.startDetached())
+		showMessage(QStringLiteral("Failed to start %1").arg(opener), process.errorString());
+#endif
 }
 
 CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
@@ -218,6 +306,14 @@ void CTuiPanel::handleEvent(TEvent& event)
 		case cmRenameItem: renameCurrentItem(); break;
 		case cmCreateFolder: createFolder(); break;
 		case cmCreateFile: createFile(); break;
+		case cmViewFile:
+			if (const QString path = currentFilePath(); !path.isEmpty())
+				viewFile(path);
+			break;
+		case cmEditFile:
+			if (const QString path = currentFilePath(); !path.isEmpty())
+				editFile(path);
+			break;
 		default: return;
 		}
 		clearEvent(event);
@@ -304,8 +400,13 @@ void CTuiPanel::activateCurrentItem()
 		const QByteArray text = (result.errorText.isEmpty() ? QStringLiteral("Failed to open the item") : result.errorText).toUtf8();
 		messageBox(TStringView{ text.constData(), (size_t)text.size() }, mfError | mfOKButton);
 	}
-	else if (!result.pathToOpen.isEmpty())
-		messageBox("Opening documents is not supported yet", mfInformation | mfOKButton);
+	else if (result.isProgram)
+	{
+		if (auto ran = CTuiApplication::runInTerminal(result.pathToLaunch, {}, QFileInfo(result.pathToLaunch).absolutePath(), true); !ran)
+			showMessage(QStringLiteral("Failed to start the program"), ran.error());
+	}
+	else if (!result.pathToLaunch.isEmpty())
+		openDocument(result.pathToLaunch);
 }
 
 void CTuiPanel::toggleCurrentItemSelection()
@@ -414,6 +515,12 @@ QString CTuiPanel::currentItemName() const
 {
 	const CFileSystemObject* row = _fileList->currentRow();
 	return row && !row->isCdUp() ? row->fullName().toString() : QString{};
+}
+
+QString CTuiPanel::currentFilePath() const
+{
+	const CFileSystemObject* row = _fileList->currentRow();
+	return row && row->isFile() ? row->fullAbsolutePath() : QString{};
 }
 
 void CTuiPanel::sortBy(FileListSortField field)

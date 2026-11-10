@@ -16,7 +16,7 @@ class CTuiStatusLine;
 
 // The application's status line turns keys into these; the focused panel carries them out
 inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 1003, cmDeleteItemsPermanently = 1004,
-	cmRenameItem = 1005, cmCreateFolder = 1006, cmCreateFile = 1007;
+	cmRenameItem = 1005, cmCreateFolder = 1006, cmCreateFile = 1007, cmViewFile = 1008, cmEditFile = 1009;
 
 // One side: a window showing the active tab's folder
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener
@@ -48,6 +48,8 @@ private:
 	void goToTypedPath();
 	// Empty for none and for [..]
 	[[nodiscard]] QString currentItemName() const;
+	// Empty unless the cursor is on a file
+	[[nodiscard]] QString currentFilePath() const;
 	// The same field again reverses the order
 	void sortBy(FileListSortField field);
 

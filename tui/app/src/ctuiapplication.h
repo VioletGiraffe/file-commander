@@ -5,12 +5,16 @@
 #define Uses_TApplication
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
+#include <QString>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <array>
+#include <expected>
 
 class CController;
 class CTuiPanel;
+class TDeskTop;
 class TMenuBar;
 class TStatusLine;
 
@@ -24,9 +28,15 @@ public:
 	void handleEvent(TEvent& event) override;
 	void resume() override;
 
+	// Hands the terminal to the program until it exits. The error: the program did not start.
+	// waitForEnter: the program's output stays on screen until Enter is pressed
+	[[nodiscard]] static std::expected<void, QString> runInTerminal(const QString& program, const QStringList& arguments, const QString& workingDir, bool waitForEnter);
+
 private:
 	static TMenuBar* initMenuBar(TRect r);
 	static TStatusLine* initStatusLine(TRect r);
+	static TStatusLine* initHintLine(TRect r);
+	static TDeskTop* initDeskTop(TRect r);
 
 private:
 	CController& _controller;

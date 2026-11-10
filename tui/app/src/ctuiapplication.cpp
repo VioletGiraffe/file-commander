@@ -17,15 +17,28 @@
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 #include <QCoreApplication>
+#include <QProcess>
 RESTORE_COMPILER_WARNINGS
 
-#ifndef _WIN32
+#include <cstdio>
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <csignal>
 #include <fcntl.h>
 #include <unistd.h>
 #endif
 
 namespace
 {
+#ifdef _WIN32
+BOOL WINAPI ignoreInterrupt(DWORD controlType)
+{
+	return controlType == CTRL_C_EVENT || controlType == CTRL_BREAK_EVENT;
+}
+#endif
+
 // Turbo Vision enables win32-input-mode whenever it sets up the console.
 // In that mode Windows Terminal sends each key as a ~20-byte sequence, which SSH can deliver in two parts.
 // Turbo Vision waits only 10 ms for the rest of a sequence, then drops the key and inserts its bytes as text.
@@ -45,10 +58,11 @@ void disableWin32InputMode()
 } // namespace
 
 CTuiApplication::CTuiApplication(CController& controller) :
-	TProgInit(&CTuiApplication::initStatusLine, &CTuiApplication::initMenuBar, &TApplication::initDeskTop),
+	TProgInit(&CTuiApplication::initStatusLine, &CTuiApplication::initMenuBar, &CTuiApplication::initDeskTop),
 	_controller(controller)
 {
 	disableWin32InputMode();
+	insert(initHintLine(getExtent()));
 
 	const TRect desktopArea = deskTop->getExtent();
 	const short middle = (short)(desktopArea.b.x / 2);
@@ -98,6 +112,59 @@ void CTuiApplication::resume()
 	disableWin32InputMode();
 }
 
+std::expected<void, QString> CTuiApplication::runInTerminal(const QString& program, const QStringList& arguments, const QString& workingDir, bool waitForEnter)
+{
+	QProcess process;
+	process.setProgram(program);
+	process.setArguments(arguments);
+	process.setWorkingDirectory(workingDir);
+	process.setProcessChannelMode(QProcess::ForwardedChannels);
+	process.setInputChannelMode(QProcess::ForwardedInputChannel);
+#ifndef _WIN32
+	process.setUnixProcessParameters(QProcess::UnixProcessFlag::ResetSignalHandlers); // The program must not inherit the ignored interrupts
+#endif
+
+	application->suspend();
+
+	// The terminal sends Ctrl+C to every process attached to it: only the program must stop
+#ifdef _WIN32
+	SetConsoleCtrlHandler(&ignoreInterrupt, TRUE);
+#else
+	struct sigaction ignore {};
+	ignore.sa_handler = SIG_IGN;
+	struct sigaction previousSigInt {}, previousSigQuit {};
+	sigaction(SIGINT, &ignore, &previousSigInt);
+	sigaction(SIGQUIT, &ignore, &previousSigQuit);
+#endif
+
+	process.start();
+	const bool started = process.waitForStarted(-1);
+	if (started)
+	{
+		process.waitForFinished(-1);
+		if (waitForEnter)
+		{
+			std::fputs("\nPress Enter to return to File Commander", stdout);
+			std::fflush(stdout);
+			for (int c = std::getchar(); c != '\n' && c != EOF; c = std::getchar()) {}
+		}
+	}
+
+#ifdef _WIN32
+	SetConsoleCtrlHandler(&ignoreInterrupt, FALSE);
+#else
+	sigaction(SIGINT, &previousSigInt, nullptr);
+	sigaction(SIGQUIT, &previousSigQuit, nullptr);
+#endif
+
+	application->resume();
+	application->redraw();
+
+	if (!started)
+		return std::unexpected(process.errorString());
+	return {};
+}
+
 TMenuBar* CTuiApplication::initMenuBar(TRect r)
 {
 	r.b.y = r.a.y + 1;
@@ -113,13 +180,38 @@ TStatusLine* CTuiApplication::initStatusLine(TRect r)
 	return new TStatusLine(r,
 		*new TStatusDef(0, 0xFFFF) +
 			*new TStatusItem("~F2~ Rename", kbF2, cmRenameItem) +
+			*new TStatusItem("~F3~ View", kbF3, cmViewFile) +
+			*new TStatusItem("~F4~ Edit", kbF4, cmEditFile) +
 			*new TStatusItem("~F5~ Copy", kbF5, cmCopyItems) +
 			*new TStatusItem("~F6~ Move", kbF6, cmMoveItems) +
 			*new TStatusItem("~F7~ Folder", kbF7, cmCreateFolder) +
 			*new TStatusItem(nullptr, kbShiftF7, cmCreateFile) +
 			*new TStatusItem("~F8~ Delete", kbF8, cmDeleteItems) +
 			*new TStatusItem(nullptr, kbShiftF8, cmDeleteItemsPermanently) +
-			*new TStatusItem("~F10~ Menu", kbF10, cmMenu) +
-			*new TStatusItem("~Alt-X~ Exit", kbAltX, cmQuit)
+			*new TStatusItem(nullptr, kbF10, cmMenu) +
+			*new TStatusItem(nullptr, kbAltX, cmQuit)
 	);
+}
+
+// The row above the status line. Hints only: the status line binds every key.
+TStatusLine* CTuiApplication::initHintLine(TRect r)
+{
+	r.b.y--;
+	r.a.y = r.b.y - 1;
+	return new TStatusLine(r,
+		*new TStatusDef(0, 0xFFFF) +
+			*new TStatusItem("~Tab~ Panel", kbNoKey, 0) +
+			*new TStatusItem("~Enter~ Open", kbNoKey, 0) +
+			*new TStatusItem("~Alt-D~ Go to", kbNoKey, 0) +
+			*new TStatusItem("~Alt-F1/F2~ Volume", kbNoKey, 0) +
+			*new TStatusItem("~F10~ Menu", kbNoKey, cmMenu) +
+			*new TStatusItem("~Alt-X~ Exit", kbNoKey, cmQuit)
+	);
+}
+
+TDeskTop* CTuiApplication::initDeskTop(TRect r)
+{
+	r.a.y++; // The menu bar
+	r.b.y -= 2; // The hint line and the status line
+	return new TDeskTop(r);
 }

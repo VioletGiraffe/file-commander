@@ -62,6 +62,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDesktopServices>
 #include <QDialog>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFileIconProvider>
 #include <QInputDialog>
 #include <QLineEdit>
@@ -618,13 +619,18 @@ bool CMainWindow::eventFilter(QObject *watched, QEvent *event)
 void CMainWindow::itemActivated(qulonglong hash, CPanelWidget *panel)
 {
 	auto result = _controller->itemActivated(hash, panel->panelPosition());
-	if (!result.pathToOpen.isEmpty())
+	if (result.isProgram)
+	{
+		if (auto launched = OsShell::runExecutable(result.pathToLaunch, QString(), QFileInfo(result.pathToLaunch).absolutePath()); !launched)
+			result = { FileOperationResultCode::Fail, std::move(launched.error()) };
+	}
+	else if (!result.pathToLaunch.isEmpty())
 	{
 #ifdef _WIN32
-		if (auto opened = OsShell::openWithDefaultApplication(result.pathToOpen, reinterpret_cast<void*>(winId())); !opened)
+		if (auto opened = OsShell::openWithDefaultApplication(result.pathToLaunch, reinterpret_cast<void*>(winId())); !opened)
 			result = { FileOperationResultCode::Fail, std::move(opened.error()) };
 #else
-		if (!QDesktopServices::openUrl(QUrl::fromLocalFile(result.pathToOpen)))
+		if (!QDesktopServices::openUrl(QUrl::fromLocalFile(result.pathToLaunch)))
 			result.code = FileOperationResultCode::Fail; // Without a reason: QDesktopServices reports none
 #endif
 	}

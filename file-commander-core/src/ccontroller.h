@@ -100,9 +100,10 @@ public:
 	{
 		FileOperationResultCode code;
 		QString errorText; // The reason for a failure, when known
-		QString pathToOpen; // A document or an app bundle, for the UI to open with its default application; empty otherwise
+		QString pathToLaunch; // A file or an app bundle, for the UI to start; empty otherwise
+		bool isProgram = false; // pathToLaunch runs in its folder; otherwise it opens with its default application
 	};
-	// Enters a folder or launches an executable; any other file is returned in pathToOpen
+	// Enters a folder; a file or an app bundle is returned in pathToLaunch
 	ItemActivationResult itemActivated(qulonglong itemHash, Panel p);
 	// Shows the volume in side p: the other side's folder when it is on that volume, else the folder last visited there, else its root.
 	// Returns the message to show when the volume is inaccessible.

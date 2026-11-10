@@ -661,14 +661,7 @@ CController::ItemActivationResult CController::itemActivated(qulonglong itemHash
 		// Filesystems without permissions, such as FAT and NTFS mounts, usually mark every file executable
 		const bool isProgram = item.isExecutable() && OsShell::isProgramFile(item.fullAbsolutePath());
 #endif
-		if (!isProgram)
-			return { FileOperationResultCode::Ok, {}, item.fullAbsolutePath() };
-
-		// Attempting to launch this exe from the current directory
-		if (auto launched = OsShell::runExecutable(item.fullAbsolutePath(), QString(), item.parentDirPath()); !launched)
-			return { FileOperationResultCode::Fail, std::move(launched.error()) };
-
-		return { FileOperationResultCode::Ok };
+		return { FileOperationResultCode::Ok, {}, item.fullAbsolutePath(), isProgram };
 	}
 
 	return { FileOperationResultCode::Fail };

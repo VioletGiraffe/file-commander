@@ -7,9 +7,10 @@ happens to running commands when the app exits.
 
 | Trigger | Start here | Mechanism |
 |---|---|---|
-| Activating an executable in a panel | `CController::itemActivated` | `OsShell::runExecutable`: `ShellExecuteExW` on Windows, `QProcess::startDetached` elsewhere. Off Windows, an executable file must also start like a program: `OsShell::isProgramFile` |
+| Activating an executable in a panel | `CController::itemActivated` returns the path with `isProgram`, `CMainWindow::itemActivated` launches it | `OsShell::runExecutable`: `ShellExecuteExW` on Windows, `QProcess::startDetached` elsewhere. Off Windows, an executable file must also start like a program: `OsShell::isProgramFile` |
 | Activating any other file | `CController::itemActivated` returns the path, `CMainWindow::itemActivated` opens it | The OS file association: `OsShell::openWithDefaultApplication` on Windows, `QDesktopServices::openUrl` elsewhere |
 | Edit (F4) | `CMainWindow::editFile` | `QProcess::startDetached` with the configured editor; `open -a` on macOS |
+| Terminal UI: activating a file, View (F3), Edit (F4) | `CTuiPanel` | `CTuiApplication::runInTerminal` hands the terminal to the program and waits for it. The editor comes from `VISUAL` or `EDITOR`, the pager from `PAGER`, else a fallback found in `PATH`. A document opens in its default application when a desktop can show it, else in the pager |
 | Open terminal | `OsShell::openTerminal` | `OsShell::terminalCommand`: the configured terminal, else a detected one; elevated through `OsShell::runExe` on Windows; `open -a` on macOS |
 | Command line | `CMainWindow::executeCommand` | `OsShell::runExecutable` for a GUI program (`OsShell::guiProgramInvocation`), else `CCommandOutputArea::run` |
 | Programs menu | `CMainWindow::runUserProgram` | Placeholders expanded. Windows: `OsShell::runExecutable` for a line `OsShell::directInvocation` accepts, else `CShellCommand::startInOwnConsole`. Elsewhere: `OsShell::runCommandLineInTerminal` or `OsShell::runCommandLineDetached` |
