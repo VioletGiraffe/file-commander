@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794349479781,
+  "lastUpdate": 1794351876266,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -34918,6 +34918,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Lines of code (libs)",
             "value": 35754,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1592,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 938,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 445.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "fd0713da0e3c965ef94ef2fbeb012192d1ea5924",
+          "message": "Terminal UI no longer reaches the controller for events without a command, which after shutdown indexed an empty tab list on exit: the active panel is looked up only by the commands that use it",
+          "timestamp": "2026-11-11T00:56:29+02:00",
+          "tree_id": "7863c52e5eabee59b2c4bae79477a8f2641156c7",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/fd0713da0e3c965ef94ef2fbeb012192d1ea5924"
+        },
+        "date": 1794351873534,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 18108,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35763,
             "unit": "LOC"
           },
           {
