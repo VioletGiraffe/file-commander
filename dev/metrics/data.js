@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794256975902,
+  "lastUpdate": 1794325659996,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -34464,6 +34464,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .reloc",
             "value": 11,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "a4ccfcd27e06f27410d68dab2c69902ac0769577",
+          "message": "The terminal UI builds as fcterm with the rest of the project and ships in the Windows installer, inside the macOS app bundle, and as its own Linux AppImage; the app's updater asks only for its own release asset, and the code counts take fcterm as app code and leave out Turbo Vision",
+          "timestamp": "2026-11-10T17:30:34+02:00",
+          "tree_id": "df87f1cbbc9ae9a1842e2fe80f21a147b857ea05",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/a4ccfcd27e06f27410d68dab2c69902ac0769577"
+        },
+        "date": 1794325656122,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 17640,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35754,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1580,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 928.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 443.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
             "unit": "KB"
           }
         ]
