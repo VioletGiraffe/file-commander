@@ -803,7 +803,7 @@ std::optional<UserMessage> CController::createFile(Panel p, const QString& name)
 	return entryCreationMessage(result, name);
 }
 
-InlineRenameResult CController::renameItem(Panel p, qulonglong itemHash, const QString& newName, const bool replaceExistingFile)
+InlineRenameResult CController::renameItem(Panel p, qulonglong itemHash, const QString& newName, const InlineRenameReplacement fileReplacement)
 {
 	const CFileSystemObject item = itemByHash(p, itemHash);
 	if (item.isCdUp())
@@ -812,7 +812,7 @@ InlineRenameResult CController::renameItem(Panel p, qulonglong itemHash, const Q
 	const auto source = parseOperationPath(item.fullAbsolutePath());
 	assert_and_return_r(source, { .status = InlineRenameStatus::NothingToDo }); // A listed item has a valid absolute path
 
-	const InlineRenameResult result = inlineRename(*source, newName, replaceExistingFile);
+	const InlineRenameResult result = inlineRename(*source, newName, fileReplacement);
 	// Only an accepted name gets here, so child()'s precondition holds
 	if (result.status == InlineRenameStatus::Renamed || result.status == InlineRenameStatus::NothingToDo)
 		setCurrentItemHashForCurrentFolder(p, CFileSystemObject{ source->parent().child(newName).value() }.hash());

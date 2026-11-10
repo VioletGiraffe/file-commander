@@ -135,9 +135,9 @@ public:
 	// relativePath may be a chain ("a/b/c"): see createNewFolder().
 	[[nodiscard]] std::optional<UserMessage> createFolder(Panel p, const QString& relativePath);
 	[[nodiscard]] std::optional<UserMessage> createFile(Panel p, const QString& name);
-	// Renames an item of side p's folder, and puts the cursor on it. ReplacementRequired: confirm, then call again with replaceExistingFile.
+	// Renames an item of side p's folder, and puts the cursor on it. fileReplacement as for inlineRename().
 	// The message for the result: inlineRenameMessage().
-	[[nodiscard]] InlineRenameResult renameItem(Panel p, qulonglong itemHash, const QString& newName, bool replaceExistingFile);
+	[[nodiscard]] InlineRenameResult renameItem(Panel p, qulonglong itemHash, const QString& newName, InlineRenameReplacement fileReplacement);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
 	// Moves the items to the trash on a worker thread. backend: QtTrash, or NativeShellTrash on macOS.

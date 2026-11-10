@@ -636,13 +636,13 @@ void CTuiPanel::renameCurrentItem()
 	if (!newName)
 		return;
 
-	InlineRenameResult result = _controller.renameItem(_side, hash, *newName, false);
+	InlineRenameResult result = _controller.renameItem(_side, hash, *newName, InlineRenameReplacement::Ask);
 	if (result.status == InlineRenameStatus::ReplacementRequired)
 	{
 		const UserMessage question = inlineRenameReplacementQuestion(result, *newName);
 		if (!confirmed(question.title, question.text, QStringLiteral("Replace")))
 			return;
-		result = _controller.renameItem(_side, hash, *newName, true);
+		result = _controller.renameItem(_side, hash, *newName, InlineRenameReplacement::Replace);
 	}
 
 	if (const auto message = inlineRenameMessage(result, oldName, *newName))

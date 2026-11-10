@@ -1006,7 +1006,7 @@ void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 	assert_and_return_r(mainWindow, );
 	mainWindow->closeViewedFilesWithin({ item.fullAbsolutePath() });
 
-	auto result = _controller->renameItem(_panelPosition, hash, newName, false);
+	auto result = _controller->renameItem(_panelPosition, hash, newName, InlineRenameReplacement::Ask);
 	if (result.status == InlineRenameStatus::ReplacementRequired)
 	{
 		// Fix for https://github.com/VioletGiraffe/file-commander/issues/123
@@ -1014,7 +1014,7 @@ void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 		if (QMessageBox::question(this, question.title, question.text, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) != QMessageBox::Yes)
 			return;
 
-		result = _controller->renameItem(_panelPosition, hash, newName, true);
+		result = _controller->renameItem(_panelPosition, hash, newName, InlineRenameReplacement::Replace);
 	}
 
 	if (const auto message = inlineRenameMessage(result, item.fullName().toString(), newName))
