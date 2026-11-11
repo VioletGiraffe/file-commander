@@ -13,8 +13,9 @@ RESTORE_COMPILER_WARNINGS
 namespace {
 
 // All in the xterm 256-colour cube: a 256-colour terminal shows them exactly, and no terminal colour scheme redefines them
-constexpr TColorRGB black{ 0x000000 }, navy{ 0x00005F }, red{ 0xAF0000 }, amber{ 0xD78700 }, cyan{ 0x00AFAF }, darkGrey{ 0x5F5F5F },
-	grey{ 0xAFAFAF }, lightGreen{ 0x5FFF5F }, lightCyan{ 0x5FFFFF }, yellow{ 0xFFFF5F }, white{ 0xFFFFFF };
+constexpr TColorRGB black{ 0x000000 }, navy{ 0x00005F }, red{ 0xAF0000 }, amber{ 0xD78700 }, cyan{ 0x00AFAF }, teal{ 0x008787 },
+	steelBlue{ 0x005F87 }, darkGrey{ 0x5F5F5F }, grey{ 0xAFAFAF }, lightGreen{ 0x5FFF5F }, lightCyan{ 0x5FFFFF }, yellow{ 0xFFFF5F },
+	white{ 0xFFFFFF };
 
 // Entry 1: the desktop
 constexpr TColorAttr desktopColors[]{
@@ -81,16 +82,16 @@ constexpr TColorAttr grayDialogColors[]{
 
 // The panel's entries, in PanelPaletteEntry order
 constexpr TColorAttr panelColors[]{
-	{ lightCyan, navy }, // ppFileListRow
-	{ yellow, navy },    // ppFileListSelectedRow
-	{ black, cyan },     // ppFileListCursor
-	{ yellow, cyan },    // ppFileListSelectedCursor
-	{ white, navy },     // ppColumnHeader
-	{ grey, navy },      // ppStatusText
-	{ black, cyan },     // ppActiveTab
-	{ black, cyan },     // ppFilterText
-	{ white, navy },     // ppFilterSelectedText
-	{ lightGreen, cyan } // ppFilterArrows
+	{ lightCyan, navy },   // ppFileListRow
+	{ yellow, navy },      // ppFileListSelectedRow
+	{ black, teal },       // ppFileListCursor
+	{ yellow, steelBlue }, // ppFileListSelectedCursor
+	{ white, navy },       // ppColumnHeader
+	{ grey, navy },        // ppStatusText
+	{ black, cyan },       // ppActiveTab
+	{ black, cyan },       // ppFilterText
+	{ white, navy },       // ppFilterSelectedText
+	{ lightGreen, cyan }   // ppFilterArrows
 };
 static_assert(std::size(menuColors) == 6 && std::size(blueWindowColors) == 8 && std::size(grayDialogColors) == 32);
 static_assert(std::size(panelColors) == ppLastEntry - ppFileListRow + 1);
