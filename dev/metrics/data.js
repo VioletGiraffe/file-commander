@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794351876266,
+  "lastUpdate": 1794417590285,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -35042,6 +35042,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 45.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c0e07a3544f0e8c36dfc2b2ecf35d8027fc8b723",
+          "message": "The terminal UI's panels get a column header showing the sorting, sorting by a clicked title, over Name, Ext, Size and Date columns chosen by the panel's width, the name and the sorted column always kept",
+          "timestamp": "2026-11-11T19:07:09+02:00",
+          "tree_id": "5438ba604c8249a5da52edaafb7a2ee92bf605c4",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c0e07a3544f0e8c36dfc2b2ecf35d8027fc8b723"
+        },
+        "date": 1794417586749,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 18253,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35763,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1587,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 934,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 445,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45,
             "unit": "KB"
           },
           {
