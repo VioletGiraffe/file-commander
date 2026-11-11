@@ -13,7 +13,7 @@ RESTORE_COMPILER_WARNINGS
 namespace {
 
 // All in the xterm 256-colour cube: a 256-colour terminal shows them exactly, and no terminal colour scheme redefines them
-constexpr TColorRGB black{ 0x000000 }, navy{ 0x00005F }, red{ 0xAF0000 }, green{ 0x00AF00 }, cyan{ 0x00AFAF }, darkGrey{ 0x5F5F5F },
+constexpr TColorRGB black{ 0x000000 }, navy{ 0x00005F }, red{ 0xAF0000 }, amber{ 0xD78700 }, cyan{ 0x00AFAF }, darkGrey{ 0x5F5F5F },
 	grey{ 0xAFAFAF }, lightGreen{ 0x5FFF5F }, lightCyan{ 0x5FFFFF }, yellow{ 0xFFFF5F }, white{ 0xFFFFFF };
 
 // Entry 1: the desktop
@@ -26,9 +26,9 @@ constexpr TColorAttr menuColors[]{
 	{ black, grey },     // Normal text
 	{ darkGrey, grey },  // Disabled text
 	{ red, grey },       // Shortcut
-	{ black, green },    // Selected
-	{ darkGrey, green }, // Selected disabled
-	{ red, green },      // Selected shortcut
+	{ black, amber },    // Selected
+	{ darkGrey, amber }, // Selected disabled
+	{ navy, amber },     // Selected shortcut
 };
 
 // Entries 8-15: blue windows, the panels' type
@@ -54,24 +54,24 @@ constexpr TColorAttr grayDialogColors[]{
 	{ black, grey },       // Label normal
 	{ white, grey },       // Label selected
 	{ yellow, grey },      // Label shortcut
-	{ black, green },      // Button normal
-	{ lightCyan, green },  // Button default
-	{ white, green },      // Button selected
+	{ black, amber },      // Button normal
+	{ navy, amber },       // Button default
+	{ white, amber },      // Button selected
 	{ darkGrey, grey },    // Button disabled
-	{ yellow, green },     // Button shortcut
+	{ navy, amber },       // Button shortcut
 	{ black, grey },       // Button shadow
 	{ black, cyan },       // Cluster normal
 	{ white, cyan },       // Cluster selected
 	{ yellow, cyan },      // Cluster shortcut
 	{ white, navy },       // Input line normal
-	{ white, green },      // Input line selected
+	{ white, amber },      // Input line selected
 	{ lightGreen, navy },  // Input line arrows
-	{ black, green },      // History arrow
-	{ green, grey },       // History sides
+	{ black, amber },      // History arrow
+	{ amber, grey },       // History sides
 	{ navy, cyan },        // History window scroll bar page area
 	{ navy, cyan },        // History window scroll bar controls
 	{ black, cyan },       // List viewer normal
-	{ white, green },      // List viewer focused
+	{ white, amber },      // List viewer focused
 	{ yellow, cyan },      // List viewer selected
 	{ navy, cyan },        // List viewer divider
 	{ cyan, navy },        // Info pane
