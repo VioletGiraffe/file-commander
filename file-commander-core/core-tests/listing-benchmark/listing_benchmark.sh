@@ -3,8 +3,8 @@
 # Runs listing_benchmark. Cold samples remount an ext4 image before every listing, which discards that filesystem's
 # cache and leaves the rest of the machine warm; they need root, warm runs do not.
 # What to verify before trusting the numbers: doc/testing.md, "Listing benchmark".
-# The Qt kit is resolved the way run_tests.sh resolves it: QT_ROOT_DIR, then a git-ignored local-env.sh beside this
-# script, then a system Qt.
+# The Qt kit is resolved the way run_tests.sh resolves it: QT_ROOT_DIR, then a git-ignored scripts/local-env.sh, then
+# a system Qt.
 # Arguments, the leading "debug" optional:
 #   [debug] generate <folder>                 creates the benchmark folders under <folder>
 #   [debug] warm <folder> [args...]           times every entries-* folder under <folder>
@@ -21,6 +21,7 @@ IMAGE_SIZE=512M
 IMAGE_INODES=131072
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPOSITORY_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 fail()
 {
@@ -69,11 +70,11 @@ if [ "${COMMAND}" = remount ]; then
 	exit 0
 fi
 
-BENCHMARK="${SCRIPT_DIR}/../bin/${CONFIG}/listing_benchmark"
+BENCHMARK="${REPOSITORY_ROOT}/bin/${CONFIG}/listing_benchmark"
 [ -x "${BENCHMARK}" ] || fail "${BENCHMARK} is not built: run_tests.sh build builds it."
 
 # The benchmark needs the Qt libraries; a system Qt needs nothing added
-[ -z "${QT_ROOT_DIR:-}" ] && [ -f "${SCRIPT_DIR}/local-env.sh" ] && . "${SCRIPT_DIR}/local-env.sh"
+[ -z "${QT_ROOT_DIR:-}" ] && [ -f "${REPOSITORY_ROOT}/scripts/local-env.sh" ] && . "${REPOSITORY_ROOT}/scripts/local-env.sh"
 if [ -n "${QT_ROOT_DIR:-}" ]; then
 	LD_LIBRARY_PATH="${QT_ROOT_DIR}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 	export LD_LIBRARY_PATH

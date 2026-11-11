@@ -111,15 +111,16 @@ LTO, as the application is built; the test scripts never run it. `--help` lists 
 
 - `--generate <root>` creates flat folders of 1k, 10k and 100k entries once, to be reused. The files are empty: content
   does not affect a listing.
-- `scripts/listing_benchmark.ps1` owns the VHDX volumes the timings run on, and needs an elevated prompt; start it
-  through `powershell -ExecutionPolicy Bypass -File`. `-Setup` creates a fixed 512 MB VHDX per disk and generates the
-  folders on it. `-Warm` and `-Samples N` mount it read-only and time every folder on it, passing trailing arguments on
-  to the executable.
+- `listing_benchmark.ps1`, beside the benchmark's source in `file-commander-core/core-tests/listing-benchmark`, owns the
+  VHDX volumes the timings run on, and needs an elevated prompt; start it through
+  `powershell -ExecutionPolicy Bypass -File`. `-Setup` creates a fixed 512 MB VHDX per disk and generates the folders on
+  it. `-Warm` and `-Samples N` mount it read-only and time every folder on it, passing trailing arguments on to the
+  executable.
 - Warm: the variants alternate after untimed rounds; the panel listing's memory per entry is reported too, where the
   allocator exposes it. Any folder can be timed by passing it to the executable directly.
 - Cold: the executable's `--cold` runs a remount command before every single listing, which discards the volume's
   cache. Each script supplies its own (`-Remount`, `remount`).
-- `scripts/listing_benchmark.sh` is the Linux counterpart, taking positional keywords: `generate` and `warm` need no
+- `listing_benchmark.sh`, beside it, is the Linux counterpart, taking positional keywords: `generate` and `warm` need no
   privileges, `cold <image> <samples>` creates an ext4 image and mounts it afresh for every listing, as root. Its loop
   device uses direct I/O, since unmounting does not drop the page cache holding the image file itself.
 - Confirm cold numbers are cold before trusting them: the first listing after a remount must read from the disk

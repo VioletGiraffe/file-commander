@@ -106,15 +106,15 @@ if ($Remount)
 	exit 0
 }
 
-$repositoryRoot = Split-Path $PSScriptRoot -Parent
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 
 # The benchmark needs the Qt DLLs; the kit is found the way run_tests.ps1 finds it
 if (-not $env:QT_ROOT_DIR)
 {
-	$localEnvironment = Join-Path $PSScriptRoot 'local-env.ps1'
+	$localEnvironment = Join-Path $repositoryRoot 'scripts\local-env.ps1'
 	if (Test-Path $localEnvironment) { . $localEnvironment }
 }
-if (-not $env:QT_ROOT_DIR) { Fail 'QT_ROOT_DIR is not set: set it to the Qt kit directory, or set it in a git-ignored local-env.ps1 beside this script.' }
+if (-not $env:QT_ROOT_DIR) { Fail 'QT_ROOT_DIR is not set: set it to the Qt kit directory, or set it in a git-ignored scripts\local-env.ps1.' }
 $env:PATH = (Join-Path $env:QT_ROOT_DIR 'bin') + ';' + $env:PATH
 
 $benchmark = Join-Path $repositoryRoot "bin\$Configuration\listing_benchmark.exe"
