@@ -161,6 +161,7 @@ int main(int argc, char *argv[])
 
 	QApplication app(argc, argv);
 
+	// fcterm sets the same names: the two front ends share their settings
 	QApplication::setApplicationName("File Commander");
 	QApplication::setOrganizationName("GitHubSoft");
 

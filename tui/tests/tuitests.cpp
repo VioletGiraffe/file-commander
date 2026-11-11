@@ -172,8 +172,7 @@ void typeText(CTerminalSession& session, const QString& text)
 struct FctermStart
 {
 	std::map<QString, QString> variables; // More of fcterm's environment
-	// The sandbox root when empty; it opens in a tab on the left side beside the first run's home folder tab
-	QString workingFolder;
+	QString workingFolder; // The sandbox root when empty
 	QStringList extraArguments;
 	int columns = screenColumns;
 };
@@ -500,10 +499,10 @@ TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")
 	session->send(Keys::CtrlPgUp);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("a.txt")) && filterLine(screen) != QStringLiteral("b*"); },
 		QStringLiteral("the previous tab, unfiltered"));
-	session->send(Keys::Alt3); // The first tab is the home folder's
+	session->send(Keys::Alt2);
 	requireScreen(*session, [&](const CTerminalScreen& screen) {
 		return panelLists(screen, QStringLiteral("b.txt")) && !panelLists(screen, QStringLiteral("c.txt")) && filterLine(screen) == QStringLiteral("b*");
-	}, QStringLiteral("the third tab with its filter"));
+	}, QStringLiteral("the second tab with its filter"));
 
 	session->send(Keys::CtrlW);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("a.txt")) && !tabStrip(screen).contains(QStringLiteral(" other ")); },
@@ -554,24 +553,35 @@ TEST_CASE("A narrow panel drops columns, but never the sorted one", "[tui]")
 	CHECK(!header(session->screen()).contains(QStringLiteral("Size")));
 }
 
-TEST_CASE("fcterm opens the working folder or its folder argument in a tab, reusing the tab already there", "[tui]")
+TEST_CASE("fcterm shows the working folder or its folder argument in the tab already showing it, else in the active tab", "[tui]")
 {
 	const Sandbox sandbox;
 	sandbox.createFile(QStringLiteral("work/a.txt"));
 	sandbox.createFile(QStringLiteral("other/b.txt"));
-	// Starts fcterm in the work folder, waits for listedName on the left side, exits, and returns the left tab strip it showed
-	const auto tabStripAtStart = [&](const QStringList& folderArgument, const QString& listedName) {
+	const auto tabStrip = [](const CTerminalScreen& screen) { return panelPart(screen.row(tabStripRow), Side::Left).trimmed(); };
+	// Starts fcterm in the work folder and waits for listedName on the left side
+	const auto start = [&](const QStringList& folderArgument, const QString& listedName) {
 		auto session = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .extraArguments = folderArgument });
 		requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, listedName); }, QStringLiteral("%1 listed").arg(listedName));
-		const QString tabStrip = panelPart(session->screen().row(tabStripRow), Side::Left);
-		session->send(Keys::AltX);
-		REQUIRE(session->waitForExit() == 0);
-		return tabStrip;
+		return session;
+	};
+	const auto quit = [](CTerminalSession& session) {
+		session.send(Keys::AltX);
+		REQUIRE(session.waitForExit() == 0);
 	};
 
-	CHECK(tabStripAtStart({}, QStringLiteral("a.txt")).count(QStringLiteral(" work ")) == 1);
-	CHECK(tabStripAtStart({}, QStringLiteral("a.txt")).count(QStringLiteral(" work ")) == 1); // Restarted in the same folder
-	CHECK(tabStripAtStart({ QStringLiteral("../other") }, QStringLiteral("b.txt")).contains(QStringLiteral(" work  other ")));
+	auto session = start({}, QStringLiteral("a.txt"));
+	session->send(Keys::CtrlT);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return tabStrip(screen) == QStringLiteral("work  work"); }, QStringLiteral("two work tabs"));
+	quit(*session);
+
+	session = start({ QStringLiteral("../other") }, QStringLiteral("b.txt"));
+	CHECK(tabStrip(session->screen()) == QStringLiteral("work  other"));
+	quit(*session);
+
+	session = start({}, QStringLiteral("a.txt"));
+	CHECK(tabStrip(session->screen()) == QStringLiteral("work  other"));
+	quit(*session);
 }
 
 TEST_CASE("F3 opens the pager on the file, in its folder", "[tui]")

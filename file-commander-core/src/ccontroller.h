@@ -82,9 +82,9 @@ public:
 	// to leave the currently active tab as is (e. g. for a background tab opened via middle-click).
 	// sortingSourceTabId: a tab of side p whose sorting the new tab takes; 0 for the default sorting.
 	qulonglong addTab(Panel p, const QString& path, bool activate = true, qulonglong sortingSourceTabId = 0);
-	// Activates side p's tab showing the folder, or creates one there with the active tab's sorting. Returns the tab's id.
+	// Activates side p's tab showing the folder, else opens the folder in the active tab.
 	// Paths match after QDir::cleanPath, ignoring case on Windows only.
-	qulonglong activateOrAddTabShowing(Panel p, const QString& folder);
+	void showFolderInItsTabOrActiveTab(Panel p, const QString& folder);
 	// Closes the tab with id. Never removes the last tab (a panel always keeps >= 1 tab).
 	void closeTab(Panel p, qulonglong tabId);
 	// Removes and returns the folder of side p's most recently closed tab; empty when there is none.

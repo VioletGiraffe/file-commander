@@ -27,7 +27,7 @@ dialog is open.
 ## Panels
 
 - At start, the left side shows the folder argument, or else the working folder: in the tab already showing it, else in
-  a new tab (`CController::activateOrAddTabShowing`). The GUI's `--tui` handover passes the argument on.
+  the active tab (`CController::showFolderInItsTabOrActiveTab`). The GUI's `--tui` handover passes the argument on.
 - Each side is a `CTuiPanel` showing the side's active tab. Switching tabs refills it from that tab's `CPanel`; a tab
   strip shows while the side has more than one tab. [tabs.md](tabs.md) has the core's side.
 - The rows are a copy of `CPanel::visibleItems()`. Sorting, the name filter and the selection belong to the `CPanel`,
@@ -67,8 +67,7 @@ dialog is open.
 
 ## Settings and logging
 
-- The organization and application names differ from the GUI's, so the terminal UI's settings, saved tabs included,
-  never overwrite the GUI's.
+- The terminal UI shares the GUI's settings, tabs included: see [persistence.md](persistence.md).
 - `--settings-dir <folder>` keeps the settings in an INI file under that folder; the tests use it.
 - Qt's messages go to `file-commander-tui.log` in the temporary folder: stderr would draw over the screen.
 

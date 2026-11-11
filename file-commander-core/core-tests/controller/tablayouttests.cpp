@@ -111,32 +111,29 @@ TEST_CASE("CController - a new tab takes its sorting from the source tab, or the
 	CHECK(unsorted.sortOrder() == defaultOrder);
 }
 
-TEST_CASE("CController - a folder's tab is activated, or a new one opens there with the active tab's sorting", "[controller][tabs]")
+TEST_CASE("CController - a folder shows in the tab already showing it, else in the active tab", "[controller][tabs]")
 {
 	clearSavedState();
 	TempTree tree;
 	ControllerSession session;
 
+	const qulonglong firstId = session->activeTabId(Panel::LeftPanel);
 	const QString existingFolder = tree.makeDir("existing");
 	const qulonglong existingId = session->addTab(Panel::LeftPanel, existingFolder, false);
-	CHECK(session->activateOrAddTabShowing(Panel::LeftPanel, existingFolder + "/./") == existingId);
+	session->showFolderInItsTabOrActiveTab(Panel::LeftPanel, existingFolder + "/./");
 	CHECK(session->activeTabId(Panel::LeftPanel) == existingId);
 #ifdef _WIN32
-	CHECK(session->activateOrAddTabShowing(Panel::LeftPanel, existingFolder.toUpper()) == existingId);
+	session->setActiveTab(Panel::LeftPanel, firstId);
+	session->showFolderInItsTabOrActiveTab(Panel::LeftPanel, existingFolder.toUpper());
+	CHECK(session->activeTabId(Panel::LeftPanel) == existingId);
 #endif
 	CHECK(session->tabCount(Panel::LeftPanel) == 2);
 
-	const CPanel& activeTab = session->tabById(Panel::LeftPanel, existingId);
-	const FileListSortField otherField = activeTab.sortField() == FileListSortField::Size ? FileListSortField::Date : FileListSortField::Size;
-	const Qt::SortOrder otherOrder = activeTab.sortOrder() == Qt::AscendingOrder ? Qt::DescendingOrder : Qt::AscendingOrder;
-	session->setTabSorting(Panel::LeftPanel, existingId, otherField, otherOrder);
-
-	const qulonglong newId = session->activateOrAddTabShowing(Panel::LeftPanel, tree.makeDir("new"));
-	CHECK(newId != existingId);
-	CHECK(session->tabCount(Panel::LeftPanel) == 3);
-	CHECK(session->activeTabId(Panel::LeftPanel) == newId);
-	CHECK(session->tabById(Panel::LeftPanel, newId).sortField() == otherField);
-	CHECK(session->tabById(Panel::LeftPanel, newId).sortOrder() == otherOrder);
+	const QString newFolder = tree.makeDir("new");
+	session->showFolderInItsTabOrActiveTab(Panel::LeftPanel, newFolder);
+	CHECK(session->tabCount(Panel::LeftPanel) == 2);
+	CHECK(session->activeTabId(Panel::LeftPanel) == existingId);
+	CHECK(session->tabPath(Panel::LeftPanel, existingId) == newFolder + '/');
 	CHECK(session->tabCount(Panel::RightPanel) == 1);
 }
 

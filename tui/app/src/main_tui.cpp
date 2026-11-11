@@ -44,9 +44,9 @@ void logToFile(QtMsgType type, const QMessageLogContext& context, const QString&
 int main(int argc, char* argv[])
 {
 	QCoreApplication app{ argc, argv };
-	// Not the GUI's names: the controller saves its tabs in these settings, and must not overwrite the GUI's
+	// The GUI's names: the two front ends share their settings, tabs included
 	QCoreApplication::setOrganizationName(QStringLiteral("GitHubSoft"));
-	QCoreApplication::setApplicationName(QStringLiteral("File Commander TUI"));
+	QCoreApplication::setApplicationName(QStringLiteral("File Commander"));
 
 	QCommandLineParser parser;
 	parser.addHelpOption();
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 
 	{
 		CController controller;
-		controller.activateOrAddTabShowing(Panel::LeftPanel, startFolder); // The terminal UI starts on the left side
+		controller.showFolderInItsTabOrActiveTab(Panel::LeftPanel, startFolder); // The terminal UI starts on the left side
 		CTuiApplication tui{ controller };
 		tui.run();
 
