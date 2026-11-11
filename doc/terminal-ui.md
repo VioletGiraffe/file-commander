@@ -68,6 +68,7 @@ dialog is open.
 - `fcterm` ships beside the GUI executable: in the Windows installer, in the macOS app bundle and in the Linux
   AppImage. On Linux it also ships alone, as `fcterm.AppImage` (`fcterm.arm64.AppImage` on ARM), with QtCore only.
   `CI.yml` holds the packaging steps.
-- The GUI executable hands over to `fcterm` for `--tui`, and on its own where it has no screen: Linux without a display,
-  macOS over SSH (`terminalUiRequested` in `qt-app/src/main.cpp`). In the AppImage, `installer/linux/AppRun` makes
-  the same choice first, since the GUI executable cannot start without the system's X11 and GL libraries.
+- On Linux and macOS, the GUI executable hands over to `fcterm` for `--tui`, and on its own where it has no screen: Linux
+  without a display, macOS over SSH (`terminalUiRequested` in `qt-app/src/main.cpp`). Windows has no handover: a GUI
+  program cannot run in the console it was started from. In the AppImage, `installer/linux/AppRun` makes the same
+  choice first, since the GUI executable cannot start without the system's X11 and GL libraries.

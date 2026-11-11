@@ -19,7 +19,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QDebug>
 #include <QFontDatabase>
 #include <QImageReader>
-#include <QProcess>
 #include <QSettings>
 #include <QStringList>
 #include <QStyleHints>
@@ -28,7 +27,6 @@ RESTORE_COMPILER_WARNINGS
 
 #ifdef _WIN32
 #include <Windows.h>
-#include <shellapi.h>
 #else
 #include <unistd.h>
 #endif
@@ -100,6 +98,8 @@ std::optional<int> testLaunchExitCode(const QStringList& arguments, size_t loade
 	return std::nullopt;
 }
 
+// Unix only: a Windows GUI program cannot run in the console it was started from
+#ifndef _WIN32
 constexpr std::string_view terminalUiArgument = "--tui";
 
 // True for --tui, and where the GUI would not show on the user's screen. An explicit QT_QPA_PLATFORM needs no display.
@@ -113,49 +113,32 @@ constexpr std::string_view terminalUiArgument = "--tui";
 
 #if defined __APPLE__
 	return !qEnvironmentVariableIsEmpty("SSH_CONNECTION"); // Over SSH the GUI would open on the Mac's own screen
-#elif defined _WIN32
-	return false;
 #else
 	return qEnvironmentVariableIsEmpty("DISPLAY") && qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY");
 #endif
 }
 
-// Hands over to fcterm, beside this executable, with the arguments other than --tui, and returns this program's exit code.
-// Unix: fcterm replaces this process, keeping its terminal, so only a failure returns. Windows: this GUI program has no console, so fcterm gets its own.
-[[nodiscard]] int runTerminalUi([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
+// Replaces this process with fcterm, beside this executable, keeping its terminal and the arguments other than --tui.
+// Returns only on failure, with this program's exit code.
+[[nodiscard]] int runTerminalUi(int argc, char* argv[])
 {
-#ifdef _WIN32
-	const std::filesystem::path terminalUiPath = processFilePath().parent_path() / L"fcterm.exe";
-	// argv is in the ANSI code page, which cannot hold every path
-	int wideArgc = 0;
-	wchar_t** wideArgv = CommandLineToArgvW(GetCommandLineW(), &wideArgc);
-	QStringList arguments;
-	for (int i = 1; wideArgv && i < wideArgc; ++i)
-	{
-		if (std::wstring_view{ wideArgv[i] } != L"--tui")
-			arguments.push_back(QString::fromWCharArray(wideArgv[i]));
-	}
-	LocalFree(wideArgv);
-
-	if (QProcess::startDetached(QString::fromStdWString(terminalUiPath.wstring()), arguments))
-		return 0;
-	std::fprintf(stderr, "Failed to start %s\n", terminalUiPath.string().c_str());
-#else
 	const std::filesystem::path terminalUiPath = processFilePath().parent_path() / "fcterm";
 	std::vector<char*> arguments{ const_cast<char*>(terminalUiPath.c_str()) };
 	std::copy_if(argv + 1, argv + argc, std::back_inserter(arguments), [](const char* argument) { return argument != terminalUiArgument; });
 	arguments.push_back(nullptr);
 	execv(terminalUiPath.c_str(), arguments.data());
 	std::fprintf(stderr, "Failed to start %s: %s\n", terminalUiPath.c_str(), std::strerror(errno));
-#endif
 	return 1;
 }
+#endif
 }
 
 int main(int argc, char *argv[])
 {
+#ifndef _WIN32
 	if (terminalUiRequested(argc, argv))
 		return runTerminalUi(argc, argv);
+#endif
 
 	g_previousMessageHandler = qInstallMessageHandler(appMessageHandler);
 

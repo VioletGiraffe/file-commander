@@ -14,9 +14,9 @@ are x64.
 
 ## Terminal UI
 
-Every package includes `fcterm`, a terminal UI over the same core. Run it directly, or start File Commander with
-`--tui`. File Commander also switches to it by itself on Linux without a display and on macOS over SSH. On Linux,
-`fcterm.AppImage` is the terminal UI alone, for machines without a desktop.
+Every package includes `fcterm`, a terminal UI over the same core. Run it directly, or on Linux and macOS start File
+Commander with `--tui`. File Commander also switches to it by itself on Linux without a display and on macOS over
+SSH. On Linux, `fcterm.AppImage` is the terminal UI alone, for machines without a desktop.
 
 ## Issues
 
