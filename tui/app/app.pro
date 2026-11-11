@@ -20,7 +20,7 @@ INCLUDEPATH += \
 	$$PWD/../../tvision/include
 
 SOURCES += \
-	src/main.cpp \
+	src/main_tui.cpp \
 	src/ctuiapplication.cpp \
 	src/ctuidialogs.cpp \
 	src/ctuifilelist.cpp \

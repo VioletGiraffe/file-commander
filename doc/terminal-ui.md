@@ -8,7 +8,7 @@ ends need lives in the core, which returns the text to show and the program to r
 
 | Area | Start here |
 |------|------------|
-| Startup, settings, log file | `app/src/main.cpp` |
+| Startup, settings, log file | `app/src/main_tui.cpp` |
 | Event loop, the two bottom rows, running a program | `app/src/ctuiapplication.{h,cpp}` |
 | One side: its listing, keys and commands | `app/src/ctuipanel.{h,cpp}` |
 | The rows, their columns and the column header | `app/src/ctuifilelist.{h,cpp}` |
