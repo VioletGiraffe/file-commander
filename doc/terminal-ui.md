@@ -25,6 +25,8 @@ dialog is open.
 
 ## Panels
 
+- At start, the left side shows the folder argument, or else the working folder: in the tab already showing it, else in
+  a new tab (`CController::activateOrAddTabShowing`). The GUI's `--tui` handover passes the argument on.
 - Each side is a `CTuiPanel` showing the side's active tab. Switching tabs refills it from that tab's `CPanel`; a tab
   strip shows while the side has more than one tab. [tabs.md](tabs.md) has the core's side.
 - The rows are a copy of `CPanel::visibleItems()`. Sorting, the name filter and the selection belong to the `CPanel`,

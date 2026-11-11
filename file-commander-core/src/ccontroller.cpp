@@ -334,6 +334,25 @@ qulonglong CController::addTab(Panel p, const QString& path, bool activate, qulo
 	return newId;
 }
 
+qulonglong CController::activateOrAddTabShowing(Panel p, const QString& folder)
+{
+#ifdef _WIN32
+	constexpr Qt::CaseSensitivity pathCaseSensitivity = Qt::CaseInsensitive;
+#else
+	constexpr Qt::CaseSensitivity pathCaseSensitivity = Qt::CaseSensitive;
+#endif
+	const QString cleanFolder = QDir::cleanPath(folder);
+	for (const qulonglong tabId : tabIds(p))
+	{
+		if (QDir::cleanPath(tabPath(p, tabId)).compare(cleanFolder, pathCaseSensitivity) == 0)
+		{
+			setActiveTab(p, tabId);
+			return tabId;
+		}
+	}
+	return addTab(p, folder, true, activeTabId(p));
+}
+
 void CController::closeTab(Panel p, qulonglong tabId)
 {
 	std::unique_lock lock(_pluginAccessMutex);

@@ -10,10 +10,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QSettings>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
+#include <cstdio>
 #include <cstdlib>
 #include <mutex>
 
@@ -50,11 +52,22 @@ int main(int argc, char* argv[])
 	parser.addHelpOption();
 	const QCommandLineOption settingsDirOption{ QStringLiteral("settings-dir"), QStringLiteral("Keeps the settings in an INI file under <folder>."), QStringLiteral("folder") };
 	parser.addOption(settingsDirOption);
+	parser.addPositionalArgument(QStringLiteral("folder"), QStringLiteral("The folder to open on the left side; the working folder by default."), QStringLiteral("[folder]"));
 	parser.process(app);
 	if (parser.isSet(settingsDirOption))
 	{
 		QSettings::setDefaultFormat(QSettings::IniFormat);
 		QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, parser.value(settingsDirOption));
+	}
+
+	const QStringList folderArguments = parser.positionalArguments();
+	if (folderArguments.size() > 1)
+		parser.showHelp(1);
+	const QString startFolder = folderArguments.isEmpty() ? QDir::currentPath() : QDir::cleanPath(QFileInfo{ folderArguments.front() }.absoluteFilePath());
+	if (!QFileInfo{ startFolder }.isDir())
+	{
+		std::fprintf(stderr, "Not a folder: %s\n", qUtf8Printable(QDir::toNativeSeparators(startFolder)));
+		return 1;
 	}
 
 	QFile logFile{ QDir::tempPath() % QStringLiteral("/file-commander-tui.log") };
@@ -65,6 +78,7 @@ int main(int argc, char* argv[])
 
 	{
 		CController controller;
+		controller.activateOrAddTabShowing(Panel::LeftPanel, startFolder); // The terminal UI starts on the left side
 		CTuiApplication tui{ controller };
 		tui.run();
 

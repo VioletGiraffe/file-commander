@@ -18,6 +18,9 @@ Every package includes `fcterm`, a terminal UI over the same core. Run it direct
 Commander with `--tui`. File Commander also switches to it by itself on Linux without a display and on macOS over
 SSH. On Linux, `fcterm.AppImage` is the terminal UI alone, for machines without a desktop.
 
+`fcterm [folder]` opens the folder, or the working folder without one, in a tab on the left side, and `--tui [folder]`
+passes it on.
+
 ## Issues
 
 See [known bugs](https://github.com/VioletGiraffe/file-commander/labels/bug) or

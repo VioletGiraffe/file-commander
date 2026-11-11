@@ -30,6 +30,7 @@ namespace {
 constexpr int screenRows = 30, screenColumns = 100;
 // The layout at this size: the menu bar, the two panel windows, the hint row and the key row
 constexpr int panelStatusRow = screenRows - 4, hintRow = screenRows - 2, keyRow = screenRows - 1;
+constexpr int tabStripRow = 2; // While a side has more than one tab
 constexpr int panelWidth = screenColumns / 2;
 
 enum class Side { Left, Right };
@@ -142,8 +143,10 @@ void typeText(CTerminalSession& session, const QString& text)
 	}
 }
 
-// fcterm with its settings in the sandbox and no pager, editor or desktop of the user's
-[[nodiscard]] std::unique_ptr<CTerminalSession> startFcterm(const Sandbox& sandbox, const std::map<QString, QString>& variables = {})
+// fcterm with its settings in the sandbox and no pager, editor or desktop of the user's.
+// workingFolder: the sandbox root when empty; it opens in a tab on the left side beside the first run's home folder tab.
+[[nodiscard]] std::unique_ptr<CTerminalSession> startFcterm(const Sandbox& sandbox, const std::map<QString, QString>& variables = {}, const QString& workingFolder = {},
+	const QStringList& extraArguments = {})
 {
 	QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
 	for (const char* variable : { "VISUAL", "EDITOR", "PAGER", "DISPLAY", "WAYLAND_DISPLAY", "SSH_CONNECTION", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME" })
@@ -165,8 +168,8 @@ void typeText(CTerminalSession& session, const QString& text)
 #ifdef _WIN32
 	program.path += QStringLiteral(".exe");
 #endif
-	program.arguments = { QStringLiteral("--settings-dir"), QDir::toNativeSeparators(sandbox.path(QStringLiteral("settings"))) };
-	program.workingDir = sandbox.path({});
+	program.arguments = QStringList{ QStringLiteral("--settings-dir"), QDir::toNativeSeparators(sandbox.path(QStringLiteral("settings"))) } + extraArguments;
+	program.workingDir = workingFolder.isEmpty() ? sandbox.path({}) : workingFolder;
 	program.environment = environment;
 
 	auto session = std::make_unique<CTerminalSession>(program, screenRows, screenColumns);
@@ -447,7 +450,7 @@ TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")
 	auto session = startFcterm(sandbox);
 	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
 
-	static constexpr int tabStripRow = 2, filterRow = panelStatusRow - 1;
+	static constexpr int filterRow = panelStatusRow - 1;
 	const auto tabStrip = [](const CTerminalScreen& screen) { return panelPart(screen.row(tabStripRow), Side::Left); };
 	const auto filterLine = [](const CTerminalScreen& screen) { return panelPart(screen.row(filterRow), Side::Left).trimmed(); };
 
@@ -463,15 +466,35 @@ TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")
 
 	session->send(Keys::CtrlPgUp);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("a.txt")) && filterLine(screen) != QStringLiteral("b*"); },
-		QStringLiteral("the first tab, unfiltered"));
-	session->send(Keys::Alt2);
+		QStringLiteral("the previous tab, unfiltered"));
+	session->send(Keys::Alt3); // The first tab is the home folder's
 	requireScreen(*session, [&](const CTerminalScreen& screen) {
 		return panelLists(screen, QStringLiteral("b.txt")) && !panelLists(screen, QStringLiteral("c.txt")) && filterLine(screen) == QStringLiteral("b*");
-	}, QStringLiteral("the second tab with its filter"));
+	}, QStringLiteral("the third tab with its filter"));
 
 	session->send(Keys::CtrlW);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("a.txt")) && !tabStrip(screen).contains(QStringLiteral(" other ")); },
-		QStringLiteral("the first tab alone"));
+		QStringLiteral("the other tab closed"));
+}
+
+TEST_CASE("fcterm opens the working folder or its folder argument in a tab, reusing the tab already there", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/a.txt"));
+	sandbox.createFile(QStringLiteral("other/b.txt"));
+	// Starts fcterm in the work folder, waits for listedName on the left side, exits, and returns the left tab strip it showed
+	const auto tabStripAtStart = [&](const QStringList& folderArgument, const QString& listedName) {
+		auto session = startFcterm(sandbox, {}, sandbox.work({}), folderArgument);
+		requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, listedName); }, QStringLiteral("%1 listed").arg(listedName));
+		const QString tabStrip = panelPart(session->screen().row(tabStripRow), Side::Left);
+		session->send(Keys::AltX);
+		REQUIRE(session->waitForExit() == 0);
+		return tabStrip;
+	};
+
+	CHECK(tabStripAtStart({}, QStringLiteral("a.txt")).count(QStringLiteral(" work ")) == 1);
+	CHECK(tabStripAtStart({}, QStringLiteral("a.txt")).count(QStringLiteral(" work ")) == 1); // Restarted in the same folder
+	CHECK(tabStripAtStart({ QStringLiteral("../other") }, QStringLiteral("b.txt")).contains(QStringLiteral(" work  other ")));
 }
 
 TEST_CASE("F3 opens the pager on the file, in its folder", "[tui]")
