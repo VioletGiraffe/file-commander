@@ -85,7 +85,7 @@ public:
 	}
 };
 
-// One line of text under the file list, with a second part aligned to the right
+// One line of text under the file list
 class CTuiStatusLine final : public TView
 {
 public:
@@ -94,10 +94,9 @@ public:
 		growMode = gfGrowLoY | gfGrowHiX | gfGrowHiY;
 	}
 
-	void setText(const QString& left, const QString& right)
+	void setText(const QString& text)
 	{
-		_left = left.toUtf8();
-		_right = right.toUtf8();
+		_text = text.toUtf8();
 		drawView();
 	}
 
@@ -105,18 +104,14 @@ public:
 	{
 		static constexpr TColorAttr color{ 0x17 };
 
-		const TStringView right{ _right.constData(), (size_t)_right.size() };
-		const int rightStart = std::max(size.x - 1 - strwidth(right), 0);
-
 		TDrawBuffer line;
 		line.moveChar(0, ' ', color, (ushort)size.x);
-		line.moveStr(1, TStringView{ _left.constData(), (size_t)_left.size() }, color, (ushort)std::max(rightStart - 2, 0));
-		line.moveStr((ushort)rightStart, right, color);
+		line.moveStr(1, TStringView{ _text.constData(), (size_t)_text.size() }, color, (ushort)std::max(size.x - 2, 0));
 		writeLine(0, 0, (short)size.x, 1, line);
 	}
 
 private:
-	QByteArray _left, _right;
+	QByteArray _text;
 };
 
 // The side's tabs on one row, the active one highlighted. Scrolled to keep the active tab in view.
@@ -217,18 +212,6 @@ private:
 	std::vector<Label> _labels;
 	std::optional<size_t> _activeLabel;
 };
-
-[[nodiscard]] static QString sortFieldName(FileListSortField field)
-{
-	switch (field)
-	{
-	case FileListSortField::Name: return QStringLiteral("Name");
-	case FileListSortField::Extension: return QStringLiteral("Ext");
-	case FileListSortField::Size: return QStringLiteral("Size");
-	case FileListSortField::Date: return QStringLiteral("Date");
-	}
-	return {};
-}
 
 // The program and its arguments from the first of the environment variables that holds a command, else the first fallback program found.
 // Empty when there is none.
@@ -364,6 +347,10 @@ CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
 	_tabStrip->onTabClicked = [this](qulonglong tabId) { activateTab(tabId); };
 	insert(_tabStrip);
 	_tabStrip->hide();
+
+	_columnHeader = new CTuiColumnHeader({});
+	_columnHeader->onColumnClicked = [this](FileListSortField field) { sortBy(field); };
+	insert(_columnHeader);
 
 	_fileList = new CTuiFileList({}, standardScrollBar(sbVertical));
 	_fileList->onCursorMoved = [this](const CFileSystemObject& row) {
@@ -538,6 +525,8 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	// The cursor stays on its row when its item is gone or hidden by the filter, and starts on the first row of a folder just entered.
 	// The core's current item is always the row under the cursor.
 	const bool navigated = cause == refreshCauseForwardNavigation || cause == refreshCauseCdUp;
+	_columnHeader->setSorting(panel.sortField(), panel.sortOrder());
+	_fileList->setSortField(panel.sortField());
 	_fileList->setRows(panel.visibleItems(), _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
@@ -556,25 +545,24 @@ void CTuiPanel::showCoreSelection()
 void CTuiPanel::updateStatusLine()
 {
 	const CPanel& panel = _controller.panel(_side);
-	const QString sorting = sortFieldName(panel.sortField()) + (panel.sortOrder() == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓"));
 	const QLocale locale;
 
 	if (const FolderContentsSummary selected = panel.selectionSummary(); selected.numFiles + selected.numFolders > 0)
 	{
-		_statusLine->setText(QStringLiteral("%1 files, %2 folders selected (%3)").arg(selected.numFiles).arg(selected.numFolders).arg(locale.formattedDataSize((qint64)selected.size)), sorting);
+		_statusLine->setText(QStringLiteral("%1 files, %2 folders selected (%3)").arg(selected.numFiles).arg(selected.numFolders).arg(locale.formattedDataSize((qint64)selected.size)));
 		return;
 	}
 
 	const CFileSystemObject* row = _fileList->currentRow();
 	if (!row || row->isCdUp())
 	{
-		_statusLine->setText(row ? QStringLiteral("..") : QString{}, sorting);
+		_statusLine->setText(row ? QStringLiteral("..") : QString{});
 		return;
 	}
 
 	const QString sizeText = row->isDir() && row->size() == 0 ? QStringLiteral("<DIR>") : locale.formattedDataSize((qint64)row->size());
 	const QString modified = QDateTime::fromSecsSinceEpoch(row->modificationTime()).toString(QStringLiteral("dd.MM.yyyy hh:mm"));
-	_statusLine->setText(row->fullName().toString() + QStringLiteral("  ") + sizeText + QStringLiteral("  ") + modified, sorting);
+	_statusLine->setText(row->fullName().toString() + QStringLiteral("  ") + sizeText + QStringLiteral("  ") + modified);
 }
 
 void CTuiPanel::activateCurrentItem()
@@ -810,10 +798,12 @@ void CTuiPanel::layOutViews()
 	TRect interior = getExtent();
 	interior.grow(-1, -1);
 
-	const int listTop = _tabStrip->state & sfVisible ? interior.a.y + 1 : interior.a.y;
+	const int headerRow = _tabStrip->state & sfVisible ? interior.a.y + 1 : interior.a.y;
+	const int listTop = headerRow + 1;
 	const int statusRow = interior.b.y - 1;
 	const int filterRow = statusRow - 1;
 	_tabStrip->changeBounds({ interior.a.x, interior.a.y, interior.b.x, interior.a.y + 1 });
+	_columnHeader->changeBounds({ interior.a.x, headerRow, interior.b.x, headerRow + 1 });
 	_statusLine->changeBounds({ interior.a.x, statusRow, interior.b.x, statusRow + 1 });
 	_filterLine->changeBounds({ interior.a.x, filterRow, interior.b.x, statusRow });
 	_fileList->changeBounds({ interior.a.x, listTop, interior.b.x, _filterLine->state & sfVisible ? filterRow : statusRow });

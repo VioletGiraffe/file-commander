@@ -8,6 +8,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFile>
 #include <QFileInfo>
 #include <QProcessEnvironment>
+#include <QRegularExpression>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
@@ -46,20 +47,45 @@ enum class Side { Left, Right };
 	return panelPart(screen.row(panelStatusRow), side).trimmed();
 }
 
-// The status line starts with the current item's name, then two spaces
+// The status line is the current item's name, followed by two spaces and its details except on [..]
 [[nodiscard]] bool cursorIsOn(const CTerminalScreen& screen, const QString& name, Side side = Side::Left)
 {
-	return panelStatus(screen, side).startsWith(name + QStringLiteral("  "));
+	const QString status = panelStatus(screen, side);
+	return status == name || status.startsWith(name + QStringLiteral("  "));
 }
 
+// A row shows a name whole, or with its extension in the Ext column
 [[nodiscard]] bool panelLists(const CTerminalScreen& screen, const QString& name, Side side = Side::Left)
 {
+	const qsizetype dot = name.lastIndexOf(u'.');
+	QString pattern = QRegularExpression::escape(name);
+	if (dot > 0 && dot < name.size() - 1)
+		pattern += u'|' + QRegularExpression::escape(name.left(dot)) + QStringLiteral(" +") + QRegularExpression::escape(name.mid(dot + 1));
+	const QRegularExpression rowPattern{ QStringLiteral("^(?:%1)(?: |$)").arg(pattern) };
+
 	for (int row = 2; row < panelStatusRow; ++row)
 	{
-		if (panelPart(screen.row(row), side).trimmed().startsWith(name + u' ') || panelPart(screen.row(row), side).trimmed() == name)
+		if (rowPattern.match(panelPart(screen.row(row), side).trimmed()).hasMatch())
 			return true;
 	}
 	return false;
+}
+
+// The left panel's column header row: the one under the panel's top edge, or under its tab strip
+[[nodiscard]] std::optional<int> columnHeaderRow(const CTerminalScreen& screen, int leftPanelWidth = panelWidth)
+{
+	for (const int row : { 2, 3 })
+	{
+		if (screen.row(row).mid(1, leftPanelWidth - 2).trimmed().startsWith(QStringLiteral("Name")))
+			return row;
+	}
+	return std::nullopt;
+}
+
+// A left click on a screen cell, as xterm's SGR mouse mode sends it: it counts from 1
+[[nodiscard]] QString leftClick(int column, int row)
+{
+	return QStringLiteral("\x1b[<0;%1;%2M\x1b[<0;%1;%2m").arg(column + 1).arg(row + 1);
 }
 
 [[nodiscard]] QString quoted(const QString& text)
@@ -143,10 +169,17 @@ void typeText(CTerminalSession& session, const QString& text)
 	}
 }
 
-// fcterm with its settings in the sandbox and no pager, editor or desktop of the user's.
-// workingFolder: the sandbox root when empty; it opens in a tab on the left side beside the first run's home folder tab.
-[[nodiscard]] std::unique_ptr<CTerminalSession> startFcterm(const Sandbox& sandbox, const std::map<QString, QString>& variables = {}, const QString& workingFolder = {},
-	const QStringList& extraArguments = {})
+struct FctermStart
+{
+	std::map<QString, QString> variables; // More of fcterm's environment
+	// The sandbox root when empty; it opens in a tab on the left side beside the first run's home folder tab
+	QString workingFolder;
+	QStringList extraArguments;
+	int columns = screenColumns;
+};
+
+// fcterm with its settings in the sandbox and no pager, editor or desktop of the user's
+[[nodiscard]] std::unique_ptr<CTerminalSession> startFcterm(const Sandbox& sandbox, const FctermStart& start = {})
 {
 	QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
 	for (const char* variable : { "VISUAL", "EDITOR", "PAGER", "DISPLAY", "WAYLAND_DISPLAY", "SSH_CONNECTION", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME" })
@@ -160,7 +193,7 @@ void typeText(CTerminalSession& session, const QString& text)
 	environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C.UTF-8"));
 #endif
 #endif
-	for (const auto& [name, value] : variables)
+	for (const auto& [name, value] : start.variables)
 		environment.insert(name, value);
 
 	CTerminalSession::Program program;
@@ -168,11 +201,11 @@ void typeText(CTerminalSession& session, const QString& text)
 #ifdef _WIN32
 	program.path += QStringLiteral(".exe");
 #endif
-	program.arguments = QStringList{ QStringLiteral("--settings-dir"), QDir::toNativeSeparators(sandbox.path(QStringLiteral("settings"))) } + extraArguments;
-	program.workingDir = workingFolder.isEmpty() ? sandbox.path({}) : workingFolder;
+	program.arguments = QStringList{ QStringLiteral("--settings-dir"), QDir::toNativeSeparators(sandbox.path(QStringLiteral("settings"))) } + start.extraArguments;
+	program.workingDir = start.workingFolder.isEmpty() ? sandbox.path({}) : start.workingFolder;
 	program.environment = environment;
 
-	auto session = std::make_unique<CTerminalSession>(program, screenRows, screenColumns);
+	auto session = std::make_unique<CTerminalSession>(program, screenRows, start.columns);
 	REQUIRE(session->startError().isEmpty());
 	requireText(*session, QStringLiteral("F2 Rename"));
 	return session;
@@ -221,7 +254,7 @@ void moveCursorTo(CTerminalSession& session, const QString& name)
 {
 	const QString recordPath = sandbox.path(QStringLiteral("record.txt"));
 	otherVariables[QString::fromLatin1(variable)] = recordingCommand(recordPath);
-	auto session = startFcterm(sandbox, otherVariables);
+	auto session = startFcterm(sandbox, { .variables = otherVariables });
 	goTo(*session, sandbox.work({}), file);
 	moveCursorTo(*session, file);
 	session->send(key);
@@ -477,6 +510,50 @@ TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")
 		QStringLiteral("the other tab closed"));
 }
 
+TEST_CASE("The column header shows the sorting, and Ctrl+F6 or a click on a title changes it", "[tui]")
+{
+	const Sandbox sandbox;
+	auto session = startFcterm(sandbox);
+	const auto requireHeaderShows = [&](const QString& text) {
+		requireScreen(*session, [&](const CTerminalScreen& screen) {
+			const std::optional<int> row = columnHeaderRow(screen);
+			return row && panelPart(screen.row(*row), Side::Left).contains(text);
+		}, QStringLiteral("the column header to show \"%1\"").arg(text));
+	};
+
+	requireHeaderShows(QStringLiteral("Ext ↑")); // The core's default sorting
+	requireHeaderShows(QStringLiteral("Size"));
+
+	session->send(Keys::CtrlF6);
+	requireHeaderShows(QStringLiteral("Size ↑"));
+	session->send(Keys::CtrlF6);
+	requireHeaderShows(QStringLiteral("Size ↓"));
+
+	const int headerRow = *columnHeaderRow(session->screen());
+	session->send(leftClick((int)session->screen().row(headerRow).indexOf(QStringLiteral("Name")), headerRow)); // The first one is the left panel's
+	requireHeaderShows(QStringLiteral("Name ↑"));
+}
+
+TEST_CASE("A narrow panel drops columns, but never the sorted one", "[tui]")
+{
+	static constexpr int narrowScreenColumns = 60, narrowPanelWidth = narrowScreenColumns / 2;
+	const Sandbox sandbox;
+	auto session = startFcterm(sandbox, { .columns = narrowScreenColumns });
+	const auto header = [](const CTerminalScreen& screen) {
+		const std::optional<int> row = columnHeaderRow(screen, narrowPanelWidth);
+		return row ? screen.row(*row).mid(1, narrowPanelWidth - 2) : QString{};
+	};
+
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return header(screen).contains(QStringLiteral("Ext ↑")); }, QStringLiteral("the Ext title"));
+	CHECK(!header(session->screen()).contains(QStringLiteral("Size")));
+	CHECK(!header(session->screen()).contains(QStringLiteral("Date")));
+
+	session->send(Keys::CtrlF5);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return header(screen).contains(QStringLiteral("Date ↑")); }, QStringLiteral("the Date title"));
+	CHECK(!header(session->screen()).contains(QStringLiteral("Ext")));
+	CHECK(!header(session->screen()).contains(QStringLiteral("Size")));
+}
+
 TEST_CASE("fcterm opens the working folder or its folder argument in a tab, reusing the tab already there", "[tui]")
 {
 	const Sandbox sandbox;
@@ -484,7 +561,7 @@ TEST_CASE("fcterm opens the working folder or its folder argument in a tab, reus
 	sandbox.createFile(QStringLiteral("other/b.txt"));
 	// Starts fcterm in the work folder, waits for listedName on the left side, exits, and returns the left tab strip it showed
 	const auto tabStripAtStart = [&](const QStringList& folderArgument, const QString& listedName) {
-		auto session = startFcterm(sandbox, {}, sandbox.work({}), folderArgument);
+		auto session = startFcterm(sandbox, { .workingFolder = sandbox.work({}), .extraArguments = folderArgument });
 		requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, listedName); }, QStringLiteral("%1 listed").arg(listedName));
 		const QString tabStrip = panelPart(session->screen().row(tabStripRow), Side::Left);
 		session->send(Keys::AltX);
@@ -515,7 +592,7 @@ TEST_CASE("F4 with a missing editor says why it failed", "[tui]")
 {
 	const Sandbox sandbox;
 	sandbox.createFile(QStringLiteral("work/edited.txt"));
-	auto session = startFcterm(sandbox, { { QStringLiteral("EDITOR"), QStringLiteral("no-such-editor-for-tui-test") } });
+	auto session = startFcterm(sandbox, { .variables = { { QStringLiteral("EDITOR"), QStringLiteral("no-such-editor-for-tui-test") } } });
 	goTo(*session, sandbox.work({}), QStringLiteral("edited.txt"));
 	moveCursorTo(*session, QStringLiteral("edited.txt"));
 
@@ -550,10 +627,10 @@ TEST_CASE("Ctrl+O runs the shell in the panel's folder until it exits", "[tui]")
 	sandbox.createFile(QStringLiteral("work/a.txt"));
 #ifdef _WIN32
 	// The shell is COMSPEC, cmd.exe
-	auto session = startFcterm(sandbox, { { QStringLiteral("PROMPT"), QStringLiteral("shell-ready$G") } });
+	auto session = startFcterm(sandbox, { .variables = { { QStringLiteral("PROMPT"), QStringLiteral("shell-ready$G") } } });
 	const QString printFolder = QStringLiteral("cd > folder.txt");
 #else
-	auto session = startFcterm(sandbox, { { QStringLiteral("SHELL"), QStringLiteral("/bin/sh") }, { QStringLiteral("PS1"), QStringLiteral("shell-ready>") } });
+	auto session = startFcterm(sandbox, { .variables = { { QStringLiteral("SHELL"), QStringLiteral("/bin/sh") }, { QStringLiteral("PS1"), QStringLiteral("shell-ready>") } } });
 	const QString printFolder = QStringLiteral("pwd > folder.txt");
 #endif
 	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
@@ -611,7 +688,7 @@ TEST_CASE("Alt+C over SSH copies the paths through the terminal", "[tui]")
 	const Sandbox sandbox;
 	sandbox.createFile(QStringLiteral("work/a.txt"));
 	sandbox.createFile(QStringLiteral("work/with space.txt"));
-	auto session = startFcterm(sandbox, { { QStringLiteral("SSH_CONNECTION"), QStringLiteral("192.0.2.1 50000 192.0.2.2 22") } });
+	auto session = startFcterm(sandbox, { .variables = { { QStringLiteral("SSH_CONNECTION"), QStringLiteral("192.0.2.1 50000 192.0.2.2 22") } } });
 	goTo(*session, sandbox.work({}), QStringLiteral("with space.txt"));
 	moveCursorTo(*session, QStringLiteral("a.txt"));
 

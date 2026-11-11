@@ -10,6 +10,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 class CController;
+class CTuiColumnHeader;
 class CTuiFileList;
 class CTuiFilterLine;
 class CTuiStatusLine;
@@ -82,7 +83,7 @@ private:
 	void applyFilter(const QString& filterText);
 	void closeFilterLine();
 	void setViewShown(TView* view, bool shown);
-	// The tab strip, while shown, takes the first row; the filter line, the row above the status line
+	// The tab strip, while shown, takes the first row and the column header the next; the filter line, the row above the status line
 	void layOutViews();
 
 	void setTitle(const QString& text);
@@ -93,6 +94,7 @@ private:
 	const Panel _side;
 	// Owned by this window
 	CTuiTabStrip* _tabStrip;
+	CTuiColumnHeader* _columnHeader;
 	CTuiFileList* _fileList;
 	CTuiFilterLine* _filterLine;
 	CTuiStatusLine* _statusLine;

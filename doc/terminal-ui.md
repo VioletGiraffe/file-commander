@@ -11,7 +11,7 @@ ends need lives in the core, which returns the text to show and the program to r
 | Startup, settings, log file | `app/src/main.cpp` |
 | Event loop, the two bottom rows, running a program | `app/src/ctuiapplication.{h,cpp}` |
 | One side: its listing, keys and commands | `app/src/ctuipanel.{h,cpp}` |
-| The rows and the cursor | `app/src/ctuifilelist.{h,cpp}` |
+| The rows, their columns and the column header | `app/src/ctuifilelist.{h,cpp}` |
 | Dialogs | `app/src/ctuidialogs.{h,cpp}` |
 | Copy, move, delete | `app/src/ctuifileoperations.{h,cpp}` |
 | Turbo Vision as a static library | `tvision/tvision.pro` |
@@ -32,6 +32,9 @@ dialog is open.
 - The rows are a copy of `CPanel::visibleItems()`. Sorting, the name filter and the selection belong to the `CPanel`,
   as in the Qt UI; the list shows a copy of the selection, refreshed after every change made through the core.
 - `CTuiFileList` is a plain `TView`, not a `TListViewer`: that counts rows in `short`, and a folder can hold more.
+- The columns are Name, Ext, Size and Date, as many as the panel's width fits. Name and the sorted column always stay.
+  `fileListColumns` makes this choice for the rows and for the header above them, so layout decisions by width go
+  there. A click on a header title sorts by that column.
 
 ## Commands
 

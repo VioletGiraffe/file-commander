@@ -70,7 +70,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | Coverage needing a filesystem capability: skipped where absent, required where its `FILE_OPERATIONS_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
 | Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts, the file list view |
 | Launch smoke test: the release binary with `--test-launch=N`, failing unless the N plugins the build produced all load | CI build job, every platform |
-| End-to-end terminal UI tests: `fcterm` in a pseudo-terminal, given keys and read back as screen text | `tui_test` |
+| End-to-end terminal UI tests: `fcterm` in a pseudo-terminal, given keys and mouse clicks and read back as screen text | `tui_test` |
 
 ## Coverage by component
 
@@ -91,7 +91,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | `fileoperations_gui_test` | Launched operations routed to the dialog or the native shell, end to end |
 | `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's display, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
-| `tui_test` | Terminal UI: the status rows, the menus, tabs, the file commands and their dialogs, selection by pattern and by extension, copying paths over SSH, hidden files, and handing the terminal to the pager, the editor, a program and the shell |
+| `tui_test` | Terminal UI: the status rows, the menus, tabs, the start folder, the column header and the columns a narrow panel keeps, the file commands and their dialogs, selection by pattern and by extension, copying paths over SSH, hidden files, and handing the terminal to the pager, the editor, a program and the shell |
 
 `tui_test` runs `fcterm` through `forkpty`, or ConPTY on Windows, with its settings in the test's temporary folder
 (`--settings-dir`) and, on Unix, `HOME` there too. The pager and the editor are the test executable itself, started with
