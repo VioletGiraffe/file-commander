@@ -127,18 +127,13 @@ jobs:
       shell: cmd
       run: |
         %QT_ROOT_DIR%\bin\qmake.exe -v
-        set QTDIR64=%QT_ROOT_DIR%
-        cd installer\windows\
-        create_installer.bat
-        cd ..\..
-        xcopy /R /Y .\installer\windows\binaries\64\msvcr\* .\bin\release\
-        xcopy /R /Y .\installer\windows\binaries\64\Qt\* .\bin\release\
+        installer\windows\create_installer.bat
 
     - name: Mac
       if: startsWith(matrix.os, 'macos')
       run: |
         clang --version
-        ./installer/mac/create_dmg.sh $QT_ROOT_DIR
+        ./installer/mac/create_dmg.sh
 
     - name: Linux - install build dependencies
       if: startsWith(matrix.os, 'ubuntu')
@@ -150,9 +145,7 @@ jobs:
 
     - name: Linux - build
       if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        $QT_ROOT_DIR/bin/qmake -r CONFIG+=release
-        make -s -j$(nproc) SHELL="$PWD/scripts/quiet_make_shell.sh"
+      run: ./scripts/build_app.sh
 
     - name: Linux - building AppImage
       if: startsWith(matrix.os, 'ubuntu')
@@ -198,7 +191,7 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       shell: pwsh
       run: |
-        # Sizes of our own binaries (app, terminal UI, every plugin); the Qt/MSVC runtime DLLs xcopied into bin/ are excluded by name.
+        # Sizes of our own binaries (app, terminal UI, every plugin)
         $exe = Get-Item "bin\release\FileCommander.exe"
         foreach ($b in @($exe, (Get-Item "bin\release\fcterm.exe")) + (Get-ChildItem "bin\release\plugin_*.dll")) {
           "{0,10:N2} KB  {1}" -f ($b.Length / 1KB), $b.Name

@@ -2,9 +2,7 @@
 
 # Builds file-commander-core/core-tests and runs every test executable. Exit code: 1 if any suite failed or was
 # not built, 2 when the environment is incomplete.
-# The Qt kit is resolved in order: QT_ROOT_DIR as already set (what jurplel/install-qt-action exports on CI);
-# local-env.sh beside this script, git-ignored, where a developer sets it for their machine; a qmake6 or qmake
-# already on PATH (a distribution's Qt).
+# The Qt kit is found as resolve_qmake in private/qmake_build.sh describes.
 # Arguments, all optional, in this order:
 #   debug           build and run the debug configuration
 #   build           only build; nobuild only runs what is already built, for a CI job that deploys in between
@@ -47,30 +45,10 @@ fi
 SUITE="${1:-}"
 [ $# -gt 0 ] && shift
 
-[ -z "${QT_ROOT_DIR:-}" ] && [ -f "${SCRIPT_DIR}/local-env.sh" ] && . "${SCRIPT_DIR}/local-env.sh"
-
-if [ -n "${QT_ROOT_DIR:-}" ]; then
-	QMAKE="${QT_ROOT_DIR}/bin/qmake"
-	if [ ! -x "${QMAKE}" ]; then
-		echo "No qmake under \"${QT_ROOT_DIR}/bin\"." >&2
-		exit 2
-	fi
-elif command -v qmake6 >/dev/null 2>&1; then
-	QMAKE=qmake6
-elif command -v qmake >/dev/null 2>&1; then
-	QMAKE=qmake
-else
-	echo "QT_ROOT_DIR is not set and no qmake is on PATH. Set QT_ROOT_DIR to the Qt kit directory, the one holding bin/qmake, or set it in a git-ignored local-env.sh beside this script." >&2
-	exit 2
-fi
-
 if [ -n "${BUILD}" ]; then
-	cd "${SCRIPT_DIR}/../file-commander-core/core-tests" || exit 2
-	# A kept .qmake.stash pins the toolchain probed when it was written, so every run probes the current one instead.
-	# One is written per subproject build directory, and qmake also searches upward, so the sweep covers the repository.
-	find "${SCRIPT_DIR}/.." -name .qmake.stash -delete
-	"${QMAKE}" -r CONFIG+="${CONFIG}" || exit 1
-	make -s -j"$(getconf _NPROCESSORS_ONLN)" SHELL="${SCRIPT_DIR}/quiet_make_shell.sh" || exit 1
+	. "${SCRIPT_DIR}/private/qmake_build.sh"
+	resolve_qmake
+	build_qmake_project "${SCRIPT_DIR}/../file-commander-core/core-tests/core-tests.pro" "${CONFIG}" || exit 1
 fi
 [ -n "${RUN}" ] || exit 0
 

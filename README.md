@@ -33,9 +33,12 @@ Linux/macOS. The same script updates the main repository and its submodules late
 
 Requirements: a C++23-capable compiler and Qt 6.8 or newer.
 
-- Windows: Visual Studio 2022 or later. Run `qmake -tp vc -r` to generate the solution.
-- Linux: run Qt 6's `qmake -r`, then `make`. The terminal UI needs the ncursesw development package (`libncurses-dev`
-  on Debian and Ubuntu).
+`scripts/build_app.bat` (Windows) and `scripts/build_app.sh` (Linux, macOS) build the release configuration into
+`bin/release`, or the debug one with `-Configuration debug` / `debug`. They take the Qt kit from `QT_ROOT_DIR`, or from a
+git-ignored `scripts/local-env.ps1` / `local-env.sh`; on Linux and macOS a `qmake` on PATH also works.
+
+- Windows: Visual Studio 2022 or later. Run `qmake -tp vc -r` to generate the solution for the IDE.
+- Linux: the terminal UI needs the ncursesw development package (`libncurses-dev` on Debian and Ubuntu).
 - macOS: open the project in Qt Creator, or run `qmake -r -spec macx-xcode` for an Xcode project.
 
 The [CI workflow](.github/workflows/CI.yml) is the reference for supported build and test commands.

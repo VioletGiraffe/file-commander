@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Builds the app in release and packs it into FileCommander.dmg. Runs from the repository root: create_dmg.sh [Qt kit directory]
+# Without the argument, the Qt kit is found as resolve_qmake in scripts/private/qmake_build.sh describes.
+
 set -e
 
 MYSELF="$(basename $0)"
@@ -10,14 +13,20 @@ APPDIR="FileCommander.app"
 BUNDLE="bin/release/${APPDIR}"
 EXECUTABLE="${BUNDLE}/Contents/MacOS/FileCommander"
 
-QTPATH=$1
-
 ROOT_DIR="$(pwd)"
+
+if [ $# -gt 0 ]; then
+	QT_ROOT_DIR="$1"
+	export QT_ROOT_DIR
+fi
+SCRIPT_DIR="${ROOT_DIR}/scripts"
+. "${SCRIPT_DIR}/private/qmake_build.sh"
+resolve_qmake
+QT_BINS="$("${QMAKE}" -query QT_INSTALL_BINS)"
 
 rm -rf bin
 echo "${MYSELF}: Building the app"
-${QTPATH}/bin/qmake -spec macx-clang -r -config release CONFIG+=release
-make -s -j$(sysctl -n hw.ncpu) SHELL="${ROOT_DIR}/scripts/quiet_make_shell.sh"
+"${SCRIPT_DIR}/build_app.sh"
 
 # The terminal UI ships inside the bundle and uses its frameworks
 TERMINAL_EXECUTABLE="${BUNDLE}/Contents/MacOS/fcterm"
@@ -26,7 +35,7 @@ mv bin/release/fcterm "${TERMINAL_EXECUTABLE}"
 echo "${MYSELF}: deploying Qt frameworks"
 # macdeployqt exits 0 even when it deploys nothing: its ERROR lines count as a failure too
 DEPLOY_STATUS=0
-DEPLOY_OUTPUT="$("${QTPATH}/bin/macdeployqt" "${BUNDLE}" "-executable=${TERMINAL_EXECUTABLE}" 2>&1)" || DEPLOY_STATUS=$?
+DEPLOY_OUTPUT="$("${QT_BINS}/macdeployqt" "${BUNDLE}" "-executable=${TERMINAL_EXECUTABLE}" 2>&1)" || DEPLOY_STATUS=$?
 echo "${DEPLOY_OUTPUT}"
 if [ ${DEPLOY_STATUS} -ne 0 ] || echo "${DEPLOY_OUTPUT}" | grep -q "^ERROR"; then
 	echo "${MYSELF}: macdeployqt failed, refusing to package an undeployed bundle" >&2

@@ -1,10 +1,7 @@
 # Builds file-commander-core\core-tests and runs every test executable, then reports which suites failed.
 # Exit code: 1 if any suite failed or was not built, 2 when the environment is incomplete.
 # Windows PowerShell 5.1 is enough; run_tests.bat starts this script, the execution policy being what it is.
-#
-# The Qt kit comes from QT_ROOT_DIR, or from a git-ignored local-env.ps1 beside this script.
-# MSBuild and qmake need the MSVC environment: qmake probes cl for the compiler version, and gates both the flags
-# and the toolset it writes into the projects on it, so the build uses the toolset in the projects qmake wrote.
+# The Qt kit is found as Initialize-QtKit in private\qmake_build.ps1 describes.
 
 # No positional binding: every parameter is named, so that a Catch2 spec cannot bind to one by position
 [CmdletBinding(PositionalBinding = $false)]
@@ -48,64 +45,11 @@ $suites = [ordered]@{
 	'tui_test'                = @()
 }
 
-function Fail-Environment([string]$message)
-{
-	[Console]::Error.WriteLine($message)
-	exit 2
-}
+. (Join-Path $PSScriptRoot 'private\qmake_build.ps1')
+Initialize-QtKit
 
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
-
-# The Qt kit, the directory holding bin\qmake.exe. Its bin goes on PATH: the test executables need the Qt DLLs.
-if (-not $env:QT_ROOT_DIR)
-{
-	$localEnvironment = Join-Path $PSScriptRoot 'local-env.ps1'
-	if (Test-Path $localEnvironment) { . $localEnvironment }
-}
-if (-not $env:QT_ROOT_DIR)
-{
-	Fail-Environment "QT_ROOT_DIR is not set: set it to the Qt kit directory, the one holding bin\qmake.exe, or set it in a git-ignored local-env.ps1 beside this script."
-}
-$qmake = Join-Path $env:QT_ROOT_DIR 'bin\qmake.exe'
-if (-not (Test-Path $qmake)) { Fail-Environment "No qmake.exe under `"$env:QT_ROOT_DIR\bin`"." }
-$env:PATH = (Join-Path $env:QT_ROOT_DIR 'bin') + ';' + $env:PATH
-
-if (-not $NoBuild)
-{
-	if (-not (Get-Command cl -ErrorAction SilentlyContinue))
-	{
-		$installerDirectory = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
-		$vswhere = Join-Path $installerDirectory 'vswhere.exe'
-		if (-not (Test-Path $vswhere)) { Fail-Environment 'vswhere.exe was not found. Install Visual Studio with the C++ toolset.' }
-
-		$visualStudio = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath |
-			Select-Object -First 1
-		if (-not $visualStudio) { Fail-Environment 'No Visual Studio with the C++ toolset was found.' }
-
-		# vcvars64.bat itself calls a bare vswhere.exe, which it expects on PATH
-		$env:PATH += ';' + $installerDirectory
-		# A child process's environment is not inherited back, so vcvars64.bat's is read out of cmd and imported
-		$vcvars = Join-Path $visualStudio 'VC\Auxiliary\Build\vcvars64.bat'
-		cmd /c "`"$vcvars`" >nul && set" | ForEach-Object {
-			if ($_ -match '^([^=]+)=(.*)$') { Set-Item -Path "env:$($Matches[1])" -Value $Matches[2] }
-		}
-	}
-
-	# A kept .qmake.stash pins the toolchain probed when it was written, so every run probes the current one instead.
-	# One is written per subproject build directory, and qmake also searches upward, so the sweep covers the repository.
-	Get-ChildItem $repositoryRoot -Recurse -Force -Filter '.qmake.stash' -ErrorAction SilentlyContinue | Remove-Item -Force
-
-	Push-Location (Join-Path $repositoryRoot 'file-commander-core\core-tests')
-	try
-	{
-		& $qmake -tp vc -r
-		if ($LASTEXITCODE -ne 0) { exit 1 }
-		# msbuild, not nmake: it also rebuilds what the compiler command line changed for, such as the Qt include paths
-		msbuild /t:Build /nologo /m /v:minimal "/p:Configuration=$Configuration" core-tests.sln
-		if ($LASTEXITCODE -ne 0) { exit 1 }
-	}
-	finally { Pop-Location }
-}
+if (-not $NoBuild) { Build-QmakeProject (Join-Path $repositoryRoot 'file-commander-core\core-tests\core-tests.pro') $Configuration }
 
 if ($BuildOnly) { exit 0 }
 
