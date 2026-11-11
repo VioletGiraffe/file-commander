@@ -44,6 +44,8 @@ dialog is open.
   colours are BIOS indices into the terminal's 16-colour palette, which colour schemes redefine.
 - The colours are in the xterm 256-colour cube, so they look the same on 256-colour and true-colour terminals. Terminals
   with fewer colours are not targeted.
+- On Windows, `main` sets `COLORTERM` when it is unset: Turbo Vision otherwise detects 16 colours on every console
+  ([magiblot/tvision#249](https://github.com/magiblot/tvision/issues/249)).
 - The panel's own roles follow Turbo Vision's entries in the application palette; `CTuiPanel`'s palette maps them.
   New panel roles go into `PanelPaletteEntry` and its colour table.
 
