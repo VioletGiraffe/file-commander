@@ -337,6 +337,7 @@ CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
 	_side(side)
 {
 	flags &= ~(wfMove | wfGrow | wfClose | wfZoom);
+	state &= ~sfShadow; // Tiled: a shadow would fall on the other panel
 	growMode = gfGrowAll | gfGrowRel;
 
 	// layOutViews() sets the bounds
