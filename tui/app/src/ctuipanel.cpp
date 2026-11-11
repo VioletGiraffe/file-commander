@@ -3,6 +3,7 @@
 #include "ctuidialogs.h"
 #include "ctuifilelist.h"
 #include "ctuifileoperations.h"
+#include "ctuipalette.h"
 
 #include "ccontroller.h"
 #include "filesystemhelperfunctions.h"
@@ -73,15 +74,12 @@ public:
 			onEdited(text());
 	}
 
-	// BIOS colours: the input line palette indexes a dialog's palette, which a window does not have
-	TColorAttr mapColor(uchar index) noexcept override
+	// TInputLine's own palette indexes a dialog's
+	TPalette& getPalette() const override
 	{
-		switch (index)
-		{
-		case 3: return 0x1F; // Selected text
-		case 4: return 0x3A; // Scroll arrows
-		default: return 0x30;
-		}
+		static constexpr TColorAttr entries[]{ ppFilterText, ppFilterText, ppFilterSelectedText, ppFilterArrows }; // Passive, active, selected text, arrows
+		static TPalette palette{ entries };
+		return palette;
 	}
 };
 
@@ -102,7 +100,7 @@ public:
 
 	void draw() override
 	{
-		static constexpr TColorAttr color{ 0x17 };
+		const TColorAttr color = mapColor(ppStatusText);
 
 		TDrawBuffer line;
 		line.moveChar(0, ' ', color, (ushort)size.x);
@@ -153,8 +151,7 @@ public:
 
 	void draw() override
 	{
-		// BIOS colours, as the status line and the file list cursor
-		static constexpr TColorAttr color{ 0x17 }, activeColor{ 0x30 };
+		const TColorAttr color = mapColor(ppStatusText), activeColor = mapColor(ppActiveTab);
 
 		const int offset = scrollOffset();
 		TDrawBuffer line;
@@ -499,6 +496,11 @@ void CTuiPanel::setState(ushort aState, Boolean enable)
 	TWindow::setState(aState, enable);
 	if ((aState & sfSelected) && enable)
 		_controller.activePanelChanged(_side);
+}
+
+TPalette& CTuiPanel::getPalette() const
+{
+	return panelPalette();
 }
 
 void CTuiPanel::onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation)

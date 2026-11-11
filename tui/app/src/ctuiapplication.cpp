@@ -1,4 +1,5 @@
 #include "ctuiapplication.h"
+#include "ctuipalette.h"
 #include "ctuipanel.h"
 
 #include "ccontroller.h"
@@ -131,6 +132,11 @@ void CTuiApplication::resume()
 {
 	TApplication::resume();
 	disableWin32InputMode();
+}
+
+TPalette& CTuiApplication::getPalette() const
+{
+	return applicationPalette();
 }
 
 std::expected<void, QString> CTuiApplication::runInTerminal(const QString& program, const QStringList& arguments, const QString& workingDir, bool waitForEnter)

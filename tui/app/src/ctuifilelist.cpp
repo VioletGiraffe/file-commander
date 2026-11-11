@@ -1,4 +1,5 @@
 #include "ctuifilelist.h"
+#include "ctuipalette.h"
 
 #include "qtcore_helpers/displayformatting.hpp"
 
@@ -118,8 +119,7 @@ void CTuiColumnHeader::setSorting(FileListSortField field, Qt::SortOrder order)
 
 void CTuiColumnHeader::draw()
 {
-	// BIOS colours: brighter than the file list's rows
-	static constexpr TColorAttr color{ 0x1F };
+	const TColorAttr color = mapColor(ppColumnHeader);
 
 	TDrawBuffer line;
 	line.moveChar(0, ' ', color, (ushort)size.x);
@@ -193,8 +193,8 @@ bool CTuiFileList::isSelected(qulonglong itemHash) const noexcept
 
 void CTuiFileList::draw()
 {
-	// BIOS colours: the window palette has no entry for a selected item
-	static constexpr TColorAttr normalColor{ 0x1B }, selectedColor{ 0x1E }, cursorColor{ 0x30 }, selectedCursorColor{ 0x3E };
+	const TColorAttr normalColor = mapColor(ppFileListRow), selectedColor = mapColor(ppFileListSelectedRow), cursorColor = mapColor(ppFileListCursor),
+		selectedCursorColor = mapColor(ppFileListSelectedCursor);
 
 	const bool showCursor = (state & (sfSelected | sfActive)) == (sfSelected | sfActive);
 	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField);

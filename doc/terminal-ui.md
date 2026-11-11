@@ -13,6 +13,7 @@ ends need lives in the core, which returns the text to show and the program to r
 | One side: its listing, keys and commands | `app/src/ctuipanel.{h,cpp}` |
 | The rows, their columns and the column header | `app/src/ctuifilelist.{h,cpp}` |
 | Dialogs | `app/src/ctuidialogs.{h,cpp}` |
+| Colours | `app/src/ctuipalette.{h,cpp}` |
 | Copy, move, delete | `app/src/ctuifileoperations.{h,cpp}` |
 | Turbo Vision as a static library | `tvision/tvision.pro` |
 | Tests | `tests/`; see [testing.md](testing.md) |
@@ -35,6 +36,16 @@ dialog is open.
 - The columns are Name, Ext, Size and Date, as many as the panel's width fits. Name and the sorted column always stay.
   `fileListColumns` makes this choice for the rows and for the header above them, so layout decisions by width go
   there. A click on a header title sorts by that column.
+
+## Colours
+
+- Every colour is a role in Turbo Vision's palette chain: a view's palette entry indexes its owner's palette, up to the
+  application palette, which holds the colours. `ctuipalette.cpp` defines that palette in RGB. Turbo Vision's stock
+  colours are BIOS indices into the terminal's 16-colour palette, which colour schemes redefine.
+- The colours are in the xterm 256-colour cube, so they look the same on 256-colour and true-colour terminals. Terminals
+  with fewer colours are not targeted.
+- The panel's own roles follow Turbo Vision's entries in the application palette; `CTuiPanel`'s palette maps them.
+  New panel roles go into `PanelPaletteEntry` and its colour table.
 
 ## Commands
 

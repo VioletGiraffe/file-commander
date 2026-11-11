@@ -25,6 +25,7 @@ SOURCES += \
 	src/ctuidialogs.cpp \
 	src/ctuifilelist.cpp \
 	src/ctuifileoperations.cpp \
+	src/ctuipalette.cpp \
 	src/ctuipanel.cpp
 
 HEADERS += \
@@ -32,6 +33,7 @@ HEADERS += \
 	src/ctuidialogs.h \
 	src/ctuifilelist.h \
 	src/ctuifileoperations.h \
+	src/ctuipalette.h \
 	src/ctuipanel.h
 
 LIBS += -L$${DESTDIR} -ltvision

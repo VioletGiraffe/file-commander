@@ -27,6 +27,7 @@ public:
 	void getEvent(TEvent& event) override;
 	void handleEvent(TEvent& event) override;
 	void resume() override;
+	TPalette& getPalette() const override;
 
 	// Hands the terminal to the program until it exits. The error: the program did not start.
 	// waitForEnter: the program's output stays on screen until Enter is pressed

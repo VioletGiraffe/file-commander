@@ -37,6 +37,7 @@ public:
 
 	void handleEvent(TEvent& event) override;
 	void setState(ushort aState, Boolean enable) override;
+	TPalette& getPalette() const override;
 
 	void onPanelContentsChanged(Panel p, qulonglong tabId, FileListRefreshCause operation) override;
 	void onPanelContentsInvalidated(Panel p, qulonglong tabId) override;
