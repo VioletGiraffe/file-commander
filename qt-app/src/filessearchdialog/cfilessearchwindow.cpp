@@ -96,6 +96,7 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 	connect(ui->fileContentsToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
+	connect(ui->searchRoot, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 	connect(ui->excludedFolders, &QLineEdit::returnPressed, ui->btnSearch, &QPushButton::click);
 
 	connect(ui->btnSaveResults, &QPushButton::clicked, this, &CFilesSearchWindow::saveResults);

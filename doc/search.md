@@ -5,7 +5,7 @@ user-visible language. `nameFilterToRegex()` is authoritative for name matching.
 
 ## Name filter
 
-The field is a `;`-separated OR-list. An empty field or `*` matches every name. Each filter supports:
+The field is a `;`-separated OR-list; the spaces around each filter are ignored. An empty field or `*` matches every name. Each filter supports:
 
 | Form | Meaning |
 |------|---------|

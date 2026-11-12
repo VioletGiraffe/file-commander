@@ -238,6 +238,7 @@ TEST_CASE("File list - the name filter language", "[filelistrules][filter]")
 		CHECK(matches("*.txt;*.doc", "a.txt"));
 		CHECK(matches("*.txt;*.doc", "c.doc"));
 		CHECK_FALSE(matches("*.txt;*.doc", "b.png"));
+		CHECK(splitNameFilterField(QStringLiteral(" *.txt ; ^a b$ ;  ; ")) == QStringList{ QStringLiteral("*.txt"), QStringLiteral("^a b$") }); // Spaces around a filter are dropped
 	}
 
 	SECTION("No filter, or '*' among them, matches every name")

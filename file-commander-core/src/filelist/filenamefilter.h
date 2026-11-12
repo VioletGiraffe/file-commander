@@ -14,7 +14,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <vector>
 
-// A filter field holds the filters separated by ';'
+// A filter field holds the filters separated by ';'. The spaces around each filter are not part of it.
 [[nodiscard]] QStringList splitNameFilterField(const QString& fieldText);
 
 // A name matches if any of the filters does.

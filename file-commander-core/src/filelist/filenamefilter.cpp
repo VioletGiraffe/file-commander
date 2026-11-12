@@ -35,7 +35,14 @@ RESTORE_COMPILER_WARNINGS
 
 QStringList splitNameFilterField(const QString& fieldText)
 {
-	return fieldText.split(';', Qt::SkipEmptyParts);
+	QStringList filters;
+	for (const QStringView part : QStringView{ fieldText }.split(u';'))
+	{
+		if (const QStringView filter = part.trimmed(); !filter.isEmpty())
+			filters.push_back(filter.toString());
+	}
+
+	return filters;
 }
 
 FileNameFilter::FileNameFilter(const QStringList& filters, Qt::CaseSensitivity caseSensitivity)
