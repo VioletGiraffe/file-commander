@@ -291,11 +291,13 @@ void CTuiBatchRenameDialog::showSession()
 	setStatus(_session.findPatternError());
 	for (const auto [command, step] : { std::pair{ cmRename, Step::Apply }, std::pair{ cmUndo, Step::Undo } })
 		_session.canRun(step) ? enableCommand(command) : disableCommand(command);
+	// Updates the buttons now: TProgram::idle() sends cmCommandSetChanged only once no input is waiting, too late for a key typed ahead
+	message(this, evBroadcast, cmCommandSetChanged, nullptr);
 }
 
 void CTuiBatchRenameDialog::runStep(const Step step)
 {
-	// A button pressed before Turbo Vision shows it disabled: keys typed ahead arrive before the redraw
+	// A button's press arrives at the end of its animation, after the keys typed meanwhile, which can change the rules
 	if (!_session.canRun(step))
 		return;
 
