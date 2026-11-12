@@ -50,3 +50,8 @@ QString searchInFieldTextFor(const CPanel& panel)
 
 	return paths.join(searchInFieldSeparator);
 }
+
+bool searchInFieldTextBelongsInHistory(const QString& fieldText)
+{
+	return !fieldText.contains(searchInFieldSeparator);
+}

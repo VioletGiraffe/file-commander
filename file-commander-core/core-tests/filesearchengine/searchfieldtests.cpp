@@ -68,3 +68,10 @@ TEST_CASE("Search fields - the \"Search in\" field's paths are separated by \"; 
 	CHECK(rootsFromSearchInField(QSL("a;b"), base) == QStringList{ tree.path(QSL("a;b")) }); // ';' alone belongs to the name
 	CHECK(rootsFromSearchInField({}, base).isEmpty());
 }
+
+TEST_CASE("Search fields - only a \"Search in\" text of one path belongs in the field's history", "[search][fields]")
+{
+	CHECK(searchInFieldTextBelongsInHistory(QSL("/a/b")));
+	CHECK(searchInFieldTextBelongsInHistory(QSL("/a;b")));
+	CHECK_FALSE(searchInFieldTextBelongsInHistory(QSL("/a; /b")));
+}

@@ -32,3 +32,6 @@ struct FileSearchQuery
 
 // A "Search in" field's text for the panel: its selected items, or with nothing selected its folder
 [[nodiscard]] QString searchInFieldTextFor(const CPanel& panel);
+
+// False for a "Search in" text of several paths: it comes from a selection, and is rarely searched again
+[[nodiscard]] bool searchInFieldTextBelongsInHistory(const QString& fieldText);

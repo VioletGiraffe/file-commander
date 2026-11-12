@@ -40,6 +40,12 @@ static constexpr size_t maxRowsPerTurn = 10;
 static constexpr size_t maxRowsPerTurn = 200;
 #endif
 
+// "1 item", "2 items"
+[[nodiscard]] static QString itemCountText(const uint64_t count)
+{
+	return count == 1 ? QObject::tr("1 item") : QObject::tr("%1 items").arg(count);
+}
+
 // Sorts by path, in the panel's natural order: the engine reports matches in no particular order
 class CSearchResultItem final : public QListWidgetItem
 {
@@ -65,6 +71,9 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
+	// Before the histories load: a combo box drops the items past its maximum
+	for (CHistoryComboBox* field : { ui->nameToFind, ui->fileContentsToFind, ui->searchRoot })
+		field->setMaxCount(FILE_SEARCH_HISTORY_MAX_ENTRIES);
 	ui->nameToFind->setSettingsKeyForHistoryPersistence(KEY_FILE_SEARCH_NAME_HISTORY);
 	ui->fileContentsToFind->setSettingsKeyForHistoryPersistence(KEY_FILE_SEARCH_CONTENTS_HISTORY);
 	ui->fileContentsToFind->lineEdit()->clear(); // A prefilled pattern would silently restrict the search to files containing it
@@ -154,13 +163,13 @@ void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Co
 
 	QString message = (completion.status == CFileSearchEngine::SearchCancelled ? tr("Search aborted") : tr("Search completed"));
 	if (!_matches.empty())
-		message = message % ", " % tr("%1 items found").arg(_matches.size());
+		message = message % ", " % tr("%1 found").arg(itemCountText(_matches.size()));
 
 	// Neither matches nor known non-matches, so saying nothing would present the results as complete
 	if (completion.inconclusiveItems > 0)
-		message = message % ", " % tr("%1 items could not be searched").arg(completion.inconclusiveItems);
+		message = message % ", " % tr("%1 could not be searched").arg(itemCountText(completion.inconclusiveItems));
 
-	message = message % ": " % tr("%1 items scanned in %2 sec").arg(completion.itemsScanned).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
+	message = message % ": " % tr("%1 scanned in %2 sec").arg(itemCountText(completion.itemsScanned)).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
 
 	if (completion.msElapsed > 0)
 	{
@@ -210,7 +219,8 @@ void CFilesSearchWindow::search()
 		_searchActive = true;
 		ui->nameToFind->addToHistory(ui->nameToFind->currentText());
 		ui->fileContentsToFind->addToHistory(ui->fileContentsToFind->currentText());
-		ui->searchRoot->addToHistory(ui->searchRoot->currentText());
+		if (searchInFieldTextBelongsInHistory(ui->searchRoot->currentText()))
+			ui->searchRoot->addToHistory(ui->searchRoot->currentText());
 
 		ui->btnSearch->setText(tr("Stop"));
 		ui->resultsList->clear();

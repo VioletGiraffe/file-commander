@@ -57,6 +57,7 @@
 #define KEY_USER_PROGRAMS QSL("Programs")
 
 // The file search dialogs of both front ends. A *_HISTORY key holds its field's earlier searches, most recent first.
+#define FILE_SEARCH_HISTORY_MAX_ENTRIES 50
 #define KEY_FILE_SEARCH_NAME_HISTORY QSL("FileSearchDialog/Ui/NameToFind")
 #define KEY_FILE_SEARCH_NAME_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveName")
 #define KEY_FILE_SEARCH_NAME_PARTIAL_MATCH QSL("FileSearchDialog/Ui/NamePartialMatch")

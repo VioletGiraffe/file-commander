@@ -32,6 +32,7 @@ RESTORE_COMPILER_WARNINGS
 #include <initializer_list>
 #include <iterator>
 #include <optional>
+#include <stdint.h>
 #include <utility>
 #include <vector>
 
@@ -54,6 +55,12 @@ constexpr qsizetype maxHistoryEntryBytes = 252;
 constexpr int inputLimit = 32 * 1024;
 constexpr auto resultsDisplayInterval = 100ms;
 constexpr size_t maxResultsPerDisplay = 10'000;
+
+// "1 item", "2 items"
+[[nodiscard]] QString itemCountText(const uint64_t count)
+{
+	return count == 1 ? QStringLiteral("1 item") : QStringLiteral("%1 items").arg(count);
+}
 
 [[nodiscard]] QString inputText(const TInputLine* input)
 {
@@ -108,20 +115,19 @@ void recordInHistory(QStringList& history, const QString& text, const QString& s
 
 	history.removeAll(text);
 	history.push_front(text);
+	if (history.size() > FILE_SEARCH_HISTORY_MAX_ENTRIES)
+		history.resize(FILE_SEARCH_HISTORY_MAX_ENTRIES);
 	QSettings{}.setValue(settingsKey, history);
 	addToTurboVisionHistory(historyId, text.toUtf8());
 }
 
-// Records its field's text as THistory does, unless it is too long: when its list opens, and on any button press in the dialog
+// Never records its field's text, which THistory does when its list opens and on any button press: the dialog records each search's texts itself
 class CTuiFieldHistory final : public THistory
 {
 public:
 	using THistory::THistory;
 
-	void recordHistory(const char* text) override
-	{
-		addToTurboVisionHistory((uchar)historyId, QByteArray{ text });
-	}
+	void recordHistory(const char* /*text*/) override {}
 };
 
 struct FoundItem
@@ -177,6 +183,14 @@ public:
 		const QString cursorPath = _items[(size_t)cursorRow()].path;
 		std::ranges::sort(_items, resultOrderLess);
 		rowsChanged(followingNewest ? 0 : (int)(std::ranges::lower_bound(_items, cursorPath, pathOrderLess, &FoundItem::path) - _items.begin()));
+	}
+
+	void handleEvent(TEvent& event) override
+	{
+		CTuiRowList::handleEvent(event);
+		// A dialog's buttons and check boxes also take their letters without Alt, from a focused view that leaves them
+		if (event.what == evKeyDown && event.keyDown.textLength > 0 && (uchar)event.keyDown.text[0] >= ' ' && !(event.keyDown.controlKeyState & (kbAltShift | kbCtrlShift)))
+			clearEvent(event);
 	}
 
 	[[nodiscard]] const FoundItem* currentItem() const noexcept { return _items.empty() ? nullptr : &_items[(size_t)cursorRow()]; }
@@ -393,7 +407,8 @@ void CTuiFindDialog::startSearch()
 
 	recordInHistory(_nameHistory, nameText, KEY_FILE_SEARCH_NAME_HISTORY, nameHistoryId);
 	recordInHistory(_contentsHistory, contentsText, KEY_FILE_SEARCH_CONTENTS_HISTORY, contentsHistoryId);
-	recordInHistory(_searchInHistory, searchInText, KEY_FILE_SEARCH_ROOT_HISTORY, searchInHistoryId);
+	if (searchInFieldTextBelongsInHistory(searchInText))
+		recordInHistory(_searchInHistory, searchInText, KEY_FILE_SEARCH_ROOT_HISTORY, searchInHistoryId);
 
 	_results->clear();
 	setStatus({});
@@ -446,11 +461,11 @@ void CTuiFindDialog::showCompletion(const CFileSearchResultsBuffer::Completion& 
 	}
 
 	QString message = completion.status == CFileSearchEngine::SearchCancelled ? QStringLiteral("Search aborted") : QStringLiteral("Search completed");
-	message += QStringLiteral(", %1 items found").arg(_results->itemCount());
+	message += QStringLiteral(", %1 found").arg(itemCountText(_results->itemCount()));
 	// Neither matches nor known non-matches, so saying nothing would present the results as complete
 	if (completion.inconclusiveItems > 0)
-		message += QStringLiteral(", %1 items could not be searched").arg(completion.inconclusiveItems);
-	message += QStringLiteral(": %1 items scanned in %2 sec").arg(completion.itemsScanned).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
+		message += QStringLiteral(", %1 could not be searched").arg(itemCountText(completion.inconclusiveItems));
+	message += QStringLiteral(": %1 scanned in %2 sec").arg(itemCountText(completion.itemsScanned)).arg((double)completion.msElapsed * 1e-3, 0, 'f', 1);
 	setStatus(message);
 
 	// Unless the user is already going through them. Only the user can have moved the cursor off the last row, which sort() left at the first.

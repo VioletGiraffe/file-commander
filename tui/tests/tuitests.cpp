@@ -222,6 +222,27 @@ void goTo(CTerminalSession& session, const QString& folder, const QString& entry
 		QStringLiteral("%1 listed in %2").arg(entry, folder));
 }
 
+// The first screen row holding the text; -1 for none
+[[nodiscard]] int rowWith(const CTerminalScreen& screen, const QString& text)
+{
+	for (int row = 0; row < screenRows; ++row)
+	{
+		if (screen.row(row).contains(text))
+			return row;
+	}
+	return -1;
+}
+
+// Opens the search dialog, searches for the name and waits for the status to show
+void findByName(CTerminalSession& session, const QString& name, const QString& status)
+{
+	session.send(Keys::AltF7);
+	requireText(session, QStringLiteral("Search for:"));
+	typeText(session, name); // The name field's text starts selected, so this replaces it
+	session.send(Keys::Enter);
+	requireText(session, status);
+}
+
 void moveCursorTo(CTerminalSession& session, const QString& name)
 {
 	session.send(Keys::Home);
@@ -388,16 +409,86 @@ TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a r
 	auto session = startFcterm(sandbox);
 	goTo(*session, sandbox.work({}), QStringLiteral("hay.txt"));
 
-	session->send(Keys::AltF7);
-	requireText(*session, QStringLiteral("Search for:"));
-	typeText(*session, QStringLiteral("needle"));
-	session->send(Keys::Enter);
-	requireText(*session, QStringLiteral("Search completed, 1 items found"));
-	CHECK(session->screen().contains(QDir::toNativeSeparators(QStringLiteral("sub/needle.txt")))); // Relative to the folder searched in
+	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 1 item found"));
+	const QString result = QDir::toNativeSeparators(QStringLiteral("sub/needle.txt")); // Relative to the folder searched in
+	CHECK(session->screen().contains(result));
 
 	session->send(Keys::Enter); // The results have the focus once the search completes
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Search for:")) && cursorIsOn(screen, QStringLiteral("needle.txt")); },
 		QStringLiteral("the cursor on the result, in its folder"));
+
+	// The dialog opens again with the results
+	session->send(Keys::AltF7);
+	requireText(*session, QStringLiteral("Search completed, 1 item found"));
+	CHECK(session->screen().contains(result));
+}
+
+TEST_CASE("F3 on a search result opens the pager on it", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
+	sandbox.createFile(QStringLiteral("work/sub/viewed.txt"));
+	const QString recordPath = sandbox.path(QStringLiteral("record.txt"));
+	auto session = startFcterm(sandbox, { .variables = { { QStringLiteral("PAGER"), recordingCommand(recordPath) } } });
+	goTo(*session, sandbox.work({}), QStringLiteral("sub"));
+
+	findByName(*session, QStringLiteral("viewed"), QStringLiteral("Search completed, 1 item found"));
+	session->send(Keys::F3);
+	requireScreen(*session, [&](const CTerminalScreen&) { return QFile::exists(recordPath); }, QStringLiteral("the stub's record"));
+	requireRecordedLaunch(recordedLines(recordPath), sandbox.work(QStringLiteral("sub/viewed.txt")));
+}
+
+TEST_CASE("Alt+F7 starts with the name last searched, in the next session too", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/needle.txt"));
+	{
+		auto session = startFcterm(sandbox);
+		goTo(*session, sandbox.work({}), QStringLiteral("needle.txt"));
+		findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 1 item found"));
+		session->send(Keys::Escape);
+		requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Search for:")); }, QStringLiteral("the dialog closed"));
+		session->send(Keys::AltX);
+		REQUIRE(session->waitForExit() == 0);
+	}
+
+	auto session = startFcterm(sandbox);
+	session->send(Keys::AltF7);
+	requireText(*session, QStringLiteral("Search for:"));
+	CHECK(session->screen().row(rowWith(session->screen(), QStringLiteral("Search for:"))).contains(QStringLiteral("needle")));
+}
+
+TEST_CASE("Alt+F7 without partial match matches whole names, and says when the contents regex is invalid", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/needle.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("needle.txt"));
+
+	session->send(Keys::AltF7);
+	requireText(*session, QStringLiteral("[X] Partial match"));
+	const int nameRow = rowWith(session->screen(), QStringLiteral("Search for:"));
+	const auto focusName = [&] {
+		session->send(Keys::AltF);
+		requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() == nameRow; }, QStringLiteral("the cursor in the name field"));
+	};
+	session->send(Keys::AltP);
+	requireText(*session, QStringLiteral("[ ] Partial match"));
+	focusName();
+	typeText(*session, QStringLiteral("needle"));
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("Search completed, 0 items found"));
+	typeText(*session, QStringLiteral(".txt"));
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("Search completed, 1 item found"));
+
+	session->send(Keys::AltC);
+	requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() > nameRow; }, QStringLiteral("the cursor in the contents field"));
+	typeText(*session, QStringLiteral("("));
+	session->send(Keys::AltR);
+	requireText(*session, QStringLiteral("[X] Regex"));
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("The contents pattern is not a valid regular expression"));
 }
 
 TEST_CASE("Alt+F7 finds files by their contents", "[tui]")
@@ -415,9 +506,15 @@ TEST_CASE("Alt+F7 finds files by their contents", "[tui]")
 	requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() != nameRow; }, QStringLiteral("the cursor in the contents field"));
 	typeText(*session, QStringLiteral("yellow"));
 	session->send(Keys::Enter);
-	requireText(*session, QStringLiteral("Search completed, 1 items found"));
+	requireText(*session, QStringLiteral("Search completed, 1 item found"));
 	CHECK(session->screen().contains(QStringLiteral("banana.txt")));
 	CHECK_FALSE(session->screen().contains(QStringLiteral("apple.txt"))); // The dialog covers the panels
+
+	// A letter typed in the results stays there: the check boxes take theirs without Alt from a view that leaves them
+	session->send("r"sv);
+	session->send(Keys::AltF);
+	requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() == nameRow; }, QStringLiteral("the cursor back in the name field"));
+	CHECK(session->screen().contains(QStringLiteral("[ ] Regex")));
 }
 
 TEST_CASE("Alt+F7 copes with searches too long for Turbo Vision's field history", "[tui]")
@@ -429,10 +526,10 @@ TEST_CASE("Alt+F7 copes with searches too long for Turbo Vision's field history"
 		QSettings settings{ sandbox.path(QStringLiteral("settings/GitHubSoft/File Commander.ini")), QSettings::IniFormat };
 		settings.setValue(QStringLiteral("FileSearchDialog/Ui/RootFolder"), QStringList{ longEntry, sandbox.work({}) });
 	}
-	// Selected, their paths make a "Search in" text longer than Turbo Vision's whole history block
+	// Selected, their paths make a "Search in" text over 1 KiB, with the needle in the last of them
 	for (int i = 0; i < 40; ++i)
 		REQUIRE(QDir{ sandbox.work({}) }.mkdir(QStringLiteral("folder-%1").arg(i, 2, 10, QChar{ u'0' })));
-	sandbox.createFile(QStringLiteral("work/folder-03/needle.txt"));
+	sandbox.createFile(QStringLiteral("work/folder-39/needle.txt"));
 
 	auto session = startFcterm(sandbox);
 	goTo(*session, sandbox.work({}), QStringLiteral("folder-00"));
@@ -443,8 +540,8 @@ TEST_CASE("Alt+F7 copes with searches too long for Turbo Vision's field history"
 	session->send(Keys::AltF7);
 	requireText(*session, QStringLiteral("Search for:"));
 	typeText(*session, QStringLiteral("needle"));
-	session->send(Keys::Enter); // Pressing the Search button records every field's text
-	requireText(*session, QStringLiteral("Search completed, 1 items found"));
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("Search completed, 1 item found"));
 	CHECK(session->screen().contains(QStringLiteral("needle.txt")));
 
 	session->send(Keys::Escape);
