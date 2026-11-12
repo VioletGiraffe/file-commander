@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ctuirowlist.h"
+
 #include "cfilesystemobject.h"
 #include "filelist/filelistsorter.h"
 
@@ -15,9 +17,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 #include <vector>
-
-// Posted to the owner on a double click; the owner activates the item under the cursor
-inline constexpr ushort cmActivateFileListItem = 1000;
 
 // A column's cells in a row; one column per sort field
 struct FileListColumn
@@ -47,8 +46,8 @@ private:
 	Qt::SortOrder _sortOrder = Qt::AscendingOrder;
 };
 
-// A panel's rows with a cursor. Not TListViewer: it counts rows in short, and a folder can hold more.
-class CTuiFileList final : public TView
+// A panel's rows
+class CTuiFileList final : public CTuiRowList
 {
 public:
 	CTuiFileList(const TRect& bounds, TScrollBar* verticalScrollBar) noexcept;
@@ -59,9 +58,6 @@ public:
 	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it
 	void setRows(std::vector<CFileSystemObject> rows, qulonglong cursorItemHash, int fallbackRow);
 	[[nodiscard]] const CFileSystemObject* currentRow() const noexcept; // nullptr when there are no rows
-	[[nodiscard]] int cursorRow() const noexcept { return _cursorRow; }
-	// Clamps row to the list
-	void moveCursorTo(int row);
 
 	void setSelectedItems(const std::vector<qulonglong>& itemHashes);
 	[[nodiscard]] bool isSelected(qulonglong itemHash) const noexcept;
@@ -70,19 +66,13 @@ public:
 	std::function<void(const CFileSystemObject& row)> onCursorMoved;
 
 	void draw() override;
-	void handleEvent(TEvent& event) override;
-	void changeBounds(const TRect& bounds) override;
-	void setState(ushort aState, Boolean enable) override;
 
 private:
-	// Scrolls the minimum needed to show the cursor row, then redraws
-	void scrollToCursor();
+	[[nodiscard]] int rowCount() const noexcept override;
+	void cursorMovedByUser() override;
 
 private:
 	std::vector<CFileSystemObject> _rows;
 	ankerl::unordered_dense::set<qulonglong, identity_hash> _selectedItemHashes;
-	TScrollBar* _verticalScrollBar;
 	FileListSortField _sortField = FileListSortField::Name;
-	int _cursorRow = 0;
-	int _topRow = 0;
 };

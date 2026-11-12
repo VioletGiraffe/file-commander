@@ -313,7 +313,7 @@ static void openDocument(const QString& filePath)
 {
 	switch (key.keyCode)
 	{
-	case kbEnter: return cmActivateFileListItem;
+	case kbEnter: return cmActivateRowUnderCursor;
 	case kbBack: return cmGoUp;
 	case kbIns: return cmToggleSelectionAndMoveDown;
 	default: break;
@@ -428,7 +428,7 @@ bool CTuiPanel::runCommand(const ushort command)
 		break;
 	case cmNextTab: activateNeighbourTab(1); break;
 	case cmPreviousTab: activateNeighbourTab(-1); break;
-	case cmActivateFileListItem: activateCurrentItem(); break;
+	case cmActivateRowUnderCursor: activateCurrentItem(); break;
 	case cmGoUp: _controller.navigateUp(_side); break;
 	case cmGoBack: _controller.navigateBack(_side); break;
 	case cmGoForward: _controller.navigateForward(_side); break;

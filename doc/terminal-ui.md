@@ -12,6 +12,7 @@ ends need lives in the core, which returns the text to show and the program to r
 | Event loop, the two bottom rows, running a program | `app/src/ctuiapplication.{h,cpp}` |
 | One side: its listing, keys and commands | `app/src/ctuipanel.{h,cpp}` |
 | The rows, their columns and the column header | `app/src/ctuifilelist.{h,cpp}` |
+| A list's cursor, scrolling, keys and mouse | `app/src/ctuirowlist.{h,cpp}` |
 | Dialogs | `app/src/ctuidialogs.{h,cpp}` |
 | Colours | `app/src/ctuipalette.{h,cpp}` |
 | Copy, move, delete | `app/src/ctuifileoperations.{h,cpp}` |
@@ -32,7 +33,8 @@ dialog is open.
   strip shows while the side has more than one tab. [tabs.md](tabs.md) has the core's side.
 - The rows are a copy of `CPanel::visibleItems()`. Sorting, the name filter and the selection belong to the `CPanel`,
   as in the Qt UI; the list shows a copy of the selection, refreshed after every change made through the core.
-- `CTuiFileList` is a plain `TView`, not a `TListViewer`: that counts rows in `short`, and a folder can hold more.
+- `CTuiFileList` builds on `CTuiRowList`, a plain `TView` with a cursor, not on `TListViewer`: that counts rows in
+  `short`, and a folder can hold more.
 - The columns are Name, Ext, Size and Date, as many as the panel's width fits. Name and the sorted column always stay.
   `fileListColumns` makes this choice for the rows and for the header above them, so layout decisions by width go
   there. A click on a header title sorts by that column.
