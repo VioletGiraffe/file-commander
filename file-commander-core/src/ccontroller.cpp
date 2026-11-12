@@ -149,8 +149,12 @@ void CController::shutdown()
 
 	// Capture the final state (notably each tab's cursor position, which pure cursor moves don't otherwise persist)
 	// before stopping and destroying the panels.
+	// Written even when unchanged: another instance sharing the settings may have written since, and the instance closed last wins.
 	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+	{
+		_lastSavedTabSignature[(size_t)p].clear();
 		savePanelState(p);
+	}
 	saveHistory();
 
 	// One-time cleanup of superseded keys: the cursor hashes now live inside the tab records savePanelState just wrote,

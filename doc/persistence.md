@@ -14,8 +14,9 @@ UI keys are file-local defines at the top of the `.cpp` that owns them (`cmainwi
 - the side-wide visited-location log;
 - the last directory visited on each volume, per side, which `switchToVolume` returns to.
 
-Legacy single-path settings migrate to one tab. Tab state is saved after committed panel updates and at shutdown,
-with duplicate signatures suppressed so watcher refreshes do not rewrite unchanged settings. History is saved
+Legacy single-path settings migrate to one tab. Tab state is saved after committed panel updates, with duplicate
+signatures suppressed so watcher refreshes do not rewrite unchanged settings, and at shutdown unconditionally: among
+instances sharing the settings, the one closed last wins. History is saved
 periodically and at shutdown rather than on every navigation.
 
 UI-only state remains outside the controller. `CPanelWidget` persists every tab's column layout under its

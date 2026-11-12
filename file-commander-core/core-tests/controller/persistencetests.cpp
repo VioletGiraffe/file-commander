@@ -74,6 +74,24 @@ TEST_CASE("CController - the id of a closed tab is not given to a tab opened aft
 	CHECK(session->addTab(Panel::LeftPanel, tree.path()) != closedId);
 }
 
+TEST_CASE("CController - the instance closed last saves its tabs, though they did not change", "[controller][persistence]")
+{
+	clearSavedState();
+	TempTree tree;
+	const QString mine = tree.makeDir(QStringLiteral("mine"));
+	const QString other = tree.makeDir(QStringLiteral("other"));
+
+	{
+		ControllerSession session;
+		session->addTab(Panel::LeftPanel, mine); // Saved now
+		// Another instance sharing the settings saves its own tabs
+		QSettings{}.setValue(KEY_LPANEL_TABS, QStringList{ other + '/' });
+	}
+
+	ControllerSession session;
+	CHECK(session->tabPath(Panel::LeftPanel, session->activeTabId(Panel::LeftPanel)) == mine + '/');
+}
+
 TEST_CASE("CController - the superseded tab id counter is removed from the settings at exit", "[controller][persistence]")
 {
 	clearSavedState();
