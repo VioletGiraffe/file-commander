@@ -225,7 +225,7 @@ private:
 		size_t activeTab = 0;
 	};
 	// Creates a CPanel for side p with the given id, wires its listeners, appends it as a new tab and returns it.
-	// Does NOT set a path. The id must be one no other tab has ever had; see KEY_NEXT_TAB_ID.
+	// Does NOT set a path. The id must be one no other tab has ever had: the UI keys its per-tab column state by id.
 	CPanel& createTab(Panel p, qulonglong id);
 	// Attaches all of side p's recorded contents/cursor listeners to a freshly created tab.
 	void attachListenersToTab(Panel p, CPanel& tab);
@@ -261,7 +261,6 @@ private:
 	// Stopped in ~CController, not shutdown(), so its users can still run and retire tasks while they're alive.
 	CThreadPool             _workerPool;
 	std::array<TabList, 2> _panels;
-	qulonglong             _nextTabId = 1; // 0 is reserved as "no tab"/invalid
 	std::array<std::vector<QString>, 2> _closedTabPaths; // Most recent last; see takeLastClosedTabPath()
 	// Listeners attached to every tab of a side; recorded so tabs created later also get them.
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;

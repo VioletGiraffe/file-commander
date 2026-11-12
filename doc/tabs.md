@@ -7,9 +7,10 @@ Tabs cross core ownership, UI model/view state, notifications, worker lifetime, 
 
 Until controller shutdown, each side owns one or more `CPanel` tabs and an active position. Stable nonzero tab IDs
 survive vector growth and reordering; positions do not. They also survive restarts and are never reused, so an id
-names one tab for good and persisted state can be keyed by it. Core calls and notifications identify tabs by ID, and
-the tab bar stores that ID as tab data. Resolve positions immediately before acting because another operation may
-have changed the ordering.
+names one tab for good and persisted state can be keyed by it. IDs are random 64-bit numbers: instances sharing the
+settings, the GUI and the terminal UI included, may run at the same time, and a shared counter would hand them the
+same ids. Core calls and notifications identify tabs by ID, and the tab bar stores that ID as tab data. Resolve
+positions immediately before acting because another operation may have changed the ordering.
 
 Side-wide listeners attach to every tab. The controller publishes only the active tab to each subscribed plugin
 proxy. Visible consumers filter notifications against the active tab ID; folder path is not an identity because
@@ -33,10 +34,10 @@ records the path as given, without reading the disk, so a tab restored from sett
 time it is activated. Activation arms the watch and lists the folder, which is also how a tab picks up changes made
 while it was inactive.
 
-`CController` persists one entry per tab -- id, path, cursor hash, sorting -- plus the active position and the id
-counter, including migration from legacy single-path settings. Its stack of each side's recently closed tab folders
-is not persisted. `CPanelWidget` persists each tab's column layout against those ids. See
-[persistence.md](persistence.md) for save timing and history scope.
+`CController` persists one entry per tab -- id, path, cursor hash, sorting -- plus the active position, including
+migration from legacy single-path settings. Its stack of each side's recently closed tab folders is not persisted.
+`CPanelWidget` persists each tab's column layout against those ids. See [persistence.md](persistence.md) for save
+timing and history scope.
 
 When changing tab creation, activation, close, or reorder, verify stable-ID mapping, core/UI ordering, active-model
 attachment, notification filtering, watcher activation, task retirement, and persistence independently.

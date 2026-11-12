@@ -9,7 +9,7 @@ UI keys are file-local defines at the top of the `.cpp` that owns them (`cmainwi
 `CController` owns persistent navigation state:
 
 - one entry per tab holding its id, path, cursor hash and sorting;
-- the active position, and the counter tab ids are drawn from;
+- the active position;
 - the active tab's back/forward history;
 - the side-wide visited-location log;
 - the last directory visited on each volume, per side, which `switchToVolume` returns to.

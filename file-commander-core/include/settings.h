@@ -24,14 +24,11 @@
 #define KEY_LPANEL_ACTIVE_TAB QSL("Internal/Core/LPanel/ActiveTab")
 #define KEY_RPANEL_ACTIVE_TAB QSL("Internal/Core/RPanel/ActiveTab")
 
-// Tab ids are handed out from here and never reused: the UI keys its per-tab column state by id, and a reused id
-// would attach one tab's columns to another. Must not be recomputed from the ids of the tabs that came back - a
-// closed tab's id would be handed out again.
-#define KEY_NEXT_TAB_ID QSL("Internal/Core/NextTabId")
-
 // Superseded by the cursor hash inside each KEY_*PANEL_TABS entry: read once to migrate, then removed at shutdown.
 #define KEY_LPANEL_TAB_CURSORS QSL("Internal/Core/LPanel/TabCursors")
 #define KEY_RPANEL_TAB_CURSORS QSL("Internal/Core/RPanel/TabCursors")
+// The counter tab ids were drawn from before they were random: removed at shutdown.
+#define KEY_NEXT_TAB_ID QSL("Internal/Core/NextTabId")
 
 #define KEY_LAST_COMMANDS_EXECUTED QSL("Internal/Interface/LastCommandsExecuted")
 

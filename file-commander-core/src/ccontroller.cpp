@@ -11,6 +11,7 @@
 #include "fileoperations/centrypath.h"
 #include "fileoperations/entrycreation.h"
 #include "fileoperations/fileoperationtexts.h"
+#include "random/randomnumbergenerator.h"
 #include "system/cpuinfo.hpp"
 #include "threading/thread_helpers.h"
 
@@ -83,6 +84,12 @@ namespace {
 		return tab;
 	}
 
+	// Random: instances sharing the settings may run at the same time, and a counter there would hand them the same ids.
+	// The minimum of 1 keeps out 0, which means "no tab".
+	[[nodiscard]] qulonglong newTabId() {
+		return EntropySeededRNG<qulonglong, 1>::next();
+	}
+
 	inline uint32_t optimalCpuCount() {
 		const auto cpu = CpuCount::get();
 		uint32_t optimalCores = std::max(cpu.performanceCoreCount(), cpu.efficiencyCoreCount());
@@ -146,13 +153,14 @@ void CController::shutdown()
 		savePanelState(p);
 	saveHistory();
 
-	// One-time cleanup: the cursor hashes now live inside the tab records savePanelState just wrote. Removing a key
-	// that isn't there still dirties the settings, so check first - this runs on every exit for the rest of time.
-	QSettings legacyCursorKeys;
-	for (const QString& key : { KEY_LPANEL_TAB_CURSORS, KEY_RPANEL_TAB_CURSORS })
+	// One-time cleanup of superseded keys: the cursor hashes now live inside the tab records savePanelState just wrote,
+	// and tab ids are random. Removing a key that isn't there still dirties the settings, so check first - this runs on
+	// every exit for the rest of time.
+	QSettings supersededKeys;
+	for (const QString& key : { KEY_LPANEL_TAB_CURSORS, KEY_RPANEL_TAB_CURSORS, KEY_NEXT_TAB_ID })
 	{
-		if (legacyCursorKeys.contains(key))
-			legacyCursorKeys.remove(key);
+		if (supersededKeys.contains(key))
+			supersededKeys.remove(key);
 	}
 
 	_volumeEnumerator.shutdown();
@@ -331,7 +339,7 @@ qulonglong CController::addTab(Panel p, const QString& path, bool activate, qulo
 			sortingSource = _panels[(size_t)p].tabs[*sourceIndex].get(); // Owned through unique_ptr: createTab's vector growth keeps it valid
 	}
 
-	CPanel& tab = createTab(p, _nextTabId++);
+	CPanel& tab = createTab(p, newTabId());
 	if (sortingSource)
 		tab.setSorting(sortingSource->sortField(), sortingSource->sortOrder());
 	tab.setPath(path, refreshCauseOther); // Fires onCurrentPathChanged -> logs the new tab's path to the visited-locations list
@@ -539,24 +547,16 @@ void CController::restorePanelState(Panel p)
 
 	std::vector<PersistedTab> persistedTabs;
 	persistedTabs.reserve((size_t)tabRecords.size());
-	qulonglong highestPersistedId = 0;
 	for (int i = 0; i < tabRecords.size(); ++i)
 	{
 		PersistedTab tab = parseTabRecord(tabRecords[i]);
-		if (tab.id == 0 && i < legacyCursors.size())
-			tab.cursorHash = legacyCursors[i].toULongLong();
-
-		highestPersistedId = std::max(highestPersistedId, tab.id);
-		persistedTabs.push_back(std::move(tab));
-	}
-
-	// Both sides draw ids from this one counter, so never lower it. highestPersistedId covers a counter lost to an
-	// abrupt exit.
-	_nextTabId = std::max({ _nextTabId, s.value(KEY_NEXT_TAB_ID, 1).toULongLong(), highestPersistedId + 1 });
-	for (PersistedTab& tab : persistedTabs)
-	{
 		if (tab.id == 0)
-			tab.id = _nextTabId++;
+		{
+			if (i < legacyCursors.size())
+				tab.cursorHash = legacyCursors[i].toULongLong();
+			tab.id = newTabId();
+		}
+		persistedTabs.push_back(std::move(tab));
 	}
 
 	// v1 restores only the active tab's history (saved under the legacy key).
@@ -622,7 +622,6 @@ void CController::savePanelState(Panel p)
 	QSettings s;
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_TABS : KEY_RPANEL_TABS, tabRecords);
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_ACTIVE_TAB : KEY_RPANEL_ACTIVE_TAB, activeIndex);
-	s.setValue(KEY_NEXT_TAB_ID, _nextTabId);
 
 	// Mirror the active tab's path to the legacy key (back-compat + crash recovery).
 	s.setValue(p == Panel::LeftPanel ? KEY_LPANEL_PATH : KEY_RPANEL_PATH, tabList.tabs[tabList.activeTab]->currentDirPathPosix());

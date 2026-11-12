@@ -1,6 +1,5 @@
 #include "controllertesthelpers.h"
 
-#include <algorithm>
 #include <vector>
 
 TEST_CASE("CController - tabs are restored as they were saved", "[controller][persistence]")
@@ -71,30 +70,18 @@ TEST_CASE("CController - the id of a closed tab is not given to a tab opened aft
 		session->closeTab(Panel::LeftPanel, closedId);
 	}
 
-	// No restored tab has the closed tab's id, so only the saved id counter can rule it out
 	ControllerSession session;
-	CHECK(session->addTab(Panel::LeftPanel, tree.path()) > closedId);
+	CHECK(session->addTab(Panel::LeftPanel, tree.path()) != closedId);
 }
 
-TEST_CASE("CController - without the saved id counter, a new tab still gets an id no restored tab has", "[controller][persistence]")
+TEST_CASE("CController - the superseded tab id counter is removed from the settings at exit", "[controller][persistence]")
 {
 	clearSavedState();
-	TempTree tree;
-
+	QSettings{}.setValue(KEY_NEXT_TAB_ID, 7);
 	{
 		ControllerSession session;
-		session->addTab(Panel::LeftPanel, tree.path());
-		session->addTab(Panel::RightPanel, tree.path());
 	}
-	// As after an abrupt exit that saved the tabs but not the counter
-	QSettings{}.remove(KEY_NEXT_TAB_ID);
-
-	ControllerSession session;
-	std::vector<qulonglong> restoredIds = session->tabIds(Panel::LeftPanel);
-	const std::vector<qulonglong> rightIds = session->tabIds(Panel::RightPanel);
-	restoredIds.insert(restoredIds.end(), rightIds.begin(), rightIds.end());
-
-	CHECK(session->addTab(Panel::LeftPanel, tree.path()) > std::ranges::max(restoredIds));
+	CHECK_FALSE(QSettings{}.contains(KEY_NEXT_TAB_ID));
 }
 
 TEST_CASE("CController - saved tab records are read in all of their formats", "[controller][persistence]")
@@ -113,15 +100,13 @@ TEST_CASE("CController - saved tab records are read in all of their formats", "[
 		settings.setValue(KEY_LPANEL_TABS, QStringList{ QStringLiteral("7:%1:%2/").arg(hashOf(fileInA)).arg(folderA), folderB + '/',
 			QStringLiteral("9:0:%1:%2:%3/").arg((int)FileListSortField::Size).arg((int)Qt::DescendingOrder).arg(folderC) });
 		settings.setValue(KEY_LPANEL_ACTIVE_TAB, 1);
-		// A counter that fell behind the saved ids: the record without an id must still not get id 7 or 9
-		settings.setValue(KEY_NEXT_TAB_ID, 7);
 	}
 
 	ControllerSession session;
 	const std::vector<qulonglong> ids = session->tabIds(Panel::LeftPanel);
 	REQUIRE(ids.size() == 3);
 	CHECK(ids[0] == 7u);
-	CHECK(ids[1] > 9u);
+	CHECK((ids[1] != 0u && ids[1] != 7u && ids[1] != 9u));
 	CHECK(ids[2] == 9u);
 	CHECK(session->activeTabId(Panel::LeftPanel) == ids[1]);
 	CHECK(session->tabPath(Panel::LeftPanel, ids[0]) == folderA + '/');
