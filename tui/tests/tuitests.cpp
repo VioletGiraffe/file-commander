@@ -568,12 +568,14 @@ TEST_CASE("Send to panel lists the search results in the panel, and Ctrl+G goes 
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Search for:")) && panelLists(screen, inSub) && panelLists(screen, inOther); },
 		QStringLiteral("both results in the panel"));
 	CHECK_FALSE(panelLists(session->screen(), QStringLiteral("hay.txt")));
+	CHECK(session->screen().contains(QStringLiteral("Search results: ")));
 
 	session->send(Keys::Home); // Sorted by extension: md first
 	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("needle.md")); }, QStringLiteral("the cursor on needle.md"));
 	session->send(Keys::CtrlG);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return !panelLists(screen, inSub) && cursorIsOn(screen, QStringLiteral("needle.md")); },
 		QStringLiteral("the cursor on needle.md in its folder"));
+	CHECK_FALSE(session->screen().contains(QStringLiteral("Search results")));
 }
 
 TEST_CASE("Ctrl+S hides and shows hidden files", "[tui]")

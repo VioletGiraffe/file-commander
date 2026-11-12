@@ -87,7 +87,8 @@ private:
 	// The tab strip, while shown, takes the first row and the column header the next; the filter line, the row above the status line
 	void layOutViews();
 
-	void setTitle(const QString& text);
+	// The folder, after "Search results: " while the panel shows them
+	void updateTitle();
 	[[nodiscard]] bool isActiveTab(Panel p, qulonglong tabId) const;
 
 private:

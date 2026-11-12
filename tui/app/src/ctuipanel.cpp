@@ -419,7 +419,7 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	_fileList->setRows({}, {}, 0, 0);
 	_fileList->setSelectedItems({});
 	updateStatusLine();
-	setTitle(_controller.panel(_side).currentDirPathNative());
+	updateTitle();
 	updateTabStrip();
 }
 
@@ -437,7 +437,7 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
 
 	showCoreSelection();
-	setTitle(panel.currentDirPathNative());
+	updateTitle();
 	updateTabStrip();
 }
 
@@ -713,8 +713,11 @@ void CTuiPanel::layOutViews()
 	_fileList->changeBounds({ interior.a.x, listTop, interior.b.x, _filterLine->state & sfVisible ? filterRow : statusRow });
 }
 
-void CTuiPanel::setTitle(const QString& text)
+void CTuiPanel::updateTitle()
 {
+	const CPanel& panel = _controller.panel(_side);
+	// The label comes first: the frame cuts a long title at its end
+	const QString text = panel.displayMode() == CPanel::SearchResultsMode ? QStringLiteral("Search results: ") + panel.currentDirPathNative() : panel.currentDirPathNative();
 	const QByteArray utf8 = text.toUtf8();
 	delete[] const_cast<char*>(title);
 	title = newStr(TStringView{ utf8.constData(), (size_t)utf8.size() });
