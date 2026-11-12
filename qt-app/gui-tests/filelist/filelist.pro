@@ -13,6 +13,9 @@ QMAKE_CFLAGS   -= -flto=auto -ffat-lto-objects -flto=thin
 QMAKE_CXXFLAGS -= -flto=auto -ffat-lto-objects -flto=thin
 QMAKE_LFLAGS   -= -flto=auto -flto=thin
 
+# C4702 in Qt's qnumeric.h comes from link-time code generation, which the warning pragmas around Qt includes don't cover
+win*:QMAKE_CXXFLAGS += /wd4702
+
 DESTDIR  = ../../../bin/$${OUTPUT_DIR}
 OBJECTS_DIR = ../../../build/$${OUTPUT_DIR}/$${TARGET}
 MOC_DIR     = ../../../build/$${OUTPUT_DIR}/$${TARGET}

@@ -109,6 +109,9 @@ include(../file-operations/libraries/fileoperationsui.pri)
 include(../file-commander-core/pluginapi.pri)
 
 win*{
+	# C4702 in Qt's qnumeric.h comes from link-time code generation, which the warning pragmas around Qt includes don't cover
+	QMAKE_CXXFLAGS += /wd4702
+
 	LIBS += -lole32 -lShell32 -lUser32 -lMpr
 
 	RC_ICONS = resources/icon.ico
