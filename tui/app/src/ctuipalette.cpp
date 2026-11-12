@@ -58,7 +58,7 @@ constexpr TColorAttr grayDialogColors[]{
 	{ navy, amber },       // Button default
 	{ white, amber },      // Button selected
 	{ darkGrey, grey },    // Button disabled
-	{ navy, amber },       // Button shortcut
+	{ yellow, amber },     // Button shortcut
 	{ black, grey },       // Button shadow
 	{ black, cyan },       // Cluster normal
 	{ white, cyan },       // Cluster selected
