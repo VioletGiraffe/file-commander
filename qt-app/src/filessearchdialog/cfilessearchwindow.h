@@ -29,7 +29,7 @@ class CIconProvider;
 class CFilesSearchWindow final : public QMainWindow, public CFileSearchEngine::FileSearchListener
 {
 public:
-	CFilesSearchWindow(const std::vector<QString>& targets, CIconProvider& iconProvider, QWidget* parent);
+	CFilesSearchWindow(const QString& initialSearchInText, CIconProvider& iconProvider, QWidget* parent);
 	~CFilesSearchWindow() override;
 
 	void itemScanned(const QString& currentItem) override;

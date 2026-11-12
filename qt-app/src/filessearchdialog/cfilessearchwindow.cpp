@@ -5,7 +5,7 @@
 
 #include "ccontroller.h"
 #include "cfilesystemobject.h"
-#include "filelist/filenamefilter.h"
+#include "filesearchengine/filesearchquery.h"
 #include "filesystemhelperfunctions.h"
 
 
@@ -59,7 +59,7 @@ public:
 	}
 };
 
-CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, CIconProvider& iconProvider, QWidget* parent) :
+CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIconProvider& iconProvider, QWidget* parent) :
 	QMainWindow(parent),
 	_iconProvider(iconProvider),
 	ui(new Ui::CFilesSearchWindow)
@@ -77,14 +77,7 @@ CFilesSearchWindow::CFilesSearchWindow(const std::vector<QString>& targets, CIco
 	ui->fileContentsToFind->lineEdit()->clear(); // A prefilled pattern would silently restrict the search to files containing it
 	ui->searchRoot->setSettingsKeyForHistoryPersistence(SETTINGS_ROOT_FOLDER);
 
-	QString pathsToSearchIn;
-	for (size_t i = 0; i < targets.size(); ++i)
-	{
-		pathsToSearchIn.append(targets[i]);
-		if (i < targets.size() - 1)
-			pathsToSearchIn.append(QSL("; "));
-	}
-	ui->searchRoot->setCurrentText(toNativeSeparators(pathsToSearchIn));
+	ui->searchRoot->setCurrentText(initialSearchInText);
 
 	QSettings s;
 	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
@@ -257,37 +250,17 @@ void CFilesSearchWindow::search()
 	const QString filtersString = ui->nameToFind->currentText();
 	const QString withText = ui->fileContentsToFind->currentText();
 
-	QStringList filters = splitNameFilterField(filtersString);
+	const FileSearchQuery query{
+		.roots = rootsFromSearchInField(ui->searchRoot->currentText(), CController::get().activePanel().currentDirPathPosix()),
+		.nameFilters = nameFiltersFromSearchField(filtersString, ui->cbNamePartialMatch->isChecked()),
+		.nameCaseSensitive = ui->cbNameCaseSensitive->isChecked(),
+		.contents = withText,
+		.contentsCaseSensitive = ui->cbContentsCaseSensitive->isChecked(),
+		.contentsWholeWords = ui->cbContentsWholeWords->isChecked(),
+		.contentsIsRegex = ui->cbRegexFileContents->isChecked()
+	};
 
-	// Partial match is the engine's own language, where an unanchored filter matches anywhere in the name. Anchoring
-	// both ends turns it into a whole-name match, and demotes any '^' or '$' the user typed to a literal character.
-	if (!ui->cbNamePartialMatch->isChecked())
-	{
-		for (QString& what : filters)
-		{
-			if (what != '*') // Already matches any name, and anchoring it would cost the engine its no-filter shortcut
-				what.prepend('^').append('$');
-		}
-	}
-
-	const QString baseDir = CController::get().activePanel().currentDirPathPosix();
-	QStringList roots;
-	for (const QString& root : ui->searchRoot->currentText().split(QSL("; ")))
-	{
-		if (QString resolvedRoot = resolveUserPath(root, baseDir); !resolvedRoot.isEmpty())
-			roots.push_back(std::move(resolvedRoot));
-	}
-
-	if (_engine.search(
-		filters,
-		ui->cbNameCaseSensitive->isChecked(),
-		roots,
-		withText,
-		ui->cbContentsCaseSensitive->isChecked(),
-		ui->cbContentsWholeWords->isChecked(),
-		ui->cbRegexFileContents->isChecked(),
-		this /* listener */)
-	)
+	if (_engine.search(query, this))
 	{
 		_searchActive = true;
 		ui->nameToFind->addToHistory(ui->nameToFind->currentText());

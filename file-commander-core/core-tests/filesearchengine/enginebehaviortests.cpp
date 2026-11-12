@@ -92,7 +92,7 @@ TEST_CASE("Search - the engine is reusable once a search has finished", "[search
 {
 	TempTree tree;
 	const QString file = tree.makeFile(QSL("a.txt"));
-	const SearchQuery query{ .roots = { tree.path() }, .nameFilters = { QSL("*.txt") } };
+	const FileSearchQuery query{ .roots = { tree.path() }, .nameFilters = { QSL("*.txt") } };
 
 	SearchRunner runner;
 	CHECK(runner.run(query).matched(file));

@@ -1,19 +1,15 @@
 #pragma once
 
 // Submodule includes
-#include "compiler/compiler_warnings_control.h"
 #include "threading/cinterruptablethread.h"
 
-
-DISABLE_COMPILER_WARNINGS
-#include <qcontainerfwd.h>
-RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
 #include <stdint.h>
 
 class CFileSystemObject;
 class QString;
+struct FileSearchQuery;
 
 class CFileSearchEngine
 {
@@ -39,24 +35,15 @@ public:
 	};
 
 	bool searchInProgress() const;
-	// An empty filter list matches any name, and an empty contentsToFind leaves the contents unexamined; only "where" is required.
-	// Returns false having done nothing if there is nowhere to look, or if a search is already running - stopping that one is the caller's call.
-	[[nodiscard]] bool search(
-		const QStringList& filters, bool subjectCaseSensitive,
-		const QStringList& where,
-		const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
-		FileSearchListener* listener);
+	// Returns false having done nothing if the query has no roots, or if a search is already running - stopping that one is the caller's call.
+	[[nodiscard]] bool search(const FileSearchQuery& query, FileSearchListener* listener);
 
 	void stopSearching();
 	// The worker holds the listener pointer, so anything that owns the listener must wait here before tearing it down
 	void waitForSearchToFinish();
 
 private:
-	void searchThread(
-		const QStringList& filters, bool subjectCaseSensitive,
-		const QStringList& where,
-		const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
-		FileSearchListener* listener, const std::atomic<bool>& cancellationRequested) noexcept;
+	void searchThread(const FileSearchQuery& query, FileSearchListener* listener, const std::atomic<bool>& cancellationRequested) noexcept;
 
 	// Clears the in-progress state before notifying, so the listener never sees "finished" while the engine still reports a search
 	void notifySearchFinished(FileSearchListener* listener, SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed);

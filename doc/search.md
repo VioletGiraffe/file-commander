@@ -1,7 +1,7 @@
 # Search query language
 
-The search dialog and `CFileSearchEngine` jointly implement this user-visible language.
-`nameFilterToRegex()` is authoritative for name matching.
+A search dialog's fields (`filesearchengine/filesearchquery.h`) and `CFileSearchEngine` jointly implement this
+user-visible language. `nameFilterToRegex()` is authoritative for name matching.
 
 ## Name filter
 

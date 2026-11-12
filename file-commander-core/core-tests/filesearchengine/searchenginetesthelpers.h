@@ -5,6 +5,7 @@
 
 #include "cfilesystemobject.h"
 #include "filesearchengine/cfilesearchengine.h"
+#include "filesearchengine/filesearchquery.h"
 
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a path in a failure report
 
@@ -96,19 +97,6 @@ private:
 	return path;
 }
 
-// CFileSearchEngine::search()'s parameter list, named. The defaults describe the most common query: every name,
-// no content filter.
-struct SearchQuery
-{
-	QStringList roots;
-	QStringList nameFilters{ QSL("*") };
-	bool nameCaseSensitive = false;
-	QString contents;
-	bool contentsCaseSensitive = false;
-	bool contentsWholeWords = false;
-	bool contentsIsRegex = false;
-};
-
 struct SearchResult
 {
 	std::vector<QString> matches;
@@ -196,10 +184,9 @@ class SearchRunner
 public:
 	void setItemScannedHook(std::function<void()> hook) { _listener.setItemScannedHook(std::move(hook)); }
 
-	[[nodiscard]] bool start(const SearchQuery& query)
+	[[nodiscard]] bool start(const FileSearchQuery& query)
 	{
-		return _engine.search(query.nameFilters, query.nameCaseSensitive, query.roots,
-			query.contents, query.contentsCaseSensitive, query.contentsWholeWords, query.contentsIsRegex, &_listener);
+		return _engine.search(query, &_listener);
 	}
 
 	void stop() { _engine.stopSearching(); }
@@ -214,7 +201,7 @@ public:
 		return _listener.collect();
 	}
 
-	[[nodiscard]] SearchResult run(const SearchQuery& query)
+	[[nodiscard]] SearchResult run(const FileSearchQuery& query)
 	{
 		REQUIRE(start(query));
 		return finish();
@@ -231,7 +218,7 @@ private:
 };
 
 // One search, start to finish, for the tests that need nothing from it while it runs.
-[[nodiscard]] inline SearchResult runSearch(const SearchQuery& query)
+[[nodiscard]] inline SearchResult runSearch(const FileSearchQuery& query)
 {
 	SearchRunner runner;
 	return runner.run(query);

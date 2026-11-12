@@ -25,6 +25,7 @@ HEADERS += \
 	src/userprograms/userprograms.h \
 	src/filesystemhelperfunctions.h \
 	src/filesearchengine/cfilesearchengine.h \
+	src/filesearchengine/filesearchquery.h \
 	src/panellisting.h \
 	src/fileoperationlaunch.h \
 	src/filelist/filelistsorter.h \
@@ -51,6 +52,7 @@ SOURCES += \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/userprograms/userprograms.cpp \
 	src/filesearchengine/cfilesearchengine.cpp \
+	src/filesearchengine/filesearchquery.cpp \
 	src/panellisting.cpp \
 	src/fileoperationlaunch.cpp \
 	src/filelist/filelistsorter.cpp \

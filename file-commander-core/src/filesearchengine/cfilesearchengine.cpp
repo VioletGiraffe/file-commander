@@ -2,6 +2,7 @@
 
 #include "cfilesystemobject.h"
 #include "filelist/filenamefilter.h"
+#include "filesearchquery.h"
 
 
 // Submodule includes
@@ -183,21 +184,17 @@ bool CFileSearchEngine::searchInProgress() const
 	return _searchInProgress;
 }
 
-bool CFileSearchEngine::search(
-	const QStringList& filters, bool subjectCaseSensitive,
-	const QStringList& where,
-	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
-	FileSearchListener* listener)
+bool CFileSearchEngine::search(const FileSearchQuery& query, FileSearchListener* listener)
 {
-	if (searchInProgress() || where.empty())
+	if (searchInProgress() || query.roots.empty())
 		return false;
 
 	// The previous search reported completion before its thread finished unwinding, and start() requires a joined thread
 	waitForSearchToFinish();
 
 	_searchInProgress = true;
-	_workerThread.start([=, this](const std::atomic<bool>& cancellationRequested) {
-		searchThread(filters, subjectCaseSensitive, where, contentsToFind, contentsCaseSensitive, contentsWholeWords, contentsIsRegex, listener, cancellationRequested);
+	_workerThread.start([this, query, listener](const std::atomic<bool>& cancellationRequested) {
+		searchThread(query, listener, cancellationRequested);
 	});
 
 	return true;
@@ -219,11 +216,7 @@ void CFileSearchEngine::notifySearchFinished(FileSearchListener* listener, Searc
 	listener->searchFinished(status, itemsScanned, inconclusiveItems, msElapsed);
 }
 
-void CFileSearchEngine::searchThread(
-	const QStringList& filters, bool subjectCaseSensitive,
-	const QStringList& where,
-	const QString& contentsToFind, bool contentsCaseSensitive, bool contentsWholeWords, bool contentsIsRegex,
-	FileSearchListener* listener, const std::atomic<bool>& cancellationRequested) noexcept
+void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchListener* listener, const std::atomic<bool>& cancellationRequested) noexcept
 {
 	::setThreadName("File search engine thread");
 
@@ -231,12 +224,12 @@ void CFileSearchEngine::searchThread(
 	CTimeElapsed timer;
 	timer.start();
 
-	const FileNameFilter nameFilter{ filters, subjectCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive };
+	const FileNameFilter nameFilter{ query.nameFilters, query.nameCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive };
 
-	const bool searchByContents = !contentsToFind.isEmpty();
+	const bool searchByContents = !query.contents.isEmpty();
 	// memfind can only look for the byte sequence as given, so case folding and word boundaries both need the regex
 	// engine. (TODO: a case-insensitive memory search is possible, just not with the built-in functions.)
-	const bool useRegexEngine = contentsIsRegex || !contentsCaseSensitive || contentsWholeWords;
+	const bool useRegexEngine = query.contentsIsRegex || !query.contentsCaseSensitive || query.contentsWholeWords;
 
 	QRegularExpression fileContentsRegExp;
 	QByteArray fileContentsPlainText;
@@ -244,11 +237,11 @@ void CFileSearchEngine::searchThread(
 	{
 		if (useRegexEngine)
 		{
-			QString pattern = contentsIsRegex ? contentsToFind : QRegularExpression::escape(contentsToFind);
+			QString pattern = query.contentsIsRegex ? query.contents : QRegularExpression::escape(query.contents);
 			// \b asserts a word/non-word transition, so a query whose own edge is punctuation would demand a word
 			// character just outside the match; these lookarounds only require the absence of one. The group keeps
 			// both applied to the whole pattern - without it, alternation would bind first.
-			if (contentsWholeWords)
+			if (query.contentsWholeWords)
 				pattern.prepend(QLatin1StringView{ "(?<!\\w)(?:" }).append(QLatin1StringView{ ")(?!\\w)" });
 
 			fileContentsRegExp.setPattern(pattern);
@@ -256,7 +249,7 @@ void CFileSearchEngine::searchThread(
 			// \w and \b are ASCII-only without Unicode properties, which would make any non-ASCII letter a word
 			// separator. The name filters need no such option: nothing can put \w or \b into one of their patterns.
 			QRegularExpression::PatternOptions patternOptions = QRegularExpression::UseUnicodePropertiesOption;
-			if (!contentsCaseSensitive)
+			if (!query.contentsCaseSensitive)
 				patternOptions |= QRegularExpression::CaseInsensitiveOption;
 
 			fileContentsRegExp.setPatternOptions(patternOptions);
@@ -268,7 +261,7 @@ void CFileSearchEngine::searchThread(
 			}
 		}
 		else
-			fileContentsPlainText = contentsToFind.toUtf8();
+			fileContentsPlainText = query.contents.toUtf8();
 	}
 
 	ContentSearchContext contentSearchContext{ listener, &fileContentsRegExp, &fileContentsPlainText, &cancellationRequested };
@@ -276,7 +269,7 @@ void CFileSearchEngine::searchThread(
 	ptrdiff_t contentTaskSlotCount = 0;
 	std::unique_ptr<CThreadPool> contentSearchPool;
 
-	for (const QString& pathToLookIn : where)
+	for (const QString& pathToLookIn : query.roots)
 	{
 		scanDirectory(CFileSystemObject(pathToLookIn).fullAbsolutePath(),
 			[&](const QString& parentPath, const thin_io::directory_entry& entry, bool reachedThroughLink) {

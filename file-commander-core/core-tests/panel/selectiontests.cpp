@@ -1,5 +1,6 @@
 #include "paneltesthelpers.h"
 
+#include "filesearchengine/filesearchquery.h"
 #include "filesystemhelperfunctions.h"
 
 #include <algorithm>
@@ -263,6 +264,19 @@ TEST_CASE("CPanel - the path lines hold the selected items, or the current item"
 		panel.setCurrentItemHashForFolder(f.folder, 0, false);
 		CHECK(panel.selectedOrCurrentItemPathLines().isEmpty());
 	}
+}
+
+TEST_CASE("File search - the \"Search in\" field starts with the panel's selected items, or else its folder", "[panel][selection]")
+{
+	ListedFolder f;
+	CPanel& panel = f.h.panel();
+
+	CHECK(searchInFieldTextFor(panel) == panel.currentDirPathNative());
+
+	panel.setSorting(FileListSortField::Name, Qt::DescendingOrder);
+	panel.setItemsSelected({ hashOf(f.a), hashOf(f.b) }, true);
+	CHECK(searchInFieldTextFor(panel) == toNativeSeparators(f.b) + QStringLiteral("; ") + toNativeSeparators(f.a));
+	CHECK(rootsFromSearchInField(searchInFieldTextFor(panel), f.folder) == QStringList{ f.b, f.a });
 }
 
 TEST_CASE("CPanel - the selection summary counts files, folders and their size", "[panel][selection]")

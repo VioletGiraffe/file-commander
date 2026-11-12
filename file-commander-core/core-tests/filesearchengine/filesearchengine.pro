@@ -33,7 +33,8 @@ SOURCES += \
 	main.cpp \
 	namefiltertests.cpp \
 	contentsearchtests.cpp \
-	enginebehaviortests.cpp
+	enginebehaviortests.cpp \
+	searchfieldtests.cpp
 
 HEADERS += \
 	searchenginetesthelpers.h

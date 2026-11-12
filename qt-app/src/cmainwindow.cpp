@@ -27,6 +27,7 @@
 
 #include "settings.h"
 #include "fileoperationlaunch.h"
+#include "filesearchengine/filesearchquery.h"
 #include "pluginengine/cpluginengine.h"
 #include "plugininterface/cfileviewer.h"
 #include "shell/cshell.h"
@@ -1210,16 +1211,8 @@ void CMainWindow::findFiles()
 	if (!_currentFileList)
 		return;
 
-	std::vector<QString> selectedPaths;
-	for (const CFileSystemObject& item : _controller->panel(_currentFileList->panelPosition()).selectedItems())
-		selectedPaths.push_back(item.fullAbsolutePath());
-
-	if (selectedPaths.empty())
-		selectedPaths.push_back(_currentFileList->currentDirPathNative());
-
-
-	auto* fileSearchUi = new CFilesSearchWindow(selectedPaths, _iconProvider, nullptr);
-	fileSearchUi->setAttribute(Qt::WA_DeleteOnClose);
+	// Deletes itself on close
+	auto* fileSearchUi = new CFilesSearchWindow(searchInFieldTextFor(_controller->panel(_currentFileList->panelPosition())), _iconProvider, nullptr);
 	fileSearchUi->show();
 }
 
