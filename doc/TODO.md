@@ -31,6 +31,28 @@ Open decisions, to settle before building:
   has, which needs guarding.
 - UI: an aligned two-column view with a direction and a checkbox per row, or a flat list of differences.
 
+## Terminal UI: colours after running a program, in Windows Terminal
+
+After fcterm runs a program (pager, editor, shell, Enter on a program) in Windows Terminal, the first cursor move
+repaints the whole screen in the terminal's 16-colour palette. Cells redrawn later come back in their own colours.
+
+- Cause: Windows Terminal's ConPTY (seen with 1.22; reproduced with 1.24 and 1.25). It shows a console screen-buffer
+  switch as `ESC[?1049l` and a full repaint, and Turbo Vision switches buffers on every suspend and resume.
+  - After the switch back, the first arrow, Home, End or Tab key arms one more repaint, in 16 colours, sent with the next
+    write.
+  - F12 and letters do not arm it.
+  - The classic console window and the inbox ConPTY are unaffected.
+- No app-side redraw can target it: fcterm cannot tell which input armed the repaint.
+- Fix candidates:
+  - Turbo Vision on the VT alternate screen instead of console screen buffers; this needs a `tvision` fork or an
+    upstream change.
+  - A report to microsoft/terminal.
+- Reproducing:
+  - The `Microsoft.Windows.Console.ConPTY` NuGet package holds `conpty.dll` and `OpenConsole.exe`.
+  - `CTerminalSession` can call that DLL's `ConptyCreatePseudoConsole` and `ConptyClosePseudoConsole` instead of the
+    system's.
+  - Logging the raw output then shows the repaint after Ctrl+O, `exit` and Down.
+
 ## Visited-locations merge
 
 Its design has open questions for the maintainer to settle; not to be changed until then.
