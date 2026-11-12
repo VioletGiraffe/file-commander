@@ -21,7 +21,9 @@ enum PanelPaletteEntry : uchar
 	ppFilterText,
 	ppFilterSelectedText,
 	ppFilterArrows,
-	ppLastEntry = ppFilterArrows
+	ppColumnSeparator, // In the rows and the column header
+	ppCursorColumnSeparator,
+	ppLastEntry = ppCursorColumnSeparator
 };
 
 // Turbo Vision's application palette in RGB, followed by the panel's entries

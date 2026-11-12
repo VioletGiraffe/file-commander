@@ -69,14 +69,17 @@ enum class Side { Left, Right };
 	return false;
 }
 
+// Matches the cells between two columns: spaces, and the separator line before the next column
+const QString columnGap = QStringLiteral("[ ┆]+");
+
 // A row shows a name whole, or with its extension in the Ext column
 [[nodiscard]] bool panelLists(const CTerminalScreen& screen, const QString& name, Side side = Side::Left)
 {
 	const qsizetype dot = name.lastIndexOf(u'.');
 	QString pattern = QRegularExpression::escape(name);
 	if (dot > 0 && dot < name.size() - 1)
-		pattern += u'|' + QRegularExpression::escape(name.left(dot)) + QStringLiteral(" +") + QRegularExpression::escape(name.mid(dot + 1));
-	return panelHasRowMatching(screen, QRegularExpression{ QStringLiteral("^(?:%1)(?: |$)").arg(pattern) }, side);
+		pattern += u'|' + QRegularExpression::escape(name.left(dot)) + columnGap + QRegularExpression::escape(name.mid(dot + 1));
+	return panelHasRowMatching(screen, QRegularExpression{ QStringLiteral("^(?:%1)(?:[ ┆]|$)").arg(pattern) }, side);
 }
 
 // The left panel's column header row: the one under the panel's top edge, or under its tab strip
@@ -857,9 +860,39 @@ TEST_CASE("The Size column shows bytes below 1K, else the largest binary unit re
 
 	for (const auto& [baseName, sizeText] : { std::pair{ "bytes", "1023" }, std::pair{ "kib", "1.5K" }, std::pair{ "tens", "12K" } })
 	{
-		const QRegularExpression rowPattern{ QStringLiteral("^%1 +txt +%2(?: |$)").arg(QLatin1String(baseName), QRegularExpression::escape(QLatin1String(sizeText))) };
+		const QRegularExpression rowPattern{ QStringLiteral("^%1%3txt%3%2(?:[ ┆]|$)").arg(QLatin1String(baseName), QRegularExpression::escape(QLatin1String(sizeText)), columnGap) };
 		requireScreen(*session, [&](const CTerminalScreen& screen) { return panelHasRowMatching(screen, rowPattern); },
 			QStringLiteral("%1.txt listed with the size %2").arg(QLatin1String(baseName), QLatin1String(sizeText)));
+	}
+}
+
+TEST_CASE("A dashed line separates the columns in the header and the rows, unless the GUI's setting turns it off", "[tui]")
+{
+	const bool separatorsShown = GENERATE(true, false);
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/a.txt"));
+	if (!separatorsShown)
+	{
+		QSettings settings{ sandbox.path(QStringLiteral("settings/GitHubSoft/File Commander.ini")), QSettings::IniFormat };
+		settings.setValue(QStringLiteral("Interface/View/ShowColumnSeparators"), false);
+	}
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
+
+	const auto headerText = [](const CTerminalScreen& screen) {
+		const std::optional<int> row = columnHeaderRow(screen);
+		return row ? panelPart(screen.row(*row), Side::Left) : QString{};
+	};
+	if (separatorsShown)
+	{
+		requireScreen(*session, [&](const CTerminalScreen& screen) {
+			return headerText(screen).contains(QStringLiteral("┆Ext ↑")) && panelHasRowMatching(screen, QRegularExpression{ QStringLiteral("^a +┆txt +┆ +7(?:┆|$)") });
+		}, QStringLiteral("a separator before each column after Name"));
+	}
+	else
+	{
+		requireScreen(*session, [&](const CTerminalScreen& screen) { return headerText(screen).contains(QStringLiteral("Ext ↑")); }, QStringLiteral("the Ext title"));
+		CHECK_FALSE(session->screen().text().contains(u'┆'));
 	}
 }
 

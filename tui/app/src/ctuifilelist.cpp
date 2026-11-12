@@ -3,11 +3,13 @@
 
 #include "filelist/filesizetext.h"
 #include "filelist/filetimetext.h"
+#include "settings.h"
 
 #define Uses_TDrawBuffer
 #define Uses_TEvent
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
+#include <QSettings>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
@@ -41,6 +43,23 @@ constexpr int minNameColumnWidth = 20;
 	case FileListSortField::Date: return QStringLiteral("Date");
 	}
 	return {};
+}
+
+// The GUI's setting, read at the first draw: a change applies from the next start
+[[nodiscard]] bool columnSeparatorsShown()
+{
+	static const bool shown = QSettings{}.value(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT).toBool();
+	return shown;
+}
+
+// In the cell before each column but the first
+void drawColumnSeparators(TDrawBuffer& line, const std::vector<FileListColumn>& columns, TColorAttr color)
+{
+	if (!columnSeparatorsShown())
+		return;
+
+	for (size_t i = 1; i < columns.size(); ++i)
+		line.moveStr((ushort)(columns[i].x - 1), "┆", color);
 }
 
 // Size is right-aligned, the others left-aligned
@@ -122,13 +141,15 @@ void CTuiColumnHeader::draw()
 
 	TDrawBuffer line;
 	line.moveChar(0, ' ', color, (ushort)size.x);
-	for (const FileListColumn& column : fileListColumns(size.x, _sortField))
+	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField);
+	for (const FileListColumn& column : columns)
 	{
 		QString title = columnTitle(column.field);
 		if (column.field == _sortField)
 			title += _sortOrder == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓");
 		drawInColumn(line, column, title, color);
 	}
+	drawColumnSeparators(line, columns, mapColor(ppColumnSeparator));
 	writeLine(0, 0, (short)size.x, 1, line);
 }
 
@@ -189,7 +210,7 @@ bool CTuiFileList::isSelected(qulonglong itemHash) const noexcept
 void CTuiFileList::draw()
 {
 	const TColorAttr normalColor = mapColor(ppFileListRow), selectedColor = mapColor(ppFileListSelectedRow), cursorColor = mapColor(ppFileListCursor),
-		selectedCursorColor = mapColor(ppFileListSelectedCursor);
+		selectedCursorColor = mapColor(ppFileListSelectedCursor), separatorColor = mapColor(ppColumnSeparator), cursorSeparatorColor = mapColor(ppCursorColumnSeparator);
 
 	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField);
 	const bool extensionShown = std::ranges::any_of(columns, [](const FileListColumn& column) { return column.field == FileListSortField::Extension; });
@@ -199,7 +220,8 @@ void CTuiFileList::draw()
 		const int row = topRow() + y;
 		const bool isRow = row < (int)_rows.size();
 		const bool selected = isRow && isSelected(_rows[(size_t)row].hash());
-		const TColorAttr color = cursorIsShownOn(row) ? (selected ? selectedCursorColor : cursorColor) : (selected ? selectedColor : normalColor);
+		const bool onCursor = cursorIsShownOn(row);
+		const TColorAttr color = onCursor ? (selected ? selectedCursorColor : cursorColor) : (selected ? selectedColor : normalColor);
 
 		TDrawBuffer line;
 		line.moveChar(0, ' ', color, (ushort)size.x);
@@ -208,6 +230,7 @@ void CTuiFileList::draw()
 			for (const FileListColumn& column : columns)
 				drawInColumn(line, column, columnText(_rows[(size_t)row], column.field, extensionShown, _listedFolder), color);
 		}
+		drawColumnSeparators(line, columns, onCursor ? cursorSeparatorColor : separatorColor);
 
 		writeLine(0, (short)y, (short)size.x, 1, line);
 	}
