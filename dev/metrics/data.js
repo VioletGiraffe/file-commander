@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794442896326,
+  "lastUpdate": 1794488291935,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -35368,6 +35368,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 445,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 45.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 26.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 10.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f7f7afbf137afc5850a725829248bfab6fc1fdc2",
+          "message": "File search: each field's history is capped at 50 and leaves out a \"Search in\" of several paths, the counts read \"1 item\", and letters typed in the terminal UI's results no longer work the dialog's buttons and check boxes",
+          "timestamp": "2026-11-12T13:05:47+02:00",
+          "tree_id": "11f64957729afa96d9bbbe31a16213c4e80117c9",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f7f7afbf137afc5850a725829248bfab6fc1fdc2"
+        },
+        "date": 1794488288926,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19051,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35763,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1590,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 936,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 445.5,
             "unit": "KB"
           },
           {
