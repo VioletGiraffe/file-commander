@@ -13,7 +13,7 @@ owners. Filesystem and panel access goes through `CController`.
 | File-list view/model/delegate | `src/panel/filelistwidget/` |
 | Quick view | `src/panel/cpaneldisplaycontroller.{h,cpp}` |
 | Viewer windows (F3) | `src/viewerwindow/` |
-| Blocking shell operations: native delete, clipboard paste | `src/cshelloperationrunner.{h,cpp}` |
+| Blocking shell operations: native delete, clipboard paste | `file-operations/shelloperations/` |
 | Command-line output panes | `src/commandoutput/`; see [process-launching.md](process-launching.md) |
 | Programs menu editor | `src/programseditor/`; see [process-launching.md](process-launching.md) |
 | File-operation UI | `src/progressdialogs/` (launch, confirmation); the dialogs are in `file-operations/fileoperationsui/` |

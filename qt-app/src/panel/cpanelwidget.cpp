@@ -5,7 +5,6 @@
 #include "filelistwidget/model/cfilelistmodel.h"
 
 #include "cmainwindow.h"
-#include "cshelloperationrunner.h"
 
 #include "favoritelocationseditor/cfavoritelocationseditor.h"
 
@@ -23,6 +22,8 @@
 #include "fileoperationsui/usermessagebox.h"
 #include "qtcore_helpers/displayformatting.hpp"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
+#include "shelloperations/cshelloperationrunner.h"
+#include "shelloperations/shellfileoperations.h"
 #include "timing/ctimeelapsed.h"
 #include "widgets/clineedit.h"
 #include "widgets/layouts/cflowlayout.h"
@@ -1206,9 +1207,9 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 	dropUrls(clipboardData->urls(), clipboardData->property("cut").toBool() ? Qt::MoveAction : Qt::CopyAction, {});
 #else
 	auto* hwnd = WidgetUtils::nativeOwnerWinId(this);
-	const auto currentDirWString = currentDirPathNative().toStdWString();
-	_shellOperations->run([hwnd, currentDirWString]() {
-		OsShell::pasteFilesAndFoldersFromClipboard(currentDirWString, hwnd);
+	_shellOperations->run([hwnd, folder = currentDirPathNative()] {
+		if (!pasteFromClipboardWithShell(folder, hwnd))
+			log_unconditional_r("The shell's Paste failed in " + folder.toStdString());
 	});
 #endif
 }

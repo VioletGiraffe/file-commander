@@ -572,11 +572,6 @@ bool OsShell::cutObjectsToClipboard(const std::vector<std::wstring>& objects, vo
 	return invokeShellVerb(std::vector<std::filesystem::path>(objects.cbegin(), objects.cend()), reinterpret_cast<HWND>(parentWindow), "Cut");
 }
 
-bool OsShell::pasteFilesAndFoldersFromClipboard(std::wstring destFolder, void * parentWindow)
-{
-	return invokeShellVerb({ std::filesystem::path{ std::move(destFolder) } }, reinterpret_cast<HWND>(parentWindow), "Paste");
-}
-
 std::wstring OsShell::toolTip(std::wstring itemPath)
 {
 	CO_INIT_HELPER(COINIT_APARTMENTTHREADED);

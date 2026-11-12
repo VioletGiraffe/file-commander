@@ -1,5 +1,4 @@
 #include "cmainwindow.h"
-#include "cshelloperationrunner.h"
 #include "iconprovider/ciconprovider.h"
 
 #include "settings.h"
@@ -10,6 +9,7 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "logger/cloggerinmemory.h"
+#include "shelloperations/cshelloperationrunner.h"
 #include "system/processfilepath.hpp"
 #include "system/win_utils.hpp"
 

@@ -4,7 +4,6 @@
 #include "panel/columns.h"
 #include "panel/filelistwidget/cfilelistview.h"
 
-#include "cshelloperationrunner.h"
 #include "iconprovider/ciconprovider.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
 
@@ -50,6 +49,7 @@
 #include "logger/cloggerinmemory.h"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
+#include "shelloperations/cshelloperationrunner.h"
 #include "timing/ctimeelapsed.h"
 #include "updaterUI/cupdaterdialog.h"
 #include "widgets/cpersistenceenabler.h"
