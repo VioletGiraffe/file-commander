@@ -283,6 +283,7 @@
     <addaction name="separator"/>
     <addaction name="action_Show_hidden_files"/>
     <addaction name="actionShowAllFiles"/>
+    <addaction name="actionGoToFileLocation"/>
     <addaction name="separator"/>
     <addaction name="actionQuick_view"/>
     <addaction name="actionFilter_items"/>
@@ -356,6 +357,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+B</string>
+   </property>
+  </action>
+  <action name="actionGoToFileLocation">
+   <property name="text">
+    <string>&amp;Go to file location</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+G</string>
    </property>
   </action>
   <action name="action_Settings">

@@ -42,6 +42,8 @@ private:
 
 	void saveResults();
 	void loadResults();
+	// Stops a running search first
+	void sendResultsToPanel();
 
 	void showContextMenu(const QPoint &pos);
 	void copyCurrentResultPath() const;

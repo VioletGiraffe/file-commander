@@ -42,6 +42,10 @@ panel carries that panel's task tag; destruction retires the tag in both pools b
 pools' declaration order makes them outlive all panels. Inactive tabs release their filesystem watcher and refresh
 when reactivated.
 
+A panel shows its folder, the flattened tree below it, or search results sent to it. The last two list items from many
+folders, and no watcher covers them: both front ends call `CController::refreshUnwatchedViews()` when a file operation
+ends.
+
 ## File-list publication
 
 An asynchronous operation that can replace a panel list must:

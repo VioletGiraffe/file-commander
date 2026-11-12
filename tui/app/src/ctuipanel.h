@@ -25,7 +25,7 @@ inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 
 	cmToggleSelectionAndMoveDown = 1022, cmToggleSelectionAndCalculateSize = 1023, cmInvertSelection = 1024,
 	cmSelectByPattern = 1025, cmDeselectByPattern = 1026, cmSelectByExtension = 1027, cmOpenShell = 1028,
 	cmNewTab = 1029, cmCloseTab = 1030, cmReopenClosedTab = 1031, cmDuplicateTab = 1032, cmCloseOtherTabs = 1033,
-	cmNextTab = 1034, cmPreviousTab = 1035, cmOpenFolderInNewTab = 1036;
+	cmNextTab = 1034, cmPreviousTab = 1035, cmOpenFolderInNewTab = 1036, cmGoToFileLocation = 1037;
 // cmActivateTab1 + n activates the tab at position n, for n up to 8
 inline constexpr ushort cmActivateTab1 = 1040, tabPositionCommandCount = 9;
 

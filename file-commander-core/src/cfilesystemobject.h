@@ -22,6 +22,9 @@ namespace thin_io { struct directory_entry; }
 // Empty for a path that is not absolute.
 std::vector<QString> pathHierarchy(const QString& path);
 
+// A view into absolutePath: the folder holding its item, ending with '/'. Empty for a root.
+[[nodiscard]] QStringView parentFolderOf(const QString& absolutePath);
+
 // CFileSystemObject::hash() of the object with this fullAbsolutePath()
 // An empty path hashes to 0, so every empty object does: simpler for the callers
 [[nodiscard]] uint64_t pathHash(const QString& fullAbsolutePath);

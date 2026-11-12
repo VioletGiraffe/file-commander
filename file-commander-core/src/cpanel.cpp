@@ -77,7 +77,6 @@ void CPanel::setActive(bool active)
 		// setPath comes first: there is nothing to watch or list until the tab has been pointed at a folder.
 		assert_debug_only(!currentPath.isEmpty());
 
-		// Flattened mode has no watcher because a single-directory watcher cannot represent its recursive contents.
 		_watcher.setPathToWatch(displayMode == NormalMode ? currentPath : QString{});
 		refreshFileList(refreshCauseOther);
 	}
@@ -95,7 +94,10 @@ void CPanel::setActive(bool active)
 CPanel::FileListUpdateRequest CPanel::beginFileListUpdateLocked(CurrentDisplayMode displayMode)
 {
 	_currentDisplayMode = displayMode;
-	FileListUpdateRequest request{ ++_fileListGeneration, _currentDirObject.fullAbsolutePath(), displayMode };
+	if (displayMode != SearchResultsMode)
+		_searchResultPaths.clear();
+
+	FileListUpdateRequest request{ ++_fileListGeneration, _currentDirObject.fullAbsolutePath(), displayMode, _searchResultPaths };
 	// The committed list now belongs to a view we've left, and the accessors hide it from here on, so the UI has to
 	// be told to stop displaying it. Not a refresh: there are no contents to report until this update completes.
 	// Nothing displays an inactive tab, and no listing would follow to lift the invalidation anyway.
@@ -181,7 +183,7 @@ CPanel::FolderResolution CPanel::resolveFolder(const QString& path, const CFileS
 	return resolution;
 }
 
-void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause operation)
+void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause operation, const CurrentDisplayMode displayMode)
 {
 	std::unique_lock locker(_fileListAndCurrentDirMutex);
 
@@ -209,7 +211,7 @@ void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause oper
 	// An inactive tab neither watches nor lists its folder; setActive does both when the tab becomes the displayed one.
 	const bool active = _active;
 	if (active)
-		_watcher.setPathToWatch(newPath);
+		_watcher.setPathToWatch(displayMode == NormalMode ? newPath : QString{});
 
 	// Use the previous view's committed list to remember the selected child when navigating down.
 	const auto newItemInPreviousFolder = _itemsSourcePath == oldPathObject.fullAbsolutePath() && _itemsSourceDisplayMode == oldDisplayMode ? _items.find(_currentDirObject.hash()) : _items.end();
@@ -221,7 +223,7 @@ void CPanel::moveToFolder(FolderResolution resolution, FileListRefreshCause oper
 		setCurrentItemHashForFolder(_currentDirObject.fullAbsolutePath() /* where we are */, oldPathObject.hash() /* where we were */, false);
 
 	++_navigationId;
-	const auto request = beginFileListUpdateLocked(NormalMode);
+	const auto request = beginFileListUpdateLocked(displayMode);
 	// Not listed: the listing would fail, and its recovery would find no folder either and end up here again
 	if (!resolution.listable)
 		publishFileListIfCurrent(request, {}, refreshCauseOther);
@@ -305,10 +307,71 @@ void CPanel::showAllFilesFromCurrentFolderAndBelow()
 	enqueueFileListUpdate(request, refreshCauseOther);
 }
 
+// The deepest folder holding every path, ending with '/'. Empty when no folder does, as for paths on two drives.
+static QString deepestCommonFolder(const QStringList& paths)
+{
+	if (paths.isEmpty())
+		return {};
+
+	QString common = parentFolderOf(paths.front()).toString();
+	for (const QString& path : paths)
+	{
+		const QStringView folder = parentFolderOf(path);
+		while (!folder.startsWith(common))
+		{
+			const qsizetype parentEnd = common.lastIndexOf('/', -2);
+			if (parentEnd < 0)
+				return {};
+
+			common.truncate(parentEnd + 1);
+		}
+	}
+
+	return common;
+}
+
+void CPanel::showSearchResults(QStringList paths)
+{
+	// The UI thread is the only writer of _history, so it reads it unlocked
+	ListableFolderProbe probe{ _abortBackgroundTasks };
+	FolderResolution resolution = resolveFolder(deepestCommonFolder(paths), currentDirObject(), _history, probe);
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		_searchResultPaths = std::move(paths);
+	}
+
+	moveToFolder(std::move(resolution), refreshCauseOther, SearchResultsMode);
+}
+
+void CPanel::itemRenamed(const QString& oldPath, const QString& newPath)
+{
+	CurrentDisplayMode displayMode = NormalMode;
+	{
+		std::lock_guard locker(_fileListAndCurrentDirMutex);
+		displayMode = _currentDisplayMode;
+		for (QString& path : _searchResultPaths)
+		{
+			if (path == oldPath)
+				path = newPath;
+			else if (oldPath.endsWith('/') && path.startsWith(oldPath))
+				path.replace(0, oldPath.size(), newPath);
+		}
+	}
+
+	if (displayMode != NormalMode)
+		refreshFileList(refreshCauseOther);
+}
+
+CPanel::CurrentDisplayMode CPanel::displayMode() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	return _currentDisplayMode;
+}
+
 // Switches to the appropriate directory and makes the specified item current
 bool CPanel::goToItem(const CFileSystemObject& item)
 {
-	if (!item.exists())
+	if (item.isCdUp() || !item.exists())
 		return false;
 
 	const QString dir = item.parentDirPath();
@@ -453,6 +516,7 @@ std::vector<CFileSystemObject> CPanel::visibleItems() const
 		}
 
 		sorter.setSorting(_sortField, _sortOrder);
+		sorter.setListedFolder(_currentDirObject.fullAbsolutePath());
 	}
 
 	// Outside the lock: collation keys take long for a large folder
@@ -579,6 +643,7 @@ std::vector<CFileSystemObject> CPanel::selectedItemsInDisplayOrder(bool orCurren
 		}
 
 		sorter.setSorting(_sortField, _sortOrder);
+		sorter.setListedFolder(_currentDirObject.fullAbsolutePath());
 	}
 
 	// Outside the lock: collation keys take long for a large selection
@@ -651,10 +716,21 @@ void CPanel::enqueueFileListUpdate(FileListUpdateRequest request, FileListRefres
 			// The scan reports no failure: an unlistable root yields no files, and so does a tree that has none
 			listed = !items.empty() || canListDirectory(request.path);
 		}
+		else if (request.displayMode == SearchResultsMode)
+		{
+			for (const QString& path : request.searchResultPaths)
+			{
+				if (_abortBackgroundTasks)
+					return;
+
+				if (CFileSystemObject item{ path }; item.exists())
+					items.try_emplace(item.hash(), std::move(item));
+			}
+		}
 		else
 		{
 			// Baseline the folder before the enumeration below, so the watcher's snapshot matches this listing
-			// (why: see captureBaselineState). Skipped for AllObjectsMode - flattened mode disarms the watcher.
+			// (why: see captureBaselineState)
 			_watcher.captureBaselineState();
 
 			if (auto listing = listDirectoryForPanel(request.path, showHiddenFiles))

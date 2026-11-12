@@ -45,10 +45,11 @@ public:
 
 	void setDropHandler(DropHandler handler);
 
-	// Resets the model
-	void setRows(std::vector<CFileSystemObject> rows);
+	// Resets the model. listedFolder: see fileListFolderPrefix().
+	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder = {});
 	// Removes, inserts, moves and changes single rows until the rows match 'rows', so every persistent index (selection, cursor, an open editor)
 	// stays on its row. Returns false if it reset the model instead: past a number of changes, one reset is cheaper.
+	// The rows are in the folder setRows() took.
 	bool updateRows(std::vector<CFileSystemObject> rows);
 	// filterText: a filter field's text (see splitNameFilterField()), matched against full names ignoring case. Empty shows every row.
 	void setNameFilter(const QString& filterText);

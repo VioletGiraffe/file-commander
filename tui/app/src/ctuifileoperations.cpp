@@ -376,6 +376,7 @@ private:
 	assert_r(dialog->summary());
 	OperationSummary summary = dialog->summary().value_or(OperationSummary{ .status = CompletionStatus::Failed });
 	TObject::destroy(dialog);
+	CController::get().refreshUnwatchedViews();
 	return summary;
 }
 

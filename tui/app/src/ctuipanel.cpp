@@ -333,6 +333,7 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmGoBack: _controller.navigateBack(_side); break;
 	case cmGoForward: _controller.navigateForward(_side); break;
 	case cmGoToFolder: goToTypedPath(); break;
+	case cmGoToFileLocation: _controller.goToItem(_side, _controller.panel(_side).currentItem()); break;
 	case cmRefresh: _controller.refreshPanelContents(_side); break;
 	case cmToggleHiddenFiles: _controller.setShowHiddenFiles(!_controller.showHiddenFiles()); break;
 	case cmOpenFilterLine: openFilterLine(); break;
@@ -415,7 +416,7 @@ void CTuiPanel::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	if (!isActiveTab(p, tabId))
 		return;
 
-	_fileList->setRows({}, 0, 0);
+	_fileList->setRows({}, {}, 0, 0);
 	_fileList->setSelectedItems({});
 	updateStatusLine();
 	setTitle(_controller.panel(_side).currentDirPathNative());
@@ -430,7 +431,8 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	const bool navigated = cause == refreshCauseForwardNavigation || cause == refreshCauseCdUp;
 	_columnHeader->setSorting(panel.sortField(), panel.sortOrder());
 	_fileList->setSortField(panel.sortField());
-	_fileList->setRows(panel.visibleItems(), _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()), navigated ? 0 : _fileList->cursorRow());
+	_fileList->setRows(panel.visibleItems(), panel.currentDirPathPosix(), _controller.currentItemHashForFolder(_side, panel.currentDirPathPosix()),
+		navigated ? 0 : _fileList->cursorRow());
 	if (const CFileSystemObject* row = _fileList->currentRow())
 		_controller.setCurrentItemHashForCurrentFolder(_side, row->hash(), false);
 

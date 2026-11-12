@@ -324,6 +324,10 @@ void CMainWindow::initActions()
 
 	connect(ui->action_Show_hidden_files, &QAction::triggered, this, &CMainWindow::showHiddenFiles);
 	connect(ui->actionShowAllFiles, &QAction::triggered, this, &CMainWindow::showAllFilesFromCurrentFolderAndBelow);
+	connect(ui->actionGoToFileLocation, &QAction::triggered, this, [this] {
+		if (_currentFileList)
+			_controller->goToItem(_currentFileList->panelPosition(), _controller->panel(_currentFileList->panelPosition()).currentItem());
+	});
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
 	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateStatistics);
 	connect(ui->actionCalculate_each_folder_s_size, &QAction::triggered, this, &CMainWindow::calculateEachFolderSize);
@@ -400,7 +404,11 @@ bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemO
 		closeViewedFilesWithin(sourcePaths);
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
-	dialog->setCompletionHandler(std::move(onCompletion));
+	dialog->setCompletionHandler([this, onCompletion = std::move(onCompletion)](const OperationSummary& summary) {
+		_controller->refreshUnwatchedViews();
+		if (onCompletion)
+			onCompletion(summary);
+	});
 	registerFileOperationDialog(dialog);
 	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 	return true;
@@ -797,6 +805,7 @@ void CMainWindow::performDeletion(const bool toTrash)
 	_shellOperations.run([this, paths = std::move(paths), moveToTrash, windowHandle]() {
 		if (!OsShell::deleteItems(paths, moveToTrash, windowHandle))
 			QMetaObject::invokeMethod(this, showDeleteItemsError, Qt::QueuedConnection);
+		QMetaObject::invokeMethod(this, [this] { _controller->refreshUnwatchedViews(); }, Qt::QueuedConnection);
 	});
 #else
 	_controller->moveToTrash(std::move(sourcePaths), backend, [this](const std::vector<OsShell::TrashFailure>& failures) { offerPermanentDeletion(failures); });
@@ -815,6 +824,7 @@ void CMainWindow::startPermanentDeletion(const QStringList& paths)
 	closeViewedFilesWithin(paths);
 
 	auto* dialog = new CFileOperationDialog(std::move(*request), [this](QSize dialogFrameSize) { return nextBackgroundDialogPosition(dialogFrameSize); }, this);
+	dialog->setCompletionHandler([this](const OperationSummary&) { _controller->refreshUnwatchedViews(); });
 	registerFileOperationDialog(dialog);
 	dialog->start(); // Shows itself once the operation proves long enough to be worth a window
 }
@@ -1307,6 +1317,7 @@ void CMainWindow::batchRename()
 
 	CBatchRenameDialog dialog{ this, items };
 	dialog.exec();
+	_controller->refreshUnwatchedViews();
 }
 
 void CMainWindow::checkForUpdates()

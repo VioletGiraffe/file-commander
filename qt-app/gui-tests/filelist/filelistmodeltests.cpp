@@ -12,6 +12,7 @@
 DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/catch_qt.hpp" // qtutils
 
+#include <QDir>
 #include <QItemSelectionModel>
 #include <QMimeData>
 #include <QStringList>
@@ -44,6 +45,23 @@ TEST_CASE("A file with nothing before its extension displays its full name", "[f
 	CHECK(model.data(unnamed, Qt::EditRole).toString() == ".jpg");
 }
 #endif
+
+TEST_CASE("A row outside the listed folder shows its folder relative to it before its name", "[filelist]")
+{
+	TestedModel tested;
+	CFileListModel& model = tested.model;
+	CFileSystemObjectProperties nestedFile = rowProperties(File, "nested", "txt");
+	nestedFile.fullPath = QStringLiteral("/folder/sub/nested.txt");
+	CFileSystemObjectProperties nestedFolder = rowProperties(Directory, "inner");
+	nestedFolder.fullPath = QStringLiteral("/folder/sub/inner/");
+	model.setRows({ CFileSystemObject{ nestedFile }, CFileSystemObject{ nestedFolder }, makeRow(File, "own", "txt") }, QStringLiteral("/folder/"));
+
+	const auto nameShown = [&model](const char* path) { return model.data(model.indexByHash(pathHash(path)), Qt::DisplayRole).toString(); };
+	CHECK(nameShown("/folder/sub/nested.txt") == QDir::toNativeSeparators(QStringLiteral("sub/nested")));
+	CHECK(nameShown("/folder/sub/inner/") == QDir::toNativeSeparators(QStringLiteral("[sub/inner]")));
+	CHECK(nameShown("/folder/own.txt") == QStringLiteral("own"));
+	CHECK(model.data(model.indexByHash(pathHash("/folder/sub/nested.txt")), Qt::EditRole).toString() == QStringLiteral("nested.txt"));
+}
 
 TEST_CASE("The name filter hides the rows whose full name doesn't match", "[filelist][filter]")
 {

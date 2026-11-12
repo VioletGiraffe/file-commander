@@ -3,6 +3,7 @@
 #include "filelist/filenamefilter.h"
 #include "filelist/filetimetext.h"
 #include "filelist/foldercontentssummary.h"
+#include "filesystemhelperfunctions.h"
 
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a name in a failure report
 
@@ -42,6 +43,15 @@ static CFileSystemObject makeCdUpItem()
 	properties.type = Directory;
 	properties.fullPath = QStringLiteral("/");
 	properties.isCdUp = true;
+	return CFileSystemObject{ properties };
+}
+
+// An entry anywhere, built in memory. A folder's path ends with '/'.
+static CFileSystemObject makeItemAt(FileSystemObjectType type, const QString& fullPath)
+{
+	CFileSystemObjectProperties properties;
+	properties.type = type;
+	properties.fullPath = fullPath;
 	return CFileSystemObject{ properties };
 }
 
@@ -130,6 +140,33 @@ TEST_CASE("File list - a file with nothing before its extension displays and sor
 	CHECK(sortedNames({ makeItem(File, "b"), makeItem(File, "", "a") }, FileListSortField::Name, Qt::AscendingOrder) == QStringList{ ".a", "b" });
 }
 #endif
+
+TEST_CASE("File list - a row's folder prefix is its folder relative to the listed one", "[filelistrules]")
+{
+	const QString listedFolder = QStringLiteral("/folder/");
+	CHECK(fileListFolderPrefix(makeItem(File, "a", "txt"), listedFolder).isEmpty());
+	CHECK(fileListFolderPrefix(makeItem(Directory, "sub"), listedFolder).isEmpty());
+	CHECK(fileListFolderPrefix(makeCdUpItem(), listedFolder).isEmpty());
+	CHECK(fileListFolderPrefix(makeItemAt(File, QStringLiteral("/folder/x/y/a.txt")), listedFolder) == toNativeSeparators(QStringLiteral("x/y/")));
+	CHECK(fileListFolderPrefix(makeItemAt(Directory, QStringLiteral("/folder/x/sub/")), listedFolder) == toNativeSeparators(QStringLiteral("x/")));
+	CHECK(fileListFolderPrefix(makeItemAt(File, QStringLiteral("/other/a.txt")), listedFolder) == toNativeSeparators(QStringLiteral("/other/")));
+}
+
+TEST_CASE("File list - sorting by name takes the folder prefix first", "[filelistrules][sort]")
+{
+	std::vector<CFileSystemObject> items{ makeItemAt(File, QStringLiteral("/folder/b/a.txt")), makeItemAt(File, QStringLiteral("/folder/m.txt")),
+		makeItemAt(File, QStringLiteral("/folder/a/z.txt")) };
+
+	FileListSorter sorter;
+	sorter.setSorting(FileListSortField::Name, Qt::AscendingOrder);
+	sorter.setListedFolder(QStringLiteral("/folder/"));
+	sorter.sort(items);
+
+	QStringList paths;
+	for (const CFileSystemObject& item : items)
+		paths.push_back(item.fullAbsolutePath());
+	CHECK(paths == QStringList{ "/folder/a/z.txt", "/folder/b/a.txt", "/folder/m.txt" });
+}
 
 TEST_CASE("File list - a file's short time shows the year only for other years, the long one always and to the second", "[filelistrules]")
 {

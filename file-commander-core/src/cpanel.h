@@ -21,6 +21,8 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
+
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
@@ -83,7 +85,8 @@ struct CurrentPathChangedListener {
 class CPanel final
 {
 public:
-	enum CurrentDisplayMode {NormalMode, AllObjectsMode};
+	// Only NormalMode has a folder watcher: in the others, the panel lists items from many folders
+	enum CurrentDisplayMode {NormalMode, AllObjectsMode, SearchResultsMode};
 
 	void addPanelContentsChangedListener(PanelContentsChangedListener * listener);
 	void addCurrentItemChangedListener(CurrentItemChangedListener * listener);
@@ -111,6 +114,12 @@ public:
 	[[nodiscard]] const CHistoryList<QString>& history() const;
 	// Flattens the current directory and displays all its child files on one level
 	void showAllFilesFromCurrentFolderAndBelow();
+	// Lists the paths that exist, in the deepest folder holding them all, else in the panel's folder. A navigation leaves the list.
+	void showSearchResults(QStringList paths);
+	// Keeps a renamed item, and the items under a renamed folder, in the search results. A view without a watcher lists again.
+	// Paths as CFileSystemObject::fullAbsolutePath().
+	void itemRenamed(const QString& oldPath, const QString& newPath);
+	[[nodiscard]] CurrentDisplayMode displayMode() const;
 	// Switches to the appropriate directory and sets the cursor to the specified item
 	bool goToItem(const CFileSystemObject& item);
 
@@ -182,6 +191,7 @@ private:
 		uint64_t generation;
 		QString path;
 		CurrentDisplayMode displayMode;
+		QStringList searchResultPaths; // SearchResultsMode only
 	};
 
 	struct FolderResolution
@@ -194,7 +204,7 @@ private:
 	// The folder setPath(path) moves to: the first listable one of path and its ancestors, currentDir, history from its cursor
 	// back, and home. Checks the candidates on disk through probe: recovery runs it on a worker.
 	[[nodiscard]] static FolderResolution resolveFolder(const QString& path, const CFileSystemObject& currentDir, const CHistoryList<QString>& history, ListableFolderProbe& probe);
-	void moveToFolder(FolderResolution resolution, FileListRefreshCause operation);
+	void moveToFolder(FolderResolution resolution, FileListRefreshCause operation, CurrentDisplayMode displayMode = NormalMode);
 	// Runs on the worker that found request's folder inaccessible
 	void recoverFromInaccessibleFolder(const FileListUpdateRequest& request);
 
@@ -230,6 +240,7 @@ private:
 	FileListHashMap                            _items;
 	// Folder sizes calculated on request, re-applied to every listing that still has the folder. Protected by _fileListAndCurrentDirMutex.
 	ankerl::unordered_dense::map<qulonglong /*hash*/, uint64_t, identity_hash> _calculatedDirSizes;
+	QStringList                                _searchResultPaths; // Under _fileListAndCurrentDirMutex; empty outside SearchResultsMode
 	QString                                    _itemsSourcePath;
 	CurrentDisplayMode                         _itemsSourceDisplayMode = NormalMode;
 	uint64_t                                   _fileListGeneration = 0;

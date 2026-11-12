@@ -19,8 +19,8 @@ namespace TerminalKeys {
 inline constexpr std::string_view Enter = "\r", Escape = "\x1b", Tab = "\t", Down = "\x1b[B", Home = "\x1b[H", Insert = "\x1b[2~",
 	F2 = "\x1bOQ", F3 = "\x1bOR", F4 = "\x1bOS", F5 = "\x1b[15~", F7 = "\x1b[18~", F10 = "\x1b[21~", ShiftF7 = "\x1b[18;2~", ShiftF8 = "\x1b[19;2~", AltF7 = "\x1b[18;3~",
 	CtrlF5 = "\x1b[15;5~", CtrlF6 = "\x1b[17;5~",
-	Alt2 = "\x1b" "2", AltC = "\x1b" "c", AltD = "\x1b" "d", AltF = "\x1b" "f", AltO = "\x1b" "o", AltP = "\x1b" "p", AltR = "\x1b" "r", AltS = "\x1b" "s", AltX = "\x1b" "x",
-	CtrlC = "\x03", CtrlF = "\x06", CtrlO = "\x0f", CtrlS = "\x13", CtrlT = "\x14", CtrlW = "\x17", CtrlPgUp = "\x1b[5;5~";
+	Alt2 = "\x1b" "2", AltC = "\x1b" "c", AltD = "\x1b" "d", AltF = "\x1b" "f", AltN = "\x1b" "n", AltO = "\x1b" "o", AltP = "\x1b" "p", AltR = "\x1b" "r", AltS = "\x1b" "s", AltX = "\x1b" "x",
+	CtrlC = "\x03", CtrlF = "\x06", CtrlG = "\x07", CtrlO = "\x0f", CtrlS = "\x13", CtrlT = "\x14", CtrlW = "\x17", CtrlPgUp = "\x1b[5;5~";
 }
 
 // Runs a program in a pseudo-terminal, as a terminal window would, and keeps the screen it draws.

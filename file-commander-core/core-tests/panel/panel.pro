@@ -37,6 +37,7 @@ SOURCES += \
 	currentitemtests.cpp \
 	historytests.cpp \
 	contentsaccesstests.cpp \
+	searchresultstests.cpp \
 	selectiontests.cpp \
 	filelistrulestests.cpp \
 	lifetimetests.cpp \

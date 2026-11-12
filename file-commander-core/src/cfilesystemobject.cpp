@@ -67,17 +67,10 @@ CFileSystemObject::CFileSystemObject(CFileSystemObjectProperties properties) : _
 	locateNameAndExtension();
 }
 
-static QString parentForAbsolutePath(QString absolutePath)
+QStringView parentFolderOf(const QString& absolutePath)
 {
-	if (absolutePath.endsWith('/'))
-		absolutePath.chop(1);
-
-	const auto lastSlash = absolutePath.lastIndexOf('/');
-	if (lastSlash < 0)
-		return {};
-
-	absolutePath.truncate(lastSlash + 1); // Keep the slash as it signifies a directory rather than a file.
-	return absolutePath;
+	// A folder's own trailing separator is not the one before its name
+	return QStringView{ absolutePath }.first(absolutePath.lastIndexOf('/', absolutePath.endsWith('/') ? -2 : -1) + 1);
 }
 
 CFileSystemObject& CFileSystemObject::operator=(const QString& path)
@@ -92,7 +85,7 @@ std::optional<CFileSystemObject> CFileSystemObject::cdUpEntryOf(const QString& d
 		return {};
 
 	CFileSystemObjectProperties properties;
-	properties.fullPath = parentForAbsolutePath(dirPath);
+	properties.fullPath = parentFolderOf(dirPath).toString();
 	properties.type = Directory;
 	properties.exists = true;
 	properties.isCdUp = true;
@@ -275,7 +268,7 @@ QString CFileSystemObject::fullAbsolutePath() const &&
 
 QString CFileSystemObject::parentDirPath() const
 {
-	const auto parentFolder = parentForAbsolutePath(_properties.fullPath);
+	QString parentFolder = parentFolderOf(_properties.fullPath).toString();
 
 	assert_debug_only(parentFolder.endsWith('/') || parentFolder.isEmpty());
 	return parentFolder;

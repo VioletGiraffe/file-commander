@@ -3,15 +3,6 @@
 Approved-but-not-started work, consciously deferred items, and known defects. Current state only; done items get
 removed.
 
-## QoL commands (approved)
-
-Chosen from a longer list; no other command from it is approved.
-
-### Go to file location
-
-In flattened show-all-files mode, add a command that opens the selected item's containing folder and selects the
-item there.
-
 ## Tabs: deferred nice-to-haves
 
 - Locked tabs.

@@ -1,4 +1,5 @@
 #include "filelistsorter.h"
+#include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
@@ -20,6 +21,18 @@ QStringView fileListDisplayName(const CFileSystemObject& row) noexcept
 {
 	const QStringView name = row.name();
 	return name.isEmpty() && isFileOrBundle(row) ? row.fullName() : name;
+}
+
+QString fileListFolderPrefix(const CFileSystemObject& row, const QString& listedFolder)
+{
+	if (row.isCdUp() || listedFolder.isEmpty())
+		return {};
+
+	const QStringView folder = parentFolderOf(row.fullAbsolutePath());
+	if (folder == listedFolder)
+		return {};
+
+	return toNativeSeparators((folder.startsWith(listedFolder) ? folder.sliced(listedFolder.size()) : folder).toString());
 }
 
 template <typename T>
@@ -44,9 +57,21 @@ Qt::SortOrder FileListSorter::sortOrder() const noexcept
 	return _sortOrder;
 }
 
+void FileListSorter::setListedFolder(QString folder)
+{
+	_listedFolder = std::move(folder);
+}
+
+const QString& FileListSorter::listedFolder() const noexcept
+{
+	return _listedFolder;
+}
+
 FileListSortKeys FileListSorter::sortKeysFor(const CFileSystemObject& row)
 {
-	QCollatorSortKey nameKey = NaturalSort::sortKey(fileListDisplayName(row).toString());
+	QString name = fileListFolderPrefix(row, _listedFolder);
+	name += fileListDisplayName(row);
+	QCollatorSortKey nameKey = NaturalSort::sortKey(name);
 
 	const QStringView extension = row.extension();
 	if (const auto cached = _sortKeyByExtension.find(extension); cached != _sortKeyByExtension.end())

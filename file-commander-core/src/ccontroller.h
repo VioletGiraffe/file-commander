@@ -67,6 +67,9 @@ public:
 
 	// Updates the list of files in the current directory this panel is viewing, and send the new state to UI.
 	void refreshPanelContents(Panel p);
+	// Lists again each side's view that no folder watcher keeps current: a flattened folder, search results.
+	// Called when a file operation ends.
+	void refreshUnwatchedViews();
 	// Whether the panels list hidden entries. Persisted; a change refreshes both sides.
 	[[nodiscard]] bool showHiddenFiles() const;
 	void setShowHiddenFiles(bool show);
@@ -98,7 +101,7 @@ public:
 	[[nodiscard]] qulonglong activeTabId(Panel p) const;
 	[[nodiscard]] std::vector<qulonglong> tabIds(Panel p) const; // Tab ids in display order, for the UI to (re)build its tab strip
 	[[nodiscard]] QString tabPath(Panel p, qulonglong tabId) const;
-	[[nodiscard]] QString tabName(Panel p, qulonglong tabId) const; // The tab's folder name, for the tab label
+	[[nodiscard]] QString tabName(Panel p, qulonglong tabId) const; // The tab's folder name, or "Search results", for the tab label
 	[[nodiscard]] const CPanel& tabById(Panel p, qulonglong tabId) const; // For read-only queries against non-active tabs (their lists are as of when they were last active)
 	struct ItemActivationResult
 	{
@@ -148,6 +151,8 @@ public:
 	void moveToTrash(QStringList paths, DeletionBackend backend, std::function<void(const std::vector<OsShell::TrashFailure>& failures)> onFailures);
 	// Flattens the current directory and displays all its child files on one level
 	void showAllFilesFromCurrentFolderAndBelow(Panel p);
+	// See CPanel::showSearchResults()
+	void showSearchResults(Panel p, QStringList paths);
 	// Designates a new current item (e. g. a folder is being renamed and we want to keep the cursor on it).
 	// Applies to whichever folder the given panel is currently showing.
 	void setCurrentItemHashForCurrentFolder(Panel panel, qulonglong newCurrentItemHash, bool notifyUi = true);

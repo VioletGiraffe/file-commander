@@ -730,9 +730,11 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 
 	const CPanel& panel = _controller->panel(_panelPosition);
 	std::vector<CFileSystemObject> rows;
+	QString listedFolder;
 	bool listed = false;
-	panel.readCommittedContents([&rows, &listed](const QString& /*folder*/, const FileListHashMap& items) {
+	panel.readCommittedContents([&rows, &listedFolder, &listed](const QString& folder, const FileListHashMap& items) {
 		listed = true;
+		listedFolder = folder;
 		rows.reserve(items.size());
 		for (const auto& item : items)
 			rows.push_back(item.second);
@@ -754,7 +756,7 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 		ui->_list->restoreScrollPosition(scrollPosition);
 	}
 	else
-		_model->setRows(std::move(rows));
+		_model->setRows(std::move(rows), std::move(listedFolder));
 
 	if (const QModelIndex cursorTarget = takeListedCursorTarget(); cursorTarget.isValid())
 		ui->_list->moveCursorToItem(cursorTarget);

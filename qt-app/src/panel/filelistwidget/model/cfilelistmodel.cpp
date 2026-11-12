@@ -20,15 +20,15 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <utility>
 
-static QVariant displayText(const CFileSystemObject& row, int column)
+static QVariant displayText(const CFileSystemObject& row, int column, const QString& listedFolder)
 {
 	switch (column)
 	{
 	case NameColumn:
 		if (row.type() == Directory)
-			return QString("[" % row.fullName() % "]");
+			return QString("[" % fileListFolderPrefix(row, listedFolder) % row.fullName() % "]");
 		else
-			return fileListDisplayName(row).toString();
+			return QString(fileListFolderPrefix(row, listedFolder) % fileListDisplayName(row));
 
 	case ExtColumn:
 		if (const QStringView extension = row.extension(); !extension.isEmpty())
@@ -69,13 +69,14 @@ void CFileListModel::setDropHandler(DropHandler handler)
 	_dropHandler = std::move(handler);
 }
 
-void CFileListModel::setRows(std::vector<CFileSystemObject> rows)
+void CFileListModel::setRows(std::vector<CFileSystemObject> rows, QString listedFolder)
 {
 	beginResetModel();
 
 	_rows = std::move(rows);
 	_sortKeys.clear();
 	_sorter.clearExtensionKeyCache();
+	_sorter.setListedFolder(std::move(listedFolder));
 	_sortKeys.reserve(_rows.size());
 	for (const CFileSystemObject& row : _rows)
 		_sortKeys.push_back(_sorter.sortKeysFor(row));
@@ -132,7 +133,7 @@ bool CFileListModel::updateRows(std::vector<CFileSystemObject> rows)
 
 	if (numDisplayedChanges > MaxChangesForUpdate)
 	{
-		setRows(std::move(rows));
+		setRows(std::move(rows), _sorter.listedFolder());
 		return false;
 	}
 
@@ -388,7 +389,7 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 	case FullNameRole:
 		return row.fullName().toString();
 	case Qt::DisplayRole:
-		return displayText(row, index.column());
+		return displayText(row, index.column(), _sorter.listedFolder());
 	case Qt::DecorationRole:
 		if (_iconProvider && index.column() == NameColumn && !row.isCdUp())
 			return _iconProvider->bestAvailableIconFor(row);

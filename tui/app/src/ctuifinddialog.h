@@ -13,8 +13,8 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <chrono>
-#include <optional>
 #include <stddef.h>
+#include <variant>
 
 class CTuiFindResultsList;
 class CTuiTextView;
@@ -29,10 +29,14 @@ class CTuiFindDialog final : public TDialog
 public:
 	explicit CTuiFindDialog(const TRect& bounds);
 
+	struct GoToResult { QString path; };
+	struct SendResultsToPanel { QStringList paths; };
+	// What the dialog closed for: monostate when it closed without a choice
+	using Outcome = std::variant<std::monostate, GoToResult, SendResultsToPanel>;
+
 	// Runs the dialog over the whole desktop. A running search stops when the dialog closes.
 	// searchInText: the "Search in" field's text; baseDir: the folder a relative path in it starts from.
-	// Returns the path of the result chosen to go to; nullopt: closed without one.
-	[[nodiscard]] std::optional<QString> exec(const QString& searchInText, const QString& baseDir);
+	[[nodiscard]] Outcome exec(const QString& searchInText, const QString& baseDir);
 
 	// Shows what the search reported since the last time, at most once per display interval
 	void getEvent(TEvent& event) override;
@@ -45,6 +49,8 @@ private:
 	void setSearchActive(bool active);
 	void setStatus(const QString& text);
 	void goToCurrentResult();
+	// Unless there are none
+	void sendResultsToPanel();
 	void saveOptions() const;
 
 private:
@@ -64,7 +70,7 @@ private:
 	QString _baseDir;
 	// A result's path is shown without it: the single folder searched in, ending with '/'. Empty when there is none.
 	QString _searchRootPrefix;
-	std::optional<QString> _chosenPath;
+	Outcome _outcome;
 
 	// Before the engine, whose threads report into it
 	CFileSearchResultsBuffer _pendingResults;

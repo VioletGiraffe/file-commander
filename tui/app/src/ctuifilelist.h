@@ -55,8 +55,9 @@ public:
 	// The sorted column stays shown however narrow the list is
 	void setSortField(FileListSortField field);
 
-	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it
-	void setRows(std::vector<CFileSystemObject> rows, qulonglong cursorItemHash, int fallbackRow);
+	// The cursor goes to the row whose hash is cursorItemHash, or to fallbackRow (clamped to the rows) when no row has it.
+	// listedFolder: see fileListFolderPrefix().
+	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder, qulonglong cursorItemHash, int fallbackRow);
 	[[nodiscard]] const CFileSystemObject* currentRow() const noexcept; // nullptr when there are no rows
 
 	void setSelectedItems(const std::vector<qulonglong>& itemHashes);
@@ -73,6 +74,7 @@ private:
 
 private:
 	std::vector<CFileSystemObject> _rows;
+	QString _listedFolder;
 	ankerl::unordered_dense::set<qulonglong, identity_hash> _selectedItemHashes;
 	FileListSortField _sortField = FileListSortField::Name;
 };

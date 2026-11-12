@@ -550,6 +550,32 @@ TEST_CASE("Alt+F7 copes with searches too long for Turbo Vision's field history"
 	CHECK(session->waitForExit() == 0);
 }
 
+TEST_CASE("Send to panel lists the search results in the panel, and Ctrl+G goes to a result's folder", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("other")));
+	sandbox.createFile(QStringLiteral("work/sub/needle.txt"));
+	sandbox.createFile(QStringLiteral("work/other/needle.md"));
+	sandbox.createFile(QStringLiteral("work/hay.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("hay.txt"));
+
+	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 2 items found"));
+	session->send(Keys::AltN);
+	// Shown relative to the folder holding them all
+	const QString inSub = QDir::toNativeSeparators(QStringLiteral("sub/needle.txt")), inOther = QDir::toNativeSeparators(QStringLiteral("other/needle.md"));
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Search for:")) && panelLists(screen, inSub) && panelLists(screen, inOther); },
+		QStringLiteral("both results in the panel"));
+	CHECK_FALSE(panelLists(session->screen(), QStringLiteral("hay.txt")));
+
+	session->send(Keys::Home); // Sorted by extension: md first
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("needle.md")); }, QStringLiteral("the cursor on needle.md"));
+	session->send(Keys::CtrlG);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return !panelLists(screen, inSub) && cursorIsOn(screen, QStringLiteral("needle.md")); },
+		QStringLiteral("the cursor on needle.md in its folder"));
+}
+
 TEST_CASE("Ctrl+S hides and shows hidden files", "[tui]")
 {
 	const Sandbox sandbox;

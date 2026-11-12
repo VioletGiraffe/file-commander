@@ -31,6 +31,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMenu>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <stddef.h>
@@ -97,6 +98,7 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 	connect(ui->btnSaveResults, &QPushButton::clicked, this, &CFilesSearchWindow::saveResults);
 	connect(ui->btnLoadResults, &QPushButton::clicked, this, &CFilesSearchWindow::loadResults);
+	connect(ui->btnSendToPanel, &QPushButton::clicked, this, &CFilesSearchWindow::sendResultsToPanel);
 
 	ui->resultsList->setSortingEnabled(true);
 	connect(ui->resultsList, &QListWidget::itemActivated, [](QListWidgetItem* item) {
@@ -323,6 +325,28 @@ void CFilesSearchWindow::loadResults()
 		addResultToUi(CFileSystemObject{ line }, false); // The saved file is a plain list of paths, with no record of how each was reached
 	}
 	ui->resultsList->setUpdatesEnabled(true);
+}
+
+void CFilesSearchWindow::sendResultsToPanel()
+{
+	if (_searchActive)
+	{
+		_engine.stopSearching();
+		_engine.waitForSearchToFinish();
+		// Shows everything the search reported: its completion clears _searchActive
+		while (_searchActive)
+			displayPendingResults();
+	}
+
+	if (_matches.empty())
+		return;
+
+	CController& controller = CController::get();
+	controller.showSearchResults(controller.activePanelPosition(), QStringList{ _matches.cbegin(), _matches.cend() });
+
+	auto* mainWindow = CMainWindow::get();
+	assert_and_return_r(mainWindow, );
+	mainWindow->activateWindow();
 }
 
 void CFilesSearchWindow::showContextMenu(const QPoint& pos)

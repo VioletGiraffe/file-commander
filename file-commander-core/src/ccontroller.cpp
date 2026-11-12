@@ -259,6 +259,18 @@ void CController::refreshPanelContents(Panel p)
 	panel(p).refreshFileList(refreshCauseOther);
 }
 
+void CController::refreshUnwatchedViews()
+{
+	for (const Panel p : { Panel::LeftPanel, Panel::RightPanel })
+	{
+		if (_panels[(size_t)p].tabs.empty()) // After shutdown
+			continue;
+
+		if (panel(p).displayMode() != CPanel::NormalMode)
+			panel(p).refreshFileList(refreshCauseOther);
+	}
+}
+
 bool CController::showHiddenFiles() const
 {
 	return QSettings{}.value(KEY_INTERFACE_SHOW_HIDDEN_FILES, true).toBool();
@@ -495,7 +507,8 @@ QString CController::tabName(Panel p, qulonglong tabId) const
 	const auto& tabList = _panels[(size_t)p];
 	const auto idx = tabIndexById(p, tabId);
 	assert_and_return_r(idx.has_value(), QString());
-	return tabList.tabs[*idx]->currentDirName();
+	const CPanel& tab = *tabList.tabs[*idx];
+	return tab.displayMode() == CPanel::SearchResultsMode ? QObject::tr("Search results") : tab.currentDirName();
 }
 
 const CPanel& CController::tabById(Panel p, qulonglong tabId) const
@@ -832,9 +845,17 @@ InlineRenameResult CController::renameItem(Panel p, qulonglong itemHash, const Q
 	assert_and_return_r(source, { .status = InlineRenameStatus::NothingToDo }); // A listed item has a valid absolute path
 
 	const InlineRenameResult result = inlineRename(*source, newName, fileReplacement);
+	if (result.status != InlineRenameStatus::Renamed && result.status != InlineRenameStatus::NothingToDo)
+		return result;
+
 	// Only an accepted name gets here, so child()'s precondition holds
-	if (result.status == InlineRenameStatus::Renamed || result.status == InlineRenameStatus::NothingToDo)
-		setCurrentItemHashForCurrentFolder(p, CFileSystemObject{ source->parent().child(newName).value() }.hash());
+	const CFileSystemObject renamed{ source->parent().child(newName).value() };
+	setCurrentItemHashForCurrentFolder(p, renamed.hash());
+	if (result.status == InlineRenameStatus::Renamed)
+	{
+		for (const Panel side : { Panel::LeftPanel, Panel::RightPanel })
+			panel(side).itemRenamed(item.fullAbsolutePath(), renamed.fullAbsolutePath());
+	}
 	return result;
 }
 
@@ -856,14 +877,24 @@ void CController::moveToTrash(QStringList paths, const DeletionBackend backend, 
 	assert_and_return_r(trash, );
 
 	_workerPool.enqueue([this, trash, paths = std::move(paths), onFailures = std::move(onFailures)] {
-		if (std::vector<OsShell::TrashFailure> failures = trash(paths); !failures.empty())
-			execOnUiThread([onFailures, failures = std::move(failures)] { onFailures(failures); });
+		execOnUiThread([this, onFailures, failures = trash(paths)] {
+			refreshUnwatchedViews();
+			if (!failures.empty())
+				onFailures(failures);
+		});
 	});
 }
 
 void CController::showAllFilesFromCurrentFolderAndBelow(Panel p)
 {
 	panel(p).showAllFilesFromCurrentFolderAndBelow();
+}
+
+void CController::showSearchResults(Panel p, QStringList paths)
+{
+	panel(p).showSearchResults(std::move(paths));
+	saveDirectoryForCurrentVolume(p);
+	notifyCurrentVolumeChanged(p);
 }
 
 // Designates a new current item (e. g. a folder is being renamed and we want to keep the cursor on it).

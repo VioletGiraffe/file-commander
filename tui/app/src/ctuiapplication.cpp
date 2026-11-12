@@ -28,8 +28,8 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <cstdio>
-#include <optional>
 #include <utility>
+#include <variant>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -147,8 +147,11 @@ void CTuiApplication::findFiles()
 
 	const Panel side = _controller.activePanelPosition();
 	const CPanel& panel = _controller.panel(side);
-	if (const std::optional<QString> resultPath = _findDialog->exec(searchInFieldTextFor(panel), panel.currentDirPathPosix()))
-		_controller.goToItem(side, CFileSystemObject{ *resultPath });
+	const CTuiFindDialog::Outcome outcome = _findDialog->exec(searchInFieldTextFor(panel), panel.currentDirPathPosix());
+	if (const auto* goTo = std::get_if<CTuiFindDialog::GoToResult>(&outcome))
+		_controller.goToItem(side, CFileSystemObject{ goTo->path });
+	else if (const auto* send = std::get_if<CTuiFindDialog::SendResultsToPanel>(&outcome))
+		_controller.showSearchResults(side, send->paths);
 }
 
 void CTuiApplication::resume()
@@ -293,6 +296,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("~F~orward", cmGoForward, kbAltRight, hcNoContext, "Alt-Right") +
 			*new TMenuItem("~U~p", cmGoUp, kbNoKey, hcNoContext, "Backspace") +
 			*new TMenuItem("~G~o to folder...", cmGoToFolder, kbAltD, hcNoContext, "Alt-D") +
+			*new TMenuItem("Go to file ~l~ocation", cmGoToFileLocation, kbCtrlG, hcNoContext, "Ctrl-G") +
 			newLine() +
 			*new TMenuItem("~L~eft panel volume...", cmChooseLeftPanelVolume, kbAltF1, hcNoContext, "Alt-F1") +
 			*new TMenuItem("~R~ight panel volume...", cmChooseRightPanelVolume, kbAltF2, hcNoContext, "Alt-F2")

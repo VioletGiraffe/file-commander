@@ -32,7 +32,6 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <initializer_list>
 #include <iterator>
-#include <optional>
 #include <stdint.h>
 #include <utility>
 #include <vector>
@@ -41,7 +40,7 @@ using namespace std::chrono_literals;
 
 namespace {
 
-constexpr ushort cmStartOrStopSearch = 1200, cmGoToResult = 1201;
+constexpr ushort cmStartOrStopSearch = 1200, cmGoToResult = 1201, cmSendResultsToPanel = 1202;
 constexpr uchar nameHistoryId = 1, contentsHistoryId = 2, searchInHistoryId = 3;
 
 // The check boxes' items, in their order
@@ -197,6 +196,15 @@ public:
 	[[nodiscard]] const FoundItem* currentItem() const noexcept { return _items.empty() ? nullptr : &_items[(size_t)cursorRow()]; }
 	[[nodiscard]] size_t itemCount() const noexcept { return _items.size(); }
 
+	[[nodiscard]] QStringList paths() const
+	{
+		QStringList paths;
+		paths.reserve((qsizetype)_items.size());
+		for (const FoundItem& item : _items)
+			paths.push_back(item.path);
+		return paths;
+	}
+
 	void draw() override
 	{
 		const TColorAttr normalColor = mapColor(1), cursorColor = mapColor(2);
@@ -240,7 +248,7 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	flags &= ~wfMove;
 	growMode = gfGrowHiX | gfGrowHiY;
 
-	static constexpr int labelX = 2, fieldX = 18, listTop = 11, buttonWidth = 12;
+	static constexpr int labelX = 2, fieldX = 18, listTop = 11, searchButtonWidth = 12, sendButtonWidth = 17;
 	const int right = size.x - 2, statusY = size.y - 2;
 
 	// A labelled input line with its history, from fieldX to fieldEnd
@@ -266,11 +274,14 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	_contentsOptions->growMode = gfGrowHiX;
 	insert(_contentsOptions);
 
-	const int buttonX = right - buttonWidth;
-	_searchIn = addField(8, buttonX - 1, "Search ~i~n:", searchInHistoryId);
-	_searchButton = new TButton({ buttonX, 8, right, 10 }, "~S~earch", cmStartOrStopSearch, bfDefault);
+	const int sendButtonX = right - sendButtonWidth, searchButtonX = sendButtonX - searchButtonWidth;
+	_searchIn = addField(8, searchButtonX - 1, "Search ~i~n:", searchInHistoryId);
+	_searchButton = new TButton({ searchButtonX, 8, sendButtonX, 10 }, "~S~earch", cmStartOrStopSearch, bfDefault);
 	_searchButton->growMode = gfGrowLoX | gfGrowHiX;
 	insert(_searchButton);
+	auto* sendButton = new TButton({ sendButtonX, 8, right, 10 }, "Send to pa~n~el", cmSendResultsToPanel, bfNormal);
+	sendButton->growMode = gfGrowLoX | gfGrowHiX;
+	insert(sendButton);
 
 	auto* scrollBar = new TScrollBar({ right - 1, listTop, right, statusY });
 	scrollBar->growMode = gfGrowLoX | gfGrowHiX | gfGrowHiY;
@@ -298,7 +309,7 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 		settings.value(KEY_FILE_SEARCH_CONTENTS_IS_REGEX, false).toBool(), settings.value(KEY_FILE_SEARCH_CONTENTS_CASE_SENSITIVE, false).toBool() });
 }
 
-std::optional<QString> CTuiFindDialog::exec(const QString& searchInText, const QString& baseDir)
+CTuiFindDialog::Outcome CTuiFindDialog::exec(const QString& searchInText, const QString& baseDir)
 {
 	if (const TRect desktopArea = TProgram::deskTop->getExtent(); getBounds() != desktopArea)
 		changeBounds(desktopArea);
@@ -317,7 +328,9 @@ std::optional<QString> CTuiFindDialog::exec(const QString& searchInText, const Q
 	}
 
 	saveOptions();
-	return std::exchange(_chosenPath, std::nullopt);
+	if (auto* send = std::get_if<SendResultsToPanel>(&_outcome))
+		send->paths = _results->paths();
+	return std::exchange(_outcome, Outcome{});
 }
 
 void CTuiFindDialog::getEvent(TEvent& event)
@@ -376,6 +389,10 @@ void CTuiFindDialog::handleEvent(TEvent& event)
 		break;
 	case cmActivateRowUnderCursor:
 		goToCurrentResult();
+		clearEvent(event);
+		break;
+	case cmSendResultsToPanel:
+		sendResultsToPanel();
 		clearEvent(event);
 		break;
 	default:
@@ -500,8 +517,18 @@ void CTuiFindDialog::goToCurrentResult()
 	if (!item)
 		return;
 
-	_chosenPath = item->path;
+	_outcome = GoToResult{ item->path };
 	endModal(cmGoToResult);
+}
+
+void CTuiFindDialog::sendResultsToPanel()
+{
+	if (_results->itemCount() == 0)
+		return;
+
+	// exec() takes the paths once the search has stopped and every result is shown
+	_outcome = SendResultsToPanel{};
+	endModal(cmSendResultsToPanel);
 }
 
 void CTuiFindDialog::saveOptions() const

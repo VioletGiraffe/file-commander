@@ -9,6 +9,7 @@
 #define Uses_TEvent
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
+#include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -52,11 +53,11 @@ void drawInColumn(TDrawBuffer& line, const FileListColumn& column, const QString
 	line.moveStr((ushort)indent, view, color, (ushort)column.width);
 }
 
-[[nodiscard]] QString columnText(const CFileSystemObject& item, FileListSortField field, bool extensionShown)
+[[nodiscard]] QString columnText(const CFileSystemObject& item, FileListSortField field, bool extensionShown, const QString& listedFolder)
 {
 	switch (field)
 	{
-	case FileListSortField::Name: return (extensionShown ? fileListDisplayName(item) : item.fullName()).toString();
+	case FileListSortField::Name: return fileListFolderPrefix(item, listedFolder) % (extensionShown ? fileListDisplayName(item) : item.fullName());
 	case FileListSortField::Extension: return item.extension().toString();
 	case FileListSortField::Size:
 		if (item.isCdUp())
@@ -161,9 +162,10 @@ void CTuiFileList::setSortField(FileListSortField field)
 	drawView();
 }
 
-void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, qulonglong cursorItemHash, int fallbackRow)
+void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, QString listedFolder, qulonglong cursorItemHash, int fallbackRow)
 {
 	_rows = std::move(rows);
+	_listedFolder = std::move(listedFolder);
 	const auto cursorItem = std::ranges::find(_rows, cursorItemHash, &CFileSystemObject::hash);
 	rowsChanged(cursorItem != _rows.end() ? static_cast<int>(cursorItem - _rows.begin()) : fallbackRow);
 }
@@ -205,7 +207,7 @@ void CTuiFileList::draw()
 		if (isRow)
 		{
 			for (const FileListColumn& column : columns)
-				drawInColumn(line, column, columnText(_rows[(size_t)row], column.field, extensionShown), color);
+				drawInColumn(line, column, columnText(_rows[(size_t)row], column.field, extensionShown, _listedFolder), color);
 		}
 
 		writeLine(0, (short)y, (short)size.x, 1, line);
