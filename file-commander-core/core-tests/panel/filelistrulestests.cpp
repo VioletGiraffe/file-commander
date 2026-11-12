@@ -1,6 +1,7 @@
 #include "cfilesystemobject.h"
 #include "filelist/filelistsorter.h"
 #include "filelist/filenamefilter.h"
+#include "filelist/filetimetext.h"
 #include "filelist/foldercontentssummary.h"
 
 #include "qt_helpers.hpp" // operator<< for QString, so Catch2 can print a name in a failure report
@@ -13,6 +14,7 @@
 DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/catch_qt.hpp" // qtutils
 
+#include <QDateTime>
 #include <QLocale>
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
@@ -128,6 +130,26 @@ TEST_CASE("File list - a file with nothing before its extension displays and sor
 	CHECK(sortedNames({ makeItem(File, "b"), makeItem(File, "", "a") }, FileListSortField::Name, Qt::AscendingOrder) == QStringList{ ".a", "b" });
 }
 #endif
+
+TEST_CASE("File list - a file's short time shows the year only for other years, the long one always and to the second", "[filelistrules]")
+{
+	const int year = QDate::currentDate().year();
+	const time_t thisYear = QDateTime{ QDate{ year, 1, 2 }, QTime{ 3, 4, 5 } }.toSecsSinceEpoch();
+	const time_t lastYear = QDateTime{ QDate{ year - 1, 12, 31 }, QTime{ 23, 58, 59 } }.toSecsSinceEpoch();
+	const QString twoDigitYear = QString::number(year % 100).rightJustified(2, '0');
+	const QString lastTwoDigitYear = QString::number((year - 1) % 100).rightJustified(2, '0');
+
+	CHECK(fileTimeText(thisYear, FileTimeTextLength::Short) == QStringLiteral("02 Jan 03:04"));
+	CHECK(fileTimeText(lastYear, FileTimeTextLength::Short) == QStringLiteral("31 Dec '") + lastTwoDigitYear);
+	CHECK(fileTimeText(thisYear, FileTimeTextLength::Short).size() == maxShortFileTimeTextLength);
+	CHECK(fileTimeText(thisYear, FileTimeTextLength::Long) == QStringLiteral("02 Jan '%1 03:04:05").arg(twoDigitYear));
+	CHECK(fileTimeText(lastYear, FileTimeTextLength::Long) == QStringLiteral("31 Dec '%1 23:58:59").arg(lastTwoDigitYear));
+
+	const QLocale previousLocale;
+	QLocale::setDefault(QLocale{ QLocale::German });
+	CHECK(fileTimeText(lastYear, FileTimeTextLength::Short) == QStringLiteral("31 Dec '") + lastTwoDigitYear); // German: "Dez"
+	QLocale::setDefault(previousLocale);
+}
 
 TEST_CASE("File list - the name filter language", "[filelistrules][filter]")
 {

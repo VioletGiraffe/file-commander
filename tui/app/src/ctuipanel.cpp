@@ -6,6 +6,7 @@
 #include "ctuipalette.h"
 
 #include "ccontroller.h"
+#include "filelist/filetimetext.h"
 #include "filesystemhelperfunctions.h"
 #include "shell/cshell.h"
 
@@ -23,7 +24,6 @@
 #define Uses_MsgBox
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
-#include <QDateTime>
 #include <QFileInfo>
 #include <QLocale>
 #include <QProcess>
@@ -564,8 +564,7 @@ void CTuiPanel::updateStatusLine()
 	}
 
 	const QString sizeText = row->isDir() && row->size() == 0 ? QStringLiteral("<DIR>") : locale.formattedDataSize((qint64)row->size());
-	const QString modified = QDateTime::fromSecsSinceEpoch(row->modificationTime()).toString(QStringLiteral("dd.MM.yyyy hh:mm"));
-	_statusLine->setText(row->fullName().toString() + QStringLiteral("  ") + sizeText + QStringLiteral("  ") + modified);
+	_statusLine->setText(row->fullName().toString() + QStringLiteral("  ") + sizeText + QStringLiteral("  ") + fileTimeText(row->modificationTime(), FileTimeTextLength::Long));
 }
 
 void CTuiPanel::activateCurrentItem()

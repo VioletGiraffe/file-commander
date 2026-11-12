@@ -1,12 +1,12 @@
 #include "cfilelistmodel.h"
 
+#include "filelist/filetimetext.h"
 #include "iconprovider/ciconprovider.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "qtcore_helpers/displayformatting.hpp"
-#include "qtcore_helpers/qdatetime_helpers.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -44,7 +44,7 @@ static QVariant displayText(const CFileSystemObject& row, int column)
 
 	case DateColumn:
 		if (!row.isCdUp()) [[likely]]
-			return fromTime_t(row.modificationTime()).toString("dd.MM.yyyy hh:mm:ss");
+			return fileTimeText(row.modificationTime(), FileTimeTextLength::Short);
 		else
 			return {};
 

@@ -1,6 +1,8 @@
 #include "ctuifilelist.h"
 #include "ctuipalette.h"
 
+#include "filelist/filetimetext.h"
+
 #include "qtcore_helpers/displayformatting.hpp"
 
 #define Uses_TDrawBuffer
@@ -9,7 +11,6 @@
 #define Uses_TKeys
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
-#include <QDateTime>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -27,7 +28,7 @@ constexpr int minNameColumnWidth = 20;
 	case FileListSortField::Name: return 0;
 	case FileListSortField::Extension: return 5; // "Ext ↑"
 	case FileListSortField::Size: return 10; // "1023.9 KiB"
-	case FileListSortField::Date: return 16; // "dd.MM.yyyy hh:mm"
+	case FileListSortField::Date: return maxShortFileTimeTextLength;
 	}
 	return 0;
 }
@@ -65,7 +66,7 @@ void drawInColumn(TDrawBuffer& line, const FileListColumn& column, const QString
 		// A folder has a size once Space has calculated it
 		return item.isDir() && item.size() == 0 ? QStringLiteral("<DIR>") : fileSizeToString(item.size());
 	case FileListSortField::Date:
-		return item.isCdUp() ? QString{} : QDateTime::fromSecsSinceEpoch(item.modificationTime()).toString(QStringLiteral("dd.MM.yyyy hh:mm"));
+		return item.isCdUp() ? QString{} : fileTimeText(item.modificationTime(), FileTimeTextLength::Short);
 	}
 	return {};
 }
