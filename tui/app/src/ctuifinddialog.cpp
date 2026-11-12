@@ -1,4 +1,5 @@
 #include "ctuifinddialog.h"
+#include "ctuiapplication.h"
 #include "ctuidialogs.h"
 #include "ctuiprograms.h"
 #include "ctuirowlist.h"
@@ -260,7 +261,7 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	_nameOptions->growMode = gfGrowHiX;
 	insert(_nameOptions);
 
-	_contents = addField(5, right, "With ~c~ontents:", contentsHistoryId);
+	_contents = addField(5, right, "With c~o~ntents:", contentsHistoryId); // Alt+C copies a result's path, as in the panel
 	_contentsOptions = new TCheckBoxes({ fieldX, 6, right, 7 }, new TSItem("~W~hole words", new TSItem("~R~egex", new TSItem("Case sensiti~v~e", nullptr))));
 	_contentsOptions->growMode = gfGrowHiX;
 	insert(_contentsOptions);
@@ -350,6 +351,13 @@ void CTuiFindDialog::handleEvent(TEvent& event)
 		{
 			if (const FoundItem* item = _results->currentItem(); item && item->isFile)
 				key == kbF3 ? viewFile(item->path) : editFile(item->path);
+			clearEvent(event);
+			return;
+		}
+		if (key == kbAltC)
+		{
+			if (const FoundItem* item = _results->currentItem())
+				CTuiApplication::copyToClipboard(shellQuotedPath(toNativeSeparators(item->path)));
 			clearEvent(event);
 			return;
 		}

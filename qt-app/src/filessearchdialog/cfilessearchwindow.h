@@ -19,6 +19,7 @@ namespace Ui {
 class CFilesSearchWindow;
 }
 
+class QAction;
 class QLabel;
 
 class CIconProvider;
@@ -43,6 +44,7 @@ private:
 	void loadResults();
 
 	void showContextMenu(const QPoint &pos);
+	void copyCurrentResultPath() const;
 
 private:
 	CIconProvider& _iconProvider;
@@ -52,6 +54,8 @@ private:
 	std::vector<QString> _matches;
 	// Set from a started search until its completion is shown: the engine's own flag clears before its results are all shown
 	bool _searchActive = false;
+
+	QAction* _copyPathAction = nullptr;
 
 	Ui::CFilesSearchWindow *ui = nullptr;
 };

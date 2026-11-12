@@ -20,11 +20,15 @@
 DISABLE_COMPILER_WARNINGS
 #include "ui_cfilessearchwindow.h"
 
+#include <QAction>
+#include <QApplication>
 #include <QClipboard>
 #include <QFileDialog>
 #include <QFont>
+#include <QKeySequence>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QMessageBox>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
@@ -104,6 +108,11 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 		mainWindow->activateWindow();
 	});
 	connect(ui->resultsList, &QListWidget::customContextMenuRequested, this, &CFilesSearchWindow::showContextMenu);
+
+	_copyPathAction = new QAction(tr("Copy path to clipboard"), this);
+	_copyPathAction->setShortcut(QKeySequence{ QSL("Ctrl+Shift+X") }); // The main window's key for copying paths
+	connect(_copyPathAction, &QAction::triggered, this, &CFilesSearchWindow::copyCurrentResultPath);
+	addAction(_copyPathAction);
 
 	QMetaObject::invokeMethod(this, [this](){
 		ui->nameToFind->setFocus();
@@ -319,11 +328,17 @@ void CFilesSearchWindow::loadResults()
 void CFilesSearchWindow::showContextMenu(const QPoint& pos)
 {
 	QListWidgetItem *clickedItem = ui->resultsList->itemAt(pos);
+	if (!clickedItem)
+		return;
 
+	ui->resultsList->setCurrentItem(clickedItem); // The item the menu's action copies
 	QMenu menu(this);
-	const QAction *copyAction = menu.addAction("Copy path to clipboard");
-	const QAction *selectedAction = menu.exec(ui->resultsList->mapToGlobal(pos));
+	menu.addAction(_copyPathAction);
+	menu.exec(ui->resultsList->mapToGlobal(pos));
+}
 
-	if (selectedAction == copyAction)
-		QApplication::clipboard()->setText(shellQuotedPath(toNativeSeparators(clickedItem->data(Qt::UserRole).toString())));
+void CFilesSearchWindow::copyCurrentResultPath() const
+{
+	if (const QListWidgetItem* item = ui->resultsList->currentItem())
+		QApplication::clipboard()->setText(shellQuotedPath(toNativeSeparators(item->data(Qt::UserRole).toString())));
 }

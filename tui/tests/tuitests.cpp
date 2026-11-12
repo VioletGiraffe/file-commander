@@ -482,7 +482,7 @@ TEST_CASE("Alt+F7 without partial match matches whole names, and says when the c
 	session->send(Keys::Enter);
 	requireText(*session, QStringLiteral("Search completed, 1 item found"));
 
-	session->send(Keys::AltC);
+	session->send(Keys::AltO);
 	requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() > nameRow; }, QStringLiteral("the cursor in the contents field"));
 	typeText(*session, QStringLiteral("("));
 	session->send(Keys::AltR);
@@ -502,7 +502,7 @@ TEST_CASE("Alt+F7 finds files by their contents", "[tui]")
 	session->send(Keys::AltF7);
 	requireText(*session, QStringLiteral("With contents:"));
 	const int nameRow = session->screen().cursorRow();
-	session->send(Keys::AltC); // The field's label key
+	session->send(Keys::AltO); // The field's label key
 	requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() != nameRow; }, QStringLiteral("the cursor in the contents field"));
 	typeText(*session, QStringLiteral("yellow"));
 	session->send(Keys::Enter);
@@ -894,5 +894,21 @@ TEST_CASE("Alt+C over SSH copies the paths through the terminal", "[tui]")
 	requireScreen(*session, [](const CTerminalScreen& screen) { return screen.clipboardText().contains(u'\n'); }, QStringLiteral("both paths in the clipboard"));
 	CHECK(session->screen().clipboardText().endsWith(u'\''));
 	CHECK(clipboardPaths() == QStringList{ canonical(sandbox.work(QStringLiteral("a.txt"))), canonical(sandbox.work(QStringLiteral("with space.txt"))) });
+}
+
+TEST_CASE("Alt+C over SSH copies the search result's path through the terminal", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
+	sandbox.createFile(QStringLiteral("work/sub/with space.txt"));
+	auto session = startFcterm(sandbox, { .variables = { { QStringLiteral("SSH_CONNECTION"), QStringLiteral("192.0.2.1 50000 192.0.2.2 22") } } });
+	goTo(*session, sandbox.work({}), QStringLiteral("sub"));
+
+	findByName(*session, QStringLiteral("space"), QStringLiteral("Search completed, 1 item found"));
+	session->send(Keys::AltC);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.clipboardText().isEmpty(); }, QStringLiteral("the result's path in the clipboard"));
+	const QString copied = session->screen().clipboardText();
+	REQUIRE((copied.startsWith(u'\'') && copied.endsWith(u'\'')));
+	CHECK(canonical(copied.mid(1, copied.size() - 2)) == canonical(sandbox.work(QStringLiteral("sub/with space.txt"))));
 }
 #endif
