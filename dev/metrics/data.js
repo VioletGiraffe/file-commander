@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794495610915,
+  "lastUpdate": 1794500944804,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -35704,6 +35704,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 448.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 46,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 27.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 11,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2b1db7e99c1560c5eeb9b75291bc5d0553c76346",
+          "message": "Batch-renamed items stay in search results under their new names, as a single rename's do: the panels take a whole batch's renames at once, matched against the paths before the batch",
+          "timestamp": "2026-11-12T18:18:26+02:00",
+          "tree_id": "2961f3eb081fb8353cceff2e0da2e214a5c68c82",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2b1db7e99c1560c5eeb9b75291bc5d0553c76346"
+        },
+        "date": 1794500940405,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19966,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35770,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1614,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 954.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 449,
             "unit": "KB"
           },
           {
