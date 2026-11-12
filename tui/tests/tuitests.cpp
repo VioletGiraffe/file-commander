@@ -17,6 +17,8 @@ RESTORE_COMPILER_WARNINGS
 #include <Windows.h>
 #endif
 
+#include <algorithm>
+#include <initializer_list>
 #include <map>
 #include <memory>
 #include <optional>
@@ -383,6 +385,40 @@ TEST_CASE("F2 onto an existing name asks, then replaces it", "[tui]")
 	QFile replaced{ sandbox.work(QStringLiteral("b.txt")) };
 	REQUIRE(replaced.open(QFile::ReadOnly));
 	CHECK(replaced.readAll() == "first");
+}
+
+TEST_CASE("Shift+F2 renames the selected files by a mask, numbering them in the panel's order, and Undo restores their names", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/a.txt"));
+	sandbox.createFile(QStringLiteral("work/b.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("b.txt"));
+	session->send("*"sv);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("2 files, 0 folders selected")); },
+		QStringLiteral("both files selected"));
+
+	session->send(Keys::ShiftF2);
+	requireScreen(*session, [](const CTerminalScreen& screen) {
+		const int maskRow = rowWith(screen, QStringLiteral("Name mask:"));
+		return maskRow >= 0 && screen.cursorRow() == maskRow;
+	}, QStringLiteral("the batch rename dialog, with the cursor in the name mask"));
+	typeText(*session, QStringLiteral("x[C]")); // The mask starts selected, so this replaces it
+	requireText(*session, QStringLiteral("x2.txt"));
+
+	const auto filesAre = [&sandbox](std::initializer_list<const char*> names) {
+		return std::ranges::all_of(names, [&sandbox](const char* name) { return QFile::exists(sandbox.work(QString::fromLatin1(name))); });
+	};
+	session->send(Keys::AltR);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return filesAre({ "x1.txt", "x2.txt" }) && screen.contains(QStringLiteral("Renamed")); },
+		QStringLiteral("a.txt and b.txt renamed to x1.txt and x2.txt"));
+
+	session->send(Keys::AltU);
+	requireScreen(*session, [&](const CTerminalScreen&) { return filesAre({ "a.txt", "b.txt" }); }, QStringLiteral("the names restored"));
+
+	session->send(Keys::Escape);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Name mask:")) && panelLists(screen, QStringLiteral("a.txt")); },
+		QStringLiteral("the dialog closed, the panel listing a.txt"));
 }
 
 TEST_CASE("Shift+F8 deletes permanently after confirmation", "[tui]")

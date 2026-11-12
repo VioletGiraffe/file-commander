@@ -78,7 +78,7 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 	// Before the histories load: a combo box drops the items past its maximum
 	for (CHistoryComboBox* field : { ui->nameToFind, ui->fileContentsToFind, ui->searchRoot })
-		field->setMaxCount(FILE_SEARCH_HISTORY_MAX_ENTRIES);
+		field->setMaxCount(FIELD_HISTORY_MAX_ENTRIES);
 	ui->nameToFind->setSettingsKeyForHistoryPersistence(KEY_FILE_SEARCH_NAME_HISTORY);
 	ui->fileContentsToFind->setSettingsKeyForHistoryPersistence(KEY_FILE_SEARCH_CONTENTS_HISTORY);
 	ui->fileContentsToFind->lineEdit()->clear(); // A prefilled pattern would silently restrict the search to files containing it

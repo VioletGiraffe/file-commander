@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ctuifields.h"
+
 #include "filesearchengine/cfilesearchengine.h"
 #include "filesearchengine/cfilesearchresultsbuffer.h"
 
@@ -68,8 +70,7 @@ private:
 	CTuiTextView* _currentResultPath;
 	CTuiTextView* _status;
 
-	// Most recent first
-	QStringList _nameHistory, _contentsHistory, _searchInHistory;
+	CTuiSavedFieldHistory _nameHistory, _contentsHistory, _searchInHistory;
 
 	QString _baseDir;
 	// A result's path is shown without it: the single folder searched in, ending with '/'. Empty when there is none.

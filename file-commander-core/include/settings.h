@@ -56,8 +56,10 @@
 // A QSettings array of the Programs menu entries
 #define KEY_USER_PROGRAMS QSL("Programs")
 
+// The entries a dialog field's history keeps, in both front ends
+#define FIELD_HISTORY_MAX_ENTRIES 50
+
 // The file search dialogs of both front ends. A *_HISTORY key holds its field's earlier searches, most recent first.
-#define FILE_SEARCH_HISTORY_MAX_ENTRIES 50
 #define KEY_FILE_SEARCH_NAME_HISTORY QSL("FileSearchDialog/Ui/NameToFind")
 #define KEY_FILE_SEARCH_NAME_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveName")
 #define KEY_FILE_SEARCH_NAME_PARTIAL_MATCH QSL("FileSearchDialog/Ui/NamePartialMatch")
@@ -70,7 +72,7 @@
 // The field's text as last left, empty included: a list cleared on purpose must not come back
 #define KEY_FILE_SEARCH_EXCLUDED_FOLDERS QSL("FileSearchDialog/Ui/ExcludedFolders")
 
-// The batch rename dialog. A *_HISTORY key holds its field's earlier texts, most recent first.
+// The batch rename dialogs of both front ends. A *_HISTORY key holds its field's earlier texts, most recent first.
 #define KEY_BATCH_RENAME_NAME_MASK_HISTORY QSL("BatchRenameDialog/Ui/NameMask")
 #define KEY_BATCH_RENAME_EXTENSION_MASK_HISTORY QSL("BatchRenameDialog/Ui/ExtensionMask")
 #define KEY_BATCH_RENAME_FIND_HISTORY QSL("BatchRenameDialog/Ui/Find")

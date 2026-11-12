@@ -1,6 +1,7 @@
 #include "ctuifinddialog.h"
 #include "ctuiapplication.h"
 #include "ctuidialogs.h"
+#include "ctuifields.h"
 #include "ctuiprograms.h"
 #include "ctuirowlist.h"
 
@@ -16,7 +17,6 @@
 #define Uses_TDeskTop
 #define Uses_TDrawBuffer
 #define Uses_TEvent
-#define Uses_THistory
 #define Uses_TInputLine
 #define Uses_TKeys
 #define Uses_TLabel
@@ -31,7 +31,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
-#include <initializer_list>
 #include <iterator>
 #include <stdint.h>
 #include <utility>
@@ -42,16 +41,11 @@ using namespace std::chrono_literals;
 namespace {
 
 constexpr ushort cmStartOrStopSearch = 1200, cmGoToResult = 1201, cmSendResultsToPanel = 1202;
-constexpr uchar nameHistoryId = 1, contentsHistoryId = 2, searchInHistoryId = 3;
 
 // The check boxes' items, in their order
 enum NameOption { PartialMatch, NameCaseSensitive };
 enum ContentsOption { WholeWords, ContentsIsRegex, ContentsCaseSensitive };
 
-// Turbo Vision keeps the histories of all fields in one 1 KiB block, and drops the oldest entries when it is full
-constexpr qsizetype maxHistoryEntriesShown = 8;
-// Turbo Vision stores an entry's length plus 3 in one byte: a longer entry corrupts the history
-constexpr qsizetype maxHistoryEntryBytes = 252;
 // In bytes. A "Search in" text holds the path of every item selected.
 constexpr int inputLimit = 32 * 1024;
 constexpr auto resultsDisplayInterval = 100ms;
@@ -62,74 +56,6 @@ constexpr size_t maxResultsPerDisplay = 10'000;
 {
 	return count == 1 ? QStringLiteral("1 item") : QStringLiteral("%1 items").arg(count);
 }
-
-[[nodiscard]] QString inputText(const TInputLine* input)
-{
-	return QString::fromUtf8(input->data);
-}
-
-void setInputText(TInputLine* input, const QString& text)
-{
-	strnzcpy(input->data, stringView(text.toUtf8()), (size_t)input->maxLen + 1);
-	input->selectAll(True);
-}
-
-void setChecked(TCheckBoxes* checkBoxes, std::initializer_list<bool> checked)
-{
-	ushort bits = 0;
-	for (int item = 0; const bool itemChecked : checked)
-		bits |= (ushort)(itemChecked << item++);
-	checkBoxes->setData(&bits);
-}
-
-[[nodiscard]] bool isChecked(TCheckBoxes* checkBoxes, int item)
-{
-	return checkBoxes->mark(item) != False;
-}
-
-// Leaves out an entry too long for Turbo Vision's history
-void addToTurboVisionHistory(uchar historyId, const QByteArray& utf8)
-{
-	if (utf8.size() <= maxHistoryEntryBytes)
-		historyAdd(historyId, stringView(utf8));
-}
-
-// The newest entries that fit, added oldest first: Turbo Vision keeps a history's most recent entry last
-void addNewestToTurboVisionHistory(uchar historyId, const QStringList& mostRecentFirst)
-{
-	std::vector<QByteArray> newestFirst;
-	for (qsizetype i = 0; i < mostRecentFirst.size() && (qsizetype)newestFirst.size() < maxHistoryEntriesShown; ++i)
-	{
-		if (QByteArray utf8 = mostRecentFirst[i].toUtf8(); utf8.size() <= maxHistoryEntryBytes)
-			newestFirst.push_back(std::move(utf8));
-	}
-
-	for (auto entry = newestFirst.rbegin(); entry != newestFirst.rend(); ++entry)
-		addToTurboVisionHistory(historyId, *entry);
-}
-
-// Moves the text to the front of the history and saves it, as the GUI's history fields do. Empty text is not recorded.
-void recordInHistory(QStringList& history, const QString& text, const QString& settingsKey, uchar historyId)
-{
-	if (text.isEmpty())
-		return;
-
-	history.removeAll(text);
-	history.push_front(text);
-	if (history.size() > FILE_SEARCH_HISTORY_MAX_ENTRIES)
-		history.resize(FILE_SEARCH_HISTORY_MAX_ENTRIES);
-	QSettings{}.setValue(settingsKey, history);
-	addToTurboVisionHistory(historyId, text.toUtf8());
-}
-
-// Never records its field's text, which THistory does when its list opens and on any button press: the dialog records each search's texts itself
-class CTuiFieldHistory final : public THistory
-{
-public:
-	using THistory::THistory;
-
-	void recordHistory(const char* /*text*/) override {}
-};
 
 struct FoundItem
 {
@@ -195,9 +121,7 @@ public:
 	void handleEvent(TEvent& event) override
 	{
 		CTuiRowList::handleEvent(event);
-		// A dialog's buttons and check boxes also take their letters without Alt, from a focused view that leaves them
-		if (event.what == evKeyDown && event.keyDown.textLength > 0 && (uchar)event.keyDown.text[0] >= ' ' && !(event.keyDown.controlKeyState & (kbAltShift | kbCtrlShift)))
-			clearEvent(event);
+		clearPlainTextKey(event);
 	}
 
 	[[nodiscard]] const FoundItem* currentItem() const noexcept { return _items.empty() ? nullptr : &_items[(size_t)cursorRow()]; }
@@ -251,7 +175,10 @@ private:
 
 CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	TWindowInit(&TDialog::initFrame),
-	TDialog(bounds, "Find files")
+	TDialog(bounds, "Find files"),
+	_nameHistory(KEY_FILE_SEARCH_NAME_HISTORY, findNameHistoryId),
+	_contentsHistory(KEY_FILE_SEARCH_CONTENTS_HISTORY, findContentsHistoryId),
+	_searchInHistory(KEY_FILE_SEARCH_ROOT_HISTORY, findSearchInHistoryId)
 {
 	flags &= ~wfMove;
 	growMode = gfGrowHiX | gfGrowHiY;
@@ -259,31 +186,22 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	static constexpr int labelX = 2, fieldX = 20, listTop = 11, searchButtonWidth = 12, sendButtonWidth = 17;
 	const int right = size.x - 2, statusY = size.y - 2, currentPathY = statusY - 1;
 
-	// A labelled input line with its history, from fieldX to fieldEnd
-	const auto addField = [this](int y, int fieldEnd, const char* label, uchar historyId) {
-		const int historyX = fieldEnd - 3;
-		auto* input = new TInputLine({ fieldX, y, historyX, y + 1 }, inputLimit);
-		input->growMode = gfGrowHiX;
-		insert(input);
-		insert(new TLabel({ labelX, y, fieldX - 1, y + 1 }, label, input));
-		auto* history = new CTuiFieldHistory({ historyX, y, fieldEnd, y + 1 }, input, historyId);
-		history->growMode = gfGrowLoX | gfGrowHiX;
-		insert(history);
-		return input;
+	const auto addField = [this](int y, int fieldEnd, const char* label, const CTuiSavedFieldHistory& history) {
+		return insertFieldWithHistory(*this, history, label, y, labelX, fieldX, fieldEnd, inputLimit, true);
 	};
 
-	_name = addField(2, right, "Search ~f~or:", nameHistoryId);
+	_name = addField(2, right, "Search ~f~or:", _nameHistory);
 	_nameOptions = new TCheckBoxes({ fieldX, 3, right, 4 }, new TSItem("~P~artial match", new TSItem("Case sensi~t~ive", nullptr)));
 	_nameOptions->growMode = gfGrowHiX;
 	insert(_nameOptions);
 
-	_contents = addField(5, right, "With c~o~ntents:", contentsHistoryId); // Alt+C copies a result's path, as in the panel
+	_contents = addField(5, right, "With c~o~ntents:", _contentsHistory); // Alt+C copies a result's path, as in the panel
 	_contentsOptions = new TCheckBoxes({ fieldX, 6, right, 7 }, new TSItem("~W~hole words", new TSItem("~R~egex", new TSItem("Case sensiti~v~e", nullptr))));
 	_contentsOptions->growMode = gfGrowHiX;
 	insert(_contentsOptions);
 
 	const int sendButtonX = right - sendButtonWidth, searchButtonX = sendButtonX - searchButtonWidth;
-	_searchIn = addField(8, searchButtonX - 1, "Search ~i~n:", searchInHistoryId);
+	_searchIn = addField(8, searchButtonX - 1, "Search ~i~n:", _searchInHistory);
 	_excludedFolders = new TInputLine({ fieldX, 9, searchButtonX - 1, 10 }, inputLimit);
 	_excludedFolders->growMode = gfGrowHiX;
 	insert(_excludedFolders);
@@ -309,16 +227,9 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	_status->growMode = gfGrowLoY | gfGrowHiY | gfGrowHiX;
 	insert(_status);
 
-	const QSettings settings;
-	_nameHistory = settings.value(KEY_FILE_SEARCH_NAME_HISTORY).toStringList();
-	_contentsHistory = settings.value(KEY_FILE_SEARCH_CONTENTS_HISTORY).toStringList();
-	_searchInHistory = settings.value(KEY_FILE_SEARCH_ROOT_HISTORY).toStringList();
-	addNewestToTurboVisionHistory(nameHistoryId, _nameHistory);
-	addNewestToTurboVisionHistory(contentsHistoryId, _contentsHistory);
-	addNewestToTurboVisionHistory(searchInHistoryId, _searchInHistory);
-
 	// The contents field starts empty: a pattern left in it would silently restrict the search
-	setInputText(_name, _nameHistory.value(0));
+	const QSettings settings;
+	setInputText(_name, _nameHistory.mostRecent());
 	setInputText(_excludedFolders, settings.value(KEY_FILE_SEARCH_EXCLUDED_FOLDERS).toString());
 	setChecked(_nameOptions, { settings.value(KEY_FILE_SEARCH_NAME_PARTIAL_MATCH, FILE_SEARCH_NAME_PARTIAL_MATCH_DEFAULT).toBool(),
 		settings.value(KEY_FILE_SEARCH_NAME_CASE_SENSITIVE, false).toBool() });
@@ -451,10 +362,10 @@ void CTuiFindDialog::startSearch()
 		return;
 	}
 
-	recordInHistory(_nameHistory, nameText, KEY_FILE_SEARCH_NAME_HISTORY, nameHistoryId);
-	recordInHistory(_contentsHistory, contentsText, KEY_FILE_SEARCH_CONTENTS_HISTORY, contentsHistoryId);
+	_nameHistory.record(nameText);
+	_contentsHistory.record(contentsText);
 	if (searchInFieldTextBelongsInHistory(searchInText))
-		recordInHistory(_searchInHistory, searchInText, KEY_FILE_SEARCH_ROOT_HISTORY, searchInHistoryId);
+		_searchInHistory.record(searchInText);
 
 	_results->clear();
 	setStatus({});

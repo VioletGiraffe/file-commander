@@ -11,6 +11,10 @@ RESTORE_COMPILER_WARNINGS
 // Posted to the owner on a double click; the owner activates the row under the cursor
 inline constexpr ushort cmActivateRowUnderCursor = 1000;
 
+// Clears a text key without Alt or Ctrl. A list in a dialog calls it after handling a key: the dialog's buttons and check boxes
+// also take their letters without Alt, from a focused view that leaves the key.
+void clearPlainTextKey(TEvent& event);
+
 // Rows with a cursor, scrolled to keep it in view. Not TListViewer: it counts rows in short, and a folder can hold more.
 // A derived class holds the rows and draws them.
 class CTuiRowList : public TView

@@ -250,6 +250,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 	return new TMenuBar(r,
 		*new TSubMenu("~F~ile", kbAltF) +
 			*new TMenuItem("~R~ename...", cmRenameItem, kbF2, hcNoContext, "F2") +
+			*new TMenuItem("~B~atch rename...", cmBatchRename, kbShiftF2, hcNoContext, "Shift-F2") +
 			*new TMenuItem("~V~iew", cmViewFile, kbF3, hcNoContext, "F3") +
 			*new TMenuItem("~E~dit", cmEditFile, kbF4, hcNoContext, "F4") +
 			*new TMenuItem("~C~opy...", cmCopyItems, kbF5, hcNoContext, "F5") +

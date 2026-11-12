@@ -1,5 +1,6 @@
 #include "ctuipanel.h"
 #include "ctuiapplication.h"
+#include "ctuibatchrenamedialog.h"
 #include "ctuidialogs.h"
 #include "ctuifilelist.h"
 #include "ctuifileoperations.h"
@@ -378,6 +379,13 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmDeleteItems: deleteSelectedItems(_controller, _side, true); break;
 	case cmDeleteItemsPermanently: deleteSelectedItems(_controller, _side, false); break;
 	case cmRenameItem: renameCurrentItem(); break;
+	case cmBatchRename:
+		if (const std::vector<CFileSystemObject> items = _controller.panel(_side).selectedItemsOrCurrentItem(); !items.empty())
+		{
+			runBatchRenameDialog(items);
+			_controller.refreshUnwatchedViews();
+		}
+		break;
 	case cmCreateFolder: createFolder(); break;
 	case cmCreateFile: createFile(); break;
 	case cmViewFile:

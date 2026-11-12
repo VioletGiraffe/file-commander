@@ -99,7 +99,7 @@ The panel commands a front end runs on user input (new folder or file, rename, g
 also put the cursor on the entry. The front end collects the input, shows the message, and asks rename's replacement
 question.
 
-A batch rename dialog renders `CBatchRenameSession` (`src/batchrename/`), a model with no UI: the preview with each
+The batch rename dialogs of both front ends render `CBatchRenameSession` (`src/batchrename/`), a model with no UI: the preview with each
 item's state, the renaming and its undo, and the options saved between uses.
 
 ## Traversal and watchers

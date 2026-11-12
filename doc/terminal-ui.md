@@ -14,6 +14,8 @@ ends need lives in the core, which returns the text to show and the program to r
 | The rows, their columns and the column header | `app/src/ctuifilelist.{h,cpp}` |
 | A list's cursor, scrolling, keys and mouse | `app/src/ctuirowlist.{h,cpp}` |
 | Dialogs | `app/src/ctuidialogs.{h,cpp}` |
+| A dialog's fields, and the histories they share with the GUI | `app/src/ctuifields.{h,cpp}` |
+| Batch rename | `app/src/ctuibatchrenamedialog.{h,cpp}` |
 | Colours | `app/src/ctuipalette.{h,cpp}` |
 | Copy, move, delete | `app/src/ctuifileoperations.{h,cpp}` |
 | Find files | `app/src/ctuifinddialog.{h,cpp}` |
@@ -67,6 +69,11 @@ dialog is open.
 - Find files (Alt+F7) runs the core's `CFileSearchEngine` with the GUI's fields, options and settings keys. The dialog
   takes the results from a `CFileSearchResultsBuffer` in its `getEvent`, at most every 100 ms. The application keeps
   the dialog, so its last results show again; closing it stops a running search.
+- Batch rename (Shift+F2; the GUI's Ctrl+M is Enter in a terminal) renders the core's `CBatchRenameSession`. Turbo Vision
+  reports no edit, so the dialog compares the rules after every event. The renaming runs on the UI thread, which reads only
+  Esc meanwhile.
+- A field's history is shared with the GUI's field through its settings key. Turbo Vision keeps every field's history in
+  one block, which `main` enlarges before the application allocates it.
 - Viewing, editing, opening a document and running a program: see [process-launching.md](process-launching.md).
 - `CTuiApplication::copyToClipboard` sends a copy over SSH to the terminal (OSC 52), to reach the clipboard of the
   computer the user types on. Elsewhere Turbo Vision chooses, trying the local clipboard tools first. Neither path

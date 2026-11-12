@@ -22,7 +22,9 @@ INCLUDEPATH += \
 SOURCES += \
 	src/main_tui.cpp \
 	src/ctuiapplication.cpp \
+	src/ctuibatchrenamedialog.cpp \
 	src/ctuidialogs.cpp \
+	src/ctuifields.cpp \
 	src/ctuifilelist.cpp \
 	src/ctuifileoperations.cpp \
 	src/ctuifinddialog.cpp \
@@ -33,7 +35,9 @@ SOURCES += \
 
 HEADERS += \
 	src/ctuiapplication.h \
+	src/ctuibatchrenamedialog.h \
 	src/ctuidialogs.h \
+	src/ctuifields.h \
 	src/ctuifilelist.h \
 	src/ctuifileoperations.h \
 	src/ctuifinddialog.h \

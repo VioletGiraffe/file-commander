@@ -61,6 +61,13 @@ public:
 
 	enum class Step { Apply, Undo };
 
+	// The values a dialog accepts for the counter's options
+	struct Range
+	{
+		int min, max;
+	};
+	static constexpr Range counterStartRange{ 0, 999'999'999 }, counterStepRange{ 1, 1'000'000 }, counterDigitsRange{ 1, 10 };
+
 	// Previews the default rules. A root, which cannot be renamed, is left out.
 	explicit CBatchRenameSession(const std::vector<CFileSystemObject>& items);
 

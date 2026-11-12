@@ -1,4 +1,5 @@
 #include "ctuiapplication.h"
+#include "ctuifields.h"
 
 #include "ccontroller.h"
 
@@ -85,6 +86,8 @@ int main(int argc, char* argv[])
 	{
 		CController controller;
 		controller.showFolderInItsTabOrActiveTab(Panel::LeftPanel, startFolder); // The terminal UI starts on the left side
+		// Before the application allocates the block: the default 1 KiB holds few entries for all the dialogs' fields
+		historySize = 8 * 1024;
 		CTuiApplication tui{ controller };
 		tui.run();
 

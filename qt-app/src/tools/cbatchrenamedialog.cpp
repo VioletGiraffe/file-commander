@@ -58,15 +58,20 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 	_letterCase = new QComboBox;
 	_letterCase->addItems({ tr("Unchanged"), tr("lowercase"), tr("UPPERCASE"), tr("Title Case") });
 
-	_counterStart = new QSpinBox;
-	_counterStart->setRange(0, 999'999'999);
-	_counterStep = new QSpinBox;
-	_counterStep->setRange(1, 1'000'000);
-	_counterDigits = new QSpinBox;
-	_counterDigits->setRange(1, 10);
+	const auto newCounterOption = [](const CBatchRenameSession::Range range) {
+		auto* option = new QSpinBox;
+		option->setRange(range.min, range.max);
+		return option;
+	};
+	_counterStart = newCounterOption(CBatchRenameSession::counterStartRange);
+	_counterStep = newCounterOption(CBatchRenameSession::counterStepRange);
+	_counterDigits = newCounterOption(CBatchRenameSession::counterDigitsRange);
 
 	// The fields that change names on their own start at the default rules; the history keeps what was used before
 	const BatchRenameRules initial = CBatchRenameSession::initialRules();
+	// Before the histories load: a combo box drops the items past its maximum
+	for (CHistoryComboBox* field : { _nameMask, _extensionMask, _find, _replaceWith })
+		field->setMaxCount(FIELD_HISTORY_MAX_ENTRIES);
 	_nameMask->setSettingsKeyForHistoryPersistence(KEY_BATCH_RENAME_NAME_MASK_HISTORY);
 	_extensionMask->setSettingsKeyForHistoryPersistence(KEY_BATCH_RENAME_EXTENSION_MASK_HISTORY);
 	_find->setSettingsKeyForHistoryPersistence(KEY_BATCH_RENAME_FIND_HISTORY);

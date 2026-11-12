@@ -9,6 +9,12 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 
+void clearPlainTextKey(TEvent& event)
+{
+	if (event.what == evKeyDown && event.keyDown.textLength > 0 && (uchar)event.keyDown.text[0] >= ' ' && !(event.keyDown.controlKeyState & (kbAltShift | kbCtrlShift)))
+		event.what = evNothing;
+}
+
 CTuiRowList::CTuiRowList(const TRect& bounds, TScrollBar* verticalScrollBar) noexcept :
 	TView(bounds),
 	_verticalScrollBar(verticalScrollBar)
