@@ -9,11 +9,16 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QHeaderView>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QPainter>
 #include <QPlainTextEdit>
 #include <QTextEdit>
+#include <QTreeView>
 RESTORE_COMPILER_WARNINGS
+
+#include <algorithm>
 
 // Item rename handling
 QWidget* CFileListItemDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -50,6 +55,34 @@ void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem&
 	QStyleOptionViewItem opt = option;
 	opt.state &= ~QStyle::State_MouseOver;
 	QStyledItemDelegate::paint(painter, opt, index);
+
+	if (!_columnSeparatorsShown)
+		return;
+
+	const auto* view = qobject_cast<const QTreeView*>(option.widget);
+	assert_and_return_r(view, );
+	// The last column ends at the view's edge
+	if (view->header()->visualIndex(index.column()) == view->header()->count() - 1)
+		return;
+
+	// The column separator: a faint dashed line along the cell's right edge
+	static constexpr int dashLength = 5, dashPeriod = dashLength * 2;
+	QColor lineColor = option.palette.color(QPalette::Text);
+	lineColor.setAlphaF(0.15f);
+	const QRect& cell = option.rect;
+	// The dashes start at multiples of dashPeriod in view coordinates, so they run on unbroken across rows
+	const int phase = (cell.top() % dashPeriod + dashPeriod) % dashPeriod;
+	for (int dashTop = cell.top() - phase; dashTop <= cell.bottom(); dashTop += dashPeriod)
+	{
+		const int top = std::max(dashTop, cell.top()), bottom = std::min(dashTop + dashLength - 1, cell.bottom());
+		if (top <= bottom)
+			painter->fillRect(QRect{ cell.right(), top, 1, bottom - top + 1 }, lineColor);
+	}
+}
+
+void CFileListItemDelegate::setColumnSeparatorsShown(const bool shown)
+{
+	_columnSeparatorsShown = shown;
 }
 
 bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)

@@ -43,6 +43,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 
 	ui->_cbRespectLastCursorPos->setChecked(s.value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, INTERFACE_RESPECT_LAST_CURSOR_POS_DEFAULT).toBool());
 	ui->_cbDecoratedFolderIcons->setChecked(s.value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool());
+	ui->_cbColumnSeparators->setChecked(s.value(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT).toBool());
 
 	ui->_styleSheetEdit->setPlainText(s.value(KEY_INTERFACE_STYLE_SHEET).toString());
 
@@ -103,6 +104,7 @@ void CSettingsPageInterface::acceptSettings()
 	s.setValue(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, ui->_cbRespectLastCursorPos->isChecked());
 	s.setValue(KEY_INTERFACE_FILE_LIST_FONT, _fontDialog->currentFont().toString());
 	s.setValue(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, ui->_cbDecoratedFolderIcons->isChecked());
+	s.setValue(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, ui->_cbColumnSeparators->isChecked());
 	s.setValue(KEY_INTERFACE_STYLE_SHEET, ui->_styleSheetEdit->toPlainText());
 
 	if (const auto styleName = ui->_cbStyle->currentText(); _styleChanged && !styleName.isEmpty())

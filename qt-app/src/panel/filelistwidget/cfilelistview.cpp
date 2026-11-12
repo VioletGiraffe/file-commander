@@ -25,10 +25,11 @@ RESTORE_COMPILER_WARNINGS
 #include <utility>
 
 CFileListView::CFileListView(QWidget *parent) :
-	QTreeView(parent)
+	QTreeView(parent),
+	_itemDelegate(new CFileListItemDelegate{this})
 {
 	setMouseTracking(true);
-	setItemDelegate(new CFileListItemDelegate{this});
+	setItemDelegate(_itemDelegate);
 	assert_r(connect(this, &QTreeView::doubleClicked, [this](const QModelIndex &idx) {
 		_currentItemBeforeMouseClick = QModelIndex();
 		_singleMouseClickValid = false;
@@ -178,6 +179,12 @@ bool CFileListView::restoreScrollPosition(const ScrollPosition& position)
 void CFileListView::logTimeToNextPaint(std::chrono::steady_clock::time_point start)
 {
 	_timeToNextPaintStart = start;
+}
+
+void CFileListView::setColumnSeparatorsShown(const bool shown)
+{
+	_itemDelegate->setColumnSeparatorsShown(shown);
+	viewport()->update();
 }
 
 // For managing selection and cursor

@@ -20,6 +20,12 @@ public:
 
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 
+	// Takes effect at the next paint
+	void setColumnSeparatorsShown(bool shown);
+
 protected:
 	bool eventFilter(QObject *object, QEvent *event) override;
+
+private:
+	bool _columnSeparatorsShown = true;
 };

@@ -35,6 +35,7 @@ struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
 	inline bool fileListReturnPressed() override { return false; }
 };
 
+class CFileListItemDelegate;
 class QMouseEvent;
 class QFocusEvent;
 class QHeaderView;
@@ -76,6 +77,9 @@ public:
 
 	// Logs the time from start to the end of the next paint if it reaches 100 ms
 	void logTimeToNextPaint(std::chrono::steady_clock::time_point start);
+
+	// Faint vertical lines between the columns
+	void setColumnSeparatorsShown(bool shown);
 
 signals:
 	void contextMenuRequested();
@@ -119,6 +123,7 @@ private:
 
 private:
 	std::vector<FileListViewEventObserver*> _eventObservers;
+	CFileListItemDelegate*              _itemDelegate;
 
 	QPersistentModelIndex               _currentItemBeforeMouseClick;
 	std::optional<std::chrono::steady_clock::time_point> _timeToNextPaintStart;

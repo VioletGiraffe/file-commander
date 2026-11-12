@@ -80,6 +80,13 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="_cbColumnSeparators">
+        <property name="text">
+         <string>Show lines between columns</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

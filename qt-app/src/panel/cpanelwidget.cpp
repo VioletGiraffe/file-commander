@@ -1564,9 +1564,11 @@ void CPanelWidget::copySelectedItemsPathsToClipboard() const
 
 void CPanelWidget::onSettingsChanged()
 {
+	const QSettings settings;
 	QFont font;
-	if (font.fromString(QSettings{}.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
+	if (font.fromString(settings.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
 		ui->_list->setFont(font);
+	ui->_list->setColumnSeparatorsShown(settings.value(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT).toBool());
 }
 
 void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()

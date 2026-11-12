@@ -93,6 +93,8 @@
 #define KEY_INTERFACE_FILE_LIST_FONT QSL("Interface/View/FileListFont")
 #define INTERFACE_FILE_LIST_FONT_DEFAULT QSL("Roboto Mono,10,-1,5,25,0,0,0,0,0,Light")
 #define KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS QSL("Interface/View/ShowSpecialFolderIcons")
+#define KEY_INTERFACE_SHOW_COLUMN_SEPARATORS QSL("Interface/View/ShowColumnSeparators")
+#define INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT true
 #define KEY_INTERFACE_STYLE_SHEET QSL("Interface/Style/StylesheetText")
 #define KEY_INTERFACE_COLOR_SCHEME QSL("Interface/ColorScheme")
 #define KEY_INTERFACE_STYLE QSL("Interface/Style")
