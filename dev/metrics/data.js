@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794488865799,
+  "lastUpdate": 1794492560246,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -35531,6 +35531,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 947,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 448,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 46,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 27.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 11,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "c9ed8a673c8d26bff8afe4231e2b18d2908ccc92",
+          "message": "Terminal UI tests type into a dialog only once its input line has the cursor: on macOS, two Find dialog tests typed into, or read the cursor of, a dialog whose screen had only partly arrived",
+          "timestamp": "2026-11-12T15:46:19+02:00",
+          "tree_id": "695a00c388455385645b157bf44bd19abd54e592",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/c9ed8a673c8d26bff8afe4231e2b18d2908ccc92"
+        },
+        "date": 1794492557729,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19459,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35769,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1607.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 949,
             "unit": "KB"
           },
           {
