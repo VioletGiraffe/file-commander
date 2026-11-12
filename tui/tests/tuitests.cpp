@@ -412,6 +412,7 @@ TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a r
 	findByName(*session, QStringLiteral("needle"), QStringLiteral("Search completed, 1 item found"));
 	const QString result = QDir::toNativeSeparators(QStringLiteral("sub/needle.txt")); // Relative to the folder searched in
 	CHECK(session->screen().contains(result));
+	CHECK(session->screen().contains(QDir::toNativeSeparators(sandbox.work(QStringLiteral("sub/needle.txt"))))); // The one under the cursor, in full
 
 	session->send(Keys::Enter); // The results have the focus once the search completes
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Search for:")) && cursorIsOn(screen, QStringLiteral("needle.txt")); },

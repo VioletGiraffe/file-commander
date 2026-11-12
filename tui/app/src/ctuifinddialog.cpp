@@ -30,6 +30,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <functional>
 #include <initializer_list>
 #include <iterator>
 #include <stdint.h>
@@ -156,10 +157,14 @@ class CTuiFindResultsList final : public CTuiRowList
 public:
 	CTuiFindResultsList(const TRect& bounds, TScrollBar* verticalScrollBar) noexcept : CTuiRowList(bounds, verticalScrollBar) {}
 
+	// Called when the item under the cursor may have changed: the cursor moved, or the items did
+	std::function<void()> onCurrentItemChanged;
+
 	void clear()
 	{
 		_items.clear();
 		rowsChanged(0);
+		onCurrentItemChanged();
 	}
 
 	// The cursor follows the newest item while it is on the last row
@@ -171,6 +176,7 @@ public:
 		const bool followingNewest = cursorIsOnLastRow();
 		_items.insert(_items.end(), std::make_move_iterator(items.begin()), std::make_move_iterator(items.end()));
 		rowsChanged(followingNewest ? (int)_items.size() - 1 : cursorRow());
+		onCurrentItemChanged();
 	}
 
 	// In the panel's natural order of their paths. The cursor stays on its item, or goes from the last row to the first.
@@ -183,6 +189,7 @@ public:
 		const QString cursorPath = _items[(size_t)cursorRow()].path;
 		std::ranges::sort(_items, resultOrderLess);
 		rowsChanged(followingNewest ? 0 : (int)(std::ranges::lower_bound(_items, cursorPath, pathOrderLess, &FoundItem::path) - _items.begin()));
+		onCurrentItemChanged();
 	}
 
 	void handleEvent(TEvent& event) override
@@ -234,6 +241,7 @@ public:
 
 private:
 	[[nodiscard]] int rowCount() const noexcept override { return (int)_items.size(); }
+	void cursorMovedByUser() override { onCurrentItemChanged(); }
 	// True for an empty list
 	[[nodiscard]] bool cursorIsOnLastRow() const noexcept { return cursorRow() >= (int)_items.size() - 1; }
 
@@ -249,7 +257,7 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	growMode = gfGrowHiX | gfGrowHiY;
 
 	static constexpr int labelX = 2, fieldX = 18, listTop = 11, searchButtonWidth = 12, sendButtonWidth = 17;
-	const int right = size.x - 2, statusY = size.y - 2;
+	const int right = size.x - 2, statusY = size.y - 2, currentPathY = statusY - 1;
 
 	// A labelled input line with its history, from fieldX to fieldEnd
 	const auto addField = [this](int y, int fieldEnd, const char* label, uchar historyId) {
@@ -283,12 +291,16 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	sendButton->growMode = gfGrowLoX | gfGrowHiX;
 	insert(sendButton);
 
-	auto* scrollBar = new TScrollBar({ right - 1, listTop, right, statusY });
+	auto* scrollBar = new TScrollBar({ right - 1, listTop, right, currentPathY });
 	scrollBar->growMode = gfGrowLoX | gfGrowHiX | gfGrowHiY;
 	insert(scrollBar);
-	_results = new CTuiFindResultsList({ labelX, listTop, right - 1, statusY }, scrollBar);
+	_results = new CTuiFindResultsList({ labelX, listTop, right - 1, currentPathY }, scrollBar);
+	_results->onCurrentItemChanged = [this] { showCurrentResultPath(); };
 	insert(_results);
 
+	_currentResultPath = new CTuiTextView({ labelX, currentPathY, right, currentPathY + 1 }, {});
+	_currentResultPath->growMode = gfGrowLoY | gfGrowHiY | gfGrowHiX;
+	insert(_currentResultPath);
 	_status = new CTuiTextView({ labelX, statusY, right, statusY + 1 }, {});
 	_status->growMode = gfGrowLoY | gfGrowHiY | gfGrowHiX;
 	insert(_status);
@@ -312,7 +324,10 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 CTuiFindDialog::Outcome CTuiFindDialog::exec(const QString& searchInText, const QString& baseDir)
 {
 	if (const TRect desktopArea = TProgram::deskTop->getExtent(); getBounds() != desktopArea)
+	{
 		changeBounds(desktopArea);
+		showCurrentResultPath(); // Elided to the new width
+	}
 
 	setInputText(_searchIn, searchInText);
 	_baseDir = baseDir;
@@ -509,6 +524,12 @@ void CTuiFindDialog::setSearchActive(const bool active)
 void CTuiFindDialog::setStatus(const QString& text)
 {
 	_status->setLines({ elidedInTheMiddle(text, _status->size.x) });
+}
+
+void CTuiFindDialog::showCurrentResultPath()
+{
+	const FoundItem* item = _results->currentItem();
+	_currentResultPath->setLines({ item ? elidedInTheMiddle(toNativeSeparators(item->path), _currentResultPath->size.x) : QString{} });
 }
 
 void CTuiFindDialog::goToCurrentResult()

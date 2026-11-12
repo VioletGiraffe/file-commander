@@ -48,6 +48,8 @@ private:
 	void showCompletion(const CFileSearchResultsBuffer::Completion& completion);
 	void setSearchActive(bool active);
 	void setStatus(const QString& text);
+	// Under the list, elided only past the dialog's width: the rows show paths relative to the folder searched in
+	void showCurrentResultPath();
 	void goToCurrentResult();
 	// Unless there are none
 	void sendResultsToPanel();
@@ -62,6 +64,7 @@ private:
 	TInputLine* _searchIn;
 	TButton* _searchButton;
 	CTuiFindResultsList* _results;
+	CTuiTextView* _currentResultPath;
 	CTuiTextView* _status;
 
 	// Most recent first
