@@ -44,7 +44,8 @@ public:
 
 	// requestTake: must schedule one take() on the UI thread, and return without calling it.
 	// Called once per take() that is due, on a search thread or inside take(), possibly on both at the same time.
-	explicit CFileSearchResultsBuffer(std::function<void()> requestTake);
+	// Empty for an owner that calls take() periodically.
+	explicit CFileSearchResultsBuffer(std::function<void()> requestTake = {});
 
 	// At most maxMatches matches, the oldest first. Requests the next take() itself while matches remain.
 	[[nodiscard]] Batch take(size_t maxMatches);
@@ -59,7 +60,7 @@ private:
 	void addReport(Change&& change);
 
 private:
-	const std::function<void()> _requestTake;
+	const std::function<void()> _requestTake; // May be empty
 
 	std::mutex _mutex;
 	// Guarded by _mutex

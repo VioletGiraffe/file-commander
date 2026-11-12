@@ -52,7 +52,7 @@ TEST_CASE("Results buffer - only the last scanned item is kept, and handed out o
 {
 	TempTree tree;
 	const QString file = tree.makeFile(QSL("a"));
-	CFileSearchResultsBuffer buffer{ [] {} };
+	CFileSearchResultsBuffer buffer; // Taken from with no request
 
 	buffer.itemScanned(QSL("first"));
 	buffer.itemScanned(QSL("second"));

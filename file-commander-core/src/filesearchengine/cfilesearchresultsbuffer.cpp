@@ -34,7 +34,8 @@ CFileSearchResultsBuffer::Batch CFileSearchResultsBuffer::take(const size_t maxM
 		}
 	}
 
-	_requestTake();
+	if (_requestTake)
+		_requestTake();
 	return batch;
 }
 
@@ -49,7 +50,8 @@ void CFileSearchResultsBuffer::addReport(Change&& change)
 	}
 
 	// Outside the mutex: the request takes locks of its own
-	_requestTake();
+	if (_requestTake)
+		_requestTake();
 }
 
 void CFileSearchResultsBuffer::itemScanned(const QString& currentItem)
