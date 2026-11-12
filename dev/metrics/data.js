@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794500944804,
+  "lastUpdate": 1794512527731,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -35788,6 +35788,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 449,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 46,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 27.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 11,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2e7acd3065316b838636bca6897ddd6b6dd924c4",
+          "message": "The shell operation runner and the shell's clipboard paste come from file-operations, whose shutdown wait no longer hangs after the last operation ends; file-operations updated",
+          "timestamp": "2026-11-12T21:30:42+02:00",
+          "tree_id": "f76e6363e54f2177520b116c84903b8c425aac78",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2e7acd3065316b838636bca6897ddd6b6dd924c4"
+        },
+        "date": 1794512522692,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19922,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35856,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1620.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 956,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 454,
             "unit": "KB"
           },
           {
