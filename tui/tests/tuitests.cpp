@@ -866,6 +866,27 @@ TEST_CASE("The Size column shows bytes below 1K, else the largest binary unit re
 	}
 }
 
+TEST_CASE("Space selects the item under the cursor and moves the cursor to the next one", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("folder")));
+	sandbox.createFile(QStringLiteral("work/folder/inside.txt"));
+	sandbox.createFile(QStringLiteral("work/a.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
+	session->send(Keys::Home);
+	session->send(Keys::Down);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("folder")); }, QStringLiteral("the cursor on the folder"));
+
+	session->send(" "sv);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("0 files, 1 folders selected")); },
+		QStringLiteral("the folder selected"));
+	// Selects a.txt, not the folder again: the cursor moved
+	session->send(" "sv);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("1 files, 1 folders selected")); },
+		QStringLiteral("the folder and a.txt selected"));
+}
+
 TEST_CASE("A dashed line separates the columns in the header and the rows, unless the GUI's setting turns it off", "[tui]")
 {
 	const bool separatorsShown = GENERATE(true, false);

@@ -224,7 +224,7 @@ private:
 
 	switch (key.charScan.charCode)
 	{
-	case ' ': return cmToggleSelectionAndCalculateSize;
+	case ' ': return cmToggleSelectionCalculateSizeAndMoveDown;
 	case '*': return cmInvertSelection;
 	case '+': return cmSelectByPattern;
 	case '-': return cmDeselectByPattern;
@@ -344,14 +344,13 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmSortByExtension: sortBy(FileListSortField::Extension); break;
 	case cmSortByDate: sortBy(FileListSortField::Date); break;
 	case cmSortBySize: sortBy(FileListSortField::Size); break;
+	case cmToggleSelectionCalculateSizeAndMoveDown:
+		if (const CFileSystemObject* row = _fileList->currentRow())
+			_controller.displayDirSize(_side, row->hash());
+		[[fallthrough]];
 	case cmToggleSelectionAndMoveDown:
 		toggleCurrentItemSelection();
 		_fileList->moveCursorTo(_fileList->cursorRow() + 1);
-		break;
-	case cmToggleSelectionAndCalculateSize:
-		toggleCurrentItemSelection();
-		if (const CFileSystemObject* row = _fileList->currentRow())
-			_controller.displayDirSize(_side, row->hash());
 		break;
 	case cmInvertSelection:
 		_controller.panel(_side).invertSelection();

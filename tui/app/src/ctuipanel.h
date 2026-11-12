@@ -22,7 +22,7 @@ inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 
 	cmCopyPaths = 1010, cmGoUp = 1011, cmGoBack = 1012, cmGoForward = 1013, cmGoToFolder = 1014,
 	cmRefresh = 1015, cmToggleHiddenFiles = 1016, cmOpenFilterLine = 1017,
 	cmSortByName = 1018, cmSortByExtension = 1019, cmSortByDate = 1020, cmSortBySize = 1021,
-	cmToggleSelectionAndMoveDown = 1022, cmToggleSelectionAndCalculateSize = 1023, cmInvertSelection = 1024,
+	cmToggleSelectionAndMoveDown = 1022, cmToggleSelectionCalculateSizeAndMoveDown = 1023, cmInvertSelection = 1024,
 	cmSelectByPattern = 1025, cmDeselectByPattern = 1026, cmSelectByExtension = 1027, cmOpenShell = 1028,
 	cmNewTab = 1029, cmCloseTab = 1030, cmReopenClosedTab = 1031, cmDuplicateTab = 1032, cmCloseOtherTabs = 1033,
 	cmNextTab = 1034, cmPreviousTab = 1035, cmOpenFolderInNewTab = 1036, cmGoToFileLocation = 1037, cmBatchRename = 1038;

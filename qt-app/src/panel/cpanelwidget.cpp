@@ -857,12 +857,9 @@ void CPanelWidget::showContextMenuForDisk()
 
 void CPanelWidget::onSpacePressed()
 {
-	const QModelIndex itemIndex = _selectionModel->currentIndex();
-	if (itemIndex.isValid())
-	{
-		_selectionModel->select(itemIndex, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
+	if (const QModelIndex itemIndex = _selectionModel->currentIndex(); itemIndex.isValid())
 		_controller->displayDirSize(_panelPosition, _model->itemHash(itemIndex));
-	}
+	invertCurrentItemSelection();
 }
 
 void CPanelWidget::invertCurrentItemSelection()
