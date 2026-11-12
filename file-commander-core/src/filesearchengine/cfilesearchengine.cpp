@@ -10,6 +10,7 @@
 #include "compiler/compiler_warnings_control.h"
 #include "directoryscan/directoryscanner.h"
 #include "file.hpp"
+#include "qt_paths.hpp" // thin_io
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "threading/cthreadpool.h"
 #include "threading/thread_helpers.h"
@@ -28,6 +29,7 @@ RESTORE_COMPILER_WARNINGS
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <semaphore>
 #include <stddef.h>
@@ -226,6 +228,15 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 
 	const FileNameFilter nameFilter{ query.nameFilters, query.nameCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive };
 
+	// Not set for an empty list: a FileNameFilter without filters matches every name
+	std::function<bool (const thin_io::directory_entry&)> isFolderExcluded;
+	if (!query.excludedFolders.isEmpty())
+	{
+		isFolderExcluded = [filter = FileNameFilter{ query.excludedFolders, Qt::CaseInsensitive }](const thin_io::directory_entry& entry) {
+			return filter.matches(thin_io::to_qstring(entry.name));
+		};
+	}
+
 	const bool searchByContents = !query.contents.isEmpty();
 	// memfind can only look for the byte sequence as given, so case folding and word boundaries both need the regex
 	// engine. (TODO: a case-insensitive memory search is possible, just not with the built-in functions.)
@@ -329,7 +340,7 @@ void CFileSearchEngine::searchThread(const FileSearchQuery& query, FileSearchLis
 				else
 					listener->matchFound(item, reachedThroughLink);
 
-			}, cancellationRequested);
+			}, cancellationRequested, isFolderExcluded);
 	}
 
 	if (contentSearchPool)

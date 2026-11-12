@@ -67,6 +67,8 @@
 #define KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS QSL("FileSearchDialog/Ui/ContentsWholeWords")
 #define KEY_FILE_SEARCH_CONTENTS_IS_REGEX QSL("FileSearchDialog/Ui/ContentsIsRegex")
 #define KEY_FILE_SEARCH_ROOT_HISTORY QSL("FileSearchDialog/Ui/RootFolder")
+// The field's text as last left, empty included: a list cleared on purpose must not come back
+#define KEY_FILE_SEARCH_EXCLUDED_FOLDERS QSL("FileSearchDialog/Ui/ExcludedFolders")
 
 /////////////////////////////////////////////////
 // Options accessible via Settings interface

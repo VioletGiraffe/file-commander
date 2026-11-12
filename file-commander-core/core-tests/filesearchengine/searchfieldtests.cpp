@@ -56,6 +56,36 @@ TEST_CASE("Search fields - without partial match a name filter matches the whole
 	}
 }
 
+TEST_CASE("Search fields - an excluded folder is skipped with its contents, by its whole name ignoring case", "[search][fields]")
+{
+	TempTree tree;
+	const QString git = tree.makeDir(QSL(".git"));
+	const QString inGit = tree.makeFile(QSL(".git/a.txt"));
+	const QString underBuild = tree.makeDir(QSL("Build/deep"));
+	const QString inBuild = tree.makeFile(QSL("Build/deep/a.txt"));
+	const QString github = tree.makeDir(QSL(".github")); // Contains an excluded name, but is not one
+	const QString inGithub = tree.makeFile(QSL(".github/a.txt"));
+	const QString fileWithExcludedName = tree.makeFile(QSL("node_modules"));
+	const QString outside = tree.makeFile(QSL("a.txt"));
+
+	const QStringList excludedFolders = excludedFolderFiltersFromSearchField(QSL(".git;build;node_m*"));
+	const SearchResult result = runSearch({ .roots = { tree.path() }, .excludedFolders = excludedFolders });
+	CHECK_FALSE(result.matched(git));
+	CHECK_FALSE(result.matched(inGit));
+	CHECK_FALSE(result.matched(tree.path(QSL("Build"))));
+	CHECK_FALSE(result.matched(underBuild));
+	CHECK_FALSE(result.matched(inBuild));
+	CHECK(result.matched(github));
+	CHECK(result.matched(inGithub));
+	CHECK(result.matched(fileWithExcludedName));
+	CHECK(result.matched(outside));
+	CHECK(result.count() == 4);
+
+	// A root is searched even when its name matches
+	CHECK(runSearch({ .roots = { git }, .excludedFolders = excludedFolders }).matched(inGit));
+	CHECK(excludedFolderFiltersFromSearchField({}).isEmpty());
+}
+
 TEST_CASE("Search fields - the \"Search in\" field's paths are separated by \"; \" and resolved against the base folder", "[search][fields]")
 {
 	const TempTree tree;

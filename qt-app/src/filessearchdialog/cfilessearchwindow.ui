@@ -229,6 +229,23 @@
         </property>
        </widget>
       </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Exclude folders:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTop|Qt::AlignmentFlag::AlignTrailing</set>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QLineEdit" name="excludedFolders">
+        <property name="placeholderText">
+         <string>.git;node_modules;build*</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
@@ -345,6 +362,7 @@
   <tabstop>nameToFind</tabstop>
   <tabstop>fileContentsToFind</tabstop>
   <tabstop>searchRoot</tabstop>
+  <tabstop>excludedFolders</tabstop>
   <tabstop>cbNameCaseSensitive</tabstop>
   <tabstop>resultsList</tabstop>
  </tabstops>

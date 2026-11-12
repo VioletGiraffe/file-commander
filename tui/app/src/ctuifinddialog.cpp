@@ -256,7 +256,7 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	flags &= ~wfMove;
 	growMode = gfGrowHiX | gfGrowHiY;
 
-	static constexpr int labelX = 2, fieldX = 18, listTop = 11, searchButtonWidth = 12, sendButtonWidth = 17;
+	static constexpr int labelX = 2, fieldX = 20, listTop = 11, searchButtonWidth = 12, sendButtonWidth = 17;
 	const int right = size.x - 2, statusY = size.y - 2, currentPathY = statusY - 1;
 
 	// A labelled input line with its history, from fieldX to fieldEnd
@@ -284,6 +284,10 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 
 	const int sendButtonX = right - sendButtonWidth, searchButtonX = sendButtonX - searchButtonWidth;
 	_searchIn = addField(8, searchButtonX - 1, "Search ~i~n:", searchInHistoryId);
+	_excludedFolders = new TInputLine({ fieldX, 9, searchButtonX - 1, 10 }, inputLimit);
+	_excludedFolders->growMode = gfGrowHiX;
+	insert(_excludedFolders);
+	insert(new TLabel({ labelX, 9, fieldX - 1, 10 }, "~E~xclude folders:", _excludedFolders));
 	_searchButton = new TButton({ searchButtonX, 8, sendButtonX, 10 }, "~S~earch", cmStartOrStopSearch, bfDefault);
 	_searchButton->growMode = gfGrowLoX | gfGrowHiX;
 	insert(_searchButton);
@@ -315,6 +319,7 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 
 	// The contents field starts empty: a pattern left in it would silently restrict the search
 	setInputText(_name, _nameHistory.value(0));
+	setInputText(_excludedFolders, settings.value(KEY_FILE_SEARCH_EXCLUDED_FOLDERS).toString());
 	setChecked(_nameOptions, { settings.value(KEY_FILE_SEARCH_NAME_PARTIAL_MATCH, FILE_SEARCH_NAME_PARTIAL_MATCH_DEFAULT).toBool(),
 		settings.value(KEY_FILE_SEARCH_NAME_CASE_SENSITIVE, false).toBool() });
 	setChecked(_contentsOptions, { settings.value(KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS, false).toBool(),
@@ -420,6 +425,7 @@ void CTuiFindDialog::startSearch()
 	const QString nameText = inputText(_name), contentsText = inputText(_contents), searchInText = inputText(_searchIn);
 	const FileSearchQuery query{
 		.roots = rootsFromSearchInField(searchInText, _baseDir),
+		.excludedFolders = excludedFolderFiltersFromSearchField(inputText(_excludedFolders)),
 		.nameFilters = nameFiltersFromSearchField(nameText, isChecked(_nameOptions, PartialMatch)),
 		.nameCaseSensitive = isChecked(_nameOptions, NameCaseSensitive),
 		.contents = contentsText,
@@ -560,4 +566,5 @@ void CTuiFindDialog::saveOptions() const
 	settings.setValue(KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS, isChecked(_contentsOptions, WholeWords));
 	settings.setValue(KEY_FILE_SEARCH_CONTENTS_IS_REGEX, isChecked(_contentsOptions, ContentsIsRegex));
 	settings.setValue(KEY_FILE_SEARCH_CONTENTS_CASE_SENSITIVE, isChecked(_contentsOptions, ContentsCaseSensitive));
+	settings.setValue(KEY_FILE_SEARCH_EXCLUDED_FOLDERS, inputText(_excludedFolders));
 }

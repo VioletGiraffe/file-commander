@@ -26,6 +26,11 @@ QStringList nameFiltersFromSearchField(const QString& fieldText, const bool part
 	return filters;
 }
 
+QStringList excludedFolderFiltersFromSearchField(const QString& fieldText)
+{
+	return nameFiltersFromSearchField(fieldText, false);
+}
+
 QStringList rootsFromSearchInField(const QString& fieldText, const QString& baseDir)
 {
 	QStringList roots;

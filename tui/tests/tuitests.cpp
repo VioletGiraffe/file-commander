@@ -459,6 +459,42 @@ TEST_CASE("Alt+F7 starts with the name last searched, in the next session too", 
 	CHECK(session->screen().row(rowWith(session->screen(), QStringLiteral("Search for:"))).contains(QStringLiteral("needle")));
 }
 
+TEST_CASE("Alt+F7 skips the folders in the Exclude folders field, which starts with its last text in the next session", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("kept")));
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("skipped")));
+	sandbox.createFile(QStringLiteral("work/kept/needle.txt"));
+	sandbox.createFile(QStringLiteral("work/skipped/needle.txt"));
+	{
+		auto session = startFcterm(sandbox);
+		goTo(*session, sandbox.work({}), QStringLiteral("kept"));
+
+		session->send(Keys::AltF7);
+		requireText(*session, QStringLiteral("Exclude folders:"));
+		const int nameRow = rowWith(session->screen(), QStringLiteral("Search for:")), excludedRow = rowWith(session->screen(), QStringLiteral("Exclude folders:"));
+		session->send(Keys::AltE);
+		requireScreen(*session, [excludedRow](const CTerminalScreen& screen) { return screen.cursorRow() == excludedRow; }, QStringLiteral("the cursor in the Exclude folders field"));
+		typeText(*session, QStringLiteral("skipped"));
+		session->send(Keys::AltF);
+		requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() == nameRow; }, QStringLiteral("the cursor in the name field"));
+		typeText(*session, QStringLiteral("needle"));
+		session->send(Keys::Enter);
+		requireText(*session, QStringLiteral("Search completed, 1 item found"));
+		CHECK(session->screen().contains(QDir::toNativeSeparators(QStringLiteral("kept/needle.txt"))));
+
+		session->send(Keys::Escape);
+		requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Search for:")); }, QStringLiteral("the dialog closed"));
+		session->send(Keys::AltX);
+		REQUIRE(session->waitForExit() == 0);
+	}
+
+	auto session = startFcterm(sandbox);
+	session->send(Keys::AltF7);
+	requireText(*session, QStringLiteral("Exclude folders:"));
+	CHECK(session->screen().row(rowWith(session->screen(), QStringLiteral("Exclude folders:"))).contains(QStringLiteral("skipped")));
+}
+
 TEST_CASE("Alt+F7 without partial match matches whole names, and says when the contents regex is invalid", "[tui]")
 {
 	const Sandbox sandbox;

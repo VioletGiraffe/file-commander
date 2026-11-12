@@ -92,9 +92,11 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 	ui->cbContentsCaseSensitive->setChecked(s.value(KEY_FILE_SEARCH_CONTENTS_CASE_SENSITIVE, false).toBool());
 	ui->cbContentsWholeWords->setChecked(s.value(KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS, false).toBool());
 	ui->cbRegexFileContents->setChecked(s.value(KEY_FILE_SEARCH_CONTENTS_IS_REGEX, false).toBool());
+	ui->excludedFolders->setText(s.value(KEY_FILE_SEARCH_EXCLUDED_FOLDERS).toString());
 
 	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 	connect(ui->fileContentsToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
+	connect(ui->excludedFolders, &QLineEdit::returnPressed, ui->btnSearch, &QPushButton::click);
 
 	connect(ui->btnSaveResults, &QPushButton::clicked, this, &CFilesSearchWindow::saveResults);
 	connect(ui->btnLoadResults, &QPushButton::clicked, this, &CFilesSearchWindow::loadResults);
@@ -134,6 +136,7 @@ CFilesSearchWindow::~CFilesSearchWindow()
 	s.setValue(KEY_FILE_SEARCH_CONTENTS_CASE_SENSITIVE, ui->cbContentsCaseSensitive->isChecked());
 	s.setValue(KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS, ui->cbContentsWholeWords->isChecked());
 	s.setValue(KEY_FILE_SEARCH_CONTENTS_IS_REGEX, ui->cbRegexFileContents->isChecked());
+	s.setValue(KEY_FILE_SEARCH_EXCLUDED_FOLDERS, ui->excludedFolders->text());
 
 	delete ui;
 }
@@ -217,6 +220,7 @@ void CFilesSearchWindow::search()
 
 	const FileSearchQuery query{
 		.roots = rootsFromSearchInField(ui->searchRoot->currentText(), CController::get().activePanel().currentDirPathPosix()),
+		.excludedFolders = excludedFolderFiltersFromSearchField(ui->excludedFolders->text()),
 		.nameFilters = nameFiltersFromSearchField(filtersString, ui->cbNamePartialMatch->isChecked()),
 		.nameCaseSensitive = ui->cbNameCaseSensitive->isChecked(),
 		.contents = withText,

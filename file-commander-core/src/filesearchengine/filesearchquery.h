@@ -14,6 +14,9 @@ class CPanel;
 struct FileSearchQuery
 {
 	QStringList roots; // Absolute
+	// Name filters (see FileNameFilter), matched ignoring case.
+	// A folder below the roots that matches one of them is skipped with its contents.
+	QStringList excludedFolders;
 	QStringList nameFilters; // See FileNameFilter
 	bool nameCaseSensitive = false;
 	QString contents; // Empty leaves the contents unexamined
@@ -25,6 +28,9 @@ struct FileSearchQuery
 // The filters in the text of a search dialog's name field: see splitNameFilterField().
 // Without partial match a filter matches the whole name, and a '^' or '$' typed in it is a literal character.
 [[nodiscard]] QStringList nameFiltersFromSearchField(const QString& fieldText, bool partialMatch);
+
+// The filters in the text of a search dialog's "Exclude folders" field: those of the name field without partial match
+[[nodiscard]] QStringList excludedFolderFiltersFromSearchField(const QString& fieldText);
 
 // The paths in the text of a search dialog's "Search in" field, separated by "; ".
 // Each is typed path text, resolved against baseDir: see resolveUserPath().

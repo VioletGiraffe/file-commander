@@ -22,6 +22,11 @@ suffix matching.
 The panel's filter box uses the same language, ignoring case, always in partial mode (`FileNameFilter`,
 `file-commander-core/src/filelist/`).
 
+## Excluded folders
+
+The same language, each filter matching the whole name, always ignoring case. A folder below the search roots that
+matches is skipped with its contents: it is neither reported nor scanned. A root is searched even when its name matches.
+
 ## Contents
 
 With Regex enabled, the query is PCRE as typed, with Unicode properties on: `\w`, `\d` and `\b` are not limited to

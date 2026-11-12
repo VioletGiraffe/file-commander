@@ -62,6 +62,7 @@ private:
 	TInputLine* _contents;
 	TCheckBoxes* _contentsOptions;
 	TInputLine* _searchIn;
+	TInputLine* _excludedFolders;
 	TButton* _searchButton;
 	CTuiFindResultsList* _results;
 	CTuiTextView* _currentResultPath;
