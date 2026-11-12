@@ -84,7 +84,8 @@ private:
 	void applyFilter(const QString& filterText);
 	void closeFilterLine();
 	void setViewShown(TView* view, bool shown);
-	// The tab strip, while shown, takes the first row and the column header the next; the filter line, the row above the status line
+	// The tab strip, while shown, takes the first row and the column header the next.
+	// The status line takes the last two rows, and the filter line, while shown, the row above them.
 	void layOutViews();
 
 	// The folder, after "Search results: " while the panel shows them

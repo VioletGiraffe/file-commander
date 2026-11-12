@@ -96,14 +96,16 @@ public:
 		drawView();
 	}
 
+	// Two rows: a blank one that sets the text apart from the list, then the text
 	void draw() override
 	{
 		const TColorAttr color = mapColor(ppStatusText);
-
 		TDrawBuffer line;
 		line.moveChar(0, ' ', color, (ushort)size.x);
-		line.moveStr(1, TStringView{ _text.constData(), (size_t)_text.size() }, color, (ushort)std::max(size.x - 2, 0));
 		writeLine(0, 0, (short)size.x, 1, line);
+
+		line.moveStr(1, TStringView{ _text.constData(), (size_t)_text.size() }, color, (ushort)std::max(size.x - 2, 0));
+		writeLine(0, 1, (short)size.x, 1, line);
 	}
 
 private:
@@ -712,13 +714,13 @@ void CTuiPanel::layOutViews()
 
 	const int headerRow = _tabStrip->state & sfVisible ? interior.a.y + 1 : interior.a.y;
 	const int listTop = headerRow + 1;
-	const int statusRow = interior.b.y - 1;
-	const int filterRow = statusRow - 1;
+	const int statusTop = interior.b.y - 2; // The status line's blank row
+	const int filterRow = statusTop - 1;
 	_tabStrip->changeBounds({ interior.a.x, interior.a.y, interior.b.x, interior.a.y + 1 });
 	_columnHeader->changeBounds({ interior.a.x, headerRow, interior.b.x, headerRow + 1 });
-	_statusLine->changeBounds({ interior.a.x, statusRow, interior.b.x, statusRow + 1 });
-	_filterLine->changeBounds({ interior.a.x, filterRow, interior.b.x, statusRow });
-	_fileList->changeBounds({ interior.a.x, listTop, interior.b.x, _filterLine->state & sfVisible ? filterRow : statusRow });
+	_statusLine->changeBounds({ interior.a.x, statusTop, interior.b.x, interior.b.y });
+	_filterLine->changeBounds({ interior.a.x, filterRow, interior.b.x, statusTop });
+	_fileList->changeBounds({ interior.a.x, listTop, interior.b.x, _filterLine->state & sfVisible ? filterRow : statusTop });
 }
 
 void CTuiPanel::updateTitle()

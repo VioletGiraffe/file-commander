@@ -777,7 +777,7 @@ TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")
 	auto session = startFcterm(sandbox);
 	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
 
-	static constexpr int filterRow = panelStatusRow - 1;
+	static constexpr int filterRow = panelStatusRow - 2; // Above the status line's blank row
 	const auto tabStrip = [](const CTerminalScreen& screen) { return panelPart(screen.row(tabStripRow), Side::Left); };
 	const auto filterLine = [](const CTerminalScreen& screen) { return panelPart(screen.row(filterRow), Side::Left).trimmed(); };
 
