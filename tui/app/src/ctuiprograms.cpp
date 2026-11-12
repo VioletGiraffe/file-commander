@@ -13,18 +13,24 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <initializer_list>
+#include <utility>
 
 // The program and its arguments from the first of the environment variables that holds a command, else the first fallback program found.
+// The program is its full path when PATH has it: Windows completes a bare name only with ".exe", which misses "more.com".
 // Empty when there is none.
 [[nodiscard]] static QStringList commandFromEnvironment(std::initializer_list<const char*> variables, std::initializer_list<const char*> fallbackPrograms)
 {
 	for (const char* variable : variables)
 		if (QStringList command = QProcess::splitCommand(qEnvironmentVariable(variable)); !command.isEmpty())
+		{
+			if (QString path = QStandardPaths::findExecutable(command.front()); !path.isEmpty())
+				command.front() = std::move(path);
 			return command;
+		}
 
 	for (const char* program : fallbackPrograms)
-		if (!QStandardPaths::findExecutable(QString::fromLatin1(program)).isEmpty())
-			return { QString::fromLatin1(program) };
+		if (QString path = QStandardPaths::findExecutable(QString::fromLatin1(program)); !path.isEmpty())
+			return { std::move(path) };
 
 	return {};
 }
@@ -54,12 +60,14 @@ void viewFile(const QString& filePath)
 void editFile(const QString& filePath)
 {
 #ifdef _WIN32
-	const QStringList command = commandFromEnvironment({ "VISUAL", "EDITOR" }, { "edit", "notepad" });
+	const QStringList command = commandFromEnvironment({ "VISUAL", "EDITOR" }, { "edit" });
+	const QString noEditorHint = QStringLiteral("Install Microsoft Edit (winget install Microsoft.Edit),\nor set the VISUAL or EDITOR environment variable to an editor program.");
 #else
 	const QStringList command = commandFromEnvironment({ "VISUAL", "EDITOR" }, { "nano", "vi" });
+	const QString noEditorHint = QStringLiteral("Set the VISUAL or EDITOR environment variable to an editor program.");
 #endif
 	if (command.isEmpty())
-		showMessage(QStringLiteral("No editor found"), QStringLiteral("Set the VISUAL or EDITOR environment variable to an editor program."));
+		showMessage(QStringLiteral("No editor found"), noEditorHint);
 	else
 		runCommandOnFile(command, filePath);
 }

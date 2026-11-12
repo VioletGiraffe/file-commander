@@ -144,10 +144,11 @@ private:
 	return QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
 }
 
-// The command for a pager or editor variable: this executable's stub mode, recording into recordPath
-[[nodiscard]] QString recordingCommand(const QString& recordPath)
+// The command for a pager or editor variable: this executable's stub mode, recording into recordPath.
+// program: this executable or a copy of it
+[[nodiscard]] QString recordingCommand(const QString& recordPath, const QString& program = testExecutable())
 {
-	return quoted(testExecutable()) + QStringLiteral(" --record ") + quoted(QDir::toNativeSeparators(recordPath));
+	return quoted(program) + QStringLiteral(" --record ") + quoted(QDir::toNativeSeparators(recordPath));
 }
 
 void requireScreen(CTerminalSession& session, const std::function<bool(const CTerminalScreen&)>& condition, const QString& expectation)
@@ -303,10 +304,11 @@ void moveCursorTo(CTerminalSession& session, const QString& name)
 
 // Opens `file` in the sandbox's work folder with `key`, through the stub set as `variable`, and returns the stub's record.
 // otherVariables: more of fcterm's environment
-[[nodiscard]] QStringList recordedLaunch(const Sandbox& sandbox, const char* variable, const QString& file, std::string_view key, std::map<QString, QString> otherVariables = {})
+[[nodiscard]] QStringList recordedLaunch(const Sandbox& sandbox, const char* variable, const QString& file, std::string_view key, std::map<QString, QString> otherVariables = {},
+	const QString& program = testExecutable())
 {
 	const QString recordPath = sandbox.path(QStringLiteral("record.txt"));
-	otherVariables[QString::fromLatin1(variable)] = recordingCommand(recordPath);
+	otherVariables[QString::fromLatin1(variable)] = recordingCommand(recordPath, program);
 	auto session = startFcterm(sandbox, { .variables = otherVariables });
 	goTo(*session, sandbox.work({}), file);
 	moveCursorTo(*session, file);
@@ -954,6 +956,22 @@ TEST_CASE("F3 opens the pager on the file, in its folder", "[tui]")
 	sandbox.createFile(QStringLiteral("work/viewed.txt"));
 	requireRecordedLaunch(recordedLaunch(sandbox, "PAGER", QStringLiteral("viewed.txt"), Keys::F3), sandbox.work(QStringLiteral("viewed.txt")));
 }
+
+#ifdef _WIN32
+TEST_CASE("F3 starts a pager named without its extension, a .com file in PATH included", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/viewed.txt"));
+	REQUIRE(QDir{}.mkpath(sandbox.path(QStringLiteral("bin"))));
+	REQUIRE(QFile::copy(QCoreApplication::applicationFilePath(), sandbox.path(QStringLiteral("bin/recorder.com"))));
+
+	// The copy loads its DLLs from the test executable's folder, through PATH
+	const QString path = QDir::toNativeSeparators(sandbox.path(QStringLiteral("bin"))) + u';' + QDir::toNativeSeparators(QCoreApplication::applicationDirPath()) + u';'
+		+ qEnvironmentVariable("PATH");
+	const QStringList record = recordedLaunch(sandbox, "PAGER", QStringLiteral("viewed.txt"), Keys::F3, { { QStringLiteral("PATH"), path } }, QStringLiteral("recorder"));
+	requireRecordedLaunch(record, sandbox.work(QStringLiteral("viewed.txt")));
+}
+#endif
 
 TEST_CASE("F4 opens the editor on the file, in its folder", "[tui]")
 {
