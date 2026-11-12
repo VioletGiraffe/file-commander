@@ -16,6 +16,7 @@ ends need lives in the core, which returns the text to show and the program to r
 | Dialogs | `app/src/ctuidialogs.{h,cpp}` |
 | Colours | `app/src/ctuipalette.{h,cpp}` |
 | Copy, move, delete | `app/src/ctuifileoperations.{h,cpp}` |
+| The pager, the editor, the shell, opening a document | `app/src/ctuiprograms.{h,cpp}` |
 | Turbo Vision as a static library | `tvision/tvision.pro` |
 | Tests | `tests/`; see [testing.md](testing.md) |
 

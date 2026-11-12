@@ -27,6 +27,7 @@ SOURCES += \
 	src/ctuifileoperations.cpp \
 	src/ctuipalette.cpp \
 	src/ctuipanel.cpp \
+	src/ctuiprograms.cpp \
 	src/ctuirowlist.cpp
 
 HEADERS += \
@@ -36,6 +37,7 @@ HEADERS += \
 	src/ctuifileoperations.h \
 	src/ctuipalette.h \
 	src/ctuipanel.h \
+	src/ctuiprograms.h \
 	src/ctuirowlist.h
 
 LIBS += -L$${DESTDIR} -ltvision
