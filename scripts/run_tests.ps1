@@ -32,6 +32,7 @@ $suites = [ordered]@{
 	'panel_test'              = @()
 	'controller_test'         = @()
 	'filesearchengine_test'   = @()
+	'batchrename_test'        = @()
 	'userprograms_test'       = @()
 	'filesystemhelpers_test'  = @()
 	'shell_test'              = @()

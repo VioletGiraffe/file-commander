@@ -10,6 +10,7 @@ UI_DIR      = ../build/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 HEADERS += \
+	src/batchrename/cbatchrenamesession.h \
 	src/cfilesystemobject.h \
 	src/ccontroller.h \
 	src/detail/file_list_hashmap.h \
@@ -41,6 +42,7 @@ HEADERS += \
 	src/filesystemhelpers/filesystemhelpers.hpp
 
 SOURCES += \
+	src/batchrename/cbatchrenamesession.cpp \
 	src/cfilesystemobject.cpp \
 	src/ccontroller.cpp \
 	src/cpanel.cpp \

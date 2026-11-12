@@ -70,6 +70,17 @@
 // The field's text as last left, empty included: a list cleared on purpose must not come back
 #define KEY_FILE_SEARCH_EXCLUDED_FOLDERS QSL("FileSearchDialog/Ui/ExcludedFolders")
 
+// The batch rename dialog. A *_HISTORY key holds its field's earlier texts, most recent first.
+#define KEY_BATCH_RENAME_NAME_MASK_HISTORY QSL("BatchRenameDialog/Ui/NameMask")
+#define KEY_BATCH_RENAME_EXTENSION_MASK_HISTORY QSL("BatchRenameDialog/Ui/ExtensionMask")
+#define KEY_BATCH_RENAME_FIND_HISTORY QSL("BatchRenameDialog/Ui/Find")
+#define KEY_BATCH_RENAME_REPLACE_WITH_HISTORY QSL("BatchRenameDialog/Ui/ReplaceWith")
+#define KEY_BATCH_RENAME_FIND_IS_REGEX QSL("BatchRenameDialog/Ui/FindIsRegex")
+#define KEY_BATCH_RENAME_FIND_IS_CASE_SENSITIVE QSL("BatchRenameDialog/Ui/FindIsCaseSensitive")
+#define KEY_BATCH_RENAME_COUNTER_START QSL("BatchRenameDialog/Ui/CounterStart")
+#define KEY_BATCH_RENAME_COUNTER_STEP QSL("BatchRenameDialog/Ui/CounterStep")
+#define KEY_BATCH_RENAME_COUNTER_DIGITS QSL("BatchRenameDialog/Ui/CounterDigits")
+
 /////////////////////////////////////////////////
 // Options accessible via Settings interface
 /////////////////////////////////////////////////

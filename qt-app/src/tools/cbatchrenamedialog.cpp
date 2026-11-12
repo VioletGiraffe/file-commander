@@ -2,11 +2,11 @@
 
 #include "cmainwindow.h"
 
+#include "settings.h"
+
 
 // Submodule includes
 #include "assert/advanced_assert.h"
-#include "fileoperations/fileoperationtexts.h"
-#include "fileoperations/newnamecheck.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "widgets/chistorycombobox.h"
 #include "widgets/cpersistenceenabler.h"
@@ -18,34 +18,18 @@ DISABLE_COMPILER_WARNINGS
 #include <QColor>
 #include <QComboBox>
 #include <QCoreApplication>
-#include <QDateTime>
 #include <QElapsedTimer>
 #include <QFormLayout>
-#include <QHash>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
 #include <QPushButton>
-#include <QSettings>
 #include <QSpinBox>
-#include <QStringBuilder>
 #include <QTableWidget>
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
-#include <optional>
-#include <utility>
 #include <vector>
-
-#define SETTINGS_NAME_MASK             QSL("BatchRenameDialog/Ui/NameMask")
-#define SETTINGS_EXTENSION_MASK        QSL("BatchRenameDialog/Ui/ExtensionMask")
-#define SETTINGS_FIND                  QSL("BatchRenameDialog/Ui/Find")
-#define SETTINGS_REPLACE_WITH          QSL("BatchRenameDialog/Ui/ReplaceWith")
-#define SETTINGS_FIND_IS_REGEX         QSL("BatchRenameDialog/Ui/FindIsRegex")
-#define SETTINGS_FIND_IS_CASE_SENSITIVE QSL("BatchRenameDialog/Ui/FindIsCaseSensitive")
-#define SETTINGS_COUNTER_START         QSL("BatchRenameDialog/Ui/CounterStart")
-#define SETTINGS_COUNTER_STEP          QSL("BatchRenameDialog/Ui/CounterStep")
-#define SETTINGS_COUNTER_DIGITS        QSL("BatchRenameDialog/Ui/CounterDigits")
 
 namespace columns {
 	enum Columns {
@@ -53,29 +37,11 @@ namespace columns {
 	};
 }
 
-[[nodiscard]] static BatchRenameSource sourceOf(const CFileSystemObject& item, const CEntryPath& path)
-{
-	const CEntryPath parent = path.parent();
-	return {
-		.name = item.name().toString(),
-		.extension = item.extension().toString(),
-		.parentFolderName = parent.isRoot() ? QString{} : parent.name(),
-		.modificationTime = QDateTime::fromSecsSinceEpoch(item.modificationTime()),
-	};
-}
-
 CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileSystemObject>& items) :
-	QDialog(parent)
+	QDialog(parent),
+	_session(items)
 {
 	setWindowTitle(tr("Batch rename"));
-
-	for (const CFileSystemObject& item : items)
-	{
-		// A real panel item always has a valid absolute path, and a root is never listed as an item
-		const auto path = parseOperationPath(item.fullAbsolutePath());
-		if (path && !path->isRoot())
-			_rows.push_back({ .item = item, .path = *path });
-	}
 
 	_rulesPanel = new QWidget;
 	_nameMask = new CHistoryComboBox(_rulesPanel);
@@ -100,22 +66,21 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 	_counterDigits->setRange(1, 10);
 
 	// The fields that change names on their own start at the default rules; the history keeps what was used before
-	const BatchRenameRules defaults;
-	_nameMask->setSettingsKeyForHistoryPersistence(SETTINGS_NAME_MASK);
-	_extensionMask->setSettingsKeyForHistoryPersistence(SETTINGS_EXTENSION_MASK);
-	_find->setSettingsKeyForHistoryPersistence(SETTINGS_FIND);
-	_replaceWith->setSettingsKeyForHistoryPersistence(SETTINGS_REPLACE_WITH);
-	_nameMask->setCurrentText(defaults.nameMask);
-	_extensionMask->setCurrentText(defaults.extensionMask);
-	_find->setCurrentText(defaults.find);
-	_replaceWith->setCurrentText(defaults.replaceWith);
+	const BatchRenameRules initial = CBatchRenameSession::initialRules();
+	_nameMask->setSettingsKeyForHistoryPersistence(KEY_BATCH_RENAME_NAME_MASK_HISTORY);
+	_extensionMask->setSettingsKeyForHistoryPersistence(KEY_BATCH_RENAME_EXTENSION_MASK_HISTORY);
+	_find->setSettingsKeyForHistoryPersistence(KEY_BATCH_RENAME_FIND_HISTORY);
+	_replaceWith->setSettingsKeyForHistoryPersistence(KEY_BATCH_RENAME_REPLACE_WITH_HISTORY);
+	_nameMask->setCurrentText(initial.nameMask);
+	_extensionMask->setCurrentText(initial.extensionMask);
+	_find->setCurrentText(initial.find);
+	_replaceWith->setCurrentText(initial.replaceWith);
 
-	const QSettings s;
-	_findIsRegex->setChecked(s.value(SETTINGS_FIND_IS_REGEX, defaults.findIsRegex).toBool());
-	_findIsCaseSensitive->setChecked(s.value(SETTINGS_FIND_IS_CASE_SENSITIVE, defaults.findIsCaseSensitive).toBool());
-	_counterStart->setValue(s.value(SETTINGS_COUNTER_START, defaults.counterStart).toInt());
-	_counterStep->setValue(s.value(SETTINGS_COUNTER_STEP, defaults.counterStep).toInt());
-	_counterDigits->setValue(s.value(SETTINGS_COUNTER_DIGITS, defaults.counterDigits).toInt());
+	_findIsRegex->setChecked(initial.findIsRegex);
+	_findIsCaseSensitive->setChecked(initial.findIsCaseSensitive);
+	_counterStart->setValue(initial.counterStart);
+	_counterStep->setValue(initial.counterStep);
+	_counterDigits->setValue(initial.counterDigits);
 
 	auto* tokensHelp = new QLabel(tr("[N] name, [N2-5] its characters 2 to 5, [E] extension, [P] parent folder, [C] counter, "
 		"[Y] [M] [D] [h] [m] [s] modification time"));
@@ -152,7 +117,7 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 	rulesLayout->addRow(tr("Letter case:"), _letterCase);
 	rulesLayout->addRow(tr("Counter [C]:"), counterOptions);
 
-	_preview = new QTableWidget(static_cast<int>(_rows.size()), columns::Count);
+	_preview = new QTableWidget(static_cast<int>(_session.rows().size()), columns::Count);
 	_preview->setHorizontalHeaderLabels({ tr("Name"), tr("New name"), tr("Status") });
 	_preview->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	_preview->horizontalHeader()->setSectionResizeMode(columns::Status, QHeaderView::ResizeToContents);
@@ -191,21 +156,16 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 		connect(option, &QSpinBox::valueChanged, this, &CBatchRenameDialog::rulesChanged);
 
 	connect(_applyButton, &QPushButton::clicked, this, &CBatchRenameDialog::applyRenaming);
-	connect(_undoButton, &QPushButton::clicked, this, &CBatchRenameDialog::undoRenaming);
+	connect(_undoButton, &QPushButton::clicked, this, [this] { runStep(CBatchRenameSession::Step::Undo); });
 	connect(_closeButton, &QPushButton::clicked, this, &CBatchRenameDialog::reject);
 
 	enablePersistence(this, QSL("UI/BatchRenameDialog"));
-	updatePreview();
+	rulesChanged();
 }
 
 CBatchRenameDialog::~CBatchRenameDialog()
 {
-	QSettings s;
-	s.setValue(SETTINGS_FIND_IS_REGEX, _findIsRegex->isChecked());
-	s.setValue(SETTINGS_FIND_IS_CASE_SENSITIVE, _findIsCaseSensitive->isChecked());
-	s.setValue(SETTINGS_COUNTER_START, _counterStart->value());
-	s.setValue(SETTINGS_COUNTER_STEP, _counterStep->value());
-	s.setValue(SETTINGS_COUNTER_DIGITS, _counterDigits->value());
+	CBatchRenameSession::saveOptions(rules());
 }
 
 void CBatchRenameDialog::reject()
@@ -249,74 +209,24 @@ BatchRenameRules CBatchRenameDialog::rules() const
 
 void CBatchRenameDialog::rulesChanged()
 {
-	for (Row& row : _rows)
-		row.outcome.clear();
-	_showingOutcomes = false;
-
-	updatePreview();
+	_session.setRules(rules());
+	showSession();
 }
 
-void CBatchRenameDialog::updatePreview()
+void CBatchRenameDialog::showSession()
 {
-	const CBatchRenamePattern pattern{ rules() };
-	const QString findError = pattern.findPatternError();
+	const QString& findError = _session.findPatternError();
 	_findError->setText(findError);
 	_findError->setVisible(!findError.isEmpty());
 
-	// Case-folded where filesystems usually ignore case
-	const auto targetKey = [](const Row& row) {
-		QString key = row.path.parent().value() % QLatin1Char('/') % row.newName;
-#if defined(_WIN32) || defined(__APPLE__)
-		key = key.toCaseFolded();
-#endif
-		return key;
-	};
-
-	QHash<QString, int> targetCounts;
-	for (size_t i = 0; i < _rows.size(); ++i)
-	{
-		Row& row = _rows[i];
-		row.newName = pattern.newName(sourceOf(row.item, row.path), static_cast<int>(i));
-		++targetCounts[targetKey(row)];
-	}
-
-	bool anyRename = false;
-	bool anyError = !findError.isEmpty();
 	const QColor textColor = palette().color(QPalette::Text);
 	const QColor dimmedColor = palette().color(QPalette::PlaceholderText);
 	const QColor errorColor = Qt::red;
-	for (size_t i = 0; i < _rows.size(); ++i)
+	const std::vector<CBatchRenameSession::Row>& rows = _session.rows();
+	for (size_t i = 0; i < rows.size(); ++i)
 	{
-		const Row& row = _rows[i];
-		const QString currentName = row.path.name();
-
-		QString status;
-		QColor statusColor = textColor;
-		if (row.newName == currentName)
-		{
-			status = tr("Unchanged");
-			statusColor = dimmedColor;
-		}
-		else if (const NameRejection rejection = checkNewEntryName(row.newName); rejection != NameRejection::None)
-		{
-			status = newNameRejectionText(rejection);
-			statusColor = errorColor;
-			anyError = true;
-		}
-		else if (targetCounts.value(targetKey(row)) > 1)
-		{
-			status = tr("Another item gets the same name");
-			statusColor = errorColor;
-			anyError = true;
-		}
-		else
-			anyRename = true;
-
-		if (!row.outcome.isEmpty())
-		{
-			status = row.outcome;
-			statusColor = row.outcomeIsError ? errorColor : textColor;
-		}
+		const CBatchRenameSession::Row& row = rows[i];
+		const CBatchRenameSession::Status status = CBatchRenameSession::statusOf(row);
 
 		const int tableRow = static_cast<int>(i);
 		const auto setCellText = [this, tableRow](const int column, const QString& text) {
@@ -324,15 +234,16 @@ void CBatchRenameDialog::updatePreview()
 			cell->setText(text);
 			cell->setToolTip(text); // The column may be too narrow for the text
 		};
-		setCellText(columns::Name, currentName);
+		setCellText(columns::Name, row.path.name());
 		setCellText(columns::NewName, row.newName);
-		setCellText(columns::Status, status);
+		setCellText(columns::Status, status.text);
+		const QColor statusColor = status.tone == CBatchRenameSession::Tone::Error ? errorColor :
+			status.tone == CBatchRenameSession::Tone::Dimmed ? dimmedColor : textColor;
 		_preview->item(tableRow, columns::Status)->setForeground(statusColor);
 	}
 
-	// Showing outcomes: a click queued during the renaming must not start another one
-	_applyButton->setEnabled(anyRename && !anyError && !_showingOutcomes);
-	_undoButton->setEnabled(!_undo.empty());
+	_applyButton->setEnabled(_session.canRun(CBatchRenameSession::Step::Apply));
+	_undoButton->setEnabled(_session.canRun(CBatchRenameSession::Step::Undo));
 }
 
 void CBatchRenameDialog::applyRenaming()
@@ -340,43 +251,20 @@ void CBatchRenameDialog::applyRenaming()
 	for (CHistoryComboBox* field : { _nameMask, _extensionMask, _find, _replaceWith })
 		field->addToHistory(field->currentText());
 
-	RowRenames renames;
-	for (size_t i = 0; i < _rows.size(); ++i)
-	{
-		if (_rows[i].newName != _rows[i].path.name())
-			renames.emplace_back(i, _rows[i].newName);
-	}
-
-	_undo = renameRows(renames);
-	updatePreview();
+	runStep(CBatchRenameSession::Step::Apply);
 }
 
-void CBatchRenameDialog::undoRenaming()
+void CBatchRenameDialog::runStep(const CBatchRenameSession::Step step)
 {
-	renameRows(std::exchange(_undo, {}));
-	updatePreview();
-}
-
-CBatchRenameDialog::RowRenames CBatchRenameDialog::renameRows(const RowRenames& renames)
-{
-	QStringList paths;
-	std::vector<BatchRenameItem> items;
-	items.reserve(renames.size());
-	for (const auto& [row, name] : renames)
-	{
-		paths.push_back(_rows[row].item.fullAbsolutePath());
-		items.push_back({ .source = _rows[row].path, .newName = name });
-	}
-
 	auto* mainWindow = CMainWindow::get();
-	assert_and_return_r(mainWindow, {});
-	mainWindow->closeViewedFilesWithin(paths);
+	assert_and_return_r(mainWindow, );
+	mainWindow->closeViewedFilesWithin(_session.pathsRenamedBy(step));
 
 	setRenamingInProgress(true);
 	QElapsedTimer sinceEventsProcessed;
 	sinceEventsProcessed.start();
 	// Processing events keeps this dialog painted and Cancel working. The other windows take no input: this dialog is modal.
-	const auto results = batchRename(items, [this, &sinceEventsProcessed] {
+	_session.run(step, [this, &sinceEventsProcessed] {
 		if (sinceEventsProcessed.elapsed() >= 50)
 		{
 			QCoreApplication::processEvents();
@@ -386,33 +274,7 @@ CBatchRenameDialog::RowRenames CBatchRenameDialog::renameRows(const RowRenames& 
 	});
 	setRenamingInProgress(false);
 
-	RowRenames renamed;
-	for (size_t i = 0; i < results.size(); ++i)
-	{
-		const auto& [rowIndex, name] = renames[i];
-		Row& row = _rows[rowIndex];
-		const std::optional<InlineRenameResult>& result = results[i];
-		row.outcomeIsError = false;
-		if (!result)
-			row.outcome = tr("Cancelled");
-		else if (result->status == InlineRenameStatus::Renamed)
-		{
-			renamed.emplace_back(rowIndex, row.path.name());
-			row.path = row.path.parent().child(name);
-			row.item = CFileSystemObject{ row.path.value() };
-			row.outcome = tr("Renamed");
-		}
-		else if (result->status == InlineRenameStatus::NothingToDo)
-			row.outcome = tr("Unchanged");
-		else
-		{
-			row.outcome = tr("Failed: %1").arg(inlineRenameFailureText(*result));
-			row.outcomeIsError = true;
-		}
-	}
-
-	_showingOutcomes = true;
-	return renamed;
+	showSession();
 }
 
 void CBatchRenameDialog::setRenamingInProgress(const bool inProgress)
