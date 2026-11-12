@@ -123,9 +123,9 @@ QStringList CBatchRenameSession::pathsRenamedBy(const Step step) const
 	return paths;
 }
 
-void CBatchRenameSession::run(const Step step, const std::function<bool()>& shouldContinue)
+std::vector<std::pair<QString, QString>> CBatchRenameSession::run(const Step step, const std::function<bool()>& shouldContinue)
 {
-	assert_and_return_r(canRun(step), );
+	assert_and_return_r(canRun(step), {});
 
 	const RowRenames renames = step == Step::Apply ? renamesFor(step) : std::exchange(_undo, {});
 	std::vector<BatchRenameItem> items;
@@ -136,6 +136,7 @@ void CBatchRenameSession::run(const Step step, const std::function<bool()>& shou
 	const auto results = batchRename(items, shouldContinue);
 
 	RowRenames renamed;
+	std::vector<std::pair<QString, QString>> renamedPaths;
 	for (size_t i = 0; i < results.size(); ++i)
 	{
 		const auto& [rowIndex, name] = renames[i];
@@ -147,9 +148,11 @@ void CBatchRenameSession::run(const Step step, const std::function<bool()>& shou
 		else if (result->status == InlineRenameStatus::Renamed)
 		{
 			renamed.emplace_back(rowIndex, row.path.name());
+			QString oldPath = row.item.fullAbsolutePath();
 			row.path = row.path.parent().child(name);
 			row.item = CFileSystemObject{ row.path.value() };
 			row.outcome = Outcome::Renamed;
+			renamedPaths.emplace_back(std::move(oldPath), row.item.fullAbsolutePath());
 		}
 		else if (result->status == InlineRenameStatus::NothingToDo)
 			row.outcome = Outcome::Unchanged;
@@ -166,6 +169,7 @@ void CBatchRenameSession::run(const Step step, const std::function<bool()>& shou
 	_showingOutcomes = true;
 
 	updatePreview();
+	return renamedPaths;
 }
 
 void CBatchRenameSession::updatePreview()

@@ -346,18 +346,37 @@ void CPanel::showSearchResults(QStringList paths)
 	moveToFolder(std::move(resolution), refreshCauseOther, SearchResultsMode);
 }
 
-void CPanel::itemRenamed(const QString& oldPath, const QString& newPath)
+void CPanel::itemsRenamed(const std::vector<std::pair<QString, QString>>& renamedPaths)
 {
+	ankerl::unordered_dense::map<QString, QString, QStringHash, std::equal_to<>> newPathByOld;
+	std::vector<const std::pair<QString, QString>*> renamedFolders;
+	for (const auto& rename : renamedPaths)
+	{
+		newPathByOld.emplace(rename.first, rename.second);
+		if (rename.first.endsWith('/'))
+			renamedFolders.push_back(&rename);
+	}
+
 	CurrentDisplayMode displayMode = NormalMode;
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
 		displayMode = _currentDisplayMode;
 		for (QString& path : _searchResultPaths)
 		{
-			if (path == oldPath)
-				path = newPath;
-			else if (oldPath.endsWith('/') && path.startsWith(oldPath))
-				path.replace(0, oldPath.size(), newPath);
+			if (const auto renamed = newPathByOld.find(path); renamed != newPathByOld.end())
+			{
+				path = renamed->second;
+				continue;
+			}
+
+			for (const auto* folder : renamedFolders)
+			{
+				if (path.startsWith(folder->first))
+				{
+					path.replace(0, folder->first.size(), folder->second);
+					break;
+				}
+			}
 		}
 	}
 

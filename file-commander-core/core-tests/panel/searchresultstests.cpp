@@ -73,9 +73,33 @@ TEST_CASE("CPanel - search results drop a vanished item when listed again, and k
 
 	const QString renamedFolder = tree.path(QStringLiteral("renamed"));
 	REQUIRE(QDir{}.rename(tree.path(QStringLiteral("dir")), renamedFolder));
-	h.panel().itemRenamed(folder, searchResultPath(renamedFolder));
+	h.panel().itemsRenamed({ { folder, searchResultPath(renamedFolder) } });
 	h.settle();
 	CHECK(shownNames(h.panel()) == QStringList{ QStringLiteral("renamed"), native(QStringLiteral("renamed/inner.txt")) });
+}
+
+TEST_CASE("CPanel - search results follow a batch of renames as one change, a chain included", "[panel][searchresults]")
+{
+	TempTree tree;
+	const QString a = searchResultPath(tree.makeFile(QStringLiteral("a.txt")));
+	const QString b = searchResultPath(tree.makeFile(QStringLiteral("b.txt")));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.panel().setSorting(FileListSortField::Name, Qt::AscendingOrder);
+	h.settle();
+
+	h.panel().showSearchResults({ a, b });
+	h.settle();
+
+	// As a batch renames a chain: b first, freeing its name for a
+	const QString c = tree.path(QStringLiteral("c.txt"));
+	REQUIRE(QFile::rename(b, c));
+	REQUIRE(QFile::rename(a, b));
+	h.panel().itemsRenamed({ { a, b }, { b, searchResultPath(c) } });
+	h.settle();
+	CHECK(shownNames(h.panel()) == QStringList{ QStringLiteral("b.txt"), QStringLiteral("c.txt") });
 }
 
 TEST_CASE("CPanel - new search results in the same folder replace the old ones at once, with nothing selected", "[panel][searchresults]")

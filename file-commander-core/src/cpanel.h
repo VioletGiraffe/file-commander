@@ -117,9 +117,10 @@ public:
 	// Lists the paths that exist, in the deepest folder holding them all, else in the panel's folder. Starts with nothing selected.
 	// A navigation leaves the list.
 	void showSearchResults(QStringList paths);
-	// Keeps a renamed item, and the items under a renamed folder, in the search results. A view without a watcher lists again.
-	// Paths as CFileSystemObject::fullAbsolutePath().
-	void itemRenamed(const QString& oldPath, const QString& newPath);
+	// Keeps renamed items, and the items under renamed folders, in the search results. A view without a watcher lists again, once.
+	// Each pair is an old and a new path, as CFileSystemObject::fullAbsolutePath().
+	// Old paths are as before the whole batch: a chain (a->b, b->c) moves the result a to b, not to c.
+	void itemsRenamed(const std::vector<std::pair<QString, QString>>& renamedPaths);
 	[[nodiscard]] CurrentDisplayMode displayMode() const;
 	// Switches to the appropriate directory and sets the cursor to the specified item
 	bool goToItem(const CFileSystemObject& item);

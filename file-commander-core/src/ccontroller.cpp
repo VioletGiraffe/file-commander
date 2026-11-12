@@ -852,11 +852,17 @@ InlineRenameResult CController::renameItem(Panel p, qulonglong itemHash, const Q
 	const CFileSystemObject renamed{ source->parent().child(newName).value() };
 	setCurrentItemHashForCurrentFolder(p, renamed.hash());
 	if (result.status == InlineRenameStatus::Renamed)
-	{
-		for (const Panel side : { Panel::LeftPanel, Panel::RightPanel })
-			panel(side).itemRenamed(item.fullAbsolutePath(), renamed.fullAbsolutePath());
-	}
+		itemsRenamed({ { item.fullAbsolutePath(), renamed.fullAbsolutePath() } });
 	return result;
+}
+
+void CController::itemsRenamed(const std::vector<std::pair<QString, QString>>& renamedPaths)
+{
+	if (renamedPaths.empty())
+		return;
+
+	for (const Panel side : { Panel::LeftPanel, Panel::RightPanel })
+		panel(side).itemsRenamed(renamedPaths);
 }
 
 // Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification

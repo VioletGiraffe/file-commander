@@ -4,6 +4,7 @@
 #include "ctuirowlist.h"
 
 #include "batchrename/cbatchrenamesession.h"
+#include "ccontroller.h"
 #include "settings.h"
 
 #define Uses_TButton
@@ -312,7 +313,7 @@ void CTuiBatchRenameDialog::runStep(const Step step)
 	setStatus(QStringLiteral("Renaming... Esc cancels"));
 	TScreen::flushScreen(); // No events run until the renaming ends
 	auto nextEscapeCheck = std::chrono::steady_clock::now();
-	_session.run(step, [&nextEscapeCheck] {
+	const auto renamedPaths = _session.run(step, [&nextEscapeCheck] {
 		if (const auto now = std::chrono::steady_clock::now(); now >= nextEscapeCheck)
 		{
 			nextEscapeCheck = now + escapeCheckInterval;
@@ -320,6 +321,7 @@ void CTuiBatchRenameDialog::runStep(const Step step)
 		}
 		return true;
 	});
+	CController::get().itemsRenamed(renamedPaths);
 
 	showSession();
 }

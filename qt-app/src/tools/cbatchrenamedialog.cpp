@@ -2,6 +2,7 @@
 
 #include "cmainwindow.h"
 
+#include "ccontroller.h"
 #include "settings.h"
 
 
@@ -269,7 +270,7 @@ void CBatchRenameDialog::runStep(const CBatchRenameSession::Step step)
 	QElapsedTimer sinceEventsProcessed;
 	sinceEventsProcessed.start();
 	// Processing events keeps this dialog painted and Cancel working. The other windows take no input: this dialog is modal.
-	_session.run(step, [this, &sinceEventsProcessed] {
+	const auto renamedPaths = _session.run(step, [this, &sinceEventsProcessed] {
 		if (sinceEventsProcessed.elapsed() >= 50)
 		{
 			QCoreApplication::processEvents();
@@ -278,6 +279,7 @@ void CBatchRenameDialog::runStep(const CBatchRenameSession::Step step)
 		return !_cancelRequested;
 	});
 	setRenamingInProgress(false);
+	CController::get().itemsRenamed(renamedPaths);
 
 	showSession();
 }

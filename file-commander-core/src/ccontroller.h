@@ -144,6 +144,8 @@ public:
 	// Renames an item of side p's folder, and puts the cursor on it. fileReplacement as for inlineRename().
 	// The message for the result: inlineRenameMessage().
 	[[nodiscard]] InlineRenameResult renameItem(Panel p, qulonglong itemHash, const QString& newName, InlineRenameReplacement fileReplacement);
+	// Keeps renamed items in the search results of both sides: see CPanel::itemsRenamed(). renameItem() calls it.
+	void itemsRenamed(const std::vector<std::pair<QString, QString>>& renamedPaths);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
 	// Moves the items to the trash on a worker thread. backend: QtTrash, or NativeShellTrash on macOS.

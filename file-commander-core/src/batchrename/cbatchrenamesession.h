@@ -90,7 +90,8 @@ public:
 	// The current paths of the items the step renames
 	[[nodiscard]] QStringList pathsRenamedBy(Step step) const;
 	// Requires canRun(step). shouldContinue: see batchRename(). The rows then show the outcomes.
-	void run(Step step, const std::function<bool()>& shouldContinue);
+	// Returns the old and new path of each item renamed, as CFileSystemObject::fullAbsolutePath(): see CController::itemsRenamed().
+	std::vector<std::pair<QString, QString>> run(Step step, const std::function<bool()>& shouldContinue);
 
 private:
 	using RowRenames = std::vector<std::pair<size_t, QString>>; // Row index and new name

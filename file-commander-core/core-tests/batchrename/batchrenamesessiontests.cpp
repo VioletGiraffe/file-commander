@@ -12,6 +12,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFile>
 RESTORE_COMPILER_WARNINGS
 
+#include <utility>
 #include <vector>
 
 using Session = CBatchRenameSession;
@@ -127,8 +128,13 @@ TEST_CASE("Batch rename session - applying renames the items, and undo restores 
 	const QString b = tree.makeFile(QSL("b.txt"));
 	Session session{ itemsAt({ a, b }) };
 
+	const QString aRenamed = tree.path(QSL("a_x.txt")), bRenamed = tree.path(QSL("b_x.txt"));
+	using RenamedPaths = std::vector<std::pair<QString, QString>>;
+	const auto pathOf = [](const QString& path) { return CFileSystemObject{ path }.fullAbsolutePath(); };
+
 	session.setRules(nameMask(QSL("[N]_x")));
-	session.run(Session::Step::Apply, always);
+	const RenamedPaths applied = session.run(Session::Step::Apply, always);
+	CHECK(applied == RenamedPaths{ { pathOf(a), pathOf(aRenamed) }, { pathOf(b), pathOf(bRenamed) } });
 	CHECK(QFile::exists(tree.path(QSL("a_x.txt"))));
 	CHECK(QFile::exists(tree.path(QSL("b_x.txt"))));
 	CHECK_FALSE(QFile::exists(a));
@@ -142,7 +148,8 @@ TEST_CASE("Batch rename session - applying renames the items, and undo restores 
 	CHECK_FALSE(session.canRun(Session::Step::Apply)); // Until the rules change
 	REQUIRE(session.canRun(Session::Step::Undo));
 
-	session.run(Session::Step::Undo, always);
+	const RenamedPaths undone = session.run(Session::Step::Undo, always);
+	CHECK(undone == RenamedPaths{ { pathOf(aRenamed), pathOf(a) }, { pathOf(bRenamed), pathOf(b) } });
 	CHECK(QFile::exists(a));
 	CHECK(QFile::exists(b));
 	CHECK(session.rows()[0].path.name() == QSL("a.txt"));
