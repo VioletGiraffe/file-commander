@@ -7,6 +7,7 @@
 #include "cfilesystemobject.h"
 #include "filesearchengine/filesearchquery.h"
 #include "filesystemhelperfunctions.h"
+#include "settings.h"
 
 
 // Submodule includes
@@ -30,15 +31,6 @@ RESTORE_COMPILER_WARNINGS
 
 #include <stddef.h>
 #include <stdint.h>
-
-#define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
-#define SETTINGS_NAME_CASE_SENSITIVE     QSL("FileSearchDialog/Ui/CaseSensitiveName")
-#define SETTINGS_NAME_PARTIAL_MATCH      QSL("FileSearchDialog/Ui/NamePartialMatch")
-#define SETTINGS_CONTENTS_TO_FIND        QSL("FileSearchDialog/Ui/ContentsToFind")
-#define SETTINGS_CONTENTS_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveContents")
-#define SETTINGS_CONTENTS_WHOLE_WORDS    QSL("FileSearchDialog/Ui/ContentsWholeWords")
-#define SETTINGS_CONTENTS_IS_REGEX       QSL("FileSearchDialog/Ui/ContentsIsRegex")
-#define SETTINGS_ROOT_FOLDER             QSL("FileSearchDialog/Ui/RootFolder")
 
 // Results added to the list per event loop turn, so the window stays responsive while results arrive faster than it can add them
 #ifdef __APPLE__
@@ -73,19 +65,19 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 	connect(ui->btnSearch, &QPushButton::clicked, this, &CFilesSearchWindow::search);
 
-	ui->nameToFind->setSettingsKeyForHistoryPersistence(SETTINGS_NAME_TO_FIND);
-	ui->fileContentsToFind->setSettingsKeyForHistoryPersistence(SETTINGS_CONTENTS_TO_FIND);
+	ui->nameToFind->setSettingsKeyForHistoryPersistence(KEY_FILE_SEARCH_NAME_HISTORY);
+	ui->fileContentsToFind->setSettingsKeyForHistoryPersistence(KEY_FILE_SEARCH_CONTENTS_HISTORY);
 	ui->fileContentsToFind->lineEdit()->clear(); // A prefilled pattern would silently restrict the search to files containing it
-	ui->searchRoot->setSettingsKeyForHistoryPersistence(SETTINGS_ROOT_FOLDER);
+	ui->searchRoot->setSettingsKeyForHistoryPersistence(KEY_FILE_SEARCH_ROOT_HISTORY);
 
 	ui->searchRoot->setCurrentText(initialSearchInText);
 
 	QSettings s;
-	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
-	ui->cbNamePartialMatch->setChecked(s.value(SETTINGS_NAME_PARTIAL_MATCH, true).toBool());
-	ui->cbContentsCaseSensitive->setChecked(s.value(SETTINGS_CONTENTS_CASE_SENSITIVE, false).toBool());
-	ui->cbContentsWholeWords->setChecked(s.value(SETTINGS_CONTENTS_WHOLE_WORDS, false).toBool());
-	ui->cbRegexFileContents->setChecked(s.value(SETTINGS_CONTENTS_IS_REGEX, false).toBool());
+	ui->cbNameCaseSensitive->setChecked(s.value(KEY_FILE_SEARCH_NAME_CASE_SENSITIVE, false).toBool());
+	ui->cbNamePartialMatch->setChecked(s.value(KEY_FILE_SEARCH_NAME_PARTIAL_MATCH, FILE_SEARCH_NAME_PARTIAL_MATCH_DEFAULT).toBool());
+	ui->cbContentsCaseSensitive->setChecked(s.value(KEY_FILE_SEARCH_CONTENTS_CASE_SENSITIVE, false).toBool());
+	ui->cbContentsWholeWords->setChecked(s.value(KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS, false).toBool());
+	ui->cbRegexFileContents->setChecked(s.value(KEY_FILE_SEARCH_CONTENTS_IS_REGEX, false).toBool());
 
 	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
 	connect(ui->fileContentsToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
@@ -117,11 +109,11 @@ CFilesSearchWindow::~CFilesSearchWindow()
 	_engine.waitForSearchToFinish();
 
 	QSettings s;
-	s.setValue(SETTINGS_NAME_CASE_SENSITIVE, ui->cbNameCaseSensitive->isChecked());
-	s.setValue(SETTINGS_NAME_PARTIAL_MATCH, ui->cbNamePartialMatch->isChecked());
-	s.setValue(SETTINGS_CONTENTS_CASE_SENSITIVE, ui->cbContentsCaseSensitive->isChecked());
-	s.setValue(SETTINGS_CONTENTS_WHOLE_WORDS, ui->cbContentsWholeWords->isChecked());
-	s.setValue(SETTINGS_CONTENTS_IS_REGEX, ui->cbRegexFileContents->isChecked());
+	s.setValue(KEY_FILE_SEARCH_NAME_CASE_SENSITIVE, ui->cbNameCaseSensitive->isChecked());
+	s.setValue(KEY_FILE_SEARCH_NAME_PARTIAL_MATCH, ui->cbNamePartialMatch->isChecked());
+	s.setValue(KEY_FILE_SEARCH_CONTENTS_CASE_SENSITIVE, ui->cbContentsCaseSensitive->isChecked());
+	s.setValue(KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS, ui->cbContentsWholeWords->isChecked());
+	s.setValue(KEY_FILE_SEARCH_CONTENTS_IS_REGEX, ui->cbRegexFileContents->isChecked());
 
 	delete ui;
 }

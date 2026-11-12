@@ -16,6 +16,7 @@ ends need lives in the core, which returns the text to show and the program to r
 | Dialogs | `app/src/ctuidialogs.{h,cpp}` |
 | Colours | `app/src/ctuipalette.{h,cpp}` |
 | Copy, move, delete | `app/src/ctuifileoperations.{h,cpp}` |
+| Find files | `app/src/ctuifinddialog.{h,cpp}` |
 | The pager, the editor, the shell, opening a document | `app/src/ctuiprograms.{h,cpp}` |
 | Turbo Vision as a static library | `tvision/tvision.pro` |
 | Tests | `tests/`; see [testing.md](testing.md) |
@@ -63,6 +64,9 @@ dialog is open.
 - Copy, move and delete build their requests with the core's `fileoperationlaunch` and run on the same engine as the
   Qt app; [core-engine.md](core-engine.md) has the deletion backends. The progress dialog opens only for an operation
   that outlasts a short delay or asks a question. A trash that refuses items offers them for permanent deletion.
+- Find files (Alt+F7) runs the core's `CFileSearchEngine` with the GUI's fields, options and settings keys. The dialog
+  takes the results from a `CFileSearchResultsBuffer` in its `getEvent`, at most every 100 ms. The application keeps
+  the dialog, so its last results show again; closing it stops a running search.
 - Viewing, editing, opening a document and running a program: see [process-launching.md](process-launching.md).
 - `CTuiApplication::copyToClipboard` sends a copy over SSH to the terminal (OSC 52), to reach the clipboard of the
   computer the user types on. Elsewhere Turbo Vision chooses, trying the local clipboard tools first. Neither path

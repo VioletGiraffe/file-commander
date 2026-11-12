@@ -9,6 +9,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
 #include <QProcessEnvironment>
 #include <QRegularExpression>
+#include <QSettings>
 #include <QTemporaryDir>
 RESTORE_COMPILER_WARNINGS
 
@@ -376,6 +377,80 @@ TEST_CASE("F5 copies into the other panel's folder", "[tui]")
 	const QString copy = sandbox.path(QStringLiteral("other/copied.txt"));
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return QFileInfo{ copy }.size() == 14 && panelLists(screen, QStringLiteral("copied.txt"), Side::Right); },
 		QStringLiteral("the copy in the right panel"));
+}
+
+TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a result goes to it", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
+	sandbox.createFile(QStringLiteral("work/sub/needle.txt"));
+	sandbox.createFile(QStringLiteral("work/hay.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("hay.txt"));
+
+	session->send(Keys::AltF7);
+	requireText(*session, QStringLiteral("Search for:"));
+	typeText(*session, QStringLiteral("needle"));
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("Search completed, 1 items found"));
+	CHECK(session->screen().contains(QDir::toNativeSeparators(QStringLiteral("sub/needle.txt")))); // Relative to the folder searched in
+
+	session->send(Keys::Enter); // The results have the focus once the search completes
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Search for:")) && cursorIsOn(screen, QStringLiteral("needle.txt")); },
+		QStringLiteral("the cursor on the result, in its folder"));
+}
+
+TEST_CASE("Alt+F7 finds files by their contents", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/apple.txt"), "a red fruit");
+	sandbox.createFile(QStringLiteral("work/banana.txt"), "a yellow fruit");
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("apple.txt"));
+
+	session->send(Keys::AltF7);
+	requireText(*session, QStringLiteral("With contents:"));
+	const int nameRow = session->screen().cursorRow();
+	session->send(Keys::AltC); // The field's label key
+	requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() != nameRow; }, QStringLiteral("the cursor in the contents field"));
+	typeText(*session, QStringLiteral("yellow"));
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("Search completed, 1 items found"));
+	CHECK(session->screen().contains(QStringLiteral("banana.txt")));
+	CHECK_FALSE(session->screen().contains(QStringLiteral("apple.txt"))); // The dialog covers the panels
+}
+
+TEST_CASE("Alt+F7 copes with searches too long for Turbo Vision's field history", "[tui]")
+{
+	const Sandbox sandbox;
+	// The GUI saves any length: an entry holds every item selected for a search
+	{
+		const QString longEntry = QStringList(40, sandbox.work(QStringLiteral("folder"))).join(QStringLiteral("; "));
+		QSettings settings{ sandbox.path(QStringLiteral("settings/GitHubSoft/File Commander.ini")), QSettings::IniFormat };
+		settings.setValue(QStringLiteral("FileSearchDialog/Ui/RootFolder"), QStringList{ longEntry, sandbox.work({}) });
+	}
+	// Selected, their paths make a "Search in" text longer than Turbo Vision's whole history block
+	for (int i = 0; i < 40; ++i)
+		REQUIRE(QDir{ sandbox.work({}) }.mkdir(QStringLiteral("folder-%1").arg(i, 2, 10, QChar{ u'0' })));
+	sandbox.createFile(QStringLiteral("work/folder-03/needle.txt"));
+
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("folder-00"));
+	session->send("*"sv);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("0 files, 40 folders selected")); },
+		QStringLiteral("every folder selected"));
+
+	session->send(Keys::AltF7);
+	requireText(*session, QStringLiteral("Search for:"));
+	typeText(*session, QStringLiteral("needle"));
+	session->send(Keys::Enter); // Pressing the Search button records every field's text
+	requireText(*session, QStringLiteral("Search completed, 1 items found"));
+	CHECK(session->screen().contains(QStringLiteral("needle.txt")));
+
+	session->send(Keys::Escape);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Search for:")); }, QStringLiteral("the dialog closed"));
+	session->send(Keys::AltX);
+	CHECK(session->waitForExit() == 0);
 }
 
 TEST_CASE("Ctrl+S hides and shows hidden files", "[tui]")

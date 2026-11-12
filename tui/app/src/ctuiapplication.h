@@ -13,6 +13,7 @@ RESTORE_COMPILER_WARNINGS
 #include <expected>
 
 class CController;
+class CTuiFindDialog;
 class CTuiPanel;
 class TDeskTop;
 class TMenuBar;
@@ -27,6 +28,7 @@ public:
 	void getEvent(TEvent& event) override;
 	void handleEvent(TEvent& event) override;
 	void resume() override;
+	void shutDown() override;
 	TPalette& getPalette() const override;
 
 	// Hands the terminal to the program until it exits. The error: the program did not start.
@@ -41,7 +43,11 @@ private:
 	static TStatusLine* initHintLine(TRect r);
 	static TDeskTop* initDeskTop(TRect r);
 
+	// Searches from the active panel's folder or selection, and goes to the result chosen
+	void findFiles();
+
 private:
 	CController& _controller;
 	std::array<CTuiPanel*, 2> _panels; // Left and right, owned by the desktop
+	CTuiFindDialog* _findDialog = nullptr; // Created on first use and owned by this application: it keeps the last search's results
 };

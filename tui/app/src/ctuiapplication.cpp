@@ -1,8 +1,11 @@
 #include "ctuiapplication.h"
+#include "ctuifinddialog.h"
 #include "ctuipalette.h"
 #include "ctuipanel.h"
 
 #include "ccontroller.h"
+#include "cfilesystemobject.h"
+#include "filesearchengine/filesearchquery.h"
 
 #include "compiler/compiler_warnings_control.h"
 
@@ -25,6 +28,8 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <cstdio>
+#include <optional>
+#include <utility>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -38,7 +43,7 @@ RESTORE_COMPILER_WARNINGS
 namespace
 {
 // Carried out by the application, not the focused panel
-constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101;
+constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102;
 
 #ifdef _WIN32
 BOOL WINAPI ignoreInterrupt(DWORD controlType)
@@ -125,13 +130,40 @@ void CTuiApplication::handleEvent(TEvent& event)
 		return;
 	}
 
+	if (event.what == evCommand && event.message.command == cmFindFiles)
+	{
+		clearEvent(event);
+		findFiles();
+		return;
+	}
+
 	TApplication::handleEvent(event);
+}
+
+void CTuiApplication::findFiles()
+{
+	if (!_findDialog)
+		_findDialog = new CTuiFindDialog(deskTop->getExtent());
+
+	const Panel side = _controller.activePanelPosition();
+	const CPanel& panel = _controller.panel(side);
+	if (const std::optional<QString> resultPath = _findDialog->exec(searchInFieldTextFor(panel), panel.currentDirPathPosix()))
+		_controller.goToItem(side, CFileSystemObject{ *resultPath });
 }
 
 void CTuiApplication::resume()
 {
 	TApplication::resume();
 	disableWin32InputMode();
+}
+
+void CTuiApplication::shutDown()
+{
+	// No group owns the dialog while it is closed
+	if (_findDialog)
+		TObject::destroy(std::exchange(_findDialog, nullptr));
+
+	TApplication::shutDown();
 }
 
 TPalette& CTuiApplication::getPalette() const
@@ -224,6 +256,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("~D~elete...", cmDeleteItems, kbF8, hcNoContext, "F8") +
 			*new TMenuItem("Delete ~p~ermanently...", cmDeleteItemsPermanently, kbShiftF8, hcNoContext, "Shift-F8") +
 			newLine() +
+			*new TMenuItem("Fi~n~d files...", cmFindFiles, kbAltF7, hcNoContext, "Alt-F7") +
 			*new TMenuItem("Copy pat~h~s", cmCopyPaths, kbAltC, hcNoContext, "Alt-C") +
 			*new TMenuItem("Open ~s~hell here", cmOpenShell, kbCtrlO, hcNoContext, "Ctrl-O") +
 			newLine() +

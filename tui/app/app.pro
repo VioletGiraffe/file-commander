@@ -25,6 +25,7 @@ SOURCES += \
 	src/ctuidialogs.cpp \
 	src/ctuifilelist.cpp \
 	src/ctuifileoperations.cpp \
+	src/ctuifinddialog.cpp \
 	src/ctuipalette.cpp \
 	src/ctuipanel.cpp \
 	src/ctuiprograms.cpp \
@@ -35,6 +36,7 @@ HEADERS += \
 	src/ctuidialogs.h \
 	src/ctuifilelist.h \
 	src/ctuifileoperations.h \
+	src/ctuifinddialog.h \
 	src/ctuipalette.h \
 	src/ctuipanel.h \
 	src/ctuiprograms.h \

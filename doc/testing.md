@@ -91,7 +91,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | `fileoperations_gui_test` | Launched operations routed to the dialog or the native shell, end to end |
 | `filelist_test` | File list from `qt-app/src`, on rows built in memory: the model's display, filtering, lookups and in-place updates under Qt's model contract; the view's rename editor and scroll position through updates |
 | `csvviewer_test` | CSV viewer: parser, table model, comment list model |
-| `tui_test` | Terminal UI: the status rows, the menus, tabs, the start folder, the column header and the columns a narrow panel keeps, the file commands and their dialogs, selection by pattern and by extension, copying paths over SSH, hidden files, and handing the terminal to the pager, the editor, a program and the shell |
+| `tui_test` | Terminal UI: the status rows, the menus, tabs, the start folder, the column header and the columns a narrow panel keeps, the file commands and their dialogs, selection by pattern and by extension, finding files by name and by contents and going to a result, copying paths over SSH, hidden files, and handing the terminal to the pager, the editor, a program and the shell |
 
 `tui_test` runs `fcterm` through `forkpty`, or ConPTY on Windows, with its settings in the test's temporary folder
 (`--settings-dir`) and, on Unix, `HOME` there too. The pager and the editor are the test executable itself, started with

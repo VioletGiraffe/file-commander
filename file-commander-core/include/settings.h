@@ -56,6 +56,17 @@
 // A QSettings array of the Programs menu entries
 #define KEY_USER_PROGRAMS QSL("Programs")
 
+// The file search dialogs of both front ends. A *_HISTORY key holds its field's earlier searches, most recent first.
+#define KEY_FILE_SEARCH_NAME_HISTORY QSL("FileSearchDialog/Ui/NameToFind")
+#define KEY_FILE_SEARCH_NAME_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveName")
+#define KEY_FILE_SEARCH_NAME_PARTIAL_MATCH QSL("FileSearchDialog/Ui/NamePartialMatch")
+#define FILE_SEARCH_NAME_PARTIAL_MATCH_DEFAULT true
+#define KEY_FILE_SEARCH_CONTENTS_HISTORY QSL("FileSearchDialog/Ui/ContentsToFind")
+#define KEY_FILE_SEARCH_CONTENTS_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveContents")
+#define KEY_FILE_SEARCH_CONTENTS_WHOLE_WORDS QSL("FileSearchDialog/Ui/ContentsWholeWords")
+#define KEY_FILE_SEARCH_CONTENTS_IS_REGEX QSL("FileSearchDialog/Ui/ContentsIsRegex")
+#define KEY_FILE_SEARCH_ROOT_HISTORY QSL("FileSearchDialog/Ui/RootFolder")
+
 /////////////////////////////////////////////////
 // Options accessible via Settings interface
 /////////////////////////////////////////////////
