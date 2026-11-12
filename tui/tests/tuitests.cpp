@@ -24,6 +24,7 @@ RESTORE_COMPILER_WARNINGS
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 using namespace std::chrono_literals;
 using namespace std::string_view_literals;
@@ -57,6 +58,17 @@ enum class Side { Left, Right };
 	return status == name || status.startsWith(name + QStringLiteral("  "));
 }
 
+// True when rowPattern matches one of the panel's list rows, with the row's padding trimmed
+[[nodiscard]] bool panelHasRowMatching(const CTerminalScreen& screen, const QRegularExpression& rowPattern, Side side = Side::Left)
+{
+	for (int row = 2; row < panelStatusRow; ++row)
+	{
+		if (rowPattern.match(panelPart(screen.row(row), side).trimmed()).hasMatch())
+			return true;
+	}
+	return false;
+}
+
 // A row shows a name whole, or with its extension in the Ext column
 [[nodiscard]] bool panelLists(const CTerminalScreen& screen, const QString& name, Side side = Side::Left)
 {
@@ -64,14 +76,7 @@ enum class Side { Left, Right };
 	QString pattern = QRegularExpression::escape(name);
 	if (dot > 0 && dot < name.size() - 1)
 		pattern += u'|' + QRegularExpression::escape(name.left(dot)) + QStringLiteral(" +") + QRegularExpression::escape(name.mid(dot + 1));
-	const QRegularExpression rowPattern{ QStringLiteral("^(?:%1)(?: |$)").arg(pattern) };
-
-	for (int row = 2; row < panelStatusRow; ++row)
-	{
-		if (rowPattern.match(panelPart(screen.row(row), side).trimmed()).hasMatch())
-			return true;
-	}
-	return false;
+	return panelHasRowMatching(screen, QRegularExpression{ QStringLiteral("^(?:%1)(?: |$)").arg(pattern) }, side);
 }
 
 // The left panel's column header row: the one under the panel's top edge, or under its tab strip
@@ -839,6 +844,23 @@ TEST_CASE("A narrow panel drops columns, but never the sorted one", "[tui]")
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return header(screen).contains(QStringLiteral("Date ↑")); }, QStringLiteral("the Date title"));
 	CHECK(!header(session->screen()).contains(QStringLiteral("Ext")));
 	CHECK(!header(session->screen()).contains(QStringLiteral("Size")));
+}
+
+TEST_CASE("The Size column shows bytes below 1K, else the largest binary unit reached", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/bytes.txt"), QByteArray(1023, 'x'));
+	sandbox.createFile(QStringLiteral("work/kib.txt"), QByteArray(1536, 'x'));
+	sandbox.createFile(QStringLiteral("work/tens.txt"), QByteArray(12345, 'x'));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("bytes.txt"));
+
+	for (const auto& [baseName, sizeText] : { std::pair{ "bytes", "1023" }, std::pair{ "kib", "1.5K" }, std::pair{ "tens", "12K" } })
+	{
+		const QRegularExpression rowPattern{ QStringLiteral("^%1 +txt +%2(?: |$)").arg(QLatin1String(baseName), QRegularExpression::escape(QLatin1String(sizeText))) };
+		requireScreen(*session, [&](const CTerminalScreen& screen) { return panelHasRowMatching(screen, rowPattern); },
+			QStringLiteral("%1.txt listed with the size %2").arg(QLatin1String(baseName), QLatin1String(sizeText)));
+	}
 }
 
 TEST_CASE("fcterm shows the working folder or its folder argument in the tab already showing it, else in the active tab", "[tui]")

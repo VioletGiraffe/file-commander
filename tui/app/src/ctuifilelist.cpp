@@ -1,9 +1,8 @@
 #include "ctuifilelist.h"
 #include "ctuipalette.h"
 
+#include "filelist/filesizetext.h"
 #include "filelist/filetimetext.h"
-
-#include "qtcore_helpers/displayformatting.hpp"
 
 #define Uses_TDrawBuffer
 #define Uses_TEvent
@@ -26,7 +25,7 @@ constexpr int minNameColumnWidth = 20;
 	{
 	case FileListSortField::Name: return 0;
 	case FileListSortField::Extension: return 5; // "Ext ↑"
-	case FileListSortField::Size: return 10; // "1023.9 KiB"
+	case FileListSortField::Size: return 6; // "Size ↑"
 	case FileListSortField::Date: return maxShortFileTimeTextLength;
 	}
 	return 0;
@@ -63,7 +62,7 @@ void drawInColumn(TDrawBuffer& line, const FileListColumn& column, const QString
 		if (item.isCdUp())
 			return QStringLiteral("<UP>");
 		// A folder has a size once Space has calculated it
-		return item.isDir() && item.size() == 0 ? QStringLiteral("<DIR>") : fileSizeToString(item.size());
+		return item.isDir() && item.size() == 0 ? QStringLiteral("<DIR>") : compactFileSizeText(item.size());
 	case FileListSortField::Date:
 		return item.isCdUp() ? QString{} : fileTimeText(item.modificationTime(), FileTimeTextLength::Short);
 	}

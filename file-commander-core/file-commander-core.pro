@@ -32,6 +32,7 @@ HEADERS += \
 	src/fileoperationlaunch.h \
 	src/filelist/filelistsorter.h \
 	src/filelist/filenamefilter.h \
+	src/filelist/filesizetext.h \
 	src/filelist/filetimetext.h \
 	src/filelist/foldercontentssummary.h \
 	src/diskenumerator/volumeinfo.hpp \
@@ -61,6 +62,7 @@ SOURCES += \
 	src/fileoperationlaunch.cpp \
 	src/filelist/filelistsorter.cpp \
 	src/filelist/filenamefilter.cpp \
+	src/filelist/filesizetext.cpp \
 	src/filelist/filetimetext.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
 	src/filecomparator/cfilecomparator.cpp \

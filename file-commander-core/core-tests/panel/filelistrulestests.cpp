@@ -1,6 +1,7 @@
 #include "cfilesystemobject.h"
 #include "filelist/filelistsorter.h"
 #include "filelist/filenamefilter.h"
+#include "filelist/filesizetext.h"
 #include "filelist/filetimetext.h"
 #include "filelist/foldercontentssummary.h"
 #include "filesystemhelperfunctions.h"
@@ -186,6 +187,20 @@ TEST_CASE("File list - a file's short time shows the year only for other years, 
 	QLocale::setDefault(QLocale{ QLocale::German });
 	CHECK(fileTimeText(lastYear, FileTimeTextLength::Short) == QStringLiteral("31 Dec '") + lastTwoDigitYear); // German: "Dez"
 	QLocale::setDefault(previousLocale);
+}
+
+TEST_CASE("File list - a size shows in the largest binary unit it reaches, rounded down, with one decimal below 10", "[filelistrules]")
+{
+	CHECK(compactFileSizeText(0) == QStringLiteral("0"));
+	CHECK(compactFileSizeText(1023) == QStringLiteral("1023"));
+	CHECK(compactFileSizeText(1024) == QStringLiteral("1.0K"));
+	CHECK(compactFileSizeText(1535) == QStringLiteral("1.4K"));
+	CHECK(compactFileSizeText(1536) == QStringLiteral("1.5K"));
+	CHECK(compactFileSizeText(10 * 1024 - 1) == QStringLiteral("9.9K"));
+	CHECK(compactFileSizeText(10 * 1024) == QStringLiteral("10K"));
+	CHECK(compactFileSizeText(1024 * 1024 - 1) == QStringLiteral("1023K"));
+	CHECK(compactFileSizeText(1024 * 1024) == QStringLiteral("1.0M"));
+	CHECK(compactFileSizeText(UINT64_MAX) == QStringLiteral("15E"));
 }
 
 TEST_CASE("File list - the name filter language", "[filelistrules][filter]")

@@ -1,12 +1,12 @@
 #include "cfilelistmodel.h"
 
+#include "filelist/filesizetext.h"
 #include "filelist/filetimetext.h"
 #include "iconprovider/ciconprovider.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
-#include "qtcore_helpers/displayformatting.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -38,7 +38,7 @@ static QVariant displayText(const CFileSystemObject& row, int column, const QStr
 
 	case SizeColumn:
 		if (row.size() > 0 || row.type() == File)
-			return fileSizeToString(row.size());
+			return compactFileSizeText(row.size());
 		else
 			return {};
 
