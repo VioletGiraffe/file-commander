@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794492560246,
+  "lastUpdate": 1794495610915,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -35620,6 +35620,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 448,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 46,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 27.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 11,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "8b1d7e14563107645af09111439e78f73cf33036",
+          "message": "Terminal UI batch rename no longer drops Alt+R or Alt+U typed right after an edit that enables the button: the buttons take the new command state at once, not at the next idle",
+          "timestamp": "2026-11-12T16:48:35+02:00",
+          "tree_id": "71d04940faf16d901260c2475dd1691472fa7c0d",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/8b1d7e14563107645af09111439e78f73cf33036"
+        },
+        "date": 1794495607881,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 19858,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35770,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1608.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 949.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 448.5,
             "unit": "KB"
           },
           {
