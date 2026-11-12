@@ -1,6 +1,6 @@
 #include "filesizetext.h"
 
-QString compactFileSizeText(const uint64_t size)
+QString compactFileSizeText(const uint64_t size, const FileSizeUnitSpacing spacing)
 {
 	if (size < 1024)
 		return QString::number(size);
@@ -14,9 +14,11 @@ QString compactFileSizeText(const uint64_t size)
 		++unit;
 	}
 
-	const QChar unitLetter = QLatin1Char(unitLetters[unit]);
 	const uint64_t whole = size / unitSize;
-	if (whole >= 10)
-		return QString::number(whole) + unitLetter;
-	return QString::number(whole) + u'.' + QString::number(size % unitSize * 10 / unitSize) + unitLetter;
+	QString text = QString::number(whole);
+	if (whole < 10)
+		text += u'.' + QString::number(size % unitSize * 10 / unitSize);
+	if (spacing == FileSizeUnitSpacing::Spaced)
+		text += u' ';
+	return text + QLatin1Char(unitLetters[unit]);
 }

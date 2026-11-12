@@ -62,7 +62,7 @@ void drawInColumn(TDrawBuffer& line, const FileListColumn& column, const QString
 		if (item.isCdUp())
 			return QStringLiteral("<UP>");
 		// A folder has a size once Space has calculated it
-		return item.isDir() && item.size() == 0 ? QStringLiteral("<DIR>") : compactFileSizeText(item.size());
+		return item.isDir() && item.size() == 0 ? QStringLiteral("<DIR>") : compactFileSizeText(item.size(), FileSizeUnitSpacing::Joined);
 	case FileListSortField::Date:
 		return item.isCdUp() ? QString{} : fileTimeText(item.modificationTime(), FileTimeTextLength::Short);
 	}

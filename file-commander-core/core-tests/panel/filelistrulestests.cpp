@@ -189,18 +189,23 @@ TEST_CASE("File list - a file's short time shows the year only for other years, 
 	QLocale::setDefault(previousLocale);
 }
 
-TEST_CASE("File list - a size shows in the largest binary unit it reaches, rounded down, with one decimal below 10", "[filelistrules]")
+TEST_CASE("File list - a size shows in the largest binary unit it reaches, rounded down, with one decimal below 10, the unit joined or spaced", "[filelistrules]")
 {
-	CHECK(compactFileSizeText(0) == QStringLiteral("0"));
-	CHECK(compactFileSizeText(1023) == QStringLiteral("1023"));
-	CHECK(compactFileSizeText(1024) == QStringLiteral("1.0K"));
-	CHECK(compactFileSizeText(1535) == QStringLiteral("1.4K"));
-	CHECK(compactFileSizeText(1536) == QStringLiteral("1.5K"));
-	CHECK(compactFileSizeText(10 * 1024 - 1) == QStringLiteral("9.9K"));
-	CHECK(compactFileSizeText(10 * 1024) == QStringLiteral("10K"));
-	CHECK(compactFileSizeText(1024 * 1024 - 1) == QStringLiteral("1023K"));
-	CHECK(compactFileSizeText(1024 * 1024) == QStringLiteral("1.0M"));
-	CHECK(compactFileSizeText(UINT64_MAX) == QStringLiteral("15E"));
+	const auto joined = [](uint64_t size) { return compactFileSizeText(size, FileSizeUnitSpacing::Joined); };
+	CHECK(joined(0) == QStringLiteral("0"));
+	CHECK(joined(1023) == QStringLiteral("1023"));
+	CHECK(joined(1024) == QStringLiteral("1.0K"));
+	CHECK(joined(1535) == QStringLiteral("1.4K"));
+	CHECK(joined(1536) == QStringLiteral("1.5K"));
+	CHECK(joined(10 * 1024 - 1) == QStringLiteral("9.9K"));
+	CHECK(joined(10 * 1024) == QStringLiteral("10K"));
+	CHECK(joined(1024 * 1024 - 1) == QStringLiteral("1023K"));
+	CHECK(joined(1024 * 1024) == QStringLiteral("1.0M"));
+	CHECK(joined(UINT64_MAX) == QStringLiteral("15E"));
+
+	CHECK(compactFileSizeText(1023, FileSizeUnitSpacing::Spaced) == QStringLiteral("1023"));
+	CHECK(compactFileSizeText(1536, FileSizeUnitSpacing::Spaced) == QStringLiteral("1.5 K"));
+	CHECK(compactFileSizeText(10 * 1024, FileSizeUnitSpacing::Spaced) == QStringLiteral("10 K"));
 }
 
 TEST_CASE("File list - the name filter language", "[filelistrules][filter]")

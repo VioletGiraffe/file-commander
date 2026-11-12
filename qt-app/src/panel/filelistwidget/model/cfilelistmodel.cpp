@@ -38,7 +38,7 @@ static QVariant displayText(const CFileSystemObject& row, int column, const QStr
 
 	case SizeColumn:
 		if (row.size() > 0 || row.type() == File)
-			return compactFileSizeText(row.size());
+			return compactFileSizeText(row.size(), FileSizeUnitSpacing::Spaced);
 		else
 			return {};
 
@@ -51,6 +51,11 @@ static QVariant displayText(const CFileSystemObject& row, int column, const QStr
 	default:
 		return {};
 	}
+}
+
+static QVariant textAlignment(int column)
+{
+	return column == SizeColumn ? QVariant::fromValue(Qt::Alignment{ Qt::AlignRight | Qt::AlignVCenter }) : QVariant{};
 }
 
 // updateRows() resets past this many changed displayed rows: from there on a reset is cheaper, per the timing case in the filelist suite.
@@ -390,6 +395,8 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 		return row.fullName().toString();
 	case Qt::DisplayRole:
 		return displayText(row, index.column(), _sorter.listedFolder());
+	case Qt::TextAlignmentRole:
+		return textAlignment(index.column());
 	case Qt::DecorationRole:
 		if (_iconProvider && index.column() == NameColumn && !row.isCdUp())
 			return _iconProvider->bestAvailableIconFor(row);
@@ -422,7 +429,11 @@ Qt::ItemFlags CFileListModel::flags(const QModelIndex& index) const
 
 QVariant CFileListModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-	if (orientation != Qt::Horizontal || role != Qt::DisplayRole)
+	if (orientation != Qt::Horizontal)
+		return {};
+	if (role == Qt::TextAlignmentRole)
+		return textAlignment(section);
+	if (role != Qt::DisplayRole)
 		return {};
 
 	switch (section)
