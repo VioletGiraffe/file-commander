@@ -1273,12 +1273,16 @@ void CPanelWidget::fillHistory()
 
 void CPanelWidget::updateInfoLabel()
 {
+	const CPanel& panel = _controller->panel(_panelPosition);
 	const FolderContentsSummary& total = _model->contentsSummary();
-	const FolderContentsSummary selected = _controller->panel(_panelPosition).selectionSummary();
+	const FolderContentsSummary selected = panel.selectionSummary();
 
-	ui->_infoLabel->setText(tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(selected.numFiles).arg(total.numFiles).
+	QString text = tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(selected.numFiles).arg(total.numFiles).
 		arg(selected.numFolders).arg(total.numFolders).
-		arg(fileSizeToString(selected.size), fileSizeToString(total.size)));
+		arg(fileSizeToString(selected.size), fileSizeToString(total.size));
+	if (panel.displayMode() == CPanel::SearchResultsMode)
+		text.prepend(tr("Search results: "));
+	ui->_infoLabel->setText(text);
 }
 
 bool CPanelWidget::fileListReturnPressOrDoubleClickPerformed(const QModelIndex& item)
