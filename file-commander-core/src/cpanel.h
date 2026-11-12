@@ -114,7 +114,8 @@ public:
 	[[nodiscard]] const CHistoryList<QString>& history() const;
 	// Flattens the current directory and displays all its child files on one level
 	void showAllFilesFromCurrentFolderAndBelow();
-	// Lists the paths that exist, in the deepest folder holding them all, else in the panel's folder. A navigation leaves the list.
+	// Lists the paths that exist, in the deepest folder holding them all, else in the panel's folder. Starts with nothing selected.
+	// A navigation leaves the list.
 	void showSearchResults(QStringList paths);
 	// Keeps a renamed item, and the items under a renamed folder, in the search results. A view without a watcher lists again.
 	// Paths as CFileSystemObject::fullAbsolutePath().

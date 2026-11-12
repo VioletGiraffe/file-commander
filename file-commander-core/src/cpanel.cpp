@@ -338,6 +338,9 @@ void CPanel::showSearchResults(QStringList paths)
 	{
 		std::lock_guard locker(_fileListAndCurrentDirMutex);
 		_searchResultPaths = std::move(paths);
+		// New results are a new view, even in the same folder: the committed list and its selection are no longer the view's
+		_itemsSourcePath.clear();
+		_selectedItemHashes.clear();
 	}
 
 	moveToFolder(std::move(resolution), refreshCauseOther, SearchResultsMode);

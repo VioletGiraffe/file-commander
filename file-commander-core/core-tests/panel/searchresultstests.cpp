@@ -78,6 +78,35 @@ TEST_CASE("CPanel - search results drop a vanished item when listed again, and k
 	CHECK(shownNames(h.panel()) == QStringList{ QStringLiteral("renamed"), native(QStringLiteral("renamed/inner.txt")) });
 }
 
+TEST_CASE("CPanel - new search results in the same folder replace the old ones at once, with nothing selected", "[panel][searchresults]")
+{
+	TempTree tree;
+	const QString kept = tree.makeFile(QStringLiteral("kept.txt"));
+	const QString dropped = tree.makeFile(QStringLiteral("dropped.txt"));
+	const QString added = tree.makeFile(QStringLiteral("added.txt"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(tree.path(), refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+
+	h.panel().showSearchResults({ searchResultPath(kept), searchResultPath(dropped) });
+	h.settle();
+	h.panel().setItemsSelected({ CFileSystemObject{ kept }.hash() }, true);
+	REQUIRE(h.panel().selectedItemHashes().size() == 1);
+
+	h.worker().close();
+	h.panel().showSearchResults({ searchResultPath(kept), searchResultPath(added) });
+	CHECK_FALSE(hasCommittedContents(h.panel()));
+	CHECK(h.panel().selectedItemHashes().empty());
+
+	h.worker().open();
+	h.settle();
+	CHECK(h.panel().currentDirPathPosix() == tree.path() + '/');
+	CHECK(shownNames(h.panel()) == QStringList{ QStringLiteral("added.txt"), QStringLiteral("kept.txt") });
+	CHECK(h.panel().selectedItemHashes().empty());
+}
+
 TEST_CASE("CPanel - going up from search results shows their folder's own listing", "[panel][searchresults]")
 {
 	TempTree tree;
