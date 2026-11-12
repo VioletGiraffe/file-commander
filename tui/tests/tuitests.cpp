@@ -211,17 +211,6 @@ struct FctermStart
 	return session;
 }
 
-// Shows `folder` in the focused panel. `entry` is a name in it to wait for.
-void goTo(CTerminalSession& session, const QString& folder, const QString& entry, Side side = Side::Left)
-{
-	session.send(Keys::AltD);
-	requireText(session, QStringLiteral("Folder:"));
-	typeText(session, QDir::toNativeSeparators(folder));
-	session.send(Keys::Enter);
-	requireScreen(session, [&](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Folder:")) && panelLists(screen, entry, side); },
-		QStringLiteral("%1 listed in %2").arg(entry, folder));
-}
-
 // The first screen row holding the text; -1 for none
 [[nodiscard]] int rowWith(const CTerminalScreen& screen, const QString& text)
 {
@@ -233,11 +222,44 @@ void goTo(CTerminalSession& session, const QString& folder, const QString& entry
 	return -1;
 }
 
+// Waits for a text prompt (textPrompt() in the app) whose label holds `label`, with the cursor in its input line.
+// A frame can arrive in several reads, and Turbo Vision places the cursor last: text typed before then can be read as a paste.
+// The input line is two rows under the label: the label must fit one row.
+void requirePromptInput(CTerminalSession& session, const QString& label)
+{
+	requireScreen(session, [&label](const CTerminalScreen& screen) {
+		const int labelRow = rowWith(screen, label);
+		return labelRow >= 0 && screen.cursorRow() == labelRow + 2;
+	}, quoted(label) + QStringLiteral(" with the cursor in its input line"));
+}
+
+// Shows `folder` in the focused panel. `entry` is a name in it to wait for.
+void goTo(CTerminalSession& session, const QString& folder, const QString& entry, Side side = Side::Left)
+{
+	session.send(Keys::AltD);
+	requirePromptInput(session, QStringLiteral("Folder:"));
+	typeText(session, QDir::toNativeSeparators(folder));
+	session.send(Keys::Enter);
+	requireScreen(session, [&](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Folder:")) && panelLists(screen, entry, side); },
+		QStringLiteral("%1 listed in %2").arg(entry, folder));
+}
+
+// Opens the search dialog and returns the name field's row, once the cursor is in that field: see requirePromptInput()
+int openFindDialog(CTerminalSession& session)
+{
+	session.send(Keys::AltF7);
+	int nameRow = -1;
+	requireScreen(session, [&nameRow](const CTerminalScreen& screen) {
+		nameRow = rowWith(screen, QStringLiteral("Search for:"));
+		return nameRow >= 0 && screen.cursorRow() == nameRow;
+	}, QStringLiteral("the search dialog, with the cursor in the name field"));
+	return nameRow;
+}
+
 // Opens the search dialog, searches for the name and waits for the status to show
 void findByName(CTerminalSession& session, const QString& name, const QString& status)
 {
-	session.send(Keys::AltF7);
-	requireText(session, QStringLiteral("Search for:"));
+	openFindDialog(session);
 	typeText(session, name); // The name field's text starts selected, so this replaces it
 	session.send(Keys::Enter);
 	requireText(session, status);
@@ -318,7 +340,7 @@ TEST_CASE("F7 creates a folder and puts the cursor on it", "[tui]")
 	goTo(*session, sandbox.work({}), QStringLiteral("existing.txt"));
 
 	session->send(Keys::F7);
-	requireText(*session, QStringLiteral("Name of the new folder"));
+	requirePromptInput(*session, QStringLiteral("Name of the new folder"));
 	typeText(*session, QStringLiteral("created"));
 	session->send(Keys::Enter);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("created")); }, QStringLiteral("the cursor on the new folder"));
@@ -333,7 +355,7 @@ TEST_CASE("Shift+F7 creates a file and puts the cursor on it", "[tui]")
 	goTo(*session, sandbox.work({}), QStringLiteral("existing.txt"));
 
 	session->send(Keys::ShiftF7);
-	requireText(*session, QStringLiteral("Name of the new file"));
+	requirePromptInput(*session, QStringLiteral("Name of the new file"));
 	typeText(*session, QStringLiteral("created.txt"));
 	session->send(Keys::Enter);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("created.txt")); }, QStringLiteral("the cursor on the new file"));
@@ -350,7 +372,7 @@ TEST_CASE("F2 onto an existing name asks, then replaces it", "[tui]")
 	moveCursorTo(*session, QStringLiteral("a.txt"));
 
 	session->send(Keys::F2);
-	requireText(*session, QStringLiteral("New name for"));
+	requirePromptInput(*session, QStringLiteral("New name for"));
 	typeText(*session, QStringLiteral("b.txt"));
 	session->send(Keys::Enter);
 	requireText(*session, QStringLiteral("already exists"));
@@ -419,8 +441,8 @@ TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a r
 		QStringLiteral("the cursor on the result, in its folder"));
 
 	// The dialog opens again with the results
-	session->send(Keys::AltF7);
-	requireText(*session, QStringLiteral("Search completed, 1 item found"));
+	openFindDialog(*session);
+	CHECK(session->screen().contains(QStringLiteral("Search completed, 1 item found")));
 	CHECK(session->screen().contains(result));
 }
 
@@ -454,9 +476,8 @@ TEST_CASE("Alt+F7 starts with the name last searched, in the next session too", 
 	}
 
 	auto session = startFcterm(sandbox);
-	session->send(Keys::AltF7);
-	requireText(*session, QStringLiteral("Search for:"));
-	CHECK(session->screen().row(rowWith(session->screen(), QStringLiteral("Search for:"))).contains(QStringLiteral("needle")));
+	const int nameRow = openFindDialog(*session);
+	CHECK(session->screen().row(nameRow).contains(QStringLiteral("needle")));
 }
 
 TEST_CASE("Alt+F7 skips the folders in the Exclude folders field, which starts with its last text in the next session", "[tui]")
@@ -470,9 +491,7 @@ TEST_CASE("Alt+F7 skips the folders in the Exclude folders field, which starts w
 		auto session = startFcterm(sandbox);
 		goTo(*session, sandbox.work({}), QStringLiteral("kept"));
 
-		session->send(Keys::AltF7);
-		requireText(*session, QStringLiteral("Exclude folders:"));
-		const int nameRow = rowWith(session->screen(), QStringLiteral("Search for:")), excludedRow = rowWith(session->screen(), QStringLiteral("Exclude folders:"));
+		const int nameRow = openFindDialog(*session), excludedRow = rowWith(session->screen(), QStringLiteral("Exclude folders:"));
 		session->send(Keys::AltE);
 		requireScreen(*session, [excludedRow](const CTerminalScreen& screen) { return screen.cursorRow() == excludedRow; }, QStringLiteral("the cursor in the Exclude folders field"));
 		typeText(*session, QStringLiteral("skipped"));
@@ -490,8 +509,7 @@ TEST_CASE("Alt+F7 skips the folders in the Exclude folders field, which starts w
 	}
 
 	auto session = startFcterm(sandbox);
-	session->send(Keys::AltF7);
-	requireText(*session, QStringLiteral("Exclude folders:"));
+	openFindDialog(*session);
 	CHECK(session->screen().row(rowWith(session->screen(), QStringLiteral("Exclude folders:"))).contains(QStringLiteral("skipped")));
 }
 
@@ -502,9 +520,8 @@ TEST_CASE("Alt+F7 without partial match matches whole names, and says when the c
 	auto session = startFcterm(sandbox);
 	goTo(*session, sandbox.work({}), QStringLiteral("needle.txt"));
 
-	session->send(Keys::AltF7);
-	requireText(*session, QStringLiteral("[X] Partial match"));
-	const int nameRow = rowWith(session->screen(), QStringLiteral("Search for:"));
+	const int nameRow = openFindDialog(*session);
+	REQUIRE(session->screen().contains(QStringLiteral("[X] Partial match")));
 	const auto focusName = [&] {
 		session->send(Keys::AltF);
 		requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() == nameRow; }, QStringLiteral("the cursor in the name field"));
@@ -536,9 +553,7 @@ TEST_CASE("Alt+F7 finds files by their contents", "[tui]")
 	auto session = startFcterm(sandbox);
 	goTo(*session, sandbox.work({}), QStringLiteral("apple.txt"));
 
-	session->send(Keys::AltF7);
-	requireText(*session, QStringLiteral("With contents:"));
-	const int nameRow = session->screen().cursorRow();
+	const int nameRow = openFindDialog(*session);
 	session->send(Keys::AltO); // The field's label key
 	requireScreen(*session, [nameRow](const CTerminalScreen& screen) { return screen.cursorRow() != nameRow; }, QStringLiteral("the cursor in the contents field"));
 	typeText(*session, QStringLiteral("yellow"));
@@ -574,8 +589,7 @@ TEST_CASE("Alt+F7 copes with searches too long for Turbo Vision's field history"
 	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(QStringLiteral("0 files, 40 folders selected")); },
 		QStringLiteral("every folder selected"));
 
-	session->send(Keys::AltF7);
-	requireText(*session, QStringLiteral("Search for:"));
+	openFindDialog(*session);
 	typeText(*session, QStringLiteral("needle"));
 	session->send(Keys::Enter);
 	requireText(*session, QStringLiteral("Search completed, 1 item found"));
@@ -652,7 +666,7 @@ TEST_CASE("+ and - select and deselect by pattern", "[tui]")
 	// The input line starts with "*", all of it selected, so the typed pattern replaces it
 	const auto applyPattern = [&](std::string_view key, const QString& pattern) {
 		session->send(key);
-		requireText(*session, QStringLiteral("Names matching"));
+		requirePromptInput(*session, QStringLiteral("Names matching"));
 		typeText(*session, pattern);
 		session->send(Keys::Enter);
 	};
@@ -729,6 +743,7 @@ TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return tabStrip(screen).contains(QStringLiteral(" work  other ")); }, QStringLiteral("the tabs named"));
 
 	session->send(Keys::CtrlF);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return screen.cursorRow() == filterRow; }, QStringLiteral("the cursor in the filter line"));
 	typeText(*session, QStringLiteral("b*"));
 	session->send(Keys::Enter);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !panelLists(screen, QStringLiteral("c.txt")); }, QStringLiteral("c.txt filtered out"));
