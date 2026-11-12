@@ -2,6 +2,7 @@
 
 #include "cfilesystemobject.h"
 #include "filesearchengine/cfilesearchengine.h"
+#include "filesearchengine/cfilesearchresultsbuffer.h"
 
 
 // Submodule includes
@@ -12,10 +13,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
 
-#include <deque>
-#include <mutex>
-#include <optional>
-#include <stdint.h>
 #include <vector>
 
 namespace Ui {
@@ -26,43 +23,17 @@ class QLabel;
 
 class CIconProvider;
 
-class CFilesSearchWindow final : public QMainWindow, public CFileSearchEngine::FileSearchListener
+class CFilesSearchWindow final : public QMainWindow
 {
 public:
 	CFilesSearchWindow(const QString& initialSearchInText, CIconProvider& iconProvider, QWidget* parent);
 	~CFilesSearchWindow() override;
 
-	void itemScanned(const QString& currentItem) override;
-	void matchFound(const CFileSystemObject& item, bool reachedThroughLink) override;
-	void searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed) override;
-
 private:
-	struct Match {
-		CFileSystemObject item;
-		bool reachedThroughLink;
-	};
-
-	struct SearchCompletion {
-		CFileSearchEngine::SearchStatus status;
-		uint64_t itemsScanned;
-		uint64_t inconclusiveItems;
-		uint64_t msElapsed;
-	};
-
-	// What the search threads have reported and the UI thread has not shown yet
-	struct PendingResults {
-		std::deque<Match> matches;
-		QString lastScannedItem; // Empty once shown
-		std::optional<SearchCompletion> completion; // Shown only after every match before it
-		bool displayScheduled = false;
-	};
-
 	void search();
 
-	// Requires _pendingResultsMutex. Posts at most one displayPendingResults() at a time, however many reports arrive.
-	void scheduleDisplayLocked();
 	void displayPendingResults();
-	void showSearchCompletion(const SearchCompletion& completion);
+	void showSearchCompletion(const CFileSearchResultsBuffer::Completion& completion);
 
 	void setProgressText(const QString& text, Qt::TextElideMode elideMode);
 	// The caller disables the list's updates around a batch of these
@@ -75,13 +46,12 @@ private:
 
 private:
 	CIconProvider& _iconProvider;
+	// What the search has reported and this window has not shown yet. Declared before the engine, whose threads report into it.
+	CFileSearchResultsBuffer _pendingResults;
 	CFileSearchEngine _engine;
 	std::vector<QString> _matches;
 	// Set from a started search until its completion is shown: the engine's own flag clears before its results are all shown
 	bool _searchActive = false;
-
-	std::mutex _pendingResultsMutex;
-	PendingResults _pendingResults; // Guarded by _pendingResultsMutex
 
 	Ui::CFilesSearchWindow *ui = nullptr;
 };

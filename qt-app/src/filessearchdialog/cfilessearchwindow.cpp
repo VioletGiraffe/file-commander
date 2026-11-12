@@ -28,16 +28,15 @@ DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
-#include <algorithm>
-#include <iterator>
 #include <stddef.h>
-#include <utility>
+#include <stdint.h>
 
 #define SETTINGS_NAME_TO_FIND            QSL("FileSearchDialog/Ui/NameToFind")
 #define SETTINGS_NAME_CASE_SENSITIVE     QSL("FileSearchDialog/Ui/CaseSensitiveName")
 #define SETTINGS_NAME_PARTIAL_MATCH      QSL("FileSearchDialog/Ui/NamePartialMatch")
 #define SETTINGS_CONTENTS_TO_FIND        QSL("FileSearchDialog/Ui/ContentsToFind")
 #define SETTINGS_CONTENTS_CASE_SENSITIVE QSL("FileSearchDialog/Ui/CaseSensitiveContents")
+#define SETTINGS_CONTENTS_WHOLE_WORDS    QSL("FileSearchDialog/Ui/ContentsWholeWords")
 #define SETTINGS_CONTENTS_IS_REGEX       QSL("FileSearchDialog/Ui/ContentsIsRegex")
 #define SETTINGS_ROOT_FOLDER             QSL("FileSearchDialog/Ui/RootFolder")
 
@@ -62,6 +61,8 @@ public:
 CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIconProvider& iconProvider, QWidget* parent) :
 	QMainWindow(parent),
 	_iconProvider(iconProvider),
+	// Queued also when requested on this thread, so the event loop runs between batches
+	_pendingResults([this] { QMetaObject::invokeMethod(this, &CFilesSearchWindow::displayPendingResults, Qt::QueuedConnection); }),
 	ui(new Ui::CFilesSearchWindow)
 {
 	ui->setupUi(this);
@@ -83,6 +84,7 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 	ui->cbNameCaseSensitive->setChecked(s.value(SETTINGS_NAME_CASE_SENSITIVE, false).toBool());
 	ui->cbNamePartialMatch->setChecked(s.value(SETTINGS_NAME_PARTIAL_MATCH, true).toBool());
 	ui->cbContentsCaseSensitive->setChecked(s.value(SETTINGS_CONTENTS_CASE_SENSITIVE, false).toBool());
+	ui->cbContentsWholeWords->setChecked(s.value(SETTINGS_CONTENTS_WHOLE_WORDS, false).toBool());
 	ui->cbRegexFileContents->setChecked(s.value(SETTINGS_CONTENTS_IS_REGEX, false).toBool());
 
 	connect(ui->nameToFind, &CHistoryComboBox::itemActivated, ui->btnSearch, &QPushButton::click);
@@ -110,7 +112,7 @@ CFilesSearchWindow::CFilesSearchWindow(const QString& initialSearchInText, CIcon
 
 CFilesSearchWindow::~CFilesSearchWindow()
 {
-	// The worker calls back into this listener, so it must be gone before `ui` and the rest of this window are
+	// The search threads post to this window through _pendingResults, so they must be gone before any of it is
 	_engine.stopSearching();
 	_engine.waitForSearchToFinish();
 
@@ -118,70 +120,23 @@ CFilesSearchWindow::~CFilesSearchWindow()
 	s.setValue(SETTINGS_NAME_CASE_SENSITIVE, ui->cbNameCaseSensitive->isChecked());
 	s.setValue(SETTINGS_NAME_PARTIAL_MATCH, ui->cbNamePartialMatch->isChecked());
 	s.setValue(SETTINGS_CONTENTS_CASE_SENSITIVE, ui->cbContentsCaseSensitive->isChecked());
+	s.setValue(SETTINGS_CONTENTS_WHOLE_WORDS, ui->cbContentsWholeWords->isChecked());
 	s.setValue(SETTINGS_CONTENTS_IS_REGEX, ui->cbRegexFileContents->isChecked());
 
 	delete ui;
 }
 
-void CFilesSearchWindow::itemScanned(const QString& currentItem)
-{
-	std::lock_guard lock{ _pendingResultsMutex };
-	_pendingResults.lastScannedItem = currentItem;
-	scheduleDisplayLocked();
-}
-
-void CFilesSearchWindow::matchFound(const CFileSystemObject& item, bool reachedThroughLink)
-{
-	std::lock_guard lock{ _pendingResultsMutex };
-	_pendingResults.matches.push_back({ item, reachedThroughLink });
-	scheduleDisplayLocked();
-}
-
-void CFilesSearchWindow::searchFinished(CFileSearchEngine::SearchStatus status, uint64_t itemsScanned, uint64_t inconclusiveItems, uint64_t msElapsed)
-{
-	std::lock_guard lock{ _pendingResultsMutex };
-	_pendingResults.completion = SearchCompletion{ status, itemsScanned, inconclusiveItems, msElapsed };
-	scheduleDisplayLocked();
-}
-
-void CFilesSearchWindow::scheduleDisplayLocked()
-{
-	if (std::exchange(_pendingResults.displayScheduled, true))
-		return;
-
-	QMetaObject::invokeMethod(this, &CFilesSearchWindow::displayPendingResults, Qt::QueuedConnection);
-}
-
 void CFilesSearchWindow::displayPendingResults()
 {
-	std::vector<Match> matches;
-	QString lastScannedItem;
-	std::optional<SearchCompletion> completion;
-	bool moreMatchesPending = false;
-	{
-		std::lock_guard lock{ _pendingResultsMutex };
-		auto& pendingMatches = _pendingResults.matches;
-		const auto sliceEnd = pendingMatches.begin() + (ptrdiff_t)std::min(pendingMatches.size(), maxRowsPerTurn);
-		matches.assign(std::make_move_iterator(pendingMatches.begin()), std::make_move_iterator(sliceEnd));
-		pendingMatches.erase(pendingMatches.begin(), sliceEnd);
+	const CFileSearchResultsBuffer::Batch batch = _pendingResults.take(maxRowsPerTurn);
 
-		lastScannedItem = std::exchange(_pendingResults.lastScannedItem, {});
-		moreMatchesPending = !pendingMatches.empty();
-		// While matches remain, this call stays scheduled and posts itself again below
-		if (!moreMatchesPending)
-		{
-			completion = std::exchange(_pendingResults.completion, std::nullopt);
-			_pendingResults.displayScheduled = false;
-		}
-	}
+	if (!batch.lastScannedItem.isEmpty())
+		setProgressText(batch.lastScannedItem, Qt::ElideMiddle);
 
-	if (!lastScannedItem.isEmpty())
-		setProgressText(lastScannedItem, Qt::ElideMiddle);
-
-	if (!matches.empty())
+	if (!batch.matches.empty())
 	{
 		ui->resultsList->setUpdatesEnabled(false);
-		for (const Match& match : matches)
+		for (const CFileSearchResultsBuffer::Match& match : batch.matches)
 		{
 			_matches.push_back(match.item.fullAbsolutePath());
 			addResultToUi(match.item, match.reachedThroughLink);
@@ -189,13 +144,11 @@ void CFilesSearchWindow::displayPendingResults()
 		ui->resultsList->setUpdatesEnabled(true);
 	}
 
-	if (moreMatchesPending)
-		QMetaObject::invokeMethod(this, &CFilesSearchWindow::displayPendingResults, Qt::QueuedConnection);
-	else if (completion)
-		showSearchCompletion(*completion);
+	if (batch.completion)
+		showSearchCompletion(*batch.completion);
 }
 
-void CFilesSearchWindow::showSearchCompletion(const SearchCompletion& completion)
+void CFilesSearchWindow::showSearchCompletion(const CFileSearchResultsBuffer::Completion& completion)
 {
 	_searchActive = false;
 	ui->btnSearch->setText(tr("Start"));
@@ -260,7 +213,7 @@ void CFilesSearchWindow::search()
 		.contentsIsRegex = ui->cbRegexFileContents->isChecked()
 	};
 
-	if (_engine.search(query, this))
+	if (_engine.search(query, &_pendingResults))
 	{
 		_searchActive = true;
 		ui->nameToFind->addToHistory(ui->nameToFind->currentText());
