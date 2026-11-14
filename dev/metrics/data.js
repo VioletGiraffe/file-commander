@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794681007110,
+  "lastUpdate": 1794689428283,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -35971,6 +35971,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 29,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "37a80faec19b95bd295d84ce6e70f17c2131e7de",
+          "message": "Custom icon glyphs replace only the OS's default folder icon and its icon for a type no program claims: other type icons and custom icons show again, and a file shows its type's icon while its own is fetched",
+          "timestamp": "2026-11-14T22:41:51+02:00",
+          "tree_id": "b90492f887fd663fcd0912ff5b64609e1fa40058",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/37a80faec19b95bd295d84ce6e70f17c2131e7de"
+        },
+        "date": 1794689423976,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 20702,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35967,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1782,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2187.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1046,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 516,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 51,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
             "unit": "KB"
           },
           {
