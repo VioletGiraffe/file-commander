@@ -44,23 +44,19 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QStr
 {
 	std::vector<VolumeInfo> volumes;
 
-	static const QString username = [] {
-		QString name = qEnvironmentVariable("USER");
-		if (name.isEmpty())
-			name = qEnvironmentVariable("USERNAME");
-
-		return name;
-	}();
-	static const QString homePath = QStringLiteral("/home/%1").arg(username);
+	const QString homePath = QDir::homePath();
 
 	// "Home" is always shown as a convenience shortcut, even on setups where it isn't a mount point of its own.
 	{
 		VolumeInfo& homeInfo = volumes.emplace_back();
-		homeInfo.rootObjectInfo = homePath + '/';
+		homeInfo.rootObjectInfo = homePath.endsWith('/') ? homePath : homePath + '/'; // homePath() is "/" where HOME is unset
 		homeInfo.volumeLabel = "home";
 	}
 
 	bool rootFound = false;
+	// The types of the filesystems holding the home folder and the root, from any mount, pseudo or not
+	QString homeFsType, rootFsType;
+	qsizetype homeMountPointLength = -1;
 
 	// /proc/mounts always reflects the live mount table (unlike /etc/mtab, which can go stale), so real mount points
 	// configured via fstab, udisks auto-mount (/media, /run/media), manual mounts under /mnt etc. are all picked up.
@@ -69,6 +65,19 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QStr
 		while (mntent* entry = getmntent(mountsFile))
 		{
 			const QString fsType = QString::fromLocal8Bit(entry->mnt_type);
+			const QString mountPoint = QString::fromLocal8Bit(entry->mnt_dir);
+
+			// The deepest mount point at or above the home folder holds it
+			// >=: a later mount on the same point hides the earlier one
+			const bool holdsHome = mountPoint == QStringLiteral("/") || homePath == mountPoint || homePath.startsWith(mountPoint + '/');
+			if (holdsHome && mountPoint.size() >= homeMountPointLength)
+			{
+				homeFsType = fsType;
+				homeMountPointLength = mountPoint.size();
+			}
+			if (mountPoint == QStringLiteral("/"))
+				rootFsType = fsType;
+
 			if (isPseudoFilesystem(fsType))
 				continue;
 
@@ -76,8 +85,7 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QStr
 			if (!device.startsWith(QStringLiteral("/dev/")) && !isKnownNetworkFilesystem(fsType))
 				continue;
 
-			const QString mountPoint = QString::fromLocal8Bit(entry->mnt_dir);
-			if (mountPoint == homePath || mountPoint == QStringLiteral("/home"))
+			if (mountPoint == homePath || (mountPoint == QStringLiteral("/home") && homePath.startsWith(QStringLiteral("/home/"))))
 				continue; // Already covered by the synthetic "home" entry above
 
 			if (mountPoint == QStringLiteral("/boot") || mountPoint.startsWith(QStringLiteral("/boot/")))
@@ -95,11 +103,14 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QStr
 		endmntent(mountsFile);
 	}
 
+	volumes.front().fileSystemName = homeFsType.toUpper();
+
 	if (!rootFound)
 	{
 		VolumeInfo& rootInfo = volumes.emplace_back();
 		rootInfo.rootObjectInfo = "/";
 		rootInfo.volumeLabel = "root";
+		rootInfo.fileSystemName = rootFsType.toUpper();
 	}
 
 	std::vector<VolumeInfo> queriedVolumes;
