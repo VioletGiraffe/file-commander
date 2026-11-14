@@ -1589,7 +1589,7 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
 	if (currentVolumeInfo)
 	{
 		_currentVolumePath = currentVolumeInfo->rootObjectInfo.fullAbsolutePath();
-		const auto sizeText = [](const uint64_t size) { return fileSizeToString(size, '\0', {}, 3, 2); }; // such as 212.43 GiB
+		const auto sizeText = [](const uint64_t size) { return fileSizeToString(size, { .significantPlaces = 3, .decimalPlaces = 2 }); }; // such as 212.43 GiB
 		// The label renders rich text
 		const QString volumeInfoText = tr("%1 (%2): <b>%3 free</b> of %4").
 			arg(currentVolumeInfo->volumeLabel.toHtmlEscaped(), currentVolumeInfo->fileSystemName, sizeText(currentVolumeInfo->freeSize), sizeText(currentVolumeInfo->volumeSize));

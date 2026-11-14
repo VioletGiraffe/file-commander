@@ -80,6 +80,11 @@ Replaces the panel's path combo box.
 ### Smaller items
 
 - A disk usage bar beside the free-space label.
+- F-key bar in the rounded structure: the key in a small outlined box beside the label. Needs a button that holds the key
+  and the label separately; the flat structure's bar needs the same.
+- To try: folder names in a heavier weight.
+- Low priority: a drive button shows an icon only when the drive is not a regular internal one. The core's `VolumeInfo`
+  has no drive type yet; on Windows an external USB hard disk reports as a fixed drive.
 - The text viewer plugin picks its syntax theme by polarity only; it should follow the active theme.
 - Compare with the theme integration of the other apps built on `qtutils`, and move the shared parts into `qtutils`.
   Deliberately after v1, so that their existing choices do not shape the v1 design.

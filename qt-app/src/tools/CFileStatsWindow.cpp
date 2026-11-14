@@ -35,7 +35,7 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats
 	setWindowTitle(tr("Statistics"));
 
 	const QString statsText = tr("Files: %1\nFolders: %2\nOccupied space: %3\n%4").
-							  arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace), fileSizeToString(stats.occupiedSpace, 'B', " "));
+							  arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace), fileSizeToString(stats.occupiedSpace, { .maxUnit = 'B', .thousandsSeparator = " " }));
 
 	setCentralWidget(new QWidget);
 	auto* layout = new QVBoxLayout(centralWidget());
