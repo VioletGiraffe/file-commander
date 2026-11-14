@@ -101,10 +101,7 @@ void CIconProviderImpl::setShowOverlayIcons(const bool show) noexcept
 {
 	const auto oldOptions = _provider.options();
 	auto newOptions = oldOptions;
-	if (show)
-		newOptions |= QFileIconProvider::DontUseCustomDirectoryIcons;
-	else
-		newOptions &= (~QFileIconProvider::DontUseCustomDirectoryIcons);
+	newOptions.setFlag(QFileIconProvider::DontUseCustomDirectoryIcons, !show);
 
 	if (oldOptions != newOptions)
 		_provider.setOptions(newOptions);
