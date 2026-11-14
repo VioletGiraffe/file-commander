@@ -229,7 +229,18 @@ constexpr char kFlatControls[] = R"(
 	QHeaderView::section:last { border-right: none; }
 )";
 
+// CPanelWidget draws a flat panel's frame itself: its top edge runs through the path row.
+// The widgets of that row are opaque, to interrupt the line. The path field is highlighted in the active panel.
 constexpr char kFlatPanels[] = R"(
+	CPanelWidget { border: none; }
+
+	CPanelWidget > QComboBox { border: none; padding: 1px 8px; font-weight: bold; }
+	CPanelWidget > QComboBox QLineEdit { font-weight: bold; }
+	CPanelWidget[activePanel="true"] > QComboBox { background: @accent@; }
+	CPanelWidget[activePanel="true"] > QComboBox QLineEdit { color: @accentFg@; }
+	CPanelWidget[activePanel="true"] > QComboBox::down-arrow { image: url(@comboArrowOnAccentIcon@); }
+	CPanelWidget > QToolButton { background: @windowBg@; border: none; }
+
 	#_infoLabel { border-top: 1px solid @borderStrong@; padding-top: 4px; }
 
 	#_driveButtonsWidget > QPushButton { padding: 0 5px; font-weight: bold; }
@@ -275,6 +286,7 @@ QString buildStyleSheet(const Theme& theme)
 	tokens.add(QStringLiteral("progressChunk"), ColorUtils::mix(palette.surface, palette.accent, 0.45f));
 	tokens.add(QStringLiteral("progressChunkRadius"), std::max(metrics.controlRadius - 1, 0));
 	tokens.add(QStringLiteral("comboArrowIcon"), themeIconUrl(QStringLiteral("combobox_down_arrow"), palette.textDim));
+	tokens.add(QStringLiteral("comboArrowOnAccentIcon"), themeIconUrl(QStringLiteral("combobox_down_arrow"), palette.accentFg));
 	tokens.add(QStringLiteral("tabCloseIcon"), themeIconUrl(QStringLiteral("tab_close"), palette.textDim));
 	tokens.add(QStringLiteral("tabCloseHoverIcon"), themeIconUrl(QStringLiteral("tab_close"), palette.text));
 

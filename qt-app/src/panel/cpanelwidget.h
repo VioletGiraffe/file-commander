@@ -99,6 +99,8 @@ signals:
 
 protected:
 	bool eventFilter(QObject * object , QEvent * e) override;
+	// Draws the frame of a flat panel
+	void paintEvent(QPaintEvent* event) override;
 
 private slots:
 	void showContextMenuForItems();

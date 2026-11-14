@@ -51,11 +51,14 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPalette>
 #include <QPushButton>
 #include <QScopedValueRollback>
 #include <QSettings>
 #include <QShortcut>
+#include <QSizePolicy>
+#include <QSpacerItem>
 #include <QStyle>
 #include <QTabBar>
 #include <QToolTip>
@@ -72,6 +75,9 @@ RESTORE_COMPILER_WARNINGS
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
+
+// Set while the panel is the active one. themes/stylesheet.cpp has rules for it.
+static constexpr char activePanelProperty[] = "activePanel";
 
 // Per-tab column layout and sort, keyed by the controller's tab ids; see saveTabViewStates().
 #define KEY_LPANEL_TAB_VIEW_STATES QSL("Ui/LPanel/TabViewStates")
@@ -226,15 +232,31 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 {
 	ui->_list->setShownAsActivePanel(active);
 
-	const char* const propertyName = "activePanel"; // themes/stylesheet.cpp has the rule for it
-	if (property(propertyName).toBool() == active)
+	if (property(activePanelProperty).toBool() == active)
 		return;
 
-	setProperty(propertyName, active);
-	// A stylesheet matches property selectors only while polishing the widget
-	style()->unpolish(this);
-	style()->polish(this);
+	setProperty(activePanelProperty, active);
+	// A stylesheet matches property selectors only while polishing a widget; the path field has rules on this panel's property too
+	QWidget* const pathField = ui->_pathNavigator;
+	for (QWidget* widget : { static_cast<QWidget*>(this), pathField, static_cast<QWidget*>(ui->_pathNavigator->lineEdit()) })
+	{
+		style()->unpolish(widget);
+		style()->polish(widget);
+	}
 	update();
+}
+
+void CPanelWidget::paintEvent(QPaintEvent* /*event*/)
+{
+	const Theme& theme = appliedTheme();
+	if (theme.structure != ThemeStructure::Flat)
+		return; // the stylesheet draws the border of a rounded panel
+
+	// The frame's top edge runs through the middle of the path row; that row's widgets cover the part behind them
+	const int top = ui->_pathNavigator->geometry().center().y();
+	QPainter painter{ this };
+	painter.setPen(property(activePanelProperty).toBool() ? theme.palette.accent : theme.palette.border);
+	painter.drawRect(QRect{ 0, top, width() - 1, height() - 1 - top });
 }
 
 void CPanelWidget::saveTabViewStates() const
@@ -1592,14 +1614,32 @@ void CPanelWidget::applyTheme()
 {
 	const Theme& theme = appliedTheme();
 
+	const bool flat = theme.structure == ThemeStructure::Flat;
+
+	// Flat: the path row comes first, in the frame's top edge, with the path field centred and as wide as its text
+	const int pathRowIndex = flat ? 0 : 1;
+	if (ui->verticalLayout->indexOf(ui->pathRowLayout) != pathRowIndex)
+	{
+		ui->verticalLayout->removeItem(ui->pathRowLayout);
+		ui->verticalLayout->insertLayout(pathRowIndex, ui->pathRowLayout);
+	}
+	for (QSpacerItem* spacer : { ui->pathRowLeftSpacer, ui->pathRowRightSpacer })
+		spacer->changeSize(0, 0, flat ? QSizePolicy::Expanding : QSizePolicy::Fixed, QSizePolicy::Minimum);
+	ui->pathRowLayout->invalidate();
+	ui->_pathNavigator->setSizedToCurrentText(flat);
+	ui->_pathNavigator->setSizePolicy(flat ? QSizePolicy::Maximum : QSizePolicy::Preferred, QSizePolicy::Fixed);
+
 	// The file list has no padding: its rows reach the panel's border. The stylesheet pads the info label.
+	// 1: the border's width. A flat panel's top edge is behind its first row.
 	const int padding = theme.metrics.panelPadding;
+	ui->verticalLayout->setContentsMargins(1, flat ? 0 : 1, 1, 1);
 	ui->verticalLayout->setSpacing(theme.metrics.panelRowSpacing);
-	ui->driveRowLayout->setContentsMargins(padding, padding, padding, 0);
+	ui->driveRowLayout->setContentsMargins(padding, flat ? 0 : padding, padding, 0);
 	ui->pathRowLayout->setContentsMargins(padding, 0, padding, 0);
 	ui->tabRowLayout->setContentsMargins(padding, 0, padding, 0);
 
 	ui->_list->setLook(theme.fileList);
+	update();
 }
 
 void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()

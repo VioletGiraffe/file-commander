@@ -27,8 +27,8 @@ first version (v1). Current state only; done items get removed.
 
 Blueprint (dark navy, cyan accent) is the first flat theme.
 
-- The panel's path is drawn into the top edge of the panel frame, highlighted in the active panel.
 - A light flat theme.
+- To try: selected rows and folder names in bold; the function keys as bare numbers.
 
 ### Further themes
 

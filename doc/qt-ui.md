@@ -40,7 +40,8 @@ controller remains alive throughout that sequence.
 
 The app always runs one of its own themes on the Fusion style. qtutils' `CThemeController` stores the colour scheme and
 one theme name per polarity and announces changes; `installTheme()` applies the selected theme's palette, font and
-stylesheet. A theme's structure, rounded or flat, selects the stylesheet's sections and the form of the function keys.
+stylesheet. A theme's structure, rounded or flat, selects the stylesheet's sections, the form of the function keys and
+the panels' frame and row order: a flat panel draws its own frame, with the path row in its top edge.
 `--widget-gallery` on the command line also opens qtutils' widget gallery, a window of every stock control, for
 checking a theme's coverage.
 
