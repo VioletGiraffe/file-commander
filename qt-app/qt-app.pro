@@ -57,7 +57,8 @@ SOURCES += \
 	src/viewerwindow/cviewerwindow.cpp \
 	src/tools/CFileStatsWindow.cpp \
 	src/tools/cbatchrenamedialog.cpp \
-	src/tools/cfoldercomparisonwindow.cpp
+	src/tools/cfoldercomparisonwindow.cpp \
+	src/themes/theme.cpp
 
 HEADERS += \
 	src/cmainwindow.h \
@@ -88,7 +89,8 @@ HEADERS += \
 	src/version.h \
 	src/aboutdialog/aboutdialog.h \
 	src/panel/cpaneldisplaycontroller.h \
-	src/viewerwindow/cviewerwindow.h
+	src/viewerwindow/cviewerwindow.h \
+	src/themes/theme.h
 
 FORMS += \
 	src/cmainwindow.ui \

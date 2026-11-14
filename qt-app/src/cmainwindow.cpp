@@ -1341,8 +1341,6 @@ void CMainWindow::settingsChanged()
 	_iconProvider.settingsChanged();
 	ui->leftPanel->onSettingsChanged();
 	ui->rightPanel->onSettingsChanged();
-
-	qApp->setStyleSheet(QSettings().value(KEY_INTERFACE_STYLE_SHEET).toString());
 }
 
 void CMainWindow::focusChanged(QWidget * /*old*/, QWidget * now)

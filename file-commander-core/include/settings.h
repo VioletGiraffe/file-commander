@@ -92,9 +92,6 @@
 #define KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS QSL("Interface/View/ShowSpecialFolderIcons")
 #define KEY_INTERFACE_SHOW_COLUMN_SEPARATORS QSL("Interface/View/ShowColumnSeparators")
 #define INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT true
-#define KEY_INTERFACE_STYLE_SHEET QSL("Interface/Style/StylesheetText")
-#define KEY_INTERFACE_COLOR_SCHEME QSL("Interface/ColorScheme")
-#define KEY_INTERFACE_STYLE QSL("Interface/Style")
 
 // Operations
 #define KEY_OPERATIONS_ASK_FOR_COPY_MOVE_CONFIRMATION QSL("Operations/CopyMove/AskForConfirmation")

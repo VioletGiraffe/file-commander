@@ -1,7 +1,7 @@
 #include "cmainwindow.h"
 #include "iconprovider/ciconprovider.h"
+#include "themes/theme.h"
 
-#include "settings.h"
 #include "ccontroller.h"
 #include "pluginengine/cpluginengine.h"
 
@@ -12,6 +12,7 @@
 #include "shelloperations/cshelloperationrunner.h"
 #include "system/processfilepath.hpp"
 #include "system/win_utils.hpp"
+#include "theme/cthemecontroller.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -21,7 +22,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QImageReader>
 #include <QSettings>
 #include <QStringList>
-#include <QStyleHints>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
@@ -131,6 +131,22 @@ constexpr std::string_view terminalUiArgument = "--tui";
 	return 1;
 }
 #endif
+
+// Removes the settings of the style, colour scheme and stylesheet options that the themes replaced.
+// A pinned light or dark scheme carries over to CThemeController.
+void migrateLegacyAppearanceSettings()
+{
+	const QString colorSchemeKey = QStringLiteral("Interface/ColorScheme");
+	const QString styleGroup = QStringLiteral("Interface/Style"); // the style name, and the stylesheet text beneath it
+
+	QSettings settings;
+	const int colorScheme = settings.value(colorSchemeKey).toInt();
+	if (colorScheme == static_cast<int>(Qt::ColorScheme::Light) || colorScheme == static_cast<int>(Qt::ColorScheme::Dark))
+		CThemeController::instance().setSchemePreference(static_cast<Qt::ColorScheme>(colorScheme));
+
+	settings.remove(colorSchemeKey);
+	settings.remove(styleGroup);
+}
 }
 
 int main(int argc, char *argv[])
@@ -165,31 +181,8 @@ int main(int argc, char *argv[])
 	QApplication::setApplicationName("File Commander");
 	QApplication::setOrganizationName("GitHubSoft");
 
-	// Init style and color scheme, if specified
-	{
-		QSettings s;
-#if QT_VERSION >= QT_VERSION_CHECK(6,8,0)
-		const int colorScheme = s.value(KEY_INTERFACE_COLOR_SCHEME, -1).toInt();
-		if (colorScheme != -1)
-			QApplication::styleHints()->setColorScheme(static_cast<Qt::ColorScheme>(colorScheme));
-#endif
-
-		const QString styleName = s.value(KEY_INTERFACE_STYLE).toString();
-		if (!styleName.isEmpty())
-			QApplication::setStyle(styleName);
-	}
-
-#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0) && defined(_WIN32)
-	if (auto* styleHints = app.styleHints(); styleHints && styleHints->colorScheme() == Qt::ColorScheme::Dark)
-	{
-		// Fix the terrible default alternate row color on Windows
-		QPalette p = QApplication::palette();
-		QColor color = p.color(QPalette::Base);
-		color = color.lighter(115);
-		p.setColor(QPalette::AlternateBase, color);
-		QApplication::setPalette(p);
-	}
-#endif
+	migrateLegacyAppearanceSettings();
+	installTheme(app);
 
 	QFontDatabase::addApplicationFont(":/fonts/Roboto Mono.ttf");
 
@@ -198,9 +191,6 @@ int main(int argc, char *argv[])
 		font.setPointSizeF(font.pointSizeF() + 1.0);
 		QApplication::setFont(font);
 	}
-
-	if (const auto styleSheet = QSettings{}.value(KEY_INTERFACE_STYLE_SHEET).toString(); !styleSheet.isEmpty())
-		qApp->setStyleSheet(styleSheet);
 
 	CShellOperationRunner shellOperations;
 	CController controller;

@@ -3,6 +3,7 @@
 `CSettings` wraps `QSettings`; the application and organization names determine the platform store. The GUI and the
 terminal UI set the same names, so they share every setting. Core keys live in `file-commander-core/include/settings.h`;
 UI keys are file-local defines at the top of the `.cpp` that owns them (`cmainwindow.cpp`, `cpanelwidget.cpp`).
+The colour scheme and theme choices are stored by qtutils' `CThemeController`, under its own keys.
 
 ## Ownership
 

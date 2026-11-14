@@ -2,16 +2,16 @@
 
 // Submodule includes
 #include "appdialogs/csettingspage.h"
+#include "theme/cthemeselectioncontrols.h"
 
 
 #include <memory>
+#include <optional>
 
 class QFontDialog;
 namespace Ui {
 class CSettingsPageInterface;
 }
-
-class QAbstractButton;
 
 class CSettingsPageInterface final : public CSettingsPage
 {
@@ -20,15 +20,15 @@ public:
 	~CSettingsPageInterface() override;
 
 	void acceptSettings() override;
+	void rejectSettings() override;
 
 private:
 	void updateFontInfoLabel();
-	int colorSchemeFromButton(QAbstractButton *btn);
 
 private:
 	std::unique_ptr<QFontDialog> _fontDialog;
 	Ui::CSettingsPageInterface *ui;
 
-	bool _styleChanged = false;
-	bool _colorSchemeChanged = false;
+	// Empty until the form its rows go into exists
+	std::optional<CThemeSelectionControls> _themeControls;
 };

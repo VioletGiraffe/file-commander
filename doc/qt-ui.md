@@ -19,6 +19,7 @@ owners. Filesystem and panel access goes through `CController`.
 | File-operation UI | `src/progressdialogs/` (launch, confirmation); the dialogs are in `file-operations/fileoperationsui/` |
 | Search, tools, and settings | `src/filessearchdialog/`, `src/tools/`, `src/settings/` |
 | File and volume icons | `src/iconprovider/`; extension guessing is the disk-free fast path |
+| Themes | `src/themes/`; the app-independent parts are in `qtutils/theme/` |
 
 ## Main window
 
@@ -33,6 +34,17 @@ plugin engine, controller, shell runner, and application in that order. The main
 still open, so no plugin-made widget outlives the engine.
 During engine teardown, each plugin's proxy retires its tagged work before the plugin instance is destroyed; the
 controller remains alive throughout that sequence.
+
+## Themes
+
+The app always runs one of its own themes on the Fusion style. qtutils' `CThemeController` stores the colour scheme and
+one theme name per polarity and announces changes; `installTheme()` applies the selected theme.
+
+The application palette is the only part of a theme that reaches a plugin. qtutils is linked statically into the app
+and into every plugin, so `CThemeController::instance()` in a plugin is a separate object that the app's choices never
+reach. Plugin code reads its widget's palette.
+
+Deferred styling work is in [styling-todo.md](styling-todo.md).
 
 ## Panel widget and file-list MVC
 
