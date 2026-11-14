@@ -50,6 +50,9 @@ and into every plugin, so `CThemeController::instance()` in a plugin is a separa
 reach. Plugin code reads its widget's palette. App code reads `appliedTheme()` for what neither the palette nor the
 stylesheet carries: layout geometry, the file list's shape, a colour without a palette role such as error text.
 
+On every stylesheet change Qt restores the font each widget had when it was first polished. A widget given a font
+later, such as the file list, sets it again on `themeChanged`.
+
 Deferred styling work is in [styling-todo.md](styling-todo.md).
 
 ## Panel widget and file-list MVC

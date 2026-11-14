@@ -1603,11 +1603,15 @@ void CPanelWidget::copySelectedItemsPathsToClipboard() const
 
 void CPanelWidget::onSettingsChanged()
 {
-	const QSettings settings;
+	setFileListFontFromSettings();
+	ui->_list->setColumnSeparatorsShown(QSettings{}.value(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT).toBool());
+}
+
+void CPanelWidget::setFileListFontFromSettings()
+{
 	QFont font;
-	if (font.fromString(settings.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
+	if (font.fromString(QSettings{}.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
 		ui->_list->setFont(font);
-	ui->_list->setColumnSeparatorsShown(settings.value(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT).toBool());
 }
 
 void CPanelWidget::applyTheme()
@@ -1639,6 +1643,8 @@ void CPanelWidget::applyTheme()
 	ui->tabRowLayout->setContentsMargins(padding, 0, padding, 0);
 
 	ui->_list->setLook(theme.fileList);
+	// A stylesheet change restores the font each widget had when first polished
+	setFileListFontFromSettings();
 	update();
 }
 

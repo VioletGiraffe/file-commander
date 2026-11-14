@@ -5,6 +5,10 @@
 #include "settings.h"
 
 
+// Submodule includes
+#include "theme/cthemecontroller.h"
+
+
 DISABLE_COMPILER_WARNINGS
 #include "ui_csettingspageinterface.h"
 
@@ -29,16 +33,20 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 
 	QSettings s;
 
-	QFont font;
-	if (font.fromString(s.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
-		_fontDialog->setCurrentFont(font);
+	// A malformed value leaves the application's font; the file list ignores such a value too
+	_fileListFont.fromString(s.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString());
 
 	updateFontInfoLabel();
+	// A stylesheet change restores the font the label had when first polished
+	connect(&CThemeController::instance(), &CThemeController::themeChanged, this, &CSettingsPageInterface::updateFontInfoLabel);
 
-	ui->_lblCurrentFileListFontDescription->setText(describeFont(_fontDialog->currentFont()));
 	connect(ui->_btnSelectFileListFont, &QPushButton::clicked, this, [this]() {
-		if (_fontDialog->exec() == QDialog::Accepted)
-			updateFontInfoLabel();
+		_fontDialog->setCurrentFont(_fileListFont);
+		if (_fontDialog->exec() != QDialog::Accepted)
+			return;
+
+		_fileListFont = _fontDialog->selectedFont();
+		updateFontInfoLabel();
 	});
 
 	ui->_cbRespectLastCursorPos->setChecked(s.value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, INTERFACE_RESPECT_LAST_CURSOR_POS_DEFAULT).toBool());
@@ -60,7 +68,7 @@ void CSettingsPageInterface::acceptSettings()
 {
 	QSettings s;
 	s.setValue(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, ui->_cbRespectLastCursorPos->isChecked());
-	s.setValue(KEY_INTERFACE_FILE_LIST_FONT, _fontDialog->currentFont().toString());
+	s.setValue(KEY_INTERFACE_FILE_LIST_FONT, _fileListFont.toString());
 	s.setValue(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, ui->_cbDecoratedFolderIcons->isChecked());
 	s.setValue(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, ui->_cbColumnSeparators->isChecked());
 }
@@ -72,6 +80,6 @@ void CSettingsPageInterface::rejectSettings()
 
 void CSettingsPageInterface::updateFontInfoLabel()
 {
-	ui->_lblCurrentFileListFontDescription->setFont(_fontDialog->currentFont());
-	ui->_lblCurrentFileListFontDescription->setText(describeFont(_fontDialog->currentFont()));
+	ui->_lblCurrentFileListFontDescription->setFont(_fileListFont);
+	ui->_lblCurrentFileListFontDescription->setText(describeFont(_fileListFont));
 }

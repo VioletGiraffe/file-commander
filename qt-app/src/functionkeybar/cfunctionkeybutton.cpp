@@ -1,4 +1,5 @@
 #include "cfunctionkeybutton.h"
+#include "themes/theme.h"
 
 
 // Submodule includes
@@ -167,6 +168,7 @@ void CFunctionKeyButton::paintLabelCellCaption(QPainter& painter, const QRect& c
 	const QFont labelFont = labelCellFont();
 	const QRect labelRect = cell.adjusted(labelCellHPadding, 0, -labelCellHPadding, 0);
 	painter.setFont(labelFont);
-	painter.setPen(ColorUtils::readableTextOn(accent, palette().color(group, QPalette::Base)));
+	// The theme's colour: no palette role holds the text drawn on the accent, and Base here is the stylesheet's transparent background
+	painter.setPen(appliedTheme().palette.accentFg);
 	painter.drawText(labelRect, Qt::AlignLeft | Qt::AlignVCenter, QFontMetrics{ labelFont }.elidedText(_label, Qt::ElideRight, std::max(labelRect.width(), 0)));
 }

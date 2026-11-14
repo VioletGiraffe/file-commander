@@ -65,6 +65,7 @@ constexpr char kLineEdits[] = R"(
 
 // ::drop-down and ::down-arrow go together: without them the stylesheet engine draws a bevelled arrow button itself.
 // ::item padding: a styled popup loses the base style's item margins.
+// The popup states its text colour: QComboBox gives the popup its own palette, with the colours of the combo box's rule.
 constexpr char kComboBoxes[] = R"(
 	QComboBox {
 		background: @surface@;
@@ -84,6 +85,7 @@ constexpr char kComboBoxes[] = R"(
 	QComboBox::down-arrow { image: url(@comboArrowIcon@); width: 10px; height: 7px; }
 	QComboBox QAbstractItemView {
 		background: palette(base);
+		color: @text@;
 		border: 1px solid @border@;
 		outline: none;
 		selection-background-color: @selectionBg@;
@@ -212,12 +214,14 @@ constexpr char kMainWindow[] = R"(
 )";
 
 // The flat structure: what differs from the sections above. These come later in the sheet, so they win at equal specificity.
+// The gap between tabs is a left margin: a tab's close button sits against the tab's right edge, margin included.
 constexpr char kFlatControls[] = R"(
 	QMenuBar { background: @accent@; color: @accentFg@; }
 	QMenuBar::item { color: @accentFg@; padding: 2px 8px; }
 	QMenuBar::item:selected, QMenuBar::item:pressed { background: @accentFg@; color: @accent@; }
 
-	QTabBar::tab { border-bottom: none; padding: 1px 6px; margin-right: 8px; }
+	QTabBar::tab { border-bottom: none; padding: 1px 6px; }
+	QTabBar::tab:middle, QTabBar::tab:last { margin-left: 8px; }
 	QTabBar::tab:selected { background: @borderSubtle@; }
 
 	QHeaderView::section {
@@ -231,13 +235,15 @@ constexpr char kFlatControls[] = R"(
 
 // CPanelWidget draws a flat panel's frame itself: its top edge runs through the path row.
 // The widgets of that row are opaque, to interrupt the line. The path field is highlighted in the active panel.
+// The path field and its editor both state the text colour, in both states: polishing either one sets the editor's palette,
+// and a rule without a colour keeps the one the editor had.
 constexpr char kFlatPanels[] = R"(
 	CPanelWidget { border: none; }
 
-	CPanelWidget > QComboBox { border: none; padding: 1px 8px; font-weight: bold; }
-	CPanelWidget > QComboBox QLineEdit { font-weight: bold; }
+	CPanelWidget > QComboBox { border: none; padding: 1px 8px; }
+	CPanelWidget > QComboBox, CPanelWidget > QComboBox QLineEdit { color: @text@; font-weight: bold; }
 	CPanelWidget[activePanel="true"] > QComboBox { background: @accent@; }
-	CPanelWidget[activePanel="true"] > QComboBox QLineEdit { color: @accentFg@; }
+	CPanelWidget[activePanel="true"] > QComboBox, CPanelWidget[activePanel="true"] > QComboBox QLineEdit { color: @accentFg@; }
 	CPanelWidget[activePanel="true"] > QComboBox::down-arrow { image: url(@comboArrowOnAccentIcon@); }
 	CPanelWidget > QToolButton { background: @windowBg@; border: none; }
 
