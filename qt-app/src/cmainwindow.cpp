@@ -1249,8 +1249,6 @@ void CMainWindow::openSettingsDialog()
 	settings.addSettingsPage(new CSettingsPageOperations(&settings));
 	settings.addSettingsPage(new CSettingsPageEdit(&settings));
 	settings.addSettingsPage(new CSettingsPageOther(&settings));
-	connect(std::addressof(CSettingsNotifier::instance()), &CSettingsNotifier::settingsChanged, this, &CMainWindow::settingsChanged);
-
 	settings.exec();
 }
 
@@ -1392,6 +1390,7 @@ void CMainWindow::initCore()
 	_controller->activePanelChanged((Panel)QSettings().value(KEY_LAST_ACTIVE_PANEL, (int)Panel::LeftPanel).toInt());
 
 	connect(qApp, &QApplication::focusChanged, this, &CMainWindow::focusChanged);
+	connect(std::addressof(CSettingsNotifier::instance()), &CSettingsNotifier::settingsChanged, this, &CMainWindow::settingsChanged);
 
 	_pluginEngine.loadPlugins();
 	for (const auto& pluginMenuEntries : _pluginEngine.toolMenuEntries())
