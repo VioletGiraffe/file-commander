@@ -69,8 +69,6 @@ Replaces the panel's path combo box.
 ### Smaller items
 
 - A disk usage bar beside the free-space label.
-- F-key bar in the rounded structure: the key in a small outlined box beside the label. Needs a button that holds the key
-  and the label separately; the flat structure's bar needs the same.
 - To try: folder names in a heavier weight.
 - Low priority: a drive button shows an icon only when the drive is not a regular internal one. The core's `VolumeInfo`
   has no drive type yet; on Windows an external USB hard disk reports as a fixed drive.

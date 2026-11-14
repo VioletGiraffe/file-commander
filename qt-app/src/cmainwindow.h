@@ -24,6 +24,7 @@ namespace Ui {
 
 class CPanelWidget;
 class CFileOperationDialog;
+class CFunctionKeyButton;
 class CIconProvider;
 class CPluginEngine;
 class CShellOperationRunner;
@@ -32,7 +33,6 @@ enum class TransferKind; // fileoperations/fileoperationtypes.h
 struct OperationSummary; // fileoperations/fileoperationtypes.h
 class QShortcut;
 class QStackedWidget;
-class QPushButton;
 
 #ifndef _WIN32
 namespace OsShell { struct TrashFailure; } // shell/cshell.h
@@ -151,6 +151,8 @@ private:
 
 // Settings
 	void settingsChanged();
+	// Sets the window's gaps from the theme in effect
+	void applyTheme();
 
 // Focus management
 	void focusChanged(QWidget * old, QWidget * now);
@@ -214,8 +216,8 @@ private:
 
 	std::vector<UserProgram> _userPrograms; // In Programs menu order
 
-	// Bottom command buttons whose caption reflects the Shift-modified action while Shift is held
-	struct ShiftCaption { QPushButton* button; QString normal; QString shifted; };
+	// Bottom command buttons whose label reflects the Shift-modified action while Shift is held
+	struct ShiftCaption { CFunctionKeyButton* button; QString normal; QString shifted; };
 	std::vector<ShiftCaption> _shiftCaptions;
 
 #ifdef _WIN32

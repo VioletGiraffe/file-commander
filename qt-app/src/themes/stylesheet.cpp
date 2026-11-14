@@ -205,7 +205,7 @@ constexpr char kPanels[] = R"(
 // The command line row and the function key bar
 constexpr char kMainWindow[] = R"(
 	CMainWindow > #centralwidget > QLabel { color: @textDim@; }
-	CMainWindow > #centralwidget > QPushButton { padding: 7px 9px; }
+	CFunctionKeyButton { padding: 7px 9px; }
 )";
 
 } // namespace

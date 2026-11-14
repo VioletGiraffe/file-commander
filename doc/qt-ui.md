@@ -9,6 +9,7 @@ owners. Filesystem and panel access goes through `CController`.
 |------|------------|
 | Startup and application settings | `src/main.cpp` |
 | Commands, focus, shortcuts, ownership | `src/cmainwindow.{h,cpp,ui}` |
+| Function key buttons (F3 to F8) | `src/functionkeybar/` |
 | Panel tabs and visible-side state | `src/panel/cpanelwidget.{h,cpp,ui}` |
 | File-list view/model/delegate | `src/panel/filelistwidget/` |
 | Quick view | `src/panel/cpaneldisplaycontroller.{h,cpp}` |

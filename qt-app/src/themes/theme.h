@@ -26,6 +26,8 @@ struct ThemeMetrics
 
 	// A file panel: between its border and the rows other than the file list, and between its rows
 	int panelPadding = 8, panelRowSpacing = 6;
+	// The main window: around its content, between the panels, between the function key buttons
+	int windowMargin = 8, panelGap = 8, functionKeySpacing = 6;
 };
 
 // One selectable look. `name` is unique within its polarity; a look retuned for the other polarity keeps its name.

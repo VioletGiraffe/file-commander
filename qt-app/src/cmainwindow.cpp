@@ -8,6 +8,8 @@
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
 
 #include "commandoutput/ccommandoutputarea.h"
+#include "functionkeybar/cfunctionkeybutton.h"
+#include "themes/theme.h"
 
 #include "filessearchdialog/cfilessearchwindow.h"
 #include "programseditor/cuserprogramsdialog.h"
@@ -50,6 +52,7 @@
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "shelloperations/cshelloperationrunner.h"
+#include "theme/cthemecontroller.h"
 #include "timing/ctimeelapsed.h"
 #include "updaterUI/cupdaterdialog.h"
 #include "widgets/cpersistenceenabler.h"
@@ -146,6 +149,9 @@ CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, C
 	_instance = this;
 	ui->setupUi(this);
 
+	applyTheme();
+	connect(&CThemeController::instance(), &CThemeController::themeChanged, this, &CMainWindow::applyTheme);
+
 	_leftPanelDisplayController.setPanelStackedWidget(ui->leftWidget);
 	_leftPanelDisplayController.setPanelWidget(ui->leftPanel);
 
@@ -230,8 +236,25 @@ void CMainWindow::updateInterface()
 		ui->rightPanel->setFocusToFileList();
 }
 
+void CMainWindow::applyTheme()
+{
+	const ThemeMetrics& metrics = appliedTheme().metrics;
+	// Half the margin at the top: the menu bar is above
+	ui->verticalLayout->setContentsMargins(metrics.windowMargin, metrics.windowMargin / 2, metrics.windowMargin, metrics.windowMargin);
+	ui->splitter->setHandleWidth(metrics.panelGap);
+	ui->verticalSplitter->setHandleWidth(metrics.panelGap);
+	ui->buttons->setSpacing(metrics.functionKeySpacing);
+}
+
 void CMainWindow::initButtons()
 {
+	ui->btnView->setCaption(QSL("F3"), tr("View"));
+	ui->btnEdit->setCaption(QSL("F4"), tr("Edit"));
+	ui->btnCopy->setCaption(QSL("F5"), tr("Copy"));
+	ui->btnMove->setCaption(QSL("F6"), tr("Move"));
+	ui->btnNewFolder->setCaption(QSL("F7"), tr("New Folder"));
+	ui->btnDelete->setCaption(QSL("F8"), tr("Delete"));
+
 	connect(ui->btnView, &QPushButton::clicked, this, [this] { shiftKeyHeld() ? viewFileInTextViewer() : viewFile(); });
 	new QShortcut(QKeySequence(QSL("F3")), this, this, &CMainWindow::viewFile, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(QSL("Shift+F3")), this, this, &CMainWindow::viewFileInTextViewer, Qt::WidgetWithChildrenShortcut);
@@ -262,11 +285,11 @@ void CMainWindow::initButtons()
 	// Command line
 	new QShortcut(QKeySequence(QSL("Ctrl+E")), this, this, &CMainWindow::selectPreviousCommandInTheCommandLine, Qt::WidgetWithChildrenShortcut);
 
-	// Buttons whose caption reflects their Shift-modified action while Shift is held (mirrors the Shift+F* shortcuts above). The normal captions come from the .ui.
+	// Buttons whose label reflects their Shift-modified action while Shift is held (mirrors the Shift+F* shortcuts above)
 	_shiftCaptions = {
-		{ ui->btnView,      ui->btnView->text(),      tr("F3 View as text") },
-		{ ui->btnNewFolder, ui->btnNewFolder->text(), tr("F7 New File") },
-		{ ui->btnDelete,    ui->btnDelete->text(),    tr("F8 Delete permanently") }
+		{ ui->btnView,      ui->btnView->label(),      tr("View as text") },
+		{ ui->btnNewFolder, ui->btnNewFolder->label(), tr("New File") },
+		{ ui->btnDelete,    ui->btnDelete->label(),    tr("Delete permanently") }
 	};
 
 	connect(ui->leftPanel->fileListView(),  &CFileListView::shiftStateChanged, this, &CMainWindow::setShiftCaptions);
@@ -276,7 +299,7 @@ void CMainWindow::initButtons()
 void CMainWindow::setShiftCaptions(bool shifted)
 {
 	for (const auto& caption : _shiftCaptions)
-		caption.button->setText(shifted ? caption.shifted : caption.normal);
+		caption.button->setLabel(shifted ? caption.shifted : caption.normal);
 }
 
 bool CMainWindow::shiftKeyHeld()

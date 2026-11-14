@@ -39,6 +39,7 @@ SOURCES += \
 	src/iconprovider/ciconproviderimpl.cpp \
 	src/commandoutput/ccommandoutputarea.cpp \
 	src/commandoutput/ccommandoutputpane.cpp \
+	src/functionkeybar/cfunctionkeybutton.cpp \
 	src/panel/cpanelwidget.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
@@ -69,6 +70,7 @@ HEADERS += \
 	src/iconprovider/ciconproviderimpl.h \
 	src/commandoutput/ccommandoutputarea.h \
 	src/commandoutput/ccommandoutputpane.h \
+	src/functionkeybar/cfunctionkeybutton.h \
 	src/panel/cpanelwidget.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
