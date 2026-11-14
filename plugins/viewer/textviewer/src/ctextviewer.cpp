@@ -23,6 +23,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QDeadlineTimer>
 #include <QFile>
 #include <QFontMetrics>
+#include <QFontMetricsF>
 #include <QIcon>
 #include <QKeySequence>
 #include <QLabel>
@@ -633,7 +634,8 @@ static void initDocumentView(DocumentView& view)
 
 	view.setReadOnly(true);
 	view.setUndoRedoEnabled(false);
-	view.setTabStopDistance(static_cast<qreal>(4 * view.fontMetrics().horizontalAdvance(' ')));
+	// Unrounded: four rounded space widths drift off four spaces by up to 2 px
+	view.setTabStopDistance(4 * QFontMetricsF{ view.font() }.horizontalAdvance(QLatin1Char{ ' ' }));
 }
 
 void CTextViewer::setMode(Mode mode)

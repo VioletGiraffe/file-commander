@@ -4,6 +4,7 @@
 
 // Submodule includes
 #include "theme/colorutils.h"
+#include "utils/painterutils.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -77,8 +78,8 @@ QFont CFunctionKeyButton::labelCellFont() const
 
 QSize CFunctionKeyButton::keyBoxSize() const
 {
-	const QFontMetrics metrics{ keyBoxFont() };
-	return { metrics.horizontalAdvance(_key) + 2 * keyBoxHPadding, metrics.height() + 2 * keyBoxVPadding };
+	const QFont keyFont = keyBoxFont();
+	return { roundedUpTextWidth(keyFont, _key) + 2 * keyBoxHPadding, QFontMetrics{ keyFont }.height() + 2 * keyBoxVPadding };
 }
 
 QSize CFunctionKeyButton::captionSize() const
@@ -86,12 +87,12 @@ QSize CFunctionKeyButton::captionSize() const
 	if (_form == Form::KeyBox)
 	{
 		const QSize keyBox = keyBoxSize();
-		return { keyBox.width() + keyToLabelGap + fontMetrics().horizontalAdvance(_label), std::max(keyBox.height(), fontMetrics().height()) };
+		return { keyBox.width() + keyToLabelGap + roundedUpTextWidth(font(), _label), std::max(keyBox.height(), fontMetrics().height()) };
 	}
 
-	const QFontMetrics labelMetrics{ labelCellFont() };
-	const int keyWidth = plainKeyLeftPadding + fontMetrics().horizontalAdvance(_key) + plainKeyRightPadding;
-	return { keyWidth + labelMetrics.horizontalAdvance(_label) + 2 * labelCellHPadding, labelMetrics.height() + 2 * labelCellVPadding };
+	const QFont labelFont = labelCellFont();
+	const int keyWidth = plainKeyLeftPadding + roundedUpTextWidth(font(), _key) + plainKeyRightPadding;
+	return { keyWidth + roundedUpTextWidth(labelFont, _label) + 2 * labelCellHPadding, QFontMetrics{ labelFont }.height() + 2 * labelCellVPadding };
 }
 
 QSize CFunctionKeyButton::sizeHint() const
@@ -122,7 +123,7 @@ void CFunctionKeyButton::paintKeyBoxCaption(QPainter& painter, const QRect& cont
 {
 	const QSize keyBox = keyBoxSize();
 	// The label gives way to the key: it is elided in a button too narrow for both
-	const int labelWidth = std::clamp(content.width() - keyBox.width() - keyToLabelGap, 0, fontMetrics().horizontalAdvance(_label));
+	const int labelWidth = std::clamp(content.width() - keyBox.width() - keyToLabelGap, 0, roundedUpTextWidth(font(), _label));
 	const int captionWidth = keyBox.width() + keyToLabelGap + labelWidth;
 
 	const QRect keyRect{ content.left() + (content.width() - captionWidth) / 2, content.top() + (content.height() - keyBox.height()) / 2, keyBox.width(), keyBox.height() };
@@ -152,7 +153,7 @@ void CFunctionKeyButton::paintLabelCellCaption(QPainter& painter, const QRect& c
 	const QPalette::ColorGroup group = isEnabled() ? QPalette::Active : QPalette::Disabled;
 	const QColor accent = palette().color(group, QPalette::Accent);
 
-	const int keyTextWidth = fontMetrics().horizontalAdvance(_key);
+	const int keyTextWidth = roundedUpTextWidth(font(), _key);
 	const QRect keyRect{ content.left() + plainKeyLeftPadding, content.top(), keyTextWidth, content.height() };
 	QRect cell = content;
 	cell.setLeft(keyRect.right() + 1 + plainKeyRightPadding);
