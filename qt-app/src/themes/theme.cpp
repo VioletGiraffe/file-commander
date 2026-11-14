@@ -38,6 +38,31 @@ std::optional<QFont> g_baseFont;
 	return QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
 }
 
+// Blueprint in one polarity: everything but the palette is shared. The column lines take the palette's borderSubtle.
+[[nodiscard]] Theme blueprintTheme(const bool dark, const CBasePalette& palette)
+{
+	return {
+		.name = QStringLiteral("Blueprint"),
+		.dark = dark,
+		.structure = ThemeStructure::Flat,
+		.palette = palette,
+		.metrics = {
+			.controlRadius = 0, .panelRadius = 0, .menuItemRadius = 0,
+			.panelPadding = 10,
+			.windowMargin = 10, .panelGap = 10,
+			.functionKeySpacing = 0, .functionKeyBarMargin = 0,
+		},
+		.fileList = {
+			.rowFillInset = 0, .rowFillGap = 0,
+			.rowFillRadius = 0,
+			.contentHMargin = 8, .contentVMargin = 3,
+			.cursor = FileListLook::Cursor::Bar,
+			.separatorColor = palette.borderSubtle,
+			.separatorsDashed = false,
+		},
+	};
+}
+
 void applySelectedTheme()
 {
 	g_appliedTheme = CThemeController::instance().selectedTheme(allThemes());
@@ -82,34 +107,24 @@ const std::vector<Theme>& allThemes()
 				.border = rgb(0xd5d9e0),
 			},
 		},
-		{
-			.name = QStringLiteral("Blueprint"),
-			.dark = true,
-			.structure = ThemeStructure::Flat,
-			.palette = {
-				.windowBg = rgb(0x0a2158), .surface = rgb(0x0a2158), .surfaceAlt = rgb(0x16346f),
-				.text = rgb(0xd6e6ff), .textDim = rgb(0x9cbcf0),
-				.button = rgb(0x0a2158),
-				.accent = rgb(0x45d6e6),
-				.selectionBg = rgb(0x19507d), .selectionFg = rgb(0xffd866),
-				.border = rgb(0x4f76c8), .borderSubtle = rgb(0x2f55a8), .borderStrong = rgb(0x5f8be0),
-				.accentFg = rgb(0x06204f),
-			},
-			.metrics = {
-				.controlRadius = 0, .panelRadius = 0, .menuItemRadius = 0,
-				.panelPadding = 10,
-				.windowMargin = 10, .panelGap = 10,
-				.functionKeySpacing = 0, .functionKeyBarMargin = 0,
-			},
-			.fileList = {
-				.rowFillInset = 0, .rowFillGap = 0,
-				.rowFillRadius = 0,
-				.contentHMargin = 8, .contentVMargin = 3,
-				.cursor = FileListLook::Cursor::Bar,
-				.separatorColor = rgb(0x2f55a8),
-				.separatorsDashed = false,
-			},
-		},
+		blueprintTheme(true, {
+			.windowBg = rgb(0x0a2158), .surface = rgb(0x0a2158), .surfaceAlt = rgb(0x16346f),
+			.text = rgb(0xd6e6ff), .textDim = rgb(0x9cbcf0),
+			.button = rgb(0x0a2158),
+			.accent = rgb(0x45d6e6),
+			.selectionBg = rgb(0x19507d), .selectionFg = rgb(0xffd866),
+			.border = rgb(0x4f76c8), .borderSubtle = rgb(0x2f55a8), .borderStrong = rgb(0x5f8be0),
+			.accentFg = rgb(0x06204f),
+		}),
+		blueprintTheme(false, {
+			.windowBg = rgb(0xeef3fb), .surface = rgb(0xeef3fb), .surfaceAlt = rgb(0xdfe8f6),
+			.text = rgb(0x0a2158), .textDim = rgb(0x4a6396),
+			.button = rgb(0xeef3fb),
+			.accent = rgb(0x0a7486),
+			.selectionBg = rgb(0xc0dae4), .selectionFg = rgb(0xa01840),
+			.border = rgb(0x7f9bd1), .borderSubtle = rgb(0xc3d1ea), .borderStrong = rgb(0x5f7fc0),
+			.accentFg = rgb(0xffffff),
+		}),
 	};
 	return themes;
 }

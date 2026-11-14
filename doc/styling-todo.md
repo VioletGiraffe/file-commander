@@ -25,9 +25,8 @@ first version (v1). Current state only; done items get removed.
 
 ### Flat structure: what is left
 
-Blueprint (dark navy, cyan accent) is the first flat theme.
+Blueprint is the flat theme, in both polarities.
 
-- A light flat theme.
 - To try: selected rows and folder names in bold; the function keys as bare numbers.
 
 ### Further themes
