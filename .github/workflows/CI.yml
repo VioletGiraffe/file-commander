@@ -68,6 +68,7 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26, windows-latest]
     env:
       APPIMAGE_EXTRACT_AND_RUN: 1 # The runners have no FUSE
+      SCREENSHOT_FILE: FileCommander-${{ startsWith(matrix.os, 'macos') && 'mac' || 'linux' }}.png
 
     steps:
     - name: Checkout
@@ -296,16 +297,11 @@ jobs:
         env -u DISPLAY -u WAYLAND_DISPLAY "./$APPIMAGE_FILE" --help | grep -- --settings-dir
         xvfb-run --auto-servernum "./$APPIMAGE_FILE" --tui --help | grep -- --settings-dir
 
-    # For manual review of the look; not a gate, so a failed capture holds back neither the build nor a release
-    - name: Screenshot - Linux
-      id: screenshot
-      if: matrix.os == 'ubuntu-24.04'
-      continue-on-error: true
+    # The screenshots are for manual review of the look; not a gate, so a failed capture holds back neither the build nor a release.
+    # The home folder of the screenshot runs: both panels open on it.
+    - name: Screenshot sample files
+      if: matrix.os == 'ubuntu-24.04' || startsWith(matrix.os, 'macos')
       run: |
-        sudo apt-get install -qq breeze-icon-theme imagemagick x11-utils xdotool
-        # A hook that sets QT_QPA_PLATFORMTHEME overrides the one below
-        tail -n +1 AppDir/apprun-hooks/*.sh || echo "No AppRun hooks"
-        # A fresh HOME: default settings, and both panels open on the sample files
         sample="$RUNNER_TEMP/screenshot-home"
         mkdir -p "$sample"/{Documents,Music,Pictures,Projects}
         # .qqqx: a type no program claims
@@ -313,7 +309,16 @@ jobs:
                     data.csv page.html song.mp3 movie.mp4 slides.odp table.ods unknown.qqqx; do
           head -c $((RANDOM * 8)) /dev/urandom > "$sample/$name"
         done
-        export HOME="$sample" XDG_CONFIG_HOME="$sample/.config"
+
+    - name: Screenshot - Linux
+      if: matrix.os == 'ubuntu-24.04'
+      continue-on-error: true
+      run: |
+        sudo apt-get install -qq breeze-icon-theme imagemagick x11-utils xdotool
+        # A hook that sets QT_QPA_PLATFORMTHEME overrides the one below
+        tail -n +1 AppDir/apprun-hooks/*.sh || echo "No AppRun hooks"
+        # A fresh HOME: default settings
+        export HOME="$RUNNER_TEMP/screenshot-home" XDG_CONFIG_HOME="$RUNNER_TEMP/screenshot-home/.config"
         # No update check: its dialog would be a second window that xdotool could pick
         mkdir -p "$XDG_CONFIG_HOME/GitHubSoft"
         printf '[Other]\nUpdateChecking\\CheckAutomatically=false\n' > "$XDG_CONFIG_HOME/GitHubSoft/File Commander.conf"
@@ -333,23 +338,41 @@ jobs:
           fi
           # Every window with its WM_CLASS, for when the search above picked the wrong one or none
           xwininfo -root -tree
-          import -window "$window" FileCommander-linux.png
+          import -window "$window" "$SCREENSHOT_FILE"
           kill "$app"'
+
+    - name: Screenshot - Mac
+      if: startsWith(matrix.os, 'macos')
+      continue-on-error: true
+      timeout-minutes: 5 # A permission prompt would wait for a click forever
+      run: |
+        # Fresh settings, without the update check: its dialog would be a second window
+        defaults delete "com.githubsoft.File Commander" || true
+        defaults write "com.githubsoft.File Commander" Other.UpdateChecking.CheckAutomatically -bool false
+        # The settings stay in the user's own Library: macOS keeps them there whatever HOME says
+        export HOME="$RUNNER_TEMP/screenshot-home"
+        unset QT_PLUGIN_PATH QML2_IMPORT_PATH
+        ./bin/release/FileCommander.app/Contents/MacOS/FileCommander &
+        app=$!
+        sleep 10 # Startup, then the file lists and their icons
+        # Without the Screen Recording permission, the capture holds the desktop but no window of the app
+        screencapture -x "$SCREENSHOT_FILE"
+        kill "$app"
 
     # Uploads whatever was captured, even if the step then failed
     - name: Archive the screenshot
       id: screenshot-upload
-      if: hashFiles('FileCommander-linux.png') != ''
+      if: hashFiles(env.SCREENSHOT_FILE) != ''
       uses: actions/upload-artifact@v7
       with:
-        name: FileCommander-linux.png
-        path: FileCommander-linux.png
+        name: ${{ env.SCREENSHOT_FILE }}
+        path: ${{ env.SCREENSHOT_FILE }}
         archive: false
         if-no-files-found: error
 
     - name: Link the screenshot from the summary
       if: steps.screenshot-upload.outcome == 'success'
-      run: echo "[Linux screenshot](${{ steps.screenshot-upload.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
+      run: echo "[${{ runner.os }} screenshot](${{ steps.screenshot-upload.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
 
     - name: Test launch
       if: startsWith(matrix.os, 'windows')
