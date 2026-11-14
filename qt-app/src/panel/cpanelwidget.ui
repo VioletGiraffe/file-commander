@@ -30,6 +30,32 @@
     <number>8</number>
    </property>
    <item>
+    <layout class="QHBoxLayout" name="driveRowLayout" stretch="1,0">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <item>
+      <widget class="QWidget" name="_driveButtonsWidget" native="true"/>
+     </item>
+     <item>
+      <widget class="CClickableLabel" name="_driveInfoLabel">
+       <property name="minimumSize">
+        <size>
+         <width>1</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Drive info</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
      <property name="spacing">
       <number>6</number>
@@ -110,22 +136,6 @@
       </widget>
      </item>
     </layout>
-   </item>
-   <item>
-    <widget class="QWidget" name="_driveButtonsWidget" native="true"/>
-   </item>
-   <item>
-    <widget class="CClickableLabel" name="_driveInfoLabel">
-     <property name="minimumSize">
-      <size>
-       <width>1</width>
-       <height>0</height>
-      </size>
-     </property>
-     <property name="text">
-      <string>Drive info</string>
-     </property>
-    </widget>
    </item>
    <item>
     <widget class="QTabBar" name="_tabBar">
