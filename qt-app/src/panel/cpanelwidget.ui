@@ -15,24 +15,24 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
-    <number>3</number>
+    <number>6</number>
    </property>
    <property name="leftMargin">
-    <number>3</number>
+    <number>8</number>
    </property>
    <property name="topMargin">
-    <number>3</number>
+    <number>8</number>
    </property>
    <property name="rightMargin">
-    <number>3</number>
+    <number>8</number>
    </property>
    <property name="bottomMargin">
-    <number>3</number>
+    <number>8</number>
    </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
      <property name="spacing">
-      <number>3</number>
+      <number>6</number>
      </property>
      <item>
       <widget class="CHistoryComboBox" name="_pathNavigator">
@@ -56,20 +56,20 @@
      <item>
       <widget class="QToolButton" name="_btnFavs">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>20</width>
+         <width>28</width>
          <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>20</width>
+         <width>28</width>
          <height>16777215</height>
         </size>
        </property>
@@ -79,28 +79,25 @@
        <property name="toolTip">
         <string>Bookmarked locations</string>
        </property>
-       <property name="text">
-        <string>☆</string>
-       </property>
       </widget>
      </item>
      <item>
       <widget class="QToolButton" name="_btnToRoot">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">
         <size>
-         <width>20</width>
+         <width>28</width>
          <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>20</width>
+         <width>28</width>
          <height>16777215</height>
         </size>
        </property>
@@ -109,9 +106,6 @@
        </property>
        <property name="toolTip">
         <string>Go to drive root</string>
-       </property>
-       <property name="text">
-        <string>/</string>
        </property>
       </widget>
      </item>
@@ -127,10 +121,6 @@
        <width>1</width>
        <height>0</height>
       </size>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">margin-top:6 dp;
-margin-bottom:6 dp</string>
      </property>
      <property name="text">
       <string>Drive info</string>
@@ -151,6 +141,9 @@ margin-bottom:6 dp</string>
      </property>
      <property name="contextMenuPolicy">
       <enum>Qt::CustomContextMenu</enum>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
      </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>

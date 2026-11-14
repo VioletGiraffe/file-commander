@@ -144,6 +144,8 @@ constexpr char kTabs[] = R"(
 	}
 	QTabBar::tab:selected { color: @text@; border-bottom-color: @accent@; }
 	QTabBar::tab:hover:!selected { color: @text@; }
+	QTabBar::close-button { image: url(@tabCloseIcon@); }
+	QTabBar::close-button:hover { image: url(@tabCloseHoverIcon@); }
 	QTabWidget::pane { border: 1px solid @border@; border-radius: @controlRadius@px; }
 )";
 
@@ -173,13 +175,46 @@ constexpr char kProgressBars[] = R"(
 	QProgressBar::chunk { background: @progressChunk@; border-radius: @progressChunkRadius@px; }
 )";
 
+// A background on the handle keeps the base style from drawing its grip dots
+constexpr char kSplitters[] = R"(
+	QSplitter::handle { background: palette(window); }
+)";
+
+// A file panel is a card on the window background. CPanelWidget sets the activePanel property.
+constexpr char kPanels[] = R"(
+	CPanelWidget { background: @surface@; border: 1px solid @border@; border-radius: @panelRadius@px; }
+	CPanelWidget[activePanel="true"] { border-color: @panelActiveBorder@; }
+
+	#_driveInfoLabel, #_infoLabel { color: @textDim@; }
+	CPanelWidget > QComboBox { background: @windowBg@; }
+	CPanelWidget > QToolButton { border-color: @border@; }
+	CPanelWidget > QToolButton:hover { background: @surfaceAlt@; border-color: @borderStrong@; }
+	CPanelWidget > QToolButton:pressed { background: @accentBg@; border-color: @accent@; }
+
+	#_driveButtonsWidget > QPushButton {
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: @controlRadius@px;
+		padding: 3px 8px;
+		color: @textDim@;
+	}
+	#_driveButtonsWidget > QPushButton:hover { background: @surfaceAlt@; color: @text@; }
+	#_driveButtonsWidget > QPushButton:pressed, #_driveButtonsWidget > QPushButton:checked { background: @accentBg@; color: @accentText@; }
+)";
+
+// The command line row and the function key bar
+constexpr char kMainWindow[] = R"(
+	CMainWindow > #centralwidget > QLabel { color: @textDim@; }
+	CMainWindow > #centralwidget > QPushButton { padding: 7px 9px; }
+)";
+
 } // namespace
 
 QString buildStyleSheet(const Theme& theme)
 {
 	QString sheet;
 	for (const char* section : { kPushButtons, kToolButtons, kLineEdits, kComboBoxes, kMenus, kScrollBars, kGroupBoxes, kTabs,
-	                             kHeaders, kToolTips, kProgressBars })
+	                             kHeaders, kToolTips, kProgressBars, kSplitters, kPanels, kMainWindow })
 		sheet += QLatin1String(section);
 
 	const CBasePalette& palette = theme.palette;
@@ -188,12 +223,16 @@ QString buildStyleSheet(const Theme& theme)
 	CStyleSheetTokens tokens;
 	tokens.addPalette(palette);
 	tokens.add(QStringLiteral("controlRadius"), metrics.controlRadius);
+	tokens.add(QStringLiteral("panelRadius"), metrics.panelRadius);
+	tokens.add(QStringLiteral("panelActiveBorder"), ColorUtils::mix(palette.border, palette.accent, 0.55f));
 	tokens.add(QStringLiteral("menuItemRadius"), metrics.menuItemRadius);
 	tokens.add(QStringLiteral("scrollBarThickness"), metrics.scrollBarThickness);
 	tokens.add(QStringLiteral("scrollBarHandleRadius"), metrics.scrollBarThickness / 2);
 	tokens.add(QStringLiteral("progressChunk"), ColorUtils::mix(palette.surface, palette.accent, 0.45f));
 	tokens.add(QStringLiteral("progressChunkRadius"), metrics.controlRadius - 1);
 	tokens.add(QStringLiteral("comboArrowIcon"), themeIconUrl(QStringLiteral("combobox_down_arrow"), palette.textDim));
+	tokens.add(QStringLiteral("tabCloseIcon"), themeIconUrl(QStringLiteral("tab_close"), palette.textDim));
+	tokens.add(QStringLiteral("tabCloseHoverIcon"), themeIconUrl(QStringLiteral("tab_close"), palette.text));
 
 	return tokens.expanded(sheet);
 }

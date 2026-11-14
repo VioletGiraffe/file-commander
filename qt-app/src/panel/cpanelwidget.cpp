@@ -24,6 +24,7 @@
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "shelloperations/cshelloperationrunner.h"
 #include "shelloperations/shellfileoperations.h"
+#include "theme/ctintedsvgiconengine.h"
 #include "timing/ctimeelapsed.h"
 #include "widgets/clineedit.h"
 #include "widgets/layouts/cflowlayout.h"
@@ -33,6 +34,7 @@
 DISABLE_COMPILER_WARNINGS
 #include "ui_cpanelwidget.h"
 
+#include <QApplication>
 #include <QClipboard>
 #include <QCompleter>
 #include <QDebug>
@@ -47,10 +49,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QMessageBox>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QPalette>
 #include <QPushButton>
 #include <QScopedValueRollback>
 #include <QSettings>
 #include <QShortcut>
+#include <QStyle>
 #include <QTabBar>
 #include <QToolTip>
 #include <QUrl>
@@ -135,9 +139,14 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	ui(new Ui::CPanelWidget)
 {
 	ui->setupUi(this);
+	setAttribute(Qt::WA_StyledBackground); // A QWidget subclass paints no stylesheet background or border without it
 
 	ui->_infoLabel->clear();
 	ui->_driveInfoLabel->clear();
+
+	const auto dimTextColor = [] { return QApplication::palette().color(QPalette::PlaceholderText); };
+	ui->_btnFavs->setIcon(tintedSvgIcon(QSL(":/theme/star.svg"), dimTextColor));
+	ui->_btnToRoot->setIcon(tintedSvgIcon(QSL(":/theme/go_to_root.svg"), dimTextColor));
 
 	ui->_pathNavigator->setLineEdit(new CLineEdit);
 	ui->_pathNavigator->lineEdit()->setFocusPolicy(Qt::ClickFocus);
@@ -206,6 +215,21 @@ void CPanelWidget::focusPathNavigatorWithPathSelected()
 	QLineEdit* const pathEditor = ui->_pathNavigator->lineEdit();
 	pathEditor->setFocus(Qt::ShortcutFocusReason);
 	pathEditor->selectAll(); // CLineEdit selects all only on gaining focus, and it may already have it
+}
+
+void CPanelWidget::setShownAsActivePanel(const bool active)
+{
+	ui->_list->setShownAsActivePanel(active);
+
+	const char* const propertyName = "activePanel"; // themes/stylesheet.cpp has the rule for it
+	if (property(propertyName).toBool() == active)
+		return;
+
+	setProperty(propertyName, active);
+	// A stylesheet matches property selectors only while polishing the widget
+	style()->unpolish(this);
+	style()->polish(this);
+	update();
 }
 
 void CPanelWidget::saveTabViewStates() const
@@ -327,7 +351,6 @@ void CPanelWidget::initPanel(Panel p)
 	ui->_tabBar->setMovable(true);
 	ui->_tabBar->setElideMode(Qt::ElideMiddle);
 	ui->_tabBar->setDrawBase(false);
-	ui->_tabBar->setStyleSheet("QTabBar::tab { height: 32px; }");
 	// QTabBar defaults to Qt::TabFocus; keep it out of the Tab focus chain so Tab keeps toggling the two panels (Ctrl+Tab cycles tabs).
 	ui->_tabBar->setFocusPolicy(Qt::NoFocus);
 	assert_r(connect(ui->_tabBar, &QTabBar::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
@@ -1298,15 +1321,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	_currentVolumePath.clear();
 
 	if (!ui->_driveButtonsWidget->layout())
-	{
-#ifdef _WIN32
-		auto* flowLayout = new CFlowLayout(ui->_driveButtonsWidget, 0, 0, 0);
-#else
-		auto* flowLayout = new CFlowLayout(ui->_driveButtonsWidget, 0, 5, 5);
-#endif
-		flowLayout->setSpacing(1);
-		ui->_driveButtonsWidget->setLayout(flowLayout);
-	}
+		ui->_driveButtonsWidget->setLayout(new CFlowLayout(ui->_driveButtonsWidget, 0, 4, 4));
 
 	if (significantChange)
 	{
@@ -1338,7 +1353,6 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 			diskButton->setCheckable(true);
 			diskButton->setIcon(_iconProvider->preciseIconBlocking(volume.rootObjectInfo));
 			diskButton->setText(name);
-			diskButton->setFixedWidth(QFontMetrics{ diskButton->font() }.horizontalAdvance(diskButton->text()) + 5 + diskButton->iconSize().width() + 20);
 			diskButton->setProperty("id", (qulonglong)volume.id());
 			diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
 			assert_r(connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked));

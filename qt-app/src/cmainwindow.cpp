@@ -683,9 +683,9 @@ void CMainWindow::currentPanelChanged(const Panel panel)
 		assert_unconditional_r("Invalid \'panel\' argument");
 
 	if (_currentFileList)
-		_currentFileList->fileListView()->setShownAsActivePanel(true);
+		_currentFileList->setShownAsActivePanel(true);
 	if (_otherFileList)
-		_otherFileList->fileListView()->setShownAsActivePanel(false);
+		_otherFileList->setShownAsActivePanel(false);
 
 	if (!_currentFileList)
 	{

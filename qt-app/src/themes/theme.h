@@ -17,6 +17,7 @@ class QApplication;
 struct ThemeMetrics
 {
 	int controlRadius = 7; // buttons, fields, combo boxes, group boxes
+	int panelRadius = 10;
 	int menuItemRadius = 5;
 	int scrollBarThickness = 10;
 };

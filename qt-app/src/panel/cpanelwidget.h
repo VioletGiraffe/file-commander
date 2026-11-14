@@ -45,6 +45,8 @@ public:
 
 	void setFocusToFileList();
 	void focusPathNavigatorWithPathSelected();
+	// The active panel has an accent border; see also CFileListView::setShownAsActivePanel()
+	void setShownAsActivePanel(bool active);
 
 	// Persists every tab's sort and column layout. Called at shutdown: nothing else writes this store.
 	void saveTabViewStates() const;
