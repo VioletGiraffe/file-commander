@@ -1069,20 +1069,11 @@ void CMainWindow::toggleFullScreenMode(bool fullscreen)
 
 void CMainWindow::toggleTabletMode(bool tabletMode)
 {
-	static const int defaultFontSize = QApplication::font().pointSize();
-
 	ui->actionFull_screen_mode->toggle();
 
-	QFont f = QApplication::font();
-	f.setPointSize(tabletMode ? 24 : defaultFontSize);
-	QApplication::setFont(f);
-
-	auto widgets = QApplication::allWidgets();
-	for (auto* widget : widgets)
-	{
-		if (widget)
-			widget->setFont(f);
-	}
+	setTabletMode(tabletMode);
+	ui->leftPanel->setFileListFontFromSettings();
+	ui->rightPanel->setFileListFontFromSettings();
 }
 
 bool CMainWindow::executeCommand(const QString& commandLineText)

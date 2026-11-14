@@ -51,7 +51,8 @@ reach. Plugin code reads its widget's palette. App code reads `appliedTheme()` f
 stylesheet carries: layout geometry, the file list's shape, a colour without a palette role such as error text.
 
 On every stylesheet change Qt restores the font each widget had when it was first polished. A widget given a font
-later, such as the file list, sets it again on `themeChanged`.
+later, such as the file list, sets it again whenever the theme is applied: on `themeChanged` and on a tablet mode switch.
+Tablet mode enlarges the application font, which the theme module owns.
 
 Deferred styling work is in [styling-todo.md](styling-todo.md).
 

@@ -88,6 +88,8 @@ public:
 	void copySelectedItemsPathsToClipboard() const; // Paths of all the selected items, or of the item under cursor if there's no selection
 
 	void onSettingsChanged();
+	// The user's font, at the tablet mode size in tablet mode
+	void setFileListFontFromSettings();
 
 	void showFilterEditor();
 
@@ -149,7 +151,6 @@ private:
 	void updateCurrentVolumeButtonAndInfoLabel();
 	// Sets the geometry and the file list's shape from the theme in effect
 	void applyTheme();
-	void setFileListFontFromSettings();
 
 	// Saves the image as a new file in the current folder; tells the user if that fails
 	void pasteImage(const QImage& image, bool lossyCompression);

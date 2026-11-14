@@ -1610,8 +1610,12 @@ void CPanelWidget::onSettingsChanged()
 void CPanelWidget::setFileListFontFromSettings()
 {
 	QFont font;
-	if (font.fromString(QSettings{}.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
-		ui->_list->setFont(font);
+	if (!font.fromString(QSettings{}.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
+		return;
+
+	if (const std::optional<int> size = tabletModeFontPointSize())
+		font.setPointSize(*size);
+	ui->_list->setFont(font);
 }
 
 void CPanelWidget::applyTheme()

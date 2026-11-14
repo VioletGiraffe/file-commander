@@ -25,6 +25,8 @@ QColor rgb(QRgb value) { return QColor::fromRgb(value); }
 Theme g_appliedTheme;
 // The application font the themes start from. Set by installTheme(): a QFont needs the application object.
 std::optional<QFont> g_baseFont;
+bool g_tabletMode = false;
+constexpr int tabletFontPointSize = 24;
 
 // The first installed family of a list of well-drawn ones; the system's fixed font if none is
 [[nodiscard]] QString monospaceFamily()
@@ -71,6 +73,8 @@ void applySelectedTheme()
 	QFont font = *g_baseFont;
 	if (g_appliedTheme.structure == ThemeStructure::Flat)
 		font.setFamily(monospaceFamily());
+	if (const std::optional<int> size = tabletModeFontPointSize())
+		font.setPointSize(*size);
 	if (QApplication::font() != font)
 		QApplication::setFont(font);
 
@@ -149,4 +153,18 @@ const Theme& appliedTheme()
 {
 	assert_r(!g_appliedTheme.name.isEmpty());
 	return g_appliedTheme;
+}
+
+void setTabletMode(const bool enabled)
+{
+	if (g_tabletMode == enabled)
+		return;
+
+	g_tabletMode = enabled;
+	applySelectedTheme();
+}
+
+std::optional<int> tabletModeFontPointSize()
+{
+	return g_tabletMode ? std::optional{ tabletFontPointSize } : std::nullopt;
 }

@@ -12,6 +12,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
+#include <optional>
 #include <vector>
 
 class QApplication;
@@ -61,3 +62,9 @@ void installTheme(QApplication& app);
 // For what the application palette and stylesheet do not carry: layout geometry, the file list's shape, colours without a QPalette role.
 // Already updated when a slot connected to CThemeController::themeChanged after installTheme() runs.
 [[nodiscard]] const Theme& appliedTheme();
+
+// Tablet mode enlarges the application font for touch, and applies the theme again.
+// CThemeController::themeChanged is not emitted: the caller must set again any font it gave a widget itself.
+void setTabletMode(bool enabled);
+// The point size of every font in tablet mode; empty outside it
+[[nodiscard]] std::optional<int> tabletModeFontPointSize();
