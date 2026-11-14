@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794689428283,
+  "lastUpdate": 1794692692035,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -36035,6 +36035,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .text",
             "value": 1046,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 516,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 51,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2a50a179b4df9e6a7ea55756707518dfdd0851b6",
+          "message": "CI captures a screenshot of the Linux x64 AppImage for manual review: Xvfb with Breeze icons and sample files, uploaded unzipped and linked from the job summary",
+          "timestamp": "2026-11-14T23:26:25+02:00",
+          "tree_id": "68fd8316bde7defa0166198af400653b4d7c8184",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2a50a179b4df9e6a7ea55756707518dfdd0851b6"
+        },
+        "date": 1794692689181,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 20726,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35967,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1782.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3265.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2187.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1046.5,
             "unit": "KB"
           },
           {
