@@ -6,6 +6,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "theme/colorutils.h"
 #include "theme/ctintedsvgiconengine.h"
 
 
@@ -114,7 +115,10 @@ void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem&
 	if (selected)
 		opt.palette.setColor(QPalette::Text, option.palette.color(QPalette::HighlightedText));
 	else if (index.column() != NameColumn)
-		opt.palette.setColor(QPalette::Text, option.palette.color(QPalette::PlaceholderText));
+	{
+		// Less prominent than the names, more than disabled text
+		opt.palette.setColor(QPalette::Text, ColorUtils::mix(option.palette.color(QPalette::PlaceholderText), option.palette.color(QPalette::Text), 0.3f));
+	}
 	QStyledItemDelegate::paint(painter, opt, index);
 }
 
