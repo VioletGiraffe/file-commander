@@ -77,12 +77,6 @@ int main(int argc, char* argv[])
 	qInstallMessageHandler(logToFile);
 	AdvancedAssert::setLoggingFunc([](const char* message) { qInfo() << message; });
 
-#ifdef _WIN32
-	// Turbo Vision detects only 16 colours on a Windows console unless COLORTERM is set: magiblot/tvision#249
-	if (qEnvironmentVariableIsEmpty("COLORTERM"))
-		qputenv("COLORTERM", "truecolor");
-#endif
-
 	{
 		CController controller;
 		controller.showFolderInItsTabOrActiveTab(Panel::LeftPanel, startFolder); // The terminal UI starts on the left side
