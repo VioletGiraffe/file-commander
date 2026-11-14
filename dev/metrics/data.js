@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794692692035,
+  "lastUpdate": 1794694068491,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -36124,6 +36124,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 516,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 51,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "26f2854369f7a7f641de55af6a92bcd642a61515",
+          "message": "Function key labels are no longer elided at exactly their own width, and text viewer tab stops match four spaces: text widths are no longer rounded to the nearest pixel",
+          "timestamp": "2026-11-14T23:58:19+02:00",
+          "tree_id": "cbbfc19dd92e7724fd86d8c8a03c18ac50f384f0",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/26f2854369f7a7f641de55af6a92bcd642a61515"
+        },
+        "date": 1794694056725,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 20736,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35978,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1784,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2188,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1047.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 516.5,
             "unit": "KB"
           },
           {
