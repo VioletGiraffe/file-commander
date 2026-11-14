@@ -122,7 +122,23 @@ CIconProvider::~CIconProvider()
 
 QIcon CIconProvider::genericIconFor(const CFileSystemObject& object)
 {
-	return object.isDir() ? _folderGlyph : _fileGlyph;
+	if (object.isDir())
+		return _folderGlyph;
+
+#ifdef __APPLE__
+	return _fileGlyph;
+#else
+	const QStringView extension = object.extension();
+	if (const auto it = _typeIconByExtension.find(extension); it != _typeIconByExtension.end())
+		return it->second;
+
+	QString extensionString = extension.toString();
+	QIcon icon = fetchTypeIcon(extensionString);
+	if (icon.isNull())
+		return _fileGlyph; // not kept: the next query asks again
+
+	return _typeIconByExtension.emplace(std::move(extensionString), std::move(icon)).first->second;
+#endif
 }
 
 std::optional<FileGlyph> CIconProvider::glyphOf(const QIcon& icon) const
@@ -167,9 +183,10 @@ QIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
 	if (cached.icon.isNull() || cached.stale)
 		requestPreciseIcon(fullAbsolutePath, cacheKey, object.hash(), object.modificationTime());
 
-	// An object's own icon is shown only when it tells more than its type's icon does
-	if (cached.icon.isNull() || cached.contentHash == genericIconContentHash(object))
+	if (cached.icon.isNull())
 		return genericIconFor(object);
+	if (isShellDefaultIcon(cached.contentHash, object.isDir()))
+		return object.isDir() ? _folderGlyph : _fileGlyph;
 
 	return cached.icon;
 #else
@@ -202,10 +219,13 @@ void CIconProvider::invalidateCache()
 {
 	_cachedIconByPathKey.clear();
 	_iconByContentHash.clear();
+#ifndef __APPLE__
+	_typeIconByExtension.clear();
+#endif
 
 #ifdef _WIN32
-	_genericIconHashByExtension.clear();
-	_genericFolderIconHash.reset();
+	_defaultFolderIconHash.reset();
+	_unclaimedTypeIconHash.reset();
 
 	++_requestGeneration;
 	_requestedKeys.clear();
@@ -258,6 +278,22 @@ void CIconProvider::watchForAppearanceChanges()
 	connect(application, &QGuiApplication::primaryScreenChanged, this, [this] { invalidateCache(); });
 }
 
+#ifndef __APPLE__
+QIcon CIconProvider::fetchTypeIcon(const QString& extension)
+{
+#ifdef _WIN32
+	const QImage image = _provider->genericIconImage(extension, false);
+	if (image.isNull())
+		return {};
+
+	return isShellDefaultIcon(imageContentHash(image), false) ? _fileGlyph : iconFromImage(image);
+#else
+	const QIcon icon = _provider->typeIcon(extension);
+	return icon.isNull() ? _fileGlyph : icon;
+#endif
+}
+#endif
+
 CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const QString& fullAbsolutePath) const
 {
 #ifdef _WIN32
@@ -305,30 +341,26 @@ void CIconProvider::cachePreciseIcon(const uint64_t cacheKey, const qulonglong o
 
 #ifdef _WIN32
 
-std::optional<uint64_t> CIconProvider::genericIconContentHash(const CFileSystemObject& object)
+std::optional<uint64_t> CIconProvider::shellTypeIconHash(std::optional<uint64_t>& hash, const QString& extension, const bool isDir)
 {
-	// Not cached when the shell gives no icon: the next query asks again
-	const auto fetchHash = [this](const QString& extension, const bool isDir) -> std::optional<uint64_t> {
-		const QImage image = _provider->genericIconImage(extension, isDir);
-		return image.isNull() ? std::nullopt : std::optional{ imageContentHash(image) };
-	};
-
-	if (object.isDir())
+	if (!hash)
 	{
-		if (!_genericFolderIconHash)
-			_genericFolderIconHash = fetchHash({}, true);
-		return _genericFolderIconHash;
+		if (const QImage image = _provider->genericIconImage(extension, isDir); !image.isNull())
+			hash = imageContentHash(image);
 	}
 
-	const QStringView extension = object.extension();
-	if (const auto it = _genericIconHashByExtension.find(extension); it != _genericIconHashByExtension.end())
-		return it->second;
-
-	QString extensionString = extension.toString();
-	const std::optional<uint64_t> hash = fetchHash(extensionString, false);
-	if (hash)
-		_genericIconHashByExtension.emplace(std::move(extensionString), *hash);
 	return hash;
+}
+
+bool CIconProvider::isShellDefaultIcon(const uint64_t contentHash, const bool isDir)
+{
+	// No program claims this extension: the shell answers with its icon for an unknown type
+	static const QString unclaimedExtension = QStringLiteral("filecommander-unclaimed-type");
+
+	const std::optional<uint64_t> defaultIconHash = isDir
+		? shellTypeIconHash(_defaultFolderIconHash, {}, true)
+		: shellTypeIconHash(_unclaimedTypeIconHash, unclaimedExtension, false);
+	return defaultIconHash == contentHash;
 }
 
 void CIconProvider::requestPreciseIcon(const QString& fullAbsolutePath, const uint64_t cacheKey, const qulonglong objectHash, const time_t modificationTime)

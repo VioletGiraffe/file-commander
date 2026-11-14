@@ -43,12 +43,11 @@ Whether the cursor or the selection is the more prominent of the two may differ 
 
 ### Theme icons
 
-Every theme draws a folder and a file glyph in place of the OS icons that show only the type. On Windows an object
-keeps its own OS icon when it differs from its type's; elsewhere there is no type's icon to compare with, so every
-object shows a glyph.
+Every theme draws a folder glyph in place of the OS's default folder icon, and a file glyph in place of its icon for a
+type no program claims. Every other icon is the OS's, unchanged. macOS offers no icon by type, so it shows glyphs only.
 
 - Later: glyphs on the drive buttons.
-- Linux: the icon theme names an object's icon, which could serve for the comparison.
+- Linux: the file list asks for type icons only, so a folder's custom icon does not show.
 
 ### Breadcrumb path bar
 
