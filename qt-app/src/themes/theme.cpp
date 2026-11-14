@@ -17,10 +17,13 @@ namespace {
 
 QColor rgb(QRgb value) { return QColor::fromRgb(value); }
 
+CBasePalette g_appliedPalette;
+
 void applySelectedTheme()
 {
 	Theme theme = CThemeController::instance().selectedTheme(allThemes());
 	theme.palette = resolvedPalette(theme.palette);
+	g_appliedPalette = theme.palette;
 
 	QApplication::setPalette(qtPaletteFor(theme.palette));
 	qApp->setStyleSheet(buildStyleSheet(theme));
@@ -69,4 +72,10 @@ void installTheme(QApplication& app)
 
 	QObject::connect(&CThemeController::instance(), &CThemeController::themeChanged, &app, &applySelectedTheme);
 	applySelectedTheme();
+}
+
+const CBasePalette& appliedThemePalette()
+{
+	assert_r(g_appliedPalette.text.isValid());
+	return g_appliedPalette;
 }

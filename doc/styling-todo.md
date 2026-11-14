@@ -85,6 +85,11 @@ Replaces the panel's path combo box.
 - To try: folder names in a heavier weight.
 - Low priority: a drive button shows an icon only when the drive is not a regular internal one. The core's `VolumeInfo`
   has no drive type yet; on Windows an external USB hard disk reports as a fixed drive.
+
+## v3
+
+- Potential, low priority: the window title bar in the theme's colours. On Windows 11 `DwmSetWindowAttribute` sets the
+  caption, text and border colours of one window; every top-level window needs the call. Windows 10 offers dark or light only.
 - The text viewer plugin picks its syntax theme by polarity only; it should follow the active theme.
 - Compare with the theme integration of the other apps built on `qtutils`, and move the shared parts into `qtutils`.
   Deliberately after v1, so that their existing choices do not shape the v1 design.

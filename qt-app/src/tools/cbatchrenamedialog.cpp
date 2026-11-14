@@ -1,6 +1,7 @@
 #include "cbatchrenamedialog.h"
 
 #include "cmainwindow.h"
+#include "themes/theme.h"
 
 #include "ccontroller.h"
 #include "settings.h"
@@ -24,6 +25,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
+#include <QPalette>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTableWidget>
@@ -52,7 +54,6 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 	_findIsRegex = new QCheckBox(tr("Regular expression"));
 	_findIsCaseSensitive = new QCheckBox(tr("Case-sensitive"));
 	_findError = new QLabel;
-	_findError->setStyleSheet(QSL("color: red;"));
 	_findError->hide();
 
 	// In LetterCase order
@@ -221,13 +222,17 @@ void CBatchRenameDialog::rulesChanged()
 
 void CBatchRenameDialog::showSession()
 {
+	const QColor textColor = palette().color(QPalette::Text);
+	const QColor dimmedColor = palette().color(QPalette::PlaceholderText);
+	const QColor errorColor = appliedThemePalette().errorText;
+
 	const QString& findError = _session.findPatternError();
 	_findError->setText(findError);
 	_findError->setVisible(!findError.isEmpty());
+	QPalette findErrorPalette = _findError->palette();
+	findErrorPalette.setColor(QPalette::WindowText, errorColor);
+	_findError->setPalette(findErrorPalette);
 
-	const QColor textColor = palette().color(QPalette::Text);
-	const QColor dimmedColor = palette().color(QPalette::PlaceholderText);
-	const QColor errorColor = Qt::red;
 	const std::vector<CBatchRenameSession::Row>& rows = _session.rows();
 	for (size_t i = 0; i < rows.size(); ++i)
 	{

@@ -44,7 +44,8 @@ checking a theme's coverage.
 
 The application palette is the only part of a theme that reaches a plugin. qtutils is linked statically into the app
 and into every plugin, so `CThemeController::instance()` in a plugin is a separate object that the app's choices never
-reach. Plugin code reads its widget's palette.
+reach. Plugin code reads its widget's palette. App code reads `appliedThemePalette()` for a colour that has no palette
+role, such as error text.
 
 Deferred styling work is in [styling-todo.md](styling-todo.md).
 

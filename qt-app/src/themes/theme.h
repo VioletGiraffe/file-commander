@@ -37,3 +37,6 @@ struct Theme
 // Sets the application style, then applies the theme selected in CThemeController, now and whenever the selection changes.
 // Call once, before any widget exists.
 void installTheme(QApplication& app);
+
+// The resolved palette of the applied theme, for the colours QPalette has no role for. Requires installTheme().
+[[nodiscard]] const CBasePalette& appliedThemePalette();
