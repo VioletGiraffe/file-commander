@@ -30,6 +30,7 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <thread>
 #include <time.h>
+#include <variant>
 #include <vector>
 
 class CFileSystemObject;
@@ -57,21 +58,23 @@ public:
 	CIconProvider(const CIconProvider&) = delete;
 	CIconProvider& operator=(const CIconProvider&) = delete;
 
+	// An icon from the OS, or one of the app's glyphs
+	using FileIcon = std::variant<QIcon, FileGlyph>;
+
 	// The icon of the object's type: its extension's from the OS, the file glyph for a type no program claims, the folder
 	// glyph for a folder. Never accesses the disk.
 	// macOS: a glyph for every object: Qt offers no icon by type there.
-	[[nodiscard]] QIcon genericIconFor(const CFileSystemObject& object);
+	[[nodiscard]] FileIcon genericIconFor(const CFileSystemObject& object);
 	// The object's own icon from the OS, which .exe, .ico and .lnk derive from their contents. Accesses the disk on a
 	// cache miss, so only for callers that ask about a handful of objects at a time.
 	[[nodiscard]] QIcon preciseIconBlocking(const CFileSystemObject& object);
-	// The icon for the file list. Never accesses the disk.
+	// The icon for the file list. The OS's default folder icon and its default file icon give way to the glyphs.
 	// Windows: the object's own icon if it is cached, otherwise genericIconFor(object). A missing or stale icon is
-	// requested in the background; listeners hear when it arrives. The shell's default folder icon and its icon for a type
-	// no program claims give way to the glyphs.
-	// Elsewhere: genericIconFor(object).
-	[[nodiscard]] QIcon bestAvailableIconFor(const CFileSystemObject& object);
-	// Which glyph `icon` is, if it is one
-	[[nodiscard]] std::optional<FileGlyph> glyphOf(const QIcon& icon) const;
+	// requested in the background; listeners hear when it arrives. Never accesses the disk.
+	// macOS: the object's own icon. Linux: a folder's own icon, a file's type icon. Both access the disk on a cache miss.
+	[[nodiscard]] FileIcon bestAvailableIconFor(const CFileSystemObject& object);
+	// The QIcon to draw; a glyph's is in the palette's text colour
+	[[nodiscard]] QIcon qIcon(const FileIcon& icon) const;
 
 	void addIconsChangedListener(IconsChangedListener* listener);
 	void removeIconsChangedListener(IconsChangedListener* listener);
@@ -115,9 +118,16 @@ private:
 	void watchForAppearanceChanges();
 
 #ifndef __APPLE__
-	// The OS's icon for files with this extension, or the file glyph for a type no program claims. Null if the OS gave none.
-	[[nodiscard]] QIcon fetchTypeIcon(const QString& extension);
+	// The OS's icon for files with this extension, or the file glyph for a type no program claims. Empty if the OS gave none.
+	[[nodiscard]] std::optional<FileIcon> fetchTypeIcon(const QString& extension);
 #endif
+	// The glyph for the object if `contentHash` is that of the OS's default folder or file icon, otherwise `icon`
+	[[nodiscard]] FileIcon glyphInPlaceOfDefault(const QIcon& icon, uint64_t contentHash, bool isDir);
+	// The content hash of the OS's default folder or file icon. Empty, and not kept, if the OS gave none.
+	// Windows: the default file icon is the shell's icon for a type no program claims.
+	[[nodiscard]] std::optional<uint64_t> defaultIconHash(bool isDir);
+	// preciseIconBlocking(), with the icon's content hash
+	[[nodiscard]] CachedLookup preciseLookupBlocking(const CFileSystemObject& object);
 	[[nodiscard]] FetchedIcon fetchPreciseIcon(const QString& fullAbsolutePath) const;
 	// A miss unless the key has an entry that modificationTime still matches.
 	[[nodiscard]] CachedLookup cachedPreciseIcon(uint64_t cacheKey, time_t modificationTime) const;
@@ -141,9 +151,6 @@ private:
 		uint64_t generation = 0;
 	};
 
-	// The content hash of the shell's icon for a type, kept in `hash`. Empty, and not kept, if the shell gave none.
-	[[nodiscard]] std::optional<uint64_t> shellTypeIconHash(std::optional<uint64_t>& hash, const QString& extension, bool isDir);
-	[[nodiscard]] bool isShellDefaultIcon(uint64_t contentHash, bool isDir);
 	void requestPreciseIcon(const QString& fullAbsolutePath, uint64_t cacheKey, qulonglong objectHash, time_t modificationTime);
 	void iconRetrievalThreadFunc();
 	[[nodiscard]] std::optional<IconRequest> takeNextRequest();
@@ -160,16 +167,14 @@ private:
 
 	QIcon _folderGlyph, _fileGlyph;
 #ifndef __APPLE__
-	ankerl::unordered_dense::segmented_map<QString, QIcon, QStringHash, std::equal_to<>> _typeIconByExtension;
+	ankerl::unordered_dense::segmented_map<QString, FileIcon, QStringHash, std::equal_to<>> _typeIconByExtension;
 #endif
+	std::optional<uint64_t> _defaultFolderIconHash, _defaultFileIconHash; // See defaultIconHash()
 
 	CallbackCaller<IconsChangedListener> _iconsChangedListeners;
 	CExecutionQueue _uiThreadQueue;
 
 #ifdef _WIN32
-	// The shell's default icons, which the glyphs replace
-	std::optional<uint64_t> _defaultFolderIconHash, _unclaimedTypeIconHash;
-
 	// Both containers below are shared with the retrieval thread.
 	std::mutex _queueMutex;
 	std::deque<IconRequest> _pendingRequests;

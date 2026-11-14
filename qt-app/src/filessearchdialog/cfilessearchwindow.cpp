@@ -261,7 +261,7 @@ void CFilesSearchWindow::addResultToUi(const CFileSystemObject& object, bool rea
 
 	auto* item = new CSearchResultItem;
 	item->setText(name);
-	item->setIcon(_iconProvider.genericIconFor(object));
+	item->setIcon(_iconProvider.qIcon(_iconProvider.genericIconFor(object)));
 	item->setData(Qt::UserRole, path);
 
 	if (reachedThroughLink)

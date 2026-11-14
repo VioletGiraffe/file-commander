@@ -53,19 +53,6 @@ static constexpr size_t maxCachedObjects = 32768;
 	return tintedSvgIcon(fileGlyphResource(glyph), [] { return QGuiApplication::palette().color(QPalette::Text); });
 }
 
-#ifdef _WIN32
-
-#include "system/win_utils.hpp"
-#include "threading/thread_helpers.h"
-
-#include <Windows.h>
-
-enum { DeliverIconsTag };
-
-// Deep enough to hold several screens of backlog, shallow enough that a query stuck on an unreachable path isn't
-// holding up much. Anything dropped is asked for again the next time its row is painted.
-static constexpr size_t maxPendingRequests = 512;
-
 // Hashes the pixels, not the QImage: two icons that look alike must land on one cache entry. Row by row, because a
 // scanline can carry padding that was never initialized.
 [[nodiscard]] static uint64_t imageContentHash(const QImage& image) noexcept
@@ -80,6 +67,28 @@ static constexpr size_t maxPendingRequests = 512;
 
 	return hash;
 }
+
+#ifndef _WIN32
+// The pixels of a 16 px rendering: an icon of several resolutions has no single image to hash.
+// Icons alike at that size share one stored icon.
+[[nodiscard]] static uint64_t iconContentHash(const QIcon& icon)
+{
+	return imageContentHash(icon.pixmap(QSize{ 16, 16 }, 1.0).toImage());
+}
+#endif
+
+#ifdef _WIN32
+
+#include "system/win_utils.hpp"
+#include "threading/thread_helpers.h"
+
+#include <Windows.h>
+
+enum { DeliverIconsTag };
+
+// Deep enough to hold several screens of backlog, shallow enough that a query stuck on an unreachable path isn't
+// holding up much. Anything dropped is asked for again the next time its row is painted.
+static constexpr size_t maxPendingRequests = 512;
 
 [[nodiscard]] static QIcon iconFromImage(const QImage& image)
 {
@@ -120,39 +129,41 @@ CIconProvider::~CIconProvider()
 #endif
 }
 
-QIcon CIconProvider::genericIconFor(const CFileSystemObject& object)
+CIconProvider::FileIcon CIconProvider::genericIconFor(const CFileSystemObject& object)
 {
 	if (object.isDir())
-		return _folderGlyph;
+		return FileGlyph::Folder;
 
 #ifdef __APPLE__
-	return _fileGlyph;
+	return FileGlyph::File;
 #else
 	const QStringView extension = object.extension();
 	if (const auto it = _typeIconByExtension.find(extension); it != _typeIconByExtension.end())
 		return it->second;
 
 	QString extensionString = extension.toString();
-	QIcon icon = fetchTypeIcon(extensionString);
-	if (icon.isNull())
-		return _fileGlyph; // not kept: the next query asks again
+	std::optional<FileIcon> icon = fetchTypeIcon(extensionString);
+	if (!icon)
+		return FileGlyph::File; // not kept: the next query asks again
 
-	return _typeIconByExtension.emplace(std::move(extensionString), std::move(icon)).first->second;
+	return _typeIconByExtension.emplace(std::move(extensionString), std::move(*icon)).first->second;
 #endif
 }
 
-std::optional<FileGlyph> CIconProvider::glyphOf(const QIcon& icon) const
+QIcon CIconProvider::qIcon(const FileIcon& icon) const
 {
-	// A copy of a QIcon has its cache key
-	if (icon.cacheKey() == _folderGlyph.cacheKey())
-		return FileGlyph::Folder;
-	if (icon.cacheKey() == _fileGlyph.cacheKey())
-		return FileGlyph::File;
+	if (const FileGlyph* const glyph = std::get_if<FileGlyph>(&icon))
+		return *glyph == FileGlyph::Folder ? _folderGlyph : _fileGlyph;
 
-	return {};
+	return std::get<QIcon>(icon);
 }
 
 QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
+{
+	return preciseLookupBlocking(object).icon;
+}
+
+CIconProvider::CachedLookup CIconProvider::preciseLookupBlocking(const CFileSystemObject& object)
 {
 	const QString& fullAbsolutePath = object.fullAbsolutePath();
 	if (fullAbsolutePath.isEmpty())
@@ -160,38 +171,67 @@ QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
 
 	const uint64_t cacheKey = iconCacheKey(fullAbsolutePath);
 	if (CachedLookup cached = cachedPreciseIcon(cacheKey, object.modificationTime()); !cached.icon.isNull() && !cached.stale)
-		return cached.icon;
+		return cached;
 
 	FetchedIcon fetched = fetchPreciseIcon(fullAbsolutePath);
 	if (fetched.icon.isNull())
 		return {};
 
-	QIcon icon = fetched.icon;
+	CachedLookup lookup{ .icon = fetched.icon, .contentHash = fetched.contentHash };
 	cachePreciseIcon(cacheKey, object.hash(), object.modificationTime(), std::move(fetched));
-	return icon;
+	return lookup;
 }
 
-QIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
+CIconProvider::FileIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
 {
 	const QString& fullAbsolutePath = object.fullAbsolutePath();
 	if (fullAbsolutePath.isEmpty())
-		return {};
+		return QIcon{};
 
 #ifdef _WIN32
 	const uint64_t cacheKey = iconCacheKey(fullAbsolutePath);
 	const CachedLookup cached = cachedPreciseIcon(cacheKey, object.modificationTime());
 	if (cached.icon.isNull() || cached.stale)
 		requestPreciseIcon(fullAbsolutePath, cacheKey, object.hash(), object.modificationTime());
+#else
+#ifndef __APPLE__
+	if (!object.isDir())
+		return genericIconFor(object); // a file's own icon is its MIME type's
+#endif
+	const CachedLookup cached = preciseLookupBlocking(object);
+#endif
 
 	if (cached.icon.isNull())
 		return genericIconFor(object);
-	if (isShellDefaultIcon(cached.contentHash, object.isDir()))
-		return object.isDir() ? _folderGlyph : _fileGlyph;
 
-	return cached.icon;
+	return glyphInPlaceOfDefault(cached.icon, cached.contentHash, object.isDir());
+}
+
+CIconProvider::FileIcon CIconProvider::glyphInPlaceOfDefault(const QIcon& icon, const uint64_t contentHash, const bool isDir)
+{
+	if (defaultIconHash(isDir) != contentHash)
+		return icon;
+
+	return isDir ? FileGlyph::Folder : FileGlyph::File;
+}
+
+std::optional<uint64_t> CIconProvider::defaultIconHash(const bool isDir)
+{
+	std::optional<uint64_t>& hash = isDir ? _defaultFolderIconHash : _defaultFileIconHash;
+	if (hash)
+		return hash;
+
+#ifdef _WIN32
+	// No program claims this extension: the shell answers with its icon for an unknown type
+	static const QString unclaimedExtension = QStringLiteral("filecommander-unclaimed-type");
+	if (const QImage image = _provider->genericIconImage(isDir ? QString{} : unclaimedExtension, isDir); !image.isNull())
+		hash = imageContentHash(image);
 #else
-	return genericIconFor(object);
+	if (const QIcon icon = _provider->defaultIcon(isDir); !icon.isNull())
+		hash = iconContentHash(icon);
 #endif
+
+	return hash;
 }
 
 void CIconProvider::addIconsChangedListener(IconsChangedListener* listener)
@@ -222,11 +262,10 @@ void CIconProvider::invalidateCache()
 #ifndef __APPLE__
 	_typeIconByExtension.clear();
 #endif
+	_defaultFolderIconHash.reset();
+	_defaultFileIconHash.reset();
 
 #ifdef _WIN32
-	_defaultFolderIconHash.reset();
-	_unclaimedTypeIconHash.reset();
-
 	++_requestGeneration;
 	_requestedKeys.clear();
 
@@ -279,17 +318,20 @@ void CIconProvider::watchForAppearanceChanges()
 }
 
 #ifndef __APPLE__
-QIcon CIconProvider::fetchTypeIcon(const QString& extension)
+std::optional<CIconProvider::FileIcon> CIconProvider::fetchTypeIcon(const QString& extension)
 {
 #ifdef _WIN32
 	const QImage image = _provider->genericIconImage(extension, false);
 	if (image.isNull())
 		return {};
 
-	return isShellDefaultIcon(imageContentHash(image), false) ? _fileGlyph : iconFromImage(image);
+	return glyphInPlaceOfDefault(iconFromImage(image), imageContentHash(image), false);
 #else
-	const QIcon icon = _provider->typeIcon(extension);
-	return icon.isNull() ? _fileGlyph : icon;
+	QIcon icon = _provider->typeIcon(extension);
+	if (icon.isNull())
+		return FileGlyph::File;
+
+	return icon;
 #endif
 }
 #endif
@@ -303,14 +345,11 @@ CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const QString& fullAb
 
 	return { iconFromImage(image), imageContentHash(image) };
 #else
-	// Nothing to hash the contents of: QFileIconProvider returns an icon of several resolutions rather than one
-	// bitmap, and flattening it to hash it would give up the per-DPI choice among them. Icons that look alike are
-	// therefore stored separately here, and only the entry cap bounds that.
 	QIcon icon = _provider->iconFor(fullAbsolutePath);
 	if (icon.isNull())
 		return {};
 
-	const auto contentHash = static_cast<uint64_t>(icon.cacheKey());
+	const uint64_t contentHash = iconContentHash(icon);
 	return { std::move(icon), contentHash };
 #endif
 }
@@ -340,28 +379,6 @@ void CIconProvider::cachePreciseIcon(const uint64_t cacheKey, const qulonglong o
 }
 
 #ifdef _WIN32
-
-std::optional<uint64_t> CIconProvider::shellTypeIconHash(std::optional<uint64_t>& hash, const QString& extension, const bool isDir)
-{
-	if (!hash)
-	{
-		if (const QImage image = _provider->genericIconImage(extension, isDir); !image.isNull())
-			hash = imageContentHash(image);
-	}
-
-	return hash;
-}
-
-bool CIconProvider::isShellDefaultIcon(const uint64_t contentHash, const bool isDir)
-{
-	// No program claims this extension: the shell answers with its icon for an unknown type
-	static const QString unclaimedExtension = QStringLiteral("filecommander-unclaimed-type");
-
-	const std::optional<uint64_t> defaultIconHash = isDir
-		? shellTypeIconHash(_defaultFolderIconHash, {}, true)
-		: shellTypeIconHash(_unclaimedTypeIconHash, unclaimedExtension, false);
-	return defaultIconHash == contentHash;
-}
 
 void CIconProvider::requestPreciseIcon(const QString& fullAbsolutePath, const uint64_t cacheKey, const qulonglong objectHash, const time_t modificationTime)
 {

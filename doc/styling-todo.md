@@ -44,10 +44,9 @@ Whether the cursor or the selection is the more prominent of the two may differ 
 ### Theme icons
 
 Every theme draws a folder glyph in place of the OS's default folder icon, and a file glyph in place of its icon for a
-type no program claims. Every other icon is the OS's, unchanged. macOS offers no icon by type, so it shows glyphs only.
+type no program claims. Every other icon is the OS's, unchanged.
 
 - Later: glyphs on the drive buttons.
-- Linux: the file list asks for type icons only, so a folder's custom icon does not show.
 
 ### Breadcrumb path bar
 

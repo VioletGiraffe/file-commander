@@ -29,6 +29,10 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
   recognize them there, so an inner `"` ends the literal (error C3688) and an inner comma splits the argument.
   GCC and clang accept it. Use an escaped literal, or a variable declared outside the macro.
 
+- **Never use `QIcon::cacheKey()` or `QPixmap::cacheKey()`** to identify or compare icons. The key identifies an engine
+  or pixel-data instance, not the image: identical icons get different keys, and `QIcon::pixmap()` can return a new key
+  per call. Hash the pixels instead; [qt-icon-quirks.md](../qtutils/docs/qt-icon-quirks.md) has the details.
+
 - **Reading files where thin_io is available:** prefer `thin_io::buffered_reader` for small reads that are scattered or
   step back (container metadata, headers, format probing): it serves them from bytes already read, where `QFile` refills
   its 16 KB buffer on any backward seek. The window size is a constructor argument: pick one that fits the reads.

@@ -41,6 +41,8 @@ public:
 	// The returned icon keeps its several resolutions, which is why this layer hands back a QIcon rather than
 	// the single flattened image the Windows shell produces.
 	[[nodiscard]] QIcon iconFor(const QString& fullAbsolutePath) noexcept;
+	// The icon iconFor() gives an ordinary folder or a file of no known type
+	[[nodiscard]] QIcon defaultIcon(bool isDir) const noexcept;
 #ifndef __APPLE__
 	// The icon theme's icon for the extension's MIME type. Null for an extension of no known type, or if the theme has no icon
 	// for it. Never accesses the disk.

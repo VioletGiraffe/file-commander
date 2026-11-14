@@ -78,6 +78,11 @@ QIcon CIconProviderImpl::iconFor(const QString& fullAbsolutePath) noexcept
 	return _provider.icon(QFileInfo{ fullAbsolutePath });
 }
 
+QIcon CIconProviderImpl::defaultIcon(const bool isDir) const noexcept
+{
+	return _provider.icon(isDir ? QAbstractFileIconProvider::Folder : QAbstractFileIconProvider::File);
+}
+
 #ifndef __APPLE__
 QIcon CIconProviderImpl::typeIcon(const QString& extension) const noexcept
 {

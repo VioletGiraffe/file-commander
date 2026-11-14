@@ -20,8 +20,8 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
-#include <optional>
 #include <utility>
+#include <variant>
 
 static QVariant displayText(const CFileSystemObject& row, int column, const QString& listedFolder)
 {
@@ -406,11 +406,11 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 		if (!_iconProvider || index.column() != NameColumn || row.isCdUp())
 			return {};
 
-		QIcon icon = _iconProvider->bestAvailableIconFor(row);
+		const CIconProvider::FileIcon icon = _iconProvider->bestAvailableIconFor(row);
 		if (role == Qt::DecorationRole)
-			return icon;
+			return _iconProvider->qIcon(icon);
 
-		const std::optional<FileGlyph> glyph = _iconProvider->glyphOf(icon);
+		const FileGlyph* const glyph = std::get_if<FileGlyph>(&icon);
 		return glyph ? QVariant{ static_cast<int>(*glyph) } : QVariant{};
 	}
 	default:
