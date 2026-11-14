@@ -13,12 +13,21 @@ RESTORE_COMPILER_WARNINGS
 
 class QApplication;
 
+// Geometry the stylesheet uses. Per theme, so that a theme can reshape and not only recolour.
+struct ThemeMetrics
+{
+	int controlRadius = 7; // buttons, fields, combo boxes, group boxes
+	int menuItemRadius = 5;
+	int scrollBarThickness = 10;
+};
+
 // One selectable look. `name` is unique within its polarity; a look retuned for the other polarity keeps its name.
 struct Theme
 {
 	QString name;
 	bool dark = false;
 	CBasePalette palette;
+	ThemeMetrics metrics;
 };
 
 // The first theme of each polarity is that polarity's default.

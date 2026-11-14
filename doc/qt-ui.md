@@ -38,7 +38,9 @@ controller remains alive throughout that sequence.
 ## Themes
 
 The app always runs one of its own themes on the Fusion style. qtutils' `CThemeController` stores the colour scheme and
-one theme name per polarity and announces changes; `installTheme()` applies the selected theme.
+one theme name per polarity and announces changes; `installTheme()` applies the selected theme's palette and stylesheet.
+`--widget-gallery` on the command line also opens qtutils' widget gallery, a window of every stock control, for
+checking a theme's coverage.
 
 The application palette is the only part of a theme that reaches a plugin. qtutils is linked statically into the app
 and into every plugin, so `CThemeController::instance()` in a plugin is a separate object that the app's choices never

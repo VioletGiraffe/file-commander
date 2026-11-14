@@ -8,7 +8,9 @@ VERSION_DEF_LINE = $$find(VERSION_H_LINES, VERSION_STRING)
 VERSION = $$replace(VERSION_DEF_LINE, [^0-9.], )
 isEmpty(VERSION): error("Failed to parse VERSION_STRING out of src/version.h")
 
-QT = core gui widgets network
+# svg: the stylesheet's glyphs are SVG files, read by the qsvg image plugin
+# core-private: theme/cthemeiconhandler.h (qtutils) includes a private header
+QT = core gui widgets network svg core-private
 
 include(../global.pri)
 
@@ -58,6 +60,7 @@ SOURCES += \
 	src/tools/CFileStatsWindow.cpp \
 	src/tools/cbatchrenamedialog.cpp \
 	src/tools/cfoldercomparisonwindow.cpp \
+	src/themes/stylesheet.cpp \
 	src/themes/theme.cpp
 
 HEADERS += \
@@ -90,6 +93,7 @@ HEADERS += \
 	src/aboutdialog/aboutdialog.h \
 	src/panel/cpaneldisplaycontroller.h \
 	src/viewerwindow/cviewerwindow.h \
+	src/themes/stylesheet.h \
 	src/themes/theme.h
 
 FORMS += \

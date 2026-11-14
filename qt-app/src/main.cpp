@@ -13,6 +13,7 @@
 #include "system/processfilepath.hpp"
 #include "system/win_utils.hpp"
 #include "theme/cthemecontroller.h"
+#include "ui/widget-gallery/cwidgetgallery.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -200,6 +201,10 @@ int main(int argc, char *argv[])
 
 	CMainWindow w{controller, pluginEngine, shellOperations, iconProvider};
 	w.updateInterface();
+
+	// For checking the themes against every stock control
+	if (app.arguments().contains(QStringLiteral("--widget-gallery")))
+		CWidgetGalleryWindow::showNew();
 
 	if (const auto testLaunchResult = testLaunchExitCode(app.arguments(), pluginEngine.activePluginInfo().size()))
 		QTimer::singleShot(5000, [code = *testLaunchResult] { qApp->exit(code); });

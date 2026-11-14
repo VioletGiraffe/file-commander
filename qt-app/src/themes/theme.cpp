@@ -1,9 +1,11 @@
 #include "theme.h"
+#include "stylesheet.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "theme/cthemecontroller.h"
+#include "theme/cthemeiconhandler.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -17,8 +19,11 @@ QColor rgb(QRgb value) { return QColor::fromRgb(value); }
 
 void applySelectedTheme()
 {
-	const Theme& theme = CThemeController::instance().selectedTheme(allThemes());
-	QApplication::setPalette(qtPaletteFor(resolvedPalette(theme.palette)));
+	Theme theme = CThemeController::instance().selectedTheme(allThemes());
+	theme.palette = resolvedPalette(theme.palette);
+
+	QApplication::setPalette(qtPaletteFor(theme.palette));
+	qApp->setStyleSheet(buildStyleSheet(theme));
 }
 
 } // namespace
@@ -58,6 +63,9 @@ void installTheme(QApplication& app)
 {
 	// The themes are drawn for Fusion: the platform styles ignore the palette in places
 	assert_r(QApplication::setStyle(QStringLiteral("Fusion")));
+
+	// Serves the stylesheet's tinted glyphs. Must exist before a sheet refers to one, and for the application's lifetime.
+	static const CThemeIconHandler iconHandler{ QStringLiteral(":/theme") };
 
 	QObject::connect(&CThemeController::instance(), &CThemeController::themeChanged, &app, &applySelectedTheme);
 	applySelectedTheme();
