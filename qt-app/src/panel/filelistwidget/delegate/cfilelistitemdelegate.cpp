@@ -1,5 +1,6 @@
 #include "cfilelistitemdelegate.h"
 
+#include "panel/columns.h"
 #include "panel/filelistwidget/model/cfilelistmodel.h"
 
 
@@ -19,6 +20,34 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+
+namespace {
+
+// A row's fill is inset from the view's edges and stops short of the next row
+constexpr int rowFillInset = 6, rowFillGap = 1;
+// Between the fill's edges and the row's content
+constexpr int contentHMargin = 6, contentVMargin = 4;
+
+// The part of a cell its content occupies
+[[nodiscard]] QRect cellContentRect(const QRect& cell, const QHeaderView& header, const int logicalColumn)
+{
+	QRect content = cell.adjusted(0, 0, 0, -rowFillGap);
+
+	const int visualColumn = header.visualIndex(logicalColumn);
+	if (visualColumn == 0)
+		content.setLeft(content.left() + rowFillInset + contentHMargin);
+	if (visualColumn == header.count() - 1)
+		content.setRight(content.right() - rowFillInset - contentHMargin);
+
+	return content;
+}
+
+} // namespace
+
+QRect CFileListItemDelegate::rowFillRect(const QRect& row)
+{
+	return row.adjusted(rowFillInset, 0, -rowFillInset, -rowFillGap);
+}
 
 // Item rename handling
 QWidget* CFileListItemDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -50,17 +79,39 @@ void CFileListItemDelegate::setEditorData(QWidget* /*editor*/, const QModelIndex
 {
 }
 
+void CFileListItemDelegate::updateEditorGeometry(QWidget* editor, const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+	const auto* view = qobject_cast<const QTreeView*>(option.widget);
+	assert_and_return_r(view, );
+
+	QStyleOptionViewItem opt = option;
+	opt.rect = cellContentRect(option.rect, *view->header(), index.column());
+	QStyledItemDelegate::updateEditorGeometry(editor, opt, index);
+}
+
 void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
+	const auto* view = qobject_cast<const QTreeView*>(option.widget);
+	assert_and_return_r(view, );
+
+	const bool selected = option.state.testFlag(QStyle::State_Selected);
+	// A drag image is rendered by the delegate alone, into a pixmap: no view paints the selection behind the row
+	if (selected && painter->device() != view->viewport())
+		painter->fillRect(option.rect, option.palette.color(QPalette::Highlight));
+
 	QStyleOptionViewItem opt = option;
-	opt.state &= ~QStyle::State_MouseOver;
+	// On screen, the view has painted the selection and the cursor behind the row
+	opt.state &= ~(QStyle::State_MouseOver | QStyle::State_Selected | QStyle::State_HasFocus);
+	opt.rect = cellContentRect(option.rect, *view->header(), index.column());
+	if (selected)
+		opt.palette.setColor(QPalette::Text, option.palette.color(QPalette::HighlightedText));
+	else if (index.column() != NameColumn)
+		opt.palette.setColor(QPalette::Text, option.palette.color(QPalette::PlaceholderText));
 	QStyledItemDelegate::paint(painter, opt, index);
 
 	if (!_columnSeparatorsShown)
 		return;
 
-	const auto* view = qobject_cast<const QTreeView*>(option.widget);
-	assert_and_return_r(view, );
 	// The last column ends at the view's edge
 	if (view->header()->visualIndex(index.column()) == view->header()->count() - 1)
 		return;
@@ -78,6 +129,13 @@ void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem&
 		if (top <= bottom)
 			painter->fillRect(QRect{ cell.right(), top, 1, bottom - top + 1 }, lineColor);
 	}
+}
+
+QSize CFileListItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+	QSize hint = QStyledItemDelegate::sizeHint(option, index);
+	hint.setHeight(std::max(hint.height(), option.fontMetrics.height() + 2 * contentVMargin) + rowFillGap);
+	return hint;
 }
 
 void CFileListItemDelegate::setColumnSeparatorsShown(const bool shown)

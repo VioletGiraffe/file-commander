@@ -18,7 +18,7 @@ first version (v1). Current state only; done items get removed.
 - The app always runs a theme, on the Fusion style. There is no unthemed mode.
 - The rounded structure with one theme, Cobalt (neutral greys, blue accent), in both polarities.
 - A theme picker per polarity replaces the style combo box and the raw stylesheet box.
-- The file list delegate paints the cursor, the selection and the row geometry. Selection is a filled row.
+- The file list paints its own cursor, selection and row geometry. Selection is a filled row.
 - The file list font stays a user setting, separate from the theme. Other controls use the system font.
 - The theme definition is designed for both structures; only the rounded one is implemented.
 

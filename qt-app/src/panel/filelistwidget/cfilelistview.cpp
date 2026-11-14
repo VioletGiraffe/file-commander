@@ -1,12 +1,12 @@
 #include "cfilelistview.h"
 
 #include "delegate/cfilelistitemdelegate.h"
-#include "cfocusframestyle.h"
 
 
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "math/math.hpp"
+#include "theme/colorutils.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -15,10 +15,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QPainter>
+#include <QPen>
 #include <QResizeEvent>
 #include <QScopedValueRollback>
 #include <QScrollBar>
-#include <QStyleHints>
+#include <QStyleOptionViewItem>
 #include <QTimer>
 RESTORE_COMPILER_WARNINGS
 
@@ -48,21 +50,16 @@ CFileListView::CFileListView(QWidget *parent) :
 	assert_r(connect(headerView, &QHeaderView::sectionResized, this, &CFileListView::storeColumnLayoutFromHeader));
 	assert_r(connect(headerView, &QHeaderView::sectionMoved, this, &CFileListView::storeColumnLayoutFromHeader));
 
-	// TODO: QProxyStyle?
-#ifdef _WIN32
-	setStyle(new NoHoverHighlightStyle<CProxyStyle>);
-#elif defined __linux__ || defined __APPLE__
-	setStyle(new NoHoverHighlightStyle<CFocusFrameStyle>);
-#endif
+	setRootIsDecorated(false);
+}
 
-	connect(QApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {
-		QMetaObject::invokeMethod(this, [this]() {
-			style()->unpolish(this);
-			style()->unpolish(header());
-			style()->polish(this);
-			style()->polish(header());
-		}, Qt::QueuedConnection);
-	});
+void CFileListView::setShownAsActivePanel(const bool active)
+{
+	if (_shownAsActivePanel == active)
+		return;
+
+	_shownAsActivePanel = active;
+	viewport()->update();
 }
 
 void CFileListView::addEventObserver(FileListViewEventObserver* observer)
@@ -386,6 +383,56 @@ bool CFileListView::eventFilter(QObject* target, QEvent* event)
 		fitColumnsToWidth(static_cast<QResizeEvent*>(event)->size().width());
 
 	return QTreeView::eventFilter(target, event);
+}
+
+void CFileListView::currentChanged(const QModelIndex& current, const QModelIndex& previous)
+{
+	QTreeView::currentChanged(current, previous);
+
+	// The cursor spans the row; the base class repaints only the two cells
+	for (const QModelIndex& index : { previous, current })
+	{
+		if (index.isValid())
+			viewport()->update(QRect{ 0, visualRect(index).y(), viewport()->width(), visualRect(index).height() });
+	}
+}
+
+void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+	const bool selected = selectionModel()->isSelected(index);
+	const bool cursor = index.row() == currentIndex().row();
+	if (selected || cursor)
+	{
+		const QRectF fill = CFileListItemDelegate::rowFillRect(QRect{ 0, option.rect.y(), viewport()->width(), option.rect.height() });
+		// The colours of an active window, by design: the panels look the same while a dialog is open
+		const auto color = [&option](const QPalette::ColorRole role) { return option.palette.color(QPalette::Active, role); };
+		const QColor accent = color(QPalette::Accent);
+
+		painter->save();
+		painter->setRenderHint(QPainter::Antialiasing);
+
+		if (selected || _shownAsActivePanel)
+		{
+			painter->setPen(Qt::NoPen);
+			painter->setBrush(selected ? color(QPalette::Highlight) : ColorUtils::mix(color(QPalette::Base), accent, 0.15f));
+			painter->drawRoundedRect(fill, CFileListItemDelegate::rowFillRadius, CFileListItemDelegate::rowFillRadius);
+		}
+
+		if (cursor)
+		{
+			const qreal width = _shownAsActivePanel ? 1.5 : 1.0;
+			const QColor inactiveCursor = ColorUtils::mix(color(QPalette::Base), color(QPalette::Text), 0.3f);
+			painter->setPen(QPen{ _shownAsActivePanel ? accent : inactiveCursor, width });
+			painter->setBrush(Qt::NoBrush);
+			// Inset by half the pen: the stroke stays inside the fill rect
+			const QRectF outline = fill.adjusted(width / 2, width / 2, -width / 2, -width / 2);
+			painter->drawRoundedRect(outline, CFileListItemDelegate::rowFillRadius, CFileListItemDelegate::rowFillRadius);
+		}
+
+		painter->restore();
+	}
+
+	QTreeView::drawRow(painter, option, index);
 }
 
 void CFileListView::paintEvent(QPaintEvent* event)

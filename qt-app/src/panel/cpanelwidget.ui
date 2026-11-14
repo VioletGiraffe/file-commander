@@ -152,11 +152,6 @@ margin-bottom:6 dp</string>
      <property name="contextMenuPolicy">
       <enum>Qt::CustomContextMenu</enum>
      </property>
-     <property name="styleSheet">
-      <string notr="true">QTreeView {
-		show-decoration-selected: 1;
-	}</string>
-     </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOff</enum>
      </property>
@@ -175,9 +170,6 @@ margin-bottom:6 dp</string>
      <property name="defaultDropAction">
       <enum>Qt::MoveAction</enum>
      </property>
-     <property name="alternatingRowColors">
-      <bool>true</bool>
-     </property>
      <property name="selectionMode">
       <enum>QAbstractItemView::ExtendedSelection</enum>
      </property>
@@ -188,9 +180,6 @@ margin-bottom:6 dp</string>
       <bool>false</bool>
      </property>
      <property name="sortingEnabled">
-      <bool>true</bool>
-     </property>
-     <property name="allColumnsShowFocus">
       <bool>true</bool>
      </property>
      <property name="expandsOnDoubleClick">

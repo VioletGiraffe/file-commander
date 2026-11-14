@@ -70,8 +70,9 @@ until a refill lists it, a navigation starts, or the cursor is moved.
 
 `CFileListView` owns orthodox selection gestures and keyboard/mouse behavior. The model holds a copy of the rows it
 displays, sorts and filters them by the core's rules (`file-commander-core/src/filelist/`) with the tab's sorting and
-name filter, and depends on neither the controller nor the OS shell; delegates own painting. Drag/drop uses the same
-operation launch boundary as commands.
+name filter, and depends on neither the controller nor the OS shell. The view paints the selection and the cursor
+behind each row; the delegate paints the cells and defines the row geometry. Both take their colours from the widget
+palette. Drag/drop uses the same operation launch boundary as commands.
 
 The selection belongs to the tab's `CPanel`, and the selection model shows a copy. Gestures push their changes into
 the core from `selectionChanged`. After every refill and every change made through the core, the widget copies the

@@ -81,6 +81,10 @@ public:
 	// Faint vertical lines between the columns
 	void setColumnSeparatorsShown(bool shown);
 
+	// The active panel's cursor is filled and outlined in the accent colour; the other panel's is a faint outline.
+	// Not derived from keyboard focus: the active panel stays active while the command line or a dialog has it.
+	void setShownAsActivePanel(bool active);
+
 signals:
 	void contextMenuRequested();
 	void ctrlEnterPressed();
@@ -106,6 +110,9 @@ protected:
 
 	bool eventFilter(QObject* target, QEvent* event) override;
 
+	void currentChanged(const QModelIndex& current, const QModelIndex& previous) override;
+	// Paints the selection and the cursor behind the row's cells
+	void drawRow(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 	void paintEvent(QPaintEvent* event) override;
 
 private:
@@ -134,4 +141,5 @@ private:
 	bool                                _singleMouseClickValid = false;
 	bool                                _shiftPressedItemSelected = false;
 	bool                                _currentItemShouldBeSelectedOnMouseClick = false;
+	bool                                _shownAsActivePanel = false;
 };

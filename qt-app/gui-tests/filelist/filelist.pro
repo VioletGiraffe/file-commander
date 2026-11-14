@@ -44,7 +44,6 @@ SOURCES += \
 	../../src/iconprovider/ciconprovider.cpp \
 	../../src/iconprovider/ciconproviderimpl.cpp \
 	../../src/panel/filelistwidget/cfilelistview.cpp \
-	../../src/panel/filelistwidget/cfocusframestyle.cpp \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
 	../../src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	../../../file-operations/test-utils/src/crandomdatagenerator.cpp \
@@ -55,6 +54,5 @@ HEADERS += \
 	../../src/iconprovider/ciconprovider.h \
 	../../src/iconprovider/ciconproviderimpl.h \
 	../../src/panel/filelistwidget/cfilelistview.h \
-	../../src/panel/filelistwidget/cfocusframestyle.h \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
 	../../src/panel/filelistwidget/model/cfilelistmodel.h

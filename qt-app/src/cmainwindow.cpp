@@ -682,6 +682,11 @@ void CMainWindow::currentPanelChanged(const Panel panel)
 	else
 		assert_unconditional_r("Invalid \'panel\' argument");
 
+	if (_currentFileList)
+		_currentFileList->fileListView()->setShownAsActivePanel(true);
+	if (_otherFileList)
+		_otherFileList->fileListView()->setShownAsActivePanel(false);
+
 	if (!_currentFileList)
 	{
 		_commandLineCompleter.setModel(nullptr);

@@ -130,11 +130,6 @@ mac*{
 	QMAKE_POST_LINK = cp -f -p $$OUT_PWD/$$DESTDIR/libplugin_*.1.dylib $$OUT_PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/
 }
 
-linux*|mac*|freebsd{
-	HEADERS += src/panel/filelistwidget/cfocusframestyle.h
-	SOURCES += src/panel/filelistwidget/cfocusframestyle.cpp
-}
-
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $${DESTDIR}/libautoupdater.a $${DESTDIR}/libcpputils.a $${DESTDIR}/libqtutils.a
 }
