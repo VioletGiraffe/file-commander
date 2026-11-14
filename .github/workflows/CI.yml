@@ -310,6 +310,7 @@ jobs:
       with:
         name: FileCommander.dmg
         path: FileCommander.dmg
+        archive: false
         if-no-files-found: error
 
     - name: Archive AppImage
@@ -318,6 +319,7 @@ jobs:
       with:
         name: ${{ env.APPIMAGE_FILE }}
         path: ${{ env.APPIMAGE_FILE }}
+        archive: false
         if-no-files-found: error
 
     - name: Archive the terminal UI AppImage
@@ -326,6 +328,7 @@ jobs:
       with:
         name: ${{ env.TERMINAL_APPIMAGE_FILE }}
         path: ${{ env.TERMINAL_APPIMAGE_FILE }}
+        archive: false
         if-no-files-found: error
 
     - name: Archive Installer
@@ -334,6 +337,7 @@ jobs:
       with:
         name: FileCommander.exe
         path: installer/windows/FileCommander.exe
+        archive: false
         if-no-files-found: error
 
   test:
