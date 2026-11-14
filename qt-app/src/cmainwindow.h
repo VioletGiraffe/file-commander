@@ -151,7 +151,7 @@ private:
 
 // Settings
 	void settingsChanged();
-	// Sets the window's gaps from the theme in effect
+	// Sets the window's gaps and the function key buttons' form from the theme in effect
 	void applyTheme();
 
 // Focus management

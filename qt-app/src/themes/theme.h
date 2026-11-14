@@ -26,8 +26,17 @@ struct ThemeMetrics
 
 	// A file panel: between its border and the rows other than the file list, and between its rows
 	int panelPadding = 8, panelRowSpacing = 6;
-	// The main window: around its content, between the panels, between the function key buttons
-	int windowMargin = 8, panelGap = 8, functionKeySpacing = 6;
+	// The main window: beside the panels and the command line, between the panels
+	int windowMargin = 8, panelGap = 8;
+	// The function key bar: between its buttons, and between it and the window's edges
+	int functionKeySpacing = 6, functionKeyBarMargin = 8;
+};
+
+// What a theme changes besides colours and sizes
+enum class ThemeStructure
+{
+	Rounded, // panels are cards on the window background; controls have rounded corners
+	Flat     // line frames and filled cells, square corners, a monospace font in every control
 };
 
 // One selectable look. `name` is unique within its polarity; a look retuned for the other polarity keeps its name.
@@ -35,6 +44,7 @@ struct Theme
 {
 	QString name;
 	bool dark = false;
+	ThemeStructure structure = ThemeStructure::Rounded;
 	CBasePalette palette;
 	ThemeMetrics metrics;
 	FileListLook fileList;

@@ -1592,13 +1592,12 @@ void CPanelWidget::applyTheme()
 {
 	const Theme& theme = appliedTheme();
 
-	// The file list has no padding: its rows reach the panel's border
+	// The file list has no padding: its rows reach the panel's border. The stylesheet pads the info label.
 	const int padding = theme.metrics.panelPadding;
 	ui->verticalLayout->setSpacing(theme.metrics.panelRowSpacing);
 	ui->driveRowLayout->setContentsMargins(padding, padding, padding, 0);
 	ui->pathRowLayout->setContentsMargins(padding, 0, padding, 0);
 	ui->tabRowLayout->setContentsMargins(padding, 0, padding, 0);
-	ui->_infoLabel->setContentsMargins(padding, 0, padding, padding);
 
 	ui->_list->setLook(theme.fileList);
 }

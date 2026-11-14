@@ -411,46 +411,68 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 {
 	const bool selected = selectionModel()->isSelected(index);
 	const bool cursor = index.row() == currentIndex().row();
-	if (selected || cursor)
+	if (!selected && !cursor)
 	{
-		const QRectF fill = _itemDelegate->rowFillRect(QRect{ 0, option.rect.y(), viewport()->width(), option.rect.height() });
-		const int radius = _itemDelegate->look().rowFillRadius;
-		// The colours of an active window, by design: the panels look the same while a dialog is open
-		const auto color = [&option](const QPalette::ColorRole role) { return option.palette.color(QPalette::Active, role); };
-		const QColor accent = color(QPalette::Accent);
-
-		painter->save();
-		painter->setRenderHint(QPainter::Antialiasing);
-
-		if (selected || _shownAsActivePanel)
-		{
-			painter->setPen(Qt::NoPen);
-			painter->setBrush(selected ? color(QPalette::Highlight) : ColorUtils::mix(color(QPalette::Base), accent, 0.15f));
-			painter->drawRoundedRect(fill, radius, radius);
-		}
-
-		if (cursor)
-		{
-			const qreal width = _shownAsActivePanel ? 1.5 : 1.0;
-			const QColor inactiveCursor = ColorUtils::mix(color(QPalette::Base), color(QPalette::Text), 0.3f);
-			painter->setPen(QPen{ _shownAsActivePanel ? accent : inactiveCursor, width });
-			painter->setBrush(Qt::NoBrush);
-			// Inset by half the pen: the stroke stays inside the fill rect
-			const QRectF outline = fill.adjusted(width / 2, width / 2, -width / 2, -width / 2);
-			painter->drawRoundedRect(outline, radius, radius);
-		}
-
-		painter->restore();
+		QTreeView::drawRow(painter, option, index);
+		return;
 	}
 
-	QTreeView::drawRow(painter, option, index);
+	const FileListLook& look = _itemDelegate->look();
+	const QRectF fill = _itemDelegate->rowFillRect(QRect{ 0, option.rect.y(), viewport()->width(), option.rect.height() });
+	const int radius = look.rowFillRadius;
+	// The colours of an active window, by design: the panels look the same while a dialog is open
+	const auto color = [&option](const QPalette::ColorRole role) { return option.palette.color(QPalette::Active, role); };
+	const QColor accent = color(QPalette::Accent);
+	const bool barCursor = cursor && _shownAsActivePanel && look.cursor == FileListLook::Cursor::Bar;
+
+	painter->save();
+	painter->setRenderHint(QPainter::Antialiasing);
+
+	if (selected || _shownAsActivePanel)
+	{
+		const QColor fillColor = barCursor ? accent : selected ? color(QPalette::Highlight) : ColorUtils::mix(color(QPalette::Base), accent, 0.15f);
+		painter->setPen(Qt::NoPen);
+		painter->setBrush(fillColor);
+		painter->drawRoundedRect(fill, radius, radius);
+	}
+
+	if (cursor && !barCursor)
+	{
+		const qreal width = _shownAsActivePanel ? 1.5 : 1.0;
+		const QColor inactiveCursor = ColorUtils::mix(color(QPalette::Base), color(QPalette::Text), 0.3f);
+		painter->setPen(QPen{ _shownAsActivePanel ? accent : inactiveCursor, width });
+		painter->setBrush(Qt::NoBrush);
+		// Inset by half the pen: the stroke stays inside the fill rect
+		const QRectF outline = fill.adjusted(width / 2, width / 2, -width / 2, -width / 2);
+		painter->drawRoundedRect(outline, radius, radius);
+	}
+
+	painter->restore();
+
+	if (!barCursor)
+	{
+		QTreeView::drawRow(painter, option, index);
+		return;
+	}
+
+	// The bar has one text colour: every role the delegate picks a cell's text colour from is set to it
+	QStyleOptionViewItem barOption = option;
+	const QColor barText = ColorUtils::readableTextOn(accent, color(QPalette::Base));
+	for (const QPalette::ColorRole role : { QPalette::Text, QPalette::HighlightedText, QPalette::PlaceholderText })
+		barOption.palette.setColor(role, barText);
+	QTreeView::drawRow(painter, barOption, index);
 }
 
 void CFileListView::paintColumnSeparators(const QRect& area)
 {
 	static constexpr int dashLength = 5, dashPeriod = dashLength * 2;
-	QColor lineColor = palette().color(QPalette::Active, QPalette::Text);
-	lineColor.setAlphaF(0.15f);
+	const FileListLook& look = _itemDelegate->look();
+	QColor lineColor = look.separatorColor;
+	if (!lineColor.isValid())
+	{
+		lineColor = palette().color(QPalette::Active, QPalette::Text);
+		lineColor.setAlphaF(0.15f);
+	}
 
 	// The dashes start at multiples of dashPeriod in content coordinates: scrolling moves the painted pixels along with the content
 	const int scrolledBy = verticalOffset();
@@ -464,6 +486,12 @@ void CFileListView::paintColumnSeparators(const QRect& area)
 		const int x = headerView.sectionViewportPosition(column) + headerView.sectionSize(column) - 1;
 		if (x < area.left() || x > area.right())
 			continue;
+
+		if (!look.separatorsDashed)
+		{
+			painter.fillRect(QRect{ x, area.top(), 1, area.height() }, lineColor);
+			continue;
+		}
 
 		for (int dashTop = firstDashTop; dashTop <= area.bottom(); dashTop += dashPeriod)
 			painter.fillRect(QRect{ x, dashTop, 1, dashLength }, lineColor);

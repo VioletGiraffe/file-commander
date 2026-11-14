@@ -20,19 +20,15 @@ first version (v1). Current state only; done items get removed.
 - A theme picker per polarity replaces the style combo box and the raw stylesheet box.
 - The file list paints its own cursor, selection and row geometry. Selection is a filled row.
 - The file list font stays a user setting, separate from the theme. Other controls use the system font.
-- The theme definition is designed for both structures; only the rounded one is implemented.
 
 ## v2
 
-### Flat structure and its first theme
+### Flat structure: what is left
 
-- First theme: dark navy surfaces, cyan accent.
-- The panel's path is drawn into the top edge of the panel frame. The active panel's path is highlighted and its
-  frame takes the accent colour.
-- Column separator lines run the full height of the list, below the last row too.
-- F-key bar: the key number as plain text, the label on an accent-filled cell.
-- Requires a per-theme font for the controls other than the file list.
-- A light flat theme follows the dark one.
+Blueprint (dark navy, cyan accent) is the first flat theme.
+
+- The panel's path is drawn into the top edge of the panel frame, highlighted in the active panel.
+- A light flat theme.
 
 ### Further themes
 

@@ -238,12 +238,23 @@ void CMainWindow::updateInterface()
 
 void CMainWindow::applyTheme()
 {
-	const ThemeMetrics& metrics = appliedTheme().metrics;
+	const Theme& theme = appliedTheme();
+	const ThemeMetrics& metrics = theme.metrics;
+
+	// Each row has its own margins: the function key bar may reach the window's edges
+	ui->verticalLayout->setContentsMargins(0, 0, 0, 0);
 	// Half the margin at the top: the menu bar is above
-	ui->verticalLayout->setContentsMargins(metrics.windowMargin, metrics.windowMargin / 2, metrics.windowMargin, metrics.windowMargin);
+	ui->panelsLayout->setContentsMargins(metrics.windowMargin, metrics.windowMargin / 2, metrics.windowMargin, 0);
+	ui->commandLineLayout->setContentsMargins(metrics.windowMargin, 0, metrics.windowMargin, 0);
+	ui->buttons->setContentsMargins(metrics.functionKeyBarMargin, 0, metrics.functionKeyBarMargin, metrics.functionKeyBarMargin);
+	ui->buttons->setSpacing(metrics.functionKeySpacing);
+
 	ui->splitter->setHandleWidth(metrics.panelGap);
 	ui->verticalSplitter->setHandleWidth(metrics.panelGap);
-	ui->buttons->setSpacing(metrics.functionKeySpacing);
+
+	const auto form = theme.structure == ThemeStructure::Flat ? CFunctionKeyButton::Form::LabelCell : CFunctionKeyButton::Form::KeyBox;
+	for (CFunctionKeyButton* button : { ui->btnView, ui->btnEdit, ui->btnCopy, ui->btnMove, ui->btnNewFolder, ui->btnDelete })
+		button->setForm(form);
 }
 
 void CMainWindow::initButtons()

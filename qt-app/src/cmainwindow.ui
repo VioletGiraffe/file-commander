@@ -16,6 +16,8 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0">
     <item>
+     <layout class="QVBoxLayout" name="panelsLayout">
+      <item>
      <widget class="QSplitter" name="verticalSplitter">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -66,9 +68,11 @@
       </widget>
       <widget class="CCommandOutputArea" name="commandOutputArea"/>
      </widget>
+      </item>
+     </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,1">
+     <layout class="QHBoxLayout" name="commandLineLayout" stretch="0,0,1">
       <item>
        <widget class="CLabelElided" name="fullPath">
         <property name="mouseTracking">

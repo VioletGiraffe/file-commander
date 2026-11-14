@@ -10,19 +10,44 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QFont>
+#include <QFontDatabase>
+#include <QLatin1String>
 #include <QPalette>
 RESTORE_COMPILER_WARNINGS
+
+#include <optional>
 
 namespace {
 
 QColor rgb(QRgb value) { return QColor::fromRgb(value); }
 
 Theme g_appliedTheme;
+// The application font the themes start from. Set by installTheme(): a QFont needs the application object.
+std::optional<QFont> g_baseFont;
+
+// The first installed family of a list of well-drawn ones; the system's fixed font if none is
+[[nodiscard]] QString monospaceFamily()
+{
+	for (const char* family : { "Cascadia Mono", "Consolas", "Menlo", "DejaVu Sans Mono", "Liberation Mono" })
+	{
+		if (QFontDatabase::hasFamily(QLatin1String{ family }))
+			return QLatin1String{ family };
+	}
+
+	return QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
+}
 
 void applySelectedTheme()
 {
 	g_appliedTheme = CThemeController::instance().selectedTheme(allThemes());
 	g_appliedTheme.palette = resolvedPalette(g_appliedTheme.palette);
+
+	QFont font = *g_baseFont;
+	if (g_appliedTheme.structure == ThemeStructure::Flat)
+		font.setFamily(monospaceFamily());
+	if (QApplication::font() != font)
+		QApplication::setFont(font);
 
 	QApplication::setPalette(qtPaletteFor(g_appliedTheme.palette));
 	qApp->setStyleSheet(buildStyleSheet(g_appliedTheme));
@@ -57,6 +82,34 @@ const std::vector<Theme>& allThemes()
 				.border = rgb(0xd5d9e0),
 			},
 		},
+		{
+			.name = QStringLiteral("Blueprint"),
+			.dark = true,
+			.structure = ThemeStructure::Flat,
+			.palette = {
+				.windowBg = rgb(0x0a2158), .surface = rgb(0x0a2158), .surfaceAlt = rgb(0x16346f),
+				.text = rgb(0xd6e6ff), .textDim = rgb(0x9cbcf0),
+				.button = rgb(0x0a2158),
+				.accent = rgb(0x45d6e6),
+				.selectionBg = rgb(0x19507d), .selectionFg = rgb(0xffd866),
+				.border = rgb(0x4f76c8), .borderSubtle = rgb(0x2f55a8), .borderStrong = rgb(0x5f8be0),
+				.accentFg = rgb(0x06204f),
+			},
+			.metrics = {
+				.controlRadius = 0, .panelRadius = 0, .menuItemRadius = 0,
+				.panelPadding = 10,
+				.windowMargin = 10, .panelGap = 10,
+				.functionKeySpacing = 0, .functionKeyBarMargin = 0,
+			},
+			.fileList = {
+				.rowFillInset = 0, .rowFillGap = 0,
+				.rowFillRadius = 0,
+				.contentHMargin = 8, .contentVMargin = 3,
+				.cursor = FileListLook::Cursor::Bar,
+				.separatorColor = rgb(0x2f55a8),
+				.separatorsDashed = false,
+			},
+		},
 	};
 	return themes;
 }
@@ -68,6 +121,10 @@ void installTheme(QApplication& app)
 
 	// Serves the stylesheet's tinted glyphs. Must exist before a sheet refers to one, and for the application's lifetime.
 	static const CThemeIconHandler iconHandler{ QStringLiteral(":/theme") };
+
+	// One point larger than the system's font
+	g_baseFont = QApplication::font();
+	g_baseFont->setPointSizeF(g_baseFont->pointSizeF() + 1.0);
 
 	QObject::connect(&CThemeController::instance(), &CThemeController::themeChanged, &app, &applySelectedTheme);
 	applySelectedTheme();

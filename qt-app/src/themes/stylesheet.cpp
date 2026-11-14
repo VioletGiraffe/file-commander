@@ -12,6 +12,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
+
 // A widget is drawn either by the base style or from its rules, never by both: a rule that sets a border or a
 // background takes the whole widget, sub-controls included. Each section therefore styles its control completely.
 // Controls with no section here are drawn by the base style from the palette.
@@ -186,6 +188,7 @@ constexpr char kPanels[] = R"(
 	CPanelWidget[activePanel="true"] { border-color: @panelActiveBorder@; }
 
 	#_driveInfoLabel, #_infoLabel { color: @textDim@; }
+	#_infoLabel { padding: 0 @panelPadding@px @panelPadding@px @panelPadding@px; }
 	CPanelWidget > QComboBox { background: @windowBg@; }
 	CPanelWidget > QToolButton { border-color: @border@; }
 	CPanelWidget > QToolButton:hover { background: @surfaceAlt@; border-color: @borderStrong@; }
@@ -208,6 +211,39 @@ constexpr char kMainWindow[] = R"(
 	CFunctionKeyButton { padding: 7px 9px; }
 )";
 
+// The flat structure: what differs from the sections above. These come later in the sheet, so they win at equal specificity.
+constexpr char kFlatControls[] = R"(
+	QMenuBar { background: @accent@; color: @accentFg@; }
+	QMenuBar::item { color: @accentFg@; padding: 2px 8px; }
+	QMenuBar::item:selected, QMenuBar::item:pressed { background: @accentFg@; color: @accent@; }
+
+	QTabBar::tab { border-bottom: none; padding: 1px 6px; margin-right: 8px; }
+	QTabBar::tab:selected { background: @borderSubtle@; }
+
+	QHeaderView::section {
+		border-top: 1px solid @borderSubtle@;
+		border-right: 1px solid @borderSubtle@;
+		border-bottom: 1px solid @borderSubtle@;
+		padding: 3px 8px;
+	}
+	QHeaderView::section:last { border-right: none; }
+)";
+
+constexpr char kFlatPanels[] = R"(
+	#_infoLabel { border-top: 1px solid @borderStrong@; padding-top: 4px; }
+
+	#_driveButtonsWidget > QPushButton { padding: 0 5px; font-weight: bold; }
+	#_driveButtonsWidget > QPushButton:pressed, #_driveButtonsWidget > QPushButton:checked { background: @text@; color: @windowBg@; }
+)";
+
+// CFunctionKeyButton draws its label's cell itself
+constexpr char kFlatMainWindow[] = R"(
+	CMainWindow > #centralwidget > QComboBox { background: transparent; border: none; }
+
+	CFunctionKeyButton { background: transparent; border: none; padding: 0; }
+	CFunctionKeyButton:hover, CFunctionKeyButton:pressed { background: @surfaceAlt@; }
+)";
+
 } // namespace
 
 QString buildStyleSheet(const Theme& theme)
@@ -217,6 +253,13 @@ QString buildStyleSheet(const Theme& theme)
 	                             kHeaders, kToolTips, kProgressBars, kSplitters, kPanels, kMainWindow })
 		sheet += QLatin1String(section);
 
+	const bool flat = theme.structure == ThemeStructure::Flat;
+	if (flat)
+	{
+		for (const char* section : { kFlatControls, kFlatPanels, kFlatMainWindow })
+			sheet += QLatin1String(section);
+	}
+
 	const CBasePalette& palette = theme.palette;
 	const ThemeMetrics& metrics = theme.metrics;
 
@@ -224,12 +267,13 @@ QString buildStyleSheet(const Theme& theme)
 	tokens.addPalette(palette);
 	tokens.add(QStringLiteral("controlRadius"), metrics.controlRadius);
 	tokens.add(QStringLiteral("panelRadius"), metrics.panelRadius);
-	tokens.add(QStringLiteral("panelActiveBorder"), ColorUtils::mix(palette.border, palette.accent, 0.55f));
+	tokens.add(QStringLiteral("panelPadding"), metrics.panelPadding);
+	tokens.add(QStringLiteral("panelActiveBorder"), flat ? palette.accent : ColorUtils::mix(palette.border, palette.accent, 0.55f));
 	tokens.add(QStringLiteral("menuItemRadius"), metrics.menuItemRadius);
 	tokens.add(QStringLiteral("scrollBarThickness"), metrics.scrollBarThickness);
-	tokens.add(QStringLiteral("scrollBarHandleRadius"), metrics.scrollBarThickness / 2);
+	tokens.add(QStringLiteral("scrollBarHandleRadius"), std::min(metrics.scrollBarThickness / 2, metrics.controlRadius));
 	tokens.add(QStringLiteral("progressChunk"), ColorUtils::mix(palette.surface, palette.accent, 0.45f));
-	tokens.add(QStringLiteral("progressChunkRadius"), metrics.controlRadius - 1);
+	tokens.add(QStringLiteral("progressChunkRadius"), std::max(metrics.controlRadius - 1, 0));
 	tokens.add(QStringLiteral("comboArrowIcon"), themeIconUrl(QStringLiteral("combobox_down_arrow"), palette.textDim));
 	tokens.add(QStringLiteral("tabCloseIcon"), themeIconUrl(QStringLiteral("tab_close"), palette.textDim));
 	tokens.add(QStringLiteral("tabCloseHoverIcon"), themeIconUrl(QStringLiteral("tab_close"), palette.text));

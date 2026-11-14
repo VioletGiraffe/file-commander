@@ -183,12 +183,6 @@ int main(int argc, char *argv[])
 
 	QFontDatabase::addApplicationFont(":/fonts/Roboto Mono.ttf");
 
-	{
-		QFont font = QApplication::font();
-		font.setPointSizeF(font.pointSizeF() + 1.0);
-		QApplication::setFont(font);
-	}
-
 	CShellOperationRunner shellOperations;
 	CController controller;
 	CPluginEngine pluginEngine{controller};
