@@ -54,5 +54,6 @@ HEADERS += \
 	../../src/iconprovider/ciconprovider.h \
 	../../src/iconprovider/ciconproviderimpl.h \
 	../../src/panel/filelistwidget/cfilelistview.h \
+	../../src/panel/filelistwidget/filelistlook.h \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
 	../../src/panel/filelistwidget/model/cfilelistmodel.h

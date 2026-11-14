@@ -17,16 +17,15 @@ namespace {
 
 QColor rgb(QRgb value) { return QColor::fromRgb(value); }
 
-CBasePalette g_appliedPalette;
+Theme g_appliedTheme;
 
 void applySelectedTheme()
 {
-	Theme theme = CThemeController::instance().selectedTheme(allThemes());
-	theme.palette = resolvedPalette(theme.palette);
-	g_appliedPalette = theme.palette;
+	g_appliedTheme = CThemeController::instance().selectedTheme(allThemes());
+	g_appliedTheme.palette = resolvedPalette(g_appliedTheme.palette);
 
-	QApplication::setPalette(qtPaletteFor(theme.palette));
-	qApp->setStyleSheet(buildStyleSheet(theme));
+	QApplication::setPalette(qtPaletteFor(g_appliedTheme.palette));
+	qApp->setStyleSheet(buildStyleSheet(g_appliedTheme));
 }
 
 } // namespace
@@ -74,8 +73,8 @@ void installTheme(QApplication& app)
 	applySelectedTheme();
 }
 
-const CBasePalette& appliedThemePalette()
+const Theme& appliedTheme()
 {
-	assert_r(g_appliedPalette.text.isValid());
-	return g_appliedPalette;
+	assert_r(!g_appliedTheme.name.isEmpty());
+	return g_appliedTheme;
 }

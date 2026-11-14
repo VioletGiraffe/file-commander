@@ -73,6 +73,7 @@ HEADERS += \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
 	src/panel/filelistwidget/cfilelistview.h \
+	src/panel/filelistwidget/filelistlook.h \
 	src/settings/csettingspageinterface.h \
 	src/settings/csettingspageedit.h \
 	src/settings/csettingspageother.h \

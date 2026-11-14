@@ -44,8 +44,8 @@ checking a theme's coverage.
 
 The application palette is the only part of a theme that reaches a plugin. qtutils is linked statically into the app
 and into every plugin, so `CThemeController::instance()` in a plugin is a separate object that the app's choices never
-reach. Plugin code reads its widget's palette. App code reads `appliedThemePalette()` for a colour that has no palette
-role, such as error text.
+reach. Plugin code reads its widget's palette. App code reads `appliedTheme()` for what neither the palette nor the
+stylesheet carries: layout geometry, the file list's shape, a colour without a palette role such as error text.
 
 Deferred styling work is in [styling-todo.md](styling-todo.md).
 
@@ -73,9 +73,10 @@ until a refill lists it, a navigation starts, or the cursor is moved.
 
 `CFileListView` owns orthodox selection gestures and keyboard/mouse behavior. The model holds a copy of the rows it
 displays, sorts and filters them by the core's rules (`file-commander-core/src/filelist/`) with the tab's sorting and
-name filter, and depends on neither the controller nor the OS shell. The view paints the selection and the cursor
-behind each row; the delegate paints the cells and defines the row geometry. Both take their colours from the widget
-palette. Drag/drop uses the same operation launch boundary as commands.
+name filter, and depends on neither the controller nor the OS shell. The view paints the column separators, the
+selection and the cursor behind each row; the delegate paints the cells and defines the row geometry. Both take their
+colours from the widget palette and the rows' shape from a `FileListLook`, which the panel passes on from the theme.
+Drag/drop uses the same operation launch boundary as commands.
 
 The selection belongs to the tab's `CPanel`, and the selection model shows a copy. Gestures push their changes into
 the core from `selectionChanged`. After every refill and every change made through the core, the widget copies the

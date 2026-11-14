@@ -1,5 +1,8 @@
 #pragma once
 
+#include "panel/filelistwidget/filelistlook.h"
+
+
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "theme/cbasepalette.h"
@@ -13,13 +16,16 @@ RESTORE_COMPILER_WARNINGS
 
 class QApplication;
 
-// Geometry the stylesheet uses. Per theme, so that a theme can reshape and not only recolour.
+// Geometry of the stylesheet and of the layouts. Per theme, so that a theme can reshape and not only recolour.
 struct ThemeMetrics
 {
 	int controlRadius = 7; // buttons, fields, combo boxes, group boxes
 	int panelRadius = 10;
 	int menuItemRadius = 5;
 	int scrollBarThickness = 10;
+
+	// A file panel: between its border and the rows other than the file list, and between its rows
+	int panelPadding = 8, panelRowSpacing = 6;
 };
 
 // One selectable look. `name` is unique within its polarity; a look retuned for the other polarity keeps its name.
@@ -29,6 +35,7 @@ struct Theme
 	bool dark = false;
 	CBasePalette palette;
 	ThemeMetrics metrics;
+	FileListLook fileList;
 };
 
 // The first theme of each polarity is that polarity's default.
@@ -38,5 +45,7 @@ struct Theme
 // Call once, before any widget exists.
 void installTheme(QApplication& app);
 
-// The resolved palette of the applied theme, for the colours QPalette has no role for. Requires installTheme().
-[[nodiscard]] const CBasePalette& appliedThemePalette();
+// The theme in effect, its palette resolved. Requires installTheme().
+// For what the application palette and stylesheet do not carry: layout geometry, the file list's shape, colours without a QPalette role.
+// Already updated when a slot connected to CThemeController::themeChanged after installTheme() runs.
+[[nodiscard]] const Theme& appliedTheme();

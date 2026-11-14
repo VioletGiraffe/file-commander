@@ -224,7 +224,7 @@ void CBatchRenameDialog::showSession()
 {
 	const QColor textColor = palette().color(QPalette::Text);
 	const QColor dimmedColor = palette().color(QPalette::PlaceholderText);
-	const QColor errorColor = appliedThemePalette().errorText;
+	const QColor errorColor = appliedTheme().palette.errorText;
 
 	const QString& findError = _session.findPatternError();
 	_findError->setText(findError);

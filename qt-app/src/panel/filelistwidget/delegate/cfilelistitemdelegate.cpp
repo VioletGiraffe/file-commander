@@ -23,30 +23,35 @@ RESTORE_COMPILER_WARNINGS
 
 namespace {
 
-// A row's fill is inset from the view's edges and stops short of the next row
-constexpr int rowFillInset = 6, rowFillGap = 1;
-// Between the fill's edges and the row's content
-constexpr int contentHMargin = 6, contentVMargin = 4;
-
 // The part of a cell its content occupies
-[[nodiscard]] QRect cellContentRect(const QRect& cell, const QHeaderView& header, const int logicalColumn)
+[[nodiscard]] QRect cellContentRect(const QRect& cell, const QHeaderView& header, const int logicalColumn, const FileListLook& look)
 {
-	QRect content = cell.adjusted(0, 0, 0, -rowFillGap);
+	QRect content = cell.adjusted(0, 0, 0, -look.rowFillGap);
 
 	const int visualColumn = header.visualIndex(logicalColumn);
 	if (visualColumn == 0)
-		content.setLeft(content.left() + rowFillInset + contentHMargin);
+		content.setLeft(content.left() + look.rowFillInset + look.contentHMargin);
 	if (visualColumn == header.count() - 1)
-		content.setRight(content.right() - rowFillInset - contentHMargin);
+		content.setRight(content.right() - look.rowFillInset - look.contentHMargin);
 
 	return content;
 }
 
 } // namespace
 
-QRect CFileListItemDelegate::rowFillRect(const QRect& row)
+void CFileListItemDelegate::setLook(const FileListLook& look)
 {
-	return row.adjusted(rowFillInset, 0, -rowFillInset, -rowFillGap);
+	_look = look;
+}
+
+const FileListLook& CFileListItemDelegate::look() const
+{
+	return _look;
+}
+
+QRect CFileListItemDelegate::rowFillRect(const QRect& row) const
+{
+	return row.adjusted(_look.rowFillInset, 0, -_look.rowFillInset, -_look.rowFillGap);
 }
 
 // Item rename handling
@@ -85,7 +90,7 @@ void CFileListItemDelegate::updateEditorGeometry(QWidget* editor, const QStyleOp
 	assert_and_return_r(view, );
 
 	QStyleOptionViewItem opt = option;
-	opt.rect = cellContentRect(option.rect, *view->header(), index.column());
+	opt.rect = cellContentRect(option.rect, *view->header(), index.column(), _look);
 	QStyledItemDelegate::updateEditorGeometry(editor, opt, index);
 }
 
@@ -102,45 +107,19 @@ void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem&
 	QStyleOptionViewItem opt = option;
 	// On screen, the view has painted the selection and the cursor behind the row
 	opt.state &= ~(QStyle::State_MouseOver | QStyle::State_Selected | QStyle::State_HasFocus);
-	opt.rect = cellContentRect(option.rect, *view->header(), index.column());
+	opt.rect = cellContentRect(option.rect, *view->header(), index.column(), _look);
 	if (selected)
 		opt.palette.setColor(QPalette::Text, option.palette.color(QPalette::HighlightedText));
 	else if (index.column() != NameColumn)
 		opt.palette.setColor(QPalette::Text, option.palette.color(QPalette::PlaceholderText));
 	QStyledItemDelegate::paint(painter, opt, index);
-
-	if (!_columnSeparatorsShown)
-		return;
-
-	// The last column ends at the view's edge
-	if (view->header()->visualIndex(index.column()) == view->header()->count() - 1)
-		return;
-
-	// The column separator: a faint dashed line along the cell's right edge
-	static constexpr int dashLength = 5, dashPeriod = dashLength * 2;
-	QColor lineColor = option.palette.color(QPalette::Text);
-	lineColor.setAlphaF(0.15f);
-	const QRect& cell = option.rect;
-	// The dashes start at multiples of dashPeriod in view coordinates, so they run on unbroken across rows
-	const int phase = (cell.top() % dashPeriod + dashPeriod) % dashPeriod;
-	for (int dashTop = cell.top() - phase; dashTop <= cell.bottom(); dashTop += dashPeriod)
-	{
-		const int top = std::max(dashTop, cell.top()), bottom = std::min(dashTop + dashLength - 1, cell.bottom());
-		if (top <= bottom)
-			painter->fillRect(QRect{ cell.right(), top, 1, bottom - top + 1 }, lineColor);
-	}
 }
 
 QSize CFileListItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
 	QSize hint = QStyledItemDelegate::sizeHint(option, index);
-	hint.setHeight(std::max(hint.height(), option.fontMetrics.height() + 2 * contentVMargin) + rowFillGap);
+	hint.setHeight(std::max(hint.height(), option.fontMetrics.height() + 2 * _look.contentVMargin) + _look.rowFillGap);
 	return hint;
-}
-
-void CFileListItemDelegate::setColumnSeparatorsShown(const bool shown)
-{
-	_columnSeparatorsShown = shown;
 }
 
 bool CFileListItemDelegate::eventFilter(QObject * object, QEvent * event)

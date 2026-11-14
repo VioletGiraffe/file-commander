@@ -46,17 +46,6 @@ Rejected: a dense grey look with square segmented controls. It resembles stock L
 
 Whether the cursor or the selection is the more prominent of the two may differ between themes.
 
-### Type colouring
-
-File names coloured by extension group.
-
-- Colour then marks the type, so text colour alone must never mark anything else, selection included.
-- The theme owns the colour set. Each colour must stay readable on the plain surface and on the selection fill;
-  `ColorUtils` can derive a colour that reaches a target contrast.
-- A solid cursor bar has one text colour, so the cursor row loses its type colour. A tinted or frame cursor keeps it.
-  Both are acceptable.
-- Open: the extension groups, and whether the user can edit them.
-
 ### Theme icons
 
 Colourful OS icons clash with the more stylized themes.
@@ -87,6 +76,19 @@ Replaces the panel's path combo box.
   has no drive type yet; on Windows an external USB hard disk reports as a fixed drive.
 
 ## v3
+
+### Type colouring
+
+File names coloured by extension group.
+
+- Colour then marks the type, so text colour alone must never mark anything else, selection included.
+- The theme owns the colour set. Each colour must stay readable on the plain surface and on the selection fill;
+  `ColorUtils` can derive a colour that reaches a target contrast.
+- A solid cursor bar has one text colour, so the cursor row loses its type colour. A tinted or frame cursor keeps it.
+  Both are acceptable.
+- Open: the extension groups, and whether the user can edit them.
+
+### Smaller items
 
 - Potential, low priority: the window title bar in the theme's colours. On Windows 11 `DwmSetWindowAttribute` sets the
   caption, text and border colours of one window; every top-level window needs the call. Windows 10 offers dark or light only.

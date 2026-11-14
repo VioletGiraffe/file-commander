@@ -1,5 +1,8 @@
 #pragma once
 
+#include "panel/filelistwidget/filelistlook.h"
+
+
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
@@ -14,9 +17,11 @@ class CFileListItemDelegate final : public QStyledItemDelegate
 public:
 	using QStyledItemDelegate::QStyledItemDelegate;
 
-	static constexpr int rowFillRadius = 6;
-	// The part of a row that a selection or cursor fill covers: inset from the view's edges, and short of the next row
-	[[nodiscard]] static QRect rowFillRect(const QRect& row);
+	// Changes the row height: the view must lay its items out again
+	void setLook(const FileListLook& look);
+	[[nodiscard]] const FileListLook& look() const;
+	// The part of a row that a selection or cursor fill covers
+	[[nodiscard]] QRect rowFillRect(const QRect& row) const;
 
 	QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 	// Does nothing: the view calls it on every dataChanged over the edited cell, and refilling would discard the text typed so far
@@ -27,12 +32,9 @@ public:
 	void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 	QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 
-	// Takes effect at the next paint
-	void setColumnSeparatorsShown(bool shown);
-
 protected:
 	bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
-	bool _columnSeparatorsShown = true;
+	FileListLook _look;
 };

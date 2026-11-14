@@ -36,6 +36,7 @@ struct FileListReturnPressOrDoubleClickObserver : FileListViewEventObserver {
 };
 
 class CFileListItemDelegate;
+struct FileListLook;
 class QMouseEvent;
 class QFocusEvent;
 class QHeaderView;
@@ -80,6 +81,9 @@ public:
 
 	// Faint vertical lines between the columns
 	void setColumnSeparatorsShown(bool shown);
+
+	// The shape of the rows
+	void setLook(const FileListLook& look);
 
 	// The active panel's cursor is filled and outlined in the accent colour; the other panel's is a faint outline.
 	// Not derived from keyboard focus: the active panel stays active while the command line or a dialog has it.
@@ -128,6 +132,9 @@ private:
 	// Records a resize or move the user made in the header
 	void storeColumnLayoutFromHeader();
 
+	// Along the right edge of every column but the last, over the viewport's whole height. Only called while painting.
+	void paintColumnSeparators(const QRect& area);
+
 private:
 	std::vector<FileListViewEventObserver*> _eventObservers;
 	CFileListItemDelegate*              _itemDelegate;
@@ -142,4 +149,5 @@ private:
 	bool                                _shiftPressedItemSelected = false;
 	bool                                _currentItemShouldBeSelectedOnMouseClick = false;
 	bool                                _shownAsActivePanel = false;
+	bool                                _columnSeparatorsShown = true;
 };

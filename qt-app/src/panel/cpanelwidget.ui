@@ -14,20 +14,17 @@
    <string/>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="spacing">
-    <number>6</number>
-   </property>
    <property name="leftMargin">
-    <number>8</number>
+    <number>1</number>
    </property>
    <property name="topMargin">
-    <number>8</number>
+    <number>1</number>
    </property>
    <property name="rightMargin">
-    <number>8</number>
+    <number>1</number>
    </property>
    <property name="bottomMargin">
-    <number>8</number>
+    <number>1</number>
    </property>
    <item>
     <layout class="QHBoxLayout" name="driveRowLayout" stretch="1,0">
@@ -56,7 +53,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
+    <layout class="QHBoxLayout" name="pathRowLayout" stretch="0,0,0">
      <property name="spacing">
       <number>6</number>
      </property>
@@ -138,11 +135,15 @@
     </layout>
    </item>
    <item>
-    <widget class="QTabBar" name="_tabBar">
-     <property name="contextMenuPolicy">
-      <enum>Qt::CustomContextMenu</enum>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="tabRowLayout">
+     <item>
+      <widget class="QTabBar" name="_tabBar">
+       <property name="contextMenuPolicy">
+        <enum>Qt::CustomContextMenu</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="CFileListView" name="_list">

@@ -1,6 +1,7 @@
 #include "cfilelistview.h"
 
 #include "delegate/cfilelistitemdelegate.h"
+#include "filelistlook.h"
 
 
 // Submodule includes
@@ -11,10 +12,12 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
+#include <QColor>
 #include <QDebug>
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QPaintEvent>
 #include <QPainter>
 #include <QPen>
 #include <QResizeEvent>
@@ -180,7 +183,14 @@ void CFileListView::logTimeToNextPaint(std::chrono::steady_clock::time_point sta
 
 void CFileListView::setColumnSeparatorsShown(const bool shown)
 {
-	_itemDelegate->setColumnSeparatorsShown(shown);
+	_columnSeparatorsShown = shown;
+	viewport()->update();
+}
+
+void CFileListView::setLook(const FileListLook& look)
+{
+	_itemDelegate->setLook(look);
+	scheduleDelayedItemsLayout(); // the row height depends on the look
 	viewport()->update();
 }
 
@@ -403,7 +413,8 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 	const bool cursor = index.row() == currentIndex().row();
 	if (selected || cursor)
 	{
-		const QRectF fill = CFileListItemDelegate::rowFillRect(QRect{ 0, option.rect.y(), viewport()->width(), option.rect.height() });
+		const QRectF fill = _itemDelegate->rowFillRect(QRect{ 0, option.rect.y(), viewport()->width(), option.rect.height() });
+		const int radius = _itemDelegate->look().rowFillRadius;
 		// The colours of an active window, by design: the panels look the same while a dialog is open
 		const auto color = [&option](const QPalette::ColorRole role) { return option.palette.color(QPalette::Active, role); };
 		const QColor accent = color(QPalette::Accent);
@@ -415,7 +426,7 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 		{
 			painter->setPen(Qt::NoPen);
 			painter->setBrush(selected ? color(QPalette::Highlight) : ColorUtils::mix(color(QPalette::Base), accent, 0.15f));
-			painter->drawRoundedRect(fill, CFileListItemDelegate::rowFillRadius, CFileListItemDelegate::rowFillRadius);
+			painter->drawRoundedRect(fill, radius, radius);
 		}
 
 		if (cursor)
@@ -426,7 +437,7 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 			painter->setBrush(Qt::NoBrush);
 			// Inset by half the pen: the stroke stays inside the fill rect
 			const QRectF outline = fill.adjusted(width / 2, width / 2, -width / 2, -width / 2);
-			painter->drawRoundedRect(outline, CFileListItemDelegate::rowFillRadius, CFileListItemDelegate::rowFillRadius);
+			painter->drawRoundedRect(outline, radius, radius);
 		}
 
 		painter->restore();
@@ -435,8 +446,36 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 	QTreeView::drawRow(painter, option, index);
 }
 
+void CFileListView::paintColumnSeparators(const QRect& area)
+{
+	static constexpr int dashLength = 5, dashPeriod = dashLength * 2;
+	QColor lineColor = palette().color(QPalette::Active, QPalette::Text);
+	lineColor.setAlphaF(0.15f);
+
+	// The dashes start at multiples of dashPeriod in content coordinates: scrolling moves the painted pixels along with the content
+	const int scrolledBy = verticalOffset();
+	const int firstDashTop = (area.top() + scrolledBy) / dashPeriod * dashPeriod - scrolledBy;
+
+	QPainter painter{ viewport() };
+	const QHeaderView& headerView = *header();
+	for (int visualColumn = 0; visualColumn < headerView.count() - 1; ++visualColumn)
+	{
+		const int column = headerView.logicalIndex(visualColumn);
+		const int x = headerView.sectionViewportPosition(column) + headerView.sectionSize(column) - 1;
+		if (x < area.left() || x > area.right())
+			continue;
+
+		for (int dashTop = firstDashTop; dashTop <= area.bottom(); dashTop += dashPeriod)
+			painter.fillRect(QRect{ x, dashTop, 1, dashLength }, lineColor);
+	}
+}
+
 void CFileListView::paintEvent(QPaintEvent* event)
 {
+	// Before the rows: their selection and cursor fills cover the lines
+	if (_columnSeparatorsShown)
+		paintColumnSeparators(event->rect());
+
 	QTreeView::paintEvent(event);
 
 	if (!_timeToNextPaintStart)

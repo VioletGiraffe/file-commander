@@ -5,6 +5,7 @@
 #include "filelistwidget/model/cfilelistmodel.h"
 
 #include "cmainwindow.h"
+#include "themes/theme.h"
 
 #include "favoritelocationseditor/cfavoritelocationseditor.h"
 
@@ -24,6 +25,7 @@
 #include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "shelloperations/cshelloperationrunner.h"
 #include "shelloperations/shellfileoperations.h"
+#include "theme/cthemecontroller.h"
 #include "theme/ctintedsvgiconengine.h"
 #include "timing/ctimeelapsed.h"
 #include "widgets/clineedit.h"
@@ -175,6 +177,9 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	ui->_list->addEventObserver(this);
 
 	onSettingsChanged();
+
+	applyTheme();
+	assert_r(connect(&CThemeController::instance(), &CThemeController::themeChanged, this, &CPanelWidget::applyTheme));
 
 	new QShortcut(QKeySequence(Qt::Key_Space), this, SLOT(onSpacePressed()), nullptr, Qt::WidgetWithChildrenShortcut);
 	new QShortcut(QKeySequence(Qt::Key_Insert), this, SLOT(invertCurrentItemSelection()), nullptr, Qt::WidgetWithChildrenShortcut);
@@ -1581,6 +1586,21 @@ void CPanelWidget::onSettingsChanged()
 	if (font.fromString(settings.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString()))
 		ui->_list->setFont(font);
 	ui->_list->setColumnSeparatorsShown(settings.value(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT).toBool());
+}
+
+void CPanelWidget::applyTheme()
+{
+	const Theme& theme = appliedTheme();
+
+	// The file list has no padding: its rows reach the panel's border
+	const int padding = theme.metrics.panelPadding;
+	ui->verticalLayout->setSpacing(theme.metrics.panelRowSpacing);
+	ui->driveRowLayout->setContentsMargins(padding, padding, padding, 0);
+	ui->pathRowLayout->setContentsMargins(padding, 0, padding, 0);
+	ui->tabRowLayout->setContentsMargins(padding, 0, padding, 0);
+	ui->_infoLabel->setContentsMargins(padding, 0, padding, padding);
+
+	ui->_list->setLook(theme.fileList);
 }
 
 void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()

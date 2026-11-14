@@ -145,6 +145,8 @@ private:
 	void putSelectionOnClipboard(bool cut) const;
 
 	void updateCurrentVolumeButtonAndInfoLabel();
+	// Sets the geometry and the file list's shape from the theme in effect
+	void applyTheme();
 
 	// Saves the image as a new file in the current folder; tells the user if that fails
 	void pasteImage(const QImage& image, bool lossyCompression);
