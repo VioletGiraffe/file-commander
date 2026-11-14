@@ -296,6 +296,61 @@ jobs:
         env -u DISPLAY -u WAYLAND_DISPLAY "./$APPIMAGE_FILE" --help | grep -- --settings-dir
         xvfb-run --auto-servernum "./$APPIMAGE_FILE" --tui --help | grep -- --settings-dir
 
+    # For manual review of the look; not a gate, so a failed capture holds back neither the build nor a release
+    - name: Screenshot - Linux
+      id: screenshot
+      if: matrix.os == 'ubuntu-24.04'
+      continue-on-error: true
+      run: |
+        sudo apt-get install -qq breeze-icon-theme imagemagick x11-utils xdotool
+        # A hook that sets QT_QPA_PLATFORMTHEME overrides the one below
+        tail -n +1 AppDir/apprun-hooks/*.sh || echo "No AppRun hooks"
+        # A fresh HOME: default settings, and both panels open on the sample files
+        sample="$RUNNER_TEMP/screenshot-home"
+        mkdir -p "$sample"/{Documents,Music,Pictures,Projects}
+        # .qqqx: a type no program claims
+        for name in notes.txt report.pdf photo.jpg diagram.png logo.svg archive.zip backup.tar.gz script.sh program.py main.cpp \
+                    data.csv page.html song.mp3 movie.mp4 slides.odp table.ods unknown.qqqx; do
+          head -c $((RANDOM * 8)) /dev/urandom > "$sample/$name"
+        done
+        export HOME="$sample" XDG_CONFIG_HOME="$sample/.config"
+        # No update check: its dialog would be a second window that xdotool could pick
+        mkdir -p "$XDG_CONFIG_HOME/GitHubSoft"
+        printf '[Other]\nUpdateChecking\\CheckAutomatically=false\n' > "$XDG_CONFIG_HOME/GitHubSoft/File Commander.conf"
+        # Under Xvfb no desktop sets an icon theme; Qt's KDE platform theme defaults to Breeze
+        export QT_QPA_PLATFORMTHEME=kde KDE_SESSION_VERSION=6
+        unset LD_LIBRARY_PATH QT_PLUGIN_PATH
+        # The window opens at half the screen on first launch: 1280x800
+        # FileCommander: the window's ICCCM instance name, from the executable name
+        xvfb-run --auto-servernum --server-args='-screen 0 2560x1600x24' bash -eu -c '
+          "./$APPIMAGE_FILE" &
+          app=$!
+          if window=$(timeout 60 xdotool search --sync --onlyvisible --limit 1 --classname "^FileCommander$"); then
+            sleep 5 # The file lists and their icons fill in after the window shows
+          else
+            echo "::warning title=Screenshot::No visible FileCommander window within 60 s: the whole screen is captured instead"
+            window=root
+          fi
+          # Every window with its WM_CLASS, for when the search above picked the wrong one or none
+          xwininfo -root -tree
+          import -window "$window" FileCommander-linux.png
+          kill "$app"'
+
+    # Uploads whatever was captured, even if the step then failed
+    - name: Archive the screenshot
+      id: screenshot-upload
+      if: hashFiles('FileCommander-linux.png') != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: FileCommander-linux.png
+        path: FileCommander-linux.png
+        archive: false
+        if-no-files-found: error
+
+    - name: Link the screenshot from the summary
+      if: steps.screenshot-upload.outcome == 'success'
+      run: echo "[Linux screenshot](${{ steps.screenshot-upload.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
+
     - name: Test launch
       if: startsWith(matrix.os, 'windows')
       run: |
