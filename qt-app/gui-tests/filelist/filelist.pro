@@ -5,7 +5,8 @@ CONFIG += console
 include(../../../file-commander-core/config.pri)
 
 # testlib: QAbstractItemModelTester
-QT += widgets testlib
+# svg: the file glyphs go through qtutils' CTintedSvgIconEngine
+QT += widgets testlib svg
 
 # global.pri's LTO removed: only tests with benchmarks use LTO
 # MSVC keeps /GL and /LTCG: linking the /GL-built qtutils, cpputils and thin_io forces LTCG
@@ -53,6 +54,7 @@ HEADERS += \
 	filelisttesthelpers.h \
 	../../src/iconprovider/ciconprovider.h \
 	../../src/iconprovider/ciconproviderimpl.h \
+	../../src/iconprovider/fileglyph.h \
 	../../src/panel/filelistwidget/cfilelistview.h \
 	../../src/panel/filelistwidget/filelistlook.h \
 	../../src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "iconprovider/fileglyph.h"
 #include "panel/filelistwidget/filelistlook.h"
 
 
@@ -8,8 +9,13 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QColor>
+#include <QHash>
+#include <QIcon>
 #include <QStyledItemDelegate>
 RESTORE_COMPILER_WARNINGS
+
+#include <utility>
 
 // Paints the cells only. The view paints the selection and the cursor behind the row, in the fill rect defined here.
 class CFileListItemDelegate final : public QStyledItemDelegate
@@ -33,8 +39,15 @@ public:
 	QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 
 protected:
+	// A glyph takes the row's text colour, which paint() and the view set for highlighted rows
+	void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override;
 	bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+	[[nodiscard]] QIcon glyphIcon(FileGlyph glyph, const QColor& color) const;
+
+private:
 	FileListLook _look;
+	// A few entries per theme: the text colours of plain, selected and cursor rows
+	mutable QHash<std::pair<int, QRgb>, QIcon> _glyphIconByColor;
 };

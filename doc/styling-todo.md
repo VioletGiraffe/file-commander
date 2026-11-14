@@ -43,11 +43,12 @@ Whether the cursor or the selection is the more prominent of the two may differ 
 
 ### Theme icons
 
-Colourful OS icons clash with the more stylized themes.
+Every theme draws a folder and a file glyph in place of the OS icons that show only the type. On Windows an object
+keeps its own OS icon when it differs from its type's; elsewhere there is no type's icon to compare with, so every
+object shows a glyph.
 
-- Theme-drawn glyphs for at least the folder and the plain file, through `CTintedSvgIconEngine`.
-- Processing of system icons (desaturation, tint) where the icon provider caches them.
-- Open: one of the two or both, and which files keep their own OS icon.
+- Later: glyphs on the drive buttons.
+- Linux: the icon theme names an object's icon, which could serve for the comparison.
 
 ### Breadcrumb path bar
 

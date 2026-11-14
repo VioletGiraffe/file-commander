@@ -6,6 +6,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "theme/ctintedsvgiconengine.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -14,9 +15,11 @@ DISABLE_COMPILER_WARNINGS
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QPainter>
+#include <QPalette>
 #include <QPlainTextEdit>
 #include <QTextEdit>
 #include <QTreeView>
+#include <QVariant>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
@@ -113,6 +116,27 @@ void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem&
 	else if (index.column() != NameColumn)
 		opt.palette.setColor(QPalette::Text, option.palette.color(QPalette::PlaceholderText));
 	QStyledItemDelegate::paint(painter, opt, index);
+}
+
+void CFileListItemDelegate::initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const
+{
+	QStyledItemDelegate::initStyleOption(option, index);
+
+	if (const QVariant glyph = index.data(FileGlyphRole); glyph.isValid())
+		option->icon = glyphIcon(static_cast<FileGlyph>(glyph.toInt()), option->palette.color(QPalette::Text));
+}
+
+QIcon CFileListItemDelegate::glyphIcon(const FileGlyph glyph, const QColor& color) const
+{
+	static constexpr qsizetype maxCachedIcons = 16;
+	if (_glyphIconByColor.size() >= maxCachedIcons)
+		_glyphIconByColor.clear(); // the colours of earlier themes
+
+	const std::pair key{ static_cast<int>(glyph), color.rgba() };
+	auto it = _glyphIconByColor.constFind(key);
+	if (it == _glyphIconByColor.constEnd())
+		it = _glyphIconByColor.insert(key, tintedSvgIcon(fileGlyphResource(glyph), [color] { return color; }));
+	return *it;
 }
 
 QSize CFileListItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const

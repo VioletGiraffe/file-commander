@@ -3,6 +3,7 @@
 #include "filelist/filesizetext.h"
 #include "filelist/filetimetext.h"
 #include "iconprovider/ciconprovider.h"
+#include "iconprovider/fileglyph.h"
 
 
 // Submodule includes
@@ -12,12 +13,14 @@
 DISABLE_COMPILER_WARNINGS
 #include <3rdparty/ankerl/unordered_dense.h>
 
+#include <QIcon>
 #include <QMimeData>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <functional>
+#include <optional>
 #include <utility>
 
 static QVariant displayText(const CFileSystemObject& row, int column, const QString& listedFolder)
@@ -340,7 +343,7 @@ void CFileListModel::onIconsChanged(const std::vector<qulonglong>& objectHashes)
 	{
 		const QModelIndex itemIndex = indexByHash(objectHash);
 		if (itemIndex.isValid())
-			emit dataChanged(itemIndex, itemIndex, {Qt::DecorationRole});
+			emit dataChanged(itemIndex, itemIndex, {Qt::DecorationRole, FileGlyphRole});
 	}
 }
 
@@ -349,7 +352,7 @@ void CFileListModel::onAllIconsChanged()
 	if (_displayedRows.empty())
 		return;
 
-	emit dataChanged(index(0, NameColumn), index((int)_displayedRows.size() - 1, NameColumn), {Qt::DecorationRole});
+	emit dataChanged(index(0, NameColumn), index((int)_displayedRows.size() - 1, NameColumn), {Qt::DecorationRole, FileGlyphRole});
 }
 
 QModelIndex CFileListModel::index(int row, int column, const QModelIndex& parent) const
@@ -398,10 +401,18 @@ QVariant CFileListModel::data(const QModelIndex& index, int role) const
 	case Qt::TextAlignmentRole:
 		return textAlignment(index.column());
 	case Qt::DecorationRole:
-		if (_iconProvider && index.column() == NameColumn && !row.isCdUp())
-			return _iconProvider->bestAvailableIconFor(row);
-		else
+	case FileGlyphRole:
+	{
+		if (!_iconProvider || index.column() != NameColumn || row.isCdUp())
 			return {};
+
+		QIcon icon = _iconProvider->bestAvailableIconFor(row);
+		if (role == Qt::DecorationRole)
+			return icon;
+
+		const std::optional<FileGlyph> glyph = _iconProvider->glyphOf(icon);
+		return glyph ? QVariant{ static_cast<int>(*glyph) } : QVariant{};
+	}
 	default:
 		return {};
 	}

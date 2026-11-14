@@ -68,6 +68,7 @@ HEADERS += \
 	src/cmainwindow.h \
 	src/iconprovider/ciconprovider.h \
 	src/iconprovider/ciconproviderimpl.h \
+	src/iconprovider/fileglyph.h \
 	src/commandoutput/ccommandoutputarea.h \
 	src/commandoutput/ccommandoutputpane.h \
 	src/functionkeybar/cfunctionkeybutton.h \

@@ -27,7 +27,8 @@ RESTORE_COMPILER_WARNINGS
 #include <vector>
 
 enum Role {
-	FullNameRole = Qt::UserRole+1
+	FullNameRole = Qt::UserRole+1,
+	FileGlyphRole // The FileGlyph, as an int, when the icon is one; a delegate draws it in the row's text colour
 };
 
 class CIconProvider;

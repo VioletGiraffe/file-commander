@@ -19,7 +19,7 @@ owners. Filesystem and panel access goes through `CController`.
 | Programs menu editor | `src/programseditor/`; see [process-launching.md](process-launching.md) |
 | File-operation UI | `src/progressdialogs/` (launch, confirmation); the dialogs are in `file-operations/fileoperationsui/` |
 | Search, tools, and settings | `src/filessearchdialog/`, `src/tools/`, `src/settings/` |
-| File and volume icons | `src/iconprovider/`; extension guessing is the disk-free fast path |
+| File and volume icons | `src/iconprovider/`; the app's folder and file glyphs replace OS icons that show only the type |
 | Themes | `src/themes/`; the app-independent parts are in `qtutils/theme/` |
 
 ## Main window

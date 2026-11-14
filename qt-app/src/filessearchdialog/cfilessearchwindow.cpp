@@ -38,12 +38,7 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 
 // Results added to the list per event loop turn, so the window stays responsive while results arrive faster than it can add them
-#ifdef __APPLE__
-// genericIconFor fetches every row's icon from the system there: search results are rarely in its cache
-static constexpr size_t maxRowsPerTurn = 10;
-#else
 static constexpr size_t maxRowsPerTurn = 200;
-#endif
 
 // "1 item", "2 items"
 [[nodiscard]] static QString itemCountText(const uint64_t count)

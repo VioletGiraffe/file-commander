@@ -11,7 +11,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
 #include <QIcon>
 #include <QImage>
-#include <QMimeDatabase>
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
@@ -77,25 +76,6 @@ QIcon CIconProviderImpl::iconFor(const QString& fullAbsolutePath) noexcept
 {
 	return _provider.icon(QFileInfo{ fullAbsolutePath });
 }
-
-#ifndef __APPLE__
-QIcon CIconProviderImpl::genericIcon(const QString& extension, const bool isDir) const noexcept
-{
-	if (isDir)
-		return _provider.icon(QAbstractFileIconProvider::Folder);
-
-	// Matched by the name alone: the file is not read
-	const QList<QMimeType> types = QMimeDatabase{}.mimeTypesForFileName(QStringLiteral("a.") + extension);
-	if (!types.isEmpty())
-	{
-		const QMimeType& type = types.front();
-		if (QIcon icon = QIcon::fromTheme(type.iconName(), QIcon::fromTheme(type.genericIconName())); !icon.isNull())
-			return icon;
-	}
-
-	return _provider.icon(QAbstractFileIconProvider::File);
-}
-#endif
 
 void CIconProviderImpl::setShowOverlayIcons(const bool show) noexcept
 {

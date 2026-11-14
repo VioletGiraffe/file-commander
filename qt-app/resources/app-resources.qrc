@@ -4,6 +4,8 @@
 	</qresource>
 	<qresource prefix="/theme">
 		<file alias="combobox_down_arrow.svg">theme/combobox_down_arrow.svg</file>
+		<file alias="file.svg">theme/file.svg</file>
+		<file alias="folder.svg">theme/folder.svg</file>
 		<file alias="go_to_root.svg">theme/go_to_root.svg</file>
 		<file alias="star.svg">theme/star.svg</file>
 		<file alias="tab_close.svg">theme/tab_close.svg</file>

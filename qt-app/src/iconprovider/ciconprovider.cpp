@@ -8,11 +8,13 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "hash/wheathash.hpp"
+#include "theme/ctintedsvgiconengine.h"
 
 
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
 #include <QGuiApplication>
+#include <QPalette>
 #include <QPixmap>
 #include <QScreen>
 #include <QSettings>
@@ -44,6 +46,11 @@ static constexpr size_t maxCachedObjects = 32768;
 #else
 	return QStringHash{}(fullAbsolutePath);
 #endif
+}
+
+[[nodiscard]] static QIcon paletteTextColouredGlyph(const FileGlyph glyph)
+{
+	return tintedSvgIcon(fileGlyphResource(glyph), [] { return QGuiApplication::palette().color(QPalette::Text); });
 }
 
 #ifdef _WIN32
@@ -81,7 +88,10 @@ static constexpr size_t maxPendingRequests = 512;
 
 #endif
 
-CIconProvider::CIconProvider() : _provider{std::make_unique<CIconProviderImpl>()}
+CIconProvider::CIconProvider() :
+	_folderGlyph{ paletteTextColouredGlyph(FileGlyph::Folder) },
+	_fileGlyph{ paletteTextColouredGlyph(FileGlyph::File) },
+	_provider{ std::make_unique<CIconProviderImpl>() }
 {
 	settingsChanged();
 	watchForAppearanceChanges();
@@ -112,34 +122,18 @@ CIconProvider::~CIconProvider()
 
 QIcon CIconProvider::genericIconFor(const CFileSystemObject& object)
 {
-#ifdef __APPLE__
-	return preciseIconBlocking(object);
-#else
-	if (object.isDir())
-	{
-		if (!_genericFolderIcon)
-		{
-			QIcon icon = fetchGenericIcon({}, true);
-			if (icon.isNull())
-				return {};
+	return object.isDir() ? _folderGlyph : _fileGlyph;
+}
 
-			_genericFolderIcon = std::move(icon);
-		}
+std::optional<FileGlyph> CIconProvider::glyphOf(const QIcon& icon) const
+{
+	// A copy of a QIcon has its cache key
+	if (icon.cacheKey() == _folderGlyph.cacheKey())
+		return FileGlyph::Folder;
+	if (icon.cacheKey() == _fileGlyph.cacheKey())
+		return FileGlyph::File;
 
-		return *_genericFolderIcon;
-	}
-
-	const QStringView extension = object.extension();
-	if (const auto it = _genericIconByExtension.find(extension); it != _genericIconByExtension.end())
-		return it->second;
-
-	QString extensionString = extension.toString();
-	QIcon icon = fetchGenericIcon(extensionString, false);
-	if (icon.isNull())
-		return {};
-
-	return _genericIconByExtension.emplace(std::move(extensionString), std::move(icon)).first->second;
-#endif
+	return {};
 }
 
 QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
@@ -163,19 +157,23 @@ QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
 
 QIcon CIconProvider::bestAvailableIconFor(const CFileSystemObject& object)
 {
-#ifdef _WIN32
 	const QString& fullAbsolutePath = object.fullAbsolutePath();
 	if (fullAbsolutePath.isEmpty())
 		return {};
 
+#ifdef _WIN32
 	const uint64_t cacheKey = iconCacheKey(fullAbsolutePath);
-	CachedLookup cached = cachedPreciseIcon(cacheKey, object.modificationTime());
+	const CachedLookup cached = cachedPreciseIcon(cacheKey, object.modificationTime());
 	if (cached.icon.isNull() || cached.stale)
 		requestPreciseIcon(fullAbsolutePath, cacheKey, object.hash(), object.modificationTime());
 
-	return cached.icon.isNull() ? genericIconFor(object) : cached.icon;
+	// An object's own icon is shown only when it tells more than its type's icon does
+	if (cached.icon.isNull() || cached.contentHash == genericIconContentHash(object))
+		return genericIconFor(object);
+
+	return cached.icon;
 #else
-	return preciseIconBlocking(object);
+	return genericIconFor(object);
 #endif
 }
 
@@ -204,10 +202,11 @@ void CIconProvider::invalidateCache()
 {
 	_cachedIconByPathKey.clear();
 	_iconByContentHash.clear();
-	_genericIconByExtension.clear();
-	_genericFolderIcon.reset();
 
 #ifdef _WIN32
+	_genericIconHashByExtension.clear();
+	_genericFolderIconHash.reset();
+
 	++_requestGeneration;
 	_requestedKeys.clear();
 
@@ -259,17 +258,6 @@ void CIconProvider::watchForAppearanceChanges()
 	connect(application, &QGuiApplication::primaryScreenChanged, this, [this] { invalidateCache(); });
 }
 
-#ifndef __APPLE__
-QIcon CIconProvider::fetchGenericIcon(const QString& extension, const bool isDir) const
-{
-#ifdef _WIN32
-	return iconFromImage(_provider->genericIconImage(extension, isDir));
-#else
-	return _provider->genericIcon(extension, isDir);
-#endif
-}
-#endif
-
 CIconProvider::FetchedIcon CIconProvider::fetchPreciseIcon(const QString& fullAbsolutePath) const
 {
 #ifdef _WIN32
@@ -299,7 +287,7 @@ CIconProvider::CachedLookup CIconProvider::cachedPreciseIcon(const uint64_t cach
 
 	const auto icon = _iconByContentHash.find(cached->second.contentHash);
 	assert_and_return_r(icon != _iconByContentHash.end(), {}); // The two are only ever filled and cleared together
-	return { icon->second, cached->second.stale };
+	return { icon->second, cached->second.contentHash, cached->second.stale };
 }
 
 void CIconProvider::cachePreciseIcon(const uint64_t cacheKey, const qulonglong objectHash, const time_t modificationTime, FetchedIcon&& fetched)
@@ -316,6 +304,32 @@ void CIconProvider::cachePreciseIcon(const uint64_t cacheKey, const qulonglong o
 }
 
 #ifdef _WIN32
+
+std::optional<uint64_t> CIconProvider::genericIconContentHash(const CFileSystemObject& object)
+{
+	// Not cached when the shell gives no icon: the next query asks again
+	const auto fetchHash = [this](const QString& extension, const bool isDir) -> std::optional<uint64_t> {
+		const QImage image = _provider->genericIconImage(extension, isDir);
+		return image.isNull() ? std::nullopt : std::optional{ imageContentHash(image) };
+	};
+
+	if (object.isDir())
+	{
+		if (!_genericFolderIconHash)
+			_genericFolderIconHash = fetchHash({}, true);
+		return _genericFolderIconHash;
+	}
+
+	const QStringView extension = object.extension();
+	if (const auto it = _genericIconHashByExtension.find(extension); it != _genericIconHashByExtension.end())
+		return it->second;
+
+	QString extensionString = extension.toString();
+	const std::optional<uint64_t> hash = fetchHash(extensionString, false);
+	if (hash)
+		_genericIconHashByExtension.emplace(std::move(extensionString), *hash);
+	return hash;
+}
 
 void CIconProvider::requestPreciseIcon(const QString& fullAbsolutePath, const uint64_t cacheKey, const qulonglong objectHash, const time_t modificationTime)
 {
