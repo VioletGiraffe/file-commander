@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794699126648,
+  "lastUpdate": 1794706556907,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -36292,6 +36292,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 516.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 51,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "b28f9dbe4db5a79685828fbe95c1b73d0051f3b0",
+          "message": "The file list defaults to an installed monospace font instead of the bundled Roboto Mono, and falls back to it when the saved font is not installed",
+          "timestamp": "2026-11-15T02:42:37+02:00",
+          "tree_id": "7a9f54dd1bffd88f418f78665812342b5f2b1e63",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/b28f9dbe4db5a79685828fbe95c1b73d0051f3b0"
+        },
+        "date": 1794706554489,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 20748,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35985,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1716.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2188,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1047.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 449,
             "unit": "KB"
           },
           {
