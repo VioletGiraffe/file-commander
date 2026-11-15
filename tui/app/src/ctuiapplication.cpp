@@ -399,7 +399,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 	);
 }
 
-// The menus bind the keys shown here; the items respond to clicks only.
+// The menus bind F2 to F8: their items here respond to clicks only.
 // Binds F10, which opens the menus, and Alt+1 to Alt+9: a menu item binds only one key.
 TStatusLine* CTuiApplication::initStatusLine(TRect r)
 {
@@ -414,7 +414,7 @@ TStatusLine* CTuiApplication::initStatusLine(TRect r)
 			*new TStatusItem("~F6~ Move", kbNoKey, cmMoveItems) +
 			*new TStatusItem("~F7~ Folder", kbNoKey, cmCreateFolder) +
 			*new TStatusItem("~F8~ Delete", kbNoKey, cmDeleteItems) +
-			*new TStatusItem(nullptr, kbF10, cmMenu) +
+			*new TStatusItem("~F10~ Menu", kbF10, cmMenu) +
 			*new TStatusItem(nullptr, kbAlt1, cmActivateTab1) +
 			*new TStatusItem(nullptr, kbAlt2, cmActivateTab1 + 1) +
 			*new TStatusItem(nullptr, kbAlt3, cmActivateTab1 + 2) +
@@ -434,11 +434,10 @@ TStatusLine* CTuiApplication::initHintLine(TRect r)
 	r.a.y = r.b.y - 1;
 	return new CTuiHintLine(r,
 		*new TStatusDef(0, 0xFFFF) +
-			*new TStatusItem("~Tab~ Panel", kbNoKey, 0) +
-			*new TStatusItem("~Enter~ Open", kbNoKey, 0) +
 			*new TStatusItem("~Alt-D~ Go to", kbNoKey, 0) +
 			*new TStatusItem("~Alt-F1/F2~ Volume", kbNoKey, 0) +
-			*new TStatusItem("~F10~ Menu", kbNoKey, cmMenu) +
+			*new TStatusItem("~Alt-F7~ Find", kbNoKey, cmFindFiles) +
+			*new TStatusItem("~Shift-F2~ Batch rename", kbNoKey, cmBatchRename) +
 			*new TStatusItem("~Alt-X~ Exit", kbNoKey, cmQuit)
 	);
 }

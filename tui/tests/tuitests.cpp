@@ -326,14 +326,15 @@ void requireRecordedLaunch(const QStringList& record, const QString& expectedFil
 
 } // namespace
 
-TEST_CASE("The status rows show the keys", "[tui]")
+TEST_CASE("The status rows show all of their keys in 80 columns", "[tui]")
 {
 	const Sandbox sandbox;
-	auto session = startFcterm(sandbox);
-	CHECK(session->screen().row(hintRow).contains(QStringLiteral("Tab Panel")));
+	auto session = startFcterm(sandbox, { .columns = 80 });
+	CHECK(session->screen().row(hintRow).contains(QStringLiteral("Shift-F2 Batch rename")));
 	CHECK(session->screen().row(hintRow).contains(QStringLiteral("Alt-X Exit")));
 	CHECK(session->screen().row(keyRow).contains(QStringLiteral("F2 Rename")));
 	CHECK(session->screen().row(keyRow).contains(QStringLiteral("F8 Delete")));
+	CHECK(session->screen().row(keyRow).contains(QStringLiteral("F10 Menu")));
 }
 
 TEST_CASE("A click on a key bar item runs its command, and a click between items runs none", "[tui]")
