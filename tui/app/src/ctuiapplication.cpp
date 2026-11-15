@@ -14,6 +14,7 @@
 #define Uses_TDrawBuffer
 #define Uses_TEvent
 #define Uses_TKeys
+#define Uses_TMenu
 #define Uses_TMenuBar
 #define Uses_TMenuItem
 #define Uses_TStatusDef
@@ -26,9 +27,11 @@ DISABLE_COMPILER_WARNINGS
 #include <QByteArrayView>
 #include <QCoreApplication>
 #include <QProcess>
+#include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
 #include <cstdio>
+#include <string>
 #include <utility>
 #include <variant>
 
@@ -41,10 +44,19 @@ RESTORE_COMPILER_WARNINGS
 #include <unistd.h>
 #endif
 
+#define KEY_TUI_COLOUR_THEME QStringLiteral("TerminalUI/ColourTheme")
+
 namespace
 {
 // Carried out by the application, not the focused panel
 constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102;
+// cmFirstColourTheme + n chooses the ColourTheme n
+constexpr ushort cmFirstColourTheme = 1103;
+
+[[nodiscard]] bool isColourThemeCommand(ushort command)
+{
+	return command >= cmFirstColourTheme && command < cmFirstColourTheme + colourThemeCount;
+}
 
 #ifdef _WIN32
 BOOL WINAPI ignoreInterrupt(DWORD controlType)
@@ -177,6 +189,40 @@ private:
 		writeLine(0, 0, (short)size.x, 1, line);
 	}
 };
+
+class CTuiMenuBar final : public TMenuBar
+{
+public:
+	using TMenuBar::TMenuBar;
+
+	// Names the Theme menu's items, with a mark on the theme given
+	void markColourTheme(ColourTheme theme) { markColourTheme(menu, theme); }
+
+private:
+	static void markColourTheme(TMenu* someMenu, ColourTheme theme)
+	{
+		for (TMenuItem* item = someMenu->items; item; item = item->next)
+		{
+			if (item->command == 0 && item->subMenu) // A separator has no submenu
+				markColourTheme(item->subMenu, theme);
+			else if (isColourThemeCommand(item->command))
+			{
+				const auto itemTheme = (ColourTheme)(item->command - cmFirstColourTheme);
+				const std::string itemName = (itemTheme == theme ? "• " : "  ") + std::string{ colourThemeMenuName(itemTheme) };
+				delete[] item->name;
+				item->name = newStr(itemName.c_str());
+			}
+		}
+	}
+};
+
+[[nodiscard]] TMenu* newColourThemeMenu()
+{
+	TMenuItem* items = nullptr;
+	for (size_t i = colourThemeCount; i-- > 0;)
+		items = new TMenuItem(colourThemeMenuName((ColourTheme)i), (ushort)(cmFirstColourTheme + i), kbNoKey, hcNoContext, {}, items);
+	return new TMenu(*items);
+}
 } // namespace
 
 CTuiApplication::CTuiApplication(CController& controller) :
@@ -196,6 +242,9 @@ CTuiApplication::CTuiApplication(CController& controller) :
 	for (CTuiPanel* panel : _panels)
 		deskTop->insert(panel);
 	_panels[(size_t)Panel::LeftPanel]->select();
+
+	const std::string themeId = QSettings{}.value(KEY_TUI_COLOUR_THEME).toString().toStdString();
+	setColourTheme(colourThemeWithId(themeId).value_or(ColourTheme::ClassicBlue));
 }
 
 void CTuiApplication::getEvent(TEvent& event)
@@ -232,7 +281,23 @@ void CTuiApplication::handleEvent(TEvent& event)
 		return;
 	}
 
+	if (event.what == evCommand && isColourThemeCommand(event.message.command))
+	{
+		const auto theme = (ColourTheme)(event.message.command - cmFirstColourTheme);
+		clearEvent(event);
+		setColourTheme(theme);
+		QSettings{}.setValue(KEY_TUI_COLOUR_THEME, QString::fromLatin1(colourThemeId(theme)));
+		return;
+	}
+
 	TApplication::handleEvent(event);
+}
+
+void CTuiApplication::setColourTheme(ColourTheme theme)
+{
+	applyColourTheme(theme);
+	static_cast<CTuiMenuBar*>(menuBar)->markColourTheme(theme); // initMenuBar creates a CTuiMenuBar
+	redraw();
 }
 
 void CTuiApplication::findFiles()
@@ -342,7 +407,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 	r.b.y = r.a.y + 1;
 	// Menu titles avoid the letters of the panel's Alt+letter keys: Alt plus a title's letter opens that menu.
 	// Keys a text field uses stay with the panel (see commandForPanelKey), so their menu items only show them.
-	return new TMenuBar(r,
+	return new CTuiMenuBar(r,
 		*new TSubMenu("~F~ile", kbAltF) +
 			*new TMenuItem("~R~ename...", cmRenameItem, kbF2, hcNoContext, "F2") +
 			*new TMenuItem("~B~atch rename...", cmBatchRename, kbShiftF2, hcNoContext, "Shift-F2") +
@@ -387,6 +452,8 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("Sort by ~e~xtension", cmSortByExtension, kbCtrlF4, hcNoContext, "Ctrl-F4") +
 			*new TMenuItem("Sort by ~d~ate", cmSortByDate, kbCtrlF5, hcNoContext, "Ctrl-F5") +
 			*new TMenuItem("Sort by ~s~ize", cmSortBySize, kbCtrlF6, hcNoContext, "Ctrl-F6") +
+			newLine() +
+			*new TMenuItem("~T~heme", kbNoKey, newColourThemeMenu()) +
 		*new TSubMenu("~G~o", kbAltG) +
 			*new TMenuItem("~B~ack", cmGoBack, kbAltLeft, hcNoContext, "Alt-Left") +
 			*new TMenuItem("~F~orward", cmGoForward, kbAltRight, hcNoContext, "Alt-Right") +

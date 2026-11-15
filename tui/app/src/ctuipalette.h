@@ -7,6 +7,9 @@ DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 RESTORE_COMPILER_WARNINGS
 
+#include <optional>
+#include <string_view>
+
 // The panel window's palette: the blue window's eight entries, then these.
 // The panel's own views pass them to mapColor: a view without a palette hands its index to the owner unchanged.
 enum PanelPaletteEntry : uchar
@@ -26,7 +29,20 @@ enum PanelPaletteEntry : uchar
 	ppLastEntry = ppCursorColumnSeparator
 };
 
-// Turbo Vision's application palette in RGB, followed by the entries of the panel, the hint row and the key bar
+enum class ColourTheme : uchar { ClassicBlue, Dark, Light, CoolGrey, LightCyan };
+inline constexpr size_t colourThemeCount = 5;
+
+// As the menu shows it: the shortcut letter is between tildes
+[[nodiscard]] const char* colourThemeMenuName(ColourTheme theme);
+// The settings store it: never changes
+[[nodiscard]] const char* colourThemeId(ColourTheme theme);
+// Empty for an unknown id
+[[nodiscard]] std::optional<ColourTheme> colourThemeWithId(std::string_view id);
+// Sets the application palette's colours. Views read them at every draw: the caller redraws.
+void applyColourTheme(ColourTheme theme);
+
+// Turbo Vision's application palette in RGB, followed by the entries of the panel, the hint row and the key bar.
+// Classic blue until applyColourTheme sets another theme.
 [[nodiscard]] TPalette& applicationPalette();
 [[nodiscard]] TPalette& panelPalette();
 // The rows under the panels: entries 1-6 are in Turbo Vision's status line order, and the key bar's entry 7 is its background

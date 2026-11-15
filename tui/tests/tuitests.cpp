@@ -795,6 +795,36 @@ TEST_CASE("F10 and Alt+letter open the menus, whose commands act on the focused 
 		QStringLiteral("every file selected"));
 }
 
+TEST_CASE("A colour theme chosen in View > Theme is marked there, in the next session too", "[tui]")
+{
+	const Sandbox sandbox;
+	const auto openThemeMenu = [](CTerminalSession& session) {
+		session.send(Keys::AltV);
+		requireText(session, QStringLiteral("Theme"));
+		session.send("t"sv);
+	};
+	{
+		auto session = startFcterm(sandbox);
+		openThemeMenu(*session);
+		requireText(*session, QStringLiteral("• Classic blue"));
+		session->send("d"sv);
+		requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Classic blue")); }, QStringLiteral("the menu closed"));
+		openThemeMenu(*session);
+		requireText(*session, QStringLiteral("• Dark"));
+		session->send(Keys::Escape);
+		requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Dark")); }, QStringLiteral("the Theme menu closed"));
+		session->send(Keys::Escape);
+		requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Sort by")); }, QStringLiteral("the View menu closed"));
+		session->send(Keys::AltX);
+		REQUIRE(session->waitForExit() == 0);
+	}
+
+	auto session = startFcterm(sandbox);
+	openThemeMenu(*session);
+	requireText(*session, QStringLiteral("• Dark"));
+	CHECK_FALSE(session->screen().contains(QStringLiteral("• Classic blue")));
+}
+
 TEST_CASE("Tabs open, switch with their own filter, and close", "[tui]")
 {
 	const Sandbox sandbox;

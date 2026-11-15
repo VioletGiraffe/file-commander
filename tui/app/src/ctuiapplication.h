@@ -12,6 +12,7 @@ RESTORE_COMPILER_WARNINGS
 #include <array>
 #include <expected>
 
+enum class ColourTheme : uchar;
 class CController;
 class CTuiFindDialog;
 class CTuiPanel;
@@ -45,6 +46,8 @@ private:
 
 	// Searches from the active panel's folder or selection, and goes to the result chosen
 	void findFiles();
+	// Recolours the screen and marks the theme in the Theme menu
+	void setColourTheme(ColourTheme theme);
 
 private:
 	CController& _controller;
