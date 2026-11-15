@@ -160,6 +160,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	ui->_infoLabel->clear();
 	ui->_driveInfoLabel->clear();
 	ui->_driveUsageBar->hide();
+	ui->_driveButtonsWidget->setLayout(new CFlowLayout(ui->_driveButtonsWidget, 0)); // applyTheme() sets the spacing
 
 	const auto dimTextColor = [] { return QApplication::palette().color(QPalette::PlaceholderText); };
 	ui->_btnFavs->setIcon(tintedSvgIcon(QSL(":/theme/star.svg"), dimTextColor));
@@ -1434,9 +1435,6 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 
 	_currentVolumePath.clear();
 
-	if (!ui->_driveButtonsWidget->layout())
-		ui->_driveButtonsWidget->setLayout(new CFlowLayout(ui->_driveButtonsWidget, 0, 4, 4));
-
 	if (significantChange)
 	{
 		// Clearing and deleting the previous buttons
@@ -1732,6 +1730,7 @@ void CPanelWidget::applyTheme()
 	ui->verticalLayout->setContentsMargins(border, flat ? 0 : border, border, border);
 	ui->verticalLayout->setSpacing(theme.metrics.panelRowSpacing);
 	ui->driveRowLayout->setContentsMargins(padding, flat ? 0 : padding, padding, 0);
+	ui->_driveButtonsWidget->layout()->setSpacing(theme.metrics.driveButtonSpacing);
 	ui->pathRowLayout->setContentsMargins(padding, 0, padding, 0);
 	ui->tabRowLayout->setContentsMargins(padding, 0, padding, 0);
 
@@ -1766,9 +1765,7 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfo()
 		ui->_driveUsageBar->hide();
 	}
 
-	auto* layout = ui->_driveButtonsWidget->layout();
-	if (!layout)
-		return; // The drive buttons (and their layout) aren't created until volumesChanged() first runs; nothing to update yet.
+	const QLayout* layout = ui->_driveButtonsWidget->layout();
 
 	for (int i = 0, n = layout->count(); i < n; ++i)
 	{

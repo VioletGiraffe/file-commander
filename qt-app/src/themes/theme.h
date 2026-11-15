@@ -33,6 +33,8 @@ struct ThemeMetrics
 	int windowMargin = 8, panelGap = 8, commandLineMargin = 8;
 	// The function key bar: between its buttons, and between it and the window's edges
 	int functionKeySpacing = 6, functionKeyBarMargin = 8;
+	// Between drive buttons, across and down. A click in the gap hits no button.
+	int driveButtonSpacing = 0;
 };
 
 // What a theme changes besides colours and sizes

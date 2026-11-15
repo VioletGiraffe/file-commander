@@ -192,6 +192,7 @@ constexpr char kSplitters[] = R"(
 
 // A file panel is a card on the window background. CPanelWidget sets the activePanel property.
 // The file list's header is transparent: the active panel's background shows through it.
+// A drive button's min-width keeps a one-letter label easy to hit. QSS measures an em as the font's line height.
 constexpr char kPanels[] = R"(
 	CPanelWidget { background: @surface@; border: @panelBorderWidth@px solid @border@; border-radius: @panelRadius@px; }
 	CPanelWidget[activePanel="true"] { border-color: @panelActiveBorder@; background: @activePanelBackground@; }
@@ -209,6 +210,7 @@ constexpr char kPanels[] = R"(
 		border: 1px solid transparent;
 		border-radius: @controlRadius@px;
 		padding: 3px 8px;
+		min-width: 1.25em;
 		color: @textDim@;
 	}
 	#_driveButtonsWidget > QPushButton:hover { background: @surfaceAlt@; color: @text@; }

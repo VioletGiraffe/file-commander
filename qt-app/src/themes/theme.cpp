@@ -110,6 +110,7 @@ constexpr char kMeadowStyleSheet[] = R"(
 			.controlRadius = 11, .panelRadius = 14, .panelBorderWidth = 2, .menuItemRadius = 11,
 			.panelPadding = 10,
 			.windowMargin = 12, .panelGap = 10, .commandLineMargin = 12,
+			.driveButtonSpacing = 4, // the drive buttons are filled chips
 		},
 		.fileList = {
 			.rowFillInset = 8, .rowFillGap = 2,
@@ -178,7 +179,7 @@ constexpr char kLedgerStyleSheet[] = R"(
 
 	CPanelWidget > QToolButton { border-color: transparent; }
 
-	#_driveButtonsWidget > QPushButton { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 2px 2px; }
+	#_driveButtonsWidget > QPushButton { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 2px 6px; }
 	#_driveButtonsWidget > QPushButton:hover { background: transparent; }
 	#_driveButtonsWidget > QPushButton:checked { background: transparent; border-bottom-color: @text@; color: @text@; font-weight: bold; }
 
