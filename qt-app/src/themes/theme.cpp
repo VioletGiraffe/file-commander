@@ -186,20 +186,13 @@ constexpr char kLedgerStyleSheet[] = R"(
 	CMainWindow > #centralwidget > QComboBox { background: transparent; border: none; border-bottom: 1px solid @text@; border-radius: 0; }
 )";
 
-[[nodiscard]] Theme ledgerTheme()
+// Ledger in one polarity: everything but the palette is shared.
+// The row hairlines take the palette's borderSubtle, which must be authored: the palette is not resolved yet.
+[[nodiscard]] Theme ledgerTheme(const bool dark, const CBasePalette& palette)
 {
-	const CBasePalette palette{
-		.windowBg = rgb(0xffffff), .surface = rgb(0xffffff), .surfaceAlt = rgb(0xf3f5f8),
-		.text = rgb(0x161a22), .textDim = rgb(0x5a6372),
-		.button = rgb(0xffffff),
-		.accent = rgb(0x1d4ed8),
-		.selectionBg = rgb(0xedf1fc), .selectionFg = rgb(0x1d4ed8),
-		.border = rgb(0xd9dde5), .borderSubtle = rgb(0xe6e9ee),
-	};
-
 	return {
 		.name = QStringLiteral("Ledger"),
-		.dark = false,
+		.dark = dark,
 		.pathBar = PathBarStyle::Titled,
 		.palette = palette,
 		.metrics = {
@@ -285,7 +278,22 @@ const std::vector<Theme>& allThemes()
 			.accentFg = rgb(0xffffff),
 		}),
 		meadowTheme(),
-		ledgerTheme(),
+		ledgerTheme(true, {
+			.windowBg = rgb(0x1a1916), .surface = rgb(0x1a1916), .surfaceAlt = rgb(0x24221e),
+			.text = rgb(0xece7dd), .textDim = rgb(0x9a9488),
+			.button = rgb(0x1a1916),
+			.accent = rgb(0xe9a752),
+			.selectionBg = rgb(0x3a2f20), .selectionFg = rgb(0xf2bd74),
+			.border = rgb(0x36332d), .borderSubtle = rgb(0x2a2824),
+		}),
+		ledgerTheme(false, {
+			.windowBg = rgb(0xffffff), .surface = rgb(0xffffff), .surfaceAlt = rgb(0xf3f5f8),
+			.text = rgb(0x161a22), .textDim = rgb(0x5a6372),
+			.button = rgb(0xffffff),
+			.accent = rgb(0x1d4ed8),
+			.selectionBg = rgb(0xedf1fc), .selectionFg = rgb(0x1d4ed8),
+			.border = rgb(0xd9dde5), .borderSubtle = rgb(0xe6e9ee),
+		}),
 		duskTheme(),
 	};
 	return themes;
