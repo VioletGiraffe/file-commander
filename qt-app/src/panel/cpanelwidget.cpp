@@ -80,6 +80,7 @@ RESTORE_COMPILER_WARNINGS
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 // Set while the panel is the active one. themes/stylesheet.cpp has rules for it.
 static constexpr char activePanelProperty[] = "activePanel";
@@ -254,9 +255,12 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 	setProperty(activePanelProperty, active);
 	ui->_breadcrumbBar->setShownAsActive(active);
 	ui->_driveUsageBar->setShownAsActive(active);
-	// A stylesheet matches property selectors only while polishing a widget; the path editor has rules on this panel's property too
+	// A stylesheet matches property selectors only while polishing a widget; the path editor and the drive buttons have rules on this panel's property too
 	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
-	for (QWidget* widget : { static_cast<QWidget*>(this), static_cast<QWidget*>(&pathEditor), static_cast<QWidget*>(pathEditor.lineEdit()) })
+	std::vector<QWidget*> widgets{ this, &pathEditor, pathEditor.lineEdit() };
+	for (QPushButton* driveButton : ui->_driveButtonsWidget->findChildren<QPushButton*>(Qt::FindDirectChildrenOnly))
+		widgets.push_back(driveButton);
+	for (QWidget* widget : widgets)
 	{
 		style()->unpolish(widget);
 		style()->polish(widget);
@@ -1715,9 +1719,10 @@ void CPanelWidget::applyTheme()
 	ui->_breadcrumbBar->applyTheme();
 
 	// The file list has no padding: its rows reach the panel's border. The stylesheet pads the info label.
-	// 1: the border's width. A flat panel's top edge is behind its first row.
+	// The margins are the border's width. A flat panel's top edge is behind its first row.
 	const int padding = theme.metrics.panelPadding;
-	ui->verticalLayout->setContentsMargins(1, flat ? 0 : 1, 1, 1);
+	const int border = flat ? 1 : theme.metrics.panelBorderWidth;
+	ui->verticalLayout->setContentsMargins(border, flat ? 0 : border, border, border);
 	ui->verticalLayout->setSpacing(theme.metrics.panelRowSpacing);
 	ui->driveRowLayout->setContentsMargins(padding, flat ? 0 : padding, padding, 0);
 	ui->pathRowLayout->setContentsMargins(padding, 0, padding, 0);

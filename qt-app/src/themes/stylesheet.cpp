@@ -186,7 +186,7 @@ constexpr char kSplitters[] = R"(
 
 // A file panel is a card on the window background. CPanelWidget sets the activePanel property.
 constexpr char kPanels[] = R"(
-	CPanelWidget { background: @surface@; border: 1px solid @border@; border-radius: @panelRadius@px; }
+	CPanelWidget { background: @surface@; border: @panelBorderWidth@px solid @border@; border-radius: @panelRadius@px; }
 	CPanelWidget[activePanel="true"] { border-color: @panelActiveBorder@; }
 
 	#_driveInfoLabel, #_infoLabel { color: @textDim@; }
@@ -278,6 +278,8 @@ QString buildStyleSheet(const Theme& theme)
 		for (const char* section : { kFlatControls, kFlatPanels, kFlatMainWindow })
 			sheet += QLatin1String(section);
 	}
+	if (theme.styleSheet)
+		sheet += QLatin1String(theme.styleSheet);
 
 	const CBasePalette& palette = theme.palette;
 	const ThemeMetrics& metrics = theme.metrics;
@@ -286,6 +288,7 @@ QString buildStyleSheet(const Theme& theme)
 	tokens.addPalette(palette);
 	tokens.add(QStringLiteral("controlRadius"), metrics.controlRadius);
 	tokens.add(QStringLiteral("panelRadius"), metrics.panelRadius);
+	tokens.add(QStringLiteral("panelBorderWidth"), metrics.panelBorderWidth);
 	tokens.add(QStringLiteral("panelPadding"), metrics.panelPadding);
 	tokens.add(QStringLiteral("panelActiveBorder"), flat ? palette.accent : ColorUtils::mix(palette.border, palette.accent, 0.55f));
 	tokens.add(QStringLiteral("menuItemRadius"), metrics.menuItemRadius);

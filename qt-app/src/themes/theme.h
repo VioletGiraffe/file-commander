@@ -23,6 +23,7 @@ struct ThemeMetrics
 {
 	int controlRadius = 7; // buttons, fields, combo boxes, group boxes
 	int panelRadius = 10;
+	int panelBorderWidth = 1; // Rounded only: a flat panel's frame is 1 px
 	int menuItemRadius = 5;
 	int scrollBarThickness = 10;
 
@@ -38,7 +39,7 @@ struct ThemeMetrics
 enum class ThemeStructure
 {
 	Rounded, // panels are cards on the window background; controls have rounded corners
-	Flat     // line frames and filled cells, square corners, a monospace font in every control
+	Flat     // line frames and filled cells, square corners
 };
 
 // One selectable look. `name` is unique within its polarity; a look retuned for the other polarity keeps its name.
@@ -47,9 +48,12 @@ struct Theme
 	QString name;
 	bool dark = false;
 	ThemeStructure structure = ThemeStructure::Rounded;
+	bool monospaceControls = false; // the file list's font is the user's choice either way
 	CBasePalette palette;
 	ThemeMetrics metrics;
 	FileListLook fileList;
+	// Appended after the structure's stylesheet sections, so its rules win at equal specificity. Takes the same @tokens@.
+	const char* styleSheet = nullptr;
 };
 
 // The first theme of each polarity is that polarity's default.

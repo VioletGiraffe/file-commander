@@ -50,6 +50,7 @@ constexpr int tabletFontPointSize = 24;
 		.name = QStringLiteral("Blueprint"),
 		.dark = dark,
 		.structure = ThemeStructure::Flat,
+		.monospaceControls = true,
 		.palette = palette,
 		.metrics = {
 			.controlRadius = 0, .panelRadius = 0, .menuItemRadius = 0,
@@ -68,13 +69,65 @@ constexpr int tabletFontPointSize = 24;
 	};
 }
 
+// The active panel has an accent border, the other none.
+// The bookmarks and root buttons are circles: their width is fixed in the .ui file, and min-height excludes the padding.
+constexpr char kMeadowStyleSheet[] = R"(
+	CPanelWidget { border-color: transparent; }
+	CPanelWidget[activePanel="true"] { border-color: @accent@; }
+
+	QTabBar::tab { border-bottom: none; border-radius: @controlRadius@px; padding: 4px 12px; }
+	QTabBar::tab:selected { background: @surfaceAlt@; }
+
+	QHeaderView::section { border-bottom: none; font-weight: bold; }
+
+	CPanelWidget > QToolButton { background: @windowBg@; border: none; border-radius: 14px; padding: 0; min-height: 28px; max-height: 28px; }
+	CPanelWidget > QToolButton:hover { background: @surfaceAlt@; }
+
+	#_driveButtonsWidget > QPushButton { background: @windowBg@; font-weight: bold; }
+	#_driveButtonsWidget > QPushButton:checked { background: @textDim@; color: @surface@; }
+	CPanelWidget[activePanel="true"] #_driveButtonsWidget > QPushButton:checked { background: @accent@; color: @accentFg@; }
+)";
+
+[[nodiscard]] Theme meadowTheme()
+{
+	const CBasePalette palette{
+		.windowBg = rgb(0xedf2ed), .surface = rgb(0xffffff), .surfaceAlt = rgb(0xe3ece4),
+		.text = rgb(0x1c2a22), .textDim = rgb(0x53655a),
+		.button = rgb(0xffffff),
+		.accent = rgb(0x0f766e),
+		.selectionBg = rgb(0xd4e6e5), .selectionFg = rgb(0x0d645e),
+		.borderSubtle = rgb(0xdfe8e0),
+	};
+
+	return {
+		.name = QStringLiteral("Meadow"),
+		.dark = false,
+		.monospaceControls = true,
+		.palette = palette,
+		.metrics = {
+			.controlRadius = 11, .panelRadius = 14, .panelBorderWidth = 2, .menuItemRadius = 11,
+			.panelPadding = 10,
+			.windowMargin = 12, .panelGap = 10,
+		},
+		.fileList = {
+			.rowFillInset = 8, .rowFillGap = 2,
+			.rowFillRadius = 9,
+			.contentHMargin = 10, .contentVMargin = 5,
+			.cursor = FileListLook::Cursor::Bar,
+			.inactiveCursor = FileListLook::InactiveCursor::Fill,
+			.inactiveCursorColor = palette.surfaceAlt,
+		},
+		.styleSheet = kMeadowStyleSheet,
+	};
+}
+
 void applySelectedTheme()
 {
 	g_appliedTheme = CThemeController::instance().selectedTheme(allThemes());
 	g_appliedTheme.palette = resolvedPalette(g_appliedTheme.palette);
 
 	QFont font = *g_baseFont;
-	if (g_appliedTheme.structure == ThemeStructure::Flat)
+	if (g_appliedTheme.monospaceControls)
 		font.setFamily(monospaceFamily());
 	if (const std::optional<int> size = tabletModeFontPointSize())
 		font.setPointSize(*size);
@@ -132,6 +185,7 @@ const std::vector<Theme>& allThemes()
 			.border = rgb(0x7f9bd1), .borderSubtle = rgb(0xc3d1ea), .borderStrong = rgb(0x5f7fc0),
 			.accentFg = rgb(0xffffff),
 		}),
+		meadowTheme(),
 	};
 	return themes;
 }

@@ -21,6 +21,11 @@ struct FileListLook
 	enum class Cursor { Tint, Bar };
 	Cursor cursor = Cursor::Tint;
 
+	// The other panel's cursor. Fill: a selected row keeps its selection fill and gets the outline. Invalid colour: the text colour, faint.
+	enum class InactiveCursor { Outline, Fill };
+	InactiveCursor inactiveCursor = InactiveCursor::Outline;
+	QColor inactiveCursorColor;
+
 	// The column separators. Invalid: the text colour, faint.
 	QColor separatorColor;
 	bool separatorsDashed = true;

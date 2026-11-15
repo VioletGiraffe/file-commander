@@ -424,22 +424,24 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 	const auto color = [&option](const QPalette::ColorRole role) { return option.palette.color(QPalette::Active, role); };
 	const QColor accent = color(QPalette::Accent);
 	const bool barCursor = cursor && _shownAsActivePanel && look.cursor == FileListLook::Cursor::Bar;
+	const QColor inactiveCursor = look.inactiveCursorColor.isValid() ? look.inactiveCursorColor : ColorUtils::mix(color(QPalette::Base), color(QPalette::Text), 0.3f);
+	const bool inactiveCursorFill = cursor && !selected && !_shownAsActivePanel && look.inactiveCursor == FileListLook::InactiveCursor::Fill;
 
 	painter->save();
 	painter->setRenderHint(QPainter::Antialiasing);
 
-	if (selected || _shownAsActivePanel)
+	if (selected || _shownAsActivePanel || inactiveCursorFill)
 	{
-		const QColor fillColor = barCursor ? accent : selected ? color(QPalette::Highlight) : ColorUtils::mix(color(QPalette::Base), accent, 0.15f);
+		const QColor fillColor = barCursor ? accent : selected ? color(QPalette::Highlight)
+			: _shownAsActivePanel ? ColorUtils::mix(color(QPalette::Base), accent, 0.15f) : inactiveCursor;
 		painter->setPen(Qt::NoPen);
 		painter->setBrush(fillColor);
 		painter->drawRoundedRect(fill, radius, radius);
 	}
 
-	if (cursor && !barCursor)
+	if (cursor && !barCursor && !inactiveCursorFill)
 	{
 		const qreal width = _shownAsActivePanel ? 1.5 : 1.0;
-		const QColor inactiveCursor = ColorUtils::mix(color(QPalette::Base), color(QPalette::Text), 0.3f);
 		painter->setPen(QPen{ _shownAsActivePanel ? accent : inactiveCursor, width });
 		painter->setBrush(Qt::NoBrush);
 		// Inset by half the pen: the stroke stays inside the fill rect
