@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794769467247,
+  "lastUpdate": 1794771321280,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -36806,6 +36806,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 51.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e46605fa5b7ffbc4c2c576196537588922666e5a",
+          "message": "CI takes a screenshot per theme on Linux and macOS, one polarity of each pair that differs only in colours, zipped and linked from the job summary",
+          "timestamp": "2026-11-15T21:25:34+02:00",
+          "tree_id": "ef2fd1639315dfefb3e08b2845d897d0b40860fb",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e46605fa5b7ffbc4c2c576196537588922666e5a"
+        },
+        "date": 1794771318443,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 21753,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35923,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1757,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1075.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 460.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 52,
             "unit": "KB"
           },
           {
