@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794765055850,
+  "lastUpdate": 1794769467247,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -36712,6 +36712,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 455.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 51.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "f98c6c3a784c66539d39a323f5263caad76f86c2",
+          "message": "Ledger in dark: warm grey with an amber accent, sharing everything but the palette with light Ledger",
+          "timestamp": "2026-11-15T20:54:25+02:00",
+          "tree_id": "52a794ca3c863b41099d2d18f4e2b233434600f3",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/f98c6c3a784c66539d39a323f5263caad76f86c2"
+        },
+        "date": 1794769457740,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 21573,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35923,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1748.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1070.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 457.5,
             "unit": "KB"
           },
           {
