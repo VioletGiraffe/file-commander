@@ -25,6 +25,8 @@ struct FileListViewEventObserver {
 
 	virtual bool fileListReturnPressed() = 0;
 	virtual bool fileListReturnPressOrDoubleClickPerformed(const QModelIndex& index) = 0;
+	// Tab or Shift+Tab out of the list. Unconsumed: focus moves along the window's focus chain.
+	virtual bool fileListTabNavigation() { return false; }
 };
 
 struct FileListReturnPressedObserver : FileListViewEventObserver {
@@ -109,6 +111,7 @@ protected:
 	// Keep the bottom command buttons' Shift captions in sync across focus changes, when key events aren't delivered here (e. g. while a dialog spawned by a command is open)
 	void focusInEvent(QFocusEvent * event) override;
 	void focusOutEvent(QFocusEvent * event) override;
+	bool focusNextPrevChild(bool next) override;
 
 	bool edit(const QModelIndex & index, EditTrigger trigger, QEvent * event) override;
 

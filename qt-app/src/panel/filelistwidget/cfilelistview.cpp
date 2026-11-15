@@ -381,6 +381,17 @@ void CFileListView::focusOutEvent(QFocusEvent * event)
 	QTreeView::focusOutEvent(event);
 }
 
+bool CFileListView::focusNextPrevChild(const bool next)
+{
+	for (FileListViewEventObserver* observer : _eventObservers)
+	{
+		if (observer->fileListTabNavigation())
+			return true;
+	}
+
+	return QTreeView::focusNextPrevChild(next);
+}
+
 bool CFileListView::edit(const QModelIndex & index, QAbstractItemView::EditTrigger trigger, QEvent * event)
 {
 	return QTreeView::edit(model()->index(index.row(), 0), trigger, event);

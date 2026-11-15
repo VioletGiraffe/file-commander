@@ -394,10 +394,15 @@ void CMainWindow::initActions()
 	connect(ui->actionOpen_Folder_Under_Cursor_in_New_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->openCurrentItemInNewTab(); });
 }
 
-// For manual focus management
-void CMainWindow::tabKeyPressed()
+// Not along the focus chain: it holds other stops, such as the scroll buttons of a tab bar whose tabs do not fit
+bool CMainWindow::fileListTabNavigation()
 {
+	assert_and_return_r(_otherFileList, false);
+	if (otherPanelDisplayController().quickViewActive())
+		return false;
+
 	_otherFileList->setFocusToFileList();
+	return true;
 }
 
 bool CMainWindow::launchFileTransfer(TransferKind kind, std::vector<CFileSystemObject>&& sources, const QString& destinationDirectory,

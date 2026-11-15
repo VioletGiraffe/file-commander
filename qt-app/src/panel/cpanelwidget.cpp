@@ -400,7 +400,7 @@ void CPanelWidget::initPanel(Panel p)
 	ui->_tabBar->setMovable(true);
 	ui->_tabBar->setElideMode(Qt::ElideMiddle);
 	ui->_tabBar->setDrawBase(false);
-	// QTabBar defaults to Qt::TabFocus; keep it out of the Tab focus chain so Tab keeps toggling the two panels (Ctrl+Tab cycles tabs).
+	// QTabBar defaults to Qt::TabFocus: the file list keeps the keyboard (Ctrl+Tab cycles tabs).
 	ui->_tabBar->setFocusPolicy(Qt::NoFocus);
 	assert_r(connect(ui->_tabBar, &QTabBar::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
 	assert_r(connect(ui->_tabBar, &QTabBar::tabCloseRequested, this, &CPanelWidget::onTabBarCloseRequested));

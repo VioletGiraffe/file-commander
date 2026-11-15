@@ -52,9 +52,6 @@ public:
 	void initButtons();
 	void initActions();
 
-	// For manual focus management
-	void tabKeyPressed();
-
 	// The transfer launch path (F5/F6, menu/toolbar, and drag-and-drop) over the operation engine: it converts
 	// the panel selection and edited destination into a typed request and drives one CFileOperationDialog.
 	// onCompletion: called once the operation ends, if it started
@@ -173,6 +170,8 @@ private:
 
 	// For command line handling
 	bool fileListReturnPressed() override;
+	// Moves the focus to the other panel's file list; leaves a quick view on the other side to the focus chain
+	bool fileListTabNavigation() override;
 
 	// Viewers
 	[[nodiscard]] QString currentItemPath() const;
