@@ -74,23 +74,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="CHistoryComboBox" name="_pathNavigator">
-       <property name="minimumSize">
-        <size>
-         <width>1</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="focusPolicy">
-        <enum>Qt::ClickFocus</enum>
-       </property>
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-       <property name="maxVisibleItems">
-        <number>40</number>
-       </property>
-      </widget>
+      <widget class="CBreadcrumbBar" name="_breadcrumbBar" native="true"/>
      </item>
      <item>
       <spacer name="pathRowRightSpacer">
@@ -240,9 +224,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>CHistoryComboBox</class>
-   <extends>QComboBox</extends>
-   <header>widgets/chistorycombobox.h</header>
+   <class>CBreadcrumbBar</class>
+   <extends>QWidget</extends>
+   <header>panel/cbreadcrumbbar.h</header>
   </customwidget>
   <customwidget>
    <class>CFileListView</class>

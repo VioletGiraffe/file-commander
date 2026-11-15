@@ -33,6 +33,7 @@ destruction cancels delivery; each owner still aborts and joins its worker befor
 `calculateStatsFor` runs its scan team on whatever thread calls it: the Statistics command blocks the UI thread
 for the whole scan, and panel dir-size tasks call it from pool workers under the panel's abort flag, so
 concurrent dir-size tasks each spawn their own team.
+A path bar folder's menu lists that folder on the UI thread as it opens: the folder is an ancestor of one just listed.
 
 ## Panel lifetime and publication
 

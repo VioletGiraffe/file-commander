@@ -1,5 +1,6 @@
 #include "cpanelwidget.h"
 
+#include "cbreadcrumbbar.h"
 #include "columns.h"
 #include "filelistwidget/cfilelistfilterdialog.h"
 #include "filelistwidget/model/cfilelistmodel.h"
@@ -17,6 +18,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "directoryscan/thinioqstring.h"
 #include "fileoperations/fileoperationtexts.h"
 #include "fileoperations/fileoperationtypes.h"
 #include "fileoperations/inlinerename.h"
@@ -28,7 +30,8 @@
 #include "theme/cthemecontroller.h"
 #include "theme/ctintedsvgiconengine.h"
 #include "timing/ctimeelapsed.h"
-#include "widgets/clineedit.h"
+#include "utils/naturalsorting/cnaturalsorterqcollator.h"
+#include "widgets/chistorycombobox.h"
 #include "widgets/layouts/cflowlayout.h"
 #include "widgets/widgetutils.h"
 
@@ -156,16 +159,25 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	ui->_btnFavs->setIcon(tintedSvgIcon(QSL(":/theme/star.svg"), dimTextColor));
 	ui->_btnToRoot->setIcon(tintedSvgIcon(QSL(":/theme/go_to_root.svg"), dimTextColor));
 
-	ui->_pathNavigator->setLineEdit(new CLineEdit);
-	ui->_pathNavigator->lineEdit()->setFocusPolicy(Qt::ClickFocus);
+	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
+	pathEditor.setMaxVisibleItems(40);
 
-	auto* completer = ui->_pathNavigator->completer();
+	auto* completer = pathEditor.completer();
 	completer->setCompletionMode(QCompleter::PopupCompletion);
 	completer->setFilterMode(Qt::MatchContains);
 
-	ui->_pathNavigator->installEventFilter(this);
-	assert_r(connect(ui->_pathNavigator, &CHistoryComboBox::textActivated, this, &CPanelWidget::pathFromHistoryActivated));
-	assert_r(connect(ui->_pathNavigator, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated));
+	pathEditor.installEventFilter(this);
+	assert_r(connect(&pathEditor, &CHistoryComboBox::textActivated, this, &CPanelWidget::pathFromHistoryActivated));
+	assert_r(connect(&pathEditor, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated));
+	assert_r(connect(ui->_breadcrumbBar, &CBreadcrumbBar::goToAncestorRequested, this, [this](const QString& ancestorPath, const QString& childOnPath) {
+		ui->_list->setFocus();
+		// The cursor goes to the folder the path led through, where it still exists
+		if (const CFileSystemObject child{ childOnPath }; child.exists())
+			_controller->goToItem(_panelPosition, child);
+		else
+			_controller->setPath(_panelPosition, ancestorPath, refreshCauseOther);
+	}));
+	assert_r(connect(ui->_breadcrumbBar, &CBreadcrumbBar::folderMenuRequested, this, &CPanelWidget::fillFolderMenu));
 
 	assert_r(connect(ui->_list, &CFileListView::contextMenuRequested, this, &CPanelWidget::showContextMenuForItems));
 	assert_r(connect(ui->_list, &CFileListView::keyPressed, this, &CPanelWidget::fileListViewKeyPressed));
@@ -223,9 +235,7 @@ void CPanelWidget::setFocusToFileList()
 
 void CPanelWidget::focusPathNavigatorWithPathSelected()
 {
-	QLineEdit* const pathEditor = ui->_pathNavigator->lineEdit();
-	pathEditor->setFocus(Qt::ShortcutFocusReason);
-	pathEditor->selectAll(); // CLineEdit selects all only on gaining focus, and it may already have it
+	ui->_breadcrumbBar->startEditing();
 }
 
 void CPanelWidget::setShownAsActivePanel(const bool active)
@@ -236,9 +246,10 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 		return;
 
 	setProperty(activePanelProperty, active);
-	// A stylesheet matches property selectors only while polishing a widget; the path field has rules on this panel's property too
-	QWidget* const pathField = ui->_pathNavigator;
-	for (QWidget* widget : { static_cast<QWidget*>(this), pathField, static_cast<QWidget*>(ui->_pathNavigator->lineEdit()) })
+	ui->_breadcrumbBar->setShownAsActive(active);
+	// A stylesheet matches property selectors only while polishing a widget; the path editor has rules on this panel's property too
+	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
+	for (QWidget* widget : { static_cast<QWidget*>(this), static_cast<QWidget*>(&pathEditor), static_cast<QWidget*>(pathEditor.lineEdit()) })
 	{
 		style()->unpolish(widget);
 		style()->polish(widget);
@@ -253,7 +264,7 @@ void CPanelWidget::paintEvent(QPaintEvent* /*event*/)
 		return; // the stylesheet draws the border of a rounded panel
 
 	// The frame's top edge runs through the middle of the path row; that row's widgets cover the part behind them
-	const int top = ui->_pathNavigator->geometry().center().y();
+	const int top = ui->_breadcrumbBar->geometry().center().y();
 	QPainter painter{ this };
 	painter.setPen(property(activePanelProperty).toBool() ? theme.palette.accent : theme.palette.border);
 	painter.drawRect(QRect{ 0, top, width() - 1, height() - 1 - top });
@@ -870,6 +881,7 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 	// After an update too: what the view's selection does through moves and removals is Qt's to decide
 	applyCoreSelection();
 
+	ui->_breadcrumbBar->setPath(_controller->panel(_panelPosition).currentDirPathPosix());
 	fillHistory();
 	updateCurrentVolumeButtonAndInfoLabel();
 
@@ -1271,22 +1283,23 @@ void CPanelWidget::pathFromHistoryActivated(const QString& path)
 		showUserMessage(this, *message);
 }
 
+static QString withTrailingSlash(const QString& path)
+{
+	return path.endsWith('/') ? path : path + '/';
+}
+
 void CPanelWidget::fillHistory()
 {
 	const auto& visited = _controller->visitedLocations(_panelPosition);
 	if (visited.empty())
 		return;
 
-	static const auto ensureTrailingSlash = [](const QString& path) {
-		return path.endsWith('/') ? path : path + '/';
-	};
-
 	QStringList items;
 	items.reserve((qsizetype)visited.size());
 	std::unordered_set<QString> seen;
 	for (auto it = visited.rbegin(); it != visited.rend(); ++it)
 	{
-		items.push_back(toNativeSeparators(ensureTrailingSlash(*it)));
+		items.push_back(toNativeSeparators(withTrailingSlash(*it)));
 		seen.insert(*it);
 	}
 
@@ -1295,14 +1308,14 @@ void CPanelWidget::fillHistory()
 	for (auto it = otherVisited.rbegin(); it != otherVisited.rend(); ++it)
 	{
 		if (seen.insert(*it).second)
-			items.push_back(toNativeSeparators(ensureTrailingSlash(*it)));
+			items.push_back(toNativeSeparators(withTrailingSlash(*it)));
 	}
 
 	// The active tab's current directory might not be in either list yet (e.g. a deferred save hasn't
 	// caught up) -- prepend it so it's still shown/highlighted correctly instead of defaulting to some
 	// unrelated entry.
 	const QString currentDir = _controller->panel(_panelPosition).currentDirPathPosix();
-	const QString currentDirDisplay = toNativeSeparators(ensureTrailingSlash(currentDir));
+	const QString currentDirDisplay = toNativeSeparators(withTrailingSlash(currentDir));
 	qsizetype currentDirRow = items.indexOf(currentDirDisplay);
 	if (currentDirRow < 0)
 	{
@@ -1311,12 +1324,73 @@ void CPanelWidget::fillHistory()
 	}
 
 	// An unchanged list is left alone: a rebuild discards the text being typed and resets an open popup
-	if (currentDirRow == ui->_pathNavigator->currentIndex() && items == ui->_pathNavigator->items())
+	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
+	if (currentDirRow == pathEditor.currentIndex() && items == pathEditor.items())
 		return;
 
-	ui->_pathNavigator->clear();
-	ui->_pathNavigator->addItems(items);
-	ui->_pathNavigator->setCurrentIndex((int)currentDirRow);
+	pathEditor.clear();
+	pathEditor.addItems(items);
+	pathEditor.setCurrentIndex((int)currentDirRow);
+}
+
+void CPanelWidget::fillFolderMenu(QMenu* menu, const QString& folderPath)
+{
+	static constexpr size_t maxVisitedItems = 25, maxSubfolderItems = 20;
+
+	const auto addFolderItem = [this, menu](const QString& text, const QString& path) {
+		QAction* const action = menu->addAction(text);
+		assert_r(connect(action, &QAction::triggered, this, [this, path] {
+			ui->_list->setFocus();
+			_controller->setPath(_panelPosition, path, refreshCauseOther);
+		}));
+	};
+
+	// The subfolders on the way to visited folders: the most recently visited first, this panel's before the other's,
+	// as in the path editor's history
+	std::unordered_set<QString> seen;
+	for (const Panel side : { _panelPosition, CController::otherPanelPosition(_panelPosition) })
+	{
+		const auto& visited = _controller->visitedLocations(side);
+		for (auto it = visited.rbegin(); it != visited.rend() && seen.size() < maxVisitedItems; ++it)
+		{
+			const QString path = withTrailingSlash(*it);
+			if (path.size() <= folderPath.size() || !path.startsWith(folderPath))
+				continue;
+
+			const qsizetype nameEnd = path.indexOf('/', folderPath.size()); // found: the path ends with '/'
+			if (QString subfolderPath = path.left(nameEnd + 1); seen.insert(subfolderPath).second)
+				addFolderItem(path.sliced(folderPath.size(), nameEnd - folderPath.size()), subfolderPath);
+		}
+	}
+
+	// Listed on the UI thread: an ancestor of a folder just listed is unlikely to stall
+	const auto entries = listDirectoryWithDetails(folderPath);
+	if (!entries)
+		return;
+
+	// A subfolder the visited section already has is left out
+	const bool showHiddenFiles = _controller->showHiddenFiles();
+	std::vector<QString> subfolderNames;
+	for (const auto& entry : *entries)
+	{
+		const CFileSystemObject object{ folderPath, entry };
+		if (object.isDir() && (showHiddenFiles || !object.isHidden()) && !seen.contains(object.fullAbsolutePath()))
+			subfolderNames.push_back(object.fullName().toString());
+	}
+
+	if (subfolderNames.empty())
+		return;
+
+	const size_t shownCount = std::min(subfolderNames.size(), maxSubfolderItems);
+	std::ranges::partial_sort(subfolderNames, subfolderNames.begin() + (ptrdiff_t)shownCount, NaturalSort::lessCaseInsensitive);
+
+	if (!menu->isEmpty())
+		menu->addSeparator();
+	for (size_t i = 0; i < shownCount; ++i)
+		addFolderItem(subfolderNames[i], folderPath + subfolderNames[i]);
+
+	if (subfolderNames.size() > shownCount)
+		menu->addAction(tr("... %1 more").arg(subfolderNames.size() - shownCount))->setEnabled(false);
 }
 
 void CPanelWidget::updateInfoLabel()
@@ -1500,12 +1574,12 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 			QToolTip::hideText();
 		return true;
 	}
-	else if (object == ui->_pathNavigator && e->type() == QEvent::KeyPress)
+	else if (object == &ui->_breadcrumbBar->editor() && e->type() == QEvent::KeyPress)
 	{
 		auto* keyEvent = static_cast<QKeyEvent*>(e);
 		if (keyEvent->key() == Qt::Key_Escape)
 		{
-			ui->_pathNavigator->resetToLastSelected(false);
+			ui->_breadcrumbBar->editor().resetToLastSelected(false);
 			ui->_list->setFocus();
 		}
 	}
@@ -1631,8 +1705,7 @@ void CPanelWidget::applyTheme()
 	for (QSpacerItem* spacer : { ui->pathRowLeftSpacer, ui->pathRowRightSpacer })
 		spacer->changeSize(0, 0, flat ? QSizePolicy::Expanding : QSizePolicy::Fixed, QSizePolicy::Minimum);
 	ui->pathRowLayout->invalidate();
-	ui->_pathNavigator->setSizedToCurrentText(flat);
-	ui->_pathNavigator->setSizePolicy(flat ? QSizePolicy::Maximum : QSizePolicy::Preferred, QSizePolicy::Fixed);
+	ui->_breadcrumbBar->applyTheme();
 
 	// The file list has no padding: its rows reach the panel's border. The stylesheet pads the info label.
 	// 1: the border's width. A flat panel's top edge is behind its first row.

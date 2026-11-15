@@ -20,6 +20,7 @@ class CPanelWidget;
 }
 
 class QItemSelectionModel;
+class QMenu;
 class QStandardItem;
 class QUrl;
 
@@ -134,6 +135,8 @@ private:
 	// Stores the cursor's item in the core and signals a change of it
 	void recordCurrentItem(const QModelIndex& current);
 	void fillHistory();
+	// folderPath's subfolders on the way to visited folders, at most 50, then up to 30 of its other subfolders
+	void fillFolderMenu(QMenu* menu, const QString& folderPath);
 	void updateInfoLabel();
 
 // Callbacks

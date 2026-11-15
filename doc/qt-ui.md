@@ -67,6 +67,10 @@ tab data. Positions must be resolved again immediately before close or reorder o
 The widget and the main window implement the core listener interfaces; which callbacks each handles and on which
 thread they arrive is in [notifications.md](notifications.md).
 
+The path row is a `CBreadcrumbBar`: a button per folder of the path, each with a menu of its subfolders, those leading
+to visited folders first. Typing a path switches the bar to the path editor, a `CHistoryComboBox` holding both sides'
+visited-locations logs.
+
 Only the tab on screen is refilled from its controller panel: background-tab notifications are filtered by stable ID,
 and a background tab's model keeps its last rows until activation refills it. Tab activation swaps the models and
 the view state. The Qt-specific activation ordering belongs in `CPanelWidget::activateTab()`, not here. See

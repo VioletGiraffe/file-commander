@@ -48,18 +48,6 @@ type no program claims. Every other icon is the OS's, unchanged.
 
 - Later: glyphs on the drive buttons.
 
-### Breadcrumb path bar
-
-Replaces the panel's path combo box.
-
-- Each path component is a button that navigates to it.
-- Must keep what the combo box provides: typing a path, and quick access to the global history drop-down.
-- Each component has its own drop-down: the history entries under that component's path, a separator, then that
-  folder's subfolders as listed at the moment of clicking.
-- Listing on click is considered low-risk: every component is an ancestor of a path that was just listed.
-- Open: whether that listing may run on the UI thread (see [threading.md](threading.md)). The doubtful case is an
-  ancestor on a network path.
-
 ### Smaller items
 
 - A disk usage bar beside the free-space label.

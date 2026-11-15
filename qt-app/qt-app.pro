@@ -40,6 +40,7 @@ SOURCES += \
 	src/commandoutput/ccommandoutputarea.cpp \
 	src/commandoutput/ccommandoutputpane.cpp \
 	src/functionkeybar/cfunctionkeybutton.cpp \
+	src/panel/cbreadcrumbbar.cpp \
 	src/panel/cpanelwidget.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
@@ -72,6 +73,7 @@ HEADERS += \
 	src/commandoutput/ccommandoutputarea.h \
 	src/commandoutput/ccommandoutputpane.h \
 	src/functionkeybar/cfunctionkeybutton.h \
+	src/panel/cbreadcrumbbar.h \
 	src/panel/cpanelwidget.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \

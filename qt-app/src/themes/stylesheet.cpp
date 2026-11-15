@@ -191,7 +191,7 @@ constexpr char kPanels[] = R"(
 
 	#_driveInfoLabel, #_infoLabel { color: @textDim@; }
 	#_infoLabel { padding: 0 @panelPadding@px @panelPadding@px @panelPadding@px; }
-	CPanelWidget > QComboBox { background: @windowBg@; }
+	CBreadcrumbBar > QComboBox { background: @windowBg@; }
 	CPanelWidget > QToolButton { border-color: @border@; }
 	CPanelWidget > QToolButton:hover { background: @surfaceAlt@; border-color: @borderStrong@; }
 	CPanelWidget > QToolButton:pressed { background: @accentBg@; border-color: @accent@; }
@@ -234,17 +234,19 @@ constexpr char kFlatControls[] = R"(
 )";
 
 // CPanelWidget draws a flat panel's frame itself: its top edge runs through the path row.
-// The widgets of that row are opaque, to interrupt the line. The path field is highlighted in the active panel.
-// The path field and its editor both state the text colour, in both states: polishing either one sets the editor's palette,
-// and a rule without a colour keeps the one the editor had.
+// The widgets of that row are opaque, to interrupt the line. The path is highlighted in the active panel: CBreadcrumbBar
+// paints its strip, the rules below its editor.
+// The path editor and its line edit both state the text colour, in both states: polishing either one sets the line edit's palette,
+// and a rule without a colour keeps the one the line edit had.
 constexpr char kFlatPanels[] = R"(
 	CPanelWidget { border: none; }
 
-	CPanelWidget > QComboBox { border: none; padding: 1px 8px; }
-	CPanelWidget > QComboBox, CPanelWidget > QComboBox QLineEdit { color: @text@; font-weight: bold; }
-	CPanelWidget[activePanel="true"] > QComboBox { background: @accent@; }
-	CPanelWidget[activePanel="true"] > QComboBox, CPanelWidget[activePanel="true"] > QComboBox QLineEdit { color: @accentFg@; }
-	CPanelWidget[activePanel="true"] > QComboBox::down-arrow { image: url(@comboArrowOnAccentIcon@); }
+	CBreadcrumbBar > QComboBox { border: none; padding: 1px 8px; }
+	CBreadcrumbBar > QComboBox, CBreadcrumbBar > QComboBox QLineEdit { color: @text@; font-weight: bold; }
+	CPanelWidget[activePanel="true"] > CBreadcrumbBar > QComboBox { background: @accent@; }
+	CPanelWidget[activePanel="true"] > CBreadcrumbBar > QComboBox,
+	CPanelWidget[activePanel="true"] > CBreadcrumbBar > QComboBox QLineEdit { color: @accentFg@; }
+	CPanelWidget[activePanel="true"] > CBreadcrumbBar > QComboBox::down-arrow { image: url(@comboArrowOnAccentIcon@); }
 	CPanelWidget > QToolButton { background: @windowBg@; border: none; }
 
 	#_infoLabel { border-top: 1px solid @borderStrong@; padding-top: 4px; }
