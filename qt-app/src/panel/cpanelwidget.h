@@ -151,7 +151,8 @@ private:
 	// The selected items, or the item under the cursor; cut: a paste moves them instead of copying
 	void putSelectionOnClipboard(bool cut) const;
 
-	void updateCurrentVolumeButtonAndInfoLabel();
+	// The checked drive button, and the current volume's label and usage bar
+	void updateCurrentVolumeButtonAndInfo();
 	// Sets the geometry and the file list's shape from the theme in effect
 	void applyTheme();
 

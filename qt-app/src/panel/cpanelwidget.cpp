@@ -2,6 +2,7 @@
 
 #include "cbreadcrumbbar.h"
 #include "columns.h"
+#include "cvolumeusagebar.h"
 #include "filelistwidget/cfilelistfilterdialog.h"
 #include "filelistwidget/model/cfilelistmodel.h"
 
@@ -155,6 +156,7 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 
 	ui->_infoLabel->clear();
 	ui->_driveInfoLabel->clear();
+	ui->_driveUsageBar->hide();
 
 	const auto dimTextColor = [] { return QApplication::palette().color(QPalette::PlaceholderText); };
 	ui->_btnFavs->setIcon(tintedSvgIcon(QSL(":/theme/star.svg"), dimTextColor));
@@ -251,6 +253,7 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 
 	setProperty(activePanelProperty, active);
 	ui->_breadcrumbBar->setShownAsActive(active);
+	ui->_driveUsageBar->setShownAsActive(active);
 	// A stylesheet matches property selectors only while polishing a widget; the path editor has rules on this panel's property too
 	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
 	for (QWidget* widget : { static_cast<QWidget*>(this), static_cast<QWidget*>(&pathEditor), static_cast<QWidget*>(pathEditor.lineEdit()) })
@@ -887,7 +890,7 @@ void CPanelWidget::fillFromPanel(FileListRefreshCause operation)
 
 	ui->_breadcrumbBar->setPath(_controller->panel(_panelPosition).currentDirPathPosix());
 	fillHistory();
-	updateCurrentVolumeButtonAndInfoLabel();
+	updateCurrentVolumeButtonAndInfo();
 
 	// Only a reset is sure to repaint the list
 	if (modelReset)
@@ -1466,7 +1469,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 		}
 	}
 
-	updateCurrentVolumeButtonAndInfoLabel();
+	updateCurrentVolumeButtonAndInfo();
 }
 
 void CPanelWidget::currentVolumeChanged(Panel p) noexcept
@@ -1475,7 +1478,7 @@ void CPanelWidget::currentVolumeChanged(Panel p) noexcept
 		return;
 
 	_currentVolumePath.clear();
-	updateCurrentVolumeButtonAndInfoLabel();
+	updateCurrentVolumeButtonAndInfo();
 }
 
 bool CPanelWidget::dropUrls(const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath)
@@ -1726,22 +1729,30 @@ void CPanelWidget::applyTheme()
 	update();
 }
 
-void CPanelWidget::updateCurrentVolumeButtonAndInfoLabel()
+void CPanelWidget::updateCurrentVolumeButtonAndInfo()
 {
 	const auto currentVolumeInfo = _controller->currentVolumeInfo(_panelPosition);
 	if (currentVolumeInfo)
 	{
 		_currentVolumePath = currentVolumeInfo->rootObjectInfo.fullAbsolutePath();
 		const auto sizeText = [](const uint64_t size) { return fileSizeToString(size, { .significantPlaces = 3, .decimalPlaces = 2 }); }; // such as 212.43 GiB
+		const uint64_t volumeSize = currentVolumeInfo->volumeSize, freeSize = currentVolumeInfo->freeSize;
+		ui->_driveInfoLabel->setText(tr("%1 (%2 free)").arg(sizeText(volumeSize), sizeText(freeSize)));
 		const QString& fileSystemName = currentVolumeInfo->fileSystemName;
-		const QString volumeName = fileSystemName.isEmpty() ? currentVolumeInfo->volumeLabel : currentVolumeInfo->volumeLabel + " (" + fileSystemName + ')';
-		// The label renders rich text
-		const QString volumeInfoText = tr("%1: <b>%2 free</b> of %3").
-			arg(volumeName.toHtmlEscaped(), sizeText(currentVolumeInfo->freeSize), sizeText(currentVolumeInfo->volumeSize));
-		ui->_driveInfoLabel->setText(volumeInfoText);
+		ui->_driveInfoLabel->setToolTip(fileSystemName.isEmpty() ? currentVolumeInfo->volumeLabel : currentVolumeInfo->volumeLabel + " (" + fileSystemName + ')');
+
+		const uint64_t usedSize = volumeSize - std::min(freeSize, volumeSize);
+		const double usedFraction = volumeSize > 0 ? (double)usedSize / (double)volumeSize : 0.0;
+		ui->_driveUsageBar->setSpace(volumeSize, freeSize);
+		ui->_driveUsageBar->setToolTip(tr("%1% used (%2)").arg(std::lround(usedFraction * 100.0)).arg(sizeText(usedSize)));
+		ui->_driveUsageBar->setVisible(volumeSize > 0);
 	}
 	else
+	{
 		ui->_driveInfoLabel->clear();
+		ui->_driveInfoLabel->setToolTip({});
+		ui->_driveUsageBar->hide();
+	}
 
 	auto* layout = ui->_driveButtonsWidget->layout();
 	if (!layout)

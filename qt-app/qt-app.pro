@@ -42,6 +42,7 @@ SOURCES += \
 	src/functionkeybar/cfunctionkeybutton.cpp \
 	src/panel/cbreadcrumbbar.cpp \
 	src/panel/cpanelwidget.cpp \
+	src/panel/cvolumeusagebar.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
 	src/settings/csettingspageinterface.cpp \
@@ -75,6 +76,7 @@ HEADERS += \
 	src/functionkeybar/cfunctionkeybutton.h \
 	src/panel/cbreadcrumbbar.h \
 	src/panel/cpanelwidget.h \
+	src/panel/cvolumeusagebar.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
 	src/panel/filelistwidget/cfilelistview.h \

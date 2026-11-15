@@ -27,7 +27,7 @@
     <number>1</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="driveRowLayout" stretch="1,0">
+    <layout class="QHBoxLayout" name="driveRowLayout" stretch="1,0,0">
      <property name="spacing">
       <number>6</number>
      </property>
@@ -49,6 +49,9 @@
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="CVolumeUsageBar" name="_driveUsageBar" native="true"/>
      </item>
     </layout>
    </item>
@@ -232,6 +235,11 @@
    <class>CFileListView</class>
    <extends>QTreeView</extends>
    <header>panel/filelistwidget/cfilelistview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CVolumeUsageBar</class>
+   <extends>QWidget</extends>
+   <header>panel/cvolumeusagebar.h</header>
   </customwidget>
   <customwidget>
    <class>CClickableLabel</class>
