@@ -42,7 +42,7 @@ struct Theme
 };
 
 // Colours are in the xterm 256-colour cube or grey ramp: a 256-colour terminal shows them exactly, and no terminal colour scheme redefines them.
-// The exceptions are marked "off-palette": a 256-colour terminal shows the nearest colour in the palette.
+// The exceptions are marked "off-palette", or the whole theme "true colour": a 256-colour terminal shows the nearest colour in the palette.
 constexpr TColorRGB black{ 0x000000 }, navy{ 0x00005F }, mediumBlue{ 0x0000AF }, red{ 0xAF0000 }, amber{ 0xD78700 }, cyan{ 0x00AFAF }, teal{ 0x008787 },
 	darkTeal{ 0x005F5F }, darkGrey{ 0x5F5F5F }, grey{ 0xAFAFAF }, lightGreen{ 0x5FFF5F }, lightCyan{ 0x5FFFFF }, yellow{ 0xFFFF5F }, white{ 0xFFFFFF };
 
@@ -122,6 +122,42 @@ constexpr Theme themes[]{
 		.bottomBack = 0x000000, .hintText = 0x008700, .hintKey = 0x5FFF5F, .keyBack = 0x00FF00, .keyText = 0x000000,
 		.keyLabelBack = 0x003A00, // Off-palette
 		.keyLabelText = 0x00D700 } },
+	// True colour, mostly from the Nord palette (MIT licence)
+	{ "slate", "~S~late", {
+		.menuBack = 0x3B4252, .menuText = 0xD8DEE9, .menuShortcut = 0x88C0D0, .menuSelectedBack = 0x5E81AC, .menuSelectedText = 0xECEFF4, .menuSelectedShortcut = 0xEBCB8B,
+		.disabledText = 0x616E88,
+		.panelBack = 0x2E3440, .framePassive = 0x4C566A, .frameActive = 0xD8DEE9, .frameIcons = 0xA3BE8C,
+		.fileText = 0xD8DEE9, .selectedText = 0xEBCB8B, .cursorBack = 0x5E81AC, .cursorText = 0xFFFFFF, .cursorSelectedText = 0xFFE4A8, .columnHeader = 0x81A1C1,
+		.statusText = 0x7B88A1, .separator = 0x3B4252, .cursorSeparator = 0x81A1C1, .tabBack = 0x4C566A, .tabText = 0xECEFF4,
+		.dialogBack = 0x3B4252, .dialogText = 0xD8DEE9, .dialogFrame = 0xECEFF4, .dialogShortcut = 0x88C0D0, .focusText = 0x88C0D0,
+		.buttonBack = 0x5A6480, .buttonText = 0xECEFF4, .buttonDefaultText = 0xEBCB8B, .buttonShortcut = 0x88C0D0, .buttonShadow = 0x242933,
+		.controlBack = 0x434C5E, .controlText = 0xD8DEE9, .inputBack = 0x2E3440, .inputText = 0xECEFF4, .scrollBarText = 0x4C566A, .scrollBarBack = 0x2E3440,
+		.selectionText = 0xECEFF4,
+		.bottomBack = 0x242933, .hintText = 0x7B88A1, .hintKey = 0x88C0D0, .keyBack = 0x88C0D0, .keyText = 0x2E3440, .keyLabelBack = 0x3B4252, .keyLabelText = 0xD8DEE9 } },
+	// True colour, mostly from the Gruvbox palette (MIT licence)
+	{ "ember", "~E~mber", {
+		.menuBack = 0x3C3836, .menuText = 0xEBDBB2, .menuShortcut = 0xFE8019, .menuSelectedBack = 0xD65D0E, .menuSelectedText = 0xFBF1C7, .menuSelectedShortcut = 0xFABD2F,
+		.disabledText = 0x7C6F64,
+		.panelBack = 0x1D2021, .framePassive = 0x504945, .frameActive = 0xEBDBB2, .frameIcons = 0xB8BB26,
+		.fileText = 0xD5C4A1, .selectedText = 0xFABD2F, .cursorBack = 0x504945, .cursorText = 0xFBF1C7, .cursorSelectedText = 0xFABD2F, .columnHeader = 0x83A598,
+		.statusText = 0xA89984, .separator = 0x32302F, .cursorSeparator = 0x665C54, .tabBack = 0x504945, .tabText = 0xFBF1C7,
+		.dialogBack = 0x3C3836, .dialogText = 0xEBDBB2, .dialogFrame = 0xFBF1C7, .dialogShortcut = 0xFE8019, .focusText = 0xFABD2F,
+		.buttonBack = 0x504945, .buttonText = 0xFBF1C7, .buttonDefaultText = 0xFABD2F, .buttonShortcut = 0xFE8019, .buttonShadow = 0x141617,
+		.controlBack = 0x32302F, .controlText = 0xEBDBB2, .inputBack = 0x1D2021, .inputText = 0xFBF1C7, .scrollBarText = 0x665C54, .scrollBarBack = 0x282828,
+		.selectionText = 0xFBF1C7,
+		.bottomBack = 0x141617, .hintText = 0xA89984, .hintKey = 0xFE8019, .keyBack = 0xFABD2F, .keyText = 0x1D2021, .keyLabelBack = 0x3C3836, .keyLabelText = 0xEBDBB2 } },
+	// True colour, mostly from the Tokyo Night palette (MIT licence)
+	{ "midnight", "M~i~dnight", {
+		.menuBack = 0x16161E, .menuText = 0xA9B1D6, .menuShortcut = 0xBB9AF7, .menuSelectedBack = 0x3D59A1, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xE0AF68,
+		.disabledText = 0x545C7E,
+		.panelBack = 0x1A1B26, .framePassive = 0x3B4261, .frameActive = 0xC0CAF5, .frameIcons = 0x9ECE6A,
+		.fileText = 0xC0CAF5, .selectedText = 0xE0AF68, .cursorBack = 0x2F3B66, .cursorText = 0xFFFFFF, .cursorSelectedText = 0xFFC777, .columnHeader = 0x7AA2F7,
+		.statusText = 0x565F89, .separator = 0x24283B, .cursorSeparator = 0x3D59A1, .tabBack = 0x3B4261, .tabText = 0xFFFFFF,
+		.dialogBack = 0x24283B, .dialogText = 0xC0CAF5, .dialogFrame = 0xFFFFFF, .dialogShortcut = 0xBB9AF7, .focusText = 0x7DCFFF,
+		.buttonBack = 0x3B4261, .buttonText = 0xFFFFFF, .buttonDefaultText = 0xE0AF68, .buttonShortcut = 0xBB9AF7, .buttonShadow = 0x101018,
+		.controlBack = 0x292E42, .controlText = 0xC0CAF5, .inputBack = 0x1A1B26, .inputText = 0xFFFFFF, .scrollBarText = 0x3B4261, .scrollBarBack = 0x1A1B26,
+		.selectionText = 0xFFFFFF,
+		.bottomBack = 0x101018, .hintText = 0x565F89, .hintKey = 0xBB9AF7, .keyBack = 0x7AA2F7, .keyText = 0x16161E, .keyLabelBack = 0x24283B, .keyLabelText = 0xC0CAF5 } },
 	{ "light", "~L~ight", {
 		.menuBack = 0xD0D0D0, .menuText = 0x262626, .menuShortcut = 0xAF5F00, .menuSelectedBack = 0x0087AF, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD75F,
 		.disabledText = 0x8A8A8A,
@@ -155,8 +191,44 @@ constexpr Theme themes[]{
 		.controlBack = 0xAFD7D7, .controlText = 0x000000, .inputBack = 0xFFFFFF, .inputText = 0x00005F, .scrollBarText = 0x5F8787, .scrollBarBack = 0xD7FFFF,
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0xAFD7D7, .hintText = 0x005F5F, .hintKey = 0xAF0000, .keyBack = 0xFFFF5F, .keyText = 0x000000, .keyLabelBack = 0x00AFAF, .keyLabelText = 0x000000 } },
+	// True colour, mostly from the Solarized Light palette (MIT licence)
+	{ "solar", "Sola~r~", {
+		.menuBack = 0xEEE8D5, .menuText = 0x586E75, .menuShortcut = 0xCB4B16, .menuSelectedBack = 0x268BD2, .menuSelectedText = 0xFDF6E3, .menuSelectedShortcut = 0x002B36,
+		.disabledText = 0x93A1A1,
+		.panelBack = 0xFDF6E3, .framePassive = 0xC9C2AE, .frameActive = 0x586E75, .frameIcons = 0x859900,
+		.fileText = 0x586E75, .selectedText = 0xCB4B16, .cursorBack = 0xE4DCC4, .cursorText = 0x073642, .cursorSelectedText = 0xB53F10, .columnHeader = 0x268BD2,
+		.statusText = 0x93A1A1, .separator = 0xEEE8D5, .cursorSeparator = 0xCFC6AC, .tabBack = 0xE4DCC4, .tabText = 0x073642,
+		.dialogBack = 0xEEE8D5, .dialogText = 0x586E75, .dialogFrame = 0x073642, .dialogShortcut = 0xCB4B16, .focusText = 0x268BD2,
+		.buttonBack = 0xDDD6C1, .buttonText = 0x073642, .buttonDefaultText = 0x268BD2, .buttonShortcut = 0xCB4B16, .buttonShadow = 0xC9C2AE,
+		.controlBack = 0xFDF6E3, .controlText = 0x586E75, .inputBack = 0xFFFBF0, .inputText = 0x073642, .scrollBarText = 0xC9C2AE, .scrollBarBack = 0xF5EFDC,
+		.selectionText = 0xFDF6E3,
+		.bottomBack = 0xF5EFDC, .hintText = 0x93A1A1, .hintKey = 0x2AA198, .keyBack = 0x2AA198, .keyText = 0xFDF6E3, .keyLabelBack = 0xE6DFC9, .keyLabelText = 0x586E75 } },
+	// True colour
+	{ "mint", "Mi~n~t", {
+		.menuBack = 0xDCEBE0, .menuText = 0x24332B, .menuShortcut = 0xB03A69, .menuSelectedBack = 0x2E7D5B, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xF8C8DA,
+		.disabledText = 0x8FA89A,
+		.panelBack = 0xF1F8F2, .framePassive = 0xAFC8B7, .frameActive = 0x2F4A3C, .frameIcons = 0x2E7D5B,
+		.fileText = 0x2F3F36, .selectedText = 0xB03A69, .cursorBack = 0xC9E8D3, .cursorText = 0x12201A, .cursorSelectedText = 0x9A2C58, .columnHeader = 0x2E7D5B,
+		.statusText = 0x6B8577, .separator = 0xDDEBE1, .cursorSeparator = 0xA6D3B5, .tabBack = 0xC9E8D3, .tabText = 0x12201A,
+		.dialogBack = 0xDCEBE0, .dialogText = 0x24332B, .dialogFrame = 0x24332B, .dialogShortcut = 0xB03A69, .focusText = 0x1F5E43,
+		.buttonBack = 0xBBD8C4, .buttonText = 0x12201A, .buttonDefaultText = 0x1F5E43, .buttonShortcut = 0xB03A69, .buttonShadow = 0x9DB8A6,
+		.controlBack = 0xF1F8F2, .controlText = 0x24332B, .inputBack = 0xFFFFFF, .inputText = 0x12201A, .scrollBarText = 0xAFC8B7, .scrollBarBack = 0xE6F2E9,
+		.selectionText = 0xFFFFFF,
+		.bottomBack = 0xE6F2E9, .hintText = 0x6B8577, .hintKey = 0x2E7D5B, .keyBack = 0x2E7D5B, .keyText = 0xFFFFFF, .keyLabelBack = 0xD3E6D9, .keyLabelText = 0x24332B } },
+	// True colour
+	{ "blossom", "~B~lossom", {
+		.menuBack = 0xF1DFE6, .menuText = 0x3A2E34, .menuShortcut = 0x8E3B6B, .menuSelectedBack = 0x8E3B6B, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD6E7,
+		.disabledText = 0xA8939D,
+		.panelBack = 0xFBF4F6, .framePassive = 0xD9BFCA, .frameActive = 0x4A3A42, .frameIcons = 0x2F6BCB,
+		.fileText = 0x3A2E34, .selectedText = 0x2F6BCB, .cursorBack = 0xF3D3DE, .cursorText = 0x24181E, .cursorSelectedText = 0x2458AE, .columnHeader = 0x8E3B6B,
+		.statusText = 0x8C7480, .separator = 0xF0E1E7, .cursorSeparator = 0xE2B5C6, .tabBack = 0xF3D3DE, .tabText = 0x24181E,
+		.dialogBack = 0xF1DFE6, .dialogText = 0x3A2E34, .dialogFrame = 0x3A2E34, .dialogShortcut = 0x8E3B6B, .focusText = 0x6A2550,
+		.buttonBack = 0xE3C3D0, .buttonText = 0x24181E, .buttonDefaultText = 0x6A2550, .buttonShortcut = 0x8E3B6B, .buttonShadow = 0xCDAFBC,
+		.controlBack = 0xFBF4F6, .controlText = 0x3A2E34, .inputBack = 0xFFFFFF, .inputText = 0x24181E, .scrollBarText = 0xD9BFCA, .scrollBarBack = 0xF6EAEF,
+		.selectionText = 0xFFFFFF,
+		.bottomBack = 0xF6EAEF, .hintText = 0x8C7480, .hintKey = 0x8E3B6B, .keyBack = 0x8E3B6B, .keyText = 0xFFFFFF, .keyLabelBack = 0xEDD5DF, .keyLabelText = 0x3A2E34 } },
 };
-static_assert(std::size(themes) == colourThemeCount && (size_t)ColourTheme::LightCyan + 1 == colourThemeCount);
+static_assert(std::size(themes) == colourThemeCount && (size_t)ColourTheme::Blossom + 1 == colourThemeCount);
 
 constexpr char stockApplicationColors[] = cpAppColor;
 constexpr size_t panelEntryCount = ppLastEntry - ppFileListRow + 1, hintLineEntryCount = 6, keyBarEntryCount = 7;
