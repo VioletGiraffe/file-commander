@@ -216,6 +216,16 @@ private:
 	}
 };
 
+// A group draws its subviews again only when it has no buffer
+void freeDrawBuffers(TGroup& group)
+{
+	group.freeBuffer();
+	group.forEach([](TView* view, void*) {
+		if (auto* subgroup = dynamic_cast<TGroup*>(view))
+			freeDrawBuffers(*subgroup);
+	}, nullptr);
+}
+
 [[nodiscard]] TMenu* newColourThemeMenu()
 {
 	TMenuItem* items = nullptr;
@@ -297,6 +307,11 @@ void CTuiApplication::setColourTheme(ColourTheme theme)
 {
 	applyColourTheme(theme);
 	static_cast<CTuiMenuBar*>(menuBar)->markColourTheme(theme); // initMenuBar creates a CTuiMenuBar
+
+	// Buffers drawn in the old colours: the desktop holds the panels and every open window, and the closed Find dialog is in no group
+	freeDrawBuffers(*deskTop);
+	if (_findDialog)
+		freeDrawBuffers(*_findDialog);
 	redraw();
 }
 
