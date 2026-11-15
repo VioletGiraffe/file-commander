@@ -34,6 +34,7 @@
 #include "timing/ctimeelapsed.h"
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
 #include "widgets/chistorycombobox.h"
+#include "widgets/ctabstrip.h"
 #include "widgets/layouts/cflowlayout.h"
 #include "widgets/widgetutils.h"
 
@@ -67,7 +68,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QSizePolicy>
 #include <QSpacerItem>
 #include <QStyle>
-#include <QTabBar>
 #include <QToolTip>
 #include <QUrl>
 #include <QWheelEvent>
@@ -258,11 +258,14 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 	setProperty(activePanelProperty, active);
 	ui->_breadcrumbBar->setShownAsActive(active);
 	ui->_driveUsageBar->setShownAsActive(active);
-	// A stylesheet matches property selectors only while polishing a widget; the path editor, the tab bar and the drive buttons have rules on this panel's property too
+	// A stylesheet matches property selectors only while polishing a widget; the path editor, the tabs and the drive buttons have rules on this panel's property too
 	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
-	std::vector<QWidget*> widgets{ this, &pathEditor, pathEditor.lineEdit(), ui->_tabBar };
-	for (QPushButton* driveButton : ui->_driveButtonsWidget->findChildren<QPushButton*>(Qt::FindDirectChildrenOnly))
-		widgets.push_back(driveButton);
+	std::vector<QWidget*> widgets{ this, &pathEditor, pathEditor.lineEdit() };
+	for (const QWidget* buttonParent : { static_cast<QWidget*>(ui->_tabBar), ui->_driveButtonsWidget })
+	{
+		for (QPushButton* button : buttonParent->findChildren<QPushButton*>(Qt::FindDirectChildrenOnly))
+			widgets.push_back(button);
+	}
 	for (QWidget* widget : widgets)
 	{
 		style()->unpolish(widget);
@@ -397,18 +400,11 @@ void CPanelWidget::initPanel(Panel p)
 	ui->_list->installEventFilter(this);
 	ui->_list->viewport()->installEventFilter(this);
 
-	ui->_tabBar->installEventFilter(this); // For closing tabs on middle click
-	ui->_tabBar->setExpanding(false);
-	ui->_tabBar->setTabsClosable(true);
-	ui->_tabBar->setMovable(true);
-	ui->_tabBar->setElideMode(Qt::ElideMiddle);
-	ui->_tabBar->setDrawBase(false);
-	// QTabBar defaults to Qt::TabFocus: the file list keeps the keyboard (Ctrl+Tab cycles tabs).
-	ui->_tabBar->setFocusPolicy(Qt::NoFocus);
-	assert_r(connect(ui->_tabBar, &QTabBar::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
-	assert_r(connect(ui->_tabBar, &QTabBar::tabCloseRequested, this, &CPanelWidget::onTabBarCloseRequested));
-	assert_r(connect(ui->_tabBar, &QTabBar::tabMoved, this, &CPanelWidget::onTabBarTabMoved));
-	assert_r(connect(ui->_tabBar, &QTabBar::customContextMenuRequested, this, &CPanelWidget::showContextMenuForTab));
+	ui->_tabBar->installEventFilter(this); // For the tabs' tooltips
+	assert_r(connect(ui->_tabBar, &CTabStrip::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
+	assert_r(connect(ui->_tabBar, &CTabStrip::tabCloseRequested, this, &CPanelWidget::onTabBarCloseRequested));
+	assert_r(connect(ui->_tabBar, &CTabStrip::tabMoved, this, &CPanelWidget::onTabBarTabMoved));
+	assert_r(connect(ui->_tabBar, &CTabStrip::customContextMenuRequested, this, &CPanelWidget::showContextMenuForTab));
 
 	// Mirror however many tabs CController restored for this side (usually one, but persisted multi-tab state may have more).
 	const std::vector<qulonglong> ids = _controller->tabIds(p);
@@ -703,7 +699,7 @@ void CPanelWidget::onTabBarTabMoved(int from, int to)
 	if (from == to)
 		return;
 
-	// The QTabBar has already moved the tab and its tab data: _tabs mirrors the move to stay position-aligned
+	// The tab bar has already moved the tab and its tab data: _tabs mirrors the move to stay position-aligned
 	PanelTab movedTab = std::move(_tabs[(size_t)from]);
 	_tabs.erase(_tabs.begin() + from);
 	_tabs.insert(_tabs.begin() + to, std::move(movedTab));
@@ -794,7 +790,7 @@ QString CPanelWidget::tabToolTipText(int index) const
 
 qulonglong CPanelWidget::tabIdAt(int index) const
 {
-	return ui->_tabBar->tabData(index).toULongLong();
+	return ui->_tabBar->tabData(index);
 }
 
 bool CPanelWidget::fillFromList(FileListRefreshCause operation)
@@ -1567,21 +1563,9 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 			return true;
 		}
 	}
-	else if (object == ui->_tabBar && e->type() == QEvent::MouseButtonRelease)
-	{
-		// Release, not press: don't close on an accidental press-and-drag-away, matching browser behavior
-		const auto* mouseEvent = static_cast<QMouseEvent*>(e);
-		if (mouseEvent->button() == Qt::MiddleButton)
-		{
-			const int index = ui->_tabBar->tabAt(mouseEvent->pos());
-			if (index >= 0)
-				onTabBarCloseRequested(index);
-			return true;
-		}
-	}
 	else if (object == ui->_tabBar && e->type() == QEvent::ToolTip)
 	{
-		// Composed on demand rather than set via setTabToolTip: the active tab's folder changes under it
+		// Composed on demand: the active tab's folder changes under it
 		const auto* helpEvent = static_cast<QHelpEvent*>(e);
 		const int index = ui->_tabBar->tabAt(helpEvent->pos());
 		if (index >= 0)
@@ -1731,6 +1715,7 @@ void CPanelWidget::applyTheme()
 	ui->verticalLayout->setSpacing(theme.metrics.panelRowSpacing);
 	ui->driveRowLayout->setContentsMargins(padding, flat ? 0 : padding, padding, 0);
 	ui->_driveButtonsWidget->layout()->setSpacing(theme.metrics.driveButtonSpacing);
+	ui->_tabBar->setSpacing(theme.metrics.tabSpacing);
 	ui->pathRowLayout->setContentsMargins(padding, 0, padding, 0);
 	ui->tabRowLayout->setContentsMargins(padding, 0, padding, 0);
 

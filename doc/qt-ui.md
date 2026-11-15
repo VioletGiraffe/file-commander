@@ -64,6 +64,9 @@ column layout; the widget's unqualified model pointers alias the active tab's.
 The tab bar, UI vector, and core tab list remain position-aligned, but cross-layer calls use the stable ID stored in
 tab data. Positions must be resolved again immediately before close or reorder operations.
 
+The tab bar is a `CTabStrip`, not a `QTabBar`, whose tab layout is private and has one row: its tabs wrap into rows
+at the panel's width and keep their order. The stylesheet styles them as push buttons.
+
 The widget and the main window implement the core listener interfaces; which callbacks each handles and on which
 thread they arrive is in [notifications.md](notifications.md).
 

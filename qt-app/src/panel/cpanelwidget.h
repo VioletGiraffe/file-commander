@@ -57,8 +57,8 @@ public:
 	[[nodiscard]] Panel panelPosition() const;
 	void initPanel(Panel p);
 
-	// Tabs (this side). The QTabBar and the per-tab models (_tabs) are kept position-aligned with each
-	// other; CController's tabs are addressed by tab ID, recovered from a QTabBar position via tabIdAt().
+	// Tabs (this side). The tab bar and the per-tab models (_tabs) are kept position-aligned with each
+	// other; CController's tabs are addressed by tab ID, recovered from a tab bar position via tabIdAt().
 	void createNewTab();          // New tab showing the current folder, switched to
 	void closeCurrentTab();       // Closes the active tab (no-op when it's the only one)
 	void switchToNextTab();
@@ -159,7 +159,7 @@ private:
 	// Saves the image as a new file in the current folder; tells the user if that fails
 	void pasteImage(const QImage& image, bool lossyCompression);
 
-// Tab helpers (UI side; _tabs is position-aligned with the QTabBar; CController is addressed by tab ID, see tabIdAt())
+// Tab helpers (UI side; _tabs is position-aligned with the tab bar; CController is addressed by tab ID, see tabIdAt())
 	struct PanelTab {
 		CFileListModel* model = nullptr;
 		QItemSelectionModel* selectionModel = nullptr;
@@ -180,13 +180,13 @@ private:
 	[[nodiscard]] std::vector<std::pair<qulonglong, TabViewState>> loadTabViewStates() const; // Persisted state by tab id; empty when nothing is stored
 	// Migration: older settings held QHeaderView::saveState() blobs, first one per side, then one per tab. Defaults for an unreadable blob.
 	[[nodiscard]] static TabViewState viewStateFromHeaderBlob(const QByteArray& blob);
-	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this QTabBar position's tab data
+	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this tab bar position's tab data
 	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
 	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths, sort, scroll position and filter box
 	void saveActiveTabViewState();                 // Stores what activateTab() restores, before the view shows another tab
 	void onTabBarCurrentChanged(int index);
 	void onTabBarCloseRequested(int index);
-	void onTabBarTabMoved(int from, int to);        // Drag-reorder: mirrors the QTabBar's move into _tabs and CController
+	void onTabBarTabMoved(int from, int to);        // Drag-reorder: mirrors the tab bar's move into _tabs and CController
 	void closeTabById(qulonglong id);       // Closes whichever tab currently holds id (re-resolves its position fresh); shared by onTabBarCloseRequested and closeAllOtherTabs
 	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
 	void updateTabText(int index);

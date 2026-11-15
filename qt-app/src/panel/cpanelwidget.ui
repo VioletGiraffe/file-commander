@@ -156,7 +156,7 @@
    <item>
     <layout class="QHBoxLayout" name="tabRowLayout">
      <item>
-      <widget class="QTabBar" name="_tabBar">
+      <widget class="CTabStrip" name="_tabBar">
        <property name="contextMenuPolicy">
         <enum>Qt::CustomContextMenu</enum>
        </property>
@@ -235,6 +235,11 @@
    <class>CFileListView</class>
    <extends>QTreeView</extends>
    <header>panel/filelistwidget/cfilelistview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CTabStrip</class>
+   <extends>QWidget</extends>
+   <header>widgets/ctabstrip.h</header>
   </customwidget>
   <customwidget>
    <class>CVolumeUsageBar</class>

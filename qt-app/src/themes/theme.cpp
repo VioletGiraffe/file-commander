@@ -59,6 +59,7 @@ constexpr int tabletFontPointSize = 24;
 			.panelPadding = 10,
 			.windowMargin = 10, .panelGap = 10, .commandLineMargin = 10,
 			.functionKeySpacing = 0, .functionKeyBarMargin = 0,
+			.tabSpacing = 8,
 		},
 		.fileList = {
 			.rowFillInset = 0, .rowFillGap = 0,
@@ -77,8 +78,8 @@ constexpr char kMeadowStyleSheet[] = R"(
 	CPanelWidget { border-color: transparent; }
 	CPanelWidget[activePanel="true"] { border-color: @accent@; }
 
-	QTabBar::tab { border-bottom: none; border-radius: @controlRadius@px; padding: 4px 12px; }
-	QTabBar::tab:selected { background: @surfaceAlt@; }
+	QTabBar::tab, CTabStrip > QPushButton { border-bottom: none; border-radius: @controlRadius@px; padding: 4px 12px; }
+	QTabBar::tab:selected, CTabStrip > QPushButton:checked { background: @surfaceAlt@; }
 
 	QHeaderView::section { border-bottom: none; font-weight: bold; }
 
@@ -130,9 +131,9 @@ constexpr char kDuskStyleSheet[] = R"(
 	QMenuBar { border-bottom: 1px solid @border@; }
 	QSplitter::handle { background: @border@; }
 
-	QTabBar::tab { border-bottom: none; border-top: 2px solid transparent; border-radius: 0; }
-	QTabBar::tab:selected { background: @surfaceAlt@; }
-	CPanelWidget[activePanel="true"] QTabBar::tab:selected { border-top-color: @accent@; }
+	QTabBar::tab, CTabStrip > QPushButton { border-bottom: none; border-top: 2px solid transparent; border-radius: 0; }
+	QTabBar::tab:selected, CTabStrip > QPushButton:checked { background: @surfaceAlt@; }
+	CPanelWidget[activePanel="true"] CTabStrip > QPushButton:checked { border-top-color: @accent@; }
 
 	#_driveButtonsWidget > QPushButton:checked { background: @borderStrong@; color: @text@; }
 	#_infoLabel { border-top: 1px solid @border@; padding-top: 6px; }
@@ -174,7 +175,7 @@ constexpr char kLedgerStyleSheet[] = R"(
 	QMenuBar { border-bottom: 1px solid @border@; }
 	QSplitter::handle { background: @border@; }
 
-	QTabBar::tab:selected { border-bottom-color: @text@; }
+	QTabBar::tab:selected, CTabStrip > QPushButton:checked { border-bottom-color: @text@; }
 	QHeaderView::section { font-weight: bold; border-bottom: 2px solid @text@; }
 
 	CPanelWidget > QToolButton { border-color: transparent; }

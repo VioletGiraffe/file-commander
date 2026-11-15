@@ -8,7 +8,7 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
 ## C++ / Qt
 
 - **QVariant with a built-in type** (int, uint64_t, QString, ...): pass it directly, e.g.
-  `tabBar->setTabData(index, id)`. `QVariant::fromValue` / `.value<T>()` is machinery for non-built-in and
+  `item->setData(column, Qt::UserRole, path)`. `QVariant::fromValue` / `.value<T>()` is machinery for non-built-in and
   registered types. Reading back, prefer the direct named accessor (`.toULongLong()`) over the template form.
 
 - There is `mv(x)` macro (`cpp-template-utils/lang/utils.hpp`) for spots dense with moves, e.g. a constructor call moving many arguments where `mv` keeps it on one line. But default to `std::move(x)` — the idiomatic shape any reader understands. Don't convert existing code either way in passing.

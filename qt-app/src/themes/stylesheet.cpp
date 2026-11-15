@@ -144,18 +144,26 @@ constexpr char kGroupBoxes[] = R"(
 	}
 )";
 
+// The panel's tabs are a CTabStrip: push buttons with a close button inside, and a frame that marks a drag's drop position.
+// A strip tab's rules also undo what the QPushButton rules set for hover and checked.
+// A strip tab's hover rule comes before its checked rule: a checked tab keeps its border colour on hover.
 constexpr char kTabs[] = R"(
-	QTabBar::tab {
+	QTabBar::tab, CTabStrip > QPushButton {
 		background: transparent;
 		border: none;
 		border-bottom: 2px solid transparent;
+		border-radius: 0;
 		padding: 6px 12px;
 		color: @textDim@;
 	}
-	QTabBar::tab:selected { color: @text@; border-bottom-color: @accent@; }
 	QTabBar::tab:hover:!selected { color: @text@; }
+	CTabStrip > QPushButton:hover { border-color: transparent; color: @text@; }
+	QTabBar::tab:selected, CTabStrip > QPushButton:checked { background: transparent; color: @text@; border-bottom-color: @accent@; }
 	QTabBar::close-button { image: url(@tabCloseIcon@); }
 	QTabBar::close-button:hover { image: url(@tabCloseHoverIcon@); }
+	CTabStrip > QPushButton > QPushButton { background: transparent; border: none; padding: 0; icon: url(@tabCloseIcon@); }
+	CTabStrip > QPushButton > QPushButton:hover { icon: url(@tabCloseHoverIcon@); }
+	CTabStrip > QFrame { background: @accent@; border: none; }
 	QTabWidget::pane { border: 1px solid @border@; border-radius: @controlRadius@px; }
 )";
 
@@ -224,15 +232,16 @@ constexpr char kMainWindow[] = R"(
 )";
 
 // The flat structure: what differs from the sections above. These come later in the sheet, so they win at equal specificity.
-// The gap between tabs is a left margin: a tab's close button sits against the tab's right edge, margin included.
+// A QTabBar's gap between tabs is a left margin: a tab's close button sits against the tab's right edge, margin included.
+// A CTabStrip's gap is the theme's tabSpacing.
 constexpr char kFlatControls[] = R"(
 	QMenuBar { background: @accent@; color: @accentFg@; }
 	QMenuBar::item { color: @accentFg@; padding: 2px 8px; }
 	QMenuBar::item:selected, QMenuBar::item:pressed { background: @accentFg@; color: @accent@; }
 
-	QTabBar::tab { border-bottom: none; padding: 1px 6px; }
+	QTabBar::tab, CTabStrip > QPushButton { border-bottom: none; padding: 1px 6px; }
 	QTabBar::tab:middle, QTabBar::tab:last { margin-left: 8px; }
-	QTabBar::tab:selected { background: @borderSubtle@; }
+	QTabBar::tab:selected, CTabStrip > QPushButton:checked { background: @borderSubtle@; }
 
 	QHeaderView::section {
 		border-top: 1px solid @borderSubtle@;
