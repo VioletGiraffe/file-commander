@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794773703718,
+  "lastUpdate": 1794775791556,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -37078,6 +37078,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .reloc",
             "value": 13,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2bcc55863edf3c5e57ff5ef8bd2c83d5de00e392",
+          "message": "Panel tabs wrap into rows instead of crowding one row: a tab strip of themed buttons replaces QTabBar, with drag-to-reorder across rows; a '&' in a folder name now shows in its tab",
+          "timestamp": "2026-11-15T22:37:54+02:00",
+          "tree_id": "fd932aa4ada06e222be18a2c2a15124a6904d55c",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2bcc55863edf3c5e57ff5ef8bd2c83d5de00e392"
+        },
+        "date": 1794775788761,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 21868,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36274,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1768,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 926.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1083.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 462.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 52.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
             "unit": "KB"
           }
         ]
