@@ -42,6 +42,14 @@ enum class ThemeStructure
 	Flat     // line frames and filled cells, square corners
 };
 
+// How CBreadcrumbBar draws the path
+enum class PathBarStyle
+{
+	Field, // a framed field
+	Strip, // Flat structure only: an opaque cell in the frame's top edge, filled with the accent in the active panel
+	Titled // dim text on the panel; the current folder is a large title, in the accent colour in the active panel
+};
+
 // One selectable look. `name` is unique within its polarity; a look retuned for the other polarity keeps its name.
 struct Theme
 {
@@ -49,6 +57,7 @@ struct Theme
 	bool dark = false;
 	ThemeStructure structure = ThemeStructure::Rounded;
 	bool monospaceControls = false; // the file list's font is the user's choice either way
+	PathBarStyle pathBar = PathBarStyle::Field;
 	CBasePalette palette;
 	ThemeMetrics metrics;
 	FileListLook fileList;

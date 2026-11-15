@@ -52,6 +52,7 @@ constexpr int tabletFontPointSize = 24;
 		.dark = dark,
 		.structure = ThemeStructure::Flat,
 		.monospaceControls = true,
+		.pathBar = PathBarStyle::Strip,
 		.palette = palette,
 		.metrics = {
 			.controlRadius = 0, .panelRadius = 0, .menuItemRadius = 0,
@@ -167,6 +168,58 @@ constexpr char kDuskStyleSheet[] = R"(
 	};
 }
 
+// No boxes: panels edge to edge, one line apart. Underlines mark the command line and the selected drive and tab.
+constexpr char kLedgerStyleSheet[] = R"(
+	QMenuBar { border-bottom: 1px solid @border@; }
+	QSplitter::handle { background: @border@; }
+
+	QTabBar::tab:selected { border-bottom-color: @text@; }
+	QHeaderView::section { font-weight: bold; border-bottom: 2px solid @text@; }
+
+	CPanelWidget > QToolButton { border-color: transparent; }
+
+	#_driveButtonsWidget > QPushButton { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 2px 2px; }
+	#_driveButtonsWidget > QPushButton:hover { background: transparent; }
+	#_driveButtonsWidget > QPushButton:checked { background: transparent; border-bottom-color: @text@; color: @text@; font-weight: bold; }
+
+	#_infoLabel { border-top: 2px solid @text@; padding-top: 6px; }
+	CMainWindow > #centralwidget > QComboBox { background: transparent; border: none; border-bottom: 1px solid @text@; border-radius: 0; }
+)";
+
+[[nodiscard]] Theme ledgerTheme()
+{
+	const CBasePalette palette{
+		.windowBg = rgb(0xffffff), .surface = rgb(0xffffff), .surfaceAlt = rgb(0xf3f5f8),
+		.text = rgb(0x161a22), .textDim = rgb(0x5a6372),
+		.button = rgb(0xffffff),
+		.accent = rgb(0x1d4ed8),
+		.selectionBg = rgb(0xedf1fc), .selectionFg = rgb(0x1d4ed8),
+		.border = rgb(0xd9dde5), .borderSubtle = rgb(0xe6e9ee),
+	};
+
+	return {
+		.name = QStringLiteral("Ledger"),
+		.dark = false,
+		.pathBar = PathBarStyle::Titled,
+		.palette = palette,
+		.metrics = {
+			.controlRadius = 3, .panelRadius = 0, .panelBorderWidth = 0, .menuItemRadius = 3,
+			.panelPadding = 14,
+			.windowMargin = 0, .panelGap = 1, .commandLineMargin = 16,
+		},
+		.fileList = {
+			.rowFillInset = 0, .rowFillGap = 0,
+			.rowFillRadius = 0,
+			.contentHMargin = 6, .contentVMargin = 6,
+			.cursor = FileListLook::Cursor::Bar,
+			.inactiveCursorColor = palette.accent,
+			.rowSeparatorColor = palette.borderSubtle,
+			.uppercaseHeader = true,
+		},
+		.styleSheet = kLedgerStyleSheet,
+	};
+}
+
 void applySelectedTheme()
 {
 	g_appliedTheme = CThemeController::instance().selectedTheme(allThemes());
@@ -232,6 +285,7 @@ const std::vector<Theme>& allThemes()
 			.accentFg = rgb(0xffffff),
 		}),
 		meadowTheme(),
+		ledgerTheme(),
 		duskTheme(),
 	};
 	return themes;

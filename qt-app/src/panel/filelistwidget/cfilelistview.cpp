@@ -14,6 +14,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QColor>
 #include <QDebug>
+#include <QFont>
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -201,6 +202,16 @@ void CFileListView::setLook(const FileListLook& look)
 {
 	_itemDelegate->setLook(look);
 	updateBackground();
+
+	// Only the capitalization and the spacing are set: the rest of the font follows the list's
+	QFont headerFont;
+	if (look.uppercaseHeader)
+	{
+		headerFont.setCapitalization(QFont::AllUppercase);
+		headerFont.setLetterSpacing(QFont::PercentageSpacing, 108.0);
+	}
+	header()->setFont(headerFont);
+
 	scheduleDelayedItemsLayout(); // the row height depends on the look
 	viewport()->update();
 }
@@ -431,6 +442,11 @@ void CFileListView::currentChanged(const QModelIndex& current, const QModelIndex
 
 void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
+	const FileListLook& look = _itemDelegate->look();
+	// Under the selection and cursor fills
+	if (look.rowSeparatorColor.isValid())
+		painter->fillRect(QRect{ 0, option.rect.bottom(), viewport()->width(), 1 }, look.rowSeparatorColor);
+
 	const bool selected = selectionModel()->isSelected(index);
 	const bool cursor = index.row() == currentIndex().row();
 	if (!selected && !cursor)
@@ -439,7 +455,6 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 		return;
 	}
 
-	const FileListLook& look = _itemDelegate->look();
 	const QRectF fill = _itemDelegate->rowFillRect(QRect{ 0, option.rect.y(), viewport()->width(), option.rect.height() });
 	const int radius = look.rowFillRadius;
 	// The colours of an active window, by design: the panels look the same while a dialog is open

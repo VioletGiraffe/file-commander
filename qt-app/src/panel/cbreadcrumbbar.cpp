@@ -28,6 +28,9 @@ namespace {
 
 constexpr int sidePadding = 8, folderPadding = 3, separatorPadding = 3;
 constexpr int arrowGap = 6; // between the last part and the arrow
+// Titled: the current folder's font size relative to the other parts', and the space above and below it
+constexpr qreal titleScale = 1.6;
+constexpr int titleVerticalPadding = 2;
 constexpr QSize arrowSize{ 10, 7 };
 // A separator is a chevron, pointing down while its menu is open
 constexpr QSize chevronSize{ 7, 10 };
@@ -100,9 +103,9 @@ void CBreadcrumbBar::setShownAsActive(const bool active)
 
 void CBreadcrumbBar::applyTheme()
 {
-	_flat = appliedTheme().structure == ThemeStructure::Flat;
-	// Flat: centred by the path row's spacers
-	setSizePolicy(_flat ? QSizePolicy::Maximum : QSizePolicy::Preferred, QSizePolicy::Fixed);
+	_style = appliedTheme().pathBar;
+	// Strip: centred by the path row's spacers
+	setSizePolicy(_style == PathBarStyle::Strip ? QSizePolicy::Maximum : QSizePolicy::Preferred, QSizePolicy::Fixed);
 	layOutParts();
 	updateGeometry();
 	update();
@@ -129,23 +132,27 @@ void CBreadcrumbBar::stopEditing()
 	update();
 }
 
-// The bar is as tall as the editor, so that showing the editor does not move the rows below
 QSize CBreadcrumbBar::sizeHint() const
 {
-	_editor->ensurePolished(); // the stylesheet sets the editor's padding
-	const QSize editorHint = _editor->sizeHint();
-	if (!_editor->isHidden())
-		return editorHint;
-
-	return { fullStripWidth(), editorHint.height() };
+	return { _editor->isHidden() ? fullStripWidth() : _editor->sizeHint().width(), barHeight() };
 }
 
 // Not the editor's while editing: QComboBox makes that as wide as the longest history entry
 QSize CBreadcrumbBar::minimumSizeHint() const
 {
-	_editor->ensurePolished();
 	const int width = 2 * sidePadding + fontMetrics().horizontalAdvance(hiddenFoldersText) + 2 * folderPadding + arrowGap + arrowSize.width();
-	return { width, _editor->sizeHint().height() };
+	return { width, barHeight() };
+}
+
+// At least as tall as the editor, so that showing the editor does not move the rows below
+int CBreadcrumbBar::barHeight() const
+{
+	_editor->ensurePolished(); // the stylesheet sets the editor's padding
+	const int editorHeight = _editor->sizeHint().height();
+	if (_style != PathBarStyle::Titled)
+		return editorHeight;
+
+	return std::max(editorHeight, QFontMetrics{ currentFolderFont() }.height() + 2 * titleVerticalPadding);
 }
 
 void CBreadcrumbBar::paintEvent(QPaintEvent* /*event*/)
@@ -159,13 +166,14 @@ void CBreadcrumbBar::paintEvent(QPaintEvent* /*event*/)
 	QPainter painter{ this };
 	painter.setRenderHint(QPainter::Antialiasing);
 
-	// Flat: an opaque cell, filled with the accent in the active panel; a highlighted part has the cell's colours swapped.
-	// Rounded: a field; a highlighted part is a rounded tint.
-	const QColor background = _flat && _shownAsActive ? palette.accent : palette.windowBg;
-	const QColor foreground = _flat && _shownAsActive ? palette.accentFg : palette.text;
-	if (_flat)
+	// Strip: a highlighted part has the cell's colours swapped. Field and Titled: a highlighted part is a rounded tint.
+	const bool strip = _style == PathBarStyle::Strip, titled = _style == PathBarStyle::Titled;
+	const QColor background = strip && _shownAsActive ? palette.accent : palette.windowBg;
+	const QColor foreground = strip && _shownAsActive ? palette.accentFg : titled ? palette.textDim : palette.text;
+	const QColor titleColor = _shownAsActive ? palette.accent : palette.text;
+	if (strip)
 		painter.fillRect(rect(), background);
-	else
+	else if (_style == PathBarStyle::Field)
 	{
 		painter.setPen(underMouse() ? palette.borderStrong : palette.border);
 		painter.setBrush(background);
@@ -179,7 +187,7 @@ void CBreadcrumbBar::paintEvent(QPaintEvent* /*event*/)
 			return defaultColor;
 
 		painter.setPen(Qt::NoPen);
-		if (_flat)
+		if (strip)
 		{
 			painter.fillRect(area, foreground);
 			return background;
@@ -191,34 +199,45 @@ void CBreadcrumbBar::paintEvent(QPaintEvent* /*event*/)
 		return pressed ? palette.accentText : palette.text;
 	};
 
-	const QColor separatorColor = _flat ? foreground : palette.textDim;
+	// Titled: the smaller text stands on the title's baseline, and the chevrons are centred on that text
+	const QFontMetrics titleMetrics{ currentFolderFont() }, textMetrics = fontMetrics();
+	const int baseline = (height() - titleMetrics.height()) / 2 + titleMetrics.ascent();
+	const int textCentre = titled ? baseline - textMetrics.ascent() + textMetrics.height() / 2 : height() / 2;
+
+	const QColor separatorColor = strip ? foreground : palette.textDim;
 	const int currentFolderIndex = (int)_folders.size() - 1;
 	for (int i = 0; i < (int)_parts.size(); ++i)
 	{
 		const Part& part = _parts[(size_t)i];
+		const bool currentFolder = part.kind == PartKind::Folder && part.folderIndex == currentFolderIndex;
 		const QRect area{ part.left, 0, part.width, height() };
-		const QColor textColor = paintHighlight(area, i == _hoveredPart || i == _pressedPart, i == _pressedPart,
-			part.kind == PartKind::Separator ? separatorColor : foreground);
+		const QColor defaultColor = part.kind == PartKind::Separator ? separatorColor : titled && currentFolder ? titleColor : foreground;
+		const QColor textColor = paintHighlight(area, i == _hoveredPart || i == _pressedPart, i == _pressedPart, defaultColor);
 
 		if (part.kind == PartKind::Separator)
 		{
 			const bool menuOpen = i == _pressedPart;
 			const QSize size = menuOpen ? arrowSize : chevronSize;
-			const QRect iconRect{ QPoint{ part.left + (part.width - size.width()) / 2, (height() - size.height()) / 2 }, size };
+			const QRect iconRect{ QPoint{ part.left + (part.width - size.width()) / 2, textCentre - size.height() / 2 }, size };
 			const QString icon = menuOpen ? QStringLiteral(":/theme/combobox_down_arrow.svg") : QStringLiteral(":/theme/chevron_right.svg");
 			painter.drawPixmap(iconRect, tintedSvgPixmap(icon, textColor, size, devicePixelRatioF()));
 			continue;
 		}
 
-		const bool currentFolder = part.kind == PartKind::Folder && part.folderIndex == currentFolderIndex;
 		painter.setFont(currentFolder ? currentFolderFont() : font());
 		painter.setPen(textColor);
-		painter.drawText(area, Qt::AlignCenter, part.text);
+		if (titled)
+		{
+			const QFontMetrics& metrics = currentFolder ? titleMetrics : textMetrics;
+			painter.drawText(QRect{ part.left, baseline - metrics.ascent(), part.width, metrics.height() }, Qt::AlignHCenter | Qt::AlignTop, part.text);
+		}
+		else
+			painter.drawText(area, Qt::AlignCenter, part.text);
 	}
 
 	const QRect arrow = arrowRect();
 	const QRect arrowArea{ arrow.left() - arrowGap / 2, 0, width() - arrow.left() + arrowGap / 2, height() };
-	const QColor arrowColor = paintHighlight(arrowArea, _hoveredPart == arrowPart, false, _flat ? foreground : palette.textDim);
+	const QColor arrowColor = paintHighlight(arrowArea, _hoveredPart == arrowPart, false, strip ? foreground : palette.textDim);
 	painter.drawPixmap(arrow, tintedSvgPixmap(QStringLiteral(":/theme/combobox_down_arrow.svg"), arrowColor, arrowSize, devicePixelRatioF()));
 }
 
@@ -449,9 +468,11 @@ void CBreadcrumbBar::setHoveredPart(const int partIndex)
 
 QFont CBreadcrumbBar::currentFolderFont() const
 {
-	QFont bold = font();
-	bold.setBold(true);
-	return bold;
+	QFont currentFolder = font();
+	currentFolder.setBold(true);
+	if (_style == PathBarStyle::Titled)
+		currentFolder.setPointSizeF(currentFolder.pointSizeF() * titleScale);
+	return currentFolder;
 }
 
 QRect CBreadcrumbBar::arrowRect() const

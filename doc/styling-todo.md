@@ -36,7 +36,7 @@ The mocked themes come in one polarity each; their counterparts in the other pol
 - Meadow, done: light with a sage tint. Its controls have an 11 px radius: the stylesheet engine drops a radius
   larger than half the control's height, so a true pill would need a radius per control.
 - Dusk, done: dark with a plum tint, panels edge to edge, the active panel has a lighter surface, amber accent.
-- Ledger, scheduled: light, typographic, no boxes, hairline-ruled rows, the folder name as a large title.
+- Ledger, done: light, typographic, no boxes, hairline-ruled rows, the folder name as a large title.
 - Not scheduled: light, black and white, 2 px black rules, uppercase labels, one highlighter colour for the selection.
 
 Rejected: a dense grey look with square segmented controls. It resembles stock Linux styles.

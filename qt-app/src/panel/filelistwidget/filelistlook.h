@@ -32,4 +32,9 @@ struct FileListLook
 	// The column separators. Invalid: the text colour, faint.
 	QColor separatorColor;
 	bool separatorsDashed = true;
+
+	// A line under every row. Invalid: none.
+	QColor rowSeparatorColor;
+
+	bool uppercaseHeader = false; // with the letters spaced out
 };

@@ -13,12 +13,13 @@ RESTORE_COMPILER_WARNINGS
 
 class CHistoryComboBox;
 class QMenu;
+enum class PathBarStyle;
 
 // The panel's path as a button per folder, painted in the applied theme's colours, over an editor for typing a path.
 // Clicking a folder goes there; clicking the separator after it opens that folder's menu.
 // Clicking the current folder or the space after it shows the editor, and so does the arrow, which also opens the editor's history.
 // The editor is hidden again when it loses focus, except to a popup or to another window.
-// While editing, a flat bar widens to its longest history entry, within the row: the completion list is as wide as the bar.
+// While editing, a strip widens to its longest history entry, within the row: the completion list is as wide as the bar.
 // A path too wide for the bar loses its first folders to a "..." button, whose menu lists them.
 class CBreadcrumbBar final : public QWidget
 {
@@ -33,7 +34,7 @@ public:
 	// posixPath: absolute; ignored otherwise
 	void setPath(const QString& posixPath);
 	void setShownAsActive(bool active);
-	// Reads the applied theme: a flat bar is as wide as its path, a rounded one as wide as the layout makes it
+	// Reads the applied theme: a strip is as wide as its path, the other styles as wide as the layout makes them
 	void applyTheme();
 
 	// Shows the editor, holding the path selected, and focuses it
@@ -86,6 +87,7 @@ private:
 	void showMenuBelowPart(int partIndex, QMenu& menu);
 	void setHoveredPart(int partIndex);
 
+	[[nodiscard]] int barHeight() const;
 	[[nodiscard]] QFont currentFolderFont() const;
 	[[nodiscard]] QRect arrowRect() const;
 	// The width of a folder's part, padding included, without eliding
@@ -100,5 +102,5 @@ private:
 	int _hoveredPart = noPart;
 	int _pressedPart = noPart; // pressed with the mouse, or holding its menu open
 	bool _shownAsActive = false;
-	bool _flat = false;
+	PathBarStyle _style{};
 };
