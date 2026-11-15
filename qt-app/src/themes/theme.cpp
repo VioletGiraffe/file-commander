@@ -180,7 +180,7 @@ constexpr char kLedgerStyleSheet[] = R"(
 	CPanelWidget > QToolButton { border-color: transparent; }
 
 	#_driveButtonsWidget > QPushButton { border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 2px 6px; }
-	#_driveButtonsWidget > QPushButton:hover { background: transparent; }
+	#_driveButtonsWidget > QPushButton:hover { background: transparent; border-bottom-color: @textDim@; }
 	#_driveButtonsWidget > QPushButton:checked { background: transparent; border-bottom-color: @text@; color: @text@; font-weight: bold; }
 
 	#_infoLabel { border-top: 2px solid @text@; padding-top: 6px; }
