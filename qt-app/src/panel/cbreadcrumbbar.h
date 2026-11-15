@@ -18,6 +18,7 @@ class QMenu;
 // Clicking a folder goes there; clicking the separator after it opens that folder's menu.
 // Clicking the current folder or the space after it shows the editor, and so does the arrow, which also opens the editor's history.
 // The editor is hidden again when it loses focus, except to a popup or to another window.
+// While editing, a flat bar widens to its longest history entry, within the row: the completion list is as wide as the bar.
 // A path too wide for the bar loses its first folders to a "..." button, whose menu lists them.
 class CBreadcrumbBar final : public QWidget
 {

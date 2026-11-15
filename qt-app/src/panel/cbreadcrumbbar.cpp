@@ -46,11 +46,6 @@ CBreadcrumbBar::CBreadcrumbBar(QWidget* parent) :
 	_editor->hide();
 	// QComboBox is its line edit's focus proxy, so the focus events arrive at the combo box
 	_editor->installEventFilter(this);
-	// A flat editor is as wide as its text
-	connect(_editor, &QComboBox::currentTextChanged, this, [this] {
-		if (!_editor->isHidden())
-			updateGeometry();
-	});
 }
 
 CHistoryComboBox& CBreadcrumbBar::editor() const
@@ -104,7 +99,6 @@ void CBreadcrumbBar::setShownAsActive(const bool active)
 void CBreadcrumbBar::applyTheme()
 {
 	_flat = appliedTheme().structure == ThemeStructure::Flat;
-	_editor->setSizedToCurrentText(_flat);
 	// Flat: centred by the path row's spacers
 	setSizePolicy(_flat ? QSizePolicy::Maximum : QSizePolicy::Preferred, QSizePolicy::Fixed);
 	layOutParts();
@@ -144,12 +138,10 @@ QSize CBreadcrumbBar::sizeHint() const
 	return { fullStripWidth(), editorHint.height() };
 }
 
+// Not the editor's while editing: QComboBox makes that as wide as the longest history entry
 QSize CBreadcrumbBar::minimumSizeHint() const
 {
 	_editor->ensurePolished();
-	if (!_editor->isHidden())
-		return _editor->minimumSizeHint();
-
 	const int width = 2 * sidePadding + fontMetrics().horizontalAdvance(hiddenFoldersText) + 2 * folderPadding + arrowGap + arrowSize.width();
 	return { width, _editor->sizeHint().height() };
 }

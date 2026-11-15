@@ -39,6 +39,7 @@
 DISABLE_COMPILER_WARNINGS
 #include "ui_cpanelwidget.h"
 
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QClipboard>
 #include <QCompleter>
@@ -165,6 +166,9 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	auto* completer = pathEditor.completer();
 	completer->setCompletionMode(QCompleter::PopupCompletion);
 	completer->setFilterMode(Qt::MatchContains);
+	// Both lists are as wide as the editor: a long path keeps its start and its end
+	pathEditor.view()->setTextElideMode(Qt::ElideMiddle);
+	completer->popup()->setTextElideMode(Qt::ElideMiddle);
 
 	pathEditor.installEventFilter(this);
 	assert_r(connect(&pathEditor, &CHistoryComboBox::textActivated, this, &CPanelWidget::pathFromHistoryActivated));
