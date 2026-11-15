@@ -107,9 +107,9 @@ constexpr TColorAttr hintLineColors[]{
 
 // The key bar's entries
 constexpr TColorAttr keyBarColors[]{
-	{ black, cyan },     // Label
-	{ darkGrey, cyan },  // Disabled item
-	{ white, teal },     // Key
+	{ black, grey },     // Label
+	{ darkGrey, grey },  // Disabled item
+	{ black, yellow },   // Key
 	{ black, amber },    // Pressed label
 	{ darkGrey, amber }, // Pressed disabled item
 	{ white, amber },    // Pressed key
