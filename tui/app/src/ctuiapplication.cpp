@@ -11,6 +11,7 @@
 
 #define Uses_TClipboard
 #define Uses_TDeskTop
+#define Uses_TDrawBuffer
 #define Uses_TEvent
 #define Uses_TKeys
 #define Uses_TMenuBar
@@ -82,6 +83,100 @@ void disableWin32InputMode()
 	writeToTerminal("\x1B[?9001l");
 #endif
 }
+
+class CTuiHintLine final : public TStatusLine
+{
+public:
+	using TStatusLine::TStatusLine;
+
+	TPalette& getPalette() const override { return hintLinePalette(); }
+};
+
+// Shows each item as a block, with a gap between blocks
+class CTuiKeyBar final : public TStatusLine
+{
+public:
+	using TStatusLine::TStatusLine;
+
+	void draw() override { drawItems(nullptr); }
+	TPalette& getPalette() const override { return keyBarPalette(); }
+
+	// Handles clicks itself: the base class's hit test and pressed highlight assume its own layout, which has no gaps
+	void handleEvent(TEvent& event) override
+	{
+		if (event.what != evMouseDown)
+		{
+			TStatusLine::handleEvent(event);
+			return;
+		}
+
+		TView::handleEvent(event);
+		const TStatusItem* pressed = nullptr;
+		do
+		{
+			if (const TStatusItem* hovered = itemAt(makeLocal(event.mouse.where)); hovered != pressed)
+				drawItems(pressed = hovered);
+		} while (mouseEvent(event, evMouseMove));
+
+		if (pressed && commandEnabled(pressed->command))
+		{
+			event.what = evCommand;
+			event.message.command = pressed->command;
+			event.message.infoPtr = nullptr;
+			putEvent(event);
+		}
+		clearEvent(event);
+		drawView();
+	}
+
+private:
+	static constexpr ushort gapWidth = 2;
+
+	// Calls function(item, x, width) for each item with a label that fits, left to right
+	template <typename Function>
+	void forEachShownItem(Function&& function) const
+	{
+		ushort x = 0;
+		for (const TStatusItem* item = items; item; item = item->next)
+		{
+			if (!item->text) // A key binding only
+				continue;
+
+			const ushort width = (ushort)cstrlen(item->text);
+			if (x + width > size.x)
+				return;
+
+			function(*item, x, width);
+			x = (ushort)(x + width + gapWidth);
+		}
+	}
+
+	[[nodiscard]] const TStatusItem* itemAt(TPoint point) const
+	{
+		const TStatusItem* found = nullptr;
+		if (point.y == 0)
+		{
+			forEachShownItem([&](const TStatusItem& item, ushort x, ushort width) {
+				if (point.x >= x && point.x < x + width)
+					found = &item;
+			});
+		}
+		return found;
+	}
+
+	void drawItems(const TStatusItem* pressed)
+	{
+		TDrawBuffer line;
+		line.moveChar(0, ' ', getColor(7), (ushort)size.x);
+		forEachShownItem([&](const TStatusItem& item, ushort x, ushort) {
+			const bool enabled = commandEnabled(item.command);
+			// Low byte: the label's entry; high byte: the key's
+			const TAttrPair colors = &item == pressed ? getColor(enabled ? 0x0604 : 0x0505) : getColor(enabled ? 0x0301 : 0x0202);
+			line.moveCStr(x, item.text, colors);
+		});
+		writeLine(0, 0, (short)size.x, 1, line);
+	}
+};
 } // namespace
 
 CTuiApplication::CTuiApplication(CController& controller) :
@@ -310,7 +405,7 @@ TStatusLine* CTuiApplication::initStatusLine(TRect r)
 {
 	r.a.y = r.b.y - 1;
 	static_assert(tabPositionCommandCount == 9);
-	return new TStatusLine(r,
+	return new CTuiKeyBar(r,
 		*new TStatusDef(0, 0xFFFF) +
 			*new TStatusItem("~F2~ Rename", kbNoKey, cmRenameItem) +
 			*new TStatusItem("~F3~ View", kbNoKey, cmViewFile) +
@@ -337,7 +432,7 @@ TStatusLine* CTuiApplication::initHintLine(TRect r)
 {
 	r.b.y--;
 	r.a.y = r.b.y - 1;
-	return new TStatusLine(r,
+	return new CTuiHintLine(r,
 		*new TStatusDef(0, 0xFFFF) +
 			*new TStatusItem("~Tab~ Panel", kbNoKey, 0) +
 			*new TStatusItem("~Enter~ Open", kbNoKey, 0) +

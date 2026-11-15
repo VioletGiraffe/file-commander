@@ -336,6 +336,22 @@ TEST_CASE("The status rows show the keys", "[tui]")
 	CHECK(session->screen().row(keyRow).contains(QStringLiteral("F8 Delete")));
 }
 
+TEST_CASE("A click on a key bar item runs its command, and a click between items runs none", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/existing.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("existing.txt"));
+	moveCursorTo(*session, QStringLiteral("existing.txt"));
+
+	const QString keys = session->screen().row(keyRow);
+	const QString rename = QStringLiteral("F2 Rename");
+	// In the gap after F2's item: renaming would open a modal prompt, and the click on F7 would then not reach the panel
+	session->send(leftClick((int)(keys.indexOf(rename) + rename.size()), keyRow));
+	session->send(leftClick((int)keys.indexOf(QStringLiteral("Folder")), keyRow));
+	requirePromptInput(*session, QStringLiteral("Name of the new folder"));
+}
+
 TEST_CASE("Alt+X exits with code 0", "[tui]")
 {
 	const Sandbox sandbox;

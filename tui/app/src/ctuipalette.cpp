@@ -94,19 +94,53 @@ constexpr TColorAttr panelColors[]{
 	{ mediumBlue, navy }, // ppColumnSeparator
 	{ darkTeal, teal }   // ppCursorColumnSeparator
 };
+
+// The hint row's entries
+constexpr TColorAttr hintLineColors[]{
+	{ grey, black },     // Normal text
+	{ darkGrey, black }, // Disabled text
+	{ cyan, black },     // Shortcut
+	{ black, amber },    // Selected
+	{ darkGrey, amber }, // Selected disabled
+	{ navy, amber },     // Selected shortcut
+};
+
+// The key bar's entries
+constexpr TColorAttr keyBarColors[]{
+	{ black, cyan },     // Label
+	{ darkGrey, cyan },  // Disabled item
+	{ white, teal },     // Key
+	{ black, amber },    // Pressed label
+	{ darkGrey, amber }, // Pressed disabled item
+	{ white, amber },    // Pressed key
+	{ black, black },    // Background
+};
 static_assert(std::size(menuColors) == 6 && std::size(blueWindowColors) == 8 && std::size(grayDialogColors) == 32);
 static_assert(std::size(panelColors) == ppLastEntry - ppFileListRow + 1);
 
 constexpr char stockApplicationColors[] = cpAppColor;
-// The panel's entries follow Turbo Vision's
+// The panel's entries follow Turbo Vision's, then come the hint row's and the key bar's
 constexpr uchar firstPanelApplicationEntry = sizeof(stockApplicationColors);
+constexpr uchar firstHintLineApplicationEntry = firstPanelApplicationEntry + std::size(panelColors);
+constexpr uchar firstKeyBarApplicationEntry = firstHintLineApplicationEntry + std::size(hintLineColors);
+constexpr size_t applicationEntryCount = firstKeyBarApplicationEntry - 1 + std::size(keyBarColors);
+
+// Maps a view's entries, in order, to consecutive application entries
+template <size_t count>
+[[nodiscard]] TPalette applicationEntriesPalette(uchar firstApplicationEntry)
+{
+	std::array<TColorAttr, count> entries{};
+	for (size_t i = 0; i < count; ++i)
+		entries[i] = TColorAttr{ (uchar)(firstApplicationEntry + i) };
+	return TPalette{ entries.data(), (ushort)entries.size() };
+}
 
 } // namespace
 
 TPalette& applicationPalette()
 {
 	static TPalette palette = [] {
-		std::array<TColorAttr, firstPanelApplicationEntry - 1 + std::size(panelColors)> entries{};
+		std::array<TColorAttr, applicationEntryCount> entries{};
 		// The groups this application never shows keep Turbo Vision's BIOS colours
 		for (size_t i = 0; i < firstPanelApplicationEntry - 1; ++i)
 			entries[i] = TColorAttr{ (uchar)stockApplicationColors[i] };
@@ -120,8 +154,22 @@ TPalette& applicationPalette()
 		place(8, blueWindowColors);
 		place(32, grayDialogColors);
 		place(firstPanelApplicationEntry, panelColors);
+		place(firstHintLineApplicationEntry, hintLineColors);
+		place(firstKeyBarApplicationEntry, keyBarColors);
 		return TPalette{ entries.data(), (ushort)entries.size() };
 	}();
+	return palette;
+}
+
+TPalette& hintLinePalette()
+{
+	static TPalette palette = applicationEntriesPalette<std::size(hintLineColors)>(firstHintLineApplicationEntry);
+	return palette;
+}
+
+TPalette& keyBarPalette()
+{
+	static TPalette palette = applicationEntriesPalette<std::size(keyBarColors)>(firstKeyBarApplicationEntry);
 	return palette;
 }
 

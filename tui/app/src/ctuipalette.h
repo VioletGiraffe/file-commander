@@ -26,6 +26,9 @@ enum PanelPaletteEntry : uchar
 	ppLastEntry = ppCursorColumnSeparator
 };
 
-// Turbo Vision's application palette in RGB, followed by the panel's entries
+// Turbo Vision's application palette in RGB, followed by the entries of the panel, the hint row and the key bar
 [[nodiscard]] TPalette& applicationPalette();
 [[nodiscard]] TPalette& panelPalette();
+// The rows under the panels: entries 1-6 are in Turbo Vision's status line order, and the key bar's entry 7 is its background
+[[nodiscard]] TPalette& hintLinePalette();
+[[nodiscard]] TPalette& keyBarPalette();

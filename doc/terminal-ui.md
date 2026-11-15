@@ -52,6 +52,7 @@ dialog is open.
   with fewer colours are not targeted.
 - The panel's own roles follow Turbo Vision's entries in the application palette; `CTuiPanel`'s palette maps them.
   New panel roles go into `PanelPaletteEntry` and its colour table.
+- The hint row and the key bar have their own roles after the panel's: Turbo Vision's status line shares the menus' roles.
 
 ## Commands
 
@@ -59,8 +60,8 @@ dialog is open.
   bind the keys, and see them before the focused view does.
   - Exceptions: the panel binds the keys a text field uses, so that the filter line still receives them. The application
     binds Tab, which switches panels.
-  - The status line binds F10, which opens the menus, and Alt+1 to Alt+9, which share one menu item. Its other items
-    and the hint row are labels.
+  - The key bar binds F10, which opens the menus, and Alt+1 to Alt+9, which share one menu item. Its other items run
+    their commands on a click only. The hint row binds no keys.
 - Copy, move and delete build their requests with the core's `fileoperationlaunch` and run on the same engine as the
   Qt app; [core-engine.md](core-engine.md) has the deletion backends. The progress dialog opens only for an operation
   that outlasts a short delay or asks a question. A trash that refuses items offers them for permanent deletion.
