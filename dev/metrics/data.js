@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794759236646,
+  "lastUpdate": 1794762852261,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -36544,6 +36544,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 453.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 51.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "92c891b848cfd68bf936e0845b04513713e14292",
+          "message": "Panels show how full the current volume is as a bar, in the error colour when under 10% and 10 GiB are free, beside its size and free space; the volume name moves to the tooltip",
+          "timestamp": "2026-11-15T18:56:53+02:00",
+          "tree_id": "a8efce752bbae2f1c1818956789601c01bac4ce4",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/92c891b848cfd68bf936e0845b04513713e14292"
+        },
+        "date": 1794762849611,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 21351,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 35923,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1739.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1064.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 454.5,
             "unit": "KB"
           },
           {
