@@ -41,7 +41,8 @@ struct Theme
 	ThemeColours colours;
 };
 
-// Every colour is in the xterm 256-colour cube or grey ramp: a 256-colour terminal shows it exactly, and no terminal colour scheme redefines it
+// Colours are in the xterm 256-colour cube or grey ramp: a 256-colour terminal shows them exactly, and no terminal colour scheme redefines them.
+// The exceptions are marked "off-palette": a 256-colour terminal shows the nearest colour in the palette.
 constexpr TColorRGB black{ 0x000000 }, navy{ 0x00005F }, mediumBlue{ 0x0000AF }, red{ 0xAF0000 }, amber{ 0xD78700 }, cyan{ 0x00AFAF }, teal{ 0x008787 },
 	darkTeal{ 0x005F5F }, darkGrey{ 0x5F5F5F }, grey{ 0xAFAFAF }, lightGreen{ 0x5FFF5F }, lightCyan{ 0x5FFFFF }, yellow{ 0xFFFF5F }, white{ 0xFFFFFF };
 
@@ -68,6 +69,59 @@ constexpr Theme themes[]{
 		.controlBack = 0x3A3A3A, .controlText = 0xD0D0D0, .inputBack = 0x121212, .inputText = 0xFFFFFF, .scrollBarText = 0x585858, .scrollBarBack = 0x1C1C1C,
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0x000000, .hintText = 0x8A8A8A, .hintKey = 0xFFAF00, .keyBack = 0xFFD75F, .keyText = 0x000000, .keyLabelBack = 0x005F87, .keyLabelText = 0xFFFFFF } },
+	{ "amber", "~A~mber", {
+		.menuBack = 0x3A3A3A, .menuText = 0xFFAF00, .menuShortcut = 0xFFFFFF, .menuSelectedBack = 0xD78700, .menuSelectedText = 0x000000, .menuSelectedShortcut = 0xFFFFFF,
+		.disabledText = 0x6C6C6C,
+		.panelBack = 0x121212, .framePassive = 0x875F00, .frameActive = 0xFFAF00, .frameIcons = 0xFFD787,
+		.fileText = 0xD78700, .selectedText = 0xFFFFFF, .cursorBack = 0x875F00, .cursorText = 0xFFD787, .cursorSelectedText = 0xFFFFFF, .columnHeader = 0xFFD787,
+		.statusText = 0xAF8700, .separator = 0x3A3A3A, .cursorSeparator = 0xAF8700, .tabBack = 0x875F00, .tabText = 0xFFD787,
+		.dialogBack = 0x3A3A3A, .dialogText = 0xFFAF00, .dialogFrame = 0xFFD787, .dialogShortcut = 0xFFFFFF, .focusText = 0xFFFFFF,
+		.buttonBack = 0x875F00, .buttonText = 0xFFD787, .buttonDefaultText = 0xFFFFFF, .buttonShortcut = 0xFFFFFF, .buttonShadow = 0x000000,
+		.controlBack = 0x262626, .controlText = 0xFFAF00, .inputBack = 0x121212, .inputText = 0xFFD787, .scrollBarText = 0x875F00, .scrollBarBack = 0x1C1C1C,
+		.selectionText = 0x000000,
+		.bottomBack = 0x000000, .hintText = 0xAF8700, .hintKey = 0xFFD787, .keyBack = 0xFFAF00, .keyText = 0x000000, .keyLabelBack = 0x3A3A3A, .keyLabelText = 0xFFAF00 } },
+	{ "purple-night", "~P~urple night", {
+		.menuBack = 0x303030, .menuText = 0xD0D0D0, .menuShortcut = 0xFF87D7, .menuSelectedBack = 0x875FD7, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD7FF,
+		.disabledText = 0x6C6C6C,
+		.panelBack = 0x1C1C1C, .framePassive = 0x5F5F87, .frameActive = 0xD0D0D0, .frameIcons = 0xAF87FF,
+		.fileText = 0xD0D0D0, .selectedText = 0xFF87D7, .cursorBack = 0x5F5F87, .cursorText = 0xFFFFFF, .cursorSelectedText = 0xFFAFD7, .columnHeader = 0xAF87FF,
+		.statusText = 0x8A8A8A, .separator = 0x303030, .cursorSeparator = 0x8787AF, .tabBack = 0x5F5F87, .tabText = 0xFFFFFF,
+		.dialogBack = 0x303030, .dialogText = 0xD0D0D0, .dialogFrame = 0xFFFFFF, .dialogShortcut = 0xFF87D7, .focusText = 0xFFFFFF,
+		.buttonBack = 0x5F5F87, .buttonText = 0xFFFFFF, .buttonDefaultText = 0xFFD7FF, .buttonShortcut = 0xFF87D7, .buttonShadow = 0x121212,
+		.controlBack = 0x3A3A3A, .controlText = 0xD0D0D0, .inputBack = 0x1C1C1C, .inputText = 0xFFFFFF, .scrollBarText = 0x5F5F87, .scrollBarBack = 0x262626,
+		.selectionText = 0xFFFFFF,
+		.bottomBack = 0x000000, .hintText = 0x8A8A8A, .hintKey = 0xAF87FF, .keyBack = 0xFF87D7, .keyText = 0x000000, .keyLabelBack = 0x5F5F87, .keyLabelText = 0xFFFFFF } },
+	{ "deep-teal", "Deep ~t~eal", {
+		.menuBack = 0x008787, .menuText = 0xFFFFFF, .menuShortcut = 0xFFD75F, .menuSelectedBack = 0x00AFAF, .menuSelectedText = 0x000000, .menuSelectedShortcut = 0x00005F,
+		.disabledText = 0x87AFAF,
+		.panelBack = 0x002828, // Off-palette
+		.framePassive = 0x5F8787, .frameActive = 0xFFFFFF, .frameIcons = 0x5FD75F,
+		.fileText = 0xAFD7D7, .selectedText = 0xFFD75F, .cursorBack = 0x00AFAF, .cursorText = 0x000000, .cursorSelectedText = 0xFFFF5F, .columnHeader = 0xFFFFFF,
+		.statusText = 0x87AFAF,
+		.separator = 0x004A4A, // Off-palette
+		.cursorSeparator = 0x008787, .tabBack = 0x008787, .tabText = 0xFFFFFF,
+		.dialogBack = 0x303030, .dialogText = 0xD0D0D0, .dialogFrame = 0xFFFFFF, .dialogShortcut = 0xFFD75F, .focusText = 0xFFFFFF,
+		.buttonBack = 0x008787, .buttonText = 0xFFFFFF, .buttonDefaultText = 0xFFFF5F, .buttonShortcut = 0xFFD75F, .buttonShadow = 0x121212,
+		.controlBack = 0x3A3A3A, .controlText = 0xD0D0D0,
+		.inputBack = 0x002828, // Off-palette
+		.inputText = 0xFFFFFF, .scrollBarText = 0x5F8787, .scrollBarBack = 0x1C1C1C, .selectionText = 0x000000,
+		.bottomBack = 0x000000, .hintText = 0x87AFAF, .hintKey = 0x00AFAF, .keyBack = 0x00AFAF, .keyText = 0x000000, .keyLabelBack = 0x005F5F, .keyLabelText = 0xFFFFFF } },
+	{ "matrix", "~M~atrix", {
+		.menuBack = 0x000000, .menuText = 0x00D700, .menuShortcut = 0xAFFFAF, .menuSelectedBack = 0x005F00, .menuSelectedText = 0x5FFF5F, .menuSelectedShortcut = 0xFFFFFF,
+		.disabledText = 0x008700,
+		.panelBack = 0x000000, .framePassive = 0x005F00, .frameActive = 0x00FF00, .frameIcons = 0xAFFFAF,
+		.fileText = 0x00AF00, .selectedText = 0xD7FFD7, .cursorBack = 0x005F00, .cursorText = 0x5FFF5F, .cursorSelectedText = 0xFFFFFF, .columnHeader = 0xAFFFAF,
+		.statusText = 0x008700,
+		.separator = 0x003A00, // Off-palette
+		.cursorSeparator = 0x008700, .tabBack = 0x005F00, .tabText = 0x5FFF5F,
+		.dialogBack = 0x000000, .dialogText = 0x00D700, .dialogFrame = 0x00FF00, .dialogShortcut = 0xAFFFAF, .focusText = 0xD7FFD7,
+		.buttonBack = 0x005F00, .buttonText = 0x5FFF5F, .buttonDefaultText = 0xD7FFD7, .buttonShortcut = 0xFFFFFF,
+		.buttonShadow = 0x003A00, // Off-palette
+		.controlBack = 0x121212, .controlText = 0x00D700, .inputBack = 0x121212, .inputText = 0x5FFF5F, .scrollBarText = 0x005F00, .scrollBarBack = 0x000000,
+		.selectionText = 0xD7FFD7,
+		.bottomBack = 0x000000, .hintText = 0x008700, .hintKey = 0x5FFF5F, .keyBack = 0x00FF00, .keyText = 0x000000,
+		.keyLabelBack = 0x003A00, // Off-palette
+		.keyLabelText = 0x00D700 } },
 	{ "light", "~L~ight", {
 		.menuBack = 0xD0D0D0, .menuText = 0x262626, .menuShortcut = 0xAF5F00, .menuSelectedBack = 0x0087AF, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD75F,
 		.disabledText = 0x8A8A8A,

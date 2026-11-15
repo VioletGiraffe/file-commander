@@ -29,8 +29,8 @@ enum PanelPaletteEntry : uchar
 	ppLastEntry = ppCursorColumnSeparator
 };
 
-enum class ColourTheme : uchar { ClassicBlue, Dark, Light, CoolGrey, LightCyan };
-inline constexpr size_t colourThemeCount = 5;
+enum class ColourTheme : uchar { ClassicBlue, Dark, Amber, PurpleNight, DeepTeal, Matrix, Light, CoolGrey, LightCyan };
+inline constexpr size_t colourThemeCount = 9;
 
 // As the menu shows it: the shortcut letter is between tildes
 [[nodiscard]] const char* colourThemeMenuName(ColourTheme theme);

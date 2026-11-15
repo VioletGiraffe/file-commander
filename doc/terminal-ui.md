@@ -49,7 +49,8 @@ dialog is open.
   application palette, which holds the colours. `ctuipalette.cpp` defines that palette in RGB. Turbo Vision's stock
   colours are BIOS indices into the terminal's 16-colour palette, which colour schemes redefine.
 - The colours are in the xterm 256-colour cube or grey ramp, so they look the same on 256-colour and true-colour
-  terminals. Terminals with fewer colours are not targeted.
+  terminals. Exceptions are marked off-palette in `ctuipalette.cpp`: dark tints the palette lacks, which Turbo Vision
+  rounds to the nearest palette colour on a 256-colour terminal. Terminals with fewer colours are not targeted.
 - The panel's own roles follow Turbo Vision's entries in the application palette; `CTuiPanel`'s palette maps them.
   New panel roles go into `PanelPaletteEntry` and its colour table.
 - The hint row and the key bar have their own roles after the panel's: Turbo Vision's status line shares the menus' roles.
