@@ -2,6 +2,9 @@
 
 #include "themes/theme.h"
 
+// Submodule includes
+#include "theme/colorutils.h"
+
 
 DISABLE_COMPILER_WARNINGS
 #include <QPainter>
@@ -66,7 +69,8 @@ void CVolumeUsageBar::paintEvent(QPaintEvent* /*event*/)
 	const qreal radius = std::min<qreal>(theme.metrics.controlRadius, bar.height() / 2);
 	QPainterPath trough;
 	trough.addRoundedRect(bar, radius, radius);
-	painter.setBrush(palette.borderSubtle);
+	// Not borderSubtle: the bar's end must stand out from the background
+	painter.setBrush(ColorUtils::mix(palette.border, palette.borderStrong, 0.5f));
 	painter.drawPath(trough);
 
 	if (_usedFraction <= 0.0)
