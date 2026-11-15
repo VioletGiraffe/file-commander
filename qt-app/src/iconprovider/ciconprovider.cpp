@@ -158,11 +158,6 @@ QIcon CIconProvider::qIcon(const FileIcon& icon) const
 	return std::get<QIcon>(icon);
 }
 
-QIcon CIconProvider::preciseIconBlocking(const CFileSystemObject& object)
-{
-	return preciseLookupBlocking(object).icon;
-}
-
 CIconProvider::CachedLookup CIconProvider::preciseLookupBlocking(const CFileSystemObject& object)
 {
 	const QString& fullAbsolutePath = object.fullAbsolutePath();

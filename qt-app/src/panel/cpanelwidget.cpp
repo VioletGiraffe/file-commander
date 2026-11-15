@@ -7,6 +7,7 @@
 #include "filelistwidget/model/cfilelistmodel.h"
 
 #include "cmainwindow.h"
+#include "themes/stylesheet.h"
 #include "themes/theme.h"
 
 #include "favoritelocationseditor/cfavoritelocationseditor.h"
@@ -48,6 +49,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFile>
 #include <QHeaderView>
 #include <QHelpEvent>
+#include <QIcon>
 #include <QImageWriter>
 #include <QInputDialog>
 #include <QItemSelectionModel>
@@ -1454,7 +1456,7 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 				continue;
 
 #ifdef _WIN32
-			const QString name = QString{ volume.rootObjectInfo.fullAbsolutePath() }.remove(QL1(":/"));
+			const QString name = QString{ volume.rootObjectInfo.fullAbsolutePath() }.remove(QLatin1Char('/'));
 #else
 			const QString name = volume.volumeLabel;
 #endif
@@ -1463,7 +1465,12 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 			auto* diskButton = new(std::nothrow) QPushButton;
 			diskButton->setFocusPolicy(Qt::NoFocus);
 			diskButton->setCheckable(true);
-			diskButton->setIcon(_iconProvider->preciseIconBlocking(volume.rootObjectInfo));
+			if (const QString glyph = driveGlyphName(volume.kind); !glyph.isEmpty())
+			{
+				diskButton->setProperty(driveGlyphProperty, glyph);
+				// The stylesheet's tinted icon replaces this one when drawn; QPushButton's size hint counts only its own icon
+				diskButton->setIcon(QIcon{ QStringLiteral(":/theme/") + glyph + QStringLiteral(".svg") });
+			}
 			diskButton->setText(name);
 			diskButton->setProperty("id", (qulonglong)volume.id());
 			diskButton->setContextMenuPolicy(Qt::CustomContextMenu);

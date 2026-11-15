@@ -3,16 +3,22 @@
 
 
 // Submodule includes
+#include "assert/advanced_assert.h"
 #include "theme/colorutils.h"
 #include "theme/cstylesheettokens.h"
 #include "theme/cthemeiconhandler.h"
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QColor>
+#include <QRegularExpression>
 #include <QString>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <iterator>
+#include <utility>
 
 // A widget is drawn either by the base style or from its rules, never by both: a rule that sets a border or a
 // background takes the whole widget, sub-controls included. Each section therefore styles its control completely.
@@ -265,7 +271,68 @@ constexpr char kFlatMainWindow[] = R"(
 	CFunctionKeyButton:hover, CFunctionKeyButton:pressed { background: @surfaceAlt@; }
 )";
 
+// The kinds without an entry have no glyph
+constexpr std::pair<VolumeInfo::Kind, const char*> kDriveGlyphs[] = {
+	{ VolumeInfo::Kind::External, "drive_external" },
+	{ VolumeInfo::Kind::Optical, "drive_optical" },
+	{ VolumeInfo::Kind::Network, "drive_network" },
+	{ VolumeInfo::Kind::DiskImage, "drive_image" },
+	{ VolumeInfo::Kind::RamDisk, "drive_ramdisk" },
+	{ VolumeInfo::Kind::Home, "drive_home" },
+};
+
+// Every rule that colours a drive button gets a rule per glyph, with the same selectors narrowed to that glyph's buttons:
+// a QSS icon has no colour of its own.
+// The narrowing adds equal specificity to each rule, so the glyph rules rank among themselves as the colour rules do.
+// Requires a sheet without comments. A drive button's colour must be set by a selector that contains driveButton.
+[[nodiscard]] QString driveGlyphRules(const QString& expandedSheet)
+{
+	static const QRegularExpression ruleExpression{ QStringLiteral("([^{}]*)\\{([^{}]*)\\}") };
+	// Not background-color, border-color and the like
+	static const QRegularExpression colorExpression{ QStringLiteral("(?:^|[;\\s])color\\s*:\\s*([^;]+)") };
+	const QString driveButton = QStringLiteral("#_driveButtonsWidget > QPushButton");
+
+	QString rules;
+	for (const QRegularExpressionMatch& rule : ruleExpression.globalMatch(expandedSheet))
+	{
+		QStringList driveSelectors = rule.captured(1).split(QLatin1Char(','));
+		driveSelectors.removeIf([&](const QString& selector) { return !selector.contains(driveButton); });
+		if (driveSelectors.isEmpty())
+			continue;
+
+		const QRegularExpressionMatch colorDeclaration = colorExpression.match(rule.captured(2));
+		if (!colorDeclaration.hasMatch())
+			continue;
+
+		const QColor color = QColor::fromString(colorDeclaration.captured(1).trimmed());
+		if (!color.isValid())
+		{
+			assert_unconditional_r((QStringLiteral("A drive button colour that QColor cannot read: ") + colorDeclaration.captured(1)).toStdString());
+			continue;
+		}
+
+		for (const auto& entry : kDriveGlyphs)
+		{
+			const QLatin1String glyph{ entry.second };
+			const QString glyphButton = driveButton + QStringLiteral("[%1=\"%2\"]").arg(QLatin1String{ driveGlyphProperty }, glyph);
+			QStringList glyphSelectors;
+			for (const QString& selector : driveSelectors)
+				glyphSelectors.push_back(QString{ selector.trimmed() }.replace(driveButton, glyphButton));
+
+			rules += glyphSelectors.join(QStringLiteral(", ")) + QStringLiteral(" { icon: url(") + themeIconUrl(glyph, color) + QStringLiteral("); }\n");
+		}
+	}
+
+	return rules;
+}
+
 } // namespace
+
+QString driveGlyphName(const VolumeInfo::Kind kind)
+{
+	const auto entry = std::ranges::find(kDriveGlyphs, kind, &std::pair<VolumeInfo::Kind, const char*>::first);
+	return entry != std::end(kDriveGlyphs) ? QString{ QLatin1String{ entry->second } } : QString{};
+}
 
 QString buildStyleSheet(const Theme& theme)
 {
@@ -304,5 +371,6 @@ QString buildStyleSheet(const Theme& theme)
 	tokens.add(QStringLiteral("tabCloseIcon"), themeIconUrl(QStringLiteral("tab_close"), palette.textDim));
 	tokens.add(QStringLiteral("tabCloseHoverIcon"), themeIconUrl(QStringLiteral("tab_close"), palette.text));
 
-	return tokens.expanded(sheet);
+	const QString expandedSheet = tokens.expanded(sheet);
+	return expandedSheet + driveGlyphRules(expandedSheet);
 }

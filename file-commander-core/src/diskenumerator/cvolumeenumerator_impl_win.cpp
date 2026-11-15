@@ -13,6 +13,63 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <Windows.h>
+#include <winioctl.h>
+
+#include <cstddef>
+#include <optional>
+#include <vector>
+
+// rootPath: "X:\". Empty when the query fails, e.g. for a volume that spans several disks.
+static std::optional<STORAGE_BUS_TYPE> storageBusType(const QString& rootPath)
+{
+	const QString volumePath = QStringLiteral("\\\\.\\") + rootPath.left(2);
+	// Zero access: the query needs no rights, so no elevation
+	const HANDLE volume = ::CreateFileW(reinterpret_cast<const WCHAR*>(volumePath.utf16()), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+	if (volume == INVALID_HANDLE_VALUE)
+		return std::nullopt;
+	EXEC_ON_SCOPE_EXIT([volume] { ::CloseHandle(volume); });
+
+	STORAGE_PROPERTY_QUERY query{};
+	query.PropertyId = StorageDeviceProperty;
+	query.QueryType = PropertyStandardQuery;
+
+	// The header holds the size of the whole descriptor
+	STORAGE_DESCRIPTOR_HEADER header{};
+	DWORD bytesReturned = 0;
+	if (::DeviceIoControl(volume, IOCTL_STORAGE_QUERY_PROPERTY, &query, sizeof(query), &header, sizeof(header), &bytesReturned, nullptr) == 0
+		|| header.Size < sizeof(STORAGE_DEVICE_DESCRIPTOR))
+		return std::nullopt;
+
+	std::vector<std::byte> descriptorBuffer(header.Size);
+	if (::DeviceIoControl(volume, IOCTL_STORAGE_QUERY_PROPERTY, &query, sizeof(query), descriptorBuffer.data(), header.Size, &bytesReturned, nullptr) == 0)
+		return std::nullopt;
+
+	return reinterpret_cast<const STORAGE_DEVICE_DESCRIPTOR*>(descriptorBuffer.data())->BusType;
+}
+
+// rootPath: "X:\"
+static VolumeInfo::Kind volumeKind(const QString& rootPath)
+{
+	const UINT driveType = ::GetDriveTypeW(reinterpret_cast<const WCHAR*>(rootPath.utf16()));
+	if (driveType == DRIVE_REMOTE)
+		return VolumeInfo::Kind::Network;
+	if (driveType == DRIVE_RAMDISK)
+		return VolumeInfo::Kind::RamDisk;
+	if (driveType == DRIVE_REMOVABLE)
+		return VolumeInfo::Kind::External;
+
+	// The drive type does not tell these apart: a USB hard disk reports as fixed, a mounted ISO image as a CD-ROM drive
+	const std::optional<STORAGE_BUS_TYPE> busType = storageBusType(rootPath);
+	const bool virtualBus = busType == BusTypeVirtual || busType == BusTypeFileBackedVirtual;
+	if (driveType == DRIVE_CDROM)
+		return virtualBus ? VolumeInfo::Kind::DiskImage : VolumeInfo::Kind::Optical;
+	if (virtualBus)
+		return VolumeInfo::Kind::DiskImage;
+	if (busType == BusTypeUsb || busType == BusType1394 || busType == BusTypeSd || busType == BusTypeMmc)
+		return VolumeInfo::Kind::External;
+
+	return VolumeInfo::Kind::Internal;
+}
 
 static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter, std::vector<QString>& failureMessages)
 {
@@ -32,6 +89,7 @@ static VolumeInfo volumeInfoForDriveLetter(const QString& driveLetter, std::vect
 	info.isReady = error != ERROR_NOT_READY;
 
 	info.rootObjectInfo = driveLetter;
+	info.kind = volumeKind(driveLetter);
 
 	if (info.isReady)
 	{

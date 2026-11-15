@@ -2,6 +2,12 @@
 	<qresource prefix="/theme">
 		<file alias="chevron_right.svg">theme/chevron_right.svg</file>
 		<file alias="combobox_down_arrow.svg">theme/combobox_down_arrow.svg</file>
+		<file alias="drive_external.svg">theme/drive_external.svg</file>
+		<file alias="drive_home.svg">theme/drive_home.svg</file>
+		<file alias="drive_image.svg">theme/drive_image.svg</file>
+		<file alias="drive_network.svg">theme/drive_network.svg</file>
+		<file alias="drive_optical.svg">theme/drive_optical.svg</file>
+		<file alias="drive_ramdisk.svg">theme/drive_ramdisk.svg</file>
 		<file alias="file.svg">theme/file.svg</file>
 		<file alias="folder.svg">theme/folder.svg</file>
 		<file alias="go_to_root.svg">theme/go_to_root.svg</file>

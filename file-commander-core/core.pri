@@ -11,7 +11,7 @@ INCLUDEPATH += \
 LIBS += -L$$PWD/../bin/$${OUTPUT_DIR} -lcore
 
 win*: LIBS += -lole32 -lShell32 -lUser32 -lMpr
-mac*: LIBS += -framework AppKit -framework CoreServices # CoreServices: FSEvents, for thin_io::directory_watcher
+mac*: LIBS += -framework AppKit -framework CoreServices -framework CoreFoundation -framework DiskArbitration # CoreServices: FSEvents, for thin_io::directory_watcher; DiskArbitration: drive kinds
 
 mac*|linux*|freebsd{
 	PRE_TARGETDEPS += $$PWD/../bin/$${OUTPUT_DIR}/libcore.a

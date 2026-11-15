@@ -47,15 +47,15 @@ Whether the cursor or the selection is the more prominent of the two may differ 
 ### Theme icons
 
 Every theme draws a folder glyph in place of the OS's default folder icon, and a file glyph in place of its icon for a
-type no program claims. Every other icon is the OS's, unchanged.
+type no program claims. A drive button has a glyph for its kind of drive, and none for an internal drive. Every other
+icon is the OS's, unchanged.
 
-- Later: glyphs on the drive buttons.
+A drive glyph takes the button's text colour in every state: the stylesheet builder derives an icon rule from each
+rule that colours a drive button.
 
 ### Smaller items
 
 - To try: folder names in a heavier weight.
-- Low priority: a drive button shows an icon only when the drive is not a regular internal one. The core's `VolumeInfo`
-  has no drive type yet; on Windows an external USB hard disk reports as a fixed drive.
 
 ## v3
 

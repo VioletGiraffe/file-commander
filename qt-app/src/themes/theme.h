@@ -62,6 +62,7 @@ struct Theme
 	ThemeMetrics metrics;
 	FileListLook fileList;
 	// Appended after the structure's stylesheet sections, so its rules win at equal specificity. Takes the same @tokens@.
+	// Must colour a drive button through a selector containing "#_driveButtonsWidget > QPushButton": the glyphs follow those rules.
 	const char* styleSheet = nullptr;
 };
 

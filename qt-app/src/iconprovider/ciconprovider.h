@@ -65,9 +65,6 @@ public:
 	// glyph for a folder. Never accesses the disk.
 	// macOS: a glyph for every object: Qt offers no icon by type there.
 	[[nodiscard]] FileIcon genericIconFor(const CFileSystemObject& object);
-	// The object's own icon from the OS, which .exe, .ico and .lnk derive from their contents. Accesses the disk on a
-	// cache miss, so only for callers that ask about a handful of objects at a time.
-	[[nodiscard]] QIcon preciseIconBlocking(const CFileSystemObject& object);
 	// The icon for the file list. The OS's default folder icon and its default file icon give way to the glyphs.
 	// Windows: the object's own icon if it is cached, otherwise genericIconFor(object). A missing or stale icon is
 	// requested in the background; listeners hear when it arrives. Never accesses the disk.
@@ -126,7 +123,8 @@ private:
 	// The content hash of the OS's default folder or file icon. Empty, and not kept, if the OS gave none.
 	// Windows: the default file icon is the shell's icon for a type no program claims.
 	[[nodiscard]] std::optional<uint64_t> defaultIconHash(bool isDir);
-	// preciseIconBlocking(), with the icon's content hash
+	// The object's own icon from the OS, which .exe, .ico and .lnk derive from their contents, with its content hash.
+	// Accesses the disk on a cache miss.
 	[[nodiscard]] CachedLookup preciseLookupBlocking(const CFileSystemObject& object);
 	[[nodiscard]] FetchedIcon fetchPreciseIcon(const QString& fullAbsolutePath) const;
 	// A miss unless the key has an entry that modificationTime still matches.

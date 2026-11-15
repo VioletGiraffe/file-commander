@@ -4,6 +4,9 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 #include <mntent.h>
@@ -38,6 +41,41 @@ bool isKnownNetworkFilesystem(const QString& fsType)
 	return networkFsTypes.contains(fsType) || fsType.startsWith(QStringLiteral("fuse."));
 }
 
+// device: as /proc/mounts lists it
+VolumeInfo::Kind blockDeviceKind(const QString& device)
+{
+	// The kernel's name for the device: resolves the /dev/disk/by-* and /dev/mapper links
+	QString name = QFileInfo{ device }.canonicalFilePath().section('/', -1);
+	// A device-mapper volume (LUKS, LVM) lies on other block devices: classified by the first of them
+	for (;;)
+	{
+		const QStringList slaves = QDir{ QStringLiteral("/sys/class/block/") + name + QStringLiteral("/slaves") }.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+		if (slaves.isEmpty())
+			break;
+
+		name = slaves.front();
+	}
+
+	if (name.startsWith(QStringLiteral("loop")))
+		return VolumeInfo::Kind::DiskImage;
+	// Not by file system: a USB stick may hold an ISO 9660 image, and a hard disk may be formatted as UDF
+	if (name.startsWith(QStringLiteral("sr")))
+		return VolumeInfo::Kind::Optical;
+
+	// The device's place in the device tree, e.g. /sys/devices/pci0000:00/0000:00:14.0/usb2/2-1/.../block/sdb/sdb1
+	const QString sysfsPath = QFileInfo{ QStringLiteral("/sys/class/block/") + name }.canonicalFilePath();
+	if (sysfsPath.contains(QStringLiteral("/usb")))
+		return VolumeInfo::Kind::External;
+
+	// The removable flag belongs to the disk, which is the parent of a partition's entry
+	const QString diskPath = QFileInfo::exists(sysfsPath + QStringLiteral("/partition")) ? sysfsPath.section('/', 0, -2) : sysfsPath;
+	QFile removableFlag{ diskPath + QStringLiteral("/removable") };
+	if (removableFlag.open(QIODevice::ReadOnly) && removableFlag.readLine().trimmed() == "1")
+		return VolumeInfo::Kind::External;
+
+	return VolumeInfo::Kind::Internal;
+}
+
 }
 
 std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QString>& failureMessages)
@@ -51,6 +89,7 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QStr
 		VolumeInfo& homeInfo = volumes.emplace_back();
 		homeInfo.rootObjectInfo = homePath.endsWith('/') ? homePath : homePath + '/'; // homePath() is "/" where HOME is unset
 		homeInfo.volumeLabel = "home";
+		homeInfo.kind = VolumeInfo::Kind::Home;
 	}
 
 	bool rootFound = false;
@@ -98,6 +137,7 @@ std::vector<VolumeInfo> CVolumeEnumerator::enumerateVolumesImpl(std::vector<QStr
 			info.rootObjectInfo = isRoot ? mountPoint : mountPoint + '/';
 			info.volumeLabel = isRoot ? QStringLiteral("root") : info.rootObjectInfo.fullName().toString();
 			info.fileSystemName = fsType.toUpper();
+			info.kind = isKnownNetworkFilesystem(fsType) ? VolumeInfo::Kind::Network : blockDeviceKind(device);
 		}
 
 		endmntent(mountsFile);
