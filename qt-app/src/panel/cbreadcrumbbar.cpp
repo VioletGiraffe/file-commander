@@ -43,6 +43,8 @@ CBreadcrumbBar::CBreadcrumbBar(QWidget* parent) :
 	_editor->setLineEdit(new CLineEdit);
 	_editor->lineEdit()->setFocusPolicy(Qt::ClickFocus);
 	_editor->setFocusPolicy(Qt::ClickFocus);
+	// The default policy measures the entries on the first show only
+	_editor->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 	_editor->hide();
 	// QComboBox is its line edit's focus proxy, so the focus events arrive at the combo box
 	_editor->installEventFilter(this);
