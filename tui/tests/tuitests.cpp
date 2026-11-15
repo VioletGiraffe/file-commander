@@ -353,6 +353,14 @@ TEST_CASE("A click on a key bar item runs its command, and a click between items
 	requirePromptInput(*session, QStringLiteral("Name of the new folder"));
 }
 
+TEST_CASE("A click on a hint runs its command", "[tui]")
+{
+	const Sandbox sandbox;
+	auto session = startFcterm(sandbox);
+	session->send(leftClick((int)session->screen().row(hintRow).indexOf(QStringLiteral("Go to")), hintRow));
+	requirePromptInput(*session, QStringLiteral("Folder:"));
+}
+
 TEST_CASE("Alt+X exits with code 0", "[tui]")
 {
 	const Sandbox sandbox;

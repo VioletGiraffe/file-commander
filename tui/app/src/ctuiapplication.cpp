@@ -434,7 +434,7 @@ TStatusLine* CTuiApplication::initHintLine(TRect r)
 	r.a.y = r.b.y - 1;
 	return new CTuiHintLine(r,
 		*new TStatusDef(0, 0xFFFF) +
-			*new TStatusItem("~Alt-D~ Go to", kbNoKey, 0) +
+			*new TStatusItem("~Alt-D~ Go to", kbNoKey, cmGoToFolder) +
 			*new TStatusItem("~Alt-F1/F2~ Volume", kbNoKey, 0) +
 			*new TStatusItem("~Alt-F7~ Find", kbNoKey, cmFindFiles) +
 			*new TStatusItem("~Shift-F2~ Batch rename", kbNoKey, cmBatchRename) +
