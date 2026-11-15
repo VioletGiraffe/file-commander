@@ -63,7 +63,6 @@ private:
 	struct Folder {
 		QString path; // ends with '/'
 		QString name; // native separators in a root's name
-		bool separatorAfter = true; // false for the last folder and for the POSIX root, whose name is the separator
 	};
 
 	enum class PartKind { Folder, Separator, HiddenFolders };
@@ -91,7 +90,6 @@ private:
 	[[nodiscard]] QRect arrowRect() const;
 	// The width of a folder's part, padding included, without eliding
 	[[nodiscard]] int folderPartWidth(size_t folderIndex) const;
-	[[nodiscard]] int separatorPartWidth() const;
 	// The strip's width with every folder shown
 	[[nodiscard]] int fullStripWidth() const;
 

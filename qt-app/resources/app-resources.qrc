@@ -1,5 +1,6 @@
 <RCC>
 	<qresource prefix="/theme">
+		<file alias="chevron_right.svg">theme/chevron_right.svg</file>
 		<file alias="combobox_down_arrow.svg">theme/combobox_down_arrow.svg</file>
 		<file alias="file.svg">theme/file.svg</file>
 		<file alias="folder.svg">theme/folder.svg</file>

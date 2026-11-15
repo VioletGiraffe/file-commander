@@ -14,7 +14,6 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QCursor>
-#include <QDir>
 #include <QFocusEvent>
 #include <QFontMetrics>
 #include <QMenu>
@@ -30,6 +29,9 @@ namespace {
 constexpr int sidePadding = 8, folderPadding = 3, separatorPadding = 3;
 constexpr int arrowGap = 6; // between the last part and the arrow
 constexpr QSize arrowSize{ 10, 7 };
+// A separator is a chevron, pointing down while its menu is open
+constexpr QSize chevronSize{ 7, 10 };
+constexpr int separatorPartWidth = std::max(chevronSize.width(), arrowSize.width()) + 2 * separatorPadding;
 const QString hiddenFoldersText = QStringLiteral("...");
 
 }
@@ -78,14 +80,12 @@ void CBreadcrumbBar::setPath(const QString& posixPath)
 		{
 			const QString rootName = toNativeSeparators(path.chopped(1));
 			folder.name = rootName.isEmpty() ? QStringLiteral("/") : rootName;
-			folder.separatorAfter = !rootName.isEmpty();
 		}
 		else
 			folder.name = path.mid(hierarchy[i - 1].size()).chopped(1);
 
 		_folders.push_back(std::move(folder));
 	}
-	_folders.back().separatorAfter = false;
 
 	layOutParts();
 	updateGeometry();
@@ -200,6 +200,16 @@ void CBreadcrumbBar::paintEvent(QPaintEvent* /*event*/)
 		const QColor textColor = paintHighlight(area, i == _hoveredPart || i == _pressedPart, i == _pressedPart,
 			part.kind == PartKind::Separator ? separatorColor : foreground);
 
+		if (part.kind == PartKind::Separator)
+		{
+			const bool menuOpen = i == _pressedPart;
+			const QSize size = menuOpen ? arrowSize : chevronSize;
+			const QRect iconRect{ QPoint{ part.left + (part.width - size.width()) / 2, (height() - size.height()) / 2 }, size };
+			const QString icon = menuOpen ? QStringLiteral(":/theme/combobox_down_arrow.svg") : QStringLiteral(":/theme/chevron_right.svg");
+			painter.drawPixmap(iconRect, tintedSvgPixmap(icon, textColor, size, devicePixelRatioF()));
+			continue;
+		}
+
 		const bool currentFolder = part.kind == PartKind::Folder && part.folderIndex == currentFolderIndex;
 		painter.setFont(currentFolder ? currentFolderFont() : font());
 		painter.setPen(textColor);
@@ -294,10 +304,8 @@ void CBreadcrumbBar::layOutParts()
 		return;
 
 	const int folderCount = (int)_folders.size();
-	const QString separator{ QDir::separator() };
-	const int separatorWidth = separatorPartWidth();
 	const auto widthWithSeparator = [&](const int i) {
-		return folderPartWidth((size_t)i) + (_folders[(size_t)i].separatorAfter ? separatorWidth : 0);
+		return folderPartWidth((size_t)i) + (i + 1 < folderCount ? separatorPartWidth : 0);
 	};
 	const int hiddenFoldersWidth = fontMetrics().horizontalAdvance(hiddenFoldersText) + 2 * folderPadding;
 
@@ -308,7 +316,7 @@ void CBreadcrumbBar::layOutParts()
 
 	// Hides folders from the root down while the rest does not fit; the current folder always stays
 	int hiddenCount = 0;
-	while (hiddenCount < folderCount - 1 && sidePadding + (hiddenCount > 0 ? hiddenFoldersWidth + separatorWidth : 0) + shownWidth > partsRight)
+	while (hiddenCount < folderCount - 1 && sidePadding + (hiddenCount > 0 ? hiddenFoldersWidth + separatorPartWidth : 0) + shownWidth > partsRight)
 	{
 		shownWidth -= widthWithSeparator(hiddenCount);
 		++hiddenCount;
@@ -323,7 +331,7 @@ void CBreadcrumbBar::layOutParts()
 	if (hiddenCount > 0)
 	{
 		addPart(PartKind::HiddenFolders, hiddenCount, hiddenFoldersText, hiddenFoldersWidth);
-		addPart(PartKind::Separator, hiddenCount - 1, separator, separatorWidth);
+		addPart(PartKind::Separator, hiddenCount - 1, {}, separatorPartWidth);
 	}
 
 	for (int i = hiddenCount; i < folderCount; ++i)
@@ -338,8 +346,8 @@ void CBreadcrumbBar::layOutParts()
 		}
 
 		addPart(PartKind::Folder, i, std::move(name), width);
-		if (_folders[(size_t)i].separatorAfter)
-			addPart(PartKind::Separator, i, separator, separatorWidth);
+		if (i + 1 < folderCount)
+			addPart(PartKind::Separator, i, {}, separatorPartWidth);
 	}
 
 	// The indices refer to the previous parts
@@ -457,16 +465,11 @@ int CBreadcrumbBar::folderPartWidth(const size_t folderIndex) const
 	return metrics.horizontalAdvance(_folders[folderIndex].name) + 2 * folderPadding;
 }
 
-int CBreadcrumbBar::separatorPartWidth() const
-{
-	return fontMetrics().horizontalAdvance(QDir::separator()) + 2 * separatorPadding;
-}
-
 int CBreadcrumbBar::fullStripWidth() const
 {
 	int width = 2 * sidePadding + arrowGap + arrowSize.width();
 	for (size_t i = 0; i < _folders.size(); ++i)
-		width += folderPartWidth(i) + (_folders[i].separatorAfter ? separatorPartWidth() : 0);
+		width += folderPartWidth(i) + (i + 1 < _folders.size() ? separatorPartWidth : 0);
 
 	return width;
 }
