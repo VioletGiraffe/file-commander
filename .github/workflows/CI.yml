@@ -68,7 +68,9 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26, windows-latest]
     env:
       APPIMAGE_EXTRACT_AND_RUN: 1 # The runners have no FUSE
-      SCREENSHOT_FILE: FileCommander-${{ startsWith(matrix.os, 'macos') && 'mac' || 'linux' }}.png
+      SCREENSHOT_DIR: FileCommander-${{ startsWith(matrix.os, 'macos') && 'mac' || 'linux' }}-screenshots
+      # polarity:name per screenshot. Of a light and a dark theme that differ only in colours, one.
+      SCREENSHOT_THEMES: dark:Cobalt dark:Blueprint light:Meadow light:Ledger dark:Dusk
 
     steps:
     - name: Checkout
@@ -317,62 +319,76 @@ jobs:
         sudo apt-get install -qq breeze-icon-theme imagemagick x11-utils xdotool
         # A hook that sets QT_QPA_PLATFORMTHEME overrides the one below
         tail -n +1 AppDir/apprun-hooks/*.sh || echo "No AppRun hooks"
-        # A fresh HOME: default settings
         export HOME="$RUNNER_TEMP/screenshot-home" XDG_CONFIG_HOME="$RUNNER_TEMP/screenshot-home/.config"
-        # No update check: its dialog would be a second window that xdotool could pick
-        mkdir -p "$XDG_CONFIG_HOME/GitHubSoft"
-        printf '[Other]\nUpdateChecking\\CheckAutomatically=false\n' > "$XDG_CONFIG_HOME/GitHubSoft/File Commander.conf"
+        mkdir -p "$XDG_CONFIG_HOME/GitHubSoft" "$SCREENSHOT_DIR"
         # Under Xvfb no desktop sets an icon theme; Qt's KDE platform theme defaults to Breeze
         export QT_QPA_PLATFORMTHEME=kde KDE_SESSION_VERSION=6
         unset LD_LIBRARY_PATH QT_PLUGIN_PATH
-        # The window opens at half the screen on first launch: 1280x800
-        # FileCommander: the window's ICCCM instance name, from the executable name
-        xvfb-run --auto-servernum --server-args='-screen 0 2560x1600x24' bash -eu -c '
-          "./$APPIMAGE_FILE" &
-          app=$!
-          if window=$(timeout 60 xdotool search --sync --onlyvisible --limit 1 --classname "^FileCommander$"); then
-            sleep 5 # The file lists and their icons fill in after the window shows
-          else
-            echo "::warning title=Screenshot::No visible FileCommander window within 60 s: the whole screen is captured instead"
-            window=root
-          fi
-          # Every window with its WM_CLASS, for when the search above picked the wrong one or none
-          xwininfo -root -tree
-          import -window "$window" "$SCREENSHOT_FILE"
-          kill "$app"'
+        for theme in $SCREENSHOT_THEMES; do
+          scheme=${theme%%:*} name=${theme#*:}
+          # Fresh settings with the theme, and no update check: its dialog would be a second window that xdotool could pick
+          if [ "$scheme" = dark ]; then themeKey=DarkTheme; else themeKey=LightTheme; fi
+          printf '[Other]\nUpdateChecking\\CheckAutomatically=false\n\n[Theme]\nColorScheme=%s\n%s=%s\n' "$scheme" "$themeKey" "$name" \
+            > "$XDG_CONFIG_HOME/GitHubSoft/File Commander.conf"
+          export SCREENSHOT_FILE="$SCREENSHOT_DIR/$name.png"
+          # The window opens at half the screen on first launch: 1280x800
+          # FileCommander: the window's ICCCM instance name, from the executable name
+          xvfb-run --auto-servernum --server-args='-screen 0 2560x1600x24' bash -eu -c '
+            "./$APPIMAGE_FILE" &
+            app=$!
+            if window=$(timeout 60 xdotool search --sync --onlyvisible --limit 1 --classname "^FileCommander$"); then
+              sleep 5 # The file lists and their icons fill in after the window shows
+            else
+              echo "::warning title=Screenshot::No visible FileCommander window within 60 s: the whole screen is captured instead"
+              window=root
+            fi
+            # Every window with its WM_CLASS, for when the search above picked the wrong one or none
+            xwininfo -root -tree
+            import -window "$window" "$SCREENSHOT_FILE"
+            kill "$app"
+            wait "$app" || true' || echo "::warning title=Screenshot::No screenshot of $name"
+        done
 
     - name: Screenshot - Mac
       if: startsWith(matrix.os, 'macos')
       continue-on-error: true
       timeout-minutes: 5 # A permission prompt would wait for a click forever
       run: |
-        # Fresh settings, without the update check: its dialog would be a second window
-        defaults delete "com.githubsoft.File Commander" || true
-        defaults write "com.githubsoft.File Commander" Other.UpdateChecking.CheckAutomatically -bool false
+        domain="com.githubsoft.File Commander"
         # The settings stay in the user's own Library: macOS keeps them there whatever HOME says
         export HOME="$RUNNER_TEMP/screenshot-home"
         unset QT_PLUGIN_PATH QML2_IMPORT_PATH
-        ./bin/release/FileCommander.app/Contents/MacOS/FileCommander &
-        app=$!
-        sleep 10 # Startup, then the file lists and their icons
-        # Without the Screen Recording permission, the capture holds the desktop but no window of the app
-        screencapture -x "$SCREENSHOT_FILE"
-        kill "$app"
+        mkdir -p "$SCREENSHOT_DIR"
+        for theme in $SCREENSHOT_THEMES; do
+          scheme=${theme%%:*} name=${theme#*:}
+          # Fresh settings with the theme, and no update check: its dialog would be a second window
+          if [ "$scheme" = dark ]; then themeKey=Theme.DarkTheme; else themeKey=Theme.LightTheme; fi
+          defaults delete "$domain" || true
+          defaults write "$domain" Other.UpdateChecking.CheckAutomatically -bool false
+          defaults write "$domain" Theme.ColorScheme -string "$scheme"
+          defaults write "$domain" "$themeKey" -string "$name"
+          ./bin/release/FileCommander.app/Contents/MacOS/FileCommander &
+          app=$!
+          sleep 10 # Startup, then the file lists and their icons
+          # Without the Screen Recording permission, the capture holds the desktop but no window of the app
+          screencapture -x "$SCREENSHOT_DIR/$name.png" || echo "::warning title=Screenshot::No screenshot of $name"
+          kill "$app"
+          wait "$app" || true
+        done
 
-    # Uploads whatever was captured, even if the step then failed
-    - name: Archive the screenshot
+    # Uploads whatever was captured, even if the step then failed. Zipped: an unarchived artifact holds a single file.
+    - name: Archive the screenshots
       id: screenshot-upload
-      if: hashFiles(env.SCREENSHOT_FILE) != ''
+      if: hashFiles(format('{0}/*.png', env.SCREENSHOT_DIR)) != ''
       uses: actions/upload-artifact@v7
       with:
-        name: ${{ env.SCREENSHOT_FILE }}
-        path: ${{ env.SCREENSHOT_FILE }}
-        archive: false
+        name: ${{ env.SCREENSHOT_DIR }}
+        path: ${{ env.SCREENSHOT_DIR }}
         if-no-files-found: error
 
-    - name: Link the screenshot from the summary
+    - name: Link the screenshots from the summary
       if: steps.screenshot-upload.outcome == 'success'
-      run: echo "[${{ runner.os }} screenshot](${{ steps.screenshot-upload.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
+      run: echo "[${{ runner.os }} screenshots](${{ steps.screenshot-upload.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
 
     - name: Test launch
       if: startsWith(matrix.os, 'windows')

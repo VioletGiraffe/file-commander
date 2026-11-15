@@ -70,7 +70,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | Coverage needing a filesystem capability: skipped where absent, required where its `FILE_OPERATIONS_TEST_*` variable is set | cross-volume (the variable also names the volume), case-sensitive volume, symlinks |
 | Headless widget tests, runnable under `QT_QPA_PLATFORM=offscreen` | file-operation dialogs and prompts, the file list view |
 | Launch smoke test: the release binary with `--test-launch=N`, failing unless the N plugins the build produced all load | CI build job, every platform |
-| Screenshot for manual review, not a gate: the AppImage under Xvfb with Breeze icons; on macOS, `screencapture` of the screen; linked from the job summary | CI build job, Linux x64 and macOS |
+| Screenshots for manual review, not a gate: one per theme, one polarity of a pair that differs only in colours; the AppImage under Xvfb with Breeze icons; on macOS, `screencapture` of the screen; zipped, linked from the job summary | CI build job, Linux x64 and macOS |
 | End-to-end terminal UI tests: `fcterm` in a pseudo-terminal, given keys and mouse clicks and read back as screen text | `tui_test` |
 
 ## Coverage by component
