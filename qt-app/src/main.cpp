@@ -19,7 +19,6 @@
 DISABLE_COMPILER_WARNINGS
 #include <QApplication>
 #include <QDebug>
-#include <QFontDatabase>
 #include <QImageReader>
 #include <QSettings>
 #include <QStringList>
@@ -180,8 +179,6 @@ int main(int argc, char *argv[])
 
 	migrateLegacyAppearanceSettings();
 	installTheme(app);
-
-	QFontDatabase::addApplicationFont(":/fonts/Roboto Mono.ttf");
 
 	CShellOperationRunner shellOperations;
 	CController controller;

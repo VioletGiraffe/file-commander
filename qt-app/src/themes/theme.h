@@ -9,6 +9,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QFont>
 #include <QString>
 RESTORE_COMPILER_WARNINGS
 
@@ -68,3 +69,7 @@ void installTheme(QApplication& app);
 void setTabletMode(bool enabled);
 // The point size of every font in tablet mode; empty outside it
 [[nodiscard]] std::optional<int> tabletModeFontPointSize();
+
+// The font saved for the file list; a monospace font at the application's size where none is saved or the saved family is not installed.
+// Requires installTheme(). Ignores tablet mode.
+[[nodiscard]] QFont fileListFont();

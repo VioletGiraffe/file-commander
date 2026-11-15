@@ -33,8 +33,7 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 
 	QSettings s;
 
-	// A malformed value leaves the application's font; the file list ignores such a value too
-	_fileListFont.fromString(s.value(KEY_INTERFACE_FILE_LIST_FONT, INTERFACE_FILE_LIST_FONT_DEFAULT).toString());
+	_fileListFont = fileListFont();
 
 	updateFontInfoLabel();
 	// A stylesheet change restores the font the label had when first polished
@@ -68,7 +67,9 @@ void CSettingsPageInterface::acceptSettings()
 {
 	QSettings s;
 	s.setValue(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, ui->_cbRespectLastCursorPos->isChecked());
-	s.setValue(KEY_INTERFACE_FILE_LIST_FONT, _fileListFont.toString());
+	// Saved only when changed: an unsaved font keeps following the default
+	if (_fileListFont != fileListFont())
+		s.setValue(KEY_INTERFACE_FILE_LIST_FONT, _fileListFont.toString());
 	s.setValue(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, ui->_cbDecoratedFolderIcons->isChecked());
 	s.setValue(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, ui->_cbColumnSeparators->isChecked());
 }

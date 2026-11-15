@@ -1,6 +1,8 @@
 #include "theme.h"
 #include "stylesheet.h"
 
+#include "settings.h"
+
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -14,6 +16,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFontDatabase>
 #include <QLatin1String>
 #include <QPalette>
+#include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
 #include <optional>
@@ -167,4 +170,17 @@ void setTabletMode(const bool enabled)
 std::optional<int> tabletModeFontPointSize()
 {
 	return g_tabletMode ? std::optional{ tabletFontPointSize } : std::nullopt;
+}
+
+QFont fileListFont()
+{
+	assert_and_return_r(g_baseFont, {});
+
+	QFont font;
+	if (font.fromString(QSettings{}.value(KEY_INTERFACE_FILE_LIST_FONT).toString()) && QFontDatabase::hasFamily(font.family()))
+		return font;
+
+	font = QFont{ monospaceFamily() };
+	font.setPointSizeF(g_baseFont->pointSizeF());
+	return font;
 }

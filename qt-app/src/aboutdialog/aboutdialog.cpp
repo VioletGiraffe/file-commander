@@ -32,8 +32,7 @@ constexpr struct {
 	{ "Hash map",                     "Boost.Unordered by boostorg", "https://github.com/boostorg/unordered" },
 	{ "Move-only function wrapper",   "function2 by Naios",          "https://github.com/Naios/function2" },
 	{ "Unit testing framework",       "Catch2 by catchorg",          "https://github.com/catchorg/Catch2" },
-	{ "Compile-time enum reflection", "magic_enum by Neargye",       "https://github.com/Neargye/magic_enum" },
-	{ "Font",                         "Roboto Mono by googlefonts",  "https://github.com/googlefonts/RobotoMono" }
+	{ "Compile-time enum reflection", "magic_enum by Neargye",       "https://github.com/Neargye/magic_enum" }
 };
 
 QString pluginTypeName(CFileCommanderPlugin::PluginType type)

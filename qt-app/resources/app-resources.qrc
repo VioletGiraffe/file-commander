@@ -1,7 +1,4 @@
 <RCC>
-	<qresource prefix="/fonts">
-		<file alias="Roboto Mono.ttf">fonts/Roboto_Mono/RobotoMono-Light.ttf</file>
-	</qresource>
 	<qresource prefix="/theme">
 		<file alias="combobox_down_arrow.svg">theme/combobox_down_arrow.svg</file>
 		<file alias="file.svg">theme/file.svg</file>
