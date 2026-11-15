@@ -96,6 +96,7 @@
     // gets its own single-line chart.
     const GROUPS = [
       { title: 'Binary size by section', unit: 'KB', wide: true, match: n => n.startsWith('Section '), strip: n => n.replace(/^Section /, '') },
+      { title: 'Executable size', unit: 'KB', match: n => n === 'FileCommander.exe size' || n === 'fcterm.exe size', strip: n => n.replace(/ size$/, '') },
       { title: 'Plugin size', unit: 'KB', match: n => n.startsWith('plugin_'), strip: n => n.replace(/ size$/, '') },
     ];
 
