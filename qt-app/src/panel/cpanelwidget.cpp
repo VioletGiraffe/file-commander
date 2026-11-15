@@ -255,9 +255,9 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 	setProperty(activePanelProperty, active);
 	ui->_breadcrumbBar->setShownAsActive(active);
 	ui->_driveUsageBar->setShownAsActive(active);
-	// A stylesheet matches property selectors only while polishing a widget; the path editor and the drive buttons have rules on this panel's property too
+	// A stylesheet matches property selectors only while polishing a widget; the path editor, the tab bar and the drive buttons have rules on this panel's property too
 	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
-	std::vector<QWidget*> widgets{ this, &pathEditor, pathEditor.lineEdit() };
+	std::vector<QWidget*> widgets{ this, &pathEditor, pathEditor.lineEdit(), ui->_tabBar };
 	for (QPushButton* driveButton : ui->_driveButtonsWidget->findChildren<QPushButton*>(Qt::FindDirectChildrenOnly))
 		widgets.push_back(driveButton);
 	for (QWidget* widget : widgets)

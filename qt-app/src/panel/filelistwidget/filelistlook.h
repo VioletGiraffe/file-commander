@@ -26,6 +26,9 @@ struct FileListLook
 	InactiveCursor inactiveCursor = InactiveCursor::Outline;
 	QColor inactiveCursorColor;
 
+	// The active panel's background. Invalid: the palette's Base, as in the other panel.
+	QColor activeBackground;
+
 	// The column separators. Invalid: the text colour, faint.
 	QColor separatorColor;
 	bool separatorsDashed = true;

@@ -6,6 +6,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "theme/colorutils.h"
 #include "theme/cthemecontroller.h"
 #include "theme/cthemeiconhandler.h"
 
@@ -55,7 +56,7 @@ constexpr int tabletFontPointSize = 24;
 		.metrics = {
 			.controlRadius = 0, .panelRadius = 0, .menuItemRadius = 0,
 			.panelPadding = 10,
-			.windowMargin = 10, .panelGap = 10,
+			.windowMargin = 10, .panelGap = 10, .commandLineMargin = 10,
 			.functionKeySpacing = 0, .functionKeyBarMargin = 0,
 		},
 		.fileList = {
@@ -107,7 +108,7 @@ constexpr char kMeadowStyleSheet[] = R"(
 		.metrics = {
 			.controlRadius = 11, .panelRadius = 14, .panelBorderWidth = 2, .menuItemRadius = 11,
 			.panelPadding = 10,
-			.windowMargin = 12, .panelGap = 10,
+			.windowMargin = 12, .panelGap = 10, .commandLineMargin = 12,
 		},
 		.fileList = {
 			.rowFillInset = 8, .rowFillGap = 2,
@@ -118,6 +119,51 @@ constexpr char kMeadowStyleSheet[] = R"(
 			.inactiveCursorColor = palette.surfaceAlt,
 		},
 		.styleSheet = kMeadowStyleSheet,
+	};
+}
+
+// Panels edge to edge, one line apart, without frames; the active one has a lighter surface.
+// The active panel's selected tab has an accent line on top.
+constexpr char kDuskStyleSheet[] = R"(
+	QMenuBar { border-bottom: 1px solid @border@; }
+	QSplitter::handle { background: @border@; }
+
+	QTabBar::tab { border-bottom: none; border-top: 2px solid transparent; border-radius: 0; }
+	QTabBar::tab:selected { background: @surfaceAlt@; }
+	CPanelWidget[activePanel="true"] QTabBar::tab:selected { border-top-color: @accent@; }
+
+	#_driveButtonsWidget > QPushButton:checked { background: @borderStrong@; color: @text@; }
+	#_infoLabel { border-top: 1px solid @border@; padding-top: 6px; }
+)";
+
+[[nodiscard]] Theme duskTheme()
+{
+	const CBasePalette palette{
+		.windowBg = rgb(0x1a1524), .surface = rgb(0x1c1728), .surfaceAlt = rgb(0x2f2643),
+		.text = rgb(0xece6f5), .textDim = rgb(0xa99fc0),
+		.button = rgb(0x241d33),
+		.accent = rgb(0xf2b84b),
+		.selectionBg = rgb(0x45362f), .selectionFg = rgb(0xf2b84b),
+		.border = rgb(0x362c4a), .borderStrong = rgb(0x43375c),
+	};
+
+	return {
+		.name = QStringLiteral("Dusk"),
+		.dark = true,
+		.palette = palette,
+		.metrics = {
+			.controlRadius = 6, .panelRadius = 0, .panelBorderWidth = 0, .menuItemRadius = 4,
+			.windowMargin = 0, .panelGap = 1, .commandLineMargin = 10,
+		},
+		.fileList = {
+			.rowFillInset = 0, .rowFillGap = 0,
+			.rowFillRadius = 0,
+			.contentHMargin = 12, .contentVMargin = 4,
+			.cursor = FileListLook::Cursor::Bar,
+			.inactiveCursorColor = ColorUtils::mix(palette.surface, palette.accent, 0.6f),
+			.activeBackground = rgb(0x281f39),
+		},
+		.styleSheet = kDuskStyleSheet,
 	};
 }
 
@@ -186,6 +232,7 @@ const std::vector<Theme>& allThemes()
 			.accentFg = rgb(0xffffff),
 		}),
 		meadowTheme(),
+		duskTheme(),
 	};
 	return themes;
 }

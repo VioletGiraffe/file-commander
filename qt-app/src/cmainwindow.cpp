@@ -245,7 +245,7 @@ void CMainWindow::applyTheme()
 	ui->verticalLayout->setContentsMargins(0, 0, 0, 0);
 	// Half the margin at the top: the menu bar is above
 	ui->panelsLayout->setContentsMargins(metrics.windowMargin, metrics.windowMargin / 2, metrics.windowMargin, 0);
-	ui->commandLineLayout->setContentsMargins(metrics.windowMargin, 0, metrics.windowMargin, 0);
+	ui->commandLineLayout->setContentsMargins(metrics.commandLineMargin, 0, metrics.commandLineMargin, 0);
 	ui->buttons->setContentsMargins(metrics.functionKeyBarMargin, 0, metrics.functionKeyBarMargin, metrics.functionKeyBarMargin);
 	ui->buttons->setSpacing(metrics.functionKeySpacing);
 

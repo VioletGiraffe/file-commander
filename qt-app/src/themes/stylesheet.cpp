@@ -185,10 +185,12 @@ constexpr char kSplitters[] = R"(
 )";
 
 // A file panel is a card on the window background. CPanelWidget sets the activePanel property.
+// The file list's header is transparent: the active panel's background shows through it.
 constexpr char kPanels[] = R"(
 	CPanelWidget { background: @surface@; border: @panelBorderWidth@px solid @border@; border-radius: @panelRadius@px; }
-	CPanelWidget[activePanel="true"] { border-color: @panelActiveBorder@; }
+	CPanelWidget[activePanel="true"] { border-color: @panelActiveBorder@; background: @activePanelBackground@; }
 
+	CFileListView QHeaderView::section { background: transparent; }
 	#_driveInfoLabel, #_infoLabel { color: @textDim@; }
 	#_infoLabel { padding: 0 @panelPadding@px @panelPadding@px @panelPadding@px; }
 	CBreadcrumbBar > QComboBox { background: @windowBg@; }
@@ -291,6 +293,7 @@ QString buildStyleSheet(const Theme& theme)
 	tokens.add(QStringLiteral("panelBorderWidth"), metrics.panelBorderWidth);
 	tokens.add(QStringLiteral("panelPadding"), metrics.panelPadding);
 	tokens.add(QStringLiteral("panelActiveBorder"), flat ? palette.accent : ColorUtils::mix(palette.border, palette.accent, 0.55f));
+	tokens.add(QStringLiteral("activePanelBackground"), theme.fileList.activeBackground.isValid() ? theme.fileList.activeBackground : palette.surface);
 	tokens.add(QStringLiteral("menuItemRadius"), metrics.menuItemRadius);
 	tokens.add(QStringLiteral("scrollBarThickness"), metrics.scrollBarThickness);
 	tokens.add(QStringLiteral("scrollBarHandleRadius"), std::min(metrics.scrollBarThickness / 2, metrics.controlRadius));

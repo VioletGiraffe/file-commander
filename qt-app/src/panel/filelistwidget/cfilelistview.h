@@ -130,6 +130,9 @@ private:
 
 	[[nodiscard]] int numRowsVisible() const;
 
+	// Sets the palette's Base: the look's active background in the active panel, inherited otherwise
+	void updateBackground();
+
 	// Sets the section sizes from _columnLayout's shares, summing to width
 	void fitColumnsToWidth(int width);
 	// Records a resize or move the user made in the header

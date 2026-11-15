@@ -19,6 +19,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QPalette>
 #include <QPen>
 #include <QResizeEvent>
 #include <QScopedValueRollback>
@@ -62,7 +63,16 @@ void CFileListView::setShownAsActivePanel(const bool active)
 		return;
 
 	_shownAsActivePanel = active;
+	updateBackground();
 	viewport()->update();
+}
+
+void CFileListView::updateBackground()
+{
+	QPalette listPalette; // no role set: each one follows the parent's
+	if (const QColor& activeBackground = _itemDelegate->look().activeBackground; _shownAsActivePanel && activeBackground.isValid())
+		listPalette.setColor(QPalette::Base, activeBackground);
+	setPalette(listPalette);
 }
 
 void CFileListView::addEventObserver(FileListViewEventObserver* observer)
@@ -190,6 +200,7 @@ void CFileListView::setColumnSeparatorsShown(const bool shown)
 void CFileListView::setLook(const FileListLook& look)
 {
 	_itemDelegate->setLook(look);
+	updateBackground();
 	scheduleDelayedItemsLayout(); // the row height depends on the look
 	viewport()->update();
 }

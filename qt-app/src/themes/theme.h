@@ -29,8 +29,8 @@ struct ThemeMetrics
 
 	// A file panel: between its border and the rows other than the file list, and between its rows
 	int panelPadding = 8, panelRowSpacing = 6;
-	// The main window: beside the panels and the command line, between the panels
-	int windowMargin = 8, panelGap = 8;
+	// The main window: beside the panels, between them, and beside the command line
+	int windowMargin = 8, panelGap = 8, commandLineMargin = 8;
 	// The function key bar: between its buttons, and between it and the window's edges
 	int functionKeySpacing = 6, functionKeyBarMargin = 8;
 };
