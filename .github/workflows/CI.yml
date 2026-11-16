@@ -586,7 +586,12 @@ jobs:
       run: |
         set -e
         # Every suite, minus the slow generated-data tests that the seeded runs below cover
-        ./scripts/run_tests.sh nobuild
+        # Both runs happen before a failure in either ends the step
+        failed=0
+        ./scripts/run_tests.sh nobuild skip tui_test || failed=1
+        # Prints each case's time: this suite runs about 11 times slower here than on Linux, for no known reason
+        ./scripts/run_tests.sh nobuild tui_test --durations yes || failed=1
+        [ $failed -eq 0 ]
         # A seed of the current second needs the sleep to differ between iterations
         for i in `seq 1 20`; do echo "Iteration $i"; ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s); sleep 1; done
         ./scripts/run_tests.sh nobuild all foldercomparison_test --std-seed $(date +%s)
