@@ -1,5 +1,6 @@
 #include "cterminalsession.h"
 
+#include "link_helpers.hpp"
 #include "qtcore_helpers/catch_qt.hpp"
 
 DISABLE_COMPILER_WARNINGS
@@ -477,6 +478,13 @@ TEST_CASE("Enter does nothing in a question without a default action, and Space 
 {
 	const Sandbox sandbox;
 	sandbox.createFile(QStringLiteral("work/locked.txt"));
+#ifndef _WIN32
+	if (filesystemIsFatFamily(sandbox.work({})))
+	{
+		WARN("This filesystem has no permission bits: test skipped");
+		return;
+	}
+#endif
 	const QString locked = sandbox.work(QStringLiteral("locked.txt"));
 	REQUIRE(QFile::setPermissions(locked, QFile::ReadOwner | QFile::ReadUser | QFile::ReadGroup | QFile::ReadOther));
 	auto session = startFcterm(sandbox);

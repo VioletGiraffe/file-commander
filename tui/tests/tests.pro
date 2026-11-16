@@ -19,6 +19,8 @@ include(../../cpp-template-utils/3rdparty/catch2/catch2.pri)
 
 linux*|freebsd: LIBS += -lutil # forkpty
 
+INCLUDEPATH += ../../file-operations/test-utils/src/ # link_helpers.hpp is header-only, so no test_utils link dependency
+
 SOURCES += \
 	main.cpp \
 	cterminalscreen.cpp \
