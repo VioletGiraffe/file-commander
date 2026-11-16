@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794839188108,
+  "lastUpdate": 1794840266851,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -37725,6 +37725,95 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/f78f549d5f48dbb024d4141daa8a8c181c04ec41"
         },
         "date": 1794839183458,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 22693,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36277,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1768,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 969,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1084,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 462,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 52.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "55345c8c2fa81d4f8ac22a887f772280ff9a9fa4",
+          "message": "CI prints the time of each terminal UI test case on macOS, where the suite runs about 11 times slower than on Linux",
+          "timestamp": "2026-11-16T16:36:02+02:00",
+          "tree_id": "3bce5c5ccf669d04fee068c137e03db921bf7d8b",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/55345c8c2fa81d4f8ac22a887f772280ff9a9fa4"
+        },
+        "date": 1794840264267,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
