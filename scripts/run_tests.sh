@@ -7,6 +7,7 @@
 #   debug           build and run the debug configuration
 #   build           only build; nobuild only runs what is already built, for a CI job that deploys in between
 #   all            also run the slow tests that generate large files and trees, skipped by default
+#   skip <suites>   leave out these suites: executable names, separated by commas
 #   <suite> [args]  run only the suite whose executable name contains <suite>; the arguments after it go to
 #                   that executable, e.g. a Catch2 test spec or --std-seed
 
@@ -42,6 +43,23 @@ if [ "${1:-}" = all ]; then
 	shift
 fi
 
+SKIP=""
+if [ "${1:-}" = skip ]; then
+	if [ $# -lt 2 ]; then
+		echo "skip needs a list of suites." >&2
+		exit 2
+	fi
+	SKIP="$2"
+	shift 2
+	# A misspelt name would skip nothing
+	for name in $(echo "${SKIP}" | tr ',' ' '); do
+		case " ${TESTS} " in
+			*" ${name} "*) ;;
+			*) echo "No test executable is named \"${name}\"." >&2; exit 2 ;;
+		esac
+	done
+fi
+
 SUITE="${1:-}"
 [ $# -gt 0 ] && shift
 
@@ -65,6 +83,9 @@ for test in ${TESTS}; do
 	case "${test}" in
 		*"${SUITE}"*) ;;
 		*) continue ;;
+	esac
+	case ",${SKIP}," in
+		*",${test},"*) continue ;;
 	esac
 	ran="${ran} ${test}"
 

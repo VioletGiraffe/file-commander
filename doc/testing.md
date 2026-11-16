@@ -32,6 +32,7 @@ while the shell script takes the same options as positional keywords, in the ord
 | Debug configuration | `-Configuration debug` | `debug` |
 | Build without running, run without building | `-BuildOnly`, `-NoBuild` | `build`, `nobuild` |
 | Include the slow cases | `-All` | `all` |
+| Leave out suites, by executable name | `-Skip tui_test,shell_test` | `skip tui_test,shell_test` |
 | One suite, plus arguments for it | `-Suite panel "[panel][history]"` | `panel "[panel][history]"` |
 Every suite and its default filter live in one table at the top of each script. Each suite runs with Catch2's
 `--warn NoTests`, so a filter that matches nothing fails instead of reporting success. The widget suites run
@@ -48,7 +49,7 @@ To run on FAT32 or exFAT, point `TEMP` and `TMP` at the volume: every test works
 Tests that need what those filesystems lack skip themselves there: links everywhere, and on POSIX also FIFOs,
 sockets and permission bits (`filesystemHasNoLinks()`, `filesystemIsFatFamily()`).
 
-CI runs every suite this way on an exFAT and a FAT32 volume, on each platform.
+CI runs every suite but `tui_test` this way on an exFAT and a FAT32 volume, on each platform.
 
 `filelist_test`'s `[timing]` cases run only when named. They print:
 

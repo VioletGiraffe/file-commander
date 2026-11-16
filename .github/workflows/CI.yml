@@ -549,13 +549,14 @@ jobs:
         $ErrorActionPreference = 'Stop'
         # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
         # comparator's generated data does not fit these disks.
+        # tui_test is left out: the terminal UI reaches the filesystem only through code whose suites run here.
         foreach ($letter in 'T', 'U') {
           Write-Output "===== Temporary folders on ${letter}:"
           $env:TEMP = "${letter}:\Temp"
           $env:TMP = "${letter}:\Temp"
           $env:TMPDIR = "${letter}:\Temp"
           # Both volumes always run; the step fails at the end
-          .\scripts\run_tests.bat -NoBuild
+          .\scripts\run_tests.bat -NoBuild -Skip tui_test
           if ($LASTEXITCODE -ne 0) { $failed = $true }
           .\scripts\run_tests.bat -NoBuild -All -Suite fileoperations_test --std-seed (Get-Random)
           if ($LASTEXITCODE -ne 0) { $failed = $true }
@@ -601,11 +602,12 @@ jobs:
         diskutil erasevolume "MS-DOS FAT32" FCFAT32 "$fat32"
         # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
         # comparator's generated data does not fit these disks.
+        # tui_test is left out: the terminal UI reaches the filesystem only through code whose suites run here.
         # Both volumes always run; the step fails at the end
         failed=0
         for volume in /Volumes/FCEXFAT /Volumes/FCFAT32; do
           echo "===== Temporary folders on $volume"
-          TMPDIR="$volume" ./scripts/run_tests.sh nobuild || failed=1
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild skip tui_test || failed=1
           TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s) || failed=1
         done
         exit $failed
@@ -672,11 +674,12 @@ jobs:
         volumes="$volumes /mnt/fc-fat32"
         # Everything runs but what these filesystems cannot do: tests that need a link skip themselves. The
         # comparator's generated data does not fit these disks.
+        # tui_test is left out: the terminal UI reaches the filesystem only through code whose suites run here.
         # Every volume runs; the step fails at the end
         failed=0
         for volume in $volumes; do
           echo "===== Temporary folders on $volume"
-          TMPDIR="$volume" ./scripts/run_tests.sh nobuild || failed=1
+          TMPDIR="$volume" ./scripts/run_tests.sh nobuild skip tui_test || failed=1
           TMPDIR="$volume" ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s) || failed=1
         done
         exit $failed

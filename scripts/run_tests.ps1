@@ -19,6 +19,9 @@ param(
 	# Run only the suites whose executable name contains this
 	[string]$Suite,
 
+	# Leave out these suites: executable names. Through run_tests.bat a comma-separated list arrives as one string.
+	[string[]]$Skip,
+
 	# Arguments for the selected suite, e.g. a Catch2 test spec or --std-seed
 	[Parameter(ValueFromRemainingArguments)]
 	[string[]]$SuiteArguments
@@ -47,6 +50,14 @@ $suites = [ordered]@{
 }
 
 . (Join-Path $PSScriptRoot 'private\qmake_build.ps1')
+
+$skipped = @($Skip | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+foreach ($name in $skipped)
+{
+	# A misspelt name would skip nothing
+	if (-not $suites.Contains($name)) { Fail-Environment "No test executable is named `"$name`"." }
+}
+
 Initialize-QtKit
 
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
@@ -65,6 +76,7 @@ $failed = @()
 foreach ($name in $suites.Keys)
 {
 	if ($Suite -and $name -notlike "*$Suite*") { continue }
+	if ($skipped -contains $name) { continue }
 	$ran += $name
 
 	$executable = Join-Path $binaries "$name.exe"
