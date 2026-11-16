@@ -99,8 +99,10 @@ void showUserMessage(const UserMessage& message);
 // The edited text, which Enter or the action button accepts; nullopt: cancelled
 [[nodiscard]] std::optional<QString> askForText(const QString& title, const DialogLine& label, const QString& text, const QString& actionLabel);
 
-// The item chosen with Enter, Space or a double click; nullopt: closed with Esc. The cursor starts on initialItem.
+// The item chosen with Enter, Space or a double click; nullopt: closed with Esc or the decline button. The cursor starts on initialItem.
 // textAbove: lines shown right above the list.
-[[nodiscard]] std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, size_t initialItem, const QStringList& textAbove = {});
+// acceptLabel names the default button, which chooses the item under the cursor; declineLabel names the one that closes the dialog.
+[[nodiscard]] std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, size_t initialItem, const QStringList& textAbove = {},
+	const QString& acceptLabel = QStringLiteral("OK"), const QString& declineLabel = QStringLiteral("Cancel"));
 // In terminal cells: chooseFromList elides a wider item in the middle
 [[nodiscard]] int chooseFromListMaxItemWidth();

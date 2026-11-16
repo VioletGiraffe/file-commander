@@ -722,7 +722,7 @@ TEST_CASE("Ctrl+S hides and shows hidden files", "[tui]")
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, hiddenName); }, QStringLiteral("the hidden file back"));
 }
 
-TEST_CASE("Ctrl+L shows the occupied space of the current item, and Enter on one of the largest files goes to it", "[tui]")
+TEST_CASE("Ctrl+L shows the occupied space of the current item, Esc closes it, and Enter on one of the largest files goes to it", "[tui]")
 {
 	const Sandbox sandbox;
 	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
@@ -736,7 +736,16 @@ TEST_CASE("Ctrl+L shows the occupied space of the current item, and Enter on one
 	requireText(*session, QStringLiteral("Largest files (2):"));
 	CHECK(session->screen().contains(QStringLiteral("Files: 2")));
 	CHECK(session->screen().contains(QStringLiteral("Folders: 1"))); // The folder itself
+	const int buttonsRow = rowWith(session->screen(), QStringLiteral("Close"));
+	REQUIRE(buttonsRow >= 0);
+	CHECK(session->screen().row(buttonsRow).contains(QStringLiteral("Go to"))); // The hint row also holds "Go to"
 
+	session->send(Keys::Escape);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Largest files")); }, QStringLiteral("the dialog closed"));
+	CHECK(cursorIsOn(session->screen(), QStringLiteral("sub")));
+
+	session->send(Keys::CtrlL);
+	requireText(*session, QStringLiteral("Largest files (2):"));
 	session->send(Keys::Enter); // The cursor starts on the largest
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Largest files")) && cursorIsOn(screen, QStringLiteral("big.bin")); },
 		QStringLiteral("the cursor on big.bin, in its folder"));

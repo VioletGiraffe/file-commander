@@ -146,6 +146,14 @@ private:
 	std::vector<QByteArray> _items;
 };
 
+constexpr int buttonGap = 2;
+
+// The label without its hot key marks
+[[nodiscard]] int buttonWidth(const QString& label)
+{
+	return cellWidth(label) + 4;
+}
+
 constexpr int listDialogMargin = 3;
 
 // The frame and the margins, plus a column for the scroll bar
@@ -180,12 +188,11 @@ QString elidedInTheMiddle(const QString& text, const int width)
 
 DialogAnswer execDialog(const DialogSpec& spec)
 {
-	static constexpr int margin = 3, buttonGap = 2, inputLimit = 1024;
+	static constexpr int margin = 3, inputLimit = 1024;
 
 	const TPoint desktopSize = TProgram::deskTop->size;
 	const int maxContentWidth = desktopSize.x - 2 - 2 * margin;
 
-	const auto buttonWidth = [](const QString& label) { return cellWidth(label) + 4; };
 	int contentWidth = spec.inputText ? 60 : 34;
 	for (const DialogLine& line : spec.lines)
 		contentWidth = std::max(contentWidth, cellWidth(line.text));
@@ -344,7 +351,8 @@ int chooseFromListMaxItemWidth()
 	return maxListWidth() - 2;
 }
 
-std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, const size_t initialItem, const QStringList& textAbove)
+std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, const size_t initialItem, const QStringList& textAbove,
+	const QString& acceptLabel, const QString& declineLabel)
 {
 	static constexpr int margin = listDialogMargin, minListWidth = 30;
 
@@ -353,8 +361,11 @@ std::optional<size_t> chooseFromList(const QString& title, const QStringList& it
 	int listWidth = minListWidth;
 	for (const QString& item : items)
 		listWidth = std::max(listWidth, cellWidth(item) + 2);
+	// The text and the buttons also span the scroll bar's column
 	for (const QString& line : textAbove)
-		listWidth = std::max(listWidth, cellWidth(line) - 1); // The text also spans the scroll bar's column
+		listWidth = std::max(listWidth, cellWidth(line) - 1);
+	const int acceptWidth = buttonWidth(acceptLabel), declineWidth = buttonWidth(declineLabel);
+	listWidth = std::max(listWidth, acceptWidth + buttonGap + declineWidth - 1);
 	listWidth = std::min(listWidth, maxListWidth());
 	const int textRows = (int)textAbove.size();
 	// Rows other than the text and the list: the frame, the margins, the buttons and the blank row above them
@@ -382,9 +393,10 @@ std::optional<size_t> chooseFromList(const QString& title, const QStringList& it
 	auto* list = new CTuiListView({ margin, listTop, listRight, listTop + listHeight }, scrollBar, rows);
 	dialog->insert(list);
 
-	const int buttonsRow = listTop + listHeight + 1;
-	dialog->insert(new TButton({ margin, buttonsRow, margin + 10, buttonsRow + 2 }, "~O~K", cmOK, bfDefault));
-	dialog->insert(new TButton({ margin + 12, buttonsRow, margin + 24, buttonsRow + 2 }, "Cancel", cmCancel, bfNormal));
+	const int buttonsRow = listTop + listHeight + 1, declineLeft = margin + acceptWidth + buttonGap;
+	const QStringList buttonTitles = withHotKeys({ acceptLabel, declineLabel });
+	dialog->insert(new TButton({ margin, buttonsRow, margin + acceptWidth, buttonsRow + 2 }, stringView(buttonTitles[0].toUtf8()), cmOK, bfDefault));
+	dialog->insert(new TButton({ declineLeft, buttonsRow, declineLeft + declineWidth, buttonsRow + 2 }, stringView(buttonTitles[1].toUtf8()), cmCancel, bfNormal));
 
 	list->select();
 	if (initialItem < (size_t)items.size())

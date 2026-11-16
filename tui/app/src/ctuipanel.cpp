@@ -633,7 +633,7 @@ void CTuiPanel::showOccupiedSpace()
 			elidedInTheMiddle(toNativeSeparators(stats.largestFiles[(size_t)i].fullAbsolutePath()), pathWidth));
 	}
 
-	if (const std::optional<size_t> chosen = chooseFromList(QStringLiteral("Statistics"), rows, 0, summary))
+	if (const std::optional<size_t> chosen = chooseFromList(QStringLiteral("Statistics"), rows, 0, summary, QStringLiteral("Go to"), QStringLiteral("Close")))
 		_controller.goToItem(_side, stats.largestFiles[*chosen]);
 }
 
