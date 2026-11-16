@@ -13,10 +13,11 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QApplication>
 #include <QCursor>
-#include <QFocusEvent>
 #include <QFontMetrics>
 #include <QMenu>
+#include <QMenuBar>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QSizePolicy>
@@ -51,8 +52,14 @@ CBreadcrumbBar::CBreadcrumbBar(QWidget* parent) :
 	// The default policy measures the entries on the first show only
 	_editor->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 	_editor->hide();
-	// QComboBox is its line edit's focus proxy, so the focus events arrive at the combo box
-	_editor->installEventFilter(this);
+
+	// Not a FocusOut filter: focus leaving the menu bar for another widget skips the editor
+	connect(qApp, &QApplication::focusChanged, this, [this](QWidget* /*old*/, QWidget* now) {
+		if (!now || _editor->isHidden() || now == _editor || now->window() != window() || qobject_cast<QMenuBar*>(now))
+			return;
+
+		stopEditing();
+	});
 }
 
 CHistoryComboBox& CBreadcrumbBar::editor() const
@@ -302,18 +309,6 @@ void CBreadcrumbBar::leaveEvent(QEvent* event)
 {
 	setHoveredPart(noPart);
 	QWidget::leaveEvent(event);
-}
-
-bool CBreadcrumbBar::eventFilter(QObject* watched, QEvent* event)
-{
-	if (watched == _editor && event->type() == QEvent::FocusOut)
-	{
-		const Qt::FocusReason reason = static_cast<QFocusEvent*>(event)->reason();
-		if (reason != Qt::PopupFocusReason && reason != Qt::ActiveWindowFocusReason)
-			stopEditing();
-	}
-
-	return QWidget::eventFilter(watched, event);
 }
 
 void CBreadcrumbBar::layOutParts()

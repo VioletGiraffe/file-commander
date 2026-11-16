@@ -18,7 +18,7 @@ enum class PathBarStyle;
 // The panel's path as a button per folder, painted in the applied theme's colours, over an editor for typing a path.
 // Clicking a folder goes there; clicking the separator after it opens that folder's menu.
 // Clicking the current folder or the space after it shows the editor, and so does the arrow, which also opens the editor's history.
-// The editor is hidden again when it loses focus, except to a popup or to another window.
+// The editor is hidden again when focus moves to another widget in its window, except the menu bar; a popup or another window keeps it open.
 // While editing, a strip widens to its longest history entry, within the row: the completion list is as wide as the bar.
 // A path too wide for the bar loses its first folders to a "..." button, whose menu lists them.
 class CBreadcrumbBar final : public QWidget
@@ -58,7 +58,6 @@ protected:
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseReleaseEvent(QMouseEvent* event) override;
 	void leaveEvent(QEvent* event) override;
-	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
 	struct Folder {
