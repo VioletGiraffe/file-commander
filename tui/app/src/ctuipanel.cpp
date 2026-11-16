@@ -10,6 +10,7 @@
 #include "ccontroller.h"
 #include "filelist/filetimetext.h"
 #include "filesystemhelperfunctions.h"
+#include "filesystemhelpers/filestatistics.h"
 
 #include "fileoperations/fileoperationtexts.h"
 
@@ -31,6 +32,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <chrono>
 #include <functional>
 #include <optional>
 #include <vector>
@@ -348,6 +350,7 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmGoForward: _controller.navigateForward(_side); break;
 	case cmGoToFolder: goToTypedPath(); break;
 	case cmGoToFileLocation: _controller.goToItem(_side, _controller.panel(_side).currentItem()); break;
+	case cmCalculateOccupiedSpace: showOccupiedSpace(); break;
 	case cmRefresh: _controller.refreshPanelContents(_side); break;
 	case cmToggleHiddenFiles: _controller.setShowHiddenFiles(!_controller.showHiddenFiles()); break;
 	case cmOpenFilterLine: openFilterLine(); break;
@@ -589,6 +592,49 @@ void CTuiPanel::goToTypedPath()
 
 	if (const auto message = _controller.goToTypedPath(_side, *path))
 		showUserMessage(*message);
+}
+
+void CTuiPanel::showOccupiedSpace()
+{
+	std::vector<QString> paths;
+	for (const CFileSystemObject& item : _controller.panel(_side).selectedItemsOrCurrentItem())
+		paths.push_back(item.fullAbsolutePath());
+
+	const auto start = std::chrono::steady_clock::now();
+	const FileStatistics stats = calculateStatsFor(paths);
+	const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+	if (stats.empty())
+		return;
+
+	const QLocale locale;
+	const QStringList summary{
+		QStringLiteral("Files: %1").arg(stats.files),
+		QStringLiteral("Folders: %1").arg(stats.folders),
+		QStringLiteral("Occupied space: %1 (%2 bytes)").arg(locale.formattedDataSize((qint64)stats.occupiedSpace), locale.toString((qulonglong)stats.occupiedSpace)),
+		QStringLiteral("Scanned in %1 s").arg(elapsed.count(), 0, 'f', 1),
+		{},
+		QStringLiteral("Largest files (%1):").arg(stats.largestFiles.size()),
+	};
+
+	QStringList sizes, times;
+	qsizetype sizeWidth = 0, timeWidth = 0;
+	for (const CFileSystemObject& file : stats.largestFiles)
+	{
+		sizeWidth = std::max(sizeWidth, sizes.emplace_back(locale.formattedDataSize((qint64)file.size())).size());
+		timeWidth = std::max(timeWidth, times.emplace_back(fileTimeText(file.modificationTime(), FileTimeTextLength::Short)).size());
+	}
+
+	// Only the path is elided: chooseFromList elides a row in its middle, which holds the columns
+	const int pathWidth = std::max(chooseFromListMaxItemWidth() - (int)(sizeWidth + timeWidth + 4), 1);
+	QStringList rows;
+	for (qsizetype i = 0; i < sizes.size(); ++i)
+	{
+		rows.push_back(sizes[i].rightJustified(sizeWidth) + QStringLiteral("  ") + times[i].leftJustified(timeWidth) + QStringLiteral("  ") +
+			elidedInTheMiddle(toNativeSeparators(stats.largestFiles[(size_t)i].fullAbsolutePath()), pathWidth));
+	}
+
+	if (const std::optional<size_t> chosen = chooseFromList(QStringLiteral("Statistics"), rows, 0, summary))
+		_controller.goToItem(_side, stats.largestFiles[*chosen]);
 }
 
 void CTuiPanel::chooseVolume()

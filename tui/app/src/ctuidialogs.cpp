@@ -146,6 +146,14 @@ private:
 	std::vector<QByteArray> _items;
 };
 
+constexpr int listDialogMargin = 3;
+
+// The frame and the margins, plus a column for the scroll bar
+[[nodiscard]] int maxListWidth()
+{
+	return TProgram::deskTop->size.x - 2 - 2 * listDialogMargin - 1;
+}
+
 } // namespace
 
 TStringView stringView(const QByteArray& utf8) noexcept
@@ -331,35 +339,50 @@ std::optional<QString> askForText(const QString& title, const DialogLine& label,
 	return std::move(answer.inputText);
 }
 
-std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, const size_t initialItem)
+int chooseFromListMaxItemWidth()
 {
-	static constexpr int margin = 3, minListWidth = 30;
+	return maxListWidth() - 2;
+}
+
+std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, const size_t initialItem, const QStringList& textAbove)
+{
+	static constexpr int margin = listDialogMargin, minListWidth = 30;
 
 	const TPoint desktopSize = TProgram::deskTop->size;
 	// The list draws its text from its second column, and the last column keeps the text off the scroll bar
 	int listWidth = minListWidth;
 	for (const QString& item : items)
 		listWidth = std::max(listWidth, cellWidth(item) + 2);
-	// The frame and the margins, plus a column for the scroll bar
-	listWidth = std::min(listWidth, desktopSize.x - 2 - 2 * margin - 1);
-	// Rows other than the list: the frame, the margins, the buttons and the blank row above them
-	const int listHeight = std::clamp((int)items.size(), 1, std::max(desktopSize.y - 7, 1));
+	for (const QString& line : textAbove)
+		listWidth = std::max(listWidth, cellWidth(line) - 1); // The text also spans the scroll bar's column
+	listWidth = std::min(listWidth, maxListWidth());
+	const int textRows = (int)textAbove.size();
+	// Rows other than the text and the list: the frame, the margins, the buttons and the blank row above them
+	const int listHeight = std::clamp((int)items.size(), 1, std::max(desktopSize.y - 7 - textRows, 1));
 
 	QStringList rows;
 	for (const QString& item : items)
 		rows.push_back(elidedInTheMiddle(item, listWidth - 2));
 
 	const int width = listWidth + 2 * margin + 1;
-	auto* dialog = new TDialog({ 0, 0, width, listHeight + 7 }, stringView(title.toUtf8()));
+	auto* dialog = new TDialog({ 0, 0, width, textRows + listHeight + 7 }, stringView(title.toUtf8()));
 	dialog->options |= ofCentered;
 
-	const int listRight = margin + listWidth;
-	auto* scrollBar = new TScrollBar({ listRight, 2, listRight + 1, 2 + listHeight });
+	const int listRight = margin + listWidth, listTop = 2 + textRows;
+	if (textRows > 0)
+	{
+		QStringList textLines;
+		for (const QString& line : textAbove)
+			textLines.push_back(elidedInTheMiddle(line, listWidth + 1));
+		dialog->insert(new CTuiTextView({ margin, 2, listRight + 1, listTop }, textLines));
+	}
+
+	auto* scrollBar = new TScrollBar({ listRight, listTop, listRight + 1, listTop + listHeight });
 	dialog->insert(scrollBar);
-	auto* list = new CTuiListView({ margin, 2, listRight, 2 + listHeight }, scrollBar, rows);
+	auto* list = new CTuiListView({ margin, listTop, listRight, listTop + listHeight }, scrollBar, rows);
 	dialog->insert(list);
 
-	const int buttonsRow = 3 + listHeight;
+	const int buttonsRow = listTop + listHeight + 1;
 	dialog->insert(new TButton({ margin, buttonsRow, margin + 10, buttonsRow + 2 }, "~O~K", cmOK, bfDefault));
 	dialog->insert(new TButton({ margin + 12, buttonsRow, margin + 24, buttonsRow + 2 }, "Cancel", cmCancel, bfNormal));
 

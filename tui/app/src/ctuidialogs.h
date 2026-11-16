@@ -100,4 +100,7 @@ void showUserMessage(const UserMessage& message);
 [[nodiscard]] std::optional<QString> askForText(const QString& title, const DialogLine& label, const QString& text, const QString& actionLabel);
 
 // The item chosen with Enter, Space or a double click; nullopt: closed with Esc. The cursor starts on initialItem.
-[[nodiscard]] std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, size_t initialItem);
+// textAbove: lines shown right above the list.
+[[nodiscard]] std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, size_t initialItem, const QStringList& textAbove = {});
+// In terminal cells: chooseFromList elides a wider item in the middle
+[[nodiscard]] int chooseFromListMaxItemWidth();

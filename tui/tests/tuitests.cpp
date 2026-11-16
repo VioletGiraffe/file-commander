@@ -722,6 +722,27 @@ TEST_CASE("Ctrl+S hides and shows hidden files", "[tui]")
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, hiddenName); }, QStringLiteral("the hidden file back"));
 }
 
+TEST_CASE("Ctrl+L shows the occupied space of the current item, and Enter on one of the largest files goes to it", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
+	sandbox.createFile(QStringLiteral("work/sub/big.bin"), QByteArray(2000, 'x'));
+	sandbox.createFile(QStringLiteral("work/sub/small.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("sub"));
+	moveCursorTo(*session, QStringLiteral("sub"));
+
+	session->send(Keys::CtrlL);
+	requireText(*session, QStringLiteral("Largest files (2):"));
+	CHECK(session->screen().contains(QStringLiteral("Files: 2")));
+	CHECK(session->screen().contains(QStringLiteral("Folders: 1"))); // The folder itself
+
+	session->send(Keys::Enter); // The cursor starts on the largest
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Largest files")) && cursorIsOn(screen, QStringLiteral("big.bin")); },
+		QStringLiteral("the cursor on big.bin, in its folder"));
+	CHECK(panelLists(session->screen(), QStringLiteral("small.txt")));
+}
+
 TEST_CASE("+ and - select and deselect by pattern", "[tui]")
 {
 	const Sandbox sandbox;

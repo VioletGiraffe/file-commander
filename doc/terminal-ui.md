@@ -75,9 +75,11 @@ dialog is open.
 - Find files (Alt+F7) runs the core's `CFileSearchEngine` with the GUI's fields, options and settings keys. The dialog
   takes the results from a `CFileSearchResultsBuffer` in its `getEvent`, at most every 100 ms. The application keeps
   the dialog, so its last results show again; closing it stops a running search.
-- Batch rename (Shift+F2; the GUI's Ctrl+M is Enter in a terminal) renders the core's `CBatchRenameSession`. Turbo Vision
-  reports no edit, so the dialog compares the rules after every event. The renaming runs on the UI thread, which reads only
-  Esc meanwhile.
+- Occupied space (Ctrl+L) runs the core's `calculateStatsFor` on the UI thread, as the GUI does: the screen stays as it
+  was until the scan ends.
+- Batch rename (Shift+F2: the GUI's Ctrl+M is Enter on many terminals, see Terminal input) renders the core's
+  `CBatchRenameSession`. Turbo Vision reports no edit, so the dialog compares the rules after every event. The renaming
+  runs on the UI thread, which reads only Esc meanwhile.
 - A field's history is shared with the GUI's field through its settings key. Turbo Vision keeps every field's history in
   one block, which `main` enlarges before the application allocates it.
 - Viewing, editing, opening a document and running a program: see [process-launching.md](process-launching.md).
@@ -97,6 +99,15 @@ dialog is open.
   turns it off at start and in `CTuiApplication::resume()`.
 - Turbo Vision takes a fast burst of text keys for a paste, and an Enter arriving right behind it is lost. Scripted
   input types one key at a time.
+- Which Ctrl combinations arrive depends on how the terminal encodes keys:
+  - The Windows console: all of them, decoded from the scan code. Ctrl+Alt is lost on layouts with AltGr.
+  - A terminal with an extended keyboard protocol that Turbo Vision requests at start (XTerm's modifyOtherKeys, Kitty's,
+    far2l's): all of them.
+  - Any other terminal sends control bytes. Ctrl+H, Ctrl+I, Ctrl+J, Ctrl+M and Ctrl+[ arrive as Backspace, Tab, Enter,
+    Enter and Esc; Ctrl+Shift+letter as Ctrl+letter; Ctrl+digit and most Ctrl+punctuation not at all.
+- Ctrl+C, Ctrl+Z, Ctrl+S and Ctrl+Q arrive as keys: Turbo Vision turns off the terminal's handling of them.
+- The terminal emulator's own shortcuts never arrive, such as Windows Terminal's Ctrl+Tab and Ctrl+V.
+- Ctrl+letter other than H, I, J and M therefore arrives on every terminal, unless the terminal emulator binds it.
 
 ## Build and packaging
 

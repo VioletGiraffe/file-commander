@@ -443,6 +443,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("Delete ~p~ermanently...", cmDeleteItemsPermanently, kbShiftF8, hcNoContext, "Shift-F8") +
 			newLine() +
 			*new TMenuItem("Fi~n~d files...", cmFindFiles, kbAltF7, hcNoContext, "Alt-F7") +
+			*new TMenuItem("Calculate ~o~ccupied space", cmCalculateOccupiedSpace, kbCtrlL, hcNoContext, "Ctrl-L") +
 			*new TMenuItem("Copy pat~h~s", cmCopyPaths, kbAltC, hcNoContext, "Alt-C") +
 			*new TMenuItem("Open ~s~hell here", cmOpenShell, kbCtrlO, hcNoContext, "Ctrl-O") +
 			newLine() +
