@@ -206,7 +206,7 @@ CTuiFindDialog::CTuiFindDialog(const TRect& bounds) :
 	_excludedFolders->growMode = gfGrowHiX;
 	insert(_excludedFolders);
 	insert(new TLabel({ labelX, 9, fieldX - 1, 10 }, "~E~xclude folders:", _excludedFolders));
-	_searchButton = new TButton({ searchButtonX, 8, sendButtonX, 10 }, "~S~earch", cmStartOrStopSearch, bfDefault);
+	_searchButton = new TButton({ searchButtonX, 8, sendButtonX, 10 }, "Search", cmStartOrStopSearch, bfDefault);
 	_searchButton->growMode = gfGrowLoX | gfGrowHiX;
 	insert(_searchButton);
 	auto* sendButton = new TButton({ sendButtonX, 8, right, 10 }, "Send to pa~n~el", cmSendResultsToPanel, bfNormal);
@@ -434,7 +434,7 @@ void CTuiFindDialog::setSearchActive(const bool active)
 {
 	_searchActive = active;
 	delete[] const_cast<char*>(_searchButton->title);
-	_searchButton->title = newStr(active ? "~S~top" : "~S~earch");
+	_searchButton->title = newStr(active ? "Stop" : "Search"); // No hot key: Enter in a field presses it, and Esc stops a search
 	_searchButton->drawView();
 }
 

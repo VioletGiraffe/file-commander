@@ -19,6 +19,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <initializer_list>
 #include <vector>
 
 namespace
@@ -96,14 +97,15 @@ public:
 	}
 };
 
-// Makes a letter that no earlier label uses each label's hot key
-[[nodiscard]] QStringList withHotKeys(const QStringList& labels)
+// Makes a letter that no earlier label uses each label's hot key, except for the labels at `unmarked`
+[[nodiscard]] QStringList withHotKeys(const QStringList& labels, const std::initializer_list<std::optional<size_t>> unmarked)
 {
 	QStringList result;
 	QString usedLetters;
 	for (QString label : labels)
 	{
-		for (qsizetype i = 0; i < label.size(); ++i)
+		const bool marked = std::ranges::find(unmarked, std::optional{ (size_t)result.size() }) == unmarked.end();
+		for (qsizetype i = 0; marked && i < label.size(); ++i)
 		{
 			const QChar letter = label[i].toUpper();
 			// ASCII only: Turbo Vision matches a hot key against one byte
@@ -258,7 +260,7 @@ DialogAnswer execDialog(const DialogSpec& spec)
 	}
 
 	++y;
-	const QStringList buttonTitles = withHotKeys(spec.buttons);
+	const QStringList buttonTitles = withHotKeys(spec.buttons, { spec.defaultButton, spec.escapeButton });
 	TView* focusedView = dialog->inputLine;
 	for (const std::vector<size_t>& row : buttonRows)
 	{
@@ -322,6 +324,7 @@ bool confirmed(const QString& title, const QString& question, const QString& act
 	confirmation.title = title;
 	confirmation.lines = { { question } };
 	confirmation.buttons = { actionLabel, declineLabel };
+	confirmation.escapeButton = 1;
 	confirmation.defaultButton = confirmation.focusedButton = 0;
 	return execDialog(confirmation).button == size_t{ 0 };
 }
@@ -333,6 +336,7 @@ DialogSpec textPrompt(const QString& title, const DialogLine& label, const QStri
 	prompt.lines = { label };
 	prompt.inputText = text;
 	prompt.buttons = { actionLabel, QStringLiteral("Cancel") };
+	prompt.escapeButton = 1;
 	prompt.defaultButton = 0;
 	prompt.enterInInput = [](const QString&) { return std::optional<size_t>{ 0 }; };
 	return prompt;
@@ -394,9 +398,9 @@ std::optional<size_t> chooseFromList(const QString& title, const QStringList& it
 	dialog->insert(list);
 
 	const int buttonsRow = listTop + listHeight + 1, declineLeft = margin + acceptWidth + buttonGap;
-	const QStringList buttonTitles = withHotKeys({ acceptLabel, declineLabel });
-	dialog->insert(new TButton({ margin, buttonsRow, margin + acceptWidth, buttonsRow + 2 }, stringView(buttonTitles[0].toUtf8()), cmOK, bfDefault));
-	dialog->insert(new TButton({ declineLeft, buttonsRow, declineLeft + declineWidth, buttonsRow + 2 }, stringView(buttonTitles[1].toUtf8()), cmCancel, bfNormal));
+	// No hot keys: Enter presses the first button and Esc does what the second does
+	dialog->insert(new TButton({ margin, buttonsRow, margin + acceptWidth, buttonsRow + 2 }, stringView(acceptLabel.toUtf8()), cmOK, bfDefault));
+	dialog->insert(new TButton({ declineLeft, buttonsRow, declineLeft + declineWidth, buttonsRow + 2 }, stringView(declineLabel.toUtf8()), cmCancel, bfNormal));
 
 	list->select();
 	if (initialItem < (size_t)items.size())

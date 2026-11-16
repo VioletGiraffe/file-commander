@@ -72,6 +72,7 @@ constexpr ushort cmPauseOperation = 1900;
 	prompt.defaultButton = defaultButton;
 	// Turbo Vision gives Enter to the focused button, so a kind without a default action starts on Skip, which changes nothing
 	prompt.focusedButton = defaultButton ? defaultButton : indexOf(DecisionAction::Skip);
+	prompt.escapeButton = indexOf(DecisionAction::Cancel);
 
 	const std::optional<size_t> renameButton = indexOf(DecisionAction::Rename);
 	if (renameButton)
@@ -165,6 +166,7 @@ constexpr ushort cmPauseOperation = 1900;
 		answers = { PlanWideAnswer::ReplaceAll };
 	}
 	prompt.buttons.push_back(QStringLiteral("Cancel"));
+	prompt.escapeButton = answers.size();
 	prompt.defaultButton = prompt.focusedButton = 0;
 
 	const DialogAnswer answer = execDialog(prompt);
@@ -208,7 +210,7 @@ public:
 		const int middle = size.x / 2;
 		_pauseButton = new TButton({ middle - 13, 8, middle - 1, 10 }, "~P~ause", cmPauseOperation, bfNormal);
 		insert(_pauseButton);
-		_cancelButton = new TButton({ middle + 1, 8, middle + 13, 10 }, "~C~ancel", cmCancel, bfNormal);
+		_cancelButton = new TButton({ middle + 1, 8, middle + 13, 10 }, "Cancel", cmCancel, bfNormal);
 		insert(_cancelButton);
 		_pauseButton->select();
 	}
@@ -423,6 +425,7 @@ void offerPermanentDeletion(const std::vector<OsShell::TrashFailure>& failures)
 	}
 
 	offer.buttons = { QStringLiteral("Delete permanently"), QStringLiteral("Cancel") };
+	offer.escapeButton = 1;
 	offer.focusedButton = 1; // An irreversible action must not be one stray Enter away
 	if (execDialog(offer).button == size_t{ 0 })
 		deletePermanently(paths);

@@ -70,8 +70,9 @@ struct DialogSpec
 	QString title;
 	std::vector<DialogLine> lines;
 	QStringList buttons;
-	std::optional<size_t> defaultButton; // Takes Enter while the focus is on no other button
+	std::optional<size_t> defaultButton; // Takes Enter while the focus is on no other button, so it gets no hot key
 	std::optional<size_t> focusedButton; // nullopt: the input line has the focus
+	std::optional<size_t> escapeButton; // Does what Esc does, so it gets no hot key
 
 	std::optional<QString> inputText; // Adds an input line holding this text
 	// The button Enter in the input line presses, for the text in it; nullopt: none, Enter does nothing
