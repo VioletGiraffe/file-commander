@@ -22,7 +22,7 @@ ends need lives in the core, which returns the text to show and the program to r
 | Find files | `app/src/ctuifinddialog.{h,cpp}` |
 | Favorites | `app/src/ctuifavoritesdialog.{h,cpp}` |
 | Folder comparison | `app/src/ctuifoldercomparison.{h,cpp}` |
-| The viewer | `app/src/ctuiviewer.{h,cpp}` |
+| The viewer and quick view | `app/src/ctuiviewer.{h,cpp}` |
 | The editor, the shell, opening a document | `app/src/ctuiprograms.{h,cpp}` |
 | Turbo Vision as a static library | `tvision/tvision.pro` |
 | Tests | `tests/`; see [testing.md](testing.md) |
@@ -94,6 +94,8 @@ dialog is open.
   one block, which `main` enlarges before the application allocates it.
 - The viewer (F3) reads the whole file, as the GUI's text viewer does. It decodes with `QStringDecoder` alone, so a
   legacy code page other than the system's is not detected. Its keys, find options and find history are the GUI text viewer's.
+- Quick view (Ctrl+Q) is a window over the other panel, showing the file under the active panel's cursor. Neither the
+  window nor the panel under it takes the focus, so it scrolls by the mouse only. It reads at most 20 MiB of a file.
 - The hint row and the key bar show the items of the top view's help context: the viewer's while it is open.
 - Editing, opening a document and running a program: see [process-launching.md](process-launching.md).
 - `CTuiApplication::copyToClipboard` sends a copy over SSH to the terminal (OSC 52), to reach the clipboard of the

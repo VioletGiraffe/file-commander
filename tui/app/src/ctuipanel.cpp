@@ -314,8 +314,7 @@ private:
 	}
 }
 
-// The left panel gets the narrower half of an odd width
-[[nodiscard]] static TRect panelBounds(TPoint desktopSize, Panel side)
+TRect panelBounds(TPoint desktopSize, Panel side)
 {
 	const int middle = desktopSize.x / 2;
 	return side == Panel::LeftPanel ? TRect{ 0, 0, middle, desktopSize.y } : TRect{ middle, 0, desktopSize.x, desktopSize.y };
@@ -344,6 +343,8 @@ CTuiPanel::CTuiPanel(TPoint desktopSize, CController& controller, Panel side) :
 	_fileList->onCursorMoved = [this](const CFileSystemObject& row) {
 		_controller.setCurrentItemHashForCurrentFolder(_side, row.hash(), false);
 		updateStatusLine();
+		if (onCurrentItemChanged)
+			onCurrentItemChanged();
 	};
 	insert(_fileList);
 
@@ -567,6 +568,8 @@ void CTuiPanel::fillFromPanel(const FileListRefreshCause cause)
 	showCoreSelection();
 	updateTitle();
 	updateTabStrip();
+	if (onCurrentItemChanged)
+		onCurrentItemChanged();
 }
 
 void CTuiPanel::showCoreSelection()
@@ -917,12 +920,7 @@ void CTuiPanel::updateTitle()
 {
 	const CPanel& panel = _controller.panel(_side);
 	// The label comes first: the frame cuts a long title at its end
-	const QString text = panel.displayMode() == CPanel::SearchResultsMode ? QStringLiteral("Search results: ") + panel.currentDirPathNative() : panel.currentDirPathNative();
-	const QByteArray utf8 = text.toUtf8();
-	delete[] const_cast<char*>(title);
-	title = newStr(TStringView{ utf8.constData(), (size_t)utf8.size() });
-	if (frame)
-		frame->drawView();
+	setTitle(*this, panel.displayMode() == CPanel::SearchResultsMode ? QStringLiteral("Search results: ") + panel.currentDirPathNative() : panel.currentDirPathNative());
 }
 
 bool CTuiPanel::isActiveTab(Panel p, qulonglong tabId) const

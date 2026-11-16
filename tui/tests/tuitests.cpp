@@ -1454,6 +1454,56 @@ TEST_CASE("In the viewer, Ctrl+F finds text below the screen, F3 the next match 
 	requireViewerStatus(*session, QStringLiteral("Not found"));
 }
 
+TEST_CASE("Ctrl+Q shows the file under the cursor over the other panel, follows the cursor but not onto a folder, leaves the focus where it was, and Ctrl+Q ends it", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
+	sandbox.createFile(QStringLiteral("work/a.txt"), "the first contents");
+	sandbox.createFile(QStringLiteral("work/b.txt"), "the second contents");
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
+	moveCursorTo(*session, QStringLiteral("a.txt"));
+
+	static constexpr int quickViewFirstRow = 2; // Under the panel's top edge
+	const auto quickViewShows = [](const CTerminalScreen& screen, const QString& text) {
+		return panelPart(screen.row(quickViewFirstRow), Side::Right).startsWith(text);
+	};
+	session->send(Keys::CtrlQ);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return quickViewShows(screen, QStringLiteral("the first contents")); }, QStringLiteral("a.txt in quick view"));
+	CHECK(panelPart(session->screen().row(1), Side::Right).contains(QStringLiteral("a.txt")));
+	CHECK(panelStatus(session->screen(), Side::Right).contains(QStringLiteral("UTF-8 · Wrap")));
+
+	session->send(Keys::Down);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return quickViewShows(screen, QStringLiteral("the second contents")); }, QStringLiteral("b.txt in quick view"));
+
+	session->send(Keys::Home);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("..")); }, QStringLiteral("the cursor on .."));
+	CHECK(quickViewShows(session->screen(), QStringLiteral("the second contents")));
+
+	// Tab has no other panel to go to: the left panel's cursor still moves
+	session->send(Keys::Tab);
+	session->send(Keys::Down);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("sub")); }, QStringLiteral("the cursor on sub in the left panel"));
+
+	session->send(Keys::CtrlQ);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelPart(screen.row(2), Side::Right).trimmed().startsWith(QStringLiteral("Name")); },
+		QStringLiteral("the right panel's column header again"));
+	CHECK_FALSE(session->screen().contains(QStringLiteral("the second contents")));
+}
+
+TEST_CASE("Quick view reads at most 20 MiB of a file, and says so", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/large.txt"), QByteArray(20 * 1024 * 1024 + 1, 'x'));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("large.txt"));
+	moveCursorTo(*session, QStringLiteral("large.txt"));
+
+	session->send(Keys::CtrlQ);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen, Side::Right).contains(QStringLiteral("First 20 MiB")); },
+		QStringLiteral("the note in quick view's status row"));
+}
+
 TEST_CASE("F4 opens the editor on the file, in its folder", "[tui]")
 {
 	const Sandbox sandbox;

@@ -53,9 +53,9 @@ RESTORE_COMPILER_WARNINGS
 namespace
 {
 // Carried out by the application, not the focused panel
-constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102, cmCompareFolders = 1103;
+constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102, cmCompareFolders = 1103, cmToggleQuickView = 1104;
 // cmFirstColourTheme + n chooses colourThemes()[n]
-constexpr ushort cmFirstColourTheme = 1104;
+constexpr ushort cmFirstColourTheme = 1105;
 
 [[nodiscard]] bool isColourThemeCommand(ushort command)
 {
@@ -258,6 +258,8 @@ CTuiApplication::CTuiApplication(CController& controller) :
 	};
 	for (CTuiPanel* panel : _panels)
 		deskTop->insert(panel);
+	for (const Panel side : { Panel::LeftPanel, Panel::RightPanel })
+		_panels[(size_t)side]->onCurrentItemChanged = [this, side] { showCurrentFileInQuickView(side); };
 	_panels[(size_t)Panel::LeftPanel]->select();
 
 	const std::string themeId = QSettings{}.value(KEY_TUI_COLOUR_THEME).toString().toStdString();
@@ -292,8 +294,10 @@ void CTuiApplication::handleEvent(TEvent& event)
 	// The volume of the left or the right panel, from either panel
 	if (event.what == evCommand && (event.message.command == cmChooseLeftPanelVolume || event.message.command == cmChooseRightPanelVolume))
 	{
-		CTuiPanel* panel = _panels[(size_t)(event.message.command == cmChooseLeftPanelVolume ? Panel::LeftPanel : Panel::RightPanel)];
+		const Panel side = event.message.command == cmChooseLeftPanelVolume ? Panel::LeftPanel : Panel::RightPanel;
+		CTuiPanel* panel = _panels[(size_t)side];
 		clearEvent(event);
+		endQuickViewOver(side);
 		panel->select();
 		panel->chooseVolume();
 		return;
@@ -310,6 +314,13 @@ void CTuiApplication::handleEvent(TEvent& event)
 	{
 		clearEvent(event);
 		compareFolders();
+		return;
+	}
+
+	if (event.what == evCommand && event.message.command == cmToggleQuickView)
+	{
+		clearEvent(event);
+		toggleQuickView();
 		return;
 	}
 
@@ -357,8 +368,44 @@ void CTuiApplication::compareFolders()
 	if (!location)
 		return;
 
+	endQuickViewOver(location->panel);
 	_panels[(size_t)location->panel]->select();
 	_controller.goToItem(location->panel, CFileSystemObject{ location->absolutePath });
+}
+
+void CTuiApplication::toggleQuickView()
+{
+	if (_quickView)
+	{
+		endQuickViewOver(_quickView->side());
+		return;
+	}
+
+	const Panel activeSide = _controller.activePanelPosition();
+	const Panel otherSide = CController::otherPanelPosition(activeSide);
+	_panels[(size_t)otherSide]->options &= ~ofSelectable; // Tab and clicks keep the focus on the active panel
+	_quickView = new CTuiQuickView(deskTop->size, otherSide);
+	deskTop->insert(_quickView);
+	showCurrentFileInQuickView(activeSide);
+}
+
+void CTuiApplication::endQuickViewOver(const Panel side)
+{
+	if (!_quickView || _quickView->side() != side)
+		return;
+
+	_panels[(size_t)side]->options |= ofSelectable;
+	TObject::destroy(std::exchange(_quickView, nullptr));
+}
+
+void CTuiApplication::showCurrentFileInQuickView(const Panel side)
+{
+	if (!_quickView || _quickView->side() == side)
+		return;
+
+	// On a folder, the last file stays
+	if (const QString filePath = _panels[(size_t)side]->currentFilePath(); !filePath.isEmpty())
+		_quickView->showFile(filePath);
 }
 
 void CTuiApplication::resume()
@@ -497,6 +544,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("Toggle ~h~idden files", cmToggleHiddenFiles, kbCtrlS, hcNoContext, "Ctrl-S") +
 			*new TMenuItem("~F~ilter", cmOpenFilterLine, kbCtrlF, hcNoContext, "Ctrl-F") +
 			*new TMenuItem("Show ~a~ll files below", cmShowAllFilesBelow, kbCtrlB, hcNoContext, "Ctrl-B") +
+			*new TMenuItem("~Q~uick view", cmToggleQuickView, kbCtrlQ, hcNoContext, "Ctrl-Q") +
 			*new TMenuItem("~R~efresh", cmRefresh, kbCtrlR, hcNoContext, "Ctrl-R") +
 			newLine() +
 			*new TMenuItem("Sort by ~n~ame", cmSortByName, kbCtrlF3, hcNoContext, "Ctrl-F3") +

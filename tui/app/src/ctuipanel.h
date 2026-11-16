@@ -9,6 +9,8 @@ DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 RESTORE_COMPILER_WARNINGS
 
+#include <functional>
+
 class CController;
 class CTuiColumnHeader;
 class CTuiFileList;
@@ -31,11 +33,19 @@ inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 
 inline constexpr ushort cmActivateTab1 = 1040, tabPositionCommandCount = 9;
 inline constexpr ushort cmShowFolderHistory = 1049, cmShowFavorites = 1050, cmShowAllFilesBelow = 1051, cmJumpToFirstFile = 1052, cmCalculateEachFolderSize = 1053;
 
+// The side's half of the desktop: the left panel gets the narrower half of an odd width
+[[nodiscard]] TRect panelBounds(TPoint desktopSize, Panel side);
+
 // One side: a window showing the active tab's folder
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener
 {
 public:
 	CTuiPanel(TPoint desktopSize, CController& controller, Panel side);
+
+	// Called when the row under the cursor may have changed: the cursor moved, or the rows did
+	std::function<void()> onCurrentItemChanged;
+	// Empty unless the cursor is on a file
+	[[nodiscard]] QString currentFilePath() const;
 
 	// Takes the side's half of the desktop: Turbo Vision's relative growth drifts toward one panel over many one-column resizes
 	void calcBounds(TRect& bounds, TPoint delta) override;
@@ -76,8 +86,6 @@ private:
 	void showOccupiedSpace();
 	// Empty for none and for [..]
 	[[nodiscard]] QString currentItemName() const;
-	// Empty unless the cursor is on a file
-	[[nodiscard]] QString currentFilePath() const;
 	// The same field again reverses the order
 	void sortBy(FileListSortField field);
 

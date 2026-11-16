@@ -7,6 +7,7 @@
 #define Uses_TDeskTop
 #define Uses_TDialog
 #define Uses_TEvent
+#define Uses_TFrame
 #define Uses_TInputLine
 #define Uses_TKeys
 #define Uses_TListViewer
@@ -14,6 +15,7 @@
 #define Uses_TProgram
 #define Uses_TScrollBar
 #define Uses_TSItem
+#define Uses_TWindow
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 RESTORE_COMPILER_WARNINGS
@@ -172,6 +174,14 @@ constexpr int listDialogMargin = 3;
 TStringView stringView(const QByteArray& utf8) noexcept
 {
 	return { utf8.constData(), (size_t)utf8.size() };
+}
+
+void setTitle(TWindow& window, const QString& title)
+{
+	delete[] const_cast<char*>(window.title);
+	window.title = newStr(stringView(title.toUtf8()));
+	if (window.frame)
+		window.frame->drawView();
 }
 
 int cellWidth(const QString& text)

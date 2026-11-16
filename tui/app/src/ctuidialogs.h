@@ -19,7 +19,11 @@ RESTORE_COMPILER_WARNINGS
 #include <utility>
 #include <vector>
 
+class TWindow;
+
 [[nodiscard]] TStringView stringView(const QByteArray& utf8) noexcept;
+// Redraws the frame: the title shows on it
+void setTitle(TWindow& window, const QString& title);
 // In terminal cells
 [[nodiscard]] int cellWidth(const QString& text);
 // Replaces the middle of a text wider than `width` cells with "..."

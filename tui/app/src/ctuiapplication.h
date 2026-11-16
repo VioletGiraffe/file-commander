@@ -18,6 +18,7 @@ struct ColourTheme;
 class CController;
 class CTuiFindDialog;
 class CTuiPanel;
+class CTuiQuickView;
 class TDeskTop;
 class TMenuBar;
 class TStatusLine;
@@ -52,6 +53,12 @@ private:
 	void findFiles();
 	// Goes to the difference chosen, in the panel that holds it
 	void compareFolders();
+	// Over the other panel than the active one, which keeps the focus
+	void toggleQuickView();
+	// Before the panel under it is used again
+	void endQuickViewOver(Panel side);
+	// The file under the side's cursor, while quick view covers the other side
+	void showCurrentFileInQuickView(Panel side);
 	// Recolours the screen and marks the theme in the Theme menu
 	void setColourTheme(const ColourTheme& theme);
 
@@ -61,4 +68,5 @@ private:
 	std::array<CTuiPanel*, 2> _panels; // Left and right, owned by the desktop
 	CTuiFindDialog* _findDialog = nullptr; // Created on first use and owned by this application: it keeps the last search's results
 	CTuiFolderComparison _folderComparison{ _controller };
+	CTuiQuickView* _quickView = nullptr; // While quick view is on; owned by the desktop
 };

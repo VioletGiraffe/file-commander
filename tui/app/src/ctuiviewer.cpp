@@ -2,6 +2,7 @@
 #include "ctuidialogs.h"
 #include "ctuifields.h"
 #include "ctuipalette.h"
+#include "ctuipanel.h"
 
 #include "filesystemhelperfunctions.h"
 #include "settings.h"
@@ -25,6 +26,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 #include <QFile>
+#include <QFileInfo>
 #include <QRegularExpression>
 #include <QSettings>
 #include <QStringDecoder>
@@ -39,6 +41,15 @@ RESTORE_COMPILER_WARNINGS
 #include <optional>
 #include <utility>
 #include <vector>
+
+// What to find, as the find dialog sets it
+struct SearchSpec
+{
+	QString text;
+	bool caseSensitive = false;
+	bool wholeWords = false;
+	bool regex = false;
+};
 
 namespace {
 
@@ -183,15 +194,6 @@ constexpr int hexBytesPerGroup = 8;
 		bytesPerRow = candidate;
 	return bytesPerRow;
 }
-
-// What to find, as the find dialog sets it
-struct SearchSpec
-{
-	QString text;
-	bool caseSensitive = false;
-	bool wholeWords = false;
-	bool regex = false;
-};
 
 // Matches nothing unless the spec is a regex
 [[nodiscard]] QRegularExpression regexFor(const SearchSpec& spec)
@@ -368,10 +370,11 @@ public:
 	// Called after the view scrolls or shows the file another way
 	std::function<void()> onScrolled;
 
-	// As text in the encoding detected
+	// As text in the encoding detected, from the start
 	void showFile(QByteArray data)
 	{
 		_data = std::move(data);
+		_topRow = 0;
 		showAs(ViewAs::DetectedEncoding);
 	}
 
@@ -816,6 +819,91 @@ private:
 	QByteArray _right;
 };
 
+CTuiFileView::CTuiFileView(const TRect& bounds, TScrollBar* verticalScrollBar) :
+	TGroup(bounds)
+{
+	growMode = gfGrowHiX | gfGrowHiY;
+
+	_statusLine = new CTuiViewerStatusLine({ 0, size.y - 1, size.x, size.y });
+	insert(_statusLine);
+	_content = new CTuiViewerContent({ 0, 0, size.x, size.y - 1 }, verticalScrollBar);
+	_content->onScrolled = [this] { updateStatusLine(); };
+	insert(_content);
+	_content->select();
+}
+
+void CTuiFileView::showFile(QByteArray data, QString note)
+{
+	_unreadable = false;
+	_message = std::move(note);
+	_content->showFile(std::move(data));
+}
+
+void CTuiFileView::showError(QString message)
+{
+	_unreadable = true;
+	_message = std::move(message);
+	_content->showFile({});
+}
+
+void CTuiFileView::showAs(const ViewAs viewAs)
+{
+	const bool shown = _content->showAs(viewAs);
+	_message = shown ? QString{} : QStringLiteral("The file is not text in this encoding");
+	updateStatusLine();
+}
+
+void CTuiFileView::toggleWrap()
+{
+	_message.clear();
+	_content->setWrapped(!_content->wrapped());
+}
+
+void CTuiFileView::find(const SearchSpec& search, const bool backward)
+{
+	const QRegularExpression regex = regexFor(search);
+	if (!regex.isValid())
+		_message = QStringLiteral("Invalid pattern: %1").arg(regex.errorString());
+	else switch (_content->find(search, regex, backward))
+	{
+	case FindOutcome::Found:
+		_message = QStringLiteral("Found at %1").arg(_content->matchPlaceText());
+		break;
+	case FindOutcome::FoundAfterWrapAround:
+		// The GUI's find bar's wording
+		_message = QStringLiteral("Search restarted from the %1: found at %2").arg(backward ? QStringLiteral("bottom") : QStringLiteral("top"), _content->matchPlaceText());
+		break;
+	case FindOutcome::NotFound:
+		_message = QStringLiteral("Not found");
+		break;
+	}
+	updateStatusLine();
+}
+
+void CTuiFileView::updateStatusLine()
+{
+	if (_unreadable)
+	{
+		_statusLine->setText(_message, {});
+		return;
+	}
+
+	QString shownAs;
+	if (_content->viewAs() == ViewAs::Hex)
+		shownAs = QStringLiteral("Hex");
+	else
+	{
+		shownAs = _content->encodingName();
+		shownAs += _content->wrapped() ? QStringLiteral(" · Wrap") : QStringLiteral(" · No wrap");
+	}
+	if (!_message.isEmpty())
+	{
+		shownAs += QStringLiteral("  ");
+		shownAs += _message;
+	}
+	_statusLine->setText(shownAs, _content->positionText());
+}
+
 // Shows one file above the bottom rows until Esc. Its help context puts its keys on the hint row and the key bar.
 class CTuiViewerWindow final : public TWindow
 {
@@ -832,15 +920,12 @@ public:
 
 		TRect interior = getExtent();
 		interior.grow(-1, -1);
-		_statusLine = new CTuiViewerStatusLine({ interior.a.x, interior.b.y - 1, interior.b.x, interior.b.y });
-		insert(_statusLine);
-		_content = new CTuiViewerContent({ interior.a.x, interior.a.y, interior.b.x, interior.b.y - 1 }, standardScrollBar(sbVertical));
-		_content->onScrolled = [this] { updateStatusLine(); };
-		insert(_content);
-		_content->select();
+		_fileView = new CTuiFileView(interior, standardScrollBar(sbVertical));
+		insert(_fileView);
+		_fileView->select();
 	}
 
-	void showFile(QByteArray data) { _content->showFile(std::move(data)); }
+	void showFile(QByteArray data) { _fileView->showFile(std::move(data)); }
 
 	void handleEvent(TEvent& event) override
 	{
@@ -865,8 +950,7 @@ private:
 	{
 		if (command >= cmFirstViewAs && command < cmFirstViewAs + viewAsCount)
 		{
-			_message = _content->showAs(ViewAs(command - cmFirstViewAs)) ? QString{} : QStringLiteral("The file is not text in this encoding");
-			updateStatusLine();
+			_fileView->showAs(ViewAs(command - cmFirstViewAs));
 			return true;
 		}
 
@@ -879,69 +963,80 @@ private:
 			if (std::optional<SearchSpec> search = askForSearch(_search))
 			{
 				_search = std::move(*search);
-				find(false);
+				_fileView->find(_search, false);
 			}
 			return true;
 		case cmFindNextInViewer:
 		case cmFindPreviousInViewer:
 			if (_search.text.isEmpty())
 				return runCommand(cmFindInViewer);
-			find(command == cmFindPreviousInViewer);
+			_fileView->find(_search, command == cmFindPreviousInViewer);
 			return true;
 		case cmToggleLineWrap:
-			_message.clear();
-			_content->setWrapped(!_content->wrapped());
+			_fileView->toggleWrap();
 			return true;
 		default:
 			return false;
 		}
 	}
 
-	void find(const bool backward)
-	{
-		const QRegularExpression regex = regexFor(_search);
-		if (!regex.isValid())
-			_message = QStringLiteral("Invalid pattern: %1").arg(regex.errorString());
-		else switch (_content->find(_search, regex, backward))
-		{
-		case FindOutcome::Found:
-			_message = QStringLiteral("Found at %1").arg(_content->matchPlaceText());
-			break;
-		case FindOutcome::FoundAfterWrapAround:
-			// The GUI's find bar's wording
-			_message = QStringLiteral("Search restarted from the %1: found at %2").arg(backward ? QStringLiteral("bottom") : QStringLiteral("top"), _content->matchPlaceText());
-			break;
-		case FindOutcome::NotFound:
-			_message = QStringLiteral("Not found");
-			break;
-		}
-		updateStatusLine();
-	}
-
-	void updateStatusLine()
-	{
-		QString shownAs;
-		if (_content->viewAs() == ViewAs::Hex)
-			shownAs = QStringLiteral("Hex");
-		else
-		{
-			shownAs = _content->encodingName();
-			shownAs += _content->wrapped() ? QStringLiteral(" · Wrap") : QStringLiteral(" · No wrap");
-		}
-		if (!_message.isEmpty())
-		{
-			shownAs += QStringLiteral("  ");
-			shownAs += _message;
-		}
-		_statusLine->setText(shownAs, _content->positionText());
-	}
-
 private:
-	CTuiViewerContent* _content; // Owned by this window
-	CTuiViewerStatusLine* _statusLine; // Owned by this window
+	CTuiFileView* _fileView; // Owned by this window
 	SearchSpec _search; // No text until the first search
-	QString _message; // The last command's outcome
 };
+
+CTuiQuickView::CTuiQuickView(const TPoint desktopSize, const Panel side) :
+	TWindowInit(&TWindow::initFrame),
+	TWindow(panelBounds(desktopSize, side), "Quick view", wnNoNumber),
+	_side(side)
+{
+	flags &= ~(wfMove | wfGrow | wfClose | wfZoom); // The application ends it
+	options &= ~ofSelectable;
+	state &= ~sfShadow; // Tiled: a shadow would fall on the other panel
+
+	TRect interior = getExtent();
+	interior.grow(-1, -1);
+	_fileView = new CTuiFileView(interior, standardScrollBar(sbVertical));
+	insert(_fileView);
+}
+
+void CTuiQuickView::calcBounds(TRect& bounds, TPoint)
+{
+	bounds = panelBounds(owner->size, _side);
+}
+
+void CTuiQuickView::handleEvent(TEvent& event)
+{
+	// Turbo Vision offers the wheel to every view regardless of the mouse's position: only the view under the mouse scrolls
+	if (event.what == evMouseWheel && !mouseInView(event.mouse.where))
+		return;
+	TWindow::handleEvent(event);
+}
+
+TPalette& CTuiQuickView::getPalette() const
+{
+	return panelPalette();
+}
+
+void CTuiQuickView::showFile(const QString& filePath)
+{
+	if (filePath == _filePath)
+		return;
+
+	_filePath = filePath;
+	setTitle(*this, QFileInfo{ filePath }.fileName()); // The folder is the active panel's
+
+	QFile file{ filePath };
+	if (!file.open(QFile::ReadOnly))
+	{
+		_fileView->showError(QStringLiteral("Cannot read the file: %1").arg(file.errorString()));
+		return;
+	}
+
+	QByteArray data = file.read(quickViewMaxBytes);
+	const bool cut = !file.atEnd();
+	_fileView->showFile(std::move(data), cut ? QStringLiteral("First %1 MiB").arg(quickViewMaxBytes / (1024 * 1024)) : QString{});
+}
 
 void viewFile(const QString& filePath)
 {
