@@ -30,6 +30,8 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <mutex>
 #include <optional>
+#include <unordered_set>
+#include <vector>
 
 CController* CController::_instance = nullptr;
 
@@ -988,9 +990,20 @@ CPanel& CController::activePanel()
 	return panel(activePanelPosition());
 }
 
-const CHistoryList<QString>& CController::visitedLocations(Panel p) const
+std::vector<QString> CController::recentFolders(const Panel p) const
 {
-	return _visitedLocations[(size_t)p];
+	std::vector<QString> folders;
+	std::unordered_set<QString> listed;
+	for (const Panel side : { p, otherPanelPosition(p) })
+	{
+		const CHistoryList<QString>& visited = _visitedLocations[(size_t)side];
+		for (auto it = visited.rbegin(); it != visited.rend(); ++it)
+		{
+			if (listed.insert(*it).second)
+				folders.push_back(*it);
+		}
+	}
+	return folders;
 }
 
 CThreadPool& CController::threadPool()

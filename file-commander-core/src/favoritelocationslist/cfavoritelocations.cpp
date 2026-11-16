@@ -1,7 +1,5 @@
 #include "cfavoritelocations.h"
 
-#include "settings.h"
-
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -10,6 +8,7 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QObject>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
@@ -123,9 +122,71 @@ void CFavoriteLocations::load()
 	}
 }
 
-void CFavoriteLocations::addItem(std::vector<CLocationsCollection>& list, const QString& name, const QString& path)
+// skippedIndex: the item being edited, which may keep its own name and path
+static std::optional<UserMessage> refusalFor(const std::vector<CLocationsCollection>& list, const std::optional<size_t> skippedIndex, const QString& name,
+	const QString& path, const bool isLocation)
 {
+	const auto refusal = [](const QString& text) {
+		return UserMessage{ MessageSeverity::Information, QObject::tr("Similar item already exists"), text };
+	};
+	const auto anyOther = [&](const auto& matches) {
+		for (size_t i = 0; i < list.size(); ++i)
+		{
+			if (i != skippedIndex && matches(list[i]))
+				return true;
+		}
+		return false;
+	};
+
+	if (name.isEmpty())
+		return UserMessage{ MessageSeverity::Information, QObject::tr("No name"), QObject::tr("The name cannot be empty.") };
+	if (isLocation && path.isEmpty())
+		return UserMessage{ MessageSeverity::Information, QObject::tr("No location"), QObject::tr("The location cannot be empty.") };
+	if (isLocation && anyOther([&path](const CLocationsCollection& item) { return item.absolutePath == path; }))
+		return refusal(QObject::tr("This item already exists here (possibly under a different name)."));
+	if (anyOther([&name](const CLocationsCollection& item) { return item.displayName == name; }))
+		return refusal(QObject::tr("An item with the same name already exists here (possibly pointing to a different location)."));
+	return {};
+}
+
+std::optional<UserMessage> CFavoriteLocations::addLocation(std::vector<CLocationsCollection>& list, const QString& name, const QString& path)
+{
+	if (auto refusal = refusalFor(list, std::nullopt, name, path, true))
+		return refusal;
+
 	list.emplace_back(name, path);
+	save();
+	return {};
+}
+
+std::optional<UserMessage> CFavoriteLocations::addCategory(std::vector<CLocationsCollection>& list, const QString& name)
+{
+	if (auto refusal = refusalFor(list, std::nullopt, name, {}, false))
+		return refusal;
+
+	list.emplace_back(name);
+	save();
+	return {};
+}
+
+std::optional<UserMessage> CFavoriteLocations::editItem(std::vector<CLocationsCollection>& list, const size_t index, const QString& name, const QString& path)
+{
+	assert_and_return_r(index < list.size(), {});
+	CLocationsCollection& item = list[index];
+	assert_and_return_r(!item.isCategory() || path.isEmpty(), {});
+	if (auto refusal = refusalFor(list, index, name, path, !item.isCategory()))
+		return refusal;
+
+	item.displayName = name;
+	item.absolutePath = path;
+	save();
+	return {};
+}
+
+void CFavoriteLocations::removeItem(std::vector<CLocationsCollection>& list, const size_t index)
+{
+	assert_and_return_r(index < list.size(), );
+	list.erase(list.begin() + (ptrdiff_t)index);
 	save();
 }
 
@@ -134,5 +195,5 @@ void CFavoriteLocations::save()
 	QByteArray data;
 	for (const CLocationsCollection& item : _items)
 		serialize(data, item, NoMarker);
-	QSettings().setValue(KEY_FAVORITES, data);
+	QSettings().setValue(_settingsKey, data);
 }

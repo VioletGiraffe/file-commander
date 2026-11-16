@@ -1137,37 +1137,23 @@ void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 			const QString path = currentDirPathNative();
 			const QString displayName = CFileSystemObject(path).name();
 			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name to store the current location under"), QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
-			if (!name.isEmpty() && !path.isEmpty())
-			{
-				if (std::find_if(locations.cbegin(), locations.cend(), [&path](const CLocationsCollection& entry){return entry.absolutePath == path;}) != locations.cend())
-				{
-					QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("This item already exists here (possibly under a different name)."), QMessageBox::Cancel);
-					return;
-				}
-				else if (std::find_if(locations.cbegin(), locations.cend(), [&name](const CLocationsCollection& entry){return entry.displayName == name;}) != locations.cend())
-				{
-					QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("An item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
-					return;
-				}
+			if (name.isEmpty()) // Cancelled, or no name given
+				return;
 
-				_controller->favoriteLocations().addItem(locations, name, currentDirPathNative());
-			}
+			if (const auto refusal = _controller->favoriteLocations().addLocation(locations, name, path))
+				showUserMessage(this, *refusal);
 		}));
 
 		QAction * addCategoryAction = parentMenu->addAction(tr("Add a new subcategory..."));
 		assert_r(QObject::connect(addCategoryAction, &QAction::triggered, this, [this, &locations, parentMenu](){
 			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name for the new subcategory"));
-			if (!name.isEmpty())
-			{
-				if (std::find_if(locations.cbegin(), locations.cend(), [&name](const CLocationsCollection& entry){return entry.displayName == name;}) != locations.cend())
-				{
-					QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("An item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
-					return;
-				}
+			if (name.isEmpty()) // Cancelled, or no name given
+				return;
 
+			if (const auto refusal = _controller->favoriteLocations().addCategory(locations, name))
+				showUserMessage(this, *refusal);
+			else
 				parentMenu->addMenu(name);
-				_controller->favoriteLocations().addItem(locations, name);
-			}
 		}));
 	};
 
@@ -1300,26 +1286,14 @@ static QString withTrailingSlash(const QString& path)
 
 void CPanelWidget::fillHistory()
 {
-	const auto& visited = _controller->visitedLocations(_panelPosition);
-	if (visited.empty())
+	const std::vector<QString> folders = _controller->recentFolders(_panelPosition);
+	if (folders.empty())
 		return;
 
 	QStringList items;
-	items.reserve((qsizetype)visited.size());
-	std::unordered_set<QString> seen;
-	for (auto it = visited.rbegin(); it != visited.rend(); ++it)
-	{
-		items.push_back(toNativeSeparators(withTrailingSlash(*it)));
-		seen.insert(*it);
-	}
-
-	// The other panel's visited folders, appended after this panel's own, deduplicated, added to the bottom without displacing this panel's own most-recent entries from the top.
-	const auto& otherVisited = _controller->visitedLocations(CController::otherPanelPosition(_panelPosition));
-	for (auto it = otherVisited.rbegin(); it != otherVisited.rend(); ++it)
-	{
-		if (seen.insert(*it).second)
-			items.push_back(toNativeSeparators(withTrailingSlash(*it)));
-	}
+	items.reserve((qsizetype)folders.size());
+	for (const QString& folder : folders)
+		items.push_back(toNativeSeparators(withTrailingSlash(folder)));
 
 	// The active tab's current directory might not be in either list yet (e.g. a deferred save hasn't
 	// caught up) -- prepend it so it's still shown/highlighted correctly instead of defaulting to some
@@ -1355,22 +1329,20 @@ void CPanelWidget::fillFolderMenu(QMenu* menu, const QString& folderPath)
 		}));
 	};
 
-	// The subfolders on the way to visited folders: the most recently visited first, this panel's before the other's,
-	// as in the path editor's history
+	// The subfolders on the way to visited folders, in the order of the path editor's history
 	std::unordered_set<QString> seen;
-	for (const Panel side : { _panelPosition, CController::otherPanelPosition(_panelPosition) })
+	for (const QString& visited : _controller->recentFolders(_panelPosition))
 	{
-		const auto& visited = _controller->visitedLocations(side);
-		for (auto it = visited.rbegin(); it != visited.rend() && seen.size() < maxVisitedItems; ++it)
-		{
-			const QString path = withTrailingSlash(*it);
-			if (path.size() <= folderPath.size() || !path.startsWith(folderPath))
-				continue;
+		if (seen.size() >= maxVisitedItems)
+			break;
 
-			const qsizetype nameEnd = path.indexOf('/', folderPath.size()); // found: the path ends with '/'
-			if (QString subfolderPath = path.left(nameEnd + 1); seen.insert(subfolderPath).second)
-				addFolderItem(path.sliced(folderPath.size(), nameEnd - folderPath.size()), subfolderPath);
-		}
+		const QString path = withTrailingSlash(visited);
+		if (path.size() <= folderPath.size() || !path.startsWith(folderPath))
+			continue;
+
+		const qsizetype nameEnd = path.indexOf('/', folderPath.size()); // found: the path ends with '/'
+		if (QString subfolderPath = path.left(nameEnd + 1); seen.insert(subfolderPath).second)
+			addFolderItem(path.sliced(folderPath.size(), nameEnd - folderPath.size()), subfolderPath);
 	}
 
 	// Listed on the UI thread: an ancestor of a folder just listed is unlikely to stall

@@ -187,9 +187,9 @@ public:
 	[[nodiscard]] const CPanel& activePanel() const;
 	[[nodiscard]] CPanel& activePanel();
 
-	// Per-side, tab-independent log of visited folders (unlike a tab's own back/forward CHistoryList, this
-	// survives tab close/open). Powers the path navigator's quick-revisit dropdown.
-	[[nodiscard]] const CHistoryList<QString>& visitedLocations(Panel p) const;
+	// The folders visited on side p, then those visited only on the other side, each the most recent first.
+	// Each side's log outlives its tabs, unlike a tab's back/forward history.
+	[[nodiscard]] std::vector<QString> recentFolders(Panel p) const;
 
 	// The active tab's selection; safe to call from a plugin's worker thread
 	[[nodiscard]] std::vector<qulonglong> selectedItemsHashes(Panel p) const;
@@ -266,7 +266,7 @@ private:
 	std::array<std::vector<PanelContentsChangedListener*>, 2> _panelContentsListeners;
 	std::array<std::vector<CurrentItemChangedListener*>, 2> _currentItemChangedListeners;
 	std::array<QString, 2> _lastSavedTabSignature; // The last state savePanelState wrote successfully: avoids rewriting settings on every watcher refresh
-	std::array<CHistoryList<QString>, 2> _visitedLocations; // Per-side, tab-independent visited-folders log; see visitedLocations()
+	std::array<CHistoryList<QString>, 2> _visitedLocations; // Per-side, tab-independent visited-folders log; see recentFolders()
 	struct PanelContentsSubscription {
 		const CPluginProxy* subscriber;
 		PanelContentsSubscriber callback;

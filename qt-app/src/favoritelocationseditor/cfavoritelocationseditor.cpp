@@ -6,6 +6,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "fileoperationsui/usermessagebox.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -121,18 +122,11 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		if (dialog.exec() == QDialog::Accepted)
 		{
 			std::vector<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
-			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.absolutePath == dialog.location();}) != list.cend())
+			if (const auto refusal = _locations.addLocation(list, dialog.name(), dialog.location()))
 			{
-				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("This item already exists here (possibly under a different name)."), QMessageBox::Cancel);
+				showUserMessage(this, *refusal);
 				return;
 			}
-			else if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
-			{
-				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("An item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
-				return;
-			}
-
-			_locations.addItem(list, dialog.name(), dialog.location());
 
 			if (item)
 			{
@@ -149,13 +143,11 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		if (dialog.exec() == QDialog::Accepted)
 		{
 			std::vector<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
-			if (std::find_if(list.cbegin(), list.cend(), [&dialog](const CLocationsCollection& entry){return entry.displayName == dialog.name();}) != list.cend())
+			if (const auto refusal = _locations.addCategory(list, dialog.name()))
 			{
-				QMessageBox::information(dynamic_cast<QWidget*>(parent()), tr("Similar item already exists"), tr("An item with the same name already exists here (possibly pointing to a different location)."), QMessageBox::Cancel);
+				showUserMessage(this, *refusal);
 				return;
 			}
-
-			_locations.addItem(list, dialog.name());
 			if (item)
 			{
 				new CFavoriteLocationsListItem(item, list, --list.end(), true);
@@ -169,21 +161,11 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 	if (item)
 	{
 		connect(menu.addAction(tr("Remove item")), &QAction::triggered, this, [this, item]() {
-			if (item->isCategory())
-			{
-				if (QMessageBox::question(this, tr("Delete the item?"), tr("Are you sure you want to delete this category and all its sub-items?")) == QMessageBox::Yes)
-				{
-					item->list().erase(item->itemIterator());
-					delete item;
-				}
-			}
-			else
-			{
-				item->list().erase(item->itemIterator());
-				delete item;
-			}
+			if (item->isCategory() && QMessageBox::question(this, tr("Delete the item?"), tr("Are you sure you want to delete this category and all its sub-items?")) != QMessageBox::Yes)
+				return;
 
-			_locations.save();
+			_locations.removeItem(item->list(), (size_t)(item->itemIterator() - item->list().begin()));
+			delete item;
 		});
 	}
 
