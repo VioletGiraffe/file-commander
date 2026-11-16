@@ -80,7 +80,7 @@ HeapCounts heapCounts;
 
 }
 
-// Replaced so the heap figures count every container's own allocations; the array and sized forms forward to these.
+// Replaced so the heap figures count every container's own allocations; the array forms forward to these.
 // Paths are QString data, allocated by malloc, so they are not counted.
 void* operator new(size_t size)
 {
@@ -104,6 +104,12 @@ void operator delete(void* block) noexcept
 		heapCounts.liveBytes -= (int64_t)allocationSize(block);
 
 	::free(block);
+}
+
+// The standard asks for the sized form wherever the unsized one is replaced
+void operator delete(void* block, size_t /*size*/) noexcept
+{
+	operator delete(block);
 }
 
 namespace {

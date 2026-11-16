@@ -17,6 +17,9 @@ RESTORE_COMPILER_WARNINGS
 #include <stdint.h>
 #include <time.h>
 
+// Settable via the --std-seed command-line option; see main.cpp
+extern uint32_t g_randomSeed;
+
 // An entry of /folder/; a test that changes it before listing keeps the properties, the others use makeRow()
 inline CFileSystemObjectProperties rowProperties(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
 {

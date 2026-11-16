@@ -36,8 +36,6 @@ RESTORE_COMPILER_WARNINGS
 #include <tuple>
 #include <vector>
 
-extern uint32_t g_randomSeed;
-
 using RowData = std::tuple<QString, uint64_t, time_t, FileSystemObjectType>;
 
 static std::vector<RowData> displayedRowData(const CFileListModel& model)

@@ -293,7 +293,7 @@ TEST_CASE("CCsvTableModel: numbers are right-aligned", "[csv][model]")
 	model.setTable(parse("12.5,text,,1 2"));
 
 	const auto alignment = [&model](int column) { return model.index(0, column).data(Qt::TextAlignmentRole); };
-	CHECK(alignment(0).toInt() == (Qt::AlignRight | Qt::AlignVCenter).toInt());
+	CHECK(alignment(0).value<Qt::Alignment::Int>() == (Qt::AlignRight | Qt::AlignVCenter).toInt());
 	CHECK_FALSE(alignment(1).isValid());
 	CHECK_FALSE(alignment(2).isValid());
 	CHECK_FALSE(alignment(3).isValid());

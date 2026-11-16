@@ -27,7 +27,7 @@ protected:
 	void paintEvent(QPaintEvent* event) override;
 
 private:
-	double _usedFraction = 0.0;
-	bool _lowOnSpace = false;
+	uint64_t _volumeSize = 0;
+	uint64_t _freeSize = 0;
 	bool _shownAsActive = false;
 };

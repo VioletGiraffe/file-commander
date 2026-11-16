@@ -290,7 +290,7 @@ void CTuiBatchRenameDialog::showSession()
 {
 	_preview->showSession();
 	setStatus(_session.findPatternError());
-	for (const auto [command, step] : { std::pair{ cmRename, Step::Apply }, std::pair{ cmUndo, Step::Undo } })
+	for (const auto& [command, step] : { std::pair{ cmRename, Step::Apply }, std::pair{ cmUndo, Step::Undo } })
 		_session.canRun(step) ? enableCommand(command) : disableCommand(command);
 	// Updates the buttons now: TProgram::idle() sends cmCommandSetChanged only once no input is waiting, too late for a key typed ahead
 	message(this, evBroadcast, cmCommandSetChanged, nullptr);

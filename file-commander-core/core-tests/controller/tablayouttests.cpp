@@ -117,7 +117,7 @@ TEST_CASE("CController - a folder shows in the tab already showing it, else in t
 	TempTree tree;
 	ControllerSession session;
 
-	const qulonglong firstId = session->activeTabId(Panel::LeftPanel);
+	[[maybe_unused]] const qulonglong firstId = session->activeTabId(Panel::LeftPanel);
 	const QString existingFolder = tree.makeDir("existing");
 	const qulonglong existingId = session->addTab(Panel::LeftPanel, existingFolder, false);
 	session->showFolderInItsTabOrActiveTab(Panel::LeftPanel, existingFolder + "/./");

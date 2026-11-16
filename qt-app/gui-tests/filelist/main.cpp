@@ -1,3 +1,6 @@
+#include "filelisttesthelpers.h"
+
+
 // Submodule includes
 #include "3rdparty/catch2/catch_runner.h"
 #include "compiler/compiler_warnings_control.h"

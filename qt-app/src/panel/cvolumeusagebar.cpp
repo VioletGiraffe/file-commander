@@ -32,13 +32,11 @@ CVolumeUsageBar::CVolumeUsageBar(QWidget* parent) :
 void CVolumeUsageBar::setSpace(const uint64_t volumeSize, uint64_t freeSize)
 {
 	freeSize = std::min(freeSize, volumeSize);
-	const double usedFraction = volumeSize > 0 ? (double)(volumeSize - freeSize) / (double)volumeSize : 0.0;
-	const bool lowOnSpace = freeSize < std::min(volumeSize / 10, lowSpaceCap);
-	if (usedFraction == _usedFraction && lowOnSpace == _lowOnSpace)
+	if (volumeSize == _volumeSize && freeSize == _freeSize)
 		return;
 
-	_usedFraction = usedFraction;
-	_lowOnSpace = lowOnSpace;
+	_volumeSize = volumeSize;
+	_freeSize = freeSize;
 	update();
 }
 
@@ -73,13 +71,14 @@ void CVolumeUsageBar::paintEvent(QPaintEvent* /*event*/)
 	painter.setBrush(ColorUtils::mix(palette.border, palette.borderStrong, 0.5f));
 	painter.drawPath(trough);
 
-	if (_usedFraction <= 0.0)
+	if (_freeSize == _volumeSize)
 		return;
 
-	const qreal fillWidth = bar.width() * _usedFraction;
+	const qreal fillWidth = bar.width() * (qreal)(_volumeSize - _freeSize) / (qreal)_volumeSize;
 	const qreal fillRadius = std::min(radius, fillWidth / 2);
 	QPainterPath fill;
 	fill.addRoundedRect(QRectF{ bar.topLeft(), QSizeF{ fillWidth, bar.height() } }, fillRadius, fillRadius);
-	painter.setBrush(_lowOnSpace ? palette.errorText : _shownAsActive ? palette.accent : palette.textDim);
+	const bool lowOnSpace = _freeSize < std::min(_volumeSize / 10, lowSpaceCap);
+	painter.setBrush(lowOnSpace ? palette.errorText : _shownAsActive ? palette.accent : palette.textDim);
 	painter.drawPath(fill.intersected(trough));
 }
