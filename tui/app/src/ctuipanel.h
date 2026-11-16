@@ -39,6 +39,7 @@ public:
 
 	// Takes the side's half of the desktop: Turbo Vision's relative growth drifts toward one panel over many one-column resizes
 	void calcBounds(TRect& bounds, TPoint delta) override;
+	void changeBounds(const TRect& bounds) override;
 	void handleEvent(TEvent& event) override;
 	void setState(ushort aState, Boolean enable) override;
 	TPalette& getPalette() const override;
@@ -94,9 +95,11 @@ private:
 	void applyFilter(const QString& filterText);
 	void closeFilterLine();
 	void setViewShown(TView* view, bool shown);
-	// The tab strip, while shown, takes the first row and the column header the next.
+	// The tab strip, while shown, takes the first rows and the column header the next.
 	// The status line takes the last two rows, and the filter line, while shown, the row above them.
 	void layOutViews();
+	// The rows the tab strip takes: none while hidden
+	[[nodiscard]] int tabStripRows() const;
 
 	// The folder, after "Search results: " while the panel shows them
 	void updateTitle();

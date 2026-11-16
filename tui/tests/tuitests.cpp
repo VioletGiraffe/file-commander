@@ -36,7 +36,7 @@ namespace {
 constexpr int screenRows = 30, screenColumns = 100;
 // The layout at this size: the menu bar, the two panel windows, the hint row and the key row
 constexpr int panelStatusRow = screenRows - 4, hintRow = screenRows - 2, keyRow = screenRows - 1;
-constexpr int tabStripRow = 2; // While a side has more than one tab
+constexpr int tabStripRow = 2, maxTabStripRows = 3; // While a side has more than one tab
 constexpr int panelWidth = screenColumns / 2;
 
 enum class Side { Left, Right };
@@ -86,7 +86,7 @@ const QString columnGap = QStringLiteral("[ ┆]+");
 // The left panel's column header row: the one under the panel's top edge, or under its tab strip
 [[nodiscard]] std::optional<int> columnHeaderRow(const CTerminalScreen& screen, int leftPanelWidth = panelWidth)
 {
-	for (const int row : { 2, 3 })
+	for (int row = tabStripRow; row <= tabStripRow + maxTabStripRows; ++row)
 	{
 		if (screen.row(row).mid(1, leftPanelWidth - 2).trimmed().startsWith(QStringLiteral("Name")))
 			return row;
@@ -98,6 +98,12 @@ const QString columnGap = QStringLiteral("[ ┆]+");
 [[nodiscard]] QString leftClick(int column, int row)
 {
 	return QStringLiteral("\x1b[<0;%1;%2M\x1b[<0;%1;%2m").arg(column + 1).arg(row + 1);
+}
+
+// One notch of the mouse wheel over a screen cell, as xterm's SGR mouse mode sends it
+[[nodiscard]] QString wheel(int column, int row, bool up)
+{
+	return QStringLiteral("\x1b[<%1;%2;%3M").arg(up ? 64 : 65).arg(column + 1).arg(row + 1);
 }
 
 [[nodiscard]] QString quoted(const QString& text)
@@ -1223,6 +1229,59 @@ TEST_CASE("A dashed line separates the columns in the header and the rows, unles
 		requireScreen(*session, [&](const CTerminalScreen& screen) { return headerText(screen).contains(QStringLiteral("Ext ↑")); }, QStringLiteral("the Ext title"));
 		CHECK_FALSE(session->screen().text().contains(u'┆'));
 	}
+}
+
+TEST_CASE("Tabs wrap onto up to three rows, which scroll to the active tab or by the wheel and mark the rows hidden, and a click on the second row activates its tab", "[tui]")
+{
+	const Sandbox sandbox;
+	const QString longName = QStringLiteral("long-folder-name-") + QString(27, u'x'); // With its spaces, too wide to share a row with "work"
+	REQUIRE(QDir{ sandbox.work({}) }.mkdir(longName));
+	sandbox.createFile(QStringLiteral("work/marker.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("marker.txt"));
+
+	const auto stripRow = [](const CTerminalScreen& screen, const int row) { return panelPart(screen.row(tabStripRow + row), Side::Left).trimmed(); };
+
+	// Folders come first: the long one is right under ..
+	session->send(Keys::Down);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelStatus(screen).startsWith(longName.left(20)); }, QStringLiteral("the cursor on the long folder"));
+	session->send(Keys::CtrlUp);
+	requireScreen(*session, [&](const CTerminalScreen& screen) {
+		return stripRow(screen, 0) == QStringLiteral("work") && stripRow(screen, 1) == longName && columnHeaderRow(screen) == tabStripRow + 2;
+	}, QStringLiteral("the long folder's tab on the second row"));
+
+	session->send(leftClick(3, tabStripRow));
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelLists(screen, QStringLiteral("marker.txt")); }, QStringLiteral("the work tab active"));
+
+	// New tabs come last: eight fill the third row, and a ninth starts a fourth, which scrolls the first out of view
+	for (qsizetype tabs = 1; tabs <= 8; ++tabs)
+	{
+		session->send(Keys::CtrlT);
+		requireScreen(*session, [&](const CTerminalScreen& screen) { return stripRow(screen, 2).count(QStringLiteral("work")) == tabs; },
+			QStringLiteral("%1 tabs on the third row").arg(tabs));
+	}
+	CHECK(columnHeaderRow(session->screen()) == tabStripRow + maxTabStripRows);
+
+	// The last column now holds the marks for hidden rows, so seven tabs fit a row
+	const QString longTabRowBelowHiddenRow = longName + QStringLiteral("  ▲");
+	session->send(Keys::CtrlT);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return stripRow(screen, 0) == longTabRowBelowHiddenRow && stripRow(screen, 2) == QStringLiteral("work  work"); },
+		QStringLiteral("the rows scrolled to the new tab, with a mark for the row above"));
+	CHECK(columnHeaderRow(session->screen()) == tabStripRow + maxTabStripRows);
+
+	session->send(wheel(10, tabStripRow, true));
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return stripRow(screen, 0) == QStringLiteral("work") && stripRow(screen, 2).endsWith(QStringLiteral("▼")); },
+		QStringLiteral("the first rows, with a mark for the row below"));
+
+	// Another active tab: the rows scroll to it again
+	session->send(Keys::CtrlPgUp);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return stripRow(screen, 0) == longTabRowBelowHiddenRow; }, QStringLiteral("the rows scrolled to the active tab"));
+
+	// Next from the last tab is the first
+	session->send(Keys::CtrlPgDn);
+	session->send(Keys::CtrlPgDn);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return stripRow(screen, 0) == QStringLiteral("work") && stripRow(screen, 1) == longName; },
+		QStringLiteral("the rows scrolled back to the first tab"));
 }
 
 TEST_CASE("fcterm shows the working folder or its folder argument in the tab already showing it, else in the active tab", "[tui]")

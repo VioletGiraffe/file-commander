@@ -37,7 +37,8 @@ dialog is open.
 - At start, the left side shows the folder argument, or else the working folder: in the tab already showing it, else in
   the active tab (`CController::showFolderInItsTabOrActiveTab`). The GUI's `--tui` handover passes the argument on.
 - Each side is a `CTuiPanel` showing the side's active tab. Switching tabs refills it from that tab's `CPanel`; a tab
-  strip shows while the side has more than one tab. [tabs.md](tabs.md) has the core's side.
+  strip shows while the side has more than one tab. It wraps onto up to three rows, past which it scrolls by row to
+  keep the active tab in view, or by the mouse wheel; a mark in its last column shows hidden rows. [tabs.md](tabs.md) has the core's side.
 - The rows are a copy of `CPanel::visibleItems()`. Sorting, the name filter and the selection belong to the `CPanel`,
   as in the Qt UI; the list shows a copy of the selection, refreshed after every change made through the core.
 - `CTuiFileList` builds on `CTuiRowList`, a plain `TView` with a cursor, not on `TListViewer`: that counts rows in

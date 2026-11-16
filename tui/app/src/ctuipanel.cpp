@@ -115,7 +115,8 @@ private:
 	QByteArray _text;
 };
 
-// The side's tabs on one row, the active one highlighted. Scrolled to keep the active tab in view.
+// The side's tabs, wrapped onto rows, the active one highlighted.
+// Past the rows shown, scrolled by row to keep the active tab in view, or by the mouse wheel until the tabs change.
 class CTuiTabStrip final : public TView
 {
 public:
@@ -124,6 +125,8 @@ public:
 		qulonglong id;
 		QString name;
 	};
+
+	static constexpr int maxRows = 3;
 
 	explicit CTuiTabStrip(const TRect& bounds) noexcept : TView(bounds)
 	{
@@ -134,57 +137,86 @@ public:
 
 	void setTabs(const std::vector<Tab>& tabs, qulonglong activeTabId)
 	{
-		_labels.clear();
-		_activeLabel.reset();
-		int x = 0;
+		std::vector<Label> labels;
+		std::optional<size_t> activeLabel;
 		for (const Tab& tab : tabs)
 		{
 			if (tab.id == activeTabId)
-				_activeLabel = _labels.size();
-
-			Label& label = _labels.emplace_back();
-			label.tabId = tab.id;
-			label.text = (u' ' + tab.name + u' ').toUtf8();
-			label.x = x;
-			label.width = strwidth(TStringView{ label.text.constData(), (size_t)label.text.size() });
-			x += label.width;
+				activeLabel = labels.size();
+			labels.push_back({ tab.id, tab.name, cellWidth(tab.name) + 2 });
 		}
+
+		// Every refresh of the folder sets the tabs: the same ones keep the rows the wheel scrolled to
+		if (labels == _labels && activeLabel == _activeLabel)
+			return;
+
+		_labels = std::move(labels);
+		_activeLabel = activeLabel;
+		_wheelFirstRow.reset();
 		drawView();
+	}
+
+	// The rows the tabs take at this width, maxRows at most
+	[[nodiscard]] int rowCount(const int width) const
+	{
+		return std::min(rowsOf(placementsFor(width)), maxRows);
 	}
 
 	void draw() override
 	{
 		const TColorAttr color = mapColor(ppStatusText), activeColor = mapColor(ppActiveTab);
 
-		const int offset = scrollOffset();
-		TDrawBuffer line;
-		line.moveChar(0, ' ', color, (ushort)size.x);
-		for (size_t i = 0; i < _labels.size(); ++i)
+		const std::vector<Placement> placements = placementsFor(size.x);
+		const int firstRow = firstShownRow(placements), rows = rowsOf(placements);
+		for (int y = 0; y < size.y; ++y)
 		{
-			const Label& label = _labels[i];
-			const int start = label.x - offset;
-			if (start + label.width <= 0 || start >= size.x)
-				continue;
+			TDrawBuffer line;
+			line.moveChar(0, ' ', color, (ushort)size.x);
+			for (size_t i = 0; i < _labels.size(); ++i)
+			{
+				const Placement& placement = placements[i];
+				if (placement.row != firstRow + y)
+					continue;
 
-			const int indent = std::max(start, 0);
-			line.moveStr((ushort)indent, TStringView{ label.text.constData(), (size_t)label.text.size() }, i == _activeLabel ? activeColor : color,
-				(ushort)(size.x - indent), (ushort)(indent - start));
+				const Label& label = _labels[i];
+				// A label wider than the strip has a row to itself, its name shortened in the middle
+				const QString shownName = placement.width < label.width ? elidedInTheMiddle(label.name, placement.width - 2) : label.name;
+				line.moveStr((ushort)placement.x, stringView((u' ' + shownName + u' ').toUtf8()), i == _activeLabel ? activeColor : color, (ushort)placement.width);
+			}
+
+			if (y == 0 && firstRow > 0)
+				line.moveStr((ushort)(size.x - 1), "▲", color);
+			else if (y == size.y - 1 && firstRow + size.y < rows)
+				line.moveStr((ushort)(size.x - 1), "▼", color);
+			writeLine(0, (short)y, (short)size.x, 1, line);
 		}
-		writeLine(0, 0, (short)size.x, 1, line);
 	}
 
+	// The panel passes on the wheel over the strip
 	void handleEvent(TEvent& event) override
 	{
 		TView::handleEvent(event);
+		if (event.what == evMouseWheel && (event.mouse.wheel == mwUp || event.mouse.wheel == mwDown))
+		{
+			const std::vector<Placement> placements = placementsFor(size.x);
+			_wheelFirstRow = std::clamp(firstShownRow(placements) + (event.mouse.wheel == mwUp ? -1 : 1), 0, lastFirstRow(placements));
+			drawView();
+			clearEvent(event);
+			return;
+		}
+
 		if (event.what != evMouseDown)
 			return;
 
-		const int x = makeLocal(event.mouse.where).x + scrollOffset();
-		for (const Label& label : _labels)
+		const TPoint point = makeLocal(event.mouse.where);
+		const std::vector<Placement> placements = placementsFor(size.x);
+		const int row = firstShownRow(placements) + point.y;
+		for (size_t i = 0; i < placements.size(); ++i)
 		{
-			if (x >= label.x && x < label.x + label.width)
+			const Placement& placement = placements[i];
+			if (placement.row == row && point.x >= placement.x && point.x < placement.x + placement.width)
 			{
-				onTabClicked(label.tabId);
+				onTabClicked(_labels[i].tabId);
 				break;
 			}
 		}
@@ -192,25 +224,70 @@ public:
 	}
 
 private:
-	// Columns scrolled off on the left: none until the active label would end past the right edge
-	[[nodiscard]] int scrollOffset() const
-	{
-		if (!_activeLabel)
-			return 0;
-
-		const Label& active = _labels[*_activeLabel];
-		return std::clamp(active.x + active.width - size.x, 0, active.x);
-	}
-
 	struct Label
 	{
 		qulonglong tabId = 0;
-		QByteArray text;
-		int x = 0, width = 0;
+		QString name;
+		int width = 0; // In cells, with a space on each side of the name
+
+		[[nodiscard]] bool operator==(const Label&) const = default;
 	};
 
+	struct Placement
+	{
+		int row = 0, x = 0, width = 0;
+	};
+
+	[[nodiscard]] static int rowsOf(const std::vector<Placement>& placements)
+	{
+		return placements.empty() ? 0 : placements.back().row + 1;
+	}
+
+	// The last column holds the marks for hidden rows while there are any
+	[[nodiscard]] std::vector<Placement> placementsFor(const int width) const
+	{
+		std::vector<Placement> placements = placementsAt(width);
+		if (rowsOf(placements) > maxRows)
+			placements = placementsAt(width - 1);
+		return placements;
+	}
+
+	// Each label's place, in order: a label starts the next row when the rest of its row is too narrow
+	[[nodiscard]] std::vector<Placement> placementsAt(const int width) const
+	{
+		std::vector<Placement> placements;
+		int row = 0, x = 0;
+		for (const Label& label : _labels)
+		{
+			const int labelWidth = std::min(label.width, width);
+			if (x > 0 && x + labelWidth > width)
+			{
+				++row;
+				x = 0;
+			}
+			placements.push_back({ row, x, labelWidth });
+			x += labelWidth;
+		}
+		return placements;
+	}
+
+	[[nodiscard]] int lastFirstRow(const std::vector<Placement>& placements) const
+	{
+		return std::max(rowsOf(placements) - size.y, 0);
+	}
+
+	// The wheel's choice, else no rows scrolled off until the active label's row would be below the last row shown
+	[[nodiscard]] int firstShownRow(const std::vector<Placement>& placements) const
+	{
+		if (_wheelFirstRow)
+			return std::min(*_wheelFirstRow, lastFirstRow(placements));
+		return _activeLabel ? std::max(placements[*_activeLabel].row - (size.y - 1), 0) : 0;
+	}
+
+private:
 	std::vector<Label> _labels;
 	std::optional<size_t> _activeLabel;
+	std::optional<int> _wheelFirstRow; // Until the tabs change
 };
 
 // The keys a text field uses, which the panel binds itself: the menus see keys before the focused view, so they would take these from the filter line.
@@ -297,8 +374,26 @@ void CTuiPanel::calcBounds(TRect& bounds, TPoint)
 	bounds = panelBounds(owner->size, _side);
 }
 
+void CTuiPanel::changeBounds(const TRect& bounds)
+{
+	TWindow::changeBounds(bounds);
+	layOutViews(); // The tab strip's rows depend on the width
+}
+
 void CTuiPanel::handleEvent(TEvent& event)
 {
+	// Turbo Vision offers the wheel to every view regardless of the mouse's position: the panel on top would take it from the other, and its file list from its tab strip
+	if (event.what == evMouseWheel)
+	{
+		if (!mouseInView(event.mouse.where))
+			return;
+		if ((_tabStrip->state & sfVisible) && _tabStrip->mouseInView(event.mouse.where))
+		{
+			_tabStrip->handleEvent(event);
+			return;
+		}
+	}
+
 	TWindow::handleEvent(event);
 
 	const ushort command = event.what == evKeyDown ? commandForPanelKey(event.keyDown) : event.what == evCommand ? event.message.command : 0;
@@ -758,9 +853,15 @@ void CTuiPanel::updateTabStrip()
 	for (const qulonglong tabId : _controller.tabIds(_side))
 		tabs.push_back({ tabId, _controller.tabName(_side, tabId) });
 
-	const bool shown = tabs.size() > 1;
 	_tabStrip->setTabs(tabs, _controller.activeTabId(_side));
-	setViewShown(_tabStrip, shown);
+	tabs.size() > 1 ? _tabStrip->show() : _tabStrip->hide();
+	if (_tabStrip->size.y != tabStripRows())
+		layOutViews();
+}
+
+int CTuiPanel::tabStripRows() const
+{
+	return _tabStrip->state & sfVisible ? _tabStrip->rowCount(size.x - 2) : 0;
 }
 
 void CTuiPanel::openFilterLine()
@@ -798,15 +899,17 @@ void CTuiPanel::layOutViews()
 	TRect interior = getExtent();
 	interior.grow(-1, -1);
 
-	const int headerRow = _tabStrip->state & sfVisible ? interior.a.y + 1 : interior.a.y;
+	const int headerRow = interior.a.y + tabStripRows();
 	const int listTop = headerRow + 1;
 	const int statusTop = interior.b.y - 2; // The status line's blank row
 	const int filterRow = statusTop - 1;
-	_tabStrip->changeBounds({ interior.a.x, interior.a.y, interior.b.x, interior.a.y + 1 });
+	_tabStrip->changeBounds({ interior.a.x, interior.a.y, interior.b.x, headerRow });
 	_columnHeader->changeBounds({ interior.a.x, headerRow, interior.b.x, headerRow + 1 });
 	_statusLine->changeBounds({ interior.a.x, statusTop, interior.b.x, interior.b.y });
 	_filterLine->changeBounds({ interior.a.x, filterRow, interior.b.x, statusTop });
 	_fileList->changeBounds({ interior.a.x, listTop, interior.b.x, _filterLine->state & sfVisible ? filterRow : statusTop });
+	// Each view drew itself as it moved, but not where another one still covered it then
+	redraw();
 }
 
 void CTuiPanel::updateTitle()
