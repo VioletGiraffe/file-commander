@@ -71,16 +71,25 @@ public:
 	TInputLine* inputLine = nullptr;
 	std::function<std::optional<size_t>(const QString& inputText)> enterInInput;
 	std::function<bool(ushort command)> accepts;
+	bool ignoresEnter = false; // Outside the input line
 
 	void handleEvent(TEvent& event) override
 	{
-		// Before the base class, which gives Enter to the default button
-		if (event.what == evKeyDown && event.keyDown.keyCode == kbEnter && enterInInput && (inputLine->state & sfFocused))
+		// Before the base class, which gives Enter to the default button, or else to the focused one
+		if (event.what == evKeyDown && event.keyDown.keyCode == kbEnter)
 		{
-			if (const std::optional<size_t> button = enterInInput(QString::fromUtf8(inputLine->data)))
-				endModal((ushort)(cmFirstChoice + *button));
-			clearEvent(event);
-			return;
+			if (enterInInput && (inputLine->state & sfFocused))
+			{
+				if (const std::optional<size_t> button = enterInInput(QString::fromUtf8(inputLine->data)))
+					endModal((ushort)(cmFirstChoice + *button));
+				clearEvent(event);
+				return;
+			}
+			if (ignoresEnter)
+			{
+				clearEvent(event);
+				return;
+			}
 		}
 
 		TDialog::handleEvent(event);
@@ -234,6 +243,7 @@ DialogAnswer execDialog(const DialogSpec& spec)
 	const int width = contentWidth + 2 * margin;
 	const int left = margin, right = margin + contentWidth;
 	auto* dialog = new CTuiChoiceDialog({ 0, 0, width, (int)textLines.size() + otherRows }, spec.title);
+	dialog->ignoresEnter = !spec.defaultButton;
 
 	int y = 2;
 	dialog->insert(new CTuiTextView({ left, y, right, y + (int)textLines.size() }, textLines));

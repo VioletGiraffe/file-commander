@@ -473,6 +473,29 @@ TEST_CASE("Shift+F8 deletes permanently after confirmation", "[tui]")
 	CHECK(QFile::exists(sandbox.work(QStringLiteral("keep.txt"))));
 }
 
+TEST_CASE("Enter does nothing in a question without a default action, and Space presses the focused Skip", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/locked.txt"));
+	const QString locked = sandbox.work(QStringLiteral("locked.txt"));
+	REQUIRE(QFile::setPermissions(locked, QFile::ReadOwner | QFile::ReadUser | QFile::ReadGroup | QFile::ReadOther));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("locked.txt"));
+	moveCursorTo(*session, QStringLiteral("locked.txt"));
+
+	session->send(Keys::ShiftF8);
+	requireText(*session, QStringLiteral("permanently?"));
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("The file is read-only."));
+
+	// Had Enter answered, Space would reach the panel and select the file
+	session->send(Keys::Enter);
+	session->send(" "sv);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("The file is read-only.")); }, QStringLiteral("the question answered"));
+	CHECK(QFile::exists(locked));
+	CHECK_FALSE(panelStatus(session->screen()).contains(QStringLiteral("selected")));
+}
+
 TEST_CASE("F5 copies into the other panel's folder", "[tui]")
 {
 	const Sandbox sandbox;
