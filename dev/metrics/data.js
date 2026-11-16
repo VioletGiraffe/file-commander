@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794851209753,
+  "lastUpdate": 1794856048809,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -38012,6 +38012,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "fcterm.exe size",
             "value": 1045,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1084.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 462.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 52.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "778a576712d2592d0e6b03cefac1d6b4e9e084f4",
+          "message": "CI no longer prints the time of each terminal UI test case on macOS",
+          "timestamp": "2026-11-16T20:35:51+02:00",
+          "tree_id": "32b7a572c50c7dd5d7557bace214d2db37f1304b",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/778a576712d2592d0e6b03cefac1d6b4e9e084f4"
+        },
+        "date": 1794856045698,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 24166,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36277,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1769,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1046.5,
             "unit": "KB"
           },
           {
