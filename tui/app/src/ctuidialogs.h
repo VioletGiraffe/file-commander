@@ -7,6 +7,7 @@
 #define Uses_TDrawBuffer
 #define Uses_TPalette
 #define Uses_TView
+#define Uses_TWindow
 DISABLE_COMPILER_WARNINGS
 #include <tvision/tv.h>
 #include <QByteArray>
@@ -18,8 +19,6 @@ RESTORE_COMPILER_WARNINGS
 #include <optional>
 #include <utility>
 #include <vector>
-
-class TWindow;
 
 [[nodiscard]] TStringView stringView(const QByteArray& utf8) noexcept;
 // Redraws the frame: the title shows on it
@@ -65,6 +64,21 @@ public:
 
 private:
 	QStringList _lines;
+};
+
+// A window titled with a path: its frame elides the title in the middle, so the start and the file or folder name stay
+class CTuiPathTitledWindow : public TWindow
+{
+public:
+	CTuiPathTitledWindow(const TRect& bounds, TStringView title) :
+		TWindowInit(&TWindow::initFrame),
+		TWindow(bounds, title, wnNoNumber)
+	{}
+
+	const char* getTitle(short maxSize) override;
+
+private:
+	QByteArray _shownTitle;
 };
 
 struct DialogLine

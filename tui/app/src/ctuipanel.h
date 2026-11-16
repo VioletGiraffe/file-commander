@@ -1,13 +1,8 @@
 #pragma once
 
+#include "ctuidialogs.h"
+
 #include "cpanel.h"
-
-#include "compiler/compiler_warnings_control.h"
-
-#define Uses_TWindow
-DISABLE_COMPILER_WARNINGS
-#include <tvision/tv.h>
-RESTORE_COMPILER_WARNINGS
 
 #include <functional>
 
@@ -37,7 +32,7 @@ inline constexpr ushort cmShowFolderHistory = 1049, cmShowFavorites = 1050, cmSh
 [[nodiscard]] TRect panelBounds(TPoint desktopSize, Panel side);
 
 // One side: a window showing the active tab's folder
-class CTuiPanel final : public TWindow, public PanelContentsChangedListener
+class CTuiPanel final : public CTuiPathTitledWindow, public PanelContentsChangedListener
 {
 public:
 	CTuiPanel(TPoint desktopSize, CController& controller, Panel side);

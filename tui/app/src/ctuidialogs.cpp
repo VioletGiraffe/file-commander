@@ -206,6 +206,15 @@ QString elidedInTheMiddle(const QString& text, const int width)
 	return elided();
 }
 
+const char* CTuiPathTitledWindow::getTitle(const short maxSize)
+{
+	if (!title)
+		return nullptr; // The frame draws no title, not an empty one
+
+	_shownTitle = elidedInTheMiddle(QString::fromUtf8(title), maxSize).toUtf8();
+	return _shownTitle.constData();
+}
+
 QString progressBar(const std::optional<int> percent, const int width)
 {
 	const int barWidth = std::max(width - 5, 0);

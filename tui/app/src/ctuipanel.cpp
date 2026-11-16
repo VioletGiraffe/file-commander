@@ -322,7 +322,7 @@ TRect panelBounds(TPoint desktopSize, Panel side)
 
 CTuiPanel::CTuiPanel(TPoint desktopSize, CController& controller, Panel side) :
 	TWindowInit(&TWindow::initFrame),
-	TWindow(panelBounds(desktopSize, side), {}, wnNoNumber),
+	CTuiPathTitledWindow(panelBounds(desktopSize, side), {}),
 	_controller(controller),
 	_side(side)
 {
@@ -919,7 +919,6 @@ void CTuiPanel::layOutViews()
 void CTuiPanel::updateTitle()
 {
 	const CPanel& panel = _controller.panel(_side);
-	// The label comes first: the frame cuts a long title at its end
 	setTitle(*this, panel.displayMode() == CPanel::SearchResultsMode ? QStringLiteral("Search results: ") + panel.currentDirPathNative() : panel.currentDirPathNative());
 }
 

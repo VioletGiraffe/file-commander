@@ -985,13 +985,14 @@ TEST_CASE("Compare folders lists the differences, goes to one in the panel holdi
 	};
 	const QString fourDifferences = QStringLiteral("Differences: 4. Identical files: 1.");
 	openComparison(fourDifferences);
-	const CTerminalScreen& screen = session->screen();
+	// The list rows can arrive in a later read than the summary above them
 	for (const auto& [name, status] : { std::pair{ "changed.txt", "Different" }, std::pair{ "left-only.txt", "Only on the left" },
 		std::pair{ "right-only.txt", "Only on the right" }, std::pair{ "deep.txt", "Only on the left" } })
 	{
-		const int row = rowWith(screen, QString::fromLatin1(name));
-		REQUIRE(row >= 0);
-		CHECK(screen.row(row).contains(QLatin1String(status)));
+		requireScreen(*session, [&](const CTerminalScreen& now) {
+			const int row = rowWith(now, QString::fromLatin1(name));
+			return row >= 0 && now.row(row).contains(QLatin1String(status));
+		}, QStringLiteral("%1 listed as %2").arg(QLatin1String(name), QLatin1String(status)));
 	}
 
 	// The cursor starts on the first difference; sub/deep.txt is the last
@@ -1375,6 +1376,24 @@ TEST_CASE("F3 shows the file in the viewer over the menu bar, with its encoding 
 	CHECK_FALSE(session->screen().contains(QStringLiteral("second line")));
 	CHECK(session->screen().row(0) == menuBar);
 	CHECK(cursorIsOn(session->screen(), QStringLiteral("viewed.txt")));
+}
+
+TEST_CASE("A path too long for a title is elided in the middle, in the panel and in the viewer", "[tui]")
+{
+	const Sandbox sandbox;
+	// Too long for either title wherever the sandbox is
+	const QString folder = QStringLiteral("work/") + QString(100, u'x') + QStringLiteral("/last-folder");
+	REQUIRE(QDir{ sandbox.path({}) }.mkpath(folder));
+	sandbox.createFile(folder + QStringLiteral("/viewed.txt"));
+	auto session = startFcterm(sandbox, { .workingFolder = sandbox.path(folder) });
+	const auto titleIsElided = [](const QString& title, const QString& name) { return title.contains(QStringLiteral("...")) && title.contains(name); };
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return titleIsElided(panelPart(screen.row(1), Side::Left), QStringLiteral("last-folder")); },
+		QStringLiteral("the panel's title ending with last-folder"));
+
+	moveCursorTo(*session, QStringLiteral("viewed.txt"));
+	session->send(Keys::F3);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return titleIsElided(screen.row(0), QStringLiteral("viewed.txt")); },
+		QStringLiteral("the viewer's title ending with viewed.txt"));
 }
 
 TEST_CASE("The viewer wraps a long line after a space, and Shift+W turns wrapping off and on", "[tui]")

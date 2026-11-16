@@ -905,12 +905,12 @@ void CTuiFileView::updateStatusLine()
 }
 
 // Shows one file above the bottom rows until Esc. Its help context puts its keys on the hint row and the key bar.
-class CTuiViewerWindow final : public TWindow
+class CTuiViewerWindow final : public CTuiPathTitledWindow
 {
 public:
 	CTuiViewerWindow(const TRect& bounds, const QString& filePath) :
 		TWindowInit(&TWindow::initFrame),
-		TWindow(bounds, stringView(toNativeSeparators(filePath).toUtf8()), wnNoNumber),
+		CTuiPathTitledWindow(bounds, stringView(toNativeSeparators(filePath).toUtf8())),
 		_search(savedSearchOptions())
 	{
 		flags &= ~(wfMove | wfGrow | wfZoom);
