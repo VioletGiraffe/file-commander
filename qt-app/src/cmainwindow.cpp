@@ -1307,21 +1307,8 @@ void CMainWindow::calculateStatistics()
 
 void CMainWindow::calculateEachFolderSize()
 {
-	if (!_currentFileList)
-		return;
-
-	const Panel p = _currentFileList->panelPosition();
-	std::vector<qulonglong> dirHashes;
-	_controller->panel(p).readCommittedContents([&dirHashes](const QString& /*folder*/, const FileListHashMap& items) {
-		for (const auto& [hash, item] : items)
-		{
-			if (item.isDir() && !item.isCdUp())
-				dirHashes.push_back(hash);
-		}
-	});
-
-	for (const qulonglong hash : dirHashes)
-		_controller->displayDirSize(p, hash);
+	if (_currentFileList)
+		_controller->displayEachDirSize(_currentFileList->panelPosition());
 }
 
 void CMainWindow::compareFolders()

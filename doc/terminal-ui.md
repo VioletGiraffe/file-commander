@@ -111,7 +111,8 @@ dialog is open.
   - Any other terminal sends control bytes. Ctrl+H, Ctrl+I, Ctrl+J, Ctrl+M and Ctrl+[ arrive as Backspace, Tab, Enter,
     Enter and Esc; Ctrl+Shift+letter as Ctrl+letter; Ctrl+digit and most Ctrl+punctuation not at all.
 - Ctrl+C, Ctrl+Z, Ctrl+S and Ctrl+Q arrive as keys: Turbo Vision turns off the terminal's handling of them.
-- The terminal emulator's own shortcuts never arrive, such as Windows Terminal's Ctrl+Tab and Ctrl+V.
+- The terminal emulator's own shortcuts never arrive, such as Windows Terminal's Ctrl+Tab and Ctrl+V. Inside tmux, its
+  prefix key (Ctrl+B by default) does not arrive either.
 - Ctrl+letter other than H, I, J and M therefore arrives on every terminal, unless the terminal emulator binds it.
 
 ## Build and packaging

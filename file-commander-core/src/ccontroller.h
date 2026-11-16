@@ -148,6 +148,8 @@ public:
 	void itemsRenamed(const std::vector<std::pair<QString, QString>>& renamedPaths);
 	// Calculates directory size, stores it in the corresponding CFileSystemObject and sends data change notification
 	void displayDirSize(Panel p, qulonglong dirHash);
+	// displayDirSize() for every folder side p lists
+	void displayEachDirSize(Panel p);
 	// Moves the items to the trash on a worker thread. backend: QtTrash, or NativeShellTrash on macOS.
 	// onFailures runs on the UI thread with the items the trash refused; not when it refused none, or after shutdown().
 	void moveToTrash(QStringList paths, DeletionBackend backend, std::function<void(const std::vector<OsShell::TrashFailure>& failures)> onFailures);

@@ -354,6 +354,12 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmCalculateOccupiedSpace: showOccupiedSpace(); break;
 	case cmShowFolderHistory: chooseRecentFolder(); break;
 	case cmShowFavorites: showFavorites(); break;
+	case cmShowAllFilesBelow: _controller.showAllFilesFromCurrentFolderAndBelow(_side); break;
+	case cmJumpToFirstFile:
+		if (const std::optional<int> row = _fileList->firstFileRow())
+			_fileList->moveCursorTo(*row);
+		break;
+	case cmCalculateEachFolderSize: _controller.displayEachDirSize(_side); break;
 	case cmRefresh: _controller.refreshPanelContents(_side); break;
 	case cmToggleHiddenFiles: _controller.setShowHiddenFiles(!_controller.showHiddenFiles()); break;
 	case cmOpenFilterLine: openFilterLine(); break;

@@ -876,6 +876,21 @@ void CController::displayDirSize(Panel p, qulonglong dirHash)
 	panel(p).displayDirSize(dirHash);
 }
 
+void CController::displayEachDirSize(const Panel p)
+{
+	std::vector<qulonglong> dirHashes;
+	panel(p).readCommittedContents([&dirHashes](const QString& /*folder*/, const FileListHashMap& items) {
+		for (const auto& [hash, item] : items)
+		{
+			if (item.isDir() && !item.isCdUp())
+				dirHashes.push_back(hash);
+		}
+	});
+
+	for (const qulonglong hash : dirHashes)
+		displayDirSize(p, hash);
+}
+
 void CController::moveToTrash(QStringList paths, const DeletionBackend backend, std::function<void(const std::vector<OsShell::TrashFailure>&)> onFailures)
 {
 	std::vector<OsShell::TrashFailure> (*trash)(const QStringList&) = nullptr;

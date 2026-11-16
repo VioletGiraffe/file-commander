@@ -16,6 +16,7 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <functional>
+#include <optional>
 #include <vector>
 
 // A column's cells in a row; one column per sort field
@@ -59,6 +60,7 @@ public:
 	// listedFolder: see fileListFolderPrefix().
 	void setRows(std::vector<CFileSystemObject> rows, QString listedFolder, qulonglong cursorItemHash, int fallbackRow);
 	[[nodiscard]] const CFileSystemObject* currentRow() const noexcept; // nullptr when there are no rows
+	[[nodiscard]] std::optional<int> firstFileRow() const; // nullopt when no row is a file
 
 	void setSelectedItems(const std::vector<qulonglong>& itemHashes);
 	[[nodiscard]] bool isSelected(qulonglong itemHash) const noexcept;

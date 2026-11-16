@@ -855,6 +855,59 @@ TEST_CASE("In the favorites, F7 creates a category, Enter opens it, Backspace le
 		QStringLiteral("the category removed"));
 }
 
+TEST_CASE("Ctrl+B lists every file below the folder in one list, and Backspace returns to the folder", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
+	sandbox.createFile(QStringLiteral("work/sub/deep.txt"));
+	sandbox.createFile(QStringLiteral("work/top.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("top.txt"));
+
+	session->send(Keys::CtrlB);
+	const QString deep = QDir::toNativeSeparators(QStringLiteral("sub/deep.txt")); // Relative to the folder
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return panelLists(screen, deep) && panelLists(screen, QStringLiteral("top.txt")) && !panelLists(screen, QStringLiteral("sub")); },
+		QStringLiteral("the files of the folder and its subfolder, without the subfolder"));
+
+	session->send(Keys::Backspace);
+	requireScreen(*session, [&](const CTerminalScreen& screen) { return !panelLists(screen, deep) && panelLists(screen, QStringLiteral("sub")); },
+		QStringLiteral("the folder listed again"));
+}
+
+TEST_CASE("Ctrl+Home puts the cursor on the first file, after the folders", "[tui]")
+{
+	const Sandbox sandbox;
+	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("a-folder")));
+	sandbox.createFile(QStringLiteral("work/b-file.txt"));
+	sandbox.createFile(QStringLiteral("work/c-file.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("b-file.txt"));
+
+	session->send(Keys::CtrlHome);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("b-file.txt")); }, QStringLiteral("the cursor on b-file.txt"));
+}
+
+TEST_CASE("Calculate each folder's size shows every folder's size in the Size column", "[tui]")
+{
+	const Sandbox sandbox;
+	for (const char* folder : { "first", "second" })
+		REQUIRE(QDir{ sandbox.work({}) }.mkpath(QString::fromLatin1(folder)));
+	sandbox.createFile(QStringLiteral("work/first/f.bin"), QByteArray(100, 'x'));
+	sandbox.createFile(QStringLiteral("work/second/g.bin"), QByteArray(200, 'x'));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("second"));
+
+	session->send(Keys::AltF);
+	requireText(*session, QStringLiteral("Calculate each folder"));
+	session->send("z"sv);
+	for (const auto& [name, sizeText] : { std::pair{ "first", "100" }, std::pair{ "second", "200" } })
+	{
+		const QRegularExpression rowPattern{ QStringLiteral("^%1%3%2(?:[ ┆]|$)").arg(QLatin1String(name), QLatin1String(sizeText), columnGap) };
+		requireScreen(*session, [&](const CTerminalScreen& screen) { return panelHasRowMatching(screen, rowPattern); },
+			QStringLiteral("%1 listed with the size %2").arg(QLatin1String(name), QLatin1String(sizeText)));
+	}
+}
+
 TEST_CASE("+ and - select and deselect by pattern", "[tui]")
 {
 	const Sandbox sandbox;

@@ -15,6 +15,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <array>
+#include <optional>
 
 namespace {
 
@@ -193,6 +194,12 @@ void CTuiFileList::setRows(std::vector<CFileSystemObject> rows, QString listedFo
 const CFileSystemObject* CTuiFileList::currentRow() const noexcept
 {
 	return _rows.empty() ? nullptr : &_rows[(size_t)cursorRow()];
+}
+
+std::optional<int> CTuiFileList::firstFileRow() const
+{
+	const auto file = std::ranges::find_if(_rows, &CFileSystemObject::isFile);
+	return file != _rows.end() ? std::optional<int>{ (int)(file - _rows.begin()) } : std::nullopt;
 }
 
 void CTuiFileList::setSelectedItems(const std::vector<qulonglong>& itemHashes)

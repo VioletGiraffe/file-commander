@@ -444,6 +444,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			newLine() +
 			*new TMenuItem("Fi~n~d files...", cmFindFiles, kbAltF7, hcNoContext, "Alt-F7") +
 			*new TMenuItem("Calculate ~o~ccupied space", cmCalculateOccupiedSpace, kbCtrlL, hcNoContext, "Ctrl-L") +
+			*new TMenuItem("Calculate each folder's si~z~e", cmCalculateEachFolderSize, TKey(kbCtrlL, kbShift), hcNoContext, "Ctrl-Shift-L") +
 			*new TMenuItem("Copy pat~h~s", cmCopyPaths, kbAltC, hcNoContext, "Alt-C") +
 			*new TMenuItem("Open ~s~hell here", cmOpenShell, kbCtrlO, hcNoContext, "Ctrl-O") +
 			newLine() +
@@ -469,6 +470,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 		*new TSubMenu("~V~iew", kbAltV) +
 			*new TMenuItem("Toggle ~h~idden files", cmToggleHiddenFiles, kbCtrlS, hcNoContext, "Ctrl-S") +
 			*new TMenuItem("~F~ilter", cmOpenFilterLine, kbCtrlF, hcNoContext, "Ctrl-F") +
+			*new TMenuItem("Show ~a~ll files below", cmShowAllFilesBelow, kbCtrlB, hcNoContext, "Ctrl-B") +
 			*new TMenuItem("~R~efresh", cmRefresh, kbCtrlR, hcNoContext, "Ctrl-R") +
 			newLine() +
 			*new TMenuItem("Sort by ~n~ame", cmSortByName, kbCtrlF3, hcNoContext, "Ctrl-F3") +
@@ -481,6 +483,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("~B~ack", cmGoBack, kbAltLeft, hcNoContext, "Alt-Left") +
 			*new TMenuItem("~F~orward", cmGoForward, kbAltRight, hcNoContext, "Alt-Right") +
 			*new TMenuItem("~U~p", cmGoUp, kbNoKey, hcNoContext, "Backspace") +
+			*new TMenuItem("~J~ump to first file", cmJumpToFirstFile, kbCtrlHome, hcNoContext, "Ctrl-Home") +
 			*new TMenuItem("~G~o to folder...", cmGoToFolder, kbAltD, hcNoContext, "Alt-D") +
 			*new TMenuItem("Go to file lo~c~ation", cmGoToFileLocation, kbCtrlG, hcNoContext, "Ctrl-G") +
 			*new TMenuItem("Folder ~h~istory...", cmShowFolderHistory, kbAltF12, hcNoContext, "Alt-F12") +
