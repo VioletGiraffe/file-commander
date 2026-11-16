@@ -250,12 +250,9 @@ CTuiApplication::CTuiApplication(CController& controller) :
 	disableWin32InputMode();
 	insert(initHintLine(getExtent()));
 
-	const TRect desktopArea = deskTop->getExtent();
-	const short middle = (short)(desktopArea.b.x / 2);
-
 	_panels = {
-		new CTuiPanel({ 0, 0, middle, desktopArea.b.y }, _controller, Panel::LeftPanel),
-		new CTuiPanel({ middle, 0, desktopArea.b.x, desktopArea.b.y }, _controller, Panel::RightPanel)
+		new CTuiPanel(deskTop->size, _controller, Panel::LeftPanel),
+		new CTuiPanel(deskTop->size, _controller, Panel::RightPanel)
 	};
 	for (CTuiPanel* panel : _panels)
 		deskTop->insert(panel);

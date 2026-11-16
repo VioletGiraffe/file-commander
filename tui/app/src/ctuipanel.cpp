@@ -233,15 +233,21 @@ private:
 	}
 }
 
-CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
+// The left panel gets the narrower half of an odd width
+[[nodiscard]] static TRect panelBounds(TPoint desktopSize, Panel side)
+{
+	const int middle = desktopSize.x / 2;
+	return side == Panel::LeftPanel ? TRect{ 0, 0, middle, desktopSize.y } : TRect{ middle, 0, desktopSize.x, desktopSize.y };
+}
+
+CTuiPanel::CTuiPanel(TPoint desktopSize, CController& controller, Panel side) :
 	TWindowInit(&TWindow::initFrame),
-	TWindow(bounds, {}, wnNoNumber),
+	TWindow(panelBounds(desktopSize, side), {}, wnNoNumber),
 	_controller(controller),
 	_side(side)
 {
 	flags &= ~(wfMove | wfGrow | wfClose | wfZoom);
 	state &= ~sfShadow; // Tiled: a shadow would fall on the other panel
-	growMode = gfGrowAll | gfGrowRel;
 
 	// layOutViews() sets the bounds
 	_tabStrip = new CTuiTabStrip({});
@@ -281,6 +287,11 @@ CTuiPanel::CTuiPanel(const TRect& bounds, CController& controller, Panel side) :
 	// Through the controller so it attaches to every tab of the side
 	_controller.setPanelContentsChangedListener(_side, this);
 	fillFromPanel(); // The listing may have committed before this listener was attached
+}
+
+void CTuiPanel::calcBounds(TRect& bounds, TPoint)
+{
+	bounds = panelBounds(owner->size, _side);
 }
 
 void CTuiPanel::handleEvent(TEvent& event)

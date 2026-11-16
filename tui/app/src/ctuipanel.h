@@ -33,8 +33,10 @@ inline constexpr ushort cmActivateTab1 = 1040, tabPositionCommandCount = 9;
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener
 {
 public:
-	CTuiPanel(const TRect& bounds, CController& controller, Panel side);
+	CTuiPanel(TPoint desktopSize, CController& controller, Panel side);
 
+	// Takes the side's half of the desktop: Turbo Vision's relative growth drifts toward one panel over many one-column resizes
+	void calcBounds(TRect& bounds, TPoint delta) override;
 	void handleEvent(TEvent& event) override;
 	void setState(ushort aState, Boolean enable) override;
 	TPalette& getPalette() const override;
