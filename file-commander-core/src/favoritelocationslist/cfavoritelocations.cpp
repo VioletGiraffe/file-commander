@@ -3,11 +3,11 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
-#include "qtcore_helpers/qstring_helpers.hpp"
 #include "utility/memory_cast.hpp"
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QByteArray>
 #include <QObject>
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
@@ -15,39 +15,39 @@ RESTORE_COMPILER_WARNINGS
 #include <functional>
 #include <stack>
 
-enum Marker {NoMarker, NextLevel, LevelEnded};
+// Each item is its name and its path, each an int length and UTF-8 bytes, then an int marker:
+//   NoMarker - the next item is on the same level
+//   NextLevel - the item's subLocations follow
+//   LevelEnded + n - 1 - the item is the last of n levels, its own included
+constexpr int NoMarker = 0, NextLevel = 1, LevelEnded = 2;
 
-static inline void serialize(QByteArray& dest, const CLocationsCollection& source, const Marker marker)
+static void appendInt(QByteArray& dest, const int value)
 {
-	QByteArray utfStringData = source.displayName.toUtf8();
-	int length = static_cast<int>(utfStringData.length());
-	assert_r(length > 0);
-	dest.append(reinterpret_cast<const char*>(&length), sizeof(length));
-	dest.append(utfStringData);
+	dest.append(reinterpret_cast<const char*>(&value), sizeof(value));
+}
 
-	utfStringData = source.absolutePath.toUtf8();
-	length = static_cast<int>(utfStringData.length());
-	dest.append(reinterpret_cast<const char*>(&length), sizeof(length));
-	dest.append(utfStringData);
+// levelsEnded: how many levels end with this item, its own included
+static void serialize(QByteArray& dest, const CLocationsCollection& source, const int levelsEnded)
+{
+	const QByteArray name = source.displayName.toUtf8();
+	assert_r(!name.isEmpty());
+	appendInt(dest, static_cast<int>(name.size()));
+	dest.append(name);
 
-	if (!source.subLocations.empty())
+	const QByteArray path = source.absolutePath.toUtf8();
+	appendInt(dest, static_cast<int>(path.size()));
+	dest.append(path);
+
+	if (source.subLocations.empty())
 	{
-		const int m = NextLevel;
-		dest.append(reinterpret_cast<const char*>(&m), sizeof(m));
+		appendInt(dest, levelsEnded == 0 ? NoMarker : LevelEnded + levelsEnded - 1);
+		return;
+	}
 
-		size_t i = 0;
-		for(auto subItem = source.subLocations.begin(); subItem != source.subLocations.end(); ++subItem, ++i)
-			serialize(dest, *subItem, i == (source.subLocations.size() - 1) ? LevelEnded : NoMarker);
-	}
-	else
-	{
-		QString markerName = QSL("NoMarker");
-		if (marker == NextLevel)
-			markerName = QSL("NextLevel marker");
-		else if (marker == LevelEnded)
-			markerName = QSL("LevelEnded marker");
-		dest.append(reinterpret_cast<const char*>(&marker), sizeof(marker));
-	}
+	appendInt(dest, NextLevel);
+	const size_t count = source.subLocations.size();
+	for (size_t i = 0; i < count; ++i)
+		serialize(dest, source.subLocations[i], i + 1 == count ? levelsEnded + 1 : 0);
 }
 
 CFavoriteLocations::CFavoriteLocations(QString settingsKey) :
@@ -110,14 +110,15 @@ void CFavoriteLocations::load()
 
 		currentList.top().get().emplace_back(displayName, path);
 
-		if (!canRead(currentPosition, static_cast<int>(sizeof(Marker))))
+		if (!canRead(currentPosition, static_cast<int>(sizeof(int))))
 			break;
-		const Marker marker = memory_cast<Marker>(data.constData()+currentPosition);
-		currentPosition += sizeof(Marker);
+		const int marker = memory_cast<int>(data.constData()+currentPosition);
+		currentPosition += sizeof(int);
 
 		if (marker == NextLevel)
 			currentList.emplace(currentList.top().get().back().subLocations);
-		else if (marker == LevelEnded && currentList.size() > 1) // size() == 1 would mean popping the root list, which corrupted data could otherwise trigger
+		// The root list is never popped: corrupted data could otherwise end more levels than there are
+		for (int levelsEnded = marker >= LevelEnded ? marker - LevelEnded + 1 : 0; levelsEnded > 0 && currentList.size() > 1; --levelsEnded)
 			currentList.pop();
 	}
 }
@@ -194,6 +195,6 @@ void CFavoriteLocations::save()
 {
 	QByteArray data;
 	for (const CLocationsCollection& item : _items)
-		serialize(data, item, NoMarker);
+		serialize(data, item, 0);
 	QSettings().setValue(_settingsKey, data);
 }
