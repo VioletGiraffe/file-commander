@@ -775,6 +775,86 @@ TEST_CASE("Ctrl+L shows the occupied space of the current item, Esc closes it, a
 	CHECK(panelLists(session->screen(), QStringLiteral("small.txt")));
 }
 
+TEST_CASE("Alt+F12 lists the folders visited, with the cursor on the one before the current folder, and Enter goes there", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/in-work.txt"));
+	sandbox.createFile(QStringLiteral("other/in-other.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("in-work.txt"));
+	goTo(*session, sandbox.path(QStringLiteral("other")), QStringLiteral("in-other.txt"));
+
+	session->send(Keys::AltF12);
+	requireText(*session, QStringLiteral("Folder history"));
+	session->send(Keys::Enter);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Folder history")) && panelLists(screen, QStringLiteral("in-work.txt")); },
+		QStringLiteral("the panel back in the work folder"));
+}
+
+TEST_CASE("Ctrl+D adds the current folder to the favorites, and Enter on a favorite goes there", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/in-work.txt"));
+	sandbox.createFile(QStringLiteral("other/in-other.txt"));
+	auto session = startFcterm(sandbox);
+	goTo(*session, sandbox.work({}), QStringLiteral("in-work.txt"));
+
+	session->send(Keys::CtrlD);
+	requireText(*session, QStringLiteral("Add folder"));
+	session->send(Keys::Insert);
+	requirePromptInput(*session, QStringLiteral("Name for"));
+	session->send(Keys::Enter);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Name for")) && screen.contains(QStringLiteral("Add folder")); },
+		QStringLiteral("the favorites again, after the name prompt"));
+	session->send(Keys::Escape);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Add folder")); }, QStringLiteral("the favorites closed"));
+
+	goTo(*session, sandbox.path(QStringLiteral("other")), QStringLiteral("in-other.txt"));
+	session->send(Keys::CtrlD);
+	requireText(*session, QStringLiteral("Add folder"));
+	session->send(Keys::Enter); // The cursor starts on the only favorite
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Add folder")) && panelLists(screen, QStringLiteral("in-work.txt")); },
+		QStringLiteral("the panel in the favorite folder"));
+}
+
+TEST_CASE("In the favorites, F7 creates a category, Enter opens it, Backspace leaves it, F2 renames it and Del removes it", "[tui]")
+{
+	const Sandbox sandbox;
+	auto session = startFcterm(sandbox);
+
+	session->send(Keys::CtrlD);
+	requireText(*session, QStringLiteral("Add folder"));
+	session->send(Keys::F7);
+	requirePromptInput(*session, QStringLiteral("Name of the new category"));
+	typeText(*session, QStringLiteral("projects"));
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("▸ projects"));
+
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("Favorites ▸ projects"));
+	session->send(Keys::Insert);
+	requirePromptInput(*session, QStringLiteral("Name for"));
+	session->send(Keys::Enter);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Name for")) && screen.contains(QStringLiteral("Favorites ▸ projects")); },
+		QStringLiteral("the folder added in the category"));
+
+	session->send(Keys::Backspace);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Favorites ▸ projects")) && screen.contains(QStringLiteral("▸ projects")); },
+		QStringLiteral("the top level, with the cursor on the category"));
+
+	session->send(Keys::F2);
+	requirePromptInput(*session, QStringLiteral("Name:"));
+	typeText(*session, QStringLiteral("renamed")); // The name starts selected, so this replaces it
+	session->send(Keys::Enter);
+	requireText(*session, QStringLiteral("▸ renamed"));
+
+	session->send(Keys::Delete);
+	requireText(*session, QStringLiteral("and everything in it?"));
+	session->send(Keys::Enter);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("▸ renamed")) && screen.contains(QStringLiteral("Add folder")); },
+		QStringLiteral("the category removed"));
+}
+
 TEST_CASE("+ and - select and deselect by pattern", "[tui]")
 {
 	const Sandbox sandbox;

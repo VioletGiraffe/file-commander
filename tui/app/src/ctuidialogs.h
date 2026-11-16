@@ -20,6 +20,8 @@ RESTORE_COMPILER_WARNINGS
 #include <vector>
 
 [[nodiscard]] TStringView stringView(const QByteArray& utf8) noexcept;
+// In terminal cells
+[[nodiscard]] int cellWidth(const QString& text);
 // Replaces the middle of a text wider than `width` cells with "..."
 [[nodiscard]] QString elidedInTheMiddle(const QString& text, int width);
 

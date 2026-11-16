@@ -25,6 +25,7 @@ SOURCES += \
 	src/ctuibatchrenamedialog.cpp \
 	src/ctuicolourtheme.cpp \
 	src/ctuidialogs.cpp \
+	src/ctuifavoritesdialog.cpp \
 	src/ctuifields.cpp \
 	src/ctuifilelist.cpp \
 	src/ctuifileoperations.cpp \
@@ -39,6 +40,7 @@ HEADERS += \
 	src/ctuibatchrenamedialog.h \
 	src/ctuicolourtheme.h \
 	src/ctuidialogs.h \
+	src/ctuifavoritesdialog.h \
 	src/ctuifields.h \
 	src/ctuifilelist.h \
 	src/ctuifileoperations.h \

@@ -2,6 +2,7 @@
 #include "ctuiapplication.h"
 #include "ctuibatchrenamedialog.h"
 #include "ctuidialogs.h"
+#include "ctuifavoritesdialog.h"
 #include "ctuifilelist.h"
 #include "ctuifileoperations.h"
 #include "ctuipalette.h"
@@ -351,6 +352,8 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmGoToFolder: goToTypedPath(); break;
 	case cmGoToFileLocation: _controller.goToItem(_side, _controller.panel(_side).currentItem()); break;
 	case cmCalculateOccupiedSpace: showOccupiedSpace(); break;
+	case cmShowFolderHistory: chooseRecentFolder(); break;
+	case cmShowFavorites: showFavorites(); break;
 	case cmRefresh: _controller.refreshPanelContents(_side); break;
 	case cmToggleHiddenFiles: _controller.setShowHiddenFiles(!_controller.showHiddenFiles()); break;
 	case cmOpenFilterLine: openFilterLine(); break;
@@ -592,6 +595,27 @@ void CTuiPanel::goToTypedPath()
 
 	if (const auto message = _controller.goToTypedPath(_side, *path))
 		showUserMessage(*message);
+}
+
+void CTuiPanel::chooseRecentFolder()
+{
+	static constexpr size_t folderBeforeCurrent = 1; // The current folder is the most recent
+	const std::vector<QString> folders = _controller.recentFolders(_side);
+	QStringList rows;
+	for (const QString& folder : folders)
+		rows.push_back(toNativeSeparators(folder));
+
+	if (const std::optional<size_t> chosen = chooseFromList(QStringLiteral("Folder history"), rows, folderBeforeCurrent, {}, QStringLiteral("Go to"), QStringLiteral("Close")))
+		_controller.setPath(_side, folders[*chosen], refreshCauseOther);
+}
+
+void CTuiPanel::showFavorites()
+{
+	if (const std::optional<QString> location = runFavoritesDialog(_controller.favoriteLocations(), _controller.panel(_side).currentDirPathNative()))
+	{
+		if (const auto message = _controller.goToTypedPath(_side, *location))
+			showUserMessage(*message);
+	}
 }
 
 void CTuiPanel::showOccupiedSpace()

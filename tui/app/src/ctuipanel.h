@@ -29,6 +29,7 @@ inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 
 	cmCalculateOccupiedSpace = 1039;
 // cmActivateTab1 + n activates the tab at position n, for n up to 8
 inline constexpr ushort cmActivateTab1 = 1040, tabPositionCommandCount = 9;
+inline constexpr ushort cmShowFolderHistory = 1049, cmShowFavorites = 1050;
 
 // One side: a window showing the active tab's folder
 class CTuiPanel final : public TWindow, public PanelContentsChangedListener
@@ -66,6 +67,10 @@ private:
 	void createFolder();
 	void createFile();
 	void goToTypedPath();
+	// Lists the recent folders, with the cursor on the one before the current folder
+	void chooseRecentFolder();
+	// Edits the favorites, and goes to the one chosen
+	void showFavorites();
 	// Shows the statistics of the selected items, or else of the current one, and goes to the largest file chosen
 	void showOccupiedSpace();
 	// Empty for none and for [..]

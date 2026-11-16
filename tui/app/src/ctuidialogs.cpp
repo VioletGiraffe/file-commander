@@ -28,12 +28,6 @@ namespace
 // A choice dialog's button ends the dialog with this command plus the button's index
 constexpr ushort cmFirstChoice = 2000;
 
-// In terminal cells
-[[nodiscard]] int cellWidth(const QString& text)
-{
-	return strwidth(stringView(text.toUtf8()));
-}
-
 // Breaks a text wider than `width` cells into lines at its spaces. A longer word is elided.
 // Only a text that fits keeps its indentation.
 [[nodiscard]] QStringList wrappedAtSpaces(const QString& text, const int width)
@@ -178,6 +172,11 @@ constexpr int listDialogMargin = 3;
 TStringView stringView(const QByteArray& utf8) noexcept
 {
 	return { utf8.constData(), (size_t)utf8.size() };
+}
+
+int cellWidth(const QString& text)
+{
+	return strwidth(stringView(text.toUtf8()));
 }
 
 QString elidedInTheMiddle(const QString& text, const int width)

@@ -482,7 +482,9 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("~F~orward", cmGoForward, kbAltRight, hcNoContext, "Alt-Right") +
 			*new TMenuItem("~U~p", cmGoUp, kbNoKey, hcNoContext, "Backspace") +
 			*new TMenuItem("~G~o to folder...", cmGoToFolder, kbAltD, hcNoContext, "Alt-D") +
-			*new TMenuItem("Go to file ~l~ocation", cmGoToFileLocation, kbCtrlG, hcNoContext, "Ctrl-G") +
+			*new TMenuItem("Go to file lo~c~ation", cmGoToFileLocation, kbCtrlG, hcNoContext, "Ctrl-G") +
+			*new TMenuItem("Folder ~h~istory...", cmShowFolderHistory, kbAltF12, hcNoContext, "Alt-F12") +
+			*new TMenuItem("F~a~vorites...", cmShowFavorites, kbCtrlD, hcNoContext, "Ctrl-D") +
 			newLine() +
 			*new TMenuItem("~L~eft panel volume...", cmChooseLeftPanelVolume, kbAltF1, hcNoContext, "Alt-F1") +
 			*new TMenuItem("~R~ight panel volume...", cmChooseRightPanelVolume, kbAltF2, hcNoContext, "Alt-F2")
