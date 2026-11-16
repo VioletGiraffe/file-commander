@@ -19,7 +19,7 @@ removed.
 
 ## Folder synchronization
 
-Folder comparison exists (`file-operations/foldercomparison/`, `qt-app/src/tools/cfoldercomparisonwindow`);
+Folder comparison exists (`file-operations/foldercomparison/`, the core's `CFolderComparison`, a view in each front end);
 synchronization does not. It is a core feature, not a plugin (see [plugins.md](plugins.md)): it builds a plan, a list
 of copies, moves and deletions, and hands it to the file-operation engine, which already runs batches with progress
 and conflict prompts.

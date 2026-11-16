@@ -916,6 +916,63 @@ TEST_CASE("Calculate each folder's size shows every folder's size in the Size co
 	}
 }
 
+TEST_CASE("Compare folders lists the differences, goes to one in the panel holding it, lists them again from a folder below, and Refresh compares again", "[tui]")
+{
+	const Sandbox sandbox;
+	for (const char* side : { "work", "other" })
+	{
+		REQUIRE(QDir{ sandbox.path(QString::fromLatin1(side)) }.mkpath(QStringLiteral("sub")));
+		sandbox.createFile(QString::fromLatin1(side) + QStringLiteral("/same.txt"));
+		sandbox.createFile(QString::fromLatin1(side) + QStringLiteral("/changed.txt"), QByteArray(side));
+	}
+	sandbox.createFile(QStringLiteral("work/left-only.txt"));
+	sandbox.createFile(QStringLiteral("work/sub/deep.txt"));
+	sandbox.createFile(QStringLiteral("other/right-only.txt"));
+	auto session = startFcterm(sandbox);
+	session->send(Keys::Tab);
+	goTo(*session, sandbox.path(QStringLiteral("other")), QStringLiteral("right-only.txt"), Side::Right);
+	session->send(Keys::Tab);
+	goTo(*session, sandbox.work({}), QStringLiteral("left-only.txt"));
+
+	const auto openComparison = [&session](const QString& summary) {
+		session->send(Keys::AltF);
+		requireText(*session, QStringLiteral("Compare folders"));
+		session->send("a"sv);
+		requireText(*session, summary);
+	};
+	const QString fourDifferences = QStringLiteral("Differences: 4. Identical files: 1.");
+	openComparison(fourDifferences);
+	const CTerminalScreen& screen = session->screen();
+	for (const auto& [name, status] : { std::pair{ "changed.txt", "Different" }, std::pair{ "left-only.txt", "Only on the left" },
+		std::pair{ "right-only.txt", "Only on the right" }, std::pair{ "deep.txt", "Only on the left" } })
+	{
+		const int row = rowWith(screen, QString::fromLatin1(name));
+		REQUIRE(row >= 0);
+		CHECK(screen.row(row).contains(QLatin1String(status)));
+	}
+
+	// The cursor starts on the first difference; sub/deep.txt is the last
+	for (int i = 0; i < 3; ++i)
+		session->send(Keys::Down);
+	session->send(Keys::Enter);
+	requireScreen(*session, [](const CTerminalScreen& now) { return !now.contains(QStringLiteral("Folder comparison")) && cursorIsOn(now, QStringLiteral("deep.txt")); },
+		QStringLiteral("the left panel in sub, on deep.txt"));
+
+	// Below the compared folder: the same list, with the cursor where it was
+	openComparison(fourDifferences);
+	session->send(Keys::Up);
+	session->send(Keys::Enter);
+	requireScreen(*session, [](const CTerminalScreen& now) { return !now.contains(QStringLiteral("Folder comparison")) && cursorIsOn(now, QStringLiteral("right-only.txt"), Side::Right); },
+		QStringLiteral("the right panel on right-only.txt"));
+
+	sandbox.createFile(QStringLiteral("work/new.txt"));
+	openComparison(fourDifferences);
+	session->send(Keys::AltR);
+	requireText(*session, QStringLiteral("Differences: 5. Identical files: 1."));
+	session->send(Keys::Escape);
+	requireScreen(*session, [](const CTerminalScreen& now) { return !now.contains(QStringLiteral("Folder comparison")); }, QStringLiteral("the comparison closed"));
+}
+
 TEST_CASE("+ and - select and deselect by pattern", "[tui]")
 {
 	const Sandbox sandbox;

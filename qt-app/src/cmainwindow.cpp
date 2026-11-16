@@ -28,6 +28,7 @@
 
 #include "settings.h"
 #include "fileoperationlaunch.h"
+#include "filecomparator/cfoldercomparison.h"
 #include "filesearchengine/filesearchquery.h"
 #include "pluginengine/cpluginengine.h"
 #include "plugininterface/cfileviewer.h"
@@ -1313,14 +1314,11 @@ void CMainWindow::calculateEachFolderSize()
 
 void CMainWindow::compareFolders()
 {
-	const QString leftRoot = _controller->panel(Panel::LeftPanel).currentDirPathPosix();
-	const QString rightRoot = _controller->panel(Panel::RightPanel).currentDirPathPosix();
-
-	const auto result = runFolderComparison(this, leftRoot, rightRoot);
-	if (!result) // Cancelled
+	CFolderComparison comparison{ _controller->panel(Panel::LeftPanel).currentDirPathPosix(), _controller->panel(Panel::RightPanel).currentDirPathPosix() };
+	if (!waitForFolderComparison(this, comparison) || !comparison.result())
 		return;
 
-	auto* comparisonWindow = new CFolderComparisonWindow(this, *result, leftRoot, rightRoot, *_controller);
+	auto* comparisonWindow = new CFolderComparisonWindow(this, comparison, *_controller);
 	comparisonWindow->setAttribute(Qt::WA_DeleteOnClose);
 	WidgetUtils::centerWidgetOnScreen(comparisonWindow, 0.7);
 	comparisonWindow->show();

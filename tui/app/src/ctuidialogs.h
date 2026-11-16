@@ -24,6 +24,8 @@ RESTORE_COMPILER_WARNINGS
 [[nodiscard]] int cellWidth(const QString& text);
 // Replaces the middle of a text wider than `width` cells with "..."
 [[nodiscard]] QString elidedInTheMiddle(const QString& text, int width);
+// `width` cells, the percentage included; without a percentage, an empty bar
+[[nodiscard]] QString progressBar(std::optional<int> percent, int width);
 
 // Lines of text in the colour of a dialog's static text. Not TStaticText: its text is fixed and capped at 255 bytes.
 class CTuiTextView final : public TView

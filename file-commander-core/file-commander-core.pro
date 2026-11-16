@@ -39,6 +39,7 @@ HEADERS += \
 	src/diskenumerator/cvolumeenumerator.h \
 	src/diskenumerator/volumeinfohelper.hpp \
 	src/filecomparator/cfilecomparator.h \
+	src/filecomparator/cfoldercomparison.h \
 	src/wcx/cwcxpluginhost_stub.h \
 	src/filesystemhelpers/filesystemhelpers.hpp
 
@@ -66,6 +67,7 @@ SOURCES += \
 	src/filelist/filetimetext.cpp \
 	src/diskenumerator/cvolumeenumerator.cpp \
 	src/filecomparator/cfilecomparator.cpp \
+	src/filecomparator/cfoldercomparison.cpp \
 	src/filesystemhelpers/filesystemhelpers.cpp
 
 win*{

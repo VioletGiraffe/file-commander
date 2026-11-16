@@ -30,6 +30,7 @@ SOURCES += \
 	src/ctuifilelist.cpp \
 	src/ctuifileoperations.cpp \
 	src/ctuifinddialog.cpp \
+	src/ctuifoldercomparison.cpp \
 	src/ctuipalette.cpp \
 	src/ctuipanel.cpp \
 	src/ctuiprograms.cpp \
@@ -45,6 +46,7 @@ HEADERS += \
 	src/ctuifilelist.h \
 	src/ctuifileoperations.h \
 	src/ctuifinddialog.h \
+	src/ctuifoldercomparison.h \
 	src/ctuipalette.h \
 	src/ctuipanel.h \
 	src/ctuiprograms.h \

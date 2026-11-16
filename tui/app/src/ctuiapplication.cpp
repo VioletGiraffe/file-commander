@@ -52,9 +52,9 @@ RESTORE_COMPILER_WARNINGS
 namespace
 {
 // Carried out by the application, not the focused panel
-constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102;
+constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102, cmCompareFolders = 1103;
 // cmFirstColourTheme + n chooses colourThemes()[n]
-constexpr ushort cmFirstColourTheme = 1103;
+constexpr ushort cmFirstColourTheme = 1104;
 
 [[nodiscard]] bool isColourThemeCommand(ushort command)
 {
@@ -298,6 +298,13 @@ void CTuiApplication::handleEvent(TEvent& event)
 		return;
 	}
 
+	if (event.what == evCommand && event.message.command == cmCompareFolders)
+	{
+		clearEvent(event);
+		compareFolders();
+		return;
+	}
+
 	if (event.what == evCommand && isColourThemeCommand(event.message.command))
 	{
 		const ColourTheme& theme = colourThemes()[event.message.command - cmFirstColourTheme];
@@ -334,6 +341,16 @@ void CTuiApplication::findFiles()
 		_controller.goToItem(side, CFileSystemObject{ goTo->path });
 	else if (const auto* send = std::get_if<CTuiFindDialog::SendResultsToPanel>(&outcome))
 		_controller.showSearchResults(side, send->paths);
+}
+
+void CTuiApplication::compareFolders()
+{
+	const std::optional<CFolderComparison::EntryLocation> location = _folderComparison.run();
+	if (!location)
+		return;
+
+	_panels[(size_t)location->panel]->select();
+	_controller.goToItem(location->panel, CFileSystemObject{ location->absolutePath });
 }
 
 void CTuiApplication::resume()
@@ -445,6 +462,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("Fi~n~d files...", cmFindFiles, kbAltF7, hcNoContext, "Alt-F7") +
 			*new TMenuItem("Calculate ~o~ccupied space", cmCalculateOccupiedSpace, kbCtrlL, hcNoContext, "Ctrl-L") +
 			*new TMenuItem("Calculate each folder's si~z~e", cmCalculateEachFolderSize, TKey(kbCtrlL, kbShift), hcNoContext, "Ctrl-Shift-L") +
+			*new TMenuItem("Comp~a~re folders...", cmCompareFolders, kbNoKey) +
 			*new TMenuItem("Copy pat~h~s", cmCopyPaths, kbAltC, hcNoContext, "Alt-C") +
 			*new TMenuItem("Open ~s~hell here", cmOpenShell, kbCtrlO, hcNoContext, "Ctrl-O") +
 			newLine() +

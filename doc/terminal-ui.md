@@ -21,6 +21,7 @@ ends need lives in the core, which returns the text to show and the program to r
 | Copy, move, delete | `app/src/ctuifileoperations.{h,cpp}` |
 | Find files | `app/src/ctuifinddialog.{h,cpp}` |
 | Favorites | `app/src/ctuifavoritesdialog.{h,cpp}` |
+| Folder comparison | `app/src/ctuifoldercomparison.{h,cpp}` |
 | The pager, the editor, the shell, opening a document | `app/src/ctuiprograms.{h,cpp}` |
 | Turbo Vision as a static library | `tvision/tvision.pro` |
 | Tests | `tests/`; see [testing.md](testing.md) |
@@ -78,6 +79,8 @@ dialog is open.
   the dialog, so its last results show again; closing it stops a running search.
 - Favorites (Ctrl+D) and the folder history (Alt+F12) are the GUI's: the core's `CFavoriteLocations` and
   `CController::recentFolders`.
+- Folder comparison runs the core's `CFolderComparison` on the two panels' folders. The application keeps the last
+  result, and the command lists it again while each panel shows its compared folder or one below it.
 - Occupied space (Ctrl+L) runs the core's `calculateStatsFor` on the UI thread, as the GUI does: the screen stays as it
   was until the scan ends.
 - Batch rename (Shift+F2: the GUI's Ctrl+M is Enter on many terminals, see Terminal input) renders the core's

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ctuifoldercomparison.h"
+
 #include "compiler/compiler_warnings_control.h"
 
 #define Uses_TApplication
@@ -46,6 +48,8 @@ private:
 
 	// Searches from the active panel's folder or selection, and goes to the result chosen
 	void findFiles();
+	// Goes to the difference chosen, in the panel that holds it
+	void compareFolders();
 	// Recolours the screen and marks the theme in the Theme menu
 	void setColourTheme(const ColourTheme& theme);
 
@@ -53,4 +57,5 @@ private:
 	CController& _controller;
 	std::array<CTuiPanel*, 2> _panels; // Left and right, owned by the desktop
 	CTuiFindDialog* _findDialog = nullptr; // Created on first use and owned by this application: it keeps the last search's results
+	CTuiFolderComparison _folderComparison{ _controller };
 };

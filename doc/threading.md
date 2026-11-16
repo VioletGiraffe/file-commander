@@ -19,7 +19,7 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | `CIconProvider` | one COM apartment thread plus UI execution queue | Shell icon retrieval for the file list |
 | `CFileSystemWatcher` | `thin_io::directory_watcher`, read on the UI tick | Directory change notification; thin_io's own threads are in its README |
 | file comparison plugin | worker thread with abort flag | One two-file content comparison |
-| `runFolderComparison` | worker thread per run | Tree scan and compare while the UI waits in the modal progress dialog |
+| `CFolderComparison` | interruptible thread per comparison | Tree scan and compare; the UI polls it from a modal progress dialog |
 | `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
 | `CShellCommand` | `QProcess` owned by the UI thread | One command-line command; Qt reads its pipe and signals the owning thread |
 
@@ -28,7 +28,7 @@ replace older pending entries with the same tag; work queued during a drain wait
 enumerator drains its own notification queue on its own timer. Which listener each queue feeds is in
 [notifications.md](notifications.md).
 
-The comparison tools and the search window report back through queued Qt invocations targeting a UI object whose
+The file comparison plugin and the search window report back through queued Qt invocations targeting a UI object whose
 destruction cancels delivery; each owner still aborts and joins its worker before that object dies.
 `calculateStatsFor` runs its scan team on whatever thread calls it: the Statistics command blocks the UI thread
 for the whole scan, and panel dir-size tasks call it from pool workers under the panel's abort flag, so

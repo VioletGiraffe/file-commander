@@ -126,7 +126,7 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
 | Volumes | `diskenumerator/`; periodic enumeration with UI-queued delivery |
 | File list rules | `filelist/`; the display name, sort order, name filter and totals of a panel's rows |
 | Search | `filesearchengine/`; cancellable traversal with a bounded content-search pool |
-| Comparison | `filecomparator/`; a threaded single-file wrapper over `file-operations/foldercomparison/` |
+| Comparison | `filecomparator/`; threaded wrappers over `file-operations/foldercomparison/`, for one file and for two folders |
 | Shell integration | `shell/`; platform clipboard, context menus, launching, and native deletion |
 | Favorites | `favoritelocationslist/`; nested locations persisted under a supplied settings key |
 | Statistics/helpers | `filesystemhelpers/`, `filesystemhelperfunctions`; statistics traversal, separators and shell quoting |

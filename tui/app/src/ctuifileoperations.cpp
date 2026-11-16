@@ -181,16 +181,6 @@ constexpr ushort cmPauseOperation = 1900;
 	return resolutions;
 }
 
-[[nodiscard]] QString progressBar(const std::optional<int> percent, const int width)
-{
-	const int barWidth = std::max(width - 5, 0);
-	const int filled = percent ? barWidth * std::clamp(*percent, 0, 100) / 100 : 0;
-	QString bar = QString(filled, u'█') + QString(barWidth - filled, u'░');
-	if (percent)
-		bar += QStringLiteral("%1%").arg(*percent, 4);
-	return bar;
-}
-
 // Runs one operation and shows its progress. Not shown at once: see runOperation.
 class CTuiProgressDialog final : public TDialog, private CFileOperationListener
 {

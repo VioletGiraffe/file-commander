@@ -4,46 +4,33 @@
 
 #include "ccontroller.h"
 #include "cpanel.h"
+#include "filecomparator/cfoldercomparison.h"
 
 
 // Submodule includes
+#include "assert/advanced_assert.h"
 #include "dialogs/csimpleprogressdialog.h"
 #include "qtcore_helpers/displayformatting.hpp"
 #include "widgets/cpersistenceenabler.h"
 
 
 DISABLE_COMPILER_WARNINGS
-#include <QDir>
 #include <QHeaderView>
 #include <QLabel>
-#include <QMetaObject>
 #include <QPushButton>
 #include <QShortcut>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
 
-#include <atomic>
-#include <thread>
+#include <optional>
 
 namespace {
 
 // Internal linkage: qt-app already has a "columns" namespace of its own for the file list.
 namespace columns {
 	enum Columns { Name, Status, LeftSize, RightSize };
-}
-
-QString statusText(const EntryDifference status)
-{
-	switch (status)
-	{
-	case EntryDifference::OnlyInLeft: return QObject::tr("Only on the left");
-	case EntryDifference::OnlyInRight: return QObject::tr("Only on the right");
-	case EntryDifference::Different: return QObject::tr("Different");
-	case EntryDifference::ComparisonFailed: return QObject::tr("Could not be read");
-	}
-
-	return {};
 }
 
 QString sizeText(const std::optional<uint64_t> size)
@@ -53,54 +40,46 @@ QString sizeText(const std::optional<uint64_t> size)
 
 } // namespace
 
-std::optional<FolderComparisonResult> runFolderComparison(QWidget* parent, const QString& leftRoot, const QString& rightRoot)
+bool waitForFolderComparison(QWidget* parent, CFolderComparison& comparison)
 {
 	CSimpleProgressDialog progressDialog{ parent };
 	progressDialog.setWindowTitle(QObject::tr("Comparing folders"));
 	progressDialog.setLabelText(QObject::tr("Scanning both folders..."));
 	progressDialog.setCancellable(true);
 
-	std::atomic<bool> abort{ false };
-	QObject::connect(&progressDialog, &QDialog::rejected, [&abort]() { abort = true; });
+	QTimer progressTimer;
+	QObject::connect(&progressTimer, &QTimer::timeout, &progressDialog, [&progressDialog, &comparison] {
+		if (comparison.finished())
+			progressDialog.accept();
+		else if (const std::optional<int> percent = comparison.percent())
+		{
+			progressDialog.setLabelText(QObject::tr("Comparing file contents..."));
+			progressDialog.setValue(*percent);
+		}
+	});
+	progressTimer.start(50);
 
-	FolderComparisonResult result;
-	std::thread worker{ [&]() {
-		// Folded pairing: the two panels routinely sit on filesystems that disagree on case or Unicode normalization.
-		result = compareFolders(leftRoot, rightRoot, PairingMode::FoldCaseAndNormalization, abort, [&progressDialog](const int percent) {
-			QMetaObject::invokeMethod(&progressDialog, [&progressDialog, percent]() {
-				progressDialog.setLabelText(QObject::tr("Comparing file contents..."));
-				progressDialog.setValue(percent);
-			}, Qt::QueuedConnection);
-		});
+	if (progressDialog.exec() == QDialog::Accepted)
+		return true;
 
-		QMetaObject::invokeMethod(&progressDialog, [&progressDialog]() { progressDialog.accept(); }, Qt::QueuedConnection);
-	} };
-
-	progressDialog.exec();
-	worker.join(); // The abort flag is polled per block, so cancelling returns promptly
-
-	if (result.aborted)
-		return {};
-
-	return result;
+	comparison.cancel();
+	return false;
 }
 
-CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const FolderComparisonResult& result, const QString& leftRoot,
-	const QString& rightRoot, CController& controller) :
+CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const CFolderComparison& comparison, CController& controller) :
 	QMainWindow{ nullptr }
 {
+	assert_and_return_r(comparison.result(), );
+	const FolderComparisonResult& result = *comparison.result();
+
 	setWindowTitle(tr("Folder comparison"));
 
 	setCentralWidget(new QWidget);
 	auto* layout = new QVBoxLayout(centralWidget());
 
-	layout->addWidget(new QLabel{ tr("Left: %1").arg(leftRoot) });
-	layout->addWidget(new QLabel{ tr("Right: %1").arg(rightRoot) });
-
-	const QString summary = result.differences.empty()
-		? tr("The folders are identical: %1 files compared byte by byte.").arg(result.identicalFiles)
-		: tr("Differences: %1. Identical files: %2.").arg(result.differences.size()).arg(result.identicalFiles);
-	layout->addWidget(new QLabel{ summary });
+	layout->addWidget(new QLabel{ tr("Left: %1").arg(comparison.leftRoot()) });
+	layout->addWidget(new QLabel{ tr("Right: %1").arg(comparison.rightRoot()) });
+	layout->addWidget(new QLabel{ folderComparisonSummary(result) });
 
 	auto* list = new QTreeWidget;
 	list->setObjectName(QStringLiteral("differencesList")); // Named for CPersistenceEnabler
@@ -119,7 +98,7 @@ CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const FolderCo
 	{
 		auto* item = new CSortByDataTreeItem;
 		item->setText(columns::Name, entry.relativePath);
-		item->setText(columns::Status, statusText(entry.status));
+		item->setText(columns::Status, folderComparisonStatusText(entry.status));
 
 		item->setText(columns::LeftSize, sizeText(entry.leftSize));
 		item->setData(columns::LeftSize, Qt::UserRole, (qulonglong)entry.leftSize.value_or(0));
@@ -127,10 +106,9 @@ CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const FolderCo
 		item->setData(columns::RightSize, Qt::UserRole, (qulonglong)entry.rightSize.value_or(0));
 
 		// Activating an entry reveals it in whichever panel actually holds it.
-		const bool onTheRightOnly = entry.status == EntryDifference::OnlyInRight;
-		const QString absolutePath = QDir{ onTheRightOnly ? rightRoot : leftRoot }.absoluteFilePath(entry.relativePath);
-		item->setData(columns::Name, Qt::UserRole, absolutePath);
-		item->setData(columns::Name, Qt::UserRole + 1, static_cast<int>(onTheRightOnly ? Panel::RightPanel : Panel::LeftPanel));
+		const CFolderComparison::EntryLocation location = comparison.locationOf(entry);
+		item->setData(columns::Name, Qt::UserRole, location.absolutePath);
+		item->setData(columns::Name, Qt::UserRole + 1, static_cast<int>(location.panel));
 
 		items.push_back(item);
 	}

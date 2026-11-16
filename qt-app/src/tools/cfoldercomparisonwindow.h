@@ -2,24 +2,21 @@
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
-#include "foldercomparison/foldercomparison.h"
 
 
 DISABLE_COMPILER_WARNINGS
 #include <QMainWindow>
 RESTORE_COMPILER_WARNINGS
 
-#include <optional>
-
 class CController;
+class CFolderComparison;
 
-// Compares the two trees on a worker thread behind a cancellable progress dialog, keeping the UI responsive for what
-// can be a long read of both volumes. Empty if the user cancelled.
-[[nodiscard]] std::optional<FolderComparisonResult> runFolderComparison(QWidget* parent, const QString& leftRoot, const QString& rightRoot);
+// Shows the comparison's progress in a cancellable dialog until it finishes. False if the user cancelled.
+[[nodiscard]] bool waitForFolderComparison(QWidget* parent, CFolderComparison& comparison);
 
 class CFolderComparisonWindow final : public QMainWindow
 {
 public:
-	CFolderComparisonWindow(QWidget* parent, const FolderComparisonResult& result, const QString& leftRoot,
-		const QString& rightRoot, CController& controller);
+	// Requires a comparison that finished with a result
+	CFolderComparisonWindow(QWidget* parent, const CFolderComparison& comparison, CController& controller);
 };
