@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794787546075,
+  "lastUpdate": 1794789117374,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -37211,6 +37211,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "fcterm.exe size",
             "value": 935.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1083.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 462.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 52.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "abeb7bab66fa99a32829e12e734b083b85cdd774",
+          "message": "Terminal UI: Matrix becomes a true-colour theme with a glowing cursor, two true-colour green themes join it, Phosphor and Vector, and a theme sets its key bar background apart from the hint row's",
+          "timestamp": "2026-11-16T02:18:51+02:00",
+          "tree_id": "1151befb6fcfc99487c606eb0234f74cf309e950",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/abeb7bab66fa99a32829e12e734b083b85cdd774"
+        },
+        "date": 1794789114120,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 22206,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36274,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1768,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 936,
             "unit": "KB"
           },
           {
