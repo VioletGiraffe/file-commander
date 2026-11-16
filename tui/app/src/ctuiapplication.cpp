@@ -1,4 +1,5 @@
 #include "ctuiapplication.h"
+#include "ctuicolourtheme.h"
 #include "ctuifinddialog.h"
 #include "ctuipalette.h"
 #include "ctuipanel.h"
@@ -30,7 +31,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QSettings>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
 #include <cstdio>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -50,12 +53,12 @@ namespace
 {
 // Carried out by the application, not the focused panel
 constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102;
-// cmFirstColourTheme + n chooses the ColourTheme n
+// cmFirstColourTheme + n chooses colourThemes()[n]
 constexpr ushort cmFirstColourTheme = 1103;
 
 [[nodiscard]] bool isColourThemeCommand(ushort command)
 {
-	return command >= cmFirstColourTheme && command < cmFirstColourTheme + colourThemeCount;
+	return command >= cmFirstColourTheme && command < cmFirstColourTheme + colourThemes().size();
 }
 
 #ifdef _WIN32
@@ -196,10 +199,10 @@ public:
 	using TMenuBar::TMenuBar;
 
 	// Names the Theme menu's items, with a mark on the theme given
-	void markColourTheme(ColourTheme theme) { markColourTheme(menu, theme); }
+	void markColourTheme(const ColourTheme& theme) { markColourTheme(menu, theme); }
 
 private:
-	static void markColourTheme(TMenu* someMenu, ColourTheme theme)
+	static void markColourTheme(TMenu* someMenu, const ColourTheme& theme)
 	{
 		for (TMenuItem* item = someMenu->items; item; item = item->next)
 		{
@@ -207,8 +210,8 @@ private:
 				markColourTheme(item->subMenu, theme);
 			else if (isColourThemeCommand(item->command))
 			{
-				const auto itemTheme = (ColourTheme)(item->command - cmFirstColourTheme);
-				const std::string itemName = (itemTheme == theme ? "• " : "  ") + std::string{ colourThemeMenuName(itemTheme) };
+				const ColourTheme& itemTheme = colourThemes()[item->command - cmFirstColourTheme];
+				const std::string itemName = (&itemTheme == &theme ? "• " : "  ") + std::string{ itemTheme.menuName };
 				delete[] item->name;
 				item->name = newStr(itemName.c_str());
 			}
@@ -228,9 +231,14 @@ void freeDrawBuffers(TGroup& group)
 
 [[nodiscard]] TMenu* newColourThemeMenu()
 {
+	const std::span<const ColourTheme> themes = colourThemes();
 	TMenuItem* items = nullptr;
-	for (size_t i = colourThemeCount; i-- > 0;)
-		items = new TMenuItem(colourThemeMenuName((ColourTheme)i), (ushort)(cmFirstColourTheme + i), kbNoKey, hcNoContext, {}, items);
+	for (size_t i = themes.size(); i-- > 0;)
+	{
+		if (items && themes[i].polarity != themes[i + 1].polarity)
+			items = &(newLine() + *items);
+		items = new TMenuItem(themes[i].menuName, (ushort)(cmFirstColourTheme + i), kbNoKey, hcNoContext, {}, items);
+	}
 	return new TMenu(*items);
 }
 } // namespace
@@ -254,7 +262,9 @@ CTuiApplication::CTuiApplication(CController& controller) :
 	_panels[(size_t)Panel::LeftPanel]->select();
 
 	const std::string themeId = QSettings{}.value(KEY_TUI_COLOUR_THEME).toString().toStdString();
-	setColourTheme(colourThemeWithId(themeId).value_or(ColourTheme::ClassicBlue));
+	const std::span<const ColourTheme> themes = colourThemes();
+	const auto savedTheme = std::ranges::find_if(themes, [&themeId](const ColourTheme& theme) { return themeId == theme.id; });
+	setColourTheme(savedTheme != themes.end() ? *savedTheme : themes.front());
 }
 
 void CTuiApplication::getEvent(TEvent& event)
@@ -293,17 +303,17 @@ void CTuiApplication::handleEvent(TEvent& event)
 
 	if (event.what == evCommand && isColourThemeCommand(event.message.command))
 	{
-		const auto theme = (ColourTheme)(event.message.command - cmFirstColourTheme);
+		const ColourTheme& theme = colourThemes()[event.message.command - cmFirstColourTheme];
 		clearEvent(event);
 		setColourTheme(theme);
-		QSettings{}.setValue(KEY_TUI_COLOUR_THEME, QString::fromLatin1(colourThemeId(theme)));
+		QSettings{}.setValue(KEY_TUI_COLOUR_THEME, QString::fromLatin1(theme.id));
 		return;
 	}
 
 	TApplication::handleEvent(event);
 }
 
-void CTuiApplication::setColourTheme(ColourTheme theme)
+void CTuiApplication::setColourTheme(const ColourTheme& theme)
 {
 	applyColourTheme(theme);
 	static_cast<CTuiMenuBar*>(menuBar)->markColourTheme(theme); // initMenuBar creates a CTuiMenuBar

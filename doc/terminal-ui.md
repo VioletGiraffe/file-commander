@@ -16,7 +16,8 @@ ends need lives in the core, which returns the text to show and the program to r
 | Dialogs | `app/src/ctuidialogs.{h,cpp}` |
 | A dialog's fields, and the histories they share with the GUI | `app/src/ctuifields.{h,cpp}` |
 | Batch rename | `app/src/ctuibatchrenamedialog.{h,cpp}` |
-| Colours | `app/src/ctuipalette.{h,cpp}` |
+| Colours: Turbo Vision's palettes | `app/src/ctuipalette.{h,cpp}` |
+| Colours: the themes | `app/src/ctuicolourtheme.{h,cpp}` |
 | Copy, move, delete | `app/src/ctuifileoperations.{h,cpp}` |
 | Find files | `app/src/ctuifinddialog.{h,cpp}` |
 | The pager, the editor, the shell, opening a document | `app/src/ctuiprograms.{h,cpp}` |
@@ -49,7 +50,7 @@ dialog is open.
   application palette, which holds the colours. `ctuipalette.cpp` defines that palette in RGB. Turbo Vision's stock
   colours are BIOS indices into the terminal's 16-colour palette, which colour schemes redefine.
 - The colours are in the xterm 256-colour cube or grey ramp, so they look the same on 256-colour and true-colour
-  terminals. Exceptions are marked in `ctuipalette.cpp`: single off-palette colours, and true-colour themes. Turbo Vision
+  terminals. Exceptions are marked in `ctuicolourtheme.cpp`: single off-palette colours, and true-colour themes. Turbo Vision
   rounds them to the nearest palette colour on a 256-colour terminal. Terminals with fewer colours are not targeted.
 - Turbo Vision uses true colour only when `COLORTERM` is `truecolor` or `24bit`. SSH does not pass it on by default:
   `SetEnv COLORTERM=truecolor` in the client's SSH config does, where the server's `AcceptEnv` allows it.
