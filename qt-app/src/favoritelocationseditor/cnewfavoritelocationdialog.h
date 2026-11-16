@@ -22,5 +22,5 @@ public:
 	[[nodiscard]] QString location() const;
 
 private:
-	Ui::CNewFavoriteLocationDialog *ui;
+	Ui::CNewFavoriteLocationDialog* const ui;
 };

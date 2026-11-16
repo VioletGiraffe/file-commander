@@ -8,7 +8,7 @@ DISABLE_COMPILER_WARNINGS
 #include "ui_cnewfavoritelocationdialog.h"
 RESTORE_COMPILER_WARNINGS
 
-CNewFavoriteLocationDialog::CNewFavoriteLocationDialog(QWidget *parent, bool subcategory) :
+CNewFavoriteLocationDialog::CNewFavoriteLocationDialog(QWidget *parent, const bool subcategory) :
 	QDialog(parent),
 	ui(new Ui::CNewFavoriteLocationDialog)
 {

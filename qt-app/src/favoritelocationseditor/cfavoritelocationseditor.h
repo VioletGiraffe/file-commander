@@ -21,17 +21,21 @@ public:
 	explicit CFavoriteLocationsEditor(QWidget *parent = nullptr) noexcept;
 	~CFavoriteLocationsEditor() override;
 
+	// Commits the edited fields first; a refusal keeps the dialog open
+	void done(int result) override;
+
 private:
 	void currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * previous);
 	void contextMenu(const QPoint& pos);
-	void nameEdited(const QString& newName);
-	void locationEdited(const QString& newLocation);
+	// Commits the name and location fields to the current item. False when refused: the fields show the stored values again.
+	bool applyFieldEdits();
 
-	void fillUI();
-	void addLocationsToTreeWidget(std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator & locationCollectionListIterator, QTreeWidgetItem * parent);
+	// Rebuilds the tree, with the item of `current` as the current item
+	void fillUI(const CLocationsCollection* current);
+	void addLocationsToTreeWidget(std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator location, QTreeWidgetItem * parent);
 
 private:
-	Ui::CFavoriteLocationsEditor *ui;
+	Ui::CFavoriteLocationsEditor* const ui;
 	CFavoriteLocations& _locations;
 	CFavoriteLocationsListItem* _currentItem;
 };

@@ -14,51 +14,37 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QMenu>
 #include <QMessageBox>
+#include <QTreeWidgetItemIterator>
 RESTORE_COMPILER_WARNINGS
 
-// If an item represents a subcategory, it cannot link to a location and can only be used as a container
+// Shows a category in bold.
+// Refers to its data by an iterator, valid until a change to the favorites rebuilds the tree.
 class CFavoriteLocationsListItem final : public QTreeWidgetItem
 {
 public:
-	CFavoriteLocationsListItem(QTreeWidget * parent, std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
-		QTreeWidgetItem(parent, QStringList() << dataItemIterator->displayName),
+	CFavoriteLocationsListItem(std::vector<CLocationsCollection>& parentList, const std::vector<CLocationsCollection>::iterator dataItemIterator) :
+		QTreeWidgetItem(QStringList{ dataItemIterator->displayName }),
 		_itemIterator(dataItemIterator),
-		_parentList(parentList),
-		_bIsCategory(isCategory)
+		_parentList(parentList)
 	{
-		if (isCategory)
-			setBold();
-	}
-
-	CFavoriteLocationsListItem(QTreeWidgetItem * parentItem, std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator& dataItemIterator, bool isCategory) :
-		QTreeWidgetItem(parentItem, QStringList() << dataItemIterator->displayName),
-		_itemIterator(dataItemIterator),
-		_parentList(parentList),
-		_bIsCategory(isCategory)
-
-	{
-		if (isCategory)
-			setBold();
+		if (isCategory())
+		{
+			QFont boldFont = font(0);
+			boldFont.setBold(true);
+			setFont(0, boldFont);
+		}
 	}
 
 	CFavoriteLocationsListItem& operator=(const CFavoriteLocationsListItem&) = delete;
 
-	std::vector<CLocationsCollection>::iterator itemIterator() const {return _itemIterator;}
-	std::vector<CLocationsCollection>& list() {return _parentList;}
-	bool isCategory() const {return _bIsCategory;}
+	[[nodiscard]] std::vector<CLocationsCollection>::iterator itemIterator() const { return _itemIterator; }
+	[[nodiscard]] std::vector<CLocationsCollection>& list() const { return _parentList; }
+	[[nodiscard]] size_t index() const { return (size_t)(_itemIterator - _parentList.begin()); }
+	[[nodiscard]] bool isCategory() const { return _itemIterator->isCategory(); }
 
 private:
-	void setBold()
-	{
-		QFont newFont(font(0));
-		newFont.setBold(true);
-		setFont(0, newFont);
-	}
-
-private:
-	std::vector<CLocationsCollection>::iterator _itemIterator;
+	const std::vector<CLocationsCollection>::iterator _itemIterator;
 	std::vector<CLocationsCollection>& _parentList;
-	bool _bIsCategory;
 };
 
 CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) noexcept :
@@ -72,10 +58,10 @@ CFavoriteLocationsEditor::CFavoriteLocationsEditor(QWidget *parent) noexcept :
 	connect(ui->_list, &QTreeWidget::currentItemChanged, this, &CFavoriteLocationsEditor::currentItemChanged);
 	connect(ui->_list, &QTreeWidget::customContextMenuRequested, this, &CFavoriteLocationsEditor::contextMenu);
 
-	connect(ui->_locationEditor, &QLineEdit::textEdited, this, &CFavoriteLocationsEditor::locationEdited);
-	connect(ui->_nameEditor, &QLineEdit::textEdited, this, &CFavoriteLocationsEditor::nameEdited);
+	connect(ui->_nameEditor, &QLineEdit::editingFinished, this, &CFavoriteLocationsEditor::applyFieldEdits);
+	connect(ui->_locationEditor, &QLineEdit::editingFinished, this, &CFavoriteLocationsEditor::applyFieldEdits);
 
-	fillUI();
+	fillUI(nullptr);
 }
 
 CFavoriteLocationsEditor::~CFavoriteLocationsEditor()
@@ -83,30 +69,60 @@ CFavoriteLocationsEditor::~CFavoriteLocationsEditor()
 	delete ui;
 }
 
-void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem * current, QTreeWidgetItem * /*previous*/)
+void CFavoriteLocationsEditor::done(const int result)
 {
-	_currentItem = dynamic_cast<CFavoriteLocationsListItem*>(current);
-	if (_currentItem)
-	{
-		ui->_locationEditor->setEnabled(true);
-		ui->_nameEditor->setEnabled(true);
-
-		ui->_locationEditor->setText(_currentItem->itemIterator()->absolutePath);
-		ui->_nameEditor->setText(_currentItem->itemIterator()->displayName);
-	}
-	else
-	{
-		ui->_locationEditor->setEnabled(false);
-		ui->_nameEditor->setEnabled(false);
-
-		ui->_locationEditor->clear();
-		ui->_nameEditor->clear();
-	}
+	if (applyFieldEdits())
+		QDialog::done(result);
 }
 
-void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
+void CFavoriteLocationsEditor::currentItemChanged(QTreeWidgetItem* const current, QTreeWidgetItem* /*previous*/)
 {
-	auto* item = dynamic_cast<CFavoriteLocationsListItem*>(ui->_list->itemAt(pos));
+	applyFieldEdits(); // To the item that was current
+	_currentItem = dynamic_cast<CFavoriteLocationsListItem*>(current);
+
+	ui->_nameEditor->setEnabled(_currentItem != nullptr);
+	ui->_locationEditor->setEnabled(_currentItem && !_currentItem->isCategory());
+	ui->_nameEditor->setText(_currentItem ? _currentItem->itemIterator()->displayName : QString{});
+	ui->_locationEditor->setText(_currentItem ? _currentItem->itemIterator()->absolutePath : QString{});
+}
+
+bool CFavoriteLocationsEditor::applyFieldEdits()
+{
+	if (!_currentItem)
+		return true;
+
+	const CLocationsCollection& stored = *_currentItem->itemIterator();
+	const QString name = ui->_nameEditor->text();
+	const QString location = _currentItem->isCategory() ? QString{} : ui->_locationEditor->text();
+	if (name == stored.displayName && location == stored.absolutePath)
+		return true;
+
+	if (const auto refusal = _locations.editItem(_currentItem->list(), _currentItem->index(), name, location))
+	{
+		// Restored before the message: the focus the message takes ends the editing again
+		ui->_nameEditor->setText(stored.displayName);
+		ui->_locationEditor->setText(stored.absolutePath);
+		showUserMessage(this, *refusal);
+		return false;
+	}
+
+	_currentItem->setText(0, name);
+	return true;
+}
+
+void CFavoriteLocationsEditor::contextMenu(const QPoint& pos)
+{
+	if (!applyFieldEdits())
+		return;
+
+	auto* const item = dynamic_cast<CFavoriteLocationsListItem*>(ui->_list->itemAt(pos));
+	// A new item goes into the category clicked, next to the location clicked, or at the top level
+	const auto listForNewItem = [this, item]() -> std::vector<CLocationsCollection>& {
+		if (!item)
+			return _locations.locations();
+		return item->isCategory() ? item->itemIterator()->subLocations : item->list();
+	};
+
 	QMenu menu;
 	QAction * addItemAction = nullptr;
 	if (!item || item->isCategory())
@@ -117,45 +133,28 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 		addItemAction->setEnabled(false);
 	}
 
-	connect(addItemAction, &QAction::triggered, this, [this, item](){
+	connect(addItemAction, &QAction::triggered, this, [this, listForNewItem](){
 		CNewFavoriteLocationDialog dialog(this, false);
-		if (dialog.exec() == QDialog::Accepted)
-		{
-			std::vector<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
-			if (const auto refusal = _locations.addLocation(list, dialog.name(), dialog.location()))
-			{
-				showUserMessage(this, *refusal);
-				return;
-			}
+		if (dialog.exec() != QDialog::Accepted)
+			return;
 
-			if (item)
-			{
-				new CFavoriteLocationsListItem(item, list, --list.end(), false);
-				item->setExpanded(true);
-			}
-			else
-				new CFavoriteLocationsListItem(ui->_list, list, --list.end(), false);
-		}
+		std::vector<CLocationsCollection>& list = listForNewItem();
+		if (const auto refusal = _locations.addLocation(list, dialog.name(), dialog.location()))
+			showUserMessage(this, *refusal);
+		else
+			fillUI(&list.back());
 	});
 
-	connect(menu.addAction(tr("Add category...")), &QAction::triggered, this, [this, item](){
+	connect(menu.addAction(tr("Add category...")), &QAction::triggered, this, [this, listForNewItem](){
 		CNewFavoriteLocationDialog dialog(this, true);
-		if (dialog.exec() == QDialog::Accepted)
-		{
-			std::vector<CLocationsCollection>& list = item ? item->itemIterator()->subLocations : _locations.locations();
-			if (const auto refusal = _locations.addCategory(list, dialog.name()))
-			{
-				showUserMessage(this, *refusal);
-				return;
-			}
-			if (item)
-			{
-				new CFavoriteLocationsListItem(item, list, --list.end(), true);
-				item->setExpanded(true);
-			}
-			else
-				new CFavoriteLocationsListItem(ui->_list, list, --list.end(), true);
-		}
+		if (dialog.exec() != QDialog::Accepted)
+			return;
+
+		std::vector<CLocationsCollection>& list = listForNewItem();
+		if (const auto refusal = _locations.addCategory(list, dialog.name()))
+			showUserMessage(this, *refusal);
+		else
+			fillUI(&list.back());
 	});
 
 	if (item)
@@ -164,50 +163,43 @@ void CFavoriteLocationsEditor::contextMenu(const QPoint & pos)
 			if (item->isCategory() && QMessageBox::question(this, tr("Delete the item?"), tr("Are you sure you want to delete this category and all its sub-items?")) != QMessageBox::Yes)
 				return;
 
-			_locations.removeItem(item->list(), (size_t)(item->itemIterator() - item->list().begin()));
-			delete item;
+			_locations.removeItem(item->list(), item->index());
+			fillUI(nullptr);
 		});
 	}
 
 	menu.exec(ui->_list->mapToGlobal(pos));
 }
 
-void CFavoriteLocationsEditor::nameEdited(const QString& newName)
+void CFavoriteLocationsEditor::fillUI(const CLocationsCollection* const current)
 {
-	if (_currentItem)
-	{
-		_currentItem->itemIterator()->displayName = newName;
-		_currentItem->setData(0, Qt::DisplayRole, newName);
-	}
-}
-
-void CFavoriteLocationsEditor::locationEdited(const QString& newLocation)
-{
-	if (_currentItem)
-		_currentItem->itemIterator()->absolutePath = newLocation;
-}
-
-void CFavoriteLocationsEditor::fillUI()
-{
+	_currentItem = nullptr;
 	ui->_list->clear();
 	for (auto it = _locations.locations().begin(); it != _locations.locations().end(); ++it)
 		addLocationsToTreeWidget(_locations.locations(), it, nullptr);
 
-	ui->_list->setCurrentItem(nullptr);
+	QTreeWidgetItem* currentItem = nullptr;
+	for (QTreeWidgetItemIterator it{ ui->_list }; current && *it; ++it)
+	{
+		if (&*dynamic_cast<CFavoriteLocationsListItem*>(*it)->itemIterator() == current)
+		{
+			currentItem = *it;
+			break;
+		}
+	}
+	ui->_list->setCurrentItem(currentItem);
+	currentItemChanged(currentItem, nullptr); // Not left to the signal: clear() may reset the current item without one
 }
 
-void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::vector<CLocationsCollection>& parentList, std::vector<CLocationsCollection>::iterator& locationCollectionListIterator, QTreeWidgetItem* parent)
+void CFavoriteLocationsEditor::addLocationsToTreeWidget(std::vector<CLocationsCollection>& parentList, const std::vector<CLocationsCollection>::iterator location, QTreeWidgetItem* const parent)
 {
-	assert_r(locationCollectionListIterator->subLocations.empty() || locationCollectionListIterator->absolutePath.isEmpty());
+	assert_r(location->subLocations.empty() || location->isCategory());
 
-	const bool isCategory = locationCollectionListIterator->absolutePath.isEmpty();
-	CFavoriteLocationsListItem * treeWidgetItem = parent ? new CFavoriteLocationsListItem(parent, parentList, locationCollectionListIterator, isCategory) : new CFavoriteLocationsListItem(ui->_list, parentList, locationCollectionListIterator, isCategory);
-	if (!locationCollectionListIterator->subLocations.empty())
-	{
-		for (auto it = locationCollectionListIterator->subLocations.begin(); it != locationCollectionListIterator->subLocations.end(); ++it)
-			addLocationsToTreeWidget(locationCollectionListIterator->subLocations, it, treeWidgetItem);
-	}
+	auto* const treeWidgetItem = new CFavoriteLocationsListItem(parentList, location);
+	parent ? parent->addChild(treeWidgetItem) : ui->_list->addTopLevelItem(treeWidgetItem);
+	for (auto it = location->subLocations.begin(); it != location->subLocations.end(); ++it)
+		addLocationsToTreeWidget(location->subLocations, it, treeWidgetItem);
 
-	if (isCategory)
+	if (location->isCategory())
 		treeWidgetItem->setExpanded(true);
 }
