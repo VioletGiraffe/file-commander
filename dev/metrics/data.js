@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794792010415,
+  "lastUpdate": 1794832309288,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -37389,6 +37389,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "fcterm.exe size",
             "value": 936,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1083.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 462.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 52.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "dc2b9cfb673dfc25e4cdab88759f99b78fc2cce9",
+          "message": "Installer: the desktop icon goes to the all-users desktop, as the Start menu group does in admin install mode",
+          "timestamp": "2026-11-16T14:19:53+02:00",
+          "tree_id": "b6e72881d9376a332f365beaadaa8608ae7728bc",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/dc2b9cfb673dfc25e4cdab88759f99b78fc2cce9"
+        },
+        "date": 1794832305547,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 22239,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36277,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1768,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 936.5,
             "unit": "KB"
           },
           {
