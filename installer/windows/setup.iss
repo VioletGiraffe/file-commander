@@ -51,7 +51,7 @@ Source: binaries/64/vc_redist/*; DestDir: "{tmp}"; Flags: deleteafterinstall
 Name: {group}\File Commander; Filename: {app}\FileCommander.exe;
 Name: {group}\{cm:UninstallProgram,File Commander}; Filename: {uninstallexe}
 
-Name: {userdesktop}\File Commander; Filename: {app}\FileCommander.exe; Tasks: desktopicon;
+Name: {autodesktop}\File Commander; Filename: {app}\FileCommander.exe; Tasks: desktopicon;
 
 [Run]
 Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Runtime..."; Flags: waituntilterminated
