@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794840266851,
+  "lastUpdate": 1794843658123,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -37859,6 +37859,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 462,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 52.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "b3811e00473da7e44bdde4f261d8fe6eb1ac9b32",
+          "message": "Terminal UI: folder comparison, as in the GUI, keeping the last result to list again while the panels stay inside the compared folders; the comparison's thread, texts and which panel an entry opens in move into the core for both",
+          "timestamp": "2026-11-16T17:03:09+02:00",
+          "tree_id": "4ff079edee56f7d3537cc439424a306f1b73dd21",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/b3811e00473da7e44bdde4f261d8fe6eb1ac9b32"
+        },
+        "date": 1794843655293,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 23048,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36277,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1769,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1002.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1084.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 462.5,
             "unit": "KB"
           },
           {
