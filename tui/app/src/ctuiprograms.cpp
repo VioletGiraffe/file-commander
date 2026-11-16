@@ -1,6 +1,7 @@
 #include "ctuiprograms.h"
 #include "ctuiapplication.h"
 #include "ctuidialogs.h"
+#include "ctuiviewer.h"
 
 #include "filesystemhelperfunctions.h"
 #include "shell/cshell.h"
@@ -16,7 +17,7 @@ RESTORE_COMPILER_WARNINGS
 #include <utility>
 
 // The program and its arguments from the first of the environment variables that holds a command, else the first fallback program found.
-// The program is its full path when PATH has it: Windows completes a bare name only with ".exe", which misses "more.com".
+// The program is its full path when PATH has it: Windows completes a bare name only with ".exe", which misses a ".com" program.
 // Empty when there is none.
 [[nodiscard]] static QStringList commandFromEnvironment(std::initializer_list<const char*> variables, std::initializer_list<const char*> fallbackPrograms)
 {
@@ -42,19 +43,6 @@ static void runCommandOnFile(QStringList command, const QString& filePath)
 	command.push_back(toNativeSeparators(filePath));
 	if (auto ran = CTuiApplication::runInTerminal(program, command, QFileInfo(filePath).absolutePath(), false); !ran)
 		showMessage(QStringLiteral("Failed to start %1").arg(program), ran.error());
-}
-
-void viewFile(const QString& filePath)
-{
-#ifdef _WIN32
-	const QStringList command = commandFromEnvironment({ "PAGER" }, { "more" });
-#else
-	const QStringList command = commandFromEnvironment({ "PAGER" }, { "less", "more" });
-#endif
-	if (command.isEmpty())
-		showMessage(QStringLiteral("No pager found"), QStringLiteral("Set the PAGER environment variable to a pager program."));
-	else
-		runCommandOnFile(command, filePath);
 }
 
 void editFile(const QString& filePath)

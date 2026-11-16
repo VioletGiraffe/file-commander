@@ -33,7 +33,7 @@ Open decisions, to settle before building:
 
 ## Terminal UI: colours after running a program, in Windows Terminal
 
-After fcterm runs a program (pager, editor, shell, Enter on a program) in Windows Terminal, the first cursor move
+After fcterm runs a program (editor, shell, Enter on a program) in Windows Terminal, the first cursor move
 repaints the whole screen in the terminal's 16-colour palette. Cells redrawn later come back in their own colours.
 
 - Cause: Windows Terminal's ConPTY (seen with 1.22; reproduced with 1.24 and 1.25). It shows a console screen-buffer

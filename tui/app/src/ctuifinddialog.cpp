@@ -4,6 +4,7 @@
 #include "ctuifields.h"
 #include "ctuiprograms.h"
 #include "ctuirowlist.h"
+#include "ctuiviewer.h"
 
 #include "cfilesystemobject.h"
 #include "filesearchengine/filesearchquery.h"

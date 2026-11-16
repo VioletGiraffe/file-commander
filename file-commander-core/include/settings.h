@@ -80,6 +80,13 @@
 #define KEY_BATCH_RENAME_COUNTER_STEP QSL("BatchRenameDialog/Ui/CounterStep")
 #define KEY_BATCH_RENAME_COUNTER_DIGITS QSL("BatchRenameDialog/Ui/CounterDigits")
 
+// The text viewers' find options in both front ends. The GUI's CFindBar (qtutils) keeps them under the root, by these names.
+#define KEY_TEXT_VIEWER_FIND_ROOT QSL("Plugins/TextViewer/Find")
+#define KEY_TEXT_VIEWER_FIND_HISTORY QSL("Plugins/TextViewer/Find/Expressions")
+#define KEY_TEXT_VIEWER_FIND_CASE_SENSITIVE QSL("Plugins/TextViewer/Find/CaseSensitive")
+#define KEY_TEXT_VIEWER_FIND_WHOLE_WORDS QSL("Plugins/TextViewer/Find/WholeWords")
+#define KEY_TEXT_VIEWER_FIND_REGEX QSL("Plugins/TextViewer/Find/Regex")
+
 /////////////////////////////////////////////////
 // Options accessible via Settings interface
 /////////////////////////////////////////////////

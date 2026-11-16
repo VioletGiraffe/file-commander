@@ -29,6 +29,8 @@ public:
 
 	// Delivers the core's queued work and Qt's events before every Turbo Vision event, so modal views get them too
 	void getEvent(TEvent& event) override;
+	// The hint row and the key bar show the items of the top view's help context
+	void idle() override;
 	void handleEvent(TEvent& event) override;
 	void resume() override;
 	void shutDown() override;
@@ -55,6 +57,7 @@ private:
 
 private:
 	CController& _controller;
+	TStatusLine* _hintLine; // Owned by this application
 	std::array<CTuiPanel*, 2> _panels; // Left and right, owned by the desktop
 	CTuiFindDialog* _findDialog = nullptr; // Created on first use and owned by this application: it keeps the last search's results
 	CTuiFolderComparison _folderComparison{ _controller };

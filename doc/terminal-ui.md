@@ -22,7 +22,8 @@ ends need lives in the core, which returns the text to show and the program to r
 | Find files | `app/src/ctuifinddialog.{h,cpp}` |
 | Favorites | `app/src/ctuifavoritesdialog.{h,cpp}` |
 | Folder comparison | `app/src/ctuifoldercomparison.{h,cpp}` |
-| The pager, the editor, the shell, opening a document | `app/src/ctuiprograms.{h,cpp}` |
+| The viewer | `app/src/ctuiviewer.{h,cpp}` |
+| The editor, the shell, opening a document | `app/src/ctuiprograms.{h,cpp}` |
 | Turbo Vision as a static library | `tvision/tvision.pro` |
 | Tests | `tests/`; see [testing.md](testing.md) |
 
@@ -91,7 +92,10 @@ dialog is open.
   `DialogSpec::escapeButton`).
 - A field's history is shared with the GUI's field through its settings key. Turbo Vision keeps every field's history in
   one block, which `main` enlarges before the application allocates it.
-- Viewing, editing, opening a document and running a program: see [process-launching.md](process-launching.md).
+- The viewer (F3) reads the whole file, as the GUI's text viewer does. It decodes with `QStringDecoder` alone, so a
+  legacy code page other than the system's is not detected. Its keys, find options and find history are the GUI text viewer's.
+- The hint row and the key bar show the items of the top view's help context: the viewer's while it is open.
+- Editing, opening a document and running a program: see [process-launching.md](process-launching.md).
 - `CTuiApplication::copyToClipboard` sends a copy over SSH to the terminal (OSC 52), to reach the clipboard of the
   computer the user types on. Elsewhere Turbo Vision chooses, trying the local clipboard tools first. Neither path
   reports whether the copy arrived.

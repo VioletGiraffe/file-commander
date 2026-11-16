@@ -3,6 +3,7 @@
 #include "ctuifinddialog.h"
 #include "ctuipalette.h"
 #include "ctuipanel.h"
+#include "ctuiviewer.h"
 
 #include "ccontroller.h"
 #include "cfilesystemobject.h"
@@ -248,7 +249,8 @@ CTuiApplication::CTuiApplication(CController& controller) :
 	_controller(controller)
 {
 	disableWin32InputMode();
-	insert(initHintLine(getExtent()));
+	_hintLine = initHintLine(getExtent());
+	insert(_hintLine);
 
 	_panels = {
 		new CTuiPanel(deskTop->size, _controller, Panel::LeftPanel),
@@ -269,6 +271,12 @@ void CTuiApplication::getEvent(TEvent& event)
 	QCoreApplication::processEvents();
 	_controller.uiThreadTimerTick();
 	TApplication::getEvent(event);
+}
+
+void CTuiApplication::idle()
+{
+	TApplication::idle();
+	_hintLine->update(); // The base class updates only its own status line, the key bar
 }
 
 void CTuiApplication::handleEvent(TEvent& event)
@@ -514,11 +522,18 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 
 // The menus bind F2 to F8: their items here respond to clicks only.
 // Binds F10, which opens the menus, and Alt+1 to Alt+9: a menu item binds only one key.
+// The viewer binds its own keys.
 TStatusLine* CTuiApplication::initStatusLine(TRect r)
 {
 	r.a.y = r.b.y - 1;
 	static_assert(tabPositionCommandCount == 9);
 	return new CTuiKeyBar(r,
+		*new TStatusDef(hcViewer, hcViewer) +
+			*new TStatusItem("~Ctrl-F~ Find", kbNoKey, cmFindInViewer) +
+			*new TStatusItem("~F3~ Next", kbNoKey, cmFindNextInViewer) +
+			*new TStatusItem("~Shift-F3~ Previous", kbNoKey, cmFindPreviousInViewer) +
+			*new TStatusItem("~Shift-W~ Wrap", kbNoKey, cmToggleLineWrap) +
+			*new TStatusItem("~Esc~ Close", kbNoKey, cmCancel) +
 		*new TStatusDef(0, 0xFFFF) +
 			*new TStatusItem("~F2~ Rename", kbNoKey, cmRenameItem) +
 			*new TStatusItem("~F3~ View", kbNoKey, cmViewFile) +
@@ -546,6 +561,14 @@ TStatusLine* CTuiApplication::initHintLine(TRect r)
 	r.b.y--;
 	r.a.y = r.b.y - 1;
 	return new CTuiHintLine(r,
+		*new TStatusDef(hcViewer, hcViewer) +
+			*new TStatusItem("View as:", kbNoKey, 0) +
+			*new TStatusItem("~1~ Auto", kbNoKey, cmViewAs(ViewAs::DetectedEncoding)) +
+			*new TStatusItem("~2~ Latin-1", kbNoKey, cmViewAs(ViewAs::Latin1)) +
+			*new TStatusItem("~3~ System", kbNoKey, cmViewAs(ViewAs::SystemLocale)) +
+			*new TStatusItem("~4~ UTF-8", kbNoKey, cmViewAs(ViewAs::Utf8)) +
+			*new TStatusItem("~5~ UTF-16", kbNoKey, cmViewAs(ViewAs::Utf16)) +
+			*new TStatusItem("~6~ Hex", kbNoKey, cmViewAs(ViewAs::Hex)) +
 		*new TStatusDef(0, 0xFFFF) +
 			*new TStatusItem("~Alt-D~ Go to", kbNoKey, cmGoToFolder) +
 			*new TStatusItem("~Alt-F1/F2~ Volume", kbNoKey, 0) +

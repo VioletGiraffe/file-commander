@@ -1,5 +1,7 @@
 #include "ctextviewer.h"
 
+#include "settings.h"
+
 
 // Submodule includes
 #include "qtcore_helpers/qt_helpers.hpp"
@@ -96,7 +98,7 @@ CTextViewer::CTextViewer() noexcept
 			},
 		},
 		CFindBar::Keys{ .find = QStringLiteral("Ctrl+F"), .findNext = QStringLiteral("F3"), .findPrevious = QStringLiteral("Shift+F3") },
-		QStringLiteral("Plugins/TextViewer/Find")
+		KEY_TEXT_VIEWER_FIND_ROOT
 	};
 	_layout->addWidget(_findBar);
 

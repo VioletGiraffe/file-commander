@@ -151,7 +151,7 @@ private:
 	return QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
 }
 
-// The command for a pager or editor variable: this executable's stub mode, recording into recordPath.
+// The command for an editor variable: this executable's stub mode, recording into recordPath.
 // program: this executable or a copy of it
 [[nodiscard]] QString recordingCommand(const QString& recordPath, const QString& program = testExecutable())
 {
@@ -196,11 +196,11 @@ struct FctermStart
 	int columns = screenColumns;
 };
 
-// fcterm with its settings in the sandbox and no pager, editor or desktop of the user's
+// fcterm with its settings in the sandbox and no editor or desktop of the user's
 [[nodiscard]] std::unique_ptr<CTerminalSession> startFcterm(const Sandbox& sandbox, const FctermStart& start = {})
 {
 	QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
-	for (const char* variable : { "VISUAL", "EDITOR", "PAGER", "DISPLAY", "WAYLAND_DISPLAY", "SSH_CONNECTION", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME" })
+	for (const char* variable : { "VISUAL", "EDITOR", "DISPLAY", "WAYLAND_DISPLAY", "SSH_CONNECTION", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME" })
 		environment.remove(QString::fromLatin1(variable));
 	environment.insert(QStringLiteral("TERM"), QStringLiteral("xterm-256color"));
 #ifndef _WIN32
@@ -329,6 +329,41 @@ void requireRecordedLaunch(const QStringList& record, const QString& expectedFil
 	REQUIRE(record.size() == 2);
 	CHECK(canonical(record[0].mid(4)) == canonical(QFileInfo{ expectedFile }.path()));
 	CHECK(canonical(record[1].mid(4)) == canonical(expectedFile));
+}
+
+// The viewer covers the menu bar and the panels: its text starts under the window's top edge, and its status row is above the bottom edge
+constexpr int viewerFirstRow = 1, viewerStatusRow = screenRows - 4;
+
+// The viewer's key bar shows once the viewer is open
+void requireViewer(CTerminalSession& session)
+{
+	requireText(session, QStringLiteral("Esc Close"));
+}
+
+// Opens the file in the sandbox's work folder with F3
+void openInViewer(CTerminalSession& session, const Sandbox& sandbox, const QString& name)
+{
+	goTo(session, sandbox.work({}), name);
+	moveCursorTo(session, name);
+	session.send(Keys::F3);
+	requireViewer(session);
+}
+
+void requireViewerStatus(CTerminalSession& session, const QString& text)
+{
+	requireScreen(session, [&text](const CTerminalScreen& screen) { return screen.row(viewerStatusRow).contains(text); }, quoted(text) + QStringLiteral(" in the viewer's status row"));
+}
+
+// Searches with the viewer's find dialog, typing into its text field once the cursor is there: see requirePromptInput()
+void findInViewer(CTerminalSession& session, const QString& text)
+{
+	session.send(Keys::CtrlF);
+	requireScreen(session, [](const CTerminalScreen& screen) {
+		const int textRow = rowWith(screen, QStringLiteral("Text:"));
+		return textRow >= 0 && screen.cursorRow() == textRow;
+	}, QStringLiteral("the find dialog, with the cursor in its text field"));
+	typeText(session, text); // The field's text starts selected, so this replaces it
+	session.send(Keys::Enter);
 }
 
 } // namespace
@@ -554,19 +589,21 @@ TEST_CASE("Alt+F7 finds files by name under the panel's folder, and Enter on a r
 	CHECK(session->screen().contains(result));
 }
 
-TEST_CASE("F3 on a search result opens the pager on it", "[tui]")
+TEST_CASE("F3 on a search result shows it in the viewer, and Esc returns to the results", "[tui]")
 {
 	const Sandbox sandbox;
 	REQUIRE(QDir{ sandbox.work({}) }.mkpath(QStringLiteral("sub")));
-	sandbox.createFile(QStringLiteral("work/sub/viewed.txt"));
-	const QString recordPath = sandbox.path(QStringLiteral("record.txt"));
-	auto session = startFcterm(sandbox, { .variables = { { QStringLiteral("PAGER"), recordingCommand(recordPath) } } });
+	sandbox.createFile(QStringLiteral("work/sub/viewed.txt"), "the viewed contents");
+	auto session = startFcterm(sandbox);
 	goTo(*session, sandbox.work({}), QStringLiteral("sub"));
 
 	findByName(*session, QStringLiteral("viewed"), QStringLiteral("Search completed, 1 item found"));
 	session->send(Keys::F3);
-	requireScreen(*session, [&](const CTerminalScreen&) { return QFile::exists(recordPath); }, QStringLiteral("the stub's record"));
-	requireRecordedLaunch(recordedLines(recordPath), sandbox.work(QStringLiteral("sub/viewed.txt")));
+	requireViewer(*session);
+	requireText(*session, QStringLiteral("the viewed contents"));
+	session->send(Keys::Escape);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("the viewed contents")) && screen.contains(QStringLiteral("Search completed, 1 item found")); },
+		QStringLiteral("the search results again"));
 }
 
 TEST_CASE("Alt+F7 starts with the name last searched, in the next session too", "[tui]")
@@ -1315,28 +1352,107 @@ TEST_CASE("fcterm shows the working folder or its folder argument in the tab alr
 	quit(*session);
 }
 
-TEST_CASE("F3 opens the pager on the file, in its folder", "[tui]")
+TEST_CASE("F3 shows the file in the viewer over the menu bar, with its encoding and the viewer's keys below it in 80 columns, and Esc returns to the panel", "[tui]")
 {
 	const Sandbox sandbox;
-	sandbox.createFile(QStringLiteral("work/viewed.txt"));
-	requireRecordedLaunch(recordedLaunch(sandbox, "PAGER", QStringLiteral("viewed.txt"), Keys::F3), sandbox.work(QStringLiteral("viewed.txt")));
+	sandbox.createFile(QStringLiteral("work/viewed.txt"), "first line\nsecond line\n");
+	auto session = startFcterm(sandbox, { .columns = 80 });
+	const QString menuBar = session->screen().row(0);
+	openInViewer(*session, sandbox, QStringLiteral("viewed.txt"));
+
+	requireText(*session, QStringLiteral("second line"));
+	CHECK(session->screen().row(0).contains(QStringLiteral("viewed.txt")));
+	CHECK(session->screen().row(viewerFirstRow).mid(1).startsWith(QStringLiteral("first line")));
+	requireViewerStatus(*session, QStringLiteral("UTF-8 · Wrap"));
+	CHECK(session->screen().row(viewerStatusRow).contains(QStringLiteral("Line 1 of 2  100%")));
+	CHECK(session->screen().row(hintRow).contains(QStringLiteral("1 Auto")));
+	CHECK(session->screen().row(hintRow).contains(QStringLiteral("6 Hex")));
+	CHECK(session->screen().row(keyRow).contains(QStringLiteral("Ctrl-F Find")));
+	CHECK(session->screen().row(keyRow).contains(QStringLiteral("Esc Close")));
+
+	session->send(Keys::Escape);
+	requireText(*session, QStringLiteral("F2 Rename"));
+	CHECK_FALSE(session->screen().contains(QStringLiteral("second line")));
+	CHECK(session->screen().row(0) == menuBar);
+	CHECK(cursorIsOn(session->screen(), QStringLiteral("viewed.txt")));
 }
 
-#ifdef _WIN32
-TEST_CASE("F3 starts a pager named without its extension, a .com file in PATH included", "[tui]")
+TEST_CASE("The viewer wraps a long line after a space, and Shift+W turns wrapping off and on", "[tui]")
 {
 	const Sandbox sandbox;
-	sandbox.createFile(QStringLiteral("work/viewed.txt"));
-	REQUIRE(QDir{}.mkpath(sandbox.path(QStringLiteral("bin"))));
-	REQUIRE(QFile::copy(QCoreApplication::applicationFilePath(), sandbox.path(QStringLiteral("bin/recorder.com"))));
+	sandbox.createFile(QStringLiteral("work/long.txt"), "start " + QByteArray(120, 'x') + " finale\n");
+	auto session = startFcterm(sandbox);
+	openInViewer(*session, sandbox, QStringLiteral("long.txt"));
 
-	// The copy loads its DLLs from the test executable's folder, through PATH
-	const QString path = QDir::toNativeSeparators(sandbox.path(QStringLiteral("bin"))) + u';' + QDir::toNativeSeparators(QCoreApplication::applicationDirPath()) + u';'
-		+ qEnvironmentVariable("PATH");
-	const QStringList record = recordedLaunch(sandbox, "PAGER", QStringLiteral("viewed.txt"), Keys::F3, { { QStringLiteral("PATH"), path } }, QStringLiteral("recorder"));
-	requireRecordedLaunch(record, sandbox.work(QStringLiteral("viewed.txt")));
+	requireText(*session, QStringLiteral("x finale"));
+	CHECK(rowWith(session->screen(), QStringLiteral("start")) < rowWith(session->screen(), QStringLiteral("xxx")));
+
+	session->send(QStringLiteral("W"));
+	requireViewerStatus(*session, QStringLiteral("No wrap"));
+	CHECK_FALSE(session->screen().contains(QStringLiteral("finale")));
+	CHECK(rowWith(session->screen(), QStringLiteral("start xxx")) >= 0);
+
+	session->send(QStringLiteral("W"));
+	requireViewerStatus(*session, QStringLiteral("· Wrap"));
+	requireText(*session, QStringLiteral("x finale"));
 }
-#endif
+
+TEST_CASE("The viewer shows binary content as Latin-1, 6 shows its bytes in hex, 4 refuses it as UTF-8, and 1 detects the encoding again", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/binary.bin"), QByteArray("AB\0C", 4));
+	auto session = startFcterm(sandbox);
+	openInViewer(*session, sandbox, QStringLiteral("binary.bin"));
+	requireViewerStatus(*session, QStringLiteral("Latin-1"));
+
+	session->send(QStringLiteral("6"));
+	requireText(*session, QStringLiteral("00000000  41 42 00 43"));
+	requireText(*session, QStringLiteral("│ AB.C"));
+	CHECK(session->screen().row(viewerStatusRow).contains(QStringLiteral("Hex")));
+
+	session->send(QStringLiteral("4"));
+	requireViewerStatus(*session, QStringLiteral("The file is not text in this encoding"));
+	CHECK(session->screen().row(viewerStatusRow).contains(QStringLiteral("Hex")));
+
+	session->send(QStringLiteral("1"));
+	requireViewerStatus(*session, QStringLiteral("Latin-1"));
+}
+
+TEST_CASE("The viewer reads a UTF-16 file by its byte order mark", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/wide.txt"), QByteArray("\xFF\xFEw\0i\0d\0e\0", 10));
+	auto session = startFcterm(sandbox);
+	openInViewer(*session, sandbox, QStringLiteral("wide.txt"));
+	requireViewerStatus(*session, QStringLiteral("UTF-16LE"));
+	CHECK(session->screen().row(viewerFirstRow).mid(1).startsWith(QStringLiteral("wide")));
+}
+
+TEST_CASE("In the viewer, Ctrl+F finds text below the screen, F3 the next match and Shift+F3 the previous one, restarting from the other end", "[tui]")
+{
+	const Sandbox sandbox;
+	QByteArray lines;
+	for (int line = 1; line <= 100; ++line)
+		lines += "line " + QByteArray::number(line) + (line == 50 || line == 70 ? " needle" : "") + '\n';
+	sandbox.createFile(QStringLiteral("work/lines.txt"), lines);
+	auto session = startFcterm(sandbox);
+	openInViewer(*session, sandbox, QStringLiteral("lines.txt"));
+
+	findInViewer(*session, QStringLiteral("needle"));
+	requireViewerStatus(*session, QStringLiteral("Found at line 50"));
+	requireText(*session, QStringLiteral("line 50 needle"));
+
+	session->send(Keys::F3);
+	requireViewerStatus(*session, QStringLiteral("Found at line 70"));
+	session->send(Keys::F3);
+	requireViewerStatus(*session, QStringLiteral("Search restarted from the top: found at line 50"));
+	session->send(Keys::ShiftF3);
+	requireViewerStatus(*session, QStringLiteral("Search restarted from the bottom: found at line 70"));
+	requireText(*session, QStringLiteral("line 70 needle"));
+
+	findInViewer(*session, QStringLiteral("absent"));
+	requireViewerStatus(*session, QStringLiteral("Not found"));
+}
 
 TEST_CASE("F4 opens the editor on the file, in its folder", "[tui]")
 {
@@ -1344,6 +1460,22 @@ TEST_CASE("F4 opens the editor on the file, in its folder", "[tui]")
 	sandbox.createFile(QStringLiteral("work/edited.txt"));
 	requireRecordedLaunch(recordedLaunch(sandbox, "EDITOR", QStringLiteral("edited.txt"), Keys::F4), sandbox.work(QStringLiteral("edited.txt")));
 }
+
+#ifdef _WIN32
+TEST_CASE("F4 starts an editor named without its extension, a .com file in PATH included", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/edited.txt"));
+	REQUIRE(QDir{}.mkpath(sandbox.path(QStringLiteral("bin"))));
+	REQUIRE(QFile::copy(QCoreApplication::applicationFilePath(), sandbox.path(QStringLiteral("bin/recorder.com"))));
+
+	// The copy loads its DLLs from the test executable's folder, through PATH
+	const QString path = QDir::toNativeSeparators(sandbox.path(QStringLiteral("bin"))) + u';' + QDir::toNativeSeparators(QCoreApplication::applicationDirPath()) + u';'
+		+ qEnvironmentVariable("PATH");
+	const QStringList record = recordedLaunch(sandbox, "EDITOR", QStringLiteral("edited.txt"), Keys::F4, { { QStringLiteral("PATH"), path } }, QStringLiteral("recorder"));
+	requireRecordedLaunch(record, sandbox.work(QStringLiteral("edited.txt")));
+}
+#endif
 
 TEST_CASE("F4 with a missing editor says why it failed", "[tui]")
 {
@@ -1428,16 +1560,21 @@ TEST_CASE("Ctrl+C stops the running program but not fcterm", "[tui]")
 	requireText(*session, QStringLiteral("F2 Rename"));
 }
 
-TEST_CASE("Enter on a document without a desktop opens the pager", "[tui]")
+TEST_CASE("Enter on a document without a desktop shows it in the viewer", "[tui]")
 {
 	const Sandbox sandbox;
-	sandbox.createFile(QStringLiteral("work/document.md"));
+	sandbox.createFile(QStringLiteral("work/document.md"), "# The document's title");
 	std::map<QString, QString> noDesktop; // Linux: no display, which startFcterm already ensures
 #ifdef __APPLE__
 	// macOS: a remote session
 	noDesktop[QStringLiteral("SSH_CONNECTION")] = QStringLiteral("192.0.2.1 50000 192.0.2.2 22");
 #endif
-	requireRecordedLaunch(recordedLaunch(sandbox, "PAGER", QStringLiteral("document.md"), Keys::Enter, noDesktop), sandbox.work(QStringLiteral("document.md")));
+	auto session = startFcterm(sandbox, { .variables = noDesktop });
+	goTo(*session, sandbox.work({}), QStringLiteral("document.md"));
+	moveCursorTo(*session, QStringLiteral("document.md"));
+	session->send(Keys::Enter);
+	requireViewer(*session);
+	requireText(*session, QStringLiteral("# The document's title"));
 }
 
 TEST_CASE("Alt+C over SSH copies the paths through the terminal", "[tui]")

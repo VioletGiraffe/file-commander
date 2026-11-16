@@ -27,7 +27,8 @@ enum FieldHistoryId : uchar
 	batchRenameNameMaskHistoryId,
 	batchRenameExtensionMaskHistoryId,
 	batchRenameFindHistoryId,
-	batchRenameReplaceWithHistoryId
+	batchRenameReplaceWithHistoryId,
+	viewerFindHistoryId
 };
 
 [[nodiscard]] QString inputText(const TInputLine* input);

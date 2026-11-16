@@ -7,6 +7,7 @@
 #include "ctuifileoperations.h"
 #include "ctuipalette.h"
 #include "ctuiprograms.h"
+#include "ctuiviewer.h"
 
 #include "ccontroller.h"
 #include "filelist/filetimetext.h"

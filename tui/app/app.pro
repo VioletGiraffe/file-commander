@@ -34,7 +34,8 @@ SOURCES += \
 	src/ctuipalette.cpp \
 	src/ctuipanel.cpp \
 	src/ctuiprograms.cpp \
-	src/ctuirowlist.cpp
+	src/ctuirowlist.cpp \
+	src/ctuiviewer.cpp
 
 HEADERS += \
 	src/ctuiapplication.h \
@@ -50,7 +51,8 @@ HEADERS += \
 	src/ctuipalette.h \
 	src/ctuipanel.h \
 	src/ctuiprograms.h \
-	src/ctuirowlist.h
+	src/ctuirowlist.h \
+	src/ctuiviewer.h
 
 LIBS += -L$${DESTDIR} -ltvision
 mac*|linux*|freebsd: PRE_TARGETDEPS += $${DESTDIR}/libtvision.a

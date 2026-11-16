@@ -13,7 +13,7 @@ RESTORE_COMPILER_WARNINGS
 #include <cstdio>
 #include <thread>
 
-// `--record <file> <arguments>...` stands in for the pager or the editor fcterm starts.
+// `--record <file> <arguments>...` stands in for the editor fcterm starts.
 // Writes its working folder and its arguments to <file>, one per line. The file appears complete: it is renamed into place.
 static int recordInvocation(const QStringList& arguments)
 {
