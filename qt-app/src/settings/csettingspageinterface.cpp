@@ -12,15 +12,37 @@
 DISABLE_COMPILER_WARNINGS
 #include "ui_csettingspageinterface.h"
 
+#include <QComboBox>
 #include <QFontDialog>
 #include <QSettings>
 #include <QStringBuilder>
-#include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
 static inline QString describeFont(const QFont& font)
 {
 	return font.family() % ", " % QString::number(font.pointSize()) % ", " % font.styleName();
+}
+
+// The scheme combo's items are System, Light, Dark: mapped explicitly, not by the enum's numbering
+static int colorSchemeIndex(Qt::ColorScheme scheme)
+{
+	switch (scheme)
+	{
+	case Qt::ColorScheme::Light: return 1;
+	case Qt::ColorScheme::Dark: return 2;
+	case Qt::ColorScheme::Unknown: break;
+	}
+	return 0;
+}
+
+static Qt::ColorScheme colorSchemeAtIndex(int index)
+{
+	switch (index)
+	{
+	case 1: return Qt::ColorScheme::Light;
+	case 2: return Qt::ColorScheme::Dark;
+	default: return Qt::ColorScheme::Unknown;
+	}
 }
 
 CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
@@ -52,10 +74,25 @@ CSettingsPageInterface::CSettingsPageInterface(QWidget *parent) :
 	ui->_cbDecoratedFolderIcons->setChecked(s.value(KEY_INTERFACE_SHOW_SPECIAL_FOLDER_ICONS, false).toBool());
 	ui->_cbColumnSeparators->setChecked(s.value(KEY_INTERFACE_SHOW_COLUMN_SEPARATORS, INTERFACE_SHOW_COLUMN_SEPARATORS_DEFAULT).toBool());
 
-	QStringList lightThemeNames, darkThemeNames;
-	for (const Theme& theme : allThemes())
-		(theme.dark ? darkThemeNames : lightThemeNames).push_back(theme.name);
-	_themeControls.emplace(*ui->_themeForm, lightThemeNames, darkThemeNames);
+	ui->_colorScheme->setCurrentIndex(colorSchemeIndex(_initialThemeSelection.schemePreference));
+	connect(ui->_colorScheme, &QComboBox::currentIndexChanged, this, [](int index) {
+		CThemeController::instance().setSchemePreference(colorSchemeAtIndex(index));
+	});
+
+	const auto fillThemeSelector = [this](QComboBox* selector, bool dark, const QString& storedName) {
+		for (const Theme& theme : allThemes())
+		{
+			if (theme.dark == dark)
+				selector->addItem(theme.name);
+		}
+		// A stored name the list does not hold leaves the first theme current, the one CThemeController::selectedTheme() resolves it to
+		selector->setCurrentText(storedName);
+		connect(selector, &QComboBox::currentTextChanged, this, [dark](const QString& name) {
+			CThemeController::instance().setThemeName(dark, name);
+		});
+	};
+	fillThemeSelector(ui->_lightTheme, false, _initialThemeSelection.lightThemeName);
+	fillThemeSelector(ui->_darkTheme, true, _initialThemeSelection.darkThemeName);
 }
 
 CSettingsPageInterface::~CSettingsPageInterface()
@@ -76,7 +113,7 @@ void CSettingsPageInterface::acceptSettings()
 
 void CSettingsPageInterface::rejectSettings()
 {
-	_themeControls->restoreInitialSelection();
+	CThemeController::instance().setSelection(_initialThemeSelection);
 }
 
 void CSettingsPageInterface::updateFontInfoLabel()

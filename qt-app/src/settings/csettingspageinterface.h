@@ -3,7 +3,7 @@
 // Submodule includes
 #include "appdialogs/csettingspage.h"
 #include "compiler/compiler_warnings_control.h"
-#include "theme/cthemeselectioncontrols.h"
+#include "theme/cthemecontroller.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -11,7 +11,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <memory>
-#include <optional>
 
 class QFontDialog;
 namespace Ui {
@@ -36,6 +35,5 @@ private:
 	QFont _fileListFont;
 	Ui::CSettingsPageInterface *ui;
 
-	// Empty until the form its rows go into exists
-	std::optional<CThemeSelectionControls> _themeControls;
+	const CThemeController::Selection _initialThemeSelection = CThemeController::instance().selection();
 };

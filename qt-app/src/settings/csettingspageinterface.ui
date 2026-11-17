@@ -95,7 +95,54 @@
      <property name="title">
       <string>Theme</string>
      </property>
-     <layout class="QFormLayout" name="_themeForm"/>
+     <layout class="QFormLayout" name="formLayoutTheme">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelColorScheme">
+        <property name="text">
+         <string>Color scheme:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="_colorScheme">
+        <item>
+         <property name="text">
+          <string>System</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Light</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Dark</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelLightTheme">
+        <property name="text">
+         <string>Light theme:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="_lightTheme"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelDarkTheme">
+        <property name="text">
+         <string>Dark theme:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="_darkTheme"/>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
