@@ -12,6 +12,7 @@ RESTORE_COMPILER_WARNINGS
 enum PanelPaletteEntry : uchar
 {
 	ppFileListRow = 9,
+	ppFileListRowDetails, // Every column but Name
 	ppFileListSelectedRow,
 	ppFileListCursor,
 	ppFileListSelectedCursor,

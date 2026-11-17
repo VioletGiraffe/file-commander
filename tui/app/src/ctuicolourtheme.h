@@ -18,7 +18,9 @@ struct ThemeColours
 
 	TColorRGB panelBack, framePassive, frameActive;
 	TColorRGB frameIcons; // Also the arrows of input lines
-	TColorRGB fileText, selectedText, cursorBack, cursorText, cursorSelectedText, columnHeader, statusText, separator, cursorSeparator;
+	TColorRGB fileText;
+	TColorRGB fileDetailText; // Every column but Name, in rows neither selected nor under the cursor
+	TColorRGB selectedText, cursorBack, cursorText, cursorSelectedText, columnHeader, statusText, separator, cursorSeparator;
 	TColorRGB tabBack, tabText; // The active tab and the filter line
 
 	TColorRGB dialogBack, dialogText, dialogFrame, dialogShortcut;

@@ -89,6 +89,7 @@ constexpr size_t applicationEntryCount = firstKeyBarApplicationEntry - 1 + keyBa
 	// The panel's entries, in PanelPaletteEntry order
 	const TColorAttr panelColors[]{
 		{ c.fileText, c.panelBack },             // ppFileListRow
+		{ c.fileDetailText, c.panelBack },       // ppFileListRowDetails
 		{ c.selectedText, c.panelBack },         // ppFileListSelectedRow
 		{ c.cursorText, c.cursorBack },          // ppFileListCursor
 		{ c.cursorSelectedText, c.cursorBack },  // ppFileListSelectedCursor

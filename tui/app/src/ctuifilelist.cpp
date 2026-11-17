@@ -216,8 +216,9 @@ bool CTuiFileList::isSelected(qulonglong itemHash) const noexcept
 
 void CTuiFileList::draw()
 {
-	const TColorAttr normalColor = mapColor(ppFileListRow), selectedColor = mapColor(ppFileListSelectedRow), cursorColor = mapColor(ppFileListCursor),
-		selectedCursorColor = mapColor(ppFileListSelectedCursor), separatorColor = mapColor(ppColumnSeparator), cursorSeparatorColor = mapColor(ppCursorColumnSeparator);
+	const TColorAttr normalColor = mapColor(ppFileListRow), normalDetailsColor = mapColor(ppFileListRowDetails), selectedColor = mapColor(ppFileListSelectedRow),
+		cursorColor = mapColor(ppFileListCursor), selectedCursorColor = mapColor(ppFileListSelectedCursor), separatorColor = mapColor(ppColumnSeparator),
+		cursorSeparatorColor = mapColor(ppCursorColumnSeparator);
 
 	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField);
 	const bool extensionShown = std::ranges::any_of(columns, [](const FileListColumn& column) { return column.field == FileListSortField::Extension; });
@@ -229,13 +230,17 @@ void CTuiFileList::draw()
 		const bool selected = isRow && isSelected(_rows[(size_t)row].hash());
 		const bool onCursor = cursorIsShownOn(row);
 		const TColorAttr color = onCursor ? (selected ? selectedCursorColor : cursorColor) : (selected ? selectedColor : normalColor);
+		const TColorAttr detailsColor = onCursor || selected ? color : normalDetailsColor;
 
 		TDrawBuffer line;
 		line.moveChar(0, ' ', color, (ushort)size.x);
 		if (isRow)
 		{
 			for (const FileListColumn& column : columns)
-				drawInColumn(line, column, columnText(_rows[(size_t)row], column.field, extensionShown, _listedFolder), color);
+			{
+				const TColorAttr columnColor = column.field == FileListSortField::Name ? color : detailsColor;
+				drawInColumn(line, column, columnText(_rows[(size_t)row], column.field, extensionShown, _listedFolder), columnColor);
+			}
 		}
 		drawColumnSeparators(line, columns, onCursor ? cursorSeparatorColor : separatorColor);
 
