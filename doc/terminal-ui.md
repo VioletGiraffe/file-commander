@@ -64,6 +64,7 @@ dialog is open.
 - A colour theme is a set of `ThemeColours`, one colour per kind of thing on screen. `applicationPaletteFor` pairs them
   into the application palette's entries, so a new palette entry is written once for every theme. View > Theme switches
   the theme while running; the choice is the terminal UI's own setting.
+- A theme can put the file list's rows on bands of alternating background, of a height it chooses.
 
 ## Commands
 

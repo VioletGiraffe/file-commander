@@ -89,7 +89,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0x030805, .hintText = 0x5FAF74, .hintKey = 0xFF5A5A, .keyBack = 0x00FF41, .keyText = 0x000000, .keyLabelBack = 0x0D2614, .keyLabelText = 0xA8F0BC,
 		.keyBarBack = 0x030805 } },
 	// True colour, in the yellow-green of P1 monitor phosphor, with the amber of P3
-	{ "phosphor", "P~h~osphor", ColourTheme::Polarity::Dark, {
+	{ "phosphor", "Ph~o~sphor", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x0F2600, .menuText = 0xC8FF9A, .menuShortcut = 0xFFB000, .menuSelectedBack = 0x5BFF1F, .menuSelectedText = 0x0A1400, .menuSelectedShortcut = 0x6B3A00,
 		.disabledText = 0x2E5A10,
 		.panelBack = 0x000000, .framePassive = 0x1E5200, .frameActive = 0x5BFF1F, .frameIcons = 0xFFB000,
@@ -153,30 +153,30 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0x101018, .hintText = 0x565F89, .hintKey = 0xBB9AF7, .keyBack = 0x7AA2F7, .keyText = 0x16161E, .keyLabelBack = 0x24283B, .keyLabelText = 0xC0CAF5,
 		.keyBarBack = 0x101018 } },
-	{ "light", "~L~ight", ColourTheme::Polarity::Light, {
-		.menuBack = 0xD0D0D0, .menuText = 0x262626, .menuShortcut = 0xAF5F00, .menuSelectedBack = 0x0087AF, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD75F,
+	{ "two-inks", "T~w~o inks", ColourTheme::Polarity::Light, {
+		.menuBack = 0xFFFFFF, .menuText = 0x000000, .menuShortcut = 0xD70000, .menuSelectedBack = 0x000000, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFF5F5F,
 		.disabledText = 0x8A8A8A,
-		.panelBack = 0xEEEEEE, .framePassive = 0xA8A8A8, .frameActive = 0x444444, .frameIcons = 0x008700,
-		.fileText = 0x444444, .fileDetailText = 0x626262, .selectedText = 0xD75F00, .cursorBack = 0xAFD7FF, .cursorText = 0x000000, .cursorSelectedText = 0xAF5F00, .columnHeader = 0x0087AF,
-		.statusText = 0x6C6C6C, .separator = 0xDADADA, .cursorSeparator = 0x87AFD7, .tabBack = 0xAFD7FF, .tabText = 0x000000,
-		.dialogBack = 0xD0D0D0, .dialogText = 0x262626, .dialogFrame = 0x262626, .dialogShortcut = 0xAF0000, .focusText = 0x005F87,
-		.buttonBack = 0xA8A8A8, .buttonText = 0x000000, .buttonDefaultText = 0x00005F, .buttonShortcut = 0xAF0000, .buttonShadow = 0x8A8A8A,
-		.controlBack = 0xEEEEEE, .controlText = 0x262626, .inputBack = 0xFFFFFF, .inputText = 0x000000, .scrollBarText = 0xA8A8A8, .scrollBarBack = 0xE4E4E4,
+		.panelBack = 0xFFFFFF, .framePassive = 0xBCBCBC, .frameActive = 0x000000, .frameIcons = 0xD70000,
+		.fileText = 0x000000, .fileDetailText = 0x6C6C6C, .selectedText = 0xD70000, .cursorBack = 0x000000, .cursorText = 0xFFFFFF, .cursorSelectedText = 0xFF5F5F, .columnHeader = 0x000000,
+		.statusText = 0x6C6C6C, .separator = 0xDADADA, .cursorSeparator = 0x6C6C6C, .tabBack = 0x000000, .tabText = 0xFFFFFF,
+		.dialogBack = 0xEEEEEE, .dialogText = 0x000000, .dialogFrame = 0x000000, .dialogShortcut = 0xD70000, .focusText = 0xAF0000,
+		.buttonBack = 0xD0D0D0, .buttonText = 0x000000, .buttonDefaultText = 0x5F0000, .buttonShortcut = 0xD70000, .buttonShadow = 0x8A8A8A,
+		.controlBack = 0xFFFFFF, .controlText = 0x000000, .inputBack = 0xFFFFFF, .inputText = 0x000000, .scrollBarText = 0x8A8A8A, .scrollBarBack = 0xE4E4E4,
 		.selectionText = 0xFFFFFF,
-		.bottomBack = 0xEEEEEE, .hintText = 0x6C6C6C, .hintKey = 0x0087AF, .keyBack = 0x0087AF, .keyText = 0xFFFFFF, .keyLabelBack = 0xD0D0D0, .keyLabelText = 0x262626,
-		.keyBarBack = 0xEEEEEE } },
-	{ "cool-grey", "C~o~ol grey", ColourTheme::Polarity::Light, {
-		.menuBack = 0xBCBCBC, .menuText = 0x000000, .menuShortcut = 0x0000AF, .menuSelectedBack = 0xFFD787, .menuSelectedText = 0x000000, .menuSelectedShortcut = 0x0000AF,
-		.disabledText = 0x808080,
-		.panelBack = 0xE4E4E4, .framePassive = 0x9E9E9E, .frameActive = 0x262626, .frameIcons = 0x008700,
-		.fileText = 0x262626, .fileDetailText = 0x444444, .selectedText = 0x0000AF, .cursorBack = 0xFFD787, .cursorText = 0x000000, .cursorSelectedText = 0x0000AF, .columnHeader = 0x005F87,
-		.statusText = 0x585858, .separator = 0xC6C6C6, .cursorSeparator = 0xD7AF5F, .tabBack = 0x87AFD7, .tabText = 0x000000,
-		.dialogBack = 0xD0D0D0, .dialogText = 0x000000, .dialogFrame = 0x000000, .dialogShortcut = 0xAF0000, .focusText = 0x0000AF,
-		.buttonBack = 0x87AFD7, .buttonText = 0x000000, .buttonDefaultText = 0x00005F, .buttonShortcut = 0xAF0000, .buttonShadow = 0x8A8A8A,
-		.controlBack = 0xEEEEEE, .controlText = 0x000000, .inputBack = 0xFFFFFF, .inputText = 0x000000, .scrollBarText = 0x9E9E9E, .scrollBarBack = 0xE4E4E4,
+		.bottomBack = 0xFFFFFF, .hintText = 0x6C6C6C, .hintKey = 0xD70000, .keyBack = 0x000000, .keyText = 0xFFFFFF, .keyLabelBack = 0xFFFFFF, .keyLabelText = 0x000000,
+		.keyBarBack = 0xFFFFFF } },
+	{ "highlighter", "~H~ighlighter", ColourTheme::Polarity::Light, {
+		.menuBack = 0xEEEEEE, .menuText = 0x000000, .menuShortcut = 0xD7005F, .menuSelectedBack = 0xFFFF5F, .menuSelectedText = 0x000000, .menuSelectedShortcut = 0xD7005F,
+		.disabledText = 0x8A8A8A,
+		.panelBack = 0xFFFFFF, .framePassive = 0xBCBCBC, .frameActive = 0x000000, .frameIcons = 0x008700,
+		.fileText = 0x1C1C1C, .fileDetailText = 0x6C6C6C, .selectedText = 0xD7005F, .cursorBack = 0xFFFF5F, .cursorText = 0x000000, .cursorSelectedText = 0xD7005F, .columnHeader = 0x005FD7,
+		.statusText = 0x767676, .separator = 0xE4E4E4, .cursorSeparator = 0xD7D700, .tabBack = 0x87FF87, .tabText = 0x000000,
+		.dialogBack = 0xEEEEEE, .dialogText = 0x000000, .dialogFrame = 0x000000, .dialogShortcut = 0xD7005F, .focusText = 0x0000D7,
+		.buttonBack = 0xFFAFD7, .buttonText = 0x000000, .buttonDefaultText = 0x005F00, .buttonShortcut = 0x5F00AF, .buttonShadow = 0x9E9E9E,
+		.controlBack = 0xFFFFFF, .controlText = 0x000000, .inputBack = 0xFFFFFF, .inputText = 0x000000, .scrollBarText = 0xBCBCBC, .scrollBarBack = 0xEEEEEE,
 		.selectionText = 0x000000,
-		.bottomBack = 0xE4E4E4, .hintText = 0x585858, .hintKey = 0x0000AF, .keyBack = 0xFFD787, .keyText = 0x000000, .keyLabelBack = 0xBCBCBC, .keyLabelText = 0x000000,
-		.keyBarBack = 0xE4E4E4 } },
+		.bottomBack = 0xFFFFFF, .hintText = 0x767676, .hintKey = 0x005FD7, .keyBack = 0x5FD7FF, .keyText = 0x000000, .keyLabelBack = 0xEEEEEE, .keyLabelText = 0x000000,
+		.keyBarBack = 0xFFFFFF } },
 	{ "light-cyan", "Light c~y~an", ColourTheme::Polarity::Light, {
 		.menuBack = 0xAFD7D7, .menuText = 0x000000, .menuShortcut = 0xAF0000, .menuSelectedBack = 0x00005F, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFFF5F,
 		.disabledText = 0x5F8787,
@@ -189,6 +189,19 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0xAFD7D7, .hintText = 0x005F5F, .hintKey = 0xAF0000, .keyBack = 0xFFFF5F, .keyText = 0x000000, .keyLabelBack = 0x00AFAF, .keyLabelText = 0x000000,
 		.keyBarBack = 0xAFD7D7 } },
+	// True colour, in the cyan of glacier ice
+	{ "glacier", "G~l~acier", ColourTheme::Polarity::Light, {
+		.menuBack = 0x006A8A, .menuText = 0xEAF8FC, .menuShortcut = 0xB8F1FF, .menuSelectedBack = 0x7FD6EA, .menuSelectedText = 0x06303D, .menuSelectedShortcut = 0x5B2BB5,
+		.disabledText = 0x7FA3B0,
+		.panelBack = 0xE0F1F6, .framePassive = 0x9CC3D0, .frameActive = 0x006A8A, .frameIcons = 0x006B4A,
+		.fileText = 0x14323E, .fileDetailText = 0x4A6875, .selectedText = 0x6D3FC4, .cursorBack = 0x006A8A, .cursorText = 0xFFFFFF, .cursorSelectedText = 0xF2E2FF, .columnHeader = 0x0087AF,
+		.statusText = 0x5A7A87, .separator = 0xC4DEE7, .cursorSeparator = 0x4FA3BD, .tabBack = 0x7FD6EA, .tabText = 0x06303D,
+		.dialogBack = 0xCFE6ED, .dialogText = 0x12303A, .dialogFrame = 0x006A8A, .dialogShortcut = 0x6D3FC4, .focusText = 0x004A63,
+		.buttonBack = 0x8FC6D8, .buttonText = 0x06303D, .buttonDefaultText = 0x4A1F9E, .buttonShortcut = 0x5A2DB0, .buttonShadow = 0x86A9B6,
+		.controlBack = 0xE0F1F6, .controlText = 0x12303A, .inputBack = 0xF6FCFE, .inputText = 0x06303D, .scrollBarText = 0x9CC3D0, .scrollBarBack = 0xD3E9EF,
+		.selectionText = 0x06303D,
+		.bottomBack = 0x006A8A, .hintText = 0xA9D3DF, .hintKey = 0xFFFFFF, .keyBack = 0x7FD6EA, .keyText = 0x06303D, .keyLabelBack = 0x006A8A, .keyLabelText = 0xEAF8FC,
+		.keyBarBack = 0x006A8A } },
 	// True colour, mostly from the Solarized Light palette (MIT licence)
 	{ "solar", "Sola~r~", ColourTheme::Polarity::Light, {
 		.menuBack = 0xEEE8D5, .menuText = 0x586E75, .menuShortcut = 0xCB4B16, .menuSelectedBack = 0x268BD2, .menuSelectedText = 0xFDF6E3, .menuSelectedShortcut = 0x002B36,
@@ -215,6 +228,19 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0xE6F2E9, .hintText = 0x6B8577, .hintKey = 0x2E7D5B, .keyBack = 0x2E7D5B, .keyText = 0xFFFFFF, .keyLabelBack = 0xD3E6D9, .keyLabelText = 0x24332B,
 		.keyBarBack = 0xE6F2E9 } },
+	// True colour, banded like green bar printer paper
+	{ "greenbar", "~G~reenbar", ColourTheme::Polarity::Light, {
+		.menuBack = 0xE3EFE0, .menuText = 0x23302A, .menuShortcut = 0xB0461A, .menuSelectedBack = 0x2E6B4A, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD9A0,
+		.disabledText = 0x97A89C,
+		.panelBack = 0xFAFAF2, .rowBandBack = 0xDCEBD9, .rowsPerBand = 3, .framePassive = 0xB5CDB3, .frameActive = 0x2E6B4A, .frameIcons = 0x2E6B4A,
+		.fileText = 0x23302A, .fileDetailText = 0x5A6B60, .selectedText = 0xB0461A, .cursorBack = 0x2E6B4A, .cursorText = 0xFFFFFF, .cursorSelectedText = 0xFFD9A0, .columnHeader = 0x2E6B4A,
+		.statusText = 0x6F8076, .separator = 0xC3D8C1, .cursorSeparator = 0x5F9479, .tabBack = 0xCDE3CA, .tabText = 0x14251B,
+		.dialogBack = 0xEDF3EA, .dialogText = 0x23302A, .dialogFrame = 0x23302A, .dialogShortcut = 0xB0461A, .focusText = 0x1F5A3C,
+		.buttonBack = 0xC5DCC2, .buttonText = 0x14251B, .buttonDefaultText = 0x8A3310, .buttonShortcut = 0xB0461A, .buttonShadow = 0xA9BFA7,
+		.controlBack = 0xFAFAF2, .controlText = 0x23302A, .inputBack = 0xFFFFFF, .inputText = 0x14251B, .scrollBarText = 0xB5CDB3, .scrollBarBack = 0xEDF3EA,
+		.selectionText = 0xFFFFFF,
+		.bottomBack = 0xEDF3EA, .hintText = 0x6F8076, .hintKey = 0x2E6B4A, .keyBack = 0x2E6B4A, .keyText = 0xFFFFFF, .keyLabelBack = 0xDCEBD9, .keyLabelText = 0x23302A,
+		.keyBarBack = 0xEDF3EA } },
 	// True colour
 	{ "blossom", "~B~lossom", ColourTheme::Polarity::Light, {
 		.menuBack = 0xF1DFE6, .menuText = 0x3A2E34, .menuShortcut = 0x8E3B6B, .menuSelectedBack = 0x8E3B6B, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD6E7,
@@ -230,6 +256,7 @@ constexpr ColourTheme themes[]{
 		.keyBarBack = 0xF6EAEF } },
 };
 static_assert(std::ranges::is_sorted(themes, {}, &ColourTheme::polarity));
+static_assert(std::ranges::all_of(themes, [](const ColourTheme& theme) { return theme.colours.rowsPerBand > 0; }));
 
 // Turbo Vision matches a menu shortcut regardless of case
 [[nodiscard]] constexpr bool everyThemeHasItsOwnMenuShortcut()

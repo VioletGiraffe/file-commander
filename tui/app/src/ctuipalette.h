@@ -14,6 +14,9 @@ enum PanelPaletteEntry : uchar
 	ppFileListRow = 9,
 	ppFileListRowDetails, // Every column but Name
 	ppFileListSelectedRow,
+	ppFileListBandRow, // The three entries above, for a row on the theme's rowBandBack
+	ppFileListBandRowDetails,
+	ppFileListBandSelectedRow,
 	ppFileListCursor,
 	ppFileListSelectedCursor,
 	ppColumnHeader,
@@ -23,6 +26,7 @@ enum PanelPaletteEntry : uchar
 	ppFilterSelectedText,
 	ppFilterArrows,
 	ppColumnSeparator, // In the rows and the column header
+	ppBandColumnSeparator,
 	ppCursorColumnSeparator,
 	ppLastEntry = ppCursorColumnSeparator
 };
@@ -31,6 +35,8 @@ struct ColourTheme;
 
 // Sets the application palette's colours. Views read them at every draw: the caller redraws.
 void applyColourTheme(const ColourTheme& theme);
+// The applied theme's ThemeColours::rowsPerBand
+[[nodiscard]] int fileListRowsPerBand();
 
 // Turbo Vision's application palette in RGB, followed by the entries of the panel, the hint row and the key bar.
 // The default theme's colours until applyColourTheme sets another theme.

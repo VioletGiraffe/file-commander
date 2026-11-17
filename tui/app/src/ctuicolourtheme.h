@@ -16,7 +16,11 @@ struct ThemeColours
 	TColorRGB menuBack, menuText, menuShortcut, menuSelectedBack, menuSelectedText, menuSelectedShortcut;
 	TColorRGB disabledText; // Everywhere
 
-	TColorRGB panelBack, framePassive, frameActive;
+	TColorRGB panelBack;
+	// The file list's rows lie in bands of rowsPerBand rows, every second band on rowBandBack. A theme without bands sets neither.
+	TColorRGB rowBandBack = panelBack;
+	int rowsPerBand = 1;
+	TColorRGB framePassive, frameActive;
 	TColorRGB frameIcons; // Also the arrows of input lines
 	TColorRGB fileText;
 	TColorRGB fileDetailText; // Every column but Name, in rows neither selected nor under the cursor

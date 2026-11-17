@@ -91,6 +91,9 @@ constexpr size_t applicationEntryCount = firstKeyBarApplicationEntry - 1 + keyBa
 		{ c.fileText, c.panelBack },             // ppFileListRow
 		{ c.fileDetailText, c.panelBack },       // ppFileListRowDetails
 		{ c.selectedText, c.panelBack },         // ppFileListSelectedRow
+		{ c.fileText, c.rowBandBack },           // ppFileListBandRow
+		{ c.fileDetailText, c.rowBandBack },     // ppFileListBandRowDetails
+		{ c.selectedText, c.rowBandBack },       // ppFileListBandSelectedRow
 		{ c.cursorText, c.cursorBack },          // ppFileListCursor
 		{ c.cursorSelectedText, c.cursorBack },  // ppFileListSelectedCursor
 		{ c.columnHeader, c.panelBack },         // ppColumnHeader
@@ -100,6 +103,7 @@ constexpr size_t applicationEntryCount = firstKeyBarApplicationEntry - 1 + keyBa
 		{ c.frameActive, c.panelBack },          // ppFilterSelectedText
 		{ c.frameIcons, c.tabBack },             // ppFilterArrows
 		{ c.separator, c.panelBack },            // ppColumnSeparator
+		{ c.separator, c.rowBandBack },          // ppBandColumnSeparator
 		{ c.cursorSeparator, c.cursorBack },     // ppCursorColumnSeparator
 	};
 
@@ -155,11 +159,19 @@ template <size_t count>
 	return TPalette{ entries.data(), (ushort)entries.size() };
 }
 
+int appliedRowsPerBand = colourThemes().front().colours.rowsPerBand;
+
 } // namespace
 
 void applyColourTheme(const ColourTheme& theme)
 {
 	applicationPalette() = applicationPaletteFor(theme.colours);
+	appliedRowsPerBand = theme.colours.rowsPerBand;
+}
+
+int fileListRowsPerBand()
+{
+	return appliedRowsPerBand;
 }
 
 TPalette& applicationPalette()
