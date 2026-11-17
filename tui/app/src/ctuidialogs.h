@@ -70,9 +70,9 @@ private:
 class CTuiPathTitledWindow : public TWindow
 {
 public:
-	CTuiPathTitledWindow(const TRect& bounds, TStringView title) :
+	CTuiPathTitledWindow(const TRect& bounds, TStringView windowTitle) :
 		TWindowInit(&TWindow::initFrame),
-		TWindow(bounds, title, wnNoNumber)
+		TWindow(bounds, windowTitle, wnNoNumber)
 	{}
 
 	const char* getTitle(short maxSize) override;
