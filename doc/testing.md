@@ -100,6 +100,10 @@ the shell script also falls back to a `qmake` already on PATH.
 (`--settings-dir`) and, on Unix, `HOME` there too. The editor is the test executable itself, started with
 `--record <file>`: it writes its working folder and arguments to the file. With `--print-then-sleep <text>` it stands
 in for a long-running program. A test waits for what the screen shows, never for a fixed time.
+Turbo Vision writes each screen update row by row, top to bottom, and the test can read it in several pieces. So a
+test waits for the last text of an update it will check (the lowest row, the rightmost on that row) before it reads
+the text above it. A check that something did not happen first sends a later input with a visible effect and waits
+for that effect: fcterm handles input in order.
 
 No suite covers a launch that opens a window (programs, terminals), volume enumeration, favorites, settings other than the tabs' and the batch rename options, the GUI outside file operations and the
 file list, or any plugin other than the CSV viewer. The `cpputils`, `cpp-template-utils`, `thin_io`,

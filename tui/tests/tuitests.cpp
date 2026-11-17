@@ -196,7 +196,8 @@ struct FctermStart
 	int columns = screenColumns;
 };
 
-// fcterm with its settings in the sandbox and no editor or desktop of the user's
+// fcterm with its settings in the sandbox and no editor or desktop of the user's.
+// Returns once the key row's first item shows: the rest of that row can arrive in a later read.
 [[nodiscard]] std::unique_ptr<CTerminalSession> startFcterm(const Sandbox& sandbox, const FctermStart& start = {})
 {
 	QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
@@ -372,11 +373,11 @@ TEST_CASE("The status rows show all of their keys in 80 columns", "[tui]")
 {
 	const Sandbox sandbox;
 	auto session = startFcterm(sandbox, { .columns = 80 });
+	requireScreen(*session, [](const CTerminalScreen& screen) { return screen.row(keyRow).contains(QStringLiteral("F10 Menu")); }, QStringLiteral("the key row's last item"));
 	CHECK(session->screen().row(hintRow).contains(QStringLiteral("Shift-F2 Batch rename")));
 	CHECK(session->screen().row(hintRow).contains(QStringLiteral("Alt-X Exit")));
 	CHECK(session->screen().row(keyRow).contains(QStringLiteral("F2 Rename")));
 	CHECK(session->screen().row(keyRow).contains(QStringLiteral("F8 Delete")));
-	CHECK(session->screen().row(keyRow).contains(QStringLiteral("F10 Menu")));
 }
 
 TEST_CASE("A click on a key bar item runs its command, and a click between items runs none", "[tui]")
@@ -542,6 +543,11 @@ TEST_CASE("Enter does nothing in a question without a default action, and Space 
 	session->send(" "sv);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("The file is read-only.")); }, QStringLiteral("the question answered"));
 	CHECK(QFile::exists(locked));
+
+	// The status row shows Home's result only after Space was handled, and a selection would replace the name there
+	session->send(Keys::Home);
+	requireScreen(*session, [](const CTerminalScreen& screen) { return cursorIsOn(screen, QStringLiteral("..")) || panelStatus(screen).contains(QStringLiteral("selected")); },
+		QStringLiteral("Home handled"));
 	CHECK_FALSE(panelStatus(session->screen()).contains(QStringLiteral("selected")));
 }
 
@@ -807,12 +813,14 @@ TEST_CASE("Ctrl+L shows the occupied space of the current item, Esc closes it, a
 	moveCursorTo(*session, QStringLiteral("sub"));
 
 	session->send(Keys::CtrlL);
-	requireText(*session, QStringLiteral("Largest files (2):"));
+	// The buttons are below the dialog's text, so they arrive after it
+	requireScreen(*session, [](const CTerminalScreen& screen) {
+		const int buttonsRow = rowWith(screen, QStringLiteral("Close"));
+		return buttonsRow >= 0 && screen.row(buttonsRow).contains(QStringLiteral("Go to")); // The hint row also holds "Go to"
+	}, QStringLiteral("the dialog's buttons"));
+	CHECK(session->screen().contains(QStringLiteral("Largest files (2):")));
 	CHECK(session->screen().contains(QStringLiteral("Files: 2")));
 	CHECK(session->screen().contains(QStringLiteral("Folders: 1"))); // The folder itself
-	const int buttonsRow = rowWith(session->screen(), QStringLiteral("Close"));
-	REQUIRE(buttonsRow >= 0);
-	CHECK(session->screen().row(buttonsRow).contains(QStringLiteral("Go to"))); // The hint row also holds "Go to"
 
 	session->send(Keys::Escape);
 	requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Largest files")); }, QStringLiteral("the dialog closed"));
@@ -1364,8 +1372,8 @@ TEST_CASE("F3 shows the file in the viewer over the menu bar, with its encoding 
 	requireText(*session, QStringLiteral("second line"));
 	CHECK(session->screen().row(0).contains(QStringLiteral("viewed.txt")));
 	CHECK(session->screen().row(viewerFirstRow).mid(1).startsWith(QStringLiteral("first line")));
-	requireViewerStatus(*session, QStringLiteral("UTF-8 · Wrap"));
-	CHECK(session->screen().row(viewerStatusRow).contains(QStringLiteral("Line 1 of 2  100%")));
+	requireViewerStatus(*session, QStringLiteral("Line 1 of 2  100%")); // The row's right end
+	CHECK(session->screen().row(viewerStatusRow).contains(QStringLiteral("UTF-8 · Wrap")));
 	CHECK(session->screen().row(hintRow).contains(QStringLiteral("1 Auto")));
 	CHECK(session->screen().row(hintRow).contains(QStringLiteral("6 Hex")));
 	CHECK(session->screen().row(keyRow).contains(QStringLiteral("Ctrl-F Find")));
@@ -1427,7 +1435,7 @@ TEST_CASE("The viewer shows binary content as Latin-1, 6 shows its bytes in hex,
 	session->send(QStringLiteral("6"));
 	requireText(*session, QStringLiteral("00000000  41 42 00 43"));
 	requireText(*session, QStringLiteral("│ AB.C"));
-	CHECK(session->screen().row(viewerStatusRow).contains(QStringLiteral("Hex")));
+	requireViewerStatus(*session, QStringLiteral("Hex"));
 
 	session->send(QStringLiteral("4"));
 	requireViewerStatus(*session, QStringLiteral("The file is not text in this encoding"));
@@ -1490,7 +1498,8 @@ TEST_CASE("Ctrl+Q shows the file under the cursor over the other panel, follows 
 	session->send(Keys::CtrlQ);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return quickViewShows(screen, QStringLiteral("the first contents")); }, QStringLiteral("a.txt in quick view"));
 	CHECK(panelPart(session->screen().row(1), Side::Right).contains(QStringLiteral("a.txt")));
-	CHECK(panelStatus(session->screen(), Side::Right).contains(QStringLiteral("UTF-8 · Wrap")));
+	requireScreen(*session, [](const CTerminalScreen& screen) { return panelStatus(screen, Side::Right).contains(QStringLiteral("UTF-8 · Wrap")); },
+		QStringLiteral("quick view's status row"));
 
 	session->send(Keys::Down);
 	requireScreen(*session, [&](const CTerminalScreen& screen) { return quickViewShows(screen, QStringLiteral("the second contents")); }, QStringLiteral("b.txt in quick view"));
