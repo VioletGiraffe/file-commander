@@ -21,7 +21,7 @@ constexpr uchar firstHintLineApplicationEntry = firstPanelApplicationEntry + pan
 constexpr uchar firstKeyBarApplicationEntry = firstHintLineApplicationEntry + hintLineEntryCount;
 constexpr size_t applicationEntryCount = firstKeyBarApplicationEntry - 1 + keyBarEntryCount;
 
-[[nodiscard]] TPalette applicationPaletteFor(const ThemeColours& c)
+[[nodiscard]] TPalette applicationPaletteFor(const ThemeParameters& c)
 {
 	// Entry 1: the desktop
 	const TColorAttr desktopColors[]{
@@ -159,14 +159,14 @@ template <size_t count>
 	return TPalette{ entries.data(), (ushort)entries.size() };
 }
 
-int appliedRowsPerBand = colourThemes().front().colours.rowsPerBand;
+int appliedRowsPerBand = colourThemes().front().parameters.rowsPerBand;
 
 } // namespace
 
 void applyColourTheme(const ColourTheme& theme)
 {
-	applicationPalette() = applicationPaletteFor(theme.colours);
-	appliedRowsPerBand = theme.colours.rowsPerBand;
+	applicationPalette() = applicationPaletteFor(theme.parameters);
+	appliedRowsPerBand = theme.parameters.rowsPerBand;
 }
 
 int fileListRowsPerBand()
@@ -176,7 +176,7 @@ int fileListRowsPerBand()
 
 TPalette& applicationPalette()
 {
-	static TPalette palette = applicationPaletteFor(colourThemes().front().colours);
+	static TPalette palette = applicationPaletteFor(colourThemes().front().parameters);
 	return palette;
 }
 

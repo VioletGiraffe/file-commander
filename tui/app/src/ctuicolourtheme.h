@@ -9,8 +9,8 @@ RESTORE_COMPILER_WARNINGS
 
 #include <span>
 
-// A theme's colours by role. The application palette pairs them into its entries.
-struct ThemeColours
+// A theme's colours by role, and the height of its row bands. The application palette pairs the colours into its entries.
+struct ThemeParameters
 {
 	// Also the hint row's and the key bar's pressed items
 	TColorRGB menuBack, menuText, menuShortcut, menuSelectedBack, menuSelectedText, menuSelectedShortcut;
@@ -45,7 +45,7 @@ struct ColourTheme
 	const char* id; // The settings store it: never changes
 	const char* menuName; // The shortcut letter is between tildes
 	Polarity polarity;
-	ThemeColours colours;
+	ThemeParameters parameters;
 };
 
 // In the Theme menu's order, dark themes first. The first theme is the default.

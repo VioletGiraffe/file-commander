@@ -35,7 +35,7 @@ struct ColourTheme;
 
 // Sets the application palette's colours. Views read them at every draw: the caller redraws.
 void applyColourTheme(const ColourTheme& theme);
-// The applied theme's ThemeColours::rowsPerBand
+// The applied theme's ThemeParameters::rowsPerBand
 [[nodiscard]] int fileListRowsPerBand();
 
 // Turbo Vision's application palette in RGB, followed by the entries of the panel, the hint row and the key bar.

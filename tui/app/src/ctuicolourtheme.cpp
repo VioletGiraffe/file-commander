@@ -256,7 +256,7 @@ constexpr ColourTheme themes[]{
 		.keyBarBack = 0xF6EAEF } },
 };
 static_assert(std::ranges::is_sorted(themes, {}, &ColourTheme::polarity));
-static_assert(std::ranges::all_of(themes, [](const ColourTheme& theme) { return theme.colours.rowsPerBand > 0; }));
+static_assert(std::ranges::all_of(themes, [](const ColourTheme& theme) { return theme.parameters.rowsPerBand > 0; }));
 
 // Turbo Vision matches a menu shortcut regardless of case
 [[nodiscard]] constexpr bool everyThemeHasItsOwnMenuShortcut()
