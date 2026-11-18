@@ -339,6 +339,8 @@ const std::vector<Theme>& allThemes()
 				.border = rgb(0x2c313a),
 			},
 		},
+		// Listed before Cobalt's light variant: the first theme of a polarity is its default.
+		meadowTheme(),
 		{
 			.name = QStringLiteral("Cobalt"),
 			.dark = false,
@@ -369,7 +371,6 @@ const std::vector<Theme>& allThemes()
 			.border = rgb(0x9cc0a1), .borderSubtle = rgb(0xc9dec8), .borderStrong = rgb(0x6f9a78),
 			.accentFg = rgb(0xffffff),
 		}),
-		meadowTheme(),
 		ledgerTheme(true, {
 			.windowBg = rgb(0x1a1916), .surface = rgb(0x1a1916), .surfaceAlt = rgb(0x24221e),
 			.text = rgb(0xece7dd), .textDim = rgb(0x9a9488),
