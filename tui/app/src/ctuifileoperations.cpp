@@ -205,7 +205,11 @@ public:
 		_pauseButton->select();
 	}
 
-	void start() { _job.start(); }
+	void start()
+	{
+		_job.start();
+		_startOrLastAnswerTime = std::chrono::steady_clock::now();
+	}
 
 	// Shows the job's queued progress and opens a dialog for each of its questions
 	void processJobEvents()
@@ -218,7 +222,10 @@ public:
 	}
 
 	[[nodiscard]] const std::optional<OperationSummary>& summary() const noexcept { return _summary; }
-	[[nodiscard]] bool questionAsked() const noexcept { return _questionAsked; }
+	// When the job started, then when the last question was answered
+	[[nodiscard]] std::chrono::steady_clock::time_point startOrLastAnswerTime() const noexcept { return _startOrLastAnswerTime; }
+	// True once the job has reported work still to do after the last answered question. Its report after the last item does not count.
+	[[nodiscard]] bool unfinishedWorkReportedAfterQuestion() const noexcept { return _unfinishedWorkReportedAfterQuestion; }
 
 	void getEvent(TEvent& event) override
 	{
@@ -260,6 +267,9 @@ private:
 
 	void onProgress(const ProgressSnapshot& snapshot) override
 	{
+		if (_questionAnswered && (!snapshot.itemsTotal || snapshot.itemsProcessed < *snapshot.itemsTotal))
+			_unfinishedWorkReportedAfterQuestion = true;
+
 		const int width = _text->size.x;
 		if (snapshot.currentEntry)
 			_currentEntry = elidedInTheMiddle(toNativeSeparators(snapshot.currentEntry->value()), width);
@@ -271,14 +281,23 @@ private:
 
 	[[nodiscard]] Decision askDecision(const DecisionRequest& request) override
 	{
-		_questionAsked = true;
-		return askForDecision(request, _operation);
+		Decision decision = askForDecision(request, _operation);
+		questionAnswered();
+		return decision;
 	}
 
 	[[nodiscard]] std::optional<ConflictResolutions> askConflictPlan(const ConflictPlan& plan) override
 	{
-		_questionAsked = true;
-		return askForPlanAnswers(plan, _operation);
+		std::optional<ConflictResolutions> resolutions = askForPlanAnswers(plan, _operation);
+		questionAnswered();
+		return resolutions;
+	}
+
+	void questionAnswered()
+	{
+		_questionAnswered = true;
+		_unfinishedWorkReportedAfterQuestion = false;
+		_startOrLastAnswerTime = std::chrono::steady_clock::now();
 	}
 
 	void onFinished(const OperationSummary& summary) override { _summary = summary; }
@@ -340,7 +359,9 @@ private:
 	std::optional<OperationSummary> _summary;
 	bool _paused = false;
 	bool _cancellationRequested = false;
-	bool _questionAsked = false;
+	std::chrono::steady_clock::time_point _startOrLastAnswerTime;
+	bool _questionAnswered = false;
+	bool _unfinishedWorkReportedAfterQuestion = false;
 	bool _processingJobEvents = false;
 };
 
@@ -352,12 +373,14 @@ private:
 	auto* dialog = new CTuiProgressDialog(std::move(request));
 	dialog->start();
 
-	// The progress window appears once the operation has run this long, or has asked a question: a short one never shows it
-	const auto showTime = std::chrono::steady_clock::now() + 500ms;
+	// The progress window appears at the first of these, and never for an operation that ends before them:
+	//   - the operation has run for showDelay since it started, or since the last answered question
+	//   - after a question, the job reports work still to do
+	constexpr auto showDelay = 500ms;
 	for (;;)
 	{
 		dialog->processJobEvents();
-		if (dialog->summary() || dialog->questionAsked() || std::chrono::steady_clock::now() >= showTime)
+		if (dialog->summary() || dialog->unfinishedWorkReportedAfterQuestion() || std::chrono::steady_clock::now() >= dialog->startOrLastAnswerTime() + showDelay)
 			break;
 		std::this_thread::sleep_for(10ms);
 	}

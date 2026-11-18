@@ -76,7 +76,8 @@ dialog is open.
     their commands on a click only. The hint row binds no keys.
 - Copy, move and delete build their requests with the core's `fileoperationlaunch` and run on the same engine as the
   Qt app; [core-engine.md](core-engine.md) has the deletion backends. The progress dialog opens only for an operation
-  that outlasts a short delay or asks a question. A trash that refuses items offers them for permanent deletion.
+  that outlasts a short delay, counted again from each answered question, or that has work left after one. A trash
+  that refuses items offers them for permanent deletion.
 - Find files (Alt+F7) runs the core's `CFileSearchEngine` with the GUI's fields, options and settings keys. The dialog
   takes the results from a `CFileSearchResultsBuffer` in its `getEvent`, at most every 100 ms. The application keeps
   the dialog, so its last results show again; closing it stops a running search.
