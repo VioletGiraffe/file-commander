@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794965985045,
+  "lastUpdate": 1794966803606,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -38482,6 +38482,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 462.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 52.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2fae9132682e0a6675245cb44209f3515aa9ed44",
+          "message": "GUI themes Greenbar, Departures and Notebook, built around banded rows; Blueprint gets graph-paper bands, Ledger a heavier rule under every fifth row, Dusk bands in its active panel\n\nA theme's file list look can now band its rows, close each band with a line, make every row a strip, and draw a margin line between the icons and the names.\nRow lines continue below the last file, Ledger's hairlines included.",
+          "timestamp": "2026-11-18T03:43:07+02:00",
+          "tree_id": "10e26f32db9a90144bc155cdfe16728b564156fc",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2fae9132682e0a6675245cb44209f3515aa9ed44"
+        },
+        "date": 1794966801472,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 24474,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36251,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1775.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1049.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1090,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 463.5,
             "unit": "KB"
           },
           {
