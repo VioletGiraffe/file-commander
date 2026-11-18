@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795038331492,
+  "lastUpdate": 1795044029278,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -39026,6 +39026,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .pdata",
             "value": 53.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "989352c7b1b14c2c3c2be4023e6174a276ca172c",
+          "message": "The Linux AppImage offers once to install a desktop entry, so it appears in the applications menu and can be pinned; the Help menu installs or uninstalls it",
+          "timestamp": "2026-11-19T01:13:13+02:00",
+          "tree_id": "f91d90c1016c03b7fd4762738f647b55a0c2b5af",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/989352c7b1b14c2c3c2be4023e6174a276ca172c"
+        },
+        "date": 1795044027031,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 25116,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36752,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1773.5,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1051,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1120.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 479.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 54,
             "unit": "KB"
           },
           {
