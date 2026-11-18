@@ -690,6 +690,19 @@ FolderContentsSummary CPanel::selectionSummary() const
 	return summary;
 }
 
+std::optional<FolderContentsSummary> CPanel::contentsSummary() const
+{
+	std::lock_guard locker(_fileListAndCurrentDirMutex);
+	if (!fileListBelongsToCurrentViewLocked())
+		return {};
+
+	FolderContentsSummary summary;
+	for (const auto& [hash, item] : _items)
+		summary.add(item);
+
+	return summary;
+}
+
 QString CPanel::selectedOrCurrentItemPathLines() const
 {
 	std::vector<CFileSystemObject> items = selectedItems();

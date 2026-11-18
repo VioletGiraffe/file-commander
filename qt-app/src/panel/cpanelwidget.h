@@ -68,8 +68,7 @@ public:
 	// other; CController's tabs are addressed by tab ID, recovered from a tab bar position via tabIdAt().
 	void createNewTab();          // New tab showing the current folder, switched to
 	void closeCurrentTab();       // Closes the active tab (no-op when it's the only one)
-	void switchToNextTab();
-	void switchToPreviousTab();
+	void switchTabBy(int step);   // +1: the next tab, -1: the previous one, wrapping around
 	void openCurrentItemInNewTab(); // Ctrl+Up: opens the folder under the cursor in a new tab (no-op if it's not a folder)
 	void reopenLastClosedTab();   // Reopens this side's most recently closed tab as a new tab at the end (path only, history is not preserved)
 	void duplicateCurrentTab();   // Opens a background tab with the same path (menu counterpart of the tab context menu's "Duplicate tab")
@@ -121,7 +120,6 @@ private slots:
 	void currentItemChanged(const QModelIndex& current, const QModelIndex& previous);
 	void renameItem(qulonglong hash, const QString& newName);
 	void showFavoriteLocationsMenu(QPoint pos);
-	void showFavoriteLocationsEditor();
 	void fileListViewKeyPressed(const QString& keyText, int key, Qt::KeyboardModifiers modifiers);
 	void filterTextEdited(const QString& filterText);
 	void filterTextConfirmed(const QString& filterText);
@@ -135,6 +133,9 @@ private:
 	// Returns true if it reset the model
 	bool fillFromList(FileListRefreshCause operation);
 	void fillFromPanel(FileListRefreshCause operation);
+	// The core's cursor target once listed; after a refresh, the cursor's item, or its row when the item is gone; after a navigation, the item
+	// remembered for the folder. previousRow: the cursor's row before the refill, -1 for none.
+	void placeCursorAfterFill(FileListRefreshCause operation, bool modelReset, int previousRow, qulonglong previousHash);
 	// The active tab's cursor target once the model lists it, consuming the target; invalid until then
 	[[nodiscard]] QModelIndex takeListedCursorTarget();
 	// Stores the cursor's item in the core and signals a change of it
@@ -186,10 +187,13 @@ private:
 		qulonglong cursorTargetHash = 0; // The item the core designated for the cursor, kept until a listing has it; 0 for none
 		CFileListView::ScrollPosition scrollPosition; // Saved while the tab is in the background
 	};
-	// Wires a model and its selection model into an already-emplaced tab (not shown yet), sorted as the core tab is
-	void populateTabModels(PanelTab& tab, qulonglong tabId, const CFileListView::ColumnLayout& columnLayout);
+	// Adds core tab tabId at the end of the tab bar, with its models sorted as the core tab is, without activating it. Returns its position.
+	int appendTab(qulonglong tabId, const CFileListView::ColumnLayout& columnLayout);
 	[[nodiscard]] CFileListView::ColumnLayout columnLayoutOfTab(int index) const; // What tab 'index' looks like right now
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this tab bar position's tab data
+	[[nodiscard]] int tabIndexById(qulonglong id) const; // The tab bar position holding id; -1 for none
+	// Requires a shown tab: initPanel() shows one
+	[[nodiscard]] PanelTab& activeTab();
 	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
 	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths, sort, scroll position and filter box
 	void saveActiveTabViewState();                 // Stores what activateTab() restores, before the view shows another tab
@@ -221,6 +225,7 @@ private:
 	int                             _activeTab = -1;
 	qulonglong                      _lastSignalledCurrentItemHash = 0;
 	bool                            _applyingCoreSelection = false; // Stops selectionChanged() from pushing the copy back
+	bool                            _refillingList = false; // Stops currentItemChanged() from taking the refill's cursor moves for the user's
 	Panel                           _panelPosition = Panel::UnknownPanel;
 	std::unique_ptr<CGlowUnderlay>  _frameGlow;
 };

@@ -28,6 +28,7 @@ RESTORE_COMPILER_WARNINGS
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <stddef.h>
 #include <stdint.h>
 #include <utility>
@@ -178,6 +179,8 @@ public:
 	// selectedItems(), or with nothing selected the current item, unless that is [..] or hidden
 	[[nodiscard]] std::vector<CFileSystemObject> selectedItemsOrCurrentItem() const;
 	[[nodiscard]] FolderContentsSummary selectionSummary() const;
+	// Over the whole listing, the items the name filter hides included. Empty while the committed listing does not belong to the current view.
+	[[nodiscard]] std::optional<FolderContentsSummary> contentsSummary() const;
 	// The selected items' paths, or with nothing selected the current item's, [..] included: shell-quoted, native, one per line.
 	// Empty when there is no current item either.
 	[[nodiscard]] QString selectedOrCurrentItemPathLines() const;

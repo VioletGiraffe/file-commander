@@ -12,11 +12,10 @@
 #include "cmainwindow.h"
 #include "themes/theme.h"
 
-#include "favoritelocationseditor/cfavoritelocationseditor.h"
+#include "favoritelocationseditor/favoritelocationsmenu.h"
 
 #include "settings.h"
 #include "shell/cshell.h"
-#include "fileoperationresultcode.h"
 #include "filesystemhelperfunctions.h"
 
 
@@ -28,7 +27,6 @@
 #include "fileoperations/inlinerename.h"
 #include "fileoperationsui/usermessagebox.h"
 #include "qtcore_helpers/displayformatting.hpp"
-#include "qtcore_helpers/qdatetime_helpers.hpp"
 #include "shelloperations/cshelloperationrunner.h"
 #include "shelloperations/shellfileoperations.h"
 #include "theme/cthemecontroller.h"
@@ -49,9 +47,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QHeaderView>
 #include <QHelpEvent>
 #include <QImage>
-#include <QInputDialog>
 #include <QItemSelectionModel>
-#include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
@@ -76,7 +72,6 @@ RESTORE_COMPILER_WARNINGS
 #include <array>
 #include <chrono>
 #include <cmath>
-#include <functional>
 #include <optional>
 #include <unordered_set>
 #include <utility>
@@ -107,15 +102,6 @@ static constexpr int doubleFrameLineOffset = 3;
 	}
 	line << box.topRight() << box.bottomRight();
 	return line;
-}
-
-static FolderContentsSummary summarizeFolderContents(const FileListHashMap& items)
-{
-	FolderContentsSummary summary;
-	for (const auto& item: items)
-		summary.add(item.second);
-
-	return summary;
 }
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
@@ -328,25 +314,18 @@ void CPanelWidget::initPanel(Panel p)
 	};
 
 	int activeIndex = 0;
+	for (const qulonglong id : ids)
+	{
+		if (legacyState.sorting)
+			_controller->setTabSorting(p, id, legacyState.sorting->first, legacyState.sorting->second);
+
+		if (const int index = appendTab(id, restoredColumnLayout(id)); id == activeId)
+			activeIndex = index;
+	}
 	{
 		const QSignalBlocker block(ui->_tabBar);
-		for (const qulonglong id : ids)
-		{
-			if (legacyState.sorting)
-				_controller->setTabSorting(p, id, legacyState.sorting->first, legacyState.sorting->second);
-
-			PanelTab& tab = _tabs.emplace_back();
-			populateTabModels(tab, id, restoredColumnLayout(id));
-
-			const int index = ui->_tabBar->addTab(QString());
-			ui->_tabBar->setTabData(index, id);
-			if (id == activeId)
-				activeIndex = index;
-		}
 		ui->_tabBar->setCurrentIndex(activeIndex);
 	}
-	for (int i = 0; i < (int)_tabs.size(); ++i)
-		updateTabText(i);
 	activateTab(activeIndex);
 	updateTabBarVisibility();
 
@@ -359,8 +338,9 @@ void CPanelWidget::initPanel(Panel p)
 	_controller->setCurrentItemChangedListener(p, this);
 }
 
-void CPanelWidget::populateTabModels(PanelTab& tab, qulonglong tabId, const CFileListView::ColumnLayout& columnLayout)
+int CPanelWidget::appendTab(const qulonglong tabId, const CFileListView::ColumnLayout& columnLayout)
 {
+	PanelTab& tab = _tabs.emplace_back();
 	tab.model = new CFileListModel(_iconProvider, this);
 	tab.model->setDropHandler([this](const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath) {
 		return dropUrls(urls, action, destinationPath);
@@ -384,6 +364,15 @@ void CPanelWidget::populateTabModels(PanelTab& tab, qulonglong tabId, const CFil
 	tab.selectionModel = new QItemSelectionModel(tab.model, this);
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
+
+	int index = 0;
+	{
+		const QSignalBlocker block(ui->_tabBar);
+		index = ui->_tabBar->addTab(QString());
+		ui->_tabBar->setTabData(index, tabId);
+	}
+	updateTabText(index);
+	return index;
 }
 
 void CPanelWidget::activateTab(int index)
@@ -427,7 +416,7 @@ void CPanelWidget::saveActiveTabViewState()
 	if (_activeTab < 0 || _activeTab >= (int)_tabs.size())
 		return;
 
-	PanelTab& tab = _tabs[(size_t)_activeTab];
+	PanelTab& tab = activeTab();
 	tab.columnLayout = ui->_list->columnLayout();
 	tab.scrollPosition = ui->_list->scrollPosition();
 }
@@ -465,17 +454,7 @@ void CPanelWidget::openPathInNewTab(const QString& path, bool activate, int sour
 {
 	const CFileListView::ColumnLayout columnLayout = columnLayoutOfTab(sourceIndex);
 	const qulonglong id = _controller->addTab(_panelPosition, path, activate, tabIdAt(sourceIndex));
-
-	PanelTab& tab = _tabs.emplace_back();
-	populateTabModels(tab, id, columnLayout);
-
-	int index = 0;
-	{
-		const QSignalBlocker block(ui->_tabBar);
-		index = ui->_tabBar->addTab(QString());
-		ui->_tabBar->setTabData(index, id);
-	}
-	updateTabText(index);
+	const int index = appendTab(id, columnLayout);
 	updateTabBarVisibility();
 
 	if (activate)
@@ -507,11 +486,12 @@ void CPanelWidget::reopenLastClosedTab()
 	openPathInNewTab(path, /*activate=*/true, _activeTab);
 }
 
-void CPanelWidget::switchToNextTab()
+void CPanelWidget::switchTabBy(const int step)
 {
-	if (_tabs.size() <= 1)
+	const int count = (int)_tabs.size();
+	if (count <= 1)
 		return;
-	ui->_tabBar->setCurrentIndex((_activeTab + 1) % (int)_tabs.size());
+	ui->_tabBar->setCurrentIndex(((_activeTab + step) % count + count) % count);
 }
 
 void CPanelWidget::switchToTabByPosition(int position)
@@ -519,13 +499,6 @@ void CPanelWidget::switchToTabByPosition(int position)
 	if (position < 0 || position >= (int)_tabs.size())
 		return;
 	ui->_tabBar->setCurrentIndex(position);
-}
-
-void CPanelWidget::switchToPreviousTab()
-{
-	if (_tabs.size() <= 1)
-		return;
-	ui->_tabBar->setCurrentIndex((_activeTab - 1 + (int)_tabs.size()) % (int)_tabs.size());
 }
 
 void CPanelWidget::onTabBarCurrentChanged(int index)
@@ -551,15 +524,7 @@ void CPanelWidget::closeTabById(qulonglong id)
 	if (_tabs.size() <= 1)
 		return;
 
-	int index = -1;
-	for (int i = 0; i < ui->_tabBar->count(); ++i)
-	{
-		if (tabIdAt(i) == id)
-		{
-			index = i;
-			break;
-		}
-	}
+	const int index = tabIndexById(id);
 	if (index < 0)
 		return;
 
@@ -579,14 +544,8 @@ void CPanelWidget::closeTabById(qulonglong id)
 		const QSignalBlocker block(ui->_tabBar);
 		ui->_tabBar->removeTab(index);
 		// The removal shifted the positions after it, so the active tab is found by id
-		for (int i = 0; i < ui->_tabBar->count(); ++i)
-		{
-			if (tabIdAt(i) == activeId)
-			{
-				controllerActiveIndex = i;
-				break;
-			}
-		}
+		controllerActiveIndex = tabIndexById(activeId);
+		assert_r(controllerActiveIndex >= 0);
 		ui->_tabBar->setCurrentIndex(controllerActiveIndex);
 	}
 	updateTabBarVisibility();
@@ -679,16 +638,14 @@ void CPanelWidget::updateTabText(int index)
 QString CPanelWidget::tabToolTipText(int index) const
 {
 	const CPanel& tab = _controller->tabById(_panelPosition, tabIdAt(index));
+	const QString path = tab.currentDirPathNative();
 
 	// A tab that has never been activated has no listing, so there are no stats to show until it's been visited.
-	QString stats;
-	tab.readCommittedContents([&stats](const QString&, const FileListHashMap& items) {
-		const FolderContentsSummary contents = summarizeFolderContents(items);
-		stats = tr("%1 folders, %2 files (%3)").arg(contents.numFolders).arg(contents.numFiles).arg(fileSizeToString(contents.size));
-	});
+	const std::optional<FolderContentsSummary> contents = tab.contentsSummary();
+	if (!contents)
+		return path;
 
-	const QString path = tab.currentDirPathNative();
-	return stats.isEmpty() ? path : path % '\n' % stats;
+	return path % '\n' % tr("%1 folders, %2 files (%3)").arg(contents->numFolders).arg(contents->numFiles).arg(fileSizeToString(contents->size));
 }
 
 qulonglong CPanelWidget::tabIdAt(int index) const
@@ -696,11 +653,27 @@ qulonglong CPanelWidget::tabIdAt(int index) const
 	return ui->_tabBar->tabData(index);
 }
 
+int CPanelWidget::tabIndexById(const qulonglong id) const
+{
+	for (int i = 0; i < ui->_tabBar->count(); ++i)
+	{
+		if (tabIdAt(i) == id)
+			return i;
+	}
+
+	return -1;
+}
+
+CPanelWidget::PanelTab& CPanelWidget::activeTab()
+{
+	assert_debug_only(_activeTab >= 0 && _activeTab < (int)_tabs.size());
+	return _tabs[(size_t)_activeTab];
+}
+
 bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 {
-	disconnect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged);
-
 	const QModelIndex previousCurrentIndex = _selectionModel->currentIndex();
+	const int previousCurrentRow = previousCurrentIndex.row();
 	const qulonglong previousCurrentHash = _model->itemHash(previousCurrentIndex);
 
 	const CPanel& panel = _controller->panel(_panelPosition);
@@ -715,7 +688,7 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 			rows.push_back(item.second);
 	});
 
-	PanelTab& tab = _tabs[(size_t)_activeTab];
+	PanelTab& tab = activeTab();
 	const std::optional<uint64_t> navigationId = listed ? std::optional{ panel.navigationId() } : std::nullopt;
 	// A refresh keeps the scroll position, the cursor, the selection and an open editor; a navigation starts over
 	const bool refresh = navigationId && navigationId == tab.navigationId;
@@ -724,58 +697,66 @@ bool CPanelWidget::fillFromList(FileListRefreshCause operation)
 		tab.cursorTargetHash = 0;
 
 	bool modelReset = true;
-	if (refresh)
 	{
-		const CFileListView::ScrollPosition scrollPosition = ui->_list->scrollPosition();
-		modelReset = !_model->updateRows(std::move(rows));
-		ui->_list->restoreScrollPosition(scrollPosition);
-	}
-	else
-		_model->setRows(std::move(rows), std::move(listedFolder));
-
-	if (const QModelIndex cursorTarget = takeListedCursorTarget(); cursorTarget.isValid())
-		ui->_list->moveCursorToItem(cursorTarget);
-	else if (!modelReset)
-	{
-		// The cursor follows its item; when the item is gone, it stays on the item's row
-		const QModelIndex currentIndex = _selectionModel->currentIndex();
-		if (!currentIndex.isValid() || _model->itemHash(currentIndex) != previousCurrentHash)
-			ui->_list->moveCursorToItem(_model->index(std::min(std::max(previousCurrentIndex.row(), 0), _model->rowCount() - 1), 0));
-	}
-	else
-	{
-		auto indexUnderCursor = _model->index(0, 0);
-
-		// Setting the cursor position as appropriate. Stepping up is not a special case here: setPath() has already
-		// recorded the folder we came from as the current item for the folder we arrived at.
-		if (operation != refreshCauseForwardNavigation || QSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, INTERFACE_RESPECT_LAST_CURSOR_POS_DEFAULT).toBool())
+		const QScopedValueRollback refilling{ _refillingList, true };
+		if (refresh)
 		{
-			const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, panel.currentDirPathPosix());
-			const QModelIndex itemIndexToSetCursorTo = _model->indexByHash(itemHashToSetCursorTo);
-			if (itemIndexToSetCursorTo.isValid())
-				indexUnderCursor = itemIndexToSetCursorTo;
-			else
-			{
-				if (itemHashToSetCursorTo != 0)
-					qInfo() << "Failed to find hash" << itemHashToSetCursorTo << "in" << currentDirPathNative();
-
-				if (previousCurrentIndex.isValid() && operation != refreshCauseCdUp && operation != refreshCauseForwardNavigation)
-					indexUnderCursor = _model->index(std::min(previousCurrentIndex.row(), _model->rowCount() - 1), 0);
-			}
+			const CFileListView::ScrollPosition scrollPosition = ui->_list->scrollPosition();
+			modelReset = !_model->updateRows(std::move(rows));
+			ui->_list->restoreScrollPosition(scrollPosition);
 		}
+		else
+			_model->setRows(std::move(rows), std::move(listedFolder));
 
-		ui->_list->moveCursorToItem(indexUnderCursor);
+		placeCursorAfterFill(operation, modelReset, previousCurrentRow, previousCurrentHash);
 	}
-
-	assert_r(connect(_selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
 	recordCurrentItem(_selectionModel->currentIndex());
 
 	return modelReset;
 }
 
+void CPanelWidget::placeCursorAfterFill(const FileListRefreshCause operation, const bool modelReset, const int previousRow, const qulonglong previousHash)
+{
+	if (const QModelIndex cursorTarget = takeListedCursorTarget(); cursorTarget.isValid())
+	{
+		ui->_list->moveCursorToItem(cursorTarget);
+		return;
+	}
+
+	if (!modelReset)
+	{
+		// The cursor follows its item; when the item is gone, it stays on the item's row
+		const QModelIndex currentIndex = _selectionModel->currentIndex();
+		if (!currentIndex.isValid() || _model->itemHash(currentIndex) != previousHash)
+			ui->_list->moveCursorToItem(_model->index(std::min(std::max(previousRow, 0), _model->rowCount() - 1), 0));
+		return;
+	}
+
+	auto indexUnderCursor = _model->index(0, 0);
+
+	// Stepping up is not a special case here: setPath() has already recorded the folder we came from as the current item for the folder we arrived at.
+	if (operation != refreshCauseForwardNavigation || QSettings().value(KEY_INTERFACE_RESPECT_LAST_CURSOR_POS, INTERFACE_RESPECT_LAST_CURSOR_POS_DEFAULT).toBool())
+	{
+		const qulonglong itemHashToSetCursorTo = _controller->currentItemHashForFolder(_panelPosition, _controller->panel(_panelPosition).currentDirPathPosix());
+		const QModelIndex itemIndexToSetCursorTo = _model->indexByHash(itemHashToSetCursorTo);
+		if (itemIndexToSetCursorTo.isValid())
+			indexUnderCursor = itemIndexToSetCursorTo;
+		else
+		{
+			if (itemHashToSetCursorTo != 0)
+				qInfo() << "Failed to find hash" << itemHashToSetCursorTo << "in" << currentDirPathNative();
+
+			if (previousRow >= 0 && operation != refreshCauseCdUp && operation != refreshCauseForwardNavigation)
+				indexUnderCursor = _model->index(std::min(previousRow, _model->rowCount() - 1), 0);
+		}
+	}
+
+	ui->_list->moveCursorToItem(indexUnderCursor);
+}
+
 QModelIndex CPanelWidget::takeListedCursorTarget()
 {
-	qulonglong& targetHash = _tabs[(size_t)_activeTab].cursorTargetHash;
+	qulonglong& targetHash = activeTab().cursorTargetHash;
 	if (targetHash == 0)
 		return {};
 
@@ -903,8 +884,11 @@ void CPanelWidget::applyCoreSelection()
 
 void CPanelWidget::currentItemChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
-	// Not connected during a refill: any other cursor move overrides the target
-	_tabs[(size_t)_activeTab].cursorTargetHash = 0;
+	if (_refillingList)
+		return;
+
+	// Any cursor move other than a refill's overrides the target
+	activeTab().cursorTargetHash = 0;
 	recordCurrentItem(current);
 }
 
@@ -939,7 +923,7 @@ void CPanelWidget::onCurrentItemChanged(Panel p, qulonglong tabId, const QString
 		return;
 
 	// The item is often not listed yet: fillFromList() then places the cursor once it is
-	_tabs[(size_t)_activeTab].cursorTargetHash = currentItemHash;
+	activeTab().cursorTargetHash = currentItemHash;
 	if (const QModelIndex cursorTarget = takeListedCursorTarget(); cursorTarget.isValid())
 		ui->_list->moveCursorToItem(cursorTarget);
 }
@@ -978,73 +962,12 @@ void CPanelWidget::toRoot()
 void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
 {
 	QMenu menu;
-	std::function<void(QMenu *, std::vector<CLocationsCollection>&)> createMenus = [this, &createMenus](QMenu * parentMenu, std::vector<CLocationsCollection>& locations)
-	{
-		for (auto& item: locations)
-		{
-			if (item.subLocations.empty() && !item.absolutePath.isEmpty())
-			{
-				QAction * action = parentMenu->addAction(item.displayName);
-				// Typed into the favorites editor: may be relative or hold variables
-				const QString path = resolveUserPath(item.absolutePath, _controller->panel(_panelPosition).currentDirPathPosix());
-				action->setEnabled(!path.isEmpty());
-				if (CFileSystemObject(path) == CFileSystemObject(currentDirPathNative()))
-				{
-					action->setCheckable(true);
-					action->setChecked(true);
-				}
+	fillFavoriteLocationsMenu(menu, _controller->favoriteLocations(), _controller->panel(_panelPosition).currentDirPathPosix(), *this, [this](const QString& path) {
+		_controller->setPath(_panelPosition, path, refreshCauseOther);
+	});
 
-				assert_r(connect(action, &QAction::triggered, this, [this, path](){
-					_controller->setPath(_panelPosition, path, refreshCauseOther);
-				}));
-			}
-			else
-			{
-				QMenu * subMenu = parentMenu->addMenu(item.displayName);
-				createMenus(subMenu, item.subLocations);
-			}
-		}
-
-		if (!locations.empty())
-			parentMenu->addSeparator();
-
-		QAction * addFolderAction = parentMenu->addAction(tr("Add current folder here..."));
-		assert_r(QObject::connect(addFolderAction, &QAction::triggered, this, [this, &locations](){
-			const QString path = currentDirPathNative();
-			const QString displayName = CFileSystemObject(path).name();
-			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name to store the current location under"), QLineEdit::Normal, displayName.isEmpty() ? path : displayName);
-			if (name.isEmpty()) // Cancelled, or no name given
-				return;
-
-			if (const auto refusal = _controller->favoriteLocations().addLocation(locations, name, path))
-				showUserMessage(this, *refusal);
-		}));
-
-		QAction * addCategoryAction = parentMenu->addAction(tr("Add a new subcategory..."));
-		assert_r(QObject::connect(addCategoryAction, &QAction::triggered, this, [this, &locations, parentMenu](){
-			const QString name = QInputDialog::getText(this, tr("Enter the name"), tr("Enter the name for the new subcategory"));
-			if (name.isEmpty()) // Cancelled, or no name given
-				return;
-
-			if (const auto refusal = _controller->favoriteLocations().addCategory(locations, name))
-				showUserMessage(this, *refusal);
-			else
-				parentMenu->addMenu(name);
-		}));
-	};
-
-	createMenus(&menu, _controller->favoriteLocations().locations());
-	menu.addSeparator();
-	QAction * edit = menu.addAction(tr("Edit..."));
-	assert_r(connect(edit, &QAction::triggered, this, &CPanelWidget::showFavoriteLocationsEditor));
-	const QAction* action = menu.exec(pos);
-	if (action) // Something was selected
+	if (menu.exec(pos)) // Something was selected
 		setFocusToFileList(); // #84
-}
-
-void CPanelWidget::showFavoriteLocationsEditor()
-{
-	CFavoriteLocationsEditor(this).exec();
 }
 
 void CPanelWidget::fileListViewKeyPressed(const QString& /*keyText*/, int key, Qt::KeyboardModifiers /*modifiers*/)
@@ -1381,8 +1304,9 @@ void CPanelWidget::onPanelContentsInvalidated(Panel p, qulonglong tabId)
 	// Display only - see PanelContentsChangedListener. The tab is already at the new folder, so its name is shown
 	// right away instead of lagging behind for however long the listing takes.
 	_model->setRows({});
-	_tabs[(size_t)_activeTab].navigationId.reset();
-	_tabs[(size_t)_activeTab].cursorTargetHash = 0;
+	PanelTab& tab = activeTab();
+	tab.navigationId.reset();
+	tab.cursorTargetHash = 0;
 	updateInfoLabel();
 	updateTabText(_activeTab);
 }

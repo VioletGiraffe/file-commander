@@ -405,8 +405,8 @@ void CMainWindow::initActions()
 	connect(ui->actionReopen_Closed_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->reopenLastClosedTab(); });
 	connect(ui->actionDuplicate_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->duplicateCurrentTab(); });
 	connect(ui->actionClose_All_Other_Tabs, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->closeAllTabsExceptCurrent(); });
-	connect(ui->actionNext_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToNextTab(); });
-	connect(ui->actionPrevious_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchToPreviousTab(); });
+	connect(ui->actionNext_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchTabBy(+1); });
+	connect(ui->actionPrevious_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->switchTabBy(-1); });
 	connect(ui->actionOpen_Folder_Under_Cursor_in_New_Tab, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->openCurrentItemInNewTab(); });
 }
 

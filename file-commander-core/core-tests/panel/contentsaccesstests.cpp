@@ -8,6 +8,28 @@ TEST_CASE("CPanel - a panel with no committed listing exposes nothing", "[panel]
 	CHECK_FALSE(h.panel().itemHashExists(1));
 	CHECK_FALSE(h.panel().itemByHash(1).isValid());
 	CHECK(h.panel().visibleItems().empty());
+	CHECK_FALSE(h.panel().contentsSummary());
+}
+
+TEST_CASE("CPanel - the contents summary counts the listed files and folders, [..] excluded, hidden by the name filter included", "[panel][contents]")
+{
+	TempTree tree;
+	const QString folder = tree.makeDir(QStringLiteral("folder"));
+	tree.makeFile(QStringLiteral("folder/a.txt"), "1");
+	tree.makeFile(QStringLiteral("folder/b.doc"), "22");
+	tree.makeDir(QStringLiteral("folder/sub"));
+
+	PanelHarness h;
+	REQUIRE(h.panel().setPath(folder, refreshCauseOther) == FileOperationResultCode::Ok);
+	h.panel().setActive(true);
+	h.settle();
+	h.panel().setNameFilter(QStringLiteral("*.txt"));
+
+	const std::optional<FolderContentsSummary> summary = h.panel().contentsSummary();
+	REQUIRE(summary);
+	CHECK(summary->numFiles == 2);
+	CHECK(summary->numFolders == 1);
+	CHECK(summary->size == 3);
 }
 
 TEST_CASE("CPanel - hidden entries follow the setting", "[panel][contents]")
