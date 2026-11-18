@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+	<!-- The source of icon.ico, file_commander.icns and file_commander.png. -->
+	<defs>
+		<!-- Apple's icon tile, full-bleed: continuous corners of radius 185.4 on an 824 px square, scaled to the viewBox. -->
+		<path id="tile-shape" d="M88.05 0H167.95C193.3 0 205.98 0 219.63 4.31C234.53 9.74 246.26 21.47 251.69 36.37C256 50.02 256 62.7 256 88.05V167.95C256 193.3 256 205.98 251.69 219.63C246.26 234.53 234.53 246.26 219.63 251.69C205.98 256 193.3 256 167.95 256H88.05C62.7 256 50.02 256 36.37 251.69C21.47 246.26 9.74 234.53 4.31 219.63C0 205.98 0 193.3 0 167.95V88.05C0 62.7 0 50.02 4.31 36.37C9.74 21.47 21.47 9.74 36.37 4.31C50.02 0 62.7 0 88.05 0Z"/>
+		<clipPath id="tile-clip"><use href="#tile-shape"/></clipPath>
+	</defs>
+	<g clip-path="url(#tile-clip)">
+		<rect width="256" height="256" fill="#0F766E"/>
+		<rect x="-60" y="56" width="180" height="260" rx="28" fill="#FFFFFF"/>
+		<rect x="136" y="56" width="180" height="260" rx="28" fill="#FFFFFF"/>
+		<rect x="-20" y="120" width="126" height="36" rx="14" fill="#0F766E"/>
+		<rect x="24" y="132" width="60" height="12" rx="6" fill="#FFFFFF"/>
+		<rect x="150" y="132" width="130" height="36" rx="14" fill="#E3ECE4"/>
+		<rect x="24" y="22" width="88" height="12" rx="6" fill="#A9D8D2"/>
+		<g fill="#6B7B71">
+			<rect x="24" y="92" width="64" height="12" rx="6"/>
+			<rect x="24" y="172" width="48" height="12" rx="6"/>
+			<rect x="24" y="198" width="60" height="12" rx="6"/>
+			<rect x="24" y="224" width="40" height="12" rx="6"/>
+			<rect x="164" y="92" width="64" height="12" rx="6"/>
+			<rect x="164" y="118" width="44" height="12" rx="6"/>
+			<rect x="164" y="144" width="72" height="12" rx="6"/>
+			<rect x="164" y="170" width="52" height="12" rx="6"/>
+			<rect x="164" y="196" width="64" height="12" rx="6"/>
+			<rect x="164" y="222" width="40" height="12" rx="6"/>
+		</g>
+		<!-- A rim: the white cards reach the tile's edge, which a light background would hide. The clip leaves the inner half. -->
+		<use href="#tile-shape" fill="none" stroke="#0F766E" stroke-width="16"/>
+	</g>
+</svg>
