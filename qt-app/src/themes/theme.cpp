@@ -272,7 +272,7 @@ constexpr char kLedgerStyleSheet[] = R"(
 	#_driveButtonsWidget > QPushButton:checked { background: transparent; border-bottom-color: @text@; color: @text@; font-weight: bold; }
 
 	#_infoLabel { border-top: 2px solid @text@; padding-top: 6px; }
-	CMainWindow > #centralwidget > QComboBox { background: transparent; border: none; border-bottom: 1px solid @text@; border-radius: 0; }
+	#CMainWindow > #centralwidget > QComboBox { background: transparent; border: none; border-bottom: 1px solid @text@; border-radius: 0; }
 )";
 
 // Ledger in one polarity: everything but the palette is shared.

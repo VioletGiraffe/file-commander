@@ -227,7 +227,7 @@ constexpr char kPanels[] = R"(
 
 // The command line row and the function key bar
 constexpr char kMainWindow[] = R"(
-	CMainWindow > #centralwidget > QLabel { color: @textDim@; }
+	#CMainWindow > #centralwidget > QLabel { color: @textDim@; }
 	CFunctionKeyButton { padding: 7px 9px; }
 )";
 
@@ -276,7 +276,7 @@ constexpr char kFlatPanels[] = R"(
 
 // CFunctionKeyButton draws its label's cell itself
 constexpr char kFlatMainWindow[] = R"(
-	CMainWindow > #centralwidget > QComboBox { background: transparent; border: none; }
+	#CMainWindow > #centralwidget > QComboBox { background: transparent; border: none; }
 
 	CFunctionKeyButton { background: transparent; border: none; padding: 0; }
 	CFunctionKeyButton:hover, CFunctionKeyButton:pressed { background: @surfaceAlt@; }
