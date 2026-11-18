@@ -32,7 +32,7 @@
       <number>6</number>
      </property>
      <item>
-      <widget class="QWidget" name="_driveButtonsWidget" native="true"/>
+      <widget class="CDriveBar" name="_driveButtonsWidget" native="true"/>
      </item>
      <item>
       <widget class="CClickableLabel" name="_driveInfoLabel">
@@ -230,6 +230,11 @@
    <class>CBreadcrumbBar</class>
    <extends>QWidget</extends>
    <header>panel/cbreadcrumbbar.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CDriveBar</class>
+   <extends>QWidget</extends>
+   <header>panel/cdrivebar.h</header>
   </customwidget>
   <customwidget>
    <class>CFileListView</class>

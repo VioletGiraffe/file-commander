@@ -14,9 +14,12 @@
 
 
 DISABLE_COMPILER_WARNINGS
+#include <QAbstractItemView>
 #include <QApplication>
+#include <QCompleter>
 #include <QCursor>
 #include <QFontMetrics>
+#include <QKeyEvent>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
@@ -24,9 +27,11 @@ DISABLE_COMPILER_WARNINGS
 #include <QPainterPath>
 #include <QPointF>
 #include <QSizePolicy>
+#include <QStyle>
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <array>
 
 namespace {
 
@@ -53,7 +58,19 @@ CBreadcrumbBar::CBreadcrumbBar(QWidget* parent) :
 	_editor->setFocusPolicy(Qt::ClickFocus);
 	// The default policy measures the entries on the first show only
 	_editor->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+	_editor->setMaxVisibleItems(40);
 	_editor->hide();
+
+	QCompleter* const completer = _editor->completer();
+	completer->setCompletionMode(QCompleter::PopupCompletion);
+	completer->setFilterMode(Qt::MatchContains);
+	// Both lists are as wide as the editor: a long path keeps its start and its end
+	_editor->view()->setTextElideMode(Qt::ElideMiddle);
+	completer->popup()->setTextElideMode(Qt::ElideMiddle);
+
+	connect(_editor, &CHistoryComboBox::textActivated, this, &CBreadcrumbBar::pathEntered);
+	connect(_editor, &CHistoryComboBox::itemActivated, this, &CBreadcrumbBar::pathEntered);
+	_editor->installEventFilter(this);
 
 	// Not a FocusOut filter: focus leaving the menu bar for another widget skips the editor
 	connect(qApp, &QApplication::focusChanged, this, [this](QWidget* /*old*/, QWidget* now) {
@@ -62,11 +79,6 @@ CBreadcrumbBar::CBreadcrumbBar(QWidget* parent) :
 
 		stopEditing();
 	});
-}
-
-CHistoryComboBox& CBreadcrumbBar::editor() const
-{
-	return *_editor;
 }
 
 void CBreadcrumbBar::setPath(const QString& posixPath)
@@ -104,9 +116,26 @@ void CBreadcrumbBar::setPath(const QString& posixPath)
 	update();
 }
 
+void CBreadcrumbBar::setHistory(const QStringList& items, const int currentRow)
+{
+	// An unchanged list is left alone: a rebuild discards the text being typed and resets an open popup
+	if (currentRow == _editor->currentIndex() && items == _editor->items())
+		return;
+
+	_editor->clear();
+	_editor->addItems(items);
+	_editor->setCurrentIndex(currentRow);
+}
+
 void CBreadcrumbBar::setShownAsActive(const bool active)
 {
 	_shownAsActive = active;
+	// A stylesheet matches property selectors only while polishing a widget
+	for (QWidget* const widget : std::array<QWidget*, 2>{ _editor, _editor->lineEdit() })
+	{
+		style()->unpolish(widget);
+		style()->polish(widget);
+	}
 	update();
 }
 
@@ -162,6 +191,17 @@ int CBreadcrumbBar::barHeight() const
 		return editorHeight;
 
 	return std::max(editorHeight, QFontMetrics{ currentFolderFont() }.height() + 2 * titleVerticalPadding);
+}
+
+bool CBreadcrumbBar::eventFilter(QObject* object, QEvent* event)
+{
+	if (object == _editor && event->type() == QEvent::KeyPress && static_cast<QKeyEvent*>(event)->key() == Qt::Key_Escape)
+	{
+		_editor->resetToLastSelected(false);
+		emit editingCancelled();
+	}
+
+	return QWidget::eventFilter(object, event);
 }
 
 void CBreadcrumbBar::paintEvent(QPaintEvent* /*event*/)

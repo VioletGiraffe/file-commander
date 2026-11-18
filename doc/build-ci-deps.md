@@ -29,6 +29,9 @@ Every project outputs to `bin/{debug,release}`: the executable, the static libra
 dev build therefore already has the plugins beside the executable, where the plugin loader looks. `build/` holds
 intermediates.
 
+`scripts/build_app.bat` and `scripts/build_app.sh` build the application, its plugins and the terminal UI: release
+by default, debug with `-Configuration debug` / `debug`. They find the Qt kit as the test scripts do.
+
 ## CI
 
 `.github/workflows/CI.yml` is the source of truth for the current matrix, tool versions, packaging, smoke test,

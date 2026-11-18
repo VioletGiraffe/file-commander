@@ -41,8 +41,11 @@ SOURCES += \
 	src/commandoutput/ccommandoutputpane.cpp \
 	src/functionkeybar/cfunctionkeybutton.cpp \
 	src/panel/cbreadcrumbbar.cpp \
+	src/panel/cdrivebar.cpp \
 	src/panel/cpanelwidget.cpp \
 	src/panel/cvolumeusagebar.cpp \
+	src/panel/fileclipboard.cpp \
+	src/panel/tabviewstates.cpp \
 	src/panel/filelistwidget/model/cfilelistmodel.cpp \
 	src/panel/filelistwidget/cfilelistview.cpp \
 	src/settings/csettingspageinterface.cpp \
@@ -76,8 +79,11 @@ HEADERS += \
 	src/functionkeybar/cfunctionkeybutton.h \
 	src/functionkeybar/functionkeyform.h \
 	src/panel/cbreadcrumbbar.h \
+	src/panel/cdrivebar.h \
 	src/panel/cpanelwidget.h \
 	src/panel/cvolumeusagebar.h \
+	src/panel/fileclipboard.h \
+	src/panel/tabviewstates.h \
 	src/panel/filelistwidget/model/cfilelistmodel.h \
 	src/panel/columns.h \
 	src/panel/filelistwidget/cfilelistview.h \

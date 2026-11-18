@@ -1,13 +1,15 @@
 #include "cpanelwidget.h"
 
 #include "cbreadcrumbbar.h"
+#include "cdrivebar.h"
 #include "columns.h"
 #include "cvolumeusagebar.h"
+#include "fileclipboard.h"
 #include "filelistwidget/cfilelistfilterdialog.h"
 #include "filelistwidget/model/cfilelistmodel.h"
+#include "tabviewstates.h"
 
 #include "cmainwindow.h"
-#include "themes/stylesheet.h"
 #include "themes/theme.h"
 
 #include "favoritelocationseditor/cfavoritelocationseditor.h"
@@ -33,26 +35,20 @@
 #include "theme/ctintedsvgiconengine.h"
 #include "timing/ctimeelapsed.h"
 #include "utils/naturalsorting/cnaturalsorterqcollator.h"
-#include "widgets/chistorycombobox.h"
 #include "widgets/ctabstrip.h"
-#include "widgets/layouts/cflowlayout.h"
 #include "widgets/widgetutils.h"
 
 
 DISABLE_COMPILER_WARNINGS
 #include "ui_cpanelwidget.h"
 
-#include <QAbstractItemView>
 #include <QApplication>
 #include <QBoxLayout>
 #include <QClipboard>
-#include <QCompleter>
 #include <QDebug>
-#include <QFile>
 #include <QHeaderView>
 #include <QHelpEvent>
-#include <QIcon>
-#include <QImageWriter>
+#include <QImage>
 #include <QInputDialog>
 #include <QItemSelectionModel>
 #include <QLineEdit>
@@ -82,7 +78,6 @@ RESTORE_COMPILER_WARNINGS
 #include <cmath>
 #include <functional>
 #include <optional>
-#include <type_traits>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -114,13 +109,6 @@ static constexpr int doubleFrameLineOffset = 3;
 	return line;
 }
 
-// Per-tab column layout, keyed by the controller's tab ids; see saveTabViewStates().
-#define KEY_LPANEL_TAB_VIEW_STATES QSL("Ui/LPanel/TabViewStates")
-#define KEY_RPANEL_TAB_VIEW_STATES QSL("Ui/RPanel/TabViewStates")
-// The side's QHeaderView::saveState() blob, in settings older than the per-tab layouts; saveTabViewStates() removes it
-#define KEY_LPANEL_LEGACY_HEADER_STATE QSL("Ui/LPanel/State")
-#define KEY_RPANEL_LEGACY_HEADER_STATE QSL("Ui/RPanel/State")
-
 static FolderContentsSummary summarizeFolderContents(const FileListHashMap& items)
 {
 	FolderContentsSummary summary;
@@ -128,106 +116,6 @@ static FolderContentsSummary summarizeFolderContents(const FileListHashMap& item
 		summary.add(item.second);
 
 	return summary;
-}
-
-template <typename T>
-static QString commaSeparated(const std::array<T, NumberOfColumns>& values)
-{
-	QStringList items;
-	for (const T value : values)
-	{
-		if constexpr (std::is_floating_point_v<T>)
-			items.push_back(QString::number(static_cast<double>(value)));
-		else
-			items.push_back(QString::number(value));
-	}
-
-	return items.join(',');
-}
-
-// Parses the two fields saveTabViewStates() writes. Empty if they don't hold a valid layout.
-static std::optional<CFileListView::ColumnLayout> parseColumnLayout(const QString& widthShares, const QString& visualOrder)
-{
-	const QStringList shareFields = widthShares.split(','), orderFields = visualOrder.split(',');
-	if (shareFields.size() != NumberOfColumns || orderFields.size() != NumberOfColumns)
-		return {};
-
-	CFileListView::ColumnLayout layout;
-	std::array<bool, NumberOfColumns> columnPlaced{};
-	float totalShare = 0.0f;
-	for (int i = 0; i < NumberOfColumns; ++i)
-	{
-		bool shareParsed = false, columnParsed = false;
-		const float share = shareFields[i].toFloat(&shareParsed);
-		const int column = orderFields[i].toInt(&columnParsed);
-		if (!shareParsed || !std::isfinite(share) || share < 0.0f || !columnParsed || column < 0 || column >= NumberOfColumns || columnPlaced[(size_t)column])
-			return {};
-
-		columnPlaced[(size_t)column] = true;
-		totalShare += share;
-		layout.widthShares[(size_t)i] = share;
-		layout.visualOrder[(size_t)i] = column;
-	}
-
-	if (totalShare <= 0.0f)
-		return {};
-
-	return layout;
-}
-
-// Skips the records it cannot read
-static std::vector<std::pair<qulonglong, CFileListView::ColumnLayout>> loadTabColumnLayouts(const Panel side)
-{
-	const QStringList records = QSettings{}.value(side == Panel::LeftPanel ? KEY_LPANEL_TAB_VIEW_STATES : KEY_RPANEL_TAB_VIEW_STATES).toStringList();
-
-	std::vector<std::pair<qulonglong, CFileListView::ColumnLayout>> layouts;
-	layouts.reserve((size_t)records.size());
-	for (const QString& record : records)
-	{
-		// 3 fields: id, column widths, column order
-		const QStringList fields = record.split('|');
-		if (fields.size() != 3)
-			continue; // Written by another version of this format
-
-		bool idParsed = false;
-		const qulonglong tabId = fields[0].toULongLong(&idParsed);
-		if (!idParsed)
-			continue;
-
-		if (const auto columnLayout = parseColumnLayout(fields[1], fields[2]))
-			layouts.emplace_back(tabId, *columnLayout);
-	}
-
-	return layouts;
-}
-
-namespace {
-
-struct LegacySideHeaderState {
-	CFileListView::ColumnLayout columnLayout;
-	std::optional<std::pair<FileListSortField, Qt::SortOrder>> sorting;
-};
-
-} // namespace
-
-// Defaults when the blob is absent or unreadable
-static LegacySideHeaderState loadLegacySideHeaderState(const Panel side)
-{
-	LegacySideHeaderState state;
-	// A detached header decodes the blob without disturbing the live one
-	QHeaderView header{ Qt::Horizontal };
-	if (!header.restoreState(QSettings{}.value(side == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE).toByteArray()))
-		return state;
-
-	if (const auto columnLayout = CFileListView::columnLayoutOf(header))
-		state.columnLayout = *columnLayout;
-
-	// The sort indicator is the only record of how the side was sorted
-	const int sortColumn = header.sortIndicatorSection();
-	if (sortColumn >= 0 && sortColumn < NumberOfColumns)
-		state.sorting.emplace(sortFieldOf(sortColumn), header.sortIndicatorOrder());
-
-	return state;
 }
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
@@ -240,25 +128,19 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 	ui->_infoLabel->clear();
 	ui->_driveInfoLabel->clear();
 	ui->_driveUsageBar->hide();
-	ui->_driveButtonsWidget->setLayout(new CFlowLayout(ui->_driveButtonsWidget, 0)); // applyTheme() sets the spacing
+	assert_r(connect(ui->_driveButtonsWidget, &CDriveBar::volumeClicked, this, [this](const uint64_t volumeId) {
+		if (const auto message = _controller->switchToVolume(_panelPosition, volumeId))
+			showUserMessage(this, *message);
+
+		ui->_list->setFocus();
+	}));
 
 	const auto dimTextColor = [] { return QApplication::palette().color(QPalette::PlaceholderText); };
 	ui->_btnFavs->setIcon(tintedSvgIcon(QSL(":/theme/star.svg"), dimTextColor));
 	ui->_btnToRoot->setIcon(tintedSvgIcon(QSL(":/theme/go_to_root.svg"), dimTextColor));
 
-	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
-	pathEditor.setMaxVisibleItems(40);
-
-	auto* completer = pathEditor.completer();
-	completer->setCompletionMode(QCompleter::PopupCompletion);
-	completer->setFilterMode(Qt::MatchContains);
-	// Both lists are as wide as the editor: a long path keeps its start and its end
-	pathEditor.view()->setTextElideMode(Qt::ElideMiddle);
-	completer->popup()->setTextElideMode(Qt::ElideMiddle);
-
-	pathEditor.installEventFilter(this);
-	assert_r(connect(&pathEditor, &CHistoryComboBox::textActivated, this, &CPanelWidget::pathFromHistoryActivated));
-	assert_r(connect(&pathEditor, &CHistoryComboBox::itemActivated, this, &CPanelWidget::pathFromHistoryActivated));
+	assert_r(connect(ui->_breadcrumbBar, &CBreadcrumbBar::pathEntered, this, &CPanelWidget::goToEnteredPath));
+	assert_r(connect(ui->_breadcrumbBar, &CBreadcrumbBar::editingCancelled, this, [this] { ui->_list->setFocus(); }));
 	assert_r(connect(ui->_breadcrumbBar, &CBreadcrumbBar::goToAncestorRequested, this, [this](const QString& ancestorPath, const QString& childOnPath) {
 		ui->_list->setFocus();
 		// The cursor goes to the folder the path led through, where it still exists
@@ -341,12 +223,9 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 		return;
 
 	setProperty(activePanelProperty, active);
-	ui->_breadcrumbBar->setShownAsActive(active);
-	ui->_driveUsageBar->setShownAsActive(active);
-	// A stylesheet matches property selectors only while polishing a widget; the path editor, the tabs and the drive buttons have rules on this panel's property too
-	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
-	std::vector<QWidget*> widgets{ this, &pathEditor, pathEditor.lineEdit() };
-	for (const QWidget* buttonParent : { static_cast<QWidget*>(ui->_tabBar), ui->_driveButtonsWidget })
+	// A stylesheet matches property selectors only while polishing a widget; the tabs and the drive buttons have rules on this panel's property too
+	std::vector<QWidget*> widgets{ this };
+	for (const QWidget* buttonParent : std::array<const QWidget*, 2>{ ui->_tabBar, ui->_driveButtonsWidget })
 	{
 		for (QPushButton* button : buttonParent->findChildren<QPushButton*>(Qt::FindDirectChildrenOnly))
 			widgets.push_back(button);
@@ -356,6 +235,8 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 		style()->unpolish(widget);
 		style()->polish(widget);
 	}
+	ui->_breadcrumbBar->setShownAsActive(active);
+	ui->_driveUsageBar->setShownAsActive(active);
 	updateFrame();
 }
 
@@ -396,17 +277,12 @@ void CPanelWidget::paintEvent(QPaintEvent* /*event*/)
 
 void CPanelWidget::saveTabViewStates() const
 {
-	QStringList records;
+	TabColumnLayouts layouts;
+	layouts.reserve(_tabs.size());
 	for (int i = 0; i < (int)_tabs.size(); ++i)
-	{
-		const CFileListView::ColumnLayout columnLayout = columnLayoutOfTab(i);
-		// Every field is numbers and commas, which can't contain the separator, so no escaping is needed.
-		records.push_back(QString::number(tabIdAt(i)) + '|' + commaSeparated(columnLayout.widthShares) + '|' + commaSeparated(columnLayout.visualOrder));
-	}
+		layouts.emplace_back(tabIdAt(i), columnLayoutOfTab(i));
 
-	QSettings s;
-	s.setValue(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_TAB_VIEW_STATES : KEY_RPANEL_TAB_VIEW_STATES, records);
-	s.remove(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE); // Replaced by the store above
+	saveTabColumnLayouts(_panelPosition, layouts);
 }
 
 CFileListView::ColumnLayout CPanelWidget::columnLayoutOfTab(int index) const
@@ -443,7 +319,7 @@ void CPanelWidget::initPanel(Panel p)
 	const std::vector<qulonglong> ids = _controller->tabIds(p);
 	const qulonglong activeId = _controller->activeTabId(p);
 
-	const std::vector<std::pair<qulonglong, CFileListView::ColumnLayout>> storedLayouts = loadTabColumnLayouts(p);
+	const TabColumnLayouts storedLayouts = loadTabColumnLayouts(p);
 	// With no layout read, the side's legacy header state applies to every tab, sorting included
 	const LegacySideHeaderState legacyState = storedLayouts.empty() ? loadLegacySideHeaderState(p) : LegacySideHeaderState{};
 	const auto restoredColumnLayout = [&](qulonglong tabId) {
@@ -485,7 +361,7 @@ void CPanelWidget::initPanel(Panel p)
 
 void CPanelWidget::populateTabModels(PanelTab& tab, qulonglong tabId, const CFileListView::ColumnLayout& columnLayout)
 {
-	tab.model = new(std::nothrow) CFileListModel(_iconProvider, this);
+	tab.model = new CFileListModel(_iconProvider, this);
 	tab.model->setDropHandler([this](const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath) {
 		return dropUrls(urls, action, destinationPath);
 	});
@@ -505,7 +381,7 @@ void CPanelWidget::populateTabModels(PanelTab& tab, qulonglong tabId, const CFil
 	tab.columnLayout = columnLayout;
 
 	// Each tab owns its selection model (parented to the widget, not the view) so it survives the view->setModel() swaps.
-	tab.selectionModel = new(std::nothrow) QItemSelectionModel(tab.model, this);
+	tab.selectionModel = new QItemSelectionModel(tab.model, this);
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::selectionChanged, this, &CPanelWidget::selectionChanged));
 	assert_r(connect(tab.selectionModel, &QItemSelectionModel::currentChanged, this, &CPanelWidget::currentItemChanged));
 }
@@ -940,21 +816,6 @@ void CPanelWidget::showContextMenuForItems()
 	OsShell::openShellContextMenuForObjects(paths, WidgetUtils::nativeOwnerWinId(this));
 }
 
-void CPanelWidget::showContextMenuForDisk()
-{
-#ifdef _WIN32
-	const auto* button = dynamic_cast<const QPushButton*>(sender());
-	if (!button)
-		return;
-
-	const uint64_t diskId = button->property("id").toULongLong();
-	const auto volumeInfo = _controller->volumeInfoById(diskId);
-	assert_and_return_r(volumeInfo, );
-	std::vector<std::wstring> diskPath(1, volumeInfo->rootObjectInfo.fullAbsolutePath().toStdWString());
-	OsShell::openShellContextMenuForObjects(diskPath, WidgetUtils::nativeOwnerWinId(this));
-#endif
-}
-
 void CPanelWidget::onSpacePressed()
 {
 	if (const QModelIndex itemIndex = _selectionModel->currentIndex(); itemIndex.isValid())
@@ -971,18 +832,6 @@ void CPanelWidget::invertCurrentItemSelection()
 		_selectionModel->select(item, QItemSelectionModel::Toggle | QItemSelectionModel::Rows);
 	if (next.isValid())
 		ui->_list->moveCursorToItem(next);
-}
-
-void CPanelWidget::driveButtonClicked()
-{
-	if (!sender())
-		return;
-
-	const auto id = sender()->property("id").toULongLong();
-	if (const auto message = _controller->switchToVolume(_panelPosition, id))
-		showUserMessage(this, *message);
-
-	ui->_list->setFocus();
 }
 
 void CPanelWidget::selectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
@@ -1122,8 +971,8 @@ void CPanelWidget::renameItem(const qulonglong hash, const QString& newName)
 
 void CPanelWidget::toRoot()
 {
-	if (!_currentVolumePath.isEmpty())
-		_controller->setPath(_panelPosition, _currentVolumePath, refreshCauseOther);
+	if (const auto currentVolume = _controller->currentVolumeInfo(_panelPosition))
+		_controller->setPath(_panelPosition, currentVolume->rootObjectInfo.fullAbsolutePath(), refreshCauseOther);
 }
 
 void CPanelWidget::showFavoriteLocationsMenu(QPoint pos)
@@ -1251,27 +1100,7 @@ void CPanelWidget::putSelectionOnClipboard(bool cut) const
 	if (items.empty())
 		return; // Leaves the clipboard as it was
 
-#ifndef _WIN32
-	QList<QUrl> urls;
-	urls.reserve((qsizetype)items.size());
-	for (const CFileSystemObject& item : items)
-		urls.push_back(QUrl::fromLocalFile(item.fullAbsolutePath()));
-
-	auto* mime = new QMimeData;
-	mime->setUrls(urls);
-	mime->setProperty("cut", cut);
-	QApplication::clipboard()->setMimeData(mime);
-#else
-	std::vector<std::wstring> paths;
-	paths.reserve(items.size());
-	for (const CFileSystemObject& item : items)
-		paths.push_back(item.fullAbsolutePath().toStdWString());
-
-	if (cut)
-		OsShell::cutObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(this));
-	else
-		OsShell::copyObjectsToClipboard(paths, WidgetUtils::nativeOwnerWinId(this));
-#endif
+	putFilesOnClipboard(items, cut, *this);
 }
 
 void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
@@ -1283,13 +1112,13 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 	// If the clipboard contains an image (not a file), paste it into a file
 	if (clipboardData->hasImage())
 	{
-		QImage image = qvariant_cast<QImage>(clipboardData->imageData());
-		pasteImage(image, specialPaste);
+		if (const auto message = saveImageAsNewFile(qvariant_cast<QImage>(clipboardData->imageData()), currentDirPathNative(), specialPaste))
+			showUserMessage(this, *message);
 		return;
 	}
 
 #ifndef _WIN32
-	dropUrls(clipboardData->urls(), clipboardData->property("cut").toBool() ? Qt::MoveAction : Qt::CopyAction, {});
+	dropUrls(clipboardData->urls(), clipboardFilesDropAction(*clipboardData), {});
 #else
 	auto* hwnd = WidgetUtils::nativeOwnerWinId(this);
 	_shellOperations->run([hwnd, folder = currentDirPathNative()] {
@@ -1299,7 +1128,7 @@ void CPanelWidget::pasteSelectionFromClipboard(bool specialPaste)
 #endif
 }
 
-void CPanelWidget::pathFromHistoryActivated(const QString& path)
+void CPanelWidget::goToEnteredPath(const QString& path)
 {
 	ui->_list->setFocus();
 	if (const auto message = _controller->goToTypedPath(_panelPosition, path))
@@ -1322,7 +1151,7 @@ void CPanelWidget::fillHistory()
 	for (const QString& folder : folders)
 		items.push_back(toNativeSeparators(withTrailingSlash(folder)));
 
-	// The active tab's current directory might not be in either list yet (e.g. a deferred save hasn't
+	// The active tab's current directory might not be in the list yet (e.g. a deferred save hasn't
 	// caught up) -- prepend it so it's still shown/highlighted correctly instead of defaulting to some
 	// unrelated entry.
 	const QString currentDir = _controller->panel(_panelPosition).currentDirPathPosix();
@@ -1334,14 +1163,7 @@ void CPanelWidget::fillHistory()
 		currentDirRow = 0;
 	}
 
-	// An unchanged list is left alone: a rebuild discards the text being typed and resets an open popup
-	CHistoryComboBox& pathEditor = ui->_breadcrumbBar->editor();
-	if (currentDirRow == pathEditor.currentIndex() && items == pathEditor.items())
-		return;
-
-	pathEditor.clear();
-	pathEditor.addItems(items);
-	pathEditor.setCurrentIndex((int)currentDirRow);
+	ui->_breadcrumbBar->setHistory(items, (int)currentDirRow);
 }
 
 void CPanelWidget::fillFolderMenu(QMenu* menu, const QString& folderPath)
@@ -1436,50 +1258,8 @@ void CPanelWidget::volumesChanged(const std::vector<VolumeInfo>& drives, Panel p
 	if (p != _panelPosition)
 		return;
 
-	_currentVolumePath.clear();
-
 	if (significantChange)
-	{
-		// Clearing and deleting the previous buttons
-		QLayout* layout = ui->_driveButtonsWidget->layout();
-		assert_r(layout);
-		while (layout->count() > 0)
-		{
-			QLayoutItem* item = layout->takeAt(0);
-			item->widget()->deleteLater();
-			delete item;
-		}
-
-		// Creating and adding new buttons
-		for (const VolumeInfo& volume: drives)
-		{
-			if (!volume.isReady || !volume.rootObjectInfo.isValid())
-				continue;
-
-#ifdef _WIN32
-			const QString name = QString{ volume.rootObjectInfo.fullAbsolutePath() }.remove(QLatin1Char('/'));
-#else
-			const QString name = volume.volumeLabel;
-#endif
-
-			assert_r(layout);
-			auto* diskButton = new(std::nothrow) QPushButton;
-			diskButton->setFocusPolicy(Qt::NoFocus);
-			diskButton->setCheckable(true);
-			if (const QString glyph = driveGlyphName(volume.kind); !glyph.isEmpty())
-			{
-				diskButton->setProperty(driveGlyphProperty, glyph);
-				// The stylesheet's tinted icon replaces this one when drawn; QPushButton's size hint counts only its own icon
-				diskButton->setIcon(QIcon{ QStringLiteral(":/theme/") + glyph + QStringLiteral(".svg") });
-			}
-			diskButton->setText(name);
-			diskButton->setProperty("id", (qulonglong)volume.id());
-			diskButton->setContextMenuPolicy(Qt::CustomContextMenu);
-			assert_r(connect(diskButton, &QPushButton::clicked, this, &CPanelWidget::driveButtonClicked));
-			assert_r(connect(diskButton, &QPushButton::customContextMenuRequested, this, &CPanelWidget::showContextMenuForDisk));
-			layout->addWidget(diskButton);
-		}
-	}
+		ui->_driveButtonsWidget->setVolumes(drives);
 
 	updateCurrentVolumeButtonAndInfo();
 }
@@ -1489,12 +1269,14 @@ void CPanelWidget::currentVolumeChanged(Panel p) noexcept
 	if (p != _panelPosition)
 		return;
 
-	_currentVolumePath.clear();
 	updateCurrentVolumeButtonAndInfo();
 }
 
 bool CPanelWidget::dropUrls(const QList<QUrl>& urls, Qt::DropAction action, const QString& destinationPath)
 {
+	if (action != Qt::CopyAction && action != Qt::MoveAction)
+		return false;
+
 	std::vector<CFileSystemObject> objects;
 	for (const QUrl& url : urls)
 	{
@@ -1513,12 +1295,7 @@ bool CPanelWidget::dropUrls(const QList<QUrl>& urls, Qt::DropAction action, cons
 	auto* mainWindow = CMainWindow::get();
 	assert_and_return_r(mainWindow, false);
 
-	if (action == Qt::CopyAction)
-		return mainWindow->launchFileTransfer(TransferKind::Copy, std::move(objects), destination.fullAbsolutePath());
-	else if (action == Qt::MoveAction)
-		return mainWindow->launchFileTransfer(TransferKind::Move, std::move(objects), destination.fullAbsolutePath());
-	else
-		return false;
+	return mainWindow->launchFileTransfer(action == Qt::MoveAction ? TransferKind::Move : TransferKind::Copy, std::move(objects), destination.fullAbsolutePath());
 }
 
 bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
@@ -1583,15 +1360,6 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 	}
 	else if (object == ui->_tabBar && (e->type() == QEvent::Resize || e->type() == QEvent::Move))
 		updateFrame();
-	else if (object == &ui->_breadcrumbBar->editor() && e->type() == QEvent::KeyPress)
-	{
-		auto* keyEvent = static_cast<QKeyEvent*>(e);
-		if (keyEvent->key() == Qt::Key_Escape)
-		{
-			ui->_breadcrumbBar->editor().resetToLastSelected(false);
-			ui->_list->setFocus();
-		}
-	}
 
 	return QWidget::eventFilter(object, e);
 }
@@ -1719,7 +1487,7 @@ void CPanelWidget::applyTheme()
 	ui->verticalLayout->setContentsMargins(border, flat ? 0 : border, border, border);
 	ui->verticalLayout->setSpacing(theme.metrics.panelRowSpacing);
 	ui->driveRowLayout->setContentsMargins(padding, flat ? 0 : padding, padding, 0);
-	ui->_driveButtonsWidget->layout()->setSpacing(theme.metrics.driveButtonSpacing);
+	ui->_driveButtonsWidget->setButtonSpacing(theme.metrics.driveButtonSpacing);
 	ui->_tabBar->setSpacing(theme.metrics.tabSpacing);
 	ui->pathRowLayout->setContentsMargins(padding, 0, padding, 0);
 	ui->tabRowLayout->setContentsMargins(padding, 0, padding, 0);
@@ -1810,9 +1578,9 @@ std::optional<CGlowUnderlay::Glow> CPanelWidget::frameGlow() const
 void CPanelWidget::updateCurrentVolumeButtonAndInfo()
 {
 	const auto currentVolumeInfo = _controller->currentVolumeInfo(_panelPosition);
+	ui->_driveButtonsWidget->setCurrentVolume(currentVolumeInfo ? std::optional{ currentVolumeInfo->id() } : std::nullopt);
 	if (currentVolumeInfo)
 	{
-		_currentVolumePath = currentVolumeInfo->rootObjectInfo.fullAbsolutePath();
 		const auto sizeText = [](const uint64_t size) { return fileSizeToString(size, { .significantPlaces = 3, .decimalPlaces = 2 }); }; // such as 212.43 GiB
 		const uint64_t volumeSize = currentVolumeInfo->volumeSize, freeSize = currentVolumeInfo->freeSize;
 		ui->_driveInfoLabel->setText(tr("%1 (%2 free)").arg(sizeText(volumeSize), sizeText(freeSize)));
@@ -1831,43 +1599,4 @@ void CPanelWidget::updateCurrentVolumeButtonAndInfo()
 		ui->_driveInfoLabel->setToolTip({});
 		ui->_driveUsageBar->hide();
 	}
-
-	const QLayout* layout = ui->_driveButtonsWidget->layout();
-
-	for (int i = 0, n = layout->count(); i < n; ++i)
-	{
-		auto* button = dynamic_cast<QPushButton*>(layout->itemAt(i)->widget());
-		if (!button)
-			continue;
-
-		const auto id = button->property("id").toULongLong();
-		button->setChecked(currentVolumeInfo ? (id == currentVolumeInfo->id()) : false); // Need to clear all selection if the current volume cannot be determined
-	}
-}
-
-void CPanelWidget::pasteImage(const QImage& image, bool lossyCompression)
-{
-	const QString currentDirPath = currentDirPathNative();
-	assert_r(currentDirPath.endsWith(nativeSeparator()));
-
-	// Concatenated, not QString::arg: a %N inside the directory path would be substituted
-	const QString extension = lossyCompression ? QSL(".jpg") : QSL(".png");
-	QString imagePath = currentDirPath + QSL("clipboard") + extension;
-	for (int i = 1; QFile::exists(imagePath); ++i)
-		imagePath = currentDirPath + QSL("clipboard_") + QString::number(i) + extension;
-
-	QImageWriter writer(imagePath, lossyCompression ? "jpg" : "png");
-	if (lossyCompression)
-		writer.setQuality(80);
-	else
-		writer.setCompression(100); // Maximum zlib compression level for PNG; lossless, so there's no quality trade-off.
-
-	if (writer.write(image))
-		return;
-
-	// A failed write can leave a partial file under the name that was free.
-	// The writer holds its file open until destroyed: Windows cannot remove an open file.
-	writer.device()->close();
-	QFile::remove(imagePath);
-	QMessageBox::critical(this, tr("Failed to paste the image"), tr("Failed to save the image as %1: %2").arg(imagePath, writer.errorString()));
 }

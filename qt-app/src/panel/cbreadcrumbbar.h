@@ -6,6 +6,7 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QString>
+#include <QStringList>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
@@ -28,11 +29,11 @@ class CBreadcrumbBar final : public QWidget
 public:
 	explicit CBreadcrumbBar(QWidget* parent = nullptr);
 
-	// The owner fills its history and handles its activation
-	[[nodiscard]] CHistoryComboBox& editor() const;
-
 	// posixPath: absolute; ignored otherwise
 	void setPath(const QString& posixPath);
+	// The editor's list; currentRow: the entry of the current path
+	void setHistory(const QStringList& items, int currentRow);
+	// Must be called after the panel's activePanel property changes: the editor's stylesheet rules select on it
 	void setShownAsActive(bool active);
 	// Reads the applied theme: a strip is as wide as its path, the other styles as wide as the layout makes them
 	void applyTheme();
@@ -49,8 +50,13 @@ signals:
 	// Emitted before a folder's menu opens, to fill it; requires a direct connection. An empty menu is not shown.
 	// folderPath ends with '/'.
 	void folderMenuRequested(QMenu* menu, const QString& folderPath);
+	// Typed into the editor, or picked from its history or completions
+	void pathEntered(const QString& path);
+	// Escape in the editor, which has gone back to its current entry
+	void editingCancelled();
 
 protected:
+	bool eventFilter(QObject* object, QEvent* event) override;
 	void paintEvent(QPaintEvent* event) override;
 	void resizeEvent(QResizeEvent* event) override;
 	void changeEvent(QEvent* event) override;

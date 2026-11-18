@@ -56,7 +56,7 @@ public:
 	// The active panel has an accent border; see also CFileListView::setShownAsActivePanel()
 	void setShownAsActivePanel(bool active);
 
-	// Persists every tab's sort and column layout. Called at shutdown: nothing else writes this store.
+	// Persists every tab's column layout. Called at shutdown: nothing else writes this store.
 	void saveTabViewStates() const;
 
 	[[nodiscard]] QString currentDirPathNative() const;
@@ -114,11 +114,9 @@ protected:
 
 private slots:
 	void showContextMenuForItems();
-	void showContextMenuForDisk();
 	void showContextMenuForTab(QPoint pos);
 	void onSpacePressed();
 	void invertCurrentItemSelection();
-	void driveButtonClicked();
 	void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 	void currentItemChanged(const QModelIndex& current, const QModelIndex& previous);
 	void renameItem(qulonglong hash, const QString& newName);
@@ -130,7 +128,7 @@ private slots:
 	void copySelectionToClipboard() const;
 	void cutSelectionToClipboard() const;
 	void pasteSelectionFromClipboard(bool specialPaste = false);
-	void pathFromHistoryActivated(const QString& path);
+	void goToEnteredPath(const QString& path);
 	void onItemMiddleClicked(const QModelIndex& index); // Middle-click: opens the folder in a new tab (no-op if it's not a folder)
 
 private:
@@ -179,9 +177,6 @@ private:
 	// Repaints the flat frame and its glow
 	void updateFrame();
 
-	// Saves the image as a new file in the current folder; tells the user if that fails
-	void pasteImage(const QImage& image, bool lossyCompression);
-
 // Tab helpers (UI side; _tabs is position-aligned with the tab bar; CController is addressed by tab ID, see tabIdAt())
 	struct PanelTab {
 		CFileListModel* model = nullptr;
@@ -215,8 +210,6 @@ private:
 
 private:
 	CFileListFilterDialog          * _filterDialog = nullptr;
-	std::vector<CFileSystemObject>  _disks;
-	QString                         _currentVolumePath;
 	Ui::CPanelWidget              * ui = nullptr;
 	CController                   * _controller = nullptr;
 	CShellOperationRunner         * _shellOperations = nullptr;
