@@ -1,6 +1,7 @@
 #include "filelisttesthelpers.h"
 
 #include "panel/filelistwidget/cfilelistview.h"
+#include "panel/filelistwidget/filelistlook.h"
 #include "panel/filelistwidget/model/cfilelistmodel.h"
 
 #include "crandomdatagenerator.h"
@@ -15,8 +16,12 @@
 DISABLE_COMPILER_WARNINGS
 #include "qtcore_helpers/catch_qt.hpp" // qtutils
 
+#include <QColor>
+#include <QImage>
 #include <QItemSelectionModel>
 #include <QLineEdit>
+#include <QPixmap>
+#include <QPoint>
 #include <QTreeView>
 RESTORE_COMPILER_WARNINGS
 
@@ -323,6 +328,93 @@ TEST_CASE("The rows on screen stay in place through an update", "[filelist][upda
 }
 
 // Only the update is timed; building the listings and the model beforehand is not
+TEST_CASE("The file list paints its look's row bands, row lines and margin line", "[filelist][view][look]")
+{
+	static const QColor band{ 255, 0, 0 }, bandLine{ 0, 255, 0 }, rowLine{ 0, 0, 255 }, marginLine{ 255, 0, 255 };
+	FileListLook look;
+	look.rowSeparatorColor = rowLine;
+	look.rowBandColor = band;
+	look.rowsPerBand = 2;
+	look.rowBandSeparatorColor = bandLine;
+
+	CFileListModel model{ nullptr };
+	model.sort(NameColumn, Qt::AscendingOrder);
+	CFileListView view;
+	view.setModel(&model);
+	view.resize(400, 300);
+	view.setColumnSeparatorsShown(false);
+
+	const auto show = [&](const int rowCount) {
+		std::vector<CFileSystemObject> rows;
+		for (int i = 0; i < rowCount; ++i)
+			rows.push_back(makeRow(File, QStringLiteral("f%1").arg(i, 3, 10, QChar('0')), "txt"));
+		model.setRows(std::move(rows));
+		view.setLook(look);
+		view.show();
+	};
+
+	QImage image;
+	int rowHeight = 0;
+	const auto grab = [&] {
+		rowHeight = view.visualRect(model.index(0, NameColumn)).height();
+		image = view.viewport()->grab().toImage();
+	};
+	// row: counted from the viewport's top. A row's first line of pixels is above its icon and its text.
+	const auto colorAt = [&](const int x, const int row, const int yInRow) {
+		return image.pixelColor(QPoint{ x, row * rowHeight + yInRow } * image.devicePixelRatio());
+	};
+	const int middle = view.viewport()->width() / 2;
+
+	SECTION("Behind the rows, and below the last one")
+	{
+		show(5);
+		grab();
+		CHECK(colorAt(middle, 0, 1) != band);
+		CHECK(colorAt(middle, 2, 1) == band);
+		CHECK(colorAt(middle, 3, 1) == band);
+		CHECK(colorAt(middle, 4, 1) != band);
+		CHECK(colorAt(middle, 6, 1) == band);
+
+		CHECK(colorAt(middle, 0, rowHeight - 1) == rowLine);
+		CHECK(colorAt(middle, 1, rowHeight - 1) == bandLine);
+		CHECK(colorAt(middle, 6, rowHeight - 1) == rowLine);
+		CHECK(colorAt(middle, 7, rowHeight - 1) == bandLine);
+	}
+
+	SECTION("Scrolled along with the rows")
+	{
+		show(300);
+		view.scrollTo(model.index(150, NameColumn), QAbstractItemView::PositionAtTop);
+		grab();
+		CHECK(colorAt(middle, 0, 1) == band);
+		CHECK(colorAt(middle, 1, 1) == band);
+		CHECK(colorAt(middle, 2, 1) != band);
+	}
+
+	SECTION("The margin line, with the name's editor to its right")
+	{
+		look.marginLineColor = marginLine;
+		show(3);
+		grab();
+
+		// Row 5 is below the last row
+		int lineX = -1;
+		for (int x = 0; x < view.viewport()->width() && lineX < 0; ++x)
+		{
+			if (colorAt(x, 5, 1) == marginLine)
+				lineX = x;
+		}
+		REQUIRE(lineX > 0);
+		CHECK(colorAt(lineX, 0, 1) == marginLine);
+
+		const QModelIndex firstName = model.index(0, NameColumn);
+		static_cast<QAbstractItemView&>(view).edit(firstName);
+		const QWidget* editor = view.indexWidget(firstName);
+		REQUIRE(editor);
+		CHECK(editor->geometry().left() > lineX);
+	}
+}
+
 TEST_CASE("Timings of an update against a reset", "[.][filelist][update][timing]")
 {
 	CRandomDataGenerator random;

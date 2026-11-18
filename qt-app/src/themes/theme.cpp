@@ -44,11 +44,11 @@ constexpr int tabletFontPointSize = 24;
 	return QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
 }
 
-// Blueprint in one polarity: everything but the palette is shared. The column lines take the palette's borderSubtle.
-[[nodiscard]] Theme blueprintTheme(const bool dark, const CBasePalette& palette)
+// The flat structure with monospace controls. The column lines take the palette's borderSubtle, which must be authored: the palette is not resolved yet.
+[[nodiscard]] Theme flatMonospaceTheme(const QString& name, const bool dark, const CBasePalette& palette)
 {
 	return {
-		.name = QStringLiteral("Blueprint"),
+		.name = name,
 		.dark = dark,
 		.structure = ThemeStructure::Flat,
 		.monospaceControls = true,
@@ -68,6 +68,90 @@ constexpr int tabletFontPointSize = 24;
 			.cursor = FileListLook::Cursor::Bar,
 			.separatorColor = palette.borderSubtle,
 			.separatorsDashed = false,
+		},
+	};
+}
+
+// Blueprint in one polarity: everything but the palette is shared. Graph paper: bands of five rows, each closed by a grid line.
+[[nodiscard]] Theme blueprintTheme(const bool dark, const CBasePalette& palette)
+{
+	Theme theme = flatMonospaceTheme(QStringLiteral("Blueprint"), dark, palette);
+	theme.fileList.rowBandColor = ColorUtils::mix(palette.surface, palette.surfaceAlt, 0.5f);
+	theme.fileList.rowsPerBand = 5;
+	theme.fileList.rowBandSeparatorColor = palette.borderSubtle;
+	return theme;
+}
+
+// Green bar printer paper: bands of three rows
+[[nodiscard]] Theme greenbarTheme()
+{
+	const CBasePalette palette{
+		.windowBg = rgb(0xedf3ea), .surface = rgb(0xfafaf2), .surfaceAlt = rgb(0xdcebd9),
+		.text = rgb(0x23302a), .textDim = rgb(0x5a6b60),
+		.button = rgb(0xedf3ea),
+		.accent = rgb(0x2e6b4a),
+		.selectionBg = rgb(0xfbe0cc), .selectionFg = rgb(0x9a3a12),
+		.border = rgb(0xb5cdb3), .borderSubtle = rgb(0xc3d8c1),
+		.accentFg = rgb(0xffffff),
+	};
+
+	Theme theme = flatMonospaceTheme(QStringLiteral("Greenbar"), false, palette);
+	theme.fileList.rowBandColor = palette.surfaceAlt;
+	theme.fileList.rowsPerBand = 3;
+	return theme;
+}
+
+// A split-flap board: every row is a strip in one of two greys, with the window's black between the strips and between their columns.
+// Names are signal yellow; the dim text is near white, as the board's second colour.
+[[nodiscard]] Theme departuresTheme()
+{
+	const CBasePalette palette{
+		.windowBg = rgb(0x050505), .surface = rgb(0x050505), .surfaceAlt = rgb(0x2a2a2a),
+		.text = rgb(0xffd21f), .textDim = rgb(0xd0d0d0),
+		.button = rgb(0x171717),
+		.accent = rgb(0xffd21f),
+		.selectionBg = rgb(0x12351f), .selectionFg = rgb(0x6ee7a0),
+		.border = rgb(0x2e2e2e), .borderSubtle = rgb(0x1e1e1e),
+		.accentFg = rgb(0x0a0a0a),
+	};
+
+	Theme theme = flatMonospaceTheme(QStringLiteral("Departures"), true, palette);
+	FileListLook& look = theme.fileList;
+	look.rowFillGap = 2;
+	look.contentVMargin = 4;
+	look.separatorColor = palette.surface;
+	look.rowBandColor = rgb(0x1e1e1e);
+	look.rowStripColor = rgb(0x131313);
+	look.uppercaseHeader = true;
+	return theme;
+}
+
+// Ruled paper: a blue hairline under every row, every second row tinted, and a red margin line
+[[nodiscard]] Theme notebookTheme()
+{
+	const CBasePalette palette{
+		.windowBg = rgb(0xf3f6fb), .surface = rgb(0xffffff), .surfaceAlt = rgb(0xe8f1fb),
+		.text = rgb(0x1b2a5c), .textDim = rgb(0x5a6788),
+		.button = rgb(0xffffff),
+		.accent = rgb(0x2447b8),
+		.selectionBg = rgb(0xfde3e3), .selectionFg = rgb(0xc62828),
+		.border = rgb(0xc9d5e8),
+	};
+
+	return {
+		.name = QStringLiteral("Notebook"),
+		.dark = false,
+		.palette = palette,
+		.metrics = {
+			.controlRadius = 4, .panelRadius = 6, .menuItemRadius = 3,
+		},
+		.fileList = {
+			.rowFillInset = 0, .rowFillGap = 0,
+			.rowFillRadius = 0,
+			.contentHMargin = 8, .contentVMargin = 4,
+			.rowSeparatorColor = rgb(0xb9d2f0),
+			.rowBandColor = rgb(0xeef5fc),
+			.marginLineColor = rgb(0xf2a7a7),
 		},
 	};
 }
@@ -165,6 +249,9 @@ constexpr char kDuskStyleSheet[] = R"(
 			.cursor = FileListLook::Cursor::Bar,
 			.inactiveCursorColor = ColorUtils::mix(palette.surface, palette.accent, 0.6f),
 			.activeBackground = rgb(0x281f39),
+			.rowBandColor = rgb(0x30264a),
+			.rowsPerBand = 2,
+			.rowBandsInActivePanelOnly = true,
 		},
 		.styleSheet = kDuskStyleSheet,
 	};
@@ -209,6 +296,9 @@ constexpr char kLedgerStyleSheet[] = R"(
 			.cursor = FileListLook::Cursor::Bar,
 			.inactiveCursorColor = palette.accent,
 			.rowSeparatorColor = palette.borderSubtle,
+			.rowsPerBand = 5,
+			.rowBandSeparatorColor = ColorUtils::mix(palette.surface, palette.text, 0.3f),
+			.rowBandSeparatorWidth = 2,
 			.uppercaseHeader = true,
 		},
 		.styleSheet = kLedgerStyleSheet,
@@ -297,6 +387,9 @@ const std::vector<Theme>& allThemes()
 			.border = rgb(0xd9dde5), .borderSubtle = rgb(0xe6e9ee),
 		}),
 		duskTheme(),
+		greenbarTheme(),
+		departuresTheme(),
+		notebookTheme(),
 	};
 	return themes;
 }

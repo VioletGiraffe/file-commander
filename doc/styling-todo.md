@@ -6,7 +6,7 @@ first version (v1). Current state only; done items get removed.
 ## Terms
 
 - **Theme**: colours (a `CBasePalette` plus app tokens), a structure, the file list's paint parameters (cursor
-  form, selection shape, column lines), whether controls use a monospace font, and stylesheet rules of its own.
+  form, selection shape, column lines, row bands and rules), whether controls use a monospace font, and stylesheet rules of its own.
 - **Structure**: the geometry and stylesheet template that several themes share: corner radius, row height,
   paddings, gaps.
   - *Rounded*: panels are cards on the window background; rows, fields, buttons and tabs have rounded corners.
@@ -31,13 +31,16 @@ Blueprint is the flat theme, in both polarities.
 
 ### Further themes
 
-Meadow and Dusk come in one polarity each; their counterparts in the other polarity come later.
+Meadow, Dusk, Greenbar, Departures and Notebook come in one polarity each; their counterparts in the other polarity come later.
 
 - Meadow, done: light with a sage tint. Its controls have an 11 px radius: the stylesheet engine drops a radius
   larger than half the control's height, so a true pill would need a radius per control.
 - Dusk, done: dark with a plum tint, panels edge to edge, the active panel has a lighter surface, amber accent.
 - Ledger, done: typographic, no boxes, hairline-ruled rows, the folder name as a large title.
   Light is white with a blue accent; dark is a warm grey with an amber accent.
+- Greenbar, done: light, flat, the file list banded like green bar printer paper.
+- Departures, done: dark, flat, every row a strip of a split-flap board, yellow names.
+- Notebook, done: light, ruled rows with a red margin line between the icons and the names.
 - Not scheduled: light, black and white, 2 px black rules, uppercase labels, one highlighter colour for the selection.
 
 Rejected: a dense grey look with square segmented controls. It resembles stock Linux styles.

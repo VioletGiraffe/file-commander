@@ -36,5 +36,19 @@ struct FileListLook
 	// A line under every row. Invalid: none.
 	QColor rowSeparatorColor;
 
+	// The rows lie in bands of rowsPerBand rows. The bands and the row lines continue below the last row.
+	// Every second band is filled with this colour. Invalid: none is.
+	QColor rowBandColor;
+	int rowsPerBand = 1;
+	bool rowBandsInActivePanelOnly = false;
+	// A line under the last row of every band, in place of rowSeparatorColor's. Invalid: none.
+	QColor rowBandSeparatorColor;
+	int rowBandSeparatorWidth = 1;
+	// The fill of the rows outside the filled bands. Valid: every row is a strip of its own, filled down to rowFillGap above the next row.
+	QColor rowStripColor;
+
+	// A vertical line between the icons and the names, which move apart for it. Invalid: none.
+	QColor marginLineColor;
+
 	bool uppercaseHeader = false; // with the letters spaced out
 };

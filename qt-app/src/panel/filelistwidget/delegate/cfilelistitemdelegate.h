@@ -28,6 +28,8 @@ public:
 	[[nodiscard]] const FileListLook& look() const;
 	// The part of a row that a selection or cursor fill covers
 	[[nodiscard]] QRect rowFillRect(const QRect& row) const;
+	// The x of the look's margin line. nameCell: the view's item options, with the rect of a Name cell.
+	[[nodiscard]] int marginLineX(const QStyleOptionViewItem& nameCell) const;
 
 	QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 	// Does nothing: the view calls it on every dataChanged over the edited cell, and refilling would discard the text typed so far

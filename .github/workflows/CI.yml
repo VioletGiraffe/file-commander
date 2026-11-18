@@ -70,7 +70,7 @@ jobs:
       APPIMAGE_EXTRACT_AND_RUN: 1 # The runners have no FUSE
       SCREENSHOT_DIR: FileCommander-${{ startsWith(matrix.os, 'macos') && 'mac' || 'linux' }}-screenshots
       # polarity:name per screenshot. Of a light and a dark theme that differ only in colours, one.
-      SCREENSHOT_THEMES: dark:Cobalt dark:Blueprint light:Meadow light:Ledger dark:Dusk
+      SCREENSHOT_THEMES: dark:Cobalt dark:Blueprint light:Meadow light:Ledger dark:Dusk light:Greenbar dark:Departures light:Notebook
 
     steps:
     - name: Checkout

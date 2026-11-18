@@ -443,10 +443,6 @@ void CFileListView::currentChanged(const QModelIndex& current, const QModelIndex
 void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
 	const FileListLook& look = _itemDelegate->look();
-	// Under the selection and cursor fills
-	if (look.rowSeparatorColor.isValid())
-		painter->fillRect(QRect{ 0, option.rect.bottom(), viewport()->width(), 1 }, look.rowSeparatorColor);
-
 	const bool selected = selectionModel()->isSelected(index);
 	const bool cursor = index.row() == currentIndex().row();
 	if (!selected && !cursor)
@@ -537,9 +533,57 @@ void CFileListView::paintColumnSeparators(const QRect& area)
 	}
 }
 
+int CFileListView::uniformRowHeight() const
+{
+	if (model() && model()->rowCount(rootIndex()) > 0)
+		return rowHeight(model()->index(0, 0, rootIndex()));
+
+	QStyleOptionViewItem option;
+	initViewItemOption(&option);
+	return _itemDelegate->sizeHint(option, {}).height();
+}
+
+void CFileListView::paintRowBandsAndLines(const QRect& area)
+{
+	const FileListLook& look = _itemDelegate->look();
+	const bool bandsFilled = look.rowBandColor.isValid() && (_shownAsActivePanel || !look.rowBandsInActivePanelOnly);
+	const bool strips = look.rowStripColor.isValid();
+	const bool rowLines = look.rowSeparatorColor.isValid() || look.rowBandSeparatorColor.isValid();
+	if (!bandsFilled && !strips && !rowLines && !look.marginLineColor.isValid())
+		return;
+
+	const int rowHeight = uniformRowHeight();
+	assert_and_return_r(rowHeight > 0 && look.rowsPerBand > 0, );
+
+	QPainter painter{ viewport() };
+	const int width = viewport()->width(), fillHeight = rowHeight - (strips ? look.rowFillGap : 0);
+	// Rows are counted in content coordinates: scrolling moves the painted pixels along with the content
+	const int scrolledBy = verticalOffset();
+	for (int row = (area.top() + scrolledBy) / rowHeight, top = row * rowHeight - scrolledBy; top <= area.bottom(); ++row, top += rowHeight)
+	{
+		const bool inFilledBand = bandsFilled && (row / look.rowsPerBand) % 2 != 0;
+		if (inFilledBand || strips)
+			painter.fillRect(QRect{ 0, top, width, fillHeight }, inFilledBand ? look.rowBandColor : look.rowStripColor);
+
+		if (look.rowBandSeparatorColor.isValid() && (row + 1) % look.rowsPerBand == 0)
+			painter.fillRect(QRect{ 0, top + rowHeight - look.rowBandSeparatorWidth, width, look.rowBandSeparatorWidth }, look.rowBandSeparatorColor);
+		else if (look.rowSeparatorColor.isValid())
+			painter.fillRect(QRect{ 0, top + rowHeight - 1, width, 1 }, look.rowSeparatorColor);
+	}
+
+	if (look.marginLineColor.isValid())
+	{
+		QStyleOptionViewItem nameCell;
+		initViewItemOption(&nameCell);
+		nameCell.rect = QRect{ header()->sectionViewportPosition(NameColumn), 0, header()->sectionSize(NameColumn), rowHeight };
+		painter.fillRect(QRect{ _itemDelegate->marginLineX(nameCell), area.top(), 1, area.height() }, look.marginLineColor);
+	}
+}
+
 void CFileListView::paintEvent(QPaintEvent* event)
 {
-	// Before the rows: their selection and cursor fills cover the lines
+	// Before the rows: their selection and cursor fills cover the bands and the lines
+	paintRowBandsAndLines(event->rect());
 	if (_columnSeparatorsShown)
 		paintColumnSeparators(event->rect());
 

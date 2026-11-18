@@ -18,6 +18,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QPainter>
 #include <QPalette>
 #include <QPlainTextEdit>
+#include <QStyle>
 #include <QTextEdit>
 #include <QTreeView>
 #include <QVariant>
@@ -41,6 +42,17 @@ namespace {
 	return content;
 }
 
+// Added between the icon and the name where the look has a margin line; the line is in its middle
+constexpr int marginLineGap = 12;
+
+// The left edge of the name's area in a Name cell with an icon of the view's icon size. option: the view's item options, with the cell's content rect.
+[[nodiscard]] int nameAreaLeft(QStyleOptionViewItem option, const QTreeView& view)
+{
+	option.features |= QStyleOptionViewItem::HasDecoration | QStyleOptionViewItem::HasDisplay;
+	option.text = QStringLiteral("x"); // The style lays out a cell without text differently
+	return view.style()->subElementRect(QStyle::SE_ItemViewItemText, &option, &view).left();
+}
+
 } // namespace
 
 void CFileListItemDelegate::setLook(const FileListLook& look)
@@ -56,6 +68,16 @@ const FileListLook& CFileListItemDelegate::look() const
 QRect CFileListItemDelegate::rowFillRect(const QRect& row) const
 {
 	return row.adjusted(_look.rowFillInset, 0, -_look.rowFillInset, -_look.rowFillGap);
+}
+
+int CFileListItemDelegate::marginLineX(const QStyleOptionViewItem& nameCell) const
+{
+	const auto* view = qobject_cast<const QTreeView*>(nameCell.widget);
+	assert_and_return_r(view, 0);
+
+	QStyleOptionViewItem content = nameCell;
+	content.rect = cellContentRect(nameCell.rect, *view->header(), NameColumn, _look);
+	return nameAreaLeft(content, *view) + marginLineGap / 2;
 }
 
 // Item rename handling
@@ -96,6 +118,13 @@ void CFileListItemDelegate::updateEditorGeometry(QWidget* editor, const QStyleOp
 	QStyleOptionViewItem opt = option;
 	opt.rect = cellContentRect(option.rect, *view->header(), index.column(), _look);
 	QStyledItemDelegate::updateEditorGeometry(editor, opt, index);
+
+	if (index.column() == NameColumn && _look.marginLineColor.isValid())
+	{
+		QRect geometry = editor->geometry();
+		geometry.setLeft(nameAreaLeft(opt, *view) + marginLineGap);
+		editor->setGeometry(geometry);
+	}
 }
 
 void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -119,7 +148,27 @@ void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem&
 		// Less prominent than the names, more than disabled text
 		opt.palette.setColor(QPalette::Text, ColorUtils::mix(option.palette.color(QPalette::PlaceholderText), option.palette.color(QPalette::Text), 0.3f));
 	}
-	QStyledItemDelegate::paint(painter, opt, index);
+
+	if (index.column() != NameColumn || !_look.marginLineColor.isValid())
+	{
+		QStyledItemDelegate::paint(painter, opt, index);
+		return;
+	}
+
+	// The icon is painted where it always is, then the name without it, further right by the gap that holds the margin line.
+	// Before initStyleOption: that shrinks the decoration to the row's icon.
+	const int nameLeft = nameAreaLeft(opt, *view) + marginLineGap;
+	initStyleOption(&opt, index);
+	const QStyle& style = *view->style();
+	if (opt.features.testFlag(QStyleOptionViewItem::HasDecoration))
+	{
+		const QRect iconRect = style.subElementRect(QStyle::SE_ItemViewItemDecoration, &opt, view);
+		opt.icon.paint(painter, iconRect, opt.decorationAlignment, opt.state.testFlag(QStyle::State_Enabled) ? QIcon::Normal : QIcon::Disabled);
+	}
+	opt.features.setFlag(QStyleOptionViewItem::HasDecoration, false);
+	opt.icon = {};
+	opt.rect.setLeft(nameLeft);
+	style.drawControl(QStyle::CE_ItemViewItem, &opt, painter, view);
 }
 
 void CFileListItemDelegate::initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const

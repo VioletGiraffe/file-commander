@@ -140,6 +140,10 @@ private:
 
 	// Along the right edge of every column but the last, over the viewport's whole height. Only called while painting.
 	void paintColumnSeparators(const QRect& area);
+	// The look's row bands, row lines and margin line, over the viewport's whole height. Only called while painting.
+	void paintRowBandsAndLines(const QRect& area);
+	// Of the first row, which every row shares; of a row without content while the list is empty
+	[[nodiscard]] int uniformRowHeight() const;
 
 private:
 	std::vector<FileListViewEventObserver*> _eventObservers;
