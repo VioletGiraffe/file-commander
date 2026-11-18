@@ -282,6 +282,7 @@
      <string>&amp;Help</string>
     </property>
     <addaction name="action_Check_for_updates"/>
+    <addaction name="actionDesktop_entry"/>
     <addaction name="separator"/>
     <addaction name="action_Report_a_bug"/>
     <addaction name="actionAbout"/>
@@ -460,6 +461,11 @@
   <action name="action_Check_for_updates">
    <property name="text">
     <string>&amp;Check for updates...</string>
+   </property>
+  </action>
+  <action name="actionDesktop_entry">
+   <property name="text">
+    <string>&amp;Install desktop entry</string>
    </property>
   </action>
   <action name="actionOpen_Admin_console_here">

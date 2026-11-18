@@ -23,6 +23,7 @@
 #include "settings/csettingspageoperations.h"
 #include "settings/csettingspageother.h"
 #include "aboutdialog/aboutdialog.h"
+#include "desktopentry/desktopentry.h"
 
 #include "version.h"
 
@@ -76,6 +77,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenu>
 #include <QMessageBox>
 #include <QProcess>
 #include <QPushButton>
@@ -108,6 +110,7 @@ RESTORE_COMPILER_WARNINGS
 // Main window settings keys
 #define KEY_LEGACY_SPLITTER_STATE QSL("Ui/Splitter")
 #define KEY_LAST_ACTIVE_PANEL QSL("Ui/LastActivePanel")
+#define KEY_DESKTOP_ENTRY_OFFERED QSL("Ui/DesktopEntryOffered")
 
 CMainWindow * CMainWindow::_instance = nullptr;
 
@@ -241,6 +244,8 @@ void CMainWindow::updateInterface()
 		ui->leftPanel->setFocusToFileList();
 	else
 		ui->rightPanel->setFocusToFileList();
+
+	offerDesktopEntryOnce();
 }
 
 void CMainWindow::applyTheme()
@@ -396,6 +401,16 @@ void CMainWindow::initActions()
 	connect(ui->actionTablet_mode, &QAction::toggled, this, &CMainWindow::toggleTabletMode);
 
 	connect(ui->action_Check_for_updates, &QAction::triggered, this, &CMainWindow::checkForUpdates);
+	if (DesktopEntry::runningFromAppImage())
+	{
+		connect(ui->actionDesktop_entry, &QAction::triggered, this, [this] { setDesktopEntryInstalled(!DesktopEntry::installedForThisAppImage()); });
+		// Read on every opening: the entry file can change outside this process
+		connect(ui->menu_Help, &QMenu::aboutToShow, this, [this] {
+			ui->actionDesktop_entry->setText(DesktopEntry::installedForThisAppImage() ? tr("&Uninstall desktop entry") : tr("&Install desktop entry"));
+		});
+	}
+	else
+		ui->actionDesktop_entry->setVisible(false);
 	connect(ui->action_Report_a_bug, &QAction::triggered, this, &CMainWindow::reportBug);
 	connect(ui->actionAbout, &QAction::triggered, this, &CMainWindow::about);
 
@@ -1357,6 +1372,33 @@ void CMainWindow::checkForUpdates()
 {
 	QSettings().setValue(KEY_LAST_UPDATE_CHECK_TIMESTAMP, QDateTime::currentDateTime());
 	CUpdaterDialog(this, REPO_NAME, RELEASE_ASSET_NAME, VERSION_STRING).exec();
+}
+
+void CMainWindow::setDesktopEntryInstalled(const bool installed)
+{
+	if (const auto result = installed ? DesktopEntry::install() : DesktopEntry::uninstall(); !result)
+		QMessageBox::warning(this, installed ? tr("Cannot install the desktop entry") : tr("Cannot uninstall the desktop entry"), result.error());
+}
+
+void CMainWindow::offerDesktopEntryOnce()
+{
+	QSettings s;
+	if (!DesktopEntry::runningFromAppImage() || s.value(KEY_DESKTOP_ENTRY_OFFERED, false).toBool() || DesktopEntry::installedForThisAppImage())
+		return;
+
+	s.setValue(KEY_DESKTOP_ENTRY_OFFERED, true);
+
+	// Not exec(): a --test-launch run must reach its exit timer
+	auto* question = new QMessageBox{ QMessageBox::Question, tr("Install a desktop entry?"),
+		tr("A desktop entry adds File Commander to the applications menu, and lets you pin it to the taskbar or dock."),
+		QMessageBox::Yes | QMessageBox::No, this };
+	question->setInformativeText(tr("The Help menu can install or uninstall it later."));
+	question->setAttribute(Qt::WA_DeleteOnClose);
+	connect(question, &QDialog::finished, this, [this, question] {
+		if (question->standardButton(question->clickedButton()) == QMessageBox::Yes)
+			setDesktopEntryInstalled(true);
+	});
+	question->open();
 }
 
 void CMainWindow::about()
