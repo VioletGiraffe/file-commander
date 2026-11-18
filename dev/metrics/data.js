@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795017148459,
+  "lastUpdate": 1795028244388,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -38665,6 +38665,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rsrc",
             "value": 125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 53,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "e5d54663e81ea5b24b1241608a07f62863d31f47",
+          "message": "New application icon; icon generation script updated/fixed (in qtutils)",
+          "timestamp": "2026-11-18T18:29:58+02:00",
+          "tree_id": "eb8f4dd1a16e5aa4f661b732594e319816d06917",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/e5d54663e81ea5b24b1241608a07f62863d31f47"
+        },
+        "date": 1795028240818,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 24474,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36290,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1726,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1049.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1091,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 463.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
             "unit": "KB"
           },
           {
