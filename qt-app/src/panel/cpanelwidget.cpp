@@ -114,14 +114,12 @@ static constexpr int doubleFrameLineOffset = 3;
 	return line;
 }
 
-// Per-tab column layout and sort, keyed by the controller's tab ids; see saveTabViewStates().
+// Per-tab column layout, keyed by the controller's tab ids; see saveTabViewStates().
 #define KEY_LPANEL_TAB_VIEW_STATES QSL("Ui/LPanel/TabViewStates")
 #define KEY_RPANEL_TAB_VIEW_STATES QSL("Ui/RPanel/TabViewStates")
-// Dead settings that saveTabViewStates() clears out; see there for why each one is dead.
+// The side's QHeaderView::saveState() blob, in settings older than the per-tab layouts; saveTabViewStates() removes it
 #define KEY_LPANEL_LEGACY_HEADER_STATE QSL("Ui/LPanel/State")
 #define KEY_RPANEL_LEGACY_HEADER_STATE QSL("Ui/RPanel/State")
-#define KEY_LPANEL_LEGACY_GEOMETRY QSL("Ui/LPanel/Geometry")
-#define KEY_RPANEL_LEGACY_GEOMETRY QSL("Ui/RPanel/Geometry")
 
 static FolderContentsSummary summarizeFolderContents(const FileListHashMap& items)
 {
@@ -175,6 +173,61 @@ static std::optional<CFileListView::ColumnLayout> parseColumnLayout(const QStrin
 		return {};
 
 	return layout;
+}
+
+// Skips the records it cannot read
+static std::vector<std::pair<qulonglong, CFileListView::ColumnLayout>> loadTabColumnLayouts(const Panel side)
+{
+	const QStringList records = QSettings{}.value(side == Panel::LeftPanel ? KEY_LPANEL_TAB_VIEW_STATES : KEY_RPANEL_TAB_VIEW_STATES).toStringList();
+
+	std::vector<std::pair<qulonglong, CFileListView::ColumnLayout>> layouts;
+	layouts.reserve((size_t)records.size());
+	for (const QString& record : records)
+	{
+		// 3 fields: id, column widths, column order
+		const QStringList fields = record.split('|');
+		if (fields.size() != 3)
+			continue; // Written by another version of this format
+
+		bool idParsed = false;
+		const qulonglong tabId = fields[0].toULongLong(&idParsed);
+		if (!idParsed)
+			continue;
+
+		if (const auto columnLayout = parseColumnLayout(fields[1], fields[2]))
+			layouts.emplace_back(tabId, *columnLayout);
+	}
+
+	return layouts;
+}
+
+namespace {
+
+struct LegacySideHeaderState {
+	CFileListView::ColumnLayout columnLayout;
+	std::optional<std::pair<FileListSortField, Qt::SortOrder>> sorting;
+};
+
+} // namespace
+
+// Defaults when the blob is absent or unreadable
+static LegacySideHeaderState loadLegacySideHeaderState(const Panel side)
+{
+	LegacySideHeaderState state;
+	// A detached header decodes the blob without disturbing the live one
+	QHeaderView header{ Qt::Horizontal };
+	if (!header.restoreState(QSettings{}.value(side == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE).toByteArray()))
+		return state;
+
+	if (const auto columnLayout = CFileListView::columnLayoutOf(header))
+		state.columnLayout = *columnLayout;
+
+	// The sort indicator is the only record of how the side was sorted
+	const int sortColumn = header.sortIndicatorSection();
+	if (sortColumn >= 0 && sortColumn < NumberOfColumns)
+		state.sorting.emplace(sortFieldOf(sortColumn), header.sortIndicatorOrder());
+
+	return state;
 }
 
 CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
@@ -354,80 +407,6 @@ void CPanelWidget::saveTabViewStates() const
 	QSettings s;
 	s.setValue(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_TAB_VIEW_STATES : KEY_RPANEL_TAB_VIEW_STATES, records);
 	s.remove(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE); // Replaced by the store above
-
-	// QTreeView lays out its own header, so restoring this into it never had an effect.
-	s.remove(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_GEOMETRY : KEY_RPANEL_LEGACY_GEOMETRY);
-}
-
-std::vector<std::pair<qulonglong, CPanelWidget::TabViewState>> CPanelWidget::loadTabViewStates() const
-{
-	const QStringList records = QSettings{}.value(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_TAB_VIEW_STATES : KEY_RPANEL_TAB_VIEW_STATES).toStringList();
-
-	std::vector<std::pair<qulonglong, TabViewState>> states;
-	states.reserve((size_t)records.size());
-	for (const QString& record : records)
-	{
-		// 3 fields: id, column widths, column order
-		// Legacy, with the sorting after the id: 5 fields, or 4 with the layout as a base64 header blob
-		const QStringList fields = record.split('|');
-		if (fields.size() < 3 || fields.size() > 5)
-			continue; // Written by another version of this format
-
-		bool idParsed = false;
-		const qulonglong tabId = fields[0].toULongLong(&idParsed);
-		if (!idParsed)
-			continue;
-
-		TabViewState state;
-		if (fields.size() == 3)
-		{
-			const auto columnLayout = parseColumnLayout(fields[1], fields[2]);
-			if (!columnLayout)
-				continue;
-			state.columnLayout = *columnLayout;
-			states.emplace_back(tabId, std::move(state));
-			continue;
-		}
-
-		bool columnParsed = false;
-		const int sortColumn = fields[1].toInt(&columnParsed);
-		if (!columnParsed || sortColumn < 0 || sortColumn >= NumberOfColumns)
-			continue;
-
-		if (fields.size() == 5)
-		{
-			const auto columnLayout = parseColumnLayout(fields[3], fields[4]);
-			if (!columnLayout)
-				continue;
-			state.columnLayout = *columnLayout;
-		}
-		else
-			state = viewStateFromHeaderBlob(QByteArray::fromBase64(fields[3].toLatin1()));
-
-		state.legacySorting.emplace(sortFieldOf(sortColumn), fields[2].toInt() == (int)Qt::DescendingOrder ? Qt::DescendingOrder : Qt::AscendingOrder);
-		states.emplace_back(tabId, std::move(state));
-	}
-
-	return states;
-}
-
-CPanelWidget::TabViewState CPanelWidget::viewStateFromHeaderBlob(const QByteArray& blob)
-{
-	TabViewState state;
-	// A detached header decodes the blob without disturbing the live one
-	QHeaderView header{ Qt::Horizontal };
-	if (!header.restoreState(blob))
-		return state;
-
-	if (const auto columnLayout = CFileListView::columnLayoutOf(header))
-		state.columnLayout = *columnLayout;
-
-	// A per-side blob's sort indicator is the only record of how the side was sorted
-	const int sortColumn = header.sortIndicatorSection();
-	if (sortColumn >= 0 && sortColumn < NumberOfColumns)
-		state.legacySorting.emplace(sortFieldOf(sortColumn), header.sortIndicatorOrder());
-
-	return state;
 }
 
 CFileListView::ColumnLayout CPanelWidget::columnLayoutOfTab(int index) const
@@ -464,31 +443,24 @@ void CPanelWidget::initPanel(Panel p)
 	const std::vector<qulonglong> ids = _controller->tabIds(p);
 	const qulonglong activeId = _controller->activeTabId(p);
 
-	const std::vector<std::pair<qulonglong, TabViewState>> storedViewStates = loadTabViewStates();
-	// Tabs with nothing stored for them fall back to the legacy side-wide blob while it's still there, to defaults after.
-	const TabViewState fallbackViewState = storedViewStates.empty()
-		? viewStateFromHeaderBlob(QSettings{}.value(_panelPosition == Panel::LeftPanel ? KEY_LPANEL_LEGACY_HEADER_STATE : KEY_RPANEL_LEGACY_HEADER_STATE).toByteArray())
-		: TabViewState{};
-	const auto viewStateForTab = [&](qulonglong tabId) {
-		const auto stored = std::find_if(storedViewStates.cbegin(), storedViewStates.cend(), [tabId](const auto& state) { return state.first == tabId; });
-		return stored != storedViewStates.cend() ? stored->second : fallbackViewState;
+	const std::vector<std::pair<qulonglong, CFileListView::ColumnLayout>> storedLayouts = loadTabColumnLayouts(p);
+	// With no layout read, the side's legacy header state applies to every tab, sorting included
+	const LegacySideHeaderState legacyState = storedLayouts.empty() ? loadLegacySideHeaderState(p) : LegacySideHeaderState{};
+	const auto restoredColumnLayout = [&](qulonglong tabId) {
+		const auto stored = std::find_if(storedLayouts.cbegin(), storedLayouts.cend(), [tabId](const auto& layout) { return layout.first == tabId; });
+		return stored != storedLayouts.cend() ? stored->second : legacyState.columnLayout;
 	};
 
 	int activeIndex = 0;
-	bool sortingMigrated = false;
 	{
 		const QSignalBlocker block(ui->_tabBar);
 		for (const qulonglong id : ids)
 		{
-			const TabViewState viewState = viewStateForTab(id);
-			if (viewState.legacySorting)
-			{
-				_controller->setTabSorting(p, id, viewState.legacySorting->first, viewState.legacySorting->second);
-				sortingMigrated = true;
-			}
+			if (legacyState.sorting)
+				_controller->setTabSorting(p, id, legacyState.sorting->first, legacyState.sorting->second);
 
 			PanelTab& tab = _tabs.emplace_back();
-			populateTabModels(tab, id, viewState.columnLayout);
+			populateTabModels(tab, id, restoredColumnLayout(id));
 
 			const int index = ui->_tabBar->addTab(QString());
 			ui->_tabBar->setTabData(index, id);
@@ -502,8 +474,8 @@ void CPanelWidget::initPanel(Panel p)
 	activateTab(activeIndex);
 	updateTabBarVisibility();
 
-	// Rewritten without the sorting at once: a later start would otherwise migrate it again, over newer sorting
-	if (sortingMigrated)
+	// Replaces the legacy state at once: a later start would otherwise migrate its sorting again, over newer sorting
+	if (legacyState.sorting)
 		saveTabViewStates();
 
 	_controller->setPanelContentsChangedListener(p, this);

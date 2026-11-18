@@ -1,6 +1,5 @@
 #pragma once
 
-#include "columns.h"
 #include "filelistwidget/cfilelistview.h"
 #include "iconprovider/ciconprovider.h"
 
@@ -192,18 +191,9 @@ private:
 		qulonglong cursorTargetHash = 0; // The item the core designated for the cursor, kept until a listing has it; 0 for none
 		CFileListView::ScrollPosition scrollPosition; // Saved while the tab is in the background
 	};
-	// A tab's persisted appearance. The defaults are what a tab gets with nothing stored for it.
-	struct TabViewState {
-		CFileListView::ColumnLayout columnLayout;
-		// Only in settings written before the core stored each tab's sorting: initPanel() hands it to the core
-		std::optional<std::pair<FileListSortField, Qt::SortOrder>> legacySorting;
-	};
 	// Wires a model and its selection model into an already-emplaced tab (not shown yet), sorted as the core tab is
 	void populateTabModels(PanelTab& tab, qulonglong tabId, const CFileListView::ColumnLayout& columnLayout);
 	[[nodiscard]] CFileListView::ColumnLayout columnLayoutOfTab(int index) const; // What tab 'index' looks like right now
-	[[nodiscard]] std::vector<std::pair<qulonglong, TabViewState>> loadTabViewStates() const; // Persisted state by tab id; empty when nothing is stored
-	// Migration: older settings held QHeaderView::saveState() blobs, first one per side, then one per tab. Defaults for an unreadable blob.
-	[[nodiscard]] static TabViewState viewStateFromHeaderBlob(const QByteArray& blob);
 	[[nodiscard]] qulonglong tabIdAt(int index) const; // The tab ID stored as this tab bar position's tab data
 	[[nodiscard]] bool displaysTab(Panel p, qulonglong tabId) const; // Filters the per-tab CPanel notifications down to the tab on screen
 	void activateTab(int index);                   // Points the shared view at tab 'index's models, restoring its own column widths, sort, scroll position and filter box
