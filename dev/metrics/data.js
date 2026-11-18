@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795028244388,
+  "lastUpdate": 1795033457591,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -38704,6 +38704,95 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/VioletGiraffe/file-commander/commit/e5d54663e81ea5b24b1241608a07f62863d31f47"
         },
         "date": 1795028240818,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 24474,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36290,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1726,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1049.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1091,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 463.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 53,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "1e2d2149b70ac732e17f85839a3c0a236bf446f8",
+          "message": "Command-line row styling of the themes takes effect: the rules selected the main window by its class name, which QSS matches only for a class with Q_OBJECT",
+          "timestamp": "2026-11-18T22:12:27+02:00",
+          "tree_id": "f9f8fc7c0deeea1921baf79664e05f77fff2c261",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/1e2d2149b70ac732e17f85839a3c0a236bf446f8"
+        },
+        "date": 1795033454198,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
