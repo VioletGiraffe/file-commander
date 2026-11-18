@@ -1098,33 +1098,46 @@ TEST_CASE("F10 and Alt+letter open the menus, whose commands act on the focused 
 		QStringLiteral("every file selected"));
 }
 
-TEST_CASE("A colour theme chosen in View > Theme is marked there, in the next session too", "[tui]")
+TEST_CASE("A colour theme chosen in View > Theme is marked there, in the next session too; Esc keeps the theme", "[tui]")
 {
 	const Sandbox sandbox;
-	const auto openThemeMenu = [](CTerminalSession& session) {
+	// The dialog's last text is its Cancel button
+	const auto openThemeList = [](CTerminalSession& session) {
 		session.send(Keys::AltV);
-		requireText(session, QStringLiteral("Theme"));
+		requireText(session, QStringLiteral("Theme..."));
 		session.send("t"sv);
+		requireText(session, QStringLiteral("Cancel"));
+	};
+	const auto requireThemeListClosed = [](CTerminalSession& session) {
+		requireScreen(session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Classic blue")); }, QStringLiteral("the theme list closed"));
 	};
 	{
 		auto session = startFcterm(sandbox);
-		openThemeMenu(*session);
-		requireText(*session, QStringLiteral("• Classic blue"));
-		session->send("d"sv);
-		requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Classic blue")); }, QStringLiteral("the menu closed"));
-		openThemeMenu(*session);
-		requireText(*session, QStringLiteral("• Dark"));
+		openThemeList(*session);
+		CHECK(session->screen().contains(QStringLiteral("• Classic blue")));
+		session->send(Keys::Down);
+		session->send(Keys::Enter);
+		requireThemeListClosed(*session);
+
+		openThemeList(*session);
+		CHECK(session->screen().contains(QStringLiteral("• Dark")));
+		CHECK_FALSE(session->screen().contains(QStringLiteral("• Classic blue")));
+		session->send(Keys::Down);
 		session->send(Keys::Escape);
-		requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Dark")); }, QStringLiteral("the Theme menu closed"));
+		requireThemeListClosed(*session);
+
+		openThemeList(*session);
+		CHECK(session->screen().contains(QStringLiteral("• Dark")));
+		CHECK_FALSE(session->screen().contains(QStringLiteral("• Amber")));
 		session->send(Keys::Escape);
-		requireScreen(*session, [](const CTerminalScreen& screen) { return !screen.contains(QStringLiteral("Sort by")); }, QStringLiteral("the View menu closed"));
+		requireThemeListClosed(*session);
 		session->send(Keys::AltX);
 		REQUIRE(session->waitForExit() == 0);
 	}
 
 	auto session = startFcterm(sandbox);
-	openThemeMenu(*session);
-	requireText(*session, QStringLiteral("• Dark"));
+	openThemeList(*session);
+	CHECK(session->screen().contains(QStringLiteral("• Dark")));
 	CHECK_FALSE(session->screen().contains(QStringLiteral("• Classic blue")));
 }
 

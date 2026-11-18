@@ -62,8 +62,8 @@ dialog is open.
   New panel roles go into `PanelPaletteEntry` and its colour table.
 - The hint row and the key bar have their own roles after the panel's: Turbo Vision's status line shares the menus' roles.
 - A colour theme's `ThemeParameters` hold one colour per kind of thing on screen. `applicationPaletteFor` pairs them
-  into the application palette's entries, so a new palette entry is written once for every theme. View > Theme switches
-  the theme while running; the choice is the terminal UI's own setting.
+  into the application palette's entries, so a new palette entry is written once for every theme. View > Theme lists
+  the themes and shows the one under the cursor on the whole screen; the choice is the terminal UI's own setting.
 - A theme can put the file list's rows on bands of alternating background, of a height it chooses.
 
 ## Commands

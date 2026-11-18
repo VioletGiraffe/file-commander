@@ -149,6 +149,17 @@ public:
 		message(owner, evCommand, cmOK, this);
 	}
 
+	void focusItem(short item) override
+	{
+		const bool movesCursor = item != focused;
+		TListViewer::focusItem(item);
+		if (movesCursor && cursorMovedTo)
+			cursorMovedTo((size_t)item);
+	}
+
+	// Called when the cursor moves to another item
+	std::function<void(size_t item)> cursorMovedTo;
+
 private:
 	std::vector<QByteArray> _items;
 };
@@ -393,14 +404,23 @@ int chooseFromListMaxItemWidth()
 	return maxListWidth() - 2;
 }
 
-std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, const size_t initialItem, const QStringList& textAbove,
-	const QString& acceptLabel, const QString& declineLabel)
+namespace {
+
+struct ListDialogExtras
 {
-	static constexpr int margin = listDialogMargin, minListWidth = 30;
+	int minListWidth = 0;
+	bool atRightEdge = false; // Otherwise in the middle of the desktop
+	std::function<void(size_t item)> cursorMovedTo; // See CTuiListView
+};
+
+[[nodiscard]] std::optional<size_t> execListDialog(const QString& title, const QStringList& items, const size_t initialItem, const QStringList& textAbove,
+	const QString& acceptLabel, const QString& declineLabel, const ListDialogExtras& extras)
+{
+	static constexpr int margin = listDialogMargin;
 
 	const TPoint desktopSize = TProgram::deskTop->size;
 	// The list draws its text from its second column, and the last column keeps the text off the scroll bar
-	int listWidth = minListWidth;
+	int listWidth = extras.minListWidth;
 	for (const QString& item : items)
 		listWidth = std::max(listWidth, cellWidth(item) + 2);
 	// The text and the buttons also span the scroll bar's column
@@ -417,9 +437,9 @@ std::optional<size_t> chooseFromList(const QString& title, const QStringList& it
 	for (const QString& item : items)
 		rows.push_back(elidedInTheMiddle(item, listWidth - 2));
 
-	const int width = listWidth + 2 * margin + 1;
-	auto* dialog = new TDialog({ 0, 0, width, textRows + listHeight + 7 }, stringView(title.toUtf8()));
-	dialog->options |= ofCentered;
+	const int width = listWidth + 2 * margin + 1, left = extras.atRightEdge ? desktopSize.x - width : 0;
+	auto* dialog = new TDialog({ left, 0, left + width, textRows + listHeight + 7 }, stringView(title.toUtf8()));
+	dialog->options |= extras.atRightEdge ? ofCenterY : ofCentered;
 
 	const int listRight = margin + listWidth, listTop = 2 + textRows;
 	if (textRows > 0)
@@ -443,9 +463,24 @@ std::optional<size_t> chooseFromList(const QString& title, const QStringList& it
 	list->select();
 	if (initialItem < (size_t)items.size())
 		list->focusItem((short)initialItem);
+	list->cursorMovedTo = extras.cursorMovedTo;
 
 	const ushort command = TProgram::deskTop->execView(dialog);
 	const std::optional<size_t> chosen = command == cmOK && !items.isEmpty() ? std::optional<size_t>{ (size_t)list->focused } : std::nullopt;
 	TObject::destroy(dialog);
 	return chosen;
+}
+
+} // namespace
+
+std::optional<size_t> chooseFromList(const QString& title, const QStringList& items, const size_t initialItem, const QStringList& textAbove,
+	const QString& acceptLabel, const QString& declineLabel)
+{
+	return execListDialog(title, items, initialItem, textAbove, acceptLabel, declineLabel, { .minListWidth = 30 });
+}
+
+std::optional<size_t> chooseFromListWithPreview(const QString& title, const QStringList& items, const size_t initialItem,
+	const std::function<void(size_t item)>& showPreview)
+{
+	return execListDialog(title, items, initialItem, {}, QStringLiteral("OK"), QStringLiteral("Cancel"), { .atRightEdge = true, .cursorMovedTo = showPreview });
 }

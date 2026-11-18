@@ -1,5 +1,6 @@
 #include "ctuiapplication.h"
 #include "ctuicolourtheme.h"
+#include "ctuidialogs.h"
 #include "ctuifinddialog.h"
 #include "ctuipalette.h"
 #include "ctuipanel.h"
@@ -34,6 +35,7 @@ RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
 #include <cstdio>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -53,14 +55,8 @@ RESTORE_COMPILER_WARNINGS
 namespace
 {
 // Carried out by the application, not the focused panel
-constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102, cmCompareFolders = 1103, cmToggleQuickView = 1104;
-// cmFirstColourTheme + n chooses colourThemes()[n]
-constexpr ushort cmFirstColourTheme = 1105;
-
-[[nodiscard]] bool isColourThemeCommand(ushort command)
-{
-	return command >= cmFirstColourTheme && command < cmFirstColourTheme + colourThemes().size();
-}
+constexpr ushort cmChooseLeftPanelVolume = 1100, cmChooseRightPanelVolume = 1101, cmFindFiles = 1102, cmCompareFolders = 1103, cmToggleQuickView = 1104,
+	cmChooseColourTheme = 1105;
 
 #ifdef _WIN32
 BOOL WINAPI ignoreInterrupt(DWORD controlType)
@@ -194,32 +190,6 @@ private:
 	}
 };
 
-class CTuiMenuBar final : public TMenuBar
-{
-public:
-	using TMenuBar::TMenuBar;
-
-	// Names the Theme menu's items, with a mark on the theme given
-	void markColourTheme(const ColourTheme& theme) { markColourTheme(menu, theme); }
-
-private:
-	static void markColourTheme(TMenu* someMenu, const ColourTheme& theme)
-	{
-		for (TMenuItem* item = someMenu->items; item; item = item->next)
-		{
-			if (item->command == 0 && item->subMenu) // A separator has no submenu
-				markColourTheme(item->subMenu, theme);
-			else if (isColourThemeCommand(item->command))
-			{
-				const ColourTheme& itemTheme = colourThemes()[item->command - cmFirstColourTheme];
-				const std::string itemName = (&itemTheme == &theme ? "• " : "  ") + std::string{ itemTheme.menuName };
-				delete[] item->name;
-				item->name = newStr(itemName.c_str());
-			}
-		}
-	}
-};
-
 // A group draws its subviews again only when it has no buffer
 void freeDrawBuffers(TGroup& group)
 {
@@ -228,19 +198,6 @@ void freeDrawBuffers(TGroup& group)
 		if (auto* subgroup = dynamic_cast<TGroup*>(view))
 			freeDrawBuffers(*subgroup);
 	}, nullptr);
-}
-
-[[nodiscard]] TMenu* newColourThemeMenu()
-{
-	const std::span<const ColourTheme> themes = colourThemes();
-	TMenuItem* items = nullptr;
-	for (size_t i = themes.size(); i-- > 0;)
-	{
-		if (items && themes[i].polarity != themes[i + 1].polarity)
-			items = &(newLine() + *items);
-		items = new TMenuItem(themes[i].menuName, (ushort)(cmFirstColourTheme + i), kbNoKey, hcNoContext, {}, items);
-	}
-	return new TMenu(*items);
 }
 } // namespace
 
@@ -324,22 +281,34 @@ void CTuiApplication::handleEvent(TEvent& event)
 		return;
 	}
 
-	if (event.what == evCommand && isColourThemeCommand(event.message.command))
+	if (event.what == evCommand && event.message.command == cmChooseColourTheme)
 	{
-		const ColourTheme& theme = colourThemes()[event.message.command - cmFirstColourTheme];
 		clearEvent(event);
-		setColourTheme(theme);
-		QSettings{}.setValue(KEY_TUI_COLOUR_THEME, QString::fromLatin1(theme.id));
+		chooseColourTheme();
 		return;
 	}
 
 	TApplication::handleEvent(event);
 }
 
+void CTuiApplication::chooseColourTheme()
+{
+	const std::span<const ColourTheme> themes = colourThemes();
+	const ColourTheme& themeBefore = appliedColourTheme();
+	QStringList names;
+	for (const ColourTheme& theme : themes)
+		names.push_back((&theme == &themeBefore ? QStringLiteral("• ") : QStringLiteral("  ")) + QLatin1String{ theme.name });
+
+	const auto showTheme = [this, themes](const size_t item) { setColourTheme(themes[item]); };
+	if (const std::optional<size_t> chosen = chooseFromListWithPreview(QStringLiteral("Theme"), names, (size_t)(&themeBefore - themes.data()), showTheme))
+		QSettings{}.setValue(KEY_TUI_COLOUR_THEME, QString::fromLatin1(themes[*chosen].id));
+	else
+		setColourTheme(themeBefore);
+}
+
 void CTuiApplication::setColourTheme(const ColourTheme& theme)
 {
 	applyColourTheme(theme);
-	static_cast<CTuiMenuBar*>(menuBar)->markColourTheme(theme); // initMenuBar creates a CTuiMenuBar
 
 	// Buffers drawn in the old colours: the desktop holds the panels and every open window, and the closed Find dialog is in no group
 	freeDrawBuffers(*deskTop);
@@ -501,7 +470,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 	r.b.y = r.a.y + 1;
 	// Menu titles avoid the letters of the panel's Alt+letter keys: Alt plus a title's letter opens that menu.
 	// Keys a text field uses stay with the panel (see commandForPanelKey), so their menu items only show them.
-	return new CTuiMenuBar(r,
+	return new TMenuBar(r,
 		*new TSubMenu("~F~ile", kbAltF) +
 			*new TMenuItem("~R~ename...", cmRenameItem, kbF2, hcNoContext, "F2") +
 			*new TMenuItem("~B~atch rename...", cmBatchRename, kbShiftF2, hcNoContext, "Shift-F2") +
@@ -552,7 +521,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("Sort by ~d~ate", cmSortByDate, kbCtrlF5, hcNoContext, "Ctrl-F5") +
 			*new TMenuItem("Sort by ~s~ize", cmSortBySize, kbCtrlF6, hcNoContext, "Ctrl-F6") +
 			newLine() +
-			*new TMenuItem("~T~heme", kbNoKey, newColourThemeMenu()) +
+			*new TMenuItem("~T~heme...", cmChooseColourTheme, kbNoKey) +
 		*new TSubMenu("~G~o", kbAltG) +
 			*new TMenuItem("~B~ack", cmGoBack, kbAltLeft, hcNoContext, "Alt-Left") +
 			*new TMenuItem("~F~orward", cmGoForward, kbAltRight, hcNoContext, "Alt-Right") +

@@ -130,3 +130,7 @@ void showUserMessage(const UserMessage& message);
 	const QString& acceptLabel = QStringLiteral("OK"), const QString& declineLabel = QStringLiteral("Cancel"));
 // In terminal cells: chooseFromList elides a wider item in the middle
 [[nodiscard]] int chooseFromListMaxItemWidth();
+// chooseFromList for a choice that the screen behind the dialog previews: the dialog is narrow and at the desktop's right edge.
+// showPreview is called with the item under the cursor each time the cursor moves to another item.
+[[nodiscard]] std::optional<size_t> chooseFromListWithPreview(const QString& title, const QStringList& items, size_t initialItem,
+	const std::function<void(size_t item)>& showPreview);

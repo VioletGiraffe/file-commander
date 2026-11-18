@@ -1,8 +1,6 @@
 #include "ctuicolourtheme.h"
 
 #include <algorithm>
-#include <iterator>
-#include <string_view>
 
 namespace {
 
@@ -12,7 +10,7 @@ constexpr TColorRGB black{ 0x000000 }, navy{ 0x00005F }, mediumBlue{ 0x0000AF },
 	darkTeal{ 0x005F5F }, darkGrey{ 0x5F5F5F }, grey{ 0xAFAFAF }, lightGreen{ 0x5FFF5F }, lightCyan{ 0x5FFFFF }, mutedCyan{ 0x5FD7D7 }, yellow{ 0xFFFF5F }, white{ 0xFFFFFF };
 
 constexpr ColourTheme themes[]{
-	{ "classic-blue", "~C~lassic blue", ColourTheme::Polarity::Dark, {
+	{ "classic-blue", "Classic blue", ColourTheme::Polarity::Dark, {
 		.menuBack = grey, .menuText = black, .menuShortcut = red, .menuSelectedBack = amber, .menuSelectedText = black, .menuSelectedShortcut = navy,
 		.disabledText = darkGrey,
 		.panelBack = navy, .framePassive = grey, .frameActive = white, .frameIcons = lightGreen,
@@ -23,7 +21,7 @@ constexpr ColourTheme themes[]{
 		.controlBack = cyan, .controlText = black, .inputBack = navy, .inputText = white, .scrollBarText = cyan, .scrollBarBack = navy, .selectionText = white,
 		.bottomBack = black, .hintText = grey, .hintKey = cyan, .keyBack = yellow, .keyText = black, .keyLabelBack = grey, .keyLabelText = black,
 		.keyBarBack = black } },
-	{ "dark", "~D~ark", ColourTheme::Polarity::Dark, {
+	{ "dark", "Dark", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x303030, .menuText = 0xD0D0D0, .menuShortcut = 0xFFAF00, .menuSelectedBack = 0x005F87, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD75F,
 		.disabledText = 0x6C6C6C,
 		.panelBack = 0x121212, .framePassive = 0x585858, .frameActive = 0xD0D0D0, .frameIcons = 0x5FD75F,
@@ -35,7 +33,7 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0x000000, .hintText = 0x8A8A8A, .hintKey = 0xFFAF00, .keyBack = 0xFFD75F, .keyText = 0x000000, .keyLabelBack = 0x005F87, .keyLabelText = 0xFFFFFF,
 		.keyBarBack = 0x000000 } },
-	{ "amber", "~A~mber", ColourTheme::Polarity::Dark, {
+	{ "amber", "Amber", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x3A3A3A, .menuText = 0xFFAF00, .menuShortcut = 0xFFFFFF, .menuSelectedBack = 0xD78700, .menuSelectedText = 0x000000, .menuSelectedShortcut = 0xFFFFFF,
 		.disabledText = 0x6C6C6C,
 		.panelBack = 0x121212, .framePassive = 0x875F00, .frameActive = 0xFFAF00, .frameIcons = 0xFFD787,
@@ -47,7 +45,7 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0x000000,
 		.bottomBack = 0x000000, .hintText = 0xAF8700, .hintKey = 0xFFD787, .keyBack = 0xFFAF00, .keyText = 0x000000, .keyLabelBack = 0x3A3A3A, .keyLabelText = 0xFFAF00,
 		.keyBarBack = 0x000000 } },
-	{ "purple-night", "~P~urple night", ColourTheme::Polarity::Dark, {
+	{ "purple-night", "Purple night", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x303030, .menuText = 0xD0D0D0, .menuShortcut = 0xFF87D7, .menuSelectedBack = 0x875FD7, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD7FF,
 		.disabledText = 0x6C6C6C,
 		.panelBack = 0x1C1C1C, .framePassive = 0x5F5F87, .frameActive = 0xD0D0D0, .frameIcons = 0xAF87FF,
@@ -59,7 +57,7 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0x000000, .hintText = 0x8A8A8A, .hintKey = 0xAF87FF, .keyBack = 0xFF87D7, .keyText = 0x000000, .keyLabelBack = 0x5F5F87, .keyLabelText = 0xFFFFFF,
 		.keyBarBack = 0x000000 } },
-	{ "deep-teal", "Deep ~t~eal", ColourTheme::Polarity::Dark, {
+	{ "deep-teal", "Deep teal", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x008787, .menuText = 0xFFFFFF, .menuShortcut = 0xFFD75F, .menuSelectedBack = 0x00AFAF, .menuSelectedText = 0x000000, .menuSelectedShortcut = 0x00005F,
 		.disabledText = 0x87AFAF,
 		.panelBack = 0x002828, // Off-palette
@@ -76,7 +74,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0x000000, .hintText = 0x87AFAF, .hintKey = 0x00AFAF, .keyBack = 0x00AFAF, .keyText = 0x000000, .keyLabelBack = 0x005F5F, .keyLabelText = 0xFFFFFF,
 		.keyBarBack = 0x000000 } },
 	// True colour, built on the films' code-rain greens, with red accents
-	{ "matrix", "~M~atrix", ColourTheme::Polarity::Dark, {
+	{ "matrix", "Matrix", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x0D2614, .menuText = 0xA8F0BC, .menuShortcut = 0xFF4545, .menuSelectedBack = 0x00FF41, .menuSelectedText = 0x000000, .menuSelectedShortcut = 0x8A0000,
 		.disabledText = 0x3E6B4A,
 		.panelBack = 0x030805, .framePassive = 0x1F5C2E, .frameActive = 0x00FF41, .frameIcons = 0xFF4545,
@@ -89,7 +87,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0x030805, .hintText = 0x5FAF74, .hintKey = 0xFF5A5A, .keyBack = 0x00FF41, .keyText = 0x000000, .keyLabelBack = 0x0D2614, .keyLabelText = 0xA8F0BC,
 		.keyBarBack = 0x030805 } },
 	// True colour, in the yellow-green of P1 monitor phosphor, with the amber of P3
-	{ "phosphor", "Ph~o~sphor", ColourTheme::Polarity::Dark, {
+	{ "phosphor", "Phosphor", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x0F2600, .menuText = 0xC8FF9A, .menuShortcut = 0xFFB000, .menuSelectedBack = 0x5BFF1F, .menuSelectedText = 0x0A1400, .menuSelectedShortcut = 0x6B3A00,
 		.disabledText = 0x2E5A10,
 		.panelBack = 0x000000, .framePassive = 0x1E5200, .frameActive = 0x5BFF1F, .frameIcons = 0xFFB000,
@@ -102,7 +100,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0x0A1A00, .hintText = 0x5B9A3C, .hintKey = 0xFFB000, .keyBack = 0xFFB000, .keyText = 0x1A0E00, .keyLabelBack = 0x1E5200, .keyLabelText = 0xC8FF9A,
 		.keyBarBack = 0x000000 } },
 	// True colour, in an aqua phosphor green
-	{ "vector", "~V~ector", ColourTheme::Polarity::Dark, {
+	{ "vector", "Vector", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x000000, .menuText = 0x19D99A, .menuShortcut = 0xB5FFE6, .menuSelectedBack = 0x00FFB0, .menuSelectedText = 0x00140E, .menuSelectedShortcut = 0x0B4A38,
 		.disabledText = 0x0E5A44,
 		.panelBack = 0x000000, .framePassive = 0x0E5A44, .frameActive = 0x00FFB0, .frameIcons = 0xB5FFE6,
@@ -115,7 +113,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0x000000, .hintText = 0x13906A, .hintKey = 0x4DFFC4, .keyBack = 0x063A2C, .keyText = 0x4DFFC4, .keyLabelBack = 0x000000, .keyLabelText = 0x19D99A,
 		.keyBarBack = 0x000000 } },
 	// True colour, mostly from the Nord palette (MIT licence)
-	{ "slate", "~S~late", ColourTheme::Polarity::Dark, {
+	{ "slate", "Slate", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x3B4252, .menuText = 0xD8DEE9, .menuShortcut = 0x88C0D0, .menuSelectedBack = 0x5E81AC, .menuSelectedText = 0xECEFF4, .menuSelectedShortcut = 0xEBCB8B,
 		.disabledText = 0x616E88,
 		.panelBack = 0x2E3440, .framePassive = 0x4C566A, .frameActive = 0xD8DEE9, .frameIcons = 0xA3BE8C,
@@ -128,7 +126,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0x242933, .hintText = 0x7B88A1, .hintKey = 0x88C0D0, .keyBack = 0x88C0D0, .keyText = 0x2E3440, .keyLabelBack = 0x3B4252, .keyLabelText = 0xD8DEE9,
 		.keyBarBack = 0x242933 } },
 	// True colour, mostly from the Gruvbox palette (MIT licence)
-	{ "ember", "~E~mber", ColourTheme::Polarity::Dark, {
+	{ "ember", "Ember", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x3C3836, .menuText = 0xEBDBB2, .menuShortcut = 0xFE8019, .menuSelectedBack = 0xD65D0E, .menuSelectedText = 0xFBF1C7, .menuSelectedShortcut = 0xFABD2F,
 		.disabledText = 0x7C6F64,
 		.panelBack = 0x1D2021, .framePassive = 0x504945, .frameActive = 0xEBDBB2, .frameIcons = 0xB8BB26,
@@ -141,7 +139,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0x141617, .hintText = 0xA89984, .hintKey = 0xFE8019, .keyBack = 0xFABD2F, .keyText = 0x1D2021, .keyLabelBack = 0x3C3836, .keyLabelText = 0xEBDBB2,
 		.keyBarBack = 0x141617 } },
 	// True colour, mostly from the Tokyo Night palette (MIT licence)
-	{ "midnight", "M~i~dnight", ColourTheme::Polarity::Dark, {
+	{ "midnight", "Midnight", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x16161E, .menuText = 0xA9B1D6, .menuShortcut = 0xBB9AF7, .menuSelectedBack = 0x3D59A1, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xE0AF68,
 		.disabledText = 0x545C7E,
 		.panelBack = 0x1A1B26, .framePassive = 0x3B4261, .frameActive = 0xC0CAF5, .frameIcons = 0x9ECE6A,
@@ -153,7 +151,7 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0x101018, .hintText = 0x565F89, .hintKey = 0xBB9AF7, .keyBack = 0x7AA2F7, .keyText = 0x16161E, .keyLabelBack = 0x24283B, .keyLabelText = 0xC0CAF5,
 		.keyBarBack = 0x101018 } },
-	{ "two-inks", "T~w~o inks", ColourTheme::Polarity::Light, {
+	{ "two-inks", "Two inks", ColourTheme::Polarity::Light, {
 		.menuBack = 0xFFFFFF, .menuText = 0x000000, .menuShortcut = 0xD70000, .menuSelectedBack = 0x000000, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFF5F5F,
 		.disabledText = 0x8A8A8A,
 		.panelBack = 0xFFFFFF, .framePassive = 0xBCBCBC, .frameActive = 0x000000, .frameIcons = 0xD70000,
@@ -165,7 +163,7 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0xFFFFFF, .hintText = 0x6C6C6C, .hintKey = 0xD70000, .keyBack = 0x000000, .keyText = 0xFFFFFF, .keyLabelBack = 0xFFFFFF, .keyLabelText = 0x000000,
 		.keyBarBack = 0xFFFFFF } },
-	{ "highlighter", "~H~ighlighter", ColourTheme::Polarity::Light, {
+	{ "highlighter", "Highlighter", ColourTheme::Polarity::Light, {
 		.menuBack = 0xEEEEEE, .menuText = 0x000000, .menuShortcut = 0xD7005F, .menuSelectedBack = 0xFFFF5F, .menuSelectedText = 0x000000, .menuSelectedShortcut = 0xD7005F,
 		.disabledText = 0x8A8A8A,
 		.panelBack = 0xFFFFFF, .framePassive = 0xBCBCBC, .frameActive = 0x000000, .frameIcons = 0x008700,
@@ -177,7 +175,7 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0x000000,
 		.bottomBack = 0xFFFFFF, .hintText = 0x767676, .hintKey = 0x005FD7, .keyBack = 0x5FD7FF, .keyText = 0x000000, .keyLabelBack = 0xEEEEEE, .keyLabelText = 0x000000,
 		.keyBarBack = 0xFFFFFF } },
-	{ "light-cyan", "Light c~y~an", ColourTheme::Polarity::Light, {
+	{ "light-cyan", "Light cyan", ColourTheme::Polarity::Light, {
 		.menuBack = 0xAFD7D7, .menuText = 0x000000, .menuShortcut = 0xAF0000, .menuSelectedBack = 0x00005F, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFFF5F,
 		.disabledText = 0x5F8787,
 		.panelBack = 0xD7FFFF, .framePassive = 0x5F8787, .frameActive = 0x00005F, .frameIcons = 0x005F00,
@@ -190,7 +188,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0xAFD7D7, .hintText = 0x005F5F, .hintKey = 0xAF0000, .keyBack = 0xFFFF5F, .keyText = 0x000000, .keyLabelBack = 0x00AFAF, .keyLabelText = 0x000000,
 		.keyBarBack = 0xAFD7D7 } },
 	// True colour, in the cyan of glacier ice
-	{ "glacier", "G~l~acier", ColourTheme::Polarity::Light, {
+	{ "glacier", "Glacier", ColourTheme::Polarity::Light, {
 		.menuBack = 0x006A8A, .menuText = 0xEAF8FC, .menuShortcut = 0xB8F1FF, .menuSelectedBack = 0x7FD6EA, .menuSelectedText = 0x06303D, .menuSelectedShortcut = 0x5B2BB5,
 		.disabledText = 0x7FA3B0,
 		.panelBack = 0xE0F1F6, .framePassive = 0x9CC3D0, .frameActive = 0x006A8A, .frameIcons = 0x006B4A,
@@ -203,7 +201,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0x006A8A, .hintText = 0xA9D3DF, .hintKey = 0xFFFFFF, .keyBack = 0x7FD6EA, .keyText = 0x06303D, .keyLabelBack = 0x006A8A, .keyLabelText = 0xEAF8FC,
 		.keyBarBack = 0x006A8A } },
 	// True colour, mostly from the Solarized Light palette (MIT licence)
-	{ "solar", "Sola~r~", ColourTheme::Polarity::Light, {
+	{ "solar", "Solar", ColourTheme::Polarity::Light, {
 		.menuBack = 0xEEE8D5, .menuText = 0x586E75, .menuShortcut = 0xCB4B16, .menuSelectedBack = 0x268BD2, .menuSelectedText = 0xFDF6E3, .menuSelectedShortcut = 0x002B36,
 		.disabledText = 0x93A1A1,
 		.panelBack = 0xFDF6E3, .framePassive = 0xC9C2AE, .frameActive = 0x586E75, .frameIcons = 0x859900,
@@ -216,7 +214,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0xF5EFDC, .hintText = 0x93A1A1, .hintKey = 0x2AA198, .keyBack = 0x2AA198, .keyText = 0xFDF6E3, .keyLabelBack = 0xE6DFC9, .keyLabelText = 0x586E75,
 		.keyBarBack = 0xF5EFDC } },
 	// True colour
-	{ "mint", "Mi~n~t", ColourTheme::Polarity::Light, {
+	{ "mint", "Mint", ColourTheme::Polarity::Light, {
 		.menuBack = 0xDCEBE0, .menuText = 0x24332B, .menuShortcut = 0xB03A69, .menuSelectedBack = 0x2E7D5B, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xF8C8DA,
 		.disabledText = 0x8FA89A,
 		.panelBack = 0xF1F8F2, .framePassive = 0xAFC8B7, .frameActive = 0x2F4A3C, .frameIcons = 0x2E7D5B,
@@ -229,7 +227,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0xE6F2E9, .hintText = 0x6B8577, .hintKey = 0x2E7D5B, .keyBack = 0x2E7D5B, .keyText = 0xFFFFFF, .keyLabelBack = 0xD3E6D9, .keyLabelText = 0x24332B,
 		.keyBarBack = 0xE6F2E9 } },
 	// True colour, banded like green bar printer paper
-	{ "greenbar", "~G~reenbar", ColourTheme::Polarity::Light, {
+	{ "greenbar", "Greenbar", ColourTheme::Polarity::Light, {
 		.menuBack = 0xE3EFE0, .menuText = 0x23302A, .menuShortcut = 0xB0461A, .menuSelectedBack = 0x2E6B4A, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD9A0,
 		.disabledText = 0x97A89C,
 		.panelBack = 0xFAFAF2, .rowBandBack = 0xDCEBD9, .rowsPerBand = 3, .framePassive = 0xB5CDB3, .frameActive = 0x2E6B4A, .frameIcons = 0x2E6B4A,
@@ -242,7 +240,7 @@ constexpr ColourTheme themes[]{
 		.bottomBack = 0xEDF3EA, .hintText = 0x6F8076, .hintKey = 0x2E6B4A, .keyBack = 0x2E6B4A, .keyText = 0xFFFFFF, .keyLabelBack = 0xDCEBD9, .keyLabelText = 0x23302A,
 		.keyBarBack = 0xEDF3EA } },
 	// True colour
-	{ "blossom", "~B~lossom", ColourTheme::Polarity::Light, {
+	{ "blossom", "Blossom", ColourTheme::Polarity::Light, {
 		.menuBack = 0xF1DFE6, .menuText = 0x3A2E34, .menuShortcut = 0x8E3B6B, .menuSelectedBack = 0x8E3B6B, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD6E7,
 		.disabledText = 0xA8939D,
 		.panelBack = 0xFBF4F6, .framePassive = 0xD9BFCA, .frameActive = 0x4A3A42, .frameIcons = 0x2F6BCB,
@@ -257,31 +255,6 @@ constexpr ColourTheme themes[]{
 };
 static_assert(std::ranges::is_sorted(themes, {}, &ColourTheme::polarity));
 static_assert(std::ranges::all_of(themes, [](const ColourTheme& theme) { return theme.parameters.rowsPerBand > 0; }));
-
-// Turbo Vision matches a menu shortcut regardless of case
-[[nodiscard]] constexpr bool everyThemeHasItsOwnMenuShortcut()
-{
-	const auto lowerCaseShortcut = [](std::string_view menuName) {
-		const size_t tilde = menuName.find('~');
-		if (tilde == std::string_view::npos || tilde + 1 == menuName.size())
-			return '\0';
-		const char shortcut = menuName[tilde + 1];
-		return shortcut >= 'A' && shortcut <= 'Z' ? (char)(shortcut - 'A' + 'a') : shortcut;
-	};
-	for (size_t i = 0; i < std::size(themes); ++i)
-	{
-		const char shortcut = lowerCaseShortcut(themes[i].menuName);
-		if (shortcut == '\0')
-			return false;
-		for (size_t j = 0; j < i; ++j)
-		{
-			if (lowerCaseShortcut(themes[j].menuName) == shortcut)
-				return false;
-		}
-	}
-	return true;
-}
-static_assert(everyThemeHasItsOwnMenuShortcut());
 
 } // namespace
 

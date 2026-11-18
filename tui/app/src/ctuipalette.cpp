@@ -159,19 +159,19 @@ template <size_t count>
 	return TPalette{ entries.data(), (ushort)entries.size() };
 }
 
-int appliedRowsPerBand = colourThemes().front().parameters.rowsPerBand;
+const ColourTheme* appliedTheme = &colourThemes().front();
 
 } // namespace
 
 void applyColourTheme(const ColourTheme& theme)
 {
 	applicationPalette() = applicationPaletteFor(theme.parameters);
-	appliedRowsPerBand = theme.parameters.rowsPerBand;
+	appliedTheme = &theme;
 }
 
-int fileListRowsPerBand()
+const ColourTheme& appliedColourTheme()
 {
-	return appliedRowsPerBand;
+	return *appliedTheme;
 }
 
 TPalette& applicationPalette()

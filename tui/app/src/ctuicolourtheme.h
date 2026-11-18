@@ -43,10 +43,10 @@ struct ColourTheme
 	enum class Polarity : uchar { Dark, Light };
 
 	const char* id; // The settings store it: never changes
-	const char* menuName; // The shortcut letter is between tildes
+	const char* name;
 	Polarity polarity;
 	ThemeParameters parameters;
 };
 
-// In the Theme menu's order, dark themes first. The first theme is the default.
+// In the order the theme list shows them, dark themes first. The first theme is the default.
 [[nodiscard]] std::span<const ColourTheme> colourThemes();

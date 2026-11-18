@@ -34,9 +34,10 @@ enum PanelPaletteEntry : uchar
 struct ColourTheme;
 
 // Sets the application palette's colours. Views read them at every draw: the caller redraws.
+// Keeps a reference to the theme: it must be one of colourThemes().
 void applyColourTheme(const ColourTheme& theme);
-// The applied theme's ThemeParameters::rowsPerBand
-[[nodiscard]] int fileListRowsPerBand();
+// The default theme until applyColourTheme sets another
+[[nodiscard]] const ColourTheme& appliedColourTheme();
 
 // Turbo Vision's application palette in RGB, followed by the entries of the panel, the hint row and the key bar.
 // The default theme's colours until applyColourTheme sets another theme.

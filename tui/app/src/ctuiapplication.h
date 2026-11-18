@@ -59,7 +59,9 @@ private:
 	void endQuickViewOver(Panel side);
 	// The file under the side's cursor, while quick view covers the other side
 	void showCurrentFileInQuickView(Panel side);
-	// Recolours the screen and marks the theme in the Theme menu
+	// A list of the themes that shows each one on the whole screen while the cursor is on it. Saves the theme chosen.
+	void chooseColourTheme();
+	// Recolours the screen
 	void setColourTheme(const ColourTheme& theme);
 
 private:

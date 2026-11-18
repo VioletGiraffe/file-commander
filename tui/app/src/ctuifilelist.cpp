@@ -1,4 +1,5 @@
 #include "ctuifilelist.h"
+#include "ctuicolourtheme.h"
 #include "ctuipalette.h"
 
 #include "filelist/filesizetext.h"
@@ -220,7 +221,7 @@ void CTuiFileList::draw()
 	const OffCursorRowColors plainRowColors{ mapColor(ppFileListRow), mapColor(ppFileListRowDetails), mapColor(ppFileListSelectedRow), mapColor(ppColumnSeparator) },
 		bandRowColors{ mapColor(ppFileListBandRow), mapColor(ppFileListBandRowDetails), mapColor(ppFileListBandSelectedRow), mapColor(ppBandColumnSeparator) };
 	const TColorAttr cursorColor = mapColor(ppFileListCursor), selectedCursorColor = mapColor(ppFileListSelectedCursor), cursorSeparatorColor = mapColor(ppCursorColumnSeparator);
-	const int rowsPerBand = fileListRowsPerBand();
+	const int rowsPerBand = appliedColourTheme().parameters.rowsPerBand;
 
 	const std::vector<FileListColumn> columns = fileListColumns(size.x, _sortField);
 	const bool extensionShown = std::ranges::any_of(columns, [](const FileListColumn& column) { return column.field == FileListSortField::Extension; });
