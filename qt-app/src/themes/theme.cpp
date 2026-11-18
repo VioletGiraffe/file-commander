@@ -212,6 +212,7 @@ constexpr char kArcadeStyleSheet[] = R"(
 	FileListLook& look = theme.fileList;
 	look.contentVMargin = 2;
 	look.cursorColor = rgb(0xff5fa8);
+	theme.summaryValueColor = look.cursorColor;
 	look.extensionInNameColor = true;
 	look.uppercaseHeader = true;
 	return theme;

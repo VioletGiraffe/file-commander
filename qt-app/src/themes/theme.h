@@ -95,6 +95,8 @@ struct Theme
 	FileListLook fileList;
 	// The menu bar's mnemonic letters. Invalid: drawn as the rest of the label.
 	QColor menuBarMnemonicColor;
+	// The numbers in a panel's folder summary. Invalid: in the summary's text colour.
+	QColor summaryValueColor;
 	// The command line's cursor is a block in the accent colour, the character under it in the surface colour
 	bool commandLineBlockCursor = false;
 	// Appended after the stylesheet sections the structure, the panel layout and the path bar select, so its rules win at equal specificity.

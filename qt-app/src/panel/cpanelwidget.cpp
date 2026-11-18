@@ -1436,11 +1436,19 @@ void CPanelWidget::updateInfoLabel()
 	const FolderContentsSummary& total = _model->contentsSummary();
 	const FolderContentsSummary selected = panel.selectionSummary();
 
-	QString text = tr("%1/%2 files, %3/%4 folders selected (%5 / %6)").arg(selected.numFiles).arg(total.numFiles).
-		arg(selected.numFolders).arg(total.numFolders).
-		arg(fileSizeToString(selected.size), fileSizeToString(total.size));
+	// Coloured values make the summary rich text, with the translated words escaped
+	const QColor valueColor = appliedTheme().summaryValueColor;
+	const bool richText = valueColor.isValid();
+	const auto words = [richText](const QString& s) { return richText ? s.toHtmlEscaped() : s; };
+	const auto value = [&](const QString& s) { return richText ? QStringLiteral("<span style=\"color: %1\">%2</span>").arg(valueColor.name(), s) : s; };
+
+	QString text = words(tr("%1/%2 files, %3/%4 folders selected (%5 / %6)")).arg(
+		value(QString::number(selected.numFiles)), value(QString::number(total.numFiles)),
+		value(QString::number(selected.numFolders)), value(QString::number(total.numFolders)),
+		value(fileSizeToString(selected.size)), value(fileSizeToString(total.size)));
 	if (panel.displayMode() == CPanel::SearchResultsMode)
-		text.prepend(tr("Search results: "));
+		text.prepend(words(tr("Search results: ")));
+	ui->_infoLabel->setTextFormat(richText ? Qt::RichText : Qt::PlainText);
 	ui->_infoLabel->setText(text);
 }
 
@@ -1750,6 +1758,9 @@ void CPanelWidget::applyTheme()
 	// A stylesheet change restores the font each widget had when first polished
 	setFileListFontFromSettings();
 	updateFrame();
+	// The summary's values take the theme's colour. _model is null until initPanel() shows a tab.
+	if (_model)
+		updateInfoLabel();
 }
 
 void CPanelWidget::updateFrame()
