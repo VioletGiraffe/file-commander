@@ -12,10 +12,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QFont>
 #include <QFontInfo>
 #include <QFontMetrics>
+#include <QPainterPath>
 #include <QPalette>
 #include <QPen>
 #include <QRect>
 #include <QRectF>
+#include <QRegion>
 #include <QStyle>
 #include <QStyleOptionButton>
 #include <QStylePainter>
@@ -25,17 +27,17 @@ RESTORE_COMPILER_WARNINGS
 
 namespace {
 
-// Form::KeyBox
+// FunctionKeyForm::KeyBox and KeyCap
 constexpr int keyBoxHPadding = 5, keyBoxVPadding = 1, keyBoxRadius = 4;
 constexpr int keyToLabelGap = 8;
 
-// Form::LabelCell
+// FunctionKeyForm::LabelCell
 constexpr int plainKeyLeftPadding = 8, plainKeyRightPadding = 4;
 constexpr int labelCellHPadding = 8, labelCellVPadding = 4;
 
 } // namespace
 
-void CFunctionKeyButton::setForm(const Form form)
+void CFunctionKeyButton::setForm(const FunctionKeyForm form)
 {
 	_form = form;
 	updateGeometry();
@@ -84,7 +86,7 @@ QSize CFunctionKeyButton::keyBoxSize() const
 
 QSize CFunctionKeyButton::captionSize() const
 {
-	if (_form == Form::KeyBox)
+	if (_form != FunctionKeyForm::LabelCell)
 	{
 		const QSize keyBox = keyBoxSize();
 		return { keyBox.width() + keyToLabelGap + roundedUpTextWidth(font(), _label), std::max(keyBox.height(), fontMetrics().height()) };
@@ -113,7 +115,7 @@ void CFunctionKeyButton::paintEvent(QPaintEvent* /*event*/)
 	painter.drawControl(QStyle::CE_PushButtonBevel, option);
 
 	const QRect content = style()->subElementRect(QStyle::SE_PushButtonContents, &option, this);
-	if (_form == Form::KeyBox)
+	if (_form != FunctionKeyForm::LabelCell)
 		paintKeyBoxCaption(painter, content);
 	else
 		paintLabelCellCaption(painter, content);
@@ -131,13 +133,30 @@ void CFunctionKeyButton::paintKeyBoxCaption(QPainter& painter, const QRect& cont
 
 	const QPalette::ColorGroup group = isEnabled() ? QPalette::Active : QPalette::Disabled;
 	const QColor labelColor = palette().color(group, QPalette::ButtonText);
-	const QColor keyColor = palette().color(group, QPalette::PlaceholderText);
+	const bool keyCap = _form == FunctionKeyForm::KeyCap;
+	const QColor accent = palette().color(group, QPalette::Accent);
+	const QColor keyColor = keyCap ? accent : palette().color(group, QPalette::PlaceholderText);
+	const QColor boxColor = keyCap ? accent : ColorUtils::mix(palette().color(group, QPalette::Base), labelColor, 0.25f);
+	const qreal radius = keyCap ? 0 : keyBoxRadius;
+	// Inset by half the pen: the stroke stays inside the box
+	const QRectF box = QRectF{ keyRect }.adjusted(0.5, 0.5, -0.5, -0.5);
+
+	if (const int glowRadius = appliedTheme().metrics.glowRadius; keyCap && glowRadius > 0 && isEnabled())
+	{
+		QPainterPath outline;
+		outline.addRect(box);
+		// Outside the box only: inside, it would show behind the key
+		painter.save();
+		painter.setClipRegion(QRegion{ rect() } - keyRect);
+		const int room = std::min({ keyRect.top(), height() - 1 - keyRect.bottom(), keyRect.left() });
+		paintGlow(painter, outline, accent, std::min(glowRadius, room), 0.18);
+		painter.restore();
+	}
 
 	painter.setRenderHint(QPainter::Antialiasing);
-	painter.setPen(QPen{ ColorUtils::mix(palette().color(group, QPalette::Base), labelColor, 0.25f), 1.0 });
+	painter.setPen(QPen{ boxColor, 1.0 });
 	painter.setBrush(Qt::NoBrush);
-	// Inset by half the pen: the stroke stays inside the box
-	painter.drawRoundedRect(QRectF{ keyRect }.adjusted(0.5, 0.5, -0.5, -0.5), keyBoxRadius, keyBoxRadius);
+	painter.drawRoundedRect(box, radius, radius);
 
 	painter.setFont(keyBoxFont());
 	painter.setPen(keyColor);

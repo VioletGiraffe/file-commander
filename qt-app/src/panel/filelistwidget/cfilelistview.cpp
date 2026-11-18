@@ -8,6 +8,7 @@
 #include "assert/advanced_assert.h"
 #include "math/math.hpp"
 #include "theme/colorutils.h"
+#include "utils/painterutils.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -20,8 +21,10 @@ DISABLE_COMPILER_WARNINGS
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPalette>
 #include <QPen>
+#include <QRegion>
 #include <QResizeEvent>
 #include <QScopedValueRollback>
 #include <QScrollBar>
@@ -432,12 +435,43 @@ void CFileListView::currentChanged(const QModelIndex& current, const QModelIndex
 {
 	QTreeView::currentChanged(current, previous);
 
-	// The cursor spans the row; the base class repaints only the two cells
+	// The cursor spans the row, and its glow the rows beside it; the base class repaints only the two cells
 	for (const QModelIndex& index : { previous, current })
 	{
 		if (index.isValid())
-			viewport()->update(QRect{ 0, visualRect(index).y(), viewport()->width(), visualRect(index).height() });
+			viewport()->update(cursorRowUpdateRect(index));
 	}
+}
+
+QRect CFileListView::cursorRowUpdateRect(const QModelIndex& index) const
+{
+	const QRect cell = visualRect(index);
+	const int glow = _itemDelegate->look().cursorGlowRadius;
+	return QRect{ 0, cell.y(), viewport()->width(), cell.height() }.adjusted(0, -glow, 0, glow);
+}
+
+QColor CFileListView::activeCursorColor() const
+{
+	const QColor& lookColor = _itemDelegate->look().cursorColor;
+	// The colours of an active window, by design: the panels look the same while a dialog is open
+	return lookColor.isValid() ? lookColor : palette().color(QPalette::Active, QPalette::Accent);
+}
+
+void CFileListView::paintCursorGlow()
+{
+	const FileListLook& look = _itemDelegate->look();
+	const QModelIndex current = currentIndex();
+	if (look.cursorGlowRadius <= 0 || look.cursor != FileListLook::Cursor::Bar || !_shownAsActivePanel || !current.isValid())
+		return;
+
+	const QRect cell = visualRect(current);
+	const QRect bar = _itemDelegate->rowFillRect(QRect{ 0, cell.y(), viewport()->width(), cell.height() });
+	QPainterPath outline;
+	outline.addRect(QRectF{ bar });
+
+	QPainter painter{ viewport() };
+	painter.setClipRegion(QRegion{ viewport()->rect() } - bar);
+	paintGlow(painter, outline, activeCursorColor(), look.cursorGlowRadius, 0.41);
 }
 
 void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -455,7 +489,7 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 	const int radius = look.rowFillRadius;
 	// The colours of an active window, by design: the panels look the same while a dialog is open
 	const auto color = [&option](const QPalette::ColorRole role) { return option.palette.color(QPalette::Active, role); };
-	const QColor accent = color(QPalette::Accent);
+	const QColor cursorColor = activeCursorColor();
 	const bool barCursor = cursor && _shownAsActivePanel && look.cursor == FileListLook::Cursor::Bar;
 	const QColor inactiveCursor = look.inactiveCursorColor.isValid() ? look.inactiveCursorColor : ColorUtils::mix(color(QPalette::Base), color(QPalette::Text), 0.3f);
 	const bool inactiveCursorFill = cursor && !selected && !_shownAsActivePanel && look.inactiveCursor == FileListLook::InactiveCursor::Fill;
@@ -465,8 +499,8 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 
 	if (selected || _shownAsActivePanel || inactiveCursorFill)
 	{
-		const QColor fillColor = barCursor ? accent : selected ? color(QPalette::Highlight)
-			: _shownAsActivePanel ? ColorUtils::mix(color(QPalette::Base), accent, 0.15f) : inactiveCursor;
+		const QColor fillColor = barCursor ? cursorColor : selected ? color(QPalette::Highlight)
+			: _shownAsActivePanel ? ColorUtils::mix(color(QPalette::Base), cursorColor, 0.15f) : inactiveCursor;
 		painter->setPen(Qt::NoPen);
 		painter->setBrush(fillColor);
 		painter->drawRoundedRect(fill, radius, radius);
@@ -475,7 +509,7 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 	if (cursor && !barCursor && !inactiveCursorFill)
 	{
 		const qreal width = _shownAsActivePanel ? 1.5 : 1.0;
-		painter->setPen(QPen{ _shownAsActivePanel ? accent : inactiveCursor, width });
+		painter->setPen(QPen{ _shownAsActivePanel ? cursorColor : inactiveCursor, width });
 		painter->setBrush(Qt::NoBrush);
 		// Inset by half the pen: the stroke stays inside the fill rect
 		const QRectF outline = fill.adjusted(width / 2, width / 2, -width / 2, -width / 2);
@@ -492,7 +526,7 @@ void CFileListView::drawRow(QPainter* painter, const QStyleOptionViewItem& optio
 
 	// The bar has one text colour: every role the delegate picks a cell's text colour from is set to it
 	QStyleOptionViewItem barOption = option;
-	const QColor barText = ColorUtils::readableTextOn(accent, color(QPalette::Base));
+	const QColor barText = ColorUtils::readableTextOn(cursorColor, color(QPalette::Base));
 	for (const QPalette::ColorRole role : { QPalette::Text, QPalette::HighlightedText, QPalette::PlaceholderText })
 		barOption.palette.setColor(role, barText);
 	QTreeView::drawRow(painter, barOption, index);
@@ -588,6 +622,7 @@ void CFileListView::paintEvent(QPaintEvent* event)
 		paintColumnSeparators(event->rect());
 
 	QTreeView::paintEvent(event);
+	paintCursorGlow();
 
 	if (!_timeToNextPaintStart)
 		return;

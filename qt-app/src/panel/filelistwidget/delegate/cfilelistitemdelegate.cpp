@@ -143,7 +143,7 @@ void CFileListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem&
 	opt.rect = cellContentRect(option.rect, *view->header(), index.column(), _look);
 	if (selected)
 		opt.palette.setColor(QPalette::Text, option.palette.color(QPalette::HighlightedText));
-	else if (index.column() != NameColumn)
+	else if (index.column() != NameColumn && !(index.column() == ExtColumn && _look.extensionInNameColor))
 	{
 		// Less prominent than the names, more than disabled text
 		opt.palette.setColor(QPalette::Text, ColorUtils::mix(option.palette.color(QPalette::PlaceholderText), option.palette.color(QPalette::Text), 0.3f));

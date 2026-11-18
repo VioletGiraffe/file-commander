@@ -44,6 +44,7 @@ DISABLE_COMPILER_WARNINGS
 
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QBoxLayout>
 #include <QClipboard>
 #include <QCompleter>
 #include <QDebug>
@@ -60,7 +61,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPalette>
+#include <QPolygon>
 #include <QPushButton>
 #include <QScopedValueRollback>
 #include <QSettings>
@@ -86,6 +89,30 @@ RESTORE_COMPILER_WARNINGS
 
 // Set while the panel is the active one. themes/stylesheet.cpp has rules for it.
 static constexpr char activePanelProperty[] = "activePanel";
+
+// The inner line of a double frame is this far inside the outer one
+static constexpr int doubleFrameLineOffset = 3;
+
+// Both lines and the gap between them included
+[[nodiscard]] static int flatFrameWidth(const Theme& theme)
+{
+	return theme.panelFrame == PanelFrame::Double ? doubleFrameLineOffset + 1 : 1;
+}
+
+// A frame's line, `inset` px inside its outer line `outer`. Where the current tab is open into the frame, the line runs up around it.
+[[nodiscard]] static QPolygon frameLine(const QRect& outer, const std::optional<QRect>& openTab, const int inset)
+{
+	const QRect box = outer.adjusted(inset, inset, -inset, -inset);
+	QPolygon line;
+	line << box.bottomLeft() << box.topLeft();
+	if (openTab)
+	{
+		const QRect tab = openTab->adjusted(inset, inset, -inset, 0);
+		line << QPoint{ tab.left(), box.top() } << tab.topLeft() << tab.topRight() << QPoint{ tab.right(), box.top() };
+	}
+	line << box.topRight() << box.bottomRight();
+	return line;
+}
 
 // Per-tab column layout and sort, keyed by the controller's tab ids; see saveTabViewStates().
 #define KEY_LPANEL_TAB_VIEW_STATES QSL("Ui/LPanel/TabViewStates")
@@ -204,6 +231,11 @@ CPanelWidget::CPanelWidget(QWidget *parent) noexcept :
 
 	ui->_list->addEventObserver(this);
 
+	_frameGlow = std::make_unique<CGlowUnderlay>(*this, [this] { return frameGlow(); });
+	// A TabsOnFrame frame runs around the current tab
+	assert_r(connect(ui->_tabBar, &CTabStrip::currentChanged, this, &CPanelWidget::updateFrame));
+	assert_r(connect(ui->_tabBar, &CTabStrip::currentTabGeometryChanged, this, &CPanelWidget::updateFrame));
+
 	onSettingsChanged();
 
 	applyTheme();
@@ -271,7 +303,7 @@ void CPanelWidget::setShownAsActivePanel(const bool active)
 		style()->unpolish(widget);
 		style()->polish(widget);
 	}
-	update();
+	updateFrame();
 }
 
 void CPanelWidget::paintEvent(QPaintEvent* /*event*/)
@@ -280,11 +312,33 @@ void CPanelWidget::paintEvent(QPaintEvent* /*event*/)
 	if (theme.structure != ThemeStructure::Flat)
 		return; // the stylesheet draws the border of a rounded panel
 
-	// The frame's top edge runs through the middle of the path row; that row's widgets cover the part behind them
-	const int top = ui->_breadcrumbBar->geometry().center().y();
+	const FlatFrame frame = flatFrame();
+	const bool active = property(activePanelProperty).toBool();
+	const CBasePalette& palette = theme.palette;
+	const bool tabsOnFrame = theme.panelLayout == PanelLayout::TabsOnFrame;
 	QPainter painter{ this };
-	painter.setPen(property(activePanelProperty).toBool() ? theme.palette.accent : theme.palette.border);
-	painter.drawRect(QRect{ 0, top, width() - 1, height() - 1 - top });
+	// Covers the inside of the frame: the glow, which an ancestor paints, must show outside it only
+	if (tabsOnFrame)
+		painter.fillPath(outlineOf(frame), active && theme.fileList.activeBackground.isValid() ? theme.fileList.activeBackground : palette.surface);
+
+	painter.setPen(active ? palette.accent : palette.border);
+	const int lineCount = theme.panelFrame == PanelFrame::Double ? 2 : 1;
+	for (int line = 0; line < lineCount; ++line)
+	{
+		const int inset = line * doubleFrameLineOffset;
+		painter.drawPolygon(frameLine(frame.outerLine, frame.openTab, inset));
+		if (frame.closedTab)
+			painter.drawPolygon(frameLine(*frame.closedTab, std::nullopt, inset));
+	}
+
+	if (tabsOnFrame)
+	{
+		// Midway between the file list and the drives, from one side's innermost line to the other's
+		const int y = (ui->_list->geometry().bottom() + ui->driveRowLayout->geometry().top()) / 2;
+		const int inset = flatFrameWidth(theme);
+		painter.setPen(palette.borderStrong);
+		painter.drawLine(frame.outerLine.left() + inset, y, frame.outerLine.right() - inset, y);
+	}
 }
 
 void CPanelWidget::saveTabViewStates() const
@@ -400,7 +454,7 @@ void CPanelWidget::initPanel(Panel p)
 	ui->_list->installEventFilter(this);
 	ui->_list->viewport()->installEventFilter(this);
 
-	ui->_tabBar->installEventFilter(this); // For the tabs' tooltips
+	ui->_tabBar->installEventFilter(this); // For the tabs' tooltips, and for the frame, which runs along the strip's bottom
 	assert_r(connect(ui->_tabBar, &CTabStrip::currentChanged, this, &CPanelWidget::onTabBarCurrentChanged));
 	assert_r(connect(ui->_tabBar, &CTabStrip::tabCloseRequested, this, &CPanelWidget::onTabBarCloseRequested));
 	assert_r(connect(ui->_tabBar, &CTabStrip::tabMoved, this, &CPanelWidget::onTabBarTabMoved));
@@ -764,7 +818,8 @@ void CPanelWidget::closeAllOtherTabs(int index)
 
 void CPanelWidget::updateTabBarVisibility()
 {
-	ui->_tabBar->setVisible(_tabs.size() > 1); // "no tabs created by the user" => no tab bar in the UI
+	ui->_tabBar->setVisible(_tabs.size() > 1 || appliedTheme().panelLayout == PanelLayout::TabsOnFrame);
+	ui->_tabBar->setTabsClosable(_tabs.size() > 1);
 }
 
 void CPanelWidget::updateTabText(int index)
@@ -1546,6 +1601,8 @@ bool CPanelWidget::eventFilter(QObject * object, QEvent * e)
 			QToolTip::hideText();
 		return true;
 	}
+	else if (object == ui->_tabBar && (e->type() == QEvent::Resize || e->type() == QEvent::Move))
+		updateFrame();
 	else if (object == &ui->_breadcrumbBar->editor() && e->type() == QEvent::KeyPress)
 	{
 		auto* keyEvent = static_cast<QKeyEvent*>(e);
@@ -1664,25 +1721,21 @@ void CPanelWidget::setFileListFontFromSettings()
 void CPanelWidget::applyTheme()
 {
 	const Theme& theme = appliedTheme();
-
 	const bool flat = theme.structure == ThemeStructure::Flat;
+	assert_r(flat == (theme.panelLayout != PanelLayout::Stacked));
 
-	// Flat: the path row comes first, in the frame's top edge, with the path field centred and as wide as its text
-	const int pathRowIndex = flat ? 0 : 1;
-	if (ui->verticalLayout->indexOf(ui->pathRowLayout) != pathRowIndex)
-	{
-		ui->verticalLayout->removeItem(ui->pathRowLayout);
-		ui->verticalLayout->insertLayout(pathRowIndex, ui->pathRowLayout);
-	}
+	arrangeRows(theme.panelLayout);
+	// PathInFrame: the path field centred and as wide as its text
 	for (QSpacerItem* spacer : { ui->pathRowLeftSpacer, ui->pathRowRightSpacer })
-		spacer->changeSize(0, 0, flat ? QSizePolicy::Expanding : QSizePolicy::Fixed, QSizePolicy::Minimum);
+		spacer->changeSize(0, 0, theme.panelLayout == PanelLayout::PathInFrame ? QSizePolicy::Expanding : QSizePolicy::Fixed, QSizePolicy::Minimum);
 	ui->pathRowLayout->invalidate();
 	ui->_breadcrumbBar->applyTheme();
+	updateTabBarVisibility();
 
 	// The file list has no padding: its rows reach the panel's border. The stylesheet pads the info label.
 	// The margins are the border's width. A flat panel's top edge is behind its first row.
 	const int padding = theme.metrics.panelPadding;
-	const int border = flat ? 1 : theme.metrics.panelBorderWidth;
+	const int border = flat ? flatFrameWidth(theme) : theme.metrics.panelBorderWidth;
 	ui->verticalLayout->setContentsMargins(border, flat ? 0 : border, border, border);
 	ui->verticalLayout->setSpacing(theme.metrics.panelRowSpacing);
 	ui->driveRowLayout->setContentsMargins(padding, flat ? 0 : padding, padding, 0);
@@ -1691,10 +1744,84 @@ void CPanelWidget::applyTheme()
 	ui->pathRowLayout->setContentsMargins(padding, 0, padding, 0);
 	ui->tabRowLayout->setContentsMargins(padding, 0, padding, 0);
 
-	ui->_list->setLook(theme.fileList);
+	FileListLook look = theme.fileList;
+	look.cursorGlowRadius = theme.metrics.glowRadius;
+	ui->_list->setLook(look);
 	// A stylesheet change restores the font each widget had when first polished
 	setFileListFontFromSettings();
+	updateFrame();
+}
+
+void CPanelWidget::updateFrame()
+{
 	update();
+	_frameGlow->refresh();
+}
+
+void CPanelWidget::arrangeRows(const PanelLayout layout)
+{
+	QBoxLayout& rows = *ui->verticalLayout;
+	QLayoutItem* const drives = ui->driveRowLayout, * const path = ui->pathRowLayout, * const tabs = ui->tabRowLayout;
+	QLayoutItem* const list = rows.itemAt(rows.indexOf(ui->_list)), * const info = rows.itemAt(rows.indexOf(ui->_infoLabel));
+	assert_and_return_r(list && info, );
+
+	using Order = std::array<QLayoutItem*, 5>;
+	const Order order = layout == PanelLayout::Stacked ? Order{ drives, path, tabs, list, info }
+		: layout == PanelLayout::PathInFrame ? Order{ path, drives, tabs, list, info }
+		: Order{ tabs, path, list, drives, info };
+
+	for (int i = 0; i < (int)order.size(); ++i)
+	{
+		QLayoutItem* const item = order[(size_t)i];
+		if (rows.itemAt(i) == item)
+			continue;
+
+		rows.removeItem(item);
+		// A child layout must go back through insertLayout(): removing it took it from this layout's children
+		if (QLayout* const childLayout = item->layout())
+			rows.insertLayout(i, childLayout);
+		else
+			rows.insertItem(i, item);
+	}
+}
+
+CPanelWidget::FlatFrame CPanelWidget::flatFrame() const
+{
+	const Theme& theme = appliedTheme();
+	FlatFrame frame;
+
+	int top = 0;
+	if (theme.panelLayout == PanelLayout::PathInFrame)
+		top = ui->_breadcrumbBar->geometry().center().y(); // the path row's widgets cover the part of the edge behind them
+	else if (const int current = ui->_tabBar->currentIndex(); ui->_tabBar->isVisibleTo(this) && current >= 0)
+	{
+		const QRect strip = ui->_tabBar->geometry();
+		top = strip.bottom();
+		const QRect tab = ui->_tabBar->tabRect(current).translated(strip.topLeft());
+		(tab.bottom() == strip.bottom() ? frame.openTab : frame.closedTab) = tab;
+	}
+
+	frame.outerLine = QRect{ QPoint{ 0, top }, QPoint{ width() - 1, height() - 1 } };
+	return frame;
+}
+
+QPainterPath CPanelWidget::outlineOf(const FlatFrame& frame)
+{
+	QPainterPath outline;
+	outline.addPolygon(frameLine(frame.outerLine, frame.openTab, 0));
+	outline.closeSubpath();
+	if (frame.closedTab)
+		outline.addRect(QRectF{ *frame.closedTab });
+	return outline;
+}
+
+std::optional<CGlowUnderlay::Glow> CPanelWidget::frameGlow() const
+{
+	const Theme& theme = appliedTheme();
+	if (theme.structure != ThemeStructure::Flat || theme.metrics.glowRadius <= 0 || !property(activePanelProperty).toBool())
+		return {};
+
+	return CGlowUnderlay::Glow{ .shape = outlineOf(flatFrame()), .color = theme.palette.accent, .radius = theme.metrics.glowRadius };
 }
 
 void CPanelWidget::updateCurrentVolumeButtonAndInfo()

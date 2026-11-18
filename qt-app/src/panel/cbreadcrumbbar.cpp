@@ -8,6 +8,7 @@
 
 // Submodule includes
 #include "theme/ctintedsvgiconengine.h"
+#include "utils/painterutils.h"
 #include "widgets/chistorycombobox.h"
 #include "widgets/clineedit.h"
 
@@ -20,6 +21,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
+#include <QPointF>
 #include <QSizePolicy>
 RESTORE_COMPILER_WARNINGS
 
@@ -29,8 +32,7 @@ namespace {
 
 constexpr int sidePadding = 8, folderPadding = 3, separatorPadding = 3;
 constexpr int arrowGap = 6; // between the last part and the arrow
-// Titled: the current folder's font size relative to the other parts', and the space above and below it
-constexpr qreal titleScale = 1.6;
+// Titled: the space above and below the current folder
 constexpr int titleVerticalPadding = 2;
 constexpr QSize arrowSize{ 10, 7 };
 // A separator is a chevron, pointing down while its menu is open
@@ -231,12 +233,22 @@ void CBreadcrumbBar::paintEvent(QPaintEvent* /*event*/)
 			continue;
 		}
 
-		painter.setFont(currentFolder ? currentFolderFont() : font());
+		const QFont partFont = currentFolder ? currentFolderFont() : font();
+		painter.setFont(partFont);
 		painter.setPen(textColor);
 		if (titled)
 		{
 			const QFontMetrics& metrics = currentFolder ? titleMetrics : textMetrics;
-			painter.drawText(QRect{ part.left, baseline - metrics.ascent(), part.width, metrics.height() }, Qt::AlignHCenter | Qt::AlignTop, part.text);
+			const QRect textRect{ part.left, baseline - metrics.ascent(), part.width, metrics.height() };
+			if (const int glowRadius = theme.metrics.glowRadius; currentFolder && _shownAsActive && glowRadius > 0)
+			{
+				QPainterPath glyphs;
+				glyphs.addText(QPointF{ textRect.left() + (textRect.width() - metrics.horizontalAdvance(part.text)) / 2.0, (qreal)baseline }, partFont, part.text);
+				// Fainter and tighter than around a line: the strokes follow every glyph's outline
+				const int room = std::min(textRect.top(), height() - 1 - textRect.bottom());
+				paintGlow(painter, glyphs, textColor, std::min((glowRadius + 1) / 2, room), 0.13);
+			}
+			painter.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop, part.text);
 		}
 		else
 			painter.drawText(area, Qt::AlignCenter, part.text);
@@ -466,7 +478,7 @@ QFont CBreadcrumbBar::currentFolderFont() const
 	QFont currentFolder = font();
 	currentFolder.setBold(true);
 	if (_style == PathBarStyle::Titled)
-		currentFolder.setPointSizeF(currentFolder.pointSizeF() * titleScale);
+		currentFolder.setPointSizeF(currentFolder.pointSizeF() * appliedTheme().metrics.pathTitleScale);
 	return currentFolder;
 }
 

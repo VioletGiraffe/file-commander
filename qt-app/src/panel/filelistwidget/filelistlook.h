@@ -16,10 +16,13 @@ struct FileListLook
 	int contentHMargin = 6, contentVMargin = 4;
 
 	// The active panel's cursor.
-	// Tint: an accent-tinted fill with an accent outline; a selected row keeps its selection fill.
-	// Bar: a solid accent fill, over a selected row too.
+	// Tint: a fill tinted with the cursor colour, outlined in it; a selected row keeps its selection fill.
+	// Bar: a solid fill in the cursor colour, over a selected row too.
 	enum class Cursor { Tint, Bar };
 	Cursor cursor = Cursor::Tint;
+	QColor cursorColor; // Invalid: the accent
+	// Bar only: a halo in the cursor colour around the bar. CPanelWidget sets it from the theme's ThemeMetrics::glowRadius.
+	int cursorGlowRadius = 0;
 
 	// The other panel's cursor. Fill: a selected row keeps its selection fill and gets the outline. Invalid colour: the text colour, faint.
 	enum class InactiveCursor { Outline, Fill };
@@ -51,4 +54,6 @@ struct FileListLook
 	QColor marginLineColor;
 
 	bool uppercaseHeader = false; // with the letters spaced out
+	// The Ext column in the names' colour. Otherwise it is dimmer, as the other columns are.
+	bool extensionInNameColor = false;
 };

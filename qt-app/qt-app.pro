@@ -74,6 +74,7 @@ HEADERS += \
 	src/commandoutput/ccommandoutputarea.h \
 	src/commandoutput/ccommandoutputpane.h \
 	src/functionkeybar/cfunctionkeybutton.h \
+	src/functionkeybar/functionkeyform.h \
 	src/panel/cbreadcrumbbar.h \
 	src/panel/cpanelwidget.h \
 	src/panel/cvolumeusagebar.h \

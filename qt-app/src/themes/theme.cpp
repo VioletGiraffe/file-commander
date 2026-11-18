@@ -7,6 +7,7 @@
 // Submodule includes
 #include "assert/advanced_assert.h"
 #include "theme/colorutils.h"
+#include "theme/cstylefixups.h"
 #include "theme/cthemecontroller.h"
 #include "theme/cthemeiconhandler.h"
 
@@ -18,6 +19,8 @@ DISABLE_COMPILER_WARNINGS
 #include <QLatin1String>
 #include <QPalette>
 #include <QSettings>
+#include <QStyle>
+#include <QStyleFactory>
 RESTORE_COMPILER_WARNINGS
 
 #include <optional>
@@ -52,7 +55,9 @@ constexpr int tabletFontPointSize = 24;
 		.dark = dark,
 		.structure = ThemeStructure::Flat,
 		.monospaceControls = true,
+		.panelLayout = PanelLayout::PathInFrame,
 		.pathBar = PathBarStyle::Strip,
+		.functionKeys = FunctionKeyForm::LabelCell,
 		.palette = palette,
 		.metrics = {
 			.controlRadius = 0, .panelRadius = 0, .menuItemRadius = 0,
@@ -154,6 +159,62 @@ constexpr int tabletFontPointSize = 24;
 			.marginLineColor = rgb(0xf2a7a7),
 		},
 	};
+}
+
+// The menu bar is plain text on the window's background. The column headers are a band.
+// The function keys' padding leaves room for the key caps' glow.
+// The splitter handles are transparent: the panels' glow, which the window paints, shows through them.
+constexpr char kArcadeStyleSheet[] = R"(
+	QSplitter::handle { background: transparent; }
+	QMenuBar { background: transparent; color: @text@; }
+	QMenuBar::item { color: @text@; }
+	QMenuBar::item:selected, QMenuBar::item:pressed { background: @accentBg@; color: @accentText@; }
+
+	CFileListView QHeaderView::section { background: @surfaceAlt@; color: @text@; }
+
+	#CMainWindow > #centralwidget > #_commandLinePrompt { color: @cursor@; }
+	CFunctionKeyButton { padding: 5px 8px; }
+)";
+
+// Text mode in arcade neon: lit double-line frames with the tabs standing on them, a pink cursor bar, lavender names on aubergine.
+// The panels sit on a darker bezel.
+[[nodiscard]] Theme arcadeTheme()
+{
+	const CBasePalette palette{
+		.windowBg = rgb(0x1a1030), .surface = rgb(0x2b1b4a), .surfaceAlt = rgb(0x3a2862),
+		.text = rgb(0xcbc1f0), .textDim = rgb(0x9285c6),
+		.button = rgb(0x2b1b4a),
+		.accent = rgb(0x7cf3c8),
+		.selectionBg = rgb(0x4a2560), .selectionFg = rgb(0xff8ec4),
+		.border = rgb(0x4f7c83), .borderSubtle = rgb(0x3d2c66), .borderStrong = rgb(0x5e4e8c),
+	};
+
+	Theme theme = flatMonospaceTheme(QStringLiteral("Arcade"), true, palette);
+	theme.panelLayout = PanelLayout::TabsOnFrame;
+	theme.pathBar = PathBarStyle::Titled;
+	theme.panelFrame = PanelFrame::Double;
+	theme.functionKeys = FunctionKeyForm::KeyCap;
+	theme.menuBarMnemonicColor = palette.accent;
+	theme.commandLineBlockCursor = true;
+	theme.styleSheet = kArcadeStyleSheet;
+
+	ThemeMetrics& metrics = theme.metrics;
+	metrics.panelPadding = 8;
+	metrics.windowMargin = 9;
+	metrics.panelGap = 8;
+	metrics.commandLineMargin = 12;
+	metrics.functionKeySpacing = 16;
+	metrics.functionKeyBarMargin = 8;
+	metrics.tabSpacing = 4;
+	metrics.pathTitleScale = 1.0;
+	metrics.glowRadius = 9;
+
+	FileListLook& look = theme.fileList;
+	look.contentVMargin = 2;
+	look.cursorColor = rgb(0xff5fa8);
+	look.extensionInNameColor = true;
+	look.uppercaseHeader = true;
+	return theme;
 }
 
 // The active panel has an accent border, the other none.
@@ -391,14 +452,18 @@ const std::vector<Theme>& allThemes()
 		greenbarTheme(),
 		departuresTheme(),
 		notebookTheme(),
+		arcadeTheme(),
 	};
 	return themes;
 }
 
 void installTheme(QApplication& app)
 {
-	// The themes are drawn for Fusion: the platform styles ignore the palette in places
-	assert_r(QApplication::setStyle(QStringLiteral("Fusion")));
+	// The themes are drawn for Fusion: the platform styles ignore the palette in places.
+	// The proxy hides the native cursor of a line edit that draws a block cursor.
+	QStyle* const fusion = QStyleFactory::create(QStringLiteral("Fusion"));
+	assert_r(fusion);
+	QApplication::setStyle(new CTextCursorHidingStyle{ fusion });
 
 	// Serves the stylesheet's tinted glyphs. Must exist before a sheet refers to one, and for the application's lifetime.
 	static const CThemeIconHandler iconHandler{ QStringLiteral(":/theme") };

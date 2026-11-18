@@ -26,6 +26,7 @@ class CPanelWidget;
 class CFileOperationDialog;
 class CFunctionKeyButton;
 class CIconProvider;
+class CLineEdit;
 class CPluginEngine;
 class CShellOperationRunner;
 class CViewerWindow;
@@ -207,6 +208,7 @@ private:
 	CPanelDisplayController _leftPanelDisplayController, _rightPanelDisplayController;
 
 	QCompleter _commandLineCompleter;
+	CLineEdit* _commandLineEdit = nullptr; // owned by the command line
 
 	enum { NormalWindow, MaximizedWindow } _windowStateBeforeFullscreen = NormalWindow;
 

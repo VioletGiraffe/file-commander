@@ -56,6 +56,8 @@
 #include "theme/cthemecontroller.h"
 #include "timing/ctimeelapsed.h"
 #include "updaterUI/cupdaterdialog.h"
+#include "widgets/clineedit.h"
+#include "widgets/cmenubar.h"
 #include "widgets/cpersistenceenabler.h"
 #include "widgets/widgetutils.h"
 
@@ -149,6 +151,10 @@ CMainWindow::CMainWindow(CController& controller, CPluginEngine& pluginEngine, C
 	assert_r(!_instance);
 	_instance = this;
 	ui->setupUi(this);
+
+	_commandLineEdit = new CLineEdit;
+	_commandLineEdit->setSelectAllOnFocus(false); // as the line edit QComboBox makes
+	ui->_commandLine->setLineEdit(_commandLineEdit);
 
 	applyTheme();
 	connect(&CThemeController::instance(), &CThemeController::themeChanged, this, &CMainWindow::applyTheme);
@@ -253,9 +259,18 @@ void CMainWindow::applyTheme()
 	ui->splitter->setHandleWidth(metrics.panelGap);
 	ui->verticalSplitter->setHandleWidth(metrics.panelGap);
 
-	const auto form = theme.structure == ThemeStructure::Flat ? CFunctionKeyButton::Form::LabelCell : CFunctionKeyButton::Form::KeyBox;
 	for (CFunctionKeyButton* button : { ui->btnView, ui->btnEdit, ui->btnCopy, ui->btnMove, ui->btnNewFolder, ui->btnDelete })
-		button->setForm(form);
+		button->setForm(theme.functionKeys);
+
+	std::optional<CMenuBar::LabelColors> menuBarLabels;
+	if (theme.menuBarMnemonicColor.isValid())
+		menuBarLabels = CMenuBar::LabelColors{ .text = theme.palette.text, .mnemonic = theme.menuBarMnemonicColor };
+	ui->menubar->setLabelColors(menuBarLabels);
+
+	std::optional<CLineEdit::BlockCursor> blockCursor;
+	if (theme.commandLineBlockCursor)
+		blockCursor = CLineEdit::BlockCursor{ .fill = theme.palette.accent, .text = theme.palette.surface, .glowRadius = metrics.glowRadius };
+	_commandLineEdit->setBlockCursor(blockCursor);
 }
 
 void CMainWindow::initButtons()

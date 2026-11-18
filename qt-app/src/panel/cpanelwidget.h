@@ -7,11 +7,18 @@
 #include "ccontroller.h"
 
 
+// Submodule includes
+#include "widgets/cglowunderlay.h"
+
+
 DISABLE_COMPILER_WARNINGS
 #include <QItemSelection>
+#include <QPainterPath>
+#include <QRect>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
+#include <memory>
 #include <optional>
 #include <stdint.h>
 
@@ -27,6 +34,7 @@ class QUrl;
 class CFileListModel;
 class CFileListFilterDialog;
 class CShellOperationRunner;
+enum class PanelLayout; // themes/theme.h
 
 
 class CPanelWidget final : public QWidget,
@@ -102,7 +110,7 @@ signals:
 
 protected:
 	bool eventFilter(QObject * object , QEvent * e) override;
-	// Draws the frame of a flat panel
+	// Draws the frame of a flat panel, and in TabsOnFrame the inside of the frame and the line above the drives
 	void paintEvent(QPaintEvent* event) override;
 
 private slots:
@@ -155,6 +163,22 @@ private:
 	void updateCurrentVolumeButtonAndInfo();
 	// Sets the geometry and the file list's shape from the theme in effect
 	void applyTheme();
+	// Puts the rows in the layout's order
+	void arrangeRows(PanelLayout layout);
+
+	// Where a flat panel's frame runs
+	struct FlatFrame {
+		QRect outerLine;
+		// TabsOnFrame: the current tab, in this widget's coordinates. Open into the frame on the strip's last row, closed on another.
+		std::optional<QRect> openTab, closedTab;
+	};
+	[[nodiscard]] FlatFrame flatFrame() const;
+	// Along the frame's outer lines and around the current tab
+	[[nodiscard]] static QPainterPath outlineOf(const FlatFrame& frame);
+	// The glow around the active flat panel's outline. An ancestor paints it, so the panel needs no margin for it.
+	[[nodiscard]] std::optional<CGlowUnderlay::Glow> frameGlow() const;
+	// Repaints the flat frame and its glow
+	void updateFrame();
 
 	// Saves the image as a new file in the current folder; tells the user if that fails
 	void pasteImage(const QImage& image, bool lossyCompression);
@@ -188,7 +212,7 @@ private:
 	void onTabBarCloseRequested(int index);
 	void onTabBarTabMoved(int from, int to);        // Drag-reorder: mirrors the tab bar's move into _tabs and CController
 	void closeTabById(qulonglong id);       // Closes whichever tab currently holds id (re-resolves its position fresh); shared by onTabBarCloseRequested and closeAllOtherTabs
-	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab
+	void updateTabBarVisibility();                 // The bar stays hidden while there's only one tab, except where the tabs stand on the frame; a sole tab has no close button
 	void updateTabText(int index);
 	[[nodiscard]] QString tabToolTipText(int index) const; // Tab's full path + folder contents stats, composed on hover
 	// Shared by createNewTab() and openCurrentItemInNewTab()/onItemMiddleClicked(); activate=false keeps the new tab
@@ -215,4 +239,5 @@ private:
 	qulonglong                      _lastSignalledCurrentItemHash = 0;
 	bool                            _applyingCoreSelection = false; // Stops selectionChanged() from pushing the copy back
 	Panel                           _panelPosition = Panel::UnknownPanel;
+	std::unique_ptr<CGlowUnderlay>  _frameGlow;
 };

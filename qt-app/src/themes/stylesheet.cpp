@@ -252,26 +252,47 @@ constexpr char kFlatControls[] = R"(
 	QHeaderView::section:last { border-right: none; }
 )";
 
-// CPanelWidget draws a flat panel's frame itself: its top edge runs through the path row.
-// The widgets of that row are opaque, to interrupt the line. The path is highlighted in the active panel: CBreadcrumbBar
-// paints its strip, the rules below its editor.
-// The path editor and its line edit both state the text colour, in both states: polishing either one sets the line edit's palette,
-// and a rule without a colour keeps the one the line edit had.
+// CPanelWidget draws a flat panel's frame itself
 constexpr char kFlatPanels[] = R"(
 	CPanelWidget { border: none; }
 
+	#_infoLabel { border-top: 1px solid @borderStrong@; padding-top: 4px; }
+
+	#_driveButtonsWidget > QPushButton { padding: 0 5px; font-weight: bold; }
+	#_driveButtonsWidget > QPushButton:pressed, #_driveButtonsWidget > QPushButton:checked { background: @text@; color: @windowBg@; }
+)";
+
+// PanelLayout::PathInFrame: the frame's top edge runs through the path row, whose widgets are opaque to interrupt the line
+constexpr char kPathInFramePanels[] = R"(
+	CPanelWidget > QToolButton { background: @windowBg@; border: none; }
+)";
+
+// PanelLayout::TabsOnFrame: CPanelWidget fills the inside of its frame, and the window's background shows beside the tabs.
+// A tab's padding keeps its text clear of the frame's lines along its edges.
+// The summary is below the drives, under the line CPanelWidget draws above them.
+constexpr char kTabsOnFramePanels[] = R"(
+	CPanelWidget, CPanelWidget[activePanel="true"] { background: transparent; }
+
+	CTabStrip > QPushButton { padding: 5px 10px 3px; }
+	CTabStrip > QPushButton:checked { background: transparent; }
+	CPanelWidget[activePanel="true"] CTabStrip > QPushButton:checked { color: @accent@; }
+
+	CPanelWidget > QToolButton { background: transparent; border: none; }
+	CBreadcrumbBar > QComboBox { background: @surface@; }
+
+	#_infoLabel { border-top: none; padding-top: 0; }
+)";
+
+// PathBarStyle::Strip: the path is highlighted in the active panel; CBreadcrumbBar paints its strip, the rules below its editor.
+// The path editor and its line edit both state the text colour, in both states: polishing either one sets the line edit's palette,
+// and a rule without a colour keeps the one the line edit had.
+constexpr char kStripPathBar[] = R"(
 	CBreadcrumbBar > QComboBox { border: none; padding: 1px 8px; }
 	CBreadcrumbBar > QComboBox, CBreadcrumbBar > QComboBox QLineEdit { color: @text@; font-weight: bold; }
 	CPanelWidget[activePanel="true"] > CBreadcrumbBar > QComboBox { background: @accent@; }
 	CPanelWidget[activePanel="true"] > CBreadcrumbBar > QComboBox,
 	CPanelWidget[activePanel="true"] > CBreadcrumbBar > QComboBox QLineEdit { color: @accentFg@; }
 	CPanelWidget[activePanel="true"] > CBreadcrumbBar > QComboBox::down-arrow { image: url(@comboArrowOnAccentIcon@); }
-	CPanelWidget > QToolButton { background: @windowBg@; border: none; }
-
-	#_infoLabel { border-top: 1px solid @borderStrong@; padding-top: 4px; }
-
-	#_driveButtonsWidget > QPushButton { padding: 0 5px; font-weight: bold; }
-	#_driveButtonsWidget > QPushButton:pressed, #_driveButtonsWidget > QPushButton:checked { background: @text@; color: @windowBg@; }
 )";
 
 // CFunctionKeyButton draws its label's cell itself
@@ -358,6 +379,12 @@ QString buildStyleSheet(const Theme& theme)
 		for (const char* section : { kFlatControls, kFlatPanels, kFlatMainWindow })
 			sheet += QLatin1String(section);
 	}
+	if (theme.panelLayout == PanelLayout::PathInFrame)
+		sheet += QLatin1String(kPathInFramePanels);
+	else if (theme.panelLayout == PanelLayout::TabsOnFrame)
+		sheet += QLatin1String(kTabsOnFramePanels);
+	if (theme.pathBar == PathBarStyle::Strip)
+		sheet += QLatin1String(kStripPathBar);
 	if (theme.styleSheet)
 		sheet += QLatin1String(theme.styleSheet);
 
@@ -372,6 +399,7 @@ QString buildStyleSheet(const Theme& theme)
 	tokens.add(QStringLiteral("panelPadding"), metrics.panelPadding);
 	tokens.add(QStringLiteral("panelActiveBorder"), flat ? palette.accent : ColorUtils::mix(palette.border, palette.accent, 0.55f));
 	tokens.add(QStringLiteral("activePanelBackground"), theme.fileList.activeBackground.isValid() ? theme.fileList.activeBackground : palette.surface);
+	tokens.add(QStringLiteral("cursor"), theme.fileList.cursorColor.isValid() ? theme.fileList.cursorColor : palette.accent);
 	tokens.add(QStringLiteral("menuItemRadius"), metrics.menuItemRadius);
 	tokens.add(QStringLiteral("scrollBarThickness"), metrics.scrollBarThickness);
 	tokens.add(QStringLiteral("scrollBarHandleRadius"), std::min(metrics.scrollBarThickness / 2, metrics.controlRadius));

@@ -10,7 +10,7 @@ first version (v1). Current state only; done items get removed.
 - **Structure**: the geometry and stylesheet template that several themes share: corner radius, row height,
   paddings, gaps.
   - *Rounded*: panels are cards on the window background; rows, fields, buttons and tabs have rounded corners.
-  - *Flat*: square corners, no gaps, 1 px line frames.
+  - *Flat*: square corners, no gaps, 1 px line frames; a theme can double the panels' frame lines.
 - `CThemeController` stores one theme name per polarity, so the light and the dark theme are chosen independently.
 
 ## v1 scope
@@ -31,7 +31,7 @@ Blueprint is the flat theme, in both polarities.
 
 ### Further themes
 
-Meadow, Dusk, Greenbar, Departures and Notebook come in one polarity each; their counterparts in the other polarity come later.
+Meadow, Dusk, Greenbar, Departures, Notebook and Arcade come in one polarity each; their counterparts in the other polarity come later.
 
 - Meadow, done: light with a sage tint. Its controls have an 11 px radius: the stylesheet engine drops a radius
   larger than half the control's height, so a true pill would need a radius per control.
@@ -41,6 +41,8 @@ Meadow, Dusk, Greenbar, Departures and Notebook come in one polarity each; their
 - Greenbar, done: light, flat, the file list banded like green bar printer paper.
 - Departures, done: dark, flat, every row a strip of a split-flap board, yellow names.
 - Notebook, done: light, ruled rows with a red margin line between the icons and the names.
+- Arcade, done: dark, flat, text mode in arcade neon: tabs standing on glowing double-line mint frames, a pink cursor
+  bar, lavender names on aubergine, a darker bezel around the panels.
 - Not scheduled: light, black and white, 2 px black rules, uppercase labels, one highlighter colour for the selection.
 
 Rejected: a dense grey look with square segmented controls. It resembles stock Linux styles.

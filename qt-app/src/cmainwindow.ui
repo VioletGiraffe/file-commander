@@ -84,7 +84,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label">
+       <widget class="QLabel" name="_commandLinePrompt">
         <property name="text">
          <string>&gt;</string>
         </property>
@@ -186,7 +186,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
+  <widget class="CMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
@@ -613,6 +613,11 @@
    <class>CLabelElided</class>
    <extends>QLabel</extends>
    <header>widgets/clabelelided.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CMenuBar</class>
+   <extends>QMenuBar</extends>
+   <header>widgets/cmenubar.h</header>
   </customwidget>
   <customwidget>
    <class>CPanelWidget</class>

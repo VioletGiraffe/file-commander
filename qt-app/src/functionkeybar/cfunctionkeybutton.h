@@ -1,5 +1,8 @@
 #pragma once
 
+#include "functionkeyform.h"
+
+
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 
@@ -21,10 +24,7 @@ class CFunctionKeyButton final : public QPushButton
 public:
 	using QPushButton::QPushButton;
 
-	// KeyBox: the key in a small outlined box, the pair centred in the button.
-	// LabelCell: the key as plain text, then the label on an accent-filled cell that reaches the button's right edge.
-	enum class Form { KeyBox, LabelCell };
-	void setForm(Form form);
+	void setForm(FunctionKeyForm form);
 
 	// key: such as "F3"
 	void setCaption(const QString& key, const QString& label);
@@ -49,5 +49,5 @@ private:
 private:
 	QString _key;
 	QString _label;
-	Form _form = Form::KeyBox;
+	FunctionKeyForm _form = FunctionKeyForm::KeyBox;
 };

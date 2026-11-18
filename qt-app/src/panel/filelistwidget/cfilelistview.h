@@ -142,6 +142,12 @@ private:
 	void paintColumnSeparators(const QRect& area);
 	// The look's row bands, row lines and margin line, over the viewport's whole height. Only called while painting.
 	void paintRowBandsAndLines(const QRect& area);
+	// Over the rows around the active panel's bar cursor. Only called while painting.
+	void paintCursorGlow();
+	// The fill of the active panel's cursor
+	[[nodiscard]] QColor activeCursorColor() const;
+	// The viewport's band of the row at `index`, extended by the cursor's glow
+	[[nodiscard]] QRect cursorRowUpdateRect(const QModelIndex& index) const;
 	// Of the first row, which every row shares; of a row without content while the list is empty
 	[[nodiscard]] int uniformRowHeight() const;
 
