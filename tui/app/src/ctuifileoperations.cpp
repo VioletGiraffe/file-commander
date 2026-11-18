@@ -230,9 +230,14 @@ public:
 	void getEvent(TEvent& event) override
 	{
 		processJobEvents();
-		if (_summary && (state & sfModal))
+		// endState == 0: a button tracking the mouse keeps calling this until the mouse button is released, and those calls must fetch
+		if (_summary && (state & sfModal) && endState == 0)
+		{
 			endModal(cmOK);
-		// Always fetches: a button tracking the mouse loops on this call until the mouse button is released
+			// Nothing is fetched: this dialog would handle the event while closing
+			event.what = evNothing;
+			return;
+		}
 		TDialog::getEvent(event);
 	}
 
@@ -325,7 +330,8 @@ private:
 	// Pauses the operation while asking
 	void confirmCancellation()
 	{
-		if (_cancellationRequested)
+		// Not _summary: after the job finishes, it is empty until the next getEvent
+		if (_cancellationRequested || _job.status() == JobStatus::Finished)
 			return;
 
 		const bool wasPaused = _paused;
