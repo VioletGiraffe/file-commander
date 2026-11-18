@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795034414744,
+  "lastUpdate": 1795038331492,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -38947,6 +38947,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .reloc",
             "value": 13.5,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "88cdfbb0066c43c512f33b9a696582149026f885",
+          "message": "The favorites menu is built in favoritelocationseditor/, CPanelWidget's tab and refill code loses its duplicated steps, and CPanel reports its contents summary\n\nA refill no longer disconnects and reconnects the cursor slot, which had moved it behind the view's own receivers.",
+          "timestamp": "2026-11-18T23:30:08+02:00",
+          "tree_id": "427499a34d27ec10d56f77dbbb6a27c3db31186a",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/88cdfbb0066c43c512f33b9a696582149026f885"
+        },
+        "date": 1795038327036,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 24894,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36752,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1768,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1063.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1122,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 473,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 53.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 30.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
             "unit": "KB"
           }
         ]
