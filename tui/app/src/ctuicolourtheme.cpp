@@ -24,7 +24,7 @@ constexpr ColourTheme themes[]{
 	{ "dark", "Dark", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x303030, .menuText = 0xD0D0D0, .menuShortcut = 0xFFAF00, .menuSelectedBack = 0x005F87, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD75F,
 		.disabledText = 0x6C6C6C,
-		.panelBack = 0x121212, .framePassive = 0x585858, .frameActive = 0xD0D0D0, .frameIcons = 0x5FD75F,
+		.panelBack = 0x121212, .rowBandBack = 0x1C1C1C, .rowsPerBand = 1, .framePassive = 0x585858, .frameActive = 0xD0D0D0, .frameIcons = 0x5FD75F,
 		.fileText = 0xBCBCBC, .fileDetailText = 0x949494, .selectedText = 0xFFD75F, .cursorBack = 0x005F87, .cursorText = 0xFFFFFF, .cursorSelectedText = 0xFFD75F, .columnHeader = 0x5FAFD7,
 		.statusText = 0x8A8A8A, .separator = 0x303030, .cursorSeparator = 0x5F87AF, .tabBack = 0x4E4E4E, .tabText = 0xFFFFFF,
 		.dialogBack = 0x303030, .dialogText = 0xD0D0D0, .dialogFrame = 0xFFFFFF, .dialogShortcut = 0xFFAF00, .focusText = 0xFFFFFF,
@@ -129,7 +129,7 @@ constexpr ColourTheme themes[]{
 	{ "ember", "Ember", ColourTheme::Polarity::Dark, {
 		.menuBack = 0x3C3836, .menuText = 0xEBDBB2, .menuShortcut = 0xFE8019, .menuSelectedBack = 0xD65D0E, .menuSelectedText = 0xFBF1C7, .menuSelectedShortcut = 0xFABD2F,
 		.disabledText = 0x7C6F64,
-		.panelBack = 0x1D2021, .framePassive = 0x504945, .frameActive = 0xEBDBB2, .frameIcons = 0xB8BB26,
+		.panelBack = 0x1D2021, .rowBandBack = 0x282828, .rowsPerBand = 3, .framePassive = 0x504945, .frameActive = 0xEBDBB2, .frameIcons = 0xB8BB26,
 		.fileText = 0xD5C4A1, .fileDetailText = 0xA3987F, .selectedText = 0xFABD2F, .cursorBack = 0x504945, .cursorText = 0xFBF1C7, .cursorSelectedText = 0xFABD2F, .columnHeader = 0x83A598,
 		.statusText = 0xA89984, .separator = 0x32302F, .cursorSeparator = 0x665C54, .tabBack = 0x504945, .tabText = 0xFBF1C7,
 		.dialogBack = 0x3C3836, .dialogText = 0xEBDBB2, .dialogFrame = 0xFBF1C7, .dialogShortcut = 0xFE8019, .focusText = 0xFABD2F,
@@ -151,6 +151,45 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0x101018, .hintText = 0x565F89, .hintKey = 0xBB9AF7, .keyBack = 0x7AA2F7, .keyText = 0x16161E, .keyLabelBack = 0x24283B, .keyLabelText = 0xC0CAF5,
 		.keyBarBack = 0x101018 } },
+	// True colour, in the white of P4 monitor phosphor, banded like scan lines
+	{ "scanline", "Scanline", ColourTheme::Polarity::Dark, {
+		.menuBack = 0x111820, .menuText = 0xC9D6E8, .menuShortcut = 0x6FC3FF, .menuSelectedBack = 0xC9D6E8, .menuSelectedText = 0x05070A, .menuSelectedShortcut = 0x0B4F86,
+		.disabledText = 0x4A5869,
+		.panelBack = 0x05070A, .rowBandBack = 0x0D1219, .rowsPerBand = 1, .framePassive = 0x2A3646, .frameActive = 0xC9D6E8, .frameIcons = 0x6FC3FF,
+		.fileText = 0xC9D6E8, .fileDetailText = 0x8496AD, .selectedText = 0xFFC857, .cursorBack = 0xC9D6E8, .cursorText = 0x05070A, .cursorSelectedText = 0x7A3E00, .columnHeader = 0xFFFFFF,
+		.statusText = 0x6F8299, .separator = 0x1A2330, .cursorSeparator = 0x8496AD, .tabBack = 0x1A2330, .tabText = 0xFFFFFF,
+		.dialogBack = 0x111820, .dialogText = 0xC9D6E8, .dialogFrame = 0xC9D6E8, .dialogShortcut = 0x6FC3FF, .focusText = 0xFFFFFF,
+		.buttonBack = 0x2A3646, .buttonText = 0xF2F6FB, .buttonDefaultText = 0xFFC857, .buttonShortcut = 0x6FC3FF, .buttonShadow = 0x000000,
+		.controlBack = 0x1A2330, .controlText = 0xC9D6E8, .inputBack = 0x000000, .inputText = 0xFFFFFF, .scrollBarText = 0x2A3646, .scrollBarBack = 0x0D1219,
+		.selectionText = 0x05070A,
+		.bottomBack = 0x05070A, .hintText = 0x6F8299, .hintKey = 0x6FC3FF, .keyBack = 0xC9D6E8, .keyText = 0x05070A, .keyLabelBack = 0x111820, .keyLabelText = 0xC9D6E8,
+		.keyBarBack = 0x05070A } },
+	// True colour, banded like the rows of a split-flap departure board
+	{ "departures", "Departures", ColourTheme::Polarity::Dark, {
+		.menuBack = 0x1F1F1F, .menuText = 0xE6E6E6, .menuShortcut = 0xFFD21F, .menuSelectedBack = 0xFFD21F, .menuSelectedText = 0x0A0A0A, .menuSelectedShortcut = 0xA3160C,
+		.disabledText = 0x5A5A5A,
+		.panelBack = 0x0A0A0A, .rowBandBack = 0x171717, .rowsPerBand = 1, .framePassive = 0x3A3A3A, .frameActive = 0xFFD21F, .frameIcons = 0xFF5A4D,
+		.fileText = 0xFFD21F, .fileDetailText = 0xE6E6E6, .selectedText = 0x6EE7A0, .cursorBack = 0xFFD21F, .cursorText = 0x0A0A0A, .cursorSelectedText = 0x0B5A2A, .columnHeader = 0xFFFFFF,
+		.statusText = 0x9A9A9A, .separator = 0x2A2A2A, .cursorSeparator = 0xB38F00, .tabBack = 0x2A2A2A, .tabText = 0xFFFFFF,
+		.dialogBack = 0x1F1F1F, .dialogText = 0xE6E6E6, .dialogFrame = 0xFFD21F, .dialogShortcut = 0xFFD21F, .focusText = 0xFFFFFF,
+		.buttonBack = 0x3A3A3A, .buttonText = 0xFFFFFF, .buttonDefaultText = 0xFFD21F, .buttonShortcut = 0xFFD21F, .buttonShadow = 0x000000,
+		.controlBack = 0x2A2A2A, .controlText = 0xE6E6E6, .inputBack = 0x000000, .inputText = 0xFFD21F, .scrollBarText = 0x3A3A3A, .scrollBarBack = 0x171717,
+		.selectionText = 0x0A0A0A,
+		.bottomBack = 0x0A0A0A, .hintText = 0x9A9A9A, .hintKey = 0xFFD21F, .keyBack = 0xFFD21F, .keyText = 0x0A0A0A, .keyLabelBack = 0x1F1F1F, .keyLabelText = 0xE6E6E6,
+		.keyBarBack = 0x0A0A0A } },
+	// True colour, banded like rock strata
+	{ "strata", "Strata", ColourTheme::Polarity::Dark, {
+		.menuBack = 0x33291F, .menuText = 0xE0CDAA, .menuShortcut = 0x5FD6C4, .menuSelectedBack = 0xC9822B, .menuSelectedText = 0x1A0F04, .menuSelectedShortcut = 0x002B26,
+		.disabledText = 0x6E5E4D,
+		.panelBack = 0x1C1714, .rowBandBack = 0x28201A, .rowsPerBand = 2, .framePassive = 0x5A4737, .frameActive = 0xE0CDAA, .frameIcons = 0x5FD6C4,
+		.fileText = 0xE0CDAA, .fileDetailText = 0xA8947A, .selectedText = 0x5FD6C4, .cursorBack = 0xC9822B, .cursorText = 0x1A0F04, .cursorSelectedText = 0x002B26, .columnHeader = 0xE8A85A,
+		.statusText = 0x8C7A63, .separator = 0x3A2E25, .cursorSeparator = 0x8F5A1A, .tabBack = 0x5A4737, .tabText = 0xFFF3DC,
+		.dialogBack = 0x33291F, .dialogText = 0xE0CDAA, .dialogFrame = 0xFFF3DC, .dialogShortcut = 0x5FD6C4, .focusText = 0xFFF3DC,
+		.buttonBack = 0x5A4737, .buttonText = 0xFFF3DC, .buttonDefaultText = 0xFFC56E, .buttonShortcut = 0x7FE6D6, .buttonShadow = 0x120E0B,
+		.controlBack = 0x28201A, .controlText = 0xE0CDAA, .inputBack = 0x120E0B, .inputText = 0xFFF3DC, .scrollBarText = 0x5A4737, .scrollBarBack = 0x28201A,
+		.selectionText = 0x1A0F04,
+		.bottomBack = 0x120E0B, .hintText = 0x8C7A63, .hintKey = 0xE8A85A, .keyBack = 0xC9822B, .keyText = 0x1A0F04, .keyLabelBack = 0x33291F, .keyLabelText = 0xE0CDAA,
+		.keyBarBack = 0x120E0B } },
 	{ "two-inks", "Two inks", ColourTheme::Polarity::Light, {
 		.menuBack = 0xFFFFFF, .menuText = 0x000000, .menuShortcut = 0xD70000, .menuSelectedBack = 0x000000, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFF5F5F,
 		.disabledText = 0x8A8A8A,
@@ -239,6 +278,32 @@ constexpr ColourTheme themes[]{
 		.selectionText = 0xFFFFFF,
 		.bottomBack = 0xEDF3EA, .hintText = 0x6F8076, .hintKey = 0x2E6B4A, .keyBack = 0x2E6B4A, .keyText = 0xFFFFFF, .keyLabelBack = 0xDCEBD9, .keyLabelText = 0x23302A,
 		.keyBarBack = 0xEDF3EA } },
+	// True colour, banded like ruled paper: the column separators are its red margin line
+	{ "notebook", "Notebook", ColourTheme::Polarity::Light, {
+		.menuBack = 0xEEF3FA, .menuText = 0x1B2A5C, .menuShortcut = 0xC62828, .menuSelectedBack = 0x1B2A5C, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFB3B3,
+		.disabledText = 0x9AA5BD,
+		.panelBack = 0xFFFFFF, .rowBandBack = 0xE8F1FB, .rowsPerBand = 1, .framePassive = 0xB9C6DD, .frameActive = 0x1B2A5C, .frameIcons = 0xC62828,
+		.fileText = 0x1B2A5C, .fileDetailText = 0x5A6788, .selectedText = 0xC62828, .cursorBack = 0x1B2A5C, .cursorText = 0xFFFFFF, .cursorSelectedText = 0xFFB3B3, .columnHeader = 0x1B2A5C,
+		.statusText = 0x7A86A3, .separator = 0xF2A7A7, .cursorSeparator = 0x6E7CB0, .tabBack = 0xD5E3F5, .tabText = 0x1B2A5C,
+		.dialogBack = 0xEEF3FA, .dialogText = 0x1B2A5C, .dialogFrame = 0x1B2A5C, .dialogShortcut = 0xC62828, .focusText = 0x0B3FB5,
+		.buttonBack = 0xC9D8EE, .buttonText = 0x14204A, .buttonDefaultText = 0x8E1414, .buttonShortcut = 0xB01E1E, .buttonShadow = 0xA9B6CE,
+		.controlBack = 0xFFFFFF, .controlText = 0x1B2A5C, .inputBack = 0xFFFFFF, .inputText = 0x14204A, .scrollBarText = 0xB9C6DD, .scrollBarBack = 0xEEF3FA,
+		.selectionText = 0xFFFFFF,
+		.bottomBack = 0xFFFFFF, .hintText = 0x7A86A3, .hintKey = 0xC62828, .keyBack = 0x1B2A5C, .keyText = 0xFFFFFF, .keyLabelBack = 0xE8F1FB, .keyLabelText = 0x1B2A5C,
+		.keyBarBack = 0xFFFFFF } },
+	// True colour, banded like the pages of an account book
+	{ "daybook", "Daybook", ColourTheme::Polarity::Light, {
+		.menuBack = 0xEFE2C2, .menuText = 0x33261A, .menuShortcut = 0xA8231A, .menuSelectedBack = 0x4A3524, .menuSelectedText = 0xFFF6E0, .menuSelectedShortcut = 0xFFC46B,
+		.disabledText = 0xA3927A,
+		.panelBack = 0xFBF3DF, .rowBandBack = 0xF0E3C4, .rowsPerBand = 2, .framePassive = 0xC9B58C, .frameActive = 0x4A3524, .frameIcons = 0x2F6B3A,
+		.fileText = 0x33261A, .fileDetailText = 0x6B5843, .selectedText = 0xA8231A, .cursorBack = 0x4A3524, .cursorText = 0xFFF6E0, .cursorSelectedText = 0xFFB0A0, .columnHeader = 0x7A4A12,
+		.statusText = 0x8A765C, .separator = 0xDCCBA6, .cursorSeparator = 0x8A6F55, .tabBack = 0xE3D2AC, .tabText = 0x2A1C0E,
+		.dialogBack = 0xF4EACD, .dialogText = 0x33261A, .dialogFrame = 0x4A3524, .dialogShortcut = 0xA8231A, .focusText = 0x1D4E89,
+		.buttonBack = 0xDCCBA6, .buttonText = 0x2A1C0E, .buttonDefaultText = 0x8E1B14, .buttonShortcut = 0xA8231A, .buttonShadow = 0xBBA983,
+		.controlBack = 0xFBF3DF, .controlText = 0x33261A, .inputBack = 0xFFFDF6, .inputText = 0x1E1408, .scrollBarText = 0xC9B58C, .scrollBarBack = 0xEFE2C2,
+		.selectionText = 0xFFF6E0,
+		.bottomBack = 0xEFE2C2, .hintText = 0x7A6750, .hintKey = 0xA8231A, .keyBack = 0x4A3524, .keyText = 0xFFF6E0, .keyLabelBack = 0xF0E3C4, .keyLabelText = 0x33261A,
+		.keyBarBack = 0xEFE2C2 } },
 	// True colour
 	{ "blossom", "Blossom", ColourTheme::Polarity::Light, {
 		.menuBack = 0xF1DFE6, .menuText = 0x3A2E34, .menuShortcut = 0x8E3B6B, .menuSelectedBack = 0x8E3B6B, .menuSelectedText = 0xFFFFFF, .menuSelectedShortcut = 0xFFD6E7,
