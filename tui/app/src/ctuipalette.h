@@ -25,10 +25,14 @@ enum PanelPaletteEntry : uchar
 	ppFilterText,
 	ppFilterSelectedText,
 	ppFilterArrows,
-	ppColumnSeparator, // In the rows and the column header
+	ppColumnSeparator, // In the rows
 	ppBandColumnSeparator,
 	ppCursorColumnSeparator,
-	ppLastEntry = ppCursorColumnSeparator
+	ppHeaderColumnSeparator,
+	ppStatusValue,
+	ppStatusDivider,
+	ppHexOffset, // The viewer's: the column header's text on the panel's background
+	ppLastEntry = ppHexOffset
 };
 
 struct ColourTheme;

@@ -1,6 +1,7 @@
 #include "ctuipanel.h"
 #include "ctuiapplication.h"
 #include "ctuibatchrenamedialog.h"
+#include "ctuicolourtheme.h"
 #include "ctuidialogs.h"
 #include "ctuifavoritesdialog.h"
 #include "ctuifilelist.h"
@@ -94,26 +95,43 @@ public:
 		growMode = gfGrowLoY | gfGrowHiX | gfGrowHiY;
 	}
 
-	void setText(const QString& text)
+	// A run of the text; a value, such as a number, a size or a date, takes the theme's value colour
+	struct TextRun
 	{
-		_text = text.toUtf8();
+		QString text;
+		bool value = false;
+	};
+
+	void setText(std::vector<TextRun> runs)
+	{
+		_runs = std::move(runs);
 		drawView();
 	}
 
-	// Two rows: a blank one that sets the text apart from the list, then the text
+	// Two rows: one that sets the text apart from the list, blank or the theme's divider line, then the text
 	void draw() override
 	{
-		const TColorAttr color = mapColor(ppStatusText);
+		const TColorAttr color = mapColor(ppStatusText), valueColor = mapColor(ppStatusValue);
 		TDrawBuffer line;
-		line.moveChar(0, ' ', color, (ushort)size.x);
+		if (appliedColourTheme().parameters.statusDividerLine)
+			line.moveStr(0, stringView(QString{ size.x, u'─' }.toUtf8()), mapColor(ppStatusDivider));
+		else
+			line.moveChar(0, ' ', color, (ushort)size.x);
 		writeLine(0, 0, (short)size.x, 1, line);
 
-		line.moveStr(1, TStringView{ _text.constData(), (size_t)_text.size() }, color, (ushort)std::max(size.x - 2, 0));
+		line.moveChar(0, ' ', color, (ushort)size.x);
+		ushort x = 1;
+		for (const TextRun& run : _runs)
+		{
+			if (x >= size.x - 1)
+				break;
+			x = (ushort)(x + line.moveStr(x, stringView(run.text.toUtf8()), run.value ? valueColor : color, (ushort)(size.x - 1 - x)));
+		}
 		writeLine(0, 1, (short)size.x, 1, line);
 	}
 
 private:
-	QByteArray _text;
+	std::vector<TextRun> _runs;
 };
 
 // The side's tabs, wrapped onto rows, the active one highlighted.
@@ -585,19 +603,31 @@ void CTuiPanel::updateStatusLine()
 
 	if (const FolderContentsSummary selected = panel.selectionSummary(); selected.numFiles + selected.numFolders > 0)
 	{
-		_statusLine->setText(QStringLiteral("%1 files, %2 folders selected (%3)").arg(selected.numFiles).arg(selected.numFolders).arg(locale.formattedDataSize((qint64)selected.size)));
+		_statusLine->setText({
+			{ QString::number(selected.numFiles), true }, { QStringLiteral(" files, ") },
+			{ QString::number(selected.numFolders), true }, { QStringLiteral(" folders selected (") },
+			{ locale.formattedDataSize((qint64)selected.size), true }, { QStringLiteral(")") },
+		});
 		return;
 	}
 
 	const CFileSystemObject* row = _fileList->currentRow();
-	if (!row || row->isCdUp())
+	if (!row)
 	{
-		_statusLine->setText(row ? QStringLiteral("..") : QString{});
+		_statusLine->setText({});
+		return;
+	}
+	if (row->isCdUp())
+	{
+		_statusLine->setText({ { QStringLiteral("..") } });
 		return;
 	}
 
 	const QString sizeText = row->isDir() && row->size() == 0 ? QStringLiteral("<DIR>") : locale.formattedDataSize((qint64)row->size());
-	_statusLine->setText(row->fullName().toString() + QStringLiteral("  ") + sizeText + QStringLiteral("  ") + fileTimeText(row->modificationTime(), FileTimeTextLength::Long));
+	_statusLine->setText({
+		{ row->fullName().toString() + QStringLiteral("  ") }, { sizeText, true },
+		{ QStringLiteral("  ") }, { fileTimeText(row->modificationTime(), FileTimeTextLength::Long), true },
+	});
 }
 
 void CTuiPanel::activateCurrentItem()

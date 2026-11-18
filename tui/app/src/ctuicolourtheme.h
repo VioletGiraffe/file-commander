@@ -9,7 +9,8 @@ RESTORE_COMPILER_WARNINGS
 
 #include <span>
 
-// A theme's colours by role, and the height of its row bands. The application palette pairs the colours into its entries.
+// A theme's colours by role, and the few shapes it chooses: the row bands, the column header's case, the status line's divider.
+// The application palette pairs the colours into its entries.
 struct ThemeParameters
 {
 	// Also the hint row's and the key bar's pressed items
@@ -25,6 +26,12 @@ struct ThemeParameters
 	TColorRGB fileText;
 	TColorRGB fileDetailText; // Every column but Name, in rows neither selected nor under the cursor
 	TColorRGB selectedText, cursorBack, cursorText, cursorSelectedText, columnHeader, statusText, separator, cursorSeparator;
+	TColorRGB columnHeaderBack = panelBack;
+	bool uppercaseColumnHeader = false;
+	TColorRGB statusValue = statusText; // The status line's numbers, sizes and dates
+	// A line across the status line's first row, which is blank otherwise. A theme without the line sets neither.
+	bool statusDividerLine = false;
+	TColorRGB statusDivider = separator;
 	TColorRGB tabBack, tabText; // The active tab and the filter line
 
 	TColorRGB dialogBack, dialogText, dialogFrame, dialogShortcut;

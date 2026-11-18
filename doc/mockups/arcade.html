@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arcade Mockup</title>
+<!-- Without a network the browser's fallback fonts replace these -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&display=swap">
+<style>
+/* The Arcade theme's design: one mock window, then its differences from the app. Single dark look by choice. */
+:root {
+	color-scheme: dark;
+	--page: #110b1d; --ink: #e9e4f6; --muted: #a59dbd;
+	--display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+	--text: "Inter", "Segoe UI", system-ui, sans-serif;
+	--mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+body { background: var(--page); color: var(--ink); font-family: var(--text); line-height: 1.5; }
+.wrap { max-width: 1680px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-family: var(--display); font-size: 2rem; margin: 0 0 8px; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 70ch; margin: 0 0 8px; }
+h2 { font-family: var(--display); font-size: 1.15rem; margin: 32px 0 8px; }
+.scroller { overflow-x: auto; padding-bottom: 4px; }
+
+/* ---------- The mock window ---------- */
+.win {
+	width: 760px; box-sizing: border-box; background: var(--bg); color: var(--txt);
+	font-family: var(--uiFont); font-size: var(--uiSize); line-height: 16px;
+	display: flex; flex-direction: column; gap: 0; user-select: none;
+	--winMargin: 10px; --gap: 10px; --frame: 1px; --pathH: 22px; --rowV: 3px; --rowH: 8px;
+	--uiFont: var(--mono); --uiSize: 13px; --listFont: var(--mono); --listSize: 13px; --chromeFont: var(--uiFont); --chromeSize: var(--uiSize);
+}
+.menubar { display: flex; background: var(--accent); color: var(--accentFg); font-family: var(--chromeFont); font-size: var(--chromeSize); }
+.menubar span { padding: 2px 8px; }
+.panels { display: flex; gap: var(--gap); padding: var(--winMargin) var(--winMargin) 0; }
+.panel { position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; background: var(--bg); padding: 0 var(--frame) var(--frame); }
+.panel::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--pathH) / 2); border: 1px solid var(--border); pointer-events: none; z-index: 2; }
+.panel.active::before { border-color: var(--accent); }
+
+.tb { background: var(--bg); color: var(--dim); width: 22px; text-align: center; font-family: var(--uiFont); line-height: 20px; }
+.drv { padding: 0 5px; font-weight: 700; color: var(--dim); }
+.drv.on { background: var(--txt); color: var(--bg); }
+.dinfo { margin-left: auto; color: var(--dim); padding-right: 8px; }
+.usage { width: 54px; height: 6px; background: var(--subtle); position: relative; }
+.usage i { position: absolute; inset: 0 auto 0 0; width: 77%; background: var(--dim); }
+
+.list { font-family: var(--listFont); font-size: var(--listSize); display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.hdr, .row { display: grid; grid-template-columns: 1fr 5ch 10ch 17ch; position: relative; }
+.hdr > span { color: var(--dim); padding: 3px 8px; border-top: 1px solid var(--subtle); border-bottom: 1px solid var(--subtle); font-family: var(--chromeFont); font-size: var(--chromeSize); }
+.hdr > span + span, .row > span + span { border-left: 1px solid var(--subtle); }
+.row > span { padding: var(--rowV) var(--rowH); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1; }
+.row > span:nth-child(3), .hdr > span:nth-child(3) { text-align: right; }
+.row .nm { display: flex; align-items: center; gap: 6px; }
+.row svg { flex: none; }
+.row.sel { background: var(--selBg); color: var(--selFg); }
+.row.cur { background: var(--cursor); color: var(--cursorFg); }
+.row.icur::after { content: ""; position: absolute; inset: 0; border: 1px solid var(--icur); pointer-events: none; z-index: 2; }
+.row.fill { flex: 1; }
+
+.cmdrow { display: flex; align-items: center; gap: 8px; padding: 8px var(--winMargin); font-family: var(--chromeFont); font-size: var(--chromeSize); }
+.prompt { color: var(--dim); }
+.cmd { flex: 1; height: 18px; border-bottom: 1px solid var(--subtle); }
+.cmd::after { content: ""; display: inline-block; width: 1px; height: 14px; margin-top: 2px; background: var(--txt); }
+.fkeys { display: flex; font-family: var(--chromeFont); font-size: var(--chromeSize); }
+.fk { flex: 1; display: flex; align-items: stretch; min-width: 0; }
+.fk em { font-style: normal; padding: 4px 4px 4px 8px; color: var(--txt); }
+.fk b { flex: 1; font-weight: 400; background: var(--accent); color: var(--accentFg); padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Arcade: a text-cell grid with a little air, on a darker bezel ---------- */
+.arcade { --cell: 20px; --winMargin: 1ch; --gap: 1ch; line-height: var(--cell); background: var(--bezel); }
+.arcade .menubar { background: transparent; color: var(--txt); padding: 3px 1ch 1px; }
+.arcade .menubar span { padding: 0 1ch; }
+.arcade .menubar u { text-decoration: none; color: var(--accent); }
+.arcade .panels { padding-top: 4px; }
+.arcade .panel { gap: 2px; padding: 0 1ch; }
+.arcade .panel::before { left: .5ch; right: .5ch; top: calc(var(--cell) / 2 - 2px); bottom: calc(var(--cell) / 2 - 2px); border: 4px double var(--border); }
+.arcade .panel.active::before { border-color: var(--accent); box-shadow: 0 0 9px var(--glowA), inset 0 0 9px var(--glowB); }
+.arcade .list { line-height: 16px; margin: 0 .5ch; }
+.arcade .row > span { padding: 2px 1ch; }
+.arcade .row.cur { box-shadow: 0 0 14px var(--glowCursor); z-index: 3; }
+.arcade .hdr > span { border: none; padding: 2px 1ch; }
+.arcade .tb { line-height: var(--cell); width: 2.5ch; }
+.arcade .drv { padding: 0 .75ch; }
+.arcade .cmdrow { padding: 6px 1.5ch 2px; gap: 0; }
+.arcade .prompt { color: var(--dim); }
+.arcade .caret { color: var(--cursor); padding: 0 1ch 0 .5ch; }
+.arcade .cmd { border: none; height: 16px; }
+.arcade .cmd::after { width: 1ch; height: 16px; margin: 0; background: var(--accent); box-shadow: 0 0 8px var(--glowA); }
+.arcade .fkeys { gap: 2ch; padding: 6px 1.5ch 8px; }
+.arcade .fk { gap: .75ch; align-items: center; }
+.arcade .fk em { padding: 0 .6ch; line-height: 18px; }
+.arcade .fk b { flex: 1; background: none; color: var(--txt); padding: 0; }
+.arcade i.n { font-style: normal; color: var(--cursor); }
+.arcade .sp { flex: 1; }
+.arcade .drivebar { display: flex; align-items: center; gap: .5ch; height: var(--cell); padding: 0 .5ch; }
+.arcade .drivebar .dinfo { margin-left: auto; padding-right: 1ch; }
+
+/* Folder tabs on the frame, breadcrumbs inside it, drives and summary in a status block at the bottom */
+.arcade .panels { padding-top: 2px; }
+.pcol { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.pcol .panel { flex: 1; padding: 6px 1ch 4px; }
+.arcade .panel::before { top: 0; bottom: 0; left: 0; right: 0; }
+.ftabs { display: flex; gap: .5ch; padding-left: 1ch; position: relative; z-index: 3; line-height: var(--cell); }
+.ft { color: var(--dim); padding: 0 1.5ch; border: 4px solid transparent; border-bottom: none; }
+.ft.on { border: 4px double var(--border); border-bottom: none; background: var(--bg); color: var(--txt); margin-bottom: -4px; padding-bottom: 4px; }
+.pcol.active .ft.on { border-color: var(--accent); color: var(--accent); }
+.crumbs { display: flex; align-items: center; gap: .6ch; height: var(--cell); padding: 0 1ch; color: var(--dim); }
+.crumbs i { font-style: normal; color: var(--strong); }
+.crumbs b { color: var(--txt); }
+.active .crumbs b { color: var(--accent); text-shadow: 0 0 8px var(--glowA); }
+.arcade .hdr { background: var(--alt); }
+.arcade .hdr > span { color: var(--txt); text-transform: uppercase; letter-spacing: .08em; font-size: 12px; }
+.arcade .hdr > span + span, .arcade .row > span + span { border-left: 1px solid var(--subtle); }
+.status { position: relative; display: flex; flex-direction: column; padding: 4px .5ch 0; }
+.status::before { content: ""; position: absolute; left: -.5ch; right: -.5ch; top: 0; border-top: 1px solid var(--strong); }
+.status .infoline { color: var(--dim); padding: 0 1ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arcade .fk em { border: 1px solid var(--accent); color: var(--accent); box-shadow: 0 0 7px var(--glowB); }
+
+.arcade .row:not(.sel):not(.cur) > span:nth-child(n+3) { color: var(--detail); }
+
+@media (prefers-reduced-motion: no-preference) {
+	.arcade .row.cur { animation: hum 3.2s ease-in-out infinite; }
+	@keyframes hum { 50% { box-shadow: 0 0 9px var(--glowCursor); } }
+	.arcade .cmd::after { animation: blink 1.1s steps(1) infinite; }
+	@keyframes blink { 50% { opacity: 0; } }
+}
+</style>
+
+<div class="wrap">
+	<h1>Arcade</h1>
+	<p class="lede">The design the Arcade theme is built to: a mock of the Qt window in HTML. JetBrains Mono stands in for the app's monospace font, and the glow is drawn with CSS shadows.</p>
+	<div class="scroller" id="mock"></div>
+	<h2>Where the app differs</h2>
+	<ul class="lede">
+		<li>The frame's glow shows only outside the frame; here it also lights the inside.</li>
+		<li>The folder summary reads <q>2/6 files, 0/3 folders selected (2.15 MiB / 9.61 MiB)</q>: every number is in the cursor colour, the slashes and the words are dim.</li>
+	</ul>
+</div>
+
+<script>
+const folderIcon = '<svg width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M1 2.5h4l1.2 1.3H13v7H1z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>';
+const fileIcon = '<svg width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M3.5 .8h4.6l2.6 2.6v7.8H3.5z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>';
+const upIcon = '<svg width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M7 2v8M3.5 5.5 7 2l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>';
+
+// [name, ext, size, date, kind]
+const leftPanel = {
+	path: "C:\\Games\\Arcade", drive: 0, tabs: ["Arcade", "roms"], cursor: 4, selected: [5, 8],
+	stats: { files: "2/6", dirs: "0/3", sel: "2.15 MiB", total: "9.61 MiB", free: "212 GiB", size: "931 GiB" },
+	rows: [
+		["..", "", "", "", "up"],
+		["bin", "", "", "2026-10-28 18:02", "dir"],
+		["roms", "", "", "2026-11-14 22:41", "dir"],
+		["saves", "", "", "2026-11-17 23:09", "dir"],
+		["galaxian", "zip", "1.84 MiB", "2026-11-02 21:14", "file"],
+		["pacman", "cfg", "2.1 KiB", "2026-11-16 20:55", "file"],
+		["README", "TXT", "6.4 KiB", "1994-03-11 09:00", "file"],
+		["scores", "dat", "512 B", "2026-11-17 23:09", "file"],
+		["tempest", "zip", "312 KiB", "2026-11-02 21:20", "file"],
+		["setup", "exe", "7.42 MiB", "2026-10-28 18:01", "file"],
+	],
+};
+const rightPanel = {
+	path: "D:\\Backups", drive: 1, tabs: ["Backups"], cursor: 2, selected: [],
+	stats: { files: "0/4", dirs: "0/2", sel: "0 B", total: "1.62 GiB", free: "1.08 TiB", size: "3.64 TiB" },
+	rows: [
+		["..", "", "", "", "up"],
+		["2026-10", "", "", "2026-10-31 23:58", "dir"],
+		["2026-11", "", "", "2026-11-15 23:58", "dir"],
+		["archive", "7z", "1.24 GiB", "2026-09-30 23:59", "file"],
+		["notes", "md", "18.0 KiB", "2026-11-12 08:30", "file"],
+		["photos", "tar", "390 MiB", "2026-11-01 12:00", "file"],
+		["restore", "ps1", "3.3 KiB", "2026-08-19 17:45", "file"],
+	],
+};
+
+// detail: the sizes and dates, dimmer than the names
+const palette = { bg: "#2b1b4a", txt: "#cbc1f0", detail: "#a397d3", dim: "#9285c6", accent: "#7cf3c8", accentFg: "#2b1b4a", selBg: "#4a2560", selFg: "#ff8ec4",
+	border: "#4f7c83", subtle: "#3d2c66", strong: "#5e4e8c", cursor: "#ff5fa8", cursorFg: "#2b1b4a", icur: "#5a4a85",
+	glowA: "rgba(124,243,200,.55)", glowB: "rgba(124,243,200,.28)", glowCursor: "rgba(255,95,168,.65)",
+	alt: "#3a2862", bezel: "#1a1030" };
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+function drivesHtml(p) { return ["C", "D", "E"].map((d, i) => `<b class="drv${i === p.drive ? " on" : ""}">${d}</b>`).join(""); }
+const header = `<div class="hdr"><span>Name</span><span>Ext</span><span>Size</span><span>Date</span></div>`;
+const filler = `<div class="row fill"><span></span><span></span><span></span><span></span></div>`;
+const toolButtons = `<span class="tb">★</span><span class="tb">\\</span>`;
+
+function rowsHtml(p, active) {
+	return p.rows.map((r, i) => {
+		const cls = ["row"];
+		if (p.selected.includes(i)) cls.push("sel");
+		if (i === p.cursor) cls.push(active ? "cur" : "icur");
+		const icon = r[4] === "up" ? upIcon : r[4] === "dir" ? folderIcon : fileIcon;
+		return `<div class="${cls.join(" ")}"><span class="nm">${icon}<span>${esc(r[0])}</span></span><span>${r[1]}</span><span>${r[2]}</span><span>${r[3]}</span></div>`;
+	}).join("");
+}
+
+function listHtml(p, active) { return `<div class="list">${header}${rowsHtml(p, active)}${filler}</div>`; }
+function driveInfo(p) { return `${p.stats.size} (${p.stats.free} free)`; }
+
+function panelHtml(p, active) {
+	const s = p.stats;
+	const ftabs = p.tabs.map((t, i) => `<span class="ft${i === 0 ? " on" : ""}">${esc(t)}</span>`).join("");
+	const parts = p.path.split("\\");
+	const crumbs = parts.map((c, i) => i === parts.length - 1 ? `<b>${esc(c)}</b>` : `<span>${esc(c)}</span><i>›</i>`).join("");
+	return `<div class="pcol${active ? " active" : ""}">
+		<div class="ftabs">${ftabs}</div>
+		<div class="panel${active ? " active" : ""}">
+			<div class="crumbs">${crumbs}<span class="sp"></span>${toolButtons}</div>
+			${listHtml(p, active)}
+			<div class="status">
+				<div class="drivebar">${drivesHtml(p)}<span class="dinfo">${driveInfo(p)}</span><span class="usage"><i></i></span></div>
+				<div class="infoline"><i class="n">${s.files}</i> files · <i class="n">${s.dirs}</i> folders · <i class="n">${s.sel}</i> / ${s.total} selected</div>
+			</div>
+		</div>
+	</div>`;
+}
+
+const menuNames = ["File", "Commands", "Programs", "Options", "View", "Selection", "Tabs", "Help"];
+const keyCaptions = [["F3", "View"], ["F4", "Edit"], ["F5", "Copy"], ["F6", "Move"], ["F7", "New Folder"], ["F8", "Delete"]];
+
+function windowHtml() {
+	const vars = Object.entries(palette).map(([k, val]) => `--${k}:${val}`).join(";");
+	const menus = menuNames.map(m => `<span><u>${m[0]}</u>${m.slice(1)}</span>`).join("");
+	const keys = keyCaptions.map(([k, l]) => `<span class="fk"><em>${k}</em><b>${l}</b></span>`).join("");
+	return `<div class="win arcade" style="${vars}" role="img" aria-label="Mockup of the Arcade theme">
+		<div class="menubar">${menus}</div>
+		<div class="panels" style="height:376px">${panelHtml(leftPanel, true)}${panelHtml(rightPanel, false)}</div>
+		<div class="cmdrow"><span class="prompt">C:\\Games\\Arcade</span><span class="caret">&gt;</span><span class="cmd"></span></div>
+		<div class="fkeys">${keys}</div>
+	</div>`;
+}
+
+document.getElementById("mock").innerHTML = windowHtml();
+</script>

@@ -96,7 +96,7 @@ constexpr size_t applicationEntryCount = firstKeyBarApplicationEntry - 1 + keyBa
 		{ c.selectedText, c.rowBandBack },       // ppFileListBandSelectedRow
 		{ c.cursorText, c.cursorBack },          // ppFileListCursor
 		{ c.cursorSelectedText, c.cursorBack },  // ppFileListSelectedCursor
-		{ c.columnHeader, c.panelBack },         // ppColumnHeader
+		{ c.columnHeader, c.columnHeaderBack },  // ppColumnHeader
 		{ c.statusText, c.panelBack },           // ppStatusText
 		{ c.tabText, c.tabBack },                // ppActiveTab
 		{ c.tabText, c.tabBack },                // ppFilterText
@@ -105,6 +105,10 @@ constexpr size_t applicationEntryCount = firstKeyBarApplicationEntry - 1 + keyBa
 		{ c.separator, c.panelBack },            // ppColumnSeparator
 		{ c.separator, c.rowBandBack },          // ppBandColumnSeparator
 		{ c.cursorSeparator, c.cursorBack },     // ppCursorColumnSeparator
+		{ c.separator, c.columnHeaderBack },     // ppHeaderColumnSeparator
+		{ c.statusValue, c.panelBack },          // ppStatusValue
+		{ c.statusDivider, c.panelBack },        // ppStatusDivider
+		{ c.columnHeader, c.panelBack },         // ppHexOffset
 	};
 
 	// The hint row's entries

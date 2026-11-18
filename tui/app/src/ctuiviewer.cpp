@@ -521,7 +521,7 @@ void CTuiViewerContent::draw()
 		if (const qsizetype row = _topRow + y; row < rowCount())
 		{
 			if (isHex())
-				drawHexRow(line, row, textColor, mapColor(ppColumnHeader), mapColor(ppColumnSeparator), matchColor);
+				drawHexRow(line, row, textColor, mapColor(ppHexOffset), mapColor(ppColumnSeparator), matchColor);
 			else
 				drawTextRow(line, row, textColor, matchColor);
 		}

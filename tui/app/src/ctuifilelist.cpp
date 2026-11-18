@@ -147,11 +147,13 @@ void CTuiColumnHeader::draw()
 	for (const FileListColumn& column : columns)
 	{
 		QString title = columnTitle(column.field);
+		if (appliedColourTheme().parameters.uppercaseColumnHeader)
+			title = title.toUpper();
 		if (column.field == _sortField)
 			title += _sortOrder == Qt::AscendingOrder ? QStringLiteral(" ↑") : QStringLiteral(" ↓");
 		drawInColumn(line, column, title, color);
 	}
-	drawColumnSeparators(line, columns, mapColor(ppColumnSeparator));
+	drawColumnSeparators(line, columns, mapColor(ppHeaderColumnSeparator));
 	writeLine(0, 0, (short)size.x, 1, line);
 }
 

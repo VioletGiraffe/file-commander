@@ -64,7 +64,8 @@ dialog is open.
 - A colour theme's `ThemeParameters` hold one colour per kind of thing on screen. `applicationPaletteFor` pairs them
   into the application palette's entries, so a new palette entry is written once for every theme. View > Theme lists
   the themes and shows the one under the cursor on the whole screen; the choice is the terminal UI's own setting.
-- A theme can put the file list's rows on bands of alternating background, of a height it chooses.
+- A theme can put the file list's rows on bands of alternating background, of a height it chooses. It can also give
+  the column header a background and uppercase titles, and the status line a divider line and a colour for its values.
 
 ## Commands
 
