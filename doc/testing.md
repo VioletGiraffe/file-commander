@@ -40,7 +40,7 @@ offscreen on Windows unless `QT_QPA_PLATFORM` is already set, and on Linux witho
 
 CI drives the same scripts: it builds with `-BuildOnly`/`build`, provisions the RAM disks and second volumes the
 environment-gated tests need, then runs with `-NoBuild`/`nobuild`. Its seeded repeat runs select one suite, so
-each platform's executable path stays in the script.
+each platform's executable path stays in the script. `tui_test` runs in a step of its own.
 
 Without `all`, the slow generated-data cases are excluded; `file-operations/doc/testing.md` lists them.
 

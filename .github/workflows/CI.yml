@@ -531,8 +531,8 @@ jobs:
         # Fail the step on the first suite that exits with a nonzero code (default pwsh behavior only propagates the last command's exit code)
         $PSNativeCommandUseErrorActionPreference = $true
         $ErrorActionPreference = 'Stop'
-        # Every suite, minus the slow generated-data tests that the seeded runs below cover
-        .\scripts\run_tests.bat -NoBuild
+        # Every suite but tui_test, which has its own step, minus the slow generated-data tests that the seeded runs below cover
+        .\scripts\run_tests.bat -NoBuild -Skip tui_test
         $N=20
         For ($i=1; $i -le $N; $i++) {
           Write-Output "Iteration $i/$N"
@@ -540,6 +540,12 @@ jobs:
         }
 
         .\scripts\run_tests.bat -NoBuild -All -Suite foldercomparison_test --std-seed (Get-Random)
+
+    - name: Running terminal UI tests - Windows
+      if: startsWith(matrix.os, 'windows')
+      timeout-minutes: 15
+      shell: cmd
+      run: scripts\run_tests.bat -NoBuild -Suite tui_test
 
     - name: Running tests on exFAT and FAT32 - Windows
       if: startsWith(matrix.os, 'windows')
@@ -585,11 +591,16 @@ jobs:
       timeout-minutes: 20
       run: |
         set -e
-        # Every suite, minus the slow generated-data tests that the seeded runs below cover
-        ./scripts/run_tests.sh nobuild
+        # Every suite but tui_test, which has its own step, minus the slow generated-data tests that the seeded runs below cover
+        ./scripts/run_tests.sh nobuild skip tui_test
         # A seed of the current second needs the sleep to differ between iterations
         for i in `seq 1 20`; do echo "Iteration $i"; ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s); sleep 1; done
         ./scripts/run_tests.sh nobuild all foldercomparison_test --std-seed $(date +%s)
+
+    - name: Running terminal UI tests - Mac
+      if: startsWith(matrix.os, 'macos')
+      timeout-minutes: 15
+      run: ./scripts/run_tests.sh nobuild tui_test
 
     - name: Running tests on exFAT and FAT32 - Mac
       if: startsWith(matrix.os, 'macos')
@@ -635,12 +646,17 @@ jobs:
       timeout-minutes: 20
       run: |
         set -e
-        # Every suite, minus the slow generated-data tests that the seeded runs below cover.
+        # Every suite but tui_test, which has its own step, minus the slow generated-data tests that the seeded runs below cover.
         # The script selects the offscreen platform for the widget tests: this runner has no display server.
-        ./scripts/run_tests.sh nobuild
+        ./scripts/run_tests.sh nobuild skip tui_test
         # A seed of the current second needs the sleep to differ between iterations
         for i in `seq 1 20`; do echo "Iteration $i"; ./scripts/run_tests.sh nobuild all fileoperations_test --std-seed $(date +%s); sleep 1; done
         ./scripts/run_tests.sh nobuild all foldercomparison_test --std-seed $(date +%s)
+
+    - name: Running terminal UI tests - Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      timeout-minutes: 15
+      run: ./scripts/run_tests.sh nobuild tui_test
 
     - name: Running tests on exFAT and FAT32 - Linux
       if: startsWith(matrix.os, 'ubuntu')
