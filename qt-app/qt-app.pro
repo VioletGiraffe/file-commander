@@ -150,8 +150,13 @@ win*{
 
 mac*{
 	ICON = resources/file_commander.icns
+	# qmake's own template for an app, plus NSAppleEventsUsageDescription: the reason macOS shows when Get Info first sends Apple events to Finder
+	QMAKE_INFO_PLIST = resources/Info.plist
 
-	LIBS += -framework AppKit
+	LIBS += -framework AppKit -framework Quartz # Quartz: Quick Look's panel
+
+	HEADERS += src/panel/macshell.h
+	OBJECTIVE_SOURCES += src/panel/macshell.mm
 
 	# One real file per plugin, named like its install name: under any other name, macdeployqt looks for the plugin in /usr/lib
 	QMAKE_POST_LINK = cp -f -p $$OUT_PWD/$$DESTDIR/libplugin_*.1.dylib $$OUT_PWD/$$DESTDIR/$${TARGET}.app/Contents/MacOS/

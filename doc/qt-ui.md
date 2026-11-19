@@ -12,7 +12,7 @@ owners. Filesystem and panel access goes through `CController`.
 | Function key buttons (F3 to F8) | `src/functionkeybar/` |
 | Panel tabs and visible-side state | `src/panel/cpanelwidget.{h,cpp,ui}` |
 | File-list view/model/delegate | `src/panel/filelistwidget/` |
-| Context menu of files, folders and volumes | `src/panel/filecontextmenu.{h,cpp}`: Explorer's on Windows; elsewhere the system's actions the app has no command for. Linux and FreeBSD reach the file manager and UDisks2 over D-Bus: `src/panel/freedesktopshell.{h,cpp}` |
+| Context menu of files, folders and volumes | `src/panel/filecontextmenu.{h,cpp}`: Explorer's on Windows; elsewhere the system's actions the app has no command for. Linux and FreeBSD reach the file manager and UDisks2 over D-Bus: `src/panel/freedesktopshell.{h,cpp}`. macOS: Finder, Share, Quick Look and Eject in `src/panel/macshell.{h,mm}` |
 | Quick view | `src/panel/cpaneldisplaycontroller.{h,cpp}` |
 | Viewer windows (F3) | `src/viewerwindow/` |
 | Blocking shell operations: native delete, clipboard paste, Eject | `file-operations/shelloperations/` |

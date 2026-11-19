@@ -1,7 +1,9 @@
 #include "filecontextmenu.h"
 
 #include "shell/cshell.h"
-#if !defined _WIN32 && !defined __APPLE__
+#ifdef __APPLE__
+#include "macshell.h"
+#elif !defined _WIN32
 #include "freedesktopshell.h"
 #include "shell/xdgapplications.h"
 #endif
@@ -21,6 +23,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QFileInfo>
 #include <QIcon>
 #include <QMenu>
+#include <QPoint>
 #include <QPointer>
 #include <QStringList>
 #include <QWidget>
@@ -78,11 +81,23 @@ static std::vector<OpenWithEntry> openWithEntries(const QStringList& paths, QWid
 }
 #endif
 
-#if !defined _WIN32 && !defined __APPLE__
-// Show in File Manager and Properties, when a file manager provides them.
+#ifndef _WIN32
+// Show in Finder and Get Info on macOS; Show in File Manager and Properties elsewhere, when a file manager provides them.
 // `selectItems`: the file manager selects `targets` in their folder; else it opens `targets`, which must be folders.
 static void addFileManagerActions(QMenu& menu, const QStringList& targets, const bool selectItems, QWidget* parent)
 {
+#ifdef __APPLE__
+	menu.addAction(QCoreApplication::translate("FileContextMenu", "Show in Finder"), [targets, selectItems] {
+		if (selectItems)
+			MacShell::showItemsInFinder(targets);
+		else
+		{
+			for (const QString& folder : targets)
+				MacShell::showFolderInFinder(folder);
+		}
+	});
+	menu.addAction(QCoreApplication::translate("FileContextMenu", "Get Info"), [targets, parent] { MacShell::showInfoInFinder(targets, parent); });
+#else
 	if (!FreedesktopShell::fileManagerAvailable())
 		return;
 
@@ -95,13 +110,31 @@ static void addFileManagerActions(QMenu& menu, const QStringList& targets, const
 	menu.addAction(QCoreApplication::translate("FileContextMenu", "Properties"), [targets, parent] {
 		FreedesktopShell::showPropertiesInFileManager(targets, parent);
 	});
+#endif
+}
+
+static bool canEject(const VolumeInfo& volume)
+{
+	using Kind = VolumeInfo::Kind;
+	const bool removable = volume.kind == Kind::External || volume.kind == Kind::Optical || volume.kind == Kind::DiskImage;
+#ifdef __APPLE__
+	return removable || volume.kind == Kind::Network; // Finder ejects a network volume too: it unmounts it
+#else
+	return removable && !volume.devicePath.isEmpty(); // UDisks manages block devices only
+#endif
 }
 
 // Ejects on the runner's thread; a failure is shown over `parent`, unless it is gone by then
 static void ejectVolume(const VolumeInfo& volume, QWidget* parent, CShellOperationRunner& shellOperations)
 {
-	shellOperations.run([devicePath = volume.devicePath, name = volume.volumeLabel, parent = QPointer{ parent }, &shellOperations] {
-		const auto ejected = FreedesktopShell::ejectBlockDevice(devicePath);
+#ifdef __APPLE__
+	auto eject = [rootPath = volume.rootObjectInfo.fullAbsolutePath()] { return MacShell::ejectVolume(rootPath); };
+#else
+	auto eject = [devicePath = volume.devicePath] { return FreedesktopShell::ejectBlockDevice(devicePath); };
+#endif
+
+	shellOperations.run([eject, name = volume.volumeLabel, parent = QPointer{ parent }, &shellOperations] {
+		const auto ejected = eject();
 		if (ejected)
 			return;
 
@@ -143,29 +176,44 @@ void FileContextMenu::showForItems(const std::vector<CFileSystemObject>& items, 
 	if (items.size() == 1 && items.front().isBundle())
 		menu.addAction(QCoreApplication::translate("FileContextMenu", "Show Package Contents"), [&] { enterFolder(items.front().fullAbsolutePath()); });
 
-#ifndef __APPLE__
-	addFileManagerActions(menu, paths, !itemPaths.isEmpty(), parent);
+	const QPoint menuPosition = QCursor::pos();
+#ifdef __APPLE__
+	// Quick Look and Share open their own window or menu: only once this menu has closed
+	std::function<void()> afterMenu;
+	if (!itemPaths.isEmpty())
+	{
+		menu.addAction(QCoreApplication::translate("FileContextMenu", "Quick Look"), [&] {
+			afterMenu = [&] { MacShell::showQuickLook(itemPaths, parent); };
+		});
+		menu.addAction(QCoreApplication::translate("FileContextMenu", "Share..."), [&] {
+			afterMenu = [&] { MacShell::showShareMenu(itemPaths, parent, menuPosition); };
+		});
+	}
 #endif
 
 	if (!menu.isEmpty())
-		menu.exec(QCursor::pos());
+		menu.addSeparator(); // Hidden when nothing follows it
+	addFileManagerActions(menu, paths, !itemPaths.isEmpty(), parent);
+
+	if (!menu.isEmpty())
+		menu.exec(menuPosition);
+
+#ifdef __APPLE__
+	if (afterMenu)
+		afterMenu();
+#endif
 #endif
 }
 
-void FileContextMenu::showForVolume([[maybe_unused]] const VolumeInfo& volume, QWidget* parent, [[maybe_unused]] CShellOperationRunner& shellOperations)
+void FileContextMenu::showForVolume(const VolumeInfo& volume, QWidget* parent, [[maybe_unused]] CShellOperationRunner& shellOperations)
 {
 #ifdef _WIN32
 	OsShell::openShellContextMenuForObjects({ volume.rootObjectInfo.fullAbsolutePath().toStdWString() }, WidgetUtils::nativeOwnerWinId(parent));
 #else
 	QMenu menu{ parent };
-#ifndef __APPLE__
 	addFileManagerActions(menu, { volume.rootObjectInfo.fullAbsolutePath() }, false, parent);
-
-	// An internal or network volume has no Eject
-	const bool removable = volume.kind == VolumeInfo::Kind::External || volume.kind == VolumeInfo::Kind::Optical || volume.kind == VolumeInfo::Kind::DiskImage;
-	if (removable && !volume.devicePath.isEmpty())
+	if (canEject(volume))
 		menu.addAction(QCoreApplication::translate("FileContextMenu", "Eject"), [&] { ejectVolume(volume, parent, shellOperations); });
-#endif
 
 	if (!menu.isEmpty())
 		menu.exec(QCursor::pos());
