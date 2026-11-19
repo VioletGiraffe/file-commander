@@ -41,6 +41,7 @@ QString sizeText(const std::optional<uint64_t> size)
 CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const CFolderComparison& comparison, CController& controller) :
 	QMainWindow{ nullptr }
 {
+	setAttribute(Qt::WA_DeleteOnClose);
 	assert_and_return_r(comparison.result(), );
 	const FolderComparisonResult& result = *comparison.result();
 

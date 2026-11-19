@@ -16,7 +16,7 @@
 #include "programseditor/cuserprogramsdialog.h"
 #include "programseditor/userprogramsui.h"
 #include "tools/cbatchrenamedialog.h"
-#include "tools/CFileStatsWindow.h"
+#include "tools/cfilestatswindow.h"
 #include "tools/cfoldercomparisonwindow.h"
 #include "viewerwindow/cviewerwindow.h"
 #include "settings/csettingspageedit.h"
@@ -1411,7 +1411,6 @@ void CMainWindow::compareFolders()
 		return;
 
 	auto* comparisonWindow = new CFolderComparisonWindow(this, comparison, *_controller);
-	comparisonWindow->setAttribute(Qt::WA_DeleteOnClose);
 	WidgetUtils::centerWidgetOnScreen(comparisonWindow, 0.7);
 	comparisonWindow->show();
 }

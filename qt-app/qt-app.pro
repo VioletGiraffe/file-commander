@@ -66,8 +66,8 @@ SOURCES += \
 	src/desktopentry/desktopentry.cpp \
 	src/panel/cpaneldisplaycontroller.cpp \
 	src/viewerwindow/cviewerwindow.cpp \
-	src/tools/CFileStatsWindow.cpp \
 	src/tools/cbatchrenamedialog.cpp \
+	src/tools/cfilestatswindow.cpp \
 	src/tools/cfoldercomparisonwindow.cpp \
 	src/themes/stylesheet.cpp \
 	src/themes/theme.cpp
@@ -105,8 +105,8 @@ HEADERS += \
 	src/programseditor/userprogramsui.h \
 	src/panel/filelistwidget/cfilelistfilterdialog.h \
 	src/filessearchdialog/cfilessearchwindow.h \
-	src/tools/CFileStatsWindow.h \
 	src/tools/cbatchrenamedialog.h \
+	src/tools/cfilestatswindow.h \
 	src/tools/cfoldercomparisonwindow.h \
 	src/tools/csortbydatatreeitem.h \
 	src/version.h \

@@ -1,4 +1,4 @@
-#include "CFileStatsWindow.h"
+#include "cfilestatswindow.h"
 
 #include "csortbydatatreeitem.h"
 
@@ -43,7 +43,7 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, 
 	setCentralWidget(new QWidget);
 	auto* layout = new QVBoxLayout(centralWidget());
 
-	layout->addWidget(new QLabel{ tr("Statistics for the selected items(including subitems):") });
+	layout->addWidget(new QLabel{ tr("Statistics for the selected items (including subitems):") });
 
 	_summaryLabel = new QLabel;
 	layout->addWidget(_summaryLabel);
