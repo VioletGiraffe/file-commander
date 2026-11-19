@@ -18,6 +18,7 @@
 DISABLE_COMPILER_WARNINGS
 #include <QCoreApplication>
 #include <QCursor>
+#include <QDesktopServices>
 #include <QDir>
 #include <QFileIconProvider>
 #include <QFileInfo>
@@ -26,6 +27,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QPoint>
 #include <QPointer>
 #include <QStringList>
+#include <QUrl>
 #include <QWidget>
 RESTORE_COMPILER_WARNINGS
 
@@ -82,8 +84,8 @@ static std::vector<OpenWithEntry> openWithEntries(const QStringList& paths, QWid
 #endif
 
 #ifndef _WIN32
-// Show in Finder and Get Info on macOS; Show in File Manager and Properties elsewhere, when a file manager provides them.
-// `selectItems`: the file manager selects `targets` in their folder; else it opens `targets`, which must be folders.
+// Show in Finder and Get Info on macOS; Show in File Manager and Properties elsewhere.
+// `selectItems`: the file manager selects `targets`, all in one folder; else it opens `targets`, which must be folders.
 static void addFileManagerActions(QMenu& menu, const QStringList& targets, const bool selectItems, QWidget* parent)
 {
 #ifdef __APPLE__
@@ -99,7 +101,15 @@ static void addFileManagerActions(QMenu& menu, const QStringList& targets, const
 	menu.addAction(QCoreApplication::translate("FileContextMenu", "Get Info"), [targets, parent] { MacShell::showInfoInFinder(targets, parent); });
 #else
 	if (!FreedesktopShell::fileManagerAvailable())
+	{
+		// The folder opens in the desktop's default application for folders, with nothing selected. Properties has no such fallback.
+		const QString folder = selectItems ? QFileInfo{ QDir::cleanPath(targets.front()) }.absolutePath() : targets.front();
+		menu.addAction(QCoreApplication::translate("FileContextMenu", "Show in File Manager"), [folder, parent] {
+			if (!QDesktopServices::openUrl(QUrl::fromLocalFile(folder))) // QDesktopServices reports no reason
+				showUserMessage(parent, { MessageSeverity::Error, QCoreApplication::translate("FileContextMenu", "Failed to show the folder in the file manager"), folder });
+		});
 		return;
+	}
 
 	menu.addAction(QCoreApplication::translate("FileContextMenu", "Show in File Manager"), [targets, selectItems, parent] {
 		if (selectItems)
