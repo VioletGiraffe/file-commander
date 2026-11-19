@@ -9,6 +9,10 @@
 #include "qtcore_helpers/qstring_helpers.hpp"
 
 
+DISABLE_COMPILER_WARNINGS
+#include <QFileInfo>
+RESTORE_COMPILER_WARNINGS
+
 #include <algorithm>
 #include <chrono>
 #include <initializer_list>
@@ -101,6 +105,64 @@ TEST_CASE("CFileComparator: destroying it while it compares returns", "[filecomp
 	}
 
 	SUCCEED("The destructor cancelled the comparison and joined it");
+}
+
+TEST_CASE("filesToCompare: the other side's current file, or else the file of the same name in its folder", "[filecomparator]")
+{
+	TempTree tree;
+	tree.makeDir(QSL("left"));
+	tree.makeDir(QSL("right"));
+	const QString current = tree.makeFile(QSL("left/a.txt"), patternedData(10));
+	const QString sameName = tree.makeFile(QSL("right/a.txt"), patternedData(10));
+	const QString otherFile = tree.makeFile(QSL("right/b.txt"), patternedData(10));
+	const QString otherFolder = tree.makeDir(QSL("right/sub"));
+
+	SECTION("The other side's current item is a file")
+	{
+		const auto files = filesToCompare(CFileSystemObject{ current }, CFileSystemObject{ otherFile }, tree.path(QSL("right")));
+		REQUIRE(files.has_value());
+		CHECK(files->pathA == CFileSystemObject{ current }.fullAbsolutePath());
+		CHECK(files->pathB == CFileSystemObject{ otherFile }.fullAbsolutePath());
+	}
+
+	SECTION("The other side's current item is a folder")
+	{
+		const auto files = filesToCompare(CFileSystemObject{ current }, CFileSystemObject{ otherFolder }, tree.path(QSL("right")));
+		REQUIRE(files.has_value());
+		CHECK(QFileInfo{ files->pathB }.canonicalFilePath() == QFileInfo{ sameName }.canonicalFilePath());
+	}
+}
+
+TEST_CASE("filesToCompare: a message instead when the current item is not a file, a file is missing, or the sizes differ", "[filecomparator]")
+{
+	TempTree tree;
+	tree.makeDir(QSL("left"));
+	tree.makeDir(QSL("right"));
+	const QString current = tree.makeFile(QSL("left/a.txt"), patternedData(10));
+	const QString longer = tree.makeFile(QSL("right/longer.txt"), patternedData(11));
+	const QString folder = tree.makeDir(QSL("left/sub"));
+
+	const auto messageFor = [&tree](const QString& currentPath, const CFileSystemObject& otherCurrent) {
+		const auto files = filesToCompare(CFileSystemObject{ currentPath }, otherCurrent, tree.path(QSL("right")));
+		REQUIRE_FALSE(files.has_value());
+		CHECK(files.error().severity == MessageSeverity::Warning);
+		return files.error().text;
+	};
+
+	CHECK(messageFor(folder, CFileSystemObject{ longer }).startsWith(QSL("The selected item is not a file:")));
+	// The other side's current item is not a file, and its folder has no a.txt
+	CHECK(messageFor(current, CFileSystemObject{ tree.path(QSL("right")) }).contains(QSL("doesn't exist")));
+	CHECK(messageFor(current, CFileSystemObject{ longer }).startsWith(QSL("Files have different sizes:")));
+}
+
+TEST_CASE("fileComparisonResultMessage: identical files are information, different ones a warning, unreadable ones an error", "[filecomparator]")
+{
+	const FilesToCompare files{ .pathA = QSL("/a"), .pathB = QSL("/b") };
+	CHECK(fileComparisonResultMessage(ContentComparisonResult::Equal, files).severity == MessageSeverity::Information);
+	CHECK(fileComparisonResultMessage(ContentComparisonResult::Equal, files).text.contains(QSL("IDENTICAL")));
+	CHECK(fileComparisonResultMessage(ContentComparisonResult::Different, files).severity == MessageSeverity::Warning);
+	CHECK(fileComparisonResultMessage(ContentComparisonResult::Different, files).text.contains(QSL("DIFFERENT")));
+	CHECK(fileComparisonResultMessage(ContentComparisonResult::Error, files).severity == MessageSeverity::Error);
 }
 
 TEST_CASE("CFolderComparison: identical folders have no differences, and the summary says so", "[filecomparator]")

@@ -11,6 +11,7 @@
 #include "ctuiviewer.h"
 
 #include "ccontroller.h"
+#include "filecomparator/cfilecomparator.h"
 #include "filelist/filetimetext.h"
 #include "filesystemhelperfunctions.h"
 #include "filesystemhelpers/filestatistics.h"
@@ -467,6 +468,7 @@ bool CTuiPanel::runCommand(const ushort command)
 	case cmGoToFolder: goToTypedPath(); break;
 	case cmGoToFileLocation: _controller.goToItem(_side, _controller.panel(_side).currentItem()); break;
 	case cmCalculateOccupiedSpace: showOccupiedSpace(); break;
+	case cmCompareFiles: compareFileWithOtherSide(); break;
 	case cmShowFolderHistory: chooseRecentFolder(); break;
 	case cmShowFavorites: showFavorites(); break;
 	case cmShowAllFilesBelow: _controller.showAllFilesFromCurrentFolderAndBelow(_side); break;
@@ -809,6 +811,24 @@ void CTuiPanel::showOccupiedSpace()
 
 	if (const std::optional<size_t> chosen = chooseFromList(QStringLiteral("Statistics"), rows, 0, summary, QStringLiteral("Go to"), QStringLiteral("Close")))
 		_controller.goToItem(_side, stats.largestFiles[*chosen]);
+}
+
+void CTuiPanel::compareFileWithOtherSide()
+{
+	const Panel otherSide = CController::otherPanelPosition(_side);
+	const auto files = filesToCompare(_controller.currentItem(_side), _controller.currentItem(otherSide), _controller.currentFolderPath(otherSide));
+	if (!files)
+	{
+		showUserMessage(files.error());
+		return;
+	}
+
+	CFileComparator comparator{ files->pathA, files->pathB };
+	const bool finished = waitWithProgressDialog(QStringLiteral("Comparing files"), [&comparator] { return comparator.finished(); }, [&comparator](const int width) {
+		return QStringList{ QStringLiteral("Comparing the selected files..."), progressBar(comparator.percent(), width) };
+	});
+	if (finished && comparator.result())
+		showUserMessage(fileComparisonResultMessage(*comparator.result(), *files));
 }
 
 void CTuiPanel::chooseVolume()

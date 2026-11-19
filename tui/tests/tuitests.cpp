@@ -967,6 +967,33 @@ TEST_CASE("Calculate each folder's size shows every folder's size in the Size co
 	}
 }
 
+TEST_CASE("Compare files by contents compares the current file with the file of its name on the other side, and says whether they are identical", "[tui]")
+{
+	const Sandbox sandbox;
+	sandbox.createFile(QStringLiteral("work/a.txt"), QByteArray("same"));
+	sandbox.createFile(QStringLiteral("other/a.txt"), QByteArray("same"));
+	auto session = startFcterm(sandbox);
+	session->send(Keys::Tab);
+	// The cursor on .. or on a.txt: the comparison takes other/a.txt either way
+	goTo(*session, sandbox.path(QStringLiteral("other")), QStringLiteral("a.txt"), Side::Right);
+	session->send(Keys::Tab);
+	goTo(*session, sandbox.work({}), QStringLiteral("a.txt"));
+	moveCursorTo(*session, QStringLiteral("a.txt"));
+
+	const auto compare = [&session](const QString& verdict) {
+		session->send(Keys::AltF);
+		requireText(*session, QStringLiteral("Compare files by contents"));
+		session->send("t"sv);
+		requireText(*session, verdict);
+		session->send(Keys::Enter);
+		requireScreen(*session, [&verdict](const CTerminalScreen& screen) { return !screen.contains(verdict); }, QStringLiteral("the message closed"));
+	};
+
+	compare(QStringLiteral("IDENTICAL"));
+	sandbox.createFile(QStringLiteral("other/a.txt"), QByteArray("diff")); // The same size
+	compare(QStringLiteral("DIFFERENT"));
+}
+
 TEST_CASE("Compare folders lists the differences, goes to one in the panel holding it, lists them again from a folder below, and Refresh compares again", "[tui]")
 {
 	const Sandbox sandbox;

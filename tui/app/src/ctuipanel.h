@@ -26,7 +26,8 @@ inline constexpr ushort cmCopyItems = 1001, cmMoveItems = 1002, cmDeleteItems = 
 	cmCalculateOccupiedSpace = 1039;
 // cmActivateTab1 + n activates the tab at position n, for n up to 8
 inline constexpr ushort cmActivateTab1 = 1040, tabPositionCommandCount = 9;
-inline constexpr ushort cmShowFolderHistory = 1049, cmShowFavorites = 1050, cmShowAllFilesBelow = 1051, cmJumpToFirstFile = 1052, cmCalculateEachFolderSize = 1053;
+inline constexpr ushort cmShowFolderHistory = 1049, cmShowFavorites = 1050, cmShowAllFilesBelow = 1051, cmJumpToFirstFile = 1052, cmCalculateEachFolderSize = 1053,
+	cmCompareFiles = 1054;
 
 // The side's half of the desktop: the left panel gets the narrower half of an odd width
 [[nodiscard]] TRect panelBounds(TPoint desktopSize, Panel side);
@@ -79,6 +80,8 @@ private:
 	void showFavorites();
 	// Shows the statistics of the selected items, or else of the current one, and goes to the largest file chosen
 	void showOccupiedSpace();
+	// The current file against the other side's: see filesToCompare()
+	void compareFileWithOtherSide();
 	// Empty for none and for [..]
 	[[nodiscard]] QString currentItemName() const;
 	// The same field again reverses the order

@@ -1345,54 +1345,20 @@ void CMainWindow::compareFiles()
 	if (!_currentFileList)
 		return;
 
-	const CFileSystemObject currentItem = _controller->currentItem(_currentFileList->panelPosition());
-	if (!currentItem.isFile())
-	{
-		QMessageBox::warning(this, tr("File comparison"), tr("The selected item is not a file:\n") + currentItem.fullAbsolutePath());
-		return;
-	}
-
 	const Panel otherPanel = _otherFileList->panelPosition();
-	const CFileSystemObject otherItem = _controller->currentItem(otherPanel);
-	const QString filePathA = currentItem.fullAbsolutePath();
-	const QString filePathB = otherItem.isFile() ? otherItem.fullAbsolutePath() : _controller->currentFolderPath(otherPanel) + "/" + currentItem.fullName().toString();
-	const QFileInfo infoA{ filePathA }, infoB{ filePathB };
-
-	for (const QFileInfo& info : { infoA, infoB })
+	const auto files = filesToCompare(_controller->currentItem(_currentFileList->panelPosition()), _controller->currentItem(otherPanel),
+		_controller->currentFolderPath(otherPanel));
+	if (!files)
 	{
-		if (!info.exists())
-		{
-			QMessageBox::warning(this, tr("File comparison"), tr("The file\n%1\nis selected for comparison, but doesn't exist.").arg(info.filePath()));
-			return;
-		}
-	}
-
-	if (infoA.size() != infoB.size())
-	{
-		QMessageBox::warning(this, tr("File comparison"), tr("Files have different sizes:\n%1: %2\n%3: %4").arg(filePathA).arg(infoA.size()).arg(filePathB).arg(infoB.size()));
+		showUserMessage(this, files.error());
 		return;
 	}
 
-	CFileComparator comparator{ filePathA, filePathB };
+	CFileComparator comparator{ files->pathA, files->pathB };
 	const bool finished = waitWithProgressDialog(this, tr("Comparing files"), tr("Comparing the selected files..."), [&comparator] { return comparator.finished(); },
 		[&comparator](CSimpleProgressDialog& dialog) { dialog.setValue(comparator.percent()); });
-	if (!finished || !comparator.result())
-		return;
-
-	switch (*comparator.result())
-	{
-	case ContentComparisonResult::Equal:
-		QMessageBox::information(this, tr("Files are identical"), tr("The file\n%1\n\nis IDENTICAL to\n\n%2.").arg(filePathA, filePathB));
-		break;
-	case ContentComparisonResult::Different:
-		QMessageBox::warning(this, tr("Files differ"), tr("The file\n%1\n\nis DIFFERENT from\n\n%2.").arg(filePathA, filePathB));
-		break;
-	case ContentComparisonResult::Error:
-		QMessageBox::critical(this, tr("Comparison failed"), tr("Failed to read the files:\n%1\n\n%2").arg(filePathA, filePathB));
-		break;
-	case ContentComparisonResult::Aborted: // CFileComparator reports none: an aborted comparison has no result
-		break;
-	}
+	if (finished && comparator.result())
+		showUserMessage(this, fileComparisonResultMessage(*comparator.result(), *files));
 }
 
 void CMainWindow::compareFolders()

@@ -486,6 +486,7 @@ TMenuBar* CTuiApplication::initMenuBar(TRect r)
 			*new TMenuItem("Fi~n~d files...", cmFindFiles, kbAltF7, hcNoContext, "Alt-F7") +
 			*new TMenuItem("Calculate ~o~ccupied space", cmCalculateOccupiedSpace, kbCtrlL, hcNoContext, "Ctrl-L") +
 			*new TMenuItem("Calculate each folder's si~z~e", cmCalculateEachFolderSize, TKey(kbCtrlL, kbShift), hcNoContext, "Ctrl-Shift-L") +
+			*new TMenuItem("Compare files by con~t~ents", cmCompareFiles, kbNoKey) +
 			*new TMenuItem("Comp~a~re folders...", cmCompareFolders, kbNoKey) +
 			*new TMenuItem("Copy pat~h~s", cmCopyPaths, kbAltC, hcNoContext, "Alt-C") +
 			*new TMenuItem("Open ~s~hell here", cmOpenShell, kbCtrlO, hcNoContext, "Ctrl-O") +

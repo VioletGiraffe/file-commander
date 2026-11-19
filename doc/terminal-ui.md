@@ -84,6 +84,8 @@ dialog is open.
   the dialog, so its last results show again; closing it stops a running search.
 - Favorites (Ctrl+D) and the folder history (Alt+F12) are the GUI's: the core's `CFavoriteLocations` and
   `CController::recentFolders`.
+- File comparison is the GUI's: the core's `filesToCompare` and `fileComparisonResultMessage` pick the files and word
+  the messages, and `CFileComparator` compares them behind `waitWithProgressDialog`.
 - Folder comparison runs the core's `CFolderComparison` on the two panels' folders. The application keeps the last
   result, and the command lists it again while each panel shows its compared folder or one below it.
 - Occupied space (Ctrl+L) runs the core's `CFileStatisticsScan`, behind the progress dialog that folder comparison

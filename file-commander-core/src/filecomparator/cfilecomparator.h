@@ -1,7 +1,11 @@
 #pragma once
 
+#include "cfilesystemobject.h"
+
+
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
+#include "fileoperations/usermessage.h"
 #include "foldercomparison/filecontentcomparison.h"
 #include "threading/cbackgroundtask.h"
 
@@ -11,7 +15,21 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <atomic>
+#include <expected>
 #include <optional>
+
+// The two files "Compare files by contents" compares
+struct FilesToCompare
+{
+	QString pathA, pathB;
+};
+
+// current, and otherCurrent if it is a file, otherwise the file of current's name in otherFolder.
+// A message instead when they cannot be compared: current is not a file, either file is missing, or their sizes differ.
+[[nodiscard]] std::expected<FilesToCompare, UserMessage> filesToCompare(const CFileSystemObject& current, const CFileSystemObject& otherCurrent,
+	const QString& otherFolder);
+// Requires a result other than Aborted
+[[nodiscard]] UserMessage fileComparisonResultMessage(ContentComparisonResult result, const FilesToCompare& files);
 
 // Compares two files' contents on a CBackgroundTask, which the constructor starts, for a UI that polls it.
 // Progress is a percentage: for a single file the denominator is unambiguously its size. Callers comparing many files
