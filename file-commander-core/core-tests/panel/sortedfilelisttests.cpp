@@ -241,10 +241,10 @@ TEST_CASE("Sorted file list - random updates, filters and sortings are notified 
 TEST_CASE("Sorted file list - updateRows() resets past MaxChangesForUpdate changed rows", "[sortedfilelist]")
 {
 	const auto items = [](size_t count) {
-		std::vector<CFileSystemObject> items;
+		std::vector<CFileSystemObject> result;
 		for (size_t i = 0; i < count; ++i)
-			items.push_back(makeItem(File, QString::number(i), "txt"));
-		return items;
+			result.push_back(makeItem(File, QString::number(i), "txt"));
+		return result;
 	};
 
 	ObservedList o;
