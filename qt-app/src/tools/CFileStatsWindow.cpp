@@ -3,12 +3,13 @@
 #include "csortbydatatreeitem.h"
 
 #include "ccontroller.h"
-#include "filesystemhelpers/filestatistics.h"
+#include "filesystemhelperfunctions.h"
 
 
 // Submodule includes
 #include "qtcore_helpers/displayformatting.hpp"
 #include "qtcore_helpers/qdatetime_helpers.hpp"
+#include "widgets/clabelelided.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -19,9 +20,12 @@ DISABLE_COMPILER_WARNINGS
 #include <QLabel>
 #include <QPushButton>
 #include <QShortcut>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
+
+#include <utility>
 
 namespace columns {
 	enum Columns {
@@ -29,21 +33,23 @@ namespace columns {
 	};
 }
 
-CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats, CController& controller, uint64_t elapsedMs) :
-	QMainWindow{ nullptr }
+CFileStatsWindow::CFileStatsWindow(QWidget* parent, std::vector<QString> paths, CController& controller) :
+	QMainWindow{ nullptr },
+	_scan{ std::move(paths) }
 {
+	setAttribute(Qt::WA_DeleteOnClose);
 	setWindowTitle(tr("Statistics"));
-
-	const QString statsText = tr("Files: %1\nFolders: %2\nOccupied space: %3\n%4").
-							  arg(stats.files).arg(stats.folders).arg(fileSizeToString(stats.occupiedSpace), fileSizeToString(stats.occupiedSpace, { .maxUnit = 'B', .thousandsSeparator = " " }));
 
 	setCentralWidget(new QWidget);
 	auto* layout = new QVBoxLayout(centralWidget());
 
 	layout->addWidget(new QLabel{ tr("Statistics for the selected items(including subitems):") });
-	layout->addWidget(new QLabel{ statsText });
 
-	layout->addWidget(new QLabel{ tr("Largest files (%1):").arg(stats.largestFiles.size()) });
+	_summaryLabel = new QLabel;
+	layout->addWidget(_summaryLabel);
+
+	_largestFilesLabel = new QLabel;
+	layout->addWidget(_largestFilesLabel);
 
 	_list = new QTreeWidget;
 	layout->addWidget(_list);
@@ -53,9 +59,8 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats
 	layout->setAlignment(btnClose, Qt::AlignRight);
 	QObject::connect(btnClose, &QPushButton::clicked, this, &QMainWindow::close);
 
-	const QString elapsedText = tr("Scanned in %1 s").arg(elapsedMs * 1e-3f, 0, 'f', 1);
-
-	_statusLabel = new QLabel(elapsedText, this);
+	_statusLabel = new CLabelElided{ tr("Scanning...") };
+	_statusLabel->setPreferredWidthFollowsText(false); // The scanned folder's path must not widen the window
 	_statusLabel->setStyleSheet("color: palette(placeholder-text);");
 	layout->addWidget(_statusLabel);
 
@@ -75,9 +80,38 @@ CFileStatsWindow::CFileStatsWindow(QWidget* parent,  const FileStatistics& stats
 		parent->activateWindow();
 	});
 
-	fillFileList(stats);
-
 	new QShortcut(QKeySequence{ "Esc" }, this, this, &QMainWindow::close);
+
+	_progressTimer = new QTimer{ this };
+	connect(_progressTimer, &QTimer::timeout, this, &CFileStatsWindow::showScanProgress);
+	_progressTimer->start(100);
+}
+
+void CFileStatsWindow::showScanProgress()
+{
+	if (!_scan.finished())
+	{
+		if (const QString folder = _scan.currentFolder(); !folder.isEmpty())
+			_statusLabel->setText(tr("Scanning %1...").arg(toNativeSeparators(folder)));
+		return;
+	}
+
+	_progressTimer->stop();
+	if (const auto& result = _scan.result())
+		showResult(*result);
+	else
+		_statusLabel->setText(tr("The scan failed"));
+}
+
+void CFileStatsWindow::showResult(const CFileStatisticsScan::Result& result)
+{
+	const FileStatistics& stats = result.stats;
+	_summaryLabel->setText(tr("Files: %1\nFolders: %2\nOccupied space: %3\n%4").arg(stats.files).arg(stats.folders)
+		.arg(fileSizeToString(stats.occupiedSpace), fileSizeToString(stats.occupiedSpace, { .maxUnit = 'B', .thousandsSeparator = " " })));
+	_largestFilesLabel->setText(tr("Largest files (%1):").arg(stats.largestFiles.size()));
+	_statusLabel->setText(tr("Scanned in %1 s").arg(result.elapsedMs * 1e-3f, 0, 'f', 1));
+
+	fillFileList(stats);
 }
 
 void CFileStatsWindow::fillFileList(const FileStatistics& stats)

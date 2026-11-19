@@ -1,10 +1,5 @@
 #include "cfoldercomparison.h"
 
-// Submodule includes
-#include "assert/advanced_assert.h"
-#include "utility/on_scope_exit.hpp"
-
-
 DISABLE_COMPILER_WARNINGS
 #include <QDir>
 #include <QObject>
@@ -16,15 +11,13 @@ CFolderComparison::CFolderComparison(QString leftRoot, QString rightRoot) :
 	_leftRoot{ std::move(leftRoot) },
 	_rightRoot{ std::move(rightRoot) }
 {
-	_thread.start([this](const std::atomic<bool>& cancelled) {
-		// Also on a throw, which the thread only logs: the UI waits for this
-		EXEC_ON_SCOPE_EXIT([this] { _finished = true; });
-
+	_task.start([this](const std::atomic<bool>& cancelled) -> std::optional<FolderComparisonResult> {
 		// Folded pairing: the two panels routinely sit on filesystems that disagree on case or Unicode normalization
 		FolderComparisonResult result = compareFolders(_leftRoot, _rightRoot, PairingMode::FoldCaseAndNormalization, cancelled,
 			[this](const int percent) { _percent = percent; });
-		if (!result.aborted)
-			_result = std::move(result);
+		if (result.aborted)
+			return std::nullopt;
+		return result;
 	});
 }
 
@@ -32,26 +25,6 @@ std::optional<int> CFolderComparison::percent() const noexcept
 {
 	const int percent = _percent;
 	return percent >= 0 ? std::optional<int>{ percent } : std::nullopt;
-}
-
-bool CFolderComparison::finished()
-{
-	if (!_finished)
-		return false;
-
-	_thread.join();
-	return true;
-}
-
-void CFolderComparison::cancel() noexcept
-{
-	_thread.requestCancellation();
-}
-
-const std::optional<FolderComparisonResult>& CFolderComparison::result() const noexcept
-{
-	assert_r(_finished);
-	return _result;
 }
 
 CFolderComparison::EntryLocation CFolderComparison::locationOf(const FolderComparisonEntry& entry) const

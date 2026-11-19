@@ -5,6 +5,7 @@
 
 // Submodule includes
 #include "directoryscan/thinioqstring.h"
+#include "timing/ctimeelapsed.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -54,7 +55,8 @@ struct EntryIdentityHash
 // subdirectories back onto it, so the fan-out isn't limited to the root's immediate children. Each thread
 // accumulates into its own FileStatistics with no locking on the hot path - the caller merges the per-thread
 // results once every thread has finished (see calculateStatsFor).
-std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, size_t numThreads, const std::atomic_bool& abort)
+std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, size_t numThreads, const std::atomic_bool& abort,
+	const std::function<void(const QString& folder)>& onScanningFolder)
 {
 	std::vector<QString> dirsToScan;
 	FileStatistics rootStats; // stats for the root entries themselves (passed directly in rootPaths, not discovered by scanning)
@@ -109,6 +111,9 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 					dirsToScan.pop_back();
 				}
 
+				if (onScanningFolder)
+					onScanningFolder(dir);
+
 				std::vector<QString> newDirs;
 				if (const auto entries = listDirectoryWithDetails(dir))
 				{
@@ -154,12 +159,13 @@ std::vector<FileStatistics> scanParallel(const std::vector<QString>& rootPaths, 
 
 }
 
-FileStatistics calculateStatsFor(const std::vector<QString>& paths, const std::atomic_bool& abort, size_t numThreads)
+FileStatistics calculateStatsFor(const std::vector<QString>& paths, const std::atomic_bool& abort,
+	const std::function<void(const QString& folder)>& onScanningFolder, size_t numThreads)
 {
 	if (numThreads == 0)
 		numThreads = qBound(1u, std::thread::hardware_concurrency(), 5u);
 
-	const auto partials = scanParallel(paths, numThreads, abort);
+	const auto partials = scanParallel(paths, numThreads, abort, onScanningFolder);
 
 	// Final aggregation happens here, on the calling thread, only after every worker thread above has finished.
 	FileStatistics merged;
@@ -180,4 +186,25 @@ FileStatistics calculateStatsFor(const std::vector<QString>& paths, const std::a
 		merged.largestFiles.resize(MaxLargeFiles);
 
 	return merged;
+}
+
+CFileStatisticsScan::CFileStatisticsScan(std::vector<QString> paths)
+{
+	_task.start([this, paths{ std::move(paths) }](const std::atomic<bool>& cancelled) -> std::optional<Result> {
+		const CTimeElapsed timer{ true };
+		FileStatistics stats = calculateStatsFor(paths, cancelled, [this](const QString& folder) {
+			std::lock_guard locker{ _currentFolderMutex };
+			_currentFolder = folder;
+		});
+
+		if (cancelled)
+			return std::nullopt;
+		return Result{ .stats = std::move(stats), .elapsedMs = timer.elapsed() };
+	});
+}
+
+QString CFileStatisticsScan::currentFolder() const
+{
+	std::lock_guard locker{ _currentFolderMutex };
+	return _currentFolder;
 }

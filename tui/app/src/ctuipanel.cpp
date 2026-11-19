@@ -35,9 +35,9 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
-#include <chrono>
 #include <functional>
 #include <optional>
+#include <utility>
 #include <vector>
 
 // Edits the panel's name filter
@@ -759,9 +759,17 @@ void CTuiPanel::showOccupiedSpace()
 	for (const CFileSystemObject& item : _controller.panel(_side).selectedItemsOrCurrentItem())
 		paths.push_back(item.fullAbsolutePath());
 
-	const auto start = std::chrono::steady_clock::now();
-	const FileStatistics stats = calculateStatsFor(paths);
-	const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+	CFileStatisticsScan scan{ std::move(paths) };
+	const bool finished = waitWithProgressDialog(QStringLiteral("Statistics"), [&scan] { return scan.finished(); }, [&scan](const int width) {
+		return QStringList{ QStringLiteral("Scanning:"), elidedInTheMiddle(toNativeSeparators(scan.currentFolder()), width) };
+	});
+
+	// The destructor cancels an unfinished scan
+	if (!finished || !scan.result())
+		return;
+
+	const CFileStatisticsScan::Result& result = *scan.result();
+	const FileStatistics& stats = result.stats;
 	if (stats.empty())
 		return;
 
@@ -770,7 +778,7 @@ void CTuiPanel::showOccupiedSpace()
 		QStringLiteral("Files: %1").arg(stats.files),
 		QStringLiteral("Folders: %1").arg(stats.folders),
 		QStringLiteral("Occupied space: %1 (%2 bytes)").arg(locale.formattedDataSize((qint64)stats.occupiedSpace), locale.toString((qulonglong)stats.occupiedSpace)),
-		QStringLiteral("Scanned in %1 s").arg(elapsed.count(), 0, 'f', 1),
+		QStringLiteral("Scanned in %1 s").arg((double)result.elapsedMs * 1e-3, 0, 'f', 1),
 		{},
 		QStringLiteral("Largest files (%1):").arg(stats.largestFiles.size()),
 	};

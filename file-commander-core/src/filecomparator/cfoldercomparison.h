@@ -5,7 +5,7 @@
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "foldercomparison/foldercomparison.h"
-#include "threading/cinterruptablethread.h"
+#include "threading/cbackgroundtask.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -15,7 +15,7 @@ RESTORE_COMPILER_WARNINGS
 #include <atomic>
 #include <optional>
 
-// Compares two folders on a worker thread, which the constructor starts, for a UI that polls it. Destruction cancels and joins.
+// Compares two folders on a CBackgroundTask, which the constructor starts, for a UI that polls it
 class CFolderComparison
 {
 public:
@@ -33,22 +33,18 @@ public:
 
 	// Of the file contents compared; nullopt while the folders are being scanned, which reports no progress
 	[[nodiscard]] std::optional<int> percent() const noexcept;
-	// Joins the worker once it has finished
-	[[nodiscard]] bool finished();
-	void cancel() noexcept;
+	[[nodiscard]] bool finished() { return _task.finished(); }
+	void cancel() noexcept { _task.cancel(); }
+	[[nodiscard]] const std::optional<FolderComparisonResult>& result() const noexcept { return _task.result(); }
 
-	// Requires finished(). Empty if cancelled.
-	[[nodiscard]] const std::optional<FolderComparisonResult>& result() const noexcept;
 	// The side that holds the entry: the right one for an entry only it has
 	[[nodiscard]] EntryLocation locationOf(const FolderComparisonEntry& entry) const;
 
 private:
 	const QString _leftRoot, _rightRoot;
-	std::optional<FolderComparisonResult> _result; // Written by the worker before it sets _finished
 	std::atomic<int> _percent{ -1 };
-	std::atomic<bool> _finished{ false };
-	// Last: destroyed first, joining the worker before the fields it writes are gone
-	CInterruptableThread _thread{ "Folder comparison" };
+	// Last: destroyed first, joining the comparison before the fields it reads and writes are gone
+	CBackgroundTask<FolderComparisonResult> _task{ "Folder comparison" };
 };
 
 [[nodiscard]] QString folderComparisonStatusText(EntryDifference status);

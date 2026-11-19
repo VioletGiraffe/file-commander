@@ -64,8 +64,8 @@ Keep comments terse, and challenge whether the code can carry the meaning instea
 Any change touching threading or concurrency carries a mandatory dedicated review pass, separate from
 reading the diff. The rule, what the pass checks, and why it pays for itself: [threading.md](threading.md).
 
-Use `CInterruptableThread` for owned cancellable threads. Do not use `std::jthread`; it is unavailable in the
-supported macOS toolchain.
+Use `CInterruptableThread` for owned cancellable threads, and `CBackgroundTask` for one cancellable run whose result
+its owner polls. Do not use `std::jthread`; it is unavailable in the supported macOS toolchain.
 
 ## Tests
 

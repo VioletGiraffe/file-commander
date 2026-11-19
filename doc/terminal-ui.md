@@ -86,8 +86,8 @@ dialog is open.
   `CController::recentFolders`.
 - Folder comparison runs the core's `CFolderComparison` on the two panels' folders. The application keeps the last
   result, and the command lists it again while each panel shows its compared folder or one below it.
-- Occupied space (Ctrl+L) runs the core's `calculateStatsFor` on the UI thread, as the GUI does: the screen stays as it
-  was until the scan ends.
+- Occupied space (Ctrl+L) runs the core's `CFileStatisticsScan`, behind the progress dialog that folder comparison
+  also uses (`waitWithProgressDialog`).
 - Batch rename (Shift+F2: the GUI's Ctrl+M is Enter on many terminals, see Terminal input) renders the core's
   `CBatchRenameSession`. Turbo Vision reports no edit, so the dialog compares the rules after every event. The renaming
   runs on the UI thread, which reads only Esc meanwhile.

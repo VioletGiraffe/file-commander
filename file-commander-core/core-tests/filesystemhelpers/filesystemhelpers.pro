@@ -30,4 +30,5 @@ include(../../core.pri)
 
 SOURCES += \
 	main.cpp \
-	filesystemhelperstests.cpp
+	filesystemhelperstests.cpp \
+	filestatisticstests.cpp

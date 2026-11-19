@@ -21,7 +21,10 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
+#include <chrono>
 #include <initializer_list>
+#include <thread>
+#include <utility>
 #include <vector>
 
 namespace
@@ -483,4 +486,77 @@ std::optional<size_t> chooseFromListWithPreview(const QString& title, const QStr
 	const std::function<void(size_t item)>& showPreview)
 {
 	return execListDialog(title, items, initialItem, {}, QStringLiteral("OK"), QStringLiteral("Cancel"), { .atRightEdge = true, .cursorMovedTo = showPreview });
+}
+
+namespace {
+
+// Ends with cmOK once `finished` returns true
+class CTuiProgressDialog final : public TDialog
+{
+public:
+	CTuiProgressDialog(const QString& dialogTitle, std::function<bool()> finished, std::function<QStringList(int width)> progressLines) :
+		TWindowInit(&TDialog::initFrame),
+		TDialog({ 0, 0, std::min(72, TProgram::deskTop->size.x - 2), 8 }, stringView(dialogTitle.toUtf8())),
+		_finished(std::move(finished)),
+		_progressLines(std::move(progressLines))
+	{
+		options |= ofCentered;
+
+		_text = new CTuiTextView({ 3, 2, size.x - 3, 4 }, {});
+		insert(_text);
+
+		// No hot key: Esc cancels too
+		const int middle = size.x / 2;
+		insert(new TButton({ middle - 6, 5, middle + 6, 7 }, "Cancel", cmCancel, bfNormal));
+
+		showProgress();
+	}
+
+	void handleEvent(TEvent& event) override
+	{
+		// Enter does nothing: the focused Cancel would take it
+		if (event.what == evKeyDown && event.keyDown.keyCode == kbEnter)
+			clearEvent(event);
+		TDialog::handleEvent(event);
+	}
+
+	void getEvent(TEvent& event) override
+	{
+		if (_finished() && (state & sfModal))
+			endModal(cmOK);
+		else
+			showProgress();
+		TDialog::getEvent(event);
+	}
+
+private:
+	void showProgress()
+	{
+		_text->setLines(_progressLines(_text->size.x));
+	}
+
+private:
+	const std::function<bool()> _finished;
+	const std::function<QStringList(int width)> _progressLines;
+	CTuiTextView* _text; // Owned by this dialog
+};
+
+} // namespace
+
+bool waitWithProgressDialog(const QString& title, const std::function<bool()>& finished, const std::function<QStringList(int width)>& progressLines)
+{
+	using namespace std::chrono_literals;
+
+	// The dialog opens once the work has run this long: short work never shows it
+	const auto showTime = std::chrono::steady_clock::now() + 500ms;
+	while (!finished() && std::chrono::steady_clock::now() < showTime)
+		std::this_thread::sleep_for(10ms);
+
+	if (finished())
+		return true;
+
+	auto* dialog = new CTuiProgressDialog(title, finished, progressLines);
+	const ushort command = TProgram::deskTop->execView(dialog);
+	TObject::destroy(dialog);
+	return command == cmOK;
 }

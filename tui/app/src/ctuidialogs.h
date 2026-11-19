@@ -134,3 +134,7 @@ void showUserMessage(const UserMessage& message);
 // showPreview is called with the item under the cursor each time the cursor moves to another item.
 [[nodiscard]] std::optional<size_t> chooseFromListWithPreview(const QString& title, const QStringList& items, size_t initialItem,
 	const std::function<void(size_t item)>& showPreview);
+
+// Polls `finished` until it returns true; false: cancelled.
+// Work still running after 500 ms gets a dialog showing two lines of progressLines(width in cells), with a Cancel button that Esc presses too.
+[[nodiscard]] bool waitWithProgressDialog(const QString& title, const std::function<bool()>& finished, const std::function<QStringList(int width)>& progressLines);

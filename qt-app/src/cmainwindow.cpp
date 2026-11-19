@@ -36,7 +36,6 @@
 #include "shell/cshell.h"
 #include "shell/cshellcommand.h"
 #include "filesystemhelperfunctions.h"
-#include "filesystemhelpers/filestatistics.h"
 #include "filesystemhelpers/filesystemhelpers.hpp"
 
 
@@ -55,7 +54,6 @@
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "shelloperations/cshelloperationrunner.h"
 #include "theme/cthemecontroller.h"
-#include "timing/ctimeelapsed.h"
 #include "updaterUI/cupdaterdialog.h"
 #include "widgets/clineedit.h"
 #include "widgets/cmenubar.h"
@@ -1324,14 +1322,10 @@ void CMainWindow::calculateStatistics()
 	for (const CFileSystemObject& item : items)
 		paths.push_back(item.fullAbsolutePath());
 
-	CTimeElapsed timer{ true };
-	const FileStatistics stats = calculateStatsFor(paths);
-	const uint64_t elapsedMs = timer.elapsed();
-	if (stats.empty())
+	if (paths.empty())
 		return;
 
-	auto* statsWindow = new CFileStatsWindow(this, stats, *_controller, elapsedMs);
-	statsWindow->setAttribute(Qt::WA_DeleteOnClose);
+	auto* statsWindow = new CFileStatsWindow(this, std::move(paths), *_controller);
 	WidgetUtils::centerWidgetOnScreen(statsWindow, 0.7);
 	statsWindow->show();
 }

@@ -14,7 +14,6 @@
 #define Uses_TDialog
 #define Uses_TDrawBuffer
 #define Uses_TEvent
-#define Uses_TKeys
 #define Uses_TObject
 #define Uses_TPalette
 #define Uses_TProgram
@@ -26,8 +25,6 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
-#include <chrono>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -35,79 +32,17 @@ namespace {
 
 constexpr ushort cmGoToDifference = 2300, cmRefreshComparison = 2301;
 
-// Ends with cmOK once the comparison has finished
-class CTuiComparisonProgressDialog final : public TDialog
-{
-public:
-	explicit CTuiComparisonProgressDialog(CFolderComparison& comparison) :
-		TWindowInit(&TDialog::initFrame),
-		TDialog({ 0, 0, std::min(72, TProgram::deskTop->size.x - 2), 8 }, "Comparing folders"),
-		_comparison(comparison)
-	{
-		options |= ofCentered;
-
-		_text = new CTuiTextView({ 3, 2, size.x - 3, 4 }, {});
-		insert(_text);
-
-		// No hot key: Esc cancels too
-		const int middle = size.x / 2;
-		insert(new TButton({ middle - 6, 5, middle + 6, 7 }, "Cancel", cmCancel, bfNormal));
-
-		showProgress();
-	}
-
-	void handleEvent(TEvent& event) override
-	{
-		// Enter does nothing: the focused Cancel would take it
-		if (event.what == evKeyDown && event.keyDown.keyCode == kbEnter)
-			clearEvent(event);
-		TDialog::handleEvent(event);
-	}
-
-	void getEvent(TEvent& event) override
-	{
-		if (_comparison.finished() && (state & sfModal))
-			endModal(cmOK);
-		else
-			showProgress();
-		TDialog::getEvent(event);
-	}
-
-private:
-	void showProgress()
-	{
-		const std::optional<int> percent = _comparison.percent();
-		_text->setLines({ percent ? QStringLiteral("Comparing file contents...") : QStringLiteral("Scanning both folders..."),
-			percent ? progressBar(percent, _text->size.x) : QString{} });
-	}
-
-private:
-	CFolderComparison& _comparison;
-	CTuiTextView* _text; // Owned by this dialog
-};
-
 // The comparison with a result; nullptr when cancelled
 [[nodiscard]] std::unique_ptr<CFolderComparison> comparedFolders(QString leftRoot, QString rightRoot)
 {
-	using namespace std::chrono_literals;
-
 	auto comparison = std::make_unique<CFolderComparison>(std::move(leftRoot), std::move(rightRoot));
+	const bool finished = waitWithProgressDialog(QStringLiteral("Comparing folders"), [&comparison] { return comparison->finished(); }, [&comparison](const int width) {
+		const std::optional<int> percent = comparison->percent();
+		return QStringList{ percent ? QStringLiteral("Comparing file contents...") : QStringLiteral("Scanning both folders..."), percent ? progressBar(percent, width) : QString{} };
+	});
 
-	// The progress dialog opens once the comparison has run this long: a short one never shows it
-	const auto showTime = std::chrono::steady_clock::now() + 500ms;
-	while (!comparison->finished() && std::chrono::steady_clock::now() < showTime)
-		std::this_thread::sleep_for(10ms);
-
-	if (!comparison->finished())
-	{
-		auto* dialog = new CTuiComparisonProgressDialog(*comparison);
-		const ushort command = TProgram::deskTop->execView(dialog);
-		TObject::destroy(dialog);
-		if (command != cmOK)
-			return nullptr; // The destructor cancels the comparison
-	}
-
-	if (!comparison->result())
+	// The destructor cancels an unfinished comparison
+	if (!finished || !comparison->result())
 		return nullptr;
 	return comparison;
 }
