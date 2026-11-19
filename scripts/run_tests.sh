@@ -13,7 +13,7 @@
 
 set -u
 
-TESTS="fso_test fso_test_high_level panel_test controller_test filesearchengine_test batchrename_test userprograms_test filesystemhelpers_test shell_test fileoperationlaunch_test fileoperations_test foldercomparison_test fileoperationsui_test fileoperations_gui_test filelist_test csvviewer_test tui_test"
+TESTS="fso_test fso_test_high_level panel_test controller_test filesearchengine_test batchrename_test filecomparator_test userprograms_test filesystemhelpers_test shell_test fileoperationlaunch_test fileoperations_test foldercomparison_test fileoperationsui_test fileoperations_gui_test filelist_test csvviewer_test tui_test"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -36,10 +36,10 @@ fi
 # Skipped by default: these generate trees of thousands of files and gigabytes of data, and CI runs them
 # repeatedly with fresh seeds. Every other case in both suites still runs.
 FILEOPERATIONS_ARGS="~[executor]~[deleteexecutor]"
-FILECOMPARATOR_ARGS="~[CFileComparator]"
+CONTENTCOMPARISON_ARGS="~[randomdata]"
 if [ "${1:-}" = all ]; then
 	FILEOPERATIONS_ARGS=""
-	FILECOMPARATOR_ARGS=""
+	CONTENTCOMPARISON_ARGS=""
 	shift
 fi
 
@@ -100,7 +100,7 @@ for test in ${TESTS}; do
 	default_args=""
 	case "${test}" in
 		fileoperations_test) default_args="${FILEOPERATIONS_ARGS}" ;;
-		foldercomparison_test) default_args="${FILECOMPARATOR_ARGS}" ;;
+		foldercomparison_test) default_args="${CONTENTCOMPARISON_ARGS}" ;;
 	esac
 
 	echo

@@ -87,6 +87,7 @@ the shell script also falls back to a `qmake` already on PATH.
 | `controller_test` | `CController`'s tabs: saving and restoring them, tab ids, which tab is active after a move or a close |
 | `filesearchengine_test` | Search engine: name filters, content search, engine behavior |
 | `batchrename_test` | `CBatchRenameSession`, the batch rename dialog's model: the preview's states, applying and undoing, the saved options |
+| `filecomparator_test` | `CFileComparator` and `CFolderComparison`, the comparisons the front ends run in the background |
 | `filesystemhelpers_test` | Path quoting, shell word splitting, device lookup for a path, the background folder statistics scan |
 | `userprograms_test` | Programs-menu placeholder expansion |
 | `shell_test` | `CShellCommand` on real commands: output, exit code, working folder, escape sequences, termination. Which command lines launch without the shell (Windows); the detached launch's command lookup (Linux, macOS) |
