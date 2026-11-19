@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795044029278,
+  "lastUpdate": 1795095260314,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -39120,6 +39120,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .data",
             "value": 30.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "2f4e579fc8f114d626f42b9054a64e4f50b159f0",
+          "message": "Fixed #301, implemented #272: Ctrl+L (\"Calculate occupied space and file statistics\") works on a background thread with live progress updates in the UI",
+          "timestamp": "2026-11-19T15:22:30+02:00",
+          "tree_id": "4ef6e161175e5ac785fab0bfeab972ff9f188bd1",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/2f4e579fc8f114d626f42b9054a64e4f50b159f0"
+        },
+        "date": 1795095256772,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 25186,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36813,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1780,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1061,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3266,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2185.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 360.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1125,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 480.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 54.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 31,
             "unit": "KB"
           },
           {
