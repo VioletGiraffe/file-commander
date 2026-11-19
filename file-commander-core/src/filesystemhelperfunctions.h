@@ -41,11 +41,11 @@ RESTORE_COMPILER_WARNINGS
 // A %VAR% still expands on Windows: cmd does that inside double quotes too, out of reach of quoting.
 [[nodiscard]] QString shellQuotedPath(QString path);
 
-#ifndef _WIN32
-// Splits text into words by sh's quoting and escaping rules, with no expansion: undoes shellQuotedPath.
+// Splits text into words by sh's quoting and escaping rules, with no expansion: undoes shellQuotedPath outside Windows.
 // Empty when a quote or an escape is left unfinished.
 [[nodiscard]] std::optional<QStringList> splitShellWords(const QString& text);
 
+#ifndef _WIN32
 // Device ID of the filesystem holding the path, or of its nearest existing ancestor. Empty when it cannot be queried.
 [[nodiscard]] std::optional<uint64_t> deviceIdForPath(const QString& fullPath);
 #endif

@@ -179,7 +179,6 @@ QString shellQuotedPath(QString path)
 #endif
 }
 
-#ifndef _WIN32
 std::optional<QStringList> splitShellWords(const QString& text)
 {
 	QStringList words;
@@ -248,6 +247,7 @@ std::optional<QStringList> splitShellWords(const QString& text)
 	return words;
 }
 
+#ifndef _WIN32
 std::optional<uint64_t> deviceIdForPath(const QString& fullPath)
 {
 	// stat() only succeeds on an existing path. If this path doesn't exist yet (e.g. a copy/move destination that will be

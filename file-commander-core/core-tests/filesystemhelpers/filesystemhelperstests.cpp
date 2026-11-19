@@ -55,7 +55,6 @@ TEST_CASE("shellQuotedPath quotes a path with a space and drops the trailing sep
 #endif
 }
 
-#ifndef _WIN32
 TEST_CASE("splitShellWords splits on runs of whitespace", "[splitShellWords]")
 {
 	CHECK(splitShellWords(QStringLiteral("  a\tb \n c  ")) == QStringList{ QStringLiteral("a"), QStringLiteral("b"), QStringLiteral("c") });
@@ -89,6 +88,7 @@ TEST_CASE("splitShellWords fails on an unfinished quote or escape", "[splitShell
 	CHECK(!splitShellWords(QStringLiteral("a\\")));
 }
 
+#ifndef _WIN32
 TEST_CASE("splitShellWords undoes shellQuotedPath", "[splitShellWords][shellQuotedPath]")
 {
 	const QString path = GENERATE(

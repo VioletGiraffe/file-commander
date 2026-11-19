@@ -1,5 +1,7 @@
 #include "desktopentry.h"
 
+#include "shell/xdgapplications.h"
+
 
 // Submodule includes
 #include "assert/advanced_assert.h"
@@ -43,34 +45,9 @@ QString writeError(const QString& path, const QString& reason)
 	return QCoreApplication::translate("DesktopEntry", "Cannot write %1: %2").arg(path, reason);
 }
 
-// A string value of a desktop entry key
-QString escapedValue(QString value)
-{
-	value.replace('\\', QStringLiteral("\\\\"));
-	value.replace('\n', QStringLiteral("\\n"));
-	value.replace('\r', QStringLiteral("\\r"));
-	return value;
-}
-
-// One quoted Exec argument. Its quoting escapes are themselves escaped as a string value.
-QString execArgument(const QString& path)
-{
-	QString quoted{ u'"' };
-	for (const QChar c : path)
-	{
-		if (c == '"' || c == '`' || c == '$' || c == '\\')
-			quoted += '\\';
-		else if (c == '%') // A field code prefix
-			quoted += '%';
-		quoted += c;
-	}
-	quoted += '"';
-	return escapedValue(quoted);
-}
-
 QString tryExecLine()
 {
-	return "TryExec=" % escapedValue(appImagePath());
+	return "TryExec=" % XdgApplications::escapedStringValue(appImagePath());
 }
 
 // The AppImage's own entry, launching this AppImage file
@@ -85,9 +62,9 @@ std::expected<QString, QString> entryText()
 	{
 		// TryExec hides the entry from menus once this AppImage file is moved or deleted
 		if (line.startsWith(QLatin1StringView{ "Exec=" }))
-			line = "Exec=" % execArgument(appImagePath()) % '\n' % tryExecLine();
+			line = "Exec=" % XdgApplications::escapedExecArgument(appImagePath()) % '\n' % tryExecLine();
 		else if (line.startsWith(QLatin1StringView{ "Icon=" }))
-			line = "Icon=" % escapedValue(iconPath());
+			line = "Icon=" % XdgApplications::escapedStringValue(iconPath());
 	}
 
 	return lines.join('\n');

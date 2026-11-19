@@ -21,6 +21,7 @@ HEADERS += \
 	src/filesystemwatcher/cfilesystemwatcher.h \
 	src/shell/cshell.h \
 	src/shell/cshellcommand.h \
+	src/shell/xdgapplications.h \
 	include/settings.h \
 	src/favoritelocationslist/cfavoritelocations.h \
 	src/userprograms/userprograms.h \
@@ -55,6 +56,7 @@ SOURCES += \
 	src/filesystemwatcher/cfilesystemwatcher.cpp \
 	src/shell/cshell.cpp \
 	src/shell/cshellcommand.cpp \
+	src/shell/xdgapplications.cpp \
 	src/favoritelocationslist/cfavoritelocations.cpp \
 	src/userprograms/userprograms.cpp \
 	src/filesearchengine/cfilesearchengine.cpp \

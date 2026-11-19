@@ -40,6 +40,7 @@ $suites = [ordered]@{
 	'userprograms_test'       = @()
 	'filesystemhelpers_test'  = @()
 	'shell_test'              = @()
+	'xdgapplications_test'    = @()
 	'fileoperationlaunch_test' = @()
 	'fileoperations_test'     = @('~[executor]~[deleteexecutor]')
 	'foldercomparison_test'   = @('~[randomdata]')
