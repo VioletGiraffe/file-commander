@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795124932402,
+  "lastUpdate": 1795128391724,
   "repoUrl": "https://github.com/VioletGiraffe/file-commander",
   "entries": {
     "File Commander metrics": [
@@ -39906,6 +39906,95 @@ window.BENCHMARK_DATA = {
           {
             "name": "Section .rdata",
             "value": 486.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rsrc",
+            "value": 74,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .pdata",
+            "value": 55,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .data",
+            "value": 34,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .reloc",
+            "value": 14,
+            "unit": "KB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "committer": {
+            "email": "VioletGiraffe@users.noreply.github.com",
+            "name": "Violet Giraffe",
+            "username": "VioletGiraffe"
+          },
+          "distinct": true,
+          "id": "5be8cdeaded76276b45e77e557eb765cb0d0a2b0",
+          "message": "Show in File Manager works without a FileManager1 provider, such as PCManFM: the folder opens in the default application for folders",
+          "timestamp": "2026-11-20T00:33:21+02:00",
+          "tree_id": "05e52406ff5142690429020a225a8087905601d6",
+          "url": "https://github.com/VioletGiraffe/file-commander/commit/5be8cdeaded76276b45e77e557eb765cb0d0a2b0"
+        },
+        "date": 1795128388698,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Lines of code (app)",
+            "value": 26500,
+            "unit": "LOC"
+          },
+          {
+            "name": "Lines of code (libs)",
+            "value": 36813,
+            "unit": "LOC"
+          },
+          {
+            "name": "FileCommander.exe size",
+            "value": 1823,
+            "unit": "KB"
+          },
+          {
+            "name": "fcterm.exe size",
+            "value": 1110.5,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_imageviewer.dll size",
+            "value": 3491,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_textviewer.dll size",
+            "value": 2189,
+            "unit": "KB"
+          },
+          {
+            "name": "plugin_csvviewer.dll size",
+            "value": 361,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .text",
+            "value": 1160.5,
+            "unit": "KB"
+          },
+          {
+            "name": "Section .rdata",
+            "value": 484.5,
             "unit": "KB"
           },
           {
