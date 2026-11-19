@@ -436,11 +436,20 @@ static QStringList typeNames(const QMimeType& type, const QMimeDatabase& databas
 
 std::vector<Application> XdgApplications::applicationsToOpen(const QStringList& paths, const Environment& environment)
 {
+	// Only the first files are read where the name does not give the type: each read takes up to 16 KB, slow on a network volume
+	static constexpr qsizetype filesReadForType = 5;
+
 	const QMimeDatabase database;
 	std::vector<QStringList> fileTypes; // One entry per distinct type: every file of a type has the same applications
-	for (const QString& path : paths)
+	for (qsizetype i = 0; i < paths.size(); ++i)
 	{
-		QStringList names = typeNames(database.mimeTypeForFile(path), database);
+		const bool readContents = i < filesReadForType;
+		const QMimeType type = database.mimeTypeForFile(paths[i], readContents ? QMimeDatabase::MatchDefault : QMimeDatabase::MatchExtension);
+		// Past those, a name that gives no type yields application/octet-stream, which few applications open: the file is left out instead
+		if (!readContents && type.isDefault())
+			continue;
+
+		QStringList names = typeNames(type, database);
 		if (std::ranges::find(fileTypes, names) == fileTypes.end())
 			fileTypes.push_back(std::move(names));
 	}

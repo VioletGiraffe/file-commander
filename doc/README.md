@@ -50,6 +50,7 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 | File and content search | `file-commander-core/src/filesearchengine/`, `qt-app/src/filessearchdialog/` |
 | Main window and command routing | `qt-app/src/cmainwindow.{h,cpp,ui}` |
 | Panel UI and file-list MVC | `qt-app/src/panel/` |
+| Context menus of files, folders and volumes | `qt-app/src/panel/filecontextmenu.{h,cpp}`; Open With's lookup and launch, and the trash listing, in `file-commander-core/src/shell/` |
 | Blocking shell operations | `file-operations/shelloperations/` |
 | Process launching and command output | `file-commander-core/src/shell/`, `qt-app/src/commandoutput/` |
 | Programs menu | `file-commander-core/src/userprograms/`, `qt-app/src/programseditor/` |

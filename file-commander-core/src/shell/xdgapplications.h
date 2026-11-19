@@ -44,7 +44,8 @@ struct Application
 // The applications that open files of every one of `fileTypes`, the first file's default application first when it opens them all.
 // Each entry holds the names one file's type is known by, the most specific first: its MIME type and aliases, then its ancestors'.
 [[nodiscard]] std::vector<Application> applicationsForFileTypes(const std::vector<QStringList>& fileTypes, const Environment& environment);
-// applicationsForFileTypes for the files' types as QMimeDatabase finds them
+// applicationsForFileTypes for the files' types as QMimeDatabase finds them: by name and contents for the first five, by name alone past those.
+// A file past the fifth whose name does not give its type does not narrow the list.
 [[nodiscard]] std::vector<Application> applicationsToOpen(const QStringList& paths, const Environment& environment);
 
 // The command lines, program first, that open `files` in `application`: one, or one per file when its Exec takes a single file.

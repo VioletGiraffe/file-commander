@@ -329,6 +329,37 @@ TEST_CASE("applicationsToOpen goes by the files' MIME types and their ancestors"
 	CHECK(applicationsToOpen({ sourceFile, folder }, folders.environment).empty());
 }
 
+TEST_CASE("applicationsToOpen reads the contents of the first five files only", "[xdgapplications]")
+{
+	const TestFolders folders;
+	folders.writeEntry(QStringLiteral("share1/applications/text.desktop"), QStringLiteral("text/plain"));
+	folders.writeEntry(QStringLiteral("share1/applications/viewer.desktop"), QStringLiteral("image/png"));
+
+	// Files without a name that gives their type: only their contents show it
+	QStringList paths;
+	for (int i = 1; i <= 5; ++i)
+	{
+		folders.write(QStringLiteral("files/text") % QString::number(i), QStringLiteral("plain text\n"));
+		paths.push_back(folders.root.path() % QStringLiteral("/files/text") % QString::number(i));
+	}
+
+	const QString picture = folders.root.path() % QStringLiteral("/files/picture");
+	QFile pictureFile{ picture };
+	REQUIRE(pictureFile.open(QIODevice::WriteOnly));
+	REQUIRE(pictureFile.write(QByteArray{ "\x89PNG\r\n\x1a\n", 8 }) == 8); // The PNG signature
+	pictureFile.close();
+	REQUIRE(ids(applicationsToOpen({ picture }, folders.environment)) == QStringList{ QStringLiteral("viewer.desktop") });
+
+	// As the sixth file, the picture is not read: it would leave no application that opens every file
+	paths.push_back(picture);
+	CHECK(ids(applicationsToOpen(paths, folders.environment)) == QStringList{ QStringLiteral("text.desktop") });
+
+	// A sixth file whose name gives its type counts
+	folders.write(QStringLiteral("files/picture.png"), QStringLiteral("not read"));
+	paths.back() = folders.root.path() % QStringLiteral("/files/picture.png");
+	CHECK(applicationsToOpen(paths, folders.environment).empty());
+}
+
 #ifndef _WIN32
 namespace {
 

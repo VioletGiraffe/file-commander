@@ -93,7 +93,7 @@ deletion backend. It decides `DestinationIntent` before path parsing, because a 
 even when the directory does not yet exist. A front end that may run over SSH, the terminal UI, never deletes through
 the desktop shell: it trashes through Qt and deletes permanently with the internal job. `CController::moveToTrash`
 runs Qt's trash, or macOS's shell trash, off the UI thread and reports the items it refused. On Linux and FreeBSD,
-emptying the trash deletes what `OsShell::trashContents` lists with the internal job.
+Empty Trash deletes what `OsShell::trashContents` lists, through the internal job.
 
 The panel commands a front end runs on user input (new folder or file, rename, go to a typed path, switch volume) are
 `CController` methods. They check the input, act, and return the engine's `UserMessage` to show; creation and rename
@@ -128,6 +128,6 @@ Panels watch their folder with `thin_io::directory_watcher` (`src/filesystemwatc
 | File list rules | `filelist/`; the display name, sort order, name filter and totals of a panel's rows; `SortedFileList` keeps the rows in display order for a UI's list |
 | Search | `filesearchengine/`; cancellable traversal with a bounded content-search pool |
 | Comparison | `filecomparator/`; threaded wrappers over `file-operations/foldercomparison/`, for one file and for two folders |
-| Shell integration | `shell/`; platform clipboard, context menus, launching, and native deletion. `xdgapplications` finds and starts the freedesktop.org applications registered for file types, for Linux and FreeBSD |
+| Shell integration | `shell/`; platform clipboard, Explorer's context menus, launching, native deletion and the freedesktop.org trash. `xdgapplications` finds and starts the freedesktop.org applications registered for file types, for Linux and FreeBSD |
 | Favorites | `favoritelocationslist/`; nested locations persisted under a supplied settings key |
 | Statistics/helpers | `filesystemhelpers/`, `filesystemhelperfunctions`; statistics traversal, separators and shell quoting |
