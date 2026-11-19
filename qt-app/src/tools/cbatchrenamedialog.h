@@ -30,25 +30,16 @@ public:
 	CBatchRenameDialog(QWidget* parent, const std::vector<CFileSystemObject>& items);
 	~CBatchRenameDialog() override;
 
-	void reject() override;
-
-protected:
-	void closeEvent(QCloseEvent* e) override;
-
 private:
 	[[nodiscard]] BatchRenameRules rules() const;
 	void rulesChanged();
 	void showSession();
 	void applyRenaming();
 	void runStep(CBatchRenameSession::Step step);
-	void setRenamingInProgress(bool inProgress);
 
 private:
 	CBatchRenameSession _session; // Items in panel order: the counter follows it
-	bool _renaming = false;
-	bool _cancelRequested = false;
 
-	QWidget* _rulesPanel = nullptr;
 	CHistoryComboBox* _nameMask = nullptr;
 	CHistoryComboBox* _extensionMask = nullptr;
 	CHistoryComboBox* _find = nullptr;
@@ -63,5 +54,4 @@ private:
 	QTableWidget* _preview = nullptr;
 	QPushButton* _applyButton = nullptr;
 	QPushButton* _undoButton = nullptr;
-	QPushButton* _closeButton = nullptr;
 };

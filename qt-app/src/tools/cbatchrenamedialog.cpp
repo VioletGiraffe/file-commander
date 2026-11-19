@@ -1,6 +1,7 @@
 #include "cbatchrenamedialog.h"
 
 #include "cmainwindow.h"
+#include "progressdialogs/waitwithprogressdialog.h"
 #include "themes/theme.h"
 
 #include "ccontroller.h"
@@ -9,6 +10,7 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
+#include "dialogs/csimpleprogressdialog.h"
 #include "qtcore_helpers/qstring_helpers.hpp"
 #include "widgets/chistorycombobox.h"
 #include "widgets/cpersistenceenabler.h"
@@ -16,11 +18,8 @@
 
 DISABLE_COMPILER_WARNINGS
 #include <QCheckBox>
-#include <QCloseEvent>
 #include <QColor>
 #include <QComboBox>
-#include <QCoreApplication>
-#include <QElapsedTimer>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -46,11 +45,11 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 {
 	setWindowTitle(tr("Batch rename"));
 
-	_rulesPanel = new QWidget;
-	_nameMask = new CHistoryComboBox(_rulesPanel);
-	_extensionMask = new CHistoryComboBox(_rulesPanel);
-	_find = new CHistoryComboBox(_rulesPanel);
-	_replaceWith = new CHistoryComboBox(_rulesPanel);
+	auto* rulesPanel = new QWidget;
+	_nameMask = new CHistoryComboBox(rulesPanel);
+	_extensionMask = new CHistoryComboBox(rulesPanel);
+	_find = new CHistoryComboBox(rulesPanel);
+	_replaceWith = new CHistoryComboBox(rulesPanel);
 	_findIsRegex = new QCheckBox(tr("Regular expression"));
 	_findIsCaseSensitive = new QCheckBox(tr("Case-sensitive"));
 	_findError = new QLabel;
@@ -113,7 +112,7 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 	counterOptions->addWidget(_counterDigits);
 	counterOptions->addStretch();
 
-	auto* rulesLayout = new QFormLayout(_rulesPanel);
+	auto* rulesLayout = new QFormLayout(rulesPanel);
 	rulesLayout->setContentsMargins({});
 	rulesLayout->addRow(tr("Name mask:"), _nameMask);
 	rulesLayout->addRow(tr("Extension mask:"), _extensionMask);
@@ -140,17 +139,17 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 
 	_applyButton = new QPushButton(tr("Rename"));
 	_undoButton = new QPushButton(tr("Undo"));
-	_closeButton = new QPushButton(tr("Close"));
+	auto* closeButton = new QPushButton(tr("Close"));
 	auto* buttons = new QHBoxLayout;
 	buttons->addStretch();
-	for (QPushButton* button : { _applyButton, _undoButton, _closeButton })
+	for (QPushButton* button : { _applyButton, _undoButton, closeButton })
 	{
 		button->setAutoDefault(false); // Enter in a field must not rename
 		buttons->addWidget(button);
 	}
 
 	auto* layout = new QVBoxLayout(this);
-	layout->addWidget(_rulesPanel);
+	layout->addWidget(rulesPanel);
 	layout->addWidget(_preview, 1);
 	layout->addLayout(buttons);
 
@@ -164,7 +163,7 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 
 	connect(_applyButton, &QPushButton::clicked, this, &CBatchRenameDialog::applyRenaming);
 	connect(_undoButton, &QPushButton::clicked, this, [this] { runStep(CBatchRenameSession::Step::Undo); });
-	connect(_closeButton, &QPushButton::clicked, this, &CBatchRenameDialog::reject);
+	connect(closeButton, &QPushButton::clicked, this, &CBatchRenameDialog::reject);
 
 	enablePersistence(this, QSL("UI/BatchRenameDialog"));
 	rulesChanged();
@@ -173,29 +172,6 @@ CBatchRenameDialog::CBatchRenameDialog(QWidget* parent, const std::vector<CFileS
 CBatchRenameDialog::~CBatchRenameDialog()
 {
 	CBatchRenameSession::saveOptions(rules());
-}
-
-void CBatchRenameDialog::reject()
-{
-	if (_renaming)
-	{
-		_cancelRequested = true;
-		return;
-	}
-
-	QDialog::reject();
-}
-
-void CBatchRenameDialog::closeEvent(QCloseEvent* e)
-{
-	if (_renaming)
-	{
-		_cancelRequested = true;
-		e->ignore();
-		return;
-	}
-
-	QDialog::closeEvent(e);
 }
 
 BatchRenameRules CBatchRenameDialog::rules() const
@@ -271,33 +247,11 @@ void CBatchRenameDialog::runStep(const CBatchRenameSession::Step step)
 	assert_and_return_r(mainWindow, );
 	mainWindow->closeViewedFilesWithin(_session.pathsRenamedBy(step));
 
-	setRenamingInProgress(true);
-	QElapsedTimer sinceEventsProcessed;
-	sinceEventsProcessed.start();
-	// Processing events keeps this dialog painted and Cancel working. The other windows take no input: this dialog is modal.
-	const auto renamedPaths = _session.run(step, [this, &sinceEventsProcessed] {
-		if (sinceEventsProcessed.elapsed() >= 50)
-		{
-			QCoreApplication::processEvents();
-			sinceEventsProcessed.restart();
-		}
-		return !_cancelRequested;
-	});
-	setRenamingInProgress(false);
-	CController::get().itemsRenamed(renamedPaths);
+	CBatchRenameRun renaming{ _session.startStep(step) };
+	if (!waitWithProgressDialog(this, tr("Batch rename"), tr("Renaming..."), [&renaming] { return renaming.finished(); },
+			[&renaming](CSimpleProgressDialog& dialog) { dialog.setValue(renaming.percent()); }))
+		renaming.cancelAndWait();
 
+	CController::get().itemsRenamed(_session.finishStep(renaming.results()));
 	showSession();
-}
-
-void CBatchRenameDialog::setRenamingInProgress(const bool inProgress)
-{
-	_renaming = inProgress;
-	_cancelRequested = false;
-	_rulesPanel->setEnabled(!inProgress);
-	_closeButton->setText(inProgress ? tr("Cancel") : tr("Close"));
-	if (inProgress)
-	{
-		_applyButton->setEnabled(false);
-		_undoButton->setEnabled(false);
-	}
 }

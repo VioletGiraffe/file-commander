@@ -16,6 +16,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringBuilder>
 RESTORE_COMPILER_WARNINGS
 
+#include <algorithm>
+#include <utility>
+
 [[nodiscard]] static BatchRenameSource sourceOf(const CFileSystemObject& item, const CEntryPath& path)
 {
 	const CEntryPath parent = path.parent();
@@ -108,6 +111,9 @@ CBatchRenameSession::Status CBatchRenameSession::statusOf(const Row& row)
 
 bool CBatchRenameSession::canRun(const Step step) const noexcept
 {
+	if (_startedStep)
+		return false;
+
 	if (step == Step::Undo)
 		return !_undo.empty();
 
@@ -123,17 +129,25 @@ QStringList CBatchRenameSession::pathsRenamedBy(const Step step) const
 	return paths;
 }
 
-std::vector<std::pair<QString, QString>> CBatchRenameSession::run(const Step step, const std::function<bool()>& shouldContinue)
+std::vector<BatchRenameItem> CBatchRenameSession::startStep(const Step step)
 {
 	assert_and_return_r(canRun(step), {});
 
-	const RowRenames renames = step == Step::Apply ? renamesFor(step) : std::exchange(_undo, {});
+	RowRenames renames = step == Step::Apply ? renamesFor(step) : std::exchange(_undo, {});
 	std::vector<BatchRenameItem> items;
 	items.reserve(renames.size());
 	for (const auto& [row, name] : renames)
 		items.push_back({ .source = _rows[row].path, .newName = name });
 
-	const auto results = batchRename(items, shouldContinue);
+	_startedStep = StartedStep{ .step = step, .renames = std::move(renames) };
+	return items;
+}
+
+std::vector<std::pair<QString, QString>> CBatchRenameSession::finishStep(const std::vector<std::optional<InlineRenameResult>>& results)
+{
+	assert_and_return_r(_startedStep, {});
+	const auto [step, renames] = *std::exchange(_startedStep, std::nullopt);
+	assert_and_return_r(results.size() == renames.size(), {});
 
 	RowRenames renamed;
 	std::vector<std::pair<QString, QString>> renamedPaths;
@@ -170,6 +184,32 @@ std::vector<std::pair<QString, QString>> CBatchRenameSession::run(const Step ste
 
 	updatePreview();
 	return renamedPaths;
+}
+
+CBatchRenameRun::CBatchRenameRun(std::vector<BatchRenameItem> items) :
+	_itemCount{ items.size() }
+{
+	_task.start([this, items{ std::move(items) }](const std::atomic<bool>& cancelled) -> std::optional<Results> {
+		return batchRename(items, [this, &cancelled] {
+			++_attempts;
+			return !cancelled;
+		});
+	});
+}
+
+int CBatchRenameRun::percent() const noexcept
+{
+	if (_itemCount == 0)
+		return 100;
+	return static_cast<int>(std::min<size_t>(_attempts * 100 / _itemCount, 100));
+}
+
+CBatchRenameRun::Results CBatchRenameRun::results() const
+{
+	// Empty if batchRename() threw: its results are lost, so every item reads as never attempted
+	if (const std::optional<Results>& results = _task.result())
+		return *results;
+	return Results(_itemCount);
 }
 
 void CBatchRenameSession::updatePreview()

@@ -6,6 +6,7 @@
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
 #include "fileoperations/batchrename.h"
+#include "threading/cbackgroundtask.h"
 
 
 DISABLE_COMPILER_WARNINGS
@@ -13,7 +14,7 @@ DISABLE_COMPILER_WARNINGS
 #include <QStringList>
 RESTORE_COMPILER_WARNINGS
 
-#include <functional>
+#include <atomic>
 #include <optional>
 #include <stddef.h>
 #include <utility>
@@ -86,15 +87,24 @@ public:
 	[[nodiscard]] const QString& findPatternError() const noexcept { return _findPatternError; }
 
 	// Apply: some item gets a new name, none an invalid or taken one, and no outcomes are shown. Undo: the last Apply renamed something.
+	// Neither while a step is started and not finished.
 	[[nodiscard]] bool canRun(Step step) const noexcept;
 	// The current paths of the items the step renames
 	[[nodiscard]] QStringList pathsRenamedBy(Step step) const;
-	// Requires canRun(step). shouldContinue: see batchRename(). The rows then show the outcomes.
+	// Requires canRun(step). The items to rename with batchRename(), on any thread: the session is not used meanwhile.
+	[[nodiscard]] std::vector<BatchRenameItem> startStep(Step step);
+	// Requires a started step. results: batchRename()'s, for the items startStep() returned. The rows then show the outcomes.
 	// Returns the old and new path of each item renamed, as CFileSystemObject::fullAbsolutePath(): see CController::itemsRenamed().
-	std::vector<std::pair<QString, QString>> run(Step step, const std::function<bool()>& shouldContinue);
+	std::vector<std::pair<QString, QString>> finishStep(const std::vector<std::optional<InlineRenameResult>>& results);
 
 private:
 	using RowRenames = std::vector<std::pair<size_t, QString>>; // Row index and new name
+
+	struct StartedStep
+	{
+		Step step;
+		RowRenames renames;
+	};
 
 	void updatePreview();
 	[[nodiscard]] RowRenames renamesFor(Step step) const;
@@ -104,7 +114,31 @@ private:
 	BatchRenameRules _rules;
 	QString _findPatternError;
 	RowRenames _undo;
+	std::optional<StartedStep> _startedStep;
 	bool _anyRenamable = false;
 	bool _anyError = false;
 	bool _showingOutcomes = false;
+};
+
+// batchRename() on a CBackgroundTask, which the constructor starts, for a UI that polls it
+class CBatchRenameRun
+{
+public:
+	explicit CBatchRenameRun(std::vector<BatchRenameItem> items);
+
+	// Of the items, by rename attempts made: approximate, since an item retried once another frees its new name counts twice
+	[[nodiscard]] int percent() const noexcept;
+	[[nodiscard]] bool finished() { return _task.finished(); }
+	// Returns once the item being renamed is done; the rest stay unattempted
+	void cancelAndWait() { _task.cancelAndWait(); }
+	// Requires finished(). batchRename()'s results: an item never attempted is nullopt.
+	[[nodiscard]] std::vector<std::optional<InlineRenameResult>> results() const;
+
+private:
+	using Results = std::vector<std::optional<InlineRenameResult>>;
+
+	const size_t _itemCount;
+	std::atomic<size_t> _attempts{ 0 };
+	// Last: destroyed first, joining the renaming before the fields it writes are gone
+	CBackgroundTask<Results> _task{ "Batch rename" };
 };

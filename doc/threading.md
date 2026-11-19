@@ -20,6 +20,7 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | `CFileSystemWatcher` | `thin_io::directory_watcher`, read on the UI tick | Directory change notification; thin_io's own threads are in its README |
 | `CFileComparator` | `CBackgroundTask` per comparison | One two-file content comparison; the UI polls it from a modal progress dialog |
 | `CFolderComparison` | `CBackgroundTask` per comparison | Tree scan and compare; the UI polls it from a modal progress dialog |
+| `CBatchRenameRun` | `CBackgroundTask` per step | One batch rename step's renames, on the items the session hands out; the UI polls it from a modal progress dialog |
 | `CFileStatisticsScan` | `CBackgroundTask` per scan | The Statistics command's scan; the GUI's Statistics window polls it, the TUI a modal progress dialog |
 | `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
 | `CShellCommand` | `QProcess` owned by the UI thread | One command-line command; Qt reads its pipe and signals the owning thread |
@@ -74,9 +75,9 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 - `CFileSearchEngine` retains a raw listener; its owner must wait for the search to finish before destruction.
 - `CShellOperationRunner` is owned outside the main window and drains UI events while waiting at shutdown. This
   preserves the native owner window and avoids deadlocking shell work that still marshals through the UI thread.
-- Destroying a `CFileStatisticsScan`, `CFolderComparison` or `CFileComparator` joins its thread on the UI thread:
-  closing the Statistics window or cancelling a progress dialog waits until the work notices the cancellation. A
-  statistics scan notices it between directory listings.
+- Destroying a `CFileStatisticsScan`, `CFolderComparison` or `CFileComparator`, or cancelling a `CBatchRenameRun`, joins
+  its thread on the UI thread: closing the Statistics window or cancelling a progress dialog waits until the work
+  notices the cancellation. A statistics scan notices it between directory listings, a batch rename between items.
 
 Structural lifetime constraints belong beside the relevant member declarations; preserve those comments when
 changing declaration order.

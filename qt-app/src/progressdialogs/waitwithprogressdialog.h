@@ -14,7 +14,7 @@ class CSimpleProgressDialog;
 
 class QWidget;
 
-// Shows a modal, cancellable progress dialog until `finished` returns true, polling it and calling showProgress meanwhile.
-// False if the user cancelled.
+// Polls `finished` until it returns true; false if the user cancelled.
+// Work still running after 500 ms gets a modal, cancellable progress dialog, which showProgress updates on every poll.
 [[nodiscard]] bool waitWithProgressDialog(QWidget* parent, const QString& title, const QString& label, const std::function<bool()>& finished,
 	const std::function<void(CSimpleProgressDialog& dialog)>& showProgress);

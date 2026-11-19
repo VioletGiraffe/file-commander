@@ -12,6 +12,9 @@ DISABLE_COMPILER_WARNINGS
 #include <QFile>
 RESTORE_COMPILER_WARNINGS
 
+#include <chrono>
+#include <functional>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -35,6 +38,13 @@ namespace {
 }
 
 const auto always = [] { return true; };
+
+// A step run on this thread
+std::vector<std::pair<QString, QString>> runStep(Session& session, const Session::Step step, const std::function<bool()>& shouldContinue)
+{
+	const std::vector<BatchRenameItem> items = session.startStep(step);
+	return session.finishStep(batchRename(items, shouldContinue));
+}
 
 } // namespace
 
@@ -133,7 +143,7 @@ TEST_CASE("Batch rename session - applying renames the items, and undo restores 
 	const auto pathOf = [](const QString& path) { return CFileSystemObject{ path }.fullAbsolutePath(); };
 
 	session.setRules(nameMask(QSL("[N]_x")));
-	const RenamedPaths applied = session.run(Session::Step::Apply, always);
+	const RenamedPaths applied = runStep(session, Session::Step::Apply, always);
 	CHECK(applied == RenamedPaths{ { pathOf(a), pathOf(aRenamed) }, { pathOf(b), pathOf(bRenamed) } });
 	CHECK(QFile::exists(tree.path(QSL("a_x.txt"))));
 	CHECK(QFile::exists(tree.path(QSL("b_x.txt"))));
@@ -148,7 +158,7 @@ TEST_CASE("Batch rename session - applying renames the items, and undo restores 
 	CHECK_FALSE(session.canRun(Session::Step::Apply)); // Until the rules change
 	REQUIRE(session.canRun(Session::Step::Undo));
 
-	const RenamedPaths undone = session.run(Session::Step::Undo, always);
+	const RenamedPaths undone = runStep(session, Session::Step::Undo, always);
 	CHECK(undone == RenamedPaths{ { pathOf(aRenamed), pathOf(a) }, { pathOf(bRenamed), pathOf(b) } });
 	CHECK(QFile::exists(a));
 	CHECK(QFile::exists(b));
@@ -167,10 +177,49 @@ TEST_CASE("Batch rename session - a stopped batch marks the items it did not rea
 	Session session{ itemsAt({ a }) };
 
 	session.setRules(nameMask(QSL("[N]_x")));
-	session.run(Session::Step::Apply, [] { return false; });
+	runStep(session, Session::Step::Apply, [] { return false; });
 	CHECK(QFile::exists(a));
 	CHECK(session.rows()[0].outcome == Session::Outcome::Cancelled);
 	CHECK_FALSE(session.canRun(Session::Step::Undo));
+}
+
+TEST_CASE("Batch rename session - neither step can run while one is started", "[batchrename]")
+{
+	TempTree tree;
+	const QString a = tree.makeFile(QSL("a.txt"));
+	Session session{ itemsAt({ a }) };
+	session.setRules(nameMask(QSL("[N]_x")));
+
+	const std::vector<BatchRenameItem> items = session.startStep(Session::Step::Apply);
+	CHECK(items.size() == 1);
+	CHECK_FALSE(session.canRun(Session::Step::Apply));
+	CHECK_FALSE(session.canRun(Session::Step::Undo));
+
+	session.finishStep(batchRename(items, always));
+	CHECK(session.rows()[0].outcome == Session::Outcome::Renamed);
+	CHECK(session.canRun(Session::Step::Undo));
+}
+
+TEST_CASE("Batch rename run - renames a step's items on its thread, and the session then shows the outcomes", "[batchrename]")
+{
+	TempTree tree;
+	const QString a = tree.makeFile(QSL("a.txt"));
+	const QString b = tree.makeFile(QSL("b.txt"));
+	Session session{ itemsAt({ a, b }) };
+	session.setRules(nameMask(QSL("[N]_x")));
+
+	CBatchRenameRun renaming{ session.startStep(Session::Step::Apply) };
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{ 10 };
+	while (!renaming.finished() && std::chrono::steady_clock::now() < deadline)
+		std::this_thread::yield();
+	REQUIRE(renaming.finished());
+	CHECK(renaming.percent() == 100);
+
+	CHECK(session.finishStep(renaming.results()).size() == 2);
+	CHECK(QFile::exists(tree.path(QSL("a_x.txt"))));
+	CHECK(QFile::exists(tree.path(QSL("b_x.txt"))));
+	for (const Session::Row& row : session.rows())
+		CHECK(row.outcome == Session::Outcome::Renamed);
 }
 
 TEST_CASE("Batch rename session - an item whose new name is taken outside the batch fails, and says why", "[batchrename]")
@@ -182,7 +231,7 @@ TEST_CASE("Batch rename session - an item whose new name is taken outside the ba
 
 	session.setRules(nameMask(QSL("b")));
 	REQUIRE(session.canRun(Session::Step::Apply));
-	session.run(Session::Step::Apply, always);
+	runStep(session, Session::Step::Apply, always);
 	CHECK(QFile::exists(a));
 	CHECK(session.rows()[0].outcome == Session::Outcome::Failed);
 	CHECK(session.rows()[0].failure.has_value());

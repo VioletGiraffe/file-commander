@@ -90,7 +90,7 @@ dialog is open.
   also uses (`waitWithProgressDialog`).
 - Batch rename (Shift+F2: the GUI's Ctrl+M is Enter on many terminals, see Terminal input) renders the core's
   `CBatchRenameSession`. Turbo Vision reports no edit, so the dialog compares the rules after every event. The renaming
-  runs on the UI thread, which reads only Esc meanwhile.
+  runs on the core's `CBatchRenameRun`, behind `waitWithProgressDialog`.
 - A dialog button that Enter presses, or that does what Esc does, has no hot key (`DialogSpec::defaultButton`,
   `DialogSpec::escapeButton`).
 - A field's history is shared with the GUI's field through its settings key. Turbo Vision keeps every field's history in

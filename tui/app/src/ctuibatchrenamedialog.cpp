@@ -13,15 +13,12 @@
 #define Uses_TDialog
 #define Uses_TDrawBuffer
 #define Uses_TEvent
-#define Uses_TEventQueue
 #define Uses_TFilterValidator
 #define Uses_TInputLine
-#define Uses_TKeys
 #define Uses_TLabel
 #define Uses_TPalette
 #define Uses_TProgram
 #define Uses_TRadioButtons
-#define Uses_TScreen
 #define Uses_TScrollBar
 #define Uses_TSItem
 DISABLE_COMPILER_WARNINGS
@@ -31,11 +28,9 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <algorithm>
-#include <chrono>
 #include <initializer_list>
 #include <utility>
 
-using namespace std::chrono_literals;
 using Step = CBatchRenameSession::Step;
 
 namespace {
@@ -45,7 +40,6 @@ constexpr ushort cmRename = 200, cmUndo = 201;
 // The check boxes' items, in their order
 enum FindOption { FindIsRegex, FindIsCaseSensitive };
 constexpr int maskInputLimit = 1024; // Bytes
-constexpr auto escapeCheckInterval = 50ms;
 
 // The preview's columns, a third of its width each: the name, the new name, the status
 struct PreviewColumns
@@ -56,20 +50,6 @@ struct PreviewColumns
 [[nodiscard]] PreviewColumns previewColumns(const int width)
 {
 	return { width / 3, 2 * width / 3 };
-}
-
-// Takes the keys typed meanwhile, which a renaming drops: true when one of them is Esc
-[[nodiscard]] bool escapeTyped()
-{
-	bool escape = false;
-	for (;;)
-	{
-		TEvent event;
-		TEventQueue::getKeyEvent(event);
-		if (event.what == evNothing)
-			return escape;
-		escape |= event.what == evKeyDown && event.keyDown.keyCode == kbEsc;
-	}
 }
 
 // The session's items: the name, the new name and the status, which starts with a mark for an error
@@ -310,19 +290,13 @@ void CTuiBatchRenameDialog::runStep(const Step step)
 		_replaceWithHistory.record(_sessionRules.replaceWith);
 	}
 
-	setStatus(QStringLiteral("Renaming... Esc cancels"));
-	TScreen::flushScreen(); // No events run until the renaming ends
-	auto nextEscapeCheck = std::chrono::steady_clock::now();
-	const auto renamedPaths = _session.run(step, [&nextEscapeCheck] {
-		if (const auto now = std::chrono::steady_clock::now(); now >= nextEscapeCheck)
-		{
-			nextEscapeCheck = now + escapeCheckInterval;
-			return !escapeTyped();
-		}
-		return true;
-	});
-	CController::get().itemsRenamed(renamedPaths);
+	CBatchRenameRun renaming{ _session.startStep(step) };
+	if (!waitWithProgressDialog(QStringLiteral("Batch rename"), [&renaming] { return renaming.finished(); }, [&renaming](const int width) {
+			return QStringList{ QStringLiteral("Renaming..."), progressBar(renaming.percent(), width) };
+		}))
+		renaming.cancelAndWait();
 
+	CController::get().itemsRenamed(_session.finishStep(renaming.results()));
 	showSession();
 }
 
