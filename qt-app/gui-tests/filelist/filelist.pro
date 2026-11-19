@@ -34,7 +34,8 @@ INCLUDEPATH += \
 	../../src/ \
 	../../../file-commander-core/src/
 
-INCLUDEPATH += ../../../file-operations/test-utils/src/
+INCLUDEPATH += ../../../file-operations/test-utils/src/ \
+	../../../file-commander-core/core-tests/common/
 
 include(../../../file-commander-core/core.pri)
 
@@ -52,6 +53,7 @@ SOURCES += \
 
 HEADERS += \
 	filelisttesthelpers.h \
+	../../../file-commander-core/core-tests/common/filelisttestitems.h \
 	../../src/iconprovider/ciconprovider.h \
 	../../src/iconprovider/ciconproviderimpl.h \
 	../../src/iconprovider/fileglyph.h \

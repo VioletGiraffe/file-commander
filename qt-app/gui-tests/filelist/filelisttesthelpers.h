@@ -4,6 +4,8 @@
 
 #include "cfilesystemobject.h"
 
+#include "filelisttestitems.h"
+
 
 // Submodule includes
 #include "compiler/compiler_warnings_control.h"
@@ -15,41 +17,9 @@ DISABLE_COMPILER_WARNINGS
 RESTORE_COMPILER_WARNINGS
 
 #include <stdint.h>
-#include <time.h>
 
 // Settable via the --std-seed command-line option; see main.cpp
 extern uint32_t g_randomSeed;
-
-// An entry of /folder/; a test that changes it before listing keeps the properties, the others use makeRow()
-inline CFileSystemObjectProperties rowProperties(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
-{
-	CFileSystemObjectProperties properties;
-	properties.type = type;
-	const QString fullName = extension.isEmpty() ? name : name + '.' + extension;
-	properties.fullPath = QStringLiteral("/folder/") + fullName + (type == Directory ? QStringLiteral("/") : QString{});
-	properties.size = size;
-	properties.modificationTime = modificationTime;
-	return properties;
-}
-
-inline CFileSystemObject makeRow(FileSystemObjectType type, const QString& name, const QString& extension = {}, uint64_t size = 0, time_t modificationTime = 0)
-{
-	return CFileSystemObject{ rowProperties(type, name, extension, size, modificationTime) };
-}
-
-inline CFileSystemObjectProperties cdUpRowProperties()
-{
-	CFileSystemObjectProperties properties;
-	properties.type = Directory;
-	properties.fullPath = QStringLiteral("/");
-	properties.isCdUp = true;
-	return properties;
-}
-
-inline CFileSystemObject makeCdUpRow()
-{
-	return CFileSystemObject{ cdUpRowProperties() };
-}
 
 inline QStringList displayedNames(const CFileListModel& model)
 {
