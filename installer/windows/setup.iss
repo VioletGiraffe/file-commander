@@ -38,6 +38,10 @@ DisableReadyPage=yes
 [Tasks]
 Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:AdditionalIcons};
 
+[InstallDelete]
+; File comparison is now part of the application: a copy left by an older version would add its menu entry a second time
+Type: files; Name: "{app}\plugin_filecomparison.dll"
+
 [Files]
 
 ;App binaries

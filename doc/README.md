@@ -55,7 +55,7 @@ per-platform packaging and `extras/win/natvis` the debugger visualizers.
 | Programs menu | `file-commander-core/src/userprograms/`, `qt-app/src/programseditor/` |
 | Terminal UI | `tui/`; see [terminal-ui.md](terminal-ui.md) |
 | Native plugin API and loader | `file-commander-core/src/plugininterface/`, `pluginengine/` |
-| Shipped plugins | `plugins/viewer/`, `plugins/tools/` |
+| Shipped plugins | `plugins/viewer/` |
 | Build graph | `file-commander.pro`; see [build-ci-deps.md](build-ci-deps.md) |
 | Tests | `file-commander-core/core-tests/core-tests.pro`; see [testing.md](testing.md) |
 

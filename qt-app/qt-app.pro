@@ -53,6 +53,7 @@ SOURCES += \
 	src/settings/csettingspageother.cpp \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.cpp \
 	src/progressdialogs/cfileoperationconfirmationprompt.cpp \
+	src/progressdialogs/waitwithprogressdialog.cpp \
 	src/settings/csettingspageoperations.cpp \
 	src/favoritelocationseditor/cfavoritelocationseditor.cpp \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.cpp \
@@ -95,6 +96,7 @@ HEADERS += \
 	src/settings/csettingspageother.h \
 	src/panel/filelistwidget/delegate/cfilelistitemdelegate.h \
 	src/progressdialogs/cfileoperationconfirmationprompt.h \
+	src/progressdialogs/waitwithprogressdialog.h \
 	src/settings/csettingspageoperations.h \
 	src/favoritelocationseditor/cfavoritelocationseditor.h \
 	src/favoritelocationseditor/cnewfavoritelocationdialog.h \

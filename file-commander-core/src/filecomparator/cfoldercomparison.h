@@ -34,7 +34,6 @@ public:
 	// Of the file contents compared; nullopt while the folders are being scanned, which reports no progress
 	[[nodiscard]] std::optional<int> percent() const noexcept;
 	[[nodiscard]] bool finished() { return _task.finished(); }
-	void cancel() noexcept { _task.cancel(); }
 	[[nodiscard]] const std::optional<FolderComparisonResult>& result() const noexcept { return _task.result(); }
 
 	// The side that holds the entry: the right one for an entry only it has

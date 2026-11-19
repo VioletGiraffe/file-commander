@@ -6,6 +6,7 @@
 
 #include "iconprovider/ciconprovider.h"
 #include "progressdialogs/cfileoperationconfirmationprompt.h"
+#include "progressdialogs/waitwithprogressdialog.h"
 
 #include "commandoutput/ccommandoutputarea.h"
 #include "functionkeybar/cfunctionkeybutton.h"
@@ -29,6 +30,7 @@
 
 #include "settings.h"
 #include "fileoperationlaunch.h"
+#include "filecomparator/cfilecomparator.h"
 #include "filecomparator/cfoldercomparison.h"
 #include "filesearchengine/filesearchquery.h"
 #include "pluginengine/cpluginengine.h"
@@ -44,6 +46,7 @@
 #include "appdialogs/csettingsnotifier.h"
 #include "appdialogs/reportbugdialog.h"
 #include "assert/advanced_assert.h"
+#include "dialogs/csimpleprogressdialog.h"
 #include "dialogs/messagedialog.h"
 #include "fileoperations/fileoperationtexts.h"
 #include "fileoperations/fileoperationtypes.h"
@@ -101,6 +104,7 @@ RESTORE_COMPILER_WARNINGS
 #endif
 
 #include <algorithm>
+#include <initializer_list>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -384,6 +388,7 @@ void CMainWindow::initActions()
 	connect(ui->action_Settings, &QAction::triggered, this, &CMainWindow::openSettingsDialog);
 	connect(ui->actionCalculate_occupied_space, &QAction::triggered, this, &CMainWindow::calculateStatistics);
 	connect(ui->actionCalculate_each_folder_s_size, &QAction::triggered, this, &CMainWindow::calculateEachFolderSize);
+	connect(ui->actionCompare_files, &QAction::triggered, this, &CMainWindow::compareFiles);
 	connect(ui->actionCompare_folders, &QAction::triggered, this, &CMainWindow::compareFolders);
 	connect(ui->actionBatch_rename, &QAction::triggered, this, &CMainWindow::batchRename);
 	connect(ui->actionJump_to_first_file, &QAction::triggered, this, [this]{ if (_currentFileList) _currentFileList->moveCursorToFirstFile(); });
@@ -1336,10 +1341,73 @@ void CMainWindow::calculateEachFolderSize()
 		_controller->displayEachDirSize(_currentFileList->panelPosition());
 }
 
+void CMainWindow::compareFiles()
+{
+	if (!_currentFileList)
+		return;
+
+	const CFileSystemObject currentItem = _controller->currentItem(_currentFileList->panelPosition());
+	if (!currentItem.isFile())
+	{
+		QMessageBox::warning(this, tr("File comparison"), tr("The selected item is not a file:\n") + currentItem.fullAbsolutePath());
+		return;
+	}
+
+	const Panel otherPanel = _otherFileList->panelPosition();
+	const CFileSystemObject otherItem = _controller->currentItem(otherPanel);
+	const QString filePathA = currentItem.fullAbsolutePath();
+	const QString filePathB = otherItem.isFile() ? otherItem.fullAbsolutePath() : _controller->currentFolderPath(otherPanel) + "/" + currentItem.fullName().toString();
+	const QFileInfo infoA{ filePathA }, infoB{ filePathB };
+
+	for (const QFileInfo& info : { infoA, infoB })
+	{
+		if (!info.exists())
+		{
+			QMessageBox::warning(this, tr("File comparison"), tr("The file\n%1\nis selected for comparison, but doesn't exist.").arg(info.filePath()));
+			return;
+		}
+	}
+
+	if (infoA.size() != infoB.size())
+	{
+		QMessageBox::warning(this, tr("File comparison"), tr("Files have different sizes:\n%1: %2\n%3: %4").arg(filePathA).arg(infoA.size()).arg(filePathB).arg(infoB.size()));
+		return;
+	}
+
+	CFileComparator comparator{ filePathA, filePathB };
+	const bool finished = waitWithProgressDialog(this, tr("Comparing files"), tr("Comparing the selected files..."), [&comparator] { return comparator.finished(); },
+		[&comparator](CSimpleProgressDialog& dialog) { dialog.setValue(comparator.percent()); });
+	if (!finished || !comparator.result())
+		return;
+
+	switch (*comparator.result())
+	{
+	case ContentComparisonResult::Equal:
+		QMessageBox::information(this, tr("Files are identical"), tr("The file\n%1\n\nis IDENTICAL to\n\n%2.").arg(filePathA, filePathB));
+		break;
+	case ContentComparisonResult::Different:
+		QMessageBox::warning(this, tr("Files differ"), tr("The file\n%1\n\nis DIFFERENT from\n\n%2.").arg(filePathA, filePathB));
+		break;
+	case ContentComparisonResult::Error:
+		QMessageBox::critical(this, tr("Comparison failed"), tr("Failed to read the files:\n%1\n\n%2").arg(filePathA, filePathB));
+		break;
+	case ContentComparisonResult::Aborted: // CFileComparator reports none: an aborted comparison has no result
+		break;
+	}
+}
+
 void CMainWindow::compareFolders()
 {
 	CFolderComparison comparison{ _controller->panel(Panel::LeftPanel).currentDirPathPosix(), _controller->panel(Panel::RightPanel).currentDirPathPosix() };
-	if (!waitForFolderComparison(this, comparison) || !comparison.result())
+	const bool finished = waitWithProgressDialog(this, tr("Comparing folders"), tr("Scanning both folders..."), [&comparison] { return comparison.finished(); },
+		[&comparison](CSimpleProgressDialog& dialog) {
+			if (const std::optional<int> percent = comparison.percent())
+			{
+				dialog.setLabelText(tr("Comparing file contents..."));
+				dialog.setValue(*percent);
+			}
+		});
+	if (!finished || !comparison.result())
 		return;
 
 	auto* comparisonWindow = new CFolderComparisonWindow(this, comparison, *_controller);

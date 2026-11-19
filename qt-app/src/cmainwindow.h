@@ -141,6 +141,7 @@ private:
 	void openSettingsDialog();
 	void calculateStatistics();
 	void calculateEachFolderSize();
+	void compareFiles();
 	void compareFolders();
 	void batchRename();
 	void checkForUpdates();

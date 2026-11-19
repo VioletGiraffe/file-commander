@@ -18,7 +18,7 @@ through execution queues, queued Qt invocations, listener callbacks, or typed op
 | volume enumerator and snapshot poller | periodic threads | Device polling; directory polling where notifications may miss changes |
 | `CIconProvider` | one COM apartment thread plus UI execution queue | Shell icon retrieval for the file list |
 | `CFileSystemWatcher` | `thin_io::directory_watcher`, read on the UI tick | Directory change notification; thin_io's own threads are in its README |
-| file comparison plugin | worker thread with abort flag | One two-file content comparison |
+| `CFileComparator` | `CBackgroundTask` per comparison | One two-file content comparison; the UI polls it from a modal progress dialog |
 | `CFolderComparison` | `CBackgroundTask` per comparison | Tree scan and compare; the UI polls it from a modal progress dialog |
 | `CFileStatisticsScan` | `CBackgroundTask` per scan | The Statistics command's scan; the GUI's Statistics window polls it, the TUI a modal progress dialog |
 | `calculateStatsFor` | transient scan-thread team | Parallel directory statistics, joined before returning |
@@ -29,8 +29,8 @@ replace older pending entries with the same tag; work queued during a drain wait
 enumerator drains its own notification queue on its own timer. Which listener each queue feeds is in
 [notifications.md](notifications.md).
 
-The file comparison plugin and the search window report back through queued Qt invocations targeting a UI object whose
-destruction cancels delivery; each owner still aborts and joins its worker before that object dies.
+The search window receives results through queued Qt invocations targeting a UI object whose destruction cancels
+delivery; the window still aborts and joins its worker before that object dies.
 `calculateStatsFor` runs its scan team on whatever thread calls it: a `CFileStatisticsScan` thread, or a pool worker
 for a panel dir-size task, under the panel's abort flag. Concurrent calls each spawn their own team.
 A path bar folder's menu lists that folder on the UI thread as it opens: the folder is an ancestor of one just listed.
@@ -74,9 +74,9 @@ tab ID. See [core-engine.md](core-engine.md) for the complete publication bounda
 - `CFileSearchEngine` retains a raw listener; its owner must wait for the search to finish before destruction.
 - `CShellOperationRunner` is owned outside the main window and drains UI events while waiting at shutdown. This
   preserves the native owner window and avoids deadlocking shell work that still marshals through the UI thread.
-- Destroying a `CFileStatisticsScan` or `CFolderComparison` joins its thread on the UI thread: closing the Statistics
-  window or cancelling in the TUI waits until the scan notices the cancellation. A statistics scan notices it between
-  directory listings.
+- Destroying a `CFileStatisticsScan`, `CFolderComparison` or `CFileComparator` joins its thread on the UI thread:
+  closing the Statistics window or cancelling a progress dialog waits until the work notices the cancellation. A
+  statistics scan notices it between directory listings.
 
 Structural lifetime constraints belong beside the relevant member declarations; preserve those comments when
 changing declaration order.

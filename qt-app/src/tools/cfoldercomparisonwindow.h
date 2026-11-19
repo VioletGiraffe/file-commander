@@ -11,9 +11,6 @@ RESTORE_COMPILER_WARNINGS
 class CController;
 class CFolderComparison;
 
-// Shows the comparison's progress in a cancellable dialog until it finishes. False if the user cancelled.
-[[nodiscard]] bool waitForFolderComparison(QWidget* parent, CFolderComparison& comparison);
-
 class CFolderComparisonWindow final : public QMainWindow
 {
 public:

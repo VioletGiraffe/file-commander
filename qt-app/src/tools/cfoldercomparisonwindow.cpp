@@ -9,7 +9,6 @@
 
 // Submodule includes
 #include "assert/advanced_assert.h"
-#include "dialogs/csimpleprogressdialog.h"
 #include "qtcore_helpers/displayformatting.hpp"
 #include "widgets/cpersistenceenabler.h"
 
@@ -19,7 +18,6 @@ DISABLE_COMPILER_WARNINGS
 #include <QLabel>
 #include <QPushButton>
 #include <QShortcut>
-#include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 RESTORE_COMPILER_WARNINGS
@@ -39,32 +37,6 @@ QString sizeText(const std::optional<uint64_t> size)
 }
 
 } // namespace
-
-bool waitForFolderComparison(QWidget* parent, CFolderComparison& comparison)
-{
-	CSimpleProgressDialog progressDialog{ parent };
-	progressDialog.setWindowTitle(QObject::tr("Comparing folders"));
-	progressDialog.setLabelText(QObject::tr("Scanning both folders..."));
-	progressDialog.setCancellable(true);
-
-	QTimer progressTimer;
-	QObject::connect(&progressTimer, &QTimer::timeout, &progressDialog, [&progressDialog, &comparison] {
-		if (comparison.finished())
-			progressDialog.accept();
-		else if (const std::optional<int> percent = comparison.percent())
-		{
-			progressDialog.setLabelText(QObject::tr("Comparing file contents..."));
-			progressDialog.setValue(*percent);
-		}
-	});
-	progressTimer.start(50);
-
-	if (progressDialog.exec() == QDialog::Accepted)
-		return true;
-
-	comparison.cancel();
-	return false;
-}
 
 CFolderComparisonWindow::CFolderComparisonWindow(QWidget* parent, const CFolderComparison& comparison, CController& controller) :
 	QMainWindow{ nullptr }

@@ -223,6 +223,7 @@
     <addaction name="actionCalculate_occupied_space"/>
     <addaction name="actionCalculate_each_folder_s_size"/>
     <addaction name="separator"/>
+    <addaction name="actionCompare_files"/>
     <addaction name="actionCompare_folders"/>
     <addaction name="separator"/>
     <addaction name="actionBatch_rename"/>
@@ -358,6 +359,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionCompare_files">
+   <property name="text">
+    <string>Compare files by contents</string>
    </property>
   </action>
   <action name="actionCompare_folders">
